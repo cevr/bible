@@ -54,3 +54,13 @@ export const makeSyncCommand = <F extends Schema.Schema.AnyNoContext>(
       Effect.provide(ContentService.make(config)),
     ),
   );
+
+export const makeDeleteCommand = <F extends Schema.Schema.AnyNoContext>(
+  config: ContentTypeConfig<F>,
+) =>
+  Command.make('delete', { files }, (args) =>
+    ContentService.pipe(
+      Effect.flatMap((service) => service.deleteNotes(args.files)),
+      Effect.provide(ContentService.make(config)),
+    ),
+  );

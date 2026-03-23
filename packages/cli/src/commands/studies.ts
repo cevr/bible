@@ -6,6 +6,7 @@ import { join } from 'path';
 
 import { StudiesConfig } from '~/src/lib/content/configs';
 import {
+  makeDeleteCommand,
   makeListCommand,
   makeReviseCommand,
   makeExportCommand,
@@ -154,5 +155,6 @@ export const studies = Command.make('studies').pipe(
     makeSyncCommand(StudiesConfig),
     makeListCommand(StudiesConfig),
     makeExportCommand(StudiesConfig),
+    makeDeleteCommand(StudiesConfig),
   ]),
 );

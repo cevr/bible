@@ -5,7 +5,12 @@ import { Context, Effect, Layer, Match, Schema } from 'effect';
 import { join } from 'path';
 
 import type { ContentTypeConfig, SortStrategy } from '~/src/lib/content/types';
-import { parseFrontmatter, stringifyFrontmatter, updateFrontmatter } from '~/src/lib/frontmatter';
+import {
+  parseFrontmatter,
+  removeFrontmatterFields,
+  stringifyFrontmatter,
+  updateFrontmatter,
+} from '~/src/lib/frontmatter';
 import { getOutputsPath, getPromptPath } from '~/src/lib/paths';
 import { revise, type ReviewError } from '~/src/lib/revise';
 import {
@@ -13,6 +18,7 @@ import {
   updateAppleNoteFromMarkdown,
   type MarkdownParseError,
 } from '~/src/lib/markdown-to-notes';
+import { deleteNote, type NoteOperationError } from '~/src/lib/notes-utils';
 import type { AI } from '~/src/services/ai';
 import type { AppleScript } from '~/src/services/apple-script';
 import type { Chime } from '~/src/services/chime';
@@ -30,6 +36,7 @@ type ContentExportError =
   | MarkdownParseError
   | Cause.UnknownException;
 type ContentSyncError = PlatformError.PlatformError | MarkdownParseError | Cause.UnknownException;
+type ContentDeleteError = PlatformError.PlatformError | NoteOperationError | Cause.UnknownException;
 
 // Service interface with proper error/context types
 export class ContentService extends Context.Tag('@bible/cli/services/content/ContentService')<
@@ -47,6 +54,7 @@ export class ContentService extends Context.Tag('@bible/cli/services/content/Con
     readonly sync: (
       filePaths: readonly string[],
     ) => Effect.Effect<void, ContentSyncError, AppleScript>;
+    readonly deleteNotes: (filePaths: readonly string[]) => Effect.Effect<void, ContentDeleteError>;
   }
 >() {
   static make = <F extends Schema.Schema.AnyNoContext>(config: ContentTypeConfig<F>) =>
@@ -164,11 +172,36 @@ export class ContentService extends Context.Tag('@bible/cli/services/content/Con
             }
           });
 
+        const deleteNotesImpl = (filePaths: readonly string[]) =>
+          Effect.gen(function* () {
+            for (const filePath of filePaths) {
+              const rawContent = yield* fs
+                .readFile(filePath)
+                .pipe(Effect.map((i) => new TextDecoder().decode(i)));
+
+              const { frontmatter } = parseFrontmatter(rawContent);
+              const appleNoteId = frontmatter.apple_note_id;
+
+              if (typeof appleNoteId !== 'string') {
+                yield* Effect.log(`Skipped (no apple_note_id): ${filePath}`);
+                continue;
+              }
+
+              yield* deleteNote(appleNoteId);
+
+              const updated = removeFrontmatterFields(rawContent, ['apple_note_id']);
+              yield* fs.writeFile(filePath, new TextEncoder().encode(updated));
+
+              yield* Effect.log(`Deleted note and removed apple_note_id: ${filePath}`);
+            }
+          });
+
         return ContentService.of({
           list,
           revise: reviseImpl,
           export: exportImpl,
           sync: syncImpl,
+          deleteNotes: deleteNotesImpl,
         });
       }),
     );

@@ -6,6 +6,7 @@ import { join } from 'path';
 
 import { MessagesConfig } from '~/src/lib/content/configs';
 import {
+  makeDeleteCommand,
   makeListCommand,
   makeReviseCommand,
   makeExportCommand,
@@ -278,5 +279,6 @@ export const messages = Command.make('messages').pipe(
     makeSyncCommand(MessagesConfig),
     makeListCommand(MessagesConfig),
     makeExportCommand(MessagesConfig),
+    makeDeleteCommand(MessagesConfig),
   ]),
 );

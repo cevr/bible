@@ -5,6 +5,7 @@ import { join } from 'path';
 
 import { ReadingsConfig } from '~/src/lib/content/configs';
 import {
+  makeDeleteCommand,
   makeListCommand,
   makeReviseCommand,
   makeExportCommand,
@@ -150,5 +151,6 @@ export const readings = Command.make('readings').pipe(
     makeSyncCommand(ReadingsConfig),
     makeListCommand(ReadingsConfig),
     makeExportCommand(ReadingsConfig),
+    makeDeleteCommand(ReadingsConfig),
   ]),
 );

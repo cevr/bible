@@ -4,7 +4,7 @@ import * as cheerio from 'cheerio';
 import { Array, Data, Effect, Option, Schema, Stream } from 'effect';
 import { dirname, join } from 'path';
 
-import { makeSyncCommand } from '~/src/lib/content/commands';
+import { makeDeleteCommand, makeSyncCommand } from '~/src/lib/content/commands';
 import { SabbathSchoolConfig } from '~/src/lib/content/configs';
 import { type AppleNoteId, SabbathSchoolFrontmatter } from '~/src/lib/content/schemas';
 import { parseFrontmatter, stringifyFrontmatter, updateFrontmatter } from '~/src/lib/frontmatter';
@@ -599,5 +599,6 @@ export const sabbathSchool = Command.make('sabbath-school').pipe(
     reviseQuarter,
     exportQuarter,
     makeSyncCommand(SabbathSchoolConfig),
+    makeDeleteCommand(SabbathSchoolConfig),
   ]),
 );

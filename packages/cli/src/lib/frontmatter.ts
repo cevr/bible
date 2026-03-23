@@ -49,3 +49,15 @@ export function updateFrontmatter(markdown: string, updates: Record<string, unkn
   const updatedFrontmatter = { ...frontmatter, ...updates };
   return stringifyFrontmatter(updatedFrontmatter, content);
 }
+
+/**
+ * Remove specific frontmatter fields.
+ */
+export function removeFrontmatterFields(markdown: string, fields: string[]): string {
+  const { frontmatter, content } = parseFrontmatter(markdown);
+  const updated = { ...frontmatter };
+  for (const field of fields) {
+    delete updated[field];
+  }
+  return stringifyFrontmatter(updated, content);
+}

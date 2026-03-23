@@ -26,7 +26,9 @@ export interface NoteListItem {
   modificationDate: string;
 }
 
-class NoteOperationError extends Data.TaggedError('@bible/cli/lib/notes-utils/NoteOperationError')<{
+export class NoteOperationError extends Data.TaggedError(
+  '@bible/cli/lib/notes-utils/NoteOperationError',
+)<{
   message: string;
   cause?: unknown;
   script?: string;
