@@ -148,6 +148,7 @@ bin/
 packages/core/data/tokens.json
 
 # Generated databases (rebuilt via sync scripts from JSON assets)
-packages/core/data/*.db
+packages/core/data/bible.db
+packages/core/data/egw-paragraphs.db
 # Cached Sabbath School PDFs (re-downloadable)
 packages/cli/outputs/sabbath-school/pdfs/
