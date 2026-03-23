@@ -15,7 +15,7 @@ import {
   type MarginNote,
   type ConcordanceResult,
 } from '@bible/core/bible-db';
-import { BunContext } from '@effect/platform-bun';
+import { BunServices } from '@effect/platform-bun';
 import { Effect, Layer, ManagedRuntime, Option } from 'effect';
 import { createContext, useContext, type ParentProps } from 'solid-js';
 
@@ -72,7 +72,7 @@ export interface MarginNoteCompat {
 }
 
 // Create combined layer with all dependencies
-const BibleServicesLayer = BibleDatabase.Default.pipe(Layer.provideMerge(BunContext.layer));
+const BibleServicesLayer = BibleDatabase.Default.pipe(Layer.provideMerge(BunServices.layer));
 
 // Create ManagedRuntime
 const runtime = ManagedRuntime.make(BibleServicesLayer);
@@ -188,7 +188,11 @@ export function StudyDataProvider(props: ParentProps) {
     if (crossRefSvc !== null) return crossRefSvc;
     try {
       // Get BibleState from the app runtime (available after BibleProvider mounts)
-      const state = appRuntime.runSync(BibleState);
+      const state = appRuntime.runSync(
+        Effect.gen(function* () {
+          return yield* BibleState;
+        }),
+      );
       crossRefSvc = createCrossRefService(state);
       return crossRefSvc;
     } catch {

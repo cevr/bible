@@ -2,7 +2,7 @@ import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI } from '@ai-sdk/openai';
 import { type LanguageModel } from 'ai';
-import { Effect, Option, Schema } from 'effect';
+import { Config, Effect, Option, Schema } from 'effect';
 
 /**
  * Supported AI providers.
@@ -34,7 +34,9 @@ export interface ProviderConfig {
  * Returns all providers that have valid API keys configured.
  */
 export const discoverProviders = Effect.fn('discoverProviders')(function* () {
-  const google = yield* Schema.Config('GEMINI_API_KEY', Schema.NonEmptyString).pipe(
+  const google = yield* Effect.gen(function* () {
+    return yield* Config.schema(Schema.NonEmptyString, 'GEMINI_API_KEY');
+  }).pipe(
     Effect.option,
     Effect.map((googleKey) =>
       googleKey.pipe(
@@ -54,7 +56,9 @@ export const discoverProviders = Effect.fn('discoverProviders')(function* () {
     ),
   );
 
-  const openai = yield* Schema.Config('OPENAI_API_KEY', Schema.NonEmptyString).pipe(
+  const openai = yield* Effect.gen(function* () {
+    return yield* Config.schema(Schema.NonEmptyString, 'OPENAI_API_KEY');
+  }).pipe(
     Effect.option,
     Effect.map((openaiKey) =>
       openaiKey.pipe(
@@ -72,7 +76,9 @@ export const discoverProviders = Effect.fn('discoverProviders')(function* () {
     ),
   );
 
-  const anthropic = yield* Schema.Config('ANTHROPIC_API_KEY', Schema.NonEmptyString).pipe(
+  const anthropic = yield* Effect.gen(function* () {
+    return yield* Config.schema(Schema.NonEmptyString, 'ANTHROPIC_API_KEY');
+  }).pipe(
     Effect.option,
     Effect.map((anthropicKey) =>
       anthropicKey.pipe(

@@ -3,7 +3,7 @@
  *
  * Delegates to core EGWService for all operations.
  */
-import { HttpApiBuilder } from '@effect/platform';
+import { HttpApiBuilder } from 'effect/unstable/httpapi';
 import { Effect, Option } from 'effect';
 
 import {
@@ -30,7 +30,7 @@ export const EGWGroupLive = HttpApiBuilder.group(BibleToolsApi, 'EGW', (handlers
 
     return handlers
       .handle('books', () => egw.getBooks().pipe(mapDbError))
-      .handle('page', ({ path: { bookCode, page } }) =>
+      .handle('page', ({ params: { bookCode, page } }) =>
         Effect.gen(function* () {
           // Check if book exists
           const bookOpt = yield* egw.getBook(bookCode).pipe(mapDbError);
@@ -58,7 +58,7 @@ export const EGWGroupLive = HttpApiBuilder.group(BibleToolsApi, 'EGW', (handlers
           return pageData;
         }),
       )
-      .handle('chapters', ({ path: { bookCode } }) =>
+      .handle('chapters', ({ params: { bookCode } }) =>
         Effect.gen(function* () {
           // Check if book exists
           const bookOpt = yield* egw.getBook(bookCode).pipe(mapDbError);
@@ -74,10 +74,10 @@ export const EGWGroupLive = HttpApiBuilder.group(BibleToolsApi, 'EGW', (handlers
           return yield* egw.getChapters(bookCode).pipe(mapDbError);
         }),
       )
-      .handle('search', ({ urlParams: { q, limit, bookCode } }) =>
+      .handle('search', ({ query: { q, limit, bookCode } }) =>
         egw.search(q, limit, bookCode).pipe(mapDbError),
       )
-      .handle('bookDump', ({ path: { bookCode } }) =>
+      .handle('bookDump', ({ params: { bookCode } }) =>
         Effect.gen(function* () {
           const dumpOpt = yield* egw.getBookDump(bookCode).pipe(mapDbError);
           if (Option.isNone(dumpOpt)) {

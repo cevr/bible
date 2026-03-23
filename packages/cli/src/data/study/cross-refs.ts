@@ -1,6 +1,6 @@
 // @effect-diagnostics strictBooleanExpressions:off anyUnknownInErrorContext:off
 import { BibleDatabase, type CrossReference } from '@bible/core/bible-db';
-import { BunContext } from '@effect/platform-bun';
+import { BunServices } from '@effect/platform-bun';
 import { Effect, Layer, ManagedRuntime } from 'effect';
 
 import {
@@ -31,7 +31,7 @@ function classificationKey(book: number, chapter: number, verse: number | null):
 }
 
 // Module-level runtime for BibleDatabase access
-const BibleDbLayer = BibleDatabase.Default.pipe(Layer.provideMerge(BunContext.layer));
+const BibleDbLayer = BibleDatabase.Default.pipe(Layer.provideMerge(BunServices.layer));
 const dbRuntime = ManagedRuntime.make(BibleDbLayer);
 
 let dbInitialized = false;
@@ -40,9 +40,15 @@ let dbInitPromise: Promise<void> | null = null;
 async function ensureDbInitialized(): Promise<void> {
   if (dbInitialized) return;
   if (dbInitPromise) return dbInitPromise;
-  dbInitPromise = dbRuntime.runPromise(BibleDatabase).then(() => {
-    dbInitialized = true;
-  });
+  dbInitPromise = dbRuntime
+    .runPromise(
+      Effect.gen(function* () {
+        return yield* BibleDatabase;
+      }),
+    )
+    .then(() => {
+      dbInitialized = true;
+    });
   return dbInitPromise;
 }
 

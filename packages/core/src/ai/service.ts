@@ -1,11 +1,11 @@
 // @effect-diagnostics strictBooleanExpressions:off
 import { type LanguageModel } from 'ai';
-import { Context, Layer, Schema } from 'effect';
+import { ServiceMap, Layer, Schema } from 'effect';
 
 /**
  * Error thrown when AI operations fail.
  */
-export class AiError extends Schema.TaggedError<AiError>()('AiError', {
+export class AiError extends Schema.TaggedErrorClass<AiError>()('AiError', {
   operation: Schema.String,
   cause: Schema.Defect,
 }) {}
@@ -28,10 +28,9 @@ export interface ModelConfig {
  * AI Service for text generation operations.
  * This service provides the configured AI models to use for generation.
  */
-export class AiService extends Context.Tag('@bible/core/ai/service/AiService')<
-  AiService,
-  ModelConfig
->() {
+export class AiService extends ServiceMap.Service<AiService, ModelConfig>()(
+  '@bible/core/ai/service/AiService',
+) {
   /**
    * Live implementation using real AI models.
    * Caller must provide the model configuration.

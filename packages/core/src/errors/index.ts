@@ -2,7 +2,7 @@
  * Centralized Error Types
  *
  * All error types for @bible/core, organized by domain.
- * Uses Schema.TaggedError for serialization and pattern matching.
+ * Uses Schema.TaggedErrorClass for serialization and pattern matching.
  * Each domain exports both individual errors and a Schema.Union.
  */
 

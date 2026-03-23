@@ -16,19 +16,19 @@ import {
 } from '@bible/core/egw';
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
 import { EGWService, type EGWSearchResult } from '@bible/core/egw-service';
-import { Args, Command } from '@effect/cli';
-import { BunContext } from '@effect/platform-bun';
+import { Argument, Command } from 'effect/unstable/cli';
+import { BunServices } from '@effect/platform-bun';
 import { Console, Effect, Layer, Option } from 'effect';
 
 // Variadic args to capture "PP 351.1" or "PP" "351.1" etc.
-const query = Args.text({ name: 'query' }).pipe(Args.repeated);
+const query = Argument.string('query').pipe(Argument.variadic());
 
 /**
  * EGW services layer for CLI commands
  */
 const EGWLayer = EGWService.Default.pipe(
   Layer.provide(EGWParagraphDatabase.Default),
-  Layer.provide(BunContext.layer),
+  Layer.provide(BunServices.layer),
 );
 
 /**

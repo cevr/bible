@@ -6,7 +6,7 @@
  * Uses the indexed paragraph_bible_refs table for fast O(1) lookups.
  */
 
-import { Context, Effect, Layer, Schema } from 'effect';
+import { ServiceMap, Effect, Layer, Schema } from 'effect';
 
 import { EGWParagraphDatabase } from '../egw-db/book-database.js';
 import type * as EGWSchemas from '../egw/schemas.js';
@@ -15,7 +15,7 @@ import type { CommentaryEntry, CommentaryResult, VerseReference } from './types.
 /**
  * Error types for the commentary service
  */
-export class CommentaryError extends Schema.TaggedError<CommentaryError>()('CommentaryError', {
+export class CommentaryError extends Schema.TaggedErrorClass<CommentaryError>()('CommentaryError', {
   message: Schema.String,
   cause: Schema.optional(Schema.Unknown),
 }) {}
@@ -69,9 +69,10 @@ export interface EGWCommentaryServiceShape {
  *
  * Provides commentary lookup from EGW Bible Commentary volumes.
  */
-export class EGWCommentaryService extends Context.Tag(
-  '@bible/core/egw-commentary/service/EGWCommentaryService',
-)<EGWCommentaryService, EGWCommentaryServiceShape>() {
+export class EGWCommentaryService extends ServiceMap.Service<
+  EGWCommentaryService,
+  EGWCommentaryServiceShape
+>()('@bible/core/egw-commentary/service/EGWCommentaryService') {
   /**
    * Live implementation using EGWParagraphDatabase.
    */

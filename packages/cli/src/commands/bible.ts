@@ -1,15 +1,15 @@
 // @effect-diagnostics strictEffectProvide:off
-import { BunContext } from '@effect/platform-bun';
-import { Args, Command } from '@effect/cli';
+import { BunServices } from '@effect/platform-bun';
+import { Argument, Command } from 'effect/unstable/cli';
 import { BibleDatabase, type ConcordanceResult, type StrongsEntry } from '@bible/core/bible-db';
-import { Console, Effect, Layer, Option, Runtime } from 'effect';
+import { Console, Effect, Layer, Option } from 'effect';
 
 import { BibleData, BibleDataLive } from '~/src/data/bible/data';
 import { getVersesForQuery, parseVerseQuery } from '~/src/data/bible/parse';
 import { getBook, type BibleDataSyncService, type Verse } from '~/src/data/bible/types';
 
 // Variadic args to capture "john 3:16" or "john" "3:16" etc.
-const query = Args.text({ name: 'query' }).pipe(Args.repeated);
+const query = Argument.string('query').pipe(Argument.variadic());
 
 // Format a single verse for output
 function formatVerse(verse: Verse): string {
@@ -44,8 +44,8 @@ export const verse = Command.make('verse', { query }, (args) =>
   Effect.gen(function* () {
     const data = yield* BibleData;
     const queryStr = args.query.join(' ').trim();
-    const runtime = yield* Effect.runtime();
-    const runSync = Runtime.runSync(runtime);
+    const services = yield* Effect.services();
+    const runSync = Effect.runSyncWith(services);
 
     if (queryStr.length === 0) {
       yield* Console.log('Usage: bible verse <reference or search query>');
@@ -109,7 +109,7 @@ function formatConcordanceResult(result: ConcordanceResult): string {
 }
 
 // Layer for concordance command
-const ConcordanceLive = BibleDatabase.Default.pipe(Layer.provideMerge(BunContext.layer));
+const ConcordanceLive = BibleDatabase.Default.pipe(Layer.provideMerge(BunServices.layer));
 
 export const concordance = Command.make('concordance', { query }, (args) =>
   Effect.gen(function* () {

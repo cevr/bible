@@ -1,6 +1,5 @@
-import { Command, Options } from '@effect/cli';
-import { FileSystem } from '@effect/platform';
-import { Console, Effect, Schema } from 'effect';
+import { Command, Flag } from 'effect/unstable/cli';
+import { Console, Effect, FileSystem } from 'effect';
 
 import { file, folder, json, noteId } from '~/src/lib/content/options';
 import {
@@ -12,10 +11,8 @@ import { listNotes } from '~/src/lib/notes-utils';
 const list = Command.make('list', { json }, (args) =>
   Effect.gen(function* () {
     const notes = yield* listNotes();
-    const encodeJson = Schema.encode(Schema.parseJson({ space: 2 }));
-
     if (args.json) {
-      const jsonOutput = yield* encodeJson(notes);
+      const jsonOutput = JSON.stringify(notes, null, 2);
       yield* Console.log(jsonOutput);
     } else {
       if (notes.length === 0) {
@@ -43,7 +40,7 @@ const list = Command.make('list', { json }, (args) =>
   }),
 );
 
-const optionalNoteId = noteId.pipe(Options.optional);
+const optionalNoteId = noteId.pipe(Flag.optional);
 
 const exportNote = Command.make('export', { file, noteId: optionalNoteId, folder }, (args) =>
   Effect.gen(function* () {

@@ -3,7 +3,7 @@
  *
  * Delegates to core BibleService for all operations.
  */
-import { HttpApiBuilder } from '@effect/platform';
+import { HttpApiBuilder } from 'effect/unstable/httpapi';
 import { Effect, Option } from 'effect';
 
 import { BibleToolsApi, BookNotFoundError, ChapterNotFoundError, DatabaseError } from '@bible/api';
@@ -25,7 +25,7 @@ export const BibleGroupLive = HttpApiBuilder.group(BibleToolsApi, 'Bible', (hand
 
     return handlers
       .handle('books', () => bible.getBooks().pipe(mapDbError))
-      .handle('chapter', ({ path: { book, chapter } }) =>
+      .handle('chapter', ({ params: { book, chapter } }) =>
         Effect.gen(function* () {
           // Get book info
           const bookInfo = yield* bible.getBook(book).pipe(mapDbError);
@@ -60,6 +60,6 @@ export const BibleGroupLive = HttpApiBuilder.group(BibleToolsApi, 'Bible', (hand
           };
         }),
       )
-      .handle('search', ({ urlParams: { q, limit } }) => bible.search(q, limit).pipe(mapDbError));
+      .handle('search', ({ query: { q, limit } }) => bible.search(q, limit).pipe(mapDbError));
   }),
 );

@@ -4,26 +4,25 @@
  * Adapted from Spotify auth patterns with Effect-TS
  */
 
-import type { HttpClientError } from '@effect/platform';
+import type { HttpClientError } from 'effect/unstable/http';
 import {
-  FileSystem,
   HttpBody,
   HttpClient,
   HttpClientRequest,
   HttpClientResponse,
-  Path,
   UrlParams,
-} from '@effect/platform';
-import type { PlatformError } from '@effect/platform/Error';
-import type { ConfigError, ParseResult } from 'effect';
+} from 'effect/unstable/http';
+import type { PlatformError } from 'effect/PlatformError';
 import {
   Clock,
   Config,
-  Context,
+  ServiceMap,
   Duration,
   Effect,
+  FileSystem,
   Layer,
   Option,
+  Path,
   Predicate,
   Redacted,
   Schedule,
@@ -34,7 +33,7 @@ import {
 /**
  * EGW Auth Errors
  */
-export class EGWAuthError extends Schema.TaggedError<EGWAuthError>()('EGWAuthError', {
+export class EGWAuthError extends Schema.TaggedErrorClass<EGWAuthError>()('EGWAuthError', {
   cause: Schema.Unknown,
   message: Schema.String,
 }) {}
@@ -59,8 +58,8 @@ export class AccessToken extends Schema.Class<AccessToken>('lib/EGW/Auth/AccessT
   expiresAt: Schema.Int,
   scope: Schema.String,
 }) {
-  static fromJson = Schema.decode(Schema.parseJson(this));
-  static toJson = Schema.encode(Schema.parseJson(this));
+  static fromJson = Schema.decodeEffect(Schema.fromJsonString(this));
+  static toJson = Schema.encodeEffect(Schema.fromJsonString(this));
 
   isExpired(now: number): boolean {
     return this.expiresAt <= now;
@@ -70,35 +69,19 @@ export class AccessToken extends Schema.Class<AccessToken>('lib/EGW/Auth/AccessT
 /**
  * Transform OAuth token response to AccessToken
  */
-const AccessTokenFromOAuthResponse = Schema.transformOrFail(
-  OAuthTokenResponse,
-  Schema.typeSchema(AccessToken),
-  {
-    strict: true,
-    decode: (encoded) =>
-      Effect.gen(function* () {
-        const createdAt = yield* Clock.currentTimeMillis;
-        const expiresIn = encoded.expires_in * 1000;
-        return new AccessToken(
-          {
-            accessToken: Redacted.make(encoded.access_token),
-            refreshToken: encoded.refresh_token ? Redacted.make(encoded.refresh_token) : undefined,
-            expiresAt: createdAt + expiresIn,
-            scope: encoded.scope,
-          },
-          { disableValidation: true },
-        );
-      }),
-    encode: (decoded) =>
-      Effect.succeed({
-        access_token: Redacted.value(decoded.accessToken),
-        refresh_token: decoded.refreshToken ? Redacted.value(decoded.refreshToken) : undefined,
-        token_type: 'Bearer',
-        expires_in: Math.floor((decoded.expiresAt - Date.now()) / 1000),
-        scope: decoded.scope,
-      }),
-  },
-);
+const decodeOAuthToAccessToken = (
+  encoded: typeof OAuthTokenResponse.Type,
+): Effect.Effect<AccessToken> =>
+  Effect.gen(function* () {
+    const createdAt = yield* Clock.currentTimeMillis;
+    const expiresIn = encoded.expires_in * 1000;
+    return new AccessToken({
+      accessToken: Redacted.make(encoded.access_token),
+      refreshToken: encoded.refresh_token ? Redacted.make(encoded.refresh_token) : undefined,
+      expiresAt: createdAt + expiresIn,
+      scope: encoded.scope,
+    });
+  });
 
 // ============================================================================
 // Service Interface
@@ -118,21 +101,17 @@ export interface EGWAuthService {
 /**
  * EGW Authentication Service
  */
-export class EGWAuth extends Context.Tag('@bible/core/egw/auth/EGWAuth')<
-  EGWAuth,
-  EGWAuthService
->() {
+export class EGWAuth extends ServiceMap.Service<EGWAuth, EGWAuthService>()(
+  '@bible/core/egw/auth/EGWAuth',
+) {
   /**
    * Live implementation using OAuth2 client credentials flow.
    */
   static Live: Layer.Layer<
     EGWAuth,
-    | ConfigError.ConfigError
-    | PlatformError
-    | ParseResult.ParseError
-    | HttpClientError.HttpClientError,
+    Config.ConfigError | PlatformError | Schema.SchemaError | HttpClientError.HttpClientError,
     FileSystem.FileSystem | Path.Path | HttpClient.HttpClient
-  > = Layer.scoped(
+  > = Layer.effect(
     EGWAuth,
     Effect.gen(function* () {
       const authBaseUrl = yield* Config.string('EGW_AUTH_BASE_URL').pipe(
@@ -210,9 +189,9 @@ export class EGWAuth extends Context.Tag('@bible/core/egw/auth/EGWAuth')<
                 );
                 // Log response body for non-2xx status codes
                 if (response.status < 200 || response.status >= 300) {
-                  const body = yield* response.text.pipe(Effect.either);
-                  if (body._tag === 'Right') {
-                    yield* Effect.logError('Error response body:', body.right);
+                  const body = yield* response.text.pipe(Effect.result);
+                  if (body._tag === 'Success') {
+                    yield* Effect.logError('Error response body:', body.success);
                   }
                 }
               }),
@@ -239,7 +218,10 @@ export class EGWAuth extends Context.Tag('@bible/core/egw/auth/EGWAuth')<
               }),
             ),
           })
-          .pipe(Effect.flatMap(HttpClientResponse.schemaBodyJson(AccessTokenFromOAuthResponse)));
+          .pipe(
+            Effect.flatMap(HttpClientResponse.schemaBodyJson(OAuthTokenResponse)),
+            Effect.flatMap(decodeOAuthToAccessToken),
+          );
 
         yield* writeTokenToCache(token);
 
@@ -266,24 +248,18 @@ export class EGWAuth extends Context.Tag('@bible/core/egw/auth/EGWAuth')<
             ),
           })
           .pipe(
-            Effect.flatMap(HttpClientResponse.schemaBodyJson(AccessTokenFromOAuthResponse)),
-            Effect.flatMap((response) =>
-              Clock.currentTimeMillis.pipe(
-                Effect.map((_createdAt) => {
-                  // The response from AccessTokenFromOAuthResponse already has expiresAt calculated
-                  return new AccessToken(
-                    {
-                      accessToken: response.accessToken,
-                      refreshToken: Predicate.isNotUndefined(response.refreshToken)
-                        ? response.refreshToken
-                        : token.refreshToken,
-                      expiresAt: response.expiresAt,
-                      scope: response.scope,
-                    },
-                    { disableValidation: true },
-                  );
+            Effect.flatMap(HttpClientResponse.schemaBodyJson(OAuthTokenResponse)),
+            Effect.flatMap(decodeOAuthToAccessToken),
+            Effect.map(
+              (response) =>
+                new AccessToken({
+                  accessToken: response.accessToken,
+                  refreshToken: Predicate.isNotUndefined(response.refreshToken)
+                    ? response.refreshToken
+                    : token.refreshToken,
+                  expiresAt: response.expiresAt,
+                  scope: response.scope,
                 }),
-              ),
             ),
           );
 
@@ -325,7 +301,8 @@ export class EGWAuth extends Context.Tag('@bible/core/egw/auth/EGWAuth')<
       // Periodically refresh token
       yield* getToken().pipe(
         Effect.interruptible,
-        Effect.scheduleForked(Schedule.cron('0 0 * * *')),
+        Effect.repeat({ schedule: Schedule.cron('0 0 * * *') }),
+        Effect.forkChild,
       );
 
       return {
@@ -347,14 +324,11 @@ export class EGWAuth extends Context.Tag('@bible/core/egw/auth/EGWAuth')<
       getToken: () =>
         Effect.succeed(
           token ??
-            new AccessToken(
-              {
-                accessToken: Redacted.make('test-token'),
-                expiresAt: Date.now() + 3600000,
-                scope: 'test',
-              },
-              { disableValidation: true },
-            ),
+            new AccessToken({
+              accessToken: Redacted.make('test-token'),
+              expiresAt: Date.now() + 3600000,
+              scope: 'test',
+            }),
         ),
     });
 }

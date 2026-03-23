@@ -23,7 +23,7 @@ export function escapeAppleScriptString(str: string): string {
  */
 export function extractTitleFromMarkdown(markdownContent: string): Option.Option<string> {
   const h1Match = markdownContent.match(/^\s*#\s+(.*?)(\s+#*)?$/m);
-  return Option.fromNullable(h1Match?.[1]?.trim());
+  return Option.fromNullishOr(h1Match?.[1]?.trim());
 }
 
 /**

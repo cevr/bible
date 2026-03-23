@@ -90,7 +90,7 @@ export type EGWParsedRef =
 /**
  * Parse error
  */
-export class EGWParseError extends Schema.TaggedError<EGWParseError>()('EGWParseError', {
+export class EGWParseError extends Schema.TaggedErrorClass<EGWParseError>()('EGWParseError', {
   input: Schema.String,
   message: Schema.String,
 }) {}

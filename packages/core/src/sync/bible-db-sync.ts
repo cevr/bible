@@ -5,16 +5,18 @@
  * rather than rebuilding from JSON sources.
  */
 
-import { FileSystem, Path } from '@effect/platform';
-import { Effect, Schema } from 'effect';
+import { Effect, FileSystem, Path, Schema } from 'effect';
 
 const BIBLE_DB_URL =
   'https://raw.githubusercontent.com/cevr/bible-tools/main/packages/core/data/bible.db';
 
-export class BibleDbSyncError extends Schema.TaggedError<BibleDbSyncError>()('BibleDbSyncError', {
-  message: Schema.String,
-  cause: Schema.optional(Schema.Unknown),
-}) {}
+export class BibleDbSyncError extends Schema.TaggedErrorClass<BibleDbSyncError>()(
+  'BibleDbSyncError',
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Unknown),
+  },
+) {}
 
 /**
  * Ensures ~/.bible/bible.db exists, downloading from GitHub if missing.

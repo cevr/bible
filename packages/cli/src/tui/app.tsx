@@ -2,7 +2,7 @@
 import { isRoute, Route } from '@bible/core/app';
 import type { EGWReference } from '@bible/core/app';
 import { render, useKeyboard, useRenderer, useTerminalDimensions } from '@opentui/solid';
-import type { Runtime } from 'effect';
+import type { ManagedRuntime } from 'effect';
 import { createResource, createSignal, Match, Show, Switch } from 'solid-js';
 
 import type { Reference } from '../data/bible/types.js';
@@ -249,7 +249,9 @@ function AppWithTheme(props: AppProps) {
  * Loads the centralized Effect runtime and provides it to the tree.
  * Uses RuntimeProvider from the gent pattern.
  */
-function AppWithRuntime(props: AppProps & { runtime: Runtime.Runtime<AppServices> }) {
+function AppWithRuntime(
+  props: AppProps & { runtime: ManagedRuntime.ManagedRuntime<AppServices, unknown> },
+) {
   // Determine initial route based on props
   // initialEgwRef can be {} to indicate "go to EGW" without a specific reference
   const initialRoute = props.initialEgwRef

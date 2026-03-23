@@ -1,7 +1,6 @@
-import { Command } from '@effect/cli';
-import { FileSystem } from '@effect/platform';
+import { Command } from 'effect/unstable/cli';
+import { Data, Effect, FileSystem, Option, Schedule } from 'effect';
 import { format } from 'date-fns';
-import { Data, Effect, Option, Schedule } from 'effect';
 import { join } from 'path';
 
 import { MessagesConfig } from '~/src/lib/content/configs';
@@ -197,7 +196,7 @@ const syncMessages = Command.make('link', { dryRun }, (args) =>
     const messagesDir = getOutputsPath('messages');
     const files = yield* fs
       .readDirectory(messagesDir)
-      .pipe(Effect.catchAll(() => Effect.succeed([] as string[])));
+      .pipe(Effect.catch(() => Effect.succeed([] as string[])));
 
     const mdFiles = files.filter((f) => f.endsWith('.md')).map((file) => join(messagesDir, file));
 

@@ -1,3 +1,4 @@
+// @effect-diagnostics anyUnknownInErrorContext:off importFromBarrel:off deterministicKeys:off
 /**
  * Sequence Recorder - Track service calls during tests
  *
@@ -5,7 +6,7 @@
  * This enables asserting on the sequence of observable side effects.
  */
 
-import { Context, Effect, Layer, Ref } from 'effect';
+import { Effect, Layer, Ref, ServiceMap } from 'effect';
 
 /**
  * Base service call type - extend for specific services
@@ -26,10 +27,9 @@ export type ServiceCall<T extends string = string> = BaseServiceCall & {
  * Context tag for the call sequence Ref.
  * Used to track all service calls made during a test.
  */
-export class CallSequence extends Context.Tag('test/CallSequence')<
-  CallSequence,
-  Ref.Ref<ServiceCall[]>
->() {}
+export class CallSequence extends ServiceMap.Service<CallSequence, Ref.Ref<ServiceCall[]>>()(
+  'test/CallSequence',
+) {}
 
 /**
  * Record a service call to the sequence.

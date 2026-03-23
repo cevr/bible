@@ -1,6 +1,6 @@
 import { $ } from 'bun';
-import { Context, Effect, Layer } from 'effect';
-import type { UnknownException } from 'effect/Cause';
+import { Effect, Layer, ServiceMap } from 'effect';
+import type { Cause } from 'effect';
 import { join } from 'path';
 
 import { getCliRoot } from '~/src/lib/paths';
@@ -12,10 +12,10 @@ export interface ChimeService {
   /**
    * Play the done/notification chime.
    */
-  readonly play: Effect.Effect<void, UnknownException>;
+  readonly play: Effect.Effect<void, Cause.UnknownError>;
 }
 
-export class Chime extends Context.Tag('@bible/cli/services/chime')<Chime, ChimeService>() {}
+export class Chime extends ServiceMap.Service<Chime, ChimeService>()('@bible/cli/services/chime') {}
 
 /**
  * Live implementation using Bun shell to call afplay.

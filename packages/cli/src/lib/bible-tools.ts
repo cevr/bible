@@ -16,7 +16,7 @@ import {
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
 import { EGWCommentaryService } from '@bible/core/egw-commentary';
 import { EGWService, createEGWTool } from '@bible/core/egw-service';
-import { BunContext } from '@effect/platform-bun';
+import { BunServices } from '@effect/platform-bun';
 import { tool, jsonSchema } from 'ai';
 import { Effect, Layer, ManagedRuntime, Option } from 'effect';
 
@@ -26,14 +26,14 @@ import { createCrossRefService } from '../data/study/cross-refs.js';
 // Shared layer + runtime for tool execution (includes BibleState for cross-ref classifications)
 const BibleToolsLayer = Layer.mergeAll(BibleStateLive).pipe(
   Layer.provideMerge(BibleDatabase.Default),
-  Layer.provideMerge(BunContext.layer),
+  Layer.provideMerge(BunServices.layer),
 );
 const runtime = ManagedRuntime.make(BibleToolsLayer);
 
 // EGW layer + runtime for EGW tool execution
 const EGWToolsLayer = Layer.mergeAll(EGWService.Live, EGWCommentaryService.Live).pipe(
   Layer.provide(EGWParagraphDatabase.Default),
-  Layer.provideMerge(BunContext.layer),
+  Layer.provideMerge(BunServices.layer),
 );
 const egwRuntime = ManagedRuntime.make(EGWToolsLayer);
 
@@ -46,7 +46,11 @@ let _crossRefService: ReturnType<typeof createCrossRefService> | null = null;
 function getCrossRefService(): ReturnType<typeof createCrossRefService> | null {
   if (_crossRefService !== null) return _crossRefService;
   try {
-    const state = runtime.runSync(BibleState);
+    const state = runtime.runSync(
+      Effect.gen(function* () {
+        return yield* BibleState;
+      }),
+    );
     _crossRefService = createCrossRefService(state);
     return _crossRefService;
   } catch {

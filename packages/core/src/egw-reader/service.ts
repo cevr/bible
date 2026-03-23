@@ -9,7 +9,7 @@
  * a higher-level API suitable for reader UIs.
  */
 
-import { Context, Effect, Layer, Option, Schema, Stream } from 'effect';
+import { ServiceMap, Effect, Layer, Option, Schema, Stream } from 'effect';
 
 import { EGWParagraphDatabase } from '../egw-db/book-database.js';
 import type * as EGWSchemas from '../egw/schemas.js';
@@ -19,19 +19,19 @@ import type { EGWReaderPosition } from './types.js';
 /**
  * Error types for the reader service
  */
-export class EGWReaderError extends Schema.TaggedError<EGWReaderError>()('EGWReaderError', {
+export class EGWReaderError extends Schema.TaggedErrorClass<EGWReaderError>()('EGWReaderError', {
   message: Schema.String,
   cause: Schema.optional(Schema.Unknown),
 }) {}
 
-export class BookNotFoundError extends Schema.TaggedError<BookNotFoundError>()(
+export class BookNotFoundError extends Schema.TaggedErrorClass<BookNotFoundError>()(
   'BookNotFoundError',
   {
     bookCode: Schema.String,
   },
 ) {}
 
-export class DatabaseNotInitializedError extends Schema.TaggedError<DatabaseNotInitializedError>()(
+export class DatabaseNotInitializedError extends Schema.TaggedErrorClass<DatabaseNotInitializedError>()(
   'DatabaseNotInitializedError',
   {
     message: Schema.String,
@@ -41,11 +41,11 @@ export class DatabaseNotInitializedError extends Schema.TaggedError<DatabaseNotI
 /**
  * Union of all reader errors (Schema)
  */
-export const ReaderError = Schema.Union(
+export const ReaderError = Schema.Union([
   EGWReaderError,
   BookNotFoundError,
   DatabaseNotInitializedError,
-);
+]);
 
 /**
  * Union of all reader errors (type)
@@ -116,9 +116,9 @@ export interface EGWReaderServiceShape {
  *
  * Provides high-level reading operations on EGW writings.
  */
-export class EGWReaderService extends Context.Tag(
+export class EGWReaderService extends ServiceMap.Service<EGWReaderService, EGWReaderServiceShape>()(
   '@bible/core/egw-reader/service/EGWReaderService',
-)<EGWReaderService, EGWReaderServiceShape>() {
+) {
   /**
    * Live implementation using EGWParagraphDatabase.
    */
@@ -361,7 +361,7 @@ export class EGWReaderService extends Context.Tag(
       getBooks: () => Effect.succeed(config.books ?? []),
       getBookByCode: (bookCode) =>
         Effect.succeed(
-          Option.fromNullable(
+          Option.fromNullishOr(
             config.books?.find((b) => b.bookCode.toLowerCase() === bookCode.toLowerCase()),
           ),
         ),
@@ -369,7 +369,7 @@ export class EGWReaderService extends Context.Tag(
       getParagraphsByBookCode: () => Effect.succeed(config.paragraphs ?? []),
       getParagraphByRefcode: (_, refcode) =>
         Effect.succeed(
-          Option.fromNullable(
+          Option.fromNullishOr(
             config.paragraphs?.find((p) => p.refcodeShort === refcode || p.refcodeLong === refcode),
           ),
         ),

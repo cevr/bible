@@ -1,7 +1,7 @@
-import { HttpClient } from '@effect/platform';
+import { HttpClient } from 'effect/unstable/http';
 import { generateObject, generateText } from 'ai';
 import * as cheerio from 'cheerio';
-import { Context, Effect, Layer, Option } from 'effect';
+import { ServiceMap, Effect, Layer, Option } from 'effect';
 import { z } from 'zod';
 
 import { AiService } from '../ai/service.js';
@@ -71,10 +71,9 @@ export interface SabbathSchoolService {
 // Service Definition
 // ============================================================================
 
-export class SabbathSchool extends Context.Tag('@bible/core/sabbath-school/service/SabbathSchool')<
-  SabbathSchool,
-  SabbathSchoolService
->() {
+export class SabbathSchool extends ServiceMap.Service<SabbathSchool, SabbathSchoolService>()(
+  '@bible/core/sabbath-school/service/SabbathSchool',
+) {
   /**
    * Live implementation using HttpClient and AiService.
    */
@@ -183,7 +182,11 @@ export class SabbathSchool extends Context.Tag('@bible/core/sabbath-school/servi
                       content: [
                         {
                           type: 'text',
-                          text: outlineUserPrompt(context),
+                          text: outlineUserPrompt({
+                            year: context.year,
+                            quarter: context.quarter,
+                            week: context.week,
+                          }),
                         },
                         {
                           type: 'file',

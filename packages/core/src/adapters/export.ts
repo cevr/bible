@@ -1,10 +1,10 @@
 // @effect-diagnostics strictBooleanExpressions:off
-import { Context, Effect, Layer, Schema } from 'effect';
+import { ServiceMap, Effect, Layer, Schema } from 'effect';
 
 /**
  * Error thrown when an export operation fails.
  */
-export class ExportError extends Schema.TaggedError<ExportError>()('ExportError', {
+export class ExportError extends Schema.TaggedErrorClass<ExportError>()('ExportError', {
   title: Schema.String,
   cause: Schema.Defect,
 }) {}
@@ -47,10 +47,9 @@ export interface ExportAdapterService {
 /**
  * Adapter for exporting content to various destinations.
  */
-export class ExportAdapter extends Context.Tag('@bible/core/adapters/export/ExportAdapter')<
-  ExportAdapter,
-  ExportAdapterService
->() {
+export class ExportAdapter extends ServiceMap.Service<ExportAdapter, ExportAdapterService>()(
+  '@bible/core/adapters/export/ExportAdapter',
+) {
   /**
    * Test implementation that captures exports.
    */

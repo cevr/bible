@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Ref } from 'effect';
+import { Effect, Layer, Ref, ServiceMap } from 'effect';
 import { DbClientService } from '../db-client-service';
 import type { DatabaseQueryError, WorkerError } from '../errors';
 import { SyncError } from '../errors';
@@ -9,11 +9,10 @@ interface WebSyncServiceShape {
   readonly syncNow: () => Effect.Effect<void, DatabaseQueryError | WorkerError | SyncError>;
 }
 
-export class WebSyncService extends Context.Tag('@bible-web/Sync')<
-  WebSyncService,
-  WebSyncServiceShape
->() {
-  static Live = Layer.scoped(
+export class WebSyncService extends ServiceMap.Service<WebSyncService, WebSyncServiceShape>()(
+  '@bible-web/Sync',
+) {
+  static Live = Layer.effect(
     WebSyncService,
     Effect.gen(function* () {
       const db = yield* DbClientService;
@@ -82,7 +81,7 @@ export class WebSyncService extends Context.Tag('@bible-web/Sync')<
           Ref.set(syncingRef, false),
         );
       }).pipe(
-        Effect.catchAll((error) =>
+        Effect.catch((error) =>
           Effect.logWarning('[sync] error:', error).pipe(Effect.as(undefined)),
         ),
       );

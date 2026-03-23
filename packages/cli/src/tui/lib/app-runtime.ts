@@ -11,7 +11,7 @@ import { EGWParagraphDatabase } from '@bible/core/egw-db';
 import { EGWReaderService } from '@bible/core/egw-reader';
 import { EGWService } from '@bible/core/egw-service';
 import { ensureBibleDb } from '@bible/core/sync';
-import { BunContext } from '@effect/platform-bun';
+import { BunServices } from '@effect/platform-bun';
 import { Effect, Layer, ManagedRuntime } from 'effect';
 
 import type { BibleData } from '../../data/bible/data.js';
@@ -35,9 +35,9 @@ export type AppServices =
  * BibleDatabase layer that ensures bible.db is downloaded before connecting.
  * Uses Layer.unwrapEffect to sequence: sync first, then build the real layer.
  */
-const BibleDatabaseWithSync = Layer.unwrapEffect(
+const BibleDatabaseWithSync = Layer.unwrap(
   ensureBibleDb.pipe(
-    Effect.catchAll(() => Effect.void),
+    Effect.catch(() => Effect.void),
     Effect.as(BibleDatabase.Default),
   ),
 );
@@ -59,7 +59,7 @@ export const AppLayer = Layer.mergeAll(
 ).pipe(
   Layer.provideMerge(EGWParagraphDatabase.Default),
   Layer.provideMerge(BibleDatabaseWithSync),
-  Layer.provideMerge(BunContext.layer),
+  Layer.provideMerge(BunServices.layer),
 );
 
 /**
@@ -81,7 +81,7 @@ export const appRuntime = ManagedRuntime.make(AppLayer);
  * const [runtime] = createResource(() => getAppRuntime())
  * ```
  */
-export const getAppRuntime = () => Effect.runPromise(appRuntime.runtimeEffect);
+export const getAppRuntime = () => appRuntime;
 
 /**
  * Run an effect with the app runtime

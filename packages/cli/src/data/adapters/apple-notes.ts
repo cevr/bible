@@ -9,21 +9,23 @@ import {
   wrapWithAppleNotesStyle,
 } from '~/src/lib/apple-notes-utils.js';
 
-class MarkdownParseError extends Schema.TaggedError<MarkdownParseError>()('MarkdownParseError', {
-  message: Schema.String,
-  cause: Schema.Defect,
-  content: Schema.String,
-}) {}
+class MarkdownParseError extends Schema.TaggedErrorClass<MarkdownParseError>()(
+  'MarkdownParseError',
+  {
+    message: Schema.String,
+    cause: Schema.Defect,
+    content: Schema.String,
+  },
+) {}
 
 const execCommand = Effect.fn('execCommand')(function* (command: string[]) {
-  const result = yield* Effect.try(() => {
-    const child = Bun.spawn(command);
-    return child;
-  });
-
-  return yield* Effect.tryPromise(async () => {
-    const text = await new Response(result.stdout).text();
-    return text;
+  return yield* Effect.tryPromise({
+    try: async () => {
+      const child = Bun.spawn(command);
+      const text = await new Response(child.stdout).text();
+      return text;
+    },
+    catch: (error) => error as Error,
   });
 });
 

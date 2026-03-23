@@ -8,6 +8,7 @@
 import { tool } from 'ai';
 import type { ManagedRuntime } from 'effect';
 import { Effect } from 'effect';
+
 import { z } from 'zod';
 
 import { EGWCommentaryService } from '../egw-commentary/service.js';
@@ -115,7 +116,7 @@ function executeEGWTool(
         const service = yield* EGWService;
         const results = yield* service
           .search(input.query, input.limit ?? 10, input.bookCode)
-          .pipe(Effect.catchAll(() => Effect.succeed([] as const)));
+          .pipe(Effect.catch(() => Effect.succeed([] as const)));
         if (results.length === 0) {
           return `No results found for "${input.query}"${input.bookCode !== undefined ? ` in ${input.bookCode}` : ''}`;
         }
@@ -134,7 +135,7 @@ function executeEGWTool(
         }
         const pageResponse = yield* service
           .getPage(parsed.bookCode, parsed.page)
-          .pipe(Effect.catchAll(() => Effect.succeed(null)));
+          .pipe(Effect.catch(() => Effect.succeed(null)));
         if (pageResponse === null) {
           return `No content found for reference "${input.ref}"`;
         }
@@ -158,7 +159,7 @@ function executeEGWTool(
         const service = yield* EGWService;
         const books = yield* service
           .getBooks()
-          .pipe(Effect.catchAll(() => Effect.succeed([] as const)));
+          .pipe(Effect.catch(() => Effect.succeed([] as const)));
         if (books.length === 0) {
           return 'No books available. The EGW database may need to be synced.';
         }
@@ -172,7 +173,7 @@ function executeEGWTool(
         const service = yield* EGWService;
         const chapters = yield* service
           .getChapters(input.bookCode)
-          .pipe(Effect.catchAll(() => Effect.succeed([] as const)));
+          .pipe(Effect.catch(() => Effect.succeed([] as const)));
         if (chapters.length === 0) {
           return `No chapters found for book "${input.bookCode}"`;
         }
@@ -189,7 +190,7 @@ function executeEGWTool(
         const service = yield* EGWService;
         const pageResponse = yield* service
           .getPage(input.bookCode, input.page)
-          .pipe(Effect.catchAll(() => Effect.succeed(null)));
+          .pipe(Effect.catch(() => Effect.succeed(null)));
         if (pageResponse === null) {
           return `No content found for ${input.bookCode} page ${input.page}`;
         }
@@ -203,7 +204,7 @@ function executeEGWTool(
         const { book, chapter, verse } = input;
         const commentary = yield* EGWCommentaryService;
         const result = yield* commentary.getCommentary({ book, chapter, verse }).pipe(
-          Effect.catchAll(() =>
+          Effect.catch(() =>
             Effect.succeed({
               verse: { book, chapter, verse },
               entries: [] as const,

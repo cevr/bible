@@ -6,7 +6,7 @@
  * Used by both TUI (via RPC) and web (via HttpApi) clients.
  */
 
-import { Context, Effect, Layer, Option, Schema, Stream } from 'effect';
+import { ServiceMap, Effect, Layer, Option, Schema, Stream } from 'effect';
 
 import { EGWParagraphDatabase, type ParagraphDatabaseError } from '../egw-db/book-database.js';
 import { isChapterHeading as isChapterHeadingType } from '../egw/parse.js';
@@ -153,10 +153,9 @@ export interface EGWServiceShape {
 // Service Definition
 // ============================================================================
 
-export class EGWService extends Context.Tag('@bible/core/egw-service/service/EGWService')<
-  EGWService,
-  EGWServiceShape
->() {
+export class EGWService extends ServiceMap.Service<EGWService, EGWServiceShape>()(
+  '@bible/core/egw-service/service/EGWService',
+) {
   /**
    * Live implementation using EGWParagraphDatabase
    */
@@ -393,7 +392,7 @@ export class EGWService extends Context.Tag('@bible/core/egw-service/service/EGW
       getBooks: () => Effect.succeed(config.books ?? []),
       getBook: (bookCode) =>
         Effect.succeed(
-          Option.fromNullable(
+          Option.fromNullishOr(
             config.books?.find((b) => b.bookCode.toLowerCase() === bookCode.toLowerCase()),
           ),
         ),

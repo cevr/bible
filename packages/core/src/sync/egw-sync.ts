@@ -13,7 +13,7 @@
  * - Bible reference extraction for BC books
  */
 
-import { Chunk, Effect, Option, Ref, Stream } from 'effect';
+import { Effect, Option, Ref, Stream } from 'effect';
 
 import { extractBibleReferences } from '../bible-reader/parse.js';
 import { EGWParagraphDatabase, type SyncStatus } from '../egw-db/index.js';
@@ -160,7 +160,7 @@ export const syncEgwBooks = (options: SyncOptions = {}) =>
 
         // Get table of contents
         const toc = yield* egwClient.getBookToc(book.book_id).pipe(
-          Effect.catchAll((error) =>
+          Effect.catch((error) =>
             Effect.gen(function* () {
               const errorMsg = `Failed to get TOC: ${String(error)}`;
               yield* Ref.update(errorCountRef, (n) => n + 1);
@@ -202,7 +202,7 @@ export const syncEgwBooks = (options: SyncOptions = {}) =>
           Stream.mapEffect(
             (chapterId) =>
               egwClient.getChapterContent(book.book_id, chapterId).pipe(
-                Effect.catchAll((error) =>
+                Effect.catch((error) =>
                   Effect.gen(function* () {
                     yield* Ref.update(chapterErrorsRef, (errs) => [
                       ...errs,
@@ -216,7 +216,6 @@ export const syncEgwBooks = (options: SyncOptions = {}) =>
           ),
           Stream.flatMap((paragraphs) => Stream.fromIterable(paragraphs)),
           Stream.runCollect,
-          Effect.map(Chunk.toReadonlyArray),
         );
 
         const chapterErrors = yield* Ref.get(chapterErrorsRef);
@@ -237,7 +236,7 @@ export const syncEgwBooks = (options: SyncOptions = {}) =>
         // Batch insert all paragraphs in one transaction
         const insertResult = yield* paragraphDb.storeParagraphsBatch(allParagraphs, book).pipe(
           Effect.map((count) => ({ success: true as const, count })),
-          Effect.catchAll((error) =>
+          Effect.catch((error) =>
             Effect.succeed({
               success: false as const,
               error: `Batch insert failed: ${error._tag ?? 'Unknown'} - ${String(error.cause ?? error)}`,
@@ -294,7 +293,7 @@ export const syncEgwBooks = (options: SyncOptions = {}) =>
           if (bibleRefs.length > 0) {
             const refsInserted = yield* paragraphDb
               .storeBibleRefsBatch(bibleRefs)
-              .pipe(Effect.catchAll(() => Effect.succeed(0)));
+              .pipe(Effect.catch(() => Effect.succeed(0)));
             yield* Ref.update(storedBibleRefsRef, (n) => n + refsInserted);
           }
         }

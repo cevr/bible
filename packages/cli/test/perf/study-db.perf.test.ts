@@ -12,7 +12,7 @@ import { existsSync } from 'fs';
 import { join } from 'path';
 
 import { BibleDatabase } from '@bible/core/bible-db';
-import { BunContext } from '@effect/platform-bun';
+import { BunServices } from '@effect/platform-bun';
 import { beforeAll, describe, expect, it } from 'bun:test';
 import { Effect, Layer, ManagedRuntime, Option } from 'effect';
 
@@ -20,7 +20,7 @@ import { Effect, Layer, ManagedRuntime, Option } from 'effect';
 const DB_PATH = join(import.meta.dir, '../../../core/data/bible.db');
 
 // Create combined layer with all dependencies
-const BibleServicesLayer = BibleDatabase.Default.pipe(Layer.provideMerge(BunContext.layer));
+const BibleServicesLayer = BibleDatabase.Default.pipe(Layer.provideMerge(BunServices.layer));
 
 // Create ManagedRuntime
 const runtime = ManagedRuntime.make(BibleServicesLayer);

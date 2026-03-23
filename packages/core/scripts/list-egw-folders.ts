@@ -15,8 +15,8 @@
  *   - EGW_SCOPE: (optional) Defaults to "writings search studycenter subscriptions user_info"
  */
 
-import { FetchHttpClient } from '@effect/platform';
-import { BunContext, BunRuntime } from '@effect/platform-bun';
+import { FetchHttpClient } from 'effect/unstable/http';
+import { BunServices, BunRuntime } from '@effect/platform-bun';
 import { Effect, Layer } from 'effect';
 
 import { EGWAuth } from '../src/egw/auth.js';
@@ -66,7 +66,7 @@ const ApiClientLayer = EGWApiClient.Live.pipe(
   Layer.provide(FetchHttpClient.layer),
 );
 
-const AppLayer = ApiClientLayer.pipe(Layer.provide(BunContext.layer));
+const AppLayer = ApiClientLayer.pipe(Layer.provide(BunServices.layer));
 
 // Run the program with all required dependencies
 BunRuntime.runMain(program.pipe(Effect.provide(AppLayer)));

@@ -1,23 +1,22 @@
 #!/usr/bin/env bun
-import { Args, Command } from '@effect/cli';
-import { FileSystem, Path } from '@effect/platform';
-import { BunContext, BunRuntime } from '@effect/platform-bun';
-import { BadArgument, PlatformError, SystemError } from '@effect/platform/Error';
-import { Effect } from 'effect';
+import { Argument, Command } from 'effect/unstable/cli';
+import { Effect, FileSystem, Path } from 'effect';
+import { BunServices, BunRuntime } from '@effect/platform-bun';
+import { BadArgument, PlatformError, SystemError } from 'effect/PlatformError';
 import { PDFParse } from 'pdf-parse';
 
 // Dynamic import for pdf-parse to handle module resolution
 type PdfParseFunction = (dataBuffer: Buffer) => Promise<{ text: string; numpages: number }>;
 
-const PdfPathArg = Args.file({
+const PdfPathArg = Argument.file({
   name: 'pdf-path',
-}).pipe(Args.withDescription('Path to the PDF file to parse (or .txt file for testing)'));
+}).pipe(Argument.withDescription('Path to the PDF file to parse (or .txt file for testing)'));
 
-const OutputDirOption = Args.directory({
+const OutputDirOption = Argument.directory({
   name: 'output-dir',
 }).pipe(
-  Args.withDefault('./extracted-chapters'),
-  Args.withDescription('Directory where chapter files will be created'),
+  Argument.withDefault('./extracted-chapters'),
+  Argument.withDescription('Directory where chapter files will be created'),
 );
 
 // Schema for chapter data
@@ -206,7 +205,7 @@ const writeChapterFile = Effect.fn('writeChapterFile')(function* (
   yield* fs
     .writeFile(filePath, new TextEncoder().encode(content))
     .pipe(
-      Effect.catchAll((cause) =>
+      Effect.catch((cause) =>
         Effect.fail(new FileWriteError('Failed to write chapter file', cause, filePath)),
       ),
     );
@@ -270,7 +269,7 @@ const parseBibleReadings = Command.make(
           console.error(`❌ File Write Error: ${error.message} - ${error.filePath}`),
         ),
       ),
-      Effect.catchAll((error) => Effect.sync(() => console.error(`❌ Unexpected error:`, error))),
+      Effect.catch((error) => Effect.sync(() => console.error(`❌ Unexpected error:`, error))),
     ),
 );
 
@@ -280,4 +279,4 @@ const cli = Command.run(parseBibleReadings, {
   version: 'v1.0.0',
 });
 
-cli(process.argv).pipe(Effect.provide(BunContext.layer), BunRuntime.runMain);
+cli(process.argv).pipe(Effect.provide(BunServices.layer), BunRuntime.runMain);

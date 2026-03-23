@@ -1,4 +1,4 @@
-import { Context, Effect, Layer } from 'effect';
+import { Effect, Layer, ServiceMap } from 'effect';
 import { DbClientService } from '../db-client-service';
 import type { DatabaseQueryError } from '../errors';
 import type { Topic, TopicVerse } from './types';
@@ -33,10 +33,9 @@ interface WebTopicServiceShape {
   readonly getTopicsByLetter: (letter: string) => Effect.Effect<Topic[], DatabaseQueryError>;
 }
 
-export class WebTopicService extends Context.Tag('@bible-web/TopicService')<
-  WebTopicService,
-  WebTopicServiceShape
->() {
+export class WebTopicService extends ServiceMap.Service<WebTopicService, WebTopicServiceShape>()(
+  '@bible-web/TopicService',
+) {
   static Live = Layer.effect(
     WebTopicService,
     Effect.gen(function* () {

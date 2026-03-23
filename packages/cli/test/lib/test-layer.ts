@@ -1,8 +1,7 @@
 import path from 'path';
 
-import type { FileSystem } from '@effect/platform';
-import { Path } from '@effect/platform';
-import { Layer } from 'effect';
+import type { FileSystem } from 'effect';
+import { Layer, Path } from 'effect';
 
 import type { AI } from '../../src/services/ai.js';
 import type { AppleScript } from '../../src/services/apple-script.js';

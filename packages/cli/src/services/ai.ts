@@ -5,12 +5,12 @@ import {
   jsonSchema,
   stepCountIs,
 } from 'ai';
-import { Context, Effect, JSONSchema, Layer, Option, Schema } from 'effect';
+import { Effect, Layer, Option, Schema, ServiceMap } from 'effect';
 
 import { Model } from './model';
 
 // Tagged error for AI operations
-export class AIError extends Schema.TaggedError<AIError>()('AIError', {
+export class AIError extends Schema.TaggedErrorClass<AIError>()('AIError', {
   operation: Schema.String,
   cause: Schema.Defect,
 }) {}
@@ -34,10 +34,10 @@ interface GenerateTextWithToolsOptions extends GenerateTextOptions {
   maxSteps?: number;
 }
 
-interface GenerateObjectOptions<A, I, R> {
+interface GenerateObjectOptions<A> {
   model?: Quality;
   messages: Array<ModelMessage>;
-  schema: Schema.Schema<A, I, R>;
+  schema: Schema.Decoder<A>;
 }
 
 export interface AIService {
@@ -46,8 +46,7 @@ export interface AIService {
     options: GenerateTextWithToolsOptions,
   ) => Effect.Effect<{ text: string }, AIError>;
   readonly generateObject: <A>(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- I (encoded type) is irrelevant; we only decode from unknown
-    options: GenerateObjectOptions<A, any, never>,
+    options: GenerateObjectOptions<A>,
   ) => Effect.Effect<{ object: A }, AIError>;
 }
 
@@ -55,10 +54,14 @@ export interface AIService {
  * Convert an Effect Schema to an AI SDK schema.
  * Uses JSONSchema.make for the JSON schema and Schema.decodeUnknownSync for validation.
  */
-function toAISchema<A, I>(schema: Schema.Schema<A, I, never>) {
-  const js = JSONSchema.make(schema);
+function toAISchema<A>(schema: Schema.Decoder<A>) {
+  const doc = Schema.toJsonSchemaDocument(schema);
+  const js = {
+    ...doc.schema,
+    ...(Object.keys(doc.definitions).length > 0 ? { $defs: doc.definitions } : {}),
+  };
   const decode = Schema.decodeUnknownSync(schema);
-  return jsonSchema<A>(js, {
+  return jsonSchema<A>(js as Record<string, unknown>, {
     validate: (value) => {
       try {
         const result = decode(value);
@@ -70,7 +73,7 @@ function toAISchema<A, I>(schema: Schema.Schema<A, I, never>) {
   });
 }
 
-export class AI extends Context.Tag('@bible/cli/services/ai')<AI, AIService>() {
+export class AI extends ServiceMap.Service<AI, AIService>()('@bible/cli/services/ai') {
   /**
    * Live AI layer that requires Model in context.
    * Use this for TUI and other non-CLI uses.
@@ -143,10 +146,7 @@ export class AI extends Context.Tag('@bible/cli/services/ai')<AI, AIService>() {
             }),
         }),
 
-      generateObject: <A>(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- I (encoded type) is irrelevant; we only decode from unknown
-        options: GenerateObjectOptions<A, any, never>,
-      ) =>
+      generateObject: <A>(options: GenerateObjectOptions<A>) =>
         Effect.tryPromise({
           try: async () => {
             const aiSchema = toAISchema(options.schema);

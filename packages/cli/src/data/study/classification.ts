@@ -1,7 +1,7 @@
 // @effect-diagnostics strictBooleanExpressions:off strictEffectProvide:off
 import type { LanguageModel } from 'ai';
 import { BibleDatabase, type CrossReference } from '@bible/core/bible-db';
-import { BunContext } from '@effect/platform-bun';
+import { BunServices } from '@effect/platform-bun';
 import { Effect, Layer, Schema } from 'effect';
 
 import { AI } from '../../services/ai.js';
@@ -15,8 +15,11 @@ const ClassificationResult = Schema.Struct({
       refBook: Schema.Number,
       refChapter: Schema.Number,
       refVerse: Schema.NullOr(Schema.Number),
-      type: Schema.Literal(...CROSS_REF_TYPES),
-      confidence: Schema.Number.pipe(Schema.greaterThanOrEqualTo(0), Schema.lessThanOrEqualTo(1)),
+      type: Schema.Literals(CROSS_REF_TYPES),
+      confidence: Schema.Number.check(
+        Schema.isGreaterThanOrEqualTo(0),
+        Schema.isLessThanOrEqualTo(1),
+      ),
     }),
   ),
 });
@@ -116,7 +119,7 @@ export async function classifyVerseCrossRefs(
   // Build one-shot AI + BibleDatabase layer
   const ClassificationLayer = AI.fromModel(aiModels).pipe(
     Layer.provideMerge(BibleDatabase.Default),
-    Layer.provideMerge(BunContext.layer),
+    Layer.provideMerge(BunServices.layer),
   );
 
   await Effect.runPromise(
@@ -127,14 +130,14 @@ export async function classifyVerseCrossRefs(
       // Get raw refs
       const rawRefs = yield* db
         .getCrossRefs(book, chapter, verse)
-        .pipe(Effect.catchAll(() => Effect.succeed([] as readonly CrossReference[])));
+        .pipe(Effect.catch(() => Effect.succeed([] as readonly CrossReference[])));
 
       if (rawRefs.length === 0) return;
 
       // Get source verse text
       const sourceVerseOpt = yield* db
         .getVerse(book, chapter, verse)
-        .pipe(Effect.catchAll(() => Effect.succeed(null)));
+        .pipe(Effect.catch(() => Effect.succeed(null)));
       const sourceText =
         sourceVerseOpt !== null && sourceVerseOpt._tag === 'Some'
           ? sourceVerseOpt.value.text.slice(0, 200)
@@ -167,7 +170,7 @@ Classify each reference using the decision tree.`;
             ],
             schema: ClassificationResult,
           })
-          .pipe(Effect.catchAll(() => Effect.succeed({ object: { classifications: [] } })));
+          .pipe(Effect.catch(() => Effect.succeed({ object: { classifications: [] } })));
 
         for (const c of aiResult.object.classifications) {
           allClassifications.push({
@@ -204,12 +207,15 @@ export async function classifySingleCrossRef(
 ): Promise<CrossRefClassification | null> {
   const ClassificationLayer = AI.fromModel(aiModels).pipe(
     Layer.provideMerge(BibleDatabase.Default),
-    Layer.provideMerge(BunContext.layer),
+    Layer.provideMerge(BunServices.layer),
   );
 
   const SingleResult = Schema.Struct({
-    type: Schema.Literal(...CROSS_REF_TYPES),
-    confidence: Schema.Number.pipe(Schema.greaterThanOrEqualTo(0), Schema.lessThanOrEqualTo(1)),
+    type: Schema.Literals(CROSS_REF_TYPES),
+    confidence: Schema.Number.check(
+      Schema.isGreaterThanOrEqualTo(0),
+      Schema.isLessThanOrEqualTo(1),
+    ),
   });
 
   const result = await Effect.runPromise(
@@ -220,7 +226,7 @@ export async function classifySingleCrossRef(
       // Get source verse text
       const sourceVerseOpt = yield* db
         .getVerse(source.book, source.chapter, source.verse)
-        .pipe(Effect.catchAll(() => Effect.succeed(null)));
+        .pipe(Effect.catch(() => Effect.succeed(null)));
       const sourceText =
         sourceVerseOpt !== null && sourceVerseOpt._tag === 'Some'
           ? sourceVerseOpt.value.text.slice(0, 200)
@@ -230,7 +236,7 @@ export async function classifySingleCrossRef(
       const targetVerse = target.verse ?? 1;
       const targetVerseOpt = yield* db
         .getVerse(target.book, target.chapter, targetVerse)
-        .pipe(Effect.catchAll(() => Effect.succeed(null)));
+        .pipe(Effect.catch(() => Effect.succeed(null)));
       const targetText =
         targetVerseOpt !== null && targetVerseOpt._tag === 'Some'
           ? targetVerseOpt.value.text.slice(0, 200)
@@ -251,7 +257,7 @@ Classify this single cross-reference using the decision tree.`;
           ],
           schema: SingleResult,
         })
-        .pipe(Effect.catchAll(() => Effect.succeed(null)));
+        .pipe(Effect.catch(() => Effect.succeed(null)));
 
       if (aiResult === null) return null;
 

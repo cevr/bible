@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Ref } from 'effect';
+import { Effect, Layer, Ref, ServiceMap } from 'effect';
 
 /**
  * Types for recorded service calls.
@@ -24,10 +24,9 @@ export type ServiceCall =
  * Context tag for the call sequence Ref.
  * This is used to track all service calls made during a test.
  */
-export class CallSequence extends Context.Tag('test/CallSequence')<
-  CallSequence,
-  Ref.Ref<ServiceCall[]>
->() {}
+export class CallSequence extends ServiceMap.Service<CallSequence, Ref.Ref<ServiceCall[]>>()(
+  'test/CallSequence',
+) {}
 
 /**
  * Record a service call to the sequence.

@@ -1,4 +1,4 @@
-import { Context, Effect, Layer } from 'effect';
+import { Effect, Layer, ServiceMap } from 'effect';
 import { DbClientService } from '../db-client-service';
 import type { DatabaseQueryError } from '../errors';
 import type { ReadingPlan, ReadingPlanItem, PlanItemInput } from './types';
@@ -49,10 +49,10 @@ interface WebReadingPlanServiceShape {
   ) => Effect.Effect<void, DatabaseQueryError>;
 }
 
-export class WebReadingPlanService extends Context.Tag('@bible-web/ReadingPlanService')<
+export class WebReadingPlanService extends ServiceMap.Service<
   WebReadingPlanService,
   WebReadingPlanServiceShape
->() {
+>()('@bible-web/ReadingPlanService') {
   static Live = Layer.effect(
     WebReadingPlanService,
     Effect.gen(function* () {

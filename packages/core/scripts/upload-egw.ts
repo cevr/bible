@@ -23,8 +23,8 @@
  *   - EGW_BOOK_DB: (optional) Path to book database file, defaults to "data/egw-books.db"
  */
 
-import { FetchHttpClient } from '@effect/platform';
-import { BunContext, BunFileSystem, BunPath, BunRuntime } from '@effect/platform-bun';
+import { FetchHttpClient } from 'effect/unstable/http';
+import { BunServices, BunFileSystem, BunPath, BunRuntime } from '@effect/platform-bun';
 import { Effect, Layer } from 'effect';
 
 import { EGWParagraphDatabase } from '../src/egw-db/index.js';
@@ -90,6 +90,6 @@ const EGWGeminiLayer = EGWGeminiService.Live.pipe(
 );
 
 // App layer with all services
-const AppLayer = Layer.mergeAll(EGWGeminiLayer, BunContext.layer);
+const AppLayer = Layer.mergeAll(EGWGeminiLayer, BunServices.layer);
 
 BunRuntime.runMain(program.pipe(Effect.provide(AppLayer)));

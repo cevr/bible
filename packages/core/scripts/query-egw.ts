@@ -18,10 +18,10 @@
  *   - EGW_CLIENT_SECRET: EGW API client secret (optional, only needed if querying requires auth)
  */
 
-import { Args, Command } from '@effect/cli';
-import { text } from '@effect/cli/Prompt';
-import { FetchHttpClient } from '@effect/platform';
-import { BunContext, BunFileSystem, BunPath, BunRuntime } from '@effect/platform-bun';
+import { Argument, Command } from 'effect/unstable/cli';
+import { text } from 'effect/unstable/cli/Prompt';
+import { FetchHttpClient } from 'effect/unstable/http';
+import { BunServices, BunFileSystem, BunPath, BunRuntime } from '@effect/platform-bun';
 import { Console, Effect, Layer, Option } from 'effect';
 
 import { EGWParagraphDatabase } from '../src/egw-db/index.js';
@@ -31,22 +31,16 @@ import { EGWAuth } from '../src/egw/auth.js';
 import { EGWApiClient } from '../src/egw/client.js';
 import { GeminiFileSearchClient } from '../src/gemini/index.js';
 
-const queryArg = Args.text({
-  name: 'query',
-}).pipe(Args.optional);
+const queryArg = Argument.string('query').pipe(Argument.optional);
 
-const storeOption = Args.text({
-  name: 'store',
-}).pipe(
-  Args.withDefault('egw-writings'),
-  Args.withDescription('The display name of the Gemini File Search store'),
+const storeOption = Argument.string('store').pipe(
+  Argument.withDefault('egw-writings'),
+  Argument.withDescription('The display name of the Gemini File Search store'),
 );
 
-const metadataFilterOption = Args.text({
-  name: 'metadata-filter',
-}).pipe(
-  Args.optional,
-  Args.withDescription(
+const metadataFilterOption = Argument.string('metadata-filter').pipe(
+  Argument.optional,
+  Argument.withDescription(
     'Optional metadata filter to narrow search results (e.g., book_title="The Desire of Ages")',
   ),
 );
@@ -196,7 +190,6 @@ const cli = Command.make(
 );
 
 const program = Command.run(cli, {
-  name: 'Query EGW Store',
   version: '1.0.0',
 });
 
@@ -230,6 +223,6 @@ const EGWGeminiLayer = EGWGeminiService.Live.pipe(
 );
 
 // App layer with all services
-const AppLayer = Layer.mergeAll(EGWGeminiLayer, BunContext.layer);
+const AppLayer = Layer.mergeAll(EGWGeminiLayer, BunServices.layer);
 
-program(process.argv).pipe(Effect.provide(AppLayer), Effect.scoped, BunRuntime.runMain);
+program.pipe(Effect.provide(AppLayer), Effect.scoped, BunRuntime.runMain);

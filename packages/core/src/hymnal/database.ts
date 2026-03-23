@@ -9,11 +9,9 @@
  * The database is located at packages/core/data/hymnal.db
  */
 
-import { FileSystem, Path } from '@effect/platform';
-import type { PlatformError } from '@effect/platform/Error';
+import type { PlatformError } from 'effect/PlatformError';
 import { Database } from 'bun:sqlite';
-import type { ConfigError } from 'effect';
-import { Config, Context, Effect, Layer, Option } from 'effect';
+import { Config, ServiceMap, Effect, FileSystem, Layer, Option, Path } from 'effect';
 
 import {
   DatabaseConnectionError,
@@ -92,18 +90,17 @@ export interface HymnalDatabaseService {
 // Service Definition
 // ============================================================================
 
-export class HymnalDatabase extends Context.Tag('@bible/core/hymnal/database/HymnalDatabase')<
-  HymnalDatabase,
-  HymnalDatabaseService
->() {
+export class HymnalDatabase extends ServiceMap.Service<HymnalDatabase, HymnalDatabaseService>()(
+  '@bible/core/hymnal/database/HymnalDatabase',
+) {
   /**
    * Live implementation using SQLite database.
    */
   static Live: Layer.Layer<
     HymnalDatabase,
-    DatabaseConnectionError | RecordNotFoundError | ConfigError.ConfigError | PlatformError,
+    DatabaseConnectionError | RecordNotFoundError | Config.ConfigError | PlatformError,
     FileSystem.FileSystem | Path.Path
-  > = Layer.scoped(
+  > = Layer.effect(
     HymnalDatabase,
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
@@ -265,7 +262,7 @@ export class HymnalDatabase extends Context.Tag('@bible/core/hymnal/database/Hym
     } = {},
   ): Layer.Layer<HymnalDatabase> =>
     Layer.succeed(HymnalDatabase, {
-      getHymn: (id) => Effect.succeed(Option.fromNullable(config.hymns?.find((h) => h.id === id))),
+      getHymn: (id) => Effect.succeed(Option.fromNullishOr(config.hymns?.find((h) => h.id === id))),
       getCategories: () => Effect.succeed(config.categories ?? []),
       getHymnsByCategory: (categoryId) =>
         Effect.succeed(

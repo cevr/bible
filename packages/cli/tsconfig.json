@@ -36,17 +36,20 @@
     "plugins": [
       {
         "name": "@effect/language-service",
+        "transform": "@effect/language-service/transform",
+        "namespaceImportPackages": ["effect", "@effect/*"],
         "diagnostics": true,
         "diagnosticsName": true,
+        "ignoreEffectWarningsInTscExitCode": true,
         "diagnosticSeverity": {
           "anyUnknownInErrorContext": "error",
           "deterministicKeys": "warning",
           "importFromBarrel": "warning",
           "instanceOfSchema": "warning",
-          "missedPipeableOpportunity": "warning",
+          "missedPipeableOpportunity": "suggestion",
           "missingEffectServiceDependency": "warning",
           "schemaUnionOfLiterals": "warning",
-          "strictBooleanExpressions": "warning",
+          "strictBooleanExpressions": "off",
           "strictEffectProvide": "warning",
           "catchAllToMapError": "warning",
           "catchUnfailableEffect": "warning",
@@ -64,18 +67,22 @@
           "unnecessaryEffectGen": "warning",
           "unnecessaryFailYieldableError": "warning",
           "unnecessaryPipe": "warning",
-          "unnecessaryPipeChain": "warning"
+          "unnecessaryPipeChain": "warning",
+          "extendsNativeError": "error",
+          "nodeBuiltinImport": "warning",
+          "serviceNotAsClass": "warning",
+          "outdatedApi": "warning"
         },
         "keyPatterns": [
           {
             "target": "service",
             "pattern": "default",
-            "skipLeadingPath": ["core/", "lib/", "src/"]
+            "skipLeadingPath": ["src/"]
           },
           {
             "target": "error",
             "pattern": "default",
-            "skipLeadingPath": ["core/", "lib/", "src/"]
+            "skipLeadingPath": ["src/"]
           }
         ]
       }

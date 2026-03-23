@@ -1,3 +1,4 @@
+// @effect-diagnostics anyUnknownInErrorContext:off
 /**
  * AppService — facade that wraps ManagedRuntime and exposes every Effect
  * service method as a plain Promise-returning function.

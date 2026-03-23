@@ -1,7 +1,6 @@
 // @effect-diagnostics strictEffectProvide:off
-import { Command } from '@effect/cli';
-import { FileSystem } from '@effect/platform';
-import { Effect } from 'effect';
+import { Command } from 'effect/unstable/cli';
+import { Effect, FileSystem } from 'effect';
 
 import { files, folder } from '~/src/lib/content/options';
 import {

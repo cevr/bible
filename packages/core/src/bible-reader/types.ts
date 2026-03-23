@@ -25,7 +25,7 @@ export class BibleBook extends Schema.Class<BibleBook>('BibleBook')({
   number: Schema.Number,
   name: Schema.String,
   chapters: Schema.Number,
-  testament: Schema.Literal('old', 'new'),
+  testament: Schema.Literals(['old', 'new']),
 }) {}
 
 /**
@@ -37,8 +37,8 @@ export class BibleReference extends Schema.Class<BibleReference>('BibleReference
   verse: Schema.optional(Schema.Number),
   verseEnd: Schema.optional(Schema.Number),
 }) {
-  static fromJson = Schema.decode(Schema.parseJson(BibleReference));
-  static toJson = Schema.encode(Schema.parseJson(BibleReference));
+  static fromJson = Schema.decodeEffect(Schema.fromJsonString(BibleReference));
+  static toJson = Schema.encodeEffect(Schema.fromJsonString(BibleReference));
 }
 
 /**
@@ -49,8 +49,8 @@ export class BiblePosition extends Schema.Class<BiblePosition>('BiblePosition')(
   chapter: Schema.Number,
   verse: Schema.Number,
 }) {
-  static fromJson = Schema.decode(Schema.parseJson(BiblePosition));
-  static toJson = Schema.encode(Schema.parseJson(BiblePosition));
+  static fromJson = Schema.decodeEffect(Schema.fromJsonString(BiblePosition));
+  static toJson = Schema.encodeEffect(Schema.fromJsonString(BiblePosition));
 }
 
 /**
@@ -71,8 +71,8 @@ export class BibleBookmark extends Schema.Class<BibleBookmark>('BibleBookmark')(
   note: Schema.optional(Schema.String),
   createdAt: Schema.Number,
 }) {
-  static fromJson = Schema.decode(Schema.parseJson(BibleBookmark));
-  static toJson = Schema.encode(Schema.parseJson(BibleBookmark));
+  static fromJson = Schema.decodeEffect(Schema.fromJsonString(BibleBookmark));
+  static toJson = Schema.encodeEffect(Schema.fromJsonString(BibleBookmark));
 }
 
 /**
@@ -88,10 +88,10 @@ export class BibleHistoryEntry extends Schema.Class<BibleHistoryEntry>('BibleHis
  */
 export class BiblePreferences extends Schema.Class<BiblePreferences>('BiblePreferences')({
   theme: Schema.String,
-  displayMode: Schema.Literal('verse', 'paragraph'),
+  displayMode: Schema.Literals(['verse', 'paragraph']),
 }) {
-  static fromJson = Schema.decode(Schema.parseJson(BiblePreferences));
-  static toJson = Schema.encode(Schema.parseJson(BiblePreferences));
+  static fromJson = Schema.decodeEffect(Schema.fromJsonString(BiblePreferences));
+  static toJson = Schema.encodeEffect(Schema.fromJsonString(BiblePreferences));
 }
 
 /**
@@ -124,12 +124,12 @@ export class BibleReaderErrorState extends Schema.TaggedClass<BibleReaderErrorSt
 /**
  * Reader state - discriminated union for loading states
  */
-export const BibleReaderState = Schema.Union(
+export const BibleReaderState = Schema.Union([
   BibleReaderIdle,
   BibleReaderLoading,
   BibleReaderLoaded,
   BibleReaderErrorState,
-);
+]);
 
 export type BibleReaderState = Schema.Schema.Type<typeof BibleReaderState>;
 

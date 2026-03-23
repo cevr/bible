@@ -17,8 +17,8 @@
  *   - EGW_CLIENT_SECRET: EGW API client secret
  *   - EGW_PARAGRAPH_DB: (optional) Path to paragraph database file
  */
-import { FetchHttpClient } from '@effect/platform';
-import { BunContext, BunRuntime } from '@effect/platform-bun';
+import { FetchHttpClient } from 'effect/unstable/http';
+import { BunServices, BunRuntime } from '@effect/platform-bun';
 import { Effect, Layer } from 'effect';
 
 import { EGWParagraphDatabase } from '../egw-db/index.js';
@@ -89,7 +89,7 @@ const ParagraphDbLayer = EGWParagraphDatabase.Live;
 // Compose service layers
 const ServiceLayer = Layer.mergeAll(ParagraphDbLayer, ApiClientLayer);
 
-const AppLayer = ServiceLayer.pipe(Layer.provide(BunContext.layer));
+const AppLayer = ServiceLayer.pipe(Layer.provide(BunServices.layer));
 
 // Run
 BunRuntime.runMain(program.pipe(Effect.provide(AppLayer)));

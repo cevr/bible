@@ -1,6 +1,6 @@
 import { Schema } from 'effect';
 
-export class StructuralAnalysisError extends Schema.TaggedError<StructuralAnalysisError>()(
+export class StructuralAnalysisError extends Schema.TaggedErrorClass<StructuralAnalysisError>()(
   'StructuralAnalysisError',
   {
     message: Schema.String,

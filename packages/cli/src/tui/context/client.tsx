@@ -19,7 +19,7 @@ import {
   type EGWPageResponse,
   type EGWSearchResult,
 } from '@bible/core/egw-service';
-import { Effect, Option, Runtime } from 'effect';
+import { Effect, Option } from 'effect';
 import { createContext, useContext, type Accessor, type ParentProps } from 'solid-js';
 
 import { useAppRuntime, useEffectRunner, type ResultType } from '../lib/index.js';
@@ -129,7 +129,7 @@ export function ClientProvider(props: ParentProps) {
   );
 
   const getBibleBook = (bookNum: number): Promise<Book | undefined> =>
-    Runtime.runPromise(runtime)(
+    runtime.runPromise(
       Effect.gen(function* () {
         const service = yield* BibleService;
         const opt = yield* service.getBook(bookNum);
@@ -182,7 +182,7 @@ export function ClientProvider(props: ParentProps) {
   );
 
   const getEgwBook = (bookCode: string): Promise<EGWBook | undefined> =>
-    Runtime.runPromise(runtime)(
+    runtime.runPromise(
       Effect.gen(function* () {
         const service = yield* EGWService;
         const opt = yield* service.getBook(bookCode);

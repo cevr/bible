@@ -13,11 +13,9 @@ import type {
   Pager,
   UploadToFileSearchStoreOperation,
 } from '@google/genai';
-import type { ConfigError } from 'effect';
 import {
-  Chunk,
   Config,
-  Context,
+  ServiceMap,
   Duration,
   Effect,
   Layer,
@@ -54,7 +52,7 @@ function pagerHasNextPage(pager: unknown): boolean {
 /**
  * Gemini File Search Client Errors
  */
-export class GeminiFileSearchError extends Schema.TaggedError<GeminiFileSearchError>()(
+export class GeminiFileSearchError extends Schema.TaggedErrorClass<GeminiFileSearchError>()(
   'GeminiFileSearchError',
   {
     cause: Schema.Unknown,
@@ -91,7 +89,7 @@ export interface GeminiFileSearchClientService {
     filePaths: string[],
     fileSearchStoreName: string,
     getConfig: (filePath: string) => Schemas.UploadConfig,
-  ) => Effect.Effect<Chunk.Chunk<Schemas.Operation>, GeminiFileSearchError>;
+  ) => Effect.Effect<Schemas.Operation[], GeminiFileSearchError>;
   readonly generateContent: (
     model: string,
     contents: string,
@@ -101,7 +99,7 @@ export interface GeminiFileSearchClientService {
   readonly listDocuments: (
     fileSearchStoreName: string,
     pageSize?: number,
-  ) => Effect.Effect<Chunk.Chunk<Schemas.Document>, GeminiFileSearchError>;
+  ) => Effect.Effect<Schemas.Document[], GeminiFileSearchError>;
   readonly findDocumentByDisplayName: (
     fileSearchStoreName: string,
     displayName: string,
@@ -137,13 +135,14 @@ export interface GeminiFileSearchClientService {
 /**
  * Gemini File Search Client Service
  */
-export class GeminiFileSearchClient extends Context.Tag(
-  '@bible/core/gemini/client/GeminiFileSearchClient',
-)<GeminiFileSearchClient, GeminiFileSearchClientService>() {
+export class GeminiFileSearchClient extends ServiceMap.Service<
+  GeminiFileSearchClient,
+  GeminiFileSearchClientService
+>()('@bible/core/gemini/client/GeminiFileSearchClient') {
   /**
    * Live implementation using Google AI API.
    */
-  static Live: Layer.Layer<GeminiFileSearchClient, ConfigError.ConfigError> = Layer.effect(
+  static Live: Layer.Layer<GeminiFileSearchClient, Config.ConfigError> = Layer.effect(
     GeminiFileSearchClient,
     Effect.gen(function* () {
       const apiKey = yield* Config.redacted('GOOGLE_AI_API_KEY').pipe(
@@ -513,15 +512,12 @@ export class GeminiFileSearchClient extends Context.Tag(
 
         listDocuments: (fileSearchStoreName: string, pageSize: number = 20) =>
           Effect.gen(function* () {
-            // Use Stream.unfoldEffect to handle pagination with pager API
-            const stream = Stream.unfoldEffect(
+            const stream = Stream.paginate(
               undefined as DocumentPager | undefined,
-              (currentPager) =>
+              (currentPager: DocumentPager | undefined) =>
                 Effect.gen(function* () {
-                  // Get the first page or next page
                   let pager: DocumentPager;
                   if (currentPager) {
-                    // nextPage() modifies the pager in place and returns the page array
                     yield* Effect.tryPromise({
                       try: () => currentPager.nextPage(),
                       catch: (error) =>
@@ -530,10 +526,8 @@ export class GeminiFileSearchClient extends Context.Tag(
                           cause: error,
                         }),
                     }).pipe(Effect.retry(retrySchedule));
-                    // Use the same pager object (which has been modified in place)
                     pager = currentPager;
                   } else {
-                    // Get initial pager
                     const pagerResult = yield* Effect.tryPromise({
                       try: () =>
                         ai.fileSearchStores.documents.list({
@@ -551,21 +545,17 @@ export class GeminiFileSearchClient extends Context.Tag(
 
                   const page = pager.page || [];
 
-                  // Transform documents
-                  const documents = Chunk.fromIterable(
-                    page.map((doc: Document) => ({
-                      name: doc.name || '',
-                      displayName: doc.displayName || '',
-                      customMetadata: (doc.customMetadata || []) as Schemas.CustomMetadata[],
-                    })),
-                  );
+                  const documents: Schemas.Document[] = page.map((doc: Document) => ({
+                    name: doc.name || '',
+                    displayName: doc.displayName || '',
+                    customMetadata: (doc.customMetadata || []) as Schemas.CustomMetadata[],
+                  }));
 
-                  // Return documents and next pager (or none if done)
                   const hasNext = pagerHasNextPage(pager);
 
-                  return Option.some([documents, hasNext ? pager : undefined] as const);
+                  return [documents, hasNext ? Option.some(pager) : Option.none()] as const;
                 }),
-            ).pipe(Stream.flatMap((documentsChunk) => Stream.fromChunk(documentsChunk)));
+            );
 
             // Collect all documents from the stream
             return yield* Stream.runCollect(stream);
@@ -614,9 +604,9 @@ export class GeminiFileSearchClient extends Context.Tag(
         countDocumentsByBookId: (fileSearchStoreName: string, bookId: number) =>
           Effect.gen(function* () {
             // Inline listDocuments logic to avoid self-reference
-            const stream = Stream.unfoldEffect(
+            const stream = Stream.paginate(
               undefined as DocumentPager | undefined,
-              (currentPager) =>
+              (currentPager: DocumentPager | undefined) =>
                 Effect.gen(function* () {
                   let pager: DocumentPager;
                   if (currentPager) {
@@ -646,23 +636,21 @@ export class GeminiFileSearchClient extends Context.Tag(
                   }
 
                   const page = pager.page || [];
-                  const documents = Chunk.fromIterable(
-                    page.map((doc: Document) => ({
-                      name: doc.name || '',
-                      displayName: doc.displayName || '',
-                      customMetadata: (doc.customMetadata || []) as Schemas.CustomMetadata[],
-                    })),
-                  );
+                  const documents: Schemas.Document[] = page.map((doc: Document) => ({
+                    name: doc.name || '',
+                    displayName: doc.displayName || '',
+                    customMetadata: (doc.customMetadata || []) as Schemas.CustomMetadata[],
+                  }));
 
                   const hasNext = pagerHasNextPage(pager);
 
-                  return Option.some([documents, hasNext ? pager : undefined] as const);
+                  return [documents, hasNext ? Option.some(pager) : Option.none()] as const;
                 }),
-            ).pipe(Stream.flatMap((documentsChunk) => Stream.fromChunk(documentsChunk)));
+            );
 
             // Count documents with matching bookId
             const count = yield* stream.pipe(
-              Stream.filter((doc) => {
+              Stream.filter((doc: Schemas.Document) => {
                 const bookIdMetadata = doc.customMetadata?.find(
                   (meta: Schemas.CustomMetadata) => meta.key === 'book_id',
                 );
@@ -730,7 +718,7 @@ export class GeminiFileSearchClient extends Context.Tag(
                 if (error.message.includes('not found')) {
                   return Effect.void;
                 }
-                return error;
+                return Effect.fail(error);
               }),
             );
 
@@ -784,7 +772,7 @@ export class GeminiFileSearchClient extends Context.Tag(
                 cause: error,
               }),
           }).pipe(Effect.retry(retrySchedule)),
-      };
+      } as GeminiFileSearchClientService;
     }),
   );
 
@@ -802,9 +790,9 @@ export class GeminiFileSearchClient extends Context.Tag(
       findStoreByDisplayName: (displayName) => Effect.succeed({ name: 'test-store', displayName }),
       uploadFile: () => Effect.succeed({ name: 'test-op', done: true, response: {} }),
       uploadContent: () => Effect.succeed({ name: 'test-op', done: true, response: {} }),
-      uploadFiles: () => Effect.succeed(Chunk.empty()),
+      uploadFiles: () => Effect.succeed([]),
       generateContent: () => Effect.succeed({ candidates: [] }),
-      listDocuments: () => Effect.succeed(Chunk.empty()),
+      listDocuments: () => Effect.succeed([]),
       findDocumentByDisplayName: (_, displayName) =>
         Effect.succeed({ name: 'test-doc', displayName }),
       documentExists: () => Effect.succeed(false),

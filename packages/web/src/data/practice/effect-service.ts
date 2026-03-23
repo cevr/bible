@@ -1,4 +1,4 @@
-import { Context, Effect, Layer } from 'effect';
+import { Effect, Layer, ServiceMap } from 'effect';
 import { DbClientService } from '../db-client-service';
 import type { DatabaseQueryError } from '../errors';
 import type { MemoryVerse, PracticeRecord } from './types';
@@ -40,10 +40,10 @@ interface WebMemoryVerseServiceShape {
   ) => Effect.Effect<PracticeRecord[], DatabaseQueryError>;
 }
 
-export class WebMemoryVerseService extends Context.Tag('@bible-web/MemoryVerseService')<
+export class WebMemoryVerseService extends ServiceMap.Service<
   WebMemoryVerseService,
   WebMemoryVerseServiceShape
->() {
+>()('@bible-web/MemoryVerseService') {
   static Live = Layer.effect(
     WebMemoryVerseService,
     Effect.gen(function* () {

@@ -17,8 +17,8 @@ export class EGWBookInfo extends Schema.Class<EGWBookInfo>('EGWBookInfo')({
   author: Schema.String,
   pageCount: Schema.optional(Schema.Number),
 }) {
-  static fromJson = Schema.decode(Schema.parseJson(EGWBookInfo));
-  static toJson = Schema.encode(Schema.parseJson(EGWBookInfo));
+  static fromJson = Schema.decodeEffect(Schema.fromJsonString(EGWBookInfo));
+  static toJson = Schema.encodeEffect(Schema.fromJsonString(EGWBookInfo));
 }
 
 /**
@@ -58,8 +58,8 @@ export class EGWReaderPosition extends Schema.Class<EGWReaderPosition>('EGWReade
   /** Paragraph number on page */
   paragraph: Schema.optional(Schema.Number),
 }) {
-  static fromJson = Schema.decode(Schema.parseJson(EGWReaderPosition));
-  static toJson = Schema.encode(Schema.parseJson(EGWReaderPosition));
+  static fromJson = Schema.decodeEffect(Schema.fromJsonString(EGWReaderPosition));
+  static toJson = Schema.encodeEffect(Schema.fromJsonString(EGWReaderPosition));
 }
 
 /**
@@ -89,12 +89,12 @@ export class EGWReaderError extends Schema.TaggedClass<EGWReaderError>('EGWReade
 /**
  * Reader State - discriminated union for loading states
  */
-export const EGWReaderState = Schema.Union(
+export const EGWReaderState = Schema.Union([
   EGWReaderIdle,
   EGWReaderLoading,
   EGWReaderLoaded,
   EGWReaderError,
-);
+]);
 
 export type EGWReaderState = Schema.Schema.Type<typeof EGWReaderState>;
 

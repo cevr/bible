@@ -3,18 +3,17 @@ import { Data, Effect, Option } from 'effect';
 
 // --- Helper Function: Execute AppleScript Command ---
 const execCommand = Effect.fn('execCommand')(function* (command: string[]) {
-  const result = yield* Effect.try(() => {
-    const child = Bun.spawn(command);
-    return child;
-  });
-
-  return yield* Effect.tryPromise(async () => {
-    const text = await new Response(result.stdout).text();
-    const errorText = await new Response(result.stderr).text();
-    if (errorText.length > 0) {
-      throw new Error(`AppleScript Error: ${errorText}`);
-    }
-    return text.trim(); // Trim whitespace/newlines from output
+  return yield* Effect.tryPromise({
+    try: async () => {
+      const child = Bun.spawn(command);
+      const text = await new Response(child.stdout).text();
+      const errorText = await new Response(child.stderr).text();
+      if (errorText.length > 0) {
+        throw new Error(`AppleScript Error: ${errorText}`);
+      }
+      return text.trim();
+    },
+    catch: (error) => error as Error,
   });
 });
 
@@ -72,13 +71,14 @@ export const listNotes = Effect.fn('listNotes')(function* () {
   `;
 
   const rawOutput = yield* execCommand(['osascript', '-e', script]).pipe(
-    Effect.catchAll(
-      (error) =>
+    Effect.catch((error) =>
+      Effect.fail(
         new NoteOperationError({
           message: 'Failed to execute listNotes AppleScript',
           cause: error,
           script,
         }),
+      ),
     ),
   );
 
@@ -125,13 +125,14 @@ export const getNoteContent = Effect.fn('getNoteContent')(function* (noteId: str
   `;
 
   const content = yield* execCommand(['osascript', '-e', script]).pipe(
-    Effect.catchAll(
-      (error) =>
+    Effect.catch((error) =>
+      Effect.fail(
         new NoteOperationError({
           message: `Failed to execute getNoteContent AppleScript for ID ${noteId}`,
           cause: error,
           script,
         }),
+      ),
     ),
   );
 
@@ -174,13 +175,14 @@ export const updateNoteContent = Effect.fn('updateNoteContent')(function* (
   `;
 
   const result = yield* execCommand(['osascript', '-e', script]).pipe(
-    Effect.catchAll(
-      (error) =>
+    Effect.catch((error) =>
+      Effect.fail(
         new NoteOperationError({
           message: `Failed to execute updateNoteContent AppleScript for ID ${noteId}`,
           cause: error,
           script,
         }),
+      ),
     ),
   );
 
@@ -215,13 +217,14 @@ export const deleteNote = Effect.fn('deleteNote')(function* (noteId: string) {
   `;
 
   const result = yield* execCommand(['osascript', '-e', script]).pipe(
-    Effect.catchAll(
-      (error) =>
+    Effect.catch((error) =>
+      Effect.fail(
         new NoteOperationError({
           message: `Failed to execute deleteNote AppleScript for ID ${noteId}`,
           cause: error,
           script,
         }),
+      ),
     ),
   );
 
@@ -263,13 +266,14 @@ export const createNote = Effect.fn('createNote')(function* (title: string, body
   `;
 
   const newNoteId = yield* execCommand(['osascript', '-e', script]).pipe(
-    Effect.catchAll(
-      (error) =>
+    Effect.catch((error) =>
+      Effect.fail(
         new NoteOperationError({
           message: 'Failed to execute createNote AppleScript',
           cause: error,
           script,
         }),
+      ),
     ),
   );
 
@@ -328,13 +332,14 @@ export const findNoteByTitle = Effect.fn('findNoteByTitle')(function* (
   `;
 
   const result = yield* execCommand(['osascript', '-e', script]).pipe(
-    Effect.catchAll(
-      (error) =>
+    Effect.catch((error) =>
+      Effect.fail(
         new NoteOperationError({
           message: `Failed to execute findNoteByTitle AppleScript for "${title}"`,
           cause: error,
           script,
         }),
+      ),
     ),
   );
 

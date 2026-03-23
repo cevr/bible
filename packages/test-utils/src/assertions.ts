@@ -1,3 +1,4 @@
+// @effect-diagnostics extendsNativeError:off
 /**
  * Test Assertions - Helpers for asserting on service call sequences
  *

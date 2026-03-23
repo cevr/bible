@@ -7,10 +7,8 @@
   "author": "",
   "scripts": {},
   "dependencies": {
-    "@effect/cli": "^0.73.2",
-    "@effect/platform": "^0.94.4",
-    "@effect/platform-bun": "^0.87.1",
-    "effect": "^3.19.16",
+    "@effect/platform-bun": "catalog:",
+    "effect": "catalog:",
     "pdf-parse": "^2.4.5"
   }
 }

@@ -1,4 +1,4 @@
-import { Context, Effect, Layer } from 'effect';
+import { Effect, Layer, ServiceMap } from 'effect';
 import type { ChapterResponse, SearchResult, Verse } from '@bible/api';
 import {
   getNextChapter as getNextChapterNav,
@@ -44,10 +44,9 @@ interface WebBibleServiceShape {
   ) => Effect.Effect<SearchWithCountResult, DatabaseQueryError>;
 }
 
-export class WebBibleService extends Context.Tag('@bible-web/BibleService')<
-  WebBibleService,
-  WebBibleServiceShape
->() {
+export class WebBibleService extends ServiceMap.Service<WebBibleService, WebBibleServiceShape>()(
+  '@bible-web/BibleService',
+) {
   static Live = Layer.effect(
     WebBibleService,
     Effect.gen(function* () {

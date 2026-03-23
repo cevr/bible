@@ -7,7 +7,7 @@
  * - Getting chapter headings for navigation
  * - Searching paragraphs
  */
-import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from '@effect/platform';
+import { HttpApiEndpoint, HttpApiGroup } from 'effect/unstable/httpapi';
 import { Schema as S } from 'effect';
 
 // ============================================================================
@@ -104,31 +104,31 @@ export type EGWBookDump = S.Schema.Type<typeof EGWBookDumpSchema>;
 // Errors
 // ============================================================================
 
-export class EGWBookNotFoundError extends S.TaggedError<EGWBookNotFoundError>()(
+export class EGWBookNotFoundError extends S.TaggedErrorClass<EGWBookNotFoundError>()(
   'EGWBookNotFoundError',
   {
     bookCode: S.String,
     message: S.String,
   },
-  HttpApiSchema.annotations({ status: 404 }),
+  { httpApiStatus: 404 },
 ) {}
 
-export class EGWPageNotFoundError extends S.TaggedError<EGWPageNotFoundError>()(
+export class EGWPageNotFoundError extends S.TaggedErrorClass<EGWPageNotFoundError>()(
   'EGWPageNotFoundError',
   {
     bookCode: S.String,
     page: S.Number,
     message: S.String,
   },
-  HttpApiSchema.annotations({ status: 404 }),
+  { httpApiStatus: 404 },
 ) {}
 
-export class EGWDatabaseError extends S.TaggedError<EGWDatabaseError>()(
+export class EGWDatabaseError extends S.TaggedErrorClass<EGWDatabaseError>()(
   'EGWDatabaseError',
   {
     message: S.String,
   },
-  HttpApiSchema.annotations({ status: 500 }),
+  { httpApiStatus: 500 },
 ) {}
 
 // ============================================================================
@@ -137,51 +137,46 @@ export class EGWDatabaseError extends S.TaggedError<EGWDatabaseError>()(
 
 export const EGWGroup = HttpApiGroup.make('EGW')
   .add(
-    HttpApiEndpoint.get('books', '/books')
-      .addSuccess(S.Array(EGWBookInfoSchema))
-      .addError(EGWDatabaseError),
+    HttpApiEndpoint.get('books', '/books', {
+      success: S.Array(EGWBookInfoSchema),
+      error: [EGWDatabaseError],
+    }),
   )
   .add(
-    HttpApiEndpoint.get('page', '/:bookCode/:page')
-      .setPath(
-        S.Struct({
-          bookCode: S.String,
-          page: S.NumberFromString,
-        }),
-      )
-      .addSuccess(EGWPageResponseSchema)
-      .addError(EGWBookNotFoundError)
-      .addError(EGWPageNotFoundError)
-      .addError(EGWDatabaseError),
+    HttpApiEndpoint.get('page', '/:bookCode/:page', {
+      params: {
+        bookCode: S.String,
+        page: S.NumberFromString,
+      },
+      success: EGWPageResponseSchema,
+      error: [EGWBookNotFoundError, EGWPageNotFoundError, EGWDatabaseError],
+    }),
   )
   .add(
-    HttpApiEndpoint.get('chapters', '/:bookCode/chapters')
-      .setPath(
-        S.Struct({
-          bookCode: S.String,
-        }),
-      )
-      .addSuccess(S.Array(EGWChapterSchema))
-      .addError(EGWBookNotFoundError)
-      .addError(EGWDatabaseError),
+    HttpApiEndpoint.get('chapters', '/:bookCode/chapters', {
+      params: {
+        bookCode: S.String,
+      },
+      success: S.Array(EGWChapterSchema),
+      error: [EGWBookNotFoundError, EGWDatabaseError],
+    }),
   )
   .add(
-    HttpApiEndpoint.get('search', '/search')
-      .setUrlParams(
-        S.Struct({
-          q: S.String,
-          bookCode: S.optional(S.String),
-          limit: S.optional(S.NumberFromString).pipe(S.withDecodingDefault(() => 50)),
-        }),
-      )
-      .addSuccess(S.Array(EGWSearchResultSchema))
-      .addError(EGWDatabaseError),
+    HttpApiEndpoint.get('search', '/search', {
+      query: {
+        q: S.String,
+        bookCode: S.optional(S.String),
+        limit: S.optional(S.NumberFromString).pipe(S.withDecodingDefault(() => '50')),
+      },
+      success: S.Array(EGWSearchResultSchema),
+      error: [EGWDatabaseError],
+    }),
   )
   .add(
-    HttpApiEndpoint.get('bookDump', '/:bookCode/dump')
-      .setPath(S.Struct({ bookCode: S.String }))
-      .addSuccess(EGWBookDumpSchema)
-      .addError(EGWBookNotFoundError)
-      .addError(EGWDatabaseError),
+    HttpApiEndpoint.get('bookDump', '/:bookCode/dump', {
+      params: { bookCode: S.String },
+      success: EGWBookDumpSchema,
+      error: [EGWBookNotFoundError, EGWDatabaseError],
+    }),
   )
   .prefix('/egw');

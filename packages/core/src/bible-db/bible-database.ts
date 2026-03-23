@@ -13,11 +13,9 @@
  * Default location: packages/core/data/bible.db (repo source of truth)
  */
 
-import { FileSystem, Path } from '@effect/platform';
-import type { PlatformError } from '@effect/platform/Error';
+import type { PlatformError } from 'effect/PlatformError';
 import { Database } from 'bun:sqlite';
-import type { ConfigError } from 'effect';
-import { Config, Context, Effect, Layer, Option, Schema } from 'effect';
+import { Config, ServiceMap, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
 
 import {
   DatabaseConnectionError,
@@ -35,7 +33,7 @@ export const BookRow = Schema.Struct({
   number: Schema.Number,
   name: Schema.String,
   abbreviation: Schema.String,
-  testament: Schema.Literal('old', 'new'),
+  testament: Schema.Literals(['old', 'new']),
   chapters: Schema.Number,
 });
 export type BookRow = Schema.Schema.Type<typeof BookRow>;
@@ -67,14 +65,14 @@ export const CrossRefRow = Schema.Struct({
   ref_chapter: Schema.Number,
   ref_verse: Schema.NullOr(Schema.Number),
   ref_verse_end: Schema.NullOr(Schema.Number),
-  source: Schema.Literal('openbible', 'tske'),
+  source: Schema.Literals(['openbible', 'tske']),
   preview_text: Schema.NullOr(Schema.String),
 });
 export type CrossRefRow = Schema.Schema.Type<typeof CrossRefRow>;
 
 export const StrongsRow = Schema.Struct({
   number: Schema.String,
-  language: Schema.Literal('hebrew', 'greek'),
+  language: Schema.Literals(['hebrew', 'greek']),
   lemma: Schema.String,
   transliteration: Schema.NullOr(Schema.String),
   pronunciation: Schema.NullOr(Schema.String),
@@ -108,7 +106,7 @@ export const MarginNoteRow = Schema.Struct({
   chapter: Schema.Number,
   verse: Schema.Number,
   note_index: Schema.Number,
-  note_type: Schema.Literal('hebrew', 'greek', 'alternate', 'name', 'other'),
+  note_type: Schema.Literals(['hebrew', 'greek', 'alternate', 'name', 'other']),
   phrase: Schema.String,
   note_text: Schema.String,
 });
@@ -256,19 +254,18 @@ export interface BibleDatabaseService {
 // Service Definition
 // ============================================================================
 
-export class BibleDatabase extends Context.Tag('@bible/core/bible-db/bible-database/BibleDatabase')<
-  BibleDatabase,
-  BibleDatabaseService
->() {
+export class BibleDatabase extends ServiceMap.Service<BibleDatabase, BibleDatabaseService>()(
+  '@bible/core/bible-db/bible-database/BibleDatabase',
+) {
   /**
    * Live implementation using SQLite database.
    * Requires FileSystem and Path from @effect/platform.
    */
   static Live: Layer.Layer<
     BibleDatabase,
-    DatabaseConnectionError | RecordNotFoundError | ConfigError.ConfigError | PlatformError,
+    DatabaseConnectionError | RecordNotFoundError | Config.ConfigError | PlatformError,
     FileSystem.FileSystem | Path.Path
-  > = Layer.scoped(
+  > = Layer.effect(
     BibleDatabase,
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
@@ -731,14 +728,14 @@ export class BibleDatabase extends Context.Tag('@bible/core/bible-db/bible-datab
     Layer.succeed(BibleDatabase, {
       getBooks: () => Effect.succeed(config.books ?? []),
       getBook: (bookNum) =>
-        Effect.succeed(Option.fromNullable(config.books?.find((b) => b.number === bookNum))),
+        Effect.succeed(Option.fromNullishOr(config.books?.find((b) => b.number === bookNum))),
       getChapter: (book, chapter, _versionCode) =>
         Effect.succeed(
           config.verses?.filter((v) => v.book === book && v.chapter === chapter) ?? [],
         ),
       getVerse: (book, chapter, verse, _versionCode) =>
         Effect.succeed(
-          Option.fromNullable(
+          Option.fromNullishOr(
             config.verses?.find(
               (v) => v.book === book && v.chapter === chapter && v.verse === verse,
             ),
@@ -753,7 +750,7 @@ export class BibleDatabase extends Context.Tag('@bible/core/bible-db/bible-datab
         ),
       getStrongsEntry: (number) =>
         Effect.succeed(
-          Option.fromNullable(config.strongsEntries?.find((e) => e.number === number)),
+          Option.fromNullishOr(config.strongsEntries?.find((e) => e.number === number)),
         ),
       searchStrongs: (_query, _limit) => Effect.succeed([]),
       getVersesWithStrongs: (_strongsNumber) => Effect.succeed([]),

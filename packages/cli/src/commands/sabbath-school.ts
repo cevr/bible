@@ -1,7 +1,6 @@
-import { Command, Options } from '@effect/cli';
-import { FileSystem } from '@effect/platform';
+import { Command, Flag } from 'effect/unstable/cli';
+import { Array, Data, Effect, FileSystem, Option, Schema, Stream } from 'effect';
 import * as cheerio from 'cheerio';
-import { Array, Data, Effect, Option, Schema, Stream } from 'effect';
 import { dirname, join } from 'path';
 
 import { makeDeleteCommand, makeSyncCommand } from '~/src/lib/content/commands';
@@ -53,27 +52,27 @@ class ReviseError extends Data.TaggedError('@bible/cli/commands/sabbath-school/R
   cause: unknown;
 }> {}
 
-const year = Options.integer('year').pipe(
-  Options.withAlias('y'),
-  Options.withSchema(Schema.Number.pipe(Schema.lessThanOrEqualTo(new Date().getFullYear()))),
-  Options.optional,
-  Options.map(Option.getOrElse(() => new Date().getFullYear())),
+const year = Flag.integer('year').pipe(
+  Flag.withAlias('y'),
+  Flag.withSchema(Schema.Number.check(Schema.isLessThanOrEqualTo(new Date().getFullYear()))),
+  Flag.optional,
+  Flag.map(Option.getOrElse(() => new Date().getFullYear())),
 );
-const quarter = Options.integer('quarter').pipe(
-  Options.withAlias('q'),
-  Options.withSchema(
-    Schema.Number.pipe(Schema.greaterThanOrEqualTo(1), Schema.lessThanOrEqualTo(4)),
+const quarter = Flag.integer('quarter').pipe(
+  Flag.withAlias('q'),
+  Flag.withSchema(
+    Schema.Number.check(Schema.isGreaterThanOrEqualTo(1), Schema.isLessThanOrEqualTo(4)),
   ),
-  Options.optional,
-  Options.map(Option.getOrElse(() => Math.floor(new Date().getMonth() / 3) + 1)),
+  Flag.optional,
+  Flag.map(Option.getOrElse(() => Math.floor(new Date().getMonth() / 3) + 1)),
 );
 
-const week = Options.integer('week').pipe(
-  Options.withAlias('w'),
-  Options.withSchema(
-    Schema.Number.pipe(Schema.greaterThanOrEqualTo(1), Schema.lessThanOrEqualTo(13)),
+const week = Flag.integer('week').pipe(
+  Flag.withAlias('w'),
+  Flag.withSchema(
+    Schema.Number.check(Schema.isGreaterThanOrEqualTo(1), Schema.isLessThanOrEqualTo(13)),
   ),
-  Options.optional,
+  Flag.optional,
 );
 
 interface WeekFiles {
@@ -213,13 +212,13 @@ const reviseOutline = Effect.fn('reviseOutline')(function* (
         { role: 'user', content: reviewCheckUserPrompt(text) },
       ],
       schema: Schema.Struct({
-        needsRevision: Schema.Boolean.annotations({
+        needsRevision: Schema.Boolean.annotate({
           description: 'Whether the outline needs revision',
         }),
-        revisionPoints: Schema.Array(Schema.String).annotations({
+        revisionPoints: Schema.Array(Schema.String).annotate({
           description: 'Specific points where the outline FAILS to meet the prompt requirements',
         }),
-        comments: Schema.String.annotations({
+        comments: Schema.String.annotate({
           description:
             'Brief overall comment on the adherence or specific strengths/weaknesses, keep it concise. Use empty string if no comments.',
         }),
@@ -307,7 +306,7 @@ const generateOutline = Effect.fn('generateOutline')(function* (
   return response.text;
 });
 
-const force = Options.boolean('force').pipe(Options.withAlias('f'), Options.withDefault(false));
+const force = Flag.boolean('force').pipe(Flag.withAlias('f'), Flag.withDefault(false));
 
 const processQuarter = Command.make(
   'process',
@@ -346,7 +345,7 @@ const processQuarter = Command.make(
       ).pipe(
         Effect.map((weeks) =>
           weeks.map((weekNumber) =>
-            Option.fromNullable(quarterUrls.find((urls) => urls.weekNumber === weekNumber)),
+            Option.fromNullishOr(quarterUrls.find((urls) => urls.weekNumber === weekNumber)),
           ),
         ),
         Effect.map(Option.reduceCompact([] as WeekUrls[], (acc, week) => [...acc, week])),
@@ -373,7 +372,7 @@ const processQuarter = Command.make(
                     .readFile(outlinePath)
                     .pipe(Effect.map((i) => new TextDecoder().decode(i)));
                   const { frontmatter } = parseFrontmatter(raw);
-                  return Option.fromNullable(frontmatter.apple_note_id as AppleNoteId | undefined);
+                  return Option.fromNullishOr(frontmatter.apple_note_id as AppleNoteId | undefined);
                 },
               );
 
@@ -416,7 +415,8 @@ const processQuarter = Command.make(
                   year: frontmatter.year,
                   quarter: frontmatter.quarter,
                   week: frontmatter.week,
-                  ...(Option.isSome(frontmatter.apple_note_id)
+                  ...(frontmatter.apple_note_id !== undefined &&
+                  Option.isSome(frontmatter.apple_note_id)
                     ? { apple_note_id: frontmatter.apple_note_id.value }
                     : {}),
                 },

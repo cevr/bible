@@ -1,6 +1,5 @@
-import { Args, Command } from '@effect/cli';
-import { FileSystem } from '@effect/platform';
-import { Effect, Option } from 'effect';
+import { Argument, Command } from 'effect/unstable/cli';
+import { Effect, FileSystem, Option } from 'effect';
 import { join } from 'path';
 
 import { ReadingsConfig } from '~/src/lib/content/configs';
@@ -19,9 +18,7 @@ import { getCliRoot, getOutputsPath, getPromptPath } from '~/src/lib/paths';
 import { AI } from '~/src/services/ai';
 import { requiredModel } from '~/src/services/model';
 
-const chapter = Args.integer({
-  name: 'chapter',
-}).pipe(Args.optional);
+const chapter = Argument.integer('chapter').pipe(Argument.optional);
 
 const processChapters = Command.make('process', { chapter, model: requiredModel }, (args) =>
   Effect.gen(function* () {
@@ -100,7 +97,7 @@ const processChapters = Command.make('process', { chapter, model: requiredModel 
               .readFile(studyOutputFile)
               .pipe(Effect.map((i) => new TextDecoder().decode(i)));
             const { frontmatter } = parseFrontmatter(raw);
-            return Option.fromNullable(frontmatter.apple_note_id as AppleNoteId | undefined);
+            return Option.fromNullishOr(frontmatter.apple_note_id as AppleNoteId | undefined);
           });
 
           const chapterContent = yield* fs

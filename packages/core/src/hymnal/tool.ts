@@ -8,6 +8,7 @@
 import { tool } from 'ai';
 import type { ManagedRuntime } from 'effect';
 import { Effect } from 'effect';
+
 import { z } from 'zod';
 
 import type { CategoryId, HymnId } from '../types/ids.js';
@@ -100,7 +101,7 @@ function executeHymnalTool(input: HymnalToolInput): Effect.Effect<string, never,
         }
         const hymn = yield* service
           .getHymn(input.hymnNumber as HymnId)
-          .pipe(Effect.catchAll(() => Effect.succeed(null)));
+          .pipe(Effect.catch(() => Effect.succeed(null)));
         if (hymn === null) {
           return `No hymn found with number ${input.hymnNumber}`;
         }
@@ -113,7 +114,7 @@ function executeHymnalTool(input: HymnalToolInput): Effect.Effect<string, never,
         }
         const results = yield* service
           .searchHymns(input.query, input.limit ?? 10)
-          .pipe(Effect.catchAll(() => Effect.succeed([] as const)));
+          .pipe(Effect.catch(() => Effect.succeed([] as const)));
         if (results.length === 0) {
           return `No hymns found matching "${input.query}"`;
         }
@@ -123,7 +124,7 @@ function executeHymnalTool(input: HymnalToolInput): Effect.Effect<string, never,
       case 'listCategories': {
         const categories = yield* service
           .getCategories()
-          .pipe(Effect.catchAll(() => Effect.succeed([] as const)));
+          .pipe(Effect.catch(() => Effect.succeed([] as const)));
         return formatCategories(categories);
       }
 
@@ -133,7 +134,7 @@ function executeHymnalTool(input: HymnalToolInput): Effect.Effect<string, never,
         }
         const results = yield* service
           .getHymnsByCategory(input.categoryId as CategoryId)
-          .pipe(Effect.catchAll(() => Effect.succeed([] as const)));
+          .pipe(Effect.catch(() => Effect.succeed([] as const)));
         if (results.length === 0) {
           return `No hymns found in category ${input.categoryId}`;
         }
@@ -148,7 +149,7 @@ function executeHymnalTool(input: HymnalToolInput): Effect.Effect<string, never,
         }
         const results = yield* service
           .findHymnsByTheme(input.query, input.limit ?? 10)
-          .pipe(Effect.catchAll(() => Effect.succeed([] as const)));
+          .pipe(Effect.catch(() => Effect.succeed([] as const)));
         if (results.length === 0) {
           return `No hymns found for theme "${input.query}"`;
         }

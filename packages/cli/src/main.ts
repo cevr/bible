@@ -11,10 +11,10 @@
 
 import type { EGWReference } from '@bible/core/app';
 import { isSearchQuery, parseEGWRef } from '@bible/core/egw';
-import { Command } from '@effect/cli';
+import { Command } from 'effect/unstable/cli';
 // Core imports needed for both CLI and TUI
-import { BunContext, BunRuntime } from '@effect/platform-bun';
-import { Effect, Layer, LogLevel, Logger } from 'effect';
+import { BunServices, BunRuntime } from '@effect/platform-bun';
+import { Effect, Layer, References } from 'effect';
 
 import { analyze } from './commands/analyze.js';
 import { concordance, verse } from './commands/bible.js';
@@ -149,9 +149,14 @@ async function parseReferenceFromArgs(args: string[]): Promise<Reference | undef
     () => import('./data/bible/data.js'),
   );
 
-  const result = traceSync('parseReference', () =>
-    Effect.runSync(Effect.provide(BibleData, BibleDataLive)).parseReference(refString),
-  );
+  const result = traceSync('parseReference', () => {
+    const data = Effect.runSync(
+      Effect.gen(function* () {
+        return yield* BibleData;
+      }).pipe(Effect.provide(BibleDataLive)),
+    );
+    return data.parseReference(refString);
+  });
 
   return result;
 }
@@ -227,16 +232,17 @@ async function main() {
           exportOutput,
           sync,
         ]),
-        Command.provideSync(CliOptions, ({ verbose }) => ({ verbose })),
-        Command.transformHandler((effect, { verbose }) =>
-          effect.pipe(Logger.withMinimumLogLevel(verbose ? LogLevel.Debug : LogLevel.Info)),
+        Command.provideSync(CliOptions, (input) => ({
+          verbose: 'verbose' in input ? input.verbose : false,
+        })),
+        Command.provideEffect(References.MinimumLogLevel, (input) =>
+          Effect.succeed<'Debug' | 'Info'>('verbose' in input && input.verbose ? 'Debug' : 'Info'),
         ),
       ),
     );
 
     const cli = traceSync('Command.run', () =>
       Command.run(command, {
-        name: 'Bible Tools',
         version: 'v1.0.0',
       }),
     );
@@ -245,12 +251,12 @@ async function main() {
       AppleScriptLive,
       ChimeLive,
       CliLoggerLive,
-      BunContext.layer,
+      BunServices.layer,
     );
 
     trace('starting Effect execution');
 
-    cli(process.argv).pipe(
+    cli.pipe(
       Effect.tap(() => Effect.sync(() => trace('Effect execution complete'))),
       Effect.provide(ServicesLayer),
       Effect.ensuring(Effect.sync(() => printSummary())),

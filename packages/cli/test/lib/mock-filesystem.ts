@@ -1,5 +1,4 @@
-import { FileSystem } from '@effect/platform';
-import { Data, Effect, Layer, pipe } from 'effect';
+import { Data, Effect, FileSystem, Layer, pipe } from 'effect';
 
 import { recordCall } from './sequence-recorder.js';
 

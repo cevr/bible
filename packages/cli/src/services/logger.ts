@@ -1,12 +1,11 @@
 import { Cause, Inspectable, Logger } from 'effect';
+import type { LogLevel } from 'effect';
 
 type LevelStyle = {
   label: string;
   prefix: string;
   color: string;
 };
-
-type LogLevelTag = 'None' | 'All' | 'Trace' | 'Debug' | 'Info' | 'Warning' | 'Error' | 'Fatal';
 
 const ANSI = {
   reset: '\x1b[0m',
@@ -30,16 +29,16 @@ const colorize = (text: string, color: string) =>
   colorsEnabled ? `${color}${text}${ANSI.reset}` : text;
 const dim = (text: string) => (colorsEnabled ? `${ANSI.dim}${text}${ANSI.reset}` : text);
 
-const levelStyles = {
+const levelStyles: Record<LogLevel.LogLevel, LevelStyle> = {
   None: { label: 'log', prefix: '-', color: ANSI.gray },
   All: { label: 'log', prefix: '-', color: ANSI.gray },
   Trace: { label: 'trace', prefix: '.', color: ANSI.gray },
   Debug: { label: 'debug', prefix: '.', color: ANSI.blue },
   Info: { label: 'info', prefix: '>', color: ANSI.cyan },
-  Warning: { label: 'warn', prefix: '!', color: ANSI.yellow },
+  Warn: { label: 'warn', prefix: '!', color: ANSI.yellow },
   Error: { label: 'error', prefix: 'x', color: ANSI.red },
   Fatal: { label: 'fatal', prefix: 'x', color: ANSI.red },
-} satisfies Record<LogLevelTag, LevelStyle>;
+};
 
 const toMessages = (message: unknown): ReadonlyArray<unknown> =>
   Array.isArray(message) ? message : [message];
@@ -49,14 +48,6 @@ const formatValue = (value: unknown): string =>
 
 const formatMessages = (messages: ReadonlyArray<unknown>): string =>
   messages.map(formatValue).join(' ');
-
-const formatAnnotations = (annotations: Iterable<[string, unknown]>): string => {
-  const entries: string[] = [];
-  for (const [key, value] of annotations) {
-    entries.push(`${key}=${formatValue(value)}`);
-  }
-  return entries.length > 0 ? `(${entries.join(' ')})` : '';
-};
 
 const isJsonLike = (value: string): boolean => {
   const trimmed = value.trim();
@@ -77,9 +68,8 @@ const isJsonLike = (value: string): boolean => {
 };
 
 const shouldRenderRaw = (
-  logLevel: { _tag: LogLevelTag },
+  logLevel: LogLevel.LogLevel,
   messages: ReadonlyArray<unknown>,
-  annotationsText: string,
   cause: Cause.Cause<unknown>,
 ): boolean => {
   if (messages.length !== 1) return false;
@@ -87,44 +77,36 @@ const shouldRenderRaw = (
   const message = messages[0];
   if (typeof message !== 'string') return false;
   if (message.trim().length === 0) return true;
-  if (/^\s/.test(message)) return logLevel._tag === 'Info';
+  if (/^\s/.test(message)) return logLevel === 'Info';
 
-  if (annotationsText.length > 0 || !Cause.isEmpty(cause)) return false;
-  if (logLevel._tag !== 'Info') return false;
+  if (cause.reasons.length !== 0) return false;
+  if (logLevel !== 'Info') return false;
 
   return isJsonLike(message);
 };
 
-const cliLogger = Logger.make<unknown, string>(({ annotations, cause, logLevel, message }) => {
+const cliLogger = Logger.make<unknown, string>(({ cause, logLevel, message }) => {
   const messages = toMessages(message);
-  const annotationsText = formatAnnotations(annotations);
 
-  if (shouldRenderRaw(logLevel, messages, annotationsText, cause)) {
+  if (shouldRenderRaw(logLevel, messages, cause)) {
     return String(messages[0] ?? '');
   }
 
-  const style = levelStyles[logLevel._tag] ?? levelStyles.Info;
+  const style = levelStyles[logLevel] ?? levelStyles.Info;
   const prefix = colorsEnabled ? colorize(style.prefix, style.color) : `[${style.label}]`;
   const formattedMessage = formatMessages(messages);
 
   const parts: string[] = [];
   parts.push(`${prefix} ${formattedMessage}`);
 
-  if (annotationsText.length > 0) {
-    parts.push(dim(annotationsText));
-  }
-
   let out = parts.join(' ');
 
-  if (!Cause.isEmpty(cause)) {
-    const causeText = Cause.pretty(cause, { renderErrorCause: true });
+  if (cause.reasons.length !== 0) {
+    const causeText = Cause.pretty(cause);
     out += `\n${dim(causeText)}`;
   }
 
   return out;
 });
 
-export const CliLoggerLive = Logger.replace(
-  Logger.defaultLogger,
-  Logger.withLeveledConsole(cliLogger),
-);
+export const CliLoggerLive = Logger.layer([Logger.withLeveledConsole(cliLogger)]);

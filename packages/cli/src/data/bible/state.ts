@@ -3,7 +3,7 @@ import { homedir } from 'os';
 import { join } from 'path';
 
 import { Database } from 'bun:sqlite';
-import { Context, Effect, Layer } from 'effect';
+import { Effect, Layer, ServiceMap } from 'effect';
 
 import type { Bookmark, HistoryEntry, Position, Preferences, Reference } from './types.js';
 
@@ -209,10 +209,9 @@ export interface BibleStateService {
 }
 
 // Effect service tag
-export class BibleState extends Context.Tag('@bible/cli/data/bible/state/BibleState')<
-  BibleState,
-  BibleStateService
->() {}
+export class BibleState extends ServiceMap.Service<BibleState, BibleStateService>()(
+  '@bible/cli/data/bible/state/BibleState',
+) {}
 
 // Create the service implementation
 function createBibleStateService(): BibleStateService {
@@ -573,7 +572,7 @@ function createBibleStateService(): BibleStateService {
 }
 
 // Live layer with proper scoping - use Effect.scoped to manage lifecycle
-export const BibleStateLive = Layer.scoped(
+export const BibleStateLive = Layer.effect(
   BibleState,
   Effect.acquireRelease(
     Effect.sync(() => createBibleStateService()),

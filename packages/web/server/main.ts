@@ -7,16 +7,18 @@
  * Run with: bun run server (production) or bun run server:dev (development)
  */
 import {
+  Etag,
   Headers,
-  HttpApiBuilder,
-  HttpApiScalar,
   HttpMiddleware,
+  HttpPlatform,
+  HttpRouter,
   HttpServer,
   HttpServerRequest,
   HttpServerResponse,
-} from '@effect/platform';
-import { BunHttpServer, BunRuntime } from '@effect/platform-bun';
-import { Effect, Layer, Logger, LogLevel, Option } from 'effect';
+} from 'effect/unstable/http';
+import { HttpApiBuilder, HttpApiScalar } from 'effect/unstable/httpapi';
+import { BunHttpServer, BunRuntime, BunServices } from '@effect/platform-bun';
+import { Effect, Layer, Option } from 'effect';
 import { mkdirSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
@@ -52,7 +54,7 @@ const EGWGroupLayer = EGWGroupLive.pipe(
   Layer.provide(EGWParagraphDatabase.Default),
 );
 
-const ApiLive = HttpApiBuilder.api(BibleToolsApi).pipe(
+const ApiLive = HttpApiBuilder.layer(BibleToolsApi).pipe(
   Layer.provide(BibleGroupLayer),
   Layer.provide(EGWGroupLayer),
 );
@@ -163,7 +165,7 @@ const StaticFilesMiddleware = HttpMiddleware.make((app) =>
       const deviceId = deviceIdOpt.value;
 
       if (request.method === 'POST') {
-        const buf = yield* request.arrayBuffer.pipe(Effect.catchAll(() => Effect.succeed(null)));
+        const buf = yield* request.arrayBuffer.pipe(Effect.catch(() => Effect.succeed(null)));
 
         if (!buf || buf.byteLength === 0 || buf.byteLength > MAX_SYNC_BODY) {
           return HttpServerResponse.text('Missing or oversized body', {
@@ -223,13 +225,13 @@ const StaticFilesMiddleware = HttpMiddleware.make((app) =>
     const contentType = getContentType(filePath);
 
     const result = yield* serveStaticFile(filePath, contentType).pipe(
-      Effect.catchAll(() =>
+      Effect.catch(() =>
         // SPA fallback: serve index.html for non-file routes
         pathname.includes('.')
           ? Effect.fail('not-found' as const)
           : serveStaticFile(`${distDir}/index.html`, 'text/html'),
       ),
-      Effect.catchAll(() => app),
+      Effect.catch(() => app),
     );
 
     return result;
@@ -241,23 +243,36 @@ const StaticFilesMiddleware = HttpMiddleware.make((app) =>
 // ============================================================================
 
 // OpenAPI docs at /docs
-const DocsLive = HttpApiScalar.layer().pipe(Layer.provide(ApiLive));
+const DocsLive = HttpApiScalar.layer(BibleToolsApi).pipe(Layer.provide(ApiLive));
 
-// Combine API routes with docs and static files
-const HttpLive = HttpApiBuilder.serve(StaticFilesMiddleware).pipe(
-  Layer.provide(DocsLive),
-  Layer.provide(ApiLive),
-  HttpServer.withLogAddress,
-  Layer.provide(BunHttpServer.layer({ port: PORT })),
+// Build the full app layer (ApiLive + Docs provide HttpRouter)
+const AppLayer = ApiLive.pipe(Layer.provideMerge(DocsLive));
+
+// Convert the app layer to an HTTP handler effect, wrap with middleware, and serve
+const HttpLive = Layer.unwrap(
+  HttpRouter.toHttpEffect(AppLayer).pipe(
+    Effect.map((httpApp) =>
+      HttpServer.serve(StaticFilesMiddleware)(httpApp).pipe(
+        HttpServer.withLogAddress,
+        Layer.provide(BunHttpServer.layer({ port: PORT })),
+      ),
+    ),
+  ),
 );
 
 // ============================================================================
 // Start Server
 // ============================================================================
 
+const PlatformLive = Layer.mergeAll(
+  Etag.layer,
+  HttpPlatform.layer.pipe(Layer.provide(BunServices.layer)),
+  BunServices.layer,
+);
+
 const program = Layer.launch(HttpLive).pipe(
-  Effect.tapErrorCause(Effect.logError),
-  Logger.withMinimumLogLevel(LogLevel.Debug),
+  Effect.provide(PlatformLive),
+  Effect.tapError(Effect.logError),
 );
 
 console.log(`Starting Bible Tools server on port ${PORT}...`);

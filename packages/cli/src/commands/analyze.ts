@@ -1,11 +1,10 @@
 // @effect-diagnostics strictEffectProvide:off
-import { BunContext } from '@effect/platform-bun';
-import { Args, Command, Options } from '@effect/cli';
+import { BunServices } from '@effect/platform-bun';
+import { Argument, Command, Flag } from 'effect/unstable/cli';
 import { BibleDatabase } from '@bible/core/bible-db';
 import { StructuralAnalysis, type PassageContext } from '@bible/core/structural-analysis';
-import { FileSystem } from '@effect/platform';
+import { Effect, FileSystem, Layer, Option } from 'effect';
 import { format } from 'date-fns';
-import { Effect, Layer, Option, Runtime } from 'effect';
 import { join } from 'path';
 
 import { AnalyzeFrontmatter } from '~/src/lib/content/schemas';
@@ -23,18 +22,18 @@ import { parseVerseQuery, getVersesForQuery } from '~/src/data/bible/parse';
 import type { BibleDataSyncService } from '~/src/data/bible/types';
 import { createCrossRefService, type ClassifiedCrossReference } from '~/src/data/study/cross-refs';
 
-const passage = Args.text({ name: 'passage' }).pipe(Args.repeated);
+const passage = Argument.string('passage').pipe(Argument.variadic());
 
-const depth = Options.choice('depth', ['shallow', 'deep']).pipe(
-  Options.withAlias('d'),
-  Options.withDefault('shallow' as const),
-  Options.withDescription('Analysis depth: shallow (AI-only) or deep (with Bible data context)'),
+const depth = Flag.choice('depth', ['shallow', 'deep']).pipe(
+  Flag.withAlias('d'),
+  Flag.withDefault('shallow' as const),
+  Flag.withDescription('Analysis depth: shallow (AI-only) or deep (with Bible data context)'),
 );
 
 // Layer for deep mode: StructuralAnalysis depends on BibleDatabase
 const DeepModeLive = StructuralAnalysis.Live.pipe(
   Layer.provideMerge(BibleDatabase.Default),
-  Layer.provideMerge(BunContext.layer),
+  Layer.provideMerge(BunServices.layer),
 );
 
 /** Short type labels for cross-ref classifications */
@@ -178,8 +177,8 @@ export const analyze = Command.make('analyze', { passage, depth, model: required
     // Deep mode: gather contextual data via StructuralAnalysis service
     if (args.depth === 'deep') {
       const data = yield* BibleData;
-      const runtime = yield* Effect.runtime();
-      const runSync = Runtime.runSync(runtime);
+      const services = yield* Effect.services();
+      const runSync = Effect.runSyncWith(services);
 
       const syncData: BibleDataSyncService = {
         getBooks: () => runSync(data.getBooks()),

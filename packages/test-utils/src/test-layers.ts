@@ -1,3 +1,4 @@
+// @effect-diagnostics anyUnknownInErrorContext:off strictEffectProvide:off importFromBarrel:off
 /**
  * Test Layers - Helpers for creating test layers
  *
@@ -5,7 +6,7 @@
  * Service-specific layers should be defined in the package that owns the service.
  */
 
-import type { Context } from 'effect';
+import type { ServiceMap } from 'effect';
 import { Effect, Layer, Ref } from 'effect';
 
 import {
@@ -43,7 +44,7 @@ import {
  */
 export const createRecordingTestLayer = <
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Generic type param requires any
-  Tag extends Context.Tag<unknown, unknown>,
+  Tag extends ServiceMap.Key<any, any>,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Generic type param requires any
   Shape extends Record<string, (...args: never[]) => Effect.Effect<unknown, unknown, unknown>>,
 >(
@@ -52,15 +53,15 @@ export const createRecordingTestLayer = <
     [K in keyof Shape]: (
       ...args: Parameters<Shape[K]>
     ) => Effect.Effect<
-      Effect.Effect.Success<ReturnType<Shape[K]>>,
-      Effect.Effect.Error<ReturnType<Shape[K]>>,
+      Effect.Success<ReturnType<Shape[K]>>,
+      Effect.Error<ReturnType<Shape[K]>>,
       never
     >;
   },
   extractArgs: {
     [K in keyof Shape]?: (...args: Parameters<Shape[K]>) => Record<string, unknown>;
   },
-): Layer.Layer<Context.Tag.Identifier<Tag>, never, CallSequence> => {
+): Layer.Layer<ServiceMap.Service.Identifier<Tag>, never, CallSequence> => {
   const tagName = (tag as unknown as { key: string }).key ?? 'UnknownService';
 
   return Layer.effect(
@@ -85,7 +86,7 @@ export const createRecordingTestLayer = <
           });
       }
 
-      return service as Context.Tag.Service<Tag>;
+      return service as ServiceMap.Service.Shape<Tag>;
     }),
   );
 };

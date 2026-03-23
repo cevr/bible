@@ -13,10 +13,10 @@ import { Schema } from 'effect';
 export class BibleReference extends Schema.Class<BibleReference>('BibleReference')({
   book: Schema.Number,
   chapter: Schema.Number,
-  verse: Schema.optionalWith(Schema.Number, { nullable: true }),
+  verse: Schema.optionalKey(Schema.NullishOr(Schema.Number)),
 }) {
-  static fromJson = Schema.decode(Schema.parseJson(BibleReference));
-  static toJson = Schema.encode(Schema.parseJson(BibleReference));
+  static fromJson = Schema.decodeEffect(Schema.fromJsonString(BibleReference));
+  static toJson = Schema.encodeEffect(Schema.fromJsonString(BibleReference));
 }
 
 /**
@@ -25,11 +25,11 @@ export class BibleReference extends Schema.Class<BibleReference>('BibleReference
  */
 export class EGWReference extends Schema.Class<EGWReference>('EGWReference')({
   bookCode: Schema.String,
-  page: Schema.optionalWith(Schema.Number, { nullable: true }),
-  paragraph: Schema.optionalWith(Schema.Number, { nullable: true }),
+  page: Schema.optionalKey(Schema.NullishOr(Schema.Number)),
+  paragraph: Schema.optionalKey(Schema.NullishOr(Schema.Number)),
 }) {
-  static fromJson = Schema.decode(Schema.parseJson(EGWReference));
-  static toJson = Schema.encode(Schema.parseJson(EGWReference));
+  static fromJson = Schema.decodeEffect(Schema.fromJsonString(EGWReference));
+  static toJson = Schema.encodeEffect(Schema.fromJsonString(EGWReference));
 }
 
 /**
@@ -57,13 +57,13 @@ export class StudiesRoute extends Schema.TaggedClass<StudiesRoute>('StudiesRoute
 /**
  * App Route - discriminated union for all app routes
  */
-export const AppRoute = Schema.Union(
+export const AppRoute = Schema.Union([
   BibleRoute,
   EGWRoute,
   MessagesRoute,
   SabbathSchoolRoute,
   StudiesRoute,
-);
+]);
 
 export type AppRoute = Schema.Schema.Type<typeof AppRoute>;
 
@@ -74,8 +74,8 @@ export class AppRouterState extends Schema.Class<AppRouterState>('AppRouterState
   current: AppRoute,
   history: Schema.Array(AppRoute),
 }) {
-  static fromJson = Schema.decode(Schema.parseJson(AppRouterState));
-  static toJson = Schema.encode(Schema.parseJson(AppRouterState));
+  static fromJson = Schema.decodeEffect(Schema.fromJsonString(AppRouterState));
+  static toJson = Schema.encodeEffect(Schema.fromJsonString(AppRouterState));
 }
 
 /**

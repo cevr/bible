@@ -1,8 +1,8 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI } from '@ai-sdk/openai';
-import { HelpDoc, Options, ValidationError } from '@effect/cli';
-import { Context, Effect, Option } from 'effect';
+import { Flag, CliError } from 'effect/unstable/cli';
+import { Effect, Option, ServiceMap } from 'effect';
 
 import { Provider, type ProviderConfig } from '@bible/core/ai';
 
@@ -23,7 +23,7 @@ const getEnvKey = (
         : key === 'ANTHROPIC_API_KEY'
           ? process.env.ANTHROPIC_API_KEY
           : undefined;
-  return Option.fromNullable(value).pipe(Option.filter((v) => v.length > 0));
+  return Option.fromNullishOr(value).pipe(Option.filter((v) => v.length > 0));
 };
 
 const extractModel = Effect.fn('extractModel')(function* (modelOption: Option.Option<string>) {
@@ -73,33 +73,36 @@ const extractModel = Effect.fn('extractModel')(function* (modelOption: Option.Op
   );
 
   if (models.length === 0) {
-    return yield* Effect.dieMessage('No model provider found');
+    return yield* Effect.die(new Error('No model provider found'));
   }
 
   const model = modelOption.pipe(
     Option.flatMap((model) => matchEnum(Provider, model)),
     Option.flatMap((model) =>
-      Option.fromNullable(models.find((m) => m.provider === model)?.models),
+      Option.fromNullishOr(models.find((m) => m.provider === model)?.models),
     ),
   );
 
   return yield* Option.match(model, {
     onNone: () =>
       Effect.fail(
-        ValidationError.invalidValue(
-          HelpDoc.p(`--model is required. Available: ${models.map((m) => m.provider).join(', ')}`),
-        ),
+        new CliError.InvalidValue({
+          option: 'model',
+          value: Option.getOrElse(modelOption, () => '(none)'),
+          expected: `one of: ${models.map((m) => m.provider).join(', ')}`,
+          kind: 'flag',
+        }),
       ),
     onSome: Effect.succeed,
   });
 });
 
-export const requiredModel = Options.text('model').pipe(
-  Options.withAlias('m'),
-  Options.optional,
-  Options.mapEffect(extractModel),
+export const requiredModel = Flag.string('model').pipe(
+  Flag.withAlias('m'),
+  Flag.optional,
+  Flag.mapEffect(extractModel),
 );
-export class Model extends Context.Tag('@bible/cli/services/model')<
+export class Model extends ServiceMap.Service<
   Model,
-  Effect.Effect.Success<ReturnType<typeof extractModel>>
->() {}
+  Effect.Success<ReturnType<typeof extractModel>>
+>()('@bible/cli/services/model') {}

@@ -11,7 +11,7 @@ export type PromptResolver =
   | { readonly _tag: 'single'; readonly file: string }
   | { readonly _tag: 'from-filename'; readonly patterns: Record<string, string> };
 
-export interface ContentTypeConfig<F extends Schema.Schema.AnyNoContext> {
+export interface ContentTypeConfig<F extends Schema.Top> {
   readonly name: string;
   readonly displayName: string;
   readonly outputDir: string;

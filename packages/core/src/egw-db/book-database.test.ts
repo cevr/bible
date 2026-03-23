@@ -1,3 +1,4 @@
+// @effect-diagnostics nodeBuiltinImport:off
 /**
  * Tests for EGW Paragraph Database
  *
@@ -8,9 +9,9 @@ import { existsSync, unlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { BunContext } from '@effect/platform-bun';
+import { BunServices } from '@effect/platform-bun';
 import { afterAll, describe, expect, test } from 'bun:test';
-import { Effect, Layer, Option } from 'effect';
+import { ConfigProvider, Effect, Layer, Option } from 'effect';
 
 import type { Book, Paragraph } from '../egw/schemas.js';
 import { EGWParagraphDatabase } from './book-database.js';
@@ -42,9 +43,17 @@ afterAll(() => {
 // Helper to run scoped effects in tests with fresh database
 const runTest = <A, E>(effect: Effect.Effect<A, E, EGWParagraphDatabase>): Promise<A> => {
   const dbPath = getTempDbPath();
-  process.env.EGW_PARAGRAPH_DB = dbPath;
 
-  const TestLayer = EGWParagraphDatabase.Default.pipe(Layer.provide(BunContext.layer));
+  const provider = ConfigProvider.make((path) =>
+    Effect.succeed(
+      path.join('_') === 'EGW_PARAGRAPH_DB' ? ConfigProvider.makeValue(dbPath) : undefined,
+    ),
+  );
+
+  const TestLayer = Layer.fresh(EGWParagraphDatabase.Default).pipe(
+    Layer.provide(BunServices.layer),
+    Layer.provide(ConfigProvider.layer(provider)),
+  );
   return Effect.runPromise(Effect.scoped(effect.pipe(Effect.provide(TestLayer))));
 };
 

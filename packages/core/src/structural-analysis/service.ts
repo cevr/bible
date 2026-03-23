@@ -6,7 +6,7 @@
  * to gather passage-level data for structural analysis. No AI — pure data operations.
  */
 
-import { Context, Effect, Layer, Option } from 'effect';
+import { ServiceMap, Effect, Layer, Option } from 'effect';
 
 import { BibleDatabase } from '../bible-db/bible-database.js';
 import type {
@@ -80,9 +80,10 @@ export interface StructuralAnalysisShape {
 // Service Definition
 // ============================================================================
 
-export class StructuralAnalysis extends Context.Tag(
-  '@bible/core/structural-analysis/service/StructuralAnalysis',
-)<StructuralAnalysis, StructuralAnalysisShape>() {
+export class StructuralAnalysis extends ServiceMap.Service<
+  StructuralAnalysis,
+  StructuralAnalysisShape
+>()('@bible/core/structural-analysis/service/StructuralAnalysis') {
   static Live: Layer.Layer<StructuralAnalysis, never, BibleDatabase> = Layer.effect(
     StructuralAnalysis,
     Effect.gen(function* () {

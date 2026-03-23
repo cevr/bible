@@ -15,7 +15,7 @@ import {
   type EGWParagraph,
   type EGWReaderPosition,
 } from '@bible/core/egw-reader';
-import { BunContext } from '@effect/platform-bun';
+import { BunServices } from '@effect/platform-bun';
 import { Effect, Layer, ManagedRuntime } from 'effect';
 import { createContext, useContext, type ParentProps } from 'solid-js';
 
@@ -25,7 +25,7 @@ export type { EGWBookInfo, EGWParagraph, EGWReaderPosition };
 // Create combined layer with all dependencies
 const EGWServicesLayer = EGWReaderService.Default.pipe(
   Layer.provideMerge(EGWParagraphDatabase.Default),
-  Layer.provideMerge(BunContext.layer),
+  Layer.provideMerge(BunServices.layer),
 );
 
 // Create ManagedRuntime

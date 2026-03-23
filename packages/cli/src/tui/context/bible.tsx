@@ -1,5 +1,5 @@
 // @effect-diagnostics strictBooleanExpressions:off strictEffectProvide:off
-import { Runtime } from 'effect';
+import { Effect } from 'effect';
 import {
   createContext,
   createResource,
@@ -27,12 +27,20 @@ const BibleContext = createContext<BibleContextValue>();
 
 export function BibleProvider(props: ParentProps) {
   const runtime = useAppRuntime<AppServices>();
-  const runSync = Runtime.runSync(runtime);
+  const runSync = <A, E>(effect: Effect.Effect<A, E, AppServices>) => runtime.runSync(effect);
 
   // Get services from the app runtime (scope stays alive)
   const [services] = createResource(async () => {
-    const data = await Runtime.runPromise(runtime)(BibleData);
-    const state = await Runtime.runPromise(runtime)(BibleState);
+    const data = await runtime.runPromise(
+      Effect.gen(function* () {
+        return yield* BibleData;
+      }),
+    );
+    const state = await runtime.runPromise(
+      Effect.gen(function* () {
+        return yield* BibleState;
+      }),
+    );
     return { data, state };
   });
 

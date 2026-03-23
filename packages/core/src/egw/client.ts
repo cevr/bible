@@ -4,12 +4,11 @@
  * Adapted from Spotify client patterns with Effect-TS
  */
 
-import type { HttpClientError } from '@effect/platform';
-import { HttpClient, HttpClientRequest, HttpClientResponse } from '@effect/platform';
-import type { ConfigError, ParseResult } from 'effect';
+import type { HttpClientError } from 'effect/unstable/http';
+import { HttpClient, HttpClientRequest, HttpClientResponse } from 'effect/unstable/http';
 import {
   Config,
-  Context,
+  ServiceMap,
   Duration,
   Effect,
   Layer,
@@ -26,12 +25,12 @@ import * as Schemas from './schemas.js';
 /**
  * EGW API Client Errors
  */
-export class EGWApiError extends Schema.TaggedError<EGWApiError>()('EGWApiError', {
+export class EGWApiError extends Schema.TaggedErrorClass<EGWApiError>()('EGWApiError', {
   cause: Schema.Unknown,
   message: Schema.String,
 }) {}
 
-const encodeJson = Schema.encodeSync(Schema.parseJson({ space: 2 }));
+const encodeJson = (value: unknown) => JSON.stringify(value, null, 2);
 
 // ============================================================================
 // Service Interface
@@ -40,10 +39,7 @@ const encodeJson = Schema.encodeSync(Schema.parseJson({ space: 2 }));
 /**
  * EGW API Client error type (union of possible errors)
  */
-export type EGWApiClientError =
-  | EGWApiError
-  | HttpClientError.HttpClientError
-  | ParseResult.ParseError;
+export type EGWApiClientError = EGWApiError | HttpClientError.HttpClientError | Schema.SchemaError;
 
 /**
  * EGW API Client service interface.
@@ -89,16 +85,15 @@ export interface EGWApiClientService {
 /**
  * EGW API Client Service
  */
-export class EGWApiClient extends Context.Tag('@bible/core/egw/client/EGWApiClient')<
-  EGWApiClient,
-  EGWApiClientService
->() {
+export class EGWApiClient extends ServiceMap.Service<EGWApiClient, EGWApiClientService>()(
+  '@bible/core/egw/client/EGWApiClient',
+) {
   /**
    * Live implementation using HTTP client and EGW Auth.
    */
   static Live: Layer.Layer<
     EGWApiClient,
-    ConfigError.ConfigError | HttpClientError.HttpClientError | ParseResult.ParseError,
+    Config.ConfigError | HttpClientError.HttpClientError | Schema.SchemaError,
     EGWAuth | HttpClient.HttpClient
   > = Layer.effect(
     EGWApiClient,
@@ -154,9 +149,9 @@ export class EGWApiClient extends Context.Tag('@bible/core/egw/client/EGWApiClie
                   );
                   // Log response body for non-2xx status codes
                   if (response.status < 200 || response.status >= 300) {
-                    const body = yield* response.text.pipe(Effect.either);
-                    if (body._tag === 'Right') {
-                      yield* Effect.logError('Error response body:', body.right);
+                    const body = yield* response.text.pipe(Effect.result);
+                    if (body._tag === 'Success') {
+                      yield* Effect.logError('Error response body:', body.success);
                     }
                   }
                 }),
@@ -195,8 +190,8 @@ export class EGWApiClient extends Context.Tag('@bible/core/egw/client/EGWApiClie
       const PaginatedResponse = Schema.Struct({
         count: Schema.Number,
         ipp: Schema.Number,
-        previous: Schema.Union(Schema.String, Schema.Null),
-        next: Schema.Union(Schema.String, Schema.Null),
+        previous: Schema.NullOr(Schema.String),
+        next: Schema.NullOr(Schema.String),
         results: Schema.Array(Schemas.Book),
       });
 
@@ -232,13 +227,12 @@ export class EGWApiClient extends Context.Tag('@bible/core/egw/client/EGWApiClie
        * Uses Stream.paginateEffect to handle pagination automatically
        */
       const booksStream = (initialUrl: string): Stream.Stream<Schemas.Book, EGWApiError> =>
-        Stream.paginateEffect(initialUrl, (url) =>
+        Stream.paginate(initialUrl, (url) =>
           Effect.gen(function* () {
             const page = yield* fetchBooksPage(url);
-            // Emit all books from this page, and continue with next URL if available
             return [page.results, page.next ? Option.some(page.next) : Option.none()] as const;
           }),
-        ).pipe(Stream.flatMap((books) => Stream.fromIterable(books)));
+        );
 
       return {
         getLanguages: () =>
@@ -349,14 +343,14 @@ export class EGWApiClient extends Context.Tag('@bible/core/egw/client/EGWApiClie
             const parsed = yield* HttpClientResponse.schemaBodyJson(Schema.Array(Schemas.TocItem))(
               response,
             ).pipe(
-              Effect.catchAll((error) =>
+              Effect.catch((error) =>
                 Effect.gen(function* () {
                   const raw = yield* response.json;
                   yield* Effect.logError(
                     `Failed to parse TOC for book ${bookId}. Raw response:`,
                     encodeJson(raw),
                   );
-                  return yield* error;
+                  return yield* Effect.fail(error);
                 }),
               ),
             );
@@ -431,7 +425,7 @@ export class EGWApiClient extends Context.Tag('@bible/core/egw/client/EGWApiClie
             const response = yield* httpClient.get('/content/mirrors');
             return yield* HttpClientResponse.schemaBodyJson(Schema.Array(Schema.String))(response);
           }).pipe(Effect.retry(retrySchedule)),
-      };
+      } as EGWApiClientService;
     }),
   );
 
@@ -455,7 +449,9 @@ export class EGWApiClient extends Context.Tag('@bible/core/egw/client/EGWApiClie
       getBooksByFolder: () => Effect.succeed(config.books ?? []),
       getBooks: () => Stream.fromIterable(config.books ?? []),
       getBook: (bookId) =>
-        Effect.fromNullable(config.books?.find((b) => b.book_id === bookId)).pipe(
+        Effect.fromOption(
+          Option.fromNullishOr(config.books?.find((b) => b.book_id === bookId)),
+        ).pipe(
           Effect.mapError(
             () =>
               new EGWApiError({

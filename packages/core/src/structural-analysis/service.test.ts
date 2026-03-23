@@ -1,3 +1,4 @@
+// @effect-diagnostics nodeBuiltinImport:off anyUnknownInErrorContext:off
 /**
  * StructuralAnalysis Service Tests
  *
@@ -8,7 +9,7 @@
 import { existsSync } from 'fs';
 import { join } from 'path';
 
-import { BunContext } from '@effect/platform-bun';
+import { BunServices } from '@effect/platform-bun';
 import { beforeAll, describe, expect, it } from 'bun:test';
 import { Effect, Layer, ManagedRuntime } from 'effect';
 
@@ -21,7 +22,7 @@ const DB_EXISTS = existsSync(DB_PATH);
 
 const TestLayer = StructuralAnalysis.Live.pipe(
   Layer.provideMerge(BibleDatabase.Default),
-  Layer.provideMerge(BunContext.layer),
+  Layer.provideMerge(BunServices.layer),
 );
 
 const runtime = ManagedRuntime.make(TestLayer);

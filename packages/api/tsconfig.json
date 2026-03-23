@@ -14,7 +14,56 @@
     "verbatimModuleSyntax": true,
     "plugins": [
       {
-        "name": "@effect/language-service"
+        "name": "@effect/language-service",
+        "transform": "@effect/language-service/transform",
+        "namespaceImportPackages": ["effect", "@effect/*"],
+        "diagnostics": true,
+        "diagnosticsName": true,
+        "ignoreEffectWarningsInTscExitCode": true,
+        "diagnosticSeverity": {
+          "anyUnknownInErrorContext": "error",
+          "deterministicKeys": "warning",
+          "importFromBarrel": "warning",
+          "instanceOfSchema": "warning",
+          "missedPipeableOpportunity": "suggestion",
+          "missingEffectServiceDependency": "warning",
+          "schemaUnionOfLiterals": "warning",
+          "strictBooleanExpressions": "off",
+          "strictEffectProvide": "warning",
+          "catchAllToMapError": "warning",
+          "catchUnfailableEffect": "warning",
+          "effectFnOpportunity": "warning",
+          "effectMapVoid": "warning",
+          "effectSucceedWithVoid": "warning",
+          "leakingRequirements": "warning",
+          "preferSchemaOverJson": "warning",
+          "redundantSchemaTagIdentifier": "warning",
+          "returnEffectInGen": "warning",
+          "runEffectInsideEffect": "error",
+          "schemaStructWithTag": "warning",
+          "schemaSyncInEffect": "warning",
+          "tryCatchInEffectGen": "warning",
+          "unnecessaryEffectGen": "warning",
+          "unnecessaryFailYieldableError": "warning",
+          "unnecessaryPipe": "warning",
+          "unnecessaryPipeChain": "warning",
+          "extendsNativeError": "error",
+          "nodeBuiltinImport": "warning",
+          "serviceNotAsClass": "warning",
+          "outdatedApi": "warning"
+        },
+        "keyPatterns": [
+          {
+            "target": "service",
+            "pattern": "default",
+            "skipLeadingPath": ["src/"]
+          },
+          {
+            "target": "error",
+            "pattern": "default",
+            "skipLeadingPath": ["src/"]
+          }
+        ]
       }
     ]
   },

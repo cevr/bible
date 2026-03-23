@@ -1,7 +1,6 @@
-import { Command } from '@effect/cli';
-import { FileSystem } from '@effect/platform';
+import { Command } from 'effect/unstable/cli';
+import { Effect, FileSystem, Option } from 'effect';
 import { format } from 'date-fns';
-import { Effect, Option } from 'effect';
 import { join } from 'path';
 
 import { StudiesConfig } from '~/src/lib/content/configs';

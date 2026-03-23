@@ -15,8 +15,7 @@ import { Schema } from 'effect';
  * Bible book number (1-66)
  */
 export const BibleBookNumber = Schema.Number.pipe(
-  Schema.int(),
-  Schema.between(1, 66),
+  Schema.check(Schema.isInt(), Schema.isBetween({ minimum: 1, maximum: 66 })),
   Schema.brand('BibleBookNumber'),
 );
 export type BibleBookNumber = typeof BibleBookNumber.Type;
@@ -25,8 +24,7 @@ export type BibleBookNumber = typeof BibleBookNumber.Type;
  * Bible chapter number (1-150, varies by book)
  */
 export const BibleChapter = Schema.Number.pipe(
-  Schema.int(),
-  Schema.positive(),
+  Schema.check(Schema.isInt(), Schema.isGreaterThan(0)),
   Schema.brand('BibleChapter'),
 );
 export type BibleChapter = typeof BibleChapter.Type;
@@ -35,8 +33,7 @@ export type BibleChapter = typeof BibleChapter.Type;
  * Bible verse number (1-176, varies by chapter)
  */
 export const BibleVerse = Schema.Number.pipe(
-  Schema.int(),
-  Schema.positive(),
+  Schema.check(Schema.isInt(), Schema.isGreaterThan(0)),
   Schema.brand('BibleVerse'),
 );
 export type BibleVerse = typeof BibleVerse.Type;
@@ -49,8 +46,7 @@ export type BibleVerse = typeof BibleVerse.Type;
  * EGW Book ID (numeric identifier)
  */
 export const EGWBookId = Schema.Number.pipe(
-  Schema.int(),
-  Schema.positive(),
+  Schema.check(Schema.isInt(), Schema.isGreaterThan(0)),
   Schema.brand('EGWBookId'),
 );
 export type EGWBookId = typeof EGWBookId.Type;
@@ -75,8 +71,7 @@ export type EGWRefCode = typeof EGWRefCode.Type;
  * SDA Hymnal hymn number (1-920)
  */
 export const HymnId = Schema.Number.pipe(
-  Schema.int(),
-  Schema.between(1, 920),
+  Schema.check(Schema.isInt(), Schema.isBetween({ minimum: 1, maximum: 920 })),
   Schema.brand('HymnId'),
 );
 export type HymnId = typeof HymnId.Type;
@@ -85,8 +80,7 @@ export type HymnId = typeof HymnId.Type;
  * Hymnal category ID (positive integer)
  */
 export const CategoryId = Schema.Number.pipe(
-  Schema.int(),
-  Schema.positive(),
+  Schema.check(Schema.isInt(), Schema.isGreaterThan(0)),
   Schema.brand('CategoryId'),
 );
 export type CategoryId = typeof CategoryId.Type;
@@ -95,8 +89,7 @@ export type CategoryId = typeof CategoryId.Type;
  * Verse ID within a hymn (0-indexed)
  */
 export const VerseId = Schema.Number.pipe(
-  Schema.int(),
-  Schema.nonNegative(),
+  Schema.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0)),
   Schema.brand('VerseId'),
 );
 export type VerseId = typeof VerseId.Type;

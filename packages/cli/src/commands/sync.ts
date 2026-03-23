@@ -6,14 +6,14 @@
  */
 
 import { syncBible } from '@bible/core/sync';
-import { Options, Command } from '@effect/cli';
+import { Flag, Command } from 'effect/unstable/cli';
 import { Effect, Schema } from 'effect';
 
-class SyncError extends Schema.TaggedError<SyncError>()('SyncError', {
+class SyncError extends Schema.TaggedErrorClass<SyncError>()('SyncError', {
   cause: Schema.Defect,
 }) {}
 
-const force = Options.boolean('force').pipe(Options.withDefault(false));
+const force = Flag.boolean('force').pipe(Flag.withDefault(false));
 
 export const sync = Command.make('sync', { force }, (args) =>
   Effect.tryPromise({

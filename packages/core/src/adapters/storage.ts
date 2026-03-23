@@ -1,12 +1,12 @@
 // @effect-diagnostics strictBooleanExpressions:off
-import { Context, Effect, Layer, Schema } from 'effect';
+import { ServiceMap, Effect, Layer, Option, Schema } from 'effect';
 
 /**
  * Error thrown when a storage operation fails.
  */
-export class StorageError extends Schema.TaggedError<StorageError>()('StorageError', {
+export class StorageError extends Schema.TaggedErrorClass<StorageError>()('StorageError', {
   key: Schema.String,
-  operation: Schema.Literal('read', 'write', 'delete'),
+  operation: Schema.Literals(['read', 'write', 'delete']),
   cause: Schema.Defect,
 }) {}
 
@@ -59,10 +59,9 @@ export interface StorageAdapterService {
 /**
  * Adapter for persistent storage operations.
  */
-export class StorageAdapter extends Context.Tag('@bible/core/adapters/storage/StorageAdapter')<
-  StorageAdapter,
-  StorageAdapterService
->() {
+export class StorageAdapter extends ServiceMap.Service<StorageAdapter, StorageAdapterService>()(
+  '@bible/core/adapters/storage/StorageAdapter',
+) {
   /**
    * Test implementation with in-memory storage.
    */
@@ -70,7 +69,7 @@ export class StorageAdapter extends Context.Tag('@bible/core/adapters/storage/St
     const storage = new Map(Object.entries(initialData));
     return Layer.succeed(StorageAdapter, {
       read: (key) =>
-        Effect.fromNullable(storage.get(key)).pipe(
+        Effect.fromOption(Option.fromNullishOr(storage.get(key))).pipe(
           Effect.mapError(() => new StorageError({ key, operation: 'read', cause: null })),
         ),
       write: (key, content) =>

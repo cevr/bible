@@ -5,8 +5,8 @@
  * CLI commands for querying the SDA Hymnal.
  */
 
-import { Args, Command } from '@effect/cli';
-import { BunContext } from '@effect/platform-bun';
+import { Argument, Command } from 'effect/unstable/cli';
+import { BunServices } from '@effect/platform-bun';
 import { HymnalDatabase, HymnalService, type CategoryId, type HymnId } from '@bible/core/hymnal';
 import { Console, Effect, Layer } from 'effect';
 
@@ -16,7 +16,7 @@ import { Console, Effect, Layer } from 'effect';
 
 const HymnalLive = HymnalService.Live.pipe(
   Layer.provide(HymnalDatabase.Live),
-  Layer.provideMerge(BunContext.layer),
+  Layer.provideMerge(BunServices.layer),
 );
 
 // ============================================================================
@@ -53,14 +53,14 @@ function formatHymnSummary(hymn: {
 // Subcommands
 // ============================================================================
 
-const hymnNumber = Args.integer({ name: 'number' });
+const hymnNumber = Argument.integer('number');
 
 const getCommand = Command.make('get', { hymnNumber }, (args) =>
   Effect.gen(function* () {
     const service = yield* HymnalService;
     const hymn = yield* service
       .getHymn(args.hymnNumber as HymnId)
-      .pipe(Effect.catchAll(() => Effect.succeed(null)));
+      .pipe(Effect.catch(() => Effect.succeed(null)));
 
     if (hymn === null) {
       yield* Console.log(`Hymn #${args.hymnNumber} not found.`);
@@ -72,7 +72,7 @@ const getCommand = Command.make('get', { hymnNumber }, (args) =>
   }).pipe(Effect.scoped, Effect.provide(HymnalLive)),
 );
 
-const searchQuery = Args.text({ name: 'query' }).pipe(Args.repeated);
+const searchQuery = Argument.string('query').pipe(Argument.variadic());
 
 const searchCommand = Command.make('search', { searchQuery }, (args) =>
   Effect.gen(function* () {
@@ -118,7 +118,7 @@ const categoriesCommand = Command.make('categories', {}, () =>
   }).pipe(Effect.scoped, Effect.provide(HymnalLive)),
 );
 
-const categoryIdArg = Args.integer({ name: 'id' });
+const categoryIdArg = Argument.integer('id');
 
 const categoryCommand = Command.make('category', { categoryIdArg }, (args) =>
   Effect.gen(function* () {

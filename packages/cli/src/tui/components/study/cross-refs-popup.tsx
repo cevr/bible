@@ -27,7 +27,7 @@ import {
   type WordFrequencyEntry,
   type PassageContext,
 } from '@bible/core/structural-analysis';
-import { BunContext } from '@effect/platform-bun';
+import { BunServices } from '@effect/platform-bun';
 import type { ScrollBoxRenderable } from '@opentui/core';
 import { useModalKeyboard } from '../../hooks/use-modal-keyboard.js';
 import { Effect, Layer } from 'effect';
@@ -228,7 +228,7 @@ export function CrossRefsPopup(props: CrossRefsPopupProps) {
 
     const CommentaryLayer = EGWCommentaryService.Default.pipe(
       Layer.provideMerge(EGWParagraphDatabase.Default),
-      Layer.provideMerge(BunContext.layer),
+      Layer.provideMerge(BunServices.layer),
     );
 
     const verse = props.verseRef.verse ?? 1;
@@ -259,7 +259,7 @@ export function CrossRefsPopup(props: CrossRefsPopupProps) {
 
     const StructuralLayer = StructuralAnalysis.Live.pipe(
       Layer.provideMerge(BibleDatabase.Default),
-      Layer.provideMerge(BunContext.layer),
+      Layer.provideMerge(BunServices.layer),
     );
 
     const verse = props.verseRef.verse ?? 1;

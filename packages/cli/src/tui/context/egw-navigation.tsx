@@ -430,8 +430,8 @@ export function EGWNavigationProvider(props: ParentProps<EGWNavigationProviderPr
     if (ref?.bookCode) {
       goToPosition({
         bookCode: ref.bookCode,
-        page: ref.page,
-        paragraph: ref.paragraph,
+        page: ref.page ?? undefined,
+        paragraph: ref.paragraph ?? undefined,
       });
     } else {
       // Try to load last position from state

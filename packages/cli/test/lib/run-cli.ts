@@ -1,4 +1,5 @@
-import { Command } from '@effect/cli';
+import { BunServices } from '@effect/platform-bun';
+import { Command } from 'effect/unstable/cli';
 import { Effect, Exit, Logger } from 'effect';
 import { expect } from 'bun:test';
 
@@ -38,24 +39,22 @@ export const runCli = async <Name extends string, R, E>(
   const { layer, cleanup, getAllCalls } = createTestLayer(config);
 
   try {
-    // Create the CLI runner
-    const cli = Command.run(command, {
-      name: 'bible-tools-test',
-      version: 'test',
-    });
-
-    // Build full argv array (node, script, ...args)
-    const argv = ['node', 'bible-tools', ...args];
+    // Use Command.runWith to pass args directly (v4 pattern)
+    const cli = Command.runWith(command, { version: 'test' });
 
     // Run the CLI command with test layers
     const program = Effect.gen(function* () {
-      yield* cli(argv);
+      yield* cli(args);
       return yield* getCallSequence;
     });
 
     // Suppress logs during tests unless debugging
     const exit = await Effect.runPromiseExit(
-      program.pipe(Effect.provide(layer), Effect.provide(Logger.remove(Logger.defaultLogger))),
+      program.pipe(
+        Effect.provide(layer),
+        Effect.provide(BunServices.layer),
+        Effect.provide(Logger.layer([])),
+      ),
     );
 
     // Extract calls - merge Effect-tracked calls with service/external calls

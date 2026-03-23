@@ -7,11 +7,9 @@
  * Tracks individual paragraphs, assuming one paragraph is uploaded at a time.
  */
 
-import { FileSystem, Path } from '@effect/platform';
-import type { PlatformError } from '@effect/platform/Error';
+import type { PlatformError } from 'effect/PlatformError';
 import { Database } from 'bun:sqlite';
-import type { ConfigError } from 'effect';
-import { Config, Context, Effect, Layer, Option } from 'effect';
+import { Config, ServiceMap, Effect, FileSystem, Layer, Option, Path } from 'effect';
 
 import {
   DatabaseConnectionError,
@@ -129,17 +127,17 @@ export interface EGWUploadStatusService {
 /**
  * EGW Upload Status Service
  */
-export class EGWUploadStatus extends Context.Tag(
+export class EGWUploadStatus extends ServiceMap.Service<EGWUploadStatus, EGWUploadStatusService>()(
   '@bible/core/egw-gemini/upload-status/EGWUploadStatus',
-)<EGWUploadStatus, EGWUploadStatusService>() {
+) {
   /**
    * Live implementation using SQLite database.
    */
   static Live: Layer.Layer<
     EGWUploadStatus,
-    DatabaseConnectionError | SchemaInitializationError | ConfigError.ConfigError | PlatformError,
+    DatabaseConnectionError | SchemaInitializationError | Config.ConfigError | PlatformError,
     FileSystem.FileSystem | Path.Path
-  > = Layer.scoped(
+  > = Layer.effect(
     EGWUploadStatus,
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
@@ -536,7 +534,7 @@ export class EGWUploadStatus extends Context.Tag(
           });
         }),
       getParagraphUploadStatus: (storeDisplayName, refCode) =>
-        Effect.succeed(Option.fromNullable(storage.get(`${storeDisplayName}:${refCode}`))),
+        Effect.succeed(Option.fromNullishOr(storage.get(`${storeDisplayName}:${refCode}`))),
       getBookUploadStatus: () => Effect.succeed(Option.none()),
     });
   };

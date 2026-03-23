@@ -1,7 +1,7 @@
 // @effect-diagnostics strictBooleanExpressions:off
 import { generateText } from 'ai';
 import type { LanguageModel } from 'ai';
-import { Context, Data, Effect, Layer, Runtime } from 'effect';
+import { Data, Effect, Layer, ServiceMap } from 'effect';
 
 import { AI } from '../../services/ai.js';
 import { BibleData } from '../bible/data.js';
@@ -22,10 +22,9 @@ export interface AISearchService {
 }
 
 // Effect service tag
-export class AISearch extends Context.Tag('@bible/cli/data/study/ai-search/AISearch')<
-  AISearch,
-  AISearchService
->() {}
+export class AISearch extends ServiceMap.Service<AISearch, AISearchService>()(
+  '@bible/cli/data/study/ai-search/AISearch',
+) {}
 
 // System prompt for Bible verse search
 const SYSTEM_PROMPT = `You are a Bible verse search assistant. Given a topic or question, return the most relevant Bible verses.
@@ -117,8 +116,8 @@ export const AISearchLive = Layer.effect(
     const ai = yield* AI;
     const data = yield* BibleData;
     const state = yield* BibleState;
-    const runtime = yield* Effect.runtime();
-    const runSync = Runtime.runSync(runtime);
+    const services = yield* Effect.services();
+    const runSync = Effect.runSyncWith(services);
 
     // Create sync wrapper for data service (only needs parseReference which is sync)
     const syncData: BibleDataSyncService = {

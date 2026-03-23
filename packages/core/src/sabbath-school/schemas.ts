@@ -5,8 +5,8 @@ import { Schema } from 'effect';
  */
 export class LessonContext extends Schema.Class<LessonContext>('LessonContext')({
   year: Schema.Number,
-  quarter: Schema.Number.pipe(Schema.greaterThanOrEqualTo(1), Schema.lessThanOrEqualTo(4)),
-  week: Schema.Number.pipe(Schema.greaterThanOrEqualTo(1), Schema.lessThanOrEqualTo(13)),
+  quarter: Schema.Number.pipe(Schema.check(Schema.isBetween({ minimum: 1, maximum: 4 }))),
+  week: Schema.Number.pipe(Schema.check(Schema.isBetween({ minimum: 1, maximum: 13 }))),
 }) {}
 
 /**

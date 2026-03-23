@@ -37,7 +37,7 @@ export function matchEnum<T extends Record<string, string | number>>(
   const matched = matchSorter(entries, value.toString(), {
     keys: ['labels'],
   })[0]?.value;
-  return Option.fromNullable(matched);
+  return Option.fromNullishOr(matched);
 }
 
 export function matchArrayEnum<T extends readonly string[]>(

@@ -4,8 +4,8 @@
  * Provides access to Bible data via the unified BibleDatabase from @bible/core.
  * Uses SQLite for fast lookups and FTS5 for full-text search.
  */
-import { BunContext } from '@effect/platform-bun';
-import { Context, Effect, Layer, Option } from 'effect';
+import { BunServices } from '@effect/platform-bun';
+import { Effect, Layer, Option, ServiceMap } from 'effect';
 import { matchSorter } from 'match-sorter';
 
 import { BibleDatabase } from '@bible/core/bible-db';
@@ -37,10 +37,9 @@ export interface BibleDataService {
 }
 
 // Effect service tag
-export class BibleData extends Context.Tag('@bible/cli/data/bible/data/BibleData')<
-  BibleData,
-  BibleDataService
->() {}
+export class BibleData extends ServiceMap.Service<BibleData, BibleDataService>()(
+  '@bible/cli/data/bible/data/BibleData',
+) {}
 
 // Create the service implementation backed by BibleDatabase
 const makeBibleDataService = Effect.gen(function* () {
@@ -226,5 +225,5 @@ const makeBibleDataService = Effect.gen(function* () {
 // Live layer - requires BibleDatabase
 export const BibleDataLive = Layer.effect(BibleData, makeBibleDataService).pipe(
   Layer.provide(BibleDatabase.Default),
-  Layer.provide(BunContext.layer),
+  Layer.provide(BunServices.layer),
 );

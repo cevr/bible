@@ -1,42 +1,42 @@
-import { Options } from '@effect/cli';
+import { Flag } from 'effect/unstable/cli';
 
-export const topic = Options.text('topic').pipe(
-  Options.withAlias('t'),
-  Options.withDescription('Topic for generation'),
+export const topic = Flag.string('topic').pipe(
+  Flag.withAlias('t'),
+  Flag.withDescription('Topic for generation'),
 );
 
-export const file = Options.file('file').pipe(
-  Options.withAlias('f'),
-  Options.withDescription('Path to file'),
+export const file = Flag.file('file').pipe(
+  Flag.withAlias('f'),
+  Flag.withDescription('Path to file'),
 );
 
-export const files = Options.file('files').pipe(
-  Options.withAlias('f'),
-  Options.repeated,
-  Options.withDescription('Files to process'),
+export const files = Flag.file('files').pipe(
+  Flag.withAlias('f'),
+  Flag.atLeast(0),
+  Flag.withDescription('Files to process'),
 );
 
-export const instructions = Options.text('instructions').pipe(
-  Options.withAlias('i'),
-  Options.withDescription('Revision instructions'),
+export const instructions = Flag.string('instructions').pipe(
+  Flag.withAlias('i'),
+  Flag.withDescription('Revision instructions'),
 );
 
-export const json = Options.boolean('json').pipe(
-  Options.withDefault(false),
-  Options.withDescription('Output as JSON'),
+export const json = Flag.boolean('json').pipe(
+  Flag.withDefault(false),
+  Flag.withDescription('Output as JSON'),
 );
 
-export const noteId = Options.text('note-id').pipe(
-  Options.withAlias('n'),
-  Options.withDescription('Apple Note ID'),
+export const noteId = Flag.string('note-id').pipe(
+  Flag.withAlias('n'),
+  Flag.withDescription('Apple Note ID'),
 );
 
-export const dryRun = Options.boolean('dry-run').pipe(
-  Options.withDefault(false),
-  Options.withDescription('Preview without making changes'),
+export const dryRun = Flag.boolean('dry-run').pipe(
+  Flag.withDefault(false),
+  Flag.withDescription('Preview without making changes'),
 );
 
-export const folder = Options.text('folder').pipe(
-  Options.withDescription('Target folder in Apple Notes'),
-  Options.optional,
+export const folder = Flag.string('folder').pipe(
+  Flag.withDescription('Target folder in Apple Notes'),
+  Flag.optional,
 );

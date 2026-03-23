@@ -1,4 +1,4 @@
-import { Context, Effect, Layer } from 'effect';
+import { Effect, Layer, ServiceMap } from 'effect';
 import { BIBLE_BOOK_ALIASES, getBibleBook } from '@bible/core/bible-reader';
 import { DbClientService } from '../db-client-service';
 import type { DatabaseQueryError } from '../errors';
@@ -304,10 +304,10 @@ interface WebStudyDataServiceShape {
   ) => Effect.Effect<void, DatabaseQueryError>;
 }
 
-export class WebStudyDataService extends Context.Tag('@bible-web/StudyData')<
+export class WebStudyDataService extends ServiceMap.Service<
   WebStudyDataService,
   WebStudyDataServiceShape
->() {
+>()('@bible-web/StudyData') {
   static Live = Layer.effect(
     WebStudyDataService,
     Effect.gen(function* () {

@@ -6,8 +6,7 @@
  * to store EGW books as searchable documents and query them.
  */
 
-import { FileSystem } from '@effect/platform';
-import { Context, Effect, Layer, Option, Ref, Schema, Stream } from 'effect';
+import { ServiceMap, Effect, FileSystem, Layer, Option, Ref, Result, Schema, Stream } from 'effect';
 
 import { EGWParagraphDatabase } from '../egw-db/index.js';
 import type { ParagraphDatabaseError } from '../egw-db/index.js';
@@ -22,7 +21,7 @@ import { EGWUploadStatus } from './upload-status.js';
 /**
  * EGW-Gemini Service Errors
  */
-export class EGWGeminiError extends Schema.TaggedError<EGWGeminiError>()('EGWGeminiError', {
+export class EGWGeminiError extends Schema.TaggedErrorClass<EGWGeminiError>()('EGWGeminiError', {
   cause: Schema.Unknown,
   message: Schema.String,
 }) {}
@@ -106,9 +105,9 @@ export interface EGWGeminiServiceShape {
 /**
  * EGW-Gemini Integration Service
  */
-export class EGWGeminiService extends Context.Tag(
+export class EGWGeminiService extends ServiceMap.Service<EGWGeminiService, EGWGeminiServiceShape>()(
   '@bible/core/egw-gemini/service/EGWGeminiService',
-)<EGWGeminiService, EGWGeminiServiceShape>() {
+) {
   /**
    * Live implementation using EGW API, Gemini, and upload status tracking.
    */
@@ -136,12 +135,10 @@ export class EGWGeminiService extends Context.Tag(
       ): Effect.Effect<GeminiSchemas.FileSearchStore, EGWGeminiError | GeminiFileSearchError> =>
         geminiClient.findStoreByDisplayName(displayName).pipe(
           Effect.catchTag('GeminiFileSearchError', (error) => {
-            // If store not found, create it
             if (error.message.includes('not found')) {
               return geminiClient.createStore(displayName);
             }
-            // Re-throw other errors
-            return error;
+            return Effect.fail(error);
           }),
         );
 
@@ -291,7 +288,7 @@ export class EGWGeminiService extends Context.Tag(
                         // Increment count for successful upload
                         Ref.update(countRef, (n) => n + 1),
                       ),
-                      Effect.catchAll((error) =>
+                      Effect.catch((error) =>
                         Effect.gen(function* () {
                           // Mark paragraph as failed on error
                           yield* uploadStatus
@@ -481,7 +478,7 @@ export class EGWGeminiService extends Context.Tag(
 
                   return Option.some(uploadResult);
                 }).pipe(
-                  Effect.catchAll((error) =>
+                  Effect.catch((error) =>
                     Effect.gen(function* () {
                       yield* Effect.logError(`Failed to process book:`, error);
                       return Option.none();
@@ -490,7 +487,7 @@ export class EGWGeminiService extends Context.Tag(
                 ),
               { concurrency: 1 }, // Process one book at a time to avoid overwhelming APIs
             ),
-            Stream.filterMap((result) => result),
+            Stream.filterMap((result) => Result.fromOption(result, () => undefined as never)),
             Stream.runCollect,
           );
 

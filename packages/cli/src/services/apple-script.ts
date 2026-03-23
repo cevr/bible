@@ -1,6 +1,6 @@
 import Bun from 'bun';
-import { Context, Effect, Layer } from 'effect';
-import type { UnknownException } from 'effect/Cause';
+import { Effect, Layer, ServiceMap } from 'effect';
+import type { Cause } from 'effect';
 
 /**
  * Service for executing AppleScript commands.
@@ -11,29 +11,24 @@ export interface AppleScriptService {
    * @param script The AppleScript code to execute
    * @returns The stdout output from the script
    */
-  readonly exec: (script: string) => Effect.Effect<string, UnknownException>;
+  readonly exec: (script: string) => Effect.Effect<string, Cause.UnknownError>;
 }
 
-export class AppleScript extends Context.Tag('@bible/cli/services/apple-script/AppleScript')<
-  AppleScript,
-  AppleScriptService
->() {}
+export class AppleScript extends ServiceMap.Service<AppleScript, AppleScriptService>()(
+  '@bible/cli/services/apple-script/AppleScript',
+) {}
 
 /**
  * Live implementation using Bun.spawn to call osascript.
  */
 export const AppleScriptLive = Layer.succeed(AppleScript, {
   exec: (script: string) =>
-    Effect.gen(function* () {
-      const result = yield* Effect.try(() => {
+    Effect.tryPromise({
+      try: async () => {
         const child = Bun.spawn(['osascript', '-e', script]);
-        return child;
-      });
-
-      const text = yield* Effect.tryPromise(async () => {
-        return await new Response(result.stdout).text();
-      });
-
-      return text;
+        const text = await new Response(child.stdout).text();
+        return text;
+      },
+      catch: (error) => error as Cause.UnknownError,
     }),
 });

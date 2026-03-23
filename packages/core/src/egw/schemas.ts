@@ -8,7 +8,7 @@ import { Schema } from 'effect';
 /**
  * Text Direction
  */
-export const TextDirection = Schema.Literal('ltr', 'rtl');
+export const TextDirection = Schema.Literals(['ltr', 'rtl']);
 
 export type TextDirection = Schema.Schema.Type<typeof TextDirection>;
 
@@ -24,7 +24,12 @@ export type BookType = Schema.Schema.Type<typeof BookType>;
 /**
  * Permission Required
  */
-export const PermissionRequired = Schema.Literal('hidden', 'public', 'authenticated', 'purchased');
+export const PermissionRequired = Schema.Literals([
+  'hidden',
+  'public',
+  'authenticated',
+  'purchased',
+]);
 
 export type PermissionRequired = Schema.Schema.Type<typeof PermissionRequired>;
 
@@ -71,8 +76,8 @@ export const Folder: Schema.Schema<Folder> = Schema.Struct({
  * Book Cover (BookCoverDto)
  */
 export const BookCover = Schema.Struct({
-  small: Schema.optional(Schema.Union(Schema.String, Schema.Null)),
-  large: Schema.optional(Schema.Union(Schema.String, Schema.Null)),
+  small: Schema.optional(Schema.NullOr(Schema.String)),
+  large: Schema.optional(Schema.NullOr(Schema.String)),
 });
 
 export type BookCover = Schema.Schema.Type<typeof BookCover>;
@@ -81,10 +86,10 @@ export type BookCover = Schema.Schema.Type<typeof BookCover>;
  * Book Files (BookFilesDto)
  */
 export const BookFiles = Schema.Struct({
-  mp3: Schema.optional(Schema.Union(Schema.String, Schema.Null)),
-  pdf: Schema.optional(Schema.Union(Schema.String, Schema.Null)),
-  epub: Schema.optional(Schema.Union(Schema.String, Schema.Null)),
-  mobi: Schema.optional(Schema.Union(Schema.String, Schema.Null)),
+  mp3: Schema.optional(Schema.NullOr(Schema.String)),
+  pdf: Schema.optional(Schema.NullOr(Schema.String)),
+  epub: Schema.optional(Schema.NullOr(Schema.String)),
+  mobi: Schema.optional(Schema.NullOr(Schema.String)),
 });
 
 export type BookFiles = Schema.Schema.Type<typeof BookFiles>;
@@ -97,28 +102,28 @@ export const Book = Schema.Struct({
   code: Schema.String,
   lang: Schema.String,
   type: BookType,
-  subtype: Schema.optional(Schema.Union(Schema.String, Schema.Null)),
+  subtype: Schema.optional(Schema.NullOr(Schema.String)),
   title: Schema.String,
-  first_para: Schema.optional(Schema.Union(Schema.String, Schema.Null)),
+  first_para: Schema.optional(Schema.NullOr(Schema.String)),
   author: Schema.String,
-  description: Schema.optional(Schema.Union(Schema.String, Schema.Null)),
+  description: Schema.optional(Schema.NullOr(Schema.String)),
   npages: Schema.Number,
-  isbn: Schema.optional(Schema.Union(Schema.String, Schema.Null)),
-  publisher: Schema.optional(Schema.Union(Schema.String, Schema.Null)),
+  isbn: Schema.optional(Schema.NullOr(Schema.String)),
+  publisher: Schema.optional(Schema.NullOr(Schema.String)),
   pub_year: Schema.String,
-  buy_link: Schema.optional(Schema.Union(Schema.String, Schema.Null)),
+  buy_link: Schema.optional(Schema.NullOr(Schema.String)),
   folder_id: Schema.Number,
-  folder_color_group: Schema.optional(Schema.Union(Schema.String, Schema.Null)),
+  folder_color_group: Schema.optional(Schema.NullOr(Schema.String)),
   cover: BookCover,
   files: BookFiles,
-  download: Schema.optional(Schema.Union(Schema.String, Schema.Null)),
-  last_modified: Schema.optional(Schema.Union(Schema.String, Schema.Null)),
+  download: Schema.optional(Schema.NullOr(Schema.String)),
+  last_modified: Schema.optional(Schema.NullOr(Schema.String)),
   permission_required: PermissionRequired,
   sort: Schema.Number,
   is_audiobook: Schema.Boolean,
-  cite: Schema.optional(Schema.Union(Schema.String, Schema.Null)),
-  original_book: Schema.optional(Schema.Union(Schema.String, Schema.Null)),
-  translated_into: Schema.optional(Schema.Union(Schema.Array(Schema.String), Schema.Null)),
+  cite: Schema.optional(Schema.NullOr(Schema.String)),
+  original_book: Schema.optional(Schema.NullOr(Schema.String)),
+  translated_into: Schema.optional(Schema.NullOr(Schema.Array(Schema.String))),
   nelements: Schema.Number,
 });
 
@@ -128,12 +133,12 @@ export type Book = Schema.Schema.Type<typeof Book>;
  * Table of Contents Item (TocDto)
  */
 export const TocItem = Schema.Struct({
-  para_id: Schema.optional(Schema.Union(Schema.String, Schema.Null)),
+  para_id: Schema.optional(Schema.NullOr(Schema.String)),
   level: Schema.Number,
-  title: Schema.optional(Schema.Union(Schema.String, Schema.Null)),
-  refcode_short: Schema.optional(Schema.Union(Schema.String, Schema.Null)),
-  dup: Schema.optional(Schema.Union(Schema.String, Schema.Null)),
-  mp3: Schema.optional(Schema.Union(Schema.String, Schema.Null)),
+  title: Schema.optional(Schema.NullOr(Schema.String)),
+  refcode_short: Schema.optional(Schema.NullOr(Schema.String)),
+  dup: Schema.optional(Schema.NullOr(Schema.String)),
+  mp3: Schema.optional(Schema.NullOr(Schema.String)),
   puborder: Schema.Number,
 });
 
@@ -143,18 +148,18 @@ export type TocItem = Schema.Schema.Type<typeof TocItem>;
  * Paragraph (ParagraphDto)
  */
 export const Paragraph = Schema.Struct({
-  para_id: Schema.optional(Schema.Union(Schema.String, Schema.Null)),
-  id_prev: Schema.optional(Schema.Union(Schema.String, Schema.Null)),
-  id_next: Schema.optional(Schema.Union(Schema.String, Schema.Null)),
-  refcode_1: Schema.optional(Schema.Union(Schema.String, Schema.Null)),
-  refcode_2: Schema.optional(Schema.Union(Schema.String, Schema.Null)),
-  refcode_3: Schema.optional(Schema.Union(Schema.String, Schema.Null)),
-  refcode_4: Schema.optional(Schema.Union(Schema.String, Schema.Null)),
-  refcode_short: Schema.optional(Schema.Union(Schema.String, Schema.Null)),
-  refcode_long: Schema.optional(Schema.Union(Schema.String, Schema.Null)),
-  element_type: Schema.optional(Schema.Union(Schema.String, Schema.Null)),
-  element_subtype: Schema.optional(Schema.Union(Schema.String, Schema.Null)),
-  content: Schema.optional(Schema.Union(Schema.String, Schema.Null)),
+  para_id: Schema.optional(Schema.NullOr(Schema.String)),
+  id_prev: Schema.optional(Schema.NullOr(Schema.String)),
+  id_next: Schema.optional(Schema.NullOr(Schema.String)),
+  refcode_1: Schema.optional(Schema.NullOr(Schema.String)),
+  refcode_2: Schema.optional(Schema.NullOr(Schema.String)),
+  refcode_3: Schema.optional(Schema.NullOr(Schema.String)),
+  refcode_4: Schema.optional(Schema.NullOr(Schema.String)),
+  refcode_short: Schema.optional(Schema.NullOr(Schema.String)),
+  refcode_long: Schema.optional(Schema.NullOr(Schema.String)),
+  element_type: Schema.optional(Schema.NullOr(Schema.String)),
+  element_subtype: Schema.optional(Schema.NullOr(Schema.String)),
+  content: Schema.optional(Schema.NullOr(Schema.String)),
   puborder: Schema.Number,
 });
 
@@ -217,7 +222,7 @@ export const BooksQueryParams = Schema.Struct({
   page: Schema.optional(Schema.Number),
   search: Schema.optional(Schema.String),
   folder: Schema.optional(Schema.Number),
-  trans: Schema.optional(Schema.Union(Schema.Literal('all'), Schema.String)),
+  trans: Schema.optional(Schema.Union([Schema.Literal('all'), Schema.String])),
   limit: Schema.optional(Schema.Number),
   offset: Schema.optional(Schema.Number),
 });
@@ -230,7 +235,7 @@ export type BooksQueryParams = Schema.Schema.Type<typeof BooksQueryParams>;
 export const ChapterContentParams = Schema.Struct({
   highlight: Schema.optional(Schema.String),
   trans: Schema.optional(
-    Schema.Union(Schema.Literal('all'), Schema.Array(Schema.String), Schema.String),
+    Schema.Union([Schema.Literal('all'), Schema.Array(Schema.String), Schema.String]),
   ),
 });
 

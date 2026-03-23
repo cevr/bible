@@ -5,7 +5,7 @@
  * Wraps HymnalDatabase with additional business logic.
  */
 
-import { Context, Effect, Layer, Option } from 'effect';
+import { ServiceMap, Effect, Layer, Option } from 'effect';
 
 import { RecordNotFoundError } from '../errors/database.js';
 import type { HymnalDatabaseError } from '../errors/hymnal.js';
@@ -153,10 +153,9 @@ export interface HymnalServiceShape {
 // Service Definition
 // ============================================================================
 
-export class HymnalService extends Context.Tag('@bible/core/hymnal/service/HymnalService')<
-  HymnalService,
-  HymnalServiceShape
->() {
+export class HymnalService extends ServiceMap.Service<HymnalService, HymnalServiceShape>()(
+  '@bible/core/hymnal/service/HymnalService',
+) {
   /**
    * Live implementation using HymnalDatabase.
    */

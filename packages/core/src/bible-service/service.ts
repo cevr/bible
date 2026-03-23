@@ -6,7 +6,7 @@
  * Used by both TUI (via RPC) and web (via HttpApi) clients.
  */
 
-import { Context, Effect, Layer, Option, Schema } from 'effect';
+import { ServiceMap, Effect, Layer, Option, Schema } from 'effect';
 
 import { BibleDatabase } from '../bible-db/bible-database.js';
 import type { BibleDatabaseError } from '../bible-db/bible-database.js';
@@ -23,7 +23,7 @@ export class Book extends Schema.Class<Book>('Book')({
   number: Schema.Number,
   name: Schema.String,
   chapters: Schema.Number,
-  testament: Schema.Literal('old', 'new'),
+  testament: Schema.Literals(['old', 'new']),
 }) {}
 
 /**
@@ -90,10 +90,9 @@ export interface BibleServiceShape {
 // Service Definition
 // ============================================================================
 
-export class BibleService extends Context.Tag('@bible/core/bible-service/service/BibleService')<
-  BibleService,
-  BibleServiceShape
->() {
+export class BibleService extends ServiceMap.Service<BibleService, BibleServiceShape>()(
+  '@bible/core/bible-service/service/BibleService',
+) {
   /**
    * Live implementation using BibleDatabase
    */
@@ -260,7 +259,7 @@ export class BibleService extends Context.Tag('@bible/core/bible-service/service
     Layer.succeed(BibleService, {
       getBooks: () => Effect.succeed(config.books ?? []),
       getBook: (bookNum) =>
-        Effect.succeed(Option.fromNullable(config.books?.find((b) => b.number === bookNum))),
+        Effect.succeed(Option.fromNullishOr(config.books?.find((b) => b.number === bookNum))),
       getChapter: (bookNum, chapterNum) =>
         Effect.succeed(
           new ChapterResponse({

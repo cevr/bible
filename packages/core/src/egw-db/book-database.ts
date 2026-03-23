@@ -19,11 +19,19 @@
  * - is_chapter_heading (for fast chapter navigation)
  */
 
-import { FileSystem, Path } from '@effect/platform';
-import type { PlatformError } from '@effect/platform/Error';
+import type { PlatformError } from 'effect/PlatformError';
 import { Database } from 'bun:sqlite';
-import type { ConfigError } from 'effect';
-import { Config, Context, Effect, Layer, Option, Schema, Stream } from 'effect';
+import {
+  Config,
+  ServiceMap,
+  Effect,
+  FileSystem,
+  Layer,
+  Option,
+  Path,
+  Schema,
+  Stream,
+} from 'effect';
 
 import * as EGWSchemas from '../egw/schemas.js';
 import { isChapterHeading } from '../egw/parse.js';
@@ -75,30 +83,25 @@ export type BookRow = Schema.Schema.Type<typeof BookRow>;
  * Uses Schema.pick to select fields from the existing Paragraph schema,
  * then extends with book reference and database-specific fields
  */
-export const ParagraphRow = EGWSchemas.Paragraph.pipe(
-  Schema.pick(
-    'para_id',
-    'refcode_short',
-    'refcode_long',
-    'content',
-    'puborder',
-    'element_type',
-    'element_subtype',
-  ),
-  Schema.extend(
-    Schema.Struct({
-      book_id: Schema.Number,
-      // Computed ref_code (refcode_short or refcode_long, used as primary identifier)
-      ref_code: Schema.String,
-      // Pre-computed navigation fields (extracted from refcode)
-      page_number: Schema.NullOr(Schema.Number),
-      paragraph_number: Schema.NullOr(Schema.Number),
-      is_chapter_heading: Schema.Number, // 1 if element_type in ('chapter','heading','title')
-      created_at: Schema.String,
-      updated_at: Schema.String,
-    }),
-  ),
-);
+const { para_id, refcode_short, refcode_long, content, puborder, element_type, element_subtype } =
+  EGWSchemas.Paragraph.fields;
+
+export const ParagraphRow = Schema.Struct({
+  para_id,
+  refcode_short,
+  refcode_long,
+  content,
+  puborder,
+  element_type,
+  element_subtype,
+  book_id: Schema.Number,
+  ref_code: Schema.String,
+  page_number: Schema.NullOr(Schema.Number),
+  paragraph_number: Schema.NullOr(Schema.Number),
+  is_chapter_heading: Schema.Number,
+  created_at: Schema.String,
+  updated_at: Schema.String,
+});
 
 export type ParagraphRow = Schema.Schema.Type<typeof ParagraphRow>;
 
@@ -274,18 +277,19 @@ export interface EGWParagraphDatabaseService {
 /**
  * EGW Paragraph Database Service
  */
-export class EGWParagraphDatabase extends Context.Tag(
-  '@bible/core/egw-db/book-database/EGWParagraphDatabase',
-)<EGWParagraphDatabase, EGWParagraphDatabaseService>() {
+export class EGWParagraphDatabase extends ServiceMap.Service<
+  EGWParagraphDatabase,
+  EGWParagraphDatabaseService
+>()('@bible/core/egw-db/book-database/EGWParagraphDatabase') {
   /**
    * Live implementation using SQLite database.
    * Requires FileSystem and Path from @effect/platform.
    */
   static Live: Layer.Layer<
     EGWParagraphDatabase,
-    DatabaseConnectionError | SchemaInitializationError | ConfigError.ConfigError | PlatformError,
+    DatabaseConnectionError | SchemaInitializationError | Config.ConfigError | PlatformError,
     FileSystem.FileSystem | Path.Path
-  > = Layer.scoped(
+  > = Layer.effect(
     EGWParagraphDatabase,
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
@@ -1364,10 +1368,10 @@ export class EGWParagraphDatabase extends Context.Tag(
     Layer.succeed(EGWParagraphDatabase, {
       storeBook: () => Effect.void,
       getBookById: (bookId) =>
-        Effect.succeed(Option.fromNullable(config.books?.find((b) => b.book_id === bookId))),
+        Effect.succeed(Option.fromNullishOr(config.books?.find((b) => b.book_id === bookId))),
       getBookByCode: (bookCode) =>
         Effect.succeed(
-          Option.fromNullable(
+          Option.fromNullishOr(
             config.books?.find((b) => b.book_code.toLowerCase() === bookCode.toLowerCase()),
           ),
         ),

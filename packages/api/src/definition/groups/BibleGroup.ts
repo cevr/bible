@@ -6,7 +6,7 @@
  * - Getting a chapter with verses
  * - Searching verses
  */
-import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from '@effect/platform';
+import { HttpApiEndpoint, HttpApiGroup } from 'effect/unstable/httpapi';
 import { Schema as S } from 'effect';
 
 // ============================================================================
@@ -17,7 +17,7 @@ export const BookSchema = S.Struct({
   number: S.Number,
   name: S.String,
   chapters: S.Number,
-  testament: S.Literal('old', 'new'),
+  testament: S.Literals(['old', 'new']),
 });
 
 export type Book = S.Schema.Type<typeof BookSchema>;
@@ -63,31 +63,31 @@ export type SearchResult = S.Schema.Type<typeof SearchResultSchema>;
 // Errors
 // ============================================================================
 
-export class ChapterNotFoundError extends S.TaggedError<ChapterNotFoundError>()(
+export class ChapterNotFoundError extends S.TaggedErrorClass<ChapterNotFoundError>()(
   'ChapterNotFoundError',
   {
     book: S.Number,
     chapter: S.Number,
     message: S.String,
   },
-  HttpApiSchema.annotations({ status: 404 }),
+  { httpApiStatus: 404 },
 ) {}
 
-export class BookNotFoundError extends S.TaggedError<BookNotFoundError>()(
+export class BookNotFoundError extends S.TaggedErrorClass<BookNotFoundError>()(
   'BookNotFoundError',
   {
     book: S.Number,
     message: S.String,
   },
-  HttpApiSchema.annotations({ status: 404 }),
+  { httpApiStatus: 404 },
 ) {}
 
-export class DatabaseError extends S.TaggedError<DatabaseError>()(
+export class DatabaseError extends S.TaggedErrorClass<DatabaseError>()(
   'DatabaseError',
   {
     message: S.String,
   },
-  HttpApiSchema.annotations({ status: 500 }),
+  { httpApiStatus: 500 },
 ) {}
 
 // ============================================================================
@@ -96,30 +96,29 @@ export class DatabaseError extends S.TaggedError<DatabaseError>()(
 
 export const BibleGroup = HttpApiGroup.make('Bible')
   .add(
-    HttpApiEndpoint.get('books', '/books').addSuccess(S.Array(BookSchema)).addError(DatabaseError),
+    HttpApiEndpoint.get('books', '/books', {
+      success: S.Array(BookSchema),
+      error: [DatabaseError],
+    }),
   )
   .add(
-    HttpApiEndpoint.get('chapter', '/:book/:chapter')
-      .setPath(
-        S.Struct({
-          book: S.NumberFromString,
-          chapter: S.NumberFromString,
-        }),
-      )
-      .addSuccess(ChapterResponseSchema)
-      .addError(ChapterNotFoundError)
-      .addError(BookNotFoundError)
-      .addError(DatabaseError),
+    HttpApiEndpoint.get('chapter', '/:book/:chapter', {
+      params: {
+        book: S.NumberFromString,
+        chapter: S.NumberFromString,
+      },
+      success: ChapterResponseSchema,
+      error: [ChapterNotFoundError, BookNotFoundError, DatabaseError],
+    }),
   )
   .add(
-    HttpApiEndpoint.get('search', '/search')
-      .setUrlParams(
-        S.Struct({
-          q: S.String,
-          limit: S.optional(S.NumberFromString).pipe(S.withDecodingDefault(() => 20)),
-        }),
-      )
-      .addSuccess(S.Array(SearchResultSchema))
-      .addError(DatabaseError),
+    HttpApiEndpoint.get('search', '/search', {
+      query: {
+        q: S.String,
+        limit: S.optional(S.NumberFromString).pipe(S.withDecodingDefault(() => '20')),
+      },
+      success: S.Array(SearchResultSchema),
+      error: [DatabaseError],
+    }),
   )
   .prefix('/bible');
