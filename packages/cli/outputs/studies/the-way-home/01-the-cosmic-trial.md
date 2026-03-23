@@ -1,7 +1,7 @@
 ---
 created_at: '2026-03-15T00:00:00.000Z'
 topic: 'The Way Home Series — Study 1: The Cosmic Trial — Why You Exist'
-apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1389'
+apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1400'
 ---
 
 # Study 1: The Cosmic Trial — Why You Exist

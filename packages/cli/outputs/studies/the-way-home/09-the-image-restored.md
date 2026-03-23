@@ -1,10 +1,10 @@
 ---
 created_at: '2026-03-15T00:00:00.000Z'
-topic: 'The Way Home Series — Study 10: The Image Restored — Seal, 144,000, Victory'
-apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1398'
+topic: 'The Way Home Series — Study 9: The Image Restored — Seal, 144,000, Victory'
+apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1408'
 ---
 
-# Study 10: The Image Restored — Seal, 144,000, Victory
+# Study 9: The Image Restored — Seal, 144,000, Victory
 
 **The trial that opened in Eden reaches its verdict. God's seal marks those whose characters reflect His own. The 144,000 answer both of Satan's charges — not by human achievement, but by Christ's character fully reproduced. The image of God is restored. The Way Home is complete.**
 
@@ -96,7 +96,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1398'
 
 - **glory to glory — the progressive restoration**
   - "But we all, with open face beholding as in a glass the glory of the Lord, are changed into the same image from glory to glory, even as by the Spirit of the Lord" (2 Cor 3:18)
-  - as we saw in Study 9: changed by beholding, not by self-effort
+  - as we saw in Study 8: changed by beholding, not by self-effort
 
 - **Genesis 1 meets Revelation 14**
   - "And God said, Let us make man in our image, after our likeness" (Gen 1:26)
@@ -186,7 +186,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1398'
 ## Appeal — The Series Closes
 
 - The trial that began in Eden is approaching its close.
-- Study 1 filed the charges. Studies 2-3 showed the break and the bridge. Study 4 exposed the counterfeit. Studies 5-7 traced prophecy, timeline, and judgment. Study 8 called God's people out of Babylon. Study 9 showed how transformation works.
+- Study 1 filed the charges. Study 2 showed the break and the bridge. Study 3 exposed the counterfeit. Studies 4-6 traced prophecy, timeline, and judgment. Study 7 called God's people out of Babylon. Study 8 showed how transformation works.
 - Now you have seen the finished product — the image of God restored, both charges answered, the Way Home complete.
 
 - God has waited since 1844. Not for more time. For witnesses.

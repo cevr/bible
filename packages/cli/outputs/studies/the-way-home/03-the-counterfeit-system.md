@@ -1,10 +1,10 @@
 ---
 created_at: '2026-03-15T00:00:00.000Z'
-topic: 'The Way Home Series — Study 4: The Counterfeit System'
-apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1392'
+topic: 'The Way Home Series — Study 3: The Counterfeit System'
+apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1402'
 ---
 
-# Study 4: The Counterfeit System
+# Study 3: The Counterfeit System
 
 **Satan could not destroy the sanctuary — so he buried it. Empire by empire, he built a counterfeit system over the top of God's truth, replacing every sanctuary reality with an earthly imitation. Four empires. Four counterfeits. One strategy: make the copy so familiar that the original looks strange.**
 
@@ -121,38 +121,27 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1392'
 
 ## Greece — The Bronze Belly: Counterfeit Immortality
 
-- **the sanctuary truth: death is real, and life comes only through God**
-  - "For the living know that they shall die: but the dead know not any thing, neither have they any more a reward; for the memory of them is forgotten" (Eccl 9:5)
-  - "His breath goeth forth, he returneth to his earth; in that very day his thoughts perish" (Ps 146:4)
-  - The sanctuary taught that sin produces death — real death, total cessation — and only God can reverse it through resurrection
+- **recap: what Study 2 established about death**
+  - Only God possesses immortality (1 Tim 6:16) — man's life was sustained by access to the tree, not inherent
+  - The dead know nothing (Eccl 9:5); death is sleep (John 11:11-14); the soul is the whole living person, not an entity inside the body (Gen 2:7)
+  - The resurrection is the only hope — without it, "they also which are fallen asleep in Christ are perished" (1 Cor 15:18)
+  - The serpent's first lie — "ye shall not surely die" (Gen 3:4) — is the seed of every false doctrine about death
 
-- **Greece's counterfeit: the immortal soul**
+- **Greece made the lie respectable**
   - "And after thee shall arise... another third kingdom of brass, which shall bear rule over all the earth" (Dan 2:39)
   - Greek philosophy — Plato in particular — taught that the soul is inherently immortal
-  - death is not an enemy but a liberation — the soul escaping the prison of the body
-  - this is the serpent's original lie dressed in philosophical robes
-  - "Ye shall not surely die" (Gen 3:4) — now it sounds like Socrates instead of a snake
-  - [→] Satan told the first lie in a garden. Greece made it respectable in an academy.
-
-- **what it enabled**
-  - if the dead are conscious, they can be contacted — ancestor worship, necromancy
-  - if the dead are conscious, they can be prayed to — prayers to dead saints
-  - if the dead are conscious, they go somewhere immediately — purgatory, limbo, immediate heaven or hell
-  - if the soul is immortal, eternal torment becomes possible — God burning sinners forever
-  - [→] One lie — "ye shall not surely die" — produced an entire system of doctrines that distort God's character and obscure Christ's resurrection ministry
+  - Death recast as liberation — the soul escaping the prison of the body
+  - "Ye shall not surely die" — now it sounds like Socrates instead of a snake
+  - [→] Satan told the first lie in a garden. Greece gave it an academy.
 
 - **where it lives today**
   - the immortal soul doctrine is embedded in most of Christianity
-  - prayers to dead saints treated as intercessors
-  - eternal conscious torment as mainstream theology
-  - death as "going home" instead of death as the enemy Christ conquered
+  - prayers to dead saints, eternal conscious torment, death as "going home"
+  - every one of these builds on the assumption that the dead are conscious — the assumption Scripture denies
 
 - **Christ restores the true thing**
-  - "For the Lord himself shall descend from heaven with a shout, with the voice of the archangel, and with the trump of God: and the dead in Christ shall rise first: then we which are alive and remain shall be caught up together with them in the clouds, to meet the Lord in the air" (1 Thess 4:16-17)
-  - "For if the dead rise not, then is not Christ raised: and if Christ be not raised, your faith is vain; ye are yet in your sins. Then they also which are fallen asleep in Christ are perished" (1 Cor 15:16-18)
-  - [→] Paul's logic is devastating: if there is no resurrection, the dead in Christ have _perished_. If they had immortal souls already in heaven, Paul's argument makes no sense. The resurrection is not optional — it is everything.
-
-[ILL] If you were told a prisoner had already been released and was home safe, you would never rally to break open the prison doors. That is exactly what the immortal soul doctrine does to the resurrection — it makes Christ's greatest act unnecessary. Why would He come back to raise the dead if the dead are already alive?
+  - "For the Lord himself shall descend from heaven with a shout, with the voice of the archangel, and with the trump of God: and the dead in Christ shall rise first" (1 Thess 4:16)
+  - The resurrection — not a disembodied departure — is the hope. Greece buried it. Christ restores it.
 
 ---
 
@@ -247,7 +236,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1392'
 
 ---
 
-[→] **Transition to Study 5**: We've seen HOW Satan built the counterfeit system — empire by empire, layer by layer. But how do we PROVE which modern system inherited all four? God gave Daniel prophecies that name it. The identification is not guesswork — it is specification.
+[→] **Transition to Study 4**: We've seen HOW Satan built the counterfeit system — empire by empire, layer by layer. But how do we PROVE which modern system inherited all four? God gave Daniel prophecies that name it. The identification is not guesswork — it is specification.
 
 ---
 
