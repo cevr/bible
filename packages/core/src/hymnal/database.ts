@@ -106,9 +106,10 @@ export class HymnalDatabase extends ServiceMap.Service<HymnalDatabase, HymnalDat
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
 
-      // Determine database path
-      const repoDbPath = path.resolve(import.meta.dir, '../../data/hymnal.db');
-      const dbPath = yield* Config.string('HYMNAL_DB_PATH').pipe(Config.withDefault(repoDbPath));
+      // Priority: env var > ~/.bible/hymnal.db
+      const homeDir = process.env.HOME ?? process.env.USERPROFILE ?? '.';
+      const defaultDbPath = path.join(homeDir, '.bible', 'hymnal.db');
+      const dbPath = yield* Config.string('HYMNAL_DB_PATH').pipe(Config.withDefault(defaultDbPath));
 
       // Check if database exists
       const exists = yield* fs.exists(dbPath);
