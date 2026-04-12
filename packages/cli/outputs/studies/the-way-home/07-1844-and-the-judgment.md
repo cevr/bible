@@ -1,10 +1,10 @@
 ---
 created_at: '2026-03-15T00:00:00.000Z'
-topic: 'The Way Home Series — Study 6: 1844 and the Judgment'
+topic: 'The Way Home Series — Study 7: 1844 and the Judgment'
 apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1405'
 ---
 
-# Study 6: 1844 and the Judgment
+# Study 7: 1844 and the Judgment
 
 **The timeline is proved. The 2300 days end in 1844. But a date without meaning is trivia. What happened in 1844 was not an earthly event — it was a heavenly one: Christ entered the Most Holy Place, the antitypical Day of Atonement began, and God launched His final answer to the counterfeit.**
 
@@ -40,7 +40,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1405'
 
 - **Daniel 8:14 — the heavenly antitype**
   - "And he said unto me, Unto two thousand and three hundred days; then shall the sanctuary be cleansed" (Dan 8:14)
-  - Study 5 proved the timeline: 2300 years from 457 BC, ending in 1844
+  - Study 6 proved the timeline: 2300 years from 457 BC, ending in 1844
   - The earthly sanctuary was destroyed in AD 70 — no earthly sanctuary to cleanse
   - The sanctuary in view is the heavenly one: "the true tabernacle, which the Lord pitched, and not man" (Heb 8:2)
   - [→] In 1844, Christ moved from the Holy Place to the Most Holy Place in the heavenly sanctuary. The antitypical Day of Atonement began.
@@ -218,7 +218,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1405'
 
 ---
 
-[→] **Transition to Study 7**: The judgment is happening now. The counterfeit is exposed. But God still has people inside Babylon — sincere believers trapped in false systems who love God but don't yet know the full truth. What does it mean to "come out of her, my people"?
+[→] **Transition to Study 8**: The judgment is happening now. The counterfeit is exposed. But God still has people inside Babylon — sincere believers trapped in false systems who love God but don't yet know the full truth. What does it mean to "come out of her, my people"?
 
 ---
 

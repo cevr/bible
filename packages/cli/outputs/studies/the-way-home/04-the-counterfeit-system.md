@@ -1,10 +1,10 @@
 ---
 created_at: '2026-03-15T00:00:00.000Z'
-topic: 'The Way Home Series — Study 3: The Counterfeit System'
+topic: 'The Way Home Series — Study 4: The Counterfeit System'
 apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1402'
 ---
 
-# Study 3: The Counterfeit System
+# Study 4: The Counterfeit System
 
 **Satan could not destroy the sanctuary — so he buried it. Empire by empire, he built a counterfeit system over the top of God's truth, replacing every sanctuary reality with an earthly imitation. Four empires. Four counterfeits. One strategy: make the copy so familiar that the original looks strange.**
 
@@ -23,6 +23,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1402'
 - **Satan's method is never open destruction — it is replacement**
   - "I will be like the most High" (Isa 14:14) — not "I will destroy the Most High"
   - The counterfeit must resemble the original closely enough to deceive
+  - Study 3 revealed what the sanctuary truly is — God's path to restore His character in humanity. Satan cannot destroy that path. So he builds a parallel one that looks the same but leads nowhere.
   - Every sanctuary truth God gave, Satan built an earthly substitute
 
 - **Daniel's image reveals the strategy**
@@ -236,7 +237,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1402'
 
 ---
 
-[→] **Transition to Study 4**: We've seen HOW Satan built the counterfeit system — empire by empire, layer by layer. But how do we PROVE which modern system inherited all four? God gave Daniel prophecies that name it. The identification is not guesswork — it is specification.
+[→] **Transition to Study 5**: We've seen HOW Satan built the counterfeit system — empire by empire, layer by layer. But how do we PROVE which modern system inherited all four? God gave Daniel prophecies that name it. The identification is not guesswork — it is specification.
 
 ---
 
