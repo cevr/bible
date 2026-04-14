@@ -1,10 +1,10 @@
 ---
 created_at: '2026-03-15T00:00:00.000Z'
-topic: 'The Way Home Series — Study 6: The Timeline Unlocked'
+topic: 'The Way Home Series — Study 7: The Timeline Unlocked'
 apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1404'
 ---
 
-# Study 6: The Timeline Unlocked
+# Study 7: The Timeline Unlocked
 
 **God does not ask for blind faith. He gave Daniel the longest time prophecy in Scripture — 2300 years — and then fulfilled every date with surgical precision: Christ's baptism, His death, the gospel to the Gentiles, and the opening of heaven's final judgment. The timeline is the proof.**
 
@@ -22,7 +22,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1404'
 - **the little horn targets heaven itself**
   - "And it waxed great, even to the host of heaven; and it cast down some of the host and of the stars to the ground, and stamped upon them" (Dan 8:10)
   - "Yea, he magnified himself even to the prince of the host, and by him the daily sacrifice was taken away, and the place of his sanctuary was cast down" (Dan 8:11)
-  - Study 5 identified WHO this power is — Daniel 7's little horn, the counterfeit religious system
+  - Study 6 identified WHO this power is — Daniel 7's little horn, the counterfeit religious system
   - Now Daniel 8 reveals WHAT it attacks: the sanctuary and its ministry
 
 - **the "daily" — Christ's continual intercession**
@@ -181,7 +181,7 @@ The word tamid appears 103 times in the Old Testament. It describes the continua
   - the sanctuary to be cleansed is not the earthly temple — it was destroyed in 70 AD
   - it is the heavenly sanctuary where Christ ministers (Heb 8:1-2)
   - 1844 marks the beginning of a new phase of Christ's heavenly ministry
-  - [->] what that phase means is the subject of Study 7
+  - [->] what that phase means is the subject of Study 8
 
 - **the precision demands attention**
   - 457 BC + 483 years = 27 AD — Christ baptized. Confirmed.
@@ -215,7 +215,7 @@ The word tamid appears 103 times in the Old Testament. It describes the continua
 
 ---
 
-**-> Transition to Study 7:** The timeline is proven. Every date confirmed by history. But what actually HAPPENED in 1844? What does "the sanctuary shall be cleansed" mean? The Day of Atonement holds the answer.
+**-> Transition to Study 8:** The timeline is proven. Every date confirmed by history. But what actually HAPPENED in 1844? What does "the sanctuary shall be cleansed" mean? The Day of Atonement holds the answer.
 
 ---
 

@@ -1,10 +1,10 @@
 ---
 created_at: '2026-03-15T00:00:00.000Z'
-topic: 'The Way Home Series — Study 9: Conquering Canaan — How Transformation Works'
+topic: 'The Way Home Series — Study 10: Conquering Canaan — How Transformation Works'
 apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1407'
 ---
 
-# Study 9: Conquering Canaan — How Transformation Works
+# Study 10: Conquering Canaan — How Transformation Works
 
 **Coming out of Babylon clears the ground. But a swept house left empty invites worse tenants. God did not call you out of the counterfeit just to leave you hollow — He called you into Canaan, where every giant sin is conquered, every fortified habit dismantled, and His character fills the space the counterfeits once occupied. The question is not "Does God have power to transform?" but "Will you show up to the war room?"**
 
@@ -64,7 +64,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1407'
   - God told Abraham the timeline — generations would pass before possession
   - Egypt = bondage to sin; Exodus = deliverance by God's power; Canaan = the character He promised to give
   - the whole arc: **promise → waiting → deliverance → conquest**
-  - [→] Study 8 was the Exodus — coming out of Babylon. This study is the conquest — what happens after you leave.
+  - [→] Study 9 was the Exodus — coming out of Babylon. This study is the conquest — what happens after you leave.
 
 - **the promise renewed at the border**
   - Moses reminds Israel: "The LORD thy God bringeth thee into a good land" (Deut 8:7)
@@ -380,7 +380,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1407'
 
 ---
 
-[→] **Transition to Study 10**: You know the standard. You know the method. You know the proof test. Now the final question: what does the finished product look like? Who are the 144,000, and what does it mean that God's image is fully restored?
+[→] **Transition to Study 11**: You know the standard. You know the method. You know the proof test. Now the final question: what does the finished product look like? Who are the 144,000, and what does it mean that God's image is fully restored?
 
 ---
 
