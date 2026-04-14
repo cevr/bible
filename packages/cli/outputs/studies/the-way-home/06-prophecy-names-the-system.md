@@ -111,6 +111,18 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1403'
 
 ---
 
+## The Charges Behind the Counterfeits
+
+- **Every counterfeit doctrine traces back to Satan's original accusations**
+  - Study 1: Charge A — "They only obey for reward." Charge B — "The law cannot be kept."
+  - The little horn's three acts — blasphemy, persecution, changing the law — all serve these charges
+  - Blasphemy (misrepresenting God's character) → attacks the chain: if God's character is misrepresented, the image cannot be correctly restored
+  - Persecution (wearing out the saints) → attacks Charge A: if loyalty only survives under comfort, then suffering should destroy it. Persecution is Satan's test of his own accusation.
+  - Changing times and laws → attacks Charge B: if the law can be altered by a human power, it was never the immovable standard Satan claims is impossible
+  - [→] Prophecy does not just identify a system. It identifies the accuser working _through_ a system. The little horn is Satan's courtroom strategy given institutional form.
+
+---
+
 ## Four Counterfeits Consolidated
 
 - **Study 5 traced four counterfeits through four empires. The little horn gathered them all.**

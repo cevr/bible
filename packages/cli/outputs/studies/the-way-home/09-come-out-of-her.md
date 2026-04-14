@@ -231,7 +231,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1406'
 
 ---
 
-[→] **Transition to Study 10**: Coming out of Babylon clears the ground. But cleared ground must be occupied — or something worse moves in. How does God actually transform character? The conquest of Canaan holds the answer.
+[→] **Transition to Study 10**: Coming out of Babylon clears the ground. But before we conquer — we need the seal and the temple. The Sabbath is God's seal in time, the sign of every link in the chain of restoration.
 
 ---
 

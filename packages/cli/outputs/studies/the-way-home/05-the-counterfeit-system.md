@@ -196,6 +196,14 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1402'
   - Revelation calls the final system "Babylon" — because it carries all four layers
   - [→] Any institution that holds all four counterfeits is not a random collection of errors. It is the completed statue.
 
+- **every counterfeit serves the accuser's charges**
+  - Study 1 filed two charges: "They only obey for reward" (Charge A) and "The law cannot be kept" (Charge B)
+  - Replace the Priest → people can't access God directly → Charge B reinforced (you can't know God, so you can't bear His image)
+  - Replace the Sacrifice → salvation becomes transactional → Charge A reinforced (they serve God for what they get)
+  - Replace the Truth about death → no real judgment, no accountability → both charges shielded from exposure
+  - Replace the Sabbath → the law is changeable → Charge B confirmed (if God's law can be altered, it was never the standard)
+  - [→] The counterfeit system is not random error. It is Satan's charges institutionalized as doctrine. Study 9 will make this explicit — but notice it here: each layer of the statue serves the accuser's case.
+
 - **but the stone strikes**
   - "And in the days of these kings shall the God of heaven set up a kingdom, which shall never be destroyed: and the kingdom shall not be left to other people, but it shall break in pieces and consume all these kingdoms, and it shall stand for ever" (Dan 2:44)
   - The stone is "cut out without hands" — divine, not human
