@@ -145,7 +145,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1401'
   - If the dead are conscious, they can intercede — prayers to dead saints
   - If the dead go immediately to reward or punishment — purgatory, immediate heaven or hell, and the entire doctrine of eternal torment
   - If the soul is inherently immortal — then God is a torturer who keeps sinners alive forever to suffer
-  - [→] One lie — "ye shall not surely die" — produced an entire system of doctrines that distort God's character. We will see in Study 5 how Greece made this lie respectable.
+  - [→] One lie — "ye shall not surely die" — produced an entire system of doctrines that distort God's character. We will see in Study 6 how Greece made this lie respectable.
 
 [Q] **"But doesn't eternal fire mean eternal burning?"**
 → "Even as Sodom and Gomorrha... are set forth for an example, suffering the vengeance of eternal fire" (Jude 7). Sodom is not still burning. The fire is "eternal" in its results, not its duration. "Everlasting punishment" (Matt 25:46) is everlasting in consequence — death that never reverses — not everlasting in process. God is not an infinite torturer. He is a just judge whose final sentence is permanent death — "the second death" (Rev 20:14) — not perpetual agony.

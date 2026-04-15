@@ -239,4 +239,4 @@ The image was shattered. It will be restored. That is what salvation is.
 
 **Central Verse:** "But we all, with open face beholding as in a glass the glory of the Lord, are changed into the same image from glory to glory, even as by the Spirit of the Lord." (2 Corinthians 3:18)
 
-**[→ Study 4]** Now you know what the image is and what salvation restores. But how does God _do_ it? Station by station, sacrifice by sacrifice — the sanctuary maps the journey from the shattered image to the restored one. "Thy way, O God, is in the sanctuary."
+**[→ Study 4]** Now you know what was lost and what salvation restores. But _who_ can restore it? Why Christ and no one else? Why become a man? And how can God forgive sinners without becoming unjust Himself?

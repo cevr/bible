@@ -1,10 +1,10 @@
 ---
 created_at: '2026-03-15T00:00:00.000Z'
-topic: 'The Way Home Series — Study 15: The Image Restored — Seal, 144,000, Millennium, New Earth'
+topic: 'The Way Home Series — Study 16: The Image Restored — Seal, 144,000, Millennium, New Earth'
 apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1408'
 ---
 
-# Study 15: The Image Restored — Seal, 144,000, Millennium, New Earth
+# Study 16: The Image Restored — Seal, 144,000, Millennium, New Earth
 
 **The trial that opened in Eden reaches its verdict. God's seal marks those whose characters reflect His own. The 144,000 answer both of Satan's charges — not by human achievement, but by Christ's character fully reproduced. The image of God is restored. The Way Home is complete.**
 
@@ -148,7 +148,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1408'
   - "And they lived and reigned with Christ a thousand years" (Rev 20:4)
   - For a thousand years the redeemed examine the records of judgment — not to overrule God, but to confirm His justice
   - Every question answered. Every case reviewed. Every decision vindicated.
-  - [→] Study 8 said the judgment vindicates God's people before the universe. The millennium vindicates God before His people. He opens every book. He hides nothing. At the end of a thousand years, every saint will say: God was just.
+  - [→] Study 9 said the judgment vindicates God's people before the universe. The millennium vindicates God before His people. He opens every book. He hides nothing. At the end of a thousand years, every saint will say: God was just.
 
 [ILL] A jury retires to deliberate. The judge opens every file — every piece of evidence, every transcript, every sealed record. Nothing is withheld. The jury takes as long as it needs. That is the millennium: God handing the redeemed a thousand years to examine every decision He ever made — and finding not one error.
 
@@ -253,7 +253,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1408'
 ## Appeal — The Series Closes
 
 - The trial that began in Eden has reached its verdict.
-- Study 1 filed the charges. Study 2 showed the break and the bridge. Study 3 defined what salvation really is — the restoration of God's image. Study 4 revealed the sanctuary as God's path of restoration. Studies 5-7 exposed the counterfeit and traced prophecy. Study 8 opened the judgment — cosmic vindication, not personal terror. Study 9 called God's people out of Babylon. Study 10 sealed the Sabbath as God's sign through every link of the chain. Study 11 showed the body as the temple of the Spirit. Study 12 showed how God conquers character territory. Study 13 described the final crisis. Study 14 walked through the time of trouble to deliverance.
+- Study 1 filed the charges. Study 2 showed the break and the bridge. Study 3 defined what salvation really is — the restoration of God's image. Study 4 showed why only Christ could accomplish it — and how His cross satisfies both justice and mercy. Study 5 revealed the sanctuary as God's path of restoration. Studies 6-8 exposed the counterfeit and traced prophecy. Study 9 opened the judgment — cosmic vindication, not personal terror. Study 10 called God's people out of Babylon. Study 11 sealed the Sabbath as God's sign through every link of the chain. Study 12 showed the body as the temple of the Spirit. Study 13 showed how God conquers character territory. Study 14 described the final crisis. Study 15 walked through the time of trouble to deliverance.
 - Now you have seen the ending — the millennium reviewed, the accuser silenced, every knee bowed, sin destroyed, and "Behold, I make all things new."
 
 - God has waited since 1844. Not for more time. For witnesses.

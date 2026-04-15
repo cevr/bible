@@ -1,10 +1,10 @@
 ---
 created_at: '2026-04-14T00:00:00.000Z'
-topic: "The Way Home Series — Study 10: The Sabbath — God's Seal in Time"
+topic: "The Way Home Series — Study 11: The Sabbath — God's Seal in Time"
 apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1433'
 ---
 
-# Study 10: The Sabbath — God's Seal in Time
+# Study 11: The Sabbath — God's Seal in Time
 
 **Study 3 laid down the chain: Image = Character = Law = Love = God. Salvation is the restoration of every link. The Sabbath is the sign of that restoration — the only truth embedded in time itself, woven into the fabric of the week at creation, before sin, before Israel, before the law was written on stone. It is the sign of creation, the memorial of redemption, the mark of sanctification, and the seal of the finished image. Satan attacked it because it carries all four.**
 
@@ -101,7 +101,7 @@ The Sabbath is not one thing. It is four things layered into a single institutio
 
 ### 4. The Seal — Who Has Finished the Work in You
 
-- Study 15 will show: "the fourth commandment contains all three elements of a seal: name, title, territory" (Rev 7:1-3)
+- Study 16 will show: "the fourth commandment contains all three elements of a seal: name, title, territory" (Rev 7:1-3)
 - The seal is placed on those whose characters reflect God's own — the image fully restored
 - The Sabbath is the sign of sanctification in process AND the seal of sanctification complete
 - [→] Same institution, two phases. While the work is underway, the Sabbath is a sign. When the work is finished, it becomes the seal. The Sabbath bookends the entire journey from shattered image to restored image.
@@ -245,7 +245,7 @@ The Sabbath is not one thing. It is four things layered into a single institutio
 
 ---
 
-[→] **Transition to Study 11**: The Sabbath is God's seal on time — rest for the soul. But the image of God is not restored in the soul alone. The body is the temple of the Holy Spirit. What you put into it, what you do with it — this is not peripheral to the gospel. It is part of the restoration.
+[→] **Transition to Study 12**: The Sabbath is God's seal on time — rest for the soul. But the image of God is not restored in the soul alone. The body is the temple of the Holy Spirit. What you put into it, what you do with it — this is not peripheral to the gospel. It is part of the restoration.
 
 ---
 

@@ -1,10 +1,10 @@
 ---
 created_at: '2026-03-15T00:00:00.000Z'
-topic: 'The Way Home Series — Study 6: Prophecy Names the System'
+topic: 'The Way Home Series — Study 7: Prophecy Names the System'
 apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1403'
 ---
 
-# Study 6: Prophecy Names the System
+# Study 7: Prophecy Names the System
 
 **God did not leave His people guessing. Through Daniel, He gave prophecies so specific that the power consolidating every counterfeit is identified by name, by character, and by calendar — and every detail has been fulfilled.**
 
@@ -125,7 +125,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1403'
 
 ## Four Counterfeits Consolidated
 
-- **Study 5 traced four counterfeits through four empires. The little horn gathered them all.**
+- **Study 6 traced four counterfeits through four empires. The little horn gathered them all.**
 
 - **From Babylon: human priesthood mediating access to God**
   - The sanctuary teaches one Mediator: "For there is one God, and one mediator between God and men, the man Christ Jesus" (1 Tim 2:5)
@@ -197,7 +197,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1403'
 
 ---
 
-[→] **Transition to Study 7**: Daniel 7 told us WHO. Now Daniel 8-9 will tell us WHEN — with a timeline so precise that it predicted the exact year of Christ's baptism, His death, and the beginning of heaven's final judgment.
+[→] **Transition to Study 8**: Daniel 7 told us WHO. Now Daniel 8-9 will tell us WHEN — with a timeline so precise that it predicted the exact year of Christ's baptism, His death, and the beginning of heaven's final judgment.
 
 ---
 

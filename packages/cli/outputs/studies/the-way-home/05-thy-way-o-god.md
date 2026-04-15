@@ -1,12 +1,12 @@
 ---
 created_at: '2026-04-05T00:00:00.000Z'
-topic: 'The Way Home Series — Study 4: Thy Way, O God'
+topic: 'The Way Home Series — Study 5: Thy Way, O God'
 apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1422'
 ---
 
-# Study 4: Thy Way, O God
+# Study 5: Thy Way, O God
 
-**Study 3 defined what salvation is: the restoration of God's image — His character, His love, His law written in the heart. Now the question is: how does God do it? He built a path. Station by station, sacrifice by sacrifice. That path is the sanctuary. That path is Christ.**
+**Study 3 defined what salvation is: the restoration of God's image. Study 4 showed _who_ — why only Christ could do it, why He became a man, how His death satisfies justice and mercy simultaneously. Now the question is: _how_ does God do it? He built a path. Station by station, sacrifice by sacrifice. That path is the sanctuary. That path is Christ.**
 
 ## Prep Reading
 
@@ -38,12 +38,12 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1422'
 
 ---
 
-## Recap — What Study 3 Established
+## Recap — What Studies 3-4 Established
 
-- **Image = Glory = Name = Character = Love = Law = Knowing God = Life**
-- Sin shattered the image. The gospel restores it. Salvation is not just pardon — it is a new heart.
+- **Image = Glory = Name = Character = Love = Law = Knowing God = Life** (Study 3)
+- Only the Author of the image can restore it. Christ took our nature, overcame as a man, and His death satisfies both justice and mercy (Study 4).
 - Beholding Christ is the mechanism: "changed into the same image from glory to glory" (2 Cor 3:18)
-- [→] Now the question: _how_ does God do the restoring? What is the path?
+- [→] We know _what_ salvation is and _who_ accomplishes it. Now the question: _how_ does God do the restoring? What is the path?
 
 ---
 
@@ -58,7 +58,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1422'
 → For the same reason you don't smash the mirror because you don't like what it shows you. The law is diagnostic — "by the law is the knowledge of sin" (Rom 3:20). Destroying the diagnostic tool doesn't cure the disease. And the law is more than diagnostic — it is the portrait of who you were created to be. You don't destroy the blueprint; you rebuild to match it.
 
 - **The charge this answers**
-  - Study 1 identified Satan's accusation: "The law cannot be kept" (Charge B). But now we see what that charge really means.
+  - Study 1 identified Satan's accusation: "The law cannot be kept" (Charge B). Study 4 showed Christ answered it in human flesh. But now we see the _process_ by which that answer is worked out in us.
   - If the law is God's character, then "the law cannot be kept" is the same as "God's image cannot be restored in humanity." Satan is not merely arguing against obedience — he is arguing that what God lost in Eden, He can never recover.
   - The sanctuary is God's answer to that charge — not a courtroom defense, but a working demonstration. Station by station, it transforms the sinner back into the image of God. The charge says it can't be done. The sanctuary does it.
 
@@ -299,4 +299,4 @@ Will you follow?
 
 **Central Verse:** "Thy way, O God, is in the sanctuary: who is so great a God as our God?" (Psalm 77:13)
 
-**[→ Study 5]** The sanctuary reveals God's character and maps the path of restoration. But Satan couldn't destroy this truth — so he built counterfeits to bury the sanctuary truths you just traced. Empire by empire, doctrine by doctrine, he replaced the original with an imitation.
+**[→ Study 6]** The sanctuary reveals God's character and maps the path of restoration. But Satan couldn't destroy this truth — so he built counterfeits to bury the sanctuary truths you just traced. Empire by empire, doctrine by doctrine, he replaced the original with an imitation.

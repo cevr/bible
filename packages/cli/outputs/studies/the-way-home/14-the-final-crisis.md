@@ -1,10 +1,10 @@
 ---
 created_at: '2026-04-14T00:00:00.000Z'
-topic: 'The Way Home Series — Study 13: The Final Crisis'
+topic: 'The Way Home Series — Study 14: The Final Crisis'
 apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1436'
 ---
 
-# Study 13: The Final Crisis
+# Study 14: The Final Crisis
 
 **The judgment is underway. Babylon is exposed. God's people have been called out. Now comes the test. Every truth restored since 1844 converges into a single question of allegiance: whose seal will you bear? The crisis is not about a day — it is about authority. And the battle is not against flesh and blood — it is for the mind.**
 
@@ -36,7 +36,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1436'
 - **The husbandman waits**
   - "Be patient therefore, brethren, unto the coming of the Lord. Behold, the husbandman waiteth for the precious fruit of the earth, and hath long patience for it, until he receive the early and latter rain" (James 5:7)
   - God is waiting for the harvest to ripen. The latter rain ripens it.
-  - [→] Study 9 said God is waiting for characters to be transformed. The latter rain is the power that completes the transformation. No latter rain, no harvest. No harvest, no Second Coming.
+  - [→] Study 10 said God is waiting for characters to be transformed. The latter rain is the power that completes the transformation. No latter rain, no harvest. No harvest, no Second Coming.
 
 ---
 
@@ -55,7 +55,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1436'
 
 - **"Come out of her, my people" — the final call**
   - "And I heard another voice from heaven, saying, Come out of her, my people, that ye be not partakers of her sins, and that ye receive not of her plagues" (Rev 18:4)
-  - Study 9 gave this call. The loud cry intensifies it. People stream out of Babylon in response to truth presented with the power of the Spirit.
+  - Study 10 gave this call. The loud cry intensifies it. People stream out of Babylon in response to truth presented with the power of the Spirit.
   - [→] The loud cry produces a great separation. Those who respond come out. Those who refuse harden. The lines are drawn.
 
 ---
@@ -94,7 +94,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1436'
   - Economic boycott: no buying, no selling. Social death before physical death.
 
 - **What is the mark?**
-  - Study 10 established: the seal of God is in the fourth commandment — name, title, territory (Ex 20:8-11)
+  - Study 11 established: the seal of God is in the fourth commandment — name, title, territory (Ex 20:8-11)
   - The mark of the beast is the counterfeit of the seal — a rival claim to authority
   - The counterfeit system claimed power to change the day of worship from Sabbath to Sunday (Dan 7:25)
   - The mark is not merely Sunday observance — it is the knowing, deliberate choice to follow human authority over divine authority after the truth has been made plain
@@ -103,7 +103,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1436'
 - **The seal — God's mark of ownership and character**
   - "Hurt not the earth, neither the sea, nor the trees, till we have sealed the servants of our God in their foreheads" (Rev 7:3)
   - The seal is placed before the crisis reaches its climax. God's people are secured before the storm.
-  - Study 10: the Sabbath is the sign of creation, redemption, sanctification, and completion. It is the seal because it carries God's authority and marks His finished work in the character.
+  - Study 11: the Sabbath is the sign of creation, redemption, sanctification, and completion. It is the seal because it carries God's authority and marks His finished work in the character.
   - [→] Mark vs. seal. Two authorities. Two signs. Two allegiances. The crisis makes the invisible visible — every heart's true loyalty is revealed.
 
 [Q] **"Is the mark just about Saturday vs. Sunday?"**
@@ -123,7 +123,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1436'
 - **Satan as angel of light**
   - "And no marvel; for Satan himself is transformed into an angel of light" (2 Cor 11:14)
   - The final deception will not look evil. It will look good, feel right, and appear spiritual.
-  - [→] This is why the mind must be clear (Study 11), the body must be cared for (Study 11), and the Word must be the sole authority (Isa 8:20). When miracles contradict Scripture, Scripture wins. Every time.
+  - [→] This is why the mind must be clear (Study 12), the body must be cared for (Study 12), and the Word must be the sole authority (Isa 8:20). When miracles contradict Scripture, Scripture wins. Every time.
 
 - **Spirits of devils working miracles**
   - "For they are the spirits of devils, working miracles, which go forth unto the kings of the earth and of the whole world, to gather them to the battle of that great day of God Almighty" (Rev 16:13-14)
@@ -154,7 +154,7 @@ The crisis is not a single event but a sequence:
 8. **Sealing completed** — God's people are sealed; character work is finished (Rev 7:1-3)
 9. **Close of probation** — "He that is unjust, let him be unjust still: and he that is righteous, let him be righteous still" (Rev 22:11)
 
-[→] After probation closes, no more intercession. No more opportunity to change sides. The cases are decided. What follows is the time of trouble — Study 14.
+[→] After probation closes, no more intercession. No more opportunity to change sides. The cases are decided. What follows is the time of trouble — Study 15.
 
 ---
 
@@ -164,7 +164,7 @@ The crisis is not a single event but a sequence:
 - In the middle of the worst crisis earth has ever seen, a people endure.
 - They keep the commandments — including the fourth. Charge B answered.
 - They have the faith of Jesus — trust without visible reward, loyalty unto death. Charge A answered.
-- [→] The entire series has been building to this verse. Study 1 filed the charges. Studies 2-12 traced the war. Study 13 describes the final battle. And Rev 14:12 is the verdict that the battle produces.
+- [→] The entire series has been building to this verse. Study 1 filed the charges. Studies 2-13 traced the war. Study 14 describes the final battle. And Rev 14:12 is the verdict that the battle produces.
 
 ---
 
@@ -182,7 +182,7 @@ The crisis is not a single event but a sequence:
 
 ---
 
-[→] **Transition to Study 14**: The seal is placed. Probation closes. Now comes what the Bible calls "a time of trouble, such as never was since there was a nation." The seven last plagues fall. God's people stand without a mediator. And then — deliverance.
+[→] **Transition to Study 15**: The seal is placed. Probation closes. Now comes what the Bible calls "a time of trouble, such as never was since there was a nation." The seven last plagues fall. God's people stand without a mediator. And then — deliverance.
 
 ---
 

@@ -1,10 +1,10 @@
 ---
 created_at: '2026-04-14T00:00:00.000Z'
-topic: 'The Way Home Series — Study 11: The Temple of the Holy Spirit'
+topic: 'The Way Home Series — Study 12: The Temple of the Holy Spirit'
 apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1435'
 ---
 
-# Study 11: The Temple of the Holy Spirit
+# Study 12: The Temple of the Holy Spirit
 
 **Salvation is the restoration of God's image — and that image is restored in the mind. But the mind does not exist in a vacuum. It lives in a body. A clouded body produces a clouded mind. A clouded mind cannot behold Christ. And if you cannot behold, you cannot be changed (2 Cor 3:18). The health of the body is not peripheral to the gospel. It is part of the restoration.**
 
@@ -72,7 +72,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1435'
   - "Know ye not that ye are the temple of God, and that the Spirit of God dwelleth in you?" (1 Cor 3:16)
   - "If any man defile the temple of God, him shall God destroy; for the temple of God is holy, which temple ye are" (1 Cor 3:17)
   - The sanctuary in the Old Testament was where God dwelt among His people. Now: your body is where God dwells.
-  - Study 4 mapped the sanctuary as the path of restoration. The body is the final sanctuary — the one God inhabits.
+  - Study 5 mapped the sanctuary as the path of restoration. The body is the final sanctuary — the one God inhabits.
 
 - **Bought with a price**
   - "What? know ye not that your body is the temple of the Holy Ghost which is in you, which ye have of God, and ye are not your own? For ye are bought with a price: therefore glorify God in your body, and in your spirit, which are God's" (1 Cor 6:19-20)
@@ -234,7 +234,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1435'
 
 ---
 
-[→] **Transition to Study 12**: The mind is clear. The body is cared for. Now — how does God actually conquer the territory of the heart? The Israelites faced Canaan with the same question: the land is promised, but it must be taken. How? Not by might, but by faith.
+[→] **Transition to Study 13**: The mind is clear. The body is cared for. Now — how does God actually conquer the territory of the heart? The Israelites faced Canaan with the same question: the land is promised, but it must be taken. How? Not by might, but by faith.
 
 ---
 
