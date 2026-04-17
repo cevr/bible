@@ -1,14 +1,18 @@
 pre-commit:
   parallel: true
   jobs:
-    - name: fmt
-      glob: "*.{ts,tsx,js,jsx,json,css,html,md}"
-      run: oxfmt --write {staged_files}
-      stage_fixed: true
-    - name: lint
-      glob: "*.{ts,tsx,js,jsx}"
-      run: oxlint --fix {staged_files}
-      stage_fixed: true
+    - name: lint-fmt
+      group:
+        piped: true
+        jobs:
+          - name: lint
+            glob: "*.{ts,tsx,js,jsx}"
+            run: oxlint --fix {staged_files}
+            stage_fixed: true
+          - name: fmt
+            glob: "*.{ts,tsx,js,jsx,json,css,html,md}"
+            run: oxfmt --write {staged_files}
+            stage_fixed: true
     - name: typecheck
       run: bun run typecheck
     - name: test
