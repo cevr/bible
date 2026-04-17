@@ -1,5 +1,5 @@
 // @effect-diagnostics strictEffectProvide:off
-import { Command } from 'effect/unstable/cli';
+import { Command, Flag } from 'effect/unstable/cli';
 import { Effect, FileSystem } from 'effect';
 
 import { files, folder } from '~/src/lib/content/options';
@@ -8,9 +8,19 @@ import {
   updateFrontmatter,
   type MessageFrontmatter,
 } from '~/src/lib/frontmatter';
-import { makeAppleNoteFromMarkdown } from '~/src/lib/markdown-to-notes';
+import {
+  makeAppleNoteFromMarkdown,
+  updateAppleNoteFromMarkdown,
+} from '~/src/lib/markdown-to-notes';
 
-export const exportOutput = Command.make('export', { files, folder }, (args) =>
+const forceCreate = Flag.boolean('force-create').pipe(
+  Flag.withDefault(false),
+  Flag.withDescription(
+    'Create a new note even if the file already has an apple_note_id in frontmatter',
+  ),
+);
+
+export const exportOutput = Command.make('export', { files, folder, forceCreate }, (args) =>
   Effect.gen(function* () {
     const fileSystem = yield* FileSystem.FileSystem;
 
@@ -30,15 +40,19 @@ export const exportOutput = Command.make('export', { files, folder }, (args) =>
         .readFile(filePath)
         .pipe(Effect.map((i) => new TextDecoder().decode(i)));
 
-      // Parse to get content without frontmatter for export
-      const { content } = parseFrontmatter<MessageFrontmatter>(rawContent);
+      const { frontmatter, content } = parseFrontmatter<MessageFrontmatter>(rawContent);
+      const existingNoteId = frontmatter.apple_note_id;
 
-      // Export and get the note ID
+      if (existingNoteId !== undefined && existingNoteId !== '' && !args.forceCreate) {
+        yield* updateAppleNoteFromMarkdown(existingNoteId, content);
+        yield* Effect.log(`  Updated: ${filePath} → ${existingNoteId}`);
+        continue;
+      }
+
       const { noteId } = yield* makeAppleNoteFromMarkdown(content, {
         folder: targetFolder,
       });
 
-      // Update the file with the note ID in frontmatter
       const updatedContent = updateFrontmatter(rawContent, {
         apple_note_id: noteId,
       });

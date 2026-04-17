@@ -72,5 +72,61 @@ describe('export command', () => {
 
       expect(result.success).toBe(false);
     });
+
+    it('should update an existing note when apple_note_id is present in frontmatter', async () => {
+      const existing = `---
+created_at: 2026-04-16
+topic: test
+apple_note_id: x-coredata://abc/ICNote/p1
+---
+
+# Test
+
+Body.`;
+      const result = await runCli(exportOutput, ['--files', '/path/to/withid.md'], {
+        files: {
+          files: {
+            '/path/to/withid.md': existing,
+          },
+        },
+        bun: {
+          appleScriptSuccess: true,
+        },
+      });
+
+      expect(result.success).toBe(true);
+      expectCallCount(result.calls, 'FileSystem.readFile', 1);
+      expectCallCount(result.calls, 'AppleScript.exec', 1);
+      expectNoCalls(result.calls, 'FileSystem.writeFile');
+    });
+
+    it('should create a new note when --force-create is set even if id present', async () => {
+      const existing = `---
+created_at: 2026-04-16
+topic: test
+apple_note_id: x-coredata://abc/ICNote/p1
+---
+
+# Test
+
+Body.`;
+      const result = await runCli(
+        exportOutput,
+        ['--files', '/path/to/withid.md', '--force-create'],
+        {
+          files: {
+            files: {
+              '/path/to/withid.md': existing,
+            },
+          },
+          bun: {
+            appleScriptSuccess: true,
+          },
+        },
+      );
+
+      expect(result.success).toBe(true);
+      expectCallCount(result.calls, 'FileSystem.writeFile', 1);
+    });
   });
 });
