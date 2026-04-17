@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 
 import { notes } from '../../src/commands/notes.js';
-import { expectContains, runCli } from '../lib/run-cli.js';
+import { expectCallCount, expectContains, expectNoCalls, runCli } from '../lib/run-cli.js';
 
 describe('notes commands', () => {
   describe('list command', () => {
@@ -149,6 +149,105 @@ describe('notes commands', () => {
       // The command should still complete but may fail due to AppleScript error
       // The exact behavior depends on error handling in the implementation
       expectContains(result.calls, [{ _tag: 'FileSystem.readFile' }, { _tag: 'AppleScript.exec' }]);
+    });
+  });
+
+  describe('organize command', () => {
+    const withId = `---
+created_at: 2026-04-17
+topic: test
+apple_note_id: x-coredata://abc/ICNote/p1
+---
+
+# Test
+
+Body.`;
+    const withoutId = `---
+created_at: 2026-04-17
+topic: test
+---
+
+# Test
+
+Body.`;
+
+    it('should move a note when apple_note_id is present', async () => {
+      const result = await runCli(
+        notes,
+        ['organize', '--files', '/path/to/withid.md', '--folder', 'Daniel + Revelation'],
+        {
+          files: {
+            files: {
+              '/path/to/withid.md': withId,
+            },
+          },
+          appleScript: {
+            appleScriptSuccess: true,
+            appleScriptResponse: 'Success',
+          },
+        },
+      );
+
+      expect(result.success).toBe(true);
+      expectCallCount(result.calls, 'FileSystem.readFile', 1);
+      expectCallCount(result.calls, 'AppleScript.exec', 1);
+    });
+
+    it('should skip files without apple_note_id', async () => {
+      const result = await runCli(
+        notes,
+        ['organize', '--files', '/path/to/noid.md', '--folder', 'Target'],
+        {
+          files: {
+            files: {
+              '/path/to/noid.md': withoutId,
+            },
+          },
+          appleScript: {
+            appleScriptSuccess: true,
+            appleScriptResponse: 'Success',
+          },
+        },
+      );
+
+      expect(result.success).toBe(true);
+      expectCallCount(result.calls, 'FileSystem.readFile', 1);
+      expectNoCalls(result.calls, 'AppleScript.exec');
+    });
+
+    it('should move multiple notes into the same folder', async () => {
+      const result = await runCli(
+        notes,
+        ['organize', '--files', '/path/to/a.md', '--files', '/path/to/b.md', '--folder', 'Target'],
+        {
+          files: {
+            files: {
+              '/path/to/a.md': withId,
+              '/path/to/b.md': withId.replace('p1', 'p2'),
+            },
+          },
+          appleScript: {
+            appleScriptSuccess: true,
+            appleScriptResponse: 'Success',
+          },
+        },
+      );
+
+      expect(result.success).toBe(true);
+      expectCallCount(result.calls, 'FileSystem.readFile', 2);
+      expectCallCount(result.calls, 'AppleScript.exec', 2);
+    });
+
+    it('should handle no files specified', async () => {
+      const result = await runCli(notes, ['organize', '--folder', 'Target'], {
+        files: {
+          files: {},
+        },
+      });
+
+      expect(result.success).toBe(true);
+      expectNoCalls(result.calls, 'FileSystem.readFile');
+      expectNoCalls(result.calls, 'AppleScript.exec');
     });
   });
 });

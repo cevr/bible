@@ -1,9 +1,11 @@
 import { Command, Flag } from 'effect/unstable/cli';
 import { Console, Effect, FileSystem } from 'effect';
 
-import { file, folder, json, noteId } from '~/src/lib/content/options';
+import { file, files, folder, json, noteId } from '~/src/lib/content/options';
+import { parseFrontmatter, type MessageFrontmatter } from '~/src/lib/frontmatter';
 import {
   makeAppleNoteFromMarkdown,
+  moveAppleNoteToFolder,
   updateAppleNoteFromMarkdown,
 } from '~/src/lib/markdown-to-notes';
 import { listNotes } from '~/src/lib/notes-utils';
@@ -69,5 +71,49 @@ const exportNote = Command.make('export', { file, noteId: optionalNoteId, folder
   }),
 );
 
+const requiredFolder = Flag.string('folder').pipe(
+  Flag.withDescription('Target folder in Apple Notes'),
+);
+
+const organize = Command.make('organize', { files, folder: requiredFolder }, (args) =>
+  Effect.gen(function* () {
+    const fileSystem = yield* FileSystem.FileSystem;
+
+    if (args.files.length === 0) {
+      yield* Effect.logError('No files specified. Use --files or -f to specify files to organize.');
+      return;
+    }
+
+    yield* Effect.log(
+      `Organizing ${args.files.length} file(s) into Apple Notes folder "${args.folder}"...`,
+    );
+
+    let moved = 0;
+    let skipped = 0;
+    for (const filePath of args.files) {
+      const rawContent = yield* fileSystem
+        .readFile(filePath)
+        .pipe(Effect.map((i) => new TextDecoder().decode(i)));
+
+      const { frontmatter } = parseFrontmatter<MessageFrontmatter>(rawContent);
+      const existingNoteId = frontmatter.apple_note_id;
+
+      if (existingNoteId === undefined || existingNoteId === '') {
+        yield* Effect.logWarning(`  Skipped: ${filePath} (no apple_note_id in frontmatter)`);
+        skipped++;
+        continue;
+      }
+
+      yield* moveAppleNoteToFolder(existingNoteId, args.folder);
+      yield* Effect.log(`  Moved: ${filePath} → "${args.folder}"`);
+      moved++;
+    }
+
+    yield* Effect.log(`Done. Moved ${moved}, skipped ${skipped}.`);
+  }),
+);
+
 // Main notes command
-export const notes = Command.make('notes').pipe(Command.withSubcommands([list, exportNote]));
+export const notes = Command.make('notes').pipe(
+  Command.withSubcommands([list, exportNote, organize]),
+);

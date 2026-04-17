@@ -211,3 +211,54 @@ export const updateAppleNoteFromMarkdown = Effect.fn('updateAppleNoteFromMarkdow
   yield* Effect.log(`✅ Success! Note "${finalNoteTitle}" updated in Apple Notes.`);
   return finalNoteTitle; // Resolve with the title used
 });
+
+/**
+ * Move an existing Apple Note into a target folder.
+ * If the folder doesn't exist, it will be created at the root level
+ * (Apple Notes AppleScript does not support nested folder creation).
+ *
+ * @param noteId The ID of the note to move.
+ * @param folder Target folder name.
+ */
+export const moveAppleNoteToFolder = Effect.fn('moveAppleNoteToFolder')(function* (
+  noteId: string,
+  folder: string,
+) {
+  const escapedNoteId = escapeAppleScriptString(noteId);
+  const escapedFolder = escapeAppleScriptString(folder);
+
+  const appleScriptCommand = `
+      tell application "Notes"
+        set targetFolder to missing value
+        repeat with f in folders
+          if name of f is "${escapedFolder}" then
+            set targetFolder to f
+            exit repeat
+          end if
+        end repeat
+        if targetFolder is missing value then
+          make new folder with properties {name:"${escapedFolder}"}
+          set targetFolder to folder "${escapedFolder}"
+        end if
+        try
+          move note id "${escapedNoteId}" to targetFolder
+          return "Success"
+        on error errMsg number errNum
+          return "Error: " & errMsg & " (" & errNum & ")"
+        end try
+      end tell
+    `;
+
+  const appleScript = yield* AppleScript;
+  const res = yield* appleScript.exec(appleScriptCommand);
+
+  if (res.trim().startsWith('Error:')) {
+    return yield* new MarkdownParseError({
+      message: `Failed to move note ${noteId} to "${folder}": ${res.trim()}`,
+      cause: res,
+      content: '',
+    });
+  }
+
+  return { noteId, folder };
+});
