@@ -1,11 +1,11 @@
-# Bible Tools
+# Bible
 
 A monorepo for Bible study tools with CLI and web interfaces.
 
 ## Project Structure
 
 ```
-bible-tools/
+bible/
 ├── packages/
 │   ├── core/           # Shared business logic (@bible/core)
 │   │   ├── adapters/   # Platform abstraction (storage, export)

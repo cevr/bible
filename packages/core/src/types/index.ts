@@ -1,7 +1,7 @@
 /**
  * Core Types
  *
- * Shared type definitions for the bible-tools packages.
+ * Shared type definitions for the bible packages.
  */
 
 // Branded ID types - schemas and type aliases

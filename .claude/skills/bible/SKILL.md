@@ -1,15 +1,14 @@
 ---
-name: bible-tools
-description: Orchestrate Bible study tools for generating messages, Sabbath School
-  outlines, and studies. Use when asked about sermons, messages, Sabbath School
-  lessons, Bible studies, or church content generation.
-allowed-tools: [Bash, Read, Glob]
+name: bible
+description: Orchestrate the Bible CLI for generating messages, Sabbath School outlines, and studies — and for browsing/searching the Ellen White (EGW) writings corpus and Uriah Smith's Daniel and the Revelation. Use when asked about sermons, messages, Sabbath School lessons, Bible studies, EGW references, Uriah Smith DAR, prophecy research, or church content generation.
+allowed-tools: [Bash, Read, Glob, Edit, Write]
 ---
 
-# Bible Tools Skill
+# Bible Skill
 
-This skill helps you use the Bible Tools CLI to generate and manage
-church-related content.
+This skill helps you use the Bible CLI to generate and manage
+church-related content **and** to mine the EGW + Uriah Smith corpus for
+study research.
 
 ## Capabilities
 
@@ -19,6 +18,9 @@ church-related content.
 - Revise content with specific instructions
 - Export content to Apple Notes
 - List existing outputs
+- **Browse and download** EGW books from the remote API into the local SQLite + FTS5 index
+- **Search** the EGW writings corpus locally (fast FTS5) or remotely (whole corpus, ~17K+ paragraphs)
+- **Look up by refcode** (e.g. `DAR 580.1`, `GC 442.3`, `PK 437.2`)
 
 ## CLI Commands
 
@@ -68,6 +70,40 @@ bible studies revise --model anthropic --file <path> --instructions "Add more sc
 # List all studies
 bible studies list [--json]
 ```
+
+### EGW (Ellen White writings + Uriah Smith corpus)
+
+```bash
+# List books already downloaded into local DB
+bible egw books [--author <substring>] [--json]
+
+# Browse remote EGW catalog
+bible egw catalog --search "<title or word>" [--lang en] [--limit 20] [--json]
+
+# Download a book by exact code OR by numeric ID from the catalog
+bible egw download DAR
+bible egw download --id 12861
+
+# Search local FTS5 index (fast, only across downloaded books)
+bible egw search "<query>" [--book CODE] [--limit 20] [--json]
+
+# Search the entire remote EGW corpus
+bible egw search "<query>" --remote [--limit 20] [--json] [--log-level=error]
+
+# Look up a reference directly (top-level passthrough)
+bible egw "DAR 580.1"
+```
+
+**Always pass `--log-level=error` with `--remote --json`** — otherwise HTTP request logs leak into stdout and corrupt the JSON file you're capturing.
+
+**FTS5 caveat:** SQLite FTS5 chokes on hyphenated phrases (e.g. `"two-horned"`).
+Use space-separated tokens (`"earth beast lamb"`) or remove the hyphen.
+
+**Books currently in local DB** (verify with `bible egw books`):
+
+- `DAR` — Uriah Smith, _Daniel and the Revelation_ (3555 paragraphs)
+- `GC` — _The Great Controversy_ (2078 paragraphs)
+- `PK` — _Prophets and Kings_ (2045 paragraphs)
 
 ### Export
 

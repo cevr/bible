@@ -1,7 +1,7 @@
 /**
  * Configuration Module
  *
- * Central configuration for the bible-tools application.
+ * Central configuration for the bible application.
  */
 
 // Schema exports

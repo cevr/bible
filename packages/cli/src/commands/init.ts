@@ -20,8 +20,8 @@ class InitError extends Schema.TaggedErrorClass<InitError>()('InitError', {
 }) {}
 
 const BIBLE_DIR = join(homedir(), '.bible');
-const GITHUB_RAW = 'https://raw.githubusercontent.com/cevr/bible-tools/main';
-const GITHUB_RELEASE = 'https://github.com/cevr/bible-tools/releases/download/db-v1';
+const GITHUB_RAW = 'https://raw.githubusercontent.com/cevr/bible/main';
+const GITHUB_RELEASE = 'https://github.com/cevr/bible/releases/download/db-v1';
 
 const DBS = {
   bible: {

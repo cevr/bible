@@ -1,8 +1,8 @@
 {
-  "name": "bible-tools",
+  "name": "bible",
   "version": "1.0.0",
   "private": true,
-  "description": "bible tools",
+  "description": "bible",
   "license": "MIT",
   "author": "cristian ramos <seeve.c@gmail.com>",
   "workspaces": [

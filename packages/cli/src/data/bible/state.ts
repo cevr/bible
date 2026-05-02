@@ -42,7 +42,7 @@ export interface UserCrossRef {
 }
 
 // State storage directory
-const STATE_DIR = join(homedir(), '.bible-tools');
+const STATE_DIR = join(homedir(), '.bible');
 const DB_PATH = join(STATE_DIR, 'state.db');
 
 // Ensure state directory exists

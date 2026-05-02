@@ -8,7 +8,7 @@
 import { Effect, FileSystem, Path, Schema } from 'effect';
 
 const BIBLE_DB_URL =
-  'https://raw.githubusercontent.com/cevr/bible-tools/main/packages/core/data/bible.db';
+  'https://raw.githubusercontent.com/cevr/bible/main/packages/core/data/bible.db';
 
 export class BibleDbSyncError extends Schema.TaggedErrorClass<BibleDbSyncError>()(
   'BibleDbSyncError',
