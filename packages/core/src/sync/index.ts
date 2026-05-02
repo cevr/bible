@@ -4,10 +4,12 @@
 
 export {
   syncEgwBooks,
+  downloadBookToLocal,
   getSyncStatusSummary,
   type SyncOptions,
   type SyncResult,
   type SyncStatusSummary,
+  type DownloadBookResult,
 } from './egw-sync.js';
 
 export { ensureBibleDb } from './bible-db-sync.js';

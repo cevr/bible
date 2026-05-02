@@ -2,80 +2,126 @@
  * EGW CLI Commands
  *
  * Provides CLI access to EGW writings:
- * - `bible egw "PP 351.1"` - Lookup by refcode
- * - `bible egw "great controversy"` - Search
- * - `bible egw open "PP 351.1"` - Open TUI at refcode (handled by main.ts)
+ *   bible egw "PP 351.1"             - Local refcode lookup (single paragraph)
+ *   bible egw "PP 351"               - Local refcode lookup (full page)
+ *   bible egw "PP"                   - Local book info + TOC
+ *   bible egw "great controversy"    - Local FTS search (fallback when not a refcode)
+ *   bible egw books                  - List installed books in the local DB
+ *   bible egw catalog --search smith - Browse remote API catalog
+ *   bible egw download <code>        - Fetch any book from API into local DB
+ *   bible egw search <query>         - Search (--remote hits the API directly)
+ *   bible egw open "PP 351.1"        - Open the TUI at a refcode (handled in main.ts)
  */
 
+import type { Schemas as EGWSchemas } from '@bible/core/egw';
 import {
   formatEGWRef,
   isSearchQuery,
   parseEGWRef,
+  EGWApiClient,
+  EGWAuth,
   type EGWParsedRef,
   type EGWSearchQuery,
 } from '@bible/core/egw';
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
 import { EGWService, type EGWSearchResult } from '@bible/core/egw-service';
-import { Argument, Command } from 'effect/unstable/cli';
+import { downloadBookToLocal } from '@bible/core/sync';
+import { Argument, Command, Flag } from 'effect/unstable/cli';
+import { FetchHttpClient } from 'effect/unstable/http';
 import { BunServices } from '@effect/platform-bun';
-import { Console, Effect, Layer, Option } from 'effect';
+import { Console, Effect, Layer, Option, Stream } from 'effect';
 
 // Variadic args to capture "PP 351.1" or "PP" "351.1" etc.
 const query = Argument.string('query').pipe(Argument.variadic());
 
+// ============================================================================
+// Layers
+// ============================================================================
+
+const AuthLayer = EGWAuth.Live.pipe(Layer.provide(FetchHttpClient.layer));
+
+const ApiClientLayer = EGWApiClient.Live.pipe(
+  Layer.provide(AuthLayer),
+  Layer.provide(FetchHttpClient.layer),
+);
+
 /**
- * EGW services layer for CLI commands
+ * Layer providing EGWService (local DB) — used by lookup/local-search commands.
  */
-const EGWLayer = EGWService.Default.pipe(
+const ServiceLayer = EGWService.Default.pipe(
   Layer.provide(EGWParagraphDatabase.Default),
   Layer.provide(BunServices.layer),
 );
 
 /**
- * Format a search result for CLI display
+ * Layer providing EGWApiClient + EGWParagraphDatabase + EGWService — used by
+ * commands that mix remote API and local DB (catalog, download, --remote search).
  */
-function formatSearchResult(r: EGWSearchResult, index: number): string {
+const FullLayer = Layer.mergeAll(
+  ApiClientLayer,
+  EGWParagraphDatabase.Default,
+  EGWService.Default.pipe(Layer.provide(EGWParagraphDatabase.Default)),
+).pipe(Layer.provide(BunServices.layer));
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+const stripHtml = (html: string): string => html.replace(/<[^>]*>/g, '');
+
+function formatLocalSearchResult(r: EGWSearchResult, index: number): string {
   const ref = r.refcodeShort ?? `[${r.bookCode}]`;
   const title = r.bookTitle !== r.bookCode ? ` (${r.bookTitle})` : '';
   const snippet =
     r.content !== null
-      ? r.content.replace(/<[^>]*>/g, '').slice(0, 120) + (r.content.length > 120 ? '...' : '')
+      ? stripHtml(r.content).slice(0, 200) + (r.content.length > 200 ? '…' : '')
       : '(no content)';
   return `  ${index + 1}. ${ref}${title}\n     ${snippet}`;
 }
 
-/**
- * Perform a search query against EGW service
- */
-const doSearch = (parsed: EGWSearchQuery) =>
+function formatRemoteHit(h: EGWSchemas.SearchHit, index: number): string {
+  const ref = h.refcode_short ?? `[${h.pub_code}]`;
+  const author = h.refcode_long?.match(/\(([^)]+)\)\s*$/)?.[1];
+  const title = ` (${h.pub_name}${author !== undefined ? ` — ${author}` : ''})`;
+  const snippet =
+    h.snippet !== null && h.snippet !== undefined
+      ? stripHtml(h.snippet).replace(/\s+/g, ' ').trim().slice(0, 240)
+      : '';
+  const gated = h.action_required !== undefined ? ` [${h.action_required}]` : '';
+  return `  ${index + 1}. ${ref}${title}${gated}\n     ${snippet}`;
+}
+
+// ============================================================================
+// Local lookup / search
+// ============================================================================
+
+const doLocalSearch = (query: string, bookCode?: string, limit = 20) =>
   Effect.gen(function* () {
     const service = yield* EGWService;
-    const results = yield* service.search(parsed.query, 20);
+    const results = yield* service.search(query, limit, bookCode);
 
     if (results.length === 0) {
-      yield* Console.log(`No results found for "${parsed.query}"`);
+      yield* Console.log(`No local results found for "${query}".`);
+      yield* Console.log('Try `bible egw search <query> --remote` to query the EGW API.');
       return;
     }
 
-    yield* Console.log(`Search results for "${parsed.query}" (${results.length} found):\n`);
-    for (const [i, result] of results.entries()) {
-      yield* Console.log(formatSearchResult(result, i));
+    const scope = bookCode !== undefined ? ` in ${bookCode}` : '';
+    yield* Console.log(`Local search results for "${query}"${scope} (${results.length}):\n`);
+    for (const [i, r] of results.entries()) {
+      yield* Console.log(formatLocalSearchResult(r, i));
     }
   });
 
-/**
- * Perform a reference lookup against EGW service
- */
 const doLookup = (parsed: Exclude<EGWParsedRef, EGWSearchQuery>) =>
   Effect.gen(function* () {
     const service = yield* EGWService;
     const refStr = formatEGWRef(parsed);
 
-    // Resolve book
     const bookOpt = yield* service.getBook(parsed.bookCode);
     if (Option.isNone(bookOpt)) {
       yield* Console.log(`Book "${parsed.bookCode}" not found in local database.`);
-      yield* Console.log('Run "bible egw open" to browse available books in the TUI.');
+      yield* Console.log(`Try \`bible egw download ${parsed.bookCode}\` to fetch it from the API.`);
       return;
     }
 
@@ -119,7 +165,7 @@ const doLookup = (parsed: Exclude<EGWParsedRef, EGWSearchQuery>) =>
 
         for (const p of paragraphs) {
           const ref = p.refcodeShort ?? '';
-          const text = p.content?.replace(/<[^>]*>/g, '') ?? '';
+          const text = p.content !== null ? stripHtml(p.content) : '';
           yield* Console.log(`  ${ref}`);
           yield* Console.log(`  ${text}\n`);
         }
@@ -135,7 +181,7 @@ const doLookup = (parsed: Exclude<EGWParsedRef, EGWSearchQuery>) =>
 
           for (const p of pageResponse.paragraphs) {
             const ref = p.refcodeShort ?? '';
-            const text = p.content?.replace(/<[^>]*>/g, '') ?? '';
+            const text = p.content !== null ? stripHtml(p.content) : '';
             yield* Console.log(`  ${ref}`);
             yield* Console.log(`  ${text}\n`);
           }
@@ -143,15 +189,14 @@ const doLookup = (parsed: Exclude<EGWParsedRef, EGWSearchQuery>) =>
         break;
       }
       case 'book': {
-        yield* Console.log(`${book.title} (${parsed.bookCode})`);
+        yield* Console.log(`${book.title} (${parsed.bookCode}) — ${book.author}`);
         yield* Console.log(`Paragraphs: ${book.paragraphCount ?? 'unknown'}`);
 
-        // Show table of contents
         const chapters = yield* service.getChapters(parsed.bookCode);
         if (chapters.length > 0) {
           yield* Console.log('\nTable of Contents:');
           for (const ch of chapters) {
-            const title = ch.title?.replace(/<[^>]*>/g, '') ?? '';
+            const title = ch.title !== null ? stripHtml(ch.title) : '';
             const ref = ch.refcodeShort ?? '';
             yield* Console.log(`  ${ref}  ${title}`);
           }
@@ -161,10 +206,356 @@ const doLookup = (parsed: Exclude<EGWParsedRef, EGWSearchQuery>) =>
     }
   });
 
-/**
- * egw open subcommand - launches TUI at specified refcode
- * This is handled specially in main.ts, but we define it here for help text
- */
+// ============================================================================
+// books — list installed books in the local DB
+// ============================================================================
+
+const booksAuthor = Flag.string('author').pipe(
+  Flag.withDescription('Filter by author (case-insensitive substring match)'),
+  Flag.optional,
+);
+const booksJson = Flag.boolean('json').pipe(
+  Flag.withDescription('Output JSON instead of a table'),
+  Flag.withDefault(false),
+);
+
+export const egwBooks = Command.make('books', { author: booksAuthor, json: booksJson }, (args) =>
+  Effect.gen(function* () {
+    const service = yield* EGWService;
+    const all = yield* service.getBooks();
+
+    const filtered =
+      args.author._tag === 'Some'
+        ? all.filter((b) =>
+            b.author
+              .toLowerCase()
+              .includes(args.author._tag === 'Some' ? args.author.value.toLowerCase() : ''),
+          )
+        : all;
+
+    if (args.json) {
+      yield* Console.log(JSON.stringify(filtered, null, 2));
+      return;
+    }
+
+    if (filtered.length === 0) {
+      yield* Console.log(
+        'No books found in local DB.' +
+          (args.author._tag === 'Some' ? ` (author filter: ${args.author.value})` : ''),
+      );
+      return;
+    }
+
+    yield* Console.log(`${filtered.length} installed book(s):\n`);
+    yield* Console.log('CODE       | AUTHOR                          | PARAS    | TITLE');
+    yield* Console.log('-----------|---------------------------------|----------|------');
+    for (const b of filtered) {
+      const code = b.bookCode.padEnd(10);
+      const author = (b.author.length > 31 ? b.author.slice(0, 28) + '…' : b.author).padEnd(31);
+      const paras = String(b.paragraphCount ?? '-').padEnd(8);
+      yield* Console.log(`${code} | ${author} | ${paras} | ${b.title}`);
+    }
+  }),
+).pipe(Command.provide(() => ServiceLayer));
+
+// ============================================================================
+// catalog — browse remote API catalog
+// ============================================================================
+
+const catalogLang = Flag.string('lang').pipe(
+  Flag.withDescription('Language code (default: en)'),
+  Flag.withDefault('en'),
+);
+const catalogSearch = Flag.string('search').pipe(
+  Flag.withAlias('q'),
+  Flag.withDescription('Title search substring'),
+  Flag.optional,
+);
+const catalogAuthor = Flag.string('author').pipe(
+  Flag.withDescription('Filter results by author substring (client-side)'),
+  Flag.optional,
+);
+const catalogLimit = Flag.integer('limit').pipe(
+  Flag.withDescription('Max results to display (default: 50)'),
+  Flag.withDefault(50),
+);
+const catalogJson = Flag.boolean('json').pipe(
+  Flag.withDescription('Output raw JSON'),
+  Flag.withDefault(false),
+);
+
+export const egwCatalog = Command.make(
+  'catalog',
+  {
+    lang: catalogLang,
+    search: catalogSearch,
+    author: catalogAuthor,
+    limit: catalogLimit,
+    json: catalogJson,
+  },
+  (args) =>
+    Effect.gen(function* () {
+      const client = yield* EGWApiClient;
+
+      const params: Partial<EGWSchemas.BooksQueryParams> = {
+        lang: args.lang,
+        limit: args.limit,
+        ...(args.search._tag === 'Some' ? { search: args.search.value } : {}),
+      };
+
+      const stream = client.getBooks(params);
+      const collected = yield* stream.pipe(Stream.take(args.limit), Stream.runCollect);
+
+      const books = [...collected];
+      const filtered =
+        args.author._tag === 'Some'
+          ? books.filter((b) =>
+              b.author
+                .toLowerCase()
+                .includes(args.author._tag === 'Some' ? args.author.value.toLowerCase() : ''),
+            )
+          : books;
+
+      if (args.json) {
+        yield* Console.log(JSON.stringify(filtered, null, 2));
+        return;
+      }
+
+      if (filtered.length === 0) {
+        yield* Console.log('No catalog results.');
+        return;
+      }
+
+      yield* Console.log(`${filtered.length} catalog result(s):\n`);
+      yield* Console.log('CODE       | ID     | AUTHOR                          | TITLE');
+      yield* Console.log('-----------|--------|---------------------------------|------');
+      for (const b of filtered) {
+        const code = b.code.padEnd(10);
+        const id = String(b.book_id).padEnd(6);
+        const author = (b.author.length > 31 ? b.author.slice(0, 28) + '…' : b.author).padEnd(31);
+        yield* Console.log(`${code} | ${id} | ${author} | ${b.title}`);
+      }
+      yield* Console.log(
+        '\nUse `bible egw download <CODE>` to fetch one of these into the local DB.',
+      );
+    }),
+).pipe(Command.provide(() => FullLayer));
+
+// ============================================================================
+// download — fetch a book from the API into the local DB
+// ============================================================================
+
+const downloadCode = Argument.string('code').pipe(Argument.optional);
+const downloadId = Flag.integer('id').pipe(
+  Flag.withDescription('Book ID (skips the search step; use when a code is ambiguous or unknown)'),
+  Flag.optional,
+);
+const downloadLang = Flag.string('lang').pipe(
+  Flag.withDescription('Language code (default: en)'),
+  Flag.withDefault('en'),
+);
+const downloadConcurrency = Flag.integer('concurrency').pipe(
+  Flag.withDescription('Parallel chapter fetches (default: 5)'),
+  Flag.withDefault(5),
+);
+
+export const egwDownload = Command.make(
+  'download',
+  {
+    code: downloadCode,
+    id: downloadId,
+    lang: downloadLang,
+    concurrency: downloadConcurrency,
+  },
+  (args) =>
+    Effect.gen(function* () {
+      const client = yield* EGWApiClient;
+      const db = yield* EGWParagraphDatabase;
+
+      // Resolve the target Book (from API). Prefer --id, else search by code.
+      let book: EGWSchemas.Book | null = null;
+
+      if (args.id._tag === 'Some') {
+        book = yield* client.getBook(args.id.value);
+      } else if (args.code._tag === 'Some') {
+        const code = args.code.value;
+        // The remote /content/books?search= endpoint matches against TITLE,
+        // not against the book code, so single-token codes like "DAR" don't
+        // round-trip. We pull title-search candidates and pick exact code
+        // matches. If that fails, the user should use --id (look up via
+        // `bible egw catalog --search <title>`).
+        const candidates = yield* client
+          .getBooks({ lang: args.lang, search: code, limit: 50 })
+          .pipe(Stream.take(50), Stream.runCollect);
+        const exact = [...candidates].filter((b) => b.code.toUpperCase() === code.toUpperCase());
+
+        if (exact.length === 0) {
+          yield* Console.log(
+            `No book with code "${code}" matched a title-search in lang=${args.lang}.`,
+          );
+          yield* Console.log('');
+          yield* Console.log('Find the book ID with the catalog command, then download by --id:');
+          yield* Console.log(`  bible egw catalog --search "<title>"`);
+          yield* Console.log(`  bible egw download --id <BOOK_ID>`);
+          return;
+        }
+        if (exact.length > 1) {
+          yield* Console.log(`Multiple books match code "${code}":`);
+          for (const c of exact) {
+            yield* Console.log(`  id=${c.book_id} ${c.author} — ${c.title}`);
+          }
+          yield* Console.log('Use `bible egw download --id <ID>` to disambiguate.');
+          return;
+        }
+        book = exact[0] ?? null;
+      } else {
+        yield* Console.log('Usage: bible egw download <CODE>');
+        yield* Console.log('       bible egw download --id <BOOK_ID>');
+        yield* Console.log('');
+        yield* Console.log(
+          'Browse the remote catalog with `bible egw catalog --search <term>` to find codes/ids.',
+        );
+        return;
+      }
+
+      if (book === null) {
+        yield* Console.log('Could not resolve book.');
+        return;
+      }
+
+      yield* Console.log(
+        `Downloading "${book.title}" (${book.code}, id ${book.book_id}) by ${book.author}...`,
+      );
+
+      const result = yield* downloadBookToLocal(book, {
+        chapterConcurrency: args.concurrency,
+      });
+
+      switch (result._tag) {
+        case 'success':
+          yield* Console.log(
+            `✓ Stored ${result.storedParagraphs} paragraphs (${result.storedBibleRefs} bible refs).`,
+          );
+          if (result.chapterErrors.length > 0) {
+            yield* Console.log(
+              `  ${result.chapterErrors.length} chapter(s) failed; book marked as 'failed' in sync_status.`,
+            );
+            for (const err of result.chapterErrors.slice(0, 5)) {
+              yield* Console.log(`    - ${err}`);
+            }
+          }
+          break;
+        case 'skipped':
+          yield* Console.log(`Skipped: ${result.reason}`);
+          break;
+        case 'failed':
+          yield* Console.log(`✗ Failed: ${result.reason}`);
+          if (result.chapterErrors.length > 0) {
+            for (const err of result.chapterErrors.slice(0, 5)) {
+              yield* Console.log(`    - ${err}`);
+            }
+          }
+          break;
+      }
+
+      yield* Console.log('Rebuilding FTS5 index...');
+      yield* db.rebuildFtsIndex();
+      yield* Console.log('Done.');
+    }),
+).pipe(Command.provide(() => FullLayer));
+
+// ============================================================================
+// search — local FTS by default, --remote to hit the API
+// ============================================================================
+
+const searchQuery = Argument.string('query').pipe(Argument.variadic());
+const searchBook = Flag.string('book').pipe(
+  Flag.withDescription('Scope to a single book code (local search only)'),
+  Flag.optional,
+);
+const searchLimit = Flag.integer('limit').pipe(
+  Flag.withDescription('Max results (default: 20)'),
+  Flag.withDefault(20),
+);
+const searchRemote = Flag.boolean('remote').pipe(
+  Flag.withDescription('Hit the EGW API instead of the local FTS index'),
+  Flag.withDefault(false),
+);
+const searchJson = Flag.boolean('json').pipe(
+  Flag.withDescription('Output raw JSON (especially useful with --remote)'),
+  Flag.withDefault(false),
+);
+const searchLang = Flag.string('lang').pipe(
+  Flag.withDescription('Language code for --remote (default: en)'),
+  Flag.withDefault('en'),
+);
+
+export const egwSearch = Command.make(
+  'search',
+  {
+    query: searchQuery,
+    book: searchBook,
+    limit: searchLimit,
+    remote: searchRemote,
+    json: searchJson,
+    lang: searchLang,
+  },
+  (args) =>
+    Effect.gen(function* () {
+      const queryStr = args.query.join(' ').trim();
+      if (queryStr.length === 0) {
+        yield* Console.log('Usage: bible egw search <query> [--book CODE] [--remote] [--limit N]');
+        return;
+      }
+
+      if (args.remote) {
+        const client = yield* EGWApiClient;
+        const response = yield* client.search({
+          query: queryStr,
+          lang: args.lang,
+          limit: args.limit,
+        });
+
+        if (args.json) {
+          yield* Console.log(JSON.stringify(response, null, 2));
+          return;
+        }
+
+        if (response.results.length === 0) {
+          yield* Console.log(`No remote results for "${queryStr}".`);
+          return;
+        }
+
+        yield* Console.log(
+          `Remote search "${queryStr}" — ${response.total} total, showing ${response.results.length}:\n`,
+        );
+        for (const [i, hit] of response.results.entries()) {
+          yield* Console.log(formatRemoteHit(hit, i));
+        }
+      } else {
+        if (args.json) {
+          const service = yield* EGWService;
+          const results = yield* service.search(
+            queryStr,
+            args.limit,
+            args.book._tag === 'Some' ? args.book.value : undefined,
+          );
+          yield* Console.log(JSON.stringify(results, null, 2));
+          return;
+        }
+        yield* doLocalSearch(
+          queryStr,
+          args.book._tag === 'Some' ? args.book.value : undefined,
+          args.limit,
+        );
+      }
+    }),
+).pipe(Command.provide(() => FullLayer));
+
+// ============================================================================
+// open — placeholder (intercepted in main.ts before reaching this)
+// ============================================================================
+
 export const egwOpen = Command.make('open', { query }, (args) =>
   Effect.gen(function* () {
     const queryStr = args.query.join(' ').trim();
@@ -180,44 +571,51 @@ export const egwOpen = Command.make('open', { query }, (args) =>
       return;
     }
 
-    // This case is handled in main.ts before we get here
-    // If we reach here, something went wrong
     yield* Console.log(`Opening: ${queryStr}`);
     yield* Console.log('(This should launch the TUI)');
   }),
 );
 
-/**
- * Combined egw command with subcommands
- */
+// ============================================================================
+// Root egw command — variadic ref/query for backwards compat
+// ============================================================================
+
 export const egwWithSubcommands = Command.make('egw', { query }, (args) =>
   Effect.gen(function* () {
     const queryStr = args.query.join(' ').trim();
 
     if (queryStr.length === 0) {
-      yield* Console.log('Usage: bible egw <refcode or search query>');
+      yield* Console.log('Usage: bible egw <refcode>');
+      yield* Console.log('       bible egw books');
+      yield* Console.log('       bible egw catalog --search <term>');
+      yield* Console.log('       bible egw download <code>');
+      yield* Console.log('       bible egw search <query> [--remote]');
       yield* Console.log('       bible egw open <refcode>');
       yield* Console.log('');
       yield* Console.log('Examples:');
-      yield* Console.log('  bible egw "PP 351.1"           # Single paragraph');
-      yield* Console.log('  bible egw "PP 351.1-5"         # Paragraph range');
-      yield* Console.log('  bible egw "PP 351"             # Full page');
-      yield* Console.log('  bible egw "PP 351-355"         # Page range');
-      yield* Console.log('  bible egw "PP"                 # Book info + TOC');
-      yield* Console.log('  bible egw "great controversy"  # Search');
-      yield* Console.log('  bible egw open "PP 351.1"      # Open in TUI');
+      yield* Console.log('  bible egw "PP 351.1"          # Single paragraph');
+      yield* Console.log('  bible egw "PP 351.1-5"        # Paragraph range');
+      yield* Console.log('  bible egw "PP 351"            # Full page');
+      yield* Console.log('  bible egw "PP 351-355"        # Page range');
+      yield* Console.log('  bible egw "PP"                # Book info + TOC');
+      yield* Console.log('  bible egw search "great controversy"');
+      yield* Console.log('  bible egw search "daniel" --remote');
+      yield* Console.log('  bible egw catalog --search "uriah smith"');
+      yield* Console.log('  bible egw download DAR');
       return;
     }
 
     const parsed = parseEGWRef(queryStr);
 
     if (isSearchQuery(parsed)) {
-      yield* doSearch(parsed);
+      // Top-level fallback: when input isn't a refcode, run a local FTS search.
+      // Use `bible egw search <query> --remote` for explicit remote search.
+      yield* doLocalSearch(parsed.query, undefined, 20);
     } else {
       yield* doLookup(parsed);
     }
   }),
 ).pipe(
-  Command.withSubcommands([egwOpen]),
-  Command.provide(() => EGWLayer),
+  Command.withSubcommands([egwOpen, egwBooks, egwCatalog, egwDownload, egwSearch]),
+  Command.provide(() => ServiceLayer),
 );

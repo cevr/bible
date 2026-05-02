@@ -109,22 +109,43 @@ export class EGWAuth extends ServiceMap.Service<EGWAuth, EGWAuthService>()(
    */
   static Live: Layer.Layer<
     EGWAuth,
-    Config.ConfigError | PlatformError | Schema.SchemaError | HttpClientError.HttpClientError,
+    | Config.ConfigError
+    | PlatformError
+    | Schema.SchemaError
+    | HttpClientError.HttpClientError
+    | EGWAuthError,
     FileSystem.FileSystem | Path.Path | HttpClient.HttpClient
   > = Layer.effect(
     EGWAuth,
     Effect.gen(function* () {
+      // Defaults read process.env.X dot-syntax — Bun's `define` substitutes
+      // these to literal strings at compile time, so the binary carries the
+      // EGW credentials without needing the runtime to find a .env file.
       const authBaseUrl = yield* Config.string('EGW_AUTH_BASE_URL').pipe(
-        Config.withDefault('https://cpanel.egwwritings.org'),
+        Config.withDefault(process.env.EGW_AUTH_BASE_URL ?? 'https://cpanel.egwwritings.org'),
       );
-      const clientId = yield* Config.string('EGW_CLIENT_ID');
-      const clientSecret = yield* Config.redacted('EGW_CLIENT_SECRET');
+      const clientId = yield* Config.string('EGW_CLIENT_ID').pipe(
+        Config.withDefault(process.env.EGW_CLIENT_ID ?? ''),
+      );
+      const clientSecret = yield* Config.redacted('EGW_CLIENT_SECRET').pipe(
+        Config.withDefault(Redacted.make(process.env.EGW_CLIENT_SECRET ?? '')),
+      );
       const scope = yield* Config.string('EGW_SCOPE').pipe(
-        Config.withDefault('writings search studycenter subscriptions user_info'),
+        Config.withDefault(
+          process.env.EGW_SCOPE ?? 'writings search studycenter subscriptions user_info',
+        ),
       );
       const tokenFile = yield* Config.string('EGW_TOKEN_FILE').pipe(
-        Config.withDefault('data/tokens.json'),
+        Config.withDefault(process.env.EGW_TOKEN_FILE ?? 'data/tokens.json'),
       );
+
+      if (!clientId || !Redacted.value(clientSecret)) {
+        return yield* new EGWAuthError({
+          message:
+            'EGW_CLIENT_ID and EGW_CLIENT_SECRET must be set (check packages/cli/.env or env)',
+          cause: undefined,
+        });
+      }
 
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
@@ -134,21 +155,43 @@ export class EGWAuth extends ServiceMap.Service<EGWAuth, EGWAuthService>()(
       // Ensure directory exists
       yield* fs.makeDirectory(path.dirname(tokenFilePath), { recursive: true }).pipe(Effect.orDie);
 
+      // The on-disk persisted shape — plain strings for the secrets so
+      // they round-trip through JSON. We re-wrap them as Redacted on read.
+      const PersistedToken = Schema.Struct({
+        accessToken: Schema.NonEmptyString,
+        refreshToken: Schema.optional(Schema.NonEmptyString),
+        expiresAt: Schema.Int,
+        scope: Schema.String,
+      });
+
       const readTokenFromCache = Effect.fn('EGWAuth.readTokenFromCache')(function* () {
         const exists = yield* fs.exists(tokenFilePath);
         if (!exists) {
           return yield* Effect.succeed(Option.none());
         }
         const json = yield* fs.readFileString(tokenFilePath, 'utf-8');
-        const token = yield* AccessToken.fromJson(json);
+        const parsed = yield* Schema.decodeEffect(Schema.fromJsonString(PersistedToken))(json);
+        const token = new AccessToken({
+          accessToken: Redacted.make(parsed.accessToken),
+          refreshToken:
+            parsed.refreshToken !== undefined ? Redacted.make(parsed.refreshToken) : undefined,
+          expiresAt: parsed.expiresAt,
+          scope: parsed.scope,
+        });
         return yield* Effect.succeed(Option.some(token));
       });
 
       const writeTokenToCache = Effect.fn('EGWAuth.writeTokenToCache')(function* (
         token: AccessToken,
       ) {
-        const json = yield* AccessToken.toJson(token);
-        yield* fs.writeFileString(tokenFilePath, json);
+        const persisted = {
+          accessToken: Redacted.value(token.accessToken),
+          refreshToken:
+            token.refreshToken !== undefined ? Redacted.value(token.refreshToken) : undefined,
+          expiresAt: token.expiresAt,
+          scope: token.scope,
+        };
+        yield* fs.writeFileString(tokenFilePath, JSON.stringify(persisted));
       });
 
       const httpClient = (yield* HttpClient.HttpClient).pipe(

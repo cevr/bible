@@ -128,6 +128,10 @@ export class EGWBookDump extends Schema.Class<EGWBookDump>('EGWBookDump')({
  * EGW service interface
  */
 export interface EGWServiceShape {
+  /**
+   * Returns all installed writings in the local database, regardless of author.
+   * Sorted by author then title.
+   */
   readonly getBooks: () => Effect.Effect<readonly EGWBook[], ParagraphDatabaseError>;
   readonly getBook: (
     bookCode: string,
@@ -164,11 +168,8 @@ export class EGWService extends ServiceMap.Service<EGWService, EGWServiceShape>(
     Effect.gen(function* () {
       const db = yield* EGWParagraphDatabase;
 
-      // Default author for EGW writings
-      const EGW_AUTHOR = 'Ellen G. White';
-
       const getBooks = (): Effect.Effect<readonly EGWBook[], ParagraphDatabaseError> =>
-        Stream.runCollect(db.getBooksByAuthor(EGW_AUTHOR)).pipe(
+        Stream.runCollect(db.getAllBooks()).pipe(
           Effect.map((chunk) =>
             [...chunk].map(
               (row) =>

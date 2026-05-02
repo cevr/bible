@@ -69,7 +69,9 @@ export interface EGWApiClientService {
     params?: Partial<Schemas.ChapterContentParams>,
   ) => Effect.Effect<readonly Schemas.Paragraph[], EGWApiClientError>;
   readonly downloadBook: (bookId: number) => Effect.Effect<ArrayBuffer, EGWApiClientError>;
-  readonly search: (params: Schemas.SearchParams) => Effect.Effect<unknown, EGWApiClientError>;
+  readonly search: (
+    params: Schemas.SearchParams,
+  ) => Effect.Effect<Schemas.SearchResponse, EGWApiClientError>;
   readonly getSuggestions: (
     query: string,
     limit?: number,
@@ -99,10 +101,10 @@ export class EGWApiClient extends ServiceMap.Service<EGWApiClient, EGWApiClientS
     EGWApiClient,
     Effect.gen(function* () {
       const baseUrl = yield* Config.string('EGW_API_BASE_URL').pipe(
-        Config.withDefault('https://a.egwwritings.org'),
+        Config.withDefault(process.env.EGW_API_BASE_URL ?? 'https://a.egwwritings.org'),
       );
       const userAgent = yield* Config.string('EGW_USER_AGENT').pipe(
-        Config.withDefault('EGW-Effect-Client/1.0'),
+        Config.withDefault(process.env.EGW_USER_AGENT ?? 'EGW-Effect-Client/1.0'),
       );
 
       const auth = yield* EGWAuth;
@@ -406,7 +408,7 @@ export class EGWApiClient extends ServiceMap.Service<EGWApiClient, EGWApiClientS
 
             const endpoint = `/search?${urlParams.toString()}`;
             const response = yield* httpClient.get(endpoint);
-            return yield* HttpClientResponse.schemaBodyJson(Schema.Unknown)(response);
+            return yield* HttpClientResponse.schemaBodyJson(Schemas.SearchResponse)(response);
           }).pipe(Effect.retry(retrySchedule)),
 
         getSuggestions: (query: string, limit: number = 10) =>
@@ -463,7 +465,7 @@ export class EGWApiClient extends ServiceMap.Service<EGWApiClient, EGWApiClientS
       getBookToc: () => Effect.succeed([]),
       getChapterContent: () => Effect.succeed([]),
       downloadBook: () => Effect.succeed(new ArrayBuffer(0)),
-      search: () => Effect.succeed({}),
+      search: () => Effect.succeed({ next: null, previous: null, total: 0, count: 0, results: [] }),
       getSuggestions: () => Effect.succeed([]),
       getBookCoverUrl: (bookId) => Effect.succeed(`/covers/${bookId}`),
       getMirrors: () => Effect.succeed([]),

@@ -240,3 +240,40 @@ export const ChapterContentParams = Schema.Struct({
 });
 
 export type ChapterContentParams = Schema.Schema.Type<typeof ChapterContentParams>;
+
+/**
+ * Remote search hit (single result row from /search endpoint)
+ *
+ * Captures the fields we observed in real responses. Unknown fields are
+ * permitted — `Schema.Struct` is non-strict by default for forwards
+ * compatibility with the API.
+ */
+export const SearchHit = Schema.Struct({
+  index: Schema.optional(Schema.Number),
+  lang: Schema.String,
+  para_id: Schema.optional(Schema.NullOr(Schema.String)),
+  pub_code: Schema.String,
+  pub_name: Schema.String,
+  refcode_long: Schema.optional(Schema.NullOr(Schema.String)),
+  refcode_short: Schema.optional(Schema.NullOr(Schema.String)),
+  pub_year: Schema.optional(Schema.NullOr(Schema.String)),
+  snippet: Schema.optional(Schema.NullOr(Schema.String)),
+  weight: Schema.optional(Schema.Number),
+  group: Schema.optional(Schema.String),
+  action_required: Schema.optional(Schema.String),
+});
+
+export type SearchHit = Schema.Schema.Type<typeof SearchHit>;
+
+/**
+ * Paginated remote search response.
+ */
+export const SearchResponse = Schema.Struct({
+  next: Schema.NullOr(Schema.String),
+  previous: Schema.NullOr(Schema.String),
+  total: Schema.Number,
+  count: Schema.Number,
+  results: Schema.Array(SearchHit),
+});
+
+export type SearchResponse = Schema.Schema.Type<typeof SearchResponse>;

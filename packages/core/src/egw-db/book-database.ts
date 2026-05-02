@@ -182,6 +182,7 @@ export interface EGWParagraphDatabaseService {
     bookCode: string,
   ) => Effect.Effect<Option.Option<BookRow>, ParagraphDatabaseError>;
   readonly getBooksByAuthor: (author: string) => Stream.Stream<BookRow, ParagraphDatabaseError>;
+  readonly getAllBooks: () => Stream.Stream<BookRow, ParagraphDatabaseError>;
   readonly updateBookCount: (bookId: number) => Effect.Effect<void, ParagraphDatabaseError>;
 
   // Paragraph operations
@@ -550,6 +551,12 @@ export class EGWParagraphDatabase extends ServiceMap.Service<
         FROM books
         WHERE book_author = $author
         ORDER BY book_id
+      `);
+
+      const getAllBooksQuery = db.query<BookRow, Record<string, never>>(`
+        SELECT *
+        FROM books
+        ORDER BY book_author, book_title
       `);
 
       const getBookByIdQuery = db.query<BookRow, { $bookId: number }>(`
@@ -944,6 +951,18 @@ export class EGWParagraphDatabase extends ServiceMap.Service<
           }),
         ).pipe(Stream.flatMap((rows) => Stream.fromIterable(rows)));
 
+      const getAllBooks = (): Stream.Stream<BookRow, ParagraphDatabaseError> =>
+        Stream.fromEffect(
+          Effect.try({
+            try: () => getAllBooksQuery.all({}),
+            catch: (error) =>
+              new DatabaseQueryError({
+                operation: 'getAllBooks',
+                cause: error,
+              }),
+          }),
+        ).pipe(Stream.flatMap((rows) => Stream.fromIterable(rows)));
+
       /**
        * Get a book by ID
        */
@@ -1322,6 +1341,7 @@ export class EGWParagraphDatabase extends ServiceMap.Service<
         getBookById,
         getBookByCode,
         getBooksByAuthor,
+        getAllBooks,
         updateBookCount,
         // Paragraph operations
         storeParagraph,
@@ -1377,6 +1397,7 @@ export class EGWParagraphDatabase extends ServiceMap.Service<
         ),
       getBooksByAuthor: (author) =>
         Stream.fromIterable(config.books?.filter((b) => b.book_author === author) ?? []),
+      getAllBooks: () => Stream.fromIterable(config.books ?? []),
       updateBookCount: () => Effect.void,
       storeParagraph: () => Effect.void,
       storeParagraphsBatch: (paragraphs) => Effect.succeed(paragraphs.length),
