@@ -3,6 +3,7 @@ created_at: '2026-05-03T11:43:42.345Z'
 chapter: 82
 apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1251'
 ---
+
 # Reading 82: Penalty for Transgression
 
 **Sin has always carried death—the question is when and by whom the sentence falls.**
