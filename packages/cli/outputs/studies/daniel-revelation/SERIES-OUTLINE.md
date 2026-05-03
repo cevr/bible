@@ -121,7 +121,7 @@ Each pass covers the same ground — from Christ's era to the end — but zooms 
 
 ## Weaving Parallels — Conventions
 
-We do not save the Daniel↔Revelation parallels for a capstone chart. We teach them by exposure, study by study. Four conventions:
+We do not save the Daniel↔Revelation parallels for a capstone chart. We teach them by exposure, study by study. Six conventions:
 
 ### 1. Daniel Foundation box (every Revelation study)
 
@@ -147,21 +147,80 @@ Every time we hit a point also covered by another cycle, we drop a `[⟲]` bread
 
 **Controlled thread registry** — `[⟲]` is reserved for seven canonical threads. Everything else is observed in passing but not marked. This keeps breadcrumbs meaningful:
 
-| Thread              | Chain                                                                           |
-| ------------------- | ------------------------------------------------------------------------------- |
-| **Judgment**        | Dan 7:9-14 → Rev 4-5 → Rev 11:15-19 → Rev 14:6-7 → Rev 20:11-12                 |
-| **1260 years**      | Dan 7:25 → Rev 11:2-3 → Rev 12:6, 14 → Rev 13:5                                 |
-| **Sanctuary**       | Dan 8:11-14 → Heb 8-9 → Rev 11:19 → Rev 15:5-8                                  |
-| **Beasts/kingdoms** | Dan 2 metals → Dan 7 beasts → Dan 8 ram/goat → Rev 13 composite → Rev 17 harlot |
-| **Remnant/seal**    | Dan 12:1 → Rev 7:1-4 → Rev 12:17 → Rev 14:1, 12 → Rev 22:4                      |
-| **Babylon**         | Dan 2, 4-5 (literal) → Rev 14:8 → Rev 17-18 (spiritual)                         |
-| **Michael**         | Dan 10:13 → Dan 10:21 → Dan 12:1 → Jude 9 → Rev 12:7                            |
+| Thread              | Chain                                                                                                                                                                                                                                 |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Judgment**        | Dan 7:9-14 → Rev 4-5 → Rev 11:15-19 → Rev 14:6-7 → Rev 20:11-12                                                                                                                                                                       |
+| **1260 years**      | Dan 7:25 → Dan 12:7 → Rev 11:2-3 → Rev 12:6, 14 → Rev 13:5                                                                                                                                                                            |
+| **Sanctuary**       | Lev 16 → Dan 8:11-14 → Heb 8-9 → Rev 4-5 → Rev 11:19 → Rev 14:6-7 → Rev 15:5-8 (eschatological coda: Rev 21:22)                                                                                                                       |
+| **Beasts/kingdoms** | Dan 2 metals → Dan 7 beasts → Dan 8 ram/goat → Rev 13 composite → Rev 17 harlot                                                                                                                                                       |
+| **Remnant/seal**    | Dan 12:1 → Rev 7:1-4 → Rev 12:17 → Rev 14:1, 12 → Rev 22:4                                                                                                                                                                            |
+| **Babylon**         | Dan 1-2 (Nebuchadnezzar's captivity / metallic image) → Dan 4-5 (humbled / fallen) → Rev 14:8 (fall announced) → Rev 16:19 (cup of wrath) → Rev 17-18 (spiritual Babylon fully exposed and destroyed) → Rev 19:1-3 (heaven's verdict) |
+| **Michael**         | Dan 10:13 → Dan 10:21 → Dan 12:1 → Jude 9 → Rev 12:7                                                                                                                                                                                  |
 
 ### 4. Judgment thread callbacks
 
 The Dan 7:9-14 judgment scene is the most cross-referenced chain of all. Every time it surfaces, we name the whole thread so the cumulative picture builds:
 
 > [Judgment thread] Dan 7:9-14 (court convened) → Rev 4-5 (Lamb qualified) → Rev 11:15-19 (temple opened) → Rev 14:6-7 ("hour of his judgment is come") → Rev 20:11-12 (books reviewed).
+
+### 5. Image-restoration breadcrumbs — `[IMG]` marker
+
+Salvation is the restoration of God's image (character) in the human heart. Genesis 1:26-27 → Genesis 5:3 (image lost, Adam begets in his _own_ likeness) → the law as image-in-words (Ex 20) → Christ as image-in-flesh (Col 1:15, Heb 1:3) → sanctification rewriting the image on the heart (2 Cor 3:18, Rom 8:29) → Rev 22:4 ("his name shall be in their foreheads") = image fully restored.
+
+The study of prophecy is not academic. Peter says it directly: "the day star arise in your hearts" (2 Pet 1:19). The point of every vision is to form Christ — the Daystar — within. So every closing connector in this series should land the prophetic point _on the heart_, not just on the page.
+
+`[IMG]` marks moments where the text is doing image-restoration work — where Babylon's counterfeit image meets God's true image, where the law surfaces as image-in-words, where character gets formed through trial, where the prophetic vision is meant to write Christ on the reader.
+
+Example (Study 1, Daniel 1):
+
+> [IMG] Notice what Daniel 1 is actually doing. Babylon set up an image-formation program — new name, new diet, new education — designed to remake the captives in Babylon's likeness. Daniel "purposed in his heart" (Dan 1:8) — he refused the diet because he refused the image. The cosmic trial begins with character. Salvation is the restoration of God's image (Gen 1:26-27, lost in Gen 5:3, rewritten by the Spirit, 2 Cor 3:18). Daniel 1 is the first salvage operation in the book.
+
+Example (closing connector, Study 13):
+
+> [→][IMG] The two beasts are not just historical identifications to memorize. Rev 13 ends with a number — 666 — that is a _man's_ number (Rev 13:18), an image-of-the-beast number. Rev 14:1 immediately answers: 144,000 with the Father's _name in their foreheads_. Two images. Two characters. The prophecy is asking which one is being formed in you.
+
+**Insertion-point registry** — `[IMG]` lands at these eight anchor points and surfaces in closing connectors throughout:
+
+| Study                   | What `[IMG]` does there                                                                |
+| ----------------------- | -------------------------------------------------------------------------------------- |
+| Study 1 (Dan 1-2)       | Foundational thread declaration: Babylon's image-formation vs. Daniel's purposed heart |
+| Study 3 (Dan 8-9)       | The 70 weeks build to Messiah — the image-in-flesh — at the chiasm's center            |
+| Study 4 (Sanctuary)     | Day of Atonement = settled character; the law in the ark = image-in-words              |
+| Study 7 (Rev 1-3)       | Christ's letters to the churches are character diagnostics; "him that overcometh"      |
+| Study 13 (Rev 13)       | The mark of the beast as counter-image; 666 as image-of-a-man                          |
+| Study 14 (Three Angels) | "The patience of the saints... keep the commandments" (Rev 14:12) = image fully formed |
+| Study 20 (Rev 21-22)    | "His name shall be in their foreheads" (Rev 22:4) = image restoration completed        |
+| Study 21 (Call)         | The series' final appeal lands as image-formation: "Surely I come quickly"             |
+
+**Closing-connector pattern** — every `[→]` closing block in the series should end on the heart, not on information. Use `[→][IMG]` when the connector explicitly names the image-formation stake.
+
+### 6. Counterfeit-original pairs — `[CTRF]` marker
+
+Daniel and Revelation expose Satan's strategy: he does not invent — he parodies. Every false system in these books is a counterfeit of something genuine. Rev 13:11 (lamblike beast that speaks as a dragon) is the master example. The reader who learns to spot the parody learns to spot the deception.
+
+`[CTRF]` marks each counterfeit-original pair as it surfaces. Over the series the reader assembles a parody catalog — a decoder for the final crisis.
+
+Example (Study 1):
+
+> [CTRF] Nebuchadnezzar's image (Dan 3) is a counterfeit. Genesis 1:26-27: God made man in His image. Babylon's response: "Make the man bow to OUR image." Satan's pattern in one move — parody God's act, demand the worship that belongs to God. Watch for this everywhere from here on. He does not invent. He parodies.
+
+**Counterfeit pair registry** — eleven pairs anchor the thread; each gets named the first time it surfaces:
+
+| #   | Counterfeit (in Daniel/Revelation)                | Original (Scripture's authentic)                    | First surfaces |
+| --- | ------------------------------------------------- | --------------------------------------------------- | -------------- |
+| 1   | Nebuchadnezzar's image (Dan 3)                    | God's image in man (Gen 1:26-27)                    | Study 1        |
+| 2   | Little horn's mouth speaking great things         | God's prophets speaking His word                    | Study 2        |
+| 3   | _Tamid_ removed (Dan 8:11)                        | Christ's continual heavenly intercession (Heb 7:25) | Study 3        |
+| 4   | "Time, times, and half" of persecution (Dan 7:25) | Christ's three-and-a-half-year ministry             | Study 3        |
+| 5   | Earthly papal sanctuary system                    | Heavenly sanctuary (Heb 8-9)                        | Study 4        |
+| 6   | Sea-beast composite (Rev 13:1-2)                  | Lamb on Mt. Zion (Rev 14:1)                         | Study 13       |
+| 7   | Earth-beast lamblike-but-dragon (Rev 13:11)       | The true Lamb (Rev 5:6, 14:1)                       | Study 13       |
+| 8   | Mark of the beast in forehead/hand (Rev 13:16)    | Seal of God in forehead (Rev 7:3, 14:1)             | Study 15       |
+| 9   | "Who is like unto the beast?" (Rev 13:4)          | Michael — "Who is like God?" (Dan 12:1)             | Study 13       |
+| 10  | Babylon the harlot (Rev 17)                       | New Jerusalem the bride (Rev 21:2, 9-10)            | Study 16       |
+| 11  | Dragon + beast + false prophet (Rev 16:13)        | Father + Son + Spirit                               | Study 17       |
+
+**Pattern card** — Study 1 introduces the principle ("Satan does not invent. He parodies."). Study 13 makes it explicit as a reading rule. From there `[CTRF]` is dropped each time a new pair surfaces.
 
 ### Daniel studies also forward-reference
 
@@ -543,6 +602,8 @@ Studies 1-6 (Daniel) are not hermetically sealed. When Dan 2 shows the iron/clay
 
 - Cross-reference validation (Study N references match Study N content)
 - `[⟲]` breadcrumb audit: every breadcrumb must touch one of the seven registered threads (judgment, 1260, sanctuary, beasts, remnant/seal, Babylon, Michael)
+- `[IMG]` audit: every closing connector lands the prophetic point on the heart; the eight anchor points are present
+- `[CTRF]` audit: each of the eleven counterfeit pairs is named the first time it surfaces
 - Export and sync to Apple Notes
 
 ---
