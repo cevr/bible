@@ -1,10 +1,10 @@
 ---
 created_at: '2026-04-14T00:00:00.000Z'
-topic: 'The Way Home Series — Study 12: The Temple of the Holy Spirit'
+topic: 'The Way Home Series — Study 13: The Temple of the Holy Spirit'
 apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1435'
 ---
 
-# Study 12: The Temple of the Holy Spirit
+# Study 13: The Temple of the Holy Spirit
 
 **Salvation is the restoration of God's image — and that image is restored in the mind. But the mind does not exist in a vacuum. It lives in a body. A clouded body produces a clouded mind. A clouded mind cannot behold Christ. And if you cannot behold, you cannot be changed (2 Cor 3:18). The health of the body is not peripheral to the gospel. It is part of the restoration.**
 
@@ -138,7 +138,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1435'
   - "As for these four children, God gave them knowledge and skill in all learning and wisdom: and Daniel had understanding in all visions and dreams" (Dan 1:17)
   - "He found them ten times better than all the magicians and astrologers that were in all his realm" (Dan 1:20)
   - The diet affected their minds. Clearer bodies → clearer minds → greater wisdom → capacity for divine revelation.
-  - Daniel received the very visions that unlock the prophecies of Studies 6-8. A clouded mind could not have received them.
+  - Daniel received the very visions that unlock the prophecies of Studies 7-9. A clouded mind could not have received them.
   - [→] Daniel's dietary faithfulness was not a health experiment. It was part of the preparation God used to give him prophetic clarity. We cannot say diet alone produced the visions — God gives revelation as He wills — but Scripture connects the clear mind to the capacity for divine wisdom. The body-mind-Spirit chain is real.
 
 [DYK🔎] "Ten times better" — the Hebrew is _eser yadot_, literally "ten hands." Ten — the number of God's commandments. Whether the echo is intentional or not, the resonance is worth noting: Daniel kept his body clear, his mind was clear, and the result was measured in the number of the law itself. The chain from Study 3 — clear body → clear mind → the law written on the character → the image of God reflected — runs right through Daniel's plate.
@@ -234,7 +234,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1435'
 
 ---
 
-[→] **Transition to Study 13**: The mind is clear. The body is cared for. Now — how does God actually conquer the territory of the heart? The Israelites faced Canaan with the same question: the land is promised, but it must be taken. How? Not by might, but by faith.
+[→] **Transition to Study 14**: The mind is clear. The body is cared for. Now — how does God actually conquer the territory of the heart? The Israelites faced Canaan with the same question: the land is promised, but it must be taken. How? Not by might, but by faith.
 
 ---
 

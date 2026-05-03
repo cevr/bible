@@ -1,10 +1,10 @@
 ---
 created_at: '2026-04-14T00:00:00.000Z'
-topic: "The Way Home Series — Study 11: The Sabbath — God's Seal in Time"
+topic: "The Way Home Series — Study 12: The Sabbath — God's Seal in Time"
 apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1433'
 ---
 
-# Study 11: The Sabbath — God's Seal in Time
+# Study 12: The Sabbath — God's Seal in Time
 
 **Study 3 laid down the chain: Image = Character = Law = Love = God. Salvation is the restoration of every link. The Sabbath is the sign of that restoration — the only truth embedded in time itself, woven into the fabric of the week at creation, before sin, before Israel, before the law was written on stone. It is the sign of creation, the memorial of redemption, the mark of sanctification, and the seal of the finished image. Satan attacked it because it carries all four.**
 
@@ -101,7 +101,7 @@ The Sabbath is not one thing. It is four things layered into a single institutio
 
 ### 4. The Seal — Who Has Finished the Work in You
 
-- Study 16 will show: "the fourth commandment contains all three elements of a seal: name, title, territory" (Rev 7:1-3)
+- Study 17 will show: "the fourth commandment contains all three elements of a seal: name, title, territory" (Rev 7:1-3)
 - The seal is placed on those whose characters reflect God's own — the image fully restored
 - The Sabbath is the sign of sanctification in process AND the seal of sanctification complete
 - [→] Same institution, two phases. While the work is underway, the Sabbath is a sign. When the work is finished, it becomes the seal. The Sabbath bookends the entire journey from shattered image to restored image.
@@ -168,7 +168,7 @@ The Sabbath is not one thing. It is four things layered into a single institutio
   - "And he shall speak great words against the most High, and shall wear out the saints of the most High, and think to change times and laws" (Dan 7:25)
   - "Times and laws" — the only commandment that involves both time and law is the fourth
   - The counterfeit system did not merely neglect the Sabbath — it replaced it with a different day and claimed divine authority for the change
-  - [→] Studies 5-7 traced the counterfeit system's rise and its attack on God's truth. The Sabbath was the primary target because it is the seal of God's authority. Replace the seal and you replace the King.
+  - [→] Studies 5-8 traced the counterfeit system's rise and its attack on God's truth. The Sabbath was the primary target because it is the seal of God's authority. Replace the seal and you replace the King.
 
 - **The mark of the beast is the counterfeit of the seal of God**
   - Seal of God = Sabbath, the sign of the Creator's authority (Ex 20:8-11; Rev 7:1-3)
@@ -245,7 +245,7 @@ The Sabbath is not one thing. It is four things layered into a single institutio
 
 ---
 
-[→] **Transition to Study 12**: The Sabbath is God's seal on time — rest for the soul. But the image of God is not restored in the soul alone. The body is the temple of the Holy Spirit. What you put into it, what you do with it — this is not peripheral to the gospel. It is part of the restoration.
+[→] **Transition to Study 13**: The Sabbath is God's seal on time — rest for the soul. But the image of God is not restored in the soul alone. The body is the temple of the Holy Spirit. What you put into it, what you do with it — this is not peripheral to the gospel. It is part of the restoration.
 
 ---
 

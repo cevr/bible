@@ -1,10 +1,10 @@
 ---
 created_at: '2026-03-15T00:00:00.000Z'
-topic: 'The Way Home Series — Study 13: Conquering Canaan — How Transformation Works'
+topic: 'The Way Home Series — Study 14: Conquering Canaan — How Transformation Works'
 apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1407'
 ---
 
-# Study 13: Conquering Canaan — How Transformation Works
+# Study 14: Conquering Canaan — How Transformation Works
 
 **Coming out of Babylon clears the ground. But a swept house left empty invites worse tenants. God did not call you out of the counterfeit just to leave you hollow — He called you into Canaan, where every giant sin is conquered, every fortified habit dismantled, and His character fills the space the counterfeits once occupied. The question is not "Does God have power to transform?" but "Will you show up to the war room?"**
 
@@ -81,7 +81,7 @@ The entire Bible runs on two covenants. Most people think the old came first and
   - "Now all these things happened unto them for ensamples: and they are written for our admonition, upon whom the ends of the world are come" (1 Cor 10:11) — Paul says the Exodus story is our story
   - "For we are made partakers of Christ, if we hold the beginning of our confidence stedfast unto the end" (Heb 3:14)
   - "There remaineth therefore a rest to the people of God" (Heb 4:9)
-  - [→] Study 10 was the Exodus — coming out of Babylon. This study is the conquest — what happens after you leave.
+  - [→] Study 11 was the Exodus — coming out of Babylon. This study is the conquest — what happens after you leave.
 
 - **the land was never earned — God conquers, you possess**
   - "Not for thy righteousness... for thou art a stiffnecked people" (Deut 9:6)
@@ -320,7 +320,7 @@ The entire Bible runs on two covenants. Most people think the old came first and
 
 ---
 
-[→] **Transition to Study 14**: You know the standard. You know the method. You know the proof test. Now the final test arrives — the crisis that reveals every heart's true allegiance.
+[→] **Transition to Study 15**: You know the standard. You know the method. You know the proof test. Now the final test arrives — the crisis that reveals every heart's true allegiance.
 
 ---
 

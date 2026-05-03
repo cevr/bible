@@ -1,10 +1,10 @@
 ---
 created_at: '2026-04-14T00:00:00.000Z'
-topic: 'The Way Home Series — Study 15: The Time of Trouble and Deliverance'
+topic: 'The Way Home Series — Study 16: The Time of Trouble and Deliverance'
 apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1437'
 ---
 
-# Study 15: The Time of Trouble and Deliverance
+# Study 16: The Time of Trouble and Deliverance
 
 **Probation has closed. The seal is set. Christ stands up from His mediatorial throne. What follows is the darkest hour earth has ever known — and the brightest morning. The seven last plagues fall on those who chose the mark. God's people stand without a mediator — not without Christ's righteousness, but without ongoing intercession. And then He comes.**
 
@@ -35,7 +35,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1437'
   - "Those who are living upon the earth when the intercession of Christ shall cease in the sanctuary above are to stand in the sight of a holy God without a mediator." (GC 425)
   - Not without Christ's righteousness — without ongoing intercession
   - The character work is complete. The seal is set. They stand because Christ's character has been so fully received that it has become their own.
-  - [→] This is not terrifying if the work has been done. It is terrifying only if it hasn't. Study 13 showed how God conquers character territory. Studies 11-12 showed the sign and the temple. By this point, the work is finished — or it isn't.
+  - [→] This is not terrifying if the work has been done. It is terrifying only if it hasn't. Study 14 showed how God conquers character territory. Studies 12-13 showed the sign and the temple. By this point, the work is finished — or it isn't.
 
 ---
 
@@ -72,7 +72,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1437'
   - [→] The time of trouble is not just suffering. It is the final courtroom exhibit. Study 1's charges are answered here — in real time, before the watching universe.
 
 - **Job's trial — again**
-  - Study 9 connected Job's trial to the judgment: God vindicating His people by display.
+  - Study 10 connected Job's trial to the judgment: God vindicating His people by display.
   - The time of trouble is Job 1-2 at global scale. Satan accuses. God's people endure. Heaven watches.
   - Job didn't know about the courtroom. Neither do they — not fully. Their faithfulness is authentic because it is not performed.
 
@@ -161,7 +161,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1437'
 - **The response of the saved**
   - "And it shall be said in that day, Lo, this is our God; we have waited for him, and he will save us: this is the LORD; we have waited for him, we will be glad and rejoice in his salvation" (Isa 25:9)
   - "We have waited for him" — the patience of the saints (Rev 14:12). The endurance that outlasted the crisis.
-  - [→] This is the moment every study has been building toward. The cosmic trial began in Study 1. The Way Home was mapped in Study 5. The crisis was endured in Studies 14-15. And now: "Lo, this is our God."
+  - [→] This is the moment every study has been building toward. The cosmic trial began in Study 1. The Way Home was mapped in Study 5. The crisis was endured in Studies 15-16. And now: "Lo, this is our God."
 
 - **The response of the lost**
   - "And the kings of the earth, and the great men, and the rich men, and the chief captains, and the mighty men, and every bondman, and every free man, hid themselves in the dens and in the rocks of the mountains; and said to the mountains and rocks, Fall on us, and hide us from the face of him that sitteth on the throne, and from the wrath of the Lamb" (Rev 6:15-16)
@@ -189,7 +189,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1437'
 
 ---
 
-[→] **Transition to Study 16**: The saints ascend. The earth lies desolate. Satan is bound. A thousand years of review, a final judgment, a lake of fire, and then — "Behold, I make all things new." The image of God is fully restored. The Way Home is complete.
+[→] **Transition to Study 17**: The saints ascend. The earth lies desolate. Satan is bound. A thousand years of review, a final judgment, a lake of fire, and then — "Behold, I make all things new." The image of God is fully restored. The Way Home is complete.
 
 ---
 

@@ -1,10 +1,10 @@
 ---
 created_at: '2026-03-15T00:00:00.000Z'
-topic: 'The Way Home Series — Study 10: Come Out of Her, My People'
+topic: 'The Way Home Series — Study 11: Come Out of Her, My People'
 apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1406'
 ---
 
-# Study 10: Come Out of Her, My People
+# Study 11: Come Out of Her, My People
 
 **The counterfeit is exposed. The judgment is underway. Now the demanded response: God's people must leave Babylon. But "come out" is not merely changing organizations — it is leaving the accuser's jurisdiction for the Judge's courtroom. Babylon does not teach random errors. It teaches Satan's charges as doctrine. To come out is to abandon the theology of the accuser and embrace the truth that answers him.**
 
@@ -231,7 +231,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1406'
 
 ---
 
-[→] **Transition to Study 11**: Coming out of Babylon clears the ground. But before we conquer — we need the seal and the temple. The Sabbath is God's seal in time, the sign of every link in the chain of restoration.
+[→] **Transition to Study 12**: Coming out of Babylon clears the ground. But before we conquer — we need the seal and the temple. The Sabbath is God's seal in time, the sign of every link in the chain of restoration.
 
 ---
 

@@ -1,12 +1,12 @@
 ---
 created_at: '2026-03-15T00:00:00.000Z'
-topic: 'The Way Home Series — Study 6: The Counterfeit System'
+topic: 'The Way Home Series — Study 7: The Counterfeit System'
 apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1402'
 ---
 
-# Study 6: The Counterfeit System
+# Study 7: The Counterfeit System
 
-**Satan could not destroy the sanctuary — so he buried it. Empire by empire, he built a counterfeit system over the top of God's truth, replacing every sanctuary reality with an earthly imitation. Four empires. Four counterfeits. One strategy: make the copy so familiar that the original looks strange.**
+**Satan could not destroy the sanctuary, and he could not destroy the moral law that defines its center — so he buried both. Empire by empire, he built a counterfeit system over the top of God's truth, replacing every sanctuary reality with an earthly imitation and rewriting the law to fit. Four empires. Four counterfeits. One strategy: make the copy so familiar that the original looks strange.**
 
 ## Prep Reading
 
@@ -23,7 +23,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1402'
 - **Satan's method is never open destruction — it is replacement**
   - "I will be like the most High" (Isa 14:14) — not "I will destroy the Most High"
   - The counterfeit must resemble the original closely enough to deceive
-  - Study 5 revealed what the sanctuary truly is — God's path to restore His character in humanity. Satan cannot destroy that path. So he builds a parallel one that looks the same but leads nowhere.
+  - Study 5 revealed what the sanctuary truly is — God's path to restore His character in humanity. Study 6 distinguished the two laws and proved the moral law is the very portrait of that character. Satan cannot destroy either. So he builds a parallel system that looks the same but leads nowhere — and quietly edits the moral law in the process.
   - Every sanctuary truth God gave, Satan built an earthly substitute
 
 - **Daniel's image reveals the strategy**
@@ -202,7 +202,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1402'
   - Replace the Sacrifice → salvation becomes transactional → Charge A reinforced (they serve God for what they get)
   - Replace the Truth about death → no real judgment, no accountability → both charges shielded from exposure
   - Replace the Sabbath → the law is changeable → Charge B confirmed (if God's law can be altered, it was never the standard)
-  - [→] The counterfeit system is not random error. It is Satan's charges institutionalized as doctrine. Study 10 will make this explicit — but notice it here: each layer of the statue serves the accuser's case.
+  - [→] The counterfeit system is not random error. It is Satan's charges institutionalized as doctrine. Study 11 will make this explicit — but notice it here: each layer of the statue serves the accuser's case.
 
 - **but the stone strikes**
   - "And in the days of these kings shall the God of heaven set up a kingdom, which shall never be destroyed: and the kingdom shall not be left to other people, but it shall break in pieces and consume all these kingdoms, and it shall stand for ever" (Dan 2:44)
@@ -245,7 +245,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1402'
 
 ---
 
-[→] **Transition to Study 7**: We've seen HOW Satan built the counterfeit system — empire by empire, layer by layer. But how do we PROVE which modern system inherited all four? God gave Daniel prophecies that name it. The identification is not guesswork — it is specification.
+[→] **Transition to Study 8**: We've seen HOW Satan built the counterfeit system — empire by empire, layer by layer. But how do we PROVE which modern system inherited all four? God gave Daniel prophecies that name it. The identification is not guesswork — it is specification.
 
 ---
 

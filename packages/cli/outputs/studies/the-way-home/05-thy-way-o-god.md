@@ -299,4 +299,4 @@ Will you follow?
 
 **Central Verse:** "Thy way, O God, is in the sanctuary: who is so great a God as our God?" (Psalm 77:13)
 
-**[→ Study 6]** The sanctuary reveals God's character and maps the path of restoration. But Satan couldn't destroy this truth — so he built counterfeits to bury the sanctuary truths you just traced. Empire by empire, doctrine by doctrine, he replaced the original with an imitation.
+**[→ Study 6]** The sanctuary path is built on two laws working together — the moral law that defines the image being restored in you, and the ceremonial law that diagrammed Christ's mission until He fulfilled it. Confuse them and the Sabbath collapses, the seal disappears, and the whole way home is lost. Distinguish them and every step that follows holds.
