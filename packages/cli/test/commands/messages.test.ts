@@ -34,7 +34,6 @@ describe('messages commands', () => {
       expect(result.success).toBe(true);
       // Check all expected calls are present (order varies due to async)
       expectContains(result.calls, [
-        { _tag: 'FileSystem.readFile' }, // system prompt
         { _tag: 'AI.generateText', model: 'high' }, // generate content
         { _tag: 'AI.generateText', model: 'low' }, // generate filename
         { _tag: 'Chime.play' }, // done chime
@@ -100,7 +99,6 @@ describe('messages commands', () => {
       expect(result.success).toBe(true);
       expectContains(result.calls, [
         { _tag: 'FileSystem.readFile' }, // read message
-        { _tag: 'FileSystem.readFile' }, // read system prompt
         { _tag: 'AI.generateText' }, // revise
         { _tag: 'Chime.play' }, // done chime
         { _tag: 'FileSystem.writeFile' }, // write revised

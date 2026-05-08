@@ -38,28 +38,39 @@ export const runCli = async <Name extends string, R, E>(
 ): Promise<RunCliResult> => {
   const { layer, cleanup, getAllCalls } = createTestLayer(config);
 
+  // Provide stub API keys so the `--model` flag can pass `extractModel` and
+  // resolve to a provider config. The mock AI layer will short-circuit
+  // `AI.fromModel` before any real provider call is made.
+  const envBackup: Record<string, string | undefined> = {};
+  for (const key of ['GEMINI_API_KEY', 'OPENAI_API_KEY', 'ANTHROPIC_API_KEY'] as const) {
+    envBackup[key] = process.env[key];
+    process.env[key] = 'test-key';
+  }
+
   try {
     // Use Command.runWith to pass args directly (v4 pattern)
     const cli = Command.runWith(command, { version: 'test' });
 
-    // Run the CLI command with test layers
+    // Always capture the call sequence, regardless of whether the CLI
+    // succeeded or failed — failed runs still record observable side effects
+    // before the failure point, and tests need to assert on them.
     const program = Effect.gen(function* () {
-      yield* cli(args);
-      return yield* getCallSequence;
+      const cliExit = yield* Effect.exit(cli(args));
+      const calls = yield* getCallSequence;
+      return { cliExit, calls };
     });
 
-    // Suppress logs during tests unless debugging
-    const exit = await Effect.runPromiseExit(
-      program.pipe(Effect.provide(Layer.mergeAll(layer, BunServices.layer, Logger.layer([])))),
+    // Suppress logs during tests unless debugging.
+    // Order matters in Layer.mergeAll: later layers overwrite earlier ones for
+    // shared services. The mock `layer` must come last so its FileSystem/Path
+    // mocks beat BunServices' real implementations.
+    const result = await Effect.runPromise(
+      program.pipe(Effect.provide(Layer.mergeAll(BunServices.layer, Logger.layer([]), layer))),
     );
 
-    // Extract calls - merge Effect-tracked calls with service/external calls
-    let effectCalls: ServiceCall[] = [];
+    const exit = result.cliExit;
+    const effectCalls = result.calls;
     const success = Exit.isSuccess(exit);
-
-    if (Exit.isSuccess(exit)) {
-      effectCalls = exit.value;
-    }
 
     // Get all calls (services + external - model, http, bun)
     const allServiceCalls = getAllCalls();
@@ -79,6 +90,10 @@ export const runCli = async <Name extends string, R, E>(
     };
   } finally {
     cleanup();
+    for (const [key, value] of Object.entries(envBackup)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
   }
 };
 

@@ -41,7 +41,6 @@ describe('readings commands', () => {
       expect(result.success).toBe(true);
       expectContains(result.calls, [
         { _tag: 'FileSystem.readFile' }, // read study
-        { _tag: 'FileSystem.readFile' }, // read prompt
         { _tag: 'AI.generateText' }, // revise
         { _tag: 'Chime.play' },
         { _tag: 'FileSystem.writeFile' }, // write revised

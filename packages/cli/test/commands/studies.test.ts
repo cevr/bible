@@ -33,7 +33,6 @@ describe('studies commands', () => {
 
       expect(result.success).toBe(true);
       expectContains(result.calls, [
-        { _tag: 'FileSystem.readFile' }, // system prompt
         { _tag: 'AI.generateTextWithTools', model: 'high' }, // generate content with tools
         { _tag: 'AI.generateText', model: 'low' }, // generate filename
         { _tag: 'Chime.play' }, // done chime
@@ -103,7 +102,6 @@ describe('studies commands', () => {
       expect(result.success).toBe(true);
       expectContains(result.calls, [
         { _tag: 'FileSystem.readFile' }, // read study
-        { _tag: 'FileSystem.readFile' }, // read system prompt
         { _tag: 'AI.generateText' }, // revise
         { _tag: 'Chime.play' }, // done chime
         { _tag: 'FileSystem.writeFile' }, // write revised
