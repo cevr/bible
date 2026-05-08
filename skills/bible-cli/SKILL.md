@@ -21,9 +21,9 @@ machine consumption.
 | Goal                                  | Command                                               |
 | ------------------------------------- | ----------------------------------------------------- |
 | Fetch a verse / chapter / book        | `bible verse <ref> --json`                            |
-| Text-search the Bible                 | `bible verse "<query>" --json`                        |
-| Strong's lookup (definition + verses) | `bible concordance H<n> --json`                       |
-| Search Strong's by English word       | `bible concordance <word> --json`                     |
+| Text-search the Bible                 | `bible verse "<query>" --json [--limit N]`            |
+| Strong's lookup (definition + verses) | `bible concordance H<n> --json [--limit N]`           |
+| Search Strong's by English word       | `bible concordance <word> --json [--limit N]`         |
 | EGW lookup by refcode                 | `bible egw lookup "<CODE n.n>" --json`                |
 | EGW commentary on a verse             | `bible egw commentary "<book ch:vv>" --json`          |
 | EGW local FTS search                  | `bible egw search "<query>" --json`                   |
@@ -31,7 +31,7 @@ machine consumption.
 | EGW catalog (remote)                  | `bible egw catalog --search "<term>" --json`          |
 | List installed EGW books              | `bible egw books --json`                              |
 | Hymn full text                        | `bible hymns get <number> --json`                     |
-| Hymn search                           | `bible hymns search "<query>" --json`                 |
+| Hymn search                           | `bible hymns search "<query>" --json [--limit N]`     |
 | Hymn categories                       | `bible hymns categories`                              |
 | Sabbath School PDFs                   | `bible sabbath-school fetch -y 2026 -q 2 -w 5 --json` |
 | List system prompts                   | `bible prompts list --json`                           |
@@ -85,7 +85,7 @@ Compose results into the user's request. Don't generate first and then
 
 ## Command Details
 
-### `bible verse <ref|query> [--json]`
+### `bible verse <ref|query> [--json] [--limit N]`
 
 Reference forms (parsed by `parseBibleQuery`):
 
@@ -95,6 +95,9 @@ Reference forms (parsed by `parseBibleQuery`):
 - `john 3-5` — chapter range
 - `ruth` — full book
 - `"faith"` (no chapter token) — falls back to FTS over the KJV
+
+`--limit N` only applies to FTS search mode (default `10`). Reference modes
+return all matched verses regardless.
 
 JSON shape:
 
@@ -106,10 +109,11 @@ JSON shape:
 }
 ```
 
-### `bible concordance <Strong's|word> [--json]`
+### `bible concordance <Strong's|word> [--json] [--limit N]`
 
 Detection: matches `^[HhGg]\d+$` → direct Strong's lookup; else definition
-search.
+search. `--limit N` defaults to `50`. Caps the verse list (Strong's mode) or
+the entries list (definition search).
 
 Direct lookup JSON shape:
 
@@ -195,9 +199,10 @@ Browses the remote EGW API catalog. Useful when planning what to
 Returns the full hymn (verses[]). JSON: `{ id, name, category, verses }`.
 Range: 1-920.
 
-### `bible hymns search <query> [--json]`
+### `bible hymns search <query> [--json] [--limit N]`
 
-Returns up to 20 matches. JSON: `{ query, matches: [{ id, name, category, firstLine }] }`.
+Returns up to `--limit N` matches (default `20`). JSON:
+`{ query, matches: [{ id, name, category, firstLine }] }`.
 
 ### `bible hymns categories` / `bible hymns category <id>`
 
