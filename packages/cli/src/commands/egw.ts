@@ -23,6 +23,7 @@ import {
   type EGWSearchQuery,
   type Schemas as EGWSchemas,
 } from '@bible/core/egw';
+import { EGWCommentaryService } from '@bible/core/egw-commentary';
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
 import { EGWService, type EGWSearchResult } from '@bible/core/egw-service';
 import { downloadBookToLocal } from '@bible/core/sync';
@@ -30,6 +31,8 @@ import { Argument, Command, Flag } from 'effect/unstable/cli';
 import { FetchHttpClient } from 'effect/unstable/http';
 import { BunServices } from '@effect/platform-bun';
 import { Console, Effect, Layer, Option, Stream } from 'effect';
+
+import { parseVerseQuery } from '~/src/data/bible/parse';
 
 // Variadic args to capture "PP 351.1" or "PP" "351.1" etc.
 const query = Argument.string('query').pipe(Argument.variadic());
@@ -49,6 +52,14 @@ const ApiClientLayer = EGWApiClient.Live.pipe(
  * Layer providing EGWService (local DB) — used by lookup/local-search commands.
  */
 const ServiceLayer = EGWService.Default.pipe(
+  Layer.provide(EGWParagraphDatabase.Default),
+  Layer.provide(BunServices.layer),
+);
+
+/**
+ * Layer providing EGWCommentaryService (local DB) — used by `commentary`.
+ */
+const CommentaryLayer = EGWCommentaryService.Default.pipe(
   Layer.provide(EGWParagraphDatabase.Default),
   Layer.provide(BunServices.layer),
 );
@@ -553,6 +564,204 @@ export const egwSearch = Command.make(
 ).pipe(Command.provide(() => FullLayer));
 
 // ============================================================================
+// lookup — explicit refcode lookup (no FTS fallback) with --json
+// ============================================================================
+
+const lookupRef = Argument.string('ref').pipe(Argument.variadic());
+const lookupJson = Flag.boolean('json').pipe(
+  Flag.withDescription('Output JSON instead of formatted text'),
+  Flag.withDefault(false),
+);
+
+const collectLookupData = (parsed: Exclude<EGWParsedRef, EGWSearchQuery>) =>
+  Effect.gen(function* () {
+    const service = yield* EGWService;
+    const refStr = formatEGWRef(parsed);
+
+    const bookOpt = yield* service.getBook(parsed.bookCode);
+    if (Option.isNone(bookOpt)) {
+      return { ref: refStr, found: false as const, bookCode: parsed.bookCode };
+    }
+
+    const book = bookOpt.value;
+
+    switch (parsed._tag) {
+      case 'paragraph':
+      case 'paragraph-range':
+      case 'page': {
+        const page = parsed.page;
+        const pageResponse = yield* service.getPage(parsed.bookCode, page);
+        if (pageResponse === null) {
+          return { ref: refStr, found: false as const, book, page };
+        }
+
+        const paragraphs =
+          parsed._tag === 'paragraph'
+            ? pageResponse.paragraphs.filter((p) =>
+                p.refcodeShort?.endsWith(`.${parsed.paragraph}`),
+              )
+            : parsed._tag === 'paragraph-range'
+              ? pageResponse.paragraphs.filter((p) => {
+                  const match = p.refcodeShort?.match(/\.(\d+)$/);
+                  if (match?.[1] === undefined) return false;
+                  const num = parseInt(match[1], 10);
+                  return num >= parsed.paragraphStart && num <= parsed.paragraphEnd;
+                })
+              : pageResponse.paragraphs;
+
+        return {
+          ref: refStr,
+          found: true as const,
+          kind: 'page' as const,
+          book,
+          page,
+          chapterHeading: pageResponse.chapterHeading,
+          paragraphs: paragraphs.map((p) => ({
+            refcode: p.refcodeShort ?? '',
+            text: p.content !== null ? stripHtml(p.content) : '',
+            html: p.content,
+          })),
+        };
+      }
+      case 'page-range': {
+        const pages: Array<{
+          page: number;
+          chapterHeading: string | null;
+          paragraphs: Array<{ refcode: string; text: string; html: string | null }>;
+        }> = [];
+        for (let page = parsed.pageStart; page <= parsed.pageEnd; page++) {
+          const pageResponse = yield* service.getPage(parsed.bookCode, page);
+          if (pageResponse === null) continue;
+          pages.push({
+            page,
+            chapterHeading: pageResponse.chapterHeading,
+            paragraphs: pageResponse.paragraphs.map((p) => ({
+              refcode: p.refcodeShort ?? '',
+              text: p.content !== null ? stripHtml(p.content) : '',
+              html: p.content,
+            })),
+          });
+        }
+        return {
+          ref: refStr,
+          found: true as const,
+          kind: 'page-range' as const,
+          book,
+          pageStart: parsed.pageStart,
+          pageEnd: parsed.pageEnd,
+          pages,
+        };
+      }
+      case 'book': {
+        const chapters = yield* service.getChapters(parsed.bookCode);
+        return {
+          ref: refStr,
+          found: true as const,
+          kind: 'book' as const,
+          book,
+          chapters: chapters.map((ch) => ({
+            refcode: ch.refcodeShort ?? '',
+            title: ch.title !== null ? stripHtml(ch.title) : '',
+          })),
+        };
+      }
+    }
+  });
+
+export const egwLookup = Command.make('lookup', { ref: lookupRef, json: lookupJson }, (args) =>
+  Effect.gen(function* () {
+    const refStr = args.ref.join(' ').trim();
+    if (refStr.length === 0) {
+      yield* Console.log('Usage: bible egw lookup <refcode> [--json]');
+      yield* Console.log('');
+      yield* Console.log('Examples:');
+      yield* Console.log('  bible egw lookup "PP 351.1"     # Single paragraph');
+      yield* Console.log('  bible egw lookup "PP 351"       # Full page');
+      yield* Console.log('  bible egw lookup "PP 351-355"   # Page range');
+      yield* Console.log('  bible egw lookup "PP"           # Book info + TOC');
+      return;
+    }
+
+    const parsed = parseEGWRef(refStr);
+    if (isSearchQuery(parsed)) {
+      yield* Console.error(`Not a valid EGW refcode: "${refStr}"`);
+      yield* Console.error('Use `bible egw search <query>` for FTS instead.');
+      return yield* Effect.sync(() => process.exit(1));
+    }
+
+    if (args.json) {
+      const data = yield* collectLookupData(parsed);
+      yield* Console.log(JSON.stringify(data, null, 2));
+      return;
+    }
+
+    yield* doLookup(parsed);
+  }),
+).pipe(Command.provide(() => ServiceLayer));
+
+// ============================================================================
+// commentary — EGW Bible Commentary lookup by Bible verse
+// ============================================================================
+
+const commentaryRef = Argument.string('verse').pipe(Argument.variadic());
+const commentaryJson = Flag.boolean('json').pipe(
+  Flag.withDescription('Output JSON instead of formatted text'),
+  Flag.withDefault(false),
+);
+
+export const egwCommentary = Command.make(
+  'commentary',
+  { verse: commentaryRef, json: commentaryJson },
+  (args) =>
+    Effect.gen(function* () {
+      const verseStr = args.verse.join(' ').trim();
+      if (verseStr.length === 0) {
+        yield* Console.log('Usage: bible egw commentary <book chapter:verse> [--json]');
+        yield* Console.log('');
+        yield* Console.log('Examples:');
+        yield* Console.log('  bible egw commentary "john 3:16"');
+        yield* Console.log('  bible egw commentary "daniel 9:24" --json');
+        return;
+      }
+
+      const parsed = parseVerseQuery(verseStr);
+      if (parsed._tag !== 'single') {
+        yield* Console.error(
+          `Commentary requires a single verse reference (e.g. "john 3:16"); got ${parsed._tag}.`,
+        );
+        return yield* Effect.sync(() => process.exit(1));
+      }
+
+      const verseRef = {
+        book: parsed.ref.book,
+        chapter: parsed.ref.chapter,
+        verse: parsed.ref.verse ?? 1,
+      };
+
+      const service = yield* EGWCommentaryService;
+      const result = yield* service.getCommentary(verseRef);
+
+      if (args.json) {
+        yield* Console.log(JSON.stringify(result, null, 2));
+        return;
+      }
+
+      if (result.entries.length === 0) {
+        yield* Console.log(`No EGW commentary found for ${verseStr}.`);
+        return;
+      }
+
+      yield* Console.log(
+        `${result.entries.length} commentary entr${result.entries.length === 1 ? 'y' : 'ies'} for ${verseStr}:\n`,
+      );
+      for (const entry of result.entries) {
+        yield* Console.log(`  ${entry.refcode} (${entry.bookTitle})`);
+        yield* Console.log(`  ${stripHtml(entry.content)}\n`);
+      }
+    }),
+).pipe(Command.provide(() => CommentaryLayer));
+
+// ============================================================================
 // open — placeholder (intercepted in main.ts before reaching this)
 // ============================================================================
 
@@ -616,6 +825,14 @@ export const egwWithSubcommands = Command.make('egw', { query }, (args) =>
     }
   }),
 ).pipe(
-  Command.withSubcommands([egwOpen, egwBooks, egwCatalog, egwDownload, egwSearch]),
+  Command.withSubcommands([
+    egwOpen,
+    egwBooks,
+    egwCatalog,
+    egwDownload,
+    egwSearch,
+    egwLookup,
+    egwCommentary,
+  ]),
   Command.provide(() => ServiceLayer),
 );

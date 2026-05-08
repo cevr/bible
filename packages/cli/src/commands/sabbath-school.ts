@@ -1,5 +1,5 @@
 import { Command, Flag } from 'effect/unstable/cli';
-import { Array, Data, Effect, FileSystem, Option, Schema, Stream } from 'effect';
+import { Array, Console, Data, Effect, FileSystem, Option, Schema, Stream } from 'effect';
 import * as cheerio from 'cheerio';
 import { dirname, join } from 'path';
 
@@ -308,6 +308,76 @@ const generateOutline = Effect.fn('generateOutline')(function* (
 
 const force = Flag.boolean('force').pipe(Flag.withAlias('f'), Flag.withDefault(false));
 
+const fetchJson = Flag.boolean('json').pipe(
+  Flag.withDescription('Output JSON with paths and metadata instead of human-readable status'),
+  Flag.withDefault(false),
+);
+
+const fetchQuarter = Command.make('fetch', { year, quarter, week, json: fetchJson }, (args) =>
+  Effect.gen(function* () {
+    if (!args.json) {
+      yield* Effect.log(
+        `Fetching PDFs for Q${args.quarter} ${args.year}${
+          Option.isSome(args.week) ? ` Week ${args.week.value}` : ''
+        }`,
+      );
+    }
+
+    const weeks = Option.match(args.week, {
+      onSome: (w) => [w],
+      onNone: () => Array.range(1, 13),
+    });
+
+    const quarterUrls = yield* findQuarterUrls(args.year, args.quarter);
+
+    const requested = weeks
+      .map((weekNumber) => quarterUrls.find((u) => u.weekNumber === weekNumber))
+      .filter((u): u is WeekUrls => u !== undefined);
+
+    const downloaded: Array<{
+      year: number;
+      quarter: number;
+      week: number;
+      lessonPdf: string;
+      egwPdf: string;
+      lessonUrl: string;
+      egwUrl: string;
+    }> = [];
+
+    yield* Effect.forEach(
+      requested,
+      (urls) =>
+        Effect.gen(function* () {
+          const lessonPath = getPdfPath(args.year, args.quarter, urls.weekNumber, 'lesson');
+          const egwPath = getPdfPath(args.year, args.quarter, urls.weekNumber, 'egw');
+          yield* downloadPdf(urls.files.lessonPdf, lessonPath);
+          yield* downloadPdf(urls.files.egwPdf, egwPath);
+          downloaded.push({
+            year: args.year,
+            quarter: args.quarter,
+            week: urls.weekNumber,
+            lessonPdf: lessonPath,
+            egwPdf: egwPath,
+            lessonUrl: urls.files.lessonPdf,
+            egwUrl: urls.files.egwPdf,
+          });
+          if (!args.json) {
+            yield* Effect.log(
+              `  Week ${urls.weekNumber}: ${lessonPath}, ${egwPath}`,
+            );
+          }
+        }),
+      { concurrency: 3 },
+    );
+
+    if (args.json) {
+      yield* Console.log(JSON.stringify({ weeks: downloaded }, null, 2));
+    } else {
+      yield* Effect.log(`Done — ${downloaded.length} week(s) fetched`);
+    }
+  }),
+);
+
 const processQuarter = Command.make(
   'process',
   { year, quarter, week, model: requiredModel, force },
@@ -597,6 +667,7 @@ const exportQuarter = Command.make('export', { year, quarter, week }, ({ year, q
 
 export const sabbathSchool = Command.make('sabbath-school').pipe(
   Command.withSubcommands([
+    fetchQuarter,
     processQuarter,
     reviseQuarter,
     exportQuarter,
