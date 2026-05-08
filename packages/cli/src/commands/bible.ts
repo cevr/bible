@@ -15,6 +15,11 @@ const jsonFlag = Flag.boolean('json').pipe(
   Flag.withDefault(false),
 );
 
+const limitFlag = Flag.integer('limit').pipe(
+  Flag.withDescription('Max results for search/list output'),
+  Flag.optional,
+);
+
 // Format a single verse for output
 function formatVerse(verse: Verse): string {
   const book = getBook(verse.book);
@@ -44,10 +49,11 @@ function printSearchResults(query: string, verses: Verse[]): Effect.Effect<void>
   return Console.log(header + '\n' + output);
 }
 
-export const verse = Command.make('verse', { query, json: jsonFlag }, (args) =>
+export const verse = Command.make('verse', { query, json: jsonFlag, limit: limitFlag }, (args) =>
   Effect.gen(function* () {
     const data = yield* BibleData;
     const queryStr = args.query.join(' ').trim();
+    const limit = Option.getOrElse(args.limit, () => 10);
     const services = yield* Effect.context();
     const runSync = Effect.runSyncWith(services);
 
@@ -79,7 +85,7 @@ export const verse = Command.make('verse', { query, json: jsonFlag }, (args) =>
     const parsed = parseVerseQuery(queryStr, syncData);
 
     if (parsed._tag === 'search') {
-      const results = syncData.searchVerses(parsed.query, 10);
+      const results = syncData.searchVerses(parsed.query, limit);
       const verses = results.map((r) => r.verse);
       if (args.json) {
         yield* Console.log(
@@ -123,10 +129,14 @@ function formatConcordanceResult(result: ConcordanceResult): string {
 // Layer for concordance command
 const ConcordanceLive = BibleDatabase.Default.pipe(Layer.provideMerge(BunServices.layer));
 
-export const concordance = Command.make('concordance', { query, json: jsonFlag }, (args) =>
+export const concordance = Command.make(
+  'concordance',
+  { query, json: jsonFlag, limit: limitFlag },
+  (args) =>
   Effect.gen(function* () {
     const db = yield* BibleDatabase;
     const queryStr = args.query.join(' ').trim();
+    const limit = Option.getOrElse(args.limit, () => 50);
 
     if (queryStr.length === 0) {
       yield* Console.log("Usage: bible concordance <Strong's number or English word> [--json]");
@@ -154,9 +164,11 @@ export const concordance = Command.make('concordance', { query, json: jsonFlag }
       const entry = entryOpt.value;
       const results = yield* db.getVersesWithStrongs(number);
 
+      const limitedResults = results.slice(0, limit);
+
       if (args.json) {
         yield* Console.log(
-          JSON.stringify({ mode: 'strongs', number, entry, verses: results }, null, 2),
+          JSON.stringify({ mode: 'strongs', number, entry, verses: limitedResults }, null, 2),
         );
         return;
       }
@@ -169,16 +181,15 @@ export const concordance = Command.make('concordance', { query, json: jsonFlag }
       } else {
         yield* Console.log(`Found in ${results.length} verse${results.length === 1 ? '' : 's'}:`);
         yield* Console.log('');
-        const displayResults = results.slice(0, 50);
-        for (const result of displayResults) {
+        for (const result of limitedResults) {
           yield* Console.log(formatConcordanceResult(result));
         }
-        if (results.length > 50) {
-          yield* Console.log(`... and ${results.length - 50} more`);
+        if (results.length > limit) {
+          yield* Console.log(`... and ${results.length - limit} more`);
         }
       }
     } else {
-      const entries = yield* db.searchStrongs(queryStr);
+      const entries = yield* db.searchStrongs(queryStr, limit);
 
       if (args.json) {
         yield* Console.log(JSON.stringify({ mode: 'search', query: queryStr, entries }, null, 2));

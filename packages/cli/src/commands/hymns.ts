@@ -7,11 +7,16 @@
 import { Argument, Command, Flag } from 'effect/unstable/cli';
 import { BunServices } from '@effect/platform-bun';
 import { HymnalDatabase, HymnalService, type CategoryId, type HymnId } from '@bible/core/hymnal';
-import { Console, Effect, Layer } from 'effect';
+import { Console, Effect, Layer, Option } from 'effect';
 
 const jsonFlag = Flag.boolean('json').pipe(
   Flag.withDescription('Output JSON instead of formatted text'),
   Flag.withDefault(false),
+);
+
+const limitFlag = Flag.integer('limit').pipe(
+  Flag.withDescription('Max results for search output'),
+  Flag.optional,
 );
 
 // ============================================================================
@@ -87,10 +92,14 @@ const getCommand = Command.make('get', { hymnNumber, json: jsonFlag }, (args) =>
 
 const searchQuery = Argument.string('query').pipe(Argument.variadic());
 
-const searchCommand = Command.make('search', { searchQuery, json: jsonFlag }, (args) =>
+const searchCommand = Command.make(
+  'search',
+  { searchQuery, json: jsonFlag, limit: limitFlag },
+  (args) =>
   Effect.gen(function* () {
     const service = yield* HymnalService;
     const query = args.searchQuery.join(' ').trim();
+    const limit = Option.getOrElse(args.limit, () => 20);
 
     if (query.length === 0) {
       yield* Console.log('Usage: bible hymns search <query> [--json]');
@@ -102,7 +111,7 @@ const searchCommand = Command.make('search', { searchQuery, json: jsonFlag }, (a
       return;
     }
 
-    const results = yield* service.searchHymns(query, 20);
+    const results = yield* service.searchHymns(query, limit);
 
     if (args.json) {
       yield* Console.log(JSON.stringify({ query, matches: results }, null, 2));

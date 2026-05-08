@@ -44,7 +44,7 @@ console.log('Transforming Solid JSX, bundling, and compiling to binary...');
 // Embed the CLI root directory path so commands can find prompts/outputs
 const cliDefines = {
   ...envDefines,
-  'process.env.BIBLE_CLI_ROOT': JSON.stringify(rootDir),
+  __BIBLE_CLI_ROOT__: JSON.stringify(rootDir),
 };
 
 const buildResult = await Bun.build({

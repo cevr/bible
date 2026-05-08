@@ -1,14 +1,9 @@
 import { join } from 'path';
 
-/**
- * Get the CLI root directory.
- * At compile time, BIBLE_CLI_ROOT is embedded with the absolute path.
- * Falls back to process.cwd() for development.
- */
-export const getCliRoot = (): string => process.env['BIBLE_CLI_ROOT'] ?? process.cwd();
+declare const __BIBLE_CLI_ROOT__: string | undefined;
 
-/**
- * Get path to outputs directory
- */
+export const getCliRoot = (): string =>
+  typeof __BIBLE_CLI_ROOT__ === 'string' ? __BIBLE_CLI_ROOT__ : process.cwd();
+
 export const getOutputsPath = (...segments: string[]): string =>
   join(getCliRoot(), 'outputs', ...segments);
