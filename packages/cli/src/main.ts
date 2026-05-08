@@ -22,6 +22,7 @@ import { exportOutput } from './commands/export.js';
 import { hymns } from './commands/hymns.js';
 import { messages } from './commands/messages.js';
 import { notes } from './commands/notes.js';
+import { prompts } from './commands/prompts.js';
 import { readings } from './commands/readings.js';
 import { sabbathSchool } from './commands/sabbath-school.js';
 import { studies } from './commands/studies.js';
@@ -52,6 +53,7 @@ const cliSubcommands = [
   'hymns',
   'messages',
   'notes',
+  'prompts',
   'sabbath-school',
   'studies',
   'readings',
@@ -230,6 +232,7 @@ async function main() {
           hymns,
           messages,
           notes,
+          prompts,
           sabbathSchool,
           studies,
           readings,

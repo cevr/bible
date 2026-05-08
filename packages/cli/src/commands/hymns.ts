@@ -4,10 +4,15 @@
  * CLI commands for querying the SDA Hymnal.
  */
 
-import { Argument, Command } from 'effect/unstable/cli';
+import { Argument, Command, Flag } from 'effect/unstable/cli';
 import { BunServices } from '@effect/platform-bun';
 import { HymnalDatabase, HymnalService, type CategoryId, type HymnId } from '@bible/core/hymnal';
 import { Console, Effect, Layer } from 'effect';
+
+const jsonFlag = Flag.boolean('json').pipe(
+  Flag.withDescription('Output JSON instead of formatted text'),
+  Flag.withDefault(false),
+);
 
 // ============================================================================
 // Layers
@@ -54,7 +59,7 @@ function formatHymnSummary(hymn: {
 
 const hymnNumber = Argument.integer('number');
 
-const getCommand = Command.make('get', { hymnNumber }, (args) =>
+const getCommand = Command.make('get', { hymnNumber, json: jsonFlag }, (args) =>
   Effect.gen(function* () {
     const service = yield* HymnalService;
     const hymn = yield* service
@@ -62,8 +67,17 @@ const getCommand = Command.make('get', { hymnNumber }, (args) =>
       .pipe(Effect.catch(() => Effect.succeed(null)));
 
     if (hymn === null) {
+      if (args.json) {
+        yield* Console.log(JSON.stringify({ id: args.hymnNumber, hymn: null }, null, 2));
+        return;
+      }
       yield* Console.log(`Hymn #${args.hymnNumber} not found.`);
       yield* Console.log('Valid range: 1-920');
+      return;
+    }
+
+    if (args.json) {
+      yield* Console.log(JSON.stringify(hymn, null, 2));
       return;
     }
 
@@ -73,13 +87,13 @@ const getCommand = Command.make('get', { hymnNumber }, (args) =>
 
 const searchQuery = Argument.string('query').pipe(Argument.variadic());
 
-const searchCommand = Command.make('search', { searchQuery }, (args) =>
+const searchCommand = Command.make('search', { searchQuery, json: jsonFlag }, (args) =>
   Effect.gen(function* () {
     const service = yield* HymnalService;
     const query = args.searchQuery.join(' ').trim();
 
     if (query.length === 0) {
-      yield* Console.log('Usage: bible hymns search <query>');
+      yield* Console.log('Usage: bible hymns search <query> [--json]');
       yield* Console.log('');
       yield* Console.log('Examples:');
       yield* Console.log('  bible hymns search "amazing grace"');
@@ -89,6 +103,11 @@ const searchCommand = Command.make('search', { searchQuery }, (args) =>
     }
 
     const results = yield* service.searchHymns(query, 20);
+
+    if (args.json) {
+      yield* Console.log(JSON.stringify({ query, matches: results }, null, 2));
+      return;
+    }
 
     if (results.length === 0) {
       yield* Console.log(`No hymns found matching "${query}".`);
