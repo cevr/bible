@@ -19,7 +19,8 @@ import { bibleTools } from '~/src/lib/bible-tools';
 import { generate } from '~/src/lib/generate';
 import { makeAppleNoteFromMarkdown } from '~/src/lib/markdown-to-notes';
 import { getNoteContent } from '~/src/lib/notes-utils';
-import { getOutputsPath, getPromptPath } from '~/src/lib/paths';
+import { getOutputsPath } from '~/src/lib/paths';
+import { studiesGeneratePrompt } from '~/src/prompts';
 import { AI } from '~/src/services/ai';
 import { requiredModel } from '~/src/services/model';
 
@@ -30,9 +31,7 @@ const generateStudy = Command.make('generate', { topic, model: requiredModel }, 
 
     yield* Effect.logDebug(`topic: ${args.topic}`);
 
-    const systemPrompt = yield* fs
-      .readFile(getPromptPath('studies', 'generate.md'))
-      .pipe(Effect.map((i) => new TextDecoder().decode(i)));
+    const systemPrompt = studiesGeneratePrompt;
 
     const { filename, response } = yield* generate(systemPrompt, args.topic, {
       tools: bibleTools,
@@ -94,9 +93,7 @@ const generateFromNoteStudy = Command.make('from-note', { noteId, model: require
 
     const note = yield* getNoteContent(args.noteId);
 
-    const systemPrompt = yield* fs
-      .readFile(getPromptPath('studies', 'generate.md'))
-      .pipe(Effect.map((i) => new TextDecoder().decode(i)));
+    const systemPrompt = studiesGeneratePrompt;
 
     const { filename, response } = yield* generate(systemPrompt, note, {
       tools: bibleTools,

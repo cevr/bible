@@ -11,7 +11,8 @@ import { stringifyFrontmatter, updateFrontmatter } from '~/src/lib/frontmatter';
 import { msToMinutes, spin } from '~/src/lib/general';
 import { generate } from '~/src/lib/generate';
 import { makeAppleNoteFromMarkdown } from '~/src/lib/markdown-to-notes';
-import { getOutputsPath, getPromptPath } from '~/src/lib/paths';
+import { getOutputsPath } from '~/src/lib/paths';
+import { analyzeSystemPrompt } from '~/src/prompts';
 import { AI } from '~/src/services/ai';
 import { requiredModel } from '~/src/services/model';
 
@@ -165,10 +166,7 @@ export const analyze = Command.make('analyze', { passage, depth, model: required
 
     yield* Effect.logDebug(`passage: ${passageStr}, depth: ${args.depth}`);
 
-    // Read system prompt
-    const systemPrompt = yield* fs
-      .readFile(getPromptPath('analyze', 'system.md'))
-      .pipe(Effect.map((i) => new TextDecoder().decode(i)));
+    const systemPrompt = analyzeSystemPrompt;
 
     // Build user prompt
     let userPrompt = `Analyze the structural and literary architecture of: ${passageStr}`;

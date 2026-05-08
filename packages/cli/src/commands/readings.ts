@@ -14,7 +14,8 @@ import { type AppleNoteId, ReadingFrontmatter } from '~/src/lib/content/schemas'
 import { parseFrontmatter, stringifyFrontmatter } from '~/src/lib/frontmatter';
 import { msToMinutes, spin } from '~/src/lib/general';
 import { generate } from '~/src/lib/generate';
-import { getCliRoot, getOutputsPath, getPromptPath } from '~/src/lib/paths';
+import { getCliRoot, getOutputsPath } from '~/src/lib/paths';
+import { readingsGenerateStudyPrompt } from '~/src/prompts';
 import { AI } from '~/src/services/ai';
 import { requiredModel } from '~/src/services/model';
 
@@ -33,9 +34,7 @@ const processChapters = Command.make('process', { chapter, model: requiredModel 
       fs.makeDirectory(outputDir).pipe(Effect.ignore),
     );
 
-    const studyPrompt = yield* fs
-      .readFile(getPromptPath('readings', 'generate-study.md'))
-      .pipe(Effect.map((i) => new TextDecoder().decode(i)));
+    const studyPrompt = readingsGenerateStudyPrompt;
 
     const files = yield* fs.readDirectory(chaptersDir);
 

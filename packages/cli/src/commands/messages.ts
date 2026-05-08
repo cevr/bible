@@ -19,8 +19,8 @@ import { generate } from '~/src/lib/generate';
 import { makeAppleNoteFromMarkdown } from '~/src/lib/markdown-to-notes';
 import { findNoteByTitle, getNoteContent } from '~/src/lib/notes-utils';
 import { extractTitleFromMarkdown } from '~/src/lib/apple-notes-utils';
-import { getOutputsPath, getPromptPath } from '~/src/lib/paths';
-import { generateTopicPrompt } from '~/src/prompts/messages/generate-topic';
+import { getOutputsPath } from '~/src/lib/paths';
+import { generateTopicPrompt, messagesGeneratePrompt } from '~/src/prompts';
 import { AI } from '~/src/services/ai';
 import { requiredModel } from '~/src/services/model';
 
@@ -31,9 +31,7 @@ const generateMessage = Command.make('generate', { topic, model: requiredModel }
 
     yield* Effect.logDebug(`topic: ${args.topic}`);
 
-    const systemPrompt = yield* fs
-      .readFile(getPromptPath('messages', 'generate.md'))
-      .pipe(Effect.map((i) => new TextDecoder().decode(i)));
+    const systemPrompt = messagesGeneratePrompt;
 
     const { filename, response } = yield* generate(systemPrompt, args.topic);
 
@@ -94,9 +92,7 @@ const generateFromNoteMessage = Command.make(
       const startTime = Date.now();
       const note = yield* getNoteContent(args.noteId);
 
-      const systemPrompt = yield* fs
-        .readFile(getPromptPath('messages', 'generate.md'))
-        .pipe(Effect.map((i) => new TextDecoder().decode(i)));
+      const systemPrompt = messagesGeneratePrompt;
 
       const { filename, response } = yield* generate(systemPrompt, note);
 

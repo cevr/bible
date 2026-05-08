@@ -10,7 +10,8 @@ import {
   stringifyFrontmatter,
   updateFrontmatter,
 } from '~/src/lib/frontmatter';
-import { getOutputsPath, getPromptPath } from '~/src/lib/paths';
+import { getOutputsPath } from '~/src/lib/paths';
+import { getContentTypePrompt } from '~/src/prompts';
 import { revise, type ReviewError } from '~/src/lib/revise';
 import {
   makeAppleNoteFromMarkdown,
@@ -93,7 +94,7 @@ export class ContentService extends Context.Service<
               .pipe(Effect.map((i) => new TextDecoder().decode(i)));
 
             const { frontmatter, content } = parseFrontmatter(rawContent);
-            const systemPrompt = yield* resolvePrompt(fs, config, filePath);
+            const systemPrompt = resolvePrompt(config, filePath);
 
             const revised = yield* revise({
               cycles: [{ prompt: '', response: content }],
@@ -205,28 +206,23 @@ export class ContentService extends Context.Service<
     );
 }
 
-// Helper: resolve prompt based on config
+// Helper: resolve prompt from inline registry
 const resolvePrompt = <F extends Schema.Top>(
-  fs: FileSystem.FileSystem,
   config: ContentTypeConfig<F>,
   filePath: string,
-) =>
-  Effect.gen(function* () {
-    const promptFile = Match.value(config.promptResolver).pipe(
-      Match.tag('single', ({ file }) => file),
-      Match.tag('from-filename', ({ patterns }) => {
-        for (const [pattern, file] of Object.entries(patterns)) {
-          if (filePath.includes(pattern)) return file;
-        }
-        return Object.values(patterns)[0] ?? ''; // fallback to first
-      }),
-      Match.exhaustive,
-    );
-
-    return yield* fs
-      .readFile(getPromptPath(config.name, promptFile))
-      .pipe(Effect.map((i) => new TextDecoder().decode(i)));
-  });
+): string => {
+  const promptFile = Match.value(config.promptResolver).pipe(
+    Match.tag('single', ({ file }) => file),
+    Match.tag('from-filename', ({ patterns }) => {
+      for (const [pattern, file] of Object.entries(patterns)) {
+        if (filePath.includes(pattern)) return file;
+      }
+      return Object.values(patterns)[0] ?? '';
+    }),
+    Match.exhaustive,
+  );
+  return getContentTypePrompt(config.name, promptFile);
+};
 
 // Helper: sort files based on strategy
 const sortFiles = (files: string[], strategy: SortStrategy): string[] =>

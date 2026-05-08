@@ -8,12 +8,6 @@ import { join } from 'path';
 export const getCliRoot = (): string => process.env['BIBLE_CLI_ROOT'] ?? process.cwd();
 
 /**
- * Get path to a prompt file
- */
-export const getPromptPath = (...segments: string[]): string =>
-  join(getCliRoot(), 'src', 'prompts', ...segments);
-
-/**
  * Get path to outputs directory
  */
 export const getOutputsPath = (...segments: string[]): string =>
