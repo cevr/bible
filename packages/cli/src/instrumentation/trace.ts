@@ -16,7 +16,7 @@
  *   [TRACE] 150.00ms | fetch data (26.55ms)
  */
 
-const ENABLED = process.env.TRACE === '1';
+const ENABLED = process.env['TRACE'] === '1';
 const START_TIME = Bun.nanoseconds();
 
 interface TraceEntry {

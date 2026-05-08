@@ -103,7 +103,7 @@ export const createMockAILayer = (config: MockAIConfig) => {
       });
 
       return Effect.succeed({
-        object: typeof response === 'object' ? response : JSON.parse(response as string),
+        object: typeof response === 'object' ? response : JSON.parse(response),
       });
     },
   };

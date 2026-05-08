@@ -1,4 +1,3 @@
-// @effect-diagnostics strictEffectProvide:off
 import { Command, Flag } from 'effect/unstable/cli';
 import { Effect, FileSystem } from 'effect';
 

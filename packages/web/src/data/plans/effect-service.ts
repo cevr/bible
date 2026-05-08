@@ -1,4 +1,4 @@
-import { Effect, Layer, ServiceMap } from 'effect';
+import { Effect, Layer, Context } from 'effect';
 import { DbClientService } from '../db-client-service';
 import type { DatabaseQueryError } from '../errors';
 import type { ReadingPlan, ReadingPlanItem, PlanItemInput } from './types';
@@ -49,7 +49,7 @@ interface WebReadingPlanServiceShape {
   ) => Effect.Effect<void, DatabaseQueryError>;
 }
 
-export class WebReadingPlanService extends ServiceMap.Service<
+export class WebReadingPlanService extends Context.Service<
   WebReadingPlanService,
   WebReadingPlanServiceShape
 >()('@bible-web/ReadingPlanService') {

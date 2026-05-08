@@ -1,4 +1,3 @@
-// @effect-diagnostics strictBooleanExpressions:off
 /**
  * Bible Service - Unified Bible data access
  *
@@ -6,7 +5,7 @@
  * Used by both TUI (via RPC) and web (via HttpApi) clients.
  */
 
-import { ServiceMap, Effect, Layer, Option, Schema } from 'effect';
+import { Context, Effect, Layer, Option, Schema } from 'effect';
 
 import { BibleDatabase } from '../bible-db/bible-database.js';
 import type { BibleDatabaseError } from '../bible-db/bible-database.js';
@@ -90,7 +89,7 @@ export interface BibleServiceShape {
 // Service Definition
 // ============================================================================
 
-export class BibleService extends ServiceMap.Service<BibleService, BibleServiceShape>()(
+export class BibleService extends Context.Service<BibleService, BibleServiceShape>()(
   '@bible/core/bible-service/service/BibleService',
 ) {
   /**

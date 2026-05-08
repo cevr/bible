@@ -1,4 +1,3 @@
-// @effect-diagnostics strictBooleanExpressions:off
 import { isRoute, Route } from '@bible/core/app';
 import type { EGWReference } from '@bible/core/app';
 import { render, useKeyboard, useRenderer, useTerminalDimensions } from '@opentui/solid';

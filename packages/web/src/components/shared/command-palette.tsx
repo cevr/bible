@@ -261,7 +261,7 @@ export function CommandPalette() {
       if (egwBook) drillEgwBook(egwBook);
     } else if (isBibleChapters(stack)) {
       const match = val.match(/^chapter (\d+)$/);
-      if (match) drillBibleChapter(stack.book, parseInt(match[1], 10));
+      if (match?.[1]) drillBibleChapter(stack.book, parseInt(match[1], 10));
     } else if (isEgwChapters(stack)) {
       const ch = egwChaptersRef.current.find(
         (c) => (c.title || c.refcodeShort || `chapter ${c.index + 1}`).toLowerCase() === val,

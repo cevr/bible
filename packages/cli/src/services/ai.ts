@@ -5,7 +5,7 @@ import {
   jsonSchema,
   stepCountIs,
 } from 'ai';
-import { Effect, Layer, Option, Schema, ServiceMap } from 'effect';
+import { Effect, Layer, Option, Schema, Context } from 'effect';
 
 import { Model } from './model';
 
@@ -73,7 +73,7 @@ function toAISchema<A>(schema: Schema.Decoder<A>) {
   });
 }
 
-export class AI extends ServiceMap.Service<AI, AIService>()('@bible/cli/services/ai') {
+export class AI extends Context.Service<AI, AIService>()('@bible/cli/services/ai') {
   /**
    * Live AI layer that requires Model in context.
    * Use this for TUI and other non-CLI uses.

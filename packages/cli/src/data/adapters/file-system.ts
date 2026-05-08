@@ -22,14 +22,14 @@ export const FileSystemStorageLive = (baseDir: string) =>
         }),
 
       write: (key, content) =>
-        Effect.try({
+        Effect.tryPromise({
           try: () => {
             const filePath = join(baseDir, key);
             const dir = dirname(filePath);
             if (!existsSync(dir)) {
               mkdirSync(dir, { recursive: true });
             }
-            Bun.write(filePath, content);
+            return Bun.write(filePath, content);
           },
           catch: (cause) => new StorageError({ key, operation: 'write', cause }),
         }),

@@ -1,4 +1,3 @@
-// @effect-diagnostics strictBooleanExpressions:off
 import { For, Show } from 'solid-js';
 
 import { useNavigation } from '../../context/navigation.js';

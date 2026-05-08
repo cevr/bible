@@ -27,11 +27,15 @@ function groupByDate(entries: HistoryEntry[]): GroupedEntries[] {
     else if (entry.visitedAt >= yesterdayStart) label = 'Yesterday';
     else if (entry.visitedAt >= weekStart) label = 'This Week';
     else label = 'Older';
-    if (!groups[label]) groups[label] = { label, entries: [] };
-    groups[label].entries.push(entry);
+    const existing = groups[label] ?? { label, entries: [] };
+    existing.entries.push(entry);
+    groups[label] = existing;
   }
 
-  return order.filter((l) => groups[l]).map((l) => groups[l]);
+  return order.flatMap((l) => {
+    const g = groups[l];
+    return g ? [g] : [];
+  });
 }
 
 function HistoryPanelInner() {

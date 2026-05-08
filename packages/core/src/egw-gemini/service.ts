@@ -1,4 +1,3 @@
-// @effect-diagnostics strictBooleanExpressions:off
 /**
  * EGW-Gemini Integration Service
  *
@@ -6,7 +5,7 @@
  * to store EGW books as searchable documents and query them.
  */
 
-import { ServiceMap, Effect, FileSystem, Layer, Option, Ref, Result, Schema, Stream } from 'effect';
+import { Context, Effect, FileSystem, Layer, Option, Ref, Result, Schema, Stream } from 'effect';
 
 import { EGWParagraphDatabase } from '../egw-db/index.js';
 import type { ParagraphDatabaseError } from '../egw-db/index.js';
@@ -105,7 +104,7 @@ export interface EGWGeminiServiceShape {
 /**
  * EGW-Gemini Integration Service
  */
-export class EGWGeminiService extends ServiceMap.Service<EGWGeminiService, EGWGeminiServiceShape>()(
+export class EGWGeminiService extends Context.Service<EGWGeminiService, EGWGeminiServiceShape>()(
   '@bible/core/egw-gemini/service/EGWGeminiService',
 ) {
   /**
@@ -154,13 +153,11 @@ export class EGWGeminiService extends ServiceMap.Service<EGWGeminiService, EGWGe
 
           // Filter out TOC items without a valid identifier for the chapter endpoint
           // Prefer para_id (paragraph ID) when available, fall back to puborder
-          const validTocItems = options.toc.filter((item) => {
-            // Must have either para_id or puborder
-            return (
+          const validTocItems = options.toc.filter(
+            (item) =>
               (item.para_id !== undefined && item.para_id !== null) ||
-              (item.puborder !== undefined && item.puborder !== null)
-            );
-          });
+              (item.puborder !== undefined && item.puborder !== null),
+          );
 
           yield* Effect.log(
             `Processing ${validTocItems.length} chapters (${options.toc.length} total TOC items)`,
@@ -210,8 +207,8 @@ export class EGWGeminiService extends ServiceMap.Service<EGWGeminiService, EGWGe
             Stream.zipWithIndex,
             // Map each paragraph to an upload operation
             Stream.mapEffect(
-              ([paragraph, index]) => {
-                return Effect.gen(function* () {
+              ([paragraph, index]) =>
+                Effect.gen(function* () {
                   const fs = yield* FileSystem.FileSystem;
 
                   // Get ref_code for the paragraph (primary identifier)
@@ -303,8 +300,7 @@ export class EGWGeminiService extends ServiceMap.Service<EGWGeminiService, EGWGe
                         }),
                       ),
                     );
-                }).pipe(Effect.scoped);
-              },
+                }).pipe(Effect.scoped),
               { concurrency: 100 }, // Limit concurrency to avoid overwhelming the API
             ),
             // Run the stream (don't collect results - we track count with Ref)

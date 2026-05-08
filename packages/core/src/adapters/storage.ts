@@ -1,5 +1,4 @@
-// @effect-diagnostics strictBooleanExpressions:off
-import { ServiceMap, Effect, Layer, Option, Schema } from 'effect';
+import { Context, Effect, Layer, Option, Schema } from 'effect';
 
 /**
  * Error thrown when a storage operation fails.
@@ -59,13 +58,13 @@ export interface StorageAdapterService {
 /**
  * Adapter for persistent storage operations.
  */
-export class StorageAdapter extends ServiceMap.Service<StorageAdapter, StorageAdapterService>()(
+export class StorageAdapter extends Context.Service<StorageAdapter, StorageAdapterService>()(
   '@bible/core/adapters/storage/StorageAdapter',
 ) {
   /**
    * Test implementation with in-memory storage.
    */
-  static Test = (initialData: Record<string, string> = {}): Layer.Layer<StorageAdapter> => {
+  static layerTest = (initialData: Record<string, string> = {}): Layer.Layer<StorageAdapter> => {
     const storage = new Map(Object.entries(initialData));
     return Layer.succeed(StorageAdapter, {
       read: (key) =>

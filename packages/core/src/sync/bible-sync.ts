@@ -1,5 +1,4 @@
 #!/usr/bin/env bun
-// @effect-diagnostics nodeBuiltinImport:off
 /**
  * Bible Sync Script
  *
@@ -174,11 +173,11 @@ const BOOKS: Array<{
 // Utility Functions
 // ============================================================================
 
-function loadJson<T>(filename: string): T {
+function loadJson(filename: string): unknown {
   const filepath = path.join(ASSETS_DIR, filename);
   console.log(`Loading ${filename}...`);
   const content = fs.readFileSync(filepath, 'utf-8');
-  return JSON.parse(content) as T;
+  return JSON.parse(content);
 }
 
 function parseVerseKey(key: string): { book: number; chapter: number; verse: number } | null {
@@ -248,7 +247,7 @@ async function syncBible(force: boolean): Promise<void> {
   );
 
   // Load and insert verses
-  const kjv = loadJson<KJVData>('kjv.json');
+  const kjv = loadJson('kjv.json') as KJVData;
   console.log(`Inserting ${kjv.verses.length} verses...`);
   const insertVerse = db.prepare(
     'INSERT INTO verses (book, chapter, verse, version_code, text) VALUES (?, ?, ?, ?, ?)',
@@ -268,7 +267,7 @@ async function syncBible(force: boolean): Promise<void> {
   console.log('\n');
 
   // Load and insert cross-references
-  const crossRefs = loadJson<CrossRefsData>('cross-refs.json');
+  const crossRefs = loadJson('cross-refs.json') as CrossRefsData;
   const crossRefEntries = Object.entries(crossRefs);
   console.log(`Inserting cross-references for ${crossRefEntries.length} verses...`);
   const insertCrossRef = db.prepare(
@@ -307,7 +306,7 @@ async function syncBible(force: boolean): Promise<void> {
   // Load and insert TSKe cross-references
   const tskeJsonPath = path.join(ASSETS_DIR, 'cross-refs-tske.json');
   if (fs.existsSync(tskeJsonPath)) {
-    const tskeCrossRefs = loadJson<CrossRefsData>('cross-refs-tske.json');
+    const tskeCrossRefs = loadJson('cross-refs-tske.json') as CrossRefsData;
     const tskeEntries = Object.entries(tskeCrossRefs);
     console.log(`Inserting TSKe cross-references for ${tskeEntries.length} verses...`);
     const insertTskeCrossRef = db.prepare(
@@ -352,7 +351,7 @@ async function syncBible(force: boolean): Promise<void> {
   console.log(`  Total cross-references in database: ${totalCrossRefsRow?.count ?? 0}\n`);
 
   // Load and insert Strong's definitions
-  const strongs = loadJson<StrongsData>('strongs.json');
+  const strongs = loadJson('strongs.json') as StrongsData;
   const strongsEntries = Object.entries(strongs);
   console.log(`Inserting ${strongsEntries.length} Strong's definitions...`);
   const insertStrongs = db.prepare(
@@ -375,7 +374,7 @@ async function syncBible(force: boolean): Promise<void> {
   console.log('\n');
 
   // Load and insert verse words with Strong's mappings
-  const kjvStrongs = loadJson<KJVStrongsData>('kjv-strongs.json');
+  const kjvStrongs = loadJson('kjv-strongs.json') as KJVStrongsData;
   console.log(`Inserting verse words for ${kjvStrongs.length} verses...`);
   const insertVerseWord = db.prepare(
     `INSERT INTO verse_words (book, chapter, verse, word_index, word_text, strongs_numbers)
@@ -432,7 +431,7 @@ async function syncBible(force: boolean): Promise<void> {
   );
 
   // Load and insert margin notes
-  const marginNotes = loadJson<MarginNotesData>('margin-notes.json');
+  const marginNotes = loadJson('margin-notes.json') as MarginNotesData;
   const marginNoteEntries = Object.entries(marginNotes);
   console.log(`Inserting margin notes for ${marginNoteEntries.length} verses...`);
   const insertMarginNote = db.prepare(
@@ -493,7 +492,7 @@ async function syncBible(force: boolean): Promise<void> {
   db.close();
 
   // Copy to runtime location (~/.bible/bible.db)
-  const homeDir = process.env.HOME ?? process.env.USERPROFILE;
+  const homeDir = process.env['HOME'] ?? process.env['USERPROFILE'];
   if (homeDir !== undefined) {
     const runtimeDir = path.join(homeDir, '.bible');
     const runtimeDbPath = path.join(runtimeDir, 'bible.db');

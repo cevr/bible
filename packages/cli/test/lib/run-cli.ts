@@ -1,6 +1,6 @@
 import { BunServices } from '@effect/platform-bun';
 import { Command } from 'effect/unstable/cli';
-import { Effect, Exit, Logger } from 'effect';
+import { Effect, Exit, Layer, Logger } from 'effect';
 import { expect } from 'bun:test';
 
 import { getCallSequence, type ServiceCall } from './sequence-recorder.js';
@@ -50,11 +50,7 @@ export const runCli = async <Name extends string, R, E>(
 
     // Suppress logs during tests unless debugging
     const exit = await Effect.runPromiseExit(
-      program.pipe(
-        Effect.provide(layer),
-        Effect.provide(BunServices.layer),
-        Effect.provide(Logger.layer([])),
-      ),
+      program.pipe(Effect.provide(Layer.mergeAll(layer, BunServices.layer, Logger.layer([])))),
     );
 
     // Extract calls - merge Effect-tracked calls with service/external calls
@@ -104,6 +100,8 @@ export const expectSequence = (actual: ServiceCall[], expected: Array<Partial<Se
     while (actualIndex < actual.length) {
       const actualCall = actual[actualIndex];
       actualIndex++;
+
+      if (actualCall === undefined) continue;
 
       if (actualCall._tag === expectedCall._tag) {
         // Check additional properties

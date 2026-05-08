@@ -1,4 +1,3 @@
-// @effect-diagnostics strictBooleanExpressions:off
 import {
   createContext,
   createMemo,
@@ -74,17 +73,14 @@ function generateSystemTheme(palette: string[], isDark: boolean): Theme {
     };
   };
 
-  const rgbToHex = (r: number, g: number, b: number) => {
-    return (
-      '#' +
-      [r, g, b]
-        .map((x) => {
-          const hex = Math.max(0, Math.min(255, Math.round(x))).toString(16);
-          return hex.length === 1 ? '0' + hex : hex;
-        })
-        .join('')
-    );
-  };
+  const rgbToHex = (r: number, g: number, b: number) =>
+    '#' +
+    [r, g, b]
+      .map((x) => {
+        const hex = Math.max(0, Math.min(255, Math.round(x))).toString(16);
+        return hex.length === 1 ? '0' + hex : hex;
+      })
+      .join('');
 
   const adjustBrightness = (hex: string, amount: number) => {
     const { r, g, b } = hexToRgb(hex);

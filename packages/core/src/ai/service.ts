@@ -1,6 +1,5 @@
-// @effect-diagnostics strictBooleanExpressions:off
 import { type LanguageModel } from 'ai';
-import { ServiceMap, Layer, Schema } from 'effect';
+import { Context, Layer, Schema } from 'effect';
 
 /**
  * Error thrown when AI operations fail.
@@ -28,20 +27,20 @@ export interface ModelConfig {
  * AI Service for text generation operations.
  * This service provides the configured AI models to use for generation.
  */
-export class AiService extends ServiceMap.Service<AiService, ModelConfig>()(
+export class AiService extends Context.Service<AiService, ModelConfig>()(
   '@bible/core/ai/service/AiService',
 ) {
   /**
    * Live implementation using real AI models.
    * Caller must provide the model configuration.
    */
-  static Live = (config: ModelConfig): Layer.Layer<AiService> => Layer.succeed(AiService, config);
+  static layer = (config: ModelConfig): Layer.Layer<AiService> => Layer.succeed(AiService, config);
 
   /**
    * Test implementation using mock models.
    * The mock models will throw if used - tests should mock at a higher level.
    */
-  static Test = (): Layer.Layer<AiService> =>
+  static layerTest = (): Layer.Layer<AiService> =>
     Layer.succeed(AiService, {
       high: {
         specificationVersion: 'v1',

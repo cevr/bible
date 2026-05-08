@@ -1,4 +1,3 @@
-// @effect-diagnostics strictBooleanExpressions:off
 /**
  * EGW API Client using Effect-TS
  * Adapted from Spotify client patterns with Effect-TS
@@ -8,7 +7,7 @@ import type { HttpClientError } from 'effect/unstable/http';
 import { HttpClient, HttpClientRequest, HttpClientResponse } from 'effect/unstable/http';
 import {
   Config,
-  ServiceMap,
+  Context,
   Duration,
   Effect,
   Layer,
@@ -58,7 +57,7 @@ export interface EGWApiClientService {
   ) => Stream.Stream<Schemas.Book, EGWApiClientError>;
   readonly getBook: (
     bookId: number,
-    params?: { trans?: 'all' | string },
+    params?: { trans?: string },
   ) => Effect.Effect<Schemas.Book, EGWApiClientError>;
   readonly getBookToc: (
     bookId: number,
@@ -87,7 +86,7 @@ export interface EGWApiClientService {
 /**
  * EGW API Client Service
  */
-export class EGWApiClient extends ServiceMap.Service<EGWApiClient, EGWApiClientService>()(
+export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientService>()(
   '@bible/core/egw/client/EGWApiClient',
 ) {
   /**
@@ -101,10 +100,10 @@ export class EGWApiClient extends ServiceMap.Service<EGWApiClient, EGWApiClientS
     EGWApiClient,
     Effect.gen(function* () {
       const baseUrl = yield* Config.string('EGW_API_BASE_URL').pipe(
-        Config.withDefault(process.env.EGW_API_BASE_URL ?? 'https://a.egwwritings.org'),
+        Config.withDefault(process.env['EGW_API_BASE_URL'] ?? 'https://a.egwwritings.org'),
       );
       const userAgent = yield* Config.string('EGW_USER_AGENT').pipe(
-        Config.withDefault(process.env.EGW_USER_AGENT ?? 'EGW-Effect-Client/1.0'),
+        Config.withDefault(process.env['EGW_USER_AGENT'] ?? 'EGW-Effect-Client/1.0'),
       );
 
       const auth = yield* EGWAuth;
@@ -167,7 +166,7 @@ export class EGWApiClient extends ServiceMap.Service<EGWApiClient, EGWApiClientS
                 error && typeof error === 'object' && 'request' in error
                   ? (error as { request?: { method?: string; url?: string } }).request
                   : undefined;
-              yield* Effect.logError(`✗ res ${request?.method} ${request?.url}`, String(error));
+              yield* Effect.logError(`✗ res ${request?.method} ${request?.url}`, error);
             }),
           ),
           HttpClient.filterStatusOk,
@@ -184,9 +183,7 @@ export class EGWApiClient extends ServiceMap.Service<EGWApiClient, EGWApiClientS
        * Maximum 3 retries (1 initial attempt + 2 retries)
        * Exponential delays: 100ms, 200ms, 400ms
        */
-      const retrySchedule = Schedule.exponential(Duration.millis(100)).pipe(
-        Schedule.compose(Schedule.recurs(2)),
-      );
+      const retrySchedule = Schedule.exponential(Duration.millis(100)).pipe(Schedule.take(2));
 
       // Paginated response schema
       const PaginatedResponse = Schema.Struct({
@@ -325,7 +322,7 @@ export class EGWApiClient extends ServiceMap.Service<EGWApiClient, EGWApiClientS
           return booksStream(endpoint);
         },
 
-        getBook: (bookId: number, params: { trans?: 'all' | string } = {}) =>
+        getBook: (bookId: number, params: { trans?: string } = {}) =>
           Effect.gen(function* () {
             const urlParams = new URLSearchParams();
             if (params.trans) urlParams.append('trans', params.trans);

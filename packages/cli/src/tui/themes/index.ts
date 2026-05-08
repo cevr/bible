@@ -1,4 +1,3 @@
-// @effect-diagnostics strictBooleanExpressions:off
 // Theme types and registry
 
 export interface Theme {
@@ -317,7 +316,7 @@ export function detectSystemTheme(): 'dark' | 'light' {
   if (cachedSystemTheme) return cachedSystemTheme;
 
   // Check COLORFGBG environment variable (set by some terminals)
-  const colorFgBg = process.env.COLORFGBG;
+  const colorFgBg = process.env['COLORFGBG'];
   if (colorFgBg) {
     const parts = colorFgBg.split(';');
     const bg = parseInt(parts[parts.length - 1] ?? '', 10);

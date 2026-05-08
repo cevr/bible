@@ -1,12 +1,11 @@
 import { describe, expect, it } from 'bun:test';
 
 import { isStrongsNumber } from '../../src/commands/bible.js';
-import type { BibleDataService } from '../../src/data/bible/data.js';
 import { getVersesForQuery, ParsedQuery, parseVerseQuery } from '../../src/data/bible/parse.js';
-import type { Book, Verse } from '../../src/data/bible/types.js';
+import type { BibleDataSyncService, Book, Verse } from '../../src/data/bible/types.js';
 
-// Minimal mock BibleDataService for testing parsing logic
-function createMockBibleData(): BibleDataService {
+// Minimal mock BibleDataSyncService for testing parsing logic
+function createMockBibleData(): BibleDataSyncService {
   const books: Book[] = [
     { number: 8, name: 'Ruth', chapters: 4, testament: 'old' },
     { number: 19, name: 'Psalms', chapters: 150, testament: 'old' },

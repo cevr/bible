@@ -21,7 +21,7 @@ import type { WebReadingPlanService } from '@/data/plans/effect-service';
 import type { WebMemoryVerseService } from '@/data/practice/effect-service';
 import type { WebTopicService } from '@/data/topics/effect-service';
 
-const log = import.meta.env.DEV ? (...args: unknown[]) => console.log(...args) : () => {};
+const log = import.meta.env['DEV'] ? (...args: unknown[]) => console.log(...args) : () => {};
 
 type AppServices =
   | WebBibleService
@@ -59,7 +59,7 @@ export function DbProvider({ children }: { children: ReactNode }) {
       .then(() => {
         if (disposed) return;
         log('[db-provider] db ready, creating runtime');
-        const runtime = ManagedRuntime.make(AppLive as Layer.Layer<AppServices, never, never>);
+        const runtime = ManagedRuntime.make(AppLive as Layer.Layer<AppServices>);
         runtimeRef.current = runtime;
         const appService = new AppService(runtime, client);
         appServiceRef.current = appService;

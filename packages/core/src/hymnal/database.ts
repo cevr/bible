@@ -11,7 +11,7 @@
 
 import type { PlatformError } from 'effect/PlatformError';
 import { Database } from 'bun:sqlite';
-import { Config, ServiceMap, Effect, FileSystem, Layer, Option, Path } from 'effect';
+import { Config, Context, Effect, FileSystem, Layer, Option, Path } from 'effect';
 
 import {
   DatabaseConnectionError,
@@ -90,7 +90,7 @@ export interface HymnalDatabaseService {
 // Service Definition
 // ============================================================================
 
-export class HymnalDatabase extends ServiceMap.Service<HymnalDatabase, HymnalDatabaseService>()(
+export class HymnalDatabase extends Context.Service<HymnalDatabase, HymnalDatabaseService>()(
   '@bible/core/hymnal/database/HymnalDatabase',
 ) {
   /**
@@ -107,7 +107,7 @@ export class HymnalDatabase extends ServiceMap.Service<HymnalDatabase, HymnalDat
       const path = yield* Path.Path;
 
       // Priority: env var > ~/.bible/hymnal.db
-      const homeDir = process.env.HOME ?? process.env.USERPROFILE ?? '.';
+      const homeDir = process.env['HOME'] ?? process.env['USERPROFILE'] ?? '.';
       const defaultDbPath = path.join(homeDir, '.bible', 'hymnal.db');
       const dbPath = yield* Config.string('HYMNAL_DB_PATH').pipe(Config.withDefault(defaultDbPath));
 

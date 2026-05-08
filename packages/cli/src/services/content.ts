@@ -1,5 +1,5 @@
 import type { Cause, Schema } from 'effect';
-import { Effect, FileSystem, Layer, Match, ServiceMap } from 'effect';
+import { Effect, FileSystem, Layer, Match, Context } from 'effect';
 import type * as PlatformError from 'effect/PlatformError';
 import { join } from 'path';
 
@@ -38,7 +38,7 @@ type ContentSyncError = PlatformError.PlatformError | MarkdownParseError | Cause
 type ContentDeleteError = PlatformError.PlatformError | NoteOperationError | Cause.UnknownError;
 
 // Service interface with proper error/context types
-export class ContentService extends ServiceMap.Service<
+export class ContentService extends Context.Service<
   ContentService,
   {
     readonly list: (json: boolean) => Effect.Effect<void, ContentListError>;
@@ -109,7 +109,7 @@ export class ContentService extends ServiceMap.Service<
             yield* fs.writeFile(filePath, new TextEncoder().encode(finalContent));
 
             // Update Apple Note if linked
-            const appleNoteId = frontmatter.apple_note_id;
+            const appleNoteId = frontmatter['apple_note_id'];
             if (typeof appleNoteId === 'string') {
               yield* updateAppleNoteFromMarkdown(appleNoteId, revised);
             }
@@ -128,7 +128,7 @@ export class ContentService extends ServiceMap.Service<
 
               const { frontmatter, content } = parseFrontmatter(rawContent);
 
-              if (frontmatter.apple_note_id !== undefined) {
+              if (frontmatter['apple_note_id'] !== undefined) {
                 yield* Effect.log(`Skipped (already exported): ${filePath}`);
                 continue;
               }
@@ -154,7 +154,7 @@ export class ContentService extends ServiceMap.Service<
                 .pipe(Effect.map((i) => new TextDecoder().decode(i)));
 
               const { frontmatter, content } = parseFrontmatter(rawContent);
-              const appleNoteId = frontmatter.apple_note_id;
+              const appleNoteId = frontmatter['apple_note_id'];
 
               if (typeof appleNoteId === 'string') {
                 yield* updateAppleNoteFromMarkdown(appleNoteId, content);
@@ -178,7 +178,7 @@ export class ContentService extends ServiceMap.Service<
                 .pipe(Effect.map((i) => new TextDecoder().decode(i)));
 
               const { frontmatter } = parseFrontmatter(rawContent);
-              const appleNoteId = frontmatter.apple_note_id;
+              const appleNoteId = frontmatter['apple_note_id'];
 
               if (typeof appleNoteId !== 'string') {
                 yield* Effect.log(`Skipped (no apple_note_id): ${filePath}`);

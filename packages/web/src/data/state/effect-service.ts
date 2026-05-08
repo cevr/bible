@@ -1,4 +1,4 @@
-import { Effect, Layer, ServiceMap } from 'effect';
+import { Effect, Layer, Context } from 'effect';
 import type { Reference } from '../bible/types';
 import { DbClientService } from '../db-client-service';
 import type { DatabaseQueryError } from '../errors';
@@ -87,7 +87,7 @@ interface AppStateServiceShape {
   readonly setPreferences: (prefs: Partial<Preferences>) => Effect.Effect<void, DatabaseQueryError>;
 }
 
-export class AppStateService extends ServiceMap.Service<AppStateService, AppStateServiceShape>()(
+export class AppStateService extends Context.Service<AppStateService, AppStateServiceShape>()(
   '@bible-web/AppState',
 ) {
   static Live = Layer.effect(

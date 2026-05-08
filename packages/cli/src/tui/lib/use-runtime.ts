@@ -1,4 +1,3 @@
-// @effect-diagnostics strictBooleanExpressions:off
 /**
  * useRuntime hook for Effect integration with Solid.js
  *
@@ -63,18 +62,15 @@ export function useRuntime<R, ER>(runtime: ManagedRuntime.ManagedRuntime<R, ER>)
    *
    * Useful for event handlers that need to await completion.
    */
-  const run = <A, E>(effect: Effect.Effect<A, E, R>): Promise<A> => {
-    return runtime.runPromise(effect);
-  };
+  const run = <A, E>(effect: Effect.Effect<A, E, R>): Promise<A> => runtime.runPromise(effect);
 
   /**
    * Run effect and return exit promise
    *
    * Useful when you need to handle both success and failure.
    */
-  const runExit = <A, E>(effect: Effect.Effect<A, E, R>): Promise<Exit.Exit<A, E | ER>> => {
-    return runtime.runPromiseExit(effect);
-  };
+  const runExit = <A, E>(effect: Effect.Effect<A, E, R>): Promise<Exit.Exit<A, E | ER>> =>
+    runtime.runPromiseExit(effect);
 
   return { call, cast, run, runExit };
 }

@@ -1,4 +1,3 @@
-// @effect-diagnostics strictBooleanExpressions:off
 import { useKeyboard, useTerminalDimensions } from '@opentui/solid';
 import { createSignal, onCleanup, Show } from 'solid-js';
 

@@ -1,4 +1,3 @@
-// @effect-diagnostics strictBooleanExpressions:off
 /**
  * Bible Database Service
  *
@@ -15,7 +14,7 @@
 
 import type { PlatformError } from 'effect/PlatformError';
 import { Database } from 'bun:sqlite';
-import { Config, ServiceMap, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
+import { Config, Context, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
 
 import {
   DatabaseConnectionError,
@@ -254,7 +253,7 @@ export interface BibleDatabaseService {
 // Service Definition
 // ============================================================================
 
-export class BibleDatabase extends ServiceMap.Service<BibleDatabase, BibleDatabaseService>()(
+export class BibleDatabase extends Context.Service<BibleDatabase, BibleDatabaseService>()(
   '@bible/core/bible-db/bible-database/BibleDatabase',
 ) {
   /**
@@ -273,7 +272,7 @@ export class BibleDatabase extends ServiceMap.Service<BibleDatabase, BibleDataba
 
       // Determine database path
       // Priority: env var > ~/.bible/bible.db
-      const homeDir = process.env.HOME ?? process.env.USERPROFILE ?? '.';
+      const homeDir = process.env['HOME'] ?? process.env['USERPROFILE'] ?? '.';
       const defaultDbPath = path.join(homeDir, '.bible', 'bible.db');
 
       const dbPath = yield* Config.string('BIBLE_DB_PATH').pipe(Config.withDefault(defaultDbPath));

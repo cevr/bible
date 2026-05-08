@@ -7,7 +7,7 @@
  * - Searching verses
  */
 import { HttpApiEndpoint, HttpApiGroup } from 'effect/unstable/httpapi';
-import { Schema as S } from 'effect';
+import { Effect, Schema as S } from 'effect';
 
 // ============================================================================
 // Schemas
@@ -115,7 +115,7 @@ export const BibleGroup = HttpApiGroup.make('Bible')
     HttpApiEndpoint.get('search', '/search', {
       query: {
         q: S.String,
-        limit: S.optional(S.NumberFromString).pipe(S.withDecodingDefault(() => '20')),
+        limit: S.optional(S.NumberFromString).pipe(S.withDecodingDefault(Effect.succeed('20'))),
       },
       success: S.Array(SearchResultSchema),
       error: [DatabaseError],

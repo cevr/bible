@@ -1,7 +1,7 @@
 import { HttpClient } from 'effect/unstable/http';
 import { generateObject, generateText } from 'ai';
 import * as cheerio from 'cheerio';
-import { ServiceMap, Effect, Layer, Option } from 'effect';
+import { Context, Effect, Layer, Option } from 'effect';
 import { z } from 'zod';
 
 import { AiService } from '../ai/service.js';
@@ -71,7 +71,7 @@ export interface SabbathSchoolService {
 // Service Definition
 // ============================================================================
 
-export class SabbathSchool extends ServiceMap.Service<SabbathSchool, SabbathSchoolService>()(
+export class SabbathSchool extends Context.Service<SabbathSchool, SabbathSchoolService>()(
   '@bible/core/sabbath-school/service/SabbathSchool',
 ) {
   /**

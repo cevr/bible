@@ -1,4 +1,3 @@
-// @effect-diagnostics strictBooleanExpressions:off
 /**
  * EGW Bible References Popup
  *
@@ -54,8 +53,8 @@ export function EGWBibleRefsPopup(props: EGWBibleRefsPopupProps) {
   });
 
   // Get preview text for each reference
-  const refsWithPreviews = createMemo(() => {
-    return references().map((extracted) => {
+  const refsWithPreviews = createMemo(() =>
+    references().map((extracted) => {
       const verse = data.getVerse(
         extracted.ref.book,
         extracted.ref.chapter,
@@ -70,8 +69,8 @@ export function EGWBibleRefsPopup(props: EGWBibleRefsPopupProps) {
         if (verse.text.length > 60) preview += '...';
       }
       return { extracted, preview };
-    });
-  });
+    }),
+  );
 
   const moveSelection = (delta: number) => {
     setSelectedIndex((i) => {

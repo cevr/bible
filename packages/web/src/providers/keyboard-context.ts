@@ -43,7 +43,8 @@ export function useKeyboardAction(
   const handlerRef = useRef(handler);
   handlerRef.current = handler;
 
-  useEffect(() => {
-    return registerHandler((action, event) => handlerRef.current(action, event));
-  }, [registerHandler]);
+  useEffect(
+    () => registerHandler((action, event) => handlerRef.current(action, event)),
+    [registerHandler],
+  );
 }

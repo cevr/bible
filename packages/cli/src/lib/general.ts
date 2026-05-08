@@ -34,7 +34,7 @@ export function matchEnum<T extends Record<string, string | number>>(
     value: v as T[keyof T],
     labels: [enumToParse[k as keyof T], enumToParse[v as keyof T]],
   }));
-  const matched = matchSorter(entries, value.toString(), {
+  const matched = matchSorter(entries, value, {
     keys: ['labels'],
   })[0]?.value;
   return Option.fromNullishOr(matched);

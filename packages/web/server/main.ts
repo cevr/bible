@@ -36,7 +36,7 @@ import { EGWServiceLive } from './services/EGWService.js';
 // Configuration
 // ============================================================================
 
-const PORT = Number(process.env.PORT ?? 3001);
+const PORT = Number(process.env['PORT'] ?? 3001);
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 // ============================================================================

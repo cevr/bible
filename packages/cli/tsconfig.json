@@ -1,92 +1,12 @@
 {
+  "extends": "../../tsconfig.json",
   "compilerOptions": {
-    /* Base Options: */
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "target": "es2022",
-    "allowJs": true,
-    "resolveJsonModule": true,
-    "moduleDetection": "force",
-    "isolatedModules": true,
-    "verbatimModuleSyntax": true,
-
-    /* Strictness */
-    "strict": true,
-    "noUncheckedIndexedAccess": true,
-    "noImplicitOverride": true,
-    "noUnusedLocals": true,
-
-    /* Module Resolution */
-    "moduleResolution": "bundler",
-    "baseUrl": ".",
-    "paths": {
-      "~/*": ["./*"]
-    },
-
-    /* JSX for OpenTUI Solid */
     "jsx": "preserve",
     "jsxImportSource": "@opentui/solid",
-
-    /* If NOT transpiling with TypeScript: */
-    "module": "Preserve",
-    "noEmit": true,
-
-    /* If your code doesn't run in the DOM: */
-    "lib": ["es2022", "dom"],
-    "plugins": [
-      {
-        "name": "@effect/language-service",
-        "transform": "@effect/language-service/transform",
-        "namespaceImportPackages": ["effect", "@effect/*"],
-        "diagnostics": true,
-        "diagnosticsName": true,
-        "ignoreEffectWarningsInTscExitCode": true,
-        "diagnosticSeverity": {
-          "anyUnknownInErrorContext": "error",
-          "deterministicKeys": "warning",
-          "importFromBarrel": "warning",
-          "instanceOfSchema": "warning",
-          "missedPipeableOpportunity": "suggestion",
-          "missingEffectServiceDependency": "warning",
-          "schemaUnionOfLiterals": "warning",
-          "strictBooleanExpressions": "off",
-          "strictEffectProvide": "warning",
-          "catchAllToMapError": "warning",
-          "catchUnfailableEffect": "warning",
-          "effectFnOpportunity": "warning",
-          "effectMapVoid": "warning",
-          "effectSucceedWithVoid": "warning",
-          "leakingRequirements": "warning",
-          "preferSchemaOverJson": "warning",
-          "redundantSchemaTagIdentifier": "warning",
-          "returnEffectInGen": "warning",
-          "runEffectInsideEffect": "error",
-          "schemaStructWithTag": "warning",
-          "schemaSyncInEffect": "warning",
-          "tryCatchInEffectGen": "warning",
-          "unnecessaryEffectGen": "warning",
-          "unnecessaryFailYieldableError": "warning",
-          "unnecessaryPipe": "warning",
-          "unnecessaryPipeChain": "warning",
-          "extendsNativeError": "error",
-          "nodeBuiltinImport": "warning",
-          "serviceNotAsClass": "warning",
-          "outdatedApi": "warning"
-        },
-        "keyPatterns": [
-          {
-            "target": "service",
-            "pattern": "default",
-            "skipLeadingPath": ["src/"]
-          },
-          {
-            "target": "error",
-            "pattern": "default",
-            "skipLeadingPath": ["src/"]
-          }
-        ]
-      }
-    ]
+    "lib": ["ESNext", "DOM"],
+    "paths": {
+      "~/*": ["./*"]
+    }
   },
-  "include": ["core/**/*.ts", "lib/**/*.ts", "src/**/*.ts", "src/**/*.tsx"]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "test/**/*.ts", "test/**/*.tsx"]
 }

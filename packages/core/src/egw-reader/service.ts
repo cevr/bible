@@ -1,4 +1,3 @@
-// @effect-diagnostics strictBooleanExpressions:off
 /**
  * EGW Reader Service
  *
@@ -9,7 +8,7 @@
  * a higher-level API suitable for reader UIs.
  */
 
-import { ServiceMap, Effect, Layer, Option, Schema, Stream } from 'effect';
+import { Context, Effect, Layer, Option, Schema, Stream } from 'effect';
 
 import { EGWParagraphDatabase } from '../egw-db/book-database.js';
 import type * as EGWSchemas from '../egw/schemas.js';
@@ -116,7 +115,7 @@ export interface EGWReaderServiceShape {
  *
  * Provides high-level reading operations on EGW writings.
  */
-export class EGWReaderService extends ServiceMap.Service<EGWReaderService, EGWReaderServiceShape>()(
+export class EGWReaderService extends Context.Service<EGWReaderService, EGWReaderServiceShape>()(
   '@bible/core/egw-reader/service/EGWReaderService',
 ) {
   /**

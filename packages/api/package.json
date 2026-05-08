@@ -8,14 +8,9 @@
     "./definition": "./src/definition/index.ts"
   },
   "scripts": {
-    "prepare": "effect-language-service patch",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsgo --noEmit"
   },
   "dependencies": {
     "effect": "catalog:"
-  },
-  "devDependencies": {
-    "@effect/language-service": "catalog:",
-    "typescript": "catalog:"
   }
 }

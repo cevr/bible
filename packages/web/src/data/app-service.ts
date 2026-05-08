@@ -1,4 +1,3 @@
-// @effect-diagnostics anyUnknownInErrorContext:off
 /**
  * AppService — facade that wraps ManagedRuntime and exposes every Effect
  * service method as a plain Promise-returning function.
@@ -412,9 +411,13 @@ export class AppService {
       throw new Error(`Chapter ${chapterIndex} not found in ${bookCode}`);
     }
 
-    const startPuborder = headings[chapterIndex].puborder;
+    const startHeading = headings[chapterIndex];
+    if (!startHeading) {
+      throw new Error(`Chapter ${chapterIndex} not found in ${bookCode}`);
+    }
+    const startPuborder = startHeading.puborder;
     const endPuborder =
-      chapterIndex + 1 < headings.length ? headings[chapterIndex + 1].puborder : null;
+      chapterIndex + 1 < headings.length ? (headings[chapterIndex + 1]?.puborder ?? null) : null;
 
     // Fetch all paragraphs from this chapter heading to the next
     const whereClause =
@@ -448,7 +451,7 @@ export class AppService {
       },
       chapterIndex,
       totalChapters: headings.length,
-      title: headings[chapterIndex].content,
+      title: startHeading.content,
       paragraphs: rows.map((r) => ({
         paraId: r.para_id,
         refcodeShort: r.refcode_short,
@@ -609,6 +612,6 @@ export class AppService {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private run<A>(tag: any, fn: (s: any) => Effect.Effect<A, any, any>): Promise<A> {
-    return this.runtime.runPromise(Effect.flatMap(tag, fn)) as Promise<A>;
+    return this.runtime.runPromise(Effect.flatMap(tag, fn));
   }
 }

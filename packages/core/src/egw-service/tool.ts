@@ -218,7 +218,7 @@ function executeEGWTool(
       }
 
       default:
-        return `Unknown action: ${input.action}`;
+        return `Unknown action`;
     }
   });
 }

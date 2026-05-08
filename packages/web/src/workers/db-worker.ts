@@ -13,7 +13,7 @@ import { OPFSCoopSyncVFS } from 'wa-sqlite/src/examples/OPFSCoopSyncVFS.js';
 
 import type { WorkerRequest, WorkerResponse } from './db-protocol.js';
 
-const log = import.meta.env.DEV ? (...args: unknown[]) => console.log(...args) : () => {};
+const log = import.meta.env['DEV'] ? (...args: unknown[]) => console.log(...args) : () => {};
 
 let sqlite3: SQLiteAPI;
 let bibleDb: number;
@@ -301,7 +301,9 @@ async function execQuery(
       const row: Record<string, unknown> = {};
       const values = sqlite3.row(stmt);
       for (let i = 0; i < columns.length; i++) {
-        row[columns[i]] = values[i];
+        const col = columns[i];
+        if (col === undefined) continue;
+        row[col] = values[i];
       }
       rows.push(row);
     }
@@ -322,7 +324,7 @@ async function execWrite(db: number, sql: string, params?: unknown[]): Promise<n
 async function checkBibleDbExists(): Promise<boolean> {
   try {
     const rows = await execQuery(bibleDb, 'SELECT COUNT(*) as cnt FROM books');
-    return (rows[0]?.cnt as number) > 0;
+    return (rows[0]?.['cnt'] as number) > 0;
   } catch {
     return false;
   }
@@ -425,9 +427,9 @@ async function getEgwSyncStatus(): Promise<
       'SELECT book_code, status, paragraph_count FROM sync_status ORDER BY book_code',
     );
     return rows.map((r) => ({
-      bookCode: r.book_code as string,
-      status: r.status as string,
-      paragraphCount: r.paragraph_count as number,
+      bookCode: r['book_code'] as string,
+      status: r['status'] as string,
+      paragraphCount: r['paragraph_count'] as number,
     }));
   } catch {
     return [];
@@ -680,7 +682,7 @@ async function checkTopicsDbExists(): Promise<boolean> {
   if (!topicsDb) return false;
   try {
     const rows = await execQuery(topicsDb, 'SELECT COUNT(*) as cnt FROM topics');
-    return (rows[0]?.cnt as number) > 0;
+    return (rows[0]?.['cnt'] as number) > 0;
   } catch {
     return false;
   }
@@ -827,7 +829,7 @@ async function init(): Promise<void> {
       // Ensure FTS index is populated (handles existing databases that lack FTS data)
       const ftsCount = await execQuery(egwDb, 'SELECT COUNT(*) as n FROM paragraphs_fts');
       const paraCount = await execQuery(egwDb, 'SELECT COUNT(*) as n FROM paragraphs');
-      if ((paraCount[0]?.n as number) > 0 && (ftsCount[0]?.n as number) === 0) {
+      if ((paraCount[0]?.['n'] as number) > 0 && (ftsCount[0]?.['n'] as number) === 0) {
         log('[db-worker] init: FTS index empty, rebuilding...');
         await rebuildAllFts();
       }

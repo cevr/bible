@@ -1,4 +1,3 @@
-// @effect-diagnostics strictBooleanExpressions:off
 /**
  * EGW Commentary Service
  *
@@ -6,7 +5,7 @@
  * Uses the indexed paragraph_bible_refs table for fast O(1) lookups.
  */
 
-import { ServiceMap, Effect, Layer, Schema } from 'effect';
+import { Context, Effect, Layer, Schema } from 'effect';
 
 import { EGWParagraphDatabase } from '../egw-db/book-database.js';
 import type * as EGWSchemas from '../egw/schemas.js';
@@ -69,7 +68,7 @@ export interface EGWCommentaryServiceShape {
  *
  * Provides commentary lookup from EGW Bible Commentary volumes.
  */
-export class EGWCommentaryService extends ServiceMap.Service<
+export class EGWCommentaryService extends Context.Service<
   EGWCommentaryService,
   EGWCommentaryServiceShape
 >()('@bible/core/egw-commentary/service/EGWCommentaryService') {

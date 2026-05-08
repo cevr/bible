@@ -1,7 +1,6 @@
-// @effect-diagnostics strictBooleanExpressions:off
 import { generateText } from 'ai';
 import type { LanguageModel } from 'ai';
-import { Data, Effect, Layer, ServiceMap } from 'effect';
+import { Data, Effect, Layer, Context } from 'effect';
 
 import { AI } from '../../services/ai.js';
 import { BibleData } from '../bible/data.js';
@@ -22,7 +21,7 @@ export interface AISearchService {
 }
 
 // Effect service tag
-export class AISearch extends ServiceMap.Service<AISearch, AISearchService>()(
+export class AISearch extends Context.Service<AISearch, AISearchService>()(
   '@bible/cli/data/study/ai-search/AISearch',
 ) {}
 
@@ -104,7 +103,7 @@ export async function searchBibleByTopic(
 
     return refs;
   } catch (error) {
-    console.error('AI search failed:', error);
+    process.stderr.write(`AI search failed: ${String(error)}\n`);
     return [];
   }
 }
@@ -116,7 +115,7 @@ export const AISearchLive = Layer.effect(
     const ai = yield* AI;
     const data = yield* BibleData;
     const state = yield* BibleState;
-    const services = yield* Effect.services();
+    const services = yield* Effect.context();
     const runSync = Effect.runSyncWith(services);
 
     // Create sync wrapper for data service (only needs parseReference which is sync)
@@ -152,7 +151,7 @@ export const AISearchLive = Layer.effect(
               Effect.mapError(
                 (error) =>
                   new AISearchError({
-                    message: `AI search failed: ${error}`,
+                    message: `AI search failed: ${error._tag}`,
                     cause: error,
                   }),
               ),

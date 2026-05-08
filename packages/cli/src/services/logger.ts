@@ -20,7 +20,7 @@ const ANSI = {
 
 const hasProcess = typeof process === 'object' && process !== null;
 const hasStdout = hasProcess && typeof process.stdout === 'object' && process.stdout !== null;
-const isTty = hasStdout && process.stdout.isTTY === true;
+const isTty = hasStdout &&  process.stdout.isTTY;
 const hasEnv = hasProcess && typeof process.env === 'object' && process.env !== null;
 const noColor = hasEnv && 'NO_COLOR' in process.env;
 const colorsEnabled = isTty && !noColor;
@@ -89,7 +89,7 @@ const cliLogger = Logger.make<unknown, string>(({ cause, logLevel, message }) =>
   const messages = toMessages(message);
 
   if (shouldRenderRaw(logLevel, messages, cause)) {
-    return String(messages[0] ?? '');
+    return formatValue(messages[0] ?? '');
   }
 
   const style = levelStyles[logLevel] ?? levelStyles.Info;

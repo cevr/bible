@@ -1,5 +1,4 @@
 #!/usr/bin/env bun
-// @effect-diagnostics nodeBuiltinImport:off
 /**
  * Clean Bible Assets
  *

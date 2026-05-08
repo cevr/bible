@@ -1,4 +1,3 @@
-// @effect-diagnostics strictBooleanExpressions:off
 import { createContext, createSignal, useContext, type ParentProps } from 'solid-js';
 
 import { useBibleState } from './bible.js';

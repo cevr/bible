@@ -16,8 +16,8 @@ describe('export command', () => {
             '/path/to/message.md': '# Test Message\n\nThis is a test message.',
           },
         },
-        bun: {
-          appleScriptSuccess: true,
+        appleScript: {
+          success: true,
         },
       });
 
@@ -39,8 +39,8 @@ describe('export command', () => {
               '/path/to/file2.md': '# File 2\n\nContent 2',
             },
           },
-          bun: {
-            appleScriptSuccess: true,
+          appleScript: {
+            success: true,
           },
         },
       );
@@ -89,8 +89,8 @@ Body.`;
             '/path/to/withid.md': existing,
           },
         },
-        bun: {
-          appleScriptSuccess: true,
+        appleScript: {
+          success: true,
         },
       });
 
@@ -119,8 +119,8 @@ Body.`;
               '/path/to/withid.md': existing,
             },
           },
-          bun: {
-            appleScriptSuccess: true,
+          appleScript: {
+            success: true,
           },
         },
       );

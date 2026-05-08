@@ -63,10 +63,10 @@ const exportNote = Command.make('export', { file, noteId: optionalNoteId, folder
       yield* Effect.log(
         `Creating new note${folderName !== undefined ? ` in folder "${folderName}"` : ''}...`,
       );
-      const title = yield* makeAppleNoteFromMarkdown(markdownContent, {
+      const created = yield* makeAppleNoteFromMarkdown(markdownContent, {
         folder: folderName,
       });
-      yield* Console.log(`Created note: "${title}"`);
+      yield* Console.log(`Created note: "${created.title}"`);
     }
   }),
 );

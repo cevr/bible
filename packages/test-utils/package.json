@@ -9,13 +9,9 @@
     "./assertions": "./src/assertions.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsgo --noEmit"
   },
   "dependencies": {
     "effect": "catalog:"
-  },
-  "devDependencies": {
-    "@effect/language-service": "catalog:",
-    "typescript": "catalog:"
   }
 }

@@ -1,4 +1,3 @@
-// @effect-diagnostics strictBooleanExpressions:off anyUnknownInErrorContext:off
 import { BibleDatabase, type CrossReference } from '@bible/core/bible-db';
 import { BunServices } from '@effect/platform-bun';
 import { Effect, Layer, ManagedRuntime } from 'effect';
@@ -53,7 +52,7 @@ async function ensureDbInitialized(): Promise<void> {
 }
 
 // Initialize at module load
-ensureDbInitialized();
+void ensureDbInitialized();
 
 function runDbSync<T>(effect: Effect.Effect<T, unknown, BibleDatabase>, defaultValue: T): T {
   if (!dbInitialized) return defaultValue;

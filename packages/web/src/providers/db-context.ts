@@ -38,7 +38,7 @@ export function useApp(): CachedApp {
   );
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  return useMemo(() => core.withTracking(accessedRef.current), [core]) as unknown as CachedApp;
+  return useMemo(() => core.withTracking(accessedRef.current), [core]) as CachedApp;
 }
 
 export function useDb(): DbClient {

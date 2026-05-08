@@ -90,15 +90,19 @@ const processChapters = Command.make('process', { chapter, model: requiredModel 
           );
 
           // Preserve existing apple_note_id
-          const existingNoteId = yield* Effect.gen(function* () {
-            const exists = yield* fs.exists(studyOutputFile);
-            if (!exists) return Option.none<AppleNoteId>();
+          const exists = yield* fs.exists(studyOutputFile);
+          let existingNoteId: Option.Option<AppleNoteId>;
+          if (exists) {
             const raw = yield* fs
               .readFile(studyOutputFile)
               .pipe(Effect.map((i) => new TextDecoder().decode(i)));
             const { frontmatter } = parseFrontmatter(raw);
-            return Option.fromNullishOr(frontmatter.apple_note_id as AppleNoteId | undefined);
-          });
+            existingNoteId = Option.fromNullishOr(
+              frontmatter['apple_note_id'] as AppleNoteId | undefined,
+            );
+          } else {
+            existingNoteId = Option.none<AppleNoteId>();
+          }
 
           const chapterContent = yield* fs
             .readFile(chapterPath)

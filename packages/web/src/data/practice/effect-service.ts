@@ -1,4 +1,4 @@
-import { Effect, Layer, ServiceMap } from 'effect';
+import { Effect, Layer, Context } from 'effect';
 import { DbClientService } from '../db-client-service';
 import type { DatabaseQueryError } from '../errors';
 import type { MemoryVerse, PracticeRecord } from './types';
@@ -40,7 +40,7 @@ interface WebMemoryVerseServiceShape {
   ) => Effect.Effect<PracticeRecord[], DatabaseQueryError>;
 }
 
-export class WebMemoryVerseService extends ServiceMap.Service<
+export class WebMemoryVerseService extends Context.Service<
   WebMemoryVerseService,
   WebMemoryVerseServiceShape
 >()('@bible-web/MemoryVerseService') {

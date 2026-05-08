@@ -1,4 +1,3 @@
-// @effect-diagnostics strictBooleanExpressions:off strictEffectProvide:off
 import { Effect } from 'effect';
 import {
   createContext,

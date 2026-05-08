@@ -1,4 +1,3 @@
-// @effect-diagnostics strictEffectProvide:off
 import { Command } from 'effect/unstable/cli';
 import type { Schema } from 'effect';
 import { Effect, Option } from 'effect';

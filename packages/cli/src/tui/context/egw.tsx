@@ -1,4 +1,3 @@
-// @effect-diagnostics strictBooleanExpressions:off
 /**
  * EGW Context
  *
@@ -32,42 +31,42 @@ const EGWServicesLayer = EGWReaderService.Default.pipe(
 const runtime = ManagedRuntime.make(EGWServicesLayer);
 
 // Create caches for each operation
-export const booksCache = createCache(async () => {
-  return runtime.runPromise(
+export const booksCache = createCache(async () =>
+  runtime.runPromise(
     Effect.gen(function* () {
       const service = yield* EGWReaderService;
       return yield* service.getBooks();
     }),
-  );
-});
+  ),
+);
 
-export const bookCache = createCache(async (bookCode: string) => {
-  return runtime.runPromise(
+export const bookCache = createCache(async (bookCode: string) =>
+  runtime.runPromise(
     Effect.gen(function* () {
       const service = yield* EGWReaderService;
       const optBook = yield* service.getBookByCode(bookCode);
       return optBook._tag === 'Some' ? optBook.value : undefined;
     }),
-  );
-});
+  ),
+);
 
-export const paragraphsCache = createCache(async (bookCode: string) => {
-  return runtime.runPromise(
+export const paragraphsCache = createCache(async (bookCode: string) =>
+  runtime.runPromise(
     Effect.gen(function* () {
       const service = yield* EGWReaderService;
       return yield* service.getParagraphsByBookCode(bookCode);
     }),
-  );
-});
+  ),
+);
 
-export const searchCache = createCache(async (query: string, limit: number = 50) => {
-  return runtime.runPromise(
+export const searchCache = createCache(async (query: string, limit: number = 50) =>
+  runtime.runPromise(
     Effect.gen(function* () {
       const service = yield* EGWReaderService;
       return yield* service.searchParagraphs(query, limit);
     }),
-  );
-});
+  ),
+);
 
 interface EGWContextValue {
   /** Get all books */

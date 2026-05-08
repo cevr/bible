@@ -1178,7 +1178,7 @@ function StrongsDetail({
 // EGW Tab
 // ---------------------------------------------------------------------------
 
-const BC_CODES = EGW_CATEGORIES[1].codes; // Bible Commentary codes
+const BC_CODES = EGW_CATEGORIES[1]?.codes ?? new Set<string>(); // Bible Commentary codes
 
 function EgwEntryCard({
   entry,

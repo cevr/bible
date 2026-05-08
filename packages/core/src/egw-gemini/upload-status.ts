@@ -1,4 +1,3 @@
-// @effect-diagnostics strictBooleanExpressions:off
 /**
  * EGW Upload Status Service using SQLite
  *
@@ -9,7 +8,7 @@
 
 import type { PlatformError } from 'effect/PlatformError';
 import { Database } from 'bun:sqlite';
-import { Config, ServiceMap, Effect, FileSystem, Layer, Option, Path } from 'effect';
+import { Config, Context, Effect, FileSystem, Layer, Option, Path } from 'effect';
 
 import {
   DatabaseConnectionError,
@@ -127,7 +126,7 @@ export interface EGWUploadStatusService {
 /**
  * EGW Upload Status Service
  */
-export class EGWUploadStatus extends ServiceMap.Service<EGWUploadStatus, EGWUploadStatusService>()(
+export class EGWUploadStatus extends Context.Service<EGWUploadStatus, EGWUploadStatusService>()(
   '@bible/core/egw-gemini/upload-status/EGWUploadStatus',
 ) {
   /**

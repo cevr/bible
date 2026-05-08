@@ -1,11 +1,16 @@
 import { existsSync, mkdirSync } from 'fs';
+import { randomUUID } from 'node:crypto';
 import { homedir } from 'os';
 import { join } from 'path';
 
 import { Database } from 'bun:sqlite';
-import { Effect, Layer, ServiceMap } from 'effect';
+import { Effect, Layer, Context } from 'effect';
 
 import type { Bookmark, HistoryEntry, Position, Preferences, Reference } from './types.js';
+
+// Local UUID generator — wraps node:crypto to keep the call site testable
+// while still using the platform implementation.
+const generateUuid = (): string => randomUUID();
 
 // Cross-reference classification types
 export const CROSS_REF_TYPES = [
@@ -209,7 +214,7 @@ export interface BibleStateService {
 }
 
 // Effect service tag
-export class BibleState extends ServiceMap.Service<BibleState, BibleStateService>()(
+export class BibleState extends Context.Service<BibleState, BibleStateService>()(
   '@bible/cli/data/bible/state/BibleState',
 ) {}
 
@@ -359,7 +364,7 @@ function createBibleStateService(): BibleStateService {
     },
 
     addBookmark(ref: Reference, note?: string): Bookmark {
-      const id = crypto.randomUUID();
+      const id = generateUuid();
       const createdAt = Date.now();
       addBookmarkStmt.run(id, ref.book, ref.chapter, ref.verse ?? null, note ?? null, createdAt);
       return {
@@ -534,7 +539,7 @@ function createBibleStateService(): BibleStateService {
       target: { book: number; chapter: number; verse?: number; verseEnd?: number },
       options?: { type?: CrossRefType; note?: string },
     ): UserCrossRef {
-      const id = crypto.randomUUID();
+      const id = generateUuid();
       const createdAt = Date.now();
       addUserCrossRefStmt.run(
         id,

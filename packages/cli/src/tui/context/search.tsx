@@ -1,4 +1,3 @@
-// @effect-diagnostics strictBooleanExpressions:off
 import { createContext, createMemo, createSignal, useContext, type ParentProps } from 'solid-js';
 
 import {
@@ -79,9 +78,7 @@ export function SearchProvider(props: ParentProps) {
   const matches = () => getSearchMatches(state());
   const currentMatchIndexAccessor = () => getCurrentMatchIndex(state());
 
-  const totalMatches = createMemo(() => {
-    return matches().length;
-  });
+  const totalMatches = createMemo(() => matches().length);
 
   // Actions
   const setQueryAction = (q: string) => {

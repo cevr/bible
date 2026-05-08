@@ -1,4 +1,3 @@
-// @effect-diagnostics strictEffectProvide:off
 /**
  * Hymns Command
  *

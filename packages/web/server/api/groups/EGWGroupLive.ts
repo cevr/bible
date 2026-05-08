@@ -35,24 +35,20 @@ export const EGWGroupLive = HttpApiBuilder.group(BibleToolsApi, 'EGW', (handlers
           // Check if book exists
           const bookOpt = yield* egw.getBook(bookCode).pipe(mapDbError);
           if (Option.isNone(bookOpt)) {
-            return yield* Effect.fail(
-              new EGWBookNotFoundError({
-                bookCode,
-                message: `Book '${bookCode}' not found`,
-              }),
-            );
+            return yield* new EGWBookNotFoundError({
+              bookCode,
+              message: `Book '${bookCode}' not found`,
+            });
           }
 
           // Get page
           const pageData = yield* egw.getPage(bookCode, page).pipe(mapDbError);
           if (!pageData) {
-            return yield* Effect.fail(
-              new EGWPageNotFoundError({
-                bookCode,
-                page,
-                message: `Page ${page} not found in '${bookCode}'`,
-              }),
-            );
+            return yield* new EGWPageNotFoundError({
+              bookCode,
+              page,
+              message: `Page ${page} not found in '${bookCode}'`,
+            });
           }
 
           return pageData;
@@ -63,12 +59,10 @@ export const EGWGroupLive = HttpApiBuilder.group(BibleToolsApi, 'EGW', (handlers
           // Check if book exists
           const bookOpt = yield* egw.getBook(bookCode).pipe(mapDbError);
           if (Option.isNone(bookOpt)) {
-            return yield* Effect.fail(
-              new EGWBookNotFoundError({
-                bookCode,
-                message: `Book '${bookCode}' not found`,
-              }),
-            );
+            return yield* new EGWBookNotFoundError({
+              bookCode,
+              message: `Book '${bookCode}' not found`,
+            });
           }
 
           return yield* egw.getChapters(bookCode).pipe(mapDbError);
@@ -81,12 +75,10 @@ export const EGWGroupLive = HttpApiBuilder.group(BibleToolsApi, 'EGW', (handlers
         Effect.gen(function* () {
           const dumpOpt = yield* egw.getBookDump(bookCode).pipe(mapDbError);
           if (Option.isNone(dumpOpt)) {
-            return yield* Effect.fail(
-              new EGWBookNotFoundError({
-                bookCode,
-                message: `Book '${bookCode}' not found`,
-              }),
-            );
+            return yield* new EGWBookNotFoundError({
+              bookCode,
+              message: `Book '${bookCode}' not found`,
+            });
           }
           return dumpOpt.value;
         }),

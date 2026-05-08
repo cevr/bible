@@ -1,4 +1,4 @@
-import { Effect, Layer, ServiceMap } from 'effect';
+import { Effect, Layer, Context } from 'effect';
 import type { ChapterResponse, SearchResult, Verse } from '@bible/api';
 import {
   getNextChapter as getNextChapterNav,
@@ -44,7 +44,7 @@ interface WebBibleServiceShape {
   ) => Effect.Effect<SearchWithCountResult, DatabaseQueryError>;
 }
 
-export class WebBibleService extends ServiceMap.Service<WebBibleService, WebBibleServiceShape>()(
+export class WebBibleService extends Context.Service<WebBibleService, WebBibleServiceShape>()(
   '@bible-web/BibleService',
 ) {
   static Live = Layer.effect(
@@ -165,7 +165,7 @@ export class WebBibleService extends ServiceMap.Service<WebBibleService, WebBibl
 
         const rows = yield* db.query<VerseRow & { total: number }>('bible', sql, params);
 
-        const total = rows.length > 0 ? rows[0].total : 0;
+        const total = rows[0]?.total ?? 0;
         const results: SearchResult[] = rows.map((r) => {
           const bookInfo = getBook(r.book);
           return {

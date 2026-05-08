@@ -1,4 +1,3 @@
-// @effect-diagnostics strictBooleanExpressions:off
 /**
  * EGW Paragraph Database Service using SQLite
  *
@@ -21,17 +20,7 @@
 
 import type { PlatformError } from 'effect/PlatformError';
 import { Database } from 'bun:sqlite';
-import {
-  Config,
-  ServiceMap,
-  Effect,
-  FileSystem,
-  Layer,
-  Option,
-  Path,
-  Schema,
-  Stream,
-} from 'effect';
+import { Config, Context, Effect, FileSystem, Layer, Option, Path, Schema, Stream } from 'effect';
 
 import * as EGWSchemas from '../egw/schemas.js';
 import { isChapterHeading } from '../egw/parse.js';
@@ -278,7 +267,7 @@ export interface EGWParagraphDatabaseService {
 /**
  * EGW Paragraph Database Service
  */
-export class EGWParagraphDatabase extends ServiceMap.Service<
+export class EGWParagraphDatabase extends Context.Service<
   EGWParagraphDatabase,
   EGWParagraphDatabaseService
 >()('@bible/core/egw-db/book-database/EGWParagraphDatabase') {
@@ -297,7 +286,7 @@ export class EGWParagraphDatabase extends ServiceMap.Service<
       const path = yield* Path.Path;
 
       // Get database file path from config or use default (~/.bible/egw-paragraphs.db)
-      const homeDir = process.env.HOME ?? process.env.USERPROFILE ?? '.';
+      const homeDir = process.env['HOME'] ?? process.env['USERPROFILE'] ?? '.';
       const defaultDbPath = path.join(homeDir, '.bible', 'egw-paragraphs.db');
 
       const dbFile = yield* Config.string('EGW_PARAGRAPH_DB').pipe(

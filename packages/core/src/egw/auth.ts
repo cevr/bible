@@ -1,4 +1,3 @@
-// @effect-diagnostics strictBooleanExpressions:off
 /**
  * EGW Authentication Service using Effect-TS
  * Adapted from Spotify auth patterns with Effect-TS
@@ -16,7 +15,7 @@ import type { PlatformError } from 'effect/PlatformError';
 import {
   Clock,
   Config,
-  ServiceMap,
+  Context,
   Duration,
   Effect,
   FileSystem,
@@ -101,7 +100,7 @@ export interface EGWAuthService {
 /**
  * EGW Authentication Service
  */
-export class EGWAuth extends ServiceMap.Service<EGWAuth, EGWAuthService>()(
+export class EGWAuth extends Context.Service<EGWAuth, EGWAuthService>()(
   '@bible/core/egw/auth/EGWAuth',
 ) {
   /**
@@ -122,21 +121,21 @@ export class EGWAuth extends ServiceMap.Service<EGWAuth, EGWAuthService>()(
       // these to literal strings at compile time, so the binary carries the
       // EGW credentials without needing the runtime to find a .env file.
       const authBaseUrl = yield* Config.string('EGW_AUTH_BASE_URL').pipe(
-        Config.withDefault(process.env.EGW_AUTH_BASE_URL ?? 'https://cpanel.egwwritings.org'),
+        Config.withDefault(process.env['EGW_AUTH_BASE_URL'] ?? 'https://cpanel.egwwritings.org'),
       );
       const clientId = yield* Config.string('EGW_CLIENT_ID').pipe(
-        Config.withDefault(process.env.EGW_CLIENT_ID ?? ''),
+        Config.withDefault(process.env['EGW_CLIENT_ID'] ?? ''),
       );
       const clientSecret = yield* Config.redacted('EGW_CLIENT_SECRET').pipe(
-        Config.withDefault(Redacted.make(process.env.EGW_CLIENT_SECRET ?? '')),
+        Config.withDefault(Redacted.make(process.env['EGW_CLIENT_SECRET'] ?? '')),
       );
       const scope = yield* Config.string('EGW_SCOPE').pipe(
         Config.withDefault(
-          process.env.EGW_SCOPE ?? 'writings search studycenter subscriptions user_info',
+          process.env['EGW_SCOPE'] ?? 'writings search studycenter subscriptions user_info',
         ),
       );
       const tokenFile = yield* Config.string('EGW_TOKEN_FILE').pipe(
-        Config.withDefault(process.env.EGW_TOKEN_FILE ?? 'data/tokens.json'),
+        Config.withDefault(process.env['EGW_TOKEN_FILE'] ?? 'data/tokens.json'),
       );
 
       if (!clientId || !Redacted.value(clientSecret)) {
@@ -191,7 +190,8 @@ export class EGWAuth extends ServiceMap.Service<EGWAuth, EGWAuthService>()(
           expiresAt: token.expiresAt,
           scope: token.scope,
         };
-        yield* fs.writeFileString(tokenFilePath, JSON.stringify(persisted));
+        const json = yield* Schema.encodeEffect(Schema.fromJsonString(PersistedToken))(persisted);
+        yield* fs.writeFileString(tokenFilePath, json);
       });
 
       const httpClient = (yield* HttpClient.HttpClient).pipe(
@@ -244,7 +244,7 @@ export class EGWAuth extends ServiceMap.Service<EGWAuth, EGWAuthService>()(
         HttpClient.tapError((error) =>
           Effect.gen(function* () {
             const request = 'request' in error ? error.request : undefined;
-            yield* Effect.logError(`✗ res ${request?.method} ${request?.url}`, String(error));
+            yield* Effect.logError(`✗ res ${request?.method} ${request?.url}`, error);
           }),
         ),
         HttpClient.filterStatusOk,

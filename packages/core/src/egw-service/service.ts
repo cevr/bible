@@ -1,4 +1,3 @@
-// @effect-diagnostics strictBooleanExpressions:off
 /**
  * EGW Service - Unified EGW writings access
  *
@@ -6,7 +5,7 @@
  * Used by both TUI (via RPC) and web (via HttpApi) clients.
  */
 
-import { ServiceMap, Effect, Layer, Option, Schema, Stream } from 'effect';
+import { Context, Effect, Layer, Option, Schema, Stream } from 'effect';
 
 import { EGWParagraphDatabase, type ParagraphDatabaseError } from '../egw-db/book-database.js';
 import { isChapterHeading as isChapterHeadingType } from '../egw/parse.js';
@@ -157,7 +156,7 @@ export interface EGWServiceShape {
 // Service Definition
 // ============================================================================
 
-export class EGWService extends ServiceMap.Service<EGWService, EGWServiceShape>()(
+export class EGWService extends Context.Service<EGWService, EGWServiceShape>()(
   '@bible/core/egw-service/service/EGWService',
 ) {
   /**

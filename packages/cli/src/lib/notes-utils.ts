@@ -2,6 +2,13 @@ import Bun from 'bun';
 import { Data, Effect, Option } from 'effect';
 
 // --- Helper Function: Execute AppleScript Command ---
+class AppleScriptExecError extends Data.TaggedError(
+  '@bible/cli/lib/notes-utils/AppleScriptExecError',
+)<{
+  message: string;
+  cause?: unknown;
+}> {}
+
 const execCommand = Effect.fn('execCommand')(function* (command: string[]) {
   return yield* Effect.tryPromise({
     try: async () => {
@@ -9,11 +16,17 @@ const execCommand = Effect.fn('execCommand')(function* (command: string[]) {
       const text = await new Response(child.stdout).text();
       const errorText = await new Response(child.stderr).text();
       if (errorText.length > 0) {
-        throw new Error(`AppleScript Error: ${errorText}`);
+        throw new AppleScriptExecError({
+          message: `AppleScript Error: ${errorText}`,
+        });
       }
       return text.trim();
     },
-    catch: (error) => error as Error,
+    catch: (cause) =>
+      new AppleScriptExecError({
+        message: 'AppleScript execution failed',
+        cause,
+      }),
   });
 });
 
@@ -71,18 +84,18 @@ export const listNotes = Effect.fn('listNotes')(function* () {
   `;
 
   const rawOutput = yield* execCommand(['osascript', '-e', script]).pipe(
-    Effect.catch((error) =>
-      Effect.fail(
+    Effect.mapError(
+      (error) =>
         new NoteOperationError({
           message: 'Failed to execute listNotes AppleScript',
           cause: error,
           script,
         }),
-      ),
     ),
   );
 
   yield* Effect.log('📊 Parsing note list...');
+  const malformed: string[] = [];
   const notes: NoteListItem[] = rawOutput
     .split('\n') // Split into lines, one per note
     .filter((line) => line.trim() !== '') // Remove empty lines
@@ -90,7 +103,7 @@ export const listNotes = Effect.fn('listNotes')(function* () {
       const parts = line.split('|'); // Split by the delimiter
       if (parts.length !== 4) {
         // Handle potential parsing errors or unexpected format
-        console.warn(`Skipping malformed line: ${line}`);
+        malformed.push(line);
         return null;
       }
       return {
@@ -101,6 +114,12 @@ export const listNotes = Effect.fn('listNotes')(function* () {
       };
     })
     .filter((note): note is NoteListItem => note !== null); // Filter out nulls from malformed lines
+
+  if (malformed.length > 0) {
+    yield* Effect.logWarning(
+      `Skipped ${malformed.length} malformed lines: ${malformed.join('; ')}`,
+    );
+  }
 
   yield* Effect.log(`✅ Found ${notes.length} notes.`);
   return notes;
@@ -125,14 +144,13 @@ export const getNoteContent = Effect.fn('getNoteContent')(function* (noteId: str
   `;
 
   const content = yield* execCommand(['osascript', '-e', script]).pipe(
-    Effect.catch((error) =>
-      Effect.fail(
+    Effect.mapError(
+      (error) =>
         new NoteOperationError({
           message: `Failed to execute getNoteContent AppleScript for ID ${noteId}`,
           cause: error,
           script,
         }),
-      ),
     ),
   );
 
@@ -175,14 +193,13 @@ export const updateNoteContent = Effect.fn('updateNoteContent')(function* (
   `;
 
   const result = yield* execCommand(['osascript', '-e', script]).pipe(
-    Effect.catch((error) =>
-      Effect.fail(
+    Effect.mapError(
+      (error) =>
         new NoteOperationError({
           message: `Failed to execute updateNoteContent AppleScript for ID ${noteId}`,
           cause: error,
           script,
         }),
-      ),
     ),
   );
 
@@ -217,14 +234,13 @@ export const deleteNote = Effect.fn('deleteNote')(function* (noteId: string) {
   `;
 
   const result = yield* execCommand(['osascript', '-e', script]).pipe(
-    Effect.catch((error) =>
-      Effect.fail(
+    Effect.mapError(
+      (error) =>
         new NoteOperationError({
           message: `Failed to execute deleteNote AppleScript for ID ${noteId}`,
           cause: error,
           script,
         }),
-      ),
     ),
   );
 
@@ -266,14 +282,13 @@ export const createNote = Effect.fn('createNote')(function* (title: string, body
   `;
 
   const newNoteId = yield* execCommand(['osascript', '-e', script]).pipe(
-    Effect.catch((error) =>
-      Effect.fail(
+    Effect.mapError(
+      (error) =>
         new NoteOperationError({
           message: 'Failed to execute createNote AppleScript',
           cause: error,
           script,
         }),
-      ),
     ),
   );
 
@@ -332,14 +347,13 @@ export const findNoteByTitle = Effect.fn('findNoteByTitle')(function* (
   `;
 
   const result = yield* execCommand(['osascript', '-e', script]).pipe(
-    Effect.catch((error) =>
-      Effect.fail(
+    Effect.mapError(
+      (error) =>
         new NoteOperationError({
           message: `Failed to execute findNoteByTitle AppleScript for "${title}"`,
           cause: error,
           script,
         }),
-      ),
     ),
   );
 

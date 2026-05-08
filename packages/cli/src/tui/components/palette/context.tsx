@@ -1,4 +1,3 @@
-// @effect-diagnostics strictBooleanExpressions:off
 import { matchSorter } from 'match-sorter';
 import {
   createContext,

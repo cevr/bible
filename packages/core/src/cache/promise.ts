@@ -24,7 +24,7 @@ export interface PromiseWithStatus<T> extends Promise<T> {
   value?: T;
   reason?: unknown;
   // Solid.js compatibility
-  v?: T | unknown; // value or error
+  v?: unknown; // value or error
   s?: 1 | 2; // 1=fulfilled, 2=rejected
 }
 

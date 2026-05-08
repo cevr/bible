@@ -5,7 +5,7 @@
  * Uses SQLite for fast lookups and FTS5 for full-text search.
  */
 import { BunServices } from '@effect/platform-bun';
-import { Effect, Layer, Option, ServiceMap } from 'effect';
+import { Effect, Layer, Option, Context } from 'effect';
 import { matchSorter } from 'match-sorter';
 
 import { BibleDatabase } from '@bible/core/bible-db';
@@ -37,7 +37,7 @@ export interface BibleDataService {
 }
 
 // Effect service tag
-export class BibleData extends ServiceMap.Service<BibleData, BibleDataService>()(
+export class BibleData extends Context.Service<BibleData, BibleDataService>()(
   '@bible/cli/data/bible/data/BibleData',
 ) {}
 

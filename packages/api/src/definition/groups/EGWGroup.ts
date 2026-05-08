@@ -8,7 +8,7 @@
  * - Searching paragraphs
  */
 import { HttpApiEndpoint, HttpApiGroup } from 'effect/unstable/httpapi';
-import { Schema as S } from 'effect';
+import { Effect, Schema as S } from 'effect';
 
 // ============================================================================
 // Schemas
@@ -166,7 +166,7 @@ export const EGWGroup = HttpApiGroup.make('EGW')
       query: {
         q: S.String,
         bookCode: S.optional(S.String),
-        limit: S.optional(S.NumberFromString).pipe(S.withDecodingDefault(() => '50')),
+        limit: S.optional(S.NumberFromString).pipe(S.withDecodingDefault(Effect.succeed('50'))),
       },
       success: S.Array(EGWSearchResultSchema),
       error: [EGWDatabaseError],

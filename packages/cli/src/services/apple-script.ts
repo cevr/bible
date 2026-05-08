@@ -1,5 +1,5 @@
 import Bun from 'bun';
-import { Effect, Layer, ServiceMap } from 'effect';
+import { Effect, Layer, Context } from 'effect';
 import type { Cause } from 'effect';
 
 /**
@@ -14,7 +14,7 @@ export interface AppleScriptService {
   readonly exec: (script: string) => Effect.Effect<string, Cause.UnknownError>;
 }
 
-export class AppleScript extends ServiceMap.Service<AppleScript, AppleScriptService>()(
+export class AppleScript extends Context.Service<AppleScript, AppleScriptService>()(
   '@bible/cli/services/apple-script/AppleScript',
 ) {}
 

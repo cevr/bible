@@ -1,4 +1,3 @@
-// @effect-diagnostics strictEffectProvide:off strictBooleanExpressions:off
 /**
  * Bible Tools CLI Entry Point
  *
@@ -104,7 +103,7 @@ function tryCreateModelService(aiSdk: Awaited<ReturnType<typeof loadAiSdks>>): M
   const { createGoogleGenerativeAI, createOpenAI, createAnthropic } = aiSdk;
 
   // Try Gemini first
-  const geminiKey = process.env.GEMINI_API_KEY;
+  const geminiKey = process.env['GEMINI_API_KEY'];
   if (geminiKey !== undefined) {
     const provider = createGoogleGenerativeAI({ apiKey: geminiKey });
     return {
@@ -116,7 +115,7 @@ function tryCreateModelService(aiSdk: Awaited<ReturnType<typeof loadAiSdks>>): M
   }
 
   // Try OpenAI
-  const openaiKey = process.env.OPENAI_API_KEY;
+  const openaiKey = process.env['OPENAI_API_KEY'];
   if (openaiKey !== undefined) {
     const provider = createOpenAI({ apiKey: openaiKey });
     return {
@@ -128,7 +127,7 @@ function tryCreateModelService(aiSdk: Awaited<ReturnType<typeof loadAiSdks>>): M
   }
 
   // Try Anthropic
-  const anthropicKey = process.env.ANTHROPIC_API_KEY;
+  const anthropicKey = process.env['ANTHROPIC_API_KEY'];
   if (anthropicKey !== undefined) {
     const provider = createAnthropic({ apiKey: anthropicKey });
     return {

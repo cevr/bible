@@ -1,5 +1,4 @@
-// @effect-diagnostics strictBooleanExpressions:off
-import { ServiceMap, Effect, Layer, Schema } from 'effect';
+import { Context, Effect, Layer, Schema } from 'effect';
 
 /**
  * Error thrown when an export operation fails.
@@ -47,13 +46,13 @@ export interface ExportAdapterService {
 /**
  * Adapter for exporting content to various destinations.
  */
-export class ExportAdapter extends ServiceMap.Service<ExportAdapter, ExportAdapterService>()(
+export class ExportAdapter extends Context.Service<ExportAdapter, ExportAdapterService>()(
   '@bible/core/adapters/export/ExportAdapter',
 ) {
   /**
    * Test implementation that captures exports.
    */
-  static Test = (
+  static layerTest = (
     onExport?: (content: string, title: string, options?: ExportOptions) => void,
   ): Layer.Layer<ExportAdapter> =>
     Layer.succeed(ExportAdapter, {

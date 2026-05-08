@@ -13,7 +13,6 @@
  *   bible egw open "PP 351.1"        - Open the TUI at a refcode (handled in main.ts)
  */
 
-import type { Schemas as EGWSchemas } from '@bible/core/egw';
 import {
   formatEGWRef,
   isSearchQuery,
@@ -22,6 +21,7 @@ import {
   EGWAuth,
   type EGWParsedRef,
   type EGWSearchQuery,
+  type Schemas as EGWSchemas,
 } from '@bible/core/egw';
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
 import { EGWService, type EGWSearchResult } from '@bible/core/egw-service';

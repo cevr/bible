@@ -1,4 +1,3 @@
-// @effect-diagnostics strictBooleanExpressions:off
 /**
  * Structural Analysis Service
  *
@@ -6,7 +5,7 @@
  * to gather passage-level data for structural analysis. No AI — pure data operations.
  */
 
-import { ServiceMap, Effect, Layer, Option } from 'effect';
+import { Context, Effect, Layer, Option } from 'effect';
 
 import { BibleDatabase } from '../bible-db/bible-database.js';
 import type {
@@ -80,7 +79,7 @@ export interface StructuralAnalysisShape {
 // Service Definition
 // ============================================================================
 
-export class StructuralAnalysis extends ServiceMap.Service<
+export class StructuralAnalysis extends Context.Service<
   StructuralAnalysis,
   StructuralAnalysisShape
 >()('@bible/core/structural-analysis/service/StructuralAnalysis') {

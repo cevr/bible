@@ -1,11 +1,11 @@
 import { Flag } from 'effect/unstable/cli';
-import { ServiceMap } from 'effect';
+import { Context } from 'effect';
 
 export interface CliOptionsService {
   readonly verbose: boolean;
 }
 
-export class CliOptions extends ServiceMap.Service<CliOptions, CliOptionsService>()(
+export class CliOptions extends Context.Service<CliOptions, CliOptionsService>()(
   '@bible/cli/services/cli-options/CliOptions',
 ) {}
 

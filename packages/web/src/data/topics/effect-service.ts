@@ -1,4 +1,4 @@
-import { Effect, Layer, ServiceMap } from 'effect';
+import { Effect, Layer, Context } from 'effect';
 import { DbClientService } from '../db-client-service';
 import type { DatabaseQueryError } from '../errors';
 import type { Topic, TopicVerse } from './types';
@@ -33,7 +33,7 @@ interface WebTopicServiceShape {
   readonly getTopicsByLetter: (letter: string) => Effect.Effect<Topic[], DatabaseQueryError>;
 }
 
-export class WebTopicService extends ServiceMap.Service<WebTopicService, WebTopicServiceShape>()(
+export class WebTopicService extends Context.Service<WebTopicService, WebTopicServiceShape>()(
   '@bible-web/TopicService',
 ) {
   static Live = Layer.effect(
@@ -61,7 +61,8 @@ export class WebTopicService extends ServiceMap.Service<WebTopicService, WebTopi
           'SELECT id, name, parent_id, description FROM topics WHERE id = ? LIMIT 1',
           [id],
         );
-        return rows.length > 0 ? mapTopic(rows[0]) : null;
+        const firstRow = rows[0];
+        return firstRow ? mapTopic(firstRow) : null;
       });
 
       const getTopicVerses = Effect.fn('WebTopicService.getTopicVerses')(function* (id: number) {

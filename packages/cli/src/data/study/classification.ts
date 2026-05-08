@@ -1,4 +1,3 @@
-// @effect-diagnostics strictBooleanExpressions:off strictEffectProvide:off
 import type { LanguageModel } from 'ai';
 import { BibleDatabase, type CrossReference } from '@bible/core/bible-db';
 import { BunServices } from '@effect/platform-bun';

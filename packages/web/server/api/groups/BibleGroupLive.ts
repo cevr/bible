@@ -30,25 +30,21 @@ export const BibleGroupLive = HttpApiBuilder.group(BibleToolsApi, 'Bible', (hand
           // Get book info
           const bookInfo = yield* bible.getBook(book).pipe(mapDbError);
           if (Option.isNone(bookInfo)) {
-            return yield* Effect.fail(
-              new BookNotFoundError({
-                book,
-                message: `Book ${book} not found`,
-              }),
-            );
+            return yield* new BookNotFoundError({
+              book,
+              message: `Book ${book} not found`,
+            });
           }
 
           // Get chapter with navigation
           const chapterData = yield* bible.getChapter(book, chapter).pipe(mapDbError);
 
           if (chapterData.verses.length === 0) {
-            return yield* Effect.fail(
-              new ChapterNotFoundError({
-                book,
-                chapter,
-                message: `Chapter ${book}:${chapter} not found`,
-              }),
-            );
+            return yield* new ChapterNotFoundError({
+              book,
+              chapter,
+              message: `Chapter ${book}:${chapter} not found`,
+            });
           }
 
           return {

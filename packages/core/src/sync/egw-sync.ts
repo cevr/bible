@@ -126,7 +126,9 @@ export const downloadBookToLocal = (
     // Fetch table of contents
     const tocResult = yield* egwClient.getBookToc(book.book_id).pipe(
       Effect.map((toc) => ({ ok: true as const, toc })),
-      Effect.catch((error) => Effect.succeed({ ok: false as const, error: String(error) })),
+      Effect.catch((error) =>
+        Effect.succeed({ ok: false as const, error: error._tag ?? 'UnknownError' }),
+      ),
     );
 
     if (!tocResult.ok) {
@@ -169,7 +171,7 @@ export const downloadBookToLocal = (
               Effect.gen(function* () {
                 yield* Ref.update(chapterErrorsRef, (errs) => [
                   ...errs,
-                  `ch${chapterId}: ${String(error)}`,
+                  `ch${chapterId}: ${error._tag ?? 'UnknownError'}`,
                 ]);
                 return [] as EGWSchemas.Paragraph[];
               }),
@@ -197,7 +199,7 @@ export const downloadBookToLocal = (
       Effect.catch((error) =>
         Effect.succeed({
           success: false as const,
-          error: `Batch insert failed: ${error._tag ?? 'Unknown'} - ${String(error.cause ?? error)}`,
+          error: `Batch insert failed: ${error._tag ?? 'Unknown'}`,
         }),
       ),
     );

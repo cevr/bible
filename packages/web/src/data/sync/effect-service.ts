@@ -1,4 +1,4 @@
-import { Effect, Layer, Ref, ServiceMap } from 'effect';
+import { Effect, Layer, Ref, Context } from 'effect';
 import { DbClientService } from '../db-client-service';
 import type { DatabaseQueryError, WorkerError } from '../errors';
 import { SyncError } from '../errors';
@@ -9,7 +9,7 @@ interface WebSyncServiceShape {
   readonly syncNow: () => Effect.Effect<void, DatabaseQueryError | WorkerError | SyncError>;
 }
 
-export class WebSyncService extends ServiceMap.Service<WebSyncService, WebSyncServiceShape>()(
+export class WebSyncService extends Context.Service<WebSyncService, WebSyncServiceShape>()(
   '@bible-web/Sync',
 ) {
   static Live = Layer.effect(
@@ -31,8 +31,9 @@ export class WebSyncService extends ServiceMap.Service<WebSyncService, WebSyncSe
           'SELECT device_id FROM sync_meta WHERE id = 1',
         );
 
-        if (rows.length > 0) {
-          const id = rows[0].device_id;
+        const firstRow = rows[0];
+        if (firstRow !== undefined) {
+          const id = firstRow.device_id;
           yield* Ref.set(deviceIdRef, id);
           return id;
         }
@@ -43,7 +44,7 @@ export class WebSyncService extends ServiceMap.Service<WebSyncService, WebSyncSe
         return id;
       });
 
-      const doSync: Effect.Effect<void, never> = Effect.gen(function* () {
+      const doSync: Effect.Effect<void> = Effect.gen(function* () {
         const isSyncing = yield* Ref.get(syncingRef);
         if (isSyncing) return;
 

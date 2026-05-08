@@ -1,4 +1,3 @@
-// @effect-diagnostics strictBooleanExpressions:off strictEffectProvide:off
 /**
  * Cross-References Popup
  *
@@ -115,8 +114,8 @@ export function CrossRefsPopup(props: CrossRefsPopupProps) {
   });
 
   // Get preview text for each reference
-  const refsWithPreviews = createMemo(() => {
-    return crossRefs().map((ref) => {
+  const refsWithPreviews = createMemo(() =>
+    crossRefs().map((ref) => {
       let preview = ref.previewText ?? '';
       if (preview === '') {
         const verse = data.getVerse(ref.book, ref.chapter, ref.verse ?? 1);
@@ -129,8 +128,8 @@ export function CrossRefsPopup(props: CrossRefsPopupProps) {
         }
       }
       return { ref, preview };
-    });
-  });
+    }),
+  );
 
   // Derived structure data for rendering
   const structureWords = createMemo((): readonly WordFrequencyEntry[] => {

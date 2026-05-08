@@ -16,8 +16,8 @@ describe('notes commands', () => {
 
       const result = await runCli(notes, ['list'], {
         appleScript: {
-          appleScriptSuccess: true,
-          appleScriptResponse: mockNotesResponse,
+          success: true,
+          response: mockNotesResponse,
         },
       });
 
@@ -30,8 +30,8 @@ describe('notes commands', () => {
 
       const result = await runCli(notes, ['list', '--json'], {
         appleScript: {
-          appleScriptSuccess: true,
-          appleScriptResponse: mockNotesResponse,
+          success: true,
+          response: mockNotesResponse,
         },
       });
 
@@ -42,8 +42,8 @@ describe('notes commands', () => {
     it.skip('should handle empty notes list', async () => {
       const result = await runCli(notes, ['list'], {
         appleScript: {
-          appleScriptSuccess: true,
-          appleScriptResponse: '',
+          success: true,
+          response: '',
         },
       });
 
@@ -62,8 +62,8 @@ describe('notes commands', () => {
           },
         },
         appleScript: {
-          appleScriptSuccess: true,
-          appleScriptResponse: 'note-id-new-123',
+          success: true,
+          response: 'note-id-new-123',
         },
       });
 
@@ -84,8 +84,8 @@ describe('notes commands', () => {
             },
           },
           appleScript: {
-            appleScriptSuccess: true,
-            appleScriptResponse: 'note-id-folder-123',
+            success: true,
+            response: 'note-id-folder-123',
           },
         },
       );
@@ -107,8 +107,8 @@ describe('notes commands', () => {
             },
           },
           appleScript: {
-            appleScriptSuccess: true,
-            appleScriptResponse: 'Success',
+            success: true,
+            response: 'Success',
           },
         },
       );
@@ -123,8 +123,8 @@ describe('notes commands', () => {
           files: {},
         },
         appleScript: {
-          appleScriptSuccess: true,
-          appleScriptResponse: 'note-id-123',
+          success: true,
+          response: 'note-id-123',
         },
       });
 
@@ -141,8 +141,8 @@ describe('notes commands', () => {
           },
         },
         appleScript: {
-          appleScriptSuccess: false,
-          appleScriptResponse: 'Error: Permission denied',
+          success: false,
+          response: 'Error: Permission denied',
         },
       });
 
@@ -182,8 +182,8 @@ Body.`;
             },
           },
           appleScript: {
-            appleScriptSuccess: true,
-            appleScriptResponse: 'Success',
+            success: true,
+            response: 'Success',
           },
         },
       );
@@ -204,8 +204,8 @@ Body.`;
             },
           },
           appleScript: {
-            appleScriptSuccess: true,
-            appleScriptResponse: 'Success',
+            success: true,
+            response: 'Success',
           },
         },
       );
@@ -227,8 +227,8 @@ Body.`;
             },
           },
           appleScript: {
-            appleScriptSuccess: true,
-            appleScriptResponse: 'Success',
+            success: true,
+            response: 'Success',
           },
         },
       );

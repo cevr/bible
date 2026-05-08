@@ -1,4 +1,3 @@
-// @effect-diagnostics strictBooleanExpressions:off
 /**
  * Gemini File Search API Client using Effect-TS
  * Based on https://www.philschmid.de/gemini-file-search-javascript
@@ -15,7 +14,7 @@ import type {
 } from '@google/genai';
 import {
   Config,
-  ServiceMap,
+  Context,
   Duration,
   Effect,
   Layer,
@@ -135,7 +134,7 @@ export interface GeminiFileSearchClientService {
 /**
  * Gemini File Search Client Service
  */
-export class GeminiFileSearchClient extends ServiceMap.Service<
+export class GeminiFileSearchClient extends Context.Service<
   GeminiFileSearchClient,
   GeminiFileSearchClientService
 >()('@bible/core/gemini/client/GeminiFileSearchClient') {
@@ -147,8 +146,8 @@ export class GeminiFileSearchClient extends ServiceMap.Service<
     Effect.gen(function* () {
       const apiKey = yield* Config.redacted('GOOGLE_AI_API_KEY').pipe(
         Config.withDefault(
-          process.env.GOOGLE_AI_API_KEY
-            ? Redacted.make(process.env.GOOGLE_AI_API_KEY)
+          process.env['GOOGLE_AI_API_KEY']
+            ? Redacted.make(process.env['GOOGLE_AI_API_KEY'])
             : Redacted.make(''),
         ),
       );
@@ -162,9 +161,7 @@ export class GeminiFileSearchClient extends ServiceMap.Service<
        * Maximum 3 retries (1 initial attempt + 2 retries)
        * Exponential delays: 100ms, 200ms, 400ms
        */
-      const retrySchedule = Schedule.exponential(Duration.millis(100)).pipe(
-        Schedule.compose(Schedule.recurs(2)),
-      );
+      const retrySchedule = Schedule.exponential(Duration.millis(100)).pipe(Schedule.take(2));
 
       const pollOperation = (
         operation: UploadOperation,
@@ -181,10 +178,11 @@ export class GeminiFileSearchClient extends ServiceMap.Service<
                 'code' in operation.error &&
                 'message' in operation.error
                   ? {
-                      code: typeof operation.error.code === 'number' ? operation.error.code : 0,
+                      code:
+                        typeof operation.error['code'] === 'number' ? operation.error['code'] : 0,
                       message:
-                        typeof operation.error.message === 'string'
-                          ? operation.error.message
+                        typeof operation.error['message'] === 'string'
+                          ? operation.error['message']
                           : 'Unknown error',
                     }
                   : undefined,
@@ -390,7 +388,7 @@ export class GeminiFileSearchClient extends ServiceMap.Service<
                     ]
                   : [content as BlobPart];
 
-            const file = new File(fileParts as BlobPart[], config.displayName || 'document.txt', {
+            const file = new File(fileParts, config.displayName || 'document.txt', {
               type: 'text/plain',
             });
 
@@ -495,13 +493,13 @@ export class GeminiFileSearchClient extends ServiceMap.Service<
                                 string,
                                 unknown
                               >
-                            ).score as number | undefined,
+                            )['score'] as number | undefined,
                             chunk: (
                               candidate.groundingMetadata.retrievalMetadata as Record<
                                 string,
                                 unknown
                               >
-                            ).chunk as string | undefined,
+                            )['chunk'] as string | undefined,
                           }
                         : undefined,
                     }

@@ -26,8 +26,7 @@
     "./structural-analysis": "./src/structural-analysis/index.ts"
   },
   "scripts": {
-    "prepare": "effect-language-service patch",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsgo --noEmit",
     "test": "bun test",
     "test:watch": "bun test --watch",
     "sync:egw": "bun run src/sync/cli.ts",
@@ -43,16 +42,13 @@
     "@ai-sdk/openai": "^3.0.28",
     "@effect/platform-bun": "catalog:",
     "@google/genai": "^1.41.0",
-    "ai": "catalog:",
+    "ai": "^6.0.84",
     "cheerio": "^1.2.0",
     "effect": "catalog:",
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@effect/language-service": "catalog:",
     "@effect/vitest": "^0.27.0",
-    "@types/bun": "catalog:",
-    "typescript": "catalog:",
     "vitest": "^4.0.18"
   }
 }

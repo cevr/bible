@@ -1,4 +1,3 @@
-// @effect-diagnostics strictBooleanExpressions:off
 import { createMemo, For } from 'solid-js';
 
 import type { Verse as VerseType } from '../../../data/bible/types.js';

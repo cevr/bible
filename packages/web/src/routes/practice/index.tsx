@@ -206,7 +206,10 @@ function RevealMode({ verse, onBack }: { verse: MemoryVerse; onBack: () => void 
     const seed = verse.id.charCodeAt(0) + verse.id.charCodeAt(1);
     for (let i = indices.length - 1; i > 0; i--) {
       const j = ((seed * (i + 1) * 2654435761) >>> 0) % (i + 1);
-      [indices[i], indices[j]] = [indices[j], indices[i]];
+      const a = indices[i] ?? 0;
+      const b = indices[j] ?? 0;
+      indices[i] = b;
+      indices[j] = a;
     }
     return new Set(indices.slice(0, hiddenCount));
   }, [words.length, hiddenCount, verse.id]);

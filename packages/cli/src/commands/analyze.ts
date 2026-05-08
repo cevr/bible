@@ -1,4 +1,3 @@
-// @effect-diagnostics strictEffectProvide:off
 import { BunServices } from '@effect/platform-bun';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
 import { BibleDatabase } from '@bible/core/bible-db';
@@ -177,7 +176,7 @@ export const analyze = Command.make('analyze', { passage, depth, model: required
     // Deep mode: gather contextual data via StructuralAnalysis service
     if (args.depth === 'deep') {
       const data = yield* BibleData;
-      const services = yield* Effect.services();
+      const services = yield* Effect.context();
       const runSync = Effect.runSyncWith(services);
 
       const syncData: BibleDataSyncService = {
@@ -239,7 +238,7 @@ export const analyze = Command.make('analyze', { passage, depth, model: required
     const frontmatter = new AnalyzeFrontmatter({
       created_at: new Date().toISOString(),
       passage: passageStr,
-      depth: args.depth as 'shallow' | 'deep',
+      depth: args.depth,
       apple_note_id: Option.none(),
     });
 

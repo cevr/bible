@@ -157,7 +157,7 @@ function executeHymnalTool(input: HymnalToolInput): Effect.Effect<string, never,
       }
 
       default:
-        return `Unknown action: ${input.action}`;
+        return `Unknown action`;
     }
   });
 }

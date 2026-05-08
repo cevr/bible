@@ -1,5 +1,5 @@
 import { $ } from 'bun';
-import { Effect, Layer, ServiceMap } from 'effect';
+import { Effect, Layer, Context } from 'effect';
 import type { Cause } from 'effect';
 import { join } from 'path';
 
@@ -15,7 +15,7 @@ export interface ChimeService {
   readonly play: Effect.Effect<void, Cause.UnknownError>;
 }
 
-export class Chime extends ServiceMap.Service<Chime, ChimeService>()('@bible/cli/services/chime') {}
+export class Chime extends Context.Service<Chime, ChimeService>()('@bible/cli/services/chime') {}
 
 /**
  * Live implementation using Bun shell to call afplay.

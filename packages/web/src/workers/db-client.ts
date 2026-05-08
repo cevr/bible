@@ -6,7 +6,7 @@
  */
 import type { WorkerRequest, WorkerResponse } from './db-protocol.js';
 
-const log = import.meta.env.DEV ? (...args: unknown[]) => console.log(...args) : () => {};
+const log = import.meta.env['DEV'] ? (...args: unknown[]) => console.log(...args) : () => {};
 
 export interface EgwSyncStatus {
   bookCode: string;

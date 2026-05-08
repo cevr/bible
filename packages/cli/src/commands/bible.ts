@@ -1,4 +1,3 @@
-// @effect-diagnostics strictEffectProvide:off
 import { BunServices } from '@effect/platform-bun';
 import { Argument, Command } from 'effect/unstable/cli';
 import { BibleDatabase, type ConcordanceResult, type StrongsEntry } from '@bible/core/bible-db';
@@ -44,7 +43,7 @@ export const verse = Command.make('verse', { query }, (args) =>
   Effect.gen(function* () {
     const data = yield* BibleData;
     const queryStr = args.query.join(' ').trim();
-    const services = yield* Effect.services();
+    const services = yield* Effect.context();
     const runSync = Effect.runSyncWith(services);
 
     if (queryStr.length === 0) {

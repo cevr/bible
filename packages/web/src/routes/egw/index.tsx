@@ -106,7 +106,7 @@ class EgwErrorBoundary extends Component<
   { fallback: (error: Error, reset: () => void) => ReactNode; children: ReactNode },
   { error: Error | null }
 > {
-  state: { error: Error | null } = { error: null };
+  override state: { error: Error | null } = { error: null };
 
   static getDerivedStateFromError(error: Error) {
     return { error };
@@ -114,7 +114,7 @@ class EgwErrorBoundary extends Component<
 
   reset = () => this.setState({ error: null });
 
-  render() {
+  override render() {
     if (this.state.error) {
       return this.props.fallback(this.state.error, this.reset);
     }

@@ -1,4 +1,4 @@
-import { Effect, Layer, ServiceMap } from 'effect';
+import { Effect, Layer, Context } from 'effect';
 import { getDbClient, type DbClient } from '@/workers/db-client';
 import { DatabaseQueryError, WorkerError } from './errors';
 
@@ -21,7 +21,7 @@ interface DbClientServiceShape {
   readonly raw: DbClient;
 }
 
-export class DbClientService extends ServiceMap.Service<DbClientService, DbClientServiceShape>()(
+export class DbClientService extends Context.Service<DbClientService, DbClientServiceShape>()(
   '@bible-web/DbClient',
 ) {
   static Live = Layer.sync(DbClientService, () => {

@@ -1,4 +1,3 @@
-// @effect-diagnostics strictBooleanExpressions:off anyUnknownInErrorContext:off
 /**
  * Study Data Context
  *
@@ -179,7 +178,7 @@ interface StudyDataContextValue {
 const StudyDataContext = createContext<StudyDataContextValue>();
 
 // Initialize the database at module load time
-ensureInitialized();
+void ensureInitialized();
 
 export function StudyDataProvider(props: ParentProps) {
   // Lazy cross-ref service (needs BibleState from bible context)

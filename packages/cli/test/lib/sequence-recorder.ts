@@ -1,4 +1,4 @@
-import { Effect, Layer, Ref, ServiceMap } from 'effect';
+import { Effect, Layer, Ref, Context } from 'effect';
 
 /**
  * Types for recorded service calls.
@@ -15,6 +15,9 @@ export type ServiceCall =
   | { _tag: 'FileSystem.remove'; path: string }
   | { _tag: 'Model.generateText'; model: 'high' | 'low'; prompt: string }
   | { _tag: 'Model.generateObject'; model: 'high' | 'low'; prompt: string }
+  | { _tag: 'AI.generateText'; model: 'high' | 'low'; prompt: string }
+  | { _tag: 'AI.generateTextWithTools'; model: 'high' | 'low'; prompt: string }
+  | { _tag: 'AI.generateObject'; model: 'high' | 'low'; prompt: string }
   | { _tag: 'HTTP.fetch'; url: string }
   | { _tag: 'AppleScript.exec'; script: string }
   | { _tag: 'Console.log'; message: string }
@@ -24,7 +27,7 @@ export type ServiceCall =
  * Context tag for the call sequence Ref.
  * This is used to track all service calls made during a test.
  */
-export class CallSequence extends ServiceMap.Service<CallSequence, Ref.Ref<ServiceCall[]>>()(
+export class CallSequence extends Context.Service<CallSequence, Ref.Ref<ServiceCall[]>>()(
   'test/CallSequence',
 ) {}
 

@@ -1,5 +1,3 @@
-import path from 'path';
-
 import type { FileSystem } from 'effect';
 import { Layer, Path } from 'effect';
 
@@ -40,11 +38,7 @@ export interface TestLayerState {
   /** Call the cleanup function when done with the test */
   cleanup: () => void;
   /** The composed layer to provide to the CLI */
-  layer: Layer.Layer<
-    FileSystem.FileSystem | Path.Path | AI | AppleScript | Chime | CallSequence,
-    never,
-    never
-  >;
+  layer: Layer.Layer<FileSystem.FileSystem | Path.Path | AI | AppleScript | Chime | CallSequence>;
   /** Get all calls recorded (from services and external) */
   getAllCalls: () => ServiceCall[];
 }
@@ -82,25 +76,19 @@ export const createTestLayer = (config: TestLayerConfig = {}): TestLayerState =>
     cleanupFns.push(fetchResult.cleanup);
   }
 
-  // Create a mock Path layer (use real path implementation since it's pure computation)
-  const mockPath = Layer.succeed(Path.Path, {
-    ...path,
-    fromFileUrl: (url: URL | string) => {
-      const urlStr = typeof url === 'string' ? url : url.toString();
-      return urlStr.replace('file://', '');
-    },
-    toFileUrl: (p: string) => new URL(`file://${p}`),
-  } as Path.Path);
+  // Use the real Path layer (it's pure computation, no mocking needed)
+  const mockPath = Path.layer;
 
-  // Compose all layers
+  // Compose all layers; CallSequence is provided via provideMerge so it's both
+  // available to layers that depend on it (e.g. mockFs.layer) AND exposed in the
+  // composed layer's output (so getCallSequence can be yielded by tests).
   const composedLayer = Layer.mergeAll(
-    CallSequenceLayer,
     mockFs.layer,
     mockAI.layer,
     mockAppleScript,
     mockChime,
     mockPath,
-  );
+  ).pipe(Layer.provideMerge(CallSequenceLayer));
 
   return {
     layer: composedLayer,

@@ -131,7 +131,10 @@ export async function exportAllJsonFull(app: AppService, db: DbClient): Promise<
     collections.map((coll) => app.getCollectionVerses(coll.id)),
   );
   for (let i = 0; i < collections.length; i++) {
-    collectionData.push({ collection: collections[i], verses: collVersesAll[i] });
+    const coll = collections[i];
+    const verses = collVersesAll[i];
+    if (!coll || !verses) continue;
+    collectionData.push({ collection: coll, verses });
   }
 
   const backup: BackupData = {
@@ -163,7 +166,7 @@ export async function importFromJson(db: DbClient, blob: Blob): Promise<{ import
   const data = raw as BackupData;
 
   if (data.version !== 1) {
-    throw new Error(`Unsupported backup version: ${(raw as { version?: unknown }).version}`);
+    throw new Error(`Unsupported backup version: ${String((raw as { version?: unknown }).version)}`);
   }
 
   if (

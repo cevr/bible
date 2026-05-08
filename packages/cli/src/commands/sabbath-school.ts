@@ -364,17 +364,19 @@ const processQuarter = Command.make(
             Effect.gen(function* () {
               // Read existing frontmatter to preserve apple_note_id
               const outlinePath = getFilePath(year, quarter, urls.weekNumber);
-              const existingAppleNoteId: Option.Option<AppleNoteId> = yield* Effect.gen(
-                function* () {
-                  const exists = yield* fs.exists(outlinePath);
-                  if (!exists) return Option.none<AppleNoteId>();
-                  const raw = yield* fs
-                    .readFile(outlinePath)
-                    .pipe(Effect.map((i) => new TextDecoder().decode(i)));
-                  const { frontmatter } = parseFrontmatter(raw);
-                  return Option.fromNullishOr(frontmatter.apple_note_id as AppleNoteId | undefined);
-                },
-              );
+              const outlineExists = yield* fs.exists(outlinePath);
+              let existingAppleNoteId: Option.Option<AppleNoteId>;
+              if (outlineExists) {
+                const raw = yield* fs
+                  .readFile(outlinePath)
+                  .pipe(Effect.map((i) => new TextDecoder().decode(i)));
+                const { frontmatter } = parseFrontmatter(raw);
+                existingAppleNoteId = Option.fromNullishOr(
+                  frontmatter['apple_note_id'] as AppleNoteId | undefined,
+                );
+              } else {
+                existingAppleNoteId = Option.none<AppleNoteId>();
+              }
 
               yield* Effect.log(`Downloading PDFs...`);
               const [lessonPdf, egwPdf] = yield* Effect.all([
@@ -415,9 +417,9 @@ const processQuarter = Command.make(
                   year: frontmatter.year,
                   quarter: frontmatter.quarter,
                   week: frontmatter.week,
-                  ...(frontmatter.apple_note_id !== undefined &&
-                  Option.isSome(frontmatter.apple_note_id)
-                    ? { apple_note_id: frontmatter.apple_note_id.value }
+                  ...(frontmatter['apple_note_id'] !== undefined &&
+                  Option.isSome(frontmatter['apple_note_id'])
+                    ? { apple_note_id: frontmatter['apple_note_id'].value }
                     : {}),
                 },
                 outline,
@@ -564,7 +566,7 @@ const exportQuarter = Command.make('export', { year, quarter, week }, ({ year, q
         const { frontmatter, content: outlineText } = parseFrontmatter(rawContent);
 
         // Skip if already exported
-        if (frontmatter.apple_note_id !== undefined) {
+        if (frontmatter['apple_note_id'] !== undefined) {
           yield* Effect.log(`Skipped (already exported): week ${weekNumber}`);
           return;
         }

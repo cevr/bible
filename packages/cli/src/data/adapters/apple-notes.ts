@@ -18,6 +18,11 @@ class MarkdownParseError extends Schema.TaggedErrorClass<MarkdownParseError>()(
   },
 ) {}
 
+class ExecCommandError extends Schema.TaggedErrorClass<ExecCommandError>()('ExecCommandError', {
+  message: Schema.String,
+  cause: Schema.Defect,
+}) {}
+
 const execCommand = Effect.fn('execCommand')(function* (command: string[]) {
   return yield* Effect.tryPromise({
     try: async () => {
@@ -25,7 +30,11 @@ const execCommand = Effect.fn('execCommand')(function* (command: string[]) {
       const text = await new Response(child.stdout).text();
       return text;
     },
-    catch: (error) => error as Error,
+    catch: (cause) =>
+      new ExecCommandError({
+        message: 'Failed to execute command',
+        cause,
+      }),
   });
 });
 

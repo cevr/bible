@@ -1,4 +1,3 @@
-// @effect-diagnostics anyUnknownInErrorContext:off strictEffectProvide:off importFromBarrel:off
 /**
  * Test Layers - Helpers for creating test layers
  *
@@ -6,7 +5,7 @@
  * Service-specific layers should be defined in the package that owns the service.
  */
 
-import type { ServiceMap } from 'effect';
+import type { Context } from 'effect';
 import { Effect, Layer, Ref } from 'effect';
 
 import {
@@ -44,7 +43,7 @@ import {
  */
 export const createRecordingTestLayer = <
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Generic type param requires any
-  Tag extends ServiceMap.Key<any, any>,
+  Tag extends Context.Key<any, any>,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Generic type param requires any
   Shape extends Record<string, (...args: never[]) => Effect.Effect<unknown, unknown, unknown>>,
 >(
@@ -54,14 +53,13 @@ export const createRecordingTestLayer = <
       ...args: Parameters<Shape[K]>
     ) => Effect.Effect<
       Effect.Success<ReturnType<Shape[K]>>,
-      Effect.Error<ReturnType<Shape[K]>>,
-      never
+      Effect.Error<ReturnType<Shape[K]>>
     >;
   },
   extractArgs: {
     [K in keyof Shape]?: (...args: Parameters<Shape[K]>) => Record<string, unknown>;
   },
-): Layer.Layer<ServiceMap.Service.Identifier<Tag>, never, CallSequence> => {
+): Layer.Layer<Context.Service.Identifier<Tag>, never, CallSequence> => {
   const tagName = (tag as unknown as { key: string }).key ?? 'UnknownService';
 
   return Layer.effect(
@@ -80,13 +78,13 @@ export const createRecordingTestLayer = <
               _tag: `${tagName}.${key}`,
               ...callArgs,
             } as ServiceCall);
-            return yield* (fn as (...a: unknown[]) => Effect.Effect<unknown, unknown, never>)(
+            return yield* (fn as (...a: unknown[]) => Effect.Effect<unknown, unknown>)(
               ...args,
             );
           });
       }
 
-      return service as ServiceMap.Service.Shape<Tag>;
+      return service as Context.Service.Shape<Tag>;
     }),
   );
 };

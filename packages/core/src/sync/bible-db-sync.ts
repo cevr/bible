@@ -26,7 +26,7 @@ export const ensureBibleDb = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;
   const pathService = yield* Path.Path;
 
-  const homeDir = process.env.HOME ?? process.env.USERPROFILE ?? '.';
+  const homeDir = process.env['HOME'] ?? process.env['USERPROFILE'] ?? '.';
   const bibleDir = pathService.join(homeDir, '.bible');
   const dbPath = pathService.join(bibleDir, 'bible.db');
 

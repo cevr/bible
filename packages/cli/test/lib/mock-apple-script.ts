@@ -1,4 +1,4 @@
-import { Effect, Layer } from 'effect';
+import { Cause, Effect, Layer } from 'effect';
 
 import { AppleScript, type AppleScriptService } from '../../src/services/apple-script.js';
 import type { ServiceCall } from './sequence-recorder.js';
@@ -33,7 +33,7 @@ export const createMockAppleScriptLayer = (
         state.calls.push({ _tag: 'AppleScript.exec', script });
 
         if (config.success === false) {
-          return yield* Effect.fail(new Error('AppleScript execution failed'));
+          return yield* new Cause.UnknownError('AppleScript execution failed');
         }
 
         return config.response ?? 'Success';
