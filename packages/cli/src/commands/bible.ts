@@ -133,84 +133,84 @@ export const concordance = Command.make(
   'concordance',
   { query, json: jsonFlag, limit: limitFlag },
   (args) =>
-  Effect.gen(function* () {
-    const db = yield* BibleDatabase;
-    const queryStr = args.query.join(' ').trim();
-    const limit = Option.getOrElse(args.limit, () => 50);
+    Effect.gen(function* () {
+      const db = yield* BibleDatabase;
+      const queryStr = args.query.join(' ').trim();
+      const limit = Option.getOrElse(args.limit, () => 50);
 
-    if (queryStr.length === 0) {
-      yield* Console.log("Usage: bible concordance <Strong's number or English word> [--json]");
-      yield* Console.log('');
-      yield* Console.log('Examples:');
-      yield* Console.log("  bible concordance H157      # Hebrew word by Strong's number");
-      yield* Console.log("  bible concordance G26       # Greek word by Strong's number");
-      yield* Console.log('  bible concordance love      # Search definitions for "love"');
-      return;
-    }
+      if (queryStr.length === 0) {
+        yield* Console.log("Usage: bible concordance <Strong's number or English word> [--json]");
+        yield* Console.log('');
+        yield* Console.log('Examples:');
+        yield* Console.log("  bible concordance H157      # Hebrew word by Strong's number");
+        yield* Console.log("  bible concordance G26       # Greek word by Strong's number");
+        yield* Console.log('  bible concordance love      # Search definitions for "love"');
+        return;
+      }
 
-    if (isStrongsNumber(queryStr)) {
-      const number = queryStr.toUpperCase();
-      const entryOpt = yield* db.getStrongsEntry(number);
+      if (isStrongsNumber(queryStr)) {
+        const number = queryStr.toUpperCase();
+        const entryOpt = yield* db.getStrongsEntry(number);
 
-      if (Option.isNone(entryOpt)) {
-        if (args.json) {
-          yield* Console.log(JSON.stringify({ mode: 'strongs', number, entry: null }, null, 2));
+        if (Option.isNone(entryOpt)) {
+          if (args.json) {
+            yield* Console.log(JSON.stringify({ mode: 'strongs', number, entry: null }, null, 2));
+            return;
+          }
+          yield* Console.log(`Strong's number ${number} not found.`);
           return;
         }
-        yield* Console.log(`Strong's number ${number} not found.`);
-        return;
-      }
 
-      const entry = entryOpt.value;
-      const results = yield* db.getVersesWithStrongs(number);
+        const entry = entryOpt.value;
+        const results = yield* db.getVersesWithStrongs(number);
 
-      const limitedResults = results.slice(0, limit);
+        const limitedResults = results.slice(0, limit);
 
-      if (args.json) {
-        yield* Console.log(
-          JSON.stringify({ mode: 'strongs', number, entry, verses: limitedResults }, null, 2),
-        );
-        return;
-      }
-
-      yield* Console.log(formatStrongsEntry(entry));
-      yield* Console.log('');
-
-      if (results.length === 0) {
-        yield* Console.log('No verses found with this word.');
-      } else {
-        yield* Console.log(`Found in ${results.length} verse${results.length === 1 ? '' : 's'}:`);
-        yield* Console.log('');
-        for (const result of limitedResults) {
-          yield* Console.log(formatConcordanceResult(result));
+        if (args.json) {
+          yield* Console.log(
+            JSON.stringify({ mode: 'strongs', number, entry, verses: limitedResults }, null, 2),
+          );
+          return;
         }
-        if (results.length > limit) {
-          yield* Console.log(`... and ${results.length - limit} more`);
-        }
-      }
-    } else {
-      const entries = yield* db.searchStrongs(queryStr, limit);
 
-      if (args.json) {
-        yield* Console.log(JSON.stringify({ mode: 'search', query: queryStr, entries }, null, 2));
-        return;
-      }
-
-      if (entries.length === 0) {
-        yield* Console.log(`No Strong's entries found matching "${queryStr}".`);
-        return;
-      }
-
-      yield* Console.log(
-        `Found ${entries.length} Strong's entr${entries.length === 1 ? 'y' : 'ies'} matching "${queryStr}":`,
-      );
-      yield* Console.log('');
-      for (const entry of entries) {
         yield* Console.log(formatStrongsEntry(entry));
         yield* Console.log('');
+
+        if (results.length === 0) {
+          yield* Console.log('No verses found with this word.');
+        } else {
+          yield* Console.log(`Found in ${results.length} verse${results.length === 1 ? '' : 's'}:`);
+          yield* Console.log('');
+          for (const result of limitedResults) {
+            yield* Console.log(formatConcordanceResult(result));
+          }
+          if (results.length > limit) {
+            yield* Console.log(`... and ${results.length - limit} more`);
+          }
+        }
+      } else {
+        const entries = yield* db.searchStrongs(queryStr, limit);
+
+        if (args.json) {
+          yield* Console.log(JSON.stringify({ mode: 'search', query: queryStr, entries }, null, 2));
+          return;
+        }
+
+        if (entries.length === 0) {
+          yield* Console.log(`No Strong's entries found matching "${queryStr}".`);
+          return;
+        }
+
+        yield* Console.log(
+          `Found ${entries.length} Strong's entr${entries.length === 1 ? 'y' : 'ies'} matching "${queryStr}":`,
+        );
+        yield* Console.log('');
+        for (const entry of entries) {
+          yield* Console.log(formatStrongsEntry(entry));
+          yield* Console.log('');
+        }
       }
-    }
-  }).pipe(Effect.scoped, Effect.provide(ConcordanceLive)),
+    }).pipe(Effect.scoped, Effect.provide(ConcordanceLive)),
 );
 
 export const bible = Command.make('bible').pipe(Command.withSubcommands([verse, concordance]));

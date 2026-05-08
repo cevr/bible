@@ -20,7 +20,7 @@ const ANSI = {
 
 const hasProcess = typeof process === 'object' && process !== null;
 const hasStdout = hasProcess && typeof process.stdout === 'object' && process.stdout !== null;
-const isTty = hasStdout &&  process.stdout.isTTY;
+const isTty = hasStdout && process.stdout.isTTY;
 const hasEnv = hasProcess && typeof process.env === 'object' && process.env !== null;
 const noColor = hasEnv && 'NO_COLOR' in process.env;
 const colorsEnabled = isTty && !noColor;

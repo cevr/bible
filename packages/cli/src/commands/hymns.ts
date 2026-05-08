@@ -96,41 +96,41 @@ const searchCommand = Command.make(
   'search',
   { searchQuery, json: jsonFlag, limit: limitFlag },
   (args) =>
-  Effect.gen(function* () {
-    const service = yield* HymnalService;
-    const query = args.searchQuery.join(' ').trim();
-    const limit = Option.getOrElse(args.limit, () => 20);
+    Effect.gen(function* () {
+      const service = yield* HymnalService;
+      const query = args.searchQuery.join(' ').trim();
+      const limit = Option.getOrElse(args.limit, () => 20);
 
-    if (query.length === 0) {
-      yield* Console.log('Usage: bible hymns search <query> [--json]');
-      yield* Console.log('');
-      yield* Console.log('Examples:');
-      yield* Console.log('  bible hymns search "amazing grace"');
-      yield* Console.log('  bible hymns search faith');
-      yield* Console.log('  bible hymns search "turn your eyes"');
-      return;
-    }
+      if (query.length === 0) {
+        yield* Console.log('Usage: bible hymns search <query> [--json]');
+        yield* Console.log('');
+        yield* Console.log('Examples:');
+        yield* Console.log('  bible hymns search "amazing grace"');
+        yield* Console.log('  bible hymns search faith');
+        yield* Console.log('  bible hymns search "turn your eyes"');
+        return;
+      }
 
-    const results = yield* service.searchHymns(query, limit);
+      const results = yield* service.searchHymns(query, limit);
 
-    if (args.json) {
-      yield* Console.log(JSON.stringify({ query, matches: results }, null, 2));
-      return;
-    }
+      if (args.json) {
+        yield* Console.log(JSON.stringify({ query, matches: results }, null, 2));
+        return;
+      }
 
-    if (results.length === 0) {
-      yield* Console.log(`No hymns found matching "${query}".`);
-      return;
-    }
+      if (results.length === 0) {
+        yield* Console.log(`No hymns found matching "${query}".`);
+        return;
+      }
 
-    yield* Console.log(
-      `Found ${results.length} hymn${results.length === 1 ? '' : 's'} matching "${query}":\n`,
-    );
-    for (const hymn of results) {
-      yield* Console.log(formatHymnSummary(hymn));
-      yield* Console.log('');
-    }
-  }).pipe(Effect.scoped, Effect.provide(HymnalLive)),
+      yield* Console.log(
+        `Found ${results.length} hymn${results.length === 1 ? '' : 's'} matching "${query}":\n`,
+      );
+      for (const hymn of results) {
+        yield* Console.log(formatHymnSummary(hymn));
+        yield* Console.log('');
+      }
+    }).pipe(Effect.scoped, Effect.provide(HymnalLive)),
 );
 
 const categoriesCommand = Command.make('categories', {}, () =>

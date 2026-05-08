@@ -18,24 +18,24 @@ machine consumption.
 
 ## Quick Reference
 
-| Goal | Command |
-|------|---------|
-| Fetch a verse / chapter / book | `bible verse <ref> --json` |
-| Text-search the Bible | `bible verse "<query>" --json` |
-| Strong's lookup (definition + verses) | `bible concordance H<n> --json` |
-| Search Strong's by English word | `bible concordance <word> --json` |
-| EGW lookup by refcode | `bible egw lookup "<CODE n.n>" --json` |
-| EGW commentary on a verse | `bible egw commentary "<book ch:vv>" --json` |
-| EGW local FTS search | `bible egw search "<query>" --json` |
-| EGW remote API search | `bible egw search "<query>" --remote --json` |
-| EGW catalog (remote) | `bible egw catalog --search "<term>" --json` |
-| List installed EGW books | `bible egw books --json` |
-| Hymn full text | `bible hymns get <number> --json` |
-| Hymn search | `bible hymns search "<query>" --json` |
-| Hymn categories | `bible hymns categories` |
-| Sabbath School PDFs | `bible sabbath-school fetch -y 2026 -q 2 -w 5 --json` |
-| List system prompts | `bible prompts list --json` |
-| Get a system prompt | `bible prompts get <name>` |
+| Goal                                  | Command                                               |
+| ------------------------------------- | ----------------------------------------------------- |
+| Fetch a verse / chapter / book        | `bible verse <ref> --json`                            |
+| Text-search the Bible                 | `bible verse "<query>" --json`                        |
+| Strong's lookup (definition + verses) | `bible concordance H<n> --json`                       |
+| Search Strong's by English word       | `bible concordance <word> --json`                     |
+| EGW lookup by refcode                 | `bible egw lookup "<CODE n.n>" --json`                |
+| EGW commentary on a verse             | `bible egw commentary "<book ch:vv>" --json`          |
+| EGW local FTS search                  | `bible egw search "<query>" --json`                   |
+| EGW remote API search                 | `bible egw search "<query>" --remote --json`          |
+| EGW catalog (remote)                  | `bible egw catalog --search "<term>" --json`          |
+| List installed EGW books              | `bible egw books --json`                              |
+| Hymn full text                        | `bible hymns get <number> --json`                     |
+| Hymn search                           | `bible hymns search "<query>" --json`                 |
+| Hymn categories                       | `bible hymns categories`                              |
+| Sabbath School PDFs                   | `bible sabbath-school fetch -y 2026 -q 2 -w 5 --json` |
+| List system prompts                   | `bible prompts list --json`                           |
+| Get a system prompt                   | `bible prompts get <name>`                            |
 
 stdout is data (JSON when `--json`), stderr is human messaging.
 
@@ -88,6 +88,7 @@ Compose results into the user's request. Don't generate first and then
 ### `bible verse <ref|query> [--json]`
 
 Reference forms (parsed by `parseBibleQuery`):
+
 - `john 3:16` — single verse
 - `john 3` — full chapter
 - `john 3:16-18` — verse range
@@ -96,6 +97,7 @@ Reference forms (parsed by `parseBibleQuery`):
 - `"faith"` (no chapter token) — falls back to FTS over the KJV
 
 JSON shape:
+
 ```json
 {
   "mode": "reference" | "search",
@@ -110,6 +112,7 @@ Detection: matches `^[HhGg]\d+$` → direct Strong's lookup; else definition
 search.
 
 Direct lookup JSON shape:
+
 ```json
 {
   "mode": "strongs",
@@ -120,6 +123,7 @@ Direct lookup JSON shape:
 ```
 
 Definition search shape:
+
 ```json
 { "mode": "search", "query": "<input>", "entries": [ ... ] }
 ```
@@ -127,6 +131,7 @@ Definition search shape:
 ### `bible egw lookup <ref> [--json]`
 
 Explicit refcode lookup — no FTS fallback. Refcode forms:
+
 - `"PP 351.1"` — single paragraph
 - `"PP 351.1-5"` — paragraph range
 - `"PP 351"` — full page
@@ -134,6 +139,7 @@ Explicit refcode lookup — no FTS fallback. Refcode forms:
 - `"PP"` — book metadata + chapter TOC
 
 JSON shape (single page):
+
 ```json
 {
   "ref": "PP 351.1",
@@ -155,6 +161,7 @@ EGW Bible Commentary (BC1-BC7) entries for a single Bible verse. Refuses
 chapter/range/full-book queries (use `bible egw lookup` for ranges).
 
 JSON shape:
+
 ```json
 {
   "verse": { "book": 43, "chapter": 3, "verse": 16 },
@@ -203,6 +210,7 @@ requested week(s). No AI involvement. Defaults: current year, current
 quarter, all 13 weeks.
 
 JSON shape:
+
 ```json
 {
   "weeks": [
@@ -255,14 +263,14 @@ stderr.
 
 ## Source Code
 
-| Path | What |
-|------|------|
-| `packages/cli/src/commands/bible.ts` | `verse`, `concordance` |
-| `packages/cli/src/commands/egw.ts` | All `egw` subcommands |
-| `packages/cli/src/commands/hymns.ts` | All `hymns` subcommands |
+| Path                                          | What                                   |
+| --------------------------------------------- | -------------------------------------- |
+| `packages/cli/src/commands/bible.ts`          | `verse`, `concordance`                 |
+| `packages/cli/src/commands/egw.ts`            | All `egw` subcommands                  |
+| `packages/cli/src/commands/hymns.ts`          | All `hymns` subcommands                |
 | `packages/cli/src/commands/sabbath-school.ts` | `fetch`, `process`, `revise`, `export` |
-| `packages/cli/src/commands/prompts.ts` | `prompts list/get` |
-| `packages/cli/src/prompts/index.ts` | The inline `PROMPT_REGISTRY` |
-| `packages/core/src/egw-commentary/service.ts` | Commentary lookup |
-| `packages/core/src/hymnal/` | Hymnal service |
-| `packages/core/src/bible-reader/` | Verse parsing & navigation |
+| `packages/cli/src/commands/prompts.ts`        | `prompts list/get`                     |
+| `packages/cli/src/prompts/index.ts`           | The inline `PROMPT_REGISTRY`           |
+| `packages/core/src/egw-commentary/service.ts` | Commentary lookup                      |
+| `packages/core/src/hymnal/`                   | Hymnal service                         |
+| `packages/core/src/bible-reader/`             | Verse parsing & navigation             |

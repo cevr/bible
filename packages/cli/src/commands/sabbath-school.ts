@@ -362,9 +362,7 @@ const fetchQuarter = Command.make('fetch', { year, quarter, week, json: fetchJso
             egwUrl: urls.files.egwPdf,
           });
           if (!args.json) {
-            yield* Effect.log(
-              `  Week ${urls.weekNumber}: ${lessonPath}, ${egwPath}`,
-            );
+            yield* Effect.log(`  Week ${urls.weekNumber}: ${lessonPath}, ${egwPath}`);
           }
         }),
       { concurrency: 3 },

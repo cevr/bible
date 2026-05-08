@@ -166,7 +166,9 @@ export async function importFromJson(db: DbClient, blob: Blob): Promise<{ import
   const data = raw as BackupData;
 
   if (data.version !== 1) {
-    throw new Error(`Unsupported backup version: ${String((raw as { version?: unknown }).version)}`);
+    throw new Error(
+      `Unsupported backup version: ${String((raw as { version?: unknown }).version)}`,
+    );
   }
 
   if (

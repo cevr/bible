@@ -51,10 +51,7 @@ export const createRecordingTestLayer = <
   implementation: {
     [K in keyof Shape]: (
       ...args: Parameters<Shape[K]>
-    ) => Effect.Effect<
-      Effect.Success<ReturnType<Shape[K]>>,
-      Effect.Error<ReturnType<Shape[K]>>
-    >;
+    ) => Effect.Effect<Effect.Success<ReturnType<Shape[K]>>, Effect.Error<ReturnType<Shape[K]>>>;
   },
   extractArgs: {
     [K in keyof Shape]?: (...args: Parameters<Shape[K]>) => Record<string, unknown>;
@@ -78,9 +75,7 @@ export const createRecordingTestLayer = <
               _tag: `${tagName}.${key}`,
               ...callArgs,
             } as ServiceCall);
-            return yield* (fn as (...a: unknown[]) => Effect.Effect<unknown, unknown>)(
-              ...args,
-            );
+            return yield* (fn as (...a: unknown[]) => Effect.Effect<unknown, unknown>)(...args);
           });
       }
 
