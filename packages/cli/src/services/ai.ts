@@ -7,8 +7,6 @@ import {
 } from 'ai';
 import { Effect, Layer, Option, Schema, Context } from 'effect';
 
-import { Model } from './model';
-
 // Tagged error for AI operations
 export class AIError extends Schema.TaggedErrorClass<AIError>()('AIError', {
   operation: Schema.String,
@@ -74,18 +72,6 @@ function toAISchema<A>(schema: Schema.Decoder<A>) {
 }
 
 export class AI extends Context.Service<AI, AIService>()('@bible/cli/services/ai') {
-  /**
-   * Live AI layer that requires Model in context.
-   * Use this for TUI and other non-CLI uses.
-   */
-  static readonly Live = Layer.effect(
-    AI,
-    Effect.gen(function* () {
-      const models = yield* Model;
-      return AI.#createService(models);
-    }),
-  );
-
   /**
    * Create AI layer from models, deferring to existing AI if present.
    * This allows tests to provide mock AI that takes precedence.

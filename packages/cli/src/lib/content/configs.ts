@@ -12,7 +12,6 @@ export const AnalyzeConfig: ContentTypeConfig<typeof AnalyzeFrontmatter> = {
   displayName: 'Analysis',
   outputDir: 'analyze',
   notesFolder: 'analysis',
-  promptResolver: { _tag: 'single', file: 'system.md' },
   frontmatterSchema: AnalyzeFrontmatter,
   sortStrategy: { _tag: 'date-desc' },
 };
@@ -22,7 +21,6 @@ export const MessagesConfig: ContentTypeConfig<typeof MessageFrontmatter> = {
   displayName: 'Message',
   outputDir: 'messages',
   notesFolder: 'messages',
-  promptResolver: { _tag: 'single', file: 'generate.md' },
   frontmatterSchema: MessageFrontmatter,
   sortStrategy: { _tag: 'date-desc' },
 };
@@ -32,7 +30,6 @@ export const StudiesConfig: ContentTypeConfig<typeof StudyFrontmatter> = {
   displayName: 'Study',
   outputDir: 'studies',
   notesFolder: 'studies',
-  promptResolver: { _tag: 'single', file: 'generate.md' },
   frontmatterSchema: StudyFrontmatter,
   sortStrategy: { _tag: 'date-desc' },
 };
@@ -42,7 +39,6 @@ export const ReadingsConfig: ContentTypeConfig<typeof ReadingFrontmatter> = {
   displayName: 'Reading',
   outputDir: 'readings',
   notesFolder: 'readings',
-  promptResolver: { _tag: 'single', file: 'generate-study.md' },
   frontmatterSchema: ReadingFrontmatter,
   sortStrategy: { _tag: 'chapter-asc' },
 };
@@ -52,7 +48,6 @@ export const SabbathSchoolConfig: ContentTypeConfig<typeof SabbathSchoolFrontmat
   displayName: 'Sabbath School',
   outputDir: 'sabbath-school',
   notesFolder: 'sabbath school',
-  promptResolver: { _tag: 'single', file: 'outline.md' },
   frontmatterSchema: SabbathSchoolFrontmatter,
   sortStrategy: { _tag: 'year-quarter-week' },
 };

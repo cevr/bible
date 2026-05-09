@@ -7,7 +7,7 @@ description: >
   SDA Hymnal, and Sabbath School lesson PDFs. Use when an agent needs raw
   source data to feed into a generation pipeline. Triggers on: bible verse,
   EGW reference, sabbath school PDF, hymn lookup, Strong's number, commentary
-  on a verse, prompt registry inspection.
+  on a verse.
 ---
 
 # bible-cli — Agent Source-Material CLI
@@ -34,8 +34,6 @@ machine consumption.
 | Hymn search                           | `bible hymns search "<query>" --json [--limit N]`     |
 | Hymn categories                       | `bible hymns categories`                              |
 | Sabbath School PDFs                   | `bible sabbath-school fetch -y 2026 -q 2 -w 5 --json` |
-| List system prompts                   | `bible prompts list --json`                           |
-| Get a system prompt                   | `bible prompts get <name>`                            |
 
 stdout is data (JSON when `--json`), stderr is human messaging.
 
@@ -43,38 +41,30 @@ stdout is data (JSON when `--json`), stderr is human messaging.
 
 You're building a study/message/reading. Pull source material in this order:
 
-1. **Get the prompt registry** — see what generation prompts already exist:
-   ```bash
-   bible prompts list --json
-   ```
-2. **Fetch a system prompt** if you want to reuse the project's house style:
-   ```bash
-   bible prompts get studies/generate
-   ```
-3. **Pull the Bible passage** in JSON:
+1. **Pull the Bible passage** in JSON:
    ```bash
    bible verse "daniel 9:24-27" --json
    ```
-4. **Pull EGW commentary** on key verses:
+2. **Pull EGW commentary** on key verses:
    ```bash
    bible egw commentary "daniel 9:24" --json
    ```
-5. **Pull EGW refcode passages** cited by the topic:
+3. **Pull EGW refcode passages** cited by the topic:
    ```bash
    bible egw lookup "PP 351.1" --json
    bible egw lookup "GC 419-422" --json
    ```
-6. **Pull Strong's** for keywords you're studying:
+4. **Pull Strong's** for keywords you're studying:
    ```bash
    bible concordance H2451 --json    # ḥākmâ — wisdom
    bible concordance G26 --json       # agapē — love
    ```
-7. **Pull a hymn** for a closing call/altar moment:
+5. **Pull a hymn** for a closing call/altar moment:
    ```bash
    bible hymns search "amazing grace" --json
    bible hymns get 108 --json
    ```
-8. **For Sabbath School week prep**, fetch the Teachers + EGW Notes PDFs:
+6. **For Sabbath School week prep**, fetch the Teachers + EGW Notes PDFs:
    ```bash
    bible sabbath-school fetch -y 2026 -q 2 -w 5 --json
    ```
@@ -234,23 +224,6 @@ JSON shape:
 
 Files cache to `outputs/sabbath-school/pdfs/`; re-runs are idempotent.
 
-### `bible prompts list [--json]`
-
-Lists the in-binary prompt registry (the same prompts the CLI uses for its
-own AI commands). Names are stable; entries:
-
-- `messages/generate` — peak-ending message outlines
-- `studies/generate` — whiteboard-style topical studies
-- `readings/generate` — slide-format readings
-- `readings/generate-study` — extended SDA-pioneer chapter studies
-- `analyze/system` — structural analysis (chiastic, typological)
-
-### `bible prompts get <name> [--json]`
-
-Default output: raw markdown to stdout (the prompt content). With `--json`:
-`{ name, description, content }`. Unknown names exit 1 with available list on
-stderr.
-
 ## Anti-Patterns
 
 - **Don't paraphrase verses from memory.** Always pull via `bible verse` and
@@ -263,19 +236,15 @@ stderr.
   subcommand is human-facing and falls through to FTS on parse failure —
   ambiguous for programmatic use. Use `bible egw lookup` instead; failures
   are explicit.
-- **Don't run `bible sabbath-school process`** unless the user asks — that
-  invokes the AI generation pipeline. `fetch` is the read-only path.
 
 ## Source Code
 
-| Path                                          | What                                   |
-| --------------------------------------------- | -------------------------------------- |
-| `packages/cli/src/commands/bible.ts`          | `verse`, `concordance`                 |
-| `packages/cli/src/commands/egw.ts`            | All `egw` subcommands                  |
-| `packages/cli/src/commands/hymns.ts`          | All `hymns` subcommands                |
-| `packages/cli/src/commands/sabbath-school.ts` | `fetch`, `process`, `revise`, `export` |
-| `packages/cli/src/commands/prompts.ts`        | `prompts list/get`                     |
-| `packages/cli/src/prompts/index.ts`           | The inline `PROMPT_REGISTRY`           |
-| `packages/core/src/egw-commentary/service.ts` | Commentary lookup                      |
-| `packages/core/src/hymnal/`                   | Hymnal service                         |
-| `packages/core/src/bible-reader/`             | Verse parsing & navigation             |
+| Path                                          | What                       |
+| --------------------------------------------- | -------------------------- |
+| `packages/cli/src/commands/bible.ts`          | `verse`, `concordance`     |
+| `packages/cli/src/commands/egw.ts`            | All `egw` subcommands      |
+| `packages/cli/src/commands/hymns.ts`          | All `hymns` subcommands    |
+| `packages/cli/src/commands/sabbath-school.ts` | `fetch`, `export`          |
+| `packages/core/src/egw-commentary/service.ts` | Commentary lookup          |
+| `packages/core/src/hymnal/`                   | Hymnal service             |
+| `packages/core/src/bible-reader/`             | Verse parsing & navigation |

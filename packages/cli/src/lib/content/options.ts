@@ -1,10 +1,5 @@
 import { Flag } from 'effect/unstable/cli';
 
-export const topic = Flag.string('topic').pipe(
-  Flag.withAlias('t'),
-  Flag.withDescription('Topic for generation'),
-);
-
 export const file = Flag.file('file').pipe(
   Flag.withAlias('f'),
   Flag.withDescription('Path to file'),
@@ -14,11 +9,6 @@ export const files = Flag.file('files').pipe(
   Flag.withAlias('f'),
   Flag.atLeast(0),
   Flag.withDescription('Files to process'),
-);
-
-export const instructions = Flag.string('instructions').pipe(
-  Flag.withAlias('i'),
-  Flag.withDescription('Revision instructions'),
 );
 
 export const json = Flag.boolean('json').pipe(

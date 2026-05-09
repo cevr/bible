@@ -7,29 +7,18 @@ import type { ContentTypeConfig, SortStrategy } from '~/src/lib/content/types';
 import {
   parseFrontmatter,
   removeFrontmatterFields,
-  stringifyFrontmatter,
   updateFrontmatter,
 } from '~/src/lib/frontmatter';
 import { getOutputsPath } from '~/src/lib/paths';
-import { getContentTypePrompt } from '~/src/prompts';
-import { revise, type ReviewError } from '~/src/lib/revise';
 import {
   makeAppleNoteFromMarkdown,
   updateAppleNoteFromMarkdown,
   type MarkdownParseError,
 } from '~/src/lib/markdown-to-notes';
 import { deleteNote, type NoteOperationError } from '~/src/lib/notes-utils';
-import type { AI } from '~/src/services/ai';
 import type { AppleScript } from '~/src/services/apple-script';
-import type { Chime } from '~/src/services/chime';
 
 type ContentListError = Schema.SchemaError;
-type ContentReviseError =
-  | Schema.SchemaError
-  | PlatformError.PlatformError
-  | MarkdownParseError
-  | ReviewError
-  | Cause.UnknownError;
 type ContentExportError =
   | Schema.SchemaError
   | PlatformError.PlatformError
@@ -43,10 +32,6 @@ export class ContentService extends Context.Service<
   ContentService,
   {
     readonly list: (json: boolean) => Effect.Effect<void, ContentListError>;
-    readonly revise: (
-      filePath: string,
-      instructions: string,
-    ) => Effect.Effect<void, ContentReviseError, AI | AppleScript | Chime>;
     readonly export: (
       filePaths: readonly string[],
       folder?: string,
@@ -85,37 +70,6 @@ export class ContentService extends Context.Service<
                 yield* Effect.log(`  ${file}`);
               }
             }
-          });
-
-        const reviseImpl = (filePath: string, instructions: string) =>
-          Effect.gen(function* () {
-            const rawContent = yield* fs
-              .readFile(filePath)
-              .pipe(Effect.map((i) => new TextDecoder().decode(i)));
-
-            const { frontmatter, content } = parseFrontmatter(rawContent);
-            const systemPrompt = resolvePrompt(config, filePath);
-
-            const revised = yield* revise({
-              cycles: [{ prompt: '', response: content }],
-              systemPrompt,
-              instructions,
-            });
-
-            const finalContent =
-              Object.keys(frontmatter).length > 0
-                ? stringifyFrontmatter(frontmatter, revised)
-                : revised;
-
-            yield* fs.writeFile(filePath, new TextEncoder().encode(finalContent));
-
-            // Update Apple Note if linked
-            const appleNoteId = frontmatter['apple_note_id'];
-            if (typeof appleNoteId === 'string') {
-              yield* updateAppleNoteFromMarkdown(appleNoteId, revised);
-            }
-
-            yield* Effect.log(`${config.displayName} revised: ${filePath}`);
           });
 
         const exportImpl = (filePaths: readonly string[], folder?: string) =>
@@ -197,7 +151,6 @@ export class ContentService extends Context.Service<
 
         return ContentService.of({
           list,
-          revise: reviseImpl,
           export: exportImpl,
           sync: syncImpl,
           deleteNotes: deleteNotesImpl,
@@ -205,24 +158,6 @@ export class ContentService extends Context.Service<
       }),
     );
 }
-
-// Helper: resolve prompt from inline registry
-const resolvePrompt = <F extends Schema.Top>(
-  config: ContentTypeConfig<F>,
-  filePath: string,
-): string => {
-  const promptFile = Match.value(config.promptResolver).pipe(
-    Match.tag('single', ({ file }) => file),
-    Match.tag('from-filename', ({ patterns }) => {
-      for (const [pattern, file] of Object.entries(patterns)) {
-        if (filePath.includes(pattern)) return file;
-      }
-      return Object.values(patterns)[0] ?? '';
-    }),
-    Match.exhaustive,
-  );
-  return getContentTypePrompt(config.name, promptFile);
-};
 
 // Helper: sort files based on strategy
 const sortFiles = (files: string[], strategy: SortStrategy): string[] =>

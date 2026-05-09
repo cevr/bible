@@ -15,14 +15,12 @@ import { Command } from 'effect/unstable/cli';
 import { BunServices, BunRuntime } from '@effect/platform-bun';
 import { Effect, Layer, References } from 'effect';
 
-import { analyze } from './commands/analyze.js';
 import { concordance, verse } from './commands/bible.js';
 import { egwWithSubcommands } from './commands/egw.js';
 import { exportOutput } from './commands/export.js';
 import { hymns } from './commands/hymns.js';
 import { messages } from './commands/messages.js';
 import { notes } from './commands/notes.js';
-import { prompts } from './commands/prompts.js';
 import { readings } from './commands/readings.js';
 import { sabbathSchool } from './commands/sabbath-school.js';
 import { studies } from './commands/studies.js';
@@ -46,14 +44,12 @@ trace('CLI command imports complete');
 
 // Check if any CLI subcommand is specified
 const cliSubcommands = [
-  'analyze',
   'concordance',
   'verse',
   'egw',
   'hymns',
   'messages',
   'notes',
-  'prompts',
   'sabbath-school',
   'studies',
   'readings',
@@ -225,14 +221,12 @@ async function main() {
     const command = traceSync('Command.make', () =>
       Command.make('bible', cliOptions).pipe(
         Command.withSubcommands([
-          analyze,
           concordance,
           verse,
           egwWithSubcommands,
           hymns,
           messages,
           notes,
-          prompts,
           sabbathSchool,
           studies,
           readings,
