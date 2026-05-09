@@ -6,194 +6,277 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1251'
 
 # Reading 82: Penalty for Transgression
 
-**Sin has always carried death—the question is when and by whom the sentence falls.**
+**Sin took two things from man — the image of God in him, and the presence of God with him. Both losses are one death. The cross paid the wage; the Second Coming finishes the cure. The penalty has not been abolished — it has been _absorbed_ at one end of God's calendar and will be _executed_ at the other. Ministers do not execute it now because the King moved His throne to heaven; ambassadors plead until He returns.**
 
 ---
 
-## Old Testament Capital Offenses
+# Act I — The Damage
 
-- **Idolatry** — turning hearts from God
-  - "Thou shalt stone him with stones, that he die; because he hath sought to thrust thee away from the Lord thy God" (Deut 13:10)
-  - not arbitrary cruelty → protecting covenant community from spiritual poison
+## God's Design — To Dwell With Man
 
-- **Blasphemy** — dishonoring God's name
-  - "He that blasphemeth the name of the Lord, he shall surely be put to death, and all the congregation shall certainly stone him" (Lev 24:16)
-  - stranger and native alike → universal standard
-
-- **Rebellious son** — persistent defiance
-  - "If a man have a stubborn and rebellious son, which will not obey the voice of his father, or the voice of his mother... all the men of his city shall stone him with stones, that he die" (Deut 21:18-21)
-  - not minor disobedience → incorrigible, public threat
-  - [→] parents didn't execute privately; community witnessed, judged
-
-- **Adultery** — covenant-breaking
-  - "The adulterer and the adulteress shall surely be put to death" (Lev 20:10)
-  - both parties accountable → no double standard
-
-[DYK🔎] Stoning required multiple witnesses (Deut 17:6) and witnesses threw first stones—putting their integrity on the line
-
-[Q] **Wasn't this cruel and excessive?**
-→ These laws reveal sin's true gravity—we've grown numb to what God sees
-→ Swift, public judgment protected Israel from spreading corruption
-→ Mercy still available through repentance before judgment fell
+- "Let them make me a sanctuary; that I may **dwell** among them" (Ex 25:8)
+- Eden was the first sanctuary. God walked with man (Gen 3:8).
+- [→] One sentence carries the whole Bible. Everything that follows in this reading exists to answer one question: how can a holy God dwell with a sinful people?
 
 ---
 
-## The Penalty Has Not Been Abolished
+## Sin Entered as an Intruder
 
-- **Death remains sin's wage**
-  - "For the wages of sin is death" (Rom 6:23)
-  - not revised, reduced, or commuted
-  - "The soul that sinneth, it shall die" (Eze 18:4)
+Before describing what sin damaged, name what sin _is_. Sin is not part of creation. It is a foreign body that came in.
 
-- **Gospel changes the timing, not the sentence**
-  - [→] Why don't ministers execute sinners today?
-  - different role: ambassadors, not executioners
+- "By one man **sin entered** into the world, and death by sin" (Rom 5:12) — sin _entered_. It is not native.
+- "An enemy hath done this" (Matt 13:28) — the kingdom is God's; the tares are intrusion.
+- The intruder has a name: "How art thou fallen from heaven, O Lucifer" (Isa 14:12)
+- And a starting date: "Thou wast perfect... till **iniquity was found in thee**" (Eze 28:15)
+- And a fixed end: "**Affliction shall not rise up the second time**" (Nah 1:9). Sin gets one run.
 
-[ILL] Ambassador represents king in foreign court—carries message, not sword.
-His work is persuasion, not punishment.
-→ Gospel ministers: reconciliation, not vengeance.
+[→] Sin came in. Sin will go out. What is between is the cleanup. Hold this — every paragraph that follows lands differently when you know the antagonist is finite.
 
 ---
 
-## The Gospel Minister's Role
+## What Sin Took — Two Losses, One Death
 
-- **Ambassadors for Christ**
-  - "Now then we are ambassadors for Christ, as though God did beseech you by us" (2 Cor 5:20)
-  - beseeching = pleading, entreating
-  - [→] God's posture in this age: mercy extended, judgment delayed
+The intruder did not take everything. It took two specific things.
 
-- **Ministry of reconciliation**
-  - "God was in Christ, reconciling the world unto himself, not imputing their trespasses unto them" (2 Cor 5:19)
-  - not imputing now ≠ never imputing
-  - probationary time → decision time
+**Loss 1 — the image in man.**
 
-[TANGENT] theocracy vs. church—Israel was both nation and congregation; church today operates within secular states, different sphere
+- "God created man in his own image" (Gen 1:27)
+- "Adam... begat a son in his own likeness, after his image" (Gen 5:3) — the portrait changed hands
+- "All have sinned, and come short of the **glory** of God" (Rom 3:23) — _glory_ is Ex 33 vocabulary; the image is what fell short
 
----
+### What the image actually is — God's character made visible
 
-## Vengeance Reserved for God
+- Ex 33:18 — Moses: "Shew me thy glory."
+- Ex 33:19 — God: "I will make all my **goodness** pass before thee, and I will proclaim the **name** of the LORD."
+- Ex 34:5-7 — "The LORD God, **merciful and gracious, longsuffering, and abundant in goodness and truth**."
+- [→] Moses asked to _see_. God answered with a **character**. Glory = name = goodness = character.
+- "Who being the brightness of his glory, and the **express image** [Greek _charaktēr_] of his person" (Heb 1:3)
+- "He that hath seen me hath seen the Father" (John 14:9)
+- [→] The image is not a face. It is a character. **Christ is that character in flesh. The Law is that character in words (Rom 7:12). Sin is the defacing of that character in man.**
 
-- **Not man's prerogative**
-  - "Vengeance is mine; I will repay, saith the Lord" (Rom 12:19)
-  - "Dearly beloved, avenge not yourselves, but rather give place unto wrath" (Rom 12:19)
-  - human revenge forbidden → divine justice guaranteed
+**Loss 2 — the presence with man.**
 
-- **Why God reserves this right**
-  - only He sees all hearts (1 Sam 16:7)
-  - only He judges perfectly (Gen 18:25)
-  - only He can execute with absolute justice and mercy balanced
+- "Your iniquities have **separated** between you and your God" (Isa 59:2)
+- "He drove out the man" (Gen 3:24) — Eden's gate shut
 
-[Q] **If God delays, does sin go unpunished?**
-→ Never. Delay = mercy, not indifference
-→ "Because sentence against an evil work is not executed speedily, therefore the heart of the sons of men is fully set in them to do evil" (Eccl 8:11)
-→ Mistaking patience for permission is fatal error
+### Why the presence withdrew — His presence devours sin
 
----
+- "Who among us shall dwell with the **devouring fire**?" (Isa 33:14)
+- "Our God is a consuming fire" (Heb 12:29)
+- "No man see me, and live" (Ex 33:20)
+- [→] Same fire blesses the righteous and consumes the wicked. The presence is constant; the relation to it determines the outcome. The defaced image cannot share space with the perfect One — not because God is petty, but because the contact itself is fatal. The withdrawal is **mercy**: it keeps the sinner alive while the cure is being worked out.
 
-## Christ the Appointed Judge
+### Both losses converge on one word — death
 
-- **Life and judgment given to the Son**
-  - "For as the Father hath life in himself; so hath he given to the Son to have life in himself; and hath given him authority to execute judgment also, because he is the Son of man" (John 5:26-27)
-  - life-giver = death-decreer
-  - Son of man = He knows humanity from the inside
-
-- **Why Christ judges**
-  - "The Father judgeth no man, but hath committed all judgment unto the Son" (John 5:22)
-  - He lived our life → qualifies to weigh our choices
-  - He died our death → no one can claim unfairness
-
-[DYK🔎] "Son of man" (Dan 7:13) = title emphasizing Christ's humanity; He judges as one who walked among us
+- "In the day that thou eatest thereof thou shalt surely die" (Gen 2:17)
+- "The wages of sin is death" (Rom 6:23)
+- "Dead in trespasses and sins" (Eph 2:1)
+- [→] Image lost = the life of God _in_ you, gone. Presence lost = the life of God _with_ you, gone. Two losses, one death. **Restore the image, and the presence returns — because what made dwelling impossible was the disfigured image standing before the perfect one.** Fix Loss 1 and Loss 2 takes care of itself.
 
 ---
 
-## When Judgment Falls
+# Act II — The Wage
 
-- **Enoch's ancient prophecy**
-  - "Behold, the Lord cometh with ten thousands of his saints, to execute judgment upon all" (Jude 14-15)
-  - seventh from Adam → truth known from earliest times
-  - coming judgment = no modern invention
+## The Wage in Writing — How the Old Dispensation Made It Visible
 
-- **The execution day**
-  - "The Lord Jesus shall be revealed from heaven with his mighty angels, in flaming fire taking vengeance on them that know not God, and that obey not the gospel" (2 Thess 1:7-8)
-  - not arbitrary wrath → response to rejection of gospel
+The "death" of Eden is not poetic. It is legal. Under the theocracy, four sins struck at the foundation of the covenant — and every one of them carried the same sentence.
 
-- **Second death = final penalty**
-  - "But the fearful, and unbelieving... shall have their part in the lake which burneth with fire and brimstone: which is the second death" (Rev 21:8)
-  - wages finally paid → sin and sinners cease
+### How was an idolater punished?
 
-[→] The sanctuary clarifies the timing:
+- "Thou shalt stone him with stones, that he die; because he hath sought to thrust thee away from the Lord thy God, which brought thee out of the land of Egypt, from the house of bondage" (Deut 13:10)
 
----
+### What was done to a blasphemer?
 
-## Sanctuary Connection
+- "He that blasphemeth the name of the Lord, he shall surely be put to death, and all the congregation shall certainly stone him, as well the stranger, as he that is born in the land" (Lev 24:16)
 
-- **Outer court** — sacrifice made; penalty borne by Substitute
-  - "Christ died for our sins according to the scriptures" (1 Cor 15:3)
-  - death sentence executed on Lamb, not transgressor (for those who believe)
+### How was a perverse son punished?
 
-- **Holy place** — daily ministry; sins confessed, covered
-  - intercession ongoing (Heb 7:25)
-  - probation continues
+- "If a man have a stubborn and rebellious son, which will not obey the voice of his father, or the voice of his mother... all the men of his city shall stone him with stones, that he die" (Deut 21:18-21)
 
-- **Most Holy Place** — judgment hour
-  - "The hour of his judgment is come" (Rev 14:7)
-  - records examined (Dan 7:10)
-  - cases decided before execution at second coming
+### What punishment was inflicted upon an adulterer?
 
-[ILL] Courtroom sequence: investigation → verdict → sentence → execution.
-We live between verdict and execution—appeals court still open.
-→ "Now is the accepted time; behold, now is the day of salvation" (2 Cor 6:2)
+- "The adulterer and the adulteress shall surely be put to death" (Lev 20:10)
+
+[→] Four offenses. One sentence. **Death.** Not Israel inventing severity — Eden made visible. From the garden to the gospel, one verdict.
+
+## Has the Death Penalty For Sin Really Been Abolished?
+
+- "For the **wages** of sin is death" (Rom 6:23) — wages: what is owed, earned, due
+
+[→] Now the question can be answered with precision. The wage has two faces:
+
+- **Wage as legal sentence.** Christ took it. "Much more then, being now justified by his blood, we shall be saved from wrath through him" (Rom 5:9). For the believer, the verdict is settled at the cross.
+- **Wage as ongoing consequence.** Death still falls. Bodies still age. Eden's gate is still shut. Why? Because the image is still being restored, and the intruder is still being removed. The cure is in motion, not yet finished.
+
+[→] Christ killed the root at the cross. The consequences die at His coming. **"The last enemy that shall be destroyed is death" (1 Cor 15:26).** The wage and the intruder go together. Neither is pretended away.
 
 ---
 
-## Righteousness by Faith: Escaping the Penalty
+# Act III — The Solution in Space
 
-- **The only way out**
-  - "There is therefore now no condemnation to them which are in Christ Jesus" (Rom 8:1)
-  - not no law, not no penalty → no condemnation for those in Christ
+## The Dilemma That Demands a Sanctuary
 
-- **Substitution accepted**
-  - "He hath made him to be sin for us, who knew no sin; that we might be made the righteousness of God in him" (2 Cor 5:21)
-  - Christ bore wage; believer receives gift
-  - "The gift of God is eternal life through Jesus Christ our Lord" (Rom 6:23)
+- God's holiness will not tolerate the intruder (Hab 1:13).
+- God's love will not abandon the image-bearers (Hos 11:8).
+- Either sin is removed, or the sinner is — and God has chosen, at infinite cost to Himself, to remove the sin.
 
-- **Faith's response to justice**
-  - law still holy, just, good (Rom 7:12)
-  - transgression still worthy of death
-  - but Substitute has paid → justice satisfied, mercy extended
-
-[Q] **Is this unfair—the innocent dying for the guilty?**
-→ Voluntary ("I lay down my life"—John 10:18)
-→ Infinite ("one mediator... the man Christ Jesus"—1 Tim 2:5)
-→ Effective ("he is able also to save them to the uttermost"—Heb 7:25)
+[→] But how? How does the consuming fire come close to flammable people without destroying them? The OT answers in pictures. The NT answers in a Person. The answer in space is a **bridge**. The answer in time is a **calendar**. We start with the bridge.
 
 ---
 
-## The Character of God Revealed
+## The Sanctuary as Bridge — _The Way_ God Dwells With Man
 
-- **Justice and mercy meet**
-  - "Mercy and truth are met together; righteousness and peace have kissed each other" (Ps 85:10)
-  - cross = neither mercy without justice nor justice without mercy
+The path back to dwelling. Every station is Christ — the Image-Bearer Himself.
 
-- **Penalty proves love's seriousness**
-  - sin truly destroys (James 1:15)
-  - God doesn't overlook → He overcomes
-  - "God commendeth his love toward us, in that, while we were yet sinners, Christ died for us" (Rom 5:8)
+- **Gate** → "I am the door" (John 10:9)
+- **Altar** → the Lamb (1 Cor 15:3)
+- **Laver** → "the washing of regeneration" (Tit 3:5)
+- **Bread** → "I am the bread of life" (John 6:35)
+- **Lampstand** → "I am the light of the world" (John 8:12)
+- **Incense** → "He ever liveth to make intercession" (Heb 7:25)
+- **Veil** → "his flesh" (Heb 10:20)
+- **Ark + mercy seat** → His law-keeping life under His atoning blood (Rom 3:25)
+- **Throne** → the Father (Heb 9:24)
 
-- **Warning = evidence of care**
-  - "As I live, saith the Lord God, I have no pleasure in the death of the wicked; but that the wicked turn from his way and live: turn ye, turn ye from your evil ways; for why will ye die?" (Eze 33:11)
+What Jacob saw became flesh:
 
-[TANGENT] great controversy theme: Satan charges God as arbitrary tyrant; cross answers—God would rather die than destroy
+- "This is none other but the **house of God**" (Gen 28:17)
+- "Ye shall see heaven open, and the angels of God ascending and descending upon **the Son of man**" (John 1:51)
+- "The Word was made flesh, and **dwelt** [σκηνόω, _tabernacled_] among us" (John 1:14)
+- "**Emmanuel** — God with us" (Matt 1:23)
+- "I am the **way**, the truth, and the life: no man cometh unto the Father, but by me" (John 14:6)
+- "**Thy way, O God, is in the sanctuary**" (Ps 77:13)
+
+[→] The bridge is not a structure. It is a Person. And He is the very Image (Heb 1:3) being restored in everyone who walks the path.
+
+---
+
+# Act IV — The Procedure (The Source's Catechism)
+
+## Why Is the Old Penalty Not Executed in This Dispensation by Gospel Ministers?
+
+**Because the kingdom moved.** This question only makes sense once we see the three eras God has run His government in.
+
+### Era 1 — Theocracy: God's kingdom on earth in Israel (Sinai → AD 31/34)
+
+God reigned visibly. He had a **law** spoken from Sinai, a **sanctuary** at Jerusalem, a **king** in David's line, **magistrates** appointed to enforce His statutes, **borders** drawn around a covenant nation. Civil authority and religious authority were a single body. The same congregation that confessed sin executed the rebel. **The execution was civil because the kingdom was civil.** The four penalties of the OT belong to that era — the wage executed by the King's own magistrate, on the King's own land.
+
+Then the King came in person, and the nation rejected Him.
+
+- "The kingdom of God shall be **taken from you, and given to a nation bringing forth the fruits thereof**" (Matt 21:43)
+- "Behold, your house is left unto you desolate" (Matt 23:38)
+
+The theocracy ended at the cross — sealed at AD 34 when the gospel turned to the Gentiles (Acts 13:46).
+
+### Era 2 — Church: God's kingdom in heaven, ambassadors on earth (AD 31 → Second Coming)
+
+When Christ ascended, the throne went with Him.
+
+- "He sat down on the right hand of God" (Heb 10:12) — the throne is in heaven
+- "**My kingdom is not of this world**: if my kingdom were of this world, then would my servants fight" (John 18:36) — Christ Himself names the reason no sword is drawn
+- "Ye are a chosen generation, a royal priesthood, **an holy nation**, a peculiar people" (1 Pet 2:9) — the new "nation" is not geographic; it crosses every border, holds no civil power
+- "Our **conversation** [πολίτευμα — citizenship, commonwealth] is in heaven" (Phil 3:20)
+
+The church has no civil sword because **the King's throne is across a border called heaven.** The only office that fits foreign territory is the office of an embassy.
+
+- "Now then we are **ambassadors** for Christ, as though God did beseech you by us: we pray you in Christ's stead, be ye reconciled to God" (2 Cor 5:20)
+
+An ambassador carries terms of peace, not warrants of execution. He represents the King in foreign territory. His weapon is _pleading_, not punishing.
+
+### Era 3 — Restored Kingdom: throne back on earth, forever (Second Coming → eternity)
+
+- "The kingdoms of this world are become the kingdoms of our Lord, and of his Christ" (Rev 11:15)
+- "Behold, the **tabernacle of God is with men**, and he will dwell with them" (Rev 21:3) — Ex 25:8 finally answered, geographically and forever
+
+The era of the absent King ends. The era of the indwelling King begins. The intruder is removed; the dwelling is permanent.
+
+### What this means for ministers today
+
+- **Israel:** King on earth → magistrate executes the wage civilly
+- **Church:** King in heaven → ambassador pleads under terms of peace
+- **Restored kingdom:** King on earth again → sentence falls and stays fallen
+
+The change is not in the law, the sin, or the wage. The change is in **where the King is.** Ministers do not execute now because the executive authority is no longer on earth — it returns at Tabernacles.
+
+---
+
+## To Whom Does Vengeance Belong?
+
+- "Vengeance is mine; I will repay, saith the Lord" (Rom 12:19)
+- [→] Personal revenge is forbidden _because_ divine justice is guaranteed. The absent King runs the calendar. No subordinate can execute what only the throne in heaven can authorize. The believer steps back precisely because God has not stepped back.
+
+---
+
+## To Whom Has the Execution of the Death Penalty Been Committed?
+
+- "For as the Father hath life in himself; so hath he given to the Son to have life in himself; and hath given him authority to execute judgment also, **because he is the Son of man**" (John 5:26-27)
+- "The Father judgeth no man, but hath committed all judgment unto the Son" (John 5:22)
+- [→] The Judge is the King who left. The Judge is the Image. The Judge is the Bridge. The Judge is the Lamb. The hands that will execute the wage are the hands that already bore it.
+
+---
+
+## And When Will He Execute It?
+
+- "And Enoch also, the seventh from Adam, prophesied of these, saying, Behold, the Lord cometh with ten thousands of his saints, **to execute judgment upon all**" (Jude 14-15)
+- "The Lord Jesus shall be revealed from heaven with his mighty angels, in flaming fire taking vengeance on them that know not God, and that obey not the gospel" (2 Thess 1:7-8)
+- [→] At His coming. The seventh man from Adam already knew. The same fire that has always been God's presence will fall on what remains of the intruder.
+
+---
+
+# Act V — The Solution in Time
+
+## The Sanctuary as Calendar — _The Hour_ of God's Work
+
+The "When?" of the catechism is not a vague apocalypse. The King's return sits inside a schedule He has been keeping since Sinai. Each feast of Lev 23 is an appointment.
+
+**Spring feasts — already executed:**
+
+- **Passover** → the cross (1 Cor 5:7) ✓ — the wage paid in blood
+- **Unleavened Bread** → the sinless body (1 Cor 5:8) ✓
+- **Firstfruits** → the resurrection (1 Cor 15:20) ✓
+- **Pentecost** → the Spirit poured out (Acts 2:1-4) ✓ — image restoration begins inside man
+
+**Autumn feasts — in progress and pending:**
+
+- **Trumpets** → the pre-Advent warning (Rev 14:6-7) ⏳
+- **Day of Atonement** → the investigative judgment (Rev 14:7; Dan 8:14) ⏳
+- **Tabernacles** → the Second Coming, image restored fully, intruder removed, dwelling restored ⏸
+
+[DYK🔎] God runs on a calendar. "When the **fulness of the time** was come, God sent forth his Son" (Gal 4:4). "He hath **appointed a day**, in the which he will judge the world" (Acts 17:31). The cross was on the schedule. So is the coming. Enoch's prophecy is not vague apocalyptic — it is a date Israel was rehearsing every autumn.
+
+[→] The wage was paid at Passover for those who accept the Lamb. The wage will fall at Tabernacles on those who refused Him. We live between the two — between the spring feasts that are finished and the autumn feast that is still on the calendar. The King is gone, but His schedule is moving.
+
+---
+
+# Act VI — The End
+
+## The Two Losses Reversed
+
+The whole sanctuary, bridge and calendar together, is moving toward this:
+
+**Image restored in man.**
+
+- "We shall be like him; for we shall see him as he is" (1 John 3:2)
+- "Conformed to the image of his Son" (Rom 8:29)
+- "This corruptible must put on incorruption... then shall be brought to pass the saying that is written, **Death is swallowed up in victory**" (1 Cor 15:53-54)
+
+**Presence restored to man.**
+
+- "Behold, the **tabernacle of God is with men**, and he will dwell with them, and they shall be his people, and God himself shall be with them, and be their God" (Rev 21:3) — Ex 25:8 finally answered
+- "There shall in no wise enter into it any thing that defileth" (Rev 21:27) — the intruder is gone
+- "Affliction shall not rise up the second time" (Nah 1:9) — the run is finished
+- "Behold, I make all things new" (Rev 21:5)
+
+[→] **Two losses, both reversed. One death, swallowed up. The intruder, gone. The wage, paid at one end of the calendar and erased at the other. The King back on the throne — this time on earth, this time forever.**
 
 ---
 
 ## Appeal
 
-- The death penalty stands unchanged
-- Christ has borne it for all who believe
-- The Judge is now the Advocate—but not forever
-- Today the court of heaven pleads; tomorrow it pronounces
+- The penalty has not been abolished. It has been **paid** on the Lamb at Passover, and it will be **executed** on the unrepentant at Tabernacles. Either way, every soul meets the wage.
+- Sin is an intruder. Death is its shadow. Both end at the same hour. The only question is whether you go with them, or are kept through Him.
+- The King is in heaven. The ambassadors are still pleading. The bridge is open. The calendar is moving.
+- Today He is Advocate. Tomorrow He is Executor.
+- **"We pray you in Christ's stead, be ye reconciled to God"** (2 Cor 5:20).
 
-**"We pray you in Christ's stead, be ye reconciled to God"** (2 Cor 5:20)
-
-_"He that believeth on the Son hath everlasting life: and he that believeth not the Son shall not see life; but the wrath of God abideth on him."_ (John 3:36)
+> _"He that believeth on the Son hath everlasting life: and he that believeth not the Son shall not see life; but the wrath of God abideth on him."_ (John 3:36)

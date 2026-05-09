@@ -106,12 +106,14 @@ _Addresses: "There is no literal sanctuary in heaven"_
 - Revelation 11:19 — "The temple of God was opened in heaven, and there was seen
   in his temple the ark of his testament"
   - [WB]: Write 'REVELATION SHOWS: Candlestick (1:12) + Altar of Incense (8:3)
-+ Ark of the Covenant (11:19)'
+
+* Ark of the Covenant (11:19)'
   - The ark contains the Ten Commandments — the law is in heaven, in the Most
     Holy Place
   - [RQ]: If the ark of the covenant is seen in God's heavenly temple in
     Revelation 11:19, can we dismiss the heavenly sanctuary as figurative? (Rev
     11:19)
+
 - [EGW]: "The sanctuary in heaven, in which Jesus ministers in our behalf, is the
   great original, of which the sanctuary built by Moses was a copy." (GC 414.1)
 

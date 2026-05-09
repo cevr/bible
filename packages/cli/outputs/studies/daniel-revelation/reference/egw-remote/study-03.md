@@ -34,7 +34,7 @@
 
 ### 4SP — The Spirit of Prophecy, vol. 4 [free]
 
-> |********************\_\_\_********************| Decree given. 2300. Days end in 1844.
+> |**\*\*\*\***\*\*\*\***\*\*\*\***\_\_\_**\*\*\*\***\*\*\*\***\*\*\*\***| Decree given. 2300. Days end in 1844.
 
 ### HST May 4, 1842, page 39.25 — Signs of the Times and Expositor of Prophecy [Himes], vol. 3 [free]
 
