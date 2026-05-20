@@ -7,7 +7,8 @@
 
 import { BibleDatabase } from '@bible/core/bible-db';
 import { BibleService } from '@bible/core/bible-service';
-import { EGWParagraphDatabase } from '@bible/core/egw-db';
+import type { EGWParagraphDatabase } from '@bible/core/egw-db';
+import * as EGWDbBun from '@bible/core/egw-db/bun';
 import { EGWReaderService } from '@bible/core/egw-reader';
 import { EGWService } from '@bible/core/egw-service';
 import { ensureBibleDb } from '@bible/core/sync';
@@ -57,7 +58,7 @@ export const AppLayer = Layer.mergeAll(
   // EGW reader service
   EGWReaderService.Default,
 ).pipe(
-  Layer.provideMerge(EGWParagraphDatabase.Default),
+  Layer.provideMerge(EGWDbBun.Default),
   Layer.provideMerge(BibleDatabaseWithSync),
   Layer.provideMerge(BunServices.layer),
 );

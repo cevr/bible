@@ -25,7 +25,7 @@ import { join } from 'path';
 
 import { BibleToolsApi } from '@bible/api';
 import { BibleDatabase } from '@bible/core/bible-db';
-import { EGWParagraphDatabase } from '@bible/core/egw-db';
+import * as EGWDbBun from '@bible/core/egw-db/bun';
 
 import { BibleGroupLive } from './api/groups/BibleGroupLive.js';
 import { EGWGroupLive } from './api/groups/EGWGroupLive.js';
@@ -51,7 +51,7 @@ const BibleGroupLayer = BibleGroupLive.pipe(
 
 const EGWGroupLayer = EGWGroupLive.pipe(
   Layer.provide(EGWServiceLive),
-  Layer.provide(EGWParagraphDatabase.Default),
+  Layer.provide(EGWDbBun.Default),
 );
 
 const ApiLive = HttpApiBuilder.layer(BibleToolsApi).pipe(

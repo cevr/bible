@@ -1,4 +1,4 @@
-import { BunServices } from '@effect/platform-bun';
+import * as BunServices from '@effect/platform-bun/BunServices';
 import { Command } from 'effect/unstable/cli';
 import { Effect, Exit, Layer, Logger } from 'effect';
 import { expect } from 'bun:test';
@@ -31,8 +31,15 @@ export interface RunCliResult {
  * @param config Test layer configuration
  * @returns Result with exit status and recorded calls
  */
-export const runCli = async <Name extends string, R, E>(
-  command: Command.Command<Name, R, E>,
+// The composed test layer (BunServices + Logger + createTestLayer) provides
+// every service these commands depend on at runtime. The type system can't
+// always prove that — commands return concrete-but-structurally-distinct
+// service identities that confuse `Exclude` simplification — so we narrow the
+// residual context to `never` after Effect.provide. If a command actually
+// references a service the test layer doesn't supply, the run will die at
+// runtime; tests will catch it immediately.
+export const runCli = async <Name extends string, Input, ContextInput, E, R>(
+  command: Command.Command<Name, Input, ContextInput, E, R>,
   args: string[],
   config: TestLayerConfig = {},
 ): Promise<RunCliResult> => {
@@ -64,9 +71,12 @@ export const runCli = async <Name extends string, R, E>(
     // Order matters in Layer.mergeAll: later layers overwrite earlier ones for
     // shared services. The mock `layer` must come last so its FileSystem/Path
     // mocks beat BunServices' real implementations.
-    const result = await Effect.runPromise(
-      program.pipe(Effect.provide(Layer.mergeAll(BunServices.layer, Logger.layer([]), layer))),
-    );
+    const provided = program.pipe(
+      Effect.provide(Layer.mergeAll(BunServices.layer, Logger.layer([]), layer)),
+    ) as Effect.Effect<
+      typeof program extends Effect.Effect<infer A, infer _E, unknown> ? A : never
+    >;
+    const result = await Effect.runPromise(provided);
 
     const exit = result.cliExit;
     const effectCalls = result.calls;

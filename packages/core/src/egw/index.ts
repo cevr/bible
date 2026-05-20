@@ -24,8 +24,14 @@
  * ```
  */
 
-export { EGWApiClient, EGWApiError } from './client.js';
+export {
+  EGWApiClient,
+  type EGWApiClientService,
+  EGWApiError,
+  type EGWApiClientError,
+} from './client.js';
 export { EGWAuth, EGWAuthError, AccessToken } from './auth.js';
+export { EGWTokenStore } from './token-store.js';
 export * as Schemas from './schemas.js';
 export {
   parseEGWRef,
@@ -35,6 +41,7 @@ export {
   isSearchQuery,
   getBookCode,
   buildRefcodePattern,
+  chapterIdFromTocItem,
   isChapterHeading,
   headingLevel,
   EGWParseError,

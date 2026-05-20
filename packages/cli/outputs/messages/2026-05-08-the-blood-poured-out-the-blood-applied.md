@@ -1,3 +1,7 @@
+---
+apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1628'
+---
+
 # The Love That Pours Itself Out: Christ's Mercy for the Few Who Will Receive
 
 ## Topic Tags
@@ -47,16 +51,38 @@
 
 ---
 
-## Introduction — Love Measured by What It Pours Out (5 min)
+## Introduction — The Sanctuary Story: Blood Applied, Blood Poured Out (5 min)
 
-- John 15:13 — Love's highest definition is a life laid down
-- [WB]: Write at the top — LOVE = WHAT IT IS WILLING TO LOSE (John 15:13)
-- The cross is not a tragedy God endured; it is a gift God **chose to pour out**
-- [RQ]: If love is measured by what it surrenders, what does Calvary reveal
-  about the heart of Christ? (John 15:13)
-- [Aside]: In the sin offering, blood was caught in a basin — only a portion
-  was applied; the rest was poured out at the base of the altar. Christ poured
-  out His **whole** life knowing how little of it the world would ever claim.
+- Picture the courtyard. The sinner brings the lamb. He lays his hand on its
+  head — confessing — and the knife falls (Lev 4:27–29).
+- The priest catches the blood in a basin. Every drop is precious; not one is
+  lost (Lev 4:30, 34).
+- [WB]: Draw a basin at center. Above it: ONE LIFE POURED OUT. Around it,
+  three arrows — ALTAR / VEIL / BASE.
+- Then watch what the priest does with that single basin of blood:
+  - **A little** is put on the horns of the altar of burnt offering — atonement
+    accepted, the sinner forgiven (Lev 4:30)
+  - **A little** is sprinkled before the veil — carried toward the presence of
+    God in the Most Holy Place (Lev 4:6, 17)
+  - **The rest** — the bulk of it — is **poured out at the base of the altar**
+    (Lev 4:7, 18, 30)
+- Stop on that last line. Most of the blood never touches the worshipper. Most
+  of it never reaches the veil. Most of it runs out into the ground at the
+  altar's base — given, but not claimed.
+- [WB]: Underline POURED OUT AT THE BASE — and write beside it: _given for all,
+  received by few._
+- This is the shadow. The Lamb of God would do the same: His whole life caught
+  in one basin, a measure applied to those who receive, the rest poured out
+  for a world that would not.
+- [RQ]: If the priest in the type poured out more than was applied, what does
+  Calvary tell us about the love that was willing to be **mostly refused**?
+  (Lev 4:7; John 1:11; Isa 53:12)
+- John 15:13 — "Greater love hath no man than this, that a man lay down his
+  life for his friends" — the whole basin, not a measured drop
+- [WB]: Above the basin, write the equation — LOVE = WHAT IT IS WILLING TO
+  LOSE (John 15:13)
+- The cross is not a tragedy God endured; it is the **basin** God chose to
+  pour out — knowing in advance how much would soak unclaimed into the ground.
 
 ---
 

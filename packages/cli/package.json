@@ -12,9 +12,10 @@
   "scripts": {
     "build": "bun scripts/build.ts",
     "typecheck": "tsgo --noEmit",
-    "test": "bun test test/commands test/core test/perf",
+    "test": "bun test test/commands test/core",
     "test:watch": "bun test test/commands test/core --watch",
-    "test:tui": "bun test test/tui"
+    "test:tui": "bun test test/tui",
+    "test:perf": "bun test test/perf"
   },
   "dependencies": {
     "@bible/core": "workspace:*",

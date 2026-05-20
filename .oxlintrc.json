@@ -35,7 +35,8 @@
     "**/*.d.ts",
     "**/scripts/**",
     "**/bin/**",
-    "**/outputs/**/_raw/**"
+    "**/outputs/**/_raw/**",
+    "**/src-tauri/**"
   ],
   "overrides": [
     {
@@ -62,6 +63,7 @@
         "**/packages/core/src/egw/auth.ts",
         "**/packages/core/src/egw/client.ts",
         "**/packages/core/src/egw-db/book-database.ts",
+        "**/packages/core/src/egw-db/book-database-bun.ts",
         "**/packages/core/src/bible-db/bible-database.ts",
         "**/packages/core/src/hymnal/database.ts",
         "**/packages/core/src/gemini/client.ts"

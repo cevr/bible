@@ -7,7 +7,7 @@
  */
 
 import { createCache, type PromiseWithStatus } from '@bible/core/cache';
-import { EGWParagraphDatabase } from '@bible/core/egw-db';
+import * as EGWDbBun from '@bible/core/egw-db/bun';
 import {
   EGWReaderService,
   type EGWBookInfo,
@@ -23,7 +23,7 @@ export type { EGWBookInfo, EGWParagraph, EGWReaderPosition };
 
 // Create combined layer with all dependencies
 const EGWServicesLayer = EGWReaderService.Default.pipe(
-  Layer.provideMerge(EGWParagraphDatabase.Default),
+  Layer.provideMerge(EGWDbBun.Default),
   Layer.provideMerge(BunServices.layer),
 );
 

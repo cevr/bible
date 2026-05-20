@@ -27,7 +27,7 @@ import { FetchHttpClient } from 'effect/unstable/http';
 import { BunServices, BunFileSystem, BunPath, BunRuntime } from '@effect/platform-bun';
 import { Effect, Layer } from 'effect';
 
-import { EGWParagraphDatabase } from '../src/egw-db/index.js';
+import * as EGWDbBun from '../src/egw-db/book-database-bun.js';
 import { EGWGeminiService } from '../src/egw-gemini/index.js';
 import { EGWUploadStatus } from '../src/egw-gemini/upload-status.js';
 import { EGWAuth } from '../src/egw/auth.js';
@@ -62,7 +62,7 @@ const program = Effect.gen(function* () {
 
 // Compose layers with explicit dependencies
 // EGWAuth needs: HttpClient, FileSystem, Path
-const AuthLayer = EGWAuth.Live.pipe(Layer.provide(FetchHttpClient.layer));
+const AuthLayer = EGWAuth.layerLiveFs().pipe(Layer.provide(FetchHttpClient.layer));
 
 // EGWApiClient needs: EGWAuth, HttpClient
 const ApiClientLayer = EGWApiClient.Live.pipe(
@@ -74,7 +74,7 @@ const ApiClientLayer = EGWApiClient.Live.pipe(
 const GeminiClientLayer = GeminiFileSearchClient.Live.pipe(Layer.provide(FetchHttpClient.layer));
 
 // EGWParagraphDatabase needs: FileSystem, Path
-const ParagraphDbLayer = EGWParagraphDatabase.Live;
+const ParagraphDbLayer = EGWDbBun.Live;
 
 // EGWUploadStatus needs: FileSystem, Path
 const UploadStatusLayer = EGWUploadStatus.Live;

@@ -14,6 +14,7 @@ import { ConfigProvider, Effect, Layer, Option } from 'effect';
 
 import type { Book, Paragraph } from '../egw/schemas.js';
 import { EGWParagraphDatabase } from './book-database.js';
+import * as EGWDbBun from './book-database-bun.js';
 
 // Track temp files for cleanup
 const tempFiles: string[] = [];
@@ -49,7 +50,7 @@ const runTest = <A, E>(effect: Effect.Effect<A, E, EGWParagraphDatabase>): Promi
     ),
   );
 
-  const TestLayer = Layer.fresh(EGWParagraphDatabase.Default).pipe(
+  const TestLayer = Layer.fresh(EGWDbBun.Default).pipe(
     Layer.provide(BunServices.layer),
     Layer.provide(ConfigProvider.layer(provider)),
   );

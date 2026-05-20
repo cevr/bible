@@ -17,10 +17,10 @@ export {
 
 import { Layer } from 'effect';
 
-import { EGWParagraphDatabase } from '@bible/core/egw-db';
+import * as EGWDbBun from '@bible/core/egw-db/bun';
 import { EGWService } from '@bible/core/egw-service';
 
 /**
  * EGWServiceLive - Composed layer with database dependency
  */
-export const EGWServiceLive = EGWService.Live.pipe(Layer.provide(EGWParagraphDatabase.Live));
+export const EGWServiceLive = EGWService.Live.pipe(Layer.provide(EGWDbBun.Live));

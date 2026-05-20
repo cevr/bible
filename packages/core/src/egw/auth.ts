@@ -12,22 +12,32 @@ import {
   UrlParams,
 } from 'effect/unstable/http';
 import type { PlatformError } from 'effect/PlatformError';
+import type { FileSystem, Path } from 'effect';
 import {
   Clock,
   Config,
   Context,
   Duration,
   Effect,
-  FileSystem,
   Layer,
-  Option,
-  Path,
   Predicate,
   Redacted,
   Schedule,
   Schema,
   SynchronizedRef,
 } from 'effect';
+
+import { AccessToken } from './auth-types.js';
+import {
+  bakedAuthBaseUrl,
+  bakedClientId,
+  bakedClientSecret,
+  bakedScope,
+  envVar,
+} from './build-defines.js';
+import { EGWTokenStore } from './token-store.js';
+
+export { AccessToken } from './auth-types.js';
 
 /**
  * EGW Auth Errors
@@ -47,23 +57,6 @@ const OAuthTokenResponse = Schema.Struct({
   expires_in: Schema.Number,
   scope: Schema.String,
 });
-
-/**
- * Access Token with creation timestamp
- */
-export class AccessToken extends Schema.Class<AccessToken>('lib/EGW/Auth/AccessToken')({
-  accessToken: Schema.Redacted(Schema.NonEmptyString),
-  refreshToken: Schema.optional(Schema.Redacted(Schema.NonEmptyString)),
-  expiresAt: Schema.Int,
-  scope: Schema.String,
-}) {
-  static fromJson = Schema.decodeEffect(Schema.fromJsonString(this));
-  static toJson = Schema.encodeEffect(Schema.fromJsonString(this));
-
-  isExpired(now: number): boolean {
-    return this.expiresAt <= now;
-  }
-}
 
 /**
  * Transform OAuth token response to AccessToken
@@ -113,31 +106,33 @@ export class EGWAuth extends Context.Service<EGWAuth, EGWAuthService>()(
     | Schema.SchemaError
     | HttpClientError.HttpClientError
     | EGWAuthError,
-    FileSystem.FileSystem | Path.Path | HttpClient.HttpClient
+    EGWTokenStore | HttpClient.HttpClient
   > = Layer.effect(
     EGWAuth,
     Effect.gen(function* () {
-      // Defaults read process.env.X dot-syntax — Bun's `define` substitutes
-      // these to literal strings at compile time, so the binary carries the
-      // EGW credentials without needing the runtime to find a .env file.
+      // Defaults pull from baked-in build constants first (renderer bundles
+      // get string-literal substitution via Vite/esbuild `define`), then fall
+      // back to `envVar()` (a process-safe wrapper) so node-side hosts that
+      // load `.env` at runtime (CLI, sync workers, tests) keep working. Bare
+      // `process.env` reads would throw ReferenceError in the renderer.
       const authBaseUrl = yield* Config.string('EGW_AUTH_BASE_URL').pipe(
-        Config.withDefault(process.env['EGW_AUTH_BASE_URL'] ?? 'https://cpanel.egwwritings.org'),
+        Config.withDefault(
+          bakedAuthBaseUrl() ?? envVar('EGW_AUTH_BASE_URL') ?? 'https://cpanel.egwwritings.org',
+        ),
       );
       const clientId = yield* Config.string('EGW_CLIENT_ID').pipe(
-        Config.withDefault(process.env['EGW_CLIENT_ID'] ?? ''),
+        Config.withDefault(bakedClientId() ?? envVar('EGW_CLIENT_ID') ?? ''),
       );
       const clientSecret = yield* Config.redacted('EGW_CLIENT_SECRET').pipe(
-        Config.withDefault(Redacted.make(process.env['EGW_CLIENT_SECRET'] ?? '')),
+        Config.withDefault(Redacted.make(bakedClientSecret() ?? envVar('EGW_CLIENT_SECRET') ?? '')),
       );
       const scope = yield* Config.string('EGW_SCOPE').pipe(
         Config.withDefault(
-          process.env['EGW_SCOPE'] ?? 'writings search studycenter subscriptions user_info',
+          bakedScope() ??
+            envVar('EGW_SCOPE') ??
+            'writings search studycenter subscriptions user_info',
         ),
       );
-      const tokenFile = yield* Config.string('EGW_TOKEN_FILE').pipe(
-        Config.withDefault(process.env['EGW_TOKEN_FILE'] ?? 'data/tokens.json'),
-      );
-
       if (!clientId || !Redacted.value(clientSecret)) {
         return yield* new EGWAuthError({
           message:
@@ -146,53 +141,9 @@ export class EGWAuth extends Context.Service<EGWAuth, EGWAuthService>()(
         });
       }
 
-      const fs = yield* FileSystem.FileSystem;
-      const path = yield* Path.Path;
-
-      const tokenFilePath = path.resolve(tokenFile);
-
-      // Ensure directory exists
-      yield* fs.makeDirectory(path.dirname(tokenFilePath), { recursive: true }).pipe(Effect.orDie);
-
-      // The on-disk persisted shape — plain strings for the secrets so
-      // they round-trip through JSON. We re-wrap them as Redacted on read.
-      const PersistedToken = Schema.Struct({
-        accessToken: Schema.NonEmptyString,
-        refreshToken: Schema.optional(Schema.NonEmptyString),
-        expiresAt: Schema.Int,
-        scope: Schema.String,
-      });
-
-      const readTokenFromCache = Effect.fn('EGWAuth.readTokenFromCache')(function* () {
-        const exists = yield* fs.exists(tokenFilePath);
-        if (!exists) {
-          return yield* Effect.succeed(Option.none());
-        }
-        const json = yield* fs.readFileString(tokenFilePath, 'utf-8');
-        const parsed = yield* Schema.decodeEffect(Schema.fromJsonString(PersistedToken))(json);
-        const token = new AccessToken({
-          accessToken: Redacted.make(parsed.accessToken),
-          refreshToken:
-            parsed.refreshToken !== undefined ? Redacted.make(parsed.refreshToken) : undefined,
-          expiresAt: parsed.expiresAt,
-          scope: parsed.scope,
-        });
-        return yield* Effect.succeed(Option.some(token));
-      });
-
-      const writeTokenToCache = Effect.fn('EGWAuth.writeTokenToCache')(function* (
-        token: AccessToken,
-      ) {
-        const persisted = {
-          accessToken: Redacted.value(token.accessToken),
-          refreshToken:
-            token.refreshToken !== undefined ? Redacted.value(token.refreshToken) : undefined,
-          expiresAt: token.expiresAt,
-          scope: token.scope,
-        };
-        const json = yield* Schema.encodeEffect(Schema.fromJsonString(PersistedToken))(persisted);
-        yield* fs.writeFileString(tokenFilePath, json);
-      });
+      const tokenStore = yield* EGWTokenStore;
+      const readTokenFromCache = () => tokenStore.read;
+      const writeTokenToCache = (token: AccessToken) => tokenStore.write(token);
 
       const httpClient = (yield* HttpClient.HttpClient).pipe(
         HttpClient.mapRequest((request) =>
@@ -355,9 +306,34 @@ export class EGWAuth extends Context.Service<EGWAuth, EGWAuthService>()(
   );
 
   /**
-   * Default layer - alias for Live (backwards compatibility).
+   * Convenience layer that bundles `Live` with a filesystem-backed
+   * `EGWTokenStore`. Use this in Node-hosted contexts (CLI, sync workers, dev
+   * scripts) where the token file lives on disk. The renderer should compose
+   * `Live` with its own `EGWTokenStore.layerFromJsonPort` instead.
+   *
+   * Pass `tokenFile` to override the default `data/tokens.json` path
+   * (otherwise reads `EGW_TOKEN_FILE` from env, with `data/tokens.json` as the
+   * fallback).
    */
-  static Default = EGWAuth.Live;
+  static layerLiveFs = (
+    tokenFile?: string,
+  ): Layer.Layer<
+    EGWAuth,
+    | Config.ConfigError
+    | PlatformError
+    | Schema.SchemaError
+    | HttpClientError.HttpClientError
+    | EGWAuthError,
+    FileSystem.FileSystem | Path.Path | HttpClient.HttpClient
+  > => {
+    // Guard process access: this method is safe to *call* from any context,
+    // but the previous eager `static Default = EGWAuth.layerLiveFs()` ran
+    // this at module load and crashed renderers (no `process` global). The
+    // static field was removed; this guard belts-and-suspenders any future
+    // caller that imports from a browser context.
+    const path = tokenFile ?? envVar('EGW_TOKEN_FILE') ?? 'data/tokens.json';
+    return Layer.provide(EGWAuth.Live, EGWTokenStore.layerFileSystem(path));
+  };
 
   /**
    * Test implementation with a mock token.

@@ -25,6 +25,7 @@ import {
 } from '@bible/core/egw';
 import { EGWCommentaryService } from '@bible/core/egw-commentary';
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
+import * as EGWDbBun from '@bible/core/egw-db/bun';
 import { EGWService, type EGWSearchResult } from '@bible/core/egw-service';
 import { downloadBookToLocal } from '@bible/core/sync';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
@@ -41,7 +42,7 @@ const query = Argument.string('query').pipe(Argument.variadic());
 // Layers
 // ============================================================================
 
-const AuthLayer = EGWAuth.Live.pipe(Layer.provide(FetchHttpClient.layer));
+const AuthLayer = EGWAuth.layerLiveFs().pipe(Layer.provide(FetchHttpClient.layer));
 
 const ApiClientLayer = EGWApiClient.Live.pipe(
   Layer.provide(AuthLayer),
@@ -52,7 +53,7 @@ const ApiClientLayer = EGWApiClient.Live.pipe(
  * Layer providing EGWService (local DB) — used by lookup/local-search commands.
  */
 const ServiceLayer = EGWService.Default.pipe(
-  Layer.provide(EGWParagraphDatabase.Default),
+  Layer.provide(EGWDbBun.Default),
   Layer.provide(BunServices.layer),
 );
 
@@ -60,7 +61,7 @@ const ServiceLayer = EGWService.Default.pipe(
  * Layer providing EGWCommentaryService (local DB) — used by `commentary`.
  */
 const CommentaryLayer = EGWCommentaryService.Default.pipe(
-  Layer.provide(EGWParagraphDatabase.Default),
+  Layer.provide(EGWDbBun.Default),
   Layer.provide(BunServices.layer),
 );
 
@@ -70,8 +71,8 @@ const CommentaryLayer = EGWCommentaryService.Default.pipe(
  */
 const FullLayer = Layer.mergeAll(
   ApiClientLayer,
-  EGWParagraphDatabase.Default,
-  EGWService.Default.pipe(Layer.provide(EGWParagraphDatabase.Default)),
+  EGWDbBun.Default,
+  EGWService.Default.pipe(Layer.provide(EGWDbBun.Default)),
 ).pipe(Layer.provide(BunServices.layer));
 
 // ============================================================================

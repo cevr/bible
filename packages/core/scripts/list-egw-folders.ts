@@ -60,7 +60,7 @@ const program = Effect.gen(function* () {
 });
 
 // Compose all layers - EGWApiClient needs EGWAuth and HttpClient
-const AuthLayer = Layer.provide(EGWAuth.Live, FetchHttpClient.layer);
+const AuthLayer = Layer.provide(EGWAuth.layerLiveFs(), FetchHttpClient.layer);
 const ApiClientLayer = EGWApiClient.Live.pipe(
   Layer.provide(AuthLayer),
   Layer.provide(FetchHttpClient.layer),

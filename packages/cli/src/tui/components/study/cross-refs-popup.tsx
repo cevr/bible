@@ -20,7 +20,7 @@
 
 import { BibleDatabase } from '@bible/core/bible-db';
 import { EGWCommentaryService, type CommentaryEntry } from '@bible/core/egw-commentary';
-import { EGWParagraphDatabase } from '@bible/core/egw-db';
+import * as EGWDbBun from '@bible/core/egw-db/bun';
 import {
   StructuralAnalysis,
   type WordFrequencyEntry,
@@ -226,7 +226,7 @@ export function CrossRefsPopup(props: CrossRefsPopupProps) {
     setCommentaryLoading(true);
 
     const CommentaryLayer = EGWCommentaryService.Default.pipe(
-      Layer.provideMerge(EGWParagraphDatabase.Default),
+      Layer.provideMerge(EGWDbBun.Default),
       Layer.provideMerge(BunServices.layer),
     );
 

@@ -13,6 +13,8 @@
 
 import { Effect, Option, Schema } from 'effect';
 
+import type * as Schemas from './schemas.js';
+
 /**
  * Parsed EGW Reference - single paragraph
  */
@@ -267,6 +269,23 @@ export function headingLevel(elementType: string | null | undefined): number {
   if (!elementType) return 0;
   const match = elementType.toLowerCase().match(/^h(\d)$/);
   return match?.[1] ? parseInt(match[1], 10) : 0;
+}
+
+/**
+ * Extract the integer chapter id that `getChapterContent` expects, from a TOC
+ * item's `para_id`. EGW `para_id` values look like `"84.155"` — the chapter
+ * endpoint only wants `"155"` (the part after the dot). Falls back to
+ * `puborder` when `para_id` is missing or malformed.
+ *
+ * Passing the full `para_id` to the chapter endpoint returns wrong data
+ * without erroring, so every caller MUST go through this helper.
+ */
+export function chapterIdFromTocItem(toc: Schemas.TocItem): string {
+  if (toc.para_id !== undefined && toc.para_id !== null) {
+    const match = toc.para_id.match(/\.(\d+)$/);
+    return match?.[1] ?? String(toc.puborder);
+  }
+  return String(toc.puborder);
 }
 
 // ---------------------------------------------------------------------------

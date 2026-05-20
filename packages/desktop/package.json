@@ -1,0 +1,52 @@
+{
+  "name": "@bible/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/main/main.cjs",
+  "scripts": {
+    "dev": "vite",
+    "build": "bun run build:renderer && bun run build:main",
+    "build:renderer": "vite build",
+    "build:main": "bun run scripts/build-main.ts",
+    "package": "bun run build && electron-builder",
+    "typecheck": "tsgo --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "postinstall": "electron-rebuild -f -w better-sqlite3"
+  },
+  "dependencies": {
+    "@bible/core": "workspace:*",
+    "@effect/sql-sqlite-node": "catalog:",
+    "better-sqlite3": "^12.10.0",
+    "effect": "catalog:",
+    "htmlparser2": "^12.0.0",
+    "solid-js": "^1.9.3"
+  },
+  "devDependencies": {
+    "@effect/vitest": "^4.0.0-beta.68",
+    "@electron/rebuild": "^4.0.4",
+    "@types/better-sqlite3": "^7.6.13",
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
+    "esbuild": "^0.28.0",
+    "vite": "^6.0.7",
+    "vite-plugin-solid": "^2.11.0",
+    "vitest": "latest"
+  },
+  "build": {
+    "appId": "com.bible.desktop",
+    "productName": "EGW Reader",
+    "directories": {
+      "output": "dist/release"
+    },
+    "files": [
+      "dist/main/**/*",
+      "dist/renderer/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.reference",
+      "target": "dmg"
+    }
+  }
+}

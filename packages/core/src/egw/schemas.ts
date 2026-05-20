@@ -65,11 +65,17 @@ export interface Folder extends Schema.Struct.Type<typeof folderFields> {
 }
 
 /**
- * Folder - Schema definition with recursive children
+ * Folder - Schema definition with recursive children.
+ *
+ * Annotated as `Schema.Codec<Folder>` (the v4 canonical pattern for
+ * recursive schemas) so the DecodingServices/EncodingServices slots stay
+ * `never` instead of widening to `unknown` through `Schema.suspend`.
+ * Consumers calling `Schema.decodeUnknownEffect(Folder)` get a clean
+ * `Effect<Folder, SchemaError, never>` requirement.
  */
-export const Folder: Schema.Schema<Folder> = Schema.Struct({
+export const Folder: Schema.Codec<Folder> = Schema.Struct({
   ...folderFields,
-  children: Schema.optional(Schema.Array(Schema.suspend((): Schema.Schema<Folder> => Folder))),
+  children: Schema.optional(Schema.Array(Schema.suspend((): Schema.Codec<Folder> => Folder))),
 });
 
 /**

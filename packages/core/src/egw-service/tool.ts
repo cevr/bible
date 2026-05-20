@@ -64,9 +64,11 @@ type EGWToolInput = z.infer<typeof EGWToolSchema>;
  *
  * @example
  * ```ts
+ * import * as EGWDbBun from '../egw-db/book-database-bun.js';
+ *
  * const egwLayer = EGWService.Live.pipe(
  *   Layer.provideMerge(EGWCommentaryService.Live),
- *   Layer.provide(EGWParagraphDatabase.Live),
+ *   Layer.provide(EGWDbBun.Live),
  * );
  * const runtime = ManagedRuntime.make(egwLayer);
  *

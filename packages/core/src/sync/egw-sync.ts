@@ -22,6 +22,7 @@ import {
   type SyncStatus,
 } from '../egw-db/index.js';
 import { EGWApiClient } from '../egw/client.js';
+import { chapterIdFromTocItem } from '../egw/parse.js';
 import type * as EGWSchemas from '../egw/schemas.js';
 
 /**
@@ -144,22 +145,13 @@ export const downloadBookToLocal = (
       } satisfies DownloadBookResult;
     }
 
-    // Extract chapter IDs from TOC entries.
-    // The chapter endpoint expects the para number after the dot in para_id
-    // (e.g., "84.68" → "68"); falls back to puborder.
     const chapterIds = tocResult.toc
       .filter(
         (item) =>
           (item.para_id !== undefined && item.para_id !== null) ||
           (item.puborder !== undefined && item.puborder !== null),
       )
-      .map((tocItem) => {
-        if (tocItem.para_id !== undefined && tocItem.para_id !== null) {
-          const match = tocItem.para_id.match(/\.(\d+)$/);
-          return match?.[1] ?? String(tocItem.puborder);
-        }
-        return String(tocItem.puborder);
-      });
+      .map(chapterIdFromTocItem);
 
     const chapterErrorsRef = yield* Ref.make<string[]>([]);
 

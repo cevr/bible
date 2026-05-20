@@ -19,6 +19,7 @@ import {
 } from 'effect';
 
 import { EGWAuth } from './auth.js';
+import { bakedApiBaseUrl, bakedUserAgent, envVar } from './build-defines.js';
 import * as Schemas from './schemas.js';
 
 /**
@@ -100,10 +101,12 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
     EGWApiClient,
     Effect.gen(function* () {
       const baseUrl = yield* Config.string('EGW_API_BASE_URL').pipe(
-        Config.withDefault(process.env['EGW_API_BASE_URL'] ?? 'https://a.egwwritings.org'),
+        Config.withDefault(
+          bakedApiBaseUrl() ?? envVar('EGW_API_BASE_URL') ?? 'https://a.egwwritings.org',
+        ),
       );
       const userAgent = yield* Config.string('EGW_USER_AGENT').pipe(
-        Config.withDefault(process.env['EGW_USER_AGENT'] ?? 'EGW-Effect-Client/1.0'),
+        Config.withDefault(bakedUserAgent() ?? envVar('EGW_USER_AGENT') ?? 'EGW-Effect-Client/1.0'),
       );
 
       const auth = yield* EGWAuth;

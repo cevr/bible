@@ -1,0 +1,16 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.DS_Store
+
+# Tauri
+src-tauri/target/
+src-tauri/gen/
+src-tauri/resources/pdfium/
+
+# Local env
+.env
+.env.local
+
+# Runtime token cache — contains live OAuth access tokens
+data/

@@ -17,7 +17,9 @@
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
     "test": "turbo run test",
-    "gate": "concurrently -n type,style,build -c blue,yellow,cyan \"bun run typecheck\" \"bun run lint && bun run fmt\" \"bun run build\" && bun run test",
+    "test:perf": "turbo run test:perf --concurrency=1",
+    "gate": "concurrently -n style,turbo -c yellow,cyan \"bun run lint && bun run fmt\" \"turbo run gate\" && bun run test:perf",
+    "gate:fix": "bun run lint:fix && bun run fmt && bun run gate",
     "clean": "rm -rf .turbo */.turbo */*/.turbo",
     "prepare": "lefthook install && effect-tsgo patch"
   },
@@ -35,13 +37,15 @@
     "typescript": "^6.0.3"
   },
   "overrides": {
-    "effect": "4.0.0-beta.64"
+    "effect": "4.0.0-beta.68"
   },
   "packageManager": "bun@1.3.6",
   "catalog": {
-    "@effect/platform-bun": "4.0.0-beta.64",
+    "@effect/platform-bun": "4.0.0-beta.68",
+    "@effect/sql-sqlite-bun": "4.0.0-beta.68",
+    "@effect/sql-sqlite-node": "4.0.0-beta.68",
     "@types/bun": "1.3.13",
-    "effect": "4.0.0-beta.64",
+    "effect": "4.0.0-beta.68",
     "effect-bun-test": "0.3.0"
   }
 }

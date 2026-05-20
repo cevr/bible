@@ -1,12 +1,8 @@
 pre-commit:
-  parallel: false
   jobs:
-    - name: lint+fmt
-      run: bun run lint:fix && bun run fmt
+    # gate:fix runs lint --fix + fmt first (auto-merges duplicate imports,
+    # reorders, etc.), then re-runs the readonly gate to make sure the fixes
+    # hold. stage_fixed re-stages anything the formatters/linter rewrote.
+    - name: gate
+      run: bun run gate:fix
       stage_fixed: true
-    - name: typecheck
-      run: bun run typecheck
-    - name: build
-      run: bun run build
-    - name: test
-      run: bun run test
