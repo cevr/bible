@@ -5,34 +5,11 @@
  */
 
 import { segmentTextWithReferences } from '@bible/core/bible-reader';
+import { nodesToText } from '@bible/core/egw';
 import type { EGWParagraph } from '@bible/core/egw-reader';
 import { createMemo, For, Show } from 'solid-js';
 
 import { useTheme } from '../../context/theme.js';
-
-/**
- * Strip HTML tags from content, converting <br /> to newlines
- */
-function stripHtml(html: string): string {
-  return (
-    html
-      // Convert <br>, <br/>, <br /> to newlines
-      .replace(/<br\s*\/?>/gi, '\n')
-      // Remove all other HTML tags
-      .replace(/<[^>]+>/g, '')
-      // Decode common HTML entities
-      .replace(/&nbsp;/g, ' ')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'")
-      // Clean up excessive whitespace (but keep single newlines)
-      .replace(/[ \t]+/g, ' ')
-      .replace(/\n\s*\n/g, '\n\n')
-      .trim()
-  );
-}
 
 interface EGWParagraphViewProps {
   id: string;
@@ -45,7 +22,7 @@ export function EGWParagraphView(props: EGWParagraphViewProps) {
   const { theme } = useTheme();
 
   const refcode = () => props.paragraph.refcodeShort ?? props.paragraph.refcodeLong ?? '';
-  const cleanContent = createMemo(() => stripHtml(props.paragraph.content ?? ''));
+  const cleanContent = createMemo(() => nodesToText(props.paragraph.nodes));
 
   // Segment content with Bible references highlighted
   const segments = createMemo(() => segmentTextWithReferences(cleanContent()));

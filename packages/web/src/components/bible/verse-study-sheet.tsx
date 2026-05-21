@@ -14,7 +14,6 @@ import { useNavigate } from 'react-router';
 import { XIcon, Trash2Icon, ExternalLinkIcon, ChevronDownIcon, BookMarkedIcon } from 'lucide-react';
 import { useBible } from '@/providers/bible-context';
 import { useApp } from '@/providers/db-context';
-import { cleanHtml } from '@/components/egw/html-utils';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
@@ -1230,12 +1229,12 @@ function EgwEntryCard({
               className="text-sm leading-relaxed text-muted-foreground data-[matched]:text-foreground data-[matched]:bg-primary/10 data-[matched]:rounded data-[matched]:px-1 data-[matched]:-mx-1"
               data-matched={p.puborder === entry.puborder ? '' : undefined}
             >
-              {cleanHtml(p.content)}
+              {p.content}
             </p>
           ))}
         </div>
       ) : (
-        <p className="text-sm text-foreground leading-relaxed">{cleanHtml(entry.content)}</p>
+        <p className="text-sm text-foreground leading-relaxed">{entry.content}</p>
       )}
 
       <button

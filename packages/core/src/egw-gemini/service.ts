@@ -9,6 +9,7 @@ import { Context, Effect, FileSystem, Layer, Option, Ref, Result, Schema, Stream
 
 import { EGWParagraphDatabase } from '../egw-db/index.js';
 import type { ParagraphDatabaseError } from '../egw-db/index.js';
+import { nodesToText } from '../egw/ast.js';
 import { EGWApiClient } from '../egw/client.js';
 import type { EGWApiClientError } from '../egw/client.js';
 import type * as EGWSchemas from '../egw/schemas.js';
@@ -199,7 +200,7 @@ export class EGWGeminiService extends Context.Service<EGWGeminiService, EGWGemin
             Stream.flatMap((paragraphs) => Stream.fromIterable(paragraphs)),
             // Filter out empty paragraphs before processing
             Stream.filter((paragraph) => {
-              const paragraphContent = paragraph.content ?? '';
+              const paragraphContent = nodesToText(paragraph.nodes);
 
               return paragraphContent.length > 0;
             }),
@@ -228,10 +229,9 @@ export class EGWGeminiService extends Context.Service<EGWGeminiService, EGWGemin
                     )
                     .pipe(Effect.ignore);
 
-                  // Create content from paragraph
-                  // Handle nullable fields: refcode_short, refcode_long, and content
+                  // Create content from paragraph (flatten AST to plain text for the upload payload)
                   const paraRefcode = paragraph.refcode_short ?? paragraph.refcode_long ?? null;
-                  const paragraphContent = paragraph.content ?? '';
+                  const paragraphContent = nodesToText(paragraph.nodes);
                   const content = paraRefcode
                     ? `${paraRefcode}\n${paragraphContent}`
                     : paragraphContent;

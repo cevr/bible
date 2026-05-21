@@ -1,0 +1,110 @@
+@import 'tailwindcss';
+
+/* Tell Tailwind where to scan for class usage. Vite's automatic content
+   detection covers most files, but our html entry point lives outside
+   the JSX graph so we add it explicitly. */
+@source '../../index.html';
+@source '../**/*.{ts,tsx}';
+
+/* ─── Global resets ─────────────────────────────────────────────────────
+   The shell of the app is a full-bleed Electron window with overflow
+   trapped inside named scroll containers (.reader, .landing, drawer
+   bodies). These resets stop the document from contributing its own
+   scrollbar and lock the renderer to `html, body { height: 100% }`.
+
+   Tailwind's preflight already handles most resets, but it doesn't kill
+   document overflow or force 100% height — those are app-specific. */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ─── Design tokens ─────────────────────────────────────────────────────
+   `@theme inline` exposes each token as both a Tailwind utility *and* a
+   CSS variable. `text-fg` compiles to `color: var(--color-fg)`, and the
+   variable is left in the cascade so arbitrary-value escapes (e.g.
+   `bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)]`) can read
+   the same source.
+
+   The reader-* + ui-* groups stay CSS-side-only (set by readerStyle() in
+   app.tsx via inline style, themes set via data-theme attribute). They
+   get aliased here so utilities like `text-ui-base` work. */
+@theme inline {
+  --font-serif: 'Iowan Old Style', 'Charter', 'Georgia', 'Times New Roman', serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Inter', 'Helvetica Neue', sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Menlo, Consolas, ui-monospace, monospace;
+
+  --color-bg: var(--bg);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-rule: var(--rule);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+
+  --text-ui-xs: var(--ui-xs);
+  --text-ui-sm: var(--ui-sm);
+  --text-ui-base: var(--ui-base);
+  --text-ui-md: var(--ui-md);
+  --text-ui-lg: var(--ui-lg);
+}
+
+/* ─── Base theme tokens ─────────────────────────────────────────────────
+   :root sets ui-* sizes that scale with --ui-scale (set via inline style
+   from readerStyle()). Theme palettes are switched via the data-theme
+   attribute that app.tsx writes onto <html>. */
+:root {
+  --ui-scale: 1;
+  --ui-base: calc(13px * var(--ui-scale));
+  --ui-sm: calc(11px * var(--ui-scale));
+  --ui-xs: calc(10px * var(--ui-scale));
+  --ui-md: calc(14px * var(--ui-scale));
+  --ui-lg: calc(17px * var(--ui-scale));
+}
+
+[data-theme='light'] {
+  --bg: #fafaf7;
+  --fg: #1c1c1e;
+  --muted: #6b6b6f;
+  --rule: #e5e3dd;
+  --accent: #1a1a1a;
+  --accent-soft: rgba(255, 220, 100, 0.35);
+}
+
+[data-theme='sepia'] {
+  --bg: #f6ecd9;
+  --fg: #3a2f20;
+  --muted: #7a6a52;
+  --rule: #e0d2b3;
+  --accent: #2a200f;
+  --accent-soft: rgba(255, 220, 100, 0.35);
+}
+
+[data-theme='dark'] {
+  --bg: #1a1a1c;
+  --fg: #e6e4df;
+  --muted: #9a9893;
+  --rule: #2c2c2f;
+  --accent: #fafaf7;
+  --accent-soft: rgba(255, 220, 100, 0.18);
+}
+
+/* Custom theme-aware variants so utilities can target sepia/dark
+   (e.g. `dark:bg-accent`). Tailwind v4 ships a `dark` variant but it
+   defaults to media-query and `prefers-color-scheme`; ours is driven by
+   the data-theme attribute the app already toggles. */
+@custom-variant light (&:where([data-theme='light'], [data-theme='light'] *));
+@custom-variant sepia (&:where([data-theme='sepia'], [data-theme='sepia'] *));
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));

@@ -23,6 +23,9 @@
     "clean": "rm -rf .turbo */.turbo */*/.turbo",
     "prepare": "lefthook install && effect-tsgo patch"
   },
+  "dependencies": {
+    "@solid-primitives/refs": "^1.1.3"
+  },
   "devDependencies": {
     "@effect/tsgo": "0.5.2",
     "@types/bun": "1.3.13",

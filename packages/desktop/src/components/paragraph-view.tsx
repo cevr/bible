@@ -1,5 +1,5 @@
 import { type Component, For, Match, Switch } from 'solid-js';
-import { type Node } from '../services/paragraph-ast.js';
+import { type Node } from '@bible/core/egw';
 
 // Pure render of a ParagraphAst Node[] into Solid JSX. No data fetching, no
 // navigation — links carry their `dataLink` as data attributes so a parent
@@ -64,10 +64,11 @@ const RenderNode: Component<RenderNodeProps> = (props) => (
     <Match when={props.node._tag === 'ScriptureRef' ? props.node : null}>
       {(n) => (
         <a
-          class="egwlink egwlink-bible"
+          class="cursor-pointer text-fg underline decoration-[color-mix(in_srgb,var(--color-accent)_45%,transparent)] decoration-1 underline-offset-2 transition-[color,text-decoration-color,background] duration-[0.12s] ease-in-out hover:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] hover:text-accent hover:decoration-accent hover:outline-none focus-visible:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] focus-visible:text-accent focus-visible:decoration-accent focus-visible:outline-none"
           href="#"
           title={n().title}
           data-link={n().dataLink}
+          data-link-kind="scripture"
           onClick={(e) => {
             e.preventDefault();
             props.onLinkClick?.(n().dataLink, 'scripture');
@@ -80,10 +81,11 @@ const RenderNode: Component<RenderNodeProps> = (props) => (
     <Match when={props.node._tag === 'BookRef' ? props.node : null}>
       {(n) => (
         <a
-          class="egwlink egwlink-book"
+          class="cursor-pointer text-fg underline decoration-[color-mix(in_srgb,var(--color-accent)_45%,transparent)] decoration-1 underline-offset-2 transition-[color,text-decoration-color,background] duration-[0.12s] ease-in-out hover:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] hover:text-accent hover:decoration-accent hover:outline-none focus-visible:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] focus-visible:text-accent focus-visible:decoration-accent focus-visible:outline-none"
           href="#"
           title={n().title}
           data-link={n().dataLink}
+          data-link-kind="book"
           onClick={(e) => {
             e.preventDefault();
             props.onLinkClick?.(n().dataLink, 'book');

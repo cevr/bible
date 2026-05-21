@@ -6,6 +6,7 @@
  */
 
 import type { EGWReference } from '@bible/core/app';
+import { nodesToText } from '@bible/core/egw';
 import { isChapterHeading } from '@bible/core/egw-db';
 import type { EGWBookInfo, EGWParagraph, EGWReaderPosition } from '@bible/core/egw-reader';
 import {
@@ -145,8 +146,8 @@ export function EGWNavigationProvider(props: ParentProps<EGWNavigationProviderPr
     const chapterParagraphs = paras.slice(chapterStartIndex, chapterEndIndex);
     const headingPara = paras[chapterStartIndex];
 
-    // Extract title from heading (strip HTML)
-    const title = headingPara?.content?.replace(/<[^>]*>/g, '') ?? 'Untitled';
+    // Extract title from heading
+    const title = headingPara ? nodesToText(headingPara.nodes) || 'Untitled' : 'Untitled';
 
     return {
       startIndex: chapterStartIndex,

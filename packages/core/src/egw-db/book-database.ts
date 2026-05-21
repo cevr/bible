@@ -20,7 +20,15 @@ import * as SqlClient from 'effect/unstable/sql/SqlClient';
 import type { SqlError } from 'effect/unstable/sql/SqlError';
 
 import * as EGWSchemas from '../egw/schemas.js';
+import { type Node, nodesToText } from '../egw/ast.js';
 import { isChapterHeading } from '../egw/parse.js';
+
+// Bump when the on-disk paragraphs schema changes shape (column rename, type
+// change, FTS index source change, …). The init code reads PRAGMA user_version
+// and drops/recreates the paragraphs tables on mismatch so callers don't need
+// to ship migration SQL — a re-sync rebuilds them. Books and sync_status are
+// preserved across version bumps because their shape is stable.
+const SCHEMA_VERSION = 2;
 import { RecordNotFoundError } from '../errors/database.js';
 import type {
   DatabaseConnectionError,
@@ -55,14 +63,18 @@ export const BookRow = Schema.Struct({
 
 export type BookRow = Schema.Schema.Type<typeof BookRow>;
 
-const { para_id, refcode_short, refcode_long, content, puborder, element_type, element_subtype } =
+const { para_id, refcode_short, refcode_long, puborder, element_type, element_subtype } =
   EGWSchemas.Paragraph.fields;
 
+// SQL row shape. `nodes_json` is JSON-encoded `readonly Node[]`; `content_text`
+// is the plain-text projection used by the FTS5 virtual table. Both are
+// derived from the AST at write time so reads don't have to parse anything.
 export const ParagraphRow = Schema.Struct({
   para_id,
   refcode_short,
   refcode_long,
-  content,
+  nodes_json: Schema.String,
+  content_text: Schema.String,
   puborder,
   element_type,
   element_subtype,
@@ -275,7 +287,9 @@ const paragraphToRow = (
     para_id: paragraph.para_id ?? null,
     refcode_short: paragraph.refcode_short ?? null,
     refcode_long: paragraph.refcode_long ?? null,
-    content: paragraph.content ?? null,
+    // Canonical AST on disk; FTS index uses content_text projection.
+    nodes_json: JSON.stringify(paragraph.nodes),
+    content_text: nodesToText(paragraph.nodes),
     puborder: paragraph.puborder,
     element_type: paragraph.element_type ?? null,
     element_subtype: paragraph.element_subtype ?? null,
@@ -289,21 +303,34 @@ const paragraphToRow = (
   };
 };
 
-const rowToParagraph = (row: ParagraphRow): EGWSchemas.Paragraph => ({
-  para_id: row.para_id ?? null,
-  id_prev: null,
-  id_next: null,
-  refcode_1: null,
-  refcode_2: null,
-  refcode_3: null,
-  refcode_4: null,
-  refcode_short: row.refcode_short ?? null,
-  refcode_long: row.refcode_long ?? null,
-  element_type: row.element_type ?? null,
-  element_subtype: row.element_subtype ?? null,
-  content: row.content ?? null,
-  puborder: row.puborder,
-});
+const rowToParagraph = (row: ParagraphRow): EGWSchemas.Paragraph => {
+  // Tolerate empty / malformed rows defensively — bad data shouldn't crash
+  // navigation. Bad JSON yields an empty paragraph that renders as nothing.
+  let nodes: readonly Node[] = [];
+  if (row.nodes_json !== '') {
+    try {
+      const parsed: unknown = JSON.parse(row.nodes_json);
+      if (Array.isArray(parsed)) nodes = parsed as readonly Node[];
+    } catch {
+      nodes = [];
+    }
+  }
+  return {
+    para_id: row.para_id ?? null,
+    id_prev: null,
+    id_next: null,
+    refcode_1: null,
+    refcode_2: null,
+    refcode_3: null,
+    refcode_4: null,
+    refcode_short: row.refcode_short ?? null,
+    refcode_long: row.refcode_long ?? null,
+    element_type: row.element_type ?? null,
+    element_subtype: row.element_subtype ?? null,
+    nodes,
+    puborder: row.puborder,
+  };
+};
 
 // ============================================================================
 // Service Definition
@@ -323,7 +350,24 @@ export class EGWParagraphDatabase extends Context.Service<
     Effect.gen(function* () {
       const sql = yield* SqlClient.SqlClient;
 
-      // Schema initialization (idempotent)
+      // Schema version check. SQLite's user_version pragma defaults to 0 for
+      // fresh DBs; if it doesn't match SCHEMA_VERSION we drop the paragraph
+      // tables (whose shape changed) and recreate via the CREATE TABLE blocks
+      // below. Books/sync_status are preserved — they're stable across bumps
+      // and tossing them would force callers to re-add books before a re-sync.
+      const versionRows = yield* sql.unsafe<{ user_version: number }>(`PRAGMA user_version`);
+      const currentVersion = versionRows[0]?.user_version ?? 0;
+      if (currentVersion !== 0 && currentVersion !== SCHEMA_VERSION) {
+        yield* sql.unsafe(`DROP TABLE IF EXISTS paragraphs_fts`);
+        yield* sql.unsafe(`DROP TABLE IF EXISTS paragraph_bible_refs`);
+        yield* sql.unsafe(`DROP TABLE IF EXISTS paragraphs`);
+        // Sync rows now point at non-existent paragraph data — mark all books
+        // as needing re-sync so the next sync repopulates the new schema.
+        yield* sql.unsafe(`UPDATE sync_status SET status = 'pending'`).pipe(
+          Effect.catch(() => Effect.void), // table may not exist yet on first init
+        );
+      }
+
       yield* sql.unsafe(`
         CREATE TABLE IF NOT EXISTS books (
           book_id INTEGER PRIMARY KEY,
@@ -344,7 +388,8 @@ export class EGWParagraphDatabase extends Context.Service<
           para_id TEXT,
           refcode_short TEXT,
           refcode_long TEXT,
-          content TEXT,
+          nodes_json TEXT NOT NULL,
+          content_text TEXT NOT NULL,
           puborder INTEGER NOT NULL,
           element_type TEXT,
           element_subtype TEXT,
@@ -386,9 +431,13 @@ export class EGWParagraphDatabase extends Context.Service<
         `CREATE INDEX IF NOT EXISTS idx_pbr_bible ON paragraph_bible_refs(bible_book, bible_chapter, bible_verse)`,
       );
 
+      // FTS indexes the plain-text projection (content_text) since AST JSON
+      // would tokenize bracket/quote noise. paragraphs is still the contentless
+      // backing store — we keep external-content semantics so the FTS rowid
+      // stays linked to the paragraphs PK shape.
       yield* sql.unsafe(`
         CREATE VIRTUAL TABLE IF NOT EXISTS paragraphs_fts USING fts5(
-          content,
+          content_text,
           refcode_short,
           book_id UNINDEXED,
           content=paragraphs,
@@ -407,6 +456,11 @@ export class EGWParagraphDatabase extends Context.Service<
         )
       `);
       yield* sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_sync_status ON sync_status(status)`);
+
+      // Stamp the current schema version; the next open sees the match and
+      // skips the drop/rebuild branch above. user_version takes an integer
+      // literal — no parameter binding for PRAGMA.
+      yield* sql.unsafe(`PRAGMA user_version = ${SCHEMA_VERSION}`);
 
       // ========== Book operations ==========
 
@@ -453,12 +507,12 @@ export class EGWParagraphDatabase extends Context.Service<
         sql`
           INSERT INTO paragraphs (
             book_id, ref_code, para_id, refcode_short, refcode_long,
-            content, puborder, element_type, element_subtype,
+            nodes_json, content_text, puborder, element_type, element_subtype,
             page_number, paragraph_number, is_chapter_heading,
             created_at, updated_at
           ) VALUES (
             ${row.book_id}, ${row.ref_code}, ${row.para_id}, ${row.refcode_short}, ${row.refcode_long},
-            ${row.content}, ${row.puborder}, ${row.element_type}, ${row.element_subtype},
+            ${row.nodes_json}, ${row.content_text}, ${row.puborder}, ${row.element_type}, ${row.element_subtype},
             ${row.page_number}, ${row.paragraph_number}, ${row.is_chapter_heading},
             ${row.created_at}, ${row.updated_at}
           )
@@ -466,7 +520,8 @@ export class EGWParagraphDatabase extends Context.Service<
             para_id = excluded.para_id,
             refcode_short = excluded.refcode_short,
             refcode_long = excluded.refcode_long,
-            content = excluded.content,
+            nodes_json = excluded.nodes_json,
+            content_text = excluded.content_text,
             puborder = excluded.puborder,
             element_type = excluded.element_type,
             element_subtype = excluded.element_subtype,

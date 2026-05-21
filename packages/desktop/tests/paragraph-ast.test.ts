@@ -1,7 +1,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { parseParagraphContent, type Node } from '../src/services/paragraph-ast.js';
+import { parseParagraphContent, type Node } from '@bible/core/egw';
 
 interface Paragraph {
   readonly para_id: string;

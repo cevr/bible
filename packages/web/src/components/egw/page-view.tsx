@@ -6,10 +6,9 @@
  * Bible references are rendered inline as clickable links.
  */
 import { useMemo } from 'react';
-import { isChapterHeading, headingLevel } from '@bible/core/egw';
+import { isChapterHeading, headingLevel, nodesToText } from '@bible/core/egw';
 import { segmentTextWithReferences } from '@bible/core/bible-reader';
 import type { EGWParagraph } from '@/data/egw/api';
-import { cleanHtml } from '@/components/egw/html-utils';
 
 // ---------------------------------------------------------------------------
 // Component
@@ -36,7 +35,7 @@ export function PageView({ paragraphs, selectedIndex, onSelect, onRefClick }: Pa
         item.heading ? (
           <HeadingElement
             key={i}
-            content={item.para.content}
+            text={nodesToText(item.para.nodes)}
             level={headingLevel(item.para.elementType)}
           />
         ) : (
@@ -57,8 +56,7 @@ export function PageView({ paragraphs, selectedIndex, onSelect, onRefClick }: Pa
 // Heading element
 // ---------------------------------------------------------------------------
 
-function HeadingElement({ content, level }: { content: string | null; level: number }) {
-  const text = content ? cleanHtml(content) : '';
+function HeadingElement({ text, level }: { text: string; level: number }) {
   if (!text) return null;
 
   const base = 'font-sans font-semibold text-foreground';
@@ -87,7 +85,7 @@ function ParagraphElement({
   onClick: () => void;
   onRefClick?: (ref: { book: number; chapter: number; verse?: number }) => void;
 }) {
-  const text = para.content ? cleanHtml(para.content) : '';
+  const text = nodesToText(para.nodes);
   const segments = useMemo(() => segmentTextWithReferences(text), [text]);
   const hasRefs = segments.some((s) => s.type === 'ref');
 

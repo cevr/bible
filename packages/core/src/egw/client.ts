@@ -383,9 +383,12 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
             }`;
 
             const response = yield* httpClient.get(endpoint);
-            return yield* HttpClientResponse.schemaBodyJson(Schema.Array(Schemas.Paragraph))(
-              response,
-            );
+            // Wire shape uses `content: string` (HTML). ParagraphFromHtml decodes
+            // it into the AST-bearing Paragraph at the HTTP boundary so the
+            // rest of the system never sees the raw HTML.
+            return yield* HttpClientResponse.schemaBodyJson(
+              Schema.Array(Schemas.ParagraphFromHtml),
+            )(response);
           }).pipe(Effect.retry(retrySchedule)),
 
         downloadBook: (bookId: number) =>

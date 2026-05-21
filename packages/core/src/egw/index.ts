@@ -25,6 +25,19 @@
  */
 
 export {
+  Node,
+  type Text,
+  type LineBreak,
+  type PageBreak,
+  type Emphasis,
+  type Comment,
+  type ScriptureRef,
+  type BookRef,
+  type Unknown,
+  parseParagraphContent,
+  nodesToText,
+} from './ast.js';
+export {
   EGWApiClient,
   type EGWApiClientService,
   EGWApiError,

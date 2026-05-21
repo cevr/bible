@@ -15,7 +15,7 @@ import {
   CommandShortcut,
 } from '@/components/ui/command';
 import { toBookSlug, BOOK_ALIASES, getBookByName, type Book } from '@/data/bible';
-import { cleanHtml } from '@/components/egw/html-utils';
+import { nodesToText } from '@bible/core/egw';
 import type { EGWBookInfo } from '@/data/egw/api';
 import { categorizeBooks } from '@/components/shared/egw-categories';
 
@@ -781,7 +781,7 @@ function EgwParagraphList({
   return (
     <CommandGroup heading={chapter.title || `Chapter ${chapterIndex + 1}`}>
       {chapter.paragraphs.map((p) => {
-        const text = p.content ? cleanHtml(p.content) : '';
+        const text = nodesToText(p.nodes);
         const preview = text.length > 100 ? text.slice(0, 100) + '…' : text;
         return (
           <CommandItem

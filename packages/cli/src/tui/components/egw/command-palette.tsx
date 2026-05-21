@@ -8,6 +8,7 @@
  * - Search to filter results
  */
 
+import { nodesToText } from '@bible/core/egw';
 import { isChapterHeading } from '@bible/core/egw-db';
 import type { EGWBookInfo, EGWParagraph } from '@bible/core/egw-reader';
 import type { ScrollBoxRenderable } from '@opentui/core';
@@ -30,18 +31,6 @@ interface ChapterInfo {
   title: string;
   paragraphIndex: number;
   elementType: string;
-}
-
-// Strip HTML from content
-function stripHtml(html: string): string {
-  return html
-    .replace(/<[^>]+>/g, '')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .trim();
 }
 
 export function EGWCommandPalette(props: EGWCommandPaletteProps) {
@@ -88,7 +77,7 @@ export function EGWCommandPalette(props: EGWCommandPaletteProps) {
       if (!para) continue;
       const type = para.elementType;
       if (isChapterHeading(type)) {
-        const title = stripHtml(para.content ?? '').slice(0, 60);
+        const title = nodesToText(para.nodes).slice(0, 60);
         result.push({
           title: title || `Chapter ${result.length + 1}`,
           paragraphIndex: i,
@@ -150,7 +139,7 @@ export function EGWCommandPalette(props: EGWCommandPaletteProps) {
     const q = query().toLowerCase();
     if (!q) return chapterParagraphs();
     return chapterParagraphs().filter((p) => {
-      const content = stripHtml(p.para.content ?? '').toLowerCase();
+      const content = nodesToText(p.para.nodes).toLowerCase();
       return content.includes(q);
     });
   });
@@ -486,7 +475,7 @@ export function EGWCommandPalette(props: EGWCommandPaletteProps) {
               // Cache selectedParagraphIndex to avoid repeated reactive access
               const currentParaIndex = selectedParagraphIndex();
               const isCurrent = item.index === currentParaIndex;
-              const content = stripHtml(item.para.content ?? '').slice(0, 55);
+              const content = nodesToText(item.para.nodes).slice(0, 55);
               const refcode = item.para.refcodeShort ?? '';
 
               return (

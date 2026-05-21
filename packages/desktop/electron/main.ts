@@ -1,4 +1,4 @@
-import { EGWApiClient, Schemas } from '@bible/core/egw';
+import { EGWApiClient, nodesToText, Schemas } from '@bible/core/egw';
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
 import Database from 'better-sqlite3';
 import { Effect, Schema, Stream } from 'effect';
@@ -120,7 +120,9 @@ const getCacheDb = (): Database.Database => {
     -- Single-row table (id = 0): the last book + chapter the user had open.
     -- Restored on launch so the app reopens to where they left off. para_id
     -- is nullable: a book opened without a chapter selection (TOC view only)
-    -- is also valid state to persist.
+    -- is also valid state to persist. paragraph_id (added later) carries the
+    -- in-chapter scroll position so we restore to the exact paragraph the
+    -- user was last viewing, not just the chapter top.
     CREATE TABLE IF NOT EXISTS last_position (
       id INTEGER PRIMARY KEY CHECK (id = 0),
       book_id INTEGER NOT NULL,
@@ -128,6 +130,14 @@ const getCacheDb = (): Database.Database => {
       updated_at INTEGER NOT NULL
     );
   `);
+  // Additive migration: older DBs created last_position without paragraph_id.
+  // SQLite has no "ADD COLUMN IF NOT EXISTS"; the duplicate-column error is the
+  // expected outcome on already-migrated DBs and is safe to swallow.
+  try {
+    db.exec('ALTER TABLE last_position ADD COLUMN paragraph_id TEXT');
+  } catch (err) {
+    if (!(err instanceof Error && err.message.includes('duplicate column'))) throw err;
+  }
   cacheDb = db;
   return db;
 };
@@ -299,21 +309,32 @@ ipcMain.handle('cache:chapterCount', (_event, bookId: number): number => {
 });
 
 // Last-open book/chapter — restored on launch so the app reopens where the
-// user left off. Single-row table; updates overwrite.
-type LastPositionRow = { readonly book_id: number; readonly para_id: string | null };
+// user left off. Single-row table; updates overwrite. paragraph_id is the
+// in-chapter scroll anchor (the topmost paragraph the user was viewing) so
+// restore lands them on the exact paragraph, not just the chapter top.
+type LastPositionRow = {
+  readonly book_id: number;
+  readonly para_id: string | null;
+  readonly paragraph_id: string | null;
+};
 ipcMain.handle('lastPosition:read', (): LastPositionRow | null => {
   const row = getCacheDb()
-    .prepare<[], LastPositionRow>('SELECT book_id, para_id FROM last_position WHERE id = 0')
+    .prepare<[], LastPositionRow>(
+      'SELECT book_id, para_id, paragraph_id FROM last_position WHERE id = 0',
+    )
     .get();
   return row ?? null;
 });
-ipcMain.handle('lastPosition:write', (_event, bookId: number, paraId: string | null): void => {
-  getCacheDb()
-    .prepare(
-      'INSERT INTO last_position (id, book_id, para_id, updated_at) VALUES (0, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET book_id = excluded.book_id, para_id = excluded.para_id, updated_at = excluded.updated_at',
-    )
-    .run(bookId, paraId, now());
-});
+ipcMain.handle(
+  'lastPosition:write',
+  (_event, bookId: number, paraId: string | null, paragraphId: string | null = null): void => {
+    getCacheDb()
+      .prepare(
+        'INSERT INTO last_position (id, book_id, para_id, paragraph_id, updated_at) VALUES (0, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET book_id = excluded.book_id, para_id = excluded.para_id, paragraph_id = excluded.paragraph_id, updated_at = excluded.updated_at',
+      )
+      .run(bookId, paraId, paragraphId, now());
+  },
+);
 ipcMain.handle('lastPosition:clear', (): void => {
   getCacheDb().prepare('DELETE FROM last_position').run();
 });
@@ -323,13 +344,17 @@ ipcMain.handle('lastPosition:clear', (): void => {
 // the shape in a Schema if it wants typed access. Returns [] when the runtime
 // isn't up yet (shouldn't happen post-whenReady, but keeps the handler safe).
 
+// Renderer-facing search hit. Main projects the AST-bearing paragraph to a
+// plain-text snippet here — renderer consumers (SearchService) only need text
+// for highlighting/preview, and crossing the IPC boundary with the full nodes
+// array would just force re-serialization on the other side.
 type SearchHitPayload = {
   readonly bookId: number;
   readonly bookCode: string;
   readonly bookTitle: string;
   readonly paraId: string | null;
   readonly refcodeShort: string | null;
-  readonly content: string | null;
+  readonly snippet: string;
   readonly puborder: number;
 };
 
@@ -353,7 +378,7 @@ ipcMain.handle(
       bookTitle: r.bookTitle,
       paraId: r.para_id ?? null,
       refcodeShort: r.refcode_short ?? null,
-      content: r.content ?? null,
+      snippet: nodesToText(r.nodes),
       puborder: r.puborder,
     }));
   },
@@ -506,7 +531,7 @@ ipcMain.handle(
       bookTitle: r.bookTitle,
       paraId: r.para_id ?? null,
       refcodeShort: r.refcode_short ?? null,
-      content: r.content ?? null,
+      snippet: nodesToText(r.nodes),
       puborder: r.puborder,
     }));
   },

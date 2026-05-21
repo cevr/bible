@@ -89,7 +89,7 @@ const mockParagraph = (puborder: number, refcodeShort: string): Paragraph => ({
   refcode_long: `Long ${refcodeShort}`,
   element_type: 'paragraph',
   element_subtype: null,
-  content: `<p>Content for ${refcodeShort}</p>`,
+  nodes: [{ _tag: 'Text', text: `Content for ${refcodeShort}` }],
   puborder,
 });
 

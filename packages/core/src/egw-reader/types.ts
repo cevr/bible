@@ -7,6 +7,8 @@
 
 import { Schema } from 'effect';
 
+import { Node } from '../egw/ast.js';
+
 /**
  * EGW Book Info - summary info for book listing
  */
@@ -39,7 +41,7 @@ export class EGWParagraph extends Schema.Class<EGWParagraph>('EGWParagraph')({
   paraId: Schema.optional(Schema.String),
   refcodeShort: Schema.optional(Schema.String),
   refcodeLong: Schema.optional(Schema.String),
-  content: Schema.optional(Schema.String),
+  nodes: Schema.Array(Node),
   puborder: Schema.Number,
   elementType: Schema.optional(Schema.String),
   elementSubtype: Schema.optional(Schema.String),

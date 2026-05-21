@@ -3,9 +3,15 @@ import { Context, Effect, Layer, Option, Ref } from 'effect';
 // What the renderer cares about. The IPC bridge speaks snake_case
 // (book_id, para_id) to match the SQLite column names; we translate at the
 // service boundary so callers stay in camelCase.
+//
+// `paragraphId` is the in-chapter scroll anchor — the paragraph that was at
+// the top of the viewport when the user last looked. None when the user
+// hasn't scrolled yet (or pre-scroll-spy data); restore falls back to chapter
+// top in that case.
 export interface LastPosition {
   readonly bookId: number;
   readonly paraId: Option.Option<string>;
+  readonly paragraphId: Option.Option<string>;
 }
 
 export interface LastPositionStorageShape {
@@ -36,12 +42,20 @@ export class LastPositionStorage extends Context.Service<
       Effect.map((row) =>
         row === null
           ? Option.none<LastPosition>()
-          : Option.some({ bookId: row.book_id, paraId: Option.fromNullishOr(row.para_id) }),
+          : Option.some({
+              bookId: row.book_id,
+              paraId: Option.fromNullishOr(row.para_id),
+              paragraphId: Option.fromNullishOr(row.paragraph_id),
+            }),
       ),
     ),
     write: (position) =>
       Effect.promise(() =>
-        window.api.lastPosition.write(position.bookId, Option.getOrNull(position.paraId)),
+        window.api.lastPosition.write(
+          position.bookId,
+          Option.getOrNull(position.paraId),
+          Option.getOrNull(position.paragraphId),
+        ),
       ),
     clear: Effect.promise(() => window.api.lastPosition.clear()),
   });

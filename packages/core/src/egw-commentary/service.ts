@@ -8,6 +8,7 @@
 import { Context, Effect, Layer, Schema } from 'effect';
 
 import { EGWParagraphDatabase } from '../egw-db/book-database.js';
+import { nodesToText } from '../egw/ast.js';
 import type * as EGWSchemas from '../egw/schemas.js';
 import type { CommentaryEntry, CommentaryResult, VerseReference } from './types.js';
 
@@ -36,7 +37,7 @@ function paragraphToEntry(
     refcode: para.refcode_short ?? para.refcode_long ?? '',
     bookCode,
     bookTitle,
-    content: para.content ?? '',
+    content: nodesToText(para.nodes),
     puborder: para.puborder,
   };
 }

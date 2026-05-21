@@ -12,6 +12,7 @@ import { Effect } from 'effect';
 import { z } from 'zod';
 
 import { EGWCommentaryService } from '../egw-commentary/service.js';
+import { type Node, nodesToText } from '../egw/ast.js';
 import { EGWService } from './service.js';
 
 // ============================================================================
@@ -148,7 +149,7 @@ function executeEGWTool(
           if (match !== null && match !== undefined) {
             return formatParagraph(
               match.refcodeShort ?? input.ref,
-              match.content ?? '',
+              nodesToText(match.nodes),
               pageResponse.book.title,
             );
           }
@@ -248,14 +249,14 @@ function parseRef(
 
 interface SearchResultLike {
   readonly refcodeShort: string | null;
-  readonly content: string | null;
+  readonly nodes: readonly Node[];
   readonly bookCode: string;
   readonly bookTitle: string;
 }
 
 interface ParagraphLike {
   readonly refcodeShort: string | null;
-  readonly content: string | null;
+  readonly nodes: readonly Node[];
   readonly puborder: number;
 }
 
@@ -304,7 +305,7 @@ function formatSearchResults(
     '',
     ...results.map((r) => {
       const ref = r.refcodeShort ?? 'unknown';
-      const content = truncate(stripHtml(r.content ?? ''), 200);
+      const content = truncate(nodesToText(r.nodes), 200);
       return `[${ref}] (${r.bookTitle})\n${content}`;
     }),
   ];
@@ -312,18 +313,18 @@ function formatSearchResults(
 }
 
 function formatParagraph(ref: string, content: string, bookTitle: string): string {
-  return `${ref} (${bookTitle})\n\n${stripHtml(content)}`;
+  return `${ref} (${bookTitle})\n\n${content}`;
 }
 
 function formatPage(page: PageResponseLike): string {
   const lines = [`${page.book.title} — Page ${page.page} of ${page.totalPages}`];
   if (page.chapterHeading !== null) {
-    lines.push(`Chapter: ${stripHtml(page.chapterHeading)}`);
+    lines.push(`Chapter: ${page.chapterHeading}`);
   }
   lines.push('');
   for (const p of page.paragraphs) {
     const ref = p.refcodeShort ?? '';
-    const content = stripHtml(p.content ?? '');
+    const content = nodesToText(p.nodes);
     if (ref.length > 0) {
       lines.push(`[${ref}] ${content}`);
     } else {
@@ -347,7 +348,7 @@ function formatChapters(chapters: readonly ChapterLike[], bookCode: string): str
     `Table of Contents — ${bookCode}`,
     '',
     ...chapters.map((c) => {
-      const title = stripHtml(c.title ?? 'Untitled');
+      const title = c.title ?? 'Untitled';
       const ref = c.refcodeShort ?? '';
       return ref.length > 0 ? `[${ref}] ${title}` : title;
     }),
@@ -361,15 +362,11 @@ function formatCommentary(verse: VerseRefLike, entries: readonly CommentaryEntry
     `${entries.length} entries found`,
     '',
     ...entries.map((e) => {
-      const content = truncate(stripHtml(e.content), 300);
+      const content = truncate(e.content, 300);
       return `[${e.refcode}] (${e.bookTitle})\n${content}`;
     }),
   ];
   return lines.join('\n');
-}
-
-function stripHtml(text: string): string {
-  return text.replace(/<[^>]+>/g, '').trim();
 }
 
 function truncate(text: string, maxLength: number): string {

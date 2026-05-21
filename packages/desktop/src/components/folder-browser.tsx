@@ -28,6 +28,20 @@ import { ReaderState } from '../services/reader-state.js';
 const DEFAULT_LANG = 'en';
 const idleStatus: PrefetchStatus = { _tag: 'Idle' };
 
+/* Folder card subtitle. Folders at upper levels of the EGW tree hold zero
+   books and only subfolders — "0 books" is meaningless there, so fall back
+   to the subfolder count instead. */
+const folderMeta = (folder: Schemas.Folder): string => {
+  if (folder.nbooks > 0) {
+    return `${String(folder.nbooks)} ${folder.nbooks === 1 ? 'book' : 'books'}`;
+  }
+  const childCount = folder.children?.length ?? 0;
+  if (childCount > 0) {
+    return `${String(childCount)} ${childCount === 1 ? 'folder' : 'folders'}`;
+  }
+  return '0 books';
+};
+
 export interface FolderBrowserProps {
   /**
    * Called when the user opens a book. Parent decides what to do with it —
@@ -218,12 +232,17 @@ export const FolderBrowser: Component<FolderBrowserProps> = (props) => {
   };
 
   return (
-    <div class="folder-browser">
-      <nav class="folder-crumbs" aria-label="Folder breadcrumb">
+    // Base layout: padding 24px 32px 48px, gap 20px. Two layout contexts use
+    // [.landing_&]: and [.drawer_&]: arbitrary variants to override padding/
+    // max-width/gap when this component is mounted inside .landing or .drawer
+    // (set by app.tsx). The arbitrary variants generate more specific
+    // selectors than the base utilities, so they win regardless of source order.
+    <div class="flex flex-col min-h-full pt-6 px-8 pb-12 gap-5 [.landing_&]:max-w-[1080px] [.landing_&]:mx-auto [.landing_&]:w-full [.landing_&]:pt-10 [.landing_&]:px-8 [.landing_&]:pb-20 [.drawer_&]:pt-4 [.drawer_&]:px-4 [.drawer_&]:pb-8 [.drawer_&]:gap-[14px]">
+      <nav class="flex flex-wrap items-center gap-1 text-ui-base" aria-label="Folder breadcrumb">
         <button
           type="button"
-          class="folder-crumb"
-          classList={{ 'is-current': currentLevel().crumbs.length === 0 }}
+          class="bg-transparent border-none px-1.5 py-1 rounded text-ui-base text-muted cursor-pointer transition-[background,color] duration-[0.12s] ease-in-out hover:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] hover:text-fg hover:outline-none focus-visible:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] focus-visible:text-fg focus-visible:outline-none data-current:text-fg data-current:font-medium"
+          data-current={currentLevel().crumbs.length === 0 ? '' : undefined}
           onClick={goRoot}
         >
           Library
@@ -231,13 +250,13 @@ export const FolderBrowser: Component<FolderBrowserProps> = (props) => {
         <For each={currentLevel().crumbs}>
           {(crumb, idx) => (
             <>
-              <span class="folder-crumb-sep" aria-hidden="true">
+              <span class="text-muted opacity-50 text-ui-sm" aria-hidden="true">
                 /
               </span>
               <button
                 type="button"
-                class="folder-crumb"
-                classList={{ 'is-current': idx() === currentLevel().crumbs.length - 1 }}
+                class="bg-transparent border-none px-1.5 py-1 rounded text-ui-base text-muted cursor-pointer transition-[background,color] duration-[0.12s] ease-in-out hover:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] hover:text-fg hover:outline-none focus-visible:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] focus-visible:text-fg focus-visible:outline-none data-current:text-fg data-current:font-medium"
+                data-current={idx() === currentLevel().crumbs.length - 1 ? '' : undefined}
                 onClick={() => goCrumb(idx())}
               >
                 {crumb.name}
@@ -248,37 +267,47 @@ export const FolderBrowser: Component<FolderBrowserProps> = (props) => {
       </nav>
 
       <Show when={tree.loading}>
-        <p class="folder-status">Loading folders…</p>
+        <p class="m-0 py-2 text-ui-base text-muted">Loading folders…</p>
       </Show>
 
       <Show when={tree()} keyed>
         {(res) => (
           <Show
             when={!Result.isFailure(res)}
-            fallback={<p class="folder-status folder-error">Failed to load folders.</p>}
+            fallback={<p class="m-0 py-2 text-ui-base text-[#b3261e]">Failed to load folders.</p>}
           >
-            <div class="folder-body">
+            <div class="flex flex-col gap-4">
               <Show when={path().length > 0}>
-                <button type="button" class="folder-up" onClick={goUp}>
+                <button
+                  type="button"
+                  class="self-start bg-transparent border border-rule rounded-md px-2.5 py-1 text-ui-sm text-fg cursor-pointer hover:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] hover:border-accent hover:outline-none focus-visible:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] focus-visible:border-accent focus-visible:outline-none"
+                  onClick={goUp}
+                >
                   ← Back
                 </button>
               </Show>
 
               <Show when={currentLevel().folders.length > 0}>
-                <h3 class="folder-section-title">Folders</h3>
-                <ul class="folder-grid">
+                <h3 class="m-0 text-ui-xs font-semibold tracking-[0.08em] uppercase text-muted">
+                  Folders
+                </h3>
+                {/*
+                  Folder grid: 180px min auto-fill columns in the landing context,
+                  collapses to a single 1fr column inside the drawer (where
+                  horizontal space is tight). Drawer override expressed via the
+                  [.drawer_&]: arbitrary variant on grid-template-columns.
+                */}
+                <ul class="list-none m-0 p-0 grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-2 [.drawer_&]:grid-cols-[1fr]">
                   <For each={currentLevel().folders}>
                     {(folder) => (
                       <li>
                         <button
                           type="button"
-                          class="folder-card"
+                          class="w-full text-left bg-transparent border border-rule rounded-lg px-3.5 py-3 flex flex-col gap-1 cursor-pointer text-fg transition-[background,border-color,transform] duration-[0.12s] ease-in-out hover:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] hover:border-accent hover:outline-none focus-visible:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] focus-visible:border-accent focus-visible:outline-none active:scale-[0.98]"
                           onClick={() => drillInto(folder.folder_id)}
                         >
-                          <span class="folder-card-name">{folder.name}</span>
-                          <span class="folder-card-meta">
-                            {String(folder.nbooks)} {folder.nbooks === 1 ? 'book' : 'books'}
-                          </span>
+                          <span class="text-ui-md font-medium">{folder.name}</span>
+                          <span class="text-ui-xs text-muted">{folderMeta(folder)}</span>
                         </button>
                       </li>
                     )}
@@ -287,35 +316,37 @@ export const FolderBrowser: Component<FolderBrowserProps> = (props) => {
               </Show>
 
               <Show when={currentLevel().currentFolderId !== null}>
-                <h3 class="folder-section-title">Books</h3>
+                <h3 class="m-0 text-ui-xs font-semibold tracking-[0.08em] uppercase text-muted">
+                  Books
+                </h3>
                 <Show when={books.loading}>
-                  <p class="folder-status">Loading books…</p>
+                  <p class="m-0 py-2 text-ui-base text-muted">Loading books…</p>
                 </Show>
                 <Show when={books()} keyed>
                   {(bookRes) =>
                     Result.isFailure(bookRes) ? (
-                      <p class="folder-status folder-error">Failed to load books.</p>
+                      <p class="m-0 py-2 text-ui-base text-[#b3261e]">Failed to load books.</p>
                     ) : bookRes.success.length === 0 ? (
-                      <p class="folder-status">No books in this folder.</p>
+                      <p class="m-0 py-2 text-ui-base text-muted">No books in this folder.</p>
                     ) : (
-                      <ul class="folder-books">
+                      <ul class="list-none m-0 p-0 flex flex-col">
                         <For each={bookRes.success}>
                           {(book) => {
                             const dl = () => downloadFor(book.book_id);
                             return (
-                              <li class="folder-book-row">
+                              <li class="relative grid grid-cols-[1fr_auto] items-stretch border-b border-rule last:border-b-0">
                                 <button
                                   type="button"
-                                  class="folder-book-item"
+                                  class="w-full text-left bg-transparent border-none px-3.5 py-3 flex flex-col gap-0.5 cursor-pointer text-fg border-l-2 border-l-transparent transition-[background,border-color] duration-[0.12s] ease-in-out hover:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] hover:outline-none focus-visible:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] focus-visible:outline-none"
                                   onClick={() => openBook(book.book_id)}
                                 >
-                                  <span class="folder-book-title">{book.title}</span>
-                                  <span class="folder-book-author">{book.author}</span>
+                                  <span class="text-ui-md leading-[1.3]">{book.title}</span>
+                                  <span class="text-ui-xs text-muted">{book.author}</span>
                                 </button>
                                 <button
                                   type="button"
-                                  class="folder-book-download"
-                                  classList={{ 'is-downloaded': isFullyDownloaded(book.book_id) }}
+                                  class="bg-transparent border-none px-3 flex items-center justify-center min-w-[44px] text-muted cursor-pointer text-ui-xs [font-variant-numeric:tabular-nums] border-l border-l-transparent transition-[color,background] duration-[0.12s] ease-in-out enabled:hover:text-accent enabled:hover:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] enabled:hover:outline-none enabled:focus-visible:text-accent enabled:focus-visible:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] enabled:focus-visible:outline-none disabled:opacity-30 disabled:cursor-not-allowed data-downloaded:text-accent data-downloaded:text-ui-md"
+                                  data-downloaded={isFullyDownloaded(book.book_id) ? '' : undefined}
                                   title={
                                     isFullyDownloaded(book.book_id)
                                       ? 'Downloaded — click to refresh'

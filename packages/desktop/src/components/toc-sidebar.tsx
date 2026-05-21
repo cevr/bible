@@ -78,16 +78,16 @@ export const TocSidebar: Component<TocSidebarProps> = (props) => {
   };
 
   return (
-    <div class="toc-sidebar">
+    <div class="flex flex-col h-full min-h-0">
       <Show when={toc.loading}>
-        <p class="toc-status">Loading…</p>
+        <p class="m-0 p-4 text-ui-sm text-muted">Loading…</p>
       </Show>
       <Show when={toc()} keyed>
         {(result) =>
           Result.isFailure(result) ? (
-            <p class="toc-status toc-error">Failed to load TOC.</p>
+            <p class="m-0 p-4 text-ui-sm text-[#c53030]">Failed to load TOC.</p>
           ) : (
-            <ul class="toc-list">
+            <ul class="list-none m-0 px-2 pt-2 pb-6 flex flex-col gap-px">
               <For each={result.success}>
                 {(item) => (
                   <TocRow
@@ -117,12 +117,20 @@ const TocRow: Component<TocRowProps> = (props) => {
   const paraId = () => props.item.para_id ?? null;
 
   return (
+    // Headings = group labels with no chapter. Visually distinct from clickable
+    // rows so the user knows they're not interactive. Tight top spacer creates
+    // group separation without a divider line. The first heading in the list
+    // gets a tighter top padding via the [li:first-child_>_&]:pt-1 variant on
+    // the heading div, mirroring the original `.toc-list > li:first-child .toc-heading`.
     <li>
       <Show
         when={paraId()}
         keyed
         fallback={
-          <div class="toc-heading" style={indent()}>
+          <div
+            class="w-full text-left block text-ui-xs leading-[1.4] text-muted rounded-md font-semibold tracking-[0.08em] uppercase pt-[14px] pr-3 pb-1 pl-3 [li:first-child_>_&]:pt-1"
+            style={indent()}
+          >
             {label()}
           </div>
         }
@@ -130,7 +138,8 @@ const TocRow: Component<TocRowProps> = (props) => {
         {(pid) => (
           <button
             type="button"
-            class={`toc-item${props.active ? ' active' : ''}`}
+            class="w-full text-left block text-ui-base leading-[1.4] text-fg rounded-md bg-transparent border-none border-l-2 border-l-transparent cursor-pointer py-[7px] pr-3 pl-[14px] ml-0 transition-[background,border-color,color] duration-[0.12s] ease-in-out hover:bg-[color-mix(in_srgb,var(--color-accent)_7%,transparent)] hover:outline-none focus-visible:bg-[color-mix(in_srgb,var(--color-accent)_7%,transparent)] focus-visible:outline-none data-active:border-l-accent data-active:bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] data-active:text-accent data-active:font-medium"
+            data-active={props.active ? '' : undefined}
             style={indent()}
             onClick={() => props.onSelect(pid)}
           >

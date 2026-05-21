@@ -59,7 +59,7 @@ function schemaParagraphToEGWParagraph(para: EGWSchemas.Paragraph): EGWParagraph
     paraId: para.para_id ?? undefined,
     refcodeShort: para.refcode_short ?? undefined,
     refcodeLong: para.refcode_long ?? undefined,
-    content: para.content ?? undefined,
+    nodes: para.nodes,
     puborder: para.puborder,
     elementType: para.element_type ?? undefined,
     elementSubtype: para.element_subtype ?? undefined,

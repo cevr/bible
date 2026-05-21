@@ -1,7 +1,7 @@
 import { renderToString } from 'solid-js/web';
 import { describe, expect, it } from 'vitest';
 import { ParagraphView } from '../src/components/paragraph-view.jsx';
-import { type Node } from '../src/services/paragraph-ast.js';
+import { type Node } from '@bible/core/egw';
 
 const render = (nodes: readonly Node[]): string =>
   renderToString(() => <ParagraphView nodes={nodes} />);
@@ -62,13 +62,13 @@ describe('ParagraphView', () => {
         children: [{ _tag: 'Text', text: 'Genesis 3' }],
       },
     ]);
-    expect(html).toContain('class="egwlink egwlink-bible"');
+    expect(html).toContain('data-link-kind="scripture"');
     expect(html).toContain('title="Genesis 3:1"');
     expect(html).toContain('data-link="1965.119"');
     expect(html).toContain('Genesis 3');
   });
 
-  it('renders BookRef as anchor with egwlink-book class', () => {
+  it('renders BookRef as anchor distinguishable via data-link-kind', () => {
     const html = render([
       {
         _tag: 'BookRef',
@@ -77,7 +77,7 @@ describe('ParagraphView', () => {
         children: [{ _tag: 'Text', text: 'Appendix' }],
       },
     ]);
-    expect(html).toContain('class="egwlink egwlink-book"');
+    expect(html).toContain('data-link-kind="book"');
     expect(html).toContain('data-link="132.3067"');
     expect(html).toContain('Appendix');
   });

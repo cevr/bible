@@ -45,10 +45,16 @@ const api = {
       ipcRenderer.invoke('cache:putFolderBooks', folderId, lang, json),
   },
   lastPosition: {
-    read: (): Promise<{ readonly book_id: number; readonly para_id: string | null } | null> =>
-      ipcRenderer.invoke('lastPosition:read'),
-    write: (bookId: number, paraId: string | null): Promise<void> =>
-      ipcRenderer.invoke('lastPosition:write', bookId, paraId),
+    read: (): Promise<{
+      readonly book_id: number;
+      readonly para_id: string | null;
+      readonly paragraph_id: string | null;
+    } | null> => ipcRenderer.invoke('lastPosition:read'),
+    write: (
+      bookId: number,
+      paraId: string | null,
+      paragraphId: string | null = null,
+    ): Promise<void> => ipcRenderer.invoke('lastPosition:write', bookId, paraId, paragraphId),
     clear: (): Promise<void> => ipcRenderer.invoke('lastPosition:clear'),
   },
   search: {
@@ -72,7 +78,7 @@ export type SearchHit = {
   readonly bookTitle: string;
   readonly paraId: string | null;
   readonly refcodeShort: string | null;
-  readonly content: string | null;
+  readonly snippet: string;
   readonly puborder: number;
 };
 

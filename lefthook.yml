@@ -6,3 +6,19 @@ pre-commit:
     - name: gate
       run: bun run gate:fix
       stage_fixed: true
+
+    # Guard rail: animations + keyframes in packages/desktop/src belong in
+    # the <Motion> lib, not raw CSS. CSS transitions are fine (hover/focus
+    # state changes) — only @keyframes and the `animation:` shorthand
+    # property are flagged. Scoped to desktop because that's the only
+    # package on the motion lib today.
+    - name: no-raw-css-animation
+      glob: 'packages/desktop/src/**/*.css'
+      run: |
+        if grep -nE '(^|\s)(animation:|@keyframes\s)' {staged_files}; then
+          echo ""
+          echo "Hand-rolled CSS animations in packages/desktop/src/ — use <Motion>"
+          echo "(see packages/desktop/src/motion/index.ts) or remove them. CSS"
+          echo "transitions for hover/focus state changes are allowed."
+          exit 1
+        fi

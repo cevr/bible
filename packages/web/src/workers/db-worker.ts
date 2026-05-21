@@ -7,11 +7,17 @@
  *   - state.db (read-write, user data — position, bookmarks, etc.)
  *   - egw-paragraphs.db (read-write, EGW commentary — incrementally synced per book)
  */
+import { type Node, nodesToText } from '@bible/core/egw';
 import * as SQLite from 'wa-sqlite';
 import SQLiteESMFactory from 'wa-sqlite/dist/wa-sqlite.mjs';
 import { OPFSCoopSyncVFS } from 'wa-sqlite/src/examples/OPFSCoopSyncVFS.js';
 
 import type { WorkerRequest, WorkerResponse } from './db-protocol.js';
+
+// Schema version. Bump this when the EGW cache shape changes — startup will
+// detect the mismatch and rebuild the paragraph tables (preserving books +
+// sync_status so the UI can re-trigger per-book syncs).
+const EGW_SCHEMA_VERSION = 2;
 
 const log = import.meta.env['DEV'] ? (...args: unknown[]) => console.log(...args) : () => {};
 
@@ -236,7 +242,8 @@ const EGW_SCHEMA = `
     para_id TEXT,
     refcode_short TEXT,
     refcode_long TEXT,
-    content TEXT,
+    nodes_json TEXT NOT NULL,
+    content_text TEXT NOT NULL,
     puborder INTEGER NOT NULL,
     element_type TEXT,
     element_subtype TEXT,
@@ -274,7 +281,7 @@ const EGW_SCHEMA = `
   );
 
   CREATE VIRTUAL TABLE IF NOT EXISTS paragraphs_fts USING fts5(
-    content,
+    content_text,
     refcode_short,
     book_id UNINDEXED,
     content_rowid='rowid',
@@ -377,13 +384,30 @@ async function downloadBibleDb(): Promise<void> {
 // EGW FTS helpers
 // ---------------------------------------------------------------------------
 
+// Drops paragraph tables when the on-disk schema version doesn't match. Books
+// + sync_status are preserved so the next sync run repopulates the new shape.
+async function ensureEgwSchemaVersion(): Promise<void> {
+  const versionRows = await execQuery(egwDb, 'PRAGMA user_version');
+  const currentVersion = (versionRows[0]?.['user_version'] as number | undefined) ?? 0;
+  if (currentVersion !== 0 && currentVersion !== EGW_SCHEMA_VERSION) {
+    log(
+      `[db-worker] EGW schema version mismatch (${currentVersion} -> ${EGW_SCHEMA_VERSION}), dropping paragraph tables`,
+    );
+    await execWrite(egwDb, 'DROP TABLE IF EXISTS paragraphs_fts');
+    await execWrite(egwDb, 'DROP TABLE IF EXISTS paragraph_bible_refs');
+    await execWrite(egwDb, 'DROP TABLE IF EXISTS paragraphs');
+    await execWrite(egwDb, "UPDATE sync_status SET status = 'pending'").catch(() => {});
+  }
+  await execWrite(egwDb, `PRAGMA user_version = ${EGW_SCHEMA_VERSION}`);
+}
+
 async function rebuildFtsForBook(bookId: number): Promise<void> {
   // Delete existing FTS entries for this book, then re-insert
   await execWrite(egwDb, `DELETE FROM paragraphs_fts WHERE book_id = ?`, [bookId]);
   await execWrite(
     egwDb,
-    `INSERT INTO paragraphs_fts(rowid, content, refcode_short, book_id)
-     SELECT rowid, content, refcode_short, book_id
+    `INSERT INTO paragraphs_fts(rowid, content_text, refcode_short, book_id)
+     SELECT rowid, content_text, refcode_short, book_id
      FROM paragraphs WHERE book_id = ?`,
     [bookId],
   );
@@ -394,8 +418,8 @@ async function rebuildAllFts(): Promise<void> {
   await execWrite(egwDb, `DELETE FROM paragraphs_fts`);
   await execWrite(
     egwDb,
-    `INSERT INTO paragraphs_fts(rowid, content, refcode_short, book_id)
-     SELECT rowid, content, refcode_short, book_id
+    `INSERT INTO paragraphs_fts(rowid, content_text, refcode_short, book_id)
+     SELECT rowid, content_text, refcode_short, book_id
      FROM paragraphs`,
   );
   log('[db-worker] FTS: full rebuild complete');
@@ -460,7 +484,7 @@ async function syncBook(bookCode: string, _requestId?: number): Promise<number> 
     paraId: string | null;
     refcodeShort: string | null;
     refcodeLong: string | null;
-    content: string | null;
+    nodes: readonly Node[];
     puborder: number;
     elementType: string | null;
     elementSubtype: string | null;
@@ -501,17 +525,18 @@ async function syncBook(bookCode: string, _requestId?: number): Promise<number> 
       await execWrite(
         egwDb,
         `INSERT OR REPLACE INTO paragraphs
-         (book_id, ref_code, para_id, refcode_short, refcode_long, content,
+         (book_id, ref_code, para_id, refcode_short, refcode_long, nodes_json, content_text,
           puborder, element_type, element_subtype, page_number, paragraph_number,
           is_chapter_heading, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           book.bookId,
           p.refCode,
           p.paraId,
           p.refcodeShort,
           p.refcodeLong,
-          p.content,
+          JSON.stringify(p.nodes),
+          nodesToText(p.nodes),
           p.puborder,
           p.elementType,
           p.elementSubtype,
@@ -612,6 +637,7 @@ async function syncFullEgw(): Promise<void> {
   );
 
   // Apply schema in case the downloaded db doesn't have sync_status
+  await ensureEgwSchemaVersion();
   await sqlite3.exec(egwDb, EGW_SCHEMA);
 
   // Populate sync_status from existing books so the UI shows green dots
@@ -823,6 +849,7 @@ async function init(): Promise<void> {
         SQLite.SQLITE_OPEN_READWRITE | SQLite.SQLITE_OPEN_CREATE,
         'opfs-coop-sync',
       );
+      await ensureEgwSchemaVersion();
       await sqlite3.exec(egwDb, EGW_SCHEMA);
       log('[db-worker] init: egw-paragraphs.db schema applied');
 

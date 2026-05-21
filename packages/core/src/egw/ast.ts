@@ -1,11 +1,10 @@
 import { Schema } from 'effect';
 import { Parser } from 'htmlparser2';
 
-// EGW chapter HTML is small and constrained — only <em>, <br/>, and a handful
-// of semantic <span> classes appear in real content. The AST is intentionally
-// closed over that observed surface (with an `Unknown` escape hatch for forward
-// compat) so the renderer can switch exhaustively on `_tag` instead of branching
-// on stringly-typed tag names.
+// EGW paragraph content is small HTML. The AST below is a closed model of the
+// tag/class universe we've observed in real chapters (with an `Unknown` escape
+// hatch for forward compat) so renderers can switch exhaustively on `_tag`
+// instead of branching on stringly-typed tag names.
 
 export const Text = Schema.Struct({
   _tag: Schema.tag('Text'),
@@ -236,4 +235,34 @@ export const parseParagraphContent = (html: string): readonly Node[] => {
   parser.end();
 
   return root.children;
+};
+
+/**
+ * Flatten the AST into a plain-text string. Used by pretext height estimation
+ * (which works off text + font, not DOM). Line breaks become spaces — we just
+ * want the wrappable token stream, not the visual layout.
+ */
+export const nodesToText = (nodes: readonly Node[]): string => {
+  let out = '';
+  for (const node of nodes) {
+    switch (node._tag) {
+      case 'Text':
+        out += node.text;
+        break;
+      case 'LineBreak':
+        out += ' ';
+        break;
+      case 'PageBreak':
+        out += String(node.page);
+        break;
+      case 'Emphasis':
+      case 'Comment':
+      case 'ScriptureRef':
+      case 'BookRef':
+      case 'Unknown':
+        out += nodesToText(node.children);
+        break;
+    }
+  }
+  return out;
 };

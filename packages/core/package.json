@@ -47,6 +47,7 @@
     "ai": "^6.0.84",
     "cheerio": "^1.2.0",
     "effect": "catalog:",
+    "htmlparser2": "^12.0.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {

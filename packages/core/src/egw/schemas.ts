@@ -3,7 +3,9 @@
  * Based on the EGW API client reference implementation
  */
 
-import { Schema } from 'effect';
+import { Schema, SchemaGetter } from 'effect';
+
+import { Node, parseParagraphContent } from './ast.js';
 
 /**
  * Text Direction
@@ -152,8 +154,40 @@ export type TocItem = Schema.Schema.Type<typeof TocItem>;
 
 /**
  * Paragraph (ParagraphDto)
+ *
+ * The canonical (decoded) form. `nodes` holds the parsed AST representation of
+ * the paragraph's inline HTML; consumers operate on the AST exclusively. The
+ * HTTP wire shape (where the same field is a raw HTML string named `content`)
+ * is handled by `ParagraphFromHtml` below.
  */
 export const Paragraph = Schema.Struct({
+  para_id: Schema.optional(Schema.NullOr(Schema.String)),
+  id_prev: Schema.optional(Schema.NullOr(Schema.String)),
+  id_next: Schema.optional(Schema.NullOr(Schema.String)),
+  refcode_1: Schema.optional(Schema.NullOr(Schema.String)),
+  refcode_2: Schema.optional(Schema.NullOr(Schema.String)),
+  refcode_3: Schema.optional(Schema.NullOr(Schema.String)),
+  refcode_4: Schema.optional(Schema.NullOr(Schema.String)),
+  refcode_short: Schema.optional(Schema.NullOr(Schema.String)),
+  refcode_long: Schema.optional(Schema.NullOr(Schema.String)),
+  element_type: Schema.optional(Schema.NullOr(Schema.String)),
+  element_subtype: Schema.optional(Schema.NullOr(Schema.String)),
+  nodes: Schema.Array(Node),
+  puborder: Schema.Number,
+});
+
+export type Paragraph = Schema.Schema.Type<typeof Paragraph>;
+
+/**
+ * Wire-shape paragraph from the EGW HTTP API: `content` is raw HTML.
+ *
+ * `ParagraphFromHtml` decodes by parsing `content` into the AST and reshaping
+ * the struct into `Paragraph` (with `nodes`). Encode is intentionally
+ * forbidden — AST → HTML round-trip is not supported. Callers that need to
+ * serialize paragraphs should encode the AST directly (e.g., to JSON via
+ * `Schema.Array(Paragraph)`).
+ */
+const ParagraphWire = Schema.Struct({
   para_id: Schema.optional(Schema.NullOr(Schema.String)),
   id_prev: Schema.optional(Schema.NullOr(Schema.String)),
   id_next: Schema.optional(Schema.NullOr(Schema.String)),
@@ -169,7 +203,32 @@ export const Paragraph = Schema.Struct({
   puborder: Schema.Number,
 });
 
-export type Paragraph = Schema.Schema.Type<typeof Paragraph>;
+export const ParagraphFromHtml = ParagraphWire.pipe(
+  Schema.decodeTo(Paragraph, {
+    decode: SchemaGetter.transform((wire) => {
+      const html = wire.content ?? '';
+      const nodes = html === '' ? [] : parseParagraphContent(html);
+      return {
+        para_id: wire.para_id,
+        id_prev: wire.id_prev,
+        id_next: wire.id_next,
+        refcode_1: wire.refcode_1,
+        refcode_2: wire.refcode_2,
+        refcode_3: wire.refcode_3,
+        refcode_4: wire.refcode_4,
+        refcode_short: wire.refcode_short,
+        refcode_long: wire.refcode_long,
+        element_type: wire.element_type,
+        element_subtype: wire.element_subtype,
+        nodes,
+        puborder: wire.puborder,
+      };
+    }),
+    encode: SchemaGetter.forbidden(
+      () => 'Paragraph → ParagraphWire encoding not supported (AST→HTML round-trip).',
+    ),
+  }),
+);
 
 /**
  * OAuth Token Response

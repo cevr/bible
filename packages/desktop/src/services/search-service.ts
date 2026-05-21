@@ -61,7 +61,7 @@ export class SearchService extends Context.Service<SearchService, SearchServiceS
         bookTitle: hit.bookTitle,
         paraId: hit.paraId,
         refcodeShort: hit.refcodeShort,
-        snippet: hit.content,
+        snippet: hit.snippet,
         puborder: hit.puborder,
       });
 

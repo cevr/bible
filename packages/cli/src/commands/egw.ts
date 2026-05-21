@@ -16,6 +16,7 @@
 import {
   formatEGWRef,
   isSearchQuery,
+  nodesToText,
   parseEGWRef,
   EGWApiClient,
   EGWAuth,
@@ -84,10 +85,9 @@ const stripHtml = (html: string): string => html.replace(/<[^>]*>/g, '');
 function formatLocalSearchResult(r: EGWSearchResult, index: number): string {
   const ref = r.refcodeShort ?? `[${r.bookCode}]`;
   const title = r.bookTitle !== r.bookCode ? ` (${r.bookTitle})` : '';
+  const text = nodesToText(r.nodes);
   const snippet =
-    r.content !== null
-      ? stripHtml(r.content).slice(0, 200) + (r.content.length > 200 ? '…' : '')
-      : '(no content)';
+    text.length > 0 ? text.slice(0, 200) + (text.length > 200 ? '…' : '') : '(no content)';
   return `  ${index + 1}. ${ref}${title}\n     ${snippet}`;
 }
 
@@ -177,7 +177,7 @@ const doLookup = (parsed: Exclude<EGWParsedRef, EGWSearchQuery>) =>
 
         for (const p of paragraphs) {
           const ref = p.refcodeShort ?? '';
-          const text = p.content !== null ? stripHtml(p.content) : '';
+          const text = nodesToText(p.nodes);
           yield* Console.log(`  ${ref}`);
           yield* Console.log(`  ${text}\n`);
         }
@@ -193,7 +193,7 @@ const doLookup = (parsed: Exclude<EGWParsedRef, EGWSearchQuery>) =>
 
           for (const p of pageResponse.paragraphs) {
             const ref = p.refcodeShort ?? '';
-            const text = p.content !== null ? stripHtml(p.content) : '';
+            const text = nodesToText(p.nodes);
             yield* Console.log(`  ${ref}`);
             yield* Console.log(`  ${text}\n`);
           }
@@ -208,7 +208,7 @@ const doLookup = (parsed: Exclude<EGWParsedRef, EGWSearchQuery>) =>
         if (chapters.length > 0) {
           yield* Console.log('\nTable of Contents:');
           for (const ch of chapters) {
-            const title = ch.title !== null ? stripHtml(ch.title) : '';
+            const title = ch.title ?? '';
             const ref = ch.refcodeShort ?? '';
             yield* Console.log(`  ${ref}  ${title}`);
           }
@@ -619,8 +619,7 @@ const collectLookupData = (parsed: Exclude<EGWParsedRef, EGWSearchQuery>) =>
           chapterHeading: pageResponse.chapterHeading,
           paragraphs: paragraphs.map((p) => ({
             refcode: p.refcodeShort ?? '',
-            text: p.content !== null ? stripHtml(p.content) : '',
-            html: p.content,
+            text: nodesToText(p.nodes),
           })),
         };
       }
@@ -628,7 +627,7 @@ const collectLookupData = (parsed: Exclude<EGWParsedRef, EGWSearchQuery>) =>
         const pages: Array<{
           page: number;
           chapterHeading: string | null;
-          paragraphs: Array<{ refcode: string; text: string; html: string | null }>;
+          paragraphs: Array<{ refcode: string; text: string }>;
         }> = [];
         for (let page = parsed.pageStart; page <= parsed.pageEnd; page++) {
           const pageResponse = yield* service.getPage(parsed.bookCode, page);
@@ -638,8 +637,7 @@ const collectLookupData = (parsed: Exclude<EGWParsedRef, EGWSearchQuery>) =>
             chapterHeading: pageResponse.chapterHeading,
             paragraphs: pageResponse.paragraphs.map((p) => ({
               refcode: p.refcodeShort ?? '',
-              text: p.content !== null ? stripHtml(p.content) : '',
-              html: p.content,
+              text: nodesToText(p.nodes),
             })),
           });
         }
@@ -662,7 +660,7 @@ const collectLookupData = (parsed: Exclude<EGWParsedRef, EGWSearchQuery>) =>
           book,
           chapters: chapters.map((ch) => ({
             refcode: ch.refcodeShort ?? '',
-            title: ch.title !== null ? stripHtml(ch.title) : '',
+            title: ch.title ?? '',
           })),
         };
       }
@@ -757,7 +755,7 @@ export const egwCommentary = Command.make(
       );
       for (const entry of result.entries) {
         yield* Console.log(`  ${entry.refcode} (${entry.bookTitle})`);
-        yield* Console.log(`  ${stripHtml(entry.content)}\n`);
+        yield* Console.log(`  ${entry.content}\n`);
       }
     }),
 ).pipe(Command.provide(() => CommentaryLayer));

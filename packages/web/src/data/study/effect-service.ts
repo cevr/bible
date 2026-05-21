@@ -100,14 +100,14 @@ interface EGWCommentaryRow {
   refcode_short: string;
   book_code: string;
   book_title: string;
-  content: string;
+  content_text: string;
   puborder: number;
 }
 
 interface EGWContextRow {
   refcode_short: string;
   book_code: string;
-  content: string;
+  content_text: string;
   puborder: number;
 }
 
@@ -770,7 +770,7 @@ export class WebStudyDataService extends Context.Service<
         // Phase 1: Indexed results from paragraph_bible_refs
         const indexedRows = yield* db.query<EGWCommentaryRow>(
           'egw',
-          `SELECT p.refcode_short, p.content, p.puborder, b.book_code, b.book_title
+          `SELECT p.refcode_short, p.content_text, p.puborder, b.book_code, b.book_title
            FROM paragraphs p
            JOIN paragraph_bible_refs pbr ON p.book_id = pbr.para_book_id AND p.ref_code = pbr.para_ref_code
            JOIN books b ON p.book_id = b.book_id
@@ -783,7 +783,7 @@ export class WebStudyDataService extends Context.Service<
           refcode: r.refcode_short,
           bookCode: r.book_code,
           bookTitle: r.book_title,
-          content: r.content,
+          content: r.content_text,
           puborder: r.puborder,
           source: 'indexed' as const,
         }));
@@ -812,7 +812,7 @@ export class WebStudyDataService extends Context.Service<
 
         const searchRows = yield* db.query<EGWCommentaryRow>(
           'egw',
-          `SELECT p.refcode_short, p.content, p.puborder, b.book_code, b.book_title
+          `SELECT p.refcode_short, p.content_text, p.puborder, b.book_code, b.book_title
            FROM paragraphs p
            JOIN paragraphs_fts fts ON p.rowid = fts.rowid
            JOIN books b ON p.book_id = b.book_id
@@ -832,7 +832,7 @@ export class WebStudyDataService extends Context.Service<
               refcode: r.refcode_short,
               bookCode: r.book_code,
               bookTitle: r.book_title,
-              content: r.content,
+              content: r.content_text,
               puborder: r.puborder,
               source: 'search' as const,
             });
@@ -861,7 +861,7 @@ export class WebStudyDataService extends Context.Service<
         function* (bookCode: string, puborder: number, radius: number) {
           const rows = yield* db.query<EGWContextRow>(
             'egw',
-            `SELECT p.refcode_short, p.content, p.puborder, b.book_code
+            `SELECT p.refcode_short, p.content_text, p.puborder, b.book_code
              FROM paragraphs p
              JOIN books b ON p.book_id = b.book_id
              WHERE b.book_code = ? AND p.puborder BETWEEN ? AND ?
@@ -872,7 +872,7 @@ export class WebStudyDataService extends Context.Service<
             (r): EGWContextParagraph => ({
               refcode: r.refcode_short,
               bookCode: r.book_code,
-              content: r.content,
+              content: r.content_text,
               puborder: r.puborder,
             }),
           );

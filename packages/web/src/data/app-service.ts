@@ -5,7 +5,21 @@
  * Components never import Effect directly.
  */
 import { Effect, type ManagedRuntime } from 'effect';
+import { type Node } from '@bible/core/egw';
 import type { ChapterResponse, SearchResult, Verse } from '@bible/api';
+
+// Defensively parse the per-paragraph nodes_json column from the EGW cache. A
+// malformed row falls back to an empty AST so navigation never crashes.
+function parseNodesJson(json: string): readonly Node[] {
+  if (json === '') return [];
+  try {
+    const parsed: unknown = JSON.parse(json);
+    if (Array.isArray(parsed)) return parsed as readonly Node[];
+  } catch {
+    // fall through
+  }
+  return [];
+}
 
 import { WebBibleService, type SearchWithCountResult } from './bible/effect-service';
 import {
@@ -401,9 +415,9 @@ export class AppService {
     if (!bookRow) throw new Error(`Book ${bookCode} not found locally`);
 
     // Get all chapter heading puborders to find boundaries
-    const headings = await db.query<{ puborder: number; content: string | null }>(
+    const headings = await db.query<{ puborder: number; content_text: string }>(
       'egw',
-      'SELECT puborder, content FROM paragraphs WHERE book_id = ? AND is_chapter_heading = 1 ORDER BY puborder',
+      'SELECT puborder, content_text FROM paragraphs WHERE book_id = ? AND is_chapter_heading = 1 ORDER BY puborder',
       [bookRow.book_id],
     );
     if (headings.length === 0) throw new Error(`No chapters found in ${bookCode}`);
@@ -432,12 +446,12 @@ export class AppService {
     const rows = await db.query<{
       para_id: string | null;
       refcode_short: string | null;
-      content: string | null;
+      nodes_json: string;
       puborder: number;
       element_type: string | null;
     }>(
       'egw',
-      `SELECT para_id, refcode_short, content, puborder, element_type FROM paragraphs WHERE ${whereClause} ORDER BY puborder`,
+      `SELECT para_id, refcode_short, nodes_json, puborder, element_type FROM paragraphs WHERE ${whereClause} ORDER BY puborder`,
       params,
     );
 
@@ -451,11 +465,11 @@ export class AppService {
       },
       chapterIndex,
       totalChapters: headings.length,
-      title: startHeading.content,
+      title: startHeading.content_text,
       paragraphs: rows.map((r) => ({
         paraId: r.para_id,
         refcodeShort: r.refcode_short,
-        content: r.content,
+        nodes: parseNodesJson(r.nodes_json),
         puborder: r.puborder,
         elementType: r.element_type,
       })),
@@ -473,18 +487,18 @@ export class AppService {
     if (!bookRow) return [];
 
     const rows = await db.query<{
-      content: string | null;
+      content_text: string;
       refcode_short: string | null;
       puborder: number;
       page_number: number | null;
     }>(
       'egw',
-      'SELECT content, refcode_short, puborder, page_number FROM paragraphs WHERE book_id = ? AND is_chapter_heading = 1 ORDER BY puborder',
+      'SELECT content_text, refcode_short, puborder, page_number FROM paragraphs WHERE book_id = ? AND is_chapter_heading = 1 ORDER BY puborder',
       [bookRow.book_id],
     );
 
     return rows.map((r) => ({
-      title: r.content,
+      title: r.content_text,
       refcodeShort: r.refcode_short,
       puborder: r.puborder,
       page: r.page_number,

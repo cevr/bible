@@ -8,6 +8,7 @@
 import { Context, Effect, Layer, Option, Schema, Stream } from 'effect';
 
 import { EGWParagraphDatabase, type ParagraphDatabaseError } from '../egw-db/book-database.js';
+import { Node, nodesToText } from '../egw/ast.js';
 import { isChapterHeading as isChapterHeadingType } from '../egw/parse.js';
 
 function parsePageNumber(refcode: string | null): number | null {
@@ -47,7 +48,7 @@ export class EGWBook extends Schema.Class<EGWBook>('EGWBook')({
 export class EGWParagraph extends Schema.Class<EGWParagraph>('EGWParagraph')({
   paraId: Schema.NullOr(Schema.String),
   refcodeShort: Schema.NullOr(Schema.String),
-  content: Schema.NullOr(Schema.String),
+  nodes: Schema.Array(Node),
   puborder: Schema.Number,
   elementType: Schema.NullOr(Schema.String),
 }) {}
@@ -81,7 +82,7 @@ export class EGWPageResponse extends Schema.Class<EGWPageResponse>('EGWPageRespo
 export class EGWSearchResult extends Schema.Class<EGWSearchResult>('EGWSearchResult')({
   paraId: Schema.NullOr(Schema.String),
   refcodeShort: Schema.NullOr(Schema.String),
-  content: Schema.NullOr(Schema.String),
+  nodes: Schema.Array(Node),
   puborder: Schema.Number,
   bookCode: Schema.String,
   bookTitle: Schema.String,
@@ -97,7 +98,7 @@ export class EGWBookDumpParagraph extends Schema.Class<EGWBookDumpParagraph>(
   paraId: Schema.NullOr(Schema.String),
   refcodeShort: Schema.NullOr(Schema.String),
   refcodeLong: Schema.NullOr(Schema.String),
-  content: Schema.NullOr(Schema.String),
+  nodes: Schema.Array(Node),
   puborder: Schema.Number,
   elementType: Schema.NullOr(Schema.String),
   elementSubtype: Schema.NullOr(Schema.String),
@@ -226,20 +227,20 @@ export class EGWService extends Context.Service<EGWService, EGWServiceShape>()(
               new EGWParagraph({
                 paraId: p.para_id ?? null,
                 refcodeShort: p.refcode_short ?? null,
-                content: p.content ?? null,
+                nodes: p.nodes,
                 puborder: p.puborder,
                 elementType: p.element_type ?? null,
               }),
           );
 
-          // Find chapter heading for this page
-          const chapterHeading =
-            paragraphs.find(
-              (p) =>
-                p.element_type?.toLowerCase().startsWith('h') ||
-                p.element_type === 'chapter' ||
-                p.element_type === 'title',
-            )?.content ?? null;
+          // Find chapter heading for this page (flattened to plain text for the header chip)
+          const chapterHeadingPara = paragraphs.find(
+            (p) =>
+              p.element_type?.toLowerCase().startsWith('h') ||
+              p.element_type === 'chapter' ||
+              p.element_type === 'title',
+          );
+          const chapterHeading = chapterHeadingPara ? nodesToText(chapterHeadingPara.nodes) : null;
 
           // Get actual max page from database
           const totalPages = yield* db.getMaxPage(book.book_id);
@@ -279,7 +280,7 @@ export class EGWService extends Context.Service<EGWService, EGWServiceShape>()(
             const page = pageStr ? parseInt(pageStr, 10) : null;
 
             return new EGWChapter({
-              title: h.content ?? null,
+              title: nodesToText(h.nodes),
               refcodeShort: h.refcode_short ?? null,
               puborder: h.puborder,
               page,
@@ -299,7 +300,7 @@ export class EGWService extends Context.Service<EGWService, EGWServiceShape>()(
                 new EGWSearchResult({
                   paraId: r.para_id ?? null,
                   refcodeShort: r.refcode_short ?? null,
-                  content: r.content ?? null,
+                  nodes: r.nodes,
                   puborder: r.puborder,
                   bookCode: r.bookCode,
                   bookTitle: r.bookTitle,
@@ -339,7 +340,7 @@ export class EGWService extends Context.Service<EGWService, EGWServiceShape>()(
                     paraId: p.para_id ?? null,
                     refcodeShort: p.refcode_short ?? null,
                     refcodeLong: p.refcode_long ?? null,
-                    content: p.content ?? null,
+                    nodes: p.nodes,
                     puborder: p.puborder,
                     elementType: p.element_type ?? null,
                     elementSubtype: p.element_subtype ?? null,

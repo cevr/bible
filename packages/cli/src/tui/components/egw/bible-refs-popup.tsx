@@ -6,6 +6,7 @@
  */
 
 import { extractBibleReferences, formatBibleReference } from '@bible/core/bible-reader';
+import { nodesToText } from '@bible/core/egw';
 import type { EGWParagraph } from '@bible/core/egw-reader';
 import type { ScrollBoxRenderable } from '@opentui/core';
 import { createMemo, createSignal, For, Show } from 'solid-js';
@@ -15,23 +16,6 @@ import { useTheme } from '../../context/theme.js';
 import { useScrollSync } from '../../hooks/use-scroll-sync.js';
 
 type KeyEvent = { name?: string; sequence?: string; ctrl?: boolean };
-
-/**
- * Strip HTML tags from content
- */
-function stripHtml(html: string): string {
-  return html
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/[ \t]+/g, ' ')
-    .trim();
-}
 
 interface EGWBibleRefsPopupProps {
   paragraph: EGWParagraph;
@@ -48,7 +32,7 @@ export function EGWBibleRefsPopup(props: EGWBibleRefsPopupProps) {
 
   // Extract Bible references from paragraph content
   const references = createMemo(() => {
-    const content = stripHtml(props.paragraph.content ?? '');
+    const content = nodesToText(props.paragraph.nodes);
     return extractBibleReferences(content);
   });
 

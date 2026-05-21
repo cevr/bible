@@ -36,7 +36,7 @@ import { ReaderState } from './reader-state.js';
 // would mean two FiberHandles competing for HTTP slots and two status refs
 // that callers would have to merge.
 
-const PREFETCH_CONCURRENCY = 4;
+const PREFETCH_CONCURRENCY = 8;
 
 export type PrefetchStatus =
   | { readonly _tag: 'Idle' }
@@ -152,8 +152,9 @@ export class Prefetcher extends Context.Service<Prefetcher, PrefetcherShape>()(
         Effect.gen(function* () {
           const toc = yield* data.getToc(bookId);
           const chapters = navigableChapters(toc);
-          // First chapter rendered foreground → background warms the rest.
-          yield* fanOut('prefetch', bookId, chapters.slice(1));
+          // Warm every chapter — the foreground feed reads through the same
+          // cache, so concurrent fetches dedupe at the sqlite layer.
+          yield* fanOut('prefetch', bookId, chapters);
         }).pipe(
           Effect.catch((error) =>
             SubscriptionRef.set(status, {

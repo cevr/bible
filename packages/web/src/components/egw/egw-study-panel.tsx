@@ -7,13 +7,13 @@
 import { useMemo, useState, useTransition, Suspense } from 'react';
 import { XIcon, Trash2 } from 'lucide-react';
 import { extractBibleReferences, formatBibleReference } from '@bible/core/bible-reader';
+import { nodesToText } from '@bible/core/egw';
 import type { EGWParagraph } from '@/data/egw/api';
 import type { MarkerColor } from '@/data/study/service';
 import { useApp } from '@/providers/db-context';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { cleanHtml } from '@/components/egw/html-utils';
 
 const MARKER_COLORS: MarkerColor[] = ['red', 'orange', 'yellow', 'green', 'blue', 'purple'];
 const MARKER_COLOR_MAP: Record<MarkerColor, string> = {
@@ -41,9 +41,9 @@ export function EgwStudyPanel({
   onRefClick,
 }: EgwStudyPanelProps) {
   const refs = useMemo(() => {
-    if (!paragraph?.content) return [];
-    return extractBibleReferences(cleanHtml(paragraph.content));
-  }, [paragraph?.content]);
+    if (!paragraph) return [];
+    return extractBibleReferences(nodesToText(paragraph.nodes));
+  }, [paragraph]);
 
   const title = paragraph?.refcodeShort ?? 'Study';
 

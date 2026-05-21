@@ -7,6 +7,7 @@
  * - Getting chapter headings for navigation
  * - Searching paragraphs
  */
+import { Node } from '@bible/core/egw';
 import { HttpApiEndpoint, HttpApiGroup } from 'effect/unstable/httpapi';
 import { Effect, Schema as S } from 'effect';
 
@@ -27,7 +28,7 @@ export type EGWBookInfo = S.Schema.Type<typeof EGWBookInfoSchema>;
 export const EGWParagraphSchema = S.Struct({
   paraId: S.NullOr(S.String),
   refcodeShort: S.NullOr(S.String),
-  content: S.NullOr(S.String),
+  nodes: S.Array(Node),
   puborder: S.Number,
   elementType: S.NullOr(S.String),
 });
@@ -59,7 +60,7 @@ export type EGWChapter = S.Schema.Type<typeof EGWChapterSchema>;
 export const EGWSearchResultSchema = S.Struct({
   paraId: S.NullOr(S.String),
   refcodeShort: S.NullOr(S.String),
-  content: S.NullOr(S.String),
+  nodes: S.Array(Node),
   puborder: S.Number,
   bookCode: S.String,
   bookTitle: S.String,
@@ -72,7 +73,7 @@ export const EGWBookDumpParagraphSchema = S.Struct({
   paraId: S.NullOr(S.String),
   refcodeShort: S.NullOr(S.String),
   refcodeLong: S.NullOr(S.String),
-  content: S.NullOr(S.String),
+  nodes: S.Array(Node),
   puborder: S.Number,
   elementType: S.NullOr(S.String),
   elementSubtype: S.NullOr(S.String),

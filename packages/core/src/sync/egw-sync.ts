@@ -21,6 +21,7 @@ import {
   type ParagraphDatabaseError,
   type SyncStatus,
 } from '../egw-db/index.js';
+import { nodesToText } from '../egw/ast.js';
 import { EGWApiClient } from '../egw/client.js';
 import { chapterIdFromTocItem } from '../egw/parse.js';
 import type * as EGWSchemas from '../egw/schemas.js';
@@ -76,9 +77,6 @@ export type DownloadBookResult =
 
 // Check if a book code is a Bible Commentary volume
 const isBCBook = (bookCode: string): boolean => /^[1-7]BC$/i.test(bookCode);
-
-// Strip HTML tags from content
-const stripHtml = (html: string): string => html.replace(/<[^>]*>/g, '');
 
 /**
  * Get sync status summary
@@ -223,7 +221,7 @@ export const downloadBookToLocal = (
           para.para_id ??
           `book-${book.book_id}-para-${para.puborder}`;
 
-        const content = stripHtml(para.content ?? '');
+        const content = nodesToText(para.nodes);
         const refs = extractBibleReferences(content);
 
         for (const ref of refs) {
