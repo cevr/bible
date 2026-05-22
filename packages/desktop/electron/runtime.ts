@@ -1,5 +1,6 @@
 import { EGWApiClient, EGWAuth, EGWTokenStore } from '@bible/core/egw';
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
+import { KjvBibleDatabase } from '@bible/core/kjv-bible-db';
 import * as SqliteNode from '@effect/sql-sqlite-node/SqliteClient';
 import { Effect, Layer, ManagedRuntime, Option, Schema } from 'effect';
 import type { Effect as EffectNs } from 'effect';
@@ -25,8 +26,15 @@ class TokenIoError extends Schema.TaggedErrorClass<TokenIoError>()('TokenIoError
  * The renderer talks to EGW exclusively through `egw:*` IPC handlers in
  * main.ts, which dispatch onto this runtime.
  */
-const dbLayer = (filename: string): Layer.Layer<EGWParagraphDatabase> =>
-  EGWParagraphDatabase.layerCore.pipe(Layer.provide(SqliteNode.layer({ filename })), Layer.orDie);
+// Both database services share a single SqlClient against cache.sqlite. Merging
+// the layers before providing the driver ensures one sqlite-node connection
+// covers both — opening two connections to a WAL-mode file in the same process
+// invites lock surprises and doubles the memory footprint.
+const dbLayer = (filename: string): Layer.Layer<EGWParagraphDatabase | KjvBibleDatabase> =>
+  Layer.mergeAll(EGWParagraphDatabase.layerCore, KjvBibleDatabase.layerCore).pipe(
+    Layer.provide(SqliteNode.layer({ filename })),
+    Layer.orDie,
+  );
 
 // Node-fs-backed token store. We don't pull in @effect/platform-node just for
 // this — Electron main already uses node:fs for settings + tokens, so the
@@ -71,12 +79,15 @@ const egwLayer = (tokenFile: string): Layer.Layer<EGWApiClient> =>
     Layer.orDie,
   );
 
-export type MainRuntime = ManagedRuntime.ManagedRuntime<EGWParagraphDatabase | EGWApiClient, never>;
+export type MainRuntime = ManagedRuntime.ManagedRuntime<
+  EGWParagraphDatabase | KjvBibleDatabase | EGWApiClient,
+  never
+>;
 
 export const makeRuntime = (cacheDbFile: string, tokenFile: string): MainRuntime =>
   ManagedRuntime.make(Layer.mergeAll(dbLayer(cacheDbFile), egwLayer(tokenFile)));
 
 export const runtimeRun = <A, E>(
   runtime: MainRuntime,
-  effect: EffectNs.Effect<A, E, EGWParagraphDatabase | EGWApiClient>,
+  effect: EffectNs.Effect<A, E, EGWParagraphDatabase | KjvBibleDatabase | EGWApiClient>,
 ): Promise<A> => runtime.runPromise(effect);

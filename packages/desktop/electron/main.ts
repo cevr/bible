@@ -1,7 +1,15 @@
 import { EGWApiClient, nodesToText, Schemas } from '@bible/core/egw';
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
+import {
+  KjvBibleDatabase,
+  type KjvAssetFile,
+  type KjvStrongsChapterPayload,
+  type StrongsLexiconEntry,
+  type StrongsLexiconRaw,
+  type StrongsVerseRow,
+} from '@bible/core/kjv-bible-db';
 import Database from 'better-sqlite3';
-import { Effect, Schema, Stream } from 'effect';
+import { Effect, Option, Schema, Stream } from 'effect';
 
 class EgwIpcError extends Schema.TaggedErrorClass<EgwIpcError>()('EgwIpcError', {
   message: Schema.String,
@@ -129,6 +137,11 @@ const getCacheDb = (): Database.Database => {
       para_id TEXT,
       updated_at INTEGER NOT NULL
     );
+
+    -- NOTE: kjv_verses + strongs_lexicon are created and owned by
+    -- KjvBibleDatabase.layerCore (packages/core/src/kjv-bible-db). They share
+    -- this same cache.sqlite file but their DDL belongs to the service, not
+    -- to this raw-sqlite cache module.
   `);
   // Additive migration: older DBs created last_position without paragraph_id.
   // SQLite has no "ADD COLUMN IF NOT EXISTS"; the duplicate-column error is the
@@ -384,28 +397,14 @@ ipcMain.handle(
   },
 );
 
-// --- KJV Bible IPC -------------------------------------------------------
-// The KJV JSON ships with @bible/core (packages/core/assets/kjv.json). It's
-// ~7.5 MB on disk and ~32 MB once parsed — fine in main process memory, but
-// we don't want to ship it in the renderer bundle. Main loads it lazily on
-// the first `bible:getChapter` call and keeps an indexed map for O(1) lookup.
+// --- KJV bible + Strong's IPC -------------------------------------------
+// Data lives in cache.sqlite (kjv_verses, strongs_lexicon tables owned by
+// KjvBibleDatabase.layerCore). The bundled JSON assets are imported once on
+// first launch — subsequent launches skip the import via isImported() and
+// only hit the SQL queries.
 
-interface KjvVerse {
-  readonly book_name: string;
-  readonly book: number;
-  readonly chapter: number;
-  readonly verse: number;
-  readonly text: string;
-}
-
-interface KjvChapterPayload {
-  readonly book: number;
-  readonly bookName: string;
-  readonly chapter: number;
-  readonly verses: readonly { readonly verse: number; readonly text: string }[];
-}
-
-let kjvIndex: Map<string, KjvVerse[]> | null = null;
+// re-export types that other electron modules import
+export type { KjvStrongsChapterPayload, StrongsLexiconEntry };
 
 // Bundled main.cjs lives at packages/desktop/dist/main/main.cjs. The @bible/core
 // workspace is symlinked into packages/desktop/node_modules in dev, and electron-
@@ -416,153 +415,117 @@ const coreAssetPath = (name: string): string =>
 
 const readCoreAssetText = (name: string): string => readFileSync(coreAssetPath(name), 'utf-8');
 
-const loadKjv = (): Map<string, KjvVerse[]> => {
-  if (kjvIndex !== null) return kjvIndex;
-  const raw = JSON.parse(readCoreAssetText('kjv.json')) as { verses: readonly KjvVerse[] };
-  const idx = new Map<string, KjvVerse[]>();
-  for (const v of raw.verses) {
-    const key = `${String(v.book)}:${String(v.chapter)}`;
-    let bucket = idx.get(key);
-    if (bucket === undefined) {
-      bucket = [];
-      idx.set(key, bucket);
-    }
-    bucket.push(v);
-  }
-  kjvIndex = idx;
-  return idx;
+// One-shot import on first launch (or after a schema-version bump dropped the
+// tables). Subsequent launches hit isImported() and skip the JSON read +
+// transaction entirely. The Promise is cached so concurrent IPC calls during
+// startup all await the same import effect.
+let bibleImportsPromise: Promise<void> | null = null;
+const ensureBibleImportsDone = (runtime: MainRuntime): Promise<void> => {
+  const cached = bibleImportsPromise;
+  if (cached !== null) return cached;
+  const fresh = runtime.runPromise(
+    KjvBibleDatabase.pipe(
+      Effect.flatMap((db) =>
+        db.isImported().pipe(
+          Effect.flatMap((done) => {
+            if (done) return Effect.asVoid(Effect.void);
+            const kjv = JSON.parse(readCoreAssetText('kjv.json')) as KjvAssetFile;
+            const strongs = JSON.parse(
+              readCoreAssetText('kjv-strongs.json'),
+            ) as readonly StrongsVerseRow[];
+            const lex = JSON.parse(readCoreAssetText('strongs.json')) as Record<
+              string,
+              StrongsLexiconRaw
+            >;
+            return db
+              .importKjv(kjv, strongs)
+              .pipe(Effect.andThen(db.importStrongsLexicon(lex)), Effect.asVoid);
+          }),
+        ),
+      ),
+    ),
+  );
+  bibleImportsPromise = fresh;
+  return fresh;
 };
 
-ipcMain.handle(
-  'bible:getChapter',
-  (_event, book: number, chapter: number): KjvChapterPayload | null => {
-    const idx = loadKjv();
-    const verses = idx.get(`${String(book)}:${String(chapter)}`);
-    if (verses === undefined || verses.length === 0) return null;
-    const first = verses[0];
-    if (first === undefined) return null;
-    return {
-      book: first.book,
-      bookName: first.book_name,
-      chapter: first.chapter,
-      verses: verses.map((v) => ({ verse: v.verse, text: v.text })),
-    };
-  },
-);
-
-// --- KJV+Strong's IPC. Parallel index, lazy-loaded — the strongs JSON is
-// ~21 MB on disk and ~80 MB parsed, so we keep it out of memory until the
-// user actually toggles the Strong's view in the drawer.
-
-interface StrongsWord {
-  readonly text: string;
-  readonly strongs?: readonly string[];
-}
-
-interface StrongsVerse {
+// Renderer-facing shapes (camelCase, plus only the fields the preload exposes).
+// The service emits snake_case SQL rows; we project here so the IPC contract
+// matches what preload.ts declares and the renderer already consumes.
+type RendererKjvChapter = {
   readonly book: number;
+  readonly bookName: string;
   readonly chapter: number;
-  readonly verse: number;
-  readonly words: readonly StrongsWord[];
-}
-
-export interface KjvStrongsChapterPayload {
+  readonly verses: readonly { readonly verse: number; readonly text: string }[];
+};
+type RendererKjvStrongsChapter = {
   readonly book: number;
   readonly bookName: string;
   readonly chapter: number;
   readonly verses: readonly {
     readonly verse: number;
-    readonly words: readonly StrongsWord[];
+    readonly words: readonly { readonly text: string; readonly strongs?: readonly string[] }[];
   }[];
-}
-
-let strongsIndex: Map<string, StrongsVerse[]> | null = null;
-
-const loadStrongs = (): Map<string, StrongsVerse[]> => {
-  if (strongsIndex !== null) return strongsIndex;
-  const raw = JSON.parse(readCoreAssetText('kjv-strongs.json')) as readonly StrongsVerse[];
-  const idx = new Map<string, StrongsVerse[]>();
-  for (const v of raw) {
-    const key = `${String(v.book)}:${String(v.chapter)}`;
-    let bucket = idx.get(key);
-    if (bucket === undefined) {
-      bucket = [];
-      idx.set(key, bucket);
-    }
-    bucket.push(v);
-  }
-  strongsIndex = idx;
-  return idx;
 };
-
-ipcMain.handle(
-  'bible:getChapterStrongs',
-  (_event, book: number, chapter: number): KjvStrongsChapterPayload | null => {
-    const sIdx = loadStrongs();
-    const verses = sIdx.get(`${String(book)}:${String(chapter)}`);
-    if (verses === undefined || verses.length === 0) return null;
-    // Strong's payload has no book name — look it up from the plain KJV index,
-    // which the renderer has already loaded by this point in any normal flow.
-    const kIdx = loadKjv();
-    const kjvVerses = kIdx.get(`${String(book)}:${String(chapter)}`);
-    const bookName = kjvVerses?.[0]?.book_name ?? '';
-    return {
-      book,
-      bookName,
-      chapter,
-      verses: verses.map((v) => ({ verse: v.verse, words: v.words })),
-    };
-  },
-);
-
-// --- Strong's lexicon IPC. The lexicon (strongs.json) is a flat map keyed by
-// Strong's code (H#### / G####) → { lemma, xlit, def }. ~3 MB on disk, much
-// smaller than the per-word index, but we still keep it out of the renderer
-// bundle and lazy-load on the first lookup. Single shared object — every
-// lookup is an O(1) map hit.
-
-interface StrongsLexiconRaw {
-  readonly lemma: string;
-  readonly xlit: string;
-  readonly def: string;
-}
-
-export interface StrongsLexiconEntry {
+type RendererStrongsEntry = {
   readonly code: string;
   readonly language: 'hebrew' | 'greek';
   readonly lemma: string;
   readonly transliteration: string;
   readonly definition: string;
-}
-
-let strongsLexicon: Record<string, StrongsLexiconRaw> | null = null;
-
-const loadStrongsLexicon = (): Record<string, StrongsLexiconRaw> => {
-  if (strongsLexicon !== null) return strongsLexicon;
-  strongsLexicon = JSON.parse(readCoreAssetText('strongs.json')) as Record<
-    string,
-    StrongsLexiconRaw
-  >;
-  return strongsLexicon;
 };
 
-ipcMain.handle('bible:strongsLookup', (_event, code: string): StrongsLexiconEntry | null => {
-  const lex = loadStrongsLexicon();
-  const raw = lex[code];
-  if (raw === undefined) return null;
-  // Language inferred from the code prefix — the lexicon doesn't carry it
-  // explicitly. H = Hebrew (OT), G = Greek (NT). Anything else is malformed
-  // input; surface as a miss rather than a defect.
-  const prefix = code.charAt(0);
-  if (prefix !== 'H' && prefix !== 'G') return null;
-  return {
-    code,
-    language: prefix === 'H' ? 'hebrew' : 'greek',
-    lemma: raw.lemma,
-    transliteration: raw.xlit,
-    definition: raw.def,
-  };
-});
+ipcMain.handle(
+  'bible:getChapter',
+  async (_event, book: number, chapter: number): Promise<RendererKjvChapter | null> => {
+    if (mainRuntime === null) return null;
+    await ensureBibleImportsDone(mainRuntime);
+    const result = await mainRuntime.runPromise(
+      KjvBibleDatabase.pipe(Effect.flatMap((db) => db.getChapter(book, chapter))),
+    );
+    return Option.match(result, {
+      onNone: () => null,
+      onSome: (c): RendererKjvChapter => ({
+        book: c.book,
+        bookName: c.book_name,
+        chapter: c.chapter,
+        verses: c.verses.map((v) => ({ verse: v.verse, text: v.text })),
+      }),
+    });
+  },
+);
+
+ipcMain.handle(
+  'bible:getChapterStrongs',
+  async (_event, book: number, chapter: number): Promise<RendererKjvStrongsChapter | null> => {
+    if (mainRuntime === null) return null;
+    await ensureBibleImportsDone(mainRuntime);
+    const result = await mainRuntime.runPromise(
+      KjvBibleDatabase.pipe(Effect.flatMap((db) => db.getChapterStrongs(book, chapter))),
+    );
+    return Option.match(result, {
+      onNone: () => null,
+      onSome: (c): RendererKjvStrongsChapter => ({
+        book: c.book,
+        bookName: c.book_name,
+        chapter: c.chapter,
+        verses: c.verses.map((v) => ({ verse: v.verse, words: v.words })),
+      }),
+    });
+  },
+);
+
+ipcMain.handle(
+  'bible:strongsLookup',
+  async (_event, code: string): Promise<RendererStrongsEntry | null> => {
+    if (mainRuntime === null) return null;
+    await ensureBibleImportsDone(mainRuntime);
+    const result = await mainRuntime.runPromise(
+      KjvBibleDatabase.pipe(Effect.flatMap((db) => db.strongsLookup(code))),
+    );
+    return Option.getOrNull(result);
+  },
+);
 
 // --- EGW live API IPC ----------------------------------------------------
 // All EGW HTTP runs in main (Node fetch), not the renderer, because:
@@ -726,7 +689,8 @@ void app.whenReady().then(async () => {
   // rather than on the first search query. Errors here are unrecoverable —
   // the layer is Layer.orDie, so a failed open throws synchronously.
   await mainRuntime.runPromise(EGWParagraphDatabase.pipe(Effect.asVoid));
-  console.error('[main] EGWParagraphDatabase ready, opening window');
+  await mainRuntime.runPromise(KjvBibleDatabase.pipe(Effect.asVoid));
+  console.error('[main] EGWParagraphDatabase + KjvBibleDatabase ready, opening window');
   void createWindow();
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) void createWindow();

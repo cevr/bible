@@ -11,6 +11,8 @@
     "./egw": "./src/egw/index.ts",
     "./egw-db": "./src/egw-db/index.ts",
     "./egw-db/bun": "./src/egw-db/book-database-bun.ts",
+    "./kjv-bible-db": "./src/kjv-bible-db/index.ts",
+    "./kjv-bible-db/bun": "./src/kjv-bible-db/kjv-bible-db-bun.ts",
     "./egw-reader": "./src/egw-reader/index.ts",
     "./egw-commentary": "./src/egw-commentary/index.ts",
     "./bible-cross-refs": "./src/bible-cross-refs/index.ts",
@@ -29,6 +31,7 @@
     "./structural-analysis": "./src/structural-analysis/index.ts",
     "./assets/kjv.json": "./assets/kjv.json",
     "./assets/kjv-strongs.json": "./assets/kjv-strongs.json",
+    "./assets/strongs.json": "./assets/strongs.json",
     "./package.json": "./package.json"
   },
   "scripts": {
