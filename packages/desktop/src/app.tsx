@@ -1,10 +1,14 @@
 import { Effect, Fiber, Option, Stream } from 'effect';
 import { type Component, createMemo, createSignal, For, onCleanup, onMount, Show } from 'solid-js';
+import { BibleChapterCanvas } from './components/bible-chapter-canvas.js';
+import { BibleCommentaryDrawer } from './components/bible-commentary-drawer.js';
 import { BibleDrawer } from './components/bible-drawer.js';
+import { BibleTocSidebar } from './components/bible-toc-sidebar.js';
 import { FolderBrowser } from './components/folder-browser.js';
 import { ReaderPane } from './components/reader-pane.js';
 import { SearchPanel } from './components/search-panel.js';
 import { TocSidebar } from './components/toc-sidebar.js';
+import { BibleReaderState, type BibleReaderSelection } from './services/bible-reader-state.js';
 import { createBibleDrawerState } from './services/bible-drawer-state.js';
 import { defaultEase, Motion, Presence, useDrag } from './motion/index.js';
 import { animateProperty } from './motion/internals/driver.js';
@@ -126,6 +130,20 @@ export const App: Component = () => {
   // Reader selection mirror — drives whether we render landing (FolderBrowser)
   // or the reader, and feeds props.selection into ReaderPane.
   const [selection, setSelection] = createSignal<Option.Option<ReaderSelection>>(Option.none());
+
+  // Bible-mode selection mirror. Driven by BibleReaderState (same pattern as
+  // the EGW reader's `selection`). Used so the Bible TOC drawer can highlight
+  // the active book/chapter, and so the shell can decide whether the right
+  // commentary drawer should mount.
+  const [bibleSelection, setBibleSelection] = createSignal<Option.Option<BibleReaderSelection>>(
+    Option.none(),
+  );
+  const bibleTocSelection = createMemo(() => {
+    const sel = bibleSelection();
+    if (Option.isNone(sel))
+      return Option.none<{ readonly book: number; readonly chapter: number }>();
+    return Option.some({ book: sel.value.book, chapter: sel.value.chapter });
+  });
 
   // Restore anchor — the paragraph paraId we persisted last time the user
   // was reading this chapter. ReaderPane consumes it once on mount via
@@ -295,6 +313,19 @@ export const App: Component = () => {
       }),
     );
 
+    // Bible-mode selection mirror. No persistence yet — Bible last-position
+    // restore is a follow-up. For now we just keep the local signal in sync so
+    // the TOC can highlight the active chapter and the shell can decide what
+    // to render.
+    const bibleFiber = runtime.runFork(
+      Effect.gen(function* () {
+        const state = yield* BibleReaderState;
+        yield* state.changes.pipe(
+          Stream.runForEach((next) => Effect.sync(() => setBibleSelection(next))),
+        );
+      }),
+    );
+
     // Background chapter warmer.
     const prefetchFiber = runtime.runFork(
       Effect.gen(function* () {
@@ -305,6 +336,7 @@ export const App: Component = () => {
 
     onCleanup(() => {
       void runtime.runPromise(Fiber.interrupt(fiber));
+      void runtime.runPromise(Fiber.interrupt(bibleFiber));
       void runtime.runPromise(Fiber.interrupt(prefetchFiber));
     });
   });
@@ -427,10 +459,16 @@ export const App: Component = () => {
     setSettingsOpen(false);
   };
 
-  // Library button cycles drawer state when a book is open. When no book is
-  // open the button is hidden (the landing view IS the folder browser).
+  // Library button cycles drawer state. In EGW mode the button is hidden
+  // when no book is open (the landing view IS the folder browser). In Bible
+  // mode the TOC is always reachable, and there's no Library pane to expand
+  // — we just toggle between 'closed' and 'toc'.
   const onLibraryClick = () => {
-    if (!hasBook()) return;
+    if (!libraryAvailable()) return;
+    if (isBibleMode()) {
+      setDrawer((curr) => (curr === 'closed' ? 'toc' : 'closed'));
+      return;
+    }
     setDrawer((curr) => {
       if (curr === 'closed') return 'toc';
       if (curr === 'toc') return 'tocPlusLib';
@@ -535,6 +573,12 @@ export const App: Component = () => {
     return Option.isSome(sel) ? sel.value.bookId : null;
   };
 
+  // Library availability differs by mode: EGW gates the button on having a
+  // book open (the landing canvas IS the library), but Bible mode's landing
+  // canvas is the empty chapter prompt — we want the TOC reachable always.
+  const isBibleMode = () => readerMode() === 'bible';
+  const libraryAvailable = () => isBibleMode() || hasBook();
+
   // Picking a book in the Library drawer (state 2) closes both drawers and
   // lets ReaderPane swap to the new book. ReaderState.openBook has already
   // fired from inside FolderBrowser.
@@ -635,13 +679,13 @@ export const App: Component = () => {
             Bible
           </button>
         </div>
-        <Show when={hasBook()}>
+        <Show when={libraryAvailable()}>
           <button
             type="button"
             class="inline-flex items-center gap-1.5 h-[calc(28px*var(--ui-scale))] px-3 rounded-md border border-rule bg-transparent text-fg text-ui-base cursor-pointer transition-[background,border-color,color] duration-[0.12s] ease-in-out [-webkit-app-region:no-drag] hover:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] hover:border-accent hover:outline-none focus-visible:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] focus-visible:border-accent focus-visible:outline-none data-active:bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)] data-active:border-accent"
             data-active={drawer() !== 'closed' ? '' : undefined}
             onClick={onLibraryClick}
-            title="Library"
+            title={isBibleMode() ? 'Books & chapters' : 'Library'}
             aria-label="Library"
           >
             <svg
@@ -713,25 +757,32 @@ export const App: Component = () => {
 
       <div class="relative min-h-0 overflow-hidden">
         <Show
-          when={hasBook()}
+          when={isBibleMode()}
           fallback={
-            <Show when={rehydrated()}>
-              <div class="absolute inset-0 overflow-auto">
-                <FolderBrowser onPickBook={onPickBookFromLanding} />
-              </div>
+            <Show
+              when={hasBook()}
+              fallback={
+                <Show when={rehydrated()}>
+                  <div class="absolute inset-0 overflow-auto">
+                    <FolderBrowser onPickBook={onPickBookFromLanding} />
+                  </div>
+                </Show>
+              }
+            >
+              <ReaderPane
+                selection={selection()}
+                onHighlightApplied={onHighlightApplied}
+                restoreParagraphId={restoreParagraphId}
+                onPositionChange={onPositionChange}
+                fontFamily={readerFontFamily}
+                onScriptureClick={(title) => {
+                  bibleDrawer.open(title);
+                }}
+              />
             </Show>
           }
         >
-          <ReaderPane
-            selection={selection()}
-            onHighlightApplied={onHighlightApplied}
-            restoreParagraphId={restoreParagraphId}
-            onPositionChange={onPositionChange}
-            fontFamily={readerFontFamily}
-            onScriptureClick={(title) => {
-              bibleDrawer.open(title);
-            }}
-          />
+          <BibleChapterCanvas />
         </Show>
       </div>
 
@@ -740,7 +791,7 @@ export const App: Component = () => {
           Mounting both panes regardless of state lets the width transition
           run as a single smooth motion. */}
       <Presence>
-        <Show when={hasBook() && drawer() !== 'closed'}>
+        <Show when={libraryAvailable() && drawer() !== 'closed'}>
           <Motion.div
             class="fixed top-[calc(44px*var(--ui-scale))] left-0 right-0 bottom-0 bg-[color-mix(in_srgb,#000_28%,transparent)] z-30"
             initial={{ opacity: 0 }}
@@ -752,8 +803,35 @@ export const App: Component = () => {
         </Show>
       </Presence>
 
+      {/* Bible-mode left drawer: just the books/chapters TOC. No Library pane
+          expansion — the Bible already enumerates its own books. */}
       <Presence>
-        <Show when={hasBook() && drawer() !== 'closed' && currentBookId() !== null}>
+        <Show when={isBibleMode() && drawer() !== 'closed'}>
+          <Motion.aside
+            class="fixed top-[calc(44px*var(--ui-scale))] bottom-0 left-0 w-[320px] bg-bg border-r border-rule z-[35] flex flex-col shadow-[4px_0_24px_color-mix(in_srgb,#000_16%,transparent)]"
+            aria-label="Bible books"
+            initial={{ x: -360, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: -360, opacity: 0 }}
+            transition={{ duration: 0.22, ease: defaultEase }}
+          >
+            <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-rule flex-[0_0_auto]">
+              <h2 class="m-0 text-ui-sm font-semibold tracking-[0.08em] uppercase text-muted">
+                Bible
+              </h2>
+            </div>
+            <div class="flex-1 min-h-0 overflow-y-auto">
+              <BibleTocSidebar currentSelection={bibleTocSelection} onPickChapter={closeDrawers} />
+            </div>
+          </Motion.aside>
+        </Show>
+      </Presence>
+
+      {/* EGW-mode left drawer: existing TOC + Library two-pane drawer. */}
+      <Presence>
+        <Show
+          when={!isBibleMode() && hasBook() && drawer() !== 'closed' && currentBookId() !== null}
+        >
           <Motion.aside
             class="fixed top-[calc(44px*var(--ui-scale))] bottom-0 left-0 w-[320px] bg-bg border-r border-rule z-[35] flex flex-row shadow-[4px_0_24px_color-mix(in_srgb,#000_16%,transparent)] transition-[width] duration-[0.24s] [transition-timing-function:cubic-bezier(0.2,0.8,0.2,1)] data-expanded:w-[720px]"
             data-expanded={drawer() === 'tocPlusLib' ? '' : undefined}
@@ -980,21 +1058,33 @@ export const App: Component = () => {
         </Show>
       </Presence>
 
-      <BibleDrawer
-        state={bibleDrawer}
-        widthPx={bibleDrawerWidth}
-        onWidthChange={setBibleDrawerWidth}
-        widthBounds={{
-          min: BIBLE_DRAWER_WIDTH_BOUNDS.min,
-          max: BIBLE_DRAWER_WIDTH_BOUNDS.max,
-        }}
-        wideWidthPx={bibleDrawerWideWidth}
-        onWideWidthChange={setBibleDrawerWideWidth}
-        wideWidthBounds={{
-          min: BIBLE_DRAWER_WIDE_WIDTH_BOUNDS.min,
-          max: BIBLE_DRAWER_WIDE_WIDTH_BOUNDS.max,
-        }}
-      />
+      {/* Right drawer is mode-dependent. EGW mode → existing BibleDrawer
+          (cross-reference into scripture). Bible mode → symmetric inversion,
+          a commentary drawer that surfaces cached EGW paragraphs touching the
+          focused verse. Both share the same persisted widthPx so resizing one
+          settles the other on next mode switch. */}
+      <Show
+        when={isBibleMode()}
+        fallback={
+          <BibleDrawer
+            state={bibleDrawer}
+            widthPx={bibleDrawerWidth}
+            onWidthChange={setBibleDrawerWidth}
+            widthBounds={{
+              min: BIBLE_DRAWER_WIDTH_BOUNDS.min,
+              max: BIBLE_DRAWER_WIDTH_BOUNDS.max,
+            }}
+            wideWidthPx={bibleDrawerWideWidth}
+            onWideWidthChange={setBibleDrawerWideWidth}
+            wideWidthBounds={{
+              min: BIBLE_DRAWER_WIDE_WIDTH_BOUNDS.min,
+              max: BIBLE_DRAWER_WIDE_WIDTH_BOUNDS.max,
+            }}
+          />
+        }
+      >
+        <BibleCommentaryDrawer widthPx={bibleDrawerWidth} />
+      </Show>
     </div>
   );
 };
