@@ -9,9 +9,11 @@ import { type Node } from '@bible/core/egw';
 
 export interface ParagraphViewProps {
   readonly nodes: readonly Node[];
-  /** Optional click delegate. Called with the link's dataLink + kind when a
-   *  ScriptureRef/BookRef is clicked. If omitted, links are inert. */
-  readonly onLinkClick?: (dataLink: string, kind: 'scripture' | 'book') => void;
+  /** Optional click delegate. Called with the link's dataLink, kind, and
+   *  human-readable title when a ScriptureRef/BookRef is clicked. The title
+   *  is what callers parse (e.g. "Genesis 3:1") — dataLink is EGW's internal
+   *  "bookId.paraId" form, unsuitable for the Bible drawer. */
+  readonly onLinkClick?: (dataLink: string, kind: 'scripture' | 'book', title: string) => void;
 }
 
 export const ParagraphView: Component<ParagraphViewProps> = (props) => (
@@ -20,7 +22,7 @@ export const ParagraphView: Component<ParagraphViewProps> = (props) => (
 
 interface NodeListProps {
   readonly nodes: readonly Node[];
-  readonly onLinkClick?: (dataLink: string, kind: 'scripture' | 'book') => void;
+  readonly onLinkClick?: (dataLink: string, kind: 'scripture' | 'book', title: string) => void;
 }
 
 const NodeList: Component<NodeListProps> = (props) => (
@@ -31,7 +33,7 @@ const NodeList: Component<NodeListProps> = (props) => (
 
 interface RenderNodeProps {
   readonly node: Node;
-  readonly onLinkClick?: (dataLink: string, kind: 'scripture' | 'book') => void;
+  readonly onLinkClick?: (dataLink: string, kind: 'scripture' | 'book', title: string) => void;
 }
 
 const RenderNode: Component<RenderNodeProps> = (props) => (
@@ -71,7 +73,7 @@ const RenderNode: Component<RenderNodeProps> = (props) => (
           data-link-kind="scripture"
           onClick={(e) => {
             e.preventDefault();
-            props.onLinkClick?.(n().dataLink, 'scripture');
+            props.onLinkClick?.(n().dataLink, 'scripture', n().title);
           }}
         >
           <NodeList nodes={n().children} onLinkClick={props.onLinkClick} />
@@ -88,7 +90,7 @@ const RenderNode: Component<RenderNodeProps> = (props) => (
           data-link-kind="book"
           onClick={(e) => {
             e.preventDefault();
-            props.onLinkClick?.(n().dataLink, 'book');
+            props.onLinkClick?.(n().dataLink, 'book', n().title);
           }}
         >
           <NodeList nodes={n().children} onLinkClick={props.onLinkClick} />

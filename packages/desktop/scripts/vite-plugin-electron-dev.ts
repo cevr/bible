@@ -42,7 +42,7 @@ export function electronDev(): Plugin {
     });
 
   const spawnElectron = () => {
-    child = spawn(electronPath as unknown as string, ['.'], {
+    child = spawn(electronPath as unknown as string, ['.', '--remote-debugging-port=9333'], {
       cwd: root,
       stdio: 'inherit',
       env: { ...process.env, NODE_ENV: 'development' },

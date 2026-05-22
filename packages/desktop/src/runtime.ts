@@ -2,6 +2,7 @@ import { Layer, ManagedRuntime } from 'effect';
 import { CacheService } from './services/cache-service.js';
 import { EGWData } from './services/egw-data.js';
 import { EGWIpcClient } from './services/egw-ipc-client.js';
+import { KjvBible } from './services/kjv-bible.js';
 import { LastPositionStorage } from './services/last-position-storage.js';
 import { Prefetcher } from './services/prefetcher.js';
 import { ReaderSettings } from './services/reader-settings.js';
@@ -35,6 +36,7 @@ const AppLayer = Layer.mergeAll(
   LastPositionStorage.layer,
   PrefetcherLayer,
   SearchServiceLayer,
+  KjvBible.layer,
 );
 
 export const runtime = ManagedRuntime.make(AppLayer);

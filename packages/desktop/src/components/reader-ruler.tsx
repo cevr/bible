@@ -1,6 +1,7 @@
-/* Right-edge progress indicator for the reader. Shows two percentages:
-   chapter (scroll within the current chapter) and book (chapter index
-   weighted by chapter scroll fraction over total navigable chapters).
+/* Bottom-center floating progress indicator for the reader. Shows two
+   percentages: chapter (scroll within the current chapter) and book
+   (chapter index weighted by chapter scroll fraction over total
+   navigable chapters).
 
    The percentages are computed by BookFeed (which owns the virtualizer +
    per-chapter pixel ranges) and passed in as signals. The ruler is purely
@@ -32,15 +33,15 @@ export const ReaderRuler: Component<ReaderRulerProps> = (props) => {
 
   return (
     <aside
-      class="pointer-events-none fixed right-4 top-1/2 z-20 flex -translate-y-1/2 flex-col gap-1 rounded-lg border border-rule bg-[color-mix(in_srgb,var(--color-bg)_80%,transparent)] px-2.5 py-2 font-sans text-[11px] [font-variant-numeric:tabular-nums] text-muted select-none"
+      class="pointer-events-none fixed bottom-4 left-1/2 z-20 inline-flex -translate-x-1/2 items-center gap-3 rounded-lg border border-rule bg-[color-mix(in_srgb,var(--color-bg)_80%,transparent)] px-3 py-1.5 font-sans text-[11px] [font-variant-numeric:tabular-nums] text-muted select-none backdrop-blur-sm"
       aria-label="Reading progress"
     >
-      <div class="flex min-w-[70px] items-baseline justify-between gap-2.5">
+      <div class="flex items-baseline gap-1.5">
         <span class="text-[10px] uppercase tracking-[0.06em] opacity-70">Chapter</span>
         <span class="font-medium text-fg">{chapterPct()}%</span>
       </div>
       <Show when={bookPct() !== undefined}>
-        <div class="flex min-w-[70px] items-baseline justify-between gap-2.5">
+        <div class="flex items-baseline gap-1.5">
           <span class="text-[10px] uppercase tracking-[0.06em] opacity-70">Book</span>
           <span class="font-medium text-fg">{bookPct()}%</span>
         </div>

@@ -68,6 +68,51 @@ const api = {
     refcode: (refcode: string, limit?: number): Promise<readonly SearchHit[]> =>
       ipcRenderer.invoke('search:refcode', refcode, limit),
   },
+  bible: {
+    // KJV chapter lookup. Returns null for invalid book/chapter combos so the
+    // drawer can show an inline "not found" without throwing.
+    getChapter: (book: number, chapter: number): Promise<KjvChapterPayload | null> =>
+      ipcRenderer.invoke('bible:getChapter', book, chapter),
+    // KJV with Strong's numbers — same lookup, word-tokenized payload with
+    // optional H#### / G#### tags. Lazy-loaded on first call (~21 MB on disk).
+    getChapterStrongs: (book: number, chapter: number): Promise<KjvStrongsChapterPayload | null> =>
+      ipcRenderer.invoke('bible:getChapterStrongs', book, chapter),
+    // Strong's lexicon entry for a single H#### / G#### code. Returns null
+    // for codes not in the lexicon or malformed input. Used by the drawer's
+    // Strong's tab when the user clicks a superscript.
+    strongsLookup: (code: string): Promise<StrongsLexiconPayload | null> =>
+      ipcRenderer.invoke('bible:strongsLookup', code),
+  },
+};
+
+export type KjvChapterPayload = {
+  readonly book: number;
+  readonly bookName: string;
+  readonly chapter: number;
+  readonly verses: readonly { readonly verse: number; readonly text: string }[];
+};
+
+export type KjvStrongsWord = {
+  readonly text: string;
+  readonly strongs?: readonly string[];
+};
+
+export type KjvStrongsChapterPayload = {
+  readonly book: number;
+  readonly bookName: string;
+  readonly chapter: number;
+  readonly verses: readonly {
+    readonly verse: number;
+    readonly words: readonly KjvStrongsWord[];
+  }[];
+};
+
+export type StrongsLexiconPayload = {
+  readonly code: string;
+  readonly language: 'hebrew' | 'greek';
+  readonly lemma: string;
+  readonly transliteration: string;
+  readonly definition: string;
 };
 
 /** Search result row exposed by `api.search.*`. Shape must match

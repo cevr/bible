@@ -43,9 +43,9 @@ body {
    app.tsx via inline style, themes set via data-theme attribute). They
    get aliased here so utilities like `text-ui-base` work. */
 @theme inline {
-  --font-serif: 'Iowan Old Style', 'Charter', 'Georgia', 'Times New Roman', serif;
-  --font-sans: -apple-system, BlinkMacSystemFont, 'Inter', 'Helvetica Neue', sans-serif;
-  --font-mono: 'JetBrains Mono', 'SF Mono', Menlo, Consolas, ui-monospace, monospace;
+  --font-serif: ui-serif, serif;
+  --font-sans: ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, monospace;
 
   --color-bg: var(--bg);
   --color-fg: var(--fg);
@@ -53,6 +53,7 @@ body {
   --color-rule: var(--rule);
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
+  --color-red-letter: var(--red-letter);
 
   --text-ui-xs: var(--ui-xs);
   --text-ui-sm: var(--ui-sm);
@@ -81,6 +82,7 @@ body {
   --rule: #e5e3dd;
   --accent: #1a1a1a;
   --accent-soft: rgba(255, 220, 100, 0.35);
+  --red-letter: #b3261e;
 }
 
 [data-theme='sepia'] {
@@ -90,6 +92,7 @@ body {
   --rule: #e0d2b3;
   --accent: #2a200f;
   --accent-soft: rgba(255, 220, 100, 0.35);
+  --red-letter: #9a2218;
 }
 
 [data-theme='dark'] {
@@ -99,6 +102,7 @@ body {
   --rule: #2c2c2f;
   --accent: #fafaf7;
   --accent-soft: rgba(255, 220, 100, 0.18);
+  --red-letter: #e57373;
 }
 
 /* Custom theme-aware variants so utilities can target sepia/dark

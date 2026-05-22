@@ -25,6 +25,12 @@ export interface ReaderPaneProps {
   /** Fired when the scroll-spy resolves a new (chapter, topmost-paragraph)
    *  pair. Forwarded from BookFeed. */
   readonly onPositionChange?: (chapterParaId: string, paragraphParaId: string) => void;
+  /** Current reader font-family token, forwarded to BookFeed so it can
+   *  re-sample paragraph metrics when the font changes. */
+  readonly fontFamily?: Accessor<string>;
+  /** Called with the title of a clicked scripture reference. The app shell
+   *  routes this into the Bible drawer. */
+  readonly onScriptureClick?: (title: string) => void;
 }
 
 export const ReaderPane: Component<ReaderPaneProps> = (props) => {
@@ -42,7 +48,14 @@ export const ReaderPane: Component<ReaderPaneProps> = (props) => {
       class="absolute inset-0 flex justify-center overflow-y-auto pt-12 px-6 pb-[120px]"
       role="main"
       ref={(el) => {
-        setScrollEl(el);
+        // Defer one frame so the browser has laid out <main> before
+        // TanStack Virtual reads its rect. Without this, the ref fires while
+        // <main> is still 0×0, the virtualizer's ResizeObserver caches that
+        // zero rect, and `calculateRange` returns null forever — yielding a
+        // blank reader on refresh.
+        requestAnimationFrame(() => {
+          setScrollEl(el);
+        });
       }}
     >
       <Show
@@ -72,6 +85,8 @@ export const ReaderPane: Component<ReaderPaneProps> = (props) => {
                 onHighlightApplied={props.onHighlightApplied}
                 restoreParagraphId={props.restoreParagraphId}
                 onPositionChange={props.onPositionChange}
+                fontFamily={props.fontFamily}
+                onScriptureClick={props.onScriptureClick}
               />
             )}
           </Show>

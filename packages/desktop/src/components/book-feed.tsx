@@ -62,6 +62,14 @@ export interface BookFeedProps {
   /** Fired whenever scroll-spy resolves a new (chapter, topmost-paragraph)
       pair. Debounced internally. Used to persist the user's reading position. */
   readonly onPositionChange?: (chapterParaId: string, paragraphParaId: string) => void;
+  /** Current reader font-family token. Threaded through so the metrics probe
+      can re-sample when the user swaps fonts — pretext height predictions are
+      keyed by font, and stale predictions cause paragraph overlap. */
+  readonly fontFamily?: Accessor<string>;
+  /** Called with the human-readable title of a ScriptureRef when the user
+      clicks one (e.g. "Genesis 3:1"). The app shell opens its Bible drawer
+      with that query. Omit to leave scripture links inert. */
+  readonly onScriptureClick?: (title: string) => void;
 }
 
 interface NavItem extends Schemas.TocItem {
@@ -256,6 +264,39 @@ export const BookFeed: Component<BookFeedProps> = (props) => {
     },
   });
 
+  // Dev-only canary: catches "feed has items but virtualizer renders zero rows"
+  // — the failure mode that hid the scrollEl rAF race for weeks. If items show
+  // up but the virtualizer's scroll rect is still 0×0 after two animation
+  // frames, something upstream broke the layout/measurement contract.
+  if (import.meta.env?.DEV) {
+    createEffect(() => {
+      const itemCount = items().length;
+      if (itemCount === 0) return;
+      let f1: number | undefined;
+      let f2: number | undefined;
+      f1 = requestAnimationFrame(() => {
+        f2 = requestAnimationFrame(() => {
+          const visible = virtualizer.getVirtualItems().length;
+          if (visible !== 0) return;
+          const sEl = props.scrollEl();
+          // eslint-disable-next-line no-console
+          console.warn(
+            '[BookFeed canary] items().length > 0 but getVirtualItems()===[] after 2 frames — virtualizer likely never measured its scroll element',
+            {
+              itemCount,
+              scrollEl: sEl ? { w: sEl.clientWidth, h: sEl.clientHeight } : null,
+              totalSize: virtualizer.getTotalSize(),
+            },
+          );
+        });
+      });
+      onCleanup(() => {
+        if (f1 !== undefined) cancelAnimationFrame(f1);
+        if (f2 !== undefined) cancelAnimationFrame(f2);
+      });
+    });
+  }
+
   // Reader metrics come from a DOM probe — a hidden block mounted inside the
   // article that renders one of each row type (Para, Break, Loading) using the
   // same classes as the real rows. We measure those clones, not the article
@@ -270,10 +311,17 @@ export const BookFeed: Component<BookFeedProps> = (props) => {
   // reader-width slider). Same probe is rebuilt each time — it's a few DOM
   // nodes and a layout flush; not on a hot path.
   const sampleMetrics = (article: HTMLElement): void => {
+    // Width must match the article's content box exactly so paragraph
+    // measurements wrap at the same width real rows will. We size the probe
+    // explicitly (rather than width:100%) because position:absolute makes
+    // % widths resolve against the nearest positioned ancestor — which is
+    // <main> (absolutely positioned), not <article>. That mismatch caused
+    // pretext to predict 1280px-wide single-line paragraphs while real rows
+    // wrap at ~1067px, yielding ~4× height underestimates.
+    const articleContentWidthPx = article.clientWidth;
     const probe = document.createElement('div');
     probe.setAttribute('aria-hidden', 'true');
-    probe.style.cssText =
-      'position:absolute;left:0;top:-99999px;width:100%;visibility:hidden;pointer-events:none;';
+    probe.style.cssText = `position:absolute;left:0;top:-99999px;width:${String(articleContentWidthPx)}px;visibility:hidden;pointer-events:none;`;
     const para = document.createElement('p');
     para.className =
       'm-0 -mx-1 rounded mb-[1em] px-1 font-[family-name:var(--reader-font-family,var(--font-serif))] text-[length:var(--reader-font-size,18px)] leading-[var(--reader-line-height,1.55)] [letter-spacing:var(--reader-letter-spacing,0)] text-fg';
@@ -351,6 +399,10 @@ export const BookFeed: Component<BookFeedProps> = (props) => {
   createEffect(() => {
     const el = articleEl();
     if (el === undefined) return;
+    // Track fontFamily so this effect re-runs when the user swaps fonts —
+    // pretext's predicted heights are keyed by the canvas font shorthand, so
+    // a stale sample after a font change paints rows that overlap.
+    props.fontFamily?.();
     // Wait for web fonts before first sample so canvas glyph metrics match
     // the rendered text. Subsequent samples (ResizeObserver) don't need the
     // wait — fonts have already loaded by then.
@@ -618,7 +670,8 @@ export const BookFeed: Component<BookFeedProps> = (props) => {
           >
             <For each={virtualizer.getVirtualItems()}>
               {(virtualRow) => {
-                const item = (): FeedItem | undefined => items()[virtualRow.index];
+                const item = (): FeedItem | undefined =>
+                  virtualRow ? items()[virtualRow.index] : undefined;
                 return (
                   <div
                     class="absolute top-0 left-0 w-full"
@@ -632,9 +685,17 @@ export const BookFeed: Component<BookFeedProps> = (props) => {
                       // node for a different virtualRow (same element, new logical
                       // row — the declarative bindings race against the next
                       // measure pass and can leave a stale-translate frame).
+                      //
+                      // Defensive: under store reconcile churn (window expand,
+                      // chapter swap), <For>'s iteratee can briefly hand us an
+                      // undefined virtualRow before the next pass replaces it.
+                      // Skip those frames — measureElement on a partial row would
+                      // just feed bad cache anyway.
+                      if (!virtualRow) return;
                       el.setAttribute('data-index', String(virtualRow.index));
                       el.style.transform = `translateY(${String(virtualRow.start)}px)`;
                       createEffect(() => {
+                        if (!virtualRow) return;
                         el.setAttribute('data-index', String(virtualRow.index));
                         el.style.transform = `translateY(${String(virtualRow.start)}px)`;
                       });
@@ -651,6 +712,7 @@ export const BookFeed: Component<BookFeedProps> = (props) => {
                             i.paragraph.para_id !== undefined &&
                             flashingParaId() === i.paragraph.para_id
                           }
+                          onScriptureClick={props.onScriptureClick}
                         />
                       )}
                     </Show>
@@ -665,7 +727,11 @@ export const BookFeed: Component<BookFeedProps> = (props) => {
   );
 };
 
-const FeedRow: Component<{ readonly item: FeedItem; readonly flashing: boolean }> = (props) => {
+const FeedRow: Component<{
+  readonly item: FeedItem;
+  readonly flashing: boolean;
+  readonly onScriptureClick?: (title: string) => void;
+}> = (props) => {
   if (props.item._tag === 'Break') {
     return (
       <div
@@ -692,6 +758,10 @@ const FeedRow: Component<{ readonly item: FeedItem; readonly flashing: boolean }
   }
   const paragraph = props.item.paragraph;
   const nodes = createMemo(() => paragraph.nodes);
+  const refcode = (): string | undefined => {
+    const r = paragraph.refcode_short;
+    return r === null || r === undefined || r === '' ? undefined : r;
+  };
   return (
     <p
       class="m-0 -mx-1 rounded mb-[1em] px-1 font-[family-name:var(--reader-font-family,var(--font-serif))] text-[length:var(--reader-font-size,18px)] leading-[var(--reader-line-height,1.55)] [letter-spacing:var(--reader-letter-spacing,0)] text-fg transition-[background] duration-[0.4s] ease-in-out data-[flash=true]:bg-accent-soft"
@@ -699,7 +769,22 @@ const FeedRow: Component<{ readonly item: FeedItem; readonly flashing: boolean }
       data-chapter-para-id={props.item.chapterParaId}
       data-flash={props.flashing ? 'true' : undefined}
     >
-      <ParagraphView nodes={nodes()} />
+      <ParagraphView
+        nodes={nodes()}
+        onLinkClick={(_dataLink, kind, title) => {
+          if (kind === 'scripture') props.onScriptureClick?.(title);
+        }}
+      />
+      <Show when={refcode()}>
+        {(r) => (
+          <span
+            class="ml-2 text-[0.78em] text-muted opacity-70 [font-variant-numeric:tabular-nums] select-none"
+            aria-label="paragraph reference"
+          >
+            {r()}
+          </span>
+        )}
+      </Show>
     </p>
   );
 };

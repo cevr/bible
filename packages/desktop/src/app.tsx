@@ -1,15 +1,20 @@
 import { Effect, Fiber, Option, Stream } from 'effect';
-import { type Component, createSignal, For, onCleanup, onMount, Show } from 'solid-js';
+import { type Component, createMemo, createSignal, For, onCleanup, onMount, Show } from 'solid-js';
+import { BibleDrawer } from './components/bible-drawer.js';
 import { FolderBrowser } from './components/folder-browser.js';
 import { ReaderPane } from './components/reader-pane.js';
 import { SearchPanel } from './components/search-panel.js';
 import { TocSidebar } from './components/toc-sidebar.js';
+import { createBibleDrawerState } from './services/bible-drawer-state.js';
 import { defaultEase, Motion, Presence, useDrag } from './motion/index.js';
 import { animateProperty } from './motion/internals/driver.js';
 import { runtime } from './runtime.js';
 import { LastPositionStorage } from './services/last-position-storage.js';
+import { openBookAtFirstChapter } from './services/open-book.js';
 import { Prefetcher } from './services/prefetcher.js';
 import {
+  BIBLE_DRAWER_WIDE_WIDTH_BOUNDS,
+  BIBLE_DRAWER_WIDTH_BOUNDS,
   type FontFamily,
   ReaderSettings,
   type ReaderFontScale,
@@ -86,6 +91,33 @@ export const App: Component = () => {
   const [uiScale, setUiScaleSig] = createSignal<UiScale>('md');
   const [settingsOpen, setSettingsOpen] = createSignal(false);
 
+  // Bible drawer — one instance for the whole app. Scripture refs anywhere
+  // in the reader open it via the onScriptureClick callback threaded into
+  // ReaderPane → BookFeed → ParagraphView.
+  //
+  // We wrap setStrongsEnabled so every toggle through the drawer UI fans out
+  // into ReaderSettings persistence too. The base state object stays pure
+  // (no I/O), which keeps it test-friendly.
+  const bibleDrawerBase = createBibleDrawerState();
+  const bibleDrawer = {
+    ...bibleDrawerBase,
+    setStrongsEnabled: (enabled: boolean) => {
+      bibleDrawerBase.setStrongsEnabled(enabled);
+      updateSettings(
+        Effect.gen(function* () {
+          const s = yield* ReaderSettings;
+          yield* s.setBibleDrawerStrongs(enabled);
+        }),
+      );
+    },
+  };
+  const [bibleDrawerWidth, setBibleDrawerWidthSig] = createSignal<number>(
+    BIBLE_DRAWER_WIDTH_BOUNDS.default,
+  );
+  const [bibleDrawerWideWidth, setBibleDrawerWideWidthSig] = createSignal<number>(
+    BIBLE_DRAWER_WIDE_WIDTH_BOUNDS.default,
+  );
+
   // Reader selection mirror — drives whether we render landing (FolderBrowser)
   // or the reader, and feeds props.selection into ReaderPane.
   const [selection, setSelection] = createSignal<Option.Option<ReaderSelection>>(Option.none());
@@ -109,6 +141,12 @@ export const App: Component = () => {
   // ReaderState.changes emit arriving. Lets the change-handler skip its
   // "clear restore on new chapter" branch for that one rehydration emit.
   let pendingRestoreEmit = false;
+
+  // False until LastPositionStorage.read resolves. Renderer is mounted, but
+  // selection() is still None — without this gate we'd flash the FolderBrowser
+  // landing canvas for a few hundred ms on every refresh while the IPC
+  // round-trip + openChapter pipeline catches up.
+  const [rehydrated, setRehydrated] = createSignal(false);
 
   // Drawer state. Only meaningful when a book is open.
   const [drawer, setDrawer] = createSignal<DrawerState>('closed');
@@ -143,6 +181,17 @@ export const App: Component = () => {
         setLetterSpacingSig(state.letterSpacing);
         setLineWidthSig(state.lineWidth);
         setUiScaleSig(state.uiScale ?? 'md');
+        if (state.bibleDrawerWidth !== undefined) {
+          setBibleDrawerWidthSig(state.bibleDrawerWidth);
+        }
+        if (state.bibleDrawerWideWidth !== undefined) {
+          setBibleDrawerWideWidthSig(state.bibleDrawerWideWidth);
+        }
+        if (state.bibleDrawerStrongs === true) {
+          // Seed via the base (non-persisting) setter — re-writing the same
+          // flag back to disk on every launch would be silly.
+          bibleDrawerBase.setStrongsEnabled(true);
+        }
       });
 
     // Rehydrate last position on mount, then mirror + persist every change.
@@ -158,7 +207,10 @@ export const App: Component = () => {
         }),
       )
       .then((restored) => {
-        if (Option.isNone(restored)) return;
+        if (Option.isNone(restored)) {
+          setRehydrated(true);
+          return;
+        }
         const pos = restored.value;
         // Seed the restore anchor BEFORE opening the chapter so BookFeed sees
         // it on first render and can scroll-to-restore without flicker.
@@ -167,16 +219,30 @@ export const App: Component = () => {
           latestAnchorParaId = pos.paragraphId.value;
           pendingRestoreEmit = true;
         }
-        void runtime.runPromise(
-          Effect.gen(function* () {
-            const state = yield* ReaderState;
-            if (Option.isSome(pos.paraId)) {
-              yield* state.openChapter(pos.bookId, pos.paraId.value);
-            } else {
-              yield* state.openBook(pos.bookId);
-            }
-          }),
-        );
+        void runtime
+          .runPromise(
+            Effect.gen(function* () {
+              if (Option.isSome(pos.paraId)) {
+                const state = yield* ReaderState;
+                yield* state.openChapter(pos.bookId, pos.paraId.value);
+              } else {
+                // Persisted bookId with no chapter (e.g. user closed before
+                // picking one) — auto-resolve to the first chapter rather
+                // than restoring into the "Pick a chapter" empty state.
+                yield* openBookAtFirstChapter(pos.bookId);
+              }
+            }),
+          )
+          .catch((err) => {
+            console.error('[rehydrate] openChapter failed', err);
+          })
+          .finally(() => {
+            setRehydrated(true);
+          });
+      })
+      .catch((err) => {
+        console.error('[rehydrate] storage.read failed', err);
+        setRehydrated(true);
       });
 
     const fiber = runtime.runFork(
@@ -305,6 +371,27 @@ export const App: Component = () => {
       Effect.gen(function* () {
         const s = yield* ReaderSettings;
         yield* s.setLineWidth(n);
+      }),
+    );
+  };
+
+  // Bible drawer width — UI moves synchronously, persist is debounced by the
+  // settings layer so dragging the handle doesn't thrash disk.
+  const setBibleDrawerWidth = (px: number) => {
+    setBibleDrawerWidthSig(px);
+    updateSettings(
+      Effect.gen(function* () {
+        const s = yield* ReaderSettings;
+        yield* s.setBibleDrawerWidth(px);
+      }),
+    );
+  };
+  const setBibleDrawerWideWidth = (px: number) => {
+    setBibleDrawerWideWidthSig(px);
+    updateSettings(
+      Effect.gen(function* () {
+        const s = yield* ReaderSettings;
+        yield* s.setBibleDrawerWideWidth(px);
       }),
     );
   };
@@ -471,8 +558,13 @@ export const App: Component = () => {
   // from. `--reader-*` names are consumed via arbitrary Tailwind value escapes
   // in BookFeed (`text-[length:var(--reader-font-size,18px)]` etc.) so the
   // chapter typography stays driven by these inline custom properties.
+  // Resolved font-family token (after FONT_FAMILY_VAR mapping). Threaded
+  // into ReaderPane so BookFeed's metrics probe re-samples on font change —
+  // pretext's height cache is keyed by font, and stale predictions overlap rows.
+  const readerFontFamily = createMemo(() => FONT_FAMILY_VAR[fontFamily()]);
+
   const readerStyle = () => ({
-    '--reader-font-family': FONT_FAMILY_VAR[fontFamily()],
+    '--reader-font-family': readerFontFamily(),
     '--reader-font-size': `${String(READER_FONT_PX[fontSize()])}px`,
     '--reader-line-height': lineHeightCss(lineHeight()),
     '--reader-letter-spacing': `${String(letterSpacing())}em`,
@@ -569,9 +661,11 @@ export const App: Component = () => {
         <Show
           when={hasBook()}
           fallback={
-            <div class="absolute inset-0 overflow-auto">
-              <FolderBrowser onPickBook={onPickBookFromLanding} />
-            </div>
+            <Show when={rehydrated()}>
+              <div class="absolute inset-0 overflow-auto">
+                <FolderBrowser onPickBook={onPickBookFromLanding} />
+              </div>
+            </Show>
           }
         >
           <ReaderPane
@@ -579,6 +673,10 @@ export const App: Component = () => {
             onHighlightApplied={onHighlightApplied}
             restoreParagraphId={restoreParagraphId}
             onPositionChange={onPositionChange}
+            fontFamily={readerFontFamily}
+            onScriptureClick={(title) => {
+              bibleDrawer.open(title);
+            }}
           />
         </Show>
       </div>
@@ -827,6 +925,22 @@ export const App: Component = () => {
           </Motion.div>
         </Show>
       </Presence>
+
+      <BibleDrawer
+        state={bibleDrawer}
+        widthPx={bibleDrawerWidth}
+        onWidthChange={setBibleDrawerWidth}
+        widthBounds={{
+          min: BIBLE_DRAWER_WIDTH_BOUNDS.min,
+          max: BIBLE_DRAWER_WIDTH_BOUNDS.max,
+        }}
+        wideWidthPx={bibleDrawerWideWidth}
+        onWideWidthChange={setBibleDrawerWideWidth}
+        wideWidthBounds={{
+          min: BIBLE_DRAWER_WIDE_WIDTH_BOUNDS.min,
+          max: BIBLE_DRAWER_WIDE_WIDTH_BOUNDS.max,
+        }}
+      />
     </div>
   );
 };

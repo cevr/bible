@@ -13,8 +13,8 @@ import {
 } from 'solid-js';
 import { runtime } from '../runtime.js';
 import { EGWData } from '../services/egw-data.js';
+import { openBookAtFirstChapter } from '../services/open-book.js';
 import { Prefetcher, type PrefetchStatus } from '../services/prefetcher.js';
-import { ReaderState } from '../services/reader-state.js';
 
 // Folder browser — used as the no-book landing canvas AND as the Library
 // drawer body when a book is open. Renders a breadcrumb plus the current
@@ -124,12 +124,22 @@ export const FolderBrowser: Component<FolderBrowserProps> = (props) => {
   const [books] = createResource(
     () => currentLevel().currentFolderId,
     (folderId) =>
-      runtime.runPromise(
-        Effect.gen(function* () {
-          const data = yield* EGWData;
-          return yield* data.listBooksByFolder(folderId, DEFAULT_LANG);
-        }).pipe(Effect.result),
-      ),
+      runtime
+        .runPromise(
+          Effect.gen(function* () {
+            const data = yield* EGWData;
+            return yield* data.listBooksByFolder(folderId, DEFAULT_LANG);
+          }).pipe(Effect.result),
+        )
+        .then((res) => {
+          if (Result.isFailure(res)) {
+            console.error(
+              `[FolderBrowser] listBooksByFolder failed for folder=${String(folderId)}:`,
+              res.failure,
+            );
+          }
+          return res;
+        }),
   );
 
   // --- Download badges (mirrors LibraryRail) ------------------------------
@@ -221,13 +231,9 @@ export const FolderBrowser: Component<FolderBrowserProps> = (props) => {
   const goUp = () => setPath((p) => p.slice(0, -1));
 
   const openBook = (bookId: number) => {
-    // Hand off to ReaderState first, then notify parent (drawer close etc).
-    void runtime.runPromise(
-      Effect.gen(function* () {
-        const state = yield* ReaderState;
-        yield* state.openBook(bookId);
-      }),
-    );
+    // Hand off to ReaderState first (auto-resolves to first chapter via
+    // openBookAtFirstChapter), then notify parent (drawer close etc).
+    void runtime.runPromise(openBookAtFirstChapter(bookId));
     props.onPickBook(bookId);
   };
 

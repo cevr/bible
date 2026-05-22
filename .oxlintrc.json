@@ -96,7 +96,8 @@
         "**/packages/cli/src/data/**",
         "**/packages/cli/src/services/**",
         "**/packages/cli/src/commands/**",
-        "**/packages/cli/src/tui/**"
+        "**/packages/cli/src/tui/**",
+        "**/packages/desktop/electron/**"
       ],
       "rules": {
         "typescript/no-unsafe-type-assertion": "off"

@@ -1,0 +1,767 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`segmentVerseText: KJV Matthew 5 snapshot > matches the snapshot for a representative chapter 1`] = `
+[
+  {
+    "segments": [
+      {
+        "text": "And seeing the multitudes, he went up into a mountain: and when he was set, his disciples came unto him:",
+        "type": "text",
+      },
+    ],
+    "verse": 1,
+  },
+  {
+    "segments": [
+      {
+        "text": "And he opened his mouth, and taught them, saying,",
+        "type": "text",
+      },
+    ],
+    "verse": 2,
+  },
+  {
+    "segments": [
+      {
+        "text": "“",
+        "type": "redLetterQuote",
+      },
+      {
+        "text": "Blessed ",
+        "type": "redLetter",
+      },
+      {
+        "text": "are",
+        "type": "redLetterItalic",
+      },
+      {
+        "text": " the poor in spirit: for theirs is the kingdom of heaven.",
+        "type": "redLetter",
+      },
+      {
+        "text": "”",
+        "type": "redLetterQuote",
+      },
+    ],
+    "verse": 3,
+  },
+  {
+    "segments": [
+      {
+        "text": "“",
+        "type": "redLetterQuote",
+      },
+      {
+        "text": "Blessed ",
+        "type": "redLetter",
+      },
+      {
+        "text": "are",
+        "type": "redLetterItalic",
+      },
+      {
+        "text": " they that mourn: for they shall be comforted.",
+        "type": "redLetter",
+      },
+      {
+        "text": "”",
+        "type": "redLetterQuote",
+      },
+    ],
+    "verse": 4,
+  },
+  {
+    "segments": [
+      {
+        "text": "“",
+        "type": "redLetterQuote",
+      },
+      {
+        "text": "Blessed ",
+        "type": "redLetter",
+      },
+      {
+        "text": "are",
+        "type": "redLetterItalic",
+      },
+      {
+        "text": " the meek: for they shall inherit the earth.",
+        "type": "redLetter",
+      },
+      {
+        "text": "”",
+        "type": "redLetterQuote",
+      },
+    ],
+    "verse": 5,
+  },
+  {
+    "segments": [
+      {
+        "text": "“",
+        "type": "redLetterQuote",
+      },
+      {
+        "text": "Blessed ",
+        "type": "redLetter",
+      },
+      {
+        "text": "are",
+        "type": "redLetterItalic",
+      },
+      {
+        "text": " they which do hunger and thirst after righteousness: for they shall be filled.",
+        "type": "redLetter",
+      },
+      {
+        "text": "”",
+        "type": "redLetterQuote",
+      },
+    ],
+    "verse": 6,
+  },
+  {
+    "segments": [
+      {
+        "text": "“",
+        "type": "redLetterQuote",
+      },
+      {
+        "text": "Blessed ",
+        "type": "redLetter",
+      },
+      {
+        "text": "are",
+        "type": "redLetterItalic",
+      },
+      {
+        "text": " the merciful: for they shall obtain mercy.",
+        "type": "redLetter",
+      },
+      {
+        "text": "”",
+        "type": "redLetterQuote",
+      },
+    ],
+    "verse": 7,
+  },
+  {
+    "segments": [
+      {
+        "text": "“",
+        "type": "redLetterQuote",
+      },
+      {
+        "text": "Blessed ",
+        "type": "redLetter",
+      },
+      {
+        "text": "are",
+        "type": "redLetterItalic",
+      },
+      {
+        "text": " the pure in heart: for they shall see God.",
+        "type": "redLetter",
+      },
+      {
+        "text": "”",
+        "type": "redLetterQuote",
+      },
+    ],
+    "verse": 8,
+  },
+  {
+    "segments": [
+      {
+        "text": "“",
+        "type": "redLetterQuote",
+      },
+      {
+        "text": "Blessed ",
+        "type": "redLetter",
+      },
+      {
+        "text": "are",
+        "type": "redLetterItalic",
+      },
+      {
+        "text": " the peacemakers: for they shall be called the children of God.",
+        "type": "redLetter",
+      },
+      {
+        "text": "”",
+        "type": "redLetterQuote",
+      },
+    ],
+    "verse": 9,
+  },
+  {
+    "segments": [
+      {
+        "text": "“",
+        "type": "redLetterQuote",
+      },
+      {
+        "text": "Blessed ",
+        "type": "redLetter",
+      },
+      {
+        "text": "are",
+        "type": "redLetterItalic",
+      },
+      {
+        "text": " they which are persecuted for righteousness' sake: for theirs is the kingdom of heaven.",
+        "type": "redLetter",
+      },
+      {
+        "text": "”",
+        "type": "redLetterQuote",
+      },
+    ],
+    "verse": 10,
+  },
+  {
+    "segments": [
+      {
+        "text": "“",
+        "type": "redLetterQuote",
+      },
+      {
+        "text": "Blessed are ye, when ",
+        "type": "redLetter",
+      },
+      {
+        "text": "men",
+        "type": "redLetterItalic",
+      },
+      {
+        "text": " shall revile you, and persecute ",
+        "type": "redLetter",
+      },
+      {
+        "text": "you",
+        "type": "redLetterItalic",
+      },
+      {
+        "text": ", and shall say all manner of evil against you falsely, for my sake.",
+        "type": "redLetter",
+      },
+      {
+        "text": "”",
+        "type": "redLetterQuote",
+      },
+    ],
+    "verse": 11,
+  },
+  {
+    "segments": [
+      {
+        "text": "“",
+        "type": "redLetterQuote",
+      },
+      {
+        "text": "Rejoice, and be exceeding glad: for great ",
+        "type": "redLetter",
+      },
+      {
+        "text": "is",
+        "type": "redLetterItalic",
+      },
+      {
+        "text": " your reward in heaven: for so persecuted they the prophets which were before you.",
+        "type": "redLetter",
+      },
+      {
+        "text": "”",
+        "type": "redLetterQuote",
+      },
+    ],
+    "verse": 12,
+  },
+  {
+    "segments": [
+      {
+        "text": "“",
+        "type": "redLetterQuote",
+      },
+      {
+        "text": "Ye are the salt of the earth: but if the salt have lost his savour, wherewith shall it be salted? it is thenceforth good for nothing, but to be cast out, and to be trodden under foot of men.",
+        "type": "redLetter",
+      },
+      {
+        "text": "”",
+        "type": "redLetterQuote",
+      },
+    ],
+    "verse": 13,
+  },
+  {
+    "segments": [
+      {
+        "text": "“",
+        "type": "redLetterQuote",
+      },
+      {
+        "text": "Ye are the light of the world. A city that is set on an hill cannot be hid.",
+        "type": "redLetter",
+      },
+      {
+        "text": "”",
+        "type": "redLetterQuote",
+      },
+    ],
+    "verse": 14,
+  },
+  {
+    "segments": [
+      {
+        "text": "“",
+        "type": "redLetterQuote",
+      },
+      {
+        "text": "Neither do men light a candle, and put it under a bushel, but on a candlestick; and it giveth light unto all that are in the house.",
+        "type": "redLetter",
+      },
+      {
+        "text": "”",
+        "type": "redLetterQuote",
+      },
+    ],
+    "verse": 15,
+  },
+  {
+    "segments": [
+      {
+        "text": "“",
+        "type": "redLetterQuote",
+      },
+      {
+        "text": "Let your light so shine before men, that they may see your good works, and glorify your Father which is in heaven.",
+        "type": "redLetter",
+      },
+      {
+        "text": "”",
+        "type": "redLetterQuote",
+      },
+    ],
+    "verse": 16,
+  },
+  {
+    "segments": [
+      {
+        "text": "“",
+        "type": "redLetterQuote",
+      },
+      {
+        "text": "Think not that I am come to destroy the law, or the prophets: I am not come to destroy, but to fulfil.",
+        "type": "redLetter",
+      },
+      {
+        "text": "”",
+        "type": "redLetterQuote",
+      },
+    ],
+    "verse": 17,
+  },
+  {
+    "segments": [
+      {
+        "text": "“",
+        "type": "redLetterQuote",
+      },
+      {
+        "text": "For verily I say unto you, Till heaven and earth pass, one jot or one tittle shall in no wise pass from the law, till all be fulfilled.",
+        "type": "redLetter",
+      },
+      {
+        "text": "”",
+        "type": "redLetterQuote",
+      },
+    ],
+    "verse": 18,
+  },
+]
+`;
+
+exports[`segmentVerseText: KJV Matthew 5 snapshot matches the snapshot for a representative chapter 1`] = `
+[
+  {
+    "segments": [
+      {
+        "text": "And seeing the multitudes, he went up into a mountain: and when he was set, his disciples came unto him:",
+        "type": "text",
+      },
+    ],
+    "verse": 1,
+  },
+  {
+    "segments": [
+      {
+        "text": "And he opened his mouth, and taught them, saying,",
+        "type": "text",
+      },
+    ],
+    "verse": 2,
+  },
+  {
+    "segments": [
+      {
+        "text": "“",
+        "type": "redLetterQuote",
+      },
+      {
+        "text": "Blessed ",
+        "type": "redLetter",
+      },
+      {
+        "text": "are",
+        "type": "redLetterItalic",
+      },
+      {
+        "text": " the poor in spirit: for theirs is the kingdom of heaven.",
+        "type": "redLetter",
+      },
+      {
+        "text": "”",
+        "type": "redLetterQuote",
+      },
+    ],
+    "verse": 3,
+  },
+  {
+    "segments": [
+      {
+        "text": "“",
+        "type": "redLetterQuote",
+      },
+      {
+        "text": "Blessed ",
+        "type": "redLetter",
+      },
+      {
+        "text": "are",
+        "type": "redLetterItalic",
+      },
+      {
+        "text": " they that mourn: for they shall be comforted.",
+        "type": "redLetter",
+      },
+      {
+        "text": "”",
+        "type": "redLetterQuote",
+      },
+    ],
+    "verse": 4,
+  },
+  {
+    "segments": [
+      {
+        "text": "“",
+        "type": "redLetterQuote",
+      },
+      {
+        "text": "Blessed ",
+        "type": "redLetter",
+      },
+      {
+        "text": "are",
+        "type": "redLetterItalic",
+      },
+      {
+        "text": " the meek: for they shall inherit the earth.",
+        "type": "redLetter",
+      },
+      {
+        "text": "”",
+        "type": "redLetterQuote",
+      },
+    ],
+    "verse": 5,
+  },
+  {
+    "segments": [
+      {
+        "text": "“",
+        "type": "redLetterQuote",
+      },
+      {
+        "text": "Blessed ",
+        "type": "redLetter",
+      },
+      {
+        "text": "are",
+        "type": "redLetterItalic",
+      },
+      {
+        "text": " they which do hunger and thirst after righteousness: for they shall be filled.",
+        "type": "redLetter",
+      },
+      {
+        "text": "”",
+        "type": "redLetterQuote",
+      },
+    ],
+    "verse": 6,
+  },
+  {
+    "segments": [
+      {
+        "text": "“",
+        "type": "redLetterQuote",
+      },
+      {
+        "text": "Blessed ",
+        "type": "redLetter",
+      },
+      {
+        "text": "are",
+        "type": "redLetterItalic",
+      },
+      {
+        "text": " the merciful: for they shall obtain mercy.",
+        "type": "redLetter",
+      },
+      {
+        "text": "”",
+        "type": "redLetterQuote",
+      },
+    ],
+    "verse": 7,
+  },
+  {
+    "segments": [
+      {
+        "text": "“",
+        "type": "redLetterQuote",
+      },
+      {
+        "text": "Blessed ",
+        "type": "redLetter",
+      },
+      {
+        "text": "are",
+        "type": "redLetterItalic",
+      },
+      {
+        "text": " the pure in heart: for they shall see God.",
+        "type": "redLetter",
+      },
+      {
+        "text": "”",
+        "type": "redLetterQuote",
+      },
+    ],
+    "verse": 8,
+  },
+  {
+    "segments": [
+      {
+        "text": "“",
+        "type": "redLetterQuote",
+      },
+      {
+        "text": "Blessed ",
+        "type": "redLetter",
+      },
+      {
+        "text": "are",
+        "type": "redLetterItalic",
+      },
+      {
+        "text": " the peacemakers: for they shall be called the children of God.",
+        "type": "redLetter",
+      },
+      {
+        "text": "”",
+        "type": "redLetterQuote",
+      },
+    ],
+    "verse": 9,
+  },
+  {
+    "segments": [
+      {
+        "text": "“",
+        "type": "redLetterQuote",
+      },
+      {
+        "text": "Blessed ",
+        "type": "redLetter",
+      },
+      {
+        "text": "are",
+        "type": "redLetterItalic",
+      },
+      {
+        "text": " they which are persecuted for righteousness' sake: for theirs is the kingdom of heaven.",
+        "type": "redLetter",
+      },
+      {
+        "text": "”",
+        "type": "redLetterQuote",
+      },
+    ],
+    "verse": 10,
+  },
+  {
+    "segments": [
+      {
+        "text": "“",
+        "type": "redLetterQuote",
+      },
+      {
+        "text": "Blessed are ye, when ",
+        "type": "redLetter",
+      },
+      {
+        "text": "men",
+        "type": "redLetterItalic",
+      },
+      {
+        "text": " shall revile you, and persecute ",
+        "type": "redLetter",
+      },
+      {
+        "text": "you",
+        "type": "redLetterItalic",
+      },
+      {
+        "text": ", and shall say all manner of evil against you falsely, for my sake.",
+        "type": "redLetter",
+      },
+      {
+        "text": "”",
+        "type": "redLetterQuote",
+      },
+    ],
+    "verse": 11,
+  },
+  {
+    "segments": [
+      {
+        "text": "“",
+        "type": "redLetterQuote",
+      },
+      {
+        "text": "Rejoice, and be exceeding glad: for great ",
+        "type": "redLetter",
+      },
+      {
+        "text": "is",
+        "type": "redLetterItalic",
+      },
+      {
+        "text": " your reward in heaven: for so persecuted they the prophets which were before you.",
+        "type": "redLetter",
+      },
+      {
+        "text": "”",
+        "type": "redLetterQuote",
+      },
+    ],
+    "verse": 12,
+  },
+  {
+    "segments": [
+      {
+        "text": "“",
+        "type": "redLetterQuote",
+      },
+      {
+        "text": "Ye are the salt of the earth: but if the salt have lost his savour, wherewith shall it be salted? it is thenceforth good for nothing, but to be cast out, and to be trodden under foot of men.",
+        "type": "redLetter",
+      },
+      {
+        "text": "”",
+        "type": "redLetterQuote",
+      },
+    ],
+    "verse": 13,
+  },
+  {
+    "segments": [
+      {
+        "text": "“",
+        "type": "redLetterQuote",
+      },
+      {
+        "text": "Ye are the light of the world. A city that is set on an hill cannot be hid.",
+        "type": "redLetter",
+      },
+      {
+        "text": "”",
+        "type": "redLetterQuote",
+      },
+    ],
+    "verse": 14,
+  },
+  {
+    "segments": [
+      {
+        "text": "“",
+        "type": "redLetterQuote",
+      },
+      {
+        "text": "Neither do men light a candle, and put it under a bushel, but on a candlestick; and it giveth light unto all that are in the house.",
+        "type": "redLetter",
+      },
+      {
+        "text": "”",
+        "type": "redLetterQuote",
+      },
+    ],
+    "verse": 15,
+  },
+  {
+    "segments": [
+      {
+        "text": "“",
+        "type": "redLetterQuote",
+      },
+      {
+        "text": "Let your light so shine before men, that they may see your good works, and glorify your Father which is in heaven.",
+        "type": "redLetter",
+      },
+      {
+        "text": "”",
+        "type": "redLetterQuote",
+      },
+    ],
+    "verse": 16,
+  },
+  {
+    "segments": [
+      {
+        "text": "“",
+        "type": "redLetterQuote",
+      },
+      {
+        "text": "Think not that I am come to destroy the law, or the prophets: I am not come to destroy, but to fulfil.",
+        "type": "redLetter",
+      },
+      {
+        "text": "”",
+        "type": "redLetterQuote",
+      },
+    ],
+    "verse": 17,
+  },
+  {
+    "segments": [
+      {
+        "text": "“",
+        "type": "redLetterQuote",
+      },
+      {
+        "text": "For verily I say unto you, Till heaven and earth pass, one jot or one tittle shall in no wise pass from the law, till all be fulfilled.",
+        "type": "redLetter",
+      },
+      {
+        "text": "”",
+        "type": "redLetterQuote",
+      },
+    ],
+    "verse": 18,
+  },
+]
+`;

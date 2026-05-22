@@ -4,43 +4,26 @@
  * Domain types for cross-references, Strong's concordance, margin notes,
  * verse words, markers, notes, collections, and EGW commentary.
  *
+ * Cross-reference classification types (CROSS_REF_TYPES, CrossRefType,
+ * ClassifiedCrossReference, etc.) are re-exported from @bible/core so that
+ * the desktop drawer and any future client share the same taxonomy.
+ *
  * Implementation lives in effect-service.ts (WebStudyDataService).
  */
 
-export const CROSS_REF_TYPES = [
-  'quotation',
-  'allusion',
-  'parallel',
-  'typological',
-  'prophecy',
-  'sanctuary',
-  'recapitulation',
-  'thematic',
-] as const;
+import type { CrossRefType } from '@bible/core/bible-cross-refs';
 
-export type CrossRefType = (typeof CROSS_REF_TYPES)[number];
-
-interface CrossRefBase {
-  book: number;
-  chapter: number;
-  verse: number | null;
-  verseEnd: number | null;
-  previewText: string | null;
-  classification: CrossRefType | null;
-  confidence: number | null;
-}
-
-export interface CatalogCrossReference extends CrossRefBase {
-  source: 'openbible' | 'tske';
-}
-
-export interface UserCrossReference extends CrossRefBase {
-  source: 'user';
-  userRefId: string;
-  userNote: string | null;
-}
-
-export type ClassifiedCrossReference = CatalogCrossReference | UserCrossReference;
+export {
+  CROSS_REF_TYPES,
+  CROSS_REF_ABBREVIATIONS,
+  CROSS_REF_LABELS,
+} from '@bible/core/bible-cross-refs';
+export type {
+  CrossRefType,
+  CatalogCrossReference,
+  UserCrossReference,
+  ClassifiedCrossReference,
+} from '@bible/core/bible-cross-refs';
 
 export interface StrongsEntry {
   number: string;

@@ -13,7 +13,9 @@
     "./egw-db/bun": "./src/egw-db/book-database-bun.ts",
     "./egw-reader": "./src/egw-reader/index.ts",
     "./egw-commentary": "./src/egw-commentary/index.ts",
+    "./bible-cross-refs": "./src/bible-cross-refs/index.ts",
     "./bible-reader": "./src/bible-reader/index.ts",
+    "./bible-rendering": "./src/bible-rendering/index.ts",
     "./gemini": "./src/gemini/index.ts",
     "./sabbath-school": "./src/sabbath-school/index.ts",
     "./sync": "./src/sync/index.ts",
@@ -24,7 +26,10 @@
     "./bible-service": "./src/bible-service/index.ts",
     "./egw-service": "./src/egw-service/index.ts",
     "./hymnal": "./src/hymnal/index.ts",
-    "./structural-analysis": "./src/structural-analysis/index.ts"
+    "./structural-analysis": "./src/structural-analysis/index.ts",
+    "./assets/kjv.json": "./assets/kjv.json",
+    "./assets/kjv-strongs.json": "./assets/kjv-strongs.json",
+    "./package.json": "./package.json"
   },
   "scripts": {
     "typecheck": "tsgo --noEmit",

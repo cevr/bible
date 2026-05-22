@@ -1,0 +1,15 @@
+# Bundled bible/study assets — large fixed-format JSONs shipped with the
+# build. Several are 20+ MB and have caused oxfmt worker OOMs at commit time.
+# These files are produced by upstream tooling, not hand-edited.
+packages/core/assets/
+
+# Auto-generated vitest snapshots — keep raw to match the live serializer.
+**/__snapshots__/
+
+# Build outputs
+**/dist/
+**/.turbo/
+
+# Lockfiles
+bun.lock
+**/bun.lock

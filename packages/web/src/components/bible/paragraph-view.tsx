@@ -4,9 +4,9 @@
  * Renders all verses as continuous text with inline verse numbers,
  * like a printed Bible page. Selected verse gets a subtle highlight.
  */
+import { segmentVerseText } from '@bible/core/bible-rendering';
 import type { Verse } from '@/data/bible';
 import type { MarginNote } from '@/data/study/service';
-import { cleanVerseText, segmentVerseText } from './verse-text';
 import { renderSegment } from './verse-renderer';
 
 export interface ParagraphViewProps {
@@ -28,7 +28,7 @@ export function ParagraphView({
     <div className="reading-text leading-[1.9]">
       {verses.map((verse, index) => {
         const notes = marginNotesByVerse?.get(verse.verse) ?? [];
-        const segments = segmentVerseText(cleanVerseText(verse.text), notes, searchQuery);
+        const segments = segmentVerseText(verse.text, notes, searchQuery);
         const isSelected = selectedVerse === verse.verse;
 
         return (

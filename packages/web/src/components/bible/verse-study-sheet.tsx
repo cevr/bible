@@ -26,14 +26,16 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { VerseRenderer } from '@/components/bible/verse-renderer';
 import { WordModeView } from '@/components/bible/word-mode-view';
-import type {
-  ClassifiedCrossReference,
-  CrossRefType,
-  EGWCommentaryEntry,
-  EGWContextParagraph,
-  MarginNote,
-  MarkerColor,
-  VerseMarker,
+import {
+  CROSS_REF_ABBREVIATIONS,
+  CROSS_REF_TYPES,
+  type ClassifiedCrossReference,
+  type CrossRefType,
+  type EGWCommentaryEntry,
+  type EGWContextParagraph,
+  type MarginNote,
+  type MarkerColor,
+  type VerseMarker,
 } from '@/data/study/service';
 import { toBookSlug } from '@/data/bible';
 import { EGW_CATEGORIES } from '@/components/shared/egw-categories';
@@ -53,28 +55,39 @@ export interface VerseStudyPanelProps {
 }
 
 // --- Cross-ref type badges ---
+// Abbreviations come from @bible/core/bible-cross-refs so the desktop drawer
+// renders the same shorthand. Tailwind color classes stay here — they belong
+// to web's design system, not the shared taxonomy.
 
-const TYPE_BADGES: Record<CrossRefType, { abbr: string; color: string }> = {
-  quotation: { abbr: 'QUO', color: 'bg-blue-500/20 text-blue-700 dark:text-blue-300' },
-  allusion: { abbr: 'ALL', color: 'bg-cyan-500/20 text-cyan-700 dark:text-cyan-300' },
-  parallel: { abbr: 'PAR', color: 'bg-green-500/20 text-green-700 dark:text-green-300' },
-  typological: { abbr: 'TYP', color: 'bg-amber-500/20 text-amber-700 dark:text-amber-300' },
-  prophecy: { abbr: 'PRO', color: 'bg-purple-500/20 text-purple-700 dark:text-purple-300' },
-  sanctuary: { abbr: 'SAN', color: 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-300' },
-  recapitulation: { abbr: 'REC', color: 'bg-pink-500/20 text-pink-700 dark:text-pink-300' },
-  thematic: { abbr: 'THM', color: 'bg-gray-500/20 text-gray-700 dark:text-gray-300' },
+const TYPE_BADGE_COLORS: Record<CrossRefType, string> = {
+  quotation: 'bg-blue-500/20 text-blue-700 dark:text-blue-300',
+  allusion: 'bg-cyan-500/20 text-cyan-700 dark:text-cyan-300',
+  parallel: 'bg-green-500/20 text-green-700 dark:text-green-300',
+  typological: 'bg-amber-500/20 text-amber-700 dark:text-amber-300',
+  prophecy: 'bg-purple-500/20 text-purple-700 dark:text-purple-300',
+  sanctuary: 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-300',
+  recapitulation: 'bg-pink-500/20 text-pink-700 dark:text-pink-300',
+  thematic: 'bg-gray-500/20 text-gray-700 dark:text-gray-300',
 };
 
-const ALL_TYPES: CrossRefType[] = [
-  'quotation',
-  'allusion',
-  'parallel',
-  'typological',
-  'prophecy',
-  'sanctuary',
-  'recapitulation',
-  'thematic',
-];
+const TYPE_BADGES: Record<CrossRefType, { abbr: string; color: string }> = {
+  quotation: { abbr: CROSS_REF_ABBREVIATIONS.quotation, color: TYPE_BADGE_COLORS.quotation },
+  allusion: { abbr: CROSS_REF_ABBREVIATIONS.allusion, color: TYPE_BADGE_COLORS.allusion },
+  parallel: { abbr: CROSS_REF_ABBREVIATIONS.parallel, color: TYPE_BADGE_COLORS.parallel },
+  typological: {
+    abbr: CROSS_REF_ABBREVIATIONS.typological,
+    color: TYPE_BADGE_COLORS.typological,
+  },
+  prophecy: { abbr: CROSS_REF_ABBREVIATIONS.prophecy, color: TYPE_BADGE_COLORS.prophecy },
+  sanctuary: { abbr: CROSS_REF_ABBREVIATIONS.sanctuary, color: TYPE_BADGE_COLORS.sanctuary },
+  recapitulation: {
+    abbr: CROSS_REF_ABBREVIATIONS.recapitulation,
+    color: TYPE_BADGE_COLORS.recapitulation,
+  },
+  thematic: { abbr: CROSS_REF_ABBREVIATIONS.thematic, color: TYPE_BADGE_COLORS.thematic },
+};
+
+const ALL_TYPES: readonly CrossRefType[] = CROSS_REF_TYPES;
 
 type GroupedRefs = {
   type: CrossRefType | null;

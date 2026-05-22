@@ -9,21 +9,14 @@
  * - Search term highlighting
  */
 import { type ReactNode } from 'react';
+import {
+  type TextSegment,
+  formatNoteType,
+  noteLabel,
+  segmentVerseText,
+} from '@bible/core/bible-rendering';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import type { MarginNote } from '@/data/study/service';
-import { type TextSegment, segmentVerseText, cleanVerseText } from '@/components/bible/verse-text';
-
-/** Convert 0-based note index to lowercase letter (0→a, 1→b, …, 26→aa). */
-function noteLabel(index: number): string {
-  let s = '';
-  let n = index + 1;
-  while (n > 0) {
-    n--;
-    s = String.fromCharCode(97 + (n % 26)) + s;
-    n = Math.floor(n / 26);
-  }
-  return s;
-}
 
 // --- Components ---
 
@@ -31,20 +24,6 @@ export interface VerseRendererProps {
   text: string;
   marginNotes?: MarginNote[];
   searchQuery?: string;
-}
-
-/** Format margin note type as a prefix. */
-function formatNoteType(noteType: string): string {
-  switch (noteType) {
-    case 'hebrew':
-      return 'Heb. ';
-    case 'greek':
-      return 'Gr. ';
-    case 'alternate':
-      return 'Or, ';
-    default:
-      return '';
-  }
 }
 
 /** Render a single text segment to JSX. */
@@ -129,7 +108,7 @@ function MarginNoteSup({ note }: { note: MarginNote }) {
 }
 
 export function VerseRenderer({ text, marginNotes = [], searchQuery }: VerseRendererProps) {
-  const segments = segmentVerseText(cleanVerseText(text), marginNotes, searchQuery);
+  const segments = segmentVerseText(text, marginNotes, searchQuery);
 
   return <>{segments.map((segment, i) => renderSegment(segment, marginNotes, i))}</>;
 }

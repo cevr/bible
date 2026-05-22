@@ -16,6 +16,15 @@ export type ReaderFontScale = typeof ReaderFontScale.Type;
 
 const WIDTH_MIN = 40;
 const WIDTH_MAX = 120;
+const BIBLE_DRAWER_WIDTH_MIN = 320;
+const BIBLE_DRAWER_WIDTH_MAX = 720;
+const BIBLE_DRAWER_WIDTH_DEFAULT = 420;
+// Expanded (study-pane visible) width. Wider band so the chapter + tabbed
+// study pane both have breathing room; bounded above so the drawer never
+// eats the whole window on a small display.
+const BIBLE_DRAWER_WIDE_WIDTH_MIN = 600;
+const BIBLE_DRAWER_WIDE_WIDTH_MAX = 1400;
+const BIBLE_DRAWER_WIDE_WIDTH_DEFAULT = 960;
 // Line-height interpretation switches on magnitude (CSS convention):
 //   [0, 2]  → unitless multiplier (relative to font-size)
 //   (2, _]  → px value (absolute)
@@ -50,6 +59,26 @@ export const ReaderSettingsState = Schema.Struct({
    *  different paragraph after re-flowing. */
   progressByPath: Schema.Record(Schema.String, Schema.Number),
   debugDumpSegments: Schema.Boolean,
+  /** Width of the right-side Bible drawer in px. User-resizable via the drag
+   *  handle on the drawer's left edge. */
+  bibleDrawerWidth: Schema.optional(
+    Schema.Number.check(
+      Schema.isBetween({ minimum: BIBLE_DRAWER_WIDTH_MIN, maximum: BIBLE_DRAWER_WIDTH_MAX }),
+    ),
+  ),
+  /** Width of the Bible drawer in expanded (study-pane visible) mode. Tracked
+   *  separately from `bibleDrawerWidth` so toggling expand/collapse restores
+   *  the user's last preferred width for each mode. */
+  bibleDrawerWideWidth: Schema.optional(
+    Schema.Number.check(
+      Schema.isBetween({
+        minimum: BIBLE_DRAWER_WIDE_WIDTH_MIN,
+        maximum: BIBLE_DRAWER_WIDE_WIDTH_MAX,
+      }),
+    ),
+  ),
+  /** Show Strong's numbers in the Bible drawer when reading the KJV. */
+  bibleDrawerStrongs: Schema.optional(Schema.Boolean),
 });
 export type ReaderSettingsState = typeof ReaderSettingsState.Type;
 
@@ -73,6 +102,20 @@ const clampWidth = clamp(WIDTH_MIN, WIDTH_MAX);
 const clampLineHeight = clamp(LINE_HEIGHT_MIN, LINE_HEIGHT_MAX);
 const clampLetterSpacing = clamp(LETTER_SPACING_MIN, LETTER_SPACING_MAX);
 const clampPercent = clamp(0, 1);
+const clampBibleDrawerWidth = clamp(BIBLE_DRAWER_WIDTH_MIN, BIBLE_DRAWER_WIDTH_MAX);
+const clampBibleDrawerWideWidth = clamp(BIBLE_DRAWER_WIDE_WIDTH_MIN, BIBLE_DRAWER_WIDE_WIDTH_MAX);
+
+export const BIBLE_DRAWER_WIDTH_BOUNDS = {
+  min: BIBLE_DRAWER_WIDTH_MIN,
+  max: BIBLE_DRAWER_WIDTH_MAX,
+  default: BIBLE_DRAWER_WIDTH_DEFAULT,
+} as const;
+
+export const BIBLE_DRAWER_WIDE_WIDTH_BOUNDS = {
+  min: BIBLE_DRAWER_WIDE_WIDTH_MIN,
+  max: BIBLE_DRAWER_WIDE_WIDTH_MAX,
+  default: BIBLE_DRAWER_WIDE_WIDTH_DEFAULT,
+} as const;
 
 const decodeSettings = Schema.decodeUnknownEffect(Schema.fromJsonString(ReaderSettingsState));
 const encodeSettings = Schema.encodeEffect(Schema.fromJsonString(ReaderSettingsState));
@@ -119,6 +162,9 @@ export interface ReaderSettingsShape {
   readonly forgetDocument: (path: string) => Effect.Effect<void>;
   readonly setProgressForPath: (path: string, fraction: number) => Effect.Effect<void>;
   readonly setDebugDumpSegments: (enabled: boolean) => Effect.Effect<void>;
+  readonly setBibleDrawerWidth: (px: number) => Effect.Effect<void>;
+  readonly setBibleDrawerWideWidth: (px: number) => Effect.Effect<void>;
+  readonly setBibleDrawerStrongs: (enabled: boolean) => Effect.Effect<void>;
 }
 
 export class ReaderSettings extends Context.Service<ReaderSettings, ReaderSettingsShape>()(
@@ -176,6 +222,11 @@ export class ReaderSettings extends Context.Service<ReaderSettings, ReaderSettin
             progressByPath: { ...s.progressByPath, [path]: clampPercent(fraction) },
           })),
         setDebugDumpSegments: (enabled) => update((s) => ({ ...s, debugDumpSegments: enabled })),
+        setBibleDrawerWidth: (px) =>
+          update((s) => ({ ...s, bibleDrawerWidth: clampBibleDrawerWidth(px) })),
+        setBibleDrawerWideWidth: (px) =>
+          update((s) => ({ ...s, bibleDrawerWideWidth: clampBibleDrawerWideWidth(px) })),
+        setBibleDrawerStrongs: (enabled) => update((s) => ({ ...s, bibleDrawerStrongs: enabled })),
       };
     }),
   );
@@ -214,6 +265,12 @@ export class ReaderSettings extends Context.Service<ReaderSettings, ReaderSettin
               progressByPath: { ...s.progressByPath, [path]: clampPercent(fraction) },
             })),
           setDebugDumpSegments: (enabled) => update((s) => ({ ...s, debugDumpSegments: enabled })),
+          setBibleDrawerWidth: (px) =>
+            update((s) => ({ ...s, bibleDrawerWidth: clampBibleDrawerWidth(px) })),
+          setBibleDrawerWideWidth: (px) =>
+            update((s) => ({ ...s, bibleDrawerWideWidth: clampBibleDrawerWideWidth(px) })),
+          setBibleDrawerStrongs: (enabled) =>
+            update((s) => ({ ...s, bibleDrawerStrongs: enabled })),
           ...overrides,
         };
       }),
