@@ -18,6 +18,7 @@ import {
   type FontFamily,
   ReaderSettings,
   type ReaderFontScale,
+  type ReaderMode,
   type Theme,
   type UiScale,
 } from './services/reader-settings.js';
@@ -90,6 +91,10 @@ export const App: Component = () => {
   const [lineWidth, setLineWidthSig] = createSignal(68);
   const [uiScale, setUiScaleSig] = createSignal<UiScale>('md');
   const [settingsOpen, setSettingsOpen] = createSignal(false);
+  // Top-level reader mode. Persisted via ReaderSettings so a relaunch lands
+  // the user in whichever mode they left in. F3.1 wires the signal + header
+  // toggle; later sub-commits use it to swap which canvas/drawer render.
+  const [readerMode, setReaderModeSig] = createSignal<ReaderMode>('egw');
 
   // Bible drawer — one instance for the whole app. Scripture refs anywhere
   // in the reader open it via the onScriptureClick callback threaded into
@@ -191,6 +196,9 @@ export const App: Component = () => {
           // Seed via the base (non-persisting) setter — re-writing the same
           // flag back to disk on every launch would be silly.
           bibleDrawerBase.setStrongsEnabled(true);
+        }
+        if (state.readerMode !== undefined) {
+          setReaderModeSig(state.readerMode);
         }
       });
 
@@ -335,6 +343,20 @@ export const App: Component = () => {
     );
   };
 
+  const setReaderMode = (mode: ReaderMode) => {
+    setReaderModeSig(mode);
+    updateSettings(
+      Effect.gen(function* () {
+        const s = yield* ReaderSettings;
+        yield* s.setReaderMode(mode);
+      }),
+    );
+  };
+
+  const toggleReaderMode = () => {
+    setReaderMode(readerMode() === 'egw' ? 'bible' : 'egw');
+  };
+
   const setUiScale = (scale: UiScale) => {
     setUiScaleSig(scale);
     updateSettings(
@@ -471,6 +493,10 @@ export const App: Component = () => {
         e.preventDefault();
         setSettingsOpen((open) => !open);
         return;
+      case 'm':
+        e.preventDefault();
+        toggleReaderMode();
+        return;
       default:
         return;
     }
@@ -581,6 +607,34 @@ export const App: Component = () => {
     >
       <header class="flex items-center gap-2.5 px-3 py-2 h-[calc(44px*var(--ui-scale))] border-b border-rule bg-[color-mix(in_srgb,var(--color-bg)_90%,transparent)] backdrop-blur-md [-webkit-app-region:drag] z-[5]">
         <div class="w-[70px] flex-[0_0_70px]" aria-hidden="true" />
+        <div
+          class="inline-flex items-center gap-0 rounded-md border border-rule overflow-hidden [-webkit-app-region:no-drag]"
+          role="group"
+          aria-label="Reader mode"
+        >
+          <button
+            type="button"
+            class="inline-flex items-center justify-center h-[calc(28px*var(--ui-scale))] px-3 bg-transparent text-fg text-ui-base font-medium cursor-pointer transition-[background,color] duration-[0.12s] ease-in-out hover:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] hover:outline-none focus-visible:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] focus-visible:outline-none data-active:bg-[color-mix(in_srgb,var(--color-accent)_14%,transparent)] data-active:text-accent"
+            data-active={readerMode() === 'egw' ? '' : undefined}
+            onClick={() => setReaderMode('egw')}
+            title="EGW books (⌘M)"
+            aria-label="EGW mode"
+            aria-pressed={readerMode() === 'egw'}
+          >
+            EGW
+          </button>
+          <button
+            type="button"
+            class="inline-flex items-center justify-center h-[calc(28px*var(--ui-scale))] px-3 bg-transparent text-fg text-ui-base font-medium cursor-pointer border-l border-rule transition-[background,color] duration-[0.12s] ease-in-out hover:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] hover:outline-none focus-visible:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] focus-visible:outline-none data-active:bg-[color-mix(in_srgb,var(--color-accent)_14%,transparent)] data-active:text-accent"
+            data-active={readerMode() === 'bible' ? '' : undefined}
+            onClick={() => setReaderMode('bible')}
+            title="Bible reader (⌘M)"
+            aria-label="Bible mode"
+            aria-pressed={readerMode() === 'bible'}
+          >
+            Bible
+          </button>
+        </div>
         <Show when={hasBook()}>
           <button
             type="button"

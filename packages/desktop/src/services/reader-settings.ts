@@ -14,6 +14,12 @@ export type UiScale = typeof UiScale.Type;
 export const ReaderFontScale = Schema.Literals(['sm', 'base', 'lg', 'xl', '2xl', '3xl']);
 export type ReaderFontScale = typeof ReaderFontScale.Type;
 
+/** Top-level reader mode. `egw` = EGW books are the main canvas (Bible drawer
+ *  on the right); `bible` = Bible chapters are the main canvas (EGW commentary
+ *  drawer on the right). Persisted across launches. */
+export const ReaderMode = Schema.Literals(['egw', 'bible']);
+export type ReaderMode = typeof ReaderMode.Type;
+
 const WIDTH_MIN = 40;
 const WIDTH_MAX = 120;
 const BIBLE_DRAWER_WIDTH_MIN = 320;
@@ -79,6 +85,9 @@ export const ReaderSettingsState = Schema.Struct({
   ),
   /** Show Strong's numbers in the Bible drawer when reading the KJV. */
   bibleDrawerStrongs: Schema.optional(Schema.Boolean),
+  /** Last-used reader mode. Restored on launch so the user lands in the same
+   *  mode they left in. */
+  readerMode: Schema.optional(ReaderMode),
 });
 export type ReaderSettingsState = typeof ReaderSettingsState.Type;
 
@@ -165,6 +174,7 @@ export interface ReaderSettingsShape {
   readonly setBibleDrawerWidth: (px: number) => Effect.Effect<void>;
   readonly setBibleDrawerWideWidth: (px: number) => Effect.Effect<void>;
   readonly setBibleDrawerStrongs: (enabled: boolean) => Effect.Effect<void>;
+  readonly setReaderMode: (mode: ReaderMode) => Effect.Effect<void>;
 }
 
 export class ReaderSettings extends Context.Service<ReaderSettings, ReaderSettingsShape>()(
@@ -227,6 +237,7 @@ export class ReaderSettings extends Context.Service<ReaderSettings, ReaderSettin
         setBibleDrawerWideWidth: (px) =>
           update((s) => ({ ...s, bibleDrawerWideWidth: clampBibleDrawerWideWidth(px) })),
         setBibleDrawerStrongs: (enabled) => update((s) => ({ ...s, bibleDrawerStrongs: enabled })),
+        setReaderMode: (readerMode) => update((s) => ({ ...s, readerMode })),
       };
     }),
   );
@@ -271,6 +282,7 @@ export class ReaderSettings extends Context.Service<ReaderSettings, ReaderSettin
             update((s) => ({ ...s, bibleDrawerWideWidth: clampBibleDrawerWideWidth(px) })),
           setBibleDrawerStrongs: (enabled) =>
             update((s) => ({ ...s, bibleDrawerStrongs: enabled })),
+          setReaderMode: (readerMode) => update((s) => ({ ...s, readerMode })),
           ...overrides,
         };
       }),
