@@ -15,6 +15,7 @@ import {
 import { runtime } from '../runtime.js';
 import { BibleReaderState, type BibleReaderSelection } from '../services/bible-reader-state.js';
 import { KjvBible, type KjvChapter } from '../services/kjv-bible.js';
+import { BibleBooksGrid } from './bible-books-grid.js';
 import { VerseRenderer } from './bible/verse-renderer.js';
 
 // Main canvas for Bible mode. Subscribes to BibleReaderState, loads the KJV
@@ -143,49 +144,46 @@ export const BibleChapterCanvas: Component = () => {
 
   return (
     <div class="h-full overflow-y-auto">
-      <div class="mx-auto max-w-[var(--reader-width,68ch)] px-6 py-10">
-        <Switch>
-          <Match when={load()._tag === 'loading'}>
+      <Switch>
+        <Match when={load()._tag === 'loading'}>
+          <div class="mx-auto max-w-[var(--reader-width,68ch)] px-6 py-10">
             <ChapterHeader selection={selection()} />
             <p class="mt-6 text-ui-sm text-muted">Loading…</p>
-          </Match>
-          <Match when={load()._tag === 'missing'}>
+          </div>
+        </Match>
+        <Match when={load()._tag === 'missing'}>
+          <div class="mx-auto max-w-[var(--reader-width,68ch)] px-6 py-10">
             <ChapterHeader selection={selection()} />
             <p class="mt-6 text-ui-sm text-muted">Chapter not found.</p>
-          </Match>
-          <Match when={errorLoad()} keyed>
-            {(err) => (
-              <>
-                <ChapterHeader selection={selection()} />
-                <p class="mt-6 text-ui-sm text-muted">Failed to load chapter — {err.message}</p>
-              </>
-            )}
-          </Match>
-          <Match when={readyChapter()} keyed>
-            {(chapter) => (
+          </div>
+        </Match>
+        <Match when={errorLoad()} keyed>
+          {(err) => (
+            <div class="mx-auto max-w-[var(--reader-width,68ch)] px-6 py-10">
+              <ChapterHeader selection={selection()} />
+              <p class="mt-6 text-ui-sm text-muted">Failed to load chapter — {err.message}</p>
+            </div>
+          )}
+        </Match>
+        <Match when={readyChapter()} keyed>
+          {(chapter) => (
+            <div class="mx-auto max-w-[var(--reader-width,68ch)] px-6 py-10">
               <ChapterBody
                 chapter={chapter}
                 cursorVerse={cursorVerse()}
                 verseRefs={verseRefs}
                 onVerseClick={onVerseClick}
               />
-            )}
-          </Match>
-          <Match when={load()._tag === 'idle' && Option.isNone(selection())}>
-            <EmptyCanvas />
-          </Match>
-        </Switch>
-      </div>
+            </div>
+          )}
+        </Match>
+        <Match when={load()._tag === 'idle' && Option.isNone(selection())}>
+          <BibleBooksGrid />
+        </Match>
+      </Switch>
     </div>
   );
 };
-
-const EmptyCanvas: Component = () => (
-  <div class="flex flex-col items-center justify-center gap-2 text-center">
-    <h2 class="text-ui-base font-medium text-fg">Pick a Bible chapter</h2>
-    <p class="text-ui-sm text-muted">Open the Library drawer to choose a book and chapter.</p>
-  </div>
-);
 
 const ChapterHeader: Component<{ readonly selection: Option.Option<BibleReaderSelection> }> = (
   props,
