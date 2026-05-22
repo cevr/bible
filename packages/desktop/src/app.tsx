@@ -719,30 +719,6 @@ export const App: Component = () => {
             <span>Library</span>
           </button>
         </Show>
-        <Show when={isBibleMode()}>
-          <button
-            type="button"
-            class="inline-flex items-center gap-1.5 h-[calc(28px*var(--ui-scale))] px-3 rounded-md border border-rule bg-transparent text-fg text-ui-base cursor-pointer transition-[background,border-color,color] duration-[0.12s] ease-in-out [-webkit-app-region:no-drag] hover:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] hover:border-accent hover:outline-none focus-visible:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] focus-visible:border-accent focus-visible:outline-none data-active:bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)] data-active:border-accent"
-            data-active={bibleCommentaryOpen() ? '' : undefined}
-            onClick={() => setBibleCommentaryOpen(!bibleCommentaryOpen())}
-            title="EGW commentary on current verse"
-            aria-label="Toggle EGW commentary"
-            aria-pressed={bibleCommentaryOpen()}
-          >
-            <svg
-              viewBox="0 0 24 24"
-              width="16"
-              height="16"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.6"
-            >
-              <path d="M4 5h11v14H4z" />
-              <path d="M15 9h5v10h-5z" />
-            </svg>
-            <span>Commentary</span>
-          </button>
-        </Show>
         <div class="flex-1 flex justify-center [-webkit-app-region:no-drag]">
           <input
             ref={setSearchInputRef}
@@ -823,7 +799,11 @@ export const App: Component = () => {
             </Show>
           }
         >
-          <BibleChapterCanvas onOpenCommentary={() => setBibleCommentaryOpen(true)} />
+          <BibleChapterCanvas
+            onOpenCommentary={() => setBibleCommentaryOpen(true)}
+            commentaryOpen={bibleCommentaryOpen()}
+            onToggleCommentary={() => setBibleCommentaryOpen(!bibleCommentaryOpen())}
+          />
         </Show>
       </div>
 

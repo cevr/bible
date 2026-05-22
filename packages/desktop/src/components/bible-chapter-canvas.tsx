@@ -39,6 +39,11 @@ export interface BibleChapterCanvasProps {
   /** Open the EGW commentary sheet pinned to the given verse. Routed from
    *  the footnote `e` marker on each verse with cached commentary. */
   readonly onOpenCommentary?: (verse: number) => void;
+  /** Current open/closed state of the commentary drawer — drives the
+   *  in-reader Commentary toggle's pressed state. */
+  readonly commentaryOpen: boolean;
+  /** Toggle the commentary drawer from the in-reader header button. */
+  readonly onToggleCommentary: () => void;
 }
 
 export const BibleChapterCanvas: Component<BibleChapterCanvasProps> = (props) => {
@@ -217,25 +222,45 @@ export const BibleChapterCanvas: Component<BibleChapterCanvasProps> = (props) =>
     return l._tag === 'ready' ? l.chapter : null;
   };
 
+  const titleFor = (sel: Option.Option<BibleReaderSelection>): string | null => {
+    const s = Option.getOrNull(sel);
+    if (s === null) return null;
+    const book = getBibleBook(s.book);
+    if (!book) return `${String(s.book)} ${String(s.chapter)}`;
+    return formatBibleReference({ book: s.book, chapter: s.chapter });
+  };
+
   return (
     <div class="h-full overflow-y-auto">
       <Switch>
         <Match when={load()._tag === 'loading'}>
           <div class="mx-auto max-w-[var(--reader-width,68ch)] px-6 py-10">
-            <ChapterHeader selection={selection()} />
+            <ReaderHeader
+              title={titleFor(selection())}
+              commentaryOpen={props.commentaryOpen}
+              onToggleCommentary={props.onToggleCommentary}
+            />
             <p class="mt-6 text-ui-sm text-muted">Loading…</p>
           </div>
         </Match>
         <Match when={load()._tag === 'missing'}>
           <div class="mx-auto max-w-[var(--reader-width,68ch)] px-6 py-10">
-            <ChapterHeader selection={selection()} />
+            <ReaderHeader
+              title={titleFor(selection())}
+              commentaryOpen={props.commentaryOpen}
+              onToggleCommentary={props.onToggleCommentary}
+            />
             <p class="mt-6 text-ui-sm text-muted">Chapter not found.</p>
           </div>
         </Match>
         <Match when={errorLoad()} keyed>
           {(err) => (
             <div class="mx-auto max-w-[var(--reader-width,68ch)] px-6 py-10">
-              <ChapterHeader selection={selection()} />
+              <ReaderHeader
+                title={titleFor(selection())}
+                commentaryOpen={props.commentaryOpen}
+                onToggleCommentary={props.onToggleCommentary}
+              />
               <p class="mt-6 text-ui-sm text-muted">Failed to load chapter — {err.message}</p>
             </div>
           )}
@@ -243,6 +268,11 @@ export const BibleChapterCanvas: Component<BibleChapterCanvasProps> = (props) =>
         <Match when={readyChapter()} keyed>
           {(chapter) => (
             <div class="mx-auto max-w-[var(--reader-width,68ch)] px-6 py-10">
+              <ReaderHeader
+                title={`${chapter.bookName} ${String(chapter.chapter)}`}
+                commentaryOpen={props.commentaryOpen}
+                onToggleCommentary={props.onToggleCommentary}
+              />
               <ChapterBody
                 chapter={chapter}
                 cursorVerse={cursorVerse()}
@@ -262,22 +292,41 @@ export const BibleChapterCanvas: Component<BibleChapterCanvasProps> = (props) =>
   );
 };
 
-const ChapterHeader: Component<{ readonly selection: Option.Option<BibleReaderSelection> }> = (
-  props,
-) => {
-  const title = createMemo(() => {
-    const sel = Option.getOrNull(props.selection);
-    if (sel === null) return null;
-    const book = getBibleBook(sel.book);
-    if (!book) return `${String(sel.book)} ${String(sel.chapter)}`;
-    return formatBibleReference({ book: sel.book, chapter: sel.chapter });
-  });
-  return (
-    <Show when={title()}>
-      {(t) => <h1 class="m-0 text-ui-2xl font-semibold tracking-[-0.005em] text-fg">{t()}</h1>}
-    </Show>
-  );
-};
+const ReaderHeader: Component<{
+  readonly title: string | null;
+  readonly commentaryOpen: boolean;
+  readonly onToggleCommentary: () => void;
+}> = (props) => (
+  <Show when={props.title}>
+    {(t) => (
+      <div class="flex items-center justify-between gap-3">
+        <h1 class="m-0 text-ui-2xl font-semibold tracking-[-0.005em] text-fg">{t()}</h1>
+        <button
+          type="button"
+          class="inline-flex items-center gap-1.5 h-[calc(28px*var(--ui-scale))] px-3 rounded-md border border-rule bg-transparent text-fg text-ui-sm cursor-pointer transition-[background,border-color,color] duration-[0.12s] ease-in-out hover:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] hover:border-accent hover:outline-none focus-visible:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] focus-visible:border-accent focus-visible:outline-none data-active:bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)] data-active:border-accent"
+          data-active={props.commentaryOpen ? '' : undefined}
+          onClick={props.onToggleCommentary}
+          title="EGW commentary on current verse"
+          aria-label="Toggle EGW commentary"
+          aria-pressed={props.commentaryOpen}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            width="14"
+            height="14"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+          >
+            <path d="M4 5h11v14H4z" />
+            <path d="M15 9h5v10h-5z" />
+          </svg>
+          <span>Commentary</span>
+        </button>
+      </div>
+    )}
+  </Show>
+);
 
 const ChapterBody: Component<{
   readonly chapter: KjvChapter;
@@ -288,9 +337,6 @@ const ChapterBody: Component<{
   readonly onCommentaryClick: (verse: number) => void;
 }> = (props) => (
   <>
-    <h1 class="m-0 text-ui-2xl font-semibold tracking-[-0.005em] text-fg">
-      {props.chapter.bookName} {props.chapter.chapter}
-    </h1>
     <div class="mt-6 flex flex-col gap-3 font-[family-name:var(--reader-font-family,var(--font-serif))] text-[length:var(--reader-font-size,18px)] leading-[var(--reader-line-height,1.55)] text-fg">
       <For each={props.chapter.verses}>
         {(v) => {
