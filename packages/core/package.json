@@ -15,6 +15,8 @@
     "./kjv-bible-db/bun": "./src/kjv-bible-db/kjv-bible-db-bun.ts",
     "./bible-xrefs-db": "./src/bible-xrefs-db/index.ts",
     "./bible-xrefs-db/bun": "./src/bible-xrefs-db/bible-xrefs-db-bun.ts",
+    "./bible-margin-notes-db": "./src/bible-margin-notes-db/index.ts",
+    "./bible-margin-notes-db/bun": "./src/bible-margin-notes-db/bible-margin-notes-db-bun.ts",
     "./egw-reader": "./src/egw-reader/index.ts",
     "./egw-commentary": "./src/egw-commentary/index.ts",
     "./bible-cross-refs": "./src/bible-cross-refs/index.ts",
@@ -36,6 +38,7 @@
     "./assets/strongs.json": "./assets/strongs.json",
     "./assets/cross-refs.json": "./assets/cross-refs.json",
     "./assets/cross-refs-tske.json": "./assets/cross-refs-tske.json",
+    "./assets/margin-notes.json": "./assets/margin-notes.json",
     "./package.json": "./package.json"
   },
   "scripts": {

@@ -91,6 +91,22 @@ const api = {
       verse: number,
     ): Promise<readonly CrossRefPayload[]> =>
       ipcRenderer.invoke('bible:getCrossRefs', book, chapter, verse),
+    // Margin notes for a single verse, drawn from the bundled margin-notes
+    // catalog. Returns [] for verses with no annotations.
+    getMarginNotes: (
+      book: number,
+      chapter: number,
+      verse: number,
+    ): Promise<readonly MarginNotePayload[]> =>
+      ipcRenderer.invoke('bible:getMarginNotes', book, chapter, verse),
+    // Verses in a (book, chapter) that have at least one margin note, with
+    // counts. Used by the chapter renderer to mark notable verses with a
+    // superscript anchor in one round-trip per chapter.
+    getVersesWithNotes: (
+      book: number,
+      chapter: number,
+    ): Promise<readonly VerseWithNotesPayload[]> =>
+      ipcRenderer.invoke('bible:getVersesWithNotes', book, chapter),
   },
 };
 
@@ -132,6 +148,22 @@ export type CrossRefPayload = {
   readonly targetChapter: number;
   readonly targetVerse: number;
   readonly targetVerseEnd: number | null;
+};
+
+/** One margin-note row as exposed by `api.bible.getMarginNotes`. Shape must
+ * match `RendererMarginNote` in electron/main.ts. */
+export type MarginNotePayload = {
+  readonly idx: number;
+  readonly type: 'hebrew' | 'alternate' | 'other' | 'greek' | 'name';
+  readonly phrase: string;
+  readonly text: string;
+};
+
+/** One row of the `bible:getVersesWithNotes` response — verse number paired
+ * with how many margin notes that verse has. */
+export type VerseWithNotesPayload = {
+  readonly verse: number;
+  readonly count: number;
 };
 
 /** Search result row exposed by `api.search.*`. Shape must match

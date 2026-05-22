@@ -1,3 +1,7 @@
+import {
+  BibleMarginNotesDatabase,
+  type MarginNotesCatalog,
+} from '@bible/core/bible-margin-notes-db';
 import { BibleXrefsDatabase, type XrefCatalog } from '@bible/core/bible-xrefs-db';
 import { EGWApiClient, nodesToText, Schemas } from '@bible/core/egw';
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
@@ -593,6 +597,89 @@ ipcMain.handle(
   },
 );
 
+// --- Margin notes IPC ---------------------------------------------------
+// Same first-launch-import pattern as the KJV + xrefs imports above. The
+// bundled asset shape is `{ "book.chapter.verse": [{type, phrase, text}, ...] }`
+// — one importer call covers the whole catalog, idempotent via PK upsert.
+let marginNotesImportsPromise: Promise<void> | null = null;
+const ensureMarginNotesImportsDone = (runtime: MainRuntime): Promise<void> => {
+  const cached = marginNotesImportsPromise;
+  if (cached !== null) return cached;
+  const fresh = runtime.runPromise(
+    BibleMarginNotesDatabase.pipe(
+      Effect.flatMap((db) =>
+        db.isImported().pipe(
+          Effect.flatMap((done) => {
+            if (done) return Effect.asVoid(Effect.void);
+            const notes = JSON.parse(readCoreAssetText('margin-notes.json')) as MarginNotesCatalog;
+            return db.importCatalog(notes).pipe(Effect.asVoid);
+          }),
+        ),
+      ),
+    ),
+  );
+  marginNotesImportsPromise = fresh;
+  return fresh;
+};
+
+// Renderer-facing margin-note row. camelCase mirrors the service's
+// MarginNoteRow shape — re-declared here to lock the IPC contract
+// independently of the core service shape.
+type RendererMarginNote = {
+  readonly idx: number;
+  readonly type: 'hebrew' | 'alternate' | 'other' | 'greek' | 'name';
+  readonly phrase: string;
+  readonly text: string;
+};
+
+ipcMain.handle(
+  'bible:getMarginNotes',
+  async (
+    _event,
+    book: number,
+    chapter: number,
+    verse: number,
+  ): Promise<readonly RendererMarginNote[]> => {
+    if (mainRuntime === null) return [];
+    await ensureMarginNotesImportsDone(mainRuntime);
+    const rows = await mainRuntime.runPromise(
+      BibleMarginNotesDatabase.pipe(
+        Effect.flatMap((db) => db.getMarginNotes(book, chapter, verse)),
+      ),
+    );
+    return rows.map(
+      (r): RendererMarginNote => ({
+        idx: r.idx,
+        type: r.type,
+        phrase: r.phrase,
+        text: r.text,
+      }),
+    );
+  },
+);
+
+// Per-chapter "which verses have notes" lookup. The renderer renders one
+// superscript anchor per noted verse, so we return a plain array of
+// `[verse, count]` pairs (Map isn't serializable across IPC). Caller
+// reconstitutes a Map on the renderer side if it wants O(1) lookup.
+ipcMain.handle(
+  'bible:getVersesWithNotes',
+  async (
+    _event,
+    book: number,
+    chapter: number,
+  ): Promise<readonly { readonly verse: number; readonly count: number }[]> => {
+    if (mainRuntime === null) return [];
+    await ensureMarginNotesImportsDone(mainRuntime);
+    const map = await mainRuntime.runPromise(
+      BibleMarginNotesDatabase.pipe(Effect.flatMap((db) => db.versesWithNotes(book, chapter))),
+    );
+    const out: { readonly verse: number; readonly count: number }[] = [];
+    for (const [verse, count] of map) out.push({ verse, count });
+    return out;
+  },
+);
+
 // --- EGW live API IPC ----------------------------------------------------
 // All EGW HTTP runs in main (Node fetch), not the renderer, because:
 //   - the renderer's browser fetch trips on CORS preflight (EGW doesn't
@@ -757,8 +844,9 @@ void app.whenReady().then(async () => {
   await mainRuntime.runPromise(EGWParagraphDatabase.pipe(Effect.asVoid));
   await mainRuntime.runPromise(KjvBibleDatabase.pipe(Effect.asVoid));
   await mainRuntime.runPromise(BibleXrefsDatabase.pipe(Effect.asVoid));
+  await mainRuntime.runPromise(BibleMarginNotesDatabase.pipe(Effect.asVoid));
   console.error(
-    '[main] EGWParagraphDatabase + KjvBibleDatabase + BibleXrefsDatabase ready, opening window',
+    '[main] EGWParagraphDatabase + KjvBibleDatabase + BibleXrefsDatabase + BibleMarginNotesDatabase ready, opening window',
   );
   void createWindow();
   app.on('activate', () => {

@@ -1,3 +1,4 @@
+import { BibleMarginNotesDatabase } from '@bible/core/bible-margin-notes-db';
 import { BibleXrefsDatabase } from '@bible/core/bible-xrefs-db';
 import { EGWApiClient, EGWAuth, EGWTokenStore } from '@bible/core/egw';
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
@@ -33,11 +34,14 @@ class TokenIoError extends Schema.TaggedErrorClass<TokenIoError>()('TokenIoError
 // invites lock surprises and doubles the memory footprint.
 const dbLayer = (
   filename: string,
-): Layer.Layer<EGWParagraphDatabase | KjvBibleDatabase | BibleXrefsDatabase> =>
+): Layer.Layer<
+  EGWParagraphDatabase | KjvBibleDatabase | BibleXrefsDatabase | BibleMarginNotesDatabase
+> =>
   Layer.mergeAll(
     EGWParagraphDatabase.layerCore,
     KjvBibleDatabase.layerCore,
     BibleXrefsDatabase.layerCore,
+    BibleMarginNotesDatabase.layerCore,
   ).pipe(Layer.provide(SqliteNode.layer({ filename })), Layer.orDie);
 
 // Node-fs-backed token store. We don't pull in @effect/platform-node just for
@@ -84,7 +88,11 @@ const egwLayer = (tokenFile: string): Layer.Layer<EGWApiClient> =>
   );
 
 export type MainRuntime = ManagedRuntime.ManagedRuntime<
-  EGWParagraphDatabase | KjvBibleDatabase | BibleXrefsDatabase | EGWApiClient,
+  | EGWParagraphDatabase
+  | KjvBibleDatabase
+  | BibleXrefsDatabase
+  | BibleMarginNotesDatabase
+  | EGWApiClient,
   never
 >;
 
@@ -96,6 +104,10 @@ export const runtimeRun = <A, E>(
   effect: EffectNs.Effect<
     A,
     E,
-    EGWParagraphDatabase | KjvBibleDatabase | BibleXrefsDatabase | EGWApiClient
+    | EGWParagraphDatabase
+    | KjvBibleDatabase
+    | BibleXrefsDatabase
+    | BibleMarginNotesDatabase
+    | EGWApiClient
   >,
 ): Promise<A> => runtime.runPromise(effect);

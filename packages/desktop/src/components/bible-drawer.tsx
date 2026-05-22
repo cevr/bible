@@ -18,6 +18,11 @@ import {
 } from 'solid-js';
 import { runtime } from '../runtime.js';
 import type { BibleDrawerState, BibleStudyTab } from '../services/bible-drawer-state.js';
+import {
+  BibleMarginNotes,
+  type MarginNote,
+  type MarginNoteType,
+} from '../services/bible-margin-notes.js';
 import { BibleXrefs, type CrossRef } from '../services/bible-xrefs.js';
 import {
   KjvBible,
@@ -376,6 +381,9 @@ const BibleDrawerBody: Component<{ readonly state: BibleDrawerState }> = (props)
             props.state.openStudyTab('strongs', { _tag: 'strongs', verse, code })
           }
           onVerseClick={(verse) => props.state.openStudyTab('xrefs', { _tag: 'xref', verse })}
+          onNoteClick={(verse) =>
+            props.state.openStudyTab('notes', { _tag: 'note', verse, noteIndex: 0 })
+          }
         />
       )}
     </Match>
@@ -392,6 +400,10 @@ const ChapterView: Component<{
    *  that verse. Kept distinct from `onStrongsClick` because the inline word
    *  decorations and the gutter are different affordances. */
   readonly onVerseClick: (verse: number) => void;
+  /** Click on the margin-note superscript — opens the Notes tab focused on
+   *  that verse. The anchor only renders when the verse has at least one
+   *  note in the bundled catalog. */
+  readonly onNoteClick: (verse: number) => void;
 }> = (props) => {
   // Both the parsed-query highlight set AND the user's keyboard cursor get
   // rendered with the same highlight chip — visually one focus indicator,
@@ -410,6 +422,36 @@ const ChapterView: Component<{
     const m = new Map<number, readonly KjvStrongsWord[]>();
     for (const v of s.verses) m.set(v.verse, v.words);
     return m;
+  });
+
+  // Per-chapter "which verses have margin notes" lookup. Driven by a Solid
+  // signal so the anchors appear once the IPC resolves; until then the
+  // chapter renders without anchors (the data isn't load-bearing — it just
+  // adds an affordance).
+  const [notedVerses, setNotedVerses] = createSignal<ReadonlyMap<number, number>>(
+    new Map<number, number>(),
+  );
+  let notedSeq = 0;
+  createEffect(() => {
+    const c = props.chapter;
+    const mine = ++notedSeq;
+    setNotedVerses(new Map<number, number>());
+    runtime
+      .runPromise(
+        Effect.gen(function* () {
+          const svc = yield* BibleMarginNotes;
+          return yield* svc.versesWithNotes(c.book, c.chapter);
+        }),
+      )
+      .then((map) => {
+        if (mine !== notedSeq) return;
+        setNotedVerses(map);
+      })
+      .catch(() => {
+        if (mine !== notedSeq) return;
+        // Anchors are non-critical; swallow IPC failures rather than disturb
+        // the reading view.
+      });
   });
 
   // Per-verse refs let us scroll precisely — to the parsed-query target on
@@ -465,6 +507,19 @@ const ChapterView: Component<{
               >
                 {v.verse}
               </button>
+              <Show when={notedVerses().has(v.verse)}>
+                {/* Superscript anchor — clicks open the Notes study tab on
+                 *  this verse. Sized to match the strongs annotations so the
+                 *  visual weight is consistent. */}
+                <button
+                  type="button"
+                  class="mr-1 cursor-pointer bg-transparent border-0 p-0 align-baseline text-[0.62em] font-medium text-accent opacity-70 hover:opacity-100 hover:underline select-none"
+                  title={`Margin notes for verse ${String(v.verse)}`}
+                  onClick={() => props.onNoteClick(v.verse)}
+                >
+                  <sup>n</sup>
+                </button>
+              </Show>
               <Show when={strongsWords()} fallback={<VerseRenderer text={v.text} />}>
                 {(words) => (
                   <StrongsVerse
@@ -568,10 +623,7 @@ const StudyPane: Component<{ readonly state: BibleDrawerState }> = (props) => (
 const StudyPaneBody: Component<{ readonly state: BibleDrawerState }> = (props) => (
   <Switch>
     <Match when={props.state.activeStudyTab() === 'notes'}>
-      <StudyTabEmpty
-        title="Margin notes"
-        body="Click a margin-note anchor (the superscript letter next to a verse) to open it here."
-      />
+      <NotesTab state={props.state} />
     </Match>
     <Match when={props.state.activeStudyTab() === 'strongs'}>
       <StrongsTab state={props.state} />
@@ -594,6 +646,129 @@ const StudyTabEmpty: Component<{ readonly title: string; readonly body: string }
     <p class="text-ui-sm text-muted">{props.body}</p>
   </div>
 );
+
+// Notes tab: shows the margin notes for the verse the user clicked an anchor
+// on. Notes are grouped visually by their `type` badge (hebrew / alternate /
+// greek / name / other) but rendered in their original asset order so the
+// reading flow matches the printed margin-note list.
+const NOTE_TYPE_LABEL: Readonly<Record<MarginNoteType, string>> = {
+  hebrew: 'Heb.',
+  greek: 'Gk.',
+  alternate: 'Or',
+  name: 'Name',
+  other: 'Note',
+};
+
+type NotesLoad =
+  | { readonly _tag: 'idle' }
+  | { readonly _tag: 'loading'; readonly verse: number }
+  | { readonly _tag: 'ready'; readonly verse: number; readonly notes: readonly MarginNote[] }
+  | { readonly _tag: 'error'; readonly message: string };
+
+const NotesTab: Component<{ readonly state: BibleDrawerState }> = (props) => {
+  const focus = createMemo(() => {
+    const f = props.state.studyFocus();
+    return f._tag === 'note' ? f : null;
+  });
+  const [load, setLoad] = createSignal<NotesLoad>({ _tag: 'idle' });
+
+  // Same stale-response guard as StrongsTab / XrefsTab.
+  let seq = 0;
+  createEffect(() => {
+    const f = focus();
+    if (!f) {
+      setLoad({ _tag: 'idle' });
+      return;
+    }
+    const s = props.state.status();
+    if (s._tag !== 'ready') {
+      setLoad({ _tag: 'idle' });
+      return;
+    }
+    const sourceBook = s.chapter.book;
+    const sourceChapter = s.chapter.chapter;
+    const mine = ++seq;
+    setLoad({ _tag: 'loading', verse: f.verse });
+    runtime
+      .runPromise(
+        Effect.gen(function* () {
+          const svc = yield* BibleMarginNotes;
+          return yield* svc.getMarginNotes(sourceBook, sourceChapter, f.verse);
+        }),
+      )
+      .then((notes) => {
+        if (mine !== seq) return;
+        setLoad({ _tag: 'ready', verse: f.verse, notes });
+      })
+      .catch((err: unknown) => {
+        if (mine !== seq) return;
+        setLoad({
+          _tag: 'error',
+          message: err instanceof Error ? err.message : String(err),
+        });
+      });
+  });
+
+  return (
+    <Show
+      when={focus()}
+      fallback={
+        <StudyTabEmpty
+          title="Margin notes"
+          body="Click the superscript n next to a verse to open its margin notes here."
+        />
+      }
+    >
+      {(f) => (
+        <div class="flex flex-col gap-3">
+          <p class="text-ui-xs text-muted">Verse {f().verse}</p>
+          <Switch>
+            <Match when={load()._tag === 'loading'}>
+              <p class="text-ui-sm text-muted">Loading margin notes…</p>
+            </Match>
+            <Match
+              when={(() => {
+                const l = load();
+                return l._tag === 'error' ? l : null;
+              })()}
+            >
+              {(err) => <p class="text-ui-sm text-danger">Lookup failed: {err().message}</p>}
+            </Match>
+            <Match
+              when={(() => {
+                const l = load();
+                return l._tag === 'ready' ? l : null;
+              })()}
+            >
+              {(ready) => (
+                <Show
+                  when={ready().notes.length > 0}
+                  fallback={<p class="text-ui-sm text-muted">No margin notes for this verse.</p>}
+                >
+                  <ul class="flex flex-col gap-3 list-none p-0 m-0">
+                    <For each={ready().notes}>
+                      {(note) => (
+                        <li class="flex flex-col gap-0.5">
+                          <div class="flex items-baseline gap-2">
+                            <span class="text-[0.62em] text-muted uppercase tracking-wide">
+                              {NOTE_TYPE_LABEL[note.type]}
+                            </span>
+                            <span class="text-ui-sm font-medium text-fg">{note.phrase}</span>
+                          </div>
+                          <p class="text-ui-sm text-muted m-0 leading-snug">{note.text}</p>
+                        </li>
+                      )}
+                    </For>
+                  </ul>
+                </Show>
+              )}
+            </Match>
+          </Switch>
+        </div>
+      )}
+    </Show>
+  );
+};
 
 // Strong's tab: shows the last-clicked code (focus.code) and fetches the
 // lexicon entry through the KjvBible service. The lookup is cached per-code
