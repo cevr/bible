@@ -18,6 +18,7 @@ import {
 } from 'solid-js';
 import { runtime } from '../runtime.js';
 import type { BibleDrawerState, BibleStudyTab } from '../services/bible-drawer-state.js';
+import { BibleXrefs, type CrossRef } from '../services/bible-xrefs.js';
 import {
   KjvBible,
   type KjvChapter,
@@ -374,6 +375,7 @@ const BibleDrawerBody: Component<{ readonly state: BibleDrawerState }> = (props)
           onStrongsClick={(verse, code) =>
             props.state.openStudyTab('strongs', { _tag: 'strongs', verse, code })
           }
+          onVerseClick={(verse) => props.state.openStudyTab('xrefs', { _tag: 'xref', verse })}
         />
       )}
     </Match>
@@ -386,6 +388,10 @@ const ChapterView: Component<{
   readonly highlight: readonly number[];
   readonly cursorVerse: number | null;
   readonly onStrongsClick: (verse: number, code: string) => void;
+  /** Click on the verse-number gutter — opens the cross-refs tab focused on
+   *  that verse. Kept distinct from `onStrongsClick` because the inline word
+   *  decorations and the gutter are different affordances. */
+  readonly onVerseClick: (verse: number) => void;
 }> = (props) => {
   // Both the parsed-query highlight set AND the user's keyboard cursor get
   // rendered with the same highlight chip — visually one focus indicator,
@@ -451,9 +457,14 @@ const ChapterView: Component<{
                 verseRefs.set(v.verse, el);
               }}
             >
-              <span class="mr-2 text-[0.78em] text-muted [font-variant-numeric:tabular-nums] select-none">
+              <button
+                type="button"
+                class="mr-2 cursor-pointer bg-transparent border-0 p-0 text-[0.78em] text-muted hover:text-accent hover:underline [font-variant-numeric:tabular-nums] select-none"
+                title={`Cross references for verse ${String(v.verse)}`}
+                onClick={() => props.onVerseClick(v.verse)}
+              >
                 {v.verse}
-              </span>
+              </button>
               <Show when={strongsWords()} fallback={<VerseRenderer text={v.text} />}>
                 {(words) => (
                   <StrongsVerse
@@ -566,7 +577,7 @@ const StudyPaneBody: Component<{ readonly state: BibleDrawerState }> = (props) =
       <StrongsTab state={props.state} />
     </Match>
     <Match when={props.state.activeStudyTab() === 'xrefs'}>
-      <StudyTabEmpty title="Cross references" body="Cross-reference lookups are coming soon." />
+      <XrefsTab state={props.state} />
     </Match>
     <Match when={props.state.activeStudyTab() === 'egw'}>
       <StudyTabEmpty
@@ -694,6 +705,199 @@ const StrongsTab: Component<{ readonly state: BibleDrawerState }> = (props) => {
                   </div>
                   <p class="text-ui-sm text-fg whitespace-pre-wrap">{ready().entry.definition}</p>
                 </div>
+              )}
+            </Match>
+          </Switch>
+        </div>
+      )}
+    </Show>
+  );
+};
+
+// Cross-refs tab: shows entries from the bundled openbible / TSKE catalogs
+// for the verse the user clicked. Each row renders the reference + a one-line
+// preview pulled from the KJV chapter so the user can scan without navigating
+// away. Verse-end ranges show their full text concatenated by a single space.
+type XrefRowDisplay = {
+  readonly ref: CrossRef;
+  readonly title: string;
+  readonly preview: string | null;
+};
+
+type XrefsLoad =
+  | { readonly _tag: 'idle' }
+  | { readonly _tag: 'loading'; readonly verse: number }
+  | { readonly _tag: 'ready'; readonly verse: number; readonly rows: readonly XrefRowDisplay[] }
+  | { readonly _tag: 'error'; readonly message: string };
+
+// Format a target ref as "Book C:V" or "Book C:V-V'". We use the bible-reader
+// book registry so abbreviations + spelling match the rest of the UI.
+const formatXrefTitle = (ref: CrossRef): string => {
+  const book = getBibleBook(ref.targetBook);
+  const name = book?.name ?? `Book ${String(ref.targetBook)}`;
+  const verses =
+    ref.targetVerseEnd !== null && ref.targetVerseEnd > ref.targetVerse
+      ? `${String(ref.targetVerse)}-${String(ref.targetVerseEnd)}`
+      : String(ref.targetVerse);
+  return `${name} ${String(ref.targetChapter)}:${verses}`;
+};
+
+const XrefsTab: Component<{ readonly state: BibleDrawerState }> = (props) => {
+  const focus = createMemo(() => {
+    const f = props.state.studyFocus();
+    return f._tag === 'xref' ? f : null;
+  });
+  const [load, setLoad] = createSignal<XrefsLoad>({ _tag: 'idle' });
+
+  // Same stale-response guard as StrongsTab: sequence ID bumps on every fetch
+  // so a slow IPC for an old verse can't overwrite the active one.
+  let seq = 0;
+  createEffect(() => {
+    const f = focus();
+    if (!f) {
+      setLoad({ _tag: 'idle' });
+      return;
+    }
+    const mine = ++seq;
+    setLoad({ _tag: 'loading', verse: f.verse });
+    // We need the source book/chapter from the currently-loaded chapter — the
+    // focus only carries the verse number, not the (book, chapter, verse)
+    // triple, because the drawer already knows what chapter is in front of
+    // the user.
+    const s = props.state.status();
+    if (s._tag !== 'ready') {
+      setLoad({ _tag: 'idle' });
+      return;
+    }
+    const sourceBook = s.chapter.book;
+    const sourceChapter = s.chapter.chapter;
+    runtime
+      .runPromise(
+        Effect.gen(function* () {
+          const xrefs = yield* BibleXrefs;
+          const kjv = yield* KjvBible;
+          const rows = yield* xrefs.getCrossRefs(sourceBook, sourceChapter, f.verse);
+          // Group target lookups by (book, chapter) so we issue one chapter
+          // fetch per target chapter, not one per row. KjvBible caches
+          // chapters in an LRU, so even repeated requests are cheap, but
+          // grouping cuts the initial-load Promise count materially.
+          const chapterCache = new Map<string, Option.Option<KjvChapter>>();
+          const fetchChapter = (
+            book: number,
+            ch: number,
+          ): Effect.Effect<Option.Option<KjvChapter>> => {
+            const key = `${String(book)}:${String(ch)}`;
+            const cached = chapterCache.get(key);
+            if (cached !== undefined) return Effect.succeed(cached);
+            return kjv.getChapter(book, ch).pipe(
+              Effect.tap((c) =>
+                Effect.sync(() => {
+                  chapterCache.set(key, c);
+                }),
+              ),
+            );
+          };
+          const displays: XrefRowDisplay[] = [];
+          for (const ref of rows) {
+            const ch = yield* fetchChapter(ref.targetBook, ref.targetChapter);
+            const preview = Option.match(ch, {
+              onNone: () => null,
+              onSome: (chap) => {
+                const start = ref.targetVerse;
+                const end = ref.targetVerseEnd ?? ref.targetVerse;
+                const texts = chap.verses
+                  .filter((v) => v.verse >= start && v.verse <= end)
+                  .map((v) => v.text);
+                return texts.length === 0 ? null : texts.join(' ');
+              },
+            });
+            displays.push({ ref, title: formatXrefTitle(ref), preview });
+          }
+          return displays;
+        }),
+      )
+      .then((rows) => {
+        if (mine !== seq) return;
+        setLoad({ _tag: 'ready', verse: f.verse, rows });
+      })
+      .catch((err: unknown) => {
+        if (mine !== seq) return;
+        setLoad({
+          _tag: 'error',
+          message: err instanceof Error ? err.message : String(err),
+        });
+      });
+  });
+
+  return (
+    <Show
+      when={focus()}
+      fallback={
+        <StudyTabEmpty
+          title="Cross references"
+          body="Click a verse number in the chapter to look up its cross references."
+        />
+      }
+    >
+      {(f) => (
+        <div class="flex flex-col gap-3">
+          <p class="text-ui-xs text-muted">Verse {f().verse}</p>
+          <Switch>
+            <Match when={load()._tag === 'loading'}>
+              <p class="text-ui-sm text-muted">Loading cross references…</p>
+            </Match>
+            <Match
+              when={(() => {
+                const l = load();
+                return l._tag === 'error' ? l : null;
+              })()}
+            >
+              {(err) => <p class="text-ui-sm text-danger">Lookup failed: {err().message}</p>}
+            </Match>
+            <Match
+              when={(() => {
+                const l = load();
+                return l._tag === 'ready' ? l : null;
+              })()}
+            >
+              {(ready) => (
+                <Show
+                  when={ready().rows.length > 0}
+                  fallback={
+                    <p class="text-ui-sm text-muted">
+                      No cross references for this verse in the bundled catalogs.
+                    </p>
+                  }
+                >
+                  <ul class="flex flex-col gap-2 list-none p-0 m-0">
+                    <For each={ready().rows}>
+                      {(row) => (
+                        <li class="flex flex-col gap-0.5">
+                          <div class="flex items-baseline gap-2">
+                            <button
+                              type="button"
+                              class="cursor-pointer bg-transparent border-0 p-0 text-ui-sm font-medium text-accent hover:underline text-left"
+                              title={`Open ${row.title}`}
+                              onClick={() =>
+                                props.state.navigate(row.ref.targetBook, row.ref.targetChapter)
+                              }
+                            >
+                              {row.title}
+                            </button>
+                            <span class="text-[0.62em] text-muted uppercase tracking-wide [font-variant-numeric:tabular-nums]">
+                              {row.ref.source === 'tske' ? 'TSK' : 'OB'}
+                            </span>
+                          </div>
+                          <Show when={row.preview}>
+                            {(preview) => (
+                              <p class="text-ui-sm text-muted m-0 leading-snug">{preview()}</p>
+                            )}
+                          </Show>
+                        </li>
+                      )}
+                    </For>
+                  </ul>
+                </Show>
               )}
             </Match>
           </Switch>

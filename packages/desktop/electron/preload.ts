@@ -82,6 +82,15 @@ const api = {
     // Strong's tab when the user clicks a superscript.
     strongsLookup: (code: string): Promise<StrongsLexiconPayload | null> =>
       ipcRenderer.invoke('bible:strongsLookup', code),
+    // Cross references for a single verse, drawn from the bundled openbible /
+    // TSKE catalogs. Returns [] when the verse has no entries in either
+    // catalog (common — coverage is uneven, especially for narrative books).
+    getCrossRefs: (
+      book: number,
+      chapter: number,
+      verse: number,
+    ): Promise<readonly CrossRefPayload[]> =>
+      ipcRenderer.invoke('bible:getCrossRefs', book, chapter, verse),
   },
 };
 
@@ -113,6 +122,16 @@ export type StrongsLexiconPayload = {
   readonly lemma: string;
   readonly transliteration: string;
   readonly definition: string;
+};
+
+/** One cross-ref row as exposed by `api.bible.getCrossRefs`. Shape must match
+ * `RendererCrossRef` in electron/main.ts. */
+export type CrossRefPayload = {
+  readonly source: 'openbible' | 'tske';
+  readonly targetBook: number;
+  readonly targetChapter: number;
+  readonly targetVerse: number;
+  readonly targetVerseEnd: number | null;
 };
 
 /** Search result row exposed by `api.search.*`. Shape must match

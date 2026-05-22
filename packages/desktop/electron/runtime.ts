@@ -1,3 +1,4 @@
+import { BibleXrefsDatabase } from '@bible/core/bible-xrefs-db';
 import { EGWApiClient, EGWAuth, EGWTokenStore } from '@bible/core/egw';
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
 import { KjvBibleDatabase } from '@bible/core/kjv-bible-db';
@@ -30,11 +31,14 @@ class TokenIoError extends Schema.TaggedErrorClass<TokenIoError>()('TokenIoError
 // the layers before providing the driver ensures one sqlite-node connection
 // covers both — opening two connections to a WAL-mode file in the same process
 // invites lock surprises and doubles the memory footprint.
-const dbLayer = (filename: string): Layer.Layer<EGWParagraphDatabase | KjvBibleDatabase> =>
-  Layer.mergeAll(EGWParagraphDatabase.layerCore, KjvBibleDatabase.layerCore).pipe(
-    Layer.provide(SqliteNode.layer({ filename })),
-    Layer.orDie,
-  );
+const dbLayer = (
+  filename: string,
+): Layer.Layer<EGWParagraphDatabase | KjvBibleDatabase | BibleXrefsDatabase> =>
+  Layer.mergeAll(
+    EGWParagraphDatabase.layerCore,
+    KjvBibleDatabase.layerCore,
+    BibleXrefsDatabase.layerCore,
+  ).pipe(Layer.provide(SqliteNode.layer({ filename })), Layer.orDie);
 
 // Node-fs-backed token store. We don't pull in @effect/platform-node just for
 // this — Electron main already uses node:fs for settings + tokens, so the
@@ -80,7 +84,7 @@ const egwLayer = (tokenFile: string): Layer.Layer<EGWApiClient> =>
   );
 
 export type MainRuntime = ManagedRuntime.ManagedRuntime<
-  EGWParagraphDatabase | KjvBibleDatabase | EGWApiClient,
+  EGWParagraphDatabase | KjvBibleDatabase | BibleXrefsDatabase | EGWApiClient,
   never
 >;
 
@@ -89,5 +93,9 @@ export const makeRuntime = (cacheDbFile: string, tokenFile: string): MainRuntime
 
 export const runtimeRun = <A, E>(
   runtime: MainRuntime,
-  effect: EffectNs.Effect<A, E, EGWParagraphDatabase | KjvBibleDatabase | EGWApiClient>,
+  effect: EffectNs.Effect<
+    A,
+    E,
+    EGWParagraphDatabase | KjvBibleDatabase | BibleXrefsDatabase | EGWApiClient
+  >,
 ): Promise<A> => runtime.runPromise(effect);

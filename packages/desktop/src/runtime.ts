@@ -1,4 +1,5 @@
 import { Layer, ManagedRuntime } from 'effect';
+import { BibleXrefs } from './services/bible-xrefs.js';
 import { CacheService } from './services/cache-service.js';
 import { EGWData } from './services/egw-data.js';
 import { EGWIpcClient } from './services/egw-ipc-client.js';
@@ -37,6 +38,7 @@ const AppLayer = Layer.mergeAll(
   PrefetcherLayer,
   SearchServiceLayer,
   KjvBible.layer,
+  BibleXrefs.layer,
 );
 
 export const runtime = ManagedRuntime.make(AppLayer);

@@ -1,3 +1,4 @@
+import { BibleXrefsDatabase, type XrefCatalog } from '@bible/core/bible-xrefs-db';
 import { EGWApiClient, nodesToText, Schemas } from '@bible/core/egw';
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
 import {
@@ -527,6 +528,71 @@ ipcMain.handle(
   },
 );
 
+// --- Cross-reference catalog IPC ----------------------------------------
+// Same first-launch-import pattern as the KJV imports above. Both openbible
+// and TSKE catalogs share a JSON shape so a single importer covers both,
+// re-running them is idempotent via PK upsert.
+let xrefsImportsPromise: Promise<void> | null = null;
+const ensureXrefsImportsDone = (runtime: MainRuntime): Promise<void> => {
+  const cached = xrefsImportsPromise;
+  if (cached !== null) return cached;
+  const fresh = runtime.runPromise(
+    BibleXrefsDatabase.pipe(
+      Effect.flatMap((db) =>
+        db.isImported().pipe(
+          Effect.flatMap((done) => {
+            if (done) return Effect.asVoid(Effect.void);
+            const openbible = JSON.parse(readCoreAssetText('cross-refs.json')) as XrefCatalog;
+            const tske = JSON.parse(readCoreAssetText('cross-refs-tske.json')) as XrefCatalog;
+            return db
+              .importCatalog('openbible', openbible)
+              .pipe(Effect.andThen(db.importCatalog('tske', tske)), Effect.asVoid);
+          }),
+        ),
+      ),
+    ),
+  );
+  xrefsImportsPromise = fresh;
+  return fresh;
+};
+
+// Renderer-facing cross-ref row. camelCase mirrors the service's CrossRefRow
+// shape exactly (the service already projects out of snake_case columns) so we
+// can pass it straight through, but we re-declare here to lock the IPC
+// contract independently of the core service shape.
+type RendererCrossRef = {
+  readonly source: 'openbible' | 'tske';
+  readonly targetBook: number;
+  readonly targetChapter: number;
+  readonly targetVerse: number;
+  readonly targetVerseEnd: number | null;
+};
+
+ipcMain.handle(
+  'bible:getCrossRefs',
+  async (
+    _event,
+    book: number,
+    chapter: number,
+    verse: number,
+  ): Promise<readonly RendererCrossRef[]> => {
+    if (mainRuntime === null) return [];
+    await ensureXrefsImportsDone(mainRuntime);
+    const rows = await mainRuntime.runPromise(
+      BibleXrefsDatabase.pipe(Effect.flatMap((db) => db.getCrossRefs(book, chapter, verse))),
+    );
+    return rows.map(
+      (r): RendererCrossRef => ({
+        source: r.source,
+        targetBook: r.targetBook,
+        targetChapter: r.targetChapter,
+        targetVerse: r.targetVerse,
+        targetVerseEnd: r.targetVerseEnd,
+      }),
+    );
+  },
+);
+
 // --- EGW live API IPC ----------------------------------------------------
 // All EGW HTTP runs in main (Node fetch), not the renderer, because:
 //   - the renderer's browser fetch trips on CORS preflight (EGW doesn't
@@ -690,7 +756,10 @@ void app.whenReady().then(async () => {
   // the layer is Layer.orDie, so a failed open throws synchronously.
   await mainRuntime.runPromise(EGWParagraphDatabase.pipe(Effect.asVoid));
   await mainRuntime.runPromise(KjvBibleDatabase.pipe(Effect.asVoid));
-  console.error('[main] EGWParagraphDatabase + KjvBibleDatabase ready, opening window');
+  await mainRuntime.runPromise(BibleXrefsDatabase.pipe(Effect.asVoid));
+  console.error(
+    '[main] EGWParagraphDatabase + KjvBibleDatabase + BibleXrefsDatabase ready, opening window',
+  );
   void createWindow();
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) void createWindow();
