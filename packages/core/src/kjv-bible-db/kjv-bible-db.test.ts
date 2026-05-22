@@ -185,15 +185,18 @@ describe('KjvBibleDatabase', () => {
       }),
     ));
 
-  test('isImported flips after both imports run', () =>
+  test('isImported reports partial KJV imports as not-imported', () =>
     runTest(
       Effect.gen(function* () {
         const db = yield* KjvBibleDatabase;
         expect(yield* db.isImported()).toBe(false);
         yield* db.importKjv(mockKjv, mockStrongs);
-        expect(yield* db.isImported()).toBe(false);
         yield* db.importStrongsLexicon(mockLex);
-        expect(yield* db.isImported()).toBe(true);
+        // Mock fixture has 4 verses, far below the canonical 31102.
+        // `isImported` treats anything below threshold as not-imported
+        // so a crashed transaction recovers automatically on the next
+        // launch instead of wedging the renderer with empty chapters.
+        expect(yield* db.isImported()).toBe(false);
       }),
     ));
 });

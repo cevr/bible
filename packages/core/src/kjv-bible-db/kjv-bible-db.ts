@@ -24,6 +24,12 @@ import type { SqlError } from 'effect/unstable/sql/SqlError';
 // ship migration SQL.
 const SCHEMA_VERSION = 1;
 
+// The KJV asset has exactly this many verses. `isImported` treats a row
+// count below this as a partial/corrupt import (a previous transaction
+// crashed mid-write) and reports unimported so the next launch
+// re-runs the bundled import.
+const EXPECTED_KJV_VERSE_COUNT = 31102;
+
 // ---------------------------------------------------------------------------
 // Asset shapes (input to import)
 // ---------------------------------------------------------------------------
@@ -379,7 +385,10 @@ export class KjvBibleDatabase extends Context.Service<KjvBibleDatabase, KjvBible
       const isImported = () =>
         Effect.gen(function* () {
           const verseCount = yield* sql<{ n: number }>`SELECT COUNT(*) AS n FROM kjv_verses`;
-          if ((verseCount[0]?.n ?? 0) === 0) return false;
+          // Treat a partial import (e.g. a crashed transaction that left
+          // the table populated but incomplete) as not-imported so the
+          // next launch re-runs from the bundled asset.
+          if ((verseCount[0]?.n ?? 0) < EXPECTED_KJV_VERSE_COUNT) return false;
           const lexCount = yield* sql<{ n: number }>`SELECT COUNT(*) AS n FROM strongs_lexicon`;
           return (lexCount[0]?.n ?? 0) > 0;
         });
