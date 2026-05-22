@@ -14,6 +14,7 @@ import {
 } from 'solid-js';
 import { runtime } from '../runtime.js';
 import { BibleReaderState, type BibleReaderSelection } from '../services/bible-reader-state.js';
+import { EgwCommentary } from '../services/egw-commentary.js';
 import { KjvBible, type KjvChapter } from '../services/kjv-bible.js';
 import { BibleBooksGrid } from './bible-books-grid.js';
 import { VerseRenderer } from './bible/verse-renderer.js';
@@ -39,6 +40,13 @@ export const BibleChapterCanvas: Component = () => {
     Option.none(),
   );
   const [load, setLoad] = createSignal<Load>({ _tag: 'idle' });
+  // Verses in the current chapter that have at least one cached EGW
+  // paragraph. Empty Set until the per-chapter query resolves. Re-queried
+  // on chapter swap and whenever the indexer pulses
+  // `EgwCommentary.changes` after writing fresh refs.
+  const [commentaryVerses, setCommentaryVerses] = createSignal<ReadonlySet<number>>(
+    new Set<number>(),
+  );
 
   // Per-verse refs let us scroll precisely to the highlight target after a
   // chapter renders. Reset on every chapter swap — stale element refs hang
@@ -54,24 +62,64 @@ export const BibleChapterCanvas: Component = () => {
         );
       }),
     );
+    // Pulse fiber — re-query the chapter hit set whenever the indexer
+    // reports new EGW commentary. The service has already invalidated
+    // its LRU for the touched (book, chapter) keys, so the next query
+    // returns the fresh Set.
+    const pulseFiber = runtime.runFork(
+      Effect.gen(function* () {
+        const commentary = yield* EgwCommentary;
+        yield* commentary.changes.pipe(
+          Stream.runForEach(() =>
+            Effect.sync(() => {
+              const sel = Option.getOrNull(selection());
+              if (sel === null) return;
+              // Re-trigger the query effect by clearing — the createEffect
+              // on `selection` won't fire because selection didn't change,
+              // so we kick off a fresh query inline.
+              void runtime
+                .runPromise(
+                  Effect.gen(function* () {
+                    const c = yield* EgwCommentary;
+                    return yield* c.versesWithCommentary(sel.book, sel.chapter);
+                  }),
+                )
+                .then(setCommentaryVerses)
+                .catch(() => {
+                  /* leave stale set on transient failure */
+                });
+            }),
+          ),
+        );
+      }),
+    );
     onCleanup(() => {
       void runtime.runPromise(Fiber.interrupt(fiber));
+      void runtime.runPromise(Fiber.interrupt(pulseFiber));
     });
   });
 
   // Sequence guard: chapter swaps in flight when a new selection lands should
   // not overwrite the newer chapter's load state.
   let loadSeq = 0;
+  // Separate guard for the hit-set query — it runs in parallel with the
+  // chapter load and the user can swap chapters before either resolves.
+  let commentarySeq = 0;
   createEffect(() => {
     const sel = selection();
     verseRefs.clear();
     if (Option.isNone(sel)) {
       setLoad({ _tag: 'idle' });
+      setCommentaryVerses(new Set<number>());
       return;
     }
     const { book, chapter } = sel.value;
     const mine = ++loadSeq;
+    const mineCommentary = ++commentarySeq;
     setLoad({ _tag: 'loading' });
+    // Clear stale markers immediately so a brief flash of the previous
+    // chapter's hit set doesn't paint on the new chapter.
+    setCommentaryVerses(new Set<number>());
     runtime
       .runPromise(
         Effect.gen(function* () {
@@ -93,6 +141,20 @@ export const BibleChapterCanvas: Component = () => {
           _tag: 'error',
           message: err instanceof Error ? err.message : 'Failed to load chapter.',
         });
+      });
+    runtime
+      .runPromise(
+        Effect.gen(function* () {
+          const c = yield* EgwCommentary;
+          return yield* c.versesWithCommentary(book, chapter);
+        }),
+      )
+      .then((set) => {
+        if (mineCommentary !== commentarySeq) return;
+        setCommentaryVerses(set);
+      })
+      .catch(() => {
+        /* leave empty set on transient failure */
       });
   });
 
@@ -171,8 +233,10 @@ export const BibleChapterCanvas: Component = () => {
               <ChapterBody
                 chapter={chapter}
                 cursorVerse={cursorVerse()}
+                commentaryVerses={commentaryVerses()}
                 verseRefs={verseRefs}
                 onVerseClick={onVerseClick}
+                onCommentaryClick={onVerseClick}
               />
             </div>
           )}
@@ -205,8 +269,10 @@ const ChapterHeader: Component<{ readonly selection: Option.Option<BibleReaderSe
 const ChapterBody: Component<{
   readonly chapter: KjvChapter;
   readonly cursorVerse: number | null;
+  readonly commentaryVerses: ReadonlySet<number>;
   readonly verseRefs: Map<number, HTMLElement>;
   readonly onVerseClick: (verse: number) => void;
+  readonly onCommentaryClick: (verse: number) => void;
 }> = (props) => (
   <>
     <h1 class="m-0 text-ui-2xl font-semibold tracking-[-0.005em] text-fg">
@@ -216,6 +282,7 @@ const ChapterBody: Component<{
       <For each={props.chapter.verses}>
         {(v) => {
           const isCursor = (): boolean => v.verse === props.cursorVerse;
+          const hasCommentary = (): boolean => props.commentaryVerses.has(v.verse);
           return (
             <p
               class="m-0 -mx-2 rounded px-2 py-1 data-[cursor=true]:bg-accent-soft"
@@ -232,6 +299,16 @@ const ChapterBody: Component<{
               >
                 {v.verse}
               </button>
+              <Show when={hasCommentary()}>
+                <button
+                  type="button"
+                  class="mr-1 cursor-pointer bg-transparent border-0 p-0 align-baseline text-[0.62em] font-medium text-accent opacity-70 hover:opacity-100 hover:underline select-none"
+                  title={`EGW commentary on verse ${String(v.verse)}`}
+                  onClick={() => props.onCommentaryClick(v.verse)}
+                >
+                  <sup>e</sup>
+                </button>
+              </Show>
               <VerseRenderer text={v.text} />
             </p>
           );
