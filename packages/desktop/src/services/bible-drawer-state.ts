@@ -49,7 +49,8 @@ export type StudyPaneFocus =
   | { readonly _tag: 'none' }
   | { readonly _tag: 'note'; readonly verse: number; readonly noteIndex: number }
   | { readonly _tag: 'strongs'; readonly verse: number; readonly code: string }
-  | { readonly _tag: 'xref'; readonly verse: number };
+  | { readonly _tag: 'xref'; readonly verse: number }
+  | { readonly _tag: 'egw'; readonly verse: number };
 
 export interface BibleDrawerState {
   readonly isOpen: Accessor<boolean>;

@@ -46,6 +46,7 @@ export {
 export { EGWAuth, EGWAuthError, AccessToken } from './auth.js';
 export { EGWTokenStore } from './token-store.js';
 export * as Schemas from './schemas.js';
+export { extractScriptureRefs, type ExtractedBibleRef } from './extract.js';
 export {
   parseEGWRef,
   parseEGWRefEffect,

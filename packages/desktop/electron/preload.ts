@@ -107,6 +107,16 @@ const api = {
       chapter: number,
     ): Promise<readonly VerseWithNotesPayload[]> =>
       ipcRenderer.invoke('bible:getVersesWithNotes', book, chapter),
+    // EGW paragraphs that reference the given Bible verse, drawn from the
+    // local `paragraph_bible_refs` index (populated by the indexer + boot
+    // backfill). Empty until the user has cached at least one EGW chapter
+    // that mentions this verse.
+    getEgwCommentary: (
+      book: number,
+      chapter: number,
+      verse: number,
+    ): Promise<readonly EgwCommentaryHitPayload[]> =>
+      ipcRenderer.invoke('bible:getEgwCommentary', book, chapter, verse),
   },
 };
 
@@ -164,6 +174,17 @@ export type MarginNotePayload = {
 export type VerseWithNotesPayload = {
   readonly verse: number;
   readonly count: number;
+};
+
+/** One commentary hit as exposed by `api.bible.getEgwCommentary`. Shape must
+ * match `EgwCommentaryHit` in electron/main.ts. */
+export type EgwCommentaryHitPayload = {
+  readonly bookId: number;
+  readonly bookCode: string;
+  readonly bookTitle: string;
+  readonly refcodeShort: string | null;
+  readonly snippet: string;
+  readonly puborder: number;
 };
 
 /** Search result row exposed by `api.search.*`. Shape must match

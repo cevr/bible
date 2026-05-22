@@ -24,6 +24,7 @@ import {
   type MarginNoteType,
 } from '../services/bible-margin-notes.js';
 import { BibleXrefs, type CrossRef } from '../services/bible-xrefs.js';
+import { EgwCommentary, type EgwCommentaryHit } from '../services/egw-commentary.js';
 import {
   KjvBible,
   type KjvChapter,
@@ -632,10 +633,7 @@ const StudyPaneBody: Component<{ readonly state: BibleDrawerState }> = (props) =
       <XrefsTab state={props.state} />
     </Match>
     <Match when={props.state.activeStudyTab() === 'egw'}>
-      <StudyTabEmpty
-        title="Spirit of Prophecy"
-        body="Ellen G. White commentary on the active verse will appear here."
-      />
+      <EgwTab state={props.state} />
     </Match>
   </Switch>
 );
@@ -756,6 +754,134 @@ const NotesTab: Component<{ readonly state: BibleDrawerState }> = (props) => {
                             <span class="text-ui-sm font-medium text-fg">{note.phrase}</span>
                           </div>
                           <p class="text-ui-sm text-muted m-0 leading-snug">{note.text}</p>
+                        </li>
+                      )}
+                    </For>
+                  </ul>
+                </Show>
+              )}
+            </Match>
+          </Switch>
+        </div>
+      )}
+    </Show>
+  );
+};
+
+// EGW commentary tab: lists every cached EGW paragraph that references the
+// active verse. The "active verse" is whatever the drawer is currently
+// pointing at — last clicked margin-note / xref / Strong's anchor, or the
+// keyboard cursor if the user hasn't touched an anchor. We deliberately
+// don't expose an inline "open in EGW" decoration: there'd be one per verse
+// per chapter, which is too noisy.
+type EgwLoad =
+  | { readonly _tag: 'idle' }
+  | { readonly _tag: 'loading'; readonly verse: number }
+  | { readonly _tag: 'ready'; readonly verse: number; readonly hits: readonly EgwCommentaryHit[] }
+  | { readonly _tag: 'error'; readonly message: string };
+
+const verseFromFocusOrCursor = (state: BibleDrawerState): number | null => {
+  const f = state.studyFocus();
+  if (f._tag === 'note' || f._tag === 'strongs' || f._tag === 'xref' || f._tag === 'egw') {
+    return f.verse;
+  }
+  return state.cursorVerse();
+};
+
+const EgwTab: Component<{ readonly state: BibleDrawerState }> = (props) => {
+  const verse = createMemo(() => verseFromFocusOrCursor(props.state));
+  const [load, setLoad] = createSignal<EgwLoad>({ _tag: 'idle' });
+
+  let seq = 0;
+  createEffect(() => {
+    const v = verse();
+    if (v === null) {
+      setLoad({ _tag: 'idle' });
+      return;
+    }
+    const s = props.state.status();
+    if (s._tag !== 'ready') {
+      setLoad({ _tag: 'idle' });
+      return;
+    }
+    const sourceBook = s.chapter.book;
+    const sourceChapter = s.chapter.chapter;
+    const mine = ++seq;
+    setLoad({ _tag: 'loading', verse: v });
+    runtime
+      .runPromise(
+        Effect.gen(function* () {
+          const svc = yield* EgwCommentary;
+          return yield* svc.getCommentary(sourceBook, sourceChapter, v);
+        }),
+      )
+      .then((hits) => {
+        if (mine !== seq) return;
+        setLoad({ _tag: 'ready', verse: v, hits });
+      })
+      .catch((err: unknown) => {
+        if (mine !== seq) return;
+        setLoad({
+          _tag: 'error',
+          message: err instanceof Error ? err.message : String(err),
+        });
+      });
+  });
+
+  return (
+    <Show
+      when={verse()}
+      fallback={
+        <StudyTabEmpty
+          title="Spirit of Prophecy"
+          body="Move the cursor (j/k) or click a verse to load EGW commentary on it."
+        />
+      }
+    >
+      {(v) => (
+        <div class="flex flex-col gap-3">
+          <p class="text-ui-xs text-muted">Verse {v()}</p>
+          <Switch>
+            <Match when={load()._tag === 'loading'}>
+              <p class="text-ui-sm text-muted">Searching cached EGW…</p>
+            </Match>
+            <Match
+              when={(() => {
+                const l = load();
+                return l._tag === 'error' ? l : null;
+              })()}
+            >
+              {(err) => <p class="text-ui-sm text-danger">Lookup failed: {err().message}</p>}
+            </Match>
+            <Match
+              when={(() => {
+                const l = load();
+                return l._tag === 'ready' ? l : null;
+              })()}
+            >
+              {(ready) => (
+                <Show
+                  when={ready().hits.length > 0}
+                  fallback={
+                    <p class="text-ui-sm text-muted">
+                      No cached EGW paragraph mentions this verse yet. Read more chapters in the EGW
+                      reader to fill the index.
+                    </p>
+                  }
+                >
+                  <ul class="flex flex-col gap-3 list-none p-0 m-0">
+                    <For each={ready().hits}>
+                      {(hit) => (
+                        <li class="flex flex-col gap-0.5">
+                          <div class="flex items-baseline gap-2">
+                            <span class="text-[0.62em] text-muted uppercase tracking-wide [font-variant-numeric:tabular-nums]">
+                              {hit.refcodeShort ?? hit.bookCode}
+                            </span>
+                            <span class="text-ui-sm font-medium text-fg">{hit.bookTitle}</span>
+                          </div>
+                          <p class="text-ui-sm text-muted m-0 leading-snug line-clamp-4">
+                            {hit.snippet}
+                          </p>
                         </li>
                       )}
                     </For>

@@ -231,9 +231,40 @@ export interface EGWParagraphDatabaseService {
     bibleChapter: number,
     bibleVerse?: number,
   ) => Effect.Effect<
-    readonly (EGWSchemas.Paragraph & { bookCode: string; bookTitle: string })[],
+    readonly (EGWSchemas.Paragraph & {
+      bookId: number;
+      bookCode: string;
+      bookTitle: string;
+    })[],
     ParagraphDatabaseError
   >;
+  /**
+   * One-shot population of `paragraph_bible_refs` from already-indexed
+   * paragraphs. Skips when the table is non-empty (so a healthy install pays
+   * a single COUNT(*) on boot, nothing more). When empty, streams every
+   * paragraph through `extract` (extractor lives in the caller — typically
+   * `extractScriptureRefs` from `@bible/core/egw`) and inserts the produced
+   * rows in per-book batches.
+   *
+   * Exists because `storeBibleRefsBatch` was added after `storeParagraphsBatch`
+   * was already populating the cache for users in the wild; without this they
+   * would never see EGW commentary on Bible verses until they re-fetched
+   * every chapter.
+   *
+   * Returns `{ scanned, inserted }` so callers can log throughput.
+   */
+  readonly backfillBibleRefs: (
+    extract: (
+      paragraphs: readonly EGWSchemas.Paragraph[],
+      bookId: number,
+    ) => readonly {
+      bookId: number;
+      refCode: string;
+      bibleBook: number;
+      bibleChapter: number;
+      bibleVerse: number | null;
+    }[],
+  ) => Effect.Effect<{ scanned: number; inserted: number }, ParagraphDatabaseError>;
 
   // Sync status operations
   readonly setSyncStatus: (
@@ -743,6 +774,7 @@ export class EGWParagraphDatabase extends Context.Service<
           Effect.map((rows) =>
             rows.map((row) => ({
               ...rowToParagraph(row),
+              bookId: row.book_id,
               bookCode: row.book_code,
               bookTitle: row.book_title,
             })),
@@ -792,6 +824,44 @@ export class EGWParagraphDatabase extends Context.Service<
           .unsafe(`INSERT INTO paragraphs_fts(paragraphs_fts) VALUES('rebuild')`)
           .pipe(Effect.asVoid);
 
+      const backfillBibleRefs = (
+        extract: (
+          paragraphs: readonly EGWSchemas.Paragraph[],
+          bookId: number,
+        ) => readonly {
+          bookId: number;
+          refCode: string;
+          bibleBook: number;
+          bibleChapter: number;
+          bibleVerse: number | null;
+        }[],
+      ) =>
+        Effect.gen(function* () {
+          // Cheap gate: if anything's already in the table, assume incremental
+          // indexing is keeping up and we don't need to scan the whole corpus.
+          const existing = yield* sql<{ n: number }>`
+            SELECT COUNT(*) AS n FROM paragraph_bible_refs LIMIT 1
+          `;
+          if ((existing[0]?.n ?? 0) > 0) {
+            return { scanned: 0, inserted: 0 };
+          }
+
+          let scanned = 0;
+          let inserted = 0;
+          const books = yield* Stream.runCollect(getAllBooks());
+          for (const book of books) {
+            const paragraphs = yield* Stream.runCollect(getParagraphsByBook(book.book_id));
+            const arr = Array.from(paragraphs);
+            scanned += arr.length;
+            const refs = extract(arr, book.book_id);
+            if (refs.length > 0) {
+              const wrote = yield* storeBibleRefsBatch(refs);
+              inserted += wrote;
+            }
+          }
+          return { scanned, inserted };
+        });
+
       return {
         storeBook,
         getBookById,
@@ -819,6 +889,7 @@ export class EGWParagraphDatabase extends Context.Service<
         getAllSyncStatus,
         needsSync,
         rebuildFtsIndex,
+        backfillBibleRefs,
       };
     }),
   );
@@ -866,5 +937,6 @@ export class EGWParagraphDatabase extends Context.Service<
       getAllSyncStatus: () => Effect.succeed([]),
       needsSync: () => Effect.succeed(true),
       rebuildFtsIndex: () => Effect.void,
+      backfillBibleRefs: () => Effect.succeed({ scanned: 0, inserted: 0 }),
     });
 }

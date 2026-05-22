@@ -3,7 +3,7 @@ import {
   type MarginNotesCatalog,
 } from '@bible/core/bible-margin-notes-db';
 import { BibleXrefsDatabase, type XrefCatalog } from '@bible/core/bible-xrefs-db';
-import { EGWApiClient, nodesToText, Schemas } from '@bible/core/egw';
+import { EGWApiClient, extractScriptureRefs, nodesToText, Schemas } from '@bible/core/egw';
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
 import {
   KjvBibleDatabase,
@@ -680,6 +680,77 @@ ipcMain.handle(
   },
 );
 
+// --- EGW commentary on Bible verses --------------------------------------
+// `paragraph_bible_refs` is populated incrementally by the indexer (each
+// freshly-cached chapter writes its ScriptureRef rows in the same tx). For
+// users who indexed chapters before the indexer learned about bible-refs,
+// `ensureCommentaryBackfillDone` walks the existing paragraphs and seeds
+// `paragraph_bible_refs` once. The DB-level gate skips when any row exists,
+// so the steady-state boot cost is one COUNT(*).
+let commentaryBackfillPromise: Promise<void> | null = null;
+const ensureCommentaryBackfillDone = (runtime: MainRuntime): Promise<void> => {
+  const cached = commentaryBackfillPromise;
+  if (cached !== null) return cached;
+  const fresh = runtime
+    .runPromise(
+      EGWParagraphDatabase.pipe(Effect.flatMap((db) => db.backfillBibleRefs(extractScriptureRefs))),
+    )
+    .then((result) => {
+      if (result.scanned > 0) {
+        console.error(
+          `[main] EGW bible-ref backfill: scanned ${String(result.scanned)} paragraphs, inserted ${String(result.inserted)} refs`,
+        );
+      }
+    })
+    .catch((err: unknown) => {
+      // Backfill is opportunistic — a failure shouldn't block commentary
+      // lookups against the rows already in the table.
+      console.warn('[main] EGW bible-ref backfill failed:', err);
+    });
+  commentaryBackfillPromise = fresh;
+  return fresh;
+};
+
+// Renderer-facing commentary hit. Carries enough to render a list item and
+// click through to the reader: book metadata + the paragraph snippet + the
+// refcode (which the reader navigates by).
+type EgwCommentaryHit = {
+  readonly bookId: number;
+  readonly bookCode: string;
+  readonly bookTitle: string;
+  readonly refcodeShort: string | null;
+  readonly snippet: string;
+  readonly puborder: number;
+};
+
+ipcMain.handle(
+  'bible:getEgwCommentary',
+  async (
+    _event,
+    book: number,
+    chapter: number,
+    verse: number,
+  ): Promise<readonly EgwCommentaryHit[]> => {
+    if (mainRuntime === null) return [];
+    await ensureCommentaryBackfillDone(mainRuntime);
+    const rows = await mainRuntime.runPromise(
+      EGWParagraphDatabase.pipe(
+        Effect.flatMap((db) => db.getParagraphsByBibleRef(book, chapter, verse)),
+      ),
+    );
+    return rows.map(
+      (r): EgwCommentaryHit => ({
+        bookId: r.bookId,
+        bookCode: r.bookCode,
+        bookTitle: r.bookTitle,
+        refcodeShort: r.refcode_short ?? null,
+        snippet: nodesToText(r.nodes),
+        puborder: r.puborder,
+      }),
+    );
+  },
+);
+
 // --- EGW live API IPC ----------------------------------------------------
 // All EGW HTTP runs in main (Node fetch), not the renderer, because:
 //   - the renderer's browser fetch trips on CORS preflight (EGW doesn't
@@ -848,6 +919,10 @@ void app.whenReady().then(async () => {
   console.error(
     '[main] EGWParagraphDatabase + KjvBibleDatabase + BibleXrefsDatabase + BibleMarginNotesDatabase ready, opening window',
   );
+  // Kick off the EGW bible-ref backfill in the background. Fire-and-forget
+  // so window paint isn't blocked; the IPC handler awaits the same Promise
+  // before serving the first commentary query.
+  void ensureCommentaryBackfillDone(mainRuntime);
   void createWindow();
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) void createWindow();

@@ -14,7 +14,7 @@
  */
 
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
-import { Schemas } from '@bible/core/egw';
+import { extractScriptureRefs, Schemas } from '@bible/core/egw';
 import type Database from 'better-sqlite3';
 import { Effect, Option, Schema } from 'effect';
 
@@ -63,10 +63,20 @@ export const indexChapter = async (
     return;
   }
 
+  const refs = extractScriptureRefs(decoded.value, bookId);
+
   await runtime
     .runPromise(
       EGWParagraphDatabase.pipe(
-        Effect.flatMap((db) => db.storeParagraphsBatch(decoded.value, book)),
+        Effect.flatMap((db) =>
+          Effect.gen(function* () {
+            yield* db.storeParagraphsBatch(decoded.value, book);
+            // Bible-ref extraction must run in the same boot path as the
+            // paragraph write so cache.sqlite stays consistent. Empty arrays
+            // short-circuit inside `storeBibleRefsBatch` — no extra round-trip.
+            if (refs.length > 0) yield* db.storeBibleRefsBatch(refs);
+          }),
+        ),
       ),
     )
     .catch((err: unknown) => {
