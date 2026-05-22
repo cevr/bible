@@ -199,4 +199,21 @@ describe('KjvBibleDatabase', () => {
         expect(yield* db.isImported()).toBe(false);
       }),
     ));
+
+  test('resetTables wipes verses + lexicon and leaves schema usable', () =>
+    runTest(
+      Effect.gen(function* () {
+        const db = yield* KjvBibleDatabase;
+        yield* db.importKjv(mockKjv, mockStrongs);
+        yield* db.importStrongsLexicon(mockLex);
+        const before = yield* db.getChapter(1, 1);
+        expect(Option.isSome(before)).toBe(true);
+        yield* db.resetTables();
+        const wiped = yield* db.getChapter(1, 1);
+        expect(Option.isNone(wiped)).toBe(true);
+        // Re-import succeeds against the fresh schema.
+        const reimport = yield* db.importKjv(mockKjv, mockStrongs);
+        expect(reimport.verses).toBe(4);
+      }),
+    ));
 });

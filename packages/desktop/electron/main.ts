@@ -8,6 +8,7 @@ import { EGWParagraphDatabase } from '@bible/core/egw-db';
 import {
   KjvBibleDatabase,
   type KjvAssetFile,
+  type KjvBibleDatabaseService,
   type KjvStrongsChapterPayload,
   type StrongsLexiconEntry,
   type StrongsLexiconRaw,
@@ -15,6 +16,7 @@ import {
 } from '@bible/core/kjv-bible-db';
 import Database from 'better-sqlite3';
 import { Effect, Option, Schema, Stream } from 'effect';
+import type { SqlError } from 'effect/unstable/sql/SqlError';
 
 class EgwIpcError extends Schema.TaggedErrorClass<EgwIpcError>()('EgwIpcError', {
   message: Schema.String,
@@ -427,6 +429,18 @@ const coreAssetPath = (name: string): string =>
 
 const readCoreAssetText = (name: string): string => readFileSync(coreAssetPath(name), 'utf-8');
 
+// Read all three bundled JSON assets and run the import transaction on the
+// given database service. Shared between the boot-time `ensureBibleImportsDone`
+// path and the renderer-driven `bible:reimportKjv` recovery flow.
+const runBundledKjvImport = (db: KjvBibleDatabaseService): Effect.Effect<void, SqlError> => {
+  const kjv = JSON.parse(readCoreAssetText('kjv.json')) as KjvAssetFile;
+  const strongs = JSON.parse(readCoreAssetText('kjv-strongs.json')) as readonly StrongsVerseRow[];
+  const lex = JSON.parse(readCoreAssetText('strongs.json')) as Record<string, StrongsLexiconRaw>;
+  return db
+    .importKjv(kjv, strongs)
+    .pipe(Effect.andThen(db.importStrongsLexicon(lex)), Effect.asVoid);
+};
+
 // One-shot import on first launch (or after a schema-version bump dropped the
 // tables). Subsequent launches hit isImported() and skip the JSON read +
 // transaction entirely. The Promise is cached so concurrent IPC calls during
@@ -442,17 +456,7 @@ const ensureBibleImportsDone = (runtime: MainRuntime): Promise<void> => {
           db.isImported().pipe(
             Effect.flatMap((done) => {
               if (done) return Effect.asVoid(Effect.void);
-              const kjv = JSON.parse(readCoreAssetText('kjv.json')) as KjvAssetFile;
-              const strongs = JSON.parse(
-                readCoreAssetText('kjv-strongs.json'),
-              ) as readonly StrongsVerseRow[];
-              const lex = JSON.parse(readCoreAssetText('strongs.json')) as Record<
-                string,
-                StrongsLexiconRaw
-              >;
-              return db
-                .importKjv(kjv, strongs)
-                .pipe(Effect.andThen(db.importStrongsLexicon(lex)), Effect.asVoid);
+              return runBundledKjvImport(db);
             }),
           ),
         ),
@@ -513,6 +517,22 @@ ipcMain.handle(
     });
   },
 );
+
+ipcMain.handle('bible:reimportKjv', async (): Promise<void> => {
+  if (mainRuntime === null) return;
+  // Reset the cached boot Promise so any future getChapter call awaits the
+  // new import effect (instead of resolving instantly against the now-empty
+  // cached Promise).
+  bibleImportsPromise = null;
+  await mainRuntime.runPromise(
+    KjvBibleDatabase.pipe(
+      Effect.flatMap((db) =>
+        db.resetTables().pipe(Effect.andThen(runBundledKjvImport(db)), Effect.asVoid),
+      ),
+    ),
+  );
+  console.error('[main] KJV reimport complete');
+});
 
 ipcMain.handle(
   'bible:getChapterStrongs',
@@ -959,6 +979,7 @@ void app.whenReady().then(async () => {
   // hit set (queried before refs were written) clears its LRU and
   // re-queries. Cheap signal — one IPC message per cold launch.
   void ensureCommentaryBackfillDone(mainRuntime).then(() => {
+    console.error('[main] EGW commentary backfill complete, broadcasting pulse');
     for (const win of BrowserWindow.getAllWindows()) {
       win.webContents.send('bible:egwCommentaryUpdated', []);
     }

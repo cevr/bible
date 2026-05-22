@@ -45,6 +45,11 @@ export interface KjvBibleShape {
    *  first call triggers a ~3 MB JSON parse in main. `None` for unknown codes
    *  or malformed input. */
   readonly strongsLookup: (code: string) => Effect.Effect<Option.Option<StrongsLexiconEntry>>;
+  /** Drop the cached LRU/lexicon entries and ask main to drop + re-import
+   *  the bundled KJV verses + Strong's lexicon. Used by the chapter canvas'
+   *  "Reimport KJV" recovery flow when a chapter came back empty (typically
+   *  a partial import left the table populated but incomplete). */
+  readonly reimport: () => Effect.Effect<void>;
 }
 
 // Tiny LRU. 32 chapters covers prev/next traversal of a typical session
@@ -55,6 +60,7 @@ const LRU_CAP = 32;
 const makeLru = <V>(): {
   readonly get: (key: string) => V | undefined;
   readonly set: (key: string, value: V) => void;
+  readonly clear: () => void;
 } => {
   const map = new Map<string, V>();
   return {
@@ -72,6 +78,9 @@ const makeLru = <V>(): {
         const oldest = map.keys().next().value;
         if (oldest !== undefined) map.delete(oldest);
       }
+    },
+    clear: () => {
+      map.clear();
     },
   };
 };
@@ -121,6 +130,16 @@ export class KjvBible extends Context.Service<KjvBible, KjvBibleShape>()(
           }),
         );
       },
+      reimport: () =>
+        Effect.promise(() => window.api.bible.reimportKjv()).pipe(
+          Effect.tap(() =>
+            Effect.sync(() => {
+              plainLru.clear();
+              strongsLru.clear();
+              lexiconCache.clear();
+            }),
+          ),
+        ),
     };
   });
 
@@ -144,5 +163,6 @@ export class KjvBible extends Context.Service<KjvBible, KjvBibleShape>()(
         ),
       strongsLookup: (code) =>
         Effect.succeed(Option.fromNullishOr(lexicon.find((e) => e.code === code))),
+      reimport: () => Effect.void,
     });
 }

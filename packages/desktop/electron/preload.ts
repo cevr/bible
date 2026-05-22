@@ -73,6 +73,12 @@ const api = {
     // drawer can show an inline "not found" without throwing.
     getChapter: (book: number, chapter: number): Promise<KjvChapterPayload | null> =>
       ipcRenderer.invoke('bible:getChapter', book, chapter),
+    // Drop and re-import the bundled KJV verses + Strong's lexicon. Exposed
+    // for the renderer's "Reimport KJV" recovery affordance — used when a
+    // previous import left the tables partial/empty (e.g. crashed transaction)
+    // and a chapter render came up empty. Resolves once the re-import
+    // transaction commits.
+    reimportKjv: (): Promise<void> => ipcRenderer.invoke('bible:reimportKjv'),
     // KJV with Strong's numbers — same lookup, word-tokenized payload with
     // optional H#### / G#### tags. Lazy-loaded on first call (~21 MB on disk).
     getChapterStrongs: (book: number, chapter: number): Promise<KjvStrongsChapterPayload | null> =>

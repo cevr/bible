@@ -201,6 +201,15 @@ export interface KjvBibleDatabaseService {
    * launches.
    */
   readonly isImported: () => Effect.Effect<boolean, SqlError>;
+
+  /**
+   * Drops and recreates `kjv_verses` and `strongs_lexicon`. Used by the
+   * renderer's "Reimport KJV" recovery flow when a previous import left the
+   * tables in a partial/empty state. Caller is expected to follow this with
+   * `importKjv` + `importStrongsLexicon` to repopulate from the bundled
+   * assets.
+   */
+  readonly resetTables: () => Effect.Effect<void, SqlError>;
 }
 
 // ---------------------------------------------------------------------------
@@ -220,6 +229,34 @@ export class KjvBibleDatabase extends Context.Service<KjvBibleDatabase, KjvBible
     Effect.gen(function* () {
       const sql = yield* SqlClient.SqlClient;
 
+      const createSchema = Effect.gen(function* () {
+        yield* sql.unsafe(`
+          CREATE TABLE IF NOT EXISTS kjv_verses (
+            book INTEGER NOT NULL,
+            chapter INTEGER NOT NULL,
+            verse INTEGER NOT NULL,
+            book_name TEXT NOT NULL,
+            text TEXT NOT NULL,
+            strongs_words TEXT,
+            PRIMARY KEY (book, chapter, verse)
+          )
+        `);
+        yield* sql.unsafe(
+          `CREATE INDEX IF NOT EXISTS kjv_verses_chapter ON kjv_verses(book, chapter)`,
+        );
+        yield* sql.unsafe(`
+          CREATE TABLE IF NOT EXISTS strongs_lexicon (
+            code TEXT PRIMARY KEY,
+            language TEXT NOT NULL CHECK (language IN ('hebrew', 'greek')),
+            lemma TEXT NOT NULL,
+            transliteration TEXT NOT NULL,
+            definition TEXT NOT NULL
+          )
+        `);
+        // PRAGMA can't be bound — interpolate the integer literal directly.
+        yield* sql.unsafe(`PRAGMA user_version = ${SCHEMA_VERSION}`);
+      });
+
       // Schema version: on mismatch drop and recreate. The bundled JSON
       // re-imports in seconds so we don't ship migration SQL — the next
       // ensureImported() call repopulates from assets.
@@ -230,32 +267,7 @@ export class KjvBibleDatabase extends Context.Service<KjvBibleDatabase, KjvBible
         yield* sql.unsafe(`DROP TABLE IF EXISTS strongs_lexicon`);
       }
 
-      yield* sql.unsafe(`
-        CREATE TABLE IF NOT EXISTS kjv_verses (
-          book INTEGER NOT NULL,
-          chapter INTEGER NOT NULL,
-          verse INTEGER NOT NULL,
-          book_name TEXT NOT NULL,
-          text TEXT NOT NULL,
-          strongs_words TEXT,
-          PRIMARY KEY (book, chapter, verse)
-        )
-      `);
-      yield* sql.unsafe(
-        `CREATE INDEX IF NOT EXISTS kjv_verses_chapter ON kjv_verses(book, chapter)`,
-      );
-      yield* sql.unsafe(`
-        CREATE TABLE IF NOT EXISTS strongs_lexicon (
-          code TEXT PRIMARY KEY,
-          language TEXT NOT NULL CHECK (language IN ('hebrew', 'greek')),
-          lemma TEXT NOT NULL,
-          transliteration TEXT NOT NULL,
-          definition TEXT NOT NULL
-        )
-      `);
-
-      // PRAGMA can't be bound — interpolate the integer literal directly.
-      yield* sql.unsafe(`PRAGMA user_version = ${SCHEMA_VERSION}`);
+      yield* createSchema;
 
       const importKjv = (kjv: KjvAssetFile, strongs: readonly StrongsVerseRow[]) =>
         sql.withTransaction(
@@ -393,6 +405,13 @@ export class KjvBibleDatabase extends Context.Service<KjvBibleDatabase, KjvBible
           return (lexCount[0]?.n ?? 0) > 0;
         });
 
+      const resetTables = () =>
+        Effect.gen(function* () {
+          yield* sql.unsafe(`DROP TABLE IF EXISTS kjv_verses`);
+          yield* sql.unsafe(`DROP TABLE IF EXISTS strongs_lexicon`);
+          yield* createSchema;
+        });
+
       return KjvBibleDatabase.of({
         importKjv,
         importStrongsLexicon,
@@ -400,6 +419,7 @@ export class KjvBibleDatabase extends Context.Service<KjvBibleDatabase, KjvBible
         getChapterStrongs,
         strongsLookup,
         isImported,
+        resetTables,
       });
     }),
   );

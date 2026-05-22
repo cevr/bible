@@ -51,6 +51,13 @@ export const BibleChapterCanvas: Component<BibleChapterCanvasProps> = (props) =>
     Option.none(),
   );
   const [load, setLoad] = createSignal<Load>({ _tag: 'idle' });
+  // Bumped by the "Reimport KJV" recovery flow to retrigger the chapter
+  // load createEffect without changing the selection.
+  const [loadNonce, setLoadNonce] = createSignal(0);
+  // `true` while the bundled KJV import is running in main — disables the
+  // Reimport button and swaps its label so accidental double-clicks don't
+  // pile up imports.
+  const [reimporting, setReimporting] = createSignal(false);
   // Verses in the current chapter that have at least one cached EGW
   // paragraph. Empty Set until the per-chapter query resolves. Re-queried
   // on chapter swap and whenever the indexer pulses
@@ -118,6 +125,9 @@ export const BibleChapterCanvas: Component<BibleChapterCanvasProps> = (props) =>
   let commentarySeq = 0;
   createEffect(() => {
     const sel = selection();
+    // Track the nonce so reimport recovery retriggers the load with the
+    // same selection.
+    loadNonce();
     verseRefs.clear();
     if (Option.isNone(sel)) {
       setLoad({ _tag: 'idle' });
@@ -205,6 +215,33 @@ export const BibleChapterCanvas: Component<BibleChapterCanvasProps> = (props) =>
     props.onOpenCommentary?.(verse);
   };
 
+  // "Reimport KJV" affordance from the missing-state UI. Asks main to drop
+  // and re-import the bundled KJV tables, then bumps the load nonce so the
+  // chapter load createEffect re-runs against the freshly populated table.
+  const onReimportKjv = (): void => {
+    if (reimporting()) return;
+    setReimporting(true);
+    void runtime
+      .runPromise(
+        Effect.gen(function* () {
+          const svc = yield* KjvBible;
+          yield* svc.reimport();
+        }),
+      )
+      .then(() => {
+        setLoadNonce((n) => n + 1);
+      })
+      .catch((err: unknown) => {
+        setLoad({
+          _tag: 'error',
+          message: err instanceof Error ? err.message : 'Reimport failed.',
+        });
+      })
+      .finally(() => {
+        setReimporting(false);
+      });
+  };
+
   const cursorVerse = createMemo(() => {
     const sel = selection();
     return Option.isSome(sel) ? Option.getOrNull(sel.value.verse) : null;
@@ -250,7 +287,22 @@ export const BibleChapterCanvas: Component<BibleChapterCanvasProps> = (props) =>
               commentaryOpen={props.commentaryOpen}
               onToggleCommentary={props.onToggleCommentary}
             />
-            <p class="mt-6 text-ui-sm text-muted">Chapter not found.</p>
+            <p class="mt-6 text-ui-sm text-fg">
+              Chapter not found. The bundled KJV database may be incomplete — a previous import
+              probably crashed mid-write.
+            </p>
+            <p class="mt-2 text-ui-sm text-muted">
+              Reimport the bundled KJV verses + Strong's lexicon to repopulate the table. Takes a
+              few seconds.
+            </p>
+            <button
+              type="button"
+              class="mt-4 inline-flex items-center gap-1.5 h-[calc(32px*var(--ui-scale))] px-4 rounded-md border border-rule bg-accent text-bg text-ui-sm font-medium cursor-pointer transition-[background,border-color,opacity] duration-[0.12s] ease-in-out hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50 disabled:cursor-wait"
+              disabled={reimporting()}
+              onClick={onReimportKjv}
+            >
+              {reimporting() ? 'Reimporting…' : 'Reimport KJV'}
+            </button>
           </div>
         </Match>
         <Match when={errorLoad()} keyed>
