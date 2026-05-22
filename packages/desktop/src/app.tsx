@@ -675,7 +675,7 @@ export const App: Component = () => {
         >
           <button
             type="button"
-            class="inline-flex items-center justify-center h-[calc(28px*var(--ui-scale))] px-3 bg-transparent text-muted text-ui-base font-medium cursor-pointer transition-[background,color,box-shadow] duration-[0.12s] ease-in-out hover:text-fg hover:bg-[color-mix(in_srgb,var(--color-fg)_6%,transparent)] hover:outline-none focus-visible:bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)] focus-visible:outline-none data-active:bg-accent data-active:text-[var(--color-bg)] data-active:font-semibold data-active:shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-fg)_8%,transparent)]"
+            class="inline-flex items-center justify-center h-[calc(28px*var(--ui-scale))] px-3 bg-transparent text-muted text-ui-base font-medium cursor-pointer transition-[background,color,box-shadow] duration-[0.12s] ease-in-out hover:text-fg hover:bg-[color-mix(in_srgb,var(--color-fg)_6%,transparent)] hover:outline-none focus-visible:bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)] focus-visible:outline-none data-active:bg-accent data-active:text-bg data-active:font-semibold data-active:shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-fg)_8%,transparent)]"
             data-active={readerMode() === 'egw' ? '' : undefined}
             onClick={() => setReaderMode('egw')}
             title="EGW books (⌘M)"
@@ -686,7 +686,7 @@ export const App: Component = () => {
           </button>
           <button
             type="button"
-            class="inline-flex items-center justify-center h-[calc(28px*var(--ui-scale))] px-3 bg-transparent text-muted text-ui-base font-medium cursor-pointer border-l border-rule transition-[background,color,box-shadow] duration-[0.12s] ease-in-out hover:text-fg hover:bg-[color-mix(in_srgb,var(--color-fg)_6%,transparent)] hover:outline-none focus-visible:bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)] focus-visible:outline-none data-active:bg-accent data-active:text-[var(--color-bg)] data-active:font-semibold data-active:shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-fg)_8%,transparent)]"
+            class="inline-flex items-center justify-center h-[calc(28px*var(--ui-scale))] px-3 bg-transparent text-muted text-ui-base font-medium cursor-pointer border-l border-rule transition-[background,color,box-shadow] duration-[0.12s] ease-in-out hover:text-fg hover:bg-[color-mix(in_srgb,var(--color-fg)_6%,transparent)] hover:outline-none focus-visible:bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)] focus-visible:outline-none data-active:bg-accent data-active:text-bg data-active:font-semibold data-active:shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-fg)_8%,transparent)]"
             data-active={readerMode() === 'bible' ? '' : undefined}
             onClick={() => setReaderMode('bible')}
             title="Bible reader (⌘M)"
