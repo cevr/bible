@@ -435,28 +435,35 @@ let bibleImportsPromise: Promise<void> | null = null;
 const ensureBibleImportsDone = (runtime: MainRuntime): Promise<void> => {
   const cached = bibleImportsPromise;
   if (cached !== null) return cached;
-  const fresh = runtime.runPromise(
-    KjvBibleDatabase.pipe(
-      Effect.flatMap((db) =>
-        db.isImported().pipe(
-          Effect.flatMap((done) => {
-            if (done) return Effect.asVoid(Effect.void);
-            const kjv = JSON.parse(readCoreAssetText('kjv.json')) as KjvAssetFile;
-            const strongs = JSON.parse(
-              readCoreAssetText('kjv-strongs.json'),
-            ) as readonly StrongsVerseRow[];
-            const lex = JSON.parse(readCoreAssetText('strongs.json')) as Record<
-              string,
-              StrongsLexiconRaw
-            >;
-            return db
-              .importKjv(kjv, strongs)
-              .pipe(Effect.andThen(db.importStrongsLexicon(lex)), Effect.asVoid);
-          }),
+  const fresh = runtime
+    .runPromise(
+      KjvBibleDatabase.pipe(
+        Effect.flatMap((db) =>
+          db.isImported().pipe(
+            Effect.flatMap((done) => {
+              if (done) return Effect.asVoid(Effect.void);
+              const kjv = JSON.parse(readCoreAssetText('kjv.json')) as KjvAssetFile;
+              const strongs = JSON.parse(
+                readCoreAssetText('kjv-strongs.json'),
+              ) as readonly StrongsVerseRow[];
+              const lex = JSON.parse(readCoreAssetText('strongs.json')) as Record<
+                string,
+                StrongsLexiconRaw
+              >;
+              return db
+                .importKjv(kjv, strongs)
+                .pipe(Effect.andThen(db.importStrongsLexicon(lex)), Effect.asVoid);
+            }),
+          ),
         ),
       ),
-    ),
-  );
+    )
+    .catch((err: unknown) => {
+      // Don't wedge subsequent calls on a transient import failure (a
+      // half-finished tx leaves kjv_verses empty; next call should retry).
+      bibleImportsPromise = null;
+      throw err;
+    });
   bibleImportsPromise = fresh;
   return fresh;
 };
@@ -946,7 +953,16 @@ void app.whenReady().then(async () => {
   // Kick off the EGW bible-ref backfill in the background. Fire-and-forget
   // so window paint isn't blocked; the IPC handler awaits the same Promise
   // before serving the first commentary query.
-  void ensureCommentaryBackfillDone(mainRuntime);
+  //
+  // When backfill finishes, broadcast an empty-touched pulse so any
+  // renderer that already mounted the Bible canvas and cached an empty
+  // hit set (queried before refs were written) clears its LRU and
+  // re-queries. Cheap signal — one IPC message per cold launch.
+  void ensureCommentaryBackfillDone(mainRuntime).then(() => {
+    for (const win of BrowserWindow.getAllWindows()) {
+      win.webContents.send('bible:egwCommentaryUpdated', []);
+    }
+  });
   void createWindow();
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) void createWindow();
