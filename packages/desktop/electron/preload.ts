@@ -117,6 +117,30 @@ const api = {
       verse: number,
     ): Promise<readonly EgwCommentaryHitPayload[]> =>
       ipcRenderer.invoke('bible:getEgwCommentary', book, chapter, verse),
+    // Verses in (book, chapter) that have at least one cached EGW paragraph
+    // referencing them. Used by the chapter renderer to paint a footnote
+    // marker next to verse numbers in one round-trip per chapter (mirrors
+    // `getVersesWithNotes`).
+    getBibleVersesWithCommentary: (book: number, chapter: number): Promise<readonly number[]> =>
+      ipcRenderer.invoke('bible:getBibleVersesWithCommentary', book, chapter),
+    // Subscribe to "new EGW commentary indexed" pulses from the indexer.
+    // The handler receives the distinct `(book, chapter)` keys that just
+    // got refs written, so the renderer can invalidate the matching cache
+    // entry and re-query the hit set. Returns an unsubscribe function.
+    onEgwCommentaryUpdated: (
+      handler: (touched: readonly { book: number; chapter: number }[]) => void,
+    ): (() => void) => {
+      const listener = (
+        _e: Electron.IpcRendererEvent,
+        touched: readonly { book: number; chapter: number }[],
+      ): void => {
+        handler(touched);
+      };
+      ipcRenderer.on('bible:egwCommentaryUpdated', listener);
+      return () => {
+        ipcRenderer.removeListener('bible:egwCommentaryUpdated', listener);
+      };
+    },
   },
 };
 

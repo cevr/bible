@@ -42,12 +42,18 @@ const findBookInCache = (cacheDb: Database.Database, bookId: number): Schemas.Bo
 /**
  * Decode a chapter JSON blob and write its paragraphs into the EGW index.
  * Returns a Promise that resolves on success or logs+resolves on any failure.
+ *
+ * `onBibleRefsIndexed`, when provided, is invoked after `storeBibleRefsBatch`
+ * succeeds with the distinct `(book, chapter)` keys that just got at least one
+ * new ref. The Bible reader uses it to invalidate its per-chapter "verses with
+ * commentary" cache so footnote markers appear without a page reload.
  */
 export const indexChapter = async (
   runtime: MainRuntime,
   cacheDb: Database.Database,
   bookId: number,
   chapterJson: string,
+  onBibleRefsIndexed?: (touched: readonly { book: number; chapter: number }[]) => void,
 ): Promise<void> => {
   const book = findBookInCache(cacheDb, bookId);
   if (book === null) {
@@ -79,6 +85,18 @@ export const indexChapter = async (
         ),
       ),
     )
+    .then(() => {
+      if (onBibleRefsIndexed === undefined || refs.length === 0) return;
+      const seen = new Set<string>();
+      const touched: { book: number; chapter: number }[] = [];
+      for (const r of refs) {
+        const key = `${String(r.bibleBook)}:${String(r.bibleChapter)}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        touched.push({ book: r.bibleBook, chapter: r.bibleChapter });
+      }
+      onBibleRefsIndexed(touched);
+    })
     .catch((err: unknown) => {
       console.warn(`[indexer] storeParagraphsBatch failed for book ${String(bookId)}:`, err);
     });

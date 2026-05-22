@@ -278,7 +278,14 @@ ipcMain.handle('cache:putChapter', (_event, bookId: number, paraId: string, json
   // handler returns void immediately because the renderer doesn't wait on the
   // index either.
   if (mainRuntime !== null) {
-    void indexChapter(mainRuntime, getCacheDb(), bookId, json);
+    void indexChapter(mainRuntime, getCacheDb(), bookId, json, (touched) => {
+      // Broadcast to every renderer so the Bible reader can re-query the
+      // hit set for the (book, chapter) it's currently showing. Cheap to
+      // send — payload is a few small numbers.
+      for (const win of BrowserWindow.getAllWindows()) {
+        win.webContents.send('bible:egwCommentaryUpdated', touched);
+      }
+    });
   }
 });
 ipcMain.handle('cache:getFolders', (_event, lang: string): string | null => {
@@ -747,6 +754,23 @@ ipcMain.handle(
         snippet: nodesToText(r.nodes),
         puborder: r.puborder,
       }),
+    );
+  },
+);
+
+// Chapter-scoped set of verses that have at least one cached EGW paragraph.
+// One round-trip per chapter so the renderer can paint footnote markers next
+// to verse numbers without N per-verse queries. Mirrors the margin-notes
+// `bible:getVersesWithNotes` pattern.
+ipcMain.handle(
+  'bible:getBibleVersesWithCommentary',
+  async (_event, book: number, chapter: number): Promise<readonly number[]> => {
+    if (mainRuntime === null) return [];
+    await ensureCommentaryBackfillDone(mainRuntime);
+    return mainRuntime.runPromise(
+      EGWParagraphDatabase.pipe(
+        Effect.flatMap((db) => db.getBibleVersesWithCommentary(book, chapter)),
+      ),
     );
   },
 );

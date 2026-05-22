@@ -239,6 +239,16 @@ export interface EGWParagraphDatabaseService {
     ParagraphDatabaseError
   >;
   /**
+   * Distinct verse numbers in (bibleBook, bibleChapter) that have at least
+   * one cached EGW paragraph referencing them. Used by the Bible reader to
+   * mark verses with a superscript anchor in one round-trip per chapter,
+   * mirroring the margin-notes `getVersesWithNotes` pattern.
+   */
+  readonly getBibleVersesWithCommentary: (
+    bibleBook: number,
+    bibleChapter: number,
+  ) => Effect.Effect<readonly number[], ParagraphDatabaseError>;
+  /**
    * One-shot population of `paragraph_bible_refs` from already-indexed
    * paragraphs. Skips when the table is non-empty (so a healthy install pays
    * a single COUNT(*) on boot, nothing more). When empty, streams every
@@ -742,6 +752,23 @@ export class EGWParagraphDatabase extends Context.Service<
           FROM paragraph_bible_refs WHERE para_book_id = ${bookId}
         `;
 
+      const getBibleVersesWithCommentary = (bibleBook: number, bibleChapter: number) =>
+        sql<{ bible_verse: number | null }>`
+          SELECT DISTINCT bible_verse FROM paragraph_bible_refs
+          WHERE bible_book = ${bibleBook}
+            AND bible_chapter = ${bibleChapter}
+            AND bible_verse IS NOT NULL
+          ORDER BY bible_verse
+        `.pipe(
+          Effect.map((rows) => {
+            const out: number[] = [];
+            for (const r of rows) {
+              if (r.bible_verse !== null) out.push(r.bible_verse);
+            }
+            return out;
+          }),
+        );
+
       const getParagraphsByBibleRef = (
         bibleBook: number,
         bibleChapter: number,
@@ -883,6 +910,7 @@ export class EGWParagraphDatabase extends Context.Service<
         storeBibleRefsBatch,
         getBibleRefsByBook,
         getParagraphsByBibleRef,
+        getBibleVersesWithCommentary,
         setSyncStatus,
         getSyncStatus,
         getBooksByStatus,
@@ -931,6 +959,7 @@ export class EGWParagraphDatabase extends Context.Service<
       storeBibleRefsBatch: (refs) => Effect.succeed(refs.length),
       getBibleRefsByBook: () => Effect.succeed([]),
       getParagraphsByBibleRef: () => Effect.succeed([]),
+      getBibleVersesWithCommentary: () => Effect.succeed([]),
       setSyncStatus: () => Effect.void,
       getSyncStatus: () => Effect.succeed(Option.none()),
       getBooksByStatus: () => Effect.succeed([]),
