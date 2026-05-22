@@ -35,7 +35,13 @@ type Load =
   | { readonly _tag: 'missing' }
   | { readonly _tag: 'error'; readonly message: string };
 
-export const BibleChapterCanvas: Component = () => {
+export interface BibleChapterCanvasProps {
+  /** Open the EGW commentary sheet pinned to the given verse. Routed from
+   *  the footnote `e` marker on each verse with cached commentary. */
+  readonly onOpenCommentary?: (verse: number) => void;
+}
+
+export const BibleChapterCanvas: Component<BibleChapterCanvasProps> = (props) => {
   const [selection, setSelection] = createSignal<Option.Option<BibleReaderSelection>>(
     Option.none(),
   );
@@ -187,6 +193,13 @@ export const BibleChapterCanvas: Component = () => {
     );
   };
 
+  // Footnote marker click — focus the verse AND open the commentary sheet.
+  // Two-step so the drawer's createEffect fires with the right cursor.
+  const onCommentaryClick = (verse: number): void => {
+    onVerseClick(verse);
+    props.onOpenCommentary?.(verse);
+  };
+
   const cursorVerse = createMemo(() => {
     const sel = selection();
     return Option.isSome(sel) ? Option.getOrNull(sel.value.verse) : null;
@@ -236,7 +249,7 @@ export const BibleChapterCanvas: Component = () => {
                 commentaryVerses={commentaryVerses()}
                 verseRefs={verseRefs}
                 onVerseClick={onVerseClick}
-                onCommentaryClick={onVerseClick}
+                onCommentaryClick={onCommentaryClick}
               />
             </div>
           )}

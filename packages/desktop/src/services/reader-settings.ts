@@ -85,6 +85,9 @@ export const ReaderSettingsState = Schema.Struct({
   ),
   /** Show Strong's numbers in the Bible drawer when reading the KJV. */
   bibleDrawerStrongs: Schema.optional(Schema.Boolean),
+  /** Whether the right-side EGW commentary sheet is open in Bible mode.
+   *  Restored on launch so a user who left it open finds it open again. */
+  bibleCommentaryOpen: Schema.optional(Schema.Boolean),
   /** Last-used reader mode. Restored on launch so the user lands in the same
    *  mode they left in. */
   readerMode: Schema.optional(ReaderMode),
@@ -174,6 +177,7 @@ export interface ReaderSettingsShape {
   readonly setBibleDrawerWidth: (px: number) => Effect.Effect<void>;
   readonly setBibleDrawerWideWidth: (px: number) => Effect.Effect<void>;
   readonly setBibleDrawerStrongs: (enabled: boolean) => Effect.Effect<void>;
+  readonly setBibleCommentaryOpen: (open: boolean) => Effect.Effect<void>;
   readonly setReaderMode: (mode: ReaderMode) => Effect.Effect<void>;
 }
 
@@ -237,6 +241,7 @@ export class ReaderSettings extends Context.Service<ReaderSettings, ReaderSettin
         setBibleDrawerWideWidth: (px) =>
           update((s) => ({ ...s, bibleDrawerWideWidth: clampBibleDrawerWideWidth(px) })),
         setBibleDrawerStrongs: (enabled) => update((s) => ({ ...s, bibleDrawerStrongs: enabled })),
+        setBibleCommentaryOpen: (open) => update((s) => ({ ...s, bibleCommentaryOpen: open })),
         setReaderMode: (readerMode) => update((s) => ({ ...s, readerMode })),
       };
     }),
@@ -282,6 +287,7 @@ export class ReaderSettings extends Context.Service<ReaderSettings, ReaderSettin
             update((s) => ({ ...s, bibleDrawerWideWidth: clampBibleDrawerWideWidth(px) })),
           setBibleDrawerStrongs: (enabled) =>
             update((s) => ({ ...s, bibleDrawerStrongs: enabled })),
+          setBibleCommentaryOpen: (open) => update((s) => ({ ...s, bibleCommentaryOpen: open })),
           setReaderMode: (readerMode) => update((s) => ({ ...s, readerMode })),
           ...overrides,
         };

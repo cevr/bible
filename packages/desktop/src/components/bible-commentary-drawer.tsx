@@ -1,5 +1,6 @@
 import { Effect, Fiber, Option, Stream } from 'effect';
 import {
+  type Accessor,
   type Component,
   createEffect,
   createMemo,
@@ -14,15 +15,16 @@ import {
 import { runtime } from '../runtime.js';
 import { BibleReaderState, type BibleReaderSelection } from '../services/bible-reader-state.js';
 import { EgwCommentary, type EgwCommentaryHit } from '../services/egw-commentary.js';
+import { Drawer } from './ui/drawer.js';
 
-// Right-side drawer for Bible mode. Symmetric to the EGW reader's Bible
-// drawer: whatever the reader is focused on (here: a Bible verse) drives the
-// drawer content (here: cached EGW commentary paragraphs that reference
-// that verse). Empty state nudges the user to click a verse number.
+// Right-side dismissable sheet for Bible mode. Mirrors the EGW reader's
+// BibleDrawer chrome (Drawer primitive — Esc, click-outside, resize handle,
+// persisted width) and swaps in EGW commentary keyed off the verse cursor.
+// Footnote `e` markers on the chapter open this sheet pinned to that verse.
 //
-// Width parity with the existing BibleDrawer is intentional — F3.6 will
-// thread the persisted bibleDrawerWidth into both so a user who resizes one
-// gets the same width in either mode.
+// Width parity with the existing BibleDrawer is intentional — both share the
+// `bibleDrawerWidth` persistence key so a user who resizes one gets the same
+// width in either mode.
 
 type Load =
   | { readonly _tag: 'idle' }
@@ -31,7 +33,11 @@ type Load =
   | { readonly _tag: 'error'; readonly message: string };
 
 export interface BibleCommentaryDrawerProps {
-  readonly widthPx: () => number;
+  readonly open: boolean;
+  readonly onOpenChange: (open: boolean) => void;
+  readonly widthPx: Accessor<number>;
+  readonly onWidthChange: (px: number) => void;
+  readonly widthBounds: { readonly min: number; readonly max: number };
 }
 
 export const BibleCommentaryDrawer: Component<BibleCommentaryDrawerProps> = (props) => {
@@ -64,7 +70,10 @@ export const BibleCommentaryDrawer: Component<BibleCommentaryDrawerProps> = (pro
   createEffect(() => {
     const sel = selection();
     const verse = focusedVerse();
-    if (Option.isNone(sel) || verse === null) {
+    // Only query when the drawer is actually open — a closed sheet doesn't
+    // need to chew the IPC channel every time the user clicks a verse for
+    // some other reason (e.g. just highlighting).
+    if (!props.open || Option.isNone(sel) || verse === null) {
       setLoad({ _tag: 'idle' });
       return;
     }
@@ -104,10 +113,17 @@ export const BibleCommentaryDrawer: Component<BibleCommentaryDrawerProps> = (pro
   };
 
   return (
-    <aside
-      class="fixed top-[calc(44px*var(--ui-scale))] bottom-0 right-0 bg-bg border-l border-rule z-20 flex flex-col"
-      style={{ width: `${String(props.widthPx())}px` }}
-      aria-label="EGW commentary"
+    <Drawer
+      open={props.open}
+      onOpenChange={props.onOpenChange}
+      side="right"
+      widthPx={props.widthPx}
+      label="EGW commentary"
+      resize={{
+        onResize: props.onWidthChange,
+        minPx: props.widthBounds.min,
+        maxPx: props.widthBounds.max,
+      }}
     >
       <header class="flex items-center gap-2 px-4 py-3 border-b border-rule flex-[0_0_auto]">
         <h2 class="m-0 text-ui-sm font-semibold tracking-[0.08em] uppercase text-muted">
@@ -163,14 +179,15 @@ export const BibleCommentaryDrawer: Component<BibleCommentaryDrawerProps> = (pro
           </Match>
         </Switch>
       </div>
-    </aside>
+    </Drawer>
   );
 };
 
 const EmptyDrawer: Component = () => (
   <div class="flex flex-col gap-2">
     <p class="text-ui-sm text-muted">
-      Click a verse number on the chapter to load EGW commentary on it.
+      Click the <sup class="text-accent">e</sup> marker next to a verse to load EGW commentary on
+      it.
     </p>
   </div>
 );
