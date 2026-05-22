@@ -1,5 +1,6 @@
 import { Layer, ManagedRuntime } from 'effect';
 import { BibleMarginNotes } from './services/bible-margin-notes.js';
+import { BibleReaderState } from './services/bible-reader-state.js';
 import { BibleXrefs } from './services/bible-xrefs.js';
 import { CacheService } from './services/cache-service.js';
 import { EgwCommentary } from './services/egw-commentary.js';
@@ -43,6 +44,7 @@ const AppLayer = Layer.mergeAll(
   BibleXrefs.layer,
   BibleMarginNotes.layer,
   EgwCommentary.layer,
+  BibleReaderState.layer,
 );
 
 export const runtime = ManagedRuntime.make(AppLayer);
