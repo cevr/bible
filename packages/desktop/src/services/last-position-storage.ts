@@ -14,24 +14,40 @@ export interface LastPosition {
   readonly paragraphId: Option.Option<string>;
 }
 
+// Bible-mode position. Verse is optional — a chapter the user opened without
+// clicking a specific verse is still a valid place to restore to.
+export interface BibleLastPosition {
+  readonly book: number;
+  readonly chapter: number;
+  readonly verse: Option.Option<number>;
+}
+
 export interface LastPositionStorageShape {
-  /** `None` when no position has been persisted yet (first launch). */
+  /** `None` when no EGW position has been persisted yet (first launch). */
   readonly read: Effect.Effect<Option.Option<LastPosition>>;
   readonly write: (position: LastPosition) => Effect.Effect<void>;
   readonly clear: Effect.Effect<void>;
+  /** `None` when no Bible position has been persisted yet. */
+  readonly readBible: Effect.Effect<Option.Option<BibleLastPosition>>;
+  readonly writeBible: (position: BibleLastPosition) => Effect.Effect<void>;
+  readonly clearBible: Effect.Effect<void>;
 }
 
 /**
  * Persists "where the user was last reading" so the app reopens to that book
- * and chapter on launch. Single-row table in the same SQLite DB as the EGW
+ * and chapter on launch. Single-row tables in the same SQLite DB as the EGW
  * cache (it's already there, already opened on startup, and the position is
  * always paired with cached data anyway).
  *
- * app.tsx subscribes to ReaderState.changes and calls `write` on each
- * selection update; on mount it calls `read` once and replays the result into
- * ReaderState. Not put behind a debounce — selection changes only fire on
- * explicit user navigation (book click, chapter click, prev/next), not on
- * scroll, so the volume is fine for synchronous writes.
+ * Two independent rows: `read/write/clear` is the EGW reader's position;
+ * `readBible/writeBible/clearBible` is the Bible reader's. Stored separately
+ * so switching modes on launch doesn't reset the other mode's place.
+ *
+ * app.tsx subscribes to ReaderState.changes + BibleReaderState.changes and
+ * calls the matching write on each selection update; on mount it calls read
+ * once per mode and replays the result. Not put behind a debounce — selection
+ * changes only fire on explicit user navigation, not scroll, so the volume is
+ * fine for synchronous writes.
  */
 export class LastPositionStorage extends Context.Service<
   LastPositionStorage,
@@ -58,21 +74,47 @@ export class LastPositionStorage extends Context.Service<
         ),
       ),
     clear: Effect.promise(() => window.api.lastPosition.clear()),
+    readBible: Effect.promise(() => window.api.bibleLastPosition.read()).pipe(
+      Effect.map((row) =>
+        row === null
+          ? Option.none<BibleLastPosition>()
+          : Option.some({
+              book: row.book,
+              chapter: row.chapter,
+              verse: Option.fromNullishOr(row.verse),
+            }),
+      ),
+    ),
+    writeBible: (position) =>
+      Effect.promise(() =>
+        window.api.bibleLastPosition.write(
+          position.book,
+          position.chapter,
+          Option.getOrNull(position.verse),
+        ),
+      ),
+    clearBible: Effect.promise(() => window.api.bibleLastPosition.clear()),
   });
 
-  /** In-memory storage for tests. Backed by a single Ref. */
-  static layerTest = (ref?: Ref.Ref<Option.Option<LastPosition>>) => {
-    const cell = ref;
-    return Layer.effect(
+  /** In-memory storage for tests. Backed by two independent Refs (EGW + Bible). */
+  static layerTest = (overrides?: {
+    readonly egw?: Ref.Ref<Option.Option<LastPosition>>;
+    readonly bible?: Ref.Ref<Option.Option<BibleLastPosition>>;
+  }) =>
+    Layer.effect(
       LastPositionStorage,
       Effect.gen(function* () {
-        const inner = cell ?? (yield* Ref.make<Option.Option<LastPosition>>(Option.none()));
+        const egw = overrides?.egw ?? (yield* Ref.make<Option.Option<LastPosition>>(Option.none()));
+        const bible =
+          overrides?.bible ?? (yield* Ref.make<Option.Option<BibleLastPosition>>(Option.none()));
         return {
-          read: Ref.get(inner),
-          write: (position) => Ref.set(inner, Option.some(position)),
-          clear: Ref.set(inner, Option.none<LastPosition>()),
+          read: Ref.get(egw),
+          write: (position) => Ref.set(egw, Option.some(position)),
+          clear: Ref.set(egw, Option.none<LastPosition>()),
+          readBible: Ref.get(bible),
+          writeBible: (position) => Ref.set(bible, Option.some(position)),
+          clearBible: Ref.set(bible, Option.none<BibleLastPosition>()),
         } satisfies LastPositionStorageShape;
       }),
     );
-  };
 }

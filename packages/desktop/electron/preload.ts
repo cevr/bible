@@ -1,6 +1,14 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
 const api = {
+  diag: {
+    // True once main has constructed mainRuntime in `app.whenReady` and the
+    // database layers are initialized. The renderer polls this on mount so it
+    // can show a "main process not ready" banner instead of misleading
+    // "missing data" screens when an IPC returns empty because the runtime
+    // never came up (typically: hot-reload churn left a stale Electron).
+    runtimeReady: (): Promise<boolean> => ipcRenderer.invoke('__diag:runtimeReady'),
+  },
   settings: {
     read: (): Promise<string | null> => ipcRenderer.invoke('settings:read'),
     write: (text: string): Promise<void> => ipcRenderer.invoke('settings:write', text),
@@ -56,6 +64,20 @@ const api = {
       paragraphId: string | null = null,
     ): Promise<void> => ipcRenderer.invoke('lastPosition:write', bookId, paraId, paragraphId),
     clear: (): Promise<void> => ipcRenderer.invoke('lastPosition:clear'),
+  },
+  bibleLastPosition: {
+    // Sibling to lastPosition above — Bible mode's (book, chapter, verse) is
+    // stored independently so switching modes on launch doesn't reset the
+    // other mode's place. verse is nullable for the chapter-with-no-selection
+    // case.
+    read: (): Promise<{
+      readonly book: number;
+      readonly chapter: number;
+      readonly verse: number | null;
+    } | null> => ipcRenderer.invoke('bibleLastPosition:read'),
+    write: (book: number, chapter: number, verse: number | null = null): Promise<void> =>
+      ipcRenderer.invoke('bibleLastPosition:write', book, chapter, verse),
+    clear: (): Promise<void> => ipcRenderer.invoke('bibleLastPosition:clear'),
   },
   search: {
     // Local search over the EGW paragraph index populated by cache:putChapter.

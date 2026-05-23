@@ -8,6 +8,7 @@ import { FolderBrowser } from './components/folder-browser.js';
 import { ReaderPane } from './components/reader-pane.js';
 import { SearchPanel } from './components/search-panel.js';
 import { TocSidebar } from './components/toc-sidebar.js';
+import { ReaderPanel } from './components/ui/reader-panel.js';
 import { BibleReaderState, type BibleReaderSelection } from './services/bible-reader-state.js';
 import { createBibleDrawerState } from './services/bible-drawer-state.js';
 import { defaultEase, Motion, Presence, useDrag } from './motion/index.js';
@@ -17,8 +18,6 @@ import { LastPositionStorage } from './services/last-position-storage.js';
 import { openBookAtFirstChapter } from './services/open-book.js';
 import { Prefetcher } from './services/prefetcher.js';
 import {
-  BIBLE_DRAWER_WIDE_WIDTH_BOUNDS,
-  BIBLE_DRAWER_WIDTH_BOUNDS,
   type FontFamily,
   ReaderSettings,
   type ReaderFontScale,
@@ -120,17 +119,19 @@ export const App: Component = () => {
       );
     },
   };
-  const [bibleDrawerWidth, setBibleDrawerWidthSig] = createSignal<number>(
-    BIBLE_DRAWER_WIDTH_BOUNDS.default,
-  );
-  const [bibleDrawerWideWidth, setBibleDrawerWideWidthSig] = createSignal<number>(
-    BIBLE_DRAWER_WIDE_WIDTH_BOUNDS.default,
-  );
   // EGW commentary sheet open/closed in Bible mode. Driven by the footnote
-  // markers in the chapter canvas (open) and the Drawer primitive's
-  // dismiss-on-Esc/click-outside (close). Persisted so a user who leaves
-  // it open finds it open on next launch.
+  // markers in the chapter canvas (open) and the ReaderPanel primitive's
+  // dismiss-on-Esc (close). Persisted so a user who leaves it open finds it
+  // open on next launch.
   const [bibleCommentaryOpen, setBibleCommentaryOpenSig] = createSignal<boolean>(false);
+
+  // True once the main-process Effect runtime is up. Polled on mount and
+  // again once per second until it flips true. When false, we paint a
+  // dismissable banner across the top of the canvas — without it every IPC
+  // returns empty/null and the UI ends up rendering misleading "missing data"
+  // screens. Most common cause is a hot-reload that left a stale Electron
+  // running its old main bundle (see electron-dev plugin restart hardening).
+  const [mainReady, setMainReady] = createSignal<boolean>(true);
 
   // Reader selection mirror — drives whether we render landing (FolderBrowser)
   // or the reader, and feeds props.selection into ReaderPane.
@@ -194,6 +195,32 @@ export const App: Component = () => {
   };
 
   onMount(() => {
+    // Poll the diag IPC until main reports ready. We assume ready until told
+    // otherwise so first-paint isn't gated on the roundtrip; if the first poll
+    // says "not ready" we flip the banner on and keep polling every second
+    // until it flips true.
+    let cancelled = false;
+    const pollMainReady = (): void => {
+      void window.api.diag
+        .runtimeReady()
+        .then((ready) => {
+          if (cancelled) return;
+          setMainReady(ready);
+          if (!ready) setTimeout(pollMainReady, 1000);
+        })
+        .catch(() => {
+          // IPC threw — preload bridge not wired or main crashed. Treat as
+          // not-ready so the banner surfaces, and keep retrying.
+          if (cancelled) return;
+          setMainReady(false);
+          setTimeout(pollMainReady, 1000);
+        });
+    };
+    pollMainReady();
+    onCleanup(() => {
+      cancelled = true;
+    });
+
     void runtime
       .runPromise(
         Effect.gen(function* () {
@@ -209,12 +236,6 @@ export const App: Component = () => {
         setLetterSpacingSig(state.letterSpacing);
         setLineWidthSig(state.lineWidth);
         setUiScaleSig(state.uiScale ?? 'md');
-        if (state.bibleDrawerWidth !== undefined) {
-          setBibleDrawerWidthSig(state.bibleDrawerWidth);
-        }
-        if (state.bibleDrawerWideWidth !== undefined) {
-          setBibleDrawerWideWidthSig(state.bibleDrawerWideWidth);
-        }
         if (state.bibleDrawerStrongs === true) {
           // Seed via the base (non-persisting) setter — re-writing the same
           // flag back to disk on every launch would be silly.
@@ -321,15 +342,62 @@ export const App: Component = () => {
       }),
     );
 
-    // Bible-mode selection mirror. No persistence yet — Bible last-position
-    // restore is a follow-up. For now we just keep the local signal in sync so
-    // the TOC can highlight the active chapter and the shell can decide what
-    // to render.
+    // Rehydrate Bible-mode last position on mount. Symmetric with the EGW
+    // restore above: read the persisted row, replay it into BibleReaderState
+    // (which fires `changes` and persists the same value back — harmless
+    // one-row upsert through the mirror fiber).
+    void runtime
+      .runPromise(
+        Effect.gen(function* () {
+          const storage = yield* LastPositionStorage;
+          return yield* storage.readBible;
+        }),
+      )
+      .then((restored) => {
+        if (Option.isNone(restored)) return;
+        const pos = restored.value;
+        void runtime
+          .runPromise(
+            Effect.gen(function* () {
+              const state = yield* BibleReaderState;
+              if (Option.isSome(pos.verse)) {
+                yield* state.openChapterAt(pos.book, pos.chapter, pos.verse.value);
+              } else {
+                yield* state.openChapter(pos.book, pos.chapter);
+              }
+            }),
+          )
+          .catch((err) => {
+            console.error('[rehydrate] bible openChapter failed', err);
+          });
+      })
+      .catch((err) => {
+        console.error('[rehydrate] storage.readBible failed', err);
+      });
+
+    // Bible-mode selection mirror — keeps the local signal in sync (so the
+    // TOC can highlight the active chapter and the shell can decide what to
+    // render) AND persists the (book, chapter, verse) on every change so a
+    // refresh/restart restores the user's place.
     const bibleFiber = runtime.runFork(
       Effect.gen(function* () {
         const state = yield* BibleReaderState;
+        const storage = yield* LastPositionStorage;
         yield* state.changes.pipe(
-          Stream.runForEach((next) => Effect.sync(() => setBibleSelection(next))),
+          Stream.runForEach((next) =>
+            Effect.gen(function* () {
+              setBibleSelection(next);
+              if (Option.isNone(next)) {
+                yield* storage.clearBible;
+              } else {
+                yield* storage.writeBible({
+                  book: next.value.book,
+                  chapter: next.value.chapter,
+                  verse: next.value.verse,
+                });
+              }
+            }),
+          ),
         );
       }),
     );
@@ -437,26 +505,6 @@ export const App: Component = () => {
     );
   };
 
-  // Bible drawer width — UI moves synchronously, persist is debounced by the
-  // settings layer so dragging the handle doesn't thrash disk.
-  const setBibleDrawerWidth = (px: number) => {
-    setBibleDrawerWidthSig(px);
-    updateSettings(
-      Effect.gen(function* () {
-        const s = yield* ReaderSettings;
-        yield* s.setBibleDrawerWidth(px);
-      }),
-    );
-  };
-  const setBibleDrawerWideWidth = (px: number) => {
-    setBibleDrawerWideWidthSig(px);
-    updateSettings(
-      Effect.gen(function* () {
-        const s = yield* ReaderSettings;
-        yield* s.setBibleDrawerWideWidth(px);
-      }),
-    );
-  };
   const setBibleCommentaryOpen = (open: boolean) => {
     setBibleCommentaryOpenSig(open);
     updateSettings(
@@ -756,6 +804,26 @@ export const App: Component = () => {
         </button>
       </header>
 
+      <Show when={!mainReady()}>
+        <div
+          role="alert"
+          class="flex items-center justify-between gap-3 px-4 py-2 bg-danger-soft border-b border-danger text-ui-sm text-danger"
+        >
+          <span>
+            Main process not ready — IPC calls will return empty. Restart{' '}
+            <code class="font-mono">bun run dev</code> to recover.
+          </span>
+          <button
+            type="button"
+            class="text-ui-xs opacity-70 hover:opacity-100 underline cursor-pointer bg-transparent border-0 p-0"
+            onClick={() => setMainReady(true)}
+            title="Hide banner (poll continues in background)"
+          >
+            dismiss
+          </button>
+        </div>
+      </Show>
+
       <Show when={searchOpen()}>
         {/* Click-catcher behind the panel — dismisses the results without
             blurring the input (so the user can keep typing to refine).
@@ -772,7 +840,7 @@ export const App: Component = () => {
         <SearchPanel query={searchQuery} anchorEl={searchInputRef} onClose={closeSearch} />
       </Show>
 
-      <div class="relative min-h-0 overflow-hidden">
+      <div class="relative min-h-0 overflow-hidden flex-1">
         <Show
           when={isBibleMode()}
           fallback={
@@ -805,103 +873,89 @@ export const App: Component = () => {
             onToggleCommentary={() => setBibleCommentaryOpen(!bibleCommentaryOpen())}
           />
         </Show>
-      </div>
 
-      {/* Single drawer with two panes. State 1 = just TOC pane visible;
-          state 2 = drawer expands and Library pane fades in to the right.
-          Mounting both panes regardless of state lets the width transition
-          run as a single smooth motion. */}
-      <Presence>
-        <Show when={libraryAvailable() && drawer() !== 'closed'}>
-          <Motion.div
-            class="fixed top-[calc(44px*var(--ui-scale))] left-0 right-0 bottom-0 bg-[color-mix(in_srgb,#000_28%,transparent)] z-30"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15, ease: defaultEase }}
-            onClick={closeDrawers}
-          />
-        </Show>
-      </Presence>
+        {/* Left drawer — in-shell ReaderPanel, mirror of the right drawer.
+            Bible mode shows just the books/chapters TOC. EGW mode expands
+            (360→720) when the user pops the Library pane open. */}
+        <ReaderPanel
+          open={isBibleMode() && drawer() !== 'closed'}
+          onOpenChange={(open) => {
+            if (!open) closeDrawers();
+          }}
+          side="left"
+          widthPx={360}
+          label="Bible books"
+        >
+          <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-rule flex-[0_0_auto]">
+            <h2 class="m-0 text-ui-sm font-semibold tracking-[0.08em] uppercase text-muted">
+              Bible
+            </h2>
+          </div>
+          <div class="flex-1 min-h-0 overflow-y-auto">
+            <BibleTocSidebar currentSelection={bibleTocSelection} onPickChapter={closeDrawers} />
+          </div>
+        </ReaderPanel>
 
-      {/* Bible-mode left drawer: just the books/chapters TOC. No Library pane
-          expansion — the Bible already enumerates its own books. */}
-      <Presence>
-        <Show when={isBibleMode() && drawer() !== 'closed'}>
-          <Motion.aside
-            class="fixed top-[calc(44px*var(--ui-scale))] bottom-0 left-0 w-[320px] bg-bg border-r border-rule z-[35] flex flex-col shadow-[4px_0_24px_color-mix(in_srgb,#000_16%,transparent)]"
-            aria-label="Bible books"
-            initial={{ x: -360, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: -360, opacity: 0 }}
-            transition={{ duration: 0.22, ease: defaultEase }}
+        <ReaderPanel
+          open={!isBibleMode() && hasBook() && drawer() !== 'closed' && currentBookId() !== null}
+          onOpenChange={(open) => {
+            if (!open) closeDrawers();
+          }}
+          side="left"
+          widthPx={360}
+          expandedWidthPx={720}
+          expanded={drawer() === 'tocPlusLib'}
+          label="Library and contents"
+          panelClass="flex-row"
+        >
+          <div class="flex flex-col min-w-0 h-full flex-[0_0_360px] border-r border-rule">
+            <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-rule flex-[0_0_auto]">
+              <h2 class="m-0 text-ui-sm font-semibold tracking-[0.08em] uppercase text-muted">
+                Contents
+              </h2>
+              <button
+                type="button"
+                class="bg-transparent border border-rule rounded-md px-2 py-1 text-ui-xs text-fg cursor-pointer transition-[background,border-color] duration-[0.12s] ease-in-out hover:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] hover:border-accent hover:outline-none focus-visible:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] focus-visible:border-accent focus-visible:outline-none"
+                onClick={() => setDrawer((curr) => (curr === 'tocPlusLib' ? 'toc' : 'tocPlusLib'))}
+                title={drawer() === 'tocPlusLib' ? 'Hide library' : 'Open library'}
+              >
+                {drawer() === 'tocPlusLib' ? 'Close library' : 'Library'}
+              </button>
+            </div>
+            <div class="flex-1 min-h-0 overflow-y-auto">
+              <Show when={currentBookId()} keyed>
+                {(bookId) => <TocSidebar bookId={bookId} />}
+              </Show>
+            </div>
+          </div>
+
+          <div
+            class="flex flex-col min-w-0 h-full flex-auto opacity-0 pointer-events-none transition-opacity duration-[0.18s] ease-in-out delay-[0.04s] data-expanded:opacity-100 data-expanded:pointer-events-auto"
+            data-expanded={drawer() === 'tocPlusLib' ? '' : undefined}
+            aria-hidden={drawer() !== 'tocPlusLib'}
           >
             <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-rule flex-[0_0_auto]">
               <h2 class="m-0 text-ui-sm font-semibold tracking-[0.08em] uppercase text-muted">
-                Bible
+                Library
               </h2>
             </div>
             <div class="flex-1 min-h-0 overflow-y-auto">
-              <BibleTocSidebar currentSelection={bibleTocSelection} onPickChapter={closeDrawers} />
+              <FolderBrowser onPickBook={onPickBookFromDrawer} />
             </div>
-          </Motion.aside>
-        </Show>
-      </Presence>
+          </div>
+        </ReaderPanel>
 
-      {/* EGW-mode left drawer: existing TOC + Library two-pane drawer. */}
-      <Presence>
-        <Show
-          when={!isBibleMode() && hasBook() && drawer() !== 'closed' && currentBookId() !== null}
-        >
-          <Motion.aside
-            class="fixed top-[calc(44px*var(--ui-scale))] bottom-0 left-0 w-[320px] bg-bg border-r border-rule z-[35] flex flex-row shadow-[4px_0_24px_color-mix(in_srgb,#000_16%,transparent)] transition-[width] duration-[0.24s] [transition-timing-function:cubic-bezier(0.2,0.8,0.2,1)] data-expanded:w-[720px]"
-            data-expanded={drawer() === 'tocPlusLib' ? '' : undefined}
-            aria-label="Library and contents"
-            initial={{ x: -360, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: -360, opacity: 0 }}
-            transition={{ duration: 0.22, ease: defaultEase }}
-          >
-            <div class="flex flex-col min-w-0 h-full flex-[0_0_320px] border-r border-rule">
-              <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-rule flex-[0_0_auto]">
-                <h2 class="m-0 text-ui-sm font-semibold tracking-[0.08em] uppercase text-muted">
-                  Contents
-                </h2>
-                <button
-                  type="button"
-                  class="bg-transparent border border-rule rounded-md px-2 py-1 text-ui-xs text-fg cursor-pointer transition-[background,border-color] duration-[0.12s] ease-in-out hover:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] hover:border-accent hover:outline-none focus-visible:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] focus-visible:border-accent focus-visible:outline-none"
-                  onClick={() =>
-                    setDrawer((curr) => (curr === 'tocPlusLib' ? 'toc' : 'tocPlusLib'))
-                  }
-                  title={drawer() === 'tocPlusLib' ? 'Hide library' : 'Open library'}
-                >
-                  {drawer() === 'tocPlusLib' ? 'Close library' : 'Library'}
-                </button>
-              </div>
-              <div class="flex-1 min-h-0 overflow-y-auto">
-                <Show when={currentBookId()} keyed>
-                  {(bookId) => <TocSidebar bookId={bookId} />}
-                </Show>
-              </div>
-            </div>
-
-            <div
-              class="flex flex-col min-w-0 h-full flex-auto opacity-0 pointer-events-none transition-opacity duration-[0.18s] ease-in-out delay-[0.04s] data-expanded:opacity-100 data-expanded:pointer-events-auto"
-              data-expanded={drawer() === 'tocPlusLib' ? '' : undefined}
-              aria-hidden={drawer() !== 'tocPlusLib'}
-            >
-              <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-rule flex-[0_0_auto]">
-                <h2 class="m-0 text-ui-sm font-semibold tracking-[0.08em] uppercase text-muted">
-                  Library
-                </h2>
-              </div>
-              <div class="flex-1 min-h-0 overflow-y-auto">
-                <FolderBrowser onPickBook={onPickBookFromDrawer} />
-              </div>
-            </div>
-          </Motion.aside>
+        {/* Right drawer is mode-dependent. EGW mode → BibleDrawer
+            (cross-reference into scripture). Bible mode → symmetric
+            inversion, a commentary drawer that surfaces cached EGW paragraphs
+            touching the focused verse. */}
+        <Show when={isBibleMode()} fallback={<BibleDrawer state={bibleDrawer} />}>
+          <BibleCommentaryDrawer
+            open={bibleCommentaryOpen()}
+            onOpenChange={setBibleCommentaryOpen}
+          />
         </Show>
-      </Presence>
+      </div>
 
       <Presence>
         <Show when={settingsOpen()}>
@@ -1078,43 +1132,6 @@ export const App: Component = () => {
           </Motion.div>
         </Show>
       </Presence>
-
-      {/* Right drawer is mode-dependent. EGW mode → existing BibleDrawer
-          (cross-reference into scripture). Bible mode → symmetric inversion,
-          a commentary drawer that surfaces cached EGW paragraphs touching the
-          focused verse. Both share the same persisted widthPx so resizing one
-          settles the other on next mode switch. */}
-      <Show
-        when={isBibleMode()}
-        fallback={
-          <BibleDrawer
-            state={bibleDrawer}
-            widthPx={bibleDrawerWidth}
-            onWidthChange={setBibleDrawerWidth}
-            widthBounds={{
-              min: BIBLE_DRAWER_WIDTH_BOUNDS.min,
-              max: BIBLE_DRAWER_WIDTH_BOUNDS.max,
-            }}
-            wideWidthPx={bibleDrawerWideWidth}
-            onWideWidthChange={setBibleDrawerWideWidth}
-            wideWidthBounds={{
-              min: BIBLE_DRAWER_WIDE_WIDTH_BOUNDS.min,
-              max: BIBLE_DRAWER_WIDE_WIDTH_BOUNDS.max,
-            }}
-          />
-        }
-      >
-        <BibleCommentaryDrawer
-          open={bibleCommentaryOpen()}
-          onOpenChange={setBibleCommentaryOpen}
-          widthPx={bibleDrawerWidth}
-          onWidthChange={setBibleDrawerWidth}
-          widthBounds={{
-            min: BIBLE_DRAWER_WIDTH_BOUNDS.min,
-            max: BIBLE_DRAWER_WIDTH_BOUNDS.max,
-          }}
-        />
-      </Show>
     </div>
   );
 };

@@ -145,6 +145,19 @@ const getCacheDb = (): Database.Database => {
       updated_at INTEGER NOT NULL
     );
 
+    -- Sibling single-row table (id = 0) for Bible mode: which (book, chapter,
+    -- verse) the user was last looking at. Stored separately from last_position
+    -- so the two reading modes restore independently — switching modes on
+    -- launch shouldn't reset the other mode's place. verse is nullable for the
+    -- case where the user opened a chapter but never clicked a specific verse.
+    CREATE TABLE IF NOT EXISTS bible_last_position (
+      id INTEGER PRIMARY KEY CHECK (id = 0),
+      book INTEGER NOT NULL,
+      chapter INTEGER NOT NULL,
+      verse INTEGER,
+      updated_at INTEGER NOT NULL
+    );
+
     -- NOTE: kjv_verses + strongs_lexicon are created and owned by
     -- KjvBibleDatabase.layerCore (packages/core/src/kjv-bible-db). They share
     -- this same cache.sqlite file but their DDL belongs to the service, not
@@ -366,6 +379,37 @@ ipcMain.handle('lastPosition:clear', (): void => {
   getCacheDb().prepare('DELETE FROM last_position').run();
 });
 
+// Bible-mode last position — symmetric with lastPosition above but written
+// from BibleReaderState changes rather than the EGW reader's scroll anchor.
+// verse is nullable: the user may have opened a chapter without ever clicking
+// a specific verse.
+type BibleLastPositionRow = {
+  readonly book: number;
+  readonly chapter: number;
+  readonly verse: number | null;
+};
+ipcMain.handle('bibleLastPosition:read', (): BibleLastPositionRow | null => {
+  const row = getCacheDb()
+    .prepare<[], BibleLastPositionRow>(
+      'SELECT book, chapter, verse FROM bible_last_position WHERE id = 0',
+    )
+    .get();
+  return row ?? null;
+});
+ipcMain.handle(
+  'bibleLastPosition:write',
+  (_event, book: number, chapter: number, verse: number | null = null): void => {
+    getCacheDb()
+      .prepare(
+        'INSERT INTO bible_last_position (id, book, chapter, verse, updated_at) VALUES (0, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET book = excluded.book, chapter = excluded.chapter, verse = excluded.verse, updated_at = excluded.updated_at',
+      )
+      .run(book, chapter, verse, now());
+  },
+);
+ipcMain.handle('bibleLastPosition:clear', (): void => {
+  getCacheDb().prepare('DELETE FROM bible_last_position').run();
+});
+
 // Local search over the indexed EGW paragraphs. Both handlers return plain JSON
 // arrays so the preload bridge can ferry them across IPC; the renderer wraps
 // the shape in a Schema if it wants typed access. Returns [] when the runtime
@@ -411,11 +455,49 @@ ipcMain.handle(
   },
 );
 
+// --- Diagnostic IPC -----------------------------------------------------
+// Lets the renderer detect a half-initialized main process (mainRuntime null
+// after `app.whenReady` should have populated it). Without this the renderer
+// just sees every IPC returning empty/null and surfaces misleading
+// "missing data" screens.
+ipcMain.handle('__diag:runtimeReady', (): boolean => mainRuntime !== null);
+
 // --- KJV bible + Strong's IPC -------------------------------------------
 // Data lives in cache.sqlite (kjv_verses, strongs_lexicon tables owned by
 // KjvBibleDatabase.layerCore). The bundled JSON assets are imported once on
 // first launch — subsequent launches skip the import via isImported() and
 // only hit the SQL queries.
+
+// Dev-mode wrapper: logs entry + exit (with duration + result summary) for
+// every `bible:*` IPC so debugging "did the IPC even fire?" / "what did it
+// return?" doesn't require re-running eval through agent-browser. Production
+// builds drop the log calls so the wire isn't chatty.
+const traceBibleIpc = <Args extends readonly unknown[], R>(
+  channel: string,
+  handler: (...args: Args) => Promise<R>,
+  summarize: (result: R) => string,
+): ((...args: Args) => Promise<R>) => {
+  if (!isDev) return handler;
+  return async (...args: Args): Promise<R> => {
+    const t0 = Date.now();
+    // ipcMain.handle prepends the IpcMainInvokeEvent — skip it for readability.
+    const payload = args
+      .slice(1)
+      .map((a) => (typeof a === 'string' ? `"${a}"` : String(a)))
+      .join(', ');
+    console.error(`[main] ${channel}(${payload})`);
+    try {
+      const result = await handler(...args);
+      console.error(`[main] ${channel} → ${summarize(result)} (${String(Date.now() - t0)}ms)`);
+      return result;
+    } catch (err) {
+      console.error(
+        `[main] ${channel} ✗ ${err instanceof Error ? err.message : String(err)} (${String(Date.now() - t0)}ms)`,
+      );
+      throw err;
+    }
+  };
+};
 
 // re-export types that other electron modules import
 export type { KjvStrongsChapterPayload, StrongsLexiconEntry };
@@ -500,70 +582,92 @@ type RendererStrongsEntry = {
 
 ipcMain.handle(
   'bible:getChapter',
-  async (_event, book: number, chapter: number): Promise<RendererKjvChapter | null> => {
-    if (mainRuntime === null) return null;
-    await ensureBibleImportsDone(mainRuntime);
-    const result = await mainRuntime.runPromise(
-      KjvBibleDatabase.pipe(Effect.flatMap((db) => db.getChapter(book, chapter))),
-    );
-    return Option.match(result, {
-      onNone: () => null,
-      onSome: (c): RendererKjvChapter => ({
-        book: c.book,
-        bookName: c.book_name,
-        chapter: c.chapter,
-        verses: c.verses.map((v) => ({ verse: v.verse, text: v.text })),
-      }),
-    });
-  },
+  traceBibleIpc(
+    'bible:getChapter',
+    async (_event, book: number, chapter: number): Promise<RendererKjvChapter | null> => {
+      if (mainRuntime === null) return null;
+      await ensureBibleImportsDone(mainRuntime);
+      const result = await mainRuntime.runPromise(
+        KjvBibleDatabase.pipe(Effect.flatMap((db) => db.getChapter(book, chapter))),
+      );
+      return Option.match(result, {
+        onNone: () => null,
+        onSome: (c): RendererKjvChapter => ({
+          book: c.book,
+          bookName: c.book_name,
+          chapter: c.chapter,
+          verses: c.verses.map((v) => ({ verse: v.verse, text: v.text })),
+        }),
+      });
+    },
+    (r) =>
+      r === null ? 'null' : `${r.bookName} ${String(r.chapter)} (${String(r.verses.length)}v)`,
+  ),
 );
 
-ipcMain.handle('bible:reimportKjv', async (): Promise<void> => {
-  if (mainRuntime === null) return;
-  // Reset the cached boot Promise so any future getChapter call awaits the
-  // new import effect (instead of resolving instantly against the now-empty
-  // cached Promise).
-  bibleImportsPromise = null;
-  await mainRuntime.runPromise(
-    KjvBibleDatabase.pipe(
-      Effect.flatMap((db) =>
-        db.resetTables().pipe(Effect.andThen(runBundledKjvImport(db)), Effect.asVoid),
-      ),
-    ),
-  );
-  console.error('[main] KJV reimport complete');
-});
+ipcMain.handle(
+  'bible:reimportKjv',
+  traceBibleIpc(
+    'bible:reimportKjv',
+    async (): Promise<void> => {
+      if (mainRuntime === null) return;
+      // Reset the cached boot Promise so any future getChapter call awaits the
+      // new import effect (instead of resolving instantly against the now-empty
+      // cached Promise).
+      bibleImportsPromise = null;
+      await mainRuntime.runPromise(
+        KjvBibleDatabase.pipe(
+          Effect.flatMap((db) =>
+            db.resetTables().pipe(Effect.andThen(runBundledKjvImport(db)), Effect.asVoid),
+          ),
+        ),
+      );
+    },
+    () => 'reimported',
+  ),
+);
 
 ipcMain.handle(
   'bible:getChapterStrongs',
-  async (_event, book: number, chapter: number): Promise<RendererKjvStrongsChapter | null> => {
-    if (mainRuntime === null) return null;
-    await ensureBibleImportsDone(mainRuntime);
-    const result = await mainRuntime.runPromise(
-      KjvBibleDatabase.pipe(Effect.flatMap((db) => db.getChapterStrongs(book, chapter))),
-    );
-    return Option.match(result, {
-      onNone: () => null,
-      onSome: (c): RendererKjvStrongsChapter => ({
-        book: c.book,
-        bookName: c.book_name,
-        chapter: c.chapter,
-        verses: c.verses.map((v) => ({ verse: v.verse, words: v.words })),
-      }),
-    });
-  },
+  traceBibleIpc(
+    'bible:getChapterStrongs',
+    async (_event, book: number, chapter: number): Promise<RendererKjvStrongsChapter | null> => {
+      if (mainRuntime === null) return null;
+      await ensureBibleImportsDone(mainRuntime);
+      const result = await mainRuntime.runPromise(
+        KjvBibleDatabase.pipe(Effect.flatMap((db) => db.getChapterStrongs(book, chapter))),
+      );
+      return Option.match(result, {
+        onNone: () => null,
+        onSome: (c): RendererKjvStrongsChapter => ({
+          book: c.book,
+          bookName: c.book_name,
+          chapter: c.chapter,
+          verses: c.verses.map((v) => ({ verse: v.verse, words: v.words })),
+        }),
+      });
+    },
+    (r) =>
+      r === null
+        ? 'null'
+        : `${r.bookName} ${String(r.chapter)} (${String(r.verses.length)}v strongs)`,
+  ),
 );
 
 ipcMain.handle(
   'bible:strongsLookup',
-  async (_event, code: string): Promise<RendererStrongsEntry | null> => {
-    if (mainRuntime === null) return null;
-    await ensureBibleImportsDone(mainRuntime);
-    const result = await mainRuntime.runPromise(
-      KjvBibleDatabase.pipe(Effect.flatMap((db) => db.strongsLookup(code))),
-    );
-    return Option.getOrNull(result);
-  },
+  traceBibleIpc(
+    'bible:strongsLookup',
+    async (_event, code: string): Promise<RendererStrongsEntry | null> => {
+      if (mainRuntime === null) return null;
+      await ensureBibleImportsDone(mainRuntime);
+      const result = await mainRuntime.runPromise(
+        KjvBibleDatabase.pipe(Effect.flatMap((db) => db.strongsLookup(code))),
+      );
+      return Option.getOrNull(result);
+    },
+    (r) => (r === null ? 'null' : `${r.code} ${r.lemma}`),
+  ),
 );
 
 // --- Cross-reference catalog IPC ----------------------------------------
@@ -608,27 +712,31 @@ type RendererCrossRef = {
 
 ipcMain.handle(
   'bible:getCrossRefs',
-  async (
-    _event,
-    book: number,
-    chapter: number,
-    verse: number,
-  ): Promise<readonly RendererCrossRef[]> => {
-    if (mainRuntime === null) return [];
-    await ensureXrefsImportsDone(mainRuntime);
-    const rows = await mainRuntime.runPromise(
-      BibleXrefsDatabase.pipe(Effect.flatMap((db) => db.getCrossRefs(book, chapter, verse))),
-    );
-    return rows.map(
-      (r): RendererCrossRef => ({
-        source: r.source,
-        targetBook: r.targetBook,
-        targetChapter: r.targetChapter,
-        targetVerse: r.targetVerse,
-        targetVerseEnd: r.targetVerseEnd,
-      }),
-    );
-  },
+  traceBibleIpc(
+    'bible:getCrossRefs',
+    async (
+      _event,
+      book: number,
+      chapter: number,
+      verse: number,
+    ): Promise<readonly RendererCrossRef[]> => {
+      if (mainRuntime === null) return [];
+      await ensureXrefsImportsDone(mainRuntime);
+      const rows = await mainRuntime.runPromise(
+        BibleXrefsDatabase.pipe(Effect.flatMap((db) => db.getCrossRefs(book, chapter, verse))),
+      );
+      return rows.map(
+        (r): RendererCrossRef => ({
+          source: r.source,
+          targetBook: r.targetBook,
+          targetChapter: r.targetChapter,
+          targetVerse: r.targetVerse,
+          targetVerseEnd: r.targetVerseEnd,
+        }),
+      );
+    },
+    (r) => `${String(r.length)} xref(s)`,
+  ),
 );
 
 // --- Margin notes IPC ---------------------------------------------------
@@ -668,28 +776,32 @@ type RendererMarginNote = {
 
 ipcMain.handle(
   'bible:getMarginNotes',
-  async (
-    _event,
-    book: number,
-    chapter: number,
-    verse: number,
-  ): Promise<readonly RendererMarginNote[]> => {
-    if (mainRuntime === null) return [];
-    await ensureMarginNotesImportsDone(mainRuntime);
-    const rows = await mainRuntime.runPromise(
-      BibleMarginNotesDatabase.pipe(
-        Effect.flatMap((db) => db.getMarginNotes(book, chapter, verse)),
-      ),
-    );
-    return rows.map(
-      (r): RendererMarginNote => ({
-        idx: r.idx,
-        type: r.type,
-        phrase: r.phrase,
-        text: r.text,
-      }),
-    );
-  },
+  traceBibleIpc(
+    'bible:getMarginNotes',
+    async (
+      _event,
+      book: number,
+      chapter: number,
+      verse: number,
+    ): Promise<readonly RendererMarginNote[]> => {
+      if (mainRuntime === null) return [];
+      await ensureMarginNotesImportsDone(mainRuntime);
+      const rows = await mainRuntime.runPromise(
+        BibleMarginNotesDatabase.pipe(
+          Effect.flatMap((db) => db.getMarginNotes(book, chapter, verse)),
+        ),
+      );
+      return rows.map(
+        (r): RendererMarginNote => ({
+          idx: r.idx,
+          type: r.type,
+          phrase: r.phrase,
+          text: r.text,
+        }),
+      );
+    },
+    (r) => `${String(r.length)} note(s)`,
+  ),
 );
 
 // Per-chapter "which verses have notes" lookup. The renderer renders one
@@ -698,20 +810,24 @@ ipcMain.handle(
 // reconstitutes a Map on the renderer side if it wants O(1) lookup.
 ipcMain.handle(
   'bible:getVersesWithNotes',
-  async (
-    _event,
-    book: number,
-    chapter: number,
-  ): Promise<readonly { readonly verse: number; readonly count: number }[]> => {
-    if (mainRuntime === null) return [];
-    await ensureMarginNotesImportsDone(mainRuntime);
-    const map = await mainRuntime.runPromise(
-      BibleMarginNotesDatabase.pipe(Effect.flatMap((db) => db.versesWithNotes(book, chapter))),
-    );
-    const out: { readonly verse: number; readonly count: number }[] = [];
-    for (const [verse, count] of map) out.push({ verse, count });
-    return out;
-  },
+  traceBibleIpc(
+    'bible:getVersesWithNotes',
+    async (
+      _event,
+      book: number,
+      chapter: number,
+    ): Promise<readonly { readonly verse: number; readonly count: number }[]> => {
+      if (mainRuntime === null) return [];
+      await ensureMarginNotesImportsDone(mainRuntime);
+      const map = await mainRuntime.runPromise(
+        BibleMarginNotesDatabase.pipe(Effect.flatMap((db) => db.versesWithNotes(book, chapter))),
+      );
+      const out: { readonly verse: number; readonly count: number }[] = [];
+      for (const [verse, count] of map) out.push({ verse, count });
+      return out;
+    },
+    (r) => `${String(r.length)} verse(s) with notes`,
+  ),
 );
 
 // --- EGW commentary on Bible verses --------------------------------------
@@ -759,30 +875,34 @@ type EgwCommentaryHit = {
 
 ipcMain.handle(
   'bible:getEgwCommentary',
-  async (
-    _event,
-    book: number,
-    chapter: number,
-    verse: number,
-  ): Promise<readonly EgwCommentaryHit[]> => {
-    if (mainRuntime === null) return [];
-    await ensureCommentaryBackfillDone(mainRuntime);
-    const rows = await mainRuntime.runPromise(
-      EGWParagraphDatabase.pipe(
-        Effect.flatMap((db) => db.getParagraphsByBibleRef(book, chapter, verse)),
-      ),
-    );
-    return rows.map(
-      (r): EgwCommentaryHit => ({
-        bookId: r.bookId,
-        bookCode: r.bookCode,
-        bookTitle: r.bookTitle,
-        refcodeShort: r.refcode_short ?? null,
-        snippet: nodesToText(r.nodes),
-        puborder: r.puborder,
-      }),
-    );
-  },
+  traceBibleIpc(
+    'bible:getEgwCommentary',
+    async (
+      _event,
+      book: number,
+      chapter: number,
+      verse: number,
+    ): Promise<readonly EgwCommentaryHit[]> => {
+      if (mainRuntime === null) return [];
+      await ensureCommentaryBackfillDone(mainRuntime);
+      const rows = await mainRuntime.runPromise(
+        EGWParagraphDatabase.pipe(
+          Effect.flatMap((db) => db.getParagraphsByBibleRef(book, chapter, verse)),
+        ),
+      );
+      return rows.map(
+        (r): EgwCommentaryHit => ({
+          bookId: r.bookId,
+          bookCode: r.bookCode,
+          bookTitle: r.bookTitle,
+          refcodeShort: r.refcode_short ?? null,
+          snippet: nodesToText(r.nodes),
+          puborder: r.puborder,
+        }),
+      );
+    },
+    (r) => `${String(r.length)} commentary hit(s)`,
+  ),
 );
 
 // Chapter-scoped set of verses that have at least one cached EGW paragraph.
@@ -791,15 +911,19 @@ ipcMain.handle(
 // `bible:getVersesWithNotes` pattern.
 ipcMain.handle(
   'bible:getBibleVersesWithCommentary',
-  async (_event, book: number, chapter: number): Promise<readonly number[]> => {
-    if (mainRuntime === null) return [];
-    await ensureCommentaryBackfillDone(mainRuntime);
-    return mainRuntime.runPromise(
-      EGWParagraphDatabase.pipe(
-        Effect.flatMap((db) => db.getBibleVersesWithCommentary(book, chapter)),
-      ),
-    );
-  },
+  traceBibleIpc(
+    'bible:getBibleVersesWithCommentary',
+    async (_event, book: number, chapter: number): Promise<readonly number[]> => {
+      if (mainRuntime === null) return [];
+      await ensureCommentaryBackfillDone(mainRuntime);
+      return mainRuntime.runPromise(
+        EGWParagraphDatabase.pipe(
+          Effect.flatMap((db) => db.getBibleVersesWithCommentary(book, chapter)),
+        ),
+      );
+    },
+    (r) => `${String(r.length)} verse(s) w/ commentary`,
+  ),
 );
 
 // --- EGW live API IPC ----------------------------------------------------

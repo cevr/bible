@@ -34,26 +34,24 @@ import {
 } from '../services/kjv-bible.js';
 import { VerseRenderer } from './bible/verse-renderer.js';
 import { BooksToc, ChaptersToc } from './bible-drawer-toc.js';
-import { Drawer } from './ui/drawer.js';
+import { ReaderShell } from './ui/reader-shell.js';
 
 // Right-side scripture drawer. Mounted at the app shell level so any click on
-// a ScriptureRef anywhere in the reader can open it. The Drawer primitive
-// (components/ui/drawer.tsx) handles Esc, click-outside, focus trap, scroll
-// lock, inert background, and focus restoration. This component owns the
-// chapter render + prev/next + strongs toggle.
+// a ScriptureRef anywhere in the reader can open it. Composes `ReaderShell.*`
+// primitives for the visual chrome (header / body / split / tabs) so this and
+// the EGW commentary drawer share spacing + border + button affordances by
+// construction. The underlying `ReaderPanel` primitive owns Esc, focus trap,
+// scroll lock, sibling `inert`, and focus restoration. This component owns
+// the chapter render + prev/next + strongs toggle.
+//
+// Width model: fixed 360→720 swap driven by `state.isExpanded()`. No drag
+// handle — both widths are presets.
+
+const COLLAPSED_WIDTH_PX = 360;
+const EXPANDED_WIDTH_PX = 720;
 
 export interface BibleDrawerProps {
   readonly state: BibleDrawerState;
-  /** Collapsed-mode width (chapter pane only) in px. Owned by app shell so
-   *  it can persist via ReaderSettings. */
-  readonly widthPx: Accessor<number>;
-  readonly onWidthChange: (px: number) => void;
-  readonly widthBounds: { readonly min: number; readonly max: number };
-  /** Expanded-mode width (chapter + study pane) in px. Tracked separately so
-   *  each mode remembers its own last-used width across collapse/expand. */
-  readonly wideWidthPx: Accessor<number>;
-  readonly onWideWidthChange: (px: number) => void;
-  readonly wideWidthBounds: { readonly min: number; readonly max: number };
 }
 
 export const BibleDrawer: Component<BibleDrawerProps> = (props) => {
@@ -156,41 +154,23 @@ export const BibleDrawer: Component<BibleDrawerProps> = (props) => {
     });
   });
 
-  // Width + resize plumbing follows the expanded state — the drawer presents
-  // a wider drag handle / target range when the study pane is visible, and
-  // the parent persists each mode's width independently.
-  const activeWidth = (): Accessor<number> =>
-    props.state.isExpanded() ? props.wideWidthPx : props.widthPx;
-  const onActiveResize = (px: number): void => {
-    if (props.state.isExpanded()) props.onWideWidthChange(px);
-    else props.onWidthChange(px);
-  };
-  const activeBounds = (): { readonly min: number; readonly max: number } =>
-    props.state.isExpanded() ? props.wideWidthBounds : props.widthBounds;
+  const widthPxAccessor: Accessor<number> = () => COLLAPSED_WIDTH_PX;
 
   return (
-    <Drawer
+    <ReaderShell.Frame
       open={props.state.isOpen()}
       onOpenChange={(open) => {
         if (!open) props.state.close();
       }}
-      side="right"
-      widthPx={activeWidth()}
       label="Bible reference"
-      resize={{
-        onResize: onActiveResize,
-        minPx: activeBounds().min,
-        maxPx: activeBounds().max,
-      }}
+      widthPx={widthPxAccessor}
+      expandedWidthPx={EXPANDED_WIDTH_PX}
+      expanded={props.state.isExpanded()}
     >
       <BibleDrawerHeader state={props.state} />
-      <div class="flex-1 min-h-0 flex">
-        <div
-          class="flex-1 min-h-0 min-w-0 overflow-y-auto px-5 py-4"
-          classList={{
-            'border-r border-rule': props.state.isExpanded(),
-          }}
-        >
+      <ReaderShell.SplitBody
+        asideOpen={props.state.isExpanded()}
+        primary={
           <Switch>
             <Match when={props.state.view()._tag === 'reader'}>
               <BibleDrawerBody state={props.state} />
@@ -207,14 +187,10 @@ export const BibleDrawer: Component<BibleDrawerProps> = (props) => {
               {(v) => <ChaptersToc state={props.state} book={v().book} />}
             </Match>
           </Switch>
-        </div>
-        <Show when={props.state.isExpanded()}>
-          <div class="flex-1 min-h-0 min-w-0 flex flex-col">
-            <StudyPane state={props.state} />
-          </div>
-        </Show>
-      </div>
-    </Drawer>
+        }
+        aside={<StudyPane state={props.state} />}
+      />
+    </ReaderShell.Frame>
   );
 };
 
@@ -244,47 +220,38 @@ const BibleDrawerHeader: Component<{ readonly state: BibleDrawerState }> = (prop
   });
 
   return (
-    <div class="flex items-center gap-2 px-5 pt-4 pb-3 border-b border-rule">
-      <button
-        type="button"
-        class="flex h-7 w-7 items-center justify-center rounded text-muted hover:bg-rule/30 hover:text-fg disabled:opacity-30 disabled:hover:bg-transparent"
+    <ReaderShell.Header>
+      <ReaderShell.HeaderIconButton
         onClick={() => {
           const t = navTargets().prev;
           if (t) props.state.navigate(t.book, t.chapter);
         }}
         disabled={navTargets().prev === null}
-        aria-label="Previous chapter"
+        ariaLabel="Previous chapter"
         title="Previous chapter ([ key — Shift for previous book)"
       >
         {'‹'}
-      </button>
-      <div class="flex-1 min-w-0 text-ui-base font-medium text-fg truncate" title={title()}>
-        {title()}
-      </div>
-      <button
-        type="button"
-        class="flex h-7 w-7 items-center justify-center rounded text-muted hover:bg-rule/30 hover:text-fg disabled:opacity-30 disabled:hover:bg-transparent"
+      </ReaderShell.HeaderIconButton>
+      <ReaderShell.HeaderTitle title={title()}>{title()}</ReaderShell.HeaderTitle>
+      <ReaderShell.HeaderIconButton
         onClick={() => {
           const t = navTargets().next;
           if (t) props.state.navigate(t.book, t.chapter);
         }}
         disabled={navTargets().next === null}
-        aria-label="Next chapter"
+        ariaLabel="Next chapter"
         title="Next chapter (] key — Shift for next book)"
       >
         {'›'}
-      </button>
-      <button
-        type="button"
-        class="ml-1 flex h-7 w-7 items-center justify-center rounded text-muted hover:bg-rule/30 hover:text-fg data-[on=true]:bg-accent-soft data-[on=true]:text-accent"
+      </ReaderShell.HeaderIconButton>
+      <ReaderShell.HeaderIconButton
         onClick={() => {
           const v = props.state.view();
           if (v._tag === 'reader') props.state.openBooksToc();
           else props.state.backToReader();
         }}
-        aria-pressed={props.state.view()._tag !== 'reader'}
-        data-on={props.state.view()._tag !== 'reader' ? 'true' : undefined}
-        aria-label={
+        pressed={props.state.view()._tag !== 'reader'}
+        ariaLabel={
           props.state.view()._tag === 'reader' ? 'Open table of contents' : 'Back to chapter'
         }
         title={
@@ -294,41 +261,34 @@ const BibleDrawerHeader: Component<{ readonly state: BibleDrawerState }> = (prop
         }
       >
         {'☰'}
-      </button>
-      <button
-        type="button"
-        class="ml-1 flex h-7 items-center px-1.5 rounded text-[0.7rem] font-medium tracking-[0.06em] uppercase text-muted hover:bg-rule/30 hover:text-fg data-[on=true]:bg-accent-soft data-[on=true]:text-accent"
+      </ReaderShell.HeaderIconButton>
+      <ReaderShell.HeaderIconButton
         onClick={() => props.state.setStrongsEnabled(!props.state.strongsEnabled())}
-        aria-pressed={props.state.strongsEnabled()}
-        data-on={props.state.strongsEnabled() ? 'true' : undefined}
-        aria-label="Toggle Strong's numbers"
+        pressed={props.state.strongsEnabled()}
+        ariaLabel="Toggle Strong's numbers"
         title="Toggle Strong's numbers"
+        variant="chip"
       >
         H/G
-      </button>
-      <button
-        type="button"
-        class="ml-1 flex h-7 w-7 items-center justify-center rounded text-muted hover:bg-rule/30 hover:text-fg data-[on=true]:bg-accent-soft data-[on=true]:text-accent"
+      </ReaderShell.HeaderIconButton>
+      <ReaderShell.HeaderIconButton
         onClick={() => props.state.setExpanded(!props.state.isExpanded())}
-        aria-pressed={props.state.isExpanded()}
-        data-on={props.state.isExpanded() ? 'true' : undefined}
-        aria-label={props.state.isExpanded() ? 'Collapse study pane' : 'Expand study pane'}
+        pressed={props.state.isExpanded()}
+        ariaLabel={props.state.isExpanded() ? 'Collapse study pane' : 'Expand study pane'}
         title={
           props.state.isExpanded() ? 'Collapse study pane (\\ key)' : 'Expand study pane (\\ key)'
         }
       >
         {props.state.isExpanded() ? '⇥' : '⇤'}
-      </button>
-      <button
-        type="button"
-        class="ml-1 flex h-7 w-7 items-center justify-center rounded text-muted hover:bg-rule/30 hover:text-fg"
+      </ReaderShell.HeaderIconButton>
+      <ReaderShell.HeaderIconButton
         onClick={() => props.state.close()}
-        aria-label="Close"
+        ariaLabel="Close"
         title="Close (Esc)"
       >
         {'×'}
-      </button>
-    </div>
+      </ReaderShell.HeaderIconButton>
+    </ReaderShell.Header>
   );
 };
 
@@ -596,28 +556,21 @@ const STUDY_TABS: readonly { readonly key: BibleStudyTab; readonly label: string
 
 const StudyPane: Component<{ readonly state: BibleDrawerState }> = (props) => (
   <>
-    <div class="flex items-center gap-0 px-4 pt-3 pb-0 border-b border-rule" role="tablist">
+    <ReaderShell.TabsList>
       <For each={STUDY_TABS}>
-        {(tab) => {
-          const isActive = (): boolean => props.state.activeStudyTab() === tab.key;
-          return (
-            <button
-              type="button"
-              role="tab"
-              aria-selected={isActive()}
-              data-on={isActive() ? 'true' : undefined}
-              class="flex h-7 items-center px-2.5 text-ui-sm font-medium text-muted hover:text-fg border-b-2 border-transparent -mb-px data-[on=true]:border-accent data-[on=true]:text-fg"
-              onClick={() => props.state.setActiveStudyTab(tab.key)}
-            >
-              {tab.label}
-            </button>
-          );
-        }}
+        {(tab) => (
+          <ReaderShell.Tab
+            active={props.state.activeStudyTab() === tab.key}
+            onClick={() => props.state.setActiveStudyTab(tab.key)}
+          >
+            {tab.label}
+          </ReaderShell.Tab>
+        )}
       </For>
-    </div>
-    <div class="flex-1 min-h-0 overflow-y-auto px-5 py-4">
+    </ReaderShell.TabsList>
+    <ReaderShell.TabPanel>
       <StudyPaneBody state={props.state} />
-    </div>
+    </ReaderShell.TabPanel>
   </>
 );
 
@@ -639,10 +592,7 @@ const StudyPaneBody: Component<{ readonly state: BibleDrawerState }> = (props) =
 );
 
 const StudyTabEmpty: Component<{ readonly title: string; readonly body: string }> = (props) => (
-  <div class="flex flex-col gap-1">
-    <p class="text-ui-sm font-medium text-fg">{props.title}</p>
-    <p class="text-ui-sm text-muted">{props.body}</p>
-  </div>
+  <ReaderShell.EmptyState title={props.title} body={props.body} />
 );
 
 // Notes tab: shows the margin notes for the verse the user clicked an anchor

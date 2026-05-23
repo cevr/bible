@@ -15,12 +15,14 @@ import {
 import { runtime } from '../runtime.js';
 import { BibleReaderState, type BibleReaderSelection } from '../services/bible-reader-state.js';
 import { EgwCommentary, type EgwCommentaryHit } from '../services/egw-commentary.js';
-import { Drawer } from './ui/drawer.js';
+import { ReaderShell } from './ui/reader-shell.js';
+
+const COMMENTARY_WIDTH_PX = 360;
 
 // Right-side dismissable sheet for Bible mode. Mirrors the EGW reader's
-// BibleDrawer chrome (Drawer primitive — Esc, click-outside, resize handle,
-// persisted width) and swaps in EGW commentary keyed off the verse cursor.
-// Footnote `e` markers on the chapter open this sheet pinned to that verse.
+// BibleDrawer chrome — both now compose `ReaderShell.*` primitives so the
+// header padding / border-treatment / button affordances stay aligned by
+// construction instead of by copy-paste.
 //
 // Width parity with the existing BibleDrawer is intentional — both share the
 // `bibleDrawerWidth` persistence key so a user who resizes one gets the same
@@ -35,9 +37,6 @@ type Load =
 export interface BibleCommentaryDrawerProps {
   readonly open: boolean;
   readonly onOpenChange: (open: boolean) => void;
-  readonly widthPx: Accessor<number>;
-  readonly onWidthChange: (px: number) => void;
-  readonly widthBounds: { readonly min: number; readonly max: number };
 }
 
 export const BibleCommentaryDrawer: Component<BibleCommentaryDrawerProps> = (props) => {
@@ -112,33 +111,44 @@ export const BibleCommentaryDrawer: Component<BibleCommentaryDrawerProps> = (pro
     return l._tag === 'ready' ? { verse: l.verse, hits: l.hits } : null;
   };
 
+  const widthPxAccessor: Accessor<number> = () => COMMENTARY_WIDTH_PX;
+
   return (
-    <Drawer
+    <ReaderShell.Frame
       open={props.open}
       onOpenChange={props.onOpenChange}
-      side="right"
-      widthPx={props.widthPx}
       label="EGW commentary"
-      resize={{
-        onResize: props.onWidthChange,
-        minPx: props.widthBounds.min,
-        maxPx: props.widthBounds.max,
-      }}
+      widthPx={widthPxAccessor}
     >
-      <header class="flex items-center gap-2 px-4 py-3 border-b border-rule flex-[0_0_auto]">
-        <h2 class="m-0 text-ui-sm font-semibold tracking-[0.08em] uppercase text-muted">
-          EGW Commentary
-        </h2>
+      <ReaderShell.Header>
+        <ReaderShell.HeaderTitle>
+          <span class="text-ui-sm font-semibold tracking-[0.08em] uppercase text-muted">
+            EGW Commentary
+          </span>
+        </ReaderShell.HeaderTitle>
         <Show when={focusedVerse()}>
-          {(v) => (
-            <span class="text-ui-xs text-muted [font-variant-numeric:tabular-nums]">v. {v()}</span>
-          )}
+          {(v) => <ReaderShell.HeaderBadge>v. {v()}</ReaderShell.HeaderBadge>}
         </Show>
-      </header>
-      <div class="flex-1 min-h-0 overflow-y-auto px-4 py-3">
+        <ReaderShell.HeaderIconButton
+          onClick={() => props.onOpenChange(false)}
+          ariaLabel="Close"
+          title="Close (Esc)"
+        >
+          {'×'}
+        </ReaderShell.HeaderIconButton>
+      </ReaderShell.Header>
+      <ReaderShell.Body>
         <Switch>
           <Match when={focusedVerse() === null}>
-            <EmptyDrawer />
+            <ReaderShell.EmptyState
+              title="Spirit of Prophecy"
+              body={
+                <>
+                  Click the <sup class="text-accent">e</sup> marker next to a verse to load EGW
+                  commentary on it.
+                </>
+              }
+            />
           </Match>
           <Match when={load()._tag === 'loading'}>
             <p class="text-ui-sm text-muted">Searching cached EGW…</p>
@@ -178,16 +188,7 @@ export const BibleCommentaryDrawer: Component<BibleCommentaryDrawerProps> = (pro
             )}
           </Match>
         </Switch>
-      </div>
-    </Drawer>
+      </ReaderShell.Body>
+    </ReaderShell.Frame>
   );
 };
-
-const EmptyDrawer: Component = () => (
-  <div class="flex flex-col gap-2">
-    <p class="text-ui-sm text-muted">
-      Click the <sup class="text-accent">e</sup> marker next to a verse to load EGW commentary on
-      it.
-    </p>
-  </div>
-);

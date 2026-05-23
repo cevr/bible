@@ -26,26 +26,78 @@ export function electronDev(): Plugin {
   let viteServer: ViteDevServer | undefined;
   let stopping = false;
 
+  // 3s after SIGTERM, escalate to SIGKILL. Electron usually exits on SIGTERM
+  // within ~100ms, but a hung main process or a stuck devtools detach can
+  // leave a zombie that blocks port 9333 and prevents respawn.
+  const KILL_ESCALATION_MS = 3000;
+
   const killElectron = () =>
     new Promise<void>((resolve) => {
-      if (!child || child.exitCode !== null) {
+      const c = child;
+      if (!c || c.exitCode !== null) {
         child = undefined;
         resolve();
         return;
       }
-      child.removeAllListeners('exit');
-      child.once('exit', () => {
+      c.removeAllListeners('exit');
+      const escalate = setTimeout(() => {
+        if (c.exitCode !== null) return;
+        console.warn(
+          `[electron-dev] SIGTERM ignored after ${String(KILL_ESCALATION_MS)}ms — sending SIGKILL to pid ${String(c.pid ?? 0)}`,
+        );
+        try {
+          c.kill('SIGKILL');
+        } catch (err) {
+          console.warn(
+            `[electron-dev] SIGKILL failed: ${err instanceof Error ? err.message : String(err)}`,
+          );
+          // Resolve anyway so the dev loop doesn't deadlock. The next spawn
+          // will likely fail loudly, which is the warning we want.
+          child = undefined;
+          resolve();
+        }
+      }, KILL_ESCALATION_MS);
+      c.once('exit', () => {
+        clearTimeout(escalate);
         child = undefined;
         resolve();
       });
-      child.kill();
+      try {
+        c.kill();
+      } catch (err) {
+        clearTimeout(escalate);
+        console.warn(
+          `[electron-dev] SIGTERM failed: ${err instanceof Error ? err.message : String(err)} — trying SIGKILL`,
+        );
+        try {
+          c.kill('SIGKILL');
+        } catch (err2) {
+          console.warn(
+            `[electron-dev] SIGKILL failed: ${err2 instanceof Error ? err2.message : String(err2)}`,
+          );
+          child = undefined;
+          resolve();
+        }
+      }
     });
 
-  const spawnElectron = () => {
-    child = spawn(electronPath as unknown as string, ['.', '--remote-debugging-port=9333'], {
-      cwd: root,
-      stdio: 'inherit',
-      env: { ...process.env, NODE_ENV: 'development' },
+  const spawnElectron = (): boolean => {
+    try {
+      child = spawn(electronPath as unknown as string, ['.', '--remote-debugging-port=9333'], {
+        cwd: root,
+        stdio: 'inherit',
+        env: { ...process.env, NODE_ENV: 'development' },
+      });
+    } catch (err) {
+      console.warn(
+        `[electron-dev] FAILED TO SPAWN ELECTRON: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      console.warn('[electron-dev] dev server is running but no renderer is attached');
+      child = undefined;
+      return false;
+    }
+    child.once('error', (err) => {
+      console.warn(`[electron-dev] electron process error: ${err.message}`);
     });
     child.once('exit', (code) => {
       child = undefined;
@@ -56,12 +108,18 @@ export function electronDev(): Plugin {
         void viteServer.close().then(() => process.exit(code ?? 0));
       }
     });
+    return true;
   };
 
   const restartElectron = async () => {
     await killElectron();
     if (stopping) return;
-    spawnElectron();
+    const spawned = spawnElectron();
+    if (!spawned) {
+      console.warn(
+        '[electron-dev] BUILD SUCCEEDED BUT RESTART DID NOT FIRE — fix the spawn error above and re-save to retry',
+      );
+    }
   };
 
   return {
@@ -98,8 +156,16 @@ export function electronDev(): Plugin {
                   first = false;
                   // Wait for the renderer URL to be ready before the first
                   // spawn so Electron doesn't race the dev server.
-                  server.httpServer?.once('listening', () => spawnElectron());
-                  if (server.httpServer?.listening) spawnElectron();
+                  const trySpawn = (): void => {
+                    const spawned = spawnElectron();
+                    if (!spawned) {
+                      console.warn(
+                        '[electron-dev] FIRST BUILD SUCCEEDED BUT INITIAL SPAWN FAILED — see error above',
+                      );
+                    }
+                  };
+                  server.httpServer?.once('listening', trySpawn);
+                  if (server.httpServer?.listening) trySpawn();
                   return;
                 }
                 void restartElectron();

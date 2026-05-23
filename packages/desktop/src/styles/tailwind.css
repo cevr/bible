@@ -54,6 +54,8 @@ body {
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
   --color-red-letter: var(--red-letter);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
 
   --text-ui-xs: var(--ui-xs);
   --text-ui-sm: var(--ui-sm);
@@ -83,6 +85,8 @@ body {
   --accent: #1a1a1a;
   --accent-soft: rgba(255, 220, 100, 0.35);
   --red-letter: #b3261e;
+  --danger: #b3261e;
+  --danger-soft: rgba(179, 38, 30, 0.1);
 }
 
 [data-theme='sepia'] {
@@ -93,6 +97,8 @@ body {
   --accent: #2a200f;
   --accent-soft: rgba(255, 220, 100, 0.35);
   --red-letter: #9a2218;
+  --danger: #9a2218;
+  --danger-soft: rgba(154, 34, 24, 0.12);
 }
 
 [data-theme='dark'] {
@@ -103,6 +109,8 @@ body {
   --accent: #fafaf7;
   --accent-soft: rgba(255, 220, 100, 0.18);
   --red-letter: #e57373;
+  --danger: #e57373;
+  --danger-soft: rgba(229, 115, 115, 0.14);
 }
 
 /* Custom theme-aware variants so utilities can target sepia/dark

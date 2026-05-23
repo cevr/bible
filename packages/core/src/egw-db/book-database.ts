@@ -28,7 +28,7 @@ import { isChapterHeading } from '../egw/parse.js';
 // and drops/recreates the paragraphs tables on mismatch so callers don't need
 // to ship migration SQL — a re-sync rebuilds them. Books and sync_status are
 // preserved across version bumps because their shape is stable.
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 import { RecordNotFoundError } from '../errors/database.js';
 import type {
   DatabaseConnectionError,
