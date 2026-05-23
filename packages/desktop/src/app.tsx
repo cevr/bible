@@ -940,7 +940,7 @@ export const App: Component = () => {
               </h2>
             </div>
             <div class="flex-1 min-h-0 overflow-y-auto">
-              <FolderBrowser onPickBook={onPickBookFromDrawer} />
+              <FolderBrowser onPickBook={onPickBookFromDrawer} initialBookId={currentBookId()} />
             </div>
           </div>
         </ReaderPanel>

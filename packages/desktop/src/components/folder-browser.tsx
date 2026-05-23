@@ -28,6 +28,13 @@ import { Prefetcher, type PrefetchStatus } from '../services/prefetcher.js';
 const DEFAULT_LANG = 'en';
 const idleStatus: PrefetchStatus = { _tag: 'Idle' };
 
+// Module-level memo of resolved book → folder-path chains. Hit on subsequent
+// drawer opens for books we've seeded before in this session, so we skip the
+// listBooks lookup + tree DFS. Doesn't survive app restart by design — the
+// underlying sqlite caches do, and a stale chain just falls through resolvePath
+// back to root.
+const folderPathByBook = new Map<number, ReadonlyArray<number>>();
+
 /* Folder card subtitle. Folders at upper levels of the EGW tree hold zero
    books and only subfolders — "0 books" is meaningless there, so fall back
    to the subfolder count instead. */
@@ -49,6 +56,20 @@ export interface FolderBrowserProps {
    * both drawers.
    */
   readonly onPickBook: (bookId: number) => void;
+  /**
+   * When set, the browser tries to seed its initial path to the folder
+   * containing this book — so opening the library drawer for an open book
+   * lands the user in context instead of dumping them at root. Resolves by
+   * (1) reading `book.folder_id` from the cached `listBooks(lang)` result,
+   * then (2) finding the folder's ancestor chain in the cached folder tree.
+   * Best-effort: any failure (book not in `listBooks`, folder not in tree,
+   * tree still loading) silently falls back to root.
+   *
+   * Only honored at mount — the user's subsequent navigation is theirs to
+   * keep. We don't re-seed when the prop changes, so jumping between books
+   * via search doesn't yank the drawer out from under them.
+   */
+  readonly initialBookId?: number | null;
 }
 
 interface CrumbNode {
@@ -69,16 +90,85 @@ const resolvePath = (
   for (const id of path) {
     const found = level.find((f) => f.folder_id === id);
     if (found === undefined) return null;
-    const children = found.children ?? [];
-    crumbs.push({ id, name: found.name, children });
-    level = children;
+    crumbs.push({ id, name: found.name, children: found.children ?? [] });
+    level = found.children ?? [];
   }
   return crumbs;
+};
+
+// DFS for `folderId` in the tree. Returns the chain of folder ids from root
+// down to (and including) the target, or null when the folder isn't in the
+// tree. Used to seed the browser path when opening the drawer with a book
+// already in view.
+//
+// Prefers `parent_id` when present — EGW's schema declares it optional and
+// our real payloads omit it, but if the upstream API ever starts emitting
+// it we'd rather hop straight up the chain than re-traverse from root for
+// every level.
+const findFolderPath = (
+  tree: ReadonlyArray<Schemas.Folder>,
+  folderId: number,
+): ReadonlyArray<number> | null => {
+  const direct = tryParentIdChain(tree, folderId);
+  if (direct !== null) return direct;
+  return dfsFolderPath(tree, folderId);
+};
+
+const dfsFolderPath = (
+  tree: ReadonlyArray<Schemas.Folder>,
+  folderId: number,
+): ReadonlyArray<number> | null => {
+  for (const f of tree) {
+    if (f.folder_id === folderId) return [f.folder_id];
+    const children = f.children ?? [];
+    if (children.length === 0) continue;
+    const sub = dfsFolderPath(children, folderId);
+    if (sub !== null) return [f.folder_id, ...sub];
+  }
+  return null;
+};
+
+// Walk every folder once, indexing by id; if parent_id is present, follow it
+// up to root. Returns null if any link in the chain is missing — caller falls
+// back to the DFS path.
+const tryParentIdChain = (
+  tree: ReadonlyArray<Schemas.Folder>,
+  folderId: number,
+): ReadonlyArray<number> | null => {
+  const index = new Map<number, Schemas.Folder>();
+  const walk = (level: ReadonlyArray<Schemas.Folder>): void => {
+    for (const f of level) {
+      index.set(f.folder_id, f);
+      if (f.children !== undefined) walk(f.children);
+    }
+  };
+  walk(tree);
+  const target = index.get(folderId);
+  if (target === undefined || target.parent_id === undefined) return null;
+  const chain: number[] = [folderId];
+  let cursor: Schemas.Folder | undefined = target;
+  // Cap at index.size to defend against a malformed payload with a parent_id cycle.
+  for (let i = 0; i < index.size; i++) {
+    const parentId = cursor.parent_id;
+    if (parentId === undefined) return chain;
+    const parent = index.get(parentId);
+    if (parent === undefined) return null;
+    chain.unshift(parentId);
+    cursor = parent;
+  }
+  return null;
 };
 
 export const FolderBrowser: Component<FolderBrowserProps> = (props) => {
   // Path of folder ids from root. Empty = root level (top-level folders only).
   const [path, setPath] = createSignal<ReadonlyArray<number>>([]);
+  // Captured at mount — `props.initialBookId` is only honored once. After
+  // that the user owns the path. Keeping a snapshot avoids the effect re-firing
+  // when the parent re-renders with a new book id (e.g. search jump). Latching
+  // also doubles as the "user touched the path" sentinel: once we've seeded
+  // (or chosen not to), nothing else automatically rewrites `path`.
+  const seedBookId = props.initialBookId ?? null;
+  let seeded = seedBookId === null;
 
   const [tree] = createResource(() =>
     runtime.runPromise(
@@ -88,6 +178,52 @@ export const FolderBrowser: Component<FolderBrowserProps> = (props) => {
       }).pipe(Effect.result),
     ),
   );
+
+  // Seed the path to the open book's folder on first mount. Fires once when
+  // the tree resource resolves; afterwards `seeded = true` makes it a no-op.
+  // Best-effort: any failure (book not in listBooks, folder not in tree)
+  // leaves the user at root. No error surfacing — falling back to root is
+  // the existing UX and it's fine.
+  createEffect(() => {
+    if (seeded) return;
+    const t = tree();
+    if (t === undefined || Result.isFailure(t)) return;
+    const bookId = seedBookId;
+    if (bookId === null) {
+      seeded = true;
+      return;
+    }
+    const folders = t.success;
+    seeded = true;
+
+    // Memo hit — synchronously seed without listBooks/DFS. If the chain is
+    // stale (folder deleted/renamed), resolvePath returns null and currentLevel
+    // resets to root + drops the cache entry on next render.
+    const cached = folderPathByBook.get(bookId);
+    if (cached !== undefined) {
+      if (path().length === 0) setPath(cached);
+      return;
+    }
+
+    void runtime
+      .runPromise(
+        Effect.gen(function* () {
+          const data = yield* EGWData;
+          const books = yield* data.listBooks(DEFAULT_LANG);
+          return books.find((b) => b.book_id === bookId);
+        }).pipe(Effect.option),
+      )
+      .then((maybeBook) => {
+        if (Option.isNone(maybeBook) || maybeBook.value === undefined) return;
+        const chain = findFolderPath(folders, maybeBook.value.folder_id);
+        if (chain === null) return;
+        folderPathByBook.set(bookId, chain);
+        // Guard against the user having drilled in during the lookup —
+        // listBooks is cached but not synchronous on a cold cache.
+        if (path().length !== 0) return;
+        setPath(chain);
+      });
+  });
 
   // Subfolders to render at the current level.
   const currentLevel = createMemo(
@@ -106,8 +242,19 @@ export const FolderBrowser: Component<FolderBrowserProps> = (props) => {
       }
       const crumbs = resolvePath(t.success, p);
       if (crumbs === null) {
-        // Path stale (tree changed) — reset to root.
+        // Path stale (tree changed) — reset to root and evict any cached chain
+        // that matches it, so a re-open doesn't re-seed the same broken path.
         setPath([]);
+        if (seedBookId !== null) {
+          const stale = folderPathByBook.get(seedBookId);
+          if (
+            stale !== undefined &&
+            stale.length === p.length &&
+            stale.every((id, i) => id === p[i])
+          ) {
+            folderPathByBook.delete(seedBookId);
+          }
+        }
         return { folders: t.success, currentFolderId: null, crumbs: [] };
       }
       const last = crumbs[crumbs.length - 1] ?? null;
