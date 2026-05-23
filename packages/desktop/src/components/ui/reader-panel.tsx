@@ -2,6 +2,7 @@ import {
   type Component,
   createEffect,
   createMemo,
+  createSignal,
   createUniqueId,
   type JSX,
   onCleanup,
@@ -101,6 +102,7 @@ export const ReaderPanel: Component<ReaderPanelProps> = (props) => {
             label={props.label}
             side={props.side}
             widthPx={currentWidth}
+            open={() => props.open}
             offset={offset()}
             dismissOnEscape={dismissOnEscape()}
             onClose={() => props.onOpenChange(false)}
@@ -120,6 +122,9 @@ interface InnerProps {
   readonly label: string;
   readonly side: PanelSide;
   readonly widthPx: () => number;
+  /** Live `open` flag from the parent. Used to freeze width + ignore content
+   *  pointerdowns once the close has been requested. */
+  readonly open: () => boolean;
   readonly offset: number;
   readonly dismissOnEscape: boolean;
   readonly onClose: () => void;
@@ -141,10 +146,30 @@ const ReaderPanelInner: Component<InnerProps> = (props) => {
       ? 'shadow-[-12px_0_40px_color-mix(in_srgb,#000_18%,transparent)]'
       : 'shadow-[12px_0_40px_color-mix(in_srgb,#000_18%,transparent)]';
 
+  // Freeze the width at the moment `open` flips false so the exit animation
+  // slides out at the size the user was just looking at. Without this, the
+  // parent often collapses `expanded` in the same tick (e.g. a `tocPlusLib`
+  // → `closed` transition both closes the panel *and* drops `expanded`), and
+  // the inner content reflows from 720px → 360px while it's sliding away.
+  const [frozenWidth, setFrozenWidth] = createSignal<number | null>(null);
+  createEffect(() => {
+    if (props.open()) {
+      // Stay reactive while open — width changes between 360/720 still animate
+      // via the CSS transition on the panel.
+      setFrozenWidth(null);
+      return;
+    }
+    // First time we see open=false during this inner's lifetime: snapshot the
+    // last known width and stop tracking. Inner unmounts after the exit
+    // animation completes; the snapshot only needs to survive ~0.22s.
+    setFrozenWidth((curr) => curr ?? props.widthPx());
+  });
+  const effectiveWidth = createMemo(() => frozenWidth() ?? props.widthPx());
+
   return (
     <Motion.aside
       class={`absolute top-0 ${sideClass} bottom-0 z-40 flex flex-col bg-bg ${borderClass} border-rule ${shadowClass} w-[var(--panel-w)] max-w-full transition-[width] duration-[0.24s] [transition-timing-function:cubic-bezier(0.2,0.8,0.2,1)] ${props.panelClass ?? ''}`}
-      style={{ '--panel-w': `${String(props.widthPx())}px` }}
+      style={{ '--panel-w': `${String(effectiveWidth())}px` }}
       initial={{ x: props.offset }}
       animate={{ x: 0 }}
       exit={{ x: props.offset }}
@@ -178,7 +203,12 @@ const ReaderPanelInner: Component<InnerProps> = (props) => {
         {props.label}
       </span>
       {props.children}
-      <PanelEffects panelEl={() => panelEl} returnFocusEl={() => returnFocusEl} />
+      <PanelEffects
+        panelEl={() => panelEl}
+        returnFocusEl={() => returnFocusEl}
+        open={props.open}
+        onClose={props.onClose}
+      />
     </Motion.aside>
   );
 };
@@ -186,11 +216,13 @@ const ReaderPanelInner: Component<InnerProps> = (props) => {
 interface EffectsProps {
   readonly panelEl: () => HTMLElement | undefined;
   readonly returnFocusEl: () => HTMLElement | null;
+  readonly open: () => boolean;
+  readonly onClose: () => void;
 }
 
-// Side-effects (body scroll lock, sibling `inert`, focus restoration). Lives
-// in a child so it gets a fresh scope per open instead of firing on every
-// measure pass.
+// Side-effects (body scroll lock, sibling `inert`, focus restoration,
+// click-outside-to-close). Lives in a child so it gets a fresh scope per open
+// instead of firing on every measure pass.
 const PanelEffects: Component<EffectsProps> = (props) => {
   createEffect(() => {
     const panel = props.panelEl();
@@ -208,9 +240,25 @@ const PanelEffects: Component<EffectsProps> = (props) => {
       inerted.push(node);
     });
 
+    // Dismiss on click outside the panel. pointerdown (not click) so the
+    // close fires before any in-flight click handlers on the outside target —
+    // matches Radix/headlessui semantics. Capture phase so we beat handlers
+    // that stopPropagation. Skip if the parent has already requested close
+    // (open === false): we're mid-exit, the click should land on whatever's
+    // underneath instead of re-firing onClose.
+    const onPointerDown = (e: PointerEvent): void => {
+      if (!props.open()) return;
+      const target = e.target;
+      if (!(target instanceof Node)) return;
+      if (panel.contains(target)) return;
+      props.onClose();
+    };
+    document.addEventListener('pointerdown', onPointerDown, true);
+
     onCleanup(() => {
       document.body.style.overflow = prevOverflow;
       for (const el of inerted) el.removeAttribute('inert');
+      document.removeEventListener('pointerdown', onPointerDown, true);
       const target = props.returnFocusEl();
       if (target && document.body.contains(target)) {
         target.focus({ preventScroll: true });
