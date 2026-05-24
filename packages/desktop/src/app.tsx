@@ -695,22 +695,65 @@ export const App: Component = () => {
   // Scroll-spy anchor moved — persist the new (chapter, paragraph) pair so
   // a relaunch restores at the topmost visible paragraph rather than just
   // the chapter start.
+  //
+  // The renderer can fire this on every scroll frame; the underlying IPC
+  // write is a sync SQLite upsert behind an async Promise, and bursts of
+  // 60+ writes/sec from a wheel scroll can land out of order in the main
+  // process — so refresh would read whichever intermediate happened to
+  // commit last. We debounce to 250ms trailing-edge and flush on chapter
+  // swap or window unload so the *latest* intent always wins.
+  let pendingPosition: { bookId: number; chapterParaId: string; paragraphParaId: string } | null =
+    null;
+  let positionTimer: number | null = null;
+  const flushPosition = (): void => {
+    if (positionTimer !== null) {
+      window.clearTimeout(positionTimer);
+      positionTimer = null;
+    }
+    const p = pendingPosition;
+    if (p === null) return;
+    pendingPosition = null;
+    void runtime.runPromise(
+      Effect.gen(function* () {
+        const storage = yield* LastPositionStorage;
+        yield* storage.write({
+          bookId: p.bookId,
+          paraId: Option.some(p.chapterParaId),
+          paragraphId: Option.some(p.paragraphParaId),
+        });
+      }),
+    );
+  };
   const onPositionChange = (chapterParaId: string, paragraphParaId: string) => {
     latestAnchorParaId = paragraphParaId;
     const sel = selection();
     if (Option.isNone(sel)) return;
     const bookId = sel.value.bookId;
-    void runtime.runPromise(
-      Effect.gen(function* () {
-        const storage = yield* LastPositionStorage;
-        yield* storage.write({
-          bookId,
-          paraId: Option.some(chapterParaId),
-          paragraphId: Option.some(paragraphParaId),
-        });
-      }),
-    );
+    // Flush immediately if the chapter/book changed under us — debouncing
+    // across chapters would drop a position write for the chapter we just
+    // left.
+    if (
+      pendingPosition !== null &&
+      (pendingPosition.bookId !== bookId || pendingPosition.chapterParaId !== chapterParaId)
+    ) {
+      flushPosition();
+    }
+    pendingPosition = { bookId, chapterParaId, paragraphParaId };
+    if (positionTimer !== null) window.clearTimeout(positionTimer);
+    positionTimer = window.setTimeout(flushPosition, 250);
   };
+  // Flush on window unload (refresh, close) so the user's actual last scroll
+  // position survives even when the debounce hasn't fired.
+  onMount(() => {
+    const onUnload = (): void => flushPosition();
+    window.addEventListener('beforeunload', onUnload);
+    window.addEventListener('pagehide', onUnload);
+    onCleanup(() => {
+      window.removeEventListener('beforeunload', onUnload);
+      window.removeEventListener('pagehide', onUnload);
+      flushPosition();
+    });
+  });
 
   // Reader CSS-var bridge — these have to be on a root the chapter inherits
   // from. `--reader-*` names are consumed via arbitrary Tailwind value escapes

@@ -255,28 +255,43 @@ export const BookFeed: Component<BookFeedProps> = (props) => {
 
   // Scroll-spy: report the topmost visible paragraph + current chapter on every
   // scroll event. Used by the parent to persist the user's reading position.
-  const reportPosition = (): void => {
-    const cb = props.onPositionChange;
-    if (cb === undefined) return;
+  // Also updates `scrollPct` for the floating progress pill — we ignore the
+  // 50vh tail spacer so reaching the last paragraph reads as 100%, not ~67%.
+  const [scrollPct, setScrollPct] = createSignal(0);
+  const onScroll = (): void => {
     const el = props.scrollEl();
     if (el === undefined) return;
     const top = el.getBoundingClientRect().top;
     let topmost: string | undefined;
+    let lastParaBottom = 0;
     for (const [paraId, paraEl] of paragraphRefs) {
       const r = paraEl.getBoundingClientRect();
-      if (r.bottom > top) {
+      if (topmost === undefined && r.bottom > top) {
         topmost = paraId;
-        break;
       }
+      if (r.bottom > lastParaBottom) lastParaBottom = r.bottom;
     }
-    if (topmost === undefined) return;
-    cb(props.chapterParaId, topmost);
+    // Distance the user has scrolled / scrollable range capped at the last
+    // paragraph's bottom (relative to scrollTop). Below that, the spacer pads
+    // it out and "progress" stays at 100%.
+    const lastParaBottomInScroll = lastParaBottom - top + el.scrollTop;
+    const denom = Math.max(1, lastParaBottomInScroll - el.clientHeight);
+    const pct = Math.max(0, Math.min(100, Math.round((el.scrollTop / denom) * 100)));
+    setScrollPct(pct);
+    const cb = props.onPositionChange;
+    if (cb !== undefined && topmost !== undefined) cb(props.chapterParaId, topmost);
   };
   createEffect(() => {
     const el = props.scrollEl();
     if (el === undefined) return;
-    el.addEventListener('scroll', reportPosition, { passive: true });
-    onCleanup(() => el.removeEventListener('scroll', reportPosition));
+    el.addEventListener('scroll', onScroll, { passive: true });
+    onCleanup(() => el.removeEventListener('scroll', onScroll));
+  });
+  // Reset to 0 on chapter swap; the scroll handler will recompute as the user
+  // moves. Without this the pill briefly shows the previous chapter's pct.
+  createEffect(() => {
+    void props.chapterParaId;
+    setScrollPct(0);
   });
 
   const navigateTo = (paraId: string): void => {
@@ -405,6 +420,8 @@ export const BookFeed: Component<BookFeedProps> = (props) => {
 
       <div aria-hidden="true" style={{ height: '50vh' }} />
 
+      <ReadingProgressIndicator pct={scrollPct} />
+
       <ChapterNavButtons
         prevTitle={() => prevChapter()?.title ?? undefined}
         nextTitle={() => nextChapter()?.title ?? undefined}
@@ -459,6 +476,21 @@ export interface ChapterOption {
   readonly value: string;
   readonly label: string;
 }
+
+// Tiny pill in the bottom-right with the user's progress through the current
+// chapter as a percentage. Matches ChapterNavButtons' visual language so the
+// two floating elements feel like one toolbar.
+const ReadingProgressIndicator: Component<{
+  readonly pct: () => number;
+}> = (props) => (
+  <div
+    class="fixed bottom-6 right-6 z-10 rounded-full border border-rule bg-bg/85 backdrop-blur px-3 py-1 shadow-sm text-ui-xs tabular-nums text-muted select-none"
+    aria-label={`Chapter progress ${String(props.pct())}%`}
+    title={`${String(props.pct())}% through chapter`}
+  >
+    {props.pct()}%
+  </div>
+);
 
 // Centered floating chapter nav: [← Prev] [chapter <select>] [Next →] pinned
 // to the bottom-center of the viewport. Renders for both readers; the EGW
