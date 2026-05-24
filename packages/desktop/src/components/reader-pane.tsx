@@ -45,7 +45,7 @@ export const ReaderPane: Component<ReaderPaneProps> = (props) => {
 
   return (
     <main
-      class="absolute inset-0 flex justify-center overflow-y-auto pt-12 px-6 pb-[120px]"
+      class="absolute inset-0 flex justify-center overflow-y-auto pt-12 px-6"
       role="main"
       ref={(el) => {
         // Defer one frame so the browser has laid out <main> before

@@ -308,7 +308,8 @@ export const BookFeed: Component<BookFeedProps> = (props) => {
 
   // Arrow-key navigation. Ignored when focus is in an editable surface
   // (input, textarea, contenteditable) so typing search doesn't paginate.
-  // Cmd/Ctrl + arrow jumps to the first/last chapter.
+  // Cmd/Ctrl + left/right jumps to the first/last chapter.
+  // Cmd/Ctrl + up/down jumps to the start/end of the current chapter.
   const isEditableTarget = (target: EventTarget | null): boolean => {
     if (!(target instanceof HTMLElement)) return false;
     if (target.isContentEditable) return true;
@@ -327,6 +328,16 @@ export const BookFeed: Component<BookFeedProps> = (props) => {
       e.preventDefault();
       if (jumpToEdge) goLast();
       else goNext();
+    } else if (jumpToEdge && e.key === 'ArrowUp') {
+      const el = props.scrollEl();
+      if (el === undefined) return;
+      e.preventDefault();
+      el.scrollTop = 0;
+    } else if (jumpToEdge && e.key === 'ArrowDown') {
+      const el = props.scrollEl();
+      if (el === undefined) return;
+      e.preventDefault();
+      el.scrollTop = el.scrollHeight;
     }
   };
   createEffect(() => {
@@ -391,6 +402,8 @@ export const BookFeed: Component<BookFeedProps> = (props) => {
           </Show>
         </Show>
       </Show>
+
+      <div aria-hidden="true" style={{ height: '50vh' }} />
 
       <ChapterNavButtons
         prevTitle={() => prevChapter()?.title ?? undefined}
