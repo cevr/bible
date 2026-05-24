@@ -44,9 +44,13 @@ const RenderNode: Component<RenderNodeProps> = (props) => (
     </Match>
     <Match when={props.node._tag === 'PageBreak' ? props.node : null}>
       {(n) => (
-        <span class="page-break" aria-label={`page ${n().page}`} title={`page ${n().page}`}>
-          {n().page}
-        </span>
+        <sup
+          class="page-break mx-0.5 text-[0.7em] text-muted opacity-70 align-super select-none"
+          aria-label={`page ${n().page}`}
+          title={`page ${n().page}`}
+        >
+          [{n().page}]
+        </sup>
       )}
     </Match>
     <Match when={props.node._tag === 'Emphasis' ? props.node : null}>

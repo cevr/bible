@@ -21,11 +21,13 @@ describe('ParagraphView', () => {
     expect(html).toMatch(/a.*<br[^>]*\/?>.*b/s);
   });
 
-  it('renders PageBreak with page number and a11y label', () => {
+  it('renders PageBreak as a muted superscript with page number and a11y label', () => {
     const html = render([{ _tag: 'PageBreak', page: 54 }]);
-    expect(html).toContain('class="page-break"');
+    expect(html).toMatch(/<sup[^>]*class="page-break[^"]*"/);
     expect(html).toContain('aria-label="page 54"');
-    expect(html).toContain('>54<');
+    expect(html).toContain('[');
+    expect(html).toContain('54');
+    expect(html).toContain(']');
   });
 
   it('renders Emphasis as <em> with nested children', () => {
