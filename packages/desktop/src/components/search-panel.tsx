@@ -32,11 +32,11 @@ import { SearchService, type SearchResult } from '../services/search-service.js'
 
 const DEBOUNCE_MS = 200;
 
-// Crude refcode detector: a token (book code letters/digits), whitespace,
-// then a chapter.paragraph number. Picks up "PP 351.1", "DA 12.4", "1T 200.2"
-// etc. without trying to be exhaustive — false negatives just fall through
-// to text search.
-const REFCODE_PATTERN = /^[A-Za-z0-9]+\s+\d+\.\d+$/;
+// Refcode detector: a token (book code letters/digits), whitespace, then a
+// chapter or chapter.paragraph number. Picks up "PP 351.1", "DA 12.4",
+// "1T 200.2", "DAR 62", "GC". A bare book code with no numeric suffix also
+// routes to refcode search so users can pull up "GC" → first paragraph.
+const REFCODE_PATTERN = /^[A-Za-z0-9]+(?:\s+\d+(?:\.\d+)?)?$/;
 const looksLikeRefcode = (q: string): boolean => REFCODE_PATTERN.test(q.trim());
 
 export interface SearchPanelProps {

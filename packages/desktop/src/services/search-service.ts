@@ -66,9 +66,29 @@ export class SearchService extends Context.Service<SearchService, SearchServiceS
       });
 
       const byRefcode: SearchServiceShape['byRefcode'] = (refcode, limit) =>
-        Effect.promise(() => window.api.search.refcode(refcode, limit)).pipe(
-          Effect.map((hits) => hits.map(localToResult)),
-        );
+        Effect.gen(function* () {
+          const local = yield* Effect.promise(() => window.api.search.refcode(refcode, limit));
+          if (local.length > 0) return local.map(localToResult);
+          // Fall back to the live EGW /search endpoint when local has nothing
+          // — the user might be querying a book they haven't downloaded yet.
+          // Catch-all keeps an offline / unauthenticated UI quiet (empty list
+          // is friendlier than a thrown error in the search panel).
+          const remote = yield* client
+            .search({ query: refcode, limit: limit ?? 5 })
+            .pipe(Effect.catch(() => Effect.succeed({ results: [] })));
+          return remote.results.map(
+            (hit): SearchResult => ({
+              source: 'remote',
+              bookId: null,
+              bookCode: hit.pub_code,
+              bookTitle: hit.pub_name,
+              paraId: hit.para_id ?? null,
+              refcodeShort: hit.refcode_short ?? null,
+              snippet: hit.snippet ?? null,
+              puborder: null,
+            }),
+          );
+        });
 
       const byText: SearchServiceShape['byText'] = (query, options = {}) =>
         Effect.gen(function* () {

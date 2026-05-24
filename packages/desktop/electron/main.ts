@@ -26,7 +26,7 @@ import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import { promises as fs, readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { indexChapter } from './indexer.js';
+import { backfillIndex, indexChapter } from './indexer.js';
 import { makeRuntime, type MainRuntime } from './runtime.js';
 
 // Tiny .env loader. Vite handles env injection for the renderer; the main
@@ -1130,6 +1130,12 @@ void app.whenReady().then(async () => {
     for (const win of BrowserWindow.getAllWindows()) {
       win.webContents.send('bible:egwCommentaryUpdated', []);
     }
+  });
+  // Re-index any chapter blobs that were cached before the paragraph indexer
+  // existed (or before its boot path ran). Fire-and-forget — local refcode /
+  // FTS search will just light up once it lands.
+  void backfillIndex(mainRuntime, getCacheDb()).catch((err: unknown) => {
+    console.warn('[main] backfillIndex failed:', err);
   });
   void createWindow();
   app.on('activate', () => {

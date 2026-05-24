@@ -686,13 +686,35 @@ export class EGWParagraphDatabase extends Context.Service<
           SELECT MAX(page_number) as max_page FROM paragraphs WHERE book_id = ${bookId}
         `.pipe(Effect.map((rows) => rows[0]?.max_page ?? 1));
 
-      const findByRefcodeShort = (refcodeShort: string, limit = 5) =>
-        sql<FullParagraphRow>`
+      // The user types human refcodes ("DAR 62", "PP 351.1", "GC"); the index
+      // stores them in the EGW canonical form ("DAR1909 62", "PP 351.1"). We
+      // split on the first space: the head is matched as a book_code prefix
+      // (LIKE 'DAR%' covers DAR / DAR1909 / DAR-suffix editions) and the tail
+      // is matched against refcode_short as either an exact "<code> <tail>" or
+      // a prefix "<code> <tail>%" (so "DAR 62" sweeps every paragraph on
+      // chapter 62 in addition to the bare chapter heading).
+      const findByRefcodeShort = (refcodeShort: string, limit = 5) => {
+        const trimmed = refcodeShort.trim();
+        const spaceAt = trimmed.indexOf(' ');
+        const head = (spaceAt === -1 ? trimmed : trimmed.slice(0, spaceAt)).trim();
+        const tail = spaceAt === -1 ? '' : trimmed.slice(spaceAt + 1).trim();
+        const codePrefix = `${head}%`;
+        // Tail variants: exact match ("DAR1909 62"), child-paragraph match
+        // ("DAR1909 62.X"), and bare-code fallback for tail === '' (any row
+        // under a matching book). LIKE patterns are case-insensitive in
+        // SQLite by default for ASCII, but COLLATE NOCASE keeps it explicit
+        // alongside the join on books.
+        return sql<FullParagraphRow>`
           SELECT p.*, b.book_code, b.book_title
           FROM paragraphs p
           JOIN books b ON p.book_id = b.book_id
-          WHERE p.refcode_short = ${refcodeShort} COLLATE NOCASE
-          ORDER BY b.book_code
+          WHERE b.book_code LIKE ${codePrefix} COLLATE NOCASE
+            AND (
+              ${tail === ''}
+              OR p.refcode_short LIKE ${`% ${tail}`} COLLATE NOCASE
+              OR p.refcode_short LIKE ${`% ${tail}.%`} COLLATE NOCASE
+            )
+          ORDER BY b.book_code, p.puborder
           LIMIT ${limit}
         `.pipe(
           Effect.map((rows) =>
@@ -704,6 +726,7 @@ export class EGWParagraphDatabase extends Context.Service<
             })),
           ),
         );
+      };
 
       // ========== Bible reference operations ==========
 

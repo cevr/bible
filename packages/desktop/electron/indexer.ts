@@ -101,3 +101,41 @@ export const indexChapter = async (
       console.warn(`[indexer] storeParagraphsBatch failed for book ${String(bookId)}:`, err);
     });
 };
+
+/**
+ * Backfill paragraphs/FTS from chapter JSON blobs that were cached before the
+ * indexer existed (or before its boot path ran). On every app start we scan
+ * `chapters` and re-run `indexChapter` for any book that has cached chapters
+ * but zero paragraph rows. Cheap: ~100ms per book worth of chapters; runs in
+ * the background once at startup so search just starts working for old caches.
+ */
+export const backfillIndex = async (
+  runtime: MainRuntime,
+  cacheDb: Database.Database,
+): Promise<void> => {
+  // Books with chapters cached but no paragraph rows — those are the orphans.
+  const rows = cacheDb
+    .prepare<[], { book_id: number }>(
+      `SELECT c.book_id FROM chapters c
+       LEFT JOIN paragraphs p ON p.book_id = c.book_id
+       WHERE p.book_id IS NULL
+       GROUP BY c.book_id`,
+    )
+    .all();
+  if (rows.length === 0) return;
+  console.error(`[indexer] backfill: ${String(rows.length)} books need indexing`);
+  const chapterStmt = cacheDb.prepare<[number], { json: string }>(
+    'SELECT json FROM chapters WHERE book_id = ?',
+  );
+  for (const { book_id } of rows) {
+    const chapters = chapterStmt.all(book_id);
+    for (const { json } of chapters) {
+      // Sequential on purpose: each indexChapter is a SQLite transaction; we
+      // don't want N hundred in flight at once on app start. The backfill is
+      // a one-time cold-cache pass, so wall-time isn't critical.
+      // eslint-disable-next-line no-await-in-loop
+      await indexChapter(runtime, cacheDb, book_id, json);
+    }
+  }
+  console.error('[indexer] backfill complete');
+};
