@@ -1,8 +1,9 @@
 import { BIBLE_BOOKS, getBibleBook } from '@bible/core/bible-reader';
-import { Effect } from 'effect';
+import { Effect, Option } from 'effect';
 import { type Component, createMemo, createSignal, For, Show } from 'solid-js';
 import { runtime } from '../runtime.js';
 import { BibleReaderState } from '../services/bible-reader-state.js';
+import { LastChapterMemory } from '../services/last-chapter-memory.js';
 
 // Full-canvas books/chapters picker. Mounted as the empty state of the Bible
 // main canvas: when no chapter has ever been opened (or after the user closes
@@ -27,6 +28,25 @@ export const BibleBooksGrid: Component = () => {
     );
   };
 
+  // Book click: if we've been in this book this session, jump straight to the
+  // last chapter instead of forcing them through the chapter grid.
+  const onPickBook = (book: number): void => {
+    void runtime
+      .runPromise(
+        Effect.gen(function* () {
+          const memory = yield* LastChapterMemory;
+          return yield* memory.getBible(book);
+        }),
+      )
+      .then((remembered) => {
+        if (Option.isSome(remembered)) {
+          onPickChapter(book, remembered.value);
+        } else {
+          setView({ _tag: 'chapters', book });
+        }
+      });
+  };
+
   const chaptersBook = (): number | null => {
     const v = view();
     return v._tag === 'chapters' ? v.book : null;
@@ -34,11 +54,7 @@ export const BibleBooksGrid: Component = () => {
 
   return (
     <div class="mx-auto max-w-[var(--reader-width,68ch)] px-6 py-10">
-      <Show
-        when={chaptersBook()}
-        fallback={<BooksGrid onPickBook={(book) => setView({ _tag: 'chapters', book })} />}
-        keyed
-      >
+      <Show when={chaptersBook()} fallback={<BooksGrid onPickBook={onPickBook} />} keyed>
         {(book) => (
           <ChaptersGrid
             book={book}

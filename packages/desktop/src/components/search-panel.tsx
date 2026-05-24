@@ -9,6 +9,7 @@ import {
   For,
   on,
   onCleanup,
+  onMount,
   Show,
 } from 'solid-js';
 import { runtime } from '../runtime.js';
@@ -91,6 +92,59 @@ export const SearchPanel: Component<SearchPanelProps> = (props) => {
     return { top: rect.bottom + 6, left: rect.left, width: rect.width };
   });
 
+  // Keyboard nav within the result list. The user keeps focus on the search
+  // input — we listen at window level and only act when the panel is mounted
+  // (Show in app.tsx unmounts us on close) and the focused element is the
+  // search input itself, so global ArrowUp/Down elsewhere keeps working.
+  const [activeIndex, setActiveIndex] = createSignal(0);
+  // Reset to first row whenever the result set changes.
+  createEffect(
+    on(hits, () => {
+      setActiveIndex(0);
+    }),
+  );
+  const clickableHits = createMemo<readonly SearchResult[]>(() =>
+    (hits() ?? []).filter((h) => h.source === 'local' && h.bookId !== null),
+  );
+  let listEl: HTMLUListElement | undefined;
+  const scrollActiveIntoView = (): void => {
+    if (listEl === undefined) return;
+    const row = listEl.querySelector<HTMLElement>(`[data-result-index="${String(activeIndex())}"]`);
+    if (row) row.scrollIntoView({ block: 'nearest' });
+  };
+  createEffect(
+    on(activeIndex, () => {
+      queueMicrotask(scrollActiveIntoView);
+    }),
+  );
+
+  onMount(() => {
+    const handler = (e: KeyboardEvent): void => {
+      const target = e.target;
+      const isSearchInput =
+        target instanceof HTMLInputElement && target.getAttribute('type') === 'search';
+      if (!isSearchInput) return;
+      const list = clickableHits();
+      if (list.length === 0) return;
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setActiveIndex((i) => (i + 1) % list.length);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setActiveIndex((i) => (i - 1 + list.length) % list.length);
+      } else if (e.key === 'Enter') {
+        const idx = activeIndex();
+        const hit = list[idx];
+        if (hit !== undefined) {
+          e.preventDefault();
+          onPickLocal(hit);
+        }
+      }
+    };
+    window.addEventListener('keydown', handler);
+    onCleanup(() => window.removeEventListener('keydown', handler));
+  });
+
   const onPickLocal = (hit: SearchResult): void => {
     if (hit.bookId === null || hit.paraId === null || hit.puborder === null) return;
     const bookId = hit.bookId;
@@ -152,9 +206,27 @@ export const SearchPanel: Component<SearchPanelProps> = (props) => {
                   </div>
                 }
               >
-                <ul class="m-0 list-none overflow-y-auto py-1">
+                <ul
+                  class="m-0 list-none overflow-y-auto py-1"
+                  ref={(el) => {
+                    listEl = el;
+                  }}
+                >
                   <For each={list}>
-                    {(hit) => <ResultRow hit={hit} onPick={() => onPickLocal(hit)} />}
+                    {(hit) => {
+                      const clickableIdx = createMemo(() => {
+                        if (hit.source !== 'local' || hit.bookId === null) return -1;
+                        return clickableHits().indexOf(hit);
+                      });
+                      return (
+                        <ResultRow
+                          hit={hit}
+                          active={() => clickableIdx() === activeIndex() && clickableIdx() !== -1}
+                          dataIndex={clickableIdx}
+                          onPick={() => onPickLocal(hit)}
+                        />
+                      );
+                    }}
                   </For>
                 </ul>
               </Show>
@@ -166,15 +238,20 @@ export const SearchPanel: Component<SearchPanelProps> = (props) => {
   );
 };
 
-const ResultRow: Component<{ readonly hit: SearchResult; readonly onPick: () => void }> = (
-  props,
-) => {
+const ResultRow: Component<{
+  readonly hit: SearchResult;
+  readonly active: () => boolean;
+  readonly dataIndex: () => number;
+  readonly onPick: () => void;
+}> = (props) => {
   const isClickable = () => props.hit.source === 'local' && props.hit.bookId !== null;
   return (
     <li class="m-0">
       <button
         type="button"
-        class="w-full px-4 py-2.5 flex flex-col gap-1 items-start text-left bg-transparent border-0 cursor-pointer transition-[background] duration-[0.08s] hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] focus-visible:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] focus-visible:outline-none disabled:cursor-default disabled:hover:bg-transparent"
+        data-result-index={props.dataIndex() >= 0 ? String(props.dataIndex()) : undefined}
+        data-active={props.active() ? 'true' : undefined}
+        class="w-full px-4 py-2.5 flex flex-col gap-1 items-start text-left bg-transparent border-0 cursor-pointer transition-[background] duration-[0.08s] hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] focus-visible:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] focus-visible:outline-none disabled:cursor-default disabled:hover:bg-transparent data-[active=true]:bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)]"
         onClick={() => {
           if (isClickable()) props.onPick();
         }}

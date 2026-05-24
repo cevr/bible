@@ -7,6 +7,7 @@ import { EgwCommentary } from './services/egw-commentary.js';
 import { EGWData } from './services/egw-data.js';
 import { EGWIpcClient } from './services/egw-ipc-client.js';
 import { KjvBible } from './services/kjv-bible.js';
+import { LastChapterMemory } from './services/last-chapter-memory.js';
 import { LastPositionStorage } from './services/last-position-storage.js';
 import { Prefetcher } from './services/prefetcher.js';
 import { ReaderSettings } from './services/reader-settings.js';
@@ -45,6 +46,7 @@ const AppLayer = Layer.mergeAll(
   BibleMarginNotes.layer,
   EgwCommentary.layer,
   BibleReaderState.layer,
+  LastChapterMemory.layer,
 );
 
 export const runtime = ManagedRuntime.make(AppLayer);

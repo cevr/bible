@@ -18,6 +18,7 @@ import { EgwCommentary } from '../services/egw-commentary.js';
 import { KjvBible, type KjvChapter } from '../services/kjv-bible.js';
 import { BibleBooksGrid } from './bible-books-grid.js';
 import { VerseRenderer } from './bible/verse-renderer.js';
+import { ChapterNavButtons } from './book-feed.js';
 
 // Main canvas for Bible mode. Subscribes to BibleReaderState, loads the KJV
 // chapter via the KjvBible service, and renders verses with the same
@@ -137,7 +138,10 @@ export const BibleChapterCanvas: Component<BibleChapterCanvasProps> = (props) =>
     const { book, chapter } = sel.value;
     const mine = ++loadSeq;
     const mineCommentary = ++commentarySeq;
-    setLoad({ _tag: 'loading' });
+    // Keep the previous chapter visible while a new one resolves so cache-warm
+    // prev/next nav doesn't flash a "Loading…" intermediate. Only show the
+    // loading fallback on a cold first load.
+    setLoad((prev) => (prev._tag === 'ready' ? prev : { _tag: 'loading' }));
     // Clear stale markers immediately so a brief flash of the previous
     // chapter's hit set doesn't paint on the new chapter.
     setCommentaryVerses(new Set<number>());
@@ -247,6 +251,149 @@ export const BibleChapterCanvas: Component<BibleChapterCanvasProps> = (props) =>
     return Option.isSome(sel) ? Option.getOrNull(sel.value.verse) : null;
   });
 
+  // Prev/next chapter — walk within the current book; cross book boundaries
+  // when at the first/last chapter (Genesis 1 has no prev, Revelation 22 no
+  // next). Returns the target {book, chapter} or null at the edges.
+  type Loc = { readonly book: number; readonly chapter: number; readonly label: string };
+  const adjacentChapter = (direction: -1 | 1): Loc | null => {
+    const sel = Option.getOrNull(selection());
+    if (sel === null) return null;
+    const book = getBibleBook(sel.book);
+    if (!book) return null;
+    const nextChapter = sel.chapter + direction;
+    if (nextChapter >= 1 && nextChapter <= book.chapters) {
+      return {
+        book: sel.book,
+        chapter: nextChapter,
+        label: formatBibleReference({ book: sel.book, chapter: nextChapter }),
+      };
+    }
+    // Cross book boundary.
+    const adjBookNum = sel.book + direction;
+    const adjBook = getBibleBook(adjBookNum);
+    if (!adjBook) return null;
+    const adjChapter = direction === 1 ? 1 : adjBook.chapters;
+    return {
+      book: adjBookNum,
+      chapter: adjChapter,
+      label: formatBibleReference({ book: adjBookNum, chapter: adjChapter }),
+    };
+  };
+  const prevLoc = createMemo<Loc | null>(() => {
+    void selection();
+    return adjacentChapter(-1);
+  });
+  const nextLoc = createMemo<Loc | null>(() => {
+    void selection();
+    return adjacentChapter(1);
+  });
+  const goTo = (loc: Loc | null): void => {
+    if (loc === null) return;
+    void runtime.runPromise(
+      Effect.gen(function* () {
+        const state = yield* BibleReaderState;
+        yield* state.openChapter(loc.book, loc.chapter);
+      }),
+    );
+  };
+  const goPrev = (): void => goTo(prevLoc());
+  const goNext = (): void => goTo(nextLoc());
+
+  // Adjacent-chapter preload — warms the KjvBible LRU + EgwCommentary cache
+  // for prev/next so the next nav resolves synchronously with no
+  // "Loading…" flash. Best-effort; failures are swallowed.
+  createEffect(() => {
+    const prev = prevLoc();
+    const next = nextLoc();
+    const warm = (loc: Loc | null): void => {
+      if (loc === null) return;
+      void runtime.runPromise(
+        Effect.gen(function* () {
+          const svc = yield* KjvBible;
+          yield* svc.getChapter(loc.book, loc.chapter);
+        }),
+      );
+      void runtime.runPromise(
+        Effect.gen(function* () {
+          const c = yield* EgwCommentary;
+          yield* c.versesWithCommentary(loc.book, loc.chapter);
+        }),
+      );
+    };
+    warm(prev);
+    warm(next);
+  });
+  // Chapter options for the centered picker — every chapter in the current
+  // book, keyed `${book}:${ch}` so a single onPick callback can decode both.
+  const chapterOptions = createMemo<readonly { readonly value: string; readonly label: string }[]>(
+    () => {
+      const sel = Option.getOrNull(selection());
+      if (sel === null) return [];
+      const book = getBibleBook(sel.book);
+      if (!book) return [];
+      const out: { readonly value: string; readonly label: string }[] = [];
+      for (let i = 1; i <= book.chapters; i++) {
+        out.push({
+          value: `${String(sel.book)}:${String(i)}`,
+          label: formatBibleReference({ book: sel.book, chapter: i }),
+        });
+      }
+      return out;
+    },
+  );
+  // Cmd/Ctrl + arrow jumps to the first/last chapter of the current book
+  // (stays within the book — no cross-book transition).
+  const goFirst = (): void => {
+    const sel = Option.getOrNull(selection());
+    if (sel === null) return;
+    if (sel.chapter === 1) return;
+    goTo({
+      book: sel.book,
+      chapter: 1,
+      label: formatBibleReference({ book: sel.book, chapter: 1 }),
+    });
+  };
+  const goLast = (): void => {
+    const sel = Option.getOrNull(selection());
+    if (sel === null) return;
+    const book = getBibleBook(sel.book);
+    if (!book) return;
+    if (sel.chapter === book.chapters) return;
+    goTo({
+      book: sel.book,
+      chapter: book.chapters,
+      label: formatBibleReference({ book: sel.book, chapter: book.chapters }),
+    });
+  };
+
+  // Arrow-key navigation. Skip when focus is in an editable field so typing
+  // search doesn't paginate. Cmd/Ctrl + arrow jumps to the first/last chapter
+  // of the current book.
+  const isEditableTarget = (target: EventTarget | null): boolean => {
+    if (!(target instanceof HTMLElement)) return false;
+    if (target.isContentEditable) return true;
+    const tag = target.tagName;
+    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+  };
+  const onKeyDown = (e: KeyboardEvent): void => {
+    if (e.altKey) return;
+    if (isEditableTarget(e.target)) return;
+    const jumpToEdge = e.metaKey || e.ctrlKey;
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      if (jumpToEdge) goFirst();
+      else goPrev();
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      if (jumpToEdge) goLast();
+      else goNext();
+    }
+  };
+  createEffect(() => {
+    window.addEventListener('keydown', onKeyDown);
+    onCleanup(() => window.removeEventListener('keydown', onKeyDown));
+  });
+
   // Narrow helpers — Solid's <Match when={X ? Y : null}> idiom needs the truthy
   // branch to carry the already-narrowed payload. Returning the load object
   // when its tag matches lets the render fn receive a typed value.
@@ -269,6 +416,27 @@ export const BibleChapterCanvas: Component<BibleChapterCanvasProps> = (props) =>
 
   return (
     <div class="h-full overflow-y-auto">
+      <Show when={Option.isSome(selection())}>
+        <ChapterNavButtons
+          prevTitle={() => prevLoc()?.label ?? undefined}
+          nextTitle={() => nextLoc()?.label ?? undefined}
+          onPrev={goPrev}
+          onNext={goNext}
+          options={chapterOptions}
+          current={() => {
+            const sel = Option.getOrNull(selection());
+            return sel === null ? undefined : `${String(sel.book)}:${String(sel.chapter)}`;
+          }}
+          onPick={(value) => {
+            const [bStr, cStr] = value.split(':');
+            if (bStr === undefined || cStr === undefined) return;
+            const b = Number(bStr);
+            const c = Number(cStr);
+            if (!Number.isFinite(b) || !Number.isFinite(c)) return;
+            goTo({ book: b, chapter: c, label: formatBibleReference({ book: b, chapter: c }) });
+          }}
+        />
+      </Show>
       <Switch>
         <Match when={load()._tag === 'loading'}>
           <div class="mx-auto max-w-[var(--reader-width,68ch)] px-6 py-10">

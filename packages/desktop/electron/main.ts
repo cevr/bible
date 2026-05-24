@@ -204,7 +204,29 @@ const writeJsonFile = async (file: string, text: string): Promise<void> => {
   await fs.rename(tmp, file);
 };
 
+// Resolved at window construction. In dev the assets folder sits next to
+// `electron/` (we run `electron .` against the project root); in packaged
+// builds electron-builder mirrors `assets/` under the app resources, reachable
+// via `process.resourcesPath`. Either lookup falls through to undefined →
+// BrowserWindow uses the default Electron icon.
+const resolveWindowIcon = (): string | undefined => {
+  const candidates = [
+    path.join(__dirname, '..', '..', 'assets', 'icon.png'),
+    path.join(process.resourcesPath, 'assets', 'icon.png'),
+  ];
+  for (const p of candidates) {
+    try {
+      readFileSync(p);
+      return p;
+    } catch {
+      // try next
+    }
+  }
+  return undefined;
+};
+
 const createWindow = async (): Promise<void> => {
+  const icon = resolveWindowIcon();
   const win = new BrowserWindow({
     width: 1280,
     height: 860,
@@ -212,6 +234,7 @@ const createWindow = async (): Promise<void> => {
     minHeight: 480,
     titleBarStyle: 'hiddenInset',
     backgroundColor: '#ffffff',
+    ...(icon !== undefined ? { icon } : {}),
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,

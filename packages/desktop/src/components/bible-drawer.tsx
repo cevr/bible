@@ -166,6 +166,7 @@ export const BibleDrawer: Component<BibleDrawerProps> = (props) => {
       widthPx={widthPxAccessor}
       expandedWidthPx={EXPANDED_WIDTH_PX}
       expanded={props.state.isExpanded()}
+      overlay
     >
       <BibleDrawerHeader state={props.state} />
       <ReaderShell.SplitBody

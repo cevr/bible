@@ -51,9 +51,19 @@
       "dist/main/**/*",
       "dist/renderer/**/*"
     ],
+    "extraResources": [
+      {
+        "from": "assets",
+        "to": "assets",
+        "filter": [
+          "icon.png"
+        ]
+      }
+    ],
     "mac": {
       "category": "public.app-category.reference",
-      "target": "dmg"
+      "target": "dmg",
+      "icon": "assets/icon.icns"
     }
   }
 }

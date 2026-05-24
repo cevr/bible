@@ -119,6 +119,7 @@ export const BibleCommentaryDrawer: Component<BibleCommentaryDrawerProps> = (pro
       onOpenChange={props.onOpenChange}
       label="EGW commentary"
       widthPx={widthPxAccessor}
+      overlay
     >
       <ReaderShell.Header>
         <ReaderShell.HeaderTitle>

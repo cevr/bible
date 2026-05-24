@@ -1,5 +1,14 @@
 import { Effect, Fiber, Option, Stream } from 'effect';
-import { type Component, createMemo, createSignal, For, onCleanup, onMount, Show } from 'solid-js';
+import {
+  batch,
+  type Component,
+  createMemo,
+  createSignal,
+  For,
+  onCleanup,
+  onMount,
+  Show,
+} from 'solid-js';
 import { BibleChapterCanvas } from './components/bible-chapter-canvas.js';
 import { BibleCommentaryDrawer } from './components/bible-commentary-drawer.js';
 import { BibleDrawer } from './components/bible-drawer.js';
@@ -14,6 +23,7 @@ import { createBibleDrawerState } from './services/bible-drawer-state.js';
 import { defaultEase, Motion, Presence, useDrag } from './motion/index.js';
 import { animateProperty } from './motion/internals/driver.js';
 import { runtime } from './runtime.js';
+import { LastChapterMemory } from './services/last-chapter-memory.js';
 import { LastPositionStorage } from './services/last-position-storage.js';
 import { openBookAtFirstChapter } from './services/open-book.js';
 import { Prefetcher } from './services/prefetcher.js';
@@ -304,37 +314,48 @@ export const App: Component = () => {
       Effect.gen(function* () {
         const state = yield* ReaderState;
         const storage = yield* LastPositionStorage;
+        const memory = yield* LastChapterMemory;
         yield* state.changes.pipe(
           Stream.runForEach((next) =>
             Effect.gen(function* () {
               const prev = selection();
-              setSelection(next);
-              if (Option.isNone(next)) {
+              // Compute restore-clear decision before mutating any signals so
+              // we can batch the writes. Without batching, `setSelection` fires
+              // the `<Show keyed>` remount synchronously and the new BookFeed
+              // reads `restoreParagraphId()` *before* we clear it — landing on
+              // the stale paragraph from the previous chapter instead of the
+              // new chapter break.
+              const prevSel = Option.getOrUndefined(prev);
+              const sameChapter =
+                Option.isSome(next) &&
+                prevSel !== undefined &&
+                prevSel.bookId === next.value.bookId &&
+                Option.isSome(prevSel.chapterParaId) &&
+                Option.isSome(next.value.chapterParaId) &&
+                prevSel.chapterParaId.value === next.value.chapterParaId.value;
+              const shouldClearRestore =
+                Option.isNone(next) || (!sameChapter && !pendingRestoreEmit);
+              if (shouldClearRestore) {
                 latestAnchorParaId = null;
-                setRestoreParagraphId(Option.none());
-                yield* storage.clear;
-              } else {
-                // Clear the restore anchor when the user actively navigates
-                // (TOC click / search-jump / book switch). Compared against
-                // the prior selection so a same-chapter re-emit (e.g. from
-                // clearHighlight) leaves the anchor in place.
-                const prevSel = Option.getOrUndefined(prev);
-                const sameChapter =
-                  prevSel !== undefined &&
-                  prevSel.bookId === next.value.bookId &&
-                  Option.isSome(prevSel.chapterParaId) &&
-                  Option.isSome(next.value.chapterParaId) &&
-                  prevSel.chapterParaId.value === next.value.chapterParaId.value;
-                if (!sameChapter && !pendingRestoreEmit) {
-                  latestAnchorParaId = null;
+              }
+              batch(() => {
+                setSelection(next);
+                if (shouldClearRestore) {
                   setRestoreParagraphId(Option.none());
                 }
-                pendingRestoreEmit = false;
+              });
+              pendingRestoreEmit = false;
+              if (Option.isNone(next)) {
+                yield* storage.clear;
+              } else {
                 yield* storage.write({
                   bookId: next.value.bookId,
                   paraId: next.value.chapterParaId,
                   paragraphId: Option.fromNullishOr(latestAnchorParaId),
                 });
+                if (Option.isSome(next.value.chapterParaId)) {
+                  yield* memory.recordEgw(next.value.bookId, next.value.chapterParaId.value);
+                }
               }
             }),
           ),
@@ -383,6 +404,7 @@ export const App: Component = () => {
       Effect.gen(function* () {
         const state = yield* BibleReaderState;
         const storage = yield* LastPositionStorage;
+        const memory = yield* LastChapterMemory;
         yield* state.changes.pipe(
           Stream.runForEach((next) =>
             Effect.gen(function* () {
@@ -395,6 +417,7 @@ export const App: Component = () => {
                   chapter: next.value.chapter,
                   verse: next.value.verse,
                 });
+                yield* memory.recordBible(next.value.book, next.value.chapter);
               }
             }),
           ),
@@ -884,6 +907,7 @@ export const App: Component = () => {
           }}
           side="left"
           widthPx={360}
+          overlay
           label="Bible books"
         >
           <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-rule flex-[0_0_auto]">
@@ -905,6 +929,7 @@ export const App: Component = () => {
           widthPx={360}
           expandedWidthPx={720}
           expanded={drawer() === 'tocPlusLib'}
+          overlay
           label="Library and contents"
           panelClass="flex-row"
         >

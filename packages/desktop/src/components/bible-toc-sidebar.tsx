@@ -3,6 +3,7 @@ import { Effect, Option } from 'effect';
 import { type Component, createMemo, createSignal, For, Show } from 'solid-js';
 import { runtime } from '../runtime.js';
 import { BibleReaderState } from '../services/bible-reader-state.js';
+import { LastChapterMemory } from '../services/last-chapter-memory.js';
 
 // Left-rail TOC for Bible mode. Symmetric to TocSidebar (the EGW reader's
 // chapter list) but indexed by (book, chapter). Two views:
@@ -38,6 +39,26 @@ export const BibleTocSidebar: Component<{
     props.onPickChapter?.();
   };
 
+  // Book click: if we've been in this book this session, jump straight to the
+  // last chapter the user was on instead of forcing them through the chapter
+  // grid again. First-time book picks fall through to the 2-step picker.
+  const onPickBook = (book: number): void => {
+    void runtime
+      .runPromise(
+        Effect.gen(function* () {
+          const memory = yield* LastChapterMemory;
+          return yield* memory.getBible(book);
+        }),
+      )
+      .then((remembered) => {
+        if (Option.isSome(remembered)) {
+          navigateToChapter(book, remembered.value);
+        } else {
+          setView({ _tag: 'chapters', book });
+        }
+      });
+  };
+
   const chaptersBook = (): number | null => {
     const v = view();
     return v._tag === 'chapters' ? v.book : null;
@@ -49,7 +70,7 @@ export const BibleTocSidebar: Component<{
       fallback={
         <BibleBooksToc
           currentBook={Option.map(props.currentSelection(), (s) => s.book)}
-          onPickBook={(book) => setView({ _tag: 'chapters', book })}
+          onPickBook={onPickBook}
         />
       }
       keyed

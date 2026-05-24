@@ -81,6 +81,8 @@ export interface FrameProps {
   readonly expandedWidthPx?: number;
   /** Drives the animated swap between `widthPx` and `expandedWidthPx`. */
   readonly expanded?: boolean;
+  /** Render a dimmed click-catcher backdrop behind the panel. Off by default. */
+  readonly overlay?: boolean;
   readonly children?: JSX.Element;
 }
 
@@ -92,6 +94,7 @@ const Frame: Component<FrameProps> = (props) => (
     widthPx={props.widthPx()}
     expandedWidthPx={props.expandedWidthPx}
     expanded={props.expanded}
+    overlay={props.overlay}
     label={props.label}
   >
     {props.children}
