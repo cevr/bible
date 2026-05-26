@@ -28,15 +28,6 @@ const permalink = `#${verse.slug}`;
       <span class="verse-ref">{verse.ref}</span>
     </a>
     <p class="verse-text" set:html={mdInline(verse.text)} />
-    {violationCount > 0 ? (
-      <span class="verse-count-badge">
-        {violationCount} viol
-      </span>
-    ) : (
-      <span class="verse-count-badge" data-clean>
-        clean
-      </span>
-    )}
   </header>
 
   <div class="verse-readings">
