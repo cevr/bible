@@ -1,40 +1,88 @@
 import { formatBibleReference, getBibleBook } from '@bible/core/bible-reader';
-import { Effect, Fiber, Option, Stream } from 'effect';
+import { Effect, Exit, Fiber, Option, Stream } from 'effect';
 import {
   type Component,
   createEffect,
   createMemo,
   createSignal,
   For,
-  Match,
   onCleanup,
   onMount,
   Show,
-  Switch,
 } from 'solid-js';
-import { runtime } from '../runtime.js';
+import { ipc, runtime } from '../runtime.js';
 import { BibleReaderState, type BibleReaderSelection } from '../services/bible-reader-state.js';
 import { EgwCommentary } from '../services/egw-commentary.js';
-import { KjvBible, type KjvChapter } from '../services/kjv-bible.js';
+import { KjvBible, type KjvChapter, type KjvStrongsWord } from '../services/kjv-bible.js';
 import { BibleBooksGrid } from './bible-books-grid.js';
+import { StrongsVerse } from './bible/strongs-verse.js';
 import { VerseRenderer } from './bible/verse-renderer.js';
 import { ChapterNavButtons } from './book-feed.js';
 
 // Main canvas for Bible mode. Subscribes to BibleReaderState, loads the KJV
-// chapter via the KjvBible service, and renders verses with the same
-// segmentation/red-letter rules used inside the drawer. Verse clicks update
-// the cursor — the right-side EGW commentary drawer (F3.5) keys off that.
+// chapter via the ipc proxy, and renders verses with the same segmentation /
+// red-letter rules used inside the drawer. Verse clicks update the cursor —
+// the right-side EGW commentary drawer (F3.5) keys off that.
 //
 // Mirrors the pattern of ReaderPane → BookFeed for the EGW reader, but the
 // model is much smaller: one chapter per render, verse-anchored scroll
-// instead of paragraph IDs.
+// instead of paragraph IDs. Suspense/ErrorBoundary live at the parent.
 
-type Load =
-  | { readonly _tag: 'idle' }
-  | { readonly _tag: 'loading' }
-  | { readonly _tag: 'ready'; readonly chapter: KjvChapter }
-  | { readonly _tag: 'missing' }
-  | { readonly _tag: 'error'; readonly message: string };
+// Renderer-level LRU keeps the previous chapter visible while the next one
+// resolves so cache-warm prev/next nav doesn't flash a "Loading…" fallback.
+// Same pattern as book-feed.tsx — peek before reading the suspending resource;
+// mirror successful reads back in via createEffect.
+const CHAPTER_CACHE_CAP = 24;
+const chapterCache = new Map<string, KjvChapter>();
+const chapterKey = (book: number, chapter: number): string => `${String(book)}:${String(chapter)}`;
+const cacheGet = (book: number, chapter: number): KjvChapter | undefined => {
+  const k = chapterKey(book, chapter);
+  const v = chapterCache.get(k);
+  if (v === undefined) return undefined;
+  chapterCache.delete(k);
+  chapterCache.set(k, v);
+  return v;
+};
+const cachePut = (book: number, chapter: number, value: KjvChapter): void => {
+  const k = chapterKey(book, chapter);
+  chapterCache.delete(k);
+  chapterCache.set(k, value);
+  while (chapterCache.size > CHAPTER_CACHE_CAP) {
+    const oldest = chapterCache.keys().next().value;
+    if (oldest === undefined) break;
+    chapterCache.delete(oldest);
+  }
+};
+// Adjacent-chapter preload reads the KJV service directly rather than going
+// through the ipc proxy — proxy reads need a Solid tracking scope and we want
+// to warm from a createEffect that's already tracked for prev/next.
+const inFlight = new Map<string, Promise<void>>();
+const preloadChapter = async (book: number, chapter: number): Promise<void> => {
+  const k = chapterKey(book, chapter);
+  if (chapterCache.has(k)) return;
+  const existing = inFlight.get(k);
+  if (existing !== undefined) return existing;
+  const p = runtime
+    .runPromiseExit(
+      Effect.gen(function* () {
+        const svc = yield* KjvBible;
+        return yield* svc.getChapter(book, chapter);
+      }),
+    )
+    .then((exit) => {
+      if (Exit.isSuccess(exit) && Option.isSome(exit.value)) {
+        cachePut(book, chapter, exit.value.value);
+      }
+    })
+    .catch(() => {
+      /* preload best-effort */
+    })
+    .finally(() => {
+      inFlight.delete(k);
+    });
+  inFlight.set(k, p);
+  return p;
+};
 
 export interface BibleChapterCanvasProps {
   /** Open the EGW commentary sheet pinned to the given verse. Routed from
@@ -44,33 +92,34 @@ export interface BibleChapterCanvasProps {
    *  in-reader Commentary toggle's pressed state. */
   readonly commentaryOpen: boolean;
   /** Toggle the commentary drawer from the in-reader header button. */
-  readonly onToggleCommentary: () => void;
+  readonly onToggleCommentaryDrawer: () => void;
+  /** Open the right-side scripture drawer's Strong's tab pinned to a
+   *  specific (book, chapter, verse) and code. Used by the inline Strong's
+   *  overlay so a click on a superscript code drills into the lexicon. */
+  readonly onOpenStrongs: (book: number, chapter: number, verse: number, code: string) => void;
+  /** Open the right-side scripture drawer's Notes tab pinned to a specific
+   *  (book, chapter, verse). Used by the inline margin-note overlay. */
+  readonly onOpenMarginNote: (book: number, chapter: number, verse: number) => void;
+  /** Open the right-side scripture drawer's Xrefs tab pinned to a specific
+   *  (book, chapter, verse). Used by the inline cross-reference overlay. */
+  readonly onOpenCrossRefs: (book: number, chapter: number, verse: number) => void;
+  /** Inline-overlay toggle state, threaded in from the persistence layer
+   *  (ReaderSettings). The canvas reads via accessors so a settings flip
+   *  invalidates downstream memos without prop-drill churn. */
+  readonly inlineStrongs: () => boolean;
+  readonly inlineCommentary: () => boolean;
+  readonly inlineMarginNotes: () => boolean;
+  readonly inlineCrossRefs: () => boolean;
+  readonly onToggleInlineStrongs: () => void;
+  readonly onToggleInlineCommentary: () => void;
+  readonly onToggleInlineMarginNotes: () => void;
+  readonly onToggleInlineCrossRefs: () => void;
 }
 
 export const BibleChapterCanvas: Component<BibleChapterCanvasProps> = (props) => {
   const [selection, setSelection] = createSignal<Option.Option<BibleReaderSelection>>(
     Option.none(),
   );
-  const [load, setLoad] = createSignal<Load>({ _tag: 'idle' });
-  // Bumped by the "Reimport KJV" recovery flow to retrigger the chapter
-  // load createEffect without changing the selection.
-  const [loadNonce, setLoadNonce] = createSignal(0);
-  // `true` while the bundled KJV import is running in main — disables the
-  // Reimport button and swaps its label so accidental double-clicks don't
-  // pile up imports.
-  const [reimporting, setReimporting] = createSignal(false);
-  // Verses in the current chapter that have at least one cached EGW
-  // paragraph. Empty Set until the per-chapter query resolves. Re-queried
-  // on chapter swap and whenever the indexer pulses
-  // `EgwCommentary.changes` after writing fresh refs.
-  const [commentaryVerses, setCommentaryVerses] = createSignal<ReadonlySet<number>>(
-    new Set<number>(),
-  );
-
-  // Per-verse refs let us scroll precisely to the highlight target after a
-  // chapter renders. Reset on every chapter swap — stale element refs hang
-  // around in the map even after the <For> unmounts the prior rows.
-  const verseRefs = new Map<number, HTMLElement>();
 
   onMount(() => {
     const fiber = runtime.runFork(
@@ -81,195 +130,226 @@ export const BibleChapterCanvas: Component<BibleChapterCanvasProps> = (props) =>
         );
       }),
     );
-    // Pulse fiber — re-query the chapter hit set whenever the indexer
-    // reports new EGW commentary. The service has already invalidated
-    // its LRU for the touched (book, chapter) keys, so the next query
-    // returns the fresh Set.
+    onCleanup(() => {
+      void runtime.runPromise(Fiber.interrupt(fiber));
+    });
+  });
+
+  return (
+    <div class="h-full overflow-y-auto">
+      <Show when={Option.isSome(selection())}>
+        <BibleReaderToolbar
+          inlineStrongs={props.inlineStrongs}
+          inlineMarginNotes={props.inlineMarginNotes}
+          inlineCommentary={props.inlineCommentary}
+          inlineCrossRefs={props.inlineCrossRefs}
+          onToggleStrongs={props.onToggleInlineStrongs}
+          onToggleMarginNotes={props.onToggleInlineMarginNotes}
+          onToggleCommentary={props.onToggleInlineCommentary}
+          onToggleCrossRefs={props.onToggleInlineCrossRefs}
+        />
+      </Show>
+      <Show
+        when={(() => {
+          const sel = Option.getOrNull(selection());
+          if (sel === null) return null;
+          return `${String(sel.book)}:${String(sel.chapter)}` as const;
+        })()}
+        keyed
+        fallback={<BibleBooksGrid />}
+      >
+        {/* Key on book:chapter only — verse-cursor changes reactively flow
+            through props.selection without re-mounting ChapterShell (which
+            would reset scroll, refetch the chapter, and drop verseRefs). */}
+        {(_key) => (
+          <ChapterShell
+            selection={() =>
+              Option.getOrElse(selection(), () => ({
+                book: 0,
+                chapter: 0,
+                verse: Option.none<number>(),
+              }))
+            }
+            commentaryOpen={props.commentaryOpen}
+            onToggleCommentary={props.onToggleCommentaryDrawer}
+            onOpenCommentary={props.onOpenCommentary}
+            inlineStrongs={props.inlineStrongs()}
+            inlineMarginNotes={props.inlineMarginNotes()}
+            inlineCommentary={props.inlineCommentary()}
+            inlineCrossRefs={props.inlineCrossRefs()}
+            onOpenStrongs={props.onOpenStrongs}
+            onOpenMarginNote={props.onOpenMarginNote}
+            onOpenCrossRefs={props.onOpenCrossRefs}
+          />
+        )}
+      </Show>
+    </div>
+  );
+};
+
+const ChapterShell: Component<{
+  readonly selection: () => BibleReaderSelection;
+  readonly commentaryOpen: boolean;
+  readonly onToggleCommentary: () => void;
+  readonly onOpenCommentary?: (verse: number) => void;
+  readonly inlineStrongs: boolean;
+  readonly inlineMarginNotes: boolean;
+  readonly inlineCommentary: boolean;
+  readonly inlineCrossRefs: boolean;
+  readonly onOpenStrongs: (book: number, chapter: number, verse: number, code: string) => void;
+  readonly onOpenMarginNote: (book: number, chapter: number, verse: number) => void;
+  readonly onOpenCrossRefs: (book: number, chapter: number, verse: number) => void;
+}> = (props) => {
+  const book = (): number => props.selection().book;
+  const chapter = (): number => props.selection().chapter;
+
+  const chapterRes = ipc.bible.getChapter.query(() => ({
+    book: book(),
+    chapter: chapter(),
+  }));
+  // Single round-trip for the three lightweight overlay marker sets
+  // (commentary / notes / xrefs). Strong's stays on its own query — it's
+  // heavy and structurally different, so the StrongsLoader mount-only
+  // component handles it independently when the toggle is on.
+  const markersRes = ipc.bible.getChapterMarkers.query(() => ({
+    book: book(),
+    chapter: chapter(),
+  }));
+
+  // Mirror successful reads into the renderer LRU so adjacent preloads and
+  // warm remounts have a synchronous data source on the next nav.
+  createEffect(() => {
+    const c = chapterRes();
+    if (c === undefined || c === null) return;
+    cachePut(book(), chapter(), c);
+  });
+
+  // Per-verse refs for scroll-into-view on highlight cues. Reset on chapter
+  // swap — stale refs hang around in the map after <For> unmounts the rows.
+  // Track via memos so verse-only updates to props.selection() don't trigger
+  // the reset (which would race the verse-sync effect's lookup).
+  const verseRefs = new Map<number, HTMLElement>();
+  const bookMemo = createMemo(() => book());
+  const chapterMemo = createMemo(() => chapter());
+  createEffect(() => {
+    void bookMemo();
+    void chapterMemo();
+    verseRefs.clear();
+  });
+
+  // Pulse fiber: when the EGW indexer reports new commentary refs, invalidate
+  // the unified markers cache entry for the current (book, chapter) so the
+  // next subscribe re-runs the handler and the markers repaint. (Notes +
+  // xrefs are bundled-on-disk and don't pulse, but the markers query is the
+  // single entry point so we invalidate the whole bundle.)
+  onMount(() => {
     const pulseFiber = runtime.runFork(
       Effect.gen(function* () {
         const commentary = yield* EgwCommentary;
         yield* commentary.changes.pipe(
           Stream.runForEach(() =>
             Effect.sync(() => {
-              const sel = Option.getOrNull(selection());
-              if (sel === null) return;
-              // Re-trigger the query effect by clearing — the createEffect
-              // on `selection` won't fire because selection didn't change,
-              // so we kick off a fresh query inline.
-              void runtime
-                .runPromise(
-                  Effect.gen(function* () {
-                    const c = yield* EgwCommentary;
-                    return yield* c.versesWithCommentary(sel.book, sel.chapter);
-                  }),
-                )
-                .then(setCommentaryVerses)
-                .catch(() => {
-                  /* leave stale set on transient failure */
-                });
+              ipc.bible.getChapterMarkers.invalidate({
+                book: book(),
+                chapter: chapter(),
+              });
             }),
           ),
         );
       }),
     );
     onCleanup(() => {
-      void runtime.runPromise(Fiber.interrupt(fiber));
       void runtime.runPromise(Fiber.interrupt(pulseFiber));
     });
   });
 
-  // Sequence guard: chapter swaps in flight when a new selection lands should
-  // not overwrite the newer chapter's load state.
-  let loadSeq = 0;
-  // Separate guard for the hit-set query — it runs in parallel with the
-  // chapter load and the user can swap chapters before either resolves.
-  let commentarySeq = 0;
+  // Peek the LRU first so a warm prev/next renders without triggering the
+  // parent <Suspense>. On cold load the resource read suspends; on null
+  // (chapter missing) we render the reimport UI inline.
+  const peekedChapter = createMemo<KjvChapter | undefined>(() => cacheGet(book(), chapter()));
+
+  // Decode the unified marker bundle once and key the per-overlay memos off
+  // it. Each memo short-circuits to empty when its toggle is off so the
+  // verse rows don't repaint when an unrelated overlay flips.
+  const commentaryVerses = createMemo<ReadonlySet<number>>(() => {
+    if (!props.inlineCommentary) return new Set<number>();
+    const m = markersRes();
+    if (m === undefined) return new Set<number>();
+    return new Set(m.commentaryVerses);
+  });
+  const notedVerses = createMemo<ReadonlySet<number>>(() => {
+    if (!props.inlineMarginNotes) return new Set<number>();
+    const m = markersRes();
+    if (m === undefined) return new Set<number>();
+    return new Set(m.notedVerses);
+  });
+  const xrefVerses = createMemo<ReadonlySet<number>>(() => {
+    if (!props.inlineCrossRefs) return new Set<number>();
+    const m = markersRes();
+    if (m === undefined) return new Set<number>();
+    return new Set(m.xrefVerses);
+  });
+
+  // Verse-sync effect: whenever the focused verse changes, bring it into
+  // view IF it isn't already on screen. The off-screen check is what lets
+  // verse-number clicks set the cursor without jumping the page — the click
+  // target is by definition in viewport, so scrollIntoView is suppressed.
+  //
+  // Why rAF + retry, not queueMicrotask: when this effect fires synchronously
+  // with the chapter resource resolving, the inner <Show keyed>/<For> over
+  // verses may not have committed DOM ref callbacks yet — so verseRefs.get
+  // returns undefined. rAF runs after paint; the retry covers the cold-render
+  // case where <For> needs an extra tick (e.g. long chapter behind Suspense).
   createEffect(() => {
-    const sel = selection();
-    // Track the nonce so reimport recovery retriggers the load with the
-    // same selection.
-    loadNonce();
-    verseRefs.clear();
-    if (Option.isNone(sel)) {
-      setLoad({ _tag: 'idle' });
-      setCommentaryVerses(new Set<number>());
-      return;
-    }
-    const { book, chapter } = sel.value;
-    const mine = ++loadSeq;
-    const mineCommentary = ++commentarySeq;
-    // Keep the previous chapter visible while a new one resolves so cache-warm
-    // prev/next nav doesn't flash a "Loading…" intermediate. Only show the
-    // loading fallback on a cold first load.
-    setLoad((prev) => (prev._tag === 'ready' ? prev : { _tag: 'loading' }));
-    // Clear stale markers immediately so a brief flash of the previous
-    // chapter's hit set doesn't paint on the new chapter.
-    setCommentaryVerses(new Set<number>());
-    runtime
-      .runPromise(
-        Effect.gen(function* () {
-          const svc = yield* KjvBible;
-          return yield* svc.getChapter(book, chapter);
-        }),
-      )
-      .then((opt) => {
-        if (mine !== loadSeq) return;
-        if (Option.isNone(opt)) {
-          setLoad({ _tag: 'missing' });
-          return;
+    const sel = props.selection();
+    const target = Option.getOrNull(sel.verse);
+    if (target === null) return;
+    const ready = peekedChapter() ?? chapterRes();
+    if (ready === undefined || ready === null) return;
+    const tryScroll = (attempt: number): void => {
+      const el = verseRefs.get(target);
+      if (el !== undefined) {
+        const rect = el.getBoundingClientRect();
+        const container = el.closest<HTMLElement>('.overflow-y-auto');
+        const bounds = container?.getBoundingClientRect() ?? {
+          top: 0,
+          bottom: window.innerHeight,
+        };
+        const onScreen = rect.top >= bounds.top && rect.bottom <= bounds.bottom;
+        if (!onScreen) {
+          el.scrollIntoView({ block: 'center', behavior: 'auto' });
         }
-        setLoad({ _tag: 'ready', chapter: opt.value });
-      })
-      .catch((err: unknown) => {
-        if (mine !== loadSeq) return;
-        setLoad({
-          _tag: 'error',
-          message: err instanceof Error ? err.message : 'Failed to load chapter.',
-        });
-      });
-    runtime
-      .runPromise(
-        Effect.gen(function* () {
-          const c = yield* EgwCommentary;
-          return yield* c.versesWithCommentary(book, chapter);
-        }),
-      )
-      .then((set) => {
-        if (mineCommentary !== commentarySeq) return;
-        setCommentaryVerses(set);
-      })
-      .catch(() => {
-        /* leave empty set on transient failure */
-      });
+        return;
+      }
+      if (attempt < 3) {
+        setTimeout(() => tryScroll(attempt + 1), 0);
+      }
+    };
+    // setTimeout not rAF: rAF callbacks scheduled inside a Solid createEffect
+    // mid-flush sometimes get coalesced/dropped in this Electron renderer,
+    // observed via console instrumentation. setTimeout(0) is fiber-safe and
+    // still queues after the current microtask drain so DOM ref callbacks
+    // commit before tryScroll reads verseRefs.
+    setTimeout(() => tryScroll(0), 0);
   });
 
-  // After the chapter renders, honor the one-shot highlightVerse cue (scroll
-  // + clear). Skip for plain cursor changes — those are handled by the verse
-  // button onClick, not by scroll.
-  createEffect(() => {
-    const sel = selection();
-    const l = load();
-    if (Option.isNone(sel) || l._tag !== 'ready') return;
-    const hi = Option.getOrNull(sel.value.highlightVerse);
-    if (hi === null) return;
-    queueMicrotask(() => {
-      verseRefs.get(hi)?.scrollIntoView({ block: 'center', behavior: 'auto' });
-      void runtime.runPromise(
-        Effect.gen(function* () {
-          const state = yield* BibleReaderState;
-          yield* state.clearHighlight;
-        }),
-      );
-    });
-  });
-
-  const onVerseClick = (verse: number): void => {
-    void runtime.runPromise(
-      Effect.gen(function* () {
-        const state = yield* BibleReaderState;
-        yield* state.setVerse(verse);
-      }),
-    );
-  };
-
-  // Footnote marker click — focus the verse AND open the commentary sheet.
-  // Two-step so the drawer's createEffect fires with the right cursor.
-  const onCommentaryClick = (verse: number): void => {
-    onVerseClick(verse);
-    props.onOpenCommentary?.(verse);
-  };
-
-  // "Reimport KJV" affordance from the missing-state UI. Asks main to drop
-  // and re-import the bundled KJV tables, then bumps the load nonce so the
-  // chapter load createEffect re-runs against the freshly populated table.
-  const onReimportKjv = (): void => {
-    if (reimporting()) return;
-    setReimporting(true);
-    void runtime
-      .runPromise(
-        Effect.gen(function* () {
-          const svc = yield* KjvBible;
-          yield* svc.reimport();
-        }),
-      )
-      .then(() => {
-        setLoadNonce((n) => n + 1);
-      })
-      .catch((err: unknown) => {
-        setLoad({
-          _tag: 'error',
-          message: err instanceof Error ? err.message : 'Reimport failed.',
-        });
-      })
-      .finally(() => {
-        setReimporting(false);
-      });
-  };
-
-  const cursorVerse = createMemo(() => {
-    const sel = selection();
-    return Option.isSome(sel) ? Option.getOrNull(sel.value.verse) : null;
-  });
-
-  // Prev/next chapter — walk within the current book; cross book boundaries
-  // when at the first/last chapter (Genesis 1 has no prev, Revelation 22 no
-  // next). Returns the target {book, chapter} or null at the edges.
+  // Adjacent-chapter preload — warms the renderer LRU + EgwCommentary cache
+  // so prev/next nav resolves synchronously.
   type Loc = { readonly book: number; readonly chapter: number; readonly label: string };
   const adjacentChapter = (direction: -1 | 1): Loc | null => {
-    const sel = Option.getOrNull(selection());
-    if (sel === null) return null;
-    const book = getBibleBook(sel.book);
-    if (!book) return null;
-    const nextChapter = sel.chapter + direction;
-    if (nextChapter >= 1 && nextChapter <= book.chapters) {
+    const b = book();
+    const ch = chapter();
+    const meta = getBibleBook(b);
+    if (!meta) return null;
+    const nextChapter = ch + direction;
+    if (nextChapter >= 1 && nextChapter <= meta.chapters) {
       return {
-        book: sel.book,
+        book: b,
         chapter: nextChapter,
-        label: formatBibleReference({ book: sel.book, chapter: nextChapter }),
+        label: formatBibleReference({ book: b, chapter: nextChapter }),
       };
     }
-    // Cross book boundary.
-    const adjBookNum = sel.book + direction;
+    const adjBookNum = b + direction;
     const adjBook = getBibleBook(adjBookNum);
     if (!adjBook) return null;
     const adjChapter = direction === 1 ? 1 : adjBook.chapters;
@@ -280,13 +360,44 @@ export const BibleChapterCanvas: Component<BibleChapterCanvasProps> = (props) =>
     };
   };
   const prevLoc = createMemo<Loc | null>(() => {
-    void selection();
+    void book();
+    void chapter();
     return adjacentChapter(-1);
   });
   const nextLoc = createMemo<Loc | null>(() => {
-    void selection();
+    void book();
+    void chapter();
     return adjacentChapter(1);
   });
+  createEffect(() => {
+    const prev = prevLoc();
+    const next = nextLoc();
+    const warm = (loc: Loc | null): void => {
+      if (loc === null) return;
+      void preloadChapter(loc.book, loc.chapter);
+      // Markers (commentary / notes / xrefs) are tiny and resolve in a
+      // single IPC round-trip — they fetch on first mount of the next
+      // chapter and the visual gap is imperceptible, so no proactive warm
+      // is needed here. The pulse fiber above takes care of freshening
+      // commentary when the indexer reports new refs.
+    };
+    warm(prev);
+    warm(next);
+  });
+
+  const onVerseClick = (verse: number): void => {
+    void runtime.runPromise(
+      Effect.gen(function* () {
+        const state = yield* BibleReaderState;
+        yield* state.setVerse(verse);
+      }),
+    );
+  };
+  const onCommentaryClick = (verse: number): void => {
+    onVerseClick(verse);
+    props.onOpenCommentary?.(verse);
+  };
+
   const goTo = (loc: Loc | null): void => {
     if (loc === null) return;
     void runtime.runPromise(
@@ -299,76 +410,40 @@ export const BibleChapterCanvas: Component<BibleChapterCanvasProps> = (props) =>
   const goPrev = (): void => goTo(prevLoc());
   const goNext = (): void => goTo(nextLoc());
 
-  // Adjacent-chapter preload — warms the KjvBible LRU + EgwCommentary cache
-  // for prev/next so the next nav resolves synchronously with no
-  // "Loading…" flash. Best-effort; failures are swallowed.
-  createEffect(() => {
-    const prev = prevLoc();
-    const next = nextLoc();
-    const warm = (loc: Loc | null): void => {
-      if (loc === null) return;
-      void runtime.runPromise(
-        Effect.gen(function* () {
-          const svc = yield* KjvBible;
-          yield* svc.getChapter(loc.book, loc.chapter);
-        }),
-      );
-      void runtime.runPromise(
-        Effect.gen(function* () {
-          const c = yield* EgwCommentary;
-          yield* c.versesWithCommentary(loc.book, loc.chapter);
-        }),
-      );
-    };
-    warm(prev);
-    warm(next);
-  });
-  // Chapter options for the centered picker — every chapter in the current
-  // book, keyed `${book}:${ch}` so a single onPick callback can decode both.
   const chapterOptions = createMemo<readonly { readonly value: string; readonly label: string }[]>(
     () => {
-      const sel = Option.getOrNull(selection());
-      if (sel === null) return [];
-      const book = getBibleBook(sel.book);
-      if (!book) return [];
+      const meta = getBibleBook(book());
+      if (!meta) return [];
       const out: { readonly value: string; readonly label: string }[] = [];
-      for (let i = 1; i <= book.chapters; i++) {
+      for (let i = 1; i <= meta.chapters; i++) {
         out.push({
-          value: `${String(sel.book)}:${String(i)}`,
-          label: formatBibleReference({ book: sel.book, chapter: i }),
+          value: `${String(book())}:${String(i)}`,
+          label: formatBibleReference({ book: book(), chapter: i }),
         });
       }
       return out;
     },
   );
-  // Cmd/Ctrl + arrow jumps to the first/last chapter of the current book
-  // (stays within the book — no cross-book transition).
+
   const goFirst = (): void => {
-    const sel = Option.getOrNull(selection());
-    if (sel === null) return;
-    if (sel.chapter === 1) return;
+    if (chapter() === 1) return;
     goTo({
-      book: sel.book,
+      book: book(),
       chapter: 1,
-      label: formatBibleReference({ book: sel.book, chapter: 1 }),
+      label: formatBibleReference({ book: book(), chapter: 1 }),
     });
   };
   const goLast = (): void => {
-    const sel = Option.getOrNull(selection());
-    if (sel === null) return;
-    const book = getBibleBook(sel.book);
-    if (!book) return;
-    if (sel.chapter === book.chapters) return;
+    const meta = getBibleBook(book());
+    if (!meta) return;
+    if (chapter() === meta.chapters) return;
     goTo({
-      book: sel.book,
-      chapter: book.chapters,
-      label: formatBibleReference({ book: sel.book, chapter: book.chapters }),
+      book: book(),
+      chapter: meta.chapters,
+      label: formatBibleReference({ book: book(), chapter: meta.chapters }),
     });
   };
 
-  // Arrow-key navigation. Skip when focus is in an editable field so typing
-  // search doesn't paginate. Cmd/Ctrl + arrow jumps to the first/last chapter
-  // of the current book.
   const isEditableTarget = (target: EventTarget | null): boolean => {
     if (!(target instanceof HTMLElement)) return false;
     if (target.isContentEditable) return true;
@@ -394,120 +469,150 @@ export const BibleChapterCanvas: Component<BibleChapterCanvasProps> = (props) =>
     onCleanup(() => window.removeEventListener('keydown', onKeyDown));
   });
 
-  // Narrow helpers — Solid's <Match when={X ? Y : null}> idiom needs the truthy
-  // branch to carry the already-narrowed payload. Returning the load object
-  // when its tag matches lets the render fn receive a typed value.
-  const errorLoad = (): { readonly message: string } | null => {
-    const l = load();
-    return l._tag === 'error' ? { message: l.message } : null;
-  };
-  const readyChapter = (): KjvChapter | null => {
-    const l = load();
-    return l._tag === 'ready' ? l.chapter : null;
+  const cursorVerse = createMemo<number | null>(() => Option.getOrNull(props.selection().verse));
+
+  const title = (): string => {
+    const meta = getBibleBook(book());
+    if (!meta) return `${String(book())} ${String(chapter())}`;
+    return formatBibleReference({ book: book(), chapter: chapter() });
   };
 
-  const titleFor = (sel: Option.Option<BibleReaderSelection>): string | null => {
-    const s = Option.getOrNull(sel);
-    if (s === null) return null;
-    const book = getBibleBook(s.book);
-    if (!book) return `${String(s.book)} ${String(s.chapter)}`;
-    return formatBibleReference({ book: s.book, chapter: s.chapter });
+  // Resolve the chapter for render. Peek the LRU first so prev/next nav
+  // bypasses Suspense entirely on a warm cache hit. On a miss, read the
+  // resource — that may suspend (caught by parent <Suspense>) or resolve to
+  // null (chapter missing → render the reimport UI).
+  const readyChapter = createMemo<KjvChapter | null>(() => {
+    const peek = peekedChapter();
+    if (peek !== undefined) return peek;
+    const fresh = chapterRes();
+    if (fresh === undefined) return null;
+    return fresh;
+  });
+  const isMissing = createMemo<boolean>(() => {
+    if (peekedChapter() !== undefined) return false;
+    return chapterRes() === null;
+  });
+
+  return (
+    <>
+      <ChapterNavButtons
+        prevTitle={() => prevLoc()?.label ?? undefined}
+        nextTitle={() => nextLoc()?.label ?? undefined}
+        onPrev={goPrev}
+        onNext={goNext}
+        options={chapterOptions}
+        current={() => `${String(book())}:${String(chapter())}`}
+        onPick={(value) => {
+          const [bStr, cStr] = value.split(':');
+          if (bStr === undefined || cStr === undefined) return;
+          const b = Number(bStr);
+          const c = Number(cStr);
+          if (!Number.isFinite(b) || !Number.isFinite(c)) return;
+          goTo({ book: b, chapter: c, label: formatBibleReference({ book: b, chapter: c }) });
+        }}
+      />
+      <Show
+        when={isMissing()}
+        fallback={
+          <Show when={readyChapter()} keyed>
+            {(c) => (
+              <div class="mx-auto max-w-[var(--reader-width,68ch)] px-6 py-10">
+                <ReaderHeader
+                  title={`${c.bookName} ${String(c.chapter)}`}
+                  commentaryOpen={props.commentaryOpen}
+                  onToggleCommentary={props.onToggleCommentary}
+                />
+                <ChapterBody
+                  chapter={c}
+                  cursorVerse={cursorVerse()}
+                  commentaryVerses={commentaryVerses()}
+                  notedVerses={notedVerses()}
+                  xrefVerses={xrefVerses()}
+                  verseRefs={verseRefs}
+                  onVerseClick={onVerseClick}
+                  onCommentaryClick={onCommentaryClick}
+                  inlineStrongs={props.inlineStrongs}
+                  inlineMarginNotes={props.inlineMarginNotes}
+                  inlineCrossRefs={props.inlineCrossRefs}
+                  onOpenStrongs={(verse, code) =>
+                    props.onOpenStrongs(book(), chapter(), verse, code)
+                  }
+                  onOpenMarginNote={(verse) => props.onOpenMarginNote(book(), chapter(), verse)}
+                  onOpenCrossRefs={(verse) => props.onOpenCrossRefs(book(), chapter(), verse)}
+                />
+              </div>
+            )}
+          </Show>
+        }
+      >
+        <MissingChapter
+          book={book()}
+          chapter={chapter()}
+          title={title()}
+          commentaryOpen={props.commentaryOpen}
+          onToggleCommentary={props.onToggleCommentary}
+        />
+      </Show>
+    </>
+  );
+};
+
+const MissingChapter: Component<{
+  readonly book: number;
+  readonly chapter: number;
+  readonly title: string;
+  readonly commentaryOpen: boolean;
+  readonly onToggleCommentary: () => void;
+}> = (props) => {
+  const [reimporting, setReimporting] = createSignal(false);
+  const [reimportError, setReimportError] = createSignal<string | null>(null);
+
+  const onReimportKjv = (): void => {
+    if (reimporting()) return;
+    setReimporting(true);
+    setReimportError(null);
+    ipc.bible.reimportKjv
+      .mutate(undefined)
+      .then(() => {
+        // Force the chapter query to refetch — the reimport repopulated the
+        // KJV table so the previously-null result should now resolve to a
+        // real chapter.
+        ipc.bible.getChapter.invalidate({ book: props.book, chapter: props.chapter });
+      })
+      .catch((err: unknown) => {
+        setReimportError(err instanceof Error ? err.message : 'Reimport failed.');
+      })
+      .finally(() => {
+        setReimporting(false);
+      });
   };
 
   return (
-    <div class="h-full overflow-y-auto">
-      <Show when={Option.isSome(selection())}>
-        <ChapterNavButtons
-          prevTitle={() => prevLoc()?.label ?? undefined}
-          nextTitle={() => nextLoc()?.label ?? undefined}
-          onPrev={goPrev}
-          onNext={goNext}
-          options={chapterOptions}
-          current={() => {
-            const sel = Option.getOrNull(selection());
-            return sel === null ? undefined : `${String(sel.book)}:${String(sel.chapter)}`;
-          }}
-          onPick={(value) => {
-            const [bStr, cStr] = value.split(':');
-            if (bStr === undefined || cStr === undefined) return;
-            const b = Number(bStr);
-            const c = Number(cStr);
-            if (!Number.isFinite(b) || !Number.isFinite(c)) return;
-            goTo({ book: b, chapter: c, label: formatBibleReference({ book: b, chapter: c }) });
-          }}
-        />
+    <div class="mx-auto max-w-[var(--reader-width,68ch)] px-6 py-10">
+      <ReaderHeader
+        title={props.title}
+        commentaryOpen={props.commentaryOpen}
+        onToggleCommentary={props.onToggleCommentary}
+      />
+      <p class="mt-6 text-ui-sm text-fg">
+        Chapter not found. The bundled KJV database may be incomplete — a previous import probably
+        crashed mid-write.
+      </p>
+      <p class="mt-2 text-ui-sm text-muted">
+        Reimport the bundled KJV verses + Strong's lexicon to repopulate the table. Takes a few
+        seconds.
+      </p>
+      <button
+        type="button"
+        class="mt-4 inline-flex items-center gap-1.5 h-[calc(32px*var(--ui-scale))] px-4 rounded-md border border-rule bg-accent text-bg text-ui-sm font-medium cursor-pointer transition-[background,border-color,opacity] duration-[0.12s] ease-in-out hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50 disabled:cursor-wait"
+        disabled={reimporting()}
+        onClick={onReimportKjv}
+      >
+        {reimporting() ? 'Reimporting…' : 'Reimport KJV'}
+      </button>
+      <Show when={reimportError()}>
+        {(msg) => <p class="mt-3 text-ui-sm text-muted">Reimport failed — {msg()}</p>}
       </Show>
-      <Switch>
-        <Match when={load()._tag === 'loading'}>
-          <div class="mx-auto max-w-[var(--reader-width,68ch)] px-6 py-10">
-            <ReaderHeader
-              title={titleFor(selection())}
-              commentaryOpen={props.commentaryOpen}
-              onToggleCommentary={props.onToggleCommentary}
-            />
-            <p class="mt-6 text-ui-sm text-muted">Loading…</p>
-          </div>
-        </Match>
-        <Match when={load()._tag === 'missing'}>
-          <div class="mx-auto max-w-[var(--reader-width,68ch)] px-6 py-10">
-            <ReaderHeader
-              title={titleFor(selection())}
-              commentaryOpen={props.commentaryOpen}
-              onToggleCommentary={props.onToggleCommentary}
-            />
-            <p class="mt-6 text-ui-sm text-fg">
-              Chapter not found. The bundled KJV database may be incomplete — a previous import
-              probably crashed mid-write.
-            </p>
-            <p class="mt-2 text-ui-sm text-muted">
-              Reimport the bundled KJV verses + Strong's lexicon to repopulate the table. Takes a
-              few seconds.
-            </p>
-            <button
-              type="button"
-              class="mt-4 inline-flex items-center gap-1.5 h-[calc(32px*var(--ui-scale))] px-4 rounded-md border border-rule bg-accent text-bg text-ui-sm font-medium cursor-pointer transition-[background,border-color,opacity] duration-[0.12s] ease-in-out hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50 disabled:cursor-wait"
-              disabled={reimporting()}
-              onClick={onReimportKjv}
-            >
-              {reimporting() ? 'Reimporting…' : 'Reimport KJV'}
-            </button>
-          </div>
-        </Match>
-        <Match when={errorLoad()} keyed>
-          {(err) => (
-            <div class="mx-auto max-w-[var(--reader-width,68ch)] px-6 py-10">
-              <ReaderHeader
-                title={titleFor(selection())}
-                commentaryOpen={props.commentaryOpen}
-                onToggleCommentary={props.onToggleCommentary}
-              />
-              <p class="mt-6 text-ui-sm text-muted">Failed to load chapter — {err.message}</p>
-            </div>
-          )}
-        </Match>
-        <Match when={readyChapter()} keyed>
-          {(chapter) => (
-            <div class="mx-auto max-w-[var(--reader-width,68ch)] px-6 py-10">
-              <ReaderHeader
-                title={`${chapter.bookName} ${String(chapter.chapter)}`}
-                commentaryOpen={props.commentaryOpen}
-                onToggleCommentary={props.onToggleCommentary}
-              />
-              <ChapterBody
-                chapter={chapter}
-                cursorVerse={cursorVerse()}
-                commentaryVerses={commentaryVerses()}
-                verseRefs={verseRefs}
-                onVerseClick={onVerseClick}
-                onCommentaryClick={onCommentaryClick}
-              />
-            </div>
-          )}
-        </Match>
-        <Match when={load()._tag === 'idle' && Option.isNone(selection())}>
-          <BibleBooksGrid />
-        </Match>
-      </Switch>
     </div>
   );
 };
@@ -551,48 +656,202 @@ const ReaderHeader: Component<{
 const ChapterBody: Component<{
   readonly chapter: KjvChapter;
   readonly cursorVerse: number | null;
+  /** Verse sets are already gated on the corresponding toggle at the
+   *  ChapterShell memo level — an empty set here means "overlay off" OR
+   *  "no markers in this chapter". ChapterBody doesn't need to know which. */
   readonly commentaryVerses: ReadonlySet<number>;
+  readonly notedVerses: ReadonlySet<number>;
+  readonly xrefVerses: ReadonlySet<number>;
   readonly verseRefs: Map<number, HTMLElement>;
   readonly onVerseClick: (verse: number) => void;
   readonly onCommentaryClick: (verse: number) => void;
-}> = (props) => (
-  <>
-    <div class="mt-6 flex flex-col gap-3 font-[family-name:var(--reader-font-family,var(--font-serif))] text-[length:var(--reader-font-size,18px)] leading-[var(--reader-line-height,1.55)] text-fg">
-      <For each={props.chapter.verses}>
-        {(v) => {
-          const isCursor = (): boolean => v.verse === props.cursorVerse;
-          const hasCommentary = (): boolean => props.commentaryVerses.has(v.verse);
-          return (
-            <p
-              class="m-0 -mx-2 rounded px-2 py-1 data-[cursor=true]:bg-accent-soft"
-              data-cursor={isCursor() ? 'true' : undefined}
-              ref={(el) => {
-                props.verseRefs.set(v.verse, el);
-              }}
-            >
-              <button
-                type="button"
-                class="mr-2 cursor-pointer bg-transparent border-0 p-0 text-[0.78em] text-muted [font-variant-numeric:tabular-nums] hover:text-accent hover:underline select-none"
-                title={`Focus verse ${String(v.verse)}`}
-                onClick={() => props.onVerseClick(v.verse)}
+  /** Strong's stays as a mount-only loader because the payload is large and
+   *  lives on a separate IPC (`getChapterStrongs`). The remaining three
+   *  marker sets come from the unified `getChapterMarkers` query. */
+  readonly inlineStrongs: boolean;
+  readonly inlineMarginNotes: boolean;
+  readonly inlineCrossRefs: boolean;
+  readonly onOpenStrongs: (verse: number, code: string) => void;
+  readonly onOpenMarginNote: (verse: number) => void;
+  readonly onOpenCrossRefs: (verse: number) => void;
+}> = (props) => {
+  const [strongsByVerse, setStrongsByVerse] = createSignal<ReadonlyMap<
+    number,
+    readonly KjvStrongsWord[]
+  > | null>(null);
+
+  return (
+    <>
+      <Show when={props.inlineStrongs}>
+        <StrongsLoader
+          book={props.chapter.book}
+          chapter={props.chapter.chapter}
+          onLoaded={setStrongsByVerse}
+          onCleared={() => setStrongsByVerse(null)}
+        />
+      </Show>
+      <div class="mt-6 flex flex-col gap-3 font-[family-name:var(--reader-font-family,var(--font-serif))] text-[length:var(--reader-font-size,18px)] leading-[var(--reader-line-height,1.55)] text-fg">
+        <For each={props.chapter.verses}>
+          {(v) => {
+            const isCursor = (): boolean => v.verse === props.cursorVerse;
+            const hasCommentary = (): boolean => props.commentaryVerses.has(v.verse);
+            const hasNote = (): boolean =>
+              props.inlineMarginNotes && props.notedVerses.has(v.verse);
+            const hasXref = (): boolean => props.inlineCrossRefs && props.xrefVerses.has(v.verse);
+            const strongsWords = (): readonly KjvStrongsWord[] | null => {
+              if (!props.inlineStrongs) return null;
+              const map = strongsByVerse();
+              return map === null ? null : (map.get(v.verse) ?? null);
+            };
+            return (
+              <p
+                class="m-0 -mx-2 rounded px-2 py-1 data-[cursor=true]:bg-accent-soft"
+                data-cursor={isCursor() ? 'true' : undefined}
+                ref={(el) => {
+                  props.verseRefs.set(v.verse, el);
+                }}
               >
-                {v.verse}
-              </button>
-              <Show when={hasCommentary()}>
                 <button
                   type="button"
-                  class="mr-1 cursor-pointer bg-transparent border-0 p-0 align-baseline text-[0.62em] font-medium text-accent opacity-70 hover:opacity-100 hover:underline select-none"
-                  title={`EGW commentary on verse ${String(v.verse)}`}
-                  onClick={() => props.onCommentaryClick(v.verse)}
+                  class="mr-2 cursor-pointer bg-transparent border-0 p-0 text-[0.78em] text-muted [font-variant-numeric:tabular-nums] hover:text-accent hover:underline select-none"
+                  title={`Focus verse ${String(v.verse)}`}
+                  onClick={() => props.onVerseClick(v.verse)}
                 >
-                  <sup>e</sup>
+                  {v.verse}
                 </button>
-              </Show>
-              <VerseRenderer text={v.text} />
-            </p>
-          );
-        }}
-      </For>
+                <Show when={hasCommentary()}>
+                  <button
+                    type="button"
+                    class="mr-1 cursor-pointer bg-transparent border-0 p-0 align-baseline text-[0.62em] font-medium text-accent opacity-70 hover:opacity-100 hover:underline select-none"
+                    title={`EGW commentary on verse ${String(v.verse)}`}
+                    onClick={() => props.onCommentaryClick(v.verse)}
+                  >
+                    <sup>e</sup>
+                  </button>
+                </Show>
+                <Show when={hasNote()}>
+                  <button
+                    type="button"
+                    class="mr-1 cursor-pointer bg-transparent border-0 p-0 align-baseline text-[0.62em] font-medium text-accent opacity-70 hover:opacity-100 hover:underline select-none"
+                    title={`Margin notes for verse ${String(v.verse)}`}
+                    onClick={() => props.onOpenMarginNote(v.verse)}
+                  >
+                    <sup>n</sup>
+                  </button>
+                </Show>
+                <Show when={hasXref()}>
+                  <button
+                    type="button"
+                    class="mr-1 cursor-pointer bg-transparent border-0 p-0 align-baseline text-[0.62em] font-medium text-accent opacity-70 hover:opacity-100 hover:underline select-none"
+                    title={`Cross-references for verse ${String(v.verse)}`}
+                    onClick={() => props.onOpenCrossRefs(v.verse)}
+                  >
+                    <sup>x</sup>
+                  </button>
+                </Show>
+                <Show when={strongsWords()} fallback={<VerseRenderer text={v.text} />}>
+                  {(words) => (
+                    <StrongsVerse
+                      words={words()}
+                      onCodeClick={(code) => props.onOpenStrongs(v.verse, code)}
+                    />
+                  )}
+                </Show>
+              </p>
+            );
+          }}
+        </For>
+      </div>
+    </>
+  );
+};
+
+// Mount-only loaders for the inline overlays. Each subscribes via the ipc
+// proxy and pushes data up via the parent's setters; on unmount (toggle
+// flipped off) the parent's signal is reset to its empty default. Using
+// `.latest` keeps the verse list rendering immediately — overlays flicker
+// in once the IPC resolves, then stay cached for re-toggles.
+const StrongsLoader: Component<{
+  readonly book: number;
+  readonly chapter: number;
+  readonly onLoaded: (map: ReadonlyMap<number, readonly KjvStrongsWord[]>) => void;
+  readonly onCleared: () => void;
+}> = (props) => {
+  const res = ipc.bible.getChapterStrongs.query(() => ({
+    book: props.book,
+    chapter: props.chapter,
+  }));
+  createEffect(() => {
+    const s = res.latest;
+    if (s === undefined || s === null) return;
+    const m = new Map<number, readonly KjvStrongsWord[]>();
+    for (const v of s.verses) m.set(v.verse, v.words);
+    props.onLoaded(m);
+  });
+  onCleanup(() => props.onCleared());
+  return null;
+};
+
+// Floating toolbar pinned to the top center of the canvas. Mirrors
+// `ChapterNavButtons` (book-feed.tsx) at the bottom — same pill chrome,
+// same backdrop blur, same z-index — so the two read as a matched pair
+// bracketing the reader column. Toggles flip the canvas-level signals
+// that drive the inline overlay renders. State persists through
+// ReaderSettings — see app.tsx for the wiring.
+const BibleReaderToolbar: Component<{
+  readonly inlineStrongs: () => boolean;
+  readonly inlineMarginNotes: () => boolean;
+  readonly inlineCommentary: () => boolean;
+  readonly inlineCrossRefs: () => boolean;
+  readonly onToggleStrongs: () => void;
+  readonly onToggleMarginNotes: () => void;
+  readonly onToggleCommentary: () => void;
+  readonly onToggleCrossRefs: () => void;
+}> = (props) => (
+  <div class="sticky top-3 z-10 flex justify-center pointer-events-none">
+    <div class="inline-flex items-center gap-px rounded-full border border-rule bg-bg/85 backdrop-blur px-1.5 py-1 shadow-sm pointer-events-auto">
+      <ToolbarToggle
+        label="Strong's"
+        title="Toggle inline Strong's annotations"
+        pressed={props.inlineStrongs()}
+        onClick={props.onToggleStrongs}
+      />
+      <ToolbarToggle
+        label="EGW"
+        title="Toggle inline EGW commentary markers"
+        pressed={props.inlineCommentary()}
+        onClick={props.onToggleCommentary}
+      />
+      <ToolbarToggle
+        label="Notes"
+        title="Toggle inline margin-note markers"
+        pressed={props.inlineMarginNotes()}
+        onClick={props.onToggleMarginNotes}
+      />
+      <ToolbarToggle
+        label="Xrefs"
+        title="Toggle inline cross-reference markers"
+        pressed={props.inlineCrossRefs()}
+        onClick={props.onToggleCrossRefs}
+      />
     </div>
-  </>
+  </div>
+);
+
+const ToolbarToggle: Component<{
+  readonly label: string;
+  readonly title: string;
+  readonly pressed: boolean;
+  readonly onClick: () => void;
+}> = (props) => (
+  <button
+    type="button"
+    class="inline-flex items-center h-7 px-3 rounded-full bg-transparent border-0 text-ui-xs text-muted cursor-pointer transition-[background,color] duration-[0.12s] ease-in-out hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] hover:text-fg focus-visible:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] focus-visible:text-fg focus-visible:outline-none data-pressed:bg-accent-soft data-pressed:text-accent"
+    data-pressed={props.pressed ? '' : undefined}
+    title={props.title}
+    aria-pressed={props.pressed}
+    onClick={props.onClick}
+  >
+    {props.label}
+  </button>
 );

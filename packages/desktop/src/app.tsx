@@ -13,6 +13,7 @@ import { BibleChapterCanvas } from './components/bible-chapter-canvas.js';
 import { BibleCommentaryDrawer } from './components/bible-commentary-drawer.js';
 import { BibleDrawer } from './components/bible-drawer.js';
 import { BibleTocSidebar } from './components/bible-toc-sidebar.js';
+import { CommandPalette } from './components/command-palette.js';
 import { FolderBrowser } from './components/folder-browser.js';
 import { ReaderPane } from './components/reader-pane.js';
 import { SearchPanel } from './components/search-panel.js';
@@ -135,6 +136,16 @@ export const App: Component = () => {
   // open on next launch.
   const [bibleCommentaryOpen, setBibleCommentaryOpenSig] = createSignal<boolean>(false);
 
+  // Per-overlay toggle state for the floating Bible reader toolbar.
+  // Defaults: commentary on (the most discoverable overlay — surfaces the
+  // EGW `e` markers users land here to read), the other three off (Strong's
+  // is dense, notes are scholarly, xrefs paint a lot of superscripts).
+  // Seeded from ReaderSettings on mount; setters fan out to persistence.
+  const [inlineStrongs, setInlineStrongsSig] = createSignal<boolean>(false);
+  const [inlineCommentary, setInlineCommentarySig] = createSignal<boolean>(true);
+  const [inlineMarginNotes, setInlineMarginNotesSig] = createSignal<boolean>(false);
+  const [inlineCrossRefs, setInlineCrossRefsSig] = createSignal<boolean>(false);
+
   // True once the main-process Effect runtime is up. Polled on mount and
   // again once per second until it flips true. When false, we paint a
   // dismissable banner across the top of the canvas — without it every IPC
@@ -204,6 +215,11 @@ export const App: Component = () => {
     setSearchOpen(true);
   };
 
+  // Bible-mode Cmd+K palette. Repurposes the shortcut when the user is in
+  // Bible mode (where the header search box doesn't apply); EGW mode keeps
+  // its existing behavior of focusing the header search.
+  const [paletteOpen, setPaletteOpen] = createSignal(false);
+
   onMount(() => {
     // Poll the diag IPC until main reports ready. We assume ready until told
     // otherwise so first-paint isn't gated on the roundtrip; if the first poll
@@ -257,6 +273,14 @@ export const App: Component = () => {
         if (state.readerMode !== undefined) {
           setReaderModeSig(state.readerMode);
         }
+        // Inline overlay flags — only override the in-memory defaults when
+        // the user has explicitly stored a value. `undefined` means "fresh
+        // install / pre-persistence settings file" and should keep the
+        // commentary-on / others-off default seeded above.
+        if (state.inlineStrongs !== undefined) setInlineStrongsSig(state.inlineStrongs);
+        if (state.inlineCommentary !== undefined) setInlineCommentarySig(state.inlineCommentary);
+        if (state.inlineMarginNotes !== undefined) setInlineMarginNotesSig(state.inlineMarginNotes);
+        if (state.inlineCrossRefs !== undefined) setInlineCrossRefsSig(state.inlineCrossRefs);
       });
 
     // Rehydrate last position on mount, then mirror + persist every change.
@@ -538,6 +562,50 @@ export const App: Component = () => {
     );
   };
 
+  const toggleInlineStrongs = () => {
+    const next = !inlineStrongs();
+    setInlineStrongsSig(next);
+    updateSettings(
+      Effect.gen(function* () {
+        const s = yield* ReaderSettings;
+        yield* s.setInlineStrongs(next);
+      }),
+    );
+  };
+
+  const toggleInlineCommentary = () => {
+    const next = !inlineCommentary();
+    setInlineCommentarySig(next);
+    updateSettings(
+      Effect.gen(function* () {
+        const s = yield* ReaderSettings;
+        yield* s.setInlineCommentary(next);
+      }),
+    );
+  };
+
+  const toggleInlineMarginNotes = () => {
+    const next = !inlineMarginNotes();
+    setInlineMarginNotesSig(next);
+    updateSettings(
+      Effect.gen(function* () {
+        const s = yield* ReaderSettings;
+        yield* s.setInlineMarginNotes(next);
+      }),
+    );
+  };
+
+  const toggleInlineCrossRefs = () => {
+    const next = !inlineCrossRefs();
+    setInlineCrossRefsSig(next);
+    updateSettings(
+      Effect.gen(function* () {
+        const s = yield* ReaderSettings;
+        yield* s.setInlineCrossRefs(next);
+      }),
+    );
+  };
+
   const cycleTheme = () => {
     const idx = THEMES.indexOf(theme());
     setTheme(THEMES[(idx + 1) % THEMES.length] ?? 'light');
@@ -575,7 +643,13 @@ export const App: Component = () => {
     const mod = e.metaKey || e.ctrlKey;
     if (mod && e.key === 'k') {
       e.preventDefault();
-      focusSearch();
+      // In Bible mode Cmd+K opens the navigation palette; in EGW mode it
+      // keeps the legacy behavior of focusing the header search input.
+      if (isBibleMode()) {
+        setPaletteOpen((open) => !open);
+      } else {
+        focusSearch();
+      }
       return;
     }
     if (mod && e.key === 'Escape') {
@@ -584,10 +658,15 @@ export const App: Component = () => {
       return;
     }
     if (!mod) {
-      // Esc closes the search panel first (highest-priority overlay), then
-      // any open drawer. Letting Esc cascade like this avoids users needing
-      // two presses when both are open.
+      // Esc closes overlays in priority order: palette → search panel →
+      // open drawer. Two presses shouldn't be needed when more than one is
+      // open.
       if (e.key === 'Escape') {
+        if (paletteOpen()) {
+          e.preventDefault();
+          setPaletteOpen(false);
+          return;
+        }
         if (searchOpen()) {
           e.preventDefault();
           closeSearch();
@@ -834,20 +913,38 @@ export const App: Component = () => {
           </button>
         </Show>
         <div class="flex-1 flex justify-center [-webkit-app-region:no-drag]">
-          <input
-            ref={setSearchInputRef}
-            type="search"
-            class="w-[min(420px,100%)] h-[calc(28px*var(--ui-scale))] px-3 rounded-md border border-rule bg-[color-mix(in_srgb,var(--color-bg)_70%,var(--color-fg)_4%)] text-fg text-ui-base outline-none transition-[border-color] duration-[0.12s] ease-in-out [-webkit-app-region:no-drag] focus:border-accent"
-            placeholder="Search or refcode (⌘K)"
-            spellcheck={false}
-            autocomplete="off"
-            value={searchQuery()}
-            onInput={(e) => {
-              setSearchQuery(e.currentTarget.value);
-              openSearch();
-            }}
-            onFocus={openSearch}
-          />
+          <Show
+            when={isBibleMode()}
+            fallback={
+              <input
+                ref={setSearchInputRef}
+                type="search"
+                class="w-[min(420px,100%)] h-[calc(28px*var(--ui-scale))] px-3 rounded-md border border-rule bg-[color-mix(in_srgb,var(--color-bg)_70%,var(--color-fg)_4%)] text-fg text-ui-base outline-none transition-[border-color] duration-[0.12s] ease-in-out [-webkit-app-region:no-drag] focus:border-accent"
+                placeholder="Search or refcode (⌘K)"
+                spellcheck={false}
+                autocomplete="off"
+                value={searchQuery()}
+                onInput={(e) => {
+                  setSearchQuery(e.currentTarget.value);
+                  openSearch();
+                }}
+                onFocus={openSearch}
+              />
+            }
+          >
+            <button
+              type="button"
+              class="w-[min(420px,100%)] h-[calc(28px*var(--ui-scale))] px-3 inline-flex items-center justify-between gap-2 rounded-md border border-rule bg-[color-mix(in_srgb,var(--color-bg)_70%,var(--color-fg)_4%)] text-muted text-ui-base cursor-pointer transition-[background,border-color,color] duration-[0.12s] ease-in-out [-webkit-app-region:no-drag] hover:border-accent hover:text-fg focus-visible:border-accent focus-visible:text-fg focus-visible:outline-none"
+              onClick={() => setPaletteOpen(true)}
+              title="Jump to chapter or verse (⌘K)"
+              aria-label="Open command palette"
+            >
+              <span class="truncate">Jump to chapter or verse…</span>
+              <kbd class="inline-flex items-center px-1.5 py-0.5 rounded border border-rule text-muted text-ui-sm font-medium">
+                ⌘K
+              </kbd>
+            </button>
+          </Show>
         </div>
         <button
           type="button"
@@ -936,7 +1033,24 @@ export const App: Component = () => {
           <BibleChapterCanvas
             onOpenCommentary={() => setBibleCommentaryOpen(true)}
             commentaryOpen={bibleCommentaryOpen()}
-            onToggleCommentary={() => setBibleCommentaryOpen(!bibleCommentaryOpen())}
+            onToggleCommentaryDrawer={() => setBibleCommentaryOpen(!bibleCommentaryOpen())}
+            onOpenStrongs={(book, chapter, verse, code) =>
+              bibleDrawer.openAt(book, chapter, 'strongs', { _tag: 'strongs', verse, code })
+            }
+            onOpenMarginNote={(book, chapter, verse) =>
+              bibleDrawer.openAt(book, chapter, 'notes', { _tag: 'note', verse, noteIndex: 0 })
+            }
+            onOpenCrossRefs={(book, chapter, verse) =>
+              bibleDrawer.openAt(book, chapter, 'xrefs', { _tag: 'xref', verse })
+            }
+            inlineStrongs={inlineStrongs}
+            inlineCommentary={inlineCommentary}
+            inlineMarginNotes={inlineMarginNotes}
+            inlineCrossRefs={inlineCrossRefs}
+            onToggleInlineStrongs={toggleInlineStrongs}
+            onToggleInlineCommentary={toggleInlineCommentary}
+            onToggleInlineMarginNotes={toggleInlineMarginNotes}
+            onToggleInlineCrossRefs={toggleInlineCrossRefs}
           />
         </Show>
 
@@ -1200,6 +1314,12 @@ export const App: Component = () => {
           </Motion.div>
         </Show>
       </Presence>
+
+      <CommandPalette
+        open={paletteOpen()}
+        onOpenChange={setPaletteOpen}
+        currentSelection={bibleSelection}
+      />
     </div>
   );
 };

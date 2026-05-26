@@ -9,5 +9,9 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx'],
+    // ipc-cache tests need Solid's client build (createResource + createRoot
+    // run standalone, no DOM, no SSR hydration context). They run via a
+    // dedicated vitest config — see vitest.ipc-cache.config.ts.
+    exclude: ['tests/ipc-cache/**', 'node_modules/**'],
   },
 });

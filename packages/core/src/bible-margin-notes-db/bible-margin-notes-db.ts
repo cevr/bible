@@ -111,15 +111,15 @@ export interface BibleMarginNotesDatabaseService {
   ) => Effect.Effect<readonly MarginNoteRow[], SqlError>;
 
   /**
-   * Verse numbers in a given (book, chapter) that have at least one note,
-   * paired with their note count. Used by the chapter renderer to mark
-   * verses with a superscript anchor — one round-trip per chapter rather
-   * than one per verse keeps the verse loop cheap.
+   * Verse numbers in a given (book, chapter) that have at least one note.
+   * Used by the chapter renderer to mark verses with a superscript anchor —
+   * one round-trip per chapter rather than one per verse keeps the verse
+   * loop cheap.
    */
   readonly versesWithNotes: (
     book: number,
     chapter: number,
-  ) => Effect.Effect<ReadonlyMap<number, number>, SqlError>;
+  ) => Effect.Effect<ReadonlySet<number>, SqlError>;
 
   /** `true` when at least one margin_notes row exists. Used by main to skip the
    *  (cheap but non-zero) JSON read + parse + transaction on subsequent launches. */
@@ -238,17 +238,16 @@ export class BibleMarginNotesDatabase extends Context.Service<
           );
 
         const versesWithNotes = (book: number, chapter: number) =>
-          sql<{ verse: number; n: number }>`
-          SELECT verse, COUNT(*) AS n
+          sql<{ verse: number }>`
+          SELECT DISTINCT verse
           FROM margin_notes
           WHERE book = ${book} AND chapter = ${chapter}
-          GROUP BY verse
           ORDER BY verse
         `.pipe(
             Effect.map((rows) => {
-              const map = new Map<number, number>();
-              for (const r of rows) map.set(r.verse, r.n);
-              return map as ReadonlyMap<number, number>;
+              const set = new Set<number>();
+              for (const r of rows) set.add(r.verse);
+              return set as ReadonlySet<number>;
             }),
           );
 

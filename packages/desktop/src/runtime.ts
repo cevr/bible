@@ -1,8 +1,11 @@
 import { Layer, ManagedRuntime } from 'effect';
+import { buildIpc } from './ipc-cache/proxy.js';
+import { procedures } from './procedures.js';
 import { BibleMarginNotes } from './services/bible-margin-notes.js';
 import { BibleReaderState } from './services/bible-reader-state.js';
 import { BibleXrefs } from './services/bible-xrefs.js';
 import { CacheService } from './services/cache-service.js';
+import { CommandPaletteMemory } from './services/command-palette-memory.js';
 import { EgwCommentary } from './services/egw-commentary.js';
 import { EGWData } from './services/egw-data.js';
 import { EGWIpcClient } from './services/egw-ipc-client.js';
@@ -47,9 +50,21 @@ const AppLayer = Layer.mergeAll(
   EgwCommentary.layer,
   BibleReaderState.layer,
   LastChapterMemory.layer,
+  CommandPaletteMemory.layer,
 );
 
 export const runtime = ManagedRuntime.make(AppLayer);
+
+/**
+ * Schema-validated, reactive proxy over the renderer's services. Components
+ * call `ipc.<namespace>.<method>.query(input)` for cacheable reads (returns
+ * a Solid Resource that suspends), or `.mutate(input)` for one-shot writes.
+ *
+ * The procedure handlers in `./procedures.ts` yield services from this same
+ * runtime, so AppLayer's contract is the only thing tying them together —
+ * adding a procedure that needs a new service requires extending AppLayer.
+ */
+export const ipc = buildIpc(procedures, runtime);
 
 // Vite re-evaluates this module on HMR; without disposal the previous runtime
 // (and any scoped resources it holds — e.g. the ReaderSettings debounce fiber)

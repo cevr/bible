@@ -136,4 +136,37 @@ describe('BibleXrefsDatabase', () => {
         expect(rows[0]?.targetVerseEnd).toBeNull();
       }),
     ));
+
+  test('versesWithCrossRefs returns sorted distinct verses for (book, chapter)', () =>
+    runTest(
+      Effect.gen(function* () {
+        const db = yield* BibleXrefsDatabase;
+        // Seed multiple verses across two chapters in book 1, plus one verse
+        // with refs from both catalogs (verse 1.1.1) to verify the DISTINCT
+        // collapses cross-catalog duplicates.
+        yield* db.importCatalog('openbible', {
+          '1.1.1': { refs: [{ book: 43, chapter: 1, verse: 1 }] },
+          '1.1.3': { refs: [{ book: 19, chapter: 33, verse: 6 }] },
+          '1.1.7': { refs: [{ book: 23, chapter: 61, verse: 1 }] },
+          // different chapter — should not appear in the (1, 1) result.
+          '1.2.4': { refs: [{ book: 40, chapter: 5, verse: 3 }] },
+        });
+        yield* db.importCatalog('tske', {
+          // duplicate verse 1.1.1 → still one row in the distinct verse list.
+          '1.1.1': { refs: [{ book: 44, chapter: 2, verse: 4 }] },
+        });
+        const verses = yield* db.versesWithCrossRefs(1, 1);
+        expect(verses).toEqual([1, 3, 7]);
+      }),
+    ));
+
+  test('versesWithCrossRefs returns [] for a chapter with no refs', () =>
+    runTest(
+      Effect.gen(function* () {
+        const db = yield* BibleXrefsDatabase;
+        yield* db.importCatalog('openbible', openbibleCatalog);
+        const verses = yield* db.versesWithCrossRefs(66, 22);
+        expect(verses).toEqual([]);
+      }),
+    ));
 });

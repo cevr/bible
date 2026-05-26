@@ -762,6 +762,25 @@ ipcMain.handle(
   ),
 );
 
+// Per-chapter "which verses have at least one cross-reference" lookup. The
+// chapter renderer paints one `x` superscript per xref verse, so we return a
+// plain number array — much smaller than the full per-verse rows the
+// inline overlay doesn't need until the user actually clicks.
+ipcMain.handle(
+  'bible:getVersesWithCrossRefs',
+  traceBibleIpc(
+    'bible:getVersesWithCrossRefs',
+    async (_event, book: number, chapter: number): Promise<readonly number[]> => {
+      if (mainRuntime === null) return [];
+      await ensureXrefsImportsDone(mainRuntime);
+      return mainRuntime.runPromise(
+        BibleXrefsDatabase.pipe(Effect.flatMap((db) => db.versesWithCrossRefs(book, chapter))),
+      );
+    },
+    (r) => `${String(r.length)} verse(s) w/ xrefs`,
+  ),
+);
+
 // --- Margin notes IPC ---------------------------------------------------
 // Same first-launch-import pattern as the KJV + xrefs imports above. The
 // bundled asset shape is `{ "book.chapter.verse": [{type, phrase, text}, ...] }`
@@ -827,27 +846,20 @@ ipcMain.handle(
   ),
 );
 
-// Per-chapter "which verses have notes" lookup. The renderer renders one
-// superscript anchor per noted verse, so we return a plain array of
-// `[verse, count]` pairs (Map isn't serializable across IPC). Caller
-// reconstitutes a Map on the renderer side if it wants O(1) lookup.
+// Per-chapter "which verses have notes" lookup. Returns a plain sorted
+// number array (Set isn't serializable across IPC). Renderer rebuilds a
+// Set on its side for O(1) `.has` lookups in the verse loop.
 ipcMain.handle(
   'bible:getVersesWithNotes',
   traceBibleIpc(
     'bible:getVersesWithNotes',
-    async (
-      _event,
-      book: number,
-      chapter: number,
-    ): Promise<readonly { readonly verse: number; readonly count: number }[]> => {
+    async (_event, book: number, chapter: number): Promise<readonly number[]> => {
       if (mainRuntime === null) return [];
       await ensureMarginNotesImportsDone(mainRuntime);
-      const map = await mainRuntime.runPromise(
+      const set = await mainRuntime.runPromise(
         BibleMarginNotesDatabase.pipe(Effect.flatMap((db) => db.versesWithNotes(book, chapter))),
       );
-      const out: { readonly verse: number; readonly count: number }[] = [];
-      for (const [verse, count] of map) out.push({ verse, count });
-      return out;
+      return Array.from(set).sort((a, b) => a - b);
     },
     (r) => `${String(r.length)} verse(s) with notes`,
   ),

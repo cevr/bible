@@ -15,32 +15,25 @@ import { Context, Effect, Layer, Option, type Stream, SubscriptionRef } from 'ef
 export interface BibleReaderSelection {
   readonly book: number;
   readonly chapter: number;
-  /** Verse the user is currently focused on. Drives the right-side EGW
-   *  commentary drawer and is the anchor we'd persist for resume-on-launch.
+  /** Verse the user is currently focused on. Drives:
+   *  - the right-side EGW commentary drawer
+   *  - the inline cursor styling on the verse row
+   *  - the canvas scroll-into-view effect (which only acts when the verse is
+   *    off-screen, so user clicks on visible verses don't jump the page)
    *  None when no verse has been picked yet (e.g. chapter just opened). */
   readonly verse: Option.Option<number>;
-  /**
-   * When set, the canvas scrolls this verse into view and pulses it after
-   * the chapter renders. Used for search-result jumps and cross-mode
-   * navigation (e.g. EGW reader → Bible verse). Cleared by the canvas
-   * after applying so a re-open of the same chapter doesn't re-scroll.
-   */
-  readonly highlightVerse: Option.Option<number>;
 }
 
 export interface BibleReaderStateShape {
   readonly get: Effect.Effect<Option.Option<BibleReaderSelection>>;
   readonly changes: Stream.Stream<Option.Option<BibleReaderSelection>>;
   readonly openChapter: (book: number, chapter: number) => Effect.Effect<void>;
-  /** Open a chapter and request the canvas scroll/highlight a verse once it
-   *  renders. The verse is set as both `verse` (current focus) and
-   *  `highlightVerse` (one-shot scroll cue). */
+  /** Open a chapter and focus a verse. The canvas's scroll effect brings it
+   *  into view when off-screen. */
   readonly openChapterAt: (book: number, chapter: number, verse: number) => Effect.Effect<void>;
   /** Update the verse cursor without changing the chapter. No-op if no
    *  chapter is open. */
   readonly setVerse: (verse: number) => Effect.Effect<void>;
-  /** Acknowledge a highlight after the canvas has scrolled to it. */
-  readonly clearHighlight: Effect.Effect<void>;
   readonly close: Effect.Effect<void>;
 }
 
@@ -51,32 +44,13 @@ const makeImpl = (initial: Option.Option<BibleReaderSelection>) =>
       get: SubscriptionRef.get(ref),
       changes: SubscriptionRef.changes(ref),
       openChapter: (book: number, chapter: number) =>
-        SubscriptionRef.set(
-          ref,
-          Option.some({
-            book,
-            chapter,
-            verse: Option.none(),
-            highlightVerse: Option.none(),
-          }),
-        ),
+        SubscriptionRef.set(ref, Option.some({ book, chapter, verse: Option.none() })),
       openChapterAt: (book: number, chapter: number, verse: number) =>
-        SubscriptionRef.set(
-          ref,
-          Option.some({
-            book,
-            chapter,
-            verse: Option.some(verse),
-            highlightVerse: Option.some(verse),
-          }),
-        ),
+        SubscriptionRef.set(ref, Option.some({ book, chapter, verse: Option.some(verse) })),
       setVerse: (verse: number) =>
         SubscriptionRef.update(ref, (curr) =>
           Option.map(curr, (sel) => ({ ...sel, verse: Option.some(verse) })),
         ),
-      clearHighlight: SubscriptionRef.update(ref, (curr) =>
-        Option.map(curr, (sel) => ({ ...sel, highlightVerse: Option.none() })),
-      ),
       close: SubscriptionRef.set(ref, Option.none<BibleReaderSelection>()),
     } satisfies BibleReaderStateShape;
   });

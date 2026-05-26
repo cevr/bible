@@ -119,6 +119,11 @@ const api = {
       verse: number,
     ): Promise<readonly CrossRefPayload[]> =>
       ipcRenderer.invoke('bible:getCrossRefs', book, chapter, verse),
+    // Verses in (book, chapter) that have at least one cross-reference. Used
+    // by the chapter renderer to paint an `x` superscript marker next to verse
+    // numbers in one round-trip per chapter (mirrors `getVersesWithNotes`).
+    getVersesWithCrossRefs: (book: number, chapter: number): Promise<readonly number[]> =>
+      ipcRenderer.invoke('bible:getVersesWithCrossRefs', book, chapter),
     // Margin notes for a single verse, drawn from the bundled margin-notes
     // catalog. Returns [] for verses with no annotations.
     getMarginNotes: (
@@ -127,13 +132,10 @@ const api = {
       verse: number,
     ): Promise<readonly MarginNotePayload[]> =>
       ipcRenderer.invoke('bible:getMarginNotes', book, chapter, verse),
-    // Verses in a (book, chapter) that have at least one margin note, with
-    // counts. Used by the chapter renderer to mark notable verses with a
-    // superscript anchor in one round-trip per chapter.
-    getVersesWithNotes: (
-      book: number,
-      chapter: number,
-    ): Promise<readonly VerseWithNotesPayload[]> =>
+    // Verses in a (book, chapter) that have at least one margin note. Used
+    // by the chapter renderer to mark notable verses with a superscript
+    // anchor in one round-trip per chapter.
+    getVersesWithNotes: (book: number, chapter: number): Promise<readonly number[]> =>
       ipcRenderer.invoke('bible:getVersesWithNotes', book, chapter),
     // EGW paragraphs that reference the given Bible verse, drawn from the
     // local `paragraph_bible_refs` index (populated by the indexer + boot
@@ -219,13 +221,6 @@ export type MarginNotePayload = {
   readonly type: 'hebrew' | 'alternate' | 'other' | 'greek' | 'name';
   readonly phrase: string;
   readonly text: string;
-};
-
-/** One row of the `bible:getVersesWithNotes` response — verse number paired
- * with how many margin notes that verse has. */
-export type VerseWithNotesPayload = {
-  readonly verse: number;
-  readonly count: number;
 };
 
 /** One commentary hit as exposed by `api.bible.getEgwCommentary`. Shape must

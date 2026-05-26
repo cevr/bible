@@ -109,6 +109,17 @@ export interface BibleXrefsDatabaseService {
     verse: number,
   ) => Effect.Effect<readonly CrossRefRow[], SqlError>;
 
+  /**
+   * Distinct verse numbers in the chapter that have at least one cross-reference
+   * across any imported catalog. Used by the inline overlay to render an
+   * `x`-superscript marker on verses that have xrefs without paying the full
+   * per-verse fetch upfront.
+   */
+  readonly versesWithCrossRefs: (
+    book: number,
+    chapter: number,
+  ) => Effect.Effect<readonly number[], SqlError>;
+
   /** `true` when at least one cross_refs row exists. Used by main to skip the
    *  (cheap but non-zero) JSON read + parse + transaction on subsequent launches. */
   readonly isImported: () => Effect.Effect<boolean, SqlError>;
@@ -226,6 +237,13 @@ export class BibleXrefsDatabase extends Context.Service<
           ),
         );
 
+      const versesWithCrossRefs = (book: number, chapter: number) =>
+        sql<{ verse: number }>`
+          SELECT DISTINCT verse FROM cross_refs
+          WHERE book = ${book} AND chapter = ${chapter}
+          ORDER BY verse
+        `.pipe(Effect.map((rows) => rows.map((r) => r.verse)));
+
       const isImported = () =>
         sql<{ n: number }>`SELECT COUNT(*) AS n FROM cross_refs LIMIT 1`.pipe(
           Effect.map((rows) => (rows[0]?.n ?? 0) > 0),
@@ -234,6 +252,7 @@ export class BibleXrefsDatabase extends Context.Service<
       return BibleXrefsDatabase.of({
         importCatalog,
         getCrossRefs,
+        versesWithCrossRefs,
         isImported,
       });
     }),

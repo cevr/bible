@@ -1,21 +1,21 @@
-import { Effect, Option, Result } from 'effect';
+import { Effect, Option } from 'effect';
 import {
   type Accessor,
   type Component,
   createEffect,
   createMemo,
-  createResource,
   createSignal,
   For,
   on,
   onCleanup,
   onMount,
   Show,
+  Suspense,
 } from 'solid-js';
-import { runtime } from '../runtime.js';
+import { ipc, runtime } from '../runtime.js';
 import { EGWData } from '../services/egw-data.js';
 import { ReaderState } from '../services/reader-state.js';
-import { SearchService, type SearchResult } from '../services/search-service.js';
+import type { SearchResult } from '../services/search-service.js';
 
 // Floating result list rendered below the header search input.
 //
@@ -60,28 +60,11 @@ export const SearchPanel: Component<SearchPanelProps> = (props) => {
     }),
   );
 
-  const [results] = createResource(activeQuery, (q) => {
-    if (q === '') return Promise.resolve(Result.succeed([] as readonly SearchResult[]));
-    return runtime.runPromise(
-      Effect.gen(function* () {
-        const search = yield* SearchService;
-        if (looksLikeRefcode(q)) {
-          return yield* search.byRefcode(q);
-        }
-        return yield* search.byText(q);
-      }).pipe(Effect.result),
-    );
-  });
-
-  // Narrow Result<…, …> to its success array (or undefined) for use in JSX,
-  // so the <Show keyed> downstream gets a properly-typed value rather than
-  // `{}` from a fallback-laden ternary chain.
-  const hits = createMemo<readonly SearchResult[] | undefined>(() => {
-    const r = results();
-    if (r === undefined) return undefined;
-    if (Result.isFailure(r)) return undefined;
-    return r.success;
-  });
+  // Two parallel queries — the active one is the one whose input shape
+  // matches the query string. The inactive one isn't subscribed (we only
+  // read whichever accessor matches), so the ipc registry won't keep an
+  // entry for the unused path.
+  const [hits, setHits] = createSignal<readonly SearchResult[] | undefined>(undefined);
 
   // Position the panel directly under the input element. Anchored on every
   // open by reading getBoundingClientRect off the input ref.
@@ -179,62 +162,85 @@ export const SearchPanel: Component<SearchPanelProps> = (props) => {
       aria-label="Search results"
     >
       <Show
-        when={props.query().trim() !== ''}
+        when={props.query().trim() !== '' && activeQuery() !== ''}
         fallback={
-          <div class="px-4 py-6 text-ui-sm text-muted">
-            Start typing to search. Try a refcode like <code class="text-fg">PP 351.1</code>.
-          </div>
+          <Show
+            when={props.query().trim() === ''}
+            fallback={<div class="px-4 py-6 text-ui-sm text-muted">Searching…</div>}
+          >
+            <div class="px-4 py-6 text-ui-sm text-muted">
+              Start typing to search. Try a refcode like <code class="text-fg">PP 351.1</code>.
+            </div>
+          </Show>
         }
       >
-        <Show
-          when={!results.loading}
-          fallback={<div class="px-4 py-6 text-ui-sm text-muted">Searching…</div>}
-        >
-          <Show
-            when={hits()}
-            keyed
-            fallback={
-              <div class="px-4 py-6 text-ui-sm text-[#b3261e]">Search failed. Try again.</div>
-            }
-          >
-            {(list) => (
-              <Show
-                when={list.length > 0}
-                fallback={
-                  <div class="px-4 py-6 text-ui-sm text-muted">
-                    No results for <span class="text-fg">{activeQuery()}</span>.
-                  </div>
-                }
-              >
-                <ul
-                  class="m-0 list-none overflow-y-auto py-1"
-                  ref={(el) => {
-                    listEl = el;
-                  }}
-                >
-                  <For each={list}>
-                    {(hit) => {
-                      const clickableIdx = createMemo(() => {
-                        if (hit.source !== 'local' || hit.bookId === null) return -1;
-                        return clickableHits().indexOf(hit);
-                      });
-                      return (
-                        <ResultRow
-                          hit={hit}
-                          active={() => clickableIdx() === activeIndex() && clickableIdx() !== -1}
-                          dataIndex={clickableIdx}
-                          onPick={() => onPickLocal(hit)}
-                        />
-                      );
-                    }}
-                  </For>
-                </ul>
-              </Show>
-            )}
-          </Show>
-        </Show>
+        <Suspense fallback={<div class="px-4 py-6 text-ui-sm text-muted">Searching…</div>}>
+          <SearchResults
+            query={activeQuery}
+            onHits={setHits}
+            activeIndex={activeIndex}
+            clickableHits={clickableHits}
+            listRef={(el) => {
+              listEl = el;
+            }}
+            onPickLocal={onPickLocal}
+          />
+        </Suspense>
       </Show>
     </div>
+  );
+};
+
+const SearchResults: Component<{
+  readonly query: () => string;
+  readonly onHits: (hits: readonly SearchResult[]) => void;
+  readonly activeIndex: () => number;
+  readonly clickableHits: () => readonly SearchResult[];
+  readonly listRef: (el: HTMLUListElement) => void;
+  readonly onPickLocal: (hit: SearchResult) => void;
+}> = (props) => {
+  // Pick the query mode each time the input changes. The unused branch is
+  // never subscribed to, so the registry doesn't pin an entry for it.
+  const refcodeHits = ipc.search.byRefcode.query(() => ({ refcode: props.query() }));
+  const textHits = ipc.search.byText.query(() => ({ query: props.query() }));
+
+  const results = createMemo<readonly SearchResult[]>(() => {
+    const list = looksLikeRefcode(props.query()) ? refcodeHits() : textHits();
+    return list ?? [];
+  });
+
+  createEffect(() => {
+    props.onHits(results());
+  });
+
+  return (
+    <Show
+      when={results().length > 0}
+      fallback={
+        <div class="px-4 py-6 text-ui-sm text-muted">
+          No results for <span class="text-fg">{props.query()}</span>.
+        </div>
+      }
+    >
+      <ul class="m-0 list-none overflow-y-auto py-1" ref={props.listRef}>
+        <For each={results()}>
+          {(hit) => {
+            const clickableIdx = createMemo(() => {
+              if (hit.source !== 'local' || hit.bookId === null) return -1;
+              return props.clickableHits().indexOf(hit);
+            });
+            return (
+              <ResultRow
+                hit={hit}
+                active={() => clickableIdx() === props.activeIndex() && clickableIdx() !== -1}
+                dataIndex={clickableIdx}
+                onPick={() => props.onPickLocal(hit)}
+              />
+            );
+          }}
+        </For>
+      </ul>
+    </Show>
   );
 };
 

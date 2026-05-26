@@ -9,11 +9,6 @@ export interface MarginNote {
   readonly text: string;
 }
 
-export interface VerseWithNotes {
-  readonly verse: number;
-  readonly count: number;
-}
-
 export interface BibleMarginNotesShape {
   /** All margin notes for a single verse, ordered by their original position
    *  in the asset. Returns `[]` when the verse has no annotations. */
@@ -23,13 +18,10 @@ export interface BibleMarginNotesShape {
     verse: number,
   ) => Effect.Effect<readonly MarginNote[]>;
 
-  /** Verses in a (book, chapter) that have at least one margin note, with
-   *  counts. Used by the chapter renderer to mark notable verses with a
-   *  superscript anchor. Returns a Map keyed by verse number. */
-  readonly versesWithNotes: (
-    book: number,
-    chapter: number,
-  ) => Effect.Effect<ReadonlyMap<number, number>>;
+  /** Verses in a (book, chapter) that have at least one margin note. Used
+   *  by the chapter renderer to mark notable verses with a superscript
+   *  anchor. */
+  readonly versesWithNotes: (book: number, chapter: number) => Effect.Effect<ReadonlySet<number>>;
 }
 
 // Two caches keyed differently because the lookups have different scopes:
@@ -74,7 +66,7 @@ export class BibleMarginNotes extends Context.Service<BibleMarginNotes, BibleMar
 ) {
   static layer = Layer.sync(BibleMarginNotes, () => {
     const verseLru = makeLru<readonly MarginNote[]>(PER_VERSE_CAP);
-    const chapterLru = makeLru<ReadonlyMap<number, number>>(PER_CHAPTER_CAP);
+    const chapterLru = makeLru<ReadonlySet<number>>(PER_CHAPTER_CAP);
     return {
       getMarginNotes: (book, chapter, verse) => {
         const key = `${String(book)}:${String(chapter)}:${String(verse)}`;
@@ -92,10 +84,8 @@ export class BibleMarginNotes extends Context.Service<BibleMarginNotes, BibleMar
         const cached = chapterLru.get(key);
         if (cached !== undefined) return Effect.succeed(cached);
         return Effect.promise(() => window.api.bible.getVersesWithNotes(book, chapter)).pipe(
-          Effect.map((rows) => {
-            const map = new Map<number, number>();
-            for (const r of rows) map.set(r.verse, r.count);
-            const out: ReadonlyMap<number, number> = map;
+          Effect.map((verses) => {
+            const out: ReadonlySet<number> = new Set(verses);
             chapterLru.set(key, out);
             return out;
           }),
@@ -106,10 +96,10 @@ export class BibleMarginNotes extends Context.Service<BibleMarginNotes, BibleMar
 
   /** Fixture layer for tests — caller seeds verse → notes and
    *  (book, chapter) → versesWithNotes maps. Anything not in either map
-   *  returns `[]` / empty Map. */
+   *  returns `[]` / empty Set. */
   static layerTest = (
     notes: ReadonlyMap<string, readonly MarginNote[]>,
-    chapters: ReadonlyMap<string, ReadonlyMap<number, number>>,
+    chapters: ReadonlyMap<string, ReadonlySet<number>>,
   ) =>
     Layer.succeed(BibleMarginNotes, {
       getMarginNotes: (book, chapter, verse) =>
@@ -117,7 +107,7 @@ export class BibleMarginNotes extends Context.Service<BibleMarginNotes, BibleMar
       versesWithNotes: (book, chapter) =>
         Effect.succeed(
           chapters.get(`${String(book)}:${String(chapter)}`) ??
-            (new Map<number, number>() as ReadonlyMap<number, number>),
+            (new Set<number>() as ReadonlySet<number>),
         ),
     });
 }

@@ -103,25 +103,24 @@ describe('BibleMarginNotesDatabase', () => {
       }),
     ));
 
-  test('versesWithNotes returns per-verse counts for a chapter', () =>
+  test('versesWithNotes returns the distinct annotated verses for a chapter', () =>
     runTest(
       Effect.gen(function* () {
         const db = yield* BibleMarginNotesDatabase;
         yield* db.importCatalog(catalog);
-        const map = yield* db.versesWithNotes(1, 1);
-        expect(map.size).toBe(2);
-        expect(map.get(4)).toBe(1);
-        expect(map.get(5)).toBe(2);
+        const set = yield* db.versesWithNotes(1, 1);
+        // Verse 4 has 1 note, verse 5 has 2 notes — DISTINCT collapses to {4,5}.
+        expect([...set].sort((a, b) => a - b)).toEqual([4, 5]);
       }),
     ));
 
-  test('versesWithNotes returns an empty map for a chapter with no notes', () =>
+  test('versesWithNotes returns an empty set for a chapter with no notes', () =>
     runTest(
       Effect.gen(function* () {
         const db = yield* BibleMarginNotesDatabase;
         yield* db.importCatalog(catalog);
-        const map = yield* db.versesWithNotes(99, 99);
-        expect(map.size).toBe(0);
+        const set = yield* db.versesWithNotes(99, 99);
+        expect(set.size).toBe(0);
       }),
     ));
 

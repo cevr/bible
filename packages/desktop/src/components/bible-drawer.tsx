@@ -3,35 +3,29 @@ import {
   getBibleBook,
   type ParsedBibleQuery,
 } from '@bible/core/bible-reader';
-import { Effect, Option } from 'effect';
+import { Option } from 'effect';
 import {
   type Accessor,
   type Component,
   createEffect,
   createMemo,
-  createSignal,
   For,
   Match,
   onCleanup,
   Show,
+  Suspense,
   Switch,
 } from 'solid-js';
-import { runtime } from '../runtime.js';
+import { ipc } from '../runtime.js';
 import type { BibleDrawerState, BibleStudyTab } from '../services/bible-drawer-state.js';
+import { type MarginNoteType } from '../services/bible-margin-notes.js';
+import { type CrossRef } from '../services/bible-xrefs.js';
 import {
-  BibleMarginNotes,
-  type MarginNote,
-  type MarginNoteType,
-} from '../services/bible-margin-notes.js';
-import { BibleXrefs, type CrossRef } from '../services/bible-xrefs.js';
-import { EgwCommentary, type EgwCommentaryHit } from '../services/egw-commentary.js';
-import {
-  KjvBible,
   type KjvChapter,
   type KjvStrongsChapter,
   type KjvStrongsWord,
-  type StrongsLexiconEntry,
 } from '../services/kjv-bible.js';
+import { StrongsVerse } from './bible/strongs-verse.js';
 import { VerseRenderer } from './bible/verse-renderer.js';
 import { BooksToc, ChaptersToc } from './bible-drawer-toc.js';
 import { ReaderShell } from './ui/reader-shell.js';
@@ -386,34 +380,20 @@ const ChapterView: Component<{
     return m;
   });
 
-  // Per-chapter "which verses have margin notes" lookup. Driven by a Solid
-  // signal so the anchors appear once the IPC resolves; until then the
-  // chapter renders without anchors (the data isn't load-bearing — it just
-  // adds an affordance).
-  const [notedVerses, setNotedVerses] = createSignal<ReadonlyMap<number, number>>(
-    new Map<number, number>(),
-  );
-  let notedSeq = 0;
-  createEffect(() => {
-    const c = props.chapter;
-    const mine = ++notedSeq;
-    setNotedVerses(new Map<number, number>());
-    runtime
-      .runPromise(
-        Effect.gen(function* () {
-          const svc = yield* BibleMarginNotes;
-          return yield* svc.versesWithNotes(c.book, c.chapter);
-        }),
-      )
-      .then((map) => {
-        if (mine !== notedSeq) return;
-        setNotedVerses(map);
-      })
-      .catch(() => {
-        if (mine !== notedSeq) return;
-        // Anchors are non-critical; swallow IPC failures rather than disturb
-        // the reading view.
-      });
+  // Per-chapter "which verses have margin notes" lookup. We piggyback on the
+  // unified getChapterMarkers query so the drawer shares a cache entry with
+  // the chapter canvas — flipping the overlay in the canvas means the
+  // drawer's marker set is free to render. The anchors are non-load-bearing,
+  // so we use `.latest` and the chapter still paints immediately while the
+  // markers flicker in once IPC resolves.
+  const markersRes = ipc.bible.getChapterMarkers.query(() => ({
+    book: props.chapter.book,
+    chapter: props.chapter.chapter,
+  }));
+  const notedVerseSet = createMemo<ReadonlySet<number>>(() => {
+    const m = markersRes.latest;
+    if (m === undefined) return new Set<number>();
+    return new Set(m.notedVerses);
   });
 
   // Per-verse refs let us scroll precisely — to the parsed-query target on
@@ -469,7 +449,7 @@ const ChapterView: Component<{
               >
                 {v.verse}
               </button>
-              <Show when={notedVerses().has(v.verse)}>
+              <Show when={notedVerseSet().has(v.verse)}>
                 {/* Superscript anchor — clicks open the Notes study tab on
                  *  this verse. Sized to match the strongs annotations so the
                  *  visual weight is consistent. */}
@@ -497,50 +477,6 @@ const ChapterView: Component<{
     </div>
   );
 };
-
-const StrongsVerse: Component<{
-  readonly words: readonly KjvStrongsWord[];
-  readonly onCodeClick: (code: string) => void;
-}> = (props) => (
-  <>
-    <For each={props.words}>
-      {(w, i) => {
-        // Render one button per code so a word annotated with multiple
-        // strongs (e.g. "H1234,H5678") sends the user to the specific one
-        // they clicked instead of a comma-joined token the lexicon can't
-        // resolve.
-        const codes = (): readonly string[] => w.strongs ?? [];
-        return (
-          <>
-            <Show when={i() > 0}> </Show>
-            <Show when={codes().length > 0} fallback={w.text}>
-              <span class="group/strong relative inline">
-                {w.text}
-                <For each={codes()}>
-                  {(code, ci) => (
-                    <>
-                      <Show when={ci() > 0}>
-                        <span class="text-[0.62em] text-accent opacity-70 select-none">,</span>
-                      </Show>
-                      <button
-                        type="button"
-                        class="ml-px cursor-pointer bg-transparent border-0 p-0 align-baseline text-[0.62em] font-medium text-accent opacity-70 group-hover/strong:opacity-100 hover:underline [font-variant-numeric:tabular-nums] select-none"
-                        title={`Open ${code}`}
-                        onClick={() => props.onCodeClick(code)}
-                      >
-                        <sup>{code}</sup>
-                      </button>
-                    </>
-                  )}
-                </For>
-              </span>
-            </Show>
-          </>
-        );
-      }}
-    </For>
-  </>
-);
 
 // ─── Study pane ────────────────────────────────────────────────────────────
 // Tabbed sidecar that shows up when the drawer is expanded. The chapter pane
@@ -608,59 +544,23 @@ const NOTE_TYPE_LABEL: Readonly<Record<MarginNoteType, string>> = {
   other: 'Note',
 };
 
-type NotesLoad =
-  | { readonly _tag: 'idle' }
-  | { readonly _tag: 'loading'; readonly verse: number }
-  | { readonly _tag: 'ready'; readonly verse: number; readonly notes: readonly MarginNote[] }
-  | { readonly _tag: 'error'; readonly message: string };
-
 const NotesTab: Component<{ readonly state: BibleDrawerState }> = (props) => {
-  const focus = createMemo(() => {
+  const target = createMemo<{
+    readonly book: number;
+    readonly chapter: number;
+    readonly verse: number;
+  } | null>(() => {
     const f = props.state.studyFocus();
-    return f._tag === 'note' ? f : null;
-  });
-  const [load, setLoad] = createSignal<NotesLoad>({ _tag: 'idle' });
-
-  // Same stale-response guard as StrongsTab / XrefsTab.
-  let seq = 0;
-  createEffect(() => {
-    const f = focus();
-    if (!f) {
-      setLoad({ _tag: 'idle' });
-      return;
-    }
+    if (f._tag !== 'note') return null;
     const s = props.state.status();
-    if (s._tag !== 'ready') {
-      setLoad({ _tag: 'idle' });
-      return;
-    }
-    const sourceBook = s.chapter.book;
-    const sourceChapter = s.chapter.chapter;
-    const mine = ++seq;
-    setLoad({ _tag: 'loading', verse: f.verse });
-    runtime
-      .runPromise(
-        Effect.gen(function* () {
-          const svc = yield* BibleMarginNotes;
-          return yield* svc.getMarginNotes(sourceBook, sourceChapter, f.verse);
-        }),
-      )
-      .then((notes) => {
-        if (mine !== seq) return;
-        setLoad({ _tag: 'ready', verse: f.verse, notes });
-      })
-      .catch((err: unknown) => {
-        if (mine !== seq) return;
-        setLoad({
-          _tag: 'error',
-          message: err instanceof Error ? err.message : String(err),
-        });
-      });
+    if (s._tag !== 'ready') return null;
+    return { book: s.chapter.book, chapter: s.chapter.chapter, verse: f.verse };
   });
 
   return (
     <Show
-      when={focus()}
+      when={target()}
+      keyed
       fallback={
         <StudyTabEmpty
           title="Margin notes"
@@ -668,53 +568,49 @@ const NotesTab: Component<{ readonly state: BibleDrawerState }> = (props) => {
         />
       }
     >
-      {(f) => (
+      {(t) => (
         <div class="flex flex-col gap-3">
-          <p class="text-ui-xs text-muted">Verse {f().verse}</p>
-          <Switch>
-            <Match when={load()._tag === 'loading'}>
-              <p class="text-ui-sm text-muted">Loading margin notes…</p>
-            </Match>
-            <Match
-              when={(() => {
-                const l = load();
-                return l._tag === 'error' ? l : null;
-              })()}
-            >
-              {(err) => <p class="text-ui-sm text-danger">Lookup failed: {err().message}</p>}
-            </Match>
-            <Match
-              when={(() => {
-                const l = load();
-                return l._tag === 'ready' ? l : null;
-              })()}
-            >
-              {(ready) => (
-                <Show
-                  when={ready().notes.length > 0}
-                  fallback={<p class="text-ui-sm text-muted">No margin notes for this verse.</p>}
-                >
-                  <ul class="flex flex-col gap-3 list-none p-0 m-0">
-                    <For each={ready().notes}>
-                      {(note) => (
-                        <li class="flex flex-col gap-0.5">
-                          <div class="flex items-baseline gap-2">
-                            <span class="text-[0.62em] text-muted uppercase tracking-wide">
-                              {NOTE_TYPE_LABEL[note.type]}
-                            </span>
-                            <span class="text-ui-sm font-medium text-fg">{note.phrase}</span>
-                          </div>
-                          <p class="text-ui-sm text-muted m-0 leading-snug">{note.text}</p>
-                        </li>
-                      )}
-                    </For>
-                  </ul>
-                </Show>
-              )}
-            </Match>
-          </Switch>
+          <p class="text-ui-xs text-muted">Verse {t.verse}</p>
+          <Suspense fallback={<p class="text-ui-sm text-muted">Loading margin notes…</p>}>
+            <NotesList book={t.book} chapter={t.chapter} verse={t.verse} />
+          </Suspense>
         </div>
       )}
+    </Show>
+  );
+};
+
+const NotesList: Component<{
+  readonly book: number;
+  readonly chapter: number;
+  readonly verse: number;
+}> = (props) => {
+  const notes = ipc.bible.getMarginNotes.query(() => ({
+    book: props.book,
+    chapter: props.chapter,
+    verse: props.verse,
+  }));
+  const list = createMemo(() => notes() ?? []);
+  return (
+    <Show
+      when={list().length > 0}
+      fallback={<p class="text-ui-sm text-muted">No margin notes for this verse.</p>}
+    >
+      <ul class="flex flex-col gap-3 list-none p-0 m-0">
+        <For each={list()}>
+          {(note) => (
+            <li class="flex flex-col gap-0.5">
+              <div class="flex items-baseline gap-2">
+                <span class="text-[0.62em] text-muted uppercase tracking-wide">
+                  {NOTE_TYPE_LABEL[note.type]}
+                </span>
+                <span class="text-ui-sm font-medium text-fg">{note.phrase}</span>
+              </div>
+              <p class="text-ui-sm text-muted m-0 leading-snug">{note.text}</p>
+            </li>
+          )}
+        </For>
+      </ul>
     </Show>
   );
 };
@@ -725,12 +621,6 @@ const NotesTab: Component<{ readonly state: BibleDrawerState }> = (props) => {
 // keyboard cursor if the user hasn't touched an anchor. We deliberately
 // don't expose an inline "open in EGW" decoration: there'd be one per verse
 // per chapter, which is too noisy.
-type EgwLoad =
-  | { readonly _tag: 'idle' }
-  | { readonly _tag: 'loading'; readonly verse: number }
-  | { readonly _tag: 'ready'; readonly verse: number; readonly hits: readonly EgwCommentaryHit[] }
-  | { readonly _tag: 'error'; readonly message: string };
-
 const verseFromFocusOrCursor = (state: BibleDrawerState): number | null => {
   const f = state.studyFocus();
   if (f._tag === 'note' || f._tag === 'strongs' || f._tag === 'xref' || f._tag === 'egw') {
@@ -740,48 +630,22 @@ const verseFromFocusOrCursor = (state: BibleDrawerState): number | null => {
 };
 
 const EgwTab: Component<{ readonly state: BibleDrawerState }> = (props) => {
-  const verse = createMemo(() => verseFromFocusOrCursor(props.state));
-  const [load, setLoad] = createSignal<EgwLoad>({ _tag: 'idle' });
-
-  let seq = 0;
-  createEffect(() => {
-    const v = verse();
-    if (v === null) {
-      setLoad({ _tag: 'idle' });
-      return;
-    }
+  const target = createMemo<{
+    readonly book: number;
+    readonly chapter: number;
+    readonly verse: number;
+  } | null>(() => {
+    const v = verseFromFocusOrCursor(props.state);
+    if (v === null) return null;
     const s = props.state.status();
-    if (s._tag !== 'ready') {
-      setLoad({ _tag: 'idle' });
-      return;
-    }
-    const sourceBook = s.chapter.book;
-    const sourceChapter = s.chapter.chapter;
-    const mine = ++seq;
-    setLoad({ _tag: 'loading', verse: v });
-    runtime
-      .runPromise(
-        Effect.gen(function* () {
-          const svc = yield* EgwCommentary;
-          return yield* svc.getCommentary(sourceBook, sourceChapter, v);
-        }),
-      )
-      .then((hits) => {
-        if (mine !== seq) return;
-        setLoad({ _tag: 'ready', verse: v, hits });
-      })
-      .catch((err: unknown) => {
-        if (mine !== seq) return;
-        setLoad({
-          _tag: 'error',
-          message: err instanceof Error ? err.message : String(err),
-        });
-      });
+    if (s._tag !== 'ready') return null;
+    return { book: s.chapter.book, chapter: s.chapter.chapter, verse: v };
   });
 
   return (
     <Show
-      when={verse()}
+      when={target()}
+      keyed
       fallback={
         <StudyTabEmpty
           title="Spirit of Prophecy"
@@ -789,120 +653,71 @@ const EgwTab: Component<{ readonly state: BibleDrawerState }> = (props) => {
         />
       }
     >
-      {(v) => (
+      {(t) => (
         <div class="flex flex-col gap-3">
-          <p class="text-ui-xs text-muted">Verse {v()}</p>
-          <Switch>
-            <Match when={load()._tag === 'loading'}>
-              <p class="text-ui-sm text-muted">Searching cached EGW…</p>
-            </Match>
-            <Match
-              when={(() => {
-                const l = load();
-                return l._tag === 'error' ? l : null;
-              })()}
-            >
-              {(err) => <p class="text-ui-sm text-danger">Lookup failed: {err().message}</p>}
-            </Match>
-            <Match
-              when={(() => {
-                const l = load();
-                return l._tag === 'ready' ? l : null;
-              })()}
-            >
-              {(ready) => (
-                <Show
-                  when={ready().hits.length > 0}
-                  fallback={
-                    <p class="text-ui-sm text-muted">
-                      No cached EGW paragraph mentions this verse yet. Read more chapters in the EGW
-                      reader to fill the index.
-                    </p>
-                  }
-                >
-                  <ul class="flex flex-col gap-3 list-none p-0 m-0">
-                    <For each={ready().hits}>
-                      {(hit) => (
-                        <li class="flex flex-col gap-0.5">
-                          <div class="flex items-baseline gap-2">
-                            <span class="text-[0.62em] text-muted uppercase tracking-wide [font-variant-numeric:tabular-nums]">
-                              {hit.refcodeShort ?? hit.bookCode}
-                            </span>
-                            <span class="text-ui-sm font-medium text-fg">{hit.bookTitle}</span>
-                          </div>
-                          <p class="text-ui-sm text-muted m-0 leading-snug line-clamp-4">
-                            {hit.snippet}
-                          </p>
-                        </li>
-                      )}
-                    </For>
-                  </ul>
-                </Show>
-              )}
-            </Match>
-          </Switch>
+          <p class="text-ui-xs text-muted">Verse {t.verse}</p>
+          <Suspense fallback={<p class="text-ui-sm text-muted">Searching cached EGW…</p>}>
+            <EgwCommentaryList book={t.book} chapter={t.chapter} verse={t.verse} />
+          </Suspense>
         </div>
       )}
     </Show>
   );
 };
 
-// Strong's tab: shows the last-clicked code (focus.code) and fetches the
-// lexicon entry through the KjvBible service. The lookup is cached per-code
-// inside the service, so flipping back and forth between codes is instant
-// after the first fetch.
-type LexiconLoad =
-  | { readonly _tag: 'idle' }
-  | { readonly _tag: 'loading'; readonly code: string }
-  | { readonly _tag: 'ready'; readonly entry: StrongsLexiconEntry }
-  | { readonly _tag: 'missing'; readonly code: string }
-  | { readonly _tag: 'error'; readonly message: string };
+const EgwCommentaryList: Component<{
+  readonly book: number;
+  readonly chapter: number;
+  readonly verse: number;
+}> = (props) => {
+  const hits = ipc.bible.getCommentary.query(() => ({
+    book: props.book,
+    chapter: props.chapter,
+    verse: props.verse,
+  }));
+  const list = createMemo(() => hits() ?? []);
+  return (
+    <Show
+      when={list().length > 0}
+      fallback={
+        <p class="text-ui-sm text-muted">
+          No cached EGW paragraph mentions this verse yet. Read more chapters in the EGW reader to
+          fill the index.
+        </p>
+      }
+    >
+      <ul class="flex flex-col gap-3 list-none p-0 m-0">
+        <For each={list()}>
+          {(hit) => (
+            <li class="flex flex-col gap-0.5">
+              <div class="flex items-baseline gap-2">
+                <span class="text-[0.62em] text-muted uppercase tracking-wide [font-variant-numeric:tabular-nums]">
+                  {hit.refcodeShort ?? hit.bookCode}
+                </span>
+                <span class="text-ui-sm font-medium text-fg">{hit.bookTitle}</span>
+              </div>
+              <p class="text-ui-sm text-muted m-0 leading-snug line-clamp-4">{hit.snippet}</p>
+            </li>
+          )}
+        </For>
+      </ul>
+    </Show>
+  );
+};
 
+// Strong's tab: shows the last-clicked code (focus.code) and fetches the
+// lexicon entry through the ipc proxy. The procedure caches per-code so
+// flipping back and forth between codes is instant after the first fetch.
 const StrongsTab: Component<{ readonly state: BibleDrawerState }> = (props) => {
   const focus = createMemo(() => {
     const f = props.state.studyFocus();
     return f._tag === 'strongs' ? f : null;
   });
-  const [load, setLoad] = createSignal<LexiconLoad>({ _tag: 'idle' });
-
-  // Refresh sequence guards against a stale lookup resolving after the user
-  // has clicked a different superscript.
-  let seq = 0;
-  createEffect(() => {
-    const f = focus();
-    if (!f) {
-      setLoad({ _tag: 'idle' });
-      return;
-    }
-    const mine = ++seq;
-    setLoad({ _tag: 'loading', code: f.code });
-    runtime
-      .runPromise(
-        Effect.gen(function* () {
-          const svc = yield* KjvBible;
-          return yield* svc.strongsLookup(f.code);
-        }),
-      )
-      .then((entry) => {
-        if (mine !== seq) return;
-        if (Option.isNone(entry)) {
-          setLoad({ _tag: 'missing', code: f.code });
-          return;
-        }
-        setLoad({ _tag: 'ready', entry: entry.value });
-      })
-      .catch((err: unknown) => {
-        if (mine !== seq) return;
-        setLoad({
-          _tag: 'error',
-          message: err instanceof Error ? err.message : String(err),
-        });
-      });
-  });
 
   return (
     <Show
       when={focus()}
+      keyed
       fallback={
         <StudyTabEmpty
           title="Strong's"
@@ -914,52 +729,37 @@ const StrongsTab: Component<{ readonly state: BibleDrawerState }> = (props) => {
         <div class="flex flex-col gap-3">
           <div class="flex items-baseline gap-2">
             <p class="text-ui-base font-medium text-fg [font-variant-numeric:tabular-nums]">
-              {f().code}
+              {f.code}
             </p>
-            <p class="text-ui-xs text-muted">from verse {f().verse}</p>
+            <p class="text-ui-xs text-muted">from verse {f.verse}</p>
           </div>
-          <Switch>
-            <Match when={load()._tag === 'loading'}>
-              <p class="text-ui-sm text-muted">Loading lexicon…</p>
-            </Match>
-            <Match when={load()._tag === 'missing'}>
-              <p class="text-ui-sm text-muted">No lexicon entry for this code.</p>
-            </Match>
-            <Match
-              when={(() => {
-                const l = load();
-                return l._tag === 'error' ? l : null;
-              })()}
-            >
-              {(err) => <p class="text-ui-sm text-danger">Lookup failed: {err().message}</p>}
-            </Match>
-            <Match
-              when={(() => {
-                const l = load();
-                return l._tag === 'ready' ? l : null;
-              })()}
-            >
-              {(ready) => (
-                <div class="flex flex-col gap-2">
-                  <div class="flex flex-wrap items-baseline gap-x-2">
-                    <span
-                      class="text-ui-lg text-fg"
-                      lang={ready().entry.language === 'hebrew' ? 'he' : 'el'}
-                    >
-                      {ready().entry.lemma}
-                    </span>
-                    <span class="text-ui-sm text-muted italic">
-                      {ready().entry.transliteration}
-                    </span>
-                    <span class="text-ui-xs text-muted uppercase tracking-wide">
-                      {ready().entry.language}
-                    </span>
-                  </div>
-                  <p class="text-ui-sm text-fg whitespace-pre-wrap">{ready().entry.definition}</p>
-                </div>
-              )}
-            </Match>
-          </Switch>
+          <Suspense fallback={<p class="text-ui-sm text-muted">Loading lexicon…</p>}>
+            <StrongsEntry code={f.code} />
+          </Suspense>
+        </div>
+      )}
+    </Show>
+  );
+};
+
+const StrongsEntry: Component<{ readonly code: string }> = (props) => {
+  const entryRes = ipc.bible.strongsLookup.query(() => ({ code: props.code }));
+  return (
+    <Show
+      when={entryRes()}
+      keyed
+      fallback={<p class="text-ui-sm text-muted">No lexicon entry for this code.</p>}
+    >
+      {(entry) => (
+        <div class="flex flex-col gap-2">
+          <div class="flex flex-wrap items-baseline gap-x-2">
+            <span class="text-ui-lg text-fg" lang={entry.language === 'hebrew' ? 'he' : 'el'}>
+              {entry.lemma}
+            </span>
+            <span class="text-ui-sm text-muted italic">{entry.transliteration}</span>
+            <span class="text-ui-xs text-muted uppercase tracking-wide">{entry.language}</span>
+          </div>
+          <p class="text-ui-sm text-fg whitespace-pre-wrap">{entry.definition}</p>
         </div>
       )}
     </Show>
@@ -970,18 +770,6 @@ const StrongsTab: Component<{ readonly state: BibleDrawerState }> = (props) => {
 // for the verse the user clicked. Each row renders the reference + a one-line
 // preview pulled from the KJV chapter so the user can scan without navigating
 // away. Verse-end ranges show their full text concatenated by a single space.
-type XrefRowDisplay = {
-  readonly ref: CrossRef;
-  readonly title: string;
-  readonly preview: string | null;
-};
-
-type XrefsLoad =
-  | { readonly _tag: 'idle' }
-  | { readonly _tag: 'loading'; readonly verse: number }
-  | { readonly _tag: 'ready'; readonly verse: number; readonly rows: readonly XrefRowDisplay[] }
-  | { readonly _tag: 'error'; readonly message: string };
-
 // Format a target ref as "Book C:V" or "Book C:V-V'". We use the bible-reader
 // book registry so abbreviations + spelling match the rest of the UI.
 const formatXrefTitle = (ref: CrossRef): string => {
@@ -995,95 +783,22 @@ const formatXrefTitle = (ref: CrossRef): string => {
 };
 
 const XrefsTab: Component<{ readonly state: BibleDrawerState }> = (props) => {
-  const focus = createMemo(() => {
+  const target = createMemo<{
+    readonly book: number;
+    readonly chapter: number;
+    readonly verse: number;
+  } | null>(() => {
     const f = props.state.studyFocus();
-    return f._tag === 'xref' ? f : null;
-  });
-  const [load, setLoad] = createSignal<XrefsLoad>({ _tag: 'idle' });
-
-  // Same stale-response guard as StrongsTab: sequence ID bumps on every fetch
-  // so a slow IPC for an old verse can't overwrite the active one.
-  let seq = 0;
-  createEffect(() => {
-    const f = focus();
-    if (!f) {
-      setLoad({ _tag: 'idle' });
-      return;
-    }
-    const mine = ++seq;
-    setLoad({ _tag: 'loading', verse: f.verse });
-    // We need the source book/chapter from the currently-loaded chapter — the
-    // focus only carries the verse number, not the (book, chapter, verse)
-    // triple, because the drawer already knows what chapter is in front of
-    // the user.
+    if (f._tag !== 'xref') return null;
     const s = props.state.status();
-    if (s._tag !== 'ready') {
-      setLoad({ _tag: 'idle' });
-      return;
-    }
-    const sourceBook = s.chapter.book;
-    const sourceChapter = s.chapter.chapter;
-    runtime
-      .runPromise(
-        Effect.gen(function* () {
-          const xrefs = yield* BibleXrefs;
-          const kjv = yield* KjvBible;
-          const rows = yield* xrefs.getCrossRefs(sourceBook, sourceChapter, f.verse);
-          // Group target lookups by (book, chapter) so we issue one chapter
-          // fetch per target chapter, not one per row. KjvBible caches
-          // chapters in an LRU, so even repeated requests are cheap, but
-          // grouping cuts the initial-load Promise count materially.
-          const chapterCache = new Map<string, Option.Option<KjvChapter>>();
-          const fetchChapter = (
-            book: number,
-            ch: number,
-          ): Effect.Effect<Option.Option<KjvChapter>> => {
-            const key = `${String(book)}:${String(ch)}`;
-            const cached = chapterCache.get(key);
-            if (cached !== undefined) return Effect.succeed(cached);
-            return kjv.getChapter(book, ch).pipe(
-              Effect.tap((c) =>
-                Effect.sync(() => {
-                  chapterCache.set(key, c);
-                }),
-              ),
-            );
-          };
-          const displays: XrefRowDisplay[] = [];
-          for (const ref of rows) {
-            const ch = yield* fetchChapter(ref.targetBook, ref.targetChapter);
-            const preview = Option.match(ch, {
-              onNone: () => null,
-              onSome: (chap) => {
-                const start = ref.targetVerse;
-                const end = ref.targetVerseEnd ?? ref.targetVerse;
-                const texts = chap.verses
-                  .filter((v) => v.verse >= start && v.verse <= end)
-                  .map((v) => v.text);
-                return texts.length === 0 ? null : texts.join(' ');
-              },
-            });
-            displays.push({ ref, title: formatXrefTitle(ref), preview });
-          }
-          return displays;
-        }),
-      )
-      .then((rows) => {
-        if (mine !== seq) return;
-        setLoad({ _tag: 'ready', verse: f.verse, rows });
-      })
-      .catch((err: unknown) => {
-        if (mine !== seq) return;
-        setLoad({
-          _tag: 'error',
-          message: err instanceof Error ? err.message : String(err),
-        });
-      });
+    if (s._tag !== 'ready') return null;
+    return { book: s.chapter.book, chapter: s.chapter.chapter, verse: f.verse };
   });
 
   return (
     <Show
-      when={focus()}
+      when={target()}
+      keyed
       fallback={
         <StudyTabEmpty
           title="Cross references"
@@ -1091,71 +806,92 @@ const XrefsTab: Component<{ readonly state: BibleDrawerState }> = (props) => {
         />
       }
     >
-      {(f) => (
+      {(t) => (
         <div class="flex flex-col gap-3">
-          <p class="text-ui-xs text-muted">Verse {f().verse}</p>
-          <Switch>
-            <Match when={load()._tag === 'loading'}>
-              <p class="text-ui-sm text-muted">Loading cross references…</p>
-            </Match>
-            <Match
-              when={(() => {
-                const l = load();
-                return l._tag === 'error' ? l : null;
-              })()}
-            >
-              {(err) => <p class="text-ui-sm text-danger">Lookup failed: {err().message}</p>}
-            </Match>
-            <Match
-              when={(() => {
-                const l = load();
-                return l._tag === 'ready' ? l : null;
-              })()}
-            >
-              {(ready) => (
-                <Show
-                  when={ready().rows.length > 0}
-                  fallback={
-                    <p class="text-ui-sm text-muted">
-                      No cross references for this verse in the bundled catalogs.
-                    </p>
-                  }
-                >
-                  <ul class="flex flex-col gap-2 list-none p-0 m-0">
-                    <For each={ready().rows}>
-                      {(row) => (
-                        <li class="flex flex-col gap-0.5">
-                          <div class="flex items-baseline gap-2">
-                            <button
-                              type="button"
-                              class="cursor-pointer bg-transparent border-0 p-0 text-ui-sm font-medium text-accent hover:underline text-left"
-                              title={`Open ${row.title}`}
-                              onClick={() =>
-                                props.state.navigate(row.ref.targetBook, row.ref.targetChapter)
-                              }
-                            >
-                              {row.title}
-                            </button>
-                            <span class="text-[0.62em] text-muted uppercase tracking-wide [font-variant-numeric:tabular-nums]">
-                              {row.ref.source === 'tske' ? 'TSK' : 'OB'}
-                            </span>
-                          </div>
-                          <Show when={row.preview}>
-                            {(preview) => (
-                              <p class="text-ui-sm text-muted m-0 leading-snug">{preview()}</p>
-                            )}
-                          </Show>
-                        </li>
-                      )}
-                    </For>
-                  </ul>
-                </Show>
-              )}
-            </Match>
-          </Switch>
+          <p class="text-ui-xs text-muted">Verse {t.verse}</p>
+          <Suspense fallback={<p class="text-ui-sm text-muted">Loading cross references…</p>}>
+            <XrefsList
+              book={t.book}
+              chapter={t.chapter}
+              verse={t.verse}
+              onNavigate={(book, chapter) => props.state.navigate(book, chapter)}
+            />
+          </Suspense>
         </div>
       )}
     </Show>
+  );
+};
+
+const XrefsList: Component<{
+  readonly book: number;
+  readonly chapter: number;
+  readonly verse: number;
+  readonly onNavigate: (book: number, chapter: number) => void;
+}> = (props) => {
+  const refs = ipc.bible.getCrossRefs.query(() => ({
+    book: props.book,
+    chapter: props.chapter,
+    verse: props.verse,
+  }));
+  const list = createMemo(() => refs() ?? []);
+  return (
+    <Show
+      when={list().length > 0}
+      fallback={
+        <p class="text-ui-sm text-muted">
+          No cross references for this verse in the bundled catalogs.
+        </p>
+      }
+    >
+      <ul class="flex flex-col gap-2 list-none p-0 m-0">
+        <For each={list()}>{(ref) => <XrefRow ref={ref} onNavigate={props.onNavigate} />}</For>
+      </ul>
+    </Show>
+  );
+};
+
+const XrefRow: Component<{
+  readonly ref: CrossRef;
+  readonly onNavigate: (book: number, chapter: number) => void;
+}> = (props) => {
+  // The per-row preview leans on the ipc cache: even N rows pointing at the
+  // same chapter dedupe to a single query subscription, so the explicit
+  // chapter grouping the old imperative path did is now handled by the cache.
+  // Read `.latest` so previews don't gate the row render — show the ref + a
+  // dash while loading rather than suspending the whole list.
+  const chapterRes = ipc.bible.getChapter.query(() => ({
+    book: props.ref.targetBook,
+    chapter: props.ref.targetChapter,
+  }));
+  const preview = createMemo(() => {
+    const chap = chapterRes.latest;
+    if (chap === undefined || chap === null) return null;
+    const start = props.ref.targetVerse;
+    const end = props.ref.targetVerseEnd ?? props.ref.targetVerse;
+    const texts = chap.verses.filter((v) => v.verse >= start && v.verse <= end).map((v) => v.text);
+    return texts.length === 0 ? null : texts.join(' ');
+  });
+  const title = createMemo(() => formatXrefTitle(props.ref));
+  return (
+    <li class="flex flex-col gap-0.5">
+      <div class="flex items-baseline gap-2">
+        <button
+          type="button"
+          class="cursor-pointer bg-transparent border-0 p-0 text-ui-sm font-medium text-accent hover:underline text-left"
+          title={`Open ${title()}`}
+          onClick={() => props.onNavigate(props.ref.targetBook, props.ref.targetChapter)}
+        >
+          {title()}
+        </button>
+        <span class="text-[0.62em] text-muted uppercase tracking-wide [font-variant-numeric:tabular-nums]">
+          {props.ref.source === 'tske' ? 'TSK' : 'OB'}
+        </span>
+      </div>
+      <Show when={preview()}>
+        {(p) => <p class="text-ui-sm text-muted m-0 leading-snug">{p()}</p>}
+      </Show>
+    </li>
   );
 };
 

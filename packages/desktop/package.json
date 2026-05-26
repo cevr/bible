@@ -11,7 +11,7 @@
     "build:main": "bun run scripts/build-main.ts",
     "package": "bun run build && electron-builder",
     "typecheck": "tsgo --noEmit",
-    "test": "vitest run",
+    "test": "vitest run && vitest run --config vitest.ipc-cache.config.ts",
     "test:watch": "vitest",
     "postinstall": "electron-rebuild -f -w better-sqlite3"
   },

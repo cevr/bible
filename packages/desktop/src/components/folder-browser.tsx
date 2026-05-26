@@ -1,17 +1,17 @@
 import { type Schemas } from '@bible/core/egw';
-import { Effect, Fiber, Option, Result, Stream, SubscriptionRef } from 'effect';
+import { Effect, Exit, Fiber, Option, Stream, SubscriptionRef } from 'effect';
 import {
   type Component,
   createEffect,
   createMemo,
-  createResource,
   createSignal,
   For,
   onCleanup,
   onMount,
   Show,
+  Suspense,
 } from 'solid-js';
-import { runtime } from '../runtime.js';
+import { ipc, runtime } from '../runtime.js';
 import { EGWData } from '../services/egw-data.js';
 import { openBookAtFirstChapter } from '../services/open-book.js';
 import { Prefetcher, type PrefetchStatus } from '../services/prefetcher.js';
@@ -170,14 +170,7 @@ export const FolderBrowser: Component<FolderBrowserProps> = (props) => {
   const seedBookId = props.initialBookId ?? null;
   let seeded = seedBookId === null;
 
-  const [tree] = createResource(() =>
-    runtime.runPromise(
-      Effect.gen(function* () {
-        const data = yield* EGWData;
-        return yield* data.listFolders(DEFAULT_LANG);
-      }).pipe(Effect.result),
-    ),
-  );
+  const tree = ipc.egw.listFolders.query(() => ({ lang: DEFAULT_LANG }));
 
   // Seed the path to the open book's folder on first mount. Fires once when
   // the tree resource resolves; afterwards `seeded = true` makes it a no-op.
@@ -186,14 +179,13 @@ export const FolderBrowser: Component<FolderBrowserProps> = (props) => {
   // the existing UX and it's fine.
   createEffect(() => {
     if (seeded) return;
-    const t = tree();
-    if (t === undefined || Result.isFailure(t)) return;
+    const folders = tree();
+    if (folders === undefined) return;
     const bookId = seedBookId;
     if (bookId === null) {
       seeded = true;
       return;
     }
-    const folders = t.success;
     seeded = true;
 
     // Memo hit — synchronously seed without listBooks/DFS. If the chain is
@@ -206,16 +198,16 @@ export const FolderBrowser: Component<FolderBrowserProps> = (props) => {
     }
 
     void runtime
-      .runPromise(
+      .runPromiseExit(
         Effect.gen(function* () {
           const data = yield* EGWData;
           const books = yield* data.listBooks(DEFAULT_LANG);
           return books.find((b) => b.book_id === bookId);
-        }).pipe(Effect.option),
+        }),
       )
-      .then((maybeBook) => {
-        if (Option.isNone(maybeBook) || maybeBook.value === undefined) return;
-        const chain = findFolderPath(folders, maybeBook.value.folder_id);
+      .then((exit) => {
+        if (!Exit.isSuccess(exit) || exit.value === undefined) return;
+        const chain = findFolderPath(folders, exit.value.folder_id);
         if (chain === null) return;
         folderPathByBook.set(bookId, chain);
         // Guard against the user having drilled in during the lookup —
@@ -233,14 +225,14 @@ export const FolderBrowser: Component<FolderBrowserProps> = (props) => {
       readonly crumbs: ReadonlyArray<CrumbNode>;
     } => {
       const t = tree();
-      if (t === undefined || Result.isFailure(t)) {
+      if (t === undefined) {
         return { folders: [], currentFolderId: null, crumbs: [] };
       }
       const p = path();
       if (p.length === 0) {
-        return { folders: t.success, currentFolderId: null, crumbs: [] };
+        return { folders: t, currentFolderId: null, crumbs: [] };
       }
-      const crumbs = resolvePath(t.success, p);
+      const crumbs = resolvePath(t, p);
       if (crumbs === null) {
         // Path stale (tree changed) — reset to root and evict any cached chain
         // that matches it, so a re-open doesn't re-seed the same broken path.
@@ -255,7 +247,7 @@ export const FolderBrowser: Component<FolderBrowserProps> = (props) => {
             folderPathByBook.delete(seedBookId);
           }
         }
-        return { folders: t.success, currentFolderId: null, crumbs: [] };
+        return { folders: t, currentFolderId: null, crumbs: [] };
       }
       const last = crumbs[crumbs.length - 1] ?? null;
       return {
@@ -264,29 +256,6 @@ export const FolderBrowser: Component<FolderBrowserProps> = (props) => {
         crumbs,
       };
     },
-  );
-
-  // Books at the current folder (only when drilled in — root shows folders
-  // only, not the union of every book).
-  const [books] = createResource(
-    () => currentLevel().currentFolderId,
-    (folderId) =>
-      runtime
-        .runPromise(
-          Effect.gen(function* () {
-            const data = yield* EGWData;
-            return yield* data.listBooksByFolder(folderId, DEFAULT_LANG);
-          }).pipe(Effect.result),
-        )
-        .then((res) => {
-          if (Result.isFailure(res)) {
-            console.error(
-              `[FolderBrowser] listBooksByFolder failed for folder=${String(folderId)}:`,
-              res.failure,
-            );
-          }
-          return res;
-        }),
   );
 
   // --- Download badges (mirrors LibraryRail) ------------------------------
@@ -298,15 +267,15 @@ export const FolderBrowser: Component<FolderBrowserProps> = (props) => {
 
   const refreshDownloadState = (bookId: number) => {
     void runtime
-      .runPromise(
+      .runPromiseExit(
         Effect.gen(function* () {
           const data = yield* EGWData;
           return yield* data.getDownloadState(bookId);
-        }).pipe(Effect.result),
+        }),
       )
-      .then((res) => {
-        if (Result.isFailure(res)) return;
-        const state = res.success;
+      .then((exit) => {
+        if (!Exit.isSuccess(exit)) return;
+        const state = exit.value;
         setDownloadStates((prev) => {
           const next = new Map(prev);
           if (Option.isNone(state)) next.delete(bookId);
@@ -315,12 +284,6 @@ export const FolderBrowser: Component<FolderBrowserProps> = (props) => {
         });
       });
   };
-
-  createEffect(() => {
-    const res = books();
-    if (res === undefined || Result.isFailure(res)) return;
-    for (const book of res.success) refreshDownloadState(book.book_id);
-  });
 
   onMount(() => {
     const fiber = runtime.runFork(
@@ -419,146 +382,177 @@ export const FolderBrowser: Component<FolderBrowserProps> = (props) => {
         </For>
       </nav>
 
-      <Show when={tree.loading}>
-        <p class="m-0 py-2 text-ui-base text-muted">Loading folders…</p>
-      </Show>
-
-      <Show when={tree()} keyed>
-        {(res) => (
-          <Show
-            when={!Result.isFailure(res)}
-            fallback={<p class="m-0 py-2 text-ui-base text-[#b3261e]">Failed to load folders.</p>}
+      <div class="flex flex-col gap-4">
+        <Show when={path().length > 0}>
+          <button
+            type="button"
+            class="self-start bg-transparent border border-rule rounded-md px-2.5 py-1 text-ui-sm text-fg cursor-pointer hover:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] hover:border-accent hover:outline-none focus-visible:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] focus-visible:border-accent focus-visible:outline-none"
+            onClick={goUp}
           >
-            <div class="flex flex-col gap-4">
-              <Show when={path().length > 0}>
+            ← Back
+          </button>
+        </Show>
+
+        <Show when={currentLevel().folders.length > 0}>
+          <h3 class="m-0 text-ui-xs font-semibold tracking-[0.08em] uppercase text-muted">
+            Folders
+          </h3>
+          {/*
+            Folder grid: 180px min auto-fill columns in the landing context,
+            collapses to a single 1fr column inside the drawer (where
+            horizontal space is tight). Drawer override expressed via the
+            [.drawer_&]: arbitrary variant on grid-template-columns.
+          */}
+          <ul class="list-none m-0 p-0 grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-2 [.drawer_&]:grid-cols-[1fr]">
+            <For each={currentLevel().folders}>
+              {(folder) => (
+                <li>
+                  <button
+                    type="button"
+                    class="w-full text-left bg-transparent border border-rule rounded-lg px-3.5 py-3 flex flex-col gap-1 cursor-pointer text-fg transition-[background,border-color,transform] duration-[0.12s] ease-in-out hover:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] hover:border-accent hover:outline-none focus-visible:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] focus-visible:border-accent focus-visible:outline-none active:scale-[0.98]"
+                    onClick={() => drillInto(folder.folder_id)}
+                  >
+                    <span class="text-ui-md font-medium">{folder.name}</span>
+                    <span class="text-ui-xs text-muted">{folderMeta(folder)}</span>
+                  </button>
+                </li>
+              )}
+            </For>
+          </ul>
+        </Show>
+
+        {/*
+          Books panel is gated on having a real folderId — `<Show keyed>` keys
+          the child on the id, so BooksList remounts (and re-runs its query)
+          when the user drills between folders rather than the resource
+          tracking a reactive null. That keeps the ipc proxy's input
+          monotonically non-null and avoids spurious empty-array branches.
+        */}
+        <Show when={currentLevel().currentFolderId} keyed>
+          {(folderId) => (
+            <>
+              <h3 class="m-0 text-ui-xs font-semibold tracking-[0.08em] uppercase text-muted">
+                Books
+              </h3>
+              <Suspense fallback={<p class="m-0 py-2 text-ui-base text-muted">Loading books…</p>}>
+                <BooksList
+                  folderId={folderId}
+                  onBooksReady={(ids) => {
+                    for (const id of ids) refreshDownloadState(id);
+                  }}
+                  onOpenBook={openBook}
+                  downloadFor={downloadFor}
+                  anyDownloadRunning={anyDownloadRunning}
+                  isFullyDownloaded={isFullyDownloaded}
+                  onDownloadBook={downloadBook}
+                />
+              </Suspense>
+            </>
+          )}
+        </Show>
+      </div>
+    </div>
+  );
+};
+
+interface BooksListProps {
+  readonly folderId: number;
+  readonly onBooksReady: (bookIds: ReadonlyArray<number>) => void;
+  readonly onOpenBook: (bookId: number) => void;
+  readonly downloadFor: (
+    bookId: number,
+  ) => { readonly running: boolean; readonly percent: number; readonly done?: boolean } | null;
+  readonly anyDownloadRunning: () => boolean;
+  readonly isFullyDownloaded: (bookId: number) => boolean;
+  readonly onDownloadBook: (bookId: number) => void;
+}
+
+const BooksList: Component<BooksListProps> = (props) => {
+  const books = ipc.egw.listBooksByFolder.query(() => ({
+    folderId: props.folderId,
+    lang: DEFAULT_LANG,
+  }));
+
+  createEffect(() => {
+    const list = books();
+    if (list === undefined) return;
+    props.onBooksReady(list.map((b) => b.book_id));
+  });
+
+  return (
+    <Show
+      when={(books() ?? []).length > 0}
+      fallback={<p class="m-0 py-2 text-ui-base text-muted">No books in this folder.</p>}
+    >
+      <ul class="list-none m-0 p-0 flex flex-col">
+        <For each={books() ?? []}>
+          {(book) => {
+            const dl = () => props.downloadFor(book.book_id);
+            return (
+              <li class="relative grid grid-cols-[1fr_auto] items-stretch border-b border-rule last:border-b-0">
                 <button
                   type="button"
-                  class="self-start bg-transparent border border-rule rounded-md px-2.5 py-1 text-ui-sm text-fg cursor-pointer hover:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] hover:border-accent hover:outline-none focus-visible:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] focus-visible:border-accent focus-visible:outline-none"
-                  onClick={goUp}
+                  class="w-full text-left bg-transparent border-none px-3.5 py-3 flex flex-col gap-0.5 cursor-pointer text-fg border-l-2 border-l-transparent transition-[background,border-color] duration-[0.12s] ease-in-out hover:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] hover:outline-none focus-visible:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] focus-visible:outline-none"
+                  onClick={() => props.onOpenBook(book.book_id)}
                 >
-                  ← Back
+                  <span class="text-ui-md leading-[1.3]">{book.title}</span>
+                  <span class="text-ui-xs text-muted">{book.author}</span>
                 </button>
-              </Show>
-
-              <Show when={currentLevel().folders.length > 0}>
-                <h3 class="m-0 text-ui-xs font-semibold tracking-[0.08em] uppercase text-muted">
-                  Folders
-                </h3>
-                {/*
-                  Folder grid: 180px min auto-fill columns in the landing context,
-                  collapses to a single 1fr column inside the drawer (where
-                  horizontal space is tight). Drawer override expressed via the
-                  [.drawer_&]: arbitrary variant on grid-template-columns.
-                */}
-                <ul class="list-none m-0 p-0 grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-2 [.drawer_&]:grid-cols-[1fr]">
-                  <For each={currentLevel().folders}>
-                    {(folder) => (
-                      <li>
-                        <button
-                          type="button"
-                          class="w-full text-left bg-transparent border border-rule rounded-lg px-3.5 py-3 flex flex-col gap-1 cursor-pointer text-fg transition-[background,border-color,transform] duration-[0.12s] ease-in-out hover:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] hover:border-accent hover:outline-none focus-visible:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] focus-visible:border-accent focus-visible:outline-none active:scale-[0.98]"
-                          onClick={() => drillInto(folder.folder_id)}
-                        >
-                          <span class="text-ui-md font-medium">{folder.name}</span>
-                          <span class="text-ui-xs text-muted">{folderMeta(folder)}</span>
-                        </button>
-                      </li>
-                    )}
-                  </For>
-                </ul>
-              </Show>
-
-              <Show when={currentLevel().currentFolderId !== null}>
-                <h3 class="m-0 text-ui-xs font-semibold tracking-[0.08em] uppercase text-muted">
-                  Books
-                </h3>
-                <Show when={books.loading}>
-                  <p class="m-0 py-2 text-ui-base text-muted">Loading books…</p>
-                </Show>
-                <Show when={books()} keyed>
-                  {(bookRes) =>
-                    Result.isFailure(bookRes) ? (
-                      <p class="m-0 py-2 text-ui-base text-[#b3261e]">Failed to load books.</p>
-                    ) : bookRes.success.length === 0 ? (
-                      <p class="m-0 py-2 text-ui-base text-muted">No books in this folder.</p>
-                    ) : (
-                      <ul class="list-none m-0 p-0 flex flex-col">
-                        <For each={bookRes.success}>
-                          {(book) => {
-                            const dl = () => downloadFor(book.book_id);
-                            return (
-                              <li class="relative grid grid-cols-[1fr_auto] items-stretch border-b border-rule last:border-b-0">
-                                <button
-                                  type="button"
-                                  class="w-full text-left bg-transparent border-none px-3.5 py-3 flex flex-col gap-0.5 cursor-pointer text-fg border-l-2 border-l-transparent transition-[background,border-color] duration-[0.12s] ease-in-out hover:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] hover:outline-none focus-visible:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] focus-visible:outline-none"
-                                  onClick={() => openBook(book.book_id)}
-                                >
-                                  <span class="text-ui-md leading-[1.3]">{book.title}</span>
-                                  <span class="text-ui-xs text-muted">{book.author}</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  class="bg-transparent border-none px-3 flex items-center justify-center min-w-[44px] text-muted cursor-pointer text-ui-xs [font-variant-numeric:tabular-nums] border-l border-l-transparent transition-[color,background] duration-[0.12s] ease-in-out enabled:hover:text-accent enabled:hover:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] enabled:hover:outline-none enabled:focus-visible:text-accent enabled:focus-visible:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] enabled:focus-visible:outline-none disabled:opacity-30 disabled:cursor-not-allowed data-downloaded:text-accent data-downloaded:text-ui-md"
-                                  data-downloaded={isFullyDownloaded(book.book_id) ? '' : undefined}
-                                  title={
-                                    isFullyDownloaded(book.book_id)
-                                      ? 'Downloaded — click to refresh'
-                                      : 'Download for offline'
-                                  }
-                                  aria-label={`Download ${book.title}`}
-                                  disabled={anyDownloadRunning() && dl() === null}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    downloadBook(book.book_id);
-                                  }}
-                                >
-                                  <Show
-                                    when={dl()}
-                                    fallback={
-                                      <Show
-                                        when={isFullyDownloaded(book.book_id)}
-                                        fallback={
-                                          <svg
-                                            viewBox="0 0 24 24"
-                                            width="14"
-                                            height="14"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            stroke-width="1.8"
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                          >
-                                            <path d="M12 3v12" />
-                                            <path d="M7 10l5 5 5-5" />
-                                            <path d="M5 21h14" />
-                                          </svg>
-                                        }
-                                      >
-                                        ✓
-                                      </Show>
-                                    }
-                                    keyed
-                                  >
-                                    {(d) => (
-                                      <Show when={d.done} fallback={`${Math.round(d.percent)}%`}>
-                                        ✓
-                                      </Show>
-                                    )}
-                                  </Show>
-                                </button>
-                              </li>
-                            );
-                          }}
-                        </For>
-                      </ul>
-                    )
+                <button
+                  type="button"
+                  class="bg-transparent border-none px-3 flex items-center justify-center min-w-[44px] text-muted cursor-pointer text-ui-xs [font-variant-numeric:tabular-nums] border-l border-l-transparent transition-[color,background] duration-[0.12s] ease-in-out enabled:hover:text-accent enabled:hover:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] enabled:hover:outline-none enabled:focus-visible:text-accent enabled:focus-visible:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] enabled:focus-visible:outline-none disabled:opacity-30 disabled:cursor-not-allowed data-downloaded:text-accent data-downloaded:text-ui-md"
+                  data-downloaded={props.isFullyDownloaded(book.book_id) ? '' : undefined}
+                  title={
+                    props.isFullyDownloaded(book.book_id)
+                      ? 'Downloaded — click to refresh'
+                      : 'Download for offline'
                   }
-                </Show>
-              </Show>
-            </div>
-          </Show>
-        )}
-      </Show>
-    </div>
+                  aria-label={`Download ${book.title}`}
+                  disabled={props.anyDownloadRunning() && dl() === null}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    props.onDownloadBook(book.book_id);
+                  }}
+                >
+                  <Show
+                    when={dl()}
+                    fallback={
+                      <Show
+                        when={props.isFullyDownloaded(book.book_id)}
+                        fallback={
+                          <svg
+                            viewBox="0 0 24 24"
+                            width="14"
+                            height="14"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          >
+                            <path d="M12 3v12" />
+                            <path d="M7 10l5 5 5-5" />
+                            <path d="M5 21h14" />
+                          </svg>
+                        }
+                      >
+                        ✓
+                      </Show>
+                    }
+                    keyed
+                  >
+                    {(d) => (
+                      <Show when={d.done} fallback={`${Math.round(d.percent)}%`}>
+                        ✓
+                      </Show>
+                    )}
+                  </Show>
+                </button>
+              </li>
+            );
+          }}
+        </For>
+      </ul>
+    </Show>
   );
 };

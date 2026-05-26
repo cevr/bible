@@ -83,6 +83,16 @@ export interface BibleDrawerState {
    *  hint for the pane to act on. Convenience wrapper for click handlers
    *  on inline verse decorations (margin notes, Strong's, xrefs). */
   readonly openStudyTab: (tab: BibleStudyTab, focus?: StudyPaneFocus) => void;
+  /** Open the drawer pinned to a specific (book, chapter) and immediately
+   *  surface a study tab on a given verse. Used by inline overlays in the
+   *  main Bible canvas — they already know the chapter, so we bypass the
+   *  parsed-query path and load the chapter directly. */
+  readonly openAt: (
+    book: number,
+    chapter: number,
+    tab: BibleStudyTab,
+    focus: StudyPaneFocus,
+  ) => void;
   /** Switch the body to the books TOC. If a chapter is currently loaded,
    *  the picker pre-highlights that book so `g` round-trips feel anchored. */
   readonly openBooksToc: () => void;
@@ -271,6 +281,25 @@ export const createBibleDrawerState = (): BibleDrawerState => {
     setIsExpanded(true);
   };
 
+  const openAt = (
+    book: number,
+    chapter: number,
+    tab: BibleStudyTab,
+    focus: StudyPaneFocus,
+  ): void => {
+    setIsOpen(true);
+    // Skip the reload if we're already on this chapter — avoids a "loading"
+    // flash when the user clicks a Strong's superscript on a verse in the
+    // chapter the drawer already has cached.
+    const s = status();
+    const alreadyOnChapter =
+      s._tag === 'ready' && s.chapter.book === book && s.chapter.chapter === chapter;
+    if (!alreadyOnChapter) {
+      navigate(book, chapter);
+    }
+    openStudyTab(tab, focus);
+  };
+
   const openBooksToc = (): void => {
     setViewSig({ _tag: 'books-toc' });
   };
@@ -311,6 +340,7 @@ export const createBibleDrawerState = (): BibleDrawerState => {
     setExpanded,
     setActiveStudyTab,
     openStudyTab,
+    openAt,
     openBooksToc,
     openBookToc,
     backToReader,

@@ -512,15 +512,15 @@ export const egwSearch = Command.make(
     json: searchJson,
     lang: searchLang,
   },
-  (args) =>
-    Effect.gen(function* () {
-      const queryStr = args.query.join(' ').trim();
-      if (queryStr.length === 0) {
-        yield* Console.log('Usage: bible egw search <query> [--book CODE] [--remote] [--limit N]');
-        return;
-      }
+  (args) => {
+    const queryStr = args.query.join(' ').trim();
+    if (queryStr.length === 0) {
+      return Console.log('Usage: bible egw search <query> [--book CODE] [--remote] [--limit N]');
+    }
 
-      if (args.remote) {
+    if (args.remote) {
+      // Remote path requires the API client + auth layer.
+      return Effect.gen(function* () {
         const client = yield* EGWApiClient;
         const response = yield* client.search({
           query: queryStr,
@@ -544,25 +544,29 @@ export const egwSearch = Command.make(
         for (const [i, hit] of response.results.entries()) {
           yield* Console.log(formatRemoteHit(hit, i));
         }
-      } else {
-        if (args.json) {
-          const service = yield* EGWService;
-          const results = yield* service.search(
-            queryStr,
-            args.limit,
-            args.book._tag === 'Some' ? args.book.value : undefined,
-          );
-          yield* Console.log(JSON.stringify(results, null, 2));
-          return;
-        }
-        yield* doLocalSearch(
+      }).pipe(Effect.provide(FullLayer));
+    }
+
+    // Local path — only needs the EGWService layer (no auth required).
+    return Effect.gen(function* () {
+      if (args.json) {
+        const service = yield* EGWService;
+        const results = yield* service.search(
           queryStr,
-          args.book._tag === 'Some' ? args.book.value : undefined,
           args.limit,
+          args.book._tag === 'Some' ? args.book.value : undefined,
         );
+        yield* Console.log(JSON.stringify(results, null, 2));
+        return;
       }
-    }),
-).pipe(Command.provide(() => FullLayer));
+      yield* doLocalSearch(
+        queryStr,
+        args.book._tag === 'Some' ? args.book.value : undefined,
+        args.limit,
+      );
+    }).pipe(Effect.provide(ServiceLayer));
+  },
+);
 
 // ============================================================================
 // lookup — explicit refcode lookup (no FTS fallback) with --json

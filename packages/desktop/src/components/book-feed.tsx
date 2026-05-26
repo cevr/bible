@@ -1,17 +1,16 @@
-import { type EGWApiClientError, type Schemas } from '@bible/core/egw';
-import { Effect, Option, Result } from 'effect';
+import { type Schemas } from '@bible/core/egw';
+import { Effect, Exit, Option } from 'effect';
 import {
   type Accessor,
   type Component,
   createEffect,
   createMemo,
-  createResource,
   createSignal,
   For,
   onCleanup,
   Show,
 } from 'solid-js';
-import { runtime } from '../runtime.js';
+import { ipc, runtime } from '../runtime.js';
 import { EGWData } from '../services/egw-data.js';
 import { ReaderState } from '../services/reader-state.js';
 import { ParagraphView } from './paragraph-view.js';
@@ -55,15 +54,19 @@ const preloadChapter = async (bookId: number, paraId: string): Promise<void> => 
   if (chapterCache.has(k)) return;
   const existing = inFlight.get(k);
   if (existing !== undefined) return existing;
+  // Preload reads the underlying service rather than subscribing through the
+  // ipc proxy — proxy reads require a Solid tracking scope, and we want to
+  // warm the LRU from a `createEffect` that's already tracked for prev/next
+  // rather than create a phantom subscription.
   const p = runtime
-    .runPromise(
+    .runPromiseExit(
       Effect.gen(function* () {
         const data = yield* EGWData;
         return yield* data.getChapterByParaId(bookId, paraId);
-      }).pipe(Effect.result),
+      }),
     )
-    .then((res) => {
-      if (Result.isSuccess(res)) cachePut(bookId, paraId, res.success);
+    .then((exit) => {
+      if (Exit.isSuccess(exit)) cachePut(bookId, paraId, exit.value);
     })
     .catch(() => {
       /* preload best-effort */
@@ -104,22 +107,12 @@ interface NavItem extends Schemas.TocItem {
 }
 
 export const BookFeed: Component<BookFeedProps> = (props) => {
-  const [toc] = createResource(
-    () => props.bookId,
-    (bookId) =>
-      runtime.runPromise(
-        Effect.gen(function* () {
-          const data = yield* EGWData;
-          return yield* data.getToc(bookId);
-        }).pipe(Effect.result),
-      ),
-  );
+  const toc = ipc.egw.getToc.query(() => ({ bookId: props.bookId }));
 
   const navItems = createMemo<readonly NavItem[]>(() => {
     const t = toc();
     if (t === undefined) return [];
-    if (Result.isFailure(t)) return [];
-    return t.success.filter(
+    return t.filter(
       (i): i is NavItem => i.para_id !== undefined && i.para_id !== null && i.para_id !== '',
     );
   });
@@ -145,47 +138,29 @@ export const BookFeed: Component<BookFeedProps> = (props) => {
     return items[idx + 1];
   });
 
-  // Seed initial paragraphs from the shared module-level LRU so a cache-warm
-  // chapter renders synchronously on first paint with no loading fallback.
-  // The createResource still runs on cache miss / cold first-visit.
-  const cached = cacheGet(props.bookId, props.chapterParaId);
-  const [cachedParagraphs, setCachedParagraphs] = createSignal<
-    readonly Schemas.Paragraph[] | undefined
-  >(cached);
+  const chapter = ipc.egw.getChapterByParaId.query(() => ({
+    bookId: props.bookId,
+    paraId: props.chapterParaId,
+  }));
 
-  type ChapterResult = Result.Result<readonly Schemas.Paragraph[], EGWApiClientError>;
-  const [chapter] = createResource<
-    ChapterResult,
-    { readonly bookId: number; readonly paraId: string }
-  >(
-    () => ({ bookId: props.bookId, paraId: props.chapterParaId }),
-    ({ bookId, paraId }) => {
-      const hit = cacheGet(bookId, paraId);
-      if (hit !== undefined) {
-        setCachedParagraphs(hit);
-        return Promise.resolve(Result.succeed(hit) as ChapterResult);
-      }
-      return runtime
-        .runPromise(
-          Effect.gen(function* () {
-            const data = yield* EGWData;
-            return yield* data.getChapterByParaId(bookId, paraId);
-          }).pipe(Effect.result),
-        )
-        .then((res) => {
-          if (Result.isSuccess(res)) cachePut(bookId, paraId, res.success);
-          return res;
-        });
-    },
-  );
+  // Mirror successful reads into the renderer-level LRU so adjacent preloads
+  // and warm remounts have a synchronous data source. The ipc registry also
+  // caches the resource itself, but reading the resource still goes through
+  // Suspense on first paint per (bookId, paraId); the LRU short-circuits that
+  // when the same chapter is reopened during a session.
+  createEffect(() => {
+    const c = chapter();
+    if (c === undefined) return;
+    cachePut(props.bookId, props.chapterParaId, c);
+  });
 
   const paragraphs = createMemo<readonly Schemas.Paragraph[]>(() => {
+    // Cache peek first — if hit, skip reading the resource so a warm prev/next
+    // renders without triggering Suspense.
+    const hit = cacheGet(props.bookId, props.chapterParaId);
+    if (hit !== undefined) return hit;
     const c = chapter();
-    if (c !== undefined) {
-      if (Result.isFailure(c)) return [];
-      return c.success;
-    }
-    return cachedParagraphs() ?? [];
+    return c ?? [];
   });
 
   // Preload adjacent chapters into the shared LRU so the next prev/next
@@ -362,61 +337,35 @@ export const BookFeed: Component<BookFeedProps> = (props) => {
 
   return (
     <article class="w-[min(var(--reader-width,68ch),100%)] font-[family-name:var(--reader-font-family,var(--font-serif))]">
-      <Show
-        when={!toc.loading}
-        fallback={<p class="m-0 py-8 text-center text-ui-sm text-muted">Loading book…</p>}
-      >
-        <Show
-          when={navItems().length > 0}
-          fallback={
-            <p class="m-0 py-8 text-center text-ui-sm text-[#b3261e]">Failed to load contents.</p>
-          }
-        >
-          <Show when={currentNav()} keyed>
-            {(nav) => (
-              <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-4 pt-12 pb-8">
-                <span class="h-px bg-rule" aria-hidden="true" />
-                <h2 class="m-0 font-[family-name:var(--font-serif)] text-[length:calc(var(--reader-font-size,18px)*1.2)] font-medium tracking-[0.01em] text-fg text-center">
-                  {nav.title}
-                </h2>
-                <span class="h-px bg-rule" aria-hidden="true" />
-              </div>
-            )}
-          </Show>
-          <Show
-            when={!chapter.loading || paragraphs().length > 0}
-            fallback={<p class="m-0 py-8 text-center text-ui-sm text-muted">Loading chapter…</p>}
-          >
-            <Show
-              when={paragraphs().length > 0}
-              fallback={
-                <p class="m-0 py-8 text-center text-ui-sm text-[#b3261e]">
-                  Failed to load chapter.
-                </p>
-              }
-            >
-              <For each={paragraphs()}>
-                {(paragraph) => (
-                  <ParagraphRow
-                    paragraph={paragraph}
-                    flashing={
-                      paragraph.para_id !== null &&
-                      paragraph.para_id !== undefined &&
-                      flashingParaId() === paragraph.para_id
-                    }
-                    registerRef={(el) => {
-                      const id = paragraph.para_id;
-                      if (id === null || id === undefined) return;
-                      paragraphRefs.set(id, el);
-                    }}
-                    onScriptureClick={props.onScriptureClick}
-                  />
-                )}
-              </For>
-            </Show>
-          </Show>
-        </Show>
+      <Show when={currentNav()} keyed>
+        {(nav) => (
+          <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-4 pt-12 pb-8">
+            <span class="h-px bg-rule" aria-hidden="true" />
+            <h2 class="m-0 font-[family-name:var(--font-serif)] text-[length:calc(var(--reader-font-size,18px)*1.2)] font-medium tracking-[0.01em] text-fg text-center">
+              {nav.title}
+            </h2>
+            <span class="h-px bg-rule" aria-hidden="true" />
+          </div>
+        )}
       </Show>
+      <For each={paragraphs()}>
+        {(paragraph) => (
+          <ParagraphRow
+            paragraph={paragraph}
+            flashing={
+              paragraph.para_id !== null &&
+              paragraph.para_id !== undefined &&
+              flashingParaId() === paragraph.para_id
+            }
+            registerRef={(el) => {
+              const id = paragraph.para_id;
+              if (id === null || id === undefined) return;
+              paragraphRefs.set(id, el);
+            }}
+            onScriptureClick={props.onScriptureClick}
+          />
+        )}
+      </For>
 
       <div aria-hidden="true" style={{ height: '50vh' }} />
 
