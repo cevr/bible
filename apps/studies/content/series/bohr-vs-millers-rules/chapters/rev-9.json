@@ -1,0 +1,880 @@
+{
+  "slug": "rev-9",
+  "ref": "Rev 9",
+  "title": "Revelation 9",
+  "intro": "The chapter where Bohr breaks the most Miller rules. Every verse below has at least one violation, and several have multiple. Source: Bohr, _Revelation's Seven Trumpets: A Contextual Approach_ (`bohr-seven-trumpets.pdf`).",
+  "verses": [
+    {
+      "ref": "Rev 9:1",
+      "num": 1,
+      "slug": "v-1",
+      "text": "And the fifth angel sounded, and I saw a star fall from heaven unto the earth: and to him was given the key of the bottomless pit.",
+      "pioneerReading": {
+        "citation": "DAR 469.1-472.2",
+        "html": "Smith (drawing extensively on Alexander Keith and Gibbon) identifies the fallen star as **Chosroes II, the Persian king whose fall opened the way for Mohammed and the Saracen eruption**. \"Chosroes, after his entire discomfiture and loss of empire, was murdered in the year 628; and the year 629 is marked by 'the conquest of Arabia,' and 'the first war of the Mohammedans against the Roman empire.'… When the strength of the Roman empire was exhausted, and the great king of the East lay dead in his tower of darkness, the pillage of an obscure town on the borders of Syria was 'the prelude of a mighty revolution.' 'The robbers were the apostles of Mohammed, and their fanatic valor emerged from the desert.'\" (DAR 472.1). On the bottomless pit Smith is explicit: \"the Greek ἄβυσσος… may refer to any waste, desolate, and uncultivated place… In this instance it may appropriately refer to the unknown wastes of the Arabian desert, from the borders of which issued the hordes of Saracens, like swarms of locusts. And the fall of Chosroes, the Persian king, may well be represented as the opening of the bottomless pit, inasmuch as it prepared the way for the followers of Mohammed to issue from their obscure country\" (DAR 472.2)."
+      },
+      "bohrReading": {
+        "citation": "_Revelation's Seven Trumpets_, p. 168",
+        "html": "The fallen star = **Lucifer/Satan personally**. The Greek tense \"had fallen\" (perfect/aorist) indicates the star fell _before_ the fifth trumpet — therefore it cannot be a 7th-century historical actor. Verbatim: \"The tense of the verb 'had fallen' clearly indicates that the star did not fall when the fifth trumpet blew. It had already fallen before the fifth trumpet began to sound. How else could the star come out of the Abyss unless it had fallen into the abyss before? There can be little doubt that this star represents Lucifer who originally fell from heaven and at the cross (Isaiah 14:12-14; Revelation 12:7-9). The abyss is the abode of Satan and his angels and they are the rulers of the underworld\" (p. 168). The \"divine passives\" of the trumpet (\"was given the key… were given power\") indicate God _allowing_ the powers of the abyss to act because of \"the treatment that the two witnesses received during the 1260 years\" (p. 167, paraphrase of pp. 167-168)."
+      },
+      "warrant": null,
+      "violations": {
+        "scope": "verse",
+        "label": "Miller rules broken",
+        "items": [
+          {
+            "ruleNumber": "XI",
+            "ruleName": "literal first",
+            "ruleOrder": 11,
+            "body": "A human-actor reading of the star is exactly what the preceding four trumpets establish as the pattern (the trumpets are political-military judgments on the Roman world) and what Revelation's _own_ star=messenger pattern (Rev 1:20, Rev 14:6-12) supplies. Bohr jumps to a cosmic-spiritual referent without a textual signal demanding it."
+          },
+          {
+            "ruleNumber": "XII",
+            "ruleName": "trace the figure",
+            "ruleOrder": 12,
+            "body": "The trace from Rev 1:20 (star = messenger of a church) → Rev 14:6-12 (angel-messengers = the historical movements they head) → Rev 9:1 (star fallen = leader of the movement that emerges) is the immediate canonical track. Isa 14:12's Lucifer trace is one _possible_ trace of \"fallen star\" in the abstract, but Revelation's own _internal_ gloss of \"star = messenger\" is the contextually-prior expositor."
+          },
+          {
+            "ruleNumber": "XIII",
+            "ruleName": "every word must be fulfilled",
+            "ruleOrder": 13,
+            "body": "The pioneer reading produces verifiable 7th-century history: the Saracen eruption out of Arabia, the precise geography, datable events. Bohr's Satan-personally reading provides no equivalent historical specifier — it is interpretable but not verifiable."
+          },
+          {
+            "ruleNumber": "IV",
+            "ruleName": "no contradiction",
+            "ruleOrder": 4,
+            "body": "Two compounding Rule-IV problems: **(i)** Bohr collapses _this specific_ fall with _the original_ Eden/cross fall — but Rev 1:1+1:19 anchors Rev 4-22 to _things which shall be hereafter_ from John's c.-AD-95 vantage, so the Eden/cross fall (already past for John) cannot be the referent of a prophecy of _future-from-John_ events. The \"fall\" here must be a _post-AD-95_ event — exactly what the 7th-century Saracen eruption supplies. **(ii)** Combined with v.11 — where the locust-army has a king \"whose name is Apollyon,\" which Bohr _also_ reads as Satan — this requires Satan to be both the star-from-heaven _and_ the king-from-the-pit in the same vision, two distinct text-actors collapsed into one. A symbol cannot bear two contradicting referents in the same vision."
+          },
+          {
+            "ruleNumber": "V",
+            "ruleName": "Scripture is its own expositor",
+            "ruleOrder": 5,
+            "body": "The fifth trumpet is the next item in a numbered series begun in Rev 8. The series' established expositor is political-military history (per the first four trumpets); Revelation's own gloss of star = human messenger is set aside in favor of a demonological grid imported from outside the immediate context."
+          }
+        ]
+      },
+      "status": null,
+      "symbols": {
+        "label": "Symbols redefined",
+        "html": "Star → cosmic Satan-figure (Catalog D); bottomless pit → \"realm of demons\" (Catalog C, vs. Arabian desert / Joel-2 locust origin in the pioneer reading)."
+      },
+      "notes": [
+        {
+          "label": "Why \"human messenger\" is the natural reading.",
+          "html": "Revelation establishes the _star = human messenger_ category early and uses it as a load-bearing prophetic device:\n\n- **Rev 1:20** — \"The seven stars are the _angels_ (Gk. _angeloi_ = messengers) of the seven churches.\" Rev 2-3 then addresses each _angel_ in the imperative, accountable for his church — the language of _human_ bishops/pastors, not heavenly beings.\n- **Rev 14:6-12** — the three angels' messages, identified in the pioneer/DAR tradition as three successive _human_ prophetic messages: **1st angel = William Miller** and the 1840-44 first-angel advent message; **2nd angel = the summer-1844 call out of Babylon**; **3rd angel = the post-1844 Sabbath-Sanctuary message.**\n\nSo when Rev 9:1 introduces a \"star fallen from heaven\" that is _given the key_ to open a historical earth-event (locusts arising on earth), the category Revelation has just been training the reader in is _human messenger / leader who opens / heads a movement_. The pioneer reading takes this category and fits it to the Saracen eruption — _the actual_ movement that emerged from Arabia in the 7th century, headed by _actual historical leaders_."
+        }
+      ],
+      "extensions": [
+        {
+          "label": "Extension beyond Smith (not in DAR)",
+          "html": "The \"star = human messenger\" canonical-trace argument (Rev 1:20 → Rev 14:6-12 → Rev 9:1) developed below is a structural defense of the pioneer reading consistent with Smith's identification of a literal human-actor referent (Chosroes / Mohammed), but Smith himself does not argue Rev 9:1 from Rev 1:20 or Rev 14's three angels — he simply identifies the historical actor via Gibbon-Keith."
+        }
+      ],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 9:2",
+      "num": 2,
+      "slug": "v-2",
+      "text": "And he opened the bottomless pit; and there arose a smoke out of the pit, as the smoke of a great furnace; and the sun and the air were darkened by reason of the smoke of the pit.",
+      "pioneerReading": {
+        "citation": "DAR 473.1-473.2",
+        "html": "Smith (quoting Keith): \"Like the noxious and even deadly vapor which the winds, particularly from the southwest, diffuse in Arabia, Mohammedanism spread from thence its pestilential influence, — arose as suddenly and spread as widely as smoke arising out of the pit, the smoke of a great furnace. Such is a suitable symbol of the religion of Mohammed, of itself, or as compared with the pure light of the gospel of Jesus. It was not, like the latter, a light from heaven, but a smoke out of the bottomless pit.\" (DAR 473.2). The bottomless pit was identified at DAR 472.2 as the Arabian desert."
+      },
+      "bohrReading": {
+        "citation": "_Revelation's Seven Trumpets_, p. 168",
+        "html": "When the star opens the Abyss, smoke darkens both sun and air; the darkness is **total**, not partial. Verbatim: \"When the 'star' (notice that the star is a 'he') opened the Abyss, smoke rose from it like the smoke from a massive furnace. The smoke eclipsed the sun and the sky. There is no indication that the smoke eclipsed only a third part of the earth (as in the fourth trumpet)—the text seems to indicate that the darkness was total!\" (p. 168). On v.3 he glosses the figure: \"When the shaft of the abyss opens, 'all hell breaks loose.'… The partial darkness of the fourth trumpet… becomes complete darkness in the fifth trumpet\" (p. 169). Sun = Christ; moon = the Scriptures (paraphrase of pp. 168-169). France is the historical site: \"France had the bright light of the reformation and rejected it and the result was a great darkness\" (p. 169, citing 1T p. 232)."
+      },
+      "warrant": null,
+      "violations": {
+        "scope": "verse",
+        "label": "Miller rules broken",
+        "items": [
+          {
+            "ruleNumber": "XI",
+            "ruleName": "literal first",
+            "ruleOrder": 11,
+            "body": "The pioneer literal-figurative reading — smoke from Arabia = the obscuring of gospel light by the rapid spread of the Koran — fits every word. Bohr's \"demonic doctrine\" requires no specific historical fulfillment, leaving the verse interpretable but unverifiable."
+          },
+          {
+            "ruleNumber": "XIII",
+            "ruleName": "every word must be fulfilled",
+            "ruleOrder": 13,
+            "body": "The \"sun and air darkened\" specification: the pioneer reading identifies a specific 7th-9th century historical darkening of Christian witness by Islamic expansion across North Africa and into Spain. Bohr's reading identifies no equivalent historical specifier."
+          }
+        ]
+      },
+      "status": null,
+      "symbols": {
+        "label": "Symbols redefined",
+        "html": "Bottomless pit (Catalog C)."
+      },
+      "notes": [
+        {
+          "label": "Editorial framework label (not in Bohr's words)",
+          "html": "Bohr never uses \"demonic doctrine\" as such for v.2 specifically; the smoke's content is glossed as \"complete darkness\" and rejected Reformation light, not \"doctrine\" per se."
+        }
+      ],
+      "extensions": [
+        {
+          "label": "Extension beyond Smith (not in DAR)",
+          "html": "The specific geographic catalogue (\"Syria, Egypt, North Africa, Spain… darkened by 750 AD\") and the explicit gloss \"sun = Christ the Sun of Righteousness / air = medium of spiritual life\" are interpretive amplifications of Smith's general \"pestilential influence darkening gospel light\" frame; Smith and Keith treat the smoke as a single composite figure for the spread of the Mohammedan religion without parsing \"sun\" and \"air\" as discrete symbols."
+        }
+      ],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 9:3",
+      "num": 3,
+      "slug": "v-3",
+      "text": "And there came out of the smoke locusts upon the earth: and unto them was given power, as the scorpions of the earth have power.",
+      "pioneerReading": {
+        "citation": "DAR 473.3-473.5",
+        "html": "Smith (via Keith): \"swarms of Saracens, like locusts, overspread the earth, and speedily extended their ravages over the Roman empire, from east to west. The hail descended from the frozen shores of the Baltic; the burning mountain fell upon the sea from Africa; and **the locusts (the fit symbol of the Arabs) issued from Arabia, their native region**. They came as destroyers, propagating a new doctrine, and stirred up to rapine and violence by motives of interest and religion.\" (DAR 473.4). On the scorpion-power specifier Smith glosses it not as the _jizyah_ tax-system but as **the Arab honor-revenge culture**: \"the nice sensibility of honor, which weighs the insult rather than the injury, sheds its deadly venom on the quarrels of the Arabs; an indecent action, a contemptuous word, can be expiated only by the blood of the offender; and such is their patient inveteracy, that they expect whole months and years the opportunity of revenge.\" (DAR 473.5)."
+      },
+      "bohrReading": {
+        "citation": "_Revelation's Seven Trumpets_, pp. 171-173",
+        "html": "The locusts = **Satan's angels** / supernatural demons. Verbatim: \"Revelation 9:11 tells us that this cloud of locusts had a king who led them whose name was Abbadon or Apollyon. Normal locusts have no king over them (Proverbs 30:27) so these must be unusual and supernatural locusts\" (p. 171). \"These locusts are clearly symbolic because they are a hybrid combination of locust and scorpion and they attack people, not plants. According to Jesus, the scorpion represents Satan (Luke 10:18, 19)… In brief, this army has all the Biblical characteristics that apply to Satan and his angels: scorpions, serpents, lions, locusts, sulphur, bottomless pit, etc. The fifth trumpet is clearly a description of an extraordinary manifestation of satanic power\" (p. 173). Bohr quotes Joseph Seiss (pp. 172-173) for two pages against the Saracen-Mohammed identification (Seiss's 10+ objections — star and king must be two distinct persons; cave of Hera not the pit; Muslims _did_ kill; turbans don't match crowns; the locust span exceeds 391 years; Abaddon/Apollyon ≠ Mohammed; etc.)."
+      },
+      "warrant": null,
+      "violations": {
+        "scope": "verse",
+        "label": "Miller rules broken",
+        "items": [
+          {
+            "ruleNumber": "XII",
+            "ruleName": "trace the figure",
+            "ruleOrder": 12,
+            "body": "The cross-reference trace of \"locusts\" gives Joel 1-2 (invading army imagery), Judges 7:12 (\"as the locusts for multitude\" — of human armies), Exodus 10 (Egyptian plague). The Bible's consistent figurative use of locusts is **invading human armies in vast numbers**, not disembodied demons. Bohr cites Prov 30:27 (\"no king\") to argue these are *un*usual locusts — but the verse itself names a king (Apollyon, v. 11), so the un-king test is _already_ the text's signal that figurative locusts (= invading armies under a leader) are in view, not literal locusts."
+          },
+          {
+            "ruleNumber": "XI",
+            "ruleName": "literal first",
+            "ruleOrder": 11,
+            "body": "A figure-for-human-army works without violence to nature; jumping to supernatural demons requires a textual signal not provided."
+          },
+          {
+            "ruleNumber": "V",
+            "ruleName": "Scripture is its own expositor",
+            "ruleOrder": 5,
+            "body": "The Bible's own glosses of locust-imagery (Joel especially) are set aside in favor of an extrabiblical demonological framework."
+          }
+        ]
+      },
+      "status": null,
+      "symbols": {
+        "label": "Symbols redefined",
+        "html": "Locusts (Catalog C); scorpions (Catalog C)."
+      },
+      "notes": [
+        {
+          "label": "Note (not in DAR on this verse)",
+          "html": "Identifying scorpion-power with the _jizyah_ / dhimmi system is an extension; Smith's actual gloss is the Arab vendetta / honor-vengeance temperament. (Smith does relate the dhimmi situation to v.6 — see below — but not to the scorpion-power of v.3.) The Joel/Judges/Nahum cross-reference trace is a structural defense not invoked by Smith on this verse."
+        }
+      ],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 9:4",
+      "num": 4,
+      "slug": "v-4",
+      "text": "And it was commanded them that they should not hurt the grass of the earth, neither any green thing, neither any tree; but only those men which have not the seal of God in their foreheads.",
+      "pioneerReading": {
+        "citation": "DAR 473.6-475.1",
+        "html": "Smith quotes Abubeker's 632 AD circular letter (via Gibbon): \"Destroy no palm-trees, nor burn any fields of corn. Cut down no fruit-trees, nor do any mischief to cattle, only such as you kill to eat… you will find another sort of people that belong to the synagogue of Satan, who have shaven crowns; be sure you cleave their skulls, and give them no quarter till they either turn Mohammedans or pay tribute.\" (DAR 474.2). Smith concludes: \"The commands are alike discriminating with the prediction, as if the caliph himself had been acting in known as well as direct obedience to a higher mandate than that of mortal man; and in the very act of going forth to fight against the religion of Jesus, and to propagate Mohammedanism in its stead, he repeated the words which it was foretold in the Revelation of Jesus Christ that he would say.\" (DAR 474.3).\n\nOn \"the seal of God in their foreheads\" Smith is explicit (DAR 474.4-475.1): \"the seal of God is the Sabbath of the fourth commandment; and history is not silent upon the fact that there have been observers of the true Sabbath all through the present dispensation.\" The unsealed targeted class were \"doubtless a class of monks, or some other division of the Roman Catholic Church… that is the very church which has robbed the law of God of its seal, by tearing away the true Sabbath, and erecting a counterfeit in its place.\" (DAR 475.1)."
+      },
+      "bohrReading": {
+        "citation": "_Revelation's Seven Trumpets_, pp. 173-174",
+        "html": "The \"highly unusual\" command for locusts _not_ to eat grass/trees signals symbolism — green vegetation = the faithful people of God (Ps 1:1-3; Jer 17:8; Ps 92:12). The demons attack only those _without_ the seal. The seal here is NOT the end-time seal but the **gospel seal of the Holy Spirit at baptism** (Eph 1:13-14; 4:30; 2 Tim 2:19; 2 Cor 1:22). Verbatim: \"This language is highly unusual. Grass, green things and trees are what locusts eat and yet they receive the command to spare the grass, the plants, and the trees… It is clear that green, living vegetation here represents the faithful people of God… We are not to understand this seal as the end-time seal of God but rather as the gospel seal\" (pp. 173-174). EGW gloss: \"Those who thus unite with the church by baptism are sealed as men and women who have been born again, of water and of the Spirit\" (p. 174, citing 6MR p. 28)."
+      },
+      "warrant": null,
+      "violations": {
+        "scope": "verse",
+        "label": "Miller rules broken",
+        "items": [
+          {
+            "ruleNumber": "XIII",
+            "ruleName": "every word must be fulfilled",
+            "ruleOrder": 13,
+            "body": "The pioneer reading has a documented match: Abu-Bekr's first caliphal edict to his Saracen armies (632 AD): \"_Destroy no palm-trees, nor burn any fields of corn. Cut down no fruit-trees, nor do any mischief to cattle…_\" — preserved by Edward Gibbon, _Decline and Fall_, ch. 51, and cited by DAR. Every clause of the verse — grass, green thing, tree — is named in the historical command. Bohr's spiritualized reading provides no equivalent historical match for the agricultural-preservation specifier."
+          }
+        ]
+      },
+      "status": null,
+      "symbols": {
+        "label": "Symbols redefined",
+        "html": "None new — depends on Locusts redefinition."
+      },
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 9:5",
+      "num": 5,
+      "slug": "v-5",
+      "text": "And to them it was given that they should not kill them, but that they should be tormented five months: and their torment was as the torment of a scorpion, when he striketh a man.",
+      "pioneerReading": {
+        "citation": "DAR 476.1-476.2; calculation at DAR 478.3-479.5",
+        "html": "Smith reads v.5 as the **150-year Ottoman torment of the Greek (Eastern Roman) division of the empire without political annihilation**. At v.5 itself: \"Their constant incursions into the Roman territory, and frequent assaults on Constantinople itself, were an unceasing torment throughout the empire; and yet they were not able effectually to subdue it… Their charge was to torment, and then to hurt, but not to kill, or utterly destroy. The marvel was that they did not.\" (DAR 476.2; Smith refers the reader to v.10 for the five-months calculation).\n\nThe calculation Smith gives at v.10-11 (DAR 479.5): \"'Five months,' thirty days to a month, give us one hundred and fifty days; and these days, being symbolic, signify one hundred and fifty years. Commencing **July 27, 1299**, the one hundred and fifty years reach to 1449.\" Starting point: \"Othman first entered the territory of Nicomedia on the 27th day of July, 1299\" (DAR 479.2, citing Gibbon). End-event: \"in 1449… John Palaeologus, the Greek emperor, died… and Constantine, his brother, succeeded to it. But he would not venture to ascend the throne without the consent of Amurath, the Turkish sultan. He therefore sent ambassadors to ask his consent, and obtained it before he presumed to call himself sovereign.\" (DAR 480.4). The men hurt = \"'the third part of men,' or third of the Roman empire, — the Greek division of it.\" (DAR 478.3)."
+      },
+      "bohrReading": {
+        "citation": "_Revelation's Seven Trumpets_, pp. 174-175",
+        "html": "The \"five months\" = 150 years from **Descartes' _Discourse on Method_ (1637)** to the **French Revolution**. Scorpion-sting = excruciating but non-lethal torment. Verbatim: \"Scorpions rarely kill human beings when they sting them but they do cause excruciating pain, swelling and suffering, even to the point of wanting to die! Applying the year/day principle, the five months would be equivalent to one hundred and fifty years. Notably the Age of Reason or the Enlightenment began in the early 17th century with the work of Rene Descartes…. Descartes' most famous book was A Discourse on Method, published in 1637 some 150 years before the beginning of the French Revolution. The Age of Reason eventually jettisoned the need for faith and the miraculous in religion. It supplanted faith in God with human wisdom…. Notably these philosophies would not kill people but they would make them existentially miserable. The Age of Reason inspired the French Revolution\" (pp. 174-175). The fifth trumpet, Rev 11:7-10, and Dan 11:40 \"are all describing the same historical event: The French Revolution\" (p. 170)."
+      },
+      "warrant": null,
+      "violations": {
+        "scope": "verse",
+        "label": "Miller rules broken",
+        "items": [
+          {
+            "ruleNumber": "XIII",
+            "ruleName": "every word must be fulfilled",
+            "ruleOrder": 13,
+            "body": "The text constrains the locust action to _torment without killing_ for the five months. Bohr's framework has the French Revolution (1789-1797) as the _fulfillment_ of the locust torment — but the French Revolution involved **mass killing** (the Reign of Terror executed tens of thousands; the de-Christianization campaigns killed clergy directly). This _contradicts_ the explicit \"not kill, but torment\" specification. The text's constraint is violated by Bohr's anchor."
+          },
+          {
+            "ruleNumber": "I",
+            "ruleName": "every word bears",
+            "ruleOrder": 1,
+            "body": "The \"five months\" specification is treated as marking the Enlightenment leading up to Revolution rather than the locust event itself — but the text says the _locusts_ torment for five months, not that the _cause_ of the locusts builds for five months."
+          },
+          {
+            "ruleNumber": "IV",
+            "ruleName": "no contradiction",
+            "ruleOrder": 4,
+            "body": "Bohr also reads Rev 9:1-12 = Rev 11:7-10 = Dan 11:40 = the French Revolution (_Seven Trumpets_, p. 170). But Rev 11:7-10 describes the beast _killing_ the witnesses — directly contradicting the trumpet 5 \"torment-not-kill\" specification. A theory that requires explaining away a direct textual contradiction fails Rule IV."
+          }
+        ]
+      },
+      "status": null,
+      "symbols": {
+        "label": "Symbols redefined",
+        "html": "Five months (Catalog B); locusts (Catalog C); scorpions (Catalog C)."
+      },
+      "notes": [
+        {
+          "label": "Note (not in DAR)",
+          "html": "Smith does not explicitly date the end as \"July 27, 1449\" at v.5 — he says only that the 150 years \"reach to 1449.\" The exact-day end date is reconstructed by reckoning forward from a July-27-1449 anchor to the Aug 11, 1840 end-date Smith computes at DAR 485.1. The Ezek 4:6 year-day citation and the Rule IX/X label are structural framing, not Smith's wording here."
+        }
+      ],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 9:6",
+      "num": 6,
+      "slug": "v-6",
+      "text": "And in those days shall men seek death, and shall not find it; and shall desire to die, and death shall flee from them.",
+      "pioneerReading": {
+        "citation": "DAR 476.3-476.4",
+        "html": "Smith (quoting Keith): \"Men were weary of life, when life was spared only for a renewal of woe, and when all that they accounted sacred was violated, and all that they held dear constantly endangered, and the savage Saracens domineered over them, or left them only to a momentary repose, ever liable to be suddenly or violently interrupted, as if by the sting of a scorpion.\" (DAR 476.4). The condition Smith pictures is the unceasing scorpion-sting harassment of subject Christian populations under Saracen domination — torment severe enough to make death desirable but withheld."
+      },
+      "bohrReading": {
+        "citation": "_Revelation's Seven Trumpets_, pp. 175-177",
+        "html": "Bohr labels this \"Notes on Revelation 9:6\" (not \"Comments\"). The \"desire to die / death flees\" condition = the **existential meaninglessness produced by atheism** during the Age of Reason / French Revolution. Verbatim (EGW quoted by Bohr): \"Atheism can shed no ray of light into the grave. It cannot restrain crime or quicken the moral energies… An instance of this is given in the history of the French Revolution. That period, when the existence of God was denied, and his commandments were abolished, was the most revolting that is recorded on the pages of human history\" (p. 175, citing YI Dec 24, 1896). Bohr (paraphrase of pp. 175-176): contemporary society's \"main characteristic… is meaninglessness… The rise of philosophies such as deism, ethical relativism, nihilism, rationalism, existentialism, evolutionism and atheistic communism has led people to be pessimistic about the meaning of life.\" He cites Hemingway's suicide as an illustration (p. 176) and applies Eccl 2:17-18 (\"So I hated life…\") as \"a good illustration of the spirit that inspired the French Revolution\" (pp. 175-176)."
+      },
+      "warrant": null,
+      "violations": {
+        "scope": "verse",
+        "label": "Miller rules broken",
+        "items": [
+          {
+            "ruleNumber": "XIII",
+            "ruleName": "every word must be fulfilled",
+            "ruleOrder": 13,
+            "body": "The pioneer reading: the dhimmi non-Muslim subjects of Saracen rule — Jews and Christians — subjected to head-tax (_jizyah_) and second-class status that made life burdensome but did not officially kill (this is the Islamic legal category of _ahl al-dhimma_). This historical institution is well-documented and fits \"desire to die, death flee from them\" precisely. Bohr's spiritual-despair reading is unverifiable against history."
+          }
+        ]
+      },
+      "status": null,
+      "symbols": null,
+      "notes": [],
+      "extensions": [
+        {
+          "label": "Extension beyond Smith (not in DAR)",
+          "html": "The specific identification with the Islamic _jizyah_ / dhimmi (_ahl al-dhimma_) legal category, dress codes, and forced-conversion threats is a historically informed amplification; Smith does not name _jizyah_ or _dhimma_ here. His gloss is the general experience of subject populations under \"savage Saracens\" who \"domineered over them.\""
+        }
+      ],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 9:7",
+      "num": 7,
+      "slug": "v-7",
+      "text": "And the shapes of the locusts were like unto horses prepared unto battle; and on their heads were as it were crowns like gold, and their faces were as the faces of men.",
+      "pioneerReading": {
+        "citation": "DAR 476.5-477.2",
+        "html": "Smith (via Keith): \"The Arabian horse takes the lead throughout the world; and skill in horsemanship is the art and science of Arabia. And the barbed Arabs, swift as locusts and armed like scorpions, ready to dart away in a moment, were ever prepared unto battle.\" (DAR 476.6). On the crowns: \"'And on their heads were as it were crowns like gold.' When Mohammed entered Medina (A. D. 622), and was first received as its prince, 'a turban was unfurled before him to supply the deficiency of a standard.' The turbans of the Saracens, like unto a coronet, were their ornament and their boast. The rich booty abundantly supplied and frequently renewed them. To assume the turban is proverbially to turn Mussulman. And the Arabs were anciently distinguished by the miters which they wore.\" (DAR 477.1). On the faces-as-men: \"'And their faces were as the faces of men.' 'The gravity and firmness of the mind of the Arab is conspicuous in his outward demeanor; his only gesture is that of stroking his beard, the venerable symbol of manhood.' 'The honor of their beards is most easily wounded.'\" (DAR 477.2)."
+      },
+      "bohrReading": {
+        "citation": "_Revelation's Seven Trumpets_, p. 177",
+        "html": "Locusts-as-horses imagery is drawn from **Joel 2:4-10** where God compares an invading army to a plague of locusts. Bohr reads it as Satan and his angels mustering for the final battle. Verbatim: \"We find the backdrop of this imagery in Joel 2:4-10 where God compares an invading army with a plague of locusts. It is of interest that the Italian word for locust is cavalletta, which means 'little horse'. The German peasants call the locust hupferde, which means, 'hay horses.' At this point Satan and his angels are already gathering their forces for the final battle against the God, the Bible and His people\" (p. 177)."
+      },
+      "warrant": null,
+      "violations": {
+        "scope": "verse",
+        "label": "Miller rules broken",
+        "items": [
+          {
+            "ruleNumber": "XII",
+            "ruleName": "trace the figure",
+            "ruleOrder": 12,
+            "body": "The cross-reference to **Joel 2:4** — \"_The appearance of them is as the appearance of horses; and as horsemen, so shall they run_\" — is the angel's-own-expositor anchor. Joel's army is a literal-historical human army (Babylonian invasion of Judah) used figuratively as locusts. The trace gives human cavalry, not demons. **Rev 9:7's word-for-word echo of Joel 2:4 forces the locusts-as-human-cavalry equation by Rule V.**"
+          },
+          {
+            "ruleNumber": "XIII",
+            "ruleName": "every word must be fulfilled",
+            "ruleOrder": 13,
+            "body": "Pioneer reading: turbans (= \"crowns like gold\" — Arab headdress); bearded warriors with men's faces (the Saracens were noted for their beards in contemporary Christian chronicles)."
+          }
+        ]
+      },
+      "status": null,
+      "symbols": null,
+      "notes": [
+        {
+          "label": "Note (not in DAR)",
+          "html": "The Joel 2:4 \"angel's-own-expositor anchor\" is a structural defense; Smith does not cite Joel 2:4 at v.7. The yellow / gold-cloth color specifier is an extension — Smith says only \"like unto a coronet… ornament and their boast.\""
+        }
+      ],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 9:8",
+      "num": 8,
+      "slug": "v-8",
+      "text": "And they had hair as the hair of women, and their teeth were as the teeth of lions.",
+      "pioneerReading": {
+        "citation": "DAR 477.3-477.4",
+        "html": "Smith: \"'Long hair' is esteemed an ornament by women. The Arabs, unlike other men, had their hair as the hair of women, or uncut, as their practice is recorded by Pliny and others. But there was nothing effeminate in their character; for, as denoting their ferocity and strength to devour, their teeth were as the teeth of lions.\" (DAR 477.4). Smith cites Pliny as the authority for the Arab practice of wearing the hair uncut."
+      },
+      "bohrReading": {
+        "citation": "_Revelation's Seven Trumpets_, pp. 177-178",
+        "html": "Bohr handles vv. 8-10 in a single \"Comments on Revelation 9:8-10\" block. Lion-teeth = the destructive power of Satan as a roaring lion. Verbatim: \"The lion is a symbol of the destructive power of Satan who goes about as a roaring lion seeking whom he may devour (1Peter 5:8) and Ellen White compares Satan's angels with lions as well\" (p. 177). He quotes EW p. 191: \"[Satan's] angels went forth like roaring lions, seeking to destroy the followers of Jesus\" (p. 177). No separate gloss on the women's-hair detail."
+      },
+      "warrant": null,
+      "violations": {
+        "scope": "verse",
+        "label": "Miller rules broken",
+        "items": [
+          {
+            "ruleNumber": "XIII",
+            "ruleName": "every word must be fulfilled",
+            "ruleOrder": 13,
+            "body": "The pioneer reading: Saracen cavalry wore their hair long, \"as the hair of women\" — a documented and culturally distinctive feature contemporary observers noted. Bohr offers no historical match for the long-hair specifier."
+          }
+        ]
+      },
+      "status": null,
+      "symbols": null,
+      "notes": [
+        {
+          "label": "Note (not in DAR)",
+          "html": "The \"leonine standards / banners carried by some tribes\" gloss is an extension; Smith reads \"teeth as lions\" simply as a figure of \"ferocity and strength to devour\" (DAR 477.4), not as a banner-emblem identification."
+        }
+      ],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 9:9",
+      "num": 9,
+      "slug": "v-9",
+      "text": "And they had breastplates, as it were breastplates of iron; and the sound of their wings was as the sound of chariots of many horses running to battle.",
+      "pioneerReading": {
+        "citation": "DAR 477.5-477.7",
+        "html": "Smith on the breastplate: \"The cuirass (or breastplate) was in use among the Arabs in the days of Mohammed. In the battle of Ohud (the second which Mohammed fought) with the Koreish of Mecca (A. D. 624), 'seven hundred of them were armed with cuirasses.'\" (DAR 477.6). On the sound of wings: \"The charge of the Arabs was not, like that of the Greeks and Romans, the efforts of a firm and compact infantry; their military force was chiefly formed of cavalry and archers. With a touch of the hand, the Arab horses darted away with the swiftness of the wind. 'The sound of their wings was as the sound of chariots of many horses running to battle.' Their conquests were marvelous both in rapidity and extent, and their attack was instantaneous. Nor was it less successful against the Romans than the Persians.\" (DAR 477.7)."
+      },
+      "bohrReading": {
+        "citation": "_Revelation's Seven Trumpets_, pp. 177-178",
+        "html": "Covered under the single \"Comments on Revelation 9:8-10\" block (p. 177). Bohr does not exposit the breastplate/iron or wings-as-chariots specifiers; he reads vv. 8-10 collectively as demonic battle-imagery (paraphrase of pp. 177-178)."
+      },
+      "warrant": null,
+      "violations": {
+        "scope": "verse",
+        "label": "Miller rules broken",
+        "items": [
+          {
+            "ruleNumber": "XIII",
+            "ruleName": "every word must be fulfilled",
+            "ruleOrder": 13,
+            "body": "Pioneer reading: chain-mail armor and the thunderous sound of mass Arab cavalry on the move — recorded in every Christian chronicle of the Saracen invasions."
+          }
+        ]
+      },
+      "status": null,
+      "symbols": null,
+      "notes": [
+        {
+          "label": "Note (not in DAR)",
+          "html": "The \"chain-mail and scale armor\" specifier and the \"thunderous din used to demoralize Eastern Roman troops before contact\" gloss extend Smith's bare \"cuirasses\" wording; Smith uses the generic Latin-derived \"cuirass\" term and cites the Battle of Ohud (624 AD vs. the Koreish of Mecca) — both before any Byzantine contact."
+        }
+      ],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 9:10",
+      "num": 10,
+      "slug": "v-10",
+      "text": "And they had tails like unto scorpions, and there were stings in their tails: and their power was to hurt men five months.",
+      "pioneerReading": {
+        "citation": "DAR 478.1-479.5",
+        "html": "Smith treats vv.10-11 as a single block (DAR 478.1 quotes both) and locates the **150-year calculation here, not at v.5**. \"Their Power Was to Hurt Men Five Months. — 1. The question arises, What men were they to hurt five months? — Undoubtedly the same they were afterward to slay (see verse 15); 'the third part of men,' or third of the Roman empire, — the Greek division of it.\" (DAR 478.3). On the start date: \"But when did Othman make his first assault on the Greek empire? — According to Gibbon, Decline and Fall, etc., 'Othman first entered the territory of Nicomedia on the 27th day of July, 1299.'\" (DAR 479.2). The calculation: \"'And their power was to hurt men five months.' Thus far their commission extended, to torment by constant depredations, but not politically to kill them. 'Five months,' thirty days to a month, give us one hundred and fifty days; and these days, being symbolic, signify one hundred and fifty years. Commencing July 27, 1299, the one hundred and fifty years reach to 1449. During that whole period the Turks were engaged in an almost perpetual warfare with the Greek empire, but yet without conquering it. They seized upon and held several of the Greek provinces, but still Greek independence was maintained in Constantinople. But in 1449, the termination of the one hundred and fifty years, a change came…\" (DAR 479.5). Smith explicitly credits **Josiah Litch (1838)** for the calculation: \"The calculation which follows, founded on this starting-point, was made and published in a work entitled, Christ's Second Coming, etc., by J. Litch, in 1838.\" (DAR 479.4)."
+      },
+      "bohrReading": {
+        "citation": "_Revelation's Seven Trumpets_, p. 178",
+        "html": "The scorpion-tail with sting = **the lie**. Verbatim: \"In Scripture the tail represents lies (Revelation 12:7-9; John 8:44; Isaiah 9:15). It is significant that during the 1260 years, Satan deceived people by the lie of false religion (false God) but during the age of reason Satan deceived and hurt people by the lies of secularism (no God). According to Daniel 11:40-45, false religion and secularism are the two enemies that will face off during the time of the end. These two will eventually join forces for the final battle\" (p. 178). On the five-month duration: see v. 5 (Bohr's 150 years = Descartes 1637 → French Revolution)."
+      },
+      "warrant": null,
+      "violations": {
+        "scope": "verse",
+        "label": "Miller rules broken",
+        "items": []
+      },
+      "status": null,
+      "symbols": null,
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 9:11",
+      "num": 11,
+      "slug": "v-11",
+      "text": "And they had a king over them, which is the angel of the bottomless pit, whose name in the Hebrew tongue is Abaddon, but in the Greek tongue hath his name Apollyon.",
+      "pioneerReading": {
+        "citation": "DAR 478.5-479.1; verse covered in the same paragraph block as v.10, DAR 478.1",
+        "html": "Smith reads the \"king\" as **the Ottoman sultan / Caliph** in his dual office as Mohammedan high priest and supreme civil ruler, with **Othman** as the founder of the dynastic line that united the previously-leaderless Saracen factions. \"From the death of Mohammed until near the close of the thirteenth century, the Mohammedans were divided into various factions under several leaders, with no general civil government extending over them all. Near the close of the thirteenth century, Othman founded a government which has since been known as the Ottoman government, or empire, extending over all the principal Mohammedan tribes, consolidating them into one grand monarchy.\" (DAR 478.5). On \"the angel of the bottomless pit\": \"An angel signifies a messenger, or minister, either good or bad, and not always a spiritual being. 'The angel of the bottomless pit,' or chief minister of the religion which came from thence when it was opened. That religion is Mohammedanism, and the sultan is its chief minister. 'The Sultan, or grand Seignior, as he is indifferently called, is also Supreme Caliph, or high priest, uniting in his person the highest spiritual dignity with the supreme secular authority.' — World as It Is, p. 361.\" (DAR 478.6). On the name: \"In Hebrew, 'Abaddon,' the destroyer; in Greek, 'Apollyon,' one that exterminates, or destroys. Having two different names in two languages, it is evident that the character, rather than the name of the power, is intended to be represented. If so, as expressed in both languages, he is a destroyer. Such has always been the character of the Ottoman government.\" (DAR 479.1)."
+      },
+      "bohrReading": {
+        "citation": "_Revelation's Seven Trumpets_, p. 179",
+        "html": "The king Abaddon/Apollyon (\"destroyer\") = **Satan personally**. Verbatim: \"The king who rules over the locusts is the angel of the Abyss, and his name in Hebrew is Abaddon, and in Greek, Apollyon.' The names Abaddon and Apollyon mean 'destroyer.' The New Testament describes Satan as the ruler or prince of demons (Matthew 12:24) and Jesus referred to him as the 'destroyer' (John 10:10). This means that the locusts represent Satan's angels\" (p. 179)."
+      },
+      "warrant": null,
+      "violations": {
+        "scope": "verse",
+        "label": "Miller rules broken",
+        "items": [
+          {
+            "ruleNumber": "XIII",
+            "ruleName": "every word must be fulfilled",
+            "ruleOrder": 13,
+            "body": "The pioneer reading reads the name _descriptively_ — \"destroyer\" fits the character of the Saracen scourge — and identifies the named historical \"king of the locusts\" as Othman / the first Caliphs, the actual political head of the Saracen movement. Bohr's Satan-personally reading provides no specific historical \"destroyer\" name fulfillment."
+          },
+          {
+            "ruleNumber": "IV",
+            "ruleName": "no contradiction",
+            "ruleOrder": 4,
+            "body": "Bohr already identified Satan as the fallen _star_ of 9:1. Now Satan is _also_ the king of the locusts of 9:11 — but the text distinguishes the two (the star is given the key to the pit; the king is the angel _of_ the pit). Two distinct actors collapsed into one creates Rule-IV contradiction within the same passage. (This is exactly Joseph Seiss's argument against the Saracen-Mohammed identification, which Bohr quotes against the pioneer reading — but it cuts equally against Bohr's own Satan-twice reading.)"
+          }
+        ]
+      },
+      "status": null,
+      "symbols": {
+        "label": "Symbols redefined",
+        "html": "Abaddon / Apollyon (Catalog D)."
+      },
+      "notes": [
+        {
+          "label": "Note (not in DAR)",
+          "html": "The Joel-2 cross-reference (\"his army… very great\") and the Proverbs 30:27 inversion-signal argument are structural defenses not invoked by Smith at v.11. Smith's reading is character-based (\"destroyer\" fits the Ottoman government's documented historical character) and institutional (Sultan-as-Caliph), not Joel/Proverbs cross-referencing."
+        }
+      ],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 9:12",
+      "num": 12,
+      "slug": "v-12",
+      "text": "One woe is past; and, behold, there come two woes more hereafter.",
+      "pioneerReading": {
+        "citation": "DAR 480.1-480.2; vv.12-15 share the same paragraph block",
+        "html": "Smith quotes vv.12-15 together and glosses: \"The first woe was to continue from the rise of Mohammedanism until the end of the five months. Then the first woe was to end, and the second to begin. And when the sixth angel sounded, it was commanded to take off the restraints which had been imposed on the nation, by which they were restricted to the work of tormenting men, and their commission was enlarged so as to permit them to slay the third part of men. This command came from the four horns of the golden altar.\" (DAR 480.2)."
+      },
+      "bohrReading": {
+        "citation": "_Revelation's Seven Trumpets_, p. 142",
+        "html": "No discrete \"Comments on Verse 12\" section. In the trumpet-structure summary Bohr writes: \"Revelation 9:12: When the events of the fifth trumpet conclude the text tells us that the first woe was finished\" (p. 142). The end-of-first-woe = end of the French Revolution; the sixth trumpet then \"relates to events that transpire between 1844 and the close of probation\" (p. 315)."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No new violation; depends on the framework set in vv. 1-11."
+      },
+      "symbols": null,
+      "notes": [
+        {
+          "label": "Note (not in DAR)",
+          "html": "The further parsing into specific date-brackets (\"Saracens 622-1449,\" \"trumpet 6 ending August 11, 1840,\" trumpet 7 = Rev 11:14-15) is correct pioneer framing pulled from Smith's broader Rev 9-11 commentary (e.g., DAR 485.1 for Aug 11, 1840), but at v.12 itself Smith's gloss is just the woe-to-woe transition mechanism (restraint lifted; the killing commission enlarged)."
+        }
+      ],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 9:13",
+      "num": 13,
+      "slug": "v-13",
+      "text": "And the sixth angel sounded, and I heard a voice from the four horns of the golden altar which is before God,",
+      "pioneerReading": {
+        "citation": "DAR covers this verse within paragraph 480.1-480.2 on vv.12-15",
+        "html": "Smith quotes vv.12-15 in a single block (DAR 480.1) and glosses v.13's voice from the altar tersely: \"This command came from the four horns of the golden altar.\" (DAR 480.2, closing the paragraph that explains the woe-transition). Smith does not develop the four-horns as a four-fold-completeness motif or cross-reference Exod 30:1-10."
+      },
+      "bohrReading": {
+        "citation": "_Revelation's Seven Trumpets_, pp. 315-316",
+        "html": "The altar = the **altar of incense** (not the altar of sacrifice); the speaker = **Jesus Christ the Mediator** (since the altar is _before_ God). Verbatim: \"The altar in view in Revelation 9:13 is not the altar of sacrifice but rather the altar of incense. As we have noted, the sixth trumpet relates to events that transpire between 1844 and the close of probation. Significantly, blood was rubbed on the horns of the altar of incense once a year for an atonement to cleanse the sanctuary from the sins of Israel that had entered there throughout the course of the year (Exodus 30:10; Leviticus 16:16-18)\" (pp. 315-316). On the speaker: \"It is obvious that God the Father is not the one who is speaking here from the four horns because the altar is 'before God'. The one who stands ministering at the altar of incense before God, presenting the prayers of the saints is none other than Jesus Christ Himself, the Mediator (1Timothy 2:5; Hebrews 7:25)\" (p. 315). The sixth-trumpet anchor: starts in 1844, intensifies toward close of probation."
+      },
+      "warrant": null,
+      "violations": {
+        "scope": "verse",
+        "label": "Miller rules broken",
+        "items": [
+          {
+            "ruleNumber": "I",
+            "ruleName": "every word bears",
+            "ruleOrder": 1,
+            "body": "The \"voice from the four horns\" specification is unconnected to a specific 1844-onward event; Bohr treats it as scene-setting rather than as a load-bearing detail. The pioneer reading: the voice represents the divine command issuing from the altar of intercession at the appointed _hour_ of the Ottoman fulfillment."
+          }
+        ]
+      },
+      "status": null,
+      "symbols": null,
+      "notes": [],
+      "extensions": [
+        {
+          "label": "Extension beyond Smith (not in DAR)",
+          "html": "The \"four-fold completeness of the divine command,\" the \"altar of intercession marking the appointed hour,\" and the \"structural echo of the four bound angels\" are interpretive amplifications not in Smith's v.13 sentence. Smith treats the voice as functional (it is _the_ command that releases the four angels); the symbolism of the horns themselves is not unpacked."
+        }
+      ],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 9:14",
+      "num": 14,
+      "slug": "v-14",
+      "text": "Saying to the sixth angel which had the trumpet, Loose the four angels which are bound in the great river Euphrates.",
+      "pioneerReading": {
+        "citation": "DAR 480.3, 481.2-481.3",
+        "html": "Smith: \"**The Four Angels. — These were the four principal sultanies of which the Ottoman empire was composed, located in the country watered by the great river Euphrates. These sultanies were situated at Aleppo, Iconium, Damascus, and Bagdad. Previously they had been restrained; but God commanded, and they were loosed.**\" (DAR 480.3). On the release-event sequence under Mohammed II: \"Amurath, the sultan to whom the submission of Constantine XIII was made… soon after died, and was succeeded in the empire, in 1451, by Mohammed II, who set his heart on securing Constantinople as the seat of his empire. He accordingly made preparations for besieging and taking the city. **The siege commenced on the 6th of April, 1453, and ended in the capture of the city, and the death of the last of the Constantines, on the 16th day of May following.** And the eastern city of the Caesars became the seat of the Ottoman empire.\" (DAR 481.2-481.3)."
+      },
+      "bohrReading": {
+        "citation": "_Revelation's Seven Trumpets_, pp. 316-318",
+        "html": "The four angels = **evil angels** (distinct from the good restraining angels of Rev 7:1-4); the number \"four\" = universality/global extent (Ezek 7:2; Matt 24:31; Rev 7:1-2); the river Euphrates = **symbolic peoples-and-multitudes** per Rev 16:12 / Rev 17:15. Verbatim: \"Some have confused the four angels who hold the winds in Revelation 7:1-4 with the four angels that wreak havoc on mankind in the trumpets. However, these four angels are not the good angels that hold back the winds of strife in Revelation 7:1-4. These evil angels are waiting for God to release them so that they can wreak havoc on humankind…. We are not to understand that only four angels cause the devastation. The number four represents universality or global extent (see Ezekiel 7:2; Matthew 24:31; Revelation 7:1, 2). In other words, Satan and his angels go to the whole world to wreak havoc beginning in 1844 but especially intensifying as the close of probation approaches\" (p. 316). On the Euphrates Bohr argues from Rev 16:12 consistency: \"Some have sought to find an application of the sixth trumpet to the phenomenal growth of radical Islam because of the mention of the river Euphrates. The question that we must ask is this: What hermeneutical principle allows these expositors to say that the Euphrates in Revelation 9 is referring to a literal geographical location in the Middle East while the Euphrates of Revelation 16 refers to the multitudes of the whole world under the control of spiritual Babylon. In short, why are we to understand the Euphrates in Revelation 16:12 as symbolic while we understand the one in Revelation 9 as literal, when both of them apply to the same period of the end time (sixth trumpet and sixth plague)? An important prophetic principle is that after the cross, prophecy uses the same terminology as the Old Testament but removes the geographical limitations\" (pp. 316-317). The restraint = the deadly wound to the papacy by the civil powers from 1798; the release = when the lamb-horned beast restores the sword to the papacy (paraphrase of pp. 317-318)."
+      },
+      "warrant": null,
+      "violations": {
+        "scope": "verse",
+        "label": "Miller rules broken",
+        "items": [
+          {
+            "ruleNumber": "V",
+            "ruleName": "Scripture is its own expositor",
+            "ruleOrder": 5,
+            "body": "Rev 17:15's angelic gloss of \"waters\" applies specifically to \"the waters where the harlot sits\" — it is bounded to that vision. Bohr's import of it backward onto Rev 9:14 and Rev 16:12 extends the angel's explanation beyond the angel's stated scope. Miller's Rule V means _let Scripture explain itself where Scripture chooses to explain_ — not _generalize one angel's explanation as a universal symbol-dictionary_."
+          },
+          {
+            "ruleNumber": "XII",
+            "ruleName": "trace the figure",
+            "ruleOrder": 12,
+            "body": "The trace of \"Euphrates\" gives literal river contexts in Gen 15:18, Jer 51:36 (where the literal Euphrates is dried up under Cyrus to take Babylon — a literal historical event). The pioneer reading: literal Euphrates region = Ottoman Turkish heartland (four sultanies of Aleppo, Iconium, Damascus, Baghdad bound until the appointed time). Bohr's reading vacates the literal Euphrates entirely."
+          },
+          {
+            "ruleNumber": "XI",
+            "ruleName": "literal first",
+            "ruleOrder": 11,
+            "body": "The literal-political reading (four Ottoman sultanies) fits without violence to nature."
+          },
+          {
+            "ruleNumber": "IV",
+            "ruleName": "no contradiction",
+            "ruleOrder": 4,
+            "body": "Bohr also identifies the four angels as **evil** — but Rev 7:1's four angels at the four corners of the earth holding the winds are explicitly **God's restraining angels** in the standard pioneer reading. The number \"four\" reused in the same book without a clear textual signal of polarity-flip creates Rule-IV strain. (Bohr does address this — he says these are _different_ angels — but only by adding interpretive content the text does not require.)"
+          }
+        ]
+      },
+      "status": null,
+      "symbols": {
+        "label": "Symbols redefined",
+        "html": "Euphrates (Catalog A) — **the master spiritualization on which Bohr's entire end-time framework rests.**"
+      },
+      "notes": [
+        {
+          "label": "Note (not in DAR)",
+          "html": "The commonly-cited fall-of-Constantinople date in secular sources is **May 29, 1453**; Smith specifies **May 16** as the day Constantine XIII fell. The \"three branches of the old Roman world\" taxonomy is not Smith's framing at v.14 — Smith's \"third part of men\" gloss earlier (DAR 478.3 at v.10) calls it \"the Greek division\" of the Roman empire, not a three-branch fragmentation."
+        }
+      ],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 9:15",
+      "num": 15,
+      "slug": "v-15",
+      "text": "And the four angels were loosed, which were prepared for an hour, and a day, and a month, and a year, for to slay the third part of men.",
+      "pioneerReading": {
+        "citation": "DAR 481.1, 485.1-487.1",
+        "html": "Smith gives the calculation verbatim: \"**The four angels were loosed for an hour, a day, a month, and a year, to slay the third part of men. This period amounts to three hundred ninety-one years and fifteen days, during which Ottoman supremacy was to exist in Constantinople.** Thus: A prophetic year is three hundred and sixty prophetic days, or three hundred and sixty literal years; a prophetic month, thirty prophetic days, is thirty literal years; one prophetic day is one literal year; and an hour, or the twenty-fourth part of a prophetic day, would be a twenty-fourth part of a literal year, or fifteen days; the whole amounting to three hundred and ninety-one years and fifteen days.\" (DAR 481.1). The period: \"**Commencing when the one hundred and fifty years ended, July 27, 1449, the period would end Aug. 11, 1840.**\" (DAR 485.1). Smith credits Litch by name and book: \"This conclusion was reached, and this application of the prophecy was made, by **Elder J. Litch in 1838**, two years before the predicted event was to occur. It was then purely a matter of calculation on the prophetic periods of Scripture.\" (DAR 485.2). The mechanism: the sultan's \"voluntary surrender of the question into [the four powers'] hands\" — the ultimatum was placed in Mehemet Ali's hands by Rifat Bey \"**on the eleventh day of August, 1840!**… This day the period of three hundred and ninety-one years and fifteen days, allotted to the continuance of the Ottoman power, ended; and where was the sultan's independence? — GONE!\" (DAR 486.2-487.1). Smith adds the public reception: \"From the first publication of the calculation of this matter in 1838… the time set for the fulfillment of the prophecy — Aug. 11, 1840 — was watched by thousands with intense interest. And the exact accomplishment of the event predicted, showing, as it did, the right application of the prophecy, gave a mighty impetus to the great Advent movement then beginning to attract the attention of the world.\" (DAR 487.1)."
+      },
+      "bohrReading": {
+        "citation": "_Revelation's Seven Trumpets_, p. 319",
+        "html": "Not a duration (~391 years) but a **single date marker** — the four time-units (hour, day, month, year) collapse onto **Oct 22, 1844**. Verbatim: \"What is the meaning of the expression 'the hour, the day, the month and the year'? A careful study of Revelation indicates that the hour is 'the hour of God's judgment' (14:6, 7). Other parts of Scripture indicate that the day refers to the 10th day, the month is Tishri (the seventh month), and the year is 1844 (see Leviticus 23:27; Daniel 8:14)\" (p. 319). Bohr cites Jamieson-Fausset-Brown for the single-article-binding-all-units grammar: \"the article [teen], once only before all the periods implies that the hour in the day, and the day in the month, and the month in the year, and the year itself, had been definitely fixed by God\" (p. 319). Bohr explicitly disowns Litch's August 11, 1840 prediction (Appendix, pp. 365-371): \"Litch's interpretation was based upon the works of commentators and historians rather than upon the testimony of the Bible as its own interpreter\" (p. 365). \"Ignoring what was actually written, [Litch] proceeded on the assumption that the prophecy was foretelling the length of time before the powerful phase of the Ottoman Empire would cease; but that idea is not even hinted at in the above quoted text\" (pp. 367-368). \"Were the events of August 11, 1840 a fulfillment of the prophecy of Revelation 9:15? **The answer is no.** The length of time that the Muslim Ottoman Empire would continue as a powerful nation is not even mentioned in Revelation 9:15\" (pp. 369-370). On EGW's GC pp. 334-335 endorsement: \"the only possible conclusion is that the Lord's messenger is speaking of the prophecy of Josiah Litch, not the prophecy of the apostle John recorded in Revelation 9:15…. Josiah Litch's interpretation was not worked out under the inspiration of the Holy Spirit. Who, then, did inspire it? Evidently, Satan did [I here disagree with the author. I believe that Litch reached his conclusions based on human error]\" (pp. 370-371). [Note: the bracketed dissent is Bohr's own — he quotes another author crediting Satan, then explicitly disagrees and substitutes \"human error.\"] Bohr also raises the Gregorian-calendar adjustment (1582) as a technical defeater (p. 369) and approvingly quotes Pfandl's appendix that Battle of Bapheus actually fell on July 27, **1302**, not 1299 (p. 375)."
+      },
+      "warrant": null,
+      "violations": {
+        "scope": "verse",
+        "label": "Miller rules broken",
+        "items": [
+          {
+            "ruleNumber": "XI",
+            "ruleName": "literal first",
+            "ruleOrder": 11,
+            "body": "The natural grammatical reading of \"for an hour, and a day, and a month, and a year\" is a **compound time-period** (the same grammatical pattern as Hebrew month-day-year date specifications used as durations elsewhere). This makes sense as it stands and does no violence to the text. Bohr's re-reading as four _separate_ date-components (one moment, plus one calendar-day, plus one calendar-month, plus one calendar-year — all collapsing onto Oct 22 1844) requires recharacterizing the conjunctions and resists the verse's plain grammar."
+          },
+          {
+            "ruleNumber": "XIII",
+            "ruleName": "every word must be fulfilled",
+            "ruleOrder": 13,
+            "body": "**This is the strongest Rule-XIII case in the entire prophetic corpus.** Litch published the 391-years-15-days prediction in 1838, **two years in advance**, naming August 11, 1840 as the day Ottoman supremacy would end. The Ottoman Sultan's acceptance of the European Powers' ultimatum on that exact date is a matter of secular historical record. **Every word of Rev 9:15 fulfilled in 1840, on the exact day Litch had named two years before** — and the Millerite movement publicly cited this as the prophetic vindication that galvanized the 1840s preaching. Setting aside this fulfillment requires Bohr to deny the most public \"every word fulfilled\" event in modern prophetic history."
+          },
+          {
+            "ruleNumber": "IV",
+            "ruleName": "no contradiction",
+            "ruleOrder": 4,
+            "body": "Bohr's Day-of-Atonement (Oct 22 1844) reading creates a contradiction with the same verse's clause \"**to slay the third part of men**\" — the Day of Atonement was not historically marked by mass killing. The natural fulfillment of \"slay the third part\" is the Ottoman conquest's military campaigns culminating in 1453 (fall of Constantinople, the third part of the Christian world fell to Turkish arms). Bohr's reading leaves the \"slay the third part\" specification orphaned."
+          },
+          {
+            "ruleNumber": "V",
+            "ruleName": "Scripture is its own expositor",
+            "ruleOrder": 5,
+            "body": "_The Great Controversy_, p. 335, treats Litch's prediction as a divinely-given confirmation of the prophetic chain. Bohr's framework requires reading EGW's own testimony as describing an _uninspired_ interpretation that God merely permitted — a substantial weakening of the EGW witness Bohr otherwise affirms."
+          }
+        ]
+      },
+      "status": null,
+      "symbols": {
+        "label": "Symbols redefined",
+        "html": "\"Hour, day, month, year\" (Catalog B) — **the most consequential Rule-XIII violation in Bohr's Revelation framework.**"
+      },
+      "notes": [
+        {
+          "label": "Note (not in DAR)",
+          "html": "July 27, 1449 is Smith's **calendar boundary** between the 150-year and 391-year-15-day periods (DAR 485.1), derived by adding 150 years to July 27, 1299 — it is not the recorded date of Constantine XIII's accession per se; the surrounding paragraphs (DAR 480.4-480.5) describe his accession as \"in the year 1449\" without a specific day. The Litch publication is named by Smith at DAR 479.4 as \"**Christ's Second Coming**, etc., by J. Litch, in 1838\" — _not_ \"Address to the Public.\" The phrase \"_Convention for the Pacification of the Levant_\" is the historical name of the four-power agreement Smith describes in functional terms (DAR 485.3-486.2) but does not name. The EGW quotation is from _GC_ p. 335 (not in DAR)."
+        }
+      ],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 9:16",
+      "num": 16,
+      "slug": "v-16",
+      "text": "And the number of the army of the horsemen were two hundred thousand thousand: and I heard the number of them.",
+      "pioneerReading": {
+        "citation": "DAR 481.5-481.6",
+        "html": "Smith quotes Gibbon for the Turkish-horse vastness: \"Innumerable hordes of horses, and them that sat on them! Gibbon thus describes the first invasion of the Roman territories by the Turks: '**The myriads of Turkish horse overspread a frontier of six hundred miles, from Taurus to Erzeroum; and the blood of 130,000 Christians was a grateful sacrifice to the Arabian Prophet.**'\" (DAR 481.6). Smith is **explicitly uncertain** about the literal-number question: \"Whether the language is designed to convey the idea of any definite number or not, the reader must judge. Some suppose 200,000 twice told is meant, and, following some historians, they find that number of Turkish warriors in the siege of Constantinople. Some think 200,000,000 to mean all the Turkish warriors during the three hundred and ninety-one years and fifteen days of their triumph over the Greeks. **Nothing can be affirmed on the point. And it is nothing at all essential.**\" (DAR 481.6)."
+      },
+      "bohrReading": {
+        "citation": "_Revelation's Seven Trumpets_, pp. 319-320",
+        "html": "200 million = a vast **demonic** army, deliberately contrasted with the 144,000. The \"I heard the number\" idiom links Rev 9:16 to Rev 7:4 (the only two such uses in Revelation). Verbatim: \"The number of the enemy is huge in comparison to the 144,000 of Revelation 7:4. These are the only two verses in Revelation where John uses the expression 'I heard the number' so they must be related in some way. Revelation 7:4 is transpiring during the sixth seal and Revelation 9:16 is occurring during the period of the sixth trumpet\" (pp. 319-320). He cites EGW 9T p. 231: \"Satan numbers the world as his subjects… here is a little company that are resisting his supremacy. If he could blot them from the earth, his triumph would be complete\" (p. 320). The army's source: \"This army clearly rises figuratively from hell. These are the same spirits of demons in Revelation 16:14 that God releases to gather the kings of the earth and the whole world against God's people\" (p. 320, given under v.17 in Bohr's structure)."
+      },
+      "warrant": null,
+      "violations": {
+        "scope": "verse",
+        "label": "Miller rules broken",
+        "items": [
+          {
+            "ruleNumber": "XII",
+            "ruleName": "trace the figure",
+            "ruleOrder": 12,
+            "body": "The cross-reference to **Ps 68:17** (\"_The chariots of God are twenty thousand, even thousands of angels_\") shows the pattern of large numbers describing massive military formations. The pioneer reading: hyperbolic-but-literal-historical reference to the immense Turkish cavalry forces that swept across Asia Minor and the Balkans 1453-1530s. Bohr's demon-army reading provides no specific historical fulfillment."
+          },
+          {
+            "ruleNumber": "XI",
+            "ruleName": "literal first",
+            "ruleOrder": 11,
+            "body": "Literal-historical (vast Turkish cavalry) makes sense without violence; spiritualization is unnecessary."
+          }
+        ]
+      },
+      "status": null,
+      "symbols": null,
+      "notes": [
+        {
+          "label": "Note (not in DAR)",
+          "html": "The \"1453-1530s\" date-bracket and the explicit \"Vienna 1529\" terminus are interpretive amplifications; Smith offers only the broad \"three hundred and ninety-one years and fifteen days of their triumph over the Greeks\" window. The Ps 68:17 cross-reference is structural, not invoked by Smith here."
+        }
+      ],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 9:17",
+      "num": 17,
+      "slug": "v-17",
+      "text": "And thus I saw the horses in the vision, and them that sat on them, having breastplates of fire, and of jacinth, and brimstone: and the heads of the horses were as the heads of lions; and out of their mouths issued fire and smoke and brimstone.",
+      "pioneerReading": {
+        "citation": "DAR 482.2, 483.1-483.3",
+        "html": "Smith on the color-coded uniforms: \"The first part of this description may have reference to the appearance of these horsemen. **Fire, representing a color, stands for red, 'as red as fire' being a frequent form of expression; jacinth, or hyacinth, for blue; and brimstone, for yellow. And these colors greatly predominated in the dress of these warriors; so that the description, according to this view, would be accurately met in the Turkish uniform, which was composed largely of red, or scarlet, blue, and yellow.** The heads of the horses were, in appearance, as the heads of lions, to denote their strength, courage, and fierceness; while the last part of the verse undoubtedly has reference to the use of gunpowder and firearms for purposes of war, which were then but recently introduced. **As the Turks discharged their firearms on horseback, it would appear to the distant beholder that the fire, smoke, and brimstone, issued out of the horses' mouths.**\" (DAR 482.2). Smith expressly contests the commentator-consensus that limits this to large cannon only: \"Barnes thinks this was the case; and a statement from Gibbon confirms this view. He says (IV, 343): '**The incessant volleys of lances and arrows were accompanied with the smoke, the sound, and the fire of their musketry and cannon.**' Here is good historical evidence that muskets were used by the Turks; and, secondly, it is undisputed that in their general warfare they fought principally on horseback. The inference is therefore well supported that they used firearms on horseback.\" (DAR 482.2 footnote). Smith quotes Elliott (_Horae Apocalypticae_, Vol. I, pp. 482-484) at length on the Constantinople siege: \"It was to 'the fire and the smoke and the sulphur,' to the artillery and firearms of Mahomet, that the killing of the third part of men, i. e., the capture of Constantinople, and by consequence the destruction of the Greek empire, was owing… '**Canst thou cast a cannon,**' was [Mahomet's] question to the founder of cannon that deserted to him, '**of size sufficient to batter down the wall of Constantinople?**' Then the foundry was established at Adrianople, the cannon cast, the artillery prepared, and the siege began.\" (DAR 483.1-483.2). Smith notes the cannon foundry at Adrianople and that Gibbon \"always the unconscious commentator on the Apocalyptic prophecy\" places the gunpowder revolution at the foreground of the empire's fall (DAR 483.3)."
+      },
+      "bohrReading": {
+        "citation": "_Revelation's Seven Trumpets_, p. 320",
+        "html": "The fire/jacinth/brimstone breastplates + lion-headed horses spewing fire/smoke/brimstone = an army \"figuratively from hell,\" explicitly Satan and his demons (Leviathan-imagery from Job 41). Verbatim: \"This army clearly rises figuratively from hell. These are the same spirits of demons in Revelation 16:14 that God releases to gather the kings of the earth and the whole world against God's people. They are the same demons that the 'fourth angel's message' refers to in Revelation 18:2, 3. Clearly, we have here a portrait of Satan and the wicked that are always described in the context of the lake of fire (Psalm 11:6; Ezekiel 38:22; Revelation 14:10; 19:20; 20:10; 21:8). The fire and smoke coming out of the mouths of the horses reminds us of the story of Leviathan in the book of Job where he has smoke and fire come from His mouth (Job 41:19-21, 31-34). Elsewhere, the Bible identifies Leviathan as the dragon, the ancient serpent, the devil and Satan (Isaiah 27:1; Revelation 12:7-9)\" (p. 320)."
+      },
+      "warrant": null,
+      "violations": {
+        "scope": "verse",
+        "label": "Miller rules broken",
+        "items": [
+          {
+            "ruleNumber": "XIII",
+            "ruleName": "every word must be fulfilled",
+            "ruleOrder": 13,
+            "body": "The pioneer reading: red/blue/yellow (jacinth) uniform-coloring of Turkish cavalry units — well-documented in 15th-16th century military chronicles. The fire-smoke-brimstone from horses' mouths = **the Ottoman gunpowder revolution** — the Turks were the first major power to deploy cannon and firearms in mass-cavalry warfare (decisive at Constantinople 1453 with the giant siege bombards). The horses' lion-heads = the forward-thrusting cavalry charge profile. Every clause fits. Bohr's spiritualized \"hellish imagery\" provides no equivalent historical fingerprint."
+          }
+        ]
+      },
+      "status": null,
+      "symbols": null,
+      "notes": [
+        {
+          "label": "Note (not in DAR)",
+          "html": "\"Janissary and Sipahi units\" as the specific named-unit identifications, \"Urban's monster cannon,\" and \"Theodosian walls\" are externally-correct historical glosses not in Smith's paragraph (Smith names Adrianople as the foundry site and quotes Gibbon/Elliott on the artillery breaching the walls, without naming Urban). \"Bishop Newton\" is not cited by Smith here — the commentators Smith footnotes are **Clarke, Barnes, Elliott, Cottage Bible** (DAR 482.2 footnote)."
+        }
+      ],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 9:18",
+      "num": 18,
+      "slug": "v-18",
+      "text": "By these three was the third part of men killed, by the fire, and by the smoke, and by the brimstone, which issued out of their mouths.",
+      "pioneerReading": {
+        "citation": "DAR 484.1-484.2; vv.18-19 share the same paragraph block",
+        "html": "Smith treats vv.18-19 together: \"**These verses express the deadly effect of the new mode of warfare introduced. It was by means of these agents, — gunpowder, firearms, and cannon, — that Constantinople was finally overcome, and given into the hands of the Turks.**\" (DAR 484.2). The \"third part\" identification is fixed back at DAR 478.3 (v.10): \"'the third part of men,' or **third of the Roman empire, — the Greek division of it**.\""
+      },
+      "bohrReading": {
+        "citation": "_Revelation's Seven Trumpets_, p. 320",
+        "html": "What kills = **what comes out of the mouth** — i.e., false doctrine spewed by the threefold end-time confederacy of Rev 16:13. Verbatim: \"Notice that what comes out of the mouth is what kills the wicked. In the book of Revelation, fire, brimstone and smoke relate to those who worship the beast and his image and receive the mark. Notably Revelation 16:13 explains that the evil spirits come out of the mouth of the threefold union\" (p. 320)."
+      },
+      "warrant": null,
+      "violations": {
+        "scope": "verse",
+        "label": "Miller rules broken",
+        "items": []
+      },
+      "status": null,
+      "symbols": null,
+      "notes": [],
+      "extensions": [
+        {
+          "label": "Extension beyond Smith (not in DAR)",
+          "html": "The \"three branches of the original Roman empire (Western — fallen 476 AD; Greek/Eastern — falling here; the in-between Arabic/Saracen sphere)\" taxonomy is **not** Smith's framing. Smith's \"third part\" is simply \"the Greek division\" of the Roman world (DAR 478.3). The three-branch split with the Saracen sphere as the in-between third is a later-pioneer / external-historical schema, not DAR-attested."
+        }
+      ],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 9:19",
+      "num": 19,
+      "slug": "v-19",
+      "text": "For their power is in their mouth, and in their tails: for their tails were like unto serpents, and had heads, and with them they do hurt.",
+      "pioneerReading": {
+        "citation": "DAR 484.3; verse covered in the same block as v.18, DAR 484.1",
+        "html": "Smith's gloss on the \"tails\" identifies them as the Turkish horsetail-standard, not as a feigned-retreat tactic: \"In addition to the fire, smoke, and brimstone, which apparently issued out of their mouths, it is said that their power was also in their tails. **It is a remarkable fact that the horse's tail is a well-known Turkish standard, a symbol of office and authority. The meaning of the expression appears to be that their tails were the symbol, or emblem of their authority.** The image before the mind of John would seem to have been that he saw the horses belching out fire and smoke, and, what was equally strange, he saw that their power of spreading desolation was connected with the tails of the horses. Any one looking on a body of cavalry with such banners, or ensigns, would be struck with this unusual or remarkable appearance, and would speak of their banners as concentrating and directing their power.\" (DAR 484.3)."
+      },
+      "bohrReading": {
+        "citation": "_Revelation's Seven Trumpets_, p. 321",
+        "html": "Mouths-like-lions = Babylonian / satanic devouring (Dan 7; Jer 4:7; James 5:8 / 1 Peter 5:8); tails-as-serpents-with-heads = **lies** weaponized via the three-fold counterfeit (Rev 16:13-14). Verbatim: \"The horses have mouths like lions. Elsewhere in the Bible Babylon is portrayed as a devouring lion (Daniel 7:2) as is its king, Nebuchadnezzar (Jeremiah 4:7) and Satan is described as a ravenous lion seeking whom he may devour (James 5:8). Revelation 16:13, 14 clarifies that the false doctrines of the three counterfeit angels come out of the mouth and they gather the wicked for the final battle against God. The tail is a symbol of lies (Revelation 12:3-4; John 8:44; Isaiah 9:14). Notice that the mouth is in the tail\" (p. 321)."
+      },
+      "warrant": null,
+      "violations": {
+        "scope": "verse",
+        "label": "Miller rules broken",
+        "items": [
+          {
+            "ruleNumber": "XIII",
+            "ruleName": "every word must be fulfilled",
+            "ruleOrder": 13,
+            "body": "Pioneer reading (Smith, DAR 484.3): \"tails\" = the **Turkish horsetail-standard** (the _tug_), the well-known military emblem of office and authority carried by Ottoman pashas — a documented institutional fact of Ottoman military organization. Bohr offers no equivalent historical fingerprint."
+          }
+        ]
+      },
+      "status": null,
+      "symbols": null,
+      "notes": [],
+      "extensions": [
+        {
+          "label": "Extension beyond Smith (not in DAR)",
+          "html": "The \"feigned retreat / Parthian shot / composite recurve bow / rear-thrown javelins\" identification is **not** Smith's reading. Smith reads \"tails\" as **the Turkish horsetail-banner** — a well-documented military standard / symbol of office (the _tug_ or horsetail standard, carried by pashas of varying ranks). The cavalry-tactics reading is an externally-derived alternative; Smith's reading is the standard / banner / emblem reading."
+        }
+      ],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 9:20",
+      "num": 20,
+      "slug": "v-20",
+      "text": "And the rest of the men which were not killed by these plagues yet repented not of the works of their hands, that they should not worship devils, and idols of gold, and silver, and brass, and stone, and of wood: which neither can see, nor hear, nor walk:",
+      "pioneerReading": {
+        "citation": "DAR 487.2-487.4; vv.20-21 share the same paragraph block",
+        "html": "Smith reads \"the rest of men\" as **the surviving Roman-Catholic Christendom** unmoved by the Ottoman judgment: \"God designs that men shall make a note of his judgments, and receive the lessons he thereby designs to convey. But how slow are they to learn! and how blind to the indications of providence! The events that transpired under the sixth trumpet constituted the second woe; yet these judgments led to no improvement in the manners and morals of men. Those who escaped them learned nothing by their manifestation in the earth. **The worship of devils (demons, dead men deified) and of idols of gold, silver, brass, stone, and wood, may find a fulfillment in the saint worship and image worship of the Roman Catholic Church**; while of murders, sorceries (pretended miracles through the agency of departed saints), fornications, and thefts, in countries where the Roman religion has prevailed, there has been no lack.\" (DAR 487.3). The framing sentence: \"**The hordes of Saracens and Turks were let loose as a scourge and punishment upon apostate Christendom. Men suffered the punishment, but learned therefrom no lesson.**\" (DAR 487.4). Smith reads \"worship of devils\" specifically as the worship of \"demons, dead men deified\" — i.e., the cult of canonized saints."
+      },
+      "bohrReading": {
+        "citation": "_Revelation's Seven Trumpets_, p. 321",
+        "html": "The idol-list verbatim echoes **Daniel 5:23** (Belshazzar's feast), linking three end-time texts: Babylon's fall (Dan 5), the drying-up of the Euphrates (Rev 16:12), and the sixth trumpet (Rev 9:20). Verbatim: \"The expression 'idols of gold, silver, brass, stone, and wood, which can neither see nor hear nor walk' comes almost verbatim from Daniel 5:23. Daniel 5 describes the fall of Babylon when the Euphrates dried up. Thus, this verse links three passages: The fall of Babylon in Daniel 5, the drying up of the Euphrates in Revelation 16:12 and the sixth trumpet of Revelation 9:20\" (p. 321). \"Worship demons\" Bohr cross-references to Rev 18:2-3 (paraphrase of p. 321)."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No major violation, but Bohr's sixth-trumpet anchor (1844 → close of probation) makes \"the rest of men\" refer to _future_ unrepentance, which loses the historical _post-1453_ specificity the verse requires. The pioneer reading lands the verse on a documented historical situation (Tridentine reaffirmation of image-worship); Bohr's reading floats."
+      },
+      "symbols": null,
+      "notes": [
+        {
+          "label": "Note (not in DAR)",
+          "html": "The Council of Trent (1545-1563) and its reaffirmation of image-veneration is **not** named by Smith at v.20. Smith's language is general (\"saint worship and image worship of the Roman Catholic Church\") without dating to a specific council. The \"Western/Eastern\" geographical split of where the punishment fell vs. where the unrepentant resided is a structural amplification — Smith says simply that those who \"escaped\" the woes (those not killed) failed to repent."
+        }
+      ],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 9:21",
+      "num": 21,
+      "slug": "v-21",
+      "text": "Neither repented they of their murders, nor of their sorceries, nor of their fornication, nor of their thefts.",
+      "pioneerReading": {
+        "citation": "DAR covers this verse within paragraph 487.3 on vv.20-21",
+        "html": "Smith's gloss on the four sins is compact and one-line: \"**of murders, sorceries (pretended miracles through the agency of departed saints), fornications, and thefts, in countries where the Roman religion has prevailed, there has been no lack.**\" (DAR 487.3). Smith's only substantive _exegetical_ identification is **sorceries = \"pretended miracles through the agency of departed saints\"** — i.e., the relic-cults and saint-miracle apparatus of Medieval Catholicism. The other three sins (murders, fornications, thefts) Smith leaves at the level of historical observation (\"there has been no lack\" in Roman-religion countries) without specifying particular events."
+      },
+      "bohrReading": {
+        "citation": "_Revelation's Seven Trumpets_, p. 321",
+        "html": "Each of the four sins is read as **a Rev 17-18 Babylon characteristic** (not as Medieval-Catholic Tridentine sins). Verbatim list: \"Revelation 17:6; 18:20, 24 describes Babylon as a murderer of God's people. Revelation 18:23 refers to the sorceries of Babylon as one of the reasons for her fall. Revelation 17:2 portrays the adultery or fornication of the harlot with the kings of the earth. Revelation 18:10-13 describes this system as greedy and enslaving, stealing from the poor and favoring the rich. James 5:1-8 describes the greediness that steals from the poor\" (p. 321). In Bohr's \"Summary of the Sixth Trumpet\" (pp. 321-324): \"the sixth trumpet in Revelation 9:13-21 describes the gathering of the wicked for battle while Revelation 10 describes the gathering of the righteous on God's side…. The only three places in Revelation where the word 'demons' appears is in Revelation 16:14; 9:20 and 18:1-5\" (p. 322)."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "Same as v. 20 — Bohr's framework displaces the historical specificity to the unverifiable future."
+      },
+      "symbols": null,
+      "notes": [],
+      "extensions": [
+        {
+          "label": "Extension beyond Smith (not in DAR)",
+          "html": "The specific identifications of \"_murders_\" = Inquisition / Thirty Years' War / French Wars of Religion / St. Bartholomew's massacre 1572, \"_fornication_\" = papal-court scandals / clerical concubinage / Rev 17:2 figurative adultery, and \"_thefts_\" = sale of indulgences / Luther's 95 theses are all externally-correct historical content that fits Smith's general \"Roman religion countries\" framing, but they are **not specified by Smith at this verse**. Smith's only direct exegetical identification at DAR 487.3 is the **sorceries = pretended-miracles-by-departed-saints** gloss. The Greek-etymology _pharmakeia_ note is also not in Smith."
+        }
+      ],
+      "unclassified": []
+    }
+  ],
+  "summaryHtml": "**Rev 9 violation summary:** Of 21 verses, Bohr has explicit Miller-rule violations on **18** of them (vv. 1-11, 13-19); vv. 12, 20, 21 carry framework-inherited drift rather than fresh per-verse violations. The chapter has **zero verses** where Bohr's framework agrees with the pioneer Saracen/Ottoman reading. The Rule-XIII violation at 9:15 (Litch 1840) is the most consequential single point in Bohr's entire Revelation framework.\n\n---"
+}

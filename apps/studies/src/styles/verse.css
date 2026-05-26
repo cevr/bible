@@ -1,0 +1,494 @@
+/*
+ * Verse-card styles. Ported from build-html.ts (the prior single-page
+ * renderer). Used by VerseCard.astro and VerseCompact.astro. Imported only
+ * by chapter pages, not by the global shell.
+ */
+
+/* ============ Compact ============ */
+.verse-compact {
+  border-top: 1px solid var(--rule-soft);
+  padding: 0.6rem 0;
+  margin: 0;
+  scroll-margin-top: 5rem;
+}
+.verse-compact:has(+ .verse-card),
+.verse-card + .verse-compact {
+  border-top: 1px solid var(--rule);
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+}
+.verse-compact-row {
+  display: grid;
+  grid-template-columns: 1.5rem auto 1fr;
+  gap: 0 0.85rem;
+  align-items: baseline;
+  text-decoration: none;
+  color: inherit;
+  padding: 0.25rem 0;
+}
+.verse-compact-row:hover .verse-compact-ref,
+.verse-compact-row:focus-visible .verse-compact-ref {
+  color: var(--ink);
+  background: var(--rule-soft);
+  outline: none;
+}
+.verse-mark {
+  font-family: var(--mono);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--green);
+  text-align: center;
+  user-select: none;
+}
+.verse-mark-soft {
+  color: var(--gold);
+}
+.verse-compact-ref {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--oxblood);
+  text-transform: uppercase;
+  white-space: nowrap;
+  padding: 0.1rem 0.4rem;
+  border-radius: 2px;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+.verse-compact-text {
+  font-family: var(--display);
+  font-style: italic;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  color: var(--indigo);
+  text-wrap: pretty;
+}
+.verse-compact-body {
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  margin: 0.4rem 0 0 2.35rem;
+}
+.verse-compact-body:empty {
+  display: none;
+}
+.verse-compact-body > p {
+  margin: 0 0 0.5rem;
+}
+.verse-compact-body > p:last-child {
+  margin-bottom: 0;
+}
+
+/* ============ Card (expanded) ============ */
+.verse-card {
+  border: 1px solid var(--rule);
+  background: var(--paper);
+  border-radius: 3px;
+  padding: 1.5rem 1.5rem 1.25rem;
+  margin: 1.75rem 0;
+  break-inside: avoid;
+  scroll-margin-top: 5rem;
+}
+.verse-card.has-violations {
+  border-color: var(--oxblood);
+  border-left-width: 3px;
+}
+
+.verse-head {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.75rem 1.25rem;
+  align-items: baseline;
+  margin-bottom: 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--rule-soft);
+}
+.verse-head .verse-permalink {
+  text-decoration: none;
+  border: 0;
+}
+.verse-head .verse-permalink:hover .verse-ref,
+.verse-head .verse-permalink:focus-visible .verse-ref {
+  color: var(--ink);
+  background: var(--rule-soft);
+  outline: none;
+}
+.verse-head .verse-ref {
+  font-family: var(--mono);
+  font-weight: 500;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  color: var(--oxblood);
+  text-transform: uppercase;
+  white-space: nowrap;
+  padding: 0.15rem 0.45rem;
+  border-radius: 2px;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+.verse-head .verse-text {
+  font-family: var(--display);
+  font-weight: 400;
+  font-style: italic;
+  font-size: 1.05rem;
+  line-height: 1.4;
+  color: var(--indigo);
+  text-wrap: pretty;
+  grid-column: 2;
+}
+.verse-count-badge {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--paper);
+  background: var(--oxblood);
+  padding: 0.25rem 0.55rem 0.28rem;
+  border-radius: 2px;
+  white-space: nowrap;
+  align-self: center;
+}
+.verse-count-badge[data-clean] {
+  background: transparent;
+  color: var(--green);
+  border: 1px solid var(--green);
+  padding: 0.2rem 0.5rem 0.22rem;
+}
+@media (max-width: 640px) {
+  .verse-head {
+    grid-template-columns: auto 1fr;
+  }
+  .verse-count-badge {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+}
+
+/* ============ Readings split column ============ */
+.verse-readings {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  margin: 0 0 1.25rem;
+  border: 1px solid var(--rule-soft);
+  border-radius: 2px;
+  overflow: hidden;
+}
+@media (max-width: 720px) {
+  .verse-readings {
+    grid-template-columns: 1fr;
+  }
+}
+.reading-col {
+  padding: 0.9rem 1rem 1rem;
+  background: var(--paper);
+}
+.reading-pioneer {
+  border-right: 1px solid var(--rule-soft);
+  background: linear-gradient(
+    to right,
+    color-mix(in srgb, var(--indigo) 4%, transparent),
+    transparent 40%
+  );
+}
+.reading-bohr {
+  background: linear-gradient(
+    to right,
+    color-mix(in srgb, var(--oxblood) 4%, transparent),
+    transparent 40%
+  );
+}
+@media (max-width: 720px) {
+  .reading-pioneer {
+    border-right: 0;
+    border-bottom: 1px solid var(--rule-soft);
+  }
+}
+.reading-tag {
+  font-family: var(--body);
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  margin: 0 0 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.reading-tag .swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 1px;
+  display: inline-block;
+}
+.reading-tag .cite {
+  margin-left: auto;
+  opacity: 0.7;
+  font-variant-numeric: tabular-nums;
+}
+.reading-pioneer .reading-tag {
+  color: var(--indigo);
+}
+.reading-pioneer .reading-tag .swatch {
+  background: var(--indigo);
+}
+.reading-bohr .reading-tag {
+  color: var(--oxblood);
+}
+.reading-bohr .reading-tag .swatch {
+  background: var(--oxblood);
+}
+.reading-body {
+  font-size: 0.93rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+.reading-body > p {
+  margin: 0 0 0.6rem;
+}
+.reading-body > p:last-child {
+  margin-bottom: 0;
+}
+.reading-empty {
+  font-style: italic;
+  color: var(--ink-mute);
+  font-size: 0.88rem;
+}
+
+/* ============ Warrant ============ */
+.verse-warrant {
+  margin: 0 0 1.25rem;
+  padding: 0.85rem 1rem;
+  background: color-mix(in srgb, var(--gold) 8%, transparent);
+  border-left: 2px solid var(--gold);
+  border-radius: 0 2px 2px 0;
+}
+.verse-warrant .reading-tag {
+  color: var(--gold);
+}
+.verse-warrant .reading-tag .swatch {
+  background: var(--gold);
+}
+.verse-warrant .reading-body {
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+/* ============ Violations: numbered badges ============ */
+.verse-violations {
+  margin: 0 0 1.25rem;
+}
+.violations-tag {
+  font-family: var(--body);
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--oxblood);
+  margin: 0 0 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.violations-tag .swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 1px;
+  display: inline-block;
+  background: var(--oxblood);
+}
+.violation-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  counter-reset: viol;
+}
+.violation-item {
+  counter-increment: viol;
+  display: grid;
+  grid-template-columns: minmax(150px, max-content) 1fr;
+  gap: 0 1.25rem;
+  align-items: start;
+  padding: 0.85rem 0;
+  border-top: 1px solid var(--rule-soft);
+}
+.violation-item:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+@media (max-width: 640px) {
+  .violation-item {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+}
+.violation-badge {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0.45rem 0.7rem 0.5rem;
+  background: var(--oxblood);
+  color: var(--paper);
+  border-radius: 2px;
+  position: relative;
+}
+.violation-badge::before {
+  content: counter(viol, decimal-leading-zero);
+  position: absolute;
+  top: -0.55rem;
+  left: -0.55rem;
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 0.1rem 0.35rem;
+  border-radius: 2px;
+}
+.violation-badge[data-scope='broader-use'] {
+  background: color-mix(in srgb, var(--oxblood) 75%, var(--ink) 25%);
+}
+.violation-number {
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+.violation-name {
+  font-family: var(--body);
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-top: 0.25rem;
+  opacity: 0.82;
+  line-height: 1.2;
+}
+.violation-body {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+.violation-body :first-child {
+  margin-top: 0;
+}
+.violation-body :last-child {
+  margin-bottom: 0;
+}
+
+/* ============ Status / Symbols / Notes / Extensions ============ */
+.verse-status {
+  margin: 0 0 1rem;
+  padding: 0.8rem 1rem;
+  background: color-mix(in srgb, var(--green) 5%, transparent);
+  border-left: 2px solid var(--green);
+  border-radius: 0 2px 2px 0;
+}
+.verse-status + .verse-status {
+  margin-top: 0.5rem;
+}
+.status-tag {
+  font-family: var(--body);
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--green);
+  margin: 0 0 0.4rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.status-tag .swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 1px;
+  display: inline-block;
+  background: var(--green);
+}
+.status-body {
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+.status-body > p {
+  margin: 0 0 0.5rem;
+}
+.status-body > p:last-child {
+  margin-bottom: 0;
+}
+
+.verse-symbols {
+  margin: 0 0 0.5rem;
+  padding-top: 0.85rem;
+  border-top: 1px dashed var(--rule-soft);
+}
+.symbols-tag {
+  font-family: var(--body);
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  margin: 0 0 0.4rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.symbols-tag .swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 1px;
+  display: inline-block;
+  background: var(--gold);
+}
+.symbols-body {
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+.verse-note,
+.verse-extension {
+  margin: 0.5rem 0;
+  padding-left: 1rem;
+  border-left: 1px dashed var(--rule);
+}
+.verse-note .note-tag,
+.verse-extension .note-tag {
+  font-family: var(--body);
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  margin: 0 0 0.3rem;
+}
+.verse-extension .note-tag {
+  color: var(--green);
+}
+.verse-note .note-body,
+.verse-extension .note-body {
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+  line-height: 1.55;
+}
+.verse-note .note-body > p,
+.verse-extension .note-body > p {
+  margin: 0 0 0.5rem;
+}
+.verse-note .note-body > p:last-child,
+.verse-extension .note-body > p:last-child {
+  margin-bottom: 0;
+}

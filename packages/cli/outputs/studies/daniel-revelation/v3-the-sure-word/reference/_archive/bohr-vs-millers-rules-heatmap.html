@@ -1,0 +1,1553 @@
+<!doctype html>
+<html lang="en" data-theme="paper">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Violation Density Heatmap — Bohr vs. Miller’s Rules</title>
+    <meta
+      name="description"
+      content="Sparkline-style visualization of where Bohr’s divergences from the pioneer reading cluster across the 280-verse sweep."
+    />
+    <meta name="theme-color" content="#faf8f5" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --paper: #faf8f5;
+        --paper-tint: #f3eee3;
+        --ink: #1a1612;
+        --ink-soft: #4a3f33;
+        --ink-mute: #7a6f63;
+        --rule: #d8d0c2;
+        --rule-soft: #e8e2d4;
+        --oxblood: #842817;
+        --oxblood-soft: #b85842;
+        --indigo: #2c4a5f;
+        --gold: #8a6d2f;
+        --green: #3d5a3a;
+        --pad: clamp(1rem, 3vw, 2rem);
+        --measure: 72ch;
+        --display: 'Fraunces', 'Times New Roman', Georgia, serif;
+        --body: 'IBM Plex Sans', -apple-system, sans-serif;
+        --mono: 'IBM Plex Mono', ui-monospace, monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        -webkit-text-size-adjust: 100%;
+      }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: var(--body);
+        font-size: 16px;
+        line-height: 1.55;
+        font-feature-settings: 'kern', 'liga', 'ss01';
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+      }
+      ::selection {
+        background: var(--ink);
+        color: var(--paper);
+      }
+
+      /* ============ TOP NAV ============ */
+      nav.topnav {
+        border-bottom: 1px solid var(--rule);
+        background: var(--paper);
+        position: sticky;
+        top: 0;
+        z-index: 20;
+      }
+      nav.topnav .nav-inner {
+        max-width: 1320px;
+        margin: 0 auto;
+        padding: 0.85rem var(--pad);
+        display: flex;
+        gap: clamp(1rem, 3vw, 2.5rem);
+        align-items: baseline;
+        flex-wrap: wrap;
+      }
+      nav.topnav a.brand {
+        font-family: var(--display);
+        font-weight: 500;
+        font-size: 1.05rem;
+        letter-spacing: -0.01em;
+        color: var(--ink);
+        text-decoration: none;
+      }
+      nav.topnav a.brand em {
+        font-style: italic;
+        color: var(--oxblood);
+      }
+      nav.topnav ul.nav-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        gap: clamp(0.85rem, 2vw, 1.6rem);
+        flex-wrap: wrap;
+      }
+      nav.topnav ul.nav-list a {
+        font-family: var(--body);
+        font-size: 0.72rem;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+        text-decoration: none;
+        padding: 0.3rem 0;
+        border-bottom: 1px solid transparent;
+        transition:
+          color 0.15s,
+          border-color 0.15s;
+      }
+      nav.topnav ul.nav-list a:hover,
+      nav.topnav ul.nav-list a:focus-visible {
+        color: var(--oxblood);
+        outline: none;
+        border-bottom-color: var(--oxblood);
+      }
+      nav.topnav ul.nav-list a[aria-current='page'] {
+        color: var(--ink);
+        border-bottom-color: var(--oxblood);
+      }
+
+      /* ============ LAYOUT ============ */
+      .shell {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        max-width: 1320px;
+        margin: 0 auto;
+        padding: 0 var(--pad);
+      }
+      @media (min-width: 1024px) {
+        .shell.with-toc {
+          grid-template-columns: 240px minmax(0, 1fr);
+          gap: 4rem;
+          padding: 0 3rem;
+        }
+      }
+
+      /* ============ HEADER ============ */
+      header.masthead {
+        border-bottom: 1px solid var(--rule);
+        padding: 3rem 0 2.5rem;
+        margin-bottom: 3rem;
+      }
+      header.masthead .eyebrow {
+        font-family: var(--body);
+        font-size: 0.7rem;
+        font-weight: 500;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+        margin: 0 0 1.5rem;
+      }
+      header.masthead h1 {
+        font-family: var(--display);
+        font-weight: 500;
+        font-size: clamp(2rem, 5.5vw, 3.4rem);
+        line-height: 1.05;
+        letter-spacing: -0.02em;
+        margin: 0 0 1.2rem;
+        text-wrap: balance;
+        max-width: 22ch;
+      }
+      header.masthead h1 em {
+        font-style: italic;
+        color: var(--oxblood);
+        font-weight: 500;
+      }
+      header.masthead .lede {
+        font-family: var(--display);
+        font-size: clamp(1.05rem, 1.5vw, 1.2rem);
+        line-height: 1.5;
+        color: var(--ink-soft);
+        max-width: 60ch;
+        margin: 0;
+        font-weight: 400;
+      }
+      header.masthead .meta {
+        display: flex;
+        gap: 2rem;
+        margin-top: 2rem;
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        color: var(--ink-mute);
+        letter-spacing: 0.04em;
+        flex-wrap: wrap;
+      }
+      header.masthead .meta span strong {
+        color: var(--ink);
+        font-weight: 500;
+        margin-right: 0.4em;
+      }
+
+      /* ============ TOC ============ */
+      .toc {
+        font-family: var(--body);
+        font-size: 0.78rem;
+        line-height: 1.5;
+      }
+      @media (min-width: 1024px) {
+        .toc {
+          position: sticky;
+          top: 4.5rem;
+          max-height: calc(100dvh - 6rem);
+          overflow-y: auto;
+          padding-right: 1rem;
+          border-right: 1px solid var(--rule-soft);
+        }
+      }
+      .toc-h {
+        font-family: var(--body);
+        font-size: 0.65rem;
+        font-weight: 600;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+        margin: 0 0 1rem;
+      }
+      .toc ol {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        counter-reset: toc;
+      }
+      .toc li {
+        counter-increment: toc;
+        padding: 0.45rem 0;
+        border-bottom: 1px dashed var(--rule-soft);
+        display: flex;
+        gap: 0.6rem;
+        align-items: baseline;
+      }
+      .toc li:last-child {
+        border-bottom: 0;
+      }
+      .toc li::before {
+        content: counter(toc, decimal-leading-zero);
+        font-family: var(--mono);
+        font-size: 0.62rem;
+        color: var(--ink-mute);
+        letter-spacing: 0;
+        flex: 0 0 auto;
+      }
+      .toc a {
+        color: var(--ink-soft);
+        text-decoration: none;
+        transition: color 0.15s;
+      }
+      .toc a:hover,
+      .toc a:focus-visible {
+        color: var(--oxblood);
+        outline: none;
+      }
+
+      /* ============ MAIN ============ */
+      main.content {
+        max-width: var(--measure);
+        padding-bottom: 6rem;
+        min-width: 0;
+      }
+
+      main.content h1 {
+        display: none;
+      }
+
+      main.content h2 {
+        font-family: var(--display);
+        font-weight: 500;
+        font-size: clamp(1.6rem, 3.2vw, 2.2rem);
+        line-height: 1.15;
+        letter-spacing: -0.015em;
+        margin: 5rem 0 1.5rem;
+        scroll-margin-top: 5rem;
+        text-wrap: balance;
+        position: relative;
+        padding-top: 2rem;
+        border-top: 1px solid var(--rule);
+      }
+      main.content h2:first-of-type {
+        margin-top: 0;
+        border-top: none;
+        padding-top: 0;
+      }
+
+      main.content h3 {
+        font-family: var(--body);
+        font-weight: 600;
+        font-size: 0.95rem;
+        line-height: 1.35;
+        letter-spacing: -0.005em;
+        margin: 2.5rem 0 1rem;
+        scroll-margin-top: 5rem;
+        color: var(--ink);
+      }
+
+      main.content h3.verse-h {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 0 1.25rem;
+        align-items: baseline;
+        border-top: 1px solid var(--rule-soft);
+        padding-top: 1.5rem;
+        margin-top: 3rem;
+      }
+      main.content h3.verse-h .verse-anchor {
+        text-decoration: none;
+        border: 0;
+        display: inline-block;
+      }
+      main.content h3.verse-h .verse-anchor:hover .verse-ref {
+        color: var(--ink);
+        background: var(--rule-soft);
+      }
+      main.content h3.verse-h .verse-ref {
+        font-family: var(--mono);
+        font-weight: 500;
+        font-size: 0.78rem;
+        letter-spacing: 0.02em;
+        color: var(--oxblood);
+        text-transform: uppercase;
+        white-space: nowrap;
+        padding: 0.1rem 0.4rem;
+        border-radius: 2px;
+        transition:
+          background 0.15s,
+          color 0.15s;
+      }
+      main.content h3.verse-h .verse-text {
+        font-family: var(--display);
+        font-weight: 400;
+        font-style: italic;
+        font-size: 1.05rem;
+        line-height: 1.4;
+        color: var(--indigo);
+        text-wrap: pretty;
+      }
+
+      main.content h4 {
+        font-family: var(--body);
+        font-size: 0.7rem;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+        margin: 2rem 0 0.6rem;
+      }
+
+      /* Anchor link on h2 */
+      .anchor {
+        position: absolute;
+        left: -1.4em;
+        top: 2.05rem;
+        font-family: var(--display);
+        font-size: 1.2rem;
+        color: var(--rule);
+        text-decoration: none;
+        opacity: 0;
+        transition:
+          opacity 0.15s,
+          color 0.15s;
+      }
+      h2:hover .anchor,
+      .anchor:focus-visible {
+        opacity: 1;
+        color: var(--oxblood);
+        outline: none;
+      }
+
+      main.content p {
+        margin: 0 0 1rem;
+        text-wrap: pretty;
+      }
+
+      main.content strong {
+        font-weight: 600;
+        color: var(--ink);
+      }
+      main.content em {
+        font-style: italic;
+      }
+
+      main.content blockquote {
+        border-left: 2px solid var(--oxblood);
+        padding: 0.5rem 0 0.5rem 1.5rem;
+        margin: 1.5rem 0;
+        font-family: var(--display);
+        font-style: italic;
+        font-size: 1.05rem;
+        line-height: 1.5;
+        color: var(--ink-soft);
+      }
+
+      main.content a {
+        color: var(--indigo);
+        text-decoration: underline;
+        text-decoration-thickness: 1px;
+        text-underline-offset: 0.15em;
+        text-decoration-color: var(--rule);
+        transition: text-decoration-color 0.15s;
+      }
+      main.content a:hover {
+        text-decoration-color: var(--indigo);
+      }
+
+      main.content hr {
+        border: 0;
+        margin: 2.5rem 0;
+        height: 1px;
+        background: transparent;
+      }
+
+      /* Preserve ASCII heatmap formatting */
+      main.content pre {
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        line-height: 1.4;
+        background: var(--paper-tint);
+        border: 1px solid var(--rule-soft);
+        border-radius: 3px;
+        padding: 1rem 1.25rem;
+        overflow-x: auto;
+        margin: 1.5rem 0;
+        color: var(--ink);
+      }
+      main.content code {
+        font-family: var(--mono);
+        font-size: 0.85em;
+        background: var(--paper-tint);
+        padding: 0.1em 0.35em;
+        border-radius: 2px;
+        color: var(--ink);
+      }
+      main.content pre code {
+        background: transparent;
+        padding: 0;
+        font-size: 1em;
+      }
+
+      /* ============ VERSE-ROW SEMANTICS ============ */
+      main.content p.row-pioneer {
+        background: linear-gradient(to right, var(--indigo) 2px, transparent 2px);
+        padding-left: 1.25rem;
+        font-size: 0.95rem;
+      }
+      main.content p.row-pioneer strong:first-child {
+        font-family: var(--body);
+        font-weight: 600;
+        font-size: 0.65rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--indigo);
+        display: block;
+        margin-bottom: 0.35rem;
+      }
+
+      main.content p.row-reading {
+        background: linear-gradient(to right, var(--oxblood-soft) 2px, transparent 2px);
+        padding-left: 1.25rem;
+        font-size: 0.95rem;
+      }
+      main.content p.row-reading strong:first-child {
+        font-family: var(--body);
+        font-weight: 600;
+        font-size: 0.65rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--oxblood-soft);
+        display: block;
+        margin-bottom: 0.35rem;
+      }
+
+      main.content p.row-note {
+        font-size: 0.92rem;
+        color: var(--ink-soft);
+        padding-left: 1.25rem;
+        border-left: 1px dashed var(--rule);
+        margin-left: 0.1rem;
+      }
+
+      main.content p.row-status,
+      main.content p.row-warrant {
+        background: linear-gradient(to right, var(--green) 2px, transparent 2px);
+        padding-left: 1.25rem;
+        font-size: 0.92rem;
+      }
+      main.content p.row-status strong:first-child,
+      main.content p.row-warrant strong:first-child {
+        font-family: var(--body);
+        font-weight: 600;
+        font-size: 0.65rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+        display: block;
+        margin-bottom: 0.35rem;
+      }
+
+      main.content p.row-violations-label {
+        background: linear-gradient(to right, var(--oxblood) 2px, transparent 2px);
+        padding-left: 1.25rem;
+        margin-bottom: 0.5rem;
+      }
+      main.content p.row-violations-label strong {
+        font-family: var(--body);
+        font-weight: 600;
+        font-size: 0.65rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--oxblood);
+      }
+
+      main.content ul.violations {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 1rem;
+        border-left: 2px solid var(--oxblood);
+        padding-left: 1.25rem;
+      }
+      main.content ul.violations li {
+        margin: 0 0 0.85rem;
+        padding-left: 0;
+        font-size: 0.92rem;
+        line-height: 1.55;
+      }
+      main.content ul.violations li:last-child {
+        margin-bottom: 0;
+      }
+
+      .rule-chip {
+        display: inline-block;
+        font-family: var(--mono);
+        font-weight: 500;
+        font-size: 0.68rem;
+        letter-spacing: 0.04em;
+        background: var(--oxblood);
+        color: var(--paper);
+        padding: 0.15rem 0.5rem 0.18rem;
+        border-radius: 2px;
+        margin-right: 0.4rem;
+        vertical-align: 0.1em;
+        white-space: nowrap;
+      }
+
+      main.content p.row-symbols {
+        background: linear-gradient(to right, var(--gold) 2px, transparent 2px);
+        padding-left: 1.25rem;
+        font-size: 0.88rem;
+        color: var(--ink-soft);
+      }
+      main.content p.row-symbols strong:first-child {
+        font-family: var(--body);
+        font-weight: 600;
+        font-size: 0.65rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+        display: block;
+        margin-bottom: 0.35rem;
+      }
+
+      /* Generic lists (not violations / not landing doc-cards) */
+      main.content ul:not(.violations) {
+        padding-left: 1.25rem;
+        margin: 0 0 1rem;
+      }
+      main.content ul:not(.violations) li {
+        margin-bottom: 0.4rem;
+      }
+      main.content ul:not(.violations) li::marker {
+        color: var(--ink-mute);
+      }
+
+      /* ============ VERSE CARDS (full audit) ============ */
+      main.content .verse {
+        margin: 1.5rem 0;
+        scroll-margin-top: 5rem;
+      }
+
+      /* COMPACT FORM — for verses with no violation, just a status note */
+      .verse-compact {
+        border-top: 1px solid var(--rule-soft);
+        padding: 0.6rem 0 0.6rem;
+        margin: 0;
+      }
+      .verse-compact:has(+ .verse-card),
+      .verse-card + .verse-compact {
+        border-top: 1px solid var(--rule);
+        margin-top: 1.25rem;
+        padding-top: 1.25rem;
+      }
+      .verse-compact-row {
+        display: grid;
+        grid-template-columns: 1.5rem auto 1fr;
+        gap: 0 0.85rem;
+        align-items: baseline;
+        text-decoration: none;
+        color: inherit;
+        padding: 0.25rem 0;
+      }
+      .verse-compact-row:hover .verse-compact-ref {
+        color: var(--ink);
+        background: var(--rule-soft);
+      }
+      .verse-mark {
+        font-family: var(--mono);
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--green);
+        text-align: center;
+        user-select: none;
+      }
+      .verse-mark-soft {
+        color: var(--gold);
+      }
+      .verse-compact-ref {
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+        color: var(--oxblood);
+        text-transform: uppercase;
+        white-space: nowrap;
+        padding: 0.1rem 0.4rem;
+        border-radius: 2px;
+        transition:
+          background 0.15s,
+          color 0.15s;
+        align-self: baseline;
+      }
+      .verse-compact-text {
+        font-family: var(--display);
+        font-style: italic;
+        font-size: 0.95rem;
+        line-height: 1.4;
+        color: var(--indigo);
+        text-wrap: pretty;
+      }
+      .verse-compact-body {
+        font-size: 0.88rem;
+        line-height: 1.55;
+        color: var(--ink-soft);
+        margin: 0.4rem 0 0 2.35rem;
+        padding-left: 0;
+      }
+      .verse-compact-body:empty {
+        display: none;
+      }
+      .verse-compact-body > p {
+        margin: 0 0 0.5rem;
+      }
+      .verse-compact-body > p:last-child {
+        margin-bottom: 0;
+      }
+      /* If "No violation." is literally all there is, suppress the body row entirely */
+      .verse-clean .verse-compact-body:where(:not(:has(p)):not(:has(*))) {
+        display: none;
+      }
+
+      /* EXPANDED FORM — for verses with violations or full pioneer/Bohr/status content */
+      .verse-card {
+        border: 1px solid var(--rule);
+        background: var(--paper);
+        border-radius: 3px;
+        padding: 1.5rem 1.5rem 1.25rem;
+        margin: 1.75rem 0;
+        break-inside: avoid;
+      }
+      .verse-card.verse-with-violations {
+        border-color: var(--oxblood);
+        border-left-width: 3px;
+      }
+
+      .verse-head {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 0.75rem 1.25rem;
+        align-items: baseline;
+        margin-bottom: 1.25rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--rule-soft);
+      }
+      .verse-head .verse-permalink {
+        text-decoration: none;
+        border: 0;
+      }
+      .verse-head .verse-permalink:hover .verse-ref {
+        color: var(--ink);
+        background: var(--rule-soft);
+      }
+      .verse-head .verse-ref {
+        font-family: var(--mono);
+        font-weight: 500;
+        font-size: 0.78rem;
+        letter-spacing: 0.02em;
+        color: var(--oxblood);
+        text-transform: uppercase;
+        white-space: nowrap;
+        padding: 0.15rem 0.45rem;
+        border-radius: 2px;
+        transition:
+          background 0.15s,
+          color 0.15s;
+      }
+      .verse-head .verse-text {
+        font-family: var(--display);
+        font-weight: 400;
+        font-style: italic;
+        font-size: 1.05rem;
+        line-height: 1.4;
+        color: var(--indigo);
+        text-wrap: pretty;
+        grid-column: 2;
+      }
+      .verse-count-badge {
+        font-family: var(--mono);
+        font-size: 0.65rem;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--paper);
+        background: var(--oxblood);
+        padding: 0.25rem 0.55rem 0.28rem;
+        border-radius: 2px;
+        white-space: nowrap;
+        align-self: center;
+      }
+      .verse-count-badge.verse-count-clean {
+        background: transparent;
+        color: var(--green);
+        border: 1px solid var(--green);
+        padding: 0.2rem 0.5rem 0.22rem;
+      }
+      @media (max-width: 640px) {
+        .verse-head {
+          grid-template-columns: auto 1fr;
+        }
+        .verse-count-badge {
+          grid-column: 1 / -1;
+          justify-self: start;
+        }
+      }
+
+      /* Readings: split column */
+      .verse-readings {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0;
+        margin: 0 0 1.25rem;
+        border: 1px solid var(--rule-soft);
+        border-radius: 2px;
+        overflow: hidden;
+      }
+      @media (max-width: 720px) {
+        .verse-readings {
+          grid-template-columns: 1fr;
+        }
+      }
+      .reading-col {
+        padding: 0.9rem 1rem 1rem;
+        background: var(--paper);
+      }
+      .reading-pioneer {
+        border-right: 1px solid var(--rule-soft);
+        background: linear-gradient(
+          to right,
+          color-mix(in srgb, var(--indigo) 4%, transparent),
+          transparent 40%
+        );
+      }
+      .reading-bohr {
+        background: linear-gradient(
+          to right,
+          color-mix(in srgb, var(--oxblood) 4%, transparent),
+          transparent 40%
+        );
+      }
+      @media (max-width: 720px) {
+        .reading-pioneer {
+          border-right: 0;
+          border-bottom: 1px solid var(--rule-soft);
+        }
+      }
+      .reading-tag {
+        font-family: var(--body);
+        font-size: 0.6rem;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+        margin: 0 0 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+      }
+      .reading-pioneer .reading-tag {
+        color: var(--indigo);
+      }
+      .reading-pioneer .reading-tag::before {
+        content: '';
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        background: var(--indigo);
+        border-radius: 1px;
+      }
+      .reading-bohr .reading-tag {
+        color: var(--oxblood);
+      }
+      .reading-bohr .reading-tag::before {
+        content: '';
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        background: var(--oxblood);
+        border-radius: 1px;
+      }
+      .reading-body {
+        font-size: 0.93rem;
+        line-height: 1.55;
+        color: var(--ink-soft);
+      }
+      .reading-body > p {
+        margin: 0 0 0.6rem;
+      }
+      .reading-body > p:last-child {
+        margin-bottom: 0;
+      }
+      .reading-empty {
+        font-style: italic;
+        color: var(--ink-mute);
+        font-size: 0.88rem;
+      }
+
+      /* Warrant */
+      .verse-warrant {
+        margin: 0 0 1.25rem;
+        padding: 0.85rem 1rem;
+        background: color-mix(in srgb, var(--gold) 8%, transparent);
+        border-left: 2px solid var(--gold);
+        border-radius: 0 2px 2px 0;
+      }
+      .verse-warrant .reading-tag {
+        color: var(--gold);
+      }
+      .verse-warrant .reading-tag::before {
+        content: '';
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        background: var(--gold);
+        border-radius: 1px;
+      }
+      .verse-warrant .reading-body {
+        font-size: 0.9rem;
+        font-style: italic;
+      }
+
+      /* Violations: numbered badges + reasoning */
+      .verse-violations {
+        margin: 0 0 1.25rem;
+      }
+      .violations-tag {
+        font-family: var(--body);
+        font-size: 0.6rem;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--oxblood);
+        margin: 0 0 0.85rem;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+      }
+      .violations-tag::before {
+        content: '';
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        background: var(--oxblood);
+        border-radius: 1px;
+      }
+      .violation-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
+        counter-reset: viol;
+      }
+      .violation-item {
+        counter-increment: viol;
+        display: grid;
+        grid-template-columns: minmax(150px, max-content) 1fr;
+        gap: 0 1.25rem;
+        align-items: start;
+        padding: 0.85rem 0;
+        border-top: 1px solid var(--rule-soft);
+      }
+      .violation-item:first-child {
+        border-top: 0;
+        padding-top: 0;
+      }
+      @media (max-width: 640px) {
+        .violation-item {
+          grid-template-columns: 1fr;
+          gap: 0.5rem;
+        }
+      }
+      .violation-badge {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 0.45rem 0.7rem 0.5rem;
+        background: var(--oxblood);
+        color: var(--paper);
+        border-radius: 2px;
+        position: relative;
+      }
+      .violation-badge::before {
+        content: counter(viol, decimal-leading-zero);
+        position: absolute;
+        top: -0.55rem;
+        left: -0.55rem;
+        font-family: var(--mono);
+        font-size: 0.6rem;
+        font-weight: 500;
+        letter-spacing: 0.04em;
+        background: var(--ink);
+        color: var(--paper);
+        padding: 0.1rem 0.35rem;
+        border-radius: 2px;
+      }
+      .violation-badge-broader {
+        background: color-mix(in srgb, var(--oxblood) 75%, var(--ink) 25%);
+      }
+      .violation-number {
+        font-family: var(--mono);
+        font-weight: 600;
+        font-size: 0.78rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        line-height: 1.1;
+      }
+      .violation-name {
+        font-family: var(--body);
+        font-size: 0.62rem;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        margin-top: 0.25rem;
+        opacity: 0.82;
+        line-height: 1.2;
+      }
+      .violation-body {
+        font-size: 0.9rem;
+        line-height: 1.6;
+        color: var(--ink-soft);
+      }
+      .violation-body :first-child {
+        margin-top: 0;
+      }
+      .violation-body :last-child {
+        margin-bottom: 0;
+      }
+
+      /* Status section */
+      .verse-status {
+        margin: 0 0 1rem;
+        padding: 0.8rem 1rem;
+        background: color-mix(in srgb, var(--green) 5%, transparent);
+        border-left: 2px solid var(--green);
+        border-radius: 0 2px 2px 0;
+      }
+      .verse-status + .verse-status {
+        margin-top: 0.5rem;
+      }
+      .status-tag {
+        font-family: var(--body);
+        font-size: 0.6rem;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--green);
+        margin: 0 0 0.4rem;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+      }
+      .status-tag::before {
+        content: '';
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        background: var(--green);
+        border-radius: 1px;
+      }
+      .status-body {
+        font-size: 0.9rem;
+        line-height: 1.55;
+        color: var(--ink-soft);
+      }
+      .status-body > p {
+        margin: 0 0 0.5rem;
+      }
+      .status-body > p:last-child {
+        margin-bottom: 0;
+      }
+
+      /* Symbols section */
+      .verse-symbols {
+        margin: 0 0 0.5rem;
+        padding-top: 0.85rem;
+        border-top: 1px dashed var(--rule-soft);
+      }
+      .symbols-tag {
+        font-family: var(--body);
+        font-size: 0.6rem;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+        margin: 0 0 0.4rem;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+      }
+      .symbols-tag::before {
+        content: '';
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        background: var(--gold);
+        border-radius: 1px;
+      }
+      .symbols-body {
+        font-size: 0.85rem;
+        line-height: 1.55;
+        color: var(--ink-soft);
+      }
+
+      /* Notes */
+      .verse-note {
+        margin: 0.5rem 0;
+        padding-left: 1rem;
+        border-left: 1px dashed var(--rule);
+      }
+      .verse-note .note-body {
+        font-size: 0.88rem;
+        color: var(--ink-soft);
+        font-style: italic;
+      }
+
+      /* ============ TABLES ============ */
+      .table-wrap {
+        overflow-x: auto;
+        margin: 1.5rem 0 2rem;
+        border-top: 1px solid var(--ink);
+        border-bottom: 1px solid var(--ink);
+      }
+      main.content table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.82rem;
+        font-variant-numeric: tabular-nums;
+        font-feature-settings: 'tnum';
+      }
+      main.content thead th {
+        font-family: var(--body);
+        font-weight: 600;
+        font-size: 0.62rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        text-align: left;
+        padding: 0.85rem 1rem;
+        border-bottom: 1px solid var(--ink);
+        color: var(--ink);
+        vertical-align: bottom;
+        background: var(--paper);
+      }
+      main.content tbody td {
+        padding: 0.85rem 1rem;
+        vertical-align: top;
+        border-bottom: 1px solid var(--rule-soft);
+        line-height: 1.45;
+        color: var(--ink-soft);
+      }
+      main.content tbody tr:last-child td {
+        border-bottom: 0;
+      }
+      main.content tbody tr:hover td {
+        background: var(--rule-soft);
+      }
+
+      main.content tbody td:first-child {
+        color: var(--ink);
+        font-weight: 500;
+        white-space: normal;
+      }
+
+      main.content td.num,
+      main.content th.num {
+        text-align: right;
+        font-family: var(--mono);
+        font-size: 0.78rem;
+      }
+
+      main.content blockquote p {
+        margin: 0;
+      }
+      main.content blockquote p + p {
+        margin-top: 0.6rem;
+      }
+
+      /* ============ LANDING-PAGE CARDS ============ */
+      .landing ol.doc-cards {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 3rem;
+        display: grid;
+        gap: 1.25rem;
+        counter-reset: card;
+      }
+      @media (min-width: 720px) {
+        .landing ol.doc-cards {
+          grid-template-columns: repeat(1, 1fr);
+        }
+      }
+      .doc-card {
+        border: 1px solid var(--rule);
+        background: var(--paper);
+        transition:
+          border-color 0.15s,
+          transform 0.15s;
+      }
+      .doc-card:hover {
+        border-color: var(--oxblood);
+      }
+      .doc-card a.doc-card-link {
+        display: block;
+        padding: 1.75rem 1.75rem 1.5rem;
+        text-decoration: none;
+        color: var(--ink);
+      }
+      .doc-card a.doc-card-link:hover {
+        text-decoration: none;
+      }
+      .doc-card .doc-eyebrow {
+        font-family: var(--mono);
+        font-size: 0.65rem;
+        font-weight: 500;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+        margin: 0 0 0.6rem;
+      }
+      .doc-card .doc-title {
+        font-family: var(--display);
+        font-weight: 500;
+        font-size: clamp(1.25rem, 2vw, 1.5rem);
+        line-height: 1.15;
+        letter-spacing: -0.01em;
+        color: var(--ink);
+        margin: 0 0 0.85rem;
+      }
+      .doc-card .doc-blurb {
+        font-size: 0.92rem;
+        line-height: 1.55;
+        color: var(--ink-soft);
+        margin: 0 0 1rem;
+        text-wrap: pretty;
+      }
+      .doc-card .doc-read {
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        font-weight: 500;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--oxblood);
+        margin: 0;
+      }
+
+      .landing .findings-grid {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(1, 1fr);
+        margin: 1.5rem 0 3rem;
+      }
+      @media (min-width: 640px) {
+        .landing .findings-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+      .finding {
+        border-top: 2px solid var(--oxblood);
+        padding: 1.25rem 0 0;
+      }
+      .finding-stat {
+        font-family: var(--display);
+        font-weight: 500;
+        font-size: clamp(2.5rem, 5vw, 3.5rem);
+        line-height: 1;
+        letter-spacing: -0.02em;
+        color: var(--ink);
+        margin: 0 0 0.5rem;
+        font-variant-numeric: tabular-nums;
+      }
+      .finding-stat-unit {
+        font-size: 0.5em;
+        color: var(--ink-mute);
+        margin-left: 0.1em;
+        font-weight: 400;
+      }
+      .finding-label {
+        font-size: 0.88rem;
+        line-height: 1.45;
+        color: var(--ink-soft);
+        margin: 0;
+        text-wrap: pretty;
+      }
+
+      /* ============ FOOTER ============ */
+      footer.colophon {
+        border-top: 1px solid var(--rule);
+        margin: 4rem auto 0;
+        padding: 2rem var(--pad) 4rem;
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        color: var(--ink-mute);
+        letter-spacing: 0.02em;
+        max-width: 1320px;
+      }
+      footer.colophon p {
+        margin: 0 0 0.5rem;
+      }
+
+      /* ============ ACCESSIBILITY ============ */
+      :focus-visible {
+        outline: 2px solid var(--oxblood);
+        outline-offset: 2px;
+        border-radius: 1px;
+      }
+
+      .skip-link {
+        position: absolute;
+        top: -100px;
+        left: 1rem;
+        background: var(--ink);
+        color: var(--paper);
+        padding: 0.5rem 1rem;
+        text-decoration: none;
+        font-family: var(--body);
+        font-size: 0.85rem;
+        z-index: 50;
+      }
+      .skip-link:focus {
+        top: 1rem;
+      }
+
+      /* ============ PRINT ============ */
+      @media print {
+        .toc,
+        .skip-link,
+        .anchor,
+        nav.topnav {
+          display: none;
+        }
+        body {
+          background: white;
+        }
+        main.content {
+          max-width: 100%;
+        }
+        h2,
+        h3 {
+          break-after: avoid;
+        }
+        p,
+        li {
+          orphans: 3;
+          widows: 3;
+        }
+      }
+
+      /* ============ REDUCED MOTION ============ */
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation: none !important;
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a href="#content" class="skip-link">Skip to content</a>
+
+    <nav class="topnav" aria-label="Site">
+      <div class="nav-inner">
+        <a href="index.html" class="brand">Bohr <em>vs.</em> Miller’s Rules</a>
+        <ul class="nav-list">
+          <li><a href="index.html">Index</a></li>
+          <li><a href="bohr-vs-millers-rules-summary.html">Summary</a></li>
+          <li><a href="bohr-vs-millers-rules-heatmap.html" aria-current="page">Heatmap</a></li>
+          <li><a href="bohr-vs-millers-rules.html">Full audit</a></li>
+        </ul>
+      </div>
+    </nav>
+
+    <header class="masthead">
+      <div style="max-width: 1320px; margin: 0 auto; padding: 0 var(--pad)">
+        <p class="eyebrow">Visual density · per-chapter</p>
+        <h1>Violation Density Heatmap</h1>
+        <p class="lede">
+          Sparkline-style visualization of where Bohr’s divergences from the pioneer reading cluster
+          across the 280-verse sweep.
+        </p>
+      </div>
+    </header>
+
+    <div class="shell with-toc">
+      <nav class="toc" aria-label="Table of contents">
+        <h2 class="toc-h">Contents</h2>
+        <ol>
+          <li><a href="#how-to-read-this">How to read this</a></li>
+          <li><a href="#the-full-sweep">The full sweep</a></li>
+          <li><a href="#canonical-order-sparkline">Canonical-order sparkline</a></li>
+          <li><a href="#the-three-clusters-at-a-glance">The three clusters at a glance</a></li>
+          <li><a href="#the-clean-bookends">The clean bookends</a></li>
+          <li>
+            <a href="#rule-violation-distribution-where-bohr-breaks-the-rules"
+              >Rule-violation distribution (where Bohr breaks the rules)</a
+            >
+          </li>
+        </ol>
+      </nav>
+      <main class="content" id="content">
+        <h1>Bohr vs. Miller’s Rules — Per-Chapter Violation Density Heatmap</h1>
+        <p>
+          <em>Visual companion to</em> <code>bohr-vs-millers-rules.md</code> <em>and</em>
+          <code>bohr-vs-millers-rules-summary.md</code>.
+          <em
+            >All counts are aggregated from the 280-verse audit; one rule counted once per verse it
+            is broken.</em
+          >
+        </p>
+        <hr />
+        <h2 id="how-to-read-this">
+          <a href="#how-to-read-this" class="anchor" aria-hidden="true">§</a>How to read this
+        </h2>
+        <p>
+          Each row is one chapter of the audit. The bar shows the percentage of verses in that
+          chapter where Bohr breaks at least one Miller rule. The legend:
+        </p>
+        <pre><code>█  violation block       (~10% of chapter width per █)
+·  rule-compliant block  (~10% of chapter width per ·)
+</code></pre>
+        <p>Three intensities flag the violation clusters:</p>
+        <ul>
+          <li>🟥 <strong>Heavy</strong> (≥40%) — methodological substitution active</li>
+          <li>
+            🟧 <strong>Moderate</strong> (15-39%) — repeated divergences within pioneer framework
+          </li>
+          <li>🟨 <strong>Light</strong> (1-14%) — soft drift, single-issue</li>
+          <li>⬜ <strong>Clean</strong> (0%) — fully rule-compliant</li>
+        </ul>
+        <hr />
+        <h2 id="the-full-sweep">
+          <a href="#the-full-sweep" class="anchor" aria-hidden="true">§</a>The full sweep
+        </h2>
+        <pre><code>                         0%        25%       50%       75%      100%
+                         │─────────│─────────│─────────│─────────│
+🟥 Dan 11:36-45 (10/10)  ██████████████████████████████████████████ 100%
+🟥 Rev 9       (18/21)   █████████████████████████████████████░░░░░  86%
+🟥 Rev 8        (6/13)   ███████████████████████░░░░░░░░░░░░░░░░░░░  46%
+🟧 Rev 11       (4/19)   ██████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  21%
+🟧 Rev 12       (3/17)   █████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  18%
+🟧 Rev 13       (3/18)   ████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  17%
+🟧 Rev 17       (3/18)   ████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  17%
+🟨 Rev 19    (2-3/21)    ██████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  14%
+🟨 Rev 6        (2/17)   █████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  12%
+🟨 Rev 14       (2/20)   ████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  10%
+🟨 Rev 16       (2/21)   ████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  10%
+🟨 Rev 4        (1/11)   ████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   9%
+🟨 Rev 5        (1/14)   ███░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   7%
+🟨 Rev 18       (1/24)   ██░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   4%
+⬜ Rev 1        (0/20)   ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   0%
+⬜ Rev 2        (0/29)   ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   0%
+⬜ Rev 3        (0/22)   ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   0%
+⬜ Rev 7        (0/17)   ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   0%
+⬜ Rev 10       (0/11)   ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   0%
+⬜ Rev 15        (0/8)   ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   0%
+⬜ Rev 20       (0/15)   ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   0%
+⬜ Rev 21       (0/27)   ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   0%
+⬜ Rev 22       (0/21)   ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   0%
+                         │─────────│─────────│─────────│─────────│
+                         0%        25%       50%       75%      100%
+</code></pre>
+        <hr />
+        <h2 id="canonical-order-sparkline">
+          <a href="#canonical-order-sparkline" class="anchor" aria-hidden="true">§</a
+          >Canonical-order sparkline
+        </h2>
+        <p>
+          The same data, ordered as the chapters appear in Scripture, so the clusters and the
+          bookend-cleanliness pattern become visually obvious:
+        </p>
+        <pre><code>            Dan11   Rev1  Rev2  Rev3  Rev4  Rev5  Rev6  Rev7  Rev8  Rev9 Rev10 Rev11
+                                                            ┌──┐ ┌──┐
+                                                            │██│ │██│
+                                                            │██│ │██│
+                                                            │██│ │██│
+                                                            │██│ │██│
+                                                            │██│ │██│
+            ┌──┐                                            │██│ │██│
+            │██│                                            │██│ │██│      ┌──┐
+            │██│                                            │██│ │██│      │██│
+            │██│                              ┌──┐          │██│ │██│      │██│
+            │██│              ┌──┐ ┌──┐  ┌──┐ │██│          │██│ │██│      │██│
+            └──┘ ░░░░ ░░░░ ░░░│██│ │██│ ░│██│ │██│ ░░░░ ░░░░│██│ │██│ ░░░░ │██│
+            100%   0%   0%   0%  9%   7% 12%  46%   0%   0% 46%  86%   0%  21%
+
+           Rev12 Rev13 Rev14 Rev15 Rev16 Rev17 Rev18 Rev19 Rev20 Rev21 Rev22
+            ┌──┐ ┌──┐
+            │██│ │██│            ┌──┐ ┌──┐
+            │██│ │██│ ┌──┐ ┌──┐  │██│ │██│      ┌──┐
+            │██│ │██│ │██│  ░░░  │██│ │██│ ░░░░ │██│  ░░░  ░░░  ░░░
+            18%  17%  10%   0%   10%  17%   4%  14%   0%   0%   0%
+</code></pre>
+        <p>
+          The Dan 11 column shows only the active-fulfillment span (vv. 36-45) — Bohr is silent or
+          convergent across the first 35 verses.
+        </p>
+        <hr />
+        <h2 id="the-three-clusters-at-a-glance">
+          <a href="#the-three-clusters-at-a-glance" class="anchor" aria-hidden="true">§</a>The three
+          clusters at a glance
+        </h2>
+        <pre><code>┌─────────────────────────────────────────────────────────────────┐
+│  CLUSTER A — Eastern Question / Were principle                  │
+│  ─────────────────────────────────────────────                  │
+│  Dan 11:36-45      ████████████████████████████████████  100%   │
+│  Rev 9             █████████████████████████████████░░░   86%   │
+│  Rev 16:12,16          (only 2 verses out of 21)        ~10%    │
+│                                                                  │
+│  Driver: Louis Were’s “automatic transition from literal to     │
+│  spiritual” — spiritualizes GEOGRAPHIC specifiers.              │
+│                                                                  │
+├─────────────────────────────────────────────────────────────────┤
+│  CLUSTER B — Keith-Gibbon trumpet framework abandoned           │
+│  ────────────────────────────────────────────────────           │
+│  Rev 8:7-12        ███████████████████████░░░░░░░░░░░░   46%   │
+│                                                                  │
+│  Driver: Substitution of spiritual / Christological /           │
+│  Jerusalem-Rome-Constantine-Papacy grid for barbarian-          │
+│  invasion historicism. Spiritualizes SEQUENCE-AND-ACTOR.        │
+│  Trumpet 1 = AD 34-70 also breaks Rev 1:19 forward vantage.     │
+│                                                                  │
+├─────────────────────────────────────────────────────────────────┤
+│  CLUSTER C — France-as-template, soft Rule-XIII drift           │
+│  ────────────────────────────────────────────────────           │
+│  Rev 11:7,11,12,13     (~21%)                                   │
+│  Rev 12:4,7,16         (~18%)                                   │
+│  Rev 13:3,13,14        (~17%)                                   │
+│  Rev 17:10,11,12,13    (~17%)                                   │
+│                                                                  │
+│  Driver: Re-typing dateable specifics as recurring patterns     │
+│  (“template” / “principle” / “globalization”) rather than       │
+│  named-and-dated fulfillments. Lighter than Cluster A but       │
+│  same hermeneutical move.                                        │
+└─────────────────────────────────────────────────────────────────┘
+</code></pre>
+        <hr />
+        <h2 id="the-clean-bookends">
+          <a href="#the-clean-bookends" class="anchor" aria-hidden="true">§</a>The clean bookends
+        </h2>
+        <pre><code>   ┌─────────────────────┐                          ┌─────────────────────┐
+   │  OPENING BLOCK      │                          │  CLOSING BLOCK      │
+   │  ──────────────     │                          │  ──────────────     │
+   │  Rev 1     ⬜  0%   │                          │  Rev 15    ⬜  0%   │
+   │  Rev 2     ⬜  0%   │   (middle: contested)    │  Rev 20    ⬜  0%   │
+   │  Rev 3     ⬜  0%   │   ─────────────────      │  Rev 21    ⬜  0%   │
+   │  Rev 7     ⬜  0%   │                          │  Rev 22    ⬜  0%   │
+   │  Rev 10    ⬜  0%   │                          │                     │
+   └─────────────────────┘                          └─────────────────────┘
+     SDA-foundational                                  SDA-foundational
+     pioneer framework                                 pioneer framework
+     uncontested                                       uncontested
+     ↓                                                 ↓
+     Bohr stays on it.                                 Bohr stays on it.
+</code></pre>
+        <p>
+          <strong
+            >Eight chapters at zero violations cluster at the canonical bookends, exactly where the
+            SDA pioneer framework is most foundational and most uncontested.</strong
+          >
+          The violations cluster precisely where pioneer historicism is <em>contested</em> within
+          modern Adventism (Eastern Question, four trumpets, France-template, seven-heads
+          enumeration).
+        </p>
+        <hr />
+        <h2 id="rule-violation-distribution-where-bohr-breaks-the-rules">
+          <a
+            href="#rule-violation-distribution-where-bohr-breaks-the-rules"
+            class="anchor"
+            aria-hidden="true"
+            >§</a
+          >Rule-violation distribution (where Bohr breaks the rules)
+        </h2>
+        <pre><code>Rule         Count   ──────────────────────────────────────────
+XIII (49)    ████████████████████████████████████████████████  every word fulfilled
+XII  (32)    ████████████████████████████████                  trace the figure
+XI   (30)    ██████████████████████████████                    literal first
+V    (24)    ████████████████████████                          Scripture self-expositor
+IV   (22)    ██████████████████████                            no contradiction
+I    (14)    ██████████████                                    every word bears
+VII   (5)    █████                                             Bible-fixed symbols
+III   (2)    ██                                                nothing hidden from faith
+IX/X  (2)    ██                                                multiple significations
+II    (1)    █                                                 all scripture necessary
+XIV   (1)    █                                                 willingness to lose all
+VI    (0)    ░                                                 recapitulation
+VIII  (0)    ░                                                 parables as figures
+</code></pre>
+        <p>
+          <strong
+            >The historicist core (XIII + XII + XI) accounts for 111 of ~182 total rule-breaks
+            (~61%).</strong
+          >
+          Add Rule V — the rule whose violation enables the substitution of Were’s extra-biblical
+          principle — and the four rules together account for
+          <strong>~74% of all violations</strong>. These four rules are precisely what distinguishes
+          pioneer historicism from futurism, preterism, and idealism.
+        </p>
+        <hr />
+        <p>
+          <em
+            >For the analytic narrative behind these numbers see
+            <code>bohr-vs-millers-rules.md</code> §</em
+          >
+          Rule-violation frequency table <em>and §</em> Observations.
+          <em>For the headline summary see <code>bohr-vs-millers-rules-summary.md</code>.</em>
+        </p>
+      </main>
+    </div>
+
+    <footer class="colophon">
+      <p>Set in Fraunces &amp; IBM Plex. Built from markdown sources with Bun.</p>
+      <p>
+        v3 The Sure Word · reference series · <a href="index.html" style="color: inherit">index</a>
+      </p>
+    </footer>
+  </body>
+</html>

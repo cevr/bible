@@ -1,0 +1,130 @@
+---
+import type { Verse } from "../../scripts/schema.ts";
+import { md, mdInline } from "../lib/md.ts";
+import ViolationBadge from "./ViolationBadge.astro";
+
+interface Props {
+  verse: Verse;
+  chapterSlug: string;
+}
+
+const { verse, chapterSlug } = Astro.props;
+const sortedViolations = verse.violations
+  ? [...verse.violations.items].sort((a, b) => a.ruleOrder - b.ruleOrder)
+  : [];
+const violationCount = sortedViolations.length;
+const cardClass = violationCount > 0 ? "verse-card has-violations" : "verse-card";
+const permalink = `#${verse.slug}`;
+---
+
+<article
+  class={cardClass}
+  id={verse.slug}
+  data-chapter={chapterSlug}
+  data-verse={verse.num}
+>
+  <header class="verse-head">
+    <a class="verse-permalink" href={permalink} aria-label={`Link to ${verse.ref}`}>
+      <span class="verse-ref">{verse.ref}</span>
+    </a>
+    <p class="verse-text" set:html={mdInline(verse.text)} />
+    {violationCount > 0 ? (
+      <span class="verse-count-badge">
+        {violationCount} viol
+      </span>
+    ) : (
+      <span class="verse-count-badge" data-clean>
+        clean
+      </span>
+    )}
+  </header>
+
+  <div class="verse-readings">
+    <section class="reading-col reading-pioneer">
+      <p class="reading-tag">
+        <span class="swatch" aria-hidden="true"></span>
+        Pioneer
+        {verse.pioneerReading?.citation && (
+          <span class="cite">{verse.pioneerReading.citation}</span>
+        )}
+      </p>
+      {verse.pioneerReading ? (
+        <div class="reading-body" set:html={md(verse.pioneerReading.html)} />
+      ) : (
+        <p class="reading-empty">— no pioneer reading on this verse</p>
+      )}
+    </section>
+    <section class="reading-col reading-bohr">
+      <p class="reading-tag">
+        <span class="swatch" aria-hidden="true"></span>
+        Bohr
+        {verse.bohrReading?.citation && (
+          <span class="cite">{verse.bohrReading.citation}</span>
+        )}
+      </p>
+      {verse.bohrReading ? (
+        <div class="reading-body" set:html={md(verse.bohrReading.html)} />
+      ) : (
+        <p class="reading-empty">— Bohr does not address this verse separately</p>
+      )}
+    </section>
+  </div>
+
+  {verse.warrant && (
+    <section class="verse-warrant">
+      <p class="reading-tag">
+        <span class="swatch" aria-hidden="true"></span>
+        {verse.warrant.label}
+      </p>
+      <div class="reading-body" set:html={md(verse.warrant.html)} />
+    </section>
+  )}
+
+  {verse.violations && violationCount > 0 && (
+    <section class="verse-violations">
+      <p class="violations-tag">
+        <span class="swatch" aria-hidden="true"></span>
+        {verse.violations.label}
+      </p>
+      <ol class="violation-list">
+        {sortedViolations.map((v) => (
+          <ViolationBadge violation={v} scope={verse.violations!.scope} />
+        ))}
+      </ol>
+    </section>
+  )}
+
+  {verse.status && (
+    <section class="verse-status">
+      <p class="status-tag">
+        <span class="swatch" aria-hidden="true"></span>
+        {verse.status.label}
+      </p>
+      <div class="status-body" set:html={md(verse.status.html)} />
+    </section>
+  )}
+
+  {verse.symbols && (
+    <section class="verse-symbols">
+      <p class="symbols-tag">
+        <span class="swatch" aria-hidden="true"></span>
+        {verse.symbols.label}
+      </p>
+      <div class="symbols-body" set:html={md(verse.symbols.html)} />
+    </section>
+  )}
+
+  {verse.extensions.map((ext) => (
+    <section class="verse-extension">
+      <p class="note-tag">{ext.label}</p>
+      <div class="note-body" set:html={md(ext.html)} />
+    </section>
+  ))}
+
+  {verse.notes.map((note) => (
+    <section class="verse-note">
+      <p class="note-tag">{note.label}</p>
+      <div class="note-body" set:html={md(note.html)} />
+    </section>
+  ))}
+</article>

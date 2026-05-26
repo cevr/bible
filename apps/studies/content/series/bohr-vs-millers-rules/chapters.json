@@ -1,0 +1,209 @@
+[
+  {
+    "slug": "dan-11",
+    "ref": "Dan 11",
+    "title": "Daniel 11",
+    "verseCount": 45,
+    "addressed": 45,
+    "violations": 11,
+    "density": 24
+  },
+  {
+    "slug": "rev-1",
+    "ref": "Rev 1",
+    "title": "Revelation 1",
+    "verseCount": 20,
+    "addressed": 20,
+    "violations": 0,
+    "density": 0
+  },
+  {
+    "slug": "rev-2",
+    "ref": "Rev 2",
+    "title": "Revelation 2",
+    "verseCount": 29,
+    "addressed": 29,
+    "violations": 0,
+    "density": 0
+  },
+  {
+    "slug": "rev-3",
+    "ref": "Rev 3",
+    "title": "Revelation 3",
+    "verseCount": 22,
+    "addressed": 22,
+    "violations": 0,
+    "density": 0
+  },
+  {
+    "slug": "rev-4",
+    "ref": "Rev 4",
+    "title": "Revelation 4",
+    "verseCount": 11,
+    "addressed": 11,
+    "violations": 0,
+    "density": 0
+  },
+  {
+    "slug": "rev-5",
+    "ref": "Rev 5",
+    "title": "Revelation 5",
+    "verseCount": 14,
+    "addressed": 14,
+    "violations": 0,
+    "density": 0
+  },
+  {
+    "slug": "rev-6",
+    "ref": "Rev 6",
+    "title": "Revelation 6",
+    "verseCount": 17,
+    "addressed": 17,
+    "violations": 0,
+    "density": 0
+  },
+  {
+    "slug": "rev-7",
+    "ref": "Rev 7",
+    "title": "Revelation 7",
+    "verseCount": 17,
+    "addressed": 17,
+    "violations": 0,
+    "density": 0
+  },
+  {
+    "slug": "rev-8",
+    "ref": "Rev 8",
+    "title": "Revelation 8",
+    "verseCount": 13,
+    "addressed": 13,
+    "violations": 0,
+    "density": 0
+  },
+  {
+    "slug": "rev-9",
+    "ref": "Rev 9",
+    "title": "Revelation 9",
+    "verseCount": 21,
+    "addressed": 21,
+    "violations": 16,
+    "density": 76
+  },
+  {
+    "slug": "rev-10",
+    "ref": "Rev 10",
+    "title": "Revelation 10",
+    "verseCount": 11,
+    "addressed": 11,
+    "violations": 0,
+    "density": 0
+  },
+  {
+    "slug": "rev-11",
+    "ref": "Rev 11",
+    "title": "Revelation 11",
+    "verseCount": 19,
+    "addressed": 19,
+    "violations": 3,
+    "density": 16
+  },
+  {
+    "slug": "rev-12",
+    "ref": "Rev 12",
+    "title": "Revelation 12",
+    "verseCount": 17,
+    "addressed": 17,
+    "violations": 0,
+    "density": 0
+  },
+  {
+    "slug": "rev-13",
+    "ref": "Rev 13",
+    "title": "Revelation 13",
+    "verseCount": 18,
+    "addressed": 18,
+    "violations": 1,
+    "density": 6
+  },
+  {
+    "slug": "rev-14",
+    "ref": "Rev 14",
+    "title": "Revelation 14",
+    "verseCount": 20,
+    "addressed": 20,
+    "violations": 0,
+    "density": 0
+  },
+  {
+    "slug": "rev-15",
+    "ref": "Rev 15",
+    "title": "Revelation 15",
+    "verseCount": 8,
+    "addressed": 8,
+    "violations": 0,
+    "density": 0
+  },
+  {
+    "slug": "rev-16",
+    "ref": "Rev 16",
+    "title": "Revelation 16",
+    "verseCount": 20,
+    "addressed": 20,
+    "violations": 2,
+    "density": 10
+  },
+  {
+    "slug": "rev-17",
+    "ref": "Rev 17",
+    "title": "Revelation 17",
+    "verseCount": 18,
+    "addressed": 18,
+    "violations": 2,
+    "density": 11
+  },
+  {
+    "slug": "rev-18",
+    "ref": "Rev 18",
+    "title": "Revelation 18",
+    "verseCount": 24,
+    "addressed": 24,
+    "violations": 1,
+    "density": 4
+  },
+  {
+    "slug": "rev-19",
+    "ref": "Rev 19",
+    "title": "Revelation 19",
+    "verseCount": 21,
+    "addressed": 21,
+    "violations": 0,
+    "density": 0
+  },
+  {
+    "slug": "rev-20",
+    "ref": "Rev 20",
+    "title": "Revelation 20",
+    "verseCount": 15,
+    "addressed": 15,
+    "violations": 0,
+    "density": 0
+  },
+  {
+    "slug": "rev-21",
+    "ref": "Rev 21",
+    "title": "Revelation 21",
+    "verseCount": 27,
+    "addressed": 27,
+    "violations": 0,
+    "density": 0
+  },
+  {
+    "slug": "rev-22",
+    "ref": "Rev 22",
+    "title": "Revelation 22",
+    "verseCount": 21,
+    "addressed": 21,
+    "violations": 0,
+    "density": 0
+  }
+]

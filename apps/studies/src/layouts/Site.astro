@@ -1,0 +1,78 @@
+---
+import "../styles/global.css";
+
+interface Props {
+  title: string;
+  description?: string;
+  currentNav?: "studies" | "audit" | "summary" | "heatmap";
+  seriesSlug?: string;
+}
+
+const { title, description, currentNav, seriesSlug } = Astro.props;
+const seriesBase = seriesSlug ? `/${seriesSlug}/` : "/";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="theme-color" content="#faf8f5" />
+    <title>{title}</title>
+    {description && <meta name="description" content={description} />}
+    <link
+      rel="preconnect"
+      href="https://fonts.googleapis.com"
+      crossorigin
+    />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,500;0,600;1,400;1,500&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+    />
+  </head>
+  <body>
+    <nav class="topnav" aria-label="Primary">
+      <div class="nav-inner">
+        <a href="/" class="brand">
+          Bible <em>studies</em>
+        </a>
+        {seriesSlug && (
+          <ul class="nav-list">
+            <li>
+              <a
+                href={seriesBase}
+                aria-current={currentNav === "studies" ? "page" : undefined}
+              >Overview</a>
+            </li>
+            <li>
+              <a
+                href={`${seriesBase}summary/`}
+                aria-current={currentNav === "summary" ? "page" : undefined}
+              >Summary</a>
+            </li>
+            <li>
+              <a
+                href={`${seriesBase}heatmap/`}
+                aria-current={currentNav === "heatmap" ? "page" : undefined}
+              >Heatmap</a>
+            </li>
+            <li>
+              <a
+                href={`${seriesBase}audit/`}
+                aria-current={currentNav === "audit" ? "page" : undefined}
+              >Audit</a>
+            </li>
+          </ul>
+        )}
+      </div>
+    </nav>
+
+    <slot />
+
+    <footer class="site-foot">
+      <span>bible/studies — verbatim study CMS</span>
+      <a href="https://github.com/cevr/bible-tools" rel="noreferrer">source</a>
+    </footer>
+  </body>
+</html>

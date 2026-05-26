@@ -1,0 +1,124 @@
+---
+import { getCollection } from "astro:content";
+import Site from "../../../layouts/Site.astro";
+import { getSeriesMeta } from "../../../lib/content.ts";
+
+const meta = await getSeriesMeta("bohr-vs-millers-rules");
+const chapters = (await getCollection("seriesChapters")).map((e) => e.data);
+
+// Preserve canonical order from the extractor (Dan 11 first, then Rev 1-22).
+const order = ["dan-11", ...Array.from({ length: 22 }, (_, i) => `rev-${i + 1}`)];
+const ordered = order
+  .map((slug) => chapters.find((c) => c.slug === slug))
+  .filter((c): c is NonNullable<typeof c> => Boolean(c));
+---
+
+<Site
+  title={`Audit — ${meta.title}`}
+  description="Per-chapter verse-by-verse audit index."
+  seriesSlug={meta.slug}
+  currentNav="audit"
+>
+  <main class="shell">
+    <header class="masthead">
+      <p class="eyebrow">{meta.eyebrow} · Audit</p>
+      <h1>Verse-by-verse <em>audit</em></h1>
+      <p class="lede">
+        {chapters.length} chapters · {ordered.reduce((a, c) => a + c.verseCount, 0)} verses ·
+        {ordered.reduce((a, c) => a + c.violations, 0)} with bulleted Miller-rule violations.
+      </p>
+    </header>
+
+    <ol class="chapter-list">
+      {ordered.map((c) => (
+        <li class="chapter-row">
+          <a href={`./${c.slug}/`} class="chapter-link">
+            <span class="ref">{c.ref}</span>
+            <span class="title">{c.title}</span>
+            <span class="stats">
+              <span class="stat"><b>{c.verseCount}</b> v</span>
+              <span class="stat"><b>{c.addressed}</b> addr</span>
+              <span class="stat" data-hot={c.violations > 0 ? "" : undefined}>
+                <b>{c.violations}</b> viol
+              </span>
+              <span class="density" data-tier={
+                c.density === 0 ? "0" :
+                c.density < 20 ? "1" :
+                c.density < 50 ? "2" : "3"
+              }>{c.density}%</span>
+            </span>
+          </a>
+        </li>
+      ))}
+    </ol>
+  </main>
+</Site>
+
+<style>
+  .chapter-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 6rem;
+    border-top: 1px solid var(--rule-soft);
+  }
+  .chapter-row {
+    border-bottom: 1px solid var(--rule-soft);
+  }
+  .chapter-link {
+    display: grid;
+    grid-template-columns: 5rem 1fr auto;
+    gap: 1.25rem;
+    align-items: baseline;
+    padding: 1rem 0;
+    text-decoration: none;
+    color: inherit;
+    transition: color 0.15s, background 0.15s;
+  }
+  .chapter-link:hover,
+  .chapter-link:focus-visible {
+    outline: none;
+    background: color-mix(in srgb, var(--paper-tint) 40%, var(--paper));
+  }
+  .chapter-link:hover .ref { color: var(--oxblood); }
+  .ref {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--ink-mute);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: color 0.15s;
+  }
+  .title {
+    font-family: var(--display);
+    font-weight: 500;
+    font-size: 1.05rem;
+    color: var(--ink);
+  }
+  .stats {
+    display: flex;
+    gap: 1.25rem;
+    align-items: baseline;
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--ink-mute);
+    letter-spacing: 0.04em;
+  }
+  .stat b { color: var(--ink); font-weight: 500; margin-right: 0.25em; }
+  .stat[data-hot] b { color: var(--oxblood); }
+  .density {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    font-weight: 500;
+    padding: 0.2rem 0.45rem;
+    border-radius: 2px;
+    color: var(--ink-mute);
+    background: var(--paper-tint);
+  }
+  .density[data-tier="1"] { color: var(--gold); background: color-mix(in srgb, var(--gold) 12%, var(--paper)); }
+  .density[data-tier="2"] { color: var(--oxblood); background: color-mix(in srgb, var(--oxblood) 12%, var(--paper)); }
+  .density[data-tier="3"] {
+    color: var(--paper);
+    background: var(--oxblood);
+  }
+</style>

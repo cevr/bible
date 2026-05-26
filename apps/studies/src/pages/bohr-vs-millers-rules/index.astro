@@ -1,0 +1,113 @@
+---
+import { getCollection } from "astro:content";
+import Site from "../../layouts/Site.astro";
+import { getSeriesMeta } from "../../lib/content.ts";
+
+const meta = await getSeriesMeta("bohr-vs-millers-rules");
+const chapters = await getCollection("seriesChapters");
+
+const totalVerses = chapters.reduce((acc, c) => acc + c.data.verseCount, 0);
+const totalAddressed = chapters.reduce((acc, c) => acc + c.data.addressed, 0);
+const totalViolations = chapters.reduce((acc, c) => acc + c.data.violations, 0);
+---
+
+<Site
+  title={`${meta.title} — Bible studies`}
+  description={meta.lede}
+  seriesSlug={meta.slug}
+  currentNav="studies"
+>
+  <main class="shell">
+    <header class="masthead">
+      <p class="eyebrow">{meta.eyebrow}</p>
+      <h1>{meta.title} — <em>{meta.subtitle}</em></h1>
+      <p class="lede">{meta.lede}</p>
+      <div class="meta">
+        <span><strong>Scope</strong>{totalVerses} verses, {chapters.length} chapters</span>
+        <span><strong>Addressed by Bohr</strong>{totalAddressed}</span>
+        <span><strong>w/ bulleted violations</strong>{totalViolations}</span>
+      </div>
+    </header>
+
+    <section class="landing-grid">
+      <a href="./summary/" class="landing-card">
+        <p class="card-eyebrow">Executive</p>
+        <h2 class="card-title">Summary</h2>
+        <p class="card-blurb">
+          One-page executive readout — what Bohr's framework gets right,
+          where it diverges from the pioneer baseline, and why.
+        </p>
+      </a>
+      <a href="./heatmap/" class="landing-card">
+        <p class="card-eyebrow">Visual</p>
+        <h2 class="card-title">Heatmap</h2>
+        <p class="card-blurb">
+          Density of Miller-rule violations across all 280 verses — at a
+          glance, the three divergence clusters.
+        </p>
+      </a>
+      <a href="./audit/" class="landing-card">
+        <p class="card-eyebrow">Reference</p>
+        <h2 class="card-title">Verse-by-verse audit</h2>
+        <p class="card-blurb">
+          The full {totalVerses}-verse audit, one chapter per page, with
+          pioneer reading ↔ Bohr reading split columns and numbered
+          rule-violation badges.
+        </p>
+      </a>
+    </section>
+  </main>
+</Site>
+
+<style>
+  .landing-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+    padding-bottom: 6rem;
+  }
+  @media (min-width: 768px) {
+    .landing-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+  .landing-card {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 1.75rem;
+    background: var(--paper);
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .landing-card:hover,
+  .landing-card:focus-visible {
+    border-color: var(--oxblood);
+    outline: none;
+    background: color-mix(in srgb, var(--paper-tint) 50%, var(--paper));
+  }
+  .card-eyebrow {
+    font-family: var(--body);
+    font-size: 0.68rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    margin: 0 0 0.5rem;
+  }
+  .card-title {
+    font-family: var(--display);
+    font-weight: 500;
+    font-size: 1.4rem;
+    line-height: 1.1;
+    letter-spacing: -0.015em;
+    margin: 0 0 0.75rem;
+    color: var(--ink);
+  }
+  .card-blurb {
+    font-family: var(--display);
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+</style>

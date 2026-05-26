@@ -1,0 +1,581 @@
+{
+  "slug": "rev-11",
+  "ref": "Rev 11",
+  "title": "Revelation 11",
+  "intro": "The chapter where Bohr **largely agrees** with the pioneer reading. Most verses have **no violation**. The split appears at vv. 11-13 where Bohr starts treating France as a _type_ that re-fulfills spiritually in the end-time secular world. Source: Bohr, _Studies on Daniel 11_, pp. 22, 97-102, 240.",
+  "verses": [
+    {
+      "ref": "Rev 11:1",
+      "num": 1,
+      "slug": "v-1",
+      "text": "And there was given me a reed like unto a rod: and the angel stood, saying, Rise, and measure the temple of God, and the altar, and them that worship therein.",
+      "pioneerReading": {
+        "citation": "DAR 497.2-498.2",
+        "html": "Smith reads the measuring as the **third angel's message work**, the temple as the **literal temple in heaven**, and the worshipers as the **true church on earth**. \"It is connected with the temple of God in heaven, and is designed to fit up a class of people as worshipers therein. The temple here cannot mean the church; for the church is brought to view in connection with this temple as 'them that worship therein.' **The temple is therefore the literal temple in heaven, and the worshipers the true church on earth.**\" (DAR 497.2). The measuring rod = the standard by which character is measured — the ten commandments: \"**the ten commandments... are embraced in the measuring rod put by the angel into the hands of John; and in the fulfillment of this prophecy, this very law has been put, under the third message, into the hands of the church**\" (DAR 497.2). Measuring the temple = giving the sanctuary subject \"a special examination\" (DAR 498.1). Taken whole, \"the measuring rod... is the special message now given to the church, which embraces the great truths peculiar to this time, including the ten commandments. By this message, our attention has been called to the temple above\" (DAR 498.1). The altar = \"the ministration connected with the temple, the work and the position of our great High Priest\" (DAR 498.1)."
+      },
+      "bohrReading": {
+        "citation": "_Revelation's Seven Trumpets_, pp. 184, 234",
+        "html": "The angel transported John in vision **to 1844** and told him to measure the heavenly temple — the measuring = the investigative judgment of the most-holy-place ministry that began at the close of the 2300 days. Verbatim: \"In Revelation 11:1, the Angel transported John in vision to 1844 and told him to measure the temple and those who worshiped there. However, the angel also told him not to measure the court where the Gentiles worshipped because it was given to the gentiles (not 'will' be given to them from 1844 forward but rather was given to them from 538 AD forward)\" (p. 184). And: \"after the disappointment, God commanded His people to present another message from the book of Daniel and that message had to do with the measuring of the heavenly temple, another way of describing the investigative judgment\" (p. 234). The measuring follows the 1260 years and inaugurates the most-holy-place ministry."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation. Aligns with pioneer on the 1844 / heavenly-temple identification."
+      },
+      "symbols": null,
+      "notes": [
+        {
+          "label": "Note (not in DAR at this verse)",
+          "html": "Smith does not state \"October 22, 1844\" explicitly at Rev 11:1; the date is supplied from his Dan 8:14 framework, which he ties to this scene at DAR 507.4 (\"This took place at the end of the 2300 days... when the prophetic periods expired, and the seventh angel commenced to sound\") rather than at v. 1."
+        }
+      ],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 11:2",
+      "num": 2,
+      "slug": "v-2",
+      "text": "But the court which is without the temple leave out, and measure it not; for it is given unto the Gentiles: and the holy city shall they tread under foot forty and two months.",
+      "pioneerReading": {
+        "citation": "DAR 498.2-499.1",
+        "html": "Smith reads \"the court which is without the temple\" as **this earth**, where the antitypical victim died: \"The court refers to this earth is proved thus: The court is the place where the victims were slain whose blood was to be ministered in the sanctuary. The antitypical victim must die in the antitypical court; and he died on Calvary in Judea\" (DAR 498.2). The treading of the holy city for forty-two months Smith identifies as \"**the great feature of Gentile apostasy; namely, the treading down of the holy city forty and two months during the period of papal supremacy**\" (DAR 498.2). Smith then links this period to the witnesses' 1260-day testimony: \"These days are the same as the forty-two months of the preceding verse, and refer to the period of papal triumph\" (DAR 499.2)."
+      },
+      "bohrReading": {
+        "citation": "_Revelation's Seven Trumpets_, pp. 181-185",
+        "html": "The 42 months = **1260 years of papal trampling, 538-1798**. Bohr's framework treats Rev 11 as having a different emphasis from parallel 1260-period passages: \"In Revelation 11 the central focus is upon the attack against the Bible, the Word of God\" (p. 182). The court \"was given\" (aorist) to the Gentiles already in 538 AD, and they would trample the holy city for the 42 months that follow. Verbatim chart caption: \"538 ... 1798 ... 1844\" — court trampled 538-1798, then temple measured at 1844 (p. 184). Bohr explicitly cross-links the 1260-day passages: \"42 months (Revelation 11:2) ... 1260 days (Revelation 11:3) ... 1260 days (Revelation 12:6) ... 42 months (Revelation 13:5) ... 3.5 times (Revelation 12:14) ... 3.5 times (Daniel 7:25)\" (p. 215). The holy city = \"God's faithful church\" (the heavenly temple's earthly counterpart, citing Barnes), trampled by spiritual \"gentiles\" = \"those who are enemies of Christ's true church\" (p. 214)."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation. Bohr correctly applies Rule VII (year-day) and Rule XII (trace 1260 days through Dan 7:25, 12:7, Rev 12:6, 14, 13:5 — all the 1260-period passages converging)."
+      },
+      "symbols": null,
+      "notes": [
+        {
+          "label": "Note (not in DAR at this verse)",
+          "html": "The explicit 538-1798 calendar dates Smith does state at DAR 500.6 (\"If we are correct in fixing upon A. D. 538 as the time of the commencement of the papal supremacy, the forty-two months, being 1260 prophetic days, or years, would bring us down to A. D. 1798\"), so the dating is DAR-attested at v. 7, not at v. 2 itself."
+        }
+      ],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 11:3",
+      "num": 3,
+      "slug": "v-3",
+      "text": "And I will give power unto my two witnesses, and they shall prophesy a thousand two hundred and threescore days, clothed in sackcloth.",
+      "pioneerReading": {
+        "citation": "DAR 499.2-500",
+        "html": "Smith identifies the 1260 days as **\"the same as the forty-two months of the preceding verse\"** — \"the period of papal triumph. During this time, the witnesses are in a state of sackcloth, or obscurity, and God gives them power to endure and maintain their testimony through that dark and dismal period\" (DAR 499.2). The witnesses themselves Smith identifies at v. 4 (the next verse): \"**the Old and New Testaments, one given in one dispensation, and the other in the other, are Christ's two witnesses**\" (DAR 499.5), grounded in John 5:39 (OT testifies of Christ) and \"his works bear witness of him... through the medium of the New Testament\" (DAR 499.4). Sackcloth = \"obscurity\" (DAR 499.2)."
+      },
+      "bohrReading": {
+        "citation": "_Revelation's Seven Trumpets_, pp. 187-193",
+        "html": "**Two witnesses = Old and New Testaments**, but with a fuller gloss: they are _the Bible as preached by the faithful church under the Holy Spirit_. Verbatim: \"Someone may wonder whether the two witnesses represent the Old and New Testaments. Yes, they do, but there is more to the story. Jesus made the apostles the depositories of the oracles of God. He called them to preach God's message as found in the Old and New Testaments. Thus, the two witnesses symbolize God's messengers who have been empowered by the Holy Spirit to give the message of salvation to the world as found in the Old and New Testaments\" (p. 187). \"Ellen White underlines that the two witnesses impart their messages to the world through the medium of the church. Thus, the two witnesses represent the Bible as preached by the faithful church\" (p. 187). Sackcloth = \"obscurity\" and \"blackness and darkness\" / persecution during the 1260 years of papal supremacy (pp. 191-193, citing GC 266-268). Bohr also overlays a **Moses-Elijah typology**: \"the two prophets function in the power and spirit of Moses and Elijah\" — Moses representing the OT, Elijah the NT (and end-time Elijah movement) (pp. 188-189)."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "**No violation — exemplary use of Rule XII.** Bohr traces each component (witness → John 5:39, John 21:24; olive trees → Zech 4; sackcloth → OT sackcloth-as-mourning passages; Moses/Elijah → Mal 4:4-6) through Scripture, taking the Bible's own glosses. This is exactly how Miller's Rules expect a figure to be unpacked. The \"Bible-preached-by-faithful-church\" addition is a Spirit-empowered extension consistent with Acts 1:8 and the church's prophetic role."
+      },
+      "symbols": null,
+      "notes": [
+        {
+          "label": "Note (not in DAR)",
+          "html": "Smith does not enumerate the Deuteronomic two-witness legal principle (Deut 17:6, 19:15) here; he grounds the two-witness identification in the OT/NT division of dispensations and in their direct Christ-testimony function (John 5:39, John 21:24). Smith also does not catalogue the Medieval Bible-suppression details (\"Bibles chained, vernacular translations banned, possession a capital crime\") at this verse — he characterizes the 1260-year state simply as \"obscurity.\""
+        }
+      ],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 11:4",
+      "num": 4,
+      "slug": "v-4",
+      "text": "These are the two olive trees, and the two candlesticks standing before the God of the earth.",
+      "pioneerReading": {
+        "citation": "DAR 499.4-499.5",
+        "html": "Smith reads the olive trees / candlesticks through Zech 4:3-6: \"**Evident allusion is here made to Zechariah 4:3-6, where it is explained that the two olive trees are taken to represent the word of God**\" (DAR 499.4). He marshals David's \"_The entrance of thy words giveth light_\" and \"_Thy word is a lamp unto my feet_\" to support the word-light identification, then Jesus' own gloss on the OT — \"**They are they which testify of me**\" — and the NT-as-witness via \"his works bear witness of him... through the medium of the New Testament, where alone we find them recorded\" (DAR 499.4). Conclusion: \"**the Old and New Testaments, one given in one dispensation, and the other in the other, are Christ's two witnesses**\" (DAR 499.5)."
+      },
+      "bohrReading": {
+        "citation": "_Revelation's Seven Trumpets_, pp. 193-195",
+        "html": "Olive trees / candlesticks = the OT-NT pair under Zech 4 imagery; **the oil = the Holy Spirit** who imparts the Word's message through the church. Verbatim: \"In Zechariah 4:14 the two olive trees are called the two anointed ones, literally in Hebrew, 'the two sons of oil'. The text does not call them 'sons of oil' because [of] their anointing but rather because they furnished oil to the candlestick (the church) and the oil is the Holy Spirit (Zechariah 4:6)\" (p. 194). \"In the Zechariah, there is only one lampstand and two olive trees while in the New Testament we have two olive trees and two lamp stands. There is a reason for this difference. During the Old Testament period, there was only one Testament while in the New Testament period there are two\" (p. 194). \"The two witnesses accomplish their work through the ministration of the Holy Spirit who imparts the message to the church and then the church proclaims the message to the world\" (p. 195). Agrees with pioneer; supplies the explicit oil-as-Spirit gloss Smith leaves implicit."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation. Same as v. 3 — Zech 4 cross-reference applied correctly."
+      },
+      "symbols": null,
+      "notes": [
+        {
+          "label": "Note (not in DAR at this verse)",
+          "html": "Smith does not invoke \"oil = Spirit\" symbolism at this paragraph; that gloss is supplied from Zech 4:6 and is consistent with the OT-NT identification but not explicit in DAR's Rev 11:4 commentary."
+        }
+      ],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 11:5",
+      "num": 5,
+      "slug": "v-5",
+      "text": "And if any man will hurt them, fire proceedeth out of their mouth, and devoureth their enemies: and if any man will hurt them, must in this manner be killed.",
+      "pioneerReading": {
+        "citation": "DAR 500.2",
+        "html": "Smith reads \"fire from the mouth\" as **the recorded judgments of Scripture pronounced against those who oppose, corrupt, or pervert it**: \"To hurt the word of God is to oppose, corrupt, or pervert its testimony, and turn people away from it. Against those who do this work, fire proceedeth out of their mouth to devour them; that is, **judgment of fire is denounced in that word against such. It declares that they will have their portion at last in the lake that burneth with fire and brimstone**. Malachi 4:1; Revelation 20:15; 22:18, 19; etc.\" (DAR 500.2)."
+      },
+      "bohrReading": {
+        "citation": "_Revelation's Seven Trumpets_, pp. 195-196",
+        "html": "**Fire from the mouth = the Word of God itself becoming consuming fire against those who oppose it** — invoking Jeremiah's experience. Verbatim cross-references: \"The fire that proceeds out of the mouth of the two witnesses reminds us of two texts that describe the experience of the prophet Jeremiah: Jeremiah 20:9 ... Jeremiah 5:14\" — citing Jer 5:14 \"I will make My words in your mouth fire, and this people wood, and it shall devour them\" (p. 195). Bohr then quotes Ellen White on Rev 11:5: \"Men cannot with impunity trample upon the word of God. The meaning of this fearful denunciation is set forth in the closing chapter of the Revelation\" — linking the fire to the plagues threatened in Rev 22:18-19 (GC 268, p. 196). Aligns with pioneer; supplies the Jer 5:14 / 20:9 cross-references Smith does not name."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation."
+      },
+      "symbols": null,
+      "notes": [
+        {
+          "label": "Note (not in DAR at this verse)",
+          "html": "Smith does not quote Jer 23:29 (\"_Is not my word like as a fire?_\") at this verse; he cross-refs Mal 4:1, Rev 20:15, Rev 22:18-19. The \"papal Rome / Revolutionary France overthrown by the Word's own judgments\" historical generalization is a downstream extension, not DAR-attested here."
+        }
+      ],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 11:6",
+      "num": 6,
+      "slug": "v-6",
+      "text": "These have power to shut heaven, that it rain not in the days of their prophecy: and have power over waters to turn them to blood, and to smite the earth with all plagues, as often as they will.",
+      "pioneerReading": {
+        "citation": "DAR 500.4",
+        "html": "Smith reads the powers as **the Elijah/Moses pattern of judgment recorded in the witnesses' own pages**: \"Elijah shut heaven that it rained not for three years and a half; but he did it by the word of the Lord. Moses, by the word of the Lord, turned the waters of Egypt to blood. **And just as these judgments, recorded in their testimony, have been fulfilled, so will every threatening and judgment denounced by them against any people surely be accomplished. 'As often as they will.' As often as judgments are recorded on their pages to take place, so often they will come to pass.**\" (DAR 500.4). Smith adds: \"**An instance of this the world is yet to experience in the infliction of the seven last plagues**\" (DAR 500.4) — the Rev 16 plagues being the still-future instance."
+      },
+      "bohrReading": {
+        "citation": "_Revelation's Seven Trumpets_, pp. 197-198",
+        "html": "Same Elijah-Moses-pattern authority during the 1260 years, but Bohr adds a **keys-of-the-kingdom gloss**: the two witnesses' power to open/shut heaven = the OT/NT \"keys of the kingdom of heaven\" given to Peter (Matt 16:19). Verbatim: \"In what sense do the two witnesses have power to open and shut heaven? The answer is that they have the keys of the kingdom of heaven... The dual form 'keys' without a qualifying number refers to two keys. Thus, the keys have the same meaning as the two witnesses. How do the two witnesses—the keys—open and shut heaven? The answer is that when God's messengers preach the Word of God through the ministration of the Holy Spirit, people either accept or reject the message. If they reject it, the kingdom of heaven closes\" (pp. 197-198). On the Elijah parallel: \"In the days of Elijah, apostasy led to the closing of heaven for three and a half literal years (James 5:17, 18) as the two witnesses closed heaven for three and a half symbolic years\" (p. 198). Aligns with pioneer's Elijah-Moses pattern."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation. Both Bohr and DAR read the powers as referring to the Elijah-Moses-pattern authority of God's Word during its 1260-year testimony."
+      },
+      "symbols": null,
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 11:7",
+      "num": 7,
+      "slug": "v-7",
+      "text": "And when they shall have finished their testimony, the beast that ascendeth out of the bottomless pit shall make war against them, and shall overcome them, and kill them.",
+      "pioneerReading": {
+        "citation": "DAR 500.6-501.2",
+        "html": "Smith argues the 1260-year period of witness \"in sackcloth\" closes around 1798 (538 + 1260) and that the beast that makes war on the witnesses must therefore be a kingdom appearing about that date with the prophecy's specified character. He defines the beast: \"**A 'beast' in prophecy denotes a kingdom, or power**\" (DAR 500.6, citing Dan 7:17, 23). \"**This beast, or kingdom, is out of the bottomless pit; it has no foundation, is an atheistical power, is 'spiritually Egypt.'**\" (DAR 500.6, citing Exod 5:2 — Pharaoh's \"I know not the Lord\"). \"**Did any kingdom, about 1798, manifest the same spirit? — Yes, France; in her national capacity she denied the being of God, and made war on the 'Monarchy of heaven.'**\" (DAR 500.6). Smith then enumerates the war on the Bible: \"**in 1793 a decree passed the French Assembly forbidding the Bible; and under that decree, the Bibles were gathered and burned, every possible mark of contempt was heaped upon them, and all the institutions of the Bible were abolished; the weekly rest-day was blotted out, and every tenth day substituted, for mirth and profanity. Baptism and the communion were abolished. The being of God was denied, and death pronounced an eternal sleep. The Goddess of Reason, in the person of a vile woman, was set up, and publicly worshiped.**\" (DAR 501.2)."
+      },
+      "bohrReading": {
+        "citation": "_Revelation's Seven Trumpets_, pp. 199-200",
+        "html": "The beast from the abyss = **revolutionary atheistic France** at the climax of the 1260 years. The \"when they shall have finished their testimony\" Bohr (following EGW) reads as \"_are finishing_ their testimony\" — i.e., the attack happens as the witnesses are approaching the termination of their sackcloth period, not after. Verbatim: \"Ellen White identified the beast from the abyss as revolutionary France: 'The atheistical power that ruled in France during the Revolution and the Reign of Terror did wage such a war against God and His holy word as the world had never witnessed' (GC p. 273)\" (p. 199). And: \"Revelation 11:2ff is a further expansion of the fifth trumpet (Revelation 9:1-12) where the shaft of the bottomless pit is opened and King Abaddon or Apollyon leads an army of demons\" (p. 199). Bohr equates Rev 11:7-10, the fifth trumpet (Rev 9:1-12), and Dan 11:40 as the same event (1789-1798): \"The same master spirit [the beast from the bottomless pit] that urged on the St. Bartholomew Massacre led also in the scenes of the Revolution\" (citing GC 273, p. 203)."
+      },
+      "warrant": null,
+      "violations": {
+        "scope": "verse",
+        "label": "Miller rules broken",
+        "items": [
+          {
+            "ruleNumber": "IV",
+            "ruleName": "no contradiction",
+            "ruleOrder": 4,
+            "body": "Bohr identifies the beast of Rev 11:7 with the beast from the abyss in his trumpet-5 framework (Rev 9:1-12 = Rev 11:7-10 = Dan 11:40 = French Revolution). But this requires Satan (= the fallen star of Rev 9:1) to _be_ the beast from the abyss in Rev 11:7 — and Rev 11:7 says the beast \"_kills_\" the witnesses, while Rev 9:5 says the locusts \"_should not kill them, but they should be tormented_.\" The two passages Bohr equates to the same event have **directly opposite** kill/no-kill specifications."
+          }
+        ]
+      },
+      "status": null,
+      "symbols": {
+        "label": "Symbols redefined",
+        "html": "None new at this verse — depends on the abyss/locust framework from Rev 9."
+      },
+      "notes": [
+        {
+          "label": "Note (not in DAR)",
+          "html": "The specific \"Nov 26, 1793 Commune of Paris decree\" and \"Nov 10, 1793 enthronement of the Goddess of Reason\" dates are not given by Smith at this verse; Smith dates only \"in 1793\" for the Assembly decree against the Bible. The precise day-dates are supplied from external Revolutionary records, consistent with Smith but not from him."
+        }
+      ],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 11:8",
+      "num": 8,
+      "slug": "v-8",
+      "text": "And their dead bodies shall lie in the street of the great city, which spiritually is called Sodom and Egypt, where also our Lord was crucified.",
+      "pioneerReading": {
+        "citation": "DAR 500.6-501.1",
+        "html": "Smith identifies the \"great city\" with **France** under three angel-given glosses. **Egypt = atheism** via Exod 5:2: \"**is 'spiritually Egypt.' (See Exodus 5:2: 'And Pharaoh said, Who is the Lord, that I should obey his voice to let Israel go? I know not the Lord, neither will I let Israel go.') Here is atheism. Did any kingdom, about 1798, manifest the same spirit? — Yes, France**\" (DAR 500.6). **Sodom = licentiousness**: \"**'Spiritually,' this power 'is called Sodom.' What was the characteristic sin of Sodom? — Licentiousness. Did France have this character? — She did; fornication was established by law during the period spoken of**\" (DAR 501.1). **\"Where our Lord was crucified\"** Smith reads two ways: (1) the **St. Bartholomew's Day massacre, Aug 24-25, 1572** — \"**A plot was laid in France to destroy all the pious Huguenots; and in one night (Aug. 24, 25, 1572) fifty thousand of them were murdered in cold blood, and the streets of Paris literally ran with blood. Thus our Lord was 'spiritually crucified' in his members**\" (DAR 501.1); (2) the French infidels' watchword: \"**the watchword and motto of the French infidels was, 'CRUSH THE WRETCH,' meaning Christ. Thus it may be truly said, 'where our Lord was crucified.' The very spirit of the 'bottomless pit' was poured out in that wicked nation**\" (DAR 501.1)."
+      },
+      "bohrReading": {
+        "citation": "_Revelation's Seven Trumpets_, pp. 201-203",
+        "html": "**France 1793-1798** — the \"great city\" identified as France (the eldest daughter of the papacy and the tenth part of the city). Spiritually = Sodom (licentiousness, citing Gen 19:5-8, Jude 7) + Egypt (atheism per Ex 5:2). Verbatim: \"Historians have referred to France as the eldest daughter of the papacy because she was the papacy's first and staunchest supporter. France persecuted God's people to the death more than any other kingdom of Europe\" (p. 201). On the Egypt link: \"Daniel 11:40 describes the king of the south (identified as Egypt in verses 8-11) who rose against the king of the north at the time of the end. The time of the end begins in 1798. This is the identical chronological point when the beast from the abyss arose in Revelation 11. The king of the south in 1798 was France who manifested the same defiant spirit as ancient Egypt and the king of the north is the papacy\" (p. 202). On \"where our Lord was crucified\": Bohr links to the St. Bartholomew Massacre and the French revolutionary slogan \"Crush the Wretch\" meaning Christ, citing GC 271-273 (pp. 202-203). Bohr's broader use: Rev 11:8 is his explicit anchor for \"Egypt = atheism\" symbolism, then extends this gloss into Dan 11:40-43 (\"the king of the south in 1798 was France\")."
+      },
+      "warrant": null,
+      "violations": {
+        "scope": "broader-use",
+        "label": "Miller rules broken by the broader use Bohr makes of this verse",
+        "items": [
+          {
+            "ruleNumber": "V",
+            "ruleName": "Scripture is its own expositor",
+            "ruleOrder": 5,
+            "body": "Bohr extends Rev 11:8's _named-and-bounded_ symbolic use of \"Egypt\" (the angel says _spiritually_ called Egypt — i.e., for the purpose of this specific symbolic identification) into a universal symbol-dictionary entry that lets him spiritualize literal \"Egypt\" in Dan 11:42-43. But Rule V means take the Bible's gloss **where the Bible gives it** — not generalize a vision-specific gloss to override every other context. The verse's own qualifier \"_spiritually_ called\" signals that this is a non-standard usage tied to this specific image."
+          }
+        ]
+      },
+      "status": {
+        "label": "Miller-rule status (this verse itself)",
+        "html": "No violation. The angel-explainer himself names the city \"spiritually Sodom and Egypt\" — this is Rule V (Scripture is its own expositor) at work _in this verse_."
+      },
+      "symbols": {
+        "label": "Symbols redefined",
+        "html": "Egypt (Catalog A) — when extended beyond this verse."
+      },
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 11:9",
+      "num": 9,
+      "slug": "v-9",
+      "text": "And they of the people and kindreds and tongues and nations shall see their dead bodies three days and an half, and shall not suffer their dead bodies to be put in graves.",
+      "pioneerReading": {
+        "citation": "DAR 502.2 + 502.6",
+        "html": "Smith reads the 3½ days as **3½ literal years of French suppression of the Bible**: \"**they lay dead three days and a half, that is, three years and a half, in France**\" (DAR 502.2). The \"people, kindreds, tongues, nations\" specifier Smith reads as the other European nations who witnessed but refused to join: \"**The language of this verse describes the feelings of other nations besides the one committing the outrage on the witnesses. They would see what war infidel France had made on the Bible, but would not be led nationally to engage in the wicked work, nor suffer the murdered witnesses to be buried, or put out of sight among themselves**\" (DAR 502.2). Smith dates the period explicitly at DAR 502.6: \"**In 1793, a decree passed the French Assembly suppressing the Bible. Just three years after, a resolution was introduced into the Assembly superseding the decree, and giving toleration to the Scriptures. That resolution lay on the table six months, when it was taken up, and passed without a dissenting vote. Thus, in just three years and a half, the witnesses 'stood upon their feet'**\" (DAR 502.6 — Smith's own enumeration: 1793 decree + 3 years + 6 months tabling = mid-1797 vote)."
+      },
+      "bohrReading": {
+        "citation": "_Revelation's Seven Trumpets_, p. 204",
+        "html": "3½ days = 3½ years of French atheist suppression of the Bible, dated precisely. Verbatim: \"On November 23, 1793, the national assembly gave a decree that all churches and religious services were to cease. On June 17, 1797, France gave a decree allowing religious services once again\" (p. 204). On the dead-bodies imagery: \"In ancient Rome, denying a person burial was the utmost insult reserved only for the worst criminals. This is the way that France treated the two witnesses during the Revolution\" (p. 204). Agrees with pioneer; supplies the day-precise dates (Nov 23, 1793 / June 17, 1797 — slightly different from the Nov 26 / June 17 dates commonly cited)."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "**No violation.** Both Bohr and DAR apply year-day (Rule VII) to the 3½ days = 3½ years; specific dated historical fulfillment satisfies Rule XIII."
+      },
+      "symbols": null,
+      "notes": [
+        {
+          "label": "Note (not in DAR)",
+          "html": "The precise \"Nov 26, 1793\" and \"June 17, 1797\" dates are not stated by Smith; he gives only the year-month structure (\"In 1793... just three years after... lay on the table six months\"). The day-precise dates and the \"Concordat of 1801\" addendum are supplied from external Revolutionary records."
+        }
+      ],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 11:10",
+      "num": 10,
+      "slug": "v-10",
+      "text": "And they that dwell upon the earth shall rejoice over them, and make merry, and shall send gifts one to another; because these two prophets tormented them that dwelt on the earth.",
+      "pioneerReading": {
+        "citation": "DAR 502.4",
+        "html": "Smith reads the rejoicing simply as **the temporary jubilation of infidels at the Bible's suppression, swiftly turned to horror by the Revolution's own bloodshed**: \"**This denotes the joy those felt who hated the Bible, or were tormented by it. Great was the joy of infidels everywhere for awhile. But the 'triumphing of the wicked is short;' so was it in France, for their war on the Bible and Christianity well-nigh swallowed them all up. They set out to destroy Christ's 'two witnesses,' but they filled France with blood and terror, so that they were horror-struck at the result of their own wicked deeds, and were soon glad to remove their impious hands from the Bible**\" (DAR 502.4)."
+      },
+      "bohrReading": {
+        "citation": "_Revelation's Seven Trumpets_, p. 204",
+        "html": "The torment-and-rejoicing reflects the natural reaction of those who hate the Bible's restraint. Verbatim: \"The word of God torments those who disobey it but brings peace to those who obey it. The pangs of conscience are painful to the transgressor\" (p. 204). Bohr then quotes EGW: \"Infidel France had silenced the reproving voice of God's two witnesses. The word of truth lay dead in her streets, and those who hated the restrictions and requirements of God's law were jubilant\" (GC 274, p. 204). Continuation of the v. 9 rejoicing of atheist France. Agrees with pioneer."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation."
+      },
+      "symbols": null,
+      "notes": [
+        {
+          "label": "Note (not in DAR)",
+          "html": "Smith does not name the \"Festivals of Reason\" or \"Festival of the Supreme Being\" at this verse, nor catalogue the gift-exchanges or processions. The festival detail is supplied from external Revolutionary history, consistent with the verse's \"send gifts\" language but not DAR-attested here."
+        }
+      ],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 11:11",
+      "num": 11,
+      "slug": "v-11",
+      "text": "And after three days and an half the Spirit of life from God entered into them, and they stood upon their feet; and great fear fell upon them which saw them.",
+      "pioneerReading": {
+        "citation": "DAR 502.6",
+        "html": "Smith dates the resurrection to the French Assembly's reversal: \"**In 1793, a decree passed the French Assembly suppressing the Bible. Just three years after, a resolution was introduced into the Assembly superseding the decree, and giving toleration to the Scriptures. That resolution lay on the table six months, when it was taken up, and passed without a dissenting vote. Thus, in just three years and a half, the witnesses 'stood upon their feet, and great fear fell upon them that saw them.' Nothing but the appalling results of the rejection of the Bible, could have induced France to take her hands off these witnesses**\" (DAR 502.6). The post-1797 Bible-society explosion Smith treats under v. 12 (the \"ascension\" verse) at DAR 503.2 rather than at v. 11."
+      },
+      "bohrReading": {
+        "citation": "_Revelation's Seven Trumpets_, pp. 204-205",
+        "html": "Same legal reversal of suppression that Smith reads — dated to 1793 decree → 3½ years → 1797 resolution. Verbatim: \"On November 23, 1793, the National Assembly uttered a decree abolishing religion but on June 17, 1797, the French government removed the restrictions against the practice of religion\" (p. 205). Bohr then quotes EGW: \"It was in 1793 that the decrees that abolished the Christian religion and set aside the Bible passed the French Assembly. Three years and a half later a resolution rescinding these decrees, thus granting toleration to the Scriptures, was adopted by the same body\" (GC 287, p. 205). Bohr's framework also reads the resurrection as a **type for the great Advent Awakening** of post-1798: \"Revelation 11:11-12 describes the resurrection of the two witnesses after the French Revolution... it also portrays the great Advent Awakening and the renewed study of Bible prophecy because the little book of Daniel was opened at the time of the end and knowledge of prophecy increased\" (p. 143)."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": null,
+      "symbols": null,
+      "notes": [
+        {
+          "label": "Note (not in DAR at this verse)",
+          "html": "The \"BFBS 1804 / ABS 1816 / Scottish / Geneva Bible Society\" enumeration belongs to Smith's v. 12 commentary (DAR 503.2 — \"Shortly after, the British Bible Society was organized (1804); then followed the American Bible Society (1817)\"); attributing it to v. 11 misplaces Smith's structural division. The \"Spirit of life entered\" Smith reads narrowly as **the legal reversal of suppression**, not yet the global Bible-society era."
+        },
+        {
+          "label": "Miller rules broken (by the template-extension)",
+          "html": "- **Rule IV** (no contradiction). If the witnesses' death and resurrection happened in France 1793-1798 _and_ the same event awaits future re-fulfillment in end-time secularism, then by Bohr's own framework \"the Spirit of life from God entered into them, and they stood upon their feet\" must also re-fulfill — meaning the Bible must be _suppressed again_ and then _restored again_ before the second coming. The textual warrant for this re-suppression is missing; Bohr's framework implies it without supporting it."
+        }
+      ],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 11:12",
+      "num": 12,
+      "slug": "v-12",
+      "text": "And they heard a great voice from heaven saying unto them, Come up hither. And they ascended up to heaven in a cloud; and their enemies beheld them.",
+      "pioneerReading": {
+        "citation": "DAR 503.2-503.3",
+        "html": "Smith reads \"ascended up to heaven\" as **great exaltation** (cf. Dan 4:22: \"Thy greatness is grown, and reacheth unto heaven\"): \"**Here we see that the expression signifies great exaltation. Have the Scriptures attained to such a state of exaltation as here indicated, since France made war upon them? — They have. Shortly after, the British Bible Society was organized (1804); then followed the American Bible Society (1817); and these, with their almost innumerable auxiliaries, are scattering the Bible everywhere**\" (DAR 503.2). Smith then catalogues the exaltation's magnitude: \"**Since that period, the Bible has been translated into nearly two hundred different languages that it was never in before; and the improvements in paper-making and printing within the last seventy-five years have given an impetus to the work of scattering Bibles, which is without a parallel**\" (DAR 503.2). And: \"**One vessel carried out from England fifty-nine tons of Bibles for the emancipated slaves in the West Indies... translations of the Scriptures have increased fivefold, and the circulation of the Scriptures thirty fold... it has been translated into languages embracing nine tenths of the human race. And the American Bible Society, in its eightieth annual report, dated May, 1896, gives the number of Bibles and parts of Bibles issued by that society alone, as 61,705,841**\" (DAR 503.3). Conclusion: \"**the Scriptures may truly be said to be exalted 'to heaven in a cloud,' a cloud being an emblem of heavenly elevation**\" (DAR 503.3)."
+      },
+      "bohrReading": {
+        "citation": "_Revelation's Seven Trumpets_, pp. 205-206",
+        "html": "Exaltation of the Scriptures globally through 19th-century Bible societies and missions, linked to the opening of the little book of Daniel in 1798. Verbatim: \"According to Revelation 10, the witnesses resurrected when the little book of Daniel 8-12 was unsealed and knowledge of Bible prophecy increased. This happened exactly in 1798\" (p. 205). Bohr then quotes EGW: \"Since France made war upon God's two witnesses, they have been honored as never before. In 1804 the British and Foreign Bible Society was organized... In 1816, the American Bible Society was founded. When the British Society was formed, the Bible had been printed and circulated in fifty tongues. It has since been translated into many hundreds of languages and dialects\" (GC 287, p. 205). The two groups of enemies who \"beheld them\" Bohr identifies as: (1) the gentile/papal enemies of the 1260 years, and (2) the beast from the abyss / France (p. 205). Agrees with pioneer; supplies the explicit Rev 10 / unsealed-little-book cross-link Smith does not draw."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation on primary reading; the template-extension issue is the same as v. 11."
+      },
+      "symbols": null,
+      "notes": [
+        {
+          "label": "Note (minor DAR-Smith date variance)",
+          "html": "Smith dates the American Bible Society to **1817** (DAR 503.2); the standard external date is 1816. The earlier row's \"ABS 1816\" reflects external history, not Smith."
+        }
+      ],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 11:13",
+      "num": 13,
+      "slug": "v-13",
+      "text": "And the same hour was there a great earthquake, and the tenth part of the city fell, and in the earthquake were slain of men seven thousand: and the remnant were affrighted, and gave glory to the God of heaven.",
+      "pioneerReading": {
+        "citation": "DAR 504.2",
+        "html": "Smith identifies the **\"city\" as the papal Roman power** (cross-link to Rev 17:18): \"**'And the woman which thou sawest is that great city which reigneth over the kings [kingdoms] of the earth.' That city is the papal Roman power. France is one of the 'ten horns' that gave 'their power and strength unto the [papal] beast;' or is one of the ten kingdoms that arose out of the Western empire of Rome, as indicated by the ten toes of Nebuchadnezzar's image, the ten horns of Daniel's beast (Daniel 7:24), and John's dragon. Revelation 12:3. France, then, was 'a tenth part of the city,' and was one of the strongest ministers of papal vengeance; but in this revolution it 'fell,' and with it fell the last civil messenger of papal fury**\" (DAR 504.2). Seven thousand Smith reads via the margin reading \"**names of men, or titles of men**\": \"**France made war, in her revolution of 1793-98 and onward, on all titles of nobility. It is said by those who have examined the French records, that just seven thousand titles of men were abolished in that revolution**\" (DAR 504.2). The remnant giving glory Smith reads as God's overruling of human wrath: \"**the God of heaven caused this 'wrath of man to praise him,' by causing all the world to see that those who make war on heaven make graves for themselves; thus glory redounded to God by the very means that wicked men employed to tarnish that glory**\" (DAR 504.2)."
+      },
+      "bohrReading": {
+        "citation": "_Revelation's Seven Trumpets_, pp. 202, 207",
+        "html": "**France = one tenth of the city (= one of the ten kingdoms of Europe)**, primary fulfillment in the French Revolution earthquake; then re-typed as a foreshadowing of the global earthquake of Rev 16. Verbatim on the tenth part: \"It is significant that France was the tenth part of the city mentioned later in the prophecy. The ten horns were the ten kingdoms of Europe but only one of them fell at this time\" (p. 202). Verbatim on the re-typing: \"Only a fraction of the great city fell during the French Revolution. Revelation 16:17-21 describes the final global and cataclysmic earthquake that will destroy the totality of Babylon. The events of the French Revolution actually foreshadow the events that will transpire during the last three plagues of Revelation 16\" (p. 207). On \"the rest gave glory to God\": Bohr reads as a positive remnant — \"we have here the introduction to the first angel's message\" (Rev 14:7), distinguishing them from the enemies (p. 207). Bohr also reads France as a **template** for end-time global secular-power assault — cf. EGW Ed p. 228: \"the world-wide dissemination of the same teachings that led to the French Revolution—all are tending to involve the whole world in a struggle similar to that which convulsed France\" (p. 208)."
+      },
+      "warrant": null,
+      "violations": {
+        "scope": "verse",
+        "label": "Miller rules broken",
+        "items": [
+          {
+            "ruleNumber": "XIII",
+            "ruleName": "every word must be fulfilled",
+            "ruleOrder": 13,
+            "body": "The pioneer reading takes the \"tenth part of the city\" fulfillment as _France itself_ (one of the ten kingdoms of the western Roman empire — \"the chief city\" — falling). Bohr's re-typing of France as a _template_ requires the verse to await a _future_ re-fulfillment, which leaves the _original_ \"tenth part fell\" specification still seeking a fulfillment Bohr does not name. The Rule-XIII test: did France's Revolution and subsequent overthrows fulfill _every word_? Pioneer says yes; Bohr says it was _also_ a type pointing forward, but this doubles fulfillment without textual warrant."
+          }
+        ]
+      },
+      "status": null,
+      "symbols": {
+        "label": "Symbols redefined",
+        "html": "Egypt (Catalog A) — the template-extension move; King of the South (Catalog A) — when this template is applied to Dan 11:40."
+      },
+      "notes": [
+        {
+          "label": "Note (not in DAR at this verse)",
+          "html": "The \"early 19th-century Awakening / evangelical conversions\" reading of \"the remnant gave glory\" is not Smith's reading; Smith reads it as the world's involuntary acknowledgement of divine judgment on France, not as a revival movement."
+        }
+      ],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 11:14",
+      "num": 14,
+      "slug": "v-14",
+      "text": "The second woe is past; and, behold, the third woe cometh quickly.",
+      "pioneerReading": {
+        "citation": "DAR 505.3-505.4",
+        "html": "Smith dates the transition explicitly: \"**The series of seven trumpets is here again resumed. The second woe ended with the sixth trumpet, Aug. 11, 1840; and the third woe occurs under the sounding of the seventh trumpet, which commenced in 1844**\" (DAR 505.3). And: \"**'Behold!' that is to say, mark it well, 'the third woe cometh quickly.' The fearful scenes of the second woe are past, and we are now under the sounding of the trumpet that brings the third and last woe. And shall we now look for peace and safety, a temporal millennium, a thousand years of righteousness and prosperity? Rather let us earnestly pray the Lord to awaken a slumbering world**\" (DAR 505.4)."
+      },
+      "bohrReading": {
+        "citation": "_Revelation's Seven Trumpets_, pp. 141-144, 357",
+        "html": "**First woe = fifth trumpet** (Rev 9:1-12 + Rev 11:2-12, the French Revolution & 1260-year obscurity, ending 1798); **second woe = sixth trumpet** (Rev 9:13-21 + Rev 10-11:1, carrying from 1844 to the close of probation); **third woe = seventh trumpet** (Rev 11:15-17, when probation closes, the plagues fall, and the second coming occurs). Verbatim: \"Revelation 11:14: After the resurrection of the Bible and the mention of the enemies and the remnant, the text tells us that the second woe is past\" (p. 357). And: \"The sixth trumpet carries us from 1844 all the way to the close of probation when the mystery of God is finished (Revelation 10:7). We know this because the seventh trumpet describes the close of probation and Jesus taking over the kingdoms of the world\" (p. 357). \"The blast of the seventh trumpet is the third woe\" (p. 144). **Bohr breaks with the pioneer date** for the second woe ending: Smith dates the second-woe transition to Aug 11, 1840 (Litch / Ottoman empire); Bohr places the second woe's end at the close of probation — i.e., the second woe is still ongoing."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "Framework-dependent. The break with Smith here is the abandonment of the 1840 / Ottoman fulfillment (which Bohr considers a \"futurist literalizing\" of the sixth trumpet, see pp. 6-7 of his book)."
+      },
+      "symbols": null,
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 11:15",
+      "num": 15,
+      "slug": "v-15",
+      "text": "And the seventh angel sounded; and there were great voices in heaven, saying, The kingdoms of this world are become the kingdoms of our Lord, and of his Christ; and he shall reign for ever and ever.",
+      "pioneerReading": {
+        "citation": "DAR 505.6",
+        "html": "Smith reads vv. 15-19 as **three passes over the same seventh-trumpet ground**, with v. 15 giving the prophet's anticipatory glance forward to the kingdom's full establishment: \"**From the 15th verse to the end of the chapter, we seem to be carried over the ground, from the sounding of the seventh angel to the end, three distinct times. In the verses last quoted, the prophet glances forward to the full establishment of the kingdom of God. Although the seventh trumpet has begun to sound, it may not yet be a fact that the great voices in heaven have proclaimed that the kingdoms of this world are become the kingdom of our Lord and of his Christ, except it be in anticipation of the speedy accomplishment of this event; but the seventh trumpet, like the preceding six, covers a period of time; and the transfer of the kingdoms from earthly powers to Him whose right it is to reign, is the principal event to occur in the early years of its sounding**\" (DAR 505.6)."
+      },
+      "bohrReading": {
+        "citation": "_Revelation's Seven Trumpets_, pp. 325-328",
+        "html": "The seventh trumpet sounds **after** probation closes — at the moment Jesus receives the kingdom from His Father (Dan 7:13-14) and returns for His people. Verbatim: \"Probation closes when the seventh trumpet is about to sound. At that moment, Jesus will receive the kingdom from his Father when the judgment concludes. Then the time of trouble will ensue followed by the blowing of the seventh trumpet when Jesus comes to take His people home\" (p. 325, citing GC 301). Bohr explicitly differs from Smith's \"begun in 1844, anticipatory glance\" reading: for Bohr, the seventh trumpet itself does _not_ begin in 1844 — rather, the _judgment_ begins in 1844 (Rev 11:1, 11:19), the sixth trumpet runs from 1844 to the close of probation, and only when probation closes does the seventh trumpet actually sound. \"We must link Revelation 17:14 with Revelation 19:11ff where Jesus bears the title 'KING OF KINGS AND LORD OF LORDS.' This means that Revelation 11:15 is repeated again in Revelation 17:14 and Revelation 19:16\" (p. 328)."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No primary violation; framework difference from Smith on the date the seventh trumpet begins (Bohr: at probation's close; Smith: in 1844)."
+      },
+      "symbols": null,
+      "notes": [
+        {
+          "label": "Note (not in DAR at this verse)",
+          "html": "The cross-link to Dan 7:13-14 (Son-of-Man enthronement before Ancient of Days) is not made by Smith at this paragraph, though it is consistent with his broader sanctuary framework. Smith does not name \"October 22, 1844\" at v. 15 either; he locates the seventh trumpet's commencement at 1844 generally (DAR 505.3)."
+        }
+      ],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 11:16",
+      "num": 16,
+      "slug": "v-16",
+      "text": "And the four and twenty elders, which sat before God on their seats, fell upon their faces, and worshipped God,",
+      "pioneerReading": {
+        "citation": "DAR 505.5-505.6",
+        "html": "Smith treats v. 16 in the same paragraph as v. 15 — part of the prophet's anticipatory glance to the kingdom's full establishment under the seventh trumpet (DAR 505.5-505.6). Smith does **not** at this paragraph offer an identification of the twenty-four elders (the 12 patriarchs + 12 apostles gloss); his focus is on the kingdom-transfer event the elders' worship attends."
+      },
+      "bohrReading": {
+        "citation": "_Revelation's Seven Trumpets_",
+        "html": "No discrete verse-16 exegesis (no \"Comments on Verse 16\" section); covered under the seventh-trumpet block of Rev 11:15-17 in the Chapter 14 treatment (pp. 325-328). Bohr quotes the verse as part of the seventh-trumpet block without unpacking the 24 elders' identity."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation."
+      },
+      "symbols": null,
+      "notes": [],
+      "extensions": [
+        {
+          "label": "Extension beyond Smith (not in DAR)",
+          "html": "The \"12 patriarchs + 12 apostles\" identification of the 24 elders is a standard pioneer-era reading (and Smith does treat the elders at Rev 4:4 elsewhere in DAR), but it is not stated by Smith at Rev 11:16."
+        }
+      ],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 11:17",
+      "num": 17,
+      "slug": "v-17",
+      "text": "Saying, We give thee thanks, O Lord God Almighty, which art, and wast, and art to come; because thou hast taken to thee thy great power, and hast reigned.",
+      "pioneerReading": {
+        "citation": "DAR 505.5-505.6",
+        "html": "Smith treats v. 17 in the same paragraph as vv. 15-16: the prophet's anticipatory glance to \"the full establishment of the kingdom of God\" under the seventh trumpet — \"**the transfer of the kingdoms from earthly powers to Him whose right it is to reign, is the principal event to occur in the early years of its sounding**\" (DAR 505.6)."
+      },
+      "bohrReading": {
+        "citation": "_Revelation's Seven Trumpets_, pp. 18, 328",
+        "html": "Bohr notes a deliberate shift in the divine title formula at v. 17: \"Earlier in Revelation God described Himself as the one who was, and is and is to come (Revelation 1:8), but in Revelation 11:17 (when the seventh trumpet sounds) He is spoken of as the one who is and who was and has taken His great power and begun to reign\" (p. 18). The \"is to come\" is dropped because Jesus has come — He has taken His kingdom. Verbatim on the structural division: \"Revelation 11:17 actually concludes the seventh trumpet. Revelation 11:18 then introduces and summarizes the main events of the rest of the book\" (p. 328). Diverges slightly from Smith on framework: for Bohr v.17 is the _terminus_ of the trumpet series proper, with v.18 launching a new compositional unit summarizing Rev 12-22."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation."
+      },
+      "symbols": null,
+      "notes": [],
+      "extensions": [
+        {
+          "label": "Extension beyond Smith (not in DAR)",
+          "html": "Smith does not explicitly cross-link \"taken thy great power and reigned\" to the Dan 7:13-14 Son-of-Man enthronement scene at this paragraph; the cross-link is structurally consistent with his sanctuary framework but not stated at this verse."
+        }
+      ],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 11:18",
+      "num": 18,
+      "slug": "v-18",
+      "text": "And the nations were angry, and thy wrath is come, and the time of the dead, that they should be judged, and that thou shouldest give reward unto thy servants the prophets, and to the saints, and them that fear thy name, small and great; and shouldest destroy them that destroy the earth.",
+      "pioneerReading": {
+        "citation": "DAR 506.2-507.1",
+        "html": "Smith reads each clause sequentially. \"**The Nations Were Angry**\" — \"**Commencing with the wonderful revolution in Europe in 1848, that spontaneous outburst of violence among the nations, their anger toward one another, their jealousy and envy, have been constantly increasing**\" (DAR 506.2). \"**Thy wrath is come**\" = the seven last plagues: \"**The wrath of God for the present generation is filled up in the seven last plagues (chapter 15:1), which consequently must here be referred to**\" (DAR 506.3). \"**The time of the dead that they should be judged**\" Smith reads **not as the investigative judgment** but as the **post-plague millennial judgment of the wicked dead**: \"**The great majority of the dead, that is, the wicked, are still in their graves after the visitation of the plagues, and the close of this dispensation. A work of judgment, of allotting to each one the punishment due to his crimes, is carried on in reference to them by the saints, in conjunction with Christ, during the one thousand years following the first resurrection. 1 Corinthians 6:2; Revelation 20:4. Inasmuch as this judgment of the dead follows the wrath of God, or the seven last plagues, it would seem necessary to refer it to the one thousand years of judgment upon the wicked... for the investigative Judgment takes place before the plagues are poured out**\" (DAR 506.4). \"**Reward unto thy servants**\" = the new earth at the end of the millennium (DAR 506.5, citing Matt 25:34). \"**Destroy them that destroy the earth**\" = the final destruction of the wicked by fire (DAR 507.1, citing 2 Pet 3:7; Rev 20:9). Smith concludes: \"**By this we learn that the seventh trumpet reaches over to the end of the one thousand years**\" (DAR 507.1)."
+      },
+      "bohrReading": {
+        "citation": "_Revelation's Seven Trumpets_, pp. 5, 328",
+        "html": "**Rev 11:18 is a five-fold summary of Revelation 12-22** — five separate, _sequential_ phases, NOT a compressed final-scene block. Verbatim: \"Revelation 11:18 then introduces and summarizes the main events of the rest of the book. This verse contains five key points of time that form the structure of the rest of the book: Revelation 12-14 — The Nations were angry; Revelation 15-19 — Your wrath has come; Revelation 20:4, 11, 12 — The time to judge the dead; Revelation 19:11-21; 22:12 — The time to reward your servants; Revelation 20:14, 15 — Destroy those who destroy the earth\" (p. 328). On the \"time to judge the dead\" phase specifically: Bohr places it at **Revelation 20:4, 11, 12 — the millennial judgment of the wicked dead** (NOT the 1844 investigative judgment). Bohr quotes EGW EW p. 36: \"the [1] anger of the nations, the [2] wrath of God, and the [3] time to judge the dead were separate and distinct, one following the other\" (pp. 5, 328). The five phases run from the present (nations angry) through the plagues (wrath), then the millennial judgment of the dead, then the second-coming reward, then the final destruction."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation. Bohr exemplifies Rule IV by reading Rev 11:18 as a five-stage outline whose internal sequencing matches EGW EW 36, Smith's pioneer treatment, and the structural flow of Rev 12-22."
+      },
+      "symbols": null,
+      "notes": [
+        {
+          "label": "Popular SDA reading (which both Smith and Bohr reject)",
+          "html": "The widely-taught contemporary SDA assumption identifies \"_the time of the dead, that they should be judged_\" with the **1844 investigative (pre-advent) judgment** of Daniel 7-8 — i.e., the heavenly tribunal that opens in 1844 to examine the cases of the professed righteous dead before Christ's return. On this reading the clause becomes a confirmation marker for the 1844 sanctuary message: the seventh trumpet sounds; the temple opens (v. 19); the investigative judgment of the dead begins. This is the reading found in many popular SDA expositions, sermon series, and Sabbath-School notes that treat Rev 11:18-19 as a single 1844-anchored block. **Both Uriah Smith and Stephen Bohr disagree with this reading and place the clause _after_ the seven last plagues, in the millennium.**"
+        },
+        {
+          "label": "Pioneer–Bohr convergence (against the popular SDA reading)",
+          "html": "This verse is one of the rare points where the pioneer (Smith) and Bohr converge against the popular contemporary SDA assumption.\n\n| Source | What \"_time of the dead that they should be judged_\" means | When it occurs |\n| --- | --- | --- |\n| Popular SDA reading | The pre-advent / investigative judgment of Dan 7-8 | **1844 onward**, before the plagues |\n| Uriah Smith (DAR 506.4) | The post-plague judgment of the wicked dead by the saints | **After the plagues, during the 1,000 years** (cites 1 Cor 6:2; Rev 20:4) |\n| Stephen Bohr (_Seven Trumpets_, p. 328) | The millennial judgment of the wicked dead | **After the plagues — Rev 20:4, 11, 12** |\n\nBoth Smith and Bohr cite the **same EGW sequencing** (EW p. 36) — \"the anger of the nations, the wrath of God, and the time to judge the dead were separate and distinct, one following the other\" — and both apply the same _Scripture-is-its-own-expositor_ move: Rev 20:4, 11-12 is the only place in Scripture where the saints sit on thrones and judge the dead, so that is what Rev 11:18's \"time of the dead that they should be judged\" must mean. Smith adds the explicit defeater for the popular reading: \"**for the investigative Judgment takes place before the plagues are poured out**\" (DAR 506.4) — Rev 11:18 puts this judgment _after_ the wrath, so it cannot be the 1844 investigative judgment. Bohr echoes the same structural argument: the five clauses of v.18 are _sequential_, not synchronous, and the third clause maps to Rev 20, not to 1844."
+        }
+      ],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 11:19",
+      "num": 19,
+      "slug": "v-19",
+      "text": "And the temple of God was opened in heaven, and there was seen in his ark of his testament: and there were lightnings, and voices, and thunderings, and an earthquake, and great hail.",
+      "pioneerReading": {
+        "citation": "DAR 507.4-508.1",
+        "html": "Smith reads v. 19 as the **third pass over the seventh-trumpet ground — Christ's entry into the most holy place at the close of the 2300 days**: \"**We know it is the holy of holies that is here opened; for the ark is seen; and in that apartment alone the ark was deposited. This took place at the end of the 2300 days, when the sanctuary was to be cleansed, the time when the prophetic periods expired, and the seventh angel commenced to sound**\" (DAR 507.4). Smith argues from the ark's name (\"ark of his testament\") that the literal tables of the law are still there: \"**The ark was called the ark of the covenant, or testament, because it was made for the express purpose of containing the tables of the testimony, or ten commandments. Exodus 25:16; 31:18; Deuteronomy 10:2, 5. It was put to no other use, and owed its name solely to the fact that it contained the tables of the law. If the tables were not therein, it would not be the ark of his (God's) testament, and could not truthfully be so called. Yet John, beholding the ark in heaven under the sounding of the seventh trumpet, still calls it the 'ark of his testament,' affording unanswerable proof that the law is still there, unaltered in one jot or tittle**\" (DAR 507.4). The closing \"lightnings, voices, thunderings, earthquake, great hail\" Smith reads as **the final convulsion of nature at the close of the millennium**, cross-linked to Rev 16:17-21 and Rev 21:5: \"**the drama will soon close with the lightnings, thunderings, voices, the earthquake, and great hail, which will constitute nature's last convulsion before all things are made new at the close of the thousand years**\" (DAR 508.1)."
+      },
+      "bohrReading": {
+        "citation": "_Revelation's Seven Trumpets_, pp. 5, 19, 359-360",
+        "html": "**Rev 11:19 = the opening of the most holy place in 1844, marking the start of the investigative judgment** — the introduction to the vision of Revelation 12-14, NOT the conclusion of chapter 11. Verbatim: \"Revelation 11:19 is not the conclusion of chapter 11 but rather the introduction to chapters 12-14. In other words, Revelation 11:19 brings us to the same climax as Revelation 11:1 does in chapter ten. Thus, Revelation 11:1 speaks about the beginning of the judgment in heaven after the great disappointment and Revelation 11:19 reaches the same climax again\" (p. 359). On the **two-part structure** of v.19: \"Revelation 11:19 (first part): The temple opens in 1844 and the sixth trumpet begins the gathering of the righteous and the wicked. When the temple closes there will be voices, thunder, lightning, a great earthquake and great hail. Revelation 11:19 (second part); 15:5-8: The temple closes and the seven plagues fall culminating with the seventh plague where the same phenomena of Revelation 11:19 are described\" (p. 359). Bohr quotes EGW: \"the announcement, 'The temple of God was opened in heaven, and there was seen in his temple the ark of his testament,' points to the opening of the most holy place of the heavenly sanctuary, at the end of the twenty-three hundred days—in 1844—as Christ entered there to perform the closing work of the atonement\" (RH Nov 9, 1905, p. 360). Bohr also draws the Day-of-Atonement / ark-of-the-testament link via 4SP 273 (p. 360). **Diverges from Smith** on v.19's compositional role: Smith treats v.19 as the third pass over the seventh-trumpet ground and reads the lightnings/earthquake/hail as the _final_ convulsion of nature at the close of the millennium; Bohr treats v.19 as the introduction to Rev 12-14 and reads the second-half phenomena as the seventh-plague (Rev 16:17-21) closing of the heavenly temple. Both agree on the most-holy-place-opened-in-1844 identification."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation. Exemplary Rule IV (cross-link of Rev 11:19 → Heb 8-9 → Rev 15:5-8 → Rev 16)."
+      },
+      "symbols": null,
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    }
+  ],
+  "summaryHtml": "**Rev 11 violation summary:** Of 19 verses, Bohr breaks Miller rules on approximately **4** (vv. 7, 11, 12, 13) — and the violations are _secondary_ (re-typing France as a template) rather than primary (the primary France 1789-1798 fulfillment is shared). This is Bohr's most rule-respecting chapter, because vv. 1-10 happen to align with the pioneer reading.\n\n---"
+}

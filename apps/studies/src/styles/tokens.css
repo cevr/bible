@@ -1,0 +1,37 @@
+/*
+ * Design tokens for the studies CMS. Lifted from
+ * packages/cli/outputs/studies/.../reference/build-html.ts (the source of the
+ * original visual language). Anything that wants to use these tokens imports
+ * tokens.css before global.css.
+ */
+
+:root {
+  /* paper */
+  --paper: #faf8f5;
+  --paper-tint: #f3eee3;
+
+  /* ink */
+  --ink: #1a1612;
+  --ink-soft: #4a3f33;
+  --ink-mute: #7a6f63;
+
+  /* rules */
+  --rule: #d8d0c2;
+  --rule-soft: #e8e2d4;
+
+  /* accents */
+  --oxblood: #842817;
+  --oxblood-soft: #b85842;
+  --indigo: #2c4a5f;
+  --gold: #8a6d2f;
+  --green: #3d5a3a;
+
+  /* spacing + measure */
+  --pad: clamp(1rem, 3vw, 2rem);
+  --measure: 72ch;
+
+  /* type stacks */
+  --display: 'Fraunces', 'Times New Roman', Georgia, serif;
+  --body: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}

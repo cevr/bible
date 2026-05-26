@@ -1,0 +1,131 @@
+---
+import { getCollection } from "astro:content";
+import Site from "../layouts/Site.astro";
+
+const series = await getCollection("seriesMeta");
+const chapters = await getCollection("seriesChapters");
+
+const seriesWithCounts = series.map((s) => ({
+  meta: s.data,
+  totalChapters: chapters.length,
+  totalVerses: chapters.reduce((acc, c) => acc + c.data.verseCount, 0),
+  totalViolations: chapters.reduce((acc, c) => acc + c.data.violations, 0),
+}));
+---
+
+<Site title="Bible studies">
+  <main class="shell">
+    <header class="masthead">
+      <p class="eyebrow">Index</p>
+      <h1>Bible <em>studies</em></h1>
+      <p class="lede">
+        A growing catalog of long-form, verbatim study series — pioneer
+        commentary, modern audits, primary sources.
+      </p>
+    </header>
+
+    <section class="series-list">
+      <ol class="series-items">
+        {seriesWithCounts.map(({ meta, totalChapters, totalVerses, totalViolations }) => (
+          <li class="series-item">
+            <a href={`/${meta.slug}/`} class="series-link">
+              <p class="series-eyebrow">{meta.eyebrow}</p>
+              <h2 class="series-title">{meta.title}</h2>
+              <p class="series-subtitle">{meta.subtitle}</p>
+              <p class="series-lede">{meta.lede}</p>
+              <dl class="series-stats">
+                <div>
+                  <dt>Chapters</dt>
+                  <dd>{totalChapters}</dd>
+                </div>
+                <div>
+                  <dt>Verses</dt>
+                  <dd>{totalVerses}</dd>
+                </div>
+                <div>
+                  <dt>Verses w/ violations</dt>
+                  <dd>{totalViolations}</dd>
+                </div>
+              </dl>
+            </a>
+          </li>
+        ))}
+      </ol>
+    </section>
+  </main>
+</Site>
+
+<style>
+  .series-list { padding-bottom: 6rem; }
+  .series-items {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 2rem;
+  }
+  .series-item { padding: 0; }
+  .series-link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 2rem;
+    background: var(--paper);
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .series-link:hover,
+  .series-link:focus-visible {
+    border-color: var(--oxblood);
+    outline: none;
+    background: color-mix(in srgb, var(--paper-tint) 40%, var(--paper));
+  }
+  .series-eyebrow {
+    font-family: var(--body);
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    margin: 0 0 0.75rem;
+  }
+  .series-title {
+    font-family: var(--display);
+    font-weight: 500;
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    line-height: 1.1;
+    letter-spacing: -0.015em;
+    margin: 0 0 0.4rem;
+    color: var(--ink);
+  }
+  .series-subtitle {
+    font-family: var(--display);
+    font-style: italic;
+    font-size: 1rem;
+    color: var(--oxblood);
+    margin: 0 0 1rem;
+  }
+  .series-lede {
+    font-family: var(--display);
+    font-size: 1rem;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    margin: 0 0 1.5rem;
+    max-width: 60ch;
+  }
+  .series-stats {
+    display: flex;
+    gap: 2rem;
+    margin: 0;
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--ink-mute);
+    letter-spacing: 0.04em;
+    flex-wrap: wrap;
+  }
+  .series-stats div { display: flex; gap: 0.4em; }
+  .series-stats dt { margin: 0; text-transform: uppercase; letter-spacing: 0.1em; }
+  .series-stats dt::after { content: ":"; }
+  .series-stats dd { margin: 0; color: var(--ink); font-weight: 500; }
+</style>

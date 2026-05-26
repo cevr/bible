@@ -1,0 +1,39 @@
+---
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, resolve } from "node:path";
+import { marked } from "marked";
+import Site from "../../layouts/Site.astro";
+import { getSeriesMeta } from "../../lib/content.ts";
+
+const meta = await getSeriesMeta("bohr-vs-millers-rules");
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const APP_ROOT = resolve(__dirname, "..", "..", "..");
+const summaryPath = resolve(
+  APP_ROOT,
+  "content/series/bohr-vs-millers-rules/summary.md",
+);
+const md = readFileSync(summaryPath, "utf8");
+const html = marked.parse(md, { gfm: true });
+---
+
+<Site
+  title={`Summary — ${meta.title}`}
+  description={`Executive summary of ${meta.title}.`}
+  seriesSlug={meta.slug}
+  currentNav="summary"
+>
+  <main class="shell">
+    <header class="masthead">
+      <p class="eyebrow">{meta.eyebrow} · Summary</p>
+      <h1>Executive <em>summary</em></h1>
+      <p class="lede">
+        One-page readout — what the audit found, where Bohr diverges from
+        the pioneer baseline, and why.
+      </p>
+    </header>
+
+    <main class="content" set:html={html} />
+  </main>
+</Site>

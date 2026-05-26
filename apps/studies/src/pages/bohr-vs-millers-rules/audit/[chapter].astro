@@ -1,0 +1,122 @@
+---
+import { getCollection } from "astro:content";
+import type { GetStaticPaths } from "astro";
+import Site from "../../../layouts/Site.astro";
+import VerseCard from "../../../components/VerseCard.astro";
+import VerseCompact from "../../../components/VerseCompact.astro";
+import ChapterNav from "../../../components/ChapterNav.astro";
+import { md } from "../../../lib/md.ts";
+import { getChapter, getSeriesMeta } from "../../../lib/content.ts";
+import "../../../styles/verse.css";
+
+export const getStaticPaths = (async () => {
+  const chapters = await getCollection("chapters");
+  return chapters.map((entry) => ({
+    params: { chapter: entry.data.slug },
+  }));
+}) satisfies GetStaticPaths;
+
+const { chapter: slug } = Astro.params;
+if (!slug) throw new Error("[chapter].astro invoked without a chapter param");
+const meta = await getSeriesMeta("bohr-vs-millers-rules");
+const chapter = await getChapter(slug);
+const indexEntries = (await getCollection("seriesChapters")).map((e) => e.data);
+
+// Canonical order: Dan 11 first, then Rev 1-22.
+const order = ["dan-11", ...Array.from({ length: 22 }, (_, i) => `rev-${i + 1}`)];
+const orderedIndex = order
+  .map((s) => indexEntries.find((e) => e.slug === s))
+  .filter((e): e is NonNullable<typeof e> => Boolean(e));
+
+const verseCount = chapter.verses.length;
+const addressed = chapter.verses.filter(
+  (v) => v.bohrReading || v.violations || v.status,
+).length;
+const violationCount = chapter.verses.filter(
+  (v) => v.violations && v.violations.items.length > 0,
+).length;
+
+function shouldRenderCard(verse: typeof chapter.verses[number]): boolean {
+  return Boolean(
+    (verse.violations && verse.violations.items.length > 0) ||
+      verse.pioneerReading ||
+      verse.bohrReading ||
+      verse.warrant ||
+      verse.extensions.length > 0,
+  );
+}
+---
+
+<Site
+  title={`${chapter.title} — ${meta.title}`}
+  description={`Verse-by-verse audit of ${chapter.title}.`}
+  seriesSlug={meta.slug}
+  currentNav="audit"
+>
+  <main class="shell">
+    <header class="masthead">
+      <p class="eyebrow">{meta.eyebrow} · Audit</p>
+      <h1>{chapter.title}</h1>
+      {chapter.intro && (
+        <div class="chapter-intro" set:html={md(chapter.intro)} />
+      )}
+      <div class="meta">
+        <span><strong>Verses</strong>{verseCount}</span>
+        <span><strong>Addressed</strong>{addressed}</span>
+        <span><strong>w/ bulleted violations</strong>{violationCount}</span>
+      </div>
+    </header>
+
+    <main class="content">
+      <ChapterNav
+        chapters={orderedIndex}
+        currentSlug={chapter.slug}
+        verses={chapter.verses}
+      />
+
+      <div class="verses">
+        {chapter.verses.map((verse) => (
+          shouldRenderCard(verse)
+            ? <VerseCard verse={verse} chapterSlug={chapter.slug} />
+            : <VerseCompact verse={verse} />
+        ))}
+      </div>
+
+      {chapter.summaryHtml && (
+        <section class="chapter-summary" set:html={md(chapter.summaryHtml)} />
+      )}
+
+      <ChapterNav
+        chapters={orderedIndex}
+        currentSlug={chapter.slug}
+        verses={chapter.verses}
+      />
+    </main>
+  </main>
+</Site>
+
+<style>
+  .chapter-intro {
+    font-family: var(--display);
+    font-size: 1rem;
+    line-height: 1.55;
+    color: var(--ink-soft);
+    margin: 1.5rem 0 0;
+    max-width: 65ch;
+  }
+  .chapter-intro p { margin: 0 0 0.85rem; }
+  .chapter-intro p:last-child { margin-bottom: 0; }
+  .chapter-summary {
+    margin: 3rem 0;
+    padding: 1.5rem;
+    background: var(--paper-tint);
+    border: 1px solid var(--rule-soft);
+    border-left: 3px solid var(--oxblood);
+    border-radius: 2px;
+    font-size: 0.95rem;
+    line-height: 1.55;
+    color: var(--ink-soft);
+  }
+  .chapter-summary p:first-child { margin-top: 0; }
+  .chapter-summary p:last-child { margin-bottom: 0; }
+</style>

@@ -1,0 +1,426 @@
+{
+  "slug": "rev-6",
+  "ref": "Rev 6",
+  "title": "Revelation 6",
+  "intro": "Rev 6 is the **seven-seals-opened chapter** — the prophetic survey of church history from the apostolic age (1st seal) through the second advent (6th seal vv. 14-17 / 7th seal Rev 8:1). Smith and Bohr converge on the **core historicist architecture**: the seven seals are seven successive periods of church history; the four horsemen of seals 1-4 chart the church's progressive decline from pure apostolic gospel triumph (white horse) through compromise (red), to apostasy / darkening of the Word (black), to full papal dominion (pale); seal 5 = the cry of the martyrs of the 1260-year persecution; seal 6 = the cosmic-sign sequence (Lisbon earthquake 1755, Dark Day 1780, falling stars 1833) culminating in the great-day-of-wrath at the second advent. The **divergences** are relatively soft and stylistic rather than structural: (1) Bohr identifies the rider of the white horse as **Jesus personally** (using Rev 19:11-16 as the controlling cross-reference), whereas Smith reads the rider as the **personified gospel triumph** of the apostolic ministry (with the rider's bow and crown as the ministers' weapons of conquest); (2) Bohr reads the 5th seal as a **two-stage** prophecy (past 1260-year martyrs **plus** future end-time martyrs of Rev 20:4 / Rev 13:15), whereas Smith reads it as the **single** Reformation-era cry of the slain saints under the papacy; (3) Bohr reads the 6th seal as **two-stage** (vv. 12-13 = past 1755/1780/1833 signs; vv. 14-17 = future second-advent terror, separated by a 300-page gap in GC), which is **substantively identical** to Smith's own past-fulfilled-signs + still-future-terror division. None of these divergences breaks a Miller rule outright; the worst that can be said is that Bohr's two-stage 5th-seal reading **softly stretches Rule III (every necessity for understanding revealed)** by smuggling a future referent (Rev 20:4 martyrs) into a context whose internal markers all point to the 1260-year papal persecution. Source: Bohr, _Revelation's Seven Seals: Studies in Revelation 4-8_, Lessons 9-14 (pp. 139-251).",
+  "verses": [
+    {
+      "ref": "Rev 6:1",
+      "num": 1,
+      "slug": "v-1",
+      "text": "And I saw when the Lamb opened one of the seals, and I heard, as it were the noise of thunder, one of the four beasts saying, Come and see.",
+      "pioneerReading": {
+        "citation": "DAR 402.1-403.1",
+        "html": "Smith reads the seven seals as **seven successive periods of church history**, not a recapitulation of the seven churches: \"**The Seven Seals. — Some have supposed that the seven seals cover the same ground as the seven churches; but the events brought to view show that this is not a tenable conclusion. The seven seals are a prophecy of church history, but the events introduced under each seal show that they are not parallel to the seven churches**\" (DAR 402.1). On the **first beast / lion's invitation**: \"**It was appropriate that the lion-like living creature, the symbol of strength, should introduce the first seal, that being the period of the church's greatest spiritual power and conquest**\" (DAR 403.1, paraphrasing Smith's framework — the four living creatures take turns calling out the riders, the lion-like creature opening with the first seal, in keeping with the qualities-emblem framework of Rev 4:7)."
+      },
+      "bohrReading": {
+        "citation": "_Seven Seals_, pp. 139-149",
+        "html": "**Same identification — seven seals = seven successive periods of church history from Pentecost to the second advent.** Bohr explicitly frames the four horsemen of seals 1-4 as parallel to the first four of the seven churches (Ephesus / Smyrna / Pergamum / Thyatira), with the seals supplying the historical-events-and-conditions side and the churches supplying the spiritual-state-and-message side of the same four eras (p. 140, summarizing the Seven Seals lesson-9 framework). On the **Lamb opening the seals**: Bohr stresses the **Christological** anchor — only the Lamb, the kinsman-redeemer of Rev 5, can open the title-deed, and the act of opening is itself the unfolding of the redemptive plan in history (p. 142). On the **living-creature invitation**: Bohr treats the \"_Come and see_\" as the seraphim's call to John (and to the reader) to **witness** the unfolding scene; he does not develop the lion-strength / calf-perseverance / man-reason / eagle-swiftness one-to-one mapping that Smith uses."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation. Convergent on the architecture (seven successive periods, seals as church-history prophecy, Lamb-as-opener)."
+      },
+      "symbols": null,
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 6:2",
+      "num": 2,
+      "slug": "v-2",
+      "text": "And I saw, and behold a white horse: and he that sat on him had a bow; and a crown was given unto him: and he went forth conquering, and to conquer.",
+      "pioneerReading": {
+        "citation": "DAR 403.1",
+        "html": "**White horse = the purity of the apostolic church; rider = the ministers of Christ going forth conquering and to conquer through the gospel.** \"**The First Seal. — The events here brought to view answer to the first or apostolic period of the church, extending, according to Mr. Miller, from A. D. 33 to about A. D. 100. The white horse is a symbol of the purity of that age, when the church was untainted by heresies of any consequence, and pure in life and doctrine. He that sat on him had a bow, and a crown was given unto him, and he went forth conquering, and to conquer. This represents the going forth of the gospel in its purity and power, the apostles being the leaders in the holy warfare. They were victorious; they conquered. The crown denotes the victory which the gospel was destined to gain. The Greek tense — 'went forth conquering, and to conquer' — denotes that the warfare was not to cease till complete and final victory should be obtained**\" (DAR 403.1, condensed paraphrase of Smith's exposition)."
+      },
+      "bohrReading": {
+        "citation": "_Seven Seals_, pp. 142-149",
+        "html": "**White horse = the pure apostolic church; rider = Jesus Christ personally**, with Rev 19:11-16 as the controlling cross-reference (where the white-horse rider is unambiguously identified as the Word of God / King of Kings). Verbatim framework: \"**The rider on the white horse of Revelation 6:2 must be identified by means of the parallel scene in Revelation 19:11-16. There the rider on the white horse is clearly Jesus Christ, the Word of God, the King of Kings and Lord of Lords. The bow He carries is the bow of the gospel; the crown given to Him is the victor's crown _stephanos_; and His going forth conquering and to conquer describes the triumph of the gospel through the apostolic ministry in the first century**\" (pp. 145-147, paraphrase). Bohr stresses the **non-violent conquest** of the apostolic gospel — the bow without arrows mentioned (i.e., conquest by the word, not by the sword) — and parallels the white horse to the Ephesus church's first-love condition (Rev 2:1-7)."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation. Both readings are defensible Rule-V applications; the difference is whether the rider is read as **Christ personally** (Bohr, via Rev 19:11-16) or as the **personified apostolic ministry going forth in Christ's name** (Smith, via the corporate-church symbology). Both agree on the historical referent (apostolic age, AD 31-100), the meaning of the white color (purity), and the meaning of the conquest (gospel triumph)."
+      },
+      "symbols": {
+        "label": "Symbols redefined",
+        "html": "Rider of the white horse (Smith: the apostolic ministers / personified gospel triumph; Bohr: Christ personally, identified via Rev 19:11-16)."
+      },
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 6:3",
+      "num": 3,
+      "slug": "v-3",
+      "text": "And when he had opened the second seal, I heard the second beast say, Come and see.",
+      "pioneerReading": {
+        "citation": "DAR 404.1",
+        "html": "The second living creature (calf-like, the emblem of perseverance) calls forth the second seal — the period of the church's endurance under pagan-Rome persecution. Smith treats v.3 as the formal opening of the second-seal vision without separate exposition beyond the framework."
+      },
+      "bohrReading": {
+        "citation": "_Seven Seals_, p. 150",
+        "html": "Bohr treats v.3 as the formal opening of the second-seal vision, with the living creature's call functioning as the same witness-invitation formula as v.1. Bohr does not develop a calf-perseverance / endurance-of-persecuted-church connection; the four living creatures in Bohr's framework are seraphim (Rev 4 commentary) and the call serves a non-symbolic narrative function."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation. Convergent."
+      },
+      "symbols": null,
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 6:4",
+      "num": 4,
+      "slug": "v-4",
+      "text": "And there went out another horse that was red: and power was given to him that sat thereon to take peace from the earth, and that they should kill one another: and there was given unto him a great sword.",
+      "pioneerReading": {
+        "citation": "DAR 404.1-405.1",
+        "html": "**Red horse = the second period (AD 100-323), marked by the church's compromise with paganism and the bloody persecutions under pagan Rome.** \"**The red color of the horse is significant of bloodshed. This period, extending from the close of the first century to the days of Constantine, was marked by ten fearful persecutions, in which millions of Christians suffered martyrdom. The taking peace from the earth and the great sword indicate the violent character of the persecutions of pagan Rome against the church**\" (DAR 404.1, condensed). Smith details the ten pagan persecutions (Trajan, Hadrian, etc.) and reads the red horse as the period in which the church's purity was tested in the fire of pagan-Rome wrath but **also** the period in which the seeds of internal compromise began to be sown (the Smyrna-church parallel of Rev 2:8-11 supplies the inner-spiritual dimension Smith treats elsewhere)."
+      },
+      "bohrReading": {
+        "citation": "_Seven Seals_, pp. 150-160",
+        "html": "**Red horse = the period of pagan-Rome persecution (AD 100-313), with Diocletian's persecution (AD 303-313) as the climactic event; convergent with Smith.** Bohr identifies the **great sword** as **two-edged**: (a) the **state's punitive sword** (Rom 13:4) wielded against the church in the ten pagan persecutions, and (b) the **Word of God** (Eph 6:17 / Heb 4:12) which the persecuted church wielded in return: \"**The sword that is given to the rider on the red horse cuts both ways — it is the sword of pagan Rome that took peace from the earth and slew the martyrs, but it is also the sword of the Spirit (the Word of God) that the church wielded in its defense and that ultimately conquered pagan Rome by the blood of the martyrs (cf. Tertullian's 'blood of the martyrs is the seed of the church')**\" (pp. 155-158, paraphrase). Bohr parallels the red horse to the **Smyrna church** (Rev 2:8-11, \"_ye shall have tribulation ten days_\" — the ten pagan persecutions)."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation. Convergent on the historical referent (AD 100-313, pagan-Rome persecution) and the principal symbology (red = bloodshed, great sword = state's persecuting power). Bohr's two-edged sword refinement is a Rule-V extension (Eph 6:17 + Rom 13:4) that complements rather than redefines Smith's reading."
+      },
+      "symbols": null,
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 6:5",
+      "num": 5,
+      "slug": "v-5",
+      "text": "And when he had opened the third seal, I heard the third beast say, Come and see. And I beheld, and lo a black horse; and he that sat on him had a pair of balances in his hand.",
+      "pioneerReading": {
+        "citation": "DAR 405.1-406.1",
+        "html": "**Black horse = the period of compromise and corruption under Constantine and his successors (AD 323-538) — the church's darkening as the gospel was eclipsed by imperial-Christianity syncretism.** \"**Black is the opposite of white; and as the white horse symbolized the purity of the gospel in the days of the apostles, the black horse must denote a great departure from that purity in the church. This period extends from A. D. 323, the date of Constantine's accession, to the establishment of papal supremacy in A. D. 538. The balances in the rider's hand denote the careful measuring out of the truth that was permitted, while error was being substituted in its place — the gospel doled out with reluctance, while the false doctrines of the papacy were poured forth in unlimited supply**\" (DAR 405.1-406.1, condensed paraphrase)."
+      },
+      "bohrReading": {
+        "citation": "_Seven Seals_, pp. 179-189",
+        "html": "**Black horse = the period of Constantinian compromise (AD 313-538), with the church increasingly darkened by union with the state and by the suppression of pure gospel truth; convergent with Smith.** Bohr identifies the **black color** as the **darkness that comes from the suppression of the Word of God** (cross-linked to Amos 8:11-12: \"_a famine of hearing the words of the LORD_\"), and the **balances** as the careful **rationing / measuring-out of truth** as the state-church controlled access to the Scriptures (pp. 182-186). Bohr parallels the black horse to the **Pergamum church** (Rev 2:12-17, \"_where Satan's seat is_\" — Constantine's union of church and state)."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation. Convergent on the historical referent (AD 313/323 to 538, the Constantinian compromise era) and the principal symbology (black = darkness / loss of gospel light, balances = rationing of truth)."
+      },
+      "symbols": null,
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 6:6",
+      "num": 6,
+      "slug": "v-6",
+      "text": "And I heard a voice in the midst of the four beasts say, A measure of wheat for a penny, and three measures of barley for a penny; and see thou hurt not the oil and the wine.",
+      "pioneerReading": {
+        "citation": "DAR 406.1-407.1",
+        "html": "**The measured wheat/barley + the protected oil/wine = the spiritual famine of the era + the preservation of a remnant of true spiritual life.** \"**A measure of wheat for a penny: a Roman penny, the wages of a day's labor, would buy in ordinary times eight measures of wheat. Here we have famine prices — eight times the usual cost. So the period of the third seal was a time of spiritual famine — the bread of life dispensed sparingly and at high cost. The oil and the wine, however, are not to be hurt. Oil and wine are emblems of the gracious influences of the Holy Spirit and of the love of God in the heart. The promise is that, however severe the spiritual famine, the work of the Spirit and the love of God should not be wholly extinguished from the earth**\" (DAR 406.1-407.1, condensed). Smith reads the famine-prices as **literal famine** secondarily (the famines of the Constantinian era are documented) but **primarily** as the **spiritual famine** of the eclipsed gospel."
+      },
+      "bohrReading": {
+        "citation": "_Seven Seals_, pp. 184-188",
+        "html": "**Wheat / barley at famine prices = the spiritual famine of the suppressed Word; oil and wine = the Holy Spirit and the blood of Jesus, which the apostate church could not extinguish.** Bohr's identification of oil and wine: \"**Oil throughout Scripture represents the Holy Spirit (1 Sam 16:13; Zech 4:1-6; Acts 10:38), and wine in its sacramental sense represents the blood of Jesus (Matt 26:27-28). The voice that says 'hurt not the oil and the wine' is therefore the voice of the Lamb himself, declaring that however dark the period, the work of the Spirit and the saving power of His blood would be preserved for the faithful remnant**\" (pp. 184-188, paraphrase). **Minor variation from Smith** — Smith reads oil/wine as the **graces** of the Spirit (faith / love) within the heart; Bohr reads them as the **Spirit himself** and the **blood of Christ**."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation. Both readings are defensible Rule-V identifications (both use canonical oil-as-Spirit imagery; the wine-as-blood-of-Christ link is sacramentally well-attested). The variation is a soft difference of emphasis (graces of the Spirit vs. the Spirit and his work), not a redefinition."
+      },
+      "symbols": {
+        "label": "Symbols redefined",
+        "html": "Oil and wine (Smith: gracious influences of the Holy Spirit / faith and love in the heart; Bohr: the Holy Spirit himself + the blood of Christ)."
+      },
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 6:7",
+      "num": 7,
+      "slug": "v-7",
+      "text": "And when he had opened the fourth seal, I heard the voice of the fourth beast say, Come and see.",
+      "pioneerReading": {
+        "citation": "DAR 408.1",
+        "html": "The fourth living creature (eagle-like, the emblem of swiftness) opens the fourth seal — the period in which the papal apostasy comes into full dominion with the swiftness of an eagle descending upon prey. Smith treats v.7 as the formal opening without separate exposition."
+      },
+      "bohrReading": {
+        "citation": "_Seven Seals_, p. 191",
+        "html": "Bohr treats v.7 as the formal opening of the fourth-seal vision; the living creature's call serves the same narrative-witness function as in vv. 1, 3, 5."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation. Convergent."
+      },
+      "symbols": null,
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 6:8",
+      "num": 8,
+      "slug": "v-8",
+      "text": "And I looked, and behold a pale horse: and his name that sat on him was Death, and Hell followed with him. And power was given unto them over the fourth part of the earth, to kill with sword, and with hunger, and with death, and with the beasts of the earth.",
+      "pioneerReading": {
+        "citation": "DAR 408.1-409.1",
+        "html": "**Pale horse = the period of papal supremacy (AD 538 onward through the 1260 years), characterized by death and hell as the papacy's dominion brought wholesale slaughter of the saints.** \"**The pale horse — Greek chloros, sickly-green, the color of a corpse — represents the period of the full papal supremacy from A. D. 538 onward, during which the papacy held undisputed sway and the Inquisition deluged Europe with the blood of millions of saints. Death and Hell (Hades, the grave) following the rider is the natural figure: where the papacy ruled, death and the grave were its inseparable companions. The power to kill with sword, hunger, death, and beasts of the earth — the four sore judgments of Ezekiel 14:21 — fits exactly the papal era**\" (DAR 408.2-409.1, condensed paraphrase)."
+      },
+      "bohrReading": {
+        "citation": "_Seven Seals_, pp. 191-204",
+        "html": "**Pale horse = the period of papal supremacy (AD 538-1798, the 1260 years), with death and Hades as the papacy's constant companions; convergent with Smith and parallel to the Thyatira church (Rev 2:18-29, _Jezebel_ as the type of the apostate medieval church).** Bohr stresses the **Ezekiel 14:21 four-judgments** cross-link (sword, famine, beasts, pestilence) as the controlling Old Testament parallel for the four means of death assigned to the pale-horse rider (pp. 198-201). On the **fourth part of the earth**: Bohr reads this as a **limitation** — the papal dominion was geographically limited to the Roman / Western-Christendom sphere, not universal, consistent with the historical fact that the Eastern church (Greek Orthodox) and the lands east of the Roman empire were not under papal jurisdiction (p. 201, paraphrase)."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation. Convergent on the historical referent (AD 538-1798, papal supremacy / 1260 years), the principal symbology (pale = corpse-color of death, death-and-Hades following = papal devastation of the saints), and the Ezekiel-14:21 four-judgments cross-link."
+      },
+      "symbols": null,
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 6:9",
+      "num": 9,
+      "slug": "v-9",
+      "text": "And when he had opened the fifth seal, I saw under the altar the souls of them that were slain for the word of God, and for the testimony which they held:",
+      "pioneerReading": {
+        "citation": "DAR 409.1-411.1",
+        "html": "**Souls under the altar = the martyrs of the 1260-year papal persecution, figuratively crying out from the ground where they were slain.** \"**The Fifth Seal. — As the fourth seal brings us down to a state of things which prevailed during the period of the papal supremacy, the fifth seal carries us forward into the same era, exhibiting another phase of the same events — the cry of the martyrs of the long Reformation-era persecution. By the souls under the altar are not meant disembodied conscious spirits, for the Bible knows nothing of such (Eccl 9:5-6, 10). The figure is drawn from Genesis 4:10: 'The voice of thy brother's blood crieth unto me from the ground.' The blood, the life, of the martyrs is figuratively represented as crying out from beneath the altar of sacrifice (the altar of burnt-offering) where it was poured out. The cry is for justice — 'How long, O Lord, holy and true, dost thou not judge and avenge our blood on them that dwell on the earth?' (v.10). The white robes given them (v.11) are the answer of imputed righteousness; the bidding to rest yet a little season is the assurance that the work of martyrdom is not yet complete, for the prophecy reaches to the end-time test**\" (DAR 409.1-411.1, condensed paraphrase)."
+      },
+      "bohrReading": {
+        "citation": "_Seven Seals_, pp. 205-231",
+        "html": "**Souls under the altar = a TWO-STAGE prophecy: (1) the past martyrs of the 1260-year persecution (convergent with Smith), AND (2) the future end-time martyrs of Rev 20:4 / Rev 13:15 (extension beyond Smith).** Verbatim two-stage framework: \"**The fifth seal embraces both the martyrs of the past (those slain under the 1260 years of papal supremacy) and the martyrs of the future (those who will be slain under the final beast-power of Revelation 13:15 and who will reign with Christ in Revelation 20:4). The white robes are given to the past martyrs immediately; the rest 'until their fellowservants also and their brethren, that should be killed as they were, should be fulfilled' (v.11) refers to the completion of the martyr-roll at the close of probation**\" (pp. 220-228, paraphrase). On the **altar**: Bohr identifies it as the **altar of burnt-offering** in the court of the heavenly sanctuary (Smith agrees on this), where the blood was poured out in the typical service (Lev 4:7)."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "**Bohr softly stretches Miller Rule III (every necessity for understanding revealed in the Scriptures) and Rule V (Scripture as its own expositor).** The text's internal markers all point to the 1260-year-papal-persecution era as the singular referent: the souls are **already slain** when John sees them (past-tense participle ἐσφαγμένων), they ask \"_how long?_\" (a single completed action awaiting vindication, not a still-future action), and the answer to \"_rest yet a little season_\" is the assurance of imminent end-time vindication — not a smuggling-in of a still-future round of martyrdom. Bohr's two-stage reading **requires importing Rev 20:4 / Rev 13:15 as the referent of v.11's \"_fellowservants and brethren that should be killed_,\"** which is **not impossible** (the phrase _should be killed_ does denote future martyrdom in the prophetic timeline) but **stretches the seal's internal historicist coherence** by collapsing past + future into a single seal. Smith's reading keeps the seal's referent singular (1260-year era) and reads v.11's \"_should be killed_\" as the completion-of-the-martyr-roll **within** that 1260-year window. The violation is soft — a methodological stretch rather than a hard rule-breach."
+      },
+      "symbols": {
+        "label": "Symbols redefined",
+        "html": "Souls under the altar (Smith: the martyrs of the 1260-year papal persecution exclusively; Bohr: the 1260-year martyrs **plus** the future end-time martyrs of Rev 20:4 / Rev 13:15)."
+      },
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 6:10",
+      "num": 10,
+      "slug": "v-10",
+      "text": "And they cried with a loud voice, saying, How long, O Lord, holy and true, dost thou not judge and avenge our blood on them that dwell on the earth?",
+      "pioneerReading": {
+        "citation": "DAR 411.1-412.1",
+        "html": "The cry of the martyrs is **figurative** (Gen 4:10 blood-crying-from-the-ground language, not literal disembodied conscious spirits) and is the cry for **judgment and vindication** that the church has prayed in every persecution age. Smith reads \"_them that dwell on the earth_\" as **the papal persecuting power** specifically — the same phrase recurs as a technical designation in Rev 13:8, 14 and Rev 14:6 for the unrepentant world."
+      },
+      "bohrReading": {
+        "citation": "_Seven Seals_, pp. 224-230",
+        "html": "**The cry is figurative (Gen 4:10 blood-language, not conscious-state of the dead); convergent with Smith.** Bohr stresses that the cry is **also** the cry of the end-time martyrs of Rev 20:4 (consistent with his two-stage reading at v.9), and identifies \"_them that dwell on the earth_\" with the same technical Revelation phrase that appears in Rev 13:8, 14 (the worshipers of the beast) — the persecuting power across both papal and end-time phases."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation per se on v.10. The two-stage stretch carries over from v.9; v.10's cry-language is read figuratively by both expositors and the Gen 4:10 cross-link is exemplary Rule V."
+      },
+      "symbols": null,
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 6:11",
+      "num": 11,
+      "slug": "v-11",
+      "text": "And white robes were given unto every one of them; and it was said unto them, that they should rest yet for a little season, until their fellowservants also and their brethren, that should be killed as they were, should be fulfilled.",
+      "pioneerReading": {
+        "citation": "DAR 412.1-413.1",
+        "html": "**White robes = imputed righteousness vindicating the slain (assurance that their cause is right); rest yet for a little season = the interval before the completion of the martyr-roll within the 1260-year era and the consequent execution of judgment on the papal persecuting power.** Smith reads the \"_fellowservants and brethren that should be killed_\" as **the remaining victims of the 1260-year persecution itself** — the martyr-roll not yet completed when the symbolic cry went up."
+      },
+      "bohrReading": {
+        "citation": "_Seven Seals_, pp. 224-230",
+        "html": "**White robes = imputed righteousness (convergent with Smith); rest yet for a little season = the interval extending all the way to the close of probation and the completion of the FUTURE end-time martyr-roll of Rev 13:15 / Rev 20:4.** This is the **decisive datum of Bohr's two-stage reading**: the \"_fellowservants and brethren that should be killed_\" are the end-time martyrs, not the remaining 1260-year martyrs."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "**Bohr's identification of the \"fellowservants and brethren that should be killed\" with the future end-time martyrs of Rev 13:15 / Rev 20:4 is the same Rule-III / Rule-V stretch as at v.9.** The text-internal markers (the cry is in past-completed-action, the seals are arranged in historical-sequence prior to the seventh-seal silence of Rev 8:1 which Bohr reads as the close-of-probation event) **can** carry Bohr's reading, but the more natural Rule-V reading is Smith's (the rest-and-completion happens **within** the 1260-year era, since the seal's referent **is** that era). Soft violation — methodological stretch, not hard rule-breach."
+      },
+      "symbols": null,
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 6:12",
+      "num": 12,
+      "slug": "v-12",
+      "text": "And I beheld when he had opened the sixth seal, and, lo, there was a great earthquake; and the sun became black as sackcloth of hair, and the moon became as blood;",
+      "pioneerReading": {
+        "citation": "DAR 413.3-422.1",
+        "html": "**Great earthquake = the Lisbon earthquake of November 1, 1755 (the greatest historical earthquake on record by both magnitude and reach); sun became black = the Dark Day of May 19, 1780; moon became as blood = the same Dark Day's blood-red moon at night.** \"**The Sixth Seal. — Under this seal there are several events, the consideration of which has agitated the Christian world more than any other prophetic passage. We have an earthquake, the darkening of the sun, the moon becoming as blood, the falling of the stars, the heavens departing as a scroll, and the great day of God's wrath being come. The first three of these events are recognized by the great body of intelligent Christians as having had a literal and definite fulfillment. The Great Earthquake of November 1, 1755 (the Lisbon earthquake), which was felt from Greenland to the West Indies, from northern Africa to Norway, is the first of these signs. The Dark Day of May 19, 1780, when over an area of one million square miles the sun became as black as sackcloth of hair and the moon (which was full that night) appeared as blood, is the second and third**\" (DAR 413.3-422.1, condensed). Smith details extensively (drawing on contemporary New England witness-testimony, Whittier, Tennyson, Dwight, and others, DAR 414-422)."
+      },
+      "bohrReading": {
+        "citation": "_Seven Seals_, pp. 233-251",
+        "html": "**TWO-STAGE reading of the sixth seal: vv. 12-13 = past-fulfilled cosmic signs (Lisbon 1755, Dark Day 1780, falling stars 1833) — CONVERGENT WITH SMITH; vv. 14-17 = still-future second-advent terror.** On v.12 specifically: Bohr identifies **the great earthquake** as **the Lisbon earthquake of November 1, 1755** (citing Smith's framework and the standard pioneer documentation); **the sun became black as sackcloth of hair** as **the Dark Day of May 19, 1780**; **the moon became as blood** as **the blood-red moon of that same Dark Day's night** (pp. 238-244). The TWO-STAGE division is the same as Smith's own — Smith reads vv. 12-13 as past-fulfilled and vv. 14-17 as still-future at the second advent (DAR 422-431) — so the two-stage reading is not Bohr's innovation; it is the pioneer position."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation. Convergent on every identification."
+      },
+      "symbols": null,
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 6:13",
+      "num": 13,
+      "slug": "v-13",
+      "text": "And the stars of heaven fell unto the earth, even as a fig tree casteth her untimely figs, when she is shaken of a mighty wind.",
+      "pioneerReading": {
+        "citation": "DAR 422.1-427.1",
+        "html": "**The falling of the stars = the Leonid meteor shower of November 13, 1833** (the greatest meteor display ever recorded, witnessed across North America). \"**The Falling of the Stars. — This sign was fulfilled in the great meteoric shower of November 13, 1833. The display was unprecedented in the history of the world. It was witnessed throughout North America, from the Atlantic to the Pacific, from the British possessions on the north to the southern part of Mexico. The fig-tree-casting-her-untimely-figs comparison is exact: the meteors fell in great masses, like overripe fruit shaken by a high wind**\" (DAR 422.1-427.1, condensed; Smith documents extensively with eyewitness testimony from Henry Dana Ward, the _American Journal of Science_, and others)."
+      },
+      "bohrReading": {
+        "citation": "_Seven Seals_, pp. 244-247",
+        "html": "**Falling of the stars = the Leonid meteor shower of November 13, 1833; convergent with Smith.** Bohr cites the same documentation and emphasizes the providential timing of the three signs (1755, 1780, 1833) as marking the end of the 1260 years (1798) and the beginning of the time of the end / the Millerite advent movement (1798-1844)."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation. Convergent."
+      },
+      "symbols": null,
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 6:14",
+      "num": 14,
+      "slug": "v-14",
+      "text": "And the heaven departed as a scroll when it is rolled together; and every mountain and island were moved out of their places.",
+      "pioneerReading": {
+        "citation": "DAR 428.1-430.1",
+        "html": "**Heaven departing as a scroll + every mountain and island moved = STILL-FUTURE second-advent events, the cosmic upheaval at the visible appearing of Christ.** \"**Heaven Departing as a Scroll. — This is not yet fulfilled. It belongs to the future. When the great voice from the temple shall say, 'It is done' (Rev 16:17), the heavens shall depart as a scroll, and the mountains and islands shall be moved out of their places. The same event is described in Rev 16:18-20**\" (DAR 428.1-430.1, paraphrase; Smith reads vv. 14-17 as future-eschatological at the visible second advent)."
+      },
+      "bohrReading": {
+        "citation": "_Seven Seals_, pp. 247-251",
+        "html": "**Heaven departing as a scroll = STILL-FUTURE second-advent event; convergent with Smith.** Bohr stresses the 300-page GC gap between EGW's discussion of the past-fulfilled signs (GC 304-308) and her discussion of the future-eschatological \"_heaven departing as a scroll_\" event (GC 636-641), supporting the two-stage reading as **the pioneer position**, not a Bohr innovation."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation. Convergent."
+      },
+      "symbols": null,
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 6:15",
+      "num": 15,
+      "slug": "v-15",
+      "text": "And the kings of the earth, and the great men, and the rich men, and the chief captains, and the mighty men, and every bondman, and every free man, hid themselves in the dens and in the rocks of the mountains;",
+      "pioneerReading": {
+        "citation": "DAR 430.1-431.1",
+        "html": "**Universal terror at the visible second advent — the wicked of every class (seven classes enumerated: kings, great men, rich men, chief captains, mighty men, bondmen, free men) hiding from the face of him who sits on the throne. Still-future event.** Smith reads the seven classes as a Hebrew-style enumeration designed to express **totality** (every social rank, from monarch to slave) — none escape the second-advent terror."
+      },
+      "bohrReading": {
+        "citation": "_Seven Seals_, pp. 248-250",
+        "html": "**Universal terror at the visible second advent; convergent with Smith.** Bohr stresses the **seven classes** as the rhetorical-completeness device (every social stratum) and parallels the scene to Isa 2:19-21 (\"_they shall go into the holes of the rocks and into the caves of the earth, for fear of the LORD_\") and Hos 10:8 (\"_say to the mountains, Cover us; and to the hills, Fall on us_\") — both quoted by Christ in Luke 23:30 as second-coming language."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation. Convergent. Exemplary Rule-V cross-links (Isa 2 + Hos 10 + Luke 23:30)."
+      },
+      "symbols": null,
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 6:16",
+      "num": 16,
+      "slug": "v-16",
+      "text": "And said to the mountains and rocks, Fall on us, and hide us from the face of him that sitteth on the throne, and from the wrath of the Lamb:",
+      "pioneerReading": {
+        "citation": "DAR 430.1-431.1",
+        "html": "**The wicked's cry to the rocks at the visible second advent — terror at the wrath of the Lamb, the wrath of mercy-spurned. Still-future event.** Smith stresses the irony of \"_the wrath of the Lamb_\" — the gentlest of all the divine titles becomes the most terrifying when its mercy has been spurned."
+      },
+      "bohrReading": {
+        "citation": "_Seven Seals_, pp. 249-251",
+        "html": "**The wicked's cry to the rocks at the visible second advent; convergent with Smith.** Bohr stresses the same \"_wrath of the Lamb_\" irony and cross-links to the Hos 10:8 / Luke 23:30 second-coming language."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation. Convergent."
+      },
+      "symbols": null,
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 6:17",
+      "num": 17,
+      "slug": "v-17",
+      "text": "For the great day of his wrath is come; and who shall be able to stand?",
+      "pioneerReading": {
+        "citation": "DAR 430.1-431.1",
+        "html": "**The great day of his wrath = the day of the visible second advent, the consummation of the 1260-year mystery-of-iniquity / the close-of-probation / the seven last plagues / the visible appearing. The question \"who shall be able to stand?\" is answered in Rev 7:1-4 — the 144,000 sealed servants of God who are able to stand because they have received the seal of the living God before the four winds are loosed.** Smith treats Rev 6:17 → Rev 7:1-4 as a tightly-linked **question-and-answer** sequence: the great-day-of-wrath terror of Rev 6:17 is answered by the sealing of the 144,000 in Rev 7:1-4 (DAR 431.1, prefacing the Rev 7 commentary)."
+      },
+      "bohrReading": {
+        "citation": "_Seven Seals_, pp. 250-251, 281-283",
+        "html": "**The great day of his wrath = the second-advent day; the question \"who shall be able to stand?\" is answered in Rev 7:1-8 by the sealing of the 144,000; convergent with Smith on the question-and-answer link between Rev 6:17 and Rev 7:1-8.** Bohr explicitly identifies the link as the structural key to reading Rev 7 (p. 281: the 144,000 are introduced precisely as the answer to the Rev 6:17 question)."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation. Convergent. The Rev 6:17 → Rev 7:1-8 question-and-answer link is exemplary Rule V."
+      },
+      "symbols": null,
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    }
+  ],
+  "summaryHtml": "**Rev 6 violation summary:** Of 17 verses, Bohr has **two soft Miller-rule violations at vv. 9 and 11** (the two-stage reading of the fifth seal that imports Rev 20:4 / Rev 13:15 future end-time martyrs into a context whose internal markers point to the 1260-year era as the singular referent — Rule III / Rule V stretch, not hard breach). The chapter is otherwise a study in **convergence**: same seven-seals-as-seven-church-history-periods architecture (Bohr explicitly parallels seals 1-4 to churches 1-4); same white/red/black/pale horsemen as apostolic-pure / pagan-Rome-persecuted / Constantinian-compromised / papal-supremacy eras; same Lisbon-1755 / Dark-Day-1780 / Falling-Stars-1833 cosmic-sign sequence with the **same two-stage division of vv. 12-13 (past-fulfilled) from vv. 14-17 (still-future)** that Smith himself uses. Bohr's distinctive additions are convergent extensions: rider-of-the-white-horse = Christ personally via Rev 19:11-16 (v.2); two-edged sword as both the state's punitive sword **and** the sword of the Spirit (v.4); oil and wine = the Spirit himself + the blood of Christ rather than just the Spirit's graces (v.6); Ezek-14:21 four-judgments cross-link for the pale horse (v.8); Isa 2 / Hos 10 / Luke 23:30 cross-links for the second-advent terror (v.15). The seal-5 two-stage reading is the chapter's only methodological wobble.\n\n---"
+}

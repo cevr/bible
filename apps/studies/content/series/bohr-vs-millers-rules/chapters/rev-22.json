@@ -1,0 +1,513 @@
+{
+  "slug": "rev-22",
+  "ref": "Rev 22",
+  "title": "Revelation 22",
+  "intro": "Rev 22 is the **river-and-tree-of-life + closing-epilogue** chapter — the final chapter of Scripture itself, and the final chapter of the Apocalypse. The first 5 verses complete the new-earth / New-Jerusalem vision begun at Rev 21:9: a pure river of water of life proceeding out of the throne of God and of the Lamb (v.1), the tree of life on either side of the river bearing twelve manner of fruits and yielding fruit every month (v.2), no more curse and the servants of God serving Him (v.3), the redeemed seeing God's face with His name in their foreheads (v.4), no night, no need of sun or candle, the Lord God their light, and they reign forever and ever (v.5). Verses 6-21 form the **epilogue of the entire book** — the angel's authentication of the prophecy as faithful and true (v.6), Christ's three-times-repeated \"Behold I come quickly\" (vv. 7, 12, 20), John's second prostration and the angel's second rebuke (vv. 8-9), the command not to seal the prophecy (v.10), the close-of-probation pronouncement \"He that is unjust, let him be unjust still\" (v.11), Christ's \"my reward is with me\" (v.12), the \"Alpha and Omega\" self-identification (v.13), the seventh and culminating beatitude of the Apocalypse — \"Blessed are they that do his commandments\" (v.14), the catalogue of those outside the city (v.15), Christ's self-attestation as root and offspring of David and morning star (v.16), the Spirit-and-bride invitation \"Come\" (v.17), the canonical-warning against adding-to or taking-from the prophecy (vv. 18-19), the maranatha cry \"Surely I come quickly. Amen. Even so, come, Lord Jesus\" (v.20), and the benediction (v.21).\n\nSmith and Bohr are **highly convergent** across the chapter. The points of explicit agreement are: river of life = literal river proceeding from the throne (Smith, DAR 716.4 vs. Bohr p. 325); tree of life = literal tree, united at the top, on either side of the river (Smith quoting the same EW pp. 12-13 vision that Bohr quotes at length on p. 325-326); twelve manner of fruits / month-by-month worship = the redeemed coming up monthly to partake (Smith at DAR 718.1, Bohr at pp. 343-344); v. 4 vision of the Father's face = the fulfilment of the Matt 5:8 promise (Smith DAR 719.4); v. 11 = the irrevocable close-of-probation pronouncement uttered by Christ as He throws down the censer and ceases His priestly intercession (Smith DAR 720.2, Bohr quoting SR 402 / EW 280-281 in full at pp. 19-21 of his own volume); v. 12 = the reward brought BY Christ at the Second Coming, which proves the cases have been decided BEFORE He comes — both Smith (DAR 720.1) and Bohr (p. 326 — \"_the second coming_\") read this as the post-investigative-judgment phase; v. 14 = Smith and Bohr **both retain the KJV \"do his commandments\" reading** against the Sinaiticus/Vaticanus \"wash their robes\" — Smith at DAR 721.3 (citing the Syriac NT, Cyprian, and Alford), Bohr at pp. 329-333 with a full textual-critical defense; v. 17 bride = the New Jerusalem (Smith at DAR 723.3, \"the bride is the city\") and the church-as-city (Bohr's Eden-restored framework, p. 332); vv. 18-19 = a strict canonical seal against tampering specifically with the prophecy of Revelation. Bohr's distinctive **structural amplifications** are (a) the **Eden-restored / Genesis-1-3 reversal framework** for the chapter as a whole (commandment-keeping → entry through the gates → tree of life → no curse → no death — a deliberate point-by-point inversion of Gen 2-3 at p. 332); (b) the **Tree-of-Life-as-battery-charger** typology, with the redeemed restored to monthly access to the source of immortality (pp. 335-346); (c) the **three-stage rubric of vv. 10-12** — \"do not seal\" = Revelation open to be understood, \"the time is at hand\" = close of probation, \"behold I come quickly\" = second coming (p. 326); and (d) the **commandment-keepers-inside / commandment-breakers-outside parallel** at vv. 14-15, mapped onto the Decalogue (sorcerers / sexually immoral / murderers / idolaters / liars = breaches of commandments 1, 2, 6, 7, 9 — p. 333). Source: Bohr, _From the Close of Probation to the New Earth_, primary coverage at pp. 324-328 (Lesson #19 — Rev 21:9-22:21), pp. 329-333 (Lesson #20 — v.14 commandments-vs.-robes), pp. 335-346 (Lesson #21 — Right to the Tree of Life), pp. 347-360 (Lesson #22 — Therapeutic Tree of Life), with v.11 covered in full at pp. 19-22 (under Lesson #2's close-of-probation block) and pp. 370-371 (under Lesson #23's righteousness-by-faith block).",
+  "verses": [
+    {
+      "ref": "Rev 22:1",
+      "num": 1,
+      "slug": "v-1",
+      "text": "And he shewed me a pure river of water of life, clear as crystal, proceeding out of the throne of God and of the Lamb.",
+      "pioneerReading": {
+        "citation": "DAR 716.4",
+        "html": "**Literal river of life proceeding from the throne, at the head of the broad street.** Verbatim: \"**The tree of life is in the midst of this street; but the tree of life is on either side of the river of life; hence the river of life is also in the midst of the street of the city. This river proceeds from the throne of God. The picture thus presented before the mind is this: The glorious throne of God at the head of this broad way, or avenue; out of that throne the river of life, flowing lengthwise through the center of the street; and the tree of life growing on either side, forming a high and magnificent arch over that majestic stream, and spreading its life-bearing branches far away on either hand**\" (DAR 716.4). Smith reads the river as literal — a physical river of pure water proceeding from the throne, flowing down the centre of the great avenue of the city."
+      },
+      "bohrReading": {
+        "citation": "_Close of Probation_, p. 325",
+        "html": "**Same literal river of pure crystal-clear water proceeding from the throne.** Verbatim: \"**There will be no Flynt, Michigan, water there. No water bottles, or refrigerator filters will liter the heavenly street. The water will be crystal clear like that that comes from the Sierra Nevada. I suspect that in this world we do not really know what real sweet water tastes like!**\" (p. 325). Bohr's contemporary illustration is colloquial but the identification is identical to Smith's — literal river, literal water, proceeding literally from the throne in the literal city."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation. Exemplary Rule XI (literal-first — no spiritualisation of the river) and Rule V (the throne is the same throne of Rev 4 / 5 / 21, now relocated to the new earth in the new city). Convergent."
+      },
+      "symbols": null,
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 22:2",
+      "num": 2,
+      "slug": "v-2",
+      "text": "In the midst of the street of it, and on either side of the river, was there the tree of life, which bare twelve manner of fruits, and yielded her fruit every month: and the leaves of the tree were for the healing of the nations.",
+      "pioneerReading": {
+        "citation": "DAR 717.2, 718.1",
+        "html": "**Literal tree of life — one tree, with two trunks united at the top, on either side of the river; twelve kinds of fruit, monthly fruiting, leaves for the service of the nations.** On the tree's structure: \"**It is evident that there is but one tree of life. From Genesis to Revelation it is spoken of as but one — the tree of life. 2. To be at once on both sides of the river, it must have more than one trunk, in which case it must be united at the top or in its upper branches, in order to form but one tree**\" (DAR 717.2). Smith then quotes the EGW EW pp. 12-13 vision verbatim: \"**'Here we saw the tree of life and the throne of God. Out of the throne came a pure river of water, and on either side of the river was the tree of life. At first I thought I saw two trees. I looked again, and saw that they were united at the top in one tree**'\" (DAR 717.2, citing _Experience and Views_ pp. 12-13). On the monthly fruiting: \"**The tree of life bears twelve kinds of fruit, and yields its fruit every month. This fact throws light upon the declaration in Isaiah 66:23, that all flesh shall come up 'from one new moon to another' to worship before the Lord of hosts… The redeemed come up to the holy city from month to month to partake of the fruit of the tree of life**\" (DAR 718.1). On the leaves: \"**Its leaves are for the healing of the nations; literally, the service of the nations. This cannot be understood as implying that any will enter the city in a diseased or deformed condition to need healing… but the idea of disease and deformity in the immortal state is contrary to the express declarations of other scriptures**\" (DAR 718.1)."
+      },
+      "bohrReading": {
+        "citation": "_Close of Probation_, pp. 325-326, 343-346",
+        "html": "**Same single literal tree with two trunks united at the top, drawn from the same EGW EW p. 17 vision Smith quotes; the leaves are _therapeía_ for the redeemed; monthly fruiting fulfils Isa 66:22-23.** Bohr quotes the EW vision twice (pp. 325 and 344) verbatim: \"**'Here we saw the tree of life and the throne of God. Out of the throne came a pure river of water, and on either side of the river was the tree of life. On one side of the river was a trunk of a tree, and a trunk on the other side of the river, both of pure, transparent gold. At first I thought I saw two trees. I looked again, and saw that they were united at the top in one tree. So it was the tree of life on either side of the river of life. Its branches bowed to the place where we stood, and the fruit was glorious; it looked like gold mixed with silver**'\" (p. 326, p. 344, citing EW p. 17). On the monthly cycle: \"**The reason why the redeemed will go monthly to worship the Lord is to eat from the tree of life**\" (p. 343, citing Isa 66:22-23 immediately above). On the leaves — Bohr's distinctive lexical move: \"**The leaves are for the redeemed to continue enjoying health and the fruit is to perpetuate life**\" (p. 355) — with the Greek noun made explicit: \"**The leaves of the tree were for the healing [_therapeía_] of the nations**\" (p. 355). Bohr's larger framework (pp. 335-346) reads the tree as the **antitype of the Eden tree of life** — the same tree, \"**transplanted… to the Paradise above**\" (Bohr quoting EGW _Heaven_ p. 172 at p. 342), now restored to the redeemed at the new earth. Bohr's \"**battery charger**\" metaphor (pp. 336, 343) is contemporary illustration of Smith's underlying Edenic-restoration reading, not a redefinition."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation. Rule XI (literal-first — the tree is a literal tree, not a metaphor for Christ alone, even though Christ is also typologically \"_the tree of life in the Paradise of God_\" — Bohr keeps both literal and typological registers in correct order). Rule V (the Gen 2:9 / Gen 3:22 / Rev 2:7 / Rev 22:2 chain). Rule XII (the _therapeía_ trace, plus the Isa 66:22-23 monthly cycle — both Smith and Bohr make the same cross-link). Convergent."
+      },
+      "symbols": null,
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 22:3",
+      "num": 3,
+      "slug": "v-3",
+      "text": "And there shall be no more curse: but the throne of God and of the Lamb shall be in it; and his servants shall serve him.",
+      "pioneerReading": {
+        "citation": "DAR 719.2",
+        "html": "**The marks of the curse — death, decay, miasma — wholly removed from the earth; the earth restored to balmy life-giving beauty.** Verbatim: \"**This language proves that the great God, the Father, is referred to, as well as the Son. The marks of the curse, the deadly miasma, and the ghastly scenes of desolation and decay, will no more be seen on the earth. Every breeze will be balmy and life-giving; every scene, beauty; and every sound, music**\" (DAR 719.2). Smith also reads the dual reference (\"**the throne of God and of the Lamb**\") as proof that both Father and Son are present and worshipped."
+      },
+      "bohrReading": {
+        "citation": "_Close of Probation_, p. 326, p. 332",
+        "html": "**The curse of Gen 3 reversed — no more death, no more curse, the redeemed serving God.** Bohr's framing in his Eden-reversal table at p. 332: \"**There will be no more curse (Revelation 22:3). There will be no more death (Revelation 21:4)**\" — explicitly mapping v.3 back to the Gen 3:14, 17; 4:11 curse-pronouncements. He quotes the verse verbatim in his vv. 3-5 \"No Curse and No Night\" block at p. 326: \"**'And there shall be no more curse, but the throne of God and of the Lamb shall be in it, and His servants shall serve Him**'\" (p. 326). Convergent with Smith — Bohr adds the explicit Gen-3-reversal grid that Smith assumes but does not table."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation. Rule V (the Gen 3 → Rev 22:3 curse-reversal arc is Scripture's own self-expositor). Rule XI (literal). Convergent."
+      },
+      "symbols": null,
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 22:4",
+      "num": 4,
+      "slug": "v-4",
+      "text": "And they shall see his face; and his name shall be in their foreheads.",
+      "pioneerReading": {
+        "citation": "DAR 719.4",
+        "html": "**The redeemed will see the Father's face — fulfilment of Matt 5:8 — and the Father's name in their foreheads, cross-linked to Rev 14:1's 144,000.** Verbatim: \"**The word _his_, in the sentence, 'And they shall see his face,' refers to the Father; for he is the one whose name is in their foreheads; and that it is the Father, we learn from chapter 14:1. This will be a fulfillment of the promise in Matthew 5:8, 'Blessed are the pure in heart; for they shall see God'**\" (DAR 719.4)."
+      },
+      "bohrReading": {
+        "citation": "_Close of Probation_, p. 326",
+        "html": "**Same — they shall see His face, His name shall be on their foreheads.** Bohr quotes the verse verbatim in his \"No Curse and No Night (22:3-5)\" block at p. 326: \"**'They shall see His face, and His name shall be on their foreheads**'\" (p. 326). No separate verse-treatment; the substance is folded into the larger new-earth / sealing-completed framework. Bohr's larger Rev 14:1 / Rev 7:2-3 / Rev 22:4 seal-of-God chain (developed throughout the volume — see pp. 7-14 of his Rev 15 lesson) provides the same Rev 14:1 cross-link Smith makes here."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation. Rule V (Rev 22:4 + Rev 14:1 + Matt 5:8 + 1 John 3:2 chain). Convergent."
+      },
+      "symbols": null,
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 22:5",
+      "num": 5,
+      "slug": "v-5",
+      "text": "And there shall be no night there; and they need no candle, neither light of the sun; for the Lord God giveth them light: and they shall reign for ever and ever.",
+      "pioneerReading": {
+        "citation": "DAR 719.6",
+        "html": "**No night in the city — the Lord God Himself the light of the place, the redeemed reigning forever.** Verbatim: \"**Here, again, we have the declaration that there shall be no night in the city; for the Lord God will be the light of the place**\" (DAR 719.6)."
+      },
+      "bohrReading": {
+        "citation": "_Close of Probation_, p. 326, cf. p. 246",
+        "html": "**Same — no night, no need of sun or candle, the Lord God their light, they reign forever and ever.** Bohr quotes the verse verbatim at p. 326: \"**'There shall be no night there: They need no lamp nor light of the sun, for the Lord God gives them light and they shall reign forever and ever**'\" (p. 326). Bohr makes one clarifying note on the sun/moon question at p. 246: \"**The text does not say that there will not be any sun or moon in the new heavens and the new earth. After all, there will be monthly and weekly cycles there (see Isaiah 66:22, 23; Revelation 22:2). What we are told is that the city has no need of sun or moon. The light of the sun and moon will be like shinning the light of a flashlight at high noon**\" (p. 246). Bohr's clarification — that v.5 does not abolish the sun and moon but says only that the city has no need of them because the glory of God eclipses them — is a sensible Rule-I parsing of the text, fully consistent with Smith's reading (Smith does not address the sun-and-moon question explicitly at v.5 but his Isa 66:23 / monthly-cycle cross-reference at v.2 implies the same)."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation. Rule I (every word — Bohr correctly parses \"_need not_\" rather than \"_shall not exist_\"). Rule V (Isa 60:19-20 + Rev 21:23 + Rev 22:5 light-of-God chain). Convergent."
+      },
+      "symbols": null,
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 22:6",
+      "num": 6,
+      "slug": "v-6",
+      "text": "And he said unto me, These sayings are faithful and true: and the Lord God of the holy prophets sent his angel to shew unto his servants the things which must shortly be done.",
+      "pioneerReading": {
+        "citation": "DAR 719.5-6, no separate verse treatment beyond the block containing vv. 5-7",
+        "html": "Smith treats vv. 5-7 as one quotation block at DAR 719.5, and his single substantive remark in DAR 719.6 is: \"**Verse 7 proves that Christ is the speaker, a fact which it is of especial importance to bear in mind in connection with verse 14**\" (DAR 719.6). The \"_faithful and true_\" attestation of v.6 is implicit — these are the words of \"_the Lord God of the holy prophets_\" through His angel, identifying the prophecy as authentic divine revelation. The \"_things which must shortly be done_\" diction is the closing inclusio of the volume, matching Rev 1:1's \"_things which must shortly come to pass_.\""
+      },
+      "bohrReading": {
+        "citation": "_Close of Probation_, p. 326",
+        "html": "**The epilogue's angelic authentication — Revelation as the divinely-sent prophecy of imminent things.** Bohr quotes the verse verbatim in his \"The Epilog (Revelation 22:6-13)\" block at p. 326: \"**'Then he said to me, \"These words are faithful and true.\" And the Lord God of the holy prophets sent His angel to show His servants the things which must shortly take place**'\" (p. 326). Bohr does not give v.6 a separate exegetical treatment; substance is folded into the vv. 6-13 epilogue block. The Rev 1:1 ↔ Rev 22:6 inclusio (both verses use the same \"_things which must shortly come to pass / be done_\" diction) is the most-holy hermeneutic anchor of the entire book's self-claimed temporal vantage — fully convergent with Smith."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation. Rule V (Rev 1:1 ↔ Rev 22:6 inclusio is the Apocalypse's own self-expositor on its temporal scope — see the Corollary to Rules IV+V+XIII at lines 58-67 above). Convergent."
+      },
+      "symbols": null,
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 22:7",
+      "num": 7,
+      "slug": "v-7",
+      "text": "Behold, I come quickly: blessed is he that keepeth the sayings of the prophecy of this book.",
+      "pioneerReading": {
+        "citation": "DAR 719.6",
+        "html": "**Christ the speaker — and \"to keep the sayings of the prophecy\" means to obey the duties brought to view in the prophecy, specifically the third-angel's-message duties of Rev 14:9-12.** Verbatim: \"**Verse 7 proves that Christ is the speaker, a fact which it is of especial importance to bear in mind in connection with verse 14. To keep the sayings of the prophecy of this book is to obey the duties brought to view in connection with the prophecy, as, for instance, in chapter 14:9-12**\" (DAR 719.6). The first of the three \"_Behold I come quickly_\" pronouncements (cf. vv. 12, 20) — the seventh-and-final of the Apocalypse's beatitudes (the others being Rev 1:3; 14:13; 16:15; 19:9; 20:6; 22:14)."
+      },
+      "bohrReading": {
+        "citation": "_Close of Probation_, pp. 326, 361",
+        "html": "**Christ's voice — the second-coming announcement that frames the entire close-of-probation / Second-Coming block, with the Rev 16:15 / Rev 22:7 / Rev 22:12 / Rev 22:20 Red-Letter chain identifying the special urgency of Rev 16:15.** Bohr quotes v.7 verbatim at p. 326 (\"**'Behold, I am coming quickly! Blessed is he who keeps the words of the prophecy of this book**'\") and uses it as the structural pivot at p. 361: \"**after Revelation 3:21 (with the lone exception of Revelation 16:15) He does not speak again until Revelation 22:7. This means that Revelation 16:15 must be extremely important**\" (p. 361). The Red-Letter argument identifies v.7 as the resumption of Christ's direct speech after a long silence — Bohr converges with Smith on identifying Christ as the speaker (against any view that the angel of v.6 is speaking)."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation. Rule V (Rev 3:21 ↔ Rev 16:15 ↔ Rev 22:7 Red-Letter speaker-identification chain). Rule I (the speaker-shift identification is grounded in the text itself). Convergent."
+      },
+      "symbols": null,
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 22:8",
+      "num": 8,
+      "slug": "v-8",
+      "text": "And I John saw these things, and heard them. And when I had heard and seen, I fell down to worship before the feet of the angel which shewed me these things.",
+      "pioneerReading": {
+        "citation": "DAR 719.7, then DAR 720.1 referring to chapter 19:10",
+        "html": "**John's second mistaken prostration before the angel; Smith cross-refers his Rev 19:10 commentary.** Smith's brief treatment at DAR 720.1: \"**(For remarks on verse 9, see on chapter 19:10.)**\" He treats vv. 8-9 as one episode and cross-refers his own earlier Rev 19:10 paragraph for the substantive exegesis (where he developed the angel-not-to-be-worshipped principle and the testimony-of-Jesus = spirit-of-prophecy identification)."
+      },
+      "bohrReading": {
+        "citation": "_Close of Probation_, pp. 326-327, cf. pp. 179-180",
+        "html": "**The second prostration — John, \"_enraptured and overwhelmed, and forgetful of the former reproof_\" (EW 230), again falls at the angel's feet; the angel parenthetically rebukes him a second time.** Bohr's literary observation at p. 326-327: \"**Verses 8 and 9 must be placed in parentheses because they break the flow of thought. It is quite common for John to make parenthetical statements in Revelation (10:7; 11:18; 15:1; 16:15; 18:1-4; 20:5, last sentence)**\" (pp. 326-327). He then quotes EGW EW p. 230 verbatim: \"**'The angel then showed John the heavenly city with all its splendor and dazzling glory, and he, enraptured and overwhelmed, and forgetful of the former reproof of the angel, again fell to worship at his feet. Again the gentle reproof was given, \"See thou do it not for I am thy fellow servant, and of thy brethren the prophets, and of them which keep the sayings of this book: worship God\"'**\" (p. 327, citing EW p. 230). Convergent with Smith's cross-reference framework — both expositors treat the second prostration as parallel to the first at Rev 19:10."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation. Rule V (Rev 19:10 ↔ Rev 22:8-9 parallel-rebuke chain). Convergent."
+      },
+      "symbols": null,
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 22:9",
+      "num": 9,
+      "slug": "v-9",
+      "text": "Then saith he unto me, See thou do it not: for I am thy fellow servant, and of thy brethren the prophets, and of them which keep the sayings of this book: worship God.",
+      "pioneerReading": {
+        "citation": "DAR 720.1, cross-referring to Rev 19:10",
+        "html": "**Worship belongs to God alone — not to angels; the angel identifies himself as a fellow servant in the prophetic line.** Smith's bare cross-reference: \"**(For remarks on verse 9, see on chapter 19:10.)**\" (DAR 720.1). At Rev 19:10 Smith reads the angel's self-identification as conclusive against the worship of angels and as identifying \"_the testimony of Jesus_\" with \"_the spirit of prophecy_.\""
+      },
+      "bohrReading": {
+        "citation": "_Close of Probation_, p. 180, p. 327",
+        "html": "**The angel's rebuke completes the picture of the prophetic gift in the remnant church — Rev 22:9 = \"those who have the testimony of Jesus are prophets.\"** Verbatim: \"**Revelation 12:17 affirms that Satan hates the final remnant because they keep the commandments of God and have the testimony of Jesus Christ. However, the text does not define meaning of the expression 'testimony of Jesus'. However, Revelation 19:10 explains that the 'testimony of Jesus' is 'the spirit of prophecy'. Revelation 22:9 completes the picture by telling us that those who have the testimony of Jesus are prophets. This means that the remnant church would have a prophet in their midst**\" (p. 180). The chain — Rev 12:17 (commandments + testimony of Jesus) + Rev 19:10 (testimony of Jesus = spirit of prophecy) + Rev 22:9 (those who have the testimony of Jesus = the prophets) — is the classical SDA exegetical chain for the prophetic gift, and Bohr's three-text chain is the exact pioneer reading Smith assumes at his Rev 19:10 cross-reference."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation. Exemplary Rule V (Rev 12:17 + Rev 19:10 + Rev 22:9 chain — Scripture interprets its own diction). Convergent."
+      },
+      "symbols": null,
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 22:10",
+      "num": 10,
+      "slug": "v-10",
+      "text": "And he saith unto me, Seal not the sayings of the prophecy of this book: for the time is at hand.",
+      "pioneerReading": {
+        "citation": "DAR 720.1",
+        "html": "**The book of Revelation is explicitly _unsealed_ — the inverse of Dan 12:4's \"seal the book\" — and any theology that calls Revelation a sealed book is in opposition to the angel's direct command, fulfilling Isa 29:10-14.** Verbatim: \"**In verse 10 John is told not to seal the sayings of the prophecy of this book. The popular theology of our day says that the book is sealed. One of two things follows from this: either John disobeyed his instructions, or the theology above referred to is fulfilling Isaiah 29:10-14**\" (DAR 720.1). Smith makes Rev 22:10 the polemical counterweight against the entire premillennial-dispensational tradition that holds Revelation cannot be understood; he insists Revelation is intelligible because the angel commanded it not to be sealed."
+      },
+      "bohrReading": {
+        "citation": "_Close of Probation_, p. 326",
+        "html": "**The book of Revelation is open — accessible, understandable, intended to be embraced; \"_the time is at hand_\" = the close of probation.** Bohr's three-stage rubric at p. 326: \"**The three stages of Revelation 22:10-12: 'Do not seal': The book of Revelation is open for people to understand and embrace its message. 'The time I at hand': The close of probation. 'Behold I come quickly': The second coming**\" (p. 326). Convergent with Smith on the \"open book\" reading; Bohr's distinctive addition is the **three-stage chronological progression** (open → probation closes → Christ returns) that maps the vv. 10-12 epilogue onto the end-time sequence."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation. Rule V (Dan 12:4 _seal_ ↔ Rev 22:10 _seal not_ contrast — Daniel's vision was to be sealed until the time of the end; Revelation's was always to be open). Rule III (the prophecy is intelligible to those who ask in faith — the angel's command guarantees its accessibility). Convergent."
+      },
+      "symbols": null,
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 22:11",
+      "num": 11,
+      "slug": "v-11",
+      "text": "He that is unjust, let him be unjust still: and he which is filthy, let him be filthy still: and he that is righteous, let him be righteous still: and he that is holy, let him be holy still.",
+      "pioneerReading": {
+        "citation": "DAR 720.1-2",
+        "html": "**The close-of-probation pronouncement — probation closes, every case is irrevocably fixed, BEFORE Christ comes; the irrevocable fiat is pronounced at the conclusion of the investigative judgment.** Smith's polemical reading at DAR 720.1: \"**Verse 11 proves that probation closes, and the cases of all are unalterably fixed, before the coming of Christ; for in the very next verse Christ says, 'Behold, I come quickly.' What dangerous and insane presumption, then, to claim, as Age-to-come believers do, that there will be probation even after that event!**\" (DAR 720.1). Then the doctrinal anchor at DAR 720.2: \"**The declaration of verse 11 marks the close of probation, which is the close of Christ's work as mediator. But we are taught by the subject of the sanctuary that this work closes with the examination of the cases of the living in the investigative Judgment. When this is accomplished, the irrevocable fiat can be pronounced**\" (DAR 720.2). This is the pioneer SDA close-of-probation anchor verse, paralleling Rev 15:8 (the temple filled with smoke, no man able to enter, no more mediation)."
+      },
+      "bohrReading": {
+        "citation": "_Close of Probation_, pp. 19-21, 326, 370-371",
+        "html": "**Identical close-of-probation pronouncement — uttered by Christ as He throws down the censer in the most holy place, lays off His priestly attire, and clothes Himself with garments of vengeance.** Bohr's primary treatment at pp. 19-21, quoting EGW SR 402 verbatim: \"**'I saw angels hurrying to and fro in heaven. An angel with a writer's inkhorn by his side returned from the earth and reported to Jesus that his work was done, and the [living] saints were numbered and sealed. Then I saw Jesus, who had been ministering before the ark containing the Ten Commandments, throw down the censer. He raised His hands, and with a loud voice said. \"It is done.\" And all the angelic host laid off their crowns as Jesus made the solemn declaration, \"He that is unjust, let him be unjust still: and he which is filthy, let him be filthy still: and he that is righteous, let him be righteous still: and he that is holy, let him be holy still.\" Revelation 22:11**'\" (pp. 19-20, citing SR p. 402). Then EW pp. 280-282 quoted at length: \"**'As Jesus moved out of the most holy place, I heard the tinkling of the bells upon His garment; and as He left, a cloud of darkness covered the inhabitants of the earth. There was then no mediator between guilty man and an offended God…'**\" (pp. 20-21). Bohr's three-stage rubric at p. 326: \"**'The time I at hand': The close of probation**.\" Bohr's righteousness-by-faith framing at pp. 370-371: \"**When probation closes the distinction between the evildoer and the righteous will be manifest. The evildoer will continue doing evil and the righteous will continue doing right! The emphasis is on righteousness in action**\" (p. 370). Fully convergent with Smith — both expositors read v.11 as the irrevocable post-probation pronouncement following the close of Christ's high-priestly ministry, and both anchor it to the same EGW SR/EW passages."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation. Exemplary Rule IV (bringing Rev 22:11 + Rev 15:8 + Dan 8:14 + Lev 16 + GC 425, 612-613, EW 36, 280-282, SR 402 together to form one coherent close-of-probation doctrine — Smith and Bohr in lock-step). Rule V (Rev 15:8 ↔ Rev 22:11 same-event identification via the no-more-mediation logic). This is the chapter's doctrinal heart, and the convergence is total."
+      },
+      "symbols": null,
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 22:12",
+      "num": 12,
+      "slug": "v-12",
+      "text": "And, behold, I come quickly; and my reward is with me, to give every man according as his work shall be.",
+      "pioneerReading": {
+        "citation": "DAR 720.1",
+        "html": "**\"My reward is with me\" proves the cases have been decided BEFORE Christ comes — the reward is brought BY Christ, which presupposes the investigative judgment has finished and the assignment-of-rewards has occurred; conclusive against any post-Second-Coming probation.** Verbatim: \"**Christ's reward is with him, to give every man as his work shall be, which is another conclusive proof that there can be no probation after that event; for all the living wicked, those 'who know not God,' the heathen, and those 'who obey not the gospel of the Lord Jesus Christ,' the sinners of Christian lands (2 Thessalonians 1:8), will be visited with swift destruction from Him who then comes in flaming fire to take vengeance on his foes**\" (DAR 720.1). The \"_reward with him_\" diction is read by Smith as evidence that the pre-Advent investigative judgment is COMPLETED BEFORE the Second Coming — Christ brings the verdict, He does not arrive in order to judge."
+      },
+      "bohrReading": {
+        "citation": "_Close of Probation_, p. 326",
+        "html": "**\"Behold I come quickly\" = the second coming; the reward is brought by Christ — based on the investigative judgment.** Bohr's three-stage rubric at p. 326: \"**'Behold I come quickly': The second coming**\" (p. 326). His broader treatment elsewhere in the volume explicitly identifies the \"_reward with me_\" diction as the post-investigative-judgment verdict: at his judgment-block discussion he explicitly tags the reward as \"**based on the judgment (Revelation 22:12)**\" — i.e., the investigative judgment is the basis for the reward brought at the Second Coming. Convergent with Smith on every point — the reward is the verdict, the verdict was reached BEFORE Christ arrives, Christ brings it WITH Him."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation. Exemplary Rule IV (Rev 22:12 + Dan 7:9-14, 22, 26-27 + Rev 11:18 + Rev 14:7 investigative-judgment chain). Rule V (the diction \"_my reward is with me_\" is self-expositing — _with_ presupposes prior assignment). Convergent."
+      },
+      "symbols": null,
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 22:13",
+      "num": 13,
+      "slug": "v-13",
+      "text": "I am Alpha and Omega, the beginning and the end, the first and the last.",
+      "pioneerReading": {
+        "citation": "DAR 721.2",
+        "html": "**Christ applies to Himself the appellation _Alpha and Omega_ — but in a more limited sense than when applied to the Father at Rev 1:8; Christ is Alpha and Omega of the great plan of salvation.** Verbatim: \"**Christ here applies to himself the appellation of Alpha and Omega. As applied to him, the expression must be taken in a more limited sense than when applied to the Father, as in chapter 1:8. Christ is the Alpha and Omega, the beginning and the end, of the great plan of salvation**\" (DAR 721.2)."
+      },
+      "bohrReading": {
+        "citation": "_Close of Probation_, p. 326",
+        "html": "**Christ's self-identification as the Alpha and Omega — quoted verbatim in the epilogue block.** Bohr quotes the verse verbatim at p. 326: \"**'I am the Alpha and the Omega, the Beginning and the End, the First and the Last**'\" (p. 326). Bohr does not develop the precise theological scope of the title at this verse, but his broader Christology throughout the volume reads Christ as fully divine and co-eternal with the Father — consistent with the verse's self-identification. Bohr does not echo Smith's \"_more limited sense_\" qualifier; this is a quiet christological difference (Smith was working within the late-19th-century pioneer christological framework that was still maturing) but it is not a Miller-rule violation, since Bohr reads the verse plainly and at face value."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation. Rule V (Rev 1:8, 17; 2:8; 21:6; 22:13 Alpha-Omega chain — the diction is consistent across the book and applied to Christ at Rev 22:13). Rule XI (literal-first — Christ is self-identifying). Convergent."
+      },
+      "symbols": null,
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 22:14",
+      "num": 14,
+      "slug": "v-14",
+      "text": "Blessed are they that do his commandments, that they may have right to the tree of life, and may enter in through the gates into the city.",
+      "pioneerReading": {
+        "citation": "DAR 721.2-3",
+        "html": "**The KJV \"do his commandments\" is the original reading — defended against the Sinaiticus/Vaticanus \"wash their robes\" by appeal to the Syriac NT, Cyprian (pre-Nicene), and Alford; the commandments are Christ's Father's, specifically the Decalogue; the seventh-and-final beatitude of the Apocalypse is a closing blessing on commandment-keepers.** Verbatim: \"**Verse 14, as before noticed, is the language of Christ. The commandments of which he speaks are his Father's. Reference can be had only to the ten commandments as delivered on Mount Sinai. He pronounces a blessing upon those who keep them. Thus in the closing chapter of the word of God, and near the very close of the last testimony which the faithful and true Witness there left for his people, he solemnly pronounces a blessing upon those who keep the commandments of God. Let those who believe in the abolition of the law, candidly consider the decisive bearing of this important fact**\" (DAR 721.2). Smith's textual-critical defence at DAR 721.3: \"**Instead of the reading, 'Blessed are they that do his commandments,' some translations, including the Revised Version, have, 'Blessed are they that wash their robes.' On this point Alford's Testament for English Readers has this note: 'The difference in the readings is curious, being in the original that between _poiountes tas entolas autou_, and _plunontes tas stolas autōn_, either of which might easily be mistaken for the other.' In view of this statement, it is not surprising, perhaps, that this difference of reading is found. But there seems to be good evidence that the first is the original, from which the latter is a variation by the errors of transcribers. Thus the Syriac New Testament, one of the very earliest translations from the original Greek, reads according to the common English version. And Cyprian, whose writings antedate any extant Greek manuscript (Ante-Nicene Library, Vol. XIII, p. 122), quotes the text as reading, 'Blessed are they that do his commandments.' We may therefore safely consider this as the genuine reading**\" (DAR 721.3)."
+      },
+      "bohrReading": {
+        "citation": "_Close of Probation_, pp. 329-333",
+        "html": "**Same — Bohr retains the KJV \"do his commandments\" reading, with a full lesson devoted to defending it against the Sinaiticus/Vaticanus \"wash their robes\" variant; the commandment-keepers inside the city are the inverse of the commandment-breakers outside (v.15); the broader context is the Gen 1-3 / Rev 20-22 Eden-restored grid.** Bohr's lesson-length textual-critical treatment at pp. 329-333: he sets out both readings (p. 329), notes their Greek similarity (_tás entolás autón_ vs. _tás stolás autón_, p. 330), warns against building doctrine on a single contested text, then makes three converging arguments for the KJV reading. (a) **Revelation uses both expressions elsewhere** — \"_washed their robes_\" at Rev 7:14, \"_keep the commandments_\" at Rev 12:17, 14:12 (pp. 330-331). (b) **The wider Johannine corpus uses \"keep the commandments\" repeatedly** — 1 John 2:3-4; 3:22, 24; 5:2-3 (pp. 331-332). (c) **The Gen 1-3 / Rev 20-22 reversal grid demands \"do his commandments\"**: \"**Adam and Eve broke God's commandment in Genesis 2:15-17. In principle, all of the commandments were involved… Adam and Eve were cast out of the gates of the garden (3:23, 24)… Adam and Eve were not able to eat from the tree of life (3:23, 24)… The result was the curse (3:14, 17; 4:11). The curse finally let to Death (Genesis 3:19). The book of Revelation reverses the steps of Genesis 2 and 3: God's people will keep the commandments (Revelation 22:14). They will enter through the gates into the city (Revelation 22:14). Angel's at the gates will let them in (Revelation 21:12). They will be able to eat from the tree of life (Revelation 22:14). There will be no more curse (Revelation 22:3). There will be no more death (Revelation 21:4)**\" (p. 332). (d) **The commandment-breakers-outside parallel at v.15**: \"**The reading 'do his commandments' is most likely the correct one for another reason. Immediately after Revelation 22:14 brings to view the commandment keepers, the very next verse gives a list of commandments that those outside the city broke. In other words, inside are those who 'do His commandments' and outside are those who break them**\" (p. 333). Bohr explicitly maps v.15's list to Decalogue commandments 1, 2, 6, 7, 9 (p. 333). Fully convergent with Smith on the KJV reading, with the same anti-spiritualisation defence, and with the same Decalogue identification. Bohr's lesson-length treatment is a structural amplification of Smith's compressed paragraph, not a divergence."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation. Exemplary Rule IV (bringing all Rev \"commandments\" passages + 1 John \"commandments\" passages + Gen 1-3 Eden-fall passages together to form one coherent Eden-restored / law-keeping doctrine). Rule V (Rev 12:17 + Rev 14:12 + Rev 22:14 internal-Revelation chain; Gen 2:15-17 + Gen 3:23-24 + Rev 22:14 Eden-restoration chain). Rule XIII (every-word fulfilment — the commandment-keepers reading is the one consistent with the Apocalypse's other commandment passages). Convergent."
+      },
+      "symbols": null,
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 22:15",
+      "num": 15,
+      "slug": "v-15",
+      "text": "For without are dogs, and sorcerers, and whoremongers, and murderers, and idolaters, and whosoever loveth and maketh a lie.",
+      "pioneerReading": {
+        "citation": "DAR 722.2",
+        "html": "**\"Dog\" is the Bible symbol of a shameless and impudent man; the catalogue describes those outside the city, exposed to the second death.** Verbatim: \"**Dog is the Bible symbol of a shameless and impudent man. Who would wish to be left in the company of those whose lot is outside of the city of God? yet how many will stand condemned as idolaters, how many as those who make lies, and how many more as those who love them, and love to circulate them after they are made!**\" (DAR 722.2)."
+      },
+      "bohrReading": {
+        "citation": "_Close of Probation_, p. 333, cf. p. 142, p. 260",
+        "html": "**The commandment-breakers outside the city; specifically a list of Decalogue violations — sorcerers (#1), idolaters (#2), murderers (#6), sexually immoral (#7), liars (#9); the inverse of the commandment-keepers in v.14.** Bohr's tabulated reading at p. 333: \"**'But outside are dogs and sorcerers [#1] sexually immoral [#7] and murderers [#6] and idolaters [#2], and whoever loves and practices a lie [#9]**'\" (p. 333). He cross-links Rev 22:15 ↔ Rev 21:7-8 ↔ Rev 21:27 ↔ Isa 26:1-3 in a tight commandment-keepers-inside / commandment-breakers-outside parallel (p. 333). He also makes the _pharmakeía_ (\"sorcerers\") lexical trace through Rev 9:21; 21:8; 22:15 at p. 142 (in the Rev 18 lesson), consistent with the pioneer reading. Convergent with Smith — both identify the catalogue as those excluded from the city; Bohr's Decalogue-mapping is a Rule-V structural amplification."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation. Rule V (Rev 21:8 + Rev 21:27 + Rev 22:15 same-exclusion-list chain). Rule XII (the _pharmakeía_ / _kýnes_ \"dogs\" / _eidōlolátrai_ \"idolaters\" lexical traces through Revelation). Convergent."
+      },
+      "symbols": null,
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 22:16",
+      "num": 16,
+      "slug": "v-16",
+      "text": "I Jesus have sent mine angel to testify unto you these things in the churches. I am the root and the offspring of David, and the bright and morning star.",
+      "pioneerReading": {
+        "citation": "DAR 722.4",
+        "html": "**Jesus testifies these things \"_in the churches_\" — proof that the seven churches of Rev 2-3 are representative of the church through the entire gospel dispensation; Christ is the offspring of David by His incarnation in David's line, and the root of David as the great prototype, maker, and upholder of all things.** Verbatim: \"**Jesus testifies these things in the churches, showing that the whole book of Revelation is given to the seven churches, which is another incidental proof that the seven churches are representatives of the church through the entire gospel dispensation. Christ is the offspring of David, in that he appeared on earth in the line of David's descendants. He is the root of David, inasmuch as he is the great prototype of David, and the maker and upholder of all things**\" (DAR 722.4)."
+      },
+      "bohrReading": {
+        "citation": "_Close of Probation_, p. 327, no separate verse-treatment but verse quoted in vv. 14-17 block",
+        "html": "Bohr quotes the verse verbatim in his \"Jesus Testifies to the Churches (Revelation 22:14-17)\" block at p. 327: \"**'I, Jesus, have sent My angel to testify to you these things. I am the Root and the Offspring of David, the Bright and Morning Star**'\" (p. 327). He does not give v.16 a separate exegetical treatment in his Rev 22 lesson; the substance is folded into the vv. 14-17 epilogue block. Bohr's broader reading of the seven churches throughout the volume (and earlier in the Anchor School series — explicitly identifying Smyrna-through-Laodicea as historical-prophetic ages of the church) is convergent with Smith's \"representatives of the church through the entire gospel dispensation\" reading; Bohr's Christology at the \"root and offspring of David\" is conventional (Christ as both Creator and incarnate son of David)."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation. Rule V (Isa 11:1, 10 + Rev 5:5 + Rev 22:16 \"_root_\" identification — Scripture interprets Scripture). Convergent."
+      },
+      "symbols": null,
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 22:17",
+      "num": 17,
+      "slug": "v-17",
+      "text": "And the Spirit and the bride say, Come. And let him that heareth say, Come. And let him that is athirst come. And whosoever will, let him take the water of life freely.",
+      "pioneerReading": {
+        "citation": "DAR 722.5-725.1",
+        "html": "**The closing universal invitation — all are invited to come; the bride is the New Jerusalem itself, joining the Spirit's invitation; the heard-and-respond cycle (\"_let him that heareth say, Come_\") shows the invitation propagates through every soul who receives it.** Smith's expansive treatment at DAR 722.6-724.2: \"**Thus are all invited to come. The Lord's love for mankind would not be satisfied in merely preparing the blessings of eternal life, opening the way to them, and announcing that all might come who would; but he sends out an earnest invitation to come. He sets it forth as a favor done to himself if persons will come and partake of the infinite blessings provided by his infinite love. His invitation, how gracious! how full! how free!**\" (DAR 722.6). On the bride: \"**The bride also says, Come. But the bride is the city, and how does that say Come? If we could be strengthened to behold the living glories of that city and live, and should be permitted to gaze upon its dazzling beauty, and be assured that we had a perfect right to enter therein and bathe in that ocean of bliss and blessedness and revel in its glory forever and ever, would it not then say to us, Come, with a persuasion which no power could resist?**\" (DAR 723.3). On the propagating invitation: \"**'Let him that heareth say, Come.' We have heard of the glory, of the beauty, of the blessings, of that goodly land, and we say, Come. We have heard of the river with its verdant banks, of the tree with its healing leaves, of the ambrosial bowers that bloom in the Paradise of God, and we say, Come. Whosoever will, let him come, and take of the water of life freely**\" (DAR 725.1). Smith reads the verse as the closing maranatha-invitation of Scripture — full, free, and universal."
+      },
+      "bohrReading": {
+        "citation": "_Close of Probation_, p. 327",
+        "html": "**The Spirit and the bride invite all to come.** Bohr quotes the verse verbatim in his \"Jesus Testifies to the Churches (Revelation 22:14-17)\" block at p. 327: \"**'And the Spirit and the bride say, \"Come!\" And let him who hears say, \"Come!\" And let him who thirsts come. Whoever desires, let him take the water of life freely**'\" (p. 327). Bohr does not develop v.17 in a separate verse-treatment in his Rev 22 lesson, but his broader reading of the bride throughout the volume — most explicitly at p. 321, citing J. A. Seiss: \"**The heavenly city is Christ's Bride, not on account of what makes it a city, but on account of the sanctified and glorified ones who inhabit it**\" — converges with Smith's bride = New Jerusalem (with its sanctified inhabitants) identification. The propagating \"_let him that heareth say, Come_\" invitation is implicit in Bohr's larger third-angel's-message framing (the redeemed who have received the truth must share it)."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation. Rule V (Rev 21:2, 9 + Rev 22:17 bride = New Jerusalem identification). Rule XI (literal water of life — the same river of v.1, now offered as a universal gospel invitation). Convergent."
+      },
+      "symbols": null,
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 22:18",
+      "num": 18,
+      "slug": "v-18",
+      "text": "For I testify unto every man that heareth the words of the prophecy of this book, If any man shall add unto these things, God shall add unto him the plagues that are written in this book:",
+      "pioneerReading": {
+        "citation": "DAR 725.3",
+        "html": "**The warning has exclusive reference to the book of Revelation; \"to add\" means to add with the intent that it be considered part of Revelation; further divine revelations are not additions in the prohibited sense.** Verbatim: \"**What is it to add to, or take from, the book of this prophecy? Let it be borne in mind that it is the book of this prophecy, or the Revelation, which is the subject of remark; hence the words concerning adding to or taking from have exclusive reference to this book. Nothing can be called an addition to this book except something added to it with the intention of having it considered as a genuine part of the book of Revelation. To take from the book would be to suppress some portion of it. As the book of Revelation could not be called an addition to the book of Daniel, so if God should see fit to make further revelations to us by his Spirit, it would be no addition to the book of Revelation, unless it should claim to be a part of that book**\" (DAR 725.3). Smith parses the warning carefully — it is a canonical-integrity seal specifically on Revelation, not a general prohibition against any further prophetic communication (which would forbid the EGW prophetic gift)."
+      },
+      "bohrReading": {
+        "citation": "_Close of Probation_, p. 327",
+        "html": "**The canonical-integrity warning — God will add the plagues of Revelation to anyone who adds to its words.** Bohr quotes the verse verbatim in his \"A Warning (Revelation 22:18-21)\" block at p. 327: \"**'For I testify to everyone who hears the words of the prophecy of this book: If anyone adds to these things, God will add to him the plagues that are written in this book**'\" (p. 327). Bohr does not give vv. 18-19 a separate exegetical treatment in his Rev 22 lesson, but his broader reading throughout the volume — that Revelation is an open, intelligible, and integrally-sealed prophecy — is fully convergent with Smith's canonical-integrity reading."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation. Rule V (Deut 4:2 + Deut 12:32 + Prov 30:6 + Rev 22:18-19 \"do not add\" chain). Rule XIII (every-word fulfilment requires every-word preservation). Convergent."
+      },
+      "symbols": null,
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 22:19",
+      "num": 19,
+      "slug": "v-19",
+      "text": "And if any man shall take away from the words of the book of this prophecy, God shall take away his part out of the book of life, and out of the holy city, and from the things that are written in this book.",
+      "pioneerReading": {
+        "citation": "DAR 725.3, no direct verse-anchor — Smith treats vv. 18-19 as one block",
+        "html": "Smith does not provide a separate verse treatment of v.19 distinct from his v.18 treatment; substance covered under the surrounding vv. 18-19 block on canonical integrity at DAR 725.3 (quoted in full at v.18 above). The take-from threat — loss of one's part out of the book of life, out of the holy city, and from the things written in Revelation — mirrors the add-to threat (loss of the plagues added). The two threats together form the canonical seal on the prophecy."
+      },
+      "bohrReading": {
+        "citation": "_Close of Probation_, p. 327",
+        "html": "**The take-from warning — God will take away the offender's part from the Book of Life, the holy city, and the things written.** Bohr quotes the verse verbatim in his \"A Warning (Revelation 22:18-21)\" block at p. 327: \"**'and if anyone takes away from the words of the book of this prophecy, God shall take away his part from the Book of Life, from the holy city, and from the things which are written in this book**'\" (p. 327). No separate exegetical treatment; substance folded into the vv. 18-19 block. The reading is the same as Smith's — a strict canonical seal against any tampering with the prophecy of Revelation."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation. Rule V + Rule XIII as at v.18. Convergent."
+      },
+      "symbols": null,
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 22:20",
+      "num": 20,
+      "slug": "v-20",
+      "text": "He which testifieth these things saith, Surely I come quickly. Amen. Even so, come, Lord Jesus.",
+      "pioneerReading": {
+        "citation": "DAR 725.5",
+        "html": "**The maranatha verse — the climax and completion of the plan of salvation; the Christian's \"_Amen. Even so, come, Lord Jesus_\" is the appropriate response.** Verbatim: \"**The word of God is given to instruct us in reference to the plan of salvation. The second coming of Christ is to be the climax and completion of that great scheme. It is most appropriate, therefore, that the book should close with the solemn announcement, 'Surely I come quickly.' Be it ours to join with fervent hearts in the response of the apostle, 'Amen. Even so, come, Lord Jesus'**\" (DAR 725.5). Smith reads v.20 as the third and final \"_I come quickly_\" of the epilogue (cf. vv. 7, 12) — Christ's closing testimony, the Christian's closing response."
+      },
+      "bohrReading": {
+        "citation": "_Close of Probation_, p. 327",
+        "html": "**Christ's final testimony — \"Surely I am coming quickly\"; the church's \"_come, Lord Jesus_\" reply.** Bohr quotes the verse verbatim in his \"A Warning (Revelation 22:18-21)\" block at p. 327: \"**'He who testifies to these things says, \"Surely I am coming quickly.\" Amen. Even so, come, Lord Jesus!**'\" (p. 327). No separate exegetical treatment; substance folded into the vv. 18-21 block. The entire volume's title — _From the Close of Probation to the New Earth_ — and its sustained emphasis on the imminent Second Coming converges fully with Smith's maranatha reading."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation. Rule V (Rev 22:7 + Rev 22:12 + Rev 22:20 triple \"_I come quickly_\" chain). Convergent."
+      },
+      "symbols": null,
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    },
+    {
+      "ref": "Rev 22:21",
+      "num": 21,
+      "slug": "v-21",
+      "text": "The grace of our Lord Jesus Christ be with you all. Amen.",
+      "pioneerReading": {
+        "citation": "DAR 725.5-727.2",
+        "html": "**The closing benediction of Scripture — and the climax of the Christian's hope, the gathering of the elect, the return of Christ, the fields of living green, the river of life, the tree of life, immortality, the white robes of triumph.** Smith's extended closing meditation at DAR 726.1-727.2: \"**Thus closes the volume of inspiration, — closes with that which constitutes the best of all promises, and the substance of the Christian's hope — the return of Christ**\" (DAR 726.1). And the closing crescendo at DAR 727.1: \"**We must be there. We must bask in the forgiving smiles of God, to whom we have become reconciled, and sin no more; we must have access to that exhaustless fount of vitality, the fruit of the tree of life, and never die; we must repose under the shadow of its leaves, which are for the service of the nations, and never again grow weary; we must drink from the life-giving fountain, and thirst nevermore… O day of rest and triumph, and every good, delay not thy dawning! Let the angels at once be sent to gather the elect**\" (DAR 727.1). Smith closes his entire DAR commentary with the maranatha plea \"**Even So, Come, Lord Jesus**\" (DAR 727.2). The benediction is the closing grace of Christ extended over the church through the entire gospel dispensation."
+      },
+      "bohrReading": {
+        "citation": "_Close of Probation_, p. 327",
+        "html": "**The closing benediction — grace of Christ to all.** Bohr quotes the verse verbatim in his \"A Warning (Revelation 22:18-21)\" block at p. 327: \"**'The grace of our Lord Jesus Christ be with you all. Amen**'\" (p. 327). Bohr does not give v.21 a separate exegetical treatment; the substance is the closing grace-of-Christ benediction over the entire Apocalypse, and over the entire scriptural canon. The volume's closing emphasis on the redeemed in the new earth, partaking of the tree of life, with the curse and death forever gone, is fully convergent with Smith's closing meditation."
+      },
+      "warrant": null,
+      "violations": null,
+      "status": {
+        "label": "Miller-rule status",
+        "html": "No violation. The benediction is its own self-expositor. Convergent."
+      },
+      "symbols": null,
+      "notes": [],
+      "extensions": [],
+      "unclassified": []
+    }
+  ],
+  "summaryHtml": "**Rev 22 violation summary (against _From the Close of Probation to the New Earth_, primary coverage at pp. 324-328 + pp. 329-333 + pp. 335-346, with v.11 covered in full at pp. 19-22 and pp. 370-371):** Of 21 verses, Bohr has **zero rule violations**. This is among Bohr's most rule-compliant chapters in the Rev 12-22 corpus (alongside Rev 11, Rev 15, Rev 18, and Rev 20, also at zero). Every primary identification — literal river of life, literal tree of life with two trunks united at the top, twelve manner of fruits with monthly fruiting fulfilling Isa 66:22-23, no more curse reversing Gen 3, the redeemed seeing the Father's face fulfilling Matt 5:8, no night with God Himself the light, the angel's authentication of the prophecy as faithful and true, the unsealed-book inverse of Dan 12:4, the close-of-probation pronouncement at v.11 (the chapter's doctrinal heart — fully convergent with Smith and anchored by both expositors to the same EGW SR 402 + EW 280-282 close-of-Christ's-ministry passages), the reward brought-by-Christ at v.12 proving the investigative judgment is completed before the Second Coming, the KJV \"do his commandments\" reading at v.14 defended by both expositors against the Sinaiticus/Vaticanus variant, the commandment-keepers-inside / commandment-breakers-outside parallel at vv. 14-15, the bride = New Jerusalem at v.17, the canonical seal of vv. 18-19, the triple \"_I come quickly_\" of vv. 7, 12, 20 — is in lock-step with Smith. Bohr's distinctive **structural amplifications** are: (a) the **three-stage rubric of vv. 10-12** (Revelation open → close of probation → Second Coming) as the chapter's chronological backbone; (b) the **Gen 1-3 / Rev 20-22 Eden-restoration reversal grid** (commandments kept → gates entered → tree of life accessed → no curse → no death — point-by-point inversion of the Eden fall); (c) the **Tree-of-Life-as-battery-charger / contingent-life typology** that grounds the doctrine of conditional immortality on Bohr's larger mortalist anthropology; (d) the **lesson-length textual-critical defence of the KJV reading at v.14** (the Greek similarity, the Revelation-internal parallels, the wider Johannine parallels, the commandment-breakers-outside argument from v.15) — a structural amplification of Smith's compressed paragraph at DAR 721.3; (e) the **Decalogue-mapping of v.15** (sorcerers = #1, idolaters = #2, murderers = #6, sexually immoral = #7, liars = #9) as the explicit inverse of v.14's commandment-keepers. Verses where Bohr offers no discrete verse-by-verse exegesis but the substance is covered under larger blocks: v.6 (faithful-and-true authentication), v.13 (Alpha-and-Omega), v.16 (Jesus testifies to the churches), v.17 (Spirit-and-bride invitation), v.18, v.19, v.20, v.21 (vv. 18-21 \"A Warning\" block at p. 327). Verdict: Rev 22 is, with Rev 15, Rev 18, and Rev 20, one of Bohr's most rule-compliant chapters — a fitting close to the corpus, with pioneer and Bohr converging on every primary identification of the chapter that closes Scripture.\n\n---"
+}

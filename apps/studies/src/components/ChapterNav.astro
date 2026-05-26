@@ -1,0 +1,152 @@
+---
+import type { ChapterIndexEntry, Verse } from "../../scripts/schema.ts";
+
+interface Props {
+  chapters: ChapterIndexEntry[];
+  currentSlug: string;
+  verses: Verse[];
+}
+
+const { chapters, currentSlug, verses } = Astro.props;
+const idx = chapters.findIndex((c) => c.slug === currentSlug);
+const prev = idx > 0 ? chapters[idx - 1] : null;
+const next = idx >= 0 && idx < chapters.length - 1 ? chapters[idx + 1] : null;
+---
+
+<aside class="chapter-nav" aria-label="Chapter navigation">
+  <div class="chapter-nav-prevnext">
+    {prev ? (
+      <a class="chapter-nav-link" href={`../${prev.slug}/`} rel="prev">
+        <span class="chapter-nav-direction">prev</span>
+        <span class="chapter-nav-ref">{prev.ref}</span>
+      </a>
+    ) : <span />}
+    {next ? (
+      <a class="chapter-nav-link chapter-nav-link-next" href={`../${next.slug}/`} rel="next">
+        <span class="chapter-nav-direction">next</span>
+        <span class="chapter-nav-ref">{next.ref}</span>
+      </a>
+    ) : <span />}
+  </div>
+
+  <details class="chapter-jumplist" open>
+    <summary>
+      Jump to verse <span class="muted">— {verses.length} verses</span>
+    </summary>
+    <ol class="jumplist-grid">
+      {verses.map((v) => {
+        const hot = v.violations && v.violations.items.length > 0;
+        return (
+          <li class="jump-item">
+            <a href={`#${v.slug}`} class="jump-link" data-hot={hot ? "" : undefined}>
+              {v.num}
+            </a>
+          </li>
+        );
+      })}
+    </ol>
+  </details>
+</aside>
+
+<style>
+  .chapter-nav {
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    padding: 1rem 0;
+    margin: 0 0 2.5rem;
+  }
+  .chapter-nav-prevnext {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+  }
+  .chapter-nav-link {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    text-decoration: none;
+    color: inherit;
+  }
+  .chapter-nav-link-next { align-items: flex-end; }
+  .chapter-nav-direction {
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+  }
+  .chapter-nav-ref {
+    font-family: var(--display);
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--ink);
+    transition: color 0.15s;
+  }
+  .chapter-nav-link:hover .chapter-nav-ref,
+  .chapter-nav-link:focus-visible .chapter-nav-ref {
+    color: var(--oxblood);
+    outline: none;
+  }
+
+  .chapter-jumplist {
+    margin-top: 0.5rem;
+  }
+  .chapter-jumplist summary {
+    font-family: var(--body);
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    cursor: pointer;
+    list-style: none;
+    padding: 0.4rem 0;
+  }
+  .chapter-jumplist summary::-webkit-details-marker { display: none; }
+  .chapter-jumplist summary .muted {
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--ink-mute);
+    margin-left: 0.5rem;
+    font-weight: 400;
+  }
+  .jumplist-grid {
+    list-style: none;
+    padding: 0;
+    margin: 0.4rem 0 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(2.4rem, 1fr));
+    gap: 0.25rem;
+  }
+  .jump-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--ink-mute);
+    text-decoration: none;
+    padding: 0.35rem 0;
+    border: 1px solid var(--rule-soft);
+    border-radius: 2px;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+  }
+  .jump-link:hover,
+  .jump-link:focus-visible {
+    color: var(--ink);
+    border-color: var(--ink);
+    outline: none;
+  }
+  .jump-link[data-hot] {
+    color: var(--oxblood);
+    border-color: var(--oxblood);
+    font-weight: 600;
+  }
+  .jump-link[data-hot]:hover {
+    background: var(--oxblood);
+    color: var(--paper);
+  }
+</style>

@@ -1,0 +1,19 @@
+---
+import type { Violation } from "../../scripts/schema.ts";
+import { md } from "../lib/md.ts";
+
+interface Props {
+  violation: Violation;
+  scope: "verse" | "broader-use";
+}
+
+const { violation, scope } = Astro.props;
+---
+
+<li class="violation-item">
+  <span class="violation-badge" data-scope={scope}>
+    <span class="violation-number">Rule {violation.ruleNumber}</span>
+    <span class="violation-name">{violation.ruleName}</span>
+  </span>
+  <div class="violation-body" set:html={md(violation.body)} />
+</li>

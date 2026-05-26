@@ -1,0 +1,30 @@
+---
+import type { Verse } from "../../scripts/schema.ts";
+import { md, mdInline } from "../lib/md.ts";
+
+interface Props {
+  verse: Verse;
+}
+
+const { verse } = Astro.props;
+// If the verse has substantive content beyond a status block, show the body.
+const hasBody = Boolean(verse.status || verse.notes.length > 0 || verse.symbols);
+const isClean = !verse.violations || verse.violations.items.length === 0;
+const markChar = isClean ? "·" : "!";
+const markClass = isClean ? "verse-mark" : "verse-mark verse-mark-soft";
+---
+
+<div class={`verse-compact${isClean ? " verse-clean" : ""}`} id={verse.slug}>
+  <a href={`#${verse.slug}`} class="verse-compact-row">
+    <span class={markClass} aria-hidden="true">{markChar}</span>
+    <span class="verse-compact-ref">{verse.ref}</span>
+    <span class="verse-compact-text" set:html={mdInline(verse.text)} />
+  </a>
+  {hasBody && (
+    <div class="verse-compact-body">
+      {verse.status && <div set:html={md(verse.status.html)} />}
+      {verse.symbols && <div set:html={md(verse.symbols.html)} />}
+      {verse.notes.map((note) => <div set:html={md(note.html)} />)}
+    </div>
+  )}
+</div>
