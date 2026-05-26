@@ -95,4 +95,4 @@ The historicist core (XIII / XII / XI) accounts for **~70% of all violations**:
 
 ---
 
-_For the full verse-by-verse audit see `bohr-vs-millers-rules.md`. For the visual density heatmap see `bohr-vs-millers-rules-heatmap.md`._
+_For the full verse-by-verse audit see `bohr-vs-millers-rules.md`._

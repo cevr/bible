@@ -38,14 +38,6 @@ const totalViolations = chapters.reduce((acc, c) => acc + c.data.violations, 0);
           where it diverges from the pioneer baseline, and why.
         </p>
       </a>
-      <a href="./heatmap/" class="landing-card">
-        <p class="card-eyebrow">Visual</p>
-        <h2 class="card-title">Heatmap</h2>
-        <p class="card-blurb">
-          Density of Miller-rule violations across all 280 verses — at a
-          glance, the three divergence clusters.
-        </p>
-      </a>
       <a href="./audit/" class="landing-card">
         <p class="card-eyebrow">Reference</p>
         <h2 class="card-title">Verse-by-verse audit</h2>
@@ -67,7 +59,7 @@ const totalViolations = chapters.reduce((acc, c) => acc + c.data.violations, 0);
     padding-bottom: 6rem;
   }
   @media (min-width: 768px) {
-    .landing-grid { grid-template-columns: repeat(3, 1fr); }
+    .landing-grid { grid-template-columns: repeat(2, 1fr); }
   }
   .landing-card {
     display: block;

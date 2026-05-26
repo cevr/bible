@@ -4,7 +4,7 @@ import "../styles/global.css";
 interface Props {
   title: string;
   description?: string;
-  currentNav?: "studies" | "audit" | "summary" | "heatmap";
+  currentNav?: "studies" | "audit" | "summary";
   seriesSlug?: string;
 }
 
@@ -50,12 +50,6 @@ const seriesBase = seriesSlug ? `/${seriesSlug}/` : "/";
                 href={`${seriesBase}summary/`}
                 aria-current={currentNav === "summary" ? "page" : undefined}
               >Summary</a>
-            </li>
-            <li>
-              <a
-                href={`${seriesBase}heatmap/`}
-                aria-current={currentNav === "heatmap" ? "page" : undefined}
-              >Heatmap</a>
             </li>
             <li>
               <a

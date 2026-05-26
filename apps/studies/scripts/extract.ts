@@ -36,10 +36,6 @@ const SUMMARY_SOURCE_PATH = resolve(
   REPO_ROOT,
   'packages/cli/outputs/studies/daniel-revelation/v3-the-sure-word/reference/bohr-vs-millers-rules-summary.md',
 );
-const HEATMAP_SOURCE_PATH = resolve(
-  REPO_ROOT,
-  'packages/cli/outputs/studies/daniel-revelation/v3-the-sure-word/reference/bohr-vs-millers-rules-heatmap.md',
-);
 const OUT_ROOT = resolve(APP_ROOT, 'content/series/bohr-vs-millers-rules');
 
 // ---------- helpers ----------
@@ -504,12 +500,8 @@ function main(): void {
   };
   writeFileSync(join(OUT_ROOT, 'meta.json'), JSON.stringify(meta, null, 2));
 
-  // Copy summary + heatmap markdowns into the content tree so the renderer
-  // doesn't have to reach across repo boundaries.
   const summaryMd = readFileSync(SUMMARY_SOURCE_PATH, 'utf8');
-  const heatmapMd = readFileSync(HEATMAP_SOURCE_PATH, 'utf8');
   writeFileSync(join(OUT_ROOT, 'summary.md'), summaryMd);
-  writeFileSync(join(OUT_ROOT, 'heatmap.md'), heatmapMd);
 
   // Validation report.
   const totalVerses = index.reduce((acc, e) => acc + e.verseCount, 0);
