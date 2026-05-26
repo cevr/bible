@@ -2,7 +2,7 @@
   "slug": "rev-18",
   "ref": "Rev 18",
   "title": "Revelation 18",
-  "intro": "The chapter where Bohr's **distinctive contribution** to Adventist Revelation exposition is concentrated: his \"Demise of Babylonian Capitalism\" thesis. Mostly Rule-compliant; the main exegetical divergence from the DAR pioneer reading is at **v. 2** (Bohr collapses Smith's two-stage Rev 14:8 / Rev 18:2 framing into a single terminal moral collapse). The previously listed v. 13 divergence is withdrawn after DAR audit — Smith himself spiritualizes \"slaves and souls of men\" at DAR 676.2, so Bohr's body/soul reading is in the same hermeneutic register as DAR, not in violation of it. Source: Bohr, _From the Close of Probation to the New Earth_, Lesson 7 (pp. 111-143).",
+  "intro": "The chapter where Bohr's **distinctive contribution** to Adventist Revelation exposition is concentrated: his \"Demise of Babylonian Capitalism\" thesis. **Fully Rule-compliant on the audit pass.** The previously flagged v. 2 \"collapse\" violation is withdrawn after audit: Bohr's parallel-table on p. 125 (_Close of Probation_) explicitly distinguishes Rev 14:8 from Rev 18:1-5 and frames the latter as the three-angels' message \"on steroids\" (i.e., amplification of, not replacement for, the Rev 14:8 announcement). His \"Hebrew synonymous parallelism\" gloss on the doubled \"is fallen, is fallen\" addresses only the v. 2 internal literary doubling, which Smith also treats as one end-time announcement (DAR 666.5 — both verses 1 and 2 are \"a feature of the third message\"). The previously listed v. 13 \"slaves\" divergence is also withdrawn after DAR audit — Smith himself spiritualizes \"slaves and souls of men\" at DAR 676.2, so Bohr's body/soul reading is in the same hermeneutic register as DAR, not in violation of it. Source: Bohr, _From the Close of Probation to the New Earth_, Lesson 7 (pp. 111-143).",
   "verses": [
     {
       "ref": "Rev 18:1",
@@ -47,33 +47,16 @@
         "html": "The double \"is fallen\" = Hebrew synonymous parallelism / crescendo for emphasis, not two chronological falls; Babylon's moral fall is now irreversible just before probation closes. Verbatim: \"In Hebrew poetry this is what is called synonymous parallelism. At this point, just before the close of probation, Babylon will have experienced an irreversible moral fall that is beyond repair\" (p. 130). Bohr does not distinguish first-fall (1844, moral) from second-fall (end-time) — the standard pioneer two-fold reading."
       },
       "warrant": null,
-      "violations": {
-        "scope": "verse",
-        "label": "Miller rules broken",
-        "items": [
-          {
-            "ruleNumber": "IV",
-            "ruleName": "no contradiction",
-            "ruleOrder": 4,
-            "body": "The pioneer two-fold-fall reading harmonizes Rev 14:8's _first_ announcement (1844 onward, the moral/doctrinal fall recognized by the Millerite movement) with Rev 18:2's _second_ announcement (end-time, when the political and economic collapse becomes complete). This is the standard EGW reading (_GC_ 603-604: \"The message of Revelation 14, announcing the fall of Babylon, must apply to religious bodies that were once pure and have become corrupt. Since this message follows the warning of the judgment, it must be given in the last days; therefore it cannot refer to the Roman Church alone, for that church has been in a fallen condition for many centuries... Not yet, however, can it be said that Babylon is fallen... A more dreadful condition is to come.\"). Bohr collapses this two-stage chronology into one terminal moment — losing Rule IV's \"bring all scriptures together\" balance."
-          },
-          {
-            "ruleNumber": "I",
-            "ruleName": "every word bears",
-            "ruleOrder": 1,
-            "body": "The two-fold \"is fallen, is fallen\" carries chronological weight in the pioneer reading; Bohr treats it as decorative repetition. Hebrew synonymous parallelism is a real literary feature — but it does not exclude chronological doubling, especially when paralleled by an _earlier_ announcement of the same fall (Rev 14:8) that historically anchored the 1844 movement."
-          }
-        ]
-      },
+      "violations": null,
       "status": {
-        "label": "Miller-rule status (the rest of the verse)",
-        "html": "No violation on the demonic-possession imagery (Rule XII trace to Isa 13:21-22 and Jer 50:39 — the literal Babylon's prophesied haunted-ruin state)."
+        "label": "Miller-rule status",
+        "html": "**No violation (downgraded after audit).** The previously logged Rule-IV/Rule-I \"two-fold-fall collapse\" charge does not survive close reading. Bohr's parallel table on p. 125 (_Close of Probation_) **explicitly distinguishes** Rev 14:8 from Rev 18:1-5 by feature set, and Bohr frames the Loud Cry as the three angels' message \"on steroids\" (p. 124) — i.e., as amplification of the prior announcement, not as a single terminal collapse that erases the prior stage. Bohr's \"Hebrew synonymous parallelism\" gloss applies to the _internal_ v.2 doubling (\"is fallen, is fallen\" as crescendo), which Smith himself treats as one end-time pronouncement (DAR 666.5-667.1 — both verses 1 and 2 \"constitute a feature of the third message\"). On the demonic-possession imagery, Rule XII trace to Isa 13:21-22 and Jer 50:39 (literal Babylon's haunted-ruin state) is sound. Rule IV (linking Rev 18:2 to Rev 16:14's spirits-of-devils) is exemplary — Bohr explicitly links Rev 18:2 to Rev 16:13's Babylonian trilogy."
       },
       "symbols": null,
       "notes": [
         {
           "label": "Note (not in DAR at v.2)",
-          "html": "The Isa 13:21-22 / Jer 50:39 \"haunted-ruin\" type/antitype trace is standard pioneer typology but is not invoked in Smith's v.2 paragraph; Smith roots the demonic-possession imagery in Spiritualism (Rev 16:14), not in the OT literal-Babylon ruins. The _GC_ 603-604 quote is EGW corroboration, not from DAR; Smith does not himself use the Hebrew synonymous-parallelism vs chronological-doubling categories — he simply treats Rev 14:8 and Rev 18:2 as two messages at two times."
+          "html": "The Isa 13:21-22 / Jer 50:39 \"haunted-ruin\" type/antitype trace is standard pioneer typology but is not invoked in Smith's v.2 paragraph; Smith roots the demonic-possession imagery in **Spiritualism** (Rev 16:14), not in the OT literal-Babylon ruins. The _GC_ 603-604 quote is EGW corroboration, not from DAR. Smith treats Rev 14:8 and Rev 18:2 as two messages at two times (1844 onward vs end-time third-message amplification); Bohr's parallel table on p. 125 distinguishes the same two announcements without collapsing them — his synonymous-parallelism note speaks only to the v. 2 _internal_ literary doubling, not to the Rev 14:8 / Rev 18:2 chronology."
         }
       ],
       "extensions": [],
@@ -89,8 +72,8 @@
         "html": "Smith's whole v.3 commentary is a direct indictment of **luxurious worldly church-members**: \"Verse 3 shows the wide extent of the influence of Babylon, and the evil that has resulted and will result from her course, and hence the justness of her punishment. The merchants of the earth are waxed rich through the abundance of her delicacies. Who take the lead in all the extravagances of the age? Who load their tables with the richest and choicest viands? Who are foremost in extravagance in dress, and all costly attire? Who are the very personification of pride and arrogance? — **Are they not church-members?** Where shall we look for the very highest exhibition of the luxury, vain show, and pride of life, resulting from the vanity and sin of the race? — **Is it not to a modern church assembly on a pleasant Sunday?**\" (DAR 670.2). For Smith, the \"merchants made rich by her delicacies\" reading is moralistic-ecclesial (Sunday-keeping worldly Christians enriched by Babylon's luxury culture), not narrowly commercial."
       },
       "bohrReading": {
-        "citation": "_Close of Probation to the New Earth_, p. 132",
-        "html": "Economic power is Babylon's defining attribute; the Greek translated \"luxury\" is _dúnamis_ (\"power\"), and now Babylon — who forbade the saints to buy or sell (Rev 13:15) — is herself bankrupt. Verbatim: \"The power of Babylon resided in her economic clout. Now she is going to totally lose her power because she will no longer be able to sell her merchandise\" (p. 132)."
+        "citation": "_Close of Probation to the New Earth_, pp. 132-133",
+        "html": "Economic power is Babylon's defining attribute; the Greek translated \"luxury\" is _dúnamis_ (\"power\"), and now Babylon — who forbade the saints to buy or sell (Rev 13:15) — is herself bankrupt. Verbatim: \"The power of Babylon resided in her economic clout. Now she is going to totally lose her power because she will no longer be able to sell her merchandise\" (p. 133). The Ezek 27 Tyre-merchant trace and the _dúnamis_ lexical observation occupy the verse-3 block opening on p. 132 and concluding on p. 133."
       },
       "warrant": null,
       "violations": null,
@@ -115,7 +98,7 @@
       "text": "And I heard another voice from heaven, saying, Come out of her, my people, that ye be not partakers of her sins, and that ye receive not of her plagues.",
       "pioneerReading": {
         "citation": "DAR 671.1; 671.3-673.1; specific comment within vv.4-8 block at DAR 671.3-672.1 on v.4",
-        "html": "Smith identifies the \"voice from heaven\" as a **fifth celestial messenger** added to the three angels of Rev 14 and the angel of Rev 18:1: \"This voice from heaven is called 'another' voice, showing that a new agency is here introduced. We now have five celestial messengers expressly mentioned as engaged in this last religious reformation. These are the first, second, and third angels of chapter 14; fourth, the angel of verse one of this chapter; and fifth, the agency indicated by the 'voice' of verse 4\" (DAR 671.3). On the dramatic moment of the call: \"Suddenly another voice rings out from heaven, 'Come out of her, my people!' **The humble, sincere, devoted children of God, of whom there are some still left, and who sigh and cry over the abominations done in the land**, heed the voice, wash their hands of her sins, separate from her communion, escape, and are saved, while Babylon becomes the victim of the just judgments of God\" (DAR 673.0). The remnant inside Babylon is concrete: \"for God has still a people there, and she must be entitled to some regard on their account until they are called from her communion\" (DAR 671.1). Smith cross-links to Rev 14:4 (144,000 not defiled with women) at DAR 673.1."
+        "html": "Smith identifies the \"voice from heaven\" as a **fifth celestial messenger** added to the three angels of Rev 14 and the angel of Rev 18:1: \"This voice from heaven is called 'another' voice, showing that a new agency is here introduced. We now have five celestial messengers expressly mentioned as engaged in this last religious reformation. These are the first, second, and third angels of chapter 14; fourth, the angel of verse one of this chapter; and fifth, the agency indicated by the 'voice' of verse 4\" (DAR 671.3). On the dramatic moment of the call: \"Suddenly another voice rings out from heaven, 'Come out of her, my people!' **The humble, sincere, devoted children of God, of whom there are some still left, and who sigh and cry over the abominations done in the land**, heed the voice, wash their hands of her sins, separate from her communion, escape, and are saved, while Babylon becomes the victim of the just judgments of God\" (DAR 672.1, tail; the paragraph wraps from p. 672 onto p. 673). The remnant inside Babylon is concrete: \"for God has still a people there, and she must be entitled to some regard on their account until they are called from her communion\" (DAR 671.1). Smith cross-links to Rev 14:4 (144,000 not defiled with women) at DAR 673.1."
       },
       "bohrReading": {
         "citation": "_Close of Probation to the New Earth_, pp. 133-134",
@@ -491,7 +474,7 @@
       "notes": [
         {
           "label": "Note (not in DAR at v.17)",
-          "html": "The \"in one hour\" thrice-repetition cataloguing across vv.10, 17, 19 + the \"compression-of-judgment vs centuries-of-buildup\" reading is not in Smith's v.17 paragraph. The Ezek 27:25-36 ships-of-Tarshish parallel is standard pioneer typology but is not invoked here. The three-lamentation-chorus structural label is not Smith's framing — he reads vv.15-19 as one wicked-emotional unit.\n\n**Bohr's reading (*Close of Probation to the New Earth*, p. 141):** Labels vv. 17-19 \"The Lament of the Employees and Travelers\" — the working-class tier (shipmasters, sailors, traders) distinct from the capitalist merchants of vv. 11-16; minimal exegesis beyond the structural label. Verbatim: \"Verses 17-19: The Lament of the Employees and Travelers\" (p. 141)."
+          "html": "The \"in one hour\" thrice-repetition cataloguing across vv.10, 17, 19 + the \"compression-of-judgment vs centuries-of-buildup\" reading is not in Smith's v.17 paragraph. The Ezek 27:25-36 ships-of-Tarshish parallel is standard pioneer typology but is not invoked here. The three-lamentation-chorus structural label is not Smith's framing — he reads vv.15-19 as one wicked-emotional unit.\n\n**Bohr's reading (*Close of Probation to the New Earth*, p. 142):** Labels vv. 17-19 \"The Lament of the Employees and Travelers\" — the working-class tier (shipmasters, sailors, traders) distinct from the capitalist merchants of vv. 11-16; minimal exegesis beyond the structural label. Verbatim: \"Verses 17-19: The Lament of the Employees and Travelers\" (p. 142)."
         }
       ],
       "extensions": [],
@@ -537,7 +520,7 @@
       "violations": null,
       "status": {
         "label": "Miller-rule status",
-        "html": "No violation.\n**Bohr's reading (*Close of Probation to the New Earth*, p. 140):** Reads the dust-on-heads gesture against the OT mourning-gesture chain (Josh 7:6; Job 2:12; Lam 2:10; Ezek 27:30). Verbatim: \"Another sign of the affliction and angst of the wicked is the sprinkling of dust upon their heads\" (p. 140)."
+        "html": "No violation.\n**Bohr's reading (*Close of Probation to the New Earth*, pp. 140-141):** Reads the dust-on-heads gesture against the OT mourning-gesture chain (Josh 7:6; Job 2:12; Lam 2:10; Ezek 27:30). Verbatim: \"Another sign of the affliction and angst of the wicked is the sprinkling of dust upon their heads\" (p. 141)."
       },
       "symbols": null,
       "notes": [
@@ -569,7 +552,7 @@
       "notes": [
         {
           "label": "Note (not in DAR at v.20)",
-          "html": "The \"antiphon to earth's lament / perfect moral inversion\" reading is interpretive framing not in Smith's v.20 paragraph. The Rev 6:9-11 fifth-seal \"how long\" cross-link is standard pioneer typology but is not invoked here; Smith's anchor is the first resurrection, not the fifth-seal cry. The Rev 19:1-3 _Alleluia_ cross-link is also not in Smith's v.20 paragraph (he reserves the heavenly-chorus material for elsewhere).\n\n**Bohr's reading (*Close of Probation to the New Earth*, p. 141):** A structural hinge — the earthly lamentation (vv. 9-19) inverts into heavenly celebration; anticipates Rev 19:1-3. Verbatim: \"The scene now changes and a voice exhorts the heavenly beings to celebrate the vengeance of God against Babylon… The theme of this verse will be picked up in Revelation 19:1-3\" (p. 141)."
+          "html": "The \"antiphon to earth's lament / perfect moral inversion\" reading is interpretive framing not in Smith's v.20 paragraph. The Rev 6:9-11 fifth-seal \"how long\" cross-link is standard pioneer typology but is not invoked here; Smith's anchor is the first resurrection, not the fifth-seal cry. The Rev 19:1-3 _Alleluia_ cross-link is also not in Smith's v.20 paragraph (he reserves the heavenly-chorus material for elsewhere).\n\n**Bohr's reading (*Close of Probation to the New Earth*, p. 142):** A structural hinge — the earthly lamentation (vv. 9-19) inverts into heavenly celebration; anticipates Rev 19:1-3. Verbatim: \"The scene now changes and a voice exhorts the heavenly beings to celebrate the vengeance of God against Babylon… The theme of this verse will be picked up in Revelation 19:1-3\" (p. 142)."
         }
       ],
       "extensions": [],
@@ -595,7 +578,7 @@
       "notes": [
         {
           "label": "Note (not in DAR at v.21)",
-          "html": "The Jer 51:63-64 type/antitype trace (scroll bound to stone cast into Euphrates) is standard pioneer typology but is not invoked in Smith's v.21 paragraph; Smith never quotes Jer 51:63-64 in his Rev 18 commentary. The \"sea = peoples of the world per Rev 17:15\" cross-link is also not in Smith's v.21 paragraph. Smith's reading is simply: Babylon sinks, never to rise.\n\n**Bohr's reading (*Close of Probation to the New Earth*, p. 142):** Typed directly from Jer 51:63-64 (Jeremiah's stone cast into the literal Euphrates); the stone = Babylon, drowned in the waters of the Euphrates (= peoples per Bohr's Rev 17:15 spiritualization). Verbatim: \"The stone here is a metaphor for Babylon. She will be drowned in the waters of the Euphrates\" (p. 142)."
+          "html": "The Jer 51:63-64 type/antitype trace (scroll bound to stone cast into Euphrates) is standard pioneer typology but is not invoked in Smith's v.21 paragraph; Smith never quotes Jer 51:63-64 in his Rev 18 commentary. The \"sea = peoples of the world per Rev 17:15\" cross-link is also not in Smith's v.21 paragraph. Smith's reading is simply: Babylon sinks, never to rise.\n\n**Bohr's reading (*Close of Probation to the New Earth*, pp. 142-143):** Typed directly from Jer 51:63-64 (Jeremiah's stone cast into the literal Euphrates); the stone = Babylon, drowned in the waters of the Euphrates (= peoples per Bohr's Rev 17:15 spiritualization). Verbatim: \"The stone here is a metaphor for Babylon. She will be drowned in the waters of the Euphrates\" (p. 143). The \"Verses 21-24: Cessation of City Life\" header and the Jer 51:63-64 setup open on p. 142."
         }
       ],
       "extensions": [],
@@ -621,7 +604,7 @@
       "notes": [
         {
           "label": "Note (not in DAR at v.22)",
-          "html": "The Jer 25:10 type/antitype trace is standard pioneer typology but is not invoked in Smith's v.22 paragraph. The \"Babylon as civilization, not merely religious system\" generalization runs against Smith's narrower reading — Smith specifically reads the silenced music as the **liturgical music of formal religion** (the very thing that has \"ministered to her desires\" in worship contexts).\n\n**Bohr's reading (*Close of Probation to the New Earth*, p. 142):** No discrete verse-22 exegesis; treated under \"Cessation of City Life\" (vv. 21-24) — all city activities cease when Babylon falls. Verbatim: \"All the activities that characterize a city will cease when Babylon falls (verses 22, 23)\" (p. 142)."
+          "html": "The Jer 25:10 type/antitype trace is standard pioneer typology but is not invoked in Smith's v.22 paragraph. The \"Babylon as civilization, not merely religious system\" generalization runs against Smith's narrower reading — Smith specifically reads the silenced music as the **liturgical music of formal religion** (the very thing that has \"ministered to her desires\" in worship contexts).\n\n**Bohr's reading (*Close of Probation to the New Earth*, pp. 142-143):** No discrete verse-22 exegesis; treated under \"Cessation of City Life\" (vv. 21-24, header on p. 142) — all city activities cease when Babylon falls. Verbatim: \"All the activities that characterize a city will cease when Babylon falls (verses 22, 23)\" (p. 143)."
         }
       ],
       "extensions": [],
@@ -680,5 +663,5 @@
       "unclassified": []
     }
   ],
-  "summaryHtml": "**Rev 18 violation summary:** Of 24 verses, Bohr has Miller-rule violations on **1** (v. 2 — the collapse of Smith's two-stage Rev 14:8 / Rev 18:2 framing into a single terminal moral fall, weakening Rule IV). The previously flagged v. 13 \"slaves\" violation is **withdrawn after DAR audit**: Smith himself spiritualizes \"slaves and souls of men\" as creedal slavery-of-conscience (DAR 676.2), so Bohr's body/soul-ontology reading is in the same hermeneutic register as the DAR pioneer reading, not in violation of it. (A literalist Rule-XI critique against any spiritualization of \"slaves\" is exegetically defensible but is not the DAR pioneer baseline.) **This is Bohr's most rule-compliant chapter** in the entire contested corpus. The \"Babylonian Capitalism\" thesis is original contemporary application, not symbol redefinition.\n\n---"
+  "summaryHtml": "**Rev 18 violation summary:** Of 24 verses, Bohr has **0** Miller-rule violations after audit. Both previously flagged items are withdrawn: (1) the v. 2 \"two-fold-fall collapse\" charge does not survive close reading — Bohr's parallel table on p. 125 (_Close of Probation_) explicitly distinguishes Rev 14:8 from Rev 18:1-5 and frames the latter as the three-angels' message \"on steroids\" (i.e., amplification, not collapse); his synonymous-parallelism gloss addresses only v. 2's internal literary doubling, which Smith himself treats as one end-time pronouncement (DAR 666.5-667.1). (2) The v. 13 \"slaves\" violation is also withdrawn: Smith himself spiritualizes \"slaves and souls of men\" as creedal slavery-of-conscience (DAR 676.2), so Bohr's body/soul-ontology reading is in the same hermeneutic register as the DAR pioneer reading. (A literalist Rule-XI critique against any spiritualization of \"slaves\" is exegetically defensible but is not the DAR pioneer baseline.) **This is Bohr's most rule-compliant chapter** in the entire contested corpus. The \"Babylonian Capitalism\" thesis is original contemporary application, not symbol redefinition.\n\n---"
 }

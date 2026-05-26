@@ -96,11 +96,25 @@
         "html": "Bohr reads the \"third of the stars\" as a **flashback to the pre-creation rebellion** — Satan sweeping a third of the angels down with his lies. The verse is a literary **broad-sweep** device covering \"**the entire sweep of the controversy between Christ and Satan from the origin of sin in heaven till Jesus died on the cross**\" (p. 31). Structure: \"**Verse four first gives a flashback into what happened in heaven and then goes right on to describe the birth of Jesus. In verse seven once again he gives a flashback to heaven and then deals with events after the ascension of Jesus**\" (p. 31). On the flashback specifically: \"**Before creation in heaven the dragon by his lies (tail) swept away one third of Christ's angels**\" (p. 31). Bohr supports the tail = lies identification via Isa 9:15 + Rev 12:7-9 (cited in _Seven Trumpets_, line 5770: \"_In Scripture the tail represents lies (Revelation 12:7-9; John 8:44; Isaiah 9:15)_\"). **Diverges from Smith on what \"the third of the stars\" represents:** Smith reads it as **Jewish kings deposed by Rome** (historical, pre-Christ, on-earth); Bohr reads it as **the third of the angels swept away by Satan's pre-creation rebellion** (pre-historical, in heaven). These are very different identifications: Smith keeps the scene on earth and chronological; Bohr breaks the chronology to insert a heavenly flashback."
       },
       "warrant": null,
-      "violations": null,
-      "status": {
-        "label": "Miller-rule status",
-        "html": "**Bohr breaks Miller Rule X (literal/figurative testing).** Smith's reading keeps the symbol within the chapter's established chronological frame (dragon = pagan Rome on earth, stars = Jewish rulers on earth, all pre-Christ). Bohr's reading requires importing a pre-creation heavenly war that the chapter has not yet introduced (it appears for the first time in v.7), and assigning \"tail\" the abstract meaning \"lies\" from outside-chapter cross-references (Isa 9:15). The reading is not impossible — many SDA expositors (and EGW herself in some statements) take \"third of the stars\" as the angelic fall — but it imports content the immediate context does not supply, and it depends on the dragon symbolising Satan-personally rather than pagan-Rome-as-Satan's-vehicle (a choice already pre-committed at v.3)."
+      "violations": {
+        "scope": "verse",
+        "label": "Miller rules broken",
+        "items": [
+          {
+            "ruleNumber": "V",
+            "ruleName": "Scripture must be its own expositor",
+            "ruleOrder": 5,
+            "body": "**Chronological-coherence violation.** Rev 12:1-2 plants an unambiguous anchor — the woman \"travailing in birth, and pained to be delivered\" — which v. 5 fixes on the birth of Christ. Once a vision plants a chronological anchor, the symbols that follow in the same vision must be downstream of that anchor. Bohr's reading inserts a pre-creation flashback (Satan's pre-Edenic seduction of a third of the angels) three verses after the birth-of-Christ anchor, breaking the vision's chronology. Smith's reading — Jewish rulers (the kings of the Asmonean dynasty) deposed by Rome 63-37 BC — sits immediately upstream of v. 5's birth and immediately downstream of v. 1's church-with-twelve-apostles anchor, satisfying Rule V's demand that Scripture cohere with itself. Smith made this explicit at DAR 514.4 in the parallel argument against the pre-creation reading of vv. 7-9 (\"_we are unable to harmonize this view with the testimony before us_\"); the same textual logic applies here."
+          },
+          {
+            "ruleNumber": "X",
+            "ruleName": "literal/figurative testing in context",
+            "ruleOrder": 10,
+            "body": "Bohr assigns \"tail\" the abstract meaning \"lies\" from outside-chapter cross-references (Isa 9:15 via _Seven Trumpets_, line 5770), and \"stars\" the meaning \"angels\" from outside the chapter's own gloss (the same chapter at v. 1 has already fixed _stars_ as church-leaders — the twelve apostles). When a vision supplies its own symbol-gloss in its opening verses, that gloss governs subsequent uses in the same vision."
+          }
+        ]
       },
+      "status": null,
       "symbols": {
         "label": "Symbols redefined",
         "html": "Stars (Smith: Jewish kings deposed by Rome ~63-37 BC; Bohr: a third of the heavenly angels swept down by Satan's lies before creation). Tail (Smith: not specifically defined; Bohr: lies, from Isa 9:15)."
@@ -171,11 +185,31 @@
         "html": "**Both — but with the flashback explicit.** Bohr treats vv. 7-9 as a **flashback to the pre-creation expulsion**, with vv. 10-12 then turning to Christ's victory at the cross as the historical occasion for the celebration. On the flashback: \"**Flashback: Satan was originally cast out of heaven with his angels (which were originally Michael's angels). The tenses of verses 7-9 clearly indicate that this is a past event that is being looked at from the perspective of the present**\" (p. 32). He underlines the Greek tenses: \"**'And war broke [aorist] out in heaven: Michael and his angels fought [aorist] with the dragon; and the dragon and his angels fought [aorist], 8 but they did [aorist] not prevail, nor was a place found for them in heaven any longer. 9 So the great dragon was [aorist] cast out... he was [aorist] cast to the earth, and his angels were [aorist] cast out with him**'\" (p. 32). Then: \"**Historical Event: Verses 10-12 will now describe the consequences of the past event. Christ's victory is celebrated in Revelation 12:10-12. There we are told that the heavenly host sang: because Christ had defeated Satan at the cross (see also John 12:31-33; Luke 10:18, 19)**\" (p. 33). Bohr quotes EGW (MS 111, 1897 / 5BC 1150 and DA 758) anchoring the celebration to \"_It is finished_.\" **Diverges from Smith on the chronological anchor of vv. 7-9**: Smith reads the war as the historical conflict of Christ's ministry (Satan's repeated assaults on Jesus, climaxing at the cross — a war fought in heaven-as-region-above-earth, not pre-creation). Bohr reads vv. 7-9 as the pre-creation expulsion proper, with vv. 10-12 as the post-cross celebration that retrospectively secures its meaning."
       },
       "warrant": null,
-      "violations": null,
-      "status": {
-        "label": "Miller-rule status",
-        "html": "**Bohr breaks Miller Rules I, II, and X.** Smith's argument from v.13 — \"_when the dragon saw that he was cast unto the earth, he persecuted the woman_\" — is decisive: the casting-out drives directly into the wilderness flight of the church, making the casting-out coincident with the establishment of Christianity, not pre-creation. Bohr resolves this by inserting a flashback structure (vv. 7-9 = then; vv. 10-12 = now), but the chapter's own grammar of consequence (\"_when the dragon saw_\") ties the cast-down directly to the woman's flight (Rule X: literal-where-possible). The pre-creation reading also has to override Christ's own statement in Luke 10:18 (\"_I beheld Satan as lightning fall from heaven_\") which Bohr himself cites in the Rev 12:10 commentary as the post-cross fall, not the pre-creation fall (Rule I: each word must have its proper bearing). Smith captures this in DAR 515.2: \"**Heaven, we have seen, does not mean, in this chapter, the place which is the abode of God and his celestial messengers. It here doubtless denotes condition rather than place**\" — the cast-out is a humiliation in status, not a geographical eviction from God's dwelling."
+      "violations": {
+        "scope": "verse",
+        "label": "Miller rules broken",
+        "items": [
+          {
+            "ruleNumber": "V",
+            "ruleName": "Scripture must be its own expositor",
+            "ruleOrder": 5,
+            "body": "**Chronological-coherence violation — the central one in the chapter.** Rev 12:1-2 plants the birth-of-Christ anchor (woman travailing). Rev 12:10's \"**Now** is come salvation, and strength, and the kingdom of our God, and the power of his Christ\" is the explicit chronological hinge — the celebration's \"now\" points to the moment the kingdom of God came in power, i.e., the Cross (cf. John 12:31 \"_now shall the prince of this world be cast out_\"; Luke 10:18 \"_I beheld Satan as lightning fall from heaven_\"). The chronologically coherent referent of vv. 7-9 is therefore the Cross, where Satan's usurped legal standing as the prince of this world was wrested back from him to Christ. Bohr's pre-creation reading breaks the vision's chronology in two ways: (1) it jumps backward from the birth-of-Christ anchor at v. 1-2 into pre-Edenic history; (2) it makes v. 10's \"now is come\" the celebration of an event that happened before the vision's anchor, leaving the \"now\" hanging in mid-air. The chapter's own grammar of consequence at v. 13 — \"_when the dragon saw that he was cast unto the earth, he persecuted the woman_\" — drives the cast-out directly into the wilderness flight that v. 6 anchors at AD 538, not into pre-creation."
+          },
+          {
+            "ruleNumber": "I",
+            "ruleName": "every word must have its proper bearing",
+            "ruleOrder": 1,
+            "body": "v. 10's \"**now**\" must bear its proper temporal weight. If vv. 7-9 are pre-creation, the \"now\" of v. 10 is left dangling — what is happening _now_ that has _now_ brought the kingdom of God? Smith's reading honors the \"now\" by tying the celebration to Christ's victorious life-and-cross campaign (the prospective \"now is come\" of DAR 516.1). Bohr's reading honors the \"now\" as post-cross celebration (DA 758), but only by acknowledging the inconsistency that vv. 7-9 must then describe a pre-creation event being _retrospectively_ celebrated by the post-cross host — a structure neither the chapter's grammar nor its tenses supply."
+          },
+          {
+            "ruleNumber": "X",
+            "ruleName": "literal/figurative testing in context",
+            "ruleOrder": 10,
+            "body": "Smith argues at DAR 515.2 that \"heaven\" in this chapter \"_does not mean… the place which is the abode of God… It here doubtless denotes condition rather than place_\" — the cast-out is a humiliation in status (Satan's loss of his accuser's standing), not a geographical eviction. Bohr's reading requires \"heaven\" in vv. 7-9 to be literal-place-of-God (the pre-creation expulsion), and \"heaven\" in v. 10 to be condition-or-host (the post-cross celebration), inside three contiguous verses without any internal signal of a referent-switch. Smith's single-referent reading honors Rule X; Bohr's split-referent reading does not."
+          }
+        ]
       },
+      "status": null,
       "symbols": {
         "label": "Symbols redefined",
         "html": "\"War in heaven\" (Smith: the warfare between Christ and Satan during Christ's earthly ministry, climaxing at the cross; Bohr: the pre-creation expulsion, with the cross as the public ratification of that expulsion)."
@@ -396,7 +430,7 @@
       "violations": null,
       "status": {
         "label": "Miller-rule status",
-        "html": "**Bohr breaks Miller Rule X (literal/figurative testing).** Smith's reading is a direct Rule IV/V application: the chapter's own time-frame (vv. 6, 14 — 1260 years = 538-1798) puts the \"earth helping the woman\" inside the historical Reformation window, and the Reformation is the documented thing that \"swallowed\" papal persecution within Europe. Bohr's reading requires importing the Rev 13:11 land-beast = USA identification back into Rev 12:16, which means the \"earth\" of v.16 must already anticipate the post-1798 nation that the chapter has not yet introduced. (The colonial 1620 refuge is real history, but Smith's \"leading nations of Christendom\" already covers the broader pattern of Protestant refuge that includes it.) The narrowing is not _wrong_ as a secondary application, but it is a **typological extension**, not the primary historical fulfillment Smith identifies. Rule X says: take the literal historical fulfillment when one is plainly available, and the Reformation is plainly available at the chapter's own time-frame."
+        "html": "**No violation — soft divergence on the historical specifier, inside the same framework.** Both readings keep the chapter's own chronology (the 538-1798 wilderness window): Bohr explicitly anchors the 1620 Pilgrim refuge inside that window (p. 44 — \"_the earth helps the woman before the 1260 years come to an end_\"), and the 1798 rise of the nation closes the window. Both readings honor Rule X (the figure is read as a figure because literal earth-swallowing fails) and Rule IV (history confirms prophecy). The difference is in the **historical specifier** chosen for \"the earth\" — Smith reads broadly (Protestant Europe + ongoing leading nations of Christendom, _which already covers the American colonies_, per DAR 518.2 \"_has continued to help to the present day_\"); Bohr narrows to the American territory specifically. Per the AUDIT.md rubric, soft divergences on the historical specifier within a shared framework are interpretive narrowings, not Miller-rule breaks. The narrowing reading does, however, lose the explicit Reformation-states material that DAR 518.2 develops — that is a contraction, not a contradiction."
       },
       "symbols": {
         "label": "Symbols redefined",
@@ -441,5 +475,5 @@
       "unclassified": []
     }
   ],
-  "summaryHtml": "**Rev 12 violation summary:** Of 17 verses, Bohr breaks Miller rules on approximately **3** (vv. 4, 7, 16) — the violations are concentrated in the **pre-creation flashback structure of vv. 4 and 7-9** (importing a heavenly war that the chapter's own grammar of consequence at v.13 ties to the cross-era casting-out) and in the **narrow earth = USA-territory identification at v.16** (collapsing Smith's broader Reformation-Europe-plus-American-refuge reading into a typological narrowing). The 538-1798 wilderness flight, the day-year principle, the Exodus and Elijah backdrops, the dragon's three historical stages (pagan Rome → papal Rome → apostate-Protestant USA), and the end-time remnant identification are all **fully convergent**. Rev 12 is, after Rev 11, Bohr's second-most rule-respecting chapter, with the divergences confined to symbolic emphasis (sun/moon, dragon-primary-identity) and one historical-narrowing call (earth at v.16).\n\n---"
+  "summaryHtml": "**Rev 12 violation summary (post-audit):** Of 17 verses, Bohr breaks Miller rules on **2** (vv. 4 and 7) — both via the **same chronological-coherence break under Miller Rule V** (\"_Scripture must be its own expositor_\"). Rev 12:1-2 plants the birth-of-Christ anchor; v. 5 confirms it; v. 10's \"**now is come… the kingdom of our God**\" supplies the chronological hinge that fixes the celebration at the Cross. Bohr's pre-creation flashback structure at vv. 4 and 7-9 jumps backward across the v. 1-2 anchor and leaves v. 10's \"now\" hanging. Smith's reading — supported by his own decisive textual argument at DAR 514.4 (\"_when the dragon saw that he was cast unto the earth, he persecuted the woman_\" — the cast-out drives directly into the wilderness flight) and DAR 515.2 (\"_heaven… denotes condition rather than place_\") — keeps every verse downstream of the v. 1-2 anchor without any verse-internal referent-switches. The v. 16 \"earth\" disagreement is **downgraded from violation to soft divergence**: Bohr's USA-territory narrowing sits inside Smith's own \"_leading nations of Christendom_\" framework (DAR 518.2) and inside the chapter's 538-1798 window, so it is a historical-specifier contraction, not a Miller-rule break. The 538-1798 wilderness flight, the day-year principle, the Exodus and Elijah backdrops, the dragon's three historical stages (pagan Rome → papal Rome → apostate-Protestant USA), and the end-time remnant identification are all **fully convergent**.\n\n---"
 }

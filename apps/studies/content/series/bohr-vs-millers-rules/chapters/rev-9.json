@@ -536,10 +536,16 @@
         "label": "Miller rules broken",
         "items": [
           {
-            "ruleNumber": "I",
-            "ruleName": "every word bears",
-            "ruleOrder": 1,
-            "body": "The \"voice from the four horns\" specification is unconnected to a specific 1844-onward event; Bohr treats it as scene-setting rather than as a load-bearing detail. The pioneer reading: the voice represents the divine command issuing from the altar of intercession at the appointed _hour_ of the Ottoman fulfillment."
+            "ruleNumber": "V",
+            "ruleName": "Scripture is its own expositor",
+            "ruleOrder": 5,
+            "body": "The sixth-trumpet anchor: Bohr displaces the trumpet from the Ottoman-Constantinople fulfillment (begun 1449, terminating 1840 at the Litch date) onto an undated 1844→close-of-probation interval. The voice-from-the-four-horns is functionally a release-command in the vision (the next verse loosens the four angels for a stipulated time-period); Bohr's antitypical-day-of-atonement framing detaches the release from the temporal mechanism the verse itself supplies and re-attaches it to a different prophetic period (Dan 8:14). This is the framework-level move: trumpet 6 is recoded from a historical-Ottoman judgment into an end-time spiritual-conflict scene, with the chronological hinge moved 4 years forward (1840 → 1844) and the historical referent vacated."
+          },
+          {
+            "ruleNumber": "XIII",
+            "ruleName": "every word must be fulfilled",
+            "ruleOrder": 13,
+            "body": "The \"hour\" in v.15 (\"prepared for an hour, and a day, and a month, and a year\") supplies the temporal mechanism for the release commanded here in v.13. The pioneer reading lands every word — the appointed _hour_ of the appointed _day_ of the appointed _month_ of the appointed _year_ is fulfilled on August 11, 1840. Bohr's 1844 → close-of-probation displacement leaves the voice-command and the time-units functionally unfulfilled — they become symbolic markers of \"the appointed time of God's judgment\" without a verifiable historical anchor."
           }
         ]
       },

@@ -2,7 +2,7 @@
   "slug": "rev-7",
   "ref": "Rev 7",
   "title": "Revelation 7",
-  "intro": "Rev 7 is the **sealing chapter** — the interlude between the sixth and seventh seals that answers Rev 6:17's question (\"_who shall be able to stand?_\") by revealing the 144,000 sealed servants of God + the great multitude. Smith and Bohr converge on **every major identification**: the four angels holding the four winds = the providential restraint of the destroying judgments until the sealing work is complete; the sealing angel ascending from the east = the great sealing message of the last generation; the seal of the living God in the foreheads = the Sabbath as the great test of loyalty to the Creator at the close of probation; the 144,000 = the last-generation faithful, organized as **spiritual Israel** (not literal Jewish lineage), drawn from \"_every nation, and kindred, and tongue, and people_\"; the great multitude before the throne = the redeemed of all ages, including the 144,000 as a special class within them. The principal divergence (very soft) is on the **relation of the 144,000 to the great multitude**: Smith allows the 144,000 to be a distinct sub-class within the larger multitude (the last-generation faithful who pass through the time of trouble without seeing death), while Bohr collapses the two groups so that \"_the 144,000 and the great multitude are the same group of end-time saints viewed from two different angles — the 144,000 as the numbered, ordered, militarily-organized army of God on earth, and the great multitude as the same group viewed in their post-translation glorified state in heaven_\" (Bohr, paraphrasing Stefanovic and Paulien). This is a soft refinement, not a structural divergence — Smith's reading is large enough to accommodate the Bohr identification as a possibility. **No hard Miller-rule violations in this chapter.** Source: Bohr, _Revelation's Seven Seals: Studies in Revelation 4-8_, Lesson 15 (pp. 281-313).",
+  "intro": "Rev 7 is the **sealing chapter** — the interlude between the sixth and seventh seals that answers Rev 6:17's question (\"_who shall be able to stand?_\") by revealing the 144,000 sealed servants of God and the great multitude. Smith and Bohr converge on **every major identification**: the four angels holding the four winds = the providential restraint of the destroying judgments until the sealing work is complete; the sealing angel ascending from the east = the great end-time sealing message; the seal of the living God in the foreheads = the Sabbath as the great test of loyalty to the Creator at the close of probation; the 144,000 = the last-generation faithful, organized as **spiritual Israel** (not literal Jewish lineage), drawn from \"_every nation, and kindred, and tongue, and people_\"; the great multitude before the throne = the redeemed-host before the throne after the great tribulation. The principal divergence (soft) is on the **relation of the 144,000 to the great multitude**: Smith (DAR 448.3, 449.2) reads the great multitude as the redeemed of every age raised at the second coming, with the 144,000 as a distinct sub-class (the last-generation faithful translated alive). Bohr (_Seven Seals_, pp. 307-309) collapses the two groups: \"_the 144,000 and the great multitude that no one could number are actually the same group_\" — heard as the Church Militant in vv. 1-8 and seen as the Church Triumphant in vv. 9-17 (citing Beatrice Neall, _Adventist Review_, April 2 1987). This is a soft refinement, not a structural divergence — Smith's framework accommodates Bohr's reading as a possibility. **No hard Miller-rule violations in this chapter.** Source: Bohr, _Revelation's Seven Seals: Studies in Revelation 4-8_, Lesson 15 (pp. 281-313).",
   "verses": [
     {
       "ref": "Rev 7:1",
@@ -10,18 +10,18 @@
       "slug": "v-1",
       "text": "And after these things I saw four angels standing on the four corners of the earth, holding the four winds of the earth, that the wind should not blow on the earth, nor on the sea, nor on any tree.",
       "pioneerReading": {
-        "citation": "DAR 435.1-437.1",
-        "html": "**Four winds = strife, commotion, and political/religious destroying judgments; four angels holding them = the providential restraint of those judgments until the sealing work is complete.** \"**Winds in prophecy denote political commotion and strife (cf. Jer 25:31-33, 49:36-37; Dan 7:2). The four angels are the providential agents commissioned to restrain those destroying winds until the sealing work of the last generation has been completed. The text plainly teaches that there is an interval between the cosmic signs of the sixth seal (Rev 6:12-13) and the great day of wrath (Rev 6:14-17) — an interval in which the sealing work of the third angel's message (Rev 14:9-12) goes forward, and at the close of which the four winds are loosed for the seven last plagues**\" (DAR 435.1-437.1, condensed paraphrase)."
+        "citation": "DAR 435.2-436.3",
+        "html": "**Four winds = political commotion, strife, and war; four angels holding them = the providential restraint of those destroying judgments until the sealing work is complete.** Smith on DAR 436.3: \"_Winds, in the Bible, symbolize political commotion, strife, and war. Daniel 7:2; Jeremiah 25:32. The four winds, held by four angels standing in the four quarters of the earth, must denote all the elements of strife and commotion that exist in the world; and when they are all loosed, and all blow together, it will constitute the great whirlwind just referred to in the prophecy of_\" Jer 25:32. Smith reads Rev 7 as parenthetically inserted between the sixth and seventh seals to expound the sealing work that holds back the destroying judgments (DAR 435.2)."
       },
       "bohrReading": {
-        "citation": "_Seven Seals_, pp. 281-285",
-        "html": "**Same identification — four winds = the destroying judgments held back by God's providential agents until the sealing of the 144,000 is complete.** Bohr cross-links to **Daniel 7:2** (\"_the four winds of the heaven strove upon the great sea_\") and **Jeremiah 49:36** (\"_upon Elam will I bring the four winds from the four quarters of heaven, and will scatter them toward all those winds_\") as the controlling Old Testament parallels. The interval-between-cosmic-signs-and-great-day-of-wrath is the same Bohr develops in his two-stage sixth-seal reading."
+        "citation": "_Seven Seals_, pp. 284-285, 290-292",
+        "html": "**Same identification — four winds = strife / hurt to earth-sea-trees held back by God's providential agents until the sealing of the 144,000 is complete.** Bohr's exposition on pp. 284-292 leans on EGW (Maranatha 266 — \"_John sees the elements of nature — earthquake, tempest, and political strife — represented as being held by four angels…_\"; GC 614 on the cessation of restraint at the end of intercession; Education 179-180; 6T 408) to identify the four-winds restraint as the period of Christ's intercession in the heavenly sanctuary, with release triggered at the close of probation."
       },
       "warrant": null,
       "violations": null,
       "status": {
         "label": "Miller-rule status",
-        "html": "No violation. Convergent. Exemplary Rule-V cross-links (Dan 7:2, Jer 49:36)."
+        "html": "No violation. Convergent on the four-winds identification. Smith brings the OT Rule-V cross-links (Dan 7:2, Jer 25:32 per DAR 436.3); Bohr brings the EGW-stack (Maranatha 266; GC 614; Ed 179-180; 6T 408). Both readings agree the restraint runs until the sealing is complete."
       },
       "symbols": null,
       "notes": [],
@@ -35,11 +35,11 @@
       "text": "And I saw another angel ascending from the east, having the seal of the living God: and he cried with a loud voice to the four angels, to whom it was given to hurt the earth and the sea,",
       "pioneerReading": {
         "citation": "DAR 437.1-438.1",
-        "html": "**The sealing angel ascending from the east (Greek anatolē, the rising of the sun) represents the great sealing message of the last generation — the message that brings the Sabbath truth to light and applies the seal of the living God to the foreheads of the 144,000.** \"**The sealing angel comes from the east, the place of light, the place of the sun's rising. He is not a literal angel but a symbolic figure representing the body of messengers who proclaim the great Sabbath-sealing message of the third-angel hour. The seal of the living God is the Sabbath of the fourth commandment — the only commandment in the Decalogue that contains all three elements of an official seal: the name of the lawgiver (the LORD thy God), his title (he that made), and his territory (heaven and earth, the sea, and all that in them is). Ex 20:8-11**\" (DAR 437.1-438.1, condensed paraphrase; Smith develops the Sabbath-as-seal argument extensively at DAR 438-444)."
+        "html": "**The sealing angel ascending from the east (literally \"from the sun-rising\") represents a divine message-movement whose work commences in weakness and grows in power — applying the seal of the living God (the Sabbath of the fourth commandment) to the foreheads of the 144,000.** Smith on DAR 437.1: \"**Another literal angel, having charge of another specific work, is here introduced… 'Ascending from the sun rising'… refers to manner rather than locality; for as the sun arises with rays at first oblique and comparatively powerless, but increases in strength until it shines in all its meridian power and splendor, so the work of this angel commences in weakness, moves onward with ever-accumulating influence, and closes in strength and power.**\" Smith then develops the Sabbath-as-seal argument across DAR 437.2-444.2 via the three-elements-of-a-seal definition: the only commandment in the Decalogue that contains the name of the lawgiver, his title, and his territory (Ex 20:8-11), tying the work to Isa 8:16 (\"bind up the testimony, seal the law among my disciples\")."
       },
       "bohrReading": {
         "citation": "_Seven Seals_, pp. 285-292",
-        "html": "**Same identification — the sealing angel = the body of end-time messengers proclaiming the great Sabbath-sealing message; the seal of the living God = the Sabbath of the fourth commandment.** Bohr's anatolē / east / sunrise identification is verbatim convergent with Smith. Bohr stresses the **forehead** as the seat of the conscience and the will (the seat of moral choice, where allegiance is determined) and the **Sabbath-vs.-mark-of-the-beast** contrast as the great loyalty-test of the final crisis (cross-link to Rev 14:9-12, the third angel's message; pp. 285-292)."
+        "html": "**Same identification — the sealing angel announces the great end-time Sabbath-sealing of the 144,000; the seal of the living God = the Sabbath of the fourth commandment.** Convergent with Smith on the identification. Bohr's exposition on pp. 285-292 leans heavily on EGW (GC 605: \"The Sabbath will be the great test of loyalty… the keeping of the true Sabbath… is an evidence of loyalty to the Creator\"; 6T 408; Maranatha 266 on the four angels restraining the winds until the sealing is complete) and frames the **Sabbath-vs.-mark-of-the-beast contrast** as the great loyalty-test of the final crisis (cross-link to Rev 14:9-12, the third angel's message)."
       },
       "warrant": null,
       "violations": null,
@@ -58,12 +58,12 @@
       "slug": "v-3",
       "text": "Saying, Hurt not the earth, neither the sea, nor the trees, till we have sealed the servants of our God in their foreheads.",
       "pioneerReading": {
-        "citation": "DAR 438.1-444.1",
-        "html": "**The destroying judgments are held back until the sealing of God's servants is complete — the sealing is the great preparatory work that fits the 144,000 to stand without a mediator through the time of trouble and the seven last plagues.** Smith develops the Sabbath-sealing argument extensively across DAR 438-444, identifying the seal as the Sabbath of the fourth commandment via the three-elements-of-a-seal argument (name + title + territory)."
+        "citation": "DAR 438.1-444.2",
+        "html": "**The destroying judgments are held back until the sealing of God's servants is complete — the sealing is the great preparatory work that fits the 144,000 to stand through the time of trouble and the seven last plagues.** Smith develops the Sabbath-sealing argument extensively across DAR 438-444, identifying the seal as the Sabbath of the fourth commandment via the three-elements-of-a-seal definition: a seal carries the name, title, and territory of the lawgiver; only the fourth commandment in the Decalogue supplies all three (\"_the LORD thy God… made heaven and earth, the sea, and all that in them is_,\" Ex 20:11)."
       },
       "bohrReading": {
-        "citation": "_Seven Seals_, pp. 285-292, 300-310",
-        "html": "**Same identification — sealing = the Sabbath-and-character-perfection preparation of the 144,000 to stand in the time of trouble; convergent with Smith.** Bohr's Sabbath-seal argument is the same three-elements-of-a-seal argument with the same Ex 20:8-11 anchor."
+        "citation": "_Seven Seals_, pp. 285-292",
+        "html": "**Same identification — sealing = the great end-time Sabbath-sealing that prepares God's people to stand in the time of trouble; convergent with Smith on the principal identification.** Bohr's exposition on pp. 285-292 is primarily an EGW-stack (GC 605, 6T 408, Maranatha 266, Ev 234, MS 51/1899) rather than an independent three-elements-of-a-seal argument; he leans on EGW's Sabbath-as-test-of-loyalty framing rather than reproducing Smith's logical chain from the seal's structure."
       },
       "warrant": null,
       "violations": null,
@@ -82,12 +82,12 @@
       "slug": "v-4",
       "text": "And I heard the number of them which were sealed: and there were sealed an hundred and forty and four thousand of all the tribes of the children of Israel.",
       "pioneerReading": {
-        "citation": "DAR 446.1-451.1",
-        "html": "**144,000 = the last-generation faithful drawn from spiritual Israel (not literal Jewish lineage); the twelve-tribes-of-Israel framework = the gospel-grafting structure of Romans 11 in which believing Gentiles are grafted into the olive tree of Israel and the unbelieving natural branches are broken off.** \"**The 144,000 are not literal Jews of literal Jewish descent. The Christian dispensation knows no national distinction. The middle wall of partition is broken down (Eph 2:14). All believers, whether of Jewish or Gentile birth, are alike children of Abraham by faith (Gal 3:7, 29; Rom 4:11-12, 16). The 144,000 are sealed out of the spiritual Israel of the last generation — twelve thousand from each of the symbolic tribes, the number 144,000 expressing the completed-perfect organization of God's last-day army**\" (DAR 446.1-451.1, condensed paraphrase; Smith argues the spiritual-Israel identification at length from Rom 11, James 1:1, Rev 21:12-14, and the Gal-3:29 grafting framework)."
+        "citation": "DAR 446.1-448.1",
+        "html": "**144,000 = the last-generation faithful drawn from spiritual Israel (not literal Jewish lineage); the twelve-tribes-of-Israel framework = the gospel-grafting structure of Romans 11 in which believing Gentiles are grafted into the olive tree of Israel and the unbelieving natural branches are broken off.** Smith on DAR 446.2 anchors this in James 1:1 (\"_the twelve tribes which are scattered abroad_\" addressed to last-generation Christians \"_in view of the coming of the Lord_\"), Rom 11:17-24 (the wild-olive grafting), Rom 9:6-8 + 2:28-29 (\"_he is not a Jew which is one outwardly_\"), and Rev 21:12-14 (the twelve tribes inscribed on the gates of the New Jerusalem alongside the twelve apostles on the foundations — making the city Christian, not exclusively Jewish). DAR 448.1: not all those reckoned among the tribes when the sealing began stand the test."
       },
       "bohrReading": {
-        "citation": "_Seven Seals_, pp. 292-302",
-        "html": "**Same identification — 144,000 = spiritual Israel of the last generation, drawn from every nation/kindred/tongue/people; convergent with Smith.** Bohr develops the same Rom-11 / Gal-3:29 grafting framework and adds the **square-of-12** symbolic-number argument: 144,000 = 12 (the patriarchs / OT covenant) × 12 (the apostles / NT covenant) × 1,000 (the symbolic-completeness multiplier) — the number expressing the **perfect organization of God's end-time army**, drawn from both covenants and from every nation (pp. 293-296)."
+        "citation": "_Seven Seals_, pp. 292-307",
+        "html": "**Same identification — 144,000 = spiritual Israel of the last generation, drawn from every nation/kindred/tongue/people; convergent with Smith.** Bohr develops the same Rom-2 / Rom-9 / Gal-3:29 / Phil-3 spiritual-Israel framework (pp. 299-302) by direct New Testament quotation and adds an EGW-stack (PK 713-715, PK 367, PK 371, 2T 109, p. 302) on \"spiritual Israel\" as God's modern Israel. Bohr's literal-vs.-symbolic-number argument (pp. 305-307) culminates in the **12 × 12 × 1000 = 144,000** point: \"_The intensified multiple of the number 12 (which is the number of God's people in all ages — actually 12 x 12 x 1000) would seem to emphasize that this group is composed of the true Israel of God who live at the end of world history_\" (p. 306)."
       },
       "warrant": null,
       "violations": null,
@@ -107,17 +107,17 @@
       "text": "Of the tribe of Juda were sealed twelve thousand. Of the tribe of Reuben were sealed twelve thousand. Of the tribe of Gad were sealed twelve thousand.",
       "pioneerReading": {
         "citation": "DAR 446.1-447.1",
-        "html": "**The list of twelve tribes is symbolic of the spiritual organization of the last-generation church.** Smith notes the **anomalous omissions** of Dan and Ephraim from the list (replaced by Levi and Joseph) and reads these omissions as deliberate symbolic markers — Dan and Ephraim being the tribes most associated with idolatry in OT history, omitted from the symbolic last-generation roll-call. Juda heads the list as the tribe of the Lion of Judah (Christ)."
+        "html": "**The twelve-tribe roll-call is symbolic of the spiritual organization of the last-generation church.** Smith on DAR 447.1: \"_in the passage before us, Ephraim and Dan are omitted, and Levi and Joseph put in their places. The omission of Dan is accounted for by commentators on the ground that that tribe was the one chiefly addicted to idolatry. (See Judges 18, etc.) The tribe of Levi here takes its place with the rest, as in the heavenly Canaan the reasons for their not having an inheritance will not exist… and Joseph is probably put for Ephraim, it being a name which appears to have been applied to either the tribe of Ephraim or Manasseh._\" Note: Smith explains Dan's omission as idolatry (Judges 18, not Jeroboam), and the Joseph-for-Ephraim substitution as a name-overlap rather than as an Ephraim-for-idolatry omission."
       },
       "bohrReading": {
-        "citation": "_Seven Seals_, pp. 296-300",
-        "html": "**Same identification — twelve tribes = symbolic spiritual-Israel organization, with the same Dan-and-Ephraim omission noted and the same Juda-heads-the-list emphasis (Lion of Judah).** Bohr develops the omissions as marking the **departed-from-faithfulness** tribes (Dan = idolatry of Jeroboam; Ephraim = idolatry of Israel's northern kingdom; cf. Hos 4:17 — \"_Ephraim is joined to idols_\")."
+        "citation": "_Seven Seals_, p. 281 (question raised)",
+        "html": "**Bohr lists \"Why are Dan and Ephraim missing from the list?\" as a study question on p. 281 of Lesson 15, but does not resolve it in the Lesson-15 prose (pp. 281-313).** Lesson 15 does treat the twelve tribes as the symbolic spiritual-Israel organization (convergent with Smith on the principal identification), but the Dan-and-Ephraim exposition has no extended treatment in this volume. Treat any Dan/Ephraim-as-idolatry attribution to Bohr as not sourced from _Seven Seals_."
       },
       "warrant": null,
       "violations": null,
       "status": {
         "label": "Miller-rule status",
-        "html": "No violation. Convergent."
+        "html": "No violation. Convergent on the symbolic-spiritual-Israel framework. Smith supplies the Dan-as-idolatry / Joseph-as-name-overlap explanation (DAR 447.1); Bohr raises the question on p. 281 of _Seven Seals_ but does not resolve it in the Lesson-15 prose."
       },
       "symbols": null,
       "notes": [],
@@ -134,8 +134,8 @@
         "html": "Continuation of the symbolic-twelve-tribes roll-call (Smith treats vv. 5-8 as a single block)."
       },
       "bohrReading": {
-        "citation": "_Seven Seals_, pp. 296-300",
-        "html": "Continuation of the symbolic roll-call (Bohr also treats vv. 5-8 as a block)."
+        "citation": "_Seven Seals_, Lesson 15 (pp. 281-313, no separate v.6 exposition)",
+        "html": "Bohr's Lesson 15 treats Rev 7:1-8 as a single sealing-of-the-144,000 block; he does not exegete v.6 individually. Convergent with Smith on the block-treatment."
       },
       "warrant": null,
       "violations": null,
@@ -158,8 +158,8 @@
         "html": "Continuation of the symbolic roll-call. Note Levi included (where in the OT land-allotment Levi was not counted among the twelve land-receiving tribes), filling the slot vacated by the omission of Dan."
       },
       "bohrReading": {
-        "citation": "_Seven Seals_, pp. 296-300",
-        "html": "Continuation of the symbolic roll-call. Bohr also notes Levi's inclusion (replacing Dan) as part of the symbolic restructuring."
+        "citation": "_Seven Seals_, Lesson 15 (pp. 281-313, no separate v.7 exposition)",
+        "html": "Bohr does not separately exegete v.7. The Levi-replaces-Dan observation is Smith's via DAR 447.1; Bohr's Lesson 15 raises the Dan/Ephraim question (p. 281) but does not develop the Levi-substitution argument in the prose."
       },
       "warrant": null,
       "violations": null,
@@ -182,8 +182,8 @@
         "html": "Conclusion of the symbolic roll-call. Joseph included (where normally the OT roll-calls list Ephraim + Manasseh as the two Joseph-tribes), filling the slot vacated by the omission of Ephraim."
       },
       "bohrReading": {
-        "citation": "_Seven Seals_, pp. 296-300",
-        "html": "Conclusion of the symbolic roll-call. Bohr also notes Joseph's inclusion (replacing Ephraim)."
+        "citation": "_Seven Seals_, Lesson 15 (pp. 281-313, no separate v.8 exposition)",
+        "html": "Bohr does not separately exegete v.8. The Joseph-replaces-Ephraim observation is Smith's via DAR 447.1; Bohr's Lesson 15 raises the Dan/Ephraim question (p. 281) but does not develop the Joseph-substitution argument in the prose."
       },
       "warrant": null,
       "violations": null,
@@ -202,12 +202,12 @@
       "slug": "v-9",
       "text": "After this I beheld, and, lo, a great multitude, which no man could number, of all nations, and kindreds, and people, and tongues, stood before the throne, and before the Lamb, clothed with white robes, and palms in their hands;",
       "pioneerReading": {
-        "citation": "DAR 448.2-449.1",
-        "html": "**Great multitude = the full redeemed-host of all ages, drawn from every nation/kindred/people/tongue, standing before the throne in the post-second-advent state.** \"**This innumerable multitude is the company of the redeemed of all ages — all whom God has saved from the beginning to the end. The 144,000, sealed and translated alive at the second coming, are a special class within this larger multitude — the last-generation faithful who pass through the time of trouble without seeing death and are translated at the second coming. The white robes are the imputed righteousness of Christ; the palms are the emblems of victory in the conflict won**\" (DAR 448.2-449.1, condensed paraphrase)."
+        "citation": "DAR 448.2-449.2",
+        "html": "**Great multitude = the full redeemed-host raised from the dead at the second coming, drawn from every nation/kindred/people/tongue, standing before the throne. The 144,000 are a special company within that larger multitude.** Smith on DAR 448.3: \"_The sealing having been accomplished, John beholds a countless multitude worshiping God in rapture before his throne. This vast throng are undoubtedly the saved out of every nation, kindred, tribe, and tongue, raised from the dead at the second coming of Christ, showing that the sealing is the last work accomplished for the people of God prior to translation._\" Smith on DAR 449.2: the elder's question \"_What are these…?_\" points to \"_a special company in this vast throng… distinguished by some special mark or position… no company is brought to view to which special allusion would more naturally be made than to… the 144,000._\" The white robes are the imputed righteousness of Christ; the palms are emblems of victory."
       },
       "bohrReading": {
-        "citation": "_Seven Seals_, pp. 302-313",
-        "html": "**Great multitude = the redeemed-host, drawn from every nation/kindred/people/tongue, standing before the throne.** Bohr's identification differs softly from Smith on the **relation of the 144,000 to the great multitude**: where Smith reads the 144,000 as a **distinct class** within the larger multitude (specifically the last-generation faithful translated alive at the second advent), Bohr collapses the two groups so that \"_the 144,000 of Rev 7:4-8 and the great multitude of Rev 7:9-17 are the SAME group of end-time saints viewed from two different angles — the 144,000 as the numbered, militarily-organized army of God on earth (the Numbers-1-and-2 muster-roll language is in the background), and the great multitude as the same group viewed in their post-translation glorified state standing victorious before the throne_\" (pp. 304-308, paraphrasing Stefanovic). The white robes (Bohr: imputed righteousness of Christ + the white-linen of the priesthood) and the palms (Bohr: victory + the Feast-of-Tabernacles imagery of Lev 23:40-43 / Neh 8:14-17, the harvest-home celebration of God's redeemed) are convergent with Smith on the principal symbology."
+        "citation": "_Seven Seals_, pp. 307-309",
+        "html": "**Great multitude = the redeemed end-time saints, the same group as the 144,000 viewed from a different angle.** Bohr explicitly collapses the two groups: \"_The capstone argument that the 144,000 is a symbolic number is that the 144,000 and the great multitude that no one could number are actually the same group_\" (p. 307). He argues from the seeing-vs.-hearing pattern in Revelation (1:10/12 churches; 5:5/6 Lion/Lamb; 19:1-9/11-21) that in Rev 7 John \"_heard_\" about the 144,000 (vv. 4-8) and then \"_saw_\" the same group as the great multitude after they came out victoriously from the tribulation (vv. 9-17, p. 308). Bohr supplies a six-point chiastic chart juxtaposing the two passages — \"Church Militant\" (vv. 1-8) / \"Church Triumphant\" (vv. 9-17) — and cites Beatrice Neall, _Adventist Review_, April 2 1987 (pp. 308-309). This is a soft refinement, not a contradiction of Smith's framework: both read the 144,000 as spiritual Israel of the last generation; the divergence is on whether the great multitude is the all-ages redeemed host (Smith, DAR 448.3: \"_the saved out of every nation… raised from the dead at the second coming of Christ_\") or specifically the end-time generation re-described (Bohr)."
       },
       "warrant": null,
       "violations": null,
@@ -217,7 +217,7 @@
       },
       "symbols": {
         "label": "Symbols redefined",
-        "html": "144,000 / great multitude relation (Smith: 144,000 are a distinct class within the larger multitude — the last-generation faithful translated alive at the second advent; Bohr: 144,000 and great multitude are the same group viewed in two perspectives — pre-translation organized army on earth + post-translation glorified state in heaven)."
+        "html": "144,000 / great multitude relation. Smith (DAR 448.3, 449.2): great multitude = the redeemed of all ages raised at the second coming; the 144,000 are a special class within that multitude (the last-generation faithful translated alive). Bohr (_Seven Seals_, pp. 307-309): the 144,000 and the great multitude are the same end-time group — the 144,000 \"heard\" in vv. 4-8 (Church Militant) and the same group \"seen\" in vv. 9-17 (Church Triumphant after the great tribulation)."
       },
       "notes": [],
       "extensions": [],
@@ -229,12 +229,12 @@
       "slug": "v-10",
       "text": "And cried with a loud voice, saying, Salvation to our God which sitteth upon the throne, and unto the Lamb.",
       "pioneerReading": {
-        "citation": "DAR 449.1",
-        "html": "The redeemed-host's doxology ascribing salvation to **the Father (on the throne) AND the Lamb (Christ)** — the same two-person worship object as Rev 5:13."
+        "citation": "DAR 449.1 (verse text only)",
+        "html": "Smith reproduces vv. 13-17 at DAR 449.1 but does not separately exegete v.10. The redeemed-host's doxology ascribes salvation to **the Father (on the throne) AND the Lamb (Christ)** — the same two-person worship object as Rev 5:13 (per Smith's framing of Rev 5)."
       },
       "bohrReading": {
-        "citation": "_Seven Seals_, pp. 308-310",
-        "html": "Same identification — the doxology is to **the Father + the Lamb**, the same two-person worship object as Rev 5:13; convergent with Smith."
+        "citation": "_Seven Seals_, Lesson 15 (no separate v.10 exposition)",
+        "html": "Bohr's Lesson 15 does not separately exegete v.10. The verse appears within his quotation of Rev 7:9-12 in PK 720-721 (p. 304) and his Beatrice-Neall chiasm (pp. 308-309). Convergent with Smith on the salvation-belongs-to-God-and-the-Lamb identification by virtue of the verse text itself."
       },
       "warrant": null,
       "violations": null,
@@ -253,12 +253,12 @@
       "slug": "v-11",
       "text": "And all the angels stood round about the throne, and about the elders and the four beasts, and fell before the throne on their faces, and worshipped God,",
       "pioneerReading": {
-        "citation": "DAR 448.2-449.1",
-        "html": "The angels join the redeemed-host's worship — the three-concentric-circles geometry of Rev 4-5 (Father-on-throne / inner circle of living creatures and elders / outer circle of angelic hosts) is preserved."
+        "citation": "DAR 448.2-449.1 (verse text only)",
+        "html": "Smith reproduces vv. 9-12 at DAR 448.2 but does not separately exegete v.11. The angels join the redeemed-host's worship — preserving the three-concentric-circles geometry of Rev 4-5 (Father-on-throne / inner circle of living creatures and elders / outer circle of angelic hosts)."
       },
       "bohrReading": {
-        "citation": "_Seven Seals_, pp. 308-310",
-        "html": "Same identification — angels (the outer concentric circle) + the 24 elders + the seraphim (the inner concentric circle) all join in the worship of the Father and the Lamb; convergent with Smith on the three-concentric-circles geometry."
+        "citation": "_Seven Seals_, pp. 304, 308-309 (no separate v.11 exposition)",
+        "html": "Bohr does not separately exegete v.11. The verse appears in his Beatrice-Neall chart (p. 309 — \"_All the angels stood around the throne, the elders, and the four living creatures, and fell on their faces before the throne and worshiped God_\"). The Rev 4:4 divergence on the elders carries over (Bohr: angelic / unfallen-worlds representatives; Smith: redeemed humans of the Matt-27 firstfruits class)."
       },
       "warrant": null,
       "violations": null,
@@ -277,12 +277,12 @@
       "slug": "v-12",
       "text": "Saying, Amen: Blessing, and glory, and wisdom, and thanksgiving, and honour, and power, and might, be unto our God for ever and ever. Amen.",
       "pioneerReading": {
-        "citation": "DAR 449.1",
-        "html": "The angelic doxology of seven attributes (blessing, glory, wisdom, thanksgiving, honor, power, might) — the perfect-completeness number ascribed to God in the consummation-worship."
+        "citation": "DAR 449.1 (verse text only)",
+        "html": "Smith reproduces the verse at DAR 449.1 but does not separately exegete v.12. The angelic doxology of seven attributes (blessing, glory, wisdom, thanksgiving, honor, power, might) is the perfect-completeness number ascribed to God in the consummation-worship."
       },
       "bohrReading": {
-        "citation": "_Seven Seals_, pp. 308-310",
-        "html": "Same identification — the seven-attribute doxology expresses perfect-completeness worship of God; convergent."
+        "citation": "_Seven Seals_, pp. 304, 309 (no separate v.12 exposition)",
+        "html": "Bohr does not separately exegete v.12. The verse appears in his Beatrice-Neall chart (p. 309) and within his PK 720-721 block-quotation (p. 304). Convergent with Smith on the seven-attribute doxology as consummation-worship."
       },
       "warrant": null,
       "violations": null,
@@ -301,18 +301,18 @@
       "slug": "v-13",
       "text": "And one of the elders answered, saying unto me, What are these which are arrayed in white robes? and whence came they?",
       "pioneerReading": {
-        "citation": "DAR 449.1-450.1",
-        "html": "One of the 24 elders questions John, prompting the v.14 identification of the great multitude. Smith reads this as confirming that the elders are **distinct** from the great multitude (since one of them asks John about the multitude's identity) — but **not** that the elders are non-human (Smith's reading is that the elders are the Matt-27 firstfruits raised at Christ's resurrection, a distinct class from the great multitude of all ages of the redeemed)."
+        "citation": "DAR 449.2-450.1",
+        "html": "**Smith reads the elder's question (\"What are these which are arrayed in white robes? and whence came they?\") not as evidence about the elders' identity but as evidence that a SPECIAL COMPANY within the great multitude is in view — namely the 144,000.** DAR 449.2: \"_if a special company in this vast throng were referred to, distinguished by some special mark or position, then it might not be so evident who they were… and the questions, as applied to them, would be appropriate and pertinent. We therefore incline to the view that attention is called to a special company by the questions which were proposed by one of the elders; and no company is brought to view to which special allusion would more naturally be made than to the company spoken of in the first part of the chapter; namely, the 144,000._\" Smith concludes that John recognized the great multitude as the redeemed of every nation but did NOT recognize the 144,000 in their glorified state — hence the elder's prompt."
       },
       "bohrReading": {
-        "citation": "_Seven Seals_, pp. 84-90, 308-310",
-        "html": "One of the 24 elders questions John, prompting the v.14 identification. Bohr reads this as confirming that **the elders are non-human** (since one of them asks John about the multitude's identity — they cannot themselves be members of the multitude they are asking about). This is the same divergence carried over from Rev 4:4 (Smith: elders = redeemed humans of Matt-27 firstfruits class; Bohr: elders = angelic representatives of the unfallen worlds)."
+        "citation": "_Seven Seals_, pp. 88-90 (the elders argument); pp. 308-309 (Rev 7:13-17 application)",
+        "html": "**Bohr reads the elder's question (Rev 7:13) as evidence that the 24 elders cannot be human, since the verse uses third-person \"_they… their_\" rather than first-person \"_we… our_\" of the multitude (pp. 88-89).** This is the third of Bohr's four arguments for the elders being non-human (carrying over the Rev 4:4 divergence: Bohr identifies the 24 elders as the highest of angels / representatives of unfallen worlds, against Smith's pioneer reading of elders as the Matt 27 firstfruits class). On pp. 308-309 Bohr applies v.13 to the 144,000-=-great-multitude collapse via the Beatrice Neall chiasm. Note: the Smith vs. Bohr split here is NOT about whether John needed identification of a special class (both readings accommodate that), but about WHO the elder is."
       },
       "warrant": null,
       "violations": null,
       "status": {
         "label": "Miller-rule status",
-        "html": "No new violation at v.13; the v.4-of-Rev-4 violation carries over. Smith's reading accommodates the v.13 question without contradiction (the Matt-27 firstfruits class can ask John about the larger great multitude of which they are not the same sub-class), so the question-from-an-elder datum is **not decisive** between the two readings."
+        "html": "No new violation at v.13; the Rev 4:4 divergence on elder-identity carries over. The v.13 \"they/their\" pronouns Bohr leans on (pp. 88-89) only show the elder is distinct from the multitude he is questioning — which is equally true if the elder is a redeemed-firstfruits human (Smith) or an angelic representative (Bohr). So the v.13 grammar is not decisive between the two readings, and neither reading violates a Miller rule on the verse itself."
       },
       "symbols": null,
       "notes": [],
@@ -329,8 +329,8 @@
         "html": "**The great multitude = those who came out of the GREAT tribulation (Greek: tēs thlipseōs tēs megalēs, \"THE tribulation, THE great-one\" — the definite article indicates the specific great tribulation, identified by Smith as the time of trouble of Daniel 12:1 immediately preceding the second advent).** \"**The great tribulation here is the time of trouble of Daniel 12:1, the great time of trouble such as never was since there was a nation. The 144,000 are the ones who come up out of this last great tribulation — the rest of the multitude having come out of earlier persecutions and tribulations of every age, all alike washing their robes in the blood of the Lamb**\" (DAR 450.1-451.1, paraphrase). Note Smith's reading: **the GREAT tribulation specifically refers to the Dan-12:1 final time of trouble**, and the 144,000 are the ones who come through it; the larger multitude includes the redeemed of every age, each having come through their own period's tribulations."
       },
       "bohrReading": {
-        "citation": "_Seven Seals_, pp. 308-313",
-        "html": "**The great multitude = the saints who come out of \"THE great tribulation\" of the end-time, identified by Bohr as the same final-crisis period (the time of trouble of Dan 12:1 + the seven last plagues of Rev 16); convergent with Smith on the THE-great-tribulation identification.** Bohr's 144,000-equals-great-multitude collapse means he reads the entire great multitude as the end-time saints (rather than as the redeemed of all ages with the 144,000 as a sub-class), but the principal identification of the GREAT tribulation as the end-time final crisis is **the same** as Smith's."
+        "citation": "_Seven Seals_, pp. 286, 308-309",
+        "html": "**The great multitude = the saints who come out of \"THE great tribulation\" of the end-time, identified by Bohr as the final time of trouble of Dan 12:1 / Jer 30:6-10 / Matt 24:21-22, 29.** Bohr at p. 286 makes the Greek note explicit: \"_Revelation 7:14 states literally in the Greek that the unnumbered multitude go 'through the tribulation, the great one' (see Daniel 12:1)._\" Bohr's Explanatory Note (p. 309): \"_In Revelation 7:9ff the 144,000 sealed ones have already passed victoriously through the great tribulation (verse 14). This great tribulation is clearly a reference to the final time of trouble that will come upon the earth (Daniel 12:1; Jeremiah 30:6-10; Matthew 24:21, 22, 29)._\" Convergent with Smith's \"emphatic-of-the-144,000\" reading; the 144,000-=-great-multitude collapse is the only divergence."
       },
       "warrant": null,
       "violations": null,
@@ -349,18 +349,18 @@
       "slug": "v-15",
       "text": "Therefore are they before the throne of God, and serve him day and night in his temple: and he that sitteth on the throne shall dwell among them.",
       "pioneerReading": {
-        "citation": "DAR 449.1",
-        "html": "The redeemed serve God day and night in his temple — the eternal-state worship in the new-earth temple (where, as Rev 21-22 reveal, the temple is the Lord God Almighty and the Lamb themselves, dwelling unmediated among the redeemed). Smith's general framework: this is the eternal-state vision of the redeemed serving in unbroken worship."
+        "citation": "DAR 449.1 + 450.3 (verse text + first-fruits gloss)",
+        "html": "Smith on DAR 450.3: \"_3. The First-fruits. — Verse 15 describes the post of honor they occupy in the kingdom, and their nearness to God. In another place they are called 'the first-fruits unto God and the Lamb.' Revelation 14:4._\" Smith frames v.15 as the post-of-honor / nearness-to-God of the 144,000 within the redeemed throng — distinct from the broader great multitude rather than identical with it."
       },
       "bohrReading": {
-        "citation": "_Seven Seals_, pp. 310-313",
-        "html": "Same identification — eternal-state worship, with the temple as the unmediated presence of God dwelling among his people (cross-link to Rev 21:3, 22 + Ezek 37:27 — \"_my tabernacle also shall be with them: yea, I will be their God, and they shall be my people_\"); convergent with Smith."
+        "citation": "_Seven Seals_, pp. 311-312",
+        "html": "Bohr (p. 312) uses v.15 as a key step in the 144,000-=-great-multitude argument: EW 19 says only the 144,000 enter the heavenly temple, while Rev 7:15 says the great multitude serve God day and night in His temple — therefore (Bohr concludes) the 144,000 and the great multitude must be the same group. He cites GC 645 (the redeemed drawn up in a hollow square) alongside EW 16 (the 144,000 in a perfect square) as reinforcing the equation."
       },
       "warrant": null,
       "violations": null,
       "status": {
         "label": "Miller-rule status",
-        "html": "No violation. Convergent."
+        "html": "No violation. The Rev 7:9 soft refinement on the 144,000 / great multitude relation carries over (Smith reads v.15 as the 144,000's post of honor within the wider redeemed throng; Bohr reads it as evidence the great multitude IS the 144,000)."
       },
       "symbols": null,
       "notes": [],
@@ -373,18 +373,18 @@
       "slug": "v-16",
       "text": "They shall hunger no more, neither thirst any more; neither shall the sun light on them, nor any heat.",
       "pioneerReading": {
-        "citation": "DAR 449.1",
-        "html": "The eternal-state promise: no more hunger, thirst, scorching sun — the reversal of the curse and the fulfillment of Isa 49:10 (\"_They shall not hunger nor thirst; neither shall the heat nor sun smite them_\"). Smith reads this as the consummation-promise of the eternal state."
+        "citation": "DAR 450.4-451.2",
+        "html": "**The hunger/thirst/heat language refers to the 144,000's special experience in the time of trouble and the seven last plagues, reversed in the eternal state.** Smith on DAR 450.4: the 144,000 \"_live through the time when power is given unto the sun 'to scorch men with fire' (Revelation 16:8, 9)_\" and may be brought to the extreme degrees of hunger and thirst (cross-link Joel 1:18-20 + Isa 33:16); but \"_as they enter the fields of the heavenly Canaan, they will be prepared to appreciate the divine assurance that the sun shall not light upon or injure them, nor any heat._\" Smith further cross-links Psalm 36:8 and Isaiah 25:8 (DAR 451.2)."
       },
       "bohrReading": {
-        "citation": "_Seven Seals_, pp. 310-313",
-        "html": "Same identification — eternal-state promise, with the explicit Isa-49:10 cross-link as the controlling Old Testament parallel; convergent with Smith. Exemplary Rule V (the language is verbatim Isaiah's)."
+        "citation": "_Seven Seals_, pp. 310-312",
+        "html": "**Same reversal-of-the-tribulation reading, with the SAME time-of-trouble framing.** Bohr (p. 312) quotes GC 648-649 verbatim, which intermingles Rev 7:14-17 with the 144,000's experience of \"_the sun having power to scorch men with great heat_\" (Rev 16:8-9). He concludes (p. 311): \"_Revelation 7:16 clearly indicates that the great multitude will be alive during the third and fourth plagues after the close of probation… God's people will be delivered and they shall suffer no more hunger or thirst (Revelation 7:16, 17)._\" Convergent with Smith on the third-and-fourth-plagues-trial → eternal-state-reversal framing."
       },
       "warrant": null,
       "violations": null,
       "status": {
         "label": "Miller-rule status",
-        "html": "No violation. Convergent."
+        "html": "No violation. Convergent on the time-of-trouble → eternal-state-reversal reading. (Earlier audit-pass attribution of an explicit Isa 49:10 cross-link to both sources was overstated: Smith uses Isa 33:16 + Joel 1:18-20 + Isa 25:8; Bohr quotes GC 648-649 and Rev 16:8-9 rather than Isa 49:10 in Lesson 15.)"
       },
       "symbols": null,
       "notes": [],
@@ -397,18 +397,18 @@
       "slug": "v-17",
       "text": "For the Lamb which is in the midst of the throne shall feed them, and shall lead them unto living fountains of waters: and God shall wipe away all tears from their eyes.",
       "pioneerReading": {
-        "citation": "DAR 449.1",
-        "html": "The Lamb-as-Shepherd in the midst of the throne — the Christological consummation in which the redeemed are forever cared for by the Lamb, and God himself wipes away all tears (cross-link to Isa 25:8 + Rev 21:4). The eternal-state pastoral imagery (Lamb feeds them, leads them to living-waters fountains, wipes away tears)."
+        "citation": "DAR 451.1-451.2",
+        "html": "**The Lamb-as-Shepherd in the midst of the throne — the divine companionship of the redeemed in the eternal state.** Smith on DAR 451.1: \"_'These are they which follow the Lamb whithersoever he goeth.' Revelation 14:4. Both expressions denote the state of intimate and divine companionship to which the blessed Redeemer admits his people._\" Smith cross-links Psalm 36:8 (\"_make them drink of the river of thy pleasures_\") and Isaiah 25:8 (\"_the Lord God will wipe away tears from off all faces_\") at DAR 451.2."
       },
       "bohrReading": {
-        "citation": "_Seven Seals_, pp. 310-313",
-        "html": "Same identification — Lamb-as-Shepherd in the eternal state, with the same Isa 25:8 + Rev 21:4 + Psa 23 cross-links; convergent with Smith."
+        "citation": "_Seven Seals_, pp. 310-312",
+        "html": "Same eternal-state Lamb-as-Shepherd identification, via Bohr's verbatim quotation of GC 648-649 (p. 311), which closes by citing Rev 7:16-17 directly. Convergent with Smith on the principal Christological identification."
       },
       "warrant": null,
       "violations": null,
       "status": {
         "label": "Miller-rule status",
-        "html": "No violation. Convergent. Exemplary Rule-V cross-links (Isa 25:8 + Psa 23 + Rev 21:4)."
+        "html": "No violation. Convergent on the Lamb-as-Shepherd / divine-companionship reading. (Smith's actual OT cross-links here are Ps 36:8 + Isa 25:8 [DAR 451.2]; Bohr cites GC 648-649 + Rev 7:16-17 verbatim. The earlier audit-pass attribution of Ps 23 to Bohr's Lesson 15 is not sourced in the volume's prose.)"
       },
       "symbols": null,
       "notes": [],
@@ -416,5 +416,5 @@
       "unclassified": []
     }
   ],
-  "summaryHtml": "**Rev 7 violation summary:** Of 17 verses, Bohr has **zero hard Miller-rule violations**. The chapter is the **cleanest convergence** in the entire Bohr-vs.-Smith audit so far. Convergent on every major identification: four winds = destroying judgments; four angels = providential restrainers; sealing angel from the east = the great end-time Sabbath-sealing message; seal of the living God = the Sabbath of the fourth commandment; 144,000 = spiritual Israel of the last generation (not literal Jewish lineage); twelve tribes = symbolic gospel-grafting organization (Rom 11 / Gal 3:29 framework, with Dan and Ephraim omitted for their OT idolatry); great multitude = the redeemed-host before the throne, drawn from every nation/kindred/tongue/people; THE great tribulation = the end-time Dan-12:1 time of trouble; eternal-state pastoral consummation with Lamb-as-Shepherd. The **one soft refinement** (not violation) is at v.9: Bohr collapses the 144,000 into the great multitude as the same end-time saints in two perspectives, where Smith reads the 144,000 as a distinct class within the larger multitude. Both readings agree on the spiritual-Israel / end-time-generation / Sabbath-test framework. The Rev-4:4 elders-as-angels divergence carries over at v.13 (one-of-the-elders questions John), but is not a new violation.\n\n---"
+  "summaryHtml": "**Rev 7 violation summary:** Of 17 verses, Bohr has **zero hard Miller-rule violations**. The chapter is the **cleanest convergence** in the Bohr-vs.-Smith audit so far. Convergent on every major identification: four winds = political commotion / destroying judgments; four angels = providential restrainers under God's intercession; sealing angel from the east = the great end-time Sabbath-sealing message; seal of the living God = the Sabbath of the fourth commandment; 144,000 = spiritual Israel of the last generation (not literal Jewish lineage), via the Rom 11 grafting / James 1:1 / Rom 9 / Rev 21:12-14 framework; great multitude = the redeemed-host before the throne, drawn from every nation/kindred/tongue/people; THE great tribulation (Greek: tēs thlipseōs tēs megalēs) = the end-time Dan-12:1 time of trouble; eternal-state pastoral consummation with Lamb-as-Shepherd. The **one soft refinement** (not violation) is at v.9: Bohr collapses the 144,000 into the great multitude as the same end-time saints in two perspectives (\"Church Militant\" vv. 1-8 / \"Church Triumphant\" vv. 9-17, via Beatrice Neall), where Smith reads the great multitude as the all-ages redeemed host with the 144,000 as a distinct sub-class (DAR 448.3, 449.2). Both readings agree on the spiritual-Israel / end-time-generation / Sabbath-test framework. The Rev-4:4 elders-as-angels divergence carries over at v.13, but is not a new violation. **Audit note:** The Dan-and-Ephraim-as-idolatry exposition, sometimes attributed to Bohr, is in fact Smith's (DAR 447.1, citing Judges 18). Bohr raises the question on p. 281 of _Seven Seals_ but does not develop the answer in Lesson 15.\n\n---"
 }
