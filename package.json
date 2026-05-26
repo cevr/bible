@@ -21,7 +21,7 @@
     "gate": "concurrently -n style,turbo -c yellow,cyan \"bun run lint && bun run fmt\" \"turbo run gate\" && bun run test:perf",
     "gate:fix": "bun run lint:fix && bun run fmt && bun run gate",
     "clean": "rm -rf .turbo */.turbo */*/.turbo",
-    "prepare": "lefthook install && effect-tsgo patch"
+    "prepare": "(test -d .git && lefthook install || true) && effect-tsgo patch"
   },
   "dependencies": {
     "@solid-primitives/refs": "^1.1.3"
