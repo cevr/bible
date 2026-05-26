@@ -95,8 +95,8 @@ nav.topnav ul.nav-list a[aria-current='page'] {
 .shell {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  max-width: 1320px;
-  margin: 0 auto;
+  max-width: 120ch;
+  margin: 0;
   padding: 0 var(--pad);
 }
 @media (min-width: 1024px) {
@@ -164,7 +164,7 @@ header.masthead .meta span strong {
 
 /* ============ MAIN PROSE ============ */
 main.content {
-  max-width: var(--measure);
+  max-width: none;
   padding-bottom: 6rem;
   min-width: 0;
 }

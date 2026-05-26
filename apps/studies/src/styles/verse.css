@@ -314,7 +314,7 @@
 .violation-item {
   counter-increment: viol;
   display: grid;
-  grid-template-columns: minmax(150px, max-content) 1fr;
+  grid-template-columns: 13rem 1fr;
   gap: 0 1.25rem;
   align-items: start;
   padding: 0.85rem 0;
@@ -329,9 +329,13 @@
     grid-template-columns: 1fr;
     gap: 0.5rem;
   }
+  .violation-badge {
+    width: max-content;
+    max-width: 100%;
+  }
 }
 .violation-badge {
-  display: inline-flex;
+  display: flex;
   flex-direction: column;
   align-items: flex-start;
   padding: 0.45rem 0.7rem 0.5rem;
@@ -339,6 +343,8 @@
   color: var(--paper);
   border-radius: 2px;
   position: relative;
+  width: 100%;
+  box-sizing: border-box;
 }
 .violation-badge::before {
   content: counter(viol, decimal-leading-zero);

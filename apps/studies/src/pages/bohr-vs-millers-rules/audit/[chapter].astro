@@ -53,7 +53,7 @@ function shouldRenderCard(verse: typeof chapter.verses[number]): boolean {
   seriesSlug={meta.slug}
   currentNav="audit"
 >
-  <main class="shell chapter-shell">
+  <main class="shell">
     <header class="masthead">
       <p class="eyebrow">{meta.eyebrow} · Audit</p>
       <h1>{chapter.title}</h1>
@@ -96,12 +96,6 @@ function shouldRenderCard(verse: typeof chapter.verses[number]): boolean {
 </Site>
 
 <style>
-  .chapter-shell {
-    max-width: 120ch;
-  }
-  .chapter-shell :global(main.content) {
-    max-width: none;
-  }
   .chapter-intro {
     font-family: var(--display);
     font-size: 1rem;
