@@ -9,9 +9,7 @@ export default defineConfig({
   markdown: {
     smartypants: true,
   },
-  vite: {
-    preview: {
-      allowedHosts: ['studies.cvr.im', 'studies-production.up.railway.app', '.up.railway.app'],
-    },
+  server: {
+    allowedHosts: true,
   },
 });
