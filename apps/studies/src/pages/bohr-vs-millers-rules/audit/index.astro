@@ -35,18 +35,6 @@ const ordered = order
           <a href={`./${c.slug}/`} class="chapter-link">
             <span class="ref">{c.ref}</span>
             <span class="title">{c.title}</span>
-            <span class="stats">
-              <span class="stat"><b>{c.verseCount}</b> v</span>
-              <span class="stat"><b>{c.addressed}</b> addr</span>
-              <span class="stat" data-hot={c.violations > 0 ? "" : undefined}>
-                <b>{c.violations}</b> viol
-              </span>
-              <span class="density" data-tier={
-                c.density === 0 ? "0" :
-                c.density < 20 ? "1" :
-                c.density < 50 ? "2" : "3"
-              }>{c.density}%</span>
-            </span>
           </a>
         </li>
       ))}
@@ -66,7 +54,7 @@ const ordered = order
   }
   .chapter-link {
     display: grid;
-    grid-template-columns: 5rem 1fr auto;
+    grid-template-columns: 5rem 1fr;
     gap: 1.25rem;
     align-items: baseline;
     padding: 1rem 0;
@@ -94,31 +82,5 @@ const ordered = order
     font-weight: 500;
     font-size: 1.05rem;
     color: var(--ink);
-  }
-  .stats {
-    display: flex;
-    gap: 1.25rem;
-    align-items: baseline;
-    font-family: var(--mono);
-    font-size: 0.7rem;
-    color: var(--ink-mute);
-    letter-spacing: 0.04em;
-  }
-  .stat b { color: var(--ink); font-weight: 500; margin-right: 0.25em; }
-  .stat[data-hot] b { color: var(--oxblood); }
-  .density {
-    font-family: var(--mono);
-    font-size: 0.72rem;
-    font-weight: 500;
-    padding: 0.2rem 0.45rem;
-    border-radius: 2px;
-    color: var(--ink-mute);
-    background: var(--paper-tint);
-  }
-  .density[data-tier="1"] { color: var(--gold); background: color-mix(in srgb, var(--gold) 12%, var(--paper)); }
-  .density[data-tier="2"] { color: var(--oxblood); background: color-mix(in srgb, var(--oxblood) 12%, var(--paper)); }
-  .density[data-tier="3"] {
-    color: var(--paper);
-    background: var(--oxblood);
   }
 </style>
