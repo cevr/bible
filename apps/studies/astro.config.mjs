@@ -11,7 +11,7 @@ export default defineConfig({
   },
   vite: {
     preview: {
-      allowedHosts: ['studies.cvr.im', '.up.railway.app'],
+      allowedHosts: ['studies.cvr.im', 'studies-production.up.railway.app', '.up.railway.app'],
     },
   },
 });
