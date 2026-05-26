@@ -9,4 +9,9 @@ export default defineConfig({
   markdown: {
     smartypants: true,
   },
+  vite: {
+    preview: {
+      allowedHosts: ['studies.cvr.im', '.up.railway.app'],
+    },
+  },
 });
