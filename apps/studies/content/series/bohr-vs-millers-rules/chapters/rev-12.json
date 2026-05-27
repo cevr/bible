@@ -9,10 +9,13 @@
       "num": 1,
       "slug": "v-1",
       "text": "And there appeared a great wonder in heaven; a woman clothed with the sun, and the moon under her feet, and upon her head a crown of twelve stars:",
-      "pioneerReading": {
-        "citation": "DAR 509.2-510.2",
-        "html": "Smith treats v. 1 as a symbol-block to be defined word-by-word. \"**'A woman,' the true church. A corrupt woman is used to represent an apostate or corrupt church. Ezekiel 23:2-4; Revelation 17:3-6, 15, 18. By parity of reasoning, a pure woman, as in this instance, would represent the true church**\" (DAR 509.3). \"**'The sun,' the light and glory of the gospel dispensation**\" (DAR 509.4). \"**'The moon,' the Mosaic dispensation. As the moon shines with a borrowed light derived from the sun, so the former dispensation shone with a light borrowed from the present. There they had the type and shadow; here we have the antitype and substance**\" (DAR 509.5). \"**'A crown of twelve stars,' the twelve apostles**\" (DAR 509.6). \"**'Heaven,' the space in which this representation was seen by the apostle. We are not to suppose that the scenes here represented to John took place in heaven where God resides... but this scenic representation which passed before the eye of the prophet, appeared as if in the region occupied by the sun, moon, and stars**\" (DAR 509.8). On the chronology: \"**Verses 1 and 2 cover a period of time commencing just previous to the opening of the present dispensation, when the church was earnestly longing for and expecting the advent of the Messiah, and extending to the time of the full establishment of the gospel church with its crown of twelve apostles**\" (DAR 510.1). Smith notes the proleptic figure: \"**By the figure of prolepsis, the church is represented as fully organized, with its twelve apostles, before the man child, Christ, appeared upon the scene. This is easily accounted for by the fact that it was to be thus constituted immediately after Christ should commence his ministry**\" (DAR 510.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 509.2-510.2",
+          "html": "Smith treats v. 1 as a symbol-block to be defined word-by-word. \"**'A woman,' the true church. A corrupt woman is used to represent an apostate or corrupt church. Ezekiel 23:2-4; Revelation 17:3-6, 15, 18. By parity of reasoning, a pure woman, as in this instance, would represent the true church**\" (DAR 509.3). \"**'The sun,' the light and glory of the gospel dispensation**\" (DAR 509.4). \"**'The moon,' the Mosaic dispensation. As the moon shines with a borrowed light derived from the sun, so the former dispensation shone with a light borrowed from the present. There they had the type and shadow; here we have the antitype and substance**\" (DAR 509.5). \"**'A crown of twelve stars,' the twelve apostles**\" (DAR 509.6). \"**'Heaven,' the space in which this representation was seen by the apostle. We are not to suppose that the scenes here represented to John took place in heaven where God resides... but this scenic representation which passed before the eye of the prophet, appeared as if in the region occupied by the sun, moon, and stars**\" (DAR 509.8). On the chronology: \"**Verses 1 and 2 cover a period of time commencing just previous to the opening of the present dispensation, when the church was earnestly longing for and expecting the advent of the Messiah, and extending to the time of the full establishment of the gospel church with its crown of twelve apostles**\" (DAR 510.1). Smith notes the proleptic figure: \"**By the figure of prolepsis, the church is represented as fully organized, with its twelve apostles, before the man child, Christ, appeared upon the scene. This is easily accounted for by the fact that it was to be thus constituted immediately after Christ should commence his ministry**\" (DAR 510.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -39,10 +42,13 @@
       "num": 2,
       "slug": "v-2",
       "text": "And she being with child cried, travailing in birth, and pained to be delivered.",
-      "pioneerReading": {
-        "citation": "DAR 510.1",
-        "html": "Treated as part of the vv. 1-2 block above. Smith reads the travail as the OT-church's longing for Messiah's advent: \"**Verses 1 and 2 cover a period of time commencing just previous to the opening of the present dispensation, when the church was earnestly longing for and expecting the advent of the Messiah**\" (DAR 510.1, cross-linking Luke 2:25, 26, 38 — Simeon and Anna)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 510.1",
+          "html": "Treated as part of the vv. 1-2 block above. Smith reads the travail as the OT-church's longing for Messiah's advent: \"**Verses 1 and 2 cover a period of time commencing just previous to the opening of the present dispensation, when the church was earnestly longing for and expecting the advent of the Messiah**\" (DAR 510.1, cross-linking Luke 2:25, 26, 38 — Simeon and Anna)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -66,10 +72,13 @@
       "num": 3,
       "slug": "v-3",
       "text": "And there appeared another wonder in heaven; and behold a great red dragon, having seven heads and ten horns, and seven crowns upon his heads.",
-      "pioneerReading": {
-        "citation": "DAR 509.7, 511.3-512.1",
-        "html": "Smith identifies the dragon as **pagan Rome** — but with a careful distinction from Satan personally. The headline definition: \"**'A great red dragon,' pagan Rome**\" (DAR 509.7). Smith argues from the symbol-features that this cannot be Satan personally: \"**Satan is not said anywhere in the Bible to be red, and he is not blessed with the number of heads and horns there stated; and while he might, as the god of this world, have one crown, how would he manage to wear seven? But all these features are very appropriate as applied to pagan Rome**\" (DAR 513.3). On the dragon's role in seeking to kill the child: \"**Was any such attempt made? and who made it? No formal answer to this question need be given to any one who has read how Herod, in a fiendish effort to destroy the infant Jesus, sent forth and slew all the children in Bethlehem... But who was Herod? — A Roman governor. From Rome, Herod derived his power. Rome ruled at that time over all the world (Luke 2:1), and was therefore the responsible party**\" (DAR 511.3). Smith adds the historical confirmation: \"**during the second, third, fourth, and fifth centuries of the Christian era, next to the eagle the dragon was the principal standard of the Roman legions; and that dragon was painted red**\" (DAR 511.3)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 509.7, 511.3-512.1",
+          "html": "Smith identifies the dragon as **pagan Rome** — but with a careful distinction from Satan personally. The headline definition: \"**'A great red dragon,' pagan Rome**\" (DAR 509.7). Smith argues from the symbol-features that this cannot be Satan personally: \"**Satan is not said anywhere in the Bible to be red, and he is not blessed with the number of heads and horns there stated; and while he might, as the god of this world, have one crown, how would he manage to wear seven? But all these features are very appropriate as applied to pagan Rome**\" (DAR 513.3). On the dragon's role in seeking to kill the child: \"**Was any such attempt made? and who made it? No formal answer to this question need be given to any one who has read how Herod, in a fiendish effort to destroy the infant Jesus, sent forth and slew all the children in Bethlehem... But who was Herod? — A Roman governor. From Rome, Herod derived his power. Rome ruled at that time over all the world (Luke 2:1), and was therefore the responsible party**\" (DAR 511.3). Smith adds the historical confirmation: \"**during the second, third, fourth, and fifth centuries of the Christian era, next to the eagle the dragon was the principal standard of the Roman legions; and that dragon was painted red**\" (DAR 511.3)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -96,10 +105,13 @@
       "num": 4,
       "slug": "v-4",
       "text": "And his tail drew the third part of the stars of heaven, and did cast them to the earth; and the dragon stood before the woman which was ready to be delivered, for to devour her child as soon as it was born.",
-      "pioneerReading": {
-        "citation": "DAR 510.4-511.1",
-        "html": "Smith reads the **\"third part of the stars\"** historically — Jewish-ruler casualties under Roman conquest: \"**If the twelve stars with which the woman is crowned, here used symbolically, denote the twelve apostles, then the stars thrown down by the dragon before his attempt to destroy the man child, or before the Christian era, may denote a portion of the rulers of the Jewish people... The dragon being a symbol, could deal only with symbolic stars; and the chronology of the act here mentioned would confine it to the Jewish people. Judea became a Roman province sixty-three years before the birth of the Messiah. The Jews had three classes of rulers, — kings, priests, and the Sanhedrim. A third of these, the kings, were taken away by the Roman power**\" (DAR 510.4, citing Philip Smith, _History of the World_, on the end of the Asmonean dynasty B.C. 37). The dragon then stands before the woman to devour the child — \"**It now becomes necessary to identify the power symbolized by the dragon; and this can very easily be done. The testimony concerning the 'man child' which the dragon seeks to destroy, is applicable to only one being that has appeared in this world, and that is our Lord Jesus Christ**\" (DAR 511.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 510.4-511.1",
+          "html": "Smith reads the **\"third part of the stars\"** historically — Jewish-ruler casualties under Roman conquest: \"**If the twelve stars with which the woman is crowned, here used symbolically, denote the twelve apostles, then the stars thrown down by the dragon before his attempt to destroy the man child, or before the Christian era, may denote a portion of the rulers of the Jewish people... The dragon being a symbol, could deal only with symbolic stars; and the chronology of the act here mentioned would confine it to the Jewish people. Judea became a Roman province sixty-three years before the birth of the Messiah. The Jews had three classes of rulers, — kings, priests, and the Sanhedrim. A third of these, the kings, were taken away by the Roman power**\" (DAR 510.4, citing Philip Smith, _History of the World_, on the end of the Asmonean dynasty B.C. 37). The dragon then stands before the woman to devour the child — \"**It now becomes necessary to identify the power symbolized by the dragon; and this can very easily be done. The testimony concerning the 'man child' which the dragon seeks to destroy, is applicable to only one being that has appeared in this world, and that is our Lord Jesus Christ**\" (DAR 511.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -126,10 +138,13 @@
       "num": 5,
       "slug": "v-5",
       "text": "And she brought forth a man child, who was to rule all nations with a rod of iron: and her child was caught up unto God, and to his throne.",
-      "pioneerReading": {
-        "citation": "DAR 511.2",
-        "html": "Direct identification: \"**There can certainly be no doubt that the man child represents Jesus Christ. The time to which the prophecy refers is equally evident. It was the time when Christ appeared in this world as a babe in Bethlehem**\" (DAR 511.2). The \"caught up unto God, and to his throne\" Smith reads as Christ's ascension (cross-linking Eph 1:20-21; Heb 8:1; Rev 3:21; Ps 2:7-9 for the rod-of-iron commission)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 511.2",
+          "html": "Direct identification: \"**There can certainly be no doubt that the man child represents Jesus Christ. The time to which the prophecy refers is equally evident. It was the time when Christ appeared in this world as a babe in Bethlehem**\" (DAR 511.2). The \"caught up unto God, and to his throne\" Smith reads as Christ's ascension (cross-linking Eph 1:20-21; Heb 8:1; Rev 3:21; Ps 2:7-9 for the rod-of-iron commission)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -153,10 +168,13 @@
       "num": 6,
       "slug": "v-6",
       "text": "And the woman fled into the wilderness, where she had a place prepared of God, that they should feed her there a thousand two hundred and threescore days.",
-      "pioneerReading": {
-        "citation": "DAR 512.2, 517.3",
-        "html": "Direct historical anchor: \"**And the church fled into the wilderness at the time the papacy was established, in 538, where it was nourished by the word of God and the ministration of angels during the long, dark, and bloody rule of that power, 1260 years**\" (DAR 512.2). On the day-year and the equivalence with Dan 7:25's \"time and times and half a time\": \"**The mention of the period during which the woman is nourished in the wilderness as 'a time and times and half a time,' the exact phraseology used in Daniel 7:25, furnishes a key for the explanation of the latter passage; for the very same period is called in verse 6 of Revelation 12, 'a thousand two hundred and threescore days.' This shows that a 'time' is one year, 360 days; two 'times,' two years, or 720 days; and 'half a time,' half a year, or 180 days, making in all 1260 days; and this, being symbolic, signifies 1260 literal years**\" (DAR 517.3)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 512.2, 517.3",
+          "html": "Direct historical anchor: \"**And the church fled into the wilderness at the time the papacy was established, in 538, where it was nourished by the word of God and the ministration of angels during the long, dark, and bloody rule of that power, 1260 years**\" (DAR 512.2). On the day-year and the equivalence with Dan 7:25's \"time and times and half a time\": \"**The mention of the period during which the woman is nourished in the wilderness as 'a time and times and half a time,' the exact phraseology used in Daniel 7:25, furnishes a key for the explanation of the latter passage; for the very same period is called in verse 6 of Revelation 12, 'a thousand two hundred and threescore days.' This shows that a 'time' is one year, 360 days; two 'times,' two years, or 720 days; and 'half a time,' half a year, or 180 days, making in all 1260 days; and this, being symbolic, signifies 1260 literal years**\" (DAR 517.3)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -180,10 +198,13 @@
       "num": 7,
       "slug": "v-7",
       "text": "And there was war in heaven: Michael and his angels fought against the dragon; and the dragon fought and his angels,",
-      "pioneerReading": {
-        "citation": "DAR 513.2",
-        "html": "Smith reads v.7 as a **literary return to the time of Christ's first advent** — not the pre-creation fall. \"**The first six verses of this chapter, as has been seen, take us down to the close of the 1260 years, which marked the end of the papal supremacy in 1798. In the 7th verse it is equally plain that we are carried back into previous ages. How far? — To the time first introduced in the chapter, — the days of the first advent. 'And there was war in heaven,' the same heaven where the woman and the dragon were seen at first; but they were actors in scenes that took place here upon the earth; hence we understand this war to be located in the same place. And to what point are we carried back? — Evidently to the commencement of Christ's ministry here upon earth. To prove that Michael is Christ, see Jude 9; 1 Thessalonians 4:16; John 5:28, 29; and that this was a special time of warfare between him and Satan need not be argued**\" (DAR 513.2). Smith explicitly rejects the pre-creation reading of vv. 7-9: \"**It is held by some that this war took place when Satan, then an angel of light and glory, rebelled in heaven; and that the 'casting out' of which John speaks, was his expulsion from heaven at that time. But we are unable to harmonize this view with the testimony before us. Thus, in verse 13 we read: 'And when the dragon saw that he was cast unto the earth, he persecuted the woman which brought forth the man child.' This shows that just as soon as the Devil saw that he was cast out, he turned his wrath against the woman, the church, which, not far from that time, fled into the wilderness**\" (DAR 514.4)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 513.2",
+          "html": "Smith reads v.7 as a **literary return to the time of Christ's first advent** — not the pre-creation fall. \"**The first six verses of this chapter, as has been seen, take us down to the close of the 1260 years, which marked the end of the papal supremacy in 1798. In the 7th verse it is equally plain that we are carried back into previous ages. How far? — To the time first introduced in the chapter, — the days of the first advent. 'And there was war in heaven,' the same heaven where the woman and the dragon were seen at first; but they were actors in scenes that took place here upon the earth; hence we understand this war to be located in the same place. And to what point are we carried back? — Evidently to the commencement of Christ's ministry here upon earth. To prove that Michael is Christ, see Jude 9; 1 Thessalonians 4:16; John 5:28, 29; and that this was a special time of warfare between him and Satan need not be argued**\" (DAR 513.2). Smith explicitly rejects the pre-creation reading of vv. 7-9: \"**It is held by some that this war took place when Satan, then an angel of light and glory, rebelled in heaven; and that the 'casting out' of which John speaks, was his expulsion from heaven at that time. But we are unable to harmonize this view with the testimony before us. Thus, in verse 13 we read: 'And when the dragon saw that he was cast unto the earth, he persecuted the woman which brought forth the man child.' This shows that just as soon as the Devil saw that he was cast out, he turned his wrath against the woman, the church, which, not far from that time, fled into the wilderness**\" (DAR 514.4)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -210,10 +231,13 @@
       "num": 8,
       "slug": "v-8",
       "text": "And prevailed not; neither was their place found any more in heaven.",
-      "pioneerReading": {
-        "citation": "DAR 514.3, 515.2",
-        "html": "Tied to v.7 above. \"**But, in the language of verse 8, he 'prevailed not;' and hence the song may well be sung, 'Therefore rejoice, ye heavens, and ye that dwell in them**'\" (DAR 514.3). On the \"no place any more in heaven\" — Smith reads \"heaven\" here as condition, not place: \"**'Neither was their place found any more in heaven.' Heaven, we have seen, does not mean, in this chapter, the place which is the abode of God and his celestial messengers. It here doubtless denotes condition rather than place; and the expression would then signify that they were here humiliated, and never to regain their former position. They had suffered a terrible defeat, which Christ describes by saying, 'I beheld Satan as lightning fall from heaven**'\" (DAR 515.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 514.3, 515.2",
+          "html": "Tied to v.7 above. \"**But, in the language of verse 8, he 'prevailed not;' and hence the song may well be sung, 'Therefore rejoice, ye heavens, and ye that dwell in them**'\" (DAR 514.3). On the \"no place any more in heaven\" — Smith reads \"heaven\" here as condition, not place: \"**'Neither was their place found any more in heaven.' Heaven, we have seen, does not mean, in this chapter, the place which is the abode of God and his celestial messengers. It here doubtless denotes condition rather than place; and the expression would then signify that they were here humiliated, and never to regain their former position. They had suffered a terrible defeat, which Christ describes by saying, 'I beheld Satan as lightning fall from heaven**'\" (DAR 515.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -237,10 +261,13 @@
       "num": 9,
       "slug": "v-9",
       "text": "And the great dragon was cast out, that old serpent, called the Devil, and Satan, which deceiveth the whole world: he was cast out into the earth, and his angels were cast out with him.",
-      "pioneerReading": {
-        "citation": "DAR 513.3-514.2",
-        "html": "This is the verse Smith uses to argue that the **dragon of vv. 3-4 is not the dragon of vv. 7-9** considered identically. The dragon of vv. 3-4 (seven heads, ten horns, seven crowns, red) is pagan Rome as Satan's chosen vehicle; the dragon-symbol re-deployed in v.9 is the underlying spiritual identity, Satan personally. \"**Another symbol is here introduced, and John hastens to tell us what this symbol represents. It is the Devil and Satan. But this is not the same as the dragon of verses 3 and 4. That was a great red dragon, with seven heads and ten horns, and seven crowns upon his heads. It would be most grotesque to try to apply this to Satan personally**\" (DAR 513.3). \"**When it is desired to set forth Satan by a symbol, no more appropriate one can be chosen than a great dragon, or serpent, unqualified. And why a similar symbol is also employed to represent Rome with some of its peculiar features is evident. It was because Rome, as a universal empire, was then the only possible general agent to carry out Satan's will in the earth. But there is no occasion to confound the two symbols**\" (DAR 514.1). On the warfare itself: \"**In reference to the war mentioned, Satan had looked forward to Christ's mission to this earth as his last chance of success in overthrowing the plan of salvation. He came to Christ with specious temptations, in hope of overcoming him; he tried in various ways to destroy him during his ministry; and when he had succeeded in laying him in the tomb, he endeavored, in malignant triumph, to hold him there. But in every encounter the Son of God came off triumphant**\" (DAR 514.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 513.3-514.2",
+          "html": "This is the verse Smith uses to argue that the **dragon of vv. 3-4 is not the dragon of vv. 7-9** considered identically. The dragon of vv. 3-4 (seven heads, ten horns, seven crowns, red) is pagan Rome as Satan's chosen vehicle; the dragon-symbol re-deployed in v.9 is the underlying spiritual identity, Satan personally. \"**Another symbol is here introduced, and John hastens to tell us what this symbol represents. It is the Devil and Satan. But this is not the same as the dragon of verses 3 and 4. That was a great red dragon, with seven heads and ten horns, and seven crowns upon his heads. It would be most grotesque to try to apply this to Satan personally**\" (DAR 513.3). \"**When it is desired to set forth Satan by a symbol, no more appropriate one can be chosen than a great dragon, or serpent, unqualified. And why a similar symbol is also employed to represent Rome with some of its peculiar features is evident. It was because Rome, as a universal empire, was then the only possible general agent to carry out Satan's will in the earth. But there is no occasion to confound the two symbols**\" (DAR 514.1). On the warfare itself: \"**In reference to the war mentioned, Satan had looked forward to Christ's mission to this earth as his last chance of success in overthrowing the plan of salvation. He came to Christ with specious temptations, in hope of overcoming him; he tried in various ways to destroy him during his ministry; and when he had succeeded in laying him in the tomb, he endeavored, in malignant triumph, to hold him there. But in every encounter the Son of God came off triumphant**\" (DAR 514.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -264,10 +291,13 @@
       "num": 10,
       "slug": "v-10",
       "text": "And I heard a loud voice saying in heaven, Now is come salvation, and strength, and the kingdom of our God, and the power of his Christ: for the accuser of our brethren is cast down, which accused them before our God day and night.",
-      "pioneerReading": {
-        "citation": "DAR 516.1",
-        "html": "Smith reads the celebration as **prospective**, not retrospective: \"**But hereupon a song is sung in heaven, 'Now is come salvation,' etc. How is this, if these scenes are in the past? Had salvation, and strength, and the kingdom of God, and the power of his Christ, then come? Not at all; but this song was sung prospectively. These things were made sure. The great victory had been won by Christ which put the question of their establishment forever at rest. Just as we read in other scriptures, 'We have eternal life,' 'We have redemption through his blood,' etc., as though we were now in actual possession of these blessings; whereas we only have them by faith, and the language is simply an assurance that they are forever sure to the final overcomers**\" (DAR 516.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 516.1",
+          "html": "Smith reads the celebration as **prospective**, not retrospective: \"**But hereupon a song is sung in heaven, 'Now is come salvation,' etc. How is this, if these scenes are in the past? Had salvation, and strength, and the kingdom of God, and the power of his Christ, then come? Not at all; but this song was sung prospectively. These things were made sure. The great victory had been won by Christ which put the question of their establishment forever at rest. Just as we read in other scriptures, 'We have eternal life,' 'We have redemption through his blood,' etc., as though we were now in actual possession of these blessings; whereas we only have them by faith, and the language is simply an assurance that they are forever sure to the final overcomers**\" (DAR 516.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -291,10 +321,13 @@
       "num": 11,
       "slug": "v-11",
       "text": "And they overcame him by the blood of the Lamb, and by the word of their testimony; and they loved not their lives unto the death.",
-      "pioneerReading": {
-        "citation": "DAR 516.2",
-        "html": "\"**The prophet then glances rapidly over the working of Satan from that time to the end (verses 11, 12), during which time the faithful 'brethren' overcome him by the blood of the Lamb and the word of their testimony, while his wrath increases as his time grows short. Though working through earthly powers, Satan, personally, is the chief agent from verse 9 to 17**\" (DAR 516.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 516.2",
+          "html": "\"**The prophet then glances rapidly over the working of Satan from that time to the end (verses 11, 12), during which time the faithful 'brethren' overcome him by the blood of the Lamb and the word of their testimony, while his wrath increases as his time grows short. Though working through earthly powers, Satan, personally, is the chief agent from verse 9 to 17**\" (DAR 516.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -318,10 +351,13 @@
       "num": 12,
       "slug": "v-12",
       "text": "Therefore rejoice, ye heavens, and ye that dwell in them. Woe to the inhabiters of the earth and of the sea! for the devil is come down unto you, having great wrath, because he knoweth that he hath but a short time.",
-      "pioneerReading": {
-        "citation": "DAR 516.2",
-        "html": "Tied to v.11 above. Satan's wrath increases as his time grows short (DAR 516.2 — \"_his wrath increases as his time grows short_\")."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 516.2",
+          "html": "Tied to v.11 above. Satan's wrath increases as his time grows short (DAR 516.2 — \"_his wrath increases as his time grows short_\")."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -345,10 +381,13 @@
       "num": 13,
       "slug": "v-13",
       "text": "And when the dragon saw that he was cast unto the earth, he persecuted the woman which brought forth the man child.",
-      "pioneerReading": {
-        "citation": "DAR 517.1",
-        "html": "Smith reads v.13 as the **return to the historical track** picked up at v.6 — Satan, failing to overcome Christ, turns his fury upon the church Christ established. \"**Suffice it to say that here we are again carried back to the time when Satan became fully aware that he had utterly failed in all his attempts against the Lord of glory in his earthly mission; and seeing this, he turned with tenfold fury, as already noticed, upon the church which Christ had established. Then we have again brought to view the church going into that condition here denominated being 'in the wilderness.' This must denote a state of seclusion from the public gaze, and of concealment from her foes. That church which during all the dark ages trumpeted her lordly commands into the ears of listening Christendom, and flaunted her ostentatious banners before gaping crowds, was not the church of Christ; it was the body of the mystery of iniquity. The 'mystery of godliness' was God manifested here as a man; the 'mystery of iniquity' was a man pretending to be God. This was the great apostasy, the mongrel produced by the union of heathenism and Christianity. The true church was out of sight; in secret places they worshiped God; the caves and the hidden recesses of the valleys of the Piedmont may be taken as representative places**\" (DAR 517.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 517.1",
+          "html": "Smith reads v.13 as the **return to the historical track** picked up at v.6 — Satan, failing to overcome Christ, turns his fury upon the church Christ established. \"**Suffice it to say that here we are again carried back to the time when Satan became fully aware that he had utterly failed in all his attempts against the Lord of glory in his earthly mission; and seeing this, he turned with tenfold fury, as already noticed, upon the church which Christ had established. Then we have again brought to view the church going into that condition here denominated being 'in the wilderness.' This must denote a state of seclusion from the public gaze, and of concealment from her foes. That church which during all the dark ages trumpeted her lordly commands into the ears of listening Christendom, and flaunted her ostentatious banners before gaping crowds, was not the church of Christ; it was the body of the mystery of iniquity. The 'mystery of godliness' was God manifested here as a man; the 'mystery of iniquity' was a man pretending to be God. This was the great apostasy, the mongrel produced by the union of heathenism and Christianity. The true church was out of sight; in secret places they worshiped God; the caves and the hidden recesses of the valleys of the Piedmont may be taken as representative places**\" (DAR 517.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -372,10 +411,13 @@
       "num": 14,
       "slug": "v-14",
       "text": "And to the woman were given two wings of a great eagle, that she might fly into the wilderness, into her place, where she is nourished for a time, and times, and half a time, from the face of the serpent.",
-      "pioneerReading": {
-        "citation": "DAR 517.2-518.1",
-        "html": "Smith reads the eagle's wings via the **Exodus typology** — God's deliverance of Israel from Pharaoh. \"**The eagles' wings given her appropriately signify the haste with which the true church was obliged to provide for her own safety when the man of sin was installed in power, together with the assistance God provided her to this end. The like figure is used to describe God's dealings with ancient Israel. By Moses he said to them: 'Ye have seen what I did unto the Egyptians, and how I bare you on eagles' wings, and brought you unto myself.' Exodus 19:4**\" (DAR 517.2). And on the time-period: \"**The mention of the period during which the woman is nourished in the wilderness as 'a time and times and half a time,' the exact phraseology used in Daniel 7:25, furnishes a key for the explanation of the latter passage; for the very same period is called in verse 6 of Revelation 12, 'a thousand two hundred and threescore days.' This shows that a 'time' is one year, 360 days; two 'times,' two years, or 720 days; and 'half a time,' half a year, or 180 days, making in all 1260 days; and this, being symbolic, signifies 1260 literal years**\" (DAR 517.3)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 517.2-518.1",
+          "html": "Smith reads the eagle's wings via the **Exodus typology** — God's deliverance of Israel from Pharaoh. \"**The eagles' wings given her appropriately signify the haste with which the true church was obliged to provide for her own safety when the man of sin was installed in power, together with the assistance God provided her to this end. The like figure is used to describe God's dealings with ancient Israel. By Moses he said to them: 'Ye have seen what I did unto the Egyptians, and how I bare you on eagles' wings, and brought you unto myself.' Exodus 19:4**\" (DAR 517.2). And on the time-period: \"**The mention of the period during which the woman is nourished in the wilderness as 'a time and times and half a time,' the exact phraseology used in Daniel 7:25, furnishes a key for the explanation of the latter passage; for the very same period is called in verse 6 of Revelation 12, 'a thousand two hundred and threescore days.' This shows that a 'time' is one year, 360 days; two 'times,' two years, or 720 days; and 'half a time,' half a year, or 180 days, making in all 1260 days; and this, being symbolic, signifies 1260 literal years**\" (DAR 517.3)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -399,10 +441,13 @@
       "num": 15,
       "slug": "v-15",
       "text": "And the serpent cast out of his mouth water as a flood after the woman, that he might cause her to be carried away of the flood.",
-      "pioneerReading": {
-        "citation": "DAR 518.1",
-        "html": "Smith reads the flood as **papal persecution** — false doctrine and civil power weaponized against the wilderness church. \"**The serpent cast out of his mouth water as a flood to carry away the church. By its false doctrines the papacy had so corrupted all nations as to have control absolutely, for long centuries, of the civil power. Through it Satan could hurl a mighty flood of persecution against the church in every direction; and this he was not slow to do. (See reference to the terrible persecutions of the church in remarks on Daniel 7:25.) From fifty to one hundred million were carried away by the flood; but the church was not entirely swallowed up; the days were shortened for the elect's sake. Matthew 24:22**\" (DAR 518.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 518.1",
+          "html": "Smith reads the flood as **papal persecution** — false doctrine and civil power weaponized against the wilderness church. \"**The serpent cast out of his mouth water as a flood to carry away the church. By its false doctrines the papacy had so corrupted all nations as to have control absolutely, for long centuries, of the civil power. Through it Satan could hurl a mighty flood of persecution against the church in every direction; and this he was not slow to do. (See reference to the terrible persecutions of the church in remarks on Daniel 7:25.) From fifty to one hundred million were carried away by the flood; but the church was not entirely swallowed up; the days were shortened for the elect's sake. Matthew 24:22**\" (DAR 518.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -429,10 +474,13 @@
       "num": 16,
       "slug": "v-16",
       "text": "And the earth helped the woman, and the earth opened her mouth, and swallowed up the flood which the dragon cast out of his mouth.",
-      "pioneerReading": {
-        "citation": "DAR 518.2",
-        "html": "Smith reads \"**the earth helped the woman**\" as the **Reformation of the sixteenth century** — Luther's nailing of the theses, the rise of Protestant states, the breaking of papal power over the European mind. \"**'The earth helped the woman' by opening its mouth and swallowing up the flood. The Reformation of the sixteenth century began its work. God raised up the noble Luther and his colaborers to expose the true character of the papacy, and break the power with which superstition had enslaved the minds of the people. Luther nailed his theses to the door of the church at Wittenberg; and the pen with which he wrote them, according to the symbolic dream of the good elector Frederick of Saxony, did indeed span the continent, and shake the triple crown on the pope's head. Princes began to espouse the cause of the Reformers. It was the dawning of religious light and liberty, and God would not suffer the darkness to swallow up its radiance... And soon there was enough Protestant soil found in Switzerland, Germany, Holland, England, Norway, and Sweden, to swallow up the flood of papal fury, and rob it of its power to harm the church. Thus the earth helped the woman, and has continued to help to the present day, as the spirit of the Reformation and religious liberty has been fostered by the leading nations of Christendom**\" (DAR 518.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 518.2",
+          "html": "Smith reads \"**the earth helped the woman**\" as the **Reformation of the sixteenth century** — Luther's nailing of the theses, the rise of Protestant states, the breaking of papal power over the European mind. \"**'The earth helped the woman' by opening its mouth and swallowing up the flood. The Reformation of the sixteenth century began its work. God raised up the noble Luther and his colaborers to expose the true character of the papacy, and break the power with which superstition had enslaved the minds of the people. Luther nailed his theses to the door of the church at Wittenberg; and the pen with which he wrote them, according to the symbolic dream of the good elector Frederick of Saxony, did indeed span the continent, and shake the triple crown on the pope's head. Princes began to espouse the cause of the Reformers. It was the dawning of religious light and liberty, and God would not suffer the darkness to swallow up its radiance... And soon there was enough Protestant soil found in Switzerland, Germany, Holland, England, Norway, and Sweden, to swallow up the flood of papal fury, and rob it of its power to harm the church. Thus the earth helped the woman, and has continued to help to the present day, as the spirit of the Reformation and religious liberty has been fostered by the leading nations of Christendom**\" (DAR 518.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -464,10 +512,13 @@
       "num": 17,
       "slug": "v-17",
       "text": "And the dragon was wroth with the woman, and went to make war with the remnant of her seed, which keep the commandments of God, and have the testimony of Jesus Christ.",
-      "pioneerReading": {
-        "citation": "DAR 519.1-519.3",
-        "html": "Smith identifies the **remnant** as the **last generation of Christians on earth**, specifically the **Sabbath-keeping commandment-keepers of the close of probation**. \"**But the dragon is not yet through with his work. Verse 17 brings to view another and a final outburst of his wrath, this time against the last generation of Christians to live on the earth. We say the last generation; for the war of the dragon is directed against the remnant of the woman's seed; that is, the remnant of the seed, or individuals, that constitute the true church; and no generation but the last can truthfully be represented by the remnant. If the view is correct that we have already reached the generation which is to witness the closing up of earthly scenes, this warfare against the truth cannot be far in the future**\" (DAR 519.1). \"**This remnant is characterized by their keeping of the commandments of God, and having the testimony of Jesus Christ. This points to a Sabbath reform to be accomplished in the last days; for on the Sabbath alone, as pertaining to the commandments, is there a difference of faith and practice among those who accept the decalogue as the moral law? This is more particularly brought to view in the message of Revelation 14:9-12**\" (DAR 519.2). And the closing summary of the chapter's three dragon-stages: \"**It may be proper to notice that according to the testimony of this chapter, three powers are made use of by the Devil to carry out his work, and hence are all spoken of as the dragon, he being the inspiring agent in them all. These are, (1) pagan Rome; (2) papal Rome; (3) the two-horned beast, our own government under the control of apostate Protestantism, which is the chief agent, as will hereafter appear, in making war upon those who keep the commandments of God, and have the testimony of Jesus**\" (DAR 519.3)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 519.1-519.3",
+          "html": "Smith identifies the **remnant** as the **last generation of Christians on earth**, specifically the **Sabbath-keeping commandment-keepers of the close of probation**. \"**But the dragon is not yet through with his work. Verse 17 brings to view another and a final outburst of his wrath, this time against the last generation of Christians to live on the earth. We say the last generation; for the war of the dragon is directed against the remnant of the woman's seed; that is, the remnant of the seed, or individuals, that constitute the true church; and no generation but the last can truthfully be represented by the remnant. If the view is correct that we have already reached the generation which is to witness the closing up of earthly scenes, this warfare against the truth cannot be far in the future**\" (DAR 519.1). \"**This remnant is characterized by their keeping of the commandments of God, and having the testimony of Jesus Christ. This points to a Sabbath reform to be accomplished in the last days; for on the Sabbath alone, as pertaining to the commandments, is there a difference of faith and practice among those who accept the decalogue as the moral law? This is more particularly brought to view in the message of Revelation 14:9-12**\" (DAR 519.2). And the closing summary of the chapter's three dragon-stages: \"**It may be proper to notice that according to the testimony of this chapter, three powers are made use of by the Devil to carry out his work, and hence are all spoken of as the dragon, he being the inspiring agent in them all. These are, (1) pagan Rome; (2) papal Rome; (3) the two-horned beast, our own government under the control of apostate Protestantism, which is the chief agent, as will hereafter appear, in making war upon those who keep the commandments of God, and have the testimony of Jesus**\" (DAR 519.3)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",

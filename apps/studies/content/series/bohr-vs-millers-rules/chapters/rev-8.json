@@ -9,10 +9,13 @@
       "num": 1,
       "slug": "v-1",
       "text": "And when he had opened the seventh seal, there was silence in heaven about the space of half an hour.",
-      "pioneerReading": {
-        "citation": "DAR 452.2-453.1",
-        "html": "**Seventh seal = the half-hour of silence in heaven at the second advent — the entire heavenly host (including the 24 elders, the seraphim, and the angelic ten-thousand-times-ten-thousand) accompany Christ to earth to gather the redeemed, leaving heaven temporarily empty.** \"**The Seventh Seal. — This seal stands by itself. The first six brought us down to the second advent. The seventh introduces us to scenes connected with the second coming and the events immediately following. The half-hour of silence is the period when all heaven is empty, when the entire heavenly host accompanies Christ in his triumphant return to gather the redeemed. A prophetic half-hour, on the year-day basis, is about a week of literal time. The silence is not the silence of death but the silence of awe — the universe holds its breath as the great consummation arrives**\" (DAR 452.2-453.1, condensed paraphrase). Smith cites EGW (_Early Writings_, _Great Controversy_) for the second-advent accompanying-host framework."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 452.2-453.1",
+          "html": "**Seventh seal = the half-hour of silence in heaven at the second advent — the entire heavenly host (including the 24 elders, the seraphim, and the angelic ten-thousand-times-ten-thousand) accompany Christ to earth to gather the redeemed, leaving heaven temporarily empty.** \"**The Seventh Seal. — This seal stands by itself. The first six brought us down to the second advent. The seventh introduces us to scenes connected with the second coming and the events immediately following. The half-hour of silence is the period when all heaven is empty, when the entire heavenly host accompanies Christ in his triumphant return to gather the redeemed. A prophetic half-hour, on the year-day basis, is about a week of literal time. The silence is not the silence of death but the silence of awe — the universe holds its breath as the great consummation arrives**\" (DAR 452.2-453.1, condensed paraphrase). Smith cites EGW (_Early Writings_, _Great Controversy_) for the second-advent accompanying-host framework."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -36,10 +39,13 @@
       "num": 2,
       "slug": "v-2",
       "text": "And I saw the seven angels which stood before God; and to them were given seven trumpets.",
-      "pioneerReading": {
-        "citation": "DAR 453.2-454.1",
-        "html": "**Seven angels = seven specific angelic agents (drawing on Luke 1:19 \"_I am Gabriel, that stand in the presence of God_\" as the standard pioneer identification of the \"_standing before God_\" class); seven trumpets = the seven successive prophetic-historical events / judgments of the trumpet series, paralleling the seven seals but covering the providential / political / military / judicial side of the same church-history span.** \"**The trumpets, like the seals and the seven churches, embrace the period of the gospel dispensation from John's day to the end. The trumpets, however, are limited to events in the political / civil / military sphere — the providential judgments by which God dealt with the apostate church and the nations supporting her**\" (DAR 453.2-454.1, condensed paraphrase). Smith's framework: the trumpets are **judgment-events** in **political history**, not in spiritual / theological history (which is the seals' and churches' domain)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 453.2-454.1",
+          "html": "**Seven angels = seven specific angelic agents (drawing on Luke 1:19 \"_I am Gabriel, that stand in the presence of God_\" as the standard pioneer identification of the \"_standing before God_\" class); seven trumpets = the seven successive prophetic-historical events / judgments of the trumpet series, paralleling the seven seals but covering the providential / political / military / judicial side of the same church-history span.** \"**The trumpets, like the seals and the seven churches, embrace the period of the gospel dispensation from John's day to the end. The trumpets, however, are limited to events in the political / civil / military sphere — the providential judgments by which God dealt with the apostate church and the nations supporting her**\" (DAR 453.2-454.1, condensed paraphrase). Smith's framework: the trumpets are **judgment-events** in **political history**, not in spiritual / theological history (which is the seals' and churches' domain)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -63,10 +69,13 @@
       "num": 3,
       "slug": "v-3",
       "text": "And another angel came and stood at the altar, having a golden censer; and there was given unto him much incense, that he should offer it with the prayers of all saints upon the golden altar which was before the throne.",
-      "pioneerReading": {
-        "citation": "DAR 453.4-454.2",
-        "html": "**The angel with the golden censer = Christ as our High-Priest-Intercessor, offering the prayers of all saints with the incense of his perfect-righteousness at the altar of incense (the first-apartment furniture of the heavenly sanctuary).** \"**The angel here is none other than Christ our great High Priest, presenting before God in the heavenly sanctuary the prayers of his people, mingled with the merit of his own perfect righteousness (the much incense given unto him). The altar is the altar of incense, the first-apartment furniture. This is the intercessory-priesthood scene that frames the trumpet-judgments which follow**\" (DAR 453.4-454.2, condensed paraphrase)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 453.4-454.2",
+          "html": "**The angel with the golden censer = Christ as our High-Priest-Intercessor, offering the prayers of all saints with the incense of his perfect-righteousness at the altar of incense (the first-apartment furniture of the heavenly sanctuary).** \"**The angel here is none other than Christ our great High Priest, presenting before God in the heavenly sanctuary the prayers of his people, mingled with the merit of his own perfect righteousness (the much incense given unto him). The altar is the altar of incense, the first-apartment furniture. This is the intercessory-priesthood scene that frames the trumpet-judgments which follow**\" (DAR 453.4-454.2, condensed paraphrase)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -90,10 +99,13 @@
       "num": 4,
       "slug": "v-4",
       "text": "And the smoke of the incense, which came with the prayers of the saints, ascended up before God out of the angel's hand.",
-      "pioneerReading": {
-        "citation": "DAR 453.4-454.2",
-        "html": "The smoke / incense rising = Christ's mediation effective before God; the prayers of the saints ascending. Smith treats vv. 3-4 as a single intercessory-scene block."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 453.4-454.2",
+          "html": "The smoke / incense rising = Christ's mediation effective before God; the prayers of the saints ascending. Smith treats vv. 3-4 as a single intercessory-scene block."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -117,10 +129,13 @@
       "num": 5,
       "slug": "v-5",
       "text": "And the angel took the censer, and filled it with fire of the altar, and cast it into the earth: and there were voices, and thunderings, and lightnings, and an earthquake.",
-      "pioneerReading": {
-        "citation": "DAR 453.4-454.2",
-        "html": "**The censer cast down with fire = the close-of-probation event, the cessation of intercession, after which the seven last plagues fall on the unrepentant (paralleled to Rev 11:19, Rev 16:18 — the voices/thunderings/lightnings/earthquake formula recurs at every climactic divine-judgment moment).** \"**The casting down of the censer is the cessation of priestly intercession — the close of probation. The voices, thunderings, lightnings, and earthquake mark the great climactic divine-judgment event that follows the close of probation**\" (DAR 453.4-454.2, paraphrase)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 453.4-454.2",
+          "html": "**The censer cast down with fire = the close-of-probation event, the cessation of intercession, after which the seven last plagues fall on the unrepentant (paralleled to Rev 11:19, Rev 16:18 — the voices/thunderings/lightnings/earthquake formula recurs at every climactic divine-judgment moment).** \"**The casting down of the censer is the cessation of priestly intercession — the close of probation. The voices, thunderings, lightnings, and earthquake mark the great climactic divine-judgment event that follows the close of probation**\" (DAR 453.4-454.2, paraphrase)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -144,10 +159,13 @@
       "num": 6,
       "slug": "v-6",
       "text": "And the seven angels which had the seven trumpets prepared themselves to sound.",
-      "pioneerReading": {
-        "citation": "DAR 454.2",
-        "html": "Brief transitional verse — the seven angels prepare to sound their trumpets in succession. Smith treats this as the formal introduction of the seven-trumpet sequence."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 454.2",
+          "html": "Brief transitional verse — the seven angels prepare to sound their trumpets in succession. Smith treats this as the formal introduction of the seven-trumpet sequence."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -171,10 +189,13 @@
       "num": 7,
       "slug": "v-7",
       "text": "The first angel sounded, and there followed hail and fire mingled with blood, and they were cast upon the earth: and the third part of trees was burnt up, and all green grass was burnt up.",
-      "pioneerReading": {
-        "citation": "DAR 455.1-457.3",
-        "html": "**Trumpet 1 = the invasion of the Western Roman Empire by Alaric and the Visigoths (AD 395-410), the first major judgment on Western Rome after its Christianization / Constantinian compromise.** \"**The First Trumpet. — Alexander Keith, in his _Signs of the Times_, has clearly identified the historical fulfillment. The first trumpet was sounded when Alaric and the Visigoths swept down from the north and east upon the Western Roman Empire, beginning in A. D. 395. The hail represents the storm of barbaric invasion (cf. Isa 28:2 — 'a tempest of hail'); the fire mingled with blood, the destruction wrought by the invaders. The 'third part of the earth' refers to the Western division of the Roman Empire (the empire having been divided by Diocletian / Constantine into three primary prefectures, with the Western prefecture corresponding to the burnt third). The burning of trees and grass represents the destruction of inhabitants of all ranks — the trees (the great men, the nobility) and the grass (the common people). The campaign culminated in Alaric's sack of Rome in A. D. 410, the first time in 800 years that Rome had been taken by a foreign enemy. Gibbon, _Decline and Fall_, chapters 30-31, supplies the historical detail in extenso**\" (DAR 455.5-457.3, condensed paraphrase; Smith quotes Keith and Gibbon at length)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 455.1-457.3",
+          "html": "**Trumpet 1 = the invasion of the Western Roman Empire by Alaric and the Visigoths (AD 395-410), the first major judgment on Western Rome after its Christianization / Constantinian compromise.** \"**The First Trumpet. — Alexander Keith, in his _Signs of the Times_, has clearly identified the historical fulfillment. The first trumpet was sounded when Alaric and the Visigoths swept down from the north and east upon the Western Roman Empire, beginning in A. D. 395. The hail represents the storm of barbaric invasion (cf. Isa 28:2 — 'a tempest of hail'); the fire mingled with blood, the destruction wrought by the invaders. The 'third part of the earth' refers to the Western division of the Roman Empire (the empire having been divided by Diocletian / Constantine into three primary prefectures, with the Western prefecture corresponding to the burnt third). The burning of trees and grass represents the destruction of inhabitants of all ranks — the trees (the great men, the nobility) and the grass (the common people). The campaign culminated in Alaric's sack of Rome in A. D. 410, the first time in 800 years that Rome had been taken by a foreign enemy. Gibbon, _Decline and Fall_, chapters 30-31, supplies the historical detail in extenso**\" (DAR 455.5-457.3, condensed paraphrase; Smith quotes Keith and Gibbon at length)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -201,10 +222,13 @@
       "num": 8,
       "slug": "v-8",
       "text": "And the second angel sounded, and as it were a great mountain burning with fire was cast into the sea: and the third part of the sea became blood;",
-      "pioneerReading": {
-        "citation": "DAR 457.4-460.1",
-        "html": "**Trumpet 2 = Genseric and the Vandals' naval-power destruction of the Western Roman Mediterranean (AD 428-468), with the great mountain burning with fire = the Vandal kingdom established in North Africa under Genseric, and the third part of the sea = the Mediterranean (which the Vandals controlled with their fleets for nearly fifty years, until destroyed by the Eastern Empire's expedition of AD 468).** \"**The Second Trumpet. — Keith identifies this with Genseric and the Vandal naval power. Genseric became king of the Vandals in A. D. 428; in 429 he crossed from Spain into Africa with eighty thousand men; in 439 he captured Carthage and established the Vandal kingdom of Africa; from this base his fleets ravaged the Mediterranean coasts of Spain, Italy, Sicily, Sardinia, Corsica, and Greece for nearly fifty years. In A. D. 455 Genseric sacked Rome itself, the second sack of the Eternal City. The great mountain burning with fire cast into the sea is an exact figure for this naval-power kingdom; the third part of the sea becoming blood matches the Mediterranean carnage. Gibbon supplies the documentation, _Decline and Fall_ chapter 33**\" (DAR 457.4-460.1, condensed paraphrase)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 457.4-460.1",
+          "html": "**Trumpet 2 = Genseric and the Vandals' naval-power destruction of the Western Roman Mediterranean (AD 428-468), with the great mountain burning with fire = the Vandal kingdom established in North Africa under Genseric, and the third part of the sea = the Mediterranean (which the Vandals controlled with their fleets for nearly fifty years, until destroyed by the Eastern Empire's expedition of AD 468).** \"**The Second Trumpet. — Keith identifies this with Genseric and the Vandal naval power. Genseric became king of the Vandals in A. D. 428; in 429 he crossed from Spain into Africa with eighty thousand men; in 439 he captured Carthage and established the Vandal kingdom of Africa; from this base his fleets ravaged the Mediterranean coasts of Spain, Italy, Sicily, Sardinia, Corsica, and Greece for nearly fifty years. In A. D. 455 Genseric sacked Rome itself, the second sack of the Eternal City. The great mountain burning with fire cast into the sea is an exact figure for this naval-power kingdom; the third part of the sea becoming blood matches the Mediterranean carnage. Gibbon supplies the documentation, _Decline and Fall_ chapter 33**\" (DAR 457.4-460.1, condensed paraphrase)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -231,10 +255,13 @@
       "num": 9,
       "slug": "v-9",
       "text": "And the third part of the creatures which were in the sea, and had life, died; and the third part of the ships were destroyed.",
-      "pioneerReading": {
-        "citation": "DAR 460.1",
-        "html": "**The destruction of ships and sea-creatures fits the Vandal naval-warfare specificity exactly** — the Vandals destroyed Roman merchant shipping wholesale, depopulated coastal regions, and the great Eastern-Empire expedition of AD 468 (1,113 ships, 100,000 men) sent against Genseric was itself destroyed in the harbor of Carthage by Vandal fire-ships, the third-part-of-ships destruction. The third-part-of-the-creatures-which-were-in-the-sea = the depopulation of the Mediterranean trade-and-fishing networks under Vandal raiding."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 460.1",
+          "html": "**The destruction of ships and sea-creatures fits the Vandal naval-warfare specificity exactly** — the Vandals destroyed Roman merchant shipping wholesale, depopulated coastal regions, and the great Eastern-Empire expedition of AD 468 (1,113 ships, 100,000 men) sent against Genseric was itself destroyed in the harbor of Carthage by Vandal fire-ships, the third-part-of-ships destruction. The third-part-of-the-creatures-which-were-in-the-sea = the depopulation of the Mediterranean trade-and-fishing networks under Vandal raiding."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -258,10 +285,13 @@
       "num": 10,
       "slug": "v-10",
       "text": "And the third angel sounded, and there fell a great star from heaven, burning as it were a lamp, and it fell upon the third part of the rivers, and upon the fountains of waters;",
-      "pioneerReading": {
-        "citation": "DAR 460.2-462.1",
-        "html": "**Trumpet 3 = Attila and the Huns (\"the Scourge of God\"), the great star = Attila personally (the great barbarian leader whose meteoric career terrified the Western Empire AD 433-453); the rivers and fountains = the headwaters of the great Western European river systems (the Rhine, Rhone, Po, Danube) which Attila ravaged.** \"**The Third Trumpet. — Keith identifies this with Attila and the Huns. Attila's career was as a star — sudden, meteoric, terrifying — and his self-designation 'the Scourge of God' (Flagellum Dei) fits the symbolism exactly. From his base in Pannonia he led the Huns westward, ravaging the river-fountains of central and western Europe — the Danube basin, the Rhine, the Rhone, the Po valley. The historical-specific detail of the third-part-of-the-rivers matches the geographical span of Attila's campaigns of AD 433-453**\" (DAR 460.2-462.1, condensed paraphrase, citing Gibbon _Decline and Fall_ chapter 35)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 460.2-462.1",
+          "html": "**Trumpet 3 = Attila and the Huns (\"the Scourge of God\"), the great star = Attila personally (the great barbarian leader whose meteoric career terrified the Western Empire AD 433-453); the rivers and fountains = the headwaters of the great Western European river systems (the Rhine, Rhone, Po, Danube) which Attila ravaged.** \"**The Third Trumpet. — Keith identifies this with Attila and the Huns. Attila's career was as a star — sudden, meteoric, terrifying — and his self-designation 'the Scourge of God' (Flagellum Dei) fits the symbolism exactly. From his base in Pannonia he led the Huns westward, ravaging the river-fountains of central and western Europe — the Danube basin, the Rhine, the Rhone, the Po valley. The historical-specific detail of the third-part-of-the-rivers matches the geographical span of Attila's campaigns of AD 433-453**\" (DAR 460.2-462.1, condensed paraphrase, citing Gibbon _Decline and Fall_ chapter 35)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -288,10 +318,13 @@
       "num": 11,
       "slug": "v-11",
       "text": "And the name of the star is called Wormwood: and the third part of the waters became wormwood; and many men died of the waters, because they were made bitter.",
-      "pioneerReading": {
-        "citation": "DAR 462.1-463.1",
-        "html": "**The name \"Wormwood\" = the bitter and deadly consequences of Attila's invasion (Wormwood = absinthe, the bitter plant; the figure of bitter waters carrying death matches the bitter-and-deadly-consequence character of the Hunnic invasions). The many men dying of the waters = the great mortality wrought by the Hunnic campaigns across central-and-western Europe.** Smith stresses that the bitterness is **figurative for the bitter consequences** of the Hunnic invasions, not a literal poisoning of literal waters."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 462.1-463.1",
+          "html": "**The name \"Wormwood\" = the bitter and deadly consequences of Attila's invasion (Wormwood = absinthe, the bitter plant; the figure of bitter waters carrying death matches the bitter-and-deadly-consequence character of the Hunnic invasions). The many men dying of the waters = the great mortality wrought by the Hunnic campaigns across central-and-western Europe.** Smith stresses that the bitterness is **figurative for the bitter consequences** of the Hunnic invasions, not a literal poisoning of literal waters."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -315,10 +348,13 @@
       "num": 12,
       "slug": "v-12",
       "text": "And the fourth angel sounded, and the third part of the sun was smitten, and the third part of the moon, and the third part of the stars; so as the third part of them was darkened, and the day shone not for a third part of it, and the night likewise.",
-      "pioneerReading": {
-        "citation": "DAR 463.1-467.1",
-        "html": "**Trumpet 4 = Odoacer and the Heruli (AD 476) + the Ostrogothic and Justinian conclusion (AD 476-566), with the abolition of the Western Roman Empire and the consequent darkening of the political \"luminaries\" (sun = emperors, moon = senate, stars = consuls and lesser magistrates).** \"**The Fourth Trumpet. — Keith identifies this with the events that completed the abolition of the Western Roman Empire. Odoacer the Herulian deposed Romulus Augustulus, the last Western Emperor, in A. D. 476. The Western Empire's institutions — the imperial office (the sun), the senate (the moon), the consular and magisterial offices (the stars) — were progressively extinguished. The Ostrogothic kingdom under Theodoric (AD 493) continued the eclipse; the Justinian wars of reconquest (AD 533-554) and the final extinction of the senate (AD 566) closed the period. The third-part-darkening matches the geographical-political third-part-of-the-Western-Empire framework**\" (DAR 463.1-467.1, condensed paraphrase; Smith cites Gibbon _Decline and Fall_ chapters 36-45)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 463.1-467.1",
+          "html": "**Trumpet 4 = Odoacer and the Heruli (AD 476) + the Ostrogothic and Justinian conclusion (AD 476-566), with the abolition of the Western Roman Empire and the consequent darkening of the political \"luminaries\" (sun = emperors, moon = senate, stars = consuls and lesser magistrates).** \"**The Fourth Trumpet. — Keith identifies this with the events that completed the abolition of the Western Roman Empire. Odoacer the Herulian deposed Romulus Augustulus, the last Western Emperor, in A. D. 476. The Western Empire's institutions — the imperial office (the sun), the senate (the moon), the consular and magisterial offices (the stars) — were progressively extinguished. The Ostrogothic kingdom under Theodoric (AD 493) continued the eclipse; the Justinian wars of reconquest (AD 533-554) and the final extinction of the senate (AD 566) closed the period. The third-part-darkening matches the geographical-political third-part-of-the-Western-Empire framework**\" (DAR 463.1-467.1, condensed paraphrase; Smith cites Gibbon _Decline and Fall_ chapters 36-45)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -345,10 +381,13 @@
       "num": 13,
       "slug": "v-13",
       "text": "And I beheld, and heard an angel flying through the midst of heaven, saying with a loud voice, Woe, woe, woe, to the inhabiters of the earth by reason of the other voices of the trumpet of the three angels, which are yet to sound!",
-      "pioneerReading": {
-        "citation": "DAR 468.1-469.1",
-        "html": "**The three woes = the fifth (Saracen), sixth (Ottoman / Turkish), and seventh (final / second-advent) trumpets — distinguished from the first four political-judgment trumpets on the Western Empire by their geographical focus (Eastern Empire) and their religious-military character (Mohammedan / Ottoman / final-consummation).** \"**The angel's announcement marks the transition from the four trumpets that brought down the Western Empire to the three woes that would afflict the Eastern Empire and bring the world to its final crisis. The fifth woe is the Saracen-Mohammedan invasion that hammered the Eastern Empire from the 7th century onward; the sixth woe is the Ottoman / Turkish power that destroyed the Eastern Empire in 1453; the seventh woe is the final consummation. The 'inhabiters of the earth' phrase is the same Rev-13/14 technical phrase for the unrepentant**\" (DAR 468.1-469.1, condensed paraphrase)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 468.1-469.1",
+          "html": "**The three woes = the fifth (Saracen), sixth (Ottoman / Turkish), and seventh (final / second-advent) trumpets — distinguished from the first four political-judgment trumpets on the Western Empire by their geographical focus (Eastern Empire) and their religious-military character (Mohammedan / Ottoman / final-consummation).** \"**The angel's announcement marks the transition from the four trumpets that brought down the Western Empire to the three woes that would afflict the Eastern Empire and bring the world to its final crisis. The fifth woe is the Saracen-Mohammedan invasion that hammered the Eastern Empire from the 7th century onward; the sixth woe is the Ottoman / Turkish power that destroyed the Eastern Empire in 1453; the seventh woe is the final consummation. The 'inhabiters of the earth' phrase is the same Rev-13/14 technical phrase for the unrepentant**\" (DAR 468.1-469.1, condensed paraphrase)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",

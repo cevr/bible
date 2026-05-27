@@ -9,10 +9,13 @@
       "num": 1,
       "slug": "v-1",
       "text": "After this I looked, and, behold, a door was opened in heaven: and the first voice which I heard was as it were of a trumpet talking with me; which said, Come up hither, and I will show thee things which must be hereafter.",
-      "pioneerReading": {
-        "citation": "DAR 384.2-384.4",
-        "html": "Smith reads the \"door opened in heaven\" as **a door opened into the heavenly sanctuary** — \"**A door Was Opened in Heaven. — Let it be noticed that John says, 'A door was opened in heaven,' not into heaven. It was not an opening of heaven itself before the mind of John, as in the case of Stephen (Acts 7:56); but someplace, or apartment, in heaven was opened before him, and he was permitted to behold what was transpiring within. That this apartment which John saw open was the heavenly sanctuary, will plainly appear from other portions of the book**\" (DAR 384.3). On \"after this\": \"**the expression 'after this' does not denote that what is recorded in chapter 4 and onward was to take place after the fulfillment of everything recorded in the three preceding chapters, but only that after he had seen and heard what is there recorded, he had the new view which he now introduces**\" (DAR 384.2). On \"things which must be hereafter\": \"**The great object of the Revelation seems to be the presentation of future events, for the purpose of informing, edifying, and comforting the church**\" (DAR 384.4)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 384.2-384.4",
+          "html": "Smith reads the \"door opened in heaven\" as **a door opened into the heavenly sanctuary** — \"**A door Was Opened in Heaven. — Let it be noticed that John says, 'A door was opened in heaven,' not into heaven. It was not an opening of heaven itself before the mind of John, as in the case of Stephen (Acts 7:56); but someplace, or apartment, in heaven was opened before him, and he was permitted to behold what was transpiring within. That this apartment which John saw open was the heavenly sanctuary, will plainly appear from other portions of the book**\" (DAR 384.3). On \"after this\": \"**the expression 'after this' does not denote that what is recorded in chapter 4 and onward was to take place after the fulfillment of everything recorded in the three preceding chapters, but only that after he had seen and heard what is there recorded, he had the new view which he now introduces**\" (DAR 384.2). On \"things which must be hereafter\": \"**The great object of the Revelation seems to be the presentation of future events, for the purpose of informing, edifying, and comforting the church**\" (DAR 384.4)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -36,10 +39,13 @@
       "num": 2,
       "slug": "v-2",
       "text": "And immediately I was in the Spirit: and, behold, a throne was set in heaven, and one sat on the throne.",
-      "pioneerReading": {
-        "citation": "DAR 385.2-385.3",
-        "html": "Smith reads \"in the Spirit\" as a vision-state distinct from chapter 1:10, marking a **new vision**: \"**If it there expressed the state of being in vision, it would denote the same thing here; and consequently the first vision ended with chapter 3, and a new one is here introduced**\" (DAR 385.2). On the throne and its occupant: \"**the first object which he beholds is a throne set in heaven, and the Divine Being seated thereon**\" (DAR 385.3) — identified as the Father (Smith makes this explicit at DAR 391.2 in his Rev 5:1 commentary: \"_By the words, 'him that sat on the throne,' is evidently meant the Father, as the Son is subsequently introduced as 'a Lamb as it had been slain'_\")."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 385.2-385.3",
+          "html": "Smith reads \"in the Spirit\" as a vision-state distinct from chapter 1:10, marking a **new vision**: \"**If it there expressed the state of being in vision, it would denote the same thing here; and consequently the first vision ended with chapter 3, and a new one is here introduced**\" (DAR 385.2). On the throne and its occupant: \"**the first object which he beholds is a throne set in heaven, and the Divine Being seated thereon**\" (DAR 385.3) — identified as the Father (Smith makes this explicit at DAR 391.2 in his Rev 5:1 commentary: \"_By the words, 'him that sat on the throne,' is evidently meant the Father, as the Son is subsequently introduced as 'a Lamb as it had been slain'_\")."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -63,10 +69,13 @@
       "num": 3,
       "slug": "v-3",
       "text": "And he that sat was to look upon like a jasper and a sardine stone: and there was a rainbow round about the throne, in sight like unto an emerald.",
-      "pioneerReading": {
-        "citation": "DAR 385.3",
-        "html": "Smith reads the jasper/sardine description as the appearance of a monarch in royal robes: \"**The description of the appearance of this personage, clothed in the mingled colors of the jasper, frequently a purple, and the blood-red sardine stone, is such as at once to suggest to the mind a monarch vested with his royal robes. And round about the throne there was a rainbow, both adding to the grandeur of the scene, and reminding us that though he who sits upon the throne is an almighty and absolute ruler, he is nevertheless the covenant-keeping God**\" (DAR 385.3)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 385.3",
+          "html": "Smith reads the jasper/sardine description as the appearance of a monarch in royal robes: \"**The description of the appearance of this personage, clothed in the mingled colors of the jasper, frequently a purple, and the blood-red sardine stone, is such as at once to suggest to the mind a monarch vested with his royal robes. And round about the throne there was a rainbow, both adding to the grandeur of the scene, and reminding us that though he who sits upon the throne is an almighty and absolute ruler, he is nevertheless the covenant-keeping God**\" (DAR 385.3)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -90,10 +99,13 @@
       "num": 4,
       "slug": "v-4",
       "text": "And round about the throne were four and twenty seats: and upon the seats I saw four and twenty elders sitting, clothed in white raiment; and they had on their heads crowns of gold.",
-      "pioneerReading": {
-        "citation": "DAR 386.1-387.2",
-        "html": "**24 elders = redeemed humans, the firstfruits multitude raised with Christ at his resurrection.** \"**It will be observed that they are clothed in white raiment, and have on their heads crowns of gold, which are tokens both of a conflict completed and a victory gained. From this we conclude that they were once participants in the Christian warfare, once trod, in common with all saints, this earthly pilgrimage, but have overcome; and for some good purpose, in advance of the great multitude of the redeemed, are wearing their victor crowns in the heavenly world. Indeed, they plainly tell us as much as this in the song of praise which they, in connection with the four living beings, ascribe to the Lamb, in the 9th verse of the following chapter: 'And they sung a new song, saying, Thou art worthy to take the book, and to open the seals thereof: for thou wast slain, and hast redeemed us to God by thy blood out of every kindred, and tongue, and people, and nation.' This song is sung before any of the events in the prophecy of the seven seals transpire; for it is sung to set forth the worthiness of the Lamb to take the book and to open the seals, on the ground of what he had already accomplished, which was their redemption... These, then, were a class of redeemed persons, — redeemed from this earth, redeemed as all others must be redeemed, by the precious blood of Christ**\" (DAR 386.1). Smith then anchors this in **Matt 27:52-53 + Eph 4:8**: \"**Going back to the events that occurred in connection with the crucifixion and resurrection of Christ, we read, 'And the graves were opened; and many bodies of the saints which slept arose, and came out of the graves after his resurrection, and went into the holy city, and appeared unto many.' Matthew 27:52, 53. Thus the answer to our question comes back, gathered unmistakably from the sacred page. These are some of those who came out of their graves at the resurrection of Christ, and who were numbered with the illustrious multitude which he led up from the captivity of Death's dark domain when he ascended in triumph on high. Matthew records their resurrection, Paul their ascension, and John beholds them in heaven, performing the sacred duties which they were raised up to accomplish**\" (DAR 386.2). Smith cites Wesley in agreement: \"**'They are never termed souls, and hence it is probable that they had glorified bodies already. Compare Matthew 27:52'**\" (DAR 387.1). On the throne-seats: \"**the four and twenty elders are said to be seated on thrones. Our translation, it is true, reads 'seats;' but the Greek is θρόνοι, 'thrones'**\" (DAR 387.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 386.1-387.2",
+          "html": "**24 elders = redeemed humans, the firstfruits multitude raised with Christ at his resurrection.** \"**It will be observed that they are clothed in white raiment, and have on their heads crowns of gold, which are tokens both of a conflict completed and a victory gained. From this we conclude that they were once participants in the Christian warfare, once trod, in common with all saints, this earthly pilgrimage, but have overcome; and for some good purpose, in advance of the great multitude of the redeemed, are wearing their victor crowns in the heavenly world. Indeed, they plainly tell us as much as this in the song of praise which they, in connection with the four living beings, ascribe to the Lamb, in the 9th verse of the following chapter: 'And they sung a new song, saying, Thou art worthy to take the book, and to open the seals thereof: for thou wast slain, and hast redeemed us to God by thy blood out of every kindred, and tongue, and people, and nation.' This song is sung before any of the events in the prophecy of the seven seals transpire; for it is sung to set forth the worthiness of the Lamb to take the book and to open the seals, on the ground of what he had already accomplished, which was their redemption... These, then, were a class of redeemed persons, — redeemed from this earth, redeemed as all others must be redeemed, by the precious blood of Christ**\" (DAR 386.1). Smith then anchors this in **Matt 27:52-53 + Eph 4:8**: \"**Going back to the events that occurred in connection with the crucifixion and resurrection of Christ, we read, 'And the graves were opened; and many bodies of the saints which slept arose, and came out of the graves after his resurrection, and went into the holy city, and appeared unto many.' Matthew 27:52, 53. Thus the answer to our question comes back, gathered unmistakably from the sacred page. These are some of those who came out of their graves at the resurrection of Christ, and who were numbered with the illustrious multitude which he led up from the captivity of Death's dark domain when he ascended in triumph on high. Matthew records their resurrection, Paul their ascension, and John beholds them in heaven, performing the sacred duties which they were raised up to accomplish**\" (DAR 386.2). Smith cites Wesley in agreement: \"**'They are never termed souls, and hence it is probable that they had glorified bodies already. Compare Matthew 27:52'**\" (DAR 387.1). On the throne-seats: \"**the four and twenty elders are said to be seated on thrones. Our translation, it is true, reads 'seats;' but the Greek is θρόνοι, 'thrones'**\" (DAR 387.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -120,10 +132,13 @@
       "num": 5,
       "slug": "v-5",
       "text": "And out of the throne proceeded lightnings and thunderings and voices: and there were seven lamps of fire burning before the throne, which are the seven Spirits of God.",
-      "pioneerReading": {
-        "citation": "DAR 388.1",
-        "html": "**Seven lamps of fire = antitype of the seven-branched candlestick of the first apartment (holy place).** \"**The Seven Lamps of Fire. — In these lamps of fire we have an appropriate antitype of the golden candlestick of the typical sanctuary, with its seven ever-burning lamps. This candlestick was placed, by divine direction, in the first apartment of the earthly sanctuary. Exodus 25:31, 32, 37; 26:35; 27:20; etc. And now when John tells us that a door was opened in heaven, and in the apartment thus disclosed to view he sees the antitype of the candlestick of the earthly sanctuary, it is good proof that he is looking into the first apartment of the sanctuary above**\" (DAR 388.1). On the symbolic value: the seven Spirits of God = the universal/perfect Spirit (Smith's standard reading; cf. his Rev 1:4 commentary). Smith does not separately exposit the lightnings/thunderings/voices at v.5."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 388.1",
+          "html": "**Seven lamps of fire = antitype of the seven-branched candlestick of the first apartment (holy place).** \"**The Seven Lamps of Fire. — In these lamps of fire we have an appropriate antitype of the golden candlestick of the typical sanctuary, with its seven ever-burning lamps. This candlestick was placed, by divine direction, in the first apartment of the earthly sanctuary. Exodus 25:31, 32, 37; 26:35; 27:20; etc. And now when John tells us that a door was opened in heaven, and in the apartment thus disclosed to view he sees the antitype of the candlestick of the earthly sanctuary, it is good proof that he is looking into the first apartment of the sanctuary above**\" (DAR 388.1). On the symbolic value: the seven Spirits of God = the universal/perfect Spirit (Smith's standard reading; cf. his Rev 1:4 commentary). Smith does not separately exposit the lightnings/thunderings/voices at v.5."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -147,10 +162,13 @@
       "num": 6,
       "slug": "v-6",
       "text": "And before the throne there was a sea of glass like unto crystal: and in the midst of the throne, and round about the throne, were four beasts full of eyes before and behind.",
-      "pioneerReading": {
-        "citation": "DAR 388.3-389.1",
-        "html": "**Sea of glass = the broad transparent expanse before the throne, not the laver of the typical service.** \"**The Sea of Glass. — Not composed of glass, but a broad expanse resembling glass; that is, says Greenfield, transparent, brilliant. This idea is further carried out by its being likened to crystal, which is defined to mean 'anything concrete and pellucid, like ice or glass.' The position of this sea is such as to show that it bears no analogy to the laver of the ancient typical service. It may extend under, and be the foundation of, the throne, and even further, of the city itself. It is again brought to view in chapter 15:2, as the place where the overcomers, in the ecstatic joy of final victory, will soon stand**\" (DAR 388.3-388.4). On the **four \"beasts\" (better: living creatures)**: \"**It is a very unhappy translation which has given us the word beasts in this verse. The Greek word ζῷον denotes properly a living creature. Bloomfield says, 'Four living creatures (not beasts) ... The word is very different from θηρίον, used to designate the prophetic beasts in the 13th and following chapters'**\" (DAR 388.5). On their nature: \"**These living beings are even more intimately connected with the throne than are the four and twenty elders, being represented as in the midst of it, and round about it. Like the elders, these, in their song to the Lamb, ascribe to him praise for having redeemed them from the earth. They therefore belong to the same company, and represent a part of the great multitude, who, as already described (see remarks on verse 4), have been led up on high from the captivity of death**\" (DAR 389.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 388.3-389.1",
+          "html": "**Sea of glass = the broad transparent expanse before the throne, not the laver of the typical service.** \"**The Sea of Glass. — Not composed of glass, but a broad expanse resembling glass; that is, says Greenfield, transparent, brilliant. This idea is further carried out by its being likened to crystal, which is defined to mean 'anything concrete and pellucid, like ice or glass.' The position of this sea is such as to show that it bears no analogy to the laver of the ancient typical service. It may extend under, and be the foundation of, the throne, and even further, of the city itself. It is again brought to view in chapter 15:2, as the place where the overcomers, in the ecstatic joy of final victory, will soon stand**\" (DAR 388.3-388.4). On the **four \"beasts\" (better: living creatures)**: \"**It is a very unhappy translation which has given us the word beasts in this verse. The Greek word ζῷον denotes properly a living creature. Bloomfield says, 'Four living creatures (not beasts) ... The word is very different from θηρίον, used to designate the prophetic beasts in the 13th and following chapters'**\" (DAR 388.5). On their nature: \"**These living beings are even more intimately connected with the throne than are the four and twenty elders, being represented as in the midst of it, and round about it. Like the elders, these, in their song to the Lamb, ascribe to him praise for having redeemed them from the earth. They therefore belong to the same company, and represent a part of the great multitude, who, as already described (see remarks on verse 4), have been led up on high from the captivity of death**\" (DAR 389.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -177,10 +195,13 @@
       "num": 7,
       "slug": "v-7",
       "text": "And the first beast was like a lion, and the second beast like a calf, and the third beast had a face as a man, and the fourth beast was like a flying eagle.",
-      "pioneerReading": {
-        "citation": "DAR 389.1",
-        "html": "Smith treats the lion/calf/man/eagle emblems as **qualities** of the living-creature class, not as gospel-emblems or as four distinct angelic ranks: \"**Similar imagery is used in the first chapter of Ezekiel. The qualities which would seem to be signified by the emblems are strength, perseverance, reason, and swiftness, — strength of affection, perseverance in carrying out the requirements of duty, reason in comprehending the divine will, and swiftness in obeying**\" (DAR 389.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 389.1",
+          "html": "Smith treats the lion/calf/man/eagle emblems as **qualities** of the living-creature class, not as gospel-emblems or as four distinct angelic ranks: \"**Similar imagery is used in the first chapter of Ezekiel. The qualities which would seem to be signified by the emblems are strength, perseverance, reason, and swiftness, — strength of affection, perseverance in carrying out the requirements of duty, reason in comprehending the divine will, and swiftness in obeying**\" (DAR 389.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -204,10 +225,13 @@
       "num": 8,
       "slug": "v-8",
       "text": "And the four beasts had each of them six wings about him; and they were full of eyes within: and they rest not day and night, saying, Holy, holy, holy, Lord God Almighty, which was, and is, and is to come.",
-      "pioneerReading": {
-        "citation": "DAR 389.2-390.2",
-        "html": "Smith expounds the unceasing thrice-holy as the joyous worship of those redeemed-humans who comprise the inner circle: \"**'Oh! happy unrest!' beautifully exclaims John Wesley; and the theme of their constant worship is, 'Holy, holy, holy, Lord God Almighty, which was, and is, and is to come.' No sublimer strain ever issued from created lips. And they repeat it 'day and night,' or continually, these terms only denoting the manner in which time is reckoned here; for there can be no night where the throne of God is**\" (DAR 389.2). Smith's homiletical extension (DAR 389.3-390.2) draws the contrast with mortal weariness in praise."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 389.2-390.2",
+          "html": "Smith expounds the unceasing thrice-holy as the joyous worship of those redeemed-humans who comprise the inner circle: \"**'Oh! happy unrest!' beautifully exclaims John Wesley; and the theme of their constant worship is, 'Holy, holy, holy, Lord God Almighty, which was, and is, and is to come.' No sublimer strain ever issued from created lips. And they repeat it 'day and night,' or continually, these terms only denoting the manner in which time is reckoned here; for there can be no night where the throne of God is**\" (DAR 389.2). Smith's homiletical extension (DAR 389.3-390.2) draws the contrast with mortal weariness in praise."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -231,10 +255,13 @@
       "num": 9,
       "slug": "v-9",
       "text": "And when those beasts give glory and honour and thanks to him that sat on the throne, who liveth for ever and ever,",
-      "pioneerReading": {
-        "citation": "DAR 388.2",
-        "html": "Treated as part of the vv. 8-11 block. The living creatures' giving of glory leads into the elders' falling-down and casting-of-crowns; Smith reads the whole sequence as the integrated worship of the inner-circle redeemed class."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 388.2",
+          "html": "Treated as part of the vv. 8-11 block. The living creatures' giving of glory leads into the elders' falling-down and casting-of-crowns; Smith reads the whole sequence as the integrated worship of the inner-circle redeemed class."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -258,10 +285,13 @@
       "num": 10,
       "slug": "v-10",
       "text": "The four and twenty elders fall down before him that sat on the throne, and worship him that liveth for ever and ever, and cast their crowns before the throne, saying,",
-      "pioneerReading": {
-        "citation": "DAR 388.2, with cross-reference to DAR 386.1-387.2",
-        "html": "The casting-of-crowns is the elders' acknowledgment of their derived worthiness — the crowns themselves are tokens of redemption-conflict completed (Smith's v.4 framework). On the Greek θρόνοι: at DAR 387.2 Smith already corrected the KJV \"seats\" to \"thrones,\" anchoring the elders' royal-priestly status."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 388.2, with cross-reference to DAR 386.1-387.2",
+          "html": "The casting-of-crowns is the elders' acknowledgment of their derived worthiness — the crowns themselves are tokens of redemption-conflict completed (Smith's v.4 framework). On the Greek θρόνοι: at DAR 387.2 Smith already corrected the KJV \"seats\" to \"thrones,\" anchoring the elders' royal-priestly status."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -285,10 +315,13 @@
       "num": 11,
       "slug": "v-11",
       "text": "Thou art worthy, O Lord, to receive glory and honour and power: for thou hast created all things, and for thy pleasure they are and were created.",
-      "pioneerReading": {
-        "citation": "DAR 390.3-390.4",
-        "html": "\"**'Thou art worthy, O Lord, to receive glory and honor and power.' How worthy, we never shall be able to realize till, like the holy beings who utter this language, changed to immortality, we are presented faultless before the presence of his glory. Jude 24**\" (DAR 390.3). On the ground of the worthiness: \"**Thou Hast Created All Things. — The works of creation furnish the foundation for the honor, glory, and power ascribed to God. 'And for thy pleasure,' or through thy will, διὰ τὸ θέλημά σου, they are, and were created. God willed, and all things came into existence; and by the same power they are preserved and sustained**\" (DAR 390.4)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 390.3-390.4",
+          "html": "\"**'Thou art worthy, O Lord, to receive glory and honor and power.' How worthy, we never shall be able to realize till, like the holy beings who utter this language, changed to immortality, we are presented faultless before the presence of his glory. Jude 24**\" (DAR 390.3). On the ground of the worthiness: \"**Thou Hast Created All Things. — The works of creation furnish the foundation for the honor, glory, and power ascribed to God. 'And for thy pleasure,' or through thy will, διὰ τὸ θέλημά σου, they are, and were created. God willed, and all things came into existence; and by the same power they are preserved and sustained**\" (DAR 390.4)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",

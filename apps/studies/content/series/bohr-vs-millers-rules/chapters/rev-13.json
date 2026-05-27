@@ -9,10 +9,13 @@
       "num": 1,
       "slug": "v-1",
       "text": "And I stood upon the sand of the sea, and saw a beast rise up out of the sea, having seven heads and ten horns, and upon his horns ten crowns, and upon his heads the name of blasphemy.",
-      "pioneerReading": {
-        "citation": "DAR 520.1ff — sea-beast block covers vv.1-10; specific commentary at DAR 520.2-525.2",
-        "html": "Smith treats vv.1-10 as a single sea-beast block = **papal Rome**, \"the Roman empire as a whole brought to view in its two phases, pagan and papal\" (DAR 521.1). The leopard beast \"symbolizes a power which exercises ecclesiastical as well as civil authority\" (DAR 521.2). Sea = \"'peoples, and multitudes, and nations, and tongues.' Revelation 17:15\" — \"Whenever a beast is seen to come up out of the sea, it denotes that the power arises in a thickly populated territory\" (DAR 520.2). Smith establishes the identification with the **little horn of Dan 7** via six points of identity (DAR 524.1-525.2): blasphemy, war on the saints, mouth speaking great things, rising at the cessation of pagan Rome, continuing 1260 years, and dominion taken away at the end of that period — \"those symbols represent the same identical power\" (DAR 525.1). The \"seven heads\" Smith treats at DAR 525.3 as seven successive Roman forms of government (six pagan + one papal). **Note (not in DAR Rev 13:1 commentary):** the \"ten horns = divisions of the Western Empire\" identification is standard pioneer (treated on Dan 7), but Smith does not unpack the ten horns in his Rev 13:1 block, referring the reader to ch. 17:10 (DAR 521.1). The \"name of blasphemy\" Smith addresses under v.6 (papal titles, DAR 526.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 520.1ff — sea-beast block covers vv.1-10; specific commentary at DAR 520.2-525.2",
+          "html": "Smith treats vv.1-10 as a single sea-beast block = **papal Rome**, \"the Roman empire as a whole brought to view in its two phases, pagan and papal\" (DAR 521.1). The leopard beast \"symbolizes a power which exercises ecclesiastical as well as civil authority\" (DAR 521.2). Sea = \"'peoples, and multitudes, and nations, and tongues.' Revelation 17:15\" — \"Whenever a beast is seen to come up out of the sea, it denotes that the power arises in a thickly populated territory\" (DAR 520.2). Smith establishes the identification with the **little horn of Dan 7** via six points of identity (DAR 524.1-525.2): blasphemy, war on the saints, mouth speaking great things, rising at the cessation of pagan Rome, continuing 1260 years, and dominion taken away at the end of that period — \"those symbols represent the same identical power\" (DAR 525.1). The \"seven heads\" Smith treats at DAR 525.3 as seven successive Roman forms of government (six pagan + one papal). **Note (not in DAR Rev 13:1 commentary):** the \"ten horns = divisions of the Western Empire\" identification is standard pioneer (treated on Dan 7), but Smith does not unpack the ten horns in his Rev 13:1 block, referring the reader to ch. 17:10 (DAR 521.1). The \"name of blasphemy\" Smith addresses under v.6 (papal titles, DAR 526.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -36,10 +39,13 @@
       "num": 2,
       "slug": "v-2",
       "text": "And the beast which I saw was like unto a leopard, and his feet were as the feet of a bear, and his mouth as the mouth of a lion: and the dragon gave him his power, and his seat, and his great authority.",
-      "pioneerReading": {
-        "citation": "DAR covers v.2 within the sea-beast block; specific comment at DAR 523.1-523.3",
-        "html": "Smith treats the leopard beast as the same Roman empire as the dragon but in a different religious phase: \"this beast symbolizes Rome in its professedly Christian form. And it is this change of religion, and this alone, which makes a change in the symbol necessary\" (DAR 523.1). On the dragon giving his seat: \"By what power was pagan Rome succeeded? We all know that it was by papal Rome. **It matters not to our present purpose when or by what means this change was effected**; the great fact is apparent, and is acknowledged by all, that the next great phase of the Roman empire after its pagan form was its papal\" (DAR 523.2). **Extension beyond Smith (not in DAR Rev 13:2):** the lion/bear/leopard → Babylon/Medo-Persia/Greece identification is standard pioneer (cf. Dan 7) but Smith does not unpack the heritage in his v.2 comment. The claim that \"Constantine moved the imperial capital to Constantinople (AD 330)\" as the mechanism by which the dragon gave Rome to the bishop is **explicitly disclaimed by Smith** (\"It matters not... when or by what means this change was effected,\" DAR 523.2) — it is later pioneer/Adventist tradition, not Smith's Rev 13:2 commentary."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR covers v.2 within the sea-beast block; specific comment at DAR 523.1-523.3",
+          "html": "Smith treats the leopard beast as the same Roman empire as the dragon but in a different religious phase: \"this beast symbolizes Rome in its professedly Christian form. And it is this change of religion, and this alone, which makes a change in the symbol necessary\" (DAR 523.1). On the dragon giving his seat: \"By what power was pagan Rome succeeded? We all know that it was by papal Rome. **It matters not to our present purpose when or by what means this change was effected**; the great fact is apparent, and is acknowledged by all, that the next great phase of the Roman empire after its pagan form was its papal\" (DAR 523.2). **Extension beyond Smith (not in DAR Rev 13:2):** the lion/bear/leopard → Babylon/Medo-Persia/Greece identification is standard pioneer (cf. Dan 7) but Smith does not unpack the heritage in his v.2 comment. The claim that \"Constantine moved the imperial capital to Constantinople (AD 330)\" as the mechanism by which the dragon gave Rome to the bishop is **explicitly disclaimed by Smith** (\"It matters not... when or by what means this change was effected,\" DAR 523.2) — it is later pioneer/Adventist tradition, not Smith's Rev 13:2 commentary."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -63,10 +69,13 @@
       "num": 3,
       "slug": "v-3",
       "text": "And I saw one of his heads as it were wounded to death; and his deadly wound was healed: and all the world wondered after the beast.",
-      "pioneerReading": {
-        "citation": "DAR covers v.3 within the sea-beast block; specific comment at DAR 525.3-526.1",
-        "html": "Smith identifies the wounded head as the papal head and dates the wounding to 1798: \"It was inflicted when the pope was taken prisoner by Berthier, the French general, and the papal government was for a time abolished, in 1798. Stripped of his power, both civil and ecclesiastical, the captive pope, Pius VI, died in exile at Valence in France, Aug. 29, 1799.\" (DAR 525.3). On the healing: \"But the deadly wound was healed when the papacy was re-established, though with a diminution of its former power, by the election of a new pope, March 14, 1800\" (DAR 525.3). Smith cites Bower's _History of the Popes_, pp. 404-428, and Croly on the Apocalypse, p. 251. The wound-and-captivity Smith treats again under v.10 (DAR 527.1) as the same 1798 event. **Note (not in DAR):** the \"Napoleon\" attribution (Smith says only \"the French general\"), the specific date \"February 10, 1798,\" the \"Lateran Treaty (1929),\" and the \"global moral-political resurgence visible through the 19th-21st centuries\" are not in Smith's text — Smith's healing claim stops at the 1800 papal re-election. The 20th-century continuation is a later pioneer/Adventist extension."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR covers v.3 within the sea-beast block; specific comment at DAR 525.3-526.1",
+          "html": "Smith identifies the wounded head as the papal head and dates the wounding to 1798: \"It was inflicted when the pope was taken prisoner by Berthier, the French general, and the papal government was for a time abolished, in 1798. Stripped of his power, both civil and ecclesiastical, the captive pope, Pius VI, died in exile at Valence in France, Aug. 29, 1799.\" (DAR 525.3). On the healing: \"But the deadly wound was healed when the papacy was re-established, though with a diminution of its former power, by the election of a new pope, March 14, 1800\" (DAR 525.3). Smith cites Bower's _History of the Popes_, pp. 404-428, and Croly on the Apocalypse, p. 251. The wound-and-captivity Smith treats again under v.10 (DAR 527.1) as the same 1798 event. **Note (not in DAR):** the \"Napoleon\" attribution (Smith says only \"the French general\"), the specific date \"February 10, 1798,\" the \"Lateran Treaty (1929),\" and the \"global moral-political resurgence visible through the 19th-21st centuries\" are not in Smith's text — Smith's healing claim stops at the 1800 papal re-election. The 20th-century continuation is a later pioneer/Adventist extension."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -95,10 +104,13 @@
       "num": 4,
       "slug": "v-4",
       "text": "And they worshipped the dragon which gave power unto the beast: and they worshipped the beast, saying, Who is like unto the beast? who is able to make war with him?",
-      "pioneerReading": {
-        "citation": "DAR covers v.4 within the sea-beast block; no dedicated v.4 paragraph — coverage at DAR 521.4-525.3",
-        "html": "Smith does not unpack v.4 (\"they worshipped the dragon... they worshipped the beast\") as a separate clause. His sea-beast block treats worship of the beast as the system emerging through the 1260-year supremacy he establishes at DAR 524.7-525.3, and the boast \"who is able to make war with him?\" is implicit in his characterization of the leopard beast as the unrivaled persecuting power \"from which... the church suffers war and persecution\" for 1260 years (DAR 521.4). **Extension beyond Smith (not in DAR Rev 13:4):** the specific catalogue \"from the Albigensian crusades through the Inquisition\" is standard pioneer/Protestant martyrology but Smith does not enumerate it in his sea-beast block on Rev 13. The French-sword-1798 anchor is Smith's (DAR 525.3, 527.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR covers v.4 within the sea-beast block; no dedicated v.4 paragraph — coverage at DAR 521.4-525.3",
+          "html": "Smith does not unpack v.4 (\"they worshipped the dragon... they worshipped the beast\") as a separate clause. His sea-beast block treats worship of the beast as the system emerging through the 1260-year supremacy he establishes at DAR 524.7-525.3, and the boast \"who is able to make war with him?\" is implicit in his characterization of the leopard beast as the unrivaled persecuting power \"from which... the church suffers war and persecution\" for 1260 years (DAR 521.4). **Extension beyond Smith (not in DAR Rev 13:4):** the specific catalogue \"from the Albigensian crusades through the Inquisition\" is standard pioneer/Protestant martyrology but Smith does not enumerate it in his sea-beast block on Rev 13. The French-sword-1798 anchor is Smith's (DAR 525.3, 527.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -122,10 +134,13 @@
       "num": 5,
       "slug": "v-5",
       "text": "And there was given unto him a mouth speaking great things and blasphemies; and power was given unto him to continue forty and two months.",
-      "pioneerReading": {
-        "citation": "DAR covers v.5 within the sea-beast block; specific comment at DAR 524.4-524.7, 525.3",
-        "html": "Smith equates 42 months with the 1260-year period of Dan 7:25: \"Power was given to the little horn to continue for a time, times, and the dividing of time, or 1260 years. Daniel 7:25. To this beast also power was given for forty-two months, or 1260 years. Revelation 13:5\" (DAR 524.7). The terminal point (1798) is established at DAR 525.3 via the captivity/wounding event. The \"mouth speaking great things and blasphemies\" Smith links directly to Dan 7:25 / Dan 7:8, 20 (DAR 524.2, 524.4-524.5). **Note (not in DAR Rev 13:5):** the specific 538 starting-date with the mechanism \"Justinian's decree taking effect when Belisarius expelled the Ostrogoths from Rome\" is standard pioneer chronology (Smith treats it in his Dan 7 commentary) but is not unpacked in his Rev 13:5 block — he simply asserts the 1260-year span. The cross-link to Rev 12:6, 14 and Rev 11:2-3 is standard pioneer methodology, not explicit in Smith's v.5 paragraph. The _Vicarius Filii Dei_ numerical exposition Smith reserves for v.18 (DAR 580.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR covers v.5 within the sea-beast block; specific comment at DAR 524.4-524.7, 525.3",
+          "html": "Smith equates 42 months with the 1260-year period of Dan 7:25: \"Power was given to the little horn to continue for a time, times, and the dividing of time, or 1260 years. Daniel 7:25. To this beast also power was given for forty-two months, or 1260 years. Revelation 13:5\" (DAR 524.7). The terminal point (1798) is established at DAR 525.3 via the captivity/wounding event. The \"mouth speaking great things and blasphemies\" Smith links directly to Dan 7:25 / Dan 7:8, 20 (DAR 524.2, 524.4-524.5). **Note (not in DAR Rev 13:5):** the specific 538 starting-date with the mechanism \"Justinian's decree taking effect when Belisarius expelled the Ostrogoths from Rome\" is standard pioneer chronology (Smith treats it in his Dan 7 commentary) but is not unpacked in his Rev 13:5 block — he simply asserts the 1260-year span. The cross-link to Rev 12:6, 14 and Rev 11:2-3 is standard pioneer methodology, not explicit in Smith's v.5 paragraph. The _Vicarius Filii Dei_ numerical exposition Smith reserves for v.18 (DAR 580.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -149,10 +164,13 @@
       "num": 6,
       "slug": "v-6",
       "text": "And he opened his mouth in blasphemy against God, to blaspheme his name, and his tabernacle, and them that dwell in heaven.",
-      "pioneerReading": {
-        "citation": "DAR 526.1-526.2",
-        "html": "Smith comments directly: \"This beast opens his mouth in blasphemy against God to blaspheme his name. (See mention under Daniel 7:25 of the presumptuous titles assumed by the popes.)\" (DAR 526.1). On the tabernacle: \"He blasphemes the tabernacle in heaven by turning the attention of his subjects to his own throne and palace instead of to the tabernacle of God; by turning their attention away from the city of God, Jerusalem above, and pointing them to Rome as the eternal city; and he blasphemes them that dwell in heaven by assuming to exercise the power of forgiving sins, and so turning away the minds of men from the mediatorial work of Christ and his heavenly assistants in the sanctuary above\" (DAR 526.2). **Note (not in DAR Rev 13:6):** the explicit John 10:33 / Matt 9:3 proof-texts and the specific references to \"the confessional,\" \"the doctrine of the immaculate sacrifice,\" and \"the earthly counterfeit of the mass\" are standard pioneer/Protestant glosses but not in Smith's v.6 paragraph — Smith focuses on (a) papal titles (forwarding to Dan 7:25), (b) Rome-as-eternal-city counterfeit to the heavenly Jerusalem, and (c) the forgiveness-of-sins prerogative that displaces Christ's mediation."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 526.1-526.2",
+          "html": "Smith comments directly: \"This beast opens his mouth in blasphemy against God to blaspheme his name. (See mention under Daniel 7:25 of the presumptuous titles assumed by the popes.)\" (DAR 526.1). On the tabernacle: \"He blasphemes the tabernacle in heaven by turning the attention of his subjects to his own throne and palace instead of to the tabernacle of God; by turning their attention away from the city of God, Jerusalem above, and pointing them to Rome as the eternal city; and he blasphemes them that dwell in heaven by assuming to exercise the power of forgiving sins, and so turning away the minds of men from the mediatorial work of Christ and his heavenly assistants in the sanctuary above\" (DAR 526.2). **Note (not in DAR Rev 13:6):** the explicit John 10:33 / Matt 9:3 proof-texts and the specific references to \"the confessional,\" \"the doctrine of the immaculate sacrifice,\" and \"the earthly counterfeit of the mass\" are standard pioneer/Protestant glosses but not in Smith's v.6 paragraph — Smith focuses on (a) papal titles (forwarding to Dan 7:25), (b) Rome-as-eternal-city counterfeit to the heavenly Jerusalem, and (c) the forgiveness-of-sins prerogative that displaces Christ's mediation."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -176,10 +194,13 @@
       "num": 7,
       "slug": "v-7",
       "text": "And it was given unto him to make war with the saints, and to overcome them: and power was given him over all kindreds, and tongues, and nations.",
-      "pioneerReading": {
-        "citation": "DAR covers v.7 within the sea-beast block; specific comment at DAR 524.3, 521.4",
-        "html": "Smith equates v.7's \"make war with the saints\" to Dan 7:21: \"The little horn made war with the saints, and prevailed against them. Daniel 7:21. This beast also (Revelation 13:7) makes war with the saints, and overcomes them\" (DAR 524.3). The 1260 years of war and persecution Smith sets up in his framing: \"From this power, for the long period of 1260 years, the church suffers war and persecution\" (DAR 521.4). **Extension beyond Smith (not in DAR Rev 13:7):** Smith does not enumerate the specific persecutions in his Rev 13 sea-beast block (Albigenses/Waldenses crusades, Inquisition dates 1184/1233/1834, Hussites, Marian persecutions, St. Bartholomew's 1572, dragonnades / Edict of Nantes 1685, 50-100 million martyrs estimate). That detailed martyrology is standard pioneer/Protestant historiography but not in Smith's v.7 paragraph."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR covers v.7 within the sea-beast block; specific comment at DAR 524.3, 521.4",
+          "html": "Smith equates v.7's \"make war with the saints\" to Dan 7:21: \"The little horn made war with the saints, and prevailed against them. Daniel 7:21. This beast also (Revelation 13:7) makes war with the saints, and overcomes them\" (DAR 524.3). The 1260 years of war and persecution Smith sets up in his framing: \"From this power, for the long period of 1260 years, the church suffers war and persecution\" (DAR 521.4). **Extension beyond Smith (not in DAR Rev 13:7):** Smith does not enumerate the specific persecutions in his Rev 13 sea-beast block (Albigenses/Waldenses crusades, Inquisition dates 1184/1233/1834, Hussites, Marian persecutions, St. Bartholomew's 1572, dragonnades / Edict of Nantes 1685, 50-100 million martyrs estimate). That detailed martyrology is standard pioneer/Protestant historiography but not in Smith's v.7 paragraph."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -203,10 +224,13 @@
       "num": 8,
       "slug": "v-8",
       "text": "And all that dwell upon the earth shall worship him, whose names are not written in the book of life of the Lamb slain from the foundation of the world.",
-      "pioneerReading": {
-        "citation": "DAR covers v.8 within the sea-beast block; no dedicated v.8 paragraph — coverage at DAR 521.4-525.3, with the forward look picked up at DAR 577.2",
-        "html": "Smith does not unpack v.8 (\"all that dwell upon the earth shall worship him\") as a separate clause in his sea-beast block. The forward-looking universal worship is explicit only later, under his earth-beast commentary, where he writes: \"While, according to the prophecy, the 'image' can be looked for only in the United States, the worship of the beast will prevail in other countries also; for all the world is to wonder after the beast\" (DAR 577.2). **Extension beyond Smith (not in DAR Rev 13:8):** the specific reading of v.8 as eschatological climax tied to the image-of-the-beast crisis (rather than during the 1260 years), and the cross-link chain Phil 4:3 / Rev 3:5 / 20:12 / 21:27 for the Lamb's book of life, is standard pioneer extension but not explicit in Smith's Rev 13 commentary."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR covers v.8 within the sea-beast block; no dedicated v.8 paragraph — coverage at DAR 521.4-525.3, with the forward look picked up at DAR 577.2",
+          "html": "Smith does not unpack v.8 (\"all that dwell upon the earth shall worship him\") as a separate clause in his sea-beast block. The forward-looking universal worship is explicit only later, under his earth-beast commentary, where he writes: \"While, according to the prophecy, the 'image' can be looked for only in the United States, the worship of the beast will prevail in other countries also; for all the world is to wonder after the beast\" (DAR 577.2). **Extension beyond Smith (not in DAR Rev 13:8):** the specific reading of v.8 as eschatological climax tied to the image-of-the-beast crisis (rather than during the 1260 years), and the cross-link chain Phil 4:3 / Rev 3:5 / 20:12 / 21:27 for the Lamb's book of life, is standard pioneer extension but not explicit in Smith's Rev 13 commentary."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -230,10 +254,13 @@
       "num": 9,
       "slug": "v-9",
       "text": "If any man have an ear, let him hear.",
-      "pioneerReading": {
-        "citation": "DAR covers v.9 within the sea-beast block but offers no dedicated v.9 paragraph in DAR 520-527",
-        "html": "Smith does not unpack v.9 (\"If any man have an ear, let him hear\") in his sea-beast block — he moves directly from his v.6 tabernacle gloss (DAR 526.1-526.2) to his v.10 captivity gloss (DAR 527.1). **Extension beyond Smith (not in DAR Rev 13:9):** the \"solemn warning formula\" reading — the seven-church-messages parallel (Rev 2-3) and the framing \"consequences of misreading Rev 13 are spiritual life or death\" — is standard pioneer/Adventist gloss but not present in Smith's Rev 13 commentary."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR covers v.9 within the sea-beast block but offers no dedicated v.9 paragraph in DAR 520-527",
+          "html": "Smith does not unpack v.9 (\"If any man have an ear, let him hear\") in his sea-beast block — he moves directly from his v.6 tabernacle gloss (DAR 526.1-526.2) to his v.10 captivity gloss (DAR 527.1). **Extension beyond Smith (not in DAR Rev 13:9):** the \"solemn warning formula\" reading — the seven-church-messages parallel (Rev 2-3) and the framing \"consequences of misreading Rev 13 are spiritual life or death\" — is standard pioneer/Adventist gloss but not present in Smith's Rev 13 commentary."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -257,10 +284,13 @@
       "num": 10,
       "slug": "v-10",
       "text": "He that leadeth into captivity shall go into captivity: he that killeth with the sword must be killed with the sword. Here is the patience and the faith of the saints.",
-      "pioneerReading": {
-        "citation": "DAR 527.1, restating DAR 524.8 and 525.3",
-        "html": "Smith comments directly: \"By verse 10 we are again referred to the events of 1798, when that power that had for 1260 years led the saints of God into captivity, was led into captivity itself, as already noticed\" (DAR 527.1). The captivity event is detailed at DAR 525.3 (\"the pope was taken prisoner by Berthier, the French general, and the papal government was for a time abolished, in 1798. Stripped of his power, both civil and ecclesiastical, the captive pope, Pius VI, died in exile at Valence in France, Aug. 29, 1799\") and at DAR 524.8 (\"Both these specifications [Dan 7:26 + Rev 13:10] were fulfilled in the captivity and exile of the pope, and the temporary overthrow of the papacy by France in 1798\"). **Note (not in DAR Rev 13:10):** the proof-texts Gen 9:6 and Jer 15:2 (\"blood for blood / sword for sword\" principle) are standard biblical-theology background but Smith does not cite them at v.10. The \"patience of the saints looks forward to the eschatological persecution still to come\" reading is a forward extension; Smith's v.10 anchor is the 1798 backward-looking judgment-in-kind on the papacy."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 527.1, restating DAR 524.8 and 525.3",
+          "html": "Smith comments directly: \"By verse 10 we are again referred to the events of 1798, when that power that had for 1260 years led the saints of God into captivity, was led into captivity itself, as already noticed\" (DAR 527.1). The captivity event is detailed at DAR 525.3 (\"the pope was taken prisoner by Berthier, the French general, and the papal government was for a time abolished, in 1798. Stripped of his power, both civil and ecclesiastical, the captive pope, Pius VI, died in exile at Valence in France, Aug. 29, 1799\") and at DAR 524.8 (\"Both these specifications [Dan 7:26 + Rev 13:10] were fulfilled in the captivity and exile of the pope, and the temporary overthrow of the papacy by France in 1798\"). **Note (not in DAR Rev 13:10):** the proof-texts Gen 9:6 and Jer 15:2 (\"blood for blood / sword for sword\" principle) are standard biblical-theology background but Smith does not cite them at v.10. The \"patience of the saints looks forward to the eschatological persecution still to come\" reading is a forward extension; Smith's v.10 anchor is the 1798 backward-looking judgment-in-kind on the papacy."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -284,10 +314,13 @@
       "num": 11,
       "slug": "v-11",
       "text": "And I beheld another beast coming up out of the earth; and he had two horns like a lamb, and he spake as a dragon.",
-      "pioneerReading": {
-        "citation": "DAR covers v.11 within the earth-beast block; specific exposition at DAR 527.2-540.10, summary at DAR 540.1-540.10",
-        "html": "**The United States of America.** Smith structures his earth-beast exposition into **thirteen numbered sections** (DAR 527.2 onward): (1) Probabilities considered (DAR 528.2), (2) Chronology — rises 1798 (DAR 529.8), (3) Age — youthful power (DAR 531.3), (4) Location — Western Hemisphere (DAR 531.5-534.3), (5) Manner of rise — peaceful \"coming up out of the earth\" (DAR 534.4-537.1, using Greek ἀναβαῖνον = \"to grow or spring up as a plant,\" DAR 535.1), (6) Character — \"what the world had not seen for ages; viz., a church without a pope, and a state without a king\" (DAR 537.2-538.1, citing Constitution Article VI and First Amendment), (7) Republican government (DAR 538.2-539.1), (8) Protestant nation (DAR 539.2), (9) The dragon voice — future religious oppression (DAR 539.3-541.2; Smith summarizes the first nine as \"nine specifications\" at DAR 540.1-540.10), (10) Great wonders (Spiritualism, DAR 542.3ff), (11) Image to the beast (DAR 546.2ff), (12) Mark of the beast (DAR 548.5ff), (13) The closing work (DAR 562.1ff). Smith's summary: \"It is therefore impossible to apply the symbol of Revelation 13:11 to any other government but that of the United States\" (DAR 540.10). **Correction to prior reference text:** Smith gives **thirteen** numbered sections (not twelve); the first **nine** are summarized in the \"nine specifications\" recap at DAR 540.1-540.10."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR covers v.11 within the earth-beast block; specific exposition at DAR 527.2-540.10, summary at DAR 540.1-540.10",
+          "html": "**The United States of America.** Smith structures his earth-beast exposition into **thirteen numbered sections** (DAR 527.2 onward): (1) Probabilities considered (DAR 528.2), (2) Chronology — rises 1798 (DAR 529.8), (3) Age — youthful power (DAR 531.3), (4) Location — Western Hemisphere (DAR 531.5-534.3), (5) Manner of rise — peaceful \"coming up out of the earth\" (DAR 534.4-537.1, using Greek ἀναβαῖνον = \"to grow or spring up as a plant,\" DAR 535.1), (6) Character — \"what the world had not seen for ages; viz., a church without a pope, and a state without a king\" (DAR 537.2-538.1, citing Constitution Article VI and First Amendment), (7) Republican government (DAR 538.2-539.1), (8) Protestant nation (DAR 539.2), (9) The dragon voice — future religious oppression (DAR 539.3-541.2; Smith summarizes the first nine as \"nine specifications\" at DAR 540.1-540.10), (10) Great wonders (Spiritualism, DAR 542.3ff), (11) Image to the beast (DAR 546.2ff), (12) Mark of the beast (DAR 548.5ff), (13) The closing work (DAR 562.1ff). Smith's summary: \"It is therefore impossible to apply the symbol of Revelation 13:11 to any other government but that of the United States\" (DAR 540.10). **Correction to prior reference text:** Smith gives **thirteen** numbered sections (not twelve); the first **nine** are summarized in the \"nine specifications\" recap at DAR 540.1-540.10."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -311,10 +344,13 @@
       "num": 12,
       "slug": "v-12",
       "text": "And he exerciseth all the power of the first beast before him, and causeth the earth and them which dwell therein to worship the first beast, whose deadly wound was healed.",
-      "pioneerReading": {
-        "citation": "DAR covers v.12 within the earth-beast block; specific comment at DAR 562.1, with the mechanism unpacked across DAR 546.2-548.4 and DAR 561.2-562.3",
-        "html": "Smith's most explicit statement of the v.12 mechanism is at DAR 562.1: \"An ecclesiastical organization composed of a greater or less number of the different sects of our land, with some degree of coalition also between these bodies and Roman Catholicism, together with **the promulgation and enforcement of a general Sunday-Sabbath law**, would fulfill what the prophecy sets forth in reference to the image and the mark of the beast.\" Smith reads the dragon-stirred enforcement: \"The dragon is stirred, and so controls the wicked governments of the earth that all the authority of human power shall be exerted to enforce the claims of the man of sin\" (DAR 561.2). **Note (not in DAR Rev 13:12):** the specific framing \"the conjunction 'the first beast, whose deadly wound was healed' is causal\" is a grammatical/interpretive gloss, not a Smith quote. Smith's emphasis is descriptive (the earth-beast causes the worship system that completes the picture), not specifically Greek-grammatical-causal."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR covers v.12 within the earth-beast block; specific comment at DAR 562.1, with the mechanism unpacked across DAR 546.2-548.4 and DAR 561.2-562.3",
+          "html": "Smith's most explicit statement of the v.12 mechanism is at DAR 562.1: \"An ecclesiastical organization composed of a greater or less number of the different sects of our land, with some degree of coalition also between these bodies and Roman Catholicism, together with **the promulgation and enforcement of a general Sunday-Sabbath law**, would fulfill what the prophecy sets forth in reference to the image and the mark of the beast.\" Smith reads the dragon-stirred enforcement: \"The dragon is stirred, and so controls the wicked governments of the earth that all the authority of human power shall be exerted to enforce the claims of the man of sin\" (DAR 561.2). **Note (not in DAR Rev 13:12):** the specific framing \"the conjunction 'the first beast, whose deadly wound was healed' is causal\" is a grammatical/interpretive gloss, not a Smith quote. Smith's emphasis is descriptive (the earth-beast causes the worship system that completes the picture), not specifically Greek-grammatical-causal."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -338,10 +374,13 @@
       "num": 13,
       "slug": "v-13",
       "text": "And he doeth great wonders, so that he maketh fire come down from heaven on the earth in the sight of men.",
-      "pioneerReading": {
-        "citation": "DAR covers v.13 within the earth-beast block; specific comment at DAR 542.3-545.4, framed under Smith's \"10. Great Wonders.\" section",
-        "html": "Smith identifies the \"great wonders\" with **Modern Spiritualism**: \"The prince of darkness manifests himself as never before, and throwing over his work a would-be heavenly garb, he calls it — Spiritualism\" (DAR 543.2). On the agency: \"the wonders to which the prophet had reference are evidently wrought for the purpose of deceiving the people... This identifies the two-horned beast with the false prophet of Revelation 19:20... Revelation 16:13, 14 speaks of spirits of devils working miracles, which go forth unto the kings of the earth\" (DAR 542.4). On origin and spread: \"Spiritualism answers to the prophecy in that it had its origin in the United States, thus connecting its wonders with the work of the two-horned beast. Commencing in Hydesville, N. Y., in the family of Mr. John D. Fox, in the latter part of March, 1848, it spread with incredible rapidity through all the world. A letter to the writer from a leading Spiritualist publisher, December, 1895, claims five million believers in the United States, and fifty million throughout the world\" (DAR 545.1). Smith catalogues the Satanic marks (spirits claiming to be the dead, contra Eccl 9:5/Ps 146:4; anti-Bible doctrines; the catalog of signs and physical phenomena at DAR 544.2-544.4). **Note (not in DAR Rev 13:13):** the specific cross-references \"1 Kgs 18:38; 2 Kgs 1:10; cf. Acts 2:3\" for \"fire from heaven\" as Elijah/Pentecost counterfeit are standard pioneer/Protestant typology but Smith does not cite them in his v.13 paragraph — Smith reads the \"great wonders\" generically as the deceiving signs of Spiritualism, not as a specific Elijah-pyrotechnic typology. The \"1849 Rochester demonstrations\" date-anchor is later Spiritualist historiography, not in Smith. The natural-immortality-as-doctrinal-scaffold gloss Smith places under the image-construction section (DAR 546.4) rather than the v.13 fire-from-heaven clause."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR covers v.13 within the earth-beast block; specific comment at DAR 542.3-545.4, framed under Smith's \"10. Great Wonders.\" section",
+          "html": "Smith identifies the \"great wonders\" with **Modern Spiritualism**: \"The prince of darkness manifests himself as never before, and throwing over his work a would-be heavenly garb, he calls it — Spiritualism\" (DAR 543.2). On the agency: \"the wonders to which the prophet had reference are evidently wrought for the purpose of deceiving the people... This identifies the two-horned beast with the false prophet of Revelation 19:20... Revelation 16:13, 14 speaks of spirits of devils working miracles, which go forth unto the kings of the earth\" (DAR 542.4). On origin and spread: \"Spiritualism answers to the prophecy in that it had its origin in the United States, thus connecting its wonders with the work of the two-horned beast. Commencing in Hydesville, N. Y., in the family of Mr. John D. Fox, in the latter part of March, 1848, it spread with incredible rapidity through all the world. A letter to the writer from a leading Spiritualist publisher, December, 1895, claims five million believers in the United States, and fifty million throughout the world\" (DAR 545.1). Smith catalogues the Satanic marks (spirits claiming to be the dead, contra Eccl 9:5/Ps 146:4; anti-Bible doctrines; the catalog of signs and physical phenomena at DAR 544.2-544.4). **Note (not in DAR Rev 13:13):** the specific cross-references \"1 Kgs 18:38; 2 Kgs 1:10; cf. Acts 2:3\" for \"fire from heaven\" as Elijah/Pentecost counterfeit are standard pioneer/Protestant typology but Smith does not cite them in his v.13 paragraph — Smith reads the \"great wonders\" generically as the deceiving signs of Spiritualism, not as a specific Elijah-pyrotechnic typology. The \"1849 Rochester demonstrations\" date-anchor is later Spiritualist historiography, not in Smith. The natural-immortality-as-doctrinal-scaffold gloss Smith places under the image-construction section (DAR 546.4) rather than the v.13 fire-from-heaven clause."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -381,10 +420,13 @@
       "num": 14,
       "slug": "v-14",
       "text": "And deceiveth them that dwell on the earth by the means of those miracles which he had power to do in the sight of the beast; saying to them that dwell on the earth, that they should make an image to the beast, which had by the wound by a sword did live.",
-      "pioneerReading": {
-        "citation": "DAR covers v.14 within the earth-beast block; specific comment at DAR 546.2-548.4, framed under Smith's \"11. An Image to the Beast.\" section",
-        "html": "Smith reads v.14 as the bridge between the wonders and the image: \"Closely associated with this working of miracles is the erection of an image to the beast. The prophet thus connects the two in verse 14... The deception accomplished by the working of the miracles prepares the way for compliance with this demand for the formation of an image to the beast\" (DAR 546.2). On the image's nature: \"To understand what would be an image of the papacy, we must first gain some definite idea of what constitutes the papacy itself. The full development of the beast, or the establishment of papal supremacy, dates from the famous letter of Justinian, which was made effective in A. D. 538, constituting the pope the head of the church and the corrector of heretics. The papacy was a church clothed with civil power, — an ecclesiastical body having authority to punish all dissenters with confiscation of goods, imprisonment, torture, and death. What would be an image of the papacy? — Another ecclesiastical establishment clothed with similar power. How could such an image be formed in the United States? Let the Protestant churches be clothed with power to define and punish heresy, to enforce their dogmas under the pains and penalties of the civil law, and should we not have an exact representation of the papacy during the days of its supremacy?\" (DAR 546.3). On the doctrinal basis of coalition: \"Chief among these may be mentioned the doctrine of the conscious state of the dead and the immortality of the soul, which is both the foundation and superstructure of Spiritualism; and also the doctrine that the first day of the week is the Christian Sabbath\" (DAR 546.4). **Note (not in DAR Rev 13:14):** the specific framing \"Spiritualism's role is to convince Protestants that the dead are alive and active, eroding the only doctrinal barrier (Eccl 9:5; Ps 146:4) that protects them from accepting Catholic sacramental theology\" is a synthesis — Smith does mention both pillars (natural immortality + Sunday) at DAR 546.4 but does not develop the specific \"doctrinal barrier\" argument linking Eccl 9:5/Ps 146:4 to Catholic sacramental theology in his v.14 paragraph; he treats it at DAR 544.2 as evidence of Satanic agency."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR covers v.14 within the earth-beast block; specific comment at DAR 546.2-548.4, framed under Smith's \"11. An Image to the Beast.\" section",
+          "html": "Smith reads v.14 as the bridge between the wonders and the image: \"Closely associated with this working of miracles is the erection of an image to the beast. The prophet thus connects the two in verse 14... The deception accomplished by the working of the miracles prepares the way for compliance with this demand for the formation of an image to the beast\" (DAR 546.2). On the image's nature: \"To understand what would be an image of the papacy, we must first gain some definite idea of what constitutes the papacy itself. The full development of the beast, or the establishment of papal supremacy, dates from the famous letter of Justinian, which was made effective in A. D. 538, constituting the pope the head of the church and the corrector of heretics. The papacy was a church clothed with civil power, — an ecclesiastical body having authority to punish all dissenters with confiscation of goods, imprisonment, torture, and death. What would be an image of the papacy? — Another ecclesiastical establishment clothed with similar power. How could such an image be formed in the United States? Let the Protestant churches be clothed with power to define and punish heresy, to enforce their dogmas under the pains and penalties of the civil law, and should we not have an exact representation of the papacy during the days of its supremacy?\" (DAR 546.3). On the doctrinal basis of coalition: \"Chief among these may be mentioned the doctrine of the conscious state of the dead and the immortality of the soul, which is both the foundation and superstructure of Spiritualism; and also the doctrine that the first day of the week is the Christian Sabbath\" (DAR 546.4). **Note (not in DAR Rev 13:14):** the specific framing \"Spiritualism's role is to convince Protestants that the dead are alive and active, eroding the only doctrinal barrier (Eccl 9:5; Ps 146:4) that protects them from accepting Catholic sacramental theology\" is a synthesis — Smith does mention both pillars (natural immortality + Sunday) at DAR 546.4 but does not develop the specific \"doctrinal barrier\" argument linking Eccl 9:5/Ps 146:4 to Catholic sacramental theology in his v.14 paragraph; he treats it at DAR 544.2 as evidence of Satanic agency."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -408,10 +450,13 @@
       "num": 15,
       "slug": "v-15",
       "text": "And he had power to give life unto the image of the beast, that the image of the beast should both speak and cause that as many as would not worship the image of the beast should be killed.",
-      "pioneerReading": {
-        "citation": "DAR covers v.15 within the earth-beast block; specific comment at DAR 547.1-549.2, with the death-decree exposition at DAR 549.4-550.1 and DAR 577.3-578.3",
-        "html": "Smith describes the image-coming-to-life: \"Let, now, an ecclesiastical organization be formed by these churches; let the government legalize such organization, and give it power (a power which it will not have till the government does grant it) to enforce upon the people the dogmas which the different denominations can all adopt as the basis of union, and what do we have? — Just what the prophecy represents, — an image to the papal beast, endowed with life by the two-horned beast, to speak and act with power\" (DAR 547.1). On the death decree: \"The acts ascribed to the image are, speaking, and enforcing the worship of itself under the penalty of death; and this is the only enactment which the prophecy mentions as enforced under the death penalty\" (DAR 549.2). On scope: \"human organizations, controlled and inspired by the spirit of the dragon, are to command men to do those acts which are in reality the worshiping of an apostate religious power and the receiving of his mark; and if they refuse to do this, they lose the rights of citizenship, and become outlaws in the land; and they must do that which constitutes the worship of the image of the beast, or forfeit their lives\" (DAR 549.4). Smith's careful qualification: \"his causing all to be put to death who will not worship the image does not necessarily signify that their lives are actually to be taken\" (DAR 577.4) — he reads \"killed\" via Bush's canon of verbs-of-endeavor: \"he wills, purposes, and endeavors to do this. He makes such an enactment, passes such a law, but is not able to execute it; for God interposes in behalf of his people\" (DAR 578.3, citing George Bush on Ex 7:11). **Note (not in DAR Rev 13:15):** Smith does not frame the death decree as \"the eschatological parallel to the 1260-year persecutions, now globalized through the earth-beast's leadership\" — that synthesis goes beyond Smith's text, which keeps the decree centered on US enforcement (DAR 547.1, 549.2) with worldwide worship-of-the-beast at DAR 577.2."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR covers v.15 within the earth-beast block; specific comment at DAR 547.1-549.2, with the death-decree exposition at DAR 549.4-550.1 and DAR 577.3-578.3",
+          "html": "Smith describes the image-coming-to-life: \"Let, now, an ecclesiastical organization be formed by these churches; let the government legalize such organization, and give it power (a power which it will not have till the government does grant it) to enforce upon the people the dogmas which the different denominations can all adopt as the basis of union, and what do we have? — Just what the prophecy represents, — an image to the papal beast, endowed with life by the two-horned beast, to speak and act with power\" (DAR 547.1). On the death decree: \"The acts ascribed to the image are, speaking, and enforcing the worship of itself under the penalty of death; and this is the only enactment which the prophecy mentions as enforced under the death penalty\" (DAR 549.2). On scope: \"human organizations, controlled and inspired by the spirit of the dragon, are to command men to do those acts which are in reality the worshiping of an apostate religious power and the receiving of his mark; and if they refuse to do this, they lose the rights of citizenship, and become outlaws in the land; and they must do that which constitutes the worship of the image of the beast, or forfeit their lives\" (DAR 549.4). Smith's careful qualification: \"his causing all to be put to death who will not worship the image does not necessarily signify that their lives are actually to be taken\" (DAR 577.4) — he reads \"killed\" via Bush's canon of verbs-of-endeavor: \"he wills, purposes, and endeavors to do this. He makes such an enactment, passes such a law, but is not able to execute it; for God interposes in behalf of his people\" (DAR 578.3, citing George Bush on Ex 7:11). **Note (not in DAR Rev 13:15):** Smith does not frame the death decree as \"the eschatological parallel to the 1260-year persecutions, now globalized through the earth-beast's leadership\" — that synthesis goes beyond Smith's text, which keeps the decree centered on US enforcement (DAR 547.1, 549.2) with worldwide worship-of-the-beast at DAR 577.2."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -435,10 +480,13 @@
       "num": 16,
       "slug": "v-16",
       "text": "And he causeth all, both small and great, rich and poor, free and bond, to receive a mark in their right hand, or in their foreheads.",
-      "pioneerReading": {
-        "citation": "DAR covers v.16 within the earth-beast block; specific comment at DAR 550.2-561.3, framed under Smith's \"12. The Mark of the Beast.\" section; mark-as-Sunday conclusion at DAR 559.1; mark-in-forehead-vs-hand distinction at DAR 579.3",
-        "html": "Smith works from Bishop Newton's ancient-mark custom: \"It was customary among the ancients for servants to receive the mark of their master, and soldiers of their general, and those who were devoted to any particular deity, of the particular deity to whom they were devoted. These marks were usually impressed on their right hand or on their forehead\" (DAR 550.3, quoting Newton _Dissertations on the Prophecies_ Vol. III p. 241) — and from Prideaux on Ptolemy Philopater's branding (DAR 550.4). Greek _charagma_ = \"a graving, sculpture; a mark cut in or stamped\" (DAR 550.5). The mark is the act-or-profession by which papal authority is acknowledged: \"the mark of the beast, or of the papacy, must be some act or profession by which the authority of that power is acknowledged\" (DAR 550.5). The mark is identified as **Sunday observance**, the change to the fourth commandment which Catholic catechisms openly claim as a mark of church authority (DAR 554.1-557.2, with multiple Catholic-source citations including Keenan's _Catechism of the Christian Religion_, _Doctrinal Catechism_, _Abridgment of Christian Doctrine_, Lockhart in the Toronto _Mirror_): \"This change of the fourth commandment must therefore be the change to which the prophecy points, and Sunday-keeping must be the mark of the beast!\" (DAR 559.1). On hand-vs-forehead: \"To receive the mark of the beast in the forehead, is, we understand, to give the assent of the mind and judgment to his authority in the adoption of that institution which constitutes the mark. By parity of reasoning, to receive it in the hand would be to signify allegiance by some outward act\" (DAR 579.3). **Note (not in DAR Rev 13:16):** the Greek-preposition argument \"_epi_ the forehead\" is not Smith's wording — Smith works only with _charagma_ (the noun, DAR 550.5), not with _epi_; the seal-of-God-vs-mark-of-beast asymmetry (Rev 7:3; 14:1 — seal in forehead only, mark in forehead OR hand) is standard pioneer/Adventist gloss but not in Smith's v.16 paragraph (Smith treats forehead vs. hand symmetrically at DAR 579.3 as conviction vs. outward act, without contrasting with the seal). Smith's key Rule-XIII anchor for the universal-mark-enforcement = Sunday-law-enforcement (the imminent-then 1890s SDA-arrest record: 90 arrests, ~1500 days served, DAR 574.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR covers v.16 within the earth-beast block; specific comment at DAR 550.2-561.3, framed under Smith's \"12. The Mark of the Beast.\" section; mark-as-Sunday conclusion at DAR 559.1; mark-in-forehead-vs-hand distinction at DAR 579.3",
+          "html": "Smith works from Bishop Newton's ancient-mark custom: \"It was customary among the ancients for servants to receive the mark of their master, and soldiers of their general, and those who were devoted to any particular deity, of the particular deity to whom they were devoted. These marks were usually impressed on their right hand or on their forehead\" (DAR 550.3, quoting Newton _Dissertations on the Prophecies_ Vol. III p. 241) — and from Prideaux on Ptolemy Philopater's branding (DAR 550.4). Greek _charagma_ = \"a graving, sculpture; a mark cut in or stamped\" (DAR 550.5). The mark is the act-or-profession by which papal authority is acknowledged: \"the mark of the beast, or of the papacy, must be some act or profession by which the authority of that power is acknowledged\" (DAR 550.5). The mark is identified as **Sunday observance**, the change to the fourth commandment which Catholic catechisms openly claim as a mark of church authority (DAR 554.1-557.2, with multiple Catholic-source citations including Keenan's _Catechism of the Christian Religion_, _Doctrinal Catechism_, _Abridgment of Christian Doctrine_, Lockhart in the Toronto _Mirror_): \"This change of the fourth commandment must therefore be the change to which the prophecy points, and Sunday-keeping must be the mark of the beast!\" (DAR 559.1). On hand-vs-forehead: \"To receive the mark of the beast in the forehead, is, we understand, to give the assent of the mind and judgment to his authority in the adoption of that institution which constitutes the mark. By parity of reasoning, to receive it in the hand would be to signify allegiance by some outward act\" (DAR 579.3). **Note (not in DAR Rev 13:16):** the Greek-preposition argument \"_epi_ the forehead\" is not Smith's wording — Smith works only with _charagma_ (the noun, DAR 550.5), not with _epi_; the seal-of-God-vs-mark-of-beast asymmetry (Rev 7:3; 14:1 — seal in forehead only, mark in forehead OR hand) is standard pioneer/Adventist gloss but not in Smith's v.16 paragraph (Smith treats forehead vs. hand symmetrically at DAR 579.3 as conviction vs. outward act, without contrasting with the seal). Smith's key Rule-XIII anchor for the universal-mark-enforcement = Sunday-law-enforcement (the imminent-then 1890s SDA-arrest record: 90 arrests, ~1500 days served, DAR 574.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -462,10 +510,13 @@
       "num": 17,
       "slug": "v-17",
       "text": "And that no man might buy or sell, save he that had the mark, or the name of the beast, or the number of his name.",
-      "pioneerReading": {
-        "citation": "DAR covers v.17 within the earth-beast block; specific comment at DAR 549.3, with the enforcement-mechanism context at DAR 548.5-549.4 and DAR 574.2-575.1",
-        "html": "Smith comments directly: \"The mark of the beast is enforced by the two-horned beast, either directly or through the image. The penalty attached to a refusal to receive this mark is a forfeiture of all social privileges, a deprivation of the right to buy and sell. The mark is the mark of the papal beast\" (DAR 549.3). The three-agent distinction (papal beast / two-horned beast / image of the beast) is laid out at DAR 548.5-549.1, with the mark traced to the papal beast and the enforcement to the two-horned beast (US). Smith documents the actual 1890s precedent of US enforcement of Sunday laws against Seventh-day Adventists, with ninety arrests by Jan. 1, 1896 and ~1500 days served (DAR 574.2). **Note (not in DAR Rev 13:17):** the Rule-IV cross-link to Rev 18:11-13 (merchants weeping over Babylon's economic collapse) as the same economic apparatus Rev 18 judges is standard pioneer/Adventist cross-referencing but not in Smith's v.17 paragraph — Smith stops at the deprivation-of-buy-sell-privileges as a coerced-allegiance mechanism, without forward-linking to the Rev 18 merchant lament."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR covers v.17 within the earth-beast block; specific comment at DAR 549.3, with the enforcement-mechanism context at DAR 548.5-549.4 and DAR 574.2-575.1",
+          "html": "Smith comments directly: \"The mark of the beast is enforced by the two-horned beast, either directly or through the image. The penalty attached to a refusal to receive this mark is a forfeiture of all social privileges, a deprivation of the right to buy and sell. The mark is the mark of the papal beast\" (DAR 549.3). The three-agent distinction (papal beast / two-horned beast / image of the beast) is laid out at DAR 548.5-549.1, with the mark traced to the papal beast and the enforcement to the two-horned beast (US). Smith documents the actual 1890s precedent of US enforcement of Sunday laws against Seventh-day Adventists, with ninety arrests by Jan. 1, 1896 and ~1500 days served (DAR 574.2). **Note (not in DAR Rev 13:17):** the Rule-IV cross-link to Rev 18:11-13 (merchants weeping over Babylon's economic collapse) as the same economic apparatus Rev 18 judges is standard pioneer/Adventist cross-referencing but not in Smith's v.17 paragraph — Smith stops at the deprivation-of-buy-sell-privileges as a coerced-allegiance mechanism, without forward-linking to the Rev 18 merchant lament."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -489,10 +540,13 @@
       "num": 18,
       "slug": "v-18",
       "text": "Here is wisdom. Let him that hath understanding count the number of the beast: for it is the number of a man; and his number is Six hundred threescore and six.",
-      "pioneerReading": {
-        "citation": "DAR 579.4-581.1, framed under Smith's \"The Number of his Name.\" section",
-        "html": "Smith first rules out the alternative _Lateinos_ reading on the grounds that the prophecy demands \"the number of _a man_,\" not the name of a people or kingdom: \"if it is to be derived from a name or title, the natural conclusion would be that it must be the name or title of some particular man. But in this we have the name of a people, or kingdom, not of 'a man,' as the prophecy says\" (DAR 579.5). Smith then identifies the title: \"The most plausible name we have ever seen suggested as containing the number of the beast, is the title which the pope applies to himself, and allows others to apply to him. That title is this: **Vicarius Filii Dei, 'Vicegerent of the Son of God.'** Taking the letters out of this title which the Latins used as numerals, and giving them their numerical value, we have just 666. Thus we have V, 5; I, 1; C, 100 (a and r not used as numerals); I, 1; U (formerly the same as V), 5; (s and f not used as numerals); I, 1; L, 50; I, 1; I, 1; D, 500; (e not used as a numeral); I, 1. Adding these numbers together, we have just 666\" (DAR 580.1). Smith documents the title via a c. 1832 publication (_The Reformation_) recording an eyewitness to a papal procession seeing \"VICARIUS FILII DEI\" emblazoned on the pope's miter (DAR 580.2-580.3). Smith's conclusion: \"Here we have indeed the number of a man, even the 'man of sin;' and it is a little singular, perhaps providential, that he should select a title which shows the blasphemous character of the beast, and then cause it to be inscribed upon his miter, as if to brand himself with the number 666... the popes all assume to be the 'Vicar of Christ' (see Standard Dictionary under 'vicar') and the Latin words given above, are the words which express that title, in the form 'vicar of the Son of God;' and their numerical value is 666\" (DAR 580.4). **Note (not in DAR Rev 13:18):** the attribution to \"Andreas a Sausa's _De Sacrosanta Trinitate_ and standard canon-law collections\" is **not Smith's source** — Smith's documentation is (a) the 1832 _Reformation_ anecdote of the eyewitness at the papal procession, and (b) the Standard Dictionary entry under \"vicar.\" Smith does not cite Andreas a Sausa or canon-law collections in his Rev 13:18 paragraph. The \"triple repetition of six = falling short of the divine seven\" gloss is standard pioneer/Protestant typology but not in Smith's DAR 579-581 text. The \"established in pioneer literature from Andrews onward\" attribution is generic — Smith's own footnote points the reader instead to _The United States in the Light of Prophecy_ and _The Coming Conflict_, both Review and Herald publications (DAR 579.3 footnote)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 579.4-581.1, framed under Smith's \"The Number of his Name.\" section",
+          "html": "Smith first rules out the alternative _Lateinos_ reading on the grounds that the prophecy demands \"the number of _a man_,\" not the name of a people or kingdom: \"if it is to be derived from a name or title, the natural conclusion would be that it must be the name or title of some particular man. But in this we have the name of a people, or kingdom, not of 'a man,' as the prophecy says\" (DAR 579.5). Smith then identifies the title: \"The most plausible name we have ever seen suggested as containing the number of the beast, is the title which the pope applies to himself, and allows others to apply to him. That title is this: **Vicarius Filii Dei, 'Vicegerent of the Son of God.'** Taking the letters out of this title which the Latins used as numerals, and giving them their numerical value, we have just 666. Thus we have V, 5; I, 1; C, 100 (a and r not used as numerals); I, 1; U (formerly the same as V), 5; (s and f not used as numerals); I, 1; L, 50; I, 1; I, 1; D, 500; (e not used as a numeral); I, 1. Adding these numbers together, we have just 666\" (DAR 580.1). Smith documents the title via a c. 1832 publication (_The Reformation_) recording an eyewitness to a papal procession seeing \"VICARIUS FILII DEI\" emblazoned on the pope's miter (DAR 580.2-580.3). Smith's conclusion: \"Here we have indeed the number of a man, even the 'man of sin;' and it is a little singular, perhaps providential, that he should select a title which shows the blasphemous character of the beast, and then cause it to be inscribed upon his miter, as if to brand himself with the number 666... the popes all assume to be the 'Vicar of Christ' (see Standard Dictionary under 'vicar') and the Latin words given above, are the words which express that title, in the form 'vicar of the Son of God;' and their numerical value is 666\" (DAR 580.4). **Note (not in DAR Rev 13:18):** the attribution to \"Andreas a Sausa's _De Sacrosanta Trinitate_ and standard canon-law collections\" is **not Smith's source** — Smith's documentation is (a) the 1832 _Reformation_ anecdote of the eyewitness at the papal procession, and (b) the Standard Dictionary entry under \"vicar.\" Smith does not cite Andreas a Sausa or canon-law collections in his Rev 13:18 paragraph. The \"triple repetition of six = falling short of the divine seven\" gloss is standard pioneer/Protestant typology but not in Smith's DAR 579-581 text. The \"established in pioneer literature from Andrews onward\" attribution is generic — Smith's own footnote points the reader instead to _The United States in the Light of Prophecy_ and _The Coming Conflict_, both Review and Herald publications (DAR 579.3 footnote)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",

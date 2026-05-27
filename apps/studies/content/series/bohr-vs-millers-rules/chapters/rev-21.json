@@ -9,10 +9,13 @@
       "num": 1,
       "slug": "v-1",
       "text": "And I saw a new heaven and a new earth: for the first heaven and the first earth were passed away; and there was no more sea.",
-      "pioneerReading": {
-        "citation": "DAR 702.3-703.1, 704.1",
-        "html": "**Literal new heaven and new earth — the renovation, not the annihilation, of the present system.** Smith reads \"first heaven and first earth\" as the present heavens and earth (2 Pet 3:7), and demolishes the alternative-numbering scheme that would deny the present existence of a literal heavenly paradise. Verbatim: \"**By the first heaven and first earth, John unquestionably means the present heaven and earth, 'the heavens and the earth which are now.' 2 Peter 3:7… The Bible certainly recognizes three heavens in the present constitution of things; namely, the first, or atmospheric heaven, which the fowls of the air inhabit; the second, the planetary heaven, the region of the sun, moon, and stars; and the third, high above the others, where paradise and the tree of life are found**\" (DAR 702.3). On the \"no more sea\": \"**John is speaking only of the present heaven and earth and sea. It might be translated thus: 'For the first heaven and the first earth were passed away, and the sea [οὐκ ἔστιν ἔτι] was no more;' that is, the old sea no longer appeared, any more than the old heaven and old earth; and yet there may be a new sea as there is a new earth**\" (DAR 703.1). On the rationale for a new sea: \"**The river of life… must find some place into which to discharge its waters; and what can that be but the new-earth sea?**\" (DAR 704.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 702.3-703.1, 704.1",
+          "html": "**Literal new heaven and new earth — the renovation, not the annihilation, of the present system.** Smith reads \"first heaven and first earth\" as the present heavens and earth (2 Pet 3:7), and demolishes the alternative-numbering scheme that would deny the present existence of a literal heavenly paradise. Verbatim: \"**By the first heaven and first earth, John unquestionably means the present heaven and earth, 'the heavens and the earth which are now.' 2 Peter 3:7… The Bible certainly recognizes three heavens in the present constitution of things; namely, the first, or atmospheric heaven, which the fowls of the air inhabit; the second, the planetary heaven, the region of the sun, moon, and stars; and the third, high above the others, where paradise and the tree of life are found**\" (DAR 702.3). On the \"no more sea\": \"**John is speaking only of the present heaven and earth and sea. It might be translated thus: 'For the first heaven and the first earth were passed away, and the sea [οὐκ ἔστιν ἔτι] was no more;' that is, the old sea no longer appeared, any more than the old heaven and old earth; and yet there may be a new sea as there is a new earth**\" (DAR 703.1). On the rationale for a new sea: \"**The river of life… must find some place into which to discharge its waters; and what can that be but the new-earth sea?**\" (DAR 704.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -36,10 +39,13 @@
       "num": 2,
       "slug": "v-2",
       "text": "And I John saw the holy city, New Jerusalem, coming down from God out of heaven, prepared as a bride adorned for her husband.",
-      "pioneerReading": {
-        "citation": "DAR 704.2-3",
-        "html": "**The literal New Jerusalem — the Father's house of John 14:2-3 — descends bodily from heaven; identified as the bride.** Smith treats vv. 2-4 as one block and reads the descent as the post-millennial culmination of the Father's-house promise. Verbatim: \"**In connection with the view which John has of the holy city coming down from God out of heaven, a voice is heard, saying, 'The tabernacle of God is with men, and he will dwell with them.' The conclusion naturally follows that the tabernacle here mentioned is the city. This same city is called in John 14 the Father's house in which are many mansions**\" (DAR 704.3). On the city's permanence-as-tabernacle: \"**the word 'tabernacle' sometimes has the signification of a permanent dwelling-place. The great God takes up his abode on this earth**\" (DAR 704.3). The bride-equals-city identification is given full treatment under v.9 below."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 704.2-3",
+          "html": "**The literal New Jerusalem — the Father's house of John 14:2-3 — descends bodily from heaven; identified as the bride.** Smith treats vv. 2-4 as one block and reads the descent as the post-millennial culmination of the Father's-house promise. Verbatim: \"**In connection with the view which John has of the holy city coming down from God out of heaven, a voice is heard, saying, 'The tabernacle of God is with men, and he will dwell with them.' The conclusion naturally follows that the tabernacle here mentioned is the city. This same city is called in John 14 the Father's house in which are many mansions**\" (DAR 704.3). On the city's permanence-as-tabernacle: \"**the word 'tabernacle' sometimes has the signification of a permanent dwelling-place. The great God takes up his abode on this earth**\" (DAR 704.3). The bride-equals-city identification is given full treatment under v.9 below."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -63,10 +69,13 @@
       "num": 3,
       "slug": "v-3",
       "text": "And I heard a great voice out of heaven saying, Behold, the tabernacle of God is with men, and he will dwell with them, and they shall be his people, and God himself shall be with them, and be their God.",
-      "pioneerReading": {
-        "citation": "DAR 704.3",
-        "html": "**The tabernacle of God = the city; God literally takes up His abode on this renovated earth.** Verbatim: \"**The conclusion naturally follows that the tabernacle here mentioned is the city. This same city is called in John 14 the Father's house in which are many mansions… The great God takes up his abode on this earth; but we do not suppose that God is confined to this, or any other one of the worlds of his creation. He here has a throne, and the earth enjoys so much of his presence that it may be said that he dwells among men**\" (DAR 704.3). Smith stresses the proportionality of the universe-wide divine economy — the earth becomes the seat of God's presence among His creation, with \"**more joy in heaven over one world redeemed than over ninety and nine which have needed no redemption**\" (DAR 704.3, alluding to the parable of the lost sheep)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 704.3",
+          "html": "**The tabernacle of God = the city; God literally takes up His abode on this renovated earth.** Verbatim: \"**The conclusion naturally follows that the tabernacle here mentioned is the city. This same city is called in John 14 the Father's house in which are many mansions… The great God takes up his abode on this earth; but we do not suppose that God is confined to this, or any other one of the worlds of his creation. He here has a throne, and the earth enjoys so much of his presence that it may be said that he dwells among men**\" (DAR 704.3). Smith stresses the proportionality of the universe-wide divine economy — the earth becomes the seat of God's presence among His creation, with \"**more joy in heaven over one world redeemed than over ninety and nine which have needed no redemption**\" (DAR 704.3, alluding to the parable of the lost sheep)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -90,10 +99,13 @@
       "num": 4,
       "slug": "v-4",
       "text": "And God shall wipe away all tears from their eyes; and there shall be no more death, neither sorrow, nor crying, neither shall there be any more pain: for the former things are passed away.",
-      "pioneerReading": {
-        "citation": "DAR 705.1",
-        "html": "**The literal removal of every cause of tears — not the literal wiping of literal tears, since no tears will exist to be wiped.** Verbatim: \"**And God shall wipe away all tears from their eyes. He does not literally wipe away tears from the eyes of his people; for there will be no tears in that kingdom to be thus wiped away; but he wipes away tears by removing all causes of tears**\" (DAR 705.1). Smith treats v.4 within the vv. 2-4 block; the substance is the **causal removal** reading (the underlying cause is gone, hence the symptom is absent)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 705.1",
+          "html": "**The literal removal of every cause of tears — not the literal wiping of literal tears, since no tears will exist to be wiped.** Verbatim: \"**And God shall wipe away all tears from their eyes. He does not literally wipe away tears from the eyes of his people; for there will be no tears in that kingdom to be thus wiped away; but he wipes away tears by removing all causes of tears**\" (DAR 705.1). Smith treats v.4 within the vv. 2-4 block; the substance is the **causal removal** reading (the underlying cause is gone, hence the symptom is absent)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -117,10 +129,13 @@
       "num": 5,
       "slug": "v-5",
       "text": "And he that sat upon the throne said, Behold, I make all things new. And he said unto me, Write: for these words are true and faithful.",
-      "pioneerReading": {
-        "citation": "DAR 705.3",
-        "html": "**The earth is renewed, not annihilated; \"I make all things new\" = \"all things are made over new,\" not \"I make all new things.\"** Verbatim: \"**He that sits upon the throne is the same being that is mentioned in verses 11, 12 of the preceding chapter. He says, 'I make all things new;' not, I make all new things. The earth is not destroyed, annihilated, and a new one created, but all things are made over new. Let us rejoice that these words are true and faithful**\" (DAR 705.3). The renovation-not-annihilation reading is Smith's anchor for the **continuity-of-the-globe** doctrine — the present earth, purified by fire, becomes the new earth. Smith cross-links to the universal-anthem of Rev 5:13."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 705.3",
+          "html": "**The earth is renewed, not annihilated; \"I make all things new\" = \"all things are made over new,\" not \"I make all new things.\"** Verbatim: \"**He that sits upon the throne is the same being that is mentioned in verses 11, 12 of the preceding chapter. He says, 'I make all things new;' not, I make all new things. The earth is not destroyed, annihilated, and a new one created, but all things are made over new. Let us rejoice that these words are true and faithful**\" (DAR 705.3). The renovation-not-annihilation reading is Smith's anchor for the **continuity-of-the-globe** doctrine — the present earth, purified by fire, becomes the new earth. Smith cross-links to the universal-anthem of Rev 5:13."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -144,10 +159,13 @@
       "num": 6,
       "slug": "v-6",
       "text": "And he said unto me, It is done. I am Alpha and Omega, the beginning and the end. I will give unto him that is athirst of the fountain of the water of life freely.",
-      "pioneerReading": {
-        "citation": "DAR 705.3",
-        "html": "**\"It is done\" = the consummation; the dark shadow of sin has forever passed off from the universe.** Smith embeds v.6 in the v.5 block: \"**when this is accomplished, all will be ready for the utterance of that sublime sentence, 'It is done.' The dark shadow of sin has then forever passed off from the universe. The wicked, root and branch (Malachi 4:1), are wiped out of the land of the living, and the universal anthem of praise and thanksgiving (Revelation 5:13) goes up from a redeemed world and a clean universe to a covenant-keeping God**\" (DAR 705.3). On the fountain of life: implicit in Smith's broader reading (cf. DAR 716.4 on Rev 22:1, the river of life proceeding from the throne)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 705.3",
+          "html": "**\"It is done\" = the consummation; the dark shadow of sin has forever passed off from the universe.** Smith embeds v.6 in the v.5 block: \"**when this is accomplished, all will be ready for the utterance of that sublime sentence, 'It is done.' The dark shadow of sin has then forever passed off from the universe. The wicked, root and branch (Malachi 4:1), are wiped out of the land of the living, and the universal anthem of praise and thanksgiving (Revelation 5:13) goes up from a redeemed world and a clean universe to a covenant-keeping God**\" (DAR 705.3). On the fountain of life: implicit in Smith's broader reading (cf. DAR 716.4 on Rev 22:1, the river of life proceeding from the throne)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -171,10 +189,13 @@
       "num": 7,
       "slug": "v-7",
       "text": "He that overcometh shall inherit all things; and I will be his God, and he shall be my son.",
-      "pioneerReading": {
-        "citation": "DAR 705.5",
-        "html": "**The overcomers are Abraham's seed, heirs according to the promise; the inheritance is the new earth itself.** Verbatim: \"**The overcomers are Abraham's seed, and heirs according to the promise. Galatians 3:29. The promise embraces the world (Romans 4:13); and the saints will go forth upon the new earth, not as servants or aliens, but as lawful heirs to the heavenly estate and proprietors of the soil**\" (DAR 705.5). Smith ties the overcomer-promise into the Abrahamic-covenant framework (Gal 3:29; Rom 4:13) — the saints are the heirs of the world."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 705.5",
+          "html": "**The overcomers are Abraham's seed, heirs according to the promise; the inheritance is the new earth itself.** Verbatim: \"**The overcomers are Abraham's seed, and heirs according to the promise. Galatians 3:29. The promise embraces the world (Romans 4:13); and the saints will go forth upon the new earth, not as servants or aliens, but as lawful heirs to the heavenly estate and proprietors of the soil**\" (DAR 705.5). Smith ties the overcomer-promise into the Abrahamic-covenant framework (Gal 3:29; Rom 4:13) — the saints are the heirs of the world."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -198,10 +219,13 @@
       "num": 8,
       "slug": "v-8",
       "text": "But the fearful, and unbelieving, and the abominable, and murderers, and whoremongers, and sorcerers, and idolaters, and all liars, shall have their part in the lake which burneth with fire and brimstone: which is the second death.",
-      "pioneerReading": {
-        "citation": "DAR 706.1",
-        "html": "**The lost class — annihilated in the second death, the lake of fire.** Smith devotes the exposition to the pastoral nuance of \"fearful\": \"**The word 'fearful' has been a trouble to some conscientious ones, who have had fears more or less in all their Christian experience… It is not fear of our own weakness, or of the power of the tempter; it is not fear of sinning, or of falling out by the way, or of coming short at last. Such fear will be very apt to drive us to the Lord. But it is a fear connected with unbelief; a fear of the ridicule and opposition of the world; a fear to trust God, and venture out upon his promises; a fear that he will not fulfill what he has declared, and that consequently we shall be left to shame and loss for believing on him**\" (DAR 706.1). The second-death identification (= annihilation, per the Rev 20:14 treatment) is implicit; the catalogue is the second-death class."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 706.1",
+          "html": "**The lost class — annihilated in the second death, the lake of fire.** Smith devotes the exposition to the pastoral nuance of \"fearful\": \"**The word 'fearful' has been a trouble to some conscientious ones, who have had fears more or less in all their Christian experience… It is not fear of our own weakness, or of the power of the tempter; it is not fear of sinning, or of falling out by the way, or of coming short at last. Such fear will be very apt to drive us to the Lord. But it is a fear connected with unbelief; a fear of the ridicule and opposition of the world; a fear to trust God, and venture out upon his promises; a fear that he will not fulfill what he has declared, and that consequently we shall be left to shame and loss for believing on him**\" (DAR 706.1). The second-death identification (= annihilation, per the Rev 20:14 treatment) is implicit; the catalogue is the second-death class."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -225,10 +249,13 @@
       "num": 9,
       "slug": "v-9",
       "text": "And there came unto me one of the seven angels which had the seven vials full of the seven last plagues, and talked with me, saying, Come hither, I will shew thee the bride, the Lamb's wife.",
-      "pioneerReading": {
-        "citation": "DAR 706.3-708.1",
-        "html": "**The bride = the New Jerusalem, the city itself — not the church.** This is Smith's most extended single argument in the chapter. Verbatim: \"**This testimony is positive that the New Jerusalem is the bride, the Lamb's wife. The angel told John distinctly that he would show him the bride, the Lamb's wife; and we may be sure that he did not practice upon him a piece of deception, but fulfilled his promise to the very letter; but all that he did show him was the New Jerusalem**\" (DAR 706.3). On the absurdity of bride-equals-church: \"**It would be unnecessary to offer a word of proof that this city is not the church, were it not that popular theology has so mystified the Scriptures as to give it this application. This city, then, cannot be the church, because it would be absurd to talk of the church as lying foursquare, and having a north side, a south side, an east side, and a west side**\" (DAR 706.3). On the Isaiah-54 / Galatians-4 inspired-application: Paul \"**makes an inspired application of Isaiah's prophecy which cannot be mistaken; and in this he shows that under the figure of a 'woman,' a 'wife' whose 'children' were to be multiplied, the Lord by the prophet speaks of the New Jerusalem, the city above, as contrasted with the earthly Jerusalem in the land of Palestine; and of this city the Lord calls himself the 'husband'**\" (DAR 707.2). On the wedding-party assignment: \"**With this view, all is harmony. Christ is called the Father of his people (Isaiah 9:6); the Jerusalem above is called our mother, and we are called the children; and, carrying out the figure of a marriage, Christ is represented as the Bridegroom, the city as the bride, and we, the church, as the guests**\" (DAR 708.1). On the marriage-as-coronation typology: \"**It is said that when a person took his position as ruler over the people, and was invested with that power, it was called a marriage, and the usually accompanying feast was called a marriage supper… Many eminent critics so understand this parable as indicating the Father's induction of his Son into his Messianic kingdom**\" (DAR 708.2-3)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 706.3-708.1",
+          "html": "**The bride = the New Jerusalem, the city itself — not the church.** This is Smith's most extended single argument in the chapter. Verbatim: \"**This testimony is positive that the New Jerusalem is the bride, the Lamb's wife. The angel told John distinctly that he would show him the bride, the Lamb's wife; and we may be sure that he did not practice upon him a piece of deception, but fulfilled his promise to the very letter; but all that he did show him was the New Jerusalem**\" (DAR 706.3). On the absurdity of bride-equals-church: \"**It would be unnecessary to offer a word of proof that this city is not the church, were it not that popular theology has so mystified the Scriptures as to give it this application. This city, then, cannot be the church, because it would be absurd to talk of the church as lying foursquare, and having a north side, a south side, an east side, and a west side**\" (DAR 706.3). On the Isaiah-54 / Galatians-4 inspired-application: Paul \"**makes an inspired application of Isaiah's prophecy which cannot be mistaken; and in this he shows that under the figure of a 'woman,' a 'wife' whose 'children' were to be multiplied, the Lord by the prophet speaks of the New Jerusalem, the city above, as contrasted with the earthly Jerusalem in the land of Palestine; and of this city the Lord calls himself the 'husband'**\" (DAR 707.2). On the wedding-party assignment: \"**With this view, all is harmony. Christ is called the Father of his people (Isaiah 9:6); the Jerusalem above is called our mother, and we are called the children; and, carrying out the figure of a marriage, Christ is represented as the Bridegroom, the city as the bride, and we, the church, as the guests**\" (DAR 708.1). On the marriage-as-coronation typology: \"**It is said that when a person took his position as ruler over the people, and was invested with that power, it was called a marriage, and the usually accompanying feast was called a marriage supper… Many eminent critics so understand this parable as indicating the Father's induction of his Son into his Messianic kingdom**\" (DAR 708.2-3)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -252,10 +279,13 @@
       "num": 10,
       "slug": "v-10",
       "text": "And he carried me away in the spirit to a great and high mountain, and shewed me that great city, the holy Jerusalem, descending out of heaven from God,",
-      "pioneerReading": {
-        "citation": "DAR 706.2",
-        "html": "Smith embeds v.10 in the vv. 9-14 block as the angel's vision-transport scene; the substance is in the v.9 bride-identification treatment and the vv. 12-14 city-description treatment. The \"great and high mountain\" is the prophet's vantage point for viewing the descending city — narratively parallel to Rev 17:3 (the angel carrying John into the wilderness to see Babylon). Smith does not give v.10 separate doctrinal weight."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 706.2",
+          "html": "Smith embeds v.10 in the vv. 9-14 block as the angel's vision-transport scene; the substance is in the v.9 bride-identification treatment and the vv. 12-14 city-description treatment. The \"great and high mountain\" is the prophet's vantage point for viewing the descending city — narratively parallel to Rev 17:3 (the angel carrying John into the wilderness to see Babylon). Smith does not give v.10 separate doctrinal weight."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -279,10 +309,13 @@
       "num": 11,
       "slug": "v-11",
       "text": "Having the glory of God: and her light was like unto a stone most precious, even like a jasper stone, clear as crystal;",
-      "pioneerReading": {
-        "citation": "DAR 711.2 — no direct v.11 anchor in the DAR exposition, but the substance is covered",
-        "html": "Smith does not give v.11 a separate verse-treatment in his expansion-tracker (the tracker notes \"no direct anchor\"). The substance, however, is given at DAR 711.2 in his comment on v.18 (the wall of jasper): \"**The building of the wall was of jasper. Jasper is a precious stone usually described as of 'a beautiful bright green color, sometimes clouded with white or spotted with yellow.' This we understand to be the material of the main body of the wall built upon the twelve foundations hereafter described. And let it be remembered that this jasper wall was 'clear as crystal' (verse 11), revealing all the glories within**\" (DAR 711.2). The crystal-clear jasper-stone glory of God shining through the wall is, on Smith's reading, the literal manifestation of the divine glory illuminating the city."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 711.2 — no direct v.11 anchor in the DAR exposition, but the substance is covered",
+          "html": "Smith does not give v.11 a separate verse-treatment in his expansion-tracker (the tracker notes \"no direct anchor\"). The substance, however, is given at DAR 711.2 in his comment on v.18 (the wall of jasper): \"**The building of the wall was of jasper. Jasper is a precious stone usually described as of 'a beautiful bright green color, sometimes clouded with white or spotted with yellow.' This we understand to be the material of the main body of the wall built upon the twelve foundations hereafter described. And let it be remembered that this jasper wall was 'clear as crystal' (verse 11), revealing all the glories within**\" (DAR 711.2). The crystal-clear jasper-stone glory of God shining through the wall is, on Smith's reading, the literal manifestation of the divine glory illuminating the city."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -306,10 +339,13 @@
       "num": 12,
       "slug": "v-12",
       "text": "And had a wall great and high, and had twelve gates, and at the gates twelve angels, and names written thereon, which are the names of the twelve tribes of the children of Israel:",
-      "pioneerReading": {
-        "citation": "DAR 706.2, 709.1 — no separate v.12 anchor, but covered under v.14 / \"A Christian City\"",
-        "html": "Smith treats vv. 12-14 as one block describing the city's wall, gates, and foundations. On the twelve-tribes / twelve-apostles dual symbolism: \"**The names of the twelve apostles in the foundations of the city, show it to be a Christian and not a Jewish city; while the names of the twelve tribes on the gates, show that all the saved, from this dispensation as well as from the former, are reckoned as belonging to some one of the twelve tribes; for all must enter the city through some one of these twelve gates. It is this fact which explains those instances in which Christians are called Israel, and are addressed as the twelve tribes, as in Romans 2:28, 29; 9:6-8; Galatians 3:29; Ephesians 2:12, 13; James 1:1; Revelation 7:4**\" (DAR 709.1). The twelve gates with the twelve tribes establish the unity of OT and NT redeemed in one city."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 706.2, 709.1 — no separate v.12 anchor, but covered under v.14 / \"A Christian City\"",
+          "html": "Smith treats vv. 12-14 as one block describing the city's wall, gates, and foundations. On the twelve-tribes / twelve-apostles dual symbolism: \"**The names of the twelve apostles in the foundations of the city, show it to be a Christian and not a Jewish city; while the names of the twelve tribes on the gates, show that all the saved, from this dispensation as well as from the former, are reckoned as belonging to some one of the twelve tribes; for all must enter the city through some one of these twelve gates. It is this fact which explains those instances in which Christians are called Israel, and are addressed as the twelve tribes, as in Romans 2:28, 29; 9:6-8; Galatians 3:29; Ephesians 2:12, 13; James 1:1; Revelation 7:4**\" (DAR 709.1). The twelve gates with the twelve tribes establish the unity of OT and NT redeemed in one city."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -333,10 +369,13 @@
       "num": 13,
       "slug": "v-13",
       "text": "On the east three gates; on the north three gates; on the south three gates; and on the west three gates.",
-      "pioneerReading": {
-        "citation": "no direct DAR v.13 anchor",
-        "html": "Smith treats v.13 within the vv. 12-14 block (DAR 706.2 quotes the whole block) and within the v.16 foursquare-city treatment (DAR 709.2-3). The four-sides-three-gates-each pattern is part of the foursquare-symmetry framework — the city is approachable from every direction, symbolizing the universality of access to the redeemed of every tribe."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "no direct DAR v.13 anchor",
+          "html": "Smith treats v.13 within the vv. 12-14 block (DAR 706.2 quotes the whole block) and within the v.16 foursquare-city treatment (DAR 709.2-3). The four-sides-three-gates-each pattern is part of the foursquare-symmetry framework — the city is approachable from every direction, symbolizing the universality of access to the redeemed of every tribe."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -360,10 +399,13 @@
       "num": 14,
       "slug": "v-14",
       "text": "And the wall of the city had twelve foundations, and in them the names of the twelve apostles of the Lamb.",
-      "pioneerReading": {
-        "citation": "DAR 709.1",
-        "html": "**The twelve apostolic foundations make the city a Christian (not Jewish) city — the NT redeemed enter through the twelve gates bearing the names of the twelve tribes.** Verbatim (re-cited from above): \"**The names of the twelve apostles in the foundations of the city, show it to be a Christian and not a Jewish city; while the names of the twelve tribes on the gates, show that all the saved, from this dispensation as well as from the former, are reckoned as belonging to some one of the twelve tribes**\" (DAR 709.1). The OT-NT unity is structural: the OT saved enter through the gates bearing their tribal names; the NT saved enter through the same gates but the city rests on apostolic foundations — both classes inhabit one city."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 709.1",
+          "html": "**The twelve apostolic foundations make the city a Christian (not Jewish) city — the NT redeemed enter through the twelve gates bearing the names of the twelve tribes.** Verbatim (re-cited from above): \"**The names of the twelve apostles in the foundations of the city, show it to be a Christian and not a Jewish city; while the names of the twelve tribes on the gates, show that all the saved, from this dispensation as well as from the former, are reckoned as belonging to some one of the twelve tribes**\" (DAR 709.1). The OT-NT unity is structural: the OT saved enter through the gates bearing their tribal names; the NT saved enter through the same gates but the city rests on apostolic foundations — both classes inhabit one city."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -387,10 +429,13 @@
       "num": 15,
       "slug": "v-15",
       "text": "And he that talked with me had a golden reed to measure the city, and the gates thereof, and the wall thereof.",
-      "pioneerReading": {
-        "citation": "DAR 709.2-3",
-        "html": "Smith treats vv. 15-18 as one block describing the city's measurement, dimensions, and wall materials. The golden reed of measurement parallels the measuring scenes of Ezek 40-42 and Rev 11:1 — though Smith does not develop the parallel explicitly at v.15. The substance is in the v.16 dimensions treatment (the foursquare 12,000 furlongs)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 709.2-3",
+          "html": "Smith treats vv. 15-18 as one block describing the city's measurement, dimensions, and wall materials. The golden reed of measurement parallels the measuring scenes of Ezek 40-42 and Rev 11:1 — though Smith does not develop the parallel explicitly at v.15. The substance is in the v.16 dimensions treatment (the foursquare 12,000 furlongs)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -414,10 +459,13 @@
       "num": 16,
       "slug": "v-16",
       "text": "And the city lieth foursquare, and the length is as large as the breadth: and he measured the city with the reed, twelve thousand furlongs. The length and the breadth and the height of it are equal.",
-      "pioneerReading": {
-        "citation": "DAR 709.3-711.1",
-        "html": "**Foursquare, 375 miles per side (12,000 furlongs = the perimeter, not one side), with the \"height equal\" reading as PROPORTION, not equal-cube.** This is Smith's most developed exegetical move in the chapter. Verbatim: \"**According to this testimony the city is laid out in a perfect square, measuring equally on all sides. The measure of the city, John declares, was twelve thousand furlongs. Twelve thousand furlongs, eight furlongs to the mile, equal fifteen hundred English miles. It may be understood that this measure is the measure of the whole circumference of the city, and not merely of one side. This appears, from Kitto, to have been the ancient method of measuring cities. The whole circumference was taken, and that was said to be the measure of the city. According to this rule, the New Jerusalem will be three hundred and seventy-five miles on each side**\" (DAR 709.3). On \"the height equal\" reading: \"**The length, breadth, and height of it are equal. From this language, the question has arisen whether the city was as high as it was long and broad. The word rendered equal is ἴσος (isos); and from the definitions given by Liddell and Scott, we learn that it may be used to convey the idea of proportion: the height was proportionate to the length and breadth. And this idea is strengthened by the fact that the wall was only a hundred and forty-four cubits high. Taking the cubit at about twenty-two inches… it would give only two hundred and sixty-four feet as the height of the wall. Now, if the city is just as high as it is long and broad, that is, three hundred and seventy-five miles, this wall of less than three hundred feet would be, in comparison, a most insignificant affair**\" (DAR 709.3). Smith cites Du Pui and Wicks for the proportion-reading and concludes: \"**It would appear, therefore, that the height of the city was proportionate to its length and breadth, and not that it was as high as it was long**\" (DAR 711.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 709.3-711.1",
+          "html": "**Foursquare, 375 miles per side (12,000 furlongs = the perimeter, not one side), with the \"height equal\" reading as PROPORTION, not equal-cube.** This is Smith's most developed exegetical move in the chapter. Verbatim: \"**According to this testimony the city is laid out in a perfect square, measuring equally on all sides. The measure of the city, John declares, was twelve thousand furlongs. Twelve thousand furlongs, eight furlongs to the mile, equal fifteen hundred English miles. It may be understood that this measure is the measure of the whole circumference of the city, and not merely of one side. This appears, from Kitto, to have been the ancient method of measuring cities. The whole circumference was taken, and that was said to be the measure of the city. According to this rule, the New Jerusalem will be three hundred and seventy-five miles on each side**\" (DAR 709.3). On \"the height equal\" reading: \"**The length, breadth, and height of it are equal. From this language, the question has arisen whether the city was as high as it was long and broad. The word rendered equal is ἴσος (isos); and from the definitions given by Liddell and Scott, we learn that it may be used to convey the idea of proportion: the height was proportionate to the length and breadth. And this idea is strengthened by the fact that the wall was only a hundred and forty-four cubits high. Taking the cubit at about twenty-two inches… it would give only two hundred and sixty-four feet as the height of the wall. Now, if the city is just as high as it is long and broad, that is, three hundred and seventy-five miles, this wall of less than three hundred feet would be, in comparison, a most insignificant affair**\" (DAR 709.3). Smith cites Du Pui and Wicks for the proportion-reading and concludes: \"**It would appear, therefore, that the height of the city was proportionate to its length and breadth, and not that it was as high as it was long**\" (DAR 711.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -444,10 +492,13 @@
       "num": 17,
       "slug": "v-17",
       "text": "And he measured the wall thereof, an hundred and forty and four cubits, according to the measure of a man, that is, of the angel.",
-      "pioneerReading": {
-        "citation": "DAR 709.3",
-        "html": "**144 cubits (≈ 264 feet at 22 inches/cubit, or 216 feet at 18 inches/cubit) — the literal wall height.** Smith uses the wall-height as the structural argument FOR the proportion-reading of v.16: \"**Taking the cubit at about twenty-two inches, the length which is most commonly assigned to the ancient cubit, it would give only two hundred and sixty-four feet as the height of the wall. Now, if the city is just as high as it is long and broad, that is, three hundred and seventy-five miles, this wall of less than three hundred feet would be, in comparison, a most insignificant affair. Probably, therefore, the height of the buildings of the city is to be judged of by the height of the wall, which is distinctly given**\" (DAR 709.3). Smith's reading: the 264-foot wall fixes the proportional scale for the city's buildings; a 1,500-mile-tall city behind a 264-foot wall would be architectural nonsense."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 709.3",
+          "html": "**144 cubits (≈ 264 feet at 22 inches/cubit, or 216 feet at 18 inches/cubit) — the literal wall height.** Smith uses the wall-height as the structural argument FOR the proportion-reading of v.16: \"**Taking the cubit at about twenty-two inches, the length which is most commonly assigned to the ancient cubit, it would give only two hundred and sixty-four feet as the height of the wall. Now, if the city is just as high as it is long and broad, that is, three hundred and seventy-five miles, this wall of less than three hundred feet would be, in comparison, a most insignificant affair. Probably, therefore, the height of the buildings of the city is to be judged of by the height of the wall, which is distinctly given**\" (DAR 709.3). Smith's reading: the 264-foot wall fixes the proportional scale for the city's buildings; a 1,500-mile-tall city behind a 264-foot wall would be architectural nonsense."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -471,10 +522,13 @@
       "num": 18,
       "slug": "v-18",
       "text": "And the building of the wall of it was of jasper: and the city was pure gold, like unto clear glass.",
-      "pioneerReading": {
-        "citation": "DAR 711.2, 713.8",
-        "html": "**Literal jasper wall, literal gold city — with the \"clear glass\" gold understood as highly polished, mirror-like, NOT literally transparent.** Verbatim on jasper: \"**The building of the wall was of jasper. Jasper is a precious stone usually described as of 'a beautiful bright green color, sometimes clouded with white or spotted with yellow.' This we understand to be the material of the main body of the wall built upon the twelve foundations hereafter described. And let it be remembered that this jasper wall was 'clear as crystal' (verse 11), revealing all the glories within**\" (DAR 711.2). On the gold-like-clear-glass reading: \"**In this verse, as also in verse 18, the city is spoken of as built of gold, pure, like unto clear glass, or, as it were, transparent glass. It is not necessary to conclude from this language that the gold is of itself transparent. Take that, for instance, which composes the street. If it were really transparent, it would simply permit us to look through and behold whatever was beneath the city, — the substratum upon which it rested, — a view which cannot be anticipated as specially pleasing. But let us suppose the golden pavement of the street to be so highly polished as to possess perfect powers of reflection, like the truest mirror, and we can see at once that the effect would be grand and striking in the extreme**\" (DAR 713.8)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 711.2, 713.8",
+          "html": "**Literal jasper wall, literal gold city — with the \"clear glass\" gold understood as highly polished, mirror-like, NOT literally transparent.** Verbatim on jasper: \"**The building of the wall was of jasper. Jasper is a precious stone usually described as of 'a beautiful bright green color, sometimes clouded with white or spotted with yellow.' This we understand to be the material of the main body of the wall built upon the twelve foundations hereafter described. And let it be remembered that this jasper wall was 'clear as crystal' (verse 11), revealing all the glories within**\" (DAR 711.2). On the gold-like-clear-glass reading: \"**In this verse, as also in verse 18, the city is spoken of as built of gold, pure, like unto clear glass, or, as it were, transparent glass. It is not necessary to conclude from this language that the gold is of itself transparent. Take that, for instance, which composes the street. If it were really transparent, it would simply permit us to look through and behold whatever was beneath the city, — the substratum upon which it rested, — a view which cannot be anticipated as specially pleasing. But let us suppose the golden pavement of the street to be so highly polished as to possess perfect powers of reflection, like the truest mirror, and we can see at once that the effect would be grand and striking in the extreme**\" (DAR 713.8)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -498,10 +552,13 @@
       "num": 19,
       "slug": "v-19",
       "text": "And the foundations of the wall of the city were garnished with all manner of precious stones. The first foundation was jasper; the second, sapphire; the third, a chalcedony; the fourth, an emerald;",
-      "pioneerReading": {
-        "citation": "DAR 711.3-712.5",
-        "html": "**The twelve precious-stone foundations literally garnish the wall, in classified color groups.** Smith's treatment is the most extensive in the chapter for materials. The literal-city argument: \"**If we consider this description exclusively metaphorical, as is done by the great mass of those who profess to be Bible teachers, and spiritualize away this city into aerial nothingness, how unmeaning, yea, even bordering upon folly, do these minute descriptions appear; but if we take it, as it is evidently designed to be understood, in its natural and obvious signification, and look upon the city as the Revelator evidently designed we should look upon it, as a literal and tangible abode, our glorious inheritance, the beauties of which we are to look upon with our own eyes, how is the glory of the scene enhanced!**\" (DAR 711.4). On the individual stones (quoting Stuart): jasper = green/transparent with red veins; sapphire = azure sky-blue; chalcedony = bluish-white agate/onyx, semipellucid; emerald = vivid green (DAR 712.2-5)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 711.3-712.5",
+          "html": "**The twelve precious-stone foundations literally garnish the wall, in classified color groups.** Smith's treatment is the most extensive in the chapter for materials. The literal-city argument: \"**If we consider this description exclusively metaphorical, as is done by the great mass of those who profess to be Bible teachers, and spiritualize away this city into aerial nothingness, how unmeaning, yea, even bordering upon folly, do these minute descriptions appear; but if we take it, as it is evidently designed to be understood, in its natural and obvious signification, and look upon the city as the Revelator evidently designed we should look upon it, as a literal and tangible abode, our glorious inheritance, the beauties of which we are to look upon with our own eyes, how is the glory of the scene enhanced!**\" (DAR 711.4). On the individual stones (quoting Stuart): jasper = green/transparent with red veins; sapphire = azure sky-blue; chalcedony = bluish-white agate/onyx, semipellucid; emerald = vivid green (DAR 712.2-5)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -525,10 +582,13 @@
       "num": 20,
       "slug": "v-20",
       "text": "The fifth, sardonyx; the sixth, sardius; the seventh, chrysolite; the eighth, beryl; the ninth, a topaz; the tenth, a chrysoprasus; the eleventh, a jacinth; the twelfth, an amethyst.",
-      "pioneerReading": {
-        "citation": "DAR 712.6-713.5",
-        "html": "Smith continues the stone-by-stone enumeration: sardonyx = chalcedony+carnelian mixture (flesh-color); sardius = carnelian (red); chrysolite = yellow/gold-pellucid; beryl = sea-green; topaz = pale green (ancient) or yellow (modern); chrysoprasus = pale yellow/greenish (scallion-like); jacinth = deep red or violet; amethyst = violet, hard, brilliant. Smith's classification: \"**In looking over these various classes, we find the first four to be of a green or bluish cast, the fifth and sixth, of a red or scarlet; the seventh, yellow; the eighth, ninth, and tenth, of different shades of the lighter green; the eleventh and twelfth of a scarlet or splendid red. There is classification, therefore, in this arrangement; a mixture not dissimilar to the arrangement in the rainbow, with the exception that it is more complex**\" (DAR 713.5)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 712.6-713.5",
+          "html": "Smith continues the stone-by-stone enumeration: sardonyx = chalcedony+carnelian mixture (flesh-color); sardius = carnelian (red); chrysolite = yellow/gold-pellucid; beryl = sea-green; topaz = pale green (ancient) or yellow (modern); chrysoprasus = pale yellow/greenish (scallion-like); jacinth = deep red or violet; amethyst = violet, hard, brilliant. Smith's classification: \"**In looking over these various classes, we find the first four to be of a green or bluish cast, the fifth and sixth, of a red or scarlet; the seventh, yellow; the eighth, ninth, and tenth, of different shades of the lighter green; the eleventh and twelfth of a scarlet or splendid red. There is classification, therefore, in this arrangement; a mixture not dissimilar to the arrangement in the rainbow, with the exception that it is more complex**\" (DAR 713.5)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -552,10 +612,13 @@
       "num": 21,
       "slug": "v-21",
       "text": "And the twelve gates were twelve pearls; every several gate was of one pearl: and the street of the city was pure gold, as it were transparent glass.",
-      "pioneerReading": {
-        "citation": "DAR 713.6-714.1",
-        "html": "**Literal pearl gates (or pearl-set framework) and literal gold street with polished-mirror reflectivity.** On the pearl gates: \"**Whether we understand that these gates were of solid pearl, or whether composed of pearls thickly set in a framework of some other precious material, does not materially affect the testimony. If it should be objected that it would be contrary to the nature of things to have a pearl large enough for a gate, we reply that God is able to produce it; the objection simply limits the power of God. But in either case the gates would outwardly have the appearance of pearl, and in ordinary language would be described as gates of pearl**\" (DAR 713.7). On the gold-street as polished mirror: \"**Let us suppose the golden pavement of the street to be so highly polished as to possess perfect powers of reflection, like the truest mirror… The gorgeous palaces on either side would be reflected beneath, and the boundless expanse of the heavens above would also appear below; so that to the person walking those golden streets it would appear that both himself and the city were suspended between the infinite heights above and the unfathomable depths below**\" (DAR 713.8-714.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 713.6-714.1",
+          "html": "**Literal pearl gates (or pearl-set framework) and literal gold street with polished-mirror reflectivity.** On the pearl gates: \"**Whether we understand that these gates were of solid pearl, or whether composed of pearls thickly set in a framework of some other precious material, does not materially affect the testimony. If it should be objected that it would be contrary to the nature of things to have a pearl large enough for a gate, we reply that God is able to produce it; the objection simply limits the power of God. But in either case the gates would outwardly have the appearance of pearl, and in ordinary language would be described as gates of pearl**\" (DAR 713.7). On the gold-street as polished mirror: \"**Let us suppose the golden pavement of the street to be so highly polished as to possess perfect powers of reflection, like the truest mirror… The gorgeous palaces on either side would be reflected beneath, and the boundless expanse of the heavens above would also appear below; so that to the person walking those golden streets it would appear that both himself and the city were suspended between the infinite heights above and the unfathomable depths below**\" (DAR 713.8-714.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -579,10 +642,13 @@
       "num": 22,
       "slug": "v-22",
       "text": "And I saw no temple therein: for the Lord God Almighty and the Lamb are the temple of it.",
-      "pioneerReading": {
-        "citation": "DAR 714.2",
-        "html": "**No temple because no sacrifices, no mediatorial work — the Lord God and the Lamb are themselves the city's temple-glory.** Verbatim: \"**With the temple is connected the idea of sacrifices and a mediatorial work; but when the city is located upon the earth, there will be no such work to be performed. Sacrifices and offerings, and all mediatorial work based thereon, will be forever past; hence there will be no need of the outward symbol of such work. But the temple in old Jerusalem, besides being a place for sacrificial worship, was the beauty and glory of the place; and as if to anticipate the question that might arise as to what would constitute the ornament and glory of the new city if there was to be no temple therein, the prophet answers, 'The Lord God Almighty and the Lamb are the temple of it.' It appears that there is now a temple in the city. Chapter 16:17. What becomes of that temple when the city comes down, revelation does not inform us. Possibly it is removed from the city, or it may be put to such a different use as to cease to be the temple of God**\" (DAR 714.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 714.2",
+          "html": "**No temple because no sacrifices, no mediatorial work — the Lord God and the Lamb are themselves the city's temple-glory.** Verbatim: \"**With the temple is connected the idea of sacrifices and a mediatorial work; but when the city is located upon the earth, there will be no such work to be performed. Sacrifices and offerings, and all mediatorial work based thereon, will be forever past; hence there will be no need of the outward symbol of such work. But the temple in old Jerusalem, besides being a place for sacrificial worship, was the beauty and glory of the place; and as if to anticipate the question that might arise as to what would constitute the ornament and glory of the new city if there was to be no temple therein, the prophet answers, 'The Lord God Almighty and the Lamb are the temple of it.' It appears that there is now a temple in the city. Chapter 16:17. What becomes of that temple when the city comes down, revelation does not inform us. Possibly it is removed from the city, or it may be put to such a different use as to cease to be the temple of God**\" (DAR 714.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -606,10 +672,13 @@
       "num": 23,
       "slug": "v-23",
       "text": "And the city had no need of the sun, neither of the moon, to shine in it: for the glory of God did lighten it, and the Lamb is the light thereof.",
-      "pioneerReading": {
-        "citation": "DAR 714.3",
-        "html": "Smith treats vv. 23-27 as one block. The substance on v.23: the city has no need of the sun and moon because God's glory lightens it — the sun and moon continue to exist in the new earth (cf. v.24's \"nations of the saved\"), but the city itself has its own glory-light. Smith does not give v.23 a separate verse-treatment in the DAR exposition; the substance is folded into the \"No Night There\" treatment at DAR 715.1."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 714.3",
+          "html": "Smith treats vv. 23-27 as one block. The substance on v.23: the city has no need of the sun and moon because God's glory lightens it — the sun and moon continue to exist in the new earth (cf. v.24's \"nations of the saved\"), but the city itself has its own glory-light. Smith does not give v.23 a separate verse-treatment in the DAR exposition; the substance is folded into the \"No Night There\" treatment at DAR 715.1."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -633,10 +702,13 @@
       "num": 24,
       "slug": "v-24",
       "text": "And the nations of them which are saved shall walk in the light of it: and the kings of the earth do bring their glory and honor into it.",
-      "pioneerReading": {
-        "citation": "DAR 715.2-3",
-        "html": "**The nations of the saved = the redeemed; \"kings of the earth\" = the saints who occupy ruling positions among the saved.** Verbatim: \"**Verse 24 speaks of nations and kings. The nations are the nations of the saved; and we are all kings, in a certain sense, in the new-earth state. We possess a 'kingdom,' and are to 'reign' forever and ever. But it appears from some of our Saviour's parables, as in Matthew 25:21, 23, that some will occupy in a special sense the position of rulers, and may thus be spoken of as kings of the earth, in connection with the nations of the saved. These bring their glory and honor into the city, when on the Sabbaths and new moons they there come up to worship before God. Isaiah 66:23**\" (DAR 715.2-3). The kings-of-the-earth bringing glory is the periodic Sabbath-and-new-moon worship-ascent of the redeemed living in the new-earth countryside into the city itself (a Smith distinctive — the redeemed are not all city-dwelling; the city is the focal worship-and-throne centre to which the new-earth nations ascend)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 715.2-3",
+          "html": "**The nations of the saved = the redeemed; \"kings of the earth\" = the saints who occupy ruling positions among the saved.** Verbatim: \"**Verse 24 speaks of nations and kings. The nations are the nations of the saved; and we are all kings, in a certain sense, in the new-earth state. We possess a 'kingdom,' and are to 'reign' forever and ever. But it appears from some of our Saviour's parables, as in Matthew 25:21, 23, that some will occupy in a special sense the position of rulers, and may thus be spoken of as kings of the earth, in connection with the nations of the saved. These bring their glory and honor into the city, when on the Sabbaths and new moons they there come up to worship before God. Isaiah 66:23**\" (DAR 715.2-3). The kings-of-the-earth bringing glory is the periodic Sabbath-and-new-moon worship-ascent of the redeemed living in the new-earth countryside into the city itself (a Smith distinctive — the redeemed are not all city-dwelling; the city is the focal worship-and-throne centre to which the new-earth nations ascend)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -660,10 +732,13 @@
       "num": 25,
       "slug": "v-25",
       "text": "And the gates of it shall not be shut at all by day: for there shall be no night there.",
-      "pioneerReading": {
-        "citation": "DAR 715.1",
-        "html": "**The \"no night there\" is in the city alone; the new-earth countryside has days and nights, both of surpassing glory.** Verbatim: \"**It is in the city alone, probably, that there is no night. There will of course be days and nights in the new earth, but they will be days and nights of surpassing glory. The prophet, speaking of this time, says, 'Moreover, the light of the moon shall be as the light of the sun, and the light of the sun shall be sevenfold, as the light of seven days, in the day that the Lord bindeth up the breach of his people, and healeth the stroke of their wound.' Isaiah 30:26**\" (DAR 715.1). Smith's reading: night and day cycle continues in the new earth; only WITHIN the city is there no night, because God's glory is unbroken. The gates' never-being-shut is a function of the no-night condition."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 715.1",
+          "html": "**The \"no night there\" is in the city alone; the new-earth countryside has days and nights, both of surpassing glory.** Verbatim: \"**It is in the city alone, probably, that there is no night. There will of course be days and nights in the new earth, but they will be days and nights of surpassing glory. The prophet, speaking of this time, says, 'Moreover, the light of the moon shall be as the light of the sun, and the light of the sun shall be sevenfold, as the light of seven days, in the day that the Lord bindeth up the breach of his people, and healeth the stroke of their wound.' Isaiah 30:26**\" (DAR 715.1). Smith's reading: night and day cycle continues in the new earth; only WITHIN the city is there no night, because God's glory is unbroken. The gates' never-being-shut is a function of the no-night condition."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -687,10 +762,13 @@
       "num": 26,
       "slug": "v-26",
       "text": "And they shall bring the glory and honor of the nations into it.",
-      "pioneerReading": {
-        "citation": "DAR 715.3 — embedded in v.24 treatment",
-        "html": "Smith treats v.26 as a restatement of v.24's bring-glory-and-honor clause — the saints/kings-of-the-earth bringing their tribute into the city. The substance is in the Sabbath-and-new-moon worship-ascent reading at DAR 715.3 (cited above under v.24)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 715.3 — embedded in v.24 treatment",
+          "html": "Smith treats v.26 as a restatement of v.24's bring-glory-and-honor clause — the saints/kings-of-the-earth bringing their tribute into the city. The substance is in the Sabbath-and-new-moon worship-ascent reading at DAR 715.3 (cited above under v.24)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -714,10 +792,13 @@
       "num": 27,
       "slug": "v-27",
       "text": "And there shall in no wise enter into it any thing that defileth, neither whatsoever worketh abomination, or maketh a lie: but they which are written in the Lamb's book of life.",
-      "pioneerReading": {
-        "citation": "DAR 715.4",
-        "html": "**Only those whose names are in the Lamb's book of life enter the city; pastoral application to the reader.** Verbatim: \"**Reader, do you want a part in the unspeakable and eternal glories of this heavenly city? See to it, then, that your name is written in the Lamb's book of life; for those only whose names are on that heavenly 'roll of honor' can enter there**\" (DAR 715.4). The catalogue (defilement, abomination, lie) parallels vv. 7-8 — same class of the lost is barred from the city throughout the chapter."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 715.4",
+          "html": "**Only those whose names are in the Lamb's book of life enter the city; pastoral application to the reader.** Verbatim: \"**Reader, do you want a part in the unspeakable and eternal glories of this heavenly city? See to it, then, that your name is written in the Lamb's book of life; for those only whose names are on that heavenly 'roll of honor' can enter there**\" (DAR 715.4). The catalogue (defilement, abomination, lie) parallels vv. 7-8 — same class of the lost is barred from the city throughout the chapter."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",

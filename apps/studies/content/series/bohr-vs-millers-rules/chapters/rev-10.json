@@ -9,10 +9,13 @@
       "num": 1,
       "slug": "v-1",
       "text": "And I saw another mighty angel come down from heaven, clothed with a cloud, and a rainbow was upon his head, and his face was as it were the sun, and his feet as pillars of fire:",
-      "pioneerReading": {
-        "citation": "DAR 488.1, 490.1-491.1",
-        "html": "Smith treats the angel as a **symbol of a religious teacher / movement** rather than addressing the question \"is this Christ Himself?\" directly at v.1; the identification work goes into proving that this angel is **identical with the first angel of Revelation 14**: \"**The chronology of the events of Revelation 10 is further ascertained from the fact that this angel is identical with the first angel of Revelation 14. The points of identity between them are easily seen: (1) They both have a special message to proclaim; (2) they both utter their proclamation with a loud voice; (3) they both use similar language, referring to the great Creator as the maker of heaven and earth, the sea, and the things that are therein; and (4) they both proclaim time, one swearing that time should be no more, and the other proclaiming that the hour of God's Judgment has come**\" (DAR 490.1). Smith places the angel's proclamation **after 1798**: \"**In 1798, therefore, the restriction against proclaiming the day of Christ at hand ceased; in 1798, the time of the end commenced, and the seal was taken from the little book. Since that period, therefore, the angel of Revelation 14 has gone forth proclaiming the hour of God's Judgment come; and it is since that time, too, that the angel of chapter 10 has taken his stand on sea and land, and sworn that time shall be no more**\" (DAR 490.1-491.1). On the historical anchor: \"**In the preaching of the advent, more especially from 1840 to 1844, began their full and circumstantial accomplishment**\" (DAR 491.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 488.1, 490.1-491.1",
+          "html": "Smith treats the angel as a **symbol of a religious teacher / movement** rather than addressing the question \"is this Christ Himself?\" directly at v.1; the identification work goes into proving that this angel is **identical with the first angel of Revelation 14**: \"**The chronology of the events of Revelation 10 is further ascertained from the fact that this angel is identical with the first angel of Revelation 14. The points of identity between them are easily seen: (1) They both have a special message to proclaim; (2) they both utter their proclamation with a loud voice; (3) they both use similar language, referring to the great Creator as the maker of heaven and earth, the sea, and the things that are therein; and (4) they both proclaim time, one swearing that time should be no more, and the other proclaiming that the hour of God's Judgment has come**\" (DAR 490.1). Smith places the angel's proclamation **after 1798**: \"**In 1798, therefore, the restriction against proclaiming the day of Christ at hand ceased; in 1798, the time of the end commenced, and the seal was taken from the little book. Since that period, therefore, the angel of Revelation 14 has gone forth proclaiming the hour of God's Judgment come; and it is since that time, too, that the angel of chapter 10 has taken his stand on sea and land, and sworn that time shall be no more**\" (DAR 490.1-491.1). On the historical anchor: \"**In the preaching of the advent, more especially from 1840 to 1844, began their full and circumstantial accomplishment**\" (DAR 491.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -39,10 +42,13 @@
       "num": 2,
       "slug": "v-2",
       "text": "And he had in his hand a little book open: and he set his right foot upon the sea, and his left foot on the earth,",
-      "pioneerReading": {
-        "citation": "DAR 488.4",
-        "html": "**Little book = Daniel's prophecy unsealed at the time of the end.** \"**'He had in his hand a little book open.' There is a necessary inference to be drawn from this language, which is, that this book was at some time closed up. We read in Daniel of a book which was closed up and sealed to a certain time: 'But thou, O Daniel, shut up the words, and seal the book, even to the time of the end: many shall run to and fro, and knowledge shall be increased.' Daniel 12:4. Since this book was closed up only till the time of the end, it follows that at the time of the end the book would be opened; and as its closing was mentioned in prophecy, it would be but reasonable to expect that in the predictions of events to take place at the time of the end, the opening of this book would also be mentioned. There is no book spoken of as closed up and sealed except the book of Daniel's prophecy; and there is no account of the opening of that book, unless it be here in the 10th of Revelation. We see, furthermore, that in both places the contents ascribed to the book are the same. The book which Daniel had directions to close up and seal had reference to time: 'How long shall it be to the end of these wonders?' And when the angel of this chapter comes down with the little book open, on which he bases his proclamation, he gives a message in relation to time: 'Time shall be no longer.' Nothing more could be required to show that both expressions refer to one book, and to prove that the little book which the angel had in his hand open, was the book of the prophecy of Daniel**\" (DAR 488.4). On the feet upon sea and land: \"**The position of this angel, one foot upon the sea and the other on the land, denotes the wide extent of his proclamation by sea and by land. Had this message been designed for only one country, it would have been sufficient for the angel to take his position on the land only. But he has one foot upon the sea, from which we may infer that his message would cross the ocean, and extend to the various nations and divisions of the globe; and this inference is strengthened by the fact that the Advent proclamation, above referred to, did go to every missionary station in the world**\" (DAR 491.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 488.4",
+          "html": "**Little book = Daniel's prophecy unsealed at the time of the end.** \"**'He had in his hand a little book open.' There is a necessary inference to be drawn from this language, which is, that this book was at some time closed up. We read in Daniel of a book which was closed up and sealed to a certain time: 'But thou, O Daniel, shut up the words, and seal the book, even to the time of the end: many shall run to and fro, and knowledge shall be increased.' Daniel 12:4. Since this book was closed up only till the time of the end, it follows that at the time of the end the book would be opened; and as its closing was mentioned in prophecy, it would be but reasonable to expect that in the predictions of events to take place at the time of the end, the opening of this book would also be mentioned. There is no book spoken of as closed up and sealed except the book of Daniel's prophecy; and there is no account of the opening of that book, unless it be here in the 10th of Revelation. We see, furthermore, that in both places the contents ascribed to the book are the same. The book which Daniel had directions to close up and seal had reference to time: 'How long shall it be to the end of these wonders?' And when the angel of this chapter comes down with the little book open, on which he bases his proclamation, he gives a message in relation to time: 'Time shall be no longer.' Nothing more could be required to show that both expressions refer to one book, and to prove that the little book which the angel had in his hand open, was the book of the prophecy of Daniel**\" (DAR 488.4). On the feet upon sea and land: \"**The position of this angel, one foot upon the sea and the other on the land, denotes the wide extent of his proclamation by sea and by land. Had this message been designed for only one country, it would have been sufficient for the angel to take his position on the land only. But he has one foot upon the sea, from which we may infer that his message would cross the ocean, and extend to the various nations and divisions of the globe; and this inference is strengthened by the fact that the Advent proclamation, above referred to, did go to every missionary station in the world**\" (DAR 491.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -69,10 +75,13 @@
       "num": 3,
       "slug": "v-3",
       "text": "And cried with a loud voice, as when a lion roareth: and when he had cried, seven thunders uttered their voices.",
-      "pioneerReading": {
-        "citation": "DAR 491.1, 491.2",
-        "html": "The loud voice / lion's roar Smith ties back to the v.1-2 block — the Advent proclamation between 1840 and 1844 (DAR 491.1). On the seven thunders: \"**It would be vain to speculate to any great length upon the seven thunders, in hope of gaining a definite knowledge of what they uttered. We must acquiesce in the directions given to John concerning them, and leave them where he left them, sealed up, unwritten, and consequently to us unknown. There is, however, a conjecture extant in relation to them, which may not inappropriately be mentioned here. It is that what the seven thunders uttered is the experience of the Adventists engaged in that movement, embracing their sore disappointment and trial**\" (DAR 491.2). Smith stops short of dogmatic identification; he offers the Advent-experience conjecture as the plausible reading without insisting on it."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 491.1, 491.2",
+          "html": "The loud voice / lion's roar Smith ties back to the v.1-2 block — the Advent proclamation between 1840 and 1844 (DAR 491.1). On the seven thunders: \"**It would be vain to speculate to any great length upon the seven thunders, in hope of gaining a definite knowledge of what they uttered. We must acquiesce in the directions given to John concerning them, and leave them where he left them, sealed up, unwritten, and consequently to us unknown. There is, however, a conjecture extant in relation to them, which may not inappropriately be mentioned here. It is that what the seven thunders uttered is the experience of the Adventists engaged in that movement, embracing their sore disappointment and trial**\" (DAR 491.2). Smith stops short of dogmatic identification; he offers the Advent-experience conjecture as the plausible reading without insisting on it."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -96,10 +105,13 @@
       "num": 4,
       "slug": "v-4",
       "text": "And when the seven thunders had uttered their voices, I was about to write: and I heard a voice from heaven saying unto me, Seal up those things which the seven thunders uttered, and write them not.",
-      "pioneerReading": {
-        "citation": "DAR 491.2-492.1",
-        "html": "Smith reads the command-to-seal as deliberate divine wisdom: \"**Something, evidently, was uttered which it would not be well for the church to know; and for God to have given an inspired record of the Advent movement in advance, would have been simply to defeat that movement, which we verily believe was in all its particulars an accomplishment of his purposes, and according to his will. Why, then, any mention of the seven thunders at all? Following out the above-noticed conjecture, the conclusion would be that we, having met in our history with sudden, mysterious, and unexpected events, as startling and strange as thunders from an unclouded sky, might not give up in utter perplexity, inferring, as we may, that all is in the order and providence of God, since something of this nature was sealed up, and hidden from the church**\" (DAR 492.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 491.2-492.1",
+          "html": "Smith reads the command-to-seal as deliberate divine wisdom: \"**Something, evidently, was uttered which it would not be well for the church to know; and for God to have given an inspired record of the Advent movement in advance, would have been simply to defeat that movement, which we verily believe was in all its particulars an accomplishment of his purposes, and according to his will. Why, then, any mention of the seven thunders at all? Following out the above-noticed conjecture, the conclusion would be that we, having met in our history with sudden, mysterious, and unexpected events, as startling and strange as thunders from an unclouded sky, might not give up in utter perplexity, inferring, as we may, that all is in the order and providence of God, since something of this nature was sealed up, and hidden from the church**\" (DAR 492.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -123,10 +135,13 @@
       "num": 5,
       "slug": "v-5",
       "text": "And the angel which I saw stand upon the sea and upon the earth lifted up his hand to heaven,",
-      "pioneerReading": {
-        "citation": "DAR 492.1-492.2",
-        "html": "Treated within the v.5-6 block — the angel's oath. Smith covers v.5-6 as one unit (see v.6)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 492.1-492.2",
+          "html": "Treated within the v.5-6 block — the angel's oath. Smith covers v.5-6 as one unit (see v.6)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -150,10 +165,13 @@
       "num": 6,
       "slug": "v-6",
       "text": "And sware by him that liveth for ever and ever, who created heaven, and the things that therein are, and the earth, and the things that therein are, and the sea, and the things which are therein, that there should be time no longer:",
-      "pioneerReading": {
-        "citation": "DAR 492.2",
-        "html": "**\"Time no longer\" = the end of prophetic time at the close of the 2300 days in 1844 — NOT the end of literal time, NOT the end of probationary time.** Verbatim: \"**What is the meaning of this most solemn declaration? It cannot mean that with the message of this angel, time, as computed in this world, in comparison with eternity, should end; for the next verse speaks of the days of the voice of the seventh angel; and chapter 11:15-19 gives us some of the events to take place under this trumpet, which transpire in the present state. And it cannot mean probationary time; for that does not cease till Christ closes his work as priest, which is not till after the seventh angel has commenced to sound. Revelation 11:19. It must therefore mean prophetic time; for there is no other to which it can refer. Prophetic time shall be no more — not that time should never be used in a prophetic sense; for the 'days of the voice of the seventh angel,' spoken of immediately after, doubtless mean the years of the seventh angel; but no prophetic period should extend beyond this message; those that reach to the latest point would all close there. Arguments on the prophetic periods, showing that the longest ones did not extend beyond the autumn of 1844, will be found in remarks on Daniel 8:14**\" (DAR 492.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 492.2",
+          "html": "**\"Time no longer\" = the end of prophetic time at the close of the 2300 days in 1844 — NOT the end of literal time, NOT the end of probationary time.** Verbatim: \"**What is the meaning of this most solemn declaration? It cannot mean that with the message of this angel, time, as computed in this world, in comparison with eternity, should end; for the next verse speaks of the days of the voice of the seventh angel; and chapter 11:15-19 gives us some of the events to take place under this trumpet, which transpire in the present state. And it cannot mean probationary time; for that does not cease till Christ closes his work as priest, which is not till after the seventh angel has commenced to sound. Revelation 11:19. It must therefore mean prophetic time; for there is no other to which it can refer. Prophetic time shall be no more — not that time should never be used in a prophetic sense; for the 'days of the voice of the seventh angel,' spoken of immediately after, doubtless mean the years of the seventh angel; but no prophetic period should extend beyond this message; those that reach to the latest point would all close there. Arguments on the prophetic periods, showing that the longest ones did not extend beyond the autumn of 1844, will be found in remarks on Daniel 8:14**\" (DAR 492.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -180,10 +198,13 @@
       "num": 7,
       "slug": "v-7",
       "text": "But in the days of the voice of the seventh angel, when he shall begin to sound, the mystery of God should be finished, as he hath declared to his servants the prophets.",
-      "pioneerReading": {
-        "citation": "DAR 493.1-494.2",
-        "html": "**Seventh trumpet begins at the close of the prophetic periods in 1844; mystery of God = the gospel; \"finished\" = the close of probation when the number of God's people is made up.** \"**Commencement of the Seventh Trumpet. — From the events to take place under the sounding of the seventh trumpet, its commencement may be located with sufficient definiteness at the close of the prophetic periods in 1844. Not many years from that date, then, the mystery of God is to be finished. The great event, whatever it is, is right upon us**\" (DAR 493.3). On the mystery: \"**Ephesians 1:9, 10... Here God's purpose to gather together all in Christ is called the 'mystery' of his will. This is accomplished through the gospel**\" (DAR 493.4). \"**In view of these testimonies, few will be disposed to deny that the mystery of God is the gospel. It is the same, then, as if the angel had declared, In the days of the voice of the seventh angel, when he shall begin to sound, the gospel shall be finished. But what is the finishing of the gospel?... It will be finished when the number of God's people is made up, mercy ceases to be offered, and probation closes**\" (DAR 494.1). And the historical anchor: \"**Such is the momentous work to be accomplished in the early days of the voice of the seventh angel, whose trumpet notes have been reverberating through the world since the memorable epoch of 1844**\" (DAR 494.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 493.1-494.2",
+          "html": "**Seventh trumpet begins at the close of the prophetic periods in 1844; mystery of God = the gospel; \"finished\" = the close of probation when the number of God's people is made up.** \"**Commencement of the Seventh Trumpet. — From the events to take place under the sounding of the seventh trumpet, its commencement may be located with sufficient definiteness at the close of the prophetic periods in 1844. Not many years from that date, then, the mystery of God is to be finished. The great event, whatever it is, is right upon us**\" (DAR 493.3). On the mystery: \"**Ephesians 1:9, 10... Here God's purpose to gather together all in Christ is called the 'mystery' of his will. This is accomplished through the gospel**\" (DAR 493.4). \"**In view of these testimonies, few will be disposed to deny that the mystery of God is the gospel. It is the same, then, as if the angel had declared, In the days of the voice of the seventh angel, when he shall begin to sound, the gospel shall be finished. But what is the finishing of the gospel?... It will be finished when the number of God's people is made up, mercy ceases to be offered, and probation closes**\" (DAR 494.1). And the historical anchor: \"**Such is the momentous work to be accomplished in the early days of the voice of the seventh angel, whose trumpet notes have been reverberating through the world since the memorable epoch of 1844**\" (DAR 494.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -207,10 +228,13 @@
       "num": 8,
       "slug": "v-8",
       "text": "And the voice which I heard from heaven spake unto me again, and said, Go and take the little book which is open in the hand of the angel which standeth upon the sea and upon the earth.",
-      "pioneerReading": {
-        "citation": "DAR 495.1-495.2",
-        "html": "Smith reads v.8 as the transition into John-as-representative-of-the-church: \"**In verse 8, John himself is brought in to act a part as a representative of the church, probably on account of the succeeding peculiar experience of the church, which the Lord of the prophecy would cause to be put on record, but which could not well be presented under the symbol of an angel. When only a straightforward proclamation is brought to view, without including the peculiar experience which the church is to pass through in connection therewith, angels may be used as symbols to represent the religious teachers who proclaim that message, as in Revelation 14; but when some particular experience of the church is to be presented, the case is manifestly different. This could most appropriately be set forth in the person of some member of the human family; hence John is himself called upon to act a part in this symbolic representation**\" (DAR 495.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 495.1-495.2",
+          "html": "Smith reads v.8 as the transition into John-as-representative-of-the-church: \"**In verse 8, John himself is brought in to act a part as a representative of the church, probably on account of the succeeding peculiar experience of the church, which the Lord of the prophecy would cause to be put on record, but which could not well be presented under the symbol of an angel. When only a straightforward proclamation is brought to view, without including the peculiar experience which the church is to pass through in connection therewith, angels may be used as symbols to represent the religious teachers who proclaim that message, as in Revelation 14; but when some particular experience of the church is to be presented, the case is manifestly different. This could most appropriately be set forth in the person of some member of the human family; hence John is himself called upon to act a part in this symbolic representation**\" (DAR 495.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -234,10 +258,13 @@
       "num": 9,
       "slug": "v-9",
       "text": "And I went unto the angel, and said unto him, Give me the little book. And he said unto me, Take it, and eat it up; and it shall make thy belly bitter, but it shall be in thy mouth sweet as honey.",
-      "pioneerReading": {
-        "citation": "DAR 495.3",
-        "html": "Treated as part of the v.9-10 eating block (see v.10)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 495.3",
+          "html": "Treated as part of the v.9-10 eating block (see v.10)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -261,10 +288,13 @@
       "num": 10,
       "slug": "v-10",
       "text": "And I took the little book out of the angel's hand, and ate it up; and it was in my mouth sweet as honey: and as soon as I had eaten it, my belly was bitter.",
-      "pioneerReading": {
-        "citation": "DAR 495.3",
-        "html": "**THIS IS THE LOAD-BEARING VERSE.** Verbatim: \"**There are not a few now living who have in their own experience met a striking fulfillment of these verses, in the joy with which they received the message of Christ's immediate second coming, the honey-like sweetness of the precious truths then brought out, and the sadness and pain that followed, when at the appointed time in 1844 the Lord did not come, but a great disappointment did. A mistake had been made which apparently involved the integrity of the little book they had been eating. What had been so like honey to their taste, suddenly became like wormwood and gall. But those who had patience to endure, so to speak, the digesting process, soon learned that the mistake was only in the event, not in the time, and that what the angel had given them was not unto death, but to their nourishment and support. (See the same facts brought to view under a similar figure in Jeremiah 15:16-18.)**\" (DAR 495.3)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 495.3",
+          "html": "**THIS IS THE LOAD-BEARING VERSE.** Verbatim: \"**There are not a few now living who have in their own experience met a striking fulfillment of these verses, in the joy with which they received the message of Christ's immediate second coming, the honey-like sweetness of the precious truths then brought out, and the sadness and pain that followed, when at the appointed time in 1844 the Lord did not come, but a great disappointment did. A mistake had been made which apparently involved the integrity of the little book they had been eating. What had been so like honey to their taste, suddenly became like wormwood and gall. But those who had patience to endure, so to speak, the digesting process, soon learned that the mistake was only in the event, not in the time, and that what the angel had given them was not unto death, but to their nourishment and support. (See the same facts brought to view under a similar figure in Jeremiah 15:16-18.)**\" (DAR 495.3)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -291,10 +321,13 @@
       "num": 11,
       "slug": "v-11",
       "text": "And he said unto me, Thou must prophesy again before many peoples, and nations, and tongues, and kings.",
-      "pioneerReading": {
-        "citation": "DAR 496.1-496.2",
-        "html": "**The post-1844 SDA mission proclaiming the three angels' messages worldwide.** Verbatim: \"**John, standing as the representative of the church, here receives from the angel another commission. Another message is to go forth after the time when the first and second messages, as leading proclamations, ceased. In other words, we have here a prophecy of the third angel's message, now, as we believe, in process of fulfilment. Neither will this work be done in a corner; for it is to go before 'many peoples, and nations, and tongues, and kings.' (See on chapter 14.)**\" (DAR 496.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 496.1-496.2",
+          "html": "**The post-1844 SDA mission proclaiming the three angels' messages worldwide.** Verbatim: \"**John, standing as the representative of the church, here receives from the angel another commission. Another message is to go forth after the time when the first and second messages, as leading proclamations, ceased. In other words, we have here a prophecy of the third angel's message, now, as we believe, in process of fulfilment. Neither will this work be done in a corner; for it is to go before 'many peoples, and nations, and tongues, and kings.' (See on chapter 14.)**\" (DAR 496.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",

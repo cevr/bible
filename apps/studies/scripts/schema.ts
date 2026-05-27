@@ -63,6 +63,40 @@ export const Reading = z.object({
 });
 export type Reading = z.infer<typeof Reading>;
 
+export const PioneerSource = z.enum([
+  'smith',
+  'egw',
+  'miller',
+  'litch',
+  'j-white',
+  'andrews',
+  'crosier',
+  'haskell',
+  'jones',
+  'waggoner',
+]);
+export type PioneerSource = z.infer<typeof PioneerSource>;
+
+export const PIONEER_SOURCE_NAMES: Record<PioneerSource, string> = {
+  smith: 'Uriah Smith',
+  egw: 'Ellen G. White',
+  miller: 'William Miller',
+  litch: 'Josiah Litch',
+  'j-white': 'James White',
+  andrews: 'J. N. Andrews',
+  crosier: 'O. R. L. Crosier',
+  haskell: 'S. N. Haskell',
+  jones: 'A. T. Jones',
+  waggoner: 'E. J. Waggoner',
+};
+
+export const PioneerReading = z.object({
+  source: PioneerSource,
+  citation: z.string().nullable(),
+  html: z.string(),
+});
+export type PioneerReading = z.infer<typeof PioneerReading>;
+
 export const ModernSource = z.enum(['bohr', 'ivor-myers', 'batchelor', 'veith']);
 export type ModernSource = z.infer<typeof ModernSource>;
 
@@ -91,7 +125,7 @@ export const Verse = z.object({
   num: z.union([z.number(), z.string()]),
   slug: z.string(),
   text: z.string(),
-  pioneerReading: Reading.nullable(),
+  pioneerReadings: z.array(PioneerReading),
   modernReadings: z.array(ModernReading),
   warrant: LabeledBlock.nullable(),
   violations: z

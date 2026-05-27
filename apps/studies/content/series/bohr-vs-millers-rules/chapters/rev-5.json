@@ -9,10 +9,13 @@
       "num": 1,
       "slug": "v-1",
       "text": "And I saw in the right hand of him that sat on the throne a book written within and on the backside, sealed with seven seals.",
-      "pioneerReading": {
-        "citation": "DAR 391.2-392.2",
-        "html": "**The book = a revelation of scenes in church history to the end of time, in the right hand of the Father.** \"**By the words, 'him that sat on the throne,' is evidently meant the Father, as the Son is subsequently introduced as 'a Lamb as it had been slain.' The book which John here saw, contained a revelation of scenes that were to transpire in the history of the church to the end of time. Its being held in the right hand of him that sat on the throne may signify that a knowledge of the future rests with God alone, except so far as he sees fit to reveal it to others**\" (DAR 391.2). Smith details the ancient scroll-book form (citing Wesley, Scott, and Bloomfield, DAR 391.3-392.2): the book was a long parchment scroll, written on the inside (the rolled-inward face), sealed at intervals so that breaking each seal disclosed a portion of the contents — \"**the loosing of each seal was followed by some discovery of the contents of the roll**\" (DAR 392.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 391.2-392.2",
+          "html": "**The book = a revelation of scenes in church history to the end of time, in the right hand of the Father.** \"**By the words, 'him that sat on the throne,' is evidently meant the Father, as the Son is subsequently introduced as 'a Lamb as it had been slain.' The book which John here saw, contained a revelation of scenes that were to transpire in the history of the church to the end of time. Its being held in the right hand of him that sat on the throne may signify that a knowledge of the future rests with God alone, except so far as he sees fit to reveal it to others**\" (DAR 391.2). Smith details the ancient scroll-book form (citing Wesley, Scott, and Bloomfield, DAR 391.3-392.2): the book was a long parchment scroll, written on the inside (the rolled-inward face), sealed at intervals so that breaking each seal disclosed a portion of the contents — \"**the loosing of each seal was followed by some discovery of the contents of the roll**\" (DAR 392.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -36,10 +39,13 @@
       "num": 2,
       "slug": "v-2",
       "text": "And I saw a strong angel proclaiming with a loud voice, Who is worthy to open the book, and to loose the seals thereof?",
-      "pioneerReading": {
-        "citation": "DAR 392.4",
-        "html": "**A strong angel of great eminence, but not specifically identified.** \"**God, as it were, holds forth this book to the view of the universe, and a strong angel, one doubtless of great eminence and power, comes forth as a crier, and with a mighty voice challenges all creatures in the universe to try the strength of their wisdom in opening the counsels of God. Who can be found worthy to open the book, and to loose the seals thereof? A pause ensues. In silence the universe owns its inability and unworthiness to enter into the counsels of the Creator**\" (DAR 392.4)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 392.4",
+          "html": "**A strong angel of great eminence, but not specifically identified.** \"**God, as it were, holds forth this book to the view of the universe, and a strong angel, one doubtless of great eminence and power, comes forth as a crier, and with a mighty voice challenges all creatures in the universe to try the strength of their wisdom in opening the counsels of God. Who can be found worthy to open the book, and to loose the seals thereof? A pause ensues. In silence the universe owns its inability and unworthiness to enter into the counsels of the Creator**\" (DAR 392.4)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -63,10 +69,13 @@
       "num": 3,
       "slug": "v-3",
       "text": "And no man in heaven, nor in earth, neither under the earth, was able to open the book, neither to look thereon.",
-      "pioneerReading": {
-        "citation": "DAR 392.4",
-        "html": "\"**'And no man in heaven,' οὐδείς, not merely no man, but no one, no being, in heaven. Is not here proof that the faculties of angels are limited, like those of man, in respect to penetrating the future, and disclosing what is to come?**\" (DAR 392.4)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 392.4",
+          "html": "\"**'And no man in heaven,' οὐδείς, not merely no man, but no one, no being, in heaven. Is not here proof that the faculties of angels are limited, like those of man, in respect to penetrating the future, and disclosing what is to come?**\" (DAR 392.4)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -90,10 +99,13 @@
       "num": 4,
       "slug": "v-4",
       "text": "And I wept much, because no man was found worthy to open and to read the book, neither to look thereon.",
-      "pioneerReading": {
-        "citation": "DAR 392.4-393.1",
-        "html": "\"**when the apostle saw that no one came forward to open the book, he greatly feared that the counsels of God which it contained in reference to his people, would never be disclosed, and in natural tenderness of his feelings, and his concern for the church, he wept much**\" (DAR 392.4). Smith adds Benson's gloss: \"**'This weeping of the apostle sprang from greatness of mind. The tenderness of heart which he always had, appeared more clearly now he was out of his own power. The Revelation was not written without tears, neither without tears will it be understood**'\" (DAR 393.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 392.4-393.1",
+          "html": "\"**when the apostle saw that no one came forward to open the book, he greatly feared that the counsels of God which it contained in reference to his people, would never be disclosed, and in natural tenderness of his feelings, and his concern for the church, he wept much**\" (DAR 392.4). Smith adds Benson's gloss: \"**'This weeping of the apostle sprang from greatness of mind. The tenderness of heart which he always had, appeared more clearly now he was out of his own power. The Revelation was not written without tears, neither without tears will it be understood**'\" (DAR 393.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -117,10 +129,13 @@
       "num": 5,
       "slug": "v-5",
       "text": "And one of the elders saith unto me, Weep not: behold, the Lion of the tribe of Juda, the Root of David, hath prevailed to open the book, and to loose the seven seals thereof.",
-      "pioneerReading": {
-        "citation": "DAR 393.3-394.2",
-        "html": "**The Lion of the tribe of Judah = Christ, the Root of David, who has prevailed by his victory.** \"**Christ is here called the 'Lion of the tribe of Juda.' Why called a lion? and why of the tribe of Judah? — As to the first, it is probably to denote his strength. As the lion is the king of beasts, the monarch of the forest, he thus becomes a fit emblem of kingly authority and power. 'Of the tribe of Juda.' Doubtless he receives this appellation from the prophecy in Genesis 49:9, 10**\" (DAR 393.3). On the Root of David: \"**The Root of David. — The source and sustainer of David as to his position and power. That David's position was specially ordained of Christ, and that he was specially sustained by him, there can be no doubt. David was the type, Christ the antitype**\" (DAR 394.1). On \"hath prevailed\": \"**These words indicate that the right to open the book was acquired by a victory gained in some previous conflict; and so we find it set forth in subsequent portions of this chapter. The very next scene introduces us to the great work of Christ as the Redeemer of the world, and the shedding of his blood for the remission of sin and the salvation of man. In this work he was subjected to the fiercest assaults of Satan. But he endured his temptations, bore the agonies of the cross, rose a victor over death and the grave, made the way of redemption sure — triumphed!**\" (DAR 394.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 393.3-394.2",
+          "html": "**The Lion of the tribe of Judah = Christ, the Root of David, who has prevailed by his victory.** \"**Christ is here called the 'Lion of the tribe of Juda.' Why called a lion? and why of the tribe of Judah? — As to the first, it is probably to denote his strength. As the lion is the king of beasts, the monarch of the forest, he thus becomes a fit emblem of kingly authority and power. 'Of the tribe of Juda.' Doubtless he receives this appellation from the prophecy in Genesis 49:9, 10**\" (DAR 393.3). On the Root of David: \"**The Root of David. — The source and sustainer of David as to his position and power. That David's position was specially ordained of Christ, and that he was specially sustained by him, there can be no doubt. David was the type, Christ the antitype**\" (DAR 394.1). On \"hath prevailed\": \"**These words indicate that the right to open the book was acquired by a victory gained in some previous conflict; and so we find it set forth in subsequent portions of this chapter. The very next scene introduces us to the great work of Christ as the Redeemer of the world, and the shedding of his blood for the remission of sin and the salvation of man. In this work he was subjected to the fiercest assaults of Satan. But he endured his temptations, bore the agonies of the cross, rose a victor over death and the grave, made the way of redemption sure — triumphed!**\" (DAR 394.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -144,10 +159,13 @@
       "num": 6,
       "slug": "v-6",
       "text": "And I beheld, and, lo, in the midst of the throne and of the four beasts, and in the midst of the elders, stood a Lamb as it had been slain, having seven horns and seven eyes, which are the seven Spirits of God sent forth into all the earth.",
-      "pioneerReading": {
-        "citation": "DAR 394.3-395.3",
-        "html": "**A Lamb as it had been slain, in the very act of pouring out his blood — perfect-tense Greek.** \"**John looks to see the Lion of the tribe of Judah, and beholds a Lamb in the midst of the throne and of the four living beings and the elders, as it had been slain**\" (DAR 394.3). Quoting Doddridge on \"in the midst of the throne\": \"**'And I beheld in the middle space between the throne and the four living creatures, and in the midst of the elders there stood a Lamb,' etc. In the center of the scene was the throne of the Father, and standing in the open space which surrounded it was the Son, set forth under the symbol of a slain lamb**\" (DAR 395.1). On \"as it had been slain\": \"**Woodhouse, as quoted in the Comprehensive Commentary, says: 'The Greek implies that the Lamb appeared with a wounded neck and throat, as if smitten at the altar as a victim.' On this phrase, Clarke says: 'As if now in the act of being offered. This is very remarkable. So important is the sacrificial offering of Christ in the sight of God, that he is still represented as being in the very act of pouring out his blood for the offenses of man**'\" (DAR 395.2). On the **seven horns and seven eyes**: \"**Horns are symbols of power, eyes of wisdom; and seven is a number denoting completeness, or perfection. We are thus taught that perfect power and perfect wisdom inhere in the Lamb, through the operation of the Spirit of God, called the seven Spirits of God, to denote the fulness and perfection of its operation**\" (DAR 395.3)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 394.3-395.3",
+          "html": "**A Lamb as it had been slain, in the very act of pouring out his blood — perfect-tense Greek.** \"**John looks to see the Lion of the tribe of Judah, and beholds a Lamb in the midst of the throne and of the four living beings and the elders, as it had been slain**\" (DAR 394.3). Quoting Doddridge on \"in the midst of the throne\": \"**'And I beheld in the middle space between the throne and the four living creatures, and in the midst of the elders there stood a Lamb,' etc. In the center of the scene was the throne of the Father, and standing in the open space which surrounded it was the Son, set forth under the symbol of a slain lamb**\" (DAR 395.1). On \"as it had been slain\": \"**Woodhouse, as quoted in the Comprehensive Commentary, says: 'The Greek implies that the Lamb appeared with a wounded neck and throat, as if smitten at the altar as a victim.' On this phrase, Clarke says: 'As if now in the act of being offered. This is very remarkable. So important is the sacrificial offering of Christ in the sight of God, that he is still represented as being in the very act of pouring out his blood for the offenses of man**'\" (DAR 395.2). On the **seven horns and seven eyes**: \"**Horns are symbols of power, eyes of wisdom; and seven is a number denoting completeness, or perfection. We are thus taught that perfect power and perfect wisdom inhere in the Lamb, through the operation of the Spirit of God, called the seven Spirits of God, to denote the fulness and perfection of its operation**\" (DAR 395.3)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -171,10 +189,13 @@
       "num": 7,
       "slug": "v-7",
       "text": "And he came and took the book out of the right hand of him that sat upon the throne.",
-      "pioneerReading": {
-        "citation": "DAR 395.4",
-        "html": "**The Lamb takes the book.** Smith addresses the apparent incongruity of a lamb taking a book: \"**Commentators have found an incongruity in the idea that the book was taken by a lamb, and have had recourse to several expedients to avoid the difficulty. But is it not a well-established principle that any action may be attributed to a symbol which could be appropriately performed by the person or being represented by the symbol? And is not this all the explanation that the passage needs? The lamb, we know, is a symbol of Christ. We know there is nothing incongruous in Christ's taking a book; and when we read that the book was taken, we think of the action, not as performed by the lamb, but by the one of whom the lamb is a symbol**\" (DAR 395.4)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 395.4",
+          "html": "**The Lamb takes the book.** Smith addresses the apparent incongruity of a lamb taking a book: \"**Commentators have found an incongruity in the idea that the book was taken by a lamb, and have had recourse to several expedients to avoid the difficulty. But is it not a well-established principle that any action may be attributed to a symbol which could be appropriately performed by the person or being represented by the symbol? And is not this all the explanation that the passage needs? The lamb, we know, is a symbol of Christ. We know there is nothing incongruous in Christ's taking a book; and when we read that the book was taken, we think of the action, not as performed by the lamb, but by the one of whom the lamb is a symbol**\" (DAR 395.4)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -198,10 +219,13 @@
       "num": 8,
       "slug": "v-8",
       "text": "And when he had taken the book, the four beasts and four and twenty elders fell down before the Lamb, having every one of them harps, and golden vials full of odours, which are the prayers of saints.",
-      "pioneerReading": {
-        "citation": "DAR 396.1-396.5",
-        "html": "**The vials of odours = the prayers of the saints; the four living creatures and the 24 elders are the priestly assistants of Christ in his heavenly ministry, offering incense as the church prays.** \"**Vials Full of Odors. — From this expression we form an idea of the employment of those redeemed ones represented by the four living creatures and the four and twenty elders. They have golden vials, or vessels, full of odors — or, as the margin reads, incense — which are the prayers of saints. This is a work of ministry such as pertains to priests**\" (DAR 396.2). Smith cites Scott: \"**'It is indisputably manifest that the four living creatures join in, or rather lead, the worship of the Lamb as having redeemed them to God; and this proves beyond controversy that part of the redeemed church is meant by this emblem, and not angels, whose worship is next described, but in language evidently different**'\" (DAR 396.3). And Barnes: \"**'The idea here is, therefore, that the representatives of the church in heaven, the elders, spoken of as \"priests,\" are described as officiating in the temple above in behalf of the church still below, and as offering incense while the church is engaged in prayer**'\" (DAR 396.4). Smith ties the whole into the high-priestly-assistants framework: \"**when we consider that we are now looking into the sanctuary in heaven, the conclusion at once follows that these redeemed ones are the assistants of our great High Priest above. For this purpose they were doubtless redeemed**\" (DAR 396.5)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 396.1-396.5",
+          "html": "**The vials of odours = the prayers of the saints; the four living creatures and the 24 elders are the priestly assistants of Christ in his heavenly ministry, offering incense as the church prays.** \"**Vials Full of Odors. — From this expression we form an idea of the employment of those redeemed ones represented by the four living creatures and the four and twenty elders. They have golden vials, or vessels, full of odors — or, as the margin reads, incense — which are the prayers of saints. This is a work of ministry such as pertains to priests**\" (DAR 396.2). Smith cites Scott: \"**'It is indisputably manifest that the four living creatures join in, or rather lead, the worship of the Lamb as having redeemed them to God; and this proves beyond controversy that part of the redeemed church is meant by this emblem, and not angels, whose worship is next described, but in language evidently different**'\" (DAR 396.3). And Barnes: \"**'The idea here is, therefore, that the representatives of the church in heaven, the elders, spoken of as \"priests,\" are described as officiating in the temple above in behalf of the church still below, and as offering incense while the church is engaged in prayer**'\" (DAR 396.4). Smith ties the whole into the high-priestly-assistants framework: \"**when we consider that we are now looking into the sanctuary in heaven, the conclusion at once follows that these redeemed ones are the assistants of our great High Priest above. For this purpose they were doubtless redeemed**\" (DAR 396.5)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -225,10 +249,13 @@
       "num": 9,
       "slug": "v-9",
       "text": "And they sung a new song, saying, Thou art worthy to take the book, and to open the seals thereof: for thou wast slain, and hast redeemed us to God by thy blood out of every kindred, and tongue, and people, and nation;",
-      "pioneerReading": {
-        "citation": "DAR 397.2",
-        "html": "**The new song = the song of the redeemed firstfruits, sung by those who can sing it because they themselves are the first that were redeemed.** \"**The Song. — It is called 'a new song,' new, probably, in respect to the occasion and the composition. They were the first that could sing it, being the first that were redeemed. They call themselves kings and priests. In what sense they are priests has already been noticed, they being the assistants of Christ in his priestly work. In the same sense, doubtless, they are also kings; for Christ is set down with his Father on his throne, and doubtless these, as ministers of his, have some part to act in connection with the government of heaven in reference to this world**\" (DAR 397.2). The first-person _us_ is decisive for Smith: only redeemed humans can sing \"_thou wast slain, and hast redeemed us to God by thy blood out of every kindred, and tongue, and people, and nation_.\""
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 397.2",
+          "html": "**The new song = the song of the redeemed firstfruits, sung by those who can sing it because they themselves are the first that were redeemed.** \"**The Song. — It is called 'a new song,' new, probably, in respect to the occasion and the composition. They were the first that could sing it, being the first that were redeemed. They call themselves kings and priests. In what sense they are priests has already been noticed, they being the assistants of Christ in his priestly work. In the same sense, doubtless, they are also kings; for Christ is set down with his Father on his throne, and doubtless these, as ministers of his, have some part to act in connection with the government of heaven in reference to this world**\" (DAR 397.2). The first-person _us_ is decisive for Smith: only redeemed humans can sing \"_thou wast slain, and hast redeemed us to God by thy blood out of every kindred, and tongue, and people, and nation_.\""
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -255,10 +282,13 @@
       "num": 10,
       "slug": "v-10",
       "text": "And hast made us unto our God kings and priests: and we shall reign on the earth.",
-      "pioneerReading": {
-        "citation": "DAR 397.2-397.3",
-        "html": "Tied to v.9 above. The elders/creatures are **kings and priests** in their delegated heavenly ministry, with their reign-on-the-earth still future at the time of the song's singing: \"**The Anticipation. — 'We shall reign on the earth.' Thus, notwithstanding they are redeemed, and surround the throne of God, and are in the presence of the Lamb that redeemed them, and are surrounded with the angelic hosts of heaven, where all is glory ineffable, their song contemplates a still higher state, when the great work of redemption shall be completed, and they, with the whole redeemed family of God, of every age, shall reign on the earth, which is the promised inheritance, and is to be the final and eternal residence of the saints**\" (DAR 397.3)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 397.2-397.3",
+          "html": "Tied to v.9 above. The elders/creatures are **kings and priests** in their delegated heavenly ministry, with their reign-on-the-earth still future at the time of the song's singing: \"**The Anticipation. — 'We shall reign on the earth.' Thus, notwithstanding they are redeemed, and surround the throne of God, and are in the presence of the Lamb that redeemed them, and are surrounded with the angelic hosts of heaven, where all is glory ineffable, their song contemplates a still higher state, when the great work of redemption shall be completed, and they, with the whole redeemed family of God, of every age, shall reign on the earth, which is the promised inheritance, and is to be the final and eternal residence of the saints**\" (DAR 397.3)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -282,10 +312,13 @@
       "num": 11,
       "slug": "v-11",
       "text": "And I beheld, and I heard the voice of many angels round about the throne and the beasts and the elders: and the number of them was ten thousand times ten thousand, and thousands of thousands;",
-      "pioneerReading": {
-        "citation": "DAR 398.1-398.2",
-        "html": "**The innumerable angelic host surrounding the throne, the living creatures, and the elders** — three concentric circles, the angels forming the outermost. \"**(1) Round about the throne are those represented by the four living creatures. (2) Next come the four and twenty elders. (3) Then John views, surrounding the whole, a multitude of the heavenly angels. How many? How many would we suppose could convene within the heavenly temple? 'Ten thousand times ten thousand!' exclaims the seer. In this expression alone we have one hundred million! And then, as if no numerical expression was adequate to embrace the countless throng, he further adds, 'And thousands of thousands!' Well might Paul call this, in Hebrews 12:22, 'an innumerable company of angels.' And these were in the sanctuary above**\" (DAR 398.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 398.1-398.2",
+          "html": "**The innumerable angelic host surrounding the throne, the living creatures, and the elders** — three concentric circles, the angels forming the outermost. \"**(1) Round about the throne are those represented by the four living creatures. (2) Next come the four and twenty elders. (3) Then John views, surrounding the whole, a multitude of the heavenly angels. How many? How many would we suppose could convene within the heavenly temple? 'Ten thousand times ten thousand!' exclaims the seer. In this expression alone we have one hundred million! And then, as if no numerical expression was adequate to embrace the countless throng, he further adds, 'And thousands of thousands!' Well might Paul call this, in Hebrews 12:22, 'an innumerable company of angels.' And these were in the sanctuary above**\" (DAR 398.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -309,10 +342,13 @@
       "num": 12,
       "slug": "v-12",
       "text": "Saying with a loud voice, Worthy is the Lamb that was slain to receive power, and riches, and wisdom, and strength, and honour, and glory, and blessing.",
-      "pioneerReading": {
-        "citation": "DAR 398.2",
-        "html": "\"**every voice in all that heavenly host joined in the ascription which was raised, 'Worthy is the Lamb that was slain to receive power, and riches, and wisdom, and strength, and honor, and glory, and blessing.' Fitting assemblage for such a place! Fitting song of adoration to be raised to Him who by the shedding of his blood became a ransom for many, and who, as our great High Priest, still pleads its merits in the sanctuary above in our behalf**\" (DAR 398.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 398.2",
+          "html": "\"**every voice in all that heavenly host joined in the ascription which was raised, 'Worthy is the Lamb that was slain to receive power, and riches, and wisdom, and strength, and honor, and glory, and blessing.' Fitting assemblage for such a place! Fitting song of adoration to be raised to Him who by the shedding of his blood became a ransom for many, and who, as our great High Priest, still pleads its merits in the sanctuary above in our behalf**\" (DAR 398.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -336,10 +372,13 @@
       "num": 13,
       "slug": "v-13",
       "text": "And every creature which is in heaven, and on the earth, and under the earth, and such as are in the sea, and all that are in them, heard I saying, Blessing, and honour, and glory, and power, be unto him that sitteth upon the throne, and unto the Lamb for ever and ever.",
-      "pioneerReading": {
-        "citation": "DAR 399.2-400.1",
-        "html": "**The clean-universe doxology — chronologically anticipatory, fulfilled after the post-millennial perdition of the ungodly and the purification of the earth.** \"**A Clean Universe. — In verse 13 we have an instance of what very frequently occurs in the Scriptures; namely, a declaration thrown in out of its chronological order for the purpose of following out to its completion some previous statement or allusion. In this instance the time is anticipated when redemption is finished. In verse 10 the four living creatures and four and twenty elders had declared, 'We shall reign on the earth.' Now the prophet's mind is carried forward to that time. The greatest act of Christ's intervention for man — the shedding of his blood — having been introduced, nothing could be more natural than that the vision should, for a moment, look over to the time when the grand result of the work then inaugurated should be accomplished, the number of the redeemed be made up, the universe be freed from sin and sinners, and a universal song of adoration go up to God and the Lamb**\" (DAR 399.2). Smith argues v.13 cannot apply to the present age because sin reigns: \"**at the time of which John speaks, every creature in heaven and on earth, without any exception, was sending up its anthem of blessings to God. But to speak only of this world since the fall, cursings instead of blessings have been breathed out against God and his throne from the great majority of our apostate race. And so it will ever be while sin reigns**\" (DAR 399.3). Smith locates the fulfillment **after the second resurrection** when fire devours the wicked (Rev 20:9; 2 Pet 3:7-13) and the earth is purified (DAR 400.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 399.2-400.1",
+          "html": "**The clean-universe doxology — chronologically anticipatory, fulfilled after the post-millennial perdition of the ungodly and the purification of the earth.** \"**A Clean Universe. — In verse 13 we have an instance of what very frequently occurs in the Scriptures; namely, a declaration thrown in out of its chronological order for the purpose of following out to its completion some previous statement or allusion. In this instance the time is anticipated when redemption is finished. In verse 10 the four living creatures and four and twenty elders had declared, 'We shall reign on the earth.' Now the prophet's mind is carried forward to that time. The greatest act of Christ's intervention for man — the shedding of his blood — having been introduced, nothing could be more natural than that the vision should, for a moment, look over to the time when the grand result of the work then inaugurated should be accomplished, the number of the redeemed be made up, the universe be freed from sin and sinners, and a universal song of adoration go up to God and the Lamb**\" (DAR 399.2). Smith argues v.13 cannot apply to the present age because sin reigns: \"**at the time of which John speaks, every creature in heaven and on earth, without any exception, was sending up its anthem of blessings to God. But to speak only of this world since the fall, cursings instead of blessings have been breathed out against God and his throne from the great majority of our apostate race. And so it will ever be while sin reigns**\" (DAR 399.3). Smith locates the fulfillment **after the second resurrection** when fire devours the wicked (Rev 20:9; 2 Pet 3:7-13) and the earth is purified (DAR 400.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -363,10 +402,13 @@
       "num": 14,
       "slug": "v-14",
       "text": "And the four beasts said, Amen. And the four and twenty elders fell down and worshipped him that liveth for ever and ever.",
-      "pioneerReading": {
-        "citation": "DAR 401.2",
-        "html": "\"**Coming back from the glorious scene anticipated in verse 13 to events transpiring in the heavenly sanctuary before him, the prophet hears the four living creatures exclaim, Amen**\" (DAR 401.2). Smith reads v.14 as the **return from the chronological digression of v.13** back to the ascension-inauguration scene itself: the inner-circle \"Amen\" closes the chapter on the worship of the Lamb. (Smith also uses DAR 401.1 to address the Christological question raised by the joint-doxology to \"him that sitteth upon the throne, and unto the Lamb\" — concluding that Christ's begotten-Son antedating-creation status warrants his receiving worship equally with the Father.)"
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 401.2",
+          "html": "\"**Coming back from the glorious scene anticipated in verse 13 to events transpiring in the heavenly sanctuary before him, the prophet hears the four living creatures exclaim, Amen**\" (DAR 401.2). Smith reads v.14 as the **return from the chronological digression of v.13** back to the ascension-inauguration scene itself: the inner-circle \"Amen\" closes the chapter on the worship of the Lamb. (Smith also uses DAR 401.1 to address the Christological question raised by the joint-doxology to \"him that sitteth upon the throne, and unto the Lamb\" — concluding that Christ's begotten-Son antedating-creation status warrants his receiving worship equally with the Father.)"
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",

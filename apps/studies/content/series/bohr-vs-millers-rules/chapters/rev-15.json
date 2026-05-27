@@ -9,10 +9,13 @@
       "num": 1,
       "slug": "v-1",
       "text": "And I saw another sign in heaven, great and marvellous, seven angels having the seven last plagues; for in them is filled up the wrath of God.",
-      "pioneerReading": {
-        "citation": "DAR 638.2-3",
-        "html": "Post-probation commission of the seven plague angels — the chapter as a whole is \"**but an introduction to the most terrific judgments of the Almighty that ever have been, or are to be, visited upon this earth**\" (DAR 638.3). Smith reads \"**filled up the wrath of God**\" as the unmingled-with-mercy character of the plagues: \"**hence they are manifestations of the wrath of God without any mixture of mercy**\" (DAR 638.3). The chronological anchor comes from v.5 — the temple is opened **before** the plagues are poured out — fixing the commission after the close of the sanctuary ministration: \"**Verse 5 shows that these plagues fall after the close of the ministration in the sanctuary; for the temple is opened before they are poured out**\" (DAR 638.3)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 638.2-3",
+          "html": "Post-probation commission of the seven plague angels — the chapter as a whole is \"**but an introduction to the most terrific judgments of the Almighty that ever have been, or are to be, visited upon this earth**\" (DAR 638.3). Smith reads \"**filled up the wrath of God**\" as the unmingled-with-mercy character of the plagues: \"**hence they are manifestations of the wrath of God without any mixture of mercy**\" (DAR 638.3). The chronological anchor comes from v.5 — the temple is opened **before** the plagues are poured out — fixing the commission after the close of the sanctuary ministration: \"**Verse 5 shows that these plagues fall after the close of the ministration in the sanctuary; for the temple is opened before they are poured out**\" (DAR 638.3)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -36,10 +39,13 @@
       "num": 2,
       "slug": "v-2",
       "text": "And I saw as it were a sea of glass mingled with fire: and them that had gotten the victory over the beast, and over his image, and over his mark, and over the number of his name, stand on the sea of glass, having the harps of God.",
-      "pioneerReading": {
-        "citation": "DAR 639.1",
-        "html": "Smith reads vv. 2-4 as a **prophetic anticipation** within the plague-prelude scene — the prophet \"**is permitted to anticipate a little in verses 2-4, and behold them as victors upon the sea of glass as it were mingled with fire, or sparkling and refulgent with the glory of God, singing the song of Moses and the Lamb**\" (DAR 639.1). On the sea-of-glass location: \"**The sea of glass, upon which these victors stand, is the same as that brought to view in chapter 4:6, which was before the throne in heaven. And as we have no evidence that it has yet changed its location, and the saints are seen upon it, we have here indubitable proof, in connection with chapter 14:1-5, that the saints are taken to heaven to receive a portion of their reward**\" (DAR 639.1). The victors are the same company as the 144,000 of Rev 14:1-5 (Smith's explicit cross-link)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 639.1",
+          "html": "Smith reads vv. 2-4 as a **prophetic anticipation** within the plague-prelude scene — the prophet \"**is permitted to anticipate a little in verses 2-4, and behold them as victors upon the sea of glass as it were mingled with fire, or sparkling and refulgent with the glory of God, singing the song of Moses and the Lamb**\" (DAR 639.1). On the sea-of-glass location: \"**The sea of glass, upon which these victors stand, is the same as that brought to view in chapter 4:6, which was before the throne in heaven. And as we have no evidence that it has yet changed its location, and the saints are seen upon it, we have here indubitable proof, in connection with chapter 14:1-5, that the saints are taken to heaven to receive a portion of their reward**\" (DAR 639.1). The victors are the same company as the 144,000 of Rev 14:1-5 (Smith's explicit cross-link)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -63,10 +69,13 @@
       "num": 3,
       "slug": "v-3",
       "text": "And they sing the song of Moses the servant of God, and the song of the Lamb, saying, Great and marvellous are thy works, Lord God Almighty; just and true are thy ways, thou King of saints.",
-      "pioneerReading": {
-        "citation": "DAR 640.1",
-        "html": "Smith reads the song as **a song of infinite grandeur** that appeals to the works of God and to His providence and grace: \"**The song the victors sing, the song of Moses and the Lamb, given here in epitome in these words: 'Great and marvelous are thy works, Lord God Almighty; just and true are thy ways, thou King of saints,' is a song of infinite grandeur. How comprehensive in its terms! how sublime in its theme! It appeals to the works of God which are a manifestation of his glory**\" (DAR 640.1). And: \"**But the song covers another field also — the field of God's providence and grace: 'Just and true are thy ways, thou King of saints.' All the dealings of God with all his creatures in the eyes of the redeemed, and the sight of all worlds, will be forever vindicated**\" (DAR 640.1). Smith does not unpack the **Moses/Lamb dual referent** at length; the deliverance-song character is implicit in the title."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 640.1",
+          "html": "Smith reads the song as **a song of infinite grandeur** that appeals to the works of God and to His providence and grace: \"**The song the victors sing, the song of Moses and the Lamb, given here in epitome in these words: 'Great and marvelous are thy works, Lord God Almighty; just and true are thy ways, thou King of saints,' is a song of infinite grandeur. How comprehensive in its terms! how sublime in its theme! It appeals to the works of God which are a manifestation of his glory**\" (DAR 640.1). And: \"**But the song covers another field also — the field of God's providence and grace: 'Just and true are thy ways, thou King of saints.' All the dealings of God with all his creatures in the eyes of the redeemed, and the sight of all worlds, will be forever vindicated**\" (DAR 640.1). Smith does not unpack the **Moses/Lamb dual referent** at length; the deliverance-song character is implicit in the title."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -93,10 +102,13 @@
       "num": 4,
       "slug": "v-4",
       "text": "Who shall not fear thee, O Lord, and glorify thy name? for thou only art holy: for all nations shall come and worship before thee; for thy judgments are made manifest.",
-      "pioneerReading": {
-        "citation": "DAR 640.1",
-        "html": "Smith treats v.4 within the vv. 3-4 song-block above. The \"_just and true_\" of v.3 and the \"_thy judgments are made manifest_\" of v.4 are the same vindication — \"**All the dealings of God with all his creatures in the eyes of the redeemed, and the sight of all worlds, will be forever vindicated. After all our blindness, all our perplexities, all our trials, we shall be able to exclaim at last in the exuberance of satisfied joy, 'Just and true are thy ways, thou King of saints'**\" (DAR 640.1). Smith does not give v.4 a separate exegesis; the universal-worship clause is folded into the broader vindication-of-God's-providence theme."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 640.1",
+          "html": "Smith treats v.4 within the vv. 3-4 song-block above. The \"_just and true_\" of v.3 and the \"_thy judgments are made manifest_\" of v.4 are the same vindication — \"**All the dealings of God with all his creatures in the eyes of the redeemed, and the sight of all worlds, will be forever vindicated. After all our blindness, all our perplexities, all our trials, we shall be able to exclaim at last in the exuberance of satisfied joy, 'Just and true are thy ways, thou King of saints'**\" (DAR 640.1). Smith does not give v.4 a separate exegesis; the universal-worship clause is folded into the broader vindication-of-God's-providence theme."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -120,10 +132,13 @@
       "num": 5,
       "slug": "v-5",
       "text": "And after that I looked, and, behold, the temple of the tabernacle of the testimony in heaven was opened:",
-      "pioneerReading": {
-        "citation": "DAR 638.3",
-        "html": "Smith identifies the temple as the heavenly sanctuary, and reads the opening as the most-holy ministration (the inner-apartment ark-of-the-covenant room) — implicit from the \"tabernacle of the testimony\" diction (the testimony = the tables of the Decalogue in the ark): \"**Verse 5 shows that these plagues fall after the close of the ministration in the sanctuary; for the temple is opened before they are poured out**\" (DAR 638.3). The opening is the issuing-out-of-the-plague-angels event, not the 1844 most-holy door opening of Rev 11:19. Smith treats vv. 5-8 as one compact preparatory-scene block."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 638.3",
+          "html": "Smith identifies the temple as the heavenly sanctuary, and reads the opening as the most-holy ministration (the inner-apartment ark-of-the-covenant room) — implicit from the \"tabernacle of the testimony\" diction (the testimony = the tables of the Decalogue in the ark): \"**Verse 5 shows that these plagues fall after the close of the ministration in the sanctuary; for the temple is opened before they are poured out**\" (DAR 638.3). The opening is the issuing-out-of-the-plague-angels event, not the 1844 most-holy door opening of Rev 11:19. Smith treats vv. 5-8 as one compact preparatory-scene block."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -147,10 +162,13 @@
       "num": 6,
       "slug": "v-6",
       "text": "And the seven angels came out of the temple, having the seven plagues, clothed in pure and white linen, and having their breasts girded with golden girdles.",
-      "pioneerReading": {
-        "citation": "DAR 638.3",
-        "html": "Smith reads the angels' garments as an emblem of the purity of God's righteousness and justice in the infliction of the plagues: \"**They are given in charge to seven angels, and these angels are clothed in linen pure and white, a fit emblem of the purity of God's righteousness and justice in the infliction of these judgments**\" (DAR 638.3). Smith does not give v.6 a separate verse-treatment; the substance is folded into the vv. 5-8 preparatory-scene block."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 638.3",
+          "html": "Smith reads the angels' garments as an emblem of the purity of God's righteousness and justice in the infliction of the plagues: \"**They are given in charge to seven angels, and these angels are clothed in linen pure and white, a fit emblem of the purity of God's righteousness and justice in the infliction of these judgments**\" (DAR 638.3). Smith does not give v.6 a separate verse-treatment; the substance is folded into the vv. 5-8 preparatory-scene block."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -174,10 +192,13 @@
       "num": 7,
       "slug": "v-7",
       "text": "And one of the four beasts gave unto the seven angels seven golden vials full of the wrath of God, who liveth for ever and ever.",
-      "pioneerReading": {
-        "citation": "DAR 638.3",
-        "html": "The four living creatures of Rev 4:6 deliver the vials — a class of Christ's assistants in the sanctuary work: \"**They receive these vials from one of the four beasts, or living creatures. These living beings were proved (see on chapter 4) to be a class of Christ's assistants in his sanctuary work. How appropriate, then, that they should be the ones to deliver to the ministers of vengeance the vials of wrath to be poured upon those who have slighted Christ's mercy, abused his long-suffering, heaped contumely upon his name, and crucified him afresh in the treatment of his followers!**\" (DAR 638.3). The vials full of wrath are the unmingled-with-mercy plagues — the executive-judgment phase of the heavenly sanctuary's work."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 638.3",
+          "html": "The four living creatures of Rev 4:6 deliver the vials — a class of Christ's assistants in the sanctuary work: \"**They receive these vials from one of the four beasts, or living creatures. These living beings were proved (see on chapter 4) to be a class of Christ's assistants in his sanctuary work. How appropriate, then, that they should be the ones to deliver to the ministers of vengeance the vials of wrath to be poured upon those who have slighted Christ's mercy, abused his long-suffering, heaped contumely upon his name, and crucified him afresh in the treatment of his followers!**\" (DAR 638.3). The vials full of wrath are the unmingled-with-mercy plagues — the executive-judgment phase of the heavenly sanctuary's work."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -201,10 +222,13 @@
       "num": 8,
       "slug": "v-8",
       "text": "And the temple was filled with smoke from the glory of God, and from his power; and no man was able to enter into the temple, till the seven plagues of the seven angels were fulfilled.",
-      "pioneerReading": {
-        "citation": "DAR 638.3",
-        "html": "**The close of probation — no ministration in the sanctuary while the plagues fall, hence the plagues are wholly without mercy.** Smith parses the Greek \"_no man_\" carefully: \"**While the seven angels are performing their fearful mission, the temple is filled with the glory of God, and no man — οὐδεὶς (oudeis), no one, no being, referring to Christ and his heavenly assistants — can enter therein. This shows that the work of mercy is closed, as there is no ministration in the sanctuary during the infliction of the plagues; hence they are manifestations of the wrath of God without any mixture of mercy**\" (DAR 638.3). This is the doctrinal anchor for SDA close-of-probation theology — Christ ceases His priestly ministry, and the seven plagues fall."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 638.3",
+          "html": "**The close of probation — no ministration in the sanctuary while the plagues fall, hence the plagues are wholly without mercy.** Smith parses the Greek \"_no man_\" carefully: \"**While the seven angels are performing their fearful mission, the temple is filled with the glory of God, and no man — οὐδεὶς (oudeis), no one, no being, referring to Christ and his heavenly assistants — can enter therein. This shows that the work of mercy is closed, as there is no ministration in the sanctuary during the infliction of the plagues; hence they are manifestations of the wrath of God without any mixture of mercy**\" (DAR 638.3). This is the doctrinal anchor for SDA close-of-probation theology — Christ ceases His priestly ministry, and the seven plagues fall."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",

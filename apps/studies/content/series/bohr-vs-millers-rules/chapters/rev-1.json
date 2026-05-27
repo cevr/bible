@@ -9,10 +9,13 @@
       "num": 1,
       "slug": "v-1",
       "text": "The Revelation of Jesus Christ, which God gave unto him, to show unto his servants things which must shortly come to pass; and he sent and signified it by his angel unto his servant John:",
-      "pioneerReading": {
-        "citation": "DAR 323.3-324.2",
-        "html": "**The book is the Revelation of Jesus Christ (Christ is the Revelator, not John, who is only the penman); it comes ultimately from God the Father, who gave it to Christ, who sent it by his angel (probably Gabriel, per Dan 8:16, 9:21, 10:21) to John.** \"**To his previous titles he now adds that of prophet; for the Revelation is a prophecy. But the matter of this book is traced back to a still higher source. It is not only the Revelation of Jesus Christ, but it is the Revelation which God gave unto him. It comes, then, first, from the great fountain of all wisdom and truth, God the Father; by him it was communicated to Jesus Christ, the Son; and Christ sent and signified it by his angel to his servant John**\" (DAR 323.3). On \"things which must shortly come to pass\" — \"**His servants — who are they? Is there any limit? For whose benefit was the Revelation given? Was it given for any specified persons? for any particular churches? for any special period of time? — No; it is for all the church in all time, so long as any of the events therein predicted remain to be accomplished**\" (DAR 324.2). The \"shortly\" is read with reference to God's chronology and to the unfolding character of the prophecy through the gospel dispensation, not as a near-term deadline."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 323.3-324.2",
+          "html": "**The book is the Revelation of Jesus Christ (Christ is the Revelator, not John, who is only the penman); it comes ultimately from God the Father, who gave it to Christ, who sent it by his angel (probably Gabriel, per Dan 8:16, 9:21, 10:21) to John.** \"**To his previous titles he now adds that of prophet; for the Revelation is a prophecy. But the matter of this book is traced back to a still higher source. It is not only the Revelation of Jesus Christ, but it is the Revelation which God gave unto him. It comes, then, first, from the great fountain of all wisdom and truth, God the Father; by him it was communicated to Jesus Christ, the Son; and Christ sent and signified it by his angel to his servant John**\" (DAR 323.3). On \"things which must shortly come to pass\" — \"**His servants — who are they? Is there any limit? For whose benefit was the Revelation given? Was it given for any specified persons? for any particular churches? for any special period of time? — No; it is for all the church in all time, so long as any of the events therein predicted remain to be accomplished**\" (DAR 324.2). The \"shortly\" is read with reference to God's chronology and to the unfolding character of the prophecy through the gospel dispensation, not as a near-term deadline."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -36,10 +39,13 @@
       "num": 2,
       "slug": "v-2",
       "text": "Who bare record of the word of God, and of the testimony of Jesus Christ, and of all things that he saw.",
-      "pioneerReading": {
-        "citation": "DAR 323.2-324.1",
-        "html": "John bears record of (i) the word of God, (ii) the testimony of Jesus Christ, and (iii) all things that he saw — the three sources of the Apocalyptic content. Smith treats this as the formal witness-statement establishing John's prophetic credentials. The \"testimony of Jesus\" phrase is cross-linked to Rev 19:10 (spirit of prophecy) and Rev 12:17 (the remnant's distinguishing mark)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 323.2-324.1",
+          "html": "John bears record of (i) the word of God, (ii) the testimony of Jesus Christ, and (iii) all things that he saw — the three sources of the Apocalyptic content. Smith treats this as the formal witness-statement establishing John's prophetic credentials. The \"testimony of Jesus\" phrase is cross-linked to Rev 19:10 (spirit of prophecy) and Rev 12:17 (the remnant's distinguishing mark)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -63,10 +69,13 @@
       "num": 3,
       "slug": "v-3",
       "text": "Blessed is he that readeth, and they that hear the words of this prophecy, and keep those things which are written therein: for the time is at hand.",
-      "pioneerReading": {
-        "citation": "DAR 326.1-326.3",
-        "html": "**The benediction on readers is direct apostolic authorization to study the Apocalypse — disproving the popular view that Revelation cannot be understood.** \"**Is there so direct and formal a blessing pronounced upon the reading and observance of any other portion of the word of God? What encouragement, then, have we for its study! And shall we say that it cannot be understood? Is a blessing offered for the study of a book which it can do us no good to study? Men may assert, with more pertness than piety, that 'every age of declension is marked by an increase of commentaries on the Apocalypse,' or that 'the study of the Revelation either finds or leaves a man mad;' but God has pronounced his blessing upon it, he has set the seal of his approbation to an earnest study of its marvelous pages**\" (DAR 326.1). Smith also stresses that the blessing is conditional on **keeping** what is written — pointing forward to Rev 14:12 (commandments of God + faith of Jesus)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 326.1-326.3",
+          "html": "**The benediction on readers is direct apostolic authorization to study the Apocalypse — disproving the popular view that Revelation cannot be understood.** \"**Is there so direct and formal a blessing pronounced upon the reading and observance of any other portion of the word of God? What encouragement, then, have we for its study! And shall we say that it cannot be understood? Is a blessing offered for the study of a book which it can do us no good to study? Men may assert, with more pertness than piety, that 'every age of declension is marked by an increase of commentaries on the Apocalypse,' or that 'the study of the Revelation either finds or leaves a man mad;' but God has pronounced his blessing upon it, he has set the seal of his approbation to an earnest study of its marvelous pages**\" (DAR 326.1). Smith also stresses that the blessing is conditional on **keeping** what is written — pointing forward to Rev 14:12 (commandments of God + faith of Jesus)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -90,10 +99,13 @@
       "num": 4,
       "slug": "v-4",
       "text": "John to the seven churches which are in Asia: Grace be unto you, and peace, from him which is, and which was, and which is to come; and from the seven spirits which are before his throne;",
-      "pioneerReading": {
-        "citation": "DAR 327.3-330.2",
-        "html": "**The seven churches are seven literal first-century churches in Asia Minor AND seven successive periods of the Christian church from John's day to the close of probation** (Smith's foundational historicist move — the seven-stage church-history framework that drives all of Rev 2-3). \"**The seven churches are doubtless to be understood to mean not merely the seven literal churches of Asia which went by the names mentioned, but seven periods of the Christian church, from the days of the apostles to the close of probation**\" (DAR 329.3). On the source-of-blessing formula: \"**'From him which is, and which was, and which is to come,' or is to be, — an expression which signifies complete eternity, past and future, and can be applicable to God the Father only**\" (DAR 329.4). On the seven spirits: \"**This expression probably has no reference to angels, but to the Spirit of God… 'denominated the seven spirits, because seven is a sacred and perfect number; not thus named as denoting interior plurality, but the fulness and perfection of his gifts and operations'**\" (DAR 330.1, quoting Thompson)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 327.3-330.2",
+          "html": "**The seven churches are seven literal first-century churches in Asia Minor AND seven successive periods of the Christian church from John's day to the close of probation** (Smith's foundational historicist move — the seven-stage church-history framework that drives all of Rev 2-3). \"**The seven churches are doubtless to be understood to mean not merely the seven literal churches of Asia which went by the names mentioned, but seven periods of the Christian church, from the days of the apostles to the close of probation**\" (DAR 329.3). On the source-of-blessing formula: \"**'From him which is, and which was, and which is to come,' or is to be, — an expression which signifies complete eternity, past and future, and can be applicable to God the Father only**\" (DAR 329.4). On the seven spirits: \"**This expression probably has no reference to angels, but to the Spirit of God… 'denominated the seven spirits, because seven is a sacred and perfect number; not thus named as denoting interior plurality, but the fulness and perfection of his gifts and operations'**\" (DAR 330.1, quoting Thompson)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -117,10 +129,13 @@
       "num": 5,
       "slug": "v-5",
       "text": "And from Jesus Christ, who is the faithful witness, and the first begotten of the dead, and the prince of the kings of the earth. Unto him that loved us, and washed us from our sins in his own blood,",
-      "pioneerReading": {
-        "citation": "DAR 330.3-331.2",
-        "html": "**Three Christological titles unpacked in order**: (i) **Faithful Witness** — \"**Whatever he bears witness to is true. Whatever he promises, he will surely fulfil**\" (DAR 330.4); (ii) **First Begotten of the Dead** — not first in chronological order (others were raised before him), but first in pre-eminence, \"**the chief and central figure of all who have come up from the grave; for it was by virtue of Christ's coming, work, and resurrection, that any were raised before his time**\" (DAR 330.5); (iii) **Prince of the Kings of the Earth** — Christ is presently set at the Father's right hand \"**far above all principality, and power, and might, and dominion**\" (Eph 1:20-21), and will be Prince in the fullest sense when he takes his own throne at the second advent (Rev 19:16, Ps 2:8-9)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 330.3-331.2",
+          "html": "**Three Christological titles unpacked in order**: (i) **Faithful Witness** — \"**Whatever he bears witness to is true. Whatever he promises, he will surely fulfil**\" (DAR 330.4); (ii) **First Begotten of the Dead** — not first in chronological order (others were raised before him), but first in pre-eminence, \"**the chief and central figure of all who have come up from the grave; for it was by virtue of Christ's coming, work, and resurrection, that any were raised before his time**\" (DAR 330.5); (iii) **Prince of the Kings of the Earth** — Christ is presently set at the Father's right hand \"**far above all principality, and power, and might, and dominion**\" (Eph 1:20-21), and will be Prince in the fullest sense when he takes his own throne at the second advent (Rev 19:16, Ps 2:8-9)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -144,10 +159,13 @@
       "num": 6,
       "slug": "v-6",
       "text": "And hath made us kings and priests unto God and his Father; to him be glory and dominion for ever and ever. Amen.",
-      "pioneerReading": {
-        "citation": "DAR 331.3-332.1",
-        "html": "**The kings-and-priests-unto-God identification = present spiritual kingdom-of-grace status plus future literal kingdom-of-glory enthronement.** \"**This cleansing, and this kingly and priestly exaltation — to what state do they pertain? to the present or the future? — Chiefly to the future; for it is then only that we shall enjoy these blessings in the highest degree… Yet enough is true of our present condition to make this cheering language appropriate in the Christian's present song of joy**\" (DAR 332.1). Cross-links: 1 Pet 2:9, Rev 3:21, Dan 7:18, 27."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 331.3-332.1",
+          "html": "**The kings-and-priests-unto-God identification = present spiritual kingdom-of-grace status plus future literal kingdom-of-glory enthronement.** \"**This cleansing, and this kingly and priestly exaltation — to what state do they pertain? to the present or the future? — Chiefly to the future; for it is then only that we shall enjoy these blessings in the highest degree… Yet enough is true of our present condition to make this cheering language appropriate in the Christian's present song of joy**\" (DAR 332.1). Cross-links: 1 Pet 2:9, Rev 3:21, Dan 7:18, 27."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -171,10 +189,13 @@
       "num": 7,
       "slug": "v-7",
       "text": "Behold, he cometh with clouds; and every eye shall see him, and they also which pierced him: and all kindreds of the earth shall wail because of him. Even so, Amen.",
-      "pioneerReading": {
-        "citation": "DAR 333.1-334.3",
-        "html": "**The literal visible second advent — \"every eye shall see him\" = all who are alive at his coming will see him personally, refuting any secret-rapture / private-coming framework.** \"**'Every eye shall see him;' that is, all who are alive at the time of his coming. We know of no personal coming of Christ that shall be as the stillness of midnight, or take place only in the desert or the secret chamber. He comes not as a thief in the sense of stealing in stealthily and quietly upon the world… To represent two comings, a private and a public one, in connection with the second advent, as some do, is wholly unwarranted in the Scriptures**\" (DAR 333.3). On \"they also which pierced him\": Smith identifies these as a **special partial resurrection** at the second advent of those chiefly concerned in Christ's death (per Dan 12:2 — \"many of them that sleep in the dust shall awake, some to everlasting life, and some to shame and everlasting contempt\"), distinct from the general resurrection of the wicked at the end of the millennium (Rev 20:1-6)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 333.1-334.3",
+          "html": "**The literal visible second advent — \"every eye shall see him\" = all who are alive at his coming will see him personally, refuting any secret-rapture / private-coming framework.** \"**'Every eye shall see him;' that is, all who are alive at the time of his coming. We know of no personal coming of Christ that shall be as the stillness of midnight, or take place only in the desert or the secret chamber. He comes not as a thief in the sense of stealing in stealthily and quietly upon the world… To represent two comings, a private and a public one, in connection with the second advent, as some do, is wholly unwarranted in the Scriptures**\" (DAR 333.3). On \"they also which pierced him\": Smith identifies these as a **special partial resurrection** at the second advent of those chiefly concerned in Christ's death (per Dan 12:2 — \"many of them that sleep in the dust shall awake, some to everlasting life, and some to shame and everlasting contempt\"), distinct from the general resurrection of the wicked at the end of the millennium (Rev 20:1-6)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -198,10 +219,13 @@
       "num": 8,
       "slug": "v-8",
       "text": "I am Alpha and Omega, the beginning and the ending, saith the Lord, which is, and which was, and which is to come, the Almighty.",
-      "pioneerReading": {
-        "citation": "DAR 335.1-335.2",
-        "html": "Smith identifies the speaker as **God the Father** on the basis of the \"which is, and which was, and which is to come\" formula (which Smith argues at v. 4 applies exclusively to the Father). Smith notes textual-criticism that \"Lord\" may read \"God\" (Griesbach, Tittman, Hahn). \"**Thus appropriately closes the first principal division of this chapter, with a revelation of himself by the great God as a being of an eternity of existence, past and future, and of almighty power, and hence able to perform all his threatenings and his promises, which he has given us in this book**\" (DAR 335.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 335.1-335.2",
+          "html": "Smith identifies the speaker as **God the Father** on the basis of the \"which is, and which was, and which is to come\" formula (which Smith argues at v. 4 applies exclusively to the Father). Smith notes textual-criticism that \"Lord\" may read \"God\" (Griesbach, Tittman, Hahn). \"**Thus appropriately closes the first principal division of this chapter, with a revelation of himself by the great God as a being of an eternity of existence, past and future, and of almighty power, and hence able to perform all his threatenings and his promises, which he has given us in this book**\" (DAR 335.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -225,10 +249,13 @@
       "num": 9,
       "slug": "v-9",
       "text": "I John, who also am your brother, and companion in tribulation, and in the kingdom and patience of Jesus Christ, was in the isle that is called Patmos, for the word of God, and for the testimony of Jesus Christ.",
-      "pioneerReading": {
-        "citation": "DAR 335.3-337.1",
-        "html": "**John on Patmos under Domitian, AD 94-96, exiled for the word of God and the testimony of Jesus — the historical setting of the Apocalypse.** Smith reads \"kingdom and patience\" as the **future kingdom of glory** (not a present-tense kingdom in the Augustinian/Catholic sense): \"**The literal reign of the saints is yet future. It is through much tribulation that we are to enter into the kingdom of God. Acts 14:22. But when the kingdom is entered, the tribulation is done. The tribulation and the kingdom do not exist contemporaneously**\" (DAR 335.5-336.1). Patmos is described topographically (DAR 336.1) and the Domitianic banishment dated to \"**A. D. 94, as is generally supposed… from this fact the date assigned to the writing of the Revelation is A. D. 95 or 96**\" (DAR 336.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 335.3-337.1",
+          "html": "**John on Patmos under Domitian, AD 94-96, exiled for the word of God and the testimony of Jesus — the historical setting of the Apocalypse.** Smith reads \"kingdom and patience\" as the **future kingdom of glory** (not a present-tense kingdom in the Augustinian/Catholic sense): \"**The literal reign of the saints is yet future. It is through much tribulation that we are to enter into the kingdom of God. Acts 14:22. But when the kingdom is entered, the tribulation is done. The tribulation and the kingdom do not exist contemporaneously**\" (DAR 335.5-336.1). Patmos is described topographically (DAR 336.1) and the Domitianic banishment dated to \"**A. D. 94, as is generally supposed… from this fact the date assigned to the writing of the Revelation is A. D. 95 or 96**\" (DAR 336.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -252,10 +279,13 @@
       "num": 10,
       "slug": "v-10",
       "text": "I was in the Spirit on the Lord's day, and heard behind me a great voice, as of a trumpet,",
-      "pioneerReading": {
-        "citation": "DAR 338.1-341.1",
-        "html": "**Smith canvasses four positions on \"Lord's day\": (1) the entire gospel dispensation; (2) the future day of Judgment; (3) the first day of the week (Sunday); (4) the seventh-day Sabbath. He rejects (1) as making the date-stamp meaningless, rejects (2) as making John have a vision-on-a-future-day (grammatically impossible — Greek _en_ = \"on/in\" never means \"concerning\"), and rejects (3) decisively as having no scriptural warrant (Matthew/Mark/Luke/Paul all call the first day simply \"the first day of the week,\" never \"the Lord's day\"; John himself in his later Gospel calls it \"the first day of the week\"; neither the Father nor the Son has ever placed any blessing on the first day or claimed it as his own). Smith concludes for (4) — the seventh-day Sabbath of the fourth commandment, citing Christ's \"the Son of man is Lord also of the Sabbath\" (Mark 2:28).** \"**Whether it be the Father or the Son whose title is involved, no other day can be called the Lord's day but the Sabbath of the great Creator**\" (DAR 340.2-341.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 338.1-341.1",
+          "html": "**Smith canvasses four positions on \"Lord's day\": (1) the entire gospel dispensation; (2) the future day of Judgment; (3) the first day of the week (Sunday); (4) the seventh-day Sabbath. He rejects (1) as making the date-stamp meaningless, rejects (2) as making John have a vision-on-a-future-day (grammatically impossible — Greek _en_ = \"on/in\" never means \"concerning\"), and rejects (3) decisively as having no scriptural warrant (Matthew/Mark/Luke/Paul all call the first day simply \"the first day of the week,\" never \"the Lord's day\"; John himself in his later Gospel calls it \"the first day of the week\"; neither the Father nor the Son has ever placed any blessing on the first day or claimed it as his own). Smith concludes for (4) — the seventh-day Sabbath of the fourth commandment, citing Christ's \"the Son of man is Lord also of the Sabbath\" (Mark 2:28).** \"**Whether it be the Father or the Son whose title is involved, no other day can be called the Lord's day but the Sabbath of the great Creator**\" (DAR 340.2-341.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -284,10 +314,13 @@
       "num": 11,
       "slug": "v-11",
       "text": "Saying, I am Alpha and Omega, the first and the last: and, What thou seest, write in a book, and send it unto the seven churches which are in Asia; unto Ephesus, and unto Smyrna, and unto Pergamos, and unto Thyatira, and unto Sardis, and unto Philadelphia, and unto Laodicea.",
-      "pioneerReading": {
-        "citation": "DAR 341.2-341.3",
-        "html": "Smith notes the textual-criticism issue — the clause \"I am Alpha and Omega, the first and the last, and\" and the phrase \"in Asia\" are absent from the principal manuscripts (Clarke, Bloomfield, Griesbach all mark them as interpolations). The reduced text reads simply: \"**Saying, What thou seest, write in a book, and send it unto the seven churches; unto Ephesus**…\" The seven churches are then listed in geographical order following the natural postal route from Patmos."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 341.2-341.3",
+          "html": "Smith notes the textual-criticism issue — the clause \"I am Alpha and Omega, the first and the last, and\" and the phrase \"in Asia\" are absent from the principal manuscripts (Clarke, Bloomfield, Griesbach all mark them as interpolations). The reduced text reads simply: \"**Saying, What thou seest, write in a book, and send it unto the seven churches; unto Ephesus**…\" The seven churches are then listed in geographical order following the natural postal route from Patmos."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -311,10 +344,13 @@
       "num": 12,
       "slug": "v-12",
       "text": "And I turned to see the voice that spake with me. And being turned, I saw seven golden candlesticks;",
-      "pioneerReading": {
-        "citation": "DAR 342.2-342.3",
-        "html": "**The seven golden candlesticks are not the antitype of the single seven-branched temple candlestick — they are seven distinct lamp-stands, in the midst of which the Son of man walks.** \"**These cannot be the antitype of the golden candlestick of the ancient typical temple service; for that was but one candlestick with seven branches. That is ever spoken of in the singular number. But here are seven; and these are more properly 'lamp-stands' than simply candlesticks, stands upon which lamps are set to give light in the room. And they bear no resemblance to the ancient candlestick; on the contrary, the stands are so distinct, and so far separated from one another, that the Son of man is seen walking about in the midst of them**\" (DAR 342.3). The candlesticks = the seven churches, decoded explicitly at v. 20."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 342.2-342.3",
+          "html": "**The seven golden candlesticks are not the antitype of the single seven-branched temple candlestick — they are seven distinct lamp-stands, in the midst of which the Son of man walks.** \"**These cannot be the antitype of the golden candlestick of the ancient typical temple service; for that was but one candlestick with seven branches. That is ever spoken of in the singular number. But here are seven; and these are more properly 'lamp-stands' than simply candlesticks, stands upon which lamps are set to give light in the room. And they bear no resemblance to the ancient candlestick; on the contrary, the stands are so distinct, and so far separated from one another, that the Son of man is seen walking about in the midst of them**\" (DAR 342.3). The candlesticks = the seven churches, decoded explicitly at v. 20."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -338,10 +374,13 @@
       "num": 13,
       "slug": "v-13",
       "text": "And in the midst of the seven candlesticks one like unto the Son of man, clothed with a garment down to the foot, and girt about the paps with a golden girdle.",
-      "pioneerReading": {
-        "citation": "DAR 342.4",
-        "html": "**The Son of man = Christ, representing the central majestic figure of the vision. The flowing robe is high-priestly attire.** \"**The central and all-attractive figure of the scene now opened before John's vision is the majestic form of one like the Son of man, representing Christ. The description here given of him, with his flowing robe, his hair white, not with age, but with the brightness of heavenly glory, his flaming eyes, his feet glowing like molten brass, and his voice as the sound of many waters, cannot be excelled for grandeur and sublimity**\" (DAR 342.4)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 342.4",
+          "html": "**The Son of man = Christ, representing the central majestic figure of the vision. The flowing robe is high-priestly attire.** \"**The central and all-attractive figure of the scene now opened before John's vision is the majestic form of one like the Son of man, representing Christ. The description here given of him, with his flowing robe, his hair white, not with age, but with the brightness of heavenly glory, his flaming eyes, his feet glowing like molten brass, and his voice as the sound of many waters, cannot be excelled for grandeur and sublimity**\" (DAR 342.4)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -365,10 +404,13 @@
       "num": 14,
       "slug": "v-14",
       "text": "His head and his hairs were white like wool, as white as snow; and his eyes were as a flame of fire;",
-      "pioneerReading": {
-        "citation": "DAR 342.4",
-        "html": "Smith treats vv. 13-16 as a single Christ-attribute block (covered above) — \"**his hair white, not with age, but with the brightness of heavenly glory, his flaming eyes**.\" The white hair = heavenly-glory brightness, not chronological age; the flaming eyes are part of the overall majestic-being description."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 342.4",
+          "html": "Smith treats vv. 13-16 as a single Christ-attribute block (covered above) — \"**his hair white, not with age, but with the brightness of heavenly glory, his flaming eyes**.\" The white hair = heavenly-glory brightness, not chronological age; the flaming eyes are part of the overall majestic-being description."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -392,10 +434,13 @@
       "num": 15,
       "slug": "v-15",
       "text": "And his feet like unto fine brass, as if they burned in a furnace; and his voice as the sound of many waters.",
-      "pioneerReading": {
-        "citation": "DAR 342.4",
-        "html": "Part of the single Christ-attribute block — \"**his feet glowing like molten brass, and his voice as the sound of many waters, cannot be excelled for grandeur and sublimity**\" (DAR 342.4). Smith treats the brass feet and many-waters voice as elements of the overall majestic Christophany without separate symbolic decoding."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 342.4",
+          "html": "Part of the single Christ-attribute block — \"**his feet glowing like molten brass, and his voice as the sound of many waters, cannot be excelled for grandeur and sublimity**\" (DAR 342.4). Smith treats the brass feet and many-waters voice as elements of the overall majestic Christophany without separate symbolic decoding."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -419,10 +464,13 @@
       "num": 16,
       "slug": "v-16",
       "text": "And he had in his right hand seven stars: and out of his mouth went a sharp twoedged sword: and his countenance was as the sun shineth in his strength.",
-      "pioneerReading": {
-        "citation": "DAR 342.4; cross-link to DAR 328.3 + 343.4-343.5",
-        "html": "The seven stars = the angels (ministers) of the seven churches (decoded at v. 20). The two-edged sword from the mouth = the Word of God. The countenance as the sun = the heavenly-glory brightness of the Christ-figure. On the seven stars held in Christ's right hand: \"**Their being held in the right hand of the Son of man denotes the upholding power, guidance, and protection vouchsafed to them**\" (DAR 328.3)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 342.4; cross-link to DAR 328.3 + 343.4-343.5",
+          "html": "The seven stars = the angels (ministers) of the seven churches (decoded at v. 20). The two-edged sword from the mouth = the Word of God. The countenance as the sun = the heavenly-glory brightness of the Christ-figure. On the seven stars held in Christ's right hand: \"**Their being held in the right hand of the Son of man denotes the upholding power, guidance, and protection vouchsafed to them**\" (DAR 328.3)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -446,10 +494,13 @@
       "num": 17,
       "slug": "v-17",
       "text": "And when I saw him, I fell at his feet as dead. And he laid his right hand upon me, saying unto me, Fear not; I am the first and the last:",
-      "pioneerReading": {
-        "citation": "DAR 342.4",
-        "html": "**John's prophetic-vision collapse before the majesty of Christ; Christ's reassuring touch and \"Fear not\" word.** \"**Overcome by the presence of this august Being, and perhaps under a keen sense of all human unworthiness, John fell at his feet as dead; but a comforting hand is laid upon him, and a voice of sweet assurance tells him to fear not. It is equally the privilege of Christians to-day to feel the same hand laid upon them to strengthen and comfort them in hours of trial and affliction, and to hear the same voice saying unto them, 'Fear not'**\" (DAR 342.4)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 342.4",
+          "html": "**John's prophetic-vision collapse before the majesty of Christ; Christ's reassuring touch and \"Fear not\" word.** \"**Overcome by the presence of this august Being, and perhaps under a keen sense of all human unworthiness, John fell at his feet as dead; but a comforting hand is laid upon him, and a voice of sweet assurance tells him to fear not. It is equally the privilege of Christians to-day to feel the same hand laid upon them to strengthen and comfort them in hours of trial and affliction, and to hear the same voice saying unto them, 'Fear not'**\" (DAR 342.4)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -473,10 +524,13 @@
       "num": 18,
       "slug": "v-18",
       "text": "I am he that liveth, and was dead; and, behold, I am alive for evermore, Amen; and have the keys of hell and of death.",
-      "pioneerReading": {
-        "citation": "DAR 343.1",
-        "html": "**Christ as the Living One who died and rose, holding the keys of hades (= the grave) and of death — the great consolation for the believing dead.** \"**The most cheering assurance in all these words of consolation is the declaration of this exalted one who is alive forevermore, that he is the arbiter of death and the grave. 'I have,' he says, 'the keys of hell (ᾅδης, the grave) and death.' Death is a conquered tyrant. He may ply his gloomy labors age after age, gathering to the grave the precious of the earth, and gloat for a season over his apparent triumph: but he is performing a fruitless task; for the key to his dark prison-house has been wrenched from his grasp, and is now held in the hands of a mightier than he**\" (DAR 343.1). Smith glosses _hades_ explicitly as \"the grave,\" not as a place of conscious torment."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 343.1",
+          "html": "**Christ as the Living One who died and rose, holding the keys of hades (= the grave) and of death — the great consolation for the believing dead.** \"**The most cheering assurance in all these words of consolation is the declaration of this exalted one who is alive forevermore, that he is the arbiter of death and the grave. 'I have,' he says, 'the keys of hell (ᾅδης, the grave) and death.' Death is a conquered tyrant. He may ply his gloomy labors age after age, gathering to the grave the precious of the earth, and gloat for a season over his apparent triumph: but he is performing a fruitless task; for the key to his dark prison-house has been wrenched from his grasp, and is now held in the hands of a mightier than he**\" (DAR 343.1). Smith glosses _hades_ explicitly as \"the grave,\" not as a place of conscious torment."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -500,10 +554,13 @@
       "num": 19,
       "slug": "v-19",
       "text": "Write the things which thou hast seen, and the things which are, and the things which shall be hereafter.",
-      "pioneerReading": {
-        "citation": "DAR 343.2-343.3",
-        "html": "**The threefold writing-commission: what was seen, what is, what shall be hereafter — covering the full prophetic horizon of Revelation, which deals chiefly with future-from-John events.** \"**A more definite command is given in this verse to John to write the entire Revelation, which would relate chiefly to things which were then in the future. In some few instances, events then in the past or then transpiring were referred to; but these references were simply for the purpose of introducing events to be fulfilled after that time, and so that no link in the chain might be lacking**\" (DAR 343.3). Smith does NOT use v. 19 as a master-outline-of-Revelation key (he treats it as a writing-commission, not as a tripartite structural division of the book)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 343.2-343.3",
+          "html": "**The threefold writing-commission: what was seen, what is, what shall be hereafter — covering the full prophetic horizon of Revelation, which deals chiefly with future-from-John events.** \"**A more definite command is given in this verse to John to write the entire Revelation, which would relate chiefly to things which were then in the future. In some few instances, events then in the past or then transpiring were referred to; but these references were simply for the purpose of introducing events to be fulfilled after that time, and so that no link in the chain might be lacking**\" (DAR 343.3). Smith does NOT use v. 19 as a master-outline-of-Revelation key (he treats it as a writing-commission, not as a tripartite structural division of the book)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -527,10 +584,13 @@
       "num": 20,
       "slug": "v-20",
       "text": "The mystery of the seven stars which thou sawest in my right hand, and the seven golden candlesticks. The seven stars are the angels of the seven churches: and the seven candlesticks which thou sawest are the seven churches.",
-      "pioneerReading": {
-        "citation": "DAR 343.4-344.1",
-        "html": "**The textbook Rule-V Scripture-as-its-own-expositor verse — the symbols are explicitly decoded by the text itself. Stars = angels (= ministers / messengers) of the seven churches; candlesticks = the seven churches themselves.** \"**To represent the Son of man as holding in his hand only the ministers of seven literal churches in Asia Minor, and walking in the midst of only those seven churches, would be to reduce the sublime representations and declarations of this and following chapters to comparative insignificance. The providential care and presence of the Lord are with, not a specified number of churches only, but all his people; not in the days of John merely, but through all time**\" (DAR 344.1, with cross-link to Matt 28:20 \"_Lo! I am with you alway, even unto the end of the world_\")."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 343.4-344.1",
+          "html": "**The textbook Rule-V Scripture-as-its-own-expositor verse — the symbols are explicitly decoded by the text itself. Stars = angels (= ministers / messengers) of the seven churches; candlesticks = the seven churches themselves.** \"**To represent the Son of man as holding in his hand only the ministers of seven literal churches in Asia Minor, and walking in the midst of only those seven churches, would be to reduce the sublime representations and declarations of this and following chapters to comparative insignificance. The providential care and presence of the Lord are with, not a specified number of churches only, but all his people; not in the days of John merely, but through all time**\" (DAR 344.1, with cross-link to Matt 28:20 \"_Lo! I am with you alway, even unto the end of the world_\")."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",

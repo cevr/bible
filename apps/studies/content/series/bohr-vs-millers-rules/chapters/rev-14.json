@@ -9,10 +9,13 @@
       "num": 1,
       "slug": "v-1",
       "text": "And I looked, and, lo, a Lamb stood on the mount Sion, and with him an hundred forty and four thousand, having his Father's name written in their foreheads.",
-      "pioneerReading": {
-        "citation": "DAR 582.2-583.2",
-        "html": "Smith identifies Mt Zion as **heavenly** (the seat of the New Jerusalem above, not earthly Palestine). On the 144,000: \"**This view of the 144,000 is given to us out of place chronologically. They are the same as those brought to view in chapter 7:1-8, who are sealed during the sounding of the angel ascending from the east. After their sealing, they pass through the time of trouble such as never was (Daniel 12:1) and are finally delivered, being translated to heaven without seeing death, at the second coming of Christ**\" (DAR 582.4-583.1). On the name in the foreheads: \"**'Having his Father's name written in their foreheads.' This expression must denote the perfection of character which they have attained, in being made ready for translation**\" (DAR 583.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 582.2-583.2",
+          "html": "Smith identifies Mt Zion as **heavenly** (the seat of the New Jerusalem above, not earthly Palestine). On the 144,000: \"**This view of the 144,000 is given to us out of place chronologically. They are the same as those brought to view in chapter 7:1-8, who are sealed during the sounding of the angel ascending from the east. After their sealing, they pass through the time of trouble such as never was (Daniel 12:1) and are finally delivered, being translated to heaven without seeing death, at the second coming of Christ**\" (DAR 582.4-583.1). On the name in the foreheads: \"**'Having his Father's name written in their foreheads.' This expression must denote the perfection of character which they have attained, in being made ready for translation**\" (DAR 583.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -39,10 +42,13 @@
       "num": 2,
       "slug": "v-2",
       "text": "And I heard a voice from heaven, as the voice of many waters, and as the voice of a great thunder: and I heard the voice of harpers harping with their harps:",
-      "pioneerReading": {
-        "citation": "DAR 583.3",
-        "html": "\"**The voice that the prophet hears is the voice of the 144,000 themselves... they sing the song of Moses and the Lamb, a song which no man could learn but those who, having gained the victory over the beast, his image, and his mark, stand on the sea of glass, having the harps of God**\" (DAR 583.3, cross-linking Rev 15:2-3)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 583.3",
+          "html": "\"**The voice that the prophet hears is the voice of the 144,000 themselves... they sing the song of Moses and the Lamb, a song which no man could learn but those who, having gained the victory over the beast, his image, and his mark, stand on the sea of glass, having the harps of God**\" (DAR 583.3, cross-linking Rev 15:2-3)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -66,10 +72,13 @@
       "num": 3,
       "slug": "v-3",
       "text": "And they sung as it were a new song before the throne, and before the four beasts, and the elders: and no man could learn that song but the hundred and forty and four thousand, which were redeemed from the earth.",
-      "pioneerReading": {
-        "citation": "DAR 583.3-584.1",
-        "html": "Smith reads the song as the unique experience-song of the last generation: \"**this song is one of experience, and it is the peculiar experience of the 144,000 which no other company can ever sing. They are the ones who are alive when the seven last plagues are poured out... and yet are sustained through this awful period, are at last delivered by the voice of God, and changed to immortality at the coming of Christ. This is an experience distinct from that of all others**\" (DAR 583.3-584.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 583.3-584.1",
+          "html": "Smith reads the song as the unique experience-song of the last generation: \"**this song is one of experience, and it is the peculiar experience of the 144,000 which no other company can ever sing. They are the ones who are alive when the seven last plagues are poured out... and yet are sustained through this awful period, are at last delivered by the voice of God, and changed to immortality at the coming of Christ. This is an experience distinct from that of all others**\" (DAR 583.3-584.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -93,10 +102,13 @@
       "num": 4,
       "slug": "v-4",
       "text": "These are they which were not defiled with women; for they are virgins. These are they which follow the Lamb whithersoever he goeth. These were redeemed from among men, being the firstfruits unto God and to the Lamb.",
-      "pioneerReading": {
-        "citation": "DAR 584.2-585.1",
-        "html": "Smith reads **\"women\"** as a Rule-V symbol — corrupt churches: \"**Women here, as in other places, where used as symbols, denote churches; and as those with whom these are not defiled are described as virgins, the women from whom they have kept themselves free, must denote corrupt churches; that is, Babylon, the mother, and her offspring, the apostate churches of the present day**\" (DAR 584.2). On firstfruits: \"**As the firstfruits of the harvest were the first ripe grain... so the 144,000 are the firstfruits of the great spiritual harvest of the redeemed to be gathered from the earth**\" (DAR 585.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 584.2-585.1",
+          "html": "Smith reads **\"women\"** as a Rule-V symbol — corrupt churches: \"**Women here, as in other places, where used as symbols, denote churches; and as those with whom these are not defiled are described as virgins, the women from whom they have kept themselves free, must denote corrupt churches; that is, Babylon, the mother, and her offspring, the apostate churches of the present day**\" (DAR 584.2). On firstfruits: \"**As the firstfruits of the harvest were the first ripe grain... so the 144,000 are the firstfruits of the great spiritual harvest of the redeemed to be gathered from the earth**\" (DAR 585.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -123,10 +135,13 @@
       "num": 5,
       "slug": "v-5",
       "text": "And in their mouth was found no guile: for they are without fault before the throne of God.",
-      "pioneerReading": {
-        "citation": "DAR 585.2",
-        "html": "\"**These constitute the company who go through the time of trouble such as never was, and are translated to heaven without seeing death... 'In their mouth was found no guile.' They are without fault before the throne of God. The mark of perfection is upon them**\" (DAR 585.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 585.2",
+          "html": "\"**These constitute the company who go through the time of trouble such as never was, and are translated to heaven without seeing death... 'In their mouth was found no guile.' They are without fault before the throne of God. The mark of perfection is upon them**\" (DAR 585.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -150,10 +165,13 @@
       "num": 6,
       "slug": "v-6",
       "text": "And I saw another angel fly in the midst of heaven, having the everlasting gospel to preach unto them that dwell on the earth, and to every nation, and kindred, and tongue, and people,",
-      "pioneerReading": {
-        "citation": "DAR 585.3-588.1",
-        "html": "Smith identifies the angel as a symbol of a **religious movement** preaching the everlasting gospel just prior to the Second Advent. The movement is the Millerite advent awakening of **1840-1844**: \"**An angel is a messenger; and the symbol here used must denote a religious movement, having for its purpose the proclamation of a message to the world. The everlasting gospel is to be preached to every nation... This must be the great Advent movement of 1840-1844, when the message of the hour of judgment was proclaimed in this and other lands**\" (DAR 585.3, condensed; the full historical documentation runs through pp. 585-588 with parallel European movements — Wolff, Bengel, Gaussen, Mason, etc.)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 585.3-588.1",
+          "html": "Smith identifies the angel as a symbol of a **religious movement** preaching the everlasting gospel just prior to the Second Advent. The movement is the Millerite advent awakening of **1840-1844**: \"**An angel is a messenger; and the symbol here used must denote a religious movement, having for its purpose the proclamation of a message to the world. The everlasting gospel is to be preached to every nation... This must be the great Advent movement of 1840-1844, when the message of the hour of judgment was proclaimed in this and other lands**\" (DAR 585.3, condensed; the full historical documentation runs through pp. 585-588 with parallel European movements — Wolff, Bengel, Gaussen, Mason, etc.)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -177,10 +195,13 @@
       "num": 7,
       "slug": "v-7",
       "text": "Saying with a loud voice, Fear God, and give glory to him; for the hour of his judgment is come: and worship him that made heaven, and earth, and the sea, and the fountains of waters.",
-      "pioneerReading": {
-        "citation": "DAR 588.2-621.2",
-        "html": "Smith reads \"**the hour of his judgment is come**\" as the **investigative judgment beginning in 1844** at the close of the 2300-day prophecy. The full chronological argument runs from pp. 588-621 (the bulk of the entire chapter). The worship-the-Creator call Smith reads as the Sabbath call: \"**the language of the first angel calls our attention to the fourth commandment in unmistakable terms: 'Worship him that made heaven, and earth, and the sea, and the fountains of waters'**\" (DAR 621.1-2, with cross-reference to Exod 20:11)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 588.2-621.2",
+          "html": "Smith reads \"**the hour of his judgment is come**\" as the **investigative judgment beginning in 1844** at the close of the 2300-day prophecy. The full chronological argument runs from pp. 588-621 (the bulk of the entire chapter). The worship-the-Creator call Smith reads as the Sabbath call: \"**the language of the first angel calls our attention to the fourth commandment in unmistakable terms: 'Worship him that made heaven, and earth, and the sea, and the fountains of waters'**\" (DAR 621.1-2, with cross-reference to Exod 20:11)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -204,10 +225,13 @@
       "num": 8,
       "slug": "v-8",
       "text": "And there followed another angel, saying, Babylon is fallen, is fallen, that great city, because she made all nations drink of the wine of the wrath of her fornication.",
-      "pioneerReading": {
-        "citation": "DAR 621.3-630.3",
-        "html": "Smith reads the second angel as the **1844 cry** by the Millerite movement (with future Loud-Cry repeat acknowledged but treated as secondary): \"**This proclamation was made in the summer of 1844, when about fifty thousand withdrew from the various nominal churches in this country... A second proclamation of this same message is brought to view in Revelation 18:1-4, where the fall of Babylon is again announced, with the addition that she had become 'the hold of every foul spirit and the cage of every unclean and hateful bird'**\" (DAR 624.1-625.2, condensed). On Babylon = the apostate churches: \"**The term Babylon, when applied to the religious world, must signify the apostate churches, embracing the great mother of harlots and her daughters**\" (DAR 622.1, cross-linking Rev 17)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 621.3-630.3",
+          "html": "Smith reads the second angel as the **1844 cry** by the Millerite movement (with future Loud-Cry repeat acknowledged but treated as secondary): \"**This proclamation was made in the summer of 1844, when about fifty thousand withdrew from the various nominal churches in this country... A second proclamation of this same message is brought to view in Revelation 18:1-4, where the fall of Babylon is again announced, with the addition that she had become 'the hold of every foul spirit and the cage of every unclean and hateful bird'**\" (DAR 624.1-625.2, condensed). On Babylon = the apostate churches: \"**The term Babylon, when applied to the religious world, must signify the apostate churches, embracing the great mother of harlots and her daughters**\" (DAR 622.1, cross-linking Rev 17)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -234,10 +258,13 @@
       "num": 9,
       "slug": "v-9",
       "text": "And the third angel followed them, saying with a loud voice, If any man worship the beast and his image, and receive his mark in his forehead, or in his hand,",
-      "pioneerReading": {
-        "citation": "DAR 630.4-631.1",
-        "html": "Smith reads the third angel as the **Sabbath/Sunday warning** against the papal beast (Rev 13:1-10) and the Protestant-American image (Rev 13:11-17). The beast = papacy; the image = the American Protestant religious-civil coalition; the mark = Sunday observance. Smith treats v. 9 as the message header; the substantive identification runs through vv. 9-12."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 630.4-631.1",
+          "html": "Smith reads the third angel as the **Sabbath/Sunday warning** against the papal beast (Rev 13:1-10) and the Protestant-American image (Rev 13:11-17). The beast = papacy; the image = the American Protestant religious-civil coalition; the mark = Sunday observance. Smith treats v. 9 as the message header; the substantive identification runs through vv. 9-12."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -261,10 +288,13 @@
       "num": 10,
       "slug": "v-10",
       "text": "The same shall drink of the wine of the wrath of God, which is poured out without mixture into the cup of his indignation; and he shall be tormented with fire and brimstone in the presence of the holy angels, and in the presence of the Lamb:",
-      "pioneerReading": {
-        "citation": "DAR 631.2-632.1",
-        "html": "Smith reads \"wine of the wrath of God without mixture\" as the seven last plagues of Rev 15-16: \"**The seven last plagues are the wrath of God without mixture, and these are sent upon those who worship the beast and his image, and receive his mark. These are the unmingled judgments of God, unmixed with mercy**\" (DAR 631.2, cross-linking Rev 15:1 + 16:1-2). The fire-and-brimstone torment is the executive judgment."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 631.2-632.1",
+          "html": "Smith reads \"wine of the wrath of God without mixture\" as the seven last plagues of Rev 15-16: \"**The seven last plagues are the wrath of God without mixture, and these are sent upon those who worship the beast and his image, and receive his mark. These are the unmingled judgments of God, unmixed with mercy**\" (DAR 631.2, cross-linking Rev 15:1 + 16:1-2). The fire-and-brimstone torment is the executive judgment."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -288,10 +318,13 @@
       "num": 11,
       "slug": "v-11",
       "text": "And the smoke of their torment ascendeth up for ever and ever: and they have no rest day nor night, who worship the beast and his image, and whosoever receiveth the mark of his name.",
-      "pioneerReading": {
-        "citation": "DAR 632.2-633.1",
-        "html": "Smith handles the \"for ever and ever\" smoke as the **final and complete destruction** (annihilation, not eternal conscious torment), citing Isa 34 (Edom's smoke ascending forever) and Jude 7 (Sodom and Gomorrah set forth as an example) as the Rule-V parallel: the smoke ascending \"for ever and ever\" describes the **utter and irreversible** character of the destruction, not endless duration of conscious suffering. \"**It is here, in the lake of fire, that the wicked will receive the full reward of their works; for the smoke of their torment ascendeth up forever and ever — that is, while they have being, or until they are utterly consumed**\" (DAR 632.2-633.1, with Edom/Sodom typology)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 632.2-633.1",
+          "html": "Smith handles the \"for ever and ever\" smoke as the **final and complete destruction** (annihilation, not eternal conscious torment), citing Isa 34 (Edom's smoke ascending forever) and Jude 7 (Sodom and Gomorrah set forth as an example) as the Rule-V parallel: the smoke ascending \"for ever and ever\" describes the **utter and irreversible** character of the destruction, not endless duration of conscious suffering. \"**It is here, in the lake of fire, that the wicked will receive the full reward of their works; for the smoke of their torment ascendeth up forever and ever — that is, while they have being, or until they are utterly consumed**\" (DAR 632.2-633.1, with Edom/Sodom typology)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -315,10 +348,13 @@
       "num": 12,
       "slug": "v-12",
       "text": "Here is the patience of the saints: here are they that keep the commandments of God, and the faith of Jesus.",
-      "pioneerReading": {
-        "citation": "DAR 633.1",
-        "html": "Smith reads the verse as the **distinguishing badge** of the third-angel people: commandment-keeping (specifically the fourth commandment, against the mark) and the faith of Jesus. \"**Here we have the very people brought to view who keep the commandments of God, including, of course, the fourth, requiring the observance of the seventh-day Sabbath, in the face of the message of the third angel which prohibits the worship of the beast or his image, or the receiving of his mark**\" (DAR 633.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 633.1",
+          "html": "Smith reads the verse as the **distinguishing badge** of the third-angel people: commandment-keeping (specifically the fourth commandment, against the mark) and the faith of Jesus. \"**Here we have the very people brought to view who keep the commandments of God, including, of course, the fourth, requiring the observance of the seventh-day Sabbath, in the face of the message of the third angel which prohibits the worship of the beast or his image, or the receiving of his mark**\" (DAR 633.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -342,10 +378,13 @@
       "num": 13,
       "slug": "v-13",
       "text": "And I heard a voice from heaven saying unto me, Write, Blessed are the dead which die in the Lord from henceforth: Yea, saith the Spirit, that they may rest from their labours; and their works do follow them.",
-      "pioneerReading": {
-        "citation": "DAR 633.2-635.1, with footnote on the special resurrection",
-        "html": "Smith reads \"**from henceforth**\" as **from the rise of the third angel's message** — i.e., from 1844 onward. The blessing is on those who die in the faith of the third angel: \"**This blessing must apply to a definite class who die in a definite time; otherwise the announcement would have no special significance. The class who die in the Lord from henceforth, must mean those who die in the faith of the third angel's message; and the time must be from the rise of that message, which dates from 1844**\" (DAR 633.2-634.1). Smith adds a footnote on the **special resurrection** of Dan 12:2 — a partial resurrection just prior to the Second Coming, raising those who died in the faith of the third angel since 1844 plus those who pierced Christ (Rev 1:7)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 633.2-635.1, with footnote on the special resurrection",
+          "html": "Smith reads \"**from henceforth**\" as **from the rise of the third angel's message** — i.e., from 1844 onward. The blessing is on those who die in the faith of the third angel: \"**This blessing must apply to a definite class who die in a definite time; otherwise the announcement would have no special significance. The class who die in the Lord from henceforth, must mean those who die in the faith of the third angel's message; and the time must be from the rise of that message, which dates from 1844**\" (DAR 633.2-634.1). Smith adds a footnote on the **special resurrection** of Dan 12:2 — a partial resurrection just prior to the Second Coming, raising those who died in the faith of the third angel since 1844 plus those who pierced Christ (Rev 1:7)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -369,10 +408,13 @@
       "num": 14,
       "slug": "v-14",
       "text": "And I looked, and behold a white cloud, and upon the cloud one sat like unto the Son of man, having on his head a golden crown, and in his hand a sharp sickle.",
-      "pioneerReading": {
-        "citation": "DAR 633.2-635.2",
-        "html": "Smith identifies the Son of man on the cloud as **Christ at the Second Coming**, with the harvest of vv. 15-16 as the **ingathering of the righteous**: \"**The Son of man is Christ. He comes upon a white cloud, having on his head a golden crown, and in his hand a sharp sickle. The harvest is the end of the world (Matthew 13:39); and the reapers are the angels**\" (DAR 634.2, cross-linking Matt 13:30, 39, 41)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 633.2-635.2",
+          "html": "Smith identifies the Son of man on the cloud as **Christ at the Second Coming**, with the harvest of vv. 15-16 as the **ingathering of the righteous**: \"**The Son of man is Christ. He comes upon a white cloud, having on his head a golden crown, and in his hand a sharp sickle. The harvest is the end of the world (Matthew 13:39); and the reapers are the angels**\" (DAR 634.2, cross-linking Matt 13:30, 39, 41)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -396,10 +438,13 @@
       "num": 15,
       "slug": "v-15",
       "text": "And another angel came out of the temple, crying with a loud voice to him that sat on the cloud, Thrust in thy sickle, and reap: for the time is come for thee to reap; for the harvest of the earth is ripe.",
-      "pioneerReading": {
-        "citation": "DAR 634.3-635.1",
-        "html": "Smith reads the angel from the temple as bearing the **close-of-probation announcement** to Christ — the harvest is ripe, the work of mediation is finished: \"**Another angel issues from the temple, crying to him that sits on the cloud to thrust in his sickle and reap. He thus brings to Christ the announcement from the Father that the hour has come for the reaping work to be done; the harvest of the earth is ripe**\" (DAR 635.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 634.3-635.1",
+          "html": "Smith reads the angel from the temple as bearing the **close-of-probation announcement** to Christ — the harvest is ripe, the work of mediation is finished: \"**Another angel issues from the temple, crying to him that sits on the cloud to thrust in his sickle and reap. He thus brings to Christ the announcement from the Father that the hour has come for the reaping work to be done; the harvest of the earth is ripe**\" (DAR 635.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -423,10 +468,13 @@
       "num": 16,
       "slug": "v-16",
       "text": "And he that sat on the cloud thrust in his sickle on the earth; and the earth was reaped.",
-      "pioneerReading": {
-        "citation": "DAR 635.2",
-        "html": "\"**The Saviour thrusts in his sickle, and the harvest of the earth is reaped. This is the gathering of the righteous, the wheat into the heavenly garner, at the second coming of Christ**\" (DAR 635.2, cross-linking Matt 13:30)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 635.2",
+          "html": "\"**The Saviour thrusts in his sickle, and the harvest of the earth is reaped. This is the gathering of the righteous, the wheat into the heavenly garner, at the second coming of Christ**\" (DAR 635.2, cross-linking Matt 13:30)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -450,10 +498,13 @@
       "num": 17,
       "slug": "v-17",
       "text": "And another angel came out of the temple which is in heaven, he also having a sharp sickle.",
-      "pioneerReading": {
-        "citation": "DAR 635.3",
-        "html": "Smith reads the **second angel** (with a second sickle) as a new symbol introducing the **vintage** — distinct from the harvest of vv. 14-16. The sickle is for the wicked."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 635.3",
+          "html": "Smith reads the **second angel** (with a second sickle) as a new symbol introducing the **vintage** — distinct from the harvest of vv. 14-16. The sickle is for the wicked."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -477,10 +528,13 @@
       "num": 18,
       "slug": "v-18",
       "text": "And another angel came out from the altar, which had power over fire; and cried with a loud cry to him that had the sharp sickle, saying, Thrust in thy sickle, and gather the clusters of the vine of the earth; for her grapes are fully ripe.",
-      "pioneerReading": {
-        "citation": "DAR 635.3-636.1",
-        "html": "Smith identifies the **altar-angel-with-fire** as the executive-judgment messenger. The grapes fully ripe = the wicked filling up the cup of iniquity. The altar from which the angel proceeds is the altar of incense in the heavenly sanctuary (Rev 8:3-5)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 635.3-636.1",
+          "html": "Smith identifies the **altar-angel-with-fire** as the executive-judgment messenger. The grapes fully ripe = the wicked filling up the cup of iniquity. The altar from which the angel proceeds is the altar of incense in the heavenly sanctuary (Rev 8:3-5)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -504,10 +558,13 @@
       "num": 19,
       "slug": "v-19",
       "text": "And the angel thrust in his sickle into the earth, and gathered the vine of the earth, and cast it into the great winepress of the wrath of God.",
-      "pioneerReading": {
-        "citation": "DAR 636.1-637.1",
-        "html": "Smith reads the winepress as the **post-millennial executive judgment** — the destruction of the wicked AFTER the 1000 years, at the descent of the New Jerusalem (Rev 20:9). Smith argues this from the chapter sequence (the vintage follows the harvest of the righteous, which is the Second Coming) but locates the trampling itself in the post-millennial scene of Rev 20:9 + Rev 19:11ff treated as the same complex of events: \"**The wicked are gathered for destruction. The winepress of the wrath of God is the great consummating judgment on the wicked, which takes place at the close of the thousand years, when fire comes down from God out of heaven and devours them (Revelation 20:9). The winepress is trodden by the King of kings and Lord of lords with the armies of heaven (Revelation 19:11-21)**\" (DAR 636.1, condensed)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 636.1-637.1",
+          "html": "Smith reads the winepress as the **post-millennial executive judgment** — the destruction of the wicked AFTER the 1000 years, at the descent of the New Jerusalem (Rev 20:9). Smith argues this from the chapter sequence (the vintage follows the harvest of the righteous, which is the Second Coming) but locates the trampling itself in the post-millennial scene of Rev 20:9 + Rev 19:11ff treated as the same complex of events: \"**The wicked are gathered for destruction. The winepress of the wrath of God is the great consummating judgment on the wicked, which takes place at the close of the thousand years, when fire comes down from God out of heaven and devours them (Revelation 20:9). The winepress is trodden by the King of kings and Lord of lords with the armies of heaven (Revelation 19:11-21)**\" (DAR 636.1, condensed)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -534,10 +591,13 @@
       "num": 20,
       "slug": "v-20",
       "text": "And the winepress was trodden without the city, and blood came out of the winepress, even unto the horse bridles, by the space of a thousand and six hundred furlongs.",
-      "pioneerReading": {
-        "citation": "DAR 636.2-637.1",
-        "html": "Smith reads the **\"without the city\"** as outside the New Jerusalem after its descent (the Rev 20:9 setting — fire from heaven devouring the wicked surrounding the camp of the saints), and treats the 1600 furlongs as a literal or symbolic measure of the field of slaughter (Smith leans symbolic, citing the difficulty of forcing a strict literal application and the typological link to Isa 63:1-6 — Christ treading the winepress alone). \"**The winepress is trodden without the city, that is, outside the New Jerusalem, which descends to the earth after the thousand years (Revelation 21:2)**\" (DAR 636.2, condensed)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 636.2-637.1",
+          "html": "Smith reads the **\"without the city\"** as outside the New Jerusalem after its descent (the Rev 20:9 setting — fire from heaven devouring the wicked surrounding the camp of the saints), and treats the 1600 furlongs as a literal or symbolic measure of the field of slaughter (Smith leans symbolic, citing the difficulty of forcing a strict literal application and the typological link to Isa 63:1-6 — Christ treading the winepress alone). \"**The winepress is trodden without the city, that is, outside the New Jerusalem, which descends to the earth after the thousand years (Revelation 21:2)**\" (DAR 636.2, condensed)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",

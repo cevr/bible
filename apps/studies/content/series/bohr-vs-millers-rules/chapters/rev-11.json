@@ -9,10 +9,13 @@
       "num": 1,
       "slug": "v-1",
       "text": "And there was given me a reed like unto a rod: and the angel stood, saying, Rise, and measure the temple of God, and the altar, and them that worship therein.",
-      "pioneerReading": {
-        "citation": "DAR 497.2-498.2",
-        "html": "Smith reads the measuring as the **third angel's message work**, the temple as the **literal temple in heaven**, and the worshipers as the **true church on earth**. \"It is connected with the temple of God in heaven, and is designed to fit up a class of people as worshipers therein. The temple here cannot mean the church; for the church is brought to view in connection with this temple as 'them that worship therein.' **The temple is therefore the literal temple in heaven, and the worshipers the true church on earth.**\" (DAR 497.2). The measuring rod = the standard by which character is measured — the ten commandments: \"**the ten commandments... are embraced in the measuring rod put by the angel into the hands of John; and in the fulfillment of this prophecy, this very law has been put, under the third message, into the hands of the church**\" (DAR 497.2). Measuring the temple = giving the sanctuary subject \"a special examination\" (DAR 498.1). Taken whole, \"the measuring rod... is the special message now given to the church, which embraces the great truths peculiar to this time, including the ten commandments. By this message, our attention has been called to the temple above\" (DAR 498.1). The altar = \"the ministration connected with the temple, the work and the position of our great High Priest\" (DAR 498.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 497.2-498.2",
+          "html": "Smith reads the measuring as the **third angel's message work**, the temple as the **literal temple in heaven**, and the worshipers as the **true church on earth**. \"It is connected with the temple of God in heaven, and is designed to fit up a class of people as worshipers therein. The temple here cannot mean the church; for the church is brought to view in connection with this temple as 'them that worship therein.' **The temple is therefore the literal temple in heaven, and the worshipers the true church on earth.**\" (DAR 497.2). The measuring rod = the standard by which character is measured — the ten commandments: \"**the ten commandments... are embraced in the measuring rod put by the angel into the hands of John; and in the fulfillment of this prophecy, this very law has been put, under the third message, into the hands of the church**\" (DAR 497.2). Measuring the temple = giving the sanctuary subject \"a special examination\" (DAR 498.1). Taken whole, \"the measuring rod... is the special message now given to the church, which embraces the great truths peculiar to this time, including the ten commandments. By this message, our attention has been called to the temple above\" (DAR 498.1). The altar = \"the ministration connected with the temple, the work and the position of our great High Priest\" (DAR 498.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -41,10 +44,13 @@
       "num": 2,
       "slug": "v-2",
       "text": "But the court which is without the temple leave out, and measure it not; for it is given unto the Gentiles: and the holy city shall they tread under foot forty and two months.",
-      "pioneerReading": {
-        "citation": "DAR 498.2-499.1",
-        "html": "Smith reads \"the court which is without the temple\" as **this earth**, where the antitypical victim died: \"The court refers to this earth is proved thus: The court is the place where the victims were slain whose blood was to be ministered in the sanctuary. The antitypical victim must die in the antitypical court; and he died on Calvary in Judea\" (DAR 498.2). The treading of the holy city for forty-two months Smith identifies as \"**the great feature of Gentile apostasy; namely, the treading down of the holy city forty and two months during the period of papal supremacy**\" (DAR 498.2). Smith then links this period to the witnesses' 1260-day testimony: \"These days are the same as the forty-two months of the preceding verse, and refer to the period of papal triumph\" (DAR 499.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 498.2-499.1",
+          "html": "Smith reads \"the court which is without the temple\" as **this earth**, where the antitypical victim died: \"The court refers to this earth is proved thus: The court is the place where the victims were slain whose blood was to be ministered in the sanctuary. The antitypical victim must die in the antitypical court; and he died on Calvary in Judea\" (DAR 498.2). The treading of the holy city for forty-two months Smith identifies as \"**the great feature of Gentile apostasy; namely, the treading down of the holy city forty and two months during the period of papal supremacy**\" (DAR 498.2). Smith then links this period to the witnesses' 1260-day testimony: \"These days are the same as the forty-two months of the preceding verse, and refer to the period of papal triumph\" (DAR 499.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -73,10 +79,13 @@
       "num": 3,
       "slug": "v-3",
       "text": "And I will give power unto my two witnesses, and they shall prophesy a thousand two hundred and threescore days, clothed in sackcloth.",
-      "pioneerReading": {
-        "citation": "DAR 499.2-500",
-        "html": "Smith identifies the 1260 days as **\"the same as the forty-two months of the preceding verse\"** — \"the period of papal triumph. During this time, the witnesses are in a state of sackcloth, or obscurity, and God gives them power to endure and maintain their testimony through that dark and dismal period\" (DAR 499.2). The witnesses themselves Smith identifies at v. 4 (the next verse): \"**the Old and New Testaments, one given in one dispensation, and the other in the other, are Christ's two witnesses**\" (DAR 499.5), grounded in John 5:39 (OT testifies of Christ) and \"his works bear witness of him... through the medium of the New Testament\" (DAR 499.4). Sackcloth = \"obscurity\" (DAR 499.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 499.2-500",
+          "html": "Smith identifies the 1260 days as **\"the same as the forty-two months of the preceding verse\"** — \"the period of papal triumph. During this time, the witnesses are in a state of sackcloth, or obscurity, and God gives them power to endure and maintain their testimony through that dark and dismal period\" (DAR 499.2). The witnesses themselves Smith identifies at v. 4 (the next verse): \"**the Old and New Testaments, one given in one dispensation, and the other in the other, are Christ's two witnesses**\" (DAR 499.5), grounded in John 5:39 (OT testifies of Christ) and \"his works bear witness of him... through the medium of the New Testament\" (DAR 499.4). Sackcloth = \"obscurity\" (DAR 499.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -105,10 +114,13 @@
       "num": 4,
       "slug": "v-4",
       "text": "These are the two olive trees, and the two candlesticks standing before the God of the earth.",
-      "pioneerReading": {
-        "citation": "DAR 499.4-499.5",
-        "html": "Smith reads the olive trees / candlesticks through Zech 4:3-6: \"**Evident allusion is here made to Zechariah 4:3-6, where it is explained that the two olive trees are taken to represent the word of God**\" (DAR 499.4). He marshals David's \"_The entrance of thy words giveth light_\" and \"_Thy word is a lamp unto my feet_\" to support the word-light identification, then Jesus' own gloss on the OT — \"**They are they which testify of me**\" — and the NT-as-witness via \"his works bear witness of him... through the medium of the New Testament, where alone we find them recorded\" (DAR 499.4). Conclusion: \"**the Old and New Testaments, one given in one dispensation, and the other in the other, are Christ's two witnesses**\" (DAR 499.5)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 499.4-499.5",
+          "html": "Smith reads the olive trees / candlesticks through Zech 4:3-6: \"**Evident allusion is here made to Zechariah 4:3-6, where it is explained that the two olive trees are taken to represent the word of God**\" (DAR 499.4). He marshals David's \"_The entrance of thy words giveth light_\" and \"_Thy word is a lamp unto my feet_\" to support the word-light identification, then Jesus' own gloss on the OT — \"**They are they which testify of me**\" — and the NT-as-witness via \"his works bear witness of him... through the medium of the New Testament, where alone we find them recorded\" (DAR 499.4). Conclusion: \"**the Old and New Testaments, one given in one dispensation, and the other in the other, are Christ's two witnesses**\" (DAR 499.5)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -137,10 +149,13 @@
       "num": 5,
       "slug": "v-5",
       "text": "And if any man will hurt them, fire proceedeth out of their mouth, and devoureth their enemies: and if any man will hurt them, must in this manner be killed.",
-      "pioneerReading": {
-        "citation": "DAR 500.2",
-        "html": "Smith reads \"fire from the mouth\" as **the recorded judgments of Scripture pronounced against those who oppose, corrupt, or pervert it**: \"To hurt the word of God is to oppose, corrupt, or pervert its testimony, and turn people away from it. Against those who do this work, fire proceedeth out of their mouth to devour them; that is, **judgment of fire is denounced in that word against such. It declares that they will have their portion at last in the lake that burneth with fire and brimstone**. Malachi 4:1; Revelation 20:15; 22:18, 19; etc.\" (DAR 500.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 500.2",
+          "html": "Smith reads \"fire from the mouth\" as **the recorded judgments of Scripture pronounced against those who oppose, corrupt, or pervert it**: \"To hurt the word of God is to oppose, corrupt, or pervert its testimony, and turn people away from it. Against those who do this work, fire proceedeth out of their mouth to devour them; that is, **judgment of fire is denounced in that word against such. It declares that they will have their portion at last in the lake that burneth with fire and brimstone**. Malachi 4:1; Revelation 20:15; 22:18, 19; etc.\" (DAR 500.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -169,10 +184,13 @@
       "num": 6,
       "slug": "v-6",
       "text": "These have power to shut heaven, that it rain not in the days of their prophecy: and have power over waters to turn them to blood, and to smite the earth with all plagues, as often as they will.",
-      "pioneerReading": {
-        "citation": "DAR 500.4",
-        "html": "Smith reads the powers as **the Elijah/Moses pattern of judgment recorded in the witnesses' own pages**: \"Elijah shut heaven that it rained not for three years and a half; but he did it by the word of the Lord. Moses, by the word of the Lord, turned the waters of Egypt to blood. **And just as these judgments, recorded in their testimony, have been fulfilled, so will every threatening and judgment denounced by them against any people surely be accomplished. 'As often as they will.' As often as judgments are recorded on their pages to take place, so often they will come to pass.**\" (DAR 500.4). Smith adds: \"**An instance of this the world is yet to experience in the infliction of the seven last plagues**\" (DAR 500.4) — the Rev 16 plagues being the still-future instance."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 500.4",
+          "html": "Smith reads the powers as **the Elijah/Moses pattern of judgment recorded in the witnesses' own pages**: \"Elijah shut heaven that it rained not for three years and a half; but he did it by the word of the Lord. Moses, by the word of the Lord, turned the waters of Egypt to blood. **And just as these judgments, recorded in their testimony, have been fulfilled, so will every threatening and judgment denounced by them against any people surely be accomplished. 'As often as they will.' As often as judgments are recorded on their pages to take place, so often they will come to pass.**\" (DAR 500.4). Smith adds: \"**An instance of this the world is yet to experience in the infliction of the seven last plagues**\" (DAR 500.4) — the Rev 16 plagues being the still-future instance."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -196,10 +214,13 @@
       "num": 7,
       "slug": "v-7",
       "text": "And when they shall have finished their testimony, the beast that ascendeth out of the bottomless pit shall make war against them, and shall overcome them, and kill them.",
-      "pioneerReading": {
-        "citation": "DAR 500.6-501.2",
-        "html": "Smith argues the 1260-year period of witness \"in sackcloth\" closes around 1798 (538 + 1260) and that the beast that makes war on the witnesses must therefore be a kingdom appearing about that date with the prophecy's specified character. He defines the beast: \"**A 'beast' in prophecy denotes a kingdom, or power**\" (DAR 500.6, citing Dan 7:17, 23). \"**This beast, or kingdom, is out of the bottomless pit; it has no foundation, is an atheistical power, is 'spiritually Egypt.'**\" (DAR 500.6, citing Exod 5:2 — Pharaoh's \"I know not the Lord\"). \"**Did any kingdom, about 1798, manifest the same spirit? — Yes, France; in her national capacity she denied the being of God, and made war on the 'Monarchy of heaven.'**\" (DAR 500.6). Smith then enumerates the war on the Bible: \"**in 1793 a decree passed the French Assembly forbidding the Bible; and under that decree, the Bibles were gathered and burned, every possible mark of contempt was heaped upon them, and all the institutions of the Bible were abolished; the weekly rest-day was blotted out, and every tenth day substituted, for mirth and profanity. Baptism and the communion were abolished. The being of God was denied, and death pronounced an eternal sleep. The Goddess of Reason, in the person of a vile woman, was set up, and publicly worshiped.**\" (DAR 501.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 500.6-501.2",
+          "html": "Smith argues the 1260-year period of witness \"in sackcloth\" closes around 1798 (538 + 1260) and that the beast that makes war on the witnesses must therefore be a kingdom appearing about that date with the prophecy's specified character. He defines the beast: \"**A 'beast' in prophecy denotes a kingdom, or power**\" (DAR 500.6, citing Dan 7:17, 23). \"**This beast, or kingdom, is out of the bottomless pit; it has no foundation, is an atheistical power, is 'spiritually Egypt.'**\" (DAR 500.6, citing Exod 5:2 — Pharaoh's \"I know not the Lord\"). \"**Did any kingdom, about 1798, manifest the same spirit? — Yes, France; in her national capacity she denied the being of God, and made war on the 'Monarchy of heaven.'**\" (DAR 500.6). Smith then enumerates the war on the Bible: \"**in 1793 a decree passed the French Assembly forbidding the Bible; and under that decree, the Bibles were gathered and burned, every possible mark of contempt was heaped upon them, and all the institutions of the Bible were abolished; the weekly rest-day was blotted out, and every tenth day substituted, for mirth and profanity. Baptism and the communion were abolished. The being of God was denied, and death pronounced an eternal sleep. The Goddess of Reason, in the person of a vile woman, was set up, and publicly worshiped.**\" (DAR 501.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -239,10 +260,13 @@
       "num": 8,
       "slug": "v-8",
       "text": "And their dead bodies shall lie in the street of the great city, which spiritually is called Sodom and Egypt, where also our Lord was crucified.",
-      "pioneerReading": {
-        "citation": "DAR 500.6-501.1",
-        "html": "Smith identifies the \"great city\" with **France** under three angel-given glosses. **Egypt = atheism** via Exod 5:2: \"**is 'spiritually Egypt.' (See Exodus 5:2: 'And Pharaoh said, Who is the Lord, that I should obey his voice to let Israel go? I know not the Lord, neither will I let Israel go.') Here is atheism. Did any kingdom, about 1798, manifest the same spirit? — Yes, France**\" (DAR 500.6). **Sodom = licentiousness**: \"**'Spiritually,' this power 'is called Sodom.' What was the characteristic sin of Sodom? — Licentiousness. Did France have this character? — She did; fornication was established by law during the period spoken of**\" (DAR 501.1). **\"Where our Lord was crucified\"** Smith reads two ways: (1) the **St. Bartholomew's Day massacre, Aug 24-25, 1572** — \"**A plot was laid in France to destroy all the pious Huguenots; and in one night (Aug. 24, 25, 1572) fifty thousand of them were murdered in cold blood, and the streets of Paris literally ran with blood. Thus our Lord was 'spiritually crucified' in his members**\" (DAR 501.1); (2) the French infidels' watchword: \"**the watchword and motto of the French infidels was, 'CRUSH THE WRETCH,' meaning Christ. Thus it may be truly said, 'where our Lord was crucified.' The very spirit of the 'bottomless pit' was poured out in that wicked nation**\" (DAR 501.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 500.6-501.1",
+          "html": "Smith identifies the \"great city\" with **France** under three angel-given glosses. **Egypt = atheism** via Exod 5:2: \"**is 'spiritually Egypt.' (See Exodus 5:2: 'And Pharaoh said, Who is the Lord, that I should obey his voice to let Israel go? I know not the Lord, neither will I let Israel go.') Here is atheism. Did any kingdom, about 1798, manifest the same spirit? — Yes, France**\" (DAR 500.6). **Sodom = licentiousness**: \"**'Spiritually,' this power 'is called Sodom.' What was the characteristic sin of Sodom? — Licentiousness. Did France have this character? — She did; fornication was established by law during the period spoken of**\" (DAR 501.1). **\"Where our Lord was crucified\"** Smith reads two ways: (1) the **St. Bartholomew's Day massacre, Aug 24-25, 1572** — \"**A plot was laid in France to destroy all the pious Huguenots; and in one night (Aug. 24, 25, 1572) fifty thousand of them were murdered in cold blood, and the streets of Paris literally ran with blood. Thus our Lord was 'spiritually crucified' in his members**\" (DAR 501.1); (2) the French infidels' watchword: \"**the watchword and motto of the French infidels was, 'CRUSH THE WRETCH,' meaning Christ. Thus it may be truly said, 'where our Lord was crucified.' The very spirit of the 'bottomless pit' was poured out in that wicked nation**\" (DAR 501.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -280,10 +304,13 @@
       "num": 9,
       "slug": "v-9",
       "text": "And they of the people and kindreds and tongues and nations shall see their dead bodies three days and an half, and shall not suffer their dead bodies to be put in graves.",
-      "pioneerReading": {
-        "citation": "DAR 502.2 + 502.6",
-        "html": "Smith reads the 3½ days as **3½ literal years of French suppression of the Bible**: \"**they lay dead three days and a half, that is, three years and a half, in France**\" (DAR 502.2). The \"people, kindreds, tongues, nations\" specifier Smith reads as the other European nations who witnessed but refused to join: \"**The language of this verse describes the feelings of other nations besides the one committing the outrage on the witnesses. They would see what war infidel France had made on the Bible, but would not be led nationally to engage in the wicked work, nor suffer the murdered witnesses to be buried, or put out of sight among themselves**\" (DAR 502.2). Smith dates the period explicitly at DAR 502.6: \"**In 1793, a decree passed the French Assembly suppressing the Bible. Just three years after, a resolution was introduced into the Assembly superseding the decree, and giving toleration to the Scriptures. That resolution lay on the table six months, when it was taken up, and passed without a dissenting vote. Thus, in just three years and a half, the witnesses 'stood upon their feet'**\" (DAR 502.6 — Smith's own enumeration: 1793 decree + 3 years + 6 months tabling = mid-1797 vote)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 502.2 + 502.6",
+          "html": "Smith reads the 3½ days as **3½ literal years of French suppression of the Bible**: \"**they lay dead three days and a half, that is, three years and a half, in France**\" (DAR 502.2). The \"people, kindreds, tongues, nations\" specifier Smith reads as the other European nations who witnessed but refused to join: \"**The language of this verse describes the feelings of other nations besides the one committing the outrage on the witnesses. They would see what war infidel France had made on the Bible, but would not be led nationally to engage in the wicked work, nor suffer the murdered witnesses to be buried, or put out of sight among themselves**\" (DAR 502.2). Smith dates the period explicitly at DAR 502.6: \"**In 1793, a decree passed the French Assembly suppressing the Bible. Just three years after, a resolution was introduced into the Assembly superseding the decree, and giving toleration to the Scriptures. That resolution lay on the table six months, when it was taken up, and passed without a dissenting vote. Thus, in just three years and a half, the witnesses 'stood upon their feet'**\" (DAR 502.6 — Smith's own enumeration: 1793 decree + 3 years + 6 months tabling = mid-1797 vote)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -312,10 +339,13 @@
       "num": 10,
       "slug": "v-10",
       "text": "And they that dwell upon the earth shall rejoice over them, and make merry, and shall send gifts one to another; because these two prophets tormented them that dwelt on the earth.",
-      "pioneerReading": {
-        "citation": "DAR 502.4",
-        "html": "Smith reads the rejoicing simply as **the temporary jubilation of infidels at the Bible's suppression, swiftly turned to horror by the Revolution's own bloodshed**: \"**This denotes the joy those felt who hated the Bible, or were tormented by it. Great was the joy of infidels everywhere for awhile. But the 'triumphing of the wicked is short;' so was it in France, for their war on the Bible and Christianity well-nigh swallowed them all up. They set out to destroy Christ's 'two witnesses,' but they filled France with blood and terror, so that they were horror-struck at the result of their own wicked deeds, and were soon glad to remove their impious hands from the Bible**\" (DAR 502.4)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 502.4",
+          "html": "Smith reads the rejoicing simply as **the temporary jubilation of infidels at the Bible's suppression, swiftly turned to horror by the Revolution's own bloodshed**: \"**This denotes the joy those felt who hated the Bible, or were tormented by it. Great was the joy of infidels everywhere for awhile. But the 'triumphing of the wicked is short;' so was it in France, for their war on the Bible and Christianity well-nigh swallowed them all up. They set out to destroy Christ's 'two witnesses,' but they filled France with blood and terror, so that they were horror-struck at the result of their own wicked deeds, and were soon glad to remove their impious hands from the Bible**\" (DAR 502.4)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -344,10 +374,13 @@
       "num": 11,
       "slug": "v-11",
       "text": "And after three days and an half the Spirit of life from God entered into them, and they stood upon their feet; and great fear fell upon them which saw them.",
-      "pioneerReading": {
-        "citation": "DAR 502.6",
-        "html": "Smith dates the resurrection to the French Assembly's reversal: \"**In 1793, a decree passed the French Assembly suppressing the Bible. Just three years after, a resolution was introduced into the Assembly superseding the decree, and giving toleration to the Scriptures. That resolution lay on the table six months, when it was taken up, and passed without a dissenting vote. Thus, in just three years and a half, the witnesses 'stood upon their feet, and great fear fell upon them that saw them.' Nothing but the appalling results of the rejection of the Bible, could have induced France to take her hands off these witnesses**\" (DAR 502.6). The post-1797 Bible-society explosion Smith treats under v. 12 (the \"ascension\" verse) at DAR 503.2 rather than at v. 11."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 502.6",
+          "html": "Smith dates the resurrection to the French Assembly's reversal: \"**In 1793, a decree passed the French Assembly suppressing the Bible. Just three years after, a resolution was introduced into the Assembly superseding the decree, and giving toleration to the Scriptures. That resolution lay on the table six months, when it was taken up, and passed without a dissenting vote. Thus, in just three years and a half, the witnesses 'stood upon their feet, and great fear fell upon them that saw them.' Nothing but the appalling results of the rejection of the Bible, could have induced France to take her hands off these witnesses**\" (DAR 502.6). The post-1797 Bible-society explosion Smith treats under v. 12 (the \"ascension\" verse) at DAR 503.2 rather than at v. 11."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -377,10 +410,13 @@
       "num": 12,
       "slug": "v-12",
       "text": "And they heard a great voice from heaven saying unto them, Come up hither. And they ascended up to heaven in a cloud; and their enemies beheld them.",
-      "pioneerReading": {
-        "citation": "DAR 503.2-503.3",
-        "html": "Smith reads \"ascended up to heaven\" as **great exaltation** (cf. Dan 4:22: \"Thy greatness is grown, and reacheth unto heaven\"): \"**Here we see that the expression signifies great exaltation. Have the Scriptures attained to such a state of exaltation as here indicated, since France made war upon them? — They have. Shortly after, the British Bible Society was organized (1804); then followed the American Bible Society (1817); and these, with their almost innumerable auxiliaries, are scattering the Bible everywhere**\" (DAR 503.2). Smith then catalogues the exaltation's magnitude: \"**Since that period, the Bible has been translated into nearly two hundred different languages that it was never in before; and the improvements in paper-making and printing within the last seventy-five years have given an impetus to the work of scattering Bibles, which is without a parallel**\" (DAR 503.2). And: \"**One vessel carried out from England fifty-nine tons of Bibles for the emancipated slaves in the West Indies... translations of the Scriptures have increased fivefold, and the circulation of the Scriptures thirty fold... it has been translated into languages embracing nine tenths of the human race. And the American Bible Society, in its eightieth annual report, dated May, 1896, gives the number of Bibles and parts of Bibles issued by that society alone, as 61,705,841**\" (DAR 503.3). Conclusion: \"**the Scriptures may truly be said to be exalted 'to heaven in a cloud,' a cloud being an emblem of heavenly elevation**\" (DAR 503.3)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 503.2-503.3",
+          "html": "Smith reads \"ascended up to heaven\" as **great exaltation** (cf. Dan 4:22: \"Thy greatness is grown, and reacheth unto heaven\"): \"**Here we see that the expression signifies great exaltation. Have the Scriptures attained to such a state of exaltation as here indicated, since France made war upon them? — They have. Shortly after, the British Bible Society was organized (1804); then followed the American Bible Society (1817); and these, with their almost innumerable auxiliaries, are scattering the Bible everywhere**\" (DAR 503.2). Smith then catalogues the exaltation's magnitude: \"**Since that period, the Bible has been translated into nearly two hundred different languages that it was never in before; and the improvements in paper-making and printing within the last seventy-five years have given an impetus to the work of scattering Bibles, which is without a parallel**\" (DAR 503.2). And: \"**One vessel carried out from England fifty-nine tons of Bibles for the emancipated slaves in the West Indies... translations of the Scriptures have increased fivefold, and the circulation of the Scriptures thirty fold... it has been translated into languages embracing nine tenths of the human race. And the American Bible Society, in its eightieth annual report, dated May, 1896, gives the number of Bibles and parts of Bibles issued by that society alone, as 61,705,841**\" (DAR 503.3). Conclusion: \"**the Scriptures may truly be said to be exalted 'to heaven in a cloud,' a cloud being an emblem of heavenly elevation**\" (DAR 503.3)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -409,10 +445,13 @@
       "num": 13,
       "slug": "v-13",
       "text": "And the same hour was there a great earthquake, and the tenth part of the city fell, and in the earthquake were slain of men seven thousand: and the remnant were affrighted, and gave glory to the God of heaven.",
-      "pioneerReading": {
-        "citation": "DAR 504.2",
-        "html": "Smith identifies the **\"city\" as the papal Roman power** (cross-link to Rev 17:18): \"**'And the woman which thou sawest is that great city which reigneth over the kings [kingdoms] of the earth.' That city is the papal Roman power. France is one of the 'ten horns' that gave 'their power and strength unto the [papal] beast;' or is one of the ten kingdoms that arose out of the Western empire of Rome, as indicated by the ten toes of Nebuchadnezzar's image, the ten horns of Daniel's beast (Daniel 7:24), and John's dragon. Revelation 12:3. France, then, was 'a tenth part of the city,' and was one of the strongest ministers of papal vengeance; but in this revolution it 'fell,' and with it fell the last civil messenger of papal fury**\" (DAR 504.2). Seven thousand Smith reads via the margin reading \"**names of men, or titles of men**\": \"**France made war, in her revolution of 1793-98 and onward, on all titles of nobility. It is said by those who have examined the French records, that just seven thousand titles of men were abolished in that revolution**\" (DAR 504.2). The remnant giving glory Smith reads as God's overruling of human wrath: \"**the God of heaven caused this 'wrath of man to praise him,' by causing all the world to see that those who make war on heaven make graves for themselves; thus glory redounded to God by the very means that wicked men employed to tarnish that glory**\" (DAR 504.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 504.2",
+          "html": "Smith identifies the **\"city\" as the papal Roman power** (cross-link to Rev 17:18): \"**'And the woman which thou sawest is that great city which reigneth over the kings [kingdoms] of the earth.' That city is the papal Roman power. France is one of the 'ten horns' that gave 'their power and strength unto the [papal] beast;' or is one of the ten kingdoms that arose out of the Western empire of Rome, as indicated by the ten toes of Nebuchadnezzar's image, the ten horns of Daniel's beast (Daniel 7:24), and John's dragon. Revelation 12:3. France, then, was 'a tenth part of the city,' and was one of the strongest ministers of papal vengeance; but in this revolution it 'fell,' and with it fell the last civil messenger of papal fury**\" (DAR 504.2). Seven thousand Smith reads via the margin reading \"**names of men, or titles of men**\": \"**France made war, in her revolution of 1793-98 and onward, on all titles of nobility. It is said by those who have examined the French records, that just seven thousand titles of men were abolished in that revolution**\" (DAR 504.2). The remnant giving glory Smith reads as God's overruling of human wrath: \"**the God of heaven caused this 'wrath of man to praise him,' by causing all the world to see that those who make war on heaven make graves for themselves; thus glory redounded to God by the very means that wicked men employed to tarnish that glory**\" (DAR 504.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -452,10 +491,13 @@
       "num": 14,
       "slug": "v-14",
       "text": "The second woe is past; and, behold, the third woe cometh quickly.",
-      "pioneerReading": {
-        "citation": "DAR 505.3-505.4",
-        "html": "Smith dates the transition explicitly: \"**The series of seven trumpets is here again resumed. The second woe ended with the sixth trumpet, Aug. 11, 1840; and the third woe occurs under the sounding of the seventh trumpet, which commenced in 1844**\" (DAR 505.3). And: \"**'Behold!' that is to say, mark it well, 'the third woe cometh quickly.' The fearful scenes of the second woe are past, and we are now under the sounding of the trumpet that brings the third and last woe. And shall we now look for peace and safety, a temporal millennium, a thousand years of righteousness and prosperity? Rather let us earnestly pray the Lord to awaken a slumbering world**\" (DAR 505.4)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 505.3-505.4",
+          "html": "Smith dates the transition explicitly: \"**The series of seven trumpets is here again resumed. The second woe ended with the sixth trumpet, Aug. 11, 1840; and the third woe occurs under the sounding of the seventh trumpet, which commenced in 1844**\" (DAR 505.3). And: \"**'Behold!' that is to say, mark it well, 'the third woe cometh quickly.' The fearful scenes of the second woe are past, and we are now under the sounding of the trumpet that brings the third and last woe. And shall we now look for peace and safety, a temporal millennium, a thousand years of righteousness and prosperity? Rather let us earnestly pray the Lord to awaken a slumbering world**\" (DAR 505.4)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -479,10 +521,13 @@
       "num": 15,
       "slug": "v-15",
       "text": "And the seventh angel sounded; and there were great voices in heaven, saying, The kingdoms of this world are become the kingdoms of our Lord, and of his Christ; and he shall reign for ever and ever.",
-      "pioneerReading": {
-        "citation": "DAR 505.6",
-        "html": "Smith reads vv. 15-19 as **three passes over the same seventh-trumpet ground**, with v. 15 giving the prophet's anticipatory glance forward to the kingdom's full establishment: \"**From the 15th verse to the end of the chapter, we seem to be carried over the ground, from the sounding of the seventh angel to the end, three distinct times. In the verses last quoted, the prophet glances forward to the full establishment of the kingdom of God. Although the seventh trumpet has begun to sound, it may not yet be a fact that the great voices in heaven have proclaimed that the kingdoms of this world are become the kingdom of our Lord and of his Christ, except it be in anticipation of the speedy accomplishment of this event; but the seventh trumpet, like the preceding six, covers a period of time; and the transfer of the kingdoms from earthly powers to Him whose right it is to reign, is the principal event to occur in the early years of its sounding**\" (DAR 505.6)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 505.6",
+          "html": "Smith reads vv. 15-19 as **three passes over the same seventh-trumpet ground**, with v. 15 giving the prophet's anticipatory glance forward to the kingdom's full establishment: \"**From the 15th verse to the end of the chapter, we seem to be carried over the ground, from the sounding of the seventh angel to the end, three distinct times. In the verses last quoted, the prophet glances forward to the full establishment of the kingdom of God. Although the seventh trumpet has begun to sound, it may not yet be a fact that the great voices in heaven have proclaimed that the kingdoms of this world are become the kingdom of our Lord and of his Christ, except it be in anticipation of the speedy accomplishment of this event; but the seventh trumpet, like the preceding six, covers a period of time; and the transfer of the kingdoms from earthly powers to Him whose right it is to reign, is the principal event to occur in the early years of its sounding**\" (DAR 505.6)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -511,10 +556,13 @@
       "num": 16,
       "slug": "v-16",
       "text": "And the four and twenty elders, which sat before God on their seats, fell upon their faces, and worshipped God,",
-      "pioneerReading": {
-        "citation": "DAR 505.5-505.6",
-        "html": "Smith treats v. 16 in the same paragraph as v. 15 — part of the prophet's anticipatory glance to the kingdom's full establishment under the seventh trumpet (DAR 505.5-505.6). Smith does **not** at this paragraph offer an identification of the twenty-four elders (the 12 patriarchs + 12 apostles gloss); his focus is on the kingdom-transfer event the elders' worship attends."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 505.5-505.6",
+          "html": "Smith treats v. 16 in the same paragraph as v. 15 — part of the prophet's anticipatory glance to the kingdom's full establishment under the seventh trumpet (DAR 505.5-505.6). Smith does **not** at this paragraph offer an identification of the twenty-four elders (the 12 patriarchs + 12 apostles gloss); his focus is on the kingdom-transfer event the elders' worship attends."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -543,10 +591,13 @@
       "num": 17,
       "slug": "v-17",
       "text": "Saying, We give thee thanks, O Lord God Almighty, which art, and wast, and art to come; because thou hast taken to thee thy great power, and hast reigned.",
-      "pioneerReading": {
-        "citation": "DAR 505.5-505.6",
-        "html": "Smith treats v. 17 in the same paragraph as vv. 15-16: the prophet's anticipatory glance to \"the full establishment of the kingdom of God\" under the seventh trumpet — \"**the transfer of the kingdoms from earthly powers to Him whose right it is to reign, is the principal event to occur in the early years of its sounding**\" (DAR 505.6)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 505.5-505.6",
+          "html": "Smith treats v. 17 in the same paragraph as vv. 15-16: the prophet's anticipatory glance to \"the full establishment of the kingdom of God\" under the seventh trumpet — \"**the transfer of the kingdoms from earthly powers to Him whose right it is to reign, is the principal event to occur in the early years of its sounding**\" (DAR 505.6)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -575,10 +626,13 @@
       "num": 18,
       "slug": "v-18",
       "text": "And the nations were angry, and thy wrath is come, and the time of the dead, that they should be judged, and that thou shouldest give reward unto thy servants the prophets, and to the saints, and them that fear thy name, small and great; and shouldest destroy them that destroy the earth.",
-      "pioneerReading": {
-        "citation": "DAR 506.2-507.1",
-        "html": "Smith reads each clause sequentially. \"**The Nations Were Angry**\" — \"**Commencing with the wonderful revolution in Europe in 1848, that spontaneous outburst of violence among the nations, their anger toward one another, their jealousy and envy, have been constantly increasing**\" (DAR 506.2). \"**Thy wrath is come**\" = the seven last plagues: \"**The wrath of God for the present generation is filled up in the seven last plagues (chapter 15:1), which consequently must here be referred to**\" (DAR 506.3). \"**The time of the dead that they should be judged**\" Smith reads **not as the investigative judgment** but as the **post-plague millennial judgment of the wicked dead**: \"**The great majority of the dead, that is, the wicked, are still in their graves after the visitation of the plagues, and the close of this dispensation. A work of judgment, of allotting to each one the punishment due to his crimes, is carried on in reference to them by the saints, in conjunction with Christ, during the one thousand years following the first resurrection. 1 Corinthians 6:2; Revelation 20:4. Inasmuch as this judgment of the dead follows the wrath of God, or the seven last plagues, it would seem necessary to refer it to the one thousand years of judgment upon the wicked... for the investigative Judgment takes place before the plagues are poured out**\" (DAR 506.4). \"**Reward unto thy servants**\" = the new earth at the end of the millennium (DAR 506.5, citing Matt 25:34). \"**Destroy them that destroy the earth**\" = the final destruction of the wicked by fire (DAR 507.1, citing 2 Pet 3:7; Rev 20:9). Smith concludes: \"**By this we learn that the seventh trumpet reaches over to the end of the one thousand years**\" (DAR 507.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 506.2-507.1",
+          "html": "Smith reads each clause sequentially. \"**The Nations Were Angry**\" — \"**Commencing with the wonderful revolution in Europe in 1848, that spontaneous outburst of violence among the nations, their anger toward one another, their jealousy and envy, have been constantly increasing**\" (DAR 506.2). \"**Thy wrath is come**\" = the seven last plagues: \"**The wrath of God for the present generation is filled up in the seven last plagues (chapter 15:1), which consequently must here be referred to**\" (DAR 506.3). \"**The time of the dead that they should be judged**\" Smith reads **not as the investigative judgment** but as the **post-plague millennial judgment of the wicked dead**: \"**The great majority of the dead, that is, the wicked, are still in their graves after the visitation of the plagues, and the close of this dispensation. A work of judgment, of allotting to each one the punishment due to his crimes, is carried on in reference to them by the saints, in conjunction with Christ, during the one thousand years following the first resurrection. 1 Corinthians 6:2; Revelation 20:4. Inasmuch as this judgment of the dead follows the wrath of God, or the seven last plagues, it would seem necessary to refer it to the one thousand years of judgment upon the wicked... for the investigative Judgment takes place before the plagues are poured out**\" (DAR 506.4). \"**Reward unto thy servants**\" = the new earth at the end of the millennium (DAR 506.5, citing Matt 25:34). \"**Destroy them that destroy the earth**\" = the final destruction of the wicked by fire (DAR 507.1, citing 2 Pet 3:7; Rev 20:9). Smith concludes: \"**By this we learn that the seventh trumpet reaches over to the end of the one thousand years**\" (DAR 507.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -611,10 +665,13 @@
       "num": 19,
       "slug": "v-19",
       "text": "And the temple of God was opened in heaven, and there was seen in his ark of his testament: and there were lightnings, and voices, and thunderings, and an earthquake, and great hail.",
-      "pioneerReading": {
-        "citation": "DAR 507.4-508.1",
-        "html": "Smith reads v. 19 as the **third pass over the seventh-trumpet ground — Christ's entry into the most holy place at the close of the 2300 days**: \"**We know it is the holy of holies that is here opened; for the ark is seen; and in that apartment alone the ark was deposited. This took place at the end of the 2300 days, when the sanctuary was to be cleansed, the time when the prophetic periods expired, and the seventh angel commenced to sound**\" (DAR 507.4). Smith argues from the ark's name (\"ark of his testament\") that the literal tables of the law are still there: \"**The ark was called the ark of the covenant, or testament, because it was made for the express purpose of containing the tables of the testimony, or ten commandments. Exodus 25:16; 31:18; Deuteronomy 10:2, 5. It was put to no other use, and owed its name solely to the fact that it contained the tables of the law. If the tables were not therein, it would not be the ark of his (God's) testament, and could not truthfully be so called. Yet John, beholding the ark in heaven under the sounding of the seventh trumpet, still calls it the 'ark of his testament,' affording unanswerable proof that the law is still there, unaltered in one jot or tittle**\" (DAR 507.4). The closing \"lightnings, voices, thunderings, earthquake, great hail\" Smith reads as **the final convulsion of nature at the close of the millennium**, cross-linked to Rev 16:17-21 and Rev 21:5: \"**the drama will soon close with the lightnings, thunderings, voices, the earthquake, and great hail, which will constitute nature's last convulsion before all things are made new at the close of the thousand years**\" (DAR 508.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 507.4-508.1",
+          "html": "Smith reads v. 19 as the **third pass over the seventh-trumpet ground — Christ's entry into the most holy place at the close of the 2300 days**: \"**We know it is the holy of holies that is here opened; for the ark is seen; and in that apartment alone the ark was deposited. This took place at the end of the 2300 days, when the sanctuary was to be cleansed, the time when the prophetic periods expired, and the seventh angel commenced to sound**\" (DAR 507.4). Smith argues from the ark's name (\"ark of his testament\") that the literal tables of the law are still there: \"**The ark was called the ark of the covenant, or testament, because it was made for the express purpose of containing the tables of the testimony, or ten commandments. Exodus 25:16; 31:18; Deuteronomy 10:2, 5. It was put to no other use, and owed its name solely to the fact that it contained the tables of the law. If the tables were not therein, it would not be the ark of his (God's) testament, and could not truthfully be so called. Yet John, beholding the ark in heaven under the sounding of the seventh trumpet, still calls it the 'ark of his testament,' affording unanswerable proof that the law is still there, unaltered in one jot or tittle**\" (DAR 507.4). The closing \"lightnings, voices, thunderings, earthquake, great hail\" Smith reads as **the final convulsion of nature at the close of the millennium**, cross-linked to Rev 16:17-21 and Rev 21:5: \"**the drama will soon close with the lightnings, thunderings, voices, the earthquake, and great hail, which will constitute nature's last convulsion before all things are made new at the close of the thousand years**\" (DAR 508.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",

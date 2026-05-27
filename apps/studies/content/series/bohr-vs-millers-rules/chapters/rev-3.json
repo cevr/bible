@@ -9,10 +9,13 @@
       "num": 1,
       "slug": "v-1",
       "text": "And unto the angel of the church in Sardis write; These things saith he that hath the seven Spirits of God, and the seven stars; I know thy works, that thou hast a name that thou livest, and art dead.",
-      "pioneerReading": {
-        "citation": "DAR 363.2-363.4",
-        "html": "**The Sardis period begins about AD 1798 and covers the post-Reformation reformed-church era; the \"name to live but dead\" describes the nominal Protestant churches that retained the form but lost the spiritual vitality of the original Reformation.** \"**If the dates of the preceding churches have been correctly fixed, the period covered by the church of Sardis must commence about the year 1798**\" (DAR 363.2). \"**Sardis signifies 'prince or song of joy,' or 'that which remains.' We then have before us, as constituting this church, the reformed churches, from the date above named to the great movement which marked another era in the history of the people of God**\" (DAR 363.3). \"**The great fault found with this church is that it has a name to live, but is dead. And what a high position, in a worldly point of view, has the nominal church occupied during this period! Look at her high-sounding titles, and her favor with the world. But how have pride and popularity grown apace, until spirituality is destroyed, the line of distinction between the church and the world is obliterated, and these different popular bodies are churches of Christ only in name!**\" (DAR 363.4)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 363.2-363.4",
+          "html": "**The Sardis period begins about AD 1798 and covers the post-Reformation reformed-church era; the \"name to live but dead\" describes the nominal Protestant churches that retained the form but lost the spiritual vitality of the original Reformation.** \"**If the dates of the preceding churches have been correctly fixed, the period covered by the church of Sardis must commence about the year 1798**\" (DAR 363.2). \"**Sardis signifies 'prince or song of joy,' or 'that which remains.' We then have before us, as constituting this church, the reformed churches, from the date above named to the great movement which marked another era in the history of the people of God**\" (DAR 363.3). \"**The great fault found with this church is that it has a name to live, but is dead. And what a high position, in a worldly point of view, has the nominal church occupied during this period! Look at her high-sounding titles, and her favor with the world. But how have pride and popularity grown apace, until spirituality is destroyed, the line of distinction between the church and the world is obliterated, and these different popular bodies are churches of Christ only in name!**\" (DAR 363.4)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -36,10 +39,13 @@
       "num": 2,
       "slug": "v-2",
       "text": "Be watchful, and strengthen the things which remain, that are ready to die: for I have not found thy works perfect before God.",
-      "pioneerReading": {
-        "citation": "DAR 364.1, by direct extension from DAR 363.3-363.4",
-        "html": "**The watch-and-strengthen call follows from the dying-church diagnosis — the post-Reformation church is to remember what remains of its original Reformation light, hold fast, and complete the unfinished work. Treated within the Sardis-period block; Smith does not give v. 2 a separate exegetical paragraph but reads it as part of the Sardis-condition warning that culminates in the v. 3 watch / coming-as-a-thief threatening.** Implicit in DAR 364.1's framing of the v. 3 watch call: \"**This implies that the doctrine of the advent would he proclaimed, and the duty of watching be enjoined upon the church**\" — the \"watchful\" command of v. 2 is read with the \"watch\" of v. 3 as a single Sardis-period imperative."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 364.1, by direct extension from DAR 363.3-363.4",
+          "html": "**The watch-and-strengthen call follows from the dying-church diagnosis — the post-Reformation church is to remember what remains of its original Reformation light, hold fast, and complete the unfinished work. Treated within the Sardis-period block; Smith does not give v. 2 a separate exegetical paragraph but reads it as part of the Sardis-condition warning that culminates in the v. 3 watch / coming-as-a-thief threatening.** Implicit in DAR 364.1's framing of the v. 3 watch call: \"**This implies that the doctrine of the advent would he proclaimed, and the duty of watching be enjoined upon the church**\" — the \"watchful\" command of v. 2 is read with the \"watch\" of v. 3 as a single Sardis-period imperative."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -63,10 +69,13 @@
       "num": 3,
       "slug": "v-3",
       "text": "Remember therefore how thou hast received and heard, and hold fast, and repent. If therefore thou shalt not watch, I will come on thee as a thief, and thou shalt not know what hour I will come upon thee.",
-      "pioneerReading": {
-        "citation": "DAR 364.1",
-        "html": "**The coming-as-a-thief threatening = the doctrine of the second advent which was to be proclaimed during the Sardis period (the Advent message starting c. 1798/1833), with watching enjoined upon the church; the coming itself is unconditional, only the manner (as a thief or as a welcome Bridegroom) is conditional on the church's spiritual state. Smith cross-links 1 Thess 5:4 — \"Ye, brethren, are not in darkness, that that day should overtake you as a thief.\"** \"**This church was to hear the proclamation of the doctrine of the second advent, as we learn from verse 3: 'If therefore thou shalt not watch, I will come on thee as a thief.' This implies that the doctrine of the advent would he proclaimed, and the duty of watching be enjoined upon the church. The coming spoken of is unconditional; the manner only in which it would come upon them is conditional. Their not watching would not prevent the coming of the Lord; but by watching they could avoid being overtaken as by a thief. It is only to those who are in this condition that the day of the Lord comes unawares**\" (DAR 364.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 364.1",
+          "html": "**The coming-as-a-thief threatening = the doctrine of the second advent which was to be proclaimed during the Sardis period (the Advent message starting c. 1798/1833), with watching enjoined upon the church; the coming itself is unconditional, only the manner (as a thief or as a welcome Bridegroom) is conditional on the church's spiritual state. Smith cross-links 1 Thess 5:4 — \"Ye, brethren, are not in darkness, that that day should overtake you as a thief.\"** \"**This church was to hear the proclamation of the doctrine of the second advent, as we learn from verse 3: 'If therefore thou shalt not watch, I will come on thee as a thief.' This implies that the doctrine of the advent would he proclaimed, and the duty of watching be enjoined upon the church. The coming spoken of is unconditional; the manner only in which it would come upon them is conditional. Their not watching would not prevent the coming of the Lord; but by watching they could avoid being overtaken as by a thief. It is only to those who are in this condition that the day of the Lord comes unawares**\" (DAR 364.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -90,10 +99,13 @@
       "num": 4,
       "slug": "v-4",
       "text": "Thou hast a few names even in Sardis which have not defiled their garments; and they shall walk with me in white: for they are worthy.",
-      "pioneerReading": {
-        "citation": "DAR 364.2-365.1",
-        "html": "**The \"few names\" = a faithful remnant within the dying post-Reformation church who kept themselves unspotted from the worldliness around them; the white-raiment reward = the exchange of iniquity for righteousness (Zech 3:4-5; Rev 19:8 \"fine linen is the righteousness of saints\"), promised at the second advent.** \"**A Few Names even in Sardis. — This language would seem to imply a period of unparalleled worldliness in the church. But even in this state of things, there are some whose garments are not defiled, — some who have kept themselves free from this contaminating influence. James says, 'Pure religion and undefiled before God and the Father is this, To visit the fatherless and widows in their affliction, and to keep himself unspotted from the world.' James 1:27**\" (DAR 364.2). \"**Shall Walk with Me in White. — The Lord does not overlook his people in any place, however few their numbers. Lonely Christian, with none of like precious faith with whom to commune, do you ever feel as though the hosts of the unbelievers would swallow you up? You are not unnoticed or forgotten by your Lord**\" (DAR 364.3). On white raiment: \"**Being clothed with white raiment is explained in other scriptures to be a symbol of exchanging iniquity for righteousness. (See Zechariah 3:4, 5.) 'Take away the filthy garments from him,' is explained by the language that follows, 'Behold, I have caused thine iniquity to pass from thee.' 'The fine linen,' or the white raiment, 'is the righteousness of saints.' Revelation 19:8**\" (DAR 365.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 364.2-365.1",
+          "html": "**The \"few names\" = a faithful remnant within the dying post-Reformation church who kept themselves unspotted from the worldliness around them; the white-raiment reward = the exchange of iniquity for righteousness (Zech 3:4-5; Rev 19:8 \"fine linen is the righteousness of saints\"), promised at the second advent.** \"**A Few Names even in Sardis. — This language would seem to imply a period of unparalleled worldliness in the church. But even in this state of things, there are some whose garments are not defiled, — some who have kept themselves free from this contaminating influence. James says, 'Pure religion and undefiled before God and the Father is this, To visit the fatherless and widows in their affliction, and to keep himself unspotted from the world.' James 1:27**\" (DAR 364.2). \"**Shall Walk with Me in White. — The Lord does not overlook his people in any place, however few their numbers. Lonely Christian, with none of like precious faith with whom to commune, do you ever feel as though the hosts of the unbelievers would swallow you up? You are not unnoticed or forgotten by your Lord**\" (DAR 364.3). On white raiment: \"**Being clothed with white raiment is explained in other scriptures to be a symbol of exchanging iniquity for righteousness. (See Zechariah 3:4, 5.) 'Take away the filthy garments from him,' is explained by the language that follows, 'Behold, I have caused thine iniquity to pass from thee.' 'The fine linen,' or the white raiment, 'is the righteousness of saints.' Revelation 19:8**\" (DAR 365.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -117,10 +129,13 @@
       "num": 5,
       "slug": "v-5",
       "text": "He that overcometh, the same shall be clothed in white raiment; and I will not blot out his name out of the book of life, but I will confess his name before my Father, and before his angels.",
-      "pioneerReading": {
-        "citation": "DAR 365.2-366.1",
-        "html": "**THE LOAD-BEARING PIONEER PASSAGE FOR THE INVESTIGATIVE JUDGMENT / BLOTTING-OUT DOCTRINE.** Smith reads \"I will not blot out his name out of the book of life\" as the **explicit textual basis for the doctrine that names CAN be blotted out** — the verse's promise to the overcomer implies a future point at which non-overcomers' names ARE blotted out. Cross-links to Acts 3:19 (\"blotted out, when the times of refreshing shall come\"), Heb 8:12, 2 Pet 1:19, Rev 2:28 — placing the blotting-out at the pre-second-advent investigative judgment / times-of-refreshing. \"**The Book of Life. — Object of thrilling interest! Vast and ponderous volume, in which are enrolled the names of all the candidates for everlasting life! And is there danger, after our names have once been entered in that heavenly journal, that they may he blotted out? — Yes; or this warning would never have been penned. Paul, even, feared that he himself might become a castaway. 1 Corinthians 9:27. It is only by being overcomers at last that our names can be retained in that hook. But all will not overcome. Their names, of course, will be blotted out. And reference is made to some definite point of time in the future for this work**\" (DAR 365.2). \"**'I will not,' says Christ (in the future), blot out the names of the overcomers, which is also saying, by implication, that at the same time he will blot out the names of those who do not overcome. Is not this the same time mentioned by Peter in Acts 3:19? 'Repent ye, therefore, and he converted, that your sins may he blotted out, when the times of refreshing shall come from the presence of the Lord.' To say to the overcomer that his name shall not be blotted out of the book of life, is to say also that his sins shall be blotted out of the book wherein they are recorded, to be remembered against him no more forever**\" (DAR 365.2). On the presentation in glory: \"**'I will confess his name before my Father, and before his angels.' Christ taught here upon earth, that as men confessed or denied, despised or honored him here, they would be confessed or denied by him before his Father in heaven and the holy angels. Matthew 10:32, 33; Mark 8:38; Luke 12:8, 9**\" (DAR 366.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 365.2-366.1",
+          "html": "**THE LOAD-BEARING PIONEER PASSAGE FOR THE INVESTIGATIVE JUDGMENT / BLOTTING-OUT DOCTRINE.** Smith reads \"I will not blot out his name out of the book of life\" as the **explicit textual basis for the doctrine that names CAN be blotted out** — the verse's promise to the overcomer implies a future point at which non-overcomers' names ARE blotted out. Cross-links to Acts 3:19 (\"blotted out, when the times of refreshing shall come\"), Heb 8:12, 2 Pet 1:19, Rev 2:28 — placing the blotting-out at the pre-second-advent investigative judgment / times-of-refreshing. \"**The Book of Life. — Object of thrilling interest! Vast and ponderous volume, in which are enrolled the names of all the candidates for everlasting life! And is there danger, after our names have once been entered in that heavenly journal, that they may he blotted out? — Yes; or this warning would never have been penned. Paul, even, feared that he himself might become a castaway. 1 Corinthians 9:27. It is only by being overcomers at last that our names can be retained in that hook. But all will not overcome. Their names, of course, will be blotted out. And reference is made to some definite point of time in the future for this work**\" (DAR 365.2). \"**'I will not,' says Christ (in the future), blot out the names of the overcomers, which is also saying, by implication, that at the same time he will blot out the names of those who do not overcome. Is not this the same time mentioned by Peter in Acts 3:19? 'Repent ye, therefore, and he converted, that your sins may he blotted out, when the times of refreshing shall come from the presence of the Lord.' To say to the overcomer that his name shall not be blotted out of the book of life, is to say also that his sins shall be blotted out of the book wherein they are recorded, to be remembered against him no more forever**\" (DAR 365.2). On the presentation in glory: \"**'I will confess his name before my Father, and before his angels.' Christ taught here upon earth, that as men confessed or denied, despised or honored him here, they would be confessed or denied by him before his Father in heaven and the holy angels. Matthew 10:32, 33; Mark 8:38; Luke 12:8, 9**\" (DAR 366.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -144,10 +159,13 @@
       "num": 6,
       "slug": "v-6",
       "text": "He that hath an ear, let him hear what the Spirit saith unto the churches.",
-      "pioneerReading": {
-        "citation": null,
-        "html": "Treated within the Sardis block. The summons-to-attention formula is repeated to each of the seven churches (per Smith's Rev 2:7 commentary at DAR 349.2 — \"A solemn manner of calling universal attention to that which is of general and most momentous importance. The same language is used to each of the seven churches\")."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": null,
+          "html": "Treated within the Sardis block. The summons-to-attention formula is repeated to each of the seven churches (per Smith's Rev 2:7 commentary at DAR 349.2 — \"A solemn manner of calling universal attention to that which is of general and most momentous importance. The same language is used to each of the seven churches\")."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -171,10 +189,13 @@
       "num": 7,
       "slug": "v-7",
       "text": "And to the angel of the church in Philadelphia write; These things saith he that is holy, he that is true, he that hath the key of David, he that openeth, and no man shutteth; and shutteth, and no man openeth;",
-      "pioneerReading": {
-        "citation": "DAR 366.3-367.2",
-        "html": "**THE LOAD-BEARING PIONEER PASSAGE FOR THE 1844 / OPEN-MOST-HOLY-PLACE DOCTRINE.** The Philadelphia period = the Millerite Advent movement leading up to 1844 (those who received the Advent message and came out of the sectarian churches with one heart, \"deep searching of heart, consecration of all to God, peace, joy in the Holy Spirit\"). The **key of David = Christ's priestly + kingly authority** (he is the rightful heir to David's throne, taking to himself his great power and reign); the **opening and shutting = Christ's transition from holy-place ministry to most-holy-place ministry** in the heavenly sanctuary at the end of the 2300 days in 1844 (Heb 8:2; 9:1-12, 24 + the Hebrews-9 two-apartment exposition + the Day-of-Atonement / cleansing-of-the-sanctuary type from Lev 16:17 — \"when the ministry in the most holy place commenced, that in the holy place ceased; and no service was performed there so long as the priest was engaged in the most holy place\"). \"**The word Philadelphia signifies brotherly love, and expresses the position and spirit of those who received the Advent message up to the autumn of 1844. As they came out of the sectarian churches, they left party names and party feelings behind; and every heart beat in union, as they gave the alarm to the churches and to the world, and pointed to the coming of the Son of man as the believer's true hope**\" (DAR 366.3). \"**The Key of David. — A key is a symbol of power. The Son of God is the rightful heir to David's throne; and he is about to take to himself his great power, and to reign; hence he is represented as having the key of David. The throne of David, or of Christ, on which he is to reign, is included in the capital of his kingdom, the New Jerusalem, now above, but which is to be located on this earth, where he is to reign forever and ever. Revelation 21:1-5; Luke 1:32, 33**\" (DAR 367.1). \"**He that Openeth, and no Man Shutteth, etc. — To understand this language, it is necessary to look at Christ's position and work as connected with his ministry in the sanctuary, or true tabernacle above. Hebrews 8:2… A similar opening and shutting, or change of ministration, must be accomplished by Christ when the time comes for the cleansing of the heavenly sanctuary. And the time did come for this service to commence at the close of the 2300 days, in 1844. To this event the opening and shutting mentioned in the text under consideration can appropriately apply, the opening being the opening of his ministration in the most holy place, and the shutting, its cessation in the first apartment, or holy place. (See exposition of the subject of the sanctuary and its cleansing, under Daniel 8:14.)**\" (DAR 367.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 366.3-367.2",
+          "html": "**THE LOAD-BEARING PIONEER PASSAGE FOR THE 1844 / OPEN-MOST-HOLY-PLACE DOCTRINE.** The Philadelphia period = the Millerite Advent movement leading up to 1844 (those who received the Advent message and came out of the sectarian churches with one heart, \"deep searching of heart, consecration of all to God, peace, joy in the Holy Spirit\"). The **key of David = Christ's priestly + kingly authority** (he is the rightful heir to David's throne, taking to himself his great power and reign); the **opening and shutting = Christ's transition from holy-place ministry to most-holy-place ministry** in the heavenly sanctuary at the end of the 2300 days in 1844 (Heb 8:2; 9:1-12, 24 + the Hebrews-9 two-apartment exposition + the Day-of-Atonement / cleansing-of-the-sanctuary type from Lev 16:17 — \"when the ministry in the most holy place commenced, that in the holy place ceased; and no service was performed there so long as the priest was engaged in the most holy place\"). \"**The word Philadelphia signifies brotherly love, and expresses the position and spirit of those who received the Advent message up to the autumn of 1844. As they came out of the sectarian churches, they left party names and party feelings behind; and every heart beat in union, as they gave the alarm to the churches and to the world, and pointed to the coming of the Son of man as the believer's true hope**\" (DAR 366.3). \"**The Key of David. — A key is a symbol of power. The Son of God is the rightful heir to David's throne; and he is about to take to himself his great power, and to reign; hence he is represented as having the key of David. The throne of David, or of Christ, on which he is to reign, is included in the capital of his kingdom, the New Jerusalem, now above, but which is to be located on this earth, where he is to reign forever and ever. Revelation 21:1-5; Luke 1:32, 33**\" (DAR 367.1). \"**He that Openeth, and no Man Shutteth, etc. — To understand this language, it is necessary to look at Christ's position and work as connected with his ministry in the sanctuary, or true tabernacle above. Hebrews 8:2… A similar opening and shutting, or change of ministration, must be accomplished by Christ when the time comes for the cleansing of the heavenly sanctuary. And the time did come for this service to commence at the close of the 2300 days, in 1844. To this event the opening and shutting mentioned in the text under consideration can appropriately apply, the opening being the opening of his ministration in the most holy place, and the shutting, its cessation in the first apartment, or holy place. (See exposition of the subject of the sanctuary and its cleansing, under Daniel 8:14.)**\" (DAR 367.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -198,10 +219,13 @@
       "num": 8,
       "slug": "v-8",
       "text": "I know thy works: behold, I have set before thee an open door, and no man can shut it: for thou hast a little strength, and hast kept my word, and hast not denied my name.",
-      "pioneerReading": {
-        "citation": "DAR 366.3, 367.2 by extension",
-        "html": "**The open door = the door into the Most Holy Place of the heavenly sanctuary, opened by Christ at the close of the 2300 days in 1844 (per the v. 7 exposition); the \"little strength\" + \"kept my word\" + \"not denied my name\" = the Millerite movement's faithful but small / weak position over against the established churches that rejected the Advent message. Treated within the v. 7 block since Smith's exposition of the opening-and-shutting belongs to vv. 7-8 as a unit.**"
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 366.3, 367.2 by extension",
+          "html": "**The open door = the door into the Most Holy Place of the heavenly sanctuary, opened by Christ at the close of the 2300 days in 1844 (per the v. 7 exposition); the \"little strength\" + \"kept my word\" + \"not denied my name\" = the Millerite movement's faithful but small / weak position over against the established churches that rejected the Advent message. Treated within the v. 7 block since Smith's exposition of the opening-and-shutting belongs to vv. 7-8 as a unit.**"
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -225,10 +249,13 @@
       "num": 9,
       "slug": "v-9",
       "text": "Behold, I will make them of the synagogue of Satan, which say they are Jews, and are not, but do lie; behold, I will make them to come and worship before thy feet, and to know that I have loved thee.",
-      "pioneerReading": {
-        "citation": "DAR 368.1",
-        "html": "**The synagogue-of-Satan opposition = those who do not keep pace with the advancing light of truth and oppose those who do; they will eventually be made to confess that God loves those who do not reject the past fulfillments of his word.** \"**Verse 9 probably applies to those who do not keep pace with the advancing light of truth, and who oppose those that do. Such shall yet be made to feel and confess that God loves those, who, not rejecting the past fulfilments of his word, nor stereotyping themselves in a creed, continue to advance in the knowledge of his truth**\" (DAR 368.1). This mirrors Smith's Smyrna-letter \"synagogue of Satan\" reading at Rev 2:9 (the hypocritical-pretender framework)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 368.1",
+          "html": "**The synagogue-of-Satan opposition = those who do not keep pace with the advancing light of truth and oppose those who do; they will eventually be made to confess that God loves those who do not reject the past fulfillments of his word.** \"**Verse 9 probably applies to those who do not keep pace with the advancing light of truth, and who oppose those that do. Such shall yet be made to feel and confess that God loves those, who, not rejecting the past fulfilments of his word, nor stereotyping themselves in a creed, continue to advance in the knowledge of his truth**\" (DAR 368.1). This mirrors Smith's Smyrna-letter \"synagogue of Satan\" reading at Rev 2:9 (the hypocritical-pretender framework)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -252,10 +279,13 @@
       "num": 10,
       "slug": "v-10",
       "text": "Because thou hast kept the word of my patience, I will also keep thee from the hour of temptation, which shall come upon all the world, to try them that dwell upon the earth.",
-      "pioneerReading": {
-        "citation": "DAR 368.2",
-        "html": "**The \"word of patience\" = the patience-of-the-saints language of Rev 14:12 (\"here are they that keep the commandments of God, and the faith of Jesus\"); the \"hour of temptation\" = the time of trouble at the end (cross-link to Rev 13:13-17 — the mark-of-the-beast crisis). The faithful who now live in commandment-keeping obedience will be kept through this hour.** \"**The Word of My Patience. — Says John, in Revelation 14:12, 'Here is the patience of the saints; here are they that keep the commandments of God, and the faith of Jesus.' Those who now live in patient, faithful obedience to the commandments of God and the faith of Jesus, will be kept in the hour of temptation and peril just before us. (See chapter 13:13-17.)**\" (DAR 368.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 368.2",
+          "html": "**The \"word of patience\" = the patience-of-the-saints language of Rev 14:12 (\"here are they that keep the commandments of God, and the faith of Jesus\"); the \"hour of temptation\" = the time of trouble at the end (cross-link to Rev 13:13-17 — the mark-of-the-beast crisis). The faithful who now live in commandment-keeping obedience will be kept through this hour.** \"**The Word of My Patience. — Says John, in Revelation 14:12, 'Here is the patience of the saints; here are they that keep the commandments of God, and the faith of Jesus.' Those who now live in patient, faithful obedience to the commandments of God and the faith of Jesus, will be kept in the hour of temptation and peril just before us. (See chapter 13:13-17.)**\" (DAR 368.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -279,10 +309,13 @@
       "num": 11,
       "slug": "v-11",
       "text": "Behold, I come quickly: hold that fast which thou hast, that no man take thy crown.",
-      "pioneerReading": {
-        "citation": "DAR 369.1-369.2",
-        "html": "**The \"behold, I come quickly\" reaches a new emphatic peak in the Philadelphia letter — the second-advent expectation is most urgent here because the Millerite Advent movement directly proclaims it; the \"hold fast\" warning is against losing the crown of life by yielding up the truth or being perverted from the right ways of the Lord.** \"**The second coming of Christ is here again brought to view, and with more startling emphasis than in any of the preceding messages. The nearness of that event is here urged upon the attention of believers. The message applies to a period when that great event is impending; and in this we have most indubitable evidence of the prophetic nature of these messages. What is said of the first three churches contains no allusion to the second coming of Christ, from the fact that they do not cover a period during which that event could be Scripturally expected. But we come down to the Thyatiran church, beyond which only three comparatively brief stages of the church appear before the end… We reach the Philadelphian church, still further down in the stream of time, and the nearness of the same great event then leads Him who 'is holy and true' to utter the stirring declaration, 'Behold, I come quickly.' How evident is it from all this that these churches occupy positions successively nearer the great day of the Lord, as in each succeeding one, and in a continually increasing ratio, this great event is made more and more prominent**\" (DAR 369.1). On hold fast: \"**'Hold that fast which thou hast, that no man take thy crown.' Not that by our faithfulness we are depriving any one else of a crown; but the verb rendered to take has a number of definitions, one of which is 'to take away, snatch from, deprive of.' Hold fast that thou hast, that no man deprive thee of the crown of life**\" (DAR 369.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 369.1-369.2",
+          "html": "**The \"behold, I come quickly\" reaches a new emphatic peak in the Philadelphia letter — the second-advent expectation is most urgent here because the Millerite Advent movement directly proclaims it; the \"hold fast\" warning is against losing the crown of life by yielding up the truth or being perverted from the right ways of the Lord.** \"**The second coming of Christ is here again brought to view, and with more startling emphasis than in any of the preceding messages. The nearness of that event is here urged upon the attention of believers. The message applies to a period when that great event is impending; and in this we have most indubitable evidence of the prophetic nature of these messages. What is said of the first three churches contains no allusion to the second coming of Christ, from the fact that they do not cover a period during which that event could be Scripturally expected. But we come down to the Thyatiran church, beyond which only three comparatively brief stages of the church appear before the end… We reach the Philadelphian church, still further down in the stream of time, and the nearness of the same great event then leads Him who 'is holy and true' to utter the stirring declaration, 'Behold, I come quickly.' How evident is it from all this that these churches occupy positions successively nearer the great day of the Lord, as in each succeeding one, and in a continually increasing ratio, this great event is made more and more prominent**\" (DAR 369.1). On hold fast: \"**'Hold that fast which thou hast, that no man take thy crown.' Not that by our faithfulness we are depriving any one else of a crown; but the verb rendered to take has a number of definitions, one of which is 'to take away, snatch from, deprive of.' Hold fast that thou hast, that no man deprive thee of the crown of life**\" (DAR 369.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -306,10 +339,13 @@
       "num": 12,
       "slug": "v-12",
       "text": "Him that overcometh will I make a pillar in the temple of my God, and he shall go no more out: and I will write upon him the name of my God, and the name of the city of my God, which is New Jerusalem, which cometh down out of heaven from my God: and I will write upon him my new name.",
-      "pioneerReading": {
-        "citation": "DAR 370.1-370.2",
-        "html": "**The pillar-in-the-temple = the strongest figure of permanent honor and safety in the church; \"he shall go no more out\" = probation past, the overcomer fully established and sealed for heaven. The three names (God + New Jerusalem + Christ's new name) = the sealing-and-labeling of the saints for their destination, the New Jerusalem above (not literal old Jerusalem — Smith specifies).** \"**A Pillar in the Temple. — The overcomer in this address has the promise of being made a pillar in the temple of God, and going no more out. The temple here must denote the church; and the promise of being made a pillar therein is the strongest promise that could be given of a place of honor, permanence, and safety in the church, under the figure of a heavenly building. And when the time comes that this part of the promise is fulfilled, probation with the overcomer is past; he is fully established in the truth, and sealed. 'He shall go no more out;' that is, there is no more danger of his falling away; he is the Lord's forever; his salvation is sure**\" (DAR 370.1). \"**But they are to have more than this. From the moment they overcome, and are sealed for heaven, they are labeled, if we may so express it, as belonging to God and Christ, and addressed to their destination, the New Jerusalem. They are to have written upon them the name of God, whose property they are, the name of the New Jerusalem, to which place they are going, not old Jerusalem, where some are vainly looking; and they have upon them the new name of Christ, by whose authority they are to receive everlasting life, and enter into the kingdom. Thus sealed and labeled, the saints of God are safe**\" (DAR 370.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 370.1-370.2",
+          "html": "**The pillar-in-the-temple = the strongest figure of permanent honor and safety in the church; \"he shall go no more out\" = probation past, the overcomer fully established and sealed for heaven. The three names (God + New Jerusalem + Christ's new name) = the sealing-and-labeling of the saints for their destination, the New Jerusalem above (not literal old Jerusalem — Smith specifies).** \"**A Pillar in the Temple. — The overcomer in this address has the promise of being made a pillar in the temple of God, and going no more out. The temple here must denote the church; and the promise of being made a pillar therein is the strongest promise that could be given of a place of honor, permanence, and safety in the church, under the figure of a heavenly building. And when the time comes that this part of the promise is fulfilled, probation with the overcomer is past; he is fully established in the truth, and sealed. 'He shall go no more out;' that is, there is no more danger of his falling away; he is the Lord's forever; his salvation is sure**\" (DAR 370.1). \"**But they are to have more than this. From the moment they overcome, and are sealed for heaven, they are labeled, if we may so express it, as belonging to God and Christ, and addressed to their destination, the New Jerusalem. They are to have written upon them the name of God, whose property they are, the name of the New Jerusalem, to which place they are going, not old Jerusalem, where some are vainly looking; and they have upon them the new name of Christ, by whose authority they are to receive everlasting life, and enter into the kingdom. Thus sealed and labeled, the saints of God are safe**\" (DAR 370.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -333,10 +369,13 @@
       "num": 13,
       "slug": "v-13",
       "text": "He that hath an ear, let him hear what the Spirit saith unto the churches.",
-      "pioneerReading": {
-        "citation": null,
-        "html": "Treated within the Philadelphia block. The summons-to-attention formula is repeated (per Smith's Rev 2:7 commentary at DAR 349.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": null,
+          "html": "Treated within the Philadelphia block. The summons-to-attention formula is repeated (per Smith's Rev 2:7 commentary at DAR 349.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -360,10 +399,13 @@
       "num": 14,
       "slug": "v-14",
       "text": "And unto the angel of the church of the Laodiceans write; These things saith the Amen, the faithful and true Witness, the beginning of the creation of God;",
-      "pioneerReading": {
-        "citation": "DAR 371.1-371.2",
-        "html": "**THE LOAD-BEARING PIONEER PASSAGE FOR THE LAODICEA = SDA-CHURCH IDENTIFICATION AND FOR THE CHRIST = NOT-CREATED-BUT-CREATOR DOCTRINE.** Laodicea = \"judging of the people\" or \"a just people\"; the message brings to view the closing scenes of probation; it is the last stage of the church, applying to believers under the Third Angel's message (Rev 14:9-14) while the great Day of Atonement / investigative judgment is in progress. On the \"beginning of the creation of God\" Christology — Smith expressly addresses and **REFUTES the Arian reading** that Christ was the first-created being: the language does NOT necessarily imply that Christ was created; arche may signify \"the agent or efficient cause\" through whom God created all things, while Christ Himself came into existence in a different manner (\"the only begotten of the Father\"). The Arian reading \"would seem utterly inappropriate.\" \"**Laodicea signifies the judging of the people, or, according to Cruden, a just people. The message to this church brings to view the closing scenes of probation. It reveals a period of judgment. It is the last stage of the church. It consequently applies to believers under the third message, the last message of mercy before the coming of Christ (see chapter 14:9-14), while the great day of atonement is transpiring, and the investigative Judgment is going forward upon the house of God, — a period during which the just and holy law of God is taken by the waiting church as their rule of life**\" (DAR 371.1). On the Amen and the beginning of the creation: \"**These Things Saith the Amen. — This is, then, the final message to the churches ere the close of probation. And though the description of their condition which he gives to the indifferent Laodiceans is fearful and startling, nevertheless it cannot be denied; for the Witness is 'faithful and true.' Moreover, he is 'the beginning of the creation of God.' Some understand by this language that Christ was the first created being, dating his existence anterior to that of any other created being or thing, next to the self-existent and eternal God. But the language does not necessarily imply that he was created; for the words, 'the beginning of the creation,' may simply signify that the work of creation, strictly speaking, was begun by him. 'Without him was not anything made.' Others, however, and more properly we think, take the word ἀρχὴ to mean the 'agent' or 'efficient cause,' which is one of the definitions of the word, understanding that Christ is the agent through whom God has created all things, but that he himself came into existence in a different manner, as he is called 'the only begotten' of the Father. It would seem utterly inappropriate to apply this expression to any being created in the ordinary sense of that term. For 'beginning,' read 'beginner.'**\" (DAR 371.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 371.1-371.2",
+          "html": "**THE LOAD-BEARING PIONEER PASSAGE FOR THE LAODICEA = SDA-CHURCH IDENTIFICATION AND FOR THE CHRIST = NOT-CREATED-BUT-CREATOR DOCTRINE.** Laodicea = \"judging of the people\" or \"a just people\"; the message brings to view the closing scenes of probation; it is the last stage of the church, applying to believers under the Third Angel's message (Rev 14:9-14) while the great Day of Atonement / investigative judgment is in progress. On the \"beginning of the creation of God\" Christology — Smith expressly addresses and **REFUTES the Arian reading** that Christ was the first-created being: the language does NOT necessarily imply that Christ was created; arche may signify \"the agent or efficient cause\" through whom God created all things, while Christ Himself came into existence in a different manner (\"the only begotten of the Father\"). The Arian reading \"would seem utterly inappropriate.\" \"**Laodicea signifies the judging of the people, or, according to Cruden, a just people. The message to this church brings to view the closing scenes of probation. It reveals a period of judgment. It is the last stage of the church. It consequently applies to believers under the third message, the last message of mercy before the coming of Christ (see chapter 14:9-14), while the great day of atonement is transpiring, and the investigative Judgment is going forward upon the house of God, — a period during which the just and holy law of God is taken by the waiting church as their rule of life**\" (DAR 371.1). On the Amen and the beginning of the creation: \"**These Things Saith the Amen. — This is, then, the final message to the churches ere the close of probation. And though the description of their condition which he gives to the indifferent Laodiceans is fearful and startling, nevertheless it cannot be denied; for the Witness is 'faithful and true.' Moreover, he is 'the beginning of the creation of God.' Some understand by this language that Christ was the first created being, dating his existence anterior to that of any other created being or thing, next to the self-existent and eternal God. But the language does not necessarily imply that he was created; for the words, 'the beginning of the creation,' may simply signify that the work of creation, strictly speaking, was begun by him. 'Without him was not anything made.' Others, however, and more properly we think, take the word ἀρχὴ to mean the 'agent' or 'efficient cause,' which is one of the definitions of the word, understanding that Christ is the agent through whom God has created all things, but that he himself came into existence in a different manner, as he is called 'the only begotten' of the Father. It would seem utterly inappropriate to apply this expression to any being created in the ordinary sense of that term. For 'beginning,' read 'beginner.'**\" (DAR 371.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -387,10 +429,13 @@
       "num": 15,
       "slug": "v-15",
       "text": "I know thy works, that thou art neither cold nor hot: I would thou wert cold or hot.",
-      "pioneerReading": {
-        "citation": "DAR 371.3, 372.1",
-        "html": "**The Laodicean lukewarmness = lack of religious fervency, zeal, and devotion appropriate to the position in the world's closing history; manifested by lack of good works. Smith provides an extended exposition (DAR 372.1-373.1) of the three states (cold / lukewarm / hot) — arguing that \"cold\" does NOT denote open worldly wickedness but rather a state of feeling-the-lack and groping-after-something-better (Job 23:3: \"O that I knew where I might find him!\"), which is preferable to the comfortable self-satisfaction of lukewarmness because the cold person will not long remain cold but will soon move to the fervid state.** \"**The charge he brings against the Laodiceans is that they are lukewarm, neither cold nor hot. They lack that religious fervency, zeal, and devotion, which their position in the world's closing history, with the light of prophecy beaming upon their pathway, demands that they should manifest; and this lukewarmness is shown by a lack of good works; for it is from a knowledge of their works that the faithful and true Witness brings this fearful charge against them**\" (DAR 371.3). On the three states: \"**To be lukewarm is to lack this zeal, to be in a state in which heart and earnestness are wanting; in which there is no self-denial that costs anything, no cross-bearing that is felt, no determined witnessing for Christ, and no valiant aggression that keeps sinews strained and armor bright; and, worst of all, it implies entire satisfaction with that condition**\" (DAR 372.1). On cold as preferable to lukewarm: \"**As hot denotes joyous fervency, and a lively exercise of all the affections, with a heart buoyant with the sensible presence and love of God, so by cold would seem to be denoted a spiritual condition characterized by a destitution of these traits, yet one in which the individual feels such destitution, and longs to recover his lost treasures**\" (DAR 373.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 371.3, 372.1",
+          "html": "**The Laodicean lukewarmness = lack of religious fervency, zeal, and devotion appropriate to the position in the world's closing history; manifested by lack of good works. Smith provides an extended exposition (DAR 372.1-373.1) of the three states (cold / lukewarm / hot) — arguing that \"cold\" does NOT denote open worldly wickedness but rather a state of feeling-the-lack and groping-after-something-better (Job 23:3: \"O that I knew where I might find him!\"), which is preferable to the comfortable self-satisfaction of lukewarmness because the cold person will not long remain cold but will soon move to the fervid state.** \"**The charge he brings against the Laodiceans is that they are lukewarm, neither cold nor hot. They lack that religious fervency, zeal, and devotion, which their position in the world's closing history, with the light of prophecy beaming upon their pathway, demands that they should manifest; and this lukewarmness is shown by a lack of good works; for it is from a knowledge of their works that the faithful and true Witness brings this fearful charge against them**\" (DAR 371.3). On the three states: \"**To be lukewarm is to lack this zeal, to be in a state in which heart and earnestness are wanting; in which there is no self-denial that costs anything, no cross-bearing that is felt, no determined witnessing for Christ, and no valiant aggression that keeps sinews strained and armor bright; and, worst of all, it implies entire satisfaction with that condition**\" (DAR 372.1). On cold as preferable to lukewarm: \"**As hot denotes joyous fervency, and a lively exercise of all the affections, with a heart buoyant with the sensible presence and love of God, so by cold would seem to be denoted a spiritual condition characterized by a destitution of these traits, yet one in which the individual feels such destitution, and longs to recover his lost treasures**\" (DAR 373.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -414,10 +459,13 @@
       "num": 16,
       "slug": "v-16",
       "text": "So then because thou art lukewarm, and neither cold nor hot, I will spue thee out of my mouth.",
-      "pioneerReading": {
-        "citation": "DAR 372.4, 373.2",
-        "html": "**The threat of rejection is because of the lukewarm-not-cold-or-hot condition; the spueing-out denotes a final rejection, an utter separation from his church. The figure of nauseating tepid water is carried out from the literal Laodicean hot-springs / lukewarm-water context.** \"**The threat of rejection in verse 16 is because they are neither cold nor hot. As much as to say that if they were either cold or hot, they would not be rejected**\" (DAR 372.4). \"**I Will Spue Thee out of My Mouth. — Here the figure is still further carried out, and the rejection of the lukewarm expressed by the nauseating effects of tepid water. And this denotes a final rejection, an utter separation from his church**\" (DAR 373.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 372.4, 373.2",
+          "html": "**The threat of rejection is because of the lukewarm-not-cold-or-hot condition; the spueing-out denotes a final rejection, an utter separation from his church. The figure of nauseating tepid water is carried out from the literal Laodicean hot-springs / lukewarm-water context.** \"**The threat of rejection in verse 16 is because they are neither cold nor hot. As much as to say that if they were either cold or hot, they would not be rejected**\" (DAR 372.4). \"**I Will Spue Thee out of My Mouth. — Here the figure is still further carried out, and the rejection of the lukewarm expressed by the nauseating effects of tepid water. And this denotes a final rejection, an utter separation from his church**\" (DAR 373.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -441,10 +489,13 @@
       "num": 17,
       "slug": "v-17",
       "text": "Because thou sayest, I am rich, and increased with goods, and have need of nothing; and knowest not that thou art wretched, and miserable, and poor, and blind, and naked:",
-      "pioneerReading": {
-        "citation": "DAR 374.1",
-        "html": "**The Laodiceans are NOT hypocrites — they sincerely believe they are rich, and they \"know not\" that they are poor, miserable, blind, and naked. The self-deception is honest but fatal.** \"**Rich, and Increased with Goods. — Such the Laodiceans think is their condition. They are not hypocrites, because they 'know not' that they are poor, miserable, blind, and naked**\" (DAR 374.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 374.1",
+          "html": "**The Laodiceans are NOT hypocrites — they sincerely believe they are rich, and they \"know not\" that they are poor, miserable, blind, and naked. The self-deception is honest but fatal.** \"**Rich, and Increased with Goods. — Such the Laodiceans think is their condition. They are not hypocrites, because they 'know not' that they are poor, miserable, blind, and naked**\" (DAR 374.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -468,10 +519,13 @@
       "num": 18,
       "slug": "v-18",
       "text": "I counsel thee to buy of me gold tried in the fire, that thou mayest be rich; and white raiment, that thou mayest be clothed, and that the shame of thy nakedness do not appear; and anoint thine eyes with eye-salve, that thou mayest see.",
-      "pioneerReading": {
-        "citation": "DAR 374.2-377.1",
-        "html": "**THREE ITEMS, EACH WITH A SPECIFIC GOSPEL-GRACE GLOSS: (1) Gold tried in the fire = FAITH + HOPE + LOVE (charity), with faith as the principal element — cross-linked to 1 Cor 13 (faith / hope / charity, the greatest being charity), Heb 11 (faith chapter), Gal 5:6 (faith working by love), 1 Tim 6:18 (rich in good works). (2) White raiment = the righteousness of saints (Rev 19:8 explicit gloss), the opposite of \"all our righteousnesses are as filthy rags\" (Isa 64:6), explained by Zech 3:3-4 (filthy garments removed, replaced with iniquity-passing-from-him). (3) Eye-salve = the Holy Spirit (Acts 10:38 \"God anointed Jesus of Nazareth with the Holy Ghost\"; 1 John 2:20, 27 \"ye have an unction from the Holy One… the anointing which ye have received of him abideth in you\"; John 14:26; 16:13 — the Holy Spirit teaches all things).** On buying without money: \"**'Ho, every one that thirsteth, come ye to the waters, and he that hath no money; come ye, buy, and eat; yea, come, buy wine and milk without money and without price.' Isaiah 55:1. We thus buy by the asking; buy by throwing away the worthless baubles of earth, and receiving priceless treasures in their stead; buy by simply coming and receiving; buy, giving nothing in return**\" (DAR 374.3). On gold = faith / hope / love: \"**Hence love cannot be separated from faith. We then have before us the three objects associated together by Paul in 1 Corinthians 13, — faith, hope, and charity, or love; and the greatest of these is charity. Such is the gold tried by fire which we are counseled to buy**\" (DAR 375.2). On white raiment = righteousness of saints: \"**We are counseled to buy the opposite of filthy rags, which would be complete and spotless raiment. The same figure is used in Zechariah 3:3, 4. And John, in the 19th chapter of the Revelation, verse 8, says plainly that 'the fine linen is the righteousness of saints'**\" (DAR 376.1). On eye-salve = the Holy Spirit: \"**There is but one agent revealed to us in the word of God by which this is accomplished, and that is the Holy Spirit. In Acts 10:38 we read that 'God anointed Jesus of Nazareth with the Holy Ghost.'**\" (DAR 376.2). On the doctrinally-correct-but-spiritually-dead Laodicean condition: \"**It will be observed that no fault is found with the Laodiceans on account of the doctrines they hold. They are not accused of harboring any Jezebel in their midst, or of countenancing the doctrines of Balaam or the Nicolaitanes. So far as we can learn from the address to them, their belief is correct, and their theory sound. The inference therefore is that having a correct theory, therewith they are content. They are satisfied with a correct form of doctrine without its power**\" (DAR 377.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 374.2-377.1",
+          "html": "**THREE ITEMS, EACH WITH A SPECIFIC GOSPEL-GRACE GLOSS: (1) Gold tried in the fire = FAITH + HOPE + LOVE (charity), with faith as the principal element — cross-linked to 1 Cor 13 (faith / hope / charity, the greatest being charity), Heb 11 (faith chapter), Gal 5:6 (faith working by love), 1 Tim 6:18 (rich in good works). (2) White raiment = the righteousness of saints (Rev 19:8 explicit gloss), the opposite of \"all our righteousnesses are as filthy rags\" (Isa 64:6), explained by Zech 3:3-4 (filthy garments removed, replaced with iniquity-passing-from-him). (3) Eye-salve = the Holy Spirit (Acts 10:38 \"God anointed Jesus of Nazareth with the Holy Ghost\"; 1 John 2:20, 27 \"ye have an unction from the Holy One… the anointing which ye have received of him abideth in you\"; John 14:26; 16:13 — the Holy Spirit teaches all things).** On buying without money: \"**'Ho, every one that thirsteth, come ye to the waters, and he that hath no money; come ye, buy, and eat; yea, come, buy wine and milk without money and without price.' Isaiah 55:1. We thus buy by the asking; buy by throwing away the worthless baubles of earth, and receiving priceless treasures in their stead; buy by simply coming and receiving; buy, giving nothing in return**\" (DAR 374.3). On gold = faith / hope / love: \"**Hence love cannot be separated from faith. We then have before us the three objects associated together by Paul in 1 Corinthians 13, — faith, hope, and charity, or love; and the greatest of these is charity. Such is the gold tried by fire which we are counseled to buy**\" (DAR 375.2). On white raiment = righteousness of saints: \"**We are counseled to buy the opposite of filthy rags, which would be complete and spotless raiment. The same figure is used in Zechariah 3:3, 4. And John, in the 19th chapter of the Revelation, verse 8, says plainly that 'the fine linen is the righteousness of saints'**\" (DAR 376.1). On eye-salve = the Holy Spirit: \"**There is but one agent revealed to us in the word of God by which this is accomplished, and that is the Holy Spirit. In Acts 10:38 we read that 'God anointed Jesus of Nazareth with the Holy Ghost.'**\" (DAR 376.2). On the doctrinally-correct-but-spiritually-dead Laodicean condition: \"**It will be observed that no fault is found with the Laodiceans on account of the doctrines they hold. They are not accused of harboring any Jezebel in their midst, or of countenancing the doctrines of Balaam or the Nicolaitanes. So far as we can learn from the address to them, their belief is correct, and their theory sound. The inference therefore is that having a correct theory, therewith they are content. They are satisfied with a correct form of doctrine without its power**\" (DAR 377.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -495,10 +549,13 @@
       "num": 19,
       "slug": "v-19",
       "text": "As many as I love, I rebuke and chasten: be zealous therefore, and repent.",
-      "pioneerReading": {
-        "citation": "DAR 378.1-378.2",
-        "html": "**Chastisement = the token of love (Heb 12); Smith quotes Thompson on chastisement as God's grace-economy: all need it, all in some measure receive it, \"trials are his benedictions, and that no child escapes the rod… those chosen for the glorious structure are subjected to the chisel and the hammer.\" On zealous-and-repent: although cold is preferable to lukewarm, the church is exhorted not to seek the cold state but the fervid / zealous / heart-aglow-in-the-Master's-service state. \"**The Token of Love. — This, strange as it may seem, is chastisement. 'As many as I love, I rebuke and chasten.' If we are without chastisement, we are not sons. Hebrews 12**\" (DAR 378.1). \"**Be Zealous and Repent. — Although, as we have seen, the state represented by coldness is preferable to one of lukewarmness, yet that is not a state in which our Lord ever desires to find us. We are never exhorted to seek that state. There is a far better one which we are counseled to attain; and that is to be zealous, to be fervent, and to have our hearts all aglow in the service of our Master\\*\\*\" (DAR 378.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 378.1-378.2",
+          "html": "**Chastisement = the token of love (Heb 12); Smith quotes Thompson on chastisement as God's grace-economy: all need it, all in some measure receive it, \"trials are his benedictions, and that no child escapes the rod… those chosen for the glorious structure are subjected to the chisel and the hammer.\" On zealous-and-repent: although cold is preferable to lukewarm, the church is exhorted not to seek the cold state but the fervid / zealous / heart-aglow-in-the-Master's-service state. \"**The Token of Love. — This, strange as it may seem, is chastisement. 'As many as I love, I rebuke and chasten.' If we are without chastisement, we are not sons. Hebrews 12**\" (DAR 378.1). \"**Be Zealous and Repent. — Although, as we have seen, the state represented by coldness is preferable to one of lukewarmness, yet that is not a state in which our Lord ever desires to find us. We are never exhorted to seek that state. There is a far better one which we are counseled to attain; and that is to be zealous, to be fervent, and to have our hearts all aglow in the service of our Master\\*\\*\" (DAR 378.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -522,10 +579,13 @@
       "num": 20,
       "slug": "v-20",
       "text": "Behold, I stand at the door, and knock: if any man hear my voice, and open the door, I will come in to him, and will sup with him, and he with me.",
-      "pioneerReading": {
-        "citation": "DAR 378.3-380.1",
-        "html": "**THE LOAD-BEARING PIONEER PASSAGE ON CHRIST'S APPEAL TO THE LAODICEAN CHURCH SPECIFICALLY (NOT THE POPULAR-PROTESTANT EVANGELISTIC APPEAL TO UNCONVERTED SINNERS).** Smith quotes Thompson at length: Christ \"goes round from door to door in Laodicea\" — the picture is of the Lord of glory coming all the way from his celestial palace to the door of a professed friend (a member of the Laodicean church, not a worldling), and being denied entrance because the church-member is too occupied with his comforts to receive him. \"**Oh, nauseous lukewarmness! Oh, fatal worldliness! The Lord of glory comes all the way from his celestial palace — comes in poverty, in sweat, in blood — comes to the door of a professed friend, who owes all to him, and cannot get in!**\" Christ entreats and knocks, but does not force the entrance; only those who hear and open will receive the heavenly Guest. \"**Christ Knocking at the Door. Let us listen again to the author above quoted: 'Here is the heart of hearts. Notwithstanding their offensive attitude, their unlovely character, such is his love to their souls that he humbles himself to solicit the privilege of making them blessed. \"Behold, I stand at the door, and knock.\" Why does he? Not because he is without home elsewhere. Among the mansions in his Father's house there is not one entrance closed to him… But he goes round from door to door in Laodicea. He stands at each, and knocks, because he came to seek and to save that which is lost, because he cannot give up the purpose of communicating eternal life to as many as the Father has given him, and because he cannot become known to the inmate unless the door be opened and a welcome given him**'\" (DAR 378.3). On \"if any man hear\": \"**The Lord entreats, then, as well as knocks. And the word if implies that some will not hear. Though he stands and knocks and entreats till his locks are wet with the dews of night, yet some will close their ears to his tender entreaties. But it is not enough simply to hear. We must hear, and open the door**\" (DAR 379.1). On the promise to sup: \"**'I will come in to him, and will sup with him, and he with me.' How forcible and touching the figure! Friend with friend, partaking of the cheerful and social meal! Mind with mind, holding free and intimate converse!**\" (DAR 380.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 378.3-380.1",
+          "html": "**THE LOAD-BEARING PIONEER PASSAGE ON CHRIST'S APPEAL TO THE LAODICEAN CHURCH SPECIFICALLY (NOT THE POPULAR-PROTESTANT EVANGELISTIC APPEAL TO UNCONVERTED SINNERS).** Smith quotes Thompson at length: Christ \"goes round from door to door in Laodicea\" — the picture is of the Lord of glory coming all the way from his celestial palace to the door of a professed friend (a member of the Laodicean church, not a worldling), and being denied entrance because the church-member is too occupied with his comforts to receive him. \"**Oh, nauseous lukewarmness! Oh, fatal worldliness! The Lord of glory comes all the way from his celestial palace — comes in poverty, in sweat, in blood — comes to the door of a professed friend, who owes all to him, and cannot get in!**\" Christ entreats and knocks, but does not force the entrance; only those who hear and open will receive the heavenly Guest. \"**Christ Knocking at the Door. Let us listen again to the author above quoted: 'Here is the heart of hearts. Notwithstanding their offensive attitude, their unlovely character, such is his love to their souls that he humbles himself to solicit the privilege of making them blessed. \"Behold, I stand at the door, and knock.\" Why does he? Not because he is without home elsewhere. Among the mansions in his Father's house there is not one entrance closed to him… But he goes round from door to door in Laodicea. He stands at each, and knocks, because he came to seek and to save that which is lost, because he cannot give up the purpose of communicating eternal life to as many as the Father has given him, and because he cannot become known to the inmate unless the door be opened and a welcome given him**'\" (DAR 378.3). On \"if any man hear\": \"**The Lord entreats, then, as well as knocks. And the word if implies that some will not hear. Though he stands and knocks and entreats till his locks are wet with the dews of night, yet some will close their ears to his tender entreaties. But it is not enough simply to hear. We must hear, and open the door**\" (DAR 379.1). On the promise to sup: \"**'I will come in to him, and will sup with him, and he with me.' How forcible and touching the figure! Friend with friend, partaking of the cheerful and social meal! Mind with mind, holding free and intimate converse!**\" (DAR 380.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -554,10 +614,13 @@
       "num": 21,
       "slug": "v-21",
       "text": "To him that overcometh will I grant to sit with me in my throne, even as I also overcame, and am set down with my Father in his throne.",
-      "pioneerReading": {
-        "citation": "DAR 380.2-383.1",
-        "html": "**THE LOAD-BEARING PIONEER DUAL-THRONE / TWO-PHASE-REIGN DOCTRINE.** Smith uses this verse as the textual basis for the doctrine that **Christ reigns consecutively upon two thrones**: (a) NOW on his Father's throne as the priest-king (Heb 8:1-2 + Zech 6:12-13 — \"he shall sit and rule upon his throne; and he shall be a priest upon his throne; and the counsel of peace shall be between them both\"); and (b) AFTER the close of his Father's-throne reign, on his own Davidic throne (cross-link to 1 Cor 15:24-28 — the present-Father's-throne-reign ends when all enemies are put under Christ's feet, at which point Christ takes his own throne and reigns over his redeemed kingdom; the overcomers will sit with Christ on his own throne). \"**The Final Promise. — The promise of supping with his disciples is made by the Lord before the final promise to the overcomer is given. This shows that the blessings included in that promise are to be enjoyed in this probationary state. And now, superadded to all these, is the promise to the overcomer: 'To him that overcometh will I grant to sit with me in my throne, even as I also overcame, and am set down with my Father in his throne.' Here the promises of the Lord culminate**\" (DAR 380.2). \"**In this verse there is not only a glorious promise, but there is also an important doctrine. We learn by this that Christ reigns consecutively upon two thrones. One is the throne of his Father, the other is his own throne. He declares in this verse that he has overcome, and is now set down with his Father in his throne. He is now associated with the Father in the throne of universal dominion, placed at his right hand, far above all principality, power, might, and dominion. Ephesians 1:20-22, etc. While in this position, he is a priest-king. He is a priest, 'a minister of the sanctuary;' but at the same time he is 'on the right hand of the throne of the Majesty in the heavens.' Hebrews 8:1, 2**\" (DAR 381.1). Smith then quotes Zech 6:12-13 in full and exposits 1 Cor 15:24-28 with a careful paraphrase substituting nouns for pronouns to show Christ delivering up the Father's-throne-kingdom and taking his own Davidic throne."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 380.2-383.1",
+          "html": "**THE LOAD-BEARING PIONEER DUAL-THRONE / TWO-PHASE-REIGN DOCTRINE.** Smith uses this verse as the textual basis for the doctrine that **Christ reigns consecutively upon two thrones**: (a) NOW on his Father's throne as the priest-king (Heb 8:1-2 + Zech 6:12-13 — \"he shall sit and rule upon his throne; and he shall be a priest upon his throne; and the counsel of peace shall be between them both\"); and (b) AFTER the close of his Father's-throne reign, on his own Davidic throne (cross-link to 1 Cor 15:24-28 — the present-Father's-throne-reign ends when all enemies are put under Christ's feet, at which point Christ takes his own throne and reigns over his redeemed kingdom; the overcomers will sit with Christ on his own throne). \"**The Final Promise. — The promise of supping with his disciples is made by the Lord before the final promise to the overcomer is given. This shows that the blessings included in that promise are to be enjoyed in this probationary state. And now, superadded to all these, is the promise to the overcomer: 'To him that overcometh will I grant to sit with me in my throne, even as I also overcame, and am set down with my Father in his throne.' Here the promises of the Lord culminate**\" (DAR 380.2). \"**In this verse there is not only a glorious promise, but there is also an important doctrine. We learn by this that Christ reigns consecutively upon two thrones. One is the throne of his Father, the other is his own throne. He declares in this verse that he has overcome, and is now set down with his Father in his throne. He is now associated with the Father in the throne of universal dominion, placed at his right hand, far above all principality, power, might, and dominion. Ephesians 1:20-22, etc. While in this position, he is a priest-king. He is a priest, 'a minister of the sanctuary;' but at the same time he is 'on the right hand of the throne of the Majesty in the heavens.' Hebrews 8:1, 2**\" (DAR 381.1). Smith then quotes Zech 6:12-13 in full and exposits 1 Cor 15:24-28 with a careful paraphrase substituting nouns for pronouns to show Christ delivering up the Father's-throne-kingdom and taking his own Davidic throne."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -581,10 +644,13 @@
       "num": 22,
       "slug": "v-22",
       "text": "He that hath an ear, let him hear what the Spirit saith unto the churches.",
-      "pioneerReading": {
-        "citation": "DAR 383.1",
-        "html": "**The summons-to-attention formula closes the seven-churches series. Smith adds a concluding reflection on the seven messages as a whole.** \"**Thus close the messages to the seven churches. How pointed and searching their testimony! What lessons do they contain for all Christians in all ages! It is as true with the last church as with the first, that all their works are known to Him who walks in the midst of the seven golden candlesticks. From his scrutinizing gaze nothing can be hidden. And while his threatenings to the hypocrites and evil workers, as in justice they may be, are awful, how ample, how comforting, how gracious, how glorious, his promises to those who love and follow him with singleness of heart!**\" (DAR 383.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 383.1",
+          "html": "**The summons-to-attention formula closes the seven-churches series. Smith adds a concluding reflection on the seven messages as a whole.** \"**Thus close the messages to the seven churches. How pointed and searching their testimony! What lessons do they contain for all Christians in all ages! It is as true with the last church as with the first, that all their works are known to Him who walks in the midst of the seven golden candlesticks. From his scrutinizing gaze nothing can be hidden. And while his threatenings to the hypocrites and evil workers, as in justice they may be, are awful, how ample, how comforting, how gracious, how glorious, his promises to those who love and follow him with singleness of heart!**\" (DAR 383.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",

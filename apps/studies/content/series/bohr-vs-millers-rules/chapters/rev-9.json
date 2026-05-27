@@ -9,10 +9,13 @@
       "num": 1,
       "slug": "v-1",
       "text": "And the fifth angel sounded, and I saw a star fall from heaven unto the earth: and to him was given the key of the bottomless pit.",
-      "pioneerReading": {
-        "citation": "DAR 469.1-472.2",
-        "html": "Smith (drawing extensively on Alexander Keith and Gibbon) identifies the fallen star as **Chosroes II, the Persian king whose fall opened the way for Mohammed and the Saracen eruption**. \"Chosroes, after his entire discomfiture and loss of empire, was murdered in the year 628; and the year 629 is marked by 'the conquest of Arabia,' and 'the first war of the Mohammedans against the Roman empire.'… When the strength of the Roman empire was exhausted, and the great king of the East lay dead in his tower of darkness, the pillage of an obscure town on the borders of Syria was 'the prelude of a mighty revolution.' 'The robbers were the apostles of Mohammed, and their fanatic valor emerged from the desert.'\" (DAR 472.1). On the bottomless pit Smith is explicit: \"the Greek ἄβυσσος… may refer to any waste, desolate, and uncultivated place… In this instance it may appropriately refer to the unknown wastes of the Arabian desert, from the borders of which issued the hordes of Saracens, like swarms of locusts. And the fall of Chosroes, the Persian king, may well be represented as the opening of the bottomless pit, inasmuch as it prepared the way for the followers of Mohammed to issue from their obscure country\" (DAR 472.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 469.1-472.2",
+          "html": "Smith (drawing extensively on Alexander Keith and Gibbon) identifies the fallen star as **Chosroes II, the Persian king whose fall opened the way for Mohammed and the Saracen eruption**. \"Chosroes, after his entire discomfiture and loss of empire, was murdered in the year 628; and the year 629 is marked by 'the conquest of Arabia,' and 'the first war of the Mohammedans against the Roman empire.'… When the strength of the Roman empire was exhausted, and the great king of the East lay dead in his tower of darkness, the pillage of an obscure town on the borders of Syria was 'the prelude of a mighty revolution.' 'The robbers were the apostles of Mohammed, and their fanatic valor emerged from the desert.'\" (DAR 472.1). On the bottomless pit Smith is explicit: \"the Greek ἄβυσσος… may refer to any waste, desolate, and uncultivated place… In this instance it may appropriately refer to the unknown wastes of the Arabian desert, from the borders of which issued the hordes of Saracens, like swarms of locusts. And the fall of Chosroes, the Persian king, may well be represented as the opening of the bottomless pit, inasmuch as it prepared the way for the followers of Mohammed to issue from their obscure country\" (DAR 472.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -81,10 +84,13 @@
       "num": 2,
       "slug": "v-2",
       "text": "And he opened the bottomless pit; and there arose a smoke out of the pit, as the smoke of a great furnace; and the sun and the air were darkened by reason of the smoke of the pit.",
-      "pioneerReading": {
-        "citation": "DAR 473.1-473.2",
-        "html": "Smith (quoting Keith): \"Like the noxious and even deadly vapor which the winds, particularly from the southwest, diffuse in Arabia, Mohammedanism spread from thence its pestilential influence, — arose as suddenly and spread as widely as smoke arising out of the pit, the smoke of a great furnace. Such is a suitable symbol of the religion of Mohammed, of itself, or as compared with the pure light of the gospel of Jesus. It was not, like the latter, a light from heaven, but a smoke out of the bottomless pit.\" (DAR 473.2). The bottomless pit was identified at DAR 472.2 as the Arabian desert."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 473.1-473.2",
+          "html": "Smith (quoting Keith): \"Like the noxious and even deadly vapor which the winds, particularly from the southwest, diffuse in Arabia, Mohammedanism spread from thence its pestilential influence, — arose as suddenly and spread as widely as smoke arising out of the pit, the smoke of a great furnace. Such is a suitable symbol of the religion of Mohammed, of itself, or as compared with the pure light of the gospel of Jesus. It was not, like the latter, a light from heaven, but a smoke out of the bottomless pit.\" (DAR 473.2). The bottomless pit was identified at DAR 472.2 as the Arabian desert."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -135,10 +141,13 @@
       "num": 3,
       "slug": "v-3",
       "text": "And there came out of the smoke locusts upon the earth: and unto them was given power, as the scorpions of the earth have power.",
-      "pioneerReading": {
-        "citation": "DAR 473.3-473.5",
-        "html": "Smith (via Keith): \"swarms of Saracens, like locusts, overspread the earth, and speedily extended their ravages over the Roman empire, from east to west. The hail descended from the frozen shores of the Baltic; the burning mountain fell upon the sea from Africa; and **the locusts (the fit symbol of the Arabs) issued from Arabia, their native region**. They came as destroyers, propagating a new doctrine, and stirred up to rapine and violence by motives of interest and religion.\" (DAR 473.4). On the scorpion-power specifier Smith glosses it not as the _jizyah_ tax-system but as **the Arab honor-revenge culture**: \"the nice sensibility of honor, which weighs the insult rather than the injury, sheds its deadly venom on the quarrels of the Arabs; an indecent action, a contemptuous word, can be expiated only by the blood of the offender; and such is their patient inveteracy, that they expect whole months and years the opportunity of revenge.\" (DAR 473.5)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 473.3-473.5",
+          "html": "Smith (via Keith): \"swarms of Saracens, like locusts, overspread the earth, and speedily extended their ravages over the Roman empire, from east to west. The hail descended from the frozen shores of the Baltic; the burning mountain fell upon the sea from Africa; and **the locusts (the fit symbol of the Arabs) issued from Arabia, their native region**. They came as destroyers, propagating a new doctrine, and stirred up to rapine and violence by motives of interest and religion.\" (DAR 473.4). On the scorpion-power specifier Smith glosses it not as the _jizyah_ tax-system but as **the Arab honor-revenge culture**: \"the nice sensibility of honor, which weighs the insult rather than the injury, sheds its deadly venom on the quarrels of the Arabs; an indecent action, a contemptuous word, can be expiated only by the blood of the offender; and such is their patient inveteracy, that they expect whole months and years the opportunity of revenge.\" (DAR 473.5)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -190,10 +199,13 @@
       "num": 4,
       "slug": "v-4",
       "text": "And it was commanded them that they should not hurt the grass of the earth, neither any green thing, neither any tree; but only those men which have not the seal of God in their foreheads.",
-      "pioneerReading": {
-        "citation": "DAR 473.6-475.1",
-        "html": "Smith quotes Abubeker's 632 AD circular letter (via Gibbon): \"Destroy no palm-trees, nor burn any fields of corn. Cut down no fruit-trees, nor do any mischief to cattle, only such as you kill to eat… you will find another sort of people that belong to the synagogue of Satan, who have shaven crowns; be sure you cleave their skulls, and give them no quarter till they either turn Mohammedans or pay tribute.\" (DAR 474.2). Smith concludes: \"The commands are alike discriminating with the prediction, as if the caliph himself had been acting in known as well as direct obedience to a higher mandate than that of mortal man; and in the very act of going forth to fight against the religion of Jesus, and to propagate Mohammedanism in its stead, he repeated the words which it was foretold in the Revelation of Jesus Christ that he would say.\" (DAR 474.3).\n\nOn \"the seal of God in their foreheads\" Smith is explicit (DAR 474.4-475.1): \"the seal of God is the Sabbath of the fourth commandment; and history is not silent upon the fact that there have been observers of the true Sabbath all through the present dispensation.\" The unsealed targeted class were \"doubtless a class of monks, or some other division of the Roman Catholic Church… that is the very church which has robbed the law of God of its seal, by tearing away the true Sabbath, and erecting a counterfeit in its place.\" (DAR 475.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 473.6-475.1",
+          "html": "Smith quotes Abubeker's 632 AD circular letter (via Gibbon): \"Destroy no palm-trees, nor burn any fields of corn. Cut down no fruit-trees, nor do any mischief to cattle, only such as you kill to eat… you will find another sort of people that belong to the synagogue of Satan, who have shaven crowns; be sure you cleave their skulls, and give them no quarter till they either turn Mohammedans or pay tribute.\" (DAR 474.2). Smith concludes: \"The commands are alike discriminating with the prediction, as if the caliph himself had been acting in known as well as direct obedience to a higher mandate than that of mortal man; and in the very act of going forth to fight against the religion of Jesus, and to propagate Mohammedanism in its stead, he repeated the words which it was foretold in the Revelation of Jesus Christ that he would say.\" (DAR 474.3).\n\nOn \"the seal of God in their foreheads\" Smith is explicit (DAR 474.4-475.1): \"the seal of God is the Sabbath of the fourth commandment; and history is not silent upon the fact that there have been observers of the true Sabbath all through the present dispensation.\" The unsealed targeted class were \"doubtless a class of monks, or some other division of the Roman Catholic Church… that is the very church which has robbed the law of God of its seal, by tearing away the true Sabbath, and erecting a counterfeit in its place.\" (DAR 475.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -228,10 +240,13 @@
       "num": 5,
       "slug": "v-5",
       "text": "And to them it was given that they should not kill them, but that they should be tormented five months: and their torment was as the torment of a scorpion, when he striketh a man.",
-      "pioneerReading": {
-        "citation": "DAR 476.1-476.2; calculation at DAR 478.3-479.5",
-        "html": "Smith reads v.5 as the **150-year Ottoman torment of the Greek (Eastern Roman) division of the empire without political annihilation**. At v.5 itself: \"Their constant incursions into the Roman territory, and frequent assaults on Constantinople itself, were an unceasing torment throughout the empire; and yet they were not able effectually to subdue it… Their charge was to torment, and then to hurt, but not to kill, or utterly destroy. The marvel was that they did not.\" (DAR 476.2; Smith refers the reader to v.10 for the five-months calculation).\n\nThe calculation Smith gives at v.10-11 (DAR 479.5): \"'Five months,' thirty days to a month, give us one hundred and fifty days; and these days, being symbolic, signify one hundred and fifty years. Commencing **July 27, 1299**, the one hundred and fifty years reach to 1449.\" Starting point: \"Othman first entered the territory of Nicomedia on the 27th day of July, 1299\" (DAR 479.2, citing Gibbon). End-event: \"in 1449… John Palaeologus, the Greek emperor, died… and Constantine, his brother, succeeded to it. But he would not venture to ascend the throne without the consent of Amurath, the Turkish sultan. He therefore sent ambassadors to ask his consent, and obtained it before he presumed to call himself sovereign.\" (DAR 480.4). The men hurt = \"'the third part of men,' or third of the Roman empire, — the Greek division of it.\" (DAR 478.3)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 476.1-476.2; calculation at DAR 478.3-479.5",
+          "html": "Smith reads v.5 as the **150-year Ottoman torment of the Greek (Eastern Roman) division of the empire without political annihilation**. At v.5 itself: \"Their constant incursions into the Roman territory, and frequent assaults on Constantinople itself, were an unceasing torment throughout the empire; and yet they were not able effectually to subdue it… Their charge was to torment, and then to hurt, but not to kill, or utterly destroy. The marvel was that they did not.\" (DAR 476.2; Smith refers the reader to v.10 for the five-months calculation).\n\nThe calculation Smith gives at v.10-11 (DAR 479.5): \"'Five months,' thirty days to a month, give us one hundred and fifty days; and these days, being symbolic, signify one hundred and fifty years. Commencing **July 27, 1299**, the one hundred and fifty years reach to 1449.\" Starting point: \"Othman first entered the territory of Nicomedia on the 27th day of July, 1299\" (DAR 479.2, citing Gibbon). End-event: \"in 1449… John Palaeologus, the Greek emperor, died… and Constantine, his brother, succeeded to it. But he would not venture to ascend the throne without the consent of Amurath, the Turkish sultan. He therefore sent ambassadors to ask his consent, and obtained it before he presumed to call himself sovereign.\" (DAR 480.4). The men hurt = \"'the third part of men,' or third of the Roman empire, — the Greek division of it.\" (DAR 478.3)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -283,10 +298,13 @@
       "num": 6,
       "slug": "v-6",
       "text": "And in those days shall men seek death, and shall not find it; and shall desire to die, and death shall flee from them.",
-      "pioneerReading": {
-        "citation": "DAR 476.3-476.4",
-        "html": "Smith (quoting Keith): \"Men were weary of life, when life was spared only for a renewal of woe, and when all that they accounted sacred was violated, and all that they held dear constantly endangered, and the savage Saracens domineered over them, or left them only to a momentary repose, ever liable to be suddenly or violently interrupted, as if by the sting of a scorpion.\" (DAR 476.4). The condition Smith pictures is the unceasing scorpion-sting harassment of subject Christian populations under Saracen domination — torment severe enough to make death desirable but withheld."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 476.3-476.4",
+          "html": "Smith (quoting Keith): \"Men were weary of life, when life was spared only for a renewal of woe, and when all that they accounted sacred was violated, and all that they held dear constantly endangered, and the savage Saracens domineered over them, or left them only to a momentary repose, ever liable to be suddenly or violently interrupted, as if by the sting of a scorpion.\" (DAR 476.4). The condition Smith pictures is the unceasing scorpion-sting harassment of subject Christian populations under Saracen domination — torment severe enough to make death desirable but withheld."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -323,10 +341,13 @@
       "num": 7,
       "slug": "v-7",
       "text": "And the shapes of the locusts were like unto horses prepared unto battle; and on their heads were as it were crowns like gold, and their faces were as the faces of men.",
-      "pioneerReading": {
-        "citation": "DAR 476.5-477.2",
-        "html": "Smith (via Keith): \"The Arabian horse takes the lead throughout the world; and skill in horsemanship is the art and science of Arabia. And the barbed Arabs, swift as locusts and armed like scorpions, ready to dart away in a moment, were ever prepared unto battle.\" (DAR 476.6). On the crowns: \"'And on their heads were as it were crowns like gold.' When Mohammed entered Medina (A. D. 622), and was first received as its prince, 'a turban was unfurled before him to supply the deficiency of a standard.' The turbans of the Saracens, like unto a coronet, were their ornament and their boast. The rich booty abundantly supplied and frequently renewed them. To assume the turban is proverbially to turn Mussulman. And the Arabs were anciently distinguished by the miters which they wore.\" (DAR 477.1). On the faces-as-men: \"'And their faces were as the faces of men.' 'The gravity and firmness of the mind of the Arab is conspicuous in his outward demeanor; his only gesture is that of stroking his beard, the venerable symbol of manhood.' 'The honor of their beards is most easily wounded.'\" (DAR 477.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 476.5-477.2",
+          "html": "Smith (via Keith): \"The Arabian horse takes the lead throughout the world; and skill in horsemanship is the art and science of Arabia. And the barbed Arabs, swift as locusts and armed like scorpions, ready to dart away in a moment, were ever prepared unto battle.\" (DAR 476.6). On the crowns: \"'And on their heads were as it were crowns like gold.' When Mohammed entered Medina (A. D. 622), and was first received as its prince, 'a turban was unfurled before him to supply the deficiency of a standard.' The turbans of the Saracens, like unto a coronet, were their ornament and their boast. The rich booty abundantly supplied and frequently renewed them. To assume the turban is proverbially to turn Mussulman. And the Arabs were anciently distinguished by the miters which they wore.\" (DAR 477.1). On the faces-as-men: \"'And their faces were as the faces of men.' 'The gravity and firmness of the mind of the Arab is conspicuous in his outward demeanor; his only gesture is that of stroking his beard, the venerable symbol of manhood.' 'The honor of their beards is most easily wounded.'\" (DAR 477.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -369,10 +390,13 @@
       "num": 8,
       "slug": "v-8",
       "text": "And they had hair as the hair of women, and their teeth were as the teeth of lions.",
-      "pioneerReading": {
-        "citation": "DAR 477.3-477.4",
-        "html": "Smith: \"'Long hair' is esteemed an ornament by women. The Arabs, unlike other men, had their hair as the hair of women, or uncut, as their practice is recorded by Pliny and others. But there was nothing effeminate in their character; for, as denoting their ferocity and strength to devour, their teeth were as the teeth of lions.\" (DAR 477.4). Smith cites Pliny as the authority for the Arab practice of wearing the hair uncut."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 477.3-477.4",
+          "html": "Smith: \"'Long hair' is esteemed an ornament by women. The Arabs, unlike other men, had their hair as the hair of women, or uncut, as their practice is recorded by Pliny and others. But there was nothing effeminate in their character; for, as denoting their ferocity and strength to devour, their teeth were as the teeth of lions.\" (DAR 477.4). Smith cites Pliny as the authority for the Arab practice of wearing the hair uncut."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -409,10 +433,13 @@
       "num": 9,
       "slug": "v-9",
       "text": "And they had breastplates, as it were breastplates of iron; and the sound of their wings was as the sound of chariots of many horses running to battle.",
-      "pioneerReading": {
-        "citation": "DAR 477.5-477.7",
-        "html": "Smith on the breastplate: \"The cuirass (or breastplate) was in use among the Arabs in the days of Mohammed. In the battle of Ohud (the second which Mohammed fought) with the Koreish of Mecca (A. D. 624), 'seven hundred of them were armed with cuirasses.'\" (DAR 477.6). On the sound of wings: \"The charge of the Arabs was not, like that of the Greeks and Romans, the efforts of a firm and compact infantry; their military force was chiefly formed of cavalry and archers. With a touch of the hand, the Arab horses darted away with the swiftness of the wind. 'The sound of their wings was as the sound of chariots of many horses running to battle.' Their conquests were marvelous both in rapidity and extent, and their attack was instantaneous. Nor was it less successful against the Romans than the Persians.\" (DAR 477.7)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 477.5-477.7",
+          "html": "Smith on the breastplate: \"The cuirass (or breastplate) was in use among the Arabs in the days of Mohammed. In the battle of Ohud (the second which Mohammed fought) with the Koreish of Mecca (A. D. 624), 'seven hundred of them were armed with cuirasses.'\" (DAR 477.6). On the sound of wings: \"The charge of the Arabs was not, like that of the Greeks and Romans, the efforts of a firm and compact infantry; their military force was chiefly formed of cavalry and archers. With a touch of the hand, the Arab horses darted away with the swiftness of the wind. 'The sound of their wings was as the sound of chariots of many horses running to battle.' Their conquests were marvelous both in rapidity and extent, and their attack was instantaneous. Nor was it less successful against the Romans than the Persians.\" (DAR 477.7)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -449,10 +476,13 @@
       "num": 10,
       "slug": "v-10",
       "text": "And they had tails like unto scorpions, and there were stings in their tails: and their power was to hurt men five months.",
-      "pioneerReading": {
-        "citation": "DAR 478.1-479.5",
-        "html": "Smith treats vv.10-11 as a single block (DAR 478.1 quotes both) and locates the **150-year calculation here, not at v.5**. \"Their Power Was to Hurt Men Five Months. — 1. The question arises, What men were they to hurt five months? — Undoubtedly the same they were afterward to slay (see verse 15); 'the third part of men,' or third of the Roman empire, — the Greek division of it.\" (DAR 478.3). On the start date: \"But when did Othman make his first assault on the Greek empire? — According to Gibbon, Decline and Fall, etc., 'Othman first entered the territory of Nicomedia on the 27th day of July, 1299.'\" (DAR 479.2). The calculation: \"'And their power was to hurt men five months.' Thus far their commission extended, to torment by constant depredations, but not politically to kill them. 'Five months,' thirty days to a month, give us one hundred and fifty days; and these days, being symbolic, signify one hundred and fifty years. Commencing July 27, 1299, the one hundred and fifty years reach to 1449. During that whole period the Turks were engaged in an almost perpetual warfare with the Greek empire, but yet without conquering it. They seized upon and held several of the Greek provinces, but still Greek independence was maintained in Constantinople. But in 1449, the termination of the one hundred and fifty years, a change came…\" (DAR 479.5). Smith explicitly credits **Josiah Litch (1838)** for the calculation: \"The calculation which follows, founded on this starting-point, was made and published in a work entitled, Christ's Second Coming, etc., by J. Litch, in 1838.\" (DAR 479.4)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 478.1-479.5",
+          "html": "Smith treats vv.10-11 as a single block (DAR 478.1 quotes both) and locates the **150-year calculation here, not at v.5**. \"Their Power Was to Hurt Men Five Months. — 1. The question arises, What men were they to hurt five months? — Undoubtedly the same they were afterward to slay (see verse 15); 'the third part of men,' or third of the Roman empire, — the Greek division of it.\" (DAR 478.3). On the start date: \"But when did Othman make his first assault on the Greek empire? — According to Gibbon, Decline and Fall, etc., 'Othman first entered the territory of Nicomedia on the 27th day of July, 1299.'\" (DAR 479.2). The calculation: \"'And their power was to hurt men five months.' Thus far their commission extended, to torment by constant depredations, but not politically to kill them. 'Five months,' thirty days to a month, give us one hundred and fifty days; and these days, being symbolic, signify one hundred and fifty years. Commencing July 27, 1299, the one hundred and fifty years reach to 1449. During that whole period the Turks were engaged in an almost perpetual warfare with the Greek empire, but yet without conquering it. They seized upon and held several of the Greek provinces, but still Greek independence was maintained in Constantinople. But in 1449, the termination of the one hundred and fifty years, a change came…\" (DAR 479.5). Smith explicitly credits **Josiah Litch (1838)** for the calculation: \"The calculation which follows, founded on this starting-point, was made and published in a work entitled, Christ's Second Coming, etc., by J. Litch, in 1838.\" (DAR 479.4)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -477,10 +507,13 @@
       "num": 11,
       "slug": "v-11",
       "text": "And they had a king over them, which is the angel of the bottomless pit, whose name in the Hebrew tongue is Abaddon, but in the Greek tongue hath his name Apollyon.",
-      "pioneerReading": {
-        "citation": "DAR 478.5-479.1; verse covered in the same paragraph block as v.10, DAR 478.1",
-        "html": "Smith reads the \"king\" as **the Ottoman sultan / Caliph** in his dual office as Mohammedan high priest and supreme civil ruler, with **Othman** as the founder of the dynastic line that united the previously-leaderless Saracen factions. \"From the death of Mohammed until near the close of the thirteenth century, the Mohammedans were divided into various factions under several leaders, with no general civil government extending over them all. Near the close of the thirteenth century, Othman founded a government which has since been known as the Ottoman government, or empire, extending over all the principal Mohammedan tribes, consolidating them into one grand monarchy.\" (DAR 478.5). On \"the angel of the bottomless pit\": \"An angel signifies a messenger, or minister, either good or bad, and not always a spiritual being. 'The angel of the bottomless pit,' or chief minister of the religion which came from thence when it was opened. That religion is Mohammedanism, and the sultan is its chief minister. 'The Sultan, or grand Seignior, as he is indifferently called, is also Supreme Caliph, or high priest, uniting in his person the highest spiritual dignity with the supreme secular authority.' — World as It Is, p. 361.\" (DAR 478.6). On the name: \"In Hebrew, 'Abaddon,' the destroyer; in Greek, 'Apollyon,' one that exterminates, or destroys. Having two different names in two languages, it is evident that the character, rather than the name of the power, is intended to be represented. If so, as expressed in both languages, he is a destroyer. Such has always been the character of the Ottoman government.\" (DAR 479.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 478.5-479.1; verse covered in the same paragraph block as v.10, DAR 478.1",
+          "html": "Smith reads the \"king\" as **the Ottoman sultan / Caliph** in his dual office as Mohammedan high priest and supreme civil ruler, with **Othman** as the founder of the dynastic line that united the previously-leaderless Saracen factions. \"From the death of Mohammed until near the close of the thirteenth century, the Mohammedans were divided into various factions under several leaders, with no general civil government extending over them all. Near the close of the thirteenth century, Othman founded a government which has since been known as the Ottoman government, or empire, extending over all the principal Mohammedan tribes, consolidating them into one grand monarchy.\" (DAR 478.5). On \"the angel of the bottomless pit\": \"An angel signifies a messenger, or minister, either good or bad, and not always a spiritual being. 'The angel of the bottomless pit,' or chief minister of the religion which came from thence when it was opened. That religion is Mohammedanism, and the sultan is its chief minister. 'The Sultan, or grand Seignior, as he is indifferently called, is also Supreme Caliph, or high priest, uniting in his person the highest spiritual dignity with the supreme secular authority.' — World as It Is, p. 361.\" (DAR 478.6). On the name: \"In Hebrew, 'Abaddon,' the destroyer; in Greek, 'Apollyon,' one that exterminates, or destroys. Having two different names in two languages, it is evident that the character, rather than the name of the power, is intended to be represented. If so, as expressed in both languages, he is a destroyer. Such has always been the character of the Ottoman government.\" (DAR 479.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -526,10 +559,13 @@
       "num": 12,
       "slug": "v-12",
       "text": "One woe is past; and, behold, there come two woes more hereafter.",
-      "pioneerReading": {
-        "citation": "DAR 480.1-480.2; vv.12-15 share the same paragraph block",
-        "html": "Smith quotes vv.12-15 together and glosses: \"The first woe was to continue from the rise of Mohammedanism until the end of the five months. Then the first woe was to end, and the second to begin. And when the sixth angel sounded, it was commanded to take off the restraints which had been imposed on the nation, by which they were restricted to the work of tormenting men, and their commission was enlarged so as to permit them to slay the third part of men. This command came from the four horns of the golden altar.\" (DAR 480.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 480.1-480.2; vv.12-15 share the same paragraph block",
+          "html": "Smith quotes vv.12-15 together and glosses: \"The first woe was to continue from the rise of Mohammedanism until the end of the five months. Then the first woe was to end, and the second to begin. And when the sixth angel sounded, it was commanded to take off the restraints which had been imposed on the nation, by which they were restricted to the work of tormenting men, and their commission was enlarged so as to permit them to slay the third part of men. This command came from the four horns of the golden altar.\" (DAR 480.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -558,10 +594,13 @@
       "num": 13,
       "slug": "v-13",
       "text": "And the sixth angel sounded, and I heard a voice from the four horns of the golden altar which is before God,",
-      "pioneerReading": {
-        "citation": "DAR covers this verse within paragraph 480.1-480.2 on vv.12-15",
-        "html": "Smith quotes vv.12-15 in a single block (DAR 480.1) and glosses v.13's voice from the altar tersely: \"This command came from the four horns of the golden altar.\" (DAR 480.2, closing the paragraph that explains the woe-transition). Smith does not develop the four-horns as a four-fold-completeness motif or cross-reference Exod 30:1-10."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR covers this verse within paragraph 480.1-480.2 on vv.12-15",
+          "html": "Smith quotes vv.12-15 in a single block (DAR 480.1) and glosses v.13's voice from the altar tersely: \"This command came from the four horns of the golden altar.\" (DAR 480.2, closing the paragraph that explains the woe-transition). Smith does not develop the four-horns as a four-fold-completeness motif or cross-reference Exod 30:1-10."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -598,10 +637,13 @@
       "num": 14,
       "slug": "v-14",
       "text": "Saying to the sixth angel which had the trumpet, Loose the four angels which are bound in the great river Euphrates.",
-      "pioneerReading": {
-        "citation": "DAR 480.3, 481.2-481.3",
-        "html": "Smith: \"**The Four Angels. — These were the four principal sultanies of which the Ottoman empire was composed, located in the country watered by the great river Euphrates. These sultanies were situated at Aleppo, Iconium, Damascus, and Bagdad. Previously they had been restrained; but God commanded, and they were loosed.**\" (DAR 480.3). On the release-event sequence under Mohammed II: \"Amurath, the sultan to whom the submission of Constantine XIII was made… soon after died, and was succeeded in the empire, in 1451, by Mohammed II, who set his heart on securing Constantinople as the seat of his empire. He accordingly made preparations for besieging and taking the city. **The siege commenced on the 6th of April, 1453, and ended in the capture of the city, and the death of the last of the Constantines, on the 16th day of May following.** And the eastern city of the Caesars became the seat of the Ottoman empire.\" (DAR 481.2-481.3)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 480.3, 481.2-481.3",
+          "html": "Smith: \"**The Four Angels. — These were the four principal sultanies of which the Ottoman empire was composed, located in the country watered by the great river Euphrates. These sultanies were situated at Aleppo, Iconium, Damascus, and Bagdad. Previously they had been restrained; but God commanded, and they were loosed.**\" (DAR 480.3). On the release-event sequence under Mohammed II: \"Amurath, the sultan to whom the submission of Constantine XIII was made… soon after died, and was succeeded in the empire, in 1451, by Mohammed II, who set his heart on securing Constantinople as the seat of his empire. He accordingly made preparations for besieging and taking the city. **The siege commenced on the 6th of April, 1453, and ended in the capture of the city, and the death of the last of the Constantines, on the 16th day of May following.** And the eastern city of the Caesars became the seat of the Ottoman empire.\" (DAR 481.2-481.3)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -659,10 +701,13 @@
       "num": 15,
       "slug": "v-15",
       "text": "And the four angels were loosed, which were prepared for an hour, and a day, and a month, and a year, for to slay the third part of men.",
-      "pioneerReading": {
-        "citation": "DAR 481.1, 485.1-487.1",
-        "html": "Smith gives the calculation verbatim: \"**The four angels were loosed for an hour, a day, a month, and a year, to slay the third part of men. This period amounts to three hundred ninety-one years and fifteen days, during which Ottoman supremacy was to exist in Constantinople.** Thus: A prophetic year is three hundred and sixty prophetic days, or three hundred and sixty literal years; a prophetic month, thirty prophetic days, is thirty literal years; one prophetic day is one literal year; and an hour, or the twenty-fourth part of a prophetic day, would be a twenty-fourth part of a literal year, or fifteen days; the whole amounting to three hundred and ninety-one years and fifteen days.\" (DAR 481.1). The period: \"**Commencing when the one hundred and fifty years ended, July 27, 1449, the period would end Aug. 11, 1840.**\" (DAR 485.1). Smith credits Litch by name and book: \"This conclusion was reached, and this application of the prophecy was made, by **Elder J. Litch in 1838**, two years before the predicted event was to occur. It was then purely a matter of calculation on the prophetic periods of Scripture.\" (DAR 485.2). The mechanism: the sultan's \"voluntary surrender of the question into [the four powers'] hands\" — the ultimatum was placed in Mehemet Ali's hands by Rifat Bey \"**on the eleventh day of August, 1840!**… This day the period of three hundred and ninety-one years and fifteen days, allotted to the continuance of the Ottoman power, ended; and where was the sultan's independence? — GONE!\" (DAR 486.2-487.1). Smith adds the public reception: \"From the first publication of the calculation of this matter in 1838… the time set for the fulfillment of the prophecy — Aug. 11, 1840 — was watched by thousands with intense interest. And the exact accomplishment of the event predicted, showing, as it did, the right application of the prophecy, gave a mighty impetus to the great Advent movement then beginning to attract the attention of the world.\" (DAR 487.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 481.1, 485.1-487.1",
+          "html": "Smith gives the calculation verbatim: \"**The four angels were loosed for an hour, a day, a month, and a year, to slay the third part of men. This period amounts to three hundred ninety-one years and fifteen days, during which Ottoman supremacy was to exist in Constantinople.** Thus: A prophetic year is three hundred and sixty prophetic days, or three hundred and sixty literal years; a prophetic month, thirty prophetic days, is thirty literal years; one prophetic day is one literal year; and an hour, or the twenty-fourth part of a prophetic day, would be a twenty-fourth part of a literal year, or fifteen days; the whole amounting to three hundred and ninety-one years and fifteen days.\" (DAR 481.1). The period: \"**Commencing when the one hundred and fifty years ended, July 27, 1449, the period would end Aug. 11, 1840.**\" (DAR 485.1). Smith credits Litch by name and book: \"This conclusion was reached, and this application of the prophecy was made, by **Elder J. Litch in 1838**, two years before the predicted event was to occur. It was then purely a matter of calculation on the prophetic periods of Scripture.\" (DAR 485.2). The mechanism: the sultan's \"voluntary surrender of the question into [the four powers'] hands\" — the ultimatum was placed in Mehemet Ali's hands by Rifat Bey \"**on the eleventh day of August, 1840!**… This day the period of three hundred and ninety-one years and fifteen days, allotted to the continuance of the Ottoman power, ended; and where was the sultan's independence? — GONE!\" (DAR 486.2-487.1). Smith adds the public reception: \"From the first publication of the calculation of this matter in 1838… the time set for the fulfillment of the prophecy — Aug. 11, 1840 — was watched by thousands with intense interest. And the exact accomplishment of the event predicted, showing, as it did, the right application of the prophecy, gave a mighty impetus to the great Advent movement then beginning to attract the attention of the world.\" (DAR 487.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -720,10 +765,13 @@
       "num": 16,
       "slug": "v-16",
       "text": "And the number of the army of the horsemen were two hundred thousand thousand: and I heard the number of them.",
-      "pioneerReading": {
-        "citation": "DAR 481.5-481.6",
-        "html": "Smith quotes Gibbon for the Turkish-horse vastness: \"Innumerable hordes of horses, and them that sat on them! Gibbon thus describes the first invasion of the Roman territories by the Turks: '**The myriads of Turkish horse overspread a frontier of six hundred miles, from Taurus to Erzeroum; and the blood of 130,000 Christians was a grateful sacrifice to the Arabian Prophet.**'\" (DAR 481.6). Smith is **explicitly uncertain** about the literal-number question: \"Whether the language is designed to convey the idea of any definite number or not, the reader must judge. Some suppose 200,000 twice told is meant, and, following some historians, they find that number of Turkish warriors in the siege of Constantinople. Some think 200,000,000 to mean all the Turkish warriors during the three hundred and ninety-one years and fifteen days of their triumph over the Greeks. **Nothing can be affirmed on the point. And it is nothing at all essential.**\" (DAR 481.6)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 481.5-481.6",
+          "html": "Smith quotes Gibbon for the Turkish-horse vastness: \"Innumerable hordes of horses, and them that sat on them! Gibbon thus describes the first invasion of the Roman territories by the Turks: '**The myriads of Turkish horse overspread a frontier of six hundred miles, from Taurus to Erzeroum; and the blood of 130,000 Christians was a grateful sacrifice to the Arabian Prophet.**'\" (DAR 481.6). Smith is **explicitly uncertain** about the literal-number question: \"Whether the language is designed to convey the idea of any definite number or not, the reader must judge. Some suppose 200,000 twice told is meant, and, following some historians, they find that number of Turkish warriors in the siege of Constantinople. Some think 200,000,000 to mean all the Turkish warriors during the three hundred and ninety-one years and fifteen days of their triumph over the Greeks. **Nothing can be affirmed on the point. And it is nothing at all essential.**\" (DAR 481.6)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -766,10 +814,13 @@
       "num": 17,
       "slug": "v-17",
       "text": "And thus I saw the horses in the vision, and them that sat on them, having breastplates of fire, and of jacinth, and brimstone: and the heads of the horses were as the heads of lions; and out of their mouths issued fire and smoke and brimstone.",
-      "pioneerReading": {
-        "citation": "DAR 482.2, 483.1-483.3",
-        "html": "Smith on the color-coded uniforms: \"The first part of this description may have reference to the appearance of these horsemen. **Fire, representing a color, stands for red, 'as red as fire' being a frequent form of expression; jacinth, or hyacinth, for blue; and brimstone, for yellow. And these colors greatly predominated in the dress of these warriors; so that the description, according to this view, would be accurately met in the Turkish uniform, which was composed largely of red, or scarlet, blue, and yellow.** The heads of the horses were, in appearance, as the heads of lions, to denote their strength, courage, and fierceness; while the last part of the verse undoubtedly has reference to the use of gunpowder and firearms for purposes of war, which were then but recently introduced. **As the Turks discharged their firearms on horseback, it would appear to the distant beholder that the fire, smoke, and brimstone, issued out of the horses' mouths.**\" (DAR 482.2). Smith expressly contests the commentator-consensus that limits this to large cannon only: \"Barnes thinks this was the case; and a statement from Gibbon confirms this view. He says (IV, 343): '**The incessant volleys of lances and arrows were accompanied with the smoke, the sound, and the fire of their musketry and cannon.**' Here is good historical evidence that muskets were used by the Turks; and, secondly, it is undisputed that in their general warfare they fought principally on horseback. The inference is therefore well supported that they used firearms on horseback.\" (DAR 482.2 footnote). Smith quotes Elliott (_Horae Apocalypticae_, Vol. I, pp. 482-484) at length on the Constantinople siege: \"It was to 'the fire and the smoke and the sulphur,' to the artillery and firearms of Mahomet, that the killing of the third part of men, i. e., the capture of Constantinople, and by consequence the destruction of the Greek empire, was owing… '**Canst thou cast a cannon,**' was [Mahomet's] question to the founder of cannon that deserted to him, '**of size sufficient to batter down the wall of Constantinople?**' Then the foundry was established at Adrianople, the cannon cast, the artillery prepared, and the siege began.\" (DAR 483.1-483.2). Smith notes the cannon foundry at Adrianople and that Gibbon \"always the unconscious commentator on the Apocalyptic prophecy\" places the gunpowder revolution at the foreground of the empire's fall (DAR 483.3)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 482.2, 483.1-483.3",
+          "html": "Smith on the color-coded uniforms: \"The first part of this description may have reference to the appearance of these horsemen. **Fire, representing a color, stands for red, 'as red as fire' being a frequent form of expression; jacinth, or hyacinth, for blue; and brimstone, for yellow. And these colors greatly predominated in the dress of these warriors; so that the description, according to this view, would be accurately met in the Turkish uniform, which was composed largely of red, or scarlet, blue, and yellow.** The heads of the horses were, in appearance, as the heads of lions, to denote their strength, courage, and fierceness; while the last part of the verse undoubtedly has reference to the use of gunpowder and firearms for purposes of war, which were then but recently introduced. **As the Turks discharged their firearms on horseback, it would appear to the distant beholder that the fire, smoke, and brimstone, issued out of the horses' mouths.**\" (DAR 482.2). Smith expressly contests the commentator-consensus that limits this to large cannon only: \"Barnes thinks this was the case; and a statement from Gibbon confirms this view. He says (IV, 343): '**The incessant volleys of lances and arrows were accompanied with the smoke, the sound, and the fire of their musketry and cannon.**' Here is good historical evidence that muskets were used by the Turks; and, secondly, it is undisputed that in their general warfare they fought principally on horseback. The inference is therefore well supported that they used firearms on horseback.\" (DAR 482.2 footnote). Smith quotes Elliott (_Horae Apocalypticae_, Vol. I, pp. 482-484) at length on the Constantinople siege: \"It was to 'the fire and the smoke and the sulphur,' to the artillery and firearms of Mahomet, that the killing of the third part of men, i. e., the capture of Constantinople, and by consequence the destruction of the Greek empire, was owing… '**Canst thou cast a cannon,**' was [Mahomet's] question to the founder of cannon that deserted to him, '**of size sufficient to batter down the wall of Constantinople?**' Then the foundry was established at Adrianople, the cannon cast, the artillery prepared, and the siege began.\" (DAR 483.1-483.2). Smith notes the cannon foundry at Adrianople and that Gibbon \"always the unconscious commentator on the Apocalyptic prophecy\" places the gunpowder revolution at the foreground of the empire's fall (DAR 483.3)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -806,10 +857,13 @@
       "num": 18,
       "slug": "v-18",
       "text": "By these three was the third part of men killed, by the fire, and by the smoke, and by the brimstone, which issued out of their mouths.",
-      "pioneerReading": {
-        "citation": "DAR 484.1-484.2; vv.18-19 share the same paragraph block",
-        "html": "Smith treats vv.18-19 together: \"**These verses express the deadly effect of the new mode of warfare introduced. It was by means of these agents, — gunpowder, firearms, and cannon, — that Constantinople was finally overcome, and given into the hands of the Turks.**\" (DAR 484.2). The \"third part\" identification is fixed back at DAR 478.3 (v.10): \"'the third part of men,' or **third of the Roman empire, — the Greek division of it**.\""
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 484.1-484.2; vv.18-19 share the same paragraph block",
+          "html": "Smith treats vv.18-19 together: \"**These verses express the deadly effect of the new mode of warfare introduced. It was by means of these agents, — gunpowder, firearms, and cannon, — that Constantinople was finally overcome, and given into the hands of the Turks.**\" (DAR 484.2). The \"third part\" identification is fixed back at DAR 478.3 (v.10): \"'the third part of men,' or **third of the Roman empire, — the Greek division of it**.\""
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -839,10 +893,13 @@
       "num": 19,
       "slug": "v-19",
       "text": "For their power is in their mouth, and in their tails: for their tails were like unto serpents, and had heads, and with them they do hurt.",
-      "pioneerReading": {
-        "citation": "DAR 484.3; verse covered in the same block as v.18, DAR 484.1",
-        "html": "Smith's gloss on the \"tails\" identifies them as the Turkish horsetail-standard, not as a feigned-retreat tactic: \"In addition to the fire, smoke, and brimstone, which apparently issued out of their mouths, it is said that their power was also in their tails. **It is a remarkable fact that the horse's tail is a well-known Turkish standard, a symbol of office and authority. The meaning of the expression appears to be that their tails were the symbol, or emblem of their authority.** The image before the mind of John would seem to have been that he saw the horses belching out fire and smoke, and, what was equally strange, he saw that their power of spreading desolation was connected with the tails of the horses. Any one looking on a body of cavalry with such banners, or ensigns, would be struck with this unusual or remarkable appearance, and would speak of their banners as concentrating and directing their power.\" (DAR 484.3)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 484.3; verse covered in the same block as v.18, DAR 484.1",
+          "html": "Smith's gloss on the \"tails\" identifies them as the Turkish horsetail-standard, not as a feigned-retreat tactic: \"In addition to the fire, smoke, and brimstone, which apparently issued out of their mouths, it is said that their power was also in their tails. **It is a remarkable fact that the horse's tail is a well-known Turkish standard, a symbol of office and authority. The meaning of the expression appears to be that their tails were the symbol, or emblem of their authority.** The image before the mind of John would seem to have been that he saw the horses belching out fire and smoke, and, what was equally strange, he saw that their power of spreading desolation was connected with the tails of the horses. Any one looking on a body of cavalry with such banners, or ensigns, would be struck with this unusual or remarkable appearance, and would speak of their banners as concentrating and directing their power.\" (DAR 484.3)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -879,10 +936,13 @@
       "num": 20,
       "slug": "v-20",
       "text": "And the rest of the men which were not killed by these plagues yet repented not of the works of their hands, that they should not worship devils, and idols of gold, and silver, and brass, and stone, and of wood: which neither can see, nor hear, nor walk:",
-      "pioneerReading": {
-        "citation": "DAR 487.2-487.4; vv.20-21 share the same paragraph block",
-        "html": "Smith reads \"the rest of men\" as **the surviving Roman-Catholic Christendom** unmoved by the Ottoman judgment: \"God designs that men shall make a note of his judgments, and receive the lessons he thereby designs to convey. But how slow are they to learn! and how blind to the indications of providence! The events that transpired under the sixth trumpet constituted the second woe; yet these judgments led to no improvement in the manners and morals of men. Those who escaped them learned nothing by their manifestation in the earth. **The worship of devils (demons, dead men deified) and of idols of gold, silver, brass, stone, and wood, may find a fulfillment in the saint worship and image worship of the Roman Catholic Church**; while of murders, sorceries (pretended miracles through the agency of departed saints), fornications, and thefts, in countries where the Roman religion has prevailed, there has been no lack.\" (DAR 487.3). The framing sentence: \"**The hordes of Saracens and Turks were let loose as a scourge and punishment upon apostate Christendom. Men suffered the punishment, but learned therefrom no lesson.**\" (DAR 487.4). Smith reads \"worship of devils\" specifically as the worship of \"demons, dead men deified\" — i.e., the cult of canonized saints."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 487.2-487.4; vv.20-21 share the same paragraph block",
+          "html": "Smith reads \"the rest of men\" as **the surviving Roman-Catholic Christendom** unmoved by the Ottoman judgment: \"God designs that men shall make a note of his judgments, and receive the lessons he thereby designs to convey. But how slow are they to learn! and how blind to the indications of providence! The events that transpired under the sixth trumpet constituted the second woe; yet these judgments led to no improvement in the manners and morals of men. Those who escaped them learned nothing by their manifestation in the earth. **The worship of devils (demons, dead men deified) and of idols of gold, silver, brass, stone, and wood, may find a fulfillment in the saint worship and image worship of the Roman Catholic Church**; while of murders, sorceries (pretended miracles through the agency of departed saints), fornications, and thefts, in countries where the Roman religion has prevailed, there has been no lack.\" (DAR 487.3). The framing sentence: \"**The hordes of Saracens and Turks were let loose as a scourge and punishment upon apostate Christendom. Men suffered the punishment, but learned therefrom no lesson.**\" (DAR 487.4). Smith reads \"worship of devils\" specifically as the worship of \"demons, dead men deified\" — i.e., the cult of canonized saints."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -911,10 +971,13 @@
       "num": 21,
       "slug": "v-21",
       "text": "Neither repented they of their murders, nor of their sorceries, nor of their fornication, nor of their thefts.",
-      "pioneerReading": {
-        "citation": "DAR covers this verse within paragraph 487.3 on vv.20-21",
-        "html": "Smith's gloss on the four sins is compact and one-line: \"**of murders, sorceries (pretended miracles through the agency of departed saints), fornications, and thefts, in countries where the Roman religion has prevailed, there has been no lack.**\" (DAR 487.3). Smith's only substantive _exegetical_ identification is **sorceries = \"pretended miracles through the agency of departed saints\"** — i.e., the relic-cults and saint-miracle apparatus of Medieval Catholicism. The other three sins (murders, fornications, thefts) Smith leaves at the level of historical observation (\"there has been no lack\" in Roman-religion countries) without specifying particular events."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR covers this verse within paragraph 487.3 on vv.20-21",
+          "html": "Smith's gloss on the four sins is compact and one-line: \"**of murders, sorceries (pretended miracles through the agency of departed saints), fornications, and thefts, in countries where the Roman religion has prevailed, there has been no lack.**\" (DAR 487.3). Smith's only substantive _exegetical_ identification is **sorceries = \"pretended miracles through the agency of departed saints\"** — i.e., the relic-cults and saint-miracle apparatus of Medieval Catholicism. The other three sins (murders, fornications, thefts) Smith leaves at the level of historical observation (\"there has been no lack\" in Roman-religion countries) without specifying particular events."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",

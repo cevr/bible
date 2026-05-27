@@ -9,10 +9,13 @@
       "num": 1,
       "slug": "v-1",
       "text": "Unto the angel of the church of Ephesus write; These things saith he that holdeth the seven stars in his right hand, who walketh in the midst of the seven golden candlesticks;",
-      "pioneerReading": {
-        "citation": "DAR 345.2, 347.1-347.2",
-        "html": "**The first church covers the apostolic period AD 31-100, with \"angel\" = the ministry / messengers of that period and the Christ-symbol carried over from Rev 1:13, 16, 20.** \"**The first church named is Ephesus. According to the application here made, this would cover the first, or apostolic age of the church. The definition of the word Ephesus, is desirable, which may well be taken as a good descriptive term of the character and condition of the church in its first state. Those early Christians had received the doctrine of Christ in its purity. They enjoyed the benefits and blessings of the gifts of the Holy Spirit. They were noted for works, labor, and patience**\" (DAR 347.1). On \"angel\": \"**The angel of a church must denote a messenger, or minister, of that church; and as these churches each cover a period of time, the angel of each church must denote the ministry, or all the true ministers of Christ during the period covered by that church**\" (DAR 347.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 345.2, 347.1-347.2",
+          "html": "**The first church covers the apostolic period AD 31-100, with \"angel\" = the ministry / messengers of that period and the Christ-symbol carried over from Rev 1:13, 16, 20.** \"**The first church named is Ephesus. According to the application here made, this would cover the first, or apostolic age of the church. The definition of the word Ephesus, is desirable, which may well be taken as a good descriptive term of the character and condition of the church in its first state. Those early Christians had received the doctrine of Christ in its purity. They enjoyed the benefits and blessings of the gifts of the Holy Spirit. They were noted for works, labor, and patience**\" (DAR 347.1). On \"angel\": \"**The angel of a church must denote a messenger, or minister, of that church; and as these churches each cover a period of time, the angel of each church must denote the ministry, or all the true ministers of Christ during the period covered by that church**\" (DAR 347.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -36,10 +39,13 @@
       "num": 2,
       "slug": "v-2",
       "text": "I know thy works, and thy labor, and thy patience, and how thou canst not bear them which are evil: and thou hast tried them which say they are apostles, and are not, and hast found them liars:",
-      "pioneerReading": {
-        "citation": "DAR 347.1",
-        "html": "Treated within the apostolic-church commendation block. \"**Those early Christians had received the doctrine of Christ in its purity. They enjoyed the benefits and blessings of the gifts of the Holy Spirit. They were noted for works, labor, and patience. In faithfulness to the pure principles taught by Christ, they could not bear those that were evil, and they tried false apostles, searched out their true characters, and found them liars. That this work was specially done by the literal and particular church at Ephesus more than by other churches of that time, we have no evidence; there is nothing said about it by Paul in the epistle he wrote to that church; but it was done by the Christian church as a whole, in that age**\" (DAR 347.1, cross-link to Acts 15 + 2 Cor 11:13)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 347.1",
+          "html": "Treated within the apostolic-church commendation block. \"**Those early Christians had received the doctrine of Christ in its purity. They enjoyed the benefits and blessings of the gifts of the Holy Spirit. They were noted for works, labor, and patience. In faithfulness to the pure principles taught by Christ, they could not bear those that were evil, and they tried false apostles, searched out their true characters, and found them liars. That this work was specially done by the literal and particular church at Ephesus more than by other churches of that time, we have no evidence; there is nothing said about it by Paul in the epistle he wrote to that church; but it was done by the Christian church as a whole, in that age**\" (DAR 347.1, cross-link to Acts 15 + 2 Cor 11:13)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -63,10 +69,13 @@
       "num": 3,
       "slug": "v-3",
       "text": "And hast borne, and hast patience, and for my name's sake hast labored, and hast not fainted.",
-      "pioneerReading": {
-        "citation": "DAR 347.1",
-        "html": "Treated within the apostolic-church commendation block above; Smith does not separate v. 3 for individual treatment."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 347.1",
+          "html": "Treated within the apostolic-church commendation block above; Smith does not separate v. 3 for individual treatment."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -90,10 +99,13 @@
       "num": 4,
       "slug": "v-4",
       "text": "Nevertheless I have somewhat against thee, because thou hast left thy first love.",
-      "pioneerReading": {
-        "citation": "DAR 347.3",
-        "html": "**The loss of first love = the diminishing (not the extinguishing) of the church's original spiritual fervor, requiring repentance to recover the first-works state.** \"**'I have somewhat against thee,' says Christ, 'because thou hast left thy first love.' 'Not less worthy of warning than departure from fundamental doctrine or from Scriptural morality, is the leaving of first love. The charge here is not that of falling from grace, nor that love is extinguished, but diminished. No zeal, no suffering can atone for the want of first love.' — Thompson. The time never should come in a Christian's experience, when, if he were asked to mention the period of his greatest love to Christ, he would not say, The present moment. But if such a time does come, then should he remember from whence he is fallen, meditate upon it, take time for it, carefully call up the state of his former acceptance with God, and then hasten to repent, and retrace his steps to that desirable position. Love, like faith, is manifested by works; and first love, when it is attained, will always bring first works**\" (DAR 347.3)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 347.3",
+          "html": "**The loss of first love = the diminishing (not the extinguishing) of the church's original spiritual fervor, requiring repentance to recover the first-works state.** \"**'I have somewhat against thee,' says Christ, 'because thou hast left thy first love.' 'Not less worthy of warning than departure from fundamental doctrine or from Scriptural morality, is the leaving of first love. The charge here is not that of falling from grace, nor that love is extinguished, but diminished. No zeal, no suffering can atone for the want of first love.' — Thompson. The time never should come in a Christian's experience, when, if he were asked to mention the period of his greatest love to Christ, he would not say, The present moment. But if such a time does come, then should he remember from whence he is fallen, meditate upon it, take time for it, carefully call up the state of his former acceptance with God, and then hasten to repent, and retrace his steps to that desirable position. Love, like faith, is manifested by works; and first love, when it is attained, will always bring first works**\" (DAR 347.3)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -117,10 +129,13 @@
       "num": 5,
       "slug": "v-5",
       "text": "Remember therefore from whence thou art fallen, and repent, and do the first works; or else I will come unto thee quickly, and will remove thy candlestick out of his place, except thou repent.",
-      "pioneerReading": {
-        "citation": "DAR 348.1",
-        "html": "**The threatening = a figurative coming-in-judgment, not the literal second advent; the removal of the candlestick = the removal of gospel privileges from the unrepentant church. Smith addresses the prophetic-period objection that the candlestick is \"removed anyway\" by noting the distinction between the expiration of a period and the rejection of individuals.** \"**'I will come unto thee quickly, and remove thy candlestick out of his place, except thou repent.' The coming here mentioned must be a figurative coming, signifying a visitation of judgment, inasmuch as it is conditional. The removing of the candlestick would denote the taking away from them of the light and privileges of the gospel, and committing them to other hands, unless they should better fulfill the responsibilities of the trust committed to them**\" (DAR 348.1). On the period-vs-rejection distinction: \"**The expiration of the period covered by any church is not the removal of the candlestick of that church. The removal of their candlestick would be taking away from them privileges which they might and should longer enjoy. It would be the rejection of them on the part of Christ as his representatives, to bear the light of his truth and gospel before the world. And this threatening would be just as applicable to individuals as to the church as a body**\" (DAR 348.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 348.1",
+          "html": "**The threatening = a figurative coming-in-judgment, not the literal second advent; the removal of the candlestick = the removal of gospel privileges from the unrepentant church. Smith addresses the prophetic-period objection that the candlestick is \"removed anyway\" by noting the distinction between the expiration of a period and the rejection of individuals.** \"**'I will come unto thee quickly, and remove thy candlestick out of his place, except thou repent.' The coming here mentioned must be a figurative coming, signifying a visitation of judgment, inasmuch as it is conditional. The removing of the candlestick would denote the taking away from them of the light and privileges of the gospel, and committing them to other hands, unless they should better fulfill the responsibilities of the trust committed to them**\" (DAR 348.1). On the period-vs-rejection distinction: \"**The expiration of the period covered by any church is not the removal of the candlestick of that church. The removal of their candlestick would be taking away from them privileges which they might and should longer enjoy. It would be the rejection of them on the part of Christ as his representatives, to bear the light of his truth and gospel before the world. And this threatening would be just as applicable to individuals as to the church as a body**\" (DAR 348.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -144,10 +159,13 @@
       "num": 6,
       "slug": "v-6",
       "text": "But this thou hast, that thou hatest the deeds of the Nicolaitanes, which I also hate.",
-      "pioneerReading": {
-        "citation": "DAR 349.1",
-        "html": "**The Nicolaitanes = a sect with antinomian / licentious doctrines and practices, traceable to Nicolas of Antioch (Acts 6:5) or a later Nicolas; their deeds were a community of wives, regarding adultery and fornication as indifferent, and permitting the eating of things offered to idols.** \"**How ready is Christ to commend his people for whatever good qualities they may possess!… In this message to the church of Ephesus, having first mentioned their commendable traits and then their failures, as if unwilling to pass by any of their good qualities he mentions this, that they hated the deeds of the Nicolaitanes, which he also hated. In verse 15 the doctrines of the same characters are condemned. It appears that they were a class of persons whose deeds and doctrines were alike abominable in the sight of Heaven. Their origin is involved in some doubt. Some say that they sprang from Nicolas of Antioch, one of the seven deacons (Acts 6:5); some, that they only attribute their origin to him to gain the prestige of his name; and others, that the sect took its name from one Nicolas of a later date, which is probably the nearest correct. Concerning their doctrines and practices, there seems to be a general agreement that they held to a community of wives, regarded adultery and fornication as things indifferent, and permitted the eating of things offered to idols. (See Religious Encyclopedia, Clarke, Kitto, and other authorities.)**\" (DAR 349.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 349.1",
+          "html": "**The Nicolaitanes = a sect with antinomian / licentious doctrines and practices, traceable to Nicolas of Antioch (Acts 6:5) or a later Nicolas; their deeds were a community of wives, regarding adultery and fornication as indifferent, and permitting the eating of things offered to idols.** \"**How ready is Christ to commend his people for whatever good qualities they may possess!… In this message to the church of Ephesus, having first mentioned their commendable traits and then their failures, as if unwilling to pass by any of their good qualities he mentions this, that they hated the deeds of the Nicolaitanes, which he also hated. In verse 15 the doctrines of the same characters are condemned. It appears that they were a class of persons whose deeds and doctrines were alike abominable in the sight of Heaven. Their origin is involved in some doubt. Some say that they sprang from Nicolas of Antioch, one of the seven deacons (Acts 6:5); some, that they only attribute their origin to him to gain the prestige of his name; and others, that the sect took its name from one Nicolas of a later date, which is probably the nearest correct. Concerning their doctrines and practices, there seems to be a general agreement that they held to a community of wives, regarded adultery and fornication as things indifferent, and permitted the eating of things offered to idols. (See Religious Encyclopedia, Clarke, Kitto, and other authorities.)**\" (DAR 349.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -171,10 +189,13 @@
       "num": 7,
       "slug": "v-7",
       "text": "He that hath an ear, let him hear what the Spirit saith unto the churches; To him that overcometh will I give to eat of the tree of life, which is in the midst of the paradise of God.",
-      "pioneerReading": {
-        "citation": "DAR 349.2-351.1",
-        "html": "**The summons-to-attention formula is repeated to each of the seven churches and parallels Christ's own usage in the gospels. The overcomer's reward = restoration to the tree of life in the paradise of God, located in the third heaven (cross-linked from 2 Cor 12:2-4, where Paul's third-heaven = paradise; and from the Eden-paradise = heavenly-paradise inference — the tree must have been translated to heaven, since there is only one tree of life with the definite article in both Genesis 3 and Revelation 22).** On the summons: \"**A solemn manner of calling universal attention to that which is of general and most momentous importance. The same language is used to each of the seven churches. Christ, when upon earth made use of the same form of speech in calling the attention of the people to the most important of his teachings**\" (DAR 349.2, with cross-links to Matt 11:15, 13:9, 13:43, Rev 13:9). On the tree of life: \"**There is but one tree of life brought to view in the Bible. It is mentioned six times, three times in Genesis, and three times in the Revelation; but it is used every time with the definite article the. It is the tree of life in the first book of the Bible, the tree of life in the last; the tree of life in the 'paradise' (Septuagint) in Eden at the beginning, and the tree of life in the paradise of which John now speaks, in heaven above**\" (DAR 349.3). On the universal-scope of the reward: \"**To the overcomer, then, is promised a restoration to more than Adam lost; not to the overcomers of that state of the church merely, but to all overcomers of every age; for in the great rewards of Heaven there are no restrictions**\" (DAR 351.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 349.2-351.1",
+          "html": "**The summons-to-attention formula is repeated to each of the seven churches and parallels Christ's own usage in the gospels. The overcomer's reward = restoration to the tree of life in the paradise of God, located in the third heaven (cross-linked from 2 Cor 12:2-4, where Paul's third-heaven = paradise; and from the Eden-paradise = heavenly-paradise inference — the tree must have been translated to heaven, since there is only one tree of life with the definite article in both Genesis 3 and Revelation 22).** On the summons: \"**A solemn manner of calling universal attention to that which is of general and most momentous importance. The same language is used to each of the seven churches. Christ, when upon earth made use of the same form of speech in calling the attention of the people to the most important of his teachings**\" (DAR 349.2, with cross-links to Matt 11:15, 13:9, 13:43, Rev 13:9). On the tree of life: \"**There is but one tree of life brought to view in the Bible. It is mentioned six times, three times in Genesis, and three times in the Revelation; but it is used every time with the definite article the. It is the tree of life in the first book of the Bible, the tree of life in the last; the tree of life in the 'paradise' (Septuagint) in Eden at the beginning, and the tree of life in the paradise of which John now speaks, in heaven above**\" (DAR 349.3). On the universal-scope of the reward: \"**To the overcomer, then, is promised a restoration to more than Adam lost; not to the overcomers of that state of the church merely, but to all overcomers of every age; for in the great rewards of Heaven there are no restrictions**\" (DAR 351.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -198,10 +219,13 @@
       "num": 8,
       "slug": "v-8",
       "text": "And unto the angel of the church in Smyrna write; These things saith the first and the last, which was dead, and is alive;",
-      "pioneerReading": {
-        "citation": "DAR 351.4",
-        "html": "**The Christ-self-identification = \"first and last, dead and alive\" is specifically chosen for the Smyrnian church about to pass through the fiery ordeal of persecution — they were to remember that the eyes of One were upon them who had himself shared the same fate and triumphed over death.** \"**It will be noticed that the Lord introduces himself to each church by mentioning some of his characteristics which show him to be peculiarly fitted to bear to them the testimony which he utters. To the Smyrnian church, about to pass through the fiery ordeal of persecution, he reveals himself as one who was dead, but is now alive. If they should be called to seal their testimony with their blood, they were to remember that the eyes of One were upon them who had shared the same fate, but had triumphed over death, and was able to bring them up again from a martyr's grave**\" (DAR 351.4)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 351.4",
+          "html": "**The Christ-self-identification = \"first and last, dead and alive\" is specifically chosen for the Smyrnian church about to pass through the fiery ordeal of persecution — they were to remember that the eyes of One were upon them who had himself shared the same fate and triumphed over death.** \"**It will be noticed that the Lord introduces himself to each church by mentioning some of his characteristics which show him to be peculiarly fitted to bear to them the testimony which he utters. To the Smyrnian church, about to pass through the fiery ordeal of persecution, he reveals himself as one who was dead, but is now alive. If they should be called to seal their testimony with their blood, they were to remember that the eyes of One were upon them who had shared the same fate, but had triumphed over death, and was able to bring them up again from a martyr's grave**\" (DAR 351.4)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -225,10 +249,13 @@
       "num": 9,
       "slug": "v-9",
       "text": "I know thy works, and tribulation, and poverty (but thou art rich), and I know the blasphemy of them which say they are Jews, and are not, but are the synagogue of Satan.",
-      "pioneerReading": {
-        "citation": "DAR 352.1-352.2",
-        "html": "**Poverty-but-rich = the paradox of the poor-in-material-goods who are rich in faith and heirs of the kingdom; \"say they are Jews and are not\" = those hypocritically claiming to be Jews in the true Christian / Pauline sense (Rom 2:28-29, 9:6-7; Gal 3:28-29) who lacked the requisite character — the \"synagogue of Satan\" identification is therefore Christian-spiritual, not ethnic-Jewish.** On poverty/riches: \"**'I know thy poverty,' says Christ to them, 'but thou art rich.' Strange paradox this may seem at first. But who are the truly rich in this world? — Those who are 'rich in faith' and 'heirs of the kingdom.' The wealth of this world, for which men so eagerly strive, and so often barter away present happiness and future endless life, is 'coin not current in heaven.' A certain writer has forcibly remarked, 'There is many a rich poor man, and many a poor rich man'**\" (DAR 352.1). On \"say they are Jews\": \"**That the term Jew is not here used in a literal sense, is very evident. It denotes some character which was approved by the gospel standard. Paul's language will make this point plain. He says (Romans 2:28, 29): 'For he is not a Jew which is one outwardly; neither is that circumcision which is outward in the flesh; but he is a Jew [in the true Christian sense] which is one inwardly'… Some were hypocritically pretending to be Jews in this Christian sense, when they possessed nothing of the requisite character. Such were of the synagogue of Satan**\" (DAR 352.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 352.1-352.2",
+          "html": "**Poverty-but-rich = the paradox of the poor-in-material-goods who are rich in faith and heirs of the kingdom; \"say they are Jews and are not\" = those hypocritically claiming to be Jews in the true Christian / Pauline sense (Rom 2:28-29, 9:6-7; Gal 3:28-29) who lacked the requisite character — the \"synagogue of Satan\" identification is therefore Christian-spiritual, not ethnic-Jewish.** On poverty/riches: \"**'I know thy poverty,' says Christ to them, 'but thou art rich.' Strange paradox this may seem at first. But who are the truly rich in this world? — Those who are 'rich in faith' and 'heirs of the kingdom.' The wealth of this world, for which men so eagerly strive, and so often barter away present happiness and future endless life, is 'coin not current in heaven.' A certain writer has forcibly remarked, 'There is many a rich poor man, and many a poor rich man'**\" (DAR 352.1). On \"say they are Jews\": \"**That the term Jew is not here used in a literal sense, is very evident. It denotes some character which was approved by the gospel standard. Paul's language will make this point plain. He says (Romans 2:28, 29): 'For he is not a Jew which is one outwardly; neither is that circumcision which is outward in the flesh; but he is a Jew [in the true Christian sense] which is one inwardly'… Some were hypocritically pretending to be Jews in this Christian sense, when they possessed nothing of the requisite character. Such were of the synagogue of Satan**\" (DAR 352.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -252,10 +279,13 @@
       "num": 10,
       "slug": "v-10",
       "text": "Fear none of those things which thou shalt suffer: behold, the devil shall cast some of you into prison, that ye may be tried; and ye shall have tribulation ten days: be thou faithful unto death, and I will give thee a crown of life.",
-      "pioneerReading": {
-        "citation": "DAR 352.3, 353.1",
-        "html": "**Tribulation ten days = ten years on the day-year principle, identified as the Diocletian persecution AD 302/303-312/313, the last and most bloody of the ten imperial persecutions. The \"faithful unto death\" promise of the crown of life is to be received at the second advent, not at the moment of death.** On the ten days: \"**As this message is prophetic, the time mentioned in it must also be regarded as prophetic, and would denote ten years. And it is a noticeable fact that the last and most bloody of the ten persecutions continued just ten years, under Diocletian, from A. D. 302 to A. D. 312. (See Buck's Theological Dictionary, pp. 332, 333.) It would be difficult to make an application of this language on the ground that these messages are not prophetic; for in that case only ten literal days could be meant; and it would not seem probable that a persecution of only ten days, on only a single church, would be made a matter of prophecy**\" (DAR 352.3). On the crown of life: \"**No argument, however, can be drawn from this for consciousness in death. The vital point for such an argument is still lacking; for it is not affirmed that the crown of life is bestowed immediately at death. We must consequently look to other scriptures to learn when the crown of life is given; and other scriptures very fully inform us. Paul declares that this crown is to be given at the day of Christ's appearing (2 Timothy 4:8); at the last trump (1 Corinthians 15:51-54); when the Lord shall himself descend from heaven (1 Thessalonians 4:16, 17); when the Chief Shepherd shall appear, says Peter (1 Pet. 5:4); at the resurrection of the just, says Christ (Luke 14:14); and when he shall return to take his people to the mansions prepared for them**\" (DAR 353.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 352.3, 353.1",
+          "html": "**Tribulation ten days = ten years on the day-year principle, identified as the Diocletian persecution AD 302/303-312/313, the last and most bloody of the ten imperial persecutions. The \"faithful unto death\" promise of the crown of life is to be received at the second advent, not at the moment of death.** On the ten days: \"**As this message is prophetic, the time mentioned in it must also be regarded as prophetic, and would denote ten years. And it is a noticeable fact that the last and most bloody of the ten persecutions continued just ten years, under Diocletian, from A. D. 302 to A. D. 312. (See Buck's Theological Dictionary, pp. 332, 333.) It would be difficult to make an application of this language on the ground that these messages are not prophetic; for in that case only ten literal days could be meant; and it would not seem probable that a persecution of only ten days, on only a single church, would be made a matter of prophecy**\" (DAR 352.3). On the crown of life: \"**No argument, however, can be drawn from this for consciousness in death. The vital point for such an argument is still lacking; for it is not affirmed that the crown of life is bestowed immediately at death. We must consequently look to other scriptures to learn when the crown of life is given; and other scriptures very fully inform us. Paul declares that this crown is to be given at the day of Christ's appearing (2 Timothy 4:8); at the last trump (1 Corinthians 15:51-54); when the Lord shall himself descend from heaven (1 Thessalonians 4:16, 17); when the Chief Shepherd shall appear, says Peter (1 Pet. 5:4); at the resurrection of the just, says Christ (Luke 14:14); and when he shall return to take his people to the mansions prepared for them**\" (DAR 353.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -279,10 +309,13 @@
       "num": 11,
       "slug": "v-11",
       "text": "He that hath an ear, let him hear what the Spirit saith unto the churches; He that overcometh shall not be hurt of the second death.",
-      "pioneerReading": {
-        "citation": "DAR 353.2",
-        "html": "**\"Not hurt of the second death\" = the conditional-immortality / annihilation-of-the-wicked framework: the Smyrnian martyrs could lose this present mortal life at the stake, but the eternal life to come could be taken by no man (Matt 10:28).** \"**Is not the language Christ here uses a good comment upon what he taught his disciples, when he said, 'And fear not them which kill the body, but are not able to kill the soul: but rather fear him which is able to destroy both soul and body in hell'? Matthew 10:28. The Smyrnians might be put to death here; but the future life, which was to be given them, man could not take away, and God would not; hence they were to fear not those who could kill the body, — to 'fear none of the things which they should suffer;' for their eternal existence was sure**\" (DAR 353.2). Cross-link from DAR 354.1: \"**Smyrna signifies myrrh, fit appellation for the church of God while passing through the fiery furnace of persecution**.\" The period is dated AD 100-323 (DAR 354.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 353.2",
+          "html": "**\"Not hurt of the second death\" = the conditional-immortality / annihilation-of-the-wicked framework: the Smyrnian martyrs could lose this present mortal life at the stake, but the eternal life to come could be taken by no man (Matt 10:28).** \"**Is not the language Christ here uses a good comment upon what he taught his disciples, when he said, 'And fear not them which kill the body, but are not able to kill the soul: but rather fear him which is able to destroy both soul and body in hell'? Matthew 10:28. The Smyrnians might be put to death here; but the future life, which was to be given them, man could not take away, and God would not; hence they were to fear not those who could kill the body, — to 'fear none of the things which they should suffer;' for their eternal existence was sure**\" (DAR 353.2). Cross-link from DAR 354.1: \"**Smyrna signifies myrrh, fit appellation for the church of God while passing through the fiery furnace of persecution**.\" The period is dated AD 100-323 (DAR 354.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -306,10 +339,13 @@
       "num": 12,
       "slug": "v-12",
       "text": "And to the angel of the church in Pergamos write; These things saith he which hath the sharp sword with two edges;",
-      "pioneerReading": {
-        "citation": "DAR 354.3-355.1",
-        "html": "**The period of Pergamos = AD 323-538 (from Constantine's professed conversion to the establishment of the papacy). It was the period in which the true servants of God had to struggle against worldly policy, pride, and popularity among the professed followers of Christ, and against the virulent workings of the mystery of iniquity which finally resulted in the full development of the papal man of sin.** \"**The word Pergamos signifies hight, elevation. The period covered by this church may be located from the days of Constantine, or perhaps, rather, from his professed conversion to Christianity, A. D. 323, to the establishment of the papacy, A. D. 538. It was a period in which the true servants of God had to struggle against a spirit of worldly policy, pride, and popularity among the professed followers of Christ, and against the virulent workings of the mystery of iniquity, which finally resulted in the full development of the papal man of sin**\" (DAR 355.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 354.3-355.1",
+          "html": "**The period of Pergamos = AD 323-538 (from Constantine's professed conversion to the establishment of the papacy). It was the period in which the true servants of God had to struggle against worldly policy, pride, and popularity among the professed followers of Christ, and against the virulent workings of the mystery of iniquity which finally resulted in the full development of the papal man of sin.** \"**The word Pergamos signifies hight, elevation. The period covered by this church may be located from the days of Constantine, or perhaps, rather, from his professed conversion to Christianity, A. D. 323, to the establishment of the papacy, A. D. 538. It was a period in which the true servants of God had to struggle against a spirit of worldly policy, pride, and popularity among the professed followers of Christ, and against the virulent workings of the mystery of iniquity, which finally resulted in the full development of the papal man of sin**\" (DAR 355.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -333,10 +369,13 @@
       "num": 13,
       "slug": "v-13",
       "text": "I know thy works, and where thou dwellest, even where Satan's seat is: and thou holdest fast my name, and hast not denied my faith, even in those days wherein Antipas was my faithful martyr, who was slain among you, where Satan dwelleth.",
-      "pioneerReading": {
-        "citation": "DAR 355.1-356.1",
-        "html": "**\"Satan's seat\" denotes condition / period of Satan's special activity rather than a fixed geographical locality. Antipas = a class of anti-papal martyrs (NOT an individual), citing William Miller verbatim: anti + papas = \"against the pope\" — those who opposed the rising bishops and popes in Constantinople and Rome in the early centuries.** On Satan's seat: \"**Christ takes cognizance of the unfavorable situation of his people during this period. The language is not probably designed to denote locality. As to place, Satan works wherever Christians dwell. But surely there are times and seasons when he works with special power; and the period covered by the church of Pergamos was one of these. During this period, the doctrine of Christ was being corrupted, the mystery of iniquity was working, and Satan was laying the very foundation of that most stupendous system of wickedness, the papacy. Here was the falling away foretold by Paul in 2 Thessalonians 2:3**\" (DAR 355.1). On Antipas, Smith quotes William Miller, _Lectures_ pp. 138-139 verbatim: \"**'It is supposed that Antipas was not an individual, but a class of men who opposed the power of the bishops, or popes, in that day, being a combination of two words, anti, opposed, and papas, father, or pope; and at that time many of them suffered martyrdom in Constantinople and Rome, where the bishops and popes began to exercise the power which soon after brought into subjection the kings of the earth, and trampled on the rights of the church of Christ. And for myself, I see no reason to reject this explanation of this word Antipas in this text, as the history of those times is perfectly silent respecting such an individual as is here named'**\" (DAR 355.3). Watson and Clarke are cited to confirm: \"**Ancient ecclesiastical history furnishes no account of this Antipas**\" (DAR 355.4)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 355.1-356.1",
+          "html": "**\"Satan's seat\" denotes condition / period of Satan's special activity rather than a fixed geographical locality. Antipas = a class of anti-papal martyrs (NOT an individual), citing William Miller verbatim: anti + papas = \"against the pope\" — those who opposed the rising bishops and popes in Constantinople and Rome in the early centuries.** On Satan's seat: \"**Christ takes cognizance of the unfavorable situation of his people during this period. The language is not probably designed to denote locality. As to place, Satan works wherever Christians dwell. But surely there are times and seasons when he works with special power; and the period covered by the church of Pergamos was one of these. During this period, the doctrine of Christ was being corrupted, the mystery of iniquity was working, and Satan was laying the very foundation of that most stupendous system of wickedness, the papacy. Here was the falling away foretold by Paul in 2 Thessalonians 2:3**\" (DAR 355.1). On Antipas, Smith quotes William Miller, _Lectures_ pp. 138-139 verbatim: \"**'It is supposed that Antipas was not an individual, but a class of men who opposed the power of the bishops, or popes, in that day, being a combination of two words, anti, opposed, and papas, father, or pope; and at that time many of them suffered martyrdom in Constantinople and Rome, where the bishops and popes began to exercise the power which soon after brought into subjection the kings of the earth, and trampled on the rights of the church of Christ. And for myself, I see no reason to reject this explanation of this word Antipas in this text, as the history of those times is perfectly silent respecting such an individual as is here named'**\" (DAR 355.3). Watson and Clarke are cited to confirm: \"**Ancient ecclesiastical history furnishes no account of this Antipas**\" (DAR 355.4)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -360,10 +399,13 @@
       "num": 14,
       "slug": "v-14",
       "text": "But I have a few things against thee, because thou hast there them that hold the doctrine of Balaam, who taught Balak to cast a stumbling-block before the children of Israel, to eat things sacrificed unto idols, and to commit fornication.",
-      "pioneerReading": {
-        "citation": "DAR 356.1-356.2",
-        "html": "**The doctrine of Balaam = the OT-template of seducing God's people into idolatry and spiritual fornication via worldly compromise (Num 22-25, 31:13-16); the church-of-Pergamos parallel = the union of the civil and ecclesiastical powers that culminated in the formation of the papacy.** \"**What the doctrine of Balaam was, is here partially revealed. He taught Balak to cast a stumbling-block before the children of Israel. (See a full account of his work and its results in Numbers, chapters 22-25 and 31:13-16.) It appears that Balaam desired to curse Israel for the sake of the rich reward which Balak offered him for so doing. But not being permitted by the Lord to curse them, he resolved to accomplish essentially the same thing, though in a different way. He therefore counseled Balak to seduce them, by means of the females of Moab, to participate in the celebration of the rights of idolatry, and all its licentious accompaniments. The plan succeeded. The abominations of idolatry spread through the camp of Israel, the curse of God was called down upon them by their sins, and there fell by the plague twenty-four thousand persons**\" (DAR 356.1). \"**The doctrines complained of in the church of Pergamos were of course similar in their tendency, leading to spiritual idolatry, and an unlawful connection between the church and the world. Out of this spirit was finally produced the union of the civil and ecclesiastical powers, which culminated in the formation of the papacy**\" (DAR 356.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 356.1-356.2",
+          "html": "**The doctrine of Balaam = the OT-template of seducing God's people into idolatry and spiritual fornication via worldly compromise (Num 22-25, 31:13-16); the church-of-Pergamos parallel = the union of the civil and ecclesiastical powers that culminated in the formation of the papacy.** \"**What the doctrine of Balaam was, is here partially revealed. He taught Balak to cast a stumbling-block before the children of Israel. (See a full account of his work and its results in Numbers, chapters 22-25 and 31:13-16.) It appears that Balaam desired to curse Israel for the sake of the rich reward which Balak offered him for so doing. But not being permitted by the Lord to curse them, he resolved to accomplish essentially the same thing, though in a different way. He therefore counseled Balak to seduce them, by means of the females of Moab, to participate in the celebration of the rights of idolatry, and all its licentious accompaniments. The plan succeeded. The abominations of idolatry spread through the camp of Israel, the curse of God was called down upon them by their sins, and there fell by the plague twenty-four thousand persons**\" (DAR 356.1). \"**The doctrines complained of in the church of Pergamos were of course similar in their tendency, leading to spiritual idolatry, and an unlawful connection between the church and the world. Out of this spirit was finally produced the union of the civil and ecclesiastical powers, which culminated in the formation of the papacy**\" (DAR 356.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -387,10 +429,13 @@
       "num": 15,
       "slug": "v-15",
       "text": "So hast thou also them that hold the doctrine of the Nicolaitanes, which thing I hate.",
-      "pioneerReading": {
-        "citation": "DAR 356.1, cross-reference to DAR 349.1",
-        "html": "Smith treats v. 15 as confirming the v. 6 Nicolaitan identification — what was hated as deeds in Ephesus had become tolerated as doctrines in Pergamos. The Pergamos-church had advanced from rejection (Ephesus) to tolerance (Pergamos) of the same heretical sect. \"**(See remarks on the Nicolaitanes, verse 6.)**\" (DAR 356.1, referring back to the Nicolas-of-Antioch sect with antinomian / community-of-wives / idol-meat doctrines)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 356.1, cross-reference to DAR 349.1",
+          "html": "Smith treats v. 15 as confirming the v. 6 Nicolaitan identification — what was hated as deeds in Ephesus had become tolerated as doctrines in Pergamos. The Pergamos-church had advanced from rejection (Ephesus) to tolerance (Pergamos) of the same heretical sect. \"**(See remarks on the Nicolaitanes, verse 6.)**\" (DAR 356.1, referring back to the Nicolas-of-Antioch sect with antinomian / community-of-wives / idol-meat doctrines)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -414,10 +459,13 @@
       "num": 16,
       "slug": "v-16",
       "text": "Repent; or else I will come unto thee quickly, and will fight against them with the sword of my mouth.",
-      "pioneerReading": {
-        "citation": "DAR 356.3",
-        "html": "**The conditional threatening: discipline or expel those who hold the pernicious doctrines, or Christ will himself come in judgment to fight against them with the sword of his mouth. The whole church is held responsible for the wrongs of those heretical persons it harbors.** \"**By disciplining or expelling those who hold these pernicious doctrines. Christ declared that if they did not do this, he would take the matter into his own hands, and come unto them (in judgment), and fight against them (those who held these evil doctrines); and the whole church would be held responsible for the wrongs of those heretical ones whom they harbored in their midst**\" (DAR 356.3)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 356.3",
+          "html": "**The conditional threatening: discipline or expel those who hold the pernicious doctrines, or Christ will himself come in judgment to fight against them with the sword of his mouth. The whole church is held responsible for the wrongs of those heretical persons it harbors.** \"**By disciplining or expelling those who hold these pernicious doctrines. Christ declared that if they did not do this, he would take the matter into his own hands, and come unto them (in judgment), and fight against them (those who held these evil doctrines); and the whole church would be held responsible for the wrongs of those heretical ones whom they harbored in their midst**\" (DAR 356.3)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -441,10 +489,13 @@
       "num": 17,
       "slug": "v-17",
       "text": "He that hath an ear, let him hear what the Spirit saith unto the churches; To him that overcometh will I give to eat of the hidden manna, and will give him a white stone, and in the stone a new name written, which no man knoweth saving he that receiveth it.",
-      "pioneerReading": {
-        "citation": "DAR 356.4-358.3",
-        "html": "**The hidden manna, white stone, and new name = spiritual blessings to be enjoyed at the future reward of the saints, not in this life. Smith quotes H. Blunt at length on the white-stone-of-hospitality custom (Greek/Roman host-guest pledge-stones, halved between host and guest as a private mark of inviolable friendship) as the most likely allusion, rather than the courtroom-acquittal-stone reading. Wesley cited on the new name = Jacob's renaming to Israel after his prevailing struggle.** \"**Most commentators apply the manna, white stone, and new name, to spiritual blessings to be enjoyed in this life; but, like all the other promises to the overcomer, this one doubtless refers wholly to the future, and is to be given when the time comes that the saints are to be rewarded**\" (DAR 356.4). Smith then quotes Blunt at length (DAR 357.1-358.1) on the hospitality-stone custom: \"**'How natural, then, the allusion to this custom in the words of the text, \"I will give him to eat of the hidden manna!\" and having done this, having made him partake of my hospitality, having recognized him as my guest and friend, I will present him with the white stone, and in the stone a new name written, which no man knoweth, save he who receiveth it. I will give him a pledge of my friendship, sacred and inviolable, known only to himself**'\" (DAR 358.1). Wesley on the new name: \"**'Jacob, after his victory, gained the new name of Israel. Wouldst thou know what thy new name will be? The way to this is plain — overcome. Till then, all thy inquiries are vain. Thou wilt then read it on the white stone**'\" (DAR 358.3)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 356.4-358.3",
+          "html": "**The hidden manna, white stone, and new name = spiritual blessings to be enjoyed at the future reward of the saints, not in this life. Smith quotes H. Blunt at length on the white-stone-of-hospitality custom (Greek/Roman host-guest pledge-stones, halved between host and guest as a private mark of inviolable friendship) as the most likely allusion, rather than the courtroom-acquittal-stone reading. Wesley cited on the new name = Jacob's renaming to Israel after his prevailing struggle.** \"**Most commentators apply the manna, white stone, and new name, to spiritual blessings to be enjoyed in this life; but, like all the other promises to the overcomer, this one doubtless refers wholly to the future, and is to be given when the time comes that the saints are to be rewarded**\" (DAR 356.4). Smith then quotes Blunt at length (DAR 357.1-358.1) on the hospitality-stone custom: \"**'How natural, then, the allusion to this custom in the words of the text, \"I will give him to eat of the hidden manna!\" and having done this, having made him partake of my hospitality, having recognized him as my guest and friend, I will present him with the white stone, and in the stone a new name written, which no man knoweth, save he who receiveth it. I will give him a pledge of my friendship, sacred and inviolable, known only to himself**'\" (DAR 358.1). Wesley on the new name: \"**'Jacob, after his victory, gained the new name of Israel. Wouldst thou know what thy new name will be? The way to this is plain — overcome. Till then, all thy inquiries are vain. Thou wilt then read it on the white stone**'\" (DAR 358.3)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -468,10 +519,13 @@
       "num": 18,
       "slug": "v-18",
       "text": "And unto the angel of the church in Thyatira write; These things saith the Son of God, who hath his eyes like unto a flame of fire, and his feet are like fine brass;",
-      "pioneerReading": {
-        "citation": "DAR 358.4-359.1",
-        "html": "**The Thyatira period = AD 538-1798, the 1260-year period of papal supremacy (so dated if Pergamos ends with the papacy's establishment at 538). Thyatira signifies \"sweet savor of labor\" or \"sacrifice of contrition\" — fit for the church under papal triumph and persecution. The flame-of-fire eyes recall Rev 1:14 and signify the searching judicial gaze that takes account of the church's true state.** \"**If the period covered by the Pergamos church has been correctly located, terminating with the setting up of the papacy, A. D. 538, the most natural division to be assigned to the church of Thyatira would be the time of the continuance of this blasphemous power, through the 1260 years of its supremacy, or from A. D. 538 to A. D. 1798**\" (DAR 358.5). \"**Thyatira signifies 'sweet savor of labor,' or 'sacrifice of contrition.' This would well describe the state of the church of Jesus Christ during the long period of papal triumph and persecution. This age of such dreadful tribulation upon the church as never was (Matthew 24:21), improved the religious condition of believers**\" (DAR 359.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 358.4-359.1",
+          "html": "**The Thyatira period = AD 538-1798, the 1260-year period of papal supremacy (so dated if Pergamos ends with the papacy's establishment at 538). Thyatira signifies \"sweet savor of labor\" or \"sacrifice of contrition\" — fit for the church under papal triumph and persecution. The flame-of-fire eyes recall Rev 1:14 and signify the searching judicial gaze that takes account of the church's true state.** \"**If the period covered by the Pergamos church has been correctly located, terminating with the setting up of the papacy, A. D. 538, the most natural division to be assigned to the church of Thyatira would be the time of the continuance of this blasphemous power, through the 1260 years of its supremacy, or from A. D. 538 to A. D. 1798**\" (DAR 358.5). \"**Thyatira signifies 'sweet savor of labor,' or 'sacrifice of contrition.' This would well describe the state of the church of Jesus Christ during the long period of papal triumph and persecution. This age of such dreadful tribulation upon the church as never was (Matthew 24:21), improved the religious condition of believers**\" (DAR 359.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -495,10 +549,13 @@
       "num": 19,
       "slug": "v-19",
       "text": "I know thy works, and charity, and service, and faith, and thy patience, and thy works; and the last to be more than the first.",
-      "pioneerReading": {
-        "citation": "DAR 359.1",
-        "html": "**The Thyatira church alone is commended for an improvement (growth in grace) in spiritual things — works, charity, service, faith, and patience increasing during the long period of papal persecution. The persecution refines the believers, but no amount of labor compensates for tolerating false doctrine (the Jezebel rebuke of v. 20 follows).** \"**Hence they receive for their works, charity, service, faith, and patience, the commendation of Him whose eyes are as a flame of fire. And works are then again mentioned, as though worthy of a double commendation. And the last were more than the first. There had been an improvement in their condition, a growth in grace, an increase in all these elements of Christianity. This church is the only one that is commended for an improvement in spiritual things**\" (DAR 359.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 359.1",
+          "html": "**The Thyatira church alone is commended for an improvement (growth in grace) in spiritual things — works, charity, service, faith, and patience increasing during the long period of papal persecution. The persecution refines the believers, but no amount of labor compensates for tolerating false doctrine (the Jezebel rebuke of v. 20 follows).** \"**Hence they receive for their works, charity, service, faith, and patience, the commendation of Him whose eyes are as a flame of fire. And works are then again mentioned, as though worthy of a double commendation. And the last were more than the first. There had been an improvement in their condition, a growth in grace, an increase in all these elements of Christianity. This church is the only one that is commended for an improvement in spiritual things**\" (DAR 359.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -522,10 +579,13 @@
       "num": 20,
       "slug": "v-20",
       "text": "Notwithstanding I have a few things against thee, because thou sufferest that woman Jezebel, which calleth herself a prophetess, to teach and to seduce my servants to commit fornication, and to eat things sacrificed unto idols.",
-      "pioneerReading": {
-        "citation": "DAR 359.2-359.3",
-        "html": "**Jezebel = a class of persons / a sect (NOT a literal individual), specifically the papal-Roman apostate system, citing William Miller verbatim from Lectures p. 142 — Jezebel is a figurative name alluding to Ahab's wife who slew the prophets of the Lord, led her husband into idolatry, and fed the prophets of Baal at her own table. A more striking figure could not have been used to denote the papal abominations.** \"**As in the preceding church Antipas denoted, not an individual, but a class of persons, so, doubtless, Jezebel is here to be understood in the same sense. Watson's Bible Dictionary says, 'The name of Jezebel is used proverbially. Revelation 2:20.' William Miller, Lectures, p. 142, speaks as follows: 'Jezebel is a figurative name, alluding to Ahab's wife, who slew the prophets of the Lord, led her husband into idolatry, and fed the prophets of Baal at her own table. A more striking figure could not have been used to denote the papal abominations. (See 1 Kings, chapters 18, 19, and 21.) It is very evident from history, as well as from this verse, that the church of Christ did suffer some of the papal monks to preach and teach among them. (See the \"History of the Waldenses.\")'**\" (DAR 359.2-3)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 359.2-359.3",
+          "html": "**Jezebel = a class of persons / a sect (NOT a literal individual), specifically the papal-Roman apostate system, citing William Miller verbatim from Lectures p. 142 — Jezebel is a figurative name alluding to Ahab's wife who slew the prophets of the Lord, led her husband into idolatry, and fed the prophets of Baal at her own table. A more striking figure could not have been used to denote the papal abominations.** \"**As in the preceding church Antipas denoted, not an individual, but a class of persons, so, doubtless, Jezebel is here to be understood in the same sense. Watson's Bible Dictionary says, 'The name of Jezebel is used proverbially. Revelation 2:20.' William Miller, Lectures, p. 142, speaks as follows: 'Jezebel is a figurative name, alluding to Ahab's wife, who slew the prophets of the Lord, led her husband into idolatry, and fed the prophets of Baal at her own table. A more striking figure could not have been used to denote the papal abominations. (See 1 Kings, chapters 18, 19, and 21.) It is very evident from history, as well as from this verse, that the church of Christ did suffer some of the papal monks to preach and teach among them. (See the \"History of the Waldenses.\")'**\" (DAR 359.2-3)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -557,10 +617,13 @@
       "num": 21,
       "slug": "v-21",
       "text": "And I gave her space to repent of her fornication; and she repented not.",
-      "pioneerReading": {
-        "citation": "DAR 360.1",
-        "html": "Treated within the Thyatira-Jezebel block. The judgments threatened against this woman are in harmony with the threatenings in other parts of this book against the Romish Church under the symbol of a corrupt woman, the mother of harlots and abominations of the earth (Rev 17-19)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 360.1",
+          "html": "Treated within the Thyatira-Jezebel block. The judgments threatened against this woman are in harmony with the threatenings in other parts of this book against the Romish Church under the symbol of a corrupt woman, the mother of harlots and abominations of the earth (Rev 17-19)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -584,10 +647,13 @@
       "num": 22,
       "slug": "v-22",
       "text": "Behold, I will cast her into a bed, and them that commit adultery with her into great tribulation, except they repent of their deeds.",
-      "pioneerReading": {
-        "citation": "DAR 360.1",
-        "html": "Treated within the Thyatira block. Smith reads the judgment as part of the parallel between the Jezebel-of-Thyatira and the Babylon-harlot-of-Rev-17, with the second death at the end of the millennium as the final judgment occasion (per v. 23). Smith does not give v. 22 a specific historical anchor."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 360.1",
+          "html": "Treated within the Thyatira block. Smith reads the judgment as part of the parallel between the Jezebel-of-Thyatira and the Babylon-harlot-of-Rev-17, with the second death at the end of the millennium as the final judgment occasion (per v. 23). Smith does not give v. 22 a specific historical anchor."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -616,10 +682,13 @@
       "num": 23,
       "slug": "v-23",
       "text": "And I will kill her children with death; and all the churches shall know that I am he which searcheth the reins and hearts: and I will give unto every one of you according to your works.",
-      "pioneerReading": {
-        "citation": "DAR 360.1-360.2",
-        "html": "**\"Her children\" = a sect and its proselytes (Smith citing the Comprehensive Commentary); \"kill them with death\" = the second death at the end of the millennium when righteous retribution is given by the Searcher of the reins and hearts; \"all the churches shall know\" addresses the historical-period objection to the seven-successive-periods reading.** \"**The Comprehensive Commentary has the following remark upon verse 23: 'Children are spoken of, which confirms the idea that a sect and its proselytes are meant.' The judgments here threatened against this woman are in harmony with the threatenings in other parts of this book against the Romish Church under the symbol of a corrupt woman, the mother of harlots and abominations of the earth. (See chapters 17-19.) The death which is threatened is doubtless the second death, at the end of the one thousand years of Revelation 20, when the righteous retribution from the Searcher of 'the reins and hearts' of all men will be given. And further, the declaration, 'I will give unto every one of you according to your works,' is proof that the address to this church looks forward prophetically to the final reward or punishment of all accountable beings**\" (DAR 360.1). On the \"all the churches shall know\" objection: \"**It has been argued from this expression that these churches could not denote seven successive periods of the gospel age, but must exist contemporaneously, as otherwise all the churches could not know that Christ was the searcher of the reins and hearts from seeing his judgments upon Jezebel and her children. But when is it that all the churches are to know this? — It is when these children are punished with death. And if this is at the time when the second death is inflicted upon all the wicked, then, indeed, will 'all the churches,' as they behold the infliction of the judgment, know that no secret thing… has escaped the knowledge of Him**\" (DAR 360.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 360.1-360.2",
+          "html": "**\"Her children\" = a sect and its proselytes (Smith citing the Comprehensive Commentary); \"kill them with death\" = the second death at the end of the millennium when righteous retribution is given by the Searcher of the reins and hearts; \"all the churches shall know\" addresses the historical-period objection to the seven-successive-periods reading.** \"**The Comprehensive Commentary has the following remark upon verse 23: 'Children are spoken of, which confirms the idea that a sect and its proselytes are meant.' The judgments here threatened against this woman are in harmony with the threatenings in other parts of this book against the Romish Church under the symbol of a corrupt woman, the mother of harlots and abominations of the earth. (See chapters 17-19.) The death which is threatened is doubtless the second death, at the end of the one thousand years of Revelation 20, when the righteous retribution from the Searcher of 'the reins and hearts' of all men will be given. And further, the declaration, 'I will give unto every one of you according to your works,' is proof that the address to this church looks forward prophetically to the final reward or punishment of all accountable beings**\" (DAR 360.1). On the \"all the churches shall know\" objection: \"**It has been argued from this expression that these churches could not denote seven successive periods of the gospel age, but must exist contemporaneously, as otherwise all the churches could not know that Christ was the searcher of the reins and hearts from seeing his judgments upon Jezebel and her children. But when is it that all the churches are to know this? — It is when these children are punished with death. And if this is at the time when the second death is inflicted upon all the wicked, then, indeed, will 'all the churches,' as they behold the infliction of the judgment, know that no secret thing… has escaped the knowledge of Him**\" (DAR 360.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -648,10 +717,13 @@
       "num": 24,
       "slug": "v-24",
       "text": "But unto you I say, and unto the rest in Thyatira, as many as have not this doctrine, and which have not known the depths of Satan, as they speak; I will put upon you none other burden.",
-      "pioneerReading": {
-        "citation": "DAR 360.3",
-        "html": "**\"None other burden\" = a respite for the church from the long-borne burden of papal oppression; explicitly NOT to be applied to the reception of new truths (since truth is not a burden to any accountable being). The days of tribulation that came upon that church were to be shortened for the elect's sake (Matt 24:22 + Dan 11:34 \"they shall be holpen with a little help\" + Rev 12:16 \"the earth helped the woman\").** \"**A respite promised the church, if we rightly apprehend, from the burden so long her portion, — the weight of papal oppression. It cannot be applied to the reception of new truths; for truth is not a burden to any accountable being. But the days of tribulation that came upon that church, were to be shortened for the elect's sake. Matthew 24:22. 'They shall be holpen,' says the prophet, 'with a little help.' Daniel 11:34. 'And the earth helped the woman,' says John. Revelation 12:16**\" (DAR 360.3)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 360.3",
+          "html": "**\"None other burden\" = a respite for the church from the long-borne burden of papal oppression; explicitly NOT to be applied to the reception of new truths (since truth is not a burden to any accountable being). The days of tribulation that came upon that church were to be shortened for the elect's sake (Matt 24:22 + Dan 11:34 \"they shall be holpen with a little help\" + Rev 12:16 \"the earth helped the woman\").** \"**A respite promised the church, if we rightly apprehend, from the burden so long her portion, — the weight of papal oppression. It cannot be applied to the reception of new truths; for truth is not a burden to any accountable being. But the days of tribulation that came upon that church, were to be shortened for the elect's sake. Matthew 24:22. 'They shall be holpen,' says the prophet, 'with a little help.' Daniel 11:34. 'And the earth helped the woman,' says John. Revelation 12:16**\" (DAR 360.3)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -675,10 +747,13 @@
       "num": 25,
       "slug": "v-25",
       "text": "But that which ye have already hold fast till I come.",
-      "pioneerReading": {
-        "citation": "DAR 361.1",
-        "html": "**The \"hold fast till I come\" formula is unconditional (unlike the conditional \"I will come unto thee\" of Ephesus and Pergamos) and refers to the literal second advent in glory, when the Christian's trials cease and his efforts in the race for life are rewarded with everlasting success.** \"**These are the words of the 'Son of God,' and bring to our view an unconditional coming. To the churches of Ephesus and Pergamos, certain comings were threatened on conditions: 'Repent, or else I will come unto thee,' etc., implying visitations of judgment. But here a coming of a different nature altogether is brought to view. It is not a threatening of punishment. It is suspended upon no conditions. It is set before the believer as a matter of hope, and can refer to no other event but the future second advent of the Lord in glory, when the Christian's trials will cease, and his efforts in the race for life, and his warfare for a crown of righteousness, will be rewarded with everlasting success**\" (DAR 361.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 361.1",
+          "html": "**The \"hold fast till I come\" formula is unconditional (unlike the conditional \"I will come unto thee\" of Ephesus and Pergamos) and refers to the literal second advent in glory, when the Christian's trials cease and his efforts in the race for life are rewarded with everlasting success.** \"**These are the words of the 'Son of God,' and bring to our view an unconditional coming. To the churches of Ephesus and Pergamos, certain comings were threatened on conditions: 'Repent, or else I will come unto thee,' etc., implying visitations of judgment. But here a coming of a different nature altogether is brought to view. It is not a threatening of punishment. It is suspended upon no conditions. It is set before the believer as a matter of hope, and can refer to no other event but the future second advent of the Lord in glory, when the Christian's trials will cease, and his efforts in the race for life, and his warfare for a crown of righteousness, will be rewarded with everlasting success**\" (DAR 361.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -702,10 +777,13 @@
       "num": 26,
       "slug": "v-26",
       "text": "And he that overcometh, and keepeth my works unto the end, to him will I give power over the nations:",
-      "pioneerReading": {
-        "citation": "DAR 361.3-361.4, 361.5-362.1",
-        "html": "**\"Till the end\" = the end of the Christian age (Matt 24:13). \"Power over the nations\" = the future kingdom-of-glory reign of the saints with Christ, when righteousness is in the ascendancy and the scepter of power is in the hands of the people of God. The promise is unpacked by five biblical facts: (1) the nations are given by the Father into the hands of Christ to be ruled with a rod of iron (Ps 2:8-9); (2) the saints are associated with Christ when he enters upon his work of judgment (Rev 3:21); (3) they reign with him for one thousand years (Rev 20:4); (4) during this period the judgment upon the wicked is determined (1 Cor 6:2-3); (5) at the end of the thousand years they share with Christ in the execution of the sentence written (Ps 149:9).** \"**In this world the wicked bear rule, and the servants of Christ are of no esteem. But the time is coming when righteousness will be in the ascendancy; when all ungodliness will be seen in its true light, and be at a heavy discount; and when the scepter of power will be in the hands of the people of God**\" (DAR 361.4). Then the five-fact unpacking follows (DAR 361.4-362.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 361.3-361.4, 361.5-362.1",
+          "html": "**\"Till the end\" = the end of the Christian age (Matt 24:13). \"Power over the nations\" = the future kingdom-of-glory reign of the saints with Christ, when righteousness is in the ascendancy and the scepter of power is in the hands of the people of God. The promise is unpacked by five biblical facts: (1) the nations are given by the Father into the hands of Christ to be ruled with a rod of iron (Ps 2:8-9); (2) the saints are associated with Christ when he enters upon his work of judgment (Rev 3:21); (3) they reign with him for one thousand years (Rev 20:4); (4) during this period the judgment upon the wicked is determined (1 Cor 6:2-3); (5) at the end of the thousand years they share with Christ in the execution of the sentence written (Ps 149:9).** \"**In this world the wicked bear rule, and the servants of Christ are of no esteem. But the time is coming when righteousness will be in the ascendancy; when all ungodliness will be seen in its true light, and be at a heavy discount; and when the scepter of power will be in the hands of the people of God**\" (DAR 361.4). Then the five-fact unpacking follows (DAR 361.4-362.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -729,10 +807,13 @@
       "num": 27,
       "slug": "v-27",
       "text": "And he shall rule them with a rod of iron; as the vessels of a potter shall they be broken to shivers: even as I received of my Father.",
-      "pioneerReading": {
-        "citation": "DAR 361.4-362.1",
-        "html": "Treated within the v. 26 block above. The rod-of-iron + potter's-vessel imagery comes from Ps 2:8-9, cited explicitly as the OT background."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 361.4-362.1",
+          "html": "Treated within the v. 26 block above. The rod-of-iron + potter's-vessel imagery comes from Ps 2:8-9, cited explicitly as the OT background."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -756,10 +837,13 @@
       "num": 28,
       "slug": "v-28",
       "text": "And I will give him the morning star.",
-      "pioneerReading": {
-        "citation": "DAR 362.1",
-        "html": "**The morning star = Christ himself (per Rev 22:16, \"I am… the bright and morning star\"), the immediate forerunner of the day. The promise of the morning star to the overcomer = the close relationship to Christ in which the saint's heart is fully illuminated with his Spirit and they walk in his light, no longer needing the sure word of prophecy (which now shines as a light in a dark place — 2 Pet 1:19).** \"**Christ says, in chapter 22:16, that he is himself the morning star. The morning star is the immediate forerunner of the day. What is here called the morning star, is called the day star in 2 Peter 1:19, where it is associated with the dawn of the day. 'Until the day dawn, and the day star arise.' During the saints' weary night of watching, they have the word of God to shed its needful light upon their path. But when the day star shall arise in their hearts, or the morning star be given to the overcomers, they will be taken into so close a relationship to Christ that their hearts will be fully illuminated with his Spirit, and they will walk in his light. Then they will no longer need the sure word of prophecy, which now shines as a light in a dark place. Hasten on, O glorious hour, when the light of heaven's bright day shall rise upon the pathway of the little flock, and beams of glory from the eternal world shall gild their banners!**\" (DAR 362.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 362.1",
+          "html": "**The morning star = Christ himself (per Rev 22:16, \"I am… the bright and morning star\"), the immediate forerunner of the day. The promise of the morning star to the overcomer = the close relationship to Christ in which the saint's heart is fully illuminated with his Spirit and they walk in his light, no longer needing the sure word of prophecy (which now shines as a light in a dark place — 2 Pet 1:19).** \"**Christ says, in chapter 22:16, that he is himself the morning star. The morning star is the immediate forerunner of the day. What is here called the morning star, is called the day star in 2 Peter 1:19, where it is associated with the dawn of the day. 'Until the day dawn, and the day star arise.' During the saints' weary night of watching, they have the word of God to shed its needful light upon their path. But when the day star shall arise in their hearts, or the morning star be given to the overcomers, they will be taken into so close a relationship to Christ that their hearts will be fully illuminated with his Spirit, and they will walk in his light. Then they will no longer need the sure word of prophecy, which now shines as a light in a dark place. Hasten on, O glorious hour, when the light of heaven's bright day shall rise upon the pathway of the little flock, and beams of glory from the eternal world shall gild their banners!**\" (DAR 362.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -783,10 +867,13 @@
       "num": 29,
       "slug": "v-29",
       "text": "He that hath an ear, let him hear what the Spirit saith unto the churches.",
-      "pioneerReading": {
-        "citation": null,
-        "html": "Treated within the Thyatira block. The summons-to-attention formula is repeated to each of the seven churches (per Smith's v. 7 commentary, DAR 349.2 — \"A solemn manner of calling universal attention to that which is of general and most momentous importance. The same language is used to each of the seven churches\")."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": null,
+          "html": "Treated within the Thyatira block. The summons-to-attention formula is repeated to each of the seven churches (per Smith's v. 7 commentary, DAR 349.2 — \"A solemn manner of calling universal attention to that which is of general and most momentous importance. The same language is used to each of the seven churches\")."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",

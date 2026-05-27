@@ -127,7 +127,7 @@ function parseVerse(input: ParsedVerseInput): Verse {
     num: /^\d+$/.test(input.num) ? Number(input.num) : input.num,
     slug,
     text: input.text,
-    pioneerReading: null,
+    pioneerReadings: [],
     modernReadings: [],
     warrant: null,
     violations: null,
@@ -159,8 +159,9 @@ function classify(b: Block, verse: Verse, verseRef: string): void {
       lastModern.html = `${lastModern.html}\n\n${b.raw}`;
       return;
     }
-    if (verse.pioneerReading) {
-      verse.pioneerReading.html = `${verse.pioneerReading.html}\n\n${b.raw}`;
+    const lastPioneer = verse.pioneerReadings[verse.pioneerReadings.length - 1];
+    if (lastPioneer) {
+      lastPioneer.html = `${lastPioneer.html}\n\n${b.raw}`;
       return;
     }
     verse.unclassified.push(b.raw);
@@ -169,9 +170,16 @@ function classify(b: Block, verse: Verse, verseRef: string): void {
 
   const label = b.label;
 
-  // Pioneer reading — possibly with citation in parens
+  // Pioneer reading — possibly with citation in parens. Defaults to Smith
+  // since DAR is the only seeded pioneer source; other pioneers (EGW, Miller,
+  // Litch, J. White, Andrews, Crosier, Haskell, Jones, Waggoner) are curated
+  // directly in the JSON.
   if (/^Pioneer reading(\s*\([^)]*\))?$/i.test(label)) {
-    verse.pioneerReading = { citation: extractCitation(label), html: b.body };
+    verse.pioneerReadings.push({
+      source: 'smith',
+      citation: extractCitation(label),
+      html: b.body,
+    });
     return;
   }
 

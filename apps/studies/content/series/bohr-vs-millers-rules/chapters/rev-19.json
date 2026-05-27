@@ -9,10 +9,13 @@
       "num": 1,
       "slug": "v-1",
       "text": "And after these things I heard a great voice of much people in heaven, saying, Alleluia; Salvation, and glory, and honour, and power, unto the Lord our God:",
-      "pioneerReading": {
-        "citation": "DAR 680.2",
-        "html": "Smith reads the heavenly Alleluia chorus as the song of triumph the redeemed strike up at the destruction of Babylon, **in connection with the Second Coming at the commencement of the thousand years**. Verbatim: \"**CONTINUING the subject of chapter 18, the apostle here introduces the song of triumph which the redeemed saints strike up on victor harps, when they behold the complete destruction of that great system of opposition to God and his true worship comprehended in great Babylon. This destruction takes place, and this song is sung, in connection with the second coming of Christ at the commencement of the thousand years**\" (DAR 680.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 680.2",
+          "html": "Smith reads the heavenly Alleluia chorus as the song of triumph the redeemed strike up at the destruction of Babylon, **in connection with the Second Coming at the commencement of the thousand years**. Verbatim: \"**CONTINUING the subject of chapter 18, the apostle here introduces the song of triumph which the redeemed saints strike up on victor harps, when they behold the complete destruction of that great system of opposition to God and his true worship comprehended in great Babylon. This destruction takes place, and this song is sung, in connection with the second coming of Christ at the commencement of the thousand years**\" (DAR 680.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -36,10 +39,13 @@
       "num": 2,
       "slug": "v-2",
       "text": "For true and righteous are his judgments; for he hath judged the great whore, which did corrupt the earth with her fornication, and hath avenged the blood of his servants at her hand.",
-      "pioneerReading": {
-        "citation": "DAR pp. 680-686, no direct verse-anchor",
-        "html": "Smith treats v.2 within the vv. 1-3 song-block under DAR 680.2 and the \"Forever and Ever\" section at 680.3. The substance is the same: the song celebrates the judgment of the great whore (Babylon) and the avenging of the martyrs' blood — \"**the complete destruction of that great system of opposition to God and his true worship comprehended in great Babylon**\" (DAR 680.2). The avenging-of-blood theme is implicit in Smith's broader reading that this song accompanies the Second Coming destruction of \"the worshipers of the beast, and all the pomp of great Babylon, at the second advent of our Lord and Saviour\" (DAR 680.3)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR pp. 680-686, no direct verse-anchor",
+          "html": "Smith treats v.2 within the vv. 1-3 song-block under DAR 680.2 and the \"Forever and Ever\" section at 680.3. The substance is the same: the song celebrates the judgment of the great whore (Babylon) and the avenging of the martyrs' blood — \"**the complete destruction of that great system of opposition to God and his true worship comprehended in great Babylon**\" (DAR 680.2). The avenging-of-blood theme is implicit in Smith's broader reading that this song accompanies the Second Coming destruction of \"the worshipers of the beast, and all the pomp of great Babylon, at the second advent of our Lord and Saviour\" (DAR 680.3)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -63,10 +69,13 @@
       "num": 3,
       "slug": "v-3",
       "text": "And again they said, Alleluia. And her smoke rose up for ever and ever.",
-      "pioneerReading": {
-        "citation": "DAR 680.3",
-        "html": "Smith parses \"_forever and ever_\" through Isa 34 (Idumea) and Rev 14:11 (worshipers of beast and image) — borrowed language describing a destruction whose **smoke** (the visible token of finished judgment) does not need to be eternally rising, but whose effect is final. Verbatim: \"**Three times this expression of smoke going up forever is used in the Bible: once here in Isaiah 34, of the land of Idumea as a figure of the earth; in Revelation 14 (which see), of the worshipers of the beast and his image; and again in the chapter we are now considering, referring to the destruction of great Babylon; and all of them apply to the very same time, and describe the same scenes; namely, the destruction visited upon this earth, the worshipers of the beast, and all the pomp of great Babylon, at the second advent of our Lord and Saviour**\" (DAR 680.3). The duration must be limited — eternal conscious torment is not in view; the smoke is the **emblem of judgment completed**, not of ongoing punishment."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 680.3",
+          "html": "Smith parses \"_forever and ever_\" through Isa 34 (Idumea) and Rev 14:11 (worshipers of beast and image) — borrowed language describing a destruction whose **smoke** (the visible token of finished judgment) does not need to be eternally rising, but whose effect is final. Verbatim: \"**Three times this expression of smoke going up forever is used in the Bible: once here in Isaiah 34, of the land of Idumea as a figure of the earth; in Revelation 14 (which see), of the worshipers of the beast and his image; and again in the chapter we are now considering, referring to the destruction of great Babylon; and all of them apply to the very same time, and describe the same scenes; namely, the destruction visited upon this earth, the worshipers of the beast, and all the pomp of great Babylon, at the second advent of our Lord and Saviour**\" (DAR 680.3). The duration must be limited — eternal conscious torment is not in view; the smoke is the **emblem of judgment completed**, not of ongoing punishment."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -90,10 +99,13 @@
       "num": 4,
       "slug": "v-4",
       "text": "And the four and twenty elders and the four beasts fell down and worshipped God that sat on the throne, saying, Amen; Alleluia.",
-      "pioneerReading": {
-        "citation": "DAR 681.2",
-        "html": "Smith treats v.4 within the vv. 4-8 block under DAR 681.2's \"Song of Triumph\" header — the Lord God omnipotent now reigns by **open manifestation of His power in the subjugation of all His foes**. Verbatim: \"**The Lord God omnipotent, the Father, reigneth, is the language of this song. He reigns at the present time, and has ever reigned, in reality, though sentence against an evil work has not been executed speedily; but now he reigns by the open manifestation of his power in the subjugation of all his foes**\" (DAR 681.2). Smith does not give v.4 a discrete identification of the 24 elders or four living creatures here (those identifications are made in DAR's coverage of Rev 4-5)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 681.2",
+          "html": "Smith treats v.4 within the vv. 4-8 block under DAR 681.2's \"Song of Triumph\" header — the Lord God omnipotent now reigns by **open manifestation of His power in the subjugation of all His foes**. Verbatim: \"**The Lord God omnipotent, the Father, reigneth, is the language of this song. He reigns at the present time, and has ever reigned, in reality, though sentence against an evil work has not been executed speedily; but now he reigns by the open manifestation of his power in the subjugation of all his foes**\" (DAR 681.2). Smith does not give v.4 a discrete identification of the 24 elders or four living creatures here (those identifications are made in DAR's coverage of Rev 4-5)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -120,10 +132,13 @@
       "num": 5,
       "slug": "v-5",
       "text": "And a voice came out of the throne, saying, Praise our God, all ye his servants, and ye that fear him, both small and great.",
-      "pioneerReading": {
-        "citation": "DAR 681.2",
-        "html": "Smith treats v.5 within the vv. 4-8 \"Song of Triumph\" block — the universal call to praise from the throne, all who are God's servants both small and great. No discrete v.5 exegesis beyond the song-of-triumph framing of DAR 681.2."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 681.2",
+          "html": "Smith treats v.5 within the vv. 4-8 \"Song of Triumph\" block — the universal call to praise from the throne, all who are God's servants both small and great. No discrete v.5 exegesis beyond the song-of-triumph framing of DAR 681.2."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -147,10 +162,13 @@
       "num": 6,
       "slug": "v-6",
       "text": "And I heard as it were the voice of a great multitude, and as the voice of many waters, and as the voice of mighty thunderings, saying, Alleluia: for the Lord God omnipotent reigneth.",
-      "pioneerReading": {
-        "citation": "DAR 681.2",
-        "html": "**\"The Lord God omnipotent, the Father, reigneth\" — the open manifestation of God's reigning power in the subjugation of all His foes.** Verbatim: \"**The Lord God omnipotent, the Father, reigneth, is the language of this song. He reigns at the present time, and has ever reigned, in reality, though sentence against an evil work has not been executed speedily; but now he reigns by the open manifestation of his power in the subjugation of all his foes**\" (DAR 681.2). Smith reads the multitude as the redeemed celebrating the establishment of God's open, manifest reign — the visible kingdom now displaces the long-tolerated rule of evil."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 681.2",
+          "html": "**\"The Lord God omnipotent, the Father, reigneth\" — the open manifestation of God's reigning power in the subjugation of all His foes.** Verbatim: \"**The Lord God omnipotent, the Father, reigneth, is the language of this song. He reigns at the present time, and has ever reigned, in reality, though sentence against an evil work has not been executed speedily; but now he reigns by the open manifestation of his power in the subjugation of all his foes**\" (DAR 681.2). Smith reads the multitude as the redeemed celebrating the establishment of God's open, manifest reign — the visible kingdom now displaces the long-tolerated rule of evil."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -174,10 +192,13 @@
       "num": 7,
       "slug": "v-7",
       "text": "Let us be glad and rejoice, and give honour to him: for the marriage of the Lamb is come, and his wife hath made herself ready.",
-      "pioneerReading": {
-        "citation": "DAR 682.1",
-        "html": "**The marriage of the Lamb = Christ's reception of the New Jerusalem (the kingdom + the throne of His father David); the bride / Lamb's wife = the New Jerusalem.** Verbatim: \"**The Lamb's wife is the New Jerusalem which is above. This will be noticed more fully on chapter 21. The marriage of the Lamb is his reception of this city. When he receives this city, he receives it as the glory and metropolis of his kingdom; hence with it he receives his kingdom, and the throne of his father David. This may well be the event designated by the marriage of the Lamb**\" (DAR 682.1). Smith explicitly rejects the popular reading that the marriage = Christ's union with His church (which would make the marriage either past — Paul espousing his Corinthian converts to Christ — or merely figurative): \"**That the marriage relation is often taken to illustrate the union between Christ and his people, is granted; but the marriage of the Lamb here spoken of is a definite event to take place at a definite time… [if the church is the bride] then the marriage of the Lamb took place long ago; but that cannot be, according to this scripture, which locates it in the future**\" (DAR 682.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 682.1",
+          "html": "**The marriage of the Lamb = Christ's reception of the New Jerusalem (the kingdom + the throne of His father David); the bride / Lamb's wife = the New Jerusalem.** Verbatim: \"**The Lamb's wife is the New Jerusalem which is above. This will be noticed more fully on chapter 21. The marriage of the Lamb is his reception of this city. When he receives this city, he receives it as the glory and metropolis of his kingdom; hence with it he receives his kingdom, and the throne of his father David. This may well be the event designated by the marriage of the Lamb**\" (DAR 682.1). Smith explicitly rejects the popular reading that the marriage = Christ's union with His church (which would make the marriage either past — Paul espousing his Corinthian converts to Christ — or merely figurative): \"**That the marriage relation is often taken to illustrate the union between Christ and his people, is granted; but the marriage of the Lamb here spoken of is a definite event to take place at a definite time… [if the church is the bride] then the marriage of the Lamb took place long ago; but that cannot be, according to this scripture, which locates it in the future**\" (DAR 682.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -201,10 +222,13 @@
       "num": 8,
       "slug": "v-8",
       "text": "And to her was granted that she should be arrayed in fine linen, clean and white: for the fine linen is the righteousness of saints.",
-      "pioneerReading": {
-        "citation": "DAR 682.2",
-        "html": "**The fine linen of the city is the countless glorified inhabitants in their shining apparel — the righteousness of the saints understood as the company that walks the golden streets.** Verbatim: \"**But if the city is the bride, it may be asked how it can be said that she made herself ready. Answer: By the figure of personification, which attributes life and action to inanimate objects… Again, the query may arise on verse 8 how a city can be arrayed in the righteousness of the saints; but if we consider that a city without inhabitants would be but a dreary and cheerless place, we see at once how this is. Reference is had to the countless number of its glorified inhabitants in their shining apparel… The goodly apparel of this city, so to speak, consists of the hosts of the redeemed and immortal ones who walk its golden streets**\" (DAR 682.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 682.2",
+          "html": "**The fine linen of the city is the countless glorified inhabitants in their shining apparel — the righteousness of the saints understood as the company that walks the golden streets.** Verbatim: \"**But if the city is the bride, it may be asked how it can be said that she made herself ready. Answer: By the figure of personification, which attributes life and action to inanimate objects… Again, the query may arise on verse 8 how a city can be arrayed in the righteousness of the saints; but if we consider that a city without inhabitants would be but a dreary and cheerless place, we see at once how this is. Reference is had to the countless number of its glorified inhabitants in their shining apparel… The goodly apparel of this city, so to speak, consists of the hosts of the redeemed and immortal ones who walk its golden streets**\" (DAR 682.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -228,10 +252,13 @@
       "num": 9,
       "slug": "v-9",
       "text": "And he saith unto me, Write, Blessed are they which are called unto the marriage supper of the Lamb. And he saith unto me, These are the true sayings of God.",
-      "pioneerReading": {
-        "citation": "DAR 683.2",
-        "html": "**The marriage supper = the post-Second-Coming heavenly banquet — when we eat bread in the kingdom of God, drink the fruit of the vine new with our Redeemer, sit at His table in the kingdom (Matt 22:1-14; Luke 14:16-24; Luke 14:12-15; Matt 26:29; Mark 14:25; Luke 22:18; Luke 22:30; Luke 12:37).** Verbatim: \"**The Marriage Supper. — Many are the allusions to this marriage supper in the New Testament. It is referred to in the parable of the marriage of the king's son (Matthew 22:1-14), again in Luke 14:16-24. It is the time when we shall eat bread in the kingdom of God, when we are recompensed at the resurrection of the just. Luke 14:12-15. It is the time when we shall drink the fruit of the vine new with our Redeemer in his heavenly kingdom. Matthew 26:29; Mark 14:25; Luke 22:18. It is the time when we shall sit at his table in the kingdom (Luke 22:30), and he will gird himself and come forth and serve us. Luke 12:37. Blessed indeed are they who have the privilege of partaking of this glorious feast**\" (DAR 683.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 683.2",
+          "html": "**The marriage supper = the post-Second-Coming heavenly banquet — when we eat bread in the kingdom of God, drink the fruit of the vine new with our Redeemer, sit at His table in the kingdom (Matt 22:1-14; Luke 14:16-24; Luke 14:12-15; Matt 26:29; Mark 14:25; Luke 22:18; Luke 22:30; Luke 12:37).** Verbatim: \"**The Marriage Supper. — Many are the allusions to this marriage supper in the New Testament. It is referred to in the parable of the marriage of the king's son (Matthew 22:1-14), again in Luke 14:16-24. It is the time when we shall eat bread in the kingdom of God, when we are recompensed at the resurrection of the just. Luke 14:12-15. It is the time when we shall drink the fruit of the vine new with our Redeemer in his heavenly kingdom. Matthew 26:29; Mark 14:25; Luke 22:18. It is the time when we shall sit at his table in the kingdom (Luke 22:30), and he will gird himself and come forth and serve us. Luke 12:37. Blessed indeed are they who have the privilege of partaking of this glorious feast**\" (DAR 683.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -255,10 +282,13 @@
       "num": 10,
       "slug": "v-10",
       "text": "And I fell at his feet to worship him. And he said unto me, See thou do it not: I am thy fellowservant, and of thy brethren that have the testimony of Jesus: worship God: for the testimony of Jesus is the spirit of prophecy.",
-      "pioneerReading": {
-        "citation": "DAR 683.3",
-        "html": "**The fellow-servant angel is not a departed-spirit of a dead prophet (against Spiritualism) — he is an angel of God on a common-servant footing with John and the prophets.** Verbatim: \"**John's Fellow Servant. — A word on verse 10, in reference to those who think they find here an argument for consciousness in death. The mistake which such persons make on this scripture is in supposing that the angel declares to John that he is one of the old prophets come back to communicate with him. The person employed in giving the Revelation to John is called an angel, and angels are not the departed spirits of the dead. Whoever takes the position that they are, is to all intents a Spiritualist; for this is the very foundation-stone of their theory. But the angel says no such thing. He simply says that he is the fellow servant of John, as he had been the fellow servant of his brethren the prophets. The term fellow servant implies that they were all on a common footing as servants of the great God; hence he was not a proper object for John to worship**\" (DAR 683.3). Smith reads the verse defensively (against Spiritualism's appeal to it), holding the conditional-immortality / non-conscious-dead doctrine. Smith does not explicitly unpack \"the testimony of Jesus is the spirit of prophecy\" at this verse — the pioneer reading of that clause (testimony of Jesus = spirit of prophecy = the prophetic gift in the remnant church) is the historic SDA application of Rev 19:10 + Rev 12:17 + Rev 22:9."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 683.3",
+          "html": "**The fellow-servant angel is not a departed-spirit of a dead prophet (against Spiritualism) — he is an angel of God on a common-servant footing with John and the prophets.** Verbatim: \"**John's Fellow Servant. — A word on verse 10, in reference to those who think they find here an argument for consciousness in death. The mistake which such persons make on this scripture is in supposing that the angel declares to John that he is one of the old prophets come back to communicate with him. The person employed in giving the Revelation to John is called an angel, and angels are not the departed spirits of the dead. Whoever takes the position that they are, is to all intents a Spiritualist; for this is the very foundation-stone of their theory. But the angel says no such thing. He simply says that he is the fellow servant of John, as he had been the fellow servant of his brethren the prophets. The term fellow servant implies that they were all on a common footing as servants of the great God; hence he was not a proper object for John to worship**\" (DAR 683.3). Smith reads the verse defensively (against Spiritualism's appeal to it), holding the conditional-immortality / non-conscious-dead doctrine. Smith does not explicitly unpack \"the testimony of Jesus is the spirit of prophecy\" at this verse — the pioneer reading of that clause (testimony of Jesus = spirit of prophecy = the prophetic gift in the remnant church) is the historic SDA application of Rev 19:10 + Rev 12:17 + Rev 22:9."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -282,10 +312,13 @@
       "num": 11,
       "slug": "v-11",
       "text": "And I saw heaven opened, and behold a white horse; and he that sat upon him was called Faithful and True, and in righteousness he doth judge and make war.",
-      "pioneerReading": {
-        "citation": "DAR 684.2",
-        "html": "**Christ's Second Coming, this time under the symbol of a warrior riding forth to battle.** Verbatim: \"**Christ's Second Coming. — With verse 11 a new scene is introduced. We are here carried back to the second coming of Christ, this time under the symbol of a warrior riding forth to battle. Why is he represented thus? — Because he is going forth to war, — to meet 'the kings of the earth and their armies,' and this would be the only proper character in which to represent him on such a mission. His vesture is dipped in blood. (See a description of the same scene in Isaiah 63:1-4.) The armies of heaven, the angels of God, follow him**\" (DAR 684.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 684.2",
+          "html": "**Christ's Second Coming, this time under the symbol of a warrior riding forth to battle.** Verbatim: \"**Christ's Second Coming. — With verse 11 a new scene is introduced. We are here carried back to the second coming of Christ, this time under the symbol of a warrior riding forth to battle. Why is he represented thus? — Because he is going forth to war, — to meet 'the kings of the earth and their armies,' and this would be the only proper character in which to represent him on such a mission. His vesture is dipped in blood. (See a description of the same scene in Isaiah 63:1-4.) The armies of heaven, the angels of God, follow him**\" (DAR 684.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -309,10 +342,13 @@
       "num": 12,
       "slug": "v-12",
       "text": "His eyes were as a flame of fire, and on his head were many crowns; and he had a name written, that no man knew, but he himself.",
-      "pioneerReading": {
-        "citation": "DAR 684.1, treated within DAR 685.1",
-        "html": "Smith treats v.12 within the larger vv. 11-21 block of DAR 684.2 and DAR 685.1, with the kingly-attire motif anchored at v.16: \"**Christ has at this time closed his mediatorial work, and laid off his priestly robes for kingly attire; for he has on his vesture and on his thigh a name written, King of kings and Lord of lords. This is in harmony with the character in which he here appears; for it was the custom of warriors anciently to have some kind of title inscribed upon their vesture**\" (DAR 685.1). The flame-of-fire eyes (Rev 1:14) and many-crowns motifs are not given a discrete v.12 unpacking in DAR; they are folded into the kingly-warrior portrait of the larger block."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 684.1, treated within DAR 685.1",
+          "html": "Smith treats v.12 within the larger vv. 11-21 block of DAR 684.2 and DAR 685.1, with the kingly-attire motif anchored at v.16: \"**Christ has at this time closed his mediatorial work, and laid off his priestly robes for kingly attire; for he has on his vesture and on his thigh a name written, King of kings and Lord of lords. This is in harmony with the character in which he here appears; for it was the custom of warriors anciently to have some kind of title inscribed upon their vesture**\" (DAR 685.1). The flame-of-fire eyes (Rev 1:14) and many-crowns motifs are not given a discrete v.12 unpacking in DAR; they are folded into the kingly-warrior portrait of the larger block."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -336,10 +372,13 @@
       "num": 13,
       "slug": "v-13",
       "text": "And he was clothed with a vesture dipped in blood: and his name is called The Word of God.",
-      "pioneerReading": {
-        "citation": "DAR 684.2",
-        "html": "**The vesture dipped in blood = same scene as Isa 63:1-4 — the One coming from Edom with dyed garments from Bozrah, treading the winepress alone, His apparel sprinkled with the blood of His enemies.** Verbatim: \"**His vesture is dipped in blood. (See a description of the same scene in Isaiah 63:1-4.) The armies of heaven, the angels of God, follow him**\" (DAR 684.2). Smith's compressed reference to Isa 63:1-4 makes clear the blood is **the wicked's** (the trodden-grapes blood-splatter), not Christ's own. This is the historic pioneer reading."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 684.2",
+          "html": "**The vesture dipped in blood = same scene as Isa 63:1-4 — the One coming from Edom with dyed garments from Bozrah, treading the winepress alone, His apparel sprinkled with the blood of His enemies.** Verbatim: \"**His vesture is dipped in blood. (See a description of the same scene in Isaiah 63:1-4.) The armies of heaven, the angels of God, follow him**\" (DAR 684.2). Smith's compressed reference to Isa 63:1-4 makes clear the blood is **the wicked's** (the trodden-grapes blood-splatter), not Christ's own. This is the historic pioneer reading."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -363,10 +402,13 @@
       "num": 14,
       "slug": "v-14",
       "text": "And the armies which were in heaven followed him upon white horses, clothed in fine linen, white and clean.",
-      "pioneerReading": {
-        "citation": "DAR 684.2",
-        "html": "**The armies that follow Christ are the angels of God.** Verbatim: \"**The armies of heaven, the angels of God, follow him**\" (DAR 684.2)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 684.2",
+          "html": "**The armies that follow Christ are the angels of God.** Verbatim: \"**The armies of heaven, the angels of God, follow him**\" (DAR 684.2)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -390,10 +432,13 @@
       "num": 15,
       "slug": "v-15",
       "text": "And out of his mouth goeth a sharp sword, that with it he should smite the nations: and he shall rule them with a rod of iron: and he treadeth the winepress of the fierceness and wrath of Almighty God.",
-      "pioneerReading": {
-        "citation": "DAR 684.2",
-        "html": "**Christ rules the nations with a rod of iron when they are given to Him for an inheritance (Ps 2) — not a \"conversion of the world\" reading; the \"winepress of the fierceness and wrath of Almighty God\" rules out the popular conversion-of-the-heathen interpretation. The full and formal winepress + lake-of-fire scene comes at the end of the thousand years (Rev 20), but the Second-Coming destruction of the living wicked at the beginning of the thousand years is a parallel scene on a smaller scale.** Verbatim: \"**Verse 15 shows how he rules the nations with a rod of iron, when they are given him for an inheritance, as recorded in the second psalm, which popular theology interprets to mean the conversion of the world. But would not such expressions as 'treadeth the winepress of the fierceness and wrath of Almighty God,' be a very singular description of a work of grace upon the hearts of the heathen for their conversion? The great and final display of the 'winepress of God's wrath,' and also of 'the lake of fire,' occurs at the end of the thousand years, as described in chapter 20; and to that it would seem that the full and formal description of Revelation 14:18-20 must apply. But the destruction of the living wicked at the second coming of Christ, at the beginning of the thousand years, furnishes a scene on a smaller scale, similar, in both these respects, to what takes place at the close of that period. Hence in the verses before us we have this mention of both the winepress of wrath and the lake of fire**\" (DAR 684.2-685.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 684.2",
+          "html": "**Christ rules the nations with a rod of iron when they are given to Him for an inheritance (Ps 2) — not a \"conversion of the world\" reading; the \"winepress of the fierceness and wrath of Almighty God\" rules out the popular conversion-of-the-heathen interpretation. The full and formal winepress + lake-of-fire scene comes at the end of the thousand years (Rev 20), but the Second-Coming destruction of the living wicked at the beginning of the thousand years is a parallel scene on a smaller scale.** Verbatim: \"**Verse 15 shows how he rules the nations with a rod of iron, when they are given him for an inheritance, as recorded in the second psalm, which popular theology interprets to mean the conversion of the world. But would not such expressions as 'treadeth the winepress of the fierceness and wrath of Almighty God,' be a very singular description of a work of grace upon the hearts of the heathen for their conversion? The great and final display of the 'winepress of God's wrath,' and also of 'the lake of fire,' occurs at the end of the thousand years, as described in chapter 20; and to that it would seem that the full and formal description of Revelation 14:18-20 must apply. But the destruction of the living wicked at the second coming of Christ, at the beginning of the thousand years, furnishes a scene on a smaller scale, similar, in both these respects, to what takes place at the close of that period. Hence in the verses before us we have this mention of both the winepress of wrath and the lake of fire**\" (DAR 684.2-685.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -417,10 +462,13 @@
       "num": 16,
       "slug": "v-16",
       "text": "And he hath on his vesture and on his thigh a name written, KING OF KINGS, AND LORD OF LORDS.",
-      "pioneerReading": {
-        "citation": "DAR 685.1",
-        "html": "**Christ has at this time closed His mediatorial work and laid off His priestly robes for kingly attire — the title inscribed on the vesture in the ancient warrior-custom manner.** Verbatim: \"**Christ has at this time closed his mediatorial work, and laid off his priestly robes for kingly attire; for he has on his vesture and on his thigh a name written, King of kings and Lord of lords. This is in harmony with the character in which he here appears; for it was the custom of warriors anciently to have some kind of title inscribed upon their vesture**\" (DAR 685.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 685.1",
+          "html": "**Christ has at this time closed His mediatorial work and laid off His priestly robes for kingly attire — the title inscribed on the vesture in the ancient warrior-custom manner.** Verbatim: \"**Christ has at this time closed his mediatorial work, and laid off his priestly robes for kingly attire; for he has on his vesture and on his thigh a name written, King of kings and Lord of lords. This is in harmony with the character in which he here appears; for it was the custom of warriors anciently to have some kind of title inscribed upon their vesture**\" (DAR 685.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -444,10 +492,13 @@
       "num": 17,
       "slug": "v-17",
       "text": "And I saw an angel standing in the sun; and he cried with a loud voice, saying to all the fowls that fly in the midst of heaven, Come and gather yourselves together unto the supper of the great God;",
-      "pioneerReading": {
-        "citation": "DAR 685.1",
-        "html": "**The angel standing in the sun = the same universality-principle as Rev 16:17 (seventh vial poured into the air); the proclamation goes wherever the sun's rays fall — to all the earth.** Verbatim: \"**Verse 17. What is to be understood by the angel standing in the sun? In chapter 16:17, we read of the seventh vial being poured out into the air, from which it was inferred that as the air envelops the whole earth, that plague would be universal. May not the same principle of interpretation apply here, and show that the angel standing in the sun, and issuing his call from thence to the fowls of heaven to come to the supper of the great God, denotes that this proclamation will go wherever the sun's rays fall upon this earth? And the fowls will be obedient to the call, and fill themselves with the flesh of horses, kings, captains, and mighty men**\" (DAR 685.1). Smith reads the fowls as **literal fowls** — the supper of the great God is the literal carrion-feast of the Second-Coming destruction of the wicked. The \"supper of the great God\" is the **counter-supper** to the marriage-supper of the Lamb — while the saints partake of the marriage-supper of the Lamb in heaven, \"**the wicked in their own persons furnish a great supper for the fowls of heaven**\" (DAR 685.1)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 685.1",
+          "html": "**The angel standing in the sun = the same universality-principle as Rev 16:17 (seventh vial poured into the air); the proclamation goes wherever the sun's rays fall — to all the earth.** Verbatim: \"**Verse 17. What is to be understood by the angel standing in the sun? In chapter 16:17, we read of the seventh vial being poured out into the air, from which it was inferred that as the air envelops the whole earth, that plague would be universal. May not the same principle of interpretation apply here, and show that the angel standing in the sun, and issuing his call from thence to the fowls of heaven to come to the supper of the great God, denotes that this proclamation will go wherever the sun's rays fall upon this earth? And the fowls will be obedient to the call, and fill themselves with the flesh of horses, kings, captains, and mighty men**\" (DAR 685.1). Smith reads the fowls as **literal fowls** — the supper of the great God is the literal carrion-feast of the Second-Coming destruction of the wicked. The \"supper of the great God\" is the **counter-supper** to the marriage-supper of the Lamb — while the saints partake of the marriage-supper of the Lamb in heaven, \"**the wicked in their own persons furnish a great supper for the fowls of heaven**\" (DAR 685.1)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -474,10 +525,13 @@
       "num": 18,
       "slug": "v-18",
       "text": "That ye may eat the flesh of kings, and the flesh of captains, and the flesh of mighty men, and the flesh of horses, and of them that sit on them, and the flesh of all men, both free and bond, both small and great.",
-      "pioneerReading": {
-        "citation": "DAR pp. 680-686, no direct verse-anchor",
-        "html": "Smith covers v.18 within the v.17 block of DAR 685.1 — the fowls \"**will be obedient to the call, and fill themselves with the flesh of horses, kings, captains, and mighty men**\" (DAR 685.1). The phrasing is the literal-corpse-feast on the slain wicked of all ranks (kings, captains, mighty men, horses, free and bond, small and great) — the universal-destruction marker (cf. Rev 6:15-17, the same diction of \"_kings… great men… every bondman, and every free man_\" hiding from the wrath of the Lamb)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR pp. 680-686, no direct verse-anchor",
+          "html": "Smith covers v.18 within the v.17 block of DAR 685.1 — the fowls \"**will be obedient to the call, and fill themselves with the flesh of horses, kings, captains, and mighty men**\" (DAR 685.1). The phrasing is the literal-corpse-feast on the slain wicked of all ranks (kings, captains, mighty men, horses, free and bond, small and great) — the universal-destruction marker (cf. Rev 6:15-17, the same diction of \"_kings… great men… every bondman, and every free man_\" hiding from the wrath of the Lamb)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -504,10 +558,13 @@
       "num": 19,
       "slug": "v-19",
       "text": "And I saw the beast, and the kings of the earth, and their armies, gathered together to make war against him that sat on the horse, and against his army.",
-      "pioneerReading": {
-        "citation": "DAR 684.2",
-        "html": "Smith's reading of v.19 is implicit in his framing of v.11 — the white-horse rider is \"**going forth to war, — to meet 'the kings of the earth and their armies,' and this would be the only proper character in which to represent him on such a mission**\" (DAR 684.2). The beast + kings of the earth + their armies coalition is the same federation of antichrist powers Smith identifies throughout DAR's Rev 13, 16, 17 coverage — the papacy + image-to-the-beast power + their political confederates."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 684.2",
+          "html": "Smith's reading of v.19 is implicit in his framing of v.11 — the white-horse rider is \"**going forth to war, — to meet 'the kings of the earth and their armies,' and this would be the only proper character in which to represent him on such a mission**\" (DAR 684.2). The beast + kings of the earth + their armies coalition is the same federation of antichrist powers Smith identifies throughout DAR's Rev 13, 16, 17 coverage — the papacy + image-to-the-beast power + their political confederates."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -531,10 +588,13 @@
       "num": 20,
       "slug": "v-20",
       "text": "And the beast was taken, and with him the false prophet that wrought miracles before him, with which he deceived them that had received the mark of the beast, and them that worshipped his image. These both were cast alive into a lake of fire burning with brimstone.",
-      "pioneerReading": {
-        "citation": "DAR 685.2-686.1",
-        "html": "**The beast = the papacy; the false prophet = the two-horned land beast of Rev 13 (the miracle-working image-to-the-beast power). Both are cast ALIVE — meaning they are still living powers at the Second Coming and will not pass away and be succeeded by others before Christ comes; the papacy in particular is \"**very near the close of its existence**\" (referencing the 1870 papal-infallibility decree, DAR 686.1).** Verbatim: \"**The beast and false prophet are taken. The false prophet is the one that works miracles before the beast. This proves him to be identical with the two-horned beast of chapter 13, to whom the same work, for the very same purpose, is there attributed. The fact that these are cast alive into the lake of fire, shows that these powers will not pass away and be succeeded by others, but be living powers at the second advent of Christ**\" (DAR 685.2). And on the papacy: \"**The papacy has long been in the field, and has come to the closing scenes in its career. And its overthrow is emphatically predicted in other prophecies than the one now before us, notably in Daniel 7:11, in which the prophet says that he beheld till the beast was slain, and his body destroyed and given to the burning flame. And this followed close upon the utterance of great words which the horn spake, which words were doubtless heard in the decree of papal infallibility in the great ecumenical council of 1870. This power must therefore be very near the close of its existence. But it does not perish till Christ appears, for it then goes alive into the lake of fire**\" (DAR 686.1). DAR 686.2 extends the same logic to the two-horned beast."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 685.2-686.1",
+          "html": "**The beast = the papacy; the false prophet = the two-horned land beast of Rev 13 (the miracle-working image-to-the-beast power). Both are cast ALIVE — meaning they are still living powers at the Second Coming and will not pass away and be succeeded by others before Christ comes; the papacy in particular is \"**very near the close of its existence**\" (referencing the 1870 papal-infallibility decree, DAR 686.1).** Verbatim: \"**The beast and false prophet are taken. The false prophet is the one that works miracles before the beast. This proves him to be identical with the two-horned beast of chapter 13, to whom the same work, for the very same purpose, is there attributed. The fact that these are cast alive into the lake of fire, shows that these powers will not pass away and be succeeded by others, but be living powers at the second advent of Christ**\" (DAR 685.2). And on the papacy: \"**The papacy has long been in the field, and has come to the closing scenes in its career. And its overthrow is emphatically predicted in other prophecies than the one now before us, notably in Daniel 7:11, in which the prophet says that he beheld till the beast was slain, and his body destroyed and given to the burning flame. And this followed close upon the utterance of great words which the horn spake, which words were doubtless heard in the decree of papal infallibility in the great ecumenical council of 1870. This power must therefore be very near the close of its existence. But it does not perish till Christ appears, for it then goes alive into the lake of fire**\" (DAR 686.1). DAR 686.2 extends the same logic to the two-horned beast."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",
@@ -558,10 +618,13 @@
       "num": 21,
       "slug": "v-21",
       "text": "And the remnant were slain with the sword of him that sat upon the horse, which sword proceeded out of his mouth: and all the fowls were filled with their flesh.",
-      "pioneerReading": {
-        "citation": "DAR 686.3",
-        "html": "**The remnant (not numbered with the beast or false prophet) are slain by the sword of the white-horse rider, which sword = the spirit of His mouth / breath of His lips by which the Lord shall slay the wicked at His appearing and kingdom (Isa 11:4; 2 Thess 2:8).** Verbatim: \"**It appears from verse 21 that there is a remnant not numbered with the beast or false prophet. These are slain by the sword of Him that sits upon the horse, which sword proceeds out of his mouth. This sword is doubtless what is spoken of elsewhere as 'the spirit of his mouth' and 'the breath of his lips,' with which the Lord shall slay the wicked at his appearing and kingdom. Isaiah 11:4; 2 Thessalonians 2:8**\" (DAR 686.3)."
-      },
+      "pioneerReadings": [
+        {
+          "source": "smith",
+          "citation": "DAR 686.3",
+          "html": "**The remnant (not numbered with the beast or false prophet) are slain by the sword of the white-horse rider, which sword = the spirit of His mouth / breath of His lips by which the Lord shall slay the wicked at His appearing and kingdom (Isa 11:4; 2 Thess 2:8).** Verbatim: \"**It appears from verse 21 that there is a remnant not numbered with the beast or false prophet. These are slain by the sword of Him that sits upon the horse, which sword proceeds out of his mouth. This sword is doubtless what is spoken of elsewhere as 'the spirit of his mouth' and 'the breath of his lips,' with which the Lord shall slay the wicked at his appearing and kingdom. Isaiah 11:4; 2 Thessalonians 2:8**\" (DAR 686.3)."
+        }
+      ],
       "modernReadings": [
         {
           "source": "bohr",

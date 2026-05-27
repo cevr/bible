@@ -39,7 +39,7 @@ const violationCount = chapter.verses.filter(
 function shouldRenderCard(verse: typeof chapter.verses[number]): boolean {
   return Boolean(
     (verse.violations && verse.violations.items.length > 0) ||
-      verse.pioneerReading ||
+      verse.pioneerReadings.length > 0 ||
       verse.modernReadings.length > 0 ||
       verse.warrant ||
       verse.extensions.length > 0,

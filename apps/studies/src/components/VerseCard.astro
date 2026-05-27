@@ -1,5 +1,9 @@
 ---
-import { MODERN_SOURCE_NAMES, type Verse } from "../../scripts/schema.ts";
+import {
+  MODERN_SOURCE_NAMES,
+  PIONEER_SOURCE_NAMES,
+  type Verse,
+} from "../../scripts/schema.ts";
 import { md, mdInline } from "../lib/md.ts";
 import ViolationBadge from "./ViolationBadge.astro";
 
@@ -35,12 +39,19 @@ const permalink = `#${verse.slug}`;
       <p class="reading-tag">
         <span class="swatch" aria-hidden="true"></span>
         Pioneer
-        {verse.pioneerReading?.citation && (
-          <span class="cite">{verse.pioneerReading.citation}</span>
-        )}
       </p>
-      {verse.pioneerReading ? (
-        <div class="reading-body" set:html={md(verse.pioneerReading.html)} />
+      {verse.pioneerReadings.length > 0 ? (
+        <div class="pioneer-stack">
+          {verse.pioneerReadings.map((r) => (
+            <div class={`pioneer-entry pioneer-${r.source}`}>
+              <p class="pioneer-source">
+                {PIONEER_SOURCE_NAMES[r.source]}
+                {r.citation && <span class="cite">{r.citation}</span>}
+              </p>
+              <div class="reading-body" set:html={md(r.html)} />
+            </div>
+          ))}
+        </div>
       ) : (
         <p class="reading-empty">— no pioneer reading on this verse</p>
       )}
