@@ -1,7 +1,7 @@
 /**
  * EGW API client — thin fetch wrappers over the REST endpoints.
  *
- * The server (packages/web/server) serves EGW data from egw-paragraphs.db.
+ * The server (apps/web/server) serves EGW data from egw-paragraphs.db.
  * Vite dev proxy forwards /api → localhost:3001.
  */
 

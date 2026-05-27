@@ -9,7 +9,7 @@ Sources surveyed:
 - `solid-motionone` — `/Users/cvr/.cache/repo/solidjs-community/solid-motionone/src/`
 - `solid-transition-group/src/index.ts`, `solid-flip/src/`, `blankeos/solid-layout-motion/` (demo, no lib).
 
-Current usage to migrate: `packages/desktop/src/styles/reader.css:196,215-242,769,910-933` (CSS @keyframes fade-in / slide-in-left / slide-up + width transition) and `packages/desktop/src/app.tsx:85,329-341` (manual `sheetDragStartY` / threshold close).
+Current usage to migrate: `apps/desktop/src/styles/reader.css:196,215-242,769,910-933` (CSS @keyframes fade-in / slide-in-left / slide-up + width transition) and `apps/desktop/src/app.tsx:85,329-341` (manual `sheetDragStartY` / threshold close).
 
 ## 1. Vanilla layer — what `motion-dom` already gives us
 

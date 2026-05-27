@@ -525,8 +525,8 @@ const traceBibleIpc = <Args extends readonly unknown[], R>(
 // re-export types that other electron modules import
 export type { KjvStrongsChapterPayload, StrongsLexiconEntry };
 
-// Bundled main.cjs lives at packages/desktop/dist/main/main.cjs. The @bible/core
-// workspace is symlinked into packages/desktop/node_modules in dev, and electron-
+// Bundled main.cjs lives at apps/desktop/dist/main/main.cjs. The @bible/core
+// workspace is symlinked into apps/desktop/node_modules in dev, and electron-
 // builder ships the same layout in packaged builds. Resolve assets through
 // __dirname so we never depend on `import.meta.url` (undefined in CJS bundles).
 const coreAssetPath = (name: string): string =>
