@@ -36,6 +36,7 @@
     "**/scripts/**",
     "**/bin/**",
     "**/outputs/**/_raw/**",
+    "**/outputs/studies/**",
     "**/src-tauri/**"
   ],
   "overrides": [
@@ -58,8 +59,8 @@
         "**/packages/cli/src/services/model.ts",
         "**/packages/cli/src/lib/paths.ts",
         "**/packages/cli/src/tui/themes/**",
-        "**/packages/web/server/main.ts",
-        "**/packages/web/e2e/**",
+        "**/apps/web/server/main.ts",
+        "**/apps/web/e2e/**",
         "**/packages/core/src/egw/auth.ts",
         "**/packages/core/src/egw/client.ts",
         "**/packages/core/src/egw-db/book-database.ts",
@@ -85,26 +86,26 @@
         "**/packages/core/src/structural-analysis/**",
         "**/packages/core/src/sync/**",
         "**/packages/core/src/utils/match.ts",
-        "**/packages/web/src/workers/**",
-        "**/packages/web/src/lib/cached-app.ts",
-        "**/packages/web/src/data/**",
-        "**/packages/web/src/providers/**",
-        "**/packages/web/src/components/**",
-        "**/packages/web/src/routes/**",
+        "**/apps/web/src/workers/**",
+        "**/apps/web/src/lib/cached-app.ts",
+        "**/apps/web/src/data/**",
+        "**/apps/web/src/providers/**",
+        "**/apps/web/src/components/**",
+        "**/apps/web/src/routes/**",
         "**/packages/test-utils/**",
         "**/packages/cli/src/lib/**",
         "**/packages/cli/src/data/**",
         "**/packages/cli/src/services/**",
         "**/packages/cli/src/commands/**",
         "**/packages/cli/src/tui/**",
-        "**/packages/desktop/electron/**"
+        "**/apps/desktop/electron/**"
       ],
       "rules": {
         "typescript/no-unsafe-type-assertion": "off"
       }
     },
     {
-      "files": ["**/packages/web/**/*.tsx", "**/packages/web/**/*.ts"],
+      "files": ["**/apps/web/**/*.tsx", "**/apps/web/**/*.ts"],
       "rules": {
         "typescript/no-floating-promises": "off",
         "typescript/unbound-method": "off"
