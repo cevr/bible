@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
-// One-shot migration: pioneerReading (single, Smith only) -> pioneerReadings (array, multi-source).
-//   { pioneerReading: { citation, html } }   ->  { pioneerReadings: [{ source: 'smith', citation, html }] }
-//   { pioneerReading: null }                 ->  { pioneerReadings: [] }
+// One-shot migration: bohrReading -> modernReadings array.
+//   { bohrReading: { citation, html } }     ->  { modernReadings: [{ source: 'bohr', citation, html }] }
+//   { bohrReading: null }                   ->  { modernReadings: [] }
 // Rewrites JSON in place, preserving key order so the migration diff is reviewable.
 
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -9,11 +9,12 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
-const HERE = resolve(__filename, '..', '..');
+// scripts/archive/<file>.ts → up to apps/studies/
+const HERE = resolve(__filename, '..', '..', '..');
 const CHAPTERS_DIR = resolve(HERE, 'content', 'series', 'bohr-vs-millers-rules', 'chapters');
 
 type RawVerse = Record<string, unknown> & {
-  pioneerReading?: { citation: string | null; html: string } | null;
+  bohrReading?: { citation: string | null; html: string } | null;
 };
 
 type RawChapter = {
@@ -32,23 +33,23 @@ for (const file of files) {
   const chapter = JSON.parse(readFileSync(path, 'utf8')) as RawChapter;
   for (const verse of chapter.verses) {
     totalVerses += 1;
-    const pioneer = verse.pioneerReading;
+    const bohr = verse.bohrReading;
     const migrated: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(verse)) {
-      if (key === 'pioneerReading') {
-        if (pioneer) {
-          migrated.pioneerReadings = [
-            { source: 'smith', citation: pioneer.citation, html: pioneer.html },
-          ];
+      if (key === 'bohrReading') {
+        // Insert modernReadings in the same slot to keep JSON ordering intuitive.
+        if (bohr) {
+          migrated.modernReadings = [{ source: 'bohr', citation: bohr.citation, html: bohr.html }];
           totalMigrated += 1;
         } else {
-          migrated.pioneerReadings = [];
+          migrated.modernReadings = [];
           totalEmpty += 1;
         }
         continue;
       }
       migrated[key] = value;
     }
+    // Mutate the verse in place (replace its keys with migrated set).
     for (const k of Object.keys(verse)) delete (verse as Record<string, unknown>)[k];
     Object.assign(verse, migrated);
   }
@@ -57,5 +58,5 @@ for (const file of files) {
 }
 
 console.log(
-  `\ndone — ${totalVerses} verses, ${totalMigrated} with Smith readings, ${totalEmpty} empty`,
+  `\ndone — ${totalVerses} verses, ${totalMigrated} with bohr readings, ${totalEmpty} empty`,
 );
