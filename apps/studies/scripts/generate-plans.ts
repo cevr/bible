@@ -36,15 +36,15 @@ type PioneerEntry = {
 
 const PIONEERS: PioneerEntry[] = [
   {
-    source: 'smith',
-    preferredBooks: ['DAR', 'STTHD', 'TTHDS', 'KPC'],
-    primaryCommand: 'bible egw search "<term>" --book DAR --json',
-  },
-  {
     source: 'egw',
     preferredBooks: ['GC', 'EW', 'PK', 'PP', 'AA', 'DA', '1T-9T', 'Ev', 'SR'],
     primaryCommand: 'bible egw commentary "<book> <chapter>:<verse>" --json',
     note: 'EGW Commentary index (`commentary`) is the fastest entry point; widen with `search --book GC` for thematic hits.',
+  },
+  {
+    source: 'smith',
+    preferredBooks: ['DAR', 'STTHD', 'TTHDS', 'KPC'],
+    primaryCommand: 'bible egw search "<term>" --book DAR --json',
   },
   {
     source: 'miller',

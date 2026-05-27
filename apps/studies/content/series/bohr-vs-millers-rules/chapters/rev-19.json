@@ -11,9 +11,19 @@
       "text": "And after these things I heard a great voice of much people in heaven, saying, Alleluia; Salvation, and glory, and honour, and power, unto the Lord our God:",
       "pioneerReadings": [
         {
+          "source": "egw",
+          "citation": "TM 432.2; GC 641.1",
+          "html": "<p>EGW connects the heavenly Alleluia chorus of Rev 19:1 directly to the seventh trumpet and the close of the great controversy. In <em>Testimonies to Ministers</em> she writes: <strong>\"And the next scene is recorded, &lsquo;After these things&hellip; I heard as it were the voice of a great multitude, and as the voice of many waters, and as the voice of mighty thunderings, saying, Alleluia: for the Lord God Omnipotent reigneth.&rsquo; They sing the song of Moses and the song of the Lamb\"</strong> (TM 432.2). Earlier in <em>The Great Controversy</em> she describes the same scene: at the Second Coming \"the angels&rsquo; song is hushed, and there is a period of awful silence. Then the voice of Jesus is heard&hellip; The faces of the righteous are lighted up, and joy fills every heart. And the angels strike a note higher and sing again as they draw still nearer to the earth\" (GC 641.1). The multitude EGW identifies are the redeemed of all ages, joined with the heavenly host, rejoicing that the long controversy is over. Convergent with Smith and Bohr on the substance — the song belongs to the redeemed celebrating Babylon&rsquo;s fall in connection with the Second Coming.</p>"
+        },
+        {
           "source": "smith",
           "citation": "DAR 680.2",
           "html": "Smith reads the heavenly Alleluia chorus as the song of triumph the redeemed strike up at the destruction of Babylon, **in connection with the Second Coming at the commencement of the thousand years**. Verbatim: \"**CONTINUING the subject of chapter 18, the apostle here introduces the song of triumph which the redeemed saints strike up on victor harps, when they behold the complete destruction of that great system of opposition to God and his true worship comprehended in great Babylon. This destruction takes place, and this song is sung, in connection with the second coming of Christ at the commencement of the thousand years**\" (DAR 680.2)."
+        },
+        {
+          "source": "haskell",
+          "citation": "SSP 316.1, 317.1",
+          "html": "<p>Haskell paints v.1 as the universe-wide thunder of triumph when, after Babylon has fallen and the redeemed are gathered, \"<strong>love, eternal love rules the universe, and when the conflict is over, a shout resounds through creation, &lsquo;The Lord God omnipotent reigneth.&rsquo;</strong>\" From boundless space the unfallen creatures of God&rsquo;s love come to witness the gathering at the great supper of the Son of God (SSP 317.1). He frames the song against the backdrop of Rev 16 (plagues), Rev 18 (Babylon&rsquo;s character revealed) and Rev 22 (the curtain drawn aside): <strong>\"from the scenes of debauchery and destruction, which earth presents, his eye rested upon the heavenly gathering\"</strong> (SSP 316.1). The chorus is the redeemed&rsquo;s celebration of <em>righteous</em> judgment — the long-deferred sentence on the harlot is at last executed and the universe responds with one voice. Convergent with Smith.</p>"
         }
       ],
       "modernReadings": [
@@ -44,6 +54,11 @@
           "source": "smith",
           "citation": "DAR pp. 680-686, no direct verse-anchor",
           "html": "Smith treats v.2 within the vv. 1-3 song-block under DAR 680.2 and the \"Forever and Ever\" section at 680.3. The substance is the same: the song celebrates the judgment of the great whore (Babylon) and the avenging of the martyrs' blood — \"**the complete destruction of that great system of opposition to God and his true worship comprehended in great Babylon**\" (DAR 680.2). The avenging-of-blood theme is implicit in Smith's broader reading that this song accompanies the Second Coming destruction of \"the worshipers of the beast, and all the pomp of great Babylon, at the second advent of our Lord and Saviour\" (DAR 680.3)."
+        },
+        {
+          "source": "haskell",
+          "citation": "SSP 317.1 (with Rev 16:7 cross-ref)",
+          "html": "<p>Haskell on v.2: the cry of the redeemed answers the long martyrs&rsquo; petition of Rev 6:10. The \"<strong>true and righteous</strong>\" judgment is precisely what they have waited for — the avenging of the blood of those who were slain \"for the word of God, and for the testimony which they held.\" Haskell&rsquo;s margin at SSP 317 explicitly cross-references Rev 16:7 (\"Even so, Lord God Almighty, true and righteous are thy judgments\") with Rev 19:2, establishing the Rule-V diction-chain Bohr also follows. The song vindicates God&rsquo;s character: not only that He has destroyed the harlot, but that He has done so <em>justly</em> — a vindication the entire universe witnesses (SSP 317.1).</p>"
         }
       ],
       "modernReadings": [
@@ -70,6 +85,11 @@
       "slug": "v-3",
       "text": "And again they said, Alleluia. And her smoke rose up for ever and ever.",
       "pioneerReadings": [
+        {
+          "source": "egw",
+          "citation": "GC 673-678 (annihilation framework)",
+          "html": "<p>EGW does not unpack v.3&rsquo;s \"her smoke rose up for ever and ever\" with the same lexical detail Bohr stacks at pp. 168-171, but her doctrinal scaffolding is exactly the one the pioneers built on. In the chapter that closes <em>The Great Controversy</em>, she anchors the destruction of the wicked in <strong>annihilation</strong>, not eternal torment: \"Some are destroyed as in a moment, while others suffer many days\" (GC 673), and Satan with all who followed him \"shall be ashes under the soles of your feet\" (Mal 4:3, quoted across GC 673-678). The \"smoke ascendeth up for ever and ever\" of Babylon parallels the \"smoke of their torment\" in Rev 14:11 — both are <em>emblems of finished judgment</em> in EGW&rsquo;s framework, not of ceaseless conscious suffering. This is the load-bearing conditional-immortality reading the Bohr exposition then formalises lexically.</p>"
+        },
         {
           "source": "smith",
           "citation": "DAR 680.3",
@@ -137,6 +157,11 @@
           "source": "smith",
           "citation": "DAR 681.2",
           "html": "Smith treats v.5 within the vv. 4-8 \"Song of Triumph\" block — the universal call to praise from the throne, all who are God's servants both small and great. No discrete v.5 exegesis beyond the song-of-triumph framing of DAR 681.2."
+        },
+        {
+          "source": "bates",
+          "citation": "BP2 105.1",
+          "html": "<p>Bates folds v.5 into the heavenly Alleluia chorus that erupts at the moment of the wedding (the parallel \"voice came out of the throne… Praise our God\"): <strong>\"Here at this point the heavens rang with song and praise, 'the voice of a great multitude, and as the voice of many waters, and as the voice of mighty thunderings saying, Alleluia, for the Lord God omnipotent reigneth.'\"</strong> (BP2 105.1).</p>\n<p>For Bates, the call from the throne to \"all ye his servants\" to praise belongs to the same heavenly transaction as Christ's reception of the kingdom — the <em>Eighth Way Mark</em>, dated 22 October 1844. The voice is heaven's response to the Bridegroom leaving the mediatorial seat to be united to the New Jerusalem. The \"small and great that fear him\" are the redeemed of every age now consciously witnessing the kingdom transfer (Dan 7:13-14) from within the sanctuary.</p>\n<p>This is consonant with Smith and Haskell and identical in framework to his treatment of vv. 6-9; nothing here diverges from the Adventist mainstream.</p>"
         }
       ],
       "modernReadings": [
@@ -164,9 +189,19 @@
       "text": "And I heard as it were the voice of a great multitude, and as the voice of many waters, and as the voice of mighty thunderings, saying, Alleluia: for the Lord God omnipotent reigneth.",
       "pioneerReadings": [
         {
+          "source": "egw",
+          "citation": "TM 432.2; TMK 123",
+          "html": "<p>EGW on v.6: the great multitude is composed of <strong>the redeemed of all ages</strong>. In <em>That I May Know Him</em> 123 she writes that at this point in the climax of redemption \"all the redeemed from all ages\" lift their voices in the Alleluia chorus. Her <em>Testimonies to Ministers</em> entry weaves vv. 1-6 into a single scene: <strong>\"And the next scene is recorded, &lsquo;After these things&hellip; I heard as it were the voice of a great multitude, and as the voice of many waters, and as the voice of mighty thunderings, saying, Alleluia: for the Lord God Omnipotent reigneth.&rsquo; They sing the song of Moses and the song of the Lamb\"</strong> (TM 432.2). The \"many waters\" and \"mighty thunderings\" are not mere intensifiers — they signal that this is the unanimous voice of every redeemed creature, the vindication-song of God&rsquo;s government. Convergent with Smith&rsquo;s \"open manifestation of his power\" reading and Bohr&rsquo;s Rev 11:15-17 chronological linkage.</p>"
+        },
+        {
           "source": "smith",
           "citation": "DAR 681.2",
           "html": "**\"The Lord God omnipotent, the Father, reigneth\" — the open manifestation of God's reigning power in the subjugation of all His foes.** Verbatim: \"**The Lord God omnipotent, the Father, reigneth, is the language of this song. He reigns at the present time, and has ever reigned, in reality, though sentence against an evil work has not been executed speedily; but now he reigns by the open manifestation of his power in the subjugation of all his foes**\" (DAR 681.2). Smith reads the multitude as the redeemed celebrating the establishment of God's open, manifest reign — the visible kingdom now displaces the long-tolerated rule of evil."
+        },
+        {
+          "source": "bates",
+          "citation": "BP2 105.1",
+          "html": "<p>Bates&rsquo;s \"Eighth Way Mark\" (BP2 ch. 8) is the foundational 1844-Adventist exposition of Rev 19:5-9. On v.6&rsquo;s thundering Alleluia chorus, Bates ties the heavenly song directly to the close of the investigative judgment at the 22 October 1844 antitype: <strong>\"Here at this point the heavens rang with song and praise, &lsquo;the voice of a great multitude, and as the voice of many waters, and as the voice of mighty thunderings saying, Alleluia, for the Lord God omnipotent reigneth. Let us be glad and rejoice, and give honor to him, for the marriage of the Lamb has come, and his wife hath made herself ready&rsquo;\"</strong> (BP2 105.1, treating Rev 19:5-8 as a single block). Bates&rsquo;s reading is foundational pioneer Adventist: the chorus celebrates the heavenly enthronement-event Daniel saw in Dan 7:13-14 — Christ&rsquo;s reception of the kingdom — not the post-Second-Coming celebration of Babylon&rsquo;s destruction Bohr re-chronologises. (A historic intra-pioneer tension worth flagging: Bates and Bohr both honor the 1844 marriage-event, but locate the heavenly chorus at different points relative to Rev 19:11-21.)</p>"
         }
       ],
       "modernReadings": [
@@ -194,9 +229,34 @@
       "text": "Let us be glad and rejoice, and give honour to him: for the marriage of the Lamb is come, and his wife hath made herself ready.",
       "pioneerReadings": [
         {
+          "source": "egw",
+          "citation": "GC 426.2-427.1",
+          "html": "<p>EGW provides the foundational pioneer reading of Rev 19:7, quoted verbatim by Bohr from GC 426-427. The marriage = Christ&rsquo;s reception of the kingdom from the Ancient of Days in 1844, NOT a Second-Coming wedding-of-Christ-with-the-church. Verbatim: <strong>\"The marriage represents the reception by Christ of His kingdom. The Holy City, the New Jerusalem, which is the capital and representative of the kingdom, is called &lsquo;the bride, the Lamb&rsquo;s wife.&rsquo;&hellip; In the Revelation the people of God are said to be the guests at the marriage supper. Revelation 19:9. If guests, they cannot be represented also as the bride. Christ, as stated by the prophet Daniel, will receive from the Ancient of Days in heaven, &lsquo;dominion, and glory, and a kingdom;&rsquo; He will receive the New Jerusalem, the capital of His kingdom, &lsquo;prepared as a bride adorned for her husband&rsquo;\"</strong> (GC 426.2-427.1). And the 1844 anchor: <strong>\"At the appointed time the Bridegroom came, not to the earth, as the people expected, but to the Ancient of Days in heaven, to the marriage, the reception of His kingdom. &lsquo;They that were ready went in with Him to the marriage: and the door was shut.&rsquo; They were not to be present in person at the marriage; for it takes place in heaven, while they are upon the earth. The followers of Christ are to &lsquo;wait for their Lord, when He will return from the wedding&rsquo;\"</strong> (GC 427.1). This is the load-bearing Rev-19:7 + Dan 7:13-14 + Matt 25:1-13 + Luke 12:36 + Rev 21:9-10 harmonisation Smith and Bohr both build on.</p>"
+        },
+        {
           "source": "smith",
           "citation": "DAR 682.1",
           "html": "**The marriage of the Lamb = Christ's reception of the New Jerusalem (the kingdom + the throne of His father David); the bride / Lamb's wife = the New Jerusalem.** Verbatim: \"**The Lamb's wife is the New Jerusalem which is above. This will be noticed more fully on chapter 21. The marriage of the Lamb is his reception of this city. When he receives this city, he receives it as the glory and metropolis of his kingdom; hence with it he receives his kingdom, and the throne of his father David. This may well be the event designated by the marriage of the Lamb**\" (DAR 682.1). Smith explicitly rejects the popular reading that the marriage = Christ's union with His church (which would make the marriage either past — Paul espousing his Corinthian converts to Christ — or merely figurative): \"**That the marriage relation is often taken to illustrate the union between Christ and his people, is granted; but the marriage of the Lamb here spoken of is a definite event to take place at a definite time… [if the church is the bride] then the marriage of the Lamb took place long ago; but that cannot be, according to this scripture, which locates it in the future**\" (DAR 682.1)."
+        },
+        {
+          "source": "miller",
+          "citation": "MWV1 251.1",
+          "html": "<p>Miller's published \"Views of the Closing of the Door of Mercy\" reasons from Matt 25:10 to the close of probation: <strong>\"And while they went to buy, the bridegroom came; and they that were ready went in with him to the marriage; and the DOOR WAS SHUT.\"</strong> (MWV1 251.1; quoting Matt 25:10-12).</p>\n<p>For Miller, the wedding of Matt 25 is the same event John sees in Rev 19:7. <em>The wise virgins enter with the bridegroom to the marriage</em>; the foolish find the door shut. He pairs this with Rev 22:11 (\"he that is unjust let him be unjust still…\"), drawing the conclusion that <strong>the marriage marks an irrevocable closure of the day of grace</strong>.</p>\n<p>This is Miller's pre-Disappointment formulation. The post-1844 Sabbatarian Adventists (Bates, J. White, Smith, EGW) accepted his identification of Matt 25 with Rev 19:7 but relocated the event from earth (Christ returning to receive his bride) to heaven (Christ entering the Most Holy Place to receive the kingdom). Miller's exegesis supplied the verse-linkage; the sanctuary doctrine corrected its referent.</p>"
+        },
+        {
+          "source": "haskell",
+          "citation": "SSP 314.4, 315.1",
+          "html": "<p>Haskell on v.7: the marriage is the union of Christ with His bride the New Jerusalem at the close of His mediatorial ministry. He frames the universal gathering at the supper as the climax of the gospel: <strong>\"From the fall in Eden to the last generation on earth, guests are chosen for the marriage supper of the Lamb\"</strong> (SSP 314.4). On the marriage proper, Haskell follows the historic pioneer reading — the marriage takes place in heaven before Christ returns (cf. Luke 12:36), and the bride is the Holy City. Cross-referencing Zacchaeus&rsquo;s discussion in Luke 19, Haskell stacks the parable-of-the-nobleman framework that grounds the marriage at the close of the investigative judgment, returning from the wedding to take the redeemed home: <strong>\"A certain nobleman went into a far country to receive for himself a kingdom, and to return&hellip; Blessed are those servants, whom the Lord when He cometh shall find watching: verily I say unto you, that He shall gird Himself, and make them to sit down to meat, and will come forth and serve them\"</strong> (SSP 315.1, quoting Luke 19:11ff and Luke 12:36-37). Convergent with Smith.</p>"
+        },
+        {
+          "source": "bates",
+          "citation": "BP2 105.1",
+          "html": "<p>Bates on v.7: the marriage = the union effected on 22 October 1844 between Christ the Bridegroom and His Bride the New Jerusalem, with the prepared church on earth participating through the same close-of-probation transaction. <strong>\"MARRIAGE. — &lsquo;And they that were ready, went in with him to the marriage.&rsquo; I know it reads so, says one, but is it a literal wedding or marriage? No, it is a figurative representation (as we have shown) of a union effected between Christ the Bridegroom, and his Bride, the New Jerusalem in heaven; and when this took place the church here below were all brought into a certain state (&lsquo;R E A D Y&rsquo;) and participated in the union. This must necessarily be so, for Christ being the vine and the church the branches, also the head and the church the body, one could not move without the other&hellip;. Now we say that our history on the 22nd of October, 1844, was a perfect fulfilment of the figure or parable given to illustrate it\"</strong> (BP2 105.1). Bates locks the marriage to the historic 1844 transaction — Christ leaves the mediatorial seat to be united to His Bride, and the prepared church \"went in with him.\" This is the pioneer position later codified in GC 426-427 (EGW) and quoted by Bohr.</p>"
+        },
+        {
+          "source": "loughborough",
+          "citation": "GSAM 134.5",
+          "html": "<p>Loughborough places <strong>the marriage of the Lamb before the Second Advent</strong>, following the Adventist reading of the parable of the returning bridegroom: <strong>\"The marriage of the Lamb occurs before he comes; for, as we have already seen, when Christ finally comes, he will 'return from the wedding.'\"</strong> (GSAM 134.5; cf. Luke 12:36).</p>\n<p>The implication, for him, is that <em>the marriage</em> is not the Second Coming itself but a heavenly transaction <em>preceding</em> it — Christ's reception of the kingdom from the Ancient of Days (Dan 7:13-14) in the Most Holy Place, the same event that EGW dates to October 22, 1844 (GC 426-427) and that Bates frames as the \"Eighth Way Mark.\" The supper that follows (v.9) is the consummation enjoyed with the resurrected and translated saints after the Advent.</p>\n<p>This is squarely within the Millerite-Adventist consensus and does not diverge from Smith, EGW, Haskell, or Bates on this verse.</p>"
         }
       ],
       "modernReadings": [
@@ -224,9 +284,24 @@
       "text": "And to her was granted that she should be arrayed in fine linen, clean and white: for the fine linen is the righteousness of saints.",
       "pioneerReadings": [
         {
+          "source": "egw",
+          "citation": "COL 310",
+          "html": "<p>EGW directly defines the fine linen at COL 310 — the passage Bohr quotes verbatim: <strong>\"By the wedding garment in the parable is represented the pure, spotless character which Christ&rsquo;s true followers will possess. To the church it is given &lsquo;that she should be arrayed in fine linen, clean and white,&rsquo; &lsquo;not having spot, or wrinkle, or any such thing&rsquo; (Revelation 19:8; Ephesians 5:27). The fine linen, says the Scripture, &lsquo;is the righteousness of saints&rsquo; (Revelation 19:8). It is the righteousness of Christ, His own unblemished character, that through faith is imparted to all who receive Him as their personal Saviour\"</strong> (COL 310). The reading is unmistakably the <em>imparted</em> righteousness of Christ wrought out in the practical lives of the saints — the corporate bride (the church-in-its-entirety, identified with the Holy City) clothed in the character of her Lord. Convergent with both Smith (the city&rsquo;s inhabitants in shining apparel) and Bohr (the character of the inhabitants); EGW supplies the textual definition both expositors lean on.</p>"
+        },
+        {
           "source": "smith",
           "citation": "DAR 682.2",
           "html": "**The fine linen of the city is the countless glorified inhabitants in their shining apparel — the righteousness of the saints understood as the company that walks the golden streets.** Verbatim: \"**But if the city is the bride, it may be asked how it can be said that she made herself ready. Answer: By the figure of personification, which attributes life and action to inanimate objects… Again, the query may arise on verse 8 how a city can be arrayed in the righteousness of the saints; but if we consider that a city without inhabitants would be but a dreary and cheerless place, we see at once how this is. Reference is had to the countless number of its glorified inhabitants in their shining apparel… The goodly apparel of this city, so to speak, consists of the hosts of the redeemed and immortal ones who walk its golden streets**\" (DAR 682.2)."
+        },
+        {
+          "source": "haskell",
+          "citation": "SSP 318.1",
+          "html": "<p>Haskell makes the v.8 wedding-garment explicit and tightly fused with character: <strong>\"Everywhere will be seen the character of Christ. The city reflects it, the land speaks of purity, and the redeemed are clothed in the wedding garments, linen clean and white, which is the righteousness of Christ worn by the saints\"</strong> (SSP 318.1). The fine linen is not the city&rsquo;s walls but its inhabitants&rsquo; character — the imparted righteousness of Christ practically lived out. Convergent with both Smith (the inhabitants in shining apparel) and Bohr (the character of those inhabitants); Haskell makes the city / character / Christ-formed-in-the-saints loop in a single sentence.</p>"
+        },
+        {
+          "source": "bates",
+          "citation": "BP2 105.1",
+          "html": "<p>Bates on v.8: the fine linen = the saints&rsquo; sacrifice and obedience that has made them ready, anticipating the Dan 12:10 \"purified, and made white, and tried\" character formed in the holy people in the latter days. <strong>\"That is, the real saints would at this time be arrayed in fine linen clean and white, or they would be ready by sacrifice and obedience just as the angel Gabriel shewed Daniel it should be with the holy people in the latter (or last) days, &lsquo;purified and made white, and tried,&rsquo; but the trial is between the wedding and the supper\"</strong> (BP2 105.1). Bates&rsquo;s distinctive contribution is the <em>chronological</em> framing — the trial (the seven last plagues, the time of trouble) falls <strong>between</strong> the marriage (1844) and the supper (post-Second-Coming heavenly banquet). This is the same close-of-probation → time-of-trouble → Second-Coming → supper sequence Bohr&rsquo;s eight-step composite reproduces. Convergent with Smith on substance.</p>"
         }
       ],
       "modernReadings": [
@@ -254,9 +329,34 @@
       "text": "And he saith unto me, Write, Blessed are they which are called unto the marriage supper of the Lamb. And he saith unto me, These are the true sayings of God.",
       "pioneerReadings": [
         {
+          "source": "egw",
+          "citation": "EW 19.1",
+          "html": "<p>EGW supplies the most vivid pioneer description of the marriage supper — the post-Second-Coming heavenly banquet. In her first vision (EW 19): <strong>\"Soon we heard His lovely voice again, saying, &lsquo;Come, My people, you have come out of great tribulation, and done My will; suffered for Me; come in to supper, for I will gird Myself, and serve you.&rsquo; We shouted, &lsquo;Alleluia! glory!&rsquo; and entered into the city. And I saw a table of pure silver; it was many miles in length, yet our eyes could extend over it. I saw the fruit of the tree of life, the manna, almonds, figs, pomegranates, grapes, and many other kinds of fruit\"</strong> (EW 19.1). This is the exact post-translation banquet Smith and Bohr both locate at Rev 19:9 — the saints already in the city, Christ Himself girded and serving (cf. Luke 12:37). EGW&rsquo;s scene synthesises Rev 19:9 + Matt 8:11 + Luke 22:30 + Luke 12:37 into one heavenly tableau, and it is the foundational pioneer image for the post-Advent banquet reading.</p>"
+        },
+        {
           "source": "smith",
           "citation": "DAR 683.2",
           "html": "**The marriage supper = the post-Second-Coming heavenly banquet — when we eat bread in the kingdom of God, drink the fruit of the vine new with our Redeemer, sit at His table in the kingdom (Matt 22:1-14; Luke 14:16-24; Luke 14:12-15; Matt 26:29; Mark 14:25; Luke 22:18; Luke 22:30; Luke 12:37).** Verbatim: \"**The Marriage Supper. — Many are the allusions to this marriage supper in the New Testament. It is referred to in the parable of the marriage of the king's son (Matthew 22:1-14), again in Luke 14:16-24. It is the time when we shall eat bread in the kingdom of God, when we are recompensed at the resurrection of the just. Luke 14:12-15. It is the time when we shall drink the fruit of the vine new with our Redeemer in his heavenly kingdom. Matthew 26:29; Mark 14:25; Luke 22:18. It is the time when we shall sit at his table in the kingdom (Luke 22:30), and he will gird himself and come forth and serve us. Luke 12:37. Blessed indeed are they who have the privilege of partaking of this glorious feast**\" (DAR 683.2)."
+        },
+        {
+          "source": "miller",
+          "citation": "MWV2 237.2",
+          "html": "<p>Miller's pre-1844 published exposition reads the marriage and supper as a single event coincident with the Second Coming: <strong>\"'Marriage' is the time when Christ shall come the second time without sin unto salvation; gather his elect from the four winds of heaven… when the bride hath made herself ready, and the marriage of the Lamb is come, then he will present her to his Father… removes her into the New Jerusalem state, seats her upon the throne of his glory, where she will ever be with the Lord.\"</strong> (MWV2 237.2).</p>\n<p><strong>This is a substantive divergence from the post-1844 Sabbatarian Adventist consensus.</strong> Bates, J. White, Smith, EGW, Haskell, and Loughborough later relocated the marriage to a heavenly transaction at the Most Holy Place (Dan 7:13-14) dated 22 October 1844, with the Advent and supper following thereafter. For Miller, the marriage, the resurrection of the just, the gathering of the elect, the presentation to the Father, and the relocation to the New Jerusalem are <em>one</em> event — the Second Coming itself.</p>\n<p>The Adventist sanctuary doctrine corrected the referent without abandoning Miller's exegetical linkage of Matt 25:10 with Rev 19:7-9.</p>"
+        },
+        {
+          "source": "haskell",
+          "citation": "SSP 318.1, 323.2",
+          "html": "<p>Haskell on v.9: Gabriel pronounces the blessing on those gathered about the table — the supper as the consummation of the gospel call from Eden to the last generation. <strong>\"And as the prophet marveled over the grandeur of the scene, and the glory of redemption completed, Gabriel, thinking still of those on earth who should make up that company seated about the table, said, &lsquo;Write, Blessed are they which are called unto the marriage supper of the Lamb&rsquo;; for the things which thou hast seen are true. Though still future, John had seen things as they will be when sin is a thing of the past\"</strong> (SSP 318.1). And on the universality of the call: <strong>\"All are called to the marriage supper of the Lamb; all may be there, but those who have rejected the Word will be smitten when He comes as a consuming fire\"</strong> (SSP 323.2). The supper-of-Lamb and the supper-of-the-great-God of v.17 are explicitly the two outcomes of the one gospel invitation. Convergent with Smith.</p>"
+        },
+        {
+          "source": "bates",
+          "citation": "BP2 105.1",
+          "html": "<p>Bates on v.9: the wedding-garment Rule-V harmonisation with Matt 22:1-14 explains <em>why</em> blessed is the further qualifier — many called are at the wedding but few are chosen to the supper. <strong>\"They only are blessed that are called to the supper, for many would be at the wedding and join in the marriage song that would not be at the supper in the New Jerusalem, because they would not endure the trial that they should be plunged into between the marriage and the supper. How clear that the marriage takes place, and consequently the Bridegroom come, and the door shut, before the trial comes to purge and fan out the chaff from the wheat. &lsquo;Many are called, but few are chosen.&rsquo;\"</strong> Bates uses the wedding-garment test (Matt 22:11-14) to identify the wedding-garment as &ldquo;fine linen clean and white, for the fine linen is the righteousness of the saints&rdquo; (Rev 19:8) — the same Rule-V internal-definition Smith and Bohr both follow (BP2 105.1). The trial between the wedding and the supper is precisely what filters the wedding-attendees from the supper-participants. A strong intra-pioneer harmonisation.</p>"
+        },
+        {
+          "source": "loughborough",
+          "citation": "GSAM 135.1",
+          "html": "<p>Loughborough identifies the <em>call</em> to the marriage supper with the Millerite first-angel proclamation: <strong>\"This call to the marriage supper, then, must be the same as the first angel's message of Revelation 14, and the time proclamation of the tenth chapter, already noticed.\"</strong> (GSAM 135.1).</p>\n<p>He distinguishes two calls in the parable of Luke 14:16-17 — the first goes \"to them that were bidden,\" i.e. to professed Christians already looking for Christ's appearing, just as the gospel was first preached to the Jews. The 1840-1844 Advent movement is that first call. The second call (to the highways and hedges) corresponds to the later messages that gather a wider remnant.</p>\n<p>This makes <strong>the \"blessed\" of v.9 specifically those who heeded the Millerite cry and continued through the disappointment into the present-truth message</strong> — a tighter ecclesiology than Smith's broader \"all the saved\" reading, and a deliberate vindication of the Advent movement's prophetic legitimacy.</p>"
         }
       ],
       "modernReadings": [
@@ -284,9 +384,24 @@
       "text": "And I fell at his feet to worship him. And he said unto me, See thou do it not: I am thy fellowservant, and of thy brethren that have the testimony of Jesus: worship God: for the testimony of Jesus is the spirit of prophecy.",
       "pioneerReadings": [
         {
+          "source": "egw",
+          "citation": "EW 231.1-2",
+          "html": "<p>EGW retells v.10 verbatim in <em>Early Writings</em> in the context of the prophetic gift entrusted to the remnant. After describing how the angel showed John the final triumph of the church, she writes: <strong>\"The countenance of the angel grew radiant with joy and was exceeding glorious, as he showed John the final triumph of the church of God. As the apostle beheld the final deliverance of the church, he was carried away with the glory of the scene and with deep reverence and awe fell at the feet of the angel to worship him. The heavenly messenger instantly raised him up and gently reproved him, saying, &lsquo;See thou do it not: I am thy fellow servant, and of thy brethren that have the testimony of Jesus: worship God: for the testimony of Jesus is the spirit of prophecy&rsquo;\"</strong> (EW 231.1 context, the full Rev-19:10 retelling at the chapter break). EGW then applies the verse directly: this book of Revelation was \"given for the especial benefit of those who should live in the last days\" and explicitly grounds the prophetic gift in the remnant church (EW 231.1-2). The Rev 12:17 + Rev 19:10 + Rev 22:9 internal-definition chain is the historic SDA proof-text for the spirit-of-prophecy doctrine, and EGW is its anchor text.</p>"
+        },
+        {
           "source": "smith",
           "citation": "DAR 683.3",
           "html": "**The fellow-servant angel is not a departed-spirit of a dead prophet (against Spiritualism) — he is an angel of God on a common-servant footing with John and the prophets.** Verbatim: \"**John's Fellow Servant. — A word on verse 10, in reference to those who think they find here an argument for consciousness in death. The mistake which such persons make on this scripture is in supposing that the angel declares to John that he is one of the old prophets come back to communicate with him. The person employed in giving the Revelation to John is called an angel, and angels are not the departed spirits of the dead. Whoever takes the position that they are, is to all intents a Spiritualist; for this is the very foundation-stone of their theory. But the angel says no such thing. He simply says that he is the fellow servant of John, as he had been the fellow servant of his brethren the prophets. The term fellow servant implies that they were all on a common footing as servants of the great God; hence he was not a proper object for John to worship**\" (DAR 683.3). Smith reads the verse defensively (against Spiritualism's appeal to it), holding the conditional-immortality / non-conscious-dead doctrine. Smith does not explicitly unpack \"the testimony of Jesus is the spirit of prophecy\" at this verse — the pioneer reading of that clause (testimony of Jesus = spirit of prophecy = the prophetic gift in the remnant church) is the historic SDA application of Rev 19:10 + Rev 12:17 + Rev 22:9."
+        },
+        {
+          "source": "haskell",
+          "citation": "SSP 318.2",
+          "html": "<p>Haskell on v.10: the angel&rsquo;s reproof and the prophetic-gift identification. <strong>\"John, overcome with inexpressible joy and gratitude, fell at the feet of Gabriel, to worship him; but he who stands in the presence of God, a channel of communication between God and man, raised the prophet, and pointing toward the throne, said &lsquo;Worship God!&rsquo; I, though Gabriel, am but one of His creatures\"</strong> (SSP 318.2). The angel is Gabriel — the channel of communication entrusted with the prophetic message to John (and through John to the church). Haskell follows the historic SDA reading: the testimony of Jesus is the spirit of prophecy, the prophetic gift in the remnant church. Smith&rsquo;s defensive anti-Spiritualist framing and Bohr&rsquo;s positive identification both converge here. Haskell&rsquo;s distinctive contribution is the explicit identification of the reproving angel as Gabriel — the same heavenly messenger who explained Daniel&rsquo;s visions (cf. Dan 8:16; 9:21).</p>"
+        },
+        {
+          "source": "loughborough",
+          "citation": "PGGC 28.1",
+          "html": "<p>Loughborough treats v.10 as the locus classicus for Adventism's doctrine of the prophetic gift in the gospel church: <strong>\"By looking in Revelation, chapter 19, we get a Scripture definition of the 'testimony of Jesus.'… We now have an inspired definition that <em>the testimony of Jesus is the spirit of prophecy</em>.\"</strong> (PGGC 28.1).</p>\n<p>He reads the angel's self-identification — \"thy fellow servant, and of thy brethren that have the testimony of Jesus\" — as joining the prophetic order across both testaments and the present church. Combined with Rev 12:17 (the remnant who keep the commandments <em>and</em> have the testimony of Jesus), this gives him the dual mark of the last-day church: Sabbath-keeping and the manifested gift of prophecy.</p>\n<p>This is the standard Adventist platform reading and the dogmatic warrant for accepting Ellen White's ministry as the fulfilled \"spirit of prophecy\" within the remnant.</p>"
         }
       ],
       "modernReadings": [
@@ -314,9 +429,24 @@
       "text": "And I saw heaven opened, and behold a white horse; and he that sat upon him was called Faithful and True, and in righteousness he doth judge and make war.",
       "pioneerReadings": [
         {
+          "source": "egw",
+          "citation": "GC 640.3-641.1",
+          "html": "<p>EGW&rsquo;s climactic description of the Second Coming in <em>The Great Controversy</em> 640-641 is the pioneer expansion of Rev 19:11. After \"a small black cloud, about half the size of a man&rsquo;s hand\" appears in the east, the cloud draws nearer until it is revealed as <strong>\"a great white cloud, beneath which is the glory of God, and above it the rainbow of the covenant. Jesus rides forth as a mighty conqueror. Not now a &lsquo;Man of Sorrows,&rsquo; to drink the bitter cup of shame and woe, He comes, victor in heaven and earth, to judge the living and the dead. &lsquo;Faithful and True,&rsquo; &lsquo;in righteousness He doth judge and make war.&rsquo; And &lsquo;the armies which were in heaven&rsquo; follow Him (Revelation 19:11, 14). With anthems of celestial melody, the holy angels, a vast, unnumbered throng, attend Him on His way\"</strong> (GC 640.3-641.1 with the Rev 19:11 quotation). The white horse rider is unambiguously Christ at His literal, personal, Second Coming — the same Conqueror-King the pioneers identified, against any spiritualised \"spiritual coming\" reading. Convergent with Smith and Bohr.</p>"
+        },
+        {
           "source": "smith",
           "citation": "DAR 684.2",
           "html": "**Christ's Second Coming, this time under the symbol of a warrior riding forth to battle.** Verbatim: \"**Christ's Second Coming. — With verse 11 a new scene is introduced. We are here carried back to the second coming of Christ, this time under the symbol of a warrior riding forth to battle. Why is he represented thus? — Because he is going forth to war, — to meet 'the kings of the earth and their armies,' and this would be the only proper character in which to represent him on such a mission. His vesture is dipped in blood. (See a description of the same scene in Isaiah 63:1-4.) The armies of heaven, the angels of God, follow him**\" (DAR 684.2)."
+        },
+        {
+          "source": "haskell",
+          "citation": "SSP 319.1-2",
+          "html": "<p>Haskell on v.11: the closing scenes of earth opened anew, with Christ as conquering Commander. <strong>\"Beginning with the eleventh verse, the closing scenes of earth&rsquo;s history are again opened before John. This time he sees heaven&rsquo;s hosts marshaled,&mdash;ten thousand times ten thousands of angels, arrayed as warriors under their Commander. &lsquo;The Lord hath opened His armory, and hath brought forth the weapons of His indignation: for this is the work of the Lord God of Hosts&rsquo;\"</strong> (SSP 319.1, quoting Jer 50:25). And on the rider: <strong>\"At the head of the forces, rode the Commander in chief of all the hosts of heaven. He was clothed in a vesture dipped in blood&hellip;. He was seated on a pure white horse, a sign of royalty\"</strong> (SSP 319.2). The \"again opened\" phrasing flags Haskell&rsquo;s own recapitulation reading — vv. 11-21 reopen the closing scenes already shown elsewhere, which is the same Rule-VI structural pattern Bohr makes load-bearing for his vv. 1-9-after-vv.11-21 reordering. Convergent with Smith&rsquo;s \"new scene&hellip; we are here carried back to the second coming of Christ.\"</p>"
+        },
+        {
+          "source": "waggoner",
+          "citation": "CHR 42.1",
+          "html": "<p>Waggoner reads the white-horse Rider as Christ literally and visibly returning, identifying the scene with Jeremiah 25:30: <strong>\"Comparing this with Revelation 19:11-21, where Christ as the Leader of the armies of heaven, the Word of God, King of kings, and Lord of lords, goes forth to tread the wine-press of the fierceness and wrath of Almighty God, destroying all the wicked, we find that it is Christ who roars from His habitation against all the inhabitants of the earth.\"</strong> (CHR 42.1).</p>\n<p>The exegetical move is Miller's Rule V — Scripture is its own expositor. Waggoner aligns Rev 19 with Jer 25:30 (\"The Lord shall roar from on high… he shall give a shout, as they that tread the grapes\"), 1 Thess 4:16 (the Lord descends with a shout), John 5:28-29 (the voice that pierces the tombs), and Joel 3:16. The convergence proves that <em>the same event</em> is in view: the personal, audible, world-shaking advent of Christ.</p>\n<p>This is fully consonant with Smith and EGW and reinforces the historicist refusal to spiritualize the Rider into anything less than the returning Lord.</p>"
         }
       ],
       "modernReadings": [
@@ -344,9 +474,24 @@
       "text": "His eyes were as a flame of fire, and on his head were many crowns; and he had a name written, that no man knew, but he himself.",
       "pioneerReadings": [
         {
+          "source": "egw",
+          "citation": "EW 53.1, 281.1, 36.1",
+          "html": "<p>EGW supplies the seven-crowns-within-a-crown detail Bohr cites: <strong>\"Jesus was also with them; His crown looked brilliant and glorious. It was a crown within a crown, seven in number\"</strong> (EW 53.1, post-millennium scene). And on the change of attire which Rev 19:12&rsquo;s warrior-portrait presupposes: <strong>\"Then I saw Jesus lay off His priestly attire and clothe Himself with His most kingly robes. Upon His head were many crowns, a crown within a crown. Surrounded by the angelic host, He left heaven\"</strong> (EW 281.1, the Second-Coming setting). And the foundational change at the close of probation: Jesus \"will&hellip; lay off his priestly attire, and clothed Himself with the garments of vengeance\" (EW 36.1). The eyes of flame, the many crowns, and the unknown name all signal that the Mediator has become the Avenger — the \"strange work\" of Isa 28:21 that Bohr identifies with the unknown name. Convergent with Smith&rsquo;s closed-mediatorial-work / kingly-attire reading.</p>"
+        },
+        {
           "source": "smith",
           "citation": "DAR 684.1, treated within DAR 685.1",
           "html": "Smith treats v.12 within the larger vv. 11-21 block of DAR 684.2 and DAR 685.1, with the kingly-attire motif anchored at v.16: \"**Christ has at this time closed his mediatorial work, and laid off his priestly robes for kingly attire; for he has on his vesture and on his thigh a name written, King of kings and Lord of lords. This is in harmony with the character in which he here appears; for it was the custom of warriors anciently to have some kind of title inscribed upon their vesture**\" (DAR 685.1). The flame-of-fire eyes (Rev 1:14) and many-crowns motifs are not given a discrete v.12 unpacking in DAR; they are folded into the kingly-warrior portrait of the larger block."
+        },
+        {
+          "source": "haskell",
+          "citation": "SSP 319.2-320.1",
+          "html": "<p>Haskell on v.12: the flame-eyes, the many crowns, the unknown name. He pictures Christ as the warrior-king whose innermost being is forever beyond creaturely reach: <strong>\"On His head He wore many crowns in token of the victories won. To His devoted followers, the name of the Commander was &lsquo;Faithful and True.&rsquo; On His vesture and on His thigh, was written, &lsquo;King of Kings, and Lord of Lords&rsquo;; but aside from these letters He had a name known only to Himself and the Father,&mdash;a name expressing the depths of divine character which even eternity cannot interpret. Since each redeemed one has an inner experience with Christ, which is a secret between two, so the Father and His eldest Son know each other as none others can know them\"</strong> (SSP 319.2-320.1). Haskell&rsquo;s margin catalogs the biblical crowns (crown of life, gold, glory, righteousness, rejoicing, knowledge, incorruptible — see SSP 320.1 margin), gathering them into the seven-crowns-in-one of Rev 19:12. The unknown name reading is theological rather than role-based (Bohr&rsquo;s \"avenger\" identification): Haskell finds in it the inexhaustible mystery of the Father-Son relation. A distinct but complementary reading.</p>"
+        },
+        {
+          "source": "jones",
+          "citation": "TTR 334.2",
+          "html": "<p>Jones cites v.12 to argue against the post-Nicene attempt to define the inner being of Christ: <strong>\"It was an attempt of the finite to measure, to analyze, and even to dissect, the Infinite… 'He had a name written that no man knew but he himself.'\"</strong> (TTR 334.2).</p>\n<p>For Jones, <strong>the secret name of the Rider settles the limits of theological speculation</strong>. If Scripture itself declares the name unknowable to any but the Bearer, then the Arian-Athanasian controversies over <em>homoousios</em> versus <em>homoiousios</em> were doomed at the outset — they sought to measure what God has placed beyond measurement. The many crowns and the secret name together signal absolute, uncommunicable sovereignty.</p>\n<p>This reading sits adjacent to Smith and Haskell (who focus on the Rider's identity as Christ returning in glory) but adds a polemical edge: <em>the verse rebukes creedalism</em>. It is congruent with Miller's Rule I (every word bears) — even the silence about the name is hermeneutically loaded.</p>"
         }
       ],
       "modernReadings": [
@@ -377,6 +522,16 @@
           "source": "smith",
           "citation": "DAR 684.2",
           "html": "**The vesture dipped in blood = same scene as Isa 63:1-4 — the One coming from Edom with dyed garments from Bozrah, treading the winepress alone, His apparel sprinkled with the blood of His enemies.** Verbatim: \"**His vesture is dipped in blood. (See a description of the same scene in Isaiah 63:1-4.) The armies of heaven, the angels of God, follow him**\" (DAR 684.2). Smith's compressed reference to Isa 63:1-4 makes clear the blood is **the wicked's** (the trodden-grapes blood-splatter), not Christ's own. This is the historic pioneer reading."
+        },
+        {
+          "source": "haskell",
+          "citation": "SSP 319.2 (margin), 320.1",
+          "html": "<p>Haskell on v.13: the vesture dipped in blood and the Word-of-God title. <strong>\"To His Father, Christ is the Word of God. The completest union is here signified. God has spoken through Christ in all His creation, and the name Word of God is an eternal reminder of the everlasting covenant into which the Two entered when Christ received that name. It was the Word of God which was made flesh, and dwelt among us. It is the Word that saves, and it is this same Word that destroys\"</strong> (SSP 320.1). And on the blood: Haskell&rsquo;s margin links Isa 63:1 (\"Who is this that cometh from Edom, with dyed garments from Bozrah?\") with Zech 13:6 (\"What are these wounds in thine hands?\") — both at v.13 (SSP 319.2 margin). The blood is principally the wicked&rsquo;s — Isa 63 winepress imagery — but Haskell also lets the Zech 13:6 wound-of-Calvary motif resonate: the same Christ who was bruised now treads the winepress. Convergent with Smith&rsquo;s Isa 63:1-4 reference.</p>"
+        },
+        {
+          "source": "jones",
+          "citation": "TTR 334.2",
+          "html": "<p>Jones reads \"his name is called The Word of God\" in tight unity with v.12's secret name: <strong>\"Christ is the Word — the expression of the thought — of God; and none but he knows the depth of the meaning of that Word.\"</strong> (TTR 334.2).</p>\n<p>The vesture dipped in blood is not Jones's focus; he is mining the title for its <em>ontological</em> weight. Christ as <em>logos</em> is the only adequate self-expression of the Father, and consequently the only mind that comprehends the Father exhaustively (Matt 11:27). The verse therefore grounds both the deity of Christ and the impossibility of capturing him in human formulae.</p>\n<p>This complements rather than competes with Smith's view that the bloodied robe points to the slaughter of Armageddon (DAR 695). Jones is reading at a different register — using the title to anchor the doctrine of revelation. The two readings stack: <em>the Rider whose blood-stained robe destroys his enemies is the very Word in whom God is fully and exclusively expressed</em>.</p>"
         }
       ],
       "modernReadings": [
@@ -404,9 +559,19 @@
       "text": "And the armies which were in heaven followed him upon white horses, clothed in fine linen, white and clean.",
       "pioneerReadings": [
         {
+          "source": "egw",
+          "citation": "GC 641.1",
+          "html": "<p>EGW frames v.14 in <em>The Great Controversy</em>&rsquo;s Second-Coming scene: <strong>\"With anthems of celestial melody, the holy angels, a vast, unnumbered throng, attend Him on His way. The firmament seems filled with radiant forms&mdash;&lsquo;ten thousand times ten thousand, and thousands of thousands.&rsquo; No human pen can portray the scene; no mortal mind is adequate to conceive its splendor\"</strong> (GC 641.1 context). The \"armies which were in heaven\" are the holy angels (Matt 25:31, \"the Son of man shall come in his glory, and all the holy angels with him\") — the same identification Smith makes and that Bohr defends against Stefanovic&rsquo;s saints-as-armies reading. Convergent with Smith and Bohr.</p>"
+        },
+        {
           "source": "smith",
           "citation": "DAR 684.2",
           "html": "**The armies that follow Christ are the angels of God.** Verbatim: \"**The armies of heaven, the angels of God, follow him**\" (DAR 684.2)."
+        },
+        {
+          "source": "haskell",
+          "citation": "SSP 320.1",
+          "html": "<p>Haskell links the white-horse-and-fine-linen of the heavenly armies to the resurrected and translated saints riding with their King: <strong>\"And the armies which were in heaven followed him upon white horses, clothed in fine linen, white and clean.\"</strong> (Rev 19:14, quoted at SSP 320.1).</p>\n<p>The fine linen ties back to v.8 — these are the same saints whose own righteousness is the wedding garment — but with the difference that they are now glorified and visibly enthroned with Christ. For Haskell, this is the public vindication of the bride: the church seen suffering in Rev 12 and 13, sealed in Rev 7, called to come out of Babylon in Rev 18, now appears mounted with the King at his coming.</p>\n<p>This matches Smith (DAR 696) and is the standard Adventist conclusion: <em>the \"armies\" are not unfallen angels alone but include the redeemed</em>, as Jude 14 and 1 Thess 3:13 (\"with all his saints\") confirm by Rule V cross-reference.</p>"
         }
       ],
       "modernReadings": [
@@ -437,6 +602,16 @@
           "source": "smith",
           "citation": "DAR 684.2",
           "html": "**Christ rules the nations with a rod of iron when they are given to Him for an inheritance (Ps 2) — not a \"conversion of the world\" reading; the \"winepress of the fierceness and wrath of Almighty God\" rules out the popular conversion-of-the-heathen interpretation. The full and formal winepress + lake-of-fire scene comes at the end of the thousand years (Rev 20), but the Second-Coming destruction of the living wicked at the beginning of the thousand years is a parallel scene on a smaller scale.** Verbatim: \"**Verse 15 shows how he rules the nations with a rod of iron, when they are given him for an inheritance, as recorded in the second psalm, which popular theology interprets to mean the conversion of the world. But would not such expressions as 'treadeth the winepress of the fierceness and wrath of Almighty God,' be a very singular description of a work of grace upon the hearts of the heathen for their conversion? The great and final display of the 'winepress of God's wrath,' and also of 'the lake of fire,' occurs at the end of the thousand years, as described in chapter 20; and to that it would seem that the full and formal description of Revelation 14:18-20 must apply. But the destruction of the living wicked at the second coming of Christ, at the beginning of the thousand years, furnishes a scene on a smaller scale, similar, in both these respects, to what takes place at the close of that period. Hence in the verses before us we have this mention of both the winepress of wrath and the lake of fire**\" (DAR 684.2-685.1)."
+        },
+        {
+          "source": "haskell",
+          "citation": "SSP 320.1-321.1",
+          "html": "<p>Haskell on v.15: the sword from the mouth and the rod of iron. <strong>\"For the first time in all ages, Christ goes from heaven as a warrior, clad with helmet and sword; for the first time, He comes to rule with a rod of iron. For six thousand years He has been the gentlest of the gentle&hellip;. But when He comes at the end of the time, to meet the armies of earth that are in battle array on the plains of Armageddon, His eyes flash flames of fire, which burn through the souls of men; and out of His mouth goeth a sharp sword, and with it He smites the nations\"</strong> (SSP 320.1-321.1). On the Word becoming a consuming fire: <strong>\"He whose Word has been the saving grace through time, now holds aloft the Word of God, and men are condemned by their own hearts&hellip;. while to one company, His coming brings immortal life, to the other, who have scorned the Word when it was spoken in human language, that Word, as it comes from Jehovah Himself, becomes a consuming fire\"</strong> (SSP 321.1). Haskell&rsquo;s margin stacks Heb 4:12 + Isa 11:4 + Ps 2:7-8 + 2 Thess 2:8 — the exact Rule-IV chain Bohr and Smith both build. Convergent.</p>"
+        },
+        {
+          "source": "waggoner",
+          "citation": "CHR 42.1",
+          "html": "<p>Waggoner attaches v.15 to the same Jeremiah/Joel cluster: the Rider <strong>\"goes forth to tread the wine-press of the fierceness and wrath of Almighty God, destroying all the wicked\"</strong> (CHR 42.1). The sharp sword and the iron rod are not figurative for a slow conquest; they are the implements of the literal, simultaneous destruction of the living wicked at the Second Coming.</p>\n<p>His chain — Jer 25:30 (the Lord roars and treads the grapes), Joel 3:16, 1 Thess 4:16, John 5:28-29, Rev 19:11-21 — is a textbook deployment of <em>analogia scripturae</em>: the \"shout\" of 1 Thessalonians and the \"roar\" of Jeremiah are the same voice, and that voice is the very Word who issues from the Rider's mouth in v.15.</p>\n<p>The implication, characteristic of the 1888 generation, is <em>collapse</em> of any millennial-reign-on-earth scheme: the wine-press of Rev 19 is the eschaton, not the start of a postmillennial golden age.</p>"
         }
       ],
       "modernReadings": [
@@ -464,9 +639,19 @@
       "text": "And he hath on his vesture and on his thigh a name written, KING OF KINGS, AND LORD OF LORDS.",
       "pioneerReadings": [
         {
+          "source": "egw",
+          "citation": "GC 641.2; GC 643.1",
+          "html": "<p>EGW on v.16: at the moment of the descent the title is enacted, not merely declared. <strong>\"The King of kings descends upon the cloud, wrapped in flaming fire. The heavens are rolled together as a scroll, the earth trembles before Him, and every mountain and island is moved out of its place\"</strong> (GC 641.2). The title written on vesture and thigh is the answer to Rev 13:4&rsquo;s rebellious question — \"Who is like unto the beast? who is able to make war with him?\" — and to the cry of the fifth-seal martyrs. EGW also pictures the moment the wicked themselves are forced to confess Christ&rsquo;s sovereignty: \"<strong>now they behold Him in His glory, and they are yet to see Him sitting on the right hand of power</strong>\" (GC 643.1, against those who had mocked Him in His humiliation). The King of kings reigns visibly, in open manifestation, after long mediation. Convergent with Smith.</p>"
+        },
+        {
           "source": "smith",
           "citation": "DAR 685.1",
           "html": "**Christ has at this time closed His mediatorial work and laid off His priestly robes for kingly attire — the title inscribed on the vesture in the ancient warrior-custom manner.** Verbatim: \"**Christ has at this time closed his mediatorial work, and laid off his priestly robes for kingly attire; for he has on his vesture and on his thigh a name written, King of kings and Lord of lords. This is in harmony with the character in which he here appears; for it was the custom of warriors anciently to have some kind of title inscribed upon their vesture**\" (DAR 685.1)."
+        },
+        {
+          "source": "haskell",
+          "citation": "SSP 320.1",
+          "html": "<p>Haskell draws the title on Christ's vesture and thigh into the cumulative Old-Testament portrait of the priest-king: <strong>\"Even he shall build the temple of the Lord; and he shall bear the glory, and shall sit and rule upon his throne; and he shall be a priest upon his throne\"</strong> (Zech 6:13, quoted at SSP 320.1).</p>\n<p>The title <em>KING OF KINGS, AND LORD OF LORDS</em> closes the long arc of Christ's offices in Revelation — Lamb slain (5:6), High Priest in the sanctuary (8:3-5), Bridegroom (19:7), and now sovereign Warrior. Haskell pairs this with Matt 21:44 (the stone that grinds to powder) and Ps 2:7 (the begotten Son), arguing that the title is not metaphorical inflation but the literal conferment of universal dominion that Daniel 7:14 promised the Son of man.</p>\n<p>This is fully consonant with Smith (DAR 697) and EGW (GC 642) and represents the Adventist mainstream — <em>the title written on thigh and vesture is the formal investiture of Christ as kingdom-receiving Messiah</em>.</p>"
         }
       ],
       "modernReadings": [
@@ -497,6 +682,16 @@
           "source": "smith",
           "citation": "DAR 685.1",
           "html": "**The angel standing in the sun = the same universality-principle as Rev 16:17 (seventh vial poured into the air); the proclamation goes wherever the sun's rays fall — to all the earth.** Verbatim: \"**Verse 17. What is to be understood by the angel standing in the sun? In chapter 16:17, we read of the seventh vial being poured out into the air, from which it was inferred that as the air envelops the whole earth, that plague would be universal. May not the same principle of interpretation apply here, and show that the angel standing in the sun, and issuing his call from thence to the fowls of heaven to come to the supper of the great God, denotes that this proclamation will go wherever the sun's rays fall upon this earth? And the fowls will be obedient to the call, and fill themselves with the flesh of horses, kings, captains, and mighty men**\" (DAR 685.1). Smith reads the fowls as **literal fowls** — the supper of the great God is the literal carrion-feast of the Second-Coming destruction of the wicked. The \"supper of the great God\" is the **counter-supper** to the marriage-supper of the Lamb — while the saints partake of the marriage-supper of the Lamb in heaven, \"**the wicked in their own persons furnish a great supper for the fowls of heaven**\" (DAR 685.1)."
+        },
+        {
+          "source": "miller",
+          "citation": "MWV1 75.3-6",
+          "html": "<p>In his exposition of Ezekiel 39:11-16 (Gog's burial in the valley of Hamonah), Miller identifies the city Hamonah as Babylon — the harlot of Rev 14:8, 16:19, 17:18 — and chains the cleansing of the land directly to Rev 19:17-21: <strong>\"It is the great city, Babylon, that 'made all nations (multitude) drink of the wine of the wrath of her fornication'… she is called Gog, because she is chief prince, and rules, or hath ruled, over the kings of the earth.\"</strong> (MWV1 75.3, with explicit cross-reference to Rev 19:17-21 at 75.6).</p>\n<p>The angel's invitation to the fowls to \"the supper of the great God\" is therefore, for Miller, the literal fulfilment of Ezekiel's burial-of-Gog prophecy — the corpses of every prophetic enemy of God, from Pagan and Papal Rome down to her latter-day allies, become the carrion of the avian feast that follows the Advent.</p>\n<p>This is a Rule V (Scripture its own expositor) operation par excellence: Ezekiel 39, Rev 14, Rev 17, Rev 19 fuse into one terminal scene. Smith, Haskell, and EGW work within the same framework on this verse.</p>"
+        },
+        {
+          "source": "haskell",
+          "citation": "SSP 322.1 (margin), 323.1",
+          "html": "<p>Haskell on v.17: literal supper, literal fowls, literal carrion-feast — the historic pioneer reading Bohr departs from. <strong>\"The culmination of all destruction comes at the appearing of Christ as Commander of the hosts of heaven. And when the slain cover the earth from one end to the other, a mighty angel is represented as standing over against the sun, and crying so that the fowls of the whole earth hear, saying, &lsquo;Come and gather yourselves together unto the supper of the great God&hellip;&rsquo;\"</strong> (SSP 323.1). And explicitly framed as the counter-supper: <strong>\"This is one supper,&mdash;a feast of death. What a contrast to the marriage supper of the Lamb! It is the last feast, even for birds of prey, whose very existence typifies the devouring nature of sin\"</strong> (SSP 323.1). Haskell&rsquo;s margin stacks Jer 50:22-24 + Isa 66:15-16 + Deut 29:27 — the literal Second-Coming desolation chain Smith reads at v.21. Convergent with Smith; against Bohr&rsquo;s spiritualised birds-as-demons reading.</p>"
         }
       ],
       "modernReadings": [
@@ -530,6 +725,16 @@
           "source": "smith",
           "citation": "DAR pp. 680-686, no direct verse-anchor",
           "html": "Smith covers v.18 within the v.17 block of DAR 685.1 — the fowls \"**will be obedient to the call, and fill themselves with the flesh of horses, kings, captains, and mighty men**\" (DAR 685.1). The phrasing is the literal-corpse-feast on the slain wicked of all ranks (kings, captains, mighty men, horses, free and bond, small and great) — the universal-destruction marker (cf. Rev 6:15-17, the same diction of \"_kings… great men… every bondman, and every free man_\" hiding from the wrath of the Lamb)."
+        },
+        {
+          "source": "miller",
+          "citation": "MWV1 218.5",
+          "html": "<p>In his \"Scripture Chronology\" compendium of texts on the destruction of the wicked at the end of the world, Miller cites v.18 verbatim: <strong>\"That ye may eat the flesh of kings, and the flesh of captains, and the flesh of mighty men, and the flesh of horses, and of them that sit on them, and the flesh of all men, both free and bond, both small and great.\"</strong> (MWV1 218.5).</p>\n<p>The verse appears in his catena alongside Isa 5:24 (\"as the fire devoureth the stubble… so their root shall be as rottenness\"), Matt 13:40-42, 2 Thess 1:7-9, and Rev 14:14-20 — all marshalled to prove that the close of the gospel age terminates in <em>literal, simultaneous, universal</em> destruction of the wicked, not in a long postmillennial reformation.</p>\n<p>The list-form citation is brief but exegetically pointed: Miller treats v.18 as one of the load-bearing texts for his rejection of postmillennialism and his case for an imminent, catastrophic Second Advent. This concurs with Fitch (LJL 23.2), Smith (DAR 698), Haskell (SSP 322), and the Adventist mainstream.</p>"
+        },
+        {
+          "source": "haskell",
+          "citation": "SSP 323.1",
+          "html": "<p>Haskell on v.18: the rank-catalog of the slain. <strong>\"It is over. Those who sought to slay the truth,&mdash;men from every kindred, representing all classes, lie dead, slain by the Word which they rejected. And while Christ returns to heaven with the redeemed, the fowls of the heavens devour the bodies of the slain\"</strong> (SSP 323.1). The flesh-of-kings/captains/mighty-men/horses catalog is literal — the universal-coalition of the lost (kings, captains, mighty men, horses, free and bond, small and great) is exactly the Rev 6:15-17 hide-in-rocks-and-mountains scene now ended in slaughter. The literal-corpse-feast on the literal-slain-wicked is the historic pioneer reading. Convergent with Smith; against Bohr&rsquo;s inherited spiritualisation at v.18.</p>"
         }
       ],
       "modernReadings": [
@@ -563,6 +768,16 @@
           "source": "smith",
           "citation": "DAR 684.2",
           "html": "Smith's reading of v.19 is implicit in his framing of v.11 — the white-horse rider is \"**going forth to war, — to meet 'the kings of the earth and their armies,' and this would be the only proper character in which to represent him on such a mission**\" (DAR 684.2). The beast + kings of the earth + their armies coalition is the same federation of antichrist powers Smith identifies throughout DAR's Rev 13, 16, 17 coverage — the papacy + image-to-the-beast power + their political confederates."
+        },
+        {
+          "source": "haskell",
+          "citation": "SSP 322.1",
+          "html": "<p>Haskell reads the muster of \"the beast, and the kings of the earth, and their armies\" as the foretold day-of-vengeance gathering of every prophecy from Jeremiah, Isaiah, the Psalms, and Paul. He stacks Jer 25:30-33 (\"The Lord shall roar from on high… the slain of the Lord shall be at that day from one end of the earth even unto the other\"), Isa 66:15-16 (\"the Lord will come with fire… by fire and by his sword will the Lord plead with all flesh\"), and 2 Thess 2:8 (\"whom the Lord shall consume with the spirit of his mouth\") on top of Rev 19:17-21 (SSP 322.1).</p>\n<p>The exegetical force is convergence: <strong>every prophetic strand that speaks of a final, literal, violent reckoning lands on the same event John sees here</strong>. The beast-coalition is real, the war is literal, and the slain are uncountable.</p>\n<p>This sits squarely with Smith, EGW (GC 657), Fitch, and Waggoner; the Adventist consensus on v.19 is essentially unanimous against any spiritualizing reduction.</p>"
+        },
+        {
+          "source": "fitch",
+          "citation": "LJL 23.2",
+          "html": "<p>Fitch's <em>Letter to Litch</em> compiles the Old- and New-Testament witnesses to a literal end-of-world conflagration and identifies them with John's vision: after citing Deut 32, Ps 50, Ps 97, Job 21:30, Matt 13:40-43, and 2 Thess 1:7-9, he concludes — <strong>\"This is the overthrow of Babylon, set forth in the Revelation of John.\"</strong> (LJL 23.2).</p>\n<p>For Fitch, the gathering of \"the beast, and the kings of the earth, and their armies\" to make war against the Rider in v.19 is the convergence-point of every prophetic destruction-text in Scripture. Miller's Rule IV (no contradiction) and Rule XIII (every word must be fulfilled) are operative: the wrath foretold by Moses, the Psalmist, Job, Jesus, and Paul cannot terminate anywhere short of the actual military muster of the beast against Christ at his coming.</p>\n<p>This is squarely with Smith and the Adventist mainstream — and explicitly against the spiritualizing readings that domesticate Armageddon into church-state struggle.</p>"
         }
       ],
       "modernReadings": [
@@ -590,9 +805,24 @@
       "text": "And the beast was taken, and with him the false prophet that wrought miracles before him, with which he deceived them that had received the mark of the beast, and them that worshipped his image. These both were cast alive into a lake of fire burning with brimstone.",
       "pioneerReadings": [
         {
+          "source": "egw",
+          "citation": "GC 657.1; cf. EW 290.1",
+          "html": "<p>EGW reads the closing of v.20 + v.21 as the literal annihilation of the living wicked at the Second Coming, prior to the millennium: <strong>\"At the coming of Christ the wicked are blotted from the face of the whole earth&mdash;consumed with the spirit of His mouth and destroyed by the brightness of His glory. Christ takes His people to the City of God, and the earth is emptied of its inhabitants\"</strong> (GC 657.1, quoting Isa 24:1, 3, 5, 6). She stacks 2 Thess 2:8 (\"the spirit of his mouth\") directly onto the sword-from-the-mouth of Rev 19:15, 21 — the exact Rule-V move Smith makes at v.21 via Isa 11:4. The beast and false prophet are cast alive into the lake of fire as living powers at the Second Advent; the rest are slain by the brightness of His coming, their corpses left desolate (cf. Jer 25:33). Convergent with both Smith and Bohr; the macro-frame of Rev 19:11-21 in EGW is the Second-Coming destruction of living wicked, preparing the de-creation chronology of the millennium.</p>"
+        },
+        {
           "source": "smith",
           "citation": "DAR 685.2-686.1",
           "html": "**The beast = the papacy; the false prophet = the two-horned land beast of Rev 13 (the miracle-working image-to-the-beast power). Both are cast ALIVE — meaning they are still living powers at the Second Coming and will not pass away and be succeeded by others before Christ comes; the papacy in particular is \"**very near the close of its existence**\" (referencing the 1870 papal-infallibility decree, DAR 686.1).** Verbatim: \"**The beast and false prophet are taken. The false prophet is the one that works miracles before the beast. This proves him to be identical with the two-horned beast of chapter 13, to whom the same work, for the very same purpose, is there attributed. The fact that these are cast alive into the lake of fire, shows that these powers will not pass away and be succeeded by others, but be living powers at the second advent of Christ**\" (DAR 685.2). And on the papacy: \"**The papacy has long been in the field, and has come to the closing scenes in its career. And its overthrow is emphatically predicted in other prophecies than the one now before us, notably in Daniel 7:11, in which the prophet says that he beheld till the beast was slain, and his body destroyed and given to the burning flame. And this followed close upon the utterance of great words which the horn spake, which words were doubtless heard in the decree of papal infallibility in the great ecumenical council of 1870. This power must therefore be very near the close of its existence. But it does not perish till Christ appears, for it then goes alive into the lake of fire**\" (DAR 686.1). DAR 686.2 extends the same logic to the two-horned beast."
+        },
+        {
+          "source": "haskell",
+          "citation": "SSP 321.2",
+          "html": "<p>Haskell on vv.19-20: the literal end of the beast and false prophet, cast alive into the lake of fire. <strong>\"The beast in Europe and the false prophet in the United States, having blended their forces for the accomplishment of their one desire,&mdash;the destruction of the remnant of God&rsquo;s people,&mdash;fall before Him who sits on the white horse. His name is the Word of God, and He is followed by the armies of heaven, clothed in robes of dazzling purity, each riding a pure white horse. The world is marshaled under the beast and the false prophet and these both are cast alive into the lake of fire\"</strong> (SSP 321.2). The beast = papacy (Europe-headquartered Old World power); the false prophet = the two-horned beast of Rev 13:11-18 specifically located in the United States (the same identification J. White, Smith, Andrews, and Loughborough all make). Convergent with Smith&rsquo;s &ldquo;living powers at the Second Advent&rdquo; reading.</p>"
+        },
+        {
+          "source": "fitch",
+          "citation": "LJL 23.2",
+          "html": "<p>Fitch reads the consignment of the beast and false prophet to the lake of fire as part of the same literal conflagration foretold by Moses, the Psalms, Job, Christ, and Paul: <strong>\"For a fire is kindled in mine anger, and shall burn unto the lowest hell, and shall consume the earth with her increase, and set on fire the foundations of the mountains.\"</strong> (Deut 32:22, quoted at LJL 23.2; cf. 2 Thess 1:7-9 — \"punished with everlasting destruction from the presence of the Lord\").</p>\n<p>His chain of texts is a sustained application of Miller's Rule V (Scripture its own expositor). The Adventist conditionalist reading — <em>that \"everlasting destruction\" is destruction without remedy, not unending conscious torment</em> — is already implicit in Fitch's pre-1844 polemic against eternal-torment dualism. The beast and false prophet meet a real, terminal end.</p>\n<p>This concurs with Smith, EGW (GC 673-678), and the broader Adventist anti-immortal-soul tradition; it diverges sharply from premillennial dispensationalist and Reformed readings that treat the lake of fire as the inauguration of eternal conscious suffering.</p>"
         }
       ],
       "modernReadings": [
@@ -620,9 +850,24 @@
       "text": "And the remnant were slain with the sword of him that sat upon the horse, which sword proceeded out of his mouth: and all the fowls were filled with their flesh.",
       "pioneerReadings": [
         {
+          "source": "egw",
+          "citation": "EW 290.1; GC 657.1",
+          "html": "<p>EGW on v.21: the remnant of the wicked are slain by the brightness of Christ&rsquo;s coming and the spirit of His mouth, and the earth is left a desolate wilderness for the millennium. <strong>\"The earth looked like a desolate wilderness. Cities and villages, shaken down by the earthquake, lay in heaps. Mountains had been moved out of their places, leaving large caverns. Ragged rocks, thrown out by the sea, or torn out of the earth itself, were scattered all over its surface. Large trees had been uprooted and were strewn over the land. Here is to be the home of Satan with his evil angels for a thousand years\"</strong> (EW 290.1). This is the post-Rev-19:21 condition that the millennium of Rev 20 presupposes — the literal corpse-strewn empty earth of Jer 25:33 / Jer 4:23-26 / Isa 24:1-6, exactly the macro-block reading Bohr develops at <em>Close of Probation</em> pp. 261-264. The sword from Christ&rsquo;s mouth is \"the spirit of his mouth\" (2 Thess 2:8) and \"the breath of his lips\" (Isa 11:4) — the Word that once saved now condemns.</p>"
+        },
+        {
           "source": "smith",
           "citation": "DAR 686.3",
           "html": "**The remnant (not numbered with the beast or false prophet) are slain by the sword of the white-horse rider, which sword = the spirit of His mouth / breath of His lips by which the Lord shall slay the wicked at His appearing and kingdom (Isa 11:4; 2 Thess 2:8).** Verbatim: \"**It appears from verse 21 that there is a remnant not numbered with the beast or false prophet. These are slain by the sword of Him that sits upon the horse, which sword proceeds out of his mouth. This sword is doubtless what is spoken of elsewhere as 'the spirit of his mouth' and 'the breath of his lips,' with which the Lord shall slay the wicked at his appearing and kingdom. Isaiah 11:4; 2 Thessalonians 2:8**\" (DAR 686.3)."
+        },
+        {
+          "source": "haskell",
+          "citation": "SSP 321.2, 323.1",
+          "html": "<p>Haskell on v.21: the remnant slain by the Word that issues from Christ&rsquo;s mouth. <strong>\"There is a great earthquake, the earth opens and reveals a lake of fire&hellip;. The fire from the mouth of Christ slays the remnant of the wicked. They who were prepared to slay the people of God, fall, as did the Roman guard when the angel of the resurrection drew near to the earth\"</strong> (SSP 321.2). Haskell&rsquo;s margin stacks Isa 11:4 (\"with the breath of his lips shall he slay the wicked\"), 2 Thess 2:8 (\"whom the Lord shall consume with the spirit of his mouth\"), and Jer 25:33 (the slain littering the earth) directly onto Rev 19:21 — exactly the Rule-V chain Smith makes. And the fowls&rsquo; literal feast closes the chapter: \"<strong>while Christ returns to heaven with the redeemed, the fowls of the heavens devour the bodies of the slain&hellip;. The earth is soon without form and void! Even the life of birds is destroyed</strong>\" (SSP 323.1). The Jer 25:33 / Isa 24 / Jer 4:23-26 desolation-empty-earth chain is the literal-register prelude to Rev 20&rsquo;s millennium. Convergent with Smith and (substantively) with Bohr&rsquo;s macro-block reading.</p>"
+        },
+        {
+          "source": "fitch",
+          "citation": "LJL 23.2",
+          "html": "<p>Fitch reads the slaughter of \"the remnant\" by the sword of the Rider, and the fowls filled with their flesh, as the literal terminus of the wicked, the same event already foretold by Christ in his interpretation of the tares: <strong>\"As, therefore, the tares are gathered and burned in the fire, so shall it be in the end of the world… This, let it be remembered, is not a parable, but the interpretation of a parable; and, therefore, will be literally fulfilled.\"</strong> (LJL 23.2; quoting Matt 13:40-43).</p>\n<p>The argument is methodologically careful: a parable may be figurative, but the inspired <em>interpretation</em> of a parable is to be taken at face value — a fine specimen of Miller's Rule XI (literal first) and Rule VIII (parables as figures). The supper of the great God in vv. 17-18 and the slaughter of v.21 are not symbolic of a long process; they are the actual harvest of the wicked, simultaneous with the Advent.</p>\n<p>Fitch's framework anticipates, and is congruent with, the Smith-EGW-Haskell synthesis on this verse.</p>"
         }
       ],
       "modernReadings": [

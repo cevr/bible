@@ -10,8 +10,8 @@ Tick a box once the corresponding `pioneerReadings` entry is committed in the JS
 
 > And I stood upon the sand of the sea, and saw a beast rise up out of the sea, having seven heads and ten horns, and upon his horns ten crowns, and upon his heads the name of blasphemy.
 
-- [x] **Uriah Smith**
 - [x] **Ellen G. White**
+- [x] **Uriah Smith**
 - [x] **William Miller**
 - [x] **Josiah Litch**
 - [ ] **James White**
@@ -28,8 +28,8 @@ Tick a box once the corresponding `pioneerReadings` entry is committed in the JS
 
 > And the beast which I saw was like unto a leopard, and his feet were as the feet of a bear, and his mouth as the mouth of a lion: and the dragon gave him his power, and his seat, and his great authority.
 
-- [x] **Uriah Smith**
 - [x] **Ellen G. White**
+- [x] **Uriah Smith**
 - [x] **William Miller**
 - [x] **Josiah Litch**
 - [x] **James White**
@@ -46,8 +46,8 @@ Tick a box once the corresponding `pioneerReadings` entry is committed in the JS
 
 > And I saw one of his heads as it were wounded to death; and his deadly wound was healed: and all the world wondered after the beast.
 
-- [x] **Uriah Smith**
 - [x] **Ellen G. White**
+- [x] **Uriah Smith**
 - [x] **William Miller**
 - [ ] **Josiah Litch**
 - [x] **James White**
@@ -64,8 +64,8 @@ Tick a box once the corresponding `pioneerReadings` entry is committed in the JS
 
 > And they worshipped the dragon which gave power unto the beast: and they worshipped the beast, saying, Who is like unto the beast? who is able to make war with him?
 
-- [x] **Uriah Smith**
 - [x] **Ellen G. White**
+- [x] **Uriah Smith**
 - [x] **William Miller**
 - [ ] **Josiah Litch**
 - [ ] **James White**
@@ -82,8 +82,8 @@ Tick a box once the corresponding `pioneerReadings` entry is committed in the JS
 
 > And there was given unto him a mouth speaking great things and blasphemies; and power was given unto him to continue forty and two months.
 
-- [x] **Uriah Smith**
 - [x] **Ellen G. White**
+- [x] **Uriah Smith**
 - [x] **William Miller**
 - [x] **Josiah Litch**
 - [x] **James White**
@@ -100,8 +100,8 @@ Tick a box once the corresponding `pioneerReadings` entry is committed in the JS
 
 > And he opened his mouth in blasphemy against God, to blaspheme his name, and his tabernacle, and them that dwell in heaven.
 
-- [x] **Uriah Smith**
 - [x] **Ellen G. White**
+- [x] **Uriah Smith**
 - [ ] **William Miller**
 - [x] **Josiah Litch**
 - [x] **James White**
@@ -118,8 +118,8 @@ Tick a box once the corresponding `pioneerReadings` entry is committed in the JS
 
 > And it was given unto him to make war with the saints, and to overcome them: and power was given him over all kindreds, and tongues, and nations.
 
-- [x] **Uriah Smith**
 - [x] **Ellen G. White**
+- [x] **Uriah Smith**
 - [ ] **William Miller**
 - [x] **Josiah Litch**
 - [x] **James White**
@@ -136,8 +136,8 @@ Tick a box once the corresponding `pioneerReadings` entry is committed in the JS
 
 > And all that dwell upon the earth shall worship him, whose names are not written in the book of life of the Lamb slain from the foundation of the world.
 
-- [x] **Uriah Smith**
 - [x] **Ellen G. White**
+- [x] **Uriah Smith**
 - [ ] **William Miller**
 - [ ] **Josiah Litch**
 - [ ] **James White**
@@ -154,8 +154,8 @@ Tick a box once the corresponding `pioneerReadings` entry is committed in the JS
 
 > If any man have an ear, let him hear.
 
-- [x] **Uriah Smith**
 - [ ] **Ellen G. White**
+- [x] **Uriah Smith**
 - [ ] **William Miller**
 - [ ] **Josiah Litch**
 - [ ] **James White**
@@ -172,8 +172,8 @@ Tick a box once the corresponding `pioneerReadings` entry is committed in the JS
 
 > He that leadeth into captivity shall go into captivity: he that killeth with the sword must be killed with the sword. Here is the patience and the faith of the saints.
 
-- [x] **Uriah Smith**
 - [x] **Ellen G. White**
+- [x] **Uriah Smith**
 - [ ] **William Miller**
 - [x] **Josiah Litch**
 - [x] **James White**
@@ -190,8 +190,8 @@ Tick a box once the corresponding `pioneerReadings` entry is committed in the JS
 
 > And I beheld another beast coming up out of the earth; and he had two horns like a lamb, and he spake as a dragon.
 
-- [x] **Uriah Smith**
 - [x] **Ellen G. White**
+- [x] **Uriah Smith**
 - [ ] **William Miller**
 - [x] **Josiah Litch**
 - [x] **James White**
@@ -208,8 +208,8 @@ Tick a box once the corresponding `pioneerReadings` entry is committed in the JS
 
 > And he exerciseth all the power of the first beast before him, and causeth the earth and them which dwell therein to worship the first beast, whose deadly wound was healed.
 
-- [x] **Uriah Smith**
 - [x] **Ellen G. White**
+- [x] **Uriah Smith**
 - [ ] **William Miller**
 - [ ] **Josiah Litch**
 - [x] **James White**
@@ -226,8 +226,8 @@ Tick a box once the corresponding `pioneerReadings` entry is committed in the JS
 
 > And he doeth great wonders, so that he maketh fire come down from heaven on the earth in the sight of men.
 
-- [x] **Uriah Smith**
 - [x] **Ellen G. White**
+- [x] **Uriah Smith**
 - [ ] **William Miller**
 - [ ] **Josiah Litch**
 - [ ] **James White**
@@ -244,8 +244,8 @@ Tick a box once the corresponding `pioneerReadings` entry is committed in the JS
 
 > And deceiveth them that dwell on the earth by the means of those miracles which he had power to do in the sight of the beast; saying to them that dwell on the earth, that they should make an image to the beast, which had by the wound by a sword did live.
 
-- [x] **Uriah Smith**
 - [x] **Ellen G. White**
+- [x] **Uriah Smith**
 - [ ] **William Miller**
 - [ ] **Josiah Litch**
 - [x] **James White**
@@ -262,8 +262,8 @@ Tick a box once the corresponding `pioneerReadings` entry is committed in the JS
 
 > And he had power to give life unto the image of the beast, that the image of the beast should both speak and cause that as many as would not worship the image of the beast should be killed.
 
-- [x] **Uriah Smith**
 - [x] **Ellen G. White**
+- [x] **Uriah Smith**
 - [ ] **William Miller**
 - [ ] **Josiah Litch**
 - [x] **James White**
@@ -280,8 +280,8 @@ Tick a box once the corresponding `pioneerReadings` entry is committed in the JS
 
 > And he causeth all, both small and great, rich and poor, free and bond, to receive a mark in their right hand, or in their foreheads.
 
-- [x] **Uriah Smith**
 - [x] **Ellen G. White**
+- [x] **Uriah Smith**
 - [ ] **William Miller**
 - [ ] **Josiah Litch**
 - [ ] **James White**
@@ -298,8 +298,8 @@ Tick a box once the corresponding `pioneerReadings` entry is committed in the JS
 
 > And that no man might buy or sell, save he that had the mark, or the name of the beast, or the number of his name.
 
-- [x] **Uriah Smith**
 - [x] **Ellen G. White**
+- [x] **Uriah Smith**
 - [ ] **William Miller**
 - [ ] **Josiah Litch**
 - [ ] **James White**
@@ -316,8 +316,8 @@ Tick a box once the corresponding `pioneerReadings` entry is committed in the JS
 
 > Here is wisdom. Let him that hath understanding count the number of the beast: for it is the number of a man; and his number is Six hundred threescore and six.
 
-- [x] **Uriah Smith**
 - [x] **Ellen G. White**
+- [x] **Uriah Smith**
 - [x] **William Miller**
 - [x] **Josiah Litch**
 - [ ] **James White**

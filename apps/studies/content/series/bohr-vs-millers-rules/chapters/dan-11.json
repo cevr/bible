@@ -11,9 +11,24 @@
       "text": "Also I in the first year of Darius the Mede, even I, stood to confirm and to strengthen him.",
       "pioneerReadings": [
         {
+          "source": "egw",
+          "citation": "PK 556.4",
+          "html": "Ellen White treats Dan 11:1 as the chronological anchor: <strong>Gabriel</strong> stood &ldquo;in the first year of Darius&rdquo; the Mede, whose general <strong>Cyrus</strong> had wrested Babylonia from the scepter of universal rule (PK 556.4). She ties this verse directly to the seventy-years prophecy of Jeremiah and the prayer of Daniel 9, noting that &ldquo;the reign of Darius was honored of God&rdquo; and that the angel was sent &ldquo;to confirm and to strengthen him&rdquo; (Dan 11:1). Within about two years Cyrus succeeded to the throne, completing the seventy years of captivity. EGW reads v.1 not as Gabriel strengthening Daniel (a common modern misreading) but as Gabriel's prior ministry to <strong>Darius the Mede</strong>, exactly matching Smith's DAR framing."
+        },
+        {
           "source": "smith",
           "citation": "DAR 222.1-3",
           "html": "Smith heads the chapter **\"Chapter 11 — A Literal Prophecy\"** and treats vv. 1-2 as one block. \"We now enter upon a prophecy of future events, clothed not in figures and symbols, as in the visions of chapters 2, 7, and 8, but given mostly in plain language\" (DAR 222.2). \"The angel, after stating that he stood, in the first year of Darius, to confirm and strengthen him, turns his attention to the future\" (DAR 222.3). The verse is a frame-setting statement: the angel (Gabriel — carried forward from Dan 10) recalls his prior aid to Darius the Mede and pivots to the future. Smith cites Bishop Newton that this chapter is \"a comment and explanation of the vision of chapter 8\" (DAR 222.2)."
+        },
+        {
+          "source": "litch",
+          "citation": "PSC 116.1-3",
+          "html": "Litch lays out the entire chapter as a prophetic schema before commenting on any single verse: &ldquo;The eleventh and twelfth chapters of Daniel, are a prophetic history of the kingdoms which should succeed each other, down to the end of the reign of sin&rdquo; (PSC 116.1). He divides Dan 11 into <strong>five periods</strong>, the first running &ldquo;from the Persian reign, to the breaking of the prince of the covenant&rdquo; (vv.1-21, ending A.D. 33). Verse 1 thus opens the Persian-reign period. Litch's segmentation matches Smith's verse-block instinct (vv.1-2 as a Persian frame) and supplies the architectural backbone for everything that follows."
+        },
+        {
+          "source": "haskell",
+          "citation": "SDP 77.1",
+          "html": "Haskell uses Dan 11:1's date-marker (&ldquo;first year of Darius&rdquo;) to bridge from the close of Daniel 5 into the Medo-Persian phase of the prophecies: &ldquo;With the close of the fifth chapter, the government is transferred to the Medes, of whom Darius, known in history as Darius the Mede, a man of sixty-two years, is king. With him is associated Cyrus, the Persian&hellip;&rdquo; (SDP 77.1). For Haskell, the angel's standing &ldquo;to confirm and to strengthen&rdquo; the new Medo-Persian government in 538 B.C. is the providential pivot from the golden-headed Babylon to the silver-breasted ram. He underscores that the Medes had been &ldquo;in contact with the Jews two centuries before the fall of Babylon,&rdquo; predisposing them to a purer worship — explaining why Gabriel could lend Darius support."
         }
       ],
       "modernReadings": [
@@ -44,6 +59,16 @@
           "source": "smith",
           "citation": "DAR 222.3-4",
           "html": "\"Three kings shall yet stand up in Persia. To stand up means to reign; three kings were to reign in Persia, referring, doubtless, to the immediate successors of Cyrus. These were, (1) Cambyses, son of Cyrus; (2) Smerdis, an impostor; (3) Darius Hystaspes\" (DAR 222.3). \"The fourth king from Cyrus was **Xerxes**, more famous for his riches than his generalship, and conspicuous in history for the magnificent campaign he organized against Grecia, and his utter failure in that enterprise. He was to stir up all against the realm of Grecia. Never before had there been such a levy of men for warlike purposes; never has there been since. His army, according to **Herodotus**, who lived in that age, consisted of five million two hundred and eighty-three thousand two hundred and twenty men (5,283,220)\" (DAR 222.4). Smith adds the Carthaginian levy of 300,000 raising Xerxes's total force to over five and a half million."
+        },
+        {
+          "source": "litch",
+          "citation": "PREX2 116.1",
+          "html": "Litch invokes Dan 11:2 as a lexical anchor for the meaning of &ldquo;stand up&rdquo; throughout the chapter: &ldquo;'Stand up.' This term, as used in this prophecy, signifies the exercise of kingly dominion. See chapter 11:2: 'There shall stand up yet three kings in Persia.' Verse 3: 'A mighty king shall stand up.' Verse 4: 'And when he shall stand up his kingdom shall be broken'&rdquo; (PREX2 116.1). Litch's point is methodological: <strong>&ldquo;stand up&rdquo; = reign</strong>, governing the entire Dan 11 verse-chain — a Miller-rule V (Scripture-its-own-expositor) move. He uses it later to argue Christ's &ldquo;standing up&rdquo; in Dan 12:1 = the commencement of Christ's reign."
+        },
+        {
+          "source": "haskell",
+          "citation": "SDP 187.2-188.1",
+          "html": "Haskell glosses Dan 11:2 within his treatment of vv.2-4: the &ldquo;fourth&rdquo; king who would &ldquo;stir up all against the realm of Grecia&rdquo; is identified implicitly with the Greco-Persian wars culminating in <strong>Xerxes</strong>, since Haskell then moves directly to Alexander as the &ldquo;mighty king&rdquo; of v.3 who &ldquo;would do according to his will&rdquo; (SDP 187.2). His marginal note for this paragraph is explicitly &ldquo;Daniel 11:2-4.&rdquo; The Persian succession is treated as a brief prelude — Haskell, like Jones, spends most of his ink on the Greek divisions because that is where the kings of north/south framework originates."
         }
       ],
       "modernReadings": [
@@ -97,6 +122,21 @@
           "source": "smith",
           "citation": "DAR 223.1-2",
           "html": "\"The facts stated in these verses plainly point to **Alexander**, and the division of his empire. (See on chapter 8:8.) Xerxes was the last Persian king who invaded Grecia; and the prophecy therefore passes over the nine successors of Xerxes in the Persian empire, and next introduces Alexander the Great\" (DAR 223.2). Smith cites Prideaux: Alexander \"became absolute monarch of that empire, to the fullest extent it was ever possessed by any of the Persian kings\" (DAR 223.2, citing Prideaux Vol. I, p. 378). \"He did according to his will. His will led him, B. C. 323, into a drunken debauch, as the result of which he died as the fool dieth\" (DAR 223.2)."
+        },
+        {
+          "source": "j-white",
+          "citation": "FUMP 39.1",
+          "html": "James White ties Dan 11:3-4 directly into the Dan 8 ram-and-goat exposition: &ldquo;The goat, then, represents Grecia&hellip;Greece succeeded Persia in the dominion of the world, B.C. 331. The great horn is here explained to be the first king. The four horns that arose when this horn was broken, denote the four kingdoms into which the empire of Alexander was divided after his death&hellip;See <strong>Chap 11:3, 4</strong>&rdquo; (FUMP 39.1). White uses Dan 11:3-4 as the parallel-language confirmation of the Dan 8 symbol — agreeing with Smith and Andrews that the &ldquo;mighty king&rdquo; is Alexander."
+        },
+        {
+          "source": "andrews",
+          "citation": "S23D 10.1",
+          "html": "Andrews cross-links Dan 11:3 with Dan 8:21-22, identifying the symbol-explanation chain: &ldquo;The great horn is here explained to be the first king of Grecia; it was <strong>Alexander the Great</strong>&hellip;The four horns that arose when this horn was broken, denote the four kingdoms into which the empire of Alexander was divided after his death. The same was presented by the four heads and four wings of the leopard&hellip;It is predicted without the use of symbols in <strong>Daniel 11:3, 4</strong>&rdquo; (S23D 10.1). Andrews's load-bearing move: vv.3-4 are the literal-language version of the same Greek-empire scene shown symbolically in chs.7-8 — Miller's Rule VI (recapitulation) made explicit."
+        },
+        {
+          "source": "haskell",
+          "citation": "SDP 185.2-187.2",
+          "html": "Haskell identifies the &ldquo;mighty king&rdquo; as <strong>Alexander the Great</strong>, coming &ldquo;from the west without touching the earth&rdquo; — &ldquo;Granicus, Asia Minor, Issus, Tyre, Gaza, with the surrender of all Egypt; Arbela, Babylon, Susa, Bactria, and India — all in the space of eight short years&rdquo; (SDP 185.2). The text's &ldquo;do according to his will&rdquo; clause Haskell exegetes morally: Alexander's will &ldquo;led him&hellip; into a drunken debauch&hellip;he who might have become a son of God chose rather to be called the son of Jupiter&rdquo; (SDP 187.1-2). The death at Babylon &ldquo;at his very prime&rdquo; with &ldquo;no hope for the future&rdquo; is an &ldquo;impressive commentary for those who seek the ways of the world.&rdquo;"
         }
       ],
       "modernReadings": [
@@ -132,6 +172,21 @@
           "source": "smith",
           "citation": "DAR 223.2",
           "html": "\"The kingdom was divided, but not for his posterity; it was plucked up for others besides those. Within **fifteen years** after his death, all his posterity had fallen victims to the jealousy and ambition of his leading generals. Not one of the race of Alexander was left to breathe upon the earth.... The kingdom was rent into four divisions, and taken possession of by Alexander's four ablest, or perhaps most ambitious and unprincipled generals, — **Cassander, Lysimachus, Seleucus, and Ptolemy**\" (DAR 223.2)."
+        },
+        {
+          "source": "j-white",
+          "citation": "FUMP 39.1",
+          "html": "White echoes the Dan 11:3-4 = Dan 8 fourfold-division parallel: &ldquo;four kingdoms shall stand up out of the nation, but not in his power&hellip;The four horns that arose when this horn was broken, denote the four kingdoms into which the empire of Alexander was divided after his death. The same is represented by the four heads and four wings of the leopard of Daniel 7. See <strong>Chap 11:3, 4</strong>&rdquo; (FUMP 39.1). For White, v.4 settles the question that &ldquo;four notable horns&rdquo; = four political subdivisions (Macedon, Thrace, Syria, Egypt) — not symbols of universal directions."
+        },
+        {
+          "source": "andrews",
+          "citation": "S23D 10.1",
+          "html": "Andrews treats the fourfold division as the literal-language counterpart of Dan 8:8's &ldquo;four notable horns&rdquo;: &ldquo;four kingdoms shall stand up out of the nation, but not in his power&hellip;the four kingdoms into which the empire of Alexander was divided after his death. The same was presented by the four heads and four wings of the leopard. Daniel 7:6. It is predicted without the use of symbols in <strong>Daniel 11:3, 4</strong>. These four kingdoms were Macedon, Thrace, Syria, and Egypt. They originated B.C. 312&rdquo; (S23D 10.1). Andrews dates the fourfold division to B.C. 312, slightly earlier than Haskell's B.C. 302."
+        },
+        {
+          "source": "haskell",
+          "citation": "SDP 188.1",
+          "html": "Haskell narrates the fulfillment in detail: Alexander &ldquo;left no heirs to the throne who could hold the reins of government. His eldest son was a child of five&hellip;eight of these contended for supremacy&hellip;Finally in 302 B. C. it was settled that <strong>Ptolemy should hold Egypt; Seleucus should take Syria and the east; Lysimachus had Thrace and Asia Minor, and Cassander was located in Greece</strong>&rdquo; (SDP 188.1). The text's specifier &ldquo;not to his posterity&rdquo; Haskell takes at face value — &ldquo;neither was the strength of these four equal to that of Alexander, and the four partitions lasted but a few years.&rdquo; Identical fourfold list to Smith (DAR 223)."
         }
       ],
       "modernReadings": [
@@ -167,6 +222,16 @@
           "source": "smith",
           "citation": "DAR 224.1-225.2",
           "html": "Smith establishes here the geographic principle that governs the rest of the chapter: \"these divisions of course to be reckoned from the standpoint of Palestine, the native land of the prophet... whatever power at any time should occupy the territory which at first constituted the kingdom of the north, that power, so long as it occupied that territory, would be the king of the north\" (DAR 224.2-3). On v.5 specifically: \"The king of the south, **Egypt**, shall be strong. **Ptolemy** annexed Cyprus, Phoenicia, Caria, Cyrene, and many islands and cities to Egypt. Thus was his kingdom made strong. But another of Alexander's princes is introduced in the expression, 'one of his princes'... This must refer to **Seleucus**, who, as already stated, having annexed Macedon and Thrace to Syria, thus became possessor of three parts out of four of Alexander's dominion, and established a more powerful kingdom than that of Egypt\" (DAR 225.2). Smith cites the Septuagint reading: \"one of his [Alexander's] princes shall be strong above him\" (DAR 225.2)."
+        },
+        {
+          "source": "haskell",
+          "citation": "SDP 188.2",
+          "html": "Haskell reads v.5 with Spurrell's rendering: &ldquo;Then shall the king of the south, even one of his [Alexander's] princes be strong; yet shall another exceed him in strength and have dominion; a grand dominion shall be his dominion&rdquo; (SDP 188.2, quoting Spurrell). In 281 B.C., after Seleucus slew Lysimachus, &ldquo;this reduced the four divisions to two, the rulers of which were afterward distinguished as <strong>kings of the north and the south</strong>. Seleucus, the king of the north, now held territory which had formerly belonged to three generals, while Ptolemy retained the southern division.&rdquo; Same identification as Jones."
+        },
+        {
+          "source": "jones",
+          "citation": "GEP 203.2",
+          "html": "Jones identifies v.5's &ldquo;king of the south&rdquo; as <strong>the Ptolemies</strong> and the stronger &ldquo;one of his princes&rdquo; as <strong>Seleucus Nicator</strong>, who in 281 B.C. (after slaying Lysimachus at Cyropedion) added Lysimachus's empire to his own: &ldquo;though the dominion of the Ptolemies — 'the king of the south' — was strong, yet that of Seleucus — 'the king of the north' — was strong above him,' and his dominion was a 'great dominion'&rdquo; (GEP 203.2, citing Daniel 11:5). Jones lists the Ptolemaic realm (Egypt, Ethiopia, Libya, Arabia, Palestine, Phenicia, Lycia, Caria, Pamphylia, Cilicia, Cyprus) — but Seleucus's was &ldquo;of far wider&rdquo; extent."
         }
       ],
       "modernReadings": [
@@ -197,6 +262,16 @@
           "source": "smith",
           "citation": "DAR 225.3-226.3",
           "html": "\"There were frequent wars between the kings of Egypt and Syria. Especially was this the case with **Ptolemy Philadelphus**, the second king of Egypt, and **Antiochus Theos**, third king of Syria. They at length agreed to make peace upon condition that Antiochus Theos should put away his former wife, **Laodice**, and her two sons, and should marry **Berenice**, the daughter of Ptolemy Philadelphus\" (DAR 225.4). \"Antiochus brought back his former wife, Laodice, and her children, to court again... Laodice, being restored to favor and power, feared lest, in the fickleness of his temper, Antiochus should again disgrace her, and recall Berenice; and conceiving that nothing short of his death would be an effectual safeguard against such a contingency, she caused him to be poisoned shortly after... Laodice, not content with poisoning her husband, Antiochus, caused Berenice to be murdered\" (DAR 226.1-2). Berenice's Egyptian attendants (\"they that brought her\") and her son (\"he that begat her\" — Smith follows the marginal reading \"whom she brought forth\") were also slain by Laodice's orders (DAR 226.2)."
+        },
+        {
+          "source": "haskell",
+          "citation": "SDP 194.1",
+          "html": "Haskell glosses v.6 verbatim from Spurrell: &ldquo;'After some years they [the kings of the north and the south] shall be associated; for the daughter of the king of the south [<strong>Berenice, daughter of Ptolemy Philadelphus</strong>] shall come to the king of the north [<strong>Antiochus Theos</strong>] to make agreements.' Antiochus put away his lawful wife, Laodice, in order to marry Berenice&rdquo; (SDP 194.1). The clause &ldquo;she shall not retain the power of the arm&rdquo; Haskell takes as judgment for transgressing God's marriage law: &ldquo;the results of this transgression&hellip;are given by the pen of inspiration.&rdquo; Berenice, her attendants, her child, and her supporters all perish. Same identification as Smith's DAR."
+        },
+        {
+          "source": "jones",
+          "citation": "GEP 207.3-208.1",
+          "html": "Jones narrates the same marriage and its violent unraveling in extensive detail: peace between Ptolemy Philadelphus and <strong>Antiochus Theos</strong> required Theos to &ldquo;divorce his queen [<strong>Laodice</strong>] and disinherit his children of their title to the royal succession, and take <strong>Berenice</strong> the daughter of Ptolemy&hellip;with the royal succession secured to the children whom he might have by her&rdquo; (GEP 207.3). After Philadelphus's death in 247 B.C., Theos restored Laodice, who promptly murdered Theos and incited her son Callinicus to destroy Berenice and her infant son — &ldquo;and thus though the king's daughter of the south came to the king of the north as the agreements,&rdquo; the alliance crumbled (GEP 208.1). Confirms Smith and Haskell."
         }
       ],
       "modernReadings": [
@@ -232,6 +307,16 @@
           "source": "smith",
           "citation": "DAR 226.4-227.1",
           "html": "\"This branch out of the same root with Berenice was her brother, **Ptolemy Euergetes**. He had no sooner succeeded his father, Ptolemy Philadelphus, in the kingdom of Egypt, than, burning to avenge the death of his sister, Berenice, he raised an immense army, and invaded the territory of the king of the north, that is, of **Seleucus Callinicus**, who, with his mother, Laodice, reigned in Syria. And he prevailed against them, even to the conquering of Syria, Cilicia, the upper parts beyond the Euphrates, and almost all Asia\" (DAR 226.5). Smith cites Bishop Newton's compilation from Jerome, plus Appian, **Polybius**, Polyaenus, and Justin as ancient confirmations (DAR 227.1). From Polybius: Ptolemy \"took the city of **Seleucia**, which was kept for some years afterward by the garrisons of the kings of Egypt. Thus did he enter into the fortress of the king of the north\" (DAR 227.1)."
+        },
+        {
+          "source": "haskell",
+          "citation": "SDP 195.1",
+          "html": "Haskell identifies the &ldquo;branch of her roots&rdquo; as <strong>Ptolemy Euergetes</strong>, Berenice's brother: &ldquo;a brother of Berenice, a shoot from her roots, advanced into the territory of Antiochus with a large army. 'He shall rule within the fortifications of the kings of the north, and shall war against them and shall prevail.' Ptolemy Euergetes, son of Ptolemy Philadelphus, is here described&rdquo; (SDP 195.1). He invaded Syria, marched to Babylon, recovered the Egyptian gods and images that <strong>Cambyses</strong> had captured, and brought back &ldquo;forty thousand talents of silver and many vessels of silver and gold&rdquo; — earning him the title <strong>Euergetes (Benefactor)</strong>."
+        },
+        {
+          "source": "jones",
+          "citation": "GEP 208.2-3",
+          "html": "Jones reads v.7 as <strong>Ptolemy III Euergetes</strong>'s vengeance for his sister Berenice's murder. He marshaled a great Egyptian army joined by &ldquo;a considerable body of troops&rdquo; from cities in Asia Minor outraged by Laodice and Callinicus, and &ldquo;without a single check, he took Syria and Cilicia, and indeed all the countries eastward&rdquo; to Babylon (GEP 208.2). At Babylon he secured &ldquo;about thirty million dollars in clear gold, untold quantities of gold and silver vessels; twenty-five hundred statues, among which were the gods which Cambyses of Persia had carried away when he had invaded Egypt&rdquo; (GEP 208.3) — earning the title &ldquo;<strong>Euergetes — Benefactor</strong>.&rdquo;"
         }
       ],
       "modernReadings": [
@@ -262,6 +347,16 @@
           "source": "smith",
           "citation": "DAR 226.5, 227.1",
           "html": "Hearing of a sedition in Egypt, Ptolemy \"plundered the kingdom of Seleucus, took **forty thousand talents of silver and precious vessels, and two thousand five hundred images of the gods**. Among these were the images which **Cambyses** had formerly taken from Egypt and carried into Persia. The Egyptians, being wholly given to idolatry, bestowed upon Ptolemy the title of **Euergetes**, or the Benefactor, as a compliment for his having thus, after many years, restored their captive gods\" (DAR 226.5). On the longevity clause: \"He also continued more years than the king of the north; for Seleucus Callinicus died in exile, of a fall from his horse; and **Ptolemy Euergetes survived him for four or five years**\" (DAR 227.1)."
+        },
+        {
+          "source": "haskell",
+          "citation": "SDP 195.1-3",
+          "html": "Haskell ties v.8's &ldquo;captives into Egypt&hellip;their gods, with their princes, and with their precious vessels of silver and of gold&rdquo; to <strong>Ptolemy Euergetes</strong>'s plunder of Babylon — restoring the Egyptian idols that <strong>Cambyses</strong> had captured generations earlier (SDP 195.1). The text's clause &ldquo;he shall continue more years than the king of the north&rdquo; Haskell verifies historically: Euergetes &ldquo;outlived Antiochus Callinicus, the son of Laodi[ce]&rdquo; (SDP 195.1). The verse's gold-and-silver count matches the historical Euergetes tribute (&ldquo;forty thousand talents of silver&rdquo;)."
+        },
+        {
+          "source": "jones",
+          "citation": "GEP 208.3",
+          "html": "Jones fingerprints v.8: the &ldquo;gods, princes, and precious vessels of silver and gold&rdquo; that Euergetes carried into Egypt &ldquo;included the gods which <strong>Cambyses of Persia</strong> had carried away when he had invaded Egypt&rdquo; (GEP 208.3). The Egyptians' gratitude — bestowing the title &ldquo;<strong>Euergetes — Benefactor</strong>&rdquo; — was direct response to that act of restoration. Jones reads &ldquo;he shall continue more years than the king of the north&rdquo; as the historical fact that Ptolemy III outlived Seleucus Callinicus."
         }
       ],
       "modernReadings": [
@@ -292,6 +387,11 @@
           "source": "smith",
           "citation": "DAR 226.5, 227.1",
           "html": "Smith treats v.9 inside the v.7-9 block. From Justin (via Smith): \"if Ptolemy had not been recalled into Egypt by a domestic sedition, he would have possessed the whole kingdom of Seleucus. **The king of the south thus came into the dominion of the king of the north, and returned to his own land, as the prophet had foretold**\" (DAR 227.1)."
+        },
+        {
+          "source": "haskell",
+          "citation": "SDP 195.2",
+          "html": "Haskell reads v.9 as a transition verse — the recovery of Syria by the sons of Callinicus: &ldquo;Ptolemy Euergetes held much of Syria on the death of Antiochus Callinicus. Two sons of Callinicus undertook to regain the lost territory, and redeem the honor of their father. The first was weak and inefficient; the younger, <strong>Antiochus Magnus</strong>, who took the throne&hellip;was stronger. He is the 'one' who advanced speedily, regaining much of the lost territory&rdquo; (SDP 195.2). Haskell sees v.9 as the bridge between Euergetes's victory (vv.7-8) and Antiochus III's counter-attack (vv.10-13)."
         }
       ],
       "modernReadings": [
@@ -327,6 +427,11 @@
           "source": "smith",
           "citation": "DAR 228.1-2",
           "html": "\"The sons of Seleucus Callinicus were **Seleucus Ceraunus** and **Antiochus Magnus**. These both entered with zeal upon the work of vindicating and avenging the cause of their father and their country. The elder of these, Seleucus, first took the throne... but being a weak and pusillanimous prince, both in body and estate, destitute of money, and unable to keep his army in obedience, he was poisoned by two of his generals after an inglorious reign of two or three years. His more capable brother, Antiochus Magnus, was thereupon proclaimed king, who, taking charge of the army, retook Seleucia and recovered Syria... A truce followed, wherein both sides treated for peace, yet prepared for war; after which Antiochus returned and overcame in battle Nicholaus, the Egyptian general, and had thoughts of invading Egypt itself. Here is the 'one' who should certainly overflow and pass through\" (DAR 228.2)."
+        },
+        {
+          "source": "jones",
+          "citation": "GEP 211.3",
+          "html": "Jones identifies the &ldquo;sons&rdquo; who would &ldquo;be stirred up&rdquo; with <strong>Seleucus Ceraunus</strong> and <strong>Antiochus Magnus</strong> (Antiochus III the Great): &ldquo;Antiochus decided to take from Philopator as much as possible of this territory. He was successful. He recovered not only Syria, but also Phenicia, except the city of Sidon; and part of Palestine, including Galilee, and all the country beyond Jordan as far south as the river Arnon and the border of Moab&rdquo; (GEP 211.3). Establishing garrisons at Ptolemais by 218 B.C., Antiochus &ldquo;certainly came forth and overflowed and passed through&rdquo; — fingerprinting v.10's specifier."
         }
       ],
       "modernReadings": [
@@ -362,6 +467,11 @@
           "source": "smith",
           "citation": "DAR 228.3-4",
           "html": "\"**Ptolemy Philopater** succeeded his father, Euergetes, in the kingdom of Egypt, being advanced to the crown not long after Antiochus Magnus had succeeded his brother in the government of Syria. He was a most luxurious and vicious prince, but was at length roused at the prospect of an invasion of Egypt by Antiochus. He was indeed 'moved with choler'... The army of Antiochus, according to **Polybius**, amounted on this occasion to **sixty-two thousand foot, six thousand horse, and one hundred and two elephants**. In the battle, Antiochus was defeated, and his army, according to prophecy, was given into the hands of the king of the south. Ten thousand foot and three thousand horse were slain, and over four thousand men were taken prisoners; while of Ptolemy's army there were slain only seven hundred horse, and about twice that number of infantry\" (DAR 228.4)."
+        },
+        {
+          "source": "jones",
+          "citation": "GEP 211.4",
+          "html": "Jones identifies the king of the south's response as <strong>Ptolemy IV Philopator</strong> at the <strong>Battle of Raphia</strong> (217 B.C.): &ldquo;Ptolemy Philopator with an army of seventy-five thousand men and seventy-three elephants marched out of Egypt to do battle with Antiochus&hellip;Antiochus was also early in the field with seventy-eight thousand men and one hundred and two elephants. The battle was fought at Gaza. Antiochus was defeated with a loss of ten thousand killed and four thousand taken prisoners&rdquo; (GEP 211.4). Jones explicitly maps &ldquo;the king of the south&rdquo; was &ldquo;moved with choler&rdquo; and the multitude was given into Ptolemy's hand."
         }
       ],
       "modernReadings": [
@@ -397,6 +507,11 @@
           "source": "smith",
           "citation": "DAR 229.1-3",
           "html": "\"Ptolemy lacked the prudence to make a good use of his victory. Had he followed up his success, he would probably have become master of the whole kingdom of Antiochus; but content with making only a few menaces and a few threats, he made peace that he might be able to give himself up to the uninterrupted and uncontrolled indulgence of his brutish passions. Thus, having conquered his enemies, he was overcome by his vices, and, forgetful of the great name which he might have established, he spent his time in feasting and lewdness\" (DAR 229.2). Smith locates the \"not strengthened\" fulfillment chiefly in Ptolemy's transaction with the Jews: \"Coming to Jerusalem, he there offered sacrifices, and was very desirous of entering into the most holy place of the temple... [and] immediately commenced against them a terrible and relentless persecution. In Alexandria, where Jews had resided since the days of Alexander... **forty thousand**, according to Eusebius, **sixty thousand**, according to Jerome, were slain in this persecution. The rebellion of the Egyptians, and this massacre of the Jews, certainly were not calculated to strengthen him in his kingdom\" (DAR 229.3)."
+        },
+        {
+          "source": "jones",
+          "citation": "GEP 214.1",
+          "html": "Jones maps v.12 directly: &ldquo;Three years afterward&hellip;(213 B. C.) there was an insurrection of the Egyptians, of which Philopator made occasion to wreak his wrath against the Jews, slaying forty thousand of them. Thus he 'cast down tens of thousands.' <strong>Daniel 11:12</strong>, R. V.&rdquo; (GEP 214.1). The verse's clause that the king's heart would be &ldquo;lifted up&rdquo; but he would not be strengthened — Jones reads as Philopator's debauchery: &ldquo;drinking, gaming, and lasciviousness, were the whole employments of his life. He was ruled by his concubines.&rdquo; The forty-thousand-Jew massacre is Jones's load-bearing identification."
         }
       ],
       "modernReadings": [
@@ -432,6 +547,11 @@
           "source": "smith",
           "citation": "DAR 230.1-2",
           "html": "\"The events predicted in this verse were to occur 'after certain years.' **The peace concluded between Ptolemy Philopater and Antiochus, lasted fourteen years.** Meanwhile Ptolemy died from intemperance and debauchery, and was succeeded by his son, **Ptolemy Epiphanes**, a child then four or five years old. Antiochus, during the same time, having suppressed rebellion in his kingdom, and reduced and settled the eastern parts in their obedience, was at leisure for any enterprise, when young Epiphanes came to the throne of Egypt; and thinking this too good an opportunity for enlarging his dominion to be let slip, he raised an immense army 'greater than the former'... and set out against Egypt, expecting to have an easy victory over the infant king\" (DAR 230.2)."
+        },
+        {
+          "source": "jones",
+          "citation": "GEP 215.1",
+          "html": "Jones identifies the &ldquo;king of the north&rdquo; returning &ldquo;after certain years&hellip;with a much greater army&rdquo; as <strong>Antiochus Magnus</strong>'s renewed campaign against the infant <strong>Ptolemy V Epiphanes</strong>: &ldquo;In 204 B.C., Ptolemy Philopator died, at the age of thirty-seven&hellip;His heir was a son only five years old, named Ptolemy Epiphanes. Seeing that the kingdom and the dominions of Egypt had thus fallen to an infant, Antiochus the Great and Philip king of Macedon formed a league to take the whole realm and divide it between them&rdquo; (GEP 215.1). Antiochus then took &ldquo;all the countries up to the very borders of Egypt.&rdquo; Same identification as Haskell and Smith."
         }
       ],
       "modernReadings": [
@@ -467,6 +587,26 @@
           "source": "smith",
           "citation": "DAR 230.3-232.2",
           "html": "\"Antiochus was not the only one who rose up against the infant Ptolemy. Agathocles, his prime minister... was so dissolute and proud in the exercise of his power that the provinces which before were subject to Egypt rebelled... **Philip, king of Macedon, entered into a league with Antiochus to divide the dominions of Ptolemy between them**\" (DAR 230.4). The \"robbers of thy people\" Smith reads (with **Bishop Newton**) as \"the breakers of thy people\" — and identifies them as **Rome**: \"Far away on the banks of the Tiber, a kingdom had been nourishing itself with ambitious projects and dark designs... Henceforth the name of **Rome** stands upon the historic page\" (DAR 231.1). \"The Romans interfered in behalf of the young king of Egypt... This was **B. C. 200**, and was one of the first important interferences of the Romans in the affairs of Syria and Egypt\" (DAR 231.2). Smith cites Rollin's _Ancient History_ book 18 ch. 50 at length on the Roman intervention (DAR 231.3). On \"establish the vision\": \"The Romans being more prominently than any other people the subject of Daniel's prophecy, their first interference in the affairs of these kingdoms is here referred to as being the establishment, or demonstration, of the truth of the vision\" (DAR 232.1)."
+        },
+        {
+          "source": "miller",
+          "citation": "MWV2 88.1",
+          "html": "<p>Miller identifies <strong>the \"robbers of thy people\" of v.14 with Rome</strong>, the smallest kingdom in Daniel's vision: \"at this very time of which the angel is speaking, Rome, the least kingdom in Daniel's vision, did exalt itself, and this kingdom did have the very marks in the vision, and in the events following\" (MWV2 88.1). The marks: \"great iron teeth; it was to break in pieces, and stamp the residue with the feet of it.\" Miller rejects an Antiochus-only application because \"the angel had been talking about that nation for a number of verses previous, and now says, 'also the robbers of thy people,'\" evidently introducing a new actor. The verse is therefore the introduction of Rome into the prophecy. Also: \"the Christian church has been persecuted and robbed by this dreadful beast, the Roman kingdom.\"</p>"
+        },
+        {
+          "source": "litch",
+          "citation": "PSC 116.4",
+          "html": "Litch dates v.14 to <strong>158 B.C.</strong> with his second prophetic period of Dan 11: &ldquo;The next period is recorded from verse 22nd to the 31st. It begins with the first league ever made between the Jews and Romans, which took effect when Bacchiades, a Grecian general, left off, at the command of the Romans, to trouble the Jews, B. C. 158; and extends to the taking away of the daily sacrifice of pagan Rome&hellip;A. D. 508; being a period of six hundred and sixty-six years&rdquo; (PSC 116.4). For Litch the &ldquo;robbers of thy people&rdquo; clause of v.14 anticipates the Jewish-Roman league of 158 B.C., which formally begins v.22's Roman period — and the 666-year span ending in 508 mirrors &ldquo;the celebrated number of the beast, Revelation 13:18.&rdquo;"
+        },
+        {
+          "source": "haskell",
+          "citation": "SDP 197.3-200.1",
+          "html": "Haskell identifies v.14 as <strong>the entry-point of Rome</strong> into the prophecy: &ldquo;In verse 14 the voice of the fourth beast is heard; Rome placed itself on the side of the helpless&rdquo; Ptolemy Epiphanes (SDP 197.3). &ldquo;The fourteenth verse of the eleventh chapter of Daniel&hellip;introduces a new power&hellip;the angel of prophecy speaks of the first appearance of the fourth kingdom as it comes in contact with the divisions of the third kingdom, Greece&rdquo; (SDP 200.1). The KJV's &ldquo;robbers of thy people&rdquo; Haskell takes as <strong>Rome</strong>: &ldquo;The violent opposers of thy people shall exalt themselves to establish the vision&rdquo; — i.e. Roman intervention &ldquo;establishes&rdquo; the prophetic vision."
+        },
+        {
+          "source": "jones",
+          "citation": "GEP 216.2",
+          "html": "Jones reads v.14 as the historical pivot to <strong>Rome</strong>: when the infant Ptolemy Epiphanes faced the Antiochus-Philip league, &ldquo;'in those times many stood up against the king of the south;' but just at the juncture when the king and the kingdom of 'the south' would have been swallowed up, '<strong>the children of robbers</strong> exalted themselves,' saved 'the king of the south,' and 'established the vision'&rdquo; (GEP 216.2). The Romans' protectorate over the infant Ptolemy V <strong>establishes the prophetic vision</strong> by inserting the fourth empire into the king-of-north/king-of-south struggle. Same identification as Smith and Haskell."
         }
       ],
       "modernReadings": [
@@ -502,6 +642,16 @@
           "source": "smith",
           "citation": "DAR 232.3-233.3",
           "html": "\"The tuition of the young king of Egypt was entrusted by the Roman Senate to M. Emilius Lepidus, who appointed **Aristomenes**, an old and experienced minister of that court, his guardian... To this end he despatched **Scopas**, a famous general of AEtolia, then in the service of the Egyptians, into his native country to raise reinforcements for the army\" (DAR 233.1-2). \"Antiochus, desisting from his war with Attalus at the dictation of the Romans, took speedy steps for the recovery of Palestine and Coele-Syria from the hands of the Egyptians. Scopas was sent to oppose him. Near the sources of the Jordan, the two armies met. Scopas was defeated, pursued to **Sidon**, and there closely besieged... Scopas meeting, in the gaunt and intangible specter of famine, a foe with whom he was unable to cope, was forced to surrender on the dishonorable terms of life only; whereupon he and his ten thousand men were suffered to depart, stripped and naked. Here was the taking of the most fenced cities by the king of the north; for **Sidon was, both in its situation and its defenses, one of the strongest cities of those times**\" (DAR 233.3)."
+        },
+        {
+          "source": "haskell",
+          "citation": "SDP 205.2-206.1",
+          "html": "Haskell threads v.15 through the Rome-Macedon-Syria triangle: &ldquo;The family of Antiochus was still bearing sway in the Eastern world. It was <strong>Antiochus IV</strong> who proposed to unite with Philip V of Macedon against the young king of Egypt when Rome interfered&hellip;<strong>Antiochus the Great</strong> in the single battle of <strong>Magnesia (B. C. 190)</strong> lost all his conquests in Asia Minor&rdquo; (SDP 206.1). The verse's clause &ldquo;the king of the north shall come, and cast up a mount, and take the most fenced cities&rdquo; tracks Antiochus III's reduction of Sidon and other strongholds. &ldquo;Rome controlled Egypt because the education of the heir to the throne was in the hand of a Roman senator&rdquo; (SDP 206.2)."
+        },
+        {
+          "source": "jones",
+          "citation": "GEP 241.3",
+          "html": "Jones identifies v.15's siege of &ldquo;the most fenced cities&rdquo; with <strong>Antiochus Magnus</strong>'s campaign against Egyptian-held Phoenicia and Sidon (203-198 B.C.). He &ldquo;penetrated as far as Memphis, subjecting the whole country through which he passed&rdquo; (GEP 241.3). &ldquo;Thus 'the king of the north' came and 'cast up a mount,' and took 'the most fenced cities'&rdquo; — direct identification with v.15. Egypt's &ldquo;chosen people&rdquo; (Roman-trained troops, on Smith's reading) could not withstand him until Rome's embassy &ldquo;broke all the measures he had been so long taking.&rdquo;"
         }
       ],
       "modernReadings": [
@@ -537,6 +687,11 @@
           "source": "smith",
           "citation": "DAR 233.4-235.1",
           "html": "\"Although Egypt could not stand before Antiochus, the king of the north, Antiochus could not stand before the Romans, who now came against him. No kingdoms were longer able to resist this rising power. **Syria was conquered, and added to the Roman empire, when Pompey, B. C. 65, deprived Antiochus Asiaticus of his possessions, and reduced Syria to a Roman province**\" (DAR 233.5). \"The same power was also to stand in the Holy Land, and consume it. Rome became connected with the people of God, the Jews, by alliance, **B. C. 161**, from which date it holds a prominent place in the prophetic calendar. It did not, however, acquire jurisdiction over Judea by actual conquest till **B. C. 63**\" (DAR 234.1). Smith narrates **Pompey's three-month siege of Jerusalem** at length, ending: \"twelve thousand persons were slain... Pompey demolished the walls of Jerusalem, transferred several cities from the jurisdiction of Judea to that of Syria, and imposed tribute on the Jews. Thus for the first time was Jerusalem placed by conquest in the hands of that power which was to hold the 'glorious land' in its iron grasp till it had utterly consumed it\" (DAR 234.3-235.1)."
+        },
+        {
+          "source": "jones",
+          "citation": "GEP 243.2",
+          "html": "Jones makes the explicit identification: &ldquo;Egypt voluntarily submitted to the Roman protectorate, and thereupon the kings of Babylon also desisted from the last effort to maintain their independence against Rome&rdquo; (Mommsen, 168 B.C., cited GEP 243.2). &ldquo;Thus when the king of the north had come and cast up a mount, and had taken the most fenced cities; and when the arms of the south could not withstand, and there was no strength to withstand; then '<strong>he</strong>' — <strong>Rome</strong> — that came 'against him' — <strong>Antiochus, the king of the north</strong> — did 'do according to his own will'&rdquo; (GEP 243.2 citing Daniel 11:15, 16). Verbatim verse-to-power identification: Rome is the new actor of v.16."
         }
       ],
       "modernReadings": [
@@ -567,6 +722,11 @@
           "source": "smith",
           "citation": "DAR 235.2-238.2",
           "html": "Smith follows **Bishop Newton's** reading: \"He shall also set his face to enter by force the whole kingdom\" (DAR 235.3). \"Egypt was now all that remained of the 'whole kingdom' of Alexander, not brought into subjection to the Roman power\" (DAR 235.3). \"**Ptolemy Auletes** died **B. C. 51**. He left the crown and kingdom of Egypt to his eldest son and daughter, Ptolemy and **Cleopatra**... they were placed under the guardianship of the Romans. The Roman people accepted the charge, and appointed **Pompey** as guardian\" (DAR 235.4). After Pharsalia and Pompey's murder in Egypt, \"**Caesar** therefore assumed the appointment which had been given to Pompey\" (DAR 236.1). Smith narrates Caesar's Alexandrian War, his alliance with Cleopatra (Cleopatra smuggled to Caesar in a bundle of clothes by Appolodorus — DAR 236.3-237.1), and the decisive battle near the Nile, fixing the date: \"subdued Egypt to his power, **B. C. 47**\" (DAR 238.1). \"**The daughter of women, corrupting her.** The passion which Caesar had conceived for Cleopatra, by whom he had one son, is assigned by the historian as the sole reason of his undertaking so dangerous a campaign... 'But,' said the prophet, 'she shall not stand on his side, neither be for him.' Cleopatra afterward joined herself to Antony, the enemy of Augustus Caesar, and exerted her whole power against Rome\" (DAR 238.2). The \"upright ones\" Smith identifies as **the Jews** (DAR 238.1, citing Antipater the Idumean's 3000 Jews who opened the passes to Egypt)."
+        },
+        {
+          "source": "haskell",
+          "citation": "SDP 211.2-212.1",
+          "html": "Haskell reads v.17 as <strong>Julius Caesar</strong>'s entry into Egypt: &ldquo;It was during the rule of the first triumvirate that Egypt, the kingdom of the south, was again entered by Rome&hellip;Caesar entered Alexandria shortly after and espoused the cause of <strong>Cleopatra</strong>&rdquo; (SDP 211.2). &ldquo;Caesar as a general stood in a position to accomplish for the fourth kingdom what Nebuchadnezzar, Cyrus, and Alexander had done&hellip;He was fascinated and corrupted by the queen of Egypt. The seventeenth verse, while describing a particular event in history, also symbolizes the corrupting influence of Egypt whenever the north came in touch with the south&rdquo; (SDP 212.1). The text's &ldquo;daughter of women, corrupting her&rdquo; = Cleopatra, but &ldquo;she shall not stand on his side&rdquo; — she failed to deliver Egypt to Rome via Caesar's heart."
         }
       ],
       "modernReadings": [
@@ -597,6 +757,11 @@
           "source": "smith",
           "citation": "DAR 238.3-4",
           "html": "\"War with **Pharnaces, king of the Cimmerian Bosporus**, at length drew him away from Egypt.\" Citing Prideaux: \"On his arrival where the enemy was, he, without giving any respite either to himself or them, immediately fell on, and gained an absolute victory over them; an account whereof he wrote to a friend of his in these three words: **_Veni, vidi, vici_**; I came, I saw, I conquered\" (DAR 238.4). On the latter half of v.18, Smith concedes interpretive uncertainty: \"The latter part of this verse is involved in some obscurity, and there is difference of opinion in regard to its application. Some apply it further back in Caesar's life, and think they find a fulfillment in his quarrel with Pompey. But preceding and subsequent events clearly defined in the prophecy, compel us to look for the fulfillment of this part of the prediction between the victory over Pharnaces, and Caesar's death at Rome... A more full history of this period might bring to light events which would render the application of this passage unembarrassed\" (DAR 238.4)."
+        },
+        {
+          "source": "haskell",
+          "citation": "SDP 212.2",
+          "html": "Haskell ties v.18's &ldquo;he shall turn his face unto the isles&rdquo; to <strong>Caesar</strong>'s Mediterranean campaigns after Egypt: &ldquo;Leaving Egypt, Caesar passed along the coast of Palestine and Asia Minor, receiving the submission of all peoples with such rapidity that he sent the famous dispatch to Rome, '<em>I came, I saw, I conquered</em>' (<em>Veni, Vidi, Vici</em>). He returned to Rome, where he altered laws, strengthened the senate, settled disturbances in the army, and later brought western Africa, which had revolted, into submission&rdquo; (SDP 212.2). The verse's &ldquo;prince for his own behalf shall cause the reproach&hellip;to cease&rdquo; Haskell links to Caesar's later assassination — the reproach he caused was answered by his own death (v.19)."
         }
       ],
       "modernReadings": [
@@ -632,6 +797,11 @@
           "source": "smith",
           "citation": "DAR 239.1-2",
           "html": "\"After this conquest, Caesar defeated the last remaining fragments of Pompey's party, **Cato and Scipio in Africa, and Labienus and Varus in Spain**. Returning to Rome, the 'fort of his own land,' he was made perpetual dictator... The language implies that his overthrow would be sudden and unexpected, like a person accidentally stumbling in his walk. And so this man, who had fought and won **five hundred battles, taken one thousand cities, and slain one million one hundred and ninety-two thousand men**, fell, not in the din of battle and the hour of strife, but when he thought his pathway was smooth and strewn with flowers... taking his seat in the senate chamber, upon his throne of gold, to receive at the hands of that body the title of king, the dagger of treachery suddenly struck him to the heart. **Cassius, Brutus, and other conspirators** rushed upon him, and he fell, pierced with twenty-three wounds. Thus he suddenly stumbled and fell, and was not found, **B. C. 44**\" (DAR 239.2)."
+        },
+        {
+          "source": "haskell",
+          "citation": "SDP 213.1-2",
+          "html": "Haskell maps v.19's &ldquo;he shall stumble and fall, and not be found&rdquo; to <strong>Julius Caesar</strong>'s assassination at Rome: &ldquo;It was the year <strong>44 B. C.</strong> when the plans of Julius Caesar were cut short by his untimely death. Republicanism was so far gone that the government fell into the hands of the strongest men&rdquo; (SDP 213.1). Lepidus died, Antony self-destroyed in Egypt with Cleopatra, &ldquo;Octavius, an adopted son of Julius Caesar, alone remained&rdquo; (SDP 213.2). The &ldquo;fort of his own land&rdquo; = Rome itself, where the assassination occurred. Same identification as Smith's DAR."
         }
       ],
       "modernReadings": [
@@ -662,6 +832,16 @@
           "source": "smith",
           "citation": "DAR 239.3-240.2",
           "html": "\"**Augustus Caesar** succeeded his uncle, Julius, by whom he had been adopted as his successor\" (DAR 239.4). \"He was emphatically a raiser of taxes. **Luke**, in speaking of the events that transpired at the time when Christ was born, says: 'And it came to pass in those days, that there went out a decree from Caesar Augustus, that all the world should be taxed.' **Luke 2:1**\" (DAR 239.5). Smith quotes the _St. Louis Globe Democrat_: \"Augustus Caesar was not the public benefactor he is represented. He was the most exacting tax collector the Roman world had up to that time ever seen\" (DAR 240.1). \"Rome reached in his days the pinnacle of its greatness and power. The 'Augustan Age'...\" \"**In his reign, the temple of Janus was for the third time shut since the foundation of Rome, signifying that all the world was at peace; and at this auspicious hour our Lord was born in Bethlehem of Judea.** In a little less than eighteen years after the taxing brought to view, seeming but a 'few days' to the distant gaze of the prophet, **Augustus died, not in anger nor in battle, but peacefully in his bed, at Nola**, whither he had gone to seek repose and health, **A. D. 14**, in the seventy-sixth year of his age\" (DAR 240.2)."
+        },
+        {
+          "source": "haskell",
+          "citation": "SDP 213.2-215.3",
+          "html": "Haskell identifies the &ldquo;raiser of taxes in the glory of the kingdom&rdquo; as <strong>Caesar Augustus</strong>: &ldquo;every barrier of the Roman constitution had been leveled by the ambition of Octavius, called <strong>Caesar Augustus</strong>&rdquo; (SDP 213.2). &ldquo;Thus was Caesar Augustus, the raiser of taxes, brought to the head of the fourth kingdom&rdquo; (SDP 214.1). The Luke 2:1 census (&ldquo;there went out a decree from Caesar Augustus, that all the world should be taxed&rdquo;) is Haskell's load-bearing fulfillment. &ldquo;All that the sacred record gives concerning Augustus&hellip;is that he was a raiser of taxes when the kingdom was at the height of its glory, and that after a reign of a few days, or years, he should end his career in peace&rdquo; (SDP 215.3) — matching v.20's &ldquo;within few days he shall be destroyed, neither in anger, nor in battle.&rdquo;"
+        },
+        {
+          "source": "jones",
+          "citation": "GEP 313.2",
+          "html": "Jones quietly confirms the v.20 = <strong>Caesar Augustus</strong> identification through Luke 2:1: &ldquo;Octavius bearing by inheritance the greatest name then in the world, — Caesar, — and the most sacred and authoritative title known to the Roman world, — Augustus, — his name now took the form Caesar Augustus. 'And it came to pass that in those days, there went out a decree from <strong>Caesar Augustus, that all the world should be taxed</strong>'&rdquo; (GEP 313.2, citing Luke 2:1). Jones notes the census was &ldquo;not immediately taxed in the sense of levying and collecting money; but rather enrolled&rdquo; for later levy — but the &ldquo;raiser of taxes&rdquo; identification stands."
         }
       ],
       "modernReadings": [
@@ -692,6 +872,16 @@
           "source": "smith",
           "citation": "DAR 240.3-242.2",
           "html": "\"**Tiberius Caesar** next appeared after Augustus Caesar on the Roman throne... It is recorded that as Augustus was about to nominate his successor, his wife, **Livia**, besought him to nominate Tiberius (her son by a former husband); but the emperor said, '**Your son is too vile to wear the purple of Rome**'\" (DAR 240.4). The nomination first went to Agrippa; only after Agrippa's death did Augustus, weakened by age, accept Livia's renewed petition for \"that 'vile' young man. But the citizens never gave him the love, respect, and 'honor of the kingdom,' due to an upright and faithful sovereign\" (DAR 240.4). On the \"peaceable\" entry, Smith quotes the _Encyclopedia Americana_: Tiberius \"succeeded, without opposition, to the sovereignty of the empire; which, however, with his characteristic dissimulation, he affected to decline, until repeatedly solicited by the servile senate\" (DAR 241.2). On the \"vile\" character Smith again quotes the _Encyclopedia_ (citing **Tacitus**) on Tiberius's reign: Sejanus, Drusus, the Capreae retirement (A.D. 26), the destruction of Germanicus's family, and Seneca's report that Tiberius \"continued in a state of perpetual intoxication from the time he gave himself to drinking, to the last moment of his life\" (DAR 241.4-242.2)."
+        },
+        {
+          "source": "haskell",
+          "citation": "SDP 216.1",
+          "html": "Haskell identifies the &ldquo;vile person&rdquo; as <strong>Tiberius Caesar</strong>: &ldquo;Most of the life of the Saviour was spent during the reign of Tiberius, the successor of Augustus, whom Gabriel described to Daniel as a 'vile person.' History substantiates the description. He was not a direct heir to the throne, and he was never honored by his subjects. The tyranny of absolutism began again to manifest itself&hellip;the emperor usurped the right to put to death without trial&rdquo; (SDP 216.1). The text's &ldquo;to whom they shall not give the honour of the kingdom: but he shall come in peaceably, and obtain the kingdom by flatteries&rdquo; — Tiberius came to power by Augustus's dissimulating maneuvers, not by popular acclaim. Same identification as Smith."
+        },
+        {
+          "source": "jones",
+          "citation": "GEP 324.2-326.4",
+          "html": "Jones supplies extensive material on <strong>Tiberius</strong>'s viciousness: &ldquo;Forty-three years of the sole authority of Augustus had established the principle of absolutism&hellip;Tiberius was fifty-six years old, and had been a careful student of Augustus, and though at his accession the new principle of government was put to its severest test, Tiberius made Augustus his model in all things; 'continued his hypocrisy'&rdquo; (GEP 324.2). He obtained power by flatteries: &ldquo;he affected by a most impudent piece of acting to refuse it for a long time&hellip;by ambiguous answers and a crafty kind of dissimulation&rdquo; (GEP 324.3). &ldquo;In Tiberius the government of Rome became 'a furious and crushing despotism'&hellip;He abandoned himself to every species of cruelty&rdquo; (GEP 326.4). Jones gives more detail than Smith on the &ldquo;flatteries&rdquo; mechanics."
         }
       ],
       "modernReadings": [
@@ -727,6 +917,16 @@
           "source": "smith",
           "citation": "DAR 242.3-244.1",
           "html": "Smith follows **Bishop Newton's** reading: \"And the arms of the overflower shall be overflown from before him, and shall be broken\" (DAR 242.4) — i.e., Tiberius the overflower suffers a violent death. Smith cites the _Encyclopedia Americana_: \"Macro, the pretorian prefect, caused him to be suffocated with pillows. Thus expired the emperor Tiberius, in the seventy-eighth year of his age, and twenty-third of his reign, universally execrated\" (DAR 243.1). \"**The prince of the covenant**\" Smith identifies explicitly: \"unquestionably refers to **Jesus Christ**, 'the Messiah the Prince,' who was to 'confirm the covenant' one week with his people. **Daniel 9:25-27**. The prophet, having taken us down to the death of Tiberius, now mentions incidentally an event to transpire in his reign, so important that it should not be passed over; namely, the cutting off of the Prince of the covenant, or, in other words, the death of our Lord Jesus Christ\" (DAR 243.2). Smith works the chronology: **Luke 3:1-3** dates John the Baptist's ministry to Tiberius's 15th year; following Prideaux, Hales, and Lardner, Smith reckons Tiberius's reign from his joint elevation with Augustus in August A.D. 12, putting the 15th year August A.D. 26-27; Christ's baptism autumn **A.D. 27** (terminus of the 483 years from B.C. 457); the crucifixion at the fourth Passover **spring A.D. 31**; Tiberius dies **A.D. 37** (DAR 243.2)."
+        },
+        {
+          "source": "litch",
+          "citation": "PSC 116.3-4",
+          "html": "Litch sees v.22 as the chapter's first major chronological pivot: the &ldquo;prince of the covenant&rdquo; is broken in <strong>A.D. 33</strong>, ending the first prophetic period of Dan 11. His next period &ldquo;begins with the first league ever made between the Jews and Romans, which took effect when Bacchiades, a Grecian general, left off, at the command of the Romans, to trouble the Jews, B. C. 158; and extends to the taking away of the daily sacrifice of pagan Rome, to make way for the abomination which maketh desolate, or the papal power, which took place A. D. 508; being a period of <strong>six hundred and sixty-six years</strong>&rdquo; (PSC 116.4). Litch reads the Jewish-Roman league as v.22's hinge — the 666-year span echoes Rev 13:18."
+        },
+        {
+          "source": "haskell",
+          "citation": "SDP 217.1",
+          "html": "Haskell identifies the &ldquo;prince of the covenant&rdquo; broken in v.22 as <strong>Christ</strong>: &ldquo;Representatives from the four quarters of the globe stood near him in his last hours. The Greeks met him at the temple at the last great day of the feast; the thief hung beside him on Calvary; Simon of Cyrene helped bear the cross, and the centurion, a Roman soldier, convicted, said, 'Truly, this was the Son of God.' The darkness which shrouded the dying form of Christ typified the condition of the Roman world&rdquo; (SDP 217.1). The &ldquo;arms of a flood&hellip;overflown from before him&rdquo; = the great Roman military expansion under Tiberius; the &ldquo;prince of the covenant&rdquo; broken at the cross is the precise Miller's-Rule-V christological move."
         }
       ],
       "modernReadings": [
@@ -757,6 +957,11 @@
           "source": "smith",
           "citation": "DAR 244.1-246.1",
           "html": "\"Having taken us down through the secular events of the empire to the end of the seventy weeks, the prophet, in verse 23, takes us back to the time when the Romans became directly connected with the people of God by **the Jewish league, B. C. 161**; from which point we are then taken down in a direct line of events to the final triumph of the church\" (DAR 245.1). \"The Jews, being grievously oppressed by the Syrian kings, sent an embassy to Rome, to solicit the aid of the Romans, and to join themselves in 'a league of amity and confederacy with them.' **1 Mac. 8**; Prideaux, II, 166; Josephus's Antiquities, book 12, chap. 10, sec. 6\" (DAR 245.1). Smith quotes the senate's decree in full from Josephus (DAR 245.2). \"At this time the Romans were a small people, and began to work deceitfully, or with cunning, as the word signifies. And from this point they rose by a steady and rapid ascent to the hight of power which they afterward attained\" (DAR 246.1)."
+        },
+        {
+          "source": "haskell",
+          "citation": "SDP 225.3",
+          "html": "Haskell identifies v.23's &ldquo;league&rdquo; with <strong>Constantine</strong>'s union of Christianity and the State: &ldquo;The clothing of paganism in Christian garments was never more complete than in the days of Constantine. The mystery of iniquity was hard at work. Constantine conquered the Roman world; he sat as sole monarch of the empire&rdquo; (SDP 225.3). The text's &ldquo;after the league made with him, he shall work deceitfully&hellip;and shall become strong with a small people&rdquo; — Haskell takes the &ldquo;small people&rdquo; as the Christians whom Constantine co-opted: &ldquo;The first religious laws ever passed by Christians were edicts of Constantine. In 312 the edict of Milan&hellip;in 321 the first law for the worship of Sunday&hellip;in 325 was convened at Nice the first ecumenical council&rdquo; (SDP 227.1)."
         }
       ],
       "modernReadings": [
@@ -787,6 +992,11 @@
           "source": "smith",
           "citation": "DAR 246.2-5",
           "html": "\"The usual manner in which nations had, before the days of Rome, entered upon valuable provinces and rich territory, was by war and conquest. Rome was now to do what had not been done by the fathers or the fathers' fathers; namely, **receive these acquisitions through peaceful means. The custom, before unheard of, was now inaugurated, of kings' leaving by legacy their kingdoms to the Romans**. Rome came into possession of large provinces in this manner\" (DAR 246.3). On the latter half: Smith follows **Bishop Newton's** rendering — \"forecasting devices **from** strongholds, instead of **against** them. This the Romans did from the strong fortress of their seven-hilled city\" (DAR 246.5). On \"even for a time\": \"doubtless a prophetic time, **360 years**. From what point are these years to be dated? Probably from the event brought to view in the following verse\" (DAR 246.5) — i.e., dated from Actium B.C. 31, terminating A.D. 330 (the removal of the capital to Constantinople — Smith argues this at DAR 249.1)."
+        },
+        {
+          "source": "haskell",
+          "citation": "SDP 227.2",
+          "html": "Haskell reads v.24's &ldquo;he shall do that which his fathers have not done, nor his fathers' fathers&rdquo; as <strong>Constantine</strong>'s unprecedented founding of a new capital and a new religion: &ldquo;He indeed performed that which neither his father nor his father's fathers had performed. He left to his heirs 'a new capital, a new policy, and a new religion.' No one had before dared to think that Rome could be quitted. Constantine selected the site of Constantinople with more than human wisdom&hellip;it is a fact worth noting that the city was founded in the year <strong>330</strong>&hellip;<em>exactly</em>&rdquo; an interval calculated by the prophecy (SDP 227.2). The text's &ldquo;scatter among them the prey, and spoil, and riches&rdquo; matches Constantine's distribution of confiscated pagan-temple wealth among his Christian-favored subjects."
         }
       ],
       "modernReadings": [
@@ -822,6 +1032,11 @@
           "source": "smith",
           "citation": "DAR 246.6-249.1",
           "html": "\"The verse now before us brings to view a vigorous campaign against the king of the south, **Egypt**, and the occurrence of a notable battle between great and mighty armies... The war was the war between Egypt and Rome; and the battle was **the battle of Actium**\" (DAR 246.7-247). \"**Mark Antony, Augustus Caesar, and Lepidus** constituted the Triumvirate... Antony was sent into Egypt on government business, but fell a victim to the arts and charms of **Cleopatra**, Egypt's dissolute queen\" (DAR 247.1). Smith narrates Antony's fleet of **five hundred ships of war** with \"two hundred thousand foot, and twelve thousand horse,\" contributed kings from Libya, Cilicia, Cappadocia, Paphlagonia, Comagena, Thrace, with Pontus, Judea, Lycaonia, Galatia, Media sending troops (DAR 247.2). Caesar Augustus had half as many ships and only 80,000 foot but his were \"chosen men\" (DAR 248.1). \"**The battle was fought Sept. 2, B. C. 31**, at the mouth of the gulf of Ambracia, near the city of Actium\" (DAR 248.3). Cleopatra's flight with sixty ships drew Antony after her, yielding the victory to Caesar (DAR 248.3). Smith adds the time-prophecy anchor: \"This battle doubtless marks the commencement of the 'time' mentioned in verse 24... From B. C. 31, a prophetic time, or 360 years, would bring us to **A. D. 330**... the seat of empire was removed from Rome to Constantinople by Constantine the Great in that very year\" (DAR 249.1)."
+        },
+        {
+          "source": "haskell",
+          "citation": "SDP 230.2-231.1",
+          "html": "Haskell shifts at v.25 to the wars between the Catholic emperors at Constantinople (the &ldquo;king of the north&rdquo;) and the Arian Vandal kingdom in Africa (the &ldquo;king of the south&rdquo;): &ldquo;According to the vision of Daniel 7, the Roman kingdom would be divided into ten parts&hellip;and three of these kingdoms should be plucked up by another power. It is this part of the history of the fourth kingdom which is related in Daniel 11, beginning with verse twenty-five&rdquo; (SDP 230.2). The Vandal king <strong>Gelimer</strong> deposed his Catholic-leaning kinsman Hilderis, providing <strong>Justinian</strong> the pretext for war. Belisarius landed in Africa with the largest army Rome could muster (SDP 231.1). The &ldquo;great army&rdquo; vs. &ldquo;mighty army&rdquo; clauses fit the Vandal-Byzantine wars of 533-534."
         }
       ],
       "modernReadings": [
@@ -857,6 +1072,11 @@
           "source": "smith",
           "citation": "DAR 249.2-3",
           "html": "\"The cause of Antony's overthrow was the desertion of his allies and friends, those that fed of the portion of his meat. First, **Cleopatra**, as already described, suddenly withdrew from the battle, taking sixty ships of the line with her. Secondly, the land army, disgusted with the infatuation of Antony, went over to Caesar, who received them with open arms. Thirdly, when Antony arrived at Libya, he found that the forces which he had there left under **Scarpus** to guard the frontier, had declared for Caesar. Fourthly, being followed by Caesar into Egypt, he was betrayed by Cleopatra, and his forces surrendered to Caesar. Hereupon, in rage and despair, he took his own life\" (DAR 249.3)."
+        },
+        {
+          "source": "haskell",
+          "citation": "SDP 231.2",
+          "html": "Haskell ties v.26's &ldquo;they that feed of the portion of his meat shall destroy him&rdquo; to the Vandal generals and Catholic recruits who defected to Belisarius: &ldquo;A force of Romans, the largest Belisarius could command from the weakened empire, aided by recruits from the east, landed in Africa. The Vandal army numbered 160,000 fighting men. Belisarius was hastened in his march toward Carthage by enemies of Gelimer and friends of the Catholic creed&rdquo; (SDP 231.2). The internal betrayal of Gelimer by his own coreligionists and military lieutenants matches the verse's specifier. &ldquo;His army shall overflow: and many shall fall down slain.&rdquo;"
         }
       ],
       "modernReadings": [
@@ -892,6 +1112,11 @@
           "source": "smith",
           "citation": "DAR 249.4-250.1",
           "html": "Smith reads v.27 of the two former Triumvirs. \"Antony and Caesar were formerly in alliance. Yet under the garb of friendship, they were both aspiring and intriguing for universal dominion. Their protestations of deference to, and friendship for, each other, were the utterances of hypocrites. They spoke lies at one table. Octavia, the wife of Antony and sister of Caesar, declared to the people of Rome at the time Antony divorced her, that she had consented to marry him solely with the hope that it would prove a pledge of union between Caesar and Antony. But that counsel did not prosper. The rupture came; and in the conflict that ensued, Caesar came off entirely victorious\" (DAR 250.1)."
+        },
+        {
+          "source": "haskell",
+          "citation": "SDP 232.1-2",
+          "html": "Haskell maps v.27 (&ldquo;both these kings' hearts shall be to do mischief, and they shall speak lies at one table&rdquo;) onto the deceit between Justinian and the Vandal/Arian leaders during the negotiated triumph: &ldquo;In the autumn of 534 Justinian granted a triumph to Belisarius&rdquo; — with the Vandal nobles paraded as captives — and immediately enacted laws that &ldquo;interdicted the baptism of their children, and the exercise of all religious worship&rdquo; (SDP 232.1-2). The mutual deceit between the Vandal and Byzantine courts fulfills &ldquo;speak lies at one table; but it shall not prosper: for yet the end shall be at the time appointed&rdquo; — i.e. the eradication of Arian power awaited the 538 mark."
         }
       ],
       "modernReadings": [
@@ -927,6 +1152,11 @@
           "source": "smith",
           "citation": "DAR 250.2-252.2",
           "html": "\"Two returnings from foreign conquest are here brought to view; the first, after the events narrated in verses 26 and 27, and the second, after this power had had indignation against the holy covenant... The first was fulfilled in the return of Caesar after his expedition against Egypt and Antony. He returned to Rome with abundant honors and riches; for, says Prideaux (II, 380), 'At this time such vast riches were brought to Rome from Egypt on the reducing of that country... that the value of money fell one half, and the price of provisions and all vendible wares was doubled thereon'\" (DAR 250.3). \"The next great enterprise of the Romans after the overthrow of Egypt, was **the expedition against Judea, and the capture and destruction of Jerusalem**\" (DAR 250.4). Smith narrates Vespasian's invasion, Titus's siege, the famine fulfilling Moses's prophecy of women eating their children, the burning of the temple by a Roman soldier's brand, Titus rescuing the golden candlestick (later depicted on the arch of Titus): \"**Jerusalem fell in A. D. 70**\" (DAR 251.2). \"The siege of Jerusalem lasted five months. In that siege **eleven hundred thousand Jews perished**, and ninety-seven thousand were taken prisoners... The duration of the whole war was seven years, and one million four hundred and sixty-two thousand (1,462,000) persons are said to have fallen victims to its awful horrors\" (DAR 252.1). \"Thus this power performed great exploits, and again returned to his own land\" (DAR 252.2)."
+        },
+        {
+          "source": "haskell",
+          "citation": "SDP 231.2-232.1",
+          "html": "<p>Haskell reads v.28 (\"return into his land with great riches; and his heart shall be against the holy covenant\") as <strong>Belisarius's triumphal return to Constantinople in the autumn of 534</strong> after subduing the Vandal kingdom in Africa, when Justinian \"granted a triumph\" displaying \"the wealth of nations\" and \"the trophies of martial or effeminate luxury\" (SDP 232.1). The riches are literal Vandal spoils; the heart-against-the-covenant is then expressed through Justinian's interdiction \"of the baptism of their children, and the exercise of all religious worship\" of the Arians (SDP 232.2). Haskell ties the verse's two clauses to one continuous Vandal campaign rather than splitting them across separate events.</p>"
         }
       ],
       "modernReadings": [
@@ -957,6 +1187,11 @@
           "source": "smith",
           "citation": "DAR 252.3-5",
           "html": "Smith dates this verse by the 360-year time-prophecy of v.24 (started at Actium, B.C. 31). \"The time appointed is probably the prophetic time of verse 24, which has been previously mentioned. It closed, as already shown, in A. D. 330, at which time this power was to return and come again toward the south, but not as on the former occasion, when it went to Egypt, nor as the latter, when it went to Judea. Those were expeditions which resulted in conquest and glory. This one led to demoralization and ruin. The removal of the seat of empire to Constantinople was the signal for the downfall of the empire\" (DAR 252.4). Smith then traces Constantine's three sons (Constantius, Constantine II, Constans) and the barbarian incursions till \"the imperial power of the West expired in A. D. 476\" (DAR 252.4)."
+        },
+        {
+          "source": "haskell",
+          "citation": "SDP 233.1",
+          "html": "<p>Haskell collapses v.29 (\"at the time appointed he shall return, and come toward the south\") into a summary statement: \"the wars between the Catholic empire and the Vandals may be taken as an illustration of the extermination of the other two kingdoms-that of the Heruli and the Ostrogoths. Justinian was the reigning emperor, and most of the work was done by Belisarius\" (SDP 233.1). The \"time appointed\" is therefore the divinely-set sequence by which the three Arian horns of Daniel 7 were plucked up to clear the way for the papal little horn, not a single military campaign.</p>"
         }
       ],
       "modernReadings": [
@@ -992,6 +1227,16 @@
           "source": "smith",
           "citation": "DAR 253.1-254.2",
           "html": "Smith identifies Chittim via Dr. Adam Clarke (on Isaiah 23:1) and Kitto: \"the islands and coasts of the Mediterranean\" — Jerome's mention of Tyrians fleeing to Carthage focuses the location: \"the mind is carried by the testimony of Jerome to a definite and celebrated city situated in that land; that is Carthage\" (DAR 253.2). \"Was ever a naval warfare, with Carthage as a base of operations, waged against the Roman empire? We have but to think of the terrible onslaught of the Vandals upon Rome under the fierce Genseric, to answer readily in the affirmative. Sallying every spring from the port of Carthage at the head of his numerous and well-disciplined naval forces, he spread consternation through all the maritime provinces of the empire... The years A. D. 428-468 mark the career of Genseric\" (DAR 253.3). On \"indignation against the covenant\": \"the Holy Scriptures, the book of the covenant... The Heruli, Goths, and Vandals, who conquered Rome, embraced the Arian faith, and became enemies of the Catholic Church. It was especially for the purpose of exterminating this heresy that Justinian decreed the pope to be the head of the church and the corrector of heretics\" (DAR 254.2). \"The emperors of Rome, the eastern division of which still continued, had intelligence, or connived with the Church of Rome, which had forsaken the covenant, and constituted the great apostasy, for the purpose of putting down 'heresy.' The man of sin was raised to his presumptuous throne by the defeat of the Arian Goths, who then held possession of Rome, in A. D. 538\" (DAR 254.2)."
+        },
+        {
+          "source": "crosier",
+          "citation": "SANC 3.4-3.6",
+          "html": "<p>Crosier reads vv.30-31 as the keystone of his sanctuary argument: \"the ships of Chittim shall come against him; therefore, shall he be grieved and return, and have indignation (the staff to chastise) against the holy covenant (Christianity)\" (SANC 3.4). The \"sanctuary of strength\" they pollute is not the earth or Palestine but the <strong>heavenly sanctuary of the new covenant</strong> — the one against which Rome \"magnified himself\" in Dan 8:11. The polluters are a coalition: \"Rome and those that forsake the holy covenant\" through \"arms (civil and religious)\" (SANC 3.5). Crosier reads the desecration spiritually — papal Rome polluted Christ's sanctuary as men \"pollute the name of God\" (SANC 3.6), not by physical contact with a temple.</p>"
+        },
+        {
+          "source": "haskell",
+          "citation": "SDP 233.3",
+          "html": "<p>Haskell identifies the \"ships of Chittim\" with the <strong>Vandal naval reverses that grieved Justinian and turned his indignation against the holy covenant</strong>, but he highlights an additional irony: \"the very code of law which Rome has bequeathed as a legacy to later times, is the work of this same Justinian\" (SDP 233.3). The Justinian Code became the legal instrument through which the papacy's civil supremacy was established. The \"holy covenant\" against which Justinian had indignation is the same body of true Christianity that Constantine and Justinian conspired through political-religious arms to suppress.</p>"
         }
       ],
       "modernReadings": [
@@ -1027,6 +1272,26 @@
           "source": "smith",
           "citation": "DAR 254.3-262.3",
           "html": "Smith walks the two clauses separately. (a) **\"Take away the daily\" = the removal of paganism, dated A.D. 508.** \"The 'daily' desolation was paganism, the 'abomination of desolation' is the papacy... so far as the church is concerned, both paganism and the papacy are abominations. But as distinguished from each other, the language is restricted, and one is the 'daily' desolation, and the other is pre-eminently the transgression or 'abomination' of desolation\" (DAR 255.1). Smith narrates Clovis's conversion (A.D. 496), the subjugation of the Arborici/Burgundians/Visigoths by 508, and Arthur's election as the first Christian king of Britain in 508 (DAR 255.3-256.2). \"From these evidences we think it clear that the daily, or paganism, was taken away in A. D. 508\" (DAR 259.1). (b) **\"Place the abomination = the setting up of papal supremacy, dated A.D. 538.** Smith dates the _decree_ to A.D. 533 (Justinian's letter to Pope John, naming him \"**THE HEAD OF ALL THE HOLY CHURCHES**\" — DAR 260.3) but the _enforcement_ to A.D. 538: \"the Italian war was commenced in 534... Belisarius entered Rome Dec. 10, 536... In the month of March, 538, dangers beginning to threaten them from other quarters, they raised the siege... Thus the Gothic horn, the last of the three, was plucked up before the little horn of Daniel 7... And this must therefore be taken as the year when this abomination was placed, or set up, and as the point from which to date the predicted 1260 years of its supremacy\" (DAR 261.2-262.3). On \"sanctuary of strength\" = Rome (DAR 254.4)."
+        },
+        {
+          "source": "miller",
+          "citation": "MWV2 94.1",
+          "html": "<p>Miller treats v.31 as <strong>the ten kings of the Western Empire dismantling paganism in Rome</strong>: \"'And arms shall stand on his part,' that is, the force of the empire would be on the side of Paganism. 'And they shall pollute the sanctuary of strength.' They, in this passage, mean the governments or kings, established on the fall of the Roman empire in the west, by the Huns, Goths and Vandals of the north. 'By sanctuary of strength,' is meant Rome\" (MWV2 94.1). The \"daily sacrifice\" taken away is paganism itself; the ten kings \"shall place... the abomination that maketh desolate\" — papacy — in its room. Miller dates this transition to 508 A.D., closing his 666-year pagan beast count: \"By the year A. D. 508, the remainder of the kings were brought over and embraced the Christian religion, which closes the history of the Pagan beast.\"</p>"
+        },
+        {
+          "source": "litch",
+          "citation": "PSC 116.4-6, PREX2 81.1-2",
+          "html": "<p>Litch's chapter schema makes v.31 the hinge: the third of his five periods \"reaches from the taking away of the pagan rites to the establishment of popery in its place, being thirty years; <strong>from A. D. 508 to 538</strong>\" (PSC 116.5). The \"daily\" taken away is therefore <em>paganism</em>, not the Levitical sacrifice — \"the overthrow of paganism in Rome by the\" Christian emperors (PREX2 81.2). The \"abomination that maketh desolate\" set up in its place is the papal apostasy, and the prior period (vv.22-31) had already begun \"with the first league ever made between the Jews and Romans\" in B.C. 158 (PSC 116.4), making this verse the pivot between pagan and papal Rome.</p>"
+        },
+        {
+          "source": "crosier",
+          "citation": "SANC 3.5-3.6",
+          "html": "<p>Crosier carries the v.30 reading directly into v.31: \"arms (civil and religious) shall stand on his part\" describes the <strong>politico-religious combination</strong> of Rome with apostate Christianity that polluted the sanctuary of strength (SANC 3.5). \"What was this that Rome and the apostles of Christianity should jointly pollute? This combination was formed against the 'holy covenant,' and it was the Sanctuary of that covenant they polluted\" (SANC 3.6). For Crosier the polluted sanctuary is Christ's heavenly ministry, not a temple in Jerusalem — and the polluters are simultaneously the pagan-derived civil power and the apostatizing clergy.</p>"
+        },
+        {
+          "source": "haskell",
+          "citation": "SDP 235.1-2",
+          "html": "<p>Haskell opens his next chapter on v.31 by anchoring <strong>538 A.D.</strong> as \"a milepost in the history of the Christian church... the establishment of the papacy\" parallel to 457 B.C. as the anchor for the 2300 days (SDP 235.1). \"Arms shall stand on his part\" refers to the civil power placed at the service of Rome's bishop, and \"they shall pollute the sanctuary of strength\" describes the process — not an event — by which \"papal Rome grew in power\" the way Babylon and Medo-Persia had grown: the dragon giving the beast \"his power and his seat, and great authority\" (Rev 13:2, SDP 235.2).</p>"
         }
       ],
       "modernReadings": [
@@ -1062,6 +1327,16 @@
           "source": "smith",
           "citation": "DAR 262.4-263.1",
           "html": "\"Those that forsake the covenant, the holy Scriptures, and think more of the decrees of popes and the decisions of councils than they do of the word of God, — these shall he, the pope, corrupt by flatteries; that is, lead them on in their partisan zeal for himself by the bestowment of wealth, position, and honors\" (DAR 262.5). \"At the same time a people shall exist who know their God; and these shall be strong, and do exploits. These were those who kept pure religion alive in the earth during the dark ages of papal tyranny, and performed marvelous acts of self-sacrifice and religious heroism in behalf of their faith. Prominent among these stand the **Waldenses, Albigenses, Huguenots, etc.**\" (DAR 263.1)."
+        },
+        {
+          "source": "litch",
+          "citation": "PREX2 87.3-4",
+          "html": "<p>Litch divides the verse: \"such as do wickedly against the covenant\" are those who \"have more regard for human traditions, and the decisions of popes and councils, than they have for God's word\" — corrupted \"by the show and glitter of pompous ceremonies, and high-sounding titles\" (PREX2 87.3). But \"the people that do know their God\" are <strong>\"the true, humble followers of the Savior\" — the Waldenses, the Albigenses, and the Huguenots</strong> — who \"shall be strong and do exploits\" by keeping \"pure religion alive in the earth, during the darkest times\" (PREX2 87.4). The verse therefore witnesses to a parallel history under papal rule.</p>"
+        },
+        {
+          "source": "haskell",
+          "citation": "SDP 238.1",
+          "html": "<p>Haskell connects v.32 directly to the <strong>Waldenses</strong>, whose lineage \"could trace their ancestry back to the days of Paul\" and who preserved Sabbath-keeping in \"the wild retreat in the mountains of Italy\" — \"there were always some who obeyed God rather than man\" (SDP 238.1). Their existence fulfilled Gabriel's promise that \"they that understand among the people shall instruct\" many. For Haskell the verse is therefore a continuous-historical commendation of the faithful remnant under papal supremacy, not a future Christian persecution.</p>"
         }
       ],
       "modernReadings": [
@@ -1097,6 +1372,16 @@
           "source": "smith",
           "citation": "DAR 263.2-3",
           "html": "\"The long period of papal persecution against those who were struggling to maintain the truth and instruct their fellow men in ways of righteousness, is here brought to view. The number of the days during which they were thus to fall is given in **Daniel 7:25; 12:7; Revelation 12:6, 14; 13:5**. The period is called, 'a time, times, and the dividing of time;' 'a time, times, and a half;' 'a thousand two hundred and threescore days;' and 'forty and two months.' **It is the 1260 years of papal supremacy**\" (DAR 263.3)."
+        },
+        {
+          "source": "litch",
+          "citation": "PREX2 87.4",
+          "html": "<p>Litch joins v.33 to v.32 as a continuous statement about the faithful witness through the 1260 years: \"they that understand among the people shall instruct many; yet they shall fall by the sword, and by flame, by captivity, and by spoil, many days\" describes the <strong>Waldenses, Albigenses, and Huguenots</strong> falling under \"the dominion of the man of sin\" (PREX2 87.4). The \"many days\" is the long stretch of medieval persecution — the same prophetic period (\"a time, times, and the dividing of time\" / 1260 years) located everywhere else in Daniel and Revelation.</p>"
+        },
+        {
+          "source": "haskell",
+          "citation": "SDP 239.1-3",
+          "html": "<p>Haskell carries v.33 forward into the Reformation: those who \"understand among the people shall instruct many\" includes <strong>Wycliffe, called \"the Morning Star of the Reformation,\"</strong> who \"translated the Bible into English\" and \"wrote tracts showing the fallacy of the papal system\" (SDP 239.1); then \"Huss and Jerome in Bohemia\" and \"later Luther, the German monk,\" who \"proclaimed liberty of conscience and salvation alone by faith in Jesus Christ\" (SDP 239.2). The falling \"by the sword, and by flame\" is the cost: \"the spark there kindled, lighted a fire which Rome was unable to extinguish\" — yet thousands died first.</p>"
         }
       ],
       "modernReadings": [
@@ -1132,6 +1417,11 @@
           "source": "smith",
           "citation": "DAR 263.4-5",
           "html": "\"In **Revelation 12**, where this same papal persecution is brought to view, we read that the earth helped the woman by opening her mouth, and swallowing up the flood which the dragon cast out after her. **The great Reformation by Luther and his co-workers furnished the help here foretold.** The German states espoused the Protestant cause, protected the reformers, and restrained the work of persecution so furiously carried on by the papal church. But when they should be helped, and the cause begin to become popular, many were to cleave unto them with flatteries, or embrace the cause from unworthy motives, be insincere, hollow-hearted, and speak smooth and friendly words through a policy of self-interest\" (DAR 263.5)."
+        },
+        {
+          "source": "haskell",
+          "citation": "SDP 240.1",
+          "html": "<p>Haskell reads the \"little help\" of v.34 as the <strong>civil powers of the Reformation era unwittingly used by God</strong> to break papal bands: \"The papacy quivered before the blow; and had each nation accepted the Reformation as it came to it, it would have been but a short time until history would have been at an end\" (SDP 240.1). But many \"shall cleave to them with flatteries\" — princes who embraced the Reformation politically without true conversion compromised the work. \"God was in the Reformation, offering to modern nations the same deliverance which was held out to the Jews when they were granted an opportunity to return from Babylon to Jerusalem.\"</p>"
         }
       ],
       "modernReadings": [
@@ -1167,6 +1457,16 @@
           "source": "smith",
           "citation": "DAR 264.1-2",
           "html": "\"Though restrained, the spirit of persecution was not destroyed. It broke out wherever there was opportunity. Especially was this the case in England... The **bloody Queen Mary** was a mortal enemy to the Protestant cause, and multitudes fell victims to her relentless persecutions. And this condition of affairs was to last more or less to the time of the end. The natural conclusion would be that when the time of the end should come, this power which the Church of Rome had possessed to punish heretics... would now be taken entirely away; and the conclusion would be equally evident that this taking away of the papal supremacy would mark the commencement of the period here called the time of the end. **If this application is correct, the time of the end commenced in 1798; for there, as already noticed, the papacy was overthrown by the French, and has never since been able to wield the power it before possessed**\" (DAR 264.2)."
+        },
+        {
+          "source": "litch",
+          "citation": "PREX2 88.4-5",
+          "html": "<p>Litch reads v.35 as describing the continued fall of saints \"despite the protection of protestant princes and kings\" during the closing centuries of papal supremacy — \"the religious state of that kingdom was fluctuating; at one time being under protestant, and at another under papal jurisdiction\" (PREX2 88.5). The trying \"to make them white, even to the <strong>time of the end</strong>\" therefore presses the persecution all the way to the close of the 1260, when \"it is yet for a time appointed\" — the appointed time being the same period named in Daniel 7:25 and 12:7. The English Reformation is his prime exhibit of the back-and-forth pressure.</p>"
+        },
+        {
+          "source": "loughborough",
+          "citation": "GSAM 79.2",
+          "html": "<p>Loughborough uses v.35 to fix the date \"<strong>time of the end = 1798</strong>\" by cross-reference to the little horn of Daniel 7 and the 1260-day period: \"That appointed time was the 'time, times, and a half'... 1260 years—of the civil rule of the little horn, extending from 538 to 1798 A.D.\" (GSAM 79.2). The trying and purging of v.35 therefore terminates with the civil power of the papacy in 1798 — the same year in which Berthier carried Pius VI captive. The verse becomes a chronological anchor that links Daniel 7, 11, and 12 into a single sequence.</p>"
         }
       ],
       "modernReadings": [
@@ -1202,6 +1502,16 @@
           "source": "smith",
           "citation": "DAR 264.3-266.3",
           "html": "**A new actor — Revolutionary France 1793.** Smith opens the verse by ruling out the papacy: \"The king here introduced cannot denote the same power which was last noticed, namely, the papal power; for the specifications will not hold good if applied to that power. Take a declaration in the next verse: 'Nor regard any god.' **This has never been true of the papacy.** God and Christ, though often placed in a false position, have never been professedly set aside, and rejected from that system of religion\" (DAR 264.4-265). On the definite article: \"some of the best Biblical critics give it this rendering, **Mede, Wintle, Boothroyd, and others** translating the passage, '**A certain king shall do according to his will**,' thus clearly introducing a new power upon the stage of action\" (DAR 265). Smith specifies three marks of the fulfilling power: \"(1) It must assume the character here delineated near the commencement of the time of the end... (2) it must be a wilful power; (3) it must be an atheistical power; or perhaps the two latter specifications might be united by saying that its wilfulness would be manifested in the direction of atheism. **A revolution exactly answering to this description did take place in France at the time indicated in the prophecy. Voltaire had sowed the seeds**... Their efforts culminated in the **revolution of 1793**, when the Bible was discarded, and the existence of the Deity denied, as the voice of the nation\" (DAR 265.1). Smith quotes Scott's _Napoleon_ on the constitutional bishop of Paris declaring the religion he had taught was \"a piece of PRIESTCRAFT\" and \"disown[ing], in solemn and explicit terms, the EXISTENCE OF THE DEITY\" (DAR 265.5), and _Blackwood's Magazine_: \"**France is the only nation in the world concerning which the authentic record survives, that as a nation she lifted her hand in open rebellion against the Author of the universe**\" (DAR 266.2)."
+        },
+        {
+          "source": "litch",
+          "citation": "PREX2 90.1-2",
+          "html": "<p>Litch identifies the king of vv.36-39 as <strong>infidel revolutionary France</strong>: \"Such a system as is here described was the French Revolution. It was founded in Atheism, and triumphed in the overthrow of everything which interposed a barrier to their object\" (PREX2 90.2). The seeds were Voltaire's vow \"to dedicate his life to the extermination of Christianity.\" The verse therefore is not papal but Jacobin — a power that magnifies itself above every god, speaks marvellous things against God, and prospers until \"the indignation be accomplished\" through the chain of events from 1789 onward.</p>"
+        },
+        {
+          "source": "haskell",
+          "citation": "SDP 242.2-243.2",
+          "html": "<p>Haskell reads vv.36-39 as <strong>infidel France</strong> magnifying itself \"above every god\": after \"having enthroned the 'Goddess of Reason,' France passed laws which clearly reveal the result of such worship\" — abolishing the Sabbath by decreeing a ten-day week and \"defaming\" marriage (SDP 242.2). \"The French Revolution of 1798, the Massacre of St. Bartholomew, and the Reign of Terror tell the dreadful story of destruction\" (SDP 242.3). The king \"shall do according to his will\" through unrestrained tyranny — \"warrants for arrest and imprisonment were issued by his authority alone; 'famine prevailed in every province'\" (SDP 243.2). The verse describes Reformation rejection ending in atheism.</p>"
         }
       ],
       "modernReadings": [
@@ -1267,6 +1577,16 @@
           "source": "smith",
           "citation": "DAR 266.4-268.6",
           "html": "Smith follows Bishop Newton in re-rendering \"desire of women\" as \"**the desire of wives**\": \"this passage would be more properly rendered 'the desire of wives.' This would seem to indicate that this government, at the same time it declared that God did not exist, would trample under foot the law which God had given to regulate the marriage institution\" (DAR 266.5). He quotes Scott's _Napoleon_ on the 1792 marriage law: \"that which reduced the union of marriage... to the state of a mere civil contract of a transitory character, which any two persons might engage in and cast loose at pleasure... **Sophie Arnoult, an actress famous for the witty things she said, described the republican marriage as the sacrament of adultery**\" (DAR 267.1). On \"regard any god,\" Smith quotes the revolutionary credo: \"The fear of God is so far from being the beginning of wisdom that it is the beginning of folly... The Supreme King, the God of the Jews and the Christians, is but a phantom. Jesus Christ is an impostor\" (DAR 267.3). Smith cites Smith's _Key to Revelation_ p. 323: \"**Aug. 26, 1792, an open profession of atheism was made by the National Convention**\" (DAR 268.2), and Alison Vol. I, p. 150: \"**Hebert, Chaumette, and their associates appeared at the bar, and declared that God did not exist**\" (DAR 268.3). \"At this juncture all religious worship was prohibited, except that of liberty and the country. The gold and silver plate of the churches was seized upon and desecrated. The churches were closed. The bells were broken and cast into cannon. **The Bible was publicly burned**. The sacramental vessels were paraded through the streets on an ass, in token of contempt. **A week of ten days, instead of seven, was established, and death was declared, in conspicuous letters posted over their burial places, to be an eternal sleep**\" (DAR 268.4)."
+        },
+        {
+          "source": "litch",
+          "citation": "PREX2 95.1-2",
+          "html": "<p>Litch reads v.37 (\"neither shall he regard the God of his fathers\") as France's institutional repudiation of Catholic Christianity through the <strong>Goddess of Reason ceremonies</strong>: \"the doors of the convention were thrown open to a band of musicians; preceded by whom, the members of the municipal body entered in solemn procession... escorting, as the object of their future worship, a veiled female, whom they termed the Goddess of Reason\" (PREX2 95.1). The installation \"was renewed and imitated throughout the nation\" — \"the churches were, in most districts of France, closed against priests and worshippers — the bells were broken and cast into cannon\" (PREX2 95.2). No regard for the historic god of the French nation, indeed.</p>"
+        },
+        {
+          "source": "haskell",
+          "citation": "SDP 241.3-242.1",
+          "html": "<p>Haskell anchors v.37 (\"neither shall he regard the God of his fathers\") to <strong>revolutionary France's enthronement of the \"Goddess of Reason\"</strong>: \"the doors of the Convention were thrown open to a band of musicians... escorting a veiled female, whom they termed the 'Goddess of Reason'\" (SDP 241.3). The \"god of his fathers\" rejected is not pagan deity but historic Christianity; the regard for none and the magnification above every god is fulfilled in atheistic France exalting human reason. \"Men to-day exalt reason above God; they deign to give private interpretation to the divine Word\" — and the verse holds a mirror to that spiritual movement (SDP 242.1).</p>"
         }
       ],
       "modernReadings": [
@@ -1320,6 +1640,16 @@
           "source": "smith",
           "citation": "DAR 268.7-271.2",
           "html": "Smith resolves the seeming contradiction with v.37 by sequence: \"It could not at one and the same time hold both these positions; but it might for a time disregard all gods, and then subsequently introduce another worship, and regard the god of forces. Did such a change occur in France at this time? — It did\" (DAR 268.8-269). \"In **1794 the worship of the Goddess of Reason was introduced**\" (DAR 269). Smith quotes Scott's _Life of Napoleon_ at length: \"**a vailed female whom they termed the Goddess of Reason**. Being brought within the bar, she was unvailed with great form, and placed on the right hand of the president, when she was generally recognized as a **dancing girl of the opera**\" (DAR 269.1). Smith quotes Chaumette introducing Reason worship in 1794: \"Mortals... cease to tremble before the powerless thunders of a God whom your fears have created. Henceforth acknowledge no divinity but Reason... **At the same time the goddess appeared, personified by a celebrated beauty, Madame Millard, of the opera**... The goddess... was mounted on a magnificent car, and conducted, amidst an immense crowd, to the **cathedral of Notre Dame, to take the place of the Deity**. Then she was elevated on the high altar, and received the adoration of all present\" (DAR 270.4-5). On the \"Supreme Being\" sequel: \"**A form of worship therefore followed in which the object of adoration was the 'Supreme Being.'** It was equally hollow... but it took hold upon the supernatural. And while the goddess of Reason was indeed a 'strange god,' the statement in regard to honoring the 'God of forces,' may perhaps more appropriately be referred to this latter phase. See **Thiers's French Revolution**\" (DAR 271.2). On \"God of forces\" itself: Smith reads it as the supernatural sanction sought to \"renew their covenant and repeat their vows for the prosperity of the armies of France\" (DAR 271.1) — quoting Chaumette's \"**There we will form new vows for the prosperity of the armies of the Republic**\" (DAR 271.2)."
+        },
+        {
+          "source": "litch",
+          "citation": "PREX2 93.2-4, 97.1",
+          "html": "<p>Litch reads v.38's \"god of forces\" precisely: \"<strong>Liberty and the country</strong> were the objects of adoration\" (PREX2 93.3). The strange god whom the fathers knew not is \"the goddess of reason. This system was established in January, 1794\" (PREX2 93.4). Further: \"Thus shall he do in the most strong holds with a strange god. A system of paganism, was next introduced into France, and the national assembly enacted a heathen ritual for the use of the French people. This system continued in force until the appointment of Napoleon to the provisional consulate of France, in 1799\" (PREX2 97.1). Note: Litch tightens \"the desire of women\" to revolutionary France's marriage-abolition decree of 6 June 1794 (PREX2 93.1).</p>"
+        },
+        {
+          "source": "haskell",
+          "citation": "SDP 242.1-2",
+          "html": "<p>Haskell continues the French reading into v.38: the \"god of forces\" honored is the worship of human intellect itself — \"having enthroned the 'Goddess of Reason,' France passed laws which clearly reveal the result of such worship\" (SDP 242.2). The strange god in his estate is rationalism: \"papal and only papal\" in its philosophical root, and \"its ultimate result\" is the same atheistic terror seen in France (SDP 242.1). Haskell does not press the literal \"gold, silver, precious stones\" into a separate event but reads it as describing the lavish patronage given to revolutionary worship.</p>"
         }
       ],
       "modernReadings": [
@@ -1375,6 +1705,11 @@
           "source": "smith",
           "citation": "DAR 271.3-273.1",
           "html": "\"The system of paganism which had been introduced into France, as exemplified in the worship of the idol set up in the person of the Goddess of Reason, and regulated by a heathen ritual which had been enacted by the National Assembly for the use of the French people, continued in force till the appointment of Napoleon to the provisional consulate of France in 1799. **The adherents of this strange religion occupied the fortified places, the strongholds of the nation, as expressed in this verse**\" (DAR 271.4). On the land clause: \"But that which serves to identify the application of this prophecy to France, perhaps as clearly as any other particular, is the statement made in the last clause of the verse; namely, that **they should 'divide the land for gain'**... the titles of the nobility were abolished, and their lands disposed of in small parcels for the benefit of the public exchequer. The government was in need of funds, and these large landed estates were confiscated, and sold at auction in parcels to suit purchasers\" (DAR 272.1). Smith quotes Alison Vol. IV, p. 151: \"**The confiscation of two thirds of the landed property of the kingdom**, which arose from the decrees of the convention against the emigrants, clergy, and persons convicted at the Revolutionary Tribunals... **placed funds worth above £700,000,000 sterling at the disposal of the government**\" (DAR 272.2). Smith closes the section with Lockhart on Napoleon's reopening of the churches and the readmission of 20,000 oath-taking priests (DAR 272.4): \"Thus terminated the Reign of Terror and the Infidel Revolution. **Out of its ruins rose Bonaparte**\" (DAR 273.1)."
+        },
+        {
+          "source": "haskell",
+          "citation": "SDP 244.1-245.1",
+          "html": "<p>Haskell sees v.39 fulfilled in <strong>Napoleon's military conquests on behalf of the new revolutionary religion</strong>: \"With the rapid movements of a master mind he carried victory for French arms throughout Europe... he forced the pope, and various cities of Italy, to pay\" (SDP 244.1). Those who \"acknowledge and increase with glory\" are the marshals and officials Napoleon elevated — \"he bent his energies toward his own exaltation. He was proclaimed emperor in 1804, and, in imitation of Charlemagne, he received a crown from Pope Pius VII in Notre Dame\" (SDP 245.1). The land divided for gain is the territory parceled out in conquest.</p>"
         }
       ],
       "modernReadings": [
@@ -1424,6 +1759,21 @@
           "source": "smith",
           "citation": "DAR 273.2-278",
           "html": "Smith fixes the actors first: \"**Egypt is still, by common agreement, the king of the south, while the territory which at first constituted the king of the north, has been for the past four hundred years wholly included within the dominions of the sultan of Turkey. To Egypt and Turkey, then, in connection with the power last under consideration, we must look for a fulfillment of the verse before us**\" (DAR 273.3). The case rests on a triangular war in 1798: \"This application of the prophecy calls for a conflict to spring up between Egypt and France, and Turkey and France, in 1798, which year, as we have seen, marked the beginning of the time of the end; and if history testifies that such a triangular war did break out in that year, it will be conclusive proof of the correctness of the application\" (DAR 273.4). Smith walks the dates: \"**The downfall of the papacy, which marked the termination of the 1260 years... occurred on the 10th of February, 1798, when Rome fell into the hands of Berthier**, the general of the French. On the 5th of March following, Bonaparte received the decree of the Directory relative to the expedition against Egypt. He left Paris May 3, and set sail from Toulon the 19th, with a large naval armament, consisting of 500 sail, carrying 40,000 soldiers and 10,000 sailors. **July 5, Alexandria was taken**... On the 23d the decisive battle of the pyramids was fought... On the 24th, **Bonaparte entered Cairo**, the capital of Egypt\" (DAR 275.1). On the Turkish entry: \"The French fleet, which was his only channel of communication with France, was destroyed by the English under **Nelson at Aboukir**; and on **September 2 of this same year, 1798, the sultan of Turkey... declared war against France**. Thus the king of the north (Turkey) came against him (France) in the same year that the king of the south (Egypt) 'pushed,' and both 'at the time of the end'\" (DAR 275.2). On \"whirlwind, chariots, horsemen, many ships\": Smith narrates the 1799 Syria campaign — Napoleon's march from Cairo Feb 27 1799, the fall of El-Arish, Jaffa, the Naplous engagement, then the failed siege of St. Jean d'Acre with Sir Sidney Smith's reinforcement and a Turkish fleet with \"**the Russian and English vessels then co-operating with them, constituted the 'many ships' of the king of the north**\" (DAR 276.1). On \"overflow and pass over\": Smith explicitly chooses _the king of the north_ as the subject (not France): \"the more natural application to refer the 'overflowing and passing over' to that power which emerged in triumph from that struggle; **and that power was Turkey**\" (DAR 277.2)."
+        },
+        {
+          "source": "miller",
+          "citation": "MWV2 104.1-2",
+          "html": "<p>Miller treats v.40 as the literal hinge of \"the time of the end\": \"and at the time of the end of the papal civil power. Now, another person has obtained this civil power: this was <strong>Bonaparte</strong>, the ruler of the French nation. This year of which we are now treating was the very year that the French destroyed the power of the pope, and Bonaparte began his extraordinary career in conquest and authority\" (MWV2 104.2). Miller's chronology fixes \"this last division\" of the prophecy as a 45-year span (1798-1843), making v.40 the inaugural event of Daniel's final timeline (MWV2 104.1). The king of the south pushing is Egypt; the king of the north coming \"like a whirlwind\" is France.</p>"
+        },
+        {
+          "source": "litch",
+          "citation": "PREX2 100.1-4",
+          "html": "<p>Litch matches v.40 to <strong>Napoleon's Egyptian expedition in 1798</strong>: \"In the winter of 1798, after Bonaparte's return from his Italian campaign, he was appointed by the directory, commander-in-chief of the foreign armies of the French nation; and in that character he left France, on the morning of May 20th, 1798, with a fleet 'of thirteen ships of the line, and fourteen frigates'\" (PREX2 100.1). The verse's \"push\" by the king of the south signifies \"only a feeble and ineffectual resistance\" — Egypt was overrun (PREX2 100.2-3). The king of the north (the Turk) then comes \"like a whirlwind\" with \"an overwhelming power.\" Note: Litch dates this push to 1798 precisely — making v.40 the inaugural event of the \"time of the end.\"</p>"
+        },
+        {
+          "source": "haskell",
+          "citation": "SDP 245.3-246.1",
+          "html": "<p>Haskell takes v.40 as the resumed contest between north and south <strong>at the time of the end (1798)</strong>: \"the kings of the north and the south again contended\" with Constantinople again as \"the key to both Asia and Europe\" (SDP 245.3). The king of the south is now Egypt under Mohammedan rule, the king of the north is the Ottoman Turk centered at Constantinople. The \"chariots and horsemen and many ships\" pushing like a whirlwind is Napoleon's Egyptian campaign — \"the followers of Mohammed strove to enter Europe\" but \"the battle of Tours (732) stopped the progress,\" and \"in 1453 Constantinople was\" captured by the Turks (SDP 246.1), setting up the modern alignment.</p>"
         }
       ],
       "modernReadings": [
@@ -1504,6 +1854,21 @@
           "source": "smith",
           "citation": "DAR 278.1-3",
           "html": "Smith reads the verse of _the king of the north_ (Turkey) as the one entering the glorious land, not of France: \"Abandoning a campaign in which one third of the army had fallen victims to war and the plague, the French retired from St. Jean d'Acre, and after a fatiguing march of twenty-six days re-entered Cairo in Egypt. **They thus abandoned all the conquests they had made in Judea; and the 'glorious land,' Palestine, with all its provinces, here called 'countries,' fell back again under the oppressive rule of the Turk**\" (DAR 278.3). On Edom/Moab/Ammon: \"Edom, Moab, and Ammon, lying outside the limits of Palestine, south and east of the Dead Sea and the Jordan, were out of the line of march of the Turks from Syria to Egypt, and so escaped the ravages of that campaign. On this passage **Adam Clarke** has the following note: 'These and other Arabians, they [the Turks] have never been able to subdue. They still occupy the deserts, and **receive a yearly pension of forty thousand crowns of gold from the Ottoman emperors to permit the caravans with the pilgrims for Mecca to have a free passage**'\" (DAR 278.3, quoting Clarke)."
+        },
+        {
+          "source": "miller",
+          "citation": "MWV2 104.2",
+          "html": "<p>Miller takes the \"glorious land\" of v.41 as <strong>Italy</strong>: \"He shall enter also into the glorious land, (or land of delight, as it might have been translated.) This, I have no doubt, means Italy. Bonaparte fought some of his most brilliant battles in this delightsome country. The battle of Marengo was fought, if I mistake not, in June, 1800\" (MWV2 104.2). \"It is said that Bonaparte conquered three kingdoms at the battle of Marengo.\" Edom, Moab, and Ammon escape because Napoleon, after his Syrian advance, received \"a decisive check before St. John d'Acre\" and \"was obliged to raise the siege, and retreat back to Egypt with the shattered remains of his army.\" Note: Miller's \"glorious land\" is Italy, not Palestine (against Litch and Haskell).</p>"
+        },
+        {
+          "source": "litch",
+          "citation": "PREX2 107.1-3",
+          "html": "<p>Litch identifies <strong>Napoleon's Syrian campaign as the entrance into the glorious land</strong>: \"Palestine is the glorious land; and through that land the French passed and repassed; and both <em>Gaza and Jaffa</em> were cities of Palestine\" (PREX2 107.2). The \"many\" overthrown are \"not countries, but persons\" — the casualties of the Syrian fighting. \"But the ancient countries of Edom, Moab, and Ammon, escaped his hand, by his defeat in Syria; he was driven back into Egypt without the opportunity of invading them\" (PREX2 107.3). Note: Litch's king is <em>Napoleon</em>, not the Turk — diverging sharply from Haskell's identification.</p>"
+        },
+        {
+          "source": "haskell",
+          "citation": "SDP 247.1",
+          "html": "<p>Haskell reads v.41 with the king of the north (the Turk) entering \"the glorious land\": \"Not only Egypt, but Syria and Turkey in Europe, belonged to the Mohammedans, and he has entered the 'glorious land,' and <strong>a Moslem mosque occupies the site where once stood the temple of Solomon</strong>\" (SDP 247.1). The clause \"these shall escape out of his hand, even Edom, and Moab, and the chief of the children of Ammon\" Haskell takes literally: \"Edom, Moab, and Ammon, however, escaped the hand of this conquering power, and these countries receive an annual tribute from the Turks who pass in caravans on their way to Mecca.\" The verse documents Turkish dominion at a specific geographic granularity.</p>"
         }
       ],
       "modernReadings": [
@@ -1574,6 +1939,21 @@
           "source": "smith",
           "citation": "DAR 279.1-280",
           "html": "\"On the retreat of the French to Egypt, a Turkish fleet landed 18,000 men at Aboukir. Napoleon immediately attacked the place, completely routing the Turks, and re-establishing his authority in Egypt. But at this point, severe reverses to the French arms in Europe called Napoleon home... The command of the troops in Egypt was left with General Kleber, who, after a period of untiring activity for the benefit of the army, was murdered by a Turk in Cairo, and the command was left with Abdallah Menou\" (DAR 279.2). Smith details the 1801 English-Turkish reconquest: \"**March 13, 1801, an English fleet disembarked a body of troops at Aboukir**... On the 18th Aboukir surrendered. On the 28th reinforcements were brought by a Turkish fleet, and the grand vizier approached from Syria with a large army... **Cairo capitulated June 27, and Alexandria, September 2. Four weeks after, Oct. 1, 1801, the preliminaries of peace were signed at London**\" (DAR 279.3). On _whose_ hand Egypt did not escape: Smith argues Egypt did _not_ desire to escape the French — the Egyptians \"**preferred French rule**\" per R.R. Madden's _Travels_ — but they \"did desire to escape from the hands of the Turks, but could not\" (DAR 279.4-280). So \"Egypt shall not escape\" = Egypt does not escape the _Turk_'s hand after 1801."
+        },
+        {
+          "source": "miller",
+          "citation": "MWV2 104.2",
+          "html": "<p>Miller reads v.42 with \"hands\" meaning power: \"what country on the globe did not more or less feel the effects of Bonaparte's power? Egypt, surely, did not escape; for all Lower Egypt was conquered by his arms\" (MWV2 104.2). The verse fits Bonaparte's military reach over the Mediterranean basin. Miller's reading is consistent with Litch's Napoleonic identification across vv.40-45 — both apply this chapter to the French Revolution and Bonaparte rather than to the Ottoman empire.</p>"
+        },
+        {
+          "source": "litch",
+          "citation": "PREX2 107.4-6",
+          "html": "<p>Litch reads v.42 in the immediate aftermath of Napoleon's Syrian repulse: \"Shall not escape,' implies that he already has a grasp upon Egypt, and that by means of his defeat in Syria, he would be driven back on Egypt, and retain his hold\" (PREX2 107.5). \"Egypt was completely under his control, and all its riches were at his disposal\" (PREX2 107.6). The verse documents the French consolidation of Egypt after the failed push into Syria — not Turkish dominion, as Haskell reads it, but Napoleonic occupation.</p>"
+        },
+        {
+          "source": "haskell",
+          "citation": "SDP 247.1-2",
+          "html": "<p>Haskell folds v.42 (\"he shall stretch forth his hand also upon the countries: and the land of Egypt shall not escape\") into the Turkish dominion: Egypt, along with \"Syria and Turkey in Europe, belonged to the Mohammedans\" (SDP 247.1). The verse therefore reports the Ottoman extension of authority across the African and Asian Mediterranean shore, not a future invasion. Haskell notes Napoleon's contest with this dominion: \"The ambition of Napoleon to establish the authority of Europe in Egypt might have been the beginning of the last struggle between the north and the south\" (SDP 247.2).</p>"
         }
       ],
       "modernReadings": [
@@ -1638,6 +2018,21 @@
           "source": "smith",
           "citation": "DAR 280.1-4",
           "html": "Smith quotes _Historic Echoes of the Voice of God_ p. 49 for the post-1801 Egyptian tribute arrangement: \"When the French were driven out of Egypt, and the Turks took possession, **the sultan permitted the Egyptians to reorganize their government as it was before the French invasion**. He asked of the Egyptians neither soldiers, guns, nor fortifications, but left them to manage their own affairs independently, with the important exception of putting the nation under tribute to himself. In the articles of agreement between the sultan and the pasha of Egypt, it was stipulated that the Egyptians should pay annually to the Turkish government a certain amount of gold and silver, and '**six hundred thousand measures of corn, and four hundred thousand of barley**'\" (DAR 280.3, quoting _Historic Echoes_). On Libya and Ethiopia: \"**'The Libyans and the Ethiopians,' 'the Cushim,' says Dr. Clarke, 'the unconquered Arabs,' who have sought the friendship of the Turks, and many of whom are tributary to them to the present time**\" (DAR 280.4, quoting Adam Clarke)."
+        },
+        {
+          "source": "miller",
+          "citation": "MWV2 104.2",
+          "html": "<p>Miller takes v.43 as Napoleon's plunder of Egypt: \"Bonaparte, in his conquest of Egypt, levied contributions upon the inhabitants of the country sufficient to support and pay his troops, and brought away much with him\" (MWV2 104.2). Libyans and Ethiopians \"at his steps\" — \"When he first went into Egypt, he landed his army on the coast of what was anciently called Libya, and his last battle was fought in Upper Egypt — what the ancients called Ethiopia. So both of these places were at his steps, although neither of them was fairly conquered, as was Egypt.\" The verse therefore documents the geographic edges of effective French power.</p>"
+        },
+        {
+          "source": "litch",
+          "citation": "PREX2 107.6",
+          "html": "<p>Litch reads v.43 (\"the Libyans and the Ethiopians shall be at his steps\") as continuing the French Egyptian occupation: \"'Libya and Ethiopia' were 'at his steps,' but not conquered by him, as Egypt was\" (PREX2 107.6). The treasures of gold and silver \"and all the precious things of Egypt\" were under Napoleon's disposal. The verse describes the geographic limits of effective French control versus mere proximity. Note: Litch's reading is consistently Napoleonic across vv.40-45, contrasting Haskell's Ottoman reading.</p>"
+        },
+        {
+          "source": "haskell",
+          "citation": "SDP 247.1-2",
+          "html": "<p>Haskell reads v.43 (\"the Libyans and the Ethiopians shall be at his steps\") as continued Turkish suzerainty over North Africa, with the Turks drawing tribute from countries far to the south, including the caravan routes through which \"Edom, Moab, and Ammon... receive an annual tribute from the Turks who pass in caravans on their way to Mecca\" (SDP 247.1). The treasures of gold and silver are the wealth flowing into the Ottoman capital from these dependencies. Napoleon's Egyptian campaign anticipated but did not complete the dispossession of the Turk from these regions (SDP 247.2).</p>"
         }
       ],
       "modernReadings": [
@@ -1702,6 +2097,21 @@
           "source": "smith",
           "citation": "DAR, 281.1-2",
           "html": "Smith reads v.44 as **already-fulfilled in the Crimean War (1853-1856)**, the verse hinging on Adam Clarke's pre-event forecast (printed 1825): \"If the Turkish power be understood... it may mean that the Persians on the east, and the Russians on the north, will at some time greatly embarrass the Ottoman government.\" Smith identifies Turkey as the \"him\" of the verse explicitly: \"**Tidings from these powers troubled him (Turkey).** Their attitude and movements incited the sultan to anger and revenge. Russia, being the more aggressive party, was the object of attack. Turkey declared war on her powerful northern neighbor in 1853.\" (DAR 281.2). The \"great fury\" of the verse is Turkey's 1853 Crimean entry: \"they were described, in the profane vernacular of an American writer, as 'fighting like devils.'\" Smith treats the whole verse as past at writing — v.45 alone remains future (DAR 281.4)."
+        },
+        {
+          "source": "miller",
+          "citation": "MWV2 106.1",
+          "html": "<p>Miller reads v.44 as \"a plain description of <strong>Bonaparte's campaign into Russia</strong>. He went forth with an army of 400,000 men, with fury, in order to break up the Holy Alliance. He did utterly destroy Moscow, and laid desolate the country\" (MWV2 106.1). \"The news of this alliance caused him much trouble, and also his immediate return to France.\" The \"tidings out of the east and out of the north\" are therefore the news of the Holy Alliance forming against Napoleon, prompting the disastrous Moscow campaign. Miller's reading anchors v.44 to a single 1812 event, not the gradual decline of the Ottoman empire.</p>"
+        },
+        {
+          "source": "litch",
+          "citation": "PREX2 108.3-109.2",
+          "html": "<p>Litch reads v.44 as <strong>Napoleon hearing of British and Russian movements while in Egypt and resolving on a desperate return</strong>: \"He shall go forth with great fury,\" or desperation, and \"destroy and utterly make away many\" (PREX2 108.3). \"A more desperate enterprise was hardly ever undertaken, than that of escaping to France, with such a power to watch his movements and cut off his escape, as the British fleet which filled the waters of the Mediterranean.\" The \"make away many\" is then the carnage of Napoleon's fifteen-year reign 1800-1815: \"Millions of the flower of Europe fell on the field of battle\" as \"sacrifices at the shrine of his insatiable ambition\" (PREX2 109.2). Critically, Litch identifies the king of vv.40-45 as <em>France/Napoleon</em>, not the Turk.</p>"
+        },
+        {
+          "source": "haskell",
+          "citation": "SDP 247.3",
+          "html": "<p>Haskell reads v.44 as the contemporary geopolitics of \"the <strong>Sick Man of the East</strong>\": Turkey \"is known universally as the 'Sick Man of the East,' and the only reason he does not die is because intoxicants are administered, figuratively speaking, by first one nation then another\" (SDP 247.3). The \"tidings out of the east and out of the north\" that trouble him are the encroachments of Russia and the diplomatic pressures of the European powers, but \"the time had not yet come for the Turk to take his departure from Europe\" (SDP 247.2). Haskell expects the verse to be fulfilled as soon as the powers cease their artificial support.</p>"
         }
       ],
       "modernReadings": [
@@ -1771,6 +2181,21 @@
           "source": "smith",
           "citation": "DAR 281.3-282.2",
           "html": "Smith treats v.45 as the **one verse of Daniel 11 still future at writing**: \"It has all been wrought out into history except this last verse... we must look to Turkey to make the move here indicated\" (DAR 281.4). Geography is decisive: \"Palestine, which contains the 'glorious holy mountain,' the mountain on which Jerusalem stands, 'between the seas,' the Dead Sea and the Mediterranean, is a Turkish province; and if the Turk should be obliged to retire hastily from Europe, he could easily go to any point within his own dominions... here appropriately described as the **tabernacles, movable dwellings, of his palace**... **The most notable point within the limit of Turkey in Asia, is Jerusalem**\" (DAR 282.1). \"Tabernacles\" = _ahalim_, movable dwellings — fitting a tented Ottoman court.\n\nSmith reads \"none shall help him\" against the documented record of European helps: **1798-1801** (England + Russia assist the sultan against Napoleonic France), **1838-1840** (England + Russia + Austria + Prussia intervene for Turkey against Mehemet Ali of Egypt — the very event Litch tied to the sixth-trumpet 391-year end), **1853-1856** (England + France + Sardinia support Turkey in Crimea), and the Russo-Turkish War where \"the great powers of Europe interfered to arrest the progress of Russia\" (DAR 282.2). \"Since the fall of the Ottoman supremacy in 1840, the empire has existed only through the sufferance of the great powers of Europe... when that is withdrawn, she must come to the ground\" (DAR 282.2). When final help is withdrawn and the Eastern Question converges at literal Jerusalem, Dan 12:1 (\"at that time shall Michael stand up\") follows immediately."
+        },
+        {
+          "source": "miller",
+          "citation": "MWV2 108.1-3",
+          "html": "<p>Miller reads v.45 as completed in <strong>Napoleon's defeat at Waterloo and exile to St. Helena</strong>: \"The time here spoken of is when Bonaparte shall come to his end, and none to help him. This was in the latter part of the year A. D. 1815\" (MWV2 108.3). \"By this history the kings of the earth may learn, that God can, with perfect ease, when the set time shall come, break them and their kingdoms to pieces, so that the wind may carry them away like chaff, that no place shall be found for them\" (MWV2 108.1). Crucially for Miller's chronology, the verse pivots directly into Daniel 12:1 (\"And at that time shall Michael stand up\") — the standing-up of Christ to plead for his people.</p>"
+        },
+        {
+          "source": "litch",
+          "citation": "PREX2 110.1-3, 111.1-2",
+          "html": "<p>Litch reads v.45 as a precise fulfillment in <strong>Napoleon's empire and downfall</strong>: \"A palace is the permanent residence of royalty; a tabernacle is a temporary abode... Bonaparte had both: his palace was at Paris, but wherever the head-quarters of his camp were, there was the seat of the French empire\" (PREX2 110.2). \"Between the seas\" — \"Within that chain of seas, on the continent of Europe, there was not one kingdom, with the exception of Turkey, where Bonaparte did not, at one time or other, pitch his tabernacle\" (PREX2 110.3). The \"glorious holy mountain\" is Europe as the theatre of papal and pagan persecutions; \"he shall come to his end, and none shall help him\" is then Waterloo 1815 and St. Helena (PREX2 111.1-2). <strong>Litch's king of v.45 is Napoleon, not the Turk</strong> — a sharp divergence from Smith and Haskell.</p>"
+        },
+        {
+          "source": "haskell",
+          "citation": "SDP 247.3-248.2",
+          "html": "<p>Haskell reads v.45 as <strong>the Turk's removal from Constantinople to Palestine</strong>: \"The time will come when he will remove from Constantinople, and take up his abode in Palestine; that is, plant his tabernacle between the Mediterranean\" and the glorious holy mountain (SDP 247.3). When that move occurs \"earth's history will be short. Then it will be said, 'He that is unjust let him be unjust still'\" (SDP 248.2). \"No man knows when Turkey will take its departure from Europe, but when that move is made\" the seven last plagues fall and Christ comes — the verse is the final geopolitical signal before probation closes (SDP 248.1-2).</p>"
         }
       ],
       "modernReadings": [

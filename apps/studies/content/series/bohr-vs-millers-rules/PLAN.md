@@ -8,8 +8,8 @@ All 13 pioneers below have their preferred books available in the local EGW Writ
 
 | Source             | Preferred books (EGW Writings codes)  | Primary lookup                                           |
 | ------------------ | ------------------------------------- | -------------------------------------------------------- |
-| Uriah Smith        | DAR, STTHD, TTHDS, KPC                | `bible egw search "<term>" --book DAR --json`            |
 | Ellen G. White     | GC, EW, PK, PP, AA, DA, 1T-9T, Ev, SR | `bible egw commentary "<book> <chapter>:<verse>" --json` |
+| Uriah Smith        | DAR, STTHD, TTHDS, KPC                | `bible egw search "<term>" --book DAR --json`            |
 | William Miller     | MWV1, MWV2, MWV3, WMAD, MRSH, LJHCS   | `bible egw search "<term>" --book MWV2 --json`           |
 | Josiah Litch       | PREX1, PREX2, PSC                     | `bible egw search "<term>" --book PREX1 --json`          |
 | James White        | SLWM, LELJB, FUMP, SATDSD, TTAM       | `bible egw search "<term>" --book SATDSD --json`         |
@@ -57,29 +57,29 @@ Each verse can attract 0–13 pioneer readings (some pioneers wrote nothing on a
 
 | Chapter       | Verses | Pioneer entries | Plan                    |
 | ------------- | -----: | --------------: | ----------------------- |
-| Daniel 11     |     45 |              45 | [plan](plans/dan-11.md) |
-| Revelation 1  |     20 |              20 | [plan](plans/rev-1.md)  |
-| Revelation 2  |     29 |              29 | [plan](plans/rev-2.md)  |
-| Revelation 3  |     22 |              22 | [plan](plans/rev-3.md)  |
-| Revelation 4  |     11 |              11 | [plan](plans/rev-4.md)  |
-| Revelation 5  |     14 |              14 | [plan](plans/rev-5.md)  |
-| Revelation 6  |     17 |              17 | [plan](plans/rev-6.md)  |
-| Revelation 7  |     17 |              17 | [plan](plans/rev-7.md)  |
-| Revelation 8  |     13 |              13 | [plan](plans/rev-8.md)  |
-| Revelation 9  |     21 |              21 | [plan](plans/rev-9.md)  |
-| Revelation 10 |     11 |              11 | [plan](plans/rev-10.md) |
-| Revelation 11 |     19 |              19 | [plan](plans/rev-11.md) |
-| Revelation 12 |     17 |              17 | [plan](plans/rev-12.md) |
+| Daniel 11     |     45 |             130 | [plan](plans/dan-11.md) |
+| Revelation 1  |     20 |              59 | [plan](plans/rev-1.md)  |
+| Revelation 2  |     29 |             113 | [plan](plans/rev-2.md)  |
+| Revelation 3  |     22 |              87 | [plan](plans/rev-3.md)  |
+| Revelation 4  |     11 |              43 | [plan](plans/rev-4.md)  |
+| Revelation 5  |     14 |              55 | [plan](plans/rev-5.md)  |
+| Revelation 6  |     17 |              70 | [plan](plans/rev-6.md)  |
+| Revelation 7  |     17 |              52 | [plan](plans/rev-7.md)  |
+| Revelation 8  |     13 |              53 | [plan](plans/rev-8.md)  |
+| Revelation 9  |     21 |              86 | [plan](plans/rev-9.md)  |
+| Revelation 10 |     11 |              47 | [plan](plans/rev-10.md) |
+| Revelation 11 |     19 |              77 | [plan](plans/rev-11.md) |
+| Revelation 12 |     17 |              66 | [plan](plans/rev-12.md) |
 | Revelation 13 |     18 |             111 | [plan](plans/rev-13.md) |
-| Revelation 14 |     20 |              20 | [plan](plans/rev-14.md) |
-| Revelation 15 |      8 |               8 | [plan](plans/rev-15.md) |
-| Revelation 16 |     20 |              20 | [plan](plans/rev-16.md) |
-| Revelation 17 |     18 |              18 | [plan](plans/rev-17.md) |
-| Revelation 18 |     24 |              24 | [plan](plans/rev-18.md) |
-| Revelation 19 |     21 |              21 | [plan](plans/rev-19.md) |
-| Revelation 20 |     15 |              15 | [plan](plans/rev-20.md) |
-| Revelation 21 |     27 |              27 | [plan](plans/rev-21.md) |
-| Revelation 22 |     21 |              21 | [plan](plans/rev-22.md) |
+| Revelation 14 |     20 |             151 | [plan](plans/rev-14.md) |
+| Revelation 15 |      8 |              45 | [plan](plans/rev-15.md) |
+| Revelation 16 |     20 |             123 | [plan](plans/rev-16.md) |
+| Revelation 17 |     18 |              88 | [plan](plans/rev-17.md) |
+| Revelation 18 |     24 |              85 | [plan](plans/rev-18.md) |
+| Revelation 19 |     21 |              70 | [plan](plans/rev-19.md) |
+| Revelation 20 |     15 |             108 | [plan](plans/rev-20.md) |
+| Revelation 21 |     27 |             113 | [plan](plans/rev-21.md) |
+| Revelation 22 |     21 |              69 | [plan](plans/rev-22.md) |
 
 ---
 

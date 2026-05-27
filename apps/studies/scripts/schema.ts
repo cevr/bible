@@ -64,8 +64,8 @@ export const Reading = z.object({
 export type Reading = z.infer<typeof Reading>;
 
 export const PioneerSource = z.enum([
-  'smith',
   'egw',
+  'smith',
   'miller',
   'litch',
   'j-white',
@@ -81,8 +81,8 @@ export const PioneerSource = z.enum([
 export type PioneerSource = z.infer<typeof PioneerSource>;
 
 export const PIONEER_SOURCE_NAMES: Record<PioneerSource, string> = {
-  smith: 'Uriah Smith',
   egw: 'Ellen G. White',
+  smith: 'Uriah Smith',
   miller: 'William Miller',
   litch: 'Josiah Litch',
   'j-white': 'James White',
