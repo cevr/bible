@@ -8,16 +8,14 @@ const chapters = await getCollection("seriesChapters");
 const seriesWithCounts = series.map((s) => ({
   meta: s.data,
   totalChapters: chapters.length,
-  totalVerses: chapters.reduce((acc, c) => acc + c.data.verseCount, 0),
-  totalViolations: chapters.reduce((acc, c) => acc + c.data.violations, 0),
 }));
 ---
 
-<Site title="Bible studies">
+<Site title="The Sure Word">
   <main class="shell">
     <header class="masthead">
       <p class="eyebrow">Index</p>
-      <h1>Bible <em>studies</em></h1>
+      <h1>The <em>Sure</em> Word</h1>
       <p class="lede">
         A growing catalog of long-form, verbatim study series — pioneer
         commentary, modern audits, primary sources.
@@ -26,7 +24,7 @@ const seriesWithCounts = series.map((s) => ({
 
     <section class="series-list">
       <ol class="series-items">
-        {seriesWithCounts.map(({ meta, totalChapters, totalVerses, totalViolations }) => (
+        {seriesWithCounts.map(({ meta, totalChapters }) => (
           <li class="series-item">
             <a href={`/${meta.slug}/`} class="series-link">
               <p class="series-eyebrow">{meta.eyebrow}</p>
@@ -37,14 +35,6 @@ const seriesWithCounts = series.map((s) => ({
                 <div>
                   <dt>Chapters</dt>
                   <dd>{totalChapters}</dd>
-                </div>
-                <div>
-                  <dt>Verses</dt>
-                  <dd>{totalVerses}</dd>
-                </div>
-                <div>
-                  <dt>Verses w/ violations</dt>
-                  <dd>{totalViolations}</dd>
                 </div>
               </dl>
             </a>
