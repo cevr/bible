@@ -4,94 +4,77 @@ import Site from "../../layouts/Site.astro";
 import { getSeriesMeta } from "../../lib/content.ts";
 
 const meta = await getSeriesMeta("bohr-vs-millers-rules");
-const chapters = await getCollection("seriesChapters");
+const chapters = (await getCollection("seriesChapters")).map((e) => e.data);
 
-const totalVerses = chapters.reduce((acc, c) => acc + c.data.verseCount, 0);
-const totalAddressed = chapters.reduce((acc, c) => acc + c.data.addressed, 0);
-const totalViolations = chapters.reduce((acc, c) => acc + c.data.violations, 0);
+// Preserve canonical order from the extractor (Dan 11 first, then Rev 1-22).
+const order = ["dan-11", ...Array.from({ length: 22 }, (_, i) => `rev-${i + 1}`)];
+const ordered = order
+  .map((slug) => chapters.find((c) => c.slug === slug))
+  .filter((c): c is NonNullable<typeof c> => Boolean(c));
 ---
 
 <Site
   title={`${meta.title} — Bible studies`}
   description={meta.lede}
-  seriesSlug={meta.slug}
-  currentNav="studies"
 >
   <main class="shell">
     <header class="masthead">
       <p class="eyebrow">{meta.eyebrow}</p>
       <h1>{meta.title} — <em>{meta.subtitle}</em></h1>
-      <p class="lede">{meta.lede}</p>
-      <div class="meta">
-        <span><strong>Scope</strong>{totalVerses} verses, {chapters.length} chapters</span>
-        <span><strong>Addressed by Bohr</strong>{totalAddressed}</span>
-        <span><strong>w/ bulleted violations</strong>{totalViolations}</span>
-      </div>
     </header>
 
-    <section class="landing-grid">
-      <a href="./verse-by-verse/" class="landing-card">
-        <p class="card-eyebrow">Reference</p>
-        <h2 class="card-title">Verse by Verse</h2>
-        <p class="card-blurb">
-          The full {totalVerses}-verse audit, one chapter per page, with
-          pioneer reading ↔ Bohr reading split columns and numbered
-          rule-violation badges.
-        </p>
-      </a>
-    </section>
+    <ol class="chapter-list">
+      {ordered.map((c) => (
+        <li class="chapter-row">
+          <a href={`./${c.slug}/`} class="chapter-link">
+            <span class="ref">{c.ref}</span>
+            <span class="title">{c.title}</span>
+          </a>
+        </li>
+      ))}
+    </ol>
   </main>
 </Site>
 
 <style>
-  .landing-grid {
+  .chapter-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 6rem;
+    border-top: 1px solid var(--rule-soft);
+  }
+  .chapter-row {
+    border-bottom: 1px solid var(--rule-soft);
+  }
+  .chapter-link {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: 5rem 1fr;
     gap: 1.25rem;
-    padding-bottom: 6rem;
-  }
-  @media (min-width: 768px) {
-    .landing-grid { grid-template-columns: repeat(2, 1fr); }
-  }
-  .landing-card {
-    display: block;
+    align-items: baseline;
+    padding: 1rem 0;
     text-decoration: none;
     color: inherit;
-    border: 1px solid var(--rule);
-    border-radius: 4px;
-    padding: 1.75rem;
-    background: var(--paper);
-    transition: border-color 0.15s, background 0.15s;
+    transition: color 0.15s, background 0.15s;
   }
-  .landing-card:hover,
-  .landing-card:focus-visible {
-    border-color: var(--oxblood);
+  .chapter-link:hover,
+  .chapter-link:focus-visible {
     outline: none;
-    background: color-mix(in srgb, var(--paper-tint) 50%, var(--paper));
+    background: color-mix(in srgb, var(--paper-tint) 40%, var(--paper));
   }
-  .card-eyebrow {
-    font-family: var(--body);
-    font-size: 0.68rem;
+  .chapter-link:hover .ref { color: var(--oxblood); }
+  .ref {
+    font-family: var(--mono);
+    font-size: 0.78rem;
     font-weight: 500;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
     color: var(--ink-mute);
-    margin: 0 0 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: color 0.15s;
   }
-  .card-title {
+  .title {
     font-family: var(--display);
     font-weight: 500;
-    font-size: 1.4rem;
-    line-height: 1.1;
-    letter-spacing: -0.015em;
-    margin: 0 0 0.75rem;
+    font-size: 1.05rem;
     color: var(--ink);
-  }
-  .card-blurb {
-    font-family: var(--display);
-    font-size: 0.95rem;
-    line-height: 1.5;
-    color: var(--ink-soft);
-    margin: 0;
   }
 </style>

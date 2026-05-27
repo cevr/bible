@@ -4,12 +4,9 @@ import "../styles/global.css";
 interface Props {
   title: string;
   description?: string;
-  currentNav?: "studies" | "verse-by-verse";
-  seriesSlug?: string;
 }
 
-const { title, description, currentNav, seriesSlug } = Astro.props;
-const seriesBase = seriesSlug ? `/${seriesSlug}/` : "/";
+const { title, description } = Astro.props;
 ---
 
 <!doctype html>
@@ -37,22 +34,6 @@ const seriesBase = seriesSlug ? `/${seriesSlug}/` : "/";
         <a href="/" class="brand">
           Bible <em>studies</em>
         </a>
-        {seriesSlug && (
-          <ul class="nav-list">
-            <li>
-              <a
-                href={seriesBase}
-                aria-current={currentNav === "studies" ? "page" : undefined}
-              >Overview</a>
-            </li>
-            <li>
-              <a
-                href={`${seriesBase}verse-by-verse/`}
-                aria-current={currentNav === "verse-by-verse" ? "page" : undefined}
-              >Verse by Verse</a>
-            </li>
-          </ul>
-        )}
       </div>
     </nav>
 

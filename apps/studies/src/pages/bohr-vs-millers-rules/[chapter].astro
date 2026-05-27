@@ -1,13 +1,13 @@
 ---
 import { getCollection } from "astro:content";
 import type { GetStaticPaths } from "astro";
-import Site from "../../../layouts/Site.astro";
-import VerseCard from "../../../components/VerseCard.astro";
-import VerseCompact from "../../../components/VerseCompact.astro";
-import ChapterNav from "../../../components/ChapterNav.astro";
-import { md } from "../../../lib/md.ts";
-import { getChapter, getSeriesMeta } from "../../../lib/content.ts";
-import "../../../styles/verse.css";
+import Site from "../../layouts/Site.astro";
+import VerseCard from "../../components/VerseCard.astro";
+import VerseCompact from "../../components/VerseCompact.astro";
+import ChapterNav from "../../components/ChapterNav.astro";
+import { md } from "../../lib/md.ts";
+import { getChapter, getSeriesMeta } from "../../lib/content.ts";
+import "../../styles/verse.css";
 
 export const getStaticPaths = (async () => {
   const chapters = await getCollection("chapters");
@@ -50,8 +50,6 @@ function shouldRenderCard(verse: typeof chapter.verses[number]): boolean {
 <Site
   title={`${chapter.title} — ${meta.title}`}
   description={`Verse-by-verse audit of ${chapter.title}.`}
-  seriesSlug={meta.slug}
-  currentNav="verse-by-verse"
 >
   <main class="shell">
     <header class="masthead">
