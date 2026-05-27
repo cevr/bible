@@ -130,7 +130,7 @@ function chapterPlanBody(chapter: Chapter): string {
   lines.push(`# Plan — ${chapter.title}`);
   lines.push('');
   lines.push(
-    `Verses: ${chapter.verses.length}.  Source = \`content/series/bohr-vs-millers-rules/chapters/${chapter.slug}.json\`.`,
+    `Verses: ${chapter.verses.length}. Source = \`content/series/bohr-vs-millers-rules/chapters/${chapter.slug}.json\`.`,
   );
   lines.push('');
   lines.push(

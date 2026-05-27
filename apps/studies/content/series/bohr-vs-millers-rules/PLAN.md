@@ -70,7 +70,7 @@ Each verse can attract 0–13 pioneer readings (some pioneers wrote nothing on a
 | Revelation 10 |     11 |              11 | [plan](plans/rev-10.md) |
 | Revelation 11 |     19 |              19 | [plan](plans/rev-11.md) |
 | Revelation 12 |     17 |              17 | [plan](plans/rev-12.md) |
-| Revelation 13 |     18 |              18 | [plan](plans/rev-13.md) |
+| Revelation 13 |     18 |             111 | [plan](plans/rev-13.md) |
 | Revelation 14 |     20 |              20 | [plan](plans/rev-14.md) |
 | Revelation 15 |      8 |               8 | [plan](plans/rev-15.md) |
 | Revelation 16 |     20 |              20 | [plan](plans/rev-16.md) |
