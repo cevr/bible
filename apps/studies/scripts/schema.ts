@@ -74,6 +74,9 @@ export const PioneerSource = z.enum([
   'haskell',
   'jones',
   'waggoner',
+  'bates',
+  'loughborough',
+  'fitch',
 ]);
 export type PioneerSource = z.infer<typeof PioneerSource>;
 
@@ -88,6 +91,9 @@ export const PIONEER_SOURCE_NAMES: Record<PioneerSource, string> = {
   haskell: 'S. N. Haskell',
   jones: 'A. T. Jones',
   waggoner: 'E. J. Waggoner',
+  bates: 'Joseph Bates',
+  loughborough: 'J. N. Loughborough',
+  fitch: 'Charles Fitch',
 };
 
 export const PioneerReading = z.object({
