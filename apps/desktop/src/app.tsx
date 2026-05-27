@@ -10,7 +10,6 @@ import {
   Show,
 } from 'solid-js';
 import { BibleChapterCanvas } from './components/bible-chapter-canvas.js';
-import { BibleCommentaryDrawer } from './components/bible-commentary-drawer.js';
 import { BibleDrawer } from './components/bible-drawer.js';
 import { BibleTocSidebar } from './components/bible-toc-sidebar.js';
 import { CommandPalette } from './components/command-palette.js';
@@ -29,6 +28,7 @@ import { LastPositionStorage } from './services/last-position-storage.js';
 import { openBookAtFirstChapter } from './services/open-book.js';
 import { Prefetcher } from './services/prefetcher.js';
 import {
+  type BibleStudyTab,
   type FontFamily,
   ReaderSettings,
   type ReaderFontScale,
@@ -110,31 +110,43 @@ export const App: Component = () => {
   // toggle; later sub-commits use it to swap which canvas/drawer render.
   const [readerMode, setReaderModeSig] = createSignal<ReaderMode>('egw');
 
-  // Bible drawer — one instance for the whole app. Scripture refs anywhere
-  // in the reader open it via the onScriptureClick callback threaded into
-  // ReaderPane → BookFeed → ParagraphView.
+  // Right-side study drawer — one instance for the whole app, mounted in
+  // both modes. EGW mode opens it via ScriptureRef clicks (the existing
+  // `onScriptureClick` callback); Bible mode opens it from verse-gutter /
+  // margin-note / Strong's-super / `e` marker clicks on the chapter canvas.
   //
-  // We wrap setStrongsEnabled so every toggle through the drawer UI fans out
-  // into ReaderSettings persistence too. The base state object stays pure
-  // (no I/O), which keeps it test-friendly.
+  // We wrap setActiveStudyTab so every tab swap fans out to ReaderSettings
+  // persistence — the base state object stays pure (no I/O) for testability.
   const bibleDrawerBase = createBibleDrawerState();
   const bibleDrawer = {
     ...bibleDrawerBase,
-    setStrongsEnabled: (enabled: boolean) => {
-      bibleDrawerBase.setStrongsEnabled(enabled);
+    setActiveStudyTab: (tab: BibleStudyTab) => {
+      bibleDrawerBase.setActiveStudyTab(tab);
       updateSettings(
         Effect.gen(function* () {
           const s = yield* ReaderSettings;
-          yield* s.setBibleDrawerStrongs(enabled);
+          yield* s.setBibleStudyTab(tab);
         }),
       );
     },
+    open: (
+      book: number,
+      chapter: number,
+      verse: number,
+      tab?: BibleStudyTab,
+      focus?: Parameters<typeof bibleDrawerBase.open>[4],
+    ): void => {
+      bibleDrawerBase.open(book, chapter, verse, tab, focus);
+      if (tab !== undefined) {
+        updateSettings(
+          Effect.gen(function* () {
+            const s = yield* ReaderSettings;
+            yield* s.setBibleStudyTab(tab);
+          }),
+        );
+      }
+    },
   };
-  // EGW commentary sheet open/closed in Bible mode. Driven by the footnote
-  // markers in the chapter canvas (open) and the ReaderPanel primitive's
-  // dismiss-on-Esc (close). Persisted so a user who leaves it open finds it
-  // open on next launch.
-  const [bibleCommentaryOpen, setBibleCommentaryOpenSig] = createSignal<boolean>(false);
 
   // Per-overlay toggle state for the floating Bible reader toolbar.
   // Defaults: commentary on (the most discoverable overlay — surfaces the
@@ -262,13 +274,10 @@ export const App: Component = () => {
         setLetterSpacingSig(state.letterSpacing);
         setLineWidthSig(state.lineWidth);
         setUiScaleSig(state.uiScale ?? 'md');
-        if (state.bibleDrawerStrongs === true) {
+        if (state.bibleStudyTab !== undefined) {
           // Seed via the base (non-persisting) setter — re-writing the same
-          // flag back to disk on every launch would be silly.
-          bibleDrawerBase.setStrongsEnabled(true);
-        }
-        if (state.bibleCommentaryOpen === true) {
-          setBibleCommentaryOpenSig(true);
+          // tab back to disk on every launch would be redundant.
+          bibleDrawerBase.setActiveStudyTab(state.bibleStudyTab);
         }
         if (state.readerMode !== undefined) {
           setReaderModeSig(state.readerMode);
@@ -548,16 +557,6 @@ export const App: Component = () => {
       Effect.gen(function* () {
         const s = yield* ReaderSettings;
         yield* s.setLineWidth(n);
-      }),
-    );
-  };
-
-  const setBibleCommentaryOpen = (open: boolean) => {
-    setBibleCommentaryOpenSig(open);
-    updateSettings(
-      Effect.gen(function* () {
-        const s = yield* ReaderSettings;
-        yield* s.setBibleCommentaryOpen(open);
       }),
     );
   };
@@ -1024,24 +1023,28 @@ export const App: Component = () => {
                 onPositionChange={onPositionChange}
                 fontFamily={readerFontFamily}
                 onScriptureClick={(title) => {
-                  bibleDrawer.open(title);
+                  bibleDrawer.openFromQuery(title);
                 }}
               />
             </Show>
           }
         >
           <BibleChapterCanvas
-            onOpenCommentary={() => setBibleCommentaryOpen(true)}
-            commentaryOpen={bibleCommentaryOpen()}
-            onToggleCommentaryDrawer={() => setBibleCommentaryOpen(!bibleCommentaryOpen())}
+            onOpenCommentary={(book, chapter, verse) =>
+              bibleDrawer.open(book, chapter, verse, 'egw')
+            }
             onOpenStrongs={(book, chapter, verse, code) =>
-              bibleDrawer.openAt(book, chapter, 'strongs', { _tag: 'strongs', verse, code })
+              bibleDrawer.open(book, chapter, verse, 'words', { _tag: 'strongs', verse, code })
             }
             onOpenMarginNote={(book, chapter, verse) =>
-              bibleDrawer.openAt(book, chapter, 'notes', { _tag: 'note', verse, noteIndex: 0 })
+              bibleDrawer.open(book, chapter, verse, 'notes', {
+                _tag: 'note',
+                verse,
+                noteIndex: 0,
+              })
             }
             onOpenCrossRefs={(book, chapter, verse) =>
-              bibleDrawer.openAt(book, chapter, 'xrefs', { _tag: 'xref', verse })
+              bibleDrawer.open(book, chapter, verse, 'xrefs')
             }
             inlineStrongs={inlineStrongs}
             inlineCommentary={inlineCommentary}
@@ -1127,16 +1130,8 @@ export const App: Component = () => {
           </div>
         </ReaderPanel>
 
-        {/* Right drawer is mode-dependent. EGW mode → BibleDrawer
-            (cross-reference into scripture). Bible mode → symmetric
-            inversion, a commentary drawer that surfaces cached EGW paragraphs
-            touching the focused verse. */}
-        <Show when={isBibleMode()} fallback={<BibleDrawer state={bibleDrawer} />}>
-          <BibleCommentaryDrawer
-            open={bibleCommentaryOpen()}
-            onOpenChange={setBibleCommentaryOpen}
-          />
-        </Show>
+        {/* Right drawer — unified verse-pinned study drawer in both modes. */}
+        <BibleDrawer state={bibleDrawer} />
       </div>
 
       <Presence>

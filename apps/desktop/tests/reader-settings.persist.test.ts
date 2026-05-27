@@ -96,3 +96,82 @@ it.effect('seeds state from previously persisted settings on layer init', () =>
     }).pipe(Effect.provide(Layer.provide(ReaderSettings.layer, storageLayer)));
   }),
 );
+
+// ─── Migration: stale drawer keys ──────────────────────────────────────────
+// Users upgrading from the pre-unified-drawer build carry these keys on
+// disk. The layer should strip them on load AND re-persist immediately so
+// the migration runs exactly once per user.
+
+it.effect('migrates away stale drawer keys on load and re-persists once', () =>
+  Effect.gen(function* () {
+    const current = yield* Ref.make<Option.Option<string>>(
+      Option.some(
+        JSON.stringify({
+          theme: 'sepia',
+          fontFamily: 'serif',
+          fontSize: 'lg',
+          lineHeight: 1.5,
+          letterSpacing: 0,
+          lineWidth: 68,
+          recentDocuments: [],
+          progressByPath: {},
+          debugDumpSegments: false,
+          // Stale keys from earlier drawer shape.
+          bibleDrawerStrongs: 'G2316',
+          bibleCommentaryOpen: true,
+          bibleDrawerWideWidth: 560,
+        }),
+      ),
+    );
+    const writes = yield* Ref.make(0);
+    const storageLayer = SettingsStorage.layerTest({ current, writes });
+
+    yield* Effect.gen(function* () {
+      // Touching the service is enough — load runs in the layer's acquire.
+      yield* ReaderSettings;
+
+      // One write should have landed already (the migration re-persist),
+      // *not* deferred behind the debounce.
+      expect(yield* Ref.get(writes)).toBe(1);
+
+      const persisted = yield* Ref.get(current);
+      expect(Option.isSome(persisted)).toBe(true);
+      if (Option.isSome(persisted)) {
+        const parsed = JSON.parse(persisted.value) as Record<string, unknown>;
+        expect('bibleDrawerStrongs' in parsed).toBe(false);
+        expect('bibleCommentaryOpen' in parsed).toBe(false);
+        expect('bibleDrawerWideWidth' in parsed).toBe(false);
+        // Non-stale fields survive untouched.
+        expect(parsed['theme']).toBe('sepia');
+        expect(parsed['lineWidth']).toBe(68);
+      }
+    }).pipe(Effect.provide(Layer.provide(ReaderSettings.layer, storageLayer)));
+  }),
+);
+
+it.effect('does not re-persist when no stale keys are present', () =>
+  Effect.gen(function* () {
+    const current = yield* Ref.make<Option.Option<string>>(
+      Option.some(
+        JSON.stringify({
+          theme: 'light',
+          fontFamily: 'serif',
+          fontSize: 'base',
+          lineHeight: 1.55,
+          letterSpacing: 0,
+          lineWidth: 68,
+          recentDocuments: [],
+          progressByPath: {},
+          debugDumpSegments: false,
+        }),
+      ),
+    );
+    const writes = yield* Ref.make(0);
+    const storageLayer = SettingsStorage.layerTest({ current, writes });
+
+    yield* Effect.gen(function* () {
+      yield* ReaderSettings;
+      expect(yield* Ref.get(writes)).toBe(0);
+    }).pipe(Effect.provide(Layer.provide(ReaderSettings.layer, storageLayer)));
+  }),
+);

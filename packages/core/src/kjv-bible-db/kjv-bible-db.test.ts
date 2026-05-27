@@ -58,9 +58,19 @@ const mockStrongs: readonly StrongsVerseRow[] = [
     book: 1,
     chapter: 1,
     verse: 1,
-    words: [{ text: 'In', strongs: ['H7225'] }, { text: 'beginning' }],
+    words: [
+      { text: 'In', strongs: ['H7225'] },
+      { text: 'beginning' },
+      { text: 'God', strongs: ['H430'] },
+    ],
   },
-  // verse 2 intentionally absent — exercises the nullable Strong's column
+  {
+    book: 1,
+    chapter: 2,
+    verse: 1,
+    words: [{ text: 'Thus', strongs: ['H430'] }],
+  },
+  // 1:2 intentionally absent — exercises the nullable Strong's column
 ];
 
 const mockLex: Record<string, StrongsLexiconRaw> = {
@@ -77,7 +87,7 @@ describe('KjvBibleDatabase', () => {
         const db = yield* KjvBibleDatabase;
         const result = yield* db.importKjv(mockKjv, mockStrongs);
         expect(result.verses).toBe(4);
-        expect(result.withStrongs).toBe(1);
+        expect(result.withStrongs).toBe(2);
       }),
     ));
 
@@ -142,7 +152,7 @@ describe('KjvBibleDatabase', () => {
         if (Option.isSome(chapter)) {
           expect(chapter.value.verses.length).toBe(1);
           expect(chapter.value.verses[0]?.verse).toBe(1);
-          expect(chapter.value.verses[0]?.words.length).toBe(2);
+          expect(chapter.value.verses[0]?.words.length).toBe(3);
           expect(chapter.value.verses[0]?.words[0]?.strongs).toEqual(['H7225']);
         }
       }),
@@ -153,7 +163,8 @@ describe('KjvBibleDatabase', () => {
       Effect.gen(function* () {
         const db = yield* KjvBibleDatabase;
         yield* db.importKjv(mockKjv, mockStrongs);
-        const chapter = yield* db.getChapterStrongs(1, 2);
+        // Revelation 22 in the fixture has no Strong's tagging.
+        const chapter = yield* db.getChapterStrongs(66, 22);
         expect(Option.isNone(chapter)).toBe(true);
       }),
     ));
@@ -197,6 +208,81 @@ describe('KjvBibleDatabase', () => {
         // so a crashed transaction recovers automatically on the next
         // launch instead of wedging the renderer with empty chapters.
         expect(yield* db.isImported()).toBe(false);
+      }),
+    ));
+
+  test('searchVersesByStrongs surfaces every verse with the code + surface word', () =>
+    runTest(
+      Effect.gen(function* () {
+        const db = yield* KjvBibleDatabase;
+        yield* db.importKjv(mockKjv, mockStrongs);
+        const hits = yield* db.searchVersesByStrongs('H430', null);
+        // 1:1 ("God") + 2:1 ("Thus") both tagged with H430.
+        expect(hits.length).toBe(2);
+        expect(hits[0]?.chapter).toBe(1);
+        expect(hits[0]?.word).toBe('God');
+        expect(hits[1]?.chapter).toBe(2);
+        expect(hits[1]?.word).toBe('Thus');
+      }),
+    ));
+
+  test('searchVersesByStrongs honours limit', () =>
+    runTest(
+      Effect.gen(function* () {
+        const db = yield* KjvBibleDatabase;
+        yield* db.importKjv(mockKjv, mockStrongs);
+        const hits = yield* db.searchVersesByStrongs('H430', 1);
+        expect(hits.length).toBe(1);
+      }),
+    ));
+
+  test('searchVersesByStrongs returns [] for unknown code', () =>
+    runTest(
+      Effect.gen(function* () {
+        const db = yield* KjvBibleDatabase;
+        yield* db.importKjv(mockKjv, mockStrongs);
+        const hits = yield* db.searchVersesByStrongs('H999999', null);
+        expect(hits.length).toBe(0);
+      }),
+    ));
+
+  test('countStrongsOccurrences ignores limit, reports true distinct-verse total', () =>
+    runTest(
+      Effect.gen(function* () {
+        const db = yield* KjvBibleDatabase;
+        yield* db.importKjv(mockKjv, mockStrongs);
+        expect(yield* db.countStrongsOccurrences('H430')).toBe(2);
+        expect(yield* db.countStrongsOccurrences('H7225')).toBe(1);
+        expect(yield* db.countStrongsOccurrences('H999999')).toBe(0);
+      }),
+    ));
+
+  test('searchLexicon matches lemma / transliteration / definition case-insensitively', () =>
+    runTest(
+      Effect.gen(function* () {
+        const db = yield* KjvBibleDatabase;
+        yield* db.importStrongsLexicon(mockLex);
+        // Substring of the definition "first, beginning".
+        const byDef = yield* db.searchLexicon('beginning', 10);
+        expect(byDef.length).toBe(1);
+        expect(byDef[0]?.code).toBe('H7225');
+        // Transliteration substring, lowercase against the original.
+        const byTrans = yield* db.searchLexicon('ALPHA', 10);
+        expect(byTrans.length).toBe(1);
+        expect(byTrans[0]?.code).toBe('G1');
+      }),
+    ));
+
+  test('searchLexicon honours limit', () =>
+    runTest(
+      Effect.gen(function* () {
+        const db = yield* KjvBibleDatabase;
+        yield* db.importStrongsLexicon(mockLex);
+        // Both entries have 'first' in their definition.
+        const all = yield* db.searchLexicon('first', 10);
+        expect(all.length).toBe(2);
+        const capped = yield* db.searchLexicon('first', 1);
+        expect(capped.length).toBe(1);
       }),
     ));
 

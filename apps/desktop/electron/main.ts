@@ -602,6 +602,20 @@ type RendererStrongsEntry = {
   readonly transliteration: string;
   readonly definition: string;
 };
+type RendererConcordanceHit = {
+  readonly book: number;
+  readonly bookName: string;
+  readonly chapter: number;
+  readonly verse: number;
+  readonly text: string;
+  readonly word: string;
+};
+
+// High-frequency Strong's codes (e.g. H776 "land/earth" ~2,500 hits) would
+// blow up the IPC payload; the drawer only needs enough hits to make the list
+// scrollable. Caller still gets the true total via `bible:countStrongsHits`.
+const CONCORDANCE_HIT_CAP = 200;
+const LEXICON_RESULT_CAP = 50;
 
 ipcMain.handle(
   'bible:getChapter',
@@ -690,6 +704,63 @@ ipcMain.handle(
       return Option.getOrNull(result);
     },
     (r) => (r === null ? 'null' : `${r.code} ${r.lemma}`),
+  ),
+);
+
+ipcMain.handle(
+  'bible:searchVersesByStrongs',
+  traceBibleIpc(
+    'bible:searchVersesByStrongs',
+    async (_event, code: string): Promise<readonly RendererConcordanceHit[]> => {
+      if (mainRuntime === null) return [];
+      await ensureBibleImportsDone(mainRuntime);
+      const hits = await mainRuntime.runPromise(
+        KjvBibleDatabase.pipe(
+          Effect.flatMap((db) => db.searchVersesByStrongs(code, CONCORDANCE_HIT_CAP)),
+        ),
+      );
+      return hits.map(
+        (h): RendererConcordanceHit => ({
+          book: h.book,
+          bookName: h.book_name,
+          chapter: h.chapter,
+          verse: h.verse,
+          text: h.text,
+          word: h.word,
+        }),
+      );
+    },
+    (r) => `${String(r.length)} hit(s)`,
+  ),
+);
+
+ipcMain.handle(
+  'bible:countStrongsHits',
+  traceBibleIpc(
+    'bible:countStrongsHits',
+    async (_event, code: string): Promise<number> => {
+      if (mainRuntime === null) return 0;
+      await ensureBibleImportsDone(mainRuntime);
+      return mainRuntime.runPromise(
+        KjvBibleDatabase.pipe(Effect.flatMap((db) => db.countStrongsOccurrences(code))),
+      );
+    },
+    (n) => `${String(n)} total`,
+  ),
+);
+
+ipcMain.handle(
+  'bible:searchLexicon',
+  traceBibleIpc(
+    'bible:searchLexicon',
+    async (_event, query: string): Promise<readonly RendererStrongsEntry[]> => {
+      if (mainRuntime === null) return [];
+      await ensureBibleImportsDone(mainRuntime);
+      return mainRuntime.runPromise(
+        KjvBibleDatabase.pipe(Effect.flatMap((db) => db.searchLexicon(query, LEXICON_RESULT_CAP))),
+      );
+    },
+    (r) => `${String(r.length)} entr(y/ies)`,
   ),
 );
 

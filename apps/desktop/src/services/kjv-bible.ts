@@ -30,6 +30,18 @@ export interface StrongsLexiconEntry {
   readonly definition: string;
 }
 
+/** Single concordance hit — book/chapter/verse plus the surface word the
+ *  Strong's code was attached to in that verse (so the list shows e.g. that
+ *  H776 surfaces as "earth" here and "land" there). */
+export interface ConcordanceHit {
+  readonly book: number;
+  readonly bookName: string;
+  readonly chapter: number;
+  readonly verse: number;
+  readonly text: string;
+  readonly word: string;
+}
+
 export interface KjvBibleShape {
   /** Look up a KJV chapter by book number (1–66) and chapter number.
    *  Returns `None` for invalid combinations — the drawer surfaces this as a
@@ -45,6 +57,15 @@ export interface KjvBibleShape {
    *  first call triggers a ~3 MB JSON parse in main. `None` for unknown codes
    *  or malformed input. */
   readonly strongsLookup: (code: string) => Effect.Effect<Option.Option<StrongsLexiconEntry>>;
+  /** Concordance lookup — every verse tagged with `code`. Capped server-side
+   *  (currently 200) so high-frequency codes don't blow up the IPC payload. */
+  readonly searchVersesByStrongs: (code: string) => Effect.Effect<readonly ConcordanceHit[]>;
+  /** Distinct-verse total for `code`, independent of the capped hit list.
+   *  Used so the UI can show "X of Y" even when the list is truncated. */
+  readonly countStrongsHits: (code: string) => Effect.Effect<number>;
+  /** Substring search across lemma / transliteration / definition for the
+   *  English-side concordance flow. Capped server-side. */
+  readonly searchLexicon: (query: string) => Effect.Effect<readonly StrongsLexiconEntry[]>;
   /** Drop the cached LRU/lexicon entries and ask main to drop + re-import
    *  the bundled KJV verses + Strong's lexicon. Used by the chapter canvas'
    *  "Reimport KJV" recovery flow when a chapter came back empty (typically
@@ -130,6 +151,10 @@ export class KjvBible extends Context.Service<KjvBible, KjvBibleShape>()(
           }),
         );
       },
+      searchVersesByStrongs: (code) =>
+        Effect.promise(() => window.api.bible.searchVersesByStrongs(code)),
+      countStrongsHits: (code) => Effect.promise(() => window.api.bible.countStrongsHits(code)),
+      searchLexicon: (query) => Effect.promise(() => window.api.bible.searchLexicon(query)),
       reimport: () =>
         Effect.promise(() => window.api.bible.reimportKjv()).pipe(
           Effect.tap(() =>
@@ -163,6 +188,9 @@ export class KjvBible extends Context.Service<KjvBible, KjvBibleShape>()(
         ),
       strongsLookup: (code) =>
         Effect.succeed(Option.fromNullishOr(lexicon.find((e) => e.code === code))),
+      searchVersesByStrongs: () => Effect.succeed([]),
+      countStrongsHits: () => Effect.succeed(0),
+      searchLexicon: () => Effect.succeed([]),
       reimport: () => Effect.void,
     });
 }

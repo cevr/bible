@@ -53,6 +53,15 @@ const StrongsLexiconEntrySchema = Schema.Struct({
   definition: Schema.String,
 });
 
+const ConcordanceHitSchema = Schema.Struct({
+  book: Schema.Number,
+  bookName: Schema.String,
+  chapter: Schema.Number,
+  verse: Schema.Number,
+  text: Schema.String,
+  word: Schema.String,
+});
+
 const CrossRefSchema = Schema.Struct({
   source: Schema.Literals(['openbible', 'tske']),
   targetBook: Schema.Number,
@@ -351,6 +360,21 @@ export const procedures = defineProcedures({
           Effect.flatMap((k) => k.strongsLookup(code)),
           Effect.map(Option.getOrNull),
         ),
+    }),
+    searchVersesByStrongs: query({
+      input: Schema.Struct({ code: Schema.String }),
+      output: Schema.Array(ConcordanceHitSchema),
+      handle: ({ code }) => KjvBible.pipe(Effect.flatMap((k) => k.searchVersesByStrongs(code))),
+    }),
+    countStrongsHits: query({
+      input: Schema.Struct({ code: Schema.String }),
+      output: Schema.Number,
+      handle: ({ code }) => KjvBible.pipe(Effect.flatMap((k) => k.countStrongsHits(code))),
+    }),
+    searchLexicon: query({
+      input: Schema.Struct({ query: Schema.String }),
+      output: Schema.Array(StrongsLexiconEntrySchema),
+      handle: ({ query: q }) => KjvBible.pipe(Effect.flatMap((k) => k.searchLexicon(q))),
     }),
     reimportKjv: mutation({
       input: Schema.Void,

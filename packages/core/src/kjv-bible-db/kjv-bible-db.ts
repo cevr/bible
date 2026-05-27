@@ -106,6 +106,18 @@ export interface StrongsLexiconEntry {
   readonly definition: string;
 }
 
+/** One row in a concordance lookup — the verse text the word appeared in plus
+ *  the surface word as tagged (so e.g. searching H776 surfaces `earth`,
+ *  `land`, `country` rather than just the lemma). */
+export interface StrongsConcordanceHit {
+  readonly book: number;
+  readonly chapter: number;
+  readonly verse: number;
+  readonly book_name: string;
+  readonly text: string;
+  readonly word: string;
+}
+
 // ---------------------------------------------------------------------------
 // Row schemas
 // ---------------------------------------------------------------------------
@@ -194,6 +206,34 @@ export interface KjvBibleDatabaseService {
   readonly strongsLookup: (
     code: string,
   ) => Effect.Effect<Option.Option<StrongsLexiconEntry>, SqlError>;
+
+  /**
+   * Returns every verse where any tagged word carries the given Strong's
+   * `code`. Walks `strongs_words IS NOT NULL` rows and JSON-filters in
+   * memory — at ~17k tagged rows the cost is small enough that the side
+   * lookup table is not yet worth the schema cost. `limit` caps the result
+   * set for UI display; pass `null` to return all matches.
+   */
+  readonly searchVersesByStrongs: (
+    code: string,
+    limit: number | null,
+  ) => Effect.Effect<readonly StrongsConcordanceHit[], SqlError>;
+
+  /**
+   * Counts distinct verses tagged with `code`. Independent of `limit` — the
+   * UI shows the true total even when only the first N hits render.
+   */
+  readonly countStrongsOccurrences: (code: string) => Effect.Effect<number, SqlError>;
+
+  /**
+   * Substring search over the lexicon's lemma, transliteration, and definition
+   * columns. Case-insensitive via `LIKE` with `COLLATE NOCASE`. `limit` caps
+   * the result count.
+   */
+  readonly searchLexicon: (
+    query: string,
+    limit: number,
+  ) => Effect.Effect<readonly StrongsLexiconEntry[], SqlError>;
 
   /**
    * `true` when both tables already contain rows. Used by main to skip the
@@ -394,6 +434,84 @@ export class KjvBibleDatabase extends Context.Service<KjvBibleDatabase, KjvBible
           }),
         );
 
+      const searchVersesByStrongs = (code: string, limit: number | null) =>
+        sql<KjvVerseRow>`
+          SELECT book, chapter, verse, book_name, text, strongs_words
+          FROM kjv_verses
+          WHERE strongs_words IS NOT NULL
+            AND strongs_words LIKE ${`%"${code}"%`}
+          ORDER BY book, chapter, verse
+        `.pipe(
+          Effect.map((rows) => {
+            const out: StrongsConcordanceHit[] = [];
+            for (const row of rows) {
+              if (row.strongs_words === null) continue;
+              const words = parseWords(row.strongs_words);
+              for (const w of words) {
+                if (w.strongs?.includes(code) === true) {
+                  out.push({
+                    book: row.book,
+                    chapter: row.chapter,
+                    verse: row.verse,
+                    book_name: row.book_name,
+                    text: row.text,
+                    word: w.text,
+                  });
+                  break;
+                }
+              }
+              if (limit !== null && out.length >= limit) break;
+            }
+            return out;
+          }),
+        );
+
+      const countStrongsOccurrences = (code: string) =>
+        sql<KjvVerseRow>`
+          SELECT book, chapter, verse, book_name, text, strongs_words
+          FROM kjv_verses
+          WHERE strongs_words IS NOT NULL
+            AND strongs_words LIKE ${`%"${code}"%`}
+        `.pipe(
+          Effect.map((rows) => {
+            let count = 0;
+            for (const row of rows) {
+              if (row.strongs_words === null) continue;
+              const words = parseWords(row.strongs_words);
+              for (const w of words) {
+                if (w.strongs?.includes(code) === true) {
+                  count += 1;
+                  break;
+                }
+              }
+            }
+            return count;
+          }),
+        );
+
+      const searchLexicon = (query: string, limit: number) => {
+        const like = `%${query}%`;
+        return sql<LexiconRow>`
+          SELECT code, language, lemma, transliteration, definition
+          FROM strongs_lexicon
+          WHERE lemma LIKE ${like} COLLATE NOCASE
+             OR transliteration LIKE ${like} COLLATE NOCASE
+             OR definition LIKE ${like} COLLATE NOCASE
+          ORDER BY code
+          LIMIT ${limit}
+        `.pipe(
+          Effect.map((rows) =>
+            rows.map((row) => ({
+              code: row.code,
+              language: row.language === 'hebrew' ? ('hebrew' as const) : ('greek' as const),
+              lemma: row.lemma,
+              transliteration: row.transliteration,
+              definition: row.definition,
+            })),
+          ),
+        );
+      };
+
       const isImported = () =>
         Effect.gen(function* () {
           const verseCount = yield* sql<{ n: number }>`SELECT COUNT(*) AS n FROM kjv_verses`;
@@ -418,6 +536,9 @@ export class KjvBibleDatabase extends Context.Service<KjvBibleDatabase, KjvBible
         getChapter,
         getChapterStrongs,
         strongsLookup,
+        searchVersesByStrongs,
+        countStrongsOccurrences,
+        searchLexicon,
         isImported,
         resetTables,
       });

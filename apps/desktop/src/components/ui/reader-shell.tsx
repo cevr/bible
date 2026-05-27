@@ -9,18 +9,15 @@ import {
 } from 'solid-js';
 import { ReaderPanel } from './reader-panel.js';
 
-// Shared visual chrome for the right-side drawers (Bible reader, EGW commentary,
-// EGW reader study-side). Pulled out so the two scripture-adjacent drawers
-// (`BibleDrawer` and `BibleCommentaryDrawer`) render with identical spacing,
-// border treatment, button affordances, and tab strip metrics. Consumers wire
-// their own state machines and content; the shell only owns layout.
+// Shared visual chrome for the right-side study drawer. Pulled out so the
+// drawer renders with consistent spacing, border treatment, button affordances,
+// and tab strip metrics. Consumers wire their own state machines and content;
+// the shell only owns layout.
 //
 // Composition (compound components): `<ReaderShell.Frame>` mounts the Drawer,
 // and the named slots compose inside it without prop-drilling. A
 // `ReaderShellProvider` lets nested children fish out shared state via
-// `useReaderShell()` — generic over the consumer's state/actions/meta shape
-// so the same shell serves both the verbose `BibleDrawerState` and the much
-// thinner `BibleCommentaryDrawer` load machine.
+// `useReaderShell()` — generic over the consumer's state/actions/meta shape.
 
 // ─── Generic context ───────────────────────────────────────────────────────
 // `S` (state) carries reactive accessors; `A` (actions) carries mutators;

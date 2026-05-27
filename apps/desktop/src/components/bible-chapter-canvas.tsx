@@ -85,17 +85,12 @@ const preloadChapter = async (book: number, chapter: number): Promise<void> => {
 };
 
 export interface BibleChapterCanvasProps {
-  /** Open the EGW commentary sheet pinned to the given verse. Routed from
+  /** Open the study drawer's EGW tab pinned to the given verse. Routed from
    *  the footnote `e` marker on each verse with cached commentary. */
-  readonly onOpenCommentary?: (verse: number) => void;
-  /** Current open/closed state of the commentary drawer — drives the
-   *  in-reader Commentary toggle's pressed state. */
-  readonly commentaryOpen: boolean;
-  /** Toggle the commentary drawer from the in-reader header button. */
-  readonly onToggleCommentaryDrawer: () => void;
-  /** Open the right-side scripture drawer's Strong's tab pinned to a
-   *  specific (book, chapter, verse) and code. Used by the inline Strong's
-   *  overlay so a click on a superscript code drills into the lexicon. */
+  readonly onOpenCommentary: (book: number, chapter: number, verse: number) => void;
+  /** Open the study drawer's Words tab pinned to a specific (book, chapter,
+   *  verse) and Strong's code. Used by the inline Strong's overlay so a
+   *  click on a superscript code drills into the lexicon. */
   readonly onOpenStrongs: (book: number, chapter: number, verse: number, code: string) => void;
   /** Open the right-side scripture drawer's Notes tab pinned to a specific
    *  (book, chapter, verse). Used by the inline margin-note overlay. */
@@ -170,8 +165,6 @@ export const BibleChapterCanvas: Component<BibleChapterCanvasProps> = (props) =>
                 verse: Option.none<number>(),
               }))
             }
-            commentaryOpen={props.commentaryOpen}
-            onToggleCommentary={props.onToggleCommentaryDrawer}
             onOpenCommentary={props.onOpenCommentary}
             inlineStrongs={props.inlineStrongs()}
             inlineMarginNotes={props.inlineMarginNotes()}
@@ -189,9 +182,7 @@ export const BibleChapterCanvas: Component<BibleChapterCanvasProps> = (props) =>
 
 const ChapterShell: Component<{
   readonly selection: () => BibleReaderSelection;
-  readonly commentaryOpen: boolean;
-  readonly onToggleCommentary: () => void;
-  readonly onOpenCommentary?: (verse: number) => void;
+  readonly onOpenCommentary: (book: number, chapter: number, verse: number) => void;
   readonly inlineStrongs: boolean;
   readonly inlineMarginNotes: boolean;
   readonly inlineCommentary: boolean;
@@ -395,7 +386,7 @@ const ChapterShell: Component<{
   };
   const onCommentaryClick = (verse: number): void => {
     onVerseClick(verse);
-    props.onOpenCommentary?.(verse);
+    props.onOpenCommentary(book(), chapter(), verse);
   };
 
   const goTo = (loc: Loc | null): void => {
@@ -517,11 +508,7 @@ const ChapterShell: Component<{
           <Show when={readyChapter()} keyed>
             {(c) => (
               <div class="mx-auto max-w-[var(--reader-width,68ch)] px-6 py-10">
-                <ReaderHeader
-                  title={`${c.bookName} ${String(c.chapter)}`}
-                  commentaryOpen={props.commentaryOpen}
-                  onToggleCommentary={props.onToggleCommentary}
-                />
+                <ReaderHeader title={`${c.bookName} ${String(c.chapter)}`} />
                 <ChapterBody
                   chapter={c}
                   cursorVerse={cursorVerse()}
@@ -545,13 +532,7 @@ const ChapterShell: Component<{
           </Show>
         }
       >
-        <MissingChapter
-          book={book()}
-          chapter={chapter()}
-          title={title()}
-          commentaryOpen={props.commentaryOpen}
-          onToggleCommentary={props.onToggleCommentary}
-        />
+        <MissingChapter book={book()} chapter={chapter()} title={title()} />
       </Show>
     </>
   );
@@ -561,8 +542,6 @@ const MissingChapter: Component<{
   readonly book: number;
   readonly chapter: number;
   readonly title: string;
-  readonly commentaryOpen: boolean;
-  readonly onToggleCommentary: () => void;
 }> = (props) => {
   const [reimporting, setReimporting] = createSignal(false);
   const [reimportError, setReimportError] = createSignal<string | null>(null);
@@ -589,11 +568,7 @@ const MissingChapter: Component<{
 
   return (
     <div class="mx-auto max-w-[var(--reader-width,68ch)] px-6 py-10">
-      <ReaderHeader
-        title={props.title}
-        commentaryOpen={props.commentaryOpen}
-        onToggleCommentary={props.onToggleCommentary}
-      />
+      <ReaderHeader title={props.title} />
       <p class="mt-6 text-ui-sm text-fg">
         Chapter not found. The bundled KJV database may be incomplete — a previous import probably
         crashed mid-write.
@@ -619,37 +594,9 @@ const MissingChapter: Component<{
 
 const ReaderHeader: Component<{
   readonly title: string | null;
-  readonly commentaryOpen: boolean;
-  readonly onToggleCommentary: () => void;
 }> = (props) => (
   <Show when={props.title}>
-    {(t) => (
-      <div class="flex items-center justify-between gap-3">
-        <h1 class="m-0 text-ui-2xl font-semibold tracking-[-0.005em] text-fg">{t()}</h1>
-        <button
-          type="button"
-          class="inline-flex items-center gap-1.5 h-[calc(28px*var(--ui-scale))] px-3 rounded-md border border-rule bg-transparent text-fg text-ui-sm cursor-pointer transition-[background,border-color,color] duration-[0.12s] ease-in-out hover:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] hover:border-accent hover:outline-none focus-visible:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] focus-visible:border-accent focus-visible:outline-none data-active:bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)] data-active:border-accent"
-          data-active={props.commentaryOpen ? '' : undefined}
-          onClick={props.onToggleCommentary}
-          title="EGW commentary on current verse"
-          aria-label="Toggle EGW commentary"
-          aria-pressed={props.commentaryOpen}
-        >
-          <svg
-            viewBox="0 0 24 24"
-            width="14"
-            height="14"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.6"
-          >
-            <path d="M4 5h11v14H4z" />
-            <path d="M15 9h5v10h-5z" />
-          </svg>
-          <span>Commentary</span>
-        </button>
-      </div>
-    )}
+    {(t) => <h1 class="m-0 text-ui-2xl font-semibold tracking-[-0.005em] text-fg">{t()}</h1>}
   </Show>
 );
 

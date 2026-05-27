@@ -110,6 +110,19 @@ const api = {
     // Strong's tab when the user clicks a superscript.
     strongsLookup: (code: string): Promise<StrongsLexiconPayload | null> =>
       ipcRenderer.invoke('bible:strongsLookup', code),
+    // Concordance lookup — every verse tagged with `code`, capped server-side
+    // so high-frequency codes don't blow up the IPC payload. Pair with
+    // `countStrongsHits` if the UI needs to show the true total alongside the
+    // truncated list.
+    searchVersesByStrongs: (code: string): Promise<readonly ConcordanceHitPayload[]> =>
+      ipcRenderer.invoke('bible:searchVersesByStrongs', code),
+    // Distinct-verse count for `code`, independent of the capped hit list.
+    countStrongsHits: (code: string): Promise<number> =>
+      ipcRenderer.invoke('bible:countStrongsHits', code),
+    // Lexicon substring search across lemma / transliteration / definition.
+    // Capped server-side; the UI uses this when the query isn't an H/G code.
+    searchLexicon: (query: string): Promise<readonly StrongsLexiconPayload[]> =>
+      ipcRenderer.invoke('bible:searchLexicon', query),
     // Cross references for a single verse, drawn from the bundled openbible /
     // TSKE catalogs. Returns [] when the verse has no entries in either
     // catalog (common — coverage is uneven, especially for narrative books).
@@ -202,6 +215,17 @@ export type StrongsLexiconPayload = {
   readonly lemma: string;
   readonly transliteration: string;
   readonly definition: string;
+};
+
+/** One concordance hit exposed by `api.bible.searchVersesByStrongs`. Shape
+ * must match `RendererConcordanceHit` in electron/main.ts. */
+export type ConcordanceHitPayload = {
+  readonly book: number;
+  readonly bookName: string;
+  readonly chapter: number;
+  readonly verse: number;
+  readonly text: string;
+  readonly word: string;
 };
 
 /** One cross-ref row as exposed by `api.bible.getCrossRefs`. Shape must match

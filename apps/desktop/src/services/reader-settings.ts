@@ -15,22 +15,21 @@ export const ReaderFontScale = Schema.Literals(['sm', 'base', 'lg', 'xl', '2xl',
 export type ReaderFontScale = typeof ReaderFontScale.Type;
 
 /** Top-level reader mode. `egw` = EGW books are the main canvas (Bible drawer
- *  on the right); `bible` = Bible chapters are the main canvas (EGW commentary
- *  drawer on the right). Persisted across launches. */
+ *  on the right); `bible` = Bible chapters are the main canvas. Persisted
+ *  across launches. */
 export const ReaderMode = Schema.Literals(['egw', 'bible']);
 export type ReaderMode = typeof ReaderMode.Type;
+
+/** Active tab in the right-side study drawer. Restored on launch so the user
+ *  lands on whichever surface they were last studying with. */
+export const BibleStudyTab = Schema.Literals(['notes', 'xrefs', 'words', 'egw']);
+export type BibleStudyTab = typeof BibleStudyTab.Type;
 
 const WIDTH_MIN = 40;
 const WIDTH_MAX = 120;
 const BIBLE_DRAWER_WIDTH_MIN = 320;
 const BIBLE_DRAWER_WIDTH_MAX = 720;
 const BIBLE_DRAWER_WIDTH_DEFAULT = 420;
-// Expanded (study-pane visible) width. Wider band so the chapter + tabbed
-// study pane both have breathing room; bounded above so the drawer never
-// eats the whole window on a small display.
-const BIBLE_DRAWER_WIDE_WIDTH_MIN = 600;
-const BIBLE_DRAWER_WIDE_WIDTH_MAX = 1400;
-const BIBLE_DRAWER_WIDE_WIDTH_DEFAULT = 960;
 // Line-height interpretation switches on magnitude (CSS convention):
 //   [0, 2]  → unitless multiplier (relative to font-size)
 //   (2, _]  → px value (absolute)
@@ -72,22 +71,9 @@ export const ReaderSettingsState = Schema.Struct({
       Schema.isBetween({ minimum: BIBLE_DRAWER_WIDTH_MIN, maximum: BIBLE_DRAWER_WIDTH_MAX }),
     ),
   ),
-  /** Width of the Bible drawer in expanded (study-pane visible) mode. Tracked
-   *  separately from `bibleDrawerWidth` so toggling expand/collapse restores
-   *  the user's last preferred width for each mode. */
-  bibleDrawerWideWidth: Schema.optional(
-    Schema.Number.check(
-      Schema.isBetween({
-        minimum: BIBLE_DRAWER_WIDE_WIDTH_MIN,
-        maximum: BIBLE_DRAWER_WIDE_WIDTH_MAX,
-      }),
-    ),
-  ),
-  /** Show Strong's numbers in the Bible drawer when reading the KJV. */
-  bibleDrawerStrongs: Schema.optional(Schema.Boolean),
-  /** Whether the right-side EGW commentary sheet is open in Bible mode.
-   *  Restored on launch so a user who left it open finds it open again. */
-  bibleCommentaryOpen: Schema.optional(Schema.Boolean),
+  /** Last-used tab in the right-side study drawer. Restored on launch so the
+   *  user lands on the same surface they were last studying with. */
+  bibleStudyTab: Schema.optional(BibleStudyTab),
   /** Last-used reader mode. Restored on launch so the user lands in the same
    *  mode they left in. */
   readerMode: Schema.optional(ReaderMode),
@@ -123,7 +109,6 @@ const clampLineHeight = clamp(LINE_HEIGHT_MIN, LINE_HEIGHT_MAX);
 const clampLetterSpacing = clamp(LETTER_SPACING_MIN, LETTER_SPACING_MAX);
 const clampPercent = clamp(0, 1);
 const clampBibleDrawerWidth = clamp(BIBLE_DRAWER_WIDTH_MIN, BIBLE_DRAWER_WIDTH_MAX);
-const clampBibleDrawerWideWidth = clamp(BIBLE_DRAWER_WIDE_WIDTH_MIN, BIBLE_DRAWER_WIDE_WIDTH_MAX);
 
 export const BIBLE_DRAWER_WIDTH_BOUNDS = {
   min: BIBLE_DRAWER_WIDTH_MIN,
@@ -131,14 +116,48 @@ export const BIBLE_DRAWER_WIDTH_BOUNDS = {
   default: BIBLE_DRAWER_WIDTH_DEFAULT,
 } as const;
 
-export const BIBLE_DRAWER_WIDE_WIDTH_BOUNDS = {
-  min: BIBLE_DRAWER_WIDE_WIDTH_MIN,
-  max: BIBLE_DRAWER_WIDE_WIDTH_MAX,
-  default: BIBLE_DRAWER_WIDE_WIDTH_DEFAULT,
-} as const;
-
 const decodeSettings = Schema.decodeUnknownEffect(Schema.fromJsonString(ReaderSettingsState));
 const encodeSettings = Schema.encodeEffect(Schema.fromJsonString(ReaderSettingsState));
+
+// Keys that lived on `ReaderSettingsState` in earlier builds and are now gone.
+// Effect Schema strips unknown keys silently on decode, so a user upgrading
+// from the old build would never know their stale state was discarded. We
+// strip them explicitly *before* decode, then log once so the migration is
+// visible in dev tools / log capture.
+const STALE_SETTINGS_KEYS = [
+  'bibleDrawerStrongs',
+  'bibleCommentaryOpen',
+  'bibleDrawerWideWidth',
+] as const;
+
+interface MigratedSettings {
+  readonly cleaned: string;
+  readonly dropped: ReadonlyArray<string>;
+}
+
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  value !== null && typeof value === 'object' && !Array.isArray(value);
+
+const migrateStaleKeys = (raw: string): MigratedSettings => {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return { cleaned: raw, dropped: [] };
+  }
+  if (!isPlainObject(parsed)) {
+    return { cleaned: raw, dropped: [] };
+  }
+  const dropped: string[] = [];
+  for (const key of STALE_SETTINGS_KEYS) {
+    if (key in parsed) {
+      delete parsed[key];
+      dropped.push(key);
+    }
+  }
+  if (dropped.length === 0) return { cleaned: raw, dropped: [] };
+  return { cleaned: JSON.stringify(parsed), dropped };
+};
 
 const pushRecent = (
   recents: ReadonlyArray<RecentDocument>,
@@ -183,9 +202,7 @@ export interface ReaderSettingsShape {
   readonly setProgressForPath: (path: string, fraction: number) => Effect.Effect<void>;
   readonly setDebugDumpSegments: (enabled: boolean) => Effect.Effect<void>;
   readonly setBibleDrawerWidth: (px: number) => Effect.Effect<void>;
-  readonly setBibleDrawerWideWidth: (px: number) => Effect.Effect<void>;
-  readonly setBibleDrawerStrongs: (enabled: boolean) => Effect.Effect<void>;
-  readonly setBibleCommentaryOpen: (open: boolean) => Effect.Effect<void>;
+  readonly setBibleStudyTab: (tab: BibleStudyTab) => Effect.Effect<void>;
   readonly setReaderMode: (mode: ReaderMode) => Effect.Effect<void>;
   readonly setInlineStrongs: (enabled: boolean) => Effect.Effect<void>;
   readonly setInlineCommentary: (enabled: boolean) => Effect.Effect<void>;
@@ -202,13 +219,28 @@ export class ReaderSettings extends Context.Service<ReaderSettings, ReaderSettin
       const storage = yield* SettingsStorage;
 
       const stored = yield* storage.read;
+      const migration = Option.isSome(stored)
+        ? migrateStaleKeys(stored.value)
+        : { cleaned: '', dropped: [] as ReadonlyArray<string> };
       const loaded = Option.isSome(stored)
-        ? yield* decodeSettings(stored.value).pipe(Effect.orElseSucceed(() => initial))
+        ? yield* decodeSettings(migration.cleaned).pipe(Effect.orElseSucceed(() => initial))
         : initial;
+      const migrationDropped = migration.dropped;
 
       const ref = yield* Ref.make<ReaderSettingsState>(loaded);
       const pending = yield* Ref.make<Option.Option<Fiber.Fiber<void>>>(Option.none());
       const layerScope = yield* Effect.scope;
+
+      if (migrationDropped.length > 0) {
+        yield* Effect.logInfo(
+          `[ReaderSettings] dropped stale keys: ${migrationDropped.join(', ')}`,
+        );
+        // Re-persist immediately so the migration doesn't replay on every
+        // launch. Bypasses the debounce since there's no incoming user input
+        // to coalesce with.
+        const json = yield* encodeSettings(loaded).pipe(Effect.orElseSucceed(() => ''));
+        if (json !== '') yield* storage.write(json);
+      }
 
       const schedulePersist = Effect.gen(function* () {
         const prev = yield* Ref.getAndSet(pending, Option.none<Fiber.Fiber<void>>());
@@ -250,10 +282,7 @@ export class ReaderSettings extends Context.Service<ReaderSettings, ReaderSettin
         setDebugDumpSegments: (enabled) => update((s) => ({ ...s, debugDumpSegments: enabled })),
         setBibleDrawerWidth: (px) =>
           update((s) => ({ ...s, bibleDrawerWidth: clampBibleDrawerWidth(px) })),
-        setBibleDrawerWideWidth: (px) =>
-          update((s) => ({ ...s, bibleDrawerWideWidth: clampBibleDrawerWideWidth(px) })),
-        setBibleDrawerStrongs: (enabled) => update((s) => ({ ...s, bibleDrawerStrongs: enabled })),
-        setBibleCommentaryOpen: (open) => update((s) => ({ ...s, bibleCommentaryOpen: open })),
+        setBibleStudyTab: (bibleStudyTab) => update((s) => ({ ...s, bibleStudyTab })),
         setReaderMode: (readerMode) => update((s) => ({ ...s, readerMode })),
         setInlineStrongs: (enabled) => update((s) => ({ ...s, inlineStrongs: enabled })),
         setInlineCommentary: (enabled) => update((s) => ({ ...s, inlineCommentary: enabled })),
@@ -299,11 +328,7 @@ export class ReaderSettings extends Context.Service<ReaderSettings, ReaderSettin
           setDebugDumpSegments: (enabled) => update((s) => ({ ...s, debugDumpSegments: enabled })),
           setBibleDrawerWidth: (px) =>
             update((s) => ({ ...s, bibleDrawerWidth: clampBibleDrawerWidth(px) })),
-          setBibleDrawerWideWidth: (px) =>
-            update((s) => ({ ...s, bibleDrawerWideWidth: clampBibleDrawerWideWidth(px) })),
-          setBibleDrawerStrongs: (enabled) =>
-            update((s) => ({ ...s, bibleDrawerStrongs: enabled })),
-          setBibleCommentaryOpen: (open) => update((s) => ({ ...s, bibleCommentaryOpen: open })),
+          setBibleStudyTab: (bibleStudyTab) => update((s) => ({ ...s, bibleStudyTab })),
           setReaderMode: (readerMode) => update((s) => ({ ...s, readerMode })),
           setInlineStrongs: (enabled) => update((s) => ({ ...s, inlineStrongs: enabled })),
           setInlineCommentary: (enabled) => update((s) => ({ ...s, inlineCommentary: enabled })),
