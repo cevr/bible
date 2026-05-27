@@ -51,11 +51,11 @@ function shouldRenderCard(verse: typeof chapter.verses[number]): boolean {
   title={`${chapter.title} — ${meta.title}`}
   description={`Verse-by-verse audit of ${chapter.title}.`}
   seriesSlug={meta.slug}
-  currentNav="audit"
+  currentNav="verse-by-verse"
 >
   <main class="shell">
     <header class="masthead">
-      <p class="eyebrow">{meta.eyebrow} · Audit</p>
+      <p class="eyebrow">{meta.eyebrow} · Verse by Verse</p>
       <h1>{chapter.title}</h1>
       {chapter.intro && (
         <div class="chapter-intro" set:html={md(chapter.intro)} />

@@ -32,10 +32,6 @@ const SOURCE_PATH = resolve(
   REPO_ROOT,
   'packages/cli/outputs/studies/daniel-revelation/v3-the-sure-word/reference/bohr-vs-millers-rules.md',
 );
-const SUMMARY_SOURCE_PATH = resolve(
-  REPO_ROOT,
-  'packages/cli/outputs/studies/daniel-revelation/v3-the-sure-word/reference/bohr-vs-millers-rules-summary.md',
-);
 const OUT_ROOT = resolve(APP_ROOT, 'content/series/bohr-vs-millers-rules');
 
 // ---------- helpers ----------
@@ -499,9 +495,6 @@ function main(): void {
     },
   };
   writeFileSync(join(OUT_ROOT, 'meta.json'), JSON.stringify(meta, null, 2));
-
-  const summaryMd = readFileSync(SUMMARY_SOURCE_PATH, 'utf8');
-  writeFileSync(join(OUT_ROOT, 'summary.md'), summaryMd);
 
   // Validation report.
   const totalVerses = index.reduce((acc, e) => acc + e.verseCount, 0);

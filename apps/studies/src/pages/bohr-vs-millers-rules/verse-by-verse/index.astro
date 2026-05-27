@@ -14,19 +14,15 @@ const ordered = order
 ---
 
 <Site
-  title={`Audit — ${meta.title}`}
+  title={`Verse by Verse — ${meta.title}`}
   description="Per-chapter verse-by-verse audit index."
   seriesSlug={meta.slug}
-  currentNav="audit"
+  currentNav="verse-by-verse"
 >
   <main class="shell">
     <header class="masthead">
-      <p class="eyebrow">{meta.eyebrow} · Audit</p>
-      <h1>Verse-by-verse <em>audit</em></h1>
-      <p class="lede">
-        {chapters.length} chapters · {ordered.reduce((a, c) => a + c.verseCount, 0)} verses ·
-        {ordered.reduce((a, c) => a + c.violations, 0)} with bulleted Miller-rule violations.
-      </p>
+      <p class="eyebrow">{meta.eyebrow} · Verse by Verse</p>
+      <h1>Verse by <em>verse</em></h1>
     </header>
 
     <ol class="chapter-list">

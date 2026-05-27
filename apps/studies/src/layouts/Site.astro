@@ -4,7 +4,7 @@ import "../styles/global.css";
 interface Props {
   title: string;
   description?: string;
-  currentNav?: "studies" | "audit" | "summary";
+  currentNav?: "studies" | "verse-by-verse";
   seriesSlug?: string;
 }
 
@@ -47,15 +47,9 @@ const seriesBase = seriesSlug ? `/${seriesSlug}/` : "/";
             </li>
             <li>
               <a
-                href={`${seriesBase}summary/`}
-                aria-current={currentNav === "summary" ? "page" : undefined}
-              >Summary</a>
-            </li>
-            <li>
-              <a
-                href={`${seriesBase}audit/`}
-                aria-current={currentNav === "audit" ? "page" : undefined}
-              >Audit</a>
+                href={`${seriesBase}verse-by-verse/`}
+                aria-current={currentNav === "verse-by-verse" ? "page" : undefined}
+              >Verse by Verse</a>
             </li>
           </ul>
         )}
