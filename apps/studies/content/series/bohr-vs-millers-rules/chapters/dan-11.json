@@ -13,10 +13,13 @@
         "citation": "DAR 222.1-3",
         "html": "Smith heads the chapter **\"Chapter 11 — A Literal Prophecy\"** and treats vv. 1-2 as one block. \"We now enter upon a prophecy of future events, clothed not in figures and symbols, as in the visions of chapters 2, 7, and 8, but given mostly in plain language\" (DAR 222.2). \"The angel, after stating that he stood, in the first year of Darius, to confirm and strengthen him, turns his attention to the future\" (DAR 222.3). The verse is a frame-setting statement: the angel (Gabriel — carried forward from Dan 10) recalls his prior aid to Darius the Mede and pivots to the future. Smith cites Bishop Newton that this chapter is \"a comment and explanation of the vision of chapter 8\" (DAR 222.2)."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_, p. 15",
-        "html": "Dan 11 = expansion of Dan 8-9; starts with Persia because Persia is when the 2300-day prophecy originates. Verbatim: \"Daniel 9 and 11 bear the same date—the first year of Darius—indicating that Daniel 11 is a further explanation and expansion of Daniel 8 and 9. Both prophecies begin with Persia and not Babylon because the 2300 days begin during the period of Persia\" (p. 15)."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_, p. 15",
+          "html": "Dan 11 = expansion of Dan 8-9; starts with Persia because Persia is when the 2300-day prophecy originates. Verbatim: \"Daniel 9 and 11 bear the same date—the first year of Darius—indicating that Daniel 11 is a further explanation and expansion of Daniel 8 and 9. Both prophecies begin with Persia and not Babylon because the 2300 days begin during the period of Persia\" (p. 15)."
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -37,10 +40,13 @@
         "citation": "DAR 222.3-4",
         "html": "\"Three kings shall yet stand up in Persia. To stand up means to reign; three kings were to reign in Persia, referring, doubtless, to the immediate successors of Cyrus. These were, (1) Cambyses, son of Cyrus; (2) Smerdis, an impostor; (3) Darius Hystaspes\" (DAR 222.3). \"The fourth king from Cyrus was **Xerxes**, more famous for his riches than his generalship, and conspicuous in history for the magnificent campaign he organized against Grecia, and his utter failure in that enterprise. He was to stir up all against the realm of Grecia. Never before had there been such a levy of men for warlike purposes; never has there been since. His army, according to **Herodotus**, who lived in that age, consisted of five million two hundred and eighty-three thousand two hundred and twenty men (5,283,220)\" (DAR 222.4). Smith adds the Carthaginian levy of 300,000 raising Xerxes's total force to over five and a half million."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_, pp. 15-16",
-        "html": "The fourth king = **Artaxerxes** (not Xerxes). Verbatim: \"In Daniel 9, the king that gave the decree to build and restore Jerusalem was Artaxerxes and the fourth king in Daniel 11:2 is the same Artaxerxes (see below). Thus, there is a connection between Daniel 11:2 and the prophecy of the 70 weeks in Daniel 9.... Gabriel told Daniel the very king that would give the decree that began the 2300-day prophecy. Gabriel mentioned the first three kings only because he wanted to give a historical reference point for when the fourth would appear. The first three kings in Persia after Cyrus (Daniel 8:3, 4, 20) were Cambyses, Darius, Ahasuerus and the fourth was King Artaxerxes\" (pp. 15-16). Bohr cites Doukhan, _Daniel: The Vision of the End_, p. 77 in support (p. 16)."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_, pp. 15-16",
+          "html": "The fourth king = **Artaxerxes** (not Xerxes). Verbatim: \"In Daniel 9, the king that gave the decree to build and restore Jerusalem was Artaxerxes and the fourth king in Daniel 11:2 is the same Artaxerxes (see below). Thus, there is a connection between Daniel 11:2 and the prophecy of the 70 weeks in Daniel 9.... Gabriel told Daniel the very king that would give the decree that began the 2300-day prophecy. Gabriel mentioned the first three kings only because he wanted to give a historical reference point for when the fourth would appear. The first three kings in Persia after Cyrus (Daniel 8:3, 4, 20) were Cambyses, Darius, Ahasuerus and the fourth was King Artaxerxes\" (pp. 15-16). Bohr cites Doukhan, _Daniel: The Vision of the End_, p. 77 in support (p. 16)."
+        }
+      ],
       "warrant": null,
       "violations": {
         "scope": "verse",
@@ -84,10 +90,13 @@
         "citation": "DAR 223.1-2",
         "html": "\"The facts stated in these verses plainly point to **Alexander**, and the division of his empire. (See on chapter 8:8.) Xerxes was the last Persian king who invaded Grecia; and the prophecy therefore passes over the nine successors of Xerxes in the Persian empire, and next introduces Alexander the Great\" (DAR 223.2). Smith cites Prideaux: Alexander \"became absolute monarch of that empire, to the fullest extent it was ever possessed by any of the Persian kings\" (DAR 223.2, citing Prideaux Vol. I, p. 378). \"He did according to his will. His will led him, B. C. 323, into a drunken debauch, as the result of which he died as the fool dieth\" (DAR 223.2)."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_, p. 16",
-        "html": "Alexander the Great. Verbatim structural outline: \"Daniel 11:3 Alexander the Great (Daniel 8:5, 8)\" (p. 16). Agrees with DAR. No verse-level exegesis."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_, p. 16",
+          "html": "Alexander the Great. Verbatim structural outline: \"Daniel 11:3 Alexander the Great (Daniel 8:5, 8)\" (p. 16). Agrees with DAR. No verse-level exegesis."
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -113,10 +122,13 @@
         "citation": "DAR 223.2",
         "html": "\"The kingdom was divided, but not for his posterity; it was plucked up for others besides those. Within **fifteen years** after his death, all his posterity had fallen victims to the jealousy and ambition of his leading generals. Not one of the race of Alexander was left to breathe upon the earth.... The kingdom was rent into four divisions, and taken possession of by Alexander's four ablest, or perhaps most ambitious and unprincipled generals, — **Cassander, Lysimachus, Seleucus, and Ptolemy**\" (DAR 223.2)."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_, p. 16",
-        "html": "The fourfold division. Verbatim structural outline: \"Daniel 11:4: The fourfold division of Alexander's Greek empire (Daniel 8:4)\" (p. 16). Agrees with DAR. No verse-level exegesis."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_, p. 16",
+          "html": "The fourfold division. Verbatim structural outline: \"Daniel 11:4: The fourfold division of Alexander's Greek empire (Daniel 8:4)\" (p. 16). Agrees with DAR. No verse-level exegesis."
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -142,10 +154,13 @@
         "citation": "DAR 224.1-225.2",
         "html": "Smith establishes here the geographic principle that governs the rest of the chapter: \"these divisions of course to be reckoned from the standpoint of Palestine, the native land of the prophet... whatever power at any time should occupy the territory which at first constituted the kingdom of the north, that power, so long as it occupied that territory, would be the king of the north\" (DAR 224.2-3). On v.5 specifically: \"The king of the south, **Egypt**, shall be strong. **Ptolemy** annexed Cyprus, Phoenicia, Caria, Cyrene, and many islands and cities to Egypt. Thus was his kingdom made strong. But another of Alexander's princes is introduced in the expression, 'one of his princes'... This must refer to **Seleucus**, who, as already stated, having annexed Macedon and Thrace to Syria, thus became possessor of three parts out of four of Alexander's dominion, and established a more powerful kingdom than that of Egypt\" (DAR 225.2). Smith cites the Septuagint reading: \"one of his [Alexander's] princes shall be strong above him\" (DAR 225.2)."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_, p. 16, 94",
-        "html": "Verse 5 is covered as part of the block \"Daniel 11:5-15: The struggle of Syria and Egypt (kings of the north and south)\" (p. 16, structural outline). Verbatim: \"the king of the north (the Seleucids) and south (Egypt) in Daniel 11:5-14 are literal and local while the kings of the north and the south are symbolic in Daniel 11:40\" (p. 94). No per-verse exegesis offered."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_, p. 16, 94",
+          "html": "Verse 5 is covered as part of the block \"Daniel 11:5-15: The struggle of Syria and Egypt (kings of the north and south)\" (p. 16, structural outline). Verbatim: \"the king of the north (the Seleucids) and south (Egypt) in Daniel 11:5-14 are literal and local while the kings of the north and the south are symbolic in Daniel 11:40\" (p. 94). No per-verse exegesis offered."
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -166,10 +181,13 @@
         "citation": "DAR 225.3-226.3",
         "html": "\"There were frequent wars between the kings of Egypt and Syria. Especially was this the case with **Ptolemy Philadelphus**, the second king of Egypt, and **Antiochus Theos**, third king of Syria. They at length agreed to make peace upon condition that Antiochus Theos should put away his former wife, **Laodice**, and her two sons, and should marry **Berenice**, the daughter of Ptolemy Philadelphus\" (DAR 225.4). \"Antiochus brought back his former wife, Laodice, and her children, to court again... Laodice, being restored to favor and power, feared lest, in the fickleness of his temper, Antiochus should again disgrace her, and recall Berenice; and conceiving that nothing short of his death would be an effectual safeguard against such a contingency, she caused him to be poisoned shortly after... Laodice, not content with poisoning her husband, Antiochus, caused Berenice to be murdered\" (DAR 226.1-2). Berenice's Egyptian attendants (\"they that brought her\") and her son (\"he that begat her\" — Smith follows the marginal reading \"whom she brought forth\") were also slain by Laodice's orders (DAR 226.2)."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_",
-        "html": "No discrete verse-6 exegesis (no \"Comments on Verse 6\" section in the book); covered under the structural-block label \"Daniel 11:5-15: The struggle of Syria and Egypt (kings of the north and south)\" (p. 16) and the \"literal and local\" identification on p. 94."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_",
+          "html": "No discrete verse-6 exegesis (no \"Comments on Verse 6\" section in the book); covered under the structural-block label \"Daniel 11:5-15: The struggle of Syria and Egypt (kings of the north and south)\" (p. 16) and the \"literal and local\" identification on p. 94."
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -195,10 +213,13 @@
         "citation": "DAR 226.4-227.1",
         "html": "\"This branch out of the same root with Berenice was her brother, **Ptolemy Euergetes**. He had no sooner succeeded his father, Ptolemy Philadelphus, in the kingdom of Egypt, than, burning to avenge the death of his sister, Berenice, he raised an immense army, and invaded the territory of the king of the north, that is, of **Seleucus Callinicus**, who, with his mother, Laodice, reigned in Syria. And he prevailed against them, even to the conquering of Syria, Cilicia, the upper parts beyond the Euphrates, and almost all Asia\" (DAR 226.5). Smith cites Bishop Newton's compilation from Jerome, plus Appian, **Polybius**, Polyaenus, and Justin as ancient confirmations (DAR 227.1). From Polybius: Ptolemy \"took the city of **Seleucia**, which was kept for some years afterward by the garrisons of the kings of Egypt. Thus did he enter into the fortress of the king of the north\" (DAR 227.1)."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_",
-        "html": "No discrete verse-7 exegesis (no \"Comments on Verse 7\" section); covered under the literal-Seleucid/Ptolemy block label on pp. 16, 94."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_",
+          "html": "No discrete verse-7 exegesis (no \"Comments on Verse 7\" section); covered under the literal-Seleucid/Ptolemy block label on pp. 16, 94."
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -219,10 +240,13 @@
         "citation": "DAR 226.5, 227.1",
         "html": "Hearing of a sedition in Egypt, Ptolemy \"plundered the kingdom of Seleucus, took **forty thousand talents of silver and precious vessels, and two thousand five hundred images of the gods**. Among these were the images which **Cambyses** had formerly taken from Egypt and carried into Persia. The Egyptians, being wholly given to idolatry, bestowed upon Ptolemy the title of **Euergetes**, or the Benefactor, as a compliment for his having thus, after many years, restored their captive gods\" (DAR 226.5). On the longevity clause: \"He also continued more years than the king of the north; for Seleucus Callinicus died in exile, of a fall from his horse; and **Ptolemy Euergetes survived him for four or five years**\" (DAR 227.1)."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_",
-        "html": "No discrete verse-8 exegesis (no \"Comments on Verse 8\" section); covered under the literal-Seleucid/Ptolemy block label on pp. 16, 94. Bohr does cite Dan 11:8 incidentally for the proposition that \"Egypt was the kingdom south of Israel (see Daniel 11:5, 8)\" (p. 237) — treating v.8's \"Egypt\" as literal."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_",
+          "html": "No discrete verse-8 exegesis (no \"Comments on Verse 8\" section); covered under the literal-Seleucid/Ptolemy block label on pp. 16, 94. Bohr does cite Dan 11:8 incidentally for the proposition that \"Egypt was the kingdom south of Israel (see Daniel 11:5, 8)\" (p. 237) — treating v.8's \"Egypt\" as literal."
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -243,10 +267,13 @@
         "citation": "DAR 226.5, 227.1",
         "html": "Smith treats v.9 inside the v.7-9 block. From Justin (via Smith): \"if Ptolemy had not been recalled into Egypt by a domestic sedition, he would have possessed the whole kingdom of Seleucus. **The king of the south thus came into the dominion of the king of the north, and returned to his own land, as the prophet had foretold**\" (DAR 227.1)."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_",
-        "html": "No discrete verse-9 exegesis (no \"Comments on Verse 9\" section); covered under the literal-Seleucid/Ptolemy block label on pp. 16, 94."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_",
+          "html": "No discrete verse-9 exegesis (no \"Comments on Verse 9\" section); covered under the literal-Seleucid/Ptolemy block label on pp. 16, 94."
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -272,10 +299,13 @@
         "citation": "DAR 228.1-2",
         "html": "\"The sons of Seleucus Callinicus were **Seleucus Ceraunus** and **Antiochus Magnus**. These both entered with zeal upon the work of vindicating and avenging the cause of their father and their country. The elder of these, Seleucus, first took the throne... but being a weak and pusillanimous prince, both in body and estate, destitute of money, and unable to keep his army in obedience, he was poisoned by two of his generals after an inglorious reign of two or three years. His more capable brother, Antiochus Magnus, was thereupon proclaimed king, who, taking charge of the army, retook Seleucia and recovered Syria... A truce followed, wherein both sides treated for peace, yet prepared for war; after which Antiochus returned and overcame in battle Nicholaus, the Egyptian general, and had thoughts of invading Egypt itself. Here is the 'one' who should certainly overflow and pass through\" (DAR 228.2)."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_",
-        "html": "No discrete verse-10 exegesis (no \"Comments on Verse 10\" section); covered under the literal-Seleucid/Ptolemy block label on pp. 16, 94. Bohr cites Dan 11:10 once in a passing reference to _ma'oz_ (\"fortress\") in his v.38 word-study list (p. 89)."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_",
+          "html": "No discrete verse-10 exegesis (no \"Comments on Verse 10\" section); covered under the literal-Seleucid/Ptolemy block label on pp. 16, 94. Bohr cites Dan 11:10 once in a passing reference to _ma'oz_ (\"fortress\") in his v.38 word-study list (p. 89)."
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -301,10 +331,13 @@
         "citation": "DAR 228.3-4",
         "html": "\"**Ptolemy Philopater** succeeded his father, Euergetes, in the kingdom of Egypt, being advanced to the crown not long after Antiochus Magnus had succeeded his brother in the government of Syria. He was a most luxurious and vicious prince, but was at length roused at the prospect of an invasion of Egypt by Antiochus. He was indeed 'moved with choler'... The army of Antiochus, according to **Polybius**, amounted on this occasion to **sixty-two thousand foot, six thousand horse, and one hundred and two elephants**. In the battle, Antiochus was defeated, and his army, according to prophecy, was given into the hands of the king of the south. Ten thousand foot and three thousand horse were slain, and over four thousand men were taken prisoners; while of Ptolemy's army there were slain only seven hundred horse, and about twice that number of infantry\" (DAR 228.4)."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_",
-        "html": "No discrete verse-11 exegesis (no \"Comments on Verse 11\" section); covered under the literal-Seleucid/Ptolemy block label on pp. 16, 94."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_",
+          "html": "No discrete verse-11 exegesis (no \"Comments on Verse 11\" section); covered under the literal-Seleucid/Ptolemy block label on pp. 16, 94."
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -330,10 +363,13 @@
         "citation": "DAR 229.1-3",
         "html": "\"Ptolemy lacked the prudence to make a good use of his victory. Had he followed up his success, he would probably have become master of the whole kingdom of Antiochus; but content with making only a few menaces and a few threats, he made peace that he might be able to give himself up to the uninterrupted and uncontrolled indulgence of his brutish passions. Thus, having conquered his enemies, he was overcome by his vices, and, forgetful of the great name which he might have established, he spent his time in feasting and lewdness\" (DAR 229.2). Smith locates the \"not strengthened\" fulfillment chiefly in Ptolemy's transaction with the Jews: \"Coming to Jerusalem, he there offered sacrifices, and was very desirous of entering into the most holy place of the temple... [and] immediately commenced against them a terrible and relentless persecution. In Alexandria, where Jews had resided since the days of Alexander... **forty thousand**, according to Eusebius, **sixty thousand**, according to Jerome, were slain in this persecution. The rebellion of the Egyptians, and this massacre of the Jews, certainly were not calculated to strengthen him in his kingdom\" (DAR 229.3)."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_",
-        "html": "No discrete verse-12 exegesis (no \"Comments on Verse 12\" section); covered under the literal-Seleucid/Ptolemy block label on pp. 16, 94."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_",
+          "html": "No discrete verse-12 exegesis (no \"Comments on Verse 12\" section); covered under the literal-Seleucid/Ptolemy block label on pp. 16, 94."
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -359,10 +395,13 @@
         "citation": "DAR 230.1-2",
         "html": "\"The events predicted in this verse were to occur 'after certain years.' **The peace concluded between Ptolemy Philopater and Antiochus, lasted fourteen years.** Meanwhile Ptolemy died from intemperance and debauchery, and was succeeded by his son, **Ptolemy Epiphanes**, a child then four or five years old. Antiochus, during the same time, having suppressed rebellion in his kingdom, and reduced and settled the eastern parts in their obedience, was at leisure for any enterprise, when young Epiphanes came to the throne of Egypt; and thinking this too good an opportunity for enlarging his dominion to be let slip, he raised an immense army 'greater than the former'... and set out against Egypt, expecting to have an easy victory over the infant king\" (DAR 230.2)."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_",
-        "html": "No discrete verse-13 exegesis (no \"Comments on Verse 13\" section); covered under the literal-Seleucid/Ptolemy block label on pp. 16, 94."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_",
+          "html": "No discrete verse-13 exegesis (no \"Comments on Verse 13\" section); covered under the literal-Seleucid/Ptolemy block label on pp. 16, 94."
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -388,10 +427,13 @@
         "citation": "DAR 230.3-232.2",
         "html": "\"Antiochus was not the only one who rose up against the infant Ptolemy. Agathocles, his prime minister... was so dissolute and proud in the exercise of his power that the provinces which before were subject to Egypt rebelled... **Philip, king of Macedon, entered into a league with Antiochus to divide the dominions of Ptolemy between them**\" (DAR 230.4). The \"robbers of thy people\" Smith reads (with **Bishop Newton**) as \"the breakers of thy people\" — and identifies them as **Rome**: \"Far away on the banks of the Tiber, a kingdom had been nourishing itself with ambitious projects and dark designs... Henceforth the name of **Rome** stands upon the historic page\" (DAR 231.1). \"The Romans interfered in behalf of the young king of Egypt... This was **B. C. 200**, and was one of the first important interferences of the Romans in the affairs of Syria and Egypt\" (DAR 231.2). Smith cites Rollin's _Ancient History_ book 18 ch. 50 at length on the Roman intervention (DAR 231.3). On \"establish the vision\": \"The Romans being more prominently than any other people the subject of Daniel's prophecy, their first interference in the affairs of these kingdoms is here referred to as being the establishment, or demonstration, of the truth of the vision\" (DAR 232.1)."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_",
-        "html": "No discrete verse-14 exegesis (no \"Comments on Verse 14\" section); covered under the structural-block label \"Daniel 11:5-15: The struggle of Syria and Egypt (kings of the north and south)\" (p. 16) and the \"literal and local\" identification on p. 94 (\"the king of the north [the Seleucids] and south [Egypt] in Daniel 11:5-14 are literal and local\"). Bohr cites Dan 11:14 only once in passing, in a word-study list for _kashal_ (\"stumble/fall\"): \"Though it can refer to physical stumbling and falling as in persecution or battle (Daniel 11:14, 33, 34; ...)\" (p. 126). No interpretive comment on the verse itself."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_",
+          "html": "No discrete verse-14 exegesis (no \"Comments on Verse 14\" section); covered under the structural-block label \"Daniel 11:5-15: The struggle of Syria and Egypt (kings of the north and south)\" (p. 16) and the \"literal and local\" identification on p. 94 (\"the king of the north [the Seleucids] and south [Egypt] in Daniel 11:5-14 are literal and local\"). Bohr cites Dan 11:14 only once in passing, in a word-study list for _kashal_ (\"stumble/fall\"): \"Though it can refer to physical stumbling and falling as in persecution or battle (Daniel 11:14, 33, 34; ...)\" (p. 126). No interpretive comment on the verse itself."
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -417,10 +459,13 @@
         "citation": "DAR 232.3-233.3",
         "html": "\"The tuition of the young king of Egypt was entrusted by the Roman Senate to M. Emilius Lepidus, who appointed **Aristomenes**, an old and experienced minister of that court, his guardian... To this end he despatched **Scopas**, a famous general of AEtolia, then in the service of the Egyptians, into his native country to raise reinforcements for the army\" (DAR 233.1-2). \"Antiochus, desisting from his war with Attalus at the dictation of the Romans, took speedy steps for the recovery of Palestine and Coele-Syria from the hands of the Egyptians. Scopas was sent to oppose him. Near the sources of the Jordan, the two armies met. Scopas was defeated, pursued to **Sidon**, and there closely besieged... Scopas meeting, in the gaunt and intangible specter of famine, a foe with whom he was unable to cope, was forced to surrender on the dishonorable terms of life only; whereupon he and his ten thousand men were suffered to depart, stripped and naked. Here was the taking of the most fenced cities by the king of the north; for **Sidon was, both in its situation and its defenses, one of the strongest cities of those times**\" (DAR 233.3)."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_",
-        "html": "No discrete verse-15 exegesis (no \"Comments on Verse 15\" section). The structural outline on p. 16 places v.15 at the close of the literal block — \"Daniel 11:5-15: The struggle of Syria and Egypt (kings of the north and south)\" — but the \"Review of an Important Principle\" on p. 94 narrows the literal-and-local stretch to vv.5-14 (\"the king of the north [the Seleucids] and south [Egypt] in Daniel 11:5-14 are literal and local\"). The two statements leave v.15 unassigned in Bohr's own framework."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_",
+          "html": "No discrete verse-15 exegesis (no \"Comments on Verse 15\" section). The structural outline on p. 16 places v.15 at the close of the literal block — \"Daniel 11:5-15: The struggle of Syria and Egypt (kings of the north and south)\" — but the \"Review of an Important Principle\" on p. 94 narrows the literal-and-local stretch to vv.5-14 (\"the king of the north [the Seleucids] and south [Egypt] in Daniel 11:5-14 are literal and local\"). The two statements leave v.15 unassigned in Bohr's own framework."
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -446,10 +491,13 @@
         "citation": "DAR 233.4-235.1",
         "html": "\"Although Egypt could not stand before Antiochus, the king of the north, Antiochus could not stand before the Romans, who now came against him. No kingdoms were longer able to resist this rising power. **Syria was conquered, and added to the Roman empire, when Pompey, B. C. 65, deprived Antiochus Asiaticus of his possessions, and reduced Syria to a Roman province**\" (DAR 233.5). \"The same power was also to stand in the Holy Land, and consume it. Rome became connected with the people of God, the Jews, by alliance, **B. C. 161**, from which date it holds a prominent place in the prophetic calendar. It did not, however, acquire jurisdiction over Judea by actual conquest till **B. C. 63**\" (DAR 234.1). Smith narrates **Pompey's three-month siege of Jerusalem** at length, ending: \"twelve thousand persons were slain... Pompey demolished the walls of Jerusalem, transferred several cities from the jurisdiction of Judea to that of Syria, and imposed tribute on the Jews. Thus for the first time was Jerusalem placed by conquest in the hands of that power which was to hold the 'glorious land' in its iron grasp till it had utterly consumed it\" (DAR 234.3-235.1)."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_",
-        "html": "No discrete verse-16 exegesis (no \"Comments on Verse 16\" section); covered under the structural-block label \"Daniel 11:16-28: The Roman Empire (Daniel 8:9-10)\" (p. 16). Bohr does, however, address v.16's \"glorious land\" phrase explicitly in his Verse-41 commentary: \"Literally speaking the 'Glorious Land' (same expression as in verse 16) represents the geographical territory of Israel\" (p. 120) — committing v.16's referent to literal Palestine."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_",
+          "html": "No discrete verse-16 exegesis (no \"Comments on Verse 16\" section); covered under the structural-block label \"Daniel 11:16-28: The Roman Empire (Daniel 8:9-10)\" (p. 16). Bohr does, however, address v.16's \"glorious land\" phrase explicitly in his Verse-41 commentary: \"Literally speaking the 'Glorious Land' (same expression as in verse 16) represents the geographical territory of Israel\" (p. 120) — committing v.16's referent to literal Palestine."
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -470,10 +518,13 @@
         "citation": "DAR 235.2-238.2",
         "html": "Smith follows **Bishop Newton's** reading: \"He shall also set his face to enter by force the whole kingdom\" (DAR 235.3). \"Egypt was now all that remained of the 'whole kingdom' of Alexander, not brought into subjection to the Roman power\" (DAR 235.3). \"**Ptolemy Auletes** died **B. C. 51**. He left the crown and kingdom of Egypt to his eldest son and daughter, Ptolemy and **Cleopatra**... they were placed under the guardianship of the Romans. The Roman people accepted the charge, and appointed **Pompey** as guardian\" (DAR 235.4). After Pharsalia and Pompey's murder in Egypt, \"**Caesar** therefore assumed the appointment which had been given to Pompey\" (DAR 236.1). Smith narrates Caesar's Alexandrian War, his alliance with Cleopatra (Cleopatra smuggled to Caesar in a bundle of clothes by Appolodorus — DAR 236.3-237.1), and the decisive battle near the Nile, fixing the date: \"subdued Egypt to his power, **B. C. 47**\" (DAR 238.1). \"**The daughter of women, corrupting her.** The passion which Caesar had conceived for Cleopatra, by whom he had one son, is assigned by the historian as the sole reason of his undertaking so dangerous a campaign... 'But,' said the prophet, 'she shall not stand on his side, neither be for him.' Cleopatra afterward joined herself to Antony, the enemy of Augustus Caesar, and exerted her whole power against Rome\" (DAR 238.2). The \"upright ones\" Smith identifies as **the Jews** (DAR 238.1, citing Antipater the Idumean's 3000 Jews who opened the passes to Egypt)."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_",
-        "html": "No discrete verse-17 exegesis (no \"Comments on Verse 17\" section); covered under the structural-block label \"Daniel 11:16-28: The Roman Empire (Daniel 8:9-10)\" (p. 16). No phrase-by-phrase comment on \"daughter of women,\" \"upright ones,\" or \"corrupting her.\""
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_",
+          "html": "No discrete verse-17 exegesis (no \"Comments on Verse 17\" section); covered under the structural-block label \"Daniel 11:16-28: The Roman Empire (Daniel 8:9-10)\" (p. 16). No phrase-by-phrase comment on \"daughter of women,\" \"upright ones,\" or \"corrupting her.\""
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -494,10 +545,13 @@
         "citation": "DAR 238.3-4",
         "html": "\"War with **Pharnaces, king of the Cimmerian Bosporus**, at length drew him away from Egypt.\" Citing Prideaux: \"On his arrival where the enemy was, he, without giving any respite either to himself or them, immediately fell on, and gained an absolute victory over them; an account whereof he wrote to a friend of his in these three words: **_Veni, vidi, vici_**; I came, I saw, I conquered\" (DAR 238.4). On the latter half of v.18, Smith concedes interpretive uncertainty: \"The latter part of this verse is involved in some obscurity, and there is difference of opinion in regard to its application. Some apply it further back in Caesar's life, and think they find a fulfillment in his quarrel with Pompey. But preceding and subsequent events clearly defined in the prophecy, compel us to look for the fulfillment of this part of the prediction between the victory over Pharnaces, and Caesar's death at Rome... A more full history of this period might bring to light events which would render the application of this passage unembarrassed\" (DAR 238.4)."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_",
-        "html": "No discrete verse-18 exegesis (no \"Comments on Verse 18\" section); covered under the structural-block label \"Daniel 11:16-28: The Roman Empire (Daniel 8:9-10)\" (p. 16). No comment on \"isles of Chittim,\" the prince, or the reproach clauses."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_",
+          "html": "No discrete verse-18 exegesis (no \"Comments on Verse 18\" section); covered under the structural-block label \"Daniel 11:16-28: The Roman Empire (Daniel 8:9-10)\" (p. 16). No comment on \"isles of Chittim,\" the prince, or the reproach clauses."
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -523,10 +577,13 @@
         "citation": "DAR 239.1-2",
         "html": "\"After this conquest, Caesar defeated the last remaining fragments of Pompey's party, **Cato and Scipio in Africa, and Labienus and Varus in Spain**. Returning to Rome, the 'fort of his own land,' he was made perpetual dictator... The language implies that his overthrow would be sudden and unexpected, like a person accidentally stumbling in his walk. And so this man, who had fought and won **five hundred battles, taken one thousand cities, and slain one million one hundred and ninety-two thousand men**, fell, not in the din of battle and the hour of strife, but when he thought his pathway was smooth and strewn with flowers... taking his seat in the senate chamber, upon his throne of gold, to receive at the hands of that body the title of king, the dagger of treachery suddenly struck him to the heart. **Cassius, Brutus, and other conspirators** rushed upon him, and he fell, pierced with twenty-three wounds. Thus he suddenly stumbled and fell, and was not found, **B. C. 44**\" (DAR 239.2)."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_",
-        "html": "No discrete verse-19 exegesis (no \"Comments on Verse 19\" section); covered under the structural-block label \"Daniel 11:16-28: The Roman Empire (Daniel 8:9-10)\" (p. 16). No comment on \"fort of his own land\" or \"stumble and fall.\""
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_",
+          "html": "No discrete verse-19 exegesis (no \"Comments on Verse 19\" section); covered under the structural-block label \"Daniel 11:16-28: The Roman Empire (Daniel 8:9-10)\" (p. 16). No comment on \"fort of his own land\" or \"stumble and fall.\""
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -547,10 +604,13 @@
         "citation": "DAR 239.3-240.2",
         "html": "\"**Augustus Caesar** succeeded his uncle, Julius, by whom he had been adopted as his successor\" (DAR 239.4). \"He was emphatically a raiser of taxes. **Luke**, in speaking of the events that transpired at the time when Christ was born, says: 'And it came to pass in those days, that there went out a decree from Caesar Augustus, that all the world should be taxed.' **Luke 2:1**\" (DAR 239.5). Smith quotes the _St. Louis Globe Democrat_: \"Augustus Caesar was not the public benefactor he is represented. He was the most exacting tax collector the Roman world had up to that time ever seen\" (DAR 240.1). \"Rome reached in his days the pinnacle of its greatness and power. The 'Augustan Age'...\" \"**In his reign, the temple of Janus was for the third time shut since the foundation of Rome, signifying that all the world was at peace; and at this auspicious hour our Lord was born in Bethlehem of Judea.** In a little less than eighteen years after the taxing brought to view, seeming but a 'few days' to the distant gaze of the prophet, **Augustus died, not in anger nor in battle, but peacefully in his bed, at Nola**, whither he had gone to seek repose and health, **A. D. 14**, in the seventy-sixth year of his age\" (DAR 240.2)."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_",
-        "html": "No discrete verse-20 exegesis (no \"Comments on Verse 20\" section); covered under the structural-block label \"Daniel 11:16-28: The Roman Empire (Daniel 8:9-10)\" (p. 16). No comment on \"raiser of taxes\" or the Luke 2:1 cross-reference."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_",
+          "html": "No discrete verse-20 exegesis (no \"Comments on Verse 20\" section); covered under the structural-block label \"Daniel 11:16-28: The Roman Empire (Daniel 8:9-10)\" (p. 16). No comment on \"raiser of taxes\" or the Luke 2:1 cross-reference."
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -571,10 +631,13 @@
         "citation": "DAR 240.3-242.2",
         "html": "\"**Tiberius Caesar** next appeared after Augustus Caesar on the Roman throne... It is recorded that as Augustus was about to nominate his successor, his wife, **Livia**, besought him to nominate Tiberius (her son by a former husband); but the emperor said, '**Your son is too vile to wear the purple of Rome**'\" (DAR 240.4). The nomination first went to Agrippa; only after Agrippa's death did Augustus, weakened by age, accept Livia's renewed petition for \"that 'vile' young man. But the citizens never gave him the love, respect, and 'honor of the kingdom,' due to an upright and faithful sovereign\" (DAR 240.4). On the \"peaceable\" entry, Smith quotes the _Encyclopedia Americana_: Tiberius \"succeeded, without opposition, to the sovereignty of the empire; which, however, with his characteristic dissimulation, he affected to decline, until repeatedly solicited by the servile senate\" (DAR 241.2). On the \"vile\" character Smith again quotes the _Encyclopedia_ (citing **Tacitus**) on Tiberius's reign: Sejanus, Drusus, the Capreae retirement (A.D. 26), the destruction of Germanicus's family, and Seneca's report that Tiberius \"continued in a state of perpetual intoxication from the time he gave himself to drinking, to the last moment of his life\" (DAR 241.4-242.2)."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_, p. 55",
-        "html": "No discrete verse-21 exegesis (no \"Comments on Verse 21\" section); covered under the structural-block label \"Daniel 11:16-28: The Roman Empire (Daniel 8:9-10)\" (p. 16). Bohr cites v.21 incidentally in his v.32 word-study of _chalaq_ (\"flatteries\"), reading the \"vile person\" of v.21 as a parallel for the king-of-the-north's deceptive method rather than as a historical identification: \"Daniel 11:21 describes a vile person who obtains the kingdom by flatteries (see also verse 21) and verse 34 refers to those who join God's people with flatteries...\" (p. 55). No fulfillment-level identification offered (no Tiberius, no historical anchor)."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_, p. 55",
+          "html": "No discrete verse-21 exegesis (no \"Comments on Verse 21\" section); covered under the structural-block label \"Daniel 11:16-28: The Roman Empire (Daniel 8:9-10)\" (p. 16). Bohr cites v.21 incidentally in his v.32 word-study of _chalaq_ (\"flatteries\"), reading the \"vile person\" of v.21 as a parallel for the king-of-the-north's deceptive method rather than as a historical identification: \"Daniel 11:21 describes a vile person who obtains the kingdom by flatteries (see also verse 21) and verse 34 refers to those who join God's people with flatteries...\" (p. 55). No fulfillment-level identification offered (no Tiberius, no historical anchor)."
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -600,10 +663,13 @@
         "citation": "DAR 242.3-244.1",
         "html": "Smith follows **Bishop Newton's** reading: \"And the arms of the overflower shall be overflown from before him, and shall be broken\" (DAR 242.4) — i.e., Tiberius the overflower suffers a violent death. Smith cites the _Encyclopedia Americana_: \"Macro, the pretorian prefect, caused him to be suffocated with pillows. Thus expired the emperor Tiberius, in the seventy-eighth year of his age, and twenty-third of his reign, universally execrated\" (DAR 243.1). \"**The prince of the covenant**\" Smith identifies explicitly: \"unquestionably refers to **Jesus Christ**, 'the Messiah the Prince,' who was to 'confirm the covenant' one week with his people. **Daniel 9:25-27**. The prophet, having taken us down to the death of Tiberius, now mentions incidentally an event to transpire in his reign, so important that it should not be passed over; namely, the cutting off of the Prince of the covenant, or, in other words, the death of our Lord Jesus Christ\" (DAR 243.2). Smith works the chronology: **Luke 3:1-3** dates John the Baptist's ministry to Tiberius's 15th year; following Prideaux, Hales, and Lardner, Smith reckons Tiberius's reign from his joint elevation with Augustus in August A.D. 12, putting the 15th year August A.D. 26-27; Christ's baptism autumn **A.D. 27** (terminus of the 483 years from B.C. 457); the crucifixion at the fourth Passover **spring A.D. 31**; Tiberius dies **A.D. 37** (DAR 243.2)."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_",
-        "html": "No discrete verse-22 exegesis (no \"Comments on Verse 22\" section); covered under the structural-block label \"Daniel 11:16-28: The Roman Empire (Daniel 8:9-10)\" (p. 16). Bohr cites v.22 only once in passing, in a list of OT examples of the flood-metaphor for invading armies: \"For further examples, refer to Daniel 11:10, 22, 26; 9:26; Nahum 1:8 and Isaiah 43:2; Isaiah 17:12, 13\" (p. 113). No comment on \"prince of the covenant\" or the 70-weeks cross-anchor to Dan 9:25-27."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_",
+          "html": "No discrete verse-22 exegesis (no \"Comments on Verse 22\" section); covered under the structural-block label \"Daniel 11:16-28: The Roman Empire (Daniel 8:9-10)\" (p. 16). Bohr cites v.22 only once in passing, in a list of OT examples of the flood-metaphor for invading armies: \"For further examples, refer to Daniel 11:10, 22, 26; 9:26; Nahum 1:8 and Isaiah 43:2; Isaiah 17:12, 13\" (p. 113). No comment on \"prince of the covenant\" or the 70-weeks cross-anchor to Dan 9:25-27."
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -624,10 +690,13 @@
         "citation": "DAR 244.1-246.1",
         "html": "\"Having taken us down through the secular events of the empire to the end of the seventy weeks, the prophet, in verse 23, takes us back to the time when the Romans became directly connected with the people of God by **the Jewish league, B. C. 161**; from which point we are then taken down in a direct line of events to the final triumph of the church\" (DAR 245.1). \"The Jews, being grievously oppressed by the Syrian kings, sent an embassy to Rome, to solicit the aid of the Romans, and to join themselves in 'a league of amity and confederacy with them.' **1 Mac. 8**; Prideaux, II, 166; Josephus's Antiquities, book 12, chap. 10, sec. 6\" (DAR 245.1). Smith quotes the senate's decree in full from Josephus (DAR 245.2). \"At this time the Romans were a small people, and began to work deceitfully, or with cunning, as the word signifies. And from this point they rose by a steady and rapid ascent to the hight of power which they afterward attained\" (DAR 246.1)."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_",
-        "html": "No discrete verse-23 exegesis (no \"Comments on Verse 23\" section); covered under the structural-block label \"Daniel 11:16-28: The Roman Empire (Daniel 8:9-10)\" (p. 16). No comment on \"the league\" (Jewish-Roman treaty of B.C. 161, 1 Macc. 8) or the 70-week tie-in DAR develops."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_",
+          "html": "No discrete verse-23 exegesis (no \"Comments on Verse 23\" section); covered under the structural-block label \"Daniel 11:16-28: The Roman Empire (Daniel 8:9-10)\" (p. 16). No comment on \"the league\" (Jewish-Roman treaty of B.C. 161, 1 Macc. 8) or the 70-week tie-in DAR develops."
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -648,10 +717,13 @@
         "citation": "DAR 246.2-5",
         "html": "\"The usual manner in which nations had, before the days of Rome, entered upon valuable provinces and rich territory, was by war and conquest. Rome was now to do what had not been done by the fathers or the fathers' fathers; namely, **receive these acquisitions through peaceful means. The custom, before unheard of, was now inaugurated, of kings' leaving by legacy their kingdoms to the Romans**. Rome came into possession of large provinces in this manner\" (DAR 246.3). On the latter half: Smith follows **Bishop Newton's** rendering — \"forecasting devices **from** strongholds, instead of **against** them. This the Romans did from the strong fortress of their seven-hilled city\" (DAR 246.5). On \"even for a time\": \"doubtless a prophetic time, **360 years**. From what point are these years to be dated? Probably from the event brought to view in the following verse\" (DAR 246.5) — i.e., dated from Actium B.C. 31, terminating A.D. 330 (the removal of the capital to Constantinople — Smith argues this at DAR 249.1)."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_",
-        "html": "No discrete verse-24 exegesis (no \"Comments on Verse 24\" section); covered under the structural-block label \"Daniel 11:16-28: The Roman Empire (Daniel 8:9-10)\" (p. 16). No comment on \"even for a time\" / 360-year time-prophecy that DAR ties to Actium → A.D. 330."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_",
+          "html": "No discrete verse-24 exegesis (no \"Comments on Verse 24\" section); covered under the structural-block label \"Daniel 11:16-28: The Roman Empire (Daniel 8:9-10)\" (p. 16). No comment on \"even for a time\" / 360-year time-prophecy that DAR ties to Actium → A.D. 330."
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -677,10 +749,13 @@
         "citation": "DAR 246.6-249.1",
         "html": "\"The verse now before us brings to view a vigorous campaign against the king of the south, **Egypt**, and the occurrence of a notable battle between great and mighty armies... The war was the war between Egypt and Rome; and the battle was **the battle of Actium**\" (DAR 246.7-247). \"**Mark Antony, Augustus Caesar, and Lepidus** constituted the Triumvirate... Antony was sent into Egypt on government business, but fell a victim to the arts and charms of **Cleopatra**, Egypt's dissolute queen\" (DAR 247.1). Smith narrates Antony's fleet of **five hundred ships of war** with \"two hundred thousand foot, and twelve thousand horse,\" contributed kings from Libya, Cilicia, Cappadocia, Paphlagonia, Comagena, Thrace, with Pontus, Judea, Lycaonia, Galatia, Media sending troops (DAR 247.2). Caesar Augustus had half as many ships and only 80,000 foot but his were \"chosen men\" (DAR 248.1). \"**The battle was fought Sept. 2, B. C. 31**, at the mouth of the gulf of Ambracia, near the city of Actium\" (DAR 248.3). Cleopatra's flight with sixty ships drew Antony after her, yielding the victory to Caesar (DAR 248.3). Smith adds the time-prophecy anchor: \"This battle doubtless marks the commencement of the 'time' mentioned in verse 24... From B. C. 31, a prophetic time, or 360 years, would bring us to **A. D. 330**... the seat of empire was removed from Rome to Constantinople by Constantine the Great in that very year\" (DAR 249.1)."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_",
-        "html": "No discrete verse-25 exegesis (no \"Comments on Verse 25\" section); covered under the structural-block label \"Daniel 11:16-28: The Roman Empire (Daniel 8:9-10)\" (p. 16). No comment on Actium, Antony, or the dated B.C. 31 anchor."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_",
+          "html": "No discrete verse-25 exegesis (no \"Comments on Verse 25\" section); covered under the structural-block label \"Daniel 11:16-28: The Roman Empire (Daniel 8:9-10)\" (p. 16). No comment on Actium, Antony, or the dated B.C. 31 anchor."
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -706,10 +781,13 @@
         "citation": "DAR 249.2-3",
         "html": "\"The cause of Antony's overthrow was the desertion of his allies and friends, those that fed of the portion of his meat. First, **Cleopatra**, as already described, suddenly withdrew from the battle, taking sixty ships of the line with her. Secondly, the land army, disgusted with the infatuation of Antony, went over to Caesar, who received them with open arms. Thirdly, when Antony arrived at Libya, he found that the forces which he had there left under **Scarpus** to guard the frontier, had declared for Caesar. Fourthly, being followed by Caesar into Egypt, he was betrayed by Cleopatra, and his forces surrendered to Caesar. Hereupon, in rage and despair, he took his own life\" (DAR 249.3)."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_",
-        "html": "No discrete verse-26 exegesis (no \"Comments on Verse 26\" section); covered under the structural-block label \"Daniel 11:16-28: The Roman Empire (Daniel 8:9-10)\" (p. 16). Bohr cites v.26 only once in passing, in a list of OT examples of the flood-metaphor for invading armies: \"For further examples, refer to Daniel 11:10, 22, 26...\" (p. 113). No comment on \"they that feed of the portion of his meat\" or the betrayer identifications."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_",
+          "html": "No discrete verse-26 exegesis (no \"Comments on Verse 26\" section); covered under the structural-block label \"Daniel 11:16-28: The Roman Empire (Daniel 8:9-10)\" (p. 16). Bohr cites v.26 only once in passing, in a list of OT examples of the flood-metaphor for invading armies: \"For further examples, refer to Daniel 11:10, 22, 26...\" (p. 113). No comment on \"they that feed of the portion of his meat\" or the betrayer identifications."
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -735,10 +813,13 @@
         "citation": "DAR 249.4-250.1",
         "html": "Smith reads v.27 of the two former Triumvirs. \"Antony and Caesar were formerly in alliance. Yet under the garb of friendship, they were both aspiring and intriguing for universal dominion. Their protestations of deference to, and friendship for, each other, were the utterances of hypocrites. They spoke lies at one table. Octavia, the wife of Antony and sister of Caesar, declared to the people of Rome at the time Antony divorced her, that she had consented to marry him solely with the hope that it would prove a pledge of union between Caesar and Antony. But that counsel did not prosper. The rupture came; and in the conflict that ensued, Caesar came off entirely victorious\" (DAR 250.1)."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_",
-        "html": "No discrete verse-27 exegesis (no \"Comments on Verse 27\" section); covered under the structural-block label \"Daniel 11:16-28: The Roman Empire (Daniel 8:9-10)\" (p. 16). No comment on \"both these kings' hearts,\" \"lies at one table,\" or \"the time appointed.\""
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_",
+          "html": "No discrete verse-27 exegesis (no \"Comments on Verse 27\" section); covered under the structural-block label \"Daniel 11:16-28: The Roman Empire (Daniel 8:9-10)\" (p. 16). No comment on \"both these kings' hearts,\" \"lies at one table,\" or \"the time appointed.\""
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -764,10 +845,13 @@
         "citation": "DAR 250.2-252.2",
         "html": "\"Two returnings from foreign conquest are here brought to view; the first, after the events narrated in verses 26 and 27, and the second, after this power had had indignation against the holy covenant... The first was fulfilled in the return of Caesar after his expedition against Egypt and Antony. He returned to Rome with abundant honors and riches; for, says Prideaux (II, 380), 'At this time such vast riches were brought to Rome from Egypt on the reducing of that country... that the value of money fell one half, and the price of provisions and all vendible wares was doubled thereon'\" (DAR 250.3). \"The next great enterprise of the Romans after the overthrow of Egypt, was **the expedition against Judea, and the capture and destruction of Jerusalem**\" (DAR 250.4). Smith narrates Vespasian's invasion, Titus's siege, the famine fulfilling Moses's prophecy of women eating their children, the burning of the temple by a Roman soldier's brand, Titus rescuing the golden candlestick (later depicted on the arch of Titus): \"**Jerusalem fell in A. D. 70**\" (DAR 251.2). \"The siege of Jerusalem lasted five months. In that siege **eleven hundred thousand Jews perished**, and ninety-seven thousand were taken prisoners... The duration of the whole war was seven years, and one million four hundred and sixty-two thousand (1,462,000) persons are said to have fallen victims to its awful horrors\" (DAR 252.1). \"Thus this power performed great exploits, and again returned to his own land\" (DAR 252.2)."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_",
-        "html": "No discrete verse-28 exegesis (no \"Comments on Verse 28\" section); covered under the structural-block label \"Daniel 11:16-28: The Roman Empire (Daniel 8:9-10)\" (p. 16). No comment on the two returnings, the holy-covenant indignation, or the A.D. 70 destruction of Jerusalem."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_",
+          "html": "No discrete verse-28 exegesis (no \"Comments on Verse 28\" section); covered under the structural-block label \"Daniel 11:16-28: The Roman Empire (Daniel 8:9-10)\" (p. 16). No comment on the two returnings, the holy-covenant indignation, or the A.D. 70 destruction of Jerusalem."
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -788,10 +872,13 @@
         "citation": "DAR 252.3-5",
         "html": "Smith dates this verse by the 360-year time-prophecy of v.24 (started at Actium, B.C. 31). \"The time appointed is probably the prophetic time of verse 24, which has been previously mentioned. It closed, as already shown, in A. D. 330, at which time this power was to return and come again toward the south, but not as on the former occasion, when it went to Egypt, nor as the latter, when it went to Judea. Those were expeditions which resulted in conquest and glory. This one led to demoralization and ruin. The removal of the seat of empire to Constantinople was the signal for the downfall of the empire\" (DAR 252.4). Smith then traces Constantine's three sons (Constantius, Constantine II, Constans) and the barbarian incursions till \"the imperial power of the West expired in A. D. 476\" (DAR 252.4)."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_",
-        "html": "No discrete verse-29 exegesis (no \"Comments on Verse 29\" section); covered under the structural-block label \"Daniel 11:29-39: Papal Rome during the 1260 years (Daniel 8:11-12)\" (p. 16). No comment on \"the time appointed,\" \"toward the south,\" or the A.D. 330 capital transfer DAR uses to anchor the 360-year time-prophecy of v.24."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_",
+          "html": "No discrete verse-29 exegesis (no \"Comments on Verse 29\" section); covered under the structural-block label \"Daniel 11:29-39: Papal Rome during the 1260 years (Daniel 8:11-12)\" (p. 16). No comment on \"the time appointed,\" \"toward the south,\" or the A.D. 330 capital transfer DAR uses to anchor the 360-year time-prophecy of v.24."
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -817,10 +904,13 @@
         "citation": "DAR 253.1-254.2",
         "html": "Smith identifies Chittim via Dr. Adam Clarke (on Isaiah 23:1) and Kitto: \"the islands and coasts of the Mediterranean\" — Jerome's mention of Tyrians fleeing to Carthage focuses the location: \"the mind is carried by the testimony of Jerome to a definite and celebrated city situated in that land; that is Carthage\" (DAR 253.2). \"Was ever a naval warfare, with Carthage as a base of operations, waged against the Roman empire? We have but to think of the terrible onslaught of the Vandals upon Rome under the fierce Genseric, to answer readily in the affirmative. Sallying every spring from the port of Carthage at the head of his numerous and well-disciplined naval forces, he spread consternation through all the maritime provinces of the empire... The years A. D. 428-468 mark the career of Genseric\" (DAR 253.3). On \"indignation against the covenant\": \"the Holy Scriptures, the book of the covenant... The Heruli, Goths, and Vandals, who conquered Rome, embraced the Arian faith, and became enemies of the Catholic Church. It was especially for the purpose of exterminating this heresy that Justinian decreed the pope to be the head of the church and the corrector of heretics\" (DAR 254.2). \"The emperors of Rome, the eastern division of which still continued, had intelligence, or connived with the Church of Rome, which had forsaken the covenant, and constituted the great apostasy, for the purpose of putting down 'heresy.' The man of sin was raised to his presumptuous throne by the defeat of the Arian Goths, who then held possession of Rome, in A. D. 538\" (DAR 254.2)."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_",
-        "html": "No discrete verse-30 exegesis (no \"Comments on Verse 30\" section); covered under the structural-block label \"Daniel 11:29-39: Papal Rome during the 1260 years (Daniel 8:11-12)\" (p. 16). No comment on \"ships of Chittim,\" the Vandal fulfillment, or the \"indignation against the holy covenant\" clause — though Bohr's per-verse exposition does begin with v.31 (the \"Comments on Verse 31\" section), implicitly leaving v.30 as undefined preamble."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_",
+          "html": "No discrete verse-30 exegesis (no \"Comments on Verse 30\" section); covered under the structural-block label \"Daniel 11:29-39: Papal Rome during the 1260 years (Daniel 8:11-12)\" (p. 16). No comment on \"ships of Chittim,\" the Vandal fulfillment, or the \"indignation against the holy covenant\" clause — though Bohr's per-verse exposition does begin with v.31 (the \"Comments on Verse 31\" section), implicitly leaving v.30 as undefined preamble."
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -846,10 +936,13 @@
         "citation": "DAR 254.3-262.3",
         "html": "Smith walks the two clauses separately. (a) **\"Take away the daily\" = the removal of paganism, dated A.D. 508.** \"The 'daily' desolation was paganism, the 'abomination of desolation' is the papacy... so far as the church is concerned, both paganism and the papacy are abominations. But as distinguished from each other, the language is restricted, and one is the 'daily' desolation, and the other is pre-eminently the transgression or 'abomination' of desolation\" (DAR 255.1). Smith narrates Clovis's conversion (A.D. 496), the subjugation of the Arborici/Burgundians/Visigoths by 508, and Arthur's election as the first Christian king of Britain in 508 (DAR 255.3-256.2). \"From these evidences we think it clear that the daily, or paganism, was taken away in A. D. 508\" (DAR 259.1). (b) **\"Place the abomination = the setting up of papal supremacy, dated A.D. 538.** Smith dates the _decree_ to A.D. 533 (Justinian's letter to Pope John, naming him \"**THE HEAD OF ALL THE HOLY CHURCHES**\" — DAR 260.3) but the _enforcement_ to A.D. 538: \"the Italian war was commenced in 534... Belisarius entered Rome Dec. 10, 536... In the month of March, 538, dangers beginning to threaten them from other quarters, they raised the siege... Thus the Gothic horn, the last of the three, was plucked up before the little horn of Daniel 7... And this must therefore be taken as the year when this abomination was placed, or set up, and as the point from which to date the predicted 1260 years of its supremacy\" (DAR 261.2-262.3). On \"sanctuary of strength\" = Rome (DAR 254.4)."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_, pp. 25-47",
-        "html": "The verse describes the union of church and state by which the papacy took away the daily and set up the abomination of desolation. \"Arms\" = political/military power that aided the king of the north (paraphrase of p. 25). \"In the year 508 AD, Clovis, king of the Franks, was the first to give temporal power to the papacy. Thus, France was the first of the European nations to 'forsake paganism' and embrace the Catholic religion\" (p. 25). \"The 'daily'\" = Christ's continual priestly ministration, not the morning/evening sacrifice — \"the word 'sacrifice' was supplied by man's wisdom, and does not belong to the text\" (citing Early Writings, pp. 74-75, on p. 27). The little horn \"took away\" the daily not literally in heaven but spiritually by usurping Christ's mediatorial functions through the mass, the priesthood, and image worship (paraphrase of pp. 28-32). Bohr concludes the verse identifies the full 538-1798 period: \"the Roman Catholic papacy allied itself with the political states of Europe from 538-1798 to hide the work of Christ in the heavenly sanctuary and to trample upon God's people. Daniel 11:31 describes this period of Christian history\" (p. 45). The \"abomination of desolation\" has three dimensions (citing EGW): Roman standards (A.D. 70), papal Sunday/image-worship during the 1260 years, and an eschatological U.S. national Sunday law (pp. 46-49)."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_, pp. 25-47",
+          "html": "The verse describes the union of church and state by which the papacy took away the daily and set up the abomination of desolation. \"Arms\" = political/military power that aided the king of the north (paraphrase of p. 25). \"In the year 508 AD, Clovis, king of the Franks, was the first to give temporal power to the papacy. Thus, France was the first of the European nations to 'forsake paganism' and embrace the Catholic religion\" (p. 25). \"The 'daily'\" = Christ's continual priestly ministration, not the morning/evening sacrifice — \"the word 'sacrifice' was supplied by man's wisdom, and does not belong to the text\" (citing Early Writings, pp. 74-75, on p. 27). The little horn \"took away\" the daily not literally in heaven but spiritually by usurping Christ's mediatorial functions through the mass, the priesthood, and image worship (paraphrase of pp. 28-32). Bohr concludes the verse identifies the full 538-1798 period: \"the Roman Catholic papacy allied itself with the political states of Europe from 538-1798 to hide the work of Christ in the heavenly sanctuary and to trample upon God's people. Daniel 11:31 describes this period of Christian history\" (p. 45). The \"abomination of desolation\" has three dimensions (citing EGW): Roman standards (A.D. 70), papal Sunday/image-worship during the 1260 years, and an eschatological U.S. national Sunday law (pp. 46-49)."
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -875,10 +968,13 @@
         "citation": "DAR 262.4-263.1",
         "html": "\"Those that forsake the covenant, the holy Scriptures, and think more of the decrees of popes and the decisions of councils than they do of the word of God, — these shall he, the pope, corrupt by flatteries; that is, lead them on in their partisan zeal for himself by the bestowment of wealth, position, and honors\" (DAR 262.5). \"At the same time a people shall exist who know their God; and these shall be strong, and do exploits. These were those who kept pure religion alive in the earth during the dark ages of papal tyranny, and performed marvelous acts of self-sacrifice and religious heroism in behalf of their faith. Prominent among these stand the **Waldenses, Albigenses, Huguenots, etc.**\" (DAR 263.1)."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_, pp. 53-60",
-        "html": "\"Those who do wickedly against the covenant are the ones who lend arms to the king of the north\" (p. 53) — papacy + state corrupting one another. The Hebrew _chalaq_ (flatteries) \"denotes something that is slippery and smooth... the use of slithery deceit and treachery to gain an objective\" (p. 54). Bohr identifies the verse's actor as the papacy: \"the Roman Catholic papacy indeed offered the political powers of Europe stability in exchange for the throne (Revelation 13:2) and yet delivered poverty, ignorance, disease and suffering\" (p. 55). The \"people that know their God\" = covenant-keepers whose _yada_ \"denotes much more than knowing of God or about God theoretically. It involves knowing God with the heart\" (p. 56). Bohr argues \"exploits\" is a KJV insertion: \"the word 'exploits' is not found in the original text\" — the people \"know,\" \"are strong,\" and \"do\" the covenant stipulations (p. 59). Net: vv. 32-33 contrast the covenant-breaking papal-state alliance with the covenant-keeping remnant."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_, pp. 53-60",
+          "html": "\"Those who do wickedly against the covenant are the ones who lend arms to the king of the north\" (p. 53) — papacy + state corrupting one another. The Hebrew _chalaq_ (flatteries) \"denotes something that is slippery and smooth... the use of slithery deceit and treachery to gain an objective\" (p. 54). Bohr identifies the verse's actor as the papacy: \"the Roman Catholic papacy indeed offered the political powers of Europe stability in exchange for the throne (Revelation 13:2) and yet delivered poverty, ignorance, disease and suffering\" (p. 55). The \"people that know their God\" = covenant-keepers whose _yada_ \"denotes much more than knowing of God or about God theoretically. It involves knowing God with the heart\" (p. 56). Bohr argues \"exploits\" is a KJV insertion: \"the word 'exploits' is not found in the original text\" — the people \"know,\" \"are strong,\" and \"do\" the covenant stipulations (p. 59). Net: vv. 32-33 contrast the covenant-breaking papal-state alliance with the covenant-keeping remnant."
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -904,10 +1000,13 @@
         "citation": "DAR 263.2-3",
         "html": "\"The long period of papal persecution against those who were struggling to maintain the truth and instruct their fellow men in ways of righteousness, is here brought to view. The number of the days during which they were thus to fall is given in **Daniel 7:25; 12:7; Revelation 12:6, 14; 13:5**. The period is called, 'a time, times, and the dividing of time;' 'a time, times, and a half;' 'a thousand two hundred and threescore days;' and 'forty and two months.' **It is the 1260 years of papal supremacy**\" (DAR 263.3)."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_, pp. 61-65",
-        "html": "The \"instructors\" who suffer are covenant-keepers who teach the faithful. \"Verse 33 provides a strikingly precise description of the methods used by the Roman Catholic Inquisition\" (p. 63). On \"many days\": Bohr accepts the KJV gloss and links it to the 1260 — \"Daniel 7:25 and Revelation 12:14 refer to this period as 'time, times and the dividing of time' and Revelation 13:5 calls it the 'forty-two months'. However, significantly, Revelation 12:6 refers to this period as 1260 days. Perhaps the King James Version translators were not far from the truth when they interpreted the days of Daniel 11:33 as many days\" (p. 63). \"Spoil\" he links specifically to the Waldenses: \"This brings to mind the Waldenses whose homes and goods the papal crusaders plundered and confiscated. The Inquisition regularly deprived 'heretics' of their property and gave it to those who ratted on them\" (p. 64)."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_, pp. 61-65",
+          "html": "The \"instructors\" who suffer are covenant-keepers who teach the faithful. \"Verse 33 provides a strikingly precise description of the methods used by the Roman Catholic Inquisition\" (p. 63). On \"many days\": Bohr accepts the KJV gloss and links it to the 1260 — \"Daniel 7:25 and Revelation 12:14 refer to this period as 'time, times and the dividing of time' and Revelation 13:5 calls it the 'forty-two months'. However, significantly, Revelation 12:6 refers to this period as 1260 days. Perhaps the King James Version translators were not far from the truth when they interpreted the days of Daniel 11:33 as many days\" (p. 63). \"Spoil\" he links specifically to the Waldenses: \"This brings to mind the Waldenses whose homes and goods the papal crusaders plundered and confiscated. The Inquisition regularly deprived 'heretics' of their property and gave it to those who ratted on them\" (p. 64)."
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -933,10 +1032,13 @@
         "citation": "DAR 263.4-5",
         "html": "\"In **Revelation 12**, where this same papal persecution is brought to view, we read that the earth helped the woman by opening her mouth, and swallowing up the flood which the dragon cast out after her. **The great Reformation by Luther and his co-workers furnished the help here foretold.** The German states espoused the Protestant cause, protected the reformers, and restrained the work of persecution so furiously carried on by the papal church. But when they should be helped, and the cause begin to become popular, many were to cleave unto them with flatteries, or embrace the cause from unworthy motives, be insincere, hollow-hearted, and speak smooth and friendly words through a policy of self-interest\" (DAR 263.5)."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_, pp. 65-69",
-        "html": "Bohr expands the \"little help\" beyond Smith's Reformation-only reading: it is _both_ Reformation _and_ United States territory. \"We must conclude that the 'little help' given to those of understanding occurred during the period of time when the United States provided refuge to those who suffered persecution during the 1260 years. The territory of the United States has given the true church a respite in time, during which persecution has ceased\" (p. 69). \"Both the Protestant Reformation and the territory of what would become the United States gave the faithful persecuted church a time of respite\" (p. 69). He also pre-stages his vv.40-45 framework here: the beast \"was wounded (Revelation 13:10) only to have its deadly wound heal after a certain period of time... the beast (the United States as a nation) from the earth (the United States as a territory) will change, so to speak, from Dr. Jekyll to Mr. Hyde helping the sea beast regain its lost power\" (p. 68). \"Flatteries\" = insincere converts to the Christian cause (p. 69)."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_, pp. 65-69",
+          "html": "Bohr expands the \"little help\" beyond Smith's Reformation-only reading: it is _both_ Reformation _and_ United States territory. \"We must conclude that the 'little help' given to those of understanding occurred during the period of time when the United States provided refuge to those who suffered persecution during the 1260 years. The territory of the United States has given the true church a respite in time, during which persecution has ceased\" (p. 69). \"Both the Protestant Reformation and the territory of what would become the United States gave the faithful persecuted church a time of respite\" (p. 69). He also pre-stages his vv.40-45 framework here: the beast \"was wounded (Revelation 13:10) only to have its deadly wound heal after a certain period of time... the beast (the United States as a nation) from the earth (the United States as a territory) will change, so to speak, from Dr. Jekyll to Mr. Hyde helping the sea beast regain its lost power\" (p. 68). \"Flatteries\" = insincere converts to the Christian cause (p. 69)."
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -962,10 +1064,13 @@
         "citation": "DAR 264.1-2",
         "html": "\"Though restrained, the spirit of persecution was not destroyed. It broke out wherever there was opportunity. Especially was this the case in England... The **bloody Queen Mary** was a mortal enemy to the Protestant cause, and multitudes fell victims to her relentless persecutions. And this condition of affairs was to last more or less to the time of the end. The natural conclusion would be that when the time of the end should come, this power which the Church of Rome had possessed to punish heretics... would now be taken entirely away; and the conclusion would be equally evident that this taking away of the papal supremacy would mark the commencement of the period here called the time of the end. **If this application is correct, the time of the end commenced in 1798; for there, as already noticed, the papacy was overthrown by the French, and has never since been able to wield the power it before possessed**\" (DAR 264.2)."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_, pp. 70-74",
-        "html": "The fall of those who understand serves a refining purpose — Bohr ties _tsaraph_ (\"try\") to the metallurgical \"refining\" of God's people through medieval persecution (p. 70). The cleansing agent is not the tribulation itself but the blood of the Lamb: \"the blood of the Lamb purged those of understanding who went through the medieval tribulation (as well as those who will go through the end-time tribulation). Expressed another way, in the midst of persecution their characters were refined because they trusted in the blood of Jesus\" (p. 72). On the chronological anchor: \"the time of the end began when the 1260 years ended in 1798 AD. That is to say, the time of the end began when the 'many days' of persecution for the church ended\" (pp. 72-73). \"Time appointed\" = the 1260 days/42 months/three and a half times (p. 73). Bohr links Dan 11:35 forward to Dan 8:19, foreshadowing the king of the north's eventual end \"with none to help him\" — which he will develop at v.45 (p. 74)."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_, pp. 70-74",
+          "html": "The fall of those who understand serves a refining purpose — Bohr ties _tsaraph_ (\"try\") to the metallurgical \"refining\" of God's people through medieval persecution (p. 70). The cleansing agent is not the tribulation itself but the blood of the Lamb: \"the blood of the Lamb purged those of understanding who went through the medieval tribulation (as well as those who will go through the end-time tribulation). Expressed another way, in the midst of persecution their characters were refined because they trusted in the blood of Jesus\" (p. 72). On the chronological anchor: \"the time of the end began when the 1260 years ended in 1798 AD. That is to say, the time of the end began when the 'many days' of persecution for the church ended\" (pp. 72-73). \"Time appointed\" = the 1260 days/42 months/three and a half times (p. 73). Bohr links Dan 11:35 forward to Dan 8:19, foreshadowing the king of the north's eventual end \"with none to help him\" — which he will develop at v.45 (p. 74)."
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -991,10 +1096,13 @@
         "citation": "DAR 264.3-266.3",
         "html": "**A new actor — Revolutionary France 1793.** Smith opens the verse by ruling out the papacy: \"The king here introduced cannot denote the same power which was last noticed, namely, the papal power; for the specifications will not hold good if applied to that power. Take a declaration in the next verse: 'Nor regard any god.' **This has never been true of the papacy.** God and Christ, though often placed in a false position, have never been professedly set aside, and rejected from that system of religion\" (DAR 264.4-265). On the definite article: \"some of the best Biblical critics give it this rendering, **Mede, Wintle, Boothroyd, and others** translating the passage, '**A certain king shall do according to his will**,' thus clearly introducing a new power upon the stage of action\" (DAR 265). Smith specifies three marks of the fulfilling power: \"(1) It must assume the character here delineated near the commencement of the time of the end... (2) it must be a wilful power; (3) it must be an atheistical power; or perhaps the two latter specifications might be united by saying that its wilfulness would be manifested in the direction of atheism. **A revolution exactly answering to this description did take place in France at the time indicated in the prophecy. Voltaire had sowed the seeds**... Their efforts culminated in the **revolution of 1793**, when the Bible was discarded, and the existence of the Deity denied, as the voice of the nation\" (DAR 265.1). Smith quotes Scott's _Napoleon_ on the constitutional bishop of Paris declaring the religion he had taught was \"a piece of PRIESTCRAFT\" and \"disown[ing], in solemn and explicit terms, the EXISTENCE OF THE DEITY\" (DAR 265.5), and _Blackwood's Magazine_: \"**France is the only nation in the world concerning which the authentic record survives, that as a nation she lifted her hand in open rebellion against the Author of the universe**\" (DAR 266.2)."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_, pp. 75-85",
-        "html": "**Still the papacy** — same actor as v. 35; no change of subject. \"During this period of 1260 years, God allowed the king of the north to pretty much do as he pleased. The saints, the law, and the sanctuary cultus on earth would all be under his control\" (p. 74). Each clause is paralleled to the little horn of Dan 7-8 and the man of sin of 2 Thess 2 (paraphrase of pp. 75-78). \"Things did go well for the Roman Catholic papacy until the French Revolution wounded it in 1798\" (p. 78). On \"till the indignation be accomplished\" Bohr flash-forwards to the seven last plagues: \"the wrath of God is finished, ended, accomplished or filled up when the seven last plagues come to an end. Thus, Daniel 11:36 points forward to the conclusion of the seven last plagues. Though the primary theme of Daniel 11:31-39 is the 1260 years of papal persecution, the last part of verse 36 momentarily carries us forward to the time when the king of the north will come to his end with none to help him as described in Daniel 11:45\" (p. 82). Bohr explicitly stakes out his structural reading: \"I believe that Daniel 11:40-45 contains the eschatological repetition of the historical scenes described in Daniel 11:31-39\" (p. 83) — citing EGW (GC 581, 564, 571) that Rome \"never changes.\""
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_, pp. 75-85",
+          "html": "**Still the papacy** — same actor as v. 35; no change of subject. \"During this period of 1260 years, God allowed the king of the north to pretty much do as he pleased. The saints, the law, and the sanctuary cultus on earth would all be under his control\" (p. 74). Each clause is paralleled to the little horn of Dan 7-8 and the man of sin of 2 Thess 2 (paraphrase of pp. 75-78). \"Things did go well for the Roman Catholic papacy until the French Revolution wounded it in 1798\" (p. 78). On \"till the indignation be accomplished\" Bohr flash-forwards to the seven last plagues: \"the wrath of God is finished, ended, accomplished or filled up when the seven last plagues come to an end. Thus, Daniel 11:36 points forward to the conclusion of the seven last plagues. Though the primary theme of Daniel 11:31-39 is the 1260 years of papal persecution, the last part of verse 36 momentarily carries us forward to the time when the king of the north will come to his end with none to help him as described in Daniel 11:45\" (p. 82). Bohr explicitly stakes out his structural reading: \"I believe that Daniel 11:40-45 contains the eschatological repetition of the historical scenes described in Daniel 11:31-39\" (p. 83) — citing EGW (GC 581, 564, 571) that Rome \"never changes.\""
+        }
+      ],
       "warrant": null,
       "violations": {
         "scope": "verse",
@@ -1050,10 +1158,13 @@
         "citation": "DAR 266.4-268.6",
         "html": "Smith follows Bishop Newton in re-rendering \"desire of women\" as \"**the desire of wives**\": \"this passage would be more properly rendered 'the desire of wives.' This would seem to indicate that this government, at the same time it declared that God did not exist, would trample under foot the law which God had given to regulate the marriage institution\" (DAR 266.5). He quotes Scott's _Napoleon_ on the 1792 marriage law: \"that which reduced the union of marriage... to the state of a mere civil contract of a transitory character, which any two persons might engage in and cast loose at pleasure... **Sophie Arnoult, an actress famous for the witty things she said, described the republican marriage as the sacrament of adultery**\" (DAR 267.1). On \"regard any god,\" Smith quotes the revolutionary credo: \"The fear of God is so far from being the beginning of wisdom that it is the beginning of folly... The Supreme King, the God of the Jews and the Christians, is but a phantom. Jesus Christ is an impostor\" (DAR 267.3). Smith cites Smith's _Key to Revelation_ p. 323: \"**Aug. 26, 1792, an open profession of atheism was made by the National Convention**\" (DAR 268.2), and Alison Vol. I, p. 150: \"**Hebert, Chaumette, and their associates appeared at the bar, and declared that God did not exist**\" (DAR 268.3). \"At this juncture all religious worship was prohibited, except that of liberty and the country. The gold and silver plate of the churches was seized upon and desecrated. The churches were closed. The bells were broken and cast into cannon. **The Bible was publicly burned**. The sacramental vessels were paraded through the streets on an ass, in token of contempt. **A week of ten days, instead of seven, was established, and death was declared, in conspicuous letters posted over their burial places, to be an eternal sleep**\" (DAR 268.4)."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_, pp. 85-89",
-        "html": "Still the papacy. Bohr opens by asserting the recapitulation device he needs: \"In the last half of verse 36, Gabriel, for an instant, takes us to the very end of the seven last plagues... However, in verse 37, Gabriel goes back and continues his discussion of the 1260-year career of the papacy. It is obvious that verse 37 cannot be in chronological continuity with the last part of verse 36!\" (p. 85). \"God of his fathers\" = the true God whom Christian \"fathers\" originally worshiped — \"this means that the king of the north represents an apostate Christian system that went astray from the truth\" (p. 85). \"Fathers\" = the twelve apostles: \"the founding fathers of the Christian church? The answer is clear: the twelve apostles\" (p. 86), citing EGW (AA 19). \"Desire of women\" = mandatory clerical celibacy: \"There are strong reasons to see in this a reference to the practice of celibacy in Roman Catholicism... Roman Catholicism since the time of Gregory VII has forbidden marriage to the clergy\" (pp. 87-88), with 1 Tim 4:1 and Council of Trent Canon 10 in support. \"Regard no god\" = the same blasphemous self-magnification of the little horn / beast / man of sin (paraphrase of p. 89)."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_, pp. 85-89",
+          "html": "Still the papacy. Bohr opens by asserting the recapitulation device he needs: \"In the last half of verse 36, Gabriel, for an instant, takes us to the very end of the seven last plagues... However, in verse 37, Gabriel goes back and continues his discussion of the 1260-year career of the papacy. It is obvious that verse 37 cannot be in chronological continuity with the last part of verse 36!\" (p. 85). \"God of his fathers\" = the true God whom Christian \"fathers\" originally worshiped — \"this means that the king of the north represents an apostate Christian system that went astray from the truth\" (p. 85). \"Fathers\" = the twelve apostles: \"the founding fathers of the Christian church? The answer is clear: the twelve apostles\" (p. 86), citing EGW (AA 19). \"Desire of women\" = mandatory clerical celibacy: \"There are strong reasons to see in this a reference to the practice of celibacy in Roman Catholicism... Roman Catholicism since the time of Gregory VII has forbidden marriage to the clergy\" (pp. 87-88), with 1 Tim 4:1 and Council of Trent Canon 10 in support. \"Regard no god\" = the same blasphemous self-magnification of the little horn / beast / man of sin (paraphrase of p. 89)."
+        }
+      ],
       "warrant": null,
       "violations": {
         "scope": "verse",
@@ -1097,10 +1208,13 @@
         "citation": "DAR 268.7-271.2",
         "html": "Smith resolves the seeming contradiction with v.37 by sequence: \"It could not at one and the same time hold both these positions; but it might for a time disregard all gods, and then subsequently introduce another worship, and regard the god of forces. Did such a change occur in France at this time? — It did\" (DAR 268.8-269). \"In **1794 the worship of the Goddess of Reason was introduced**\" (DAR 269). Smith quotes Scott's _Life of Napoleon_ at length: \"**a vailed female whom they termed the Goddess of Reason**. Being brought within the bar, she was unvailed with great form, and placed on the right hand of the president, when she was generally recognized as a **dancing girl of the opera**\" (DAR 269.1). Smith quotes Chaumette introducing Reason worship in 1794: \"Mortals... cease to tremble before the powerless thunders of a God whom your fears have created. Henceforth acknowledge no divinity but Reason... **At the same time the goddess appeared, personified by a celebrated beauty, Madame Millard, of the opera**... The goddess... was mounted on a magnificent car, and conducted, amidst an immense crowd, to the **cathedral of Notre Dame, to take the place of the Deity**. Then she was elevated on the high altar, and received the adoration of all present\" (DAR 270.4-5). On the \"Supreme Being\" sequel: \"**A form of worship therefore followed in which the object of adoration was the 'Supreme Being.'** It was equally hollow... but it took hold upon the supernatural. And while the goddess of Reason was indeed a 'strange god,' the statement in regard to honoring the 'God of forces,' may perhaps more appropriately be referred to this latter phase. See **Thiers's French Revolution**\" (DAR 271.2). On \"God of forces\" itself: Smith reads it as the supernatural sanction sought to \"renew their covenant and repeat their vows for the prosperity of the armies of France\" (DAR 271.1) — quoting Chaumette's \"**There we will form new vows for the prosperity of the armies of the Republic**\" (DAR 271.2)."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_, pp. 89-91",
-        "html": "Still the papacy. \"In his estate\" = \"instead of\" (paraphrase of p. 89). \"God of forces\" — Hebrew _mauzim_ — refers not to a literal deity but to \"a political and military power that would help the king of the north\" (p. 89). \"What the text describes here is the union of the king of the north with military forces—a union of church and state!... the apostate papal church appealed to the arm of the state to punish dissenters and to compel unbelievers to become Christians. This 'god' was unknown to the fathers!\" (p. 90). \"Gold, silver, precious stones and pleasant things\" Bohr cross-links to Babylon/harlot of Rev 17:4 and Rev 18:12-13: \"Daniel describes here a mutual relationship between church and state (the harlot and the kings: Revelation 17:2) that mutually enriches both\" (p. 90). Forecasts the future control of buying/selling — \"He would be in control of the world economy in such a way that he could use it to forbid buying and selling to those who do not buy into his agenda\" (p. 90)."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_, pp. 89-91",
+          "html": "Still the papacy. \"In his estate\" = \"instead of\" (paraphrase of p. 89). \"God of forces\" — Hebrew _mauzim_ — refers not to a literal deity but to \"a political and military power that would help the king of the north\" (p. 89). \"What the text describes here is the union of the king of the north with military forces—a union of church and state!... the apostate papal church appealed to the arm of the state to punish dissenters and to compel unbelievers to become Christians. This 'god' was unknown to the fathers!\" (p. 90). \"Gold, silver, precious stones and pleasant things\" Bohr cross-links to Babylon/harlot of Rev 17:4 and Rev 18:12-13: \"Daniel describes here a mutual relationship between church and state (the harlot and the kings: Revelation 17:2) that mutually enriches both\" (p. 90). Forecasts the future control of buying/selling — \"He would be in control of the world economy in such a way that he could use it to forbid buying and selling to those who do not buy into his agenda\" (p. 90)."
+        }
+      ],
       "warrant": null,
       "violations": {
         "scope": "verse",
@@ -1146,10 +1260,13 @@
         "citation": "DAR 271.3-273.1",
         "html": "\"The system of paganism which had been introduced into France, as exemplified in the worship of the idol set up in the person of the Goddess of Reason, and regulated by a heathen ritual which had been enacted by the National Assembly for the use of the French people, continued in force till the appointment of Napoleon to the provisional consulate of France in 1799. **The adherents of this strange religion occupied the fortified places, the strongholds of the nation, as expressed in this verse**\" (DAR 271.4). On the land clause: \"But that which serves to identify the application of this prophecy to France, perhaps as clearly as any other particular, is the statement made in the last clause of the verse; namely, that **they should 'divide the land for gain'**... the titles of the nobility were abolished, and their lands disposed of in small parcels for the benefit of the public exchequer. The government was in need of funds, and these large landed estates were confiscated, and sold at auction in parcels to suit purchasers\" (DAR 272.1). Smith quotes Alison Vol. IV, p. 151: \"**The confiscation of two thirds of the landed property of the kingdom**, which arose from the decrees of the convention against the emigrants, clergy, and persons convicted at the Revolutionary Tribunals... **placed funds worth above £700,000,000 sterling at the disposal of the government**\" (DAR 272.2). Smith closes the section with Lockhart on Napoleon's reopening of the churches and the readmission of 20,000 oath-taking priests (DAR 272.4): \"Thus terminated the Reign of Terror and the Infidel Revolution. **Out of its ruins rose Bonaparte**\" (DAR 273.1)."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_, pp. 92-94",
-        "html": "Still the papacy (this verse opens his section titled \"THE PAPACY'S FUTURE CAREER,\" p. 92). The \"foreign god\" of v.39 is identical to v.38's \"god of forces\" (church-state union). \"Divide the land for gain\" = papal medieval land-grants: \"The papacy, multiple times during its period of dominion offered territory to the kings of Europe in exchange for favors\" (p. 92), illustrated by Pope Eugenius's fourteenth-century Bulls partitioning the Atlantic islands between Spain and Portugal (paraphrase of pp. 92-93, citing Muldoon). Crucially, between vv.39 and 40 Bohr inserts \"Review of an Important Principle\" stating his entire hermeneutical pivot: \"in the Old Testament, geographical locations such as Babylon, Egypt, and Israel are literal... However, after the Jewish theocracy ended, Babylon, Egypt, Israel and Jerusalem are symbolic and global. Babylon is the papacy, Egypt is France and Jerusalem/Israel is the faithful in the Christian Church. This is the reason why the king of the north (the Seleucids) and south (Egypt) in Daniel 11:5-14 are literal and local while the kings of the north and the south are symbolic in Daniel 11:40\" (pp. 93-94)."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_, pp. 92-94",
+          "html": "Still the papacy (this verse opens his section titled \"THE PAPACY'S FUTURE CAREER,\" p. 92). The \"foreign god\" of v.39 is identical to v.38's \"god of forces\" (church-state union). \"Divide the land for gain\" = papal medieval land-grants: \"The papacy, multiple times during its period of dominion offered territory to the kings of Europe in exchange for favors\" (p. 92), illustrated by Pope Eugenius's fourteenth-century Bulls partitioning the Atlantic islands between Spain and Portugal (paraphrase of pp. 92-93, citing Muldoon). Crucially, between vv.39 and 40 Bohr inserts \"Review of an Important Principle\" stating his entire hermeneutical pivot: \"in the Old Testament, geographical locations such as Babylon, Egypt, and Israel are literal... However, after the Jewish theocracy ended, Babylon, Egypt, Israel and Jerusalem are symbolic and global. Babylon is the papacy, Egypt is France and Jerusalem/Israel is the faithful in the Christian Church. This is the reason why the king of the north (the Seleucids) and south (Egypt) in Daniel 11:5-14 are literal and local while the kings of the north and the south are symbolic in Daniel 11:40\" (pp. 93-94)."
+        }
+      ],
       "warrant": null,
       "violations": {
         "scope": "verse",
@@ -1189,10 +1306,13 @@
         "citation": "DAR 273.2-278",
         "html": "Smith fixes the actors first: \"**Egypt is still, by common agreement, the king of the south, while the territory which at first constituted the king of the north, has been for the past four hundred years wholly included within the dominions of the sultan of Turkey. To Egypt and Turkey, then, in connection with the power last under consideration, we must look for a fulfillment of the verse before us**\" (DAR 273.3). The case rests on a triangular war in 1798: \"This application of the prophecy calls for a conflict to spring up between Egypt and France, and Turkey and France, in 1798, which year, as we have seen, marked the beginning of the time of the end; and if history testifies that such a triangular war did break out in that year, it will be conclusive proof of the correctness of the application\" (DAR 273.4). Smith walks the dates: \"**The downfall of the papacy, which marked the termination of the 1260 years... occurred on the 10th of February, 1798, when Rome fell into the hands of Berthier**, the general of the French. On the 5th of March following, Bonaparte received the decree of the Directory relative to the expedition against Egypt. He left Paris May 3, and set sail from Toulon the 19th, with a large naval armament, consisting of 500 sail, carrying 40,000 soldiers and 10,000 sailors. **July 5, Alexandria was taken**... On the 23d the decisive battle of the pyramids was fought... On the 24th, **Bonaparte entered Cairo**, the capital of Egypt\" (DAR 275.1). On the Turkish entry: \"The French fleet, which was his only channel of communication with France, was destroyed by the English under **Nelson at Aboukir**; and on **September 2 of this same year, 1798, the sultan of Turkey... declared war against France**. Thus the king of the north (Turkey) came against him (France) in the same year that the king of the south (Egypt) 'pushed,' and both 'at the time of the end'\" (DAR 275.2). On \"whirlwind, chariots, horsemen, many ships\": Smith narrates the 1799 Syria campaign — Napoleon's march from Cairo Feb 27 1799, the fall of El-Arish, Jaffa, the Naplous engagement, then the failed siege of St. Jean d'Acre with Sir Sidney Smith's reinforcement and a Turkish fleet with \"**the Russian and English vessels then co-operating with them, constituted the 'many ships' of the king of the north**\" (DAR 276.1). On \"overflow and pass over\": Smith explicitly chooses _the king of the north_ as the subject (not France): \"the more natural application to refer the 'overflowing and passing over' to that power which emerged in triumph from that struggle; **and that power was Turkey**\" (DAR 277.2)."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_, pp. 94-119",
-        "html": "**The hinge from literal to spiritual.** \"Time of the end\" = 1798 (pp. 95-97, citing GC 355-356). King of the south is spiritualized: \"Whereas the north is the realm of counterfeit religion, the south is the opposite; it denotes a denial of the true God and religion. It represents a human government that openly denies the existence of the true God. In this sense, it represents secular humanism in all its dimensions—Communism, Socialism, Evolutionism, Materialism, Capitalism, Environmentalism, Spiritualism, Feminism and the Hollywood culture\" (p. 98). The salient mark of Egypt is Pharaoh's \"I know not the LORD\" (p. 99, citing GC 269). \"In short, whereas the north represents counterfeit apostate religion, the south represents atheism/secularism that can trace its ultimate origin to the principles of the French Revolution\" (p. 100). Bohr identifies revolutionary France as the king of the south's \"push\" via Rev 11 \"Sodom and Egypt\" = France (pp. 101-104), and then projects this onto the 20th-century Soviet bloc: \"Daniel 11:40 predicted that the Roman Catholic Cross would trounce the Soviet Sickle\" (p. 108). Bohr endorses Louis Were's pre-1989 prediction that the papacy would overcome communism (pp. 108-109), and reads the 1989 fall of the Berlin Wall as the fulfillment, citing the Reagan-John Paul II \"Holy Alliance\" (Time, Feb 24 1992) and the Gorbachev-Canossa parallel (pp. 115-119). Bohr's summary: \"At the time of the end (1798 AD), the king of the south (France: Atheistic communism) will push (give a deadly wound) at the king of the north (the papacy) but the king of the north (the papacy) will recover from the attack (the deadly wound will be healed). By means of horses, chariots and many ships (great military and economic power) the king of the north (the papacy) will defeat the king of the south (atheistic communism). The victory of the king of the north (the papacy) will be comparable to the devastation caused by the great river Euphrates at flood stage\" (pp. 113-114). Chariots/horsemen = military power; many ships = economic power (p. 112). Geographic trajectory in Bohr's reading: Babylon to Israel to Edom/Moab/Ammon to Egypt/Libya/Ethiopia — but all symbolic of the papacy's global re-conquest (paraphrase of pp. 108-110)."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_, pp. 94-119",
+          "html": "**The hinge from literal to spiritual.** \"Time of the end\" = 1798 (pp. 95-97, citing GC 355-356). King of the south is spiritualized: \"Whereas the north is the realm of counterfeit religion, the south is the opposite; it denotes a denial of the true God and religion. It represents a human government that openly denies the existence of the true God. In this sense, it represents secular humanism in all its dimensions—Communism, Socialism, Evolutionism, Materialism, Capitalism, Environmentalism, Spiritualism, Feminism and the Hollywood culture\" (p. 98). The salient mark of Egypt is Pharaoh's \"I know not the LORD\" (p. 99, citing GC 269). \"In short, whereas the north represents counterfeit apostate religion, the south represents atheism/secularism that can trace its ultimate origin to the principles of the French Revolution\" (p. 100). Bohr identifies revolutionary France as the king of the south's \"push\" via Rev 11 \"Sodom and Egypt\" = France (pp. 101-104), and then projects this onto the 20th-century Soviet bloc: \"Daniel 11:40 predicted that the Roman Catholic Cross would trounce the Soviet Sickle\" (p. 108). Bohr endorses Louis Were's pre-1989 prediction that the papacy would overcome communism (pp. 108-109), and reads the 1989 fall of the Berlin Wall as the fulfillment, citing the Reagan-John Paul II \"Holy Alliance\" (Time, Feb 24 1992) and the Gorbachev-Canossa parallel (pp. 115-119). Bohr's summary: \"At the time of the end (1798 AD), the king of the south (France: Atheistic communism) will push (give a deadly wound) at the king of the north (the papacy) but the king of the north (the papacy) will recover from the attack (the deadly wound will be healed). By means of horses, chariots and many ships (great military and economic power) the king of the north (the papacy) will defeat the king of the south (atheistic communism). The victory of the king of the north (the papacy) will be comparable to the devastation caused by the great river Euphrates at flood stage\" (pp. 113-114). Chariots/horsemen = military power; many ships = economic power (p. 112). Geographic trajectory in Bohr's reading: Babylon to Israel to Edom/Moab/Ammon to Egypt/Libya/Ethiopia — but all symbolic of the papacy's global re-conquest (paraphrase of pp. 108-110)."
+        }
+      ],
       "warrant": {
         "label": "Bohr's methodological warrant — Louis Were's principle",
         "html": "\"**When passing over into the Christian era there is an automatic transition from literal to spiritual Babylon; from literal to spiritual Jerusalem; from the literal lands of Israel and Babylon to their spiritual antitypes.**\" (Louis F. Were, _The King of the North at Jerusalem_, p. 75, quoted by Bohr pp. 19-20)"
@@ -1263,10 +1383,13 @@
         "citation": "DAR 278.1-3",
         "html": "Smith reads the verse of _the king of the north_ (Turkey) as the one entering the glorious land, not of France: \"Abandoning a campaign in which one third of the army had fallen victims to war and the plague, the French retired from St. Jean d'Acre, and after a fatiguing march of twenty-six days re-entered Cairo in Egypt. **They thus abandoned all the conquests they had made in Judea; and the 'glorious land,' Palestine, with all its provinces, here called 'countries,' fell back again under the oppressive rule of the Turk**\" (DAR 278.3). On Edom/Moab/Ammon: \"Edom, Moab, and Ammon, lying outside the limits of Palestine, south and east of the Dead Sea and the Jordan, were out of the line of march of the Turks from Syria to Egypt, and so escaped the ravages of that campaign. On this passage **Adam Clarke** has the following note: 'These and other Arabians, they [the Turks] have never been able to subdue. They still occupy the deserts, and **receive a yearly pension of forty thousand crowns of gold from the Ottoman emperors to permit the caravans with the pilgrims for Mecca to have a free passage**'\" (DAR 278.3, quoting Clarke)."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_, pp. 119-157",
-        "html": "\"Glorious Land\" — Bohr concedes the literal sense first (\"Literally speaking the 'Glorious Land' (same expression as in verse 16) represents the geographical territory of Israel,\" p. 119) then spiritualizes via Were's \"automatic transition\": \"We must understand that the 'Glorious Land' does not represent the United States as a mere civil society but rather as the stronghold of Protestant principles. The United States has exported these Protestant principles by missionary activity to the world\" (p. 125). The \"many [who] shall be overthrown\" (Bohr notes \"countries\" is not in the original — p. 125) = the Adventist/Protestant shaking: \"Daniel 11:41 is saying that when the king of the north enters the Glorious Land (the realm of the church—Protestant and particularly Seventh-day Adventist), many members will stumble and fall. This is what Seventh-day Adventists have called 'the shaking'\" (p. 127). Edom/Moab/Ammon = spiritual near-kin of Israel — gentile believers who flee from spiritual Babylon into the remnant: \"Daniel 11 tells us that Edom, Moab and Ammon will escape from the hand of the king of the north and flee for refuge in spiritual Jerusalem—the faithful in the remnant church\" (p. 151). Bohr's lengthy gathering/scattering chain (pp. 137-157) develops the Pentecost/Latter Rain repetition pattern: \"In the last remnant of time, there will be a new and greater Pentecost... Thousands upon thousands will respond to the message, come out of Babylon, and find refuge in spiritual Jerusalem\" (p. 154). \"_Malat_\" (escape) in v.41 = \"_malat_\" (delivered) in Dan 12:1 — same word, same people (p. 134)."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_, pp. 119-157",
+          "html": "\"Glorious Land\" — Bohr concedes the literal sense first (\"Literally speaking the 'Glorious Land' (same expression as in verse 16) represents the geographical territory of Israel,\" p. 119) then spiritualizes via Were's \"automatic transition\": \"We must understand that the 'Glorious Land' does not represent the United States as a mere civil society but rather as the stronghold of Protestant principles. The United States has exported these Protestant principles by missionary activity to the world\" (p. 125). The \"many [who] shall be overthrown\" (Bohr notes \"countries\" is not in the original — p. 125) = the Adventist/Protestant shaking: \"Daniel 11:41 is saying that when the king of the north enters the Glorious Land (the realm of the church—Protestant and particularly Seventh-day Adventist), many members will stumble and fall. This is what Seventh-day Adventists have called 'the shaking'\" (p. 127). Edom/Moab/Ammon = spiritual near-kin of Israel — gentile believers who flee from spiritual Babylon into the remnant: \"Daniel 11 tells us that Edom, Moab and Ammon will escape from the hand of the king of the north and flee for refuge in spiritual Jerusalem—the faithful in the remnant church\" (p. 151). Bohr's lengthy gathering/scattering chain (pp. 137-157) develops the Pentecost/Latter Rain repetition pattern: \"In the last remnant of time, there will be a new and greater Pentecost... Thousands upon thousands will respond to the message, come out of Babylon, and find refuge in spiritual Jerusalem\" (p. 154). \"_Malat_\" (escape) in v.41 = \"_malat_\" (delivered) in Dan 12:1 — same word, same people (p. 134)."
+        }
+      ],
       "warrant": null,
       "violations": {
         "scope": "verse",
@@ -1327,10 +1450,13 @@
         "citation": "DAR 279.1-280",
         "html": "\"On the retreat of the French to Egypt, a Turkish fleet landed 18,000 men at Aboukir. Napoleon immediately attacked the place, completely routing the Turks, and re-establishing his authority in Egypt. But at this point, severe reverses to the French arms in Europe called Napoleon home... The command of the troops in Egypt was left with General Kleber, who, after a period of untiring activity for the benefit of the army, was murdered by a Turk in Cairo, and the command was left with Abdallah Menou\" (DAR 279.2). Smith details the 1801 English-Turkish reconquest: \"**March 13, 1801, an English fleet disembarked a body of troops at Aboukir**... On the 18th Aboukir surrendered. On the 28th reinforcements were brought by a Turkish fleet, and the grand vizier approached from Syria with a large army... **Cairo capitulated June 27, and Alexandria, September 2. Four weeks after, Oct. 1, 1801, the preliminaries of peace were signed at London**\" (DAR 279.3). On _whose_ hand Egypt did not escape: Smith argues Egypt did _not_ desire to escape the French — the Egyptians \"**preferred French rule**\" per R.R. Madden's _Travels_ — but they \"did desire to escape from the hands of the Turks, but could not\" (DAR 279.4-280). So \"Egypt shall not escape\" = Egypt does not escape the _Turk_'s hand after 1801."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_, pp. 157-162; no discrete \"Comments on Verse 42\" section — v.42 is treated within the tail of Bohr's v.41 discussion",
-        "html": "Bohr reads the verse as a continuation of the king-of-the-north's universal conquest sweep: \"Verse 40 tells us that the king of the north invaded the north countries (Lebanon, Syria, Tyre and Sidon). In verse 41, he enters the glorious land, Palestine. He then moves east and south into Edom, Moab and Ammon who escape from his hand and flee for refuge in Jerusalem. Then in verses 42 and 43 he overcomes the countries south of the glorious land—Egypt, Ethiopia and Libya. The picture is one of a devastating and universal conquest. The invasion begins in the north at the river Euphrates and ends in the south at the River of Egypt.\" (p. 159) The verb is glossed from OT idiom: \"The Old Testament uses the idiom 'stretch out the hand' to describe an act of conquest and destruction (Exodus 3:20; 9:15; I Samuel 24:6, 9, 11, 23).\" (p. 158) The Hebrew _'eretz_ (\"countries\") is shown across OT usage to mean political nations beyond Israel's borders (pp. 158-159, surveying Gen 26:3-4; 41:57; Isa 8:9; Jer 23:3-8; Eze 5:5-6; 34:13; Dan 9:7; Zech 10:9-10).\n\nThe \"shall not escape\" specifier is then anchored to Bohr's _malat_/_palat_ identity argument carried over from v.41: \"In verse 42 the word 'escape' is not the same that appears in verse 41. The word 'escape' in verse 42 is palat. However, we shall see below that malat and palat are synonymous.\" (p. 159) Bohr proves the synonymy by Joel 2:32 where both words appear together: \"'And it shall come to pass that whosoever shall call on the name of the LORD shall be delivered [malat: the same word in Daniel 11:41 and Daniel 12:1], for in Mount Zion and in Jerusalem shall be deliverance [palat: the same word that is translated 'escape' in Daniel 11:42] as the LORD hath said.'\" (pp. 161-162) The conclusion: Egypt-of-v.42 does _not_ escape because Egypt is _not_ part of the spiritual Israel that takes refuge in spiritual Jerusalem.\n\nBohr's Egypt referent itself is global-spiritual, applied through an EGW chain: \"Ellen White describes how every country on the globe will be unable to escape from the stretched out hand of the papacy: 'As America, the land of religious liberty shall unite with the papacy in forcing the conscience and compelling men to honor the false sabbath, the people of every country on the globe will be led to follow her example.'\" (p. 160, quoting _Testimonies_ 6:18) \"Foreign nations will follow the example of the United States. Though she leads out, yet the same crisis will come upon our people in all parts of the world.\" (p. 160, _Testimonies_ 6:395) The Egypt-symbol itself is explicitly identified in the v.43 section that follows: \"As we have already seen, Egypt appears to represent the secular nations of the world\" (p. 164) — i.e., Bohr globalizes Rev 11:8's \"spiritually called Egypt\" gloss and applies it here."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_, pp. 157-162; no discrete \"Comments on Verse 42\" section — v.42 is treated within the tail of Bohr's v.41 discussion",
+          "html": "Bohr reads the verse as a continuation of the king-of-the-north's universal conquest sweep: \"Verse 40 tells us that the king of the north invaded the north countries (Lebanon, Syria, Tyre and Sidon). In verse 41, he enters the glorious land, Palestine. He then moves east and south into Edom, Moab and Ammon who escape from his hand and flee for refuge in Jerusalem. Then in verses 42 and 43 he overcomes the countries south of the glorious land—Egypt, Ethiopia and Libya. The picture is one of a devastating and universal conquest. The invasion begins in the north at the river Euphrates and ends in the south at the River of Egypt.\" (p. 159) The verb is glossed from OT idiom: \"The Old Testament uses the idiom 'stretch out the hand' to describe an act of conquest and destruction (Exodus 3:20; 9:15; I Samuel 24:6, 9, 11, 23).\" (p. 158) The Hebrew _'eretz_ (\"countries\") is shown across OT usage to mean political nations beyond Israel's borders (pp. 158-159, surveying Gen 26:3-4; 41:57; Isa 8:9; Jer 23:3-8; Eze 5:5-6; 34:13; Dan 9:7; Zech 10:9-10).\n\nThe \"shall not escape\" specifier is then anchored to Bohr's _malat_/_palat_ identity argument carried over from v.41: \"In verse 42 the word 'escape' is not the same that appears in verse 41. The word 'escape' in verse 42 is palat. However, we shall see below that malat and palat are synonymous.\" (p. 159) Bohr proves the synonymy by Joel 2:32 where both words appear together: \"'And it shall come to pass that whosoever shall call on the name of the LORD shall be delivered [malat: the same word in Daniel 11:41 and Daniel 12:1], for in Mount Zion and in Jerusalem shall be deliverance [palat: the same word that is translated 'escape' in Daniel 11:42] as the LORD hath said.'\" (pp. 161-162) The conclusion: Egypt-of-v.42 does _not_ escape because Egypt is _not_ part of the spiritual Israel that takes refuge in spiritual Jerusalem.\n\nBohr's Egypt referent itself is global-spiritual, applied through an EGW chain: \"Ellen White describes how every country on the globe will be unable to escape from the stretched out hand of the papacy: 'As America, the land of religious liberty shall unite with the papacy in forcing the conscience and compelling men to honor the false sabbath, the people of every country on the globe will be led to follow her example.'\" (p. 160, quoting _Testimonies_ 6:18) \"Foreign nations will follow the example of the United States. Though she leads out, yet the same crisis will come upon our people in all parts of the world.\" (p. 160, _Testimonies_ 6:395) The Egypt-symbol itself is explicitly identified in the v.43 section that follows: \"As we have already seen, Egypt appears to represent the secular nations of the world\" (p. 164) — i.e., Bohr globalizes Rev 11:8's \"spiritually called Egypt\" gloss and applies it here."
+        }
+      ],
       "warrant": null,
       "violations": {
         "scope": "verse",
@@ -1385,10 +1511,13 @@
         "citation": "DAR 280.1-4",
         "html": "Smith quotes _Historic Echoes of the Voice of God_ p. 49 for the post-1801 Egyptian tribute arrangement: \"When the French were driven out of Egypt, and the Turks took possession, **the sultan permitted the Egyptians to reorganize their government as it was before the French invasion**. He asked of the Egyptians neither soldiers, guns, nor fortifications, but left them to manage their own affairs independently, with the important exception of putting the nation under tribute to himself. In the articles of agreement between the sultan and the pasha of Egypt, it was stipulated that the Egyptians should pay annually to the Turkish government a certain amount of gold and silver, and '**six hundred thousand measures of corn, and four hundred thousand of barley**'\" (DAR 280.3, quoting _Historic Echoes_). On Libya and Ethiopia: \"**'The Libyans and the Ethiopians,' 'the Cushim,' says Dr. Clarke, 'the unconquered Arabs,' who have sought the friendship of the Turks, and many of whom are tributary to them to the present time**\" (DAR 280.4, quoting Adam Clarke)."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_, pp. 162-165, \"Comments on Verse 43\"",
-        "html": "Bohr frames the verse as the papal economic conquest sequence: \"During the 1260 years, the king of the north accumulated great riches at the expense of the political powers of Europe. When the deadly wound heals the king of the north will continue accumulating great riches (Revelation 17:4; 18:11-13, 16). Through its influence upon the United States it will control the world economy in such a way that it will be able to forbid buying and selling (Revelation 13:15).\" (p. 163)\n\nLibya and Ethiopia are read as twin socio-economic categories rather than literal North African peoples: \"Libya in antiquity (before it became an oil-producing nation) was poverty-stricken. Most of the country is desert where there is no capacity to produce food. Thus, in biblical times it represents the poor nations of the world today. On the other hand, Ethiopia in antiquity was a very rich and prosperous nation... It was, so to speak, a 'capitalist country'... Thus, it can represent the rich nations of the world today. In geopolitical terminology, the word 'north' represents the rich nations and the word 'south' represents the poor ones.\" (pp. 163-164) Bohr cross-references Ezekiel: \"The Bible sometimes couples Ethiopia, Libya and Egypt together (Ezekiel 30:1-6). In the case of Daniel 11, Libya and Ethiopia are helpers of the king of the north. Ezekiel 38:5 describes both of these countries as allies of Gog who he comes from the land of Magog in the north.\" (p. 163)\n\nThe \"treasures of gold and silver\" specifier is read as papal Vatican wealth: \"The harlot of Revelation 17 is a symbol of the Roman Catholic papacy. Although it is the smallest nation in the world, it is incredibly rich. Its temples and cathedrals are full of precious works of art, gold, silver, precious stones, priceless images, glass stained windows, and its banking system does business with all the nations of the world. Thus, verse 4 describes the harlot as 'arrayed in purple and scarlet, and adorned with gold and precious stones and pearls (see also Revelation 18:11-13, 16).\" (p. 164)\n\nEgypt is then re-identified as \"secular nations of the world\" through an EGW chain — quoting _Manuscript Releases_ 10:240-241 (\"The Lord God of Israel is to execute judgment upon the gods of this world as upon the gods of Egypt\"), _Great Controversy_ 627-628 (the plagues on Egypt as type of the seven last plagues), _Christian Service_ 38-39 (the church \"is steadily retreating toward Egypt\"), and _Signs of the Times_ March 6 1884 (believers \"pitch their tents nearer to Egypt\") (pp. 164-165)."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_, pp. 162-165, \"Comments on Verse 43\"",
+          "html": "Bohr frames the verse as the papal economic conquest sequence: \"During the 1260 years, the king of the north accumulated great riches at the expense of the political powers of Europe. When the deadly wound heals the king of the north will continue accumulating great riches (Revelation 17:4; 18:11-13, 16). Through its influence upon the United States it will control the world economy in such a way that it will be able to forbid buying and selling (Revelation 13:15).\" (p. 163)\n\nLibya and Ethiopia are read as twin socio-economic categories rather than literal North African peoples: \"Libya in antiquity (before it became an oil-producing nation) was poverty-stricken. Most of the country is desert where there is no capacity to produce food. Thus, in biblical times it represents the poor nations of the world today. On the other hand, Ethiopia in antiquity was a very rich and prosperous nation... It was, so to speak, a 'capitalist country'... Thus, it can represent the rich nations of the world today. In geopolitical terminology, the word 'north' represents the rich nations and the word 'south' represents the poor ones.\" (pp. 163-164) Bohr cross-references Ezekiel: \"The Bible sometimes couples Ethiopia, Libya and Egypt together (Ezekiel 30:1-6). In the case of Daniel 11, Libya and Ethiopia are helpers of the king of the north. Ezekiel 38:5 describes both of these countries as allies of Gog who he comes from the land of Magog in the north.\" (p. 163)\n\nThe \"treasures of gold and silver\" specifier is read as papal Vatican wealth: \"The harlot of Revelation 17 is a symbol of the Roman Catholic papacy. Although it is the smallest nation in the world, it is incredibly rich. Its temples and cathedrals are full of precious works of art, gold, silver, precious stones, priceless images, glass stained windows, and its banking system does business with all the nations of the world. Thus, verse 4 describes the harlot as 'arrayed in purple and scarlet, and adorned with gold and precious stones and pearls (see also Revelation 18:11-13, 16).\" (p. 164)\n\nEgypt is then re-identified as \"secular nations of the world\" through an EGW chain — quoting _Manuscript Releases_ 10:240-241 (\"The Lord God of Israel is to execute judgment upon the gods of this world as upon the gods of Egypt\"), _Great Controversy_ 627-628 (the plagues on Egypt as type of the seven last plagues), _Christian Service_ 38-39 (the church \"is steadily retreating toward Egypt\"), and _Signs of the Times_ March 6 1884 (believers \"pitch their tents nearer to Egypt\") (pp. 164-165)."
+        }
+      ],
       "warrant": null,
       "violations": {
         "scope": "verse",
@@ -1443,10 +1572,13 @@
         "citation": "DAR, 281.1-2",
         "html": "Smith reads v.44 as **already-fulfilled in the Crimean War (1853-1856)**, the verse hinging on Adam Clarke's pre-event forecast (printed 1825): \"If the Turkish power be understood... it may mean that the Persians on the east, and the Russians on the north, will at some time greatly embarrass the Ottoman government.\" Smith identifies Turkey as the \"him\" of the verse explicitly: \"**Tidings from these powers troubled him (Turkey).** Their attitude and movements incited the sultan to anger and revenge. Russia, being the more aggressive party, was the object of attack. Turkey declared war on her powerful northern neighbor in 1853.\" (DAR 281.2). The \"great fury\" of the verse is Turkey's 1853 Crimean entry: \"they were described, in the profane vernacular of an American writer, as 'fighting like devils.'\" Smith treats the whole verse as past at writing — v.45 alone remains future (DAR 281.4)."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_, pp. 165-174, \"Comments on Verse 44\"",
-        "html": "Bohr starts by relocating the king of the north to Egypt to set up the question: \"When the king of the north is in Egypt, tidings from the north and the east trouble him. The question is this, where are these tidings coming from? What is north and east of Egypt? The answer is Israel and more specifically Mt. Zion/Jerusalem. These tidings are coming from Mt. Zion/Jerusalem.\" (p. 165) The Hebrew _shemu'ot_ is then surveyed across OT usage — \"tidings\" (1 Sam 4:19; 2 Sam 13:30; Ps 112:7; Jer 49:23), \"news\" (Prov 25:25), \"doctrine\" (Isa 28:9), \"report\" (Prov 15:30; Isa 53:1), \"rumor\" (Jer 49:14; 51:46; Obad 1) — concluding \"it is a message from the LORD through the instrumentality of an ambassador or representative.\" (pp. 165-166)\n\nThe tidings are then identified with the Loud Cry via EGW: \"In Last Day Events, p. 208 Ellen White explains this 'news' as the Loud Cry of Revelation 18:1-6. You will notice, however, that the news does not come from the literal north and east. The message is global\" (p. 166). Bohr then concedes the directional specifier requires symbolic reading: \"So this is the question that confronts us, if the north and east are not literal but symbolic, what do they represent?\" (p. 167) The answer is constructed from a chain of \"God's compass\" texts: \"In antiquity north was in heaven, that is, up. This is why Isaiah 14:12-14 tells us that Lucifer wanted to ascend and occupy God's throne in the sides of the north. According to Jesus Himself, Jerusalem and Zion are in the sides of the north (Psalm 48:1, 2; Matthew 5:35, 36). In Ezekiel 1:4ff God's cosmic chariot throne arrives in Jerusalem from the north, that is, from heaven.\" (p. 167) For east: \"The east is also God's point of the compass. Luke 1:78 tells us that Jesus came into this world by way of the east because He came to enlighten the world. The star that announced the birth of Jesus came from the east (Matthew 2:2, 9). At the second coming Jesus will come from the east (Matthew 24:27; Revelation 16:12).\" (p. 167) Bohr then assigns the opposite quadrant to \"Communism/Secularism\" (p. 167) — \"The south is thus the realm of darkness, a denial of God and religion (Exodus 5:2; 10:21 22; 14:20). It is a secular government without God and religion. This is why the beast that represents the rise of Communism/Secularism rises from the abyss.\" (p. 167)\n\nThe chronological placement is tied to the verse order: \"the tidings are given in the end time after 1798 (Daniel 11:40) but before the close of probation and the time of trouble (Daniel 12:1) when the king of the north finally comes to his end.\" (p. 168) The book of Revelation is then used to fill in the content: the three angels' messages enrage the beast (Rev 13:15 read into Dan 11:44), the wicked gather at the winepress (Rev 14:18-20), and the death decree is universal (p. 169).\n\nOn \"great fury to destroy and annihilate many\" — the Hebrew _bahal_ is surveyed (\"to shake intensely, to be alarmed, agitated, frightened, terrified, panicked and dismayed\" — pp. 170-171, with attestations at Dan 4:5, 19; 5:6-10; 7:15, 28; Isa 13:8; 2 Chr 32:18; 2 Sam 4:1; Ps 48:1-6; 83:17; Job 21:6; Lev 26:16). The papal response is read through Esther typology: \"The Hebrew word shamad, 'make away', appears in Deuteronomy 9:3 and 31:3 to describe one who is under anathema. The identical word appears in the book of Esther to describe Haman's hatred for the Jews (3:6, 13; 4:8; 8:11). This is significant when we realize that the book of Esther is typological of the end time when Haman wanted to obliterate, annihilate and blot out all the Jews!\" (p. 173) The \"great fury\" is connected to Babylon's wine of wrath via EGW (_Testimonies to Ministers_ 61-62 — false doctrines as the wine that enrages kings against sabbath-keepers, p. 173) and to the death-decree threshold (_Early Writings_ 279; _Great Controversy_ 607, 614-615 — pp. 173-174)."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_, pp. 165-174, \"Comments on Verse 44\"",
+          "html": "Bohr starts by relocating the king of the north to Egypt to set up the question: \"When the king of the north is in Egypt, tidings from the north and the east trouble him. The question is this, where are these tidings coming from? What is north and east of Egypt? The answer is Israel and more specifically Mt. Zion/Jerusalem. These tidings are coming from Mt. Zion/Jerusalem.\" (p. 165) The Hebrew _shemu'ot_ is then surveyed across OT usage — \"tidings\" (1 Sam 4:19; 2 Sam 13:30; Ps 112:7; Jer 49:23), \"news\" (Prov 25:25), \"doctrine\" (Isa 28:9), \"report\" (Prov 15:30; Isa 53:1), \"rumor\" (Jer 49:14; 51:46; Obad 1) — concluding \"it is a message from the LORD through the instrumentality of an ambassador or representative.\" (pp. 165-166)\n\nThe tidings are then identified with the Loud Cry via EGW: \"In Last Day Events, p. 208 Ellen White explains this 'news' as the Loud Cry of Revelation 18:1-6. You will notice, however, that the news does not come from the literal north and east. The message is global\" (p. 166). Bohr then concedes the directional specifier requires symbolic reading: \"So this is the question that confronts us, if the north and east are not literal but symbolic, what do they represent?\" (p. 167) The answer is constructed from a chain of \"God's compass\" texts: \"In antiquity north was in heaven, that is, up. This is why Isaiah 14:12-14 tells us that Lucifer wanted to ascend and occupy God's throne in the sides of the north. According to Jesus Himself, Jerusalem and Zion are in the sides of the north (Psalm 48:1, 2; Matthew 5:35, 36). In Ezekiel 1:4ff God's cosmic chariot throne arrives in Jerusalem from the north, that is, from heaven.\" (p. 167) For east: \"The east is also God's point of the compass. Luke 1:78 tells us that Jesus came into this world by way of the east because He came to enlighten the world. The star that announced the birth of Jesus came from the east (Matthew 2:2, 9). At the second coming Jesus will come from the east (Matthew 24:27; Revelation 16:12).\" (p. 167) Bohr then assigns the opposite quadrant to \"Communism/Secularism\" (p. 167) — \"The south is thus the realm of darkness, a denial of God and religion (Exodus 5:2; 10:21 22; 14:20). It is a secular government without God and religion. This is why the beast that represents the rise of Communism/Secularism rises from the abyss.\" (p. 167)\n\nThe chronological placement is tied to the verse order: \"the tidings are given in the end time after 1798 (Daniel 11:40) but before the close of probation and the time of trouble (Daniel 12:1) when the king of the north finally comes to his end.\" (p. 168) The book of Revelation is then used to fill in the content: the three angels' messages enrage the beast (Rev 13:15 read into Dan 11:44), the wicked gather at the winepress (Rev 14:18-20), and the death decree is universal (p. 169).\n\nOn \"great fury to destroy and annihilate many\" — the Hebrew _bahal_ is surveyed (\"to shake intensely, to be alarmed, agitated, frightened, terrified, panicked and dismayed\" — pp. 170-171, with attestations at Dan 4:5, 19; 5:6-10; 7:15, 28; Isa 13:8; 2 Chr 32:18; 2 Sam 4:1; Ps 48:1-6; 83:17; Job 21:6; Lev 26:16). The papal response is read through Esther typology: \"The Hebrew word shamad, 'make away', appears in Deuteronomy 9:3 and 31:3 to describe one who is under anathema. The identical word appears in the book of Esther to describe Haman's hatred for the Jews (3:6, 13; 4:8; 8:11). This is significant when we realize that the book of Esther is typological of the end time when Haman wanted to obliterate, annihilate and blot out all the Jews!\" (p. 173) The \"great fury\" is connected to Babylon's wine of wrath via EGW (_Testimonies to Ministers_ 61-62 — false doctrines as the wine that enrages kings against sabbath-keepers, p. 173) and to the death-decree threshold (_Early Writings_ 279; _Great Controversy_ 607, 614-615 — pp. 173-174)."
+        }
+      ],
       "warrant": null,
       "violations": {
         "scope": "verse",
@@ -1506,10 +1638,13 @@
         "citation": "DAR 281.3-282.2",
         "html": "Smith treats v.45 as the **one verse of Daniel 11 still future at writing**: \"It has all been wrought out into history except this last verse... we must look to Turkey to make the move here indicated\" (DAR 281.4). Geography is decisive: \"Palestine, which contains the 'glorious holy mountain,' the mountain on which Jerusalem stands, 'between the seas,' the Dead Sea and the Mediterranean, is a Turkish province; and if the Turk should be obliged to retire hastily from Europe, he could easily go to any point within his own dominions... here appropriately described as the **tabernacles, movable dwellings, of his palace**... **The most notable point within the limit of Turkey in Asia, is Jerusalem**\" (DAR 282.1). \"Tabernacles\" = _ahalim_, movable dwellings — fitting a tented Ottoman court.\n\nSmith reads \"none shall help him\" against the documented record of European helps: **1798-1801** (England + Russia assist the sultan against Napoleonic France), **1838-1840** (England + Russia + Austria + Prussia intervene for Turkey against Mehemet Ali of Egypt — the very event Litch tied to the sixth-trumpet 391-year end), **1853-1856** (England + France + Sardinia support Turkey in Crimea), and the Russo-Turkish War where \"the great powers of Europe interfered to arrest the progress of Russia\" (DAR 282.2). \"Since the fall of the Ottoman supremacy in 1840, the empire has existed only through the sufferance of the great powers of Europe... when that is withdrawn, she must come to the ground\" (DAR 282.2). When final help is withdrawn and the Eastern Question converges at literal Jerusalem, Dan 12:1 (\"at that time shall Michael stand up\") follows immediately."
       },
-      "bohrReading": {
-        "citation": "_Studies on Daniel 11_, pp. 174-186, \"Comments on Verse 45\"",
-        "html": "Bohr opens v.45 with a 15-point summary recap of the entire vv. 40-45 framework: \"The king of the south (atheism) wounds the king of the north (the papacy). The deadly wound of the papacy heals. The papacy gains the support of the state. The papacy invades the countries north of spiritual Israel. The papacy then invades the Glorious Land (Protestantism in the United States). The papacy then gains victories in the various countries of the world. The papacy's victories shake many SDA's out of the remnant church. The faithful remnant, after receiving the latter rain, proclaim the loud cry and sealing message. These 'tidings' enrage the papacy who influences the United States to give a death decree against them. The papacy and its allies gather in a strategic place to deliver the final deathblow. Michael stands up and closes the door of probation. A time of trouble ensues for God's people. God delivers His people at the close of the time of trouble. The papacy and its allies come to their end with no one to help them.\" (pp. 174-175)\n\nMovement and motive: \"The king of the north now moves from Egypt in the south to the north and east where the disturbing tidings are coming from. Upon arrival at Sion/Jerusalem, he plants the tents of his palace outside the city (in the winepress—Joel 3; Revelation 14:19, 20; 19:11-15) to deliver a final deathblow that will silence those who are proclaiming the message.\" (p. 175) On \"plant\": \"the Old Testament also uses the word metaphorically to describe the act of planting a nation. For example, in Exodus 15:17 God promised to 'plant' Israel in His holy mountain... It seems like the king of the north intends to plant his global kingdom and he takes a strategic position to blot out the lone remaining resistance to his aspirations.\" (p. 175)\n\nOn \"tents of his palace\" Bohr quotes George McCready Price, _The Greatest of the Prophets_, p. 317 (p. 176) and the _Cambridge Bible for Schools and Colleges_ on _appéden_ as a Persian throne-room word (pp. 176-177).\n\nOn location: \"**The glorious holy mountain is Sion/Jerusalem, and the seas are the Mediterranean and the Dead Seas.**\" (p. 177) Bohr clarifies the preposition: \"All other relevant eschatological passages reveal that the king of the north never actually enters the holy mountain. That is to say, he does not come to his end when he is in the holy mountain but rather at the holy mountain. The city is the last bastion that challenges his desire for global control.\" (p. 177)\n\nCross-linked to Armageddon: \"Armageddon is a compound word that comes from two Hebrew words: Har ('mountain') and mo'ed ('congregation'). The king of the north and his cohorts actually gather at the Mount of the Congregation. Biblical Hebrew has no vowels. The consonants in Har-maggedon are identical to Har-mo'ed.\" (p. 179) \"In Daniel and Revelation God gathers His people to Mt. Zion where the temple is and the spiritual temple on earth is the church. The book of Revelation refers to a two-fold gathering. God's people gather to Mt. Zion and the wicked gather around it in the winepress in an attempt to destroy it.\" (pp. 179-180) Bohr then catalogs a multi-passage refuge-in-Jerusalem chain (Rev 14:19-20; Joel 2:12-18 + 2:32; Rev 16:12-16 with Isa 14:12-14; Dan 11:45; Ps 48:1-14; Isa 4:2-3; Eze 38-39; Rev 14:1-5; Isa 24:20-23 with Rev 20:7-9; Rev 17:14; Isa 37:32-35; Rev 20:7-10 — pp. 180-181).\n\nThe spiritualization is then explicit: \"**The gathering of the king of the north against Jerusalem cannot be literal. Why not? The answer is simple. Neither Jerusalem nor Mt. Zion today are holy.**\" (p. 182) Three EGW quotations are stacked to support: _Review and Herald_ Feb 25 1896 (\"The curse of God is upon Jerusalem and its surroundings, and the land is defiled under the inhabitants thereof. There is no real foundation for feelings of awe in looking upon the land of Palestine\"); _Review and Herald_ June 9 1896 (\"old Jerusalem will never be a sacred place until it is cleansed by the refining fire from heaven\"); _Early Writings_ 75-76 (\"I also saw that Old Jerusalem never would be built up\") (pp. 182-183).\n\nThe governing pre-/post-millennium principle: \"Before the millennium, the symbolic king of the north is the papacy, the visible leader who is under the leadership of the invisible leader—Satan. The symbolic king of the north and his spiritual armies gather outside spiritual, worldwide Jerusalem where the spiritual Israel of God has found refuge (Revelation 14:18-20; 19:11-15)... After the millennium, the literal New Jerusalem descends from heaven and all of God's people from all ages enter the literal city. At this moment, the counterfeit king of the north is Satan, visible and in person, who prepares his literal armies to attack the literal city of Jerusalem... Thus, before the millennium Jerusalem is spiritual and worldwide and after the millennium it is literal and literally where the Mount of Olives stood.\" (pp. 183-184)\n\nOn \"he shall come to his end and none shall help him\": Bohr places the end at the fifth plague when Babylon's helpers turn — \"the false prophet (Revelation 13:11-18), the kings of the earth (Revelation 17:1, 2; 18:2, 3; 16:14) the merchants of the earth (Revelation 18:6-24), and the multitudes (Revelation 17:1, 2, 15) have supported the apostate king of the north... However, when the fifth plague falls, Babylon's helpers will turn on the harlot and leave her desolate.\" (pp. 184-185) Confirmed by EGW: _Great Controversy_ 635-636 (the rainbow + halted multitudes) and 655-656 (multitudes turn on the unfaithful pastors) — pp. 185-186."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Studies on Daniel 11_, pp. 174-186, \"Comments on Verse 45\"",
+          "html": "Bohr opens v.45 with a 15-point summary recap of the entire vv. 40-45 framework: \"The king of the south (atheism) wounds the king of the north (the papacy). The deadly wound of the papacy heals. The papacy gains the support of the state. The papacy invades the countries north of spiritual Israel. The papacy then invades the Glorious Land (Protestantism in the United States). The papacy then gains victories in the various countries of the world. The papacy's victories shake many SDA's out of the remnant church. The faithful remnant, after receiving the latter rain, proclaim the loud cry and sealing message. These 'tidings' enrage the papacy who influences the United States to give a death decree against them. The papacy and its allies gather in a strategic place to deliver the final deathblow. Michael stands up and closes the door of probation. A time of trouble ensues for God's people. God delivers His people at the close of the time of trouble. The papacy and its allies come to their end with no one to help them.\" (pp. 174-175)\n\nMovement and motive: \"The king of the north now moves from Egypt in the south to the north and east where the disturbing tidings are coming from. Upon arrival at Sion/Jerusalem, he plants the tents of his palace outside the city (in the winepress—Joel 3; Revelation 14:19, 20; 19:11-15) to deliver a final deathblow that will silence those who are proclaiming the message.\" (p. 175) On \"plant\": \"the Old Testament also uses the word metaphorically to describe the act of planting a nation. For example, in Exodus 15:17 God promised to 'plant' Israel in His holy mountain... It seems like the king of the north intends to plant his global kingdom and he takes a strategic position to blot out the lone remaining resistance to his aspirations.\" (p. 175)\n\nOn \"tents of his palace\" Bohr quotes George McCready Price, _The Greatest of the Prophets_, p. 317 (p. 176) and the _Cambridge Bible for Schools and Colleges_ on _appéden_ as a Persian throne-room word (pp. 176-177).\n\nOn location: \"**The glorious holy mountain is Sion/Jerusalem, and the seas are the Mediterranean and the Dead Seas.**\" (p. 177) Bohr clarifies the preposition: \"All other relevant eschatological passages reveal that the king of the north never actually enters the holy mountain. That is to say, he does not come to his end when he is in the holy mountain but rather at the holy mountain. The city is the last bastion that challenges his desire for global control.\" (p. 177)\n\nCross-linked to Armageddon: \"Armageddon is a compound word that comes from two Hebrew words: Har ('mountain') and mo'ed ('congregation'). The king of the north and his cohorts actually gather at the Mount of the Congregation. Biblical Hebrew has no vowels. The consonants in Har-maggedon are identical to Har-mo'ed.\" (p. 179) \"In Daniel and Revelation God gathers His people to Mt. Zion where the temple is and the spiritual temple on earth is the church. The book of Revelation refers to a two-fold gathering. God's people gather to Mt. Zion and the wicked gather around it in the winepress in an attempt to destroy it.\" (pp. 179-180) Bohr then catalogs a multi-passage refuge-in-Jerusalem chain (Rev 14:19-20; Joel 2:12-18 + 2:32; Rev 16:12-16 with Isa 14:12-14; Dan 11:45; Ps 48:1-14; Isa 4:2-3; Eze 38-39; Rev 14:1-5; Isa 24:20-23 with Rev 20:7-9; Rev 17:14; Isa 37:32-35; Rev 20:7-10 — pp. 180-181).\n\nThe spiritualization is then explicit: \"**The gathering of the king of the north against Jerusalem cannot be literal. Why not? The answer is simple. Neither Jerusalem nor Mt. Zion today are holy.**\" (p. 182) Three EGW quotations are stacked to support: _Review and Herald_ Feb 25 1896 (\"The curse of God is upon Jerusalem and its surroundings, and the land is defiled under the inhabitants thereof. There is no real foundation for feelings of awe in looking upon the land of Palestine\"); _Review and Herald_ June 9 1896 (\"old Jerusalem will never be a sacred place until it is cleansed by the refining fire from heaven\"); _Early Writings_ 75-76 (\"I also saw that Old Jerusalem never would be built up\") (pp. 182-183).\n\nThe governing pre-/post-millennium principle: \"Before the millennium, the symbolic king of the north is the papacy, the visible leader who is under the leadership of the invisible leader—Satan. The symbolic king of the north and his spiritual armies gather outside spiritual, worldwide Jerusalem where the spiritual Israel of God has found refuge (Revelation 14:18-20; 19:11-15)... After the millennium, the literal New Jerusalem descends from heaven and all of God's people from all ages enter the literal city. At this moment, the counterfeit king of the north is Satan, visible and in person, who prepares his literal armies to attack the literal city of Jerusalem... Thus, before the millennium Jerusalem is spiritual and worldwide and after the millennium it is literal and literally where the Mount of Olives stood.\" (pp. 183-184)\n\nOn \"he shall come to his end and none shall help him\": Bohr places the end at the fifth plague when Babylon's helpers turn — \"the false prophet (Revelation 13:11-18), the kings of the earth (Revelation 17:1, 2; 18:2, 3; 16:14) the merchants of the earth (Revelation 18:6-24), and the multitudes (Revelation 17:1, 2, 15) have supported the apostate king of the north... However, when the fifth plague falls, Babylon's helpers will turn on the harlot and leave her desolate.\" (pp. 184-185) Confirmed by EGW: _Great Controversy_ 635-636 (the rainbow + halted multitudes) and 655-656 (multitudes turn on the unfaithful pastors) — pp. 185-186."
+        }
+      ],
       "warrant": null,
       "violations": {
         "scope": "verse",

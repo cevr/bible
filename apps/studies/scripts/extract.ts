@@ -128,7 +128,7 @@ function parseVerse(input: ParsedVerseInput): Verse {
     slug,
     text: input.text,
     pioneerReading: null,
-    bohrReading: null,
+    modernReadings: [],
     warrant: null,
     violations: null,
     status: null,
@@ -154,8 +154,9 @@ function classify(b: Block, verse: Verse, verseRef: string): void {
       last.html = `${last.html}\n\n${b.raw}`;
       return;
     }
-    if (verse.bohrReading) {
-      verse.bohrReading.html = `${verse.bohrReading.html}\n\n${b.raw}`;
+    const lastModern = verse.modernReadings[verse.modernReadings.length - 1];
+    if (lastModern) {
+      lastModern.html = `${lastModern.html}\n\n${b.raw}`;
       return;
     }
     if (verse.pioneerReading) {
@@ -182,7 +183,11 @@ function classify(b: Block, verse: Verse, verseRef: string): void {
 
   // Bohr's reading — possibly with citation
   if (/^Bohr['’]s reading(\s*\([^)]*\))?$/i.test(label)) {
-    verse.bohrReading = { citation: extractCitation(label), html: b.body };
+    verse.modernReadings.push({
+      source: 'bohr',
+      citation: extractCitation(label),
+      html: b.body,
+    });
     return;
   }
 
@@ -466,7 +471,9 @@ function main(): void {
 
     writeFileSync(join(OUT_ROOT, 'chapters', `${slug}.json`), JSON.stringify(chapter, null, 2));
 
-    const addressed = verses.filter((v) => v.bohrReading || v.violations || v.status).length;
+    const addressed = verses.filter(
+      (v) => v.modernReadings.length > 0 || v.violations || v.status,
+    ).length;
     const violations = verses.filter((v) => v.violations && v.violations.items.length > 0).length;
     const density = verses.length > 0 ? Math.round((violations / verses.length) * 100) : 0;
 
@@ -485,10 +492,10 @@ function main(): void {
 
   const meta: SeriesMeta = {
     slug: 'bohr-vs-millers-rules',
-    title: "Bohr vs. Miller's Rules",
+    title: 'Pioneer vs. Modern',
     subtitle: 'a verse-by-verse audit',
     eyebrow: 'Reference · v3 The Sure Word',
-    lede: "A 280-verse audit of Stephen Bohr's published readings of Daniel 11 and Revelation 1-22, scored against William Miller's 14 Rules of Interpretation (1842) and compared against the pioneer SDA baseline in Uriah Smith's Daniel and the Revelation.",
+    lede: "A 280-verse audit of modern teachers' published readings of Daniel 11 and Revelation 1-22, scored against William Miller's 14 Rules of Interpretation (1842) and compared against the pioneer SDA baseline in Uriah Smith's Daniel and the Revelation.",
     source: {
       path: 'packages/cli/outputs/studies/daniel-revelation/v3-the-sure-word/reference/bohr-vs-millers-rules.md',
       extractedAt: new Date().toISOString(),
@@ -502,7 +509,9 @@ function main(): void {
   const totalViolations = index.reduce((acc, e) => acc + e.violations, 0);
 
   console.log(`extract: wrote ${index.length} chapters`);
-  console.log(`extract: ${totalVerses} verses total, ${totalAddressed} addressed by Bohr`);
+  console.log(
+    `extract: ${totalVerses} verses total, ${totalAddressed} addressed by a modern source`,
+  );
   console.log(`extract: ${totalViolations} verses with rule violations`);
   for (const e of index) {
     console.log(

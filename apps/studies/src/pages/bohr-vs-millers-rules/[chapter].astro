@@ -30,7 +30,7 @@ const orderedIndex = order
 
 const verseCount = chapter.verses.length;
 const addressed = chapter.verses.filter(
-  (v) => v.bohrReading || v.violations || v.status,
+  (v) => v.modernReadings.length > 0 || v.violations || v.status,
 ).length;
 const violationCount = chapter.verses.filter(
   (v) => v.violations && v.violations.items.length > 0,
@@ -40,7 +40,7 @@ function shouldRenderCard(verse: typeof chapter.verses[number]): boolean {
   return Boolean(
     (verse.violations && verse.violations.items.length > 0) ||
       verse.pioneerReading ||
-      verse.bohrReading ||
+      verse.modernReadings.length > 0 ||
       verse.warrant ||
       verse.extensions.length > 0,
   );

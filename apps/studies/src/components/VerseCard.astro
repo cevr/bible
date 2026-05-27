@@ -1,5 +1,5 @@
 ---
-import type { Verse } from "../../scripts/schema.ts";
+import { MODERN_SOURCE_NAMES, type Verse } from "../../scripts/schema.ts";
 import { md, mdInline } from "../lib/md.ts";
 import ViolationBadge from "./ViolationBadge.astro";
 
@@ -45,18 +45,25 @@ const permalink = `#${verse.slug}`;
         <p class="reading-empty">— no pioneer reading on this verse</p>
       )}
     </section>
-    <section class="reading-col reading-bohr">
+    <section class="reading-col reading-modern">
       <p class="reading-tag">
         <span class="swatch" aria-hidden="true"></span>
-        Bohr
-        {verse.bohrReading?.citation && (
-          <span class="cite">{verse.bohrReading.citation}</span>
-        )}
+        Modern
       </p>
-      {verse.bohrReading ? (
-        <div class="reading-body" set:html={md(verse.bohrReading.html)} />
+      {verse.modernReadings.length > 0 ? (
+        <div class="modern-stack">
+          {verse.modernReadings.map((r) => (
+            <div class={`modern-entry modern-${r.source}`}>
+              <p class="modern-source">
+                {MODERN_SOURCE_NAMES[r.source]}
+                {r.citation && <span class="cite">{r.citation}</span>}
+              </p>
+              <div class="reading-body" set:html={md(r.html)} />
+            </div>
+          ))}
+        </div>
       ) : (
-        <p class="reading-empty">— Bohr does not address this verse separately</p>
+        <p class="reading-empty">— no modern reading on this verse</p>
       )}
     </section>
   </div>

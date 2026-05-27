@@ -13,10 +13,13 @@
         "citation": "DAR 391.2-392.2",
         "html": "**The book = a revelation of scenes in church history to the end of time, in the right hand of the Father.** \"**By the words, 'him that sat on the throne,' is evidently meant the Father, as the Son is subsequently introduced as 'a Lamb as it had been slain.' The book which John here saw, contained a revelation of scenes that were to transpire in the history of the church to the end of time. Its being held in the right hand of him that sat on the throne may signify that a knowledge of the future rests with God alone, except so far as he sees fit to reveal it to others**\" (DAR 391.2). Smith details the ancient scroll-book form (citing Wesley, Scott, and Bloomfield, DAR 391.3-392.2): the book was a long parchment scroll, written on the inside (the rolled-inward face), sealed at intervals so that breaking each seal disclosed a portion of the contents — \"**the loosing of each seal was followed by some discovery of the contents of the roll**\" (DAR 392.1)."
       },
-      "bohrReading": {
-        "citation": "_Seven Seals_, pp. 30-38",
-        "html": "**The book = the title-deed to the inheritance Adam lost, sealed with the legally-required seven seals.** Verbatim on the scholarly framework: \"**In order to protect the contents of legal documents (such as deeds of sale, contracts, wills, and letters), a seal impression was normally made with a signet or ring at the end of the written document... Only the owner could break the seals and disclose the contents**\" (p. 37, quoting Ranko Stefanovic, _Revelation of Jesus Christ_, p. 197). \"**Roman law dictated that a will or testament had to be sealed with a minimum of seven seals of witnesses in order to render its contents valid... Like any sealed scroll of the time, the scroll of Revelation 5 appears rolled up, tied with a cord, and sealed along the outside edge with seals of wax affixed at the knots**\" (p. 37, Stefanovic). Quoting R. H. Charles: \"**A will, according to the Praetorian Testament, in Roman Law bore the seven seals of the seven witnesses on the threads that secured the tablets or parchment**\" (p. 37). Quoting Kenneth Strand: \"**The central item, the seven-sealed scroll, portrays a will or testament... In the context of Revelation, this will or testament would be a title deed, as it were, to man's lost inheritance — an inheritance which has been repurchased by Christ, the Lamb. Thus, the scroll is a book of destiny. The opening of it means inheritance in God's kingdom; its remaining closed means forfeiture**\" (p. 38). Bohr anchors the substantive content in EGW: \"**There in His open hand lay the book, the roll of the history of God's providences, the prophetic history of nations and the church. Herein was contained the divine utterances, His authority, His commandments, His laws, the whole symbolic counsel of the Eternal, and the history of all ruling powers in the nations**\" (p. 38, _Manuscript Releases_ vol. 9, p. 7). **Convergent with Smith on substance; Bohr adds the legal-redemption framework.**"
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Seven Seals_, pp. 30-38",
+          "html": "**The book = the title-deed to the inheritance Adam lost, sealed with the legally-required seven seals.** Verbatim on the scholarly framework: \"**In order to protect the contents of legal documents (such as deeds of sale, contracts, wills, and letters), a seal impression was normally made with a signet or ring at the end of the written document... Only the owner could break the seals and disclose the contents**\" (p. 37, quoting Ranko Stefanovic, _Revelation of Jesus Christ_, p. 197). \"**Roman law dictated that a will or testament had to be sealed with a minimum of seven seals of witnesses in order to render its contents valid... Like any sealed scroll of the time, the scroll of Revelation 5 appears rolled up, tied with a cord, and sealed along the outside edge with seals of wax affixed at the knots**\" (p. 37, Stefanovic). Quoting R. H. Charles: \"**A will, according to the Praetorian Testament, in Roman Law bore the seven seals of the seven witnesses on the threads that secured the tablets or parchment**\" (p. 37). Quoting Kenneth Strand: \"**The central item, the seven-sealed scroll, portrays a will or testament... In the context of Revelation, this will or testament would be a title deed, as it were, to man's lost inheritance — an inheritance which has been repurchased by Christ, the Lamb. Thus, the scroll is a book of destiny. The opening of it means inheritance in God's kingdom; its remaining closed means forfeiture**\" (p. 38). Bohr anchors the substantive content in EGW: \"**There in His open hand lay the book, the roll of the history of God's providences, the prophetic history of nations and the church. Herein was contained the divine utterances, His authority, His commandments, His laws, the whole symbolic counsel of the Eternal, and the history of all ruling powers in the nations**\" (p. 38, _Manuscript Releases_ vol. 9, p. 7). **Convergent with Smith on substance; Bohr adds the legal-redemption framework.**"
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -37,10 +40,13 @@
         "citation": "DAR 392.4",
         "html": "**A strong angel of great eminence, but not specifically identified.** \"**God, as it were, holds forth this book to the view of the universe, and a strong angel, one doubtless of great eminence and power, comes forth as a crier, and with a mighty voice challenges all creatures in the universe to try the strength of their wisdom in opening the counsels of God. Who can be found worthy to open the book, and to loose the seals thereof? A pause ensues. In silence the universe owns its inability and unworthiness to enter into the counsels of the Creator**\" (DAR 392.4)."
       },
-      "bohrReading": {
-        "citation": "_Seven Seals_, p. 31",
-        "html": "\"**The word 'worthy' means 'qualified.' The person who breaks the seals and opens the scroll must meet certain qualifications**\" (p. 31). Bohr unpacks the lexical range of _axios_ (\"worthy\" = \"qualified\"): Matt 10:10 (laborer worthy of his wages), Luke 12:48 (committed things worthy of stripes), Luke 15:19 (the prodigal acted unworthily), Rev 16:6 (the wicked have earned the right to drink blood), Acts 26:31 (Paul committed nothing worthy of death). The strong angel himself Bohr does not specifically identify."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Seven Seals_, p. 31",
+          "html": "\"**The word 'worthy' means 'qualified.' The person who breaks the seals and opens the scroll must meet certain qualifications**\" (p. 31). Bohr unpacks the lexical range of _axios_ (\"worthy\" = \"qualified\"): Matt 10:10 (laborer worthy of his wages), Luke 12:48 (committed things worthy of stripes), Luke 15:19 (the prodigal acted unworthily), Rev 16:6 (the wicked have earned the right to drink blood), Acts 26:31 (Paul committed nothing worthy of death). The strong angel himself Bohr does not specifically identify."
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -61,10 +67,13 @@
         "citation": "DAR 392.4",
         "html": "\"**'And no man in heaven,' οὐδείς, not merely no man, but no one, no being, in heaven. Is not here proof that the faculties of angels are limited, like those of man, in respect to penetrating the future, and disclosing what is to come?**\" (DAR 392.4)."
       },
-      "bohrReading": {
-        "citation": "_Seven Seals_, pp. 31-32",
-        "html": "\"**The worthy person could open the book and read its contents until all seven seals had been broken. A crisis of universal proportions ensued because there was no one in heaven, on earth or under the earth who was qualified to break the seals, open the book and read its contents. John was not so much concerned with the breaking of the seals as he was with the contents of the scroll. John's tears were not tears of curiosity; they were tears of desperation and supreme agony. The book contained information of life and death importance and yet there was no one who was worthy to break the seals and open the book. Not Moses, not Elijah, not Enoch. Not the representatives of the worlds, not the cherubim and seraphim, not the angels, not even the Father Himself was qualified to break the seals and open the scroll**\" (pp. 31-32). The crisis is universal because the title-deed cannot be claimed apart from the kinsman-redeemer-second-Adam."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Seven Seals_, pp. 31-32",
+          "html": "\"**The worthy person could open the book and read its contents until all seven seals had been broken. A crisis of universal proportions ensued because there was no one in heaven, on earth or under the earth who was qualified to break the seals, open the book and read its contents. John was not so much concerned with the breaking of the seals as he was with the contents of the scroll. John's tears were not tears of curiosity; they were tears of desperation and supreme agony. The book contained information of life and death importance and yet there was no one who was worthy to break the seals and open the book. Not Moses, not Elijah, not Enoch. Not the representatives of the worlds, not the cherubim and seraphim, not the angels, not even the Father Himself was qualified to break the seals and open the scroll**\" (pp. 31-32). The crisis is universal because the title-deed cannot be claimed apart from the kinsman-redeemer-second-Adam."
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -85,10 +94,13 @@
         "citation": "DAR 392.4-393.1",
         "html": "\"**when the apostle saw that no one came forward to open the book, he greatly feared that the counsels of God which it contained in reference to his people, would never be disclosed, and in natural tenderness of his feelings, and his concern for the church, he wept much**\" (DAR 392.4). Smith adds Benson's gloss: \"**'This weeping of the apostle sprang from greatness of mind. The tenderness of heart which he always had, appeared more clearly now he was out of his own power. The Revelation was not written without tears, neither without tears will it be understood**'\" (DAR 393.1)."
       },
-      "bohrReading": {
-        "citation": "_Seven Seals_, p. 32",
-        "html": "\"**The Greek word 'wept' is very intense. Luke 8:52 uses it to describe the weeping over the death of Jairus' daughter. Luke 22:62 uses the word to describe Peter's weeping after he denied Jesus the third time and Luke 19:41 describes Jesus weeping over Jerusalem. Revelation 18:9, 11, 15, 19 describes the weeping and wailing of the merchants of the earth when the economy of Babylon collapses**\" (p. 32). The intensity-cross-references confirm the universal-stakes reading of v.3: with no kinsman-redeemer, the inheritance is forfeit."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Seven Seals_, p. 32",
+          "html": "\"**The Greek word 'wept' is very intense. Luke 8:52 uses it to describe the weeping over the death of Jairus' daughter. Luke 22:62 uses the word to describe Peter's weeping after he denied Jesus the third time and Luke 19:41 describes Jesus weeping over Jerusalem. Revelation 18:9, 11, 15, 19 describes the weeping and wailing of the merchants of the earth when the economy of Babylon collapses**\" (p. 32). The intensity-cross-references confirm the universal-stakes reading of v.3: with no kinsman-redeemer, the inheritance is forfeit."
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -109,10 +121,13 @@
         "citation": "DAR 393.3-394.2",
         "html": "**The Lion of the tribe of Judah = Christ, the Root of David, who has prevailed by his victory.** \"**Christ is here called the 'Lion of the tribe of Juda.' Why called a lion? and why of the tribe of Judah? — As to the first, it is probably to denote his strength. As the lion is the king of beasts, the monarch of the forest, he thus becomes a fit emblem of kingly authority and power. 'Of the tribe of Juda.' Doubtless he receives this appellation from the prophecy in Genesis 49:9, 10**\" (DAR 393.3). On the Root of David: \"**The Root of David. — The source and sustainer of David as to his position and power. That David's position was specially ordained of Christ, and that he was specially sustained by him, there can be no doubt. David was the type, Christ the antitype**\" (DAR 394.1). On \"hath prevailed\": \"**These words indicate that the right to open the book was acquired by a victory gained in some previous conflict; and so we find it set forth in subsequent portions of this chapter. The very next scene introduces us to the great work of Christ as the Redeemer of the world, and the shedding of his blood for the remission of sin and the salvation of man. In this work he was subjected to the fiercest assaults of Satan. But he endured his temptations, bore the agonies of the cross, rose a victor over death and the grave, made the way of redemption sure — triumphed!**\" (DAR 394.2)."
       },
-      "bohrReading": {
-        "citation": "_Seven Seals_, pp. 32-33",
-        "html": "**Same identification — the Lion of Judah = Christ, who has overcome.** \"**In ancient Israel, kings came from the tribe of Judah (Genesis 49:9, 10) and Jesus is the Root and Offspring of David and the Lion of the Tribe of Judah (Revelation 5:5; 22:16). Jesus, who is now the saving Lamb, will become a Lion when He finally opens the scroll**\" (p. 32). Bohr emphasizes the **paradoxical Lion-Lamb duality** via AA 589: \"**'The Savior is presented before John under the symbols of \"the Lion of the tribe of Judah\" and of \"a Lamb as it had been slain.\" (Revelation 5:5, 6) These symbols represent the union of omnipotent power and self-sacrificing love. The Lion of Judah, so terrible to the rejectors of His grace, will be the Lamb of God to the obedient and faithful**'\" (pp. 32-33). On the past-tense \"_hath prevailed_\": \"**'has prevailed' [past, 'has overcome' John 16:33 refers to the overcoming of Jesus]**\" (p. 32). Bohr links Rev 5:5 to Rev 3:21: \"**We must understand Revelation 5:5 in the context of Revelation 3:21. In fact, Revelation 5:5 expands upon the last part of verse 21. After Jesus overcame, John saw him break the seals one by one and finally open the scroll. He was qualified to do this because He overcame**\" (p. 33)."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Seven Seals_, pp. 32-33",
+          "html": "**Same identification — the Lion of Judah = Christ, who has overcome.** \"**In ancient Israel, kings came from the tribe of Judah (Genesis 49:9, 10) and Jesus is the Root and Offspring of David and the Lion of the Tribe of Judah (Revelation 5:5; 22:16). Jesus, who is now the saving Lamb, will become a Lion when He finally opens the scroll**\" (p. 32). Bohr emphasizes the **paradoxical Lion-Lamb duality** via AA 589: \"**'The Savior is presented before John under the symbols of \"the Lion of the tribe of Judah\" and of \"a Lamb as it had been slain.\" (Revelation 5:5, 6) These symbols represent the union of omnipotent power and self-sacrificing love. The Lion of Judah, so terrible to the rejectors of His grace, will be the Lamb of God to the obedient and faithful**'\" (pp. 32-33). On the past-tense \"_hath prevailed_\": \"**'has prevailed' [past, 'has overcome' John 16:33 refers to the overcoming of Jesus]**\" (p. 32). Bohr links Rev 5:5 to Rev 3:21: \"**We must understand Revelation 5:5 in the context of Revelation 3:21. In fact, Revelation 5:5 expands upon the last part of verse 21. After Jesus overcame, John saw him break the seals one by one and finally open the scroll. He was qualified to do this because He overcame**\" (p. 33)."
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -133,10 +148,13 @@
         "citation": "DAR 394.3-395.3",
         "html": "**A Lamb as it had been slain, in the very act of pouring out his blood — perfect-tense Greek.** \"**John looks to see the Lion of the tribe of Judah, and beholds a Lamb in the midst of the throne and of the four living beings and the elders, as it had been slain**\" (DAR 394.3). Quoting Doddridge on \"in the midst of the throne\": \"**'And I beheld in the middle space between the throne and the four living creatures, and in the midst of the elders there stood a Lamb,' etc. In the center of the scene was the throne of the Father, and standing in the open space which surrounded it was the Son, set forth under the symbol of a slain lamb**\" (DAR 395.1). On \"as it had been slain\": \"**Woodhouse, as quoted in the Comprehensive Commentary, says: 'The Greek implies that the Lamb appeared with a wounded neck and throat, as if smitten at the altar as a victim.' On this phrase, Clarke says: 'As if now in the act of being offered. This is very remarkable. So important is the sacrificial offering of Christ in the sight of God, that he is still represented as being in the very act of pouring out his blood for the offenses of man**'\" (DAR 395.2). On the **seven horns and seven eyes**: \"**Horns are symbols of power, eyes of wisdom; and seven is a number denoting completeness, or perfection. We are thus taught that perfect power and perfect wisdom inhere in the Lamb, through the operation of the Spirit of God, called the seven Spirits of God, to denote the fulness and perfection of its operation**\" (DAR 395.3)."
       },
-      "bohrReading": {
-        "citation": "_Seven Seals_, pp. 33-34, 133-134",
-        "html": "**Same Lamb-still-bearing-the-fresh-wounds reading**, anchored chronologically at the ascension. \"**When John saw the Lamb, the wounds on His body were still fresh. He had just come from the battlefield and had the wounds to prove it. He was standing in the midst of the throne because kings and priests stood at their anointing**\" (p. 33). On the **seven horns**: \"**The seven horns are actually the glorious rays of the sun that shine forth from the Lamb's crown representing His almighty power as king of the kingdom of grace (see Habakkuk 3:4 where the KJV states that 'horns' will come out of the hand of Jesus when He returns because there is the hiding of His power. In CS, p. 349 and GC, p. 674 Ellen White explains that the horns are the beams of glory that will shine forth from the marks of the crucifixion on the body of Jesus)**\" (p. 33). On the **seven eyes / seven Spirits sent forth**: \"**The seven eyes represent the seven spirits that stood before the throne before the arrival of Jesus. The Father sent the Spirit to the earth on the day of Pentecost after Christ's inauguration**\" (p. 33, citing AA 38). And: \"**Revelation 5:6 explains that the 'lamb that was slain' came to the Father who was sitting on His throne in the holy place and immediately afterwards the Father sent the seven spirits of fire to the earth. The pattern is clear: First, the sacrificial Lamb presented Himself alive before the Father, and then the Father sent the Holy Spirit, symbolized by the seven Spirits of fire, thus announcing that the Father had accepted the sacrifice!**\" (pp. 133-134). **Convergent with Smith on the Lamb / horns-eyes / seven Spirits; Bohr adds the Day-of-Pentecost specification of the \"sent forth into all the earth\" clause.**"
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Seven Seals_, pp. 33-34, 133-134",
+          "html": "**Same Lamb-still-bearing-the-fresh-wounds reading**, anchored chronologically at the ascension. \"**When John saw the Lamb, the wounds on His body were still fresh. He had just come from the battlefield and had the wounds to prove it. He was standing in the midst of the throne because kings and priests stood at their anointing**\" (p. 33). On the **seven horns**: \"**The seven horns are actually the glorious rays of the sun that shine forth from the Lamb's crown representing His almighty power as king of the kingdom of grace (see Habakkuk 3:4 where the KJV states that 'horns' will come out of the hand of Jesus when He returns because there is the hiding of His power. In CS, p. 349 and GC, p. 674 Ellen White explains that the horns are the beams of glory that will shine forth from the marks of the crucifixion on the body of Jesus)**\" (p. 33). On the **seven eyes / seven Spirits sent forth**: \"**The seven eyes represent the seven spirits that stood before the throne before the arrival of Jesus. The Father sent the Spirit to the earth on the day of Pentecost after Christ's inauguration**\" (p. 33, citing AA 38). And: \"**Revelation 5:6 explains that the 'lamb that was slain' came to the Father who was sitting on His throne in the holy place and immediately afterwards the Father sent the seven spirits of fire to the earth. The pattern is clear: First, the sacrificial Lamb presented Himself alive before the Father, and then the Father sent the Holy Spirit, symbolized by the seven Spirits of fire, thus announcing that the Father had accepted the sacrifice!**\" (pp. 133-134). **Convergent with Smith on the Lamb / horns-eyes / seven Spirits; Bohr adds the Day-of-Pentecost specification of the \"sent forth into all the earth\" clause.**"
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -157,10 +175,13 @@
         "citation": "DAR 395.4",
         "html": "**The Lamb takes the book.** Smith addresses the apparent incongruity of a lamb taking a book: \"**Commentators have found an incongruity in the idea that the book was taken by a lamb, and have had recourse to several expedients to avoid the difficulty. But is it not a well-established principle that any action may be attributed to a symbol which could be appropriately performed by the person or being represented by the symbol? And is not this all the explanation that the passage needs? The lamb, we know, is a symbol of Christ. We know there is nothing incongruous in Christ's taking a book; and when we read that the book was taken, we think of the action, not as performed by the lamb, but by the one of whom the lamb is a symbol**\" (DAR 395.4)."
       },
-      "bohrReading": {
-        "citation": "_Seven Seals_, pp. 34-35",
-        "html": "\"**The text tells us that Jesus 'came' to the Father so He must not have been there before. Up to this point, there have been no songs in chapter 5. All the beings that were present for the reception of the War Hero waited in suspense to see if someone was worthy or qualified to break the seals and open the scroll**\" (p. 35; the verse-7 text quote sits at the bottom of p. 34). Bohr reads v.7 as **the inauguration of Christ as king-priest** — the Father hands the title-deed / book-of-destiny to the kinsman-redeemer who has prevailed by his blood. The post-resurrection EGW imagery from DA 833-835 (cited at the chapter-end) describes the moment."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Seven Seals_, p. 34",
+          "html": "\"**The text tells us that Jesus 'came' to the Father so He must not have been there before. Up to this point, there have been no songs in chapter 5. All the beings that were present for the reception of the War Hero waited in suspense to see if someone was worthy or qualified to break the seals and open the scroll**\" (p. 34). Bohr reads v.7 as **the inauguration of Christ as king-priest** — the Father hands the title-deed / book-of-destiny to the kinsman-redeemer who has prevailed by his blood. The post-resurrection EGW imagery from DA 833-835 (cited at the chapter-end) describes the moment."
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -181,10 +202,13 @@
         "citation": "DAR 396.1-396.5",
         "html": "**The vials of odours = the prayers of the saints; the four living creatures and the 24 elders are the priestly assistants of Christ in his heavenly ministry, offering incense as the church prays.** \"**Vials Full of Odors. — From this expression we form an idea of the employment of those redeemed ones represented by the four living creatures and the four and twenty elders. They have golden vials, or vessels, full of odors — or, as the margin reads, incense — which are the prayers of saints. This is a work of ministry such as pertains to priests**\" (DAR 396.2). Smith cites Scott: \"**'It is indisputably manifest that the four living creatures join in, or rather lead, the worship of the Lamb as having redeemed them to God; and this proves beyond controversy that part of the redeemed church is meant by this emblem, and not angels, whose worship is next described, but in language evidently different**'\" (DAR 396.3). And Barnes: \"**'The idea here is, therefore, that the representatives of the church in heaven, the elders, spoken of as \"priests,\" are described as officiating in the temple above in behalf of the church still below, and as offering incense while the church is engaged in prayer**'\" (DAR 396.4). Smith ties the whole into the high-priestly-assistants framework: \"**when we consider that we are now looking into the sanctuary in heaven, the conclusion at once follows that these redeemed ones are the assistants of our great High Priest above. For this purpose they were doubtless redeemed**\" (DAR 396.5)."
       },
-      "bohrReading": {
-        "citation": "_Seven Seals_, pp. 21, 35",
-        "html": "\"**Verse 8 tells us that the seraphim and the 24 elders play an intercessory role. We begin to discern that the 24 elders are angelic in nature**\" (p. 35). Bohr cites EGW (Counsels to Teachers p. 110) — \"_Angels offer the smoke of the fragrant incense for the praying saints_\" — as anchoring the **angelic-intercessory** reading. Note: Bohr also confirms the **altar-of-incense location** in the holy place via v.8 (cf. Rev 8:3-5) at p. 21. **Diverges from Smith on the identity of the intercessors:** Smith reads them as redeemed-human assistants of Christ in the heavenly priesthood; Bohr reads them as angelic intercessors (the seraphim + the unfallen-worlds representatives)."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Seven Seals_, p. 34",
+          "html": "\"**Verse 8 tells us that the seraphim and the 24 elders play an intercessory role. We begin to discern that the 24 elders are angelic in nature**\" (p. 34). Bohr cites EGW (Counsels to Teachers p. 110) — \"_Angels offer the smoke of the fragrant incense for the praying saints_\" — as anchoring the **angelic-intercessory** reading. Note: Bohr also confirms the **altar-of-incense location** in the holy place via v.8 (cf. Rev 8:3-5) at p. 21. **Diverges from Smith on the identity of the intercessors:** Smith reads them as redeemed-human assistants of Christ in the heavenly priesthood; Bohr reads them as angelic intercessors (the seraphim + the unfallen-worlds representatives)."
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -205,10 +229,13 @@
         "citation": "DAR 397.2",
         "html": "**The new song = the song of the redeemed firstfruits, sung by those who can sing it because they themselves are the first that were redeemed.** \"**The Song. — It is called 'a new song,' new, probably, in respect to the occasion and the composition. They were the first that could sing it, being the first that were redeemed. They call themselves kings and priests. In what sense they are priests has already been noticed, they being the assistants of Christ in his priestly work. In the same sense, doubtless, they are also kings; for Christ is set down with his Father on his throne, and doubtless these, as ministers of his, have some part to act in connection with the government of heaven in reference to this world**\" (DAR 397.2). The first-person _us_ is decisive for Smith: only redeemed humans can sing \"_thou wast slain, and hast redeemed us to God by thy blood out of every kindred, and tongue, and people, and nation_.\""
       },
-      "bohrReading": {
-        "citation": "_Seven Seals_, pp. 35-36, 84-88",
-        "html": "**The song is third-person in the original Greek; the KJV's first-person _us_ is a mistranslation that every modern translation has corrected.** Bohr's translation of vv. 9-10 substituting the modern-version readings: \"**'You are worthy [qualified] to take the scroll and to open its seals; for You were [past] slain, and have redeemed [past] us [people] to God by Your blood out of every tribe and tongue and people and nation, and have made [past] us [them] kings and priests to our God; and we [they] shall [future] reign on the earth.'**\" (p. 35; brackets in original). Bohr's case for the mistranslation occupies Lesson 6 (pp. 84-88): \"**The simple fact is that the King James Version as well as the New King James Version mistranslate Revelation 5:9, 10 and every modern translation has corrected the error**\" (p. 86), then catalogs eight modern translations (NIV, NASB, RSV, NEB, Weymouth, Phillips, Jerusalem Bible, New American Bible, Jewish New Testament) — all third-person. On the **substance** (the new song): \"**The mighty angel's two-fold question will now receive an answer. Who is worthy to break the seals and open the scroll and why? The Lamb can do it because he overcame and shed his blood to redeem or buy back the inheritance that Adam lost. The word 'redeem' in Revelation 5:9 means 'to buy something back by paying a price'. It translates the Greek word hagorazo (Matthew 13:46; I Corinthians 6:20; II Peter 2:1). Another related word, lutroo (I Peter 1:19), has a similar meaning and is the precise equivalent of go'el ('redeem') in the Old Testament (Leviticus 25:48). It is like buying an item back from a pawnshop**\" (p. 36). **Diverges from Smith on the song's grammatical subject** — Smith: first person, sung by the redeemed-human elders/creatures themselves; Bohr: third person, sung by angelic representatives about the redeemed humans."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Seven Seals_, pp. 35, 84-88",
+          "html": "**The song is third-person in the original Greek; the KJV's first-person _us_ is a mistranslation that every modern translation has corrected.** Bohr's translation of vv. 9-10 substituting the modern-version readings: \"**'You are worthy [qualified] to take the scroll and to open its seals; for You were [past] slain, and have redeemed [past] us [people] to God by Your blood out of every tribe and tongue and people and nation, and have made [past] us [them] kings and priests to our God; and we [they] shall [future] reign on the earth.'**\" (p. 35; brackets in original). Bohr's case for the mistranslation occupies Lesson 6 (pp. 84-88): \"**The simple fact is that the King James Version as well as the New King James Version mistranslate Revelation 5:9, 10 and every modern translation has corrected the error**\" (p. 86), then catalogs eight modern translations (NIV, NASB, RSV, NEB, Weymouth, Phillips, Jerusalem Bible, New American Bible, Jewish New Testament) — all third-person. On the **substance** (the new song): \"**The mighty angel's two-fold question will now receive an answer. Who is worthy to break the seals and open the scroll and why? The Lamb can do it because he overcame and shed his blood to redeem or buy back the inheritance that Adam lost. The word 'redeem' in Revelation 5:9 means 'to buy something back by paying a price'. It translates the Greek word hagorazo (Matthew 13:46; I Corinthians 6:20; II Peter 2:1). Another related word, lutroo (I Peter 1:19), has a similar meaning and is the precise equivalent of go'el ('redeem') in the Old Testament (Leviticus 25:48). It is like buying an item back from a pawnshop**\" (p. 35). **Diverges from Smith on the song's grammatical subject** — Smith: first person, sung by the redeemed-human elders/creatures themselves; Bohr: third person, sung by angelic representatives about the redeemed humans."
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -232,10 +259,13 @@
         "citation": "DAR 397.2-397.3",
         "html": "Tied to v.9 above. The elders/creatures are **kings and priests** in their delegated heavenly ministry, with their reign-on-the-earth still future at the time of the song's singing: \"**The Anticipation. — 'We shall reign on the earth.' Thus, notwithstanding they are redeemed, and surround the throne of God, and are in the presence of the Lamb that redeemed them, and are surrounded with the angelic hosts of heaven, where all is glory ineffable, their song contemplates a still higher state, when the great work of redemption shall be completed, and they, with the whole redeemed family of God, of every age, shall reign on the earth, which is the promised inheritance, and is to be the final and eternal residence of the saints**\" (DAR 397.3)."
       },
-      "bohrReading": {
-        "citation": "_Seven Seals_, p. 35; pp. 84-88",
-        "html": "Tied to v.9 — third-person reading: \"_have made them kings and priests ... they shall reign on the earth_.\" The reign-on-earth promise applies to the **redeemed humans** described in the song, not to the elder/creature singers themselves."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Seven Seals_, p. 35; pp. 84-88",
+          "html": "Tied to v.9 — third-person reading: \"_have made them kings and priests ... they shall reign on the earth_.\" The reign-on-earth promise applies to the **redeemed humans** described in the song, not to the elder/creature singers themselves."
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -256,10 +286,13 @@
         "citation": "DAR 398.1-398.2",
         "html": "**The innumerable angelic host surrounding the throne, the living creatures, and the elders** — three concentric circles, the angels forming the outermost. \"**(1) Round about the throne are those represented by the four living creatures. (2) Next come the four and twenty elders. (3) Then John views, surrounding the whole, a multitude of the heavenly angels. How many? How many would we suppose could convene within the heavenly temple? 'Ten thousand times ten thousand!' exclaims the seer. In this expression alone we have one hundred million! And then, as if no numerical expression was adequate to embrace the countless throng, he further adds, 'And thousands of thousands!' Well might Paul call this, in Hebrews 12:22, 'an innumerable company of angels.' And these were in the sanctuary above**\" (DAR 398.2)."
       },
-      "bohrReading": {
-        "citation": "_Seven Seals_, pp. 35-36, 65",
-        "html": "**Same three-concentric-circles reading; the angels arrived with Christ at his ascension.** \"**Then I looked, and I heard the voice of many angels around the throne [they stand on the outer circle of the throne, the creatures and the elders], the living creatures, and the elders**\" (p. 35, brackets in original). \"**Up to this point in Revelation 5, the angelic hosts have been absent from the scene but now John sees ten thousand times ten thousand and thousands of thousands of them singing praises to the Lamb. Where were they before and where did they come from? The answer is that they arrived with Jesus at His ascension**\" (p. 36). Bohr uses v.11 as a **decisive distinguishing-text**: \"**Although the twenty-four elders are angelic, they must not be confused with the regular angelic hosts. Revelation 5 draws a clear distinction between the 'regular' heavenly hosts and the twenty-four elders**\" (p. 65). Smith and Bohr agree on the geometry (three circles, angels outermost); they disagree on whether the inner two circles are also angelic."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Seven Seals_, pp. 35, 65",
+          "html": "**Same three-concentric-circles reading; the angels arrived with Christ at his ascension.** \"**Then I looked, and I heard the voice of many angels around the throne [they stand on the outer circle of the throne, the creatures and the elders], the living creatures, and the elders**\" (p. 35, brackets in original). \"**Up to this point in Revelation 5, the angelic hosts have been absent from the scene but now John sees ten thousand times ten thousand and thousands of thousands of them singing praises to the Lamb. Where were they before and where did they come from? The answer is that they arrived with Jesus at His ascension**\" (p. 35). Bohr uses v.11 as a **decisive distinguishing-text**: \"**Although the twenty-four elders are angelic, they must not be confused with the regular angelic hosts. Revelation 5 draws a clear distinction between the 'regular' heavenly hosts and the twenty-four elders**\" (p. 65). Smith and Bohr agree on the geometry (three circles, angels outermost); they disagree on whether the inner two circles are also angelic."
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -280,10 +313,13 @@
         "citation": "DAR 398.2",
         "html": "\"**every voice in all that heavenly host joined in the ascription which was raised, 'Worthy is the Lamb that was slain to receive power, and riches, and wisdom, and strength, and honor, and glory, and blessing.' Fitting assemblage for such a place! Fitting song of adoration to be raised to Him who by the shedding of his blood became a ransom for many, and who, as our great High Priest, still pleads its merits in the sanctuary above in our behalf**\" (DAR 398.2)."
       },
-      "bohrReading": {
-        "citation": "_Seven Seals_, p. 35",
-        "html": "Treated within the vv. 9-14 song-block. The seven-fold ascription (power, riches, wisdom, strength, honor, glory, blessing) Bohr does not exegete item-by-item; the whole is the angelic host's joining the inner-circle in the worship of the slain Lamb upon his inauguration as King of the kingdom of grace."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Seven Seals_, p. 35",
+          "html": "Treated within the vv. 9-14 song-block. The seven-fold ascription (power, riches, wisdom, strength, honor, glory, blessing) Bohr does not exegete item-by-item; the whole is the angelic host's joining the inner-circle in the worship of the slain Lamb upon his inauguration as King of the kingdom of grace."
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -304,10 +340,13 @@
         "citation": "DAR 399.2-400.1",
         "html": "**The clean-universe doxology — chronologically anticipatory, fulfilled after the post-millennial perdition of the ungodly and the purification of the earth.** \"**A Clean Universe. — In verse 13 we have an instance of what very frequently occurs in the Scriptures; namely, a declaration thrown in out of its chronological order for the purpose of following out to its completion some previous statement or allusion. In this instance the time is anticipated when redemption is finished. In verse 10 the four living creatures and four and twenty elders had declared, 'We shall reign on the earth.' Now the prophet's mind is carried forward to that time. The greatest act of Christ's intervention for man — the shedding of his blood — having been introduced, nothing could be more natural than that the vision should, for a moment, look over to the time when the grand result of the work then inaugurated should be accomplished, the number of the redeemed be made up, the universe be freed from sin and sinners, and a universal song of adoration go up to God and the Lamb**\" (DAR 399.2). Smith argues v.13 cannot apply to the present age because sin reigns: \"**at the time of which John speaks, every creature in heaven and on earth, without any exception, was sending up its anthem of blessings to God. But to speak only of this world since the fall, cursings instead of blessings have been breathed out against God and his throne from the great majority of our apostate race. And so it will ever be while sin reigns**\" (DAR 399.3). Smith locates the fulfillment **after the second resurrection** when fire devours the wicked (Rev 20:9; 2 Pet 3:7-13) and the earth is purified (DAR 400.1)."
       },
-      "bohrReading": {
-        "citation": "_Seven Seals_, p. 28; cf. DA 833-835 quotation in his Lesson 2",
-        "html": "**Convergent — the universal doxology of v.13 awaits the future moment when all creation joins the song.** Bohr quotes EGW (_Desire of Ages_ p. 835) at length, noting that at the ascension itself \"**Heaven [she does not say that those in heaven, on earth and under the earth sang at this point in time] rings with voices in lofty strains proclaiming, 'Blessing, and honor, and glory, and power, be unto Him that sitteth upon the throne, and unto the Lamb forever and ever.' Rev. 5:13**\" (p. 28, brackets in original). The bracketed editorial comment from Bohr underscores the proleptic / future-fulfilled nature of v.13: the song of heaven happens at the ascension, but the universal \"_every creature ... in heaven and on the earth and under the earth and ... in the sea_\" doxology awaits the end of the controversy. Cf. p. 318 (in later lessons): \"**In GC, p. 678, the every creature in the universe sings a final song giving honor and glory to the lamb (Revelation 5:13). This is the moment toward which Revelation 5:12, 13 in the introductory vision pointed**\"."
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Seven Seals_, p. 28; cf. DA 833-835 quotation in his Lesson 2",
+          "html": "**Convergent — the universal doxology of v.13 awaits the future moment when all creation joins the song.** Bohr quotes EGW (_Desire of Ages_ p. 835) at length, noting that at the ascension itself \"**Heaven [she does not say that those in heaven, on earth and under the earth sang at this point in time] rings with voices in lofty strains proclaiming, 'Blessing, and honor, and glory, and power, be unto Him that sitteth upon the throne, and unto the Lamb forever and ever.' Rev. 5:13**\" (p. 28, brackets in original). The bracketed editorial comment from Bohr underscores the proleptic / future-fulfilled nature of v.13: the song of heaven happens at the ascension, but the universal \"_every creature ... in heaven and on the earth and under the earth and ... in the sea_\" doxology awaits the end of the controversy. Cf. p. 419 (in later lessons): \"**In GC, p. 678, the every creature in the universe sings a final song giving honor and glory to the lamb (Revelation 5:13). This is the moment toward which Revelation 5:12, 13 in the introductory vision pointed**\" (paraphrased from line 10879)."
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {
@@ -328,10 +367,13 @@
         "citation": "DAR 401.2",
         "html": "\"**Coming back from the glorious scene anticipated in verse 13 to events transpiring in the heavenly sanctuary before him, the prophet hears the four living creatures exclaim, Amen**\" (DAR 401.2). Smith reads v.14 as the **return from the chronological digression of v.13** back to the ascension-inauguration scene itself: the inner-circle \"Amen\" closes the chapter on the worship of the Lamb. (Smith also uses DAR 401.1 to address the Christological question raised by the joint-doxology to \"him that sitteth upon the throne, and unto the Lamb\" — concluding that Christ's begotten-Son antedating-creation status warrants his receiving worship equally with the Father.)"
       },
-      "bohrReading": {
-        "citation": "_Seven Seals_, pp. 35-36",
-        "html": "\"**'And every creature that is in heaven and on the earth and under the earth and such as are in the sea, and all that are in them, I heard saying: \"Blessing and honor and glory and power Be to Him who sits on the throne, and to the Lamb, forever and ever!\" Then the four living creatures said, \"Amen!\" And the twenty-four elders fell down and worshiped Him who lives forever and ever**'\" (pp. 35-36; the v.14 portion of the long quote sits on p. 36). Bohr's exegesis at v.14 is folded into the larger vv. 9-14 worship-block; the seraphim's \"Amen\" and the elders' falling-down-and-worshiping close the inauguration scene. (No separate v.14 paragraph beyond the quotation.)"
-      },
+      "modernReadings": [
+        {
+          "source": "bohr",
+          "citation": "_Seven Seals_, p. 35",
+          "html": "\"**'And every creature that is in heaven and on the earth and under the earth and such as are in the sea, and all that are in them, I heard saying: \"Blessing and honor and glory and power Be to Him who sits on the throne, and to the Lamb, forever and ever!\" Then the four living creatures said, \"Amen!\" And the twenty-four elders fell down and worshiped Him who lives forever and ever**'\" (p. 35). Bohr's exegesis at v.14 is folded into the larger vv. 9-14 worship-block; the seraphim's \"Amen\" and the elders' falling-down-and-worshiping close the inauguration scene. (No separate v.14 paragraph beyond the quotation.)"
+        }
+      ],
       "warrant": null,
       "violations": null,
       "status": {

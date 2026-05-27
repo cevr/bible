@@ -63,6 +63,23 @@ export const Reading = z.object({
 });
 export type Reading = z.infer<typeof Reading>;
 
+export const ModernSource = z.enum(['bohr', 'ivor-myers', 'batchelor', 'veith']);
+export type ModernSource = z.infer<typeof ModernSource>;
+
+export const MODERN_SOURCE_NAMES: Record<ModernSource, string> = {
+  bohr: 'Stephen Bohr',
+  'ivor-myers': 'Ivor Myers',
+  batchelor: 'Doug Batchelor',
+  veith: 'Walter Veith',
+};
+
+export const ModernReading = z.object({
+  source: ModernSource,
+  citation: z.string().nullable(),
+  html: z.string(),
+});
+export type ModernReading = z.infer<typeof ModernReading>;
+
 export const LabeledBlock = z.object({
   label: z.string(),
   html: z.string(),
@@ -75,7 +92,7 @@ export const Verse = z.object({
   slug: z.string(),
   text: z.string(),
   pioneerReading: Reading.nullable(),
-  bohrReading: Reading.nullable(),
+  modernReadings: z.array(ModernReading),
   warrant: LabeledBlock.nullable(),
   violations: z
     .object({
