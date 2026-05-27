@@ -241,6 +241,21 @@
   padding-top: 0.9rem;
   border-top: 1px dashed var(--rule-soft);
 }
+/* When the source-filter hides an entry, the next visible entry takes the
+   top-divider role so the dashed rule doesn't disappear under hidden siblings. */
+[hidden][data-source-kind] + .pioneer-entry:not([hidden]),
+[hidden][data-source-kind] + .modern-entry:not([hidden]) {
+  padding-top: 0;
+  border-top: none;
+}
+/* All entries filtered out → render an inline message so the column doesn't go blank. */
+.pioneer-stack[data-all-hidden]::after,
+.modern-stack[data-all-hidden]::after {
+  content: '— all sources hidden by filter';
+  font-style: italic;
+  color: var(--ink-mute);
+  font-size: 0.85rem;
+}
 .pioneer-source,
 .modern-source {
   font-family: var(--body);

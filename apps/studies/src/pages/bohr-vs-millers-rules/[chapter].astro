@@ -5,6 +5,7 @@ import Site from "../../layouts/Site.astro";
 import VerseCard from "../../components/VerseCard.astro";
 import VerseCompact from "../../components/VerseCompact.astro";
 import ChapterNav from "../../components/ChapterNav.astro";
+import SourceFilter from "../../components/SourceFilter.astro";
 import { md } from "../../lib/md.ts";
 import { getChapter, getSeriesMeta } from "../../lib/content.ts";
 import "../../styles/verse.css";
@@ -71,6 +72,8 @@ function shouldRenderCard(verse: typeof chapter.verses[number]): boolean {
         currentSlug={chapter.slug}
         verses={chapter.verses}
       />
+
+      <SourceFilter verses={chapter.verses} />
 
       <div class="verses">
         {chapter.verses.map((verse) => (

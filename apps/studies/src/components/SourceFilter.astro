@@ -1,0 +1,232 @@
+---
+import {
+  MODERN_SOURCE_NAMES,
+  PIONEER_SOURCE_NAMES,
+  type ModernSource,
+  type PioneerSource,
+  type Verse,
+} from "../../scripts/schema.ts";
+
+interface Props {
+  verses: Verse[];
+}
+
+const { verses } = Astro.props;
+
+const pioneerCounts = new Map<PioneerSource, number>();
+const modernCounts = new Map<ModernSource, number>();
+
+for (const v of verses) {
+  for (const r of v.pioneerReadings) {
+    pioneerCounts.set(r.source, (pioneerCounts.get(r.source) ?? 0) + 1);
+  }
+  for (const r of v.modernReadings) {
+    modernCounts.set(r.source, (modernCounts.get(r.source) ?? 0) + 1);
+  }
+}
+
+const PIONEER_ORDER: PioneerSource[] = [
+  'smith',
+  'egw',
+  'miller',
+  'litch',
+  'j-white',
+  'andrews',
+  'crosier',
+  'haskell',
+  'jones',
+  'waggoner',
+];
+const MODERN_ORDER: ModernSource[] = ['bohr', 'ivor-myers', 'batchelor', 'veith'];
+
+const pioneerChips = PIONEER_ORDER.flatMap((s) => {
+  const count = pioneerCounts.get(s);
+  return count ? [{ source: s, name: PIONEER_SOURCE_NAMES[s], count }] : [];
+});
+const modernChips = MODERN_ORDER.flatMap((s) => {
+  const count = modernCounts.get(s);
+  return count ? [{ source: s, name: MODERN_SOURCE_NAMES[s], count }] : [];
+});
+
+const showFilter = pioneerChips.length + modernChips.length > 1;
+---
+
+{showFilter && (
+  <div class="source-filter" data-source-filter>
+    {pioneerChips.length > 0 && (
+      <div class="filter-group" data-kind="pioneer">
+        <span class="filter-label">Pioneer</span>
+        {pioneerChips.map((c) => (
+          <button
+            type="button"
+            class="filter-chip filter-chip-pioneer"
+            data-source={c.source}
+            data-kind="pioneer"
+            aria-pressed="true"
+          >
+            <span class="chip-name">{c.name}</span>
+            <span class="chip-count">{c.count}</span>
+          </button>
+        ))}
+      </div>
+    )}
+    {modernChips.length > 0 && (
+      <div class="filter-group" data-kind="modern">
+        <span class="filter-label">Modern</span>
+        {modernChips.map((c) => (
+          <button
+            type="button"
+            class="filter-chip filter-chip-modern"
+            data-source={c.source}
+            data-kind="modern"
+            aria-pressed="true"
+          >
+            <span class="chip-name">{c.name}</span>
+            <span class="chip-count">{c.count}</span>
+          </button>
+        ))}
+      </div>
+    )}
+  </div>
+)}
+
+<script>
+  const root = document.querySelector<HTMLElement>('[data-source-filter]');
+  if (root) {
+    const STORAGE_KEY = 'studies:source-filter';
+    const hidden = new Set<string>();
+
+    try {
+      const raw = sessionStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        for (const s of JSON.parse(raw) as string[]) hidden.add(s);
+      }
+    } catch {
+      // sessionStorage may be unavailable (private mode, sandboxed iframe); ignore.
+    }
+
+    function persist() {
+      try {
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify([...hidden]));
+      } catch {
+        // ignore
+      }
+    }
+
+    function apply() {
+      const allEntries = document.querySelectorAll<HTMLElement>('[data-source-kind]');
+      for (const el of allEntries) {
+        const key = `${el.dataset.sourceKind}:${el.dataset.source}`;
+        el.toggleAttribute('hidden', hidden.has(key));
+      }
+      const chips = root?.querySelectorAll<HTMLButtonElement>('.filter-chip') ?? [];
+      for (const chip of chips) {
+        const key = `${chip.dataset.kind}:${chip.dataset.source}`;
+        const active = !hidden.has(key);
+        chip.setAttribute('aria-pressed', String(active));
+      }
+      updateEmptyStates();
+    }
+
+    function updateEmptyStates() {
+      const cards = document.querySelectorAll<HTMLElement>('.verse-card, .verse-compact');
+      for (const card of cards) {
+        for (const stack of card.querySelectorAll<HTMLElement>('.pioneer-stack, .modern-stack')) {
+          const entries = stack.querySelectorAll<HTMLElement>('[data-source-kind]');
+          const visible = [...entries].some((e) => !e.hasAttribute('hidden'));
+          stack.toggleAttribute('data-all-hidden', !visible && entries.length > 0);
+        }
+      }
+    }
+
+    root.addEventListener('click', (event) => {
+      const target = (event.target as HTMLElement).closest<HTMLButtonElement>('.filter-chip');
+      if (!target) return;
+      const key = `${target.dataset.kind}:${target.dataset.source}`;
+      if (hidden.has(key)) hidden.delete(key);
+      else hidden.add(key);
+      persist();
+      apply();
+    });
+
+    apply();
+  }
+</script>
+
+<style>
+  .source-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.25rem 1.75rem;
+    align-items: center;
+    margin: 1.5rem 0 2rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--rule-soft);
+    border-radius: 2px;
+    background: var(--paper-tint);
+  }
+  .filter-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+  }
+  .filter-label {
+    font-family: var(--body);
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    margin-right: 0.25rem;
+  }
+  .filter-chip {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.45rem;
+    padding: 0.3rem 0.65rem;
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 0.78rem;
+    font-weight: 500;
+    line-height: 1;
+    cursor: pointer;
+    transition:
+      border-color 120ms ease,
+      background 120ms ease,
+      color 120ms ease,
+      opacity 120ms ease;
+    touch-action: manipulation;
+  }
+  .filter-chip:hover {
+    border-color: var(--ink);
+  }
+  .filter-chip:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+  }
+  .filter-chip[aria-pressed="false"] {
+    opacity: 0.45;
+    background: transparent;
+    text-decoration: line-through;
+    text-decoration-thickness: 1px;
+    text-decoration-color: var(--ink-mute);
+  }
+  .filter-chip-pioneer[aria-pressed="true"] {
+    border-color: color-mix(in srgb, var(--indigo) 35%, var(--rule));
+    color: var(--indigo);
+  }
+  .filter-chip-modern[aria-pressed="true"] {
+    border-color: color-mix(in srgb, var(--oxblood) 35%, var(--rule));
+    color: var(--oxblood);
+  }
+  .chip-count {
+    font-size: 0.65rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-mute);
+    opacity: 0.8;
+  }
+</style>

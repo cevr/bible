@@ -43,7 +43,11 @@ const permalink = `#${verse.slug}`;
       {verse.pioneerReadings.length > 0 ? (
         <div class="pioneer-stack">
           {verse.pioneerReadings.map((r) => (
-            <div class={`pioneer-entry pioneer-${r.source}`}>
+            <div
+              class={`pioneer-entry pioneer-${r.source}`}
+              data-source={r.source}
+              data-source-kind="pioneer"
+            >
               <p class="pioneer-source">
                 {PIONEER_SOURCE_NAMES[r.source]}
                 {r.citation && <span class="cite">{r.citation}</span>}
@@ -64,7 +68,11 @@ const permalink = `#${verse.slug}`;
       {verse.modernReadings.length > 0 ? (
         <div class="modern-stack">
           {verse.modernReadings.map((r) => (
-            <div class={`modern-entry modern-${r.source}`}>
+            <div
+              class={`modern-entry modern-${r.source}`}
+              data-source={r.source}
+              data-source-kind="modern"
+            >
               <p class="modern-source">
                 {MODERN_SOURCE_NAMES[r.source]}
                 {r.citation && <span class="cite">{r.citation}</span>}
