@@ -143,11 +143,17 @@ const DrawerHeader: Component<{ readonly state: BibleDrawerState }> = (props) =>
 
 // ─── Tabs ──────────────────────────────────────────────────────────────────
 
-const STUDY_TABS: readonly { readonly key: BibleStudyTab; readonly label: string }[] = [
-  { key: 'notes', label: 'Notes' },
-  { key: 'xrefs', label: 'Cross-refs' },
-  { key: 'words', label: 'Words' },
-  { key: 'egw', label: 'EGW' },
+// One registry per tab — label for the strip, body for the panel. Adding a
+// tab is a one-line edit instead of three (array + Switch arm + tab strip).
+const STUDY_TABS: readonly {
+  readonly key: BibleStudyTab;
+  readonly label: string;
+  readonly body: Component<{ readonly state: BibleDrawerState }>;
+}[] = [
+  { key: 'notes', label: 'Notes', body: (p) => <NotesTab state={p.state} /> },
+  { key: 'xrefs', label: 'Cross-refs', body: (p) => <XrefsTab state={p.state} /> },
+  { key: 'words', label: 'Words', body: (p) => <WordsTab state={p.state} /> },
+  { key: 'egw', label: 'EGW', body: (p) => <EgwTab state={p.state} /> },
 ];
 
 const DrawerTabs: Component<{ readonly state: BibleDrawerState }> = (props) => (
@@ -166,20 +172,13 @@ const DrawerTabs: Component<{ readonly state: BibleDrawerState }> = (props) => (
 );
 
 const StudyPaneBody: Component<{ readonly state: BibleDrawerState }> = (props) => (
-  <Switch>
-    <Match when={props.state.activeStudyTab() === 'notes'}>
-      <NotesTab state={props.state} />
-    </Match>
-    <Match when={props.state.activeStudyTab() === 'xrefs'}>
-      <XrefsTab state={props.state} />
-    </Match>
-    <Match when={props.state.activeStudyTab() === 'words'}>
-      <WordsTab state={props.state} />
-    </Match>
-    <Match when={props.state.activeStudyTab() === 'egw'}>
-      <EgwTab state={props.state} />
-    </Match>
-  </Switch>
+  <For each={STUDY_TABS}>
+    {(tab) => (
+      <Show when={props.state.activeStudyTab() === tab.key}>
+        <tab.body state={props.state} />
+      </Show>
+    )}
+  </For>
 );
 
 // ─── Notes tab ─────────────────────────────────────────────────────────────
