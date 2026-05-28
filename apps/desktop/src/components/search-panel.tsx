@@ -12,6 +12,7 @@ import {
   Show,
   Suspense,
 } from 'solid-js';
+import { createDebouncedSignal } from '../lib/debounced-signal.js';
 import { ipc, runtime } from '../runtime.js';
 import { EGWData } from '../services/egw-data.js';
 import { ReaderState } from '../services/reader-state.js';
@@ -46,19 +47,11 @@ export interface SearchPanelProps {
 }
 
 export const SearchPanel: Component<SearchPanelProps> = (props) => {
-  // Debounced + trimmed query. Empty → no fetch, panel renders a hint.
-  const [activeQuery, setActiveQuery] = createSignal('');
-  createEffect(
-    on(props.query, (q) => {
-      const trimmed = q.trim();
-      if (trimmed === '') {
-        setActiveQuery('');
-        return;
-      }
-      const timer = window.setTimeout(() => setActiveQuery(trimmed), DEBOUNCE_MS);
-      onCleanup(() => window.clearTimeout(timer));
-    }),
-  );
+  // Debounced + trimmed query. Empty → no fetch (instant clear), panel
+  // renders a hint. The trim happens in the source accessor so the empty
+  // check inside the debounce sees the canonical form.
+  const trimmedQuery = createMemo(() => props.query().trim());
+  const activeQuery = createDebouncedSignal(trimmedQuery, DEBOUNCE_MS, (q) => q === '');
 
   // Two parallel queries — the active one is the one whose input shape
   // matches the query string. The inactive one isn't subscribed (we only
