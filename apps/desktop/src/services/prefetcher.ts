@@ -1,14 +1,5 @@
 import type { EGWApiClientError, Schemas } from '@bible/core/egw';
-import {
-  Context,
-  Effect,
-  type Fiber,
-  FiberHandle,
-  Layer,
-  Option,
-  Stream,
-  SubscriptionRef,
-} from 'effect';
+import { Context, Effect, FiberHandle, Layer, Option, Stream, SubscriptionRef } from 'effect';
 import { EGWData } from './egw-data.js';
 import { ReaderState } from './reader-state.js';
 
@@ -69,7 +60,7 @@ export interface PrefetcherShape {
 
 const idle: PrefetchStatus = { _tag: 'Idle' };
 
-export const navigableChapters = (toc: readonly Schemas.TocItem[]): readonly Schemas.TocItem[] =>
+const navigableChapters = (toc: readonly Schemas.TocItem[]): readonly Schemas.TocItem[] =>
   toc.filter((t) => t.para_id !== undefined && t.para_id !== null && t.para_id !== '');
 
 export class Prefetcher extends Context.Service<Prefetcher, PrefetcherShape>()(
@@ -217,7 +208,3 @@ export class Prefetcher extends Context.Service<Prefetcher, PrefetcherShape>()(
     }),
   );
 }
-
-// Re-export Fiber here to discourage callers from importing it just to
-// interrupt the start fiber — the runtime owns that lifecycle.
-export type { Fiber };

@@ -24,9 +24,9 @@ import { defaultEase, Motion, Presence } from '../../motion/index.js';
 // at z-50, so as long as the consumer mounts it at app-shell level it sits on
 // top of everything. Avoids the SSR/hydration complications a portal adds.
 
-export type DrawerSide = 'left' | 'right';
+type DrawerSide = 'left' | 'right';
 
-export interface DrawerResize {
+interface DrawerResize {
   /** Called with the proposed new width as the user drags. Caller is expected
    *  to clamp + persist. */
   readonly onResize: (px: number) => void;

@@ -1,65 +1,10 @@
-import {
-  type Accessor,
-  type Component,
-  createContext,
-  type JSX,
-  type ParentComponent,
-  Show,
-  useContext,
-} from 'solid-js';
+import { type Accessor, type Component, type JSX, type ParentComponent, Show } from 'solid-js';
 import { ReaderPanel } from './reader-panel.js';
 
 // Shared visual chrome for the right-side study drawer. Pulled out so the
 // drawer renders with consistent spacing, border treatment, button affordances,
 // and tab strip metrics. Consumers wire their own state machines and content;
 // the shell only owns layout.
-//
-// Composition (compound components): `<ReaderShell.Frame>` mounts the Drawer,
-// and the named slots compose inside it without prop-drilling. A
-// `ReaderShellProvider` lets nested children fish out shared state via
-// `useReaderShell()` — generic over the consumer's state/actions/meta shape.
-
-// ─── Generic context ───────────────────────────────────────────────────────
-// `S` (state) carries reactive accessors; `A` (actions) carries mutators;
-// `M` (meta) is for static bag values (labels, bounds, mode flags). Each
-// consumer pins their own concrete types when they create the provider so
-// the primitives stay decoupled from any specific reader state shape.
-
-export interface ReaderShellValue<S, A, M> {
-  readonly state: S;
-  readonly actions: A;
-  readonly meta: M;
-}
-
-// `unknown` everywhere so the context is type-erased at the boundary —
-// consumers cast through a typed helper on the way out (see `createReaderShell`).
-const ReaderShellContext = createContext<ReaderShellValue<unknown, unknown, unknown> | undefined>(
-  undefined,
-);
-
-/** Build a typed `(Provider, useShell)` pair for a specific consumer's state. */
-export const createReaderShell = <S, A, M>(): {
-  readonly Provider: ParentComponent<{ readonly value: ReaderShellValue<S, A, M> }>;
-  readonly useShell: () => ReaderShellValue<S, A, M>;
-} => {
-  const Provider: ParentComponent<{ readonly value: ReaderShellValue<S, A, M> }> = (props) => (
-    <ReaderShellContext.Provider value={props.value as ReaderShellValue<unknown, unknown, unknown>}>
-      {props.children}
-    </ReaderShellContext.Provider>
-  );
-  const useShell = (): ReaderShellValue<S, A, M> => {
-    const ctx = useContext(ReaderShellContext);
-    if (ctx === undefined) {
-      throw new Error('useReaderShell must be called inside a ReaderShell.Provider');
-    }
-    // Safe: the factory pairs Provider + useShell with the same <S, A, M>
-    // generics, so a consumer that uses this useShell inside its own Provider
-    // is guaranteed to receive the same shape it wrote.
-    // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-    return ctx as ReaderShellValue<S, A, M>;
-  };
-  return { Provider, useShell };
-};
 
 // ─── Frame ─────────────────────────────────────────────────────────────────
 // Thin wrapper over `ReaderPanel` that fixes the slide side + label + width
@@ -68,7 +13,7 @@ export const createReaderShell = <S, A, M>(): {
 // Width model: two presets — `widthPx` (collapsed) and `expandedWidthPx`
 // (when `expanded` is true). No resize handle; both presets are fixed.
 
-export interface FrameProps {
+interface FrameProps {
   readonly open: boolean;
   readonly onOpenChange: (open: boolean) => void;
   readonly label: string;
@@ -121,7 +66,7 @@ const HeaderBadge: ParentComponent = (props) => (
   <span class="text-ui-xs text-muted [font-variant-numeric:tabular-nums]">{props.children}</span>
 );
 
-export interface HeaderIconButtonProps {
+interface HeaderIconButtonProps {
   readonly onClick: () => void;
   readonly disabled?: boolean;
   readonly pressed?: boolean;
@@ -159,7 +104,7 @@ const HeaderIconButton: Component<HeaderIconButtonProps> = (props) => {
 // honest inside a column-flex Drawer panel. `padded` lets consumers opt out
 // (BibleDrawer's split mode does its own padding per pane).
 
-export interface BodyProps {
+interface BodyProps {
   readonly children?: JSX.Element;
   readonly padded?: boolean;
 }
@@ -179,7 +124,7 @@ const Body: Component<BodyProps> = (props) => {
 // pane so the right pane can grow/shrink without leaving a gap line. Each
 // pane is independently scrollable.
 
-export interface SplitBodyProps {
+interface SplitBodyProps {
   readonly primary: JSX.Element;
   readonly aside?: JSX.Element;
   /** Whether the aside is mounted. Drives the divider on the left pane. */
@@ -210,7 +155,7 @@ const TabsList: ParentComponent = (props) => (
   </div>
 );
 
-export interface TabProps {
+interface TabProps {
   readonly active: boolean;
   readonly onClick: () => void;
   readonly children: JSX.Element;
@@ -238,7 +183,7 @@ const TabPanel: ParentComponent = (props) => (
 // no-verse placeholder. Action slot lets recovery affordances (Reimport KJV)
 // share the same vertical rhythm.
 
-export interface EmptyStateProps {
+interface EmptyStateProps {
   readonly title: string;
   readonly body: JSX.Element;
   readonly action?: JSX.Element;

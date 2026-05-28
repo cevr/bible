@@ -44,7 +44,7 @@ import { CommandPaletteMemory } from '../services/command-palette-memory.js';
 // We don't use Portal — same convention as Drawer. Caller mounts at shell
 // level; the overlay is fixed at z-[60] which sits above drawers (z-50).
 
-export type PaletteView =
+type PaletteView =
   | { readonly _tag: 'root' }
   | { readonly _tag: 'book'; readonly book: number }
   | { readonly _tag: 'chapter'; readonly book: number; readonly chapter: number };
@@ -52,7 +52,7 @@ export type PaletteView =
 // Action emitted by `resolveAction` for a row activation. The palette JSX
 // dispatches it (drilldown OR navigate-and-close). Pure shape keeps the
 // resolution rules testable without a DOM or runtime.
-export type PaletteAction =
+type PaletteAction =
   | { readonly kind: 'openChapter'; readonly book: number; readonly chapter: number }
   | {
       readonly kind: 'openChapterAt';

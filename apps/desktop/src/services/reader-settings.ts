@@ -29,7 +29,6 @@ const WIDTH_MIN = 40;
 const WIDTH_MAX = 120;
 const BIBLE_DRAWER_WIDTH_MIN = 320;
 const BIBLE_DRAWER_WIDTH_MAX = 720;
-const BIBLE_DRAWER_WIDTH_DEFAULT = 420;
 // Line-height interpretation switches on magnitude (CSS convention):
 //   [0, 2]  → unitless multiplier (relative to font-size)
 //   (2, _]  → px value (absolute)
@@ -108,12 +107,6 @@ const clampLineHeight = clamp(LINE_HEIGHT_MIN, LINE_HEIGHT_MAX);
 const clampLetterSpacing = clamp(LETTER_SPACING_MIN, LETTER_SPACING_MAX);
 const clampPercent = clamp(0, 1);
 const clampBibleDrawerWidth = clamp(BIBLE_DRAWER_WIDTH_MIN, BIBLE_DRAWER_WIDTH_MAX);
-
-export const BIBLE_DRAWER_WIDTH_BOUNDS = {
-  min: BIBLE_DRAWER_WIDTH_MIN,
-  max: BIBLE_DRAWER_WIDTH_MAX,
-  default: BIBLE_DRAWER_WIDTH_DEFAULT,
-} as const;
 
 const decodeSettings = Schema.decodeUnknownEffect(Schema.fromJsonString(ReaderSettingsState));
 const encodeSettings = Schema.encodeEffect(Schema.fromJsonString(ReaderSettingsState));
