@@ -16,7 +16,9 @@ import { makeLru } from '../lib/lru.js';
 import { ipc, runtime, signalFromStream } from '../runtime.js';
 import { BibleReaderState, type BibleReaderSelection } from '../services/bible-reader-state.js';
 import { KjvBible, type KjvChapter, type KjvStrongsWord } from '../services/kjv-bible.js';
+import { INITIAL_READER_SETTINGS, ReaderSettings } from '../services/reader-settings.js';
 import { BibleBooksGrid } from './bible-books-grid.js';
+import { BibleReaderToolbar } from './bible-reader-toolbar.js';
 import { StrongsVerse } from './bible/strongs-verse.js';
 import { VerseRenderer } from './bible/verse-renderer.js';
 import { ChapterNavButtons } from './book-feed.js';
@@ -84,15 +86,6 @@ export interface BibleChapterCanvasProps {
   /** Open the right-side scripture drawer's Xrefs tab pinned to a specific
    *  (book, chapter, verse). Used by the inline cross-reference overlay. */
   readonly onOpenCrossRefs: (book: number, chapter: number, verse: number) => void;
-  /** Inline-overlay toggle state, threaded in from the persistence layer
-   *  (ReaderSettings). The canvas reads via accessors so a settings flip
-   *  invalidates downstream memos without prop-drill churn. */
-  readonly inlineStrongs: () => boolean;
-  readonly inlineMarginNotes: () => boolean;
-  readonly inlineCrossRefs: () => boolean;
-  readonly onStrongsLayerToggled: () => void;
-  readonly onMarginNotesLayerToggled: () => void;
-  readonly onCrossRefsLayerToggled: () => void;
 }
 
 export const BibleChapterCanvas: Component<BibleChapterCanvasProps> = (props) => {
@@ -103,6 +96,20 @@ export const BibleChapterCanvas: Component<BibleChapterCanvasProps> = (props) =>
     }),
     Option.none<BibleReaderSelection>(),
   );
+
+  // Inline-overlay flags read directly from ReaderSettings.changes — single
+  // source of truth, no prop drill from app.tsx. Toolbar lives outside the
+  // canvas now (mounted by app.tsx) and toggles the same SubscriptionRef.
+  const settings = signalFromStream(
+    Effect.gen(function* () {
+      const s = yield* ReaderSettings;
+      return s.changes;
+    }),
+    INITIAL_READER_SETTINGS,
+  );
+  const inlineStrongs = createMemo(() => settings().inlineStrongs);
+  const inlineMarginNotes = createMemo(() => settings().inlineMarginNotes);
+  const inlineCrossRefs = createMemo(() => settings().inlineCrossRefs);
 
   // Top-level view: either no-selection (books grid) or a chapter (toolbar +
   // shell). Chapter branch keys on `book:chapter` so verse-cursor changes
@@ -120,14 +127,7 @@ export const BibleChapterCanvas: Component<BibleChapterCanvasProps> = (props) =>
         <Match when={chapterKey()} keyed>
           {(_key) => (
             <>
-              <BibleReaderToolbar
-                inlineStrongs={props.inlineStrongs}
-                inlineMarginNotes={props.inlineMarginNotes}
-                inlineCrossRefs={props.inlineCrossRefs}
-                onToggleStrongs={props.onStrongsLayerToggled}
-                onToggleMarginNotes={props.onMarginNotesLayerToggled}
-                onToggleCrossRefs={props.onCrossRefsLayerToggled}
-              />
+              <BibleReaderToolbar />
               <ChapterShell
                 selection={() =>
                   Option.getOrElse(
@@ -135,9 +135,9 @@ export const BibleChapterCanvas: Component<BibleChapterCanvasProps> = (props) =>
                     (): BibleReaderSelection => ({ _tag: 'chapter', book: 0, chapter: 0 }),
                   )
                 }
-                inlineStrongs={props.inlineStrongs()}
-                inlineMarginNotes={props.inlineMarginNotes()}
-                inlineCrossRefs={props.inlineCrossRefs()}
+                inlineStrongs={inlineStrongs()}
+                inlineMarginNotes={inlineMarginNotes()}
+                inlineCrossRefs={inlineCrossRefs()}
                 onOpenStrongs={props.onOpenStrongs}
                 onOpenMarginNote={props.onOpenMarginNote}
                 onOpenCrossRefs={props.onOpenCrossRefs}
@@ -689,60 +689,4 @@ const ChapterBody: Component<{
       }}
     </For>
   </div>
-);
-
-// Floating toolbar pinned to the top center of the canvas. Mirrors
-// `ChapterNavButtons` (book-feed.tsx) at the bottom — same pill chrome,
-// same backdrop blur, same z-index — so the two read as a matched pair
-// bracketing the reader column. Toggles flip the canvas-level signals
-// that drive the inline overlay renders. State persists through
-// ReaderSettings — see app.tsx for the wiring.
-const BibleReaderToolbar: Component<{
-  readonly inlineStrongs: () => boolean;
-  readonly inlineMarginNotes: () => boolean;
-  readonly inlineCrossRefs: () => boolean;
-  readonly onToggleStrongs: () => void;
-  readonly onToggleMarginNotes: () => void;
-  readonly onToggleCrossRefs: () => void;
-}> = (props) => (
-  <div class="sticky top-3 z-10 flex justify-center pointer-events-none">
-    <div class="inline-flex items-center gap-px rounded-full border border-rule bg-bg/85 backdrop-blur px-1.5 py-1 shadow-sm pointer-events-auto">
-      <ToolbarToggle
-        label="Strong's"
-        title="Toggle inline Strong's annotations"
-        pressed={props.inlineStrongs()}
-        onClick={props.onToggleStrongs}
-      />
-      <ToolbarToggle
-        label="Notes"
-        title="Toggle inline margin-note markers"
-        pressed={props.inlineMarginNotes()}
-        onClick={props.onToggleMarginNotes}
-      />
-      <ToolbarToggle
-        label="Xrefs"
-        title="Toggle inline cross-reference markers"
-        pressed={props.inlineCrossRefs()}
-        onClick={props.onToggleCrossRefs}
-      />
-    </div>
-  </div>
-);
-
-const ToolbarToggle: Component<{
-  readonly label: string;
-  readonly title: string;
-  readonly pressed: boolean;
-  readonly onClick: () => void;
-}> = (props) => (
-  <button
-    type="button"
-    class="inline-flex items-center h-7 px-3 rounded-full bg-transparent border-0 text-ui-xs text-muted cursor-pointer transition-[background,color] duration-[0.12s] ease-in-out hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] hover:text-fg focus-visible:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] focus-visible:text-fg focus-visible:outline-none data-pressed:bg-accent-soft data-pressed:text-accent"
-    data-pressed={props.pressed ? '' : undefined}
-    title={props.title}
-    aria-pressed={props.pressed}
-    onClick={props.onClick}
-  >
-    {props.label}
-  </button>
 );

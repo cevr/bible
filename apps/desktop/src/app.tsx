@@ -188,14 +188,6 @@ export const App: Component = () => {
     },
   });
 
-  // Per-overlay toggle state for the floating Bible reader toolbar. All three
-  // default on — the study surfaces (Strong's, margin notes, xrefs) are why
-  // this canvas exists, so we let users see them up-front and toggle off if
-  // the page feels too dense. Derived from the settings projection.
-  const inlineStrongs = createMemo(() => settingsState().inlineStrongs);
-  const inlineMarginNotes = createMemo(() => settingsState().inlineMarginNotes);
-  const inlineCrossRefs = createMemo(() => settingsState().inlineCrossRefs);
-
   // True once the main-process Effect runtime is up. Polled on mount and
   // again once per second until it flips true. When false, we paint a
   // dismissable banner across the top of the canvas — without it every IPC
@@ -603,33 +595,6 @@ export const App: Component = () => {
       Effect.gen(function* () {
         const s = yield* ReaderSettings;
         yield* s.lineWidthAdjusted(n);
-      }),
-    );
-  };
-
-  const toggleInlineStrongs = () => {
-    updateSettings(
-      Effect.gen(function* () {
-        const s = yield* ReaderSettings;
-        yield* s.inlineStrongsToggled;
-      }),
-    );
-  };
-
-  const toggleInlineMarginNotes = () => {
-    updateSettings(
-      Effect.gen(function* () {
-        const s = yield* ReaderSettings;
-        yield* s.inlineMarginNotesToggled;
-      }),
-    );
-  };
-
-  const toggleInlineCrossRefs = () => {
-    updateSettings(
-      Effect.gen(function* () {
-        const s = yield* ReaderSettings;
-        yield* s.inlineCrossRefsToggled;
       }),
     );
   };
@@ -1098,12 +1063,6 @@ export const App: Component = () => {
             onOpenCrossRefs={(book, chapter, verse) =>
               bibleDrawer.open(book, chapter, verse, 'xrefs')
             }
-            inlineStrongs={inlineStrongs}
-            inlineMarginNotes={inlineMarginNotes}
-            inlineCrossRefs={inlineCrossRefs}
-            onStrongsLayerToggled={toggleInlineStrongs}
-            onMarginNotesLayerToggled={toggleInlineMarginNotes}
-            onCrossRefsLayerToggled={toggleInlineCrossRefs}
           />
         </Show>
 
