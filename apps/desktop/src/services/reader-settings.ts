@@ -1,4 +1,4 @@
-import { Context, Effect, Fiber, Layer, Option, Ref, Schema } from 'effect';
+import { Context, Effect, Layer, Option, Queue, Ref, Schema, Stream } from 'effect';
 import { SettingsStorage } from './settings-storage.js';
 
 export const Theme = Schema.Literals(['light', 'sepia', 'dark']);
@@ -230,8 +230,6 @@ export class ReaderSettings extends Context.Service<ReaderSettings, ReaderSettin
       const migrationDropped = migration.dropped;
 
       const ref = yield* Ref.make<ReaderSettingsState>(loaded);
-      const pending = yield* Ref.make<Option.Option<Fiber.Fiber<void>>>(Option.none());
-      const layerScope = yield* Effect.scope;
 
       if (migrationDropped.length > 0) {
         yield* Effect.logInfo(
@@ -244,20 +242,25 @@ export class ReaderSettings extends Context.Service<ReaderSettings, ReaderSettin
         if (json !== '') yield* storage.write(json);
       }
 
-      const schedulePersist = Effect.gen(function* () {
-        const prev = yield* Ref.getAndSet(pending, Option.none<Fiber.Fiber<void>>());
-        if (Option.isSome(prev)) yield* Fiber.interrupt(prev.value);
-        const fiber = yield* Effect.gen(function* () {
-          yield* Effect.sleep(`${PERSIST_DEBOUNCE_MS} millis`);
-          const snapshot = yield* Ref.get(ref);
-          const json = yield* encodeSettings(snapshot).pipe(Effect.orElseSucceed(() => ''));
-          if (json !== '') yield* storage.write(json);
-        }).pipe(Effect.forkIn(layerScope));
-        yield* Ref.set(pending, Option.some(fiber));
-      });
+      // Persistence pipeline: every `update` enqueues a tick; a debounced
+      // stream coalesces bursts and writes the latest snapshot. Effect's
+      // Stream.debounce owns interruption + lifecycle, so we don't have to
+      // hand-track a pending fiber.
+      const dirty = yield* Queue.unbounded<void>();
+      yield* Stream.fromQueue(dirty).pipe(
+        Stream.debounce(`${PERSIST_DEBOUNCE_MS} millis`),
+        Stream.runForEach(() =>
+          Effect.gen(function* () {
+            const snapshot = yield* Ref.get(ref);
+            const json = yield* encodeSettings(snapshot).pipe(Effect.orElseSucceed(() => ''));
+            if (json !== '') yield* storage.write(json);
+          }),
+        ),
+        Effect.forkScoped,
+      );
 
       const update = (f: (s: ReaderSettingsState) => ReaderSettingsState) =>
-        Ref.update(ref, f).pipe(Effect.andThen(schedulePersist));
+        Ref.update(ref, f).pipe(Effect.andThen(Queue.offer(dirty, void 0)));
 
       return {
         get: Ref.get(ref),
