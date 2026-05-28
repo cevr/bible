@@ -1,5 +1,5 @@
 import { type Schemas } from '@bible/core/egw';
-import { Effect, Exit, Fiber, Option, Stream, SubscriptionRef } from 'effect';
+import { Effect, Fiber, Option, Stream, SubscriptionRef } from 'effect';
 import {
   type Component,
   createEffect,
@@ -182,6 +182,10 @@ export const FolderBrowser: Component<FolderBrowserProps> = (props) => {
   // Best-effort: any failure (book not in listBooks, folder not in tree)
   // leaves the user at root. No error surfacing — falling back to root is
   // the existing UX and it's fine.
+  //
+  // The listBooks lookup runs as a tracked fiber so an unmount mid-flight
+  // (or the user drilling in before it resolves) interrupts the seed before
+  // its callback can snap them back to the seeded folder.
   createEffect(() => {
     if (seeded) return;
     const folders = tree();
@@ -202,24 +206,24 @@ export const FolderBrowser: Component<FolderBrowserProps> = (props) => {
       return;
     }
 
-    void runtime
-      .runPromiseExit(
-        Effect.gen(function* () {
-          const data = yield* EGWData;
-          const books = yield* data.listBooks(DEFAULT_LANG);
-          return books.find((b) => b.book_id === bookId);
-        }),
-      )
-      .then((exit) => {
-        if (!Exit.isSuccess(exit) || exit.value === undefined) return;
-        const chain = findFolderPath(folders, exit.value.folder_id);
+    const seedFiber = runtime.runFork(
+      Effect.gen(function* () {
+        const data = yield* EGWData;
+        const books = yield* data.listBooks(DEFAULT_LANG);
+        const book = books.find((b) => b.book_id === bookId);
+        if (book === undefined) return;
+        const chain = findFolderPath(folders, book.folder_id);
         if (chain === null) return;
         folderPathByBook.set(bookId, chain);
         // Guard against the user having drilled in during the lookup —
         // listBooks is cached but not synchronous on a cold cache.
         if (path().length !== 0) return;
         setPath(chain);
-      });
+      }).pipe(Effect.ignore),
+    );
+    onCleanup(() => {
+      void runtime.runPromise(Fiber.interrupt(seedFiber));
+    });
   });
 
   // Subfolders to render at the current level.
@@ -270,24 +274,34 @@ export const FolderBrowser: Component<FolderBrowserProps> = (props) => {
     new Map(),
   );
 
+  // Tracked refresh fibers keyed by bookId. A new event for the same book
+  // interrupts the previous in-flight refresh so a slow `getDownloadState`
+  // can't land after a newer status snapshot and write a stale count. The
+  // global cleanup interrupts everything still in flight when we unmount.
+  const refreshFibers = new Map<number, Fiber.Fiber<void>>();
   const refreshDownloadState = (bookId: number) => {
-    void runtime
-      .runPromiseExit(
-        Effect.gen(function* () {
-          const data = yield* EGWData;
-          return yield* data.getDownloadState(bookId);
-        }),
-      )
-      .then((exit) => {
-        if (!Exit.isSuccess(exit)) return;
-        const state = exit.value;
-        setDownloadStates((prev) => {
-          const next = new Map(prev);
+    const prev = refreshFibers.get(bookId);
+    if (prev !== undefined) void runtime.runPromise(Fiber.interrupt(prev));
+    const fiber = runtime.runFork(
+      Effect.gen(function* () {
+        const data = yield* EGWData;
+        const state = yield* data.getDownloadState(bookId);
+        setDownloadStates((prevStates) => {
+          const next = new Map(prevStates);
           if (Option.isNone(state)) next.delete(bookId);
           else next.set(bookId, state.value);
           return next;
         });
-      });
+      }).pipe(
+        Effect.ignore,
+        Effect.ensuring(
+          Effect.sync(() => {
+            refreshFibers.delete(bookId);
+          }),
+        ),
+      ),
+    );
+    refreshFibers.set(bookId, fiber);
   };
 
   onMount(() => {
@@ -306,6 +320,10 @@ export const FolderBrowser: Component<FolderBrowserProps> = (props) => {
     );
     onCleanup(() => {
       void runtime.runPromise(Fiber.interrupt(fiber));
+      for (const f of refreshFibers.values()) {
+        void runtime.runPromise(Fiber.interrupt(f));
+      }
+      refreshFibers.clear();
     });
   });
 

@@ -1,4 +1,4 @@
-import { Effect, Option } from 'effect';
+import { Effect, Fiber, Option } from 'effect';
 import {
   type Accessor,
   type Component,
@@ -128,9 +128,21 @@ export const SearchPanel: Component<SearchPanelProps> = (props) => {
     onCleanup(() => window.removeEventListener('keydown', handler));
   });
 
+  // In-flight navigation fibers from pick clicks. The panel unmounts as soon
+  // as we call onClose, so we track each launch in this set and interrupt
+  // any survivors in onCleanup — keeps a stale openChapterAt from firing
+  // after the user already closed the panel.
+  const pickFibers = new Set<Fiber.Fiber<void>>();
+  onCleanup(() => {
+    for (const f of pickFibers) {
+      void runtime.runPromise(Fiber.interrupt(f));
+    }
+    pickFibers.clear();
+  });
+
   const onPickLocal = (hit: SearchResult): void => {
     if (hit.source !== 'local') return;
-    void runtime.runPromise(
+    const fiber = runtime.runFork(
       Effect.gen(function* () {
         const data = yield* EGWData;
         // Search hits are paragraphs; the reader needs the *chapter* paraId.
@@ -142,8 +154,16 @@ export const SearchPanel: Component<SearchPanelProps> = (props) => {
         if (chapterParaId === undefined || chapterParaId === null || chapterParaId === '') return;
         const state = yield* ReaderState;
         yield* state.openChapterAt(hit.bookId, chapterParaId, hit.paraId);
-      }).pipe(Effect.catch(() => Effect.void)),
+      }).pipe(
+        Effect.ignore,
+        Effect.ensuring(
+          Effect.sync(() => {
+            pickFibers.delete(fiber);
+          }),
+        ),
+      ),
     );
+    pickFibers.add(fiber);
     props.onClose();
   };
 

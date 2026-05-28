@@ -409,7 +409,7 @@ const ChapterShell: Component<{
       else goNext();
     }
   };
-  createEffect(() => {
+  onMount(() => {
     window.addEventListener('keydown', onKeyDown);
     onCleanup(() => window.removeEventListener('keydown', onKeyDown));
   });
