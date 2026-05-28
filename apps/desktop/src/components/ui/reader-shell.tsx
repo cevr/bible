@@ -10,8 +10,8 @@ import { ReaderPanel } from './reader-panel.js';
 // Thin wrapper over `ReaderPanel` that fixes the slide side + label + width
 // plumbing. Children compose the rest (header / body / split / tabs).
 //
-// Width model: two presets — `widthPx` (collapsed) and `expandedWidthPx`
-// (when `expanded` is true). No resize handle; both presets are fixed.
+// Width model: the caller computes whatever live width it wants — single or
+// multi-preset, with or without an "expanded" state. Frame just forwards.
 
 interface FrameProps {
   readonly open: boolean;
@@ -19,10 +19,6 @@ interface FrameProps {
   readonly label: string;
   readonly side?: 'left' | 'right';
   readonly widthPx: Accessor<number>;
-  /** Optional expanded width preset (e.g. 720) used when `expanded` is true. */
-  readonly expandedWidthPx?: number;
-  /** Drives the animated swap between `widthPx` and `expandedWidthPx`. */
-  readonly expanded?: boolean;
   /** Render a dimmed click-catcher backdrop behind the panel. Off by default. */
   readonly overlay?: boolean;
   readonly children?: JSX.Element;
@@ -33,9 +29,7 @@ const Frame: Component<FrameProps> = (props) => (
     open={props.open}
     onOpenChange={props.onOpenChange}
     side={props.side ?? 'right'}
-    widthPx={props.widthPx()}
-    expandedWidthPx={props.expandedWidthPx}
-    expanded={props.expanded}
+    widthPx={props.widthPx}
     overlay={props.overlay}
     label={props.label}
   >

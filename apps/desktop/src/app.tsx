@@ -1116,7 +1116,7 @@ export const App: Component = () => {
             if (!open) closeDrawers();
           }}
           side="left"
-          widthPx={360}
+          widthPx={() => 360}
           overlay
           label="Bible books"
         >
@@ -1136,9 +1136,7 @@ export const App: Component = () => {
             if (!open) closeDrawers();
           }}
           side="left"
-          widthPx={360}
-          expandedWidthPx={720}
-          expanded={drawer() === 'tocPlusLib'}
+          widthPx={() => (drawer() === 'tocPlusLib' ? 720 : 360)}
           overlay
           label="Library and contents"
           panelClass="flex-row"

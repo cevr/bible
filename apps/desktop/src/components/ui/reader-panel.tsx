@@ -1,4 +1,5 @@
 import {
+  type Accessor,
   type Component,
   createEffect,
   createMemo,
@@ -40,14 +41,9 @@ export interface ReaderPanelProps {
   readonly onOpenChange: (open: boolean) => void;
   /** Which edge the panel slides in from. */
   readonly side: PanelSide;
-  /** Collapsed-mode width in px. */
-  readonly widthPx: number;
-  /** Expanded-mode width in px. Used when `expanded` is true. Defaults to
-   *  `widthPx` if omitted (i.e. no expand state for this panel). */
-  readonly expandedWidthPx?: number;
-  /** Whether the panel is in its wider "expanded" form (e.g. study pane
-   *  visible). Drives the animated width swap. */
-  readonly expanded?: boolean;
+  /** Live width in px. Caller composes whatever preset / animation source
+   *  it wants; the panel just renders that value. */
+  readonly widthPx: Accessor<number>;
   /** Accessible name for the dialog. */
   readonly label: string;
   /** Esc closes. Set to false for panels that must be dismissed by an action. */
@@ -67,18 +63,9 @@ export const ReaderPanel: Component<ReaderPanelProps> = (props) => {
   const dismissOnEscape = (): boolean => props.dismissOnEscape !== false;
   const overlay = (): boolean => props.overlay === true;
 
-  // Active width follows the expanded flag. Memoized so width-only changes
-  // don't re-trigger the slide-in animation.
-  const currentWidth = createMemo<number>(() =>
-    props.expanded === true && props.expandedWidthPx !== undefined
-      ? props.expandedWidthPx
-      : props.widthPx,
-  );
-
-  // Slide offset for the open/close animation. Signed by side; snapshot
-  // separately from the width memo so a width change mid-life doesn't yank
-  // the slide.
-  const offset = createMemo(() => (props.side === 'right' ? currentWidth() : -currentWidth()));
+  // Slide offset for the open/close animation. Signed by side; reads
+  // `widthPx` so the slide-in distance matches whatever the caller picked.
+  const offset = createMemo(() => (props.side === 'right' ? props.widthPx() : -props.widthPx()));
 
   return (
     <>
@@ -102,7 +89,7 @@ export const ReaderPanel: Component<ReaderPanelProps> = (props) => {
             labelId={labelId}
             label={props.label}
             side={props.side}
-            widthPx={currentWidth}
+            widthPx={props.widthPx}
             open={() => props.open}
             offset={offset()}
             dismissOnEscape={dismissOnEscape()}
