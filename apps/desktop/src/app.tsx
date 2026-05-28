@@ -24,7 +24,7 @@ import { defaultEase, Motion, Presence, useDrag } from './motion/index.js';
 import { animateProperty } from './motion/internals/driver.js';
 import { runtime } from './runtime.js';
 import { LastChapterMemory } from './services/last-chapter-memory.js';
-import { LastPositionStorage } from './services/last-position-storage.js';
+import { type LastPosition, LastPositionStorage } from './services/last-position-storage.js';
 import { openBookAtFirstChapter } from './services/open-book.js';
 import { Prefetcher } from './services/prefetcher.js';
 import {
@@ -300,19 +300,19 @@ export const App: Component = () => {
         const pos = restored.value;
         // Seed the restore anchor BEFORE opening the chapter so BookFeed sees
         // it on first render and can scroll-to-restore without flicker.
-        if (Option.isSome(pos.paragraphId)) {
-          setRestoreParagraphId(pos.paragraphId);
-          latestAnchorParaId = pos.paragraphId.value;
+        if (pos._tag === 'paragraph') {
+          setRestoreParagraphId(Option.some(pos.paragraphId));
+          latestAnchorParaId = pos.paragraphId;
           pendingRestoreEmit = true;
         }
-        if (Option.isSome(pos.paraId)) {
-          const state = yield* ReaderState;
-          yield* state.openChapter(pos.bookId, pos.paraId.value);
-        } else {
+        if (pos._tag === 'book') {
           // Persisted bookId with no chapter (e.g. user closed before
           // picking one) — auto-resolve to the first chapter rather
           // than restoring into the "Pick a chapter" empty state.
           yield* openBookAtFirstChapter(pos.bookId);
+        } else {
+          const state = yield* ReaderState;
+          yield* state.openChapter(pos.bookId, pos.paraId);
         }
         setRehydrated(true);
       }).pipe(
@@ -375,13 +375,18 @@ export const App: Component = () => {
                 yield* storage.clear;
               } else {
                 const v = next.value;
-                const paraId =
-                  v._tag === 'book' ? Option.none<string>() : Option.some(v.chapterParaId);
-                yield* storage.write({
-                  bookId: v.bookId,
-                  paraId,
-                  paragraphId: Option.fromNullishOr(latestAnchorParaId),
-                });
+                const position: LastPosition =
+                  v._tag === 'book'
+                    ? { _tag: 'book', bookId: v.bookId }
+                    : latestAnchorParaId === null
+                      ? { _tag: 'chapter', bookId: v.bookId, paraId: v.chapterParaId }
+                      : {
+                          _tag: 'paragraph',
+                          bookId: v.bookId,
+                          paraId: v.chapterParaId,
+                          paragraphId: latestAnchorParaId,
+                        };
+                yield* storage.write(position);
                 if (v._tag !== 'book') {
                   yield* memory.recordEgw(v.bookId, v.chapterParaId);
                 }
@@ -403,8 +408,8 @@ export const App: Component = () => {
         if (Option.isNone(restored)) return;
         const pos = restored.value;
         const state = yield* BibleReaderState;
-        if (Option.isSome(pos.verse)) {
-          yield* state.openChapterAt(pos.book, pos.chapter, pos.verse.value);
+        if (pos._tag === 'verse') {
+          yield* state.openChapterAt(pos.book, pos.chapter, pos.verse);
         } else {
           yield* state.openChapter(pos.book, pos.chapter);
         }
@@ -438,11 +443,11 @@ export const App: Component = () => {
                 yield* storage.clearBible;
               } else {
                 const v = next.value;
-                yield* storage.writeBible({
-                  book: v.book,
-                  chapter: v.chapter,
-                  verse: v._tag === 'verse' ? Option.some(v.verse) : Option.none<number>(),
-                });
+                yield* storage.writeBible(
+                  v._tag === 'verse'
+                    ? { _tag: 'verse', book: v.book, chapter: v.chapter, verse: v.verse }
+                    : { _tag: 'chapter', book: v.book, chapter: v.chapter },
+                );
                 yield* memory.recordBible(v.book, v.chapter);
               }
             }),
@@ -829,9 +834,10 @@ export const App: Component = () => {
       Effect.gen(function* () {
         const storage = yield* LastPositionStorage;
         yield* storage.write({
+          _tag: 'paragraph',
           bookId: p.bookId,
-          paraId: Option.some(p.chapterParaId),
-          paragraphId: Option.some(p.paragraphParaId),
+          paraId: p.chapterParaId,
+          paragraphId: p.paragraphParaId,
         });
       }),
     );

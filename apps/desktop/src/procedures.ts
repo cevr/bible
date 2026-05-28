@@ -252,8 +252,8 @@ export const procedures = defineProcedures({
               onNone: () => null,
               onSome: (p) => ({
                 bookId: p.bookId,
-                paraId: Option.getOrNull(p.paraId),
-                paragraphId: Option.getOrNull(p.paragraphId),
+                paraId: p._tag === 'book' ? null : p.paraId,
+                paragraphId: p._tag === 'paragraph' ? p.paragraphId : null,
               }),
             }),
           ),
@@ -265,11 +265,18 @@ export const procedures = defineProcedures({
       handle: (pos) =>
         LastPositionStorage.pipe(
           Effect.flatMap((s) =>
-            s.write({
-              bookId: pos.bookId,
-              paraId: Option.fromNullishOr(pos.paraId),
-              paragraphId: Option.fromNullishOr(pos.paragraphId),
-            }),
+            s.write(
+              pos.paraId === null || pos.paraId === undefined
+                ? { _tag: 'book', bookId: pos.bookId }
+                : pos.paragraphId === null || pos.paragraphId === undefined
+                  ? { _tag: 'chapter', bookId: pos.bookId, paraId: pos.paraId }
+                  : {
+                      _tag: 'paragraph',
+                      bookId: pos.bookId,
+                      paraId: pos.paraId,
+                      paragraphId: pos.paragraphId,
+                    },
+            ),
           ),
         ),
     }),
@@ -293,7 +300,7 @@ export const procedures = defineProcedures({
               onSome: (p) => ({
                 book: p.book,
                 chapter: p.chapter,
-                verse: Option.getOrNull(p.verse),
+                verse: p._tag === 'verse' ? p.verse : null,
               }),
             }),
           ),
@@ -305,11 +312,11 @@ export const procedures = defineProcedures({
       handle: (pos) =>
         LastPositionStorage.pipe(
           Effect.flatMap((s) =>
-            s.writeBible({
-              book: pos.book,
-              chapter: pos.chapter,
-              verse: Option.fromNullishOr(pos.verse),
-            }),
+            s.writeBible(
+              pos.verse === null || pos.verse === undefined
+                ? { _tag: 'chapter', book: pos.book, chapter: pos.chapter }
+                : { _tag: 'verse', book: pos.book, chapter: pos.chapter, verse: pos.verse },
+            ),
           ),
         ),
     }),

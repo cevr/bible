@@ -44,7 +44,12 @@ export type PrefetchStatus =
       readonly bookId: number;
       readonly total: number;
     }
-  | { readonly _tag: 'Failed'; readonly bookId: number; readonly reason: string };
+  | {
+      readonly _tag: 'Failed';
+      readonly mode: 'prefetch' | 'download';
+      readonly bookId: number;
+      readonly reason: string;
+    };
 
 export interface PrefetcherShape {
   readonly status: SubscriptionRef.SubscriptionRef<PrefetchStatus>;
@@ -150,6 +155,7 @@ export class Prefetcher extends Context.Service<Prefetcher, PrefetcherShape>()(
           Effect.catch((error) =>
             SubscriptionRef.set(status, {
               _tag: 'Failed',
+              mode: 'prefetch',
               bookId,
               reason: error._tag,
             } satisfies PrefetchStatus),

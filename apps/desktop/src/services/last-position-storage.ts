@@ -4,23 +4,30 @@ import { Context, Effect, Layer, Option, Ref } from 'effect';
 // (book_id, para_id) to match the SQLite column names; we translate at the
 // service boundary so callers stay in camelCase.
 //
-// `paragraphId` is the in-chapter scroll anchor — the paragraph that was at
-// the top of the viewport when the user last looked. None when the user
-// hasn't scrolled yet (or pre-scroll-spy data); restore falls back to chapter
-// top in that case.
-export interface LastPosition {
-  readonly bookId: number;
-  readonly paraId: Option.Option<string>;
-  readonly paragraphId: Option.Option<string>;
-}
+// Discriminated by depth so a deeper anchor implies the shallower ones:
+// `paragraph` carries paraId + paragraphId; `chapter` carries paraId; `book`
+// has neither. Forbids the "paragraph anchor without chapter" combination the
+// prior shape (paired Options) allowed.
+export type LastPosition =
+  | { readonly _tag: 'book'; readonly bookId: number }
+  | { readonly _tag: 'chapter'; readonly bookId: number; readonly paraId: string }
+  | {
+      readonly _tag: 'paragraph';
+      readonly bookId: number;
+      readonly paraId: string;
+      readonly paragraphId: string;
+    };
 
 // Bible-mode position. Verse is optional — a chapter the user opened without
 // clicking a specific verse is still a valid place to restore to.
-export interface BibleLastPosition {
-  readonly book: number;
-  readonly chapter: number;
-  readonly verse: Option.Option<number>;
-}
+export type BibleLastPosition =
+  | { readonly _tag: 'chapter'; readonly book: number; readonly chapter: number }
+  | {
+      readonly _tag: 'verse';
+      readonly book: number;
+      readonly chapter: number;
+      readonly verse: number;
+    };
 
 export interface LastPositionStorageShape {
   /** `None` when no EGW position has been persisted yet (first launch). */
@@ -55,42 +62,51 @@ export class LastPositionStorage extends Context.Service<
 >()('@bible/desktop/services/LastPositionStorage') {
   static layer = Layer.succeed(LastPositionStorage, {
     read: Effect.promise(() => window.api.lastPosition.read()).pipe(
-      Effect.map((row) =>
-        row === null
-          ? Option.none<LastPosition>()
-          : Option.some({
-              bookId: row.book_id,
-              paraId: Option.fromNullishOr(row.para_id),
-              paragraphId: Option.fromNullishOr(row.paragraph_id),
-            }),
-      ),
+      Effect.map((row): Option.Option<LastPosition> => {
+        if (row === null) return Option.none();
+        if (row.para_id === null || row.para_id === undefined) {
+          return Option.some({ _tag: 'book', bookId: row.book_id });
+        }
+        if (row.paragraph_id === null || row.paragraph_id === undefined) {
+          return Option.some({ _tag: 'chapter', bookId: row.book_id, paraId: row.para_id });
+        }
+        return Option.some({
+          _tag: 'paragraph',
+          bookId: row.book_id,
+          paraId: row.para_id,
+          paragraphId: row.paragraph_id,
+        });
+      }),
     ),
     write: (position) =>
       Effect.promise(() =>
         window.api.lastPosition.write(
           position.bookId,
-          Option.getOrNull(position.paraId),
-          Option.getOrNull(position.paragraphId),
+          position._tag === 'book' ? null : position.paraId,
+          position._tag === 'paragraph' ? position.paragraphId : null,
         ),
       ),
     clear: Effect.promise(() => window.api.lastPosition.clear()),
     readBible: Effect.promise(() => window.api.bibleLastPosition.read()).pipe(
-      Effect.map((row) =>
-        row === null
-          ? Option.none<BibleLastPosition>()
-          : Option.some({
-              book: row.book,
-              chapter: row.chapter,
-              verse: Option.fromNullishOr(row.verse),
-            }),
-      ),
+      Effect.map((row): Option.Option<BibleLastPosition> => {
+        if (row === null) return Option.none();
+        if (row.verse === null || row.verse === undefined) {
+          return Option.some({ _tag: 'chapter', book: row.book, chapter: row.chapter });
+        }
+        return Option.some({
+          _tag: 'verse',
+          book: row.book,
+          chapter: row.chapter,
+          verse: row.verse,
+        });
+      }),
     ),
     writeBible: (position) =>
       Effect.promise(() =>
         window.api.bibleLastPosition.write(
           position.book,
           position.chapter,
-          Option.getOrNull(position.verse),
+          position._tag === 'verse' ? position.verse : null,
         ),
       ),
     clearBible: Effect.promise(() => window.api.bibleLastPosition.clear()),
