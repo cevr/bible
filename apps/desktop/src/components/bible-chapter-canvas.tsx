@@ -98,8 +98,9 @@ export const BibleChapterCanvas: Component<BibleChapterCanvasProps> = (props) =>
   );
 
   // Inline-overlay flags read directly from ReaderSettings.changes — single
-  // source of truth, no prop drill from app.tsx. Toolbar lives outside the
-  // canvas now (mounted by app.tsx) and toggles the same SubscriptionRef.
+  // source of truth, no prop drill from app.tsx. The toolbar (mounted inside
+  // the chapter Match for sticky-positioning) is independently self-sourcing
+  // against the same SubscriptionRef, so its toggles update both sides.
   const settings = signalFromStream(
     Effect.gen(function* () {
       const s = yield* ReaderSettings;
