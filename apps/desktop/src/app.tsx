@@ -1,4 +1,4 @@
-import { Effect, Fiber, Option, Stream } from 'effect';
+import { Effect, Fiber, Option, Schedule, Stream } from 'effect';
 import {
   batch,
   type Component,
@@ -269,29 +269,22 @@ export const App: Component = () => {
     // Poll the diag IPC until main reports ready. We assume ready until told
     // otherwise so first-paint isn't gated on the roundtrip; if the first poll
     // says "not ready" we flip the banner on and keep polling every second
-    // until it flips true.
-    let cancelled = false;
-    let pollTimerId: number | undefined;
-    const pollMainReady = (): void => {
-      void window.api.diag
-        .runtimeReady()
-        .then((ready) => {
-          if (cancelled) return;
-          setMainReady(ready);
-          if (!ready) pollTimerId = window.setTimeout(pollMainReady, 1000);
-        })
-        .catch(() => {
-          // IPC threw — preload bridge not wired or main crashed. Treat as
-          // not-ready so the banner surfaces, and keep retrying.
-          if (cancelled) return;
-          setMainReady(false);
-          pollTimerId = window.setTimeout(pollMainReady, 1000);
-        });
-    };
-    pollMainReady();
+    // until it flips true. Effect.repeat owns the cancellation — the fiber is
+    // interrupted via onCleanup so the polling stops on unmount.
+    const checkReady = Effect.tryPromise(() => window.api.diag.runtimeReady()).pipe(
+      Effect.orElseSucceed(() => false),
+      Effect.tap((ready) => Effect.sync(() => setMainReady(ready))),
+    );
+    const pollFiber = runtime.runFork(
+      checkReady.pipe(
+        Effect.repeat({
+          schedule: Schedule.spaced('1 second'),
+          until: (ready: boolean) => ready,
+        }),
+      ),
+    );
     onCleanup(() => {
-      cancelled = true;
-      if (pollTimerId !== undefined) window.clearTimeout(pollTimerId);
+      runtime.runFork(Fiber.interrupt(pollFiber));
     });
 
     const settingsRehydrateFiber = runtime.runFork(

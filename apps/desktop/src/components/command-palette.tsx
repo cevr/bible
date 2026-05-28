@@ -143,77 +143,80 @@ export const CommandPalette: Component<CommandPaletteProps> = (props) => {
   let inputEl: HTMLInputElement | undefined;
   let listEl: HTMLDivElement | undefined;
 
-  // Seed the view + query when the palette opens. Memory takes precedence
-  // — if the user already had the palette open this session, restore that
-  // exact view/query so a second Cmd+K feels like resuming. Otherwise fall
-  // back to the deepest meaningful context derived from `currentSelection`.
-  // On close (open → false), write the latest snapshot back to memory.
+  // Seed the view + query when the palette opens; write a snapshot back on
+  // close. Memory takes precedence — if the user already had the palette
+  // open this session, restore that exact view/query so a second Cmd+K feels
+  // like resuming. Otherwise fall back to the deepest meaningful context
+  // derived from `currentSelection`.
   //
-  // The seed fetch runs as a Fiber tracked on the effect closure so a rapid
-  // close→reopen interrupts the prior in-flight read before its callback can
-  // stomp on the freshly seeded view.
-  let wasOpen = false;
-  createEffect(() => {
-    const isOpen = props.open;
-    if (isOpen && !wasOpen) {
-      const seedFiber = runtime.runFork(
-        Effect.gen(function* () {
-          const memory = yield* CommandPaletteMemory;
-          const snapshot = yield* memory.get;
-          // Seed view+query+activeIdx atomically — three separate setters
-          // would create momentary intermediate states the renderer could
-          // observe.
-          if (snapshot !== null) {
-            const seedView: PaletteView =
-              snapshot._tag === 'chapter'
-                ? { _tag: 'chapter', book: snapshot.book, chapter: snapshot.chapter }
-                : snapshot._tag === 'book'
-                  ? { _tag: 'book', book: snapshot.book }
+  // `on(props.open, ..., { defer: true })` runs only on edge transitions of
+  // `props.open` — no manual `wasOpen` bookkeeping, the prev/next pair gives
+  // us the edge direction. Seed fetch runs as a Fiber tracked on the effect
+  // closure so a rapid close→reopen interrupts the prior in-flight read.
+  createEffect(
+    on(
+      () => props.open,
+      (isOpen, wasOpen) => {
+        if (isOpen && wasOpen !== true) {
+          const seedFiber = runtime.runFork(
+            Effect.gen(function* () {
+              const memory = yield* CommandPaletteMemory;
+              const snapshot = yield* memory.get;
+              // Seed view+query+activeIdx atomically — three separate setters
+              // would create momentary intermediate states the renderer could
+              // observe.
+              if (snapshot !== null) {
+                const seedView: PaletteView =
+                  snapshot._tag === 'chapter'
+                    ? { _tag: 'chapter', book: snapshot.book, chapter: snapshot.chapter }
+                    : snapshot._tag === 'book'
+                      ? { _tag: 'book', book: snapshot.book }
+                      : { _tag: 'root' };
+                setPaletteState({ view: seedView, query: snapshot.query, activeIdx: 0 });
+              } else {
+                // untrack: currentSelection is read once to seed the view on
+                // open; subsequent cursor moves while the palette is open
+                // must not re-trigger this effect or it'd yank the user back.
+                const sel = untrack(() => props.currentSelection());
+                const seedView: PaletteView = Option.isSome(sel)
+                  ? { _tag: 'chapter', book: sel.value.book, chapter: sel.value.chapter }
                   : { _tag: 'root' };
-            setPaletteState({ view: seedView, query: snapshot.query, activeIdx: 0 });
-          } else {
-            // untrack: currentSelection is read once to seed the view on
-            // open; subsequent cursor moves while the palette is open
-            // must not re-trigger this effect or it'd yank the user back.
-            const sel = untrack(() => props.currentSelection());
-            const seedView: PaletteView = Option.isSome(sel)
-              ? { _tag: 'chapter', book: sel.value.book, chapter: sel.value.chapter }
-              : { _tag: 'root' };
-            setPaletteState({ view: seedView, query: '', activeIdx: 0 });
-          }
-          queueMicrotask(() => {
-            inputEl?.focus();
-            inputEl?.select();
+                setPaletteState({ view: seedView, query: '', activeIdx: 0 });
+              }
+              queueMicrotask(() => {
+                inputEl?.focus();
+                inputEl?.select();
+              });
+            }),
+          );
+          onCleanup(() => {
+            void runtime.runPromise(Fiber.interrupt(seedFiber));
           });
-        }),
-      );
-      onCleanup(() => {
-        void runtime.runPromise(Fiber.interrupt(seedFiber));
-      });
-    } else if (!isOpen && wasOpen) {
-      // untrack: this branch fires once on close; we want the final view/
-      // query snapshot but the surrounding createEffect is driven by
-      // props.open only — tracking view/query here would re-run the effect
-      // on every keystroke while the palette is open.
-      const v = untrack(view);
-      const q = untrack(query);
-      const snapshot: PaletteSnapshot =
-        v._tag === 'chapter'
-          ? { _tag: 'chapter', book: v.book, chapter: v.chapter, query: q }
-          : v._tag === 'book'
-            ? { _tag: 'book', book: v.book, query: q }
-            : { _tag: 'root', query: q };
-      // Snapshot writes are short — runFork + tapError so failures surface
-      // via the runtime logger; on unmount the parent runtime interrupts.
-      runtime.runFork(
-        Effect.gen(function* () {
-          const memory = yield* CommandPaletteMemory;
-          yield* memory.record(snapshot);
-        }).pipe(Effect.tapError(Effect.logError), Effect.ignore),
-      );
-    }
-    wasOpen = isOpen;
-  });
+        } else if (!isOpen && wasOpen === true) {
+          // untrack: this branch fires once on close; we want the final view/
+          // query snapshot but the surrounding createEffect is driven by
+          // props.open only — tracking view/query here would re-run the effect
+          // on every keystroke while the palette is open.
+          const v = untrack(view);
+          const q = untrack(query);
+          const snapshot: PaletteSnapshot =
+            v._tag === 'chapter'
+              ? { _tag: 'chapter', book: v.book, chapter: v.chapter, query: q }
+              : v._tag === 'book'
+                ? { _tag: 'book', book: v.book, query: q }
+                : { _tag: 'root', query: q };
+          // Snapshot writes are short — runFork + tapError so failures surface
+          // via the runtime logger; on unmount the parent runtime interrupts.
+          runtime.runFork(
+            Effect.gen(function* () {
+              const memory = yield* CommandPaletteMemory;
+              yield* memory.record(snapshot);
+            }).pipe(Effect.tapError(Effect.logError), Effect.ignore),
+          );
+        }
+      },
+    ),
+  );
 
   const parsed = createMemo<ParsedBibleQuery | null>(() => {
     const q = query().trim();

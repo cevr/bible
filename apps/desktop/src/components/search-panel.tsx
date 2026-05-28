@@ -311,4 +311,9 @@ const ResultRow: Component<{
   );
 };
 
-const stripTags = (s: string): string => s.replace(/<[^>]*>/g, '');
+// FTS5 snippet HTML often contains entity-encoded characters and arbitrary
+// attribute strings; the browser's HTML parser handles every edge case the
+// regex form would miss.
+const stripTagsParser = new DOMParser();
+const stripTags = (s: string): string =>
+  stripTagsParser.parseFromString(s, 'text/html').body.textContent ?? '';

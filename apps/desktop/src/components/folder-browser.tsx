@@ -33,12 +33,38 @@ type DownloadState =
   | { readonly _tag: 'running'; readonly percent: number }
   | { readonly _tag: 'done' };
 
-// Module-level memo of resolved book → folder-path chains. Hit on subsequent
-// drawer opens for books we've seeded before in this session, so we skip the
-// listBooks lookup + tree DFS. Doesn't survive app restart by design — the
-// underlying sqlite caches do, and a stale chain just falls through resolvePath
+// Per-session memo of resolved book → folder-path chains. Skips the
+// listBooks lookup + tree DFS on subsequent drawer opens for books we've
+// seeded before in this session. Backed by sessionStorage so it survives
+// reload but is scoped to the tab; stale chains fall through resolvePath
 // back to root.
-const folderPathByBook = new Map<number, ReadonlyArray<number>>();
+const FOLDER_PATH_PREFIX = 'folderBrowser.pathByBook:';
+const folderPathKey = (bookId: number): string => `${FOLDER_PATH_PREFIX}${String(bookId)}`;
+const folderPathGet = (bookId: number): ReadonlyArray<number> | undefined => {
+  try {
+    const raw = sessionStorage.getItem(folderPathKey(bookId));
+    if (raw === null) return undefined;
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed) || !parsed.every((n) => typeof n === 'number')) return undefined;
+    return parsed as ReadonlyArray<number>;
+  } catch {
+    return undefined;
+  }
+};
+const folderPathSet = (bookId: number, chain: ReadonlyArray<number>): void => {
+  try {
+    sessionStorage.setItem(folderPathKey(bookId), JSON.stringify(chain));
+  } catch {
+    /* sessionStorage quota / disabled — best-effort cache */
+  }
+};
+const folderPathDelete = (bookId: number): void => {
+  try {
+    sessionStorage.removeItem(folderPathKey(bookId));
+  } catch {
+    /* best-effort */
+  }
+};
 
 /* Folder card subtitle. Folders at upper levels of the EGW tree hold zero
    books and only subfolders — "0 books" is meaningless there, so fall back
@@ -200,7 +226,7 @@ export const FolderBrowser: Component<FolderBrowserProps> = (props) => {
     // Memo hit — synchronously seed without listBooks/DFS. If the chain is
     // stale (folder deleted/renamed), resolvePath returns null and currentLevel
     // resets to root + drops the cache entry on next render.
-    const cached = folderPathByBook.get(bookId);
+    const cached = folderPathGet(bookId);
     if (cached !== undefined) {
       if (path().length === 0) setPath(cached);
       return;
@@ -214,7 +240,7 @@ export const FolderBrowser: Component<FolderBrowserProps> = (props) => {
         if (book === undefined) return;
         const chain = findFolderPath(folders, book.folder_id);
         if (chain === null) return;
-        folderPathByBook.set(bookId, chain);
+        folderPathSet(bookId, chain);
         // Guard against the user having drilled in during the lookup —
         // listBooks is cached but not synchronous on a cold cache.
         if (path().length !== 0) return;
@@ -247,13 +273,13 @@ export const FolderBrowser: Component<FolderBrowserProps> = (props) => {
         // that matches it, so a re-open doesn't re-seed the same broken path.
         setPath([]);
         if (seedBookId !== null) {
-          const stale = folderPathByBook.get(seedBookId);
+          const stale = folderPathGet(seedBookId);
           if (
             stale !== undefined &&
             stale.length === p.length &&
             stale.every((id, i) => id === p[i])
           ) {
-            folderPathByBook.delete(seedBookId);
+            folderPathDelete(seedBookId);
           }
         }
         return { folders: t, currentFolderId: null, crumbs: [] };
