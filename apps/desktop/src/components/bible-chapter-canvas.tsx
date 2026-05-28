@@ -15,12 +15,18 @@ import {
 import { makeLru } from '../lib/lru.js';
 import { ipc, runtime, signalFromStream } from '../runtime.js';
 import { BibleReaderState, type BibleReaderSelection } from '../services/bible-reader-state.js';
-import { KjvBible, type KjvChapter, type KjvStrongsWord } from '../services/kjv-bible.js';
-import { INITIAL_READER_SETTINGS, ReaderSettings } from '../services/reader-settings.js';
+import { KjvBible, type KjvChapter } from '../services/kjv-bible.js';
 import { BibleBooksGrid } from './bible-books-grid.js';
 import { BibleReaderToolbar } from './bible-reader-toolbar.js';
 import { StrongsVerse } from './bible/strongs-verse.js';
 import { VerseRenderer } from './bible/verse-renderer.js';
+import {
+  MarginNotesOverlay,
+  StrongsOverlay,
+  useVerseOverlays,
+  VerseOverlaysProvider,
+  XrefOverlay,
+} from './bible/verse-overlays.js';
 import { ChapterNavButtons } from './book-feed.js';
 
 // Main canvas for Bible mode. Subscribes to BibleReaderState, loads the KJV
@@ -97,25 +103,12 @@ export const BibleChapterCanvas: Component<BibleChapterCanvasProps> = (props) =>
     Option.none<BibleReaderSelection>(),
   );
 
-  // Inline-overlay flags read directly from ReaderSettings.changes — single
-  // source of truth, no prop drill from app.tsx. The toolbar (mounted inside
-  // the chapter Match for sticky-positioning) is independently self-sourcing
-  // against the same SubscriptionRef, so its toggles update both sides.
-  const settings = signalFromStream(
-    Effect.gen(function* () {
-      const s = yield* ReaderSettings;
-      return s.changes;
-    }),
-    INITIAL_READER_SETTINGS,
-  );
-  const inlineStrongs = createMemo(() => settings().inlineStrongs);
-  const inlineMarginNotes = createMemo(() => settings().inlineMarginNotes);
-  const inlineCrossRefs = createMemo(() => settings().inlineCrossRefs);
-
   // Top-level view: either no-selection (books grid) or a chapter (toolbar +
   // shell). Chapter branch keys on `book:chapter` so verse-cursor changes
   // don't re-mount ChapterShell — fresh fetch + verseRefs reset would yank
-  // the user's scroll position on every verse advance.
+  // the user's scroll position on every verse advance. Inline-overlay flags
+  // live inside each overlay sibling — they read ReaderSettings directly, so
+  // toggling one doesn't propagate through this canvas at all.
   const chapterKey = createMemo<string | null>(() => {
     const sel = Option.getOrNull(selection());
     if (sel === null) return null;
@@ -136,9 +129,6 @@ export const BibleChapterCanvas: Component<BibleChapterCanvasProps> = (props) =>
                     (): BibleReaderSelection => ({ _tag: 'chapter', book: 0, chapter: 0 }),
                   )
                 }
-                inlineStrongs={inlineStrongs()}
-                inlineMarginNotes={inlineMarginNotes()}
-                inlineCrossRefs={inlineCrossRefs()}
                 onOpenStrongs={props.onOpenStrongs}
                 onOpenMarginNote={props.onOpenMarginNote}
                 onOpenCrossRefs={props.onOpenCrossRefs}
@@ -153,9 +143,6 @@ export const BibleChapterCanvas: Component<BibleChapterCanvasProps> = (props) =>
 
 const ChapterShell: Component<{
   readonly selection: () => BibleReaderSelection;
-  readonly inlineStrongs: boolean;
-  readonly inlineMarginNotes: boolean;
-  readonly inlineCrossRefs: boolean;
   readonly onOpenStrongs: (book: number, chapter: number, verse: number, code: string) => void;
   readonly onOpenMarginNote: (book: number, chapter: number, verse: number) => void;
   readonly onOpenCrossRefs: (book: number, chapter: number, verse: number) => void;
@@ -164,14 +151,6 @@ const ChapterShell: Component<{
   const chapter = (): number => props.selection().chapter;
 
   const chapterRes = ipc.bible.getChapter.query(() => ({
-    book: book(),
-    chapter: chapter(),
-  }));
-  // Single round-trip for the lightweight overlay marker sets
-  // (notes + xrefs). Strong's stays on its own query — it's heavy and
-  // structurally different, so the StrongsLoader mount-only component
-  // handles it independently when the toggle is on.
-  const markersRes = ipc.bible.getChapterMarkers.query(() => ({
     book: book(),
     chapter: chapter(),
   }));
@@ -199,56 +178,6 @@ const ChapterShell: Component<{
   // parent <Suspense>. On cold load the resource read suspends; on null
   // (chapter missing) we render the reimport UI inline.
   const peekedChapter = createMemo<KjvChapter | undefined>(() => cacheGet(book(), chapter()));
-
-  // Decode the unified marker bundle once and key the per-overlay memos off
-  // it. Each memo short-circuits to empty when its toggle is off so the
-  // verse rows don't repaint when an unrelated overlay flips.
-  const xrefVerses = createMemo<ReadonlySet<number>>(() => {
-    if (!props.inlineCrossRefs) return new Set<number>();
-    const m = markersRes();
-    if (m === undefined) return new Set<number>();
-    return new Set(m.xrefVerses);
-  });
-
-  // Strong's overlay lives on its own IPC (heavy payload). The query is only
-  // active when the toggle is on — when off, we pass through an empty map so
-  // ChapterBody doesn't have to distinguish "loading" from "off". `.latest`
-  // keeps the verse list rendering immediately; overlays flicker in once the
-  // IPC resolves, then stay cached for re-toggles.
-  const strongsRes = ipc.bible.getChapterStrongs.query(() => ({
-    book: book(),
-    chapter: chapter(),
-  }));
-  const strongsByVerse = createMemo<ReadonlyMap<number, readonly KjvStrongsWord[]>>(() => {
-    if (!props.inlineStrongs) return new Map();
-    const s = strongsRes.latest;
-    if (s === undefined || s === null) return new Map();
-    const m = new Map<number, readonly KjvStrongsWord[]>();
-    for (const v of s.verses) m.set(v.verse, v.words);
-    return m;
-  });
-
-  // Margin-note overlay: pull the chapter's full notes-per-verse map; pass
-  // anchor metadata (idx + phrase) down so VerseRenderer can place inline
-  // a/b/c superscripts next to the matched phrase.
-  const marginNotesRes = ipc.bible.getChapterMarginNotes.query(() => ({
-    book: book(),
-    chapter: chapter(),
-  }));
-  type MarginAnchor = { readonly idx: number; readonly phrase: string };
-  const marginNotesByVerse = createMemo<ReadonlyMap<number, readonly MarginAnchor[]>>(() => {
-    if (!props.inlineMarginNotes) return new Map();
-    const s = marginNotesRes.latest;
-    if (s === undefined || s === null) return new Map();
-    const m = new Map<number, readonly MarginAnchor[]>();
-    for (const row of s) {
-      m.set(
-        row.verse,
-        row.notes.map((n) => ({ idx: n.idx, phrase: n.phrase })),
-      );
-    }
-    return m;
-  });
 
   // Verse-sync effect: whenever the focused verse changes, bring it into
   // view IF it isn't already on screen. The off-screen check is what lets
@@ -506,23 +435,22 @@ const ChapterShell: Component<{
             {(c) => (
               <div class="mx-auto max-w-[var(--reader-width,68ch)] px-6 py-10">
                 <ReaderHeader title={`${c.bookName} ${String(c.chapter)}`} />
-                <ChapterBody
-                  chapter={c}
-                  cursorVerse={cursorVerse()}
-                  xrefVerses={xrefVerses()}
-                  strongsByVerse={strongsByVerse()}
-                  marginNotesByVerse={marginNotesByVerse()}
-                  verseRefs={verseRefs}
-                  onVerseClick={onVerseClick}
-                  inlineStrongs={props.inlineStrongs}
-                  inlineMarginNotes={props.inlineMarginNotes}
-                  inlineCrossRefs={props.inlineCrossRefs}
-                  onOpenStrongs={(verse, code) =>
-                    props.onOpenStrongs(book(), chapter(), verse, code)
-                  }
-                  onOpenMarginNote={(verse) => props.onOpenMarginNote(book(), chapter(), verse)}
-                  onOpenCrossRefs={(verse) => props.onOpenCrossRefs(book(), chapter(), verse)}
-                />
+                <VerseOverlaysProvider>
+                  <StrongsOverlay book={book} chapter={chapter} />
+                  <MarginNotesOverlay book={book} chapter={chapter} />
+                  <XrefOverlay book={book} chapter={chapter} />
+                  <ChapterBody
+                    chapter={c}
+                    cursorVerse={cursorVerse()}
+                    verseRefs={verseRefs}
+                    onVerseClick={onVerseClick}
+                    onOpenStrongs={(verse, code) =>
+                      props.onOpenStrongs(book(), chapter(), verse, code)
+                    }
+                    onOpenMarginNote={(verse) => props.onOpenMarginNote(book(), chapter(), verse)}
+                    onOpenCrossRefs={(verse) => props.onOpenCrossRefs(book(), chapter(), verse)}
+                  />
+                </VerseOverlaysProvider>
               </div>
             )}
           </Show>
@@ -608,86 +536,69 @@ const ReaderHeader: Component<{
 const ChapterBody: Component<{
   readonly chapter: KjvChapter;
   readonly cursorVerse: number | null;
-  /** Verse sets are already gated on the corresponding toggle at the
-   *  ChapterShell memo level — an empty set/map here means "overlay off" OR
-   *  "no markers in this chapter". ChapterBody doesn't need to distinguish. */
-  readonly xrefVerses: ReadonlySet<number>;
-  readonly strongsByVerse: ReadonlyMap<number, readonly KjvStrongsWord[]>;
-  readonly marginNotesByVerse: ReadonlyMap<
-    number,
-    readonly { readonly idx: number; readonly phrase: string }[]
-  >;
   readonly verseRefs: Map<number, HTMLElement>;
   readonly onVerseClick: (verse: number) => void;
-  readonly inlineStrongs: boolean;
-  readonly inlineMarginNotes: boolean;
-  readonly inlineCrossRefs: boolean;
   readonly onOpenStrongs: (verse: number, code: string) => void;
   readonly onOpenMarginNote: (verse: number) => void;
   readonly onOpenCrossRefs: (verse: number) => void;
-}> = (props) => (
-  <div class="mt-6 flex flex-col gap-3 font-[family-name:var(--reader-font-family,var(--font-serif))] text-[length:var(--reader-font-size,18px)] leading-[var(--reader-line-height,1.55)] text-fg">
-    <For each={props.chapter.verses}>
-      {(v) => {
-        const isCursor = (): boolean => v.verse === props.cursorVerse;
-        const hasXref = (): boolean => props.inlineCrossRefs && props.xrefVerses.has(v.verse);
-        const strongsWords = (): readonly KjvStrongsWord[] | null => {
-          if (!props.inlineStrongs) return null;
-          return props.strongsByVerse.get(v.verse) ?? null;
-        };
-        const verseMarginNotes = (): readonly {
-          readonly idx: number;
-          readonly phrase: string;
-        }[] => {
-          if (!props.inlineMarginNotes) return [];
-          return props.marginNotesByVerse.get(v.verse) ?? [];
-        };
-        return (
-          <p
-            class="m-0 -mx-2 rounded px-2 py-1 data-[cursor=true]:bg-accent-soft"
-            data-cursor={isCursor() ? 'true' : undefined}
-            ref={(el) => {
-              props.verseRefs.set(v.verse, el);
-            }}
-          >
-            <button
-              type="button"
-              class="mr-2 cursor-pointer bg-transparent border-0 p-0 text-[0.78em] text-muted [font-variant-numeric:tabular-nums] hover:text-accent hover:underline select-none"
-              title={`Focus verse ${String(v.verse)}`}
-              onClick={() => props.onVerseClick(v.verse)}
+}> = (props) => {
+  // Overlay data flows in via VerseOverlaysProvider — each overlay (Strongs /
+  // MarginNotes / Xref) mounted as a sibling owns its own IPC + toggle gating
+  // and pushes per-verse data into the shared context. Toggle-off → setter
+  // cleared → these accessors return the empty baseline.
+  const overlays = useVerseOverlays();
+  return (
+    <div class="mt-6 flex flex-col gap-3 font-[family-name:var(--reader-font-family,var(--font-serif))] text-[length:var(--reader-font-size,18px)] leading-[var(--reader-line-height,1.55)] text-fg">
+      <For each={props.chapter.verses}>
+        {(v) => {
+          const isCursor = (): boolean => v.verse === props.cursorVerse;
+          return (
+            <p
+              class="m-0 -mx-2 rounded px-2 py-1 data-[cursor=true]:bg-accent-soft"
+              data-cursor={isCursor() ? 'true' : undefined}
+              ref={(el) => {
+                props.verseRefs.set(v.verse, el);
+              }}
             >
-              {v.verse}
-            </button>
-            <Show
-              when={strongsWords()}
-              fallback={
-                <VerseRenderer
-                  text={v.text}
-                  marginNotes={verseMarginNotes()}
-                  onMarginNoteSelected={() => props.onOpenMarginNote(v.verse)}
-                />
-              }
-            >
-              {(words) => (
-                <StrongsVerse
-                  words={words()}
-                  onCodeSelected={(code) => props.onOpenStrongs(v.verse, code)}
-                />
-              )}
-            </Show>
-            <Show when={hasXref()}>
               <button
                 type="button"
-                class="ml-1 cursor-pointer bg-transparent border-0 p-0 align-baseline text-[0.62em] font-medium text-accent opacity-70 hover:opacity-100 hover:underline select-none"
-                title={`Cross-references for verse ${String(v.verse)}`}
-                onClick={() => props.onOpenCrossRefs(v.verse)}
+                class="mr-2 cursor-pointer bg-transparent border-0 p-0 text-[0.78em] text-muted [font-variant-numeric:tabular-nums] hover:text-accent hover:underline select-none"
+                title={`Focus verse ${String(v.verse)}`}
+                onClick={() => props.onVerseClick(v.verse)}
               >
-                <sup>x</sup>
+                {v.verse}
               </button>
-            </Show>
-          </p>
-        );
-      }}
-    </For>
-  </div>
-);
+              <Show
+                when={overlays.strongsWords(v.verse)}
+                fallback={
+                  <VerseRenderer
+                    text={v.text}
+                    marginNotes={overlays.marginNotes(v.verse)}
+                    onMarginNoteSelected={() => props.onOpenMarginNote(v.verse)}
+                  />
+                }
+              >
+                {(words) => (
+                  <StrongsVerse
+                    words={words()}
+                    onCodeSelected={(code) => props.onOpenStrongs(v.verse, code)}
+                  />
+                )}
+              </Show>
+              <Show when={overlays.hasXref(v.verse)}>
+                <button
+                  type="button"
+                  class="ml-1 cursor-pointer bg-transparent border-0 p-0 align-baseline text-[0.62em] font-medium text-accent opacity-70 hover:opacity-100 hover:underline select-none"
+                  title={`Cross-references for verse ${String(v.verse)}`}
+                  onClick={() => props.onOpenCrossRefs(v.verse)}
+                >
+                  <sup>x</sup>
+                </button>
+              </Show>
+            </p>
+          );
+        }}
+      </For>
+    </div>
+  );
+};
