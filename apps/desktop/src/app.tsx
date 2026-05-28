@@ -36,6 +36,7 @@ import { openBookAtFirstChapter } from './services/open-book.js';
 import { Prefetcher } from './services/prefetcher.js';
 import { ReaderSettings, type ReaderMode } from './services/reader-settings.js';
 import { ReaderState, type ReaderSelection } from './services/reader-state.js';
+import { UrlStateRouter, type UrlSelection } from './services/url-state-router.js';
 
 // Three-layer drawer stack for the open-book flow:
 //   - 'closed'      reader fills canvas
@@ -239,13 +240,67 @@ const AppInner: Component = () => {
       void runtime.runPromise(Fiber.interrupt(drawerSeedFiber));
     });
 
+    // URL hash → boot selection. Read synchronously so the rehydration
+    // fibers below can gate on it without racing a Promise. The router's
+    // `read` is `Effect.sync` under the hood, so `runSync` is safe.
+    //
+    // A7-01: the URL is the canonical state store. When the hash names a
+    // valid selection we use it INSTEAD of LastPositionStorage for the
+    // matching mode, and switch readerMode to match the hash. The other
+    // mode still rehydrates from storage so a mode-flip mid-session lands
+    // on the user's persisted place there.
+    const bootUrlSelection: Option.Option<UrlSelection> = runtime.runSync(
+      Effect.gen(function* () {
+        const router = yield* UrlStateRouter;
+        return yield* router.read;
+      }),
+    );
+    const urlSelectsBible =
+      Option.isSome(bootUrlSelection) &&
+      (bootUrlSelection.value._tag === 'bible-chapter' ||
+        bootUrlSelection.value._tag === 'bible-verse');
+    const urlSelectsEgw =
+      Option.isSome(bootUrlSelection) &&
+      (bootUrlSelection.value._tag === 'egw-book' ||
+        bootUrlSelection.value._tag === 'egw-chapter' ||
+        bootUrlSelection.value._tag === 'egw-highlight');
+    // Switch readerMode to match the URL before any storage reads — keeps
+    // the first-paint canvas aligned with the hash even if persisted mode
+    // disagrees (e.g. user shared a `#/bible/...` link while EGW was last
+    // open).
+    if (urlSelectsBible) settings.setReaderMode('bible');
+    if (urlSelectsEgw) settings.setReaderMode('egw');
+
     // Rehydrate last position on mount, then mirror + persist every change.
     // The rehydration replays into ReaderState (openBook/openChapter), which
     // fires `changes` and persists the same value back — harmless one-row
     // upsert. Persisting from the same fiber that mirrors keeps the order
     // deterministic: the signal updates before the disk write returns.
+    //
+    // URL hash takes precedence: when the boot hash names an EGW selection
+    // we replay it instead of the persisted position, then mark rehydrated
+    // so the canvas shows. The restore anchor (paragraphId) is only set
+    // from `egw-highlight` URLs, mirroring the LastPositionStorage path.
     const egwRehydrateFiber = runtime.runFork(
       Effect.gen(function* () {
+        if (urlSelectsEgw && Option.isSome(bootUrlSelection)) {
+          const url = bootUrlSelection.value;
+          const state = yield* ReaderState;
+          if (url._tag === 'egw-book') {
+            yield* openBookAtFirstChapter(url.bookId);
+          } else if (url._tag === 'egw-chapter') {
+            yield* state.openChapter(url.bookId, url.chapterParaId);
+          } else {
+            // egw-highlight: seed the restore anchor BEFORE the openChapterAt
+            // so BookFeed scrolls without a flicker on first render.
+            setRestoreParagraphId(Option.some(url.highlightParaId));
+            latestAnchorParaId = url.highlightParaId;
+            pendingRestoreEmit = true;
+            yield* state.openChapterAt(url.bookId, url.chapterParaId, url.highlightParaId);
+          }
+          setRehydrated(true);
+          return;
+        }
         const storage = yield* LastPositionStorage;
         const restored = yield* storage.read;
         if (Option.isNone(restored)) {
@@ -355,8 +410,21 @@ const AppInner: Component = () => {
     // restore above: read the persisted row, replay it into BibleReaderState
     // (which fires `changes` and persists the same value back — harmless
     // one-row upsert through the mirror fiber).
+    //
+    // URL hash takes precedence: when the boot hash names a Bible selection
+    // we replay it instead of the persisted position.
     const bibleRehydrateFiber = runtime.runFork(
       Effect.gen(function* () {
+        if (urlSelectsBible && Option.isSome(bootUrlSelection)) {
+          const url = bootUrlSelection.value;
+          const state = yield* BibleReaderState;
+          if (url._tag === 'bible-verse') {
+            yield* state.openChapterAt(url.book, url.chapter, url.verse);
+          } else if (url._tag === 'bible-chapter') {
+            yield* state.openChapter(url.book, url.chapter);
+          }
+          return;
+        }
         const storage = yield* LastPositionStorage;
         const restored = yield* storage.readBible;
         if (Option.isNone(restored)) return;
@@ -417,10 +485,115 @@ const AppInner: Component = () => {
       }),
     );
 
+    // A7-01: URL hash mirror. Subscribe to the THREE inputs that determine
+    // the canonical hash — reader mode (which mode's selection counts), and
+    // the two selection streams. On every emit snapshot all three and write
+    // the resulting URL via `history.replaceState`. The router's `write`
+    // no-ops when the encoded value matches the current hash, so this is
+    // cheap even when streams fire faster than the URL needs updating.
+    const computeUrlSelection = (
+      mode: ReaderMode,
+      egw: Option.Option<ReaderSelection>,
+      bible: Option.Option<BibleReaderSelection>,
+    ): Option.Option<UrlSelection> => {
+      if (mode === 'bible') {
+        if (Option.isNone(bible)) return Option.none();
+        const v = bible.value;
+        if (v._tag === 'verse') {
+          return Option.some({
+            _tag: 'bible-verse',
+            book: v.book,
+            chapter: v.chapter,
+            verse: v.verse,
+          });
+        }
+        return Option.some({ _tag: 'bible-chapter', book: v.book, chapter: v.chapter });
+      }
+      if (Option.isNone(egw)) return Option.none();
+      const v = egw.value;
+      if (v._tag === 'book') return Option.some({ _tag: 'egw-book', bookId: v.bookId });
+      if (v._tag === 'chapter') {
+        return Option.some({
+          _tag: 'egw-chapter',
+          bookId: v.bookId,
+          chapterParaId: v.chapterParaId,
+        });
+      }
+      return Option.some({
+        _tag: 'egw-highlight',
+        bookId: v.bookId,
+        chapterParaId: v.chapterParaId,
+        highlightParaId: v.highlightParaId,
+      });
+    };
+    const urlMirrorFiber = runtime.runFork(
+      Effect.gen(function* () {
+        const router = yield* UrlStateRouter;
+        const egwState = yield* ReaderState;
+        const bibleState = yield* BibleReaderState;
+        const settingsSvc = yield* ReaderSettings;
+        // Tag each input stream so a single `merge` produces one merged
+        // event channel; we re-fetch every input on every emit because the
+        // canonical hash depends on all three.
+        const modes = settingsSvc.changes.pipe(Stream.map((s) => ({ _tag: 'mode' as const, s })));
+        const egws = egwState.changes.pipe(Stream.map((s) => ({ _tag: 'egw' as const, s })));
+        const bibles = bibleState.changes.pipe(Stream.map((s) => ({ _tag: 'bible' as const, s })));
+        yield* Stream.merge(modes, Stream.merge(egws, bibles)).pipe(
+          Stream.runForEach(() =>
+            Effect.gen(function* () {
+              const settingsSnap = yield* settingsSvc.get;
+              const egwSnap = yield* egwState.get;
+              const bibleSnap = yield* bibleState.get;
+              const url = computeUrlSelection(settingsSnap.readerMode, egwSnap, bibleSnap);
+              yield* router.write(url);
+            }),
+          ),
+        );
+      }),
+    );
+
+    // A7-01: popstate handler. When the user hits back/forward, decode the
+    // resulting hash and replay it into whichever state machine the URL
+    // names. Symmetric with the boot read above — the same precedence rules
+    // (URL switches readerMode) apply.
+    const popstateFiber = runtime.runFork(
+      Effect.gen(function* () {
+        const router = yield* UrlStateRouter;
+        const egwState = yield* ReaderState;
+        const bibleState = yield* BibleReaderState;
+        yield* router.popstate.pipe(
+          Stream.runForEach((sel) =>
+            Effect.gen(function* () {
+              if (Option.isNone(sel)) return;
+              const url = sel.value;
+              if (url._tag === 'bible-chapter') {
+                settings.setReaderMode('bible');
+                yield* bibleState.openChapter(url.book, url.chapter);
+              } else if (url._tag === 'bible-verse') {
+                settings.setReaderMode('bible');
+                yield* bibleState.openChapterAt(url.book, url.chapter, url.verse);
+              } else if (url._tag === 'egw-book') {
+                settings.setReaderMode('egw');
+                yield* openBookAtFirstChapter(url.bookId);
+              } else if (url._tag === 'egw-chapter') {
+                settings.setReaderMode('egw');
+                yield* egwState.openChapter(url.bookId, url.chapterParaId);
+              } else {
+                settings.setReaderMode('egw');
+                yield* egwState.openChapterAt(url.bookId, url.chapterParaId, url.highlightParaId);
+              }
+            }),
+          ),
+        );
+      }),
+    );
+
     onCleanup(() => {
       void runtime.runPromise(Fiber.interrupt(fiber));
       void runtime.runPromise(Fiber.interrupt(bibleFiber));
       void runtime.runPromise(Fiber.interrupt(prefetchFiber));
+      void runtime.runPromise(Fiber.interrupt(urlMirrorFiber));
+      void runtime.runPromise(Fiber.interrupt(popstateFiber));
     });
   });
 
