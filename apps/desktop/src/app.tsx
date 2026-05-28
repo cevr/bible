@@ -4,17 +4,18 @@ import {
   type Component,
   createMemo,
   createSignal,
+  Match,
   onCleanup,
   onMount,
   Show,
+  Switch,
 } from 'solid-js';
-import { BibleChapterCanvas } from './components/bible-chapter-canvas.js';
 import { BibleDrawer } from './components/bible-drawer.js';
-import { BibleTocSidebar } from './components/bible-toc-sidebar.js';
-import { CommandPalette } from './components/command-palette.js';
-import { FolderBrowser } from './components/folder-browser.js';
 import { GlobalShortcuts } from './components/global-shortcuts.js';
-import { ReaderPane } from './components/reader-pane.js';
+import { BibleModeView } from './components/modes/bible-mode-view.js';
+import { EgwModeView } from './components/modes/egw-mode-view.js';
+import { HeaderSearchInput } from './components/modes/header-search-input.js';
+import { PaletteButton } from './components/modes/palette-button.js';
 import { SearchPanel } from './components/search-panel.js';
 import {
   FONT_FAMILY_VAR,
@@ -25,8 +26,6 @@ import {
   useReaderSettingsCtx,
 } from './components/settings/reader-settings-provider.js';
 import { SettingsSheet } from './components/settings/settings-sheet.js';
-import { TocPlusLibraryDrawer } from './components/toc-plus-library-drawer.js';
-import { ReaderPanel } from './components/ui/reader-panel.js';
 import { BibleReaderState, type BibleReaderSelection } from './services/bible-reader-state.js';
 import { createBibleDrawerState } from './services/bible-drawer-state.js';
 import { createDebouncedAction } from './lib/debounced-action.js';
@@ -663,38 +662,19 @@ const AppInner: Component = () => {
           </button>
         </Show>
         <div class="flex-1 flex justify-center [-webkit-app-region:no-drag]">
-          <Show
-            when={isBibleMode()}
-            fallback={
-              <input
-                ref={setSearchInputRef}
-                type="search"
-                class="w-[min(420px,100%)] h-[calc(28px*var(--ui-scale))] px-3 rounded-md border border-rule bg-[color-mix(in_srgb,var(--color-bg)_70%,var(--color-fg)_4%)] text-fg text-ui-base outline-none transition-[border-color] duration-[0.12s] ease-in-out [-webkit-app-region:no-drag] focus:border-accent"
-                placeholder="Search or refcode (⌘K)"
-                spellcheck={false}
-                autocomplete="off"
-                value={searchQuery()}
-                onInput={(e) => {
-                  setSearchQuery(e.currentTarget.value);
-                  openSearch();
-                }}
-                onFocus={openSearch}
+          <Switch>
+            <Match when={isBibleMode()}>
+              <PaletteButton onOpen={() => setPaletteOpen(true)} />
+            </Match>
+            <Match when={!isBibleMode()}>
+              <HeaderSearchInput
+                setSearchInputRef={setSearchInputRef}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                openSearch={openSearch}
               />
-            }
-          >
-            <button
-              type="button"
-              class="w-[min(420px,100%)] h-[calc(28px*var(--ui-scale))] px-3 inline-flex items-center justify-between gap-2 rounded-md border border-rule bg-[color-mix(in_srgb,var(--color-bg)_70%,var(--color-fg)_4%)] text-muted text-ui-base cursor-pointer transition-[background,border-color,color] duration-[0.12s] ease-in-out [-webkit-app-region:no-drag] hover:border-accent hover:text-fg focus-visible:border-accent focus-visible:text-fg focus-visible:outline-none"
-              onClick={() => setPaletteOpen(true)}
-              title="Jump to chapter or verse (⌘K)"
-              aria-label="Open command palette"
-            >
-              <span class="truncate">Jump to chapter or verse…</span>
-              <kbd class="inline-flex items-center px-1.5 py-0.5 rounded border border-rule text-muted text-ui-sm font-medium">
-                ⌘K
-              </kbd>
-            </button>
-          </Show>
+            </Match>
+          </Switch>
         </div>
         <button
           type="button"
@@ -754,102 +734,42 @@ const AppInner: Component = () => {
       </Show>
 
       <div class="relative min-h-0 overflow-hidden flex-1">
-        <Show
-          when={isBibleMode()}
-          fallback={
-            <Show
-              when={hasBook()}
-              fallback={
-                <Show when={rehydrated()}>
-                  <div class="absolute inset-0 overflow-auto">
-                    <FolderBrowser onPickBook={onPickBookFromLanding} />
-                  </div>
-                </Show>
-              }
-            >
-              <ReaderPane
-                selection={selection()}
-                onHighlightApplied={onHighlightApplied}
-                restoreParagraphId={restoreParagraphId}
-                onParagraphScrolledIntoView={onParagraphScrolledIntoView}
-                fontFamily={readerFontFamily}
-                onScriptureClick={(title) => {
-                  bibleDrawer.openFromQuery(title);
-                }}
-              />
-            </Show>
-          }
-        >
-          <BibleChapterCanvas
-            onOpenStrongs={(book, chapter, verse, code) =>
-              bibleDrawer.open(book, chapter, verse, 'words', { _tag: 'strongs', verse, code })
-            }
-            onOpenMarginNote={(book, chapter, verse) =>
-              bibleDrawer.open(book, chapter, verse, 'notes', {
-                _tag: 'note',
-                verse,
-                noteIndex: 0,
-              })
-            }
-            onOpenCrossRefs={(book, chapter, verse) =>
-              bibleDrawer.open(book, chapter, verse, 'xrefs')
-            }
-          />
-        </Show>
-
-        {/* Left drawer — in-shell ReaderPanel, mirror of the right drawer.
-            Bible mode shows just the books/chapters TOC. EGW mode expands
-            (360→720) when the user pops the Library pane open. */}
-        <ReaderPanel
-          open={isBibleMode() && drawer() !== 'closed'}
-          onOpenChange={(open) => {
-            if (!open) closeDrawers();
-          }}
-          side="left"
-          widthPx={() => 360}
-          overlay
-          label="Bible books"
-        >
-          <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-rule flex-[0_0_auto]">
-            <h2 class="m-0 text-ui-sm font-semibold tracking-[0.08em] uppercase text-muted">
-              Bible
-            </h2>
-          </div>
-          <div class="flex-1 min-h-0 overflow-y-auto">
-            <BibleTocSidebar currentSelection={bibleTocSelection} onPickChapter={closeDrawers} />
-          </div>
-        </ReaderPanel>
-
-        <ReaderPanel
-          open={!isBibleMode() && hasBook() && drawer() !== 'closed' && currentBookId() !== null}
-          onOpenChange={(open) => {
-            if (!open) closeDrawers();
-          }}
-          side="left"
-          widthPx={() => (drawer() === 'tocPlusLib' ? 720 : 360)}
-          overlay
-          label="Library and contents"
-          panelClass="flex-row"
-        >
-          <TocPlusLibraryDrawer
-            bookId={currentBookId}
-            expanded={() => drawer() === 'tocPlusLib'}
-            onToggle={() => dispatchDrawer({ _tag: 'toggleLibraryPane' })}
-            onPickBook={onPickBookFromDrawer}
-          />
-        </ReaderPanel>
+        <Switch>
+          <Match when={isBibleMode()}>
+            <BibleModeView
+              drawer={drawer}
+              closeDrawers={closeDrawers}
+              bibleDrawer={bibleDrawer}
+              bibleTocSelection={bibleTocSelection}
+              bibleSelection={bibleSelection}
+              paletteOpen={paletteOpen}
+              setPaletteOpen={setPaletteOpen}
+            />
+          </Match>
+          <Match when={!isBibleMode()}>
+            <EgwModeView
+              selection={selection}
+              rehydrated={rehydrated}
+              restoreParagraphId={restoreParagraphId}
+              readerFontFamily={readerFontFamily}
+              onHighlightApplied={onHighlightApplied}
+              onParagraphScrolledIntoView={onParagraphScrolledIntoView}
+              onPickBookFromLanding={onPickBookFromLanding}
+              onPickBookFromDrawer={onPickBookFromDrawer}
+              bibleDrawer={bibleDrawer}
+              drawer={drawer}
+              closeDrawers={closeDrawers}
+              toggleLibraryPane={() => dispatchDrawer({ _tag: 'toggleLibraryPane' })}
+              currentBookId={currentBookId}
+            />
+          </Match>
+        </Switch>
 
         {/* Right drawer — unified verse-pinned study drawer in both modes. */}
         <BibleDrawer state={bibleDrawer} />
       </div>
 
       <SettingsSheet open={settingsOpen()} onClose={closeSheet} />
-
-      <CommandPalette
-        open={paletteOpen()}
-        onOpenChange={setPaletteOpen}
-        currentSelection={bibleSelection}
-      />
     </div>
   );
 };
