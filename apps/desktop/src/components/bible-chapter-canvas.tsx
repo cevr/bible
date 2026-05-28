@@ -141,11 +141,10 @@ export const BibleChapterCanvas: Component<BibleChapterCanvasProps> = (props) =>
         {(_key) => (
           <ChapterShell
             selection={() =>
-              Option.getOrElse(selection(), () => ({
-                book: 0,
-                chapter: 0,
-                verse: Option.none<number>(),
-              }))
+              Option.getOrElse(
+                selection(),
+                (): BibleReaderSelection => ({ _tag: 'chapter', book: 0, chapter: 0 }),
+              )
             }
             inlineStrongs={props.inlineStrongs()}
             inlineMarginNotes={props.inlineMarginNotes()}
@@ -271,8 +270,8 @@ const ChapterShell: Component<{
   // case where <For> needs an extra tick (e.g. long chapter behind Suspense).
   createEffect(() => {
     const sel = props.selection();
-    const target = Option.getOrNull(sel.verse);
-    if (target === null) return;
+    if (sel._tag !== 'verse') return;
+    const target = sel.verse;
     const ready = peekedChapter() ?? chapterRes();
     if (ready === undefined || ready === null) return;
     let pendingTimerId: number | undefined;
@@ -456,7 +455,10 @@ const ChapterShell: Component<{
     onCleanup(() => window.removeEventListener('keydown', onKeyDown));
   });
 
-  const cursorVerse = createMemo<number | null>(() => Option.getOrNull(props.selection().verse));
+  const cursorVerse = createMemo<number | null>(() => {
+    const sel = props.selection();
+    return sel._tag === 'verse' ? sel.verse : null;
+  });
 
   const title = (): string => {
     const meta = getBibleBook(book());

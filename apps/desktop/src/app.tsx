@@ -437,12 +437,13 @@ export const App: Component = () => {
               if (Option.isNone(next)) {
                 yield* storage.clearBible;
               } else {
+                const v = next.value;
                 yield* storage.writeBible({
-                  book: next.value.book,
-                  chapter: next.value.chapter,
-                  verse: next.value.verse,
+                  book: v.book,
+                  chapter: v.chapter,
+                  verse: v._tag === 'verse' ? Option.some(v.verse) : Option.none<number>(),
                 });
-                yield* memory.recordBible(next.value.book, next.value.chapter);
+                yield* memory.recordBible(v.book, v.chapter);
               }
             }),
           ),

@@ -12,17 +12,21 @@ import { Context, Effect, Layer, Option, type Stream, SubscriptionRef } from 'ef
 // - Verse-level focus is the unit of work for the right-side EGW commentary
 //   drawer (F3.5), so it earns first-class status here.
 
-export interface BibleReaderSelection {
-  readonly book: number;
-  readonly chapter: number;
-  /** Verse the user is currently focused on. Drives:
-   *  - the right-side EGW commentary drawer
-   *  - the inline cursor styling on the verse row
-   *  - the canvas scroll-into-view effect (which only acts when the verse is
-   *    off-screen, so user clicks on visible verses don't jump the page)
-   *  None when no verse has been picked yet (e.g. chapter just opened). */
-  readonly verse: Option.Option<number>;
-}
+// Discriminated by depth. `verse` exists only on the `verse` variant; the
+// `chapter` variant forbids the "chapter open with a floating verse" combo
+// the prior shape allowed. Drives:
+//   - the right-side EGW commentary drawer
+//   - the inline cursor styling on the verse row
+//   - the canvas scroll-into-view effect (which only acts when the verse is
+//     off-screen, so user clicks on visible verses don't jump the page)
+export type BibleReaderSelection =
+  | { readonly _tag: 'chapter'; readonly book: number; readonly chapter: number }
+  | {
+      readonly _tag: 'verse';
+      readonly book: number;
+      readonly chapter: number;
+      readonly verse: number;
+    };
 
 export interface BibleReaderStateShape {
   readonly get: Effect.Effect<Option.Option<BibleReaderSelection>>;
@@ -44,12 +48,28 @@ const makeImpl = (initial: Option.Option<BibleReaderSelection>) =>
       get: SubscriptionRef.get(ref),
       changes: SubscriptionRef.changes(ref),
       openChapter: (book: number, chapter: number) =>
-        SubscriptionRef.set(ref, Option.some({ book, chapter, verse: Option.none() })),
+        SubscriptionRef.set(
+          ref,
+          Option.some<BibleReaderSelection>({ _tag: 'chapter', book, chapter }),
+        ),
       openChapterAt: (book: number, chapter: number, verse: number) =>
-        SubscriptionRef.set(ref, Option.some({ book, chapter, verse: Option.some(verse) })),
+        SubscriptionRef.set(
+          ref,
+          Option.some<BibleReaderSelection>({ _tag: 'verse', book, chapter, verse }),
+        ),
+      // Raises the chapter selection to a verse selection; no-op when no
+      // chapter is open.
       setVerse: (verse: number) =>
         SubscriptionRef.update(ref, (curr) =>
-          Option.map(curr, (sel) => ({ ...sel, verse: Option.some(verse) })),
+          Option.map(
+            curr,
+            (sel): BibleReaderSelection => ({
+              _tag: 'verse',
+              book: sel.book,
+              chapter: sel.chapter,
+              verse,
+            }),
+          ),
         ),
       close: SubscriptionRef.set(ref, Option.none<BibleReaderSelection>()),
     } satisfies BibleReaderStateShape;

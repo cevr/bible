@@ -57,12 +57,11 @@ export const BibleDrawer: Component<BibleDrawerProps> = (props) => {
           Stream.runForEach((sel) =>
             Effect.sync(() => {
               if (Option.isNone(sel)) return;
-              const verse = Option.getOrNull(sel.value.verse);
-              if (verse === null) return;
+              if (sel.value._tag !== 'verse') return;
               props.state.setTarget({
                 book: sel.value.book,
                 chapter: sel.value.chapter,
-                verse,
+                verse: sel.value.verse,
               });
             }),
           ),

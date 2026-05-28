@@ -24,12 +24,11 @@ const startCursorSync = (state: ReturnType<typeof createBibleDrawerState>) =>
       Stream.runForEach((sel) =>
         Effect.sync(() => {
           if (Option.isNone(sel)) return;
-          const verse = Option.getOrNull(sel.value.verse);
-          if (verse === null) return;
+          if (sel.value._tag !== 'verse') return;
           state.setTarget({
             book: sel.value.book,
             chapter: sel.value.chapter,
-            verse,
+            verse: sel.value.verse,
           });
         }),
       ),
