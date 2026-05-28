@@ -189,7 +189,7 @@ export const TocItem = Schema.Struct({
   para_id: Schema.optional(Schema.NullOr(Schema.String)),
   level: Schema.Number,
   title: Schema.optional(Schema.NullOr(Schema.String)),
-  refcode_short: Schema.optional(Schema.NullOr(Schema.String)),
+  refcode_short: OptionFromOptionalNullishOrEmpty,
   dup: Schema.optional(Schema.NullOr(Schema.String)),
   mp3: Schema.optional(Schema.NullOr(Schema.String)),
   puborder: Schema.Number,

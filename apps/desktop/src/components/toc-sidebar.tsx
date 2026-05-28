@@ -113,7 +113,8 @@ interface TocRowProps {
 
 const TocRow: Component<TocRowProps> = (props) => {
   const indent = () => ({ 'padding-left': `${String(props.item.level * INDENT_PER_LEVEL_PX)}px` });
-  const label = () => props.item.title ?? props.item.refcode_short ?? '(untitled)';
+  const label = () =>
+    props.item.title ?? Option.getOrElse(props.item.refcode_short, () => '(untitled)');
   const paraId = () => props.item.para_id ?? null;
 
   return (

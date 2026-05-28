@@ -1,5 +1,5 @@
 import { type Schemas } from '@bible/core/egw';
-import { Effect, Layer, Stream } from 'effect';
+import { Effect, Layer, Option, Stream } from 'effect';
 import { describe, expect, it } from 'vitest';
 import { EGWData } from '../src/services/egw-data.js';
 import { EGWIpcClient } from '../src/services/egw-ipc-client.js';
@@ -64,7 +64,13 @@ describe('EGWData', () => {
 
   it('layerTest accepts per-method overrides', async () => {
     const customToc: readonly Schemas.TocItem[] = [
-      { para_id: '84.155', level: 1, title: 'Ch 1', refcode_short: 'PP 1', puborder: 1 },
+      {
+        para_id: '84.155',
+        level: 1,
+        title: 'Ch 1',
+        refcode_short: Option.some('PP 1'),
+        puborder: 1,
+      },
     ];
     const result = await Effect.runPromise(
       Effect.gen(function* () {
