@@ -237,35 +237,33 @@ export const App: Component = () => {
     // says "not ready" we flip the banner on and keep polling every second
     // until it flips true.
     let cancelled = false;
+    let pollTimerId: number | undefined;
     const pollMainReady = (): void => {
       void window.api.diag
         .runtimeReady()
         .then((ready) => {
           if (cancelled) return;
           setMainReady(ready);
-          if (!ready) setTimeout(pollMainReady, 1000);
+          if (!ready) pollTimerId = window.setTimeout(pollMainReady, 1000);
         })
         .catch(() => {
           // IPC threw — preload bridge not wired or main crashed. Treat as
           // not-ready so the banner surfaces, and keep retrying.
           if (cancelled) return;
           setMainReady(false);
-          setTimeout(pollMainReady, 1000);
+          pollTimerId = window.setTimeout(pollMainReady, 1000);
         });
     };
     pollMainReady();
     onCleanup(() => {
       cancelled = true;
+      if (pollTimerId !== undefined) window.clearTimeout(pollTimerId);
     });
 
-    void runtime
-      .runPromise(
-        Effect.gen(function* () {
-          const s = yield* ReaderSettings;
-          return yield* s.get;
-        }),
-      )
-      .then((state) => {
+    const settingsRehydrateFiber = runtime.runFork(
+      Effect.gen(function* () {
+        const s = yield* ReaderSettings;
+        const state = yield* s.get;
         setThemeSig(state.theme);
         setFontFamilySig(state.fontFamily);
         setFontSizeSig(state.fontSize);
@@ -280,21 +278,21 @@ export const App: Component = () => {
         setInlineStrongsSig(state.inlineStrongs);
         setInlineMarginNotesSig(state.inlineMarginNotes);
         setInlineCrossRefsSig(state.inlineCrossRefs);
-      });
+      }),
+    );
+    onCleanup(() => {
+      void runtime.runPromise(Fiber.interrupt(settingsRehydrateFiber));
+    });
 
     // Rehydrate last position on mount, then mirror + persist every change.
     // The rehydration replays into ReaderState (openBook/openChapter), which
     // fires `changes` and persists the same value back — harmless one-row
     // upsert. Persisting from the same fiber that mirrors keeps the order
     // deterministic: the signal updates before the disk write returns.
-    void runtime
-      .runPromise(
-        Effect.gen(function* () {
-          const storage = yield* LastPositionStorage;
-          return yield* storage.read;
-        }),
-      )
-      .then((restored) => {
+    const egwRehydrateFiber = runtime.runFork(
+      Effect.gen(function* () {
+        const storage = yield* LastPositionStorage;
+        const restored = yield* storage.read;
         if (Option.isNone(restored)) {
           setRehydrated(true);
           return;
@@ -307,31 +305,29 @@ export const App: Component = () => {
           latestAnchorParaId = pos.paragraphId.value;
           pendingRestoreEmit = true;
         }
-        void runtime
-          .runPromise(
-            Effect.gen(function* () {
-              if (Option.isSome(pos.paraId)) {
-                const state = yield* ReaderState;
-                yield* state.openChapter(pos.bookId, pos.paraId.value);
-              } else {
-                // Persisted bookId with no chapter (e.g. user closed before
-                // picking one) — auto-resolve to the first chapter rather
-                // than restoring into the "Pick a chapter" empty state.
-                yield* openBookAtFirstChapter(pos.bookId);
-              }
-            }),
-          )
-          .catch((err) => {
-            console.error('[rehydrate] openChapter failed', err);
-          })
-          .finally(() => {
-            setRehydrated(true);
-          });
-      })
-      .catch((err) => {
-        console.error('[rehydrate] storage.read failed', err);
+        if (Option.isSome(pos.paraId)) {
+          const state = yield* ReaderState;
+          yield* state.openChapter(pos.bookId, pos.paraId.value);
+        } else {
+          // Persisted bookId with no chapter (e.g. user closed before
+          // picking one) — auto-resolve to the first chapter rather
+          // than restoring into the "Pick a chapter" empty state.
+          yield* openBookAtFirstChapter(pos.bookId);
+        }
         setRehydrated(true);
-      });
+      }).pipe(
+        Effect.tapError((err) =>
+          Effect.sync(() => {
+            console.error('[rehydrate] EGW position failed', err);
+            setRehydrated(true);
+          }),
+        ),
+        Effect.ignore,
+      ),
+    );
+    onCleanup(() => {
+      void runtime.runPromise(Fiber.interrupt(egwRehydrateFiber));
+    });
 
     const fiber = runtime.runFork(
       Effect.gen(function* () {
@@ -390,34 +386,30 @@ export const App: Component = () => {
     // restore above: read the persisted row, replay it into BibleReaderState
     // (which fires `changes` and persists the same value back — harmless
     // one-row upsert through the mirror fiber).
-    void runtime
-      .runPromise(
-        Effect.gen(function* () {
-          const storage = yield* LastPositionStorage;
-          return yield* storage.readBible;
-        }),
-      )
-      .then((restored) => {
+    const bibleRehydrateFiber = runtime.runFork(
+      Effect.gen(function* () {
+        const storage = yield* LastPositionStorage;
+        const restored = yield* storage.readBible;
         if (Option.isNone(restored)) return;
         const pos = restored.value;
-        void runtime
-          .runPromise(
-            Effect.gen(function* () {
-              const state = yield* BibleReaderState;
-              if (Option.isSome(pos.verse)) {
-                yield* state.openChapterAt(pos.book, pos.chapter, pos.verse.value);
-              } else {
-                yield* state.openChapter(pos.book, pos.chapter);
-              }
-            }),
-          )
-          .catch((err) => {
-            console.error('[rehydrate] bible openChapter failed', err);
-          });
-      })
-      .catch((err) => {
-        console.error('[rehydrate] storage.readBible failed', err);
-      });
+        const state = yield* BibleReaderState;
+        if (Option.isSome(pos.verse)) {
+          yield* state.openChapterAt(pos.book, pos.chapter, pos.verse.value);
+        } else {
+          yield* state.openChapter(pos.book, pos.chapter);
+        }
+      }).pipe(
+        Effect.tapError((err) =>
+          Effect.sync(() => {
+            console.error('[rehydrate] bible position failed', err);
+          }),
+        ),
+        Effect.ignore,
+      ),
+    );
+    onCleanup(() => {
+      void runtime.runPromise(Fiber.interrupt(bibleRehydrateFiber));
+    });
 
     // Bible-mode selection mirror — keeps the local signal in sync (so the
     // TOC can highlight the active chapter and the shell can decide what to
