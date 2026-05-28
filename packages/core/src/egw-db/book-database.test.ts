@@ -78,7 +78,7 @@ const mockBook = (id: number, code: string): Book => ({
 
 // Helper to create a mock paragraph
 const mockParagraph = (puborder: number, refcodeShort: string): Paragraph => ({
-  para_id: `para-${puborder}`,
+  para_id: Option.some(`para-${puborder}`),
   id_prev: null,
   id_next: null,
   refcode_1: null,

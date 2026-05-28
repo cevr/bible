@@ -215,10 +215,11 @@ export class EGWGeminiService extends Context.Service<EGWGeminiService, EGWGemin
                   // Get ref_code for the paragraph (primary identifier)
                   // If no ref_code, use para_id as fallback, or generate a unique identifier
                   const refcodeShort = Option.getOrNull(paragraph.refcode_short);
+                  const paraId = Option.getOrNull(paragraph.para_id);
                   const refcode =
                     refcodeShort ??
                     paragraph.refcode_long ??
-                    paragraph.para_id ??
+                    paraId ??
                     `book-${options.book.book_id}-para-${index + 1}`;
 
                   // Mark paragraph as in-progress before upload
@@ -244,7 +245,7 @@ export class EGWGeminiService extends Context.Service<EGWGeminiService, EGWGemin
                     book_title: options.book.title,
                     book_code: options.book.code,
                     paragraph_count: 1,
-                    paragraph_start_id: paragraph.para_id ?? '',
+                    paragraph_start_id: paraId ?? '',
                     // Add ref codes if available
                     ...(refcodeShort !== null && {
                       refcode_short: refcodeShort,

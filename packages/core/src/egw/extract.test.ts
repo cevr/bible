@@ -14,7 +14,7 @@ const scriptureRef = (title: string): Node => ({
 const text = (s: string): Node => ({ _tag: 'Text', text: s });
 
 const paragraph = (overrides: Partial<Paragraph>): Paragraph => ({
-  para_id: 'p1',
+  para_id: Option.some('p1'),
   refcode_short: Option.some('GC 1.1'),
   refcode_long: null,
   element_type: null,
@@ -113,14 +113,14 @@ describe('extractScriptureRefs', () => {
         paragraph({
           refcode_short: Option.none(),
           refcode_long: null,
-          para_id: 'pid-7',
+          para_id: Option.some('pid-7'),
           puborder: 2,
           nodes: [scriptureRef('John 1:2')],
         }),
         paragraph({
           refcode_short: Option.none(),
           refcode_long: null,
-          para_id: null,
+          para_id: Option.none(),
           puborder: 3,
           nodes: [scriptureRef('John 1:3')],
         }),

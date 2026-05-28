@@ -418,10 +418,10 @@ export const BookFeed: Component<BookFeedProps> = (props) => {
         {(paragraph) => (
           <ParagraphRow
             paragraph={paragraph}
-            flashing={flashing(paragraph.para_id)}
+            flashing={flashing(Option.getOrUndefined(paragraph.para_id))}
             registerRef={(el) => {
-              const id = paragraph.para_id;
-              if (id === null || id === undefined) return;
+              const id = Option.getOrUndefined(paragraph.para_id);
+              if (id === undefined) return;
               paragraphRefs.set(id, el);
             }}
             onScriptureClick={props.onScriptureClick}
@@ -456,7 +456,7 @@ const ParagraphRow: Component<{
   return (
     <p
       class="m-0 -mx-1 rounded mb-[1em] px-1 font-[family-name:var(--reader-font-family,var(--font-serif))] text-[length:var(--reader-font-size,18px)] leading-[var(--reader-line-height,1.55)] [letter-spacing:var(--reader-letter-spacing,0)] text-fg transition-[background] duration-[0.4s] ease-in-out data-[flash=true]:bg-accent-soft"
-      data-para-id={props.paragraph.para_id ?? undefined}
+      data-para-id={Option.getOrUndefined(props.paragraph.para_id)}
       data-flash={props.flashing ? 'true' : undefined}
       ref={(el) => props.registerRef(el)}
     >

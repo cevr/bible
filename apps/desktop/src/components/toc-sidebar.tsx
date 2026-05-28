@@ -198,10 +198,11 @@ const ParagraphList: Component<{
   }));
   // Only paragraphs with a non-empty para_id are navigable — the chapter
   // header itself often has no para_id, and we don't want those listed twice.
+  // (`Option<string>` already collapses null/undefined/'' to `None` at decode.)
   const navigable = createMemo<readonly Schemas.Paragraph[]>(() => {
     const rows = paragraphs();
     if (rows === undefined) return [];
-    return rows.filter((p) => p.para_id !== undefined && p.para_id !== null && p.para_id !== '');
+    return rows.filter((p) => Option.isSome(p.para_id));
   });
 
   return (
@@ -223,9 +224,8 @@ const ParagraphList: Component<{
               paragraph={p}
               indentPx={props.indentPx}
               onPick={() => {
-                const pid = p.para_id;
-                if (pid === undefined || pid === null || pid === '') return;
-                props.onPickParagraph(pid);
+                if (Option.isNone(p.para_id)) return;
+                props.onPickParagraph(p.para_id.value);
               }}
             />
           )}

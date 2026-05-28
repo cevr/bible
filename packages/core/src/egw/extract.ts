@@ -39,8 +39,10 @@ const refCodeOf = (paragraph: Paragraph, bookId: number): string =>
     paragraph.refcode_short,
     () =>
       paragraph.refcode_long ??
-      paragraph.para_id ??
-      `book-${String(bookId)}-para-${String(paragraph.puborder)}`,
+      Option.getOrElse(
+        paragraph.para_id,
+        () => `book-${String(bookId)}-para-${String(paragraph.puborder)}`,
+      ),
   );
 
 const walkScriptureRefs = (nodes: readonly Node[], out: { readonly title: string }[]): void => {

@@ -206,7 +206,7 @@ export type TocItem = Schema.Schema.Type<typeof TocItem>;
  * is handled by `ParagraphFromHtml` below.
  */
 export const Paragraph = Schema.Struct({
-  para_id: Schema.optional(Schema.NullOr(Schema.String)),
+  para_id: OptionFromOptionalNullishOrEmpty,
   id_prev: Schema.optional(Schema.NullOr(Schema.String)),
   id_next: Schema.optional(Schema.NullOr(Schema.String)),
   refcode_1: Schema.optional(Schema.NullOr(Schema.String)),

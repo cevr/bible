@@ -225,7 +225,7 @@ export class EGWService extends Context.Service<EGWService, EGWServiceShape>()(
           const apiParagraphs = paragraphs.map(
             (p) =>
               new EGWParagraph({
-                paraId: p.para_id ?? null,
+                paraId: Option.getOrNull(p.para_id),
                 refcodeShort: Option.getOrNull(p.refcode_short),
                 nodes: p.nodes,
                 puborder: p.puborder,
@@ -299,7 +299,7 @@ export class EGWService extends Context.Service<EGWService, EGWServiceShape>()(
             results.map(
               (r) =>
                 new EGWSearchResult({
-                  paraId: r.para_id ?? null,
+                  paraId: Option.getOrNull(r.para_id),
                   refcodeShort: Option.getOrNull(r.refcode_short),
                   nodes: r.nodes,
                   puborder: r.puborder,
@@ -332,10 +332,11 @@ export class EGWService extends Context.Service<EGWService, EGWServiceShape>()(
               }),
               paragraphs: [...paragraphs].map((p) => {
                 const refcodeShort = Option.getOrNull(p.refcode_short);
+                const paraId = Option.getOrNull(p.para_id);
                 return new EGWBookDumpParagraph({
                   refCode:
-                    refcodeShort ?? p.refcode_long ?? p.para_id ?? `${book.book_id}-${p.puborder}`,
-                  paraId: p.para_id ?? null,
+                    refcodeShort ?? p.refcode_long ?? paraId ?? `${book.book_id}-${p.puborder}`,
+                  paraId,
                   refcodeShort,
                   refcodeLong: p.refcode_long ?? null,
                   nodes: p.nodes,
