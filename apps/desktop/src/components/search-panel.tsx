@@ -87,7 +87,7 @@ export const SearchPanel: Component<SearchPanelProps> = (props) => {
     }),
   );
   const clickableHits = createMemo<readonly SearchResult[]>(() =>
-    (hits() ?? []).filter((h) => h.source === 'local' && h.bookId !== null),
+    (hits() ?? []).filter((h) => h.source === 'local'),
   );
   let listEl: HTMLUListElement | undefined;
   const scrollActiveIntoView = (): void => {
@@ -129,22 +129,19 @@ export const SearchPanel: Component<SearchPanelProps> = (props) => {
   });
 
   const onPickLocal = (hit: SearchResult): void => {
-    if (hit.bookId === null || hit.paraId === null || hit.puborder === null) return;
-    const bookId = hit.bookId;
-    const paragraphParaId = hit.paraId;
-    const puborder = hit.puborder;
+    if (hit.source !== 'local') return;
     void runtime.runPromise(
       Effect.gen(function* () {
         const data = yield* EGWData;
         // Search hits are paragraphs; the reader needs the *chapter* paraId.
         // findContainingChapter walks the cached TOC and returns the navigable
         // item whose puborder is the greatest <= the paragraph's puborder.
-        const chapter = yield* data.findContainingChapter(bookId, puborder);
+        const chapter = yield* data.findContainingChapter(hit.bookId, hit.puborder);
         if (Option.isNone(chapter)) return;
         const chapterParaId = chapter.value.para_id;
         if (chapterParaId === undefined || chapterParaId === null || chapterParaId === '') return;
         const state = yield* ReaderState;
-        yield* state.openChapterAt(bookId, chapterParaId, paragraphParaId);
+        yield* state.openChapterAt(hit.bookId, chapterParaId, hit.paraId);
       }).pipe(Effect.catch(() => Effect.void)),
     );
     props.onClose();
@@ -226,7 +223,7 @@ const SearchResults: Component<{
         <For each={results()}>
           {(hit) => {
             const clickableIdx = createMemo(() => {
-              if (hit.source !== 'local' || hit.bookId === null) return -1;
+              if (hit.source !== 'local') return -1;
               return props.clickableHits().indexOf(hit);
             });
             return (
@@ -250,7 +247,7 @@ const ResultRow: Component<{
   readonly dataIndex: () => number;
   readonly onPick: () => void;
 }> = (props) => {
-  const isClickable = () => props.hit.source === 'local' && props.hit.bookId !== null;
+  const isClickable = () => props.hit.source === 'local';
   return (
     <li class="m-0">
       <button
@@ -266,9 +263,13 @@ const ResultRow: Component<{
       >
         <div class="flex items-center gap-2 w-full text-ui-xs text-muted">
           <span class="font-semibold tracking-[0.04em] uppercase">{props.hit.bookCode}</span>
-          <Show when={props.hit.refcodeShort !== null}>
-            <span class="opacity-70">·</span>
-            <span>{props.hit.refcodeShort}</span>
+          <Show when={Option.getOrNull(props.hit.refcodeShort)} keyed>
+            {(refcode) => (
+              <>
+                <span class="opacity-70">·</span>
+                <span>{refcode}</span>
+              </>
+            )}
           </Show>
           <span class="flex-1" />
           <Show when={props.hit.source === 'remote'}>
@@ -278,12 +279,17 @@ const ResultRow: Component<{
           </Show>
         </div>
         <div class="text-ui-sm text-fg truncate w-full">{props.hit.bookTitle}</div>
-        <Show when={props.hit.snippet !== null && props.hit.snippet !== ''}>
-          {/* Snippet may contain FTS5 <b> highlighting from server search; we
-              strip it for safety here and render plain text. */}
-          <div class="text-ui-sm text-muted leading-snug line-clamp-2">
-            {stripTags(props.hit.snippet ?? '')}
-          </div>
+        <Show
+          when={Option.flatMap(props.hit.snippet, (s) =>
+            s === '' ? Option.none() : Option.some(s),
+          ).pipe(Option.getOrNull)}
+          keyed
+        >
+          {(snippet) => (
+            /* Snippet may contain FTS5 <b> highlighting from server search; we
+                strip it for safety here and render plain text. */
+            <div class="text-ui-sm text-muted leading-snug line-clamp-2">{stripTags(snippet)}</div>
+          )}
         </Show>
       </button>
     </li>

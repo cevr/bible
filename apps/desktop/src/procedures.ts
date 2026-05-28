@@ -86,16 +86,26 @@ const EgwCommentaryHitSchema = Schema.Struct({
   puborder: Schema.Number,
 });
 
-const SearchResultSchema = Schema.Struct({
-  source: Schema.Literals(['local', 'remote']),
-  bookId: Schema.NullOr(Schema.Number),
-  bookCode: Schema.String,
-  bookTitle: Schema.String,
-  paraId: Schema.NullOr(Schema.String),
-  refcodeShort: Schema.NullOr(Schema.String),
-  snippet: Schema.NullOr(Schema.String),
-  puborder: Schema.NullOr(Schema.Number),
-});
+const SearchResultSchema = Schema.Union([
+  Schema.Struct({
+    source: Schema.Literal('local'),
+    bookId: Schema.Number,
+    bookCode: Schema.String,
+    bookTitle: Schema.String,
+    paraId: Schema.String,
+    refcodeShort: Schema.OptionFromNullOr(Schema.String),
+    snippet: Schema.OptionFromNullOr(Schema.String),
+    puborder: Schema.Number,
+  }),
+  Schema.Struct({
+    source: Schema.Literal('remote'),
+    bookCode: Schema.String,
+    bookTitle: Schema.String,
+    paraId: Schema.OptionFromNullOr(Schema.String),
+    refcodeShort: Schema.OptionFromNullOr(Schema.String),
+    snippet: Schema.OptionFromNullOr(Schema.String),
+  }),
+]);
 
 const LastPositionSchema = Schema.Struct({
   bookId: Schema.Number,
