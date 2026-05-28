@@ -16,6 +16,7 @@ import { ReaderSettings } from './services/reader-settings.js';
 import { ReaderState } from './services/reader-state.js';
 import { SearchService } from './services/search-service.js';
 import { SettingsStorage } from './services/settings-storage.js';
+import { UrlStateRouter } from './services/url-state-router.js';
 
 // Renderer runtime. EGW HTTP runs in the main process — see
 // electron/main.ts `egw:fetch*` handlers — so the renderer only needs the
@@ -48,6 +49,7 @@ const AppLayer = Layer.mergeAll(
   BibleMarginNotes.layer,
   EgwCommentary.layer,
   BibleReaderState.layer,
+  UrlStateRouter.layer,
 );
 
 export const runtime = ManagedRuntime.make(AppLayer);
