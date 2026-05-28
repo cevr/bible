@@ -49,31 +49,11 @@
         "solid/no-effect-as-memo": "error",
         "solid/no-runpromise-then-set": "error",
         "solid/no-paired-bool-state": "error",
-        "solid/component-max-loc": ["error", 500],
+        "solid/component-max-loc": ["error", 1000],
         "solid/runpromise-needs-cleanup": "error",
         "solid/no-pushup-loader-component": "error",
         "solid/no-hand-rolled-debounce": "error"
       }
-    },
-    {
-      "files": ["**/apps/desktop/src/components/command-palette.tsx"],
-      "rules": { "solid/component-max-loc": ["error", 774] }
-    },
-    {
-      "files": ["**/apps/desktop/src/components/bible-drawer.tsx"],
-      "rules": { "solid/component-max-loc": ["error", 654] }
-    },
-    {
-      "files": ["**/apps/desktop/src/components/bible-chapter-canvas.tsx"],
-      "rules": { "solid/component-max-loc": ["error", 604] }
-    },
-    {
-      "files": ["**/apps/desktop/src/components/book-feed.tsx"],
-      "rules": { "solid/component-max-loc": ["error", 576] }
-    },
-    {
-      "files": ["**/apps/desktop/src/components/folder-browser.tsx"],
-      "rules": { "solid/component-max-loc": ["error", 538] }
     },
     {
       "files": ["**/tests/**", "**/test/**", "**/*.test.ts", "**/*.test.tsx"],

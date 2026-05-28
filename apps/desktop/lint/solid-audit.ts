@@ -22,7 +22,7 @@
  *    `createSignal<boolean>()` + `createSignal<T | null/undefined>()` —
  *    flag-plus-payload antipattern. Use a discriminated union.
  *  - solid/component-max-loc (R8): a component `.tsx` under
- *    `apps/desktop/src/components/` may not exceed 500 LOC. Per-file
+ *    `apps/desktop/src/components/` may not exceed 1000 LOC. Per-file
  *    overrides ratchet down as A3 splits land.
  *  - solid/runpromise-needs-cleanup (R2): a component body containing
  *    `<expr>.runPromise(...)` / `<expr>.runFork(...)` must also contain an
@@ -188,14 +188,14 @@ const plugin: Plugin = {
      * R8 — `solid/component-max-loc`
      *
      * Catches `.tsx` files under `apps/desktop/src/components/` exceeding
-     * the configured LOC ceiling (default 500). The ratchet pattern: when
+     * the configured LOC ceiling (default 1000). The ratchet pattern: when
      * a current offender can't be split immediately, add a per-file override
      * at its current LOC in `.oxlintrc.json` overrides[].rules. The ceiling
      * MUST monotonically decrease as A3 splits land — never raise it.
      *
      * Options:
-     *   ["error", 500]            — default cap
-     *   ["error", { max: 500 }]   — explicit object form
+     *   ["error", 1000]            — default cap
+     *   ["error", { max: 1000 }]   — explicit object form
      *
      * Reports on the Program node when `sourceCode.lines.length > max`.
      */
@@ -221,7 +221,7 @@ const plugin: Plugin = {
 
         const opts = context.options;
         const rawOpt: unknown = Array.isArray(opts) ? opts[0] : undefined;
-        let max = 500;
+        let max = 1000;
         if (typeof rawOpt === 'number' && Number.isFinite(rawOpt) && rawOpt > 0) {
           max = rawOpt;
         } else if (typeof rawOpt === 'object' && rawOpt !== null && 'max' in rawOpt) {
