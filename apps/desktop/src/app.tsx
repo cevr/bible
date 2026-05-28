@@ -170,7 +170,7 @@ export const App: Component = () => {
       updateSettings(
         Effect.gen(function* () {
           const s = yield* ReaderSettings;
-          yield* s.setBibleStudyTab(tab);
+          yield* s.studyTabSelected(tab);
         }),
       );
     },
@@ -534,7 +534,7 @@ export const App: Component = () => {
     updateSettings(
       Effect.gen(function* () {
         const s = yield* ReaderSettings;
-        yield* s.setTheme(t);
+        yield* s.themeChosen(t);
       }),
     );
   };
@@ -544,7 +544,7 @@ export const App: Component = () => {
     updateSettings(
       Effect.gen(function* () {
         const s = yield* ReaderSettings;
-        yield* s.setFontFamily(f);
+        yield* s.fontFamilyChosen(f);
       }),
     );
   };
@@ -554,7 +554,7 @@ export const App: Component = () => {
     updateSettings(
       Effect.gen(function* () {
         const s = yield* ReaderSettings;
-        yield* s.setFontSize(scale);
+        yield* s.fontSizeChosen(scale);
       }),
     );
   };
@@ -564,7 +564,7 @@ export const App: Component = () => {
     updateSettings(
       Effect.gen(function* () {
         const s = yield* ReaderSettings;
-        yield* s.setReaderMode(mode);
+        yield* s.readerModeSwitched(mode);
       }),
     );
   };
@@ -578,7 +578,7 @@ export const App: Component = () => {
     updateSettings(
       Effect.gen(function* () {
         const s = yield* ReaderSettings;
-        yield* s.setUiScale(scale);
+        yield* s.uiScaleChosen(scale);
       }),
     );
   };
@@ -588,7 +588,7 @@ export const App: Component = () => {
     updateSettings(
       Effect.gen(function* () {
         const s = yield* ReaderSettings;
-        yield* s.setLineHeight(n);
+        yield* s.lineHeightAdjusted(n);
       }),
     );
   };
@@ -598,7 +598,7 @@ export const App: Component = () => {
     updateSettings(
       Effect.gen(function* () {
         const s = yield* ReaderSettings;
-        yield* s.setLetterSpacing(n);
+        yield* s.letterSpacingAdjusted(n);
       }),
     );
   };
@@ -608,40 +608,37 @@ export const App: Component = () => {
     updateSettings(
       Effect.gen(function* () {
         const s = yield* ReaderSettings;
-        yield* s.setLineWidth(n);
+        yield* s.lineWidthAdjusted(n);
       }),
     );
   };
 
   const toggleInlineStrongs = () => {
-    const next = !inlineStrongs();
-    setInlineStrongsSig(next);
+    setInlineStrongsSig((v) => !v);
     updateSettings(
       Effect.gen(function* () {
         const s = yield* ReaderSettings;
-        yield* s.setInlineStrongs(next);
+        yield* s.inlineStrongsToggled;
       }),
     );
   };
 
   const toggleInlineMarginNotes = () => {
-    const next = !inlineMarginNotes();
-    setInlineMarginNotesSig(next);
+    setInlineMarginNotesSig((v) => !v);
     updateSettings(
       Effect.gen(function* () {
         const s = yield* ReaderSettings;
-        yield* s.setInlineMarginNotes(next);
+        yield* s.inlineMarginNotesToggled;
       }),
     );
   };
 
   const toggleInlineCrossRefs = () => {
-    const next = !inlineCrossRefs();
-    setInlineCrossRefsSig(next);
+    setInlineCrossRefsSig((v) => !v);
     updateSettings(
       Effect.gen(function* () {
         const s = yield* ReaderSettings;
-        yield* s.setInlineCrossRefs(next);
+        yield* s.inlineCrossRefsToggled;
       }),
     );
   };

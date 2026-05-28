@@ -20,7 +20,7 @@ it.effect('collapses a burst of mutations into a single debounced write', () =>
       const s = yield* ReaderSettings;
       // Rapid setter calls within the debounce window — cycle through each
       // scale token so we exercise the same "burst" the slider used to produce.
-      for (const scale of SCALES) yield* s.setFontSize(scale);
+      for (const scale of SCALES) yield* s.fontSizeChosen(scale);
 
       // Mid-burst: no write should have landed yet.
       yield* TestClock.adjust('100 millis');
@@ -45,8 +45,8 @@ it.effect('clamps out-of-range setter values before persisting', () =>
     const harness = yield* makeStorageHarness;
     yield* Effect.gen(function* () {
       const s = yield* ReaderSettings;
-      yield* s.setLineWidth(-50); // below min (40)
-      yield* s.setLineWidth(9999); // above max (120)
+      yield* s.lineWidthAdjusted(-50); // below min (40)
+      yield* s.lineWidthAdjusted(9999); // above max (120)
       yield* TestClock.adjust('300 millis');
 
       const persisted = yield* Ref.get(harness.refs.current);

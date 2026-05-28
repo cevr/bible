@@ -183,29 +183,33 @@ const withoutKey = (map: Readonly<Record<string, number>>, key: string): Record<
   return rest;
 };
 
+// Domain events — the shape names *what happened* (a user action or
+// upstream signal), not *which field to write*. The reducer owns persistence
+// and clamping; callers stop dictating field-level writes. Toggle methods
+// take no arguments so the reducer (not the caller) owns the flip.
 export interface ReaderSettingsShape {
   readonly get: Effect.Effect<ReaderSettingsState>;
-  readonly setTheme: (theme: Theme) => Effect.Effect<void>;
-  readonly setFontFamily: (family: FontFamily) => Effect.Effect<void>;
-  readonly setFontSize: (scale: ReaderFontScale) => Effect.Effect<void>;
-  readonly setLineHeight: (n: number) => Effect.Effect<void>;
-  readonly setLetterSpacing: (em: number) => Effect.Effect<void>;
-  readonly setLineWidth: (chars: number) => Effect.Effect<void>;
-  readonly setUiScale: (scale: UiScale) => Effect.Effect<void>;
+  readonly themeChosen: (theme: Theme) => Effect.Effect<void>;
+  readonly fontFamilyChosen: (family: FontFamily) => Effect.Effect<void>;
+  readonly fontSizeChosen: (scale: ReaderFontScale) => Effect.Effect<void>;
+  readonly lineHeightAdjusted: (n: number) => Effect.Effect<void>;
+  readonly letterSpacingAdjusted: (em: number) => Effect.Effect<void>;
+  readonly lineWidthAdjusted: (chars: number) => Effect.Effect<void>;
+  readonly uiScaleChosen: (scale: UiScale) => Effect.Effect<void>;
   /** Promote a path to the front of the recent-documents list (cap 8).
    *  Pass `title` when known so the recents list can show it instead of the
    *  filename. Re-touching without a title preserves the previously-known one. */
   readonly touchRecentDocument: (path: string, title?: string) => Effect.Effect<void>;
   /** Remove a path from recents AND wipe its stored reading progress. */
   readonly forgetDocument: (path: string) => Effect.Effect<void>;
-  readonly setProgressForPath: (path: string, fraction: number) => Effect.Effect<void>;
-  readonly setDebugDumpSegments: (enabled: boolean) => Effect.Effect<void>;
-  readonly setBibleDrawerWidth: (px: number) => Effect.Effect<void>;
-  readonly setBibleStudyTab: (tab: BibleStudyTab) => Effect.Effect<void>;
-  readonly setReaderMode: (mode: ReaderMode) => Effect.Effect<void>;
-  readonly setInlineStrongs: (enabled: boolean) => Effect.Effect<void>;
-  readonly setInlineMarginNotes: (enabled: boolean) => Effect.Effect<void>;
-  readonly setInlineCrossRefs: (enabled: boolean) => Effect.Effect<void>;
+  readonly progressRecorded: (path: string, fraction: number) => Effect.Effect<void>;
+  readonly debugDumpSegmentsToggled: Effect.Effect<void>;
+  readonly bibleDrawerResized: (px: number) => Effect.Effect<void>;
+  readonly studyTabSelected: (tab: BibleStudyTab) => Effect.Effect<void>;
+  readonly readerModeSwitched: (mode: ReaderMode) => Effect.Effect<void>;
+  readonly inlineStrongsToggled: Effect.Effect<void>;
+  readonly inlineMarginNotesToggled: Effect.Effect<void>;
+  readonly inlineCrossRefsToggled: Effect.Effect<void>;
 }
 
 export class ReaderSettings extends Context.Service<ReaderSettings, ReaderSettingsShape>()(
@@ -257,13 +261,14 @@ export class ReaderSettings extends Context.Service<ReaderSettings, ReaderSettin
 
       return {
         get: Ref.get(ref),
-        setTheme: (theme) => update((s) => ({ ...s, theme })),
-        setFontFamily: (fontFamily) => update((s) => ({ ...s, fontFamily })),
-        setFontSize: (fontSize) => update((s) => ({ ...s, fontSize })),
-        setLineHeight: (n) => update((s) => ({ ...s, lineHeight: clampLineHeight(n) })),
-        setLetterSpacing: (em) => update((s) => ({ ...s, letterSpacing: clampLetterSpacing(em) })),
-        setLineWidth: (chars) => update((s) => ({ ...s, lineWidth: clampWidth(chars) })),
-        setUiScale: (uiScale) => update((s) => ({ ...s, uiScale })),
+        themeChosen: (theme) => update((s) => ({ ...s, theme })),
+        fontFamilyChosen: (fontFamily) => update((s) => ({ ...s, fontFamily })),
+        fontSizeChosen: (fontSize) => update((s) => ({ ...s, fontSize })),
+        lineHeightAdjusted: (n) => update((s) => ({ ...s, lineHeight: clampLineHeight(n) })),
+        letterSpacingAdjusted: (em) =>
+          update((s) => ({ ...s, letterSpacing: clampLetterSpacing(em) })),
+        lineWidthAdjusted: (chars) => update((s) => ({ ...s, lineWidth: clampWidth(chars) })),
+        uiScaleChosen: (uiScale) => update((s) => ({ ...s, uiScale })),
         touchRecentDocument: (path, title) =>
           update((s) => ({ ...s, recentDocuments: pushRecent(s.recentDocuments, path, title) })),
         forgetDocument: (path) =>
@@ -272,19 +277,25 @@ export class ReaderSettings extends Context.Service<ReaderSettings, ReaderSettin
             recentDocuments: dropRecent(s.recentDocuments, path),
             progressByPath: withoutKey(s.progressByPath, path),
           })),
-        setProgressForPath: (path, fraction) =>
+        progressRecorded: (path, fraction) =>
           update((s) => ({
             ...s,
             progressByPath: { ...s.progressByPath, [path]: clampPercent(fraction) },
           })),
-        setDebugDumpSegments: (enabled) => update((s) => ({ ...s, debugDumpSegments: enabled })),
-        setBibleDrawerWidth: (px) =>
+        debugDumpSegmentsToggled: update((s) => ({
+          ...s,
+          debugDumpSegments: !s.debugDumpSegments,
+        })),
+        bibleDrawerResized: (px) =>
           update((s) => ({ ...s, bibleDrawerWidth: clampBibleDrawerWidth(px) })),
-        setBibleStudyTab: (bibleStudyTab) => update((s) => ({ ...s, bibleStudyTab })),
-        setReaderMode: (readerMode) => update((s) => ({ ...s, readerMode })),
-        setInlineStrongs: (enabled) => update((s) => ({ ...s, inlineStrongs: enabled })),
-        setInlineMarginNotes: (enabled) => update((s) => ({ ...s, inlineMarginNotes: enabled })),
-        setInlineCrossRefs: (enabled) => update((s) => ({ ...s, inlineCrossRefs: enabled })),
+        studyTabSelected: (bibleStudyTab) => update((s) => ({ ...s, bibleStudyTab })),
+        readerModeSwitched: (readerMode) => update((s) => ({ ...s, readerMode })),
+        inlineStrongsToggled: update((s) => ({ ...s, inlineStrongs: !s.inlineStrongs })),
+        inlineMarginNotesToggled: update((s) => ({
+          ...s,
+          inlineMarginNotes: !s.inlineMarginNotes,
+        })),
+        inlineCrossRefsToggled: update((s) => ({ ...s, inlineCrossRefs: !s.inlineCrossRefs })),
       };
     }),
   );
@@ -301,14 +312,14 @@ export class ReaderSettings extends Context.Service<ReaderSettings, ReaderSettin
         const update = (f: (s: ReaderSettingsState) => ReaderSettingsState) => Ref.update(ref, f);
         return {
           get: Ref.get(ref),
-          setTheme: (theme) => update((s) => ({ ...s, theme })),
-          setFontFamily: (fontFamily) => update((s) => ({ ...s, fontFamily })),
-          setFontSize: (fontSize) => update((s) => ({ ...s, fontSize })),
-          setLineHeight: (n) => update((s) => ({ ...s, lineHeight: clampLineHeight(n) })),
-          setLetterSpacing: (em) =>
+          themeChosen: (theme) => update((s) => ({ ...s, theme })),
+          fontFamilyChosen: (fontFamily) => update((s) => ({ ...s, fontFamily })),
+          fontSizeChosen: (fontSize) => update((s) => ({ ...s, fontSize })),
+          lineHeightAdjusted: (n) => update((s) => ({ ...s, lineHeight: clampLineHeight(n) })),
+          letterSpacingAdjusted: (em) =>
             update((s) => ({ ...s, letterSpacing: clampLetterSpacing(em) })),
-          setLineWidth: (chars) => update((s) => ({ ...s, lineWidth: clampWidth(chars) })),
-          setUiScale: (uiScale) => update((s) => ({ ...s, uiScale })),
+          lineWidthAdjusted: (chars) => update((s) => ({ ...s, lineWidth: clampWidth(chars) })),
+          uiScaleChosen: (uiScale) => update((s) => ({ ...s, uiScale })),
           touchRecentDocument: (path, title) =>
             update((s) => ({ ...s, recentDocuments: pushRecent(s.recentDocuments, path, title) })),
           forgetDocument: (path) =>
@@ -317,19 +328,25 @@ export class ReaderSettings extends Context.Service<ReaderSettings, ReaderSettin
               recentDocuments: dropRecent(s.recentDocuments, path),
               progressByPath: withoutKey(s.progressByPath, path),
             })),
-          setProgressForPath: (path, fraction) =>
+          progressRecorded: (path, fraction) =>
             update((s) => ({
               ...s,
               progressByPath: { ...s.progressByPath, [path]: clampPercent(fraction) },
             })),
-          setDebugDumpSegments: (enabled) => update((s) => ({ ...s, debugDumpSegments: enabled })),
-          setBibleDrawerWidth: (px) =>
+          debugDumpSegmentsToggled: update((s) => ({
+            ...s,
+            debugDumpSegments: !s.debugDumpSegments,
+          })),
+          bibleDrawerResized: (px) =>
             update((s) => ({ ...s, bibleDrawerWidth: clampBibleDrawerWidth(px) })),
-          setBibleStudyTab: (bibleStudyTab) => update((s) => ({ ...s, bibleStudyTab })),
-          setReaderMode: (readerMode) => update((s) => ({ ...s, readerMode })),
-          setInlineStrongs: (enabled) => update((s) => ({ ...s, inlineStrongs: enabled })),
-          setInlineMarginNotes: (enabled) => update((s) => ({ ...s, inlineMarginNotes: enabled })),
-          setInlineCrossRefs: (enabled) => update((s) => ({ ...s, inlineCrossRefs: enabled })),
+          studyTabSelected: (bibleStudyTab) => update((s) => ({ ...s, bibleStudyTab })),
+          readerModeSwitched: (readerMode) => update((s) => ({ ...s, readerMode })),
+          inlineStrongsToggled: update((s) => ({ ...s, inlineStrongs: !s.inlineStrongs })),
+          inlineMarginNotesToggled: update((s) => ({
+            ...s,
+            inlineMarginNotes: !s.inlineMarginNotes,
+          })),
+          inlineCrossRefsToggled: update((s) => ({ ...s, inlineCrossRefs: !s.inlineCrossRefs })),
           ...overrides,
         };
       }),

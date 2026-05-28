@@ -6,13 +6,13 @@ import { ReaderSettings } from '../src/services/reader-settings.js';
 it.effect('round-trips every setter through the Ref-backed state', () =>
   Effect.gen(function* () {
     const s = yield* ReaderSettings;
-    yield* s.setTheme('dark');
-    yield* s.setFontFamily('sans');
-    yield* s.setFontSize('xl');
-    yield* s.setLineHeight(1.7);
-    yield* s.setLetterSpacing(0.02);
-    yield* s.setLineWidth(72);
-    yield* s.setDebugDumpSegments(true);
+    yield* s.themeChosen('dark');
+    yield* s.fontFamilyChosen('sans');
+    yield* s.fontSizeChosen('xl');
+    yield* s.lineHeightAdjusted(1.7);
+    yield* s.letterSpacingAdjusted(0.02);
+    yield* s.lineWidthAdjusted(72);
+    yield* s.debugDumpSegmentsToggled;
     const state = yield* s.get;
     expect(state.theme).toBe('dark');
     expect(state.fontFamily).toBe('sans');
@@ -83,8 +83,8 @@ it.effect('forgetDocument removes path AND wipes its progress', () =>
     const s = yield* ReaderSettings;
     yield* s.touchRecentDocument('/a.pdf');
     yield* s.touchRecentDocument('/b.pdf');
-    yield* s.setProgressForPath('/a.pdf', 0.42);
-    yield* s.setProgressForPath('/b.pdf', 0.6);
+    yield* s.progressRecorded('/a.pdf', 0.42);
+    yield* s.progressRecorded('/b.pdf', 0.6);
 
     yield* s.forgetDocument('/a.pdf');
     const state = yield* s.get;
@@ -93,12 +93,12 @@ it.effect('forgetDocument removes path AND wipes its progress', () =>
   }).pipe(Effect.provide(ReaderSettings.layerTest())),
 );
 
-it.effect('setProgressForPath clamps to [0, 1]', () =>
+it.effect('progressRecorded clamps to [0, 1]', () =>
   Effect.gen(function* () {
     const s = yield* ReaderSettings;
-    yield* s.setProgressForPath('/over.pdf', 1.5);
-    yield* s.setProgressForPath('/under.pdf', -0.2);
-    yield* s.setProgressForPath('/mid.pdf', 0.37);
+    yield* s.progressRecorded('/over.pdf', 1.5);
+    yield* s.progressRecorded('/under.pdf', -0.2);
+    yield* s.progressRecorded('/mid.pdf', 0.37);
     const state = yield* s.get;
     expect(state.progressByPath['/over.pdf']).toBe(1);
     expect(state.progressByPath['/under.pdf']).toBe(0);
