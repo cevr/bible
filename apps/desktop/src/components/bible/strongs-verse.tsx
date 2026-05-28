@@ -11,7 +11,7 @@ import type { KjvStrongsWord } from '../../services/kjv-bible.js';
 // both surfaces.
 export const StrongsVerse: Component<{
   readonly words: readonly KjvStrongsWord[];
-  readonly onCodeClick: (code: string) => void;
+  readonly onCodeSelected: (code: string) => void;
 }> = (props) => (
   <>
     <For each={props.words}>
@@ -33,7 +33,7 @@ export const StrongsVerse: Component<{
                         type="button"
                         class="ml-px cursor-pointer bg-transparent border-0 p-0 align-baseline text-[0.62em] font-medium text-accent opacity-70 group-hover/strong:opacity-100 hover:underline [font-variant-numeric:tabular-nums] select-none"
                         title={`Open ${code}`}
-                        onClick={() => props.onCodeClick(code)}
+                        onClick={() => props.onCodeSelected(code)}
                       >
                         <sup>{code}</sup>
                       </button>

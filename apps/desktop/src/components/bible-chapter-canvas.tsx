@@ -100,9 +100,9 @@ export interface BibleChapterCanvasProps {
   readonly inlineStrongs: () => boolean;
   readonly inlineMarginNotes: () => boolean;
   readonly inlineCrossRefs: () => boolean;
-  readonly onToggleInlineStrongs: () => void;
-  readonly onToggleInlineMarginNotes: () => void;
-  readonly onToggleInlineCrossRefs: () => void;
+  readonly onStrongsLayerToggled: () => void;
+  readonly onMarginNotesLayerToggled: () => void;
+  readonly onCrossRefsLayerToggled: () => void;
 }
 
 export const BibleChapterCanvas: Component<BibleChapterCanvasProps> = (props) => {
@@ -121,9 +121,9 @@ export const BibleChapterCanvas: Component<BibleChapterCanvasProps> = (props) =>
           inlineStrongs={props.inlineStrongs}
           inlineMarginNotes={props.inlineMarginNotes}
           inlineCrossRefs={props.inlineCrossRefs}
-          onToggleStrongs={props.onToggleInlineStrongs}
-          onToggleMarginNotes={props.onToggleInlineMarginNotes}
-          onToggleCrossRefs={props.onToggleInlineCrossRefs}
+          onToggleStrongs={props.onStrongsLayerToggled}
+          onToggleMarginNotes={props.onMarginNotesLayerToggled}
+          onToggleCrossRefs={props.onCrossRefsLayerToggled}
         />
       </Show>
       <Show
@@ -672,14 +672,14 @@ const ChapterBody: Component<{
                 <VerseRenderer
                   text={v.text}
                   marginNotes={verseMarginNotes()}
-                  onMarginNoteClick={() => props.onOpenMarginNote(v.verse)}
+                  onMarginNoteSelected={() => props.onOpenMarginNote(v.verse)}
                 />
               }
             >
               {(words) => (
                 <StrongsVerse
                   words={words()}
-                  onCodeClick={(code) => props.onOpenStrongs(v.verse, code)}
+                  onCodeSelected={(code) => props.onOpenStrongs(v.verse, code)}
                 />
               )}
             </Show>

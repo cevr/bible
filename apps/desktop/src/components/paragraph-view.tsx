@@ -13,27 +13,39 @@ export interface ParagraphViewProps {
    *  human-readable title when a ScriptureRef/BookRef is clicked. The title
    *  is what callers parse (e.g. "Genesis 3:1") — dataLink is EGW's internal
    *  "bookId.paraId" form, unsuitable for the Bible drawer. */
-  readonly onLinkClick?: (dataLink: string, kind: 'scripture' | 'book', title: string) => void;
+  readonly onReferenceActivated?: (
+    dataLink: string,
+    kind: 'scripture' | 'book',
+    title: string,
+  ) => void;
 }
 
 export const ParagraphView: Component<ParagraphViewProps> = (props) => (
-  <NodeList nodes={props.nodes} onLinkClick={props.onLinkClick} />
+  <NodeList nodes={props.nodes} onReferenceActivated={props.onReferenceActivated} />
 );
 
 interface NodeListProps {
   readonly nodes: readonly Node[];
-  readonly onLinkClick?: (dataLink: string, kind: 'scripture' | 'book', title: string) => void;
+  readonly onReferenceActivated?: (
+    dataLink: string,
+    kind: 'scripture' | 'book',
+    title: string,
+  ) => void;
 }
 
 const NodeList: Component<NodeListProps> = (props) => (
   <For each={props.nodes}>
-    {(node) => <RenderNode node={node} onLinkClick={props.onLinkClick} />}
+    {(node) => <RenderNode node={node} onReferenceActivated={props.onReferenceActivated} />}
   </For>
 );
 
 interface RenderNodeProps {
   readonly node: Node;
-  readonly onLinkClick?: (dataLink: string, kind: 'scripture' | 'book', title: string) => void;
+  readonly onReferenceActivated?: (
+    dataLink: string,
+    kind: 'scripture' | 'book',
+    title: string,
+  ) => void;
 }
 
 const RenderNode: Component<RenderNodeProps> = (props) => (
@@ -56,14 +68,14 @@ const RenderNode: Component<RenderNodeProps> = (props) => (
     <Match when={props.node._tag === 'Emphasis' ? props.node : null}>
       {(n) => (
         <em>
-          <NodeList nodes={n().children} onLinkClick={props.onLinkClick} />
+          <NodeList nodes={n().children} onReferenceActivated={props.onReferenceActivated} />
         </em>
       )}
     </Match>
     <Match when={props.node._tag === 'Comment' ? props.node : null}>
       {(n) => (
         <span class="non-egw-comment">
-          <NodeList nodes={n().children} onLinkClick={props.onLinkClick} />
+          <NodeList nodes={n().children} onReferenceActivated={props.onReferenceActivated} />
         </span>
       )}
     </Match>
@@ -77,10 +89,10 @@ const RenderNode: Component<RenderNodeProps> = (props) => (
           data-link-kind="scripture"
           onClick={(e) => {
             e.preventDefault();
-            props.onLinkClick?.(n().dataLink, 'scripture', n().title);
+            props.onReferenceActivated?.(n().dataLink, 'scripture', n().title);
           }}
         >
-          <NodeList nodes={n().children} onLinkClick={props.onLinkClick} />
+          <NodeList nodes={n().children} onReferenceActivated={props.onReferenceActivated} />
         </a>
       )}
     </Match>
@@ -94,10 +106,10 @@ const RenderNode: Component<RenderNodeProps> = (props) => (
           data-link-kind="book"
           onClick={(e) => {
             e.preventDefault();
-            props.onLinkClick?.(n().dataLink, 'book', n().title);
+            props.onReferenceActivated?.(n().dataLink, 'book', n().title);
           }}
         >
-          <NodeList nodes={n().children} onLinkClick={props.onLinkClick} />
+          <NodeList nodes={n().children} onReferenceActivated={props.onReferenceActivated} />
         </a>
       )}
     </Match>
@@ -106,7 +118,7 @@ const RenderNode: Component<RenderNodeProps> = (props) => (
         // Best-effort fallback: keep children visible so text isn't lost; the
         // wrapper carries the original tag/class for debug-time inspection.
         <span class="ast-unknown" data-tag={n().tag} data-class={n().className}>
-          <NodeList nodes={n().children} onLinkClick={props.onLinkClick} />
+          <NodeList nodes={n().children} onReferenceActivated={props.onReferenceActivated} />
         </span>
       )}
     </Match>

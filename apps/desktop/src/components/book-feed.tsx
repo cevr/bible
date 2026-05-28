@@ -99,7 +99,7 @@ export interface BookFeedProps {
   readonly highlightParaId?: Accessor<Option.Option<string>>;
   readonly onHighlightApplied?: () => void;
   readonly restoreParagraphId?: Accessor<Option.Option<string>>;
-  readonly onPositionChange?: (chapterParaId: string, paragraphParaId: string) => void;
+  readonly onParagraphScrolledIntoView?: (chapterParaId: string, paragraphParaId: string) => void;
   readonly fontFamily?: Accessor<string>;
   readonly onScriptureClick?: (title: string) => void;
 }
@@ -272,7 +272,7 @@ export const BookFeed: Component<BookFeedProps> = (props) => {
     const denom = Math.max(1, lastParaBottomInScroll - el.clientHeight);
     const pct = Math.max(0, Math.min(100, Math.round((el.scrollTop / denom) * 100)));
     setScrollPct(pct);
-    const cb = props.onPositionChange;
+    const cb = props.onParagraphScrolledIntoView;
     if (cb !== undefined && topmost !== undefined) cb(props.chapterParaId, topmost);
   };
   createEffect(() => {
@@ -432,7 +432,7 @@ const ParagraphRow: Component<{
     >
       <ParagraphView
         nodes={props.paragraph.nodes}
-        onLinkClick={(_dataLink, kind, title) => {
+        onReferenceActivated={(_dataLink, kind, title) => {
           if (kind === 'scripture') props.onScriptureClick?.(title);
         }}
       />

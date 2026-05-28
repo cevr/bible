@@ -4,7 +4,7 @@ import { type Component, For, Match, Switch } from 'solid-js';
 // Solid mapping of the framework-agnostic TextSegment[] from
 // @bible/core/bible-rendering. Margin-note anchors render inline next to the
 // phrase they annotate (mirrors the web verse-renderer pattern); when an
-// `onMarginNoteClick` callback is provided the anchor becomes a focusable
+// `onMarginNoteSelected` callback is provided the anchor becomes a focusable
 // button that opens the Notes drawer.
 //
 // Red-letter / red-letter-italic / red-letter-quote all consume the
@@ -20,7 +20,7 @@ interface MarginNoteAnchorLite {
 const Segment: Component<{
   readonly segment: TextSegment;
   readonly notes: readonly MarginNoteAnchorLite[];
-  readonly onMarginNoteClick: ((noteIdx: number) => void) | undefined;
+  readonly onMarginNoteSelected: ((noteIdx: number) => void) | undefined;
 }> = (props) => (
   <Switch>
     <Match when={props.segment.type === 'text' ? props.segment : null}>
@@ -45,7 +45,7 @@ const Segment: Component<{
     </Match>
     <Match when={props.segment.type === 'margin' ? props.segment : null}>
       {(s) => {
-        const onClick = props.onMarginNoteClick;
+        const onClick = props.onMarginNoteSelected;
         const note = props.notes.find((n) => n.idx === s().noteIndex);
         const title =
           note === undefined
@@ -103,7 +103,7 @@ export interface VerseRendererProps {
    *  focusable buttons that route to the Notes drawer. When omitted (e.g. in
    *  the drawer's own read-only verse preview), anchors render as static
    *  superscripts. */
-  readonly onMarginNoteClick?: (noteIdx: number) => void;
+  readonly onMarginNoteSelected?: (noteIdx: number) => void;
 }
 
 /** Render a single verse's text with shared segmentation (italics, red-letter,
@@ -120,7 +120,11 @@ export const VerseRenderer: Component<VerseRendererProps> = (props) => {
   return (
     <For each={segments()}>
       {(seg) => (
-        <Segment segment={seg} notes={anchors()} onMarginNoteClick={props.onMarginNoteClick} />
+        <Segment
+          segment={seg}
+          notes={anchors()}
+          onMarginNoteSelected={props.onMarginNoteSelected}
+        />
       )}
     </For>
   );

@@ -875,7 +875,7 @@ export const App: Component = () => {
       }),
     );
   };
-  const onPositionChange = (chapterParaId: string, paragraphParaId: string) => {
+  const onParagraphScrolledIntoView = (chapterParaId: string, paragraphParaId: string) => {
     latestAnchorParaId = paragraphParaId;
     const sel = selection();
     if (Option.isNone(sel)) return;
@@ -1095,7 +1095,7 @@ export const App: Component = () => {
                 selection={selection()}
                 onHighlightApplied={onHighlightApplied}
                 restoreParagraphId={restoreParagraphId}
-                onPositionChange={onPositionChange}
+                onParagraphScrolledIntoView={onParagraphScrolledIntoView}
                 fontFamily={readerFontFamily}
                 onScriptureClick={(title) => {
                   bibleDrawer.openFromQuery(title);
@@ -1121,9 +1121,9 @@ export const App: Component = () => {
             inlineStrongs={inlineStrongs}
             inlineMarginNotes={inlineMarginNotes}
             inlineCrossRefs={inlineCrossRefs}
-            onToggleInlineStrongs={toggleInlineStrongs}
-            onToggleInlineMarginNotes={toggleInlineMarginNotes}
-            onToggleInlineCrossRefs={toggleInlineCrossRefs}
+            onStrongsLayerToggled={toggleInlineStrongs}
+            onMarginNotesLayerToggled={toggleInlineMarginNotes}
+            onCrossRefsLayerToggled={toggleInlineCrossRefs}
           />
         </Show>
 

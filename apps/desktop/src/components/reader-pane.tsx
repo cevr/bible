@@ -24,7 +24,7 @@ export interface ReaderPaneProps {
   readonly restoreParagraphId?: Accessor<Option.Option<string>>;
   /** Fired when the scroll-spy resolves a new (chapter, topmost-paragraph)
    *  pair. Forwarded from BookFeed. */
-  readonly onPositionChange?: (chapterParaId: string, paragraphParaId: string) => void;
+  readonly onParagraphScrolledIntoView?: (chapterParaId: string, paragraphParaId: string) => void;
   /** Current reader font-family token, forwarded to BookFeed so it can
    *  re-sample paragraph metrics when the font changes. */
   readonly fontFamily?: Accessor<string>;
@@ -86,7 +86,7 @@ export const ReaderPane: Component<ReaderPaneProps> = (props) => {
                 highlightParaId={highlightParaId}
                 onHighlightApplied={props.onHighlightApplied}
                 restoreParagraphId={props.restoreParagraphId}
-                onPositionChange={props.onPositionChange}
+                onParagraphScrolledIntoView={props.onParagraphScrolledIntoView}
                 fontFamily={props.fontFamily}
                 onScriptureClick={props.onScriptureClick}
               />
