@@ -24,7 +24,7 @@ import { defaultEase, Motion, Presence, useDrag } from './motion/index.js';
 import { animateProperty } from './motion/internals/driver.js';
 import { createDebouncedAction } from './lib/debounced-action.js';
 import { runtime } from './runtime.js';
-import { LastChapterMemory } from './services/last-chapter-memory.js';
+import { lastChapterMemory } from './services/last-chapter-memory.js';
 import { type LastPosition, LastPositionStorage } from './services/last-position-storage.js';
 import { openBookAtFirstChapter } from './services/open-book.js';
 import { Prefetcher } from './services/prefetcher.js';
@@ -361,7 +361,6 @@ export const App: Component = () => {
       Effect.gen(function* () {
         const state = yield* ReaderState;
         const storage = yield* LastPositionStorage;
-        const memory = yield* LastChapterMemory;
         yield* state.changes.pipe(
           Stream.runForEach((next) =>
             Effect.gen(function* () {
@@ -416,7 +415,7 @@ export const App: Component = () => {
                         };
                 yield* storage.write(position);
                 if (v._tag !== 'book') {
-                  yield* memory.recordEgw(v.bookId, v.chapterParaId);
+                  lastChapterMemory.recordEgw(v.bookId, v.chapterParaId);
                 }
               }
             }),
@@ -462,7 +461,6 @@ export const App: Component = () => {
       Effect.gen(function* () {
         const state = yield* BibleReaderState;
         const storage = yield* LastPositionStorage;
-        const memory = yield* LastChapterMemory;
         yield* state.changes.pipe(
           Stream.runForEach((next) =>
             Effect.gen(function* () {
@@ -476,7 +474,7 @@ export const App: Component = () => {
                     ? { _tag: 'verse', book: v.book, chapter: v.chapter, verse: v.verse }
                     : { _tag: 'chapter', book: v.book, chapter: v.chapter },
                 );
-                yield* memory.recordBible(v.book, v.chapter);
+                lastChapterMemory.recordBible(v.book, v.chapter);
               }
             }),
           ),

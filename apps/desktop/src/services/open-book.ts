@@ -1,6 +1,6 @@
-import { Effect, Option, Result } from 'effect';
+import { Effect, Result } from 'effect';
 import { EGWData } from './egw-data.js';
-import { LastChapterMemory } from './last-chapter-memory.js';
+import { lastChapterMemory } from './last-chapter-memory.js';
 import { ReaderState } from './reader-state.js';
 
 // Opening a book without a chapter lands the reader on the "Pick a chapter"
@@ -16,10 +16,9 @@ import { ReaderState } from './reader-state.js';
 export const openBookAtFirstChapter = (bookId: number) =>
   Effect.gen(function* () {
     const state = yield* ReaderState;
-    const memory = yield* LastChapterMemory;
-    const remembered = yield* memory.getEgw(bookId);
-    if (Option.isSome(remembered)) {
-      yield* state.openChapter(bookId, remembered.value);
+    const remembered = lastChapterMemory.getEgw(bookId);
+    if (remembered !== undefined) {
+      yield* state.openChapter(bookId, remembered);
       return;
     }
     const data = yield* EGWData;

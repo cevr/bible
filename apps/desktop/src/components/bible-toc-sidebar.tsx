@@ -12,7 +12,7 @@ import {
 } from 'solid-js';
 import { ipc, runtime } from '../runtime.js';
 import { BibleReaderState } from '../services/bible-reader-state.js';
-import { LastChapterMemory } from '../services/last-chapter-memory.js';
+import { lastChapterMemory } from '../services/last-chapter-memory.js';
 
 // Left-rail TOC for Bible mode. Symmetric to TocSidebar (the EGW reader's
 // chapter list) but indexed by (book, chapter, verse). Three views:
@@ -77,28 +77,13 @@ export const BibleTocSidebar: Component<{
   // toggles back-and-forth between Bible and EGW on the same chapter. First
   // visit falls through to the chapter grid.
   //
-  // Generation-id guard: rapid clicks race the IPC. If the slower lookup
-  // landed after a newer pick, the stale result would overwrite the user's
-  // current selection. Only commit when our generation matches the latest.
-  let pickGen = 0;
   const onPickBook = (book: number): void => {
-    pickGen += 1;
-    const myGen = pickGen;
-    void runtime
-      .runPromise(
-        Effect.gen(function* () {
-          const memory = yield* LastChapterMemory;
-          return yield* memory.getBible(book);
-        }),
-      )
-      .then((remembered) => {
-        if (myGen !== pickGen) return;
-        if (Option.isSome(remembered)) {
-          setView({ _tag: 'verses', book, chapter: remembered.value });
-        } else {
-          setView({ _tag: 'chapters', book });
-        }
-      });
+    const remembered = lastChapterMemory.getBible(book);
+    if (remembered !== undefined) {
+      setView({ _tag: 'verses', book, chapter: remembered });
+    } else {
+      setView({ _tag: 'chapters', book });
+    }
   };
 
   // Narrowing via discriminant memos lets the Match arms render with concrete

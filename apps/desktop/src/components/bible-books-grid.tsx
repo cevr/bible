@@ -1,9 +1,9 @@
 import { BIBLE_BOOKS, getBibleBook } from '@bible/core/bible-reader';
-import { Effect, Option } from 'effect';
+import { Effect } from 'effect';
 import { type Component, createMemo, createSignal, For, Show } from 'solid-js';
 import { runtime } from '../runtime.js';
 import { BibleReaderState } from '../services/bible-reader-state.js';
-import { LastChapterMemory } from '../services/last-chapter-memory.js';
+import { lastChapterMemory } from '../services/last-chapter-memory.js';
 
 // Full-canvas books/chapters picker. Mounted as the empty state of the Bible
 // main canvas: when no chapter has ever been opened (or after the user closes
@@ -30,29 +30,13 @@ export const BibleBooksGrid: Component = () => {
 
   // Book click: if we've been in this book this session, jump straight to the
   // last chapter instead of forcing them through the chapter grid.
-  //
-  // Generation-id guard: double-clicks / fast keyboard nav race the IPC; an
-  // older lookup landing after a newer pick would fire `onPickChapter` for
-  // the wrong book. Only commit when our generation matches the latest.
-  let pickGen = 0;
   const onPickBook = (book: number): void => {
-    pickGen += 1;
-    const myGen = pickGen;
-    void runtime
-      .runPromise(
-        Effect.gen(function* () {
-          const memory = yield* LastChapterMemory;
-          return yield* memory.getBible(book);
-        }),
-      )
-      .then((remembered) => {
-        if (myGen !== pickGen) return;
-        if (Option.isSome(remembered)) {
-          onPickChapter(book, remembered.value);
-        } else {
-          setView({ _tag: 'chapters', book });
-        }
-      });
+    const remembered = lastChapterMemory.getBible(book);
+    if (remembered !== undefined) {
+      onPickChapter(book, remembered);
+    } else {
+      setView({ _tag: 'chapters', book });
+    }
   };
 
   const chaptersBook = (): number | null => {
