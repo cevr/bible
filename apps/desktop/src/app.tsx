@@ -22,6 +22,7 @@ import { BibleReaderState, type BibleReaderSelection } from './services/bible-re
 import { createBibleDrawerState } from './services/bible-drawer-state.js';
 import { defaultEase, Motion, Presence, useDrag } from './motion/index.js';
 import { animateProperty } from './motion/internals/driver.js';
+import { createDebouncedAction } from './lib/debounced-action.js';
 import { runtime } from './runtime.js';
 import { LastChapterMemory } from './services/last-chapter-memory.js';
 import { type LastPosition, LastPositionStorage } from './services/last-position-storage.js';
@@ -841,21 +842,14 @@ export const App: Component = () => {
   // process — so refresh would read whichever intermediate happened to
   // commit last. We debounce to 250ms trailing-edge and flush on chapter
   // swap or window unload so the *latest* intent always wins.
-  type PositionWrite =
-    | { readonly _tag: 'idle' }
-    | {
-        readonly _tag: 'scheduled';
-        readonly bookId: number;
-        readonly chapterParaId: string;
-        readonly paragraphParaId: string;
-        readonly timerId: number;
-      };
-  let positionWrite: PositionWrite = { _tag: 'idle' };
-  const flushPosition = (): void => {
-    const p = positionWrite;
-    if (p._tag === 'idle') return;
-    window.clearTimeout(p.timerId);
-    positionWrite = { _tag: 'idle' };
+  interface PositionPayload {
+    readonly bookId: number;
+    readonly chapterParaId: string;
+    readonly paragraphParaId: string;
+  }
+  let pendingChapterKey: string | undefined;
+  const positionWriter = createDebouncedAction<PositionPayload>((p) => {
+    pendingChapterKey = undefined;
     forkWrite(
       Effect.gen(function* () {
         const storage = yield* LastPositionStorage;
@@ -867,37 +861,33 @@ export const App: Component = () => {
         });
       }),
     );
-  };
+  }, 250);
+  const chapterKeyOf = (bookId: number, chapterParaId: string): string =>
+    `${String(bookId)}:${chapterParaId}`;
   const onParagraphScrolledIntoView = (chapterParaId: string, paragraphParaId: string) => {
     latestAnchorParaId = paragraphParaId;
     const sel = selection();
     if (Option.isNone(sel)) return;
     const bookId = sel.value.bookId;
+    const nextKey = chapterKeyOf(bookId, chapterParaId);
     // Flush immediately if the chapter/book changed under us — debouncing
     // across chapters would drop a position write for the chapter we just
     // left.
-    const prev = positionWrite;
-    if (
-      prev._tag === 'scheduled' &&
-      (prev.bookId !== bookId || prev.chapterParaId !== chapterParaId)
-    ) {
-      flushPosition();
-    } else if (prev._tag === 'scheduled') {
-      window.clearTimeout(prev.timerId);
+    if (pendingChapterKey !== undefined && pendingChapterKey !== nextKey) {
+      positionWriter.flush();
     }
-    const timerId = window.setTimeout(flushPosition, 250);
-    positionWrite = { _tag: 'scheduled', bookId, chapterParaId, paragraphParaId, timerId };
+    pendingChapterKey = nextKey;
+    positionWriter.schedule({ bookId, chapterParaId, paragraphParaId });
   };
   // Flush on window unload (refresh, close) so the user's actual last scroll
   // position survives even when the debounce hasn't fired.
   onMount(() => {
-    const onUnload = (): void => flushPosition();
+    const onUnload = (): void => positionWriter.flush();
     window.addEventListener('beforeunload', onUnload);
     window.addEventListener('pagehide', onUnload);
     onCleanup(() => {
       window.removeEventListener('beforeunload', onUnload);
       window.removeEventListener('pagehide', onUnload);
-      flushPosition();
     });
   });
 
