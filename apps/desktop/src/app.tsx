@@ -13,11 +13,11 @@ import { BibleDrawer } from './components/bible-drawer.js';
 import { BibleTocSidebar } from './components/bible-toc-sidebar.js';
 import { CommandPalette } from './components/command-palette.js';
 import { FolderBrowser } from './components/folder-browser.js';
+import { GlobalShortcuts } from './components/global-shortcuts.js';
 import { ReaderPane } from './components/reader-pane.js';
 import { SearchPanel } from './components/search-panel.js';
 import {
   FONT_FAMILY_VAR,
-  FONT_KEY_STEP,
   lineHeightCss,
   READER_FONT_PX,
   ReaderSettingsProvider,
@@ -43,7 +43,7 @@ import { ReaderState, type ReaderSelection } from './services/reader-state.js';
 //   - 'toc'         TOC slides in over reader
 //   - 'tocPlusLib'  Library explorer slides in on top of TOC
 // State only applies when a book is open. Closing the book resets to 'closed'.
-type DrawerState = 'closed' | 'toc' | 'tocPlusLib';
+export type DrawerState = 'closed' | 'toc' | 'tocPlusLib';
 
 // Mode-aware drawer transition reducer. `tocPlusLib` is only meaningful
 // in EGW mode (Bible mode has no Library pane); routing every transition
@@ -448,86 +448,6 @@ const AppInner: Component = () => {
     openSearch();
   };
 
-  const onKey = (e: KeyboardEvent) => {
-    const mod = e.metaKey || e.ctrlKey;
-    if (mod && e.key === 'k') {
-      e.preventDefault();
-      // In Bible mode Cmd+K opens the navigation palette; in EGW mode it
-      // keeps the legacy behavior of focusing the header search input.
-      if (isBibleMode()) {
-        setPaletteOpen((open) => !open);
-      } else {
-        focusSearch();
-      }
-      return;
-    }
-    if (mod && e.key === 'Escape') {
-      e.preventDefault();
-      closeDrawers();
-      return;
-    }
-    if (!mod) {
-      // Esc pops the top overlay (most-recently opened wins). Falls through
-      // to the side drawer only when no overlay is open. The stack itself
-      // enforces "only one is interactive"; this handler just consumes Esc
-      // in the right order.
-      if (e.key === 'Escape') {
-        const top = topOverlay();
-        if (top === 'palette') {
-          e.preventDefault();
-          popOverlay('palette');
-          return;
-        }
-        if (top === 'search') {
-          e.preventDefault();
-          closeSearch();
-          searchInputRef()?.blur();
-          return;
-        }
-        if (top === 'settings') {
-          e.preventDefault();
-          popOverlay('settings');
-          return;
-        }
-        if (drawer() !== 'closed') {
-          e.preventDefault();
-          closeDrawers();
-        }
-      }
-      return;
-    }
-    switch (e.key) {
-      case 't':
-        e.preventDefault();
-        settings.cycleTheme();
-        return;
-      case '=':
-      case '+':
-        e.preventDefault();
-        settings.setFontSize(FONT_KEY_STEP[settings.fontSize()].up);
-        return;
-      case '-':
-        e.preventDefault();
-        settings.setFontSize(FONT_KEY_STEP[settings.fontSize()].down);
-        return;
-      case ',':
-        e.preventDefault();
-        setSettingsOpen((open) => !open);
-        return;
-      case 'm':
-        e.preventDefault();
-        settings.toggleReaderMode();
-        return;
-      default:
-        return;
-    }
-  };
-
-  onMount(() => {
-    window.addEventListener('keydown', onKey);
-    onCleanup(() => window.removeEventListener('keydown', onKey));
-  });
-
   const hasBook = () => Option.isSome(selection());
   const currentBookId = () => {
     const sel = selection();
@@ -677,6 +597,18 @@ const AppInner: Component = () => {
       data-has-book={hasBook() ? 'true' : 'false'}
       style={readerStyle()}
     >
+      <GlobalShortcuts
+        isBibleMode={isBibleMode}
+        drawer={drawer}
+        topOverlay={topOverlay}
+        setPaletteOpen={setPaletteOpen}
+        focusSearch={focusSearch}
+        closeDrawers={closeDrawers}
+        popOverlay={popOverlay}
+        closeSearch={closeSearch}
+        searchInputRef={searchInputRef}
+        setSettingsOpen={setSettingsOpen}
+      />
       <header class="flex items-center gap-2.5 px-3 py-2 h-[calc(44px*var(--ui-scale))] border-b border-rule bg-[color-mix(in_srgb,var(--color-bg)_90%,transparent)] backdrop-blur-md [-webkit-app-region:drag] z-[5]">
         <div class="w-[70px] flex-[0_0_70px]" aria-hidden="true" />
         <div
