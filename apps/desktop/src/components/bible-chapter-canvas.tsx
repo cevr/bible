@@ -1,5 +1,5 @@
 import { formatBibleReference, getBibleBook } from '@bible/core/bible-reader';
-import { Effect, Exit, Fiber, Option, Stream } from 'effect';
+import { Effect, Fiber, Option, Stream } from 'effect';
 import {
   type Component,
   createEffect,
@@ -55,32 +55,32 @@ const cachePut = (book: number, chapter: number, value: KjvChapter): void => {
 // Adjacent-chapter preload reads the KJV service directly rather than going
 // through the ipc proxy — proxy reads need a Solid tracking scope and we want
 // to warm from a createEffect that's already tracked for prev/next.
-const inFlight = new Map<string, Promise<void>>();
-const preloadChapter = async (book: number, chapter: number): Promise<void> => {
+//
+// Returns the running fiber so the caller can interrupt a stale preload when
+// the user pages through chapters faster than the IPC resolves. Pending fibers
+// for the same (book, chapter) are deduplicated via `inFlight`.
+const inFlight = new Map<string, Fiber.Fiber<void>>();
+const preloadChapter = (book: number, chapter: number): Fiber.Fiber<void> => {
   const k = chapterKey(book, chapter);
-  if (chapterCache.has(k)) return;
   const existing = inFlight.get(k);
   if (existing !== undefined) return existing;
-  const p = runtime
-    .runPromiseExit(
-      Effect.gen(function* () {
-        const svc = yield* KjvBible;
-        return yield* svc.getChapter(book, chapter);
-      }),
-    )
-    .then((exit) => {
-      if (Exit.isSuccess(exit) && Option.isSome(exit.value)) {
-        cachePut(book, chapter, exit.value.value);
-      }
-    })
-    .catch(() => {
-      /* preload best-effort */
-    })
-    .finally(() => {
-      inFlight.delete(k);
-    });
-  inFlight.set(k, p);
-  return p;
+  const fiber = runtime.runFork(
+    Effect.gen(function* () {
+      if (chapterCache.has(k)) return;
+      const svc = yield* KjvBible;
+      const result = yield* svc.getChapter(book, chapter);
+      if (Option.isSome(result)) cachePut(book, chapter, result.value);
+    }).pipe(
+      Effect.ignore,
+      Effect.ensuring(
+        Effect.sync(() => {
+          inFlight.delete(k);
+        }),
+      ),
+    ),
+  );
+  inFlight.set(k, fiber);
+  return fiber;
 };
 
 export interface BibleChapterCanvasProps {
@@ -247,7 +247,9 @@ const ChapterShell: Component<{
     if (target === null) return;
     const ready = peekedChapter() ?? chapterRes();
     if (ready === undefined || ready === null) return;
+    let pendingTimerId: number | undefined;
     const tryScroll = (attempt: number): void => {
+      pendingTimerId = undefined;
       const el = verseRefs.get(target);
       if (el !== undefined) {
         const rect = el.getBoundingClientRect();
@@ -263,7 +265,7 @@ const ChapterShell: Component<{
         return;
       }
       if (attempt < 3) {
-        setTimeout(() => tryScroll(attempt + 1), 0);
+        pendingTimerId = window.setTimeout(() => tryScroll(attempt + 1), 0);
       }
     };
     // setTimeout not rAF: rAF callbacks scheduled inside a Solid createEffect
@@ -271,7 +273,10 @@ const ChapterShell: Component<{
     // observed via console instrumentation. setTimeout(0) is fiber-safe and
     // still queues after the current microtask drain so DOM ref callbacks
     // commit before tryScroll reads verseRefs.
-    setTimeout(() => tryScroll(0), 0);
+    pendingTimerId = window.setTimeout(() => tryScroll(0), 0);
+    onCleanup(() => {
+      if (pendingTimerId !== undefined) window.clearTimeout(pendingTimerId);
+    });
   });
 
   // Adjacent-chapter preload — warms the renderer LRU + EgwCommentary cache
@@ -313,9 +318,10 @@ const ChapterShell: Component<{
   createEffect(() => {
     const prev = prevLoc();
     const next = nextLoc();
+    const fibers: Fiber.Fiber<void>[] = [];
     const warm = (loc: Loc | null): void => {
       if (loc === null) return;
-      void preloadChapter(loc.book, loc.chapter);
+      fibers.push(preloadChapter(loc.book, loc.chapter));
       // Markers (commentary / notes / xrefs) are tiny and resolve in a
       // single IPC round-trip — they fetch on first mount of the next
       // chapter and the visual gap is imperceptible, so no proactive warm
@@ -324,6 +330,9 @@ const ChapterShell: Component<{
     };
     warm(prev);
     warm(next);
+    onCleanup(() => {
+      for (const f of fibers) void runtime.runPromise(Fiber.interrupt(f));
+    });
   });
 
   const onVerseClick = (verse: number): void => {
