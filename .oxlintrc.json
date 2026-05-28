@@ -49,7 +49,8 @@
         "solid/no-effect-as-memo": "error",
         "solid/no-runpromise-then-set": "error",
         "solid/no-paired-bool-state": "error",
-        "solid/component-max-loc": ["error", 500]
+        "solid/component-max-loc": ["error", 500],
+        "solid/runpromise-needs-cleanup": "error"
       }
     },
     {
