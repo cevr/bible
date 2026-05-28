@@ -47,7 +47,8 @@
         "solid/effect-service-no-setters": "error",
         "solid/no-double-nullable": "error",
         "solid/no-effect-as-memo": "error",
-        "solid/no-runpromise-then-set": "error"
+        "solid/no-runpromise-then-set": "error",
+        "solid/no-paired-bool-state": "error"
       }
     },
     {
