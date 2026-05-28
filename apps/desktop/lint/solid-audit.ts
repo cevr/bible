@@ -21,6 +21,9 @@
  *  - solid/no-paired-bool-state (R4): consecutive
  *    `createSignal<boolean>()` + `createSignal<T | null/undefined>()` —
  *    flag-plus-payload antipattern. Use a discriminated union.
+ *  - solid/component-max-loc (R8): a component `.tsx` under
+ *    `apps/desktop/src/components/` may not exceed 500 LOC. Per-file
+ *    overrides ratchet down as A3 splits land.
  */
 
 import type { Plugin } from '#oxlint/plugins';
@@ -166,6 +169,68 @@ const plugin: Plugin = {
                 ? '<anonymous>'
                 : (getStringField(idNode, 'name') ?? '<anonymous>');
             reportSetters(members, className);
+          },
+        };
+      },
+    },
+
+    /**
+     * R8 — `solid/component-max-loc`
+     *
+     * Catches `.tsx` files under `apps/desktop/src/components/` exceeding
+     * the configured LOC ceiling (default 500). The ratchet pattern: when
+     * a current offender can't be split immediately, add a per-file override
+     * at its current LOC in `.oxlintrc.json` overrides[].rules. The ceiling
+     * MUST monotonically decrease as A3 splits land — never raise it.
+     *
+     * Options:
+     *   ["error", 500]            — default cap
+     *   ["error", { max: 500 }]   — explicit object form
+     *
+     * Reports on the Program node when `sourceCode.lines.length > max`.
+     */
+    'component-max-loc': {
+      meta: {
+        schema: [
+          {
+            oneOf: [
+              { type: 'integer', minimum: 1 },
+              {
+                type: 'object',
+                properties: { max: { type: 'integer', minimum: 1 } },
+                additionalProperties: false,
+              },
+            ],
+          },
+        ],
+      },
+      create(context) {
+        const filename = context.filename;
+        if (!filename.endsWith('.tsx')) return {};
+        if (!filename.includes('/apps/desktop/src/components/')) return {};
+
+        const opts = context.options;
+        const rawOpt: unknown = Array.isArray(opts) ? opts[0] : undefined;
+        let max = 500;
+        if (typeof rawOpt === 'number' && Number.isFinite(rawOpt) && rawOpt > 0) {
+          max = rawOpt;
+        } else if (typeof rawOpt === 'object' && rawOpt !== null && 'max' in rawOpt) {
+          const m = (rawOpt satisfies object as { readonly max?: unknown }).max;
+          if (typeof m === 'number' && Number.isFinite(m) && m > 0) max = m;
+        }
+
+        return {
+          Program(node) {
+            const loc = context.sourceCode.lines.length;
+            if (loc <= max) return;
+            context.report({
+              message:
+                `Component file is ${loc} LOC (cap ${max}). Split per SOLID_AUDIT §A3 ` +
+                `(extract subcomponents, lift state to a context provider, or move pure ` +
+                `row-builders to module scope). If you must defer, add a per-file override ` +
+                `in .oxlintrc.json with the CURRENT LOC as the ceiling (ratchet only down).`,
+              node,
+            });
           },
         };
       },
