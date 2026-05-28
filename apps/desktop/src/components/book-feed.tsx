@@ -180,8 +180,16 @@ export const BookFeed: Component<BookFeedProps> = (props) => {
     if (n !== undefined) void preloadChapter(bookId, n.para_id);
   });
 
-  const [flashingParaId, setFlashingParaId] = createSignal<string | undefined>(undefined);
-  const [appliedHighlightId, setAppliedHighlightId] = createSignal<string | undefined>(undefined);
+  // Highlight lifecycle: idle → flashing(paraId) → applied(paraId).
+  // The two old signals (flashingParaId, appliedHighlightId) were independent
+  // booleans, so combinations like "flashing X but applied Y" were
+  // representable. The union makes the lifecycle linear: a target is either
+  // being flashed right now or already settled, never both for different ids.
+  type HighlightState =
+    | { readonly _tag: 'idle' }
+    | { readonly _tag: 'flashing'; readonly paraId: string }
+    | { readonly _tag: 'applied'; readonly paraId: string };
+  const [highlightState, setHighlightState] = createSignal<HighlightState>({ _tag: 'idle' });
 
   const paragraphRefs = new Map<string, HTMLElement>();
 
@@ -193,24 +201,29 @@ export const BookFeed: Component<BookFeedProps> = (props) => {
   createEffect(() => {
     const highlight = props.highlightParaId?.();
     if (highlight === undefined || Option.isNone(highlight)) {
-      setAppliedHighlightId(undefined);
+      setHighlightState({ _tag: 'idle' });
       return;
     }
     const target = highlight.value;
-    if (appliedHighlightId() === target) return;
+    const curr = highlightState();
+    if (curr._tag !== 'idle' && curr.paraId === target) return;
     if (paragraphs().length === 0) return;
     const el = paragraphRefs.get(target);
     if (el === undefined) return;
-    setAppliedHighlightId(target);
     el.scrollIntoView({ block: 'center', behavior: 'auto' });
-    setFlashingParaId(target);
+    setHighlightState({ _tag: 'flashing', paraId: target });
     const t = window.setTimeout(() => {
-      setFlashingParaId((curr) => (curr === target ? undefined : curr));
+      setHighlightState((s) =>
+        s._tag === 'flashing' && s.paraId === target ? { _tag: 'applied', paraId: target } : s,
+      );
       props.onHighlightApplied?.();
     }, 1200);
     onCleanup(() => window.clearTimeout(t));
   });
 
+  // Restore lifecycle is independent of highlight: it's a one-shot for a
+  // different input (silent scroll on first render), can land on a different
+  // paraId, and never flashes. Keeping it as its own one-shot marker.
   const [appliedRestoreId, setAppliedRestoreId] = createSignal<string | undefined>(undefined);
   createEffect(() => {
     const restore = props.restoreParagraphId?.();
@@ -364,11 +377,15 @@ export const BookFeed: Component<BookFeedProps> = (props) => {
         {(paragraph) => (
           <ParagraphRow
             paragraph={paragraph}
-            flashing={
-              paragraph.para_id !== null &&
-              paragraph.para_id !== undefined &&
-              flashingParaId() === paragraph.para_id
-            }
+            flashing={(() => {
+              const s = highlightState();
+              return (
+                s._tag === 'flashing' &&
+                paragraph.para_id !== null &&
+                paragraph.para_id !== undefined &&
+                s.paraId === paragraph.para_id
+              );
+            })()}
             registerRef={(el) => {
               const id = paragraph.para_id;
               if (id === null || id === undefined) return;

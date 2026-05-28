@@ -104,7 +104,26 @@ export const App: Component = () => {
   const [letterSpacing, setLetterSpacingSig] = createSignal(0);
   const [lineWidth, setLineWidthSig] = createSignal(68);
   const [uiScale, setUiScaleSig] = createSignal<UiScale>('md');
-  const [settingsOpen, setSettingsOpen] = createSignal(false);
+  // Overlay stack: settings / search / palette can all logically be open,
+  // but only the top of the stack is interactive. Esc pops the top. The
+  // priority order baked into the Esc handler (palette > search > settings/drawer)
+  // is enforced by stack push order, not by three independent booleans.
+  type Overlay = 'settings' | 'search' | 'palette';
+  const [overlayStack, setOverlayStack] = createSignal<readonly Overlay[]>([]);
+  const isOverlayOpen = (o: Overlay): boolean => overlayStack().includes(o);
+  const pushOverlay = (o: Overlay): void => {
+    setOverlayStack((s) => (s.includes(o) ? s : [...s, o]));
+  };
+  const popOverlay = (o: Overlay): void => {
+    setOverlayStack((s) => s.filter((x) => x !== o));
+  };
+  const topOverlay = (): Overlay | undefined => overlayStack().at(-1);
+  const settingsOpen = (): boolean => isOverlayOpen('settings');
+  const setSettingsOpen = (next: boolean | ((open: boolean) => boolean)): void => {
+    const open = typeof next === 'function' ? next(settingsOpen()) : next;
+    if (open) pushOverlay('settings');
+    else popOverlay('settings');
+  };
   // Top-level reader mode. Persisted via ReaderSettings so a relaunch lands
   // the user in whichever mode they left in. F3.1 wires the signal + header
   // toggle; later sub-commits use it to swap which canvas/drawer render.
@@ -218,18 +237,23 @@ export const App: Component = () => {
 
   const [searchInputRef, setSearchInputRef] = createSignal<HTMLInputElement | undefined>(undefined);
   const [searchQuery, setSearchQuery] = createSignal('');
-  const [searchOpen, setSearchOpen] = createSignal(false);
-  const closeSearch = () => {
-    setSearchOpen(false);
+  const searchOpen = (): boolean => isOverlayOpen('search');
+  const closeSearch = (): void => {
+    popOverlay('search');
   };
-  const openSearch = () => {
-    setSearchOpen(true);
+  const openSearch = (): void => {
+    pushOverlay('search');
   };
 
   // Bible-mode Cmd+K palette. Repurposes the shortcut when the user is in
   // Bible mode (where the header search box doesn't apply); EGW mode keeps
   // its existing behavior of focusing the header search.
-  const [paletteOpen, setPaletteOpen] = createSignal(false);
+  const paletteOpen = (): boolean => isOverlayOpen('palette');
+  const setPaletteOpen = (next: boolean | ((open: boolean) => boolean)): void => {
+    const open = typeof next === 'function' ? next(paletteOpen()) : next;
+    if (open) pushOverlay('palette');
+    else popOverlay('palette');
+  };
 
   onMount(() => {
     // Poll the diag IPC until main reports ready. We assume ready until told
@@ -664,19 +688,26 @@ export const App: Component = () => {
       return;
     }
     if (!mod) {
-      // Esc closes overlays in priority order: palette → search panel →
-      // open drawer. Two presses shouldn't be needed when more than one is
-      // open.
+      // Esc pops the top overlay (most-recently opened wins). Falls through
+      // to the side drawer only when no overlay is open. The stack itself
+      // enforces "only one is interactive"; this handler just consumes Esc
+      // in the right order.
       if (e.key === 'Escape') {
-        if (paletteOpen()) {
+        const top = topOverlay();
+        if (top === 'palette') {
           e.preventDefault();
-          setPaletteOpen(false);
+          popOverlay('palette');
           return;
         }
-        if (searchOpen()) {
+        if (top === 'search') {
           e.preventDefault();
           closeSearch();
           searchInputRef()?.blur();
+          return;
+        }
+        if (top === 'settings') {
+          e.preventDefault();
+          popOverlay('settings');
           return;
         }
         if (drawer() !== 'closed') {
