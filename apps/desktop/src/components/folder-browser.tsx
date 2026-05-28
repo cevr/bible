@@ -1,5 +1,5 @@
 import { type Schemas } from '@bible/core/egw';
-import { Effect, Fiber, Option, Stream, SubscriptionRef } from 'effect';
+import { Effect, Fiber } from 'effect';
 import {
   type Component,
   createEffect,
@@ -7,14 +7,17 @@ import {
   createSignal,
   For,
   onCleanup,
-  onMount,
   Show,
   Suspense,
 } from 'solid-js';
-import { ipc, runtime, signalFromStream } from '../runtime.js';
+import { ipc, runtime } from '../runtime.js';
 import { EGWData } from '../services/egw-data.js';
 import { openBookAtFirstChapter } from '../services/open-book.js';
-import { Prefetcher, type PrefetchStatus } from '../services/prefetcher.js';
+import {
+  BookDownloadProvider,
+  type DownloadState,
+  useBookDownload,
+} from './library/book-download-provider.js';
 
 // Folder browser — used as the no-book landing canvas AND as the Library
 // drawer body when a book is open. Renders a breadcrumb plus the current
@@ -26,12 +29,6 @@ import { Prefetcher, type PrefetchStatus } from '../services/prefetcher.js';
 // (also cached per (folder_id, lang)).
 
 const DEFAULT_LANG = 'en';
-const idleStatus: PrefetchStatus = { _tag: 'Idle' };
-
-type DownloadState =
-  | { readonly _tag: 'idle' }
-  | { readonly _tag: 'running'; readonly percent: number }
-  | { readonly _tag: 'done' };
 
 // Per-session memo of resolved book → folder-path chains. Skips the
 // listBooks lookup + tree DFS on subsequent drawer opens for books we've
@@ -190,7 +187,19 @@ const tryParentIdChain = (
   return null;
 };
 
-export const FolderBrowser: Component<FolderBrowserProps> = (props) => {
+export const FolderBrowser: Component<FolderBrowserProps> = (props) => (
+  // Single download-provider mount covers every download-aware row below —
+  // BooksList and BookRow consume it via `useBookDownload()` instead of
+  // taking download props from FolderBrowser. Re-mounting per FolderBrowser
+  // is intentional: the landing canvas and Library drawer have independent
+  // lifetimes and the provider's setup is cheap (one Prefetcher subscription).
+  <BookDownloadProvider>
+    <FolderBrowserInner onPickBook={props.onPickBook} initialBookId={props.initialBookId} />
+  </BookDownloadProvider>
+);
+
+const FolderBrowserInner: Component<FolderBrowserProps> = (props) => {
+  const downloads = useBookDownload();
   // Path of folder ids from root. Empty = root level (top-level folders only).
   const [path, setPath] = createSignal<ReadonlyArray<number>>([]);
   // Captured at mount — `props.initialBookId` is only honored once. After
@@ -292,108 +301,6 @@ export const FolderBrowser: Component<FolderBrowserProps> = (props) => {
       };
     },
   );
-
-  // --- Download badges (mirrors LibraryRail) ------------------------------
-  // `status` mirrors the Prefetcher's SubscriptionRef directly via `signalFromStream`,
-  // so the renderer fiber lifecycle is owned by the helper. The side-effect
-  // (`refreshDownloadState` on Done) is kept on a separate onMount fiber below
-  // — keeps the mirror pure derive, and the side-effect explicit.
-  const status = signalFromStream(
-    Effect.gen(function* () {
-      const prefetcher = yield* Prefetcher;
-      return SubscriptionRef.changes(prefetcher.status);
-    }),
-    idleStatus as PrefetchStatus,
-  );
-  type DownloadCount = { readonly cached: number; readonly expected: number };
-  const [downloadStates, setDownloadStates] = createSignal<ReadonlyMap<number, DownloadCount>>(
-    new Map(),
-  );
-
-  // Tracked refresh fibers keyed by bookId. A new event for the same book
-  // interrupts the previous in-flight refresh so a slow `getDownloadState`
-  // can't land after a newer status snapshot and write a stale count. The
-  // global cleanup interrupts everything still in flight when we unmount.
-  const refreshFibers = new Map<number, Fiber.Fiber<void>>();
-  const refreshDownloadState = (bookId: number) => {
-    const prev = refreshFibers.get(bookId);
-    if (prev !== undefined) void runtime.runPromise(Fiber.interrupt(prev));
-    const fiber = runtime.runFork(
-      Effect.gen(function* () {
-        const data = yield* EGWData;
-        const state = yield* data.getDownloadState(bookId);
-        setDownloadStates((prevStates) => {
-          const next = new Map(prevStates);
-          if (Option.isNone(state)) next.delete(bookId);
-          else next.set(bookId, state.value);
-          return next;
-        });
-      }).pipe(
-        Effect.ignore,
-        Effect.ensuring(
-          Effect.sync(() => {
-            refreshFibers.delete(bookId);
-          }),
-        ),
-      ),
-    );
-    refreshFibers.set(bookId, fiber);
-  };
-
-  onMount(() => {
-    const fiber = runtime.runFork(
-      Effect.gen(function* () {
-        const prefetcher = yield* Prefetcher;
-        yield* SubscriptionRef.changes(prefetcher.status).pipe(
-          Stream.runForEach((s) =>
-            Effect.sync(() => {
-              if (s._tag === 'Done' && s.mode === 'download') refreshDownloadState(s.bookId);
-            }),
-          ),
-        );
-      }),
-    );
-    onCleanup(() => {
-      void runtime.runPromise(Fiber.interrupt(fiber));
-      for (const f of refreshFibers.values()) {
-        void runtime.runPromise(Fiber.interrupt(f));
-      }
-      refreshFibers.clear();
-    });
-  });
-
-  const downloadBook = (bookId: number) => {
-    void runtime.runPromise(
-      Effect.gen(function* () {
-        const prefetcher = yield* Prefetcher;
-        yield* prefetcher.download(bookId);
-      }).pipe(Effect.result),
-    );
-  };
-
-  const downloadFor = (bookId: number): DownloadState => {
-    const s = status();
-    if (s._tag === 'Running' && s.mode === 'download' && s.bookId === bookId) {
-      return {
-        _tag: 'running',
-        percent: s.total === 0 ? 0 : (s.completed / s.total) * 100,
-      };
-    }
-    if (s._tag === 'Done' && s.mode === 'download' && s.bookId === bookId) {
-      return { _tag: 'done' };
-    }
-    return { _tag: 'idle' };
-  };
-
-  const anyDownloadRunning = () => {
-    const s = status();
-    return s._tag === 'Running' && s.mode === 'download';
-  };
-
-  const isFullyDownloaded = (bookId: number) => {
-    const state = downloadStates().get(bookId);
-    return state !== undefined && state.expected > 0 && state.cached >= state.expected;
-  };
 
   // --- Navigation ---------------------------------------------------------
   const goRoot = () => setPath([]);
@@ -523,7 +430,7 @@ export const FolderBrowser: Component<FolderBrowserProps> = (props) => {
             createEffect(() => {
               const list = books();
               if (list === undefined) return;
-              for (const b of list) refreshDownloadState(b.book_id);
+              for (const b of list) downloads.refreshDownloadState(b.book_id);
             });
             return (
               <>
@@ -531,14 +438,7 @@ export const FolderBrowser: Component<FolderBrowserProps> = (props) => {
                   Books
                 </h3>
                 <Suspense fallback={<p class="m-0 py-2 text-ui-base text-muted">Loading books…</p>}>
-                  <BooksList
-                    books={books}
-                    onOpenBook={openBook}
-                    downloadFor={downloadFor}
-                    anyDownloadRunning={anyDownloadRunning}
-                    isFullyDownloaded={isFullyDownloaded}
-                    onDownloadBook={downloadBook}
-                  />
+                  <BooksList books={books} onOpenBook={openBook} />
                 </Suspense>
               </>
             );
@@ -552,87 +452,86 @@ export const FolderBrowser: Component<FolderBrowserProps> = (props) => {
 interface BooksListProps {
   readonly books: () => readonly Schemas.Book[] | undefined;
   readonly onOpenBook: (bookId: number) => void;
-  readonly downloadFor: (bookId: number) => DownloadState;
-  readonly anyDownloadRunning: () => boolean;
-  readonly isFullyDownloaded: (bookId: number) => boolean;
-  readonly onDownloadBook: (bookId: number) => void;
 }
 
-const BooksList: Component<BooksListProps> = (props) => {
-  const books = props.books;
+// Stays children-only: download props for each row were lifted into
+// BookDownloadProvider in A3-10. BooksList just owns the empty-state copy +
+// list chrome; per-row download state is read by BookRow via context.
+const BooksList: Component<BooksListProps> = (props) => (
+  <Show
+    when={(props.books() ?? []).length > 0}
+    fallback={<p class="m-0 py-2 text-ui-base text-muted">No books in this folder.</p>}
+  >
+    <ul class="list-none m-0 p-0 flex flex-col">
+      <For each={props.books() ?? []}>
+        {(book) => <BookRow book={book} onOpen={() => props.onOpenBook(book.book_id)} />}
+      </For>
+    </ul>
+  </Show>
+);
+
+const BookRow: Component<{
+  readonly book: Schemas.Book;
+  readonly onOpen: () => void;
+}> = (props) => {
+  const downloads = useBookDownload();
+  const dl = (): DownloadState => downloads.downloadStateFor(props.book.book_id);
+  const isFull = (): boolean => downloads.isFullyDownloaded(props.book.book_id);
   return (
-    <Show
-      when={(books() ?? []).length > 0}
-      fallback={<p class="m-0 py-2 text-ui-base text-muted">No books in this folder.</p>}
-    >
-      <ul class="list-none m-0 p-0 flex flex-col">
-        <For each={books() ?? []}>
-          {(book) => {
-            const dl = () => props.downloadFor(book.book_id);
-            return (
-              <li class="relative grid grid-cols-[1fr_auto] items-stretch border-b border-rule last:border-b-0">
-                <button
-                  type="button"
-                  class="w-full text-left bg-transparent border-none px-3.5 py-3 flex flex-col gap-0.5 cursor-pointer text-fg border-l-2 border-l-transparent transition-[background,border-color] duration-[0.12s] ease-in-out hover:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] hover:outline-none focus-visible:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] focus-visible:outline-none"
-                  onClick={() => props.onOpenBook(book.book_id)}
+    <li class="relative grid grid-cols-[1fr_auto] items-stretch border-b border-rule last:border-b-0">
+      <button
+        type="button"
+        class="w-full text-left bg-transparent border-none px-3.5 py-3 flex flex-col gap-0.5 cursor-pointer text-fg border-l-2 border-l-transparent transition-[background,border-color] duration-[0.12s] ease-in-out hover:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] hover:outline-none focus-visible:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] focus-visible:outline-none"
+        onClick={props.onOpen}
+      >
+        <span class="text-ui-md leading-[1.3]">{props.book.title}</span>
+        <span class="text-ui-xs text-muted">{props.book.author}</span>
+      </button>
+      <button
+        type="button"
+        class="bg-transparent border-none px-3 flex items-center justify-center min-w-[44px] text-muted cursor-pointer text-ui-xs [font-variant-numeric:tabular-nums] border-l border-l-transparent transition-[color,background] duration-[0.12s] ease-in-out enabled:hover:text-accent enabled:hover:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] enabled:hover:outline-none enabled:focus-visible:text-accent enabled:focus-visible:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] enabled:focus-visible:outline-none disabled:opacity-30 disabled:cursor-not-allowed data-downloaded:text-accent data-downloaded:text-ui-md"
+        data-downloaded={isFull() ? '' : undefined}
+        title={isFull() ? 'Downloaded — click to refresh' : 'Download for offline'}
+        aria-label={`Download ${props.book.title}`}
+        disabled={downloads.anyDownloadRunning() && dl()._tag === 'idle'}
+        onClick={(e) => {
+          e.stopPropagation();
+          downloads.downloadBook(props.book.book_id);
+        }}
+      >
+        <Show
+          when={(() => {
+            const d = dl();
+            return d._tag === 'idle' ? null : d;
+          })()}
+          fallback={
+            <Show
+              when={isFull()}
+              fallback={
+                <svg
+                  viewBox="0 0 24 24"
+                  width="14"
+                  height="14"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
                 >
-                  <span class="text-ui-md leading-[1.3]">{book.title}</span>
-                  <span class="text-ui-xs text-muted">{book.author}</span>
-                </button>
-                <button
-                  type="button"
-                  class="bg-transparent border-none px-3 flex items-center justify-center min-w-[44px] text-muted cursor-pointer text-ui-xs [font-variant-numeric:tabular-nums] border-l border-l-transparent transition-[color,background] duration-[0.12s] ease-in-out enabled:hover:text-accent enabled:hover:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] enabled:hover:outline-none enabled:focus-visible:text-accent enabled:focus-visible:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] enabled:focus-visible:outline-none disabled:opacity-30 disabled:cursor-not-allowed data-downloaded:text-accent data-downloaded:text-ui-md"
-                  data-downloaded={props.isFullyDownloaded(book.book_id) ? '' : undefined}
-                  title={
-                    props.isFullyDownloaded(book.book_id)
-                      ? 'Downloaded — click to refresh'
-                      : 'Download for offline'
-                  }
-                  aria-label={`Download ${book.title}`}
-                  disabled={props.anyDownloadRunning() && dl()._tag === 'idle'}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    props.onDownloadBook(book.book_id);
-                  }}
-                >
-                  <Show
-                    when={(() => {
-                      const d = dl();
-                      return d._tag === 'idle' ? null : d;
-                    })()}
-                    fallback={
-                      <Show
-                        when={props.isFullyDownloaded(book.book_id)}
-                        fallback={
-                          <svg
-                            viewBox="0 0 24 24"
-                            width="14"
-                            height="14"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="1.8"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          >
-                            <path d="M12 3v12" />
-                            <path d="M7 10l5 5 5-5" />
-                            <path d="M5 21h14" />
-                          </svg>
-                        }
-                      >
-                        ✓
-                      </Show>
-                    }
-                    keyed
-                  >
-                    {(d) => (d._tag === 'done' ? '✓' : <>{`${Math.round(d.percent)}%`}</>)}
-                  </Show>
-                </button>
-              </li>
-            );
-          }}
-        </For>
-      </ul>
-    </Show>
+                  <path d="M12 3v12" />
+                  <path d="M7 10l5 5 5-5" />
+                  <path d="M5 21h14" />
+                </svg>
+              }
+            >
+              ✓
+            </Show>
+          }
+          keyed
+        >
+          {(d) => (d._tag === 'done' ? '✓' : <>{`${Math.round(d.percent)}%`}</>)}
+        </Show>
+      </button>
+    </li>
   );
 };
