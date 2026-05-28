@@ -40,8 +40,8 @@ const INDENT_PER_LEVEL_PX = 16;
 export const TocSidebar: Component<TocSidebarProps> = (props) => {
   const toc = ipc.egw.getToc.query(() => ({ bookId: props.bookId }));
 
-  const [activeParaId, setActiveParaId] = createSignal<string | null>(null);
-  const [expandedParaId, setExpandedParaId] = createSignal<string | null>(null);
+  const [activeParaId, setActiveParaId] = createSignal<Option.Option<string>>(Option.none());
+  const [expandedParaId, setExpandedParaId] = createSignal<Option.Option<string>>(Option.none());
 
   onMount(() => {
     const fiber = runtime.runFork(
@@ -51,11 +51,10 @@ export const TocSidebar: Component<TocSidebarProps> = (props) => {
           Stream.runForEach((sel) =>
             Effect.sync(() => {
               if (Option.isNone(sel)) {
-                setActiveParaId(null);
+                setActiveParaId(Option.none());
                 return;
               }
-              const para = sel.value.chapterParaId;
-              setActiveParaId(Option.isSome(para) ? para.value : null);
+              setActiveParaId(sel.value.chapterParaId);
             }),
           ),
         );
@@ -85,7 +84,9 @@ export const TocSidebar: Component<TocSidebarProps> = (props) => {
   };
 
   const toggleExpand = (paraId: string): void => {
-    setExpandedParaId((curr) => (curr === paraId ? null : paraId));
+    setExpandedParaId((curr) =>
+      Option.isSome(curr) && curr.value === paraId ? Option.none() : Option.some(paraId),
+    );
   };
 
   // Bare read — caller wraps this in <Suspense>. Errors bubble to the nearest
@@ -98,8 +99,16 @@ export const TocSidebar: Component<TocSidebarProps> = (props) => {
             <TocRow
               bookId={props.bookId}
               item={item}
-              active={activeParaId() === (item.para_id ?? null)}
-              expanded={expandedParaId() === (item.para_id ?? null)}
+              active={
+                item.para_id !== null &&
+                item.para_id !== undefined &&
+                Option.contains(activeParaId(), item.para_id)
+              }
+              expanded={
+                item.para_id !== null &&
+                item.para_id !== undefined &&
+                Option.contains(expandedParaId(), item.para_id)
+              }
               onSelect={openChapter}
               onToggleExpand={toggleExpand}
               onPickParagraph={openParagraph}

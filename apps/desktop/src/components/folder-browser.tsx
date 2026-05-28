@@ -28,6 +28,11 @@ import { Prefetcher, type PrefetchStatus } from '../services/prefetcher.js';
 const DEFAULT_LANG = 'en';
 const idleStatus: PrefetchStatus = { _tag: 'Idle' };
 
+type DownloadState =
+  | { readonly _tag: 'idle' }
+  | { readonly _tag: 'running'; readonly percent: number }
+  | { readonly _tag: 'done' };
+
 // Module-level memo of resolved book → folder-path chains. Hit on subsequent
 // drawer opens for books we've seeded before in this session, so we skip the
 // listBooks lookup + tree DFS. Doesn't survive app restart by design — the
@@ -313,15 +318,18 @@ export const FolderBrowser: Component<FolderBrowserProps> = (props) => {
     );
   };
 
-  const downloadFor = (bookId: number) => {
+  const downloadFor = (bookId: number): DownloadState => {
     const s = status();
     if (s._tag === 'Running' && s.mode === 'download' && s.bookId === bookId) {
-      return { running: true, percent: s.total === 0 ? 0 : (s.completed / s.total) * 100 };
+      return {
+        _tag: 'running',
+        percent: s.total === 0 ? 0 : (s.completed / s.total) * 100,
+      };
     }
     if (s._tag === 'Done' && s.mode === 'download' && s.bookId === bookId) {
-      return { running: false, percent: 100, done: true };
+      return { _tag: 'done' };
     }
-    return null;
+    return { _tag: 'idle' };
   };
 
   const anyDownloadRunning = () => {
@@ -459,9 +467,7 @@ interface BooksListProps {
   readonly folderId: number;
   readonly onBooksReady: (bookIds: ReadonlyArray<number>) => void;
   readonly onOpenBook: (bookId: number) => void;
-  readonly downloadFor: (
-    bookId: number,
-  ) => { readonly running: boolean; readonly percent: number; readonly done?: boolean } | null;
+  readonly downloadFor: (bookId: number) => DownloadState;
   readonly anyDownloadRunning: () => boolean;
   readonly isFullyDownloaded: (bookId: number) => boolean;
   readonly onDownloadBook: (bookId: number) => void;
@@ -508,14 +514,17 @@ const BooksList: Component<BooksListProps> = (props) => {
                       : 'Download for offline'
                   }
                   aria-label={`Download ${book.title}`}
-                  disabled={props.anyDownloadRunning() && dl() === null}
+                  disabled={props.anyDownloadRunning() && dl()._tag === 'idle'}
                   onClick={(e) => {
                     e.stopPropagation();
                     props.onDownloadBook(book.book_id);
                   }}
                 >
                   <Show
-                    when={dl()}
+                    when={(() => {
+                      const d = dl();
+                      return d._tag === 'idle' ? null : d;
+                    })()}
                     fallback={
                       <Show
                         when={props.isFullyDownloaded(book.book_id)}
@@ -541,11 +550,7 @@ const BooksList: Component<BooksListProps> = (props) => {
                     }
                     keyed
                   >
-                    {(d) => (
-                      <Show when={d.done} fallback={`${Math.round(d.percent)}%`}>
-                        ✓
-                      </Show>
-                    )}
+                    {(d) => (d._tag === 'done' ? '✓' : <>{`${Math.round(d.percent)}%`}</>)}
                   </Show>
                 </button>
               </li>

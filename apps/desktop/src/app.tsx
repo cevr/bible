@@ -767,17 +767,21 @@ export const App: Component = () => {
   // process — so refresh would read whichever intermediate happened to
   // commit last. We debounce to 250ms trailing-edge and flush on chapter
   // swap or window unload so the *latest* intent always wins.
-  let pendingPosition: { bookId: number; chapterParaId: string; paragraphParaId: string } | null =
-    null;
-  let positionTimer: number | null = null;
+  type PositionWrite =
+    | { readonly _tag: 'idle' }
+    | {
+        readonly _tag: 'scheduled';
+        readonly bookId: number;
+        readonly chapterParaId: string;
+        readonly paragraphParaId: string;
+        readonly timerId: number;
+      };
+  let positionWrite: PositionWrite = { _tag: 'idle' };
   const flushPosition = (): void => {
-    if (positionTimer !== null) {
-      window.clearTimeout(positionTimer);
-      positionTimer = null;
-    }
-    const p = pendingPosition;
-    if (p === null) return;
-    pendingPosition = null;
+    const p = positionWrite;
+    if (p._tag === 'idle') return;
+    window.clearTimeout(p.timerId);
+    positionWrite = { _tag: 'idle' };
     void runtime.runPromise(
       Effect.gen(function* () {
         const storage = yield* LastPositionStorage;
@@ -797,15 +801,17 @@ export const App: Component = () => {
     // Flush immediately if the chapter/book changed under us — debouncing
     // across chapters would drop a position write for the chapter we just
     // left.
+    const prev = positionWrite;
     if (
-      pendingPosition !== null &&
-      (pendingPosition.bookId !== bookId || pendingPosition.chapterParaId !== chapterParaId)
+      prev._tag === 'scheduled' &&
+      (prev.bookId !== bookId || prev.chapterParaId !== chapterParaId)
     ) {
       flushPosition();
+    } else if (prev._tag === 'scheduled') {
+      window.clearTimeout(prev.timerId);
     }
-    pendingPosition = { bookId, chapterParaId, paragraphParaId };
-    if (positionTimer !== null) window.clearTimeout(positionTimer);
-    positionTimer = window.setTimeout(flushPosition, 250);
+    const timerId = window.setTimeout(flushPosition, 250);
+    positionWrite = { _tag: 'scheduled', bookId, chapterParaId, paragraphParaId, timerId };
   };
   // Flush on window unload (refresh, close) so the user's actual last scroll
   // position survives even when the debounce hasn't fired.

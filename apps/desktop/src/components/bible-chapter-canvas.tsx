@@ -485,13 +485,16 @@ const MissingChapter: Component<{
   readonly chapter: number;
   readonly title: string;
 }> = (props) => {
-  const [reimporting, setReimporting] = createSignal(false);
-  const [reimportError, setReimportError] = createSignal<string | null>(null);
+  type ReimportState =
+    | { readonly _tag: 'idle' }
+    | { readonly _tag: 'running' }
+    | { readonly _tag: 'failed'; readonly message: string };
+  const [reimportState, setReimportState] = createSignal<ReimportState>({ _tag: 'idle' });
+  const reimporting = (): boolean => reimportState()._tag === 'running';
 
   const onReimportKjv = (): void => {
     if (reimporting()) return;
-    setReimporting(true);
-    setReimportError(null);
+    setReimportState({ _tag: 'running' });
     ipc.bible.reimportKjv
       .mutate(undefined)
       .then(() => {
@@ -499,12 +502,13 @@ const MissingChapter: Component<{
         // KJV table so the previously-null result should now resolve to a
         // real chapter.
         ipc.bible.getChapter.invalidate({ book: props.book, chapter: props.chapter });
+        setReimportState({ _tag: 'idle' });
       })
       .catch((err: unknown) => {
-        setReimportError(err instanceof Error ? err.message : 'Reimport failed.');
-      })
-      .finally(() => {
-        setReimporting(false);
+        setReimportState({
+          _tag: 'failed',
+          message: err instanceof Error ? err.message : 'Reimport failed.',
+        });
       });
   };
 
@@ -527,8 +531,13 @@ const MissingChapter: Component<{
       >
         {reimporting() ? 'Reimporting…' : 'Reimport KJV'}
       </button>
-      <Show when={reimportError()}>
-        {(msg) => <p class="mt-3 text-ui-sm text-muted">Reimport failed — {msg()}</p>}
+      <Show
+        when={(() => {
+          const s = reimportState();
+          return s._tag === 'failed' ? s : null;
+        })()}
+      >
+        {(s) => <p class="mt-3 text-ui-sm text-muted">Reimport failed — {s().message}</p>}
       </Show>
     </div>
   );
