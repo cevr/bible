@@ -415,18 +415,19 @@ const ChapterShell: Component<{
 
   // Resolve the chapter for render. Peek the LRU first so prev/next nav
   // bypasses Suspense entirely on a warm cache hit. On a miss, read the
-  // resource — that may suspend (caught by parent <Suspense>) or resolve to
-  // null (chapter missing → render the reimport UI).
-  const readyChapter = createMemo<KjvChapter | null>(() => {
+  // resource — that may suspend (caught by parent <Suspense>), resolve to
+  // null (chapter missing → reimport UI), or yield a real chapter.
+  type ChapterState =
+    | { readonly _tag: 'loading' }
+    | { readonly _tag: 'missing' }
+    | { readonly _tag: 'ready'; readonly chapter: KjvChapter };
+  const chapterState = createMemo<ChapterState>(() => {
     const peek = peekedChapter();
-    if (peek !== undefined) return peek;
+    if (peek !== undefined) return { _tag: 'ready', chapter: peek };
     const fresh = chapterRes();
-    if (fresh === undefined) return null;
-    return fresh;
-  });
-  const isMissing = createMemo<boolean>(() => {
-    if (peekedChapter() !== undefined) return false;
-    return chapterRes() === null;
+    if (fresh === undefined) return { _tag: 'loading' };
+    if (fresh === null) return { _tag: 'missing' };
+    return { _tag: 'ready', chapter: fresh };
   });
 
   return (
@@ -448,9 +449,15 @@ const ChapterShell: Component<{
         }}
       />
       <Show
-        when={isMissing()}
+        when={chapterState()._tag === 'missing'}
         fallback={
-          <Show when={readyChapter()} keyed>
+          <Show
+            when={(() => {
+              const s = chapterState();
+              return s._tag === 'ready' ? s.chapter : null;
+            })()}
+            keyed
+          >
             {(c) => (
               <div class="mx-auto max-w-[var(--reader-width,68ch)] px-6 py-10">
                 <ReaderHeader title={`${c.bookName} ${String(c.chapter)}`} />
@@ -572,14 +579,15 @@ const ChapterBody: Component<{
   readonly onOpenMarginNote: (verse: number) => void;
   readonly onOpenCrossRefs: (verse: number) => void;
 }> = (props) => {
-  const [strongsByVerse, setStrongsByVerse] = createSignal<ReadonlyMap<
-    number,
-    readonly KjvStrongsWord[]
-  > | null>(null);
-  const [marginNotesByVerse, setMarginNotesByVerse] = createSignal<ReadonlyMap<
-    number,
-    readonly { readonly idx: number; readonly phrase: string }[]
-  > | null>(null);
+  // Seed both maps empty so "not loaded yet" and "loaded, no entries" share
+  // a single shape — consumers read `map.get(verse) ?? <empty>` without
+  // having to distinguish the two upstream states.
+  const [strongsByVerse, setStrongsByVerse] = createSignal<
+    ReadonlyMap<number, readonly KjvStrongsWord[]>
+  >(new Map());
+  const [marginNotesByVerse, setMarginNotesByVerse] = createSignal<
+    ReadonlyMap<number, readonly { readonly idx: number; readonly phrase: string }[]>
+  >(new Map());
 
   return (
     <>
@@ -588,7 +596,7 @@ const ChapterBody: Component<{
           book={props.chapter.book}
           chapter={props.chapter.chapter}
           onLoaded={setStrongsByVerse}
-          onCleared={() => setStrongsByVerse(null)}
+          onCleared={() => setStrongsByVerse(new Map())}
         />
       </Show>
       <Show when={props.inlineMarginNotes}>
@@ -596,7 +604,7 @@ const ChapterBody: Component<{
           book={props.chapter.book}
           chapter={props.chapter.chapter}
           onLoaded={setMarginNotesByVerse}
-          onCleared={() => setMarginNotesByVerse(null)}
+          onCleared={() => setMarginNotesByVerse(new Map())}
         />
       </Show>
       <div class="mt-6 flex flex-col gap-3 font-[family-name:var(--reader-font-family,var(--font-serif))] text-[length:var(--reader-font-size,18px)] leading-[var(--reader-line-height,1.55)] text-fg">
@@ -606,16 +614,14 @@ const ChapterBody: Component<{
             const hasXref = (): boolean => props.inlineCrossRefs && props.xrefVerses.has(v.verse);
             const strongsWords = (): readonly KjvStrongsWord[] | null => {
               if (!props.inlineStrongs) return null;
-              const map = strongsByVerse();
-              return map === null ? null : (map.get(v.verse) ?? null);
+              return strongsByVerse().get(v.verse) ?? null;
             };
             const verseMarginNotes = (): readonly {
               readonly idx: number;
               readonly phrase: string;
             }[] => {
               if (!props.inlineMarginNotes) return [];
-              const map = marginNotesByVerse();
-              return map === null ? [] : (map.get(v.verse) ?? []);
+              return marginNotesByVerse().get(v.verse) ?? [];
             };
             return (
               <p
