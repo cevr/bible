@@ -51,7 +51,8 @@
         "solid/no-paired-bool-state": "error",
         "solid/component-max-loc": ["error", 500],
         "solid/runpromise-needs-cleanup": "error",
-        "solid/no-pushup-loader-component": "error"
+        "solid/no-pushup-loader-component": "error",
+        "solid/no-hand-rolled-debounce": "error"
       }
     },
     {
