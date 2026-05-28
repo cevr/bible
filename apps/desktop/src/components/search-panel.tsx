@@ -64,7 +64,14 @@ export const SearchPanel: Component<SearchPanelProps> = (props) => {
   // matches the query string. The inactive one isn't subscribed (we only
   // read whichever accessor matches), so the ipc registry won't keep an
   // entry for the unused path.
-  const [hits, setHits] = createSignal<readonly SearchResult[] | undefined>(undefined);
+  const refcodeHits = ipc.search.byRefcode.query(() => ({ refcode: activeQuery() }));
+  const textHits = ipc.search.byText.query(() => ({ query: activeQuery() }));
+  const results = createMemo<readonly SearchResult[]>(() => {
+    const q = activeQuery();
+    if (q === '') return [];
+    const list = looksLikeRefcode(q) ? refcodeHits() : textHits();
+    return list ?? [];
+  });
 
   // Position the panel directly under the input element. Anchored on every
   // open by reading getBoundingClientRect off the input ref.
@@ -82,12 +89,12 @@ export const SearchPanel: Component<SearchPanelProps> = (props) => {
   const [activeIndex, setActiveIndex] = createSignal(0);
   // Reset to first row whenever the result set changes.
   createEffect(
-    on(hits, () => {
+    on(results, () => {
       setActiveIndex(0);
     }),
   );
   const clickableHits = createMemo<readonly SearchResult[]>(() =>
-    (hits() ?? []).filter((h) => h.source === 'local'),
+    results().filter((h) => h.source === 'local'),
   );
   let listEl: HTMLUListElement | undefined;
   const scrollActiveIntoView = (): void => {
@@ -198,7 +205,7 @@ export const SearchPanel: Component<SearchPanelProps> = (props) => {
         <Suspense fallback={<div class="px-4 py-6 text-ui-sm text-muted">Searching…</div>}>
           <SearchResults
             query={activeQuery}
-            onHits={setHits}
+            results={results}
             activeIndex={activeIndex}
             clickableHits={clickableHits}
             listRef={(el) => {
@@ -214,56 +221,40 @@ export const SearchPanel: Component<SearchPanelProps> = (props) => {
 
 const SearchResults: Component<{
   readonly query: () => string;
-  readonly onHits: (hits: readonly SearchResult[]) => void;
+  readonly results: () => readonly SearchResult[];
   readonly activeIndex: () => number;
   readonly clickableHits: () => readonly SearchResult[];
   readonly listRef: (el: HTMLUListElement) => void;
   readonly onPickLocal: (hit: SearchResult) => void;
-}> = (props) => {
-  // Pick the query mode each time the input changes. The unused branch is
-  // never subscribed to, so the registry doesn't pin an entry for it.
-  const refcodeHits = ipc.search.byRefcode.query(() => ({ refcode: props.query() }));
-  const textHits = ipc.search.byText.query(() => ({ query: props.query() }));
-
-  const results = createMemo<readonly SearchResult[]>(() => {
-    const list = looksLikeRefcode(props.query()) ? refcodeHits() : textHits();
-    return list ?? [];
-  });
-
-  createEffect(() => {
-    props.onHits(results());
-  });
-
-  return (
-    <Show
-      when={results().length > 0}
-      fallback={
-        <div class="px-4 py-6 text-ui-sm text-muted">
-          No results for <span class="text-fg">{props.query()}</span>.
-        </div>
-      }
-    >
-      <ul class="m-0 list-none overflow-y-auto py-1" ref={props.listRef}>
-        <For each={results()}>
-          {(hit) => {
-            const clickableIdx = createMemo(() => {
-              if (hit.source !== 'local') return -1;
-              return props.clickableHits().indexOf(hit);
-            });
-            return (
-              <ResultRow
-                hit={hit}
-                active={() => clickableIdx() === props.activeIndex() && clickableIdx() !== -1}
-                dataIndex={clickableIdx}
-                onPick={() => props.onPickLocal(hit)}
-              />
-            );
-          }}
-        </For>
-      </ul>
-    </Show>
-  );
-};
+}> = (props) => (
+  <Show
+    when={props.results().length > 0}
+    fallback={
+      <div class="px-4 py-6 text-ui-sm text-muted">
+        No results for <span class="text-fg">{props.query()}</span>.
+      </div>
+    }
+  >
+    <ul class="m-0 list-none overflow-y-auto py-1" ref={props.listRef}>
+      <For each={props.results()}>
+        {(hit) => {
+          const clickableIdx = createMemo(() => {
+            if (hit.source !== 'local') return -1;
+            return props.clickableHits().indexOf(hit);
+          });
+          return (
+            <ResultRow
+              hit={hit}
+              active={() => clickableIdx() === props.activeIndex() && clickableIdx() !== -1}
+              dataIndex={clickableIdx}
+              onPick={() => props.onPickLocal(hit)}
+            />
+          );
+        }}
+      </For>
+    </ul>
+  </Show>
+);
 
 const ResultRow: Component<{
   readonly hit: SearchResult;

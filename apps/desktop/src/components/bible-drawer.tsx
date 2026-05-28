@@ -8,6 +8,7 @@ import {
   createSignal,
   For,
   Match,
+  on,
   onCleanup,
   onMount,
   Show,
@@ -378,11 +379,14 @@ const WordsTab: Component<{ readonly state: BibleDrawerState }> = (props) => {
   // Seed (and re-seed) the query from the study focus. When the user clicks a
   // Strong's superscript anywhere, the focus carries the code and we drop it
   // straight into the search box so the verse list + lexicon header populate
-  // without any typing.
-  createEffect(() => {
-    const f = props.state.studyFocus();
-    if (f._tag === 'strongs') setRawQuery(f.code);
-  });
+  // without any typing. Not a pure memo because the input is free-form — the
+  // user can type over the seeded value, so we only push on actual focus
+  // changes via `on` with the explicit dep.
+  createEffect(
+    on(props.state.studyFocus, (f) => {
+      if (f._tag === 'strongs') setRawQuery(f.code);
+    }),
+  );
   const trimmedQuery = createMemo(() => rawQuery().trim());
   const isStrongsQuery = createMemo(() => STRONGS_CODE_RE.test(trimmedQuery()));
   const normalizedCode = createMemo(() => (isStrongsQuery() ? trimmedQuery().toUpperCase() : null));

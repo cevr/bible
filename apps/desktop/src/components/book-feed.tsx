@@ -7,7 +7,9 @@ import {
   createMemo,
   createSignal,
   For,
+  on,
   onCleanup,
+  onMount,
   Show,
 } from 'solid-js';
 import { ipc, runtime } from '../runtime.js';
@@ -138,6 +140,10 @@ export const BookFeed: Component<BookFeedProps> = (props) => {
     return items[idx + 1];
   });
 
+  const navOptions = createMemo(() =>
+    navItems().map((n) => ({ value: n.para_id, label: n.title ?? n.para_id })),
+  );
+
   const chapter = ipc.egw.getChapterByParaId.query(() => ({
     bookId: props.bookId,
     paraId: props.chapterParaId,
@@ -264,10 +270,16 @@ export const BookFeed: Component<BookFeedProps> = (props) => {
   });
   // Reset to 0 on chapter swap; the scroll handler will recompute as the user
   // moves. Without this the pill briefly shows the previous chapter's pct.
-  createEffect(() => {
-    void props.chapterParaId;
-    setScrollPct(0);
-  });
+  // `on` makes the dependency explicit (the prior `void` form looked like a
+  // mistake) and `defer: true` skips the initial run since the signal is
+  // already 0 at mount.
+  createEffect(
+    on(
+      () => props.chapterParaId,
+      () => setScrollPct(0),
+      { defer: true },
+    ),
+  );
 
   const navigateTo = (paraId: string): void => {
     void runtime.runPromise(
@@ -330,7 +342,7 @@ export const BookFeed: Component<BookFeedProps> = (props) => {
       el.scrollTop = el.scrollHeight;
     }
   };
-  createEffect(() => {
+  onMount(() => {
     window.addEventListener('keydown', onKeyDown);
     onCleanup(() => window.removeEventListener('keydown', onKeyDown));
   });
@@ -376,7 +388,7 @@ export const BookFeed: Component<BookFeedProps> = (props) => {
         nextTitle={() => nextChapter()?.title ?? undefined}
         onPrev={goPrev}
         onNext={goNext}
-        options={() => navItems().map((n) => ({ value: n.para_id, label: n.title ?? n.para_id }))}
+        options={navOptions}
         current={() => props.chapterParaId}
         onPick={(paraId) => navigateTo(paraId)}
       />

@@ -13,6 +13,7 @@ import {
   createSignal,
   For,
   Match,
+  on,
   onCleanup,
   Show,
   Switch,
@@ -134,6 +135,9 @@ export const CommandPalette: Component<CommandPaletteProps> = (props) => {
             }
             setQuery(snapshot.query);
           } else {
+            // untrack: currentSelection is read once to seed the view on
+            // open; subsequent cursor moves while the palette is open
+            // must not re-trigger this effect or it'd yank the user back.
             const sel = untrack(() => props.currentSelection());
             if (Option.isSome(sel)) {
               setView({ _tag: 'chapter', book: sel.value.book, chapter: sel.value.chapter });
@@ -153,6 +157,10 @@ export const CommandPalette: Component<CommandPaletteProps> = (props) => {
         void runtime.runPromise(Fiber.interrupt(seedFiber));
       });
     } else if (!isOpen && wasOpen) {
+      // untrack: this branch fires once on close; we want the final view/
+      // query snapshot but the surrounding createEffect is driven by
+      // props.open only — tracking view/query here would re-run the effect
+      // on every keystroke while the palette is open.
       const v = untrack(view);
       const q = untrack(query);
       const snapshot: PaletteSnapshot =
@@ -173,12 +181,6 @@ export const CommandPalette: Component<CommandPaletteProps> = (props) => {
     wasOpen = isOpen;
   });
 
-  // Reset highlight whenever the visible row set changes shape.
-  createEffect(() => {
-    void rows();
-    setActiveIdx(0);
-  });
-
   const parsed = createMemo<ParsedBibleQuery | null>(() => {
     const q = query().trim();
     if (q === '') return null;
@@ -190,7 +192,18 @@ export const CommandPalette: Component<CommandPaletteProps> = (props) => {
   // (mounted conditionally on chapter view) so the IPC accessor type stays
   // non-nullable. The child writes the latest verse numbers up to this
   // signal so `rows()` can fold them into the keyboard-navigable list.
+  // Cleared here when the view leaves chapter mode so stale verse rows
+  // don't peek through after popping back to book/root.
   const [chapterVerses, setChapterVerses] = createSignal<readonly number[]>([]);
+  createEffect(
+    on(
+      view,
+      (v) => {
+        if (v._tag !== 'chapter') setChapterVerses([]);
+      },
+      { defer: true },
+    ),
+  );
 
   const rows = createMemo<readonly Row[]>(() => {
     const out: Row[] = [];
@@ -266,6 +279,12 @@ export const CommandPalette: Component<CommandPaletteProps> = (props) => {
     }
     return out;
   });
+
+  // Reset highlight whenever the visible row set changes shape. `on` makes
+  // the dependency explicit (we only care about rows() identity, not the
+  // active index it derives), and `defer: true` skips the initial run
+  // since activeIdx is already 0 at mount.
+  createEffect(on(rows, () => setActiveIdx(0), { defer: true }));
 
   // Re-derive whether we're in chapter view (used to mount the fetcher).
   const chapterView = createMemo<{ book: number; chapter: number } | null>(() => {
@@ -494,11 +513,7 @@ export const CommandPalette: Component<CommandPaletteProps> = (props) => {
               </Show>
             </div>
             <PaletteFooter view={view()} />
-            <Show
-              when={chapterView()}
-              keyed
-              fallback={<HiddenResetVerses onVerses={setChapterVerses} />}
-            >
+            <Show when={chapterView()} keyed>
               {(ctx) => (
                 <VerseRowsFetcher
                   book={ctx.book}
@@ -598,18 +613,6 @@ const VerseRowsFetcher: Component<{
       return;
     }
     props.onVerses(c.verses.map((v) => v.verse));
-  });
-  return null;
-};
-
-// Clears the parent verse list when the palette is not in chapter view —
-// stops stale verse rows from peeking through when popping back up to
-// book/root.
-const HiddenResetVerses: Component<{
-  readonly onVerses: (verses: readonly number[]) => void;
-}> = (props) => {
-  createEffect(() => {
-    props.onVerses([]);
   });
   return null;
 };
