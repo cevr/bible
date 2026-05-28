@@ -6,9 +6,11 @@ import {
   createMemo,
   createSignal,
   For,
+  Match,
   onCleanup,
   onMount,
   Show,
+  Switch,
 } from 'solid-js';
 import { makeLru } from '../lib/lru.js';
 import { ipc, runtime, signalFromStream } from '../runtime.js';
@@ -102,47 +104,48 @@ export const BibleChapterCanvas: Component<BibleChapterCanvasProps> = (props) =>
     Option.none<BibleReaderSelection>(),
   );
 
+  // Top-level view: either no-selection (books grid) or a chapter (toolbar +
+  // shell). Chapter branch keys on `book:chapter` so verse-cursor changes
+  // don't re-mount ChapterShell — fresh fetch + verseRefs reset would yank
+  // the user's scroll position on every verse advance.
+  const chapterKey = createMemo<string | null>(() => {
+    const sel = Option.getOrNull(selection());
+    if (sel === null) return null;
+    return `${String(sel.book)}:${String(sel.chapter)}`;
+  });
+
   return (
     <div class="h-full overflow-y-auto">
-      <Show when={Option.isSome(selection())}>
-        <BibleReaderToolbar
-          inlineStrongs={props.inlineStrongs}
-          inlineMarginNotes={props.inlineMarginNotes}
-          inlineCrossRefs={props.inlineCrossRefs}
-          onToggleStrongs={props.onStrongsLayerToggled}
-          onToggleMarginNotes={props.onMarginNotesLayerToggled}
-          onToggleCrossRefs={props.onCrossRefsLayerToggled}
-        />
-      </Show>
-      <Show
-        when={(() => {
-          const sel = Option.getOrNull(selection());
-          if (sel === null) return null;
-          return `${String(sel.book)}:${String(sel.chapter)}` as const;
-        })()}
-        keyed
-        fallback={<BibleBooksGrid />}
-      >
-        {/* Key on book:chapter only — verse-cursor changes reactively flow
-            through props.selection without re-mounting ChapterShell (which
-            would reset scroll, refetch the chapter, and drop verseRefs). */}
-        {(_key) => (
-          <ChapterShell
-            selection={() =>
-              Option.getOrElse(
-                selection(),
-                (): BibleReaderSelection => ({ _tag: 'chapter', book: 0, chapter: 0 }),
-              )
-            }
-            inlineStrongs={props.inlineStrongs()}
-            inlineMarginNotes={props.inlineMarginNotes()}
-            inlineCrossRefs={props.inlineCrossRefs()}
-            onOpenStrongs={props.onOpenStrongs}
-            onOpenMarginNote={props.onOpenMarginNote}
-            onOpenCrossRefs={props.onOpenCrossRefs}
-          />
-        )}
-      </Show>
+      <Switch fallback={<BibleBooksGrid />}>
+        <Match when={chapterKey()} keyed>
+          {(_key) => (
+            <>
+              <BibleReaderToolbar
+                inlineStrongs={props.inlineStrongs}
+                inlineMarginNotes={props.inlineMarginNotes}
+                inlineCrossRefs={props.inlineCrossRefs}
+                onToggleStrongs={props.onStrongsLayerToggled}
+                onToggleMarginNotes={props.onMarginNotesLayerToggled}
+                onToggleCrossRefs={props.onCrossRefsLayerToggled}
+              />
+              <ChapterShell
+                selection={() =>
+                  Option.getOrElse(
+                    selection(),
+                    (): BibleReaderSelection => ({ _tag: 'chapter', book: 0, chapter: 0 }),
+                  )
+                }
+                inlineStrongs={props.inlineStrongs()}
+                inlineMarginNotes={props.inlineMarginNotes()}
+                inlineCrossRefs={props.inlineCrossRefs()}
+                onOpenStrongs={props.onOpenStrongs}
+                onOpenMarginNote={props.onOpenMarginNote}
+                onOpenCrossRefs={props.onOpenCrossRefs}
+              />
+            </>
+          )}
+        </Match>
+      </Switch>
     </div>
   );
 };
