@@ -184,47 +184,45 @@ const ChapterShell: Component<{
   // verse-number clicks set the cursor without jumping the page — the click
   // target is by definition in viewport, so scrollIntoView is suppressed.
   //
-  // Why rAF + retry, not queueMicrotask: when this effect fires synchronously
-  // with the chapter resource resolving, the inner <Show keyed>/<For> over
-  // verses may not have committed DOM ref callbacks yet — so verseRefs.get
-  // returns undefined. rAF runs after paint; the retry covers the cold-render
-  // case where <For> needs an extra tick (e.g. long chapter behind Suspense).
+  // When this effect fires synchronously with the chapter resource resolving
+  // the inner <For> over verses may not have committed DOM ref callbacks
+  // yet — `verseRefs.get` returns undefined. We watch the document for
+  // verse-row insertions via MutationObserver and resolve as soon as the
+  // target node appears (verse rows carry `data-verse="${n}"`). No
+  // setTimeout/rAF retry loop and no busy wait.
   createEffect(() => {
     const sel = props.selection();
     if (sel._tag !== 'verse') return;
     const target = sel.verse;
     const ready = peekedChapter() ?? chapterRes();
     if (ready === undefined || ready === null) return;
-    let pendingTimerId: number | undefined;
-    const tryScroll = (attempt: number): void => {
-      pendingTimerId = undefined;
-      const el = verseRefs.get(target);
-      if (el !== undefined) {
-        const rect = el.getBoundingClientRect();
-        const container = el.closest<HTMLElement>('.overflow-y-auto');
-        const bounds = container?.getBoundingClientRect() ?? {
-          top: 0,
-          bottom: window.innerHeight,
-        };
-        const onScreen = rect.top >= bounds.top && rect.bottom <= bounds.bottom;
-        if (!onScreen) {
-          el.scrollIntoView({ block: 'center', behavior: 'auto' });
-        }
-        return;
-      }
-      if (attempt < 3) {
-        pendingTimerId = window.setTimeout(() => tryScroll(attempt + 1), 0);
-      }
+    const tryScroll = (el: HTMLElement): void => {
+      const rect = el.getBoundingClientRect();
+      const container = el.closest<HTMLElement>('.overflow-y-auto');
+      const bounds = container?.getBoundingClientRect() ?? {
+        top: 0,
+        bottom: window.innerHeight,
+      };
+      const onScreen = rect.top >= bounds.top && rect.bottom <= bounds.bottom;
+      if (!onScreen) el.scrollIntoView({ block: 'center', behavior: 'auto' });
     };
-    // setTimeout not rAF: rAF callbacks scheduled inside a Solid createEffect
-    // mid-flush sometimes get coalesced/dropped in this Electron renderer,
-    // observed via console instrumentation. setTimeout(0) is fiber-safe and
-    // still queues after the current microtask drain so DOM ref callbacks
-    // commit before tryScroll reads verseRefs.
-    pendingTimerId = window.setTimeout(() => tryScroll(0), 0);
-    onCleanup(() => {
-      if (pendingTimerId !== undefined) window.clearTimeout(pendingTimerId);
+    const ready_el = verseRefs.get(target);
+    if (ready_el !== undefined) {
+      tryScroll(ready_el);
+      return;
+    }
+    // Observe the document for the target row. We don't have a guaranteed
+    // container ref in this scope so we observe the document body — the
+    // observer is cheap (one disconnect per selection change), and the
+    // attribute filter narrows the callback set to the rows we care about.
+    const observer = new MutationObserver(() => {
+      const el = verseRefs.get(target);
+      if (el === undefined) return;
+      observer.disconnect();
+      tryScroll(el);
     });
+    observer.observe(document.body, { childList: true, subtree: true });
+    onCleanup(() => observer.disconnect());
   });
 
   // Adjacent-chapter preload — warms the renderer LRU + EgwCommentary cache
@@ -556,6 +554,7 @@ const ChapterBody: Component<{
             <p
               class="m-0 -mx-2 rounded px-2 py-1 data-[cursor=true]:bg-accent-soft"
               data-cursor={isCursor() ? 'true' : undefined}
+              data-verse={String(v.verse)}
               ref={(el) => {
                 props.verseRefs.set(v.verse, el);
               }}
