@@ -1,5 +1,3 @@
-import { Context, Effect, Layer, Ref } from 'effect';
-
 // Ephemeral memory for the Cmd+K palette so re-opening it lands the user
 // where they last navigated rather than reseeding from the current chapter.
 //
@@ -11,6 +9,10 @@ import { Context, Effect, Layer, Ref } from 'effect';
 // In-memory only (no disk persistence): the goal is jump-back-on-second-
 // Cmd+K, not survival across launches. `LastPositionStorage` already
 // handles that for the chapter cursor.
+//
+// Plain module-level box. Previously wrapped in an Effect.Service with Ref
+// + Layer, but no test layer ever used the injection point — the wrapping
+// was Effect ceremony for what's already a process singleton.
 
 export type PaletteSnapshot =
   | { readonly _tag: 'root'; readonly query: string }
@@ -22,24 +24,14 @@ export type PaletteSnapshot =
       readonly query: string;
     };
 
-export interface CommandPaletteMemoryShape {
-  readonly get: Effect.Effect<PaletteSnapshot | null>;
-  readonly record: (snapshot: PaletteSnapshot) => Effect.Effect<void>;
-  readonly clear: Effect.Effect<void>;
-}
+let snapshot: PaletteSnapshot | null = null;
 
-const make = Effect.gen(function* () {
-  const ref = yield* Ref.make<PaletteSnapshot | null>(null);
-  return {
-    get: Ref.get(ref),
-    record: (snapshot) => Ref.set(ref, snapshot),
-    clear: Ref.set(ref, null),
-  } satisfies CommandPaletteMemoryShape;
-});
-
-export class CommandPaletteMemory extends Context.Service<
-  CommandPaletteMemory,
-  CommandPaletteMemoryShape
->()('@bible/desktop/services/CommandPaletteMemory') {
-  static layer = Layer.effect(CommandPaletteMemory, make);
-}
+export const commandPaletteMemory = {
+  get: (): PaletteSnapshot | null => snapshot,
+  record: (next: PaletteSnapshot): void => {
+    snapshot = next;
+  },
+  clear: (): void => {
+    snapshot = null;
+  },
+};

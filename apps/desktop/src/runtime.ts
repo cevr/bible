@@ -6,7 +6,6 @@ import { BibleMarginNotes } from './services/bible-margin-notes.js';
 import { BibleReaderState } from './services/bible-reader-state.js';
 import { BibleXrefs } from './services/bible-xrefs.js';
 import { CacheService } from './services/cache-service.js';
-import { CommandPaletteMemory } from './services/command-palette-memory.js';
 import { EgwCommentary } from './services/egw-commentary.js';
 import { EGWData } from './services/egw-data.js';
 import { EGWIpcClient } from './services/egw-ipc-client.js';
@@ -49,7 +48,6 @@ const AppLayer = Layer.mergeAll(
   BibleMarginNotes.layer,
   EgwCommentary.layer,
   BibleReaderState.layer,
-  CommandPaletteMemory.layer,
 );
 
 export const runtime = ManagedRuntime.make(AppLayer);
