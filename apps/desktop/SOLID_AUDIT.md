@@ -15,7 +15,10 @@ section is empty. Treat it as a living artifact: agents append findings, the
 
 ## Status
 
-`dirty` — initial audit not yet run.
+`clean` — 148 violations resolved with commit hashes; A11 recurring-shape rules
+R1, R2, R3, R4, R5, R6, R7, R8, R10 encoded in `apps/desktop/lint/solid-audit.ts`
+and wired in `.oxlintrc.json` (R9 deferred per `apps/desktop/lint/PLAN.md` —
+needs a project-wide cross-reference script, not a per-file rule).
 
 When a `/goal` pass finishes, flip to `clean` only if every entry under
 **Violations** is resolved (with a commit hash) or explicitly dismissed (with a
