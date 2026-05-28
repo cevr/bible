@@ -44,7 +44,8 @@
     {
       "files": ["**/apps/desktop/src/**"],
       "rules": {
-        "solid/effect-service-no-setters": "error"
+        "solid/effect-service-no-setters": "error",
+        "solid/no-double-nullable": "error"
       }
     },
     {

@@ -96,9 +96,9 @@ export class SearchService extends Context.Service<SearchService, SearchServiceS
       const remoteToResult = (hit: {
         readonly pub_code: string;
         readonly pub_name: string;
-        readonly para_id?: string | null | undefined;
-        readonly refcode_short?: string | null | undefined;
-        readonly snippet?: string | null | undefined;
+        readonly para_id?: string | null;
+        readonly refcode_short?: string | null;
+        readonly snippet?: string | null;
       }): SearchResult => ({
         source: 'remote',
         bookCode: hit.pub_code,

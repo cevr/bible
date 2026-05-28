@@ -183,7 +183,7 @@ const useChapterHighlight = (props: {
   readonly highlightParaId?: Accessor<Option.Option<string>>;
   readonly restoreParagraphId?: Accessor<Option.Option<string>>;
   readonly onHighlightApplied?: () => void;
-}): { readonly flashing: (paraId: string | null | undefined) => boolean } => {
+}): { readonly flashing: (paraId: string | undefined) => boolean } => {
   type HighlightState =
     | { readonly _tag: 'idle' }
     | { readonly _tag: 'flashing'; readonly paraId: string }
