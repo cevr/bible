@@ -81,7 +81,7 @@ const EgwCommentaryHitSchema = Schema.Struct({
   bookId: Schema.Number,
   bookCode: Schema.String,
   bookTitle: Schema.String,
-  refcodeShort: Schema.NullOr(Schema.String),
+  refcodeShort: Schema.OptionFromNullOr(Schema.String),
   snippet: Schema.String,
   puborder: Schema.Number,
 });

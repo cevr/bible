@@ -1,13 +1,33 @@
-import { Context, Effect, Layer, Stream, SubscriptionRef } from 'effect';
+import { Context, Effect, Layer, Option, Stream, SubscriptionRef } from 'effect';
 
 export interface EgwCommentaryHit {
+  readonly bookId: number;
+  readonly bookCode: string;
+  readonly bookTitle: string;
+  /** `Some` when the EGW paragraph carries a human-readable refcode
+   *  ("EW 12.3"); `None` when only the bookCode is available. Lifted from
+   *  the raw IPC `string | null` at the procedures boundary so renderers
+   *  fall back via `Option.getOrElse`. */
+  readonly refcodeShort: Option.Option<string>;
+  readonly snippet: string;
+  readonly puborder: number;
+}
+
+const fromIpc = (raw: {
   readonly bookId: number;
   readonly bookCode: string;
   readonly bookTitle: string;
   readonly refcodeShort: string | null;
   readonly snippet: string;
   readonly puborder: number;
-}
+}): EgwCommentaryHit => ({
+  bookId: raw.bookId,
+  bookCode: raw.bookCode,
+  bookTitle: raw.bookTitle,
+  refcodeShort: Option.fromNullOr(raw.refcodeShort),
+  snippet: raw.snippet,
+  puborder: raw.puborder,
+});
 
 export interface EgwCommentaryShape {
   /** EGW paragraphs that reference the given Bible verse, ordered by book
@@ -119,7 +139,8 @@ export class EgwCommentary extends Context.Service<EgwCommentary, EgwCommentaryS
           const cached = verseLru.get(key);
           if (cached !== undefined) return Effect.succeed(cached);
           return Effect.promise(() => window.api.bible.getEgwCommentary(book, chapter, verse)).pipe(
-            Effect.map((res) => {
+            Effect.map((raw) => {
+              const res = raw.map(fromIpc);
               verseLru.set(key, res);
               return res;
             }),

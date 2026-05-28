@@ -618,7 +618,7 @@ const EgwCommentaryList: Component<{
             <li class="flex flex-col gap-0.5">
               <div class="flex items-baseline gap-2">
                 <span class="text-[0.62em] text-muted uppercase tracking-wide [font-variant-numeric:tabular-nums]">
-                  {hit.refcodeShort ?? hit.bookCode}
+                  {Option.getOrElse(hit.refcodeShort, () => hit.bookCode)}
                 </span>
                 <span class="text-ui-sm font-medium text-fg">{hit.bookTitle}</span>
               </div>
