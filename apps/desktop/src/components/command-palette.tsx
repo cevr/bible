@@ -45,10 +45,24 @@ import { CommandPaletteMemory, type PaletteSnapshot } from '../services/command-
 // We don't use Portal — same convention as Drawer. Caller mounts at shell
 // level; the overlay is fixed at z-[60] which sits above drawers (z-50).
 
+// The view layer of the palette state union. `PaletteState` (below) carries
+// activeIdx alongside view+query so transitions are atomic — no window where
+// `view` has advanced but `activeIdx` is still pointing at the previous
+// view's row count.
 type PaletteView =
   | { readonly _tag: 'root' }
   | { readonly _tag: 'book'; readonly book: number }
   | { readonly _tag: 'chapter'; readonly book: number; readonly chapter: number };
+
+// One state object instead of three independent signals. activeIdx is
+// scoped to (view, query) — setView and setQuery both reset it to 0
+// implicitly via withView / withQuery helpers, so a stale activeIdx after
+// drill or keystroke is unrepresentable.
+interface PaletteState {
+  readonly view: PaletteView;
+  readonly query: string;
+  readonly activeIdx: number;
+}
 
 // Action emitted by `resolveAction` for a row activation. The palette JSX
 // dispatches it (drilldown OR navigate-and-close). Pure shape keeps the
@@ -102,9 +116,30 @@ export interface CommandPaletteProps {
 const PARSED_ID = 'parsed';
 
 export const CommandPalette: Component<CommandPaletteProps> = (props) => {
-  const [view, setView] = createSignal<PaletteView>({ _tag: 'root' });
-  const [query, setQuery] = createSignal('');
-  const [activeIdx, setActiveIdx] = createSignal(0);
+  // Single source of truth. Transitions that change view or query funnel
+  // through `setView` / `setQuery` helpers below — both reset activeIdx so
+  // a stale highlight cannot survive a drilldown or keystroke. Arrow keys
+  // and the per-rows reset effect adjust activeIdx in isolation.
+  const [paletteState, setPaletteState] = createSignal<PaletteState>({
+    view: { _tag: 'root' },
+    query: '',
+    activeIdx: 0,
+  });
+  const view = (): PaletteView => paletteState().view;
+  const query = (): string => paletteState().query;
+  const activeIdx = (): number => paletteState().activeIdx;
+  const setView = (next: PaletteView): void => {
+    setPaletteState((s) => ({ ...s, view: next, activeIdx: 0 }));
+  };
+  const setQuery = (next: string): void => {
+    setPaletteState((s) => ({ ...s, query: next, activeIdx: 0 }));
+  };
+  const setActiveIdx = (next: number | ((curr: number) => number)): void => {
+    setPaletteState((s) => ({
+      ...s,
+      activeIdx: typeof next === 'function' ? next(s.activeIdx) : next,
+    }));
+  };
   let inputEl: HTMLInputElement | undefined;
   let listEl: HTMLDivElement | undefined;
 
@@ -125,28 +160,27 @@ export const CommandPalette: Component<CommandPaletteProps> = (props) => {
         Effect.gen(function* () {
           const memory = yield* CommandPaletteMemory;
           const snapshot = yield* memory.get;
+          // Seed view+query+activeIdx atomically — three separate setters
+          // would create momentary intermediate states the renderer could
+          // observe.
           if (snapshot !== null) {
-            if (snapshot._tag === 'chapter') {
-              setView({ _tag: 'chapter', book: snapshot.book, chapter: snapshot.chapter });
-            } else if (snapshot._tag === 'book') {
-              setView({ _tag: 'book', book: snapshot.book });
-            } else {
-              setView({ _tag: 'root' });
-            }
-            setQuery(snapshot.query);
+            const seedView: PaletteView =
+              snapshot._tag === 'chapter'
+                ? { _tag: 'chapter', book: snapshot.book, chapter: snapshot.chapter }
+                : snapshot._tag === 'book'
+                  ? { _tag: 'book', book: snapshot.book }
+                  : { _tag: 'root' };
+            setPaletteState({ view: seedView, query: snapshot.query, activeIdx: 0 });
           } else {
             // untrack: currentSelection is read once to seed the view on
             // open; subsequent cursor moves while the palette is open
             // must not re-trigger this effect or it'd yank the user back.
             const sel = untrack(() => props.currentSelection());
-            if (Option.isSome(sel)) {
-              setView({ _tag: 'chapter', book: sel.value.book, chapter: sel.value.chapter });
-            } else {
-              setView({ _tag: 'root' });
-            }
-            setQuery('');
+            const seedView: PaletteView = Option.isSome(sel)
+              ? { _tag: 'chapter', book: sel.value.book, chapter: sel.value.chapter }
+              : { _tag: 'root' };
+            setPaletteState({ view: seedView, query: '', activeIdx: 0 });
           }
-          setActiveIdx(0);
           queueMicrotask(() => {
             inputEl?.focus();
             inputEl?.select();
@@ -356,8 +390,7 @@ export const CommandPalette: Component<CommandPaletteProps> = (props) => {
         return;
       }
       case 'drilldown': {
-        setView(action.view);
-        setQuery('');
+        setPaletteState({ view: action.view, query: '', activeIdx: 0 });
         return;
       }
     }

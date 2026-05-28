@@ -94,6 +94,36 @@ const DRAG_CLOSE_THRESHOLD_PX = 120;
 // State only applies when a book is open. Closing the book resets to 'closed'.
 type DrawerState = 'closed' | 'toc' | 'tocPlusLib';
 
+// Mode-aware drawer transition reducer. `tocPlusLib` is only meaningful
+// in EGW mode (Bible mode has no Library pane); routing every transition
+// through this reducer means invalid combinations like
+// (mode='bible', drawer='tocPlusLib') become no-ops instead of being
+// reachable via a `setDrawer('tocPlusLib')` call from the wrong code path.
+type DrawerAction =
+  | { readonly _tag: 'libraryClick' }
+  | { readonly _tag: 'toggleLibraryPane' }
+  | { readonly _tag: 'close' };
+const drawerReducer = (mode: ReaderMode, curr: DrawerState, action: DrawerAction): DrawerState => {
+  if (action._tag === 'close') return 'closed';
+  if (mode === 'bible') {
+    // Bible mode: only `toc` is reachable; `tocPlusLib` is collapsed to
+    // `toc` if a stale transition somehow asked for it.
+    if (action._tag === 'libraryClick') return curr === 'closed' ? 'toc' : 'closed';
+    if (action._tag === 'toggleLibraryPane') return curr;
+    return curr;
+  }
+  // EGW mode: closed → toc → tocPlusLib → closed cycle.
+  if (action._tag === 'libraryClick') {
+    if (curr === 'closed') return 'toc';
+    if (curr === 'toc') return 'tocPlusLib';
+    return 'closed';
+  }
+  if (action._tag === 'toggleLibraryPane') {
+    return curr === 'tocPlusLib' ? 'toc' : 'tocPlusLib';
+  }
+  return curr;
+};
+
 export const App: Component = () => {
   // UI mirror of ReaderSettings so reads are synchronous for templating.
   // ReaderSettings remains the source of truth; setters fan out to both.
@@ -233,7 +263,8 @@ export const App: Component = () => {
 
   // Reset drawers whenever the book is closed (e.g. via Esc, or future close
   // affordance). Keeps the layout coherent: drawers only exist over a reader.
-  const closeDrawers = () => setDrawer('closed');
+  const closeDrawers = () =>
+    setDrawer((curr) => drawerReducer(readerMode(), curr, { _tag: 'close' }));
 
   const [searchInputRef, setSearchInputRef] = createSignal<HTMLInputElement | undefined>(undefined);
   const [searchQuery, setSearchQuery] = createSignal('');
@@ -648,18 +679,13 @@ export const App: Component = () => {
   // Library button cycles drawer state. In EGW mode the button is hidden
   // when no book is open (the landing view IS the folder browser). In Bible
   // mode the TOC is always reachable, and there's no Library pane to expand
-  // — we just toggle between 'closed' and 'toc'.
+  // — the reducer collapses `tocPlusLib` to a no-op there.
+  const dispatchDrawer = (action: DrawerAction): void => {
+    setDrawer((curr) => drawerReducer(readerMode(), curr, action));
+  };
   const onLibraryClick = () => {
     if (!libraryAvailable()) return;
-    if (isBibleMode()) {
-      setDrawer((curr) => (curr === 'closed' ? 'toc' : 'closed'));
-      return;
-    }
-    setDrawer((curr) => {
-      if (curr === 'closed') return 'toc';
-      if (curr === 'toc') return 'tocPlusLib';
-      return 'closed';
-    });
+    dispatchDrawer({ _tag: 'libraryClick' });
   };
 
   const focusSearch = () => {
@@ -1169,7 +1195,7 @@ export const App: Component = () => {
               <button
                 type="button"
                 class="bg-transparent border border-rule rounded-md px-2 py-1 text-ui-xs text-fg cursor-pointer transition-[background,border-color] duration-[0.12s] ease-in-out hover:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] hover:border-accent hover:outline-none focus-visible:bg-[color-mix(in_srgb,var(--color-accent)_6%,transparent)] focus-visible:border-accent focus-visible:outline-none"
-                onClick={() => setDrawer((curr) => (curr === 'tocPlusLib' ? 'toc' : 'tocPlusLib'))}
+                onClick={() => dispatchDrawer({ _tag: 'toggleLibraryPane' })}
                 title={drawer() === 'tocPlusLib' ? 'Hide library' : 'Open library'}
               >
                 {drawer() === 'tocPlusLib' ? 'Close library' : 'Library'}
