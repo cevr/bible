@@ -76,7 +76,14 @@ export const BibleTocSidebar: Component<{
   // verse picker for the remembered chapter — saves a tap for the user who
   // toggles back-and-forth between Bible and EGW on the same chapter. First
   // visit falls through to the chapter grid.
+  //
+  // Generation-id guard: rapid clicks race the IPC. If the slower lookup
+  // landed after a newer pick, the stale result would overwrite the user's
+  // current selection. Only commit when our generation matches the latest.
+  let pickGen = 0;
   const onPickBook = (book: number): void => {
+    pickGen += 1;
+    const myGen = pickGen;
     void runtime
       .runPromise(
         Effect.gen(function* () {
@@ -85,6 +92,7 @@ export const BibleTocSidebar: Component<{
         }),
       )
       .then((remembered) => {
+        if (myGen !== pickGen) return;
         if (Option.isSome(remembered)) {
           setView({ _tag: 'verses', book, chapter: remembered.value });
         } else {

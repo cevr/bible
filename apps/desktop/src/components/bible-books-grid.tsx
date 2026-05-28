@@ -30,7 +30,14 @@ export const BibleBooksGrid: Component = () => {
 
   // Book click: if we've been in this book this session, jump straight to the
   // last chapter instead of forcing them through the chapter grid.
+  //
+  // Generation-id guard: double-clicks / fast keyboard nav race the IPC; an
+  // older lookup landing after a newer pick would fire `onPickChapter` for
+  // the wrong book. Only commit when our generation matches the latest.
+  let pickGen = 0;
   const onPickBook = (book: number): void => {
+    pickGen += 1;
+    const myGen = pickGen;
     void runtime
       .runPromise(
         Effect.gen(function* () {
@@ -39,6 +46,7 @@ export const BibleBooksGrid: Component = () => {
         }),
       )
       .then((remembered) => {
+        if (myGen !== pickGen) return;
         if (Option.isSome(remembered)) {
           onPickChapter(book, remembered.value);
         } else {

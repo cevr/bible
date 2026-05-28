@@ -5,7 +5,7 @@ import {
   parseBibleQuery,
   type ParsedBibleQuery,
 } from '@bible/core/bible-reader';
-import { Effect, Option } from 'effect';
+import { Effect, Fiber, Option } from 'effect';
 import {
   type Component,
   createEffect,
@@ -112,18 +112,18 @@ export const CommandPalette: Component<CommandPaletteProps> = (props) => {
   // exact view/query so a second Cmd+K feels like resuming. Otherwise fall
   // back to the deepest meaningful context derived from `currentSelection`.
   // On close (open → false), write the latest snapshot back to memory.
+  //
+  // The seed fetch runs as a Fiber tracked on the effect closure so a rapid
+  // close→reopen interrupts the prior in-flight read before its callback can
+  // stomp on the freshly seeded view.
   let wasOpen = false;
   createEffect(() => {
     const isOpen = props.open;
     if (isOpen && !wasOpen) {
-      void runtime
-        .runPromise(
-          Effect.gen(function* () {
-            const memory = yield* CommandPaletteMemory;
-            return yield* memory.get;
-          }),
-        )
-        .then((snapshot) => {
+      const seedFiber = runtime.runFork(
+        Effect.gen(function* () {
+          const memory = yield* CommandPaletteMemory;
+          const snapshot = yield* memory.get;
           if (snapshot !== null) {
             if (snapshot._tag === 'chapter') {
               setView({ _tag: 'chapter', book: snapshot.book, chapter: snapshot.chapter });
@@ -147,7 +147,11 @@ export const CommandPalette: Component<CommandPaletteProps> = (props) => {
             inputEl?.focus();
             inputEl?.select();
           });
-        });
+        }),
+      );
+      onCleanup(() => {
+        void runtime.runPromise(Fiber.interrupt(seedFiber));
+      });
     } else if (!isOpen && wasOpen) {
       const v = untrack(view);
       const q = untrack(query);
