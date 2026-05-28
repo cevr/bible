@@ -254,9 +254,10 @@ const NotesList: Component<{
 const formatXrefTitle = (ref: CrossRef): string => {
   const book = getBibleBook(ref.targetBook);
   const name = book?.name ?? `Book ${String(ref.targetBook)}`;
+  const end = Option.getOrNull(ref.targetVerseEnd);
   const verses =
-    ref.targetVerseEnd !== null && ref.targetVerseEnd > ref.targetVerse
-      ? `${String(ref.targetVerse)}-${String(ref.targetVerseEnd)}`
+    end !== null && end > ref.targetVerse
+      ? `${String(ref.targetVerse)}-${String(end)}`
       : String(ref.targetVerse);
   return `${name} ${String(ref.targetChapter)}:${verses}`;
 };
@@ -328,7 +329,7 @@ const XrefRow: Component<{
     const chap = chapterRes.latest;
     if (chap === undefined || chap === null) return null;
     const start = props.xref.targetVerse;
-    const end = props.xref.targetVerseEnd ?? props.xref.targetVerse;
+    const end = Option.getOrElse(props.xref.targetVerseEnd, () => props.xref.targetVerse);
     const texts = chap.verses.filter((v) => v.verse >= start && v.verse <= end).map((v) => v.text);
     return texts.length === 0 ? null : texts.join(' ');
   });

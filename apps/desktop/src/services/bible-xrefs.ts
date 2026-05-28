@@ -1,4 +1,4 @@
-import { Context, Effect, Layer } from 'effect';
+import { Context, Effect, Layer, Option } from 'effect';
 
 export type XrefSource = 'openbible' | 'tske';
 
@@ -7,8 +7,25 @@ export interface CrossRef {
   readonly targetBook: number;
   readonly targetChapter: number;
   readonly targetVerse: number;
-  readonly targetVerseEnd: number | null;
+  /** `Some` when the catalog records a verse range; `None` for a single
+   *  verse. Lifted from the raw IPC `number | null` at this boundary so
+   *  no renderer code has to think in nulls. */
+  readonly targetVerseEnd: Option.Option<number>;
 }
+
+const fromIpc = (raw: {
+  readonly source: XrefSource;
+  readonly targetBook: number;
+  readonly targetChapter: number;
+  readonly targetVerse: number;
+  readonly targetVerseEnd: number | null;
+}): CrossRef => ({
+  source: raw.source,
+  targetBook: raw.targetBook,
+  targetChapter: raw.targetChapter,
+  targetVerse: raw.targetVerse,
+  targetVerseEnd: Option.fromNullOr(raw.targetVerseEnd),
+});
 
 export interface BibleXrefsShape {
   /** All cross references for a single source verse, across imported
@@ -77,7 +94,8 @@ export class BibleXrefs extends Context.Service<BibleXrefs, BibleXrefsShape>()(
         const cached = verseLru.get(key);
         if (cached !== undefined) return Effect.succeed(cached);
         return Effect.promise(() => window.api.bible.getCrossRefs(book, chapter, verse)).pipe(
-          Effect.map((res) => {
+          Effect.map((raw) => {
+            const res = raw.map(fromIpc);
             verseLru.set(key, res);
             return res;
           }),

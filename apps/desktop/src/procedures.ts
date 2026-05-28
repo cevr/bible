@@ -67,7 +67,7 @@ const CrossRefSchema = Schema.Struct({
   targetBook: Schema.Number,
   targetChapter: Schema.Number,
   targetVerse: Schema.Number,
-  targetVerseEnd: Schema.NullOr(Schema.Number),
+  targetVerseEnd: Schema.OptionFromNullOr(Schema.Number),
 });
 
 const MarginNoteSchema = Schema.Struct({
