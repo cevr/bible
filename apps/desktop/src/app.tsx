@@ -16,6 +16,22 @@ import { CommandPalette } from './components/command-palette.js';
 import { FolderBrowser } from './components/folder-browser.js';
 import { ReaderPane } from './components/reader-pane.js';
 import { SearchPanel } from './components/search-panel.js';
+import {
+  FONT_FAMILIES,
+  FONT_FAMILY_VAR,
+  FONT_KEY_STEP,
+  formatLineHeight,
+  isReaderFontScale,
+  isUiScale,
+  lineHeightCss,
+  READER_FONT_PX,
+  READER_FONT_SCALES,
+  ReaderSettingsProvider,
+  THEMES,
+  UI_SCALE_VALUE,
+  UI_SCALES,
+  useReaderSettingsCtx,
+} from './components/settings/reader-settings-provider.js';
 import { TocPlusLibraryDrawer } from './components/toc-plus-library-drawer.js';
 import { ReaderPanel } from './components/ui/reader-panel.js';
 import { BibleReaderState, type BibleReaderSelection } from './services/bible-reader-state.js';
@@ -28,63 +44,8 @@ import { lastChapterMemory } from './services/last-chapter-memory.js';
 import { type LastPosition, LastPositionStorage } from './services/last-position-storage.js';
 import { openBookAtFirstChapter } from './services/open-book.js';
 import { Prefetcher } from './services/prefetcher.js';
-import {
-  type FontFamily,
-  INITIAL_READER_SETTINGS,
-  ReaderSettings,
-  type ReaderFontScale,
-  type ReaderMode,
-  type Theme,
-  type UiScale,
-} from './services/reader-settings.js';
+import { ReaderSettings, type ReaderMode } from './services/reader-settings.js';
 import { ReaderState, type ReaderSelection } from './services/reader-state.js';
-
-const FONT_FAMILY_VAR: Record<FontFamily, string> = {
-  serif: 'var(--font-serif)',
-  sans: 'var(--font-sans)',
-  mono: 'var(--font-mono)',
-};
-
-const THEMES: ReadonlyArray<Theme> = ['light', 'sepia', 'dark'];
-const FONT_FAMILIES: ReadonlyArray<FontFamily> = ['serif', 'sans', 'mono'];
-const UI_SCALES: ReadonlyArray<UiScale> = ['sm', 'md', 'lg', 'xl'];
-const UI_SCALE_VALUE: Record<UiScale, number> = {
-  sm: 0.875,
-  md: 1,
-  lg: 1.125,
-  xl: 1.25,
-};
-
-const READER_FONT_SCALES: ReadonlyArray<ReaderFontScale> = ['sm', 'base', 'lg', 'xl', '2xl', '3xl'];
-const isReaderFontScale = (v: string): v is ReaderFontScale =>
-  (READER_FONT_SCALES as ReadonlyArray<string>).includes(v);
-const isUiScale = (v: string): v is UiScale => (UI_SCALES as ReadonlyArray<string>).includes(v);
-const READER_FONT_PX: Record<ReaderFontScale, number> = {
-  sm: 15,
-  base: 18,
-  lg: 21,
-  xl: 24,
-  '2xl': 28,
-  '3xl': 32,
-};
-
-const FONT_KEY_STEP: Record<ReaderFontScale, { up: ReaderFontScale; down: ReaderFontScale }> = {
-  sm: { up: 'base', down: 'sm' },
-  base: { up: 'lg', down: 'sm' },
-  lg: { up: 'xl', down: 'base' },
-  xl: { up: '2xl', down: 'lg' },
-  '2xl': { up: '3xl', down: 'xl' },
-  '3xl': { up: '3xl', down: '2xl' },
-};
-
-// Pretty label for the line-height slider. Bare ratio under the unitless ceiling,
-// px above it — mirrors the CSS-var emit unit so the displayed value matches what's
-// actually applied.
-const UNITLESS_LINE_HEIGHT_MAX = 2;
-const formatLineHeight = (n: number): string =>
-  n <= UNITLESS_LINE_HEIGHT_MAX ? n.toFixed(2) : `${String(Math.round(n))}px`;
-const lineHeightCss = (n: number): string =>
-  n <= UNITLESS_LINE_HEIGHT_MAX ? String(n) : `${String(Math.round(n))}px`;
 
 const DRAG_CLOSE_THRESHOLD_PX = 120;
 
@@ -125,26 +86,13 @@ const drawerReducer = (mode: ReaderMode, curr: DrawerState, action: DrawerAction
   return curr;
 };
 
-export const App: Component = () => {
-  // Settings projection. `ReaderSettings.changes` is the single source of
-  // truth — `signalFromStream` runs the subscription on the runtime and emits
-  // each snapshot into a Solid accessor, then per-field `createMemo`s slice
-  // it. No local signals mirroring service state; setters dispatch events
-  // and the resulting service emit re-flows through this projection.
-  const settingsState = signalFromStream(
-    Effect.gen(function* () {
-      const s = yield* ReaderSettings;
-      return s.changes;
-    }),
-    INITIAL_READER_SETTINGS,
-  );
-  const theme = createMemo(() => settingsState().theme);
-  const fontFamily = createMemo(() => settingsState().fontFamily);
-  const fontSize = createMemo(() => settingsState().fontSize);
-  const lineHeight = createMemo(() => settingsState().lineHeight);
-  const letterSpacing = createMemo(() => settingsState().letterSpacing);
-  const lineWidth = createMemo(() => settingsState().lineWidth);
-  const uiScale = createMemo(() => settingsState().uiScale);
+const AppInner: Component = () => {
+  // Typography signals + persist dispatchers come from <ReaderSettingsProvider>
+  // — see components/settings/reader-settings-provider.tsx. The provider owns
+  // the single `ReaderSettings.changes` subscription and the FiberSet that
+  // tracks in-flight persist writes; consumers read accessors and call
+  // setters without touching the service directly.
+  const settings = useReaderSettingsCtx();
   // Overlay stack: settings / search / palette can all logically be open,
   // but only the top of the stack is interactive. Esc pops the top. The
   // priority order baked into the Esc handler (palette > search > settings/drawer)
@@ -165,10 +113,9 @@ export const App: Component = () => {
     if (open) pushOverlay('settings');
     else popOverlay('settings');
   };
-  // Top-level reader mode — derived from the same projection as typography
-  // signals. Persisted via ReaderSettings so a relaunch lands the user in
-  // whichever mode they left in.
-  const readerMode = createMemo(() => settingsState().readerMode);
+  // Top-level reader mode — read via the provider. Persisted in ReaderSettings
+  // so a relaunch lands the user in whichever mode they left in.
+  const readerMode = settings.readerMode;
 
   // Right-side study drawer — one instance for the whole app, mounted in
   // both modes. EGW mode opens it via ScriptureRef clicks (the existing
@@ -178,14 +125,7 @@ export const App: Component = () => {
   // Persistence is wired into the state machine via `persistTab` so the
   // service stays the single source of truth — no parallel mirror here.
   const bibleDrawer = createBibleDrawerState({
-    persistTab: (tab) => {
-      updateSettings(
-        Effect.gen(function* () {
-          const s = yield* ReaderSettings;
-          yield* s.studyTabSelected(tab);
-        }),
-      );
-    },
+    persistTab: (tab) => settings.persistStudyTab(tab),
   });
 
   // True once the main-process Effect runtime is up. Polled on mount and
@@ -496,114 +436,6 @@ export const App: Component = () => {
     });
   });
 
-  // Settings writes accumulate in a FiberSet — interrupted on unmount so a
-  // late-resolving setter cannot write to the persisted store after the app
-  // root tore down. The settings effect type forbids errors; ensuring keeps
-  // the set bounded so a long-lived shell doesn't accumulate dead handles.
-  const settingsFibers = new Set<Fiber.Fiber<void>>();
-  onCleanup(() => {
-    for (const f of settingsFibers) {
-      void runtime.runPromise(Fiber.interrupt(f));
-    }
-    settingsFibers.clear();
-  });
-  const updateSettings = (effect: Effect.Effect<void, never, ReaderSettings>) => {
-    const fiber = runtime.runFork(
-      effect.pipe(
-        Effect.ensuring(
-          Effect.sync(() => {
-            settingsFibers.delete(fiber);
-          }),
-        ),
-      ),
-    );
-    settingsFibers.add(fiber);
-  };
-
-  // Domain-event dispatchers. No local mirror to update — the projected
-  // `settingsState` accessor picks up the new snapshot from the service's
-  // `changes` stream and the per-field memos re-derive automatically.
-  const setTheme = (t: Theme) => {
-    updateSettings(
-      Effect.gen(function* () {
-        const s = yield* ReaderSettings;
-        yield* s.themeChosen(t);
-      }),
-    );
-  };
-
-  const setFontFamily = (f: FontFamily) => {
-    updateSettings(
-      Effect.gen(function* () {
-        const s = yield* ReaderSettings;
-        yield* s.fontFamilyChosen(f);
-      }),
-    );
-  };
-
-  const setFontSize = (scale: ReaderFontScale) => {
-    updateSettings(
-      Effect.gen(function* () {
-        const s = yield* ReaderSettings;
-        yield* s.fontSizeChosen(scale);
-      }),
-    );
-  };
-
-  const setReaderMode = (mode: ReaderMode) => {
-    updateSettings(
-      Effect.gen(function* () {
-        const s = yield* ReaderSettings;
-        yield* s.readerModeSwitched(mode);
-      }),
-    );
-  };
-
-  const toggleReaderMode = () => {
-    setReaderMode(readerMode() === 'egw' ? 'bible' : 'egw');
-  };
-
-  const setUiScale = (scale: UiScale) => {
-    updateSettings(
-      Effect.gen(function* () {
-        const s = yield* ReaderSettings;
-        yield* s.uiScaleChosen(scale);
-      }),
-    );
-  };
-
-  const setLineHeight = (n: number) => {
-    updateSettings(
-      Effect.gen(function* () {
-        const s = yield* ReaderSettings;
-        yield* s.lineHeightAdjusted(n);
-      }),
-    );
-  };
-
-  const setLetterSpacing = (n: number) => {
-    updateSettings(
-      Effect.gen(function* () {
-        const s = yield* ReaderSettings;
-        yield* s.letterSpacingAdjusted(n);
-      }),
-    );
-  };
-
-  const setLineWidth = (n: number) => {
-    updateSettings(
-      Effect.gen(function* () {
-        const s = yield* ReaderSettings;
-        yield* s.lineWidthAdjusted(n);
-      }),
-    );
-  };
-
-  const cycleTheme = () => {
-    const idx = THEMES.indexOf(theme());
-    setTheme(THEMES[(idx + 1) % THEMES.length] ?? 'light');
-  };
-
   const closeSheet = () => {
     setSettingsOpen(false);
   };
@@ -678,16 +510,16 @@ export const App: Component = () => {
     switch (e.key) {
       case 't':
         e.preventDefault();
-        cycleTheme();
+        settings.cycleTheme();
         return;
       case '=':
       case '+':
         e.preventDefault();
-        setFontSize(FONT_KEY_STEP[fontSize()].up);
+        settings.setFontSize(FONT_KEY_STEP[settings.fontSize()].up);
         return;
       case '-':
         e.preventDefault();
-        setFontSize(FONT_KEY_STEP[fontSize()].down);
+        settings.setFontSize(FONT_KEY_STEP[settings.fontSize()].down);
         return;
       case ',':
         e.preventDefault();
@@ -695,7 +527,7 @@ export const App: Component = () => {
         return;
       case 'm':
         e.preventDefault();
-        toggleReaderMode();
+        settings.toggleReaderMode();
         return;
       default:
         return;
@@ -860,21 +692,21 @@ export const App: Component = () => {
   // Resolved font-family token (after FONT_FAMILY_VAR mapping). Threaded
   // into ReaderPane so BookFeed's metrics probe re-samples on font change —
   // pretext's height cache is keyed by font, and stale predictions overlap rows.
-  const readerFontFamily = createMemo(() => FONT_FAMILY_VAR[fontFamily()]);
+  const readerFontFamily = createMemo(() => FONT_FAMILY_VAR[settings.fontFamily()]);
 
   const readerStyle = () => ({
     '--reader-font-family': readerFontFamily(),
-    '--reader-font-size': `${String(READER_FONT_PX[fontSize()])}px`,
-    '--reader-line-height': lineHeightCss(lineHeight()),
-    '--reader-letter-spacing': `${String(letterSpacing())}em`,
-    '--reader-width': `${String(lineWidth())}ch`,
-    '--ui-scale': String(UI_SCALE_VALUE[uiScale()]),
+    '--reader-font-size': `${String(READER_FONT_PX[settings.fontSize()])}px`,
+    '--reader-line-height': lineHeightCss(settings.lineHeight()),
+    '--reader-letter-spacing': `${String(settings.letterSpacing())}em`,
+    '--reader-width': `${String(settings.lineWidth())}ch`,
+    '--ui-scale': String(UI_SCALE_VALUE[settings.uiScale()]),
   });
 
   return (
     <div
       class="h-screen grid grid-rows-[auto_1fr] bg-bg text-fg transition-[background-color,color] duration-150 ease-in-out"
-      data-theme={theme()}
+      data-theme={settings.theme()}
       data-has-book={hasBook() ? 'true' : 'false'}
       style={readerStyle()}
     >
@@ -889,7 +721,7 @@ export const App: Component = () => {
             type="button"
             class="inline-flex items-center justify-center h-[calc(28px*var(--ui-scale))] px-3 bg-transparent text-muted text-ui-base font-medium cursor-pointer transition-[background,color,box-shadow] duration-[0.12s] ease-in-out hover:text-fg hover:bg-[color-mix(in_srgb,var(--color-fg)_6%,transparent)] hover:outline-none focus-visible:bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)] focus-visible:outline-none data-active:bg-accent data-active:text-bg data-active:font-semibold data-active:shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-fg)_8%,transparent)]"
             data-active={readerMode() === 'egw' ? '' : undefined}
-            onClick={() => setReaderMode('egw')}
+            onClick={() => settings.setReaderMode('egw')}
             title="EGW books (⌘M)"
             aria-label="EGW mode"
             aria-pressed={readerMode() === 'egw'}
@@ -900,7 +732,7 @@ export const App: Component = () => {
             type="button"
             class="inline-flex items-center justify-center h-[calc(28px*var(--ui-scale))] px-3 bg-transparent text-muted text-ui-base font-medium cursor-pointer border-l border-rule transition-[background,color,box-shadow] duration-[0.12s] ease-in-out hover:text-fg hover:bg-[color-mix(in_srgb,var(--color-fg)_6%,transparent)] hover:outline-none focus-visible:bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)] focus-visible:outline-none data-active:bg-accent data-active:text-bg data-active:font-semibold data-active:shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-fg)_8%,transparent)]"
             data-active={readerMode() === 'bible' ? '' : undefined}
-            onClick={() => setReaderMode('bible')}
+            onClick={() => settings.setReaderMode('bible')}
             title="Bible reader (⌘M)"
             aria-label="Bible mode"
             aria-pressed={readerMode() === 'bible'}
@@ -1159,8 +991,8 @@ export const App: Component = () => {
                         <button
                           type="button"
                           class={`w-[22px] h-[22px] rounded-full border-[1.5px] border-rule cursor-pointer p-0 ${swatchBg} data-active:border-accent`}
-                          data-active={theme() === t ? '' : undefined}
-                          onClick={() => setTheme(t)}
+                          data-active={settings.theme() === t ? '' : undefined}
+                          onClick={() => settings.setTheme(t)}
                           title={t}
                           aria-label={t}
                         />
@@ -1169,7 +1001,7 @@ export const App: Component = () => {
                   </For>
                 </div>
                 <span class="[font-variant-numeric:tabular-nums] text-ui-sm min-w-[56px] text-right">
-                  {theme()}
+                  {settings.theme()}
                 </span>
               </div>
 
@@ -1181,9 +1013,9 @@ export const App: Component = () => {
                       <button
                         type="button"
                         class="w-8 h-7 rounded-md border border-rule bg-bg text-fg cursor-pointer p-0 text-ui-base leading-none data-active:border-accent data-active:bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)]"
-                        data-active={fontFamily() === f ? '' : undefined}
+                        data-active={settings.fontFamily() === f ? '' : undefined}
                         style={{ 'font-family': FONT_FAMILY_VAR[f] }}
-                        onClick={() => setFontFamily(f)}
+                        onClick={() => settings.setFontFamily(f)}
                         title={f}
                       >
                         Aa
@@ -1192,7 +1024,7 @@ export const App: Component = () => {
                   </For>
                 </div>
                 <span class="[font-variant-numeric:tabular-nums] text-ui-sm min-w-[56px] text-right">
-                  {fontFamily()}
+                  {settings.fontFamily()}
                 </span>
               </div>
 
@@ -1200,10 +1032,10 @@ export const App: Component = () => {
                 <span class="font-medium">Size</span>
                 <select
                   class="w-full h-[calc(28px*var(--ui-scale))] px-2 rounded-md border border-rule bg-bg text-fg text-ui-base font-[inherit] cursor-pointer outline-none transition-[border-color] duration-[0.12s] ease-in-out focus:border-accent"
-                  value={fontSize()}
+                  value={settings.fontSize()}
                   onInput={(e) => {
                     const v = e.currentTarget.value;
-                    if (isReaderFontScale(v)) setFontSize(v);
+                    if (isReaderFontScale(v)) settings.setFontSize(v);
                   }}
                 >
                   <For each={READER_FONT_SCALES}>
@@ -1215,7 +1047,7 @@ export const App: Component = () => {
                   </For>
                 </select>
                 <span class="[font-variant-numeric:tabular-nums] text-ui-sm min-w-[56px] text-right">
-                  {READER_FONT_PX[fontSize()]}px
+                  {READER_FONT_PX[settings.fontSize()]}px
                 </span>
               </div>
 
@@ -1223,16 +1055,16 @@ export const App: Component = () => {
                 <span class="font-medium">UI</span>
                 <select
                   class="w-full h-[calc(28px*var(--ui-scale))] px-2 rounded-md border border-rule bg-bg text-fg text-ui-base font-[inherit] cursor-pointer outline-none transition-[border-color] duration-[0.12s] ease-in-out focus:border-accent"
-                  value={uiScale()}
+                  value={settings.uiScale()}
                   onInput={(e) => {
                     const v = e.currentTarget.value;
-                    if (isUiScale(v)) setUiScale(v);
+                    if (isUiScale(v)) settings.setUiScale(v);
                   }}
                 >
                   <For each={UI_SCALES}>{(scale) => <option value={scale}>{scale}</option>}</For>
                 </select>
                 <span class="[font-variant-numeric:tabular-nums] text-ui-sm min-w-[56px] text-right">
-                  {Math.round(UI_SCALE_VALUE[uiScale()] * 100)}%
+                  {Math.round(UI_SCALE_VALUE[settings.uiScale()] * 100)}%
                 </span>
               </div>
 
@@ -1244,11 +1076,11 @@ export const App: Component = () => {
                   min="40"
                   max="120"
                   step="1"
-                  value={lineWidth()}
-                  onInput={(e) => setLineWidth(Number(e.currentTarget.value))}
+                  value={settings.lineWidth()}
+                  onInput={(e) => settings.setLineWidth(Number(e.currentTarget.value))}
                 />
                 <span class="[font-variant-numeric:tabular-nums] text-ui-sm min-w-[56px] text-right">
-                  {lineWidth()}ch
+                  {settings.lineWidth()}ch
                 </span>
               </div>
 
@@ -1260,11 +1092,11 @@ export const App: Component = () => {
                   min="1"
                   max="60"
                   step="0.05"
-                  value={lineHeight()}
-                  onInput={(e) => setLineHeight(Number(e.currentTarget.value))}
+                  value={settings.lineHeight()}
+                  onInput={(e) => settings.setLineHeight(Number(e.currentTarget.value))}
                 />
                 <span class="[font-variant-numeric:tabular-nums] text-ui-sm min-w-[56px] text-right">
-                  {formatLineHeight(lineHeight())}
+                  {formatLineHeight(settings.lineHeight())}
                 </span>
               </div>
 
@@ -1276,11 +1108,11 @@ export const App: Component = () => {
                   min="-0.02"
                   max="0.1"
                   step="0.005"
-                  value={letterSpacing()}
-                  onInput={(e) => setLetterSpacing(Number(e.currentTarget.value))}
+                  value={settings.letterSpacing()}
+                  onInput={(e) => settings.setLetterSpacing(Number(e.currentTarget.value))}
                 />
                 <span class="[font-variant-numeric:tabular-nums] text-ui-sm min-w-[56px] text-right">
-                  {letterSpacing().toFixed(3)}em
+                  {settings.letterSpacing().toFixed(3)}em
                 </span>
               </div>
             </div>
@@ -1296,3 +1128,9 @@ export const App: Component = () => {
     </div>
   );
 };
+
+export const App: Component = () => (
+  <ReaderSettingsProvider>
+    <AppInner />
+  </ReaderSettingsProvider>
+);
