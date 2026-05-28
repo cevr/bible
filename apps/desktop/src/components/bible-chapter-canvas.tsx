@@ -10,6 +10,7 @@ import {
   onMount,
   Show,
 } from 'solid-js';
+import { makeLru } from '../lib/lru.js';
 import { ipc, runtime, signalFromStream } from '../runtime.js';
 import { BibleReaderState, type BibleReaderSelection } from '../services/bible-reader-state.js';
 import { KjvBible, type KjvChapter, type KjvStrongsWord } from '../services/kjv-bible.js';
@@ -32,25 +33,12 @@ import { ChapterNavButtons } from './book-feed.js';
 // Same pattern as book-feed.tsx — peek before reading the suspending resource;
 // mirror successful reads back in via createEffect.
 const CHAPTER_CACHE_CAP = 24;
-const chapterCache = new Map<string, KjvChapter>();
+const chapterCache = makeLru<KjvChapter>(CHAPTER_CACHE_CAP);
 const chapterKey = (book: number, chapter: number): string => `${String(book)}:${String(chapter)}`;
-const cacheGet = (book: number, chapter: number): KjvChapter | undefined => {
-  const k = chapterKey(book, chapter);
-  const v = chapterCache.get(k);
-  if (v === undefined) return undefined;
-  chapterCache.delete(k);
-  chapterCache.set(k, v);
-  return v;
-};
+const cacheGet = (book: number, chapter: number): KjvChapter | undefined =>
+  chapterCache.get(chapterKey(book, chapter));
 const cachePut = (book: number, chapter: number, value: KjvChapter): void => {
-  const k = chapterKey(book, chapter);
-  chapterCache.delete(k);
-  chapterCache.set(k, value);
-  while (chapterCache.size > CHAPTER_CACHE_CAP) {
-    const oldest = chapterCache.keys().next().value;
-    if (oldest === undefined) break;
-    chapterCache.delete(oldest);
-  }
+  chapterCache.set(chapterKey(book, chapter), value);
 };
 // Adjacent-chapter preload reads the KJV service directly rather than going
 // through the ipc proxy — proxy reads need a Solid tracking scope and we want

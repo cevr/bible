@@ -12,6 +12,7 @@ import {
   onMount,
   Show,
 } from 'solid-js';
+import { makeLru } from '../lib/lru.js';
 import { ipc, runtime } from '../runtime.js';
 import { EGWData } from '../services/egw-data.js';
 import { ReaderState } from '../services/reader-state.js';
@@ -23,30 +24,16 @@ import { ParagraphView } from './paragraph-view.js';
 // the next render synchronously — no "Loading chapter…" flicker on
 // prev/next nav. Capped to keep memory bounded across long reading sessions.
 const CHAPTER_CACHE_CAP = 24;
-const chapterCache = new Map<string, readonly Schemas.Paragraph[]>();
+const chapterCache = makeLru<readonly Schemas.Paragraph[]>(CHAPTER_CACHE_CAP);
 const chapterKey = (bookId: number, paraId: string): string => `${String(bookId)}:${paraId}`;
-const cacheGet = (bookId: number, paraId: string): readonly Schemas.Paragraph[] | undefined => {
-  const k = chapterKey(bookId, paraId);
-  const v = chapterCache.get(k);
-  if (v === undefined) return undefined;
-  // LRU touch — re-insert moves to the back.
-  chapterCache.delete(k);
-  chapterCache.set(k, v);
-  return v;
-};
+const cacheGet = (bookId: number, paraId: string): readonly Schemas.Paragraph[] | undefined =>
+  chapterCache.get(chapterKey(bookId, paraId));
 const cachePut = (
   bookId: number,
   paraId: string,
   paragraphs: readonly Schemas.Paragraph[],
 ): void => {
-  const k = chapterKey(bookId, paraId);
-  chapterCache.delete(k);
-  chapterCache.set(k, paragraphs);
-  while (chapterCache.size > CHAPTER_CACHE_CAP) {
-    const oldest = chapterCache.keys().next().value;
-    if (oldest === undefined) break;
-    chapterCache.delete(oldest);
-  }
+  chapterCache.set(chapterKey(bookId, paraId), paragraphs);
 };
 // In-flight dedupe so adjacent-preload + a user click for the same chapter
 // don't double up the IPC round-trip.

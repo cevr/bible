@@ -1,4 +1,5 @@
 import { Context, Effect, Layer, Option, Stream, SubscriptionRef } from 'effect';
+import { makeLru } from '../lib/lru.js';
 
 export interface EgwCommentaryHit {
   readonly bookId: number;
@@ -62,40 +63,6 @@ export interface EgwCommentaryShape {
 // per-chapter hit sets (footnote markers). Sizes mirror margin-notes.
 const PER_VERSE_CAP = 128;
 const PER_CHAPTER_CAP = 32;
-
-const makeLru = <V>(
-  cap: number,
-): {
-  readonly get: (key: string) => V | undefined;
-  readonly set: (key: string, value: V) => void;
-  readonly delete: (key: string) => void;
-  readonly clear: () => void;
-} => {
-  const map = new Map<string, V>();
-  return {
-    get: (key) => {
-      const v = map.get(key);
-      if (v === undefined) return undefined;
-      map.delete(key);
-      map.set(key, v);
-      return v;
-    },
-    set: (key, value) => {
-      if (map.has(key)) map.delete(key);
-      map.set(key, value);
-      if (map.size > cap) {
-        const oldest = map.keys().next().value;
-        if (oldest !== undefined) map.delete(oldest);
-      }
-    },
-    delete: (key) => {
-      map.delete(key);
-    },
-    clear: () => {
-      map.clear();
-    },
-  };
-};
 
 /** Renderer-side facade over the `bible:getEgwCommentary` /
  *  `bible:getBibleVersesWithCommentary` IPC plus the

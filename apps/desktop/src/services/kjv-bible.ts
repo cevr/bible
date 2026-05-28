@@ -1,4 +1,5 @@
 import { Context, Effect, Layer, Option } from 'effect';
+import { makeLru } from '../lib/lru.js';
 
 export interface KjvChapter {
   readonly book: number;
@@ -73,38 +74,9 @@ export interface KjvBibleShape {
   readonly reimport: () => Effect.Effect<void>;
 }
 
-// Tiny LRU. 32 chapters covers prev/next traversal of a typical session
-// without holding the whole Bible in memory. Map preserves insertion order,
-// so we just delete + re-set to mark recency.
+// 32 chapters covers prev/next traversal of a typical session without
+// holding the whole Bible in memory.
 const LRU_CAP = 32;
-
-const makeLru = <V>(): {
-  readonly get: (key: string) => V | undefined;
-  readonly set: (key: string, value: V) => void;
-  readonly clear: () => void;
-} => {
-  const map = new Map<string, V>();
-  return {
-    get: (key) => {
-      const v = map.get(key);
-      if (v === undefined) return undefined;
-      map.delete(key);
-      map.set(key, v);
-      return v;
-    },
-    set: (key, value) => {
-      if (map.has(key)) map.delete(key);
-      map.set(key, value);
-      if (map.size > LRU_CAP) {
-        const oldest = map.keys().next().value;
-        if (oldest !== undefined) map.delete(oldest);
-      }
-    },
-    clear: () => {
-      map.clear();
-    },
-  };
-};
 
 /** Renderer-side facade over the `bible:getChapter` IPC. Main owns the JSON
  *  parse and the in-memory index so the renderer bundle stays small.
@@ -113,8 +85,8 @@ export class KjvBible extends Context.Service<KjvBible, KjvBibleShape>()(
   '@bible/desktop/services/KjvBible',
 ) {
   static layer = Layer.sync(KjvBible, () => {
-    const plainLru = makeLru<KjvChapter>();
-    const strongsLru = makeLru<KjvStrongsChapter>();
+    const plainLru = makeLru<KjvChapter>(LRU_CAP);
+    const strongsLru = makeLru<KjvStrongsChapter>(LRU_CAP);
     const lexiconCache = new Map<string, StrongsLexiconEntry | null>();
     return {
       getChapter: (book, chapter) => {
