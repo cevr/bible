@@ -12,6 +12,7 @@ import {
   createMemo,
   createSignal,
   For,
+  type JSX,
   Match,
   on,
   onCleanup,
@@ -404,89 +405,129 @@ export const CommandPalette: Component<CommandPaletteProps> = (props) => {
   };
 
   return (
-    <Presence>
-      <Show when={props.open}>
-        <Motion.div
-          class="fixed inset-0 z-[60] flex items-start justify-center bg-black/40 px-4 pt-[12vh] backdrop-blur-sm"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.12, ease: defaultEase }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) close();
-          }}
-          onKeyDown={onOverlayKeyCapture}
-        >
-          <Motion.div
-            class="w-full max-w-[560px] overflow-hidden rounded-xl border border-rule bg-bg shadow-2xl"
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.14, ease: defaultEase }}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Command palette"
-          >
-            <div class="flex items-center gap-2 border-b border-rule px-4 py-3">
-              <span class="text-ui-xs uppercase tracking-[0.08em] text-muted">{viewLabel()}</span>
-            </div>
-            <input
-              ref={(el) => {
-                inputEl = el;
-              }}
-              type="text"
-              class="w-full bg-transparent px-4 py-3 text-ui-base text-fg outline-none placeholder:text-muted"
-              placeholder="Type a reference (e.g. john 3:16) or filter…"
-              value={query()}
-              onInput={(e) => setQuery(e.currentTarget.value)}
-              onKeyDown={onInputKey}
-              autocomplete="off"
-              spellcheck={false}
-            />
-            <div
-              ref={(el) => {
-                listEl = el;
-              }}
-              class="max-h-[50vh] overflow-y-auto border-t border-rule"
-              role="listbox"
-            >
-              <Show
-                when={rows().length > 0}
-                fallback={
-                  <p class="px-4 py-6 text-center text-ui-sm text-muted">
-                    No matches. Try a reference like "gen 1:1".
-                  </p>
-                }
-              >
-                <For each={rows()}>
-                  {(row, idx) => (
-                    <RowView
-                      row={row}
-                      active={idx() === activeIdx()}
-                      idx={idx()}
-                      onClick={() => activate(row)}
-                      onHover={() => setActiveIdx(idx())}
-                    />
-                  )}
-                </For>
-              </Show>
-            </div>
-            <PaletteFooter view={view()} />
-            <Show when={chapterView()} keyed>
-              {(ctx) => (
-                <VerseRowsFetcher
-                  book={ctx.book}
-                  chapter={ctx.chapter}
-                  onVerses={setChapterVerses}
-                />
-              )}
-            </Show>
-          </Motion.div>
-        </Motion.div>
+    <PaletteModal open={props.open} onClose={close} onOverlayKeyCapture={onOverlayKeyCapture}>
+      <div class="flex items-center gap-2 border-b border-rule px-4 py-3">
+        <span class="text-ui-xs uppercase tracking-[0.08em] text-muted">{viewLabel()}</span>
+      </div>
+      <PaletteInput
+        value={query()}
+        onInput={setQuery}
+        onKeyDown={onInputKey}
+        inputRef={(el) => {
+          inputEl = el;
+        }}
+      />
+      <PaletteList
+        listRef={(el) => {
+          listEl = el;
+        }}
+        rows={rows()}
+        activeIdx={activeIdx()}
+        onActivate={activate}
+        onHover={setActiveIdx}
+      />
+      <PaletteFooter view={view()} />
+      <Show when={chapterView()} keyed>
+        {(ctx) => (
+          <VerseRowsFetcher book={ctx.book} chapter={ctx.chapter} onVerses={setChapterVerses} />
+        )}
       </Show>
-    </Presence>
+    </PaletteModal>
   );
 };
+
+// Outer overlay + dialog chrome. Owns the Presence/Motion mount sequence and
+// the click-outside / overlay key handling so the inner CommandPalette body
+// reads as the palette's content, not its window.
+const PaletteModal: Component<{
+  readonly open: boolean;
+  readonly onClose: () => void;
+  readonly onOverlayKeyCapture: (e: KeyboardEvent) => void;
+  readonly children: JSX.Element;
+}> = (props) => (
+  <Presence>
+    <Show when={props.open}>
+      <Motion.div
+        class="fixed inset-0 z-[60] flex items-start justify-center bg-black/40 px-4 pt-[12vh] backdrop-blur-sm"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.12, ease: defaultEase }}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) props.onClose();
+        }}
+        onKeyDown={props.onOverlayKeyCapture}
+      >
+        <Motion.div
+          class="w-full max-w-[560px] overflow-hidden rounded-xl border border-rule bg-bg shadow-2xl"
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.14, ease: defaultEase }}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Command palette"
+        >
+          {props.children}
+        </Motion.div>
+      </Motion.div>
+    </Show>
+  </Presence>
+);
+
+// The query input. Owned ref hand-off via `inputRef` so the parent can call
+// `.focus()` / `.select()` after a snapshot restore.
+const PaletteInput: Component<{
+  readonly value: string;
+  readonly onInput: (next: string) => void;
+  readonly onKeyDown: (e: KeyboardEvent) => void;
+  readonly inputRef: (el: HTMLInputElement) => void;
+}> = (props) => (
+  <input
+    ref={props.inputRef}
+    type="text"
+    class="w-full bg-transparent px-4 py-3 text-ui-base text-fg outline-none placeholder:text-muted"
+    placeholder="Type a reference (e.g. john 3:16) or filter…"
+    value={props.value}
+    onInput={(e) => props.onInput(e.currentTarget.value)}
+    onKeyDown={props.onKeyDown}
+    autocomplete="off"
+    spellcheck={false}
+  />
+);
+
+// Scrollable row list with empty-state fallback. The parent still owns
+// activeIdx and the row dispatcher — this component just renders.
+const PaletteList: Component<{
+  readonly listRef: (el: HTMLDivElement) => void;
+  readonly rows: readonly Row[];
+  readonly activeIdx: number;
+  readonly onActivate: (row: Row) => void;
+  readonly onHover: (idx: number) => void;
+}> = (props) => (
+  <div ref={props.listRef} class="max-h-[50vh] overflow-y-auto border-t border-rule" role="listbox">
+    <Show
+      when={props.rows.length > 0}
+      fallback={
+        <p class="px-4 py-6 text-center text-ui-sm text-muted">
+          No matches. Try a reference like "gen 1:1".
+        </p>
+      }
+    >
+      <For each={props.rows}>
+        {(row, idx) => (
+          <RowView
+            row={row}
+            active={idx() === props.activeIdx}
+            idx={idx()}
+            onClick={() => props.onActivate(row)}
+            onHover={() => props.onHover(idx())}
+          />
+        )}
+      </For>
+    </Show>
+  </div>
+);
 
 const RowView: Component<{
   readonly row: Row;
