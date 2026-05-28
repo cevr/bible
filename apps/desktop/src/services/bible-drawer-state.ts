@@ -30,9 +30,21 @@ export interface DrawerTarget {
   readonly verse: number;
 }
 
+/** Lifecycle of the drawer: `never` (no first open yet — no target to show),
+ *  `closed` (was open before, has a last-known target we could re-open on),
+ *  `open` (visible, pinned to a target). Encoded as a tagged variant so
+ *  `{open: true, target: null}` is unrepresentable. */
+export type BibleDrawerLifecycle =
+  | { readonly _tag: 'never' }
+  | { readonly _tag: 'closed'; readonly lastTarget: DrawerTarget }
+  | { readonly _tag: 'open'; readonly target: DrawerTarget };
+
 export interface BibleDrawerState {
+  readonly lifecycle: Accessor<BibleDrawerLifecycle>;
   readonly isOpen: Accessor<boolean>;
-  /** The verse the drawer is pinned to. `null` only before the first open. */
+  /** The verse the drawer is currently pinned to (only when open). `null`
+   *  otherwise — consumers should usually read `lifecycle()` directly when
+   *  they need to distinguish "never opened" from "closed with history". */
   readonly target: Accessor<DrawerTarget | null>;
   readonly activeStudyTab: Accessor<BibleStudyTab>;
   readonly studyFocus: Accessor<StudyPaneFocus>;
@@ -88,10 +100,15 @@ const targetFromQuery = (query: string): DrawerTarget | null => {
  *  `initialTab` is loaded from ReaderSettings by app.tsx; updates fan out
  *  through the wrapper layer there. */
 export const createBibleDrawerState = (initialTab: BibleStudyTab = 'notes'): BibleDrawerState => {
-  const [isOpen, setIsOpen] = createSignal(false);
-  const [target, setTargetSig] = createSignal<DrawerTarget | null>(null);
+  const [lifecycle, setLifecycle] = createSignal<BibleDrawerLifecycle>({ _tag: 'never' });
   const [activeStudyTab, setActiveStudyTabSig] = createSignal<BibleStudyTab>(initialTab);
   const [studyFocus, setStudyFocus] = createSignal<StudyPaneFocus>({ _tag: 'none' });
+
+  const isOpen = (): boolean => lifecycle()._tag === 'open';
+  const target = (): DrawerTarget | null => {
+    const l = lifecycle();
+    return l._tag === 'open' ? l.target : null;
+  };
 
   const setActiveStudyTab = (tab: BibleStudyTab): void => {
     setActiveStudyTabSig(tab);
@@ -104,26 +121,26 @@ export const createBibleDrawerState = (initialTab: BibleStudyTab = 'notes'): Bib
     tab?: BibleStudyTab,
     focus?: StudyPaneFocus,
   ): void => {
-    setTargetSig({ book, chapter, verse });
+    setLifecycle({ _tag: 'open', target: { book, chapter, verse } });
     if (tab !== undefined) setActiveStudyTabSig(tab);
     setStudyFocus(focus ?? { _tag: 'none' });
-    setIsOpen(true);
   };
 
   const setTarget = (next: DrawerTarget): void => {
-    if (!isOpen()) return;
-    const cur = target();
-    if (cur && cur.book === next.book && cur.chapter === next.chapter && cur.verse === next.verse) {
+    const l = lifecycle();
+    if (l._tag !== 'open') return;
+    const cur = l.target;
+    if (cur.book === next.book && cur.chapter === next.chapter && cur.verse === next.verse) {
       return;
     }
-    setTargetSig(next);
+    setLifecycle({ _tag: 'open', target: next });
     // Cursor-driven retargeting clears the focus hint — it was tied to the
     // verse the user explicitly clicked, not wherever the cursor wanders to.
     setStudyFocus({ _tag: 'none' });
   };
 
   const close = (): void => {
-    setIsOpen(false);
+    setLifecycle((l) => (l._tag === 'open' ? { _tag: 'closed', lastTarget: l.target } : l));
   };
 
   const openFromQuery = (query: string): boolean => {
@@ -134,6 +151,7 @@ export const createBibleDrawerState = (initialTab: BibleStudyTab = 'notes'): Bib
   };
 
   return {
+    lifecycle,
     isOpen,
     target,
     activeStudyTab,

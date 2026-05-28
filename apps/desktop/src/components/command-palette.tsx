@@ -21,7 +21,7 @@ import {
 import { defaultEase, Motion, Presence } from '../motion/index.js';
 import { ipc, runtime } from '../runtime.js';
 import { BibleReaderState, type BibleReaderSelection } from '../services/bible-reader-state.js';
-import { CommandPaletteMemory } from '../services/command-palette-memory.js';
+import { CommandPaletteMemory, type PaletteSnapshot } from '../services/command-palette-memory.js';
 
 // Cmd+K palette for Bible navigation.
 //
@@ -125,9 +125,9 @@ export const CommandPalette: Component<CommandPaletteProps> = (props) => {
         )
         .then((snapshot) => {
           if (snapshot !== null) {
-            if (snapshot.book !== undefined && snapshot.chapter !== undefined) {
+            if (snapshot._tag === 'chapter') {
               setView({ _tag: 'chapter', book: snapshot.book, chapter: snapshot.chapter });
-            } else if (snapshot.book !== undefined) {
+            } else if (snapshot._tag === 'book') {
               setView({ _tag: 'book', book: snapshot.book });
             } else {
               setView({ _tag: 'root' });
@@ -150,11 +150,13 @@ export const CommandPalette: Component<CommandPaletteProps> = (props) => {
         });
     } else if (!isOpen && wasOpen) {
       const v = untrack(view);
-      const snapshot = {
-        book: v._tag === 'book' || v._tag === 'chapter' ? v.book : undefined,
-        chapter: v._tag === 'chapter' ? v.chapter : undefined,
-        query: untrack(query),
-      };
+      const q = untrack(query);
+      const snapshot: PaletteSnapshot =
+        v._tag === 'chapter'
+          ? { _tag: 'chapter', book: v.book, chapter: v.chapter, query: q }
+          : v._tag === 'book'
+            ? { _tag: 'book', book: v.book, query: q }
+            : { _tag: 'root', query: q };
       void runtime.runPromise(
         Effect.gen(function* () {
           const memory = yield* CommandPaletteMemory;
