@@ -366,10 +366,31 @@ export const FolderBrowser: Component<FolderBrowserProps> = (props) => {
   const drillInto = (folderId: number) => setPath((p) => [...p, folderId]);
   const goUp = () => setPath((p) => p.slice(0, -1));
 
+  // Single-slot open-book fiber. A subsequent openBook (or unmount) interrupts
+  // the previous chain so two rapid clicks can't both finish resolving to a
+  // first chapter and race state updates.
+  let openBookFiber: Fiber.Fiber<unknown> | undefined;
+  onCleanup(() => {
+    if (openBookFiber !== undefined) {
+      void runtime.runPromise(Fiber.interrupt(openBookFiber));
+      openBookFiber = undefined;
+    }
+  });
   const openBook = (bookId: number) => {
-    // Hand off to ReaderState first (auto-resolves to first chapter via
-    // openBookAtFirstChapter), then notify parent (drawer close etc).
-    void runtime.runPromise(openBookAtFirstChapter(bookId));
+    if (openBookFiber !== undefined) {
+      void runtime.runPromise(Fiber.interrupt(openBookFiber));
+    }
+    const fiber: Fiber.Fiber<unknown> = runtime.runFork(
+      openBookAtFirstChapter(bookId).pipe(
+        Effect.ignore,
+        Effect.ensuring(
+          Effect.sync(() => {
+            if (openBookFiber === fiber) openBookFiber = undefined;
+          }),
+        ),
+      ),
+    );
+    openBookFiber = fiber;
     props.onPickBook(bookId);
   };
 

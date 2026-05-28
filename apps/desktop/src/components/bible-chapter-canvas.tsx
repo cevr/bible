@@ -335,13 +335,35 @@ const ChapterShell: Component<{
     });
   });
 
+  // Single-slot verse-click fiber. A new click interrupts the previous so
+  // rapid clicks can't resolve out of order and leave the wrong verse as
+  // the persisted cursor. Cleared from the slot once it completes (but only
+  // if it's still the current one — a newer click may have replaced it).
+  let verseClickFiber: Fiber.Fiber<void> | undefined;
+  onCleanup(() => {
+    if (verseClickFiber !== undefined) {
+      void runtime.runPromise(Fiber.interrupt(verseClickFiber));
+      verseClickFiber = undefined;
+    }
+  });
   const onVerseClick = (verse: number): void => {
-    void runtime.runPromise(
+    if (verseClickFiber !== undefined) {
+      void runtime.runPromise(Fiber.interrupt(verseClickFiber));
+    }
+    const fiber: Fiber.Fiber<void> = runtime.runFork(
       Effect.gen(function* () {
         const state = yield* BibleReaderState;
         yield* state.setVerse(verse);
-      }),
+      }).pipe(
+        Effect.ignore,
+        Effect.ensuring(
+          Effect.sync(() => {
+            if (verseClickFiber === fiber) verseClickFiber = undefined;
+          }),
+        ),
+      ),
     );
+    verseClickFiber = fiber;
   };
   const goTo = (loc: Loc | null): void => {
     if (loc === null) return;

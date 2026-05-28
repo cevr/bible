@@ -114,24 +114,37 @@ export class EgwCommentary extends Context.Service<EgwCommentary, EgwCommentaryS
 
       // Wire the preload event listener to bump `pulse` after invalidating
       // the LRU entries for the (book, chapter) keys the indexer just
-      // touched. Subscribers re-query and get fresh hit sets back. No
-      // unsubscribe — this service lives for the lifetime of the renderer.
+      // touched. Subscribers re-query and get fresh hit sets back.
+      //
+      // Bind the listener to the layer scope via acquireRelease so HMR /
+      // runtime.dispose() unsubscribes — preload's onEgwCommentaryUpdated
+      // returns a teardown function we can call on scope close.
+      //
+      // SubscriptionRef.update is total (no service requirements), so we
+      // can runFork it directly without threading a captured runtime; the
+      // forked fiber stays attached to the global pool and terminates as
+      // soon as the synchronous update completes.
       //
       // Sentinel: an empty `touched` array means "wholesale invalidation"
       // (main fires this once after the cold-start backfill completes so
       // the renderer, which may have cached an empty hit set queried
       // before backfill finished, throws everything out and re-queries).
-      window.api.bible.onEgwCommentaryUpdated((touched) => {
-        if (touched.length === 0) {
-          chapterLru.clear();
-          verseLru.clear();
-        } else {
-          for (const t of touched) {
-            chapterLru.delete(`${String(t.book)}:${String(t.chapter)}`);
-          }
-        }
-        Effect.runSync(SubscriptionRef.update(pulse, (n) => n + 1));
-      });
+      yield* Effect.acquireRelease(
+        Effect.sync(() =>
+          window.api.bible.onEgwCommentaryUpdated((touched) => {
+            if (touched.length === 0) {
+              chapterLru.clear();
+              verseLru.clear();
+            } else {
+              for (const t of touched) {
+                chapterLru.delete(`${String(t.book)}:${String(t.chapter)}`);
+              }
+            }
+            Effect.runFork(SubscriptionRef.update(pulse, (n) => n + 1));
+          }),
+        ),
+        (unsubscribe) => Effect.sync(unsubscribe),
+      );
 
       return {
         getCommentary: (book: number, chapter: number, verse: number) => {

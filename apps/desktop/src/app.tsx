@@ -455,8 +455,28 @@ export const App: Component = () => {
     });
   });
 
+  // Settings writes accumulate in a FiberSet — interrupted on unmount so a
+  // late-resolving setter cannot write to the persisted store after the app
+  // root tore down. The settings effect type forbids errors; ensuring keeps
+  // the set bounded so a long-lived shell doesn't accumulate dead handles.
+  const settingsFibers = new Set<Fiber.Fiber<void>>();
+  onCleanup(() => {
+    for (const f of settingsFibers) {
+      void runtime.runPromise(Fiber.interrupt(f));
+    }
+    settingsFibers.clear();
+  });
   const updateSettings = (effect: Effect.Effect<void, never, ReaderSettings>) => {
-    void runtime.runPromise(effect);
+    const fiber = runtime.runFork(
+      effect.pipe(
+        Effect.ensuring(
+          Effect.sync(() => {
+            settingsFibers.delete(fiber);
+          }),
+        ),
+      ),
+    );
+    settingsFibers.add(fiber);
   };
 
   const setTheme = (t: Theme) => {
@@ -729,11 +749,39 @@ export const App: Component = () => {
     // ReaderState.openBook already fired in FolderBrowser; nothing extra.
   };
 
+  // Shell-level write fibers — clearHighlight + position flushes. Joined on
+  // unmount so a pending write isn't truncated, then any survivors are
+  // interrupted. (Writes here are short SQLite upserts; the join keeps the
+  // last intent durable across a remount during HMR.)
+  const writeFibers = new Set<Fiber.Fiber<void>>();
+  onCleanup(() => {
+    const pending = [...writeFibers];
+    if (pending.length === 0) return;
+    void runtime.runPromise(Fiber.joinAll(pending).pipe(Effect.ignore));
+    writeFibers.clear();
+  });
+  const forkWrite = (
+    eff: Effect.Effect<void, unknown, ReaderState | LastPositionStorage>,
+  ): void => {
+    const fiber = runtime.runFork(
+      eff.pipe(
+        Effect.tapError(Effect.logError),
+        Effect.ignore,
+        Effect.ensuring(
+          Effect.sync(() => {
+            writeFibers.delete(fiber);
+          }),
+        ),
+      ),
+    );
+    writeFibers.add(fiber);
+  };
+
   // ReaderPane reports when it has scrolled-to and flashed the highlighted
   // paragraph (search-result jump). Clear the highlight on ReaderState so a
   // re-render of the same chapter doesn't re-scroll.
   const onHighlightApplied = () => {
-    void runtime.runPromise(
+    forkWrite(
       Effect.gen(function* () {
         const state = yield* ReaderState;
         yield* state.clearHighlight;
@@ -766,7 +814,7 @@ export const App: Component = () => {
     if (p._tag === 'idle') return;
     window.clearTimeout(p.timerId);
     positionWrite = { _tag: 'idle' };
-    void runtime.runPromise(
+    forkWrite(
       Effect.gen(function* () {
         const storage = yield* LastPositionStorage;
         yield* storage.write({

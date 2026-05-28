@@ -155,6 +155,10 @@ export const SearchPanel: Component<SearchPanelProps> = (props) => {
         const state = yield* ReaderState;
         yield* state.openChapterAt(hit.bookId, chapterParaId, hit.paraId);
       }).pipe(
+        // Surface failures via the runtime logger rather than silently
+        // swallowing — a search hit that can't navigate is a real bug, not a
+        // routine empty result.
+        Effect.tapError(Effect.logError),
         Effect.ignore,
         Effect.ensuring(
           Effect.sync(() => {

@@ -161,11 +161,13 @@ export const CommandPalette: Component<CommandPaletteProps> = (props) => {
           : v._tag === 'book'
             ? { _tag: 'book', book: v.book, query: q }
             : { _tag: 'root', query: q };
-      void runtime.runPromise(
+      // Snapshot writes are short — runFork + tapError so failures surface
+      // via the runtime logger; on unmount the parent runtime interrupts.
+      runtime.runFork(
         Effect.gen(function* () {
           const memory = yield* CommandPaletteMemory;
           yield* memory.record(snapshot);
-        }),
+        }).pipe(Effect.tapError(Effect.logError), Effect.ignore),
       );
     }
     wasOpen = isOpen;
@@ -287,10 +289,35 @@ export const CommandPalette: Component<CommandPaletteProps> = (props) => {
     dispatchAction(action);
   };
 
+  // Navigation fibers from dispatchAction. The palette closes synchronously,
+  // but the navigation Effect keeps running; tracking each fiber lets
+  // onCleanup interrupt any survivors so a stale openChapter cannot finish
+  // applying after the palette unmounts.
+  const navFibers = new Set<Fiber.Fiber<void>>();
+  onCleanup(() => {
+    for (const f of navFibers) {
+      void runtime.runPromise(Fiber.interrupt(f));
+    }
+    navFibers.clear();
+  });
+  const forkNav = (eff: Effect.Effect<void, unknown, BibleReaderState>): void => {
+    const fiber = runtime.runFork(
+      eff.pipe(
+        Effect.ignore,
+        Effect.ensuring(
+          Effect.sync(() => {
+            navFibers.delete(fiber);
+          }),
+        ),
+      ),
+    );
+    navFibers.add(fiber);
+  };
+
   const dispatchAction = (action: PaletteAction): void => {
     switch (action.kind) {
       case 'openChapter': {
-        void runtime.runPromise(
+        forkNav(
           Effect.gen(function* () {
             const state = yield* BibleReaderState;
             yield* state.openChapter(action.book, action.chapter);
@@ -300,7 +327,7 @@ export const CommandPalette: Component<CommandPaletteProps> = (props) => {
         return;
       }
       case 'openChapterAt': {
-        void runtime.runPromise(
+        forkNav(
           Effect.gen(function* () {
             const state = yield* BibleReaderState;
             yield* state.openChapterAt(action.book, action.chapter, action.verse);
