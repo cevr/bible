@@ -121,6 +121,17 @@ export interface BibleMarginNotesDatabaseService {
     chapter: number,
   ) => Effect.Effect<ReadonlySet<number>, SqlError>;
 
+  /**
+   * All margin notes for a (book, chapter), grouped by verse and ordered by
+   * idx within each verse. Used by the inline-overlay path so anchors render
+   * next to the phrase they annotate — one round-trip per chapter instead of
+   * one per annotated verse.
+   */
+  readonly chapterMarginNotes: (
+    book: number,
+    chapter: number,
+  ) => Effect.Effect<ReadonlyMap<number, readonly MarginNoteRow[]>, SqlError>;
+
   /** `true` when at least one margin_notes row exists. Used by main to skip the
    *  (cheap but non-zero) JSON read + parse + transaction on subsequent launches. */
   readonly isImported: () => Effect.Effect<boolean, SqlError>;
@@ -251,6 +262,26 @@ export class BibleMarginNotesDatabase extends Context.Service<
             }),
           );
 
+        const chapterMarginNotes = (book: number, chapter: number) =>
+          sql<{ verse: number; idx: number; type: string; phrase: string; text: string }>`
+          SELECT verse, idx, type, phrase, text
+          FROM margin_notes
+          WHERE book = ${book} AND chapter = ${chapter}
+          ORDER BY verse, idx
+        `.pipe(
+            Effect.map((rows) => {
+              const out = new Map<number, MarginNoteRow[]>();
+              for (const r of rows) {
+                const t: MarginNoteType = isMarginNoteType(r.type) ? r.type : 'other';
+                const row: MarginNoteRow = { idx: r.idx, type: t, phrase: r.phrase, text: r.text };
+                const existing = out.get(r.verse);
+                if (existing === undefined) out.set(r.verse, [row]);
+                else existing.push(row);
+              }
+              return out as ReadonlyMap<number, readonly MarginNoteRow[]>;
+            }),
+          );
+
         const isImported = () =>
           sql<{ n: number }>`SELECT COUNT(*) AS n FROM margin_notes LIMIT 1`.pipe(
             Effect.map((rows) => (rows[0]?.n ?? 0) > 0),
@@ -260,6 +291,7 @@ export class BibleMarginNotesDatabase extends Context.Service<
           importCatalog,
           getMarginNotes,
           versesWithNotes,
+          chapterMarginNotes,
           isImported,
         });
       }),

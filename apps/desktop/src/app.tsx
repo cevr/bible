@@ -148,15 +148,14 @@ export const App: Component = () => {
     },
   };
 
-  // Per-overlay toggle state for the floating Bible reader toolbar.
-  // Defaults: commentary on (the most discoverable overlay — surfaces the
-  // EGW `e` markers users land here to read), the other three off (Strong's
-  // is dense, notes are scholarly, xrefs paint a lot of superscripts).
-  // Seeded from ReaderSettings on mount; setters fan out to persistence.
-  const [inlineStrongs, setInlineStrongsSig] = createSignal<boolean>(false);
-  const [inlineCommentary, setInlineCommentarySig] = createSignal<boolean>(true);
-  const [inlineMarginNotes, setInlineMarginNotesSig] = createSignal<boolean>(false);
-  const [inlineCrossRefs, setInlineCrossRefsSig] = createSignal<boolean>(false);
+  // Per-overlay toggle state for the floating Bible reader toolbar. All three
+  // default on — the study surfaces (Strong's, margin notes, xrefs) are why
+  // this canvas exists, so we let users see them up-front and toggle off if
+  // the page feels too dense. Seeded from ReaderSettings on mount; setters
+  // fan out to persistence.
+  const [inlineStrongs, setInlineStrongsSig] = createSignal<boolean>(true);
+  const [inlineMarginNotes, setInlineMarginNotesSig] = createSignal<boolean>(true);
+  const [inlineCrossRefs, setInlineCrossRefsSig] = createSignal<boolean>(true);
 
   // True once the main-process Effect runtime is up. Polled on mount and
   // again once per second until it flips true. When false, we paint a
@@ -285,9 +284,8 @@ export const App: Component = () => {
         // Inline overlay flags — only override the in-memory defaults when
         // the user has explicitly stored a value. `undefined` means "fresh
         // install / pre-persistence settings file" and should keep the
-        // commentary-on / others-off default seeded above.
+        // all-off defaults seeded above.
         if (state.inlineStrongs !== undefined) setInlineStrongsSig(state.inlineStrongs);
-        if (state.inlineCommentary !== undefined) setInlineCommentarySig(state.inlineCommentary);
         if (state.inlineMarginNotes !== undefined) setInlineMarginNotesSig(state.inlineMarginNotes);
         if (state.inlineCrossRefs !== undefined) setInlineCrossRefsSig(state.inlineCrossRefs);
       });
@@ -568,17 +566,6 @@ export const App: Component = () => {
       Effect.gen(function* () {
         const s = yield* ReaderSettings;
         yield* s.setInlineStrongs(next);
-      }),
-    );
-  };
-
-  const toggleInlineCommentary = () => {
-    const next = !inlineCommentary();
-    setInlineCommentarySig(next);
-    updateSettings(
-      Effect.gen(function* () {
-        const s = yield* ReaderSettings;
-        yield* s.setInlineCommentary(next);
       }),
     );
   };
@@ -1030,9 +1017,6 @@ export const App: Component = () => {
           }
         >
           <BibleChapterCanvas
-            onOpenCommentary={(book, chapter, verse) =>
-              bibleDrawer.open(book, chapter, verse, 'egw')
-            }
             onOpenStrongs={(book, chapter, verse, code) =>
               bibleDrawer.open(book, chapter, verse, 'words', { _tag: 'strongs', verse, code })
             }
@@ -1047,11 +1031,9 @@ export const App: Component = () => {
               bibleDrawer.open(book, chapter, verse, 'xrefs')
             }
             inlineStrongs={inlineStrongs}
-            inlineCommentary={inlineCommentary}
             inlineMarginNotes={inlineMarginNotes}
             inlineCrossRefs={inlineCrossRefs}
             onToggleInlineStrongs={toggleInlineStrongs}
-            onToggleInlineCommentary={toggleInlineCommentary}
             onToggleInlineMarginNotes={toggleInlineMarginNotes}
             onToggleInlineCrossRefs={toggleInlineCrossRefs}
           />

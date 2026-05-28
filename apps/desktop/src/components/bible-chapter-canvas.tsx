@@ -12,7 +12,6 @@ import {
 } from 'solid-js';
 import { ipc, runtime } from '../runtime.js';
 import { BibleReaderState, type BibleReaderSelection } from '../services/bible-reader-state.js';
-import { EgwCommentary } from '../services/egw-commentary.js';
 import { KjvBible, type KjvChapter, type KjvStrongsWord } from '../services/kjv-bible.js';
 import { BibleBooksGrid } from './bible-books-grid.js';
 import { StrongsVerse } from './bible/strongs-verse.js';
@@ -85,9 +84,6 @@ const preloadChapter = async (book: number, chapter: number): Promise<void> => {
 };
 
 export interface BibleChapterCanvasProps {
-  /** Open the study drawer's EGW tab pinned to the given verse. Routed from
-   *  the footnote `e` marker on each verse with cached commentary. */
-  readonly onOpenCommentary: (book: number, chapter: number, verse: number) => void;
   /** Open the study drawer's Words tab pinned to a specific (book, chapter,
    *  verse) and Strong's code. Used by the inline Strong's overlay so a
    *  click on a superscript code drills into the lexicon. */
@@ -102,11 +98,9 @@ export interface BibleChapterCanvasProps {
    *  (ReaderSettings). The canvas reads via accessors so a settings flip
    *  invalidates downstream memos without prop-drill churn. */
   readonly inlineStrongs: () => boolean;
-  readonly inlineCommentary: () => boolean;
   readonly inlineMarginNotes: () => boolean;
   readonly inlineCrossRefs: () => boolean;
   readonly onToggleInlineStrongs: () => void;
-  readonly onToggleInlineCommentary: () => void;
   readonly onToggleInlineMarginNotes: () => void;
   readonly onToggleInlineCrossRefs: () => void;
 }
@@ -136,11 +130,9 @@ export const BibleChapterCanvas: Component<BibleChapterCanvasProps> = (props) =>
         <BibleReaderToolbar
           inlineStrongs={props.inlineStrongs}
           inlineMarginNotes={props.inlineMarginNotes}
-          inlineCommentary={props.inlineCommentary}
           inlineCrossRefs={props.inlineCrossRefs}
           onToggleStrongs={props.onToggleInlineStrongs}
           onToggleMarginNotes={props.onToggleInlineMarginNotes}
-          onToggleCommentary={props.onToggleInlineCommentary}
           onToggleCrossRefs={props.onToggleInlineCrossRefs}
         />
       </Show>
@@ -165,10 +157,8 @@ export const BibleChapterCanvas: Component<BibleChapterCanvasProps> = (props) =>
                 verse: Option.none<number>(),
               }))
             }
-            onOpenCommentary={props.onOpenCommentary}
             inlineStrongs={props.inlineStrongs()}
             inlineMarginNotes={props.inlineMarginNotes()}
-            inlineCommentary={props.inlineCommentary()}
             inlineCrossRefs={props.inlineCrossRefs()}
             onOpenStrongs={props.onOpenStrongs}
             onOpenMarginNote={props.onOpenMarginNote}
@@ -182,10 +172,8 @@ export const BibleChapterCanvas: Component<BibleChapterCanvasProps> = (props) =>
 
 const ChapterShell: Component<{
   readonly selection: () => BibleReaderSelection;
-  readonly onOpenCommentary: (book: number, chapter: number, verse: number) => void;
   readonly inlineStrongs: boolean;
   readonly inlineMarginNotes: boolean;
-  readonly inlineCommentary: boolean;
   readonly inlineCrossRefs: boolean;
   readonly onOpenStrongs: (book: number, chapter: number, verse: number, code: string) => void;
   readonly onOpenMarginNote: (book: number, chapter: number, verse: number) => void;
@@ -198,10 +186,10 @@ const ChapterShell: Component<{
     book: book(),
     chapter: chapter(),
   }));
-  // Single round-trip for the three lightweight overlay marker sets
-  // (commentary / notes / xrefs). Strong's stays on its own query — it's
-  // heavy and structurally different, so the StrongsLoader mount-only
-  // component handles it independently when the toggle is on.
+  // Single round-trip for the lightweight overlay marker sets
+  // (notes + xrefs). Strong's stays on its own query — it's heavy and
+  // structurally different, so the StrongsLoader mount-only component
+  // handles it independently when the toggle is on.
   const markersRes = ipc.bible.getChapterMarkers.query(() => ({
     book: book(),
     chapter: chapter(),
@@ -228,32 +216,6 @@ const ChapterShell: Component<{
     verseRefs.clear();
   });
 
-  // Pulse fiber: when the EGW indexer reports new commentary refs, invalidate
-  // the unified markers cache entry for the current (book, chapter) so the
-  // next subscribe re-runs the handler and the markers repaint. (Notes +
-  // xrefs are bundled-on-disk and don't pulse, but the markers query is the
-  // single entry point so we invalidate the whole bundle.)
-  onMount(() => {
-    const pulseFiber = runtime.runFork(
-      Effect.gen(function* () {
-        const commentary = yield* EgwCommentary;
-        yield* commentary.changes.pipe(
-          Stream.runForEach(() =>
-            Effect.sync(() => {
-              ipc.bible.getChapterMarkers.invalidate({
-                book: book(),
-                chapter: chapter(),
-              });
-            }),
-          ),
-        );
-      }),
-    );
-    onCleanup(() => {
-      void runtime.runPromise(Fiber.interrupt(pulseFiber));
-    });
-  });
-
   // Peek the LRU first so a warm prev/next renders without triggering the
   // parent <Suspense>. On cold load the resource read suspends; on null
   // (chapter missing) we render the reimport UI inline.
@@ -262,18 +224,6 @@ const ChapterShell: Component<{
   // Decode the unified marker bundle once and key the per-overlay memos off
   // it. Each memo short-circuits to empty when its toggle is off so the
   // verse rows don't repaint when an unrelated overlay flips.
-  const commentaryVerses = createMemo<ReadonlySet<number>>(() => {
-    if (!props.inlineCommentary) return new Set<number>();
-    const m = markersRes();
-    if (m === undefined) return new Set<number>();
-    return new Set(m.commentaryVerses);
-  });
-  const notedVerses = createMemo<ReadonlySet<number>>(() => {
-    if (!props.inlineMarginNotes) return new Set<number>();
-    const m = markersRes();
-    if (m === undefined) return new Set<number>();
-    return new Set(m.notedVerses);
-  });
   const xrefVerses = createMemo<ReadonlySet<number>>(() => {
     if (!props.inlineCrossRefs) return new Set<number>();
     const m = markersRes();
@@ -384,11 +334,6 @@ const ChapterShell: Component<{
       }),
     );
   };
-  const onCommentaryClick = (verse: number): void => {
-    onVerseClick(verse);
-    props.onOpenCommentary(book(), chapter(), verse);
-  };
-
   const goTo = (loc: Loc | null): void => {
     if (loc === null) return;
     void runtime.runPromise(
@@ -512,12 +457,9 @@ const ChapterShell: Component<{
                 <ChapterBody
                   chapter={c}
                   cursorVerse={cursorVerse()}
-                  commentaryVerses={commentaryVerses()}
-                  notedVerses={notedVerses()}
                   xrefVerses={xrefVerses()}
                   verseRefs={verseRefs}
                   onVerseClick={onVerseClick}
-                  onCommentaryClick={onCommentaryClick}
                   inlineStrongs={props.inlineStrongs}
                   inlineMarginNotes={props.inlineMarginNotes}
                   inlineCrossRefs={props.inlineCrossRefs}
@@ -605,13 +547,12 @@ const ChapterBody: Component<{
   readonly cursorVerse: number | null;
   /** Verse sets are already gated on the corresponding toggle at the
    *  ChapterShell memo level — an empty set here means "overlay off" OR
-   *  "no markers in this chapter". ChapterBody doesn't need to know which. */
-  readonly commentaryVerses: ReadonlySet<number>;
-  readonly notedVerses: ReadonlySet<number>;
+   *  "no markers in this chapter". ChapterBody doesn't need to know which.
+   *  Margin notes don't appear here — they render inline next to the matched
+   *  phrase via VerseRenderer + MarginNotesLoader, not as a verse-prefix `n`. */
   readonly xrefVerses: ReadonlySet<number>;
   readonly verseRefs: Map<number, HTMLElement>;
   readonly onVerseClick: (verse: number) => void;
-  readonly onCommentaryClick: (verse: number) => void;
   /** Strong's stays as a mount-only loader because the payload is large and
    *  lives on a separate IPC (`getChapterStrongs`). The remaining three
    *  marker sets come from the unified `getChapterMarkers` query. */
@@ -626,6 +567,10 @@ const ChapterBody: Component<{
     number,
     readonly KjvStrongsWord[]
   > | null>(null);
+  const [marginNotesByVerse, setMarginNotesByVerse] = createSignal<ReadonlyMap<
+    number,
+    readonly { readonly idx: number; readonly phrase: string }[]
+  > | null>(null);
 
   return (
     <>
@@ -637,18 +582,31 @@ const ChapterBody: Component<{
           onCleared={() => setStrongsByVerse(null)}
         />
       </Show>
+      <Show when={props.inlineMarginNotes}>
+        <MarginNotesLoader
+          book={props.chapter.book}
+          chapter={props.chapter.chapter}
+          onLoaded={setMarginNotesByVerse}
+          onCleared={() => setMarginNotesByVerse(null)}
+        />
+      </Show>
       <div class="mt-6 flex flex-col gap-3 font-[family-name:var(--reader-font-family,var(--font-serif))] text-[length:var(--reader-font-size,18px)] leading-[var(--reader-line-height,1.55)] text-fg">
         <For each={props.chapter.verses}>
           {(v) => {
             const isCursor = (): boolean => v.verse === props.cursorVerse;
-            const hasCommentary = (): boolean => props.commentaryVerses.has(v.verse);
-            const hasNote = (): boolean =>
-              props.inlineMarginNotes && props.notedVerses.has(v.verse);
             const hasXref = (): boolean => props.inlineCrossRefs && props.xrefVerses.has(v.verse);
             const strongsWords = (): readonly KjvStrongsWord[] | null => {
               if (!props.inlineStrongs) return null;
               const map = strongsByVerse();
               return map === null ? null : (map.get(v.verse) ?? null);
+            };
+            const verseMarginNotes = (): readonly {
+              readonly idx: number;
+              readonly phrase: string;
+            }[] => {
+              if (!props.inlineMarginNotes) return [];
+              const map = marginNotesByVerse();
+              return map === null ? [] : (map.get(v.verse) ?? []);
             };
             return (
               <p
@@ -666,43 +624,32 @@ const ChapterBody: Component<{
                 >
                   {v.verse}
                 </button>
-                <Show when={hasCommentary()}>
-                  <button
-                    type="button"
-                    class="mr-1 cursor-pointer bg-transparent border-0 p-0 align-baseline text-[0.62em] font-medium text-accent opacity-70 hover:opacity-100 hover:underline select-none"
-                    title={`EGW commentary on verse ${String(v.verse)}`}
-                    onClick={() => props.onCommentaryClick(v.verse)}
-                  >
-                    <sup>e</sup>
-                  </button>
-                </Show>
-                <Show when={hasNote()}>
-                  <button
-                    type="button"
-                    class="mr-1 cursor-pointer bg-transparent border-0 p-0 align-baseline text-[0.62em] font-medium text-accent opacity-70 hover:opacity-100 hover:underline select-none"
-                    title={`Margin notes for verse ${String(v.verse)}`}
-                    onClick={() => props.onOpenMarginNote(v.verse)}
-                  >
-                    <sup>n</sup>
-                  </button>
-                </Show>
-                <Show when={hasXref()}>
-                  <button
-                    type="button"
-                    class="mr-1 cursor-pointer bg-transparent border-0 p-0 align-baseline text-[0.62em] font-medium text-accent opacity-70 hover:opacity-100 hover:underline select-none"
-                    title={`Cross-references for verse ${String(v.verse)}`}
-                    onClick={() => props.onOpenCrossRefs(v.verse)}
-                  >
-                    <sup>x</sup>
-                  </button>
-                </Show>
-                <Show when={strongsWords()} fallback={<VerseRenderer text={v.text} />}>
+                <Show
+                  when={strongsWords()}
+                  fallback={
+                    <VerseRenderer
+                      text={v.text}
+                      marginNotes={verseMarginNotes()}
+                      onMarginNoteClick={() => props.onOpenMarginNote(v.verse)}
+                    />
+                  }
+                >
                   {(words) => (
                     <StrongsVerse
                       words={words()}
                       onCodeClick={(code) => props.onOpenStrongs(v.verse, code)}
                     />
                   )}
+                </Show>
+                <Show when={hasXref()}>
+                  <button
+                    type="button"
+                    class="ml-1 cursor-pointer bg-transparent border-0 p-0 align-baseline text-[0.62em] font-medium text-accent opacity-70 hover:opacity-100 hover:underline select-none"
+                    title={`Cross-references for verse ${String(v.verse)}`}
+                    onClick={() => props.onOpenCrossRefs(v.verse)}
+                  >
+                    <sup>x</sup>
+                  </button>
                 </Show>
               </p>
             );
@@ -739,6 +686,37 @@ const StrongsLoader: Component<{
   return null;
 };
 
+// Mirrors StrongsLoader. Pulls the chapter's full notes-per-verse map and
+// pushes anchor metadata (idx + phrase) up to ChapterBody so VerseRenderer
+// can place inline `a`/`b`/`c` superscripts next to the matched phrase.
+const MarginNotesLoader: Component<{
+  readonly book: number;
+  readonly chapter: number;
+  readonly onLoaded: (
+    map: ReadonlyMap<number, readonly { readonly idx: number; readonly phrase: string }[]>,
+  ) => void;
+  readonly onCleared: () => void;
+}> = (props) => {
+  const res = ipc.bible.getChapterMarginNotes.query(() => ({
+    book: props.book,
+    chapter: props.chapter,
+  }));
+  createEffect(() => {
+    const s = res.latest;
+    if (s === undefined || s === null) return;
+    const m = new Map<number, readonly { readonly idx: number; readonly phrase: string }[]>();
+    for (const row of s) {
+      m.set(
+        row.verse,
+        row.notes.map((n) => ({ idx: n.idx, phrase: n.phrase })),
+      );
+    }
+    props.onLoaded(m);
+  });
+  onCleanup(() => props.onCleared());
+  return null;
+};
+
 // Floating toolbar pinned to the top center of the canvas. Mirrors
 // `ChapterNavButtons` (book-feed.tsx) at the bottom — same pill chrome,
 // same backdrop blur, same z-index — so the two read as a matched pair
@@ -748,11 +726,9 @@ const StrongsLoader: Component<{
 const BibleReaderToolbar: Component<{
   readonly inlineStrongs: () => boolean;
   readonly inlineMarginNotes: () => boolean;
-  readonly inlineCommentary: () => boolean;
   readonly inlineCrossRefs: () => boolean;
   readonly onToggleStrongs: () => void;
   readonly onToggleMarginNotes: () => void;
-  readonly onToggleCommentary: () => void;
   readonly onToggleCrossRefs: () => void;
 }> = (props) => (
   <div class="sticky top-3 z-10 flex justify-center pointer-events-none">
@@ -762,12 +738,6 @@ const BibleReaderToolbar: Component<{
         title="Toggle inline Strong's annotations"
         pressed={props.inlineStrongs()}
         onClick={props.onToggleStrongs}
-      />
-      <ToolbarToggle
-        label="EGW"
-        title="Toggle inline EGW commentary markers"
-        pressed={props.inlineCommentary()}
-        onClick={props.onToggleCommentary}
       />
       <ToolbarToggle
         label="Notes"

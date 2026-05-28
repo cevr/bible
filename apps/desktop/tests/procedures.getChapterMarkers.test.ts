@@ -92,6 +92,7 @@ it.effect('fans out the three lanes concurrently (not serially)', () =>
           yield* Deferred.await(released);
           return new Set([3]) as ReadonlySet<number>;
         }),
+      chapterMarginNotes: () => Effect.succeed(new Map() as ReadonlyMap<number, readonly never[]>),
     });
 
     const gatedXrefs = Layer.succeed(BibleXrefs, {

@@ -22,6 +22,14 @@ export interface BibleMarginNotesShape {
    *  by the chapter renderer to mark notable verses with a superscript
    *  anchor. */
   readonly versesWithNotes: (book: number, chapter: number) => Effect.Effect<ReadonlySet<number>>;
+
+  /** All margin notes in (book, chapter), grouped by verse. Powers the
+   *  inline-overlay path — anchors render next to the matched phrase rather
+   *  than as a single leading verse marker. */
+  readonly chapterMarginNotes: (
+    book: number,
+    chapter: number,
+  ) => Effect.Effect<ReadonlyMap<number, readonly MarginNote[]>>;
 }
 
 // Two caches keyed differently because the lookups have different scopes:
@@ -67,6 +75,7 @@ export class BibleMarginNotes extends Context.Service<BibleMarginNotes, BibleMar
   static layer = Layer.sync(BibleMarginNotes, () => {
     const verseLru = makeLru<readonly MarginNote[]>(PER_VERSE_CAP);
     const chapterLru = makeLru<ReadonlySet<number>>(PER_CHAPTER_CAP);
+    const chapterNotesLru = makeLru<ReadonlyMap<number, readonly MarginNote[]>>(PER_CHAPTER_CAP);
     return {
       getMarginNotes: (book, chapter, verse) => {
         const key = `${String(book)}:${String(chapter)}:${String(verse)}`;
@@ -91,6 +100,20 @@ export class BibleMarginNotes extends Context.Service<BibleMarginNotes, BibleMar
           }),
         );
       },
+      chapterMarginNotes: (book, chapter) => {
+        const key = `${String(book)}:${String(chapter)}`;
+        const cached = chapterNotesLru.get(key);
+        if (cached !== undefined) return Effect.succeed(cached);
+        return Effect.promise(() => window.api.bible.getChapterMarginNotes(book, chapter)).pipe(
+          Effect.map((rows) => {
+            const out = new Map<number, readonly MarginNote[]>();
+            for (const r of rows) out.set(r.verse, r.notes);
+            const readonly: ReadonlyMap<number, readonly MarginNote[]> = out;
+            chapterNotesLru.set(key, readonly);
+            return readonly;
+          }),
+        );
+      },
     };
   });
 
@@ -109,5 +132,18 @@ export class BibleMarginNotes extends Context.Service<BibleMarginNotes, BibleMar
           chapters.get(`${String(book)}:${String(chapter)}`) ??
             (new Set<number>() as ReadonlySet<number>),
         ),
+      chapterMarginNotes: (book, chapter) => {
+        // Rebuild a per-verse map from the per-verse fixture data — the test
+        // surface is small enough that a chapter-wide scan is cheap.
+        const out = new Map<number, readonly MarginNote[]>();
+        const prefix = `${String(book)}:${String(chapter)}:`;
+        for (const [key, value] of notes) {
+          if (!key.startsWith(prefix)) continue;
+          const verseStr = key.slice(prefix.length);
+          const verse = Number(verseStr);
+          if (Number.isFinite(verse)) out.set(verse, value);
+        }
+        return Effect.succeed(out as ReadonlyMap<number, readonly MarginNote[]>);
+      },
     });
 }

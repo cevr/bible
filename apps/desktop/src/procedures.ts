@@ -1,7 +1,7 @@
 import { Schemas } from '@bible/core/egw';
 import { Effect, Option, Schema } from 'effect';
 import { defineProcedures, mutation, query } from './ipc-cache/procedure.js';
-import { BibleMarginNotes } from './services/bible-margin-notes.js';
+import { BibleMarginNotes, type MarginNote } from './services/bible-margin-notes.js';
 import { BibleXrefs } from './services/bible-xrefs.js';
 import { CacheService } from './services/cache-service.js';
 import { EgwCommentary } from './services/egw-commentary.js';
@@ -400,6 +400,28 @@ export const procedures = defineProcedures({
       output: Schema.Array(MarginNoteSchema),
       handle: ({ book, chapter, verse }) =>
         BibleMarginNotes.pipe(Effect.flatMap((m) => m.getMarginNotes(book, chapter, verse))),
+    }),
+    // Chapter-wide notes grouped by verse. Powers the inline-overlay path:
+    // the canvas mounts a loader when the margin-notes toggle is on, fetches
+    // once per chapter, and threads notes into VerseRenderer so anchors render
+    // next to the matched phrase rather than as a leading verse marker.
+    getChapterMarginNotes: query({
+      input: Schema.Struct({ book: Schema.Number, chapter: Schema.Number }),
+      output: Schema.Array(
+        Schema.Struct({ verse: Schema.Number, notes: Schema.Array(MarginNoteSchema) }),
+      ),
+      handle: ({ book, chapter }) =>
+        BibleMarginNotes.pipe(
+          Effect.flatMap((m) => m.chapterMarginNotes(book, chapter)),
+          // The service returns a Map for callers that want O(1) verse
+          // lookup; the IPC schema is an ordered array, so serialize here.
+          Effect.map((byVerse) => {
+            const out: { verse: number; notes: readonly MarginNote[] }[] = [];
+            for (const [verse, notes] of byVerse) out.push({ verse, notes });
+            out.sort((a, b) => a.verse - b.verse);
+            return out;
+          }),
+        ),
     }),
     getCommentary: query({
       input: Schema.Struct({

@@ -82,7 +82,6 @@ export const ReaderSettingsState = Schema.Struct({
    *  annotation layer. All optional so a fresh launch (no stored settings)
    *  falls back to the defaults seeded in app.tsx. */
   inlineStrongs: Schema.optional(Schema.Boolean),
-  inlineCommentary: Schema.optional(Schema.Boolean),
   inlineMarginNotes: Schema.optional(Schema.Boolean),
   inlineCrossRefs: Schema.optional(Schema.Boolean),
 });
@@ -128,6 +127,7 @@ const STALE_SETTINGS_KEYS = [
   'bibleDrawerStrongs',
   'bibleCommentaryOpen',
   'bibleDrawerWideWidth',
+  'inlineCommentary',
 ] as const;
 
 interface MigratedSettings {
@@ -205,7 +205,6 @@ export interface ReaderSettingsShape {
   readonly setBibleStudyTab: (tab: BibleStudyTab) => Effect.Effect<void>;
   readonly setReaderMode: (mode: ReaderMode) => Effect.Effect<void>;
   readonly setInlineStrongs: (enabled: boolean) => Effect.Effect<void>;
-  readonly setInlineCommentary: (enabled: boolean) => Effect.Effect<void>;
   readonly setInlineMarginNotes: (enabled: boolean) => Effect.Effect<void>;
   readonly setInlineCrossRefs: (enabled: boolean) => Effect.Effect<void>;
 }
@@ -285,7 +284,6 @@ export class ReaderSettings extends Context.Service<ReaderSettings, ReaderSettin
         setBibleStudyTab: (bibleStudyTab) => update((s) => ({ ...s, bibleStudyTab })),
         setReaderMode: (readerMode) => update((s) => ({ ...s, readerMode })),
         setInlineStrongs: (enabled) => update((s) => ({ ...s, inlineStrongs: enabled })),
-        setInlineCommentary: (enabled) => update((s) => ({ ...s, inlineCommentary: enabled })),
         setInlineMarginNotes: (enabled) => update((s) => ({ ...s, inlineMarginNotes: enabled })),
         setInlineCrossRefs: (enabled) => update((s) => ({ ...s, inlineCrossRefs: enabled })),
       };
@@ -331,7 +329,6 @@ export class ReaderSettings extends Context.Service<ReaderSettings, ReaderSettin
           setBibleStudyTab: (bibleStudyTab) => update((s) => ({ ...s, bibleStudyTab })),
           setReaderMode: (readerMode) => update((s) => ({ ...s, readerMode })),
           setInlineStrongs: (enabled) => update((s) => ({ ...s, inlineStrongs: enabled })),
-          setInlineCommentary: (enabled) => update((s) => ({ ...s, inlineCommentary: enabled })),
           setInlineMarginNotes: (enabled) => update((s) => ({ ...s, inlineMarginNotes: enabled })),
           setInlineCrossRefs: (enabled) => update((s) => ({ ...s, inlineCrossRefs: enabled })),
           ...overrides,

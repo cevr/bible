@@ -936,6 +936,39 @@ ipcMain.handle(
   ),
 );
 
+// All margin notes in (book, chapter) grouped by verse. One round-trip
+// per chapter feeds the inline overlay so anchors can be rendered next to
+// the phrase they annotate (see web verse-renderer.tsx for the model).
+ipcMain.handle(
+  'bible:getChapterMarginNotes',
+  traceBibleIpc(
+    'bible:getChapterMarginNotes',
+    async (
+      _event,
+      book: number,
+      chapter: number,
+    ): Promise<
+      readonly { readonly verse: number; readonly notes: readonly RendererMarginNote[] }[]
+    > => {
+      if (mainRuntime === null) return [];
+      await ensureMarginNotesImportsDone(mainRuntime);
+      const byVerse = await mainRuntime.runPromise(
+        BibleMarginNotesDatabase.pipe(Effect.flatMap((db) => db.chapterMarginNotes(book, chapter))),
+      );
+      const out: { verse: number; notes: RendererMarginNote[] }[] = [];
+      for (const [verse, notes] of byVerse) {
+        out.push({
+          verse,
+          notes: notes.map((n) => ({ idx: n.idx, type: n.type, phrase: n.phrase, text: n.text })),
+        });
+      }
+      out.sort((a, b) => a.verse - b.verse);
+      return out;
+    },
+    (r) => `${String(r.length)} verse(s) with notes`,
+  ),
+);
+
 // --- EGW commentary on Bible verses --------------------------------------
 // `paragraph_bible_refs` is populated incrementally by the indexer (each
 // freshly-cached chapter writes its ScriptureRef rows in the same tx). For

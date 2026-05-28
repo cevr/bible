@@ -150,6 +150,15 @@ const api = {
     // anchor in one round-trip per chapter.
     getVersesWithNotes: (book: number, chapter: number): Promise<readonly number[]> =>
       ipcRenderer.invoke('bible:getVersesWithNotes', book, chapter),
+    // All margin notes in (book, chapter) grouped by verse. Used by the
+    // inline-overlay path so anchors render next to the phrase they annotate.
+    // Returns a serializable verse → notes array — renderer rebuilds a Map.
+    getChapterMarginNotes: (
+      book: number,
+      chapter: number,
+    ): Promise<
+      readonly { readonly verse: number; readonly notes: readonly MarginNotePayload[] }[]
+    > => ipcRenderer.invoke('bible:getChapterMarginNotes', book, chapter),
     // EGW paragraphs that reference the given Bible verse, drawn from the
     // local `paragraph_bible_refs` index (populated by the indexer + boot
     // backfill). Empty until the user has cached at least one EGW chapter
