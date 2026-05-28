@@ -5,6 +5,7 @@ import {
   createSignal,
   createUniqueId,
   type JSX,
+  on,
   onCleanup,
   Show,
 } from 'solid-js';
@@ -151,19 +152,20 @@ const ReaderPanelInner: Component<InnerProps> = (props) => {
   // parent often collapses `expanded` in the same tick (e.g. a `tocPlusLib`
   // → `closed` transition both closes the panel *and* drops `expanded`), and
   // the inner content reflows from 720px → 360px while it's sliding away.
+  //
+  // Tracks `open()` only (via `on`) so the snapshot side branch doesn't
+  // accidentally track `widthPx` and re-fire while closed; the snapshot is
+  // taken once on the open→closed edge and held until inner unmounts.
   const [frozenWidth, setFrozenWidth] = createSignal<number | null>(null);
-  createEffect(() => {
-    if (props.open()) {
-      // Stay reactive while open — width changes between 360/720 still animate
-      // via the CSS transition on the panel.
-      setFrozenWidth(null);
-      return;
-    }
-    // First time we see open=false during this inner's lifetime: snapshot the
-    // last known width and stop tracking. Inner unmounts after the exit
-    // animation completes; the snapshot only needs to survive ~0.22s.
-    setFrozenWidth((curr) => curr ?? props.widthPx());
-  });
+  createEffect(
+    on(props.open, (isOpen) => {
+      if (isOpen) {
+        setFrozenWidth(null);
+        return;
+      }
+      setFrozenWidth((curr) => curr ?? props.widthPx());
+    }),
+  );
   const effectiveWidth = createMemo(() => frozenWidth() ?? props.widthPx());
 
   return (

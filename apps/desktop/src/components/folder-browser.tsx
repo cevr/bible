@@ -11,7 +11,7 @@ import {
   Show,
   Suspense,
 } from 'solid-js';
-import { ipc, runtime } from '../runtime.js';
+import { ipc, runtime, signalFromStream } from '../runtime.js';
 import { EGWData } from '../services/egw-data.js';
 import { openBookAtFirstChapter } from '../services/open-book.js';
 import { Prefetcher, type PrefetchStatus } from '../services/prefetcher.js';
@@ -268,7 +268,17 @@ export const FolderBrowser: Component<FolderBrowserProps> = (props) => {
   );
 
   // --- Download badges (mirrors LibraryRail) ------------------------------
-  const [status, setStatus] = createSignal<PrefetchStatus>(idleStatus);
+  // `status` mirrors the Prefetcher's SubscriptionRef directly via `signalFromStream`,
+  // so the renderer fiber lifecycle is owned by the helper. The side-effect
+  // (`refreshDownloadState` on Done) is kept on a separate onMount fiber below
+  // — keeps the mirror pure derive, and the side-effect explicit.
+  const status = signalFromStream(
+    Effect.gen(function* () {
+      const prefetcher = yield* Prefetcher;
+      return SubscriptionRef.changes(prefetcher.status);
+    }),
+    idleStatus as PrefetchStatus,
+  );
   type DownloadCount = { readonly cached: number; readonly expected: number };
   const [downloadStates, setDownloadStates] = createSignal<ReadonlyMap<number, DownloadCount>>(
     new Map(),
@@ -311,7 +321,6 @@ export const FolderBrowser: Component<FolderBrowserProps> = (props) => {
         yield* SubscriptionRef.changes(prefetcher.status).pipe(
           Stream.runForEach((s) =>
             Effect.sync(() => {
-              setStatus(s);
               if (s._tag === 'Done' && s.mode === 'download') refreshDownloadState(s.bookId);
             }),
           ),
@@ -476,26 +485,38 @@ export const FolderBrowser: Component<FolderBrowserProps> = (props) => {
           monotonically non-null and avoids spurious empty-array branches.
         */}
         <Show when={currentLevel().currentFolderId} keyed>
-          {(folderId) => (
-            <>
-              <h3 class="m-0 text-ui-xs font-semibold tracking-[0.08em] uppercase text-muted">
-                Books
-              </h3>
-              <Suspense fallback={<p class="m-0 py-2 text-ui-base text-muted">Loading books…</p>}>
-                <BooksList
-                  folderId={folderId}
-                  onBooksReady={(ids) => {
-                    for (const id of ids) refreshDownloadState(id);
-                  }}
-                  onOpenBook={openBook}
-                  downloadFor={downloadFor}
-                  anyDownloadRunning={anyDownloadRunning}
-                  isFullyDownloaded={isFullyDownloaded}
-                  onDownloadBook={downloadBook}
-                />
-              </Suspense>
-            </>
-          )}
+          {(folderId) => {
+            const books = ipc.egw.listBooksByFolder.query(() => ({
+              folderId,
+              lang: DEFAULT_LANG,
+            }));
+            // Fan out a fresh download-state read per book as soon as the list
+            // resolves. Lives at the parent rather than inside `BooksList` so
+            // the books resource has one owner — no callback-in-effect from
+            // the child back up to the parent's `refreshDownloadState`.
+            createEffect(() => {
+              const list = books();
+              if (list === undefined) return;
+              for (const b of list) refreshDownloadState(b.book_id);
+            });
+            return (
+              <>
+                <h3 class="m-0 text-ui-xs font-semibold tracking-[0.08em] uppercase text-muted">
+                  Books
+                </h3>
+                <Suspense fallback={<p class="m-0 py-2 text-ui-base text-muted">Loading books…</p>}>
+                  <BooksList
+                    books={books}
+                    onOpenBook={openBook}
+                    downloadFor={downloadFor}
+                    anyDownloadRunning={anyDownloadRunning}
+                    isFullyDownloaded={isFullyDownloaded}
+                    onDownloadBook={downloadBook}
+                  />
+                </Suspense>
+              </>
+            );
+          }}
         </Show>
       </div>
     </div>
@@ -503,8 +524,7 @@ export const FolderBrowser: Component<FolderBrowserProps> = (props) => {
 };
 
 interface BooksListProps {
-  readonly folderId: number;
-  readonly onBooksReady: (bookIds: ReadonlyArray<number>) => void;
+  readonly books: () => readonly Schemas.Book[] | undefined;
   readonly onOpenBook: (bookId: number) => void;
   readonly downloadFor: (bookId: number) => DownloadState;
   readonly anyDownloadRunning: () => boolean;
@@ -513,17 +533,7 @@ interface BooksListProps {
 }
 
 const BooksList: Component<BooksListProps> = (props) => {
-  const books = ipc.egw.listBooksByFolder.query(() => ({
-    folderId: props.folderId,
-    lang: DEFAULT_LANG,
-  }));
-
-  createEffect(() => {
-    const list = books();
-    if (list === undefined) return;
-    props.onBooksReady(list.map((b) => b.book_id));
-  });
-
+  const books = props.books;
   return (
     <Show
       when={(books() ?? []).length > 0}

@@ -1,4 +1,5 @@
-import { Layer, ManagedRuntime } from 'effect';
+import { Effect, Fiber, Layer, ManagedRuntime, Stream } from 'effect';
+import { type Accessor, from } from 'solid-js';
 import { buildIpc } from './ipc-cache/proxy.js';
 import { procedures } from './procedures.js';
 import { BibleMarginNotes } from './services/bible-margin-notes.js';
@@ -65,6 +66,36 @@ export const runtime = ManagedRuntime.make(AppLayer);
  * adding a procedure that needs a new service requires extending AppLayer.
  */
 export const ipc = buildIpc(procedures, runtime);
+
+/**
+ * Bridge an Effect `Stream` into a Solid `Accessor`. The stream is consumed in
+ * a fork that lives for the current Solid owner's lifetime — Solid's `from`
+ * teardown interrupts the fiber on owner dispose, so callers don't have to
+ * thread fiber/onCleanup pairs themselves.
+ *
+ * The producer Effect runs with the full AppLayer context, so callers can
+ * `yield*` any service to assemble the stream.
+ *
+ * Use this anywhere a component would otherwise mirror a `SubscriptionRef`
+ * (or any `Stream`) into a local signal via `Stream.runForEach + setSig`.
+ */
+export const signalFromStream = <A, R extends AppContext>(
+  producer: Effect.Effect<Stream.Stream<A>, never, R>,
+  initial: A,
+): Accessor<A> =>
+  from<A>((set) => {
+    const fiber = runtime.runFork(
+      producer.pipe(
+        Effect.flatMap((stream) =>
+          stream.pipe(Stream.runForEach((a) => Effect.sync(() => set(() => a)))),
+        ),
+      ),
+    );
+    return (): void => {
+      void runtime.runPromise(Fiber.interrupt(fiber));
+    };
+  }, initial);
+type AppContext = ManagedRuntime.ManagedRuntime.Services<typeof runtime>;
 
 // Vite re-evaluates this module on HMR; without disposal the previous runtime
 // (and any scoped resources it holds — e.g. the ReaderSettings debounce fiber)

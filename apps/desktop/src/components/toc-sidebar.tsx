@@ -1,17 +1,8 @@
 import { nodesToText, type Schemas } from '@bible/core/egw';
-import { Effect, Fiber, Option, Stream } from 'effect';
-import {
-  type Component,
-  createMemo,
-  createSignal,
-  For,
-  onCleanup,
-  onMount,
-  Show,
-  Suspense,
-} from 'solid-js';
-import { ipc, runtime } from '../runtime.js';
-import { ReaderState } from '../services/reader-state.js';
+import { Effect, Option } from 'effect';
+import { type Component, createMemo, createSignal, For, Show, Suspense } from 'solid-js';
+import { ipc, runtime, signalFromStream } from '../runtime.js';
+import { ReaderState, type ReaderSelection } from '../services/reader-state.js';
 
 // TOC sidebar — middle pane. Shows the table of contents for the currently
 // open book and lets the user navigate between chapters.
@@ -40,30 +31,18 @@ const INDENT_PER_LEVEL_PX = 16;
 export const TocSidebar: Component<TocSidebarProps> = (props) => {
   const toc = ipc.egw.getToc.query(() => ({ bookId: props.bookId }));
 
-  const [activeParaId, setActiveParaId] = createSignal<Option.Option<string>>(Option.none());
-  const [expandedParaId, setExpandedParaId] = createSignal<Option.Option<string>>(Option.none());
-
-  onMount(() => {
-    const fiber = runtime.runFork(
-      Effect.gen(function* () {
-        const state = yield* ReaderState;
-        yield* state.changes.pipe(
-          Stream.runForEach((sel) =>
-            Effect.sync(() => {
-              if (Option.isNone(sel)) {
-                setActiveParaId(Option.none());
-                return;
-              }
-              setActiveParaId(sel.value.chapterParaId);
-            }),
-          ),
-        );
-      }),
-    );
-    onCleanup(() => {
-      void runtime.runPromise(Fiber.interrupt(fiber));
-    });
+  const selection = signalFromStream(
+    Effect.gen(function* () {
+      const state = yield* ReaderState;
+      return state.changes;
+    }),
+    Option.none<ReaderSelection>(),
+  );
+  const activeParaId = createMemo<Option.Option<string>>(() => {
+    const sel = selection();
+    return Option.isNone(sel) ? Option.none() : sel.value.chapterParaId;
   });
+  const [expandedParaId, setExpandedParaId] = createSignal<Option.Option<string>>(Option.none());
 
   const openChapter = (paraId: string): void => {
     void runtime.runPromise(

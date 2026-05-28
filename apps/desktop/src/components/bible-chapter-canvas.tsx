@@ -1,5 +1,5 @@
 import { formatBibleReference, getBibleBook } from '@bible/core/bible-reader';
-import { Effect, Fiber, Option, Stream } from 'effect';
+import { Effect, Fiber, Option } from 'effect';
 import {
   type Component,
   createEffect,
@@ -10,7 +10,7 @@ import {
   onMount,
   Show,
 } from 'solid-js';
-import { ipc, runtime } from '../runtime.js';
+import { ipc, runtime, signalFromStream } from '../runtime.js';
 import { BibleReaderState, type BibleReaderSelection } from '../services/bible-reader-state.js';
 import { KjvBible, type KjvChapter, type KjvStrongsWord } from '../services/kjv-bible.js';
 import { BibleBooksGrid } from './bible-books-grid.js';
@@ -106,23 +106,13 @@ export interface BibleChapterCanvasProps {
 }
 
 export const BibleChapterCanvas: Component<BibleChapterCanvasProps> = (props) => {
-  const [selection, setSelection] = createSignal<Option.Option<BibleReaderSelection>>(
-    Option.none(),
+  const selection = signalFromStream(
+    Effect.gen(function* () {
+      const state = yield* BibleReaderState;
+      return state.changes;
+    }),
+    Option.none<BibleReaderSelection>(),
   );
-
-  onMount(() => {
-    const fiber = runtime.runFork(
-      Effect.gen(function* () {
-        const state = yield* BibleReaderState;
-        yield* state.changes.pipe(
-          Stream.runForEach((next) => Effect.sync(() => setSelection(next))),
-        );
-      }),
-    );
-    onCleanup(() => {
-      void runtime.runPromise(Fiber.interrupt(fiber));
-    });
-  });
 
   return (
     <div class="h-full overflow-y-auto">
