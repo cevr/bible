@@ -95,9 +95,21 @@ interface NavItem extends Schemas.TocItem {
   readonly para_id: string;
 }
 
-export const BookFeed: Component<BookFeedProps> = (props) => {
+// Chapter-data hook: owns IPC + LRU mirror + adjacent preloads. Returns the
+// paragraphs accessor (cache-peek-first so warm prev/next renders without
+// triggering Suspense) plus the nav lookups derived off the book's TOC.
+interface ChapterDataApi {
+  readonly paragraphs: Accessor<readonly Schemas.Paragraph[]>;
+  readonly navItems: Accessor<readonly NavItem[]>;
+  readonly currentNav: Accessor<NavItem | undefined>;
+  readonly prevChapter: Accessor<NavItem | undefined>;
+  readonly nextChapter: Accessor<NavItem | undefined>;
+}
+const useChapterData = (props: {
+  readonly bookId: number;
+  readonly chapterParaId: string;
+}): ChapterDataApi => {
   const toc = ipc.egw.getToc.query(() => ({ bookId: props.bookId }));
-
   const navItems = createMemo<readonly NavItem[]>(() => {
     const t = toc();
     if (t === undefined) return [];
@@ -105,21 +117,17 @@ export const BookFeed: Component<BookFeedProps> = (props) => {
       (i): i is NavItem => i.para_id !== undefined && i.para_id !== null && i.para_id !== '',
     );
   });
-
   const currentNav = createMemo<NavItem | undefined>(() =>
     navItems().find((n) => n.para_id === props.chapterParaId),
   );
-
   const currentIdx = createMemo(() =>
     navItems().findIndex((n) => n.para_id === props.chapterParaId),
   );
-
   const prevChapter = createMemo<NavItem | undefined>(() => {
     const idx = currentIdx();
     if (idx <= 0) return undefined;
     return navItems()[idx - 1];
   });
-
   const nextChapter = createMemo<NavItem | undefined>(() => {
     const idx = currentIdx();
     const items = navItems();
@@ -127,38 +135,28 @@ export const BookFeed: Component<BookFeedProps> = (props) => {
     return items[idx + 1];
   });
 
-  const navOptions = createMemo(() =>
-    navItems().map((n) => ({ value: n.para_id, label: n.title ?? n.para_id })),
-  );
-
   const chapter = ipc.egw.getChapterByParaId.query(() => ({
     bookId: props.bookId,
     paraId: props.chapterParaId,
   }));
-
   // Mirror successful reads into the renderer-level LRU so adjacent preloads
-  // and warm remounts have a synchronous data source. The ipc registry also
-  // caches the resource itself, but reading the resource still goes through
-  // Suspense on first paint per (bookId, paraId); the LRU short-circuits that
-  // when the same chapter is reopened during a session.
+  // and warm remounts have a synchronous data source. The ipc registry caches
+  // the resource itself, but reading the resource still goes through Suspense
+  // on first paint per (bookId, paraId); the LRU short-circuits that on
+  // reopen-in-session.
   createEffect(() => {
     const c = chapter();
     if (c === undefined) return;
     cachePut(props.bookId, props.chapterParaId, c);
   });
-
   const paragraphs = createMemo<readonly Schemas.Paragraph[]>(() => {
-    // Cache peek first — if hit, skip reading the resource so a warm prev/next
-    // renders without triggering Suspense.
     const hit = cacheGet(props.bookId, props.chapterParaId);
     if (hit !== undefined) return hit;
     const c = chapter();
     return c ?? [];
   });
-
-  // Preload adjacent chapters into the shared LRU so the next prev/next
-  // navigation renders synchronously. Fires whenever the prev/next memos
-  // resolve (i.e. after the TOC loads and on every chapter swap).
+  // Preload adjacent chapters into the shared LRU so next prev/next nav
+  // renders synchronously. Fires when prev/next resolve (TOC load, chapter swap).
   createEffect(() => {
     const bookId = props.bookId;
     const p = prevChapter();
@@ -167,24 +165,27 @@ export const BookFeed: Component<BookFeedProps> = (props) => {
     if (n !== undefined) void preloadChapter(bookId, n.para_id);
   });
 
-  // Highlight lifecycle: idle → flashing(paraId) → applied(paraId).
-  // The two old signals (flashingParaId, appliedHighlightId) were independent
-  // booleans, so combinations like "flashing X but applied Y" were
-  // representable. The union makes the lifecycle linear: a target is either
-  // being flashed right now or already settled, never both for different ids.
+  return { paragraphs, navItems, currentNav, prevChapter, nextChapter };
+};
+
+// Highlight + restore hook. Two one-shot scroll cues with different lifecycles:
+//   • highlight — search-jump landing: scroll-to + flash + clear-on-applied
+//   • restore   — silent scroll restore: scroll-to once, never flashes
+// `flashing(paraId)` tells the renderer which paragraph (if any) currently
+// owns the flash animation.
+const useChapterHighlight = (props: {
+  readonly paragraphs: Accessor<readonly Schemas.Paragraph[]>;
+  readonly paragraphRefs: Map<string, HTMLElement>;
+  readonly highlightParaId?: Accessor<Option.Option<string>>;
+  readonly restoreParagraphId?: Accessor<Option.Option<string>>;
+  readonly onHighlightApplied?: () => void;
+}): { readonly flashing: (paraId: string | null | undefined) => boolean } => {
   type HighlightState =
     | { readonly _tag: 'idle' }
     | { readonly _tag: 'flashing'; readonly paraId: string }
     | { readonly _tag: 'applied'; readonly paraId: string };
   const [highlightState, setHighlightState] = createSignal<HighlightState>({ _tag: 'idle' });
 
-  const paragraphRefs = new Map<string, HTMLElement>();
-
-  // After paragraphs render, apply the one-shot scroll cues:
-  //   • highlightParaId — search-jump landing, scroll-to + flash + clear
-  //   • restoreParagraphId — silent scroll restore on first render
-  // Each runs once per (chapter, target) tuple to avoid re-scrolling when
-  // the chapter re-renders for unrelated reasons.
   createEffect(() => {
     const highlight = props.highlightParaId?.();
     if (highlight === undefined || Option.isNone(highlight)) {
@@ -194,8 +195,8 @@ export const BookFeed: Component<BookFeedProps> = (props) => {
     const target = highlight.value;
     const curr = highlightState();
     if (curr._tag !== 'idle' && curr.paraId === target) return;
-    if (paragraphs().length === 0) return;
-    const el = paragraphRefs.get(target);
+    if (props.paragraphs().length === 0) return;
+    const el = props.paragraphRefs.get(target);
     if (el === undefined) return;
     el.scrollIntoView({ block: 'center', behavior: 'auto' });
     setHighlightState({ _tag: 'flashing', paraId: target });
@@ -208,36 +209,39 @@ export const BookFeed: Component<BookFeedProps> = (props) => {
     onCleanup(() => window.clearTimeout(t));
   });
 
-  // Restore lifecycle is independent of highlight: it's a one-shot for a
-  // different input (silent scroll on first render), can land on a different
-  // paraId, and never flashes. Keeping it as its own one-shot marker.
+  // Restore is its own one-shot: different input, lands on a different paraId,
+  // and never flashes. Keeping it independent of the highlight union.
   const [appliedRestoreId, setAppliedRestoreId] = createSignal<string | undefined>(undefined);
   createEffect(() => {
     const restore = props.restoreParagraphId?.();
     if (restore === undefined || Option.isNone(restore)) return;
     const target = restore.value;
     if (appliedRestoreId() === target) return;
-    if (paragraphs().length === 0) return;
-    const el = paragraphRefs.get(target);
+    if (props.paragraphs().length === 0) return;
+    const el = props.paragraphRefs.get(target);
     if (el === undefined) return;
     setAppliedRestoreId(target);
     el.scrollIntoView({ block: 'start', behavior: 'auto' });
   });
 
-  // Reset scroll to top when the chapter changes (keyed remount handles most
-  // cases, but if the parent reuses us, we want a fresh start).
-  createEffect(() => {
-    // Track chapter change
-    void props.chapterParaId;
-    const el = props.scrollEl();
-    if (el === undefined) return;
-    el.scrollTop = 0;
-  });
+  return {
+    flashing: (paraId) => {
+      if (paraId === null || paraId === undefined) return false;
+      const s = highlightState();
+      return s._tag === 'flashing' && s.paraId === paraId;
+    },
+  };
+};
 
-  // Scroll-spy: report the topmost visible paragraph + current chapter on every
-  // scroll event. Used by the parent to persist the user's reading position.
-  // Also updates `scrollPct` for the floating progress pill — we ignore the
-  // 50vh tail spacer so reaching the last paragraph reads as 100%, not ~67%.
+// Scroll-spy hook: reports the topmost visible paragraph + scroll percentage
+// on every scroll event. The 50vh tail spacer is excluded from the denom so
+// reaching the last paragraph reads as 100%, not ~67%.
+const useChapterScrollSpy = (props: {
+  readonly scrollEl: Accessor<HTMLElement | undefined>;
+  readonly chapterParaId: string;
+  readonly paragraphRefs: Map<string, HTMLElement>;
+  readonly onParagraphScrolledIntoView?: (chapterParaId: string, paragraphParaId: string) => void;
+}): Accessor<number> => {
   const [scrollPct, setScrollPct] = createSignal(0);
   const onScroll = (): void => {
     const el = props.scrollEl();
@@ -245,16 +249,13 @@ export const BookFeed: Component<BookFeedProps> = (props) => {
     const top = el.getBoundingClientRect().top;
     let topmost: string | undefined;
     let lastParaBottom = 0;
-    for (const [paraId, paraEl] of paragraphRefs) {
+    for (const [paraId, paraEl] of props.paragraphRefs) {
       const r = paraEl.getBoundingClientRect();
       if (topmost === undefined && r.bottom > top) {
         topmost = paraId;
       }
       if (r.bottom > lastParaBottom) lastParaBottom = r.bottom;
     }
-    // Distance the user has scrolled / scrollable range capped at the last
-    // paragraph's bottom (relative to scrollTop). Below that, the spacer pads
-    // it out and "progress" stays at 100%.
     const lastParaBottomInScroll = lastParaBottom - top + el.scrollTop;
     const denom = Math.max(1, lastParaBottomInScroll - el.clientHeight);
     const pct = Math.max(0, Math.min(100, Math.round((el.scrollTop / denom) * 100)));
@@ -268,11 +269,15 @@ export const BookFeed: Component<BookFeedProps> = (props) => {
     el.addEventListener('scroll', onScroll, { passive: true });
     onCleanup(() => el.removeEventListener('scroll', onScroll));
   });
-  // Reset to 0 on chapter swap; the scroll handler will recompute as the user
-  // moves. Without this the pill briefly shows the previous chapter's pct.
-  // `on` makes the dependency explicit (the prior `void` form looked like a
-  // mistake) and `defer: true` skips the initial run since the signal is
-  // already 0 at mount.
+  // Reset scroll to top + pct to 0 on chapter swap. The keyed remount handles
+  // most cases, but if the parent reuses us we want a fresh start. `on(...
+  // defer: true)` skips the initial run since the signal is already 0.
+  createEffect(() => {
+    void props.chapterParaId;
+    const el = props.scrollEl();
+    if (el === undefined) return;
+    el.scrollTop = 0;
+  });
   createEffect(
     on(
       () => props.chapterParaId,
@@ -280,6 +285,87 @@ export const BookFeed: Component<BookFeedProps> = (props) => {
       { defer: true },
     ),
   );
+  return scrollPct;
+};
+
+// Keyboard-nav hook: arrow keys paginate chapters, Cmd/Ctrl-modified jumps to
+// first/last chapter or top/bottom of the current scroll element. Ignored
+// when focus is in an editable surface (typing search doesn't paginate).
+const useChapterKeyboardNav = (props: {
+  readonly scrollEl: Accessor<HTMLElement | undefined>;
+  readonly onPrev: () => void;
+  readonly onNext: () => void;
+  readonly onFirst: () => void;
+  readonly onLast: () => void;
+}): void => {
+  const isEditableTarget = (target: EventTarget | null): boolean => {
+    if (!(target instanceof HTMLElement)) return false;
+    if (target.isContentEditable) return true;
+    const tag = target.tagName;
+    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+  };
+  const onKeyDown = (e: KeyboardEvent): void => {
+    if (e.altKey) return;
+    if (isEditableTarget(e.target)) return;
+    const jumpToEdge = e.metaKey || e.ctrlKey;
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      if (jumpToEdge) props.onFirst();
+      else props.onPrev();
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      if (jumpToEdge) props.onLast();
+      else props.onNext();
+    } else if (jumpToEdge && e.key === 'ArrowUp') {
+      const el = props.scrollEl();
+      if (el === undefined) return;
+      e.preventDefault();
+      el.scrollTop = 0;
+    } else if (jumpToEdge && e.key === 'ArrowDown') {
+      const el = props.scrollEl();
+      if (el === undefined) return;
+      e.preventDefault();
+      el.scrollTop = el.scrollHeight;
+    }
+  };
+  onMount(() => {
+    window.addEventListener('keydown', onKeyDown);
+    onCleanup(() => window.removeEventListener('keydown', onKeyDown));
+  });
+};
+
+export const BookFeed: Component<BookFeedProps> = (props) => {
+  const { paragraphs, navItems, currentNav, prevChapter, nextChapter } = useChapterData({
+    get bookId() {
+      return props.bookId;
+    },
+    get chapterParaId() {
+      return props.chapterParaId;
+    },
+  });
+
+  const navOptions = createMemo(() =>
+    navItems().map((n) => ({ value: n.para_id, label: n.title ?? n.para_id })),
+  );
+
+  const paragraphRefs = new Map<string, HTMLElement>();
+
+  const { flashing } = useChapterHighlight({
+    paragraphs,
+    paragraphRefs,
+    highlightParaId: props.highlightParaId,
+    restoreParagraphId: props.restoreParagraphId,
+    onHighlightApplied: props.onHighlightApplied,
+  });
+
+  const scrollPct = useChapterScrollSpy({
+    scrollEl: props.scrollEl,
+    get chapterParaId() {
+      return props.chapterParaId;
+    },
+    paragraphRefs,
+    onParagraphScrolledIntoView: props.onParagraphScrolledIntoView,
+  });
 
   const navigateTo = (paraId: string): void => {
     void runtime.runPromise(
@@ -289,7 +375,6 @@ export const BookFeed: Component<BookFeedProps> = (props) => {
       }),
     );
   };
-
   const goPrev = (): void => {
     const p = prevChapter();
     if (p !== undefined) navigateTo(p.para_id);
@@ -308,43 +393,12 @@ export const BookFeed: Component<BookFeedProps> = (props) => {
     if (last !== undefined && last.para_id !== props.chapterParaId) navigateTo(last.para_id);
   };
 
-  // Arrow-key navigation. Ignored when focus is in an editable surface
-  // (input, textarea, contenteditable) so typing search doesn't paginate.
-  // Cmd/Ctrl + left/right jumps to the first/last chapter.
-  // Cmd/Ctrl + up/down jumps to the start/end of the current chapter.
-  const isEditableTarget = (target: EventTarget | null): boolean => {
-    if (!(target instanceof HTMLElement)) return false;
-    if (target.isContentEditable) return true;
-    const tag = target.tagName;
-    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
-  };
-  const onKeyDown = (e: KeyboardEvent): void => {
-    if (e.altKey) return;
-    if (isEditableTarget(e.target)) return;
-    const jumpToEdge = e.metaKey || e.ctrlKey;
-    if (e.key === 'ArrowLeft') {
-      e.preventDefault();
-      if (jumpToEdge) goFirst();
-      else goPrev();
-    } else if (e.key === 'ArrowRight') {
-      e.preventDefault();
-      if (jumpToEdge) goLast();
-      else goNext();
-    } else if (jumpToEdge && e.key === 'ArrowUp') {
-      const el = props.scrollEl();
-      if (el === undefined) return;
-      e.preventDefault();
-      el.scrollTop = 0;
-    } else if (jumpToEdge && e.key === 'ArrowDown') {
-      const el = props.scrollEl();
-      if (el === undefined) return;
-      e.preventDefault();
-      el.scrollTop = el.scrollHeight;
-    }
-  };
-  onMount(() => {
-    window.addEventListener('keydown', onKeyDown);
-    onCleanup(() => window.removeEventListener('keydown', onKeyDown));
+  useChapterKeyboardNav({
+    scrollEl: props.scrollEl,
+    onPrev: goPrev,
+    onNext: goNext,
+    onFirst: goFirst,
+    onLast: goLast,
   });
 
   return (
@@ -364,15 +418,7 @@ export const BookFeed: Component<BookFeedProps> = (props) => {
         {(paragraph) => (
           <ParagraphRow
             paragraph={paragraph}
-            flashing={(() => {
-              const s = highlightState();
-              return (
-                s._tag === 'flashing' &&
-                paragraph.para_id !== null &&
-                paragraph.para_id !== undefined &&
-                s.paraId === paragraph.para_id
-              );
-            })()}
+            flashing={flashing(paragraph.para_id)}
             registerRef={(el) => {
               const id = paragraph.para_id;
               if (id === null || id === undefined) return;
