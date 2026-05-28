@@ -227,78 +227,17 @@ export const CommandPalette: Component<CommandPaletteProps> = (props) => {
   );
 
   const rows = createMemo<readonly Row[]>(() => {
-    const out: Row[] = [];
-
-    // A parsed query always wins — it surfaces a "jump to N" row at the top
-    // regardless of which view we're in, so the user can type past the
-    // current drilldown.
-    const p = parsed();
-    if (p !== null) {
-      const desc = describeParsed(p);
-      if (desc !== null) {
-        out.push({
-          kind: 'parsed',
-          id: PARSED_ID,
-          parsed: p,
-          label: desc.label,
-          hint: desc.hint,
-        });
-      }
-    }
-
-    const v = view();
     const q = query().trim().toLowerCase();
-
-    if (v._tag === 'root') {
-      const filtered =
-        q === '' ? BIBLE_BOOKS : BIBLE_BOOKS.filter((b) => b.name.toLowerCase().includes(q));
-      for (const b of filtered) {
-        out.push({
-          kind: 'book',
-          id: `book-${String(b.number)}`,
-          book: b.number,
-          label: b.name,
-        });
-      }
-      return out;
+    const head = parsedRow(parsed());
+    const v = view();
+    switch (v._tag) {
+      case 'root':
+        return head.concat(rowsForRoot(q));
+      case 'book':
+        return head.concat(rowsForBook(v, q));
+      case 'chapter':
+        return head.concat(rowsForChapter(v, q, chapterVerses()));
     }
-
-    if (v._tag === 'book') {
-      const book = getBibleBook(v.book);
-      if (!book) return out;
-      for (let ch = 1; ch <= book.chapters; ch++) {
-        const label = `${book.name} ${String(ch)}`;
-        if (q === '' || label.toLowerCase().includes(q) || String(ch).includes(q)) {
-          out.push({
-            kind: 'chapter',
-            id: `ch-${String(v.book)}-${String(ch)}`,
-            book: v.book,
-            chapter: ch,
-            label,
-          });
-        }
-      }
-      return out;
-    }
-
-    // chapter view
-    const verses = chapterVerses();
-    const book = getBibleBook(v.book);
-    const bookName = book?.name ?? `Book ${String(v.book)}`;
-    for (const verseNum of verses) {
-      const label = `${bookName} ${String(v.chapter)}:${String(verseNum)}`;
-      if (q === '' || String(verseNum).includes(q) || label.toLowerCase().includes(q)) {
-        out.push({
-          kind: 'verse',
-          id: `v-${String(v.book)}-${String(v.chapter)}-${String(verseNum)}`,
-          book: v.book,
-          chapter: v.chapter,
-          verse: verseNum,
-          label,
-        });
-      }
-    }
-    return out;
   });
 
   // Reset highlight whenever the visible row set changes shape. `on` makes
@@ -725,4 +664,69 @@ const describeParsed = (p: ParsedBibleQuery): { label: string; hint: string } | 
     case 'search':
       return null;
   }
+};
+
+// Per-view row builders. Each owns one view's row shape, query-filter rules,
+// and id format — adding a new view means adding one function, not extending
+// a 70-line switch. The dispatcher in `rows()` simply concats `parsedRow` to
+// the active view's output.
+const parsedRow = (p: ParsedBibleQuery | null): Row[] => {
+  if (p === null) return [];
+  const desc = describeParsed(p);
+  if (desc === null) return [];
+  return [{ kind: 'parsed', id: PARSED_ID, parsed: p, label: desc.label, hint: desc.hint }];
+};
+
+const rowsForRoot = (q: string): Row[] => {
+  const filtered =
+    q === '' ? BIBLE_BOOKS : BIBLE_BOOKS.filter((b) => b.name.toLowerCase().includes(q));
+  return filtered.map((b) => ({
+    kind: 'book',
+    id: `book-${String(b.number)}`,
+    book: b.number,
+    label: b.name,
+  }));
+};
+
+const rowsForBook = (v: { readonly book: number }, q: string): Row[] => {
+  const book = getBibleBook(v.book);
+  if (!book) return [];
+  const out: Row[] = [];
+  for (let ch = 1; ch <= book.chapters; ch++) {
+    const label = `${book.name} ${String(ch)}`;
+    if (q === '' || label.toLowerCase().includes(q) || String(ch).includes(q)) {
+      out.push({
+        kind: 'chapter',
+        id: `ch-${String(v.book)}-${String(ch)}`,
+        book: v.book,
+        chapter: ch,
+        label,
+      });
+    }
+  }
+  return out;
+};
+
+const rowsForChapter = (
+  v: { readonly book: number; readonly chapter: number },
+  q: string,
+  verses: readonly number[],
+): Row[] => {
+  const book = getBibleBook(v.book);
+  const bookName = book?.name ?? `Book ${String(v.book)}`;
+  const out: Row[] = [];
+  for (const verseNum of verses) {
+    const label = `${bookName} ${String(v.chapter)}:${String(verseNum)}`;
+    if (q === '' || String(verseNum).includes(q) || label.toLowerCase().includes(q)) {
+      out.push({
+        kind: 'verse',
+        id: `v-${String(v.book)}-${String(v.chapter)}-${String(verseNum)}`,
+        book: v.book,
+        chapter: v.chapter,
+        verse: verseNum,
+        label,
+      });
+    }
+  }
+  return out;
 };
