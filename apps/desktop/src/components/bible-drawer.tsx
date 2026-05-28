@@ -386,10 +386,27 @@ const WordsTab: Component<{ readonly state: BibleDrawerState }> = (props) => {
       if (f._tag === 'strongs') setRawQuery(f.code);
     }),
   );
-  const trimmedQuery = createMemo(() => rawQuery().trim());
-  const isStrongsQuery = createMemo(() => STRONGS_CODE_RE.test(trimmedQuery()));
-  const normalizedCode = createMemo(() => (isStrongsQuery() ? trimmedQuery().toUpperCase() : null));
-  const isReady = createMemo(() => trimmedQuery().length >= 2);
+  // Discriminated search mode — one memo, three exhaustive variants. Each
+  // Switch arm narrows on `_tag` and reads the variant payload, instead of
+  // recomputing the same booleans in each Match `when`.
+  type SearchMode =
+    | { readonly _tag: 'hint' }
+    | { readonly _tag: 'strongs'; readonly code: string }
+    | { readonly _tag: 'lexicon'; readonly query: string };
+  const searchMode = createMemo<SearchMode>(() => {
+    const q = rawQuery().trim();
+    if (q.length < 2) return { _tag: 'hint' };
+    if (STRONGS_CODE_RE.test(q)) return { _tag: 'strongs', code: q.toUpperCase() };
+    return { _tag: 'lexicon', query: q };
+  });
+  const strongsMode = createMemo(() => {
+    const m = searchMode();
+    return m._tag === 'strongs' ? m : null;
+  });
+  const lexiconMode = createMemo(() => {
+    const m = searchMode();
+    return m._tag === 'lexicon' ? m : null;
+  });
 
   return (
     <div class="flex flex-col gap-3">
@@ -404,17 +421,19 @@ const WordsTab: Component<{ readonly state: BibleDrawerState }> = (props) => {
         class="w-full bg-transparent border border-subtle rounded px-2 py-1 text-ui-sm text-fg placeholder:text-muted focus:outline-none focus:border-accent"
       />
       <Switch>
-        <Match when={!isReady()}>
+        <Match when={searchMode()._tag === 'hint'}>
           <p class="text-ui-sm text-muted">
             Type a Strong's number (H1234 / G5678) to list every verse it tags, or any English word
             to search the lexicon by definition.
           </p>
         </Match>
-        <Match when={isStrongsQuery() && normalizedCode()}>
-          {(code) => <WordsVerseResults state={props.state} code={code()} />}
+        <Match when={strongsMode()}>
+          {(mode) => <WordsVerseResults state={props.state} code={mode().code} />}
         </Match>
-        <Match when={!isStrongsQuery()}>
-          <WordsLexiconResults query={trimmedQuery()} onPickCode={(code) => setRawQuery(code)} />
+        <Match when={lexiconMode()}>
+          {(mode) => (
+            <WordsLexiconResults query={mode().query} onPickCode={(code) => setRawQuery(code)} />
+          )}
         </Match>
       </Switch>
     </div>
