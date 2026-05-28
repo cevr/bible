@@ -23,13 +23,14 @@ import { createBibleDrawerState } from './services/bible-drawer-state.js';
 import { defaultEase, Motion, Presence, useDrag } from './motion/index.js';
 import { animateProperty } from './motion/internals/driver.js';
 import { createDebouncedAction } from './lib/debounced-action.js';
-import { runtime } from './runtime.js';
+import { runtime, signalFromStream } from './runtime.js';
 import { lastChapterMemory } from './services/last-chapter-memory.js';
 import { type LastPosition, LastPositionStorage } from './services/last-position-storage.js';
 import { openBookAtFirstChapter } from './services/open-book.js';
 import { Prefetcher } from './services/prefetcher.js';
 import {
   type FontFamily,
+  INITIAL_READER_SETTINGS,
   ReaderSettings,
   type ReaderFontScale,
   type ReaderMode,
@@ -125,15 +126,25 @@ const drawerReducer = (mode: ReaderMode, curr: DrawerState, action: DrawerAction
 };
 
 export const App: Component = () => {
-  // UI mirror of ReaderSettings so reads are synchronous for templating.
-  // ReaderSettings remains the source of truth; setters fan out to both.
-  const [theme, setThemeSig] = createSignal<Theme>('light');
-  const [fontFamily, setFontFamilySig] = createSignal<FontFamily>('serif');
-  const [fontSize, setFontSizeSig] = createSignal<ReaderFontScale>('base');
-  const [lineHeight, setLineHeightSig] = createSignal(1.55);
-  const [letterSpacing, setLetterSpacingSig] = createSignal(0);
-  const [lineWidth, setLineWidthSig] = createSignal(68);
-  const [uiScale, setUiScaleSig] = createSignal<UiScale>('md');
+  // Settings projection. `ReaderSettings.changes` is the single source of
+  // truth — `signalFromStream` runs the subscription on the runtime and emits
+  // each snapshot into a Solid accessor, then per-field `createMemo`s slice
+  // it. No local signals mirroring service state; setters dispatch events
+  // and the resulting service emit re-flows through this projection.
+  const settingsState = signalFromStream(
+    Effect.gen(function* () {
+      const s = yield* ReaderSettings;
+      return s.changes;
+    }),
+    INITIAL_READER_SETTINGS,
+  );
+  const theme = createMemo(() => settingsState().theme);
+  const fontFamily = createMemo(() => settingsState().fontFamily);
+  const fontSize = createMemo(() => settingsState().fontSize);
+  const lineHeight = createMemo(() => settingsState().lineHeight);
+  const letterSpacing = createMemo(() => settingsState().letterSpacing);
+  const lineWidth = createMemo(() => settingsState().lineWidth);
+  const uiScale = createMemo(() => settingsState().uiScale);
   // Overlay stack: settings / search / palette can all logically be open,
   // but only the top of the stack is interactive. Esc pops the top. The
   // priority order baked into the Esc handler (palette > search > settings/drawer)
@@ -154,10 +165,10 @@ export const App: Component = () => {
     if (open) pushOverlay('settings');
     else popOverlay('settings');
   };
-  // Top-level reader mode. Persisted via ReaderSettings so a relaunch lands
-  // the user in whichever mode they left in. F3.1 wires the signal + header
-  // toggle; later sub-commits use it to swap which canvas/drawer render.
-  const [readerMode, setReaderModeSig] = createSignal<ReaderMode>('egw');
+  // Top-level reader mode — derived from the same projection as typography
+  // signals. Persisted via ReaderSettings so a relaunch lands the user in
+  // whichever mode they left in.
+  const readerMode = createMemo(() => settingsState().readerMode);
 
   // Right-side study drawer — one instance for the whole app, mounted in
   // both modes. EGW mode opens it via ScriptureRef clicks (the existing
@@ -180,11 +191,10 @@ export const App: Component = () => {
   // Per-overlay toggle state for the floating Bible reader toolbar. All three
   // default on — the study surfaces (Strong's, margin notes, xrefs) are why
   // this canvas exists, so we let users see them up-front and toggle off if
-  // the page feels too dense. Seeded from ReaderSettings on mount; setters
-  // fan out to persistence.
-  const [inlineStrongs, setInlineStrongsSig] = createSignal<boolean>(true);
-  const [inlineMarginNotes, setInlineMarginNotesSig] = createSignal<boolean>(true);
-  const [inlineCrossRefs, setInlineCrossRefsSig] = createSignal<boolean>(true);
+  // the page feels too dense. Derived from the settings projection.
+  const inlineStrongs = createMemo(() => settingsState().inlineStrongs);
+  const inlineMarginNotes = createMemo(() => settingsState().inlineMarginNotes);
+  const inlineCrossRefs = createMemo(() => settingsState().inlineCrossRefs);
 
   // True once the main-process Effect runtime is up. Polled on mount and
   // again once per second until it flips true. When false, we paint a
@@ -198,12 +208,17 @@ export const App: Component = () => {
   // or the reader, and feeds props.selection into ReaderPane.
   const [selection, setSelection] = createSignal<Option.Option<ReaderSelection>>(Option.none());
 
-  // Bible-mode selection mirror. Driven by BibleReaderState (same pattern as
-  // the EGW reader's `selection`). Used so the Bible TOC drawer can highlight
-  // the active book/chapter, and so the shell can decide whether the right
-  // commentary drawer should mount.
-  const [bibleSelection, setBibleSelection] = createSignal<Option.Option<BibleReaderSelection>>(
-    Option.none(),
+  // Bible-mode selection — projected directly from BibleReaderState's
+  // SubscriptionRef. Used so the Bible TOC drawer can highlight the active
+  // book/chapter, and so the shell can decide whether the right commentary
+  // drawer should mount. Storage + lastChapterMemory writes live in a
+  // separate persistence fiber below.
+  const bibleSelection = signalFromStream(
+    Effect.gen(function* () {
+      const state = yield* BibleReaderState;
+      return state.changes;
+    }),
+    Option.none<BibleReaderSelection>(),
   );
   const bibleTocSelection = createMemo(() => {
     const sel = bibleSelection();
@@ -288,28 +303,20 @@ export const App: Component = () => {
       runtime.runFork(Fiber.interrupt(pollFiber));
     });
 
-    const settingsRehydrateFiber = runtime.runFork(
+    // Seed the bible drawer's active study tab from persisted settings.
+    // Every other persisted field flows through `settingsState`'s subscription
+    // and reactive memos — the drawer is the one consumer that needs a
+    // one-shot non-persisting setter (re-writing the tab back to disk on
+    // every launch would be redundant).
+    const drawerSeedFiber = runtime.runFork(
       Effect.gen(function* () {
         const s = yield* ReaderSettings;
         const state = yield* s.get;
-        setThemeSig(state.theme);
-        setFontFamilySig(state.fontFamily);
-        setFontSizeSig(state.fontSize);
-        setLineHeightSig(state.lineHeight);
-        setLetterSpacingSig(state.letterSpacing);
-        setLineWidthSig(state.lineWidth);
-        setUiScaleSig(state.uiScale);
-        // Seed via the dedicated non-persisting setter — re-writing the
-        // same tab back to disk on every launch would be redundant.
         bibleDrawer.seedActiveStudyTab(state.bibleStudyTab);
-        setReaderModeSig(state.readerMode);
-        setInlineStrongsSig(state.inlineStrongs);
-        setInlineMarginNotesSig(state.inlineMarginNotes);
-        setInlineCrossRefsSig(state.inlineCrossRefs);
       }),
     );
     onCleanup(() => {
-      void runtime.runPromise(Fiber.interrupt(settingsRehydrateFiber));
+      void runtime.runPromise(Fiber.interrupt(drawerSeedFiber));
     });
 
     // Rehydrate last position on mount, then mirror + persist every change.
@@ -453,10 +460,11 @@ export const App: Component = () => {
       void runtime.runPromise(Fiber.interrupt(bibleRehydrateFiber));
     });
 
-    // Bible-mode selection mirror — keeps the local signal in sync (so the
-    // TOC can highlight the active chapter and the shell can decide what to
-    // render) AND persists the (book, chapter, verse) on every change so a
-    // refresh/restart restores the user's place.
+    // Bible-mode persistence fiber. The local accessor is derived directly
+    // from BibleReaderState's changes stream above; this fiber is purely
+    // about persisting the (book, chapter, verse) on every change so a
+    // refresh/restart restores the user's place, plus the session-scoped
+    // last-chapter memory used for book-hopping continuity.
     const bibleFiber = runtime.runFork(
       Effect.gen(function* () {
         const state = yield* BibleReaderState;
@@ -464,7 +472,6 @@ export const App: Component = () => {
         yield* state.changes.pipe(
           Stream.runForEach((next) =>
             Effect.gen(function* () {
-              setBibleSelection(next);
               if (Option.isNone(next)) {
                 yield* storage.clearBible;
               } else {
@@ -521,8 +528,10 @@ export const App: Component = () => {
     settingsFibers.add(fiber);
   };
 
+  // Domain-event dispatchers. No local mirror to update — the projected
+  // `settingsState` accessor picks up the new snapshot from the service's
+  // `changes` stream and the per-field memos re-derive automatically.
   const setTheme = (t: Theme) => {
-    setThemeSig(t);
     updateSettings(
       Effect.gen(function* () {
         const s = yield* ReaderSettings;
@@ -532,7 +541,6 @@ export const App: Component = () => {
   };
 
   const setFontFamily = (f: FontFamily) => {
-    setFontFamilySig(f);
     updateSettings(
       Effect.gen(function* () {
         const s = yield* ReaderSettings;
@@ -542,7 +550,6 @@ export const App: Component = () => {
   };
 
   const setFontSize = (scale: ReaderFontScale) => {
-    setFontSizeSig(scale);
     updateSettings(
       Effect.gen(function* () {
         const s = yield* ReaderSettings;
@@ -552,7 +559,6 @@ export const App: Component = () => {
   };
 
   const setReaderMode = (mode: ReaderMode) => {
-    setReaderModeSig(mode);
     updateSettings(
       Effect.gen(function* () {
         const s = yield* ReaderSettings;
@@ -566,7 +572,6 @@ export const App: Component = () => {
   };
 
   const setUiScale = (scale: UiScale) => {
-    setUiScaleSig(scale);
     updateSettings(
       Effect.gen(function* () {
         const s = yield* ReaderSettings;
@@ -576,7 +581,6 @@ export const App: Component = () => {
   };
 
   const setLineHeight = (n: number) => {
-    setLineHeightSig(n);
     updateSettings(
       Effect.gen(function* () {
         const s = yield* ReaderSettings;
@@ -586,7 +590,6 @@ export const App: Component = () => {
   };
 
   const setLetterSpacing = (n: number) => {
-    setLetterSpacingSig(n);
     updateSettings(
       Effect.gen(function* () {
         const s = yield* ReaderSettings;
@@ -596,7 +599,6 @@ export const App: Component = () => {
   };
 
   const setLineWidth = (n: number) => {
-    setLineWidthSig(n);
     updateSettings(
       Effect.gen(function* () {
         const s = yield* ReaderSettings;
@@ -606,7 +608,6 @@ export const App: Component = () => {
   };
 
   const toggleInlineStrongs = () => {
-    setInlineStrongsSig((v) => !v);
     updateSettings(
       Effect.gen(function* () {
         const s = yield* ReaderSettings;
@@ -616,7 +617,6 @@ export const App: Component = () => {
   };
 
   const toggleInlineMarginNotes = () => {
-    setInlineMarginNotesSig((v) => !v);
     updateSettings(
       Effect.gen(function* () {
         const s = yield* ReaderSettings;
@@ -626,7 +626,6 @@ export const App: Component = () => {
   };
 
   const toggleInlineCrossRefs = () => {
-    setInlineCrossRefsSig((v) => !v);
     updateSettings(
       Effect.gen(function* () {
         const s = yield* ReaderSettings;

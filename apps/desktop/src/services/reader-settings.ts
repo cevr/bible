@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Option, Queue, Ref, Schema, Stream } from 'effect';
+import { Context, Effect, Layer, Option, Schema, Stream, SubscriptionRef } from 'effect';
 import { SettingsStorage } from './settings-storage.js';
 
 export const Theme = Schema.Literals(['light', 'sepia', 'dark']);
@@ -86,7 +86,7 @@ export const ReaderSettingsState = Schema.Struct({
 });
 export type ReaderSettingsState = typeof ReaderSettingsState.Type;
 
-const initial: ReaderSettingsState = {
+export const INITIAL_READER_SETTINGS: ReaderSettingsState = {
   theme: 'light',
   fontFamily: 'serif',
   fontSize: 'base',
@@ -189,6 +189,10 @@ const withoutKey = (map: Readonly<Record<string, number>>, key: string): Record<
 // take no arguments so the reducer (not the caller) owns the flip.
 export interface ReaderSettingsShape {
   readonly get: Effect.Effect<ReaderSettingsState>;
+  /** Subscription to settings updates. Replays the current snapshot on
+   *  subscribe so consumers can seed from a single source — no separate
+   *  initial `get` + mirror dance needed. */
+  readonly changes: Stream.Stream<ReaderSettingsState>;
   readonly themeChosen: (theme: Theme) => Effect.Effect<void>;
   readonly fontFamilyChosen: (family: FontFamily) => Effect.Effect<void>;
   readonly fontSizeChosen: (scale: ReaderFontScale) => Effect.Effect<void>;
@@ -225,11 +229,13 @@ export class ReaderSettings extends Context.Service<ReaderSettings, ReaderSettin
         ? migrateStaleKeys(stored.value)
         : { cleaned: '', dropped: [] as ReadonlyArray<string> };
       const loaded = Option.isSome(stored)
-        ? yield* decodeSettings(migration.cleaned).pipe(Effect.orElseSucceed(() => initial))
-        : initial;
+        ? yield* decodeSettings(migration.cleaned).pipe(
+            Effect.orElseSucceed(() => INITIAL_READER_SETTINGS),
+          )
+        : INITIAL_READER_SETTINGS;
       const migrationDropped = migration.dropped;
 
-      const ref = yield* Ref.make<ReaderSettingsState>(loaded);
+      const ref = yield* SubscriptionRef.make<ReaderSettingsState>(loaded);
 
       if (migrationDropped.length > 0) {
         yield* Effect.logInfo(
@@ -242,16 +248,16 @@ export class ReaderSettings extends Context.Service<ReaderSettings, ReaderSettin
         if (json !== '') yield* storage.write(json);
       }
 
-      // Persistence pipeline: every `update` enqueues a tick; a debounced
-      // stream coalesces bursts and writes the latest snapshot. Effect's
-      // Stream.debounce owns interruption + lifecycle, so we don't have to
-      // hand-track a pending fiber.
-      const dirty = yield* Queue.unbounded<void>();
-      yield* Stream.fromQueue(dirty).pipe(
+      // Persistence pipeline subscribes to the SAME changes stream that UI
+      // consumers do — single source of truth. `Stream.changes` strips the
+      // replayed-current emit so we don't re-write the loaded snapshot at
+      // boot; `Stream.debounce` coalesces bursts.
+      const changes = SubscriptionRef.changes(ref);
+      yield* changes.pipe(
+        Stream.changes,
         Stream.debounce(`${PERSIST_DEBOUNCE_MS} millis`),
-        Stream.runForEach(() =>
+        Stream.runForEach((snapshot) =>
           Effect.gen(function* () {
-            const snapshot = yield* Ref.get(ref);
             const json = yield* encodeSettings(snapshot).pipe(Effect.orElseSucceed(() => ''));
             if (json !== '') yield* storage.write(json);
           }),
@@ -260,10 +266,11 @@ export class ReaderSettings extends Context.Service<ReaderSettings, ReaderSettin
       );
 
       const update = (f: (s: ReaderSettingsState) => ReaderSettingsState) =>
-        Ref.update(ref, f).pipe(Effect.andThen(Queue.offer(dirty, void 0)));
+        SubscriptionRef.update(ref, f);
 
       return {
-        get: Ref.get(ref),
+        get: SubscriptionRef.get(ref),
+        changes,
         themeChosen: (theme) => update((s) => ({ ...s, theme })),
         fontFamilyChosen: (fontFamily) => update((s) => ({ ...s, fontFamily })),
         fontSizeChosen: (fontSize) => update((s) => ({ ...s, fontSize })),
@@ -311,10 +318,12 @@ export class ReaderSettings extends Context.Service<ReaderSettings, ReaderSettin
     Layer.effect(
       ReaderSettings,
       Effect.gen(function* () {
-        const ref = yield* Ref.make<ReaderSettingsState>(initial);
-        const update = (f: (s: ReaderSettingsState) => ReaderSettingsState) => Ref.update(ref, f);
+        const ref = yield* SubscriptionRef.make<ReaderSettingsState>(INITIAL_READER_SETTINGS);
+        const update = (f: (s: ReaderSettingsState) => ReaderSettingsState) =>
+          SubscriptionRef.update(ref, f);
         return {
-          get: Ref.get(ref),
+          get: SubscriptionRef.get(ref),
+          changes: SubscriptionRef.changes(ref),
           themeChosen: (theme) => update((s) => ({ ...s, theme })),
           fontFamilyChosen: (fontFamily) => update((s) => ({ ...s, fontFamily })),
           fontSizeChosen: (fontSize) => update((s) => ({ ...s, fontSize })),
