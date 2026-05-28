@@ -73,31 +73,22 @@ interface HeaderIconButtonProps {
   readonly ariaLabel: string;
   readonly title?: string;
   readonly children: JSX.Element;
-  /** Render as text-style chip ("H/G") instead of square icon — auto-widens. */
-  readonly variant?: 'icon' | 'chip';
 }
 
-const HeaderIconButton: Component<HeaderIconButtonProps> = (props) => {
-  const isChip = (): boolean => props.variant === 'chip';
-  return (
-    <button
-      type="button"
-      class="flex h-7 items-center justify-center rounded text-muted hover:bg-rule/30 hover:text-fg disabled:opacity-30 disabled:hover:bg-transparent data-[on=true]:bg-accent-soft data-[on=true]:text-accent"
-      classList={{
-        'w-7': !isChip(),
-        'px-1.5 text-[0.7rem] font-medium tracking-[0.06em] uppercase': isChip(),
-      }}
-      onClick={props.onClick}
-      disabled={props.disabled}
-      aria-pressed={props.pressed}
-      data-on={props.pressed === true ? 'true' : undefined}
-      aria-label={props.ariaLabel}
-      title={props.title ?? props.ariaLabel}
-    >
-      {props.children}
-    </button>
-  );
-};
+const HeaderIconButton: Component<HeaderIconButtonProps> = (props) => (
+  <button
+    type="button"
+    class="flex h-7 w-7 items-center justify-center rounded text-muted hover:bg-rule/30 hover:text-fg disabled:opacity-30 disabled:hover:bg-transparent data-[on=true]:bg-accent-soft data-[on=true]:text-accent"
+    onClick={props.onClick}
+    disabled={props.disabled}
+    aria-pressed={props.pressed}
+    data-on={props.pressed === true ? 'true' : undefined}
+    aria-label={props.ariaLabel}
+    title={props.title ?? props.ariaLabel}
+  >
+    {props.children}
+  </button>
+);
 
 // ─── Body ──────────────────────────────────────────────────────────────────
 // Scrolling region under the header. The default flex-1 + min-h-0 keeps it
