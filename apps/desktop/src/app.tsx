@@ -28,7 +28,6 @@ import { type LastPosition, LastPositionStorage } from './services/last-position
 import { openBookAtFirstChapter } from './services/open-book.js';
 import { Prefetcher } from './services/prefetcher.js';
 import {
-  type BibleStudyTab,
   type FontFamily,
   ReaderSettings,
   type ReaderFontScale,
@@ -164,13 +163,10 @@ export const App: Component = () => {
   // `onScriptureClick` callback); Bible mode opens it from verse-gutter /
   // margin-note / Strong's-super / `e` marker clicks on the chapter canvas.
   //
-  // We wrap setActiveStudyTab so every tab swap fans out to ReaderSettings
-  // persistence — the base state object stays pure (no I/O) for testability.
-  const bibleDrawerBase = createBibleDrawerState();
-  const bibleDrawer = {
-    ...bibleDrawerBase,
-    setActiveStudyTab: (tab: BibleStudyTab) => {
-      bibleDrawerBase.setActiveStudyTab(tab);
+  // Persistence is wired into the state machine via `persistTab` so the
+  // service stays the single source of truth — no parallel mirror here.
+  const bibleDrawer = createBibleDrawerState({
+    persistTab: (tab) => {
       updateSettings(
         Effect.gen(function* () {
           const s = yield* ReaderSettings;
@@ -178,24 +174,7 @@ export const App: Component = () => {
         }),
       );
     },
-    open: (
-      book: number,
-      chapter: number,
-      verse: number,
-      tab?: BibleStudyTab,
-      focus?: Parameters<typeof bibleDrawerBase.open>[4],
-    ): void => {
-      bibleDrawerBase.open(book, chapter, verse, tab, focus);
-      if (tab !== undefined) {
-        updateSettings(
-          Effect.gen(function* () {
-            const s = yield* ReaderSettings;
-            yield* s.setBibleStudyTab(tab);
-          }),
-        );
-      }
-    },
-  };
+  });
 
   // Per-overlay toggle state for the floating Bible reader toolbar. All three
   // default on — the study surfaces (Strong's, margin notes, xrefs) are why
@@ -326,9 +305,9 @@ export const App: Component = () => {
         setLetterSpacingSig(state.letterSpacing);
         setLineWidthSig(state.lineWidth);
         setUiScaleSig(state.uiScale);
-        // Seed via the base (non-persisting) setter — re-writing the same
-        // tab back to disk on every launch would be redundant.
-        bibleDrawerBase.setActiveStudyTab(state.bibleStudyTab);
+        // Seed via the dedicated non-persisting setter — re-writing the
+        // same tab back to disk on every launch would be redundant.
+        bibleDrawer.seedActiveStudyTab(state.bibleStudyTab);
         setReaderModeSig(state.readerMode);
         setInlineStrongsSig(state.inlineStrongs);
         setInlineMarginNotesSig(state.inlineMarginNotes);

@@ -50,6 +50,10 @@ export interface BibleDrawerState {
   readonly studyFocus: Accessor<StudyPaneFocus>;
   readonly close: () => void;
   readonly setActiveStudyTab: (tab: BibleStudyTab) => void;
+  /** Replay a persisted tab on startup without calling the persist callback.
+   *  Distinct from `setActiveStudyTab` so the seed path doesn't write the
+   *  same value straight back to disk. */
+  readonly seedActiveStudyTab: (tab: BibleStudyTab) => void;
   /** Open the drawer pinned to a specific verse. Optional `tab` overrides
    *  the user's last-used tab (used by Strong's-super / margin-note / `e`
    *  clicks that should land on a specific tab). Optional `focus` carries
@@ -95,11 +99,25 @@ const targetFromQuery = (query: string): DrawerTarget | null => {
   }
 };
 
+export interface BibleDrawerStateOptions {
+  readonly initialTab?: BibleStudyTab;
+  /**
+   * Called whenever the active study tab is set via user interaction
+   * (`setActiveStudyTab` or `open(... , tab)`). Not called by the seed
+   * setter `seedActiveStudyTab`, which exists for replaying persisted state
+   * without re-persisting it. Optional so tests can use the bare state
+   * machine without an I/O layer.
+   */
+  readonly persistTab?: (tab: BibleStudyTab) => void;
+}
+
 /** Module-singleton drawer state. The drawer is global UI — one at a time —
  *  so we keep its state outside any component to avoid prop-drilling.
- *  `initialTab` is loaded from ReaderSettings by app.tsx; updates fan out
- *  through the wrapper layer there. */
-export const createBibleDrawerState = (initialTab: BibleStudyTab = 'notes'): BibleDrawerState => {
+ *  Persistence is wired in via `persistTab` so the state machine stays the
+ *  single source of truth for the active tab — no parallel mirror in
+ *  app.tsx. */
+export const createBibleDrawerState = (options: BibleDrawerStateOptions = {}): BibleDrawerState => {
+  const { initialTab = 'notes', persistTab } = options;
   const [lifecycle, setLifecycle] = createSignal<BibleDrawerLifecycle>({ _tag: 'never' });
   const [activeStudyTab, setActiveStudyTabSig] = createSignal<BibleStudyTab>(initialTab);
   const [studyFocus, setStudyFocus] = createSignal<StudyPaneFocus>({ _tag: 'none' });
@@ -112,6 +130,12 @@ export const createBibleDrawerState = (initialTab: BibleStudyTab = 'notes'): Bib
 
   const setActiveStudyTab = (tab: BibleStudyTab): void => {
     setActiveStudyTabSig(tab);
+    persistTab?.(tab);
+  };
+
+  /** Replay persisted tab on startup without re-writing it back to disk. */
+  const seedActiveStudyTab = (tab: BibleStudyTab): void => {
+    setActiveStudyTabSig(tab);
   };
 
   const open = (
@@ -122,7 +146,10 @@ export const createBibleDrawerState = (initialTab: BibleStudyTab = 'notes'): Bib
     focus?: StudyPaneFocus,
   ): void => {
     setLifecycle({ _tag: 'open', target: { book, chapter, verse } });
-    if (tab !== undefined) setActiveStudyTabSig(tab);
+    if (tab !== undefined) {
+      setActiveStudyTabSig(tab);
+      persistTab?.(tab);
+    }
     setStudyFocus(focus ?? { _tag: 'none' });
   };
 
@@ -158,6 +185,7 @@ export const createBibleDrawerState = (initialTab: BibleStudyTab = 'notes'): Bib
     studyFocus,
     close,
     setActiveStudyTab,
+    seedActiveStudyTab,
     open,
     setTarget,
     openFromQuery,
