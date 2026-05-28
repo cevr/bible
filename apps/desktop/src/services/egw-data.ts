@@ -91,16 +91,14 @@ const encodeFolders = Schema.encodeEffect(FoldersJson);
 // Cache key for a chapter — para_id when present, puborder as fallback. Stable
 // across both getChapter (which has a TocItem) and getChapterByParaId (which
 // has a para_id string).
-const chapterCacheKey = (toc: Schemas.TocItem): string => toc.para_id ?? String(toc.puborder);
+const chapterCacheKey = (toc: Schemas.TocItem): string =>
+  Option.getOrElse(toc.para_id, () => String(toc.puborder));
 
 // Mirrors Prefetcher's `navigableChapters` filter — both must agree on what
 // counts as a fetchable chapter for the "downloaded" badge denominator to
 // equal what the Prefetcher actually warms.
 const countNavigable = (toc: readonly Schemas.TocItem[]): number =>
-  toc.reduce(
-    (n, t) => (t.para_id !== undefined && t.para_id !== null && t.para_id !== '' ? n + 1 : n),
-    0,
-  );
+  toc.reduce((n, t) => (Option.isSome(t.para_id) ? n + 1 : n), 0);
 
 // Find the navigable TOC item whose puborder is the greatest <= paragraphPuborder.
 // TOC items aren't guaranteed sorted by puborder in the response, so a linear
@@ -111,7 +109,7 @@ const findChapterForPuborder = (
 ): Option.Option<Schemas.TocItem> => {
   let best: Schemas.TocItem | null = null;
   for (const item of toc) {
-    if (item.para_id === undefined || item.para_id === null || item.para_id === '') continue;
+    if (Option.isNone(item.para_id)) continue;
     if (item.puborder > paragraphPuborder) continue;
     if (best === null || item.puborder > best.puborder) best = item;
   }
@@ -202,7 +200,7 @@ export class EGWData extends Context.Service<EGWData, EGWDataShape>()(
               encode: encodeToc,
               fetchLive: live.getToc(bookId),
             });
-            const item = toc.find((t) => t.para_id === paraId);
+            const item = toc.find((t) => Option.contains(t.para_id, paraId));
             if (item === undefined) {
               return yield* new EGWApiError({
                 message: `No TOC item with para_id=${paraId} in book ${String(bookId)}`,
@@ -273,7 +271,7 @@ const makeLive = (client: EGWIpcClientShape): EGWDataShape => {
     getChapterByParaId: (bookId, paraId) =>
       Effect.gen(function* () {
         const toc = yield* getToc(bookId);
-        const item = toc.find((t) => t.para_id === paraId);
+        const item = toc.find((t) => Option.contains(t.para_id, paraId));
         if (item === undefined) {
           return yield* new EGWApiError({
             message: `No TOC item with para_id=${paraId} in book ${String(bookId)}`,

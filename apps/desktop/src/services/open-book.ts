@@ -1,4 +1,4 @@
-import { Effect, Result } from 'effect';
+import { Effect, Option, Result } from 'effect';
 import { EGWData } from './egw-data.js';
 import { lastChapterMemory } from './last-chapter-memory.js';
 import { ReaderState } from './reader-state.js';
@@ -28,11 +28,9 @@ export const openBookAtFirstChapter = (bookId: number) =>
       yield* state.openBook(bookId);
       return;
     }
-    const first = tocResult.success.find(
-      (item) => item.para_id !== undefined && item.para_id !== null && item.para_id !== '',
-    );
-    if (first?.para_id !== undefined && first.para_id !== null && first.para_id !== '') {
-      yield* state.openChapter(bookId, first.para_id);
+    const first = tocResult.success.find((item) => Option.isSome(item.para_id));
+    if (first !== undefined && Option.isSome(first.para_id)) {
+      yield* state.openChapter(bookId, first.para_id.value);
     } else {
       console.warn(
         `[openBookAtFirstChapter] no chapter with para_id found, falling back to openBook`,

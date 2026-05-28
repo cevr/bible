@@ -150,10 +150,9 @@ export const SearchPanel: Component<SearchPanelProps> = (props) => {
         // item whose puborder is the greatest <= the paragraph's puborder.
         const chapter = yield* data.findContainingChapter(hit.bookId, hit.puborder);
         if (Option.isNone(chapter)) return;
-        const chapterParaId = chapter.value.para_id;
-        if (chapterParaId === undefined || chapterParaId === null || chapterParaId === '') return;
+        if (Option.isNone(chapter.value.para_id)) return;
         const state = yield* ReaderState;
-        yield* state.openChapterAt(hit.bookId, chapterParaId, hit.paraId);
+        yield* state.openChapterAt(hit.bookId, chapter.value.para_id.value, hit.paraId);
       }).pipe(
         // Surface failures via the runtime logger rather than silently
         // swallowing — a search hit that can't navigate is a real bug, not a

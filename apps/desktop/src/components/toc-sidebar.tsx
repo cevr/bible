@@ -81,14 +81,10 @@ export const TocSidebar: Component<TocSidebarProps> = (props) => {
               bookId={props.bookId}
               item={item}
               active={
-                item.para_id !== null &&
-                item.para_id !== undefined &&
-                Option.contains(activeParaId(), item.para_id)
+                Option.isSome(item.para_id) && Option.contains(activeParaId(), item.para_id.value)
               }
               expanded={
-                item.para_id !== null &&
-                item.para_id !== undefined &&
-                Option.contains(expandedParaId(), item.para_id)
+                Option.isSome(item.para_id) && Option.contains(expandedParaId(), item.para_id.value)
               }
               onSelect={openChapter}
               onToggleExpand={toggleExpand}
@@ -115,7 +111,7 @@ const TocRow: Component<TocRowProps> = (props) => {
   const indent = () => ({ 'padding-left': `${String(props.item.level * INDENT_PER_LEVEL_PX)}px` });
   const label = () =>
     props.item.title ?? Option.getOrElse(props.item.refcode_short, () => '(untitled)');
-  const paraId = () => props.item.para_id ?? null;
+  const paraId = () => Option.getOrNull(props.item.para_id);
 
   return (
     // Headings = group labels with no chapter. Visually distinct from clickable

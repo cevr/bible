@@ -186,7 +186,7 @@ export type Book = Schema.Schema.Type<typeof Book>;
  * Table of Contents Item (TocDto)
  */
 export const TocItem = Schema.Struct({
-  para_id: Schema.optional(Schema.NullOr(Schema.String)),
+  para_id: OptionFromOptionalNullishOrEmpty,
   level: Schema.Number,
   title: Schema.optional(Schema.NullOr(Schema.String)),
   refcode_short: OptionFromOptionalNullishOrEmpty,

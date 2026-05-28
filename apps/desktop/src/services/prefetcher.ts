@@ -66,7 +66,7 @@ export interface PrefetcherShape {
 const idle: PrefetchStatus = { _tag: 'Idle' };
 
 const navigableChapters = (toc: readonly Schemas.TocItem[]): readonly Schemas.TocItem[] =>
-  toc.filter((t) => t.para_id !== undefined && t.para_id !== null && t.para_id !== '');
+  toc.filter((t) => Option.isSome(t.para_id));
 
 export class Prefetcher extends Context.Service<Prefetcher, PrefetcherShape>()(
   '@bible/desktop/services/Prefetcher',

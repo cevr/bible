@@ -156,7 +156,7 @@ export class EGWGeminiService extends Context.Service<EGWGeminiService, EGWGemin
           // Prefer para_id (paragraph ID) when available, fall back to puborder
           const validTocItems = options.toc.filter(
             (item) =>
-              (item.para_id !== undefined && item.para_id !== null) ||
+              Option.isSome(item.para_id) ||
               (item.puborder !== undefined && item.puborder !== null),
           );
 
@@ -177,10 +177,10 @@ export class EGWGeminiService extends Context.Service<EGWGeminiService, EGWGemin
             // Fall back to puborder if para_id is not available
             Stream.flatMap((tocItem) => {
               let chapterId: string;
-              if (tocItem.para_id) {
+              if (Option.isSome(tocItem.para_id)) {
                 // para_id has pattern ^\d+\.\d+$ (e.g., "1.1", "2.5")
                 // Extract the chapter number (part before the dot)
-                const match = tocItem.para_id.match(/^(\d+)\./);
+                const match = tocItem.para_id.value.match(/^(\d+)\./);
                 if (match && match[1]) {
                   chapterId = match[1];
                 } else {

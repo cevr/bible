@@ -146,8 +146,7 @@ export const downloadBookToLocal = (
     const chapterIds = tocResult.toc
       .filter(
         (item) =>
-          (item.para_id !== undefined && item.para_id !== null) ||
-          (item.puborder !== undefined && item.puborder !== null),
+          Option.isSome(item.para_id) || (item.puborder !== undefined && item.puborder !== null),
       )
       .map(chapterIdFromTocItem);
 

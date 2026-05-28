@@ -281,8 +281,8 @@ export function headingLevel(elementType: string | null | undefined): number {
  * without erroring, so every caller MUST go through this helper.
  */
 export function chapterIdFromTocItem(toc: Schemas.TocItem): string {
-  if (toc.para_id !== undefined && toc.para_id !== null) {
-    const match = toc.para_id.match(/\.(\d+)$/);
+  if (Option.isSome(toc.para_id)) {
+    const match = toc.para_id.value.match(/\.(\d+)$/);
     return match?.[1] ?? String(toc.puborder);
   }
   return String(toc.puborder);

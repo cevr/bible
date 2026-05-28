@@ -91,9 +91,10 @@ export interface BookFeedProps {
   readonly onScriptureClick?: (title: string) => void;
 }
 
-interface NavItem extends Schemas.TocItem {
-  readonly para_id: string;
-}
+// Narrowed TocItem with a resolved `para_id: string` (i.e. the wide
+// `Option<string>` collapsed to a guaranteed value). Used downstream for chapter
+// navigation where the lack of a para_id would be a programmer error.
+type NavItem = Omit<Schemas.TocItem, 'para_id'> & { readonly para_id: string };
 
 // Chapter-data hook: owns IPC + LRU mirror + adjacent preloads. Returns the
 // paragraphs accessor (cache-peek-first so warm prev/next renders without
@@ -113,9 +114,12 @@ const useChapterData = (props: {
   const navItems = createMemo<readonly NavItem[]>(() => {
     const t = toc();
     if (t === undefined) return [];
-    return t.filter(
-      (i): i is NavItem => i.para_id !== undefined && i.para_id !== null && i.para_id !== '',
-    );
+    const out: NavItem[] = [];
+    for (const i of t) {
+      if (Option.isNone(i.para_id)) continue;
+      out.push({ ...i, para_id: i.para_id.value });
+    }
+    return out;
   });
   const currentNav = createMemo<NavItem | undefined>(() =>
     navItems().find((n) => n.para_id === props.chapterParaId),

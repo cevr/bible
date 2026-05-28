@@ -65,7 +65,7 @@ describe('EGWData', () => {
   it('layerTest accepts per-method overrides', async () => {
     const customToc: readonly Schemas.TocItem[] = [
       {
-        para_id: '84.155',
+        para_id: Option.some('84.155'),
         level: 1,
         title: 'Ch 1',
         refcode_short: Option.some('PP 1'),
