@@ -471,7 +471,7 @@ ipcMain.handle(
       bookCode: r.bookCode,
       bookTitle: r.bookTitle,
       paraId: r.para_id ?? null,
-      refcodeShort: r.refcode_short ?? null,
+      refcodeShort: Option.getOrNull(r.refcode_short),
       snippet: nodesToText(r.nodes),
       puborder: r.puborder,
     }));
@@ -1034,7 +1034,7 @@ ipcMain.handle(
           bookId: r.bookId,
           bookCode: r.bookCode,
           bookTitle: r.bookTitle,
-          refcodeShort: r.refcode_short ?? null,
+          refcodeShort: Option.getOrNull(r.refcode_short),
           snippet: nodesToText(r.nodes),
           puborder: r.puborder,
         }),
@@ -1212,7 +1212,7 @@ ipcMain.handle(
       bookCode: r.bookCode,
       bookTitle: r.bookTitle,
       paraId: r.para_id ?? null,
-      refcodeShort: r.refcode_short ?? null,
+      refcodeShort: Option.getOrNull(r.refcode_short),
       snippet: nodesToText(r.nodes),
       puborder: r.puborder,
     }));

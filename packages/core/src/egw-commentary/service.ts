@@ -5,7 +5,7 @@
  * Uses the indexed paragraph_bible_refs table for fast O(1) lookups.
  */
 
-import { Context, Effect, Layer, Schema } from 'effect';
+import { Context, Effect, Layer, Option, Schema } from 'effect';
 
 import { EGWParagraphDatabase } from '../egw-db/book-database.js';
 import { nodesToText } from '../egw/ast.js';
@@ -34,7 +34,7 @@ function paragraphToEntry(
   bookTitle: string,
 ): CommentaryEntry {
   return {
-    refcode: para.refcode_short ?? para.refcode_long ?? '',
+    refcode: Option.getOrElse(para.refcode_short, () => para.refcode_long ?? ''),
     bookCode,
     bookTitle,
     content: nodesToText(para.nodes),
@@ -120,11 +120,11 @@ export class EGWCommentaryService extends Context.Service<
             // Filter to BC volumes only
             paragraphs
               .filter((para) => {
-                const refcode = para.refcode_short ?? para.refcode_long ?? '';
+                const refcode = Option.getOrElse(para.refcode_short, () => para.refcode_long ?? '');
                 return /^[1-7]BC/i.test(refcode);
               })
               .map((para) => {
-                const refcode = para.refcode_short ?? para.refcode_long ?? '';
+                const refcode = Option.getOrElse(para.refcode_short, () => para.refcode_long ?? '');
                 const bcVolume = refcode.substring(0, 3).toUpperCase();
                 return paragraphToEntry(
                   para,

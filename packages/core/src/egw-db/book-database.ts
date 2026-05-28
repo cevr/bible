@@ -63,15 +63,17 @@ export const BookRow = Schema.Struct({
 
 export type BookRow = Schema.Schema.Type<typeof BookRow>;
 
-const { para_id, refcode_short, refcode_long, puborder, element_type, element_subtype } =
+const { para_id, refcode_long, puborder, element_type, element_subtype } =
   EGWSchemas.Paragraph.fields;
 
 // SQL row shape. `nodes_json` is JSON-encoded `readonly Node[]`; `content_text`
 // is the plain-text projection used by the FTS5 virtual table. Both are
 // derived from the AST at write time so reads don't have to parse anything.
+// `refcode_short` stays as `string | null` on the row (SQLite has no Option
+// type); `paragraphToRow` and `rowToParagraph` translate at the boundary.
 export const ParagraphRow = Schema.Struct({
   para_id,
-  refcode_short,
+  refcode_short: Schema.optional(Schema.NullOr(Schema.String)),
   refcode_long,
   nodes_json: Schema.String,
   content_text: Schema.String,
@@ -313,20 +315,21 @@ const paragraphToRow = (
   createdAt: string,
   updatedAt: string,
 ): ParagraphRow => {
+  const refcodeShort = Option.getOrNull(paragraph.refcode_short);
   const refCode =
-    paragraph.refcode_short ??
+    refcodeShort ??
     paragraph.refcode_long ??
     paragraph.para_id ??
     `book-${bookId}-para-${paragraph.puborder}`;
 
   const { page, paragraph: paraNum } = parseRefcodeNumbers(
-    paragraph.refcode_short ?? paragraph.refcode_long ?? null,
+    refcodeShort ?? paragraph.refcode_long ?? null,
   );
   const chapterHeading = isChapterHeading(paragraph.element_type ?? null);
 
   return {
     para_id: paragraph.para_id ?? null,
-    refcode_short: paragraph.refcode_short ?? null,
+    refcode_short: refcodeShort,
     refcode_long: paragraph.refcode_long ?? null,
     // Canonical AST on disk; FTS index uses content_text projection.
     nodes_json: JSON.stringify(paragraph.nodes),
@@ -364,7 +367,7 @@ const rowToParagraph = (row: ParagraphRow): EGWSchemas.Paragraph => {
     refcode_2: null,
     refcode_3: null,
     refcode_4: null,
-    refcode_short: row.refcode_short ?? null,
+    refcode_short: Option.fromNullishOr(row.refcode_short),
     refcode_long: row.refcode_long ?? null,
     element_type: row.element_type ?? null,
     element_subtype: row.element_subtype ?? null,
@@ -579,7 +582,7 @@ export class EGWParagraphDatabase extends Context.Service<
           yield* storeBook(book);
 
           const refCode =
-            paragraph.refcode_short ??
+            Option.getOrNull(paragraph.refcode_short) ??
             paragraph.refcode_long ??
             paragraph.para_id ??
             `book-${book.book_id}-para-${paragraph.puborder}`;

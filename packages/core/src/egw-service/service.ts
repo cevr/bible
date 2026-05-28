@@ -226,7 +226,7 @@ export class EGWService extends Context.Service<EGWService, EGWServiceShape>()(
             (p) =>
               new EGWParagraph({
                 paraId: p.para_id ?? null,
-                refcodeShort: p.refcode_short ?? null,
+                refcodeShort: Option.getOrNull(p.refcode_short),
                 nodes: p.nodes,
                 puborder: p.puborder,
                 elementType: p.element_type ?? null,
@@ -274,14 +274,15 @@ export class EGWService extends Context.Service<EGWService, EGWServiceShape>()(
           const headings = yield* db.getChapterHeadings(bookOpt.value.book_id);
 
           return headings.map((h) => {
+            const refcodeShort = Option.getOrNull(h.refcode_short);
             // Parse page number from refcode
-            const pageMatch = h.refcode_short?.match(/\s(\d+)\./);
+            const pageMatch = refcodeShort?.match(/\s(\d+)\./);
             const pageStr = pageMatch?.[1];
             const page = pageStr ? parseInt(pageStr, 10) : null;
 
             return new EGWChapter({
               title: nodesToText(h.nodes),
-              refcodeShort: h.refcode_short ?? null,
+              refcodeShort,
               puborder: h.puborder,
               page,
             });
@@ -299,7 +300,7 @@ export class EGWService extends Context.Service<EGWService, EGWServiceShape>()(
               (r) =>
                 new EGWSearchResult({
                   paraId: r.para_id ?? null,
-                  refcodeShort: r.refcode_short ?? null,
+                  refcodeShort: Option.getOrNull(r.refcode_short),
                   nodes: r.nodes,
                   puborder: r.puborder,
                   bookCode: r.bookCode,
@@ -329,28 +330,23 @@ export class EGWService extends Context.Service<EGWService, EGWServiceShape>()(
                 author: book.book_author,
                 paragraphCount: book.paragraph_count,
               }),
-              paragraphs: [...paragraphs].map(
-                (p) =>
-                  new EGWBookDumpParagraph({
-                    refCode:
-                      p.refcode_short ??
-                      p.refcode_long ??
-                      p.para_id ??
-                      `${book.book_id}-${p.puborder}`,
-                    paraId: p.para_id ?? null,
-                    refcodeShort: p.refcode_short ?? null,
-                    refcodeLong: p.refcode_long ?? null,
-                    nodes: p.nodes,
-                    puborder: p.puborder,
-                    elementType: p.element_type ?? null,
-                    elementSubtype: p.element_subtype ?? null,
-                    pageNumber: parsePageNumber(p.refcode_short ?? p.refcode_long ?? null),
-                    paragraphNumber: parseParagraphNumber(
-                      p.refcode_short ?? p.refcode_long ?? null,
-                    ),
-                    isChapterHeading: isChapterHeadingType(p.element_type ?? null),
-                  }),
-              ),
+              paragraphs: [...paragraphs].map((p) => {
+                const refcodeShort = Option.getOrNull(p.refcode_short);
+                return new EGWBookDumpParagraph({
+                  refCode:
+                    refcodeShort ?? p.refcode_long ?? p.para_id ?? `${book.book_id}-${p.puborder}`,
+                  paraId: p.para_id ?? null,
+                  refcodeShort,
+                  refcodeLong: p.refcode_long ?? null,
+                  nodes: p.nodes,
+                  puborder: p.puborder,
+                  elementType: p.element_type ?? null,
+                  elementSubtype: p.element_subtype ?? null,
+                  pageNumber: parsePageNumber(refcodeShort ?? p.refcode_long ?? null),
+                  paragraphNumber: parseParagraphNumber(refcodeShort ?? p.refcode_long ?? null),
+                  isChapterHeading: isChapterHeadingType(p.element_type ?? null),
+                });
+              }),
               bibleRefs: bibleRefs.map(
                 (r) =>
                   new EGWBookDumpBibleRef({

@@ -243,12 +243,12 @@ const ParagraphRow: Component<{
   // Best-effort label: prefer refcode_short ("PP 5.1"), fall back to the first
   // few words of the rendered text so the row isn't empty for paragraphs
   // without a refcode.
-  const label = createMemo<string>(() => {
-    const ref = props.paragraph.refcode_short;
-    if (ref !== undefined && ref !== null && ref !== '') return ref;
-    const snippet = paragraphSnippet(props.paragraph);
-    return snippet === '' ? '(paragraph)' : snippet;
-  });
+  const label = createMemo<string>(() =>
+    Option.getOrElse(props.paragraph.refcode_short, () => {
+      const snippet = paragraphSnippet(props.paragraph);
+      return snippet === '' ? '(paragraph)' : snippet;
+    }),
+  );
 
   return (
     <li>

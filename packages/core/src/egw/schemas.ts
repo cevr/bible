@@ -3,9 +3,54 @@
  * Based on the EGW API client reference implementation
  */
 
-import { Schema, SchemaGetter } from 'effect';
+import { Option, Schema, SchemaGetter } from 'effect';
 
 import { Node, parseParagraphContent } from './ast.js';
+
+/**
+ * Schema helper for optional, nullable, possibly-empty strings.
+ *
+ * The EGW API returns "missing" fields as either a missing key, `null`,
+ * `undefined`, or — semantically equivalent — an empty string. Modelling
+ * those four shapes as `string | null | undefined` (the natural
+ * `optional(NullOr(String))` type) forces every consumer to triple-check
+ * (`r === null || r === undefined || r === ''`) and bakes the
+ * empty-string-as-missing convention into N call sites.
+ *
+ * `OptionFromOptionalNullishOrEmpty` normalizes at the parse boundary:
+ *
+ * Decode (wire → canonical):
+ *   - missing key → `Option.none()`
+ *   - `null`      → `Option.none()`
+ *   - `undefined` → `Option.none()`
+ *   - `""`        → `Option.none()`
+ *   - `"abc"`     → `Option.some("abc")`
+ *
+ * Encode (canonical → wire): `None` omits the key; `Some(s)` emits the
+ * string. Pattern lifted from `Schema.OptionFromOptionalNullOr` (which
+ * doesn't collapse the empty string).
+ */
+const OptionFromOptionalNullishOrEmpty: Schema.decodeTo<
+  Schema.Option<Schema.String>,
+  Schema.optional<Schema.NullOr<Schema.String>>
+> = Schema.optional(Schema.NullOr(Schema.String)).pipe(
+  Schema.decodeTo(Schema.Option(Schema.String), {
+    decode: SchemaGetter.transformOptional((oe) =>
+      // oe: Option<string | null>  (None = missing key OR undefined)
+      // Flatten null/'' into None, lift the rest into Some(Some(s)).
+      oe.pipe(
+        Option.filter((v): v is string => v !== null && v !== ''),
+        Option.some,
+      ),
+    ),
+    encode: SchemaGetter.transformOptional((ot) =>
+      // ot: Option<Option<string>>  — always `Some(inner)` because encode
+      // sees the canonical field as present. `Option.flatten` drops the
+      // outer wrapper so a canonical `None` becomes a missing key.
+      Option.flatten(ot),
+    ),
+  }),
+);
 
 /**
  * Text Direction
@@ -168,7 +213,7 @@ export const Paragraph = Schema.Struct({
   refcode_2: Schema.optional(Schema.NullOr(Schema.String)),
   refcode_3: Schema.optional(Schema.NullOr(Schema.String)),
   refcode_4: Schema.optional(Schema.NullOr(Schema.String)),
-  refcode_short: Schema.optional(Schema.NullOr(Schema.String)),
+  refcode_short: OptionFromOptionalNullishOrEmpty,
   refcode_long: Schema.optional(Schema.NullOr(Schema.String)),
   element_type: Schema.optional(Schema.NullOr(Schema.String)),
   element_subtype: Schema.optional(Schema.NullOr(Schema.String)),
@@ -203,6 +248,13 @@ const ParagraphWire = Schema.Struct({
   puborder: Schema.Number,
 });
 
+/**
+ * ParagraphFromHtml decodes by parsing `content` to AST and reshaping into the
+ * canonical Paragraph. The intermediate object matches `Paragraph["Encoded"]`
+ * (i.e. the schema's *input* shape) — `Schema.decodeTo` then runs Paragraph's
+ * own field-level decoders, which normalize `refcode_short` through
+ * `OptionFromOptionalNullishOrEmpty` (null/undefined/'' → `Option.none()`).
+ */
 export const ParagraphFromHtml = ParagraphWire.pipe(
   Schema.decodeTo(Paragraph, {
     decode: SchemaGetter.transform((wire) => {

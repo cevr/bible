@@ -85,7 +85,7 @@ const mockParagraph = (puborder: number, refcodeShort: string): Paragraph => ({
   refcode_2: null,
   refcode_3: null,
   refcode_4: null,
-  refcode_short: refcodeShort,
+  refcode_short: Option.some(refcodeShort),
   refcode_long: `Long ${refcodeShort}`,
   element_type: 'paragraph',
   element_subtype: null,

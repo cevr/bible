@@ -57,7 +57,7 @@ export type ReaderError = Schema.Schema.Type<typeof ReaderError>;
 function schemaParagraphToEGWParagraph(para: EGWSchemas.Paragraph): EGWParagraph {
   return new EGWParagraph({
     paraId: para.para_id ?? undefined,
-    refcodeShort: para.refcode_short ?? undefined,
+    refcodeShort: Option.getOrUndefined(para.refcode_short),
     refcodeLong: para.refcode_long ?? undefined,
     nodes: para.nodes,
     puborder: para.puborder,

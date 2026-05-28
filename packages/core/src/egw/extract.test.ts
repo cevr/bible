@@ -1,3 +1,4 @@
+import { Option } from 'effect';
 import { describe, expect, it } from 'vitest';
 import type { Node } from './ast.js';
 import { extractScriptureRefs } from './extract.js';
@@ -14,7 +15,7 @@ const text = (s: string): Node => ({ _tag: 'Text', text: s });
 
 const paragraph = (overrides: Partial<Paragraph>): Paragraph => ({
   para_id: 'p1',
-  refcode_short: 'GC 1.1',
+  refcode_short: Option.some('GC 1.1'),
   refcode_long: null,
   element_type: null,
   element_subtype: null,
@@ -105,19 +106,19 @@ describe('extractScriptureRefs', () => {
     const refs = extractScriptureRefs(
       [
         paragraph({
-          refcode_short: null,
+          refcode_short: Option.none(),
           refcode_long: 'Genesis 1:1',
           nodes: [scriptureRef('John 1:1')],
         }),
         paragraph({
-          refcode_short: null,
+          refcode_short: Option.none(),
           refcode_long: null,
           para_id: 'pid-7',
           puborder: 2,
           nodes: [scriptureRef('John 1:2')],
         }),
         paragraph({
-          refcode_short: null,
+          refcode_short: Option.none(),
           refcode_long: null,
           para_id: null,
           puborder: 3,

@@ -17,6 +17,8 @@
  * reference than to fail the whole index pass.
  */
 
+import { Option } from 'effect';
+
 import { parseBibleQuery } from '../bible-reader/index.js';
 import type { Node } from './ast.js';
 import type { Paragraph } from './schemas.js';
@@ -33,10 +35,13 @@ export interface ExtractedBibleRef {
 /** Same refCode derivation as `paragraphToRow` in book-database.ts. Keep in
  *  sync — this value is the join key into `paragraphs.ref_code`. */
 const refCodeOf = (paragraph: Paragraph, bookId: number): string =>
-  paragraph.refcode_short ??
-  paragraph.refcode_long ??
-  paragraph.para_id ??
-  `book-${String(bookId)}-para-${String(paragraph.puborder)}`;
+  Option.getOrElse(
+    paragraph.refcode_short,
+    () =>
+      paragraph.refcode_long ??
+      paragraph.para_id ??
+      `book-${String(bookId)}-para-${String(paragraph.puborder)}`,
+  );
 
 const walkScriptureRefs = (nodes: readonly Node[], out: { readonly title: string }[]): void => {
   for (const node of nodes) {

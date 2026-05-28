@@ -216,7 +216,7 @@ export const downloadBookToLocal = (
 
       for (const para of allParagraphs) {
         const refCode =
-          para.refcode_short ??
+          Option.getOrNull(para.refcode_short) ??
           para.refcode_long ??
           para.para_id ??
           `book-${book.book_id}-para-${para.puborder}`;

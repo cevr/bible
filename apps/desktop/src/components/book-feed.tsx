@@ -452,10 +452,7 @@ const ParagraphRow: Component<{
   readonly registerRef: (el: HTMLElement) => void;
   readonly onScriptureClick?: (title: string) => void;
 }> = (props) => {
-  const refcode = (): string | undefined => {
-    const r = props.paragraph.refcode_short;
-    return r === null || r === undefined || r === '' ? undefined : r;
-  };
+  const refcode = (): string | undefined => Option.getOrUndefined(props.paragraph.refcode_short);
   return (
     <p
       class="m-0 -mx-1 rounded mb-[1em] px-1 font-[family-name:var(--reader-font-family,var(--font-serif))] text-[length:var(--reader-font-size,18px)] leading-[var(--reader-line-height,1.55)] [letter-spacing:var(--reader-letter-spacing,0)] text-fg transition-[background] duration-[0.4s] ease-in-out data-[flash=true]:bg-accent-soft"
