@@ -345,13 +345,20 @@ export const App: Component = () => {
               // the stale paragraph from the previous chapter instead of the
               // new chapter break.
               const prevSel = Option.getOrUndefined(prev);
+              const nextChapterParaId = Option.isSome(next)
+                ? next.value._tag === 'book'
+                  ? null
+                  : next.value.chapterParaId
+                : null;
+              const prevChapterParaId =
+                prevSel !== undefined && prevSel._tag !== 'book' ? prevSel.chapterParaId : null;
               const sameChapter =
                 Option.isSome(next) &&
                 prevSel !== undefined &&
                 prevSel.bookId === next.value.bookId &&
-                Option.isSome(prevSel.chapterParaId) &&
-                Option.isSome(next.value.chapterParaId) &&
-                prevSel.chapterParaId.value === next.value.chapterParaId.value;
+                prevChapterParaId !== null &&
+                nextChapterParaId !== null &&
+                prevChapterParaId === nextChapterParaId;
               const shouldClearRestore =
                 Option.isNone(next) || (!sameChapter && !pendingRestoreEmit);
               if (shouldClearRestore) {
@@ -367,13 +374,16 @@ export const App: Component = () => {
               if (Option.isNone(next)) {
                 yield* storage.clear;
               } else {
+                const v = next.value;
+                const paraId =
+                  v._tag === 'book' ? Option.none<string>() : Option.some(v.chapterParaId);
                 yield* storage.write({
-                  bookId: next.value.bookId,
-                  paraId: next.value.chapterParaId,
+                  bookId: v.bookId,
+                  paraId,
                   paragraphId: Option.fromNullishOr(latestAnchorParaId),
                 });
-                if (Option.isSome(next.value.chapterParaId)) {
-                  yield* memory.recordEgw(next.value.bookId, next.value.chapterParaId.value);
+                if (v._tag !== 'book') {
+                  yield* memory.recordEgw(v.bookId, v.chapterParaId);
                 }
               }
             }),

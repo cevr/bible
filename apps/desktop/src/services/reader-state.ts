@@ -12,17 +12,22 @@ import { Context, Effect, Layer, Option, type Stream, SubscriptionRef } from 'ef
 // route handlers) can observe selection changes as a Stream instead of
 // polling.
 
-export interface ReaderSelection {
-  readonly bookId: number;
-  readonly chapterParaId: Option.Option<string>;
-  /**
-   * When set, the reader scrolls this paragraph into view and pulses it after
-   * the chapter renders. Used by search-result clicks to land on a specific
-   * sentence rather than the top of the chapter. Cleared by ReaderPane after
-   * applying so a re-open of the same chapter doesn't re-scroll.
-   */
-  readonly highlightParaId: Option.Option<string>;
-}
+// Discriminated by depth. `highlight` carries chapter + paragraph; `chapter`
+// just chapter; `book` no chapter yet. Forbids the "book without chapter but
+// with highlight" cell the prior shape allowed.
+//
+// `highlight.paraId` is consumed by the reader on render then cleared via
+// `clearHighlight` (collapses the selection back to `chapter`) so a re-open
+// of the same chapter doesn't re-scroll.
+export type ReaderSelection =
+  | { readonly _tag: 'book'; readonly bookId: number }
+  | { readonly _tag: 'chapter'; readonly bookId: number; readonly chapterParaId: string }
+  | {
+      readonly _tag: 'highlight';
+      readonly bookId: number;
+      readonly chapterParaId: string;
+      readonly highlightParaId: string;
+    };
 
 export interface ReaderStateShape {
   readonly get: Effect.Effect<Option.Option<ReaderSelection>>;
@@ -50,34 +55,30 @@ const makeImpl = (initial: Option.Option<ReaderSelection>) =>
       get: SubscriptionRef.get(ref),
       changes: SubscriptionRef.changes(ref),
       openBook: (bookId: number) =>
-        SubscriptionRef.set(
-          ref,
-          Option.some({
-            bookId,
-            chapterParaId: Option.none(),
-            highlightParaId: Option.none(),
-          }),
-        ),
+        SubscriptionRef.set(ref, Option.some<ReaderSelection>({ _tag: 'book', bookId })),
       openChapter: (bookId: number, chapterParaId: string) =>
         SubscriptionRef.set(
           ref,
-          Option.some({
-            bookId,
-            chapterParaId: Option.some(chapterParaId),
-            highlightParaId: Option.none(),
-          }),
+          Option.some<ReaderSelection>({ _tag: 'chapter', bookId, chapterParaId }),
         ),
       openChapterAt: (bookId: number, chapterParaId: string, highlightParaId: string) =>
         SubscriptionRef.set(
           ref,
-          Option.some({
+          Option.some<ReaderSelection>({
+            _tag: 'highlight',
             bookId,
-            chapterParaId: Option.some(chapterParaId),
-            highlightParaId: Option.some(highlightParaId),
+            chapterParaId,
+            highlightParaId,
           }),
         ),
+      // Drop the highlight by collapsing to the underlying chapter selection.
+      // No-op when the current selection is not in the highlight state.
       clearHighlight: SubscriptionRef.update(ref, (curr) =>
-        Option.map(curr, (sel) => ({ ...sel, highlightParaId: Option.none() })),
+        Option.map(curr, (sel) =>
+          sel._tag === 'highlight'
+            ? ({ _tag: 'chapter', bookId: sel.bookId, chapterParaId: sel.chapterParaId } as const)
+            : sel,
+        ),
       ),
       close: SubscriptionRef.set(ref, Option.none<ReaderSelection>()),
     } satisfies ReaderStateShape;

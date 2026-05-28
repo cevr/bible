@@ -39,9 +39,11 @@ export const ReaderPane: Component<ReaderPaneProps> = (props) => {
   // Stable accessor for the highlighted paragraph, threaded through to the
   // feed. We compute it as a memo so identity is stable across selection
   // changes that don't touch the highlight (window-expansion churn, etc).
-  const highlightParaId: Accessor<Option.Option<string>> = createMemo(() =>
-    Option.flatMap(props.selection, (sel) => sel.highlightParaId),
-  );
+  const highlightParaId: Accessor<Option.Option<string>> = createMemo(() => {
+    const sel = props.selection;
+    if (Option.isNone(sel)) return Option.none();
+    return sel.value._tag === 'highlight' ? Option.some(sel.value.highlightParaId) : Option.none();
+  });
 
   return (
     <main
@@ -67,7 +69,7 @@ export const ReaderPane: Component<ReaderPaneProps> = (props) => {
       >
         {(sel) => (
           <Show
-            when={Option.isSome(sel.chapterParaId) ? sel.chapterParaId.value : null}
+            when={sel._tag === 'book' ? null : sel.chapterParaId}
             fallback={
               <EmptyState
                 title={`Book ${String(sel.bookId)}`}

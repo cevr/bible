@@ -40,7 +40,9 @@ export const TocSidebar: Component<TocSidebarProps> = (props) => {
   );
   const activeParaId = createMemo<Option.Option<string>>(() => {
     const sel = selection();
-    return Option.isNone(sel) ? Option.none() : sel.value.chapterParaId;
+    if (Option.isNone(sel)) return Option.none();
+    const v = sel.value;
+    return v._tag === 'book' ? Option.none() : Option.some(v.chapterParaId);
   });
   const [expandedParaId, setExpandedParaId] = createSignal<Option.Option<string>>(Option.none());
 
