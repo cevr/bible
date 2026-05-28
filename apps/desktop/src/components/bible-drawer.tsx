@@ -32,10 +32,10 @@ import { ReaderShell } from './ui/reader-shell.js';
 // itself stays mode-agnostic: it just renders the four study tabs (Notes,
 // Cross-refs, Words, EGW) against whatever verse the state is pinned to.
 //
-// In Bible mode the cursor in `BibleReaderState` drives `state.setTarget`
+// In Bible mode the cursor in `BibleReaderState` drives `state.cursorMoved`
 // while the drawer is open, so j/k on the canvas updates the drawer's verse
 // without re-opening it. The opt-in subscription is started in `onMount` and
-// the drawer only acts on changes when open (see `setTarget` in state).
+// the drawer only acts on changes when open (see `cursorMoved` in state).
 
 const DRAWER_WIDTH_PX = 380;
 
@@ -45,7 +45,7 @@ export interface BibleDrawerProps {
 
 export const BibleDrawer: Component<BibleDrawerProps> = (props) => {
   // Bible-mode cursor follow. Subscribes to BibleReaderState's changes stream
-  // and forwards (book, chapter, verse) into the drawer's `setTarget`. This
+  // and forwards (book, chapter, verse) into the drawer's `cursorMoved`. This
   // is harmless in EGW mode — BibleReaderState's selection is None there, so
   // the stream simply doesn't carry anything to forward. Keeping the
   // subscription unconditional avoids re-arming it on mode swap.
@@ -58,7 +58,7 @@ export const BibleDrawer: Component<BibleDrawerProps> = (props) => {
             Effect.sync(() => {
               if (Option.isNone(sel)) return;
               if (sel.value._tag !== 'verse') return;
-              props.state.setTarget({
+              props.state.cursorMoved({
                 book: sel.value.book,
                 chapter: sel.value.chapter,
                 verse: sel.value.verse,
@@ -86,7 +86,7 @@ export const BibleDrawer: Component<BibleDrawerProps> = (props) => {
       const tab = STUDY_TABS[idx];
       if (tab) {
         e.preventDefault();
-        props.state.setActiveStudyTab(tab.key);
+        props.state.switchStudyTab(tab.key);
       }
     };
     document.addEventListener('keydown', onKey);
@@ -156,7 +156,7 @@ const DrawerTabs: Component<{ readonly state: BibleDrawerState }> = (props) => (
       {(tab) => (
         <ReaderShell.Tab
           active={props.state.activeStudyTab() === tab.key}
-          onClick={() => props.state.setActiveStudyTab(tab.key)}
+          onClick={() => props.state.switchStudyTab(tab.key)}
         >
           {tab.label}
         </ReaderShell.Tab>

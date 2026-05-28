@@ -372,7 +372,7 @@ const ChapterShell: Component<{
     const fiber: Fiber.Fiber<void> = runtime.runFork(
       Effect.gen(function* () {
         const state = yield* BibleReaderState;
-        yield* state.setVerse(verse);
+        yield* state.focusVerse(verse);
       }).pipe(
         Effect.ignore,
         Effect.ensuring(

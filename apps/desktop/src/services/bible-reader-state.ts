@@ -35,9 +35,10 @@ export interface BibleReaderStateShape {
   /** Open a chapter and focus a verse. The canvas's scroll effect brings it
    *  into view when off-screen. */
   readonly openChapterAt: (book: number, chapter: number, verse: number) => Effect.Effect<void>;
-  /** Update the verse cursor without changing the chapter. No-op if no
-   *  chapter is open. */
-  readonly setVerse: (verse: number) => Effect.Effect<void>;
+  /** Focus a verse within the currently-open chapter. No-op if no chapter
+   *  is open. Named after the user action ("focused verse N"), not the
+   *  underlying field write. */
+  readonly focusVerse: (verse: number) => Effect.Effect<void>;
   readonly close: Effect.Effect<void>;
 }
 
@@ -59,7 +60,7 @@ const makeImpl = (initial: Option.Option<BibleReaderSelection>) =>
         ),
       // Raises the chapter selection to a verse selection; no-op when no
       // chapter is open.
-      setVerse: (verse: number) =>
+      focusVerse: (verse: number) =>
         SubscriptionRef.update(ref, (curr) =>
           Option.map(
             curr,

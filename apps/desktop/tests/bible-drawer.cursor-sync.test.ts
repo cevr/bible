@@ -6,7 +6,7 @@ import { BibleReaderState } from '../src/services/bible-reader-state.js';
 
 // The cursor-sync wiring lives in `BibleDrawer.tsx` as an `onMount` body:
 // it subscribes to `BibleReaderState.changes` and forwards any selection
-// with a defined verse into the drawer's `setTarget`. The body is ~10
+// with a defined verse into the drawer's `cursorMoved`. The body is ~10
 // lines and tied to Solid's lifecycle, so testing it through
 // `renderToString` would mean spinning up the DOM AND it wouldn't run
 // `onMount` under SSR anyway.
@@ -25,7 +25,7 @@ const startCursorSync = (state: ReturnType<typeof createBibleDrawerState>) =>
         Effect.sync(() => {
           if (Option.isNone(sel)) return;
           if (sel.value._tag !== 'verse') return;
-          state.setTarget({
+          state.cursorMoved({
             book: sel.value.book,
             chapter: sel.value.chapter,
             verse: sel.value.verse,
@@ -36,10 +36,10 @@ const startCursorSync = (state: ReturnType<typeof createBibleDrawerState>) =>
     );
   });
 
-it.effect('forwards (book, chapter, verse) from BibleReaderState into setTarget', () =>
+it.effect('forwards (book, chapter, verse) from BibleReaderState into cursorMoved', () =>
   Effect.gen(function* () {
     const drawer = createBibleDrawerState();
-    // setTarget is a no-op while the drawer is closed (intentional —
+    // cursorMoved is a no-op while the drawer is closed (intentional —
     // don't re-render invisible content). Open with a placeholder so
     // subsequent updates land.
     drawer.open(40, 5, 3); // Matt 5:3
@@ -54,7 +54,7 @@ it.effect('forwards (book, chapter, verse) from BibleReaderState into setTarget'
     yield* Effect.yieldNow;
     expect(drawer.target()).toEqual<DrawerTarget>({ book: 40, chapter: 5, verse: 7 });
 
-    yield* reader.setVerse(11);
+    yield* reader.focusVerse(11);
     yield* Effect.yieldNow;
     expect(drawer.target()).toEqual<DrawerTarget>({ book: 40, chapter: 5, verse: 11 });
 
@@ -85,7 +85,7 @@ it.effect('ignores selection changes that carry no verse', () =>
 it.effect('does not move target when the drawer is closed', () =>
   Effect.gen(function* () {
     const drawer = createBibleDrawerState();
-    // Drawer starts closed. setTarget is a no-op in that state.
+    // Drawer starts closed. cursorMoved is a no-op in that state.
     expect(drawer.isOpen()).toBe(false);
 
     const fiber = yield* startCursorSync(drawer);
@@ -94,7 +94,7 @@ it.effect('does not move target when the drawer is closed', () =>
     const reader = yield* BibleReaderState;
     yield* reader.openChapterAt(40, 5, 7);
     yield* Effect.yieldNow;
-    // Target stays null because setTarget guards on isOpen.
+    // Target stays null because cursorMoved guards on isOpen.
     expect(drawer.target()).toBeNull();
 
     yield* Fiber.interrupt(fiber);

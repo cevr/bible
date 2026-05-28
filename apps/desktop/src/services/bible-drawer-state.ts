@@ -49,9 +49,10 @@ export interface BibleDrawerState {
   readonly activeStudyTab: Accessor<BibleStudyTab>;
   readonly studyFocus: Accessor<StudyPaneFocus>;
   readonly close: () => void;
-  readonly setActiveStudyTab: (tab: BibleStudyTab) => void;
+  /** User switched study tabs. Fans out to `persistTab` if configured. */
+  readonly switchStudyTab: (tab: BibleStudyTab) => void;
   /** Replay a persisted tab on startup without calling the persist callback.
-   *  Distinct from `setActiveStudyTab` so the seed path doesn't write the
+   *  Distinct from `switchStudyTab` so the seed path doesn't write the
    *  same value straight back to disk. */
   readonly seedActiveStudyTab: (tab: BibleStudyTab) => void;
   /** Open the drawer pinned to a specific verse. Optional `tab` overrides
@@ -65,11 +66,10 @@ export interface BibleDrawerState {
     tab?: BibleStudyTab,
     focus?: StudyPaneFocus,
   ) => void;
-  /** Update the pinned verse without changing open/closed or the tab.
-   *  Used by Bible mode's `BibleReaderState` subscription so the drawer's
-   *  header + tab bodies follow the canvas cursor. No-op if the drawer is
-   *  closed (don't bother re-rendering invisible content). */
-  readonly setTarget: (target: DrawerTarget) => void;
+  /** The Bible cursor moved to a new verse. Drives the drawer's pinned
+   *  target so the header + tab bodies follow the canvas cursor. No-op if
+   *  the drawer is closed (don't re-render invisible content). */
+  readonly cursorMoved: (target: DrawerTarget) => void;
   /** Open from a parsed ScriptureRef string ("Matt 5:3", "Gen 1"). Returns
    *  whether the parse resolved to a target the drawer can open on. Chapter-
    *  only refs default to verse 1. Full-book / search / chapter-range refs
@@ -103,7 +103,7 @@ export interface BibleDrawerStateOptions {
   readonly initialTab?: BibleStudyTab;
   /**
    * Called whenever the active study tab is set via user interaction
-   * (`setActiveStudyTab` or `open(... , tab)`). Not called by the seed
+   * (`switchStudyTab` or `open(... , tab)`). Not called by the seed
    * setter `seedActiveStudyTab`, which exists for replaying persisted state
    * without re-persisting it. Optional so tests can use the bare state
    * machine without an I/O layer.
@@ -128,7 +128,7 @@ export const createBibleDrawerState = (options: BibleDrawerStateOptions = {}): B
     return l._tag === 'open' ? l.target : null;
   };
 
-  const setActiveStudyTab = (tab: BibleStudyTab): void => {
+  const switchStudyTab = (tab: BibleStudyTab): void => {
     setActiveStudyTabSig(tab);
     persistTab?.(tab);
   };
@@ -153,7 +153,7 @@ export const createBibleDrawerState = (options: BibleDrawerStateOptions = {}): B
     setStudyFocus(focus ?? { _tag: 'none' });
   };
 
-  const setTarget = (next: DrawerTarget): void => {
+  const cursorMoved = (next: DrawerTarget): void => {
     const l = lifecycle();
     if (l._tag !== 'open') return;
     const cur = l.target;
@@ -184,10 +184,10 @@ export const createBibleDrawerState = (options: BibleDrawerStateOptions = {}): B
     activeStudyTab,
     studyFocus,
     close,
-    setActiveStudyTab,
+    switchStudyTab,
     seedActiveStudyTab,
     open,
-    setTarget,
+    cursorMoved,
     openFromQuery,
   };
 };
