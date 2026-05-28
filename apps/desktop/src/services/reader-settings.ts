@@ -56,7 +56,7 @@ export const ReaderSettingsState = Schema.Struct({
     Schema.isBetween({ minimum: LETTER_SPACING_MIN, maximum: LETTER_SPACING_MAX }),
   ),
   lineWidth: Schema.Number.check(Schema.isBetween({ minimum: WIDTH_MIN, maximum: WIDTH_MAX })),
-  uiScale: Schema.optional(UiScale),
+  uiScale: UiScale.pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed('md' as const))),
   recentDocuments: Schema.Array(RecentDocument),
   /** Reading progress per path: a fraction in [0, 1]. Stored as percent so it
    *  stays meaningful across font/width changes — pixel Y would point at a
@@ -65,24 +65,24 @@ export const ReaderSettingsState = Schema.Struct({
   debugDumpSegments: Schema.Boolean,
   /** Width of the right-side Bible drawer in px. User-resizable via the drag
    *  handle on the drawer's left edge. */
-  bibleDrawerWidth: Schema.optional(
-    Schema.Number.check(
-      Schema.isBetween({ minimum: BIBLE_DRAWER_WIDTH_MIN, maximum: BIBLE_DRAWER_WIDTH_MAX }),
-    ),
-  ),
+  bibleDrawerWidth: Schema.Number.check(
+    Schema.isBetween({ minimum: BIBLE_DRAWER_WIDTH_MIN, maximum: BIBLE_DRAWER_WIDTH_MAX }),
+  ).pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(BIBLE_DRAWER_WIDTH_MIN))),
   /** Last-used tab in the right-side study drawer. Restored on launch so the
    *  user lands on the same surface they were last studying with. */
-  bibleStudyTab: Schema.optional(BibleStudyTab),
+  bibleStudyTab: BibleStudyTab.pipe(
+    Schema.withDecodingDefaultTypeKey(Effect.succeed('notes' as const)),
+  ),
   /** Last-used reader mode. Restored on launch so the user lands in the same
    *  mode they left in. */
-  readerMode: Schema.optional(ReaderMode),
+  readerMode: ReaderMode.pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed('egw' as const))),
   /** Per-overlay toggle state for the floating Bible reader toolbar. Each
    *  flag drives whether the chapter renderer paints its inline marker /
-   *  annotation layer. All optional so a fresh launch (no stored settings)
-   *  falls back to the defaults seeded in app.tsx. */
-  inlineStrongs: Schema.optional(Schema.Boolean),
-  inlineMarginNotes: Schema.optional(Schema.Boolean),
-  inlineCrossRefs: Schema.optional(Schema.Boolean),
+   *  annotation layer. Defaults applied at decode so the shape is total —
+   *  consumers read a guaranteed boolean. */
+  inlineStrongs: Schema.Boolean.pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(true))),
+  inlineMarginNotes: Schema.Boolean.pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(true))),
+  inlineCrossRefs: Schema.Boolean.pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(true))),
 });
 export type ReaderSettingsState = typeof ReaderSettingsState.Type;
 
@@ -97,6 +97,12 @@ const initial: ReaderSettingsState = {
   recentDocuments: [],
   progressByPath: {},
   debugDumpSegments: false,
+  bibleDrawerWidth: BIBLE_DRAWER_WIDTH_MIN,
+  bibleStudyTab: 'notes',
+  readerMode: 'egw',
+  inlineStrongs: true,
+  inlineMarginNotes: true,
+  inlineCrossRefs: true,
 };
 
 const PERSIST_DEBOUNCE_MS = 250;

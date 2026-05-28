@@ -272,22 +272,14 @@ export const App: Component = () => {
         setLineHeightSig(state.lineHeight);
         setLetterSpacingSig(state.letterSpacing);
         setLineWidthSig(state.lineWidth);
-        setUiScaleSig(state.uiScale ?? 'md');
-        if (state.bibleStudyTab !== undefined) {
-          // Seed via the base (non-persisting) setter — re-writing the same
-          // tab back to disk on every launch would be redundant.
-          bibleDrawerBase.setActiveStudyTab(state.bibleStudyTab);
-        }
-        if (state.readerMode !== undefined) {
-          setReaderModeSig(state.readerMode);
-        }
-        // Inline overlay flags — only override the in-memory defaults when
-        // the user has explicitly stored a value. `undefined` means "fresh
-        // install / pre-persistence settings file" and should keep the
-        // all-off defaults seeded above.
-        if (state.inlineStrongs !== undefined) setInlineStrongsSig(state.inlineStrongs);
-        if (state.inlineMarginNotes !== undefined) setInlineMarginNotesSig(state.inlineMarginNotes);
-        if (state.inlineCrossRefs !== undefined) setInlineCrossRefsSig(state.inlineCrossRefs);
+        setUiScaleSig(state.uiScale);
+        // Seed via the base (non-persisting) setter — re-writing the same
+        // tab back to disk on every launch would be redundant.
+        bibleDrawerBase.setActiveStudyTab(state.bibleStudyTab);
+        setReaderModeSig(state.readerMode);
+        setInlineStrongsSig(state.inlineStrongs);
+        setInlineMarginNotesSig(state.inlineMarginNotes);
+        setInlineCrossRefsSig(state.inlineCrossRefs);
       });
 
     // Rehydrate last position on mount, then mirror + persist every change.
