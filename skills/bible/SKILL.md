@@ -3,13 +3,19 @@ name: bible
 description: >
   Generate Bible studies, sermon messages, slide-format readings, extended
   chapter studies, structural analyses, and Sabbath School outlines from an
-  SDA pioneer perspective. Each output type has a reference file with the
-  canonical system prompt and the export-to-Apple-Notes workflow. Use when
-  the user asks for new preaching/teaching content, when revising existing
-  files, or when working with the SDA pioneer corpus. Triggers on: sermon,
-  message, study, reading, Sabbath School, structural analysis, chiasm,
-  EGW study, "generate a message/study/reading on X", "revise this file",
-  "export to notes".
+  SDA pioneer perspective — and pull the source material (KJV verses, EGW
+  writings, EGW Bible Commentary, Strong's concordance, SDA Hymnal, Sabbath
+  School lesson PDFs) via the `bible` CLI to feed generation. Each output type
+  has a reference file with the canonical system prompt and the
+  export-to-Apple-Notes workflow; `references/source-material.md` documents the
+  CLI command surface. Use when the user asks for new preaching/teaching
+  content, when revising existing files, when working with the SDA pioneer
+  corpus, or when fetching raw source data (verses, EGW, hymns, Strong's,
+  commentary, SS PDFs). Triggers on: sermon, message, study, reading, Sabbath
+  School, structural analysis, chiasm, EGW study/reference, bible verse,
+  Strong's number, hymn lookup, commentary on a verse, sabbath school PDF,
+  "generate a message/study/reading on X", "revise this file", "export to
+  notes".
 ---
 
 # bible — Content Generation
@@ -49,13 +55,18 @@ draws only on the **EGW + SDA-pioneer (incl. William Miller) corpus**.
 | `references/analyze.md`         | Structural analysis | `outputs/analyses/`       | `YYYY-MM-DD-slug.md` |
 | `references/sabbath-school.md`  | SS week outline     | `outputs/sabbath-school/` | `YYYY-QX-WY.md`      |
 
+Not an output type, but used by every one of them:
+`references/source-material.md` — the `bible` CLI command surface for pulling
+verses, EGW, commentary, Strong's, hymns, and SS PDFs (step 1 of the workflow).
+
 `bible` resolves `outputs/` against a build-time-baked CLI root, so commands
 work from any cwd.
 
 ## Universal workflow (every reference follows this)
 
-1. **Pull source material** via the `bible-cli` skill (verses, EGW, hymns,
-   commentary, Strong's). Don't paraphrase from memory.
+1. **Pull source material** via the `bible` CLI (verses, EGW, hymns,
+   commentary, Strong's) — see [`references/source-material.md`](references/source-material.md).
+   Don't paraphrase from memory.
 2. **Generate the content yourself** using the system prompt from the
    reference file — `bible` no longer has any AI generation commands.
 3. **Write the file** to `outputs/<type>/<filename>.md` with frontmatter
@@ -164,7 +175,7 @@ every type, every prophetic figure must pass them:
 ### Source corpus (in authority order)
 
 - **Scripture (KJV)** — supreme, self-interpreting authority. Quote, don't
-  paraphrase. Pull via the `bible-cli` skill.
+  paraphrase. Pull via `bible verse "<ref>" --json`.
 - **Spirit of Prophecy (Ellen G. White)** — prophetic voice; a confirming
   witness _in harmony with_ Scripture (Isaiah 8:20), never an independent
   authority. Quote `paragraphs[].text` from `bible egw lookup` / `egw
@@ -177,9 +188,30 @@ commentary`.
 Do **not** introduce non-pioneer/non-EGW interpretive frameworks as authority.
 EGW and the pioneers (Miller foremost) are the lens; Scripture is the rule.
 
+### Finding EGW + pioneer references
+
+You rarely start with the exact refcode. **Search to find it, then look it up to
+quote it** — never recall EGW from memory:
+
+```bash
+bible egw search "investigative judgment" --json     # 1. find the refcode (local FTS5)
+bible egw search "1844" --remote --json              #    --remote = whole ~17K-para corpus
+bible egw lookup "GC 423.1" --json                   # 2. quote the exact paragraph text
+bible egw commentary "daniel 8:14" --json            #    verse-keyed commentary
+```
+
+For pioneer voices not in the local DB (Miller, Smith, Andrews, …), find the
+book with `bible egw catalog --search "<title>"`, `bible egw download <CODE>`,
+then `search` / `lookup` as above.
+
+**Full command surface — flags, JSON shapes, every command — lives in
+[`references/source-material.md`](references/source-material.md).** Read it
+before pulling source material.
+
 | Step               | Command                                                                         |
 | ------------------ | ------------------------------------------------------------------------------- |
 | Fetch verses       | `bible verse "<ref>" --json`                                                    |
+| Find EGW reference | `bible egw search "<query>" [--book CODE] [--remote] --json`                    |
 | Fetch EGW          | `bible egw lookup "<refcode>" --json` / `bible egw commentary "<verse>" --json` |
 | Fetch hymn         | `bible hymns search "<query>" --json` / `bible hymns get <n> --json`            |
 | Fetch Strong's     | `bible concordance H1234 --json`                                                |
@@ -209,8 +241,8 @@ apple_note_id: 'x-coredata://.../ICNote/p1234' # ← written by `bible export`
 
 ## Anti-patterns
 
-- **Don't generate without first pulling source material** through the
-  `bible-cli` skill. The whole point of the toolchain is verse accuracy.
+- **Don't generate without first pulling source material** through the `bible`
+  CLI. The whole point of the toolchain is verse accuracy.
 - **Don't paraphrase verses from memory** — quote what `bible verse` returns.
 - **Don't paraphrase EGW** — quote `paragraphs[].text` from `bible egw lookup`.
 - **Don't invent Strong's numbers or hymn numbers** — look them up.
@@ -219,8 +251,10 @@ apple_note_id: 'x-coredata://.../ICNote/p1234' # ← written by `bible export`
 - **Don't skip the export step** — Cristian uses Apple Notes as the active
   surface. A file on disk that isn't in Notes is invisible.
 
-## Source material defer
+## Source material commands
 
-For raw text (verses, EGW pages/commentary, Strong's, hymns, SS PDFs), use
-the **`bible-cli` skill**. It has the full command surface, `--json` shapes,
-anti-patterns, and `--limit` semantics. Don't duplicate that here.
+For raw text (verses, EGW pages/commentary, Strong's, hymns, SS PDFs), use the
+`bible` CLI. The full command surface — Quick Reference table, typical agent
+flow, per-command flags, `--json` shapes, and anti-patterns — lives in
+[`references/source-material.md`](references/source-material.md). The command
+table above is the short version; that reference is the source of truth.
