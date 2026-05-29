@@ -48,7 +48,14 @@ export interface MutationProc<I, O> {
  * objects recurse into namespaces.
  */
 export type IpcProxy<T> = {
-  readonly [K in keyof T]: T[K] extends Procedure<infer Kind, infer I, infer O, infer _R, infer _E>
+  readonly [K in keyof T]: T[K] extends Procedure<
+    infer Kind,
+    infer I,
+    infer O,
+    infer _OEnc,
+    infer _R,
+    infer _E
+  >
     ? Kind extends 'query'
       ? QueryProc<I, O>
       : MutationProc<I, O>

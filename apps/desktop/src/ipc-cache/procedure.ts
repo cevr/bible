@@ -12,26 +12,38 @@ import type { Effect, Schema } from 'effect';
  */
 export type ProcedureKind = 'query' | 'mutation';
 
-export interface Procedure<K extends ProcedureKind, I, O, R = never, E = never> {
+// `OEnc` is the output schema's *Encoded* (wire) type, distinct from `O` (its
+// decoded Type). The proxy runs the handler's result through
+// `Schema.decodeUnknownEffect(output)`, so the handler must return the wire
+// shape `OEnc`; the consumer receives the decoded `O`. For the common case
+// where a schema's Type === Encoded (plain structs, `NullOr`, `optional`)
+// `OEnc` defaults to `O` and callers don't notice the distinction. It only
+// matters for schemas carrying a transform whose two sides differ — e.g.
+// `OptionFromOptionalNullishOrEmpty` (Type `Option<string>` ↔ Encoded
+// `string | null | undefined`), where the handler must hand back the encoded
+// form for the proxy's decode to reconstruct the Option.
+export interface Procedure<K extends ProcedureKind, I, O, OEnc = O, R = never, E = never> {
   readonly kind: K;
   readonly input: Schema.Schema<I>;
-  readonly output: Schema.Schema<O>;
-  readonly handle: (input: I) => Effect.Effect<O, E, R>;
+  readonly output: Schema.Codec<O, OEnc>;
+  readonly handle: (input: I) => Effect.Effect<OEnc, E, R>;
 }
 
 /**
  * Define a cacheable read. `input` is decoded to typed `I` before the cache
  * key is computed (so the key uses the decoded shape, not the raw caller
  * args — keeps numeric-string coercions etc. from poisoning the cache).
- * `output` is decoded after the handler resolves.
+ * `output` is decoded after the handler resolves, so the handler returns the
+ * output schema's *Encoded* (wire) shape and consumers receive the decoded
+ * Type.
  *
  * Pass `Schema.Void` (or a literal) for procedures that don't take args.
  */
-export const query = <I, O, R = never, E = never>(spec: {
+export const query = <I, O, OEnc = O, R = never, E = never>(spec: {
   readonly input: Schema.Schema<I>;
-  readonly output: Schema.Schema<O>;
-  readonly handle: (input: I) => Effect.Effect<O, E, R>;
-}): Procedure<'query', I, O, R, E> => ({
+  readonly output: Schema.Codec<O, OEnc>;
+  readonly handle: (input: I) => Effect.Effect<OEnc, E, R>;
+}): Procedure<'query', I, O, OEnc, R, E> => ({
   kind: 'query',
   input: spec.input,
   output: spec.output,
@@ -43,11 +55,11 @@ export const query = <I, O, R = never, E = never>(spec: {
  * as queries; the only difference is the proxy exposes `.mutate` (one-shot
  * Promise, no cache entry) instead of `.query`.
  */
-export const mutation = <I, O, R = never, E = never>(spec: {
+export const mutation = <I, O, OEnc = O, R = never, E = never>(spec: {
   readonly input: Schema.Schema<I>;
-  readonly output: Schema.Schema<O>;
-  readonly handle: (input: I) => Effect.Effect<O, E, R>;
-}): Procedure<'mutation', I, O, R, E> => ({
+  readonly output: Schema.Codec<O, OEnc>;
+  readonly handle: (input: I) => Effect.Effect<OEnc, E, R>;
+}): Procedure<'mutation', I, O, OEnc, R, E> => ({
   kind: 'mutation',
   input: spec.input,
   output: spec.output,

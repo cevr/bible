@@ -129,6 +129,29 @@ const DownloadStateSchema = Schema.Struct({
 // caching/parsing those services already do). Outputs that come back as
 // `Option<T>` get converted to `T | null` at the procedure boundary so the
 // wire shape stays plain JSON.
+//
+// The proxy validates outputs with `Schema.decodeUnknownEffect(output)` —
+// i.e. it expects the handler to hand back the schema's *Encoded* (wire)
+// shape, then reconstructs the Type shape for the renderer. For schemas
+// whose Type === Encoded (plain structs, `NullOr`, `optional`) the handler's
+// already-decoded domain value passes through decode untouched. But
+// `TocItem`/`Paragraph` carry the non-idempotent `OptionFromOptionalNullishOrEmpty`
+// transform on `para_id`/`refcode_short`: decoding an *already-decoded*
+// `Option` throws "Expected string | null | undefined, got some(...)". So
+// for those two we must re-encode the handler's Type-side output back to the
+// wire form before it reaches the proxy's decode. (Plain `Option.getOrNull`
+// on an outer Option — as in `getDownloadState` — only handles the outer
+// Option, not these inner per-field transforms.)
+const encodeTocItem = Schema.encodeEffect(Schemas.TocItem);
+const encodeTocItems = Schema.encodeEffect(Schema.Array(Schemas.TocItem));
+const encodeParagraphs = Schema.encodeEffect(Schema.Array(Schemas.Paragraph));
+// Same wire-encode discipline for the other transform-bearing outputs: each
+// of these schemas carries `OptionFromNullOr` fields (refcodeShort / snippet /
+// targetVerseEnd), so the handler's decoded domain values must be re-encoded
+// to the nullable wire form before the proxy decodes them back.
+const encodeSearchResults = Schema.encodeEffect(Schema.Array(SearchResultSchema));
+const encodeCrossRefs = Schema.encodeEffect(Schema.Array(CrossRefSchema));
+const encodeCommentaryHits = Schema.encodeEffect(Schema.Array(EgwCommentaryHitSchema));
 
 export const procedures = defineProcedures({
   settings: {
@@ -157,13 +180,20 @@ export const procedures = defineProcedures({
     getToc: query({
       input: Schema.Struct({ bookId: Schema.Number }),
       output: Schema.Array(Schemas.TocItem),
-      handle: ({ bookId }) => EGWData.pipe(Effect.flatMap((d) => d.getToc(bookId))),
+      handle: ({ bookId }) =>
+        EGWData.pipe(
+          Effect.flatMap((d) => d.getToc(bookId)),
+          Effect.flatMap(encodeTocItems),
+        ),
     }),
     getChapterByParaId: query({
       input: Schema.Struct({ bookId: Schema.Number, paraId: Schema.String }),
       output: Schema.Array(Schemas.Paragraph),
       handle: ({ bookId, paraId }) =>
-        EGWData.pipe(Effect.flatMap((d) => d.getChapterByParaId(bookId, paraId))),
+        EGWData.pipe(
+          Effect.flatMap((d) => d.getChapterByParaId(bookId, paraId)),
+          Effect.flatMap(encodeParagraphs),
+        ),
     }),
     getDownloadState: query({
       input: Schema.Struct({ bookId: Schema.Number }),
@@ -177,10 +207,19 @@ export const procedures = defineProcedures({
     findContainingChapter: query({
       input: Schema.Struct({ bookId: Schema.Number, paragraphPuborder: Schema.Number }),
       output: Schema.NullOr(Schemas.TocItem),
+      // Encode the matched TocItem's inner Option fields back to the wire form
+      // when present; `None` → `null`. Encoding only the outer Option (plain
+      // `Option.getOrNull`) would leave `para_id`/`refcode_short` as decoded
+      // Options and the proxy's output decode would reject them.
       handle: ({ bookId, paragraphPuborder }) =>
         EGWData.pipe(
           Effect.flatMap((d) => d.findContainingChapter(bookId, paragraphPuborder)),
-          Effect.map(Option.getOrNull),
+          Effect.flatMap(
+            Option.match({
+              onNone: () => Effect.succeed(null),
+              onSome: encodeTocItem,
+            }),
+          ),
         ),
     }),
     listFolders: query({
@@ -335,7 +374,10 @@ export const procedures = defineProcedures({
       }),
       output: Schema.Array(SearchResultSchema),
       handle: ({ refcode, limit }) =>
-        SearchService.pipe(Effect.flatMap((s) => s.byRefcode(refcode, limit))),
+        SearchService.pipe(
+          Effect.flatMap((s) => s.byRefcode(refcode, limit)),
+          Effect.flatMap(encodeSearchResults),
+        ),
     }),
     byText: query({
       input: Schema.Struct({
@@ -346,7 +388,10 @@ export const procedures = defineProcedures({
       }),
       output: Schema.Array(SearchResultSchema),
       handle: ({ query: q, limit, bookCode, online }) =>
-        SearchService.pipe(Effect.flatMap((s) => s.byText(q, { limit, bookCode, online }))),
+        SearchService.pipe(
+          Effect.flatMap((s) => s.byText(q, { limit, bookCode, online })),
+          Effect.flatMap(encodeSearchResults),
+        ),
     }),
   },
 
@@ -406,7 +451,10 @@ export const procedures = defineProcedures({
       }),
       output: Schema.Array(CrossRefSchema),
       handle: ({ book, chapter, verse }) =>
-        BibleXrefs.pipe(Effect.flatMap((x) => x.getCrossRefs(book, chapter, verse))),
+        BibleXrefs.pipe(
+          Effect.flatMap((x) => x.getCrossRefs(book, chapter, verse)),
+          Effect.flatMap(encodeCrossRefs),
+        ),
     }),
     getMarginNotes: query({
       input: Schema.Struct({
@@ -448,7 +496,10 @@ export const procedures = defineProcedures({
       }),
       output: Schema.Array(EgwCommentaryHitSchema),
       handle: ({ book, chapter, verse }) =>
-        EgwCommentary.pipe(Effect.flatMap((c) => c.getCommentary(book, chapter, verse))),
+        EgwCommentary.pipe(
+          Effect.flatMap((c) => c.getCommentary(book, chapter, verse)),
+          Effect.flatMap(encodeCommentaryHits),
+        ),
     }),
     // Unified per-chapter inline-overlay markers. One round-trip returns the
     // three lightweight verse-marker sets the canvas needs to render the

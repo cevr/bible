@@ -1,4 +1,5 @@
-import { Effect, type Exit, Schema } from 'effect';
+import { Schemas } from '@bible/core/egw';
+import { Effect, type Exit, Option, Schema } from 'effect';
 import { createRoot, createSignal } from 'solid-js';
 import { describe, expect, it } from 'vitest';
 import { defineProcedures, mutation, query } from '../../src/ipc-cache/procedure.js';
@@ -249,6 +250,121 @@ describe('buildIpc', () => {
     } catch (err) {
       expect(err).toBeInstanceOf(IpcCacheError);
       expect((err as IpcCacheError).message).toMatch(/output decode failed/);
+    }
+  });
+});
+
+// Regression guard for the IPC boundary's encode/decode contract. The proxy
+// decodes a handler's output via `Schema.decodeUnknownEffect(output)`, so a
+// handler MUST return the schema's *Encoded* (wire) shape; the consumer
+// receives the decoded Type. This broke `getToc`/`getChapterByParaId` etc.:
+// their outputs use the real `Schemas.TocItem`/`Schemas.Paragraph`, whose
+// `para_id`/`refcode_short` carry the non-idempotent
+// `OptionFromOptionalNullishOrEmpty` transform (Type `Option<string>` ↔
+// Encoded `string | null | undefined`). Handlers returned the already-decoded
+// Option, and decoding an Option threw
+// "output decode failed: Expected string | null | undefined, got some(...)".
+//
+// These tests use the production `Schemas.TocItem` (not a hand-rolled stand-in)
+// so the guard also catches a future schema change that reintroduces a
+// non-round-trippable transform. `mutate` returns the decoded output directly,
+// which is the value a renderer consumer would read.
+describe('IPC Option-transform output round-trip', () => {
+  // Wire (Encoded) fixtures: present para_id, and an absent one. These are the
+  // shapes the main process actually serializes across the preload bridge.
+  const TOC_WIRE_PRESENT = {
+    para_id: '978.2',
+    level: 1,
+    title: 'The Word of God',
+    refcode_short: 'BHB 3',
+    puborder: 3,
+  } as const;
+  const TOC_WIRE_ABSENT = {
+    para_id: null,
+    level: 0,
+    title: 'Bible Handbook',
+    refcode_short: null,
+    puborder: 1,
+  } as const;
+
+  it('decodes para_id/refcode_short wire values back into Options for the consumer', async () => {
+    clearAll();
+    // Drive the proxy through a one-shot `mutate` (returns the decoded output
+    // as a Promise — the value a renderer consumer would read). The output
+    // schema and the `encodeEffect` handler mirror production `getToc` exactly.
+    const ipc = buildIpc(
+      defineProcedures({
+        egw: {
+          getTocOnce: mutation({
+            input: Schema.Struct({ bookId: Schema.Number }),
+            output: Schema.Array(Schemas.TocItem),
+            // A correct handler hands back the WIRE shape via `encodeEffect`,
+            // applied to the decoded domain (Type-side, Option) values.
+            handle: () =>
+              Schema.encodeEffect(Schema.Array(Schemas.TocItem))([
+                {
+                  ...TOC_WIRE_PRESENT,
+                  para_id: Option.some('978.2'),
+                  refcode_short: Option.some('BHB 3'),
+                },
+                { ...TOC_WIRE_ABSENT, para_id: Option.none(), refcode_short: Option.none() },
+              ]),
+          }),
+        },
+      }),
+      fakeRuntime,
+    );
+
+    const decoded = await ipc.egw.getTocOnce.mutate({ bookId: 978 });
+
+    expect(decoded).toHaveLength(2);
+    // Present field → Option.some
+    expect(Option.getOrNull(decoded[0]!.para_id)).toBe('978.2');
+    expect(Option.getOrNull(decoded[0]!.refcode_short)).toBe('BHB 3');
+    // Absent (null) field → Option.none
+    expect(Option.isNone(decoded[1]!.para_id)).toBe(true);
+    expect(Option.isNone(decoded[1]!.refcode_short)).toBe(true);
+  });
+
+  it('rejects a handler that returns the already-decoded Option (Type) shape', async () => {
+    clearAll();
+    // The original bug: handler returns the Type-side value (para_id already an
+    // Option) instead of the wire shape. The proxy's decode then sees an Option
+    // where it expects `string | null | undefined` and throws the exact error.
+    const procedures = defineProcedures({
+      egw: {
+        getTocBad: mutation({
+          input: Schema.Void,
+          output: Schema.Array(Schemas.TocItem),
+          handle: () =>
+            // Cast: deliberately violate the (now-correct) Encoded handler
+            // contract to reproduce the pre-fix shape.
+            Effect.succeed([
+              {
+                para_id: Option.some('978.2'),
+                level: 1,
+                title: 'The Word of God',
+                refcode_short: Option.some('BHB 3'),
+                puborder: 3,
+              },
+            ] as unknown as ReadonlyArray<{
+              readonly para_id: string | null | undefined;
+              readonly level: number;
+              readonly refcode_short: string | null | undefined;
+              readonly puborder: number;
+            }>),
+        }),
+      },
+    });
+    const ipc = buildIpc(procedures, fakeRuntime);
+    try {
+      await ipc.egw.getTocBad.mutate(undefined);
+      throw new Error('should have thrown');
+    } catch (err) {
+      expect(err).toBeInstanceOf(IpcCacheError);
+      expect((err as IpcCacheError).message).toMatch(/output decode failed/);
+      // The decode error pinpoints the transform field + the offending Option.
+      expect((err as IpcCacheError).message).toMatch(/para_id/);
     }
   });
 });
