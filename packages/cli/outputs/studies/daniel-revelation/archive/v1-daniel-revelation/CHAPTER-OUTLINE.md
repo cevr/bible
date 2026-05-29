@@ -7,7 +7,7 @@ This document is the **planning spine** for each chapter study:
 - **Theme** — the chapter's central pull
 - **Threads** — series-wide threads this chapter advances
 - **Key markers** — `[KEY🔑]` candidates that this chapter sets or continues
-- **References to read before drafting** — Bible cross-refs, Smith bundle, EGW bundle (where exists), Waterhouse file, Earth's Final Destiny transcript, prior-study links
+- **References to read before drafting** — Bible cross-refs, Smith bundle, EGW bundle (where exists), Earth's Final Destiny transcript, prior-study links
 
 ## Series-wide threads (registry)
 
@@ -50,7 +50,6 @@ These threads run through the canon. Each chapter study advances one or more.
   - Cross-refs: 1 Cor 10:31 (eat to glory); Rom 12:1-2 (body as living sacrifice); Phil 4:13
   - Uriah Smith: `reference/uriah-smith/study-01.md` (Dan 1-2 bundle — find Dan 1 section)
   - EGW: `reference/egw/study-01.md`; PK ch 39 ("At the Court of Babylon")
-  - Waterhouse: `reference/james-waterhouse-studies/studies/01-daniel-1.md` (two-cities chiasm + diet center)
   - Earth's Final Destiny: `vVWKu8R_Ejs.txt` (Introduction; image of God / Creator)
   - Prior study lift: `01-the-god-who-reveals-secrets.md` Dan 1 verses
 
@@ -65,7 +64,6 @@ These threads run through the canon. Each chapter study advances one or more.
   - Cross-refs: Ps 2 (Messianic stone); Mal 4:1 (chaff burned up); Matt 21:42-44 (stone)
   - Uriah Smith: `reference/uriah-smith/study-01.md` (Dan 2 portion)
   - EGW: `reference/egw/study-01.md`; PK ch 40-41
-  - Waterhouse: `reference/james-waterhouse-studies/studies/03-daniel-2.md`; `02-daniel-2-7.md` (the Aramaic chiasm Dan 2/Dan 7)
   - Prior study lift: `01-the-god-who-reveals-secrets.md` Dan 2 verses
   - Series-wide: this chapter establishes the timeline that every later chapter walks against
 
@@ -80,7 +78,6 @@ These threads run through the canon. Each chapter study advances one or more.
   - Cross-refs: Rev 13:14-17; Rev 14:9-12; Rev 15:2-4 (the sea-of-glass victors who got "the victory over the beast, and over his image"); Heb 11:33-34 (faith "quenched the violence of fire")
   - Uriah Smith: DAR doesn't bundle Dan 3 separately (narrative chapter); use Smith's Dan 7 / little horn for the worship-test continuity
   - EGW: PK ch 42 ("The Fiery Furnace") — pivotal text
-  - Waterhouse: `reference/james-waterhouse-studies/studies/04-daniel-3.md` (666 vs 777, three angels prototype)
   - Earth's Final Destiny: `rQrxY4EpaN4.txt` (Battle for the mind, image of the beast)
   - Bonus: this chapter is the prototype for the whole Mark-and-Seal study (bonus)
 
@@ -95,7 +92,6 @@ These threads run through the canon. Each chapter study advances one or more.
   - Cross-refs: Prov 16:18; Isa 14 (the king of Babylon's pride); Acts 12:21-23 (Herod's parallel)
   - Uriah Smith: not separately bundled — narrative chapter
   - EGW: PK ch 43 ("True Greatness")
-  - Waterhouse: not separately treated
   - Earth's Final Destiny: `gmeA9LBB1iQ.txt` (Cosmic Conflict)
 
 ## Daniel 5 — Belshazzar's Feast and the Handwriting
@@ -108,7 +104,6 @@ These threads run through the canon. Each chapter study advances one or more.
   - KJV: Daniel 5; Jer 51:39, 57 (drunken Babylon); Isa 21:1-10; Isa 47 (the fall of Babylon)
   - Cross-refs: Rev 16:19 ("Babylon came in remembrance"); Rev 17-18 (last-day Babylon-the-harlot); Luke 12:48 ("to whom much is given"); Ps 75:8 (cup of judgment)
   - EGW: PK ch 44 ("Babylon the Great Is Fallen")
-  - Waterhouse: see `08-daniel-8-12.md` for the Day-of-Atonement judgment thread
   - Earth's Final Destiny: `gmeA9LBB1iQ.txt` (Cosmic Conflict — judgment of nations)
 
 ## Daniel 6 — The Lions' Den
@@ -121,7 +116,6 @@ These threads run through the canon. Each chapter study advances one or more.
   - KJV: Daniel 6; Ps 55:17 (three times a day); Acts 5:29 (obey God rather than men)
   - Cross-refs: Rev 13:11-17 (state-enforced worship); Rev 14:9-12 (worship law refused); Rev 22:9 (worship God)
   - EGW: PK ch 45 ("In the Lions' Den")
-  - Waterhouse: not separately treated; ties to the worship axis
   - Earth's Final Destiny: `TEqRAS27AvQ.txt` (Sabbath/Sunday crisis — the Dan 6 echo)
 
 ## Daniel 7 — The Four Beasts, the Little Horn, the Judgment
@@ -134,7 +128,6 @@ These threads run through the canon. Each chapter study advances one or more.
   - Cross-refs: Lev 16; Acts 1:9-11; 1 Thess 4:16-17 (Second Coming, distinct from Dan 7:13)
   - Uriah Smith: `reference/uriah-smith/study-02.md`
   - EGW: `reference/egw/study-02.md`; GC ch 25-28 (judgment scene)
-  - Waterhouse: `reference/james-waterhouse-studies/studies/05-daniel-7.md`; `02-daniel-2-7.md`
   - Already shipped: `02-the-judgment-scene.md` — keep mostly as-is, possibly tighten
 
 ## Daniel 8 — The Ram, the Goat, the 2300 Days
@@ -147,7 +140,6 @@ These threads run through the canon. Each chapter study advances one or more.
   - Cross-refs: Rev 11:19; Rev 14:6-7; Rev 15:5-8
   - Uriah Smith: `reference/uriah-smith/study-03.md` (Dan 8 portion)
   - EGW: `reference/egw/study-03.md`; GC ch 17-22
-  - Waterhouse: `reference/james-waterhouse-studies/studies/06-daniel-8.md`; `08-daniel-8-12.md`
   - Already shipped: `03-the-2300-days-and-the-sanctuary.md` — split out Dan 8 portion
 
 ## Daniel 9 — The Prayer and the Seventy Weeks
@@ -160,7 +152,6 @@ These threads run through the canon. Each chapter study advances one or more.
   - Cross-refs: Matt 27:50-51 (the veil rent); Heb 9:11-12 (the new and living way); Acts 7 (Stephen's stoning ≈ AD 34)
   - Uriah Smith: `reference/uriah-smith/study-03.md` (Dan 9 portion)
   - EGW: `reference/egw/study-03.md`
-  - Waterhouse: `reference/james-waterhouse-studies/studies/07-daniel-9.md` (70 weeks as Sabbath test, structural heart)
   - Already shipped: `03-the-2300-days-and-the-sanctuary.md` — split out Dan 9 portion
 
 ## Daniel 10 — The Man Clothed in Linen
@@ -173,7 +164,6 @@ These threads run through the canon. Each chapter study advances one or more.
   - Cross-refs: Jude 1:9 (Michael); 1 Thess 4:16 (Michael's voice)
   - Uriah Smith: `reference/uriah-smith/study-05.md` (Dan 10 portion)
   - EGW: `reference/egw/study-05.md`
-  - Waterhouse: `reference/james-waterhouse-studies/studies/09-daniel-10-12.md`
   - Already shipped: `05-kings-of-the-north-and-south.md` — split Dan 10 portion
 
 ## Daniel 11 — The North–South Prophecy
@@ -186,7 +176,6 @@ These threads run through the canon. Each chapter study advances one or more.
   - Cross-refs: 2 Thess 2:3-4; Rev 13:5-6 (the same "exalt himself" pattern)
   - Uriah Smith: `reference/uriah-smith/study-05.md` (Dan 11 — the longest bundled section)
   - EGW: `reference/egw/study-05.md`
-  - Waterhouse: `09-daniel-10-12.md`
   - Already shipped: `05-kings-of-the-north-and-south.md` — split Dan 11 portion
 
 ## Daniel 12 — Sealed Till the Time of the End
@@ -198,7 +187,6 @@ These threads run through the canon. Each chapter study advances one or more.
   - KJV: Daniel 12; Dan 11:45 (the immediately prior verse — the king's end); Rev 10 (the sealed book opened)
   - Cross-refs: Matt 24:21 (great tribulation); 1 Cor 15:51-52 (resurrection)
   - Uriah Smith: `reference/uriah-smith/study-06.md`
-  - Waterhouse: `08-daniel-8-12.md`
   - Earth's Final Destiny: `meeHyisZzwc.txt` (Rev 10 & Daniel unsealed: 1844 judgment)
   - Already shipped: `06-sealed-till-the-time-of-the-end.md` — keep substantially as-is
 
@@ -216,7 +204,6 @@ These threads run through the canon. Each chapter study advances one or more.
   - Cross-refs: Heb 4:14-16; Heb 8-9 (priestly Christ)
   - Uriah Smith: `reference/uriah-smith/study-07.md` (Rev 1 portion)
   - EGW: GC ch 19 ("Light Through Darkness")
-  - Waterhouse: `13-revelation-1.md`; `14-revelation-index.md`
   - Already shipped: `07-the-revelation-of-jesus-christ.md` — Rev 1 portion to lift verbatim
 
 ## Revelation 2 — The Church Walking Through Time (Ephesus → Thyatira)
@@ -228,7 +215,6 @@ These threads run through the canon. Each chapter study advances one or more.
   - KJV: Rev 2; OT type-allusions Rev 2 reuses (Balaam — Num 22-25; Jezebel — 1 Ki 16-21, 2 Ki 9; manna — Ex 16; tree of life — Gen 2-3)
   - Cross-refs: 2 Cor 11:13-15 (false apostles tested at Ephesus); Acts 19 (Ephesus background)
   - Uriah Smith: `reference/uriah-smith/study-07.md` (Rev 2 portion)
-  - Waterhouse: `13-revelation-1.md`; `14-revelation-index.md`
   - Already shipped: `07-the-revelation-of-jesus-christ.md` — Rev 2 portion to lift
 
 ## Revelation 3 — The Final Three Churches (Sardis, Philadelphia, Laodicea)
@@ -251,7 +237,6 @@ These threads run through the canon. Each chapter study advances one or more.
   - KJV: Rev 4; Eze 1; Isa 6; Ex 25:31-37 (lampstand); Ex 28:17-20 (breastplate stones); Gen 9:13 (rainbow)
   - Cross-refs: Heb 8:1-2; 9:23-24; Rev 14:7 (Creator-call)
   - Uriah Smith: `reference/uriah-smith/study-08.md` (Rev 4 portion)
-  - Waterhouse: `12-the-gospels.md` (four Gospels = four creatures); `14-revelation-index.md`
   - Already shipped: `08-the-throne-room-and-the-sealed-book.md` — Rev 4 portion to lift
 
 ## Revelation 5 — The Sealed Scroll and the Slain Lamb
@@ -344,7 +329,6 @@ These threads run through the canon. Each chapter study advances one or more.
   - Cross-refs: John 12:31; Col 2:15; Rev 19:10 (testimony = spirit of prophecy)
   - Uriah Smith: `reference/uriah-smith/study-12.md`
   - EGW: `reference/egw/study-12.md`; GC ch 1, 25, 27, 30
-  - Waterhouse: `10-genesis-1-8.md` (creation-fall pattern in the great controversy)
   - Earth's Final Destiny: `ThM67jch8rQ.txt` (Rev 12: True church, Sabbath history) — primary
 
 ## Revelation 13 — The Two Beasts
@@ -356,7 +340,6 @@ These threads run through the canon. Each chapter study advances one or more.
   - KJV: Rev 13; Dan 7 (the source of the composite beast); Dan 8 (the little horn); 2 Thess 2; Matt 24:24
   - Uriah Smith: `reference/uriah-smith/study-13.md` — exhaustive
   - EGW: `reference/egw/study-13.md`; GC ch 25, 35-37
-  - Waterhouse: `10a-exodus-numbers-1kings.md` (state-church pattern)
   - Earth's Final Destiny: `R9rRGwducuM.txt` (Rev 13: 666, Nimrod, Babylon); `_mhZEe5kCrA.txt` (Roman Catholicism as Antichrist system)
 
 ## Revelation 14 — The Three Angels and the Harvest
@@ -471,7 +454,6 @@ These threads run through the canon. Each chapter study advances one or more.
   - KJV: Ex 25-30; Lev 16; Heb 8-10; Dan 8; Rev 4-5; Rev 11:19; Rev 14:6-7; Rev 15:5-8
   - Uriah Smith: `reference/uriah-smith/study-04.md`
   - EGW: `reference/egw/study-04.md`; GC ch 23 ("What Is the Sanctuary?")
-  - Waterhouse: `08-daniel-8-12.md`; `11-new-testament-structure.md` (Heb 4:9 _sabbatismos_)
   - Earth's Final Destiny: `dbPUNvA30LA.txt` (Hebrew Sanctuary and Law); `gPWzBuVzMu4.txt` (Sanctuary, Feasts, Revelation)
   - Already shipped: `04-the-sanctuary-key.md`
 

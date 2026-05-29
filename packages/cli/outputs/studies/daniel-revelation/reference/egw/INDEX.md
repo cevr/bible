@@ -37,7 +37,7 @@ These bundles are search aids: GC tells you which prophetic moments matter and h
 | 19  | The Millennium and Final Judgment — Rev 20    | [study-19.md](study-19.md) |
 | 20  | All Things New — Rev 21-22                    | [study-20.md](study-20.md) |
 
-(Studies 6-10 and 21 do not yet have EGW bundles — DAR + Waterhouse + Earth's Final Destiny cover them. Add queries to `_raw/` and re-run the assembler if needed.)
+(Studies 6-10 and 21 do not yet have EGW bundles — DAR + pioneer writings + Earth's Final Destiny cover them. Add queries to `_raw/` and re-run the assembler if needed.)
 
 ## Re-running the searches
 

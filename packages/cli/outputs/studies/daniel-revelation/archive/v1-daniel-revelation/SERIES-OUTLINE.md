@@ -18,17 +18,16 @@ Revelation cannot be understood without Daniel. They are one prophecy in two par
 
 ## Reference Material
 
-| Source                            | Location                              | What it provides                                                                          |
-| --------------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------- |
-| Bible DB                          | `~/.bible/bible.db`                   | KJV text, 1050+ Daniel↔Revelation cross-refs, Strong's numbers, margin notes, concordance |
-| EGW DB                            | `~/.bible/egw-paragraphs.db`          | GC (ch 17-42), PK (ch 39-44 = Daniel narrative), AA, EW, SR, DA                           |
-| EGW API                           | `packages/core/src/egw/client.ts`     | Uriah Smith's _Daniel and the Revelation_, other pioneer commentaries                     |
-| Earth's Final Destiny transcripts | `reference/earths-final-destiny/`     | 16 video transcripts (Rev 10-17, crisis sequence, millennium)                             |
-| **James Waterhouse studies**      | `reference/james-waterhouse-studies/` | Chiastic structural analysis of Daniel + Revelation, 14 study files + 5 source PDFs       |
+| Source                            | Location                          | What it provides                                                                          |
+| --------------------------------- | --------------------------------- | ----------------------------------------------------------------------------------------- |
+| Bible DB                          | `~/.bible/bible.db`               | KJV text, 1050+ Daniel↔Revelation cross-refs, Strong's numbers, margin notes, concordance |
+| EGW DB                            | `~/.bible/egw-paragraphs.db`      | GC (ch 17-42), PK (ch 39-44 = Daniel narrative), AA, EW, SR, DA                           |
+| EGW API                           | `packages/core/src/egw/client.ts` | Uriah Smith's _Daniel and the Revelation_, other pioneer commentaries                     |
+| Earth's Final Destiny transcripts | `reference/earths-final-destiny/` | 16 video transcripts (Rev 10-17, crisis sequence, millennium)                             |
 
-### Waterhouse reference — the structural backbone
+### Chiastic structure — the structural backbone
 
-Waterhouse's method is **chiastic structural analysis** — he demonstrates that the Bible's literary architecture (A-B-C-B'-A' patterns) is the author's intended interpretive key, not imposed from outside. For Daniel and Revelation this is especially powerful because both books are densely chiastic by design.
+The structural backbone of these studies is **chiastic analysis** — the Bible's literary architecture (A-B-C-B'-A' patterns) is the author's intended interpretive key, not imposed from outside. For Daniel and Revelation this is especially powerful because both books are densely chiastic by design.
 
 Key findings we will use:
 
@@ -40,30 +39,9 @@ Key findings we will use:
 - **NT macro-chiasm** with Christ as High Priest at the center — the sanctuary message is the NT's structural organizing principle.
 - **The 5-7 Psalms chiasm + sanctuary narrative** — the Day of Atonement thread across the whole Bible.
 
-We treat Waterhouse as a structural authority, not as a prophetic voice we cite. His findings surface in our studies as observations about _what Scripture itself is doing_ — never as "Waterhouse says X." The point is always the text.
+These structural findings surface in our studies as observations about _what Scripture itself is doing_ — never as an appeal to any commentator. The point is always the text.
 
-### Waterhouse file → Study mapping
-
-| Waterhouse file                                            | Feeds our Study                                                                                                          |
-| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `01-daniel-1.md` — Jerusalem/Babylon + diet test           | Study 1 (Dan 1-2 / God Reveals Secrets) — use Dan 1 chiasm as the doorway                                                |
-| `02-daniel-2-7.md` — Aramaic chiasm                        | Study 1 + Study 2 — shows Dan 2 and Dan 7 as paired ends of a single structure                                           |
-| `03-daniel-2.md` — Four-metal statue                       | Study 1                                                                                                                  |
-| `04-daniel-3.md` — Fiery furnace, 666 vs 777, three angels | Study 14 (Three Angels) — use Dan 3 as the prototype                                                                     |
-| `05-daniel-7.md` — Four beasts, judgment, little horn      | Study 2                                                                                                                  |
-| `06-daniel-8.md` — Ram, goat, 2300 days                    | Study 3                                                                                                                  |
-| `07-daniel-9.md` — 70 weeks as Sabbath test                | Study 3 + Study 4 (Sanctuary Key)                                                                                        |
-| `08-daniel-8-12.md` — Day of Atonement across Daniel       | Study 4 + Study 6 (Dan 12)                                                                                               |
-| `09-daniel-10-12.md` — North/South, end times              | Study 5                                                                                                                  |
-| `10-genesis-1-8.md` — Great controversy pattern            | Study 12 (Rev 12 / Woman + Dragon) — creation-fall-144K pattern surfaces where the great controversy is named explicitly |
-| `10a-exodus-numbers-1kings.md` — Rebellion, 10 vs 2        | Study 13 (Two Beasts) — state-church pattern                                                                             |
-| `10b-ezekiel-8.md` — Progressive abominations              | Study 16 (Babylon) — the four stages of apostasy                                                                         |
-| `11-new-testament-structure.md` — NT chiasm, sabbatismos   | Study 4 (Sanctuary) + Study 7 (Rev 1-3)                                                                                  |
-| `12-the-gospels.md` — Four Gospels = four living creatures | Study 8 (Throne Room) — the four living creatures of Rev 4                                                               |
-| `13-revelation-1.md` — Judgment and Second Coming          | Study 7 (Rev 1-3) + Study 8 (Rev 4-5)                                                                                    |
-| `14-revelation-index.md` — Full Revelation structural map  | Every Revelation study — use as the spine for passage location and meaning                                               |
-
-### Waterhouse's structural insights — where each belongs
+### Structural insights — where each belongs
 
 | Structural insight                                     | Where we use it                                         |
 | ------------------------------------------------------ | ------------------------------------------------------- |
@@ -586,16 +564,15 @@ Studies 1-6 (Daniel) are not hermetically sealed. When Dan 2 shows the iron/clay
 
 ### Phase 1: Fetch Reference Material
 
-1. **Waterhouse studies are already indexed** in `reference/james-waterhouse-studies/studies/00-INDEX.md` — use the file→study mapping above to pull the right chiastic analyses per study
-2. Use EGW API to search for and download Uriah Smith's _Daniel and the Revelation_ (or _Thoughts on Daniel_ and _Thoughts on Revelation_) into `reference/uriah-smith/`
-3. Index transcripts from Earth's Final Destiny by topic/chapter (already indexed in `reference/earths-final-destiny/INDEX.md`)
-4. Build per-study reference bundles from: Bible cross-refs, EGW paragraphs (GC, PK), pioneer commentary, **Waterhouse structural analyses**
+1. Use EGW API to search for and download Uriah Smith's _Daniel and the Revelation_ (or _Thoughts on Daniel_ and _Thoughts on Revelation_) into `reference/uriah-smith/`
+2. Index transcripts from Earth's Final Destiny by topic/chapter (already indexed in `reference/earths-final-destiny/INDEX.md`)
+3. Build per-study reference bundles from: Bible cross-refs, EGW paragraphs (GC, PK), pioneer commentary, **chiastic structural analysis of the passage**
 
 ### Phase 2: Generate Studies
 
 - Use `bible` CLI study generation with per-study prompts
-- Each study gets a reference bundle: relevant Bible chapters + cross-refs + EGW + pioneer + transcripts + Waterhouse structure files
-- **Waterhouse integration rule:** his structural findings surface as observations about the text itself ("Notice the chiastic structure of Dan 8-11...") — never cited as "Waterhouse says." The structures are in the text; we are just pointing them out.
+- Each study gets a reference bundle: relevant Bible chapters + cross-refs + EGW + pioneer + transcripts + chiastic structure notes
+- **Structural-findings rule:** structural findings surface as observations about the text itself ("Notice the chiastic structure of Dan 8-11...") — never cited as a commentator's claim. The structures are in the text; we are just pointing them out.
 - Review cycle: generate → codex review → opus review → synthesize → apply
 
 ### Phase 3: Series Polish

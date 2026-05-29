@@ -36,7 +36,7 @@ The prior series (`SERIES-OUTLINE.md`, 34 chapter studies + 3 bonuses) is a **ve
 | Approach          | Verse-by-verse exposition                              | Story + Scripture + Application                                           |
 | Quote policy      | Scripture-only in the body                             | Pioneer/EGW quotes used freely                                            |
 | Coverage          | Every verse of D&R covered exactly once                | Prophetic content surfaces as pioneers opened it; recapitulation embraced |
-| Primary reference | Bible DB + EGW DB + Waterhouse chiastic analyses       | Bible DB + EGW DB + DAR + pioneer primary writings                        |
+| Primary reference | Bible DB + EGW DB + chiastic structural analyses       | Bible DB + EGW DB + DAR + pioneer primary writings                        |
 | Markers           | `[KEY🔑]` `[⟲]` `[CTRF]` `[IMG]` `[DYK🔎]` `[Q]` `[→]` | All v1 markers + **`[CHAIN]`**                                            |
 
 The shift is from "what does this chapter mean" to "how did God's people come to understand this." Same historicist method, same Scriptural anchors, but the spine is the experience of the movement.
@@ -505,8 +505,7 @@ packages/cli/outputs/studies/daniel-revelation/
     ├── egw/                            # existing — kept (still useful for v2)
     ├── egw-remote/                     # existing — kept
     ├── uriah-smith/                    # existing — kept
-    ├── earths-final-destiny/           # existing — archive (transcripts are v1-specific)
-    └── james-waterhouse-studies/       # existing — archive (chiastic analyses, v1-specific)
+    └── earths-final-destiny/           # existing — archive (transcripts are v1-specific)
 ```
 
 ---
@@ -524,7 +523,7 @@ packages/cli/outputs/studies/daniel-revelation/
 
 Still open (not blocking pilot):
 
-- **Existing `reference/` tracks.** Plan: keep `egw/`, `egw-remote/`, `uriah-smith/`; move `earths-final-destiny/` and `james-waterhouse-studies/` to archive. To be confirmed during v1 archival.
+- **Existing `reference/` tracks.** Plan: keep `egw/`, `egw-remote/`, `uriah-smith/`; move `earths-final-destiny/` to archive. To be confirmed during v1 archival.
 
 ---
 

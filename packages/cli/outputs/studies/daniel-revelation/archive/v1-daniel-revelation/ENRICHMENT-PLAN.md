@@ -20,12 +20,11 @@ These two threads are **woven**, not added as a section. They surface as observa
 
 ## What's already in place
 
-- `SERIES-OUTLINE.md` — 21 studies, 7 `[⟲]` threads, Daniel-first method, Waterhouse structural mapping
-- Per-study reference bundles across **5 tracks**:
+- `SERIES-OUTLINE.md` — 21 studies, 7 `[⟲]` threads, Daniel-first method, chiastic structural mapping
+- Per-study reference bundles across **4 tracks**:
   - `reference/uriah-smith/` — DAR verse-by-verse (~415 refcodes)
   - `reference/egw/` — GC + PK pastoral framing (~119 refcodes)
   - `reference/egw-remote/` — full EGW corpus + PFF (Froom) historical citations (~940 refcodes)
-  - `reference/james-waterhouse-studies/` — chiastic structure
   - `reference/earths-final-destiny/` — sermon cadence, Rev 10-17 emphasis
 
 Total available: ~1,474 unique refcodes across the three EGW tracks, plus structural and pastoral material.

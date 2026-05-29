@@ -363,7 +363,7 @@ These need pulling from Adventist Digital Library, archive.org, or other public-
 These remain open but not blocking for pilot drafting:
 
 1. **The pioneer-writings reference directory name.** `reference/pioneer-writings/` confirmed in Phase 0 — already created.
-2. **What happens to the existing `reference/` tracks** (egw, egw-remote, james-waterhouse-studies, earths-final-destiny, uriah-smith)? Spec proposes: keep egw/egw-remote/uriah-smith (still relevant); archive earths-final-destiny + james-waterhouse-studies (v1-specific). To be confirmed during v1 archival.
+2. **What happens to the existing `reference/` tracks** (egw, egw-remote, earths-final-destiny, uriah-smith)? Spec proposes: keep egw/egw-remote/uriah-smith (still relevant); archive earths-final-destiny (v1-specific). To be confirmed during v1 archival.
 
 ---
 

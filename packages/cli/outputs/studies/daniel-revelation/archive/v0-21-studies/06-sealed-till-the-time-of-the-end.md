@@ -23,7 +23,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1459'
 
 ## Before the Verses — Reading Dan 12 as a Chiasm
 
-Dan 12 is short — thirteen verses — and tightly built. Following Waterhouse's structural reading, the chapter mirrors itself around Daniel's incomprehension at v.8 — the doubled end-question that the chapter centers on:
+Dan 12 is short — thirteen verses — and tightly built. The chapter mirrors itself around Daniel's incomprehension at v.8 — the doubled end-question that the chapter centers on:
 
 ```
 A     vss. 1-2     Michael stands up; time of trouble; resurrection
@@ -43,7 +43,7 @@ A'    vs.  13      "Go thy way... rest... stand in thy lot at the end of the day
 - d (vs.8) is the apex — Daniel's honest "I understood not." The whole chapter centers on a question.
 - `[KEY🔑]` **Reading habit, not just structure.** When a prophetic chapter is built as a chiasm, the apex is the interpretive key. Dan 12's center is not a date — it is a confession of incomprehension. The form is telling us how to read what follows: the numbers are real, but the prophet's posture is humility, and the chapter ends with rest, not resolution.
 
-[DYK🔎] Dan 12's chiasm overlaps with the larger Dan 10-12 macro-chiasm (Study 5). The macro-chiasm splits Dan 12 across its own boundaries (Waterhouse puts 11:40b-12:2 in `B'` and 12:3-13 in `A'`), so the chapter-level loop is _embedded within_ rather than _nested cleanly inside_ the larger unit. Two chiastic structures crossing each other in the same passage. The vision's prophetic geometry is doing what the prophecy says: knowledge increases the more carefully you read.
+[DYK🔎] Dan 12's chiasm overlaps with the larger Dan 10-12 macro-chiasm (Study 5). The macro-chiasm splits Dan 12 across its own boundaries (11:40b-12:2 falls in `B'` and 12:3-13 in `A'`), so the chapter-level loop is _embedded within_ rather than _nested cleanly inside_ the larger unit. Two chiastic structures crossing each other in the same passage. The vision's prophetic geometry is doing what the prophecy says: knowledge increases the more carefully you read.
 
 Dan 11 ended with the willful king falling between the seas at the glorious holy mountain, with none to help him. Dan 12 picks up immediately — no new date, no new setting. The same vision continuing.
 

@@ -27,7 +27,7 @@ This series exists because that drift is real, present, and re-introducing the v
 | Spine            | Canonical book order, every verse | Historical chronology (1816–1888)                | Canonical book order, weighted to contested chapters                   |
 | Format           | Verse-by-verse devotional prose   | Story + Scripture + Application                  | Whiteboard outline ([`studies.md`](../../../../../../.../studies.md))  |
 | Audience         | Anyone, no prophecy background    | Anyone, builds the historicist case from scratch | Advanced SDA readers drifted into modern spiritualization              |
-| Authorities      | Bible + EGW + Waterhouse chiastic | Bible + EGW + DAR + pioneer primary              | Bible + Miller's Rules + DAR + SOP (silent backing)                    |
+| Authorities      | Bible + EGW + chiastic structure  | Bible + EGW + DAR + pioneer primary              | Bible + Miller's Rules + DAR + SOP (silent backing)                    |
 | Tone             | Devotional, teaching              | Daily devotional, narrative                      | Peer-teaching, whiteboard, glanceable                                  |
 | Polemic          | None                              | None                                             | Implicit — corrects via Scripture + Rules without naming the framework |
 | Length per study | 40-60 min                         | 15-25 min                                        | No cap; glanceable; typical 600-1500 words                             |
