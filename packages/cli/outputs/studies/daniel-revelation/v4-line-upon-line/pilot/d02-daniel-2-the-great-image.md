@@ -139,32 +139,55 @@ not give way to a fifth empire; it **breaks down in place**. Read the stages off
   > image."
   > — _S.N. Haskell, The Story of Daniel the Prophet, p. 35_
 
+### [⟲] The feet's division = Daniel 7's ten horns
+
+The breakup is drawn again, sharper, in the very next vision — and DAR ties the two
+pictures together explicitly:
+
+- [⟲] **the divided feet of Dan 2 = the ten horns of Dan 7** — the ten kingdoms Rome broke
+  into (and the ground out of which the little horn / papacy rises, 538):
+  > "And the ten horns out of this kingdom are ten kings that shall arise..." (Daniel 7:24)
+  > "The rise of the ten horns, or the division of Rome into ten kingdoms, between the
+  > years A.D. 351 and 483, has already been noticed. (See on chapter 2:41.)"
+  > — _Uriah Smith, Daniel and the Revelation, p. 125_
+- [→] note DAR's own cross-reference: Dan 7's horns point back to **"chapter 2:41"** — the
+  **feet**, not the toes. The historical divisions of Rome are a **feet**-stage event.
+
 ---
 
-## [⟲] The toes — the final ten
+## [⟲] The toes — the final ten, at the very end
 
-The toes are the **last** form of the divided kingdom — and Scripture itself counts ten and
-tells us what they are, in the very next vision:
+The toes are the **last** form of the kingdom — and they are not the same ten as the feet's
+historical breakup. Daniel 7's horns were Rome's medieval divisions (A.D. 351–483); the
+toes point forward to a **different** ten, John's end-time kings:
 
-- ten toes → **ten kings** — Daniel will say it plainly one chapter-set later:
-  > "And the ten horns out of this kingdom are ten kings that shall arise..." (Daniel 7:24)
-- [⟲] the **ten toes of Dan 2 = the ten horns of Dan 7 = the ten kings of Rev 17** — the
-  same final lineup, drawn three times:
-  > "And the ten horns which thou sawest are ten kings, which have received no kingdom as
-  > yet; but receive power as kings one hour with the beast." (Revelation 17:12)
-- [→] so the image's feet are the **long** divided era; the toes are its **final**
-  configuration — the lineup standing when the stone falls (Dan 2:44, "in the days of
-  **these kings**").
+> "...the ten horns which thou sawest are ten kings, which have received **no kingdom as
+> yet**; but receive power as kings **one hour with the beast**." (Revelation 17:12)
+
+> "And the ten horns which thou sawest upon the beast, these shall hate the whore, and
+> shall make her desolate..." (Revelation 17:16)
+
+- [⟲] **the toes = the ten kings of Rev 17** — kings who "have received no kingdom as yet"
+  (future to John), who reign "one hour with the beast" and finally **turn on the harlot**
+  (Babylon). An **end-time** lineup, not the medieval breakup.
+- [→] so the image marks **two divisions, not one**: the **feet** = Rome's historical
+  fragmentation (Dan 7's horns); the **toes** = the final ten standing at the very end —
+  the lineup present when the stone strikes (Dan 2:44, "in the days of **these kings**").
+- [DYK🔎] this is why the distinction matters: Dan 7's horns are _behind_ us (the
+  papacy already rose among them); the toes' Rev 17 ten are the _closing_ scene — the woman
+  riding the beast, judged. We meet them fully at Rev 17.
 
 [Q] How many conquerors have tried to reunite the broken iron — and how many have failed
 exactly as Daniel 2:43 said they would? The unfulfilled half of the verse is still
-holding — and the stone strikes the image **on the toes**, at the very end.
+holding — and the stone strikes the image **on the feet** (Dan 2:34), in the days of the
+final ten.
 
 ---
 
 ## [KEY🔑] The stone — God's everlasting kingdom
 
-The stone strikes at the **last** stage — not the head, not the legs, but the toes:
+The stone strikes at the **last** stage — not the head, not the legs, but the feet and
+toes, the final divided form:
 
 > "Thou sawest till that a stone was cut out without hands, which smote the image **upon
 > his feet** that were of iron and clay, and brake them to pieces." (Daniel 2:34)
