@@ -64,7 +64,11 @@ bible egw lookup "<refcode cited by the lesson>" --json
 There is no formal system prompt for Sabbath School (the original
 `PROMPT_REGISTRY` had no entry). Build the outline using the same
 **teacher-mode whiteboard** principles as `references/studies.md`, scoped
-to the week's lesson:
+to the week's lesson — including its interpretive method: **Miller's 14 Rules
+of Interpretation** and the **EGW + SDA-pioneer (William Miller foremost)
+corpus** (the "Hermeneutic & Sources" section of `SKILL.md`). The lesson PDFs
+set the week's frame; the pioneer reading and Miller's rules govern how its
+proof-texts are interpreted:
 
 ```markdown
 # Sabbath School — Q[QUARTER] W[WEEK] ([YEAR])

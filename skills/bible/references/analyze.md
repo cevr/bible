@@ -40,6 +40,16 @@ encoded in that structure.
 **Core principle: Structure IS the message.** Biblical authors deliberately
 arranged text into literary patterns that encode theological meaning.
 
+**Interpretive method: Miller's Rules.** Read figures, types, and prophecy by
+William Miller's 14 Rules of Interpretation (the "Hermeneutic & Sources"
+section of `SKILL.md`). Scripture is its own expositor (Rule 5): explain every
+figure by the same figure elsewhere in the Bible (Rules 7–12), and treat a
+prophecy as fulfilled only when every word is literally answered in history
+(Rule 13). Frame theology from the SDA pioneer / historicist reading — William
+Miller foremost, with Uriah Smith, J.N. Andrews, et al. — and draw confirming
+witness from Ellen G. White in harmony with Scripture. Do not import
+non-pioneer interpretive frameworks as authority.
+
 ## Method
 
 ### 1. Read the Full Passage
@@ -60,9 +70,14 @@ Apply in order of likelihood:
 
 ### 3. Perform Word Studies
 
+Word studies are **auxiliary confirmation**, never the foundation: the
+structure and meaning must hold from the plain English text and its
+cross-references first. Use Greek/Hebrew to *confirm* a reading already
+evident, not to introduce a non-obvious one.
+
 - Count occurrences of prominent words — flag symbolic counts: 3 (Godhead),
   7 (Sabbath/perfection), 10 (law), 12 (God's people), 40 (testing), 70 (Sabbath cycles)
-- Trace Hebrew/Greek roots via Strong's numbers (#NNNN)
+- Trace Hebrew/Greek roots via Strong's numbers (#NNNN) — as support, not proof
 - Track vocabulary clusters — words appearing ONLY in paired sections confirm structure
 - Check name meanings (Hebrew names encode theology)
 
@@ -87,6 +102,10 @@ When cross-references include type tags (e.g. `[QUO]`, `[TYP]`, `[PRO]`), use th
 
 ### 5. Decode Symbolism
 
+- **Literal by default (Miller's Rule 11)** — a word is literal unless taking
+  it literally does violence to sense or nature, or the text itself marks it a
+  figure. Symbolic where Scripture says symbolic; literal everywhere else. No
+  mystical/hidden "spiritual" sense imposed on a plain text.
 - Numbers, animals, metals, colors, directions, body parts, garments, nature
 - **Scripture interprets Scripture** — every symbol must have a biblical definition
 - If no biblical definition exists, flag as uncertain
