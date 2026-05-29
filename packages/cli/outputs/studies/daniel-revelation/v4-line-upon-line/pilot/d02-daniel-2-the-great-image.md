@@ -103,30 +103,79 @@ History only supplies the dates.
 
 ---
 
-## The feet — iron mixed with clay
+## The iron lower half — three beats, not one
+
+The fourth kingdom is drawn down the image in **three stages**, and the text marks each:
+
+- **legs of iron** — _"His legs of iron"_ (Dan 2:33). **Imperial Rome, whole and
+  undivided.** One metal, no clay yet.
+- **feet of iron + clay** — _"his feet part of iron and part of clay"_ (Dan 2:33). **Rome
+  divided**, the iron now adulterated.
+- **toes of iron + clay** — _"the toes of the feet"_ (Dan 2:41-42). The **final lineup**
+  at the very end.
+
+[→] One leg-metal becomes a footing of two materials becomes ten toes — the kingdom does
+not give way to a fifth empire; it **breaks down in place**. Read the stages off the text.
+
+---
+
+## The feet — divided Rome, iron mixed with clay
 
 > "And whereas thou sawest the feet and toes, part of potters' clay, and part of iron,
-> the kingdom shall be divided... they shall mingle themselves with the seed of men: but
-> they shall not cleave one to another, even as iron is not mixed with clay." (Daniel
-> 2:41-43)
+> the kingdom shall be divided; but there shall be in it of the strength of the iron...
+> they shall mingle themselves with the seed of men: but they shall not cleave one to
+> another, even as iron is not mixed with clay." (Daniel 2:41-43)
 
-- Rome does not give way to a fifth empire — it **fragments** (the divided kingdoms of
-  Europe)
-- _"they shall not cleave one to another"_ — every attempt to re-weld Europe into one
-  empire fails. The prophecy forbids it.
+- **the kingdom shall be divided** — said outright (Dan 2:41). Rome breaks into the nations
+  of Europe; the iron's strength survives in them, but mixed now with clay's brittleness.
+- _"they shall not cleave one to another"_ — _"mingle... with the seed of men"_ = dynastic
+  intermarriage that never re-welds the empire (Dan 2:43). The prophecy **forbids**
+  reunion.
+- [DYK🔎] **the clay is more than weakness — it is the church-state mixture.** Iron =
+  civil power; the clay kneaded into it = religion fused to the state, the mark of the
+  divided-Rome era.
+  > "The clay mixed with iron also denoted the union of church and state. This combination
+  > is peculiar to the latter part of the world's history, to the feet and toes of the
+  > image."
+  > — _S.N. Haskell, The Story of Daniel the Prophet, p. 35_
 
-[Q] How many conquerors have tried to reunite the broken iron — and how many have
-failed exactly as Daniel 2:43 said they would? The unfulfilled half of the verse is
-still holding.
+---
+
+## [⟲] The toes — the final ten
+
+The toes are the **last** form of the divided kingdom — and Scripture itself counts ten and
+tells us what they are, in the very next vision:
+
+- ten toes → **ten kings** — Daniel will say it plainly one chapter-set later:
+  > "And the ten horns out of this kingdom are ten kings that shall arise..." (Daniel 7:24)
+- [⟲] the **ten toes of Dan 2 = the ten horns of Dan 7 = the ten kings of Rev 17** — the
+  same final lineup, drawn three times:
+  > "And the ten horns which thou sawest are ten kings, which have received no kingdom as
+  > yet; but receive power as kings one hour with the beast." (Revelation 17:12)
+- [→] so the image's feet are the **long** divided era; the toes are its **final**
+  configuration — the lineup standing when the stone falls (Dan 2:44, "in the days of
+  **these kings**").
+
+[Q] How many conquerors have tried to reunite the broken iron — and how many have failed
+exactly as Daniel 2:43 said they would? The unfulfilled half of the verse is still
+holding — and the stone strikes the image **on the toes**, at the very end.
 
 ---
 
 ## [KEY🔑] The stone — God's everlasting kingdom
 
-> "And in the days of these kings shall the **God of heaven set up a kingdom**, which
+The stone strikes at the **last** stage — not the head, not the legs, but the toes:
+
+> "Thou sawest till that a stone was cut out without hands, which smote the image **upon
+> his feet** that were of iron and clay, and brake them to pieces." (Daniel 2:34)
+
+> "And **in the days of these kings** shall the **God of heaven set up a kingdom**, which
 > shall never be destroyed... it shall break in pieces and consume all these kingdoms,
 > and it shall stand for ever." (Daniel 2:44)
 
+- [→] "in the days of **these kings**" = the days of the **toes** (the final ten) — that
+  is when the stone falls. The strike lands on the feet/toes because the kingdom of God
+  comes at the **end** of the image, not in the middle.
 - the stone = **the kingdom of God** — again, _defined in the verse itself_ ("the God of
   heaven shall set up a kingdom")
 - **"cut out without hands"** (Dan 2:45) — not made by human power
