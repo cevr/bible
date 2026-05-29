@@ -36,7 +36,11 @@ import { openBookAtFirstChapter } from './services/open-book.js';
 import { Prefetcher } from './services/prefetcher.js';
 import { ReaderSettings, type ReaderMode } from './services/reader-settings.js';
 import { ReaderState, type ReaderSelection } from './services/reader-state.js';
-import { UrlStateRouter, type UrlSelection } from './services/url-state-router.js';
+import {
+  decode as decodeUrlHash,
+  UrlStateRouter,
+  type UrlSelection,
+} from './services/url-state-router.js';
 
 // Three-layer drawer stack for the open-book flow:
 //   - 'closed'      reader fills canvas
@@ -240,21 +244,22 @@ const AppInner: Component = () => {
       void runtime.runPromise(Fiber.interrupt(drawerSeedFiber));
     });
 
-    // URL hash → boot selection. Read synchronously so the rehydration
-    // fibers below can gate on it without racing a Promise. The router's
-    // `read` is `Effect.sync` under the hood, so `runSync` is safe.
+    // URL hash → boot selection. Read synchronously off `window.location`
+    // via the pure `decode` so the rehydration fibers below can gate on it
+    // without racing a Promise. We deliberately do NOT route this through
+    // `UrlStateRouter` + `runtime.runSync`: the router's `read` is sync, but
+    // resolving the service forces ManagedRuntime to *build* its layer, and
+    // that layer's `Effect.acquireRelease` (the popstate listener) makes
+    // construction async — so `runSync` throws `AsyncFiberError`, aborting
+    // the rest of onMount and leaving the EGW canvas stuck behind its
+    // `rehydrated()` gate. Reading the hash once at boot needs no service.
     //
     // A7-01: the URL is the canonical state store. When the hash names a
     // valid selection we use it INSTEAD of LastPositionStorage for the
     // matching mode, and switch readerMode to match the hash. The other
     // mode still rehydrates from storage so a mode-flip mid-session lands
     // on the user's persisted place there.
-    const bootUrlSelection: Option.Option<UrlSelection> = runtime.runSync(
-      Effect.gen(function* () {
-        const router = yield* UrlStateRouter;
-        return yield* router.read;
-      }),
-    );
+    const bootUrlSelection: Option.Option<UrlSelection> = decodeUrlHash(window.location.hash);
     const urlSelectsBible =
       Option.isSome(bootUrlSelection) &&
       (bootUrlSelection.value._tag === 'bible-chapter' ||
