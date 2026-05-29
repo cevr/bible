@@ -31,6 +31,7 @@ const KjvChapterSchema = Schema.Struct({
 const KjvStrongsWordSchema = Schema.Struct({
   text: Schema.String,
   strongs: Schema.optional(Schema.Array(Schema.String)),
+  italic: Schema.optional(Schema.Boolean),
 });
 
 const KjvStrongsVerseSchema = Schema.Struct({

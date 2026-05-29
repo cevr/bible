@@ -17,12 +17,18 @@ export const StrongsVerse: Component<{
     <For each={props.words}>
       {(w, i) => {
         const codes = (): readonly string[] => w.strongs ?? [];
+        // KJV translator-supplied words render italic+dimmed, mirroring the
+        // plain reader's `italic` TextSegment (see verse-renderer.tsx). A word
+        // can be both italic and Strong's-tagged, so style the text token in
+        // both branches.
+        const Text: Component = () =>
+          w.italic === true ? <em class="italic opacity-85">{w.text}</em> : <>{w.text}</>;
         return (
           <>
             <Show when={i() > 0}> </Show>
-            <Show when={codes().length > 0} fallback={w.text}>
+            <Show when={codes().length > 0} fallback={<Text />}>
               <span class="group/strong relative inline">
-                {w.text}
+                <Text />
                 <For each={codes()}>
                   {(code, ci) => (
                     <>

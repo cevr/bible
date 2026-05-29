@@ -97,6 +97,11 @@ const BOOK_NUMBER: Record<string, number> = {
 interface Word {
   text: string;
   strongs?: string[];
+  // True for translator-supplied words — KJV italics, encoded in OSIS as
+  // <transChange type="added">. The renderer styles these like the plain
+  // reader's italics. Omitted (not `false`) for ordinary words to keep the
+  // asset small.
+  italic?: boolean;
 }
 
 interface OutVerse {
@@ -124,13 +129,28 @@ function normalizeStrong(raw: string): string | null {
 //        earlier words become bare {text}.
 //   <transChange type="added">word</transChange>
 //     -> bare {text} (italicized KJV translator addition).
-//   Free text between tags (punctuation, spaces)
-//     -> punctuation attaches to PRECEDING word's text.
+//   Free text between tags
+//     -> this is REAL verse text too (e.g. "Behold, thou " at the start of
+//        Song 4:1, or "; behold, thou " between two <w> groups). It is NOT
+//        just punctuation: tokenize it. A leading run of punctuation with no
+//        preceding space ("," / ";" / ":") attaches to the previous word;
+//        remaining whitespace-separated tokens become their own bare {text}.
 //
-// We intentionally skip <milestone>, <note>, <chapter>, and any other
-// markup our target doesn't represent.
-function parseVerseBody(body: string): Word[] {
+// We strip <note>/<title> blocks (with their inner text) BEFORE walking —
+// their content is translator apparatus ("Heb. ...", "or, ...") that the
+// CrossWire OSIS appends inline, and absorbing it into the verse was the
+// source of the "Gilead.that…:or,thateatof,etc" corruption. Other inline
+// markup (<divineName>, <foreign>, <q>, <seg>, <milestone>) is discarded
+// tag-wise but its text is kept, since it carries real verse words.
+export function parseVerseBody(rawBody: string): Word[] {
   const words: Word[] = [];
+
+  // Drop translator-apparatus blocks entirely (tag + inner text, including
+  // any nested markup like <divineName> inside a note). These never contain
+  // <w> Strong's words, so nothing meaningful is lost.
+  const body = rawBody
+    .replace(/<note\b[^>]*>[\s\S]*?<\/note>/g, ' ')
+    .replace(/<title\b[^>]*>[\s\S]*?<\/title>/g, ' ');
 
   // Walk the body left-to-right, alternating between tag matches and the
   // raw text between them. We use a single regex that matches <w>, </w>,
@@ -143,18 +163,25 @@ function parseVerseBody(body: string): Word[] {
   let openText = ''; // accumulated raw text since last <w> / <transChange> open
   let m: RegExpExecArray | null;
 
-  // Helper: emit words. `tail` is text BETWEEN closes (punctuation/spaces).
-  // It gets appended to the last emitted word so "form" + "," -> "form,".
-  const appendTailToLast = (tail: string): void => {
-    const trimmed = tail.replace(/\s+/g, ' ');
-    if (trimmed === '' || trimmed === ' ') return;
-    if (words.length === 0) return; // no preceding word to attach to
-    // Append non-space chars (punctuation) to the previous word's text.
-    // Preserve spaces by ignoring them (whitespace already separates words).
-    const punct = trimmed.replace(/\s/g, '');
-    if (punct === '') return;
-    const last = words[words.length - 1]!;
-    last.text = `${last.text}${punct}`;
+  // Emit free text found between tags in 'none' mode. This text is real verse
+  // content. A leading punctuation run with NO preceding whitespace cleaves to
+  // the previous word ("fair" + ", " -> "fair,"); everything after the first
+  // whitespace becomes standalone bare words ("; behold, thou " -> previous
+  // word gets ";", then "behold," and "thou" are pushed as their own tokens).
+  const emitFreeText = (raw: string): void => {
+    if (raw === '') return;
+    // Attach a leading no-space punctuation run to the previous word.
+    if (words.length > 0) {
+      const lead = raw.match(/^[^\s]+/);
+      if (lead !== null && !/^\s/.test(raw)) {
+        words[words.length - 1]!.text += lead[0];
+        raw = raw.slice(lead[0].length);
+      }
+    }
+    // Remaining whitespace-separated tokens are their own words.
+    for (const tok of raw.split(/\s+/)) {
+      if (tok !== '') words.push({ text: tok });
+    }
   };
 
   const flushWGroup = (raw: string): void => {
@@ -174,7 +201,7 @@ function parseVerseBody(body: string): Word[] {
 
   const flushAddedGroup = (raw: string): void => {
     const tokens = raw.split(/\s+/).filter((s) => s !== '');
-    for (const t of tokens) words.push({ text: t });
+    for (const t of tokens) words.push({ text: t, italic: true });
   };
 
   TOKEN.lastIndex = 0;
@@ -185,8 +212,9 @@ function parseVerseBody(body: string): Word[] {
     if (mode === 'w' || mode === 'added') {
       openText += between;
     } else {
-      // We're in 'none' mode: this between-text is inter-word punctuation.
-      appendTailToLast(between);
+      // We're in 'none' mode: this between-text is real verse text (leading
+      // free text, or words/punctuation between <w>/<transChange> groups).
+      emitFreeText(between);
     }
 
     const tag = m[0];
@@ -224,12 +252,12 @@ function parseVerseBody(body: string): Word[] {
 
   // Trailing text after the last tag (often the verse-final period).
   const trailing = body.slice(cursor);
-  if (mode === 'none') appendTailToLast(trailing);
+  if (mode === 'none') emitFreeText(trailing);
 
   return words;
 }
 
-function decodeEntities(s: string): string {
+export function decodeEntities(s: string): string {
   return s
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
@@ -298,11 +326,15 @@ function convert(osisPath: string, outPath: string): void {
   if (skipped.length > 0) console.log(`  skipped ${skipped.length} unrecognised osisIDs`);
 }
 
-const args = process.argv.slice(2);
-if (args.length < 1) {
-  console.error('usage: convert-osis-to-kjv-strongs.ts <path-to-kjv.xml> [output-path]');
-  process.exit(1);
+// Only run the CLI conversion when invoked directly — keep `parseVerseBody`
+// importable from tests without triggering a file read/write.
+if (import.meta.main) {
+  const args = process.argv.slice(2);
+  if (args.length < 1) {
+    console.error('usage: convert-osis-to-kjv-strongs.ts <path-to-kjv.xml> [output-path]');
+    process.exit(1);
+  }
+  const inPath = args[0]!;
+  const outPath = args[1] ?? path.resolve(import.meta.dir, '../assets/kjv-strongs.json');
+  convert(inPath, outPath);
 }
-const inPath = args[0]!;
-const outPath = args[1] ?? path.resolve(import.meta.dir, '../assets/kjv-strongs.json');
-convert(inPath, outPath);

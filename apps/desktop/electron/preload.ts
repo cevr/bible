@@ -206,6 +206,8 @@ export type KjvChapterPayload = {
 export type KjvStrongsWord = {
   readonly text: string;
   readonly strongs?: readonly string[];
+  // KJV translator-supplied (italic) word — see StrongsWord in @bible/core.
+  readonly italic?: boolean;
 };
 
 export type KjvStrongsChapterPayload = {

@@ -49,6 +49,9 @@ export interface KjvAssetFile {
 export interface StrongsWord {
   readonly text: string;
   readonly strongs?: readonly string[];
+  // True for KJV translator-supplied words (italics). Stored in the asset and
+  // round-tripped through `strongs_words` JSON; renderers italicize these.
+  readonly italic?: boolean;
 }
 
 export interface StrongsVerseRow {

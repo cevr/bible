@@ -11,6 +11,8 @@ export interface KjvChapter {
 export interface KjvStrongsWord {
   readonly text: string;
   readonly strongs?: readonly string[];
+  // KJV translator-supplied (italic) word — see StrongsWord in @bible/core.
+  readonly italic?: boolean;
 }
 
 export interface KjvStrongsChapter {
