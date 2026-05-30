@@ -306,6 +306,256 @@ The word **abomination** (Heb. _tôʿēbâ_) is the same vocabulary used for ido
 
 The principle is fixed by Deut 22:5; EGW applies it to the bloomer-style "American costume" of her day. The principle continues to apply wherever women's clothing is fashioned to be as nearly like men's as possible.
 
+### IV.A — The head covering (1 Corinthians 11:1–16)
+
+The question of dress is not finished at the hem. There is one item of covering Scripture treats as a distinct ordinance, governed by its own apostolic argument — the covering of a woman's head in worship. It belongs here, with Paul, because it is Paul's instruction (1 Cor 11) standing beside his other instruction on the woman's apparel (1 Tim 2:9).
+
+**A note on the witness.** Every other section of this study closes with Ellen White confirming that Scripture has been read rightly. On the head covering she never wrote a direct exposition of 1 Corinthians 11 — and the reason is itself instructive: _the head covering was not a controversy in her century._ In the 1800s a Christian woman covering her head in public and in worship — bonnet, veil, cap, or shawl — was a near-universal, unquestioned social norm, so there was no dispute for the Spirit of Prophecy to settle. This is a matter of documented social history, not assumption:
+
+- Period etiquette manuals treat a woman's bonnet as the assumed default for leaving the house and for church, _without ever arguing she should wear one_ — e.g. Florence Hartley, _The Ladies' Book of Etiquette, and Manual of Politeness_ (1860), whose "Conduct in Church" chapter regulates every detail of churchgoing yet never tells a woman to cover her head, because a bonnet on a churchgoing woman was simply a given. _Godey's Lady's Book_ (1830–1896), the most widely-read American women's magazine of the era, depicts women in bonnets or hats for every public activity.
+- Costume historians document the bonnet/hat as standard women's outdoor and church wear throughout the nineteenth century (C. W. & P. Cunnington, _Handbook of English Costume in the Nineteenth Century_, 1959; the Smithsonian's costume collection notes the bonnet was "a ubiquitous part of the female wardrobe during the 19th century").
+- Photographic evidence shows the same: e.g. Dorothea Lange's "Congregation entering church, Wheeley's Church, Person County, North Carolina" (1939, Library of Congress, FSA/OWI Collection) — every woman in a hat. The custom remained normative in the West until it collapsed broadly in the 1960s.
+
+So Ellen White's silence on 1 Corinthians 11 is the silence of an _undisputed_ practice, not the silence of an _unconfirmed_ one. And she is not, in fact, wholly silent on the underlying principle. Where she does touch dress, she _commends_ the covering and rebukes its exposure:
+
+> **1T 188.3** — "I was pointed back to God's ancient people ... Then the women were not so bold as now. When they went in public, **they covered their faces with a veil.** In these last days, fashions are shameful and immodest. ... **The small bonnets, exposing the face and head, show a lack of modesty.**"
+
+She holds up the veil-covered women of antiquity as the godly model, and she condemns a bonnet not for existing but for being _too small_ — for "exposing the face and head." Her quarrel was never _whether_ a woman should cover, only _how much_ a given fashion left exposed. That is precisely the witness of a generation for whom covering was assumed. The practice she took for granted, the modern church has abandoned. So this section stands where the church always stood — on the apostolic text, by **Rule 5** (Scripture its own expositor) — with the minor light confirming the principle even where it does not address the particular ordinance.
+
+#### (1) The ordinance and its ground
+
+> **2** Now I praise you, brethren, that ye remember me in all things, and **keep the ordinances**, as I delivered them to you.
+> **3** But I would have you know, that **the head of every man is Christ; and the head of the woman is the man;** and the head of Christ is God.
+
+Paul frames the whole passage as an _ordinance_ (v.2), and grounds it not in Corinthian culture but in the order of creation and the headship that runs God → Christ → man → woman (v.3). By **Rule 4** (every word in its place), the covering is a _sign of that order_, not a local fashion. This matters for the objections below: an ordinance rooted in creation is not dissolved by a change of century.
+
+#### (2) The covered and the uncovered head
+
+> **4** Every man praying or prophesying, having his head covered, dishonoureth his head.
+> **5** But every woman that prayeth or prophesieth **with her head uncovered dishonoureth her head:** for that is even all one as if she were shaven.
+
+The sign is reciprocal and opposite. The _man_ uncovers (v.4); the _woman_ covers (v.5). If the covering were merely the long hair Paul mentions later, this verse collapses — a man cannot remove his hair to pray, and a woman cannot help having hers. The instruction presupposes something that is _put on_ and _taken off_ at will: a veil. The man removes his; the woman keeps hers.
+
+The shame vocabulary here is the same vocabulary that runs through the whole study. To pray uncovered is "even all one as if she were **shaven**" — and Scripture has already established that a shorn or shaven woman's head is the mark of disgrace, accusation, or captivity:
+
+- **Num 5:18** — in the jealousy ordinance the priest shall **"uncover the woman's head"** before the LORD: uncovering the head is the imposed posture of one under accusation.
+- **Deut 21:12** — the captive woman taken to wife must first **"shave her head"**: shearing marks the severance of her former life, a humbling.
+- **Lev 13:45** — the leper's **"head bare"**: the uncovered head is the public sign of uncleanness.
+
+By **Rule 13** (all the facts must harmonise), the uncovered/shorn head is, across the whole canon, the sign of shame, accusation, or judgment — exactly the register of Isa 47:2, where Babylon is told to **"uncover thy locks"** in the same breath as **"make bare the leg, uncover the thigh."** Head-uncovering and body-uncovering are one humiliation, named together. Paul is not inventing a rule; he is applying the canon's settled symbolism: a woman who casts off the covering casts off the sign of honour and stands as one shorn.
+
+#### (3) The text proves the covering is **not** the hair
+
+This is the hinge, and the most common objection — _"verse 15 says the hair IS the covering, so no veil is needed"_ — is refuted by Paul's own argument before he ever reaches verse 15. Read verse 6 as a logician:
+
+> **6** For if the woman be not covered, **let her also be shorn:** but if it be a shame for a woman to be shorn or shaven, **let her be covered.**
+
+Substitute the objector's claim — that "covered" means "has long hair" — into the verse, and it becomes nonsense:
+
+> _"If the woman has no long hair, let her also be shorn."_
+
+You cannot **shear** a head that **has no hair.** The command "let her be shorn" only makes sense if the woman _has_ hair to shear at the moment she is "not covered." Therefore "not covered" cannot mean "without hair." The covering of v.6 is a thing she can lack _while still having hair to cut off_ — which can only be a veil. **Paul sets the covering and the hair side by side as two different things in the same sentence.** The hair is what gets shorn; the covering is what its absence makes her _liable_ to be shorn. They cannot be the same object.
+
+The Greek confirms what the logic already proves (by **Rule 5**, but here the English carries it on its own):
+
+- In vv.5–6, "uncovered / covered" translates _katakaluptō_ — to **drape down over**, the verb for putting a veil over something.
+- In v.15, "covering" translates a _different_ word, _peribolaion_ — a **wrapper, a thrown-around mantle** — and Paul says the hair is given _anti_ (Greek: "instead of / corresponding to") a covering.
+
+Paul's two words are deliberate. The hair (_peribolaion_, a natural wrap) is given _to correspond to_ the veil (_katakaluptō_, the worn covering) — nature itself illustrating, on the woman's own body, the very principle the ordinance commands her to enact. The hair is the **type**; the veil is the **observance the type points to.** Verse 15 does not abolish the veil — it _argues for_ it: "even nature drapes her head; how much more should she, in worship, drape it deliberately."
+
+#### (4) The two objections answered
+
+**Objection A — "Her hair is her covering" (v.15).** Answered above by v.6: the covering must be a thing distinct from the hair, because v.6 sets "be shorn" (lose the hair) opposite "be covered" (have the veil). If hair were the covering, v.6 reads "if she has no hair, cut off her hair." Verse 15's _peribolaion_ is a second, natural covering given _anti_ — corresponding to, pointing at — the worn one; it reinforces the ordinance, it does not cancel it.
+
+**Objection B — "We have no such custom" (v.16).**
+
+> **16** But if any man seem to be contentious, **we have no such custom, neither the churches of God.**
+
+Read in context, this verse does the _opposite_ of what the objector wants. Paul has just spent fifteen verses _establishing_ the covering from creation order, headship, the angels, and nature. He would not demolish his own argument in one closing line. The "such custom" the churches do _not_ have is the custom of **contentiousness** — the contentious man's habit of disputing settled apostolic order. Paul's sense: _"If anyone wants to argue about this, let him know — we have no such custom of arguing, and neither do the churches of God."_ The covering is the practice he just defended; **contention** is the practice he says the churches reject. To read v.16 as cancelling the covering makes Paul refute himself; **Rule 4** (no contradiction) forbids that reading and selects the other.
+
+**Objection C — "That was just Corinthian culture."** Paul roots the ordinance in four trans-cultural grounds, not one local one: the **creation order** (vv.3, 8–9 — "the man is not of the woman, but the woman of the man"), the **angels** (v.10 — "for this cause ought the woman to have power on her head **because of the angels**"), **nature** itself (vv.14–15), and the universal practice of **all "the churches of God"** (v.16). By **Rule 13**, a rule grounded in creation, the angelic order, and nature is not a rule grounded in Corinth. The custom that has changed is the church's; the ordinance has not.
+
+#### (5) "Power on her head, because of the angels" (v.10)
+
+> **10** For this cause ought the woman to have **power on her head because of the angels.**
+
+The covering is not, in Paul's framing, a badge of inferiority — it is _authority_ (Greek _exousia_, "power"). The veil is the visible sign that the woman stands in her God-given order, and she wears it **"because of the angels"** — the worshipping host that beholds the assembly (cf. Ps 138:1; 1 Tim 5:21; Eccl 5:6). The same heavenly witnesses who covered their own faces before the throne (Isa 6:2) look upon the congregation; the covered head is the woman's participation, before them, in the reverence of heaven. This is why the covering is specifically a _worship_ ordinance ("when she prayeth or prophesieth," v.5) — it is the visible reverence of the creature in the presence of the Creator and His angels.
+
+#### (6) The principle stated
+
+> **In worship, a woman is to cover her head with a veil, and a man is to uncover his. The covering is not the hair — Paul's own argument (v.6) sets the two as distinct, and the text itself proves the covering cannot be the hair, since one cannot shear a head that has no hair. The veil is the worn sign of an order rooted in creation (v.3), witnessed by the angels (v.10), illustrated by nature (v.15), and kept by all the churches of God (v.16). It is the woman's _exousia_ — the authority of standing rightly in God's order — and its removal puts her, by Scripture's own symbolism, in the posture of the shorn and the shamed.**
+
+This is the same covenant of covering the whole study has traced — that nakedness is shame and covering is honour — applied to the one part of the body Paul singles out for the assembly. The head that Eden left bare of glory (Section I), the priest covered with the mitre (Ex 28:40, Section II), the bride keeps covered with the veil (Song 4:1; 5:7). The proud heads of the daughters of Zion, lifted in "stretched forth necks" (Isa 3:16), were smitten on "the crown of the head" (Isa 3:17) — the very head they exalted, judged; the daughters of God instead veil that head in reverence.
+
+#### (7) The fruit, not the cause — an honest historical note
+
+§IV.B argues that women's trousers _came from_ the women's-rights movement — a documented lineage of design (Bloomer → Austin's "American Costume" → the pantsuit). It is natural to ask the parallel question here: was the _removal_ of the head covering also a feminist invention? Here the honest answer must draw a careful distinction, because **the right category is not _cause_ but _fruit._**
+
+A claim of _cause_ — "feminism made women stop covering" — is a historical-mechanism claim, and the evidence only partly supports it (see below). A claim of _fruit_ — "the bare head is the visible outworking of the same spirit feminism carries" — is a claim of _discernment_, and the evidence supports it fully. Scripture itself directs us to the second category, not the first: _"by their fruits ye shall know them"_ (Matt 7:16, 20). A tree is known not by tracing the mechanism of each fruit back to a root, but by recognizing the _kind_ of fruit it bears. The bare head is fruit of a recognizable kind.
+
+**The fruit is unmistakable, and feminism named it itself.** Across both its waves the movement attacked the covering for precisely the meaning §IV.A gives it — _a sign of the woman's place in God's order_ — and rejected it _on that ground._ Elizabeth Cady Stanton's _The Woman's Bible_ (1895) reads 1 Cor 11:10 exactly as this study does, and repudiates it:
+
+> _The Woman's Bible_ (Stanton, 1895) — "St. Paul no doubt alluded to this custom when he said the woman ought to have power upon her head, that is, wear her hair and veil and bonnet in church **as a proof of her subjection to man**, as he is to the Lord. ... But as fashion is gradually reducing the bonnet to an infinitesimal fraction it will probably in the near future be **dispensed with altogether.**"
+
+Stanton recounts — approvingly, to "peals of laughter" — a colonel's wife who defied her bishop's command to cover and left the church rather than veil, and dismisses the apostolic command as "an absurd old myth." The disagreement is not over what the veil _means_; it is over whether that meaning should _stand._ The attack then became organized in the second wave: in 1968 the National Organization for Women's Ecumenical Task Force on Women and Religion (founded by the Catholic feminist theologian Elizabeth Farians) declared the covering "a symbol of subjection" and called for a "national unveiling" — veils mailed in to be publicly burned; a 1969 Easter protest followed (Mary Fainsod Katzenstein, _Faithful and Fearless_, Princeton University Press, 1998). From Stanton to NOW, the bare head was held up as a _trophy_ of the same project EGW named — making the woman's appearance reject, rather than declare, her place in the created order. That is the fruit, and the tree owned it gladly.
+
+**Why _fruit_ and not _cause_ is the careful word.** The mass disappearance of the covering was not a garment the movement _designed_ (as it designed the Bloomer); it was the collapse of an existing custom into which several currents ran at once. The decline is dated to the **1960s** — the second-wave era, yes, but also the decade the hat collapsed for **both** sexes (men had abandoned hats since the 1920s for reasons of cars, hairstyles, and postwar informality — the "JFK killed the hat" story is itself a myth, since he wore a top hat to his 1961 inauguration), and the decade of post-Vatican-II liturgical informalization. (The popular claim that "the Vatican abolished the covering in 1967" is also a myth — the 1917 Code's requirement lapsed only in 1983, so the _law_ followed the cultural change rather than causing it.) The first-wave dress reformers who gave us the Bloomer costume, tellingly, _kept their bonnets_ — they did not campaign against the covering. So we do **not** claim a clean causal chain from feminism to the bare head.
+
+But the fruit-test does not require one. The general informalization and the hat-collapse explain the _occasion_; they do not explain why, when the covering fell, the church received its fall as _liberation_ rather than _loss_ — and that reception is exactly the spirit EGW identified, "the spirit which attends" the woman's-rights movement, which "cannot be in harmony" with the spirit of the message (1T 421.4, §IV.B). The bare head in worship is the **fruit** of that spirit: not in every individual case a conscious feminist act, but the cultural harvest of a movement that openly wanted the sign of the woman's place in God's order _gone_ — and got it. _Ye shall know them by their fruits._ (Sources for this note are collected in `reference/head-covering-historical-sources.md`.)
+
+---
+
+### IV.B — Skirts and trousers: the sex-distinction in dress
+
+The hem and the head covering both serve a single end: the body is to be covered for honour, and covered _as what God made it._ Deut 22:5 adds the second half of that — the covering must also _declare the sex_ of the one wearing it. Where Section IV established that a gender distinction in dress is fixed by Torah and named an _abomination_, this section asks the concrete modern question: **in our culture, what is the operative distinction, and does the principle still bind when the particular garment is admittedly cultural?**
+
+This is the section where an honest audit must concede the most to the objector — and where, conceding it, the principle survives anyway.
+
+#### (1) The biblical principle — the distinction is fixed; the garment is cultural
+
+> **Deut 22:5** — The woman shall not wear that which pertaineth unto a man, neither shall a man put on a woman's garment: for all that do so are **abomination** unto the LORD thy God.
+
+Apply the rules carefully, because this is where over-reach and under-reach both lurk.
+
+**What the text says.** It forbids a woman wearing _that which pertaineth unto a man_ and a man wearing _a woman's garment._ The category is **the man's / the woman's** — a relative term. It does not specify _which_ garment is the man's; it presupposes that a given culture _has_ a man's garment and a woman's garment, and forbids the crossing of that line. By **Rule 11** (literal if it makes good sense and does no violence to nature), this reads straightforwardly: there is to be a _visible, settled distinction_ between male and female dress, and erasing it is the thing condemned.
+
+**What the text does not say.** It does not legislate _trousers,_ or _skirts,_ or any specific cut — those words are not in it. In the Ancient Near East both sexes wore robe-like garments; the distinction ran along other lines (cut, length, ornament, the headdress). So the objector who says _"the specific garment is cultural"_ is **partly right, and we concede it plainly.** What Deut 22:5 fixes is not a garment but a **principle**: that the sexes must remain _visibly distinguishable_ in dress, and that deliberately erasing the distinction is _tôʿēbâ._
+
+By **Rule 4** (bring all scriptures to bear; no contradiction) the principle is anchored in creation, not Sinai-as-custom. **Gen 1:27** — "male and female created he them" — establishes the binary as God's own act. **1 Cor 11:3** sets that binary in an order of headship (God → Christ → man → woman), and the head-covering ordinance of Section IV.A is precisely a _visible sex-distinction in worship dress_ — Paul legislating, for his own century, the same principle Moses legislated for his. **1 Tim 2:9–10** then ties a woman's apparel to _"women professing godliness."_ By **Rule 13** (all facts must harmonise), Genesis, Deuteronomy, Paul-on-the-covering, and Paul-on-apparel converge on one fact: **the sex-distinction in dress is a fixed moral principle; its particular expression is a cultural variable.** Both halves are true at once, and the objection collapses only the half that was never the claim.
+
+The application is then a matter of simple observation, not new revelation. **In our culture, the operative man's garment is trousers and the operative woman's garment is the skirt or dress.** That is not a theological assertion; it is the plain social fact of which garment "pertaineth unto a man" in the West for the last several generations. Deut 22:5 does not name trousers — but it _does_ bind us to honour _whatever_ the settled distinction is, and in our culture that distinction is trousers-vs-skirt. The principle is the constant; the skirt is merely where the constant currently lands.
+
+#### (2) Ellen White's witness — the "American Costume" and the spirit behind it
+
+Here the minor light is unusually direct, because the exact controversy — women adopting masculine trousers — was a live fight in her own century, and she was shown its root.
+
+A note on what she does and does not say. **EGW never names the _skirt_ as the explicit theological differentiator** in so many words. What she does, repeatedly, is (a) affirm the _plain distinction_ as God's design, (b) anchor it in Deut 22:5, and (c) condemn the specific masculinizing garment-complex of her day — _"cap, pants, vest, coat."_ The skirt-as-marker is therefore a sound _inference_ from her texts, not a direct quotation, and we mark it as such.
+
+First, the principle, in her own words and unmistakably absolute:
+
+> **1T 460.1** — "God designed that there should be a plain distinction between the dress of men and women, and has considered the matter of sufficient importance to give explicit directions in regard to it; for the same dress worn by both sexes would cause confusion and great increase of crime. Were the apostle Paul alive, and should he behold women professing godliness with this style of dress, he would utter a rebuke."
+
+> **2SM 478.1** — "God designed there should be a plain distinction between male and female dress, and has considered the matter of sufficient importance to give explicit directions in regard to it; for the same dress worn by both sexes would cause confusion, and great increase of crime."
+
+Then the application. The garment she opposed was the **"American Costume"** — the Bloomer-descended reform dress sponsored by Dr. Harriet Austin of Dansville, New York, which paired a short skirt with _"mannish-looking trousers, coat, and vest"_ (so the SDA editors describe it at **1T 717.4**). EGW describes it the same way:
+
+> **1T 465.1** — "In wide contrast with this modest dress is the so-called American costume, resembling very nearly the dress worn by men. It consists of a vest, pants, and a dress resembling a coat and reaching about halfway from the hip to the knee. **This dress I have opposed,** from what has been shown me as in harmony with the word of God; while the other I have recommended as modest, comfortable, convenient, and healthful."
+
+> **2SM 477.7** — "There is still another style of dress which will be adopted by a class of so-called dress reformers. They will imitate the opposite sex, as nearly as possible. **They will wear the cap, pants, vest, coat, and boots,** the last of which is the most sensible part of the costume. Those who adopt and advocate this style of dress, are carrying the so-called dress reform to very objectionable lengths. **Confusion will be the result.**"
+
+She ties the masculinizing of the woman's dress directly to Deut 22:5 and to a _reversal of God's order_:
+
+> **1T 421.2** — "I saw that God's order has been reversed, and His special directions disregarded, by those who adopt the American costume. I was referred to Deuteronomy 22:5 ... God would not have His people adopt the so-called reform dress. It is immodest apparel, wholly unfitted for the modest, humble followers of Christ."
+
+> **2SM 477.8** — "In this style of dress God's order has been reversed, and his special directions disregarded. Deuteronomy 22:5 ... This style of dress, God would not have his people adopt. ... **God's prohibitions are lightly regarded by all who would advocate the doing away of the distinction of dress between males and females.**"
+
+> **1T 421.3** — "There is an increasing tendency to have women in their dress and appearance as near like the other sex as possible, and to fashion their dress very much like that of men, but **God pronounces it abomination.**"
+
+Now the root she names. She does not treat the masculine costume as a neutral fashion experiment. She locates it in a _movement_ — Women's Rights — and traces the _spirit_ behind that movement to spiritualism. And she binds the dress question to the core message itself:
+
+> **1T 421.4** — "Those who feel called out to join the movement in favor of woman's rights and the so-called dress reform **might as well sever all connection with the third angel's message.** The spirit which attends the one cannot be in harmony with the other. The Scriptures are plain upon the relations and rights of men and women. **Spiritualists have, to quite an extent, adopted this singular mode of dress.** Seventh-day Adventists, who believe in the restoration of the gifts, are often branded as spiritualists. Let them adopt this costume, and their influence is dead. The people would place them on a level with spiritualists and would refuse to listen to them."
+
+> **T11 2.6** — "Those who feel called out to join the movement of Women's Rights, and the so-called Dress Reform, might as well sever all connection with the third angel's message. The spirit which attends the one cannot be in harmony with the other. ... Spiritualists have, to quite an extent, adopted this singular mode of dress."
+
+Read these by **Rule 5** (Scripture its own expositor) applied to her own corpus. The structure of her argument is: (i) God designed a _plain distinction_ (1T 460.1); (ii) the masculine costume _reverses God's order_ and is condemned by Deut 22:5 (1T 421.2, 2SM 477.8); (iii) that costume is the dress of a _movement_ — Women's Rights — whose animating _spirit_ is incompatible with the third angel's message and is, in fact, the dress _spiritualists_ had adopted (1T 421.4). She is not auditing a hemline. She is naming a _spirit_: a project to undo the created order, expressed in dress by erasing the sex-distinction. **That spirit, she says, cannot coexist with the message.**
+
+Two honesty notes the audit requires. First, **the "sever all connection" line is hers, verbatim — but read it for what it claims.** It does not say "wearing trousers severs you from salvation." It says the _spirit_ of the woman's-rights-and-dress-reform _movement_ cannot be in harmony with the _spirit_ of the third angel's message — they are two spirits, and one who joins the first project has, by that act, left the second. The claim is about _which spirit you are serving,_ not about a garment as a magic token. Second, her objection to _trousers specifically_ was an objection to _trousers-as-outerwear-imitating-men_ — she herself prescribed trousers _under_ a skirt (Section V; **2SM 478.3**), so her quarrel was never the cloth but the _crossing of the line._ That distinction is the whole hinge of objection (a) below.
+
+#### (3) The modern parallel — the same project, the same spirit
+
+EGW named a _spirit_: a movement to erase the man/woman distinction, expressed in dress. The audit's claim is that the modern normalization of women's trousers is the _continuation of that same project_ — and here we must be scrupulous, because this is **costume and social history, not prophecy**, and the sources differ sharply in strength. We cite only what is solidly documented and flag the inference where it is inference.
+
+**What is solidly sourced.** The nineteenth-century trouser-for-women movement was not a fashion accident; it was an explicit _political_ project, and the public understood it that way at the time.
+
+- The costume EGW called the "American Costume" descends directly from the **bloomer**. Elizabeth Smith Miller originated the short-dress-over-trousers design (c. 1851); **Amelia Bloomer** popularized it in her temperance-and-suffrage paper _The Lily,_ which is why her name stuck to it (National Women's History Museum; VCU Social Welfare History Project; _Contingent Magazine,_ "Dressed for Reform," 2025). The public _"inseparably connected the short dress and woman's rights"_ — the garment was read as the _banner_ of the movement, not merely its convenience.
+- Its medical wing ran through **Dr. Harriet Austin** at the Dansville "Our Home" water-cure — the very institution and physician EGW named — whose own book was titled _The American Costume, or Woman's Right to Good Health_ (EGW Estate, "Issues — Dress Reform"; National Health Association biography of Austin; _Saturday Evening Post,_ Haas 2025). The garment's name _itself_ carried the rights-claim.
+- The reform continued institutionally: the **Rational Dress Society** (founded 1881) promoted the "divided skirt." (Here the audit is honest: the Society's _stated_ goals were framed as _health,_ not "abolish the sex-distinction" — that exact phrase does **not** appear in their charter. We do not put words in their mouth.)
+- In the twentieth century, women's trousers moved from radical to normative along a _political_ track, not merely a comfort track: trousers entered elite fashion (Chanel in the 1920s; Yves Saint Laurent's "Le Smoking" tuxedo for women, 1966), advanced through wartime labor, and were carried into public institutions explicitly as an equality-claim — **Charlotte Reid** wore trousers on the US House floor in 1969; the US Senate's de-facto pants ban for women was not lifted until **1993** (PBS _Independent Lens,_ "Working Women's Wardrobe," on the 1970s feminist-fashion shift). The scholarly anchor for the whole arc is **Jo B. Paoletti, _Sex and Unisex: Fashion, Feminism, and the Sexual Revolution_** (Indiana University Press, 2015), a peer-reviewed monograph documenting the deliberate twentieth-century project to _blur gender lines_ in dress.
+
+**What is inference, not fact — and marked as such.** The strong thesis — _"erasing the sex-distinction was the express, stated goal"_ — is **well-documented for the nineteenth-century reformers** (Austin's book title, the public's reading of the costume as the movement's banner). For the **twentieth century it is an aggregate inference, not a sourced quotation**: no single feminist theorist is on record stating, in those exact words, "we adopted trousers to erase the man/woman distinction." Lines often attributed to the period — YSL's reported "I wanted women to have the same basic wardrobe as a man," or a Chanel "most radical development" gloss — are _widely reported but not verified to an original source,_ and we therefore do **not** quote them as hard quotations. The honest form of the claim is: _the documented trajectory — from bloomer-as-suffrage-banner to second-wave pantsuit-as-equality-claim — is one continuous project whose effect, and in its origins whose stated aim, was the erasure of the visible sex-distinction in dress._
+
+And _that_ is exactly the spirit EGW named in 1T 421.4 — the woman's-rights movement expressing itself by making the woman's dress _"as near like the other sex as possible"_ (1T 421.3). The audit's claim is not that every woman in trousers is a spiritualist; it is that **the garment-norm she is inheriting was forged by precisely the project EGW identified as incompatible with the message** — and that the principle of Deut 22:5 sees the _result_ (the erased distinction), whatever any individual wearer intends.
+
+#### (4) Objections, steel-manned then answered
+
+**Objection (a) — "Trousers are simply more practical and modest than skirts."** Steel-manned, this is strong: a woman's limbs are _more_ covered and protected in trousers than in a thin or short skirt, and EGW herself prized warmth and limb-protection over fashion. — **This is conceded in full, and it is also the objection that proves the principle rather than defeating it.** EGW's _own answer_ to the practicality problem was not "abandon the skirt for trousers"; it was **trousers worn _under_ a skirt:**
+
+> **2SM 478.3** — "Whatever may be the length of the dress, **females should clothe their limbs as thoroughly as the males.** This may be done by wearing lined pants gathered into a band and fastened about the ankle, or made full and tapering at the bottom; and these should come down long enough to meet the shoe. The limbs and ankles thus clothed are protected against a current of air."
+
+> **2SM 471.2** — "Over these should be warm lined pants ... neatly button around the ankle, or taper at the bottom and meet the shoe. Their dress should reach below the knee."
+
+Her solution captures _every_ practical good the objector wants — full limb coverage, warmth, freedom of motion — **while preserving the sex-distinction the skirt carries.** Practicality is therefore not an argument _against_ the principle; it is fully satisfied _within_ it. The objection only bites if one assumes the _only_ way to clothe the limbs is to make the outer garment masculine — which is exactly the assumption EGW refused.
+
+**Objection (b) — "But trousers-under-a-skirt looks odd, old-fashioned, even ugly."** This is the most common practical complaint, and EGW answered it directly — and with open scorn for it as a _reason._ When the reform dress was mocked for looking "singular," she replied:
+
+> **HR May 1, 1872, par. 4** — "They do not blush to witness the exposure of the almost naked limbs. But the limbs thoroughly dressed with warm pants shock their modesty. ... Many say, Oh! the pants look so singular! Everybody stares, and women nudge one another, and look so comical, and some laugh outright. **Weighty reasons, these!** ... How could these slaves of such hideous fashions reasonably laugh at any manner of dress they should behold?"
+
+"Weighty reasons, these!" is sarcasm: _looks odd_ is no argument at all, coming from a culture that tolerated genuinely deforming fashions because they were fashionable. By **Rule 4**, an aesthetic objection cannot overturn a moral principle — _toebah_ is not repealed by _unfashionable._ And critically, EGW traced the reform dress's _reputation_ for ugliness not to the design but to its **wearers' failure:**
+
+> **4T 636.4** (= T30 163.1) — "To those who put it on reluctantly, from a sense of duty, it became a grievous yoke. ... Some would have a variety suit ... Others wore the skirt very long, so that only about an inch of the pants could be seen, thus making the dress ill-proportioned and out of taste. **These grotesque and untidy costumes disgusted many who would have been pleased with the reform dress proper.**"
+
+> **4T 635.2** (= T30 161.1) — "To those who consistently adopted the reform dress, appreciating its advantages and cheerfully taking their position in opposition to pride and fashion, it proved a blessing. **When properly made, it was a becoming and consistent dress,** and recommended itself to persons of candid mind, even among those not of our faith."
+
+The verdict is exact: the dress _done right_ was _"becoming and consistent"_ and won even outsiders; the dress _done grudgingly and untidily_ was _"grotesque."_ The ugliness was the _wearers'_ — reluctant, ill-proportioned, slovenly — **not the design's.** She insisted the same of herself:
+
+> **PH123 58.2** — "We did not wear the reform dress to be odd and singular, but we adopted and advocated the reform dress from principle. ... **Pride blinds their judgment so that they do not seem to understand the fitness of things.**"
+
+> **HR August 1, 1868, par. 1** — "In bearing the cross of adopting the reform dress we are led by a sense of duty. And although it may appear objectionable to those who are governed by fashion, **we claim that it is the most convenient, the most truly modest, and the most healthful style of dress worn by woman.**"
+
+So "it looks odd" is answered twice: it is _no reason_ (Rule 4), and where the look _was_ bad, the fault was workmanship and reluctance, not the principle.
+
+**Objection (c) — "This is just culture. Deut 22:5 was about pagan cult cross-dressing, and in Bible times both sexes wore robes anyway, so there is no fixed trouser/skirt rule."** Steel-manned, this is the _best_ objection, and it contains two true claims we concede. (i) **Both sexes did wear robe-like garments in the ANE** — true; the distinction ran along other lines, and _trousers were not the marker._ (ii) **Some scholars connect Deut 22:5 to pagan ritual cross-dressing** — and this is real: the argument is made by **E. J. Waggoner** (_Fathers of the Catholic Church,_ FACC 311.1) and **A. T. Jones** (_The Two Republics,_ TTR 187.2), who tie the prohibition to _"the mutual interchange of garments between the sexes"_ in sun-worship. _(Note: these are Adventist authors but **not** Ellen White — the cultic-origin argument is theirs, not hers; EGW does not make it.)_
+
+Granting both — the objection still fails, because it attacks the _application_ and leaves the _principle_ untouched. By **Rule 5**, the text forbids _crossing the man/woman line,_ whatever that line _is_ in a given culture; it does not pin the line to trousers in the abstract. So "both wore robes" is _consistent with_ Deut 22:5, not a refutation of it: in _that_ culture the distinction was cut and headdress; in _ours_ it is trousers-vs-skirt. And the cultic-origin point, even if granted, only supplies the _occasion_ of the law, not its _limit_ — the stated ground is not "do not join sun-worship" but the absolute _"for all that do so are abomination,"_ a moral category (_tôʿēbâ_), tied by **Rule 4** to creation (Gen 1:27) and headship (1 Cor 11:3), not to one Canaanite rite. The objector has correctly identified that the _garment_ is cultural; he has not touched the _principle_ that the distinction must be kept. **Concede the garment; the principle survives.**
+
+**Objection (d) — "Ellen White herself wore her husband's overalls, so even she didn't hold this."** This is the strongest-sounding objection because it alleges hypocrisy at the source — and on examination it is a **legend with no primary source whatever.** The audit's verdict is flat:
+
+- **The word "overalls" returns _zero_ matches in the entire EGW corpus.** No letter, manuscript, testimony, periodical, or biography records EGW wearing James White's overalls, trousers, or any masculine outer garment. There is nothing to quote because the claim has no text.
+- She **publicly and emphatically denied** even wearing the milder "American Costume," calling the rumor a lie: **1T 463.1** — "Reports have been circulated that 'Sister White wears the American costume' ... I am here reminded of the saying that 'a lie will go around the world while truth is putting on his boots.'"
+- What she _actually_ wore, from September 1865, was the SDA **reform dress** — a skirt clearing the street by an inch or two, over _her own_ lined pants: **RH October 8, 1867, par. 13** — "I put on the reformed dress September, 1865 ... I was distinctly given to understand that it was **not the 'American Costume.'**" Every "pants" reference in her _own_ letters is to this _under-skirt_ reform garment, made to her own pattern (**1LtMs, Lt 23, 1867, par. 1** — "make me [a] dress sack and loose pants just like Sister Lay's"; **2LtMs, Lt 5a, 1872, par. 8**), _never_ men's trousers as outerwear.
+- Where she _does_ mention James's pants, she is either **repurposing the cloth** — **1LtMs, Ms 15, 1868, par. 2** — "Cut out Willie a coat from a pair of his father's old pants" — or **complaining that his pants were packed by mistake instead of her own dresses:** **3LtMs, Lt 11, 1879, par. 1** — "bring Father's ... pants ... Bring my brown ribbed dress. It is short dress," where she pointedly distinguishes _"Father's pants"_ from _"my ... dress."_ (See also 3LtMs, Lt 26, 1877, par. 2.) In every case the men's pants are _his,_ and _not on her._
+- And she rejected _in principle_ the imitation of women who dressed like men: **5MR 380.4** — "We shall never imitate Miss Dr. Austin or Mrs. Dr. York. **They dress very much like men.** We shall imitate or follow no fashion we have ever yet seen."
+
+**Verdict:** the overalls story is oral legend — most likely a corruption of the documented "cut up James's old pants _for fabric_" note, or a confusion of her under-skirt reform pants with men's trousers. The correct response is the simplest one: _produce the primary source._ **None exists.** Far from undercutting the principle, the actual record shows EGW _enacting_ it — pants for warmth, _under_ a skirt, made to a woman's pattern, with a public denial that she ever crossed the line. (For completeness: by 1897 she counselled _dropping_ even the under-skirt reform pants as the "objectionable features" that had become a stumbling block — **12LtMs, Lt 19, 1897, par. 7 and par. 17** — which only sharpens the point: she moved _away_ from trousers of any kind, not toward them.)
+
+#### (5) The principle stated
+
+> **God created humanity male and female (Gen 1:27) and ordained that the two remain _visibly distinguishable_ in dress; Deut 22:5 fixes this as a moral principle and names its violation _abomination_ (_tôʿēbâ_), tied by Rule 4 to creation and headship (1 Cor 11:3), not to any one culture's garment. The _principle_ — keep the sex-distinction — is fixed and trans-cultural; the _garment_ that carries it is cultural and variable. In the Ancient Near East the line ran along cut and headdress; in our culture it runs along trousers-vs-skirt, which is simply the plain social fact of which garment "pertaineth unto a man." Ellen White, shown the same issue in her century, affirmed the "plain distinction ... God designed" (1T 460.1), tied the masculine "American Costume" to a reversal of God's order under Deut 22:5 (1T 421.2; 2SM 477.8), and traced its animating spirit to the Women's Rights movement and to spiritualism — a spirit that "cannot be in harmony" with the third angel's message (1T 421.4). The modern normalization of women's trousers is the documented continuation of that same nineteenth-century project (bloomer → "American Costume" → twentieth-century pantsuit), whose origin and effect was the erasure of the visible sex-distinction. The garment is cultural; the line it crosses is not. Her own answer to every practical good claimed for trousers was trousers _under_ a skirt (2SM 478.3) — full limb coverage _and_ the distinction kept. The "ugliness" objection she answered as no reason at all ("Weighty reasons, these!" — HR May 1, 1872) and as the wearers' fault, not the design's (4T 636.4; 4T 635.2). And the "she wore overalls" charge has zero textual basis (the word returns no match in the entire corpus); the record shows the opposite — she publicly denied crossing the line (1T 463.1) and rejected imitating "Miss Dr. Austin ... They dress very much like men" (5MR 380.4).**
+
+This is the same covenant of covering the whole study has traced — nakedness is shame, covering is honour — now read along its second axis: the covering must not only _clothe_ the body but _declare_ it, male as male and female as female. The skirt is not sacred cloth; the _distinction_ it carries is. Erase the distinction and you have not modernized the principle — you have done the one thing Deut 22:5 calls _abomination._
+
+---
+
+### IV.C — "Don't make yourself a gazingstock": the strongest objection, answered from its own text
+
+Both §IV.A (the head covering) and §IV.B (the skirt) draw the same reply, and it is the most-quoted EGW counter of all: _"Ellen White says we shouldn't try to be a gazingstock — we shouldn't dress to be odd and singular."_ The verse behind the word is Heb 10:33 (the early believers "made a gazingstock both by reproaches and afflictions"), and the counsel is real and verbatim. It is, fairly stated, the strongest objection in this study — because it is not a misreading of an _outside_ source but an appeal to the _same prophet_ the study leans on. So it must be answered honestly, from the text itself.
+
+And the text answers it — because the very passage objectors quote contains, in its second sentence, the qualifier that reverses the conclusion. Here it is in full (the same statement is preserved at **1T 458.4**, **CG 414.2**, **3SM 242.5**, and **HL 118.3** — quoted to its 1T original):
+
+> **1T 458.4** — "Christians should not take pains to make themselves a gazing-stock by dressing differently from the world. **But if, when following out their convictions of duty in respect to dressing modestly and healthfully, they find themselves out of fashion, they should not change their dress in order to be like the world; but they should manifest a noble independence and moral courage to be right, if all the world differ from them.** If the world introduce a modest, convenient, and healthful mode of dress, which is in accordance with the Bible, it will not change our relation to God or to the world to adopt such a style of dress. ... They should humbly pursue a straightforward course, irrespective of applause or of censure, and should cling to the right because of its own merits."
+
+The objection quotes the _first_ sentence and stops. The answer is the _second._ Read the whole, by **Rule 4** (let every word have its place; no contradiction), and the structure is unmistakable:
+
+**(1) What she forbids — _manufactured_ oddness.** "Should not take pains to make themselves a gazing-stock by dressing differently from the world." The target is dressing differently _for the sake of_ being different — oddity sought as a badge, strangeness pursued as if peculiarity were piety. This is the same caution she gives elsewhere:
+
+> **1T 420.2** — "No occasion should be given to unbelievers to reproach our faith. We are considered odd and singular, and should not take a course to lead unbelievers to think us more so **than our faith requires us to be.**"
+
+Note the hinge clause: _than our faith requires us to be._ She does not say "do not be odd." She says do not be odd _beyond what your faith requires._ There is a measure of singularity faith _does_ require — and she draws the line at adding to it gratuitously, not at the requirement itself.
+
+**(2) What she _commands_ — conviction-driven difference, even to the point of standing alone.** "**But if** ... following out their convictions of duty ... they find themselves out of fashion, they should **not** change their dress in order to be like the world; but they should manifest a **noble independence and moral courage to be right, if all the world differ from them.**" This is the exact opposite of "blend in." When duty and fashion collide, the believer is to keep the duty and let the fashion go — and to do it with _independence_ and _courage_, "if all the world differ." The gazingstock counsel, read whole, does not say _avoid looking different;_ it says _do not seek difference for its own sake, and do not flee it when duty requires it._
+
+**(3) The test that resolves the two halves.** The compiler's own heading on this passage names the rule precisely — **CG 414.2**: _"Follow Prevailing Customs **if** Modest, Healthful, and Convenient."_ That is the whole logic in five words. Conform to the world's custom _when the custom is itself right_ (modest, healthful, biblical) — there is no virtue in being different from a good custom. But where the world's custom is _not_ right, conviction governs, and one stays out of fashion. She says as much in the same breath: "If the world introduce a modest, convenient, and healthful mode of dress, which is in accordance with the Bible, it will not change our relation to God ... to adopt such a style." The principle is not "match the world" and not "differ from the world" — it is _follow the right, whoever else does._
+
+This is exactly the qualifier the objection omits — what is sometimes remembered as _"unless the customs of the world force us out of fashion."_ The believer is not to court strangeness; but neither is the world's disapproval permitted to overrule a conviction of duty. EGW applied this to _herself_, and counted the cost openly:
+
+> **PH134 2.1** — "We have counted the cost of appearing singular in the eyes of those who feel compelled to bow to fashion. And we decide that in the end it will pay to try to do right, though for the present we may appear odd in the eyes of those who will sacrifice convenience, comfort, and health, at the altar of fashion."
+
+And she located herself in the line of Heb 10:33 — the believers _"made a gazingstock"_ — not as a thing to be avoided at all costs, but as a reproach to be _endured_ for the truth's sake (so she reads the verse at **GSAM 235.2**, of the post-1844 Adventists who were "indeed a 'gazing-stock' to those who supposed the message ... a failure"). To be made a gazingstock _for following duty_ is, in her usage, a mark of faithfulness, not a fault.
+
+**So the objection, answered:** the gazingstock counsel forbids _gratuitous_ peculiarity — being odd to be odd, "more so than our faith requires." It does **not** forbid the head covering (§IV.A) or the skirt (§IV.B), because those are not affectations of strangeness; they are "convictions of duty in respect to dressing modestly," and the very text says that when such convictions put you "out of fashion," you do **not** abandon them to look like the world. The person who drops the covering or the skirt _because it draws notice_ has done the one thing 1T 458.4 names: changed their dress "in order to be like the world." By **Rule 5** (Scripture — and here, the prophet — its own expositor), the passage cited _against_ distinctive dress turns out to _require_ it, the moment distinctive dress is what duty asks.
+
+> **The gazingstock principle stated:** Do not seek oddness for its own sake — do not be singular "more than our faith requires" (1T 420.2). But where a conviction of duty (modesty, the covering, the sex-distinction) leaves you out of step with fashion, hold the duty with "noble independence and moral courage ... if all the world differ from" you (1T 458.4); follow the prevailing custom only when it is itself "modest, healthful, and convenient" (CG 414.2). The objection forbids _affected_ difference; it commands _conviction-driven_ difference. To abandon a duty because it draws stares is precisely the worldliness the passage condemns.
+
 ---
 
 ## V. The pioneer-era hemline standard — applying the principle
@@ -418,6 +668,8 @@ After all the texts, what does Scripture actually require?
 
 **On arms and shoulders (per Section III.C):** Scripture does not place arms in the _ʿervâ_ nakedness category, but the shoulder is treated as adjacent to the breast line (Lev 18, 2SM 467.1) and so must remain covered. Modest short sleeves are permissible; sleeveless, off-shoulder, low-cut, and tight-fitting sleeves are not. Long sleeves are the safest and most consistent application — established by health texts and pioneer practice — but not a hermeneutically-required minimum.
 
+**On the head covering (per Section IV.A):** In worship a woman is to cover her head with a veil and a man is to uncover his (1 Cor 11:4–5). The covering is _not_ the hair — Paul's own logic (v.6) sets the two as distinct, since a head with no hair cannot be shorn. The veil is the worn sign of an order rooted in creation (v.3), witnessed by the angels (v.10), and kept by all the churches of God (v.16) — the woman's _exousia_, the authority of standing rightly in God's order.
+
 ### What hemline means
 
 Scripture's only explicit divine measurement is **from loins to thighs** (Ex 28:42), and the prophetic standard for "uncovered nakedness" is **leg made bare, thigh uncovered** (Isa 47:2–3). Anything that exposes the thigh during motion violates the biblical line.
@@ -468,8 +720,10 @@ The literal Christian's literal dress matters because it tells, in visible form,
 
 ## Appendix B — Source files in this directory
 
-- `reference/anchor-passages.md` — 18 KJV passages verbatim from `packages/core/assets/kjv.json`.
+- `reference/anchor-passages.md` — KJV passages verbatim from `packages/core/assets/kjv.json` (incl. 1 Cor 11:1–16 and the head-covering supporting texts for §IV.A, and the sex-distinction texts for §IV.B).
 - `reference/egw-extracts.md` — themed EGW quotations, all with refcodes.
+- `reference/head-covering-historical-sources.md` — citable 19th-century sources (etiquette manuals, congregation photographs, costume-history scholarship, EGW's own bonnet references) documenting head covering as a universal norm, supporting §IV.A.
+- `reference/sex-distinction-historical-sources.md` — citable costume/social-history sources (Bloomer → "American Costume" → 20th-c. pantsuit) for §IV.B, with [SOLID] vs [SHAKY—do-not-hard-quote] flags and the GSAM/FACC/TTR authorship corrections (Loughborough/Waggoner/Jones, not EGW).
 - `reference/sermons/INDEX.md` — master index of the 10 sabbathsermons.com sermons consulted as background.
 - `reference/sermons/*.md` — per-sermon digests with verbatim claim/citation extraction.
 

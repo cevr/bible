@@ -258,3 +258,67 @@ Bracketed words `[was]` are KJV translator-supplied italics. ¶ marks paragraph 
 **5** ¶ The woman shall not wear that which pertaineth unto a man, neither shall a man put on a woman's garment: for all that do so [are] abomination unto the LORD thy God.
 
 ---
+
+## 1 Corinthians 11:1-16 — The head covering in worship
+
+**1** ¶ Be ye followers of me, even as I also [am] of Christ.
+
+**2** Now I praise you, brethren, that ye remember me in all things, and keep the ordinances, as I delivered [them] to you.
+
+**3** But I would have you know, that the head of every man is Christ; and the head of the woman [is] the man; and the head of Christ [is] God.
+
+**4** Every man praying or prophesying, having [his] head covered, dishonoureth his head.
+
+**5** But every woman that prayeth or prophesieth with [her] head uncovered dishonoureth her head: for that is even all one as if she were shaven.
+
+**6** For if the woman be not covered, let her also be shorn: but if it be a shame for a woman to be shorn or shaven, let her be covered.
+
+**7** For a man indeed ought not to cover [his] head, forasmuch as he is the image and glory of God: but the woman is the glory of the man.
+
+**8** For the man is not of the woman; but the woman of the man.
+
+**9** Neither was the man created for the woman; but the woman for the man.
+
+**10** For this cause ought the woman to have power on [her] head because of the angels.
+
+**11** Nevertheless neither is the man without the woman, neither the woman without the man, in the Lord.
+
+**12** For as the woman [is] of the man, even so [is] the man also by the woman; but all things of God.
+
+**13** Judge in yourselves: is it comely that a woman pray unto God uncovered?
+
+**14** Doth not even nature itself teach you, that, if a man have long hair, it is a shame unto him?
+
+**15** But if a woman have long hair, it is a glory to her: for [her] hair is given her for a covering.
+
+**16** But if any man seem to be contentious, we have no such custom, neither the churches of God.
+
+---
+
+## Supporting texts — the uncovered head as shame
+
+**Numbers 5:18** — And the priest shall set the woman before the LORD, and uncover the woman's head, and put the offering of memorial in her hands, which [is] the jealousy offering: and the priest shall have in his hand the bitter water that causeth the curse:
+
+**Deuteronomy 21:12** — Then thou shalt bring her home to thine house; and she shall shave her head, and pare her nails;
+
+**Leviticus 13:45** — And the leper in whom the plague [is], his clothes shall be rent, and his head bare, and he shall put a covering upon his upper lip, and shall cry, Unclean, unclean.
+
+**Genesis 24:65** — For she [had] said unto the servant, What man [is] this that walketh in the field to meet us? And the servant [had] said, It [is] my master: therefore she took a vail, and covered herself.
+
+**Genesis 38:14-15** — And she put her widow's garments off from her, and covered her with a vail, and wrapped herself, and sat in an open place, which [is] by the way to Timnath; for she saw that Shelah was grown, and she was not given unto him to wife. When Judah saw her, he thought her [to be] an harlot; because she had covered her face.
+
+**Song of Solomon 5:7** — The watchmen that went about the city found me, they smote me, they wounded me; the keepers of the walls took away my veil from me.
+
+---
+
+## The sex-distinction in dress (§IV.B)
+
+**Genesis 1:27** — So God created man in his [own] image, in the image of God created he him; male and female created he them.
+
+**Deuteronomy 22:11-12** — Thou shalt not wear a garment of divers sorts, [as] of woollen and linen together. Thou shalt make thee fringes upon the four quarters of thy vesture, wherewith thou coverest [thyself].
+
+**Ruth 3:9** — And he said, Who [art] thou? And she answered, I [am] Ruth thine handmaid: spread therefore thy skirt over thine handmaid; for thou [art] a near kinsman.
+
+(Deuteronomy 22:5 and 1 Corinthians 11:3 are given above. Ezekiel 16:8 — "I spread my skirt over thee" — appears in the Ezekiel 16:8-14 block above.)
+
+---
