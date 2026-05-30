@@ -3,9 +3,9 @@ title: 'Line Upon Line — Daniel 2: The Great Image'
 series: Line Upon Line
 session: D02
 book: Daniel
-vision: 'Daniel 2 — Nebuchadnezzar's dream of the great image'
+vision: "Daniel 2 — Nebuchadnezzar's dream of the great image"
 anchor: Daniel 2:31-45
-guides: [DAR 41-71, SDP 28-36]
+guides: [DAR 41-77, DAR 125, SDP 28-38, PK 491-514]
 markers: [KEY, CHAIN, DYK, Q, '→', '⟲']
 created_at: '2026-05-29T00:00:00Z'
 ---
@@ -36,6 +36,21 @@ every piece means. We don't guess. We let the prophecy define its own symbols.**
 any wisdom that I have more than any living"_ (Dan 2:30). The method is humility before
 the text, not cleverness over it.
 
+[→] Haskell, the Daniel pair-partner, lands on the same point — the revelation comes
+from God, not the wise men, because the king's mind was turned **God-ward**:
+
+> "there is a God in heaven that revealeth secrets... The king's mind was directed to
+> God alone."
+> — _S.N. Haskell, The Story of Daniel the Prophet, p. 33_
+
+[→] And the confirming witness opens the whole theology of providence that this chapter
+rests on — God standing behind the rise and fall of every empire about to march by:
+
+> "in the word of God the curtain is drawn aside, and we behold, above, behind, and
+> through all the play and counterplay of human interest and power and passions, the
+> agencies of the All-merciful One... working out the counsels of His own will."
+> — _Ellen G. White, Prophets and Kings, p. 499_
+
 ---
 
 ## The image — what the king saw
@@ -48,6 +63,13 @@ the text, not cleverness over it.
 Four metals, top to bottom. Declining value (gold → silver → brass → iron), rising
 hardness. **Now — what do the metals mean? We do not assign meaning. We read it off the
 page.**
+
+[→] DAR frames the sweep before we read a single label — one dream, the whole arc of
+earthly history, with God's own hand on it:
+
+> "Now opens one of the sublimest chapters of human history... it gives us all the great
+> outlines of earthly kingdoms from that time to this... The finger of God is here."
+> — _Uriah Smith, Daniel and the Revelation, p. 42_
 
 ---
 
@@ -68,13 +90,18 @@ The interpretation does not leave us to imagine. Daniel tells the king plainly:
 [KEY🔑] **The text says "kingdom" four times.** That is Scripture handing us the
 dictionary. We are not interpreting a metal — we are reading a label.
 
-> "The use of the word kingdom here shows that kingdoms, and not particular kings, are
+> "The use of the word kingdom here, shows that kingdoms, and not particular kings, are
 > represented by the different parts of this image."
-> — _Uriah Smith, Daniel and the Revelation, p. 49_
+> — _Uriah Smith, Daniel and the Revelation, p. 52_
 
 [→] This is the entire method in one move: **the symbol is defined inside the
 prophecy.** Every later symbol — beasts, horns, waters, women — will be defined the same
 way. Learn it here and Daniel 7, 8, and Revelation all open with the same key.
+
+- [⟲] watch the same self-defining pattern recur across the canon: Dan 7:17 _"These
+  great beasts... **are** four kings"_; Rev 17:15 _"The waters... **are** peoples"_ — the
+  Bible interprets its own symbols, in the same book, every time. (Auxiliary weave, not a
+  bare [KEY🔑] on Dan 2 — those verses carry their own keys when we reach them.)
 
 ---
 
@@ -101,6 +128,36 @@ History only supplies the dates.
 > "The image was a comprehensive outline of the world's history."
 > — _S.N. Haskell, The Story of Daniel the Prophet, p. 35_
 
+[→] DAR pins each metal to its empire — the expositional pair, metal by metal:
+
+> "The character of this empire is indicated by the nature of the material composing that
+> portion of the image by which it was symbolized — the head of gold. It was the golden
+> kingdom of a golden age."
+> — _Uriah Smith, Daniel and the Revelation, p. 46_
+
+> "The succeeding kingdom, Medo-Persia... was to be inferior to the preceding kingdom. In
+> what respect inferior? Not in power; for it was its conqueror... But it was inferior in
+> wealth, luxury, and magnificence."
+> — _Uriah Smith, Daniel and the Revelation, p. 52_
+
+> "The testimony of history is full and explicit on this point. One kingdom did this, and
+> one only, and that was Rome. It conquered Grecia; it subdued all things; like iron, it
+> broke in pieces and bruised."
+> — _Uriah Smith, Daniel and the Revelation, p. 56_
+
+[→] The confirming witness reads the same four-kingdom succession off the same dream —
+foretold by the Omniscient One before any of it happened:
+
+> "the Omniscient One looked down the ages and predicted the rise and fall of the
+> universal kingdoms... a fourth, strong as iron, would subdue the nations of the world."
+> — _Ellen G. White, Prophets and Kings, p. 501_
+
+[→] And she reads the _descending metals_ as a moral decline — value falling step by
+step, just as the dream pictures it:
+
+> "these sank lower and still lower in the scale of moral worth."
+> — _Ellen G. White, Prophets and Kings, p. 501_
+
 ---
 
 ## The iron lower half — three beats, not one
@@ -116,6 +173,13 @@ The fourth kingdom is drawn down the image in **three stages**, and the text mar
 
 [→] One leg-metal becomes a footing of two materials becomes ten toes — the kingdom does
 not give way to a fifth empire; it **breaks down in place**. Read the stages off the text.
+
+[→] DAR keeps the clay tied to **division**, not to a fifth empire — the weakness that
+prepared Rome's own breakup, running through feet AND toes:
+
+> "The element of weakness symbolized by the clay, pertained to the feet as well as to the
+> toes... and thus prepared the way for its subsequent disruption into ten kingdoms."
+> — _Uriah Smith, Daniel and the Revelation, p. 57_
 
 ---
 
@@ -139,6 +203,22 @@ not give way to a fifth empire; it **breaks down in place**. Read the stages off
   > image."
   > — _S.N. Haskell, The Story of Daniel the Prophet, p. 35_
 
+[→] Haskell sharpens the church-state weave — and ties it forward to the stone that
+falls **on the feet**:
+
+> "When apostate Christianity united with the state, each remained in a sense distinct as
+> the miry clay is separate from iron. This union continues until the stone smites the
+> image upon the feet."
+> — _S.N. Haskell, The Story of Daniel the Prophet, p. 35_
+
+[→] DAR seals the permanence of the fracture — the iron-and-clay verdict **forbids**
+reunion, exactly as Dan 2:43 said:
+
+> "When Rome fell, such possibilities forever passed away... never to be united again.
+> The iron was mixed with the clay... no man or combination of men can again consolidate
+> them."
+> — _Uriah Smith, Daniel and the Revelation, p. 66_
+
 ### [⟲] The feet's division = Daniel 7's ten horns
 
 The breakup is drawn again, sharper, in the very next vision — and DAR ties the two
@@ -152,6 +232,24 @@ pictures together explicitly:
   > — _Uriah Smith, Daniel and the Revelation, p. 125_
 - [→] note DAR's own cross-reference: Dan 7's horns point back to **"chapter 2:41"** — the
   **feet**, not the toes. The historical divisions of Rome are a **feet**-stage event.
+- DAR enumerates the historical ten by name, with the same A.D. 351–483 window:
+  > "out of the territory of Western Rome, ten separate kingdoms were ultimately
+  > established... The Huns, Ostrogoths, Visigoths, Franks, Vandals, Suevi, Burgundians,
+  > Heruli, Anglo-Saxons, and Lombards... A. D. 351 and 483."
+  > — _Uriah Smith, Daniel and the Revelation, p. 63_
+  - [→] note DAR's prose here calls these the **"ten toes."** That is DAR's **looser
+    usage** — the Line-Upon-Line chain **overrides** it. The chain reading governs: the
+    **historical ten = the feet = Dan 7's ten horns** (DAR's own cross-reference sends Dan
+    7's horns back to "chapter 2:41," the **feet**). The medieval breakup is a **feet**
+    event, whatever phrasing the prose reaches for.
+- [⟲] and out of these same ten the papacy — _"diverse from"_ them all — rises **after
+  A.D. 483**:
+  > "we have but to inquire if any kingdom has arisen among the ten kingdoms of the Roman
+  > empire since A. D. 483, and yet diverse from them all... The answer is, Yes; the
+  > spiritual kingdom of the papacy."
+  > — _Uriah Smith, Daniel and the Revelation, p. 125_
+  - [→] the **feet** are the ground the little horn rises from — the forward-link into the
+    Daniel 7 session.
 
 ---
 
@@ -176,6 +274,9 @@ toes point forward to a **different** ten, John's end-time kings:
 - [DYK🔎] this is why the distinction matters: Dan 7's horns are _behind_ us (the
   papacy already rose among them); the toes' Rev 17 ten are the _closing_ scene — the woman
   riding the beast, judged. We meet them fully at Rev 17.
+- [⟲] and Revelation defines its own symbol the same way Daniel does: _"The waters...
+  **are** peoples"_ (Rev 17:15) — Miller's Rule carried right into the toes weave. (The
+  self-interpreting pattern; it does **not** touch the feet-vs-toes assignment.)
 
 [Q] How many conquerors have tried to reunite the broken iron — and how many have failed
 exactly as Daniel 2:43 said they would? The unfulfilled half of the verse is still
@@ -204,15 +305,39 @@ toes, the final divided form:
 - **"cut out without hands"** (Dan 2:45) — not made by human power
 
 > "The stone that smites the image is cut out of the mountain without hands... This
-> shows that the smiting is not done by an agent acting for another — not by the church,
-> for instance."
-> — _Uriah Smith, Daniel and the Revelation, p. 71_
+> shows that the smiting is not done by an agent acting for another, not by the church,
+> for instance, in the hands of Christ; but it is a work which the Lord does by his own
+> divine power, without any human agency."
+> — _Uriah Smith, Daniel and the Revelation, p. 70_
+
+[→] Haskell frames the whole dream as the great controversy running to its close — the
+stone filling the whole earth (Dan 2:35):
+
+> "The history of Babylon is the story of the great controversy... which will end only
+> when the stone cut out without hands from the mountain shall fill the whole earth."
+> — _S.N. Haskell, The Story of Daniel the Prophet, p. 28_
+
+[→] and the stone "cut out without hands" is God Himself, not earthly power, bringing the
+final destruction:
+
+> "The very fact that the 'stone was cut out of the mountain without hands,' shows that
+> the last kingdoms on earth will not be overthrown by any earthly power, but that the God
+> of heaven will bring upon them final destruction by giving them to the burning flames."
+> — _S.N. Haskell, The Story of Daniel the Prophet, p. 35_
 
 - [→] no human empire, no church-state, no reformation builds this kingdom. God sets it
   up. It is the one kingdom on the image that does not come from below.
 - [⟲] this same stone-kingdom returns in Dan 7 ("the saints... possess the kingdom"),
   and in Revelation as the kingdoms of this world becoming _"the kingdoms of our Lord"_
   (Rev 11:15). We will meet it again, fuller each time.
+
+[→] The confirming witness sets her seal on the stone = God's everlasting kingdom — and
+on the certainty of the whole vision:
+
+> "In the days of these kings... shall the God of heaven set up a kingdom, which shall
+> never be destroyed... and it shall stand forever.... The dream is certain, and the
+> interpretation thereof sure."
+> — _Ellen G. White, Prophets and Kings, p. 503_
 
 ---
 
@@ -225,6 +350,19 @@ toes, the final divided form:
   fell exactly as foretold
 - [→] a prophecy that has come true three times over can be trusted for the fourth time
   and the stone. **The track record is the proof.**
+
+[→] The confirming witness reads the dream's scope to the very close of time — and reads
+Nebuchadnezzar's own conviction that even his universal empire would fall before the
+kingdom God sets up:
+
+> "His mind had been profoundly influenced by this vision and by the thought that the
+> Babylonian Empire, universal though it was, was finally to fall... until at last all
+> earthly powers were to be superseded by a kingdom set up by the God of heaven, which
+> kingdom was never to be destroyed."
+> — _Ellen G. White, Prophets and Kings, p. 514_
+
+- [→] she fixes the scope as **"events reaching to the close of time"** (PK 503.1, cross-ref
+  the stone section) — the dream is not ancient history; it runs to the end.
 
 ---
 
