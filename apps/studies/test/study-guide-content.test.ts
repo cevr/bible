@@ -53,17 +53,21 @@ describe('study guide public tier', () => {
 });
 
 describe('study guide private tier', () => {
-  test('every private source validates via the server-only accessor', async () => {
-    const files = (await readdir(PRIVATE_DIR)).filter((f) => f.endsWith('.json'));
+  test('every private source validates and has source text', async () => {
+    // `_`-prefixed files (e.g. _manifest.json) are export bookkeeping, not sources.
+    const files = (await readdir(PRIVATE_DIR)).filter(
+      (f) => f.endsWith('.json') && !f.startsWith('_'),
+    );
     expect(files.length).toBeGreaterThan(0);
     const slugs = files.map((f) => f.replace(/\.json$/, ''));
     const sources = await Promise.all(
       slugs.map((slug) => readChapterSource(SERIES, slug, { privateRoot: join(ROOT, 'private') })),
     );
+    // Key Points are authored later (the export lays down source text with an empty
+    // rubric), so we only require the slug + verbatim source text here.
     sources.forEach((source, i) => {
       expect(source.slug).toBe(slugs[i]);
       expect(source.sourceText.length).toBeGreaterThan(0);
-      expect(source.keyPoints.length).toBeGreaterThan(0);
     });
   });
 
@@ -79,16 +83,20 @@ describe('study guide private tier', () => {
 });
 
 describe('tier consistency + boundary', () => {
-  test('public and private chapter slugs match', async () => {
+  test('every public chapter has a private source', async () => {
+    // The safety invariant: a published guide must have ground truth to grade
+    // against. The reverse (a private source with no guide yet) is normal during
+    // authoring, so we check public ⊆ private, not strict equality.
     const publicSlugs = (await readdir(join(PUBLIC_DIR, 'chapters')))
       .filter((f) => f.endsWith('.json'))
-      .map((f) => f.replace(/\.json$/, ''))
-      .sort();
-    const privateSlugs = (await readdir(PRIVATE_DIR))
-      .filter((f) => f.endsWith('.json'))
-      .map((f) => f.replace(/\.json$/, ''))
-      .sort();
-    expect(privateSlugs).toEqual(publicSlugs);
+      .map((f) => f.replace(/\.json$/, ''));
+    const privateSlugs = new Set(
+      (await readdir(PRIVATE_DIR))
+        .filter((f) => f.endsWith('.json') && !f.startsWith('_'))
+        .map((f) => f.replace(/\.json$/, '')),
+    );
+    const orphans = publicSlugs.filter((slug) => !privateSlugs.has(slug));
+    expect(orphans).toEqual([]);
   });
 
   test('no content collection loader points at the private dir', async () => {
