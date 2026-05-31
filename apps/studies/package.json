@@ -7,8 +7,8 @@
     "extract": "bun run scripts/extract.ts",
     "dev": "astro dev",
     "build": "astro build",
-    "preview": "astro preview",
-    "start": "astro preview --host 0.0.0.0 --port ${PORT:-4321}",
+    "preview": "bun run start",
+    "start": "HOST=${HOST:-0.0.0.0} PORT=${PORT:-4321} bun run adapter/run.ts",
     "typecheck": "astro check"
   },
   "dependencies": {
