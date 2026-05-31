@@ -55,7 +55,11 @@
       "name": "@bible/studies",
       "version": "0.1.0",
       "dependencies": {
+        "@effect/ai-anthropic": "catalog:",
+        "@effect/ai-openai": "catalog:",
+        "@effect/platform-bun": "catalog:",
         "astro": "^6.4.2",
+        "effect": "catalog:",
         "marked": "^18.0.4",
         "zod": "^4.4.3",
       },
@@ -179,9 +183,13 @@
     },
   },
   "overrides": {
+    "@effect/ai-anthropic": "4.0.0-beta.68",
+    "@effect/ai-openai": "4.0.0-beta.68",
     "effect": "4.0.0-beta.68",
   },
   "catalog": {
+    "@effect/ai-anthropic": "4.0.0-beta.68",
+    "@effect/ai-openai": "4.0.0-beta.68",
     "@effect/platform-bun": "4.0.0-beta.68",
     "@effect/sql-sqlite-bun": "4.0.0-beta.68",
     "@effect/sql-sqlite-node": "4.0.0-beta.68",
@@ -325,6 +333,10 @@
     "@dotenvx/dotenvx": ["@dotenvx/dotenvx@1.66.0", "", { "dependencies": { "commander": "^11.1.0", "dotenv": "^17.2.1", "eciesjs": "^0.4.10", "execa": "^5.1.1", "fdir": "^6.2.0", "ignore": "^5.3.0", "object-treeify": "1.1.33", "picomatch": "^4.0.4", "which": "^4.0.0", "yocto-spinner": "^1.1.0" }, "bin": { "dotenvx": "src/cli/dotenvx.js" } }, "sha512-qlQFhHUjhRDybrinqLAD0MClVZDOrsq80O8eD5iSjz3Qa/4f3Jg7SQrOaSobrRyP1QaWIYLGtGpj2c7H0D8NUw=="],
 
     "@ecies/ciphers": ["@ecies/ciphers@0.2.6", "", { "peerDependencies": { "@noble/ciphers": "^1.0.0" } }, "sha512-patgsRPKGkhhoBjETV4XxD0En4ui5fbX0hzayqI3M8tvNMGUoUvmyYAIWwlxBc1KX5cturfqByYdj5bYGRpN9g=="],
+
+    "@effect/ai-anthropic": ["@effect/ai-anthropic@4.0.0-beta.68", "", { "peerDependencies": { "effect": "^4.0.0-beta.68" } }, "sha512-uzgPRb0lxQabzTyviNkdN7g4GXT9SdONXZv0pzFmt4bGyGJ/hVeETz7v9AqMBeT4MB0yMVnDEj/3J3k/byC9bQ=="],
+
+    "@effect/ai-openai": ["@effect/ai-openai@4.0.0-beta.68", "", { "peerDependencies": { "effect": "^4.0.0-beta.68" } }, "sha512-cAw/YJTesyRLxPbeNV+uJ9+Wz5waGP5wgMj27Tu4XEqwl/oqYM2BjG+3lXffl0xMwpc35ase5NKPyZADKiWtlw=="],
 
     "@effect/platform-bun": ["@effect/platform-bun@4.0.0-beta.68", "", { "dependencies": { "@effect/platform-node-shared": "^4.0.0-beta.68" }, "peerDependencies": { "effect": "^4.0.0-beta.68" } }, "sha512-Jhk+OqaV2N8KjmT3BxeYq5K914ZHYuId1yaIAoqvcU6YwgPD3grfhv9vfKyJJ3GP0vFFeOIL6T5NWQy0Qf+3AA=="],
 

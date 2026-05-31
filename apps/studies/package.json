@@ -13,7 +13,11 @@
     "test": "bun test"
   },
   "dependencies": {
+    "@effect/ai-anthropic": "catalog:",
+    "@effect/ai-openai": "catalog:",
+    "@effect/platform-bun": "catalog:",
     "astro": "^6.4.2",
+    "effect": "catalog:",
     "marked": "^18.0.4",
     "zod": "^4.4.3"
   },
