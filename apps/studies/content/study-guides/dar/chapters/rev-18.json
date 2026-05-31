@@ -1,0 +1,105 @@
+{
+  "slug": "rev-18",
+  "ref": "DAR — Revelation ch. 18: Babylon, the Daughters",
+  "title": "Babylon, the Daughters",
+  "order": 30,
+  "voicePrompt": "Explain in your own words why Uriah Smith reads the fall of Babylon in Revelation 18 as a moral fall of the Protestant 'daughter' churches rather than a literal destruction, and how the call to 'come out of her' fits into the final reformatory message.",
+  "questions": [
+    {
+      "id": "q1",
+      "stem": "According to the chapter, why must the fall of Babylon in verse 2 be a MORAL fall rather than a literal destruction?",
+      "options": [
+        "Because Babylon is too large to be destroyed in a single day",
+        "Because there are events that take place in Babylon after her fall, such as God's people still being there and being called out before her plagues",
+        "Because the Roman Catholic Church has never been physically destroyed",
+        "Because the angel only announces the fall and never describes any actual ruin"
+      ],
+      "correctIndex": 1,
+      "explanation": "The chapter argues the fall cannot be literal destruction 'for there are events to take place in Babylon after her fall which utterly forbid this idea; as, for instance, the people of God are there after her fall, and are called out in order that they may not receive of her plagues.' The literal destruction is embraced in those later plagues, so the fall itself is moral."
+    },
+    {
+      "id": "q2",
+      "stem": "How does the chapter define the term 'Babylon' as it is applied here?",
+      "options": [
+        "Only the Roman Catholic Church",
+        "Only the pagan and papal divisions of false religion",
+        "A term embracing the Roman Catholic Church AND the religious bodies which have sprung from her, carrying her errors and traditions",
+        "The literal ancient city on the Euphrates"
+      ],
+      "correctIndex": 2,
+      "explanation": "Smith writes that 'Babylon is a term which embraces not only the Roman Catholic Church, but religious bodies which have sprung from her, bringing many of her errors and traditions along with them.' The moral fall specifically targets these 'daughter' organizations."
+    },
+    {
+      "id": "q3",
+      "stem": "Why does the chapter conclude that the message of verses 1-2 cannot apply to the pagan or papal divisions, but must apply to the Protestant denominations?",
+      "options": [
+        "Because paganism was always a false religion and the papacy always an apostate one, so a 'fall' implies bodies that began as reform and later declined",
+        "Because the papacy is too powerful to ever fall",
+        "Because the pagan religions no longer exist in modern times",
+        "Because only Protestants are mentioned by name in Revelation"
+      ],
+      "correctIndex": 0,
+      "explanation": "Smith reasons that since the fall is moral, 'it must apply to some branch of Babylon besides, or outside of, the pagan or papal divisions; for from the beginning of their history, paganism has been a false religion, and the papacy an apostate one.' The daughter churches 'started out on reform... but fencing themselves about with creeds, they have failed to keep pace with the advancing light of prophetic truth.'"
+    },
+    {
+      "id": "q4",
+      "stem": "According to the chapter, when does the message of verses 1-2 have its application?",
+      "options": [
+        "Simultaneously with the first announcement of Babylon's fall in chapter 14 (1844)",
+        "It is yet future, constituting a feature of the third angel's message to appear when that message is proclaimed with power and the earth is lightened with its glory",
+        "It was fulfilled entirely in the Protestant Reformation three centuries ago",
+        "At the literal second coming of Christ"
+      ],
+      "correctIndex": 1,
+      "explanation": "The chapter argues the announcement is 'this side of 1844,' has not yet been given, and 'hence this message is yet future.' It concludes the first two verses 'constitute a feature of the third message which is to appear when this message shall be proclaimed with power, and the whole earth be lightened with its glory.'"
+    },
+    {
+      "id": "q5",
+      "stem": "By what agency does the chapter say the work of verse 2 — Babylon becoming the hold of foul spirits — is being accomplished?",
+      "options": [
+        "By foreign invasion and war",
+        "By the work of Spiritualism, which spreads through denominations whose creeds teach that the dead are conscious",
+        "By economic collapse of the churches",
+        "By the literal return of the Roman Catholic Church to power"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith states the work of verse 2 'will soon be completed, by the work of Spiritualism.' The denominations are vulnerable because their creeds teach 'that the spirits of our dead friends, conscious, intelligent, and active, are all about us,' which leaves them 'unable to resist the approach of evil spirits.'"
+    },
+    {
+      "id": "q6",
+      "stem": "Why does the chapter say the churches that received the messages of chapter 14 would be shielded against Spiritualism?",
+      "options": [
+        "Because they would have built stronger church buildings to keep out evil influence",
+        "Because they would have rejected all forms of organized religion",
+        "Because those messages teach that the soul is not naturally immortal and the dead are unconscious, which strikes a death-blow to Spiritualism's first claim",
+        "Because they would have stopped preaching about Christ and the atonement"
+      ],
+      "correctIndex": 2,
+      "explanation": "The chapter says a key truth of the chapter-14 movement is 'that the soul of man is not naturally immortal... that the dead are unconscious.' When a spirit claims to be a dead man, this truth meets it with the fact that 'the dead know not anything,' so 'its first pretension, is a lie,' and the delusion is rejected."
+    },
+    {
+      "id": "q7",
+      "stem": "How does the chapter interpret Babylon's boast, 'I sit a queen, and am no widow'?",
+      "options": [
+        "That Babylon believes she will never physically die",
+        "That Babylon, intoxicated with newly gained civil power, boasts she is no longer bereaved of power but now rules like a queen and will see no sorrow",
+        "That Babylon claims to be the only true church on earth",
+        "That Babylon mourns the loss of her former glory"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith reads the boast as the result of 'this first intoxication of power' from using the civil arm. Babylon says she is no longer 'one bereaved, or destitute of power... but now I rule like a queen; I shall see no sorrow; God is in the Constitution; the church is enthroned, and shall henceforth bear sway.'"
+    },
+    {
+      "id": "q8",
+      "stem": "What 'fitting retribution' does the chapter find in the merchants' lamentation that 'no man buyeth their merchandise any more'?",
+      "options": [
+        "That the merchants had given all their wealth to the poor and now have nothing",
+        "That those who had decreed the saints should neither buy nor sell now find themselves under the same restriction by a more effectual process",
+        "That the merchants are forced to sell their goods at a loss",
+        "That foreign nations refuse to trade with Babylon out of fear"
+      ],
+      "correctIndex": 1,
+      "explanation": "The chapter notes 'there is a fitness in this retribution. They who but a short time before had issued a decree that the saints of God should neither buy nor sell, now find themselves put under the same restriction by a far more effectual process' — the first plague suspending all traffic."
+    }
+  ]
+}

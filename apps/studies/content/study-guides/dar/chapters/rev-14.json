@@ -1,0 +1,105 @@
+{
+  "slug": "rev-14",
+  "ref": "DAR — Revelation ch. 14: The Three Messages",
+  "title": "The Three Messages",
+  "order": 26,
+  "voicePrompt": "In your own words, explain Uriah Smith's argument that the three angels' messages of Revelation 14 belong to the present generation rather than the past or a future age, and describe how each message (the hour of judgment, the fall of Babylon, and the warning against the beast and his mark) connects to the others and to the great Advent movement.",
+  "questions": [
+    {
+      "id": "q1",
+      "stem": "According to the chapter, why does Smith argue that the 144,000 are the living saints translated at the second coming rather than the resurrected dead?",
+      "options": [
+        "Because they sing a new song that the resurrected dead cannot learn",
+        "Because they are described as 'redeemed from among men,' an expression that can apply only to those translated from among the living",
+        "Because they stand on the earthly Mount Zion rather than the heavenly one",
+        "Because they are said to have died in the Lord and risen first"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith reasons that being 'redeemed from among men' (verse 4) means redemption from among the living, which can mean only one thing: translation. He contrasts this with resurrection from the dead, concluding the 144,000 are living saints translated at Christ's second coming."
+    },
+    {
+      "id": "q2",
+      "stem": "How does the chapter interpret the three angels themselves?",
+      "options": [
+        "As literal angels who personally preach the gospel to mankind",
+        "As three successive empires symbolized by celestial beings",
+        "As symbolic figures representing bodies of religious teachers commissioned to proclaim these truths",
+        "As a single angel appearing three times in different forms"
+      ],
+      "correctIndex": 2,
+      "explanation": "Smith says the angels are 'evidently symbolic,' because preaching the gospel was entrusted to men, not literal angels. Each of the three angels therefore symbolizes a body of religious teachers commissioned to make known the special truths of these messages."
+    },
+    {
+      "id": "q3",
+      "stem": "Smith rejects locating the first message ('the hour of his judgment is come') in the past. What does he say about the apostles' relation to the judgment?",
+      "options": [
+        "They proclaimed that the hour of judgment had already come",
+        "They denied that any judgment would ever take place",
+        "They pointed to an indefinite future for the judgment's accomplishment, not announcing it as present",
+        "They taught that the judgment had occurred in the days of Sodom and Gomorrah"
+      ],
+      "correctIndex": 2,
+      "explanation": "Smith argues the apostles did not proclaim the hour of judgment as having come; instead they pointed to an indefinite future for it (citing Paul before the Athenians and Felix, his letters to Rome and Corinth, etc.). To have said it was present would have made their message false."
+    },
+    {
+      "id": "q4",
+      "stem": "According to the chapter, what was the actual mistake the Adventists made in 1844?",
+      "options": [
+        "They miscalculated the 2300 days and set the wrong year",
+        "They were correct on the time but mistaken about the nature of the event, supposing the earth was the sanctuary to be cleansed by fire",
+        "They wrongly believed the gospel had already been preached to all nations",
+        "They denied that a judgment would precede the second advent"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith states the mistake was not in the time but in the nature of the event expected. Supposing the earth was the sanctuary cleansed by fire at Christ's appearing, they looked for His coming; in fact the cleansing was the heavenly sanctuary's cleansing by Christ as high priest, which did not bring Him to earth."
+    },
+    {
+      "id": "q5",
+      "stem": "Among the three possible objects for the term 'Babylon,' which does Smith conclude it signifies?",
+      "options": [
+        "The literal city of Rome built upon seven hills",
+        "The Roman Catholic Church exclusively",
+        "The universal worldly church — the entire corrupt or apostate church of the earth",
+        "Pagan Rome under the dragon symbol alone"
+      ],
+      "correctIndex": 2,
+      "explanation": "After arguing that Babylon is neither limited to the Romish Church nor the city of Rome, Smith concludes it 'signifies the universal worldly church,' the entire corrupt or apostate church, since Babylon is a mother harlot with daughters and has made all nations drunk with her false doctrines."
+    },
+    {
+      "id": "q6",
+      "stem": "How does the chapter describe the 'fall' of Babylon announced by the second angel?",
+      "options": [
+        "A literal overthrow and destruction of the city by fire",
+        "A moral fall, applying chiefly to the Protestant churches who rejected the first message",
+        "The loss of the pope's temporal civil power",
+        "The conversion of the apostate churches back to truth"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith argues the fall cannot be literal since after the fall God's people are still called out of her. It is a moral fall, and since paganism and Catholicism were already low, the announcement of Babylon's fall referred almost wholly to the Protestant churches who rejected the first message and lost their spirituality."
+    },
+    {
+      "id": "q7",
+      "stem": "In the chapter's recapitulation of the third message, what does Smith identify as the 'mark of the beast'?",
+      "options": [
+        "The natural immortality of the soul",
+        "Sprinkling instead of immersion in baptism",
+        "The change of the Sabbath from the seventh day to the first day (Sunday), set up as a counterfeit",
+        "The doctrine of a temporal millennium"
+      ],
+      "correctIndex": 2,
+      "explanation": "Smith summarizes that the mark of the beast consists in a change of God's law: the seventh-day Sabbath is torn from its place and a false, counterfeit Sabbath, the first day of the week (Sunday), is set up in its stead. Sunday-keeping is thus identified as the mark of the beast."
+    },
+    {
+      "id": "q8",
+      "stem": "What does the chapter mean when it says the three messages are 'cumulative'?",
+      "options": [
+        "Each message cancels and replaces the one before it",
+        "All three were given simultaneously from the very beginning",
+        "One message does not cease when another begins; they join together so that all three go forth simultaneously as a threefold message",
+        "The third message must finish before the first can be proclaimed"
+      ],
+      "correctIndex": 2,
+      "explanation": "Smith explains that one message does not cease when another is introduced. The second joined the first, and the third followed 'not to supersede them, but only to join with them,' so that all three now go forth simultaneously as a threefold message, with the third being the leading proclamation."
+    }
+  ]
+}

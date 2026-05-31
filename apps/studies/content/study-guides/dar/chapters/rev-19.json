@@ -1,0 +1,105 @@
+{
+  "slug": "rev-19",
+  "ref": "DAR — Revelation ch. 19: The Triumph of the Saints",
+  "title": "The Triumph of the Saints",
+  "order": 31,
+  "voicePrompt": "In your own words, explain why Smith argues that Revelation 19 describes a single event — the second coming of Christ at the beginning of the thousand years — both as a song of triumph over fallen Babylon and as a warrior riding forth to destroy the beast and false prophet.",
+  "questions": [
+    {
+      "id": "q1",
+      "stem": "According to Smith, when is the song of triumph in verses 1-3 sung, and over what?",
+      "options": [
+        "At the end of the thousand years, over the final lake of fire",
+        "At the second coming of Christ, over the complete destruction of great Babylon",
+        "At Pentecost, over the conversion of the nations",
+        "During the reign of the papacy, over the martyrs being avenged in their lifetime"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith says the redeemed saints strike up this song 'when they behold the complete destruction of that great system of opposition to God... comprehended in great Babylon,' and that 'this song is sung, in connection with the second coming of Christ at the commencement of the thousand years.'"
+    },
+    {
+      "id": "q2",
+      "stem": "How does Smith explain the phrase 'her smoke rose up forever and ever' (verse 3)?",
+      "options": [
+        "It proves the eternal conscious suffering of the wicked",
+        "It is borrowed, limited language (as in Isaiah 34 of Idumea) describing a destruction, after which a renovated earth comes forth",
+        "It refers to incense rising perpetually from the heavenly sanctuary",
+        "It describes a fire that literally burns without end on the present earth"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith calls this 'borrowed language' traced to Isaiah 34's figure of Idumea, insists 'the language must be limited,' and notes that 'after all this, a renovated earth is to come forth, to be the abode of the nations of the saved throughout eternity.'"
+    },
+    {
+      "id": "q3",
+      "stem": "Who or what does Smith identify as the 'bride, the Lamb's wife,' and what is the marriage of the Lamb?",
+      "options": [
+        "The bride is the church on earth today, and the marriage already took place in Paul's day",
+        "The bride is the New Jerusalem which is above, and the marriage is Christ's reception of that city as the metropolis of his kingdom",
+        "The bride is the company of angels, and the marriage is their union with Christ at creation",
+        "The bride is the nation of Israel, and the marriage is the giving of the law at Sinai"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith writes, 'The Lamb's wife is the New Jerusalem which is above,' and 'The marriage of the Lamb is his reception of this city,' by which 'he receives his kingdom, and the throne of his father David.' He explicitly denies the marriage already happened in Corinth in Paul's day, since the scripture 'locates it in the future.'"
+    },
+    {
+      "id": "q4",
+      "stem": "How does Smith answer the objection that a city cannot be 'arrayed in the righteousness of the saints' (verse 8)?",
+      "options": [
+        "He says the verse is a later corruption and should be ignored",
+        "He says the city's apparel refers to the countless glorified inhabitants in their shining apparel who walk its golden streets",
+        "He says the linen is literally woven from heavenly material, not from saints",
+        "He says only the gates of the city, not the city itself, are clothed"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith reasons that a city without inhabitants would be 'a dreary and cheerless place,' so the raiment refers to 'the countless number of its glorified inhabitants in their shining apparel'; 'the goodly apparel of this city... consists of the hosts of the redeemed and immortal ones who walk its golden streets.'"
+    },
+    {
+      "id": "q5",
+      "stem": "In verse 10, why does Smith say the angel who refused John's worship is NOT proof of consciousness in death?",
+      "options": [
+        "Because the angel was actually Christ in disguise",
+        "Because the angel never spoke to John at all",
+        "Because the angel is not a departed spirit of a prophet but a fellow servant; angels are not the spirits of the dead, and holding so makes one a Spiritualist",
+        "Because John imagined the encounter in a dream"
+      ],
+      "correctIndex": 2,
+      "explanation": "Smith says the mistake is 'supposing that the angel declares to John that he is one of the old prophets come back,' but 'angels are not the departed spirits of the dead,' and 'whoever takes the position that they are, is to all intents a Spiritualist.' The angel only calls himself a fellow servant on common footing."
+    },
+    {
+      "id": "q6",
+      "stem": "Beginning with verse 11, what scene does Smith say is introduced, and why is Christ shown as a warrior on a white horse?",
+      "options": [
+        "The millennial reign of peace, shown as a king on a throne",
+        "The second coming of Christ, shown as a warrior because he is going forth to war against the kings of the earth and their armies",
+        "Christ's first advent, shown as a humble shepherd",
+        "The heavenly judgment scene, shown as a priest in the sanctuary"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith writes, 'We are here carried back to the second coming of Christ, this time under the symbol of a warrior riding forth to battle,' explaining he is shown thus 'because he is going forth to war, — to meet \"the kings of the earth and their armies.\"'"
+    },
+    {
+      "id": "q7",
+      "stem": "What does Smith conclude from the fact that the beast and the false prophet are 'cast alive into the lake of fire' (verse 20)?",
+      "options": [
+        "That they had already died long before the second advent",
+        "That these powers will not pass away and be succeeded by others, but be living powers at the second advent of Christ",
+        "That the lake of fire is merely symbolic of spiritual cleansing",
+        "That they are the same power as the four beasts of Daniel 7"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith argues, 'The fact that these are cast alive into the lake of fire, shows that these powers will not pass away and be succeeded by others, but be living powers at the second advent of Christ,' and notes the papacy 'does not perish till Christ appears.'"
+    },
+    {
+      "id": "q8",
+      "stem": "According to Smith, what is the 'sword' proceeding out of Christ's mouth that slays the remnant in verse 21?",
+      "options": [
+        "A literal two-edged blade forged in heaven",
+        "The preaching of the gospel that converts the nations",
+        "The spirit of his mouth and the breath of his lips, with which the Lord slays the wicked at his appearing (Isaiah 11:4; 2 Thessalonians 2:8)",
+        "The decree of papal infallibility from the 1870 council"
+      ],
+      "correctIndex": 2,
+      "explanation": "Smith says this sword 'is doubtless what is spoken of elsewhere as \"the spirit of his mouth\" and \"the breath of his lips,\" with which the Lord shall slay the wicked at his appearing and kingdom,' citing Isaiah 11:4 and 2 Thessalonians 2:8."
+    }
+  ]
+}

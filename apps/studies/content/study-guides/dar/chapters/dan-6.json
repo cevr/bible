@@ -1,0 +1,105 @@
+{
+  "slug": "dan-6",
+  "ref": "DAR — Daniel ch. 6: Daniel in the Lions’ Den",
+  "title": "Daniel in the Lions’ Den",
+  "order": 6,
+  "voicePrompt": "In your own words, explain how Daniel's enemies plotted against him, why they could only attack him through the law of his God, and what lesson Uriah Smith draws from Daniel's deliverance for the people of God in every age.",
+  "questions": [
+    {
+      "id": "q1",
+      "stem": "According to the chapter, why did Darius prefer Daniel above the other presidents and princes?",
+      "options": [
+        "Because Daniel was the wealthiest man in the empire",
+        "Because an excellent spirit was in him",
+        "Because Daniel had helped Darius capture Babylon",
+        "Because Daniel was a relative of the king"
+      ],
+      "correctIndex": 1,
+      "explanation": "The text states Daniel was preferred above the presidents and princes 'because an excellent spirit was in him,' and the discerning king thought to set him over the whole realm."
+    },
+    {
+      "id": "q2",
+      "stem": "Why did Daniel's accusers conclude they could only find an occasion against him 'concerning the law of his God'?",
+      "options": [
+        "Because Daniel openly boasted about breaking the king's laws",
+        "Because Daniel had secretly mismanaged the kingdom's finances",
+        "Because his conduct toward the kingdom was faithful and faultless, leaving no other ground for complaint",
+        "Because the king had ordered them to target Daniel's religion"
+      ],
+      "correctIndex": 2,
+      "explanation": "The chapter says Daniel was faithful and true and they could find no ground for complaint against him regarding the kingdom, so the only avenue left was the law of his God. Smith adds, 'A person can have no better recommendation.'"
+    },
+    {
+      "id": "q3",
+      "stem": "Why did the conspirators make the decree forbid petitions to ANY god or man, rather than naming the God of the Hebrews specifically?",
+      "options": [
+        "Because they genuinely wished to honor all the gods of the empire equally",
+        "Because if they had named the God of the Hebrews, the king would have divined their object and refused to sign",
+        "Because the law of the Medes and Persians forbade naming any deity",
+        "Because Daniel worshiped many different gods"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith explains that had the decree named the God of the Hebrews—the real design—'the king would at once have divined their object, and the decree would not have been signed,' so they gave it a general application."
+    },
+    {
+      "id": "q4",
+      "stem": "How did Daniel respond when he learned the decree had been signed?",
+      "options": [
+        "He fled the empire on pretended business until the thirty days passed",
+        "He performed his devotions with more than ordinary secrecy to avoid detection",
+        "He prayed just as before, kneeling three times a day with his face toward Jerusalem",
+        "He confronted the conspirators and demanded the decree be repealed"
+      ],
+      "correctIndex": 2,
+      "explanation": "The text says Daniel took no means to thwart the conspiracy; he did not leave the empire or pray more secretly, but 'just as aforetime,' with his face toward Jerusalem, he kneeled and prayed three times a day."
+    },
+    {
+      "id": "q5",
+      "stem": "What 'mean resort' did the accusers use to excite the king's prejudice when they informed against Daniel?",
+      "options": [
+        "They reminded the king that Daniel was 'of the children of the captivity of Judah,' a poor captive dependent on the king",
+        "They claimed Daniel was plotting to seize the throne",
+        "They produced false witnesses to swear Daniel had cursed the king",
+        "They accused Daniel of stealing from the royal treasury"
+      ],
+      "correctIndex": 0,
+      "explanation": "Smith highlights their 'mean resort to excite the prejudices of the king': calling Daniel 'that Daniel, which is of the children of the captivity of Judah'—portraying him as an ungrateful captive who disregards the king."
+    },
+    {
+      "id": "q6",
+      "stem": "What does the chapter offer as the conjectured reason Daniel's accusers were themselves cast into the den?",
+      "options": [
+        "The king wished to seize their property and estates",
+        "They had broken the same decree against praying to other gods",
+        "They had attributed Daniel's survival to the lions merely not being hungry, so the king tested the matter on them",
+        "Daniel demanded their execution as revenge"
+      ],
+      "correctIndex": 2,
+      "explanation": "The text conjectures the accusers credited Daniel's preservation to the lions chancing not to be hungry rather than a miracle; the king therefore tested the matter by putting them in—and the hungry lions tore them to pieces."
+    },
+    {
+      "id": "q7",
+      "stem": "Taking the lions' den together with the case of the three Hebrews in the fiery furnace, what two lines of duty does Smith say the seal of God is set in favor of?",
+      "options": [
+        "To pay all taxes and to honor the king above all",
+        "Not to yield to any known sin, and not to omit any known duty",
+        "To pray publicly and to fast regularly",
+        "To obey unjust laws and to trust in human rulers"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith pairs the two stories: as in the fiery furnace, 'not to yield to any known sin,' and as in the lions' den, 'not to omit any known duty'—and from these the people of God in all ages derive encouragement."
+    },
+    {
+      "id": "q8",
+      "stem": "How does the chapter describe the place of Daniel chapter 6 within the book as a whole?",
+      "options": [
+        "It begins the prophetic portion of Daniel",
+        "It is a parenthetical digression unrelated to the rest of the book",
+        "It closes the historical part of the book, after which comes the prophetic portion",
+        "It is the final chapter of the entire book"
+      ],
+      "correctIndex": 2,
+      "explanation": "The closing paragraph says, 'Thus closes the historical part of the book of Daniel. We now come to the prophetic portion,' which is likened to a shining beacon light lighting the pathway of the church."
+    }
+  ]
+}

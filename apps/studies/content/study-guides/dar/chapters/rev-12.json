@@ -1,0 +1,105 @@
+{
+  "slug": "rev-12",
+  "ref": "DAR — Revelation ch. 12: The Gospel Church",
+  "title": "The Gospel Church",
+  "order": 24,
+  "voicePrompt": "In your own words, explain how Smith reads Revelation 12 as the story of the true church (the woman) across the gospel age — who the woman, sun, moon, crown of stars, dragon, and man child represent, and how the chapter traces Satan's attacks from pagan Rome through the papal persecution to the final war on the last generation.",
+  "questions": [
+    {
+      "id": "q1",
+      "stem": "According to Smith, what do the woman, the sun, and the moon in verse 1 represent?",
+      "options": [
+        "The woman is the true church, the sun is the gospel dispensation, and the moon is the Mosaic dispensation",
+        "The woman is Mary, the sun is Christ, and the moon is the synagogue",
+        "The woman is an apostate church, the sun is paganism, and the moon is night",
+        "The woman is Israel, the sun is the law, and the moon is the prophets"
+      ],
+      "correctIndex": 0,
+      "explanation": "Smith defines 'a woman' as the true church (a pure woman, by contrast with the corrupt woman of Revelation 17), 'the sun' as the light and glory of the gospel dispensation, and 'the moon' as the Mosaic dispensation, which shone with a borrowed light derived from the gospel sun."
+    },
+    {
+      "id": "q2",
+      "stem": "Why does Smith say the church is shown 'clothed with the sun' and with 'the moon under her feet'?",
+      "options": [
+        "Because the church had abandoned both dispensations and stood on her own",
+        "Because the Mosaic dispensation had just ended and the woman was now clothed with the risen light of the gospel sun",
+        "Because the gospel was fading while the law was rising",
+        "Because the sun and moon represent the two thieves crucified with Christ"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith explains that having the moon under her feet means the Mosaic dispensation had just ended, while the woman was clothed with the light of the gospel sun, which had just risen — the moon shining with a light borrowed from the sun, just as the former dispensation borrowed its light from the present."
+    },
+    {
+      "id": "q3",
+      "stem": "Whom does Smith identify as the 'man child,' and what power as the 'great red dragon' that sought to devour him?",
+      "options": [
+        "The man child is the apostle John; the dragon is the Jewish Sanhedrim",
+        "The man child is the church; the dragon is Satan personally",
+        "The man child is Jesus Christ; the dragon is pagan (imperial) Rome",
+        "The man child is Constantine; the dragon is the Holy Roman Empire"
+      ],
+      "correctIndex": 2,
+      "explanation": "Smith argues the man child is Jesus Christ — the only one caught up to God and his throne and commissioned to rule all nations with a rod of iron — and that the dragon is pagan Rome, which through Herod (a Roman governor) attempted to destroy the infant Jesus by slaying the children of Bethlehem."
+    },
+    {
+      "id": "q4",
+      "stem": "What event does Smith say is marked by the woman fleeing into the wilderness for 1260 days/years?",
+      "options": [
+        "The Babylonian captivity of the Jews",
+        "The flight of the church when the papacy was established in 538, through the long papal rule",
+        "The destruction of Jerusalem by the Romans in A.D. 70",
+        "The persecution under the emperor Nero"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith states the church fled into the wilderness at the time the papacy was established, in 538, where it was nourished by the word of God and the ministration of angels during the long, dark, and bloody rule of that power for 1260 years."
+    },
+    {
+      "id": "q5",
+      "stem": "How does Smith interpret 'war in heaven' between Michael and the dragon (verse 7)?",
+      "options": [
+        "As Satan's original fall from heaven before the creation of the world",
+        "As a future battle at the end of the millennium",
+        "As Christ's victory over Satan at and during his first advent and earthly ministry",
+        "As the destruction of the Roman empire by barbarian invasions"
+      ],
+      "correctIndex": 2,
+      "explanation": "Smith identifies Michael as Christ and locates this war at the commencement of Christ's ministry on earth. He rejects reading it as Satan's pre-creation fall, because verse 13 shows that as soon as the dragon was cast out he persecuted the woman who had already brought forth the man child — placing this defeat on this side of the Christian era."
+    },
+    {
+      "id": "q6",
+      "stem": "According to Smith, how did 'the earth' help the woman by swallowing the flood the serpent cast out (verses 15-16)?",
+      "options": [
+        "Through earthquakes that destroyed the papal armies",
+        "Through the Protestant Reformation of the sixteenth century, begun by Luther and his colaborers",
+        "Through the rise of Islam blocking Roman expansion",
+        "Through the discovery of the New World drawing Rome's attention away"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith reads the flood as the papacy's persecution and false doctrines, and says the earth helped the woman through the Reformation: God raised up Luther and his colaborers, Protestant soil in Switzerland, Germany, Holland, England, Norway, and Sweden absorbed the flood of papal fury, and religious liberty has been fostered ever since."
+    },
+    {
+      "id": "q7",
+      "stem": "Who does Smith say the dragon makes war against in the final outburst of verse 17, and what marks them?",
+      "options": [
+        "The Jewish nation, marked by rejecting Christ",
+        "The papacy itself, marked by indulgences",
+        "The remnant of the woman's seed — the last generation — marked by keeping the commandments of God and having the testimony of Jesus, pointing to a Sabbath reform",
+        "The Reformers, marked by nailing theses to church doors"
+      ],
+      "correctIndex": 2,
+      "explanation": "Smith says verse 17 brings to view a final outburst of the dragon's wrath against the remnant of the woman's seed — the last generation — characterized by keeping the commandments of God and having the testimony of Jesus Christ, which he says points to a Sabbath reform to be accomplished in the last days."
+    },
+    {
+      "id": "q8",
+      "stem": "What three powers does Smith say the Devil uses to carry out his work, all spoken of as the dragon?",
+      "options": [
+        "Egypt, Babylon, and Greece",
+        "Pagan Rome, papal Rome, and the two-horned beast (apostate Protestantism in 'our own government')",
+        "The Sanhedrim, the kings, and the priests of Judea",
+        "Persia, the Holy Roman Empire, and the Ottoman Turks"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith closes the chapter by noting three powers used by the Devil, all called the dragon because he is the inspiring agent in them all: (1) pagan Rome, (2) papal Rome, and (3) the two-horned beast — 'our own government under the control of apostate Protestantism' — which becomes the chief agent in making war on those who keep the commandments of God."
+    }
+  ]
+}

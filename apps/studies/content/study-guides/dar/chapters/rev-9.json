@@ -1,0 +1,105 @@
+{
+  "slug": "rev-9",
+  "ref": "DAR — Revelation ch. 9: The Seven Trumpets (continued)",
+  "title": "The Seven Trumpets (continued)",
+  "order": 21,
+  "voicePrompt": "In your own words, explain how Uriah Smith applies the fifth and sixth trumpets (the first and second woes) to the rise of the Saracens and the Turkish/Ottoman power, including the prophetic time periods of the five months and the hour-day-month-year, and why August 11, 1840 mattered.",
+  "questions": [
+    {
+      "id": "q1",
+      "stem": "According to the chapter, to what powers do interpreters almost uniformly apply the fifth and sixth trumpets (the first and second woes)?",
+      "options": [
+        "The Goths and the Vandals",
+        "The Saracens and the Turks",
+        "Pagan Rome and Papal Rome",
+        "The Persians and the Avars"
+      ],
+      "correctIndex": 1,
+      "explanation": "Quoting Mr. Keith, the chapter says there is scarcely so uniform an agreement among interpreters as respecting the application of the fifth and sixth trumpets, or the first and second woes, to the Saracens and the Turks."
+    },
+    {
+      "id": "q2",
+      "stem": "What does the chapter identify as the 'star fallen from heaven' that received the key to open the bottomless pit?",
+      "options": [
+        "The fall of Chosroes, the Persian king",
+        "The death of the emperor Heraclius",
+        "The crowning of Mohammed at Mecca",
+        "The founding of Constantinople by Constantine"
+      ],
+      "correctIndex": 0,
+      "explanation": "The chapter says the key that opened the bottomless pit 'was the fall of Chosroes,' whose discomfiture and death (murdered in 628) prepared the way for the followers of Mohammed to issue from Arabia."
+    },
+    {
+      "id": "q3",
+      "stem": "How does the chapter interpret the command that the locusts hurt 'only those men which have not the seal of God in their foreheads'?",
+      "options": [
+        "The Saracens were to slaughter every Christian regardless of belief",
+        "The seal-bearers were a hidden army that fought alongside the Saracens",
+        "The Saracens' attacks were directed not against true Sabbath-keepers but against another class — a body of Roman Catholic religionists with shaven crowns",
+        "Only those who refused to pay tribute were spared"
+      ],
+      "correctIndex": 2,
+      "explanation": "The chapter argues the seal of God is the Sabbath; the prophecy asserts only that the attacks were directed against those WITHOUT the seal — described as monks or a division of the Roman Catholic Church with shaven crowns, the very church that robbed God's law of its Sabbath seal."
+    },
+    {
+      "id": "q4",
+      "stem": "What event does the chapter use to mark the beginning of the 'five months' (150 years) of tormenting, dated July 27, 1299?",
+      "options": [
+        "The death of Mohammed and the succession of Abubeker",
+        "The founding of the Ottoman government by Othman, when he first entered the territory of Nicomedia",
+        "The battle of Nineveh between Heraclius and the Persians",
+        "The capture of Constantinople by Mohammed II"
+      ],
+      "correctIndex": 1,
+      "explanation": "The chapter, following Litch's 1838 calculation and Gibbon, dates the start of the five months to Othman's first assault on the Greek empire: 'Othman first entered the territory of Nicomedia on the 27th day of July, 1299.'"
+    },
+    {
+      "id": "q5",
+      "stem": "How does the chapter explain the symbolism of the fire, smoke, and brimstone issuing out of the horses' mouths in verse 17?",
+      "options": [
+        "It pictures the volcanic eruptions that struck the Roman provinces",
+        "It refers to the use of gunpowder and firearms, discharged on horseback by the Turks",
+        "It symbolizes the false doctrines spread by Mohammedan preachers",
+        "It represents the burning of Constantinople's libraries"
+      ],
+      "correctIndex": 1,
+      "explanation": "The chapter says the fire, smoke, and brimstone 'undoubtedly has reference to the use of gunpowder and firearms,' and that since the Turks fired on horseback it appeared the fire issued from the horses' mouths."
+    },
+    {
+      "id": "q6",
+      "stem": "The chapter calculates the prophetic period 'an hour, and a day, and a month, and a year' as how long, and to what does it apply?",
+      "options": [
+        "150 years, the duration of the Saracen torment",
+        "1260 years, the supremacy of the Papacy",
+        "391 years and 15 days, the duration of Ottoman supremacy in Constantinople",
+        "538 years, from the rise of Islam to the fall of Jerusalem"
+      ],
+      "correctIndex": 2,
+      "explanation": "The chapter computes the year (360), month (30), day (1), and hour (a 24th of a day, or 15 days) to total 391 years and 15 days, the period during which Ottoman supremacy was to exist in Constantinople."
+    },
+    {
+      "id": "q7",
+      "stem": "According to the chapter, what happened on August 11, 1840, that fulfilled the end of the 391 years and 15 days?",
+      "options": [
+        "The Turks finally captured Constantinople from the Greek emperor",
+        "Mehemet Ali was crowned sultan of the Ottoman empire",
+        "The sultan voluntarily surrendered his independence to the four great powers, who handed his ultimatum to Mehemet Ali that day",
+        "England declared war on the Ottoman empire"
+      ],
+      "correctIndex": 2,
+      "explanation": "The chapter recounts that the sultan accepted the intervention of England, Russia, Austria, and Prussia; the ultimatum to the pasha of Egypt was put into Rifat Bey's hands on August 11, 1840, and from that moment Ottoman independence was GONE, surviving only by sufferance of the Christian powers."
+    },
+    {
+      "id": "q8",
+      "stem": "Why does the chapter say the prediction of August 11, 1840 was significant for the Advent movement?",
+      "options": [
+        "It proved that the Saracens had repented of their idolatry",
+        "Because Litch published the calculation in 1838, two years before the event, and its exact fulfillment gave a mighty impetus to the great Advent movement",
+        "Because it marked the date set for Christ's second coming",
+        "Because it ended the worship of devils and idols in the Roman Church"
+      ],
+      "correctIndex": 1,
+      "explanation": "The chapter notes the calculation was published by J. Litch in 1838, before the event, as purely a matter of prophetic calculation; the exact accomplishment of the predicted event 'gave a mighty impetus to the great Advent movement then beginning to attract the attention of the world.'"
+    }
+  ]
+}

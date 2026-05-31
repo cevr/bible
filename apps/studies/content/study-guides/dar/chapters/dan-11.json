@@ -1,0 +1,105 @@
+{
+  "slug": "dan-11",
+  "ref": "DAR — Daniel ch. 11: A Literal Prophecy",
+  "title": "A Literal Prophecy",
+  "order": 11,
+  "voicePrompt": "Explain, in your own words, why Smith calls Daniel 11 a 'literal prophecy' and walk through how he traces an unbroken chain from Persia, Greece, and the wars of the kings of the north and south, to Rome, the papacy, France's atheistic revolution, and finally Turkey coming to its end at the time of the end.",
+  "questions": [
+    {
+      "id": "q1",
+      "stem": "According to the chapter's opening, how does the prophecy of Daniel 11 differ from the visions of chapters 2, 7, and 8?",
+      "options": [
+        "It is given mostly in plain language rather than in figures and symbols",
+        "It covers only events after the cross, not the ancient kingdoms",
+        "It is written in symbols even more obscure than the earlier visions",
+        "It abandons history entirely and speaks only of heaven"
+      ],
+      "correctIndex": 0,
+      "explanation": "The chapter opens by saying this is 'a prophecy of future events, clothed not in figures and symbols, as in the visions of chapters 2, 7, and 8, but given mostly in plain language' — which is why Smith titles it 'A Literal Prophecy.'"
+    },
+    {
+      "id": "q2",
+      "stem": "How does Smith say the 'king of the north' and the 'king of the south' are to be identified throughout the chapter?",
+      "options": [
+        "By the religion each kingdom professed at any given time",
+        "By whichever power held the territory that originally lay north or south of Palestine after Alexander's empire was divided",
+        "By the size of each kingdom's army in a given century",
+        "By the family descent of the rulers from Alexander himself"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith insists the divisions are reckoned 'from the standpoint of Palestine,' and that whatever power occupied the territory first constituting the kingdom of the north or south would, so long as it held that territory, bear that name — otherwise 'we have no standard by which to test the application of the prophecy.'"
+    },
+    {
+      "id": "q3",
+      "stem": "Who does Smith identify as 'the robbers of thy people' (verse 14), the new power introduced into the prophecy?",
+      "options": [
+        "Egypt under the Ptolemies",
+        "The Syrian kings under Antiochus",
+        "Rome, rising from the banks of the Tiber",
+        "The Jewish high priests"
+      ],
+      "correctIndex": 2,
+      "explanation": "Smith says a new power is introduced as 'the robbers of thy people' — 'Far away on the banks of the Tiber, a kingdom had been nourishing itself... Henceforth the name of Rome stands upon the historic page.' Rome's first interference in these kingdoms' affairs (B.C. 200) is said to 'establish the vision.'"
+    },
+    {
+      "id": "q4",
+      "stem": "Smith applies verses 20-22 to three successive Roman rulers. Who is the 'vile person' of verse 21, and what notable event does Smith say occurred in his reign?",
+      "options": [
+        "Augustus Caesar, in whose reign the taxing of all the world occurred",
+        "Julius Caesar, who was stabbed in the senate chamber",
+        "Tiberius Caesar, in whose reign 'the prince of the covenant' (Christ) was cut off",
+        "Constantine, who moved the seat of empire to Constantinople"
+      ],
+      "correctIndex": 2,
+      "explanation": "Smith identifies the 'raiser of taxes' as Augustus and the 'vile person' as Tiberius Caesar, citing his tyranny and dissipation; and he says 'the prince of the covenant unquestionably refers to Jesus Christ,' who was cut off (crucified, A.D. 31) during the reign of Tiberius."
+    },
+    {
+      "id": "q5",
+      "stem": "Smith dates two events from verse 31 ('take away the daily' and 'place the abomination that maketh desolate'). What does he say the 'daily' is, and when was it taken away?",
+      "options": [
+        "The 'daily' is paganism, taken away in A.D. 508",
+        "The 'daily' is the temple sacrifice, taken away in A.D. 70",
+        "The 'daily' is the papacy, taken away in A.D. 538",
+        "The 'daily' is Christianity, taken away in A.D. 330"
+      ],
+      "correctIndex": 0,
+      "explanation": "Smith argues 'sacrifice' is wrongly supplied and the word should be 'desolation'; the 'daily' desolation is paganism and the 'abomination of desolation' is the papacy. He concludes 'the daily, or paganism, was taken away in A.D. 508,' which was preparatory to the papacy being set up in A.D. 538."
+    },
+    {
+      "id": "q6",
+      "stem": "Smith says verse 36 ('the king... shall magnify himself above every god') cannot apply to the papacy. Why, and what power does he apply it to instead?",
+      "options": [
+        "Because the papacy was already destroyed; he applies it to ancient Babylon",
+        "Because the papacy never professedly set aside or rejected God; he applies it to atheistic revolutionary France",
+        "Because the papacy was too weak; he applies it to the Russian empire",
+        "Because the papacy honored too many gods; he applies it to pagan Rome"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith says the specifications 'Nor regard any god' have 'never been true of the papacy,' since God and Christ were never professedly rejected from it. He applies the wilful, atheistical power to the French Revolution, which 'discarded the Bible, and the existence of the Deity denied, as the voice of the nation' in 1793."
+    },
+    {
+      "id": "q7",
+      "stem": "In verse 40 ('at the time of the end'), which powers does Smith identify as the king of the south and the king of the north, and what year marks the beginning of the time of the end?",
+      "options": [
+        "Egypt (south) and Turkey (north), beginning in 1798",
+        "Syria (south) and Greece (north), beginning in A.D. 476",
+        "Egypt (south) and France (north), beginning in 1870",
+        "Russia (south) and Austria (north), beginning in 1853"
+      ],
+      "correctIndex": 0,
+      "explanation": "Smith says Egypt is still the king of the south, while the territory of the king of the north 'has been for the past four hundred years wholly included within the dominions of the sultan of Turkey.' He places the time of the end at 1798, the year of the papacy's overthrow and the triangular war of France, Egypt, and Turkey."
+    },
+    {
+      "id": "q8",
+      "stem": "Verse 45 is the one verse Smith says remains unfulfilled. What does he predict, and why does he stress 'none shall help him'?",
+      "options": [
+        "The pope will plant his throne in Rome, helped by all Europe",
+        "Russia will conquer the world, aided by Persia",
+        "Turkey will move its headquarters toward Jerusalem and then come to its end, with no power left willing to prop it up as before",
+        "France will rebuild its empire and reach the Ganges"
+      ],
+      "correctIndex": 2,
+      "explanation": "Smith says the prophecy 'must be fulfilled by Turkey,' which, driven from Europe, would plant 'the tabernacles of his palace' between the seas in the glorious holy mountain (near Jerusalem). 'None shall help him' implies the help Turkey had previously received (from England, Russia, and others) would be withdrawn, after which it 'must come to the ground.'"
+    }
+  ]
+}

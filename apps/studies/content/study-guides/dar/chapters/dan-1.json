@@ -1,0 +1,105 @@
+{
+  "slug": "dan-1",
+  "ref": "DAR — Daniel ch. 1: Daniel in Captivity",
+  "title": "Daniel in Captivity",
+  "order": 1,
+  "voicePrompt": "In your own words, explain how Smith uses the historical details of Daniel 1 to argue for the book's reliability, and why Daniel's choice of diet and God's response to it matter to the chapter's larger point about faithfulness under captivity.",
+  "questions": [
+    {
+      "id": "q1",
+      "stem": "Smith opens by noting that the first two verses state five particulars 'purporting to be historical facts.' Why does he draw attention to these specifics?",
+      "options": [
+        "To show that the details could be tested for accuracy, the kind no writer would invent for a fictitious narrative",
+        "To prove that Daniel was an eyewitness to every event he records",
+        "To demonstrate that the book of Daniel is entirely prophetic from its first verse",
+        "To argue that Jeremiah, not Daniel, was the true author of the account"
+      ],
+      "correctIndex": 0,
+      "explanation": "Smith says Daniel states 'a variety of particulars by which his accuracy could at once be tested,' the kind 'no writer would be likely to introduce into a fictitious narrative,' establishing the book's historical reliability."
+    },
+    {
+      "id": "q2",
+      "stem": "According to Smith, how does he reconcile the fact that Daniel dates the captivity to the third year of Jehoiakim while Jeremiah places it in the fourth?",
+      "options": [
+        "He concludes that one of the two prophets simply made an error in dating",
+        "Nebuchadnezzar set out near the close of the third year (Daniel's reckoning) but did not subdue Jerusalem until about the ninth month of the following year (Jeremiah's reckoning)",
+        "Daniel used the Babylonian calendar while Jeremiah used the Jewish calendar",
+        "The two passages refer to two entirely different invasions of Jerusalem"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith explains the 'seeming discrepancy' by noting Nebuchadnezzar set out near the close of Jehoiakim's third year (Daniel's point) but did not accomplish the subjugation until about the ninth month of the year following (Jeremiah's point)."
+    },
+    {
+      "id": "q3",
+      "stem": "How does Smith interpret the meaning of Jerusalem's overthrow by the Chaldeans?",
+      "options": [
+        "As proof that the Chaldeans were the favorites of Heaven",
+        "As evidence that God had permanently abandoned His covenant with Israel",
+        "As God's passing testimony against sin, using the Chaldeans to punish the iniquities of His people who had departed from Him",
+        "As an accident of history that the prophets failed to anticipate"
+      ],
+      "correctIndex": 2,
+      "explanation": "Smith calls it 'God's passing testimony against sin,' adding that 'not that the Chaldeans were the favorites of Heaven, but God made use of them to punish the iniquities of his people' who had departed from Him."
+    },
+    {
+      "id": "q4",
+      "stem": "Why, according to Smith, were the Hebrew captives' original names changed to names like Belteshazzar, Shadrach, Meshach, and Abed-nego?",
+      "options": [
+        "Because their Hebrew names were too difficult for Babylonians to pronounce phonetically",
+        "Because the new names bore a relation to the heathen divinities and worship of the Chaldeans, replacing names referring to the true God",
+        "Because Nebuchadnezzar demanded they abandon their religion entirely",
+        "Because the captives chose the new names themselves to honor their captor"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith notes the original names each referred to the true God, and these 'were changed to names the definition of which bore a like relation to the heathen divinities and worship of the Chaldeans,' such as Belteshazzar meaning 'keeper of the hid treasures of Bel.'"
+    },
+    {
+      "id": "q5",
+      "stem": "What reasons does Smith give for Daniel's refusal to eat the king's meat and drink his wine?",
+      "options": [
+        "Daniel simply preferred the taste of vegetables and water",
+        "Daniel was fasting as an act of mourning for the fall of Jerusalem",
+        "Daniel wished to publicly shame Nebuchadnezzar's hospitality",
+        "The royal food was often first offered in sacrifice to idols and some of it was unclean by Jewish law, raising conscientious scruples"
+      ],
+      "correctIndex": 3,
+      "explanation": "Smith explains the meat 'was first offered in sacrifice to idols,' the wine 'poured out as a libation,' and some meat 'was pronounced unclean by the Jewish law,' so on these grounds Daniel could not partake 'consistently with his religion.'"
+    },
+    {
+      "id": "q6",
+      "stem": "How does Smith explain the captives' rapid improvement in flesh and countenance after only ten days on pulse and water?",
+      "options": [
+        "It was the natural, expected nutritional result of a vegetable diet",
+        "It is more naturally attributed to a special interposition of the Lord as a token of His approbation, since the diet alone would hardly produce such marked effects so quickly",
+        "The prince of the eunuchs had secretly been feeding them the king's meat after all",
+        "Smith concludes the improvement was exaggerated and did not really occur"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith argues the result 'can hardly be attributed to the natural result of the diet' in so short a time, and is 'much more natural to conclude' it was 'produced by a special interposition of the Lord, as a token of his approbation.'"
+    },
+    {
+      "id": "q7",
+      "stem": "How does Smith portray Nebuchadnezzar's character in his treatment of the Hebrew captives?",
+      "options": [
+        "As a cruel tyrant indifferent to the captives' welfare",
+        "As a fanatical zealot who forced them to renounce their faith",
+        "As a wise, liberal, and humane king, free from bigotry, who took personal interest in the captives and recognized merit regardless of religion or nationality",
+        "As a weak ruler easily manipulated by his own eunuchs"
+      ],
+      "correctIndex": 2,
+      "explanation": "Smith presents Nebuchadnezzar as showing 'wise policy and the liberality of the rising king,' 'wonderfully free from bigotry,' taking personal interest in the captives, and recognizing 'merit wherever he saw it, without respect to religion or nationality.'"
+    },
+    {
+      "id": "q8",
+      "stem": "Smith says Daniel 'continued even unto the first year of king Cyrus.' How does he interpret the word 'unto' here?",
+      "options": [
+        "It means Daniel died in the first year of Cyrus's reign",
+        "It means Daniel served Cyrus personally for exactly one year",
+        "It is a 'somewhat singular use' of the word marking the time the writer wished to emphasize because it brought deliverance to the captive Jews, not a limit on how long Daniel lived",
+        "It indicates Daniel returned to Jerusalem in Cyrus's first year"
+      ],
+      "correctIndex": 2,
+      "explanation": "Smith calls this a 'singular use' of 'unto,' explaining it 'does not mean that he continued no longer than to the first year of Cyrus,' for Daniel lived years after, but marks the time of special note 'as it brought deliverance to the captive Jews.'"
+    }
+  ]
+}

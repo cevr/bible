@@ -1,0 +1,105 @@
+{
+  "slug": "rev-22",
+  "ref": "DAR — Revelation ch. 22: The Tree and the River of Life",
+  "title": "The Tree and the River of Life",
+  "order": 34,
+  "voicePrompt": "In your own words, walk through how this chapter pictures the river and tree of life flowing from God's throne down the city's grand avenue, and explain why Smith argues that the close of probation comes before Christ returns and that the final word of the gospel is the invitation 'Come.'",
+  "questions": [
+    {
+      "id": "q1",
+      "stem": "According to Smith, why is the river of life also said to be 'in the midst of the street' even though verse 2 places the tree of life there?",
+      "options": [
+        "Because the river and the street are simply two names for the same thing",
+        "Because the tree of life is on either side of the river, so the river itself runs down the center of the street",
+        "Because the river flows underground beneath the street",
+        "Because John saw the river only in a separate vision from the city"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith reasons that the tree of life is in the midst of the street, but the tree is on either side of the river of life; hence the river of life is also in the midst of the street of the city, flowing lengthwise through the center of the broad avenue from the throne of God."
+    },
+    {
+      "id": "q2",
+      "stem": "How does Smith explain how the tree of life can be a single tree and yet stand 'on either side of the river'?",
+      "options": [
+        "There are actually two identical trees that John mistook for one",
+        "It is one tree with more than one trunk, united at the top in its upper branches, like the banyan tree of India",
+        "The river curves so the one tree appears on both banks",
+        "The phrase is purely symbolic and describes no real arrangement"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith holds there is but one tree of life, but to be on both sides of the river it must have more than one trunk, united at the top in one tree. He cites the banyan (ficus Indica) of India, which drops branches that root and become trunks, as an earthly illustration."
+    },
+    {
+      "id": "q3",
+      "stem": "What use does Smith make of the tree yielding its fruit 'every month'?",
+      "options": [
+        "He argues it proves the redeemed must eat to stay alive",
+        "He connects it to Isaiah 66:23, that all flesh shall come up 'from one new moon to another' (rendered month) to worship, the redeemed coming from month to month to partake of the fruit",
+        "He uses it to date the second coming",
+        "He says it shows there will still be seasons in the new earth"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith says this fact throws light on Isaiah 66:23, where 'new moon' should be rendered month; the redeemed come up to the holy city from month to month to partake of the fruit of the tree of life."
+    },
+    {
+      "id": "q4",
+      "stem": "Smith insists the leaves 'for the healing of the nations' cannot mean people enter the city diseased. Why?",
+      "options": [
+        "Because the leaves only heal animals, not people",
+        "Because if the redeemed needed healing on entry, some would always remain diseased, since the leaves' service is perpetual; but disease and deformity in the immortal state contradict other scriptures",
+        "Because the word translated 'healing' actually means 'destroying'",
+        "Because the nations outside the city are the only ones who get sick"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith argues the leaves' service is perpetual like the use of the fruit, so if any entered needing healing there would always be such persons there; but the idea of disease and deformity in the immortal state is contrary to other scriptures. He renders the phrase 'the service of the nations.'"
+    },
+    {
+      "id": "q5",
+      "stem": "What does Smith argue verse 11 ('He that is unjust, let him be unjust still...') proves?",
+      "options": [
+        "That God is indifferent to whether people repent",
+        "That probation closes and all cases are unalterably fixed before the coming of Christ, since the very next verse says 'Behold, I come quickly'",
+        "That there will be a second probation after Christ comes",
+        "That the wicked can still change after the resurrection"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith says verse 11 proves probation closes and the cases of all are unalterably fixed before Christ's coming, because the next verse has Christ say 'Behold, I come quickly.' He calls the Age-to-come claim of probation after that event dangerous presumption, and notes Christ's reward is with him to give every man according to his work."
+    },
+    {
+      "id": "q6",
+      "stem": "Regarding the variant readings of verse 14, what does Smith conclude?",
+      "options": [
+        "That 'Blessed are they that wash their robes' is the original reading",
+        "That 'Blessed are they that do his commandments' is the genuine reading, supported by the Syriac New Testament and Cyprian",
+        "That both readings are too uncertain to decide",
+        "That the verse is a later addition not found in any manuscript"
+      ],
+      "correctIndex": 1,
+      "explanation": "Citing Alford's note on how the two Greek phrases could be confused, and the testimony of the Syriac New Testament and Cyprian (who antedates extant Greek manuscripts), Smith concludes 'Blessed are they that do his commandments' is the genuine reading, and that the commandments meant are the ten commandments of Sinai."
+    },
+    {
+      "id": "q7",
+      "stem": "When the chapter says 'the bride' says 'Come,' how does Smith identify the bride and explain its invitation?",
+      "options": [
+        "The bride is the Holy Spirit, who calls audibly",
+        "The bride is the city, and through God's unfailing promise of it, faith makes the city say 'Come' to us",
+        "The bride is the church on earth alone, with no reference to the city",
+        "The bride is Christ, inviting the Father"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith says the bride is the city. Though we cannot now behold it, the unfailing word of God has promised it, and through the channel of faith the city says to us, Come, urging us to come if we would have right to the tree of life and enter through the gates into the city."
+    },
+    {
+      "id": "q8",
+      "stem": "According to Smith, what does it mean to 'add to' or 'take from' the book of this prophecy (verses 18-19)?",
+      "options": [
+        "Any new revelation by God's Spirit would automatically be a forbidden addition",
+        "Adding means attaching something intended to be considered a genuine part of Revelation, and taking away means suppressing some portion of it; further revelations would be no addition unless claimed as part of this book",
+        "It forbids translating Revelation into any other language",
+        "It applies equally to adding to the book of Daniel"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith limits the warning to the book of Revelation: nothing is an addition unless added with intent to be considered a genuine part of Revelation, and to take from it would be to suppress a portion. As Revelation was no addition to Daniel, further revelations by God's Spirit would be no addition unless they claimed to be part of Revelation."
+    }
+  ]
+}

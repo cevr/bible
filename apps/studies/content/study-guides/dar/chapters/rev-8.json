@@ -1,0 +1,100 @@
+{
+  "slug": "rev-8",
+  "ref": "DAR — Revelation ch. 8: The Seven Trumpets",
+  "title": "The Seven Trumpets",
+  "order": 20,
+  "voicePrompt": "In your own words, explain Smith's central argument: how the seventh seal closes the seal series, why the seven trumpets shift the focus from church history to political and warlike events, and how the first four trumpets map onto the barbarian invasions that brought down Western Rome.",
+  "questions": [
+    {
+      "id": "q1",
+      "stem": "According to the chapter, why should the first verse of Revelation 8 not have been separated from the preceding chapter?",
+      "options": [
+        "Because it introduces the seven trumpets directly",
+        "Because it relates to the events of the preceding chapters, resuming and concluding the series of seven seals",
+        "Because it describes the second advent of Christ",
+        "Because it belongs to the sealing work of chapter 7"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith says the first verse 'relates to the events of the preceding chapters' and resumes and concludes the series of seven seals (the seventh seal), so it should not have been split off by the chapter division."
+    },
+    {
+      "id": "q2",
+      "stem": "What does Smith say the sealing work of chapter 7 belongs to?",
+      "options": ["The seventh seal", "The first trumpet", "The sixth seal", "The second advent"],
+      "correctIndex": 2,
+      "explanation": "Smith writes that chapter 7 'stands parenthetically between the sixth and seventh seals, from which it appears that the sealing work of that chapter belongs to the sixth seal.'"
+    },
+    {
+      "id": "q3",
+      "stem": "How does the chapter distinguish the subject matter of the seven seals from that of the seven trumpets?",
+      "options": [
+        "The seals cover Old Testament history while the trumpets cover the gospel dispensation",
+        "The seals give the history of the church during the gospel dispensation, while the trumpets give the principal political and warlike events of the same time",
+        "The seals describe the heavenly sanctuary while the trumpets describe the earthly one",
+        "Both cover the same events from two different viewpoints"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith states that in the seals 'we have had the history of the church during what is called the gospel dispensation,' while in the seven trumpets 'we have the principal political and warlike events which were to transpire during the same time.'"
+    },
+    {
+      "id": "q4",
+      "stem": "What is the purpose of the angel-and-censer scene in verses 3-5, inserted before the trumpets begin to sound?",
+      "options": [
+        "To announce the second advent of Christ",
+        "To identify the first of the seven trumpet angels",
+        "To serve as a message of hope and comfort for the church, pointing to Christ's work of mediation in the heavenly sanctuary",
+        "To mark the close of the Old Testament dispensation"
+      ],
+      "correctIndex": 2,
+      "explanation": "Smith answers that these verses are thrown in 'As a message of hope and comfort for the church': before the terrible scenes of the trumpets begin, the people of God are pointed to the work of mediation in their behalf above as their source of help and strength."
+    },
+    {
+      "id": "q5",
+      "stem": "According to the chapter, which historical event is symbolized by the first trumpet (hail and fire mingled with blood)?",
+      "options": [
+        "The naval conquests of the Vandals under Genseric",
+        "The invasions of the Goths under Alaric, who opened the way for later inroads",
+        "The Hunnic invasions under Attila",
+        "The deposing of the last emperor by Odoacer"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith locates the first trumpet 'about the close of the fourth century and onward,' referring to the desolating invasions of the Roman empire by the Goths under Alaric, whose Gothic war was 'the first sore and heavy judgment which fell on Western Rome.'"
+    },
+    {
+      "id": "q6",
+      "stem": "The second trumpet pictures 'a great mountain burning with fire' cast into the sea. Whose career does Smith say this symbolizes?",
+      "options": [
+        "Attila and his Huns, whose invasions struck the rivers and fountains",
+        "Alaric and his Goths, ravaging Italy by land",
+        "Genseric and the Vandals, whose conquests were mostly naval",
+        "Theodoric the Ostrogoth, reigning over Rome"
+      ],
+      "correctIndex": 2,
+      "explanation": "Smith says the second trumpet relates to 'the terrible Genseric' at the head of the Vandals, whose conquests 'were, for the most part, naval'; the burning mountain cast into the sea fittingly illustrates the collision of navies and maritime warfare."
+    },
+    {
+      "id": "q7",
+      "stem": "The third trumpet's star named 'Wormwood' falling on the rivers and fountains is applied to which warrior, and why does the chapter say it strikes the rivers and fountains?",
+      "options": [
+        "Attila and his Huns, because his principal operations were on the regions of the Alps whence the rivers flow down into Italy",
+        "Genseric and the Vandals, because they preyed on the Roman commerce by sea",
+        "Odoacer and the Heruli, because they extinguished the Western empire",
+        "Alaric and the Goths, because they ravaged Greece and Italy"
+      ],
+      "correctIndex": 0,
+      "explanation": "Smith applies the third trumpet to 'the desolating wars and furious invasions of Attila' at the head of the Huns; Barnes notes that Attila's principal operations were on the regions of the Alps and the portions of the empire whence the rivers flow down into Italy, matching the effect 'on the rivers and on the fountains of waters.'"
+    },
+    {
+      "id": "q8",
+      "stem": "In the fourth trumpet, the sun, moon, and stars are darkened. What does Smith say these luminaries symbolize, and what event does this trumpet portray?",
+      "options": [
+        "The three barbarian leaders Alaric, Genseric, and Attila; their deaths",
+        "The emperors, senators, and consuls of the Roman government; the career of Odoacer and the extinction of the Western empire",
+        "Christ, the church, and the saints; the close of probation",
+        "The eastern, western, and central thirds of the empire; their reunification"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith says the sun, moon, and stars 'evidently denote the great luminaries of the Roman government, — its emperors, senators, and consuls,' and that the fourth trumpet symbolizes the career of Odoacer and the downfall/extinction of Western Rome (A.D. 476 onward), as emperorship, consulate, and senate were successively extinguished."
+    }
+  ]
+}

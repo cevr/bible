@@ -1,0 +1,105 @@
+{
+  "slug": "dan-3",
+  "ref": "DAR — Daniel ch. 3: The Fiery Ordeal",
+  "title": "The Fiery Ordeal",
+  "order": 3,
+  "voicePrompt": "Explain in your own words why Smith thinks Nebuchadnezzar made the whole image of gold, and how the deliverance of the three Hebrews from the furnace served the cause of God rather than the king.",
+  "questions": [
+    {
+      "id": "q1",
+      "stem": "According to the chapter, why did Nebuchadnezzar make the entire image of gold rather than just its head?",
+      "options": [
+        "To denote that his kingdom should be perpetual and not give way to another kingdom",
+        "Because gold was the cheapest metal available in Babylon",
+        "To honor the God of the Hebrews who had interpreted his dream",
+        "Because the prophet Daniel had commanded him to do so"
+      ],
+      "correctIndex": 0,
+      "explanation": "Smith conjectures the image referred to the dream of chapter 2, where the gold head represented Nebuchadnezzar's kingdom. Displeased that another kingdom would succeed his, the king made the whole image gold 'to denote that the gold of the head should extend through the entire image; or, in other words, that his kingdom should not give way to another kingdom, but be perpetual.'"
+    },
+    {
+      "id": "q2",
+      "stem": "What does Smith say about whether the image was made of solid gold and the meaning of its height?",
+      "options": [
+        "It was certainly solid gold, and the height was the image alone",
+        "It was probably overlaid with thin plates of gold, and the height likely included the pedestal",
+        "It was solid bronze, with gold only on the head",
+        "Its height was exaggerated and the image never actually existed"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith writes that the height (ninety feet at the lowest estimate) 'was not the hight of the image proper, but included the pedestal also,' and that it was not likely solid gold but 'could have been overlaid with thin plates, nicely joined, at a much less expense, without detracting at all from its external appearance.'"
+    },
+    {
+      "id": "q3",
+      "stem": "Why does Smith suggest Shadrach, Meshach, and Abed-nego attended the dedication at all, since they knew they could not worship the image?",
+      "options": [
+        "They hoped to secretly worship without being noticed",
+        "They were forced to attend at sword-point and had no choice",
+        "They were willing to comply with the king's requirements as far as they could without compromising their religious principles",
+        "They intended to publicly destroy the image during the ceremony"
+      ],
+      "correctIndex": 2,
+      "explanation": "Smith asks whether their presence was 'not because they were willing to comply with the king's requirements as far as they could without compromising their religious principles?' The king required them to be present (which they could do), and required worship (which their religion forbade, so they refused)."
+    },
+    {
+      "id": "q4",
+      "stem": "Who does Smith identify as the Chaldeans who accused the Jews, and what motivated them?",
+      "options": [
+        "Common soldiers seeking a reward for catching lawbreakers",
+        "A sect of philosophers still smarting from their failure to interpret the king's dream in chapter 2",
+        "Rival Jewish leaders jealous of the three men's promotion",
+        "Priests of a foreign nation recently conquered by Babylon"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith says these accusers 'were probably the sect of philosophers who went by that name, and who were still smarting under the chagrin of their ignominious failure in respect to their interpretation of the king's dream of chapter 2,' eager to seize any pretext to accuse the Jews."
+    },
+    {
+      "id": "q5",
+      "stem": "How does Smith interpret the men's reply, 'We are not careful to answer thee in this matter'?",
+      "options": [
+        "They were too frightened to give a clear answer",
+        "They asked the king for more time to consider their decision",
+        "They meant the king need not grant another trial; their mind was made up and their answer would not change",
+        "They were carelessly defiant and disrespectful toward the king"
+      ],
+      "correctIndex": 2,
+      "explanation": "Smith paraphrases their answer: 'you need not grant us the favor of another trial; our mind is made up. We can answer just as well now as at any future time.' He calls their answer 'both honest and decisive,' rendering unconditional obedience to God whether or not He delivered them."
+    },
+    {
+      "id": "q6",
+      "stem": "According to Smith, how did Nebuchadnezzar 'overreach himself' by heating the furnace seven times hotter?",
+      "options": [
+        "The extra heat caused the furnace to collapse and injure the king",
+        "The greater the heat, the more impressive the miracle of deliverance became, advancing God's cause",
+        "It made the fire burn out too quickly to harm anyone",
+        "It accidentally melted the golden image he had set up"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith argues the king gained nothing, for even ordinary fire would only have destroyed them sooner; but 'seeing they were delivered from it, much was gained on the part of the cause of God and his truth; for the more intense the heat, the greater and more impressive the miracle of being delivered from it.'"
+    },
+    {
+      "id": "q7",
+      "stem": "How does Smith treat the phrase 'the form of the fourth is like the Son of God'?",
+      "options": [
+        "He insists it definitely refers to Christ, since Nebuchadnezzar knew the Saviour",
+        "He says it was merely a fourth ordinary man who had hidden in the furnace",
+        "He says it is unlikely the king had any idea of the Saviour; a better rendering is 'like a son of the gods,' a supernatural being whom the king later called an angel",
+        "He dismisses the phrase as a later scribal addition with no meaning"
+      ],
+      "correctIndex": 2,
+      "explanation": "Smith notes some suppose it refers to Christ, 'but it is not likely that the king had any idea of the Saviour. A better rendering, according to good authorities, would be \"like a son of the gods\"... Nebuchadnezzar subsequently called him an angel.'"
+    },
+    {
+      "id": "q8",
+      "stem": "Why does Smith say the king's decree against speaking against the God of the Hebrews was significant in that polytheistic culture?",
+      "options": [
+        "Because conquered nations' gods were thought powerless, but here the king learned his success over the Jews was owing to their sins, not their God's weakness",
+        "Because it forced all Babylonians to convert and abandon their own gods",
+        "Because it was the first law ever written down in Babylon",
+        "Because it proved the gods of the heathen had also performed such miracles"
+      ],
+      "correctIndex": 0,
+      "explanation": "Smith explains each nation had its gods, and a nation's defeat was credited to its gods' weakness. The king now 'is plainly given to understand that his success against the Jews was owing to their sins, not to any lack of power on the part of their God,' which exalted the God of the Hebrews above the gods of the nations."
+    }
+  ]
+}

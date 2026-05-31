@@ -1,0 +1,105 @@
+{
+  "slug": "rev-11",
+  "ref": "DAR — Revelation ch. 11: The Two Witnesses",
+  "title": "The Two Witnesses",
+  "order": 23,
+  "voicePrompt": "In your own words, explain Smith's argument that the two witnesses are the Old and New Testaments, how their 1260 days of sackcloth, death, and resurrection were fulfilled in the history of revolutionary France, and what the measuring of the temple and the sounding of the seventh trumpet signify.",
+  "questions": [
+    {
+      "id": "q1",
+      "stem": "According to Smith, what is the \"measuring rod\" given to John, and what does the temple John is told to measure represent?",
+      "options": [
+        "A literal ruler; the temple is the church on earth",
+        "The special message now given to the church (including the ten commandments); the temple is the literal temple in heaven",
+        "The gospel of grace; the temple is the human heart",
+        "The book of Revelation itself; the temple is the city of Jerusalem"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith says the measuring rod, taken as a whole, is the special message now given to the church, which embraces the ten commandments. The temple cannot mean the church (since the church appears as \"them that worship therein\"); it is therefore the literal temple in heaven, and the worshipers are the true church on earth."
+    },
+    {
+      "id": "q2",
+      "stem": "How does Smith identify the two witnesses of verse 3?",
+      "options": [
+        "Moses and Elijah, the two prophets of the law and the prophets",
+        "The two olive trees literally, meaning two anointed leaders of Israel",
+        "The Old and New Testaments — Christ's two witnesses, one given in each dispensation",
+        "The Father and the Son testifying together"
+      ],
+      "correctIndex": 2,
+      "explanation": "Smith concludes that the Old and New Testaments, one given in one dispensation and the other in the other, are Christ's two witnesses, citing the olive trees of Zechariah 4 and texts where Scripture testifies of Christ."
+    },
+    {
+      "id": "q3",
+      "stem": "What period do the 1,260 days (forty-two months) of the witnesses' sackcloth represent, and what dates does Smith assign to it?",
+      "options": [
+        "The period of papal supremacy, A.D. 538 to A.D. 1798",
+        "The time from Christ's crucifixion to the fall of Jerusalem",
+        "The 2300-day period ending in 1844",
+        "The reign of the seven last plagues, still future"
+      ],
+      "correctIndex": 0,
+      "explanation": "Smith treats the 1260 prophetic days (years) as the period of papal triumph during which the witnesses were in obscurity, fixing its commencement at A.D. 538 and its close at A.D. 1798."
+    },
+    {
+      "id": "q4",
+      "stem": "What power does Smith identify as the \"beast that ascendeth out of the bottomless pit\" which made war on the witnesses?",
+      "options": [
+        "The papal Roman power itself",
+        "The Ottoman Turkish empire",
+        "Atheistic France, around 1798, which in her national capacity denied the being of God",
+        "The Roman Empire under the Caesars"
+      ],
+      "correctIndex": 2,
+      "explanation": "Smith identifies the beast from the bottomless pit as France, an atheistical power (\"spiritually Egypt\") that around 1798 denied the being of God and made war on the \"Monarchy of heaven.\""
+    },
+    {
+      "id": "q5",
+      "stem": "How does Smith explain the witnesses lying dead \"three days and a half\" and then standing on their feet?",
+      "options": [
+        "Three literal days during which the Bible was banned in Paris",
+        "The French decree of 1793 forbidding the Bible, reversed three and a half years later when toleration was restored",
+        "The three-and-a-half-year siege of a French city",
+        "A symbolic number with no historical fulfillment"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith says the three days and a half are three and a half years: in 1793 a decree of the French Assembly suppressed the Bible, and just three and a half years later a resolution restoring toleration to the Scriptures passed without a dissenting vote — so the witnesses stood upon their feet."
+    },
+    {
+      "id": "q6",
+      "stem": "What does Smith say the witnesses' \"ascending up to heaven in a cloud\" signifies, and what evidence does he give?",
+      "options": [
+        "The literal removal of the Bible from earth at the second advent",
+        "Great exaltation — shown by the rise of Bible societies and the unprecedented worldwide circulation and translation of the Scriptures",
+        "The translation of the saints at the rapture",
+        "The hiding of the Scriptures until the end of the millennium"
+      ],
+      "correctIndex": 1,
+      "explanation": "Citing Daniel 4:22, Smith says the expression signifies great exaltation. He points to the British (1804) and American (1817) Bible Societies, translations into nearly two hundred languages, and tens of millions of Bibles issued — the Scriptures exalted \"to heaven in a cloud.\""
+    },
+    {
+      "id": "q7",
+      "stem": "In verse 13, what does Smith say the \"tenth part of the city\" that fell, and the \"seven thousand\" slain, represent?",
+      "options": [
+        "A literal tenth of Paris and seven thousand citizens killed in a battle",
+        "France, one of the ten kingdoms of the divided Roman empire; and seven thousand titles or names of men (nobility) abolished in the revolution",
+        "Ten of the twelve tribes and seven thousand faithful who did not bow to Baal",
+        "A tenth of the world's nations and seven thousand martyred Huguenots"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith reads the \"city\" as the papal Roman power; France is one of its ten horns (kingdoms), hence a \"tenth part\" that fell. Following the margin (\"names\" or \"titles of men\"), he says the seven thousand were the titles of nobility abolished in the French Revolution."
+    },
+    {
+      "id": "q8",
+      "stem": "How does Smith say the closing verses (15-19) treat the sounding of the seventh trumpet?",
+      "options": [
+        "As a single continuous narrative from the trumpet's start to its end",
+        "By carrying the reader over the same ground from the seventh trumpet to the end three distinct times",
+        "As an event already entirely past at John's writing",
+        "As applying only to the heavenly sanctuary and not to events on earth"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith says that from verse 15 to the end of the chapter we seem to be carried over the ground, from the sounding of the seventh angel to the end, three distinct times — the establishment of the kingdom (v.15), the state and destiny of nations and saints (v.18), and the opening of the temple / close of Christ's priesthood (v.19)."
+    }
+  ]
+}

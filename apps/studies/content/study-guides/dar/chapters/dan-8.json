@@ -1,0 +1,105 @@
+{
+  "slug": "dan-8",
+  "ref": "DAR — Daniel ch. 8: Vision of the Ram, He-Goat and Little Horn",
+  "title": "Vision of the Ram, He-Goat and Little Horn",
+  "order": 8,
+  "voicePrompt": "In your own words, walk through how Smith identifies each symbol of Daniel 8 — the ram, the he-goat with its notable horn, the four horns, and the little horn — and explain why he argues the little horn is Rome rather than Antiochus Epiphanes, and that the sanctuary to be cleansed is the heavenly one.",
+  "questions": [
+    {
+      "id": "q1",
+      "stem": "According to the angel's interpretation cited by Smith, what do the ram's two horns and the he-goat represent?",
+      "options": [
+        "The ram is Babylon and the goat is Medo-Persia",
+        "The ram's two horns are the kings of Media and Persia, and the goat is the kingdom of Grecia",
+        "The ram is Grecia and the goat is Rome",
+        "The ram is Egypt and the goat is Syria"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith quotes verse 20, 'The ram which thou sawest, having two horns, are the kings of Media and Persia,' and verse 21, 'the rough goat is the king [or kingdom] of Grecia.' The two horns represent the two nationalities of the empire."
+    },
+    {
+      "id": "q2",
+      "stem": "How does Smith explain that the ram's higher horn 'came up last'?",
+      "options": [
+        "It represented Babylon, which rose before being absorbed",
+        "It represented the Median element, which led from the start",
+        "It represented the Persian element, which began as a mere ally of the Medes but became the leading division of the empire",
+        "It represented Alexander, who came after Darius"
+      ],
+      "correctIndex": 2,
+      "explanation": "Smith writes that the higher horn coming up last 'represented the Persian element, which, from being at first simply an ally of the Medes, came to be the leading division of the empire.'"
+    },
+    {
+      "id": "q3",
+      "stem": "What does Smith say the notable horn between the he-goat's eyes represents, and what happened to it?",
+      "options": [
+        "It represents Alexander the Great, the first king, broken in the prime of his strength while the kingdom was at its height",
+        "It represents Philip Aridaeus, who divided the kingdom peacefully",
+        "It represents Antiochus Epiphanes, who weakened before falling",
+        "It represents Seleucus, who founded the Seleucid line"
+      ],
+      "correctIndex": 0,
+      "explanation": "Smith identifies the notable horn as 'the first king of the Macedonian empire,' Alexander the Great. He stresses that 'Daniel saw it broken in the very prime of its strength and the hight of its power' — Alexander fell in the prime of life."
+    },
+    {
+      "id": "q4",
+      "stem": "After the great horn was broken, the prophecy says four notable horns came up. How does Smith match this to history?",
+      "options": [
+        "Alexander's empire split into two halves, east and west",
+        "Within fifteen years the contenders were reduced to exactly four — Cassander, Lysimachus, Seleucus, and Ptolemy — holding the western, northern, eastern, and southern portions",
+        "Three generals divided the empire among themselves",
+        "The Romans immediately seized all four directions of the empire"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith says that within fifteen years of Alexander's death the number was reduced to four: Cassander (Greece/west), Lysimachus (Asia Minor/north), Seleucus (Syria and Babylon/east), and Ptolemy (Egypt/south) — 'just the number specified in the prophecy.'"
+    },
+    {
+      "id": "q5",
+      "stem": "Smith argues the little horn cannot be Antiochus Epiphanes. Which reason does he give?",
+      "options": [
+        "Antiochus never ruled any part of the Greek empire",
+        "Antiochus was merely one of twenty-six Syrian kings (so not a separate power), was never 'exceeding great,' was forced to obey and pay tribute to Rome, and died about 164 years before Christ — so he could not stand up against the Prince of princes",
+        "Antiochus lived too long after Christ to fit the timeline",
+        "Antiochus was a fictional figure invented by the Romanists"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith lists that Antiochus was only the eighth of twenty-six Syrian kings (not a separate horn), was illustrious only in name, never waxed 'exceeding great,' was made to evacuate Egypt and pay tribute to Rome, and 'died one hundred and sixty-four years before our Lord was born,' so could not stand against the Prince of princes."
+    },
+    {
+      "id": "q6",
+      "stem": "What power does Smith conclude the little horn represents, and in what two phases?",
+      "options": [
+        "Greece, in its republican and imperial phases",
+        "Medo-Persia, in its Median and Persian phases",
+        "Rome, in its two phases of pagan Rome and papal Rome",
+        "Babylon, in its first and second dynasties"
+      ],
+      "correctIndex": 2,
+      "explanation": "Smith argues the little horn is Rome, symbolizing 'Rome in its entire history, including its two phases, pagan and papal.' Pagan Rome was 'remodeled into papal Rome,' the daily (pagan) being taken away by the papal form."
+    },
+    {
+      "id": "q7",
+      "stem": "Why does Smith insist that 'sacrifice' is the wrong word to supply after 'daily,' and what does the word mean instead?",
+      "options": [
+        "Because the Jews never offered a daily sacrifice; 'daily' means the weekly Sabbath",
+        "Because the question 'How long the vision?' implies a long series of years, so the 'daily' must denote a desolating power that endures — namely paganism — not a sacrifice taken away in an instant",
+        "Because 'daily' is a mistranslation of 'temple,' meaning the sanctuary at Jerusalem",
+        "Because the Hebrew word always means 'sacrifice' and Smith accepts the translation"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith argues the question 'How long the vision?' implies a long series of years, so the 'daily' cannot be a sacrifice removed in an instant. The Hebrew word means 'continual,' and the idea of sacrifice 'does not attach to the word at all'; the 'daily' is the perpetual desolation of paganism."
+    },
+    {
+      "id": "q8",
+      "stem": "After ruling out the earth, the land of Canaan, and the church, what does Smith conclude is the sanctuary to be cleansed?",
+      "options": [
+        "The temple at Jerusalem, rebuilt after the captivity",
+        "The new earth, purified by fire",
+        "The true tabernacle in heaven which the Lord pitched (and not man), of which the earthly tabernacle was a type, cleansed not by fire but with the blood of Christ",
+        "The hearts of believers, cleansed by repentance"
+      ],
+      "correctIndex": 2,
+      "explanation": "Smith concludes the sanctuary is 'the true tabernacle, which the Lord pitched, and not man,' located in heaven (Hebrews 8:1-2), of which the Mosaic tabernacle was a type. Its cleansing is performed by blood — 'the heavenly things themselves with better sacrifices,' the blood of Christ — not by fire."
+    }
+  ]
+}

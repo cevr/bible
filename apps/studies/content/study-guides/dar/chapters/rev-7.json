@@ -1,0 +1,105 @@
+{
+  "slug": "rev-7",
+  "ref": "DAR — Revelation ch. 7: The Sealing",
+  "title": "The Sealing",
+  "order": 19,
+  "voicePrompt": "In your own words, explain Smith's argument that the angel ascending from the east is a Sabbath reform movement: how he identifies the seal of God with the fourth commandment, why the winds are being held, and who the 144,000 turn out to be.",
+  "questions": [
+    {
+      "id": "q1",
+      "stem": "According to Smith, why is the whole of Revelation 7 \"thrown in here parenthetically\"?",
+      "options": [
+        "To introduce the seventh seal, which chapter 6 omitted",
+        "To state additional particulars concerning the sixth seal",
+        "To describe events that occur after the heavens depart as a scroll",
+        "To summarize the seven last plagues before they are poured out"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith says the sixth chapter closed with the sixth seal and the seventh seal is not mentioned until chapter 8, so chapter 7 is inserted parenthetically \"for the purpose of stating additional particulars concerning the sixth seal.\" He locates the sealing work between verses 13 and 14 of Revelation 6 — after the signs in sun, moon, and stars but before the heavens depart as a scroll."
+    },
+    {
+      "id": "q2",
+      "stem": "What do the \"four winds\" held by the four angels symbolize, per Smith?",
+      "options": [
+        "The four major world empires of Daniel's prophecies",
+        "The literal weather that precedes the seven last plagues",
+        "Political commotion, strife, and war — the elements of strife in the world",
+        "The preaching of the gospel to the four corners of the earth"
+      ],
+      "correctIndex": 2,
+      "explanation": "Smith writes that \"Winds, in the Bible, symbolize political commotion, strife, and war\" (citing Daniel 7:2; Jeremiah 25:32), and the four winds \"must denote all the elements of strife and commotion that exist in the world.\""
+    },
+    {
+      "id": "q3",
+      "stem": "How does Smith interpret the phrase that the angel is \"ascending from the east\" (or \"from the sun rising\")?",
+      "options": [
+        "It refers to manner: the work begins in weakness and increases in strength, like the rising sun",
+        "It identifies the literal geographic location where the movement begins",
+        "It means the angel descends from heaven at the second coming",
+        "It signifies the angel comes from the direction of Jerusalem"
+      ],
+      "correctIndex": 0,
+      "explanation": "Smith says the expression \"evidently refers to manner rather than locality\"; as the rising sun begins with oblique, weak rays and increases to meridian power, \"so the work of this angel commences in weakness, moves onward with ever-accumulating influence, and closes in strength and power.\""
+    },
+    {
+      "id": "q4",
+      "stem": "Through his chain of reasoning, what does Smith conclude the \"seal of the living God\" actually is?",
+      "options": [
+        "A literal mark engraved in the flesh of believers",
+        "Baptism, the New Testament sign of entering God's covenant",
+        "The fourth commandment — the holy Sabbath, which bears God's name",
+        "The first commandment, which forbids worship of other gods"
+      ],
+      "correctIndex": 2,
+      "explanation": "Smith argues that a seal gives validity to a law by carrying the name, title, and authority of the lawgiver, and that only the fourth commandment names the Creator and His right to rule. He concludes \"the fourth commandment constitutes the seal of the law of God,\" identifying it with the Sabbath, which Exodus 31:13 calls a sign between God and His people."
+    },
+    {
+      "id": "q5",
+      "stem": "Why does Smith insist the 144,000 \"twelve tribes of Israel\" are not limited to the literal Jewish nation of the early Christian era?",
+      "options": [
+        "Because the tribes were destroyed and never restored, so the number must be symbolic only",
+        "Because James addresses the last generation of Christians as the twelve tribes, and Gentiles are grafted in as Romans 11 explains",
+        "Because the 144,000 are angels rather than human beings",
+        "Because the sealing happened literally in the first century and is already complete"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith cites James addressing Christians \"to the twelve tribes which are scattered abroad\" in view of the Lord's coming, and Paul's grafting figure in Romans 11:17-24, where Gentiles (wild olive scions) are grafted into the tame olive stock so \"the twelve tribes are perpetuated.\" Thus the redeemed, whether Jew or Gentile, are reckoned among the tribes."
+    },
+    {
+      "id": "q6",
+      "stem": "Smith reads the holding of the winds as historically visible. What pattern does he say marks the time the winds are restrained?",
+      "options": [
+        "A period of profound, uninterrupted world peace",
+        "The complete absence of any war or political conflict",
+        "Outbursts of strife that suddenly and unexpectedly subside, such as the 1861-1865 civil war",
+        "A steady escalation of war culminating in the seven last plagues"
+      ],
+      "correctIndex": 2,
+      "explanation": "Smith says the holding could not be \"a time of profound peace\"; rather there must be agitation \"with an occasional outburst of strife... suddenly and unexpectedly checked.\" He cites the revolution of 1848, the 1861-1865 civil war (whose collapse followed days of fasting and prayer), the 1870 Franco-German war, and the Turkey-Russia war as examples."
+    },
+    {
+      "id": "q7",
+      "stem": "Whom does Smith conclude the elder's question — \"What are these which are arrayed in white robes? and whence came they?\" — singles out from the great multitude?",
+      "options": [
+        "The whole redeemed throng out of every nation, kindred, and tongue",
+        "The four beasts and the twenty-four elders around the throne",
+        "The 144,000, the special sealed company described earlier in the chapter",
+        "The angels who fell before the throne worshiping God"
+      ],
+      "correctIndex": 2,
+      "explanation": "Smith reasons the question would be pointless if it referred to the whole multitude, since John already knew they were the redeemed from all nations. Because John answers \"Sir, thou knowest\" (implying he did not know), Smith concludes a special company is meant — the 144,000 — whom John saw sealed on earth but does not recognize in their glorified state."
+    },
+    {
+      "id": "q8",
+      "stem": "According to Smith, why are the 144,000 said to \"hunger no more, neither thirst any more\"?",
+      "options": [
+        "Because they fasted for forty days as a spiritual discipline before sealing",
+        "Because they had once suffered hunger and thirst, likely during the last plagues when vegetation and waters fail",
+        "Because the phrase is purely figurative and refers to no real experience",
+        "Because they never experienced any tribulation on earth at all"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith argues the wording \"shows that they have once suffered hunger and thirst,\" referring it to their trials in the time of trouble, especially the last plagues, when pastures dry up (Joel 1) and rivers and fountains turn to blood (Revelation 16:4-9), reducing the saints to the extremes of hunger and thirst before the kingdom is gained."
+    }
+  ]
+}

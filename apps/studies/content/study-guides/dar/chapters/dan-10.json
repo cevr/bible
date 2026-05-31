@@ -1,0 +1,93 @@
+{
+  "slug": "dan-10",
+  "ref": "DAR — Daniel ch. 10: Daniel’s Last Vision",
+  "title": "Daniel’s Last Vision",
+  "order": 10,
+  "voicePrompt": "Explain in your own words why Daniel was mourning and fasting, who the heavenly visitors were, and what the chapter teaches about the unseen struggle behind answered prayer.",
+  "questions": [
+    {
+      "id": "q1",
+      "stem": "According to the chapter, why did the aged Daniel humble himself with mourning and fasting for three full weeks?",
+      "options": [
+        "To repent of personal sin he had recently committed",
+        "To understand more fully the divine purpose concerning events to befall the church, especially a part of his earlier visions he did not yet grasp",
+        "To plead for the release of the Jews from captivity by Cyrus",
+        "To prepare himself for his own approaching death"
+      ],
+      "correctIndex": 1,
+      "explanation": "The text says he humbled himself \"for the purpose of understanding more fully the divine purpose concerning events that were to befall the church of God in coming time,\" and that there was \"still something which Daniel did not understand\" — undoubtedly part of his last preceding vision (chapter 9, and through it chapter 8)."
+    },
+    {
+      "id": "q2",
+      "stem": "How does Smith identify the majestic personage clothed in linen who appeared to Daniel in verses 5-6?",
+      "options": [
+        "The Lord himself (Christ), since the description parallels Revelation 1",
+        "An unnamed seraph never elsewhere mentioned in Scripture",
+        "The angel Gabriel, the same angel who had been commanded in chapter 8 to make Daniel understand the vision",
+        "Michael, one of the chief princes"
+      ],
+      "correctIndex": 2,
+      "explanation": "Smith argues the visitor \"was not the Lord; for the Lord is introduced as Michael in verse 13,\" and that points of identity with chapters 8 and 9 \"plainly show that this was the angel Gabriel,\" who had earlier been commanded to make Daniel understand the vision."
+    },
+    {
+      "id": "q3",
+      "stem": "Per the chapter, what caused the twenty-one-day delay before Daniel received his answer, even though his words were heard \"from the first day\"?",
+      "options": [
+        "Daniel's prayer was insufficiently fervent until the third week",
+        "Gabriel was occupied delivering messages to other prophets",
+        "The king of Persia withstood the angel, whose mission was to influence that king toward the work he was to do for the temple and the Jews",
+        "God deliberately withheld the answer to test Daniel's patience"
+      ],
+      "correctIndex": 2,
+      "explanation": "The text explains, \"the king of Persia withstood the angel. The answer to Daniel's prayer involved some action on the part of that king\" — pertaining to his decree for building the temple at Jerusalem — \"and the angel is despatched to influence him to go forward in accordance with the divine will.\""
+    },
+    {
+      "id": "q4",
+      "stem": "What chain of Scripture reasoning does Smith use to conclude who Michael is?",
+      "options": [
+        "Michael is the archangel; the archangel's voice raises the dead; that voice is the Son of God's — therefore Michael is the Son of God",
+        "Michael's name means 'He who is like God,' so any divine being may bear it",
+        "Michael is identified as Gabriel's superior officer among created angels",
+        "Michael is a symbolic title for the people of God collectively"
+      ],
+      "correctIndex": 0,
+      "explanation": "Smith reasons that Jude calls Michael the archangel, Paul says the archangel's voice raises the dead, and John 5:28 says the Son of God's voice calls the dead from their graves — therefore the archangel is the Son of God, the archangel is Michael, so Michael is the Son of God (Christ)."
+    },
+    {
+      "id": "q5",
+      "stem": "How does Smith interpret Gabriel's statement that he will \"return to fight with the prince of Persia\" (verse 20)?",
+      "options": [
+        "Gabriel will wage war against the Persian king to destroy his kingdom",
+        "The word 'with' (Greek meta) means alongside or in common with — Gabriel would stand on the side of Persia so long as God's providence kept that kingdom standing",
+        "Gabriel was retreating from a battle he could not win",
+        "Gabriel intended to replace the prince of Persia with the prince of Grecia immediately"
+      ],
+      "correctIndex": 1,
+      "explanation": "The text notes the word \"with\" is meta in the Septuagint and \"signifies, not against; but in common with, along-side of; that is, the angel of God would stand on the side of the Persian kingdom so long as it was in the providence of God that that kingdom should continue.\""
+    },
+    {
+      "id": "q6",
+      "stem": "What does the chapter say the expression \"yet the vision is for many days\" (verse 14) proves about the 2300 days?",
+      "options": [
+        "That the vision had already been completely fulfilled",
+        "That the 2300 days were literal days within Daniel's lifetime",
+        "That the 2300 days cannot mean literal days but must be days of years, since the vision reaches far into the future and the latter days",
+        "That the vision concerned only the Persian and Grecian kingdoms"
+      ],
+      "correctIndex": 2,
+      "explanation": "Smith writes that the phrase, \"reaching far into the future, and embracing what should befall the people of God even in the latter days, shows conclusively that the days given in that vision, namely the 2300, cannot mean literal days, but must be days of years.\""
+    },
+    {
+      "id": "q7",
+      "stem": "After Gabriel finished revealing the matters to Daniel, how many beings does the chapter say had a knowledge of these truths, and who were they?",
+      "options": [
+        "Three — Daniel, Gabriel, and Michael",
+        "Four — Daniel, Gabriel, Christ (Michael), and God",
+        "Two — only Gabriel and God",
+        "Five — Daniel, Gabriel, Michael, the prince of Persia, and God"
+      ],
+      "correctIndex": 1,
+      "explanation": "The closing paragraph states that after Gabriel made them known to Daniel, \"there were four beings in the universe with whom rested a knowledge of these important truths, — Daniel, Gabriel, Christ, and God.\""
+    }
+  ]
+}

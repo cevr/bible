@@ -1,0 +1,105 @@
+{
+  "slug": "rev-1",
+  "ref": "DAR — Revelation ch. 1: The Opening Vision",
+  "title": "The Opening Vision",
+  "order": 13,
+  "voicePrompt": "Explain Smith's central argument that the book of Revelation, being titled a 'Revelation,' was given by God to be understood by all of Christ's servants in every age, and walk through how he reads the seven churches as periods of the gospel church rather than just seven literal congregations.",
+  "questions": [
+    {
+      "id": "q1",
+      "stem": "According to the chapter, why does Smith say the common Bible title 'The Revelation of St. John the Divine' is mistaken?",
+      "options": [
+        "Because John was not actually one of the twelve apostles",
+        "Because the book's own opening words declare it to be 'The Revelation of Jesus Christ,' making Christ the Revelator and John only the penman",
+        "Because the title should credit Gabriel, who carried the message",
+        "Because the book was not written by the apostle John at all"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith argues the translators 'contradict the very first words of the book itself, which declare it to be “The Revelation of Jesus Christ.” Jesus Christ is the Revelator, not John. John is but the penman employed by Christ.'"
+    },
+    {
+      "id": "q2",
+      "stem": "What does Smith conclude from the fact that the book is titled 'Revelation'?",
+      "options": [
+        "That it is among the hidden mysteries of God and cannot be understood",
+        "That it concerns only the seven literal churches of Asia",
+        "That its very title refutes the popular opinion that the book cannot be understood, since a revelation is something clearly made known, not hidden",
+        "That it should have been titled 'The Mystery' or 'The Hidden Book'"
+      ],
+      "correctIndex": 2,
+      "explanation": "Smith writes that a revelation is 'something revealed, something clearly made known, not something hidden and concealed,' so 'the very title of the book, then, is a sufficient refutation of the popular opinion of to-day, that this book is among the hidden mysteries of God, and cannot be understood.'"
+    },
+    {
+      "id": "q3",
+      "stem": "Following his reasoning about Daniel, Jude, Paul, and John 5:28, who does Smith identify as the 'angel' by whom Christ signified the Revelation?",
+      "options": [
+        "Michael, who is Christ himself",
+        "An unnamed angel of the seven churches",
+        "John the apostle in a heavenly form",
+        "Gabriel, the same angel who carried messages to Daniel"
+      ],
+      "correctIndex": 3,
+      "explanation": "Smith reasons from Daniel 10:21 that Michael is Christ, leaving Gabriel as the angel; he concludes the one who carried truth to the 'beloved' prophet Daniel performs the same office for the 'beloved' disciple John, asking 'who, in this work, can be his angel but... the angel Gabriel?'"
+    },
+    {
+      "id": "q4",
+      "stem": "Why does Smith argue the 'seven churches' represent more than the seven literal congregations of Asia Minor?",
+      "options": [
+        "Because there were other important churches nearby, most of the book's events lay beyond that generation, and the number seven denotes fulness and completeness of the whole gospel church",
+        "Because the seven literal churches had already ceased to exist when John wrote",
+        "Because John never actually visited any of the seven churches",
+        "Because the seven churches were located outside of Asia Minor entirely"
+      ],
+      "correctIndex": 0,
+      "explanation": "Smith gives several reasons: other important churches (Colosse, Miletus, Troas) were nearby, only a small portion of the book could have personally concerned John's generation, and 'seven... is a number denoting fulness and completeness,' so the seven churches signify 'seven periods of the Christian church, from the days of the apostles to the close of probation.'"
+    },
+    {
+      "id": "q5",
+      "stem": "How does Smith interpret the phrase 'him which is, and which was, and which is to come' in verse 4?",
+      "options": [
+        "As applying to Jesus Christ as the eternal Son",
+        "As applying to the Holy Spirit, the seven spirits before the throne",
+        "As signifying complete eternity and applicable to God the Father only, never to Christ",
+        "As a symbolic reference to the seven churches across all time"
+      ],
+      "correctIndex": 2,
+      "explanation": "Smith states the expression 'signifies complete eternity, past and future, and can be applicable to God the Father only. This language, we believe, is never applied to Christ. He is spoken of as another person.'"
+    },
+    {
+      "id": "q6",
+      "stem": "What is Smith's position on the manner of Christ's second coming described in verse 7?",
+      "options": [
+        "That it will be a secret, stealthy event seen only by a few",
+        "That it will be open and visible, with 'every eye' seeing him, and that two comings (a private and a public one) are wholly unwarranted in Scripture",
+        "That it will occur quietly in the desert or secret chamber",
+        "That it will be invisible to all the living and known only by faith"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith writes 'Every eye shall see him' and that Christ does not come 'as a thief in the sense of stealing in stealthily,' concluding that 'to represent two comings, a private and a public one... is wholly unwarranted in the Scriptures.'"
+    },
+    {
+      "id": "q7",
+      "stem": "After examining four views, which day does Smith conclude is meant by 'the Lord's day' in verse 10?",
+      "options": [
+        "The first day of the week, because Christ rose on it",
+        "The whole gospel dispensation",
+        "The future day of Judgment",
+        "The seventh-day Sabbath, since God claimed it, blessed it, and Christ called himself 'Lord also of the Sabbath'"
+      ],
+      "correctIndex": 3,
+      "explanation": "Smith disproves the other three views and argues the seventh-day Sabbath is meant: God 'expressly reserved the seventh day to himself,' and since Christ declared 'The Son of man is Lord also of the Sabbath,' 'no other day can be called the Lord's day but the Sabbath of the great Creator.'"
+    },
+    {
+      "id": "q8",
+      "stem": "What is the most cheering assurance Smith draws from Christ's words 'I have the keys of hell and of death' in verse 18?",
+      "options": [
+        "That death will never again touch any believer in this present life",
+        "That Christ, who is alive forevermore, is the arbiter of death and the grave, holding the key to where the righteous dead are temporarily kept",
+        "That the grave no longer exists for anyone",
+        "That the wicked dead will never be raised at all"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith says the exalted one 'who is alive forevermore' declares 'he is the arbiter of death and the grave,' so death is 'a conquered tyrant' whose prison key 'is now held in the hands of a mightier than he' — the 'Friend' who 'holds the key to the place of their temporary confinement.'"
+    }
+  ]
+}

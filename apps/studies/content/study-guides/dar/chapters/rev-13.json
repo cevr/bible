@@ -1,0 +1,105 @@
+{
+  "slug": "rev-13",
+  "ref": "DAR — Revelation ch. 13: Persecuting Powers Professedly Christian",
+  "title": "Persecuting Powers Professedly Christian",
+  "order": 25,
+  "voicePrompt": "Explain in your own words Smith's central argument: how the dragon, the leopard beast, and the two-horned beast are three successive persecuting powers, each driven by a false religion, and how he identifies them as pagan Rome, papal Rome, and the United States — ending with what he says the 'image' and 'mark' of the beast are.",
+  "questions": [
+    {
+      "id": "q1",
+      "stem": "According to the chapter, why does it argue that the controlling element in each persecuting power (the dragon, the leopard beast, and the two-horned beast) must be ecclesiastical or religious?",
+      "options": [
+        "Because all three symbols wear crowns, which signify priestly office",
+        "Because governments do not persecute people on account of their religion unless under the control of some opposite and hostile system of religion",
+        "Because the prophecy explicitly names each one as a 'church'",
+        "Because each beast is said to come up out of the earth rather than the sea"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith reasons that a merely civil power does not persecute people for their religion; persecution arises only when a power is 'under the control of some opposite and hostile system of religion.' Since all three powers persecute the church, each must be controlled by a religious (ecclesiastical) element."
+    },
+    {
+      "id": "q2",
+      "stem": "What does the chapter say is the ONLY reason a different symbol (the leopard beast) is used for Rome instead of the dragon?",
+      "options": [
+        "Rome had moved its capital to a new location",
+        "Rome had been conquered by an entirely different people",
+        "There had been a change in the religious character of the empire — from pagan to professedly Christian (papal) Rome",
+        "The leopard beast represents only the civil power, while the dragon represented the army"
+      ],
+      "correctIndex": 2,
+      "explanation": "The text states the dragon and the leopard beast both symbolize the Roman empire; the symbol changes only because 'there has been a change in the religious character of the empire,' the beast representing Rome 'in its professedly Christian form.' It differs from the dragon 'only in that he presents a different religious aspect.'"
+    },
+    {
+      "id": "q3",
+      "stem": "The chapter argues the leopard beast is identical with the little horn of Daniel 7 because they share several points. Which of these is one of those points of identity it gives?",
+      "options": [
+        "Both arose out of the earth as a youthful, lamblike power",
+        "Both had power for forty-two months, or 1260 years, and at the end of that period met captivity / had their dominion taken away (fulfilled in 1798)",
+        "Both are republican governments lacking crowns on their horns",
+        "Both originated Spiritualism in the United States"
+      ],
+      "correctIndex": 1,
+      "explanation": "Among the six points of identity, Smith lists that power was given for 'a time, times, and the dividing of time,' or 1260 years (Dan 7:25; Rev 13:5), and that at the end of that period the dominion was taken away / the beast was 'led into captivity' — both 'fulfilled in the captivity and exile of the pope... by France in 1798.'"
+    },
+    {
+      "id": "q4",
+      "stem": "Which head of the beast does the chapter say was the one 'wounded to death,' and when does it say the deadly wound was inflicted?",
+      "options": [
+        "The imperial (pagan) head, wounded when Constantine converted",
+        "The papal head, wounded in 1798 when the pope was taken prisoner by the French general Berthier",
+        "The first of the seven heads, wounded at the founding of Rome",
+        "A head of the dragon, wounded when paganism first declined"
+      ],
+      "correctIndex": 1,
+      "explanation": "The text concludes 'it was none other than the papal head that was wounded to death,' since only the papal head existed after Rome's change from paganism. The wound 'was inflicted when the pope was taken prisoner by Berthier, the French general,' and the papal government was abolished for a time in 1798."
+    },
+    {
+      "id": "q5",
+      "stem": "The chapter gives several reasons the two-horned beast is the United States. What does it say the two LAMB-LIKE horns (and the absence of crowns) represent about that government?",
+      "options": [
+        "Its military strength on land and sea",
+        "Its two political parties competing for power",
+        "Civil and religious liberty — a republican government with church separate from state ('a church without a pope, and a state without a king')",
+        "Its dual Catholic and Protestant population"
+      ],
+      "correctIndex": 2,
+      "explanation": "Smith says the lamblike horns indicate youthfulness and innocence, and stand for the government's two great principles: 'a church without a pope, and a state without a king' — civil and religious liberty, the separation of church and state. The absence of crowns further marks it as republican, with power 'lodged in the hands of the people.'"
+    },
+    {
+      "id": "q6",
+      "stem": "According to the chapter, what would constitute the 'image to the beast' that the two-horned beast causes to be made?",
+      "options": [
+        "A literal statue of the pope erected in Washington",
+        "The Protestant churches forming an ecclesiastical organization, legalized and given civil power to enforce their dogmas (such as Sunday observance) under penalty of law",
+        "The re-establishment of the papacy in Rome after 1800",
+        "A revived pagan temple system in the New World"
+      ],
+      "correctIndex": 1,
+      "explanation": "The text defines the papacy as 'a church clothed with civil power,' so an image of it would be 'another ecclesiastical establishment clothed with similar power.' In the U.S. this would form when 'the Protestant churches' are 'clothed with power to define and punish heresy, to enforce their dogmas under the pains and penalties of the civil law.'"
+    },
+    {
+      "id": "q7",
+      "stem": "What does the chapter conclude the 'mark of the beast' is?",
+      "options": [
+        "A literal symbol stamped on the right hand or forehead",
+        "Membership in the Roman Catholic Church",
+        "The change the beast attempted to make in the law of God — specifically the substitution of Sunday for the seventh-day Sabbath",
+        "The number 666 worn on the papal miter"
+      ],
+      "correctIndex": 2,
+      "explanation": "Smith argues the mark is 'the change which the beast has attempted to make in the law of God.' That change is the alteration of the fourth commandment, so that 'Sunday-keeping must be the mark of the beast,' the seventh day being the true Sabbath the papacy claims to have changed by church authority."
+    },
+    {
+      "id": "q8",
+      "stem": "The chapter raises the objection: if Sunday-keeping is the mark, do all who have ever kept Sunday — including Luther and the Wesleys — have the mark of the beast. How does it answer?",
+      "options": [
+        "Yes; every Sunday-keeper in all ages has borne the mark",
+        "No; the mark is received only when one knowingly keeps Sunday as the papacy's institution, in opposition to God, after it is enforced by the two-horned beast — those who kept it ignorantly, supposing it a command of God, do not have it",
+        "No; the mark applies only to Roman Catholics, never to Protestants",
+        "The question cannot be answered from prophecy"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith answers 'Not so!' Intention is essential: a person must 'adopt the change knowing it to be the work of the beast, and receive it on the authority of that power, in opposition to the requirement of God.' Those who kept Sunday supposing it 'a commandment of God' do so from 'an error unwittingly received,' and 'By no means' have the mark. The mark is received only once it is enforced by the two-horned beast."
+    }
+  ]
+}

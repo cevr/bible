@@ -1,0 +1,93 @@
+{
+  "slug": "dan-12",
+  "ref": "DAR — Daniel ch. 12: Closing Scenes",
+  "title": "Closing Scenes",
+  "order": 12,
+  "voicePrompt": "In your own words, explain what Smith means by the 'standing up of Michael' and walk through the closing scenes of Daniel 12: the time of trouble, the special resurrection, the unsealing of the book at the time of the end, and how he locates the four prophetic periods.",
+  "questions": [
+    {
+      "id": "q1",
+      "stem": "According to Smith, who is the 'Michael' who stands up in verse 1, and what is his 'standing up'?",
+      "options": [
+        "A created archangel distinct from Christ, who stands up to plead for the saints",
+        "The Son of God (Christ), whose 'standing up' means taking the kingdom and commencing his reign",
+        "The literal nation of Israel rising to defend Jerusalem against the Turk",
+        "The papal power, which stands up one last time to oppress the church"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith traces Jude 9, 1 Thessalonians 4:16, and John 5:28 to conclude the archangel's voice is the voice of the Son of God; therefore Michael is Christ. Using Daniel 11:2-3, where 'stand up' means to take the kingdom and reign, he concludes Michael's standing up means Christ takes his own kingdom and commences his reign."
+    },
+    {
+      "id": "q2",
+      "stem": "How does Smith distinguish the 'time of trouble' of Daniel 12:1 from the tribulation of Matthew 24:21?",
+      "options": [
+        "Daniel's is religious persecution of the church; Matthew's is national calamity",
+        "They are the same event described twice, simply many years apart",
+        "Daniel's is a time of national calamity upon the world; Matthew's was tribulation upon the church (the papal oppression), already past",
+        "Daniel's was fulfilled by the papacy; Matthew's is still future"
+      ],
+      "correctIndex": 2,
+      "explanation": "Smith resolves the puzzle of two unparalleled troubles by noting Matthew's tribulation is upon the church (the papal oppression of the saints, already past), while Daniel's is national calamity upon the world, still future, closing this world's history and including the seven last plagues."
+    },
+    {
+      "id": "q3",
+      "stem": "Why does Smith argue the resurrection of verse 2 cannot be the general resurrection at the last day?",
+      "options": [
+        "Because it raises only the righteous, who alone rise at the last trump",
+        "Because 'many' of both the righteous and the wicked come up together, whereas the general resurrection separates the two classes by a thousand years",
+        "Because it occurs a thousand years after Christ's coming",
+        "Because Scripture nowhere mentions a resurrection before the Lord appears"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith argues the general resurrection comes in two divisions a thousand years apart (righteous at Christ's coming, wicked afterward, per Revelation 20:5). Since verse 2 raises 'many' of both righteous and wicked together, it must be a special, limited resurrection before the Lord appears, confirmed by Revelation 1:7 (those who pierced him see him at the advent)."
+    },
+    {
+      "id": "q4",
+      "stem": "When does Smith say the 'time of the end' commenced, and what happens to the sealed book at that point?",
+      "options": [
+        "In 1844, when the sanctuary was cleansed and the book was sealed forever",
+        "In 538, when the papacy was set up and the book was closed",
+        "In 1798, after which the book would be unsealed so people could better understand the prophecy",
+        "In 1843, when the proclamation of Christ's coming went forth"
+      ],
+      "correctIndex": 2,
+      "explanation": "Smith states the time of the end commenced in 1798; since the book was closed and sealed only to that time, from that point it would be unsealed, people would better understand it, and attention would be specially drawn to the prophecy."
+    },
+    {
+      "id": "q5",
+      "stem": "How does Smith date the 1290 days and the 1260 days of this chapter?",
+      "options": [
+        "The 1290 begin in 538 and end in 1828; the 1260 begin in 508",
+        "Both begin in 538 and run 1260 years to 1798",
+        "The 1290 begin in 508 (taking away of the daily/paganism) and the 1260 in 538, both ending together in 1798",
+        "The 1290 begin in 1798 and run forward into the future"
+      ],
+      "correctIndex": 2,
+      "explanation": "Reading the margin 'to set up the abomination,' Smith dates the 1290 from 508, when paganism (the daily) was taken away, thirty years before the papacy was set up in 538. Both the 1290 and the 1260 terminate together in 1798."
+    },
+    {
+      "id": "q6",
+      "stem": "What does Smith conclude is the 'blessing' promised to those who come to the 1335 days, which he dates to 1843?",
+      "options": [
+        "The literal second coming of Christ in 1843",
+        "Daniel's bodily resurrection from the dead",
+        "The reception of the new, glorious truth in the great proclamation of the second coming of Christ",
+        "The cleansing of the sanctuary in heaven"
+      ],
+      "correctIndex": 2,
+      "explanation": "Smith dates the 1335 days from 508 to 1843. The blessing is to those then living who received the new and glorious truth of the great proclamation of Christ's coming, comparing it to Christ's words 'Blessed are your eyes, for they see' (Matthew 13:16; Luke 10:23, 24)."
+    },
+    {
+      "id": "q7",
+      "stem": "Which prophetic period does Smith conclude is meant by 'the end of the days' when Daniel shall 'stand in his lot' (verse 13), and what does standing in his lot mean?",
+      "options": [
+        "The 1335 days; it means Daniel's resurrection from the dead",
+        "The 2300 days (ending 1844); it means Daniel's case is decided as righteous in the judgment, not his resurrection",
+        "The 1290 days; it means Daniel receives a literal plot of land in Canaan",
+        "The 1260 days; it means Daniel's deliverance from the papal persecution"
+      ],
+      "correctIndex": 1,
+      "explanation": "Smith argues 'the days' should refer to the principal and longest period, the 2300 days (ending 1844), not its subdivisions. 'Standing in his lot' is not resurrection but the determination of Providence in the judgment: when Daniel's case comes up he is found righteous and assigned a place in the heavenly inheritance, through his Advocate the High Priest."
+    }
+  ]
+}
