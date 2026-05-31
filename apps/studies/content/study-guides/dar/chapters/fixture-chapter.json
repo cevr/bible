@@ -1,0 +1,33 @@
+{
+  "slug": "fixture-chapter",
+  "ref": "DAR — Fixture",
+  "title": "Fixture Chapter",
+  "order": 1,
+  "voicePrompt": "In your own words, explain what this chapter teaches about how the prophecies of Daniel and Revelation were meant to be understood, and why their study matters now.",
+  "questions": [
+    {
+      "id": "q1",
+      "stem": "According to the chapter, when did the book of Daniel's prophecy begin to be unsealed?",
+      "options": [
+        "At the cross, AD 31",
+        "At the time of the end, beginning 1798",
+        "At the Reformation, 1517",
+        "It has never been unsealed"
+      ],
+      "correctIndex": 1,
+      "explanation": "The chapter ties the unsealing to 'the time of the end,' which it dates from 1798, when the book would be opened and better understood."
+    },
+    {
+      "id": "q2",
+      "stem": "How does the chapter say Smith's structural observations should be treated?",
+      "options": [
+        "As 'Smith says' citations",
+        "As private opinions to weigh",
+        "As observations about the text itself",
+        "As infallible interpretation"
+      ],
+      "correctIndex": 2,
+      "explanation": "The convention is to surface structural findings as observations about the text — 'notice the structure' — not as opinions to cite."
+    }
+  ]
+}

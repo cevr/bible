@@ -30,6 +30,10 @@ A Chapter's content splits in two. The Public tier ships to the browser (Quiz
 questions+answers+explanations, the voice prompt, metadata). The Private tier is
 read only by the grading endpoint and never serialized into a page (Source Text,
 Key Points). The split is what makes the Voice Reflection a real recall assessment.
+Layout: Public lives under `content/study-guides/<series>/` and is registered as
+Astro content collections; Private lives under `private/<series>/` (a sibling to
+`content/`, NOT a collection) and is read server-side via `src/lib/study-source.ts`.
+Schemas: `scripts/study-guide-schema.ts`.
 
 **Attempt**:
 One learner's pass at a Chapter's Study Guide — their Quiz answers and/or a Voice

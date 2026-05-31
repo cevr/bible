@@ -9,7 +9,8 @@
     "build": "astro build",
     "preview": "bun run start",
     "start": "HOST=${HOST:-0.0.0.0} PORT=${PORT:-4321} bun run adapter/run.ts",
-    "typecheck": "astro check"
+    "typecheck": "astro check",
+    "test": "bun test"
   },
   "dependencies": {
     "astro": "^6.4.2",
