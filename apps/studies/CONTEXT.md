@@ -87,3 +87,11 @@ The server-side Effect service (a port) that turns captured audio into a transcr
 Concrete implementation is a swappable layer — a hosted STT API now, possibly a
 self-hosted model later — so the Grader never depends on a specific provider.
 _Avoid_: STT, speech engine, recognizer.
+
+**Grading endpoint**:
+`POST /api/grade` (on-demand; `src/pages/api/grade.ts`). Multipart form: `audio` +
+`series` + `chapter`. Enforces per-IP rate limit + audio/request size caps, loads
+the private source, runs Transcriber→Grader (`src/lib/grading/grade-reflection.ts`),
+returns the Grade JSON. Astro's `security.checkOrigin` (default on) means the UI
+MUST call it same-origin (a cross-origin/originless POST gets 403 before the
+handler runs) — this is the intended CSRF protection, kept on.

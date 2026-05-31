@@ -54,13 +54,14 @@ async function serveStatic(
   return new Response(file);
 }
 
-export async function handler(request: Request): Promise<Response> {
+export async function handler(request: Request, server?: BunServer): Promise<Response> {
   const clientDir = cfg.client; // file:// URL of built client dir
   const assetsPrefix = `/${cfg.assets}/`;
 
   const routeData = app.match(request);
   if (routeData) {
-    return app.render(request, { addCookieHeader: true, routeData });
+    const clientAddress = server?.requestIP(request)?.address;
+    return app.render(request, { addCookieHeader: true, routeData, clientAddress });
   }
 
   // No on-demand match -> static asset (or prerendered page) from the client dir.
