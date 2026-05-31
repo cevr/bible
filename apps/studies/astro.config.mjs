@@ -6,9 +6,6 @@ export default defineConfig({
   build: {
     format: 'directory',
   },
-  markdown: {
-    smartypants: true,
-  },
   server: {
     allowedHosts: true,
   },

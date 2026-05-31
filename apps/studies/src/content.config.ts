@@ -1,13 +1,13 @@
 import { defineCollection } from 'astro:content';
 import { file, glob } from 'astro/loaders';
-import { Chapter, ChapterIndexEntry, SeriesMeta } from '../../scripts/schema.ts';
+import { Chapter, ChapterIndexEntry, SeriesMeta } from '../scripts/schema.ts';
 
 /*
  * Astro content collections backed by the JSON the extractor writes into
  * apps/studies/content/series/<slug>/. The schema is reused verbatim from
  * scripts/schema.ts so the renderer never invents shapes.
  *
- * NOTE: collection names are flat (no slug nesting) because Astro 5 collections
+ * NOTE: collection names are flat (no slug nesting) because Astro collections
  * are a single registry. Within each collection, IDs encode the series slug.
  */
 

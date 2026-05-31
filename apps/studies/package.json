@@ -12,12 +12,12 @@
     "typecheck": "astro check"
   },
   "dependencies": {
-    "astro": "^5.2.0",
+    "astro": "^6.4.2",
     "marked": "^18.0.4",
-    "zod": "^3.24.1"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@astrojs/check": "^0.9.4",
+    "@astrojs/check": "^0.9.9",
     "@types/bun": "1.3.13",
     "typescript": "^6.0.3"
   }
