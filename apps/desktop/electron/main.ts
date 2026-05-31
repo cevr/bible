@@ -14,7 +14,6 @@ import {
   type StrongsLexiconRaw,
   type StrongsVerseRow,
 } from '@bible/core/kjv-bible-db';
-import Database from 'better-sqlite3';
 import { Effect, Option, Schema, Stream } from 'effect';
 import type { SqlError } from 'effect/unstable/sql/SqlError';
 
@@ -26,6 +25,12 @@ import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import { promises as fs, readFileSync } from 'node:fs';
 import path from 'node:path';
 
+import {
+  CacheDatabase,
+  type BibleLastPositionRow,
+  type CacheDatabaseService,
+  type LastPositionRow,
+} from './cache-db.js';
 import { backfillIndex, indexChapter } from './indexer.js';
 import { makeRuntime, type MainRuntime } from './runtime.js';
 
@@ -70,112 +75,26 @@ const settingsPath = () => path.join(app.getPath('userData'), SETTINGS_FILENAME)
 const cacheDbPath = () => path.join(app.getPath('userData'), CACHE_FILENAME);
 const egwTokenPath = () => path.join(app.getPath('userData'), EGW_TOKEN_FILENAME);
 
-// Lazy sqlite handle — initialized on first cache call, not at module load,
-// because app.getPath('userData') requires app.whenReady() to have fired.
-// All cache rows store the raw JSON string the EGW API returned; the renderer
-// re-runs Schema.decodeUnknown against the same shape it would use for a live
-// response, so cache hits and live fetches converge through one parse path.
-let cacheDb: Database.Database | null = null;
-
-// Effect runtime hosting EGWParagraphDatabase over @effect/sql-sqlite-node,
-// pointed at the same cache.sqlite file. Started after app.whenReady() so
-// userData path is resolvable; disposed on will-quit.
+// Effect runtime hosting EGWParagraphDatabase + CacheDatabase + the other DB
+// services + EGWApiClient, all over a SINGLE @effect/sql-sqlite-node connection
+// against cache.sqlite. Started after app.whenReady() so the userData path is
+// resolvable; disposed on will-quit. The cache tables (book_lists, tocs,
+// chapters, folders, folder_books, last_position, bible_last_position) used to
+// be driven by a second `better-sqlite3` handle here — that collided with this
+// connection (SQLITE_BUSY, lost PRAGMA writes). CacheDatabase now owns them on
+// the same connection. See electron/cache-db.ts.
 let mainRuntime: MainRuntime | null = null;
-const getCacheDb = (): Database.Database => {
-  if (cacheDb !== null) return cacheDb;
-  const db = new Database(cacheDbPath());
-  db.pragma('journal_mode = WAL');
-  db.pragma('foreign_keys = ON');
-  // Cache tables live alongside the EGW paragraph DB tables (books, paragraphs,
-  // paragraphs_fts, ...) in the same sqlite file. Names must not collide — the
-  // EGW DB owns `books` as normalized metadata, so the API-response cache uses
-  // `book_lists` to make the difference loud.
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS book_lists (
-      book_id INTEGER PRIMARY KEY,
-      lang TEXT NOT NULL,
-      json TEXT NOT NULL,
-      updated_at INTEGER NOT NULL
-    );
-    CREATE INDEX IF NOT EXISTS book_lists_lang ON book_lists(lang);
 
-    CREATE TABLE IF NOT EXISTS tocs (
-      book_id INTEGER PRIMARY KEY,
-      json TEXT NOT NULL,
-      updated_at INTEGER NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS chapters (
-      book_id INTEGER NOT NULL,
-      para_id TEXT NOT NULL,
-      json TEXT NOT NULL,
-      updated_at INTEGER NOT NULL,
-      PRIMARY KEY (book_id, para_id)
-    );
-
-    -- Recursive folder tree per language. One row per lang holds the entire
-    -- nested response from /content/languages/:lang/folders.
-    CREATE TABLE IF NOT EXISTS folders (
-      lang TEXT PRIMARY KEY,
-      json TEXT NOT NULL,
-      updated_at INTEGER NOT NULL
-    );
-
-    -- Books listed under a specific folder for a specific language. Keyed by
-    -- (folder_id, lang) because /content/books/by_folder/:id can be filtered
-    -- by trans=lang.
-    CREATE TABLE IF NOT EXISTS folder_books (
-      folder_id INTEGER NOT NULL,
-      lang TEXT NOT NULL,
-      json TEXT NOT NULL,
-      updated_at INTEGER NOT NULL,
-      PRIMARY KEY (folder_id, lang)
-    );
-
-    -- Single-row table (id = 0): the last book + chapter the user had open.
-    -- Restored on launch so the app reopens to where they left off. para_id
-    -- is nullable: a book opened without a chapter selection (TOC view only)
-    -- is also valid state to persist. paragraph_id (added later) carries the
-    -- in-chapter scroll position so we restore to the exact paragraph the
-    -- user was last viewing, not just the chapter top.
-    CREATE TABLE IF NOT EXISTS last_position (
-      id INTEGER PRIMARY KEY CHECK (id = 0),
-      book_id INTEGER NOT NULL,
-      para_id TEXT,
-      updated_at INTEGER NOT NULL
-    );
-
-    -- Sibling single-row table (id = 0) for Bible mode: which (book, chapter,
-    -- verse) the user was last looking at. Stored separately from last_position
-    -- so the two reading modes restore independently — switching modes on
-    -- launch shouldn't reset the other mode's place. verse is nullable for the
-    -- case where the user opened a chapter but never clicked a specific verse.
-    CREATE TABLE IF NOT EXISTS bible_last_position (
-      id INTEGER PRIMARY KEY CHECK (id = 0),
-      book INTEGER NOT NULL,
-      chapter INTEGER NOT NULL,
-      verse INTEGER,
-      updated_at INTEGER NOT NULL
-    );
-
-    -- NOTE: kjv_verses + strongs_lexicon are created and owned by
-    -- KjvBibleDatabase.layerCore (packages/core/src/kjv-bible-db). They share
-    -- this same cache.sqlite file but their DDL belongs to the service, not
-    -- to this raw-sqlite cache module.
-  `);
-  // Additive migration: older DBs created last_position without paragraph_id.
-  // SQLite has no "ADD COLUMN IF NOT EXISTS"; the duplicate-column error is the
-  // expected outcome on already-migrated DBs and is safe to swallow.
-  try {
-    db.exec('ALTER TABLE last_position ADD COLUMN paragraph_id TEXT');
-  } catch (err) {
-    if (!(err instanceof Error && err.message.includes('duplicate column'))) throw err;
-  }
-  cacheDb = db;
-  return db;
+// Run a CacheDatabase op against the main runtime. Returns the fallback when
+// the runtime isn't up yet (shouldn't happen post-whenReady — every cache IPC
+// handler is registered before the window loads — but keeps handlers safe).
+const runCache = <A>(
+  op: (cache: CacheDatabaseService) => Effect.Effect<A, SqlError>,
+  fallback: A,
+): Promise<A> => {
+  if (mainRuntime === null) return Promise.resolve(fallback);
+  return mainRuntime.runPromise(CacheDatabase.pipe(Effect.flatMap(op)));
 };
-
-const now = (): number => Date.now();
 
 // Node's fs errors are Error subclasses with an extra `code` string field.
 // Probe for it via `in` to keep the access free of narrowing casts; oxlint
@@ -262,176 +181,120 @@ ipcMain.handle('settings:write', (_event, text: string) => writeJsonFile(setting
 // Cache IPC — get returns null on miss, put is upsert. The renderer is
 // responsible for Schema parsing on the way out and Schema encoding on the
 // way in, so main only ever sees opaque JSON strings.
-ipcMain.handle('cache:getBooks', (_event, lang: string): string | null => {
-  const row = getCacheDb()
-    .prepare<[string], { json: string }>('SELECT json FROM book_lists WHERE lang = ? LIMIT 1')
-    .get(lang);
-  return row?.json ?? null;
-});
-ipcMain.handle('cache:putBooks', (_event, lang: string, json: string): void => {
-  // Single-row-per-lang model: a fresh list response replaces the previous one
-  // wholesale. If we ever care about per-book diffing, switch this to
-  // explode the array into per-book rows here.
-  const db = getCacheDb();
-  db.prepare('DELETE FROM book_lists WHERE lang = ?').run(lang);
-  db.prepare('INSERT INTO book_lists (book_id, lang, json, updated_at) VALUES (0, ?, ?, ?)').run(
-    lang,
-    json,
-    now(),
-  );
-});
+ipcMain.handle(
+  'cache:getBooks',
+  (_event, lang: string): Promise<string | null> => runCache((c) => c.getBooks(lang), null),
+);
+ipcMain.handle(
+  'cache:putBooks',
+  (_event, lang: string, json: string): Promise<void> =>
+    runCache((c) => c.putBooks(lang, json), undefined),
+);
 
-ipcMain.handle('cache:getToc', (_event, bookId: number): string | null => {
-  const row = getCacheDb()
-    .prepare<[number], { json: string }>('SELECT json FROM tocs WHERE book_id = ?')
-    .get(bookId);
-  return row?.json ?? null;
-});
-ipcMain.handle('cache:putToc', (_event, bookId: number, json: string): void => {
-  getCacheDb()
-    .prepare(
-      'INSERT INTO tocs (book_id, json, updated_at) VALUES (?, ?, ?) ON CONFLICT(book_id) DO UPDATE SET json = excluded.json, updated_at = excluded.updated_at',
-    )
-    .run(bookId, json, now());
-});
+ipcMain.handle(
+  'cache:getToc',
+  (_event, bookId: number): Promise<string | null> => runCache((c) => c.getToc(bookId), null),
+);
+ipcMain.handle(
+  'cache:putToc',
+  (_event, bookId: number, json: string): Promise<void> =>
+    runCache((c) => c.putToc(bookId, json), undefined),
+);
 
-ipcMain.handle('cache:getChapter', (_event, bookId: number, paraId: string): string | null => {
-  const row = getCacheDb()
-    .prepare<[number, string], { json: string }>(
-      'SELECT json FROM chapters WHERE book_id = ? AND para_id = ?',
-    )
-    .get(bookId, paraId);
-  return row?.json ?? null;
-});
-ipcMain.handle('cache:putChapter', (_event, bookId: number, paraId: string, json: string): void => {
-  getCacheDb()
-    .prepare(
-      'INSERT INTO chapters (book_id, para_id, json, updated_at) VALUES (?, ?, ?, ?) ON CONFLICT(book_id, para_id) DO UPDATE SET json = excluded.json, updated_at = excluded.updated_at',
-    )
-    .run(bookId, paraId, json, now());
-  // Mirror the chapter into the EGW paragraph index so search:fts /
-  // search:refcode can find it locally. Best-effort: failures inside
-  // indexChapter are logged and swallowed — search may lag, but cache writes
-  // (and thus reads) never block on indexing. Fire-and-forget Promise; the IPC
-  // handler returns void immediately because the renderer doesn't wait on the
-  // index either.
-  if (mainRuntime !== null) {
-    void indexChapter(mainRuntime, getCacheDb(), bookId, json, (touched) => {
-      // Broadcast to every renderer so the Bible reader can re-query the
-      // hit set for the (book, chapter) it's currently showing. Cheap to
-      // send — payload is a few small numbers.
-      for (const win of BrowserWindow.getAllWindows()) {
-        win.webContents.send('bible:egwCommentaryUpdated', touched);
-      }
-    });
-  }
-});
-ipcMain.handle('cache:getFolders', (_event, lang: string): string | null => {
-  const row = getCacheDb()
-    .prepare<[string], { json: string }>('SELECT json FROM folders WHERE lang = ?')
-    .get(lang);
-  return row?.json ?? null;
-});
-ipcMain.handle('cache:putFolders', (_event, lang: string, json: string): void => {
-  getCacheDb()
-    .prepare(
-      'INSERT INTO folders (lang, json, updated_at) VALUES (?, ?, ?) ON CONFLICT(lang) DO UPDATE SET json = excluded.json, updated_at = excluded.updated_at',
-    )
-    .run(lang, json, now());
-});
+ipcMain.handle(
+  'cache:getChapter',
+  (_event, bookId: number, paraId: string): Promise<string | null> =>
+    runCache((c) => c.getChapter(bookId, paraId), null),
+);
+ipcMain.handle(
+  'cache:putChapter',
+  async (_event, bookId: number, paraId: string, json: string): Promise<void> => {
+    await runCache((c) => c.putChapter(bookId, paraId, json), undefined);
+    // Mirror the chapter into the EGW paragraph index so search:fts /
+    // search:refcode can find it locally. Best-effort: failures inside
+    // indexChapter are logged and swallowed — search may lag, but cache writes
+    // (and thus reads) never block on indexing. Fire-and-forget; the renderer
+    // doesn't wait on the index either.
+    if (mainRuntime !== null) {
+      void indexChapter(mainRuntime, bookId, json, (touched) => {
+        // Broadcast to every renderer so the Bible reader can re-query the
+        // hit set for the (book, chapter) it's currently showing. Cheap to
+        // send — payload is a few small numbers.
+        for (const win of BrowserWindow.getAllWindows()) {
+          win.webContents.send('bible:egwCommentaryUpdated', touched);
+        }
+      });
+    }
+  },
+);
+ipcMain.handle(
+  'cache:getFolders',
+  (_event, lang: string): Promise<string | null> => runCache((c) => c.getFolders(lang), null),
+);
+ipcMain.handle(
+  'cache:putFolders',
+  (_event, lang: string, json: string): Promise<void> =>
+    runCache((c) => c.putFolders(lang, json), undefined),
+);
 
-ipcMain.handle('cache:getFolderBooks', (_event, folderId: number, lang: string): string | null => {
-  const row = getCacheDb()
-    .prepare<[number, string], { json: string }>(
-      'SELECT json FROM folder_books WHERE folder_id = ? AND lang = ?',
-    )
-    .get(folderId, lang);
-  return row?.json ?? null;
-});
+ipcMain.handle(
+  'cache:getFolderBooks',
+  (_event, folderId: number, lang: string): Promise<string | null> =>
+    runCache((c) => c.getFolderBooks(folderId, lang), null),
+);
 ipcMain.handle(
   'cache:putFolderBooks',
-  (_event, folderId: number, lang: string, json: string): void => {
-    getCacheDb()
-      .prepare(
-        'INSERT INTO folder_books (folder_id, lang, json, updated_at) VALUES (?, ?, ?, ?) ON CONFLICT(folder_id, lang) DO UPDATE SET json = excluded.json, updated_at = excluded.updated_at',
-      )
-      .run(folderId, lang, json, now());
-  },
+  (_event, folderId: number, lang: string, json: string): Promise<void> =>
+    runCache((c) => c.putFolderBooks(folderId, lang, json), undefined),
 );
 
 // How many chapters of `bookId` are currently in the cache. The renderer
 // compares this to the TOC's navigable-chapter count to render a "downloaded"
 // badge. Main stays schema-blind — it's just a row count.
-ipcMain.handle('cache:chapterCount', (_event, bookId: number): number => {
-  const row = getCacheDb()
-    .prepare<[number], { count: number }>(
-      'SELECT COUNT(*) AS count FROM chapters WHERE book_id = ?',
-    )
-    .get(bookId);
-  return row?.count ?? 0;
-});
+ipcMain.handle(
+  'cache:chapterCount',
+  (_event, bookId: number): Promise<number> => runCache((c) => c.chapterCount(bookId), 0),
+);
 
 // Last-open book/chapter — restored on launch so the app reopens where the
 // user left off. Single-row table; updates overwrite. paragraph_id is the
 // in-chapter scroll anchor (the topmost paragraph the user was viewing) so
 // restore lands them on the exact paragraph, not just the chapter top.
-type LastPositionRow = {
-  readonly book_id: number;
-  readonly para_id: string | null;
-  readonly paragraph_id: string | null;
-};
-ipcMain.handle('lastPosition:read', (): LastPositionRow | null => {
-  const row = getCacheDb()
-    .prepare<[], LastPositionRow>(
-      'SELECT book_id, para_id, paragraph_id FROM last_position WHERE id = 0',
-    )
-    .get();
-  return row ?? null;
-});
+ipcMain.handle(
+  'lastPosition:read',
+  (): Promise<LastPositionRow | null> => runCache((c) => c.readLastPosition(), null),
+);
 ipcMain.handle(
   'lastPosition:write',
-  (_event, bookId: number, paraId: string | null, paragraphId: string | null = null): void => {
-    getCacheDb()
-      .prepare(
-        'INSERT INTO last_position (id, book_id, para_id, paragraph_id, updated_at) VALUES (0, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET book_id = excluded.book_id, para_id = excluded.para_id, paragraph_id = excluded.paragraph_id, updated_at = excluded.updated_at',
-      )
-      .run(bookId, paraId, paragraphId, now());
-  },
+  (
+    _event,
+    bookId: number,
+    paraId: string | null,
+    paragraphId: string | null = null,
+  ): Promise<void> => runCache((c) => c.writeLastPosition(bookId, paraId, paragraphId), undefined),
 );
-ipcMain.handle('lastPosition:clear', (): void => {
-  getCacheDb().prepare('DELETE FROM last_position').run();
-});
+ipcMain.handle(
+  'lastPosition:clear',
+  (): Promise<void> => runCache((c) => c.clearLastPosition(), undefined),
+);
 
 // Bible-mode last position — symmetric with lastPosition above but written
 // from BibleReaderState changes rather than the EGW reader's scroll anchor.
 // verse is nullable: the user may have opened a chapter without ever clicking
 // a specific verse.
-type BibleLastPositionRow = {
-  readonly book: number;
-  readonly chapter: number;
-  readonly verse: number | null;
-};
-ipcMain.handle('bibleLastPosition:read', (): BibleLastPositionRow | null => {
-  const row = getCacheDb()
-    .prepare<[], BibleLastPositionRow>(
-      'SELECT book, chapter, verse FROM bible_last_position WHERE id = 0',
-    )
-    .get();
-  return row ?? null;
-});
+ipcMain.handle(
+  'bibleLastPosition:read',
+  (): Promise<BibleLastPositionRow | null> => runCache((c) => c.readBibleLastPosition(), null),
+);
 ipcMain.handle(
   'bibleLastPosition:write',
-  (_event, book: number, chapter: number, verse: number | null = null): void => {
-    getCacheDb()
-      .prepare(
-        'INSERT INTO bible_last_position (id, book, chapter, verse, updated_at) VALUES (0, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET book = excluded.book, chapter = excluded.chapter, verse = excluded.verse, updated_at = excluded.updated_at',
-      )
-      .run(book, chapter, verse, now());
-  },
+  (_event, book: number, chapter: number, verse: number | null = null): Promise<void> =>
+    runCache((c) => c.writeBibleLastPosition(book, chapter, verse), undefined),
 );
-ipcMain.handle('bibleLastPosition:clear', (): void => {
-  getCacheDb().prepare('DELETE FROM bible_last_position').run();
-});
+ipcMain.handle(
+  'bibleLastPosition:clear',
+  (): Promise<void> => runCache((c) => c.clearBibleLastPosition(), undefined),
+);
 
 // Local search over the indexed EGW paragraphs. Both handlers return plain JSON
 // arrays so the preload bridge can ferry them across IPC; the renderer wraps
@@ -592,7 +455,10 @@ type RendererKjvStrongsChapter = {
   readonly chapter: number;
   readonly verses: readonly {
     readonly verse: number;
-    readonly words: readonly { readonly text: string; readonly strongs?: readonly string[] }[];
+    readonly words: readonly {
+      readonly text: string;
+      readonly strongs?: readonly string[];
+    }[];
   }[];
 };
 type RendererStrongsEntry = {
@@ -948,7 +814,10 @@ ipcMain.handle(
       book: number,
       chapter: number,
     ): Promise<
-      readonly { readonly verse: number; readonly notes: readonly RendererMarginNote[] }[]
+      readonly {
+        readonly verse: number;
+        readonly notes: readonly RendererMarginNote[];
+      }[]
     > => {
       if (mainRuntime === null) return [];
       await ensureMarginNotesImportsDone(mainRuntime);
@@ -959,7 +828,12 @@ ipcMain.handle(
       for (const [verse, notes] of byVerse) {
         out.push({
           verse,
-          notes: notes.map((n) => ({ idx: n.idx, type: n.type, phrase: n.phrase, text: n.text })),
+          notes: notes.map((n) => ({
+            idx: n.idx,
+            type: n.type,
+            phrase: n.phrase,
+            text: n.text,
+          })),
         });
       }
       out.sort((a, b) => a.verse - b.verse);
@@ -1099,7 +973,12 @@ const runEgw = <A>(
   return mainRuntime.runPromise(
     effect.pipe(
       Effect.catchCause((cause) =>
-        Effect.fail(new EgwIpcError({ message: `EGW request failed: ${String(cause)}`, cause })),
+        Effect.fail(
+          new EgwIpcError({
+            message: `EGW request failed: ${String(cause)}`,
+            cause,
+          }),
+        ),
       ),
     ),
   );
@@ -1250,7 +1129,7 @@ void app.whenReady().then(async () => {
   // Re-index any chapter blobs that were cached before the paragraph indexer
   // existed (or before its boot path ran). Fire-and-forget — local refcode /
   // FTS search will just light up once it lands.
-  void backfillIndex(mainRuntime, getCacheDb()).catch((err: unknown) => {
+  void backfillIndex(mainRuntime).catch((err: unknown) => {
     console.warn('[main] backfillIndex failed:', err);
   });
   void createWindow();
@@ -1264,13 +1143,10 @@ app.on('window-all-closed', () => {
 });
 
 app.on('will-quit', (event) => {
-  if (cacheDb !== null) {
-    cacheDb.close();
-    cacheDb = null;
-  }
   if (mainRuntime !== null) {
     // ManagedRuntime.dispose returns a Promise; defer quit until cleanup
-    // finishes so the sqlite-node connection releases the WAL file cleanly.
+    // finishes so the sqlite-node connection (the single owner of cache.sqlite)
+    // releases the WAL file cleanly.
     event.preventDefault();
     const runtime = mainRuntime;
     mainRuntime = null;

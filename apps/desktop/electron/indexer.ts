@@ -8,6 +8,10 @@
  * runtime. The index lets the renderer search local content (refcode
  * navigation + FTS5) without hitting the network.
  *
+ * Both the cache reads (book_lists, chapters) and the index writes (paragraphs)
+ * run through the same `SqlClient` connection — see electron/cache-db.ts — so
+ * indexing never contends with the cache for the WAL file.
+ *
  * Best-effort: any failure (no book metadata cached yet, schema drift, etc.)
  * is logged and swallowed. The chapter cache write itself is not gated on
  * indexing success — search may lag, but reading never breaks.
@@ -15,9 +19,9 @@
 
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
 import { extractScriptureRefs, Schemas } from '@bible/core/egw';
-import type Database from 'better-sqlite3';
 import { Effect, Option, Schema } from 'effect';
 
+import { CacheDatabase } from './cache-db.js';
 import type { MainRuntime } from './runtime.js';
 
 const BookListJson = Schema.fromJsonString(Schema.Array(Schemas.Book));
@@ -25,13 +29,12 @@ const ChapterJson = Schema.fromJsonString(Schema.Array(Schemas.Paragraph));
 const decodeBookList = Schema.decodeUnknownEffect(BookListJson);
 const decodeChapter = Schema.decodeUnknownEffect(ChapterJson);
 
-const findBookInCache = (cacheDb: Database.Database, bookId: number): Schemas.Book | null => {
-  // `book_lists` stores one row per language; each row's `json` column is the
-  // full list response. Scan all rows until we find the book — most users have
-  // one language cached so this is O(N=1) of "JSON parse + array find".
-  const rows = cacheDb.prepare<[], { json: string }>('SELECT json FROM book_lists').all();
-  for (const row of rows) {
-    const books = Effect.runSync(decodeBookList(row.json).pipe(Effect.option));
+const findBookInLists = (bookListJson: readonly string[], bookId: number): Schemas.Book | null => {
+  // Each `book_lists` row's JSON is the full list response for a language. Scan
+  // all rows until we find the book — most users have one language cached so
+  // this is O(N=1) of "JSON parse + array find".
+  for (const json of bookListJson) {
+    const books = Effect.runSync(decodeBookList(json).pipe(Effect.option));
     if (Option.isNone(books)) continue;
     const found = books.value.find((b) => b.book_id === bookId);
     if (found !== undefined) return found;
@@ -50,19 +53,10 @@ const findBookInCache = (cacheDb: Database.Database, bookId: number): Schemas.Bo
  */
 export const indexChapter = async (
   runtime: MainRuntime,
-  cacheDb: Database.Database,
   bookId: number,
   chapterJson: string,
   onBibleRefsIndexed?: (touched: readonly { book: number; chapter: number }[]) => void,
 ): Promise<void> => {
-  const book = findBookInCache(cacheDb, bookId);
-  if (book === null) {
-    // No book metadata cached yet (e.g. chapter cache write arrived before the
-    // library list response). Skip — the next reopen of LibraryRail will warm
-    // book_lists, and we can re-index on the next chapter visit.
-    return;
-  }
-
   const decoded = Effect.runSync(decodeChapter(chapterJson).pipe(Effect.option));
   if (Option.isNone(decoded)) {
     console.warn(`[indexer] chapter JSON for book ${String(bookId)} failed schema decode`);
@@ -73,20 +67,27 @@ export const indexChapter = async (
 
   await runtime
     .runPromise(
-      EGWParagraphDatabase.pipe(
-        Effect.flatMap((db) =>
-          Effect.gen(function* () {
-            yield* db.storeParagraphsBatch(decoded.value, book);
-            // Bible-ref extraction must run in the same boot path as the
-            // paragraph write so cache.sqlite stays consistent. Empty arrays
-            // short-circuit inside `storeBibleRefsBatch` — no extra round-trip.
-            if (refs.length > 0) yield* db.storeBibleRefsBatch(refs);
-          }),
-        ),
-      ),
+      Effect.gen(function* () {
+        const cache = yield* CacheDatabase;
+        const bookListJson = yield* cache.allBookListJson();
+        const book = findBookInLists(bookListJson, bookId);
+        if (book === null) {
+          // No book metadata cached yet (e.g. chapter cache write arrived before
+          // the library list response). Skip — the next reopen of the library
+          // warms book_lists, and we re-index on the next chapter visit.
+          return false;
+        }
+        const db = yield* EGWParagraphDatabase;
+        yield* db.storeParagraphsBatch(decoded.value, book);
+        // Bible-ref extraction must run in the same boot path as the paragraph
+        // write so cache.sqlite stays consistent. Empty arrays short-circuit
+        // inside `storeBibleRefsBatch` — no extra round-trip.
+        if (refs.length > 0) yield* db.storeBibleRefsBatch(refs);
+        return true;
+      }),
     )
-    .then(() => {
-      if (onBibleRefsIndexed === undefined || refs.length === 0) return;
+    .then((stored) => {
+      if (!stored || onBibleRefsIndexed === undefined || refs.length === 0) return;
       const seen = new Set<string>();
       const touched: { book: number; chapter: number }[] = [];
       for (const r of refs) {
@@ -109,32 +110,23 @@ export const indexChapter = async (
  * but zero paragraph rows. Cheap: ~100ms per book worth of chapters; runs in
  * the background once at startup so search just starts working for old caches.
  */
-export const backfillIndex = async (
-  runtime: MainRuntime,
-  cacheDb: Database.Database,
-): Promise<void> => {
-  // Books with chapters cached but no paragraph rows — those are the orphans.
-  const rows = cacheDb
-    .prepare<[], { book_id: number }>(
-      `SELECT c.book_id FROM chapters c
-       LEFT JOIN paragraphs p ON p.book_id = c.book_id
-       WHERE p.book_id IS NULL
-       GROUP BY c.book_id`,
-    )
-    .all();
-  if (rows.length === 0) return;
-  console.error(`[indexer] backfill: ${String(rows.length)} books need indexing`);
-  const chapterStmt = cacheDb.prepare<[number], { json: string }>(
-    'SELECT json FROM chapters WHERE book_id = ?',
+export const backfillIndex = async (runtime: MainRuntime): Promise<void> => {
+  const bookIds = await runtime.runPromise(
+    CacheDatabase.pipe(Effect.flatMap((cache) => cache.booksNeedingIndex())),
   );
-  for (const { book_id } of rows) {
-    const chapters = chapterStmt.all(book_id);
-    for (const { json } of chapters) {
+  if (bookIds.length === 0) return;
+  console.error(`[indexer] backfill: ${String(bookIds.length)} book(s) need indexing`);
+  for (const bookId of bookIds) {
+    // eslint-disable-next-line no-await-in-loop
+    const chapters = await runtime.runPromise(
+      CacheDatabase.pipe(Effect.flatMap((cache) => cache.chapterJsonForBook(bookId))),
+    );
+    for (const json of chapters) {
       // Sequential on purpose: each indexChapter is a SQLite transaction; we
       // don't want N hundred in flight at once on app start. The backfill is
       // a one-time cold-cache pass, so wall-time isn't critical.
       // eslint-disable-next-line no-await-in-loop
-      await indexChapter(runtime, cacheDb, book_id, json);
+      await indexChapter(runtime, bookId, json);
     }
   }
   console.error('[indexer] backfill complete');
