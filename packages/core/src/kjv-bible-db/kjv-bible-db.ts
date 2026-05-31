@@ -19,10 +19,18 @@ import { Context, Effect, Layer, Option, Schema } from 'effect';
 import * as SqlClient from 'effect/unstable/sql/SqlClient';
 import type { SqlError } from 'effect/unstable/sql/SqlError';
 
+import {
+  ensureSchemaVersionsTable,
+  readSchemaVersion,
+  writeSchemaVersion,
+} from '../db/schema-version.js';
+
 // Bump when the on-disk shape changes. Init drops and rebuilds the KJV
 // tables on mismatch — the bundled JSON re-imports in seconds, so we don't
 // ship migration SQL.
 const SCHEMA_VERSION = 1;
+// Identity for this service's row in the shared `schema_versions` table.
+const SCHEMA_NAME = 'kjv_bible';
 
 // The KJV asset has exactly this many verses. `isImported` treats a row
 // count below this as a partial/corrupt import (a previous transaction
@@ -296,15 +304,16 @@ export class KjvBibleDatabase extends Context.Service<KjvBibleDatabase, KjvBible
             definition TEXT NOT NULL
           )
         `);
-        // PRAGMA can't be bound — interpolate the integer literal directly.
-        yield* sql.unsafe(`PRAGMA user_version = ${SCHEMA_VERSION}`);
+        yield* ensureSchemaVersionsTable(sql);
+        yield* writeSchemaVersion(sql, SCHEMA_NAME, SCHEMA_VERSION);
       });
 
       // Schema version: on mismatch drop and recreate. The bundled JSON
       // re-imports in seconds so we don't ship migration SQL — the next
-      // ensureImported() call repopulates from assets.
-      const versionRows = yield* sql.unsafe<{ user_version: number }>(`PRAGMA user_version`);
-      const currentVersion = versionRows[0]?.user_version ?? 0;
+      // ensureImported() call repopulates from assets. Per-service row in the
+      // shared `schema_versions` table; 0 = fresh / never-stamped → no drop.
+      yield* ensureSchemaVersionsTable(sql);
+      const currentVersion = yield* readSchemaVersion(sql, SCHEMA_NAME);
       if (currentVersion !== 0 && currentVersion !== SCHEMA_VERSION) {
         yield* sql.unsafe(`DROP TABLE IF EXISTS kjv_verses`);
         yield* sql.unsafe(`DROP TABLE IF EXISTS strongs_lexicon`);
@@ -517,12 +526,16 @@ export class KjvBibleDatabase extends Context.Service<KjvBibleDatabase, KjvBible
 
       const isImported = () =>
         Effect.gen(function* () {
-          const verseCount = yield* sql<{ n: number }>`SELECT COUNT(*) AS n FROM kjv_verses`;
+          const verseCount = yield* sql<{
+            n: number;
+          }>`SELECT COUNT(*) AS n FROM kjv_verses`;
           // Treat a partial import (e.g. a crashed transaction that left
           // the table populated but incomplete) as not-imported so the
           // next launch re-runs from the bundled asset.
           if ((verseCount[0]?.n ?? 0) < EXPECTED_KJV_VERSE_COUNT) return false;
-          const lexCount = yield* sql<{ n: number }>`SELECT COUNT(*) AS n FROM strongs_lexicon`;
+          const lexCount = yield* sql<{
+            n: number;
+          }>`SELECT COUNT(*) AS n FROM strongs_lexicon`;
           return (lexCount[0]?.n ?? 0) > 0;
         });
 

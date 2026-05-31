@@ -22,10 +22,18 @@ import { Context, Effect, Layer } from 'effect';
 import * as SqlClient from 'effect/unstable/sql/SqlClient';
 import type { SqlError } from 'effect/unstable/sql/SqlError';
 
+import {
+  ensureSchemaVersionsTable,
+  readSchemaVersion,
+  writeSchemaVersion,
+} from '../db/schema-version.js';
+
 // Bump when the on-disk shape changes. Init drops and rebuilds the
 // margin_notes table on mismatch — the bundled JSON re-imports in seconds, so
 // we don't ship migration SQL.
 const SCHEMA_VERSION = 1;
+// Identity for this service's row in the shared `schema_versions` table.
+const SCHEMA_NAME = 'bible_margin_notes';
 
 // ---------------------------------------------------------------------------
 // Asset shapes (input to import)
@@ -64,7 +72,11 @@ export interface MarginNoteRow {
  *  trusted but we don't want a stray garbage key to abort the import. */
 const parseKey = (
   key: string,
-): { readonly book: number; readonly chapter: number; readonly verse: number } | null => {
+): {
+  readonly book: number;
+  readonly chapter: number;
+  readonly verse: number;
+} | null => {
   const parts = key.split('.');
   if (parts.length !== 3) return null;
   const book = Number(parts[0]);
@@ -160,10 +172,10 @@ export class BibleMarginNotesDatabase extends Context.Service<
       Effect.gen(function* () {
         const sql = yield* SqlClient.SqlClient;
 
-        // Schema-version pattern lifted from BibleXrefsDatabase. Drop + recreate
-        // on mismatch — the bundled JSON re-imports cheaply.
-        const versionRows = yield* sql.unsafe<{ user_version: number }>(`PRAGMA user_version`);
-        const currentVersion = versionRows[0]?.user_version ?? 0;
+        // Per-service schema version. Drop + recreate on mismatch — the bundled
+        // JSON re-imports cheaply. 0 = fresh / never-stamped → no drop.
+        yield* ensureSchemaVersionsTable(sql);
+        const currentVersion = yield* readSchemaVersion(sql, SCHEMA_NAME);
         if (currentVersion !== 0 && currentVersion !== SCHEMA_VERSION) {
           yield* sql.unsafe(`DROP TABLE IF EXISTS margin_notes`);
         }
@@ -187,8 +199,7 @@ export class BibleMarginNotesDatabase extends Context.Service<
           `CREATE INDEX IF NOT EXISTS margin_notes_book_chapter ON margin_notes(book, chapter)`,
         );
 
-        // PRAGMA can't be bound — interpolate the integer literal directly.
-        yield* sql.unsafe(`PRAGMA user_version = ${SCHEMA_VERSION}`);
+        yield* writeSchemaVersion(sql, SCHEMA_NAME, SCHEMA_VERSION);
 
         const importCatalog = (catalog: MarginNotesCatalog) =>
           sql.withTransaction(
@@ -263,7 +274,13 @@ export class BibleMarginNotesDatabase extends Context.Service<
           );
 
         const chapterMarginNotes = (book: number, chapter: number) =>
-          sql<{ verse: number; idx: number; type: string; phrase: string; text: string }>`
+          sql<{
+            verse: number;
+            idx: number;
+            type: string;
+            phrase: string;
+            text: string;
+          }>`
           SELECT verse, idx, type, phrase, text
           FROM margin_notes
           WHERE book = ${book} AND chapter = ${chapter}
@@ -273,7 +290,12 @@ export class BibleMarginNotesDatabase extends Context.Service<
               const out = new Map<number, MarginNoteRow[]>();
               for (const r of rows) {
                 const t: MarginNoteType = isMarginNoteType(r.type) ? r.type : 'other';
-                const row: MarginNoteRow = { idx: r.idx, type: t, phrase: r.phrase, text: r.text };
+                const row: MarginNoteRow = {
+                  idx: r.idx,
+                  type: t,
+                  phrase: r.phrase,
+                  text: r.text,
+                };
                 const existing = out.get(r.verse);
                 if (existing === undefined) out.set(r.verse, [row]);
                 else existing.push(row);

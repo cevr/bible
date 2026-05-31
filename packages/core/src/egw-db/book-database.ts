@@ -19,6 +19,11 @@ import { Context, Effect, Layer, Option, Schema, Stream } from 'effect';
 import * as SqlClient from 'effect/unstable/sql/SqlClient';
 import type { SqlError } from 'effect/unstable/sql/SqlError';
 
+import {
+  ensureSchemaVersionsTable,
+  readSchemaVersion,
+  writeSchemaVersion,
+} from '../db/schema-version.js';
 import * as EGWSchemas from '../egw/schemas.js';
 import { type Node, nodesToText } from '../egw/ast.js';
 import { isChapterHeading } from '../egw/parse.js';
@@ -29,6 +34,8 @@ import { isChapterHeading } from '../egw/parse.js';
 // to ship migration SQL — a re-sync rebuilds them. Books and sync_status are
 // preserved across version bumps because their shape is stable.
 const SCHEMA_VERSION = 3;
+// Identity for this service's row in the shared `schema_versions` table.
+const SCHEMA_NAME = 'egw_paragraphs';
 import { RecordNotFoundError } from '../errors/database.js';
 import type {
   DatabaseConnectionError,
@@ -203,7 +210,11 @@ export interface EGWParagraphDatabaseService {
     refcodeShort: string,
     limit?: number,
   ) => Effect.Effect<
-    readonly (EGWSchemas.Paragraph & { bookCode: string; bookTitle: string; bookId: number })[],
+    readonly (EGWSchemas.Paragraph & {
+      bookCode: string;
+      bookTitle: string;
+      bookId: number;
+    })[],
     ParagraphDatabaseError
   >;
   readonly getMaxPage: (bookId: number) => Effect.Effect<number, ParagraphDatabaseError>;
@@ -392,13 +403,15 @@ export class EGWParagraphDatabase extends Context.Service<
     Effect.gen(function* () {
       const sql = yield* SqlClient.SqlClient;
 
-      // Schema version check. SQLite's user_version pragma defaults to 0 for
-      // fresh DBs; if it doesn't match SCHEMA_VERSION we drop the paragraph
-      // tables (whose shape changed) and recreate via the CREATE TABLE blocks
-      // below. Books/sync_status are preserved — they're stable across bumps
-      // and tossing them would force callers to re-add books before a re-sync.
-      const versionRows = yield* sql.unsafe<{ user_version: number }>(`PRAGMA user_version`);
-      const currentVersion = versionRows[0]?.user_version ?? 0;
+      // Schema version check via the per-service `schema_versions` registry
+      // (NOT the shared `PRAGMA user_version` — multiple services share this DB
+      // file and would clobber each other's version, forcing a drop+rebuild on
+      // every launch; see ../db/schema-version.ts). 0 = fresh / never-stamped;
+      // a non-zero mismatch means our tables' shape changed, so drop + recreate.
+      // Books/sync_status are preserved — they're stable across bumps and
+      // tossing them would force callers to re-add books before a re-sync.
+      yield* ensureSchemaVersionsTable(sql);
+      const currentVersion = yield* readSchemaVersion(sql, SCHEMA_NAME);
       if (currentVersion !== 0 && currentVersion !== SCHEMA_VERSION) {
         yield* sql.unsafe(`DROP TABLE IF EXISTS paragraphs_fts`);
         yield* sql.unsafe(`DROP TABLE IF EXISTS paragraph_bible_refs`);
@@ -499,10 +512,9 @@ export class EGWParagraphDatabase extends Context.Service<
       `);
       yield* sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_sync_status ON sync_status(status)`);
 
-      // Stamp the current schema version; the next open sees the match and
-      // skips the drop/rebuild branch above. user_version takes an integer
-      // literal — no parameter binding for PRAGMA.
-      yield* sql.unsafe(`PRAGMA user_version = ${SCHEMA_VERSION}`);
+      // Stamp our schema version; the next open sees the match and skips the
+      // drop/rebuild branch above.
+      yield* writeSchemaVersion(sql, SCHEMA_NAME, SCHEMA_VERSION);
 
       // ========== Book operations ==========
 
