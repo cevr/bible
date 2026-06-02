@@ -1,0 +1,6 @@
+# Machine-specific compiled binary — rebuild from ocr.swift with:
+#   swiftc -O .bin/ocr.swift -o .bin/ocr
+.bin/ocr
+
+# Fat intermediate (4MB+ of duplicated transcript/OCR text) — regenerate with build-args.py
+workflow-args.json
