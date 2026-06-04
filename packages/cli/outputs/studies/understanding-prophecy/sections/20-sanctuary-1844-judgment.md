@@ -26,7 +26,7 @@
 
   > "...they found in the Bible a full explanation of the subject of the sanctuary, its nature, location, and services; the testimony of the sacred writers being so clear and ample as to place the matter beyond all question." — GC 411-412.
 
-  > "I was then bidden to take notice of the two apartments of the heavenly sanctuary... In the first apartment I saw the candlestick with seven lamps, the table of shewbread, the altar of incense, and the censer... I looked into the second apartment. I saw there an ark... In the ark were tables of stone containing the ten commandments." — EW 251.3-252.1.
+  > "I was then bidden to take notice of the two apartments of the heavenly sanctuary... In the first apartment I saw the candlestick with seven lamps, the table of shewbread, the altar of incense, and the censer... I looked into the second apartment. I saw there an ark... In the ark were tables of stone containing the ten commandments." — EW 251.3.
 
 - **Hebrews 9:11-12** — "Christ being come an high priest... by a greater and more perfect tabernacle, not made with hands... by his own blood he entered in once into the holy place, having obtained eternal redemption for us." The greater tabernacle is the heavenly sanctuary where Christ now officiates.
 
@@ -44,7 +44,7 @@
 
   > "The ministration of the earthly sanctuary consisted of two divisions; the priests ministered daily in the holy place, while once a year the high priest performed a special work of atonement in the most holy, for the cleansing of the sanctuary." — GC 418.
 
-  > "The 10th day of the 7th month every year, the holy sanctuary is cleansed. This is the day of the sprinkling of blood on the mercy seat and seven times before it... This is the day of affliction for all Israel." — BP3 130.
+  > "The 10th day of the 7th month every year, the holy sanctuary is cleansed... This is the day of the sprinkling of blood on the mercy seat and seven times before it... This is the day of affliction for all Israel." — BP3 130.3.
 
 - **Hebrews 9:8** — The Holy Ghost signified "that the way into the holiest of all was not yet made manifest, while as the first tabernacle was yet standing." The most holy ministry opens only after the first-apartment work closes — the very transition of 1844.
 
@@ -66,7 +66,7 @@
 
   > "We must by faith enter within the veil, 'whither the forerunner is for us entered.' Hebrews 6:20. There the light from the cross of Calvary is reflected." — GC 489.
 
-  > "The sins of all those who come to Christ for salvation and pardon, are through his blood transferred to the Sanctuary... the heavenly things themselves with better sacrifices than these, that is, with the blood of Christ." — TTHDS 21.3.
+  > "The sins of all those who come to Christ for salvation and pardon, are through his blood transferred to the Sanctuary... the heavenly things themselves (the True Tabernacle in heaven) with better sacrifices than these, that is, with the blood of Christ." — TTHDS 21.3.
 
 ### The Day of Atonement (Leviticus 16) Is the Type of the Cleansing
 
@@ -100,11 +100,11 @@
 
   > "It is the ministration performed in the most holy place to complete the round of service, and end the work." — STTHD 249.1.
 
-  > "In the typical service, which was a shadow of the sacrifice and priesthood of Christ, the cleansing of the sanctuary was the last service performed by the high priest in the yearly round of ministration. It was the closing work of the atonement—a removal or putting away of sin from Israel." — GC 352.2.
+  > "In the typical system, which was a shadow of the sacrifice and priesthood of Christ, the cleansing of the sanctuary was the last service performed by the high priest in the yearly round of ministration. It was the closing work of the atonement—a removal or putting away of sin from Israel." — GC 352.2.
 
 - **Leviticus 23:27-29** — "On the tenth day of this seventh month there shall be a day of atonement... ye shall afflict your souls"; whoever "shall not be afflicted in that same day... shall be cut off." Probation closed for any who neglected the day — the type of the close of probation in the judgment.
 
-  > "In the typical service, while the high priest was making the atonement for Israel, all were required to afflict their souls by repentance of sin and humiliation before the Lord, lest they be cut off from among the people. In like manner, all who would have their names retained in the book of life should now... afflict their souls before God." — GC 430.
+  > "In the typical service, while the high priest was making the atonement for Israel, all were required to afflict their souls by repentance of sin and humiliation before the Lord, lest they be cut off from among the people. In like manner, all who would have their names retained in the book of life should now... afflict their souls before God." — GC 489-490.
 
   > "The following will explain the Convocation day: Leviticus 16:17, 33... day of affliction 29 v., rest day or Sabbath, and when to begin it, 32." — BP3 130.4.
 
@@ -148,7 +148,7 @@
 
 - **Daniel 8:14** — "Unto two thousand and three hundred days; then shall the sanctuary be cleansed." On the year-day principle (Num. 14:34; Eze. 4:6) the 2300 years, dated from 457 B.C., reach to A.D. 1844; and since no earthly sanctuary then stood, the sanctuary cleansed is the heavenly.
 
-  > "There remain 1810 years, extending far down into this dispensation, even to 1844. There the 2300 days terminated, and there we come to the cleansing of the sanctuary, the sanctuary, of course, of this dispensation." — DAR 145-157, 192.
+  > "There remain 1810 years, extending far down into this dispensation, even to 1844. There the 2300 days terminated, and there we come to the cleansing of the sanctuary, the sanctuary, of course, of this dispensation." — STTHD 197.2.
 
   > "At the termination of the 2300 days, in 1844, there had been no sanctuary on earth for many centuries. Thus the prophecy, 'Unto two thousand and three hundred days; then shall the sanctuary be cleansed,' unquestionably points to the sanctuary in heaven." — GC 326-329, 417.1.
 
@@ -178,7 +178,7 @@
 
   > "Therefore the announcement that the temple of God was opened in heaven and the ark of His testament was seen points to the opening of the most holy place of the heavenly sanctuary in 1844 as Christ entered there to perform the closing work of the atonement." — GC 433.
 
-  > "I was then bidden to take notice of the two apartments of the heavenly sanctuary... The veil was lifted, and I looked into the second apartment. I saw there an ark... In the ark were tables of stone containing the ten commandments." — EW 251.3-252.2.
+  > "I was then bidden to take notice of the two apartments of the heavenly sanctuary... The veil was lifted, and I looked into the second apartment. I saw there an ark... In the ark were tables of stone containing the ten commandments." — EW 251.3.
 
   > "We know it is the holy of holies that is here opened; for the ark is seen; and in that apartment alone the ark was deposited. This took place at the end of the 2300 days, when the sanctuary was to be cleansed... when the seventh angel commenced to sound." — DAR 507.
 
@@ -204,11 +204,11 @@
 
 - **Revelation 3:7-8 (EW)** — Christ "had shut the door of the holy place... and had opened the door into the most holy, which He opened in 1844, where the ark is." The shut door and the open door are the change of apartments at the end of the 2300 days.
 
-  > "I saw that Jesus had shut the door of the holy place, and no man can open it; and that He had opened the door into the most holy, and no man can shut it (Revelation 3:7, 8); and that since Jesus has opened the door into the most holy place, which contains the ark, the commandments have been shining out to God's people." — EW 42.2-43.1.
+  > "I saw that Jesus had shut the door of the holy place, and no man can open it; and that He had opened the door into the most holy, and no man can shut it (Revelation 3:7, 8); and that since Jesus has opened the door into the most holy place, which contains the ark, the commandments have been shining out to God's people." — EW 42.2.
 
 - **The vindication of the disappointed** — "Man has erred; but there has been no failure on the part of God... man erroneously believed the earth to be the sanctuary." Jesus "has risen up and shut the door of the holy place... and has opened a door into the most holy place and entered in to cleanse the sanctuary." The prophecy stood; the interpretation was mended.
 
-  > "'Has God's word failed? Has God failed to fulfill His promises? No; He has fulfilled all that He promised. Jesus has risen up and shut the door of the holy place of the heavenly sanctuary and has opened a door into the most holy place and entered in to cleanse the sanctuary... Man has erred; but there has been no failure on the part of God... but man erroneously believed the earth to be the sanctuary to be cleansed at the end of the prophetic periods.'" — EW 250.1-251.1.
+  > "'Has God's word failed? Has God failed to fulfill His promises? No; He has fulfilled all that He promised. Jesus has risen up and shut the door of the holy place of the heavenly sanctuary and has opened a door into the most holy place and entered in to cleanse the sanctuary... Man has erred; but there has been no failure on the part of God... but man erroneously believed the earth to be the sanctuary to be cleansed at the end of the prophetic periods.'" — EW 250.1.
 
 - **The center of present truth** — "The subject of the sanctuary and the investigative judgment should be clearly understood by the people of God... The sanctuary in heaven is the very center of Christ's work in behalf of men." This is the doctrine the disappointment uncovered — the key that opened the whole prophetic structure.
 

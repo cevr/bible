@@ -40,7 +40,7 @@
 
 - **Job 19:25-26** — "I know that my redeemer liveth, and that he shall stand at the latter day upon the earth: and... in my flesh shall I see God." The patriarch's hope was a bodily resurrection at the latter day — the saints' confidence in the first resurrection.
 
-  > "The patriarch Job in the night of his affliction exclaimed with unshaken trust: "I know that my Redeemer liveth, and that He shall stand at the latter day upon the earth: ... in my flesh shall I see God; whom I shall see for myself, and mine eyes shall behold, and not another."" — GC 299.
+  > "The patriarch Job in the night of his affliction exclaimed with unshaken trust: "I know that my Redeemer liveth, and that He shall stand at the latter day upon the earth: ... in my flesh shall I see God: whom I shall see for myself, and mine eyes shall behold, and not another."" — GC 299.
 
 ### The Wicked Slain at the Advent — the Earth Left Desolate
 
@@ -74,13 +74,13 @@
 
   > "Prophecy teaches that it will be brought back, partially at least, to this condition. … "I beheld the earth, and, lo, it was without form, and void; … I beheld, and, lo, there was no man, and all the birds of the heavens were fled." Jeremiah 4:23-26." — GC 658.2-658.3.
 
-  > "Its use seems to be such as to show that the word denotes any place of darkness, desolation, and death. … "Darkness was upon the face of the deep." The word there rendered deep is the same word that is here rendered bottomless pit." — DAR 690.3.
+  > "Its use seems to be such as to show that the word denotes any place of darkness, desolation, and death. … "darkness was upon the face of the deep." The word there rendered deep is the same word that is here rendered bottomless pit." — DAR 690.3.
 
 - **Jeremiah 4:27** — "The whole land shall be desolate; yet will I not make a full end." Desolate but not annihilated — reserved a thousand years, then renewed.
 
   > "The revelator foretells the banishment of Satan and the condition of chaos and desolation to which the earth is to be reduced, and he declares that this condition will exist for a thousand years." — GC 658.2.
 
-  > "The fair plains of the earth made new will [never] be soiled with the polluting tread of the resuscitated wicked; for besides outraging all ideas of propriety, there is no scripture from which even an inference can be drawn to support it." — DAR 695.
+  > "But we cannot believe that the saints' inheritance will ever be thus marred, or that the fair plains of the earth made new will ever be soiled with the polluting tread of the resuscitated wicked; for besides outraging all ideas of propriety, there is no scripture from which even an inference can be drawn to support it." — DAR 695.
 
 ### Satan Bound a Thousand Years — Bound by Circumstance
 
@@ -96,7 +96,7 @@
 
   > "That the expression "bottomless pit" represents the earth in a state of confusion and darkness is evident from other scriptures. Concerning the condition of the earth "in the beginning," the Bible record says that it "was without form, and void; and darkness was upon the face of the deep."" — GC 658.3.
 
-  > "The original word signifies an abyss, bottomless, deep, profound. … "Darkness was upon the face of the deep." The word there rendered deep is the same word that is here rendered bottomless pit." — DAR 690.3.
+  > "The original word signifies an abyss, bottomless, deep, profound. … "darkness was upon the face of the deep." The word there rendered deep is the same word that is here rendered bottomless pit." — DAR 690.3.
 
 - **Isaiah 24:21-22** — "The LORD shall punish... the kings of the earth upon the earth. And they shall be gathered together, as prisoners are gathered in the pit, and shall be shut up in the prison, and after many days shall they be visited." The wicked are shut in the prison of the grave and "visited" — raised — after the long interval.
 
@@ -130,7 +130,7 @@
 
 - **Revelation 20:6** — "They shall be priests of God and of Christ, and shall reign with him a thousand years"; on such "the second death hath no power." The first-resurrection saints are forever safe — beyond the reach of the second death.
 
-  > "Blessed and holy is he that hath part in the first resurrection: on such the second death hath no power, but they shall be priests of God and of Christ, and shall reign with him a thousand years." — DAR 693.
+  > "Blessed and holy is he that hath part in the first resurrection: on such the second death hath no power, but they shall be priests of God and of Christ, and shall reign with him a thousand years." — DAR 692.
 
   > "Upon those that had part in the first resurrection, the second death has no power. While God is to the wicked a consuming fire, He is to His people both a sun and a shield." — GC 673.3.
 
@@ -170,7 +170,7 @@
 
 - **Revelation 20:9** — "And fire came down from God out of heaven, and devoured them." The besieging host is consumed by fire from heaven — the execution of the judgment the saints had meted out.
 
-  > "But fire comes down from God out of heaven, and devours them. The word here rendered devoured, Professor Stuart admits is "intensive," and signifies, "to eat up, devour, so that it denotes utter excision."" — DAR 697.1.
+  > "But fire comes down from God out of heaven, and devours them. The word here rendered devoured, Professor Stuart admits is "intensive," and signifies, "to eat up, devour, so that it denotes utter excision."" — DAR 694.3.
 
   > "Satan rushes into the midst of his followers and tries to stir up the multitude to action. But fire from God out of heaven is rained upon them, and the great men, and mighty men, the noble, the poor and miserable, are all consumed together." — EW 294.1.
 

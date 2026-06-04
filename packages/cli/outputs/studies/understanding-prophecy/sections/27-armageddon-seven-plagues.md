@@ -58,7 +58,7 @@
 
 - **Revelation 16:8-9** — The fourth vial: the sun given "power... to scorch men with fire," and men were scorched with great heat, yet "blasphemed the name of God... and they repented not." Drought and famine as Joel describes; still no repentance.
 
-  > "Power is given unto the sun, and he pours upon them a flood of liquid fire, and they are scorched with great heat. Here, as the record runs, their woe first seeks utterance in fearful blasphemy." — DAR 647.4.
+  > "Power is given unto the sun, and he pours upon them a flood of liquid fire, and they are scorched with great heat. Here, as the record runs, their woe first seeks utterance in fearful blasphemy." — DAR 645.4.
 
   > "In the plague that follows, power is given to the sun 'to scorch men with fire. And men were scorched with great heat.' Verses 8, 9. The prophets thus describe the condition of the earth at this fearful time: 'The land mourneth; ... because the harvest of the field is perished.'" — GC 628.1.
 
@@ -110,7 +110,7 @@
 
 - **Revelation 17:12-14** — The ten kings "have one mind, and shall give their power and strength unto the beast"; then "these shall make war with the Lamb, and the Lamb shall overcome them: for he is Lord of lords, and King of kings." Armageddon is the confederated powers of earth versus the Lamb — and the Lamb prevails.
 
-  > "These make war with the Lamb. Verse 14. Here we are carried into the future, to the time of the great and final battle; for at this time the Lamb has assumed the title of King of kings and Lord of lords, a title which he does not assume till his second coming." — DAR 657-662.
+  > "These make war with the Lamb. Verse 14. Here we are carried into the future, to the time of the great and final battle; for at this time the Lamb has assumed the title of King of kings and Lord of lords, a title which he does not assume till his second coming." — DAR 661.3.
 
 ### The Seventh Vial — "It Is Done" — and the Voice of God
 

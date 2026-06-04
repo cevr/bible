@@ -78,7 +78,7 @@
 
   > "The points of identity between them are easily seen: (1) They both have a special message to proclaim; (2) they both utter their proclamation with a loud voice; (3) they both use similar language, referring to the great Creator … and (4) they both proclaim time, one swearing that time should be no more, and the other proclaiming that the hour of God's Judgment has come." — DAR 490.1.
 
-  > "The sixth and seventh verses of the tenth chapter of Revelation are parallel with the sixth and seventh verses of the fourteenth chapter." — SSP 187.1.
+  > "The sixth and seventh verses of the tenth chapter of Revelation are parallel with the sixth and seventh verses of the fourteenth chapter." — SSP 187.2.
 
 - **Revelation 11:18** — "The time of the dead, that they should be judged... reward unto thy servants the prophets, and to the saints." The seventh trumpet brings in the judgment hour announced by the angel — the same investigative work begun in 1844.
 

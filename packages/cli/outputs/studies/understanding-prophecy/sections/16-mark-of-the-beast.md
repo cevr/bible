@@ -124,7 +124,7 @@
 
 - **The two classes** — "Christendom will at last be divided into just two classes... those who are sealed with the seal of the living God... and those who are sealed with the seal of the beast." One keeps the seventh day, the other the first — opposite extremities of the week.
 
-  > "Christendom will at last be divided into just two classes; to wit, those who are sealed with the seal of the living God, that is, have his mark, or keep his Sabbath; and those who are sealed with the seal of the beast, that is, have his mark, or keep his Sabbath. One is the seventh day; the other is just as far removed from it as possible, even to the other extremity of the week, namely, the first day." — DAR 628.
+  > "One is the seventh day; the other is just as far removed from it as possible, even to the other extremity of the week, namely, the first day. Christendom will at last be divided into just two classes; to wit, those who are sealed with the seal of the living God, that is, have his mark, or keep his Sabbath; and those who are sealed with the seal of the beast, that is, have his mark, or keep his Sabbath." — DAR 628.
 
   > "In the issue of the contest all Christendom will be divided into two great classes—those who keep the commandments of God and the faith of Jesus, and those who worship the beast and his image and receive his mark." — GC 450.
 

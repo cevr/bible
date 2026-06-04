@@ -14,7 +14,7 @@
 
   > "Figures always have a figurative meaning, and are used much in prophecy, to represent future things, times and events… Day, meaning year." — MWV1 21.
 
-  > "The rule given us in the Bible is, that when a day is used as a symbol, it stands for a year. Ezekiel 4:6; Numbers 14:34… As each day stands for a year, we have twelve hundred and sixty years for the continuation of the supremacy of this horn." — DAR 141-142.
+  > "The rule given us in the Bible is, that when a day is used as a symbol, it stands for a year. Ezekiel 4:6; Numbers 14:34… As each day stands for a year, we have twelve hundred and sixty years for the continuation of the supremacy of this horn." — DAR 141.
 
 - **Ezekiel 4:5** — "I have laid upon thee the years of their iniquity, according to the number of the days, three hundred and ninety days." The 390 days for Israel are by God's own word 390 years — the principle applied a third time in the same passage.
 
@@ -54,7 +54,7 @@
 
 - **Leviticus 25:8** — "Thou shalt number seven sabbaths of years . . . seven times seven years; and the space of the seven sabbaths of years shall be unto thee **forty and nine years**." Forty-nine years are reckoned as "seven sabbaths of years" — a week of weeks of years, the same arithmetic that turns 70 weeks into 490 years.
 
-  > "The word here translated 'determined' literally signifies 'cut off.' Seventy weeks, representing 490 years, are declared by the angel to be cut off, as specially pertaining to the Jews." — GC 326-328.
+  > "The word here translated 'determined' literally signifies 'cut off.' Seventy weeks, representing 490 years, are declared by the angel to be cut off, as specially pertaining to the Jews." — GC 326.
 
 - **Leviticus 25:9** — The jubilee trumpet sounds "in the day of atonement" of "the seventh month" — the autumn type that, with the seventh-month reckoning, fixes the close of the 2300 days in the autumn of 1844.
 
@@ -66,7 +66,7 @@
 
 - **Daniel 9:24** — "**Seventy weeks are determined** upon thy people and upon thy holy city, to finish the transgression . . . and to anoint the most Holy." The word "determined" (Heb. _nehhtak_) properly signifies **"cut off"** — and there is but one period from which 70 weeks could be cut off: the 2300 days of Daniel 8:14.
 
-  > "If this view of the subject is correct, we should naturally expect, when the angel completed his explanation of the vision, that he would commence with the very point which had been omitted; namely, the time… he commences upon the very point there omitted, and says, 'Seventy weeks are determined upon thy people and upon thy holy city.'" — DAR 191-192.
+  > "If this view of the subject is correct, we should naturally expect, when the angel completed his explanation of the vision, that he would commence with the very point which had been omitted; namely, the time… he commences upon the very point there omitted, and says, 'Seventy weeks are determined upon thy people and upon thy holy city.'" — DAR 191.
 
   > "The word here translated 'determined' literally signifies 'cut off.'… As the 2300 days was the only period of time mentioned in chapter 8, it must be the period from which the seventy weeks were cut off; the seventy weeks must therefore be a part of the 2300 days, and the two periods must begin together." — GC 326.
 
@@ -82,7 +82,7 @@
 
 - **Daniel 9:27** — "He shall confirm the covenant with many for one week: and in the midst of the week he shall cause the sacrifice and the oblation to cease." The final week (A.D. 27-34) and the cessation of the sacrifices at the cross fall to the year, proving the year-day measure.
 
-  > "The 'week' here brought to view is the last one of the seventy; it is the last seven years of the period allotted especially to the Jews. During this time, extending from A.D. 27 to A.D. 34, Christ, at first in person and afterward by His disciples, extended the gospel invitation especially to the Jews." — GC 327-328.
+  > "The 'week' here brought to view is the last one of the seventy; it is the last seven years of the period allotted especially to the Jews. During this time, extending from A.D. 27 to A.D. 34, Christ, at first in person and afterward by His disciples, extended the gospel invitation especially to the Jews." — GC 327.
 
 - **"Cut off" — the textual demonstration** — "The word here rendered determined signifies 'cut off;' and there is no period from which the seventy weeks could be cut off but the 2300 days." The 490 years are a part of the 2300; both begin together at 457 B.C.
 
@@ -100,7 +100,7 @@
 
   > "The prophecy which seemed most clearly to reveal the time of the second advent was that of Daniel 8:14: 'Unto two thousand and three hundred days; then shall the sanctuary be cleansed.'" — GC 324.
 
-  > "The seventy weeks—490 days—having been cut off from the 2300, there were 1810 days remaining… From A.D. 34, 1810 years extend to 1844. Consequently the 2300 days of Daniel 8:14 terminate in 1844." — GC 326-328.
+  > "The seventy weeks—490 days—having been cut off from the 2300, there were 1810 days remaining… From A.D. 34, 1810 years extend to 1844. Consequently the 2300 days of Daniel 8:14 terminate in 1844." — GC 328.
 
 - **Daniel 7:25** — "And they shall be given into his hand until **a time and times and the dividing of time**." Three and a half prophetic years = 1260 days = 1260 years of papal supremacy, 538 to 1798.
 
@@ -138,7 +138,7 @@
 
 - **Daniel 12:11-12** — "From the time that the daily shall be taken away . . . a thousand two hundred and **ninety days**," and "blessed is he that waiteth, and cometh to the thousand three hundred and **five and thirty days**." The 1290 (508-1798) and 1335 (508-1843/44) — both reckoned as years on the same rule.
 
-  > "Still another prophetic period is here introduced, denoting 1335 years… The only clue we have to the solution of this question, is the fact that it is spoken of in immediate connection with the 1290 years, which commenced, as shown above, in 508… From this point they would extend to 1843; for 1335 added to 508 make 1843." — DAR 314-316.
+  > "Still another prophetic period is here introduced, denoting 1335 years… The only clue we have to the solution of this question, is the fact that it is spoken of in immediate connection with the 1290 years, which commenced, as shown above, in 508… From this point they would extend to 1843; for 1335 added to 508 make 1843." — DAR 314.
 
 ### The proportion summarized
 

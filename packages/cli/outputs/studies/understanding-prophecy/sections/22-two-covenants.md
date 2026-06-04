@@ -56,7 +56,7 @@
 
 - **Jeremiah 31:31-33** — "I will put my law in their inward parts, and write it in their hearts; and will be their God, and they shall be my people." The new covenant is not a new law but the old law in a new place — God Himself does the writing.
 
-  > "Its scope is identical with that of the new covenant, in which God says, 'I will put my law in their inward parts, and write it in their hearts; and will be their God, and they shall be my people.'" — EVCO 326.
+  > "Its scope is identical with that of the new covenant, in which God says, 'I will put my law in their inward parts, and write it in their hearts; and will be their God, and they shall be my people.'" — EVCO 84.
 
   > "In the beginning, man was created in the image of God. He was in perfect harmony with the nature and the law of God; the principles of righteousness were written upon his heart. But sin alienated him from his Maker. … His heart must be renewed by divine grace; he must have a new life from above." — GC 467-468.
 
@@ -84,7 +84,7 @@
 
   > "But Christ is the only Light of the world, the Light of life; so that the true and living law is found only in Him. It is His life, because it is in His heart, and out of the heart are the issues of life." — EVCO 344.
 
-  > "It is the work of conversion and sanctification to reconcile men to God by bringing them into accord with the principles of His law. … His heart must be renewed by divine grace; he must have a new life from above. This change is the new birth." — GC 468.
+  > "It is the work of conversion and sanctification to reconcile men to God by bringing them into accord with the principles of His law. … His heart must be renewed by divine grace; he must have a new life from above. This change is the new birth." — GC 467.
 
 - **Galatians 4:26-28** — "Jerusalem which is above is free, which is the mother of us all... we, brethren, as Isaac was, are the children of promise." Sarah, the freewoman, is the new covenant; her children are free, born "by promise."
 

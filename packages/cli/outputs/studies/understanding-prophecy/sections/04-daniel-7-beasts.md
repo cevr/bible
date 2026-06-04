@@ -18,7 +18,7 @@
 
 - **Daniel 7:17** — "These great beasts, which are four, are four kings, which shall arise out of the earth." The angel's own key: each beast is a kingdom — the same four metals of Daniel 2 under living symbols.
 
-  > "These beast are therefore symbols of four great kingdoms… The first beast of this vision must therefore denote the same as the head of gold of the great image, namely, the kingdom of Babylon, and the other beasts the succeeding kingdoms shown by that image." — DAR 114.
+  > "Now, from the time of Daniel to the end of this world's history, there were to be but four universal kingdoms, as we learn from Nebuchadnezzar's dream of the great image in chapter 2.… The first beast of this vision must therefore denote the same as the head of gold of the great image, namely, the kingdom of Babylon, and the other beasts the succeeding kingdoms shown by that image." — DAR 114.
 
 - **Daniel 7:18** — "But the saints of the most High shall take the kingdom... for ever, even for ever and ever." The vision's goal is not another earthly empire but the everlasting kingdom of the saints — the fifth kingdom of Daniel 2's stone.
 
@@ -112,7 +112,7 @@
 
   > "And has the papacy attempted this? — Yes, even this. It has, in its catechisms, expunged the second commandment of the decalogue to make way for its adoration of images. It has divided the tenth commandment to make up the number ten. And, more audacious than all! it has taken hold of the fourth commandment, torn from its place the Sabbath of Jehovah… and erected in its place a rival institution." — DAR 140.3.
 
-  > "The papacy has attempted to change the law of God. The second commandment, forbidding image worship, has been dropped from the law, and the fourth commandment has been so changed as to authorize the observance of the first instead of the seventh day as the Sabbath.… The change in the fourth commandment exactly fulfills the prophecy. For this the only authority claimed is that of the church. Here the papal power openly sets itself above God." — GC 446.1-2.
+  > "The papacy has attempted to change the law of God. The second commandment, forbidding image worship, has been dropped from the law, and the fourth commandment has been so changed as to authorize the observance of the first instead of the seventh day as the Sabbath.… The change in the fourth commandment exactly fulfills the prophecy. For this the only authority claimed is that of the church. Here the papal power openly sets itself above God." — GC 446.2.
 
 - **2 Thessalonians 2:3-4** — "That man of sin... the son of perdition; who opposeth and exalteth himself above all that is called God... so that he as God sitteth in the temple of God." Paul's "man of sin" is the same little horn — a power within the professed church, exalting itself above God.
 

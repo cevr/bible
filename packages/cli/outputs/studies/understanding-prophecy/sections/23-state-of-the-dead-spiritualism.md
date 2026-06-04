@@ -162,13 +162,13 @@
 
 - **Revelation 16:13** — "Three unclean spirits like frogs come out of the mouth of the dragon, and out of the mouth of the beast, and out of the mouth of the false prophet." Spiritualism (dragon), the Papacy (beast), and apostate Protestantism (false prophet) unite in one threefold confederacy against God's people.
 
-  > "The sources from which these spirits issue, denote that they will work among three great religious divisions of mankind, represented by the dragon, the beast, and the false prophet, or Paganism, Catholicism, and Protestantism." — DAR 646.3.
+  > "The sources from which these spirits issue, denote that they will work among three great religious divisions of mankind, represented by the dragon, the beast, and the false prophet, or Paganism, Catholicism, and Protestantism." — DAR 650.2.
 
   > "The Protestants of the United States will be foremost in stretching their hands across the gulf to grasp the hand of spiritualism; they will reach over the abyss to clasp hands with the Roman power; and under the influence of this threefold union, this country will follow in the steps of Rome in trampling on the rights of conscience." — GC 588.
 
 - **Revelation 16:14** — "They are the spirits of devils, working miracles... to gather them to the battle of that great day of God Almighty." These working-miracle demons go forth to the kings of the earth; the supernatural fires this last alliance.
 
-  > "But it is one province of these spirits of devils to deceive, for they go forth working miracles, and thereby deceive the kings of the earth, that they should believe a lie." — DAR 646.3-648.
+  > "But it is one province of these spirits of devils to deceive, for they go forth working miracles, and thereby deceive the kings of the earth, that they should believe a lie." — DAR 650.1.
 
   > "Says the prophet: 'I saw three unclean spirits like frogs; ... they are the spirits of devils, working miracles, which go forth unto the kings of the earth and of the whole world, to gather them to the battle of that great day of God Almighty.' … Except those who are kept by the power of God, through faith in His word, the whole world will be swept into the ranks of this delusion." — GC 561.
 

@@ -15,7 +15,7 @@
 
 - **Rev. 14:6** — "And I saw another angel fly in the midst of heaven, having the everlasting gospel to preach unto them that dwell on the earth, and to every nation, and kindred, and tongue, and people." A worldwide religious movement, not a single preacher; the same gospel that has saved men in every age now sounds its final call.
 
-  > "These angels are evidently symbolic; for the work assigned them is that of preaching the everlasting gospel to the people. But the preaching of the gospel has not been intrusted to literal angels; it has been committed unto men… Each of these three angels, therefore, symbolizes a body of religious teachers, who are commissioned to make known to their fellow men the special truths which constitute the burden of these messages respectively." — DAR 585.
+  > "These angels are evidently symbolic; for the work assigned them is that of preaching the everlasting gospel to the people. But the preaching of the gospel has not been intrusted to literal angels; it has been committed unto men… Each of these three angels, therefore, symbolizes a body of religious teachers, who are commissioned to make known to their fellow men the special truths which constitute the burden of these messages respectively." — DAR 586.
 
   > "And the angel's flight 'in the midst of heaven,' the 'loud voice' with which the warning is uttered, and its promulgation to all 'that dwell on the earth,'—'to every nation, and kindred, and tongue, and people,'—give evidence of the rapidity and world-wide extent of the movement." — GC 355.
 
@@ -27,7 +27,7 @@
 
 - **Dan. 8:14** — "Unto two thousand and three hundred days; then shall the sanctuary be cleansed." The 2300 years (Num. 14:34; Eze. 4:6) reach from 457 B.C. to A.D. 1844; the cleansing of the sanctuary is the judgment hour the first angel announces.
 
-  > "It brings to view a period of making ready the guests for the marriage of the Lamb, which is the work of Judgment to which the message brings us when it declares, 'The hour of his Judgment is come.'… It went forth with the power thus indicated between the years 1840-44… bringing us to the end of the 2300 days, when the work of Judgment commenced as Christ began the work of cleansing the sanctuary." — DAR 582-586.
+  > "It brings to view a period of making ready the guests for the marriage of the Lamb, which is the work of Judgment to which the message brings us when it declares, 'The hour of his Judgment is come.'… It went forth with the power thus indicated between the years 1840-44… bringing us to the end of the 2300 days, when the work of Judgment commenced as Christ began the work of cleansing the sanctuary." — DAR 600.
 
   > "The prophecies present a succession of events leading down to the opening of the judgment. This is especially true of the book of Daniel. But that part of his prophecy which related to the last days, Daniel was bidden to close up and seal 'to the time of the end.'" — GC 355.
 
@@ -85,7 +85,7 @@
 
   > "The reason given why Babylon meets with this moral fall is 'because she made all nations drink of the wine of the wrath … of her fornication.' There is but one thing to which this can refer, and that is false doctrines. She has corrupted the pure truths of God's word, and made the nations drunken with pleasing fables." — DAR 607-608.
 
-  > "The second angel's message of Revelation 14 was first preached in the summer of 1844, and it then had a more direct application to the churches of the United States, where the warning of the judgment had been most widely proclaimed and most generally rejected." — GC 381.
+  > "The second angel's message of Revelation 14 was first preached in the summer of 1844, and it then had a more direct application to the churches of the United States, where the warning of the judgment had been most widely proclaimed and most generally rejected." — GC 389.
 
   > "Not until this condition shall be reached, and the union of the church with the world shall be fully accomplished throughout Christendom, will the fall of Babylon be complete. The change is a progressive one, and the perfect fulfillment of Revelation 14:8 is yet future." — GC 389.
 
@@ -97,7 +97,7 @@
 
 - **Isa. 21:9** — "Babylon is fallen, is fallen; and all the graven images of her gods he hath broken." The prophetic phrase the second angel borrows; the doom of literal Babylon foreshadows the moral fall of mystic Babylon.
 
-  > "As Babylon is not a literal city, the fall cannot be a literal overthrow… The fall is therefore a moral fall; for after the fall, the voice is addressed to the people of God who are still in her connection, 'Come out of her, my people.'" — DAR 600.
+  > "As Babylon is not a literal city, the fall cannot be a literal overthrow… The fall is therefore a moral fall; for after the fall, the voice is addressed to the people of God who are still in her connection, 'Come out of her, my people.'" — DAR 607.
 
 - **Rev. 18:1-3** — "Babylon the great is fallen, is fallen, and is become the habitation of devils... For all nations have drunk of the wine of the wrath of her fornication." The fuller "loud cry" repetition of the second angel's message under the mighty angel whose glory lightens the earth.
 
@@ -137,13 +137,13 @@
 
 - **Rev. 13:15-17** — "...cause that as many as would not worship the image of the beast should be killed... receive a mark in their right hand, or in their foreheads." The mark the third angel warns against is the enforced worship of the beast through his image — apostate Protestantism (the two-horned beast / United States) compelling allegiance to Rome.
 
-  > "The powers of darkness will press forward their work, and if the churches still persist in this course of shunning light and rejecting truth, they will soon find themselves worshiping the beast and receiving his mark. This will be the logical sequence of that course of action which commenced with the rejection of the first message." — DAR 619.
+  > "The powers of darkness will press forward their work, and if the churches still persist in this course of shunning light and rejecting truth, they will soon find themselves worshiping the beast and receiving his mark. This will be the logical sequence of that course of action which commenced with the rejection of the first message." — DAR 620.
 
   > "When the leading churches of the United States, uniting upon such points of doctrine as are held by them in common, shall influence the state to enforce their decrees and to sustain their institutions, then Protestant America will have formed an image of the Roman hierarchy… The 'image to the beast' represents that form of apostate Protestantism which will be developed when the Protestant churches shall seek the aid of the civil power for the enforcement of their dogmas." — GC 445.
 
 - **Dan. 7:25** — "He shall... think to change times and laws." The little horn (the Papacy) presumed to change God's law, transferring the Sabbath to Sunday; the third message restores the trampled commandment, and Sunday-keeping enforced becomes the mark.
 
-  > "Stripped of all disguises, it is simply setting up a counterfeit Sabbath of its own on the first day of the week, in place of the Sabbath of the Lord on the seventh day, — a usurpation which the great God cannot tolerate, and from which the remnant church must fully clear itself before it will be prepared for the coming of Christ." — DAR 630.
+  > "Stripped of all disguises, it is simply setting up a counterfeit Sabbath of its own on the first day of the week, in place of the Sabbath of the Lord on the seventh day, — a usurpation which the great God cannot tolerate, and from which the remnant church must fully clear itself before it will be prepared for the coming of Christ." — DAR 626.
 
   > "The special characteristic of the beast, and therefore of his image, is the breaking of God's commandments. Says Daniel, of the little horn, the papacy: 'He shall think to change times and the law.'… The papacy has attempted to change the law of God… the fourth commandment has been so changed as to authorize the observance of the first instead of the seventh day as the Sabbath." — GC 446-447.
 

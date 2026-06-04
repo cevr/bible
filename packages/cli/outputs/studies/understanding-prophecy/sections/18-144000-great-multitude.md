@@ -22,7 +22,7 @@
 
 - **Ephesians 4:30** — "Ye are sealed unto the day of redemption." The seal is the impress of the Holy Spirit, set on the character of those who are ready for translation.
 
-  > "The seal of God, as brought to view in our text, is to be applied to the servants of God… some institution or observance having special reference to God, which will serve as a 'mark of distinction' between the worshipers of God and those who are not in truth his servants, though they may profess to follow him." — DAR 446.
+  > "The seal of God, as brought to view in our text, is to be applied to the servants of God… some institution or observance having special reference to God, which will serve as a 'mark of distinction' between the worshipers of God and those who are not in truth his servants, though they may profess to follow him." — DAR 437.3.
 
 - **Revelation 22:4** — "His name shall be in their foreheads." The Father's name is His seal; the commandment that bears His descriptive title — the Sabbath — is the seal of His law.
 

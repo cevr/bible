@@ -41,7 +41,7 @@
 
 - **Revelation 12:6** — "The woman fled into the wilderness... that they should feed her there a thousand two hundred and threescore days." The same 1260 of the beast's reign, seen from the church's side: while the beast rules, the true church is driven into the wilderness.
 
-  > "And the church fled into the wilderness at the time the papacy was established, in 538, where it was nourished by the word of God and the ministration of angels during the long, dark, and bloody rule of that power, 1260 years." — DAR 514-515.
+  > "And the church fled into the wilderness at the time the papacy was established, in 538, where it was nourished by the word of God and the ministration of angels during the long, dark, and bloody rule of that power, 1260 years." — DAR 512.
 
 ### Six points of identity — the little horn and the leopard beast are one power
 
@@ -185,7 +185,7 @@
 
 - **Revelation 17:6** — "I saw the woman drunken with the blood of the saints, and with the blood of the martyrs of Jesus." The persecuting record of the beast of chapter 13 (13:7) re-stated of the woman — one and the same blood-guilty power.
 
-  > "The secret of his wonder was just this: all the persecution he had witnessed had been from pagan Rome, the open enemy of Christ.... but when he looked forward, and saw a church professedly Christian persecuting the followers of the Lamb, and drunken with their blood, he could but wonder with great amazement." — DAR 660.
+  > "The secret of his wonder was just this: all the persecution he had witnessed had been from pagan Rome, the open enemy of Christ.... but when he looked forward, and saw a church professedly Christian persecuting the followers of the Lamb, and drunken with their blood, he could but wonder with great amazement." — DAR 658-659.
 
   > "“And shall wear out the saints of the Most High.”... All know that for long years the papal church has pursued its relentless work against the true followers of God." — DAR 137.
 

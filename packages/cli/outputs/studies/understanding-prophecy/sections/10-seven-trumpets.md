@@ -18,7 +18,7 @@
 
 - **Revelation 8:6** — "And the seven angels which had the seven trumpets prepared themselves to sound." The signal that the historical series is about to open upon the Roman world.
 
-  > "The subject of the seven trumpets is here resumed…. The seven angels prepare themselves to sound. Their sounding comes in as a complement to the prophecy of Daniel 2 and 7, commencing with the breaking up of the old Roman empire into its ten divisions, of which, in the first four trumpets, we have a description." — DAR 455.
+  > "The subject of the seven trumpets is here resumed…. The seven angels prepare themselves to sound. Their sounding comes in as a complement to the prophecy of Daniel 2 and 7, commencing with the breaking up of the old Roman empire into its ten divisions, of which, in the first four trumpets, we have a description." — DAR 454.
 
 ### The first four trumpets — the barbarian floods that broke Western Rome
 

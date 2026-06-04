@@ -54,7 +54,7 @@
 
   > "Many of the wicked were greatly enraged as they suffered the effects of the plagues. It was a scene of fearful agony.... Loud, wailing cries were heard in every direction, 'It was you who kept me from receiving the truth which would have saved me from this awful hour.'" — EW 282.1.
 
-  > "Christ has made the atonement for His people and blotted out their sins.... Every case has been decided for life or death." — GC 613.2.
+  > "Every case has been decided for life or death. Christ has made the atonement for His people and blotted out their sins." — GC 613.2.
 
 - **Revelation 16:8-11** — The fourth vial scorches men with fire; the fifth fills the beast's kingdom with darkness; yet they "blasphemed the name of God... and they repented not." The plagues are unmixed wrath — no mercy is mingled, because probation has closed and no repentance follows.
 
@@ -126,7 +126,7 @@
 
 - **Isaiah 26:20-21** — "Come, my people, enter thou into thy chambers... hide thyself... until the indignation be overpast. For, behold, the LORD cometh out of his place to punish the inhabitants of the earth." The saints are sheltered while wrath is poured out; then the Lord comes forth to judge.
 
-  > "The people of God... still plead for divine protection, while in every quarter companies of armed men, urged on by hosts of evil angels, are preparing for the work of death. It is now, in the hour of utmost extremity, that the God of Israel will interpose for the deliverance of His chosen." — GC 635-636.
+  > "The people of God... still plead for divine protection, while in every quarter companies of armed men, urged on by hosts of evil angels, are preparing for the work of death. It is now, in the hour of utmost extremity, that the God of Israel will interpose for the deliverance of His chosen." — GC 635.2.
 
 - **Zephaniah 2:3** — "Seek ye the LORD, all ye meek of the earth... it may be ye shall be hid in the day of the LORD'S anger." The call to seek righteousness and meekness now is the only preparation for being hid then.
 

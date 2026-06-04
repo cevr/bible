@@ -54,7 +54,7 @@
 
 - **Matthew 25:31** — "When the Son of man shall come in his glory, and all the holy angels with him, then shall he sit upon the throne of his glory."
 
-  > "With anthems of celestial melody the holy angels, a vast, unnumbered throng, attend Him on His way. The firmament seems filled with radiant forms—'ten thousand times ten thousand, and thousands of thousands.'" — GC 641-642.
+  > "With anthems of celestial melody the holy angels, a vast, unnumbered throng, attend Him on His way. The firmament seems filled with radiant forms—'ten thousand times ten thousand, and thousands of thousands.'" — GC 640.
 
 - **Matthew 16:27** — "The Son of man shall come in the glory of his Father with his angels; and then he shall reward every man according to his works."
 
@@ -72,7 +72,7 @@
 
 - **Jude 1:14** — Enoch prophesied, "Behold, the Lord cometh with ten thousands of his saints." The myriads attend the King in His triumph.
 
-  > "The firmament seems filled with radiant forms—'ten thousand times ten thousand, and thousands of thousands.' No human pen can portray the scene; no mortal mind is adequate to conceive its splendor." — GC 641.
+  > "The firmament seems filled with radiant forms—'ten thousand times ten thousand, and thousands of thousands.' No human pen can portray the scene; no mortal mind is adequate to conceive its splendor." — GC 640.
 
 - **Revelation 19:11-16** — Heaven opened, the white-horse Warrior called Faithful and True, crowned with many crowns, "KING OF KINGS, AND LORD OF LORDS," the armies of heaven following Him. Christ comes this time as conquering King, His mediatorial work closed and kingly attire on.
 
@@ -102,15 +102,15 @@
 
 - **Colossians 3:4** — "When Christ, who is our life, shall appear, then shall ye also appear with him in glory."
 
-  > "The living saints are changed in a moment, in the twinkling of an eye, and caught up with the risen ones, and together they meet their Lord in the air. Oh, what a glorious meeting! Friends whom death had separated were united, never more to part." — EW 288-289.
+  > "The living saints are changed in a moment, in the twinkling of an eye, and caught up with the risen ones, and together they meet their Lord in the air. Oh, what a glorious meeting! Friends whom death had separated were united, never more to part." — EW 287.
 
 - **1 John 3:2** — "When he shall appear, we shall be like him; for we shall see him as he is."
 
-  > "Those bodies that had gone down into the grave bearing the marks of disease and death came up in immortal health and vigor. The living saints are changed in a moment, in the twinkling of an eye." — EW 16-17.
+  > "Those bodies that had gone down into the grave bearing the marks of disease and death came up in immortal health and vigor. The living saints are changed in a moment, in the twinkling of an eye." — EW 287.
 
 - **Isaiah 25:9** — "Lo, this is our God; we have waited for him, and he will save us... we will be glad and rejoice in his salvation." The waiting people break into triumph at His appearing.
 
-  > "In the midst of their terror they hear the voices of the saints in joyful strains exclaiming: 'Lo, this is our God; we have waited for Him, and He will save us.' Isaiah 25:9." — GC 640-642.
+  > "In the midst of their terror they hear the voices of the saints in joyful strains exclaiming: 'Lo, this is our God; we have waited for Him, and He will save us.' Isaiah 25:9." — GC 644.
 
 ### The wicked slain by the brightness of His coming
 
@@ -148,7 +148,7 @@
 
   > "The 13th chapter closed with the people of God, a small and apparently weak and defenseless company, in deadly conflict with the mightiest powers of earth.… The very same company standing on Mount Zion with the Lamb, — a victorious company, harping on symphonious harps their triumph in the court of heaven." — DAR 582.
 
-  > "His hair was white and curly and lay on His shoulders; and upon His head were many crowns. His feet had the appearance of fire; in His right hand was a sharp sickle." — GC 641.
+  > "His hair was white and curly and lay on His shoulders; and upon His head were many crowns. His feet had the appearance of fire; in His right hand was a sharp sickle." — EW 16.
 
 - **Zechariah 14:4-5** — "His feet shall stand in that day upon the mount of Olives... and the LORD my God shall come, and all the saints with thee." The descent is to the very place of His ascension.
 

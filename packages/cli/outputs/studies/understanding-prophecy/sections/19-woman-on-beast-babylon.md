@@ -114,7 +114,7 @@
 
   > "What city? (See chapter 17:18: 'And the woman which thou sawest is that great city which reigneth over the kings [kingdoms] of the earth.') That city is the papal Roman power." — DAR 504.2.
 
-  > "'The seven heads are seven mountains,' and 'The woman is that great city;' and it will not be difficult to show that the mountains and the city are both used symbolically." — DAR 602.1.
+  > "'The seven heads are seven mountains,' and 'The woman is that great city;' and it will not be difficult to show that the mountains and the city are both used symbolically." — DAR 602.2.
 
 ### Babylon: Her Name, Her Cup, Her Fall (Revelation 14:8; 18:1-5)
 

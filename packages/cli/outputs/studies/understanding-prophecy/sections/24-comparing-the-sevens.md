@@ -60,7 +60,7 @@
 
 - **Revelation 6:8** — The pale horse: "his name that sat on him was Death... to kill with sword, and with hunger, and with death." The fortunes of the church darken through the centuries of decline and persecution.
 
-  > "The rider on this horse is named Death; and Hell (ᾅδης, the grave) follows with him. The mortality is so great during this period that it would seem as if 'the pale nations of the dead' had come upon earth… It must refer to the time in which the papacy bore its unrebuked, unrestrained, and persecuting rule, commencing about A. D. 538." — DAR 402-413.
+  > "The rider on this horse is named Death; and Hell (ᾅδης, the grave) follows with him. The mortality is so great during this period that it would seem as if 'the pale nations of the dead' had come upon earth… It must refer to the time in which the papacy bore its unrebuked, unrestrained, and persecuting rule, commencing about A. D. 538." — DAR 408.2.
 
 - **Revelation 6:9-11** — The fifth seal: souls "under the altar... slain for the word of God... How long, O Lord, dost thou not judge and avenge our blood?" The era of papal martyrdom; white robes given, and a command to "rest yet for a little season" — the church's persecuted providential lot.
 
@@ -96,11 +96,11 @@
 
 - **Revelation 8:7** — The first trumpet: "hail and fire mingled with blood... the third part of trees was burnt up." The Gothic invasions that broke Western Rome — judgments on the _nations_, not on the church's spiritual state.
 
-  > "'Hail and fire, mingled with blood,' were cast upon the earth. The terrible effects of this Gothic invasion are represented as 'hail,' from the fact of the northern origin of the invaders; 'fire,' from the destruction by flame of both city and country; and 'blood,' from the terrible slaughter of the citizens of the empire." — DAR 453-462.
+  > "'Hail and fire, mingled with blood,' were cast upon the earth. The terrible effects of this Gothic invasion are represented as 'hail,' from the fact of the northern origin of the invaders; 'fire,' from the destruction by flame of both city and country; and 'blood,' from the terrible slaughter of the citizens of the empire…" — DAR 455.6.
 
 - **Revelation 9:1, 5, 10** — The fifth trumpet (first woe): a fallen star, the bottomless pit, and power "to hurt men five months." The 150 years (a prophetic five months) of Ottoman tormenting — day-for-a-year (Num. 14:34; Eze. 4:6).
 
-  > "'Five months,' thirty days to a month, give us one hundred and fifty days; and these days, being symbolic, signify one hundred and fifty years. Commencing July 27, 1299, the one hundred and fifty years reach to 1449. During that whole period the Turks were engaged in an almost perpetual warfare with the Greek empire, but yet without conquering it." — DAR 472-480.
+  > "'Five months,' thirty days to a month, give us one hundred and fifty days; and these days, being symbolic, signify one hundred and fifty years. Commencing July 27, 1299, the one hundred and fifty years reach to 1449. During that whole period the Turks were engaged in an almost perpetual warfare with the Greek empire, but yet without conquering it." — DAR 479.5.
 
 - **Revelation 9:15** — The sixth trumpet: "the four angels were loosed, which were prepared for an hour, and a day, and a month, and a year, for to slay the third part of men." The four sultanies on the Euphrates (Aleppo, Iconium, Damascus, Bagdad) loosed to overthrow the Eastern empire.
 
@@ -152,7 +152,7 @@
 
 - **Revelation 16:1-2** — "Go your ways, and pour out the vials of the wrath of God upon the earth. And the first... poured out his vial... and there fell a noisome and grievous sore upon the men which had the mark of the beast." The plague falls on the very class warned by the third angel — proof it follows the close of his work.
 
-  > "The Chronology of the Plagues. — The description of this plague clearly reveals at once their chronology; for it is poured out upon those who have the mark of the beast, and who worship his image, — the identical work against which the third angel warns us. This is conclusive proof that these judgments are not poured out till after this angel closes his work." — DAR 641.2-641.3.
+  > "The Chronology of the Plagues. — The description of this plague clearly reveals at once their chronology; for it is poured out upon those who have the mark of the beast, and who worship his image, — the identical work against which the third angel warns us. This is conclusive proof that these judgments are not poured out till after this angel closes his work." — DAR 641.3.
 
 - **Revelation 14:9-10** — "If any man worship the beast... The same shall drink of the wine of the wrath of God, which is poured out **without mixture** into the cup of his indignation." The plagues are this very wine — unmixed with the mercy that has tempered every prior judgment.
 
@@ -192,7 +192,7 @@
 
 - **Revelation 11:18** — "The nations were angry, and thy wrath is come, and the time of the dead, that they should be judged." The seventh trumpet, like the seventh seal and seventh plague, lands at one and the same terminus — the judgment and reward — proving the lines are parallel, not consecutive.
 
-  > "'And Thy Wrath Is Come.' — The wrath of God for the present generation is filled up in the seven last plagues (chapter 15:1), which consequently must here be referred to, and which are soon to be poured out upon the earth." — DAR 504-505.
+  > "'And Thy Wrath Is Come.' — The wrath of God for the present generation is filled up in the seven last plagues (chapter 15:1), which consequently must here be referred to, and which are soon to be poured out upon the earth." — DAR 506.3.
 
 - **Daniel 12:1; Revelation 22:11** — "Michael shall stand up" the moment the third angel's message closes and "mercy no longer pleads"; the unjust are sealed unjust, the holy sealed holy. This single hinge separates the first three sevens (running _through_ probation) from the fourth (poured out _after_ it).
 

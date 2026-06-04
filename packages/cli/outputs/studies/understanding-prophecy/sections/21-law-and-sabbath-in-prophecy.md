@@ -18,11 +18,11 @@
 
 - **Revelation 15:5** — "The temple of the tabernacle of the testimony in heaven was opened." The sanctuary is called the place of "the testimony" — another name for the law of God — confirming the law stands at the center of heaven's worship.
 
-  > "Within the holy of holies, in the sanctuary in heaven, the divine law is sacredly enshrined—the law that was spoken by God Himself amid the thunders of Sinai and written with His own finger on the tables of stone." — GC 433.1.
+  > "Within the holy of holies, in the sanctuary in heaven, the divine law is sacredly enshrined—the law that was spoken by God Himself amid the thunders of Sinai and written with His own finger on the tables of stone." — GC 433.2.
 
 - **Early Writings (EW 32-33)** — In vision the ark was seen, the tables opened, "the ten commandments written... with the finger of God," and "the fourth, the Sabbath commandment, shone above them all... a halo of glory was all around it." The Sabbath was not nailed to the cross; "the pope had changed it... for he was to change times and laws."
 
-  > "Jesus opened them, and I saw the ten commandments written on them with the finger of God… But the fourth, the Sabbath commandment, shone above them all; for the Sabbath was set apart to be kept in honor of God's holy name… I saw that the Sabbath commandment was not nailed to the cross… But the pope had changed it from the seventh to the first day of the week; for he was to change times and laws." — EW 32.3-33.1.
+  > "Jesus opened them, and I saw the ten commandments written on them with the finger of God… But the fourth, the Sabbath commandment, shone above them all; for the Sabbath was set apart to be kept in honor of God's holy name… I saw that the Sabbath commandment was not nailed to the cross… But the pope had changed it from the seventh to the first day of the week; for he was to change times and laws." — EW 32.3.
 
 ### The controversy is over the commandments
 
@@ -52,7 +52,7 @@
 
 - **Daniel 7:25** — The little horn "shall... think to change times and laws." These are not human laws (which it could change at will) but the laws of the Most High — which it could only _think_ to change, not truly change. The papacy expunged the second commandment, divided the tenth, and tore the Sabbath from the fourth, erecting Sunday in its place.
 
-  > "It has, in its catechisms, expunged the second commandment of the decalogue to make way for its adoration of images. It has divided the tenth commandment to make up the number ten. And, more audacious than all! it has taken hold of the fourth commandment, torn from its place the Sabbath of Jehovah, the only memorial of the great God ever given to man, and erected in its place a rival institution to serve another purpose." — DAR 140.3-141.1.
+  > "It has, in its catechisms, expunged the second commandment of the decalogue to make way for its adoration of images. It has divided the tenth commandment to make up the number ten. And, more audacious than all! it has taken hold of the fourth commandment, torn from its place the Sabbath of Jehovah, the only memorial of the great God ever given to man, and erected in its place a rival institution to serve another purpose." — DAR 140.3.
 
 - **Daniel 7:8** — The little horn rose "among" the ten horns with "a mouth speaking great things." Identified as the papacy (538-1798), this is the power that presumed to alter the Decalogue — the "great words against the most High."
 
@@ -90,7 +90,7 @@
 
 - **James 2:10-12** — "Whosoever shall keep the whole law, and yet offend in one point, he is guilty of all." The Decalogue is an indivisible unity; to break the fourth commandment is to break the whole — so men "shall be judged by the law of liberty."
 
-  > "I saw that the Sabbath commandment was not nailed to the cross. If it was, the other nine commandments were; and we are at liberty to break them all, as well as to break the fourth." — EW 33.1.
+  > "I saw that the Sabbath commandment was not nailed to the cross. If it was, the other nine commandments were; and we are at liberty to break them all, as well as to break the fourth." — EW 32.3.
 
 - **Romans 3:31** — "Do we then make void the law through faith? God forbid: yea, we establish the law." The gospel does not annul the law but upholds it; faith and obedience stand together. _(Waggoner / Jones, the law and the gospel.)_
 

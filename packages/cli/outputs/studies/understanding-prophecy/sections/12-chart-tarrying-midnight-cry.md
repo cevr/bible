@@ -32,7 +32,7 @@
 
   > "Following his rule of making Scripture its own interpreter, Miller learned that a day in symbolic prophecy represents a year (Numbers 14:34; Ezekiel 4:6); he saw that the period of 2300 prophetic days, or literal years, would extend far beyond the close of the Jewish dispensation…" — GC 324.
 
-  > "Seventy weeks, then, or 490 days of the 2300, were cut off upon, or allotted to, Jerusalem and the Jews… if these seventy weeks are fulfilled as weeks of years, then the 2300 days, of which these are a part, are so many years." — DAR 192.
+  > "Seventy weeks, then, or 490 days of the 2300, were cut off upon, or allotted to, Jerusalem and the Jews… if these seventy weeks are fulfilled as weeks of years, then the 2300 days, of which these are a part, are so many years." — DAR 193.
 
 - **Ezekiel 4:6** — "I have appointed thee each day for a year" — the second witness to the year-day principle, doubly establishing the measure of the prophetic periods.
 
@@ -110,7 +110,7 @@
 
   > "Under the Mosaic system the cleansing of the sanctuary, or the great Day of Atonement, occurred on the tenth day of the seventh Jewish month (Leviticus 16:29-34), when the high priest, having made an atonement for all Israel, and thus removed their sins from the sanctuary, came forth and blessed the people." — GC 399.
 
-  > "In the examination of the sanctuary, on chapter 8:14, we saw that a time came when the earthly sanctuary gave place to the heavenly, and the priestly ministration was transferred to that… The last event, therefore, of the seventy weeks, here brought to view, is the anointing of the heavenly tabernacle, or the opening of the ministration there." — DAR 222.
+  > "In the examination of the sanctuary, on chapter 8:14, we saw that a time came when the earthly sanctuary gave place to the heavenly, and the priestly ministration was transferred to that… The last event, therefore, of the seventy weeks, here brought to view, is the anointing of the heavenly tabernacle, or the opening of the ministration there." — DAR 193.
 
 - **Leviticus 16:33-34** — "He shall make an atonement for the holy sanctuary... And this shall be an everlasting statute... to make an atonement for the children of Israel for all their sins once a year." The yearly, fixed-date character of the type fixed the antitype's date: "the tenth day of the seventh Jewish month... which in the year 1844 fell upon the twenty-second of October."
 
@@ -170,11 +170,11 @@
 
   > "The coming of Christ as our high priest to the most holy place, for the cleansing of the sanctuary, brought to view in Daniel 8:14; the coming of the Son of man to the Ancient of Days, as presented in Daniel 7:13… are descriptions of the same event; and this is also represented by the coming of the bridegroom to the marriage… of Matthew 25." — GC 426.
 
-  > "Now the important point in this type is the completion of the reconciliation at the coming of the high priest out of the holy place. The high priest was a type of Jesus our High Priest; the most holy place a type of heaven itself…" — DAR 222.
+  > "Now the important point in this type is the completion of the reconciliation at the coming of the high priest out of the holy place. The high priest was a type of Jesus our High Priest; the most holy place a type of heaven itself…" — TRMC, Aug. 22, 1844, p. 4.
 
 - **Habakkuk 2:20** — "But the LORD is in his holy temple: let all the earth keep silence before him." The answer to the disappointment was that the Lord had entered the holy temple above to begin His closing ministry — exactly the prophet's own conclusion to the vision of the appointed time.
 
-  > "At the appointed time the Bridegroom came, not to the earth, as the people expected, but to the Ancient of Days in heaven, to the marriage, the reception of His kingdom… But they are to understand His work, and to follow Him by faith as He goes in before God." — GC 426-428.
+  > "At the appointed time the Bridegroom came, not to the earth, as the people expected, but to the Ancient of Days in heaven, to the marriage, the reception of His kingdom… But they are to understand His work, and to follow Him by faith as He goes in before God." — GC 427.
 
 ### The everlasting gospel that drove the chart and the cry
 

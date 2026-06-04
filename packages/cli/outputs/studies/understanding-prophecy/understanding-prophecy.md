@@ -101,6 +101,8 @@ _Note: all verse references are from the King James Version. Pioneer and Ellen G
 
 # Part I — Foundation
 
+---
+
 # 1. The Year-Day Principle
 
 > _In symbolic prophecy a day stands for a year. This is not a human convention imposed upon the text, but a rule Scripture supplies of itself (Num. 14:34; Eze. 4:6), and the pioneers — Miller, Litch, and Smith — made it the foundation of all prophetic reckoning. Every great time-line hangs upon it: the 1260 days of papal supremacy, the 2300 days to the cleansing of the sanctuary, the 70 weeks cut off for the Jews, and the 1290 and 1335. The seventy weeks (490 years) ran out to the very year in the death and rejection of Messiah, and so stand as the divine seal that the rule is true. (DAR 141, 191-192; GC 324, 326-328.)_
@@ -117,7 +119,7 @@ _Note: all verse references are from the King James Version. Pioneer and Ellen G
 
   > "Figures always have a figurative meaning, and are used much in prophecy, to represent future things, times and events… Day, meaning year." — MWV1 21.
 
-  > "The rule given us in the Bible is, that when a day is used as a symbol, it stands for a year. Ezekiel 4:6; Numbers 14:34… As each day stands for a year, we have twelve hundred and sixty years for the continuation of the supremacy of this horn." — DAR 141-142.
+  > "The rule given us in the Bible is, that when a day is used as a symbol, it stands for a year. Ezekiel 4:6; Numbers 14:34… As each day stands for a year, we have twelve hundred and sixty years for the continuation of the supremacy of this horn." — DAR 141.
 
 - **Ezekiel 4:5** — "I have laid upon thee the years of their iniquity, according to the number of the days, three hundred and ninety days." The 390 days for Israel are by God's own word 390 years — the principle applied a third time in the same passage.
 
@@ -157,7 +159,7 @@ _Note: all verse references are from the King James Version. Pioneer and Ellen G
 
 - **Leviticus 25:8** — "Thou shalt number seven sabbaths of years . . . seven times seven years; and the space of the seven sabbaths of years shall be unto thee **forty and nine years**." Forty-nine years are reckoned as "seven sabbaths of years" — a week of weeks of years, the same arithmetic that turns 70 weeks into 490 years.
 
-  > "The word here translated 'determined' literally signifies 'cut off.' Seventy weeks, representing 490 years, are declared by the angel to be cut off, as specially pertaining to the Jews." — GC 326-328.
+  > "The word here translated 'determined' literally signifies 'cut off.' Seventy weeks, representing 490 years, are declared by the angel to be cut off, as specially pertaining to the Jews." — GC 326.
 
 - **Leviticus 25:9** — The jubilee trumpet sounds "in the day of atonement" of "the seventh month" — the autumn type that, with the seventh-month reckoning, fixes the close of the 2300 days in the autumn of 1844.
 
@@ -169,7 +171,7 @@ _Note: all verse references are from the King James Version. Pioneer and Ellen G
 
 - **Daniel 9:24** — "**Seventy weeks are determined** upon thy people and upon thy holy city, to finish the transgression . . . and to anoint the most Holy." The word "determined" (Heb. _nehhtak_) properly signifies **"cut off"** — and there is but one period from which 70 weeks could be cut off: the 2300 days of Daniel 8:14.
 
-  > "If this view of the subject is correct, we should naturally expect, when the angel completed his explanation of the vision, that he would commence with the very point which had been omitted; namely, the time… he commences upon the very point there omitted, and says, 'Seventy weeks are determined upon thy people and upon thy holy city.'" — DAR 191-192.
+  > "If this view of the subject is correct, we should naturally expect, when the angel completed his explanation of the vision, that he would commence with the very point which had been omitted; namely, the time… he commences upon the very point there omitted, and says, 'Seventy weeks are determined upon thy people and upon thy holy city.'" — DAR 191.
 
   > "The word here translated 'determined' literally signifies 'cut off.'… As the 2300 days was the only period of time mentioned in chapter 8, it must be the period from which the seventy weeks were cut off; the seventy weeks must therefore be a part of the 2300 days, and the two periods must begin together." — GC 326.
 
@@ -185,7 +187,7 @@ _Note: all verse references are from the King James Version. Pioneer and Ellen G
 
 - **Daniel 9:27** — "He shall confirm the covenant with many for one week: and in the midst of the week he shall cause the sacrifice and the oblation to cease." The final week (A.D. 27-34) and the cessation of the sacrifices at the cross fall to the year, proving the year-day measure.
 
-  > "The 'week' here brought to view is the last one of the seventy; it is the last seven years of the period allotted especially to the Jews. During this time, extending from A.D. 27 to A.D. 34, Christ, at first in person and afterward by His disciples, extended the gospel invitation especially to the Jews." — GC 327-328.
+  > "The 'week' here brought to view is the last one of the seventy; it is the last seven years of the period allotted especially to the Jews. During this time, extending from A.D. 27 to A.D. 34, Christ, at first in person and afterward by His disciples, extended the gospel invitation especially to the Jews." — GC 327.
 
 - **"Cut off" — the textual demonstration** — "The word here rendered determined signifies 'cut off;' and there is no period from which the seventy weeks could be cut off but the 2300 days." The 490 years are a part of the 2300; both begin together at 457 B.C.
 
@@ -203,7 +205,7 @@ _Note: all verse references are from the King James Version. Pioneer and Ellen G
 
   > "The prophecy which seemed most clearly to reveal the time of the second advent was that of Daniel 8:14: 'Unto two thousand and three hundred days; then shall the sanctuary be cleansed.'" — GC 324.
 
-  > "The seventy weeks—490 days—having been cut off from the 2300, there were 1810 days remaining… From A.D. 34, 1810 years extend to 1844. Consequently the 2300 days of Daniel 8:14 terminate in 1844." — GC 326-328.
+  > "The seventy weeks—490 days—having been cut off from the 2300, there were 1810 days remaining… From A.D. 34, 1810 years extend to 1844. Consequently the 2300 days of Daniel 8:14 terminate in 1844." — GC 328.
 
 - **Daniel 7:25** — "And they shall be given into his hand until **a time and times and the dividing of time**." Three and a half prophetic years = 1260 days = 1260 years of papal supremacy, 538 to 1798.
 
@@ -237,11 +239,11 @@ _Note: all verse references are from the King James Version. Pioneer and Ellen G
 
   > "We thus have three years and a half for the continuance of this power… As each day stands for a year, we have twelve hundred and sixty years for the continuation of the supremacy of this horn." — DAR 141.
 
-  > "After describing the terrible career of the little horn, and stating that the saints should be given into his hand for 1260 years, bringing us down to 1798…" — DAR 314.
+  > "After describing the terrible career of the little horn, and stating that the saints should be given into his hand for 1260 years, bringing us down to 1798…" — DAR 142.
 
 - **Daniel 12:11-12** — "From the time that the daily shall be taken away . . . a thousand two hundred and **ninety days**," and "blessed is he that waiteth, and cometh to the thousand three hundred and **five and thirty days**." The 1290 (508-1798) and 1335 (508-1843/44) — both reckoned as years on the same rule.
 
-  > "Still another prophetic period is here introduced, denoting 1335 years… The only clue we have to the solution of this question, is the fact that it is spoken of in immediate connection with the 1290 years, which commenced, as shown above, in 508… From this point they would extend to 1843; for 1335 added to 508 make 1843." — DAR 314-316.
+  > "Still another prophetic period is here introduced, denoting 1335 years… The only clue we have to the solution of this question, is the fact that it is spoken of in immediate connection with the 1290 years, which commenced, as shown above, in 508… From this point they would extend to 1843; for 1335 added to 508 make 1843." — DAR 314.
 
 ### The proportion summarized
 
@@ -271,7 +273,7 @@ _The seventy weeks, fulfilled to the year in the first advent, are the proof; th
 
 - **2 Peter 1:20** — "No prophecy of the scripture is of any private interpretation." No text may be wrested to a man's private notion; it must be read in harmony with all Scripture. The foundation text against guessing.
 
-  > "Scripture must be its own expositor, since it is a rule of itself. If I depend on a teacher to expound to me, and he should guess at its meaning, or desire to have it so on account of his sectarian creed, or to be thought wise, then his guessing, desire, creed, or wisdom, is my rule, and not the Bible." — SLWM 49.1-49.2.
+  > "Scripture must be its own expositor, since it is a rule of itself. If I depend on a teacher to expound to me, and he should guess at its meaning, or desire to have it so on account of his sectarian creed, or to be thought wise, then his guessing, desire, creed, or wisdom, is my rule, and not the Bible." — SLWM 49.2.
 
 - **2 Peter 1:21** — "Holy men of God spake as they were moved by the Holy Ghost." Because one Spirit authored the whole, the whole interprets itself; Miller held the chronological portions "as much a portion of the word of God" as any other.
 
@@ -283,7 +285,7 @@ _The seventy weeks, fulfilled to the year in the first advent, are the proof; th
 
 - **Daniel 12:4** — "Shut up the words, and seal the book, even to the time of the end: many shall run to and fro, and knowledge shall be increased." Sealed only until the time of the end — then the very book invites study and its knowledge increases.
 
-  > "But since 1798 the book of Daniel has been unsealed, knowledge of the prophecies has increased, and many have proclaimed the solemn message of the judgment near." — GC 356-357.
+  > "But since 1798 the book of Daniel has been unsealed, knowledge of the prophecies has increased, and many have proclaimed the solemn message of the judgment near." — GC 356.
 
   > "In this way I pursued the study of the Bible, in my first perusal of it, for about two years, and was fully satisfied that it is its own interpreter." — SLWM 48.1.
 
@@ -385,7 +387,7 @@ The decisive rule: where a figure is used, trace the word through the Bible unti
 | Woman    | a church / city (Zion)    | **Revelation 12:1; Jeremiah 6:2** — "a woman clothed with the sun"; "I have likened the daughter of Zion to a comely... woman."     |
 | Day      | a year                    | **Ezekiel 4:6; Numbers 14:34** — "I have appointed thee each day for a year"; "each day for a year."                                |
 
-> "Figures always have a figurative meaning, and are used much in prophecy to represent future things, times and events — such as mountains, meaning governments; Daniel 2:35, 44; beasts, meaning kingdoms; Daniel 7:8, 17; waters, meaning people; Revelation 17:1, 15; day, meaning year, etc. Ezekiel 4:6." — SLWM 49.5-50.1.
+> "Figures always have a figurative meaning, and are used much in prophecy to represent future things, times and events — such as mountains, meaning governments; Daniel 2:35, 44; beasts, meaning kingdoms; Daniel 7:8, 17; waters, meaning people; Revelation 17:1, 15; day, meaning year, etc. Ezekiel 4:6." — SLWM 49.5.
 
 > "Following his rule of making Scripture its own interpreter, Miller learned that a day in symbolic prophecy represents a year (Numbers 14:34; Ezekiel 4:6)." — GC 324.3.
 
@@ -456,9 +458,9 @@ _(SLWM 48.2-51.1; GC 320.1-320.2.)_
 
 _Note on method: Miller "determined to lay aside all my prepossessions, to thoroughly compare Scripture with Scripture, and to pursue its study in a regular and methodical manner... and was fully satisfied that it is its own interpreter" (WMAD 6.1; SLWM 48.1; MWM 69.1, 69.3). Ellen White affirms the same: studying Daniel and the Revelation "employing the same principles of interpretation as in the other scriptures," he found "the prophetic symbols could be understood" (GC 320.2); and the church's whole danger lay in "accepting the theories and interpretations of men, instead of making the Bible its own interpreter" (GC 354.1; GC 598.2-598.3). This is the method the entire Handbook follows._
 
----
-
 # Part II — The Outlines of Daniel
+
+---
 
 # 3. Daniel 2 — The Great Image: Kingdoms Throughout Time
 
@@ -543,7 +545,7 @@ _Note on method: Miller "determined to lay aside all my prepossessions, to thoro
 
 - **Daniel 8:22** — "Four kingdoms shall stand up out of the nation, but not in his power" — Alexander's empire divided among his four generals, still the brass kingdom, not yet the iron.
 
-  > "Alexander's successors (his four leading generals) did not conquer his empire, and erect another in its place; they simply divided among themselves the empire which Alexander had conquered, and left ready to their hand." — DAR 56.
+  > "Alexander's successors (his four leading generals) did not conquer his empire, and erect another in its place; they simply divided among themselves the empire which Alexander had conquered, and left ready to their hand." — DAR 58-59.
 
 - **Daniel 2:40** — **Imperial Rome, the iron.** "The fourth kingdom shall be strong as iron... it shall break in pieces and bruise." Rome's iron monarchy successively broke the images of gold, silver, and brass and "filled the world."
 
@@ -607,7 +609,7 @@ _Note on method: Miller "determined to lay aside all my prepossessions, to thoro
 
 - **Daniel 2:29-30** — "He that revealeth secrets maketh known to thee what shall come to pass... this secret is not revealed to me for any wisdom that I have." The outline is God's, not Daniel's — therefore "the dream is certain, and the interpretation thereof sure" (v. 45).
 
-  > "Human wisdom never devised so brief a record which embraced so much. Human language never set forth in so few words, so great a volume of historical truth. The finger of God is here. Let us heed the lesson well." — DAR 42.
+  > "Human wisdom never devised so brief a record which embraced so much. Human language never set forth in so few words, so great a volume of historical truth. The finger of God is here. Let us heed the lesson well." — DAR 42-43.
 
 - **Daniel 2:36-37** — "We will tell the interpretation... Thou, O king, art a king of kings: for the God of heaven hath given thee a kingdom." God who gives kingdoms also takes them away; the rise and fall of these empires is His doing, not chance.
 
@@ -619,7 +621,7 @@ _Note on method: Miller "determined to lay aside all my prepossessions, to thoro
 
   > "the prophecies of Daniel were given with the plain design… of setting forth a connected chain of events from a given period to the end of this world, and the setting up of Christ's eternal kingdom of glory." — LJL 30-31.
 
-  > "making, in all, four universal empires from the time of Nebuchadnezzar to the setting up of the kingdom of God in the earth." — GEP 15.
+  > "making, in all, four universal empires from the time of Nebuchadnezzar to the setting up of the kingdom of God in the earth." — GEP 34-35.
 
   > "As the lion corresponds to the head of gold of the great image, and so represents Babylon, so the bear of this vision corresponds to the 'other kingdom inferior' to Babylon, represented in the breast and arms of silver." — GEP 34-35.
 
@@ -647,7 +649,7 @@ _Note on method: Miller "determined to lay aside all my prepossessions, to thoro
 
 - **Daniel 7:17** — "These great beasts, which are four, are four kings, which shall arise out of the earth." The angel's own key: each beast is a kingdom — the same four metals of Daniel 2 under living symbols.
 
-  > "These beast are therefore symbols of four great kingdoms… The first beast of this vision must therefore denote the same as the head of gold of the great image, namely, the kingdom of Babylon, and the other beasts the succeeding kingdoms shown by that image." — DAR 114.
+  > "Now, from the time of Daniel to the end of this world's history, there were to be but four universal kingdoms, as we learn from Nebuchadnezzar's dream of the great image in chapter 2.… The first beast of this vision must therefore denote the same as the head of gold of the great image, namely, the kingdom of Babylon, and the other beasts the succeeding kingdoms shown by that image." — DAR 114.
 
 - **Daniel 7:18** — "But the saints of the most High shall take the kingdom... for ever, even for ever and ever." The vision's goal is not another earthly empire but the everlasting kingdom of the saints — the fifth kingdom of Daniel 2's stone.
 
@@ -677,7 +679,7 @@ _Note on method: Miller "determined to lay aside all my prepossessions, to thoro
 
 - **Daniel 7:7** — "A fourth beast, dreadful and terrible, and strong exceedingly; and it had great iron teeth: it devoured and brake in pieces... and it had ten horns." No beast in nature could symbolize it; the iron teeth answer to the iron legs of Daniel 2. This is Rome — diverse from all before it, treading down the whole earth.
 
-  > "Inspiration finds no beast in nature which it can make even the basis of a symbol to represent the power here illustrated.… This beast, of course, corresponds to the fourth division of the great image — the legs of iron.… It devoured as with iron teeth, and brake in pieces; and it ground the nations into the very dust beneath its brazen feet." — DAR 117.5-118.1.
+  > "Inspiration finds no beast in nature which it can make even the basis of a symbol to represent the power here illustrated.… This beast, of course, corresponds to the fourth division of the great image — the legs of iron.… It devoured as with iron teeth, and brake in pieces; and it ground the nations into the very dust beneath its brazen feet." — DAR 118.1-2.
 
   > "The two legs of iron symbolize Rome, not merely during its closing years, but from the very beginning of its existence as a nation.… No such division into two great parts is denoted by the other symbols under which Rome is represented in the book of Daniel; namely, the great and terrible beast of Daniel 7, and the little horn of chapter 8." — DAR 64.
 
@@ -689,7 +691,7 @@ _Note on method: Miller "determined to lay aside all my prepossessions, to thoro
 
   > "The rise of the ten horns, or the division of Rome into ten kingdoms, between the years A. D. 351 and 483, has already been noticed.… As these horns denote kingdoms, the little horn must denote a kingdom also, but not of the same nature, because it was diverse from the others." — DAR 125.2.
 
-  > "It had ten horns, which are explained in verse 24 to be ten kings, or kingdoms, which should arise out of this empire.… These divisions have ever since been spoken of as the ten kingdoms of the Roman empire. A. D. 351-483." — DAR 126.
+  > "It had ten horns, which are explained in verse 24 to be ten kings, or kingdoms, which should arise out of this empire.… These divisions have ever since been spoken of as the ten kingdoms of the Roman empire. A. D. 351-483." — DAR 118.2.
 
 - **Daniel 2:40** — "The fourth kingdom shall be strong as iron... shall it break in pieces and bruise." The cross-link: the iron of the image and the iron-toothed beast are one and the same Rome.
 
@@ -705,7 +707,7 @@ _Note on method: Miller "determined to lay aside all my prepossessions, to thoro
 
   > "A little horn (at first little, but afterward more stout than its fellows) thrust itself up among them. It was not content quietly to find a place of its own, and fill it; it must thrust aside some of the others, and usurp their places." — DAR 118.4.
 
-  > "As these horns denote kingdoms, the little horn must denote a kingdom also, but not of the same nature, because it was diverse from the others. They were political kingdoms.… the spiritual kingdom of the papacy." — DAR 126.3.
+  > "As these horns denote kingdoms, the little horn must denote a kingdom also, but not of the same nature, because it was diverse from the others. They were political kingdoms.… the spiritual kingdom of the papacy." — DAR 125.2.
 
 - **Daniel 7:24 (b)** — "He shall be diverse from the first, and he shall subdue three kings." The three horns plucked up to make room for the Papacy were the three Arian powers that stood in its way: the **Heruli (A.D. 493), the Vandals (534), and the Ostrogoths (538).**
 
@@ -741,7 +743,7 @@ _Note on method: Miller "determined to lay aside all my prepossessions, to thoro
 
   > "And has the papacy attempted this? — Yes, even this. It has, in its catechisms, expunged the second commandment of the decalogue to make way for its adoration of images. It has divided the tenth commandment to make up the number ten. And, more audacious than all! it has taken hold of the fourth commandment, torn from its place the Sabbath of Jehovah… and erected in its place a rival institution." — DAR 140.3.
 
-  > "The papacy has attempted to change the law of God. The second commandment, forbidding image worship, has been dropped from the law, and the fourth commandment has been so changed as to authorize the observance of the first instead of the seventh day as the Sabbath.… The change in the fourth commandment exactly fulfills the prophecy. For this the only authority claimed is that of the church. Here the papal power openly sets itself above God." — GC 446.1-2.
+  > "The papacy has attempted to change the law of God. The second commandment, forbidding image worship, has been dropped from the law, and the fourth commandment has been so changed as to authorize the observance of the first instead of the seventh day as the Sabbath.… The change in the fourth commandment exactly fulfills the prophecy. For this the only authority claimed is that of the church. Here the papal power openly sets itself above God." — GC 446.2.
 
 - **2 Thessalonians 2:3-4** — "That man of sin... the son of perdition; who opposeth and exalteth himself above all that is called God... so that he as God sitteth in the temple of God." Paul's "man of sin" is the same little horn — a power within the professed church, exalting itself above God.
 
@@ -876,7 +878,7 @@ _Note on method: Miller "determined to lay aside all my prepossessions, to thoro
 
 - **Ezekiel 4:6** — "I have appointed thee each day for a year" — the second witness establishing the year-day principle for all the time-prophecies of Daniel and Revelation.
 
-  > "Respecting the 2300 days … The declaration respecting them is a part of a revelation which is given for the instruction of the people of God, and is consequently to be understood." — DAR 178.
+  > "Respecting the 2300 days … The declaration respecting them is a part of a revelation which is given for the instruction of the people of God, and is consequently to be understood." — DAR 159.
 
 ### The ram — Medo-Persia (named by the angel)
 
@@ -1050,7 +1052,7 @@ _Note on method: Miller "determined to lay aside all my prepossessions, to thoro
 
   > "The angel had been sent to Daniel for the express purpose of explaining to him the point which he had failed to understand in the vision of the eighth chapter, the statement relative to time — 'unto two thousand and three hundred days; then shall the sanctuary be cleansed.'" — GC 326.
 
-  > "This must therefore have been the point which he did not understand; and as without this the other portions of the vision were of no avail, he could well say, while the application of this period was left in obscurity, that he did not understand the vision." — DAR 192.
+  > "This must therefore have been the point which he did not understand; and as without this the other portions of the vision were of no avail, he could well say, while the application of this period was left in obscurity, that he did not understand the vision." — DAR 191.
 
 - **Daniel 8:26-27** — The vision of the evening and morning "is true," yet shut up "for many days"; Daniel "fainted, and was sick," and "none understood it." The 2300-day number was given but its application was withheld — the loose end chapter 9 ties.
 
@@ -1066,17 +1068,17 @@ _Note on method: Miller "determined to lay aside all my prepossessions, to thoro
 
   > "If this view of the subject is correct, we should naturally expect, when the angel completed his explanation of the vision, that he would commence with the very point which had been omitted; namely, the time. And this we find to be true in fact." — DAR 191.
 
-  > "That commission must be fulfilled. In obedience to it, the angel, some time afterward, returned to Daniel, saying: 'I am now come forth to give thee skill and understanding;' 'therefore understand the matter, and consider the vision.'" — GC 326.
+  > "That commission must be fulfilled. In obedience to it, the angel, some time afterward, returned to Daniel, saying: 'I am now come forth to give thee skill and understanding;' 'therefore understand the matter, and consider the vision.'" — GC 325.
 
 - **Daniel 9:22-23** — Gabriel: "I am now come forth to give thee skill and understanding... therefore understand the matter, and consider the vision." He sends Daniel back to "the vision" — the only vision left unexplained, that of the 2300 days.
 
-  > "There was one important point in the vision of chapter 8 which had been left unexplained, namely, that relating to time — the period of the 2300 days; therefore the angel, in resuming his explanation, dwells chiefly upon the subject of time." — GC 326.
+  > "There was one important point in the vision of chapter 8 which had been left unexplained, namely, that relating to time — the period of the 2300 days; therefore the angel, in resuming his explanation, dwells chiefly upon the subject of time." — GC 325.
 
 ### "Seventy weeks are cut off" — the seventy weeks are part of the 2300 days
 
 - **Daniel 9:24** — "Seventy weeks are determined upon thy people and upon thy holy city" — 70 weeks of years = 490 years, to finish transgression, make an end of sins, make reconciliation, bring in everlasting righteousness, seal up vision and prophecy, and anoint the most Holy.
 
-  > "After citing Daniel's attention back to the former vision in the most direct and emphatic manner, and assuring him that he had now come forth to give him understanding in the matter, he commences upon the very point there omitted, and says, 'Seventy weeks are determined upon thy people and upon thy holy city.'" — DAR 196.
+  > "After citing Daniel's attention back to the former vision in the most direct and emphatic manner, and assuring him that he had now come forth to give him understanding in the matter, he commences upon the very point there omitted, and says, 'Seventy weeks are determined upon thy people and upon thy holy city.'" — DAR 191.
 
   > "After bidding Daniel 'understand the matter, and consider the vision,' the very first words of the angel are: 'Seventy weeks are determined upon thy people and upon thy Holy City.' The word here translated 'determined' literally signifies 'cut off.'" — GC 326.
 
@@ -1392,7 +1394,7 @@ _Note on method: Miller "determined to lay aside all my prepossessions, to thoro
 
   > "The time of the end was the time in which the Spirit of God was to break the seal from off this book; and consequently this was the time during which the wise should understand, while the wicked, lost to all sense of the value of eternal truth, with hearts callous and hardened in sin, would grow continually more wicked and more blind." — DAR 311-312.
 
-  > "the words are sealed, that is, made sure, unalterable, will stand until every word has its fulfillment… not, as some suppose, that Daniel's prophecy is sealed, closed up, out of sight, and cannot be understood.… 'But the wise shall understand,' says the angel. What shall the wise understand? They shall understand the vision." — MWV2 100.
+  > "they are sealed, that is, made sure, unalterable, will stand until every word has its fulfillment… not, as some suppose, that Daniel's prophecy is sealed, closed up, out of sight, and cannot be understood.… 'But the wise shall understand,' says the angel. What shall the wise understand? They shall understand the vision." — MWV2 100.
 
 ### Daniel 12:1 — Michael standing up closes the line
 
@@ -1429,9 +1431,9 @@ _Note on method: Miller "determined to lay aside all my prepossessions, to thoro
 | 1335 days                         | Dan. 12:12           | 508      | 1843/44 | Blessing on the advent believers                      |
 | 2300 days                         | Dan. 8:14            | 457 B.C. | 1844    | Cleansing of the sanctuary / Daniel stands in his lot |
 
----
-
 # Part III — The Revelation
+
+---
 
 # 8. The Seven Churches of Revelation 1-3
 
@@ -1483,7 +1485,7 @@ _(Name-meanings and periods: DAR 347.1, 352.3-354.5, 359.1, 363.3, 366.3, 371.1.
 
 - **Revelation 2:2-3** — "I know thy works, and thy labour, and thy patience... thou hast tried them which say they are apostles, and are not, and hast found them liars." The early Christians had the doctrine of Christ in purity, the gifts of the Spirit, and tried and exposed false apostles. The name Ephesus, "desirable," well describes the church in its first state.
 
-  > "The definition of the word Ephesus, is desirable, which may well be taken as a good descriptive term of the character and condition of the church in its first state. Those early Christians had received the doctrine of Christ in its purity. They enjoyed the benefits and blessings of the gifts of the Holy Spirit.… They tried false apostles, searched out their true characters, and found them liars." — DAR 347.1.
+  > "The definition of the word Ephesus, is desirable, which may well be taken as a good descriptive term of the character and condition of the church in its first state. Those early Christians had received the doctrine of Christ in its purity. They enjoyed the benefits and blessings of the gifts of the Holy Spirit.… and they tried false apostles, searched out their true characters, and found them liars." — DAR 347.1.
 
 - **Revelation 2:4** — "Nevertheless I have somewhat against thee, because thou hast left thy first love." Even the apostolic age cooled toward its close; the decline begins.
 
@@ -1832,7 +1834,7 @@ _(Name-meanings and periods: DAR 347.1, 352.3-354.5, 359.1, 363.3, 366.3, 371.1.
 
 - **Revelation 8:6** — "And the seven angels which had the seven trumpets prepared themselves to sound." The signal that the historical series is about to open upon the Roman world.
 
-  > "The subject of the seven trumpets is here resumed…. The seven angels prepare themselves to sound. Their sounding comes in as a complement to the prophecy of Daniel 2 and 7, commencing with the breaking up of the old Roman empire into its ten divisions, of which, in the first four trumpets, we have a description." — DAR 455.
+  > "The subject of the seven trumpets is here resumed…. The seven angels prepare themselves to sound. Their sounding comes in as a complement to the prophecy of Daniel 2 and 7, commencing with the breaking up of the old Roman empire into its ten divisions, of which, in the first four trumpets, we have a description." — DAR 454.
 
 ### The first four trumpets — the barbarian floods that broke Western Rome
 
@@ -1947,7 +1949,7 @@ _(Name-meanings and periods: DAR 347.1, 352.3-354.5, 359.1, 363.3, 366.3, 371.1.
 
   > "At the very time specified, Turkey, through her ambassadors, accepted the protection of the allied powers of Europe, and thus placed herself under the control of Christian nations. The event exactly fulfilled the prediction. (See Appendix.) When it became known, multitudes were convinced of the correctness of the principles of prophetic interpretation adopted by Miller and his associates, and a wonderful impetus was given to the advent movement." — GC 335.
 
-  > "But, although the four angels were thus loosed by the voluntary submission of the Greeks, yet another doom awaited the seat of empire. Amurath, the sultan to whom the submission of Deacozes was made… soon after died, and was succeeded in the empire, in 1451, by Mahomet II., who set his heart on Constantinople, and determined to make it a prey." — PREX2 183-188.
+  > "But, although the four angels were thus loosed by the voluntary submission of the Greeks, yet another doom awaited the seat of empire. Amurath, the sultan to whom the submission of Deacozes was made… soon after died, and was succeeded in the empire, in 1451, by Mahomet II., who set his heart on Constantinople, and determined to make it a prey." — PREX2 183.
 
 - **Revelation 9:20-21** — "The rest of the men which were not killed by these plagues yet repented not... that they should not worship devils, and idols of gold, and silver... Neither repented they of their murders, nor of their sorceries, nor of their fornication, nor of their thefts." The Saracen and Turkish scourges were sent upon apostate Christendom, yet the surviving Roman world learned no lesson — saint-worship, image-worship, and pretended miracles ("sorceries") continued.
 
@@ -1977,7 +1979,7 @@ _(Name-meanings and periods: DAR 347.1, 352.3-354.5, 359.1, 363.3, 366.3, 371.1.
 
   > "At the very time specified, Turkey, through her ambassadors, accepted the protection of the allied powers of Europe, and thus placed herself under the control of Christian nations. The event exactly fulfilled the prediction…. multitudes were convinced of the correctness of the principles of prophetic interpretation adopted by Miller and his associates." — GC 335.
 
-  > "This supremacy of the Mohammedans over the Greeks was to continue, as already noticed, three hundred and ninety-one years and fifteen days. Commencing when the one hundred and fifty years ended, July 27, 1449, the period would end Aug. 11, 1840." — DAR 485-487.
+  > "This supremacy of the Mohammedans over the Greeks was to continue, as already noticed, three hundred and ninety-one years and fifteen days. Commencing when the one hundred and fifty years ended, July 27, 1449, the period would end Aug. 11, 1840." — DAR 485.
 
 ---
 
@@ -2061,7 +2063,7 @@ _(Name-meanings and periods: DAR 347.1, 352.3-354.5, 359.1, 363.3, 366.3, 371.1.
 
   > "The points of identity between them are easily seen: (1) They both have a special message to proclaim; (2) they both utter their proclamation with a loud voice; (3) they both use similar language, referring to the great Creator … and (4) they both proclaim time, one swearing that time should be no more, and the other proclaiming that the hour of God's Judgment has come." — DAR 490.1.
 
-  > "The sixth and seventh verses of the tenth chapter of Revelation are parallel with the sixth and seventh verses of the fourteenth chapter." — SSP 187.1.
+  > "The sixth and seventh verses of the tenth chapter of Revelation are parallel with the sixth and seventh verses of the fourteenth chapter." — SSP 187.2.
 
 - **Revelation 11:18** — "The time of the dead, that they should be judged... reward unto thy servants the prophets, and to the saints." The seventh trumpet brings in the judgment hour announced by the angel — the same investigative work begun in 1844.
 
@@ -2208,7 +2210,7 @@ _(DAR 488-496; GC 374.1, 404.2, 423.1; SSP 187.1-190.2; CET 50.1-50.4; GSAM 153.
 
   > "Following his rule of making Scripture its own interpreter, Miller learned that a day in symbolic prophecy represents a year (Numbers 14:34; Ezekiel 4:6); he saw that the period of 2300 prophetic days, or literal years, would extend far beyond the close of the Jewish dispensation…" — GC 324.
 
-  > "Seventy weeks, then, or 490 days of the 2300, were cut off upon, or allotted to, Jerusalem and the Jews… if these seventy weeks are fulfilled as weeks of years, then the 2300 days, of which these are a part, are so many years." — DAR 192.
+  > "Seventy weeks, then, or 490 days of the 2300, were cut off upon, or allotted to, Jerusalem and the Jews… if these seventy weeks are fulfilled as weeks of years, then the 2300 days, of which these are a part, are so many years." — DAR 193.
 
 - **Ezekiel 4:6** — "I have appointed thee each day for a year" — the second witness to the year-day principle, doubly establishing the measure of the prophetic periods.
 
@@ -2286,7 +2288,7 @@ _(DAR 488-496; GC 374.1, 404.2, 423.1; SSP 187.1-190.2; CET 50.1-50.4; GSAM 153.
 
   > "Under the Mosaic system the cleansing of the sanctuary, or the great Day of Atonement, occurred on the tenth day of the seventh Jewish month (Leviticus 16:29-34), when the high priest, having made an atonement for all Israel, and thus removed their sins from the sanctuary, came forth and blessed the people." — GC 399.
 
-  > "In the examination of the sanctuary, on chapter 8:14, we saw that a time came when the earthly sanctuary gave place to the heavenly, and the priestly ministration was transferred to that… The last event, therefore, of the seventy weeks, here brought to view, is the anointing of the heavenly tabernacle, or the opening of the ministration there." — DAR 222.
+  > "In the examination of the sanctuary, on chapter 8:14, we saw that a time came when the earthly sanctuary gave place to the heavenly, and the priestly ministration was transferred to that… The last event, therefore, of the seventy weeks, here brought to view, is the anointing of the heavenly tabernacle, or the opening of the ministration there." — DAR 193.
 
 - **Leviticus 16:33-34** — "He shall make an atonement for the holy sanctuary... And this shall be an everlasting statute... to make an atonement for the children of Israel for all their sins once a year." The yearly, fixed-date character of the type fixed the antitype's date: "the tenth day of the seventh Jewish month... which in the year 1844 fell upon the twenty-second of October."
 
@@ -2346,11 +2348,11 @@ _(DAR 488-496; GC 374.1, 404.2, 423.1; SSP 187.1-190.2; CET 50.1-50.4; GSAM 153.
 
   > "The coming of Christ as our high priest to the most holy place, for the cleansing of the sanctuary, brought to view in Daniel 8:14; the coming of the Son of man to the Ancient of Days, as presented in Daniel 7:13… are descriptions of the same event; and this is also represented by the coming of the bridegroom to the marriage… of Matthew 25." — GC 426.
 
-  > "Now the important point in this type is the completion of the reconciliation at the coming of the high priest out of the holy place. The high priest was a type of Jesus our High Priest; the most holy place a type of heaven itself…" — DAR 222.
+  > "Now the important point in this type is the completion of the reconciliation at the coming of the high priest out of the holy place. The high priest was a type of Jesus our High Priest; the most holy place a type of heaven itself…" — TRMC, Aug. 22, 1844, p. 4.
 
 - **Habakkuk 2:20** — "But the LORD is in his holy temple: let all the earth keep silence before him." The answer to the disappointment was that the Lord had entered the holy temple above to begin His closing ministry — exactly the prophet's own conclusion to the vision of the appointed time.
 
-  > "At the appointed time the Bridegroom came, not to the earth, as the people expected, but to the Ancient of Days in heaven, to the marriage, the reception of His kingdom… But they are to understand His work, and to follow Him by faith as He goes in before God." — GC 426-428.
+  > "At the appointed time the Bridegroom came, not to the earth, as the people expected, but to the Ancient of Days in heaven, to the marriage, the reception of His kingdom… But they are to understand His work, and to follow Him by faith as He goes in before God." — GC 427.
 
 ### The everlasting gospel that drove the chart and the cry
 
@@ -2626,7 +2628,7 @@ _(DAR 488-496; GC 374.1, 404.2, 423.1; SSP 187.1-190.2; CET 50.1-50.4; GSAM 153.
 
 - **Revelation 12:6** — "The woman fled into the wilderness... that they should feed her there a thousand two hundred and threescore days." The same 1260 of the beast's reign, seen from the church's side: while the beast rules, the true church is driven into the wilderness.
 
-  > "And the church fled into the wilderness at the time the papacy was established, in 538, where it was nourished by the word of God and the ministration of angels during the long, dark, and bloody rule of that power, 1260 years." — DAR 514-515.
+  > "And the church fled into the wilderness at the time the papacy was established, in 538, where it was nourished by the word of God and the ministration of angels during the long, dark, and bloody rule of that power, 1260 years." — DAR 512.
 
 ### Six points of identity — the little horn and the leopard beast are one power
 
@@ -2770,7 +2772,7 @@ _(DAR 488-496; GC 374.1, 404.2, 423.1; SSP 187.1-190.2; CET 50.1-50.4; GSAM 153.
 
 - **Revelation 17:6** — "I saw the woman drunken with the blood of the saints, and with the blood of the martyrs of Jesus." The persecuting record of the beast of chapter 13 (13:7) re-stated of the woman — one and the same blood-guilty power.
 
-  > "The secret of his wonder was just this: all the persecution he had witnessed had been from pagan Rome, the open enemy of Christ.... but when he looked forward, and saw a church professedly Christian persecuting the followers of the Lamb, and drunken with their blood, he could but wonder with great amazement." — DAR 660.
+  > "The secret of his wonder was just this: all the persecution he had witnessed had been from pagan Rome, the open enemy of Christ.... but when he looked forward, and saw a church professedly Christian persecuting the followers of the Lamb, and drunken with their blood, he could but wonder with great amazement." — DAR 658-659.
 
   > "“And shall wear out the saints of the Most High.”... All know that for long years the papal church has pursued its relentless work against the true followers of God." — DAR 137.
 
@@ -3133,7 +3135,7 @@ _(DAR 488-496; GC 374.1, 404.2, 423.1; SSP 187.1-190.2; CET 50.1-50.4; GSAM 153.
 
 - **The two classes** — "Christendom will at last be divided into just two classes... those who are sealed with the seal of the living God... and those who are sealed with the seal of the beast." One keeps the seventh day, the other the first — opposite extremities of the week.
 
-  > "Christendom will at last be divided into just two classes; to wit, those who are sealed with the seal of the living God, that is, have his mark, or keep his Sabbath; and those who are sealed with the seal of the beast, that is, have his mark, or keep his Sabbath. One is the seventh day; the other is just as far removed from it as possible, even to the other extremity of the week, namely, the first day." — DAR 628.
+  > "One is the seventh day; the other is just as far removed from it as possible, even to the other extremity of the week, namely, the first day. Christendom will at last be divided into just two classes; to wit, those who are sealed with the seal of the living God, that is, have his mark, or keep his Sabbath; and those who are sealed with the seal of the beast, that is, have his mark, or keep his Sabbath." — DAR 628.
 
   > "In the issue of the contest all Christendom will be divided into two great classes—those who keep the commandments of God and the faith of Jesus, and those who worship the beast and his image and receive his mark." — GC 450.
 
@@ -3186,7 +3188,7 @@ _(DAR 488-496; GC 374.1, 404.2, 423.1; SSP 187.1-190.2; CET 50.1-50.4; GSAM 153.
 
 - **Rev. 14:6** — "And I saw another angel fly in the midst of heaven, having the everlasting gospel to preach unto them that dwell on the earth, and to every nation, and kindred, and tongue, and people." A worldwide religious movement, not a single preacher; the same gospel that has saved men in every age now sounds its final call.
 
-  > "These angels are evidently symbolic; for the work assigned them is that of preaching the everlasting gospel to the people. But the preaching of the gospel has not been intrusted to literal angels; it has been committed unto men… Each of these three angels, therefore, symbolizes a body of religious teachers, who are commissioned to make known to their fellow men the special truths which constitute the burden of these messages respectively." — DAR 585.
+  > "These angels are evidently symbolic; for the work assigned them is that of preaching the everlasting gospel to the people. But the preaching of the gospel has not been intrusted to literal angels; it has been committed unto men… Each of these three angels, therefore, symbolizes a body of religious teachers, who are commissioned to make known to their fellow men the special truths which constitute the burden of these messages respectively." — DAR 586.
 
   > "And the angel's flight 'in the midst of heaven,' the 'loud voice' with which the warning is uttered, and its promulgation to all 'that dwell on the earth,'—'to every nation, and kindred, and tongue, and people,'—give evidence of the rapidity and world-wide extent of the movement." — GC 355.
 
@@ -3198,7 +3200,7 @@ _(DAR 488-496; GC 374.1, 404.2, 423.1; SSP 187.1-190.2; CET 50.1-50.4; GSAM 153.
 
 - **Dan. 8:14** — "Unto two thousand and three hundred days; then shall the sanctuary be cleansed." The 2300 years (Num. 14:34; Eze. 4:6) reach from 457 B.C. to A.D. 1844; the cleansing of the sanctuary is the judgment hour the first angel announces.
 
-  > "It brings to view a period of making ready the guests for the marriage of the Lamb, which is the work of Judgment to which the message brings us when it declares, 'The hour of his Judgment is come.'… It went forth with the power thus indicated between the years 1840-44… bringing us to the end of the 2300 days, when the work of Judgment commenced as Christ began the work of cleansing the sanctuary." — DAR 582-586.
+  > "It brings to view a period of making ready the guests for the marriage of the Lamb, which is the work of Judgment to which the message brings us when it declares, 'The hour of his Judgment is come.'… It went forth with the power thus indicated between the years 1840-44… bringing us to the end of the 2300 days, when the work of Judgment commenced as Christ began the work of cleansing the sanctuary." — DAR 600.
 
   > "The prophecies present a succession of events leading down to the opening of the judgment. This is especially true of the book of Daniel. But that part of his prophecy which related to the last days, Daniel was bidden to close up and seal 'to the time of the end.'" — GC 355.
 
@@ -3256,7 +3258,7 @@ _(DAR 488-496; GC 374.1, 404.2, 423.1; SSP 187.1-190.2; CET 50.1-50.4; GSAM 153.
 
   > "The reason given why Babylon meets with this moral fall is 'because she made all nations drink of the wine of the wrath … of her fornication.' There is but one thing to which this can refer, and that is false doctrines. She has corrupted the pure truths of God's word, and made the nations drunken with pleasing fables." — DAR 607-608.
 
-  > "The second angel's message of Revelation 14 was first preached in the summer of 1844, and it then had a more direct application to the churches of the United States, where the warning of the judgment had been most widely proclaimed and most generally rejected." — GC 381.
+  > "The second angel's message of Revelation 14 was first preached in the summer of 1844, and it then had a more direct application to the churches of the United States, where the warning of the judgment had been most widely proclaimed and most generally rejected." — GC 389.
 
   > "Not until this condition shall be reached, and the union of the church with the world shall be fully accomplished throughout Christendom, will the fall of Babylon be complete. The change is a progressive one, and the perfect fulfillment of Revelation 14:8 is yet future." — GC 389.
 
@@ -3268,7 +3270,7 @@ _(DAR 488-496; GC 374.1, 404.2, 423.1; SSP 187.1-190.2; CET 50.1-50.4; GSAM 153.
 
 - **Isa. 21:9** — "Babylon is fallen, is fallen; and all the graven images of her gods he hath broken." The prophetic phrase the second angel borrows; the doom of literal Babylon foreshadows the moral fall of mystic Babylon.
 
-  > "As Babylon is not a literal city, the fall cannot be a literal overthrow… The fall is therefore a moral fall; for after the fall, the voice is addressed to the people of God who are still in her connection, 'Come out of her, my people.'" — DAR 600.
+  > "As Babylon is not a literal city, the fall cannot be a literal overthrow… The fall is therefore a moral fall; for after the fall, the voice is addressed to the people of God who are still in her connection, 'Come out of her, my people.'" — DAR 607.
 
 - **Rev. 18:1-3** — "Babylon the great is fallen, is fallen, and is become the habitation of devils... For all nations have drunk of the wine of the wrath of her fornication." The fuller "loud cry" repetition of the second angel's message under the mighty angel whose glory lightens the earth.
 
@@ -3308,13 +3310,13 @@ _(DAR 488-496; GC 374.1, 404.2, 423.1; SSP 187.1-190.2; CET 50.1-50.4; GSAM 153.
 
 - **Rev. 13:15-17** — "...cause that as many as would not worship the image of the beast should be killed... receive a mark in their right hand, or in their foreheads." The mark the third angel warns against is the enforced worship of the beast through his image — apostate Protestantism (the two-horned beast / United States) compelling allegiance to Rome.
 
-  > "The powers of darkness will press forward their work, and if the churches still persist in this course of shunning light and rejecting truth, they will soon find themselves worshiping the beast and receiving his mark. This will be the logical sequence of that course of action which commenced with the rejection of the first message." — DAR 619.
+  > "The powers of darkness will press forward their work, and if the churches still persist in this course of shunning light and rejecting truth, they will soon find themselves worshiping the beast and receiving his mark. This will be the logical sequence of that course of action which commenced with the rejection of the first message." — DAR 620.
 
   > "When the leading churches of the United States, uniting upon such points of doctrine as are held by them in common, shall influence the state to enforce their decrees and to sustain their institutions, then Protestant America will have formed an image of the Roman hierarchy… The 'image to the beast' represents that form of apostate Protestantism which will be developed when the Protestant churches shall seek the aid of the civil power for the enforcement of their dogmas." — GC 445.
 
 - **Dan. 7:25** — "He shall... think to change times and laws." The little horn (the Papacy) presumed to change God's law, transferring the Sabbath to Sunday; the third message restores the trampled commandment, and Sunday-keeping enforced becomes the mark.
 
-  > "Stripped of all disguises, it is simply setting up a counterfeit Sabbath of its own on the first day of the week, in place of the Sabbath of the Lord on the seventh day, — a usurpation which the great God cannot tolerate, and from which the remnant church must fully clear itself before it will be prepared for the coming of Christ." — DAR 630.
+  > "Stripped of all disguises, it is simply setting up a counterfeit Sabbath of its own on the first day of the week, in place of the Sabbath of the Lord on the seventh day, — a usurpation which the great God cannot tolerate, and from which the remnant church must fully clear itself before it will be prepared for the coming of Christ." — DAR 626.
 
   > "The special characteristic of the beast, and therefore of his image, is the breaking of God's commandments. Says Daniel, of the little horn, the papacy: 'He shall think to change times and the law.'… The papacy has attempted to change the law of God… the fourth commandment has been so changed as to authorize the observance of the first instead of the seventh day as the Sabbath." — GC 446-447.
 
@@ -3410,7 +3412,7 @@ _(DAR 488-496; GC 374.1, 404.2, 423.1; SSP 187.1-190.2; CET 50.1-50.4; GSAM 153.
 
 - **Ephesians 4:30** — "Ye are sealed unto the day of redemption." The seal is the impress of the Holy Spirit, set on the character of those who are ready for translation.
 
-  > "The seal of God, as brought to view in our text, is to be applied to the servants of God… some institution or observance having special reference to God, which will serve as a 'mark of distinction' between the worshipers of God and those who are not in truth his servants, though they may profess to follow him." — DAR 446.
+  > "The seal of God, as brought to view in our text, is to be applied to the servants of God… some institution or observance having special reference to God, which will serve as a 'mark of distinction' between the worshipers of God and those who are not in truth his servants, though they may profess to follow him." — DAR 437.3.
 
 - **Revelation 22:4** — "His name shall be in their foreheads." The Father's name is His seal; the commandment that bears His descriptive title — the Sabbath — is the seal of His law.
 
@@ -3678,7 +3680,7 @@ _(DAR 488-496; GC 374.1, 404.2, 423.1; SSP 187.1-190.2; CET 50.1-50.4; GSAM 153.
 
   > "What city? (See chapter 17:18: 'And the woman which thou sawest is that great city which reigneth over the kings [kingdoms] of the earth.') That city is the papal Roman power." — DAR 504.2.
 
-  > "'The seven heads are seven mountains,' and 'The woman is that great city;' and it will not be difficult to show that the mountains and the city are both used symbolically." — DAR 602.1.
+  > "'The seven heads are seven mountains,' and 'The woman is that great city;' and it will not be difficult to show that the mountains and the city are both used symbolically." — DAR 602.2.
 
 ### Babylon: Her Name, Her Cup, Her Fall (Revelation 14:8; 18:1-5)
 
@@ -3742,9 +3744,9 @@ _(DAR 488-496; GC 374.1, 404.2, 423.1; SSP 187.1-190.2; CET 50.1-50.4; GSAM 153.
 
 _Symbol-key summary: a woman = a church (pure: 2 Cor. 11:2; Rev. 12:1 — corrupt: Isa. 1:21; Jer. 3:6-9). Fornication = spiritual idolatry / unlawful church-state union (Rev. 17:2; Jas. 4:4). The scarlet beast = the civil power the church rides and controls (Rev. 17:3; DAR 657.3). Seven heads = seven mountains = successive forms of Roman government; the seat is Rome (Rev. 17:9-10; DAR 659.3). "That great city" = papal Rome reigning over the kings of the earth (Rev. 17:18; DAR 504.2). Babylon = Babel = confusion = apostate religion — mother (Catholic Rome) and daughters (fallen Protestantism) — whose fall is announced in Rev. 14:8 and proclaimed with power in Rev. 18:1-5, with God's people called out before the plagues. (DAR 657-663; GC 381-383.)_
 
----
-
 # Part IV — Sanctuary & Consummation
+
+---
 
 # 20. The Sanctuary, the Cleansing, and the Investigative Judgment (1844)
 
@@ -3774,7 +3776,7 @@ _Symbol-key summary: a woman = a church (pure: 2 Cor. 11:2; Rev. 12:1 — corrup
 
   > "...they found in the Bible a full explanation of the subject of the sanctuary, its nature, location, and services; the testimony of the sacred writers being so clear and ample as to place the matter beyond all question." — GC 411-412.
 
-  > "I was then bidden to take notice of the two apartments of the heavenly sanctuary... In the first apartment I saw the candlestick with seven lamps, the table of shewbread, the altar of incense, and the censer... I looked into the second apartment. I saw there an ark... In the ark were tables of stone containing the ten commandments." — EW 251.3-252.1.
+  > "I was then bidden to take notice of the two apartments of the heavenly sanctuary... In the first apartment I saw the candlestick with seven lamps, the table of shewbread, the altar of incense, and the censer... I looked into the second apartment. I saw there an ark... In the ark were tables of stone containing the ten commandments." — EW 251.3.
 
 - **Hebrews 9:11-12** — "Christ being come an high priest... by a greater and more perfect tabernacle, not made with hands... by his own blood he entered in once into the holy place, having obtained eternal redemption for us." The greater tabernacle is the heavenly sanctuary where Christ now officiates.
 
@@ -3792,7 +3794,7 @@ _Symbol-key summary: a woman = a church (pure: 2 Cor. 11:2; Rev. 12:1 — corrup
 
   > "The ministration of the earthly sanctuary consisted of two divisions; the priests ministered daily in the holy place, while once a year the high priest performed a special work of atonement in the most holy, for the cleansing of the sanctuary." — GC 418.
 
-  > "The 10th day of the 7th month every year, the holy sanctuary is cleansed. This is the day of the sprinkling of blood on the mercy seat and seven times before it... This is the day of affliction for all Israel." — BP3 130.
+  > "The 10th day of the 7th month every year, the holy sanctuary is cleansed... This is the day of the sprinkling of blood on the mercy seat and seven times before it... This is the day of affliction for all Israel." — BP3 130.3.
 
 - **Hebrews 9:8** — The Holy Ghost signified "that the way into the holiest of all was not yet made manifest, while as the first tabernacle was yet standing." The most holy ministry opens only after the first-apartment work closes — the very transition of 1844.
 
@@ -3814,7 +3816,7 @@ _Symbol-key summary: a woman = a church (pure: 2 Cor. 11:2; Rev. 12:1 — corrup
 
   > "We must by faith enter within the veil, 'whither the forerunner is for us entered.' Hebrews 6:20. There the light from the cross of Calvary is reflected." — GC 489.
 
-  > "The sins of all those who come to Christ for salvation and pardon, are through his blood transferred to the Sanctuary... the heavenly things themselves with better sacrifices than these, that is, with the blood of Christ." — TTHDS 21.3.
+  > "The sins of all those who come to Christ for salvation and pardon, are through his blood transferred to the Sanctuary... the heavenly things themselves (the True Tabernacle in heaven) with better sacrifices than these, that is, with the blood of Christ." — TTHDS 21.3.
 
 ### The Day of Atonement (Leviticus 16) Is the Type of the Cleansing
 
@@ -3848,11 +3850,11 @@ _Symbol-key summary: a woman = a church (pure: 2 Cor. 11:2; Rev. 12:1 — corrup
 
   > "It is the ministration performed in the most holy place to complete the round of service, and end the work." — STTHD 249.1.
 
-  > "In the typical service, which was a shadow of the sacrifice and priesthood of Christ, the cleansing of the sanctuary was the last service performed by the high priest in the yearly round of ministration. It was the closing work of the atonement—a removal or putting away of sin from Israel." — GC 352.2.
+  > "In the typical system, which was a shadow of the sacrifice and priesthood of Christ, the cleansing of the sanctuary was the last service performed by the high priest in the yearly round of ministration. It was the closing work of the atonement—a removal or putting away of sin from Israel." — GC 352.2.
 
 - **Leviticus 23:27-29** — "On the tenth day of this seventh month there shall be a day of atonement... ye shall afflict your souls"; whoever "shall not be afflicted in that same day... shall be cut off." Probation closed for any who neglected the day — the type of the close of probation in the judgment.
 
-  > "In the typical service, while the high priest was making the atonement for Israel, all were required to afflict their souls by repentance of sin and humiliation before the Lord, lest they be cut off from among the people. In like manner, all who would have their names retained in the book of life should now... afflict their souls before God." — GC 430.
+  > "In the typical service, while the high priest was making the atonement for Israel, all were required to afflict their souls by repentance of sin and humiliation before the Lord, lest they be cut off from among the people. In like manner, all who would have their names retained in the book of life should now... afflict their souls before God." — GC 489-490.
 
   > "The following will explain the Convocation day: Leviticus 16:17, 33... day of affliction 29 v., rest day or Sabbath, and when to begin it, 32." — BP3 130.4.
 
@@ -3896,7 +3898,7 @@ _Symbol-key summary: a woman = a church (pure: 2 Cor. 11:2; Rev. 12:1 — corrup
 
 - **Daniel 8:14** — "Unto two thousand and three hundred days; then shall the sanctuary be cleansed." On the year-day principle (Num. 14:34; Eze. 4:6) the 2300 years, dated from 457 B.C., reach to A.D. 1844; and since no earthly sanctuary then stood, the sanctuary cleansed is the heavenly.
 
-  > "There remain 1810 years, extending far down into this dispensation, even to 1844. There the 2300 days terminated, and there we come to the cleansing of the sanctuary, the sanctuary, of course, of this dispensation." — DAR 145-157, 192.
+  > "There remain 1810 years, extending far down into this dispensation, even to 1844. There the 2300 days terminated, and there we come to the cleansing of the sanctuary, the sanctuary, of course, of this dispensation." — STTHD 197.2.
 
   > "At the termination of the 2300 days, in 1844, there had been no sanctuary on earth for many centuries. Thus the prophecy, 'Unto two thousand and three hundred days; then shall the sanctuary be cleansed,' unquestionably points to the sanctuary in heaven." — GC 326-329, 417.1.
 
@@ -3926,7 +3928,7 @@ _Symbol-key summary: a woman = a church (pure: 2 Cor. 11:2; Rev. 12:1 — corrup
 
   > "Therefore the announcement that the temple of God was opened in heaven and the ark of His testament was seen points to the opening of the most holy place of the heavenly sanctuary in 1844 as Christ entered there to perform the closing work of the atonement." — GC 433.
 
-  > "I was then bidden to take notice of the two apartments of the heavenly sanctuary... The veil was lifted, and I looked into the second apartment. I saw there an ark... In the ark were tables of stone containing the ten commandments." — EW 251.3-252.2.
+  > "I was then bidden to take notice of the two apartments of the heavenly sanctuary... The veil was lifted, and I looked into the second apartment. I saw there an ark... In the ark were tables of stone containing the ten commandments." — EW 251.3.
 
   > "We know it is the holy of holies that is here opened; for the ark is seen; and in that apartment alone the ark was deposited. This took place at the end of the 2300 days, when the sanctuary was to be cleansed... when the seventh angel commenced to sound." — DAR 507.
 
@@ -3952,11 +3954,11 @@ _Symbol-key summary: a woman = a church (pure: 2 Cor. 11:2; Rev. 12:1 — corrup
 
 - **Revelation 3:7-8 (EW)** — Christ "had shut the door of the holy place... and had opened the door into the most holy, which He opened in 1844, where the ark is." The shut door and the open door are the change of apartments at the end of the 2300 days.
 
-  > "I saw that Jesus had shut the door of the holy place, and no man can open it; and that He had opened the door into the most holy, and no man can shut it (Revelation 3:7, 8); and that since Jesus has opened the door into the most holy place, which contains the ark, the commandments have been shining out to God's people." — EW 42.2-43.1.
+  > "I saw that Jesus had shut the door of the holy place, and no man can open it; and that He had opened the door into the most holy, and no man can shut it (Revelation 3:7, 8); and that since Jesus has opened the door into the most holy place, which contains the ark, the commandments have been shining out to God's people." — EW 42.2.
 
 - **The vindication of the disappointed** — "Man has erred; but there has been no failure on the part of God... man erroneously believed the earth to be the sanctuary." Jesus "has risen up and shut the door of the holy place... and has opened a door into the most holy place and entered in to cleanse the sanctuary." The prophecy stood; the interpretation was mended.
 
-  > "'Has God's word failed? Has God failed to fulfill His promises? No; He has fulfilled all that He promised. Jesus has risen up and shut the door of the holy place of the heavenly sanctuary and has opened a door into the most holy place and entered in to cleanse the sanctuary... Man has erred; but there has been no failure on the part of God... but man erroneously believed the earth to be the sanctuary to be cleansed at the end of the prophetic periods.'" — EW 250.1-251.1.
+  > "'Has God's word failed? Has God failed to fulfill His promises? No; He has fulfilled all that He promised. Jesus has risen up and shut the door of the holy place of the heavenly sanctuary and has opened a door into the most holy place and entered in to cleanse the sanctuary... Man has erred; but there has been no failure on the part of God... but man erroneously believed the earth to be the sanctuary to be cleansed at the end of the prophetic periods.'" — EW 250.1.
 
 - **The center of present truth** — "The subject of the sanctuary and the investigative judgment should be clearly understood by the people of God... The sanctuary in heaven is the very center of Christ's work in behalf of men." This is the doctrine the disappointment uncovered — the key that opened the whole prophetic structure.
 
@@ -3986,11 +3988,11 @@ _Symbol-key summary: a woman = a church (pure: 2 Cor. 11:2; Rev. 12:1 — corrup
 
 - **Revelation 15:5** — "The temple of the tabernacle of the testimony in heaven was opened." The sanctuary is called the place of "the testimony" — another name for the law of God — confirming the law stands at the center of heaven's worship.
 
-  > "Within the holy of holies, in the sanctuary in heaven, the divine law is sacredly enshrined—the law that was spoken by God Himself amid the thunders of Sinai and written with His own finger on the tables of stone." — GC 433.1.
+  > "Within the holy of holies, in the sanctuary in heaven, the divine law is sacredly enshrined—the law that was spoken by God Himself amid the thunders of Sinai and written with His own finger on the tables of stone." — GC 433.2.
 
 - **Early Writings (EW 32-33)** — In vision the ark was seen, the tables opened, "the ten commandments written... with the finger of God," and "the fourth, the Sabbath commandment, shone above them all... a halo of glory was all around it." The Sabbath was not nailed to the cross; "the pope had changed it... for he was to change times and laws."
 
-  > "Jesus opened them, and I saw the ten commandments written on them with the finger of God… But the fourth, the Sabbath commandment, shone above them all; for the Sabbath was set apart to be kept in honor of God's holy name… I saw that the Sabbath commandment was not nailed to the cross… But the pope had changed it from the seventh to the first day of the week; for he was to change times and laws." — EW 32.3-33.1.
+  > "Jesus opened them, and I saw the ten commandments written on them with the finger of God… But the fourth, the Sabbath commandment, shone above them all; for the Sabbath was set apart to be kept in honor of God's holy name… I saw that the Sabbath commandment was not nailed to the cross… But the pope had changed it from the seventh to the first day of the week; for he was to change times and laws." — EW 32.3.
 
 ### The controversy is over the commandments
 
@@ -4020,7 +4022,7 @@ _Symbol-key summary: a woman = a church (pure: 2 Cor. 11:2; Rev. 12:1 — corrup
 
 - **Daniel 7:25** — The little horn "shall... think to change times and laws." These are not human laws (which it could change at will) but the laws of the Most High — which it could only _think_ to change, not truly change. The papacy expunged the second commandment, divided the tenth, and tore the Sabbath from the fourth, erecting Sunday in its place.
 
-  > "It has, in its catechisms, expunged the second commandment of the decalogue to make way for its adoration of images. It has divided the tenth commandment to make up the number ten. And, more audacious than all! it has taken hold of the fourth commandment, torn from its place the Sabbath of Jehovah, the only memorial of the great God ever given to man, and erected in its place a rival institution to serve another purpose." — DAR 140.3-141.1.
+  > "It has, in its catechisms, expunged the second commandment of the decalogue to make way for its adoration of images. It has divided the tenth commandment to make up the number ten. And, more audacious than all! it has taken hold of the fourth commandment, torn from its place the Sabbath of Jehovah, the only memorial of the great God ever given to man, and erected in its place a rival institution to serve another purpose." — DAR 140.3.
 
 - **Daniel 7:8** — The little horn rose "among" the ten horns with "a mouth speaking great things." Identified as the papacy (538-1798), this is the power that presumed to alter the Decalogue — the "great words against the most High."
 
@@ -4058,7 +4060,7 @@ _Symbol-key summary: a woman = a church (pure: 2 Cor. 11:2; Rev. 12:1 — corrup
 
 - **James 2:10-12** — "Whosoever shall keep the whole law, and yet offend in one point, he is guilty of all." The Decalogue is an indivisible unity; to break the fourth commandment is to break the whole — so men "shall be judged by the law of liberty."
 
-  > "I saw that the Sabbath commandment was not nailed to the cross. If it was, the other nine commandments were; and we are at liberty to break them all, as well as to break the fourth." — EW 33.1.
+  > "I saw that the Sabbath commandment was not nailed to the cross. If it was, the other nine commandments were; and we are at liberty to break them all, as well as to break the fourth." — EW 32.3.
 
 - **Romans 3:31** — "Do we then make void the law through faith? God forbid: yea, we establish the law." The gospel does not annul the law but upholds it; faith and obedience stand together. _(Waggoner / Jones, the law and the gospel.)_
 
@@ -4198,7 +4200,7 @@ _Symbol-key summary: a woman = a church (pure: 2 Cor. 11:2; Rev. 12:1 — corrup
 
 - **Jeremiah 31:31-33** — "I will put my law in their inward parts, and write it in their hearts; and will be their God, and they shall be my people." The new covenant is not a new law but the old law in a new place — God Himself does the writing.
 
-  > "Its scope is identical with that of the new covenant, in which God says, 'I will put my law in their inward parts, and write it in their hearts; and will be their God, and they shall be my people.'" — EVCO 326.
+  > "Its scope is identical with that of the new covenant, in which God says, 'I will put my law in their inward parts, and write it in their hearts; and will be their God, and they shall be my people.'" — EVCO 84.
 
   > "In the beginning, man was created in the image of God. He was in perfect harmony with the nature and the law of God; the principles of righteousness were written upon his heart. But sin alienated him from his Maker. … His heart must be renewed by divine grace; he must have a new life from above." — GC 467-468.
 
@@ -4226,7 +4228,7 @@ _Symbol-key summary: a woman = a church (pure: 2 Cor. 11:2; Rev. 12:1 — corrup
 
   > "But Christ is the only Light of the world, the Light of life; so that the true and living law is found only in Him. It is His life, because it is in His heart, and out of the heart are the issues of life." — EVCO 344.
 
-  > "It is the work of conversion and sanctification to reconcile men to God by bringing them into accord with the principles of His law. … His heart must be renewed by divine grace; he must have a new life from above. This change is the new birth." — GC 468.
+  > "It is the work of conversion and sanctification to reconcile men to God by bringing them into accord with the principles of His law. … His heart must be renewed by divine grace; he must have a new life from above. This change is the new birth." — GC 467.
 
 - **Galatians 4:26-28** — "Jerusalem which is above is free, which is the mother of us all... we, brethren, as Isaac was, are the children of promise." Sarah, the freewoman, is the new covenant; her children are free, born "by promise."
 
@@ -4523,13 +4525,13 @@ _(Gal. 4:22-31; EVCO 323-326, 332, 344; GTI 184-187.)_
 
 - **Revelation 16:13** — "Three unclean spirits like frogs come out of the mouth of the dragon, and out of the mouth of the beast, and out of the mouth of the false prophet." Spiritualism (dragon), the Papacy (beast), and apostate Protestantism (false prophet) unite in one threefold confederacy against God's people.
 
-  > "The sources from which these spirits issue, denote that they will work among three great religious divisions of mankind, represented by the dragon, the beast, and the false prophet, or Paganism, Catholicism, and Protestantism." — DAR 646.3.
+  > "The sources from which these spirits issue, denote that they will work among three great religious divisions of mankind, represented by the dragon, the beast, and the false prophet, or Paganism, Catholicism, and Protestantism." — DAR 650.2.
 
   > "The Protestants of the United States will be foremost in stretching their hands across the gulf to grasp the hand of spiritualism; they will reach over the abyss to clasp hands with the Roman power; and under the influence of this threefold union, this country will follow in the steps of Rome in trampling on the rights of conscience." — GC 588.
 
 - **Revelation 16:14** — "They are the spirits of devils, working miracles... to gather them to the battle of that great day of God Almighty." These working-miracle demons go forth to the kings of the earth; the supernatural fires this last alliance.
 
-  > "But it is one province of these spirits of devils to deceive, for they go forth working miracles, and thereby deceive the kings of the earth, that they should believe a lie." — DAR 646.3-648.
+  > "But it is one province of these spirits of devils to deceive, for they go forth working miracles, and thereby deceive the kings of the earth, that they should believe a lie." — DAR 650.1.
 
   > "Says the prophet: 'I saw three unclean spirits like frogs; ... they are the spirits of devils, working miracles, which go forth unto the kings of the earth and of the whole world, to gather them to the battle of that great day of God Almighty.' … Except those who are kept by the power of God, through faith in His word, the whole world will be swept into the ranks of this delusion." — GC 561.
 
@@ -4633,7 +4635,7 @@ _(Gal. 4:22-31; EVCO 323-326, 332, 344; GTI 184-187.)_
 
 - **Revelation 6:8** — The pale horse: "his name that sat on him was Death... to kill with sword, and with hunger, and with death." The fortunes of the church darken through the centuries of decline and persecution.
 
-  > "The rider on this horse is named Death; and Hell (ᾅδης, the grave) follows with him. The mortality is so great during this period that it would seem as if 'the pale nations of the dead' had come upon earth… It must refer to the time in which the papacy bore its unrebuked, unrestrained, and persecuting rule, commencing about A. D. 538." — DAR 402-413.
+  > "The rider on this horse is named Death; and Hell (ᾅδης, the grave) follows with him. The mortality is so great during this period that it would seem as if 'the pale nations of the dead' had come upon earth… It must refer to the time in which the papacy bore its unrebuked, unrestrained, and persecuting rule, commencing about A. D. 538." — DAR 408.2.
 
 - **Revelation 6:9-11** — The fifth seal: souls "under the altar... slain for the word of God... How long, O Lord, dost thou not judge and avenge our blood?" The era of papal martyrdom; white robes given, and a command to "rest yet for a little season" — the church's persecuted providential lot.
 
@@ -4669,11 +4671,11 @@ _(Gal. 4:22-31; EVCO 323-326, 332, 344; GTI 184-187.)_
 
 - **Revelation 8:7** — The first trumpet: "hail and fire mingled with blood... the third part of trees was burnt up." The Gothic invasions that broke Western Rome — judgments on the _nations_, not on the church's spiritual state.
 
-  > "'Hail and fire, mingled with blood,' were cast upon the earth. The terrible effects of this Gothic invasion are represented as 'hail,' from the fact of the northern origin of the invaders; 'fire,' from the destruction by flame of both city and country; and 'blood,' from the terrible slaughter of the citizens of the empire." — DAR 453-462.
+  > "'Hail and fire, mingled with blood,' were cast upon the earth. The terrible effects of this Gothic invasion are represented as 'hail,' from the fact of the northern origin of the invaders; 'fire,' from the destruction by flame of both city and country; and 'blood,' from the terrible slaughter of the citizens of the empire…" — DAR 455.6.
 
 - **Revelation 9:1, 5, 10** — The fifth trumpet (first woe): a fallen star, the bottomless pit, and power "to hurt men five months." The 150 years (a prophetic five months) of Ottoman tormenting — day-for-a-year (Num. 14:34; Eze. 4:6).
 
-  > "'Five months,' thirty days to a month, give us one hundred and fifty days; and these days, being symbolic, signify one hundred and fifty years. Commencing July 27, 1299, the one hundred and fifty years reach to 1449. During that whole period the Turks were engaged in an almost perpetual warfare with the Greek empire, but yet without conquering it." — DAR 472-480.
+  > "'Five months,' thirty days to a month, give us one hundred and fifty days; and these days, being symbolic, signify one hundred and fifty years. Commencing July 27, 1299, the one hundred and fifty years reach to 1449. During that whole period the Turks were engaged in an almost perpetual warfare with the Greek empire, but yet without conquering it." — DAR 479.5.
 
 - **Revelation 9:15** — The sixth trumpet: "the four angels were loosed, which were prepared for an hour, and a day, and a month, and a year, for to slay the third part of men." The four sultanies on the Euphrates (Aleppo, Iconium, Damascus, Bagdad) loosed to overthrow the Eastern empire.
 
@@ -4725,7 +4727,7 @@ _(Gal. 4:22-31; EVCO 323-326, 332, 344; GTI 184-187.)_
 
 - **Revelation 16:1-2** — "Go your ways, and pour out the vials of the wrath of God upon the earth. And the first... poured out his vial... and there fell a noisome and grievous sore upon the men which had the mark of the beast." The plague falls on the very class warned by the third angel — proof it follows the close of his work.
 
-  > "The Chronology of the Plagues. — The description of this plague clearly reveals at once their chronology; for it is poured out upon those who have the mark of the beast, and who worship his image, — the identical work against which the third angel warns us. This is conclusive proof that these judgments are not poured out till after this angel closes his work." — DAR 641.2-641.3.
+  > "The Chronology of the Plagues. — The description of this plague clearly reveals at once their chronology; for it is poured out upon those who have the mark of the beast, and who worship his image, — the identical work against which the third angel warns us. This is conclusive proof that these judgments are not poured out till after this angel closes his work." — DAR 641.3.
 
 - **Revelation 14:9-10** — "If any man worship the beast... The same shall drink of the wine of the wrath of God, which is poured out **without mixture** into the cup of his indignation." The plagues are this very wine — unmixed with the mercy that has tempered every prior judgment.
 
@@ -4765,7 +4767,7 @@ _(Gal. 4:22-31; EVCO 323-326, 332, 344; GTI 184-187.)_
 
 - **Revelation 11:18** — "The nations were angry, and thy wrath is come, and the time of the dead, that they should be judged." The seventh trumpet, like the seventh seal and seventh plague, lands at one and the same terminus — the judgment and reward — proving the lines are parallel, not consecutive.
 
-  > "'And Thy Wrath Is Come.' — The wrath of God for the present generation is filled up in the seven last plagues (chapter 15:1), which consequently must here be referred to, and which are soon to be poured out upon the earth." — DAR 504-505.
+  > "'And Thy Wrath Is Come.' — The wrath of God for the present generation is filled up in the seven last plagues (chapter 15:1), which consequently must here be referred to, and which are soon to be poured out upon the earth." — DAR 506.3.
 
 - **Daniel 12:1; Revelation 22:11** — "Michael shall stand up" the moment the third angel's message closes and "mercy no longer pleads"; the unjust are sealed unjust, the holy sealed holy. This single hinge separates the first three sevens (running _through_ probation) from the fourth (poured out _after_ it).
 
@@ -4793,11 +4795,11 @@ _(Gal. 4:22-31; EVCO 323-326, 332, 344; GTI 184-187.)_
 
   > "Babylon is said to be 'the mother of harlots.' By her daughters must be symbolized churches that cling to her doctrines and traditions, and follow her example of sacrificing the truth and the approval of God, in order to form an unlawful alliance with the world." — GC 382.
 
-  > "Babylon is a term which embraces not only the Roman Catholic Church, but religious bodies which have sprung from her, bringing many of her errors and traditions along with them." — DAR 663-664.
+  > "Babylon is a term which embraces not only the Roman Catholic Church, but religious bodies which have sprung from her, bringing many of her errors and traditions along with them." — DAR 663.
 
 - **Revelation 17:1-2** — The great whore "sitteth upon many waters," and "the kings of the earth have committed fornication with her, and the inhabitants of the earth have been made drunk with the wine of her fornication." False doctrine (wine) intoxicating the nations through union of church and state.
 
-  > "This woman [popery] is called the mother of harlots and abominations. Who are the daughters? The Lutheran, the Presbyterian, and the Episcopalian churches are all branches of the [Roman] Catholic… They hold the distinctive principles of papacy in common with papists." — DAR 663-664.
+  > "This woman [popery] is called the mother of harlots and abominations. Who are the daughters? The Lutheran, the Presbyterian, and the Episcopalian churches are all branches of the [Roman] Catholic… They hold the distinctive principles of papacy in common with papists." — DAR 664.
 
 - **Revelation 14:8** — "Babylon is fallen, is fallen, that great city, because she made all nations drink of the wine of the wrath of her fornication." The second angel's message, first preached in the summer of 1844 against the churches that rejected the advent truth.
 
@@ -4817,11 +4819,11 @@ _(Gal. 4:22-31; EVCO 323-326, 332, 344; GTI 184-187.)_
 
 - **Revelation 18:3** — "All nations have drunk of the wine of the wrath of her fornication, and the kings of the earth have committed fornication with her, and the merchants of the earth are waxed rich through the abundance of her delicacies." Worldliness, pride, and union with the kings of the earth complete the picture of apostasy.
 
-  > "They ran well for a season, and had the approbation of God; but fencing themselves about with creeds, they have failed to keep pace with the advancing light of prophetic truth, and hence have been left in a position where they will finally develop a character as evil and odious in the sight of God as that of the church from which they first withdrew." — DAR 663-665.
+  > "They ran well for a season, and had the approbation of God; but fencing themselves about with creeds, they have failed to keep pace with the advancing light of prophetic truth, and hence have been left in a position where they will finally develop a character as evil and odious in the sight of God as that of the church from which they first withdrew." — DAR 664.
 
 - **Revelation 17:5 / 18:24** — "In her was found the blood of prophets, and of saints, and of all that were slain upon the earth." The accumulated guilt of persecution mounts up against her.
 
-  > "Meanwhile, great Babylon's sins mount up to the heavens, and the remembrance of her iniquities comes up before God. The storm of vengeance gathers. The great tidal wave of supernal wrath rolls onward." — DAR 671-672.
+  > "Meanwhile, great Babylon's sins mount up to the heavens, and the remembrance of her iniquities comes up before God. The storm of vengeance gathers. The great tidal wave of supernal wrath rolls onward." — DAR 673.
 
 - **Revelation 16:13-14** — Three unclean spirits like frogs go out of the dragon, beast, and false prophet — "spirits of devils, working miracles" — gathering the nations. Spiritualism is the agency by which Babylon becomes "the habitation of devils."
 
@@ -4831,7 +4833,7 @@ _(Gal. 4:22-31; EVCO 323-326, 332, 344; GTI 184-187.)_
 
 - **Revelation 18:1** — "And after these things I saw another angel come down from heaven, having great power; and the earth was lightened with his glory." This new agency unites with and gives power to the third angel's message; no such description of a message to man is elsewhere in the Bible.
 
-  > "The angel who unites in the proclamation of the third angel's message is to lighten the whole earth with his glory. A work of world-wide extent and unwonted power is here foretold." — GC 603-604.
+  > "The angel who unites in the proclamation of the third angel's message is to lighten the whole earth with his glory. A work of world-wide extent and unwonted power is here foretold." — GC 611.
 
   > "He comes, as it were, nearer to the earth, with a message more pointed and direct; and he has 'great power,' and the earth is 'lightened with his glory.' No such description of a message from heaven to man is elsewhere to be found in all the Bible." — DAR 672.
 
@@ -4853,7 +4855,7 @@ _(Gal. 4:22-31; EVCO 323-326, 332, 344; GTI 184-187.)_
 
 - **Revelation 18:4** — "And I heard another voice from heaven, saying, Come out of her, my people, that ye be not partakers of her sins, and that ye receive not of her plagues." A fifth celestial agency; the divine call to separate from fallen Babylon before the plagues fall.
 
-  > "This voice from heaven is called 'another' voice, showing that a new agency is here introduced. We now have five celestial messengers expressly mentioned as engaged in this last religious reformation." — DAR 671-672.
+  > "This voice from heaven is called 'another' voice, showing that a new agency is here introduced. We now have five celestial messengers expressly mentioned as engaged in this last religious reformation." — DAR 671.
 
   > "Revelation 18 points to the time when, as the result of rejecting the threefold warning of Revelation 14:6-12… the people of God still in Babylon will be called upon to separate from her communion. This message is the last that will ever be given to the world; and it will accomplish its work." — GC 390.
 
@@ -4863,17 +4865,17 @@ _(Gal. 4:22-31; EVCO 323-326, 332, 344; GTI 184-187.)_
 
   > "Of Babylon, at the time brought to view in this prophecy, it is declared: 'Her sins have reached unto heaven, and God hath remembered her iniquities.' Revelation 18:5. She has filled up the measure of her guilt, and destruction is about to fall upon her." — GC 604.
 
-  > "These are terrible descriptions of apostasy, showing that, as a consequence of her fall, she piles up an accumulation of sins even to the heavens, and becomes subject to the judgments of God, which can no longer be delayed." — DAR 671.
+  > "These are terrible descriptions of apostasy, showing that, as a consequence of her fall, she piles up an accumulation of sins even to the heavens, and becomes subject to the judgments of God, which can no longer be delayed." — DAR 664.
 
 - **Jeremiah 51:6** — "Flee out of the midst of Babylon, and deliver every man his soul: be not cut off in her iniquity; for this is the time of the LORD'S vengeance." The Old Testament call out of literal Babylon prefigures the gospel call out of spiritual Babylon.
 
   > "The term Babylon, as applied to them, is not a term of reproach, but is simply expressive of the confusion and diversity of sentiment that exists among them. Babylon need not have fallen, but might have been healed (Jeremiah 51:9) by the reception of the truth; but she rejected it." — DAR 666.
 
-  > "Suddenly another voice rings out from heaven, 'Come out of her, my people!' The humble, sincere, devoted children of God… heed the voice, wash their hands of her sins, separate from her communion, escape, and are saved, while Babylon becomes the victim of the just judgments of God." — DAR 671-672.
+  > "Suddenly another voice rings out from heaven, 'Come out of her, my people!' The humble, sincere, devoted children of God… heed the voice, wash their hands of her sins, separate from her communion, escape, and are saved, while Babylon becomes the victim of the just judgments of God." — DAR 673.
 
 - **Jeremiah 51:7** — "Babylon hath been a golden cup in the LORD'S hand, that made all the earth drunken... therefore the nations are mad." The cup of false doctrine; the same figure John uses of mystery Babylon.
 
-  > "Babylon is a term which embraces not only the Roman Catholic Church, but religious bodies which have sprung from her, bringing many of her errors and traditions along with them… their creeds have been formulated under the influence of the wine (errors) of Babylon." — DAR 663-664.
+  > "their creeds have been formulated under the influence of the wine (errors) of Babylon, one of which is that the spirits of our dead friends, conscious, intelligent, and active, are all about us." — DAR 667.
 
 - **Jeremiah 51:8-9** — "Babylon is suddenly fallen and destroyed... We would have healed Babylon, but she is not healed: forsake her." She might have been healed by receiving the truth, but rejected it; therefore "forsake her."
 
@@ -4881,7 +4883,7 @@ _(Gal. 4:22-31; EVCO 323-326, 332, 344; GTI 184-187.)_
 
 - **Jeremiah 51:45** — "My people, go ye out of the midst of her, and deliver ye every man his soul from the fierce anger of the LORD." The personal, individual nature of the call — each one must escape.
 
-  > "The humble, sincere, devoted children of God, of whom there are some still left, and who sigh and cry over the abominations done in the land, heed the voice, wash their hands of her sins, separate from her communion, escape, and are saved." — DAR 671.
+  > "The humble, sincere, devoted children of God, of whom there are some still left, and who sigh and cry over the abominations done in the land, heed the voice, wash their hands of her sins, separate from her communion, escape, and are saved." — DAR 673.
 
 - **Jeremiah 50:8** — "Remove out of the midst of Babylon, and go forth out of the land of the Chaldeans, and be as the he goats before the flocks." God's people lead out, first and decisively.
 
@@ -4899,7 +4901,7 @@ _(Gal. 4:22-31; EVCO 323-326, 332, 344; GTI 184-187.)_
 
 - **Ezekiel 9:4** — A mark is set "upon the foreheads of the men that sigh and that cry for all the abominations" — these are the ones who heed the call and are sealed before the judgments fall.
 
-  > "The humble, sincere, devoted children of God, of whom there are some still left, and who sigh and cry over the abominations done in the land, heed the voice, wash their hands of her sins, separate from her communion, escape, and are saved, while Babylon becomes the victim of the just judgments of God." — DAR 672.
+  > "The humble, sincere, devoted children of God, of whom there are some still left, and who sigh and cry over the abominations done in the land, heed the voice, wash their hands of her sins, separate from her communion, escape, and are saved, while Babylon becomes the victim of the just judgments of God." — DAR 673.
 
 ### The Loud Cry — Swelling of the Third Message
 
@@ -4943,25 +4945,25 @@ _(Gal. 4:22-31; EVCO 323-326, 332, 344; GTI 184-187.)_
 
 - **Revelation 18:6-7** — "Reward her even as she rewarded you, and double unto her double... for she saith in her heart, I sit a queen, and am no widow, and shall see no sorrow." Her self-exaltation and security precede her overthrow.
 
-  > "It is doubtless this first intoxication of power that leads this branch of Babylon to cherish in her heart the boast, 'I sit a queen, and am no widow;'… now I rule like a queen; I shall see no sorrow." — DAR 671.
+  > "It is doubtless this first intoxication of power that leads this branch of Babylon to cherish in her heart the boast, 'I sit a queen, and am no widow;'… now I rule like a queen; I shall see no sorrow." — DAR 674.
 
 - **Revelation 18:8** — "Therefore shall her plagues come in one day, death, and mourning, and famine; and she shall be utterly burned with fire: for strong is the Lord God who judgeth her." The literal destruction follows the moral fall, after the people of God are called out.
 
   > "There are events to take place in Babylon after her fall which utterly forbid this idea… in these plagues is embraced her literal destruction." — DAR 663.
 
-  > "Suddenly another voice rings out from heaven, 'Come out of her, my people!'… they heed the voice… escape, and are saved, while Babylon becomes the victim of the just judgments of God." — DAR 671.
+  > "Suddenly another voice rings out from heaven, 'Come out of her, my people!'… they heed the voice… escape, and are saved, while Babylon becomes the victim of the just judgments of God." — DAR 673.
 
 - **Revelation 18:9-11** — The kings and merchants of the earth "shall bewail her, and lament for her, when they shall see the smoke of her burning," crying, "in one hour is thy judgment come." Those who shared her sins share her doom.
 
-  > "The storm of vengeance gathers. The great tidal wave of supernal wrath rolls onward… ere it will burst upon the great city of confusion, and proud Babylon will go down as a millstone sinks in the depths of the sea." — DAR 671.
+  > "The storm of vengeance gathers. The great tidal wave of supernal wrath rolls onward… ere it will burst upon the great city of confusion, and proud Babylon will go down as a millstone sinks in the depths of the sea." — DAR 673.
 
 - **Revelation 18:21** — "A mighty angel took up a stone like a great millstone, and cast it into the sea, saying, Thus with violence shall that great city Babylon be thrown down, and shall be found no more at all." Proud Babylon sinks like a millstone — total and final.
 
-  > "Proud Babylon will go down as a millstone sinks in the depths of the sea… while Babylon becomes the victim of the just judgments of God. There are stirring times before the church. Let us be ready for the crisis." — DAR 672-673.
+  > "Proud Babylon will go down as a millstone sinks in the depths of the sea… while Babylon becomes the victim of the just judgments of God. There are stirring times before the church. Let us be ready for the crisis." — DAR 673.
 
 - **Revelation 18:20** — "Rejoice over her, thou heaven, and ye holy apostles and prophets; for God hath avenged you on her." Heaven vindicates the saints whose blood Babylon shed.
 
-  > "As she fills up the cup of persecution to the saints, so the angel of the Lord will persecute her (Psalms 35:6); and judgments from on high will bring upon her, in a twofold degree, the evil which she thought to bring upon the humble servants of the Lord." — DAR 671-672.
+  > "As she fills up the cup of persecution to the saints, so the angel of the Lord will persecute her (Psalms 35:6); and judgments from on high will bring upon her, in a twofold degree, the evil which she thought to bring upon the humble servants of the Lord." — DAR 674.
 
 ---
 
@@ -5021,7 +5023,7 @@ _(Gal. 4:22-31; EVCO 323-326, 332, 344; GTI 184-187.)_
 
   > "Many of the wicked were greatly enraged as they suffered the effects of the plagues. It was a scene of fearful agony.... Loud, wailing cries were heard in every direction, 'It was you who kept me from receiving the truth which would have saved me from this awful hour.'" — EW 282.1.
 
-  > "Christ has made the atonement for His people and blotted out their sins.... Every case has been decided for life or death." — GC 613.2.
+  > "Every case has been decided for life or death. Christ has made the atonement for His people and blotted out their sins." — GC 613.2.
 
 - **Revelation 16:8-11** — The fourth vial scorches men with fire; the fifth fills the beast's kingdom with darkness; yet they "blasphemed the name of God... and they repented not." The plagues are unmixed wrath — no mercy is mingled, because probation has closed and no repentance follows.
 
@@ -5093,7 +5095,7 @@ _(Gal. 4:22-31; EVCO 323-326, 332, 344; GTI 184-187.)_
 
 - **Isaiah 26:20-21** — "Come, my people, enter thou into thy chambers... hide thyself... until the indignation be overpast. For, behold, the LORD cometh out of his place to punish the inhabitants of the earth." The saints are sheltered while wrath is poured out; then the Lord comes forth to judge.
 
-  > "The people of God... still plead for divine protection, while in every quarter companies of armed men, urged on by hosts of evil angels, are preparing for the work of death. It is now, in the hour of utmost extremity, that the God of Israel will interpose for the deliverance of His chosen." — GC 635-636.
+  > "The people of God... still plead for divine protection, while in every quarter companies of armed men, urged on by hosts of evil angels, are preparing for the work of death. It is now, in the hour of utmost extremity, that the God of Israel will interpose for the deliverance of His chosen." — GC 635.2.
 
 - **Zephaniah 2:3** — "Seek ye the LORD, all ye meek of the earth... it may be ye shall be hid in the day of the LORD'S anger." The call to seek righteousness and meekness now is the only preparation for being hid then.
 
@@ -5201,7 +5203,7 @@ _(Gal. 4:22-31; EVCO 323-326, 332, 344; GTI 184-187.)_
 
 - **Revelation 16:8-9** — The fourth vial: the sun given "power... to scorch men with fire," and men were scorched with great heat, yet "blasphemed the name of God... and they repented not." Drought and famine as Joel describes; still no repentance.
 
-  > "Power is given unto the sun, and he pours upon them a flood of liquid fire, and they are scorched with great heat. Here, as the record runs, their woe first seeks utterance in fearful blasphemy." — DAR 647.4.
+  > "Power is given unto the sun, and he pours upon them a flood of liquid fire, and they are scorched with great heat. Here, as the record runs, their woe first seeks utterance in fearful blasphemy." — DAR 645.4.
 
   > "In the plague that follows, power is given to the sun 'to scorch men with fire. And men were scorched with great heat.' Verses 8, 9. The prophets thus describe the condition of the earth at this fearful time: 'The land mourneth; ... because the harvest of the field is perished.'" — GC 628.1.
 
@@ -5253,7 +5255,7 @@ _(Gal. 4:22-31; EVCO 323-326, 332, 344; GTI 184-187.)_
 
 - **Revelation 17:12-14** — The ten kings "have one mind, and shall give their power and strength unto the beast"; then "these shall make war with the Lamb, and the Lamb shall overcome them: for he is Lord of lords, and King of kings." Armageddon is the confederated powers of earth versus the Lamb — and the Lamb prevails.
 
-  > "These make war with the Lamb. Verse 14. Here we are carried into the future, to the time of the great and final battle; for at this time the Lamb has assumed the title of King of kings and Lord of lords, a title which he does not assume till his second coming." — DAR 657-662.
+  > "These make war with the Lamb. Verse 14. Here we are carried into the future, to the time of the great and final battle; for at this time the Lamb has assumed the title of King of kings and Lord of lords, a title which he does not assume till his second coming." — DAR 661.3.
 
 ### The Seventh Vial — "It Is Done" — and the Voice of God
 
@@ -5443,7 +5445,7 @@ _(Gal. 4:22-31; EVCO 323-326, 332, 344; GTI 184-187.)_
 
 - **Matthew 25:31** — "When the Son of man shall come in his glory, and all the holy angels with him, then shall he sit upon the throne of his glory."
 
-  > "With anthems of celestial melody the holy angels, a vast, unnumbered throng, attend Him on His way. The firmament seems filled with radiant forms—'ten thousand times ten thousand, and thousands of thousands.'" — GC 641-642.
+  > "With anthems of celestial melody the holy angels, a vast, unnumbered throng, attend Him on His way. The firmament seems filled with radiant forms—'ten thousand times ten thousand, and thousands of thousands.'" — GC 640.
 
 - **Matthew 16:27** — "The Son of man shall come in the glory of his Father with his angels; and then he shall reward every man according to his works."
 
@@ -5461,7 +5463,7 @@ _(Gal. 4:22-31; EVCO 323-326, 332, 344; GTI 184-187.)_
 
 - **Jude 1:14** — Enoch prophesied, "Behold, the Lord cometh with ten thousands of his saints." The myriads attend the King in His triumph.
 
-  > "The firmament seems filled with radiant forms—'ten thousand times ten thousand, and thousands of thousands.' No human pen can portray the scene; no mortal mind is adequate to conceive its splendor." — GC 641.
+  > "The firmament seems filled with radiant forms—'ten thousand times ten thousand, and thousands of thousands.' No human pen can portray the scene; no mortal mind is adequate to conceive its splendor." — GC 640.
 
 - **Revelation 19:11-16** — Heaven opened, the white-horse Warrior called Faithful and True, crowned with many crowns, "KING OF KINGS, AND LORD OF LORDS," the armies of heaven following Him. Christ comes this time as conquering King, His mediatorial work closed and kingly attire on.
 
@@ -5491,15 +5493,15 @@ _(Gal. 4:22-31; EVCO 323-326, 332, 344; GTI 184-187.)_
 
 - **Colossians 3:4** — "When Christ, who is our life, shall appear, then shall ye also appear with him in glory."
 
-  > "The living saints are changed in a moment, in the twinkling of an eye, and caught up with the risen ones, and together they meet their Lord in the air. Oh, what a glorious meeting! Friends whom death had separated were united, never more to part." — EW 288-289.
+  > "The living saints are changed in a moment, in the twinkling of an eye, and caught up with the risen ones, and together they meet their Lord in the air. Oh, what a glorious meeting! Friends whom death had separated were united, never more to part." — EW 287.
 
 - **1 John 3:2** — "When he shall appear, we shall be like him; for we shall see him as he is."
 
-  > "Those bodies that had gone down into the grave bearing the marks of disease and death came up in immortal health and vigor. The living saints are changed in a moment, in the twinkling of an eye." — EW 16-17.
+  > "Those bodies that had gone down into the grave bearing the marks of disease and death came up in immortal health and vigor. The living saints are changed in a moment, in the twinkling of an eye." — EW 287.
 
 - **Isaiah 25:9** — "Lo, this is our God; we have waited for him, and he will save us... we will be glad and rejoice in his salvation." The waiting people break into triumph at His appearing.
 
-  > "In the midst of their terror they hear the voices of the saints in joyful strains exclaiming: 'Lo, this is our God; we have waited for Him, and He will save us.' Isaiah 25:9." — GC 640-642.
+  > "In the midst of their terror they hear the voices of the saints in joyful strains exclaiming: 'Lo, this is our God; we have waited for Him, and He will save us.' Isaiah 25:9." — GC 644.
 
 ### The wicked slain by the brightness of His coming
 
@@ -5537,7 +5539,7 @@ _(Gal. 4:22-31; EVCO 323-326, 332, 344; GTI 184-187.)_
 
   > "The 13th chapter closed with the people of God, a small and apparently weak and defenseless company, in deadly conflict with the mightiest powers of earth.… The very same company standing on Mount Zion with the Lamb, — a victorious company, harping on symphonious harps their triumph in the court of heaven." — DAR 582.
 
-  > "His hair was white and curly and lay on His shoulders; and upon His head were many crowns. His feet had the appearance of fire; in His right hand was a sharp sickle." — GC 641.
+  > "His hair was white and curly and lay on His shoulders; and upon His head were many crowns. His feet had the appearance of fire; in His right hand was a sharp sickle." — EW 16.
 
 - **Zechariah 14:4-5** — "His feet shall stand in that day upon the mount of Olives... and the LORD my God shall come, and all the saints with thee." The descent is to the very place of His ascension.
 
@@ -5595,7 +5597,7 @@ _(Gal. 4:22-31; EVCO 323-326, 332, 344; GTI 184-187.)_
 
 - **Job 19:25-26** — "I know that my redeemer liveth, and that he shall stand at the latter day upon the earth: and... in my flesh shall I see God." The patriarch's hope was a bodily resurrection at the latter day — the saints' confidence in the first resurrection.
 
-  > "The patriarch Job in the night of his affliction exclaimed with unshaken trust: "I know that my Redeemer liveth, and that He shall stand at the latter day upon the earth: ... in my flesh shall I see God; whom I shall see for myself, and mine eyes shall behold, and not another."" — GC 299.
+  > "The patriarch Job in the night of his affliction exclaimed with unshaken trust: "I know that my Redeemer liveth, and that He shall stand at the latter day upon the earth: ... in my flesh shall I see God: whom I shall see for myself, and mine eyes shall behold, and not another."" — GC 299.
 
 ### The Wicked Slain at the Advent — the Earth Left Desolate
 
@@ -5629,13 +5631,13 @@ _(Gal. 4:22-31; EVCO 323-326, 332, 344; GTI 184-187.)_
 
   > "Prophecy teaches that it will be brought back, partially at least, to this condition. … "I beheld the earth, and, lo, it was without form, and void; … I beheld, and, lo, there was no man, and all the birds of the heavens were fled." Jeremiah 4:23-26." — GC 658.2-658.3.
 
-  > "Its use seems to be such as to show that the word denotes any place of darkness, desolation, and death. … "Darkness was upon the face of the deep." The word there rendered deep is the same word that is here rendered bottomless pit." — DAR 690.3.
+  > "Its use seems to be such as to show that the word denotes any place of darkness, desolation, and death. … "darkness was upon the face of the deep." The word there rendered deep is the same word that is here rendered bottomless pit." — DAR 690.3.
 
 - **Jeremiah 4:27** — "The whole land shall be desolate; yet will I not make a full end." Desolate but not annihilated — reserved a thousand years, then renewed.
 
   > "The revelator foretells the banishment of Satan and the condition of chaos and desolation to which the earth is to be reduced, and he declares that this condition will exist for a thousand years." — GC 658.2.
 
-  > "The fair plains of the earth made new will [never] be soiled with the polluting tread of the resuscitated wicked; for besides outraging all ideas of propriety, there is no scripture from which even an inference can be drawn to support it." — DAR 695.
+  > "But we cannot believe that the saints' inheritance will ever be thus marred, or that the fair plains of the earth made new will ever be soiled with the polluting tread of the resuscitated wicked; for besides outraging all ideas of propriety, there is no scripture from which even an inference can be drawn to support it." — DAR 695.
 
 ### Satan Bound a Thousand Years — Bound by Circumstance
 
@@ -5651,7 +5653,7 @@ _(Gal. 4:22-31; EVCO 323-326, 332, 344; GTI 184-187.)_
 
   > "That the expression "bottomless pit" represents the earth in a state of confusion and darkness is evident from other scriptures. Concerning the condition of the earth "in the beginning," the Bible record says that it "was without form, and void; and darkness was upon the face of the deep."" — GC 658.3.
 
-  > "The original word signifies an abyss, bottomless, deep, profound. … "Darkness was upon the face of the deep." The word there rendered deep is the same word that is here rendered bottomless pit." — DAR 690.3.
+  > "The original word signifies an abyss, bottomless, deep, profound. … "darkness was upon the face of the deep." The word there rendered deep is the same word that is here rendered bottomless pit." — DAR 690.3.
 
 - **Isaiah 24:21-22** — "The LORD shall punish... the kings of the earth upon the earth. And they shall be gathered together, as prisoners are gathered in the pit, and shall be shut up in the prison, and after many days shall they be visited." The wicked are shut in the prison of the grave and "visited" — raised — after the long interval.
 
@@ -5685,7 +5687,7 @@ _(Gal. 4:22-31; EVCO 323-326, 332, 344; GTI 184-187.)_
 
 - **Revelation 20:6** — "They shall be priests of God and of Christ, and shall reign with him a thousand years"; on such "the second death hath no power." The first-resurrection saints are forever safe — beyond the reach of the second death.
 
-  > "Blessed and holy is he that hath part in the first resurrection: on such the second death hath no power, but they shall be priests of God and of Christ, and shall reign with him a thousand years." — DAR 693.
+  > "Blessed and holy is he that hath part in the first resurrection: on such the second death hath no power, but they shall be priests of God and of Christ, and shall reign with him a thousand years." — DAR 692.
 
   > "Upon those that had part in the first resurrection, the second death has no power. While God is to the wicked a consuming fire, He is to His people both a sun and a shield." — GC 673.3.
 
@@ -5725,7 +5727,7 @@ _(Gal. 4:22-31; EVCO 323-326, 332, 344; GTI 184-187.)_
 
 - **Revelation 20:9** — "And fire came down from God out of heaven, and devoured them." The besieging host is consumed by fire from heaven — the execution of the judgment the saints had meted out.
 
-  > "But fire comes down from God out of heaven, and devours them. The word here rendered devoured, Professor Stuart admits is "intensive," and signifies, "to eat up, devour, so that it denotes utter excision."" — DAR 697.1.
+  > "But fire comes down from God out of heaven, and devours them. The word here rendered devoured, Professor Stuart admits is "intensive," and signifies, "to eat up, devour, so that it denotes utter excision."" — DAR 694.3.
 
   > "Satan rushes into the midst of his followers and tries to stir up the multitude to action. But fire from God out of heaven is rained upon them, and the great men, and mighty men, the noble, the poor and miserable, are all consumed together." — EW 294.1.
 
