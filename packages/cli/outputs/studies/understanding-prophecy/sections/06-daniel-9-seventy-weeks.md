@@ -18,7 +18,7 @@
 
   > "The angel had been sent to Daniel for the express purpose of explaining to him the point which he had failed to understand in the vision of the eighth chapter, the statement relative to time — 'unto two thousand and three hundred days; then shall the sanctuary be cleansed.'" — GC 326.
 
-  > "This must therefore have been the point which he did not understand; and as without this the other portions of the vision were of no avail, he could well say, while the application of this period was left in obscurity, that he did not understand the vision." — DAR 192.
+  > "This must therefore have been the point which he did not understand; and as without this the other portions of the vision were of no avail, he could well say, while the application of this period was left in obscurity, that he did not understand the vision." — DAR 191.
 
 - **Daniel 8:26-27** — The vision of the evening and morning "is true," yet shut up "for many days"; Daniel "fainted, and was sick," and "none understood it." The 2300-day number was given but its application was withheld — the loose end chapter 9 ties.
 
@@ -34,17 +34,17 @@
 
   > "If this view of the subject is correct, we should naturally expect, when the angel completed his explanation of the vision, that he would commence with the very point which had been omitted; namely, the time. And this we find to be true in fact." — DAR 191.
 
-  > "That commission must be fulfilled. In obedience to it, the angel, some time afterward, returned to Daniel, saying: 'I am now come forth to give thee skill and understanding;' 'therefore understand the matter, and consider the vision.'" — GC 326.
+  > "That commission must be fulfilled. In obedience to it, the angel, some time afterward, returned to Daniel, saying: 'I am now come forth to give thee skill and understanding;' 'therefore understand the matter, and consider the vision.'" — GC 325.
 
 - **Daniel 9:22-23** — Gabriel: "I am now come forth to give thee skill and understanding... therefore understand the matter, and consider the vision." He sends Daniel back to "the vision" — the only vision left unexplained, that of the 2300 days.
 
-  > "There was one important point in the vision of chapter 8 which had been left unexplained, namely, that relating to time — the period of the 2300 days; therefore the angel, in resuming his explanation, dwells chiefly upon the subject of time." — GC 326.
+  > "There was one important point in the vision of chapter 8 which had been left unexplained, namely, that relating to time — the period of the 2300 days; therefore the angel, in resuming his explanation, dwells chiefly upon the subject of time." — GC 325.
 
 ### "Seventy weeks are cut off" — the seventy weeks are part of the 2300 days
 
 - **Daniel 9:24** — "Seventy weeks are determined upon thy people and upon thy holy city" — 70 weeks of years = 490 years, to finish transgression, make an end of sins, make reconciliation, bring in everlasting righteousness, seal up vision and prophecy, and anoint the most Holy.
 
-  > "After citing Daniel's attention back to the former vision in the most direct and emphatic manner, and assuring him that he had now come forth to give him understanding in the matter, he commences upon the very point there omitted, and says, 'Seventy weeks are determined upon thy people and upon thy holy city.'" — DAR 196.
+  > "After citing Daniel's attention back to the former vision in the most direct and emphatic manner, and assuring him that he had now come forth to give him understanding in the matter, he commences upon the very point there omitted, and says, 'Seventy weeks are determined upon thy people and upon thy holy city.'" — DAR 191.
 
   > "After bidding Daniel 'understand the matter, and consider the vision,' the very first words of the angel are: 'Seventy weeks are determined upon thy people and upon thy Holy City.' The word here translated 'determined' literally signifies 'cut off.'" — GC 326.
 

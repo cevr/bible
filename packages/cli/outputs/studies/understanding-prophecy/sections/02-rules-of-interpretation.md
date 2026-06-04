@@ -12,7 +12,7 @@
 
 - **2 Peter 1:20** — "No prophecy of the scripture is of any private interpretation." No text may be wrested to a man's private notion; it must be read in harmony with all Scripture. The foundation text against guessing.
 
-  > "Scripture must be its own expositor, since it is a rule of itself. If I depend on a teacher to expound to me, and he should guess at its meaning, or desire to have it so on account of his sectarian creed, or to be thought wise, then his guessing, desire, creed, or wisdom, is my rule, and not the Bible." — SLWM 49.1-49.2.
+  > "Scripture must be its own expositor, since it is a rule of itself. If I depend on a teacher to expound to me, and he should guess at its meaning, or desire to have it so on account of his sectarian creed, or to be thought wise, then his guessing, desire, creed, or wisdom, is my rule, and not the Bible." — SLWM 49.2.
 
 - **2 Peter 1:21** — "Holy men of God spake as they were moved by the Holy Ghost." Because one Spirit authored the whole, the whole interprets itself; Miller held the chronological portions "as much a portion of the word of God" as any other.
 
@@ -24,7 +24,7 @@
 
 - **Daniel 12:4** — "Shut up the words, and seal the book, even to the time of the end: many shall run to and fro, and knowledge shall be increased." Sealed only until the time of the end — then the very book invites study and its knowledge increases.
 
-  > "But since 1798 the book of Daniel has been unsealed, knowledge of the prophecies has increased, and many have proclaimed the solemn message of the judgment near." — GC 356-357.
+  > "But since 1798 the book of Daniel has been unsealed, knowledge of the prophecies has increased, and many have proclaimed the solemn message of the judgment near." — GC 356.
 
   > "In this way I pursued the study of the Bible, in my first perusal of it, for about two years, and was fully satisfied that it is its own interpreter." — SLWM 48.1.
 
@@ -126,7 +126,7 @@ The decisive rule: where a figure is used, trace the word through the Bible unti
 | Woman    | a church / city (Zion)    | **Revelation 12:1; Jeremiah 6:2** — "a woman clothed with the sun"; "I have likened the daughter of Zion to a comely... woman."     |
 | Day      | a year                    | **Ezekiel 4:6; Numbers 14:34** — "I have appointed thee each day for a year"; "each day for a year."                                |
 
-> "Figures always have a figurative meaning, and are used much in prophecy to represent future things, times and events — such as mountains, meaning governments; Daniel 2:35, 44; beasts, meaning kingdoms; Daniel 7:8, 17; waters, meaning people; Revelation 17:1, 15; day, meaning year, etc. Ezekiel 4:6." — SLWM 49.5-50.1.
+> "Figures always have a figurative meaning, and are used much in prophecy to represent future things, times and events — such as mountains, meaning governments; Daniel 2:35, 44; beasts, meaning kingdoms; Daniel 7:8, 17; waters, meaning people; Revelation 17:1, 15; day, meaning year, etc. Ezekiel 4:6." — SLWM 49.5.
 
 > "Following his rule of making Scripture its own interpreter, Miller learned that a day in symbolic prophecy represents a year (Numbers 14:34; Ezekiel 4:6)." — GC 324.3.
 

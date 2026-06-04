@@ -134,7 +134,7 @@
 
   > "We thus have three years and a half for the continuance of this power… As each day stands for a year, we have twelve hundred and sixty years for the continuation of the supremacy of this horn." — DAR 141.
 
-  > "After describing the terrible career of the little horn, and stating that the saints should be given into his hand for 1260 years, bringing us down to 1798…" — DAR 314.
+  > "After describing the terrible career of the little horn, and stating that the saints should be given into his hand for 1260 years, bringing us down to 1798…" — DAR 142.
 
 - **Daniel 12:11-12** — "From the time that the daily shall be taken away . . . a thousand two hundred and **ninety days**," and "blessed is he that waiteth, and cometh to the thousand three hundred and **five and thirty days**." The 1290 (508-1798) and 1335 (508-1843/44) — both reckoned as years on the same rule.
 

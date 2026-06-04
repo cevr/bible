@@ -48,7 +48,7 @@ _(Name-meanings and periods: DAR 347.1, 352.3-354.5, 359.1, 363.3, 366.3, 371.1.
 
 - **Revelation 2:2-3** — "I know thy works, and thy labour, and thy patience... thou hast tried them which say they are apostles, and are not, and hast found them liars." The early Christians had the doctrine of Christ in purity, the gifts of the Spirit, and tried and exposed false apostles. The name Ephesus, "desirable," well describes the church in its first state.
 
-  > "The definition of the word Ephesus, is desirable, which may well be taken as a good descriptive term of the character and condition of the church in its first state. Those early Christians had received the doctrine of Christ in its purity. They enjoyed the benefits and blessings of the gifts of the Holy Spirit.… They tried false apostles, searched out their true characters, and found them liars." — DAR 347.1.
+  > "The definition of the word Ephesus, is desirable, which may well be taken as a good descriptive term of the character and condition of the church in its first state. Those early Christians had received the doctrine of Christ in its purity. They enjoyed the benefits and blessings of the gifts of the Holy Spirit.… and they tried false apostles, searched out their true characters, and found them liars." — DAR 347.1.
 
 - **Revelation 2:4** — "Nevertheless I have somewhat against thee, because thou hast left thy first love." Even the apostolic age cooled toward its close; the decline begins.
 

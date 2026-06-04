@@ -133,7 +133,7 @@
 
   > "At the very time specified, Turkey, through her ambassadors, accepted the protection of the allied powers of Europe, and thus placed herself under the control of Christian nations. The event exactly fulfilled the prediction. (See Appendix.) When it became known, multitudes were convinced of the correctness of the principles of prophetic interpretation adopted by Miller and his associates, and a wonderful impetus was given to the advent movement." — GC 335.
 
-  > "But, although the four angels were thus loosed by the voluntary submission of the Greeks, yet another doom awaited the seat of empire. Amurath, the sultan to whom the submission of Deacozes was made… soon after died, and was succeeded in the empire, in 1451, by Mahomet II., who set his heart on Constantinople, and determined to make it a prey." — PREX2 183-188.
+  > "But, although the four angels were thus loosed by the voluntary submission of the Greeks, yet another doom awaited the seat of empire. Amurath, the sultan to whom the submission of Deacozes was made… soon after died, and was succeeded in the empire, in 1451, by Mahomet II., who set his heart on Constantinople, and determined to make it a prey." — PREX2 183.
 
 - **Revelation 9:20-21** — "The rest of the men which were not killed by these plagues yet repented not... that they should not worship devils, and idols of gold, and silver... Neither repented they of their murders, nor of their sorceries, nor of their fornication, nor of their thefts." The Saracen and Turkish scourges were sent upon apostate Christendom, yet the surviving Roman world learned no lesson — saint-worship, image-worship, and pretended miracles ("sorceries") continued.
 
@@ -163,4 +163,4 @@
 
   > "At the very time specified, Turkey, through her ambassadors, accepted the protection of the allied powers of Europe, and thus placed herself under the control of Christian nations. The event exactly fulfilled the prediction…. multitudes were convinced of the correctness of the principles of prophetic interpretation adopted by Miller and his associates." — GC 335.
 
-  > "This supremacy of the Mohammedans over the Greeks was to continue, as already noticed, three hundred and ninety-one years and fifteen days. Commencing when the one hundred and fifty years ended, July 27, 1449, the period would end Aug. 11, 1840." — DAR 485-487.
+  > "This supremacy of the Mohammedans over the Greeks was to continue, as already noticed, three hundred and ninety-one years and fifteen days. Commencing when the one hundred and fifty years ended, July 27, 1449, the period would end Aug. 11, 1840." — DAR 485.

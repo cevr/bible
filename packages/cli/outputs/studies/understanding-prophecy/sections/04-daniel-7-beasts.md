@@ -48,7 +48,7 @@
 
 - **Daniel 7:7** — "A fourth beast, dreadful and terrible, and strong exceedingly; and it had great iron teeth: it devoured and brake in pieces... and it had ten horns." No beast in nature could symbolize it; the iron teeth answer to the iron legs of Daniel 2. This is Rome — diverse from all before it, treading down the whole earth.
 
-  > "Inspiration finds no beast in nature which it can make even the basis of a symbol to represent the power here illustrated.… This beast, of course, corresponds to the fourth division of the great image — the legs of iron.… It devoured as with iron teeth, and brake in pieces; and it ground the nations into the very dust beneath its brazen feet." — DAR 117.5-118.1.
+  > "Inspiration finds no beast in nature which it can make even the basis of a symbol to represent the power here illustrated.… This beast, of course, corresponds to the fourth division of the great image — the legs of iron.… It devoured as with iron teeth, and brake in pieces; and it ground the nations into the very dust beneath its brazen feet." — DAR 118.1-2.
 
   > "The two legs of iron symbolize Rome, not merely during its closing years, but from the very beginning of its existence as a nation.… No such division into two great parts is denoted by the other symbols under which Rome is represented in the book of Daniel; namely, the great and terrible beast of Daniel 7, and the little horn of chapter 8." — DAR 64.
 
@@ -60,7 +60,7 @@
 
   > "The rise of the ten horns, or the division of Rome into ten kingdoms, between the years A. D. 351 and 483, has already been noticed.… As these horns denote kingdoms, the little horn must denote a kingdom also, but not of the same nature, because it was diverse from the others." — DAR 125.2.
 
-  > "It had ten horns, which are explained in verse 24 to be ten kings, or kingdoms, which should arise out of this empire.… These divisions have ever since been spoken of as the ten kingdoms of the Roman empire. A. D. 351-483." — DAR 126.
+  > "It had ten horns, which are explained in verse 24 to be ten kings, or kingdoms, which should arise out of this empire.… These divisions have ever since been spoken of as the ten kingdoms of the Roman empire. A. D. 351-483." — DAR 118.2.
 
 - **Daniel 2:40** — "The fourth kingdom shall be strong as iron... shall it break in pieces and bruise." The cross-link: the iron of the image and the iron-toothed beast are one and the same Rome.
 
@@ -76,7 +76,7 @@
 
   > "A little horn (at first little, but afterward more stout than its fellows) thrust itself up among them. It was not content quietly to find a place of its own, and fill it; it must thrust aside some of the others, and usurp their places." — DAR 118.4.
 
-  > "As these horns denote kingdoms, the little horn must denote a kingdom also, but not of the same nature, because it was diverse from the others. They were political kingdoms.… the spiritual kingdom of the papacy." — DAR 126.3.
+  > "As these horns denote kingdoms, the little horn must denote a kingdom also, but not of the same nature, because it was diverse from the others. They were political kingdoms.… the spiritual kingdom of the papacy." — DAR 125.2.
 
 - **Daniel 7:24 (b)** — "He shall be diverse from the first, and he shall subdue three kings." The three horns plucked up to make room for the Papacy were the three Arian powers that stood in its way: the **Heruli (A.D. 493), the Vandals (534), and the Ostrogoths (538).**
 

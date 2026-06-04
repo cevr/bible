@@ -15,7 +15,7 @@ export const meta = {
 const DIR = 'packages/cli/outputs/studies/understanding-prophecy';
 const SECTIONS_DIR = `${DIR}/sections`;
 
-const SECTIONS = [
+const ALL_SECTIONS = [
   ['01-year-day-principle', 'I — Foundation'],
   ['02-rules-of-interpretation', 'I — Foundation'],
   ['03-daniel-2-statue', 'II — The Outlines of Daniel'],
@@ -46,6 +46,16 @@ const SECTIONS = [
   ['28-second-coming', 'IV — Sanctuary & Consummation'],
   ['29-millennium-two-resurrections', 'IV — Sanctuary & Consummation'],
 ];
+
+// `args` may be an array of slugs (or slug-prefixes like "14") to verify a
+// subset; if omitted, verify all. Recompile only runs when verifying the full set.
+const onlySlugs = Array.isArray(args) && args.length > 0 ? args.map(String) : null;
+const SECTIONS = onlySlugs
+  ? ALL_SECTIONS.filter(([slug]) =>
+      onlySlugs.some((a) => slug === a || slug.startsWith(a + '-') || slug.startsWith(a)),
+    )
+  : ALL_SECTIONS;
+const RECOMPILE = !onlySlugs;
 
 const VERIFY_RECIPE = `
 ## What you are verifying
@@ -126,8 +136,15 @@ log(`${ok.length}/${SECTIONS.length} sections verified`);
 for (const r of ok) log(`  ✓ ${r.slug} — ${String(r.report).slice(0, 130)}`);
 
 // ===========================================================================
-// Phase 2 — recompile the master from corrected sections.
+// Phase 2 — recompile the master from corrected sections (full runs only).
 // ===========================================================================
+
+if (!RECOMPILE) {
+  log(
+    `Subset run (${SECTIONS.length} sections) — skipping recompile. Recompile separately once all sections are verified.`,
+  );
+  return { verified: ok.map((r) => ({ slug: r.slug, report: r.report })), recompiled: false };
+}
 
 phase('Recompile');
 

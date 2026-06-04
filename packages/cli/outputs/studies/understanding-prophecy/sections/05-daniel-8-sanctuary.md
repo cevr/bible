@@ -23,7 +23,7 @@
 
 - **Ezekiel 4:6** — "I have appointed thee each day for a year" — the second witness establishing the year-day principle for all the time-prophecies of Daniel and Revelation.
 
-  > "Respecting the 2300 days … The declaration respecting them is a part of a revelation which is given for the instruction of the people of God, and is consequently to be understood." — DAR 178.
+  > "Respecting the 2300 days … The declaration respecting them is a part of a revelation which is given for the instruction of the people of God, and is consequently to be understood." — DAR 159.
 
 ### The ram — Medo-Persia (named by the angel)
 

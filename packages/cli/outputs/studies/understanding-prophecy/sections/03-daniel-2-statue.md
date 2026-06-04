@@ -81,7 +81,7 @@
 
 - **Daniel 8:22** — "Four kingdoms shall stand up out of the nation, but not in his power" — Alexander's empire divided among his four generals, still the brass kingdom, not yet the iron.
 
-  > "Alexander's successors (his four leading generals) did not conquer his empire, and erect another in its place; they simply divided among themselves the empire which Alexander had conquered, and left ready to their hand." — DAR 56.
+  > "Alexander's successors (his four leading generals) did not conquer his empire, and erect another in its place; they simply divided among themselves the empire which Alexander had conquered, and left ready to their hand." — DAR 58-59.
 
 - **Daniel 2:40** — **Imperial Rome, the iron.** "The fourth kingdom shall be strong as iron... it shall break in pieces and bruise." Rome's iron monarchy successively broke the images of gold, silver, and brass and "filled the world."
 
@@ -145,7 +145,7 @@
 
 - **Daniel 2:29-30** — "He that revealeth secrets maketh known to thee what shall come to pass... this secret is not revealed to me for any wisdom that I have." The outline is God's, not Daniel's — therefore "the dream is certain, and the interpretation thereof sure" (v. 45).
 
-  > "Human wisdom never devised so brief a record which embraced so much. Human language never set forth in so few words, so great a volume of historical truth. The finger of God is here. Let us heed the lesson well." — DAR 42.
+  > "Human wisdom never devised so brief a record which embraced so much. Human language never set forth in so few words, so great a volume of historical truth. The finger of God is here. Let us heed the lesson well." — DAR 42-43.
 
 - **Daniel 2:36-37** — "We will tell the interpretation... Thou, O king, art a king of kings: for the God of heaven hath given thee a kingdom." God who gives kingdoms also takes them away; the rise and fall of these empires is His doing, not chance.
 
@@ -157,7 +157,7 @@
 
   > "the prophecies of Daniel were given with the plain design… of setting forth a connected chain of events from a given period to the end of this world, and the setting up of Christ's eternal kingdom of glory." — LJL 30-31.
 
-  > "making, in all, four universal empires from the time of Nebuchadnezzar to the setting up of the kingdom of God in the earth." — GEP 15.
+  > "making, in all, four universal empires from the time of Nebuchadnezzar to the setting up of the kingdom of God in the earth." — GEP 34-35.
 
   > "As the lion corresponds to the head of gold of the great image, and so represents Babylon, so the bear of this vision corresponds to the 'other kingdom inferior' to Babylon, represented in the breast and arms of silver." — GEP 34-35.
 
