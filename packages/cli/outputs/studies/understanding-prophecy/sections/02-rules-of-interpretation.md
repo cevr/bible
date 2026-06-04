@@ -1,0 +1,95 @@
+# 2. Miller's Rules of Interpretation
+
+> _The historicist position is that prophecy is not a sealed riddle for the few, but a "more sure word" lighted for the whole church. Scripture is its own expositor: every word has its bearing, the Bible defines its own symbols, the prophetic day stands for a literal year, and prophecy is history written beforehand. William Miller, laying aside every commentary and comparing Scripture with Scripture, recovered the very method by which Daniel and the Revelation are unlocked — the hermeneutic that founds this whole chain. (SLWM 48-51; GC 320-324; GC 343-344.)_
+
+### The sure word: prophecy is given to be understood
+
+- **2 Peter 1:19** — "We have also a more sure word of prophecy; whereunto ye do well that ye take heed, as unto a light that shineth in a dark place." Prophecy is a lamp for the present darkness, not an obscurity — heeding it is commended. _(SLWM 49.1, cited under Miller's rule 4; GC 324.2.)_
+- **2 Peter 1:20** — "No prophecy of the scripture is of any private interpretation." No text may be wrested to a man's private notion; it must be read in harmony with all Scripture. The foundation text against guessing. _(SLWM 49.1-49.2.)_
+- **2 Peter 1:21** — "Holy men of God spake as they were moved by the Holy Ghost." Because one Spirit authored the whole, the whole interprets itself; Miller held the chronological portions "as much a portion of the word of God" as any other. _(GC 324.2.)_
+- **Revelation 1:1-3** — Christ gave the Revelation "to shew unto his servants things which must shortly come to pass," and pronounces blessed "he that readeth, and they that hear the words of this prophecy." A book meant to be read and understood, with a blessing attached. _(GC 320.2.)_
+- **Daniel 12:4** — "Shut up the words, and seal the book, even to the time of the end: many shall run to and fro, and knowledge shall be increased." Sealed only until the time of the end — then the very book invites study and its knowledge increases. _(GC 356-357; SLWM 48.1.)_
+- **Daniel 12:9-10** — "The words are closed up and sealed till the time of the end... the wise shall understand." Understanding is promised to the wise in the last days; the prophecy is not forever locked. _(GC 356.)_
+
+### Scripture is its own expositor — compare Scripture with Scripture
+
+- **Isaiah 28:9-10** — "Whom shall he teach knowledge?... precept upon precept; line upon line; here a little, and there a little." Doctrine is built by gathering every passage on a subject and laying line beside line — Miller's working method. _(SLWM 49.1, cited under rule 4.)_
+- **Isaiah 28:13** — "But the word of the LORD was unto them precept upon precept... that they might go, and fall backward." The same line-upon-line method that builds up the believing also exposes the careless who will not gather the whole. _(SLWM 49.1.)_
+- **1 Corinthians 2:13** — "Comparing spiritual things with spiritual." The Spirit's own rule: explain spiritual things by other spiritual things — Scripture by Scripture, not by man's wisdom. _(SLWM 49.2, cited under rule 5.)_
+- **Isaiah 34:16** — "Seek ye out of the book of the LORD, and read: no one of these shall fail, none shall want her mate." Every prophecy has its "mate" elsewhere in the book; search them out and the matched testimony is complete. _(GC 324.3-325.)_
+- **John 5:39** — "Search the scriptures... they are they which testify of me." The command to search, with Christ as the unifying subject of all Scripture. _(SLWM 50.1.)_
+- **Luke 24:27** — "Beginning at Moses and all the prophets, he expounded unto them in all the scriptures the things concerning himself." Christ Himself taught by surveying the whole of Scripture — the pattern of comparing text with text. _(SLWM 49.1, cited under rule 4.)_
+- **Proverbs 1:5-6** — "A man of understanding shall attain unto wise counsels: to understand a proverb, and the interpretation... the words of the wise, and their dark sayings." The dark sayings of prophecy are meant to be understood by the diligent. _(SLWM 48.1.)_
+
+### Every word necessary; nothing hidden from faith
+
+- **2 Timothy 3:16-17** — "All scripture is given by inspiration of God, and is profitable for doctrine... that the man of God may be perfect, throughly furnished unto all good works." Therefore the prophetic and chronological portions are profitable and not to be skipped. Miller leaned on this directly. _(SLWM 48.3, rule 2; GC 324.2.)_
+- **Deuteronomy 29:29** — "The secret things belong unto the LORD our God: but those things which are revealed belong unto us." What God has revealed is ours to study — including the appointed times. _(GC 324.1; SLWM 48.4, rule 3.)_
+- **Amos 3:7** — "Surely the Lord GOD will do nothing, but he revealeth his secret unto his servants the prophets." God acts only after disclosing His purpose; prophecy is His advance notice to His servants. _(GC 324.1.)_
+- **James 1:5** — "If any of you lack wisdom, let him ask of God... and it shall be given him." The prerequisite to understanding is asking in faith, not human cleverness. _(SLWM 48.4, rule 3.)_
+
+### Prophecy is history written beforehand
+
+- **Isaiah 46:9-10** — "I am God, and there is none like me... declaring the end from the beginning, and from ancient times the things that are not yet done." God's signature is foretelling the future — so fulfilled prophecy becomes the criterion for reading what is still future. _(GC 343.3-344.)_
+- **Daniel 2:28** — "There is a God in heaven that revealeth secrets, and maketh known to the king Nebuchadnezzar what shall be in the latter days." History, from Babylon to the kingdom of God, was sketched in outline before it happened. _(SLWM 48.1.)_
+- **Daniel 2:44** — "In the days of these kings shall the God of heaven set up a kingdom, which shall never be destroyed... it shall stand for ever." The chart of empires ends in a fixed, literal event — proof that prophecy is history beforehand and is to be literally fulfilled. _(SLWM 50.4, rule 11; GC 321.3.)_
+- **Habakkuk 2:2-3** — "Write the vision, and make it plain upon tables... for the vision is yet for an appointed time... though it tarry, wait for it." Prophecy runs to an appointed time and is to be made plain — Miller's warrant that fulfillment, not lacking even one word, marks the true event. _(SLWM 50.5, rule 13.)_
+
+### The Holy Spirit, not man's wisdom, the true guide
+
+- **John 16:13** — "When he, the Spirit of truth, is come, he will guide you into all truth... and he will shew you things to come." The same Spirit that authored prophecy guides into its meaning; the interpreter's dependence is on Him, not on a sectarian creed. _(SLWM 49.2, rule 5.)_
+- **1 Corinthians 2:13** — "Not in the words which man's wisdom teacheth, but which the Holy Ghost teacheth." (See above.) The express warrant against leaning on human expositors who "guess at its meaning." _(SLWM 49.2, rule 5.)_
+
+### The Bible defines its own symbols
+
+The decisive rule: where a figure is used, trace the word through the Bible until you find it explained, then substitute the explanation. Miller's own proof texts:
+
+| Symbol   | Bible meaning             | Defining text                                                                                                                       |
+| -------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Mountain | government / kingdom      | **Daniel 2:35, 44** — the stone becomes "a great mountain, and filled the whole earth"; "the God of heaven shall set up a kingdom." |
+| Beast    | kingdom                   | **Daniel 7:17, 23** — "These great beasts... are four kings"; "The fourth beast shall be the fourth kingdom upon earth."            |
+| Waters   | peoples, nations, tongues | **Revelation 17:15** — "The waters which thou sawest... are peoples, and multitudes, and nations, and tongues."                     |
+| Woman    | a church / city (Zion)    | **Revelation 12:1; Jeremiah 6:2** — "a woman clothed with the sun"; "I have likened the daughter of Zion to a comely... woman."     |
+| Day      | a year                    | **Ezekiel 4:6; Numbers 14:34** — "I have appointed thee each day for a year"; "each day for a year."                                |
+
+_(SLWM 49.5-50.1, rules 8-9, 12; GC 324.3.)_
+
+- **Daniel 7:17, 23** — Heaven's own dictionary: the four beasts "are four kings," the fourth beast "the fourth kingdom upon earth." When the Bible defines its symbol, the guessing stops. _(SLWM 49.5, rule 8.)_
+- **Revelation 17:15** — Waters defined as "peoples, and multitudes, and nations, and tongues." The interpreter does not invent the meaning; he reads it off the page. _(SLWM 49.5, rule 8.)_
+- **Daniel 2:35, 44** — A mountain that "filled the whole earth" is interpreted in the same chapter as a kingdom God sets up. Symbol and definition stand together. _(SLWM 49.5, rule 8.)_
+
+### Day for a year — the key to the time-prophecies
+
+- **Numbers 14:34** — "After the number of the days... forty days, each day for a year, shall ye bear your iniquities." The first statement of the year-day measure. _(GC 324.3; SLWM 49.5.)_
+- **Ezekiel 4:6** — "I have appointed thee each day for a year." The principle repeated and made a rule — so the 2300 days, the 1260, the 70 weeks, the 1290 and 1335 are years. _(GC 324.3; SLWM 49.5, rule 8.)_
+- **Daniel 8:14** — (Applying the rule) "Unto two thousand and three hundred days; then shall the sanctuary be cleansed." Read by the year-day measure, the 2300 days reach far beyond the Jewish age — the prophecy that "most clearly" revealed the time. _(GC 324.3-325.)_
+
+### When the literal stands, take it literally
+
+- **Daniel 2:44** — A plainly literal kingdom "which shall never be destroyed." Where the words make good sense and do no violence to nature, they are to be understood literally. _(SLWM 50.4, rule 11.)_
+- **Matthew 24:15** — "When ye therefore shall see the abomination of desolation, spoken of by Daniel the prophet... (whoso readeth, let him understand)." Christ sends the reader back to Daniel and commands him to understand — endorsing the study of the prophet by the same plain method. _(GC 234-235; SLWM 50.1.)_
+
+### Miller's fourteen rules, in brief
+
+Miller's own published rules of interpretation, each grounded on Scripture:
+
+1. **Every word must have its proper bearing** on the subject. _(Matt. 5:18.)_
+2. **All Scripture is necessary** and may be understood by diligent study. _(2 Tim. 3:15-17.)_
+3. **Nothing revealed will be hid** from those who ask in faith. _(Deut. 29:29; James 1:5-6.)_
+4. **Bring all Scriptures together** on a subject; if the theory holds without contradiction, you cannot be in error. _(Isa. 28; Luke 24:27; 2 Peter 1:19-20.)_
+5. **Scripture must be its own expositor**, being a rule of itself. _(1 Cor. 2:12-16.)_
+6. **God reveals things to come by figures and parables**, the same thing oftentimes given again and again; combine them in one. _(Hab. 2:2; Dan. 2, 7, 8.)_
+7. **Visions are always mentioned as such.** _(2 Cor. 12:1.)_
+8. **Figures always have a figurative meaning** — mountains = governments; beasts = kingdoms; waters = peoples; day = year. _(Dan. 2:35,44; 7:8,17; Rev. 17:1,15; Eze. 4:6.)_
+9. **Parables illustrate** and are explained the same way as figures. _(Mark 4:13.)_
+10. **A figure may have two or more significations** — "day" is indefinite, a day-for-a-year, or a day-for-a-thousand-years; the right reading harmonizes with the Bible. _(Eccl. 7:14; Eze. 4:6; 2 Peter 3:8.)_
+11. **If a word makes good sense as it stands, take it literally**; if not, figuratively. _(Rev. 12:1-2; 17:3-7.)_
+12. **Trace a figure through the Bible**; when you find it explained, substitute the explanation. _(Miller's method, GC 320.1.)_
+13. **A prophecy is fulfilled when every word is literally met**; if one word lacks fulfillment, look for another event. _(Ps. 22:5; Rev. 17:17.)_
+14. **The most important rule is faith** — a faith willing to sacrifice the dearest object on earth rather than disbelieve God's word.
+
+_(SLWM 48.2-51.1; GC 320.1-320.2.)_
+
+---
+
+_Note on method: Miller "determined to lay aside all my prepossessions, to thoroughly compare Scripture with Scripture, and to pursue its study in a regular and methodical manner... and was fully satisfied that it is its own interpreter" (WMAD 6.1; SLWM 48.1; MWM 69.1, 69.3). Ellen White affirms the same: studying Daniel and the Revelation "employing the same principles of interpretation as in the other scriptures," he found "the prophetic symbols could be understood" (GC 320.2); and the church's whole danger lay in "accepting the theories and interpretations of men, instead of making the Bible its own interpreter" (GC 354.1; GC 598.2-598.3). This is the method the entire Handbook follows._
