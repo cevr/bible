@@ -1,6 +1,9 @@
 ---
 created_at: '2026-06-04T00:00:00.000Z'
-topic: 'The Way Home Series — Study 29: The 144,000 and the Great Multitude — The Sealed Company'
+topic: >-
+  The Way Home Series — Study 29: The 144,000 and the Great Multitude — The
+  Sealed Company
+apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1680'
 ---
 
 # Study 29: The 144,000 and the Great Multitude — The Sealed Company

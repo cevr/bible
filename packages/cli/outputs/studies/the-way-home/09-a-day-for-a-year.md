@@ -1,6 +1,9 @@
 ---
 created_at: '2026-06-04T00:00:00.000Z'
-topic: 'The Way Home Series — Study 9: A Day for a Year — The Key God Gave for Prophetic Time'
+topic: >-
+  The Way Home Series — Study 9: A Day for a Year — The Key God Gave for
+  Prophetic Time
+apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1659'
 ---
 
 # Study 9: A Day for a Year — The Key God Gave for Prophetic Time

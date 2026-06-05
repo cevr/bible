@@ -1,6 +1,9 @@
 ---
 created_at: '2026-06-04T00:00:00.000Z'
-topic: 'The Way Home Series — Study 22: Babylon the Great — The Woman Who Rides the Beast'
+topic: >-
+  The Way Home Series — Study 22: Babylon the Great — The Woman Who Rides the
+  Beast
+apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1672'
 ---
 
 # Study 22: Babylon the Great — The Woman Who Rides the Beast

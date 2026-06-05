@@ -1,6 +1,9 @@
 ---
 created_at: '2026-06-04T00:00:00.000Z'
-topic: 'The Way Home Series — Study 15: Every Clock Agrees — The Daily, the 1290, the 1335, and the 2520'
+topic: >-
+  The Way Home Series — Study 15: Every Clock Agrees — The Daily, the 1290, the
+  1335, and the 2520
+apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1665'
 ---
 
 # Study 15: Every Clock Agrees — The Daily, the 1290, the 1335, and the 2520

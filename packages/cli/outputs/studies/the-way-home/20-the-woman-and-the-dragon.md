@@ -1,6 +1,7 @@
 ---
 created_at: '2026-06-04T00:00:00.000Z'
 topic: 'The Way Home Series — Study 20: The Woman and the Dragon'
+apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1670'
 ---
 
 # Study 20: The Woman and the Dragon — The War of the Ages in One Chapter

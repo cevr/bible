@@ -1,6 +1,7 @@
 ---
 created_at: '2026-06-04T00:00:00.000Z'
 topic: 'The Way Home Series — Study 14: The Timeline Unlocked'
+apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1664'
 ---
 
 # Study 14: The Timeline Unlocked — Daniel 8 & 9, the 2300 Days, and 1844
