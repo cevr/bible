@@ -1,12 +1,11 @@
 ---
-created_at: '2026-04-15T00:00:00.000Z'
+created_at: '2026-06-04T00:00:00.000Z'
 topic: 'The Way Home Series — Study 4: Why It Had to Be Christ'
-apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1501'
 ---
 
 # Study 4: Why It Had to Be Christ
 
-**Study 3 revealed what salvation is — the restoration of God's image. But a blueprint without a builder is just paper. Why Christ? Why not an angel? Why become a man? Was He truly one of us — or did He have an advantage we don't? And how can God forgive sinners without becoming unjust Himself? The answer to every question is the same Person.**
+**Only Christ — fully God, fully man — could restore the image: as God He had the standing to satisfy the law He authored; as man He stood in the place of the race. His literal death makes forgiveness _just_ and not merely merciful, and His sinless life in fallen flesh proves the law CAN be kept — answering both of Satan's charges at once. Study 3 revealed what salvation is. But a blueprint without a builder is just paper. Why Christ? Why not an angel? Why become a man? Was He truly one of us — or did He have an advantage we don't? And how can God forgive sinners without becoming unjust Himself? The answer to every question is the same Person.**
 
 ## Prep Reading
 

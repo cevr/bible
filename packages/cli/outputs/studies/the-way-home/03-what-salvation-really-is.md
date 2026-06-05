@@ -1,10 +1,9 @@
 ---
-created_at: '2026-04-14T00:00:00.000Z'
-topic: 'The Way Home Series — Study 3: What Salvation Really Is'
-apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1425'
+created_at: '2026-06-04T00:00:00.000Z'
+topic: 'The Way Home Series — Study 3: What Salvation Really Is — The Image Restored'
 ---
 
-# Study 3: What Salvation Really Is
+# Study 3: What Salvation Really Is — The Image Restored
 
 **Most people think salvation is forgiveness. It is not. Forgiveness is the beginning — like clearing the rubble before rebuilding the house. Salvation is the restoration of God's image in man. Until you understand what was lost, you cannot understand what Christ came to restore.**
 
@@ -35,7 +34,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1425'
   - [→] The entire plan of salvation exists to reverse what happened between Genesis 1:27 and Genesis 5:3
 
 - **Two images — earthy and heavenly**
-  - "As we have borne the image of the earthy, we shall also bear the image of the heavenly" (1 Cor 15:49)
+  - "And as we have borne the image of the earthy, we shall also bear the image of the heavenly" (1 Cor 15:49)
   - Paul names the problem and the promise in one verse
   - We have borne Adam's image — fallen, dying, self-centered
   - We _shall_ bear Christ's image — restored, living, love-centered
@@ -123,6 +122,7 @@ Here is where the chain locks tight.
   - "He that loveth not knoweth not God; for God is love" (1 John 4:8)
   - The law is summarized by love. God _is_ love. Therefore: **the law is a transcript of God's character.**
   - This is not a metaphor. It is a logical identity: Law = Love = God's Character = God's Image
+  - Notice: every link of this identity is laid down by a plain didactic verse — Christ binds eternal life to the law (Luke 10:28), John binds God to love (1 John 4:8). The conclusion is the Bible's own, not an overlay.
 
 - **Knowing God = keeping commandments = having the image**
   - "And hereby we do know that we know him, if we keep his commandments" (1 John 2:3)
@@ -162,8 +162,8 @@ Here is where the chain locks tight.
   - The content of the law hasn't changed. The _location_ has. Stone to flesh. Outside to inside. Obligation to identity.
 
 - **A new creation**
-  - "Put on the new man, which is renewed in knowledge after the image of him that created him" (Col 3:10)
-  - "Put on the new man, which after God is created in righteousness and true holiness" (Eph 4:24)
+  - "And have put on the new man, which is renewed in knowledge after the image of him that created him" (Col 3:10)
+  - "And that ye put on the new man, which after God is created in righteousness and true holiness" (Eph 4:24)
   - The new man is created _after the image of the Creator_ — Genesis 1:26 language. Salvation is re-creation.
 
 - **God's predestined purpose**
@@ -200,7 +200,7 @@ Here is where the chain locks tight.
   - [→] Every distraction, every false picture of God, every counterfeit gospel exists for one purpose: to keep you from beholding Christ as He truly is
 
 [Q] **"Does 'beholding' mean just reading the Bible?"**
-→ It includes that, but it's more. To behold is to contemplate, to gaze, to absorb. It is the sustained attention of the heart — in Scripture, in prayer, in the sanctuary, in service — toward the person of Christ. "Consider him" (Heb 12:3). You become what you gaze at. This is why worship matters — what you worship, you become. Worship the beast, bear his image (Rev 14:9). Behold Christ, bear His image (2 Cor 3:18).
+→ It includes that, and it is anchored there first: you behold the glory of God where God has put it — in the written Word and in the living Christ it reveals (John 5:39; 2 Cor 4:6). To behold is to contemplate, to gaze, to absorb — the sustained attention of the heart, in Scripture, in prayer, in the sanctuary, in service, toward the person of Christ. "Consider him" (Heb 12:3). This is not a mystic inner light apart from the Book; it is the open Word held open. You become what you gaze at. This is why worship matters — what you worship, you become. Worship the beast, bear his image (Rev 14:9). Behold Christ, bear His image (2 Cor 3:18).
 
 ---
 
@@ -221,7 +221,7 @@ Let it land:
 11. **Predestined to bear His image** — conformed to the image of His Son (Rom 8:29)
 12. **Promise** — "we shall also bear the image of the heavenly" (1 Cor 15:49)
 
-Sin broke every link. The gospel repairs every link. Not by lowering the standard — but by restoring the person.
+Sin broke every link. The gospel repairs every link. Not by lowering the standard — but by restoring the person. And notice what every link is built on: a plain verse you can read with your own open Bible. No secret meaning, no mystic key — line upon line, the Book defining its own terms.
 
 ---
 

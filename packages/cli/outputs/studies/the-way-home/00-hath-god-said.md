@@ -1,6 +1,7 @@
 ---
 created_at: '2026-06-04T00:00:00.000Z'
 topic: 'The Way Home Series — Study 0: Hath God Said? — How to Read This Book'
+apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1647'
 ---
 
 # Study 0: Hath God Said? — How to Read This Book
@@ -90,9 +91,52 @@ topic: 'The Way Home Series — Study 0: Hath God Said? — How to Read This Boo
   - Never break Scripture against itself
   - Add nothing; take nothing away
 
-[DYK🔎] This is exactly the method William Miller recovered — but it is the BIBLE'S method, not a man's invention. His rules quote the very texts above: rule II ("All scripture is necessary... may be understood") cites 2 Timothy 3:15-17; the rule "bring all the scriptures together on the subject" cites Isaiah 28; and rule V he states plainly: _"Scripture must be its own expositor, since it is a rule of itself. If I depend on a teacher to expound it to me, and he should guess at its meaning, or desire to have it so on account of his sectarian creed... then his guessing, desire, creed or wisdom is my rule, not the Bible"_ (MWV1 20.10; 21.1). Miller did not author a method; he stopped arguing with the Book and let it read itself.
+[DYK🔎] This is exactly the method William Miller recovered — but it is the BIBLE'S method, not a man's invention. He stopped arguing with the Book and let it read itself, then wrote out the rules with the proof-texts printed underneath each one. The next section lays them out and shows how every rule is proven by the very Scriptures he cited.
 
 > "He submitted himself to the Bible as the word of God, the only sufficient, infallible rule. He saw that it must be its own interpreter. He dared not attempt to explain Scripture to sustain a preconceived theory or doctrine, but held it his duty to learn what is its direct and obvious teaching." (GC 173.2, on Zwingli)
+
+---
+
+## The Rules, and How the Bible Proves Each One
+
+**When a man sat down with nothing but the Book and a determination to let it explain itself, the same rules surfaced — because they were never his rules. William Miller wrote out fourteen, but he did a thing most rule-makers never do: under each rule he printed the Scriptures that PROVE it. The rule is only the summary; the verse beneath it is the authority. Read them and watch — every rule is the Book describing how it asks to be read. We do not keep these rules because Miller taught them; we keep them because the Bible teaches them, and Miller merely gathered them.**
+
+- **Rule 1 — Every word must have its proper bearing on the subject.**
+  - _Proof:_ "Till heaven and earth pass, one jot or one tittle shall in no wise pass from the law, till all be fulfilled" (Matt 5:18) — not one stroke is idle; every word is weighed.
+
+- **Rule 2 — All Scripture is necessary, and may be understood by diligent study.**
+  - _Proof:_ "All scripture is given by inspiration of God, and is profitable for doctrine... that the man of God may be perfect, throughly furnished" (2 Tim 3:16-17) — the whole is given, the whole is profitable, the whole may be understood.
+
+- **Rule 3 — Nothing in Scripture will be hid from those who ask in faith.**
+  - _Proof:_ "If any of you lack wisdom, let him ask of God... and it shall be given him. But let him ask in faith, nothing wavering" (Jas 1:5-6); "The secret things belong unto the LORD our God: but those things which are revealed belong unto us" (Deut 29:29).
+
+- **Rule 4 — To understand doctrine, bring ALL the Scriptures together on the subject; if your theory has no contradiction, you cannot be in error.**
+  - _Proof:_ "For precept must be upon precept... line upon line; here a little, and there a little" (Isa 28:10); "beginning at Moses and all the prophets, he expounded... in all the scriptures the things concerning himself" (Luke 24:27).
+
+- **Rule 5 — Scripture must be its own expositor, since it is a rule of itself.**
+  - _Proof:_ "comparing spiritual things with spiritual" (1 Cor 2:13); "The law of the LORD is perfect... the testimony of the LORD is sure, making wise the simple" (Ps 19:7). If a teacher's guess or creed becomes the rule, then his wisdom — not the Bible — is your authority.
+  - [→] This is the keystone rule, and it is pure Scripture: the Book defines its own terms. Lose it, and every other rule collapses.
+
+- **Rules 6-9 — Prophecy is given in visions, figures, and parables, and the same things are revealed again and again; combine them all into one.**
+  - _Proof:_ "I have also spoken by the prophets, and I have multiplied visions, and used similitudes" (Hos 12:10); "All these things spake Jesus unto the multitude in parables" (Matt 13:34); Pharaoh's doubled dream (Gen 41:1-32) and Daniel's repeated outlines (Dan 2; 7) are the same future told twice — so they are read together, not against each other.
+
+- **Rule 10 — Figures always carry a figurative meaning, and the Bible itself supplies the key.**
+  - _Proof:_ the Book defines its own symbols — waters = peoples ("The waters which thou sawest... are peoples, and multitudes, and nations," Rev 17:15); a lamp = the Word ("Thy word is a lamp unto my feet," Ps 119:105); beasts = kingdoms (Dan 7:17); a day = a year ("I have appointed thee each day for a year," Eze 4:6).
+  - [DYK🔎] Notice rule 10 does not invent these meanings — it _cites_ them. Every symbol Miller lists is one the Bible decodes for you elsewhere. The interpreter never supplies the meaning; he finds where the Book already gave it (rule 12: "trace your figurative word through your Bible, and where you find it explained, put it on your figure").
+
+- **Rule 11 — How to know when a word is figurative: if the plain sense makes good sense and does no violence to nature, take it literally; if not, figuratively.**
+  - _Proof:_ a sun-clothed woman or a seven-headed beast (Rev 12:1-2; 17:3) cannot be literal without violence to nature — so the text itself signals the figure. **Literal unless the text forces a figure** — the plain sense is the default, never despised.
+
+- **Rule 13 — To know you have the right historical fulfilment: if EVERY word of the prophecy is literally fulfilled, the history is true; if one word lacks fulfilment, look for another event.**
+  - _Proof:_ "For God takes care that history and prophecy doth agree" — "they trusted in thee, and were not confounded" (Ps 22:5); "Israel shall be saved... ye shall not be ashamed nor confounded world without end" (Isa 45:17). This is the test the whole prophetic chain in this series will pass — prophecy spec laid against documented history, word for word.
+
+- **Rule 14 — The most important rule: you must have faith — a faith willing to surrender the dearest thing on earth rather than disbelieve God's word.**
+  - _Proof:_ "But without faith it is impossible to please him" (Heb 11:6); "He that... numbers the hairs of our head" will "guard the translation of his own word" for those who trust Him — the plowman without Hebrew or Greek may yet be kept from erring far from the truth.
+
+[Q] **"Isn't this just imposing a man's system on the Bible?"**
+→ It is the opposite. A man imposing a system gives you his rule and asks you to trust _him_. Miller gave you the rule and then printed the verse underneath, inviting you to check him against the Book — and to throw out any rule the Book will not support. Test rule 5 by 1 Corinthians 2:13. Test rule 10 by Revelation 17:15 and Ezekiel 4:6. Test rule 4 by Isaiah 28:10. Every rule answers to Scripture; that is the difference between a method drawn _from_ the word and a meaning forced _onto_ it. The rules are not above the Bible — they are the Bible, summarized.
+
+[STR] **The whole of it in one line:** these are not Miller's rules — they are the Bible's, written down by a man who refused to argue with the Book. Take the plain sense; let Scripture define its own figures; gather every passage; lay prophecy against history word for word; and believe God. Every doctrine in this series is built with these tools, and every tool is forged from a text.
 
 ---
 
