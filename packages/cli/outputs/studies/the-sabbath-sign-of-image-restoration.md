@@ -22,19 +22,45 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1687'
 
 ---
 
-## Where We Left Off — Salvation IS the Image Restored
+## The Foundation — Salvation IS the Image Restored
 
-- **The whole gospel in one sentence**
-  - Salvation is not merely pardon. It is God remaking you into His own image.
+Before the Sabbath can be a _sign_ of anything, we have to know what it is a sign _of_. So build the foundation first: what salvation actually is.
+
+- **Made in the image**
+  - "Let us make man in our image, after our likeness... So God created man in his own image" (Gen 1:26-27)
+  - Humanity was designed to be a reflection of God. That is the starting point of everything.
+
+- **The image marred**
+  - "And Adam... begat a son in his own likeness, after his image; and called his name Seth" (Gen 5:3)
+  - Gen 1:27 — created in _God's_ image. Gen 5:3 — children bearing _Adam's_ image. Sin defaced the portrait.
+  - "as we have borne the image of the earthy, we shall also bear the image of the heavenly" (1 Cor 15:49)
+  - [→] The whole plan of salvation exists to reverse what happened between Gen 1:27 and Gen 5:3. But _what is_ this image? Define it.
+
+- **The image = God's glory = His name = His character**
+  - Moses asks to see it: "I beseech thee, shew me thy glory" (Ex 33:18)
+  - God answers not with sight but with His _name_: "I will... proclaim the name of the LORD before thee" (Ex 33:19)
+  - And the name is a list of character traits: "The LORD, The LORD God, merciful and gracious, longsuffering, and abundant in goodness and truth" (Ex 34:6)
+  - [→] Glory = name = character. God's glory is not a light-show; it is His goodness. _That_ is the image stamped on man at creation — and defaced by sin.
+
+- **Christ = the image made visible**
+  - "he that hath seen me hath seen the Father" (John 14:9)
+  - "the express image of his person" (Heb 1:3); "the light of the knowledge of the glory of God in the face of Jesus Christ" (2 Cor 4:6)
+  - [→] Same request as Moses (Ex 33), better answer: the character of God walking among us.
+
+- **The character = love = the law**
+  - "God is love" (1 John 4:8)
+  - "Thou shalt love the Lord thy God... and thy neighbour as thyself... this do, and thou shalt live" (Luke 10:27-28)
+  - The law is summed up in love; God _is_ love. So the law is the **transcript of God's character** — Law = Love = Character = Image. Every link is a plain verse, not an overlay.
+
+- **So salvation = re-creating that image in you**
   - "And have put on the new man, which is renewed in knowledge after the image of him that created him" (Col 3:10)
   - "whom he did foreknow, he also did predestinate to be conformed to the image of his Son" (Rom 8:29)
-  - [→] If salvation = the image restored, the next question is unavoidable: **is it being restored in me? Is there a sign?**
+  - Not merely pardon (clearing the record) — _restoration_ (remaking the person). "He shall save his people FROM their sins" (Matt 1:21) — not in them, from them.
+  - [→] So to restore the image is to restore the law of love _in the heart_. Keep that thought — it is exactly where the Sabbath enters.
 
-- **The image is His character is His law**
-  - Man was made in God's image (Gen 1:26-27); sin marred it (Gen 5:3 — Adam's children bear Adam's image, not God's).
-  - God's image = His glory = His name = His character = His love = His law. (The chain of Study 3.)
-  - "the express image of his person" — Christ (Heb 1:3)
-  - [→] So to restore the image is to restore the law _in the heart_. Keep that thought — it is where the Sabbath enters.
+[ILL] A child finds a faded, cracked portrait in the attic — barely recognizable. That is Gen 1:27 after the fall. Then the father himself walks in the door. That is the incarnation. The portrait told you what the family was meant to look like; the Person shows you in the flesh. Salvation is the family resemblance coming back.
+
+[→] If salvation = the image restored, one question becomes unavoidable: **is it actually being restored in me? Did God give any sign that the work is underway?** He did. One. Weekly.
 
 ---
 
