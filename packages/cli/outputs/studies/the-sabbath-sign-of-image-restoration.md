@@ -95,6 +95,14 @@ Here the thesis stops being our inference and becomes God's own statement.
   - Subject of the verb _sanctify_ = God. Not you. The Sabbath is not the sign that _you_ sanctify yourself by resting. It is the sign that _He_ is sanctifying you.
   - [→] Sanctification = the progressive restoration of the image (Col 3:10; 2 Cor 3:18). So the Sabbath is the sign that **the image is being restored — and that He is the one restoring it.**
 
+[Q] **"Hold on — Exodus 31:13 says 'my sabbath*s*,' plural. Those are the ceremonial feast-sabbaths that were nailed to the cross (Col 2:16-17), not the weekly Sabbath. So this 'sign of sanctification' is about the abolished feast-days, isn't it?"**
+→ This is the one objection that, if true, would sink the whole study. So let the passage answer for itself — read three more verses in the same breath (Miller's Rule 5: Scripture is its own expositor):
+
+- **The text defines its own plural — and it is the weekly seventh day.** The same paragraph that says "my sabbath*s*" immediately drops to the singular and names which one: "Ye shall keep **the sabbath**... in the **seventh** is the sabbath of rest, holy to the LORD" (Ex 31:14-15), "a **perpetual covenant**... a sign between me and the children of Israel **for ever: for in six days the LORD made heaven and earth, and on the seventh day he rested**" (Ex 31:16-17). That last line is verbatim the **fourth commandment** (Ex 20:11) — creation, not the sanctuary calendar. The "sabbaths" of v.13 _are_ the weekly Sabbath; the chapter says so itself.
+- **The plural never meant "ceremonial" — Scripture proves the reverse.** When God lists the ceremonial feast-sabbaths in Leviticus 23, He sets them apart _from_ the weekly Sabbath using the plural for the **weekly** one: "These are the feasts of the LORD... **Beside the sabbaths of the LORD**" (Lev 23:37-38). "The sabbath*s* of the LORD" (plural) = the recurring **weekly** Sabbath, expressly distinguished from the feasts. So a plural proves nothing for the skeptic; it is simply how Hebrew names the weekly institution recurring "throughout your generations."
+- **The context is moral law, not feast law.** In Ezekiel the sabbath sits among "my **statutes**... my **judgments**, which if a man do, he shall even live in them" (Eze 20:11-13, 19-20) — the language of the abiding moral law a man _lives_ by, not the temporary ritual a man _outgrows_.
+- [→] The objection actually backfires: the very passage it quotes ties the sign to **creation week and a perpetual covenant** — which is precisely the weekly Sabbath and nothing else. The skeptic's proof-text is our proof-text.
+
 [DYK🔎] The same God who said "Let us make man in our image" (Gen 1:26) said "I am the LORD that doth sanctify you" (Ex 31:13). The Maker of the image is the Re-maker of the image. The Sabbath is His signature on both works.
 
 - **Pioneer / Spirit-of-Prophecy confirmation** (a witness in harmony with the text, not an independent authority):
