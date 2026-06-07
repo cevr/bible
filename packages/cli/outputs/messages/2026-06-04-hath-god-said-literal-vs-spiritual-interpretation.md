@@ -201,12 +201,13 @@ daily" (Acts 17:11)]`
   interpreter — the great prophecies opened: [EGW] "**Following his rule of making
   Scripture its own interpreter,** Miller learned that a day in symbolic prophecy
   represents a year." (GC 324.3)
-- **Miller's own confession of the rule.** Where a figure is plainly marked, the
-  Bible itself explains the figure: "**For the word of God is its own expositor,
-  or it can be of no manner of use to us;** for if we have to apply to any other
-  rule, to explain the Bible, then the other rule would be tantamount... and the
-  Bible must fall of course. But it is not so." (MWV2 233.3) `[Write on board:
-Take God at His plain word — let the Spirit interpret it by itself]`
+- **Miller's own confession of the rule.** The Bible must explain itself; lean on
+  any outside key, and you have set a man's guess in the place of God's word:
+  "**Scripture must be its own expositor, since it is a rule of itself.** If I
+  depend on a teacher to expound it to me, and he should guess at its meaning, or
+  desire to have it so on account of his sectarian creed, or to be..." (Miller's
+  Works, vol. 1, 20) `[Write on board: Take God at His plain word — let the Spirit
+interpret it by itself]`
 - **This is the foundation under all Bible study.** Get this wrong, and every
   doctrine after it is at the mercy of the interpreter's imagination. Get this
   right, and the Bible stands up as one harmonious whole.
