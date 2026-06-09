@@ -368,7 +368,7 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 
 ## The First Four Trumpets — Four Wars That Broke Rome
 
-Each trumpet = one named invader, one real campaign. Proof "trumpet" = "war" (Rule 13).
+> **Each trumpet = one named invader, one real campaign — proof "trumpet" = "war" (Rule 13).**
 
 - _Rev. 8:7._ First trumpet — hail, fire, blood; third of trees and all green grass burnt: Alaric + the Goths.
 - _Rev. 8:8-9._ Second trumpet — "a great mountain burning with fire" cast into the sea, third of sea to blood, third of ships destroyed: Genseric + the Vandals, a naval war (DAR 458).
@@ -411,7 +411,7 @@ Each trumpet = one named invader, one real campaign. Proof "trumpet" = "war" (Ru
 
 ## What Is a Woe? — The First Woe (Fifth Trumpet)
 
-Last three trumpets re-named "woes": God's rod on apostate Christendom, not pagan Rome. Fifth trumpet (first woe) = the Saracens, Arab-Muslim power.
+> **Last three trumpets re-named "woes" — God's rod on apostate Christendom, not pagan Rome. Fifth trumpet (first woe) = the Saracens, Arab-Muslim power.**
 
 - _Rev. 8:13._ Last three trumpets re-named three woes — "Woe, woe, woe, to the inhabiters of the earth."
 
@@ -537,7 +537,7 @@ Last three trumpets re-named "woes": God's rod on apostate Christendom, not paga
 
 ## How the Three Woes Are Tied Together
 
-Two past woes (Saracens, Ottomans) = God's rod on apostate, idolatrous Christendom. Third = same kind of stroke — real war, God's rod — now WITHOUT mixture of mercy.
+> **Two past woes (Saracens, Ottomans) = God's rod on apostate, idolatrous Christendom; the third = same kind of stroke, now WITHOUT mixture of mercy.**
 
 - _Rev. 9:12._ "One woe is past... there come two woes more hereafter" — woes counted off in sequence; one kind of event.
 - _Rev. 9:20-21._ Survivors of the plagues "repented not... that they should not worship devils, and idols of gold, and silver, and brass, and stone, and of wood" — God scourging idolatry that will not repent.
@@ -556,7 +556,7 @@ Two past woes (Saracens, Ottomans) = God's rod on apostate, idolatrous Christend
 
 ## The Sixth Trumpet Defines the Rest as Plagues — Trumpet = Plague = War
 
-Hinge: 6th-trumpet deaths named "plagues" — binds trumpets to vials.
+> **Hinge: 6th-trumpet deaths named "plagues" — binds trumpets to vials.**
 
 - _Rev. 9:16-18._ Two hundred thousand thousand horsemen; "fire and smoke and brimstone" out of their mouths — a real army, gunpowder warfare.
 - _Rev. 9:18._ Third part of men killed by fire, smoke, brimstone — three killing agents.
@@ -727,7 +727,7 @@ Hinge: 6th-trumpet deaths named "plagues" — binds trumpets to vials.
 
 ### Part 4 — The Unnamed Texts: the Signature Without the Label
 
-The rule just established (see **Fulfilled Once, Applied Often**): the phrase "day of the LORD" is a label, not the boundary. Identification rides on the SIGNATURE — universal scope ("all nations," "all the heathen," "all the inhabitants of the earth," "from one end of the earth even unto the other") + the trumpet/vial vocabulary kit. Where the signature stands, the day stands, named or not.
+> **The phrase "day of the LORD" is a label, not the boundary (see Fulfilled Once, Applied Often). Identification rides on the SIGNATURE — universal scope ("all nations," "all the heathen," "all the inhabitants of the earth," "from one end of the earth even unto the other") + the trumpet/vial vocabulary kit. Where the signature stands, the day stands, named or not.**
 
 **Jeremiah 25 — the structural key.** The most complete day-of-the-LORD scenario in the Old Testament — and the phrase never appears once in the chapter.
 
@@ -795,8 +795,6 @@ The rule just established (see **Fulfilled Once, Applied Often**): the phrase "d
 - _Isa. 63:1-6._ The Treader from Edom treads them AND makes them drunk in His fury — one act, dated "the day of vengeance... the year of my redeemed."
 - _Rev. 19:15._ Sword + rod of iron + winepress fused in one verse at the Coming — Revelation's own concordance of Jer 25 and Isa 63.
 
-(The advent-winepress rests on Rev 19:15 + Isa 63 — Smith places the Rev 14:19-20 winepress after the 1000 years, DAR 636, so it is not used for the advent here.)
-
 ### Part 5 — Filled Up Unmixed = the Seven Last Plagues
 
 - _Rev. 8:7-12._ "The third part" struck — hail, sea, rivers, sun — **with mixture**: a third, not the whole; warning mingled with mercy.
@@ -822,7 +820,7 @@ The rule just established (see **Fulfilled Once, Applied Often**): the phrase "d
 
 ### Part 6 — Served on the Trumpets' Own Targets: the Vials in Order
 
-Trumpets = a third, mercy mingled. Vials = the whole, mercy withdrawn — vial by vial on the trumpets' own targets, in order.
+> **Trumpets = a third, mercy mingled; vials = the whole, mercy withdrawn — vial by vial on the trumpets' own targets, in order.**
 
 - _Rev. 16:2 ↔ 8:7._ 1st / 1st — **the earth**.
 - _Rev. 16:3 ↔ 8:8-9._ 2nd / 2nd — **the sea**, become blood.
@@ -1028,7 +1026,7 @@ Trumpets = a third, mercy mingled. Vials = the whole, mercy withdrawn — vial b
 
 ## The Third Angel's Message — A Warning of the Judgment Without Mixture
 
-Third angel's penalty = seven last plagues = third woe = seventh trumpet.
+> **Third angel's penalty = seven last plagues = third woe = seventh trumpet.**
 
 - _Rev. 14:9._ Third angel cries with a loud voice against all who worship the beast and his image and receive his mark.
 - _Rev. 14:10._ Beast-worshippers drink the wine of God's wrath "without mixture" — unmixed wrath, tormented in fire and brimstone before the Lamb.
@@ -1088,7 +1086,7 @@ Third angel's penalty = seven last plagues = third woe = seventh trumpet.
 
 ## The Same Symbols Point to the Eastern Question — Fire, Brimstone, Smoke
 
-Neglected half: third angel's penalty wears the same three words as the first and second woes — fire, brimstone, smoke. Trace the figure (Rule 12); weigh its uses (Rule 10).
+> **The neglected half: the third angel's penalty wears the same three words as the first and second woes — fire, brimstone, smoke. Trace the figure (Rule 12); weigh its uses (Rule 10).**
 
 - _Rev. 14:10-11._ — Third angel's penalty: beast-worshippers "tormented with **fire and brimstone**," the "**smoke** of their torment ascendeth up for ever and ever."
 - _Rev. 9:2._ — First woe: "**smoke** out of the pit, as the smoke of a great furnace."
@@ -1119,7 +1117,7 @@ Neglected half: third angel's penalty wears the same three words as the first an
 
 ## The Rod of His Indignation — A Heathen Power as God's Rod
 
-Settled figure: God raises a heathen power as His rod to punish His apostate people. First two woes (Saracen, Ottoman) = that rod. Thesis: same kind of rod returns for the third.
+> **Settled figure: God raises a heathen power as His rod to punish His apostate people; the first two woes (Saracen, Ottoman) = that rod. Thesis: same kind of rod returns for the third.**
 
 - _Isa. 10:5._ Assyria = "the rod of mine anger," the staff "mine indignation."
 - _Isa. 10:6._ Sent against "an hypocritical nation" to spoil and tread down — heathen empire as God's rod against apostate Israel.
@@ -1138,7 +1136,7 @@ Settled figure: God raises a heathen power as His rod to punish His apostate peo
 
 ## The Seal of God and the Sealing — In the Day of Slaughter, the Slain Are the Unsealed
 
-Rod strikes only the unsealed (Rev. 9:4; Ezek. 9:6) → slain = of necessity not sealed. Sealing and slaughter = two opposite outcomes of one closing crisis. First: what IS the seal?
+> **Rod strikes only the unsealed (Rev. 9:4; Ezek. 9:6) → slain = of necessity not sealed; sealing and slaughter = two opposite outcomes of one closing crisis. First: what IS the seal?**
 
 **The Seal Defined (Rule 12).** Seal = owner's name + title + extent of dominion. Fourth commandment alone carries all three — "the LORD" (name), "made" (Creator, His title), "heaven and earth" (His dominion) → Sabbath = seal of God's law.
 
@@ -1187,7 +1185,7 @@ Rod strikes only the unsealed (Rev. 9:4; Ezek. 9:6) → slain = of necessity not
 
 ## The Four Winds — Held Back Until the Sealing Is Done
 
-One closing crisis, three consecutive phases: winds held → sealing finishes → winds loose → slaughter falls.
+> **One closing crisis, three consecutive phases: winds held → sealing finishes → winds loose → slaughter falls.**
 
 - _Rev. 7:1._ Four angels hold the four winds — restrained strife (see WIND, above).
 - _Rev. 7:2-3._ Held until "we have sealed the servants of our God" — winds wait on the sealing.
@@ -1218,7 +1216,7 @@ One closing crisis, three consecutive phases: winds held → sealing finishes �
 
 ## The Loud Cry — The Warning That the Day of Slaughter Is at Hand
 
-Loud cry = the four winds' message: escape the day of slaughter before the sealing closes, or be found among the slain — the unsealed.
+> **Loud cry = the four winds' message: escape the day of slaughter before the sealing closes, or be found among the slain — the unsealed.**
 
 **Each angel's message lit by a heaven-sent, publicly-verified event (Rule 13 — history fits every word).**
 
@@ -1237,8 +1235,6 @@ Loud cry = the four winds' message: escape the day of slaughter before the seali
   > "I saw angels hurrying to and fro in heaven, descending to the earth, and again ascending to heaven, preparing for the fulfillment of some important event. Then I saw another mighty angel commissioned to descend to the earth, to unite his voice with the third angel, and **give power and force to his message**. Great power and glory were imparted to the angel, and as he descended, the earth was lightened with his glory. The light which attended this angel penetrated everywhere, as he cried mightily, with a strong voice, "Babylon the great is fallen, is fallen, and is become the habitation of devils, and the hold of every foul spirit, and a cage of every unclean and hateful bird." The message of the fall of Babylon, as given by the second angel, is repeated, with the additional mention of the corruptions which have been entering the churches since 1844. The work of this angel comes in at the right time to join in the last great work of the third angel's message **as it swells to a loud cry**. And the people of God are thus prepared to stand in the hour of temptation, which they are soon to meet. I saw a great light resting upon them, and they united to fearlessly proclaim the third angel's message." — Ellen G. White, _Early Writings_, EW 277.1
 - _EW 278._ Loud cry hurries God's people out before destruction, as Lot from Sodom ("the precious were hurried out of the doomed churches, as Lot was hurried out of Sodom before her destruction").
   > "Servants of God, endowed with power from on high with their faces lighted up, and shining with holy consecration, went forth to proclaim the message from heaven. Souls that were scattered all through the religious bodies answered to the call, and **the precious were hurried out of the doomed churches, as Lot was hurried out of Sodom before her destruction**. God's people were strengthened by the excellent glory which rested upon them in rich abundance and prepared them to endure the hour of temptation. I heard everywhere a multitude of voices saying, "Here is the patience of the saints: here are they that keep the commandments of God, and the faith of Jesus."" — Ellen G. White, _Early Writings_, EW 278.2
-
-Loud cry = the blowing of the trumpet (war-alarm) — the watchman's trumpet of Ezekiel 33, warning of the coming sword, binding the warner under blood-accountability.
 
 - _Num. 10:9._ War-alarm trumpet blown that ye be remembered and saved from the enemy.
 - _Joel 2:1._ "Blow ye the trumpet in Zion... sound an alarm" — the day of the LORD at hand.
@@ -1364,8 +1360,6 @@ Loud cry = the blowing of the trumpet (war-alarm) — the watchman's trumpet of 
 
 ## The Thesis, Assembled
 
-Every definition filled in. The chain in one breath.
-
 - _Rev. 9:18._ Trumpet = real war God sends as judgment = "plague."
 - _Rev. 9:20._ The plague that slew = the trumpet's killing — same judgment, named "plagues."
 - _Rev. 8._ First six trumpets = **with mixture** (a third part); mercy still restraining.
@@ -1421,8 +1415,6 @@ Every definition filled in. The chain in one breath.
 
 ## Appeal
 
-Judgment of the living begun (defined above, at the sealing). Loud cry = mercy's last warning to flee the rod.
-
 - _Rev. 9:4._ Rod hurts only the unmarked — "those men which have not the seal of God in their foreheads."
 - _Ezek. 9:6._ Slay utterly old and young — but "come not near any man upon whom is the mark"; the slain = the unsealed.
 - _EW 44._ Loud cry = mercy's last call: flee by faith, out of the doomed cities, into the shelter over the sealed.
@@ -1437,8 +1429,6 @@ Judgment of the living begun (defined above, at the sealing). Loud cry = mercy's
 ---
 
 ## Appendix — Symbol Dictionary
-
-Every prophetic figure in this study, defined by Scripture's own usage, keyed to its trumpet/event.
 
 - 📖 **A FALLEN STAR** = a fallen, apostate power, cut down yet armed with a key (_Isa. 14:12_) -> the power loosed with the key of the pit under the 5th trumpet.
 - 📖 **ALL NATIONS / ALL THE HEATHEN** = the scope-signature of the one complete, universal fulfillment — the day of the LORD — vs its repeatable local applications (_Jer. 25:29-33; Isa. 34:1-2; Obad. 15-16_) -> the day texts gathered under the seventh trumpet.
