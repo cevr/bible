@@ -24,6 +24,8 @@ Scoreboard. Each term fills in as its section arrives — some carry their prove
 - **ALL NATIONS — the day's signature** — \_\_\_
 - **THE WINE OF GOD'S WRATH ( = THE CUP = THE SWORD)** — \_\_\_
 - **WITH MIXTURE vs WITHOUT MIXTURE** — \_\_\_
+- **THE DAY OF SLAUGHTER** — \_\_\_
+- **THE SEALING TIME (REVELATION 7 = EZEKIEL 9)** — \_\_\_
 - **ONE FORCE** — locusts = lions = horses = fire/brimstone/smoke.
 - **WOE** — \_\_\_
 - **THE EQUATION — DAY OF THE LORD = SEVEN LAST PLAGUES = DAY OF SLAUGHTER = THE SEALING TIME** — \_\_\_
@@ -34,7 +36,6 @@ Scoreboard. Each term fills in as its section arrives — some carry their prove
 - **THE ROD OF HIS INDIGNATION** — \_\_\_
 - **THE SEAL OF GOD / THE SEALING** — \_\_\_
 - **THE FOUR WINDS** — \_\_\_
-- **THE DAY OF SLAUGHTER** — \_\_\_
 - **THE JUDGMENT OF THE LIVING** — \_\_\_
 - **THE LATTER RAIN** — \_\_\_
 - **THE LOUD CRY** — \_\_\_
@@ -1278,36 +1279,58 @@ Babylon's wine and God's wine are not the same liquid. She serves doctrine; she 
 
 ---
 
-## The Equation, Established — Day of the LORD = Seven Last Plagues = Day of Slaughter = the Sealing Time (Revelation 7, Ezekiel 9)
+## The Day of Slaughter — One Scene Across the Prophets
 
-> **One event, four names, two outcomes — sealed or slain.** Every chain forged so far meets here. State the identity compactly, link by link, each with its proof.
-
-### Link 1 — Day of the LORD = seventh trumpet = seven last plagues
-
-Already proven above (The Day of the Lord IS the Seventh Trumpet; What Is the Wine of God's Wrath?): trumpet = plague = war; the prophets' day = Revelation's third woe / seventh trumpet / seven last plagues. One scope-note before the next link — the seventh trumpet contains far more than the plagues — the consummation:
-
-- _Rev. 10:7; 11:15, 18._ "The mystery of God should be finished"; "The kingdoms of this world are become the kingdoms of our Lord"; "the time of the dead, that they should be judged... reward unto thy servants... destroy them which destroy the earth." Kingdom-transfer, judgment, reward, destruction — one trumpet. DAR 507.
-  > "But in the days of the voice of the seventh angel, when he shall begin to sound, the mystery of God should be finished, as he hath declared to his servants the prophets." (Rev. 10:7)
-  > "[15] And the seventh angel sounded; and there were great voices in heaven, saying, The kingdoms of this world are become [the kingdoms] of our Lord, and of his Christ; and he shall reign for ever and ever. [18] And the nations were angry, and thy wrath is come, and the time of the dead, that they should be judged, and that thou shouldest give reward unto thy servants the prophets, and to the saints, and them that fear thy name, small and great; and shouldest destroy them which destroy the earth." (Rev. 11:15, 18)
-
-> "Having introduced the seventh trumpet in verse 15, the first great event that strikes the mind of the seer is **the transfer of the kingdom from earthly to heavenly rule**. God takes to him his great power, and forever crushes the rebellion of this revolted earth, establishes Christ upon his own throne, and remains himself supreme over all. This picture being completed, we are pointed back, in verse 18, to the state of the nations, the judgment to fall upon them, and the final destiny of both saints and sinners. This field of vision having been scanned, we are taken back once more in the verse now under notice, and our attention is called to **the close of the priesthood of Christ, the last scene in the work of mercy for a guilty world. The temple is opened**; the second apartment of the sanctuary is entered. We know it is the holy of holies that is here opened; for the ark is seen; and in that apartment alone the ark was deposited. This took place at the end of the 2300 days, when the sanctuary was to be cleansed, the time when the prophetic periods expired, and the seventh angel commenced to sound. Since that time, the people of God have seen by faith the open door in heaven, and the ark of God's testament there. They are endeavoring to keep every precept of the holy law written upon the tables therein deposited. And that the tables of the law are there, just as in the ark in the sanctuary erected by Moses, is evident from the terms which John uses in describing the ark. He calls it the "ark of his testament." The ark was called the ark of the covenant, or testament, because it was made for the express purpose of containing the tables of the testimony, or ten commandments. Exodus 25:16; 31:18; Deuteronomy 10:2, 5. It was put to no other use, and owed its name solely to the fact that it contained the tables of the law. If the tables were not therein, it would not be the ark of his (God's) testament, and could not truthfully be so called. Yet John, beholding the ark in heaven under the sounding of the seventh trumpet, still calls it the "ark of his testament," affording unanswerable proof that the law is still there, unaltered in one jot or tittle from the copy which for a time was committed to the care of men in the typical ark of the tabernacle during the Mosaic dispensation."
-> — Uriah Smith, _Daniel and the Revelation_, DAR 507.4
-
-**DEFINITION — THE SEVENTH TRUMPET =** the consummation-trumpet (Rev 10:7; 11:15-19; Smith DAR 507): Christ takes the kingdom, the dead judged, saints rewarded, probation closes (temple opened), wicked destroyed. Seven last plagues / day of slaughter (defined below) = executing-wrath phase WITHIN it — the third woe, after probation shuts — not the whole trumpet.
-
-### Link 2 — = the Day of Slaughter
-
-- _Jer. 25:33._ The slain of the LORD, end of earth to end of earth — inside the chapter whose finale is pure day-of-the-LORD material though the label never appears; the signature carries the identification.
-
-  > "And the slain of the LORD shall be at that day from [one] end of the earth even unto the [other] end of the earth: they shall not be lamented, neither gathered, nor buried; they shall be dung upon the ground."
+> **The day of slaughter and the day of the LORD are ONE judgment seen from two ends.** Named by its work — slaughter — it has a starting point and a full extent. It BEGINS at the house of God: the stroke on God's own professed-but-unsealed people, apostate Christendom, the false watchmen first (Ezek 9:6; 1 Pet 4:17). It then spreads OUTWARD to the world — all nations, end to end (the "day of the LORD," Jer 25:29-33). Inner face = day of slaughter (His apostate house); outer face = day of the LORD (the heathen world); one sword, one day. Gather every passage (Rule 4) → one picture: whirlwind, sword, winepress, sacrifice, slain of the LORD end to end. Who falls and who is sheltered is fixed by the sealing (next section); and escape — then as now — is by obedience to the warning.
 
 - _Isa. 34:2-8._ The all-nations slaughter, NAMED "the day of the LORD'S vengeance" — slaughter and day-of-the-LORD bound in one text.
 
   > "[2] For the indignation of the LORD [is] upon all nations, and [his] fury upon all their armies: he hath utterly destroyed them, he hath delivered them to **the slaughter**. [3] Their slain also shall be cast out, and their stink shall come up out of their carcases, and the mountains shall be melted with their blood. [4] And all the host of heaven shall be dissolved, and the heavens shall be rolled together as a scroll: and all their host shall fall down, as the leaf falleth off from the vine, and as a falling [fig] from the fig tree. [5] For my sword shall be bathed in heaven: behold, it shall come down upon Idumea, and upon the people of my curse, to judgment. [6] The sword of the LORD is filled with blood, it is made fat with fatness, [and] with the blood of lambs and goats, with the fat of the kidneys of rams: for the LORD hath a sacrifice in Bozrah, and a great slaughter in the land of Idumea. [7] And the unicorns shall come down with them, and the bullocks with the bulls; and their land shall be soaked with blood, and their dust made fat with fatness. [8] For [it is] **the day of the LORD'S vengeance**, [and] the year of recompences for the controversy of Zion."
 
-**The day of slaughter is the day of the LORD seen from the ground.**
+  The all-nations slaughter carries the day's own name — "the day of the LORD'S vengeance" (v. 8): slaughter and day of the LORD bound in one text.
 
-### Link 3 — = the Sealing Time of Revelation 7 / Ezekiel 9
+- _Jer. 25:30, 33._ — LORD roars as they that tread grapes; "the slain of the LORD... from one end of the earth even unto the other end." Worldwide slaughter, end to end.
+
+  > [30] "Therefore prophesy thou against them all these words, and say unto them, The LORD shall roar from on high, and utter his voice from his holy habitation; he shall mightily roar upon his habitation; he shall give a shout, as they that tread [the grapes], against all the inhabitants of the earth." [33] "And the **slain of the LORD** shall be at that day from [one] end of the earth even unto the [other] end of the earth: they shall not be lamented, neither gathered, nor buried; they shall be dung upon the ground."
+
+  Inside the chapter whose finale is pure day-of-the-LORD material though the label never appears (see Part 4 above) — the signature carries the identification.
+
+- _Isa. 63:3-4._ — "I have trodden the winepress alone... the day of vengeance is in mine heart." Same day = winepress of wrath (cf. unmixed wine, _Rev. 14:10_).
+  > [3] "I have trodden the **winepress** alone; and of the people [there was] none with me: for I will tread them in mine anger, and trample them in my fury; and their blood shall be sprinkled upon my garments, and I will stain all my raiment." [4] "For the **day of vengeance** [is] in mine heart, and the year of my redeemed is come."
+- _Isa. 30:25._ — "in the day of the great slaughter, when the towers fall." Day of slaughter = day towers fall.
+  > "And there shall be upon every high mountain, and upon every high hill, rivers [and] streams of waters in the **day of the great slaughter, when the towers fall**."
+- _Zeph. 1:7-8._ — the day of the LORD = the LORD's prepared **sacrifice**; the guests are bidden, the victims appointed.
+  > "[7] Hold thy peace at the presence of the Lord GOD: for the day of the LORD [is] at hand: for the LORD hath prepared a sacrifice, he hath bid his guests. [8] And it shall come to pass in the day of the LORD'S sacrifice, that I will punish the princes, and the king's children, and all such as are clothed with strange apparel."
+- _Jer. 12:3; 50:25-27._ — the vocabulary is fixed: God "prepares" men for the day of slaughter and opens His **armoury** for it; Babylon's bullocks "go down to the slaughter... for their day is come."
+  > "But thou, O LORD, knowest me: thou hast seen me, and tried mine heart toward thee: pull them out like sheep for the slaughter, and **prepare them for the day of slaughter**." (Jer. 12:3)
+  > "[25] The LORD hath opened his **armoury**, and hath brought forth the **weapons of his indignation**: for this [is] the work of the Lord GOD of hosts in the land of the Chaldeans. [26] Come against her from the utmost border, open her storehouses: cast her up as heaps, and destroy her utterly: let nothing of her be left. [27] Slay all her bullocks; let them go down to the **slaughter**: woe unto them! for **their day is come**, the time of their visitation." (Jer. 50:25-27)
+- _James 5:1, 5, 8._ — "ye rich men, weep and howl... ye have nourished your hearts, as in a day of slaughter... the coming of the Lord draweth nigh."
+
+**The day of slaughter is the day of the LORD seen from the ground.** One day, one vocabulary: vengeance (Isa 34:8), winepress (Isa 63:3), fallen towers (Isa 30:25), sacrifice (Zeph 1:7), armoury opened (Jer 50:25), slain end to end (Jer 25:33).
+
+### Begins at the House of God — and the Way of Escape
+
+The slaughter does not fall on the world first. It begins where the day-of-the-LORD chapter says it begins: at God's own city, His sanctuary, His professed people — and only then sweeps outward to all flesh.
+
+- _Ezek. 9:6; 1 Pet. 4:17; Jer. 25:29._ — inward → outward, the fixed order: "begin at my sanctuary" → "judgment must begin at the house of God" → "I begin to bring evil on the city which is called by my name... THEN... a sword upon all the inhabitants of the earth."
+- _GC 656.2._ — the false watchmen fall first; the professed guardians, not the heathen, are the first slain (quoted in full in the Sealing Time section). The slaughter on the apostate house IS the inner face of the day of the LORD on the world.
+
+**So the slain are God's OWN people who would not be sealed** — and "sealed" means heeding the warning. The pattern is fixed by the two great types, both literal, both escape-by-obedience:
+
+- **AD 70 — flee Judea.** _Luke 21:20-21._ The literal sign (armies / Roman standards) was given; those who obeyed lived. "Not one Christian perished in the destruction of Jerusalem... all who believed His words watched for the promised sign... an opportunity was offered for all who would, to obey the Saviour's warning... Without delay they fled to a place of safety—the city of Pella" (GC 30.2). Litch saw the same: "the Saviour took care to deliver those that trusted in him... and not a Christian perished there" (PREX1 176.2). And the herald of that doom was a four-winds cry against the temple: "A voice from the east! a voice from the west! a voice from the four winds! a voice against Jerusalem and against the temple!... 'Woe, woe to Jerusalem!'" (GC 30.1) — the day-of-slaughter warning in its type.
+- **Babylon's siege — surrender and live.** _Jer. 21:8-10; 38:2, 17-20; 27:12-13._ "Behold, I set before you the way of life, and the way of death. He that abideth in this city shall die by the sword... but he that goeth out, and falleth to the Chaldeans... he shall live" (Jer 21:8-9). "Obey, I beseech thee, the voice of the LORD... so it shall be well unto thee, and thy soul shall live" (Jer 38:20). To stay was to die; to obey the warning and go out was to live.
+
+To be taken in the day of slaughter, therefore, is not misfortune — it is the proof of disobedience. The country-living / come-out-of-the-cities call (Rev 18:4, defined at the loud cry below) is the same message the Christians obeyed before Jerusalem fell and Jeremiah preached before Babylon took the city: escape is by faith in the warning.
+
+**DEFINITION — THE DAY OF SLAUGHTER =** the inner face of the day of the LORD — the stroke named by its work, falling FIRST on God's own apostate, unsealed people and beginning at His sanctuary (Ezek 9:6; 1 Pet 4:17; Jer 25:29; GC 656.2), then spreading outward to all nations (the day of the LORD proper). Painted in the prophets' fixed vocabulary: the LORD's day of vengeance (_Isa. 34:2-8_), the winepress trodden (_Isa. 63:3-4_), the towers fallen (_Isa. 30:25_), the sacrifice prepared (_Zeph. 1:7-8_), the armoury of His indignation opened (_Jer. 50:25-27_), the slain of the LORD end to end (_Jer. 25:33; James 5:5_) = the third woe / the seventh trumpet's executing judgment. Escape is by obedience to the warning — as AD 70 (flee Judea, GC 30.2) and Babylon's siege (surrender and live, Jer 21:8); the slain = the disobedient who would not be sealed. Who is sheltered is decided by the sealing (next section); its loosing (the four winds) and eastern-rod identity are locked in below.
+
+---
+
+## The Sealing Time — Revelation 7 IS Ezekiel 9
+
+> **The sealing is the protective obverse of the slaughter.** Same vision, opposite outcome: the day of slaughter (previous section) falls on the unmarked; the sealing MARKS God's true people so the stroke passes them. Two prophets, one scene — Revelation 7 holds the winds till the servants of God are sealed; Ezekiel 9 marks the sighing ones before the slaughter weapons move. The mark is not arbitrary: it is set on "those that sigh and cry for all the abominations" — the obedient remnant grieved at the church's apostasy, those who heed the warning the apostate house refuses. To be sealed is to obey; the seal is on them BEFORE the stroke ("till we have sealed," Rev 7:3). The identity is not an inference — EGW states it; and the sequence locks the sealing to the day's threshold.
+
+### The Two Visions, Side by Side
 
 - _Rev. 7:1-4._ Four winds held; no hurt till the servants of God are sealed.
 
@@ -1335,7 +1358,7 @@ The identity is not an inference — it is stated:
 
 Rev. 7's seal = Ezek. 9's mark; the men with slaughter weapons = the executors of the day of slaughter. Same scene, two prophets.
 
-### Link 4 — The Sequence That Locks the Equation Into ONE Timeframe
+### The Sequence — Held, Sealed, Closed, Slain
 
 Winds held while the sealing runs -> sealing reported done -> censer down, probation closes -> plagues / slaughter weapons move. Quote the chain in order:
 
@@ -1370,7 +1393,7 @@ Winds held while the sealing runs -> sealing reported done -> censer down, proba
 
 The sealing is the held-winds interval; when it closes, the day opens.
 
-### Link 5 — The Bible States the Placement Itself
+### The Bible Places the Sealing at the Day's Threshold
 
 - _Zeph. 2:1-3._ The gathering happens "BEFORE the day of the LORD'S anger"; the sought ones "hid in the day of the LORD'S anger" — the Bible's own statement that the sealing work belongs to the day's threshold.
 
@@ -1384,7 +1407,33 @@ The sealing is the held-winds interval; when it closes, the day opens.
 
   > "For, lo, **I begin to bring evil on the city which is called by my name**, and should ye be utterly unpunished? Ye shall not be unpunished: for I will call for a sword upon all the inhabitants of the earth, saith the LORD of hosts."
 
-**DEFINITION — THE EQUATION =** the day of the LORD (the prophets) = the seventh trumpet / third woe / seven last plagues (Revelation) = the day of slaughter (Jer 25:33; Isa 34:2-8) = the crisis whose threshold is the sealing time of Rev 7 = Ezek 9 (TM 445.2): four winds held while the sighing ones are marked; sealing reported done; probation closes; the slaughter-weapons move, beginning at the sanctuary (1 Pet 4:17; Jer 25:29). One event, four names, two outcomes — sealed or slain. The sections that follow unpack each member in order.
+**DEFINITION — THE SEALING TIME =** the held-winds interval of Rev 7:1-3 = the marking of Ezekiel 9 ("this sealing of the servants of God is the same that was shown to Ezekiel in vision," TM 445.2): the seal set on those only who sigh and cry (Ezek 9:4; 5T 212.3) while four angels hold the strife; the inkhorn angel reports the work done (Ezek 9:11; EW 279.2); the censer falls, probation closes (EW 280.2); then the slaughter weapons move, beginning at the sanctuary (Ezek 9:6; GC 656.2; 1 Pet 4:17). It stands "BEFORE the day of the LORD'S anger" (Zeph 2:2) — the day of slaughter's threshold: sealed = hid in the day (Zeph 2:3); unsealed = the slain just gathered (previous section).
+
+---
+
+## The Equation, Established — Day of the LORD = Seven Last Plagues = Day of Slaughter = the Sealing Time (Revelation 7, Ezekiel 9)
+
+> **One judgment, three faces, two outcomes — sealed or slain.** Every chain forged so far meets here. The same single stroke wears three names by who is in view: turned on God's apostate, unsealed people (the **day of slaughter**, beginning at His house) it is the inner face; reaching the world, all nations (the **day of the LORD**) it is the outer; and its protective obverse — the marking that exempts the obedient — is the **sealing**. One scope-note, then the knot.
+
+Already proven above (The Day of the Lord IS the Seventh Trumpet; What Is the Wine of God's Wrath?): trumpet = plague = war; the prophets' day = Revelation's third woe / seventh trumpet / seven last plagues. One scope-note before the next link — the seventh trumpet contains far more than the plagues — the consummation:
+
+- _Rev. 10:7; 11:15, 18._ "The mystery of God should be finished"; "The kingdoms of this world are become the kingdoms of our Lord"; "the time of the dead, that they should be judged... reward unto thy servants... destroy them which destroy the earth." Kingdom-transfer, judgment, reward, destruction — one trumpet. DAR 507.
+  > "But in the days of the voice of the seventh angel, when he shall begin to sound, the mystery of God should be finished, as he hath declared to his servants the prophets." (Rev. 10:7)
+  > "[15] And the seventh angel sounded; and there were great voices in heaven, saying, The kingdoms of this world are become [the kingdoms] of our Lord, and of his Christ; and he shall reign for ever and ever. [18] And the nations were angry, and thy wrath is come, and the time of the dead, that they should be judged, and that thou shouldest give reward unto thy servants the prophets, and to the saints, and them that fear thy name, small and great; and shouldest destroy them which destroy the earth." (Rev. 11:15, 18)
+
+> "Having introduced the seventh trumpet in verse 15, the first great event that strikes the mind of the seer is **the transfer of the kingdom from earthly to heavenly rule**. God takes to him his great power, and forever crushes the rebellion of this revolted earth, establishes Christ upon his own throne, and remains himself supreme over all. This picture being completed, we are pointed back, in verse 18, to the state of the nations, the judgment to fall upon them, and the final destiny of both saints and sinners. This field of vision having been scanned, we are taken back once more in the verse now under notice, and our attention is called to **the close of the priesthood of Christ, the last scene in the work of mercy for a guilty world. The temple is opened**; the second apartment of the sanctuary is entered. We know it is the holy of holies that is here opened; for the ark is seen; and in that apartment alone the ark was deposited. This took place at the end of the 2300 days, when the sanctuary was to be cleansed, the time when the prophetic periods expired, and the seventh angel commenced to sound. Since that time, the people of God have seen by faith the open door in heaven, and the ark of God's testament there. They are endeavoring to keep every precept of the holy law written upon the tables therein deposited. And that the tables of the law are there, just as in the ark in the sanctuary erected by Moses, is evident from the terms which John uses in describing the ark. He calls it the "ark of his testament." The ark was called the ark of the covenant, or testament, because it was made for the express purpose of containing the tables of the testimony, or ten commandments. Exodus 25:16; 31:18; Deuteronomy 10:2, 5. It was put to no other use, and owed its name solely to the fact that it contained the tables of the law. If the tables were not therein, it would not be the ark of his (God's) testament, and could not truthfully be so called. Yet John, beholding the ark in heaven under the sounding of the seventh trumpet, still calls it the "ark of his testament," affording unanswerable proof that the law is still there, unaltered in one jot or tittle from the copy which for a time was committed to the care of men in the typical ark of the tabernacle during the Mosaic dispensation."
+> — Uriah Smith, _Daniel and the Revelation_, DAR 507.4
+
+**DEFINITION — THE SEVENTH TRUMPET =** the consummation-trumpet (Rev 10:7; 11:15-19; Smith DAR 507): Christ takes the kingdom, the dead judged, saints rewarded, probation closes (temple opened), wicked destroyed. Seven last plagues / day of slaughter (defined above) = executing-wrath phase WITHIN it — the third woe, after probation shuts — not the whole trumpet.
+
+The members are now each proven in their own sections. Tie the knot:
+
+- **Day of the LORD = seventh trumpet = seven last plagues** — The Day of the Lord IS the Seventh Trumpet (Parts 1-4).
+- **= the wine of God's wrath, unmixed** — What Is the Wine of God's Wrath? (cup = sword; Ps 75:8 vs Rev 14:10).
+- **= the day of slaughter (the INNER face — on God's apostate house, begins at the sanctuary)** — The Day of Slaughter (Isa 34:2-8 names it "the day of the LORD'S vengeance"; Jer 25:29-33 fixes the inward→outward order).
+- **whose protective obverse = the sealing time of Rev 7 / Ezek 9** — The Sealing Time (TM 445.2; EW 38 → 279 → 280; GC 656; Zeph 2:1-3).
+
+**DEFINITION — THE EQUATION =** one judgment, three faces by audience, two outcomes. The same stroke is the day of the LORD (the prophets) = the seventh trumpet / third woe / seven last plagues (Revelation) = the wine of God's wrath unmixed (the cup = the sword) = the day of slaughter (Jer 25:29-33; Isa 34:2-8). It BEGINS at God's own apostate, unsealed house and sanctuary — the inner face, the day of slaughter (1 Pet 4:17; Ezek 9:6; GC 656.2) — and sweeps OUTWARD to all nations — the outer face, the day of the LORD (Jer 25:29). Its protective obverse is the sealing time of Rev 7 = Ezek 9 (TM 445.2): four winds held while the sighing, obedient ones are marked; sealing reported done; probation closes; the slaughter-weapons move. Two outcomes — **sealed** (heed the warning, hid in the day, Zeph 2:3) or **slain** (the disobedient who would not be sealed, as AD 70 and Babylon's siege). Each member carries its own section above; this section only ties the knot.
 
 ---
 
@@ -1658,13 +1707,7 @@ Rod strikes only the unsealed (Rev. 9:4; Ezek. 9:6) → slain = of necessity not
 
   > "And the LORD said unto him, Go through the midst of the city, through the midst of Jerusalem, and set a mark upon the foreheads of the men that sigh and that cry for all the abominations that be done in the midst thereof."
 
-  Same identity the Equation proved (above): the sealing of Revelation 7 IS Ezekiel 9's marking — EGW's own pen:
-
-  > "**This sealing of the servants of God is the same that was shown to Ezekiel in vision.** John also had been a witness of this most startling revelation. He saw the sea and the waves roaring, and men's hearts failing them for fear. He beheld the earth moved, and the mountains carried into the midst of the sea (which is literally taking place), the water thereof roaring and troubled, and the mountains shaking with the swelling thereof. He was shown plagues, pestilence, famine, and death performing their terrible mission."
-  > — Ellen G. White, _Testimonies to Ministers and Gospel Workers_, TM 445.2
-
-  > "The day of God's vengeance is just upon us. **The seal of God will be placed upon the foreheads of those only who sigh and cry for the abominations done in the land.** Those who link in sympathy with the world are eating and drinking with the drunken and will surely be destroyed with the workers of iniquity. 'The eyes of the Lord are over the righteous, and His ears are open unto their prayers: but the face of the Lord is against them that do evil.'"
-  > — Ellen G. White, _Testimonies for the Church_, vol. 5, 5T 212.3
+  Same identity proven in The Sealing Time section (above), in EGW's own words: "this sealing of the servants of God is the same that was shown to Ezekiel in vision" (TM 445.2); "the seal of God will be placed upon the foreheads of those only who sigh and cry for the abominations done in the land" (5T 212.3).
 
 - _Ezek. 9:5-6._ "smite: let not your eye spare... but come not near any man upon whom is the mark; and begin at my sanctuary." — slaughter falls on the unmarked, begins at the church.
 
@@ -1743,25 +1786,6 @@ One closing crisis, three consecutive phases: winds held → sealing finishes �
   > — Ellen G. White, _Early Writings_, EW 44.1-44.2
 
 **DEFINITION — THE FOUR WINDS =** strife/war of the nations (_Dan. 7:2_), held by the angels till the sealing is finished, then loosed as the seven last plagues. **THE DAY OF SLAUGHTER =** the loosing of the winds. **THE SEALING =** the work that closes the moment the winds blow. Four winds + sealing + day of slaughter = three consecutive phases of ONE closing crisis (EW 36, 38, 44) — sealed sheltered, unsealed slain.
-
----
-
-## The Day of Slaughter — One Scene Across the Prophets
-
-Gather every passage (Rule 4) → one picture: whirlwind, sword, winepress, slain of the LORD — day of slaughter on the unsealed.
-
-- _Isa. 34:2, 5-6, 8._ — LORD's indignation on all nations; sword bathed in heaven; "the day of the LORD'S vengeance" = day of slaughter named.
-  > [2] "For the indignation of the LORD [is] upon all nations, and [his] fury upon all their armies: he hath utterly destroyed them, he hath delivered them to the **slaughter**." [5] "For my sword shall be bathed in heaven: behold, it shall come down upon Idumea, and upon the people of my curse, to judgment." [6] "The sword of the LORD is filled with blood, it is made fat with fatness, [and] with the blood of lambs and goats, with the fat of the kidneys of rams: for the LORD hath a sacrifice in Bozrah, and a great **slaughter** in the land of Idumea." [8] "For [it is] the **day of the LORD'S vengeance**, [and] the year of recompences for the controversy of Zion."
-- _Isa. 63:3-4._ — "I have trodden the winepress alone... the day of vengeance is in mine heart." Same day = winepress of wrath (cf. unmixed wine, _Rev. 14:10_).
-  > [3] "I have trodden the **winepress** alone; and of the people [there was] none with me: for I will tread them in mine anger, and trample them in my fury; and their blood shall be sprinkled upon my garments, and I will stain all my raiment." [4] "For the **day of vengeance** [is] in mine heart, and the year of my redeemed is come."
-- _Isa. 30:25._ — "in the day of the great slaughter, when the towers fall." Day of slaughter = day towers fall.
-  > "And there shall be upon every high mountain, and upon every high hill, rivers [and] streams of waters in the **day of the great slaughter, when the towers fall**."
-- _Jer. 25:30, 33._ — LORD roars as they that tread grapes; "the slain of the LORD... from one end of the earth even unto the other end." Worldwide slaughter, end to end.
-  > [30] "Therefore prophesy thou against them all these words, and say unto them, The LORD shall roar from on high, and utter his voice from his holy habitation; he shall mightily roar upon his habitation; he shall give a shout, as they that tread [the grapes], against all the inhabitants of the earth." [33] "And the **slain of the LORD** shall be at that day from [one] end of the earth even unto the [other] end of the earth: they shall not be lamented, neither gathered, nor buried; they shall be dung upon the ground."
-- _James 5:1, 5, 8._ — "ye rich men, weep and howl... ye have nourished your hearts, as in a day of slaughter... the coming of the Lord draweth nigh." Time of the end, against the oppressing rich.
-  > [1] "Go to now, [ye] rich men, weep and howl for your miseries that shall come upon [you]." [5] "Ye have lived in pleasure on the earth, and been wanton; ye have nourished your hearts, as in a **day of slaughter**." [8] "Be ye also patient; stablish your hearts: for the coming of the Lord draweth nigh."
-
-**DEFINITION — DAY OF SLAUGHTER =** day the four winds are loosed; LORD's day of vengeance / winepress of unmixed wrath / slain of the LORD end to end (_Isa. 34; 63; 30:25; Jer. 25:33; James 5:5_) = third woe / seventh trumpet's judgment; and (by study's eastern-rod thesis, not asserted fact) the eastern question — all one event.
 
 ## The Loud Cry — The Warning That the Day of Slaughter Is at Hand
 
