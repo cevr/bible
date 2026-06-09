@@ -22,10 +22,16 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 - _Rev. 8:7._ Hail and fire mingled with blood cast on the earth, a third of trees and all green grass burnt up — literal reading does violence to nature, so figurative.
 - **Rule 12 — trace the figure through the Bible.** Trace the word; where Scripture explains it, that's the meaning. Dictionary = the Bible; interpreter only looks it up.
 - _DAR 463._ Smith — "sun, moon, and stars... for they are undoubtedly here used as symbols — evidently denote the great luminaries of the Roman government, — its emperors, senators, and consuls."
+
+  **Gloss —** sun/moon/stars = the Roman government's "emperors, senators, and consuls" extinguished by A.D. 566 — the symbol read by Rule 12, not guessed (DAR 463.2).
+
   > We understand that this trumpet symbolizes the career of Odoacer, the barbarian monarch who was so intimately connected with the downfall of Western Rome. The symbols, **sun, moon, and stars** — for they are undoubtedly here used as symbols — evidently denote the great luminaries of the Roman government, — its **emperors, senators, and consuls**. Bishop Newton remarks that the last emperor of Western Rome was Momyllus, who in derision was called Augustulus, or the “diminutive Augustus.” Western Rome fell A. D. 476. Still, however, though the Roman sun was extinguished, its subordinate luminaries shone faintly while the senate and consuls continued. But after many civil reverses and changes of political fortune, at length, A. D. 566, the whole form of the ancient government was subverted, and Rome itself was reduced from being the empress of the world to a poor dukedom tributary to the Exarch of Ravenna.
   >
   > — Uriah Smith, _Daniel and the Revelation_, DAR 463.2
 - _DAR 482._ Smith again — "fire... stands for red... jacinth, or hyacinth, for blue; and brimstone, for yellow" — colors, not substances (red/blue/yellow do no violence; flaming horses would).
+
+  **Gloss —** Rule 11 applied — fire/jacinth/brimstone read as the Turkish uniform's "red, or scarlet, blue, and yellow," not literal flame; the colors do no violence to nature (DAR 482.2).
+
   > The first part of this description may have reference to the appearance of these horsemen. **Fire, representing a color, stands for red**, "as red as fire" being a frequent form of expression; **jacinth, or hyacinth, for blue; and brimstone, for yellow**. And these colors greatly predominated in the dress of these warriors; so that the description, according to this view, would be accurately met in the Turkish uniform, which was composed largely of red, or scarlet, blue, and yellow. The heads of the horses were, in appearance, as the heads of lions, to denote their strength, courage, and fierceness; while the last part of the verse undoubtedly has reference to the use of gunpowder and firearms for purposes of war, which were then but recently introduced. As the Turks discharged their firearms on horseback, it would appear to the distant beholder that the fire, smoke, and brimstone, issued out of the horses' mouths, as illustrated by the accompanying plate. \*Quite an agreement exists among commentators in applying the prophecy concerning the fire, smoke, and brimstone to the use of gunpowder by the Turks in their warfare against the Eastern empire. (See Clarke, Barnes, Elliott, Cottage Bible, etc.) But they generally allude simply to the heavy ordnance, the large cannon, employed by that power; whereas the prophecy mentions especially the "horses," and the fire "issuing from their mouths," as though smaller arms were used, and used on horseback. Barnes thinks this was the case; and a statement from Gibbon confirms this view. He says (IV, 343): "The incessant volleys of lances and arrows were accompanied with the smoke, the sound, and the fire of their musketry and cannon." Here is good historical evidence that muskets were used by the Turks; and, secondly, it is undisputed that in their general warfare they fought principally on horseback. The inference is therefore well supported that they used firearms on horseback, accurately fulfilling the prophecy, according to the illustration above referred to.
   >
   > — Uriah Smith, _Daniel and the Revelation_, DAR 482.2
@@ -37,6 +43,9 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 - _Rev. 17:15._ Waters = peoples, multitudes, nations, tongues — God's own entry; unlocks 2nd trumpet ("the sea became blood").
 - _Rev. 16:12._ The Euphrates dried up "that the way of the kings of the east might be prepared" = the supporting population of the power on it; dry the river, undo the power; unlocks 6th trumpet.
 - _Rev. 9:14._ "Loose the four angels which are bound in the great river Euphrates" = the four Ottoman sultanies at Aleppo, Iconium, Damascus, Bagdad, "previously... restrained; but God commanded, and they were loosed" (DAR 480).
+
+  **Gloss —** the four angels on the Euphrates = the "four principal sultanies" at "Aleppo, Iconium, Damascus, and Bagdad" — restrained, then loosed at God's command (DAR 480.3).
+
   > The Four Angels. — These were the **four principal sultanies** of which the Ottoman empire was composed, located in the country watered by the great river Euphrates. These sultanies were situated at **Aleppo, Iconium, Damascus, and Bagdad**. Previously they had been restrained; but God commanded, and they were loosed.
   >
   > — Uriah Smith, _Daniel and the Revelation_, DAR 480.3
@@ -89,6 +98,9 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 
 - _Isa. 28:17._ "The hail shall sweep away the refuge of lies" — sudden, sweeping destruction; unlocks 1st trumpet (Goths from the frozen north).
 - _Josh. 10:11._ Hailstones "more which died with hailstones than they whom the children of Israel slew with the sword" — hail = destruction from heaven outstripping the sword. Smith: "The hail descended from the frozen shores of the Baltic... They came as destroyers" (DAR 473).
+
+  **Gloss —** the three woe-symbols anchored to history — "the hail descended from the frozen shores of the Baltic," locusts "the fit symbol of the Arabs," and "they came as destroyers" (DAR 473.4).
+
   > “A false religion was set up, which, although the scourge of transgressions and idolatry, filled the world with darkness and delusion; and swarms of Saracens, like locusts, overspread the earth, and speedily extended their ravages over the Roman empire, from east to west. **The hail descended from the frozen shores of the Baltic**; the burning mountain fell upon the sea from Africa; and **the locusts (the fit symbol of the Arabs) issued from Arabia**, their native region. **They came as destroyers**, propagating a new doctrine, and stirred up to rapine and violence by motives of interest and religion.
   >
   > — Uriah Smith, _Daniel and the Revelation_, DAR 473.4
@@ -113,6 +125,9 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 
 - _Rev. 9:1-2._ "The key of the bottomless pit... and there arose a smoke out of the pit, as the smoke of a great furnace" — the deep, a dark power rising into view; unlocks 5th trumpet. Smith reads the pit (Gk. ἄβυσσος) as "the unknown wastes of the Arabian desert, from the borders of which issued the hordes of Saracens" (DAR 472).
 - _Gen. 1:2._ "Darkness was upon the face of the deep" — the abyss applied to the earth in its original state of chaos.
+
+  **Gloss —** the pit (ἄβυσσος) defined from the Greek = "the unknown wastes of the Arabian desert, from the borders of which issued the hordes of Saracens" under the 5th trumpet (DAR 472.2).
+
   > The Bottomless Pit. — The meaning of this term may be learned from the Greek ἄβυσσος, which is defined “deep, bottomless, profound,” and may refer to any waste, desolate, and uncultivated place. It is applied to the earth in its original state of chaos. Genesis 1:2. In this instance it may appropriately refer to **the unknown wastes of the Arabian desert, from the borders of which issued the hordes of Saracens**, like swarms of locusts. And the fall of Chosroes, the Persian king, may well be represented as the opening of the bottomless pit, inasmuch as it prepared the way for the followers of Mohammed to issue from their obscure country, and propagate their delusive doctrines with fire and sword, till they had spread their darkness over all the Eastern empire.
   >
   > — Uriah Smith, _Daniel and the Revelation_, DAR 472.2
@@ -134,6 +149,9 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 
 - _Prov. 21:31._ "The horse is prepared against the day of battle" — strength for the day of battle, the mounted war-power; unlocks 5th and 6th trumpets. Smith: "the barbed Arabs, swift as locusts and armed like scorpions... were ever prepared unto battle" (DAR 476-477).
 - _Job 39:25._ The horse "smelleth the battle afar off, the thunder of the captains, and the shouting" — the war-horse made for battle.
+
+  **Gloss —** the horse-symbol matched to its people — "the barbed Arabs, swift as locusts and armed like scorpions," who "were ever prepared unto battle" (DAR 476.6).
+
   > “The Arabian horse takes the lead throughout the world; and skill in horsemanship is the art and science of Arabia. And **the barbed Arabs, swift as locusts and armed like scorpions**, ready to dart away in a moment, were **ever prepared unto battle**.
   >
   > — Uriah Smith, _Daniel and the Revelation_, DAR 476.6
@@ -145,9 +163,15 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 - _Num. 14:34._ "Each day for a year" — day = a year, the day-year principle; unlocks five months = 150 years (5th trumpet) and hour, day, month, year = 391 years 15 days (6th trumpet).
 - _Ezek. 4:6._ "I have appointed thee each day for a year" — confirms the day-year principle.
 - _"THE THIRD PART"_ = the third of the three Roman divisions under the scourge — empire split at Constantine's death among his three sons. Smith: "The Roman empire, after Constantine, was divided into three parts; and hence the frequent remark, 'a third part of men'... in allusion to the third part of the empire which was under the scourge" (DAR 457). James White: "Under the first four trumpets the two western divisions fell, and under the fifth and sixth the eastern empire was crushed; but under the seventh trumpet great Babylon entire will sink to rise no more" (_The Sounding of the Seven Trumpets_, 2). Unlocks every trumpet ("the third part," six times over).
+
+  **Gloss —** "the third part" decoded — "the Roman empire, after Constantine, was divided into three parts," so "a third part of men" = "the third part of the empire which was under the scourge" (DAR 457.5).
+
   > **The Roman empire, after Constantine, was divided into three parts**; and hence the frequent remark, “**a third part of men**,” etc., in allusion to **the third part of the empire which was under the scourge**. This division of the Roman kingdom 458 was made at the death of Constantine, between his three sons, Constantius, Constantine II, and Constans. Constantius possessed the East, and fixed his residence at Constantinople, the metropolis of the empire. Constantine the Second held Britain, Gaul, and Spain. Constans held Illyricum, Africa, and Italy. (See Sabine’s Ecclesiastical History, p. 155.) Of this well-known historical fact, Elliott, as quoted by Albert Barnes, in his notes on Revelation 12:4, says: “Twice, at least, before the Roman empire became divided permanently into the two parts, the Eastern and the Western, there was a tripartite division of the empire. The first occurred A. D. 311, when it was divided between Constantine, Licinius, and Maximin; the other, A. D. 337, on the death of Constantine, when it was divided between his three sons, Constantine, Constans, and Constantius.”
   >
   > — Uriah Smith, _Daniel and the Revelation_, DAR 457.5
+
+  **Gloss —** White maps the third-parts onto the trumpets — "the two western divisions fell" under trumpets 1-4, "the eastern empire was crushed" under 5-6, and great Babylon sinks under the 7th (SSTR 2.1).
+
   > The empire, after Constantine, was divided into three parts; and hence the frequent remark, “a third part of men,” etc., in allusion to the third part of the empire which was under the scourge. **Under the first four trumpets the two western divisions fell, and under the fifth and sixth the eastern empire was crushed; but under the seventh trumpet great Babylon entire will sink to rise no more** at all.
   >
   > — James White, _The Sounding of the Seven Trumpets_, SSTR 2.1
@@ -180,9 +204,13 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 - _Rev. 8:6._ Angels prepare to sound — war after war, in sequence.
 - _Rev. 8:7._ First trumpet: hail and fire mingled with blood on earth; third part of trees and all green grass burnt — the Goths under Alaric.
 
+**Gloss —** first trumpet = Goths under Alaric storming Rome — Gibbon's own "deluge of barbarians" matches the prophecy word for word, even "the third part of trees was burned up" (DAR 456.1).
+
 > “Large extracts show how amply and well Gibbon has expounded his text in the history of the first trumpet, the first storm that pervaded the Roman earth, and the first fall of Rome. To use his words in more direct comment, we read thus the sum of the matter: The Gothic nation was in arms at the first sound of the trumpet, and in the uncommon severity of the winter, they rolled their ponderous wagons over the broad and icy back of the river. The fertile fields of Phocis and Boeotia were crowded with **a deluge of barbarians**; the males were massacred; the females and cattle of the flaming villages were driven away. The deep and bloody traces of the march of the Goths could easily be discovered after several years. The whole territory of Attica was blasted by the baneful presence of **Alaric**. The most fortunate of the inhabitants of Corinth, Argos, and Sparta, were saved by death from beholding the conflagration of their cities. In a season of such extreme heat that the beds of the rivers were dry, Alaric invaded the dominion of the West. A secluded ‘old man of Verona,’ the poet Claudian, pathetically lamented the fate of his contemporary **trees**, which must blaze in the conflagration of the whole country [note the words of the prophecy, — ‘The third part of trees was burned up’]; and the emperor of the Romans fled before the king of the Goths.
 >
 > — Uriah Smith, _Daniel and the Revelation_, DAR 456.1
+
+**Gloss —** the word "Africa" cues the second trumpet — scene shifts from the northern Baltic to "burning Africa," hail giving way to a "burning mountain cast into the sea" (DAR 457.3).
 
 > “The last word, **Africa**, is the signal for the sounding of the **second trumpet**. The scene changes from the shores of the Baltic to the southern coast of the Mediterranean, or from the frozen regions of the North to the borders of burning Africa; and instead of a storm of hail being cast upon the earth, a burning mountain was cast into the sea.”
 >
@@ -257,16 +285,22 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 
 - _Rev. 9:1-2._ Star falls, bottomless pit opened, smoke arises = rise of Mohammedanism out of the Arabian desert. Fall of Chosroes the Persian king = opening of the pit, letting Mohammed's followers issue from their obscure country and spread darkness over the Eastern empire (DAR 472.2).
 
+  **Gloss —** bottomless pit = "the unknown wastes of the Arabian desert" whence the Saracens swarmed; Chosroes' fall = "the opening of the bottomless pit" loosing Islam (DAR 472.2).
+
   > "The Bottomless Pit. — The meaning of this term may be learned from the Greek ἄβυσσος, which is defined "deep, bottomless, profound," and may refer to any waste, desolate, and uncultivated place. It is applied to the earth in its original state of chaos. Genesis 1:2. In this instance it may appropriately refer to **the unknown wastes of the Arabian desert, from the borders of which issued the hordes of Saracens, like swarms of locusts**. And **the fall of Chosroes, the Persian king, may well be represented as the opening of the bottomless pit**, inasmuch as it prepared the way for the followers of Mohammed to issue from their obscure country, and propagate their delusive doctrines with fire and sword, till they had spread their darkness over all the Eastern empire."
   >
   > — Uriah Smith, _Daniel and the Revelation_, DAR 472.2
   - _Symbols (Rule 12):_ **star fallen** = apostate power given a key (_Isa. 14:12_, "How art thou fallen from heaven, O Lucifer... cut down to the ground"); **bottomless pit** = deep/obscure region a dark power rises from (_Rev. 9:2_); **smoke** = rising token of error and torment (_Rev. 14:11_, "the smoke of their torment ascendeth up for ever"; _Gen. 19:28_, Sodom's "smoke... as the smoke of a furnace") — "It was not, like the latter, a light from heaven, but a smoke out of the bottomless pit" (Keith, quoted by Smith at DAR 473.2).
+
+    **Gloss —** smoke from the pit = Mohammedanism, not gospel light — "not... a light from heaven, but a smoke out of the bottomless pit" (Keith, in DAR 473.2).
 
     > "Like the noxious and even deadly vapor which the winds, particularly from the southwest, diffuse in Arabia, Mohammedanism spread from thence its pestilential influence, — arose as suddenly and spread as widely as smoke arising out of the pit, the smoke of a great furnace. Such is a suitable symbol of the religion of Mohammed, of itself, or as compared with the pure light of the gospel of Jesus. **It was not, like the latter, a light from heaven, but a smoke out of the bottomless pit.**"
     >
     > — Alexander Keith, quoted in Uriah Smith, _Daniel and the Revelation_, DAR 473.2
 
 - _Rev. 9:3._ Locusts out of the smoke = Arabs (Saracens) swarming out of Arabia, their native region, "as destroyers, propagating a new doctrine" (DAR 473.4).
+
+  **Gloss —** the locusts = the Arabs — "the locusts (the fit symbol of the Arabs) issued from Arabia, their native region," swarming as destroyers of a new doctrine (Keith, in DAR 473.4).
 
   > "A false religion was set up, which, although the scourge of transgressions and idolatry, filled the world with darkness and delusion; and swarms of Saracens, like locusts, overspread the earth, and speedily extended their ravages over the Roman empire, from east to west. The hail descended from the frozen shores of the Baltic; the burning mountain fell upon the sea from Africa; and **the locusts (the fit symbol of the Arabs) issued from Arabia, their native region**. They came as destroyers, propagating a new doctrine, and stirred up to rapine and violence by motives of interest and religion."
   >
@@ -289,9 +323,13 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 
 - _Rev. 9:5, 10._ "Tormented five months" = 150 prophetic years, Othman's first assault (July 27, 1299) to 1449 — 30 days/month, days symbolic for years; power "to hurt men five months," to torment but not kill (DAR 479.5).
 
+  **Gloss —** dated anchor for the 150 years — Gibbon: "Othman first entered the territory of Nicomedia on the 27th day of July, 1299" (DAR 479.2).
+
   > "But when did Othman make his first assault on the Greek empire? — According to Gibbon, Decline and Fall, etc., "**Othman first entered the territory of Nicomedia on the 27th day of July, 1299.**""
   >
   > — Uriah Smith, _Daniel and the Revelation_, DAR 479.2
+
+  **Gloss —** five months = 150 years — "thirty days to a month... one hundred and fifty days... being symbolic, signify one hundred and fifty years," 1299 to 1449, torment but no conquest (DAR 479.5).
 
   > ""And their power was to hurt men five months." Thus far their commission extended, to torment by constant depredations, but not politically to kill them. "Five months," **thirty days to a month, give us one hundred and fifty days; and these days, being symbolic, signify one hundred and fifty years. Commencing July 27, 1299, the one hundred and fifty years reach to 1449.** During that whole period the Turks were engaged in an almost perpetual warfare with the Greek empire, but yet without conquering it. They seized upon and held several of the Greek provinces, but still Greek independence was maintained in Constantinople. But in 1449, the termination of the one hundred and fifty years, a change came, the history of which will be found under the succeeding trumpet."
   >
@@ -299,9 +337,13 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 
 - _Rev. 9:7-9._ Locusts like horses, crowns of gold, faces of men, hair of women, teeth of lions, breastplates of iron, wings as chariots = Arab cavalry — turbans (a coronet "unfurled before him to supply the deficiency of a standard" when Mohammed entered Medina, A.D. 622), beards, long hair, cuirasses, horses that "darted away with the swiftness of the wind" (DAR 477.1; 477.7).
 
+  **Gloss —** crowns like gold = the Saracen turban — "a turban was unfurled before him to supply the deficiency of a standard" when Mohammed entered Medina (Keith, in DAR 477.1).
+
   > "'And on their heads were as it were crowns like gold.' When Mohammed entered Medina (A. D. 622), and was first received as its prince, '**a turban was unfurled before him to supply the deficiency of a standard.**' The turbans of the Saracens, like unto a coronet, were their ornament and their boast. The rich booty abundantly supplied and frequently renewed them. To assume the turban is proverbially to turn Mussulman. And the Arabs were anciently distinguished by the miters which they wore."
   >
   > — Alexander Keith, quoted in Uriah Smith, _Daniel and the Revelation_, DAR 477.1
+
+  **Gloss —** sound of wings = Arab cavalry charge — "the Arab horses darted away with the swiftness of the wind," conquest "marvelous both in rapidity and extent" (Keith, in DAR 477.7).
 
   > "The Sound of their Wings. — "The charge of the Arabs was not, like that of the Greeks and Romans, the efforts of a firm and compact infantry; their military force was chiefly formed of cavalry and archers. With a touch of the hand, the **Arab horses darted away with the swiftness of the wind**. "The sound of their wings was as the sound of chariots of many horses running to battle." Their conquests were marvelous both in rapidity and extent, and their attack was instantaneous. Nor was it less successful against the Romans than the Persians.""
   >
@@ -320,6 +362,8 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 
 - _Rev. 9:13-14._ "Loose the four angels which are bound in the great river Euphrates" — four Turkish sultanies (Aleppo, Iconium, Damascus, Bagdad); restrained till loosed when Greece surrendered, 1449. DAR 480.
 
+  **Gloss —** four angels = the four Ottoman sultanies (Aleppo, Iconium, Damascus, Bagdad), "previously restrained" then loosed when Constantine made a "voluntary surrender" of Greek independence, 1449 (DAR 480.3-480.5).
+
   > "The Four Angels. — These were the four principal sultanies of which the Ottoman empire was composed, located in the country watered by the great river Euphrates. These sultanies were situated at **Aleppo, Iconium, Damascus, and Bagdad**. Previously they had been restrained; but God commanded, and they were loosed."
 
   > "In the year **1449**, John Palaeologus, the Greek emperor, died, but left no children to inherit his throne, and Constantine, his brother, succeeded to it. \*Some historians have given this date as 1448, but the best authorities sustain the date here given, 1449. See Chambers’s Encyclopedia, art. Palaeologus. But he would not venture to ascend the throne without the consent of Amurath, the Turkish sultan. He therefore sent ambassadors to ask his consent, and obtained it before he presumed to call himself sovereign."
@@ -330,6 +374,8 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 - _Rev. 16:12._ Sixth vial dries up Euphrates that "the way of the kings of the east might be prepared" — Euphrates = the Ottoman power, not the literal stream. DAR 648.
 - _Rev. 17:15._ "Waters... are peoples, and multitudes, and nations, and tongues" — the peoples/territory upholding Ottoman power (see RIVERS/EUPHRATES, defined under the 6th vial). DAR 648.
 
+  **Gloss —** Euphrates = not the literal river but "the power holding possession of the territory watered by that river" = the Ottoman/Turkish empire, per Rev. 9:14's prior usage (DAR 648.2-648.3).
+
   > "These objections existing against considering it a literal river, it must be understood figuratively as symbolizing **the power holding possession of the territory watered by that river**, which is the Ottoman, or Turkish, empire."
 
   > "1. It is so used in other places in the Scriptures. (See Isaiah 8:7; Revelation 9:14.) In this latter text, all must concede that the Euphrates symbolizes the Turkish power; and being the first and only other occurrence of the word in the Revelation, it may well be considered as governing its use in this book."
@@ -337,15 +383,21 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 
 - _Rev. 9:15._ "an hour, and a day, and a month, and a year, for to slay the third part of men" — 391 years 15 days of Ottoman supremacy (year=360, month=30, day=1, hour=1/24 day=15 days). DAR 481.
 
+  **Gloss —** the prophetic clock decoded: hour+day+month+year = "three hundred ninety-one years and fifteen days" of Ottoman supremacy at Constantinople (DAR 481.1).
+
   > "The four angels were loosed for an hour, a day, a month, and a year, to slay the third part of men. This period amounts to **three hundred ninety-one years and fifteen days**, during which Ottoman supremacy was to exist in Constantinople. Thus: A prophetic year is three hundred and sixty prophetic days, or three hundred and sixty literal years; a prophetic month, thirty prophetic days, is thirty literal years; one prophetic day is one literal year; and an hour, or the twenty-fourth part of a prophetic day, would be a twenty-fourth part of a literal year, or fifteen days; the whole amounting to three hundred and ninety-one years and fifteen days."
   > — Uriah Smith, _Daniel and the Revelation_, DAR 481.1
 
 - _Rev. 9:17._ "out of their mouths issued fire and smoke and brimstone" — gunpowder/firearms, freshly introduced; Turks took Constantinople (1453), cannon on horseback. DAR 482.
 
+  **Gloss —** fire/smoke/brimstone from horses' mouths = "gunpowder and firearms... then but recently introduced," discharged by the Turks "on horseback," accurately fulfilling the prophecy (DAR 482.2).
+
   > "The first part of this description may have reference to the appearance of these horsemen. Fire, representing a color, stands for red, “as red as fire” being a frequent form of expression; jacinth, or hyacinth, for blue; and brimstone, for yellow. And these colors greatly predominated in the dress of these warriors; so that the description, according to this view, would be accurately met in the Turkish uniform, which was composed largely of red, or scarlet, blue, and yellow. The heads of the horses were, in appearance, as the heads of lions, to denote their strength, courage, and fierceness; while the last part of the verse undoubtedly has reference to the use of **gunpowder and firearms** for purposes of war, which were **then but recently introduced**. As the Turks discharged their firearms on horseback, it would appear to the distant beholder that the fire, smoke, and brimstone, issued out of the horses’ mouths, as illustrated by the accompanying plate. \*Quite an agreement exists among commentators in applying the prophecy concerning the fire, smoke, and brimstone to the use of gunpowder by the Turks in their warfare against the Eastern empire. (See Clarke, Barnes, Elliott, Cottage Bible, etc.) But they generally allude simply to the heavy ordnance, the large cannon, employed by that power; whereas the prophecy mentions especially the “horses,” and the fire “issuing from their mouths,” as though smaller arms were used, and used on horseback. Barnes thinks this was the case; and a statement from Gibbon confirms this view. He says (IV, 343): “The incessant volleys of lances and arrows were accompanied with the smoke, the sound, and the fire of their musketry and cannon.” Here is good historical evidence that muskets were used by the Turks; and, secondly, it is undisputed that in their general warfare they fought principally on horseback. The inference is therefore well supported that they used **firearms on horseback**, accurately fulfilling the prophecy, according to the illustration above referred to."
   > — Uriah Smith, _Daniel and the Revelation_, DAR 482.2
 
 - _Rev. 9:18._ "By these three was the third part of men killed" — Gibbon credits Ottoman artillery for the fall of the Greek empire. DAR 483 (quoting Elliott).
+
+  **Gloss —** third part slain = the 1453 fall of Constantinople; Gibbon (the "unconscious commentator") attributes "the capture of the city, and so the destruction of the empire, to the Ottoman artillery" — fire/smoke/sulphur fulfilled (Elliott, in DAR 483.1-483.3).
 
   > "Respecting the use of firearms by the Turks in their campaign against Constantinople, Elliott (Horae Apocalypticae, Vol. I, pp. 482-484) thus speaks: —"
 
@@ -356,10 +408,14 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 
 - _Rev. 9:15._ 391 yrs 15 days, begun July 27, 1449 → ran out August 11, 1840 — day Sultan signed independence into the four Christian powers' hands. Litch calculated/published 1838, two years before. DAR 485.
 
+  **Gloss —** the clock dated: 391 yrs 15 days from "July 27, 1449" ends "Aug. 11, 1840," when "the sultan would voluntarily surrender his independence into the hands of the Christian powers" — calculated "by Elder J. Litch in 1838, two years before" the event (DAR 485.1-485.2).
+
   > "This supremacy of the Mohammedans over the Greeks was to continue, as already noticed, three hundred and ninety-one years and fifteen days. Commencing when the one hundred and fifty years ended, **July 27, 1449**, the period would end **Aug. 11, 1840**. Judging from the manner of the commencement of the Ottoman supremacy, that it was by a voluntary acknowledgment on the part of the Greek emperor that he reigned only by permission of the Turkish sultan, we should naturally conclude that the fall or departure of the Ottoman independence would be brought about in the same way; that at the end of the specified period, that is, on the 11th of August, 1840, **the sultan would voluntarily surrender his independence into the hands of the Christian powers**, just as he had, three hundred and ninety-one years and fifteen days before, received it from the hands of the Christian emperor, Constantine XIII."
 
   > "This conclusion was reached, and this application of the prophecy was made, by **Elder J. Litch in 1838, two years before** the predicted event was to occur. It was then purely a matter of calculation on the prophetic periods of Scripture. Now, however, the time has passed by, and it is proper to inquire what the result has been — whether such events did transpire according to the previous calculation. The matter sums itself up in the following inquiry: —"
   > — Uriah Smith, _Daniel and the Revelation_, DAR 485.1-485.2
+
+  **Gloss —** Litch's prediction verified by the event itself: the ultimatum was delivered "on the Eleventh day of August, 1840," the Sultan's independence "GONE," "Ottoman Supremacy did depart" into the great Christian powers' hands — to the day (PREX2 197.1, 198.5-198.6).
 
   > "According to the foregoing statement, the ultimatum was officially put into the power of Mehemet Ali, and was disposed of by his orders, viz., sent to quarantine, on the **Eleventh day of August, 1840**."
 
@@ -369,6 +425,8 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
   > — Josiah Litch, _Prophetic Expositions_, vol. 2, PREX2 197.1, 198.5-198.6
 
 **DEFINITION — SECOND WOE =** Ottoman Turks, loosed 1449 to slay 391 yrs 15 days, ending August 11, 1840 — fulfilled to the day. Fall (1840) verified the prophetic clock, "a wonderful impetus was given to the advent movement" (GC 335.1) — powering the first angel (1840–44 hour-of-judgment cry).
+
+**Gloss —** 1840 fulfillment "exactly fulfilled the prediction," convincing "multitudes" of the prophetic-interpretation method and giving "a wonderful impetus... to the advent movement" of 1840–44 (GC 335.1).
 
 > "At the very time specified, Turkey, through her ambassadors, accepted the protection of the allied powers of Europe, and thus placed herself under the control of Christian nations. **The event exactly fulfilled the prediction.** (See Appendix.) When it became known, multitudes were convinced of the correctness of the principles of prophetic interpretation adopted by Miller and his associates, and **a wonderful impetus was given to the advent movement**. Men of learning and position united with Miller, both in preaching and in publishing his views, and from 1840 to 1844 the work rapidly extended."
 > — Ellen G. White, _The Great Controversy_, GC 335.1
@@ -382,6 +440,8 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 - _Rev. 9:12._ "One woe is past... there come two woes more hereafter" — woes counted off in sequence; one kind of event.
 - _Rev. 9:20-21._ Survivors of the plagues "repented not... that they should not worship devils, and idols of gold, and silver, and brass, and stone, and of wood" — God scourging idolatry that will not repent.
 - _Rev. 11:14._ "The second woe is past... the third woe cometh quickly" — third follows straight from second; next on the prophetic clock. Litch, _Prophetic Expositions_, vol. 2, 199.
+
+  **Gloss —** second woe past, seventh angel = wrath-and-judgment consummation, and the third woe "nigh, even at the door" — next event on the prophetic clock (PREX2 199.1-199.2).
 
   > "Then the second wo is past, and the sixth trumpet has ceased its sounding; and the conclusion is now inevitable, because the word of God affirms the fact in so many words, “Behold, the third we cometh quickly” And “in the days of the voice of the seventh angel, when he shall begin to sound, the mystery of God shall be finished.” But what will take place when the seventh angel sounds? I answer, Great voices will be heard in heaven, saying, “The kingdoms of this world have become the kingdoms of our Lord and his Christ, and he shall reign forever and ever.” Nor is this event a mere spiritual reign over the kingdoms of this world; but the Revelator goes on to say, “and thy wrath is come, and the time of the dead, that they should be judged; and that thou shouldest give reward unto thy servants the prophets, the saints, and them that fear thy name, small and great, and shouldest destroy them that destroy the earth.” This, then, is the consummation, when every one shall receive his retribution, according to what he has done."
 
@@ -418,9 +478,13 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 - _Matt. 24:1-3._ "these things" + "thy coming, and... the end of the world" — one question, two horizons.
 - _Luke 21:20-24._ Luke isolates the local stroke — armies, flight, "days of vengeance" on one city, ending in "the times of the Gentiles."
 
+**Gloss —** Christ deliberately fused A.D. 70 with the final day — "He mingled the description of these two events," reaching "beyond that event to the final conflagration" (DA 628.1).
+
 > "Christ's words had been spoken in the hearing of a large number of people; but when He was alone, Peter, John, James, and Andrew came to Him as He sat upon the Mount of Olives. 'Tell us,' they said, 'when shall these things be? and what shall be the sign of Thy coming, and of the end of the world?' Jesus did not answer His disciples by taking up separately the destruction of Jerusalem and the great day of His coming. **He mingled the description of these two events.** Had He opened to His disciples future events as He beheld them, they would have been unable to endure the sight. In mercy to them He blended the description of the two great crises, leaving the disciples to study out the meaning for themselves. When He referred to the destruction of Jerusalem, His prophetic words reached beyond that event to the final conflagration in that day when the Lord shall rise out of His place to punish the world for their iniquity, when the earth shall disclose her blood, and shall no more cover her slain. This entire discourse was given, not for the disciples only, but for those who should live in the last scenes of this earth's history."
 >
 > — Ellen White, _The Desire of Ages_, DA 628.1
+
+**Gloss —** the discourse is intentionally double — "the prophecy which He uttered was twofold in its meaning," foreshadowing Jerusalem yet prefiguring "the last great day" (GC 25.3).
 
 > "The future was mercifully veiled from the disciples. Had they at that time fully comprehended the two awful facts—the Redeemer's sufferings and death, and the destruction of their city and temple—they would have been overwhelmed with horror. Christ presented before them an outline of the prominent events to take place before the close of time. His words were not then fully understood; but their meaning was to be unfolded as His people should need the instruction therein given. **The prophecy which He uttered was twofold in its meaning;** while foreshadowing the destruction of Jerusalem, it prefigured also the terrors of the last great day."
 >
@@ -428,13 +492,19 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 
 ### Part 2 — The Type Is Real but Partial
 
+**Gloss —** the type was a concrete, literal, datable stroke — flight triggered "when the idolatrous standards of the Romans should be set up in the holy ground" (GC 25.4).
+
 > "Jesus declared to the listening disciples the judgments that were to fall upon apostate Israel, and especially the retributive vengeance that would come upon them for their rejection and crucifixion of the Messiah. Unmistakable signs would precede the awful climax. The dreaded hour would come suddenly and swiftly. And the Saviour warned His followers: 'When ye therefore shall see the abomination of desolation, spoken of by Daniel the prophet, stand in the holy place, (whoso readeth, let him understand:) then let them which be in Judea flee into the mountains.' Matthew 24:15, 16; Luke 21:20, 21. **When the idolatrous standards of the Romans should be set up in the holy ground**, which extended some furlongs outside the city walls, then the followers of Christ were to find safety in flight. When the warning sign should be seen, those who would escape must make no delay. Throughout the land of Judea, as well as in Jerusalem itself, the signal for flight must be immediately obeyed. He who chanced to be upon the housetop must not go down into his house, even to save his most valued treasures. Those who were working in the fields or vineyards must not take time to return for the outer garment laid aside while they should be toiling in the heat of the day. They must not hesitate a moment, lest they be involved in the general destruction."
 >
 > — Ellen White, _The Great Controversy_, GC 25.4
 
+**Gloss —** the local city is itself the antitype's emblem — Christ saw in Jerusalem "a symbol of the world" hardened and rushing to retributive judgment (GC 22.1).
+
 > "Christ saw in Jerusalem **a symbol of the world** hardened in unbelief and rebellion, and hastening on to meet the retributive judgments of God. The woes of a fallen race, pressing upon His soul, forced from His lips that exceeding bitter cry. He saw the record of sin traced in human misery, tears, and blood; His heart was moved with infinite pity for the afflicted and suffering ones of earth; He yearned to relieve them all. But even His hand might not turn back the tide of human woe; few would seek their only Source of help. He was willing to pour out His soul unto death, to bring salvation within their reach; but few would come to Him that they might have life."
 >
 > — Ellen White, _The Great Controversy_, GC 22.1
+
+**Gloss —** the A.D. 70 stroke was real yet partial — the prophecy is "to have another fulfillment," that desolation "but a faint shadow" of the universal day (GC 36.2).
 
 > "The Saviour's prophecy concerning the visitation of judgments upon Jerusalem is to have **another fulfillment**, of which that terrible desolation was **but a faint shadow**. In the fate of the chosen city we may behold the doom of a world that has rejected God's mercy and trampled upon His law. Dark are the records of human misery that earth has witnessed during its long centuries of crime. The heart sickens, and the mind grows faint in contemplation. Terrible have been the results of rejecting the authority of Heaven. But a scene yet darker is presented in the revelations of the future. The records of the past,—the long procession of tumults, conflicts, and revolutions, the 'battle of the warrior ... with confused noise, and garments rolled in blood' (Isaiah 9:5),—what are these, in contrast with the terrors of that day when the restraining Spirit of God shall be wholly withdrawn from the wicked, no longer to hold in check the outburst of human passion and satanic wrath! The world will then behold, as never before, the results of Satan's rule."
 >
@@ -442,9 +512,13 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 
 ### Part 3 — The Pioneers State the Rule
 
+**Gloss —** Miller's own rule: "prophecy is sometimes typical... partly fulfilled in the type, but completely only in the antitype" — Isaac, Israel, and Babylon's captivity all partial (MWV2 7.1).
+
 > "Again, **prophecy is sometimes typical; that is, partly fulfilled in the type, but completely only in the antitype.** Such was the prophecy concerning Isaac, partly fulfilled in him, wholly so in Christ; likewise concerning Israel, partly fulfilled in them as a nation, but never fully accomplished until the final redemption of spiritual Israel. Likewise the prophecies concerning the Jewish captivity in Babylon, and their return, are only partly accomplished in the history of past events. The description of those things in the prophets is so august and magnificent, that if only applicable to the literal captivity of the Jews and their return, the exposition would be weak and barren; therefore I humbly believe that the exact fulfillment can only be looked for in the captivity of the church in the wilderness, under the anti-Christian beast, destruction of mystical Babylon, and glorification of the saints in the New Jerusalem state."
 >
 > — William Miller, _Miller's Works, vol. 2_, MWV2 7.1
+
+**Gloss —** Matthew 24 itself has unmet items — clouds, gathered elect, one-taken — "which were not fulfilled at the destruction of Jerusalem," proving its typical reach to the world's end (MWV2 7.2).
 
 > "There are also in the 24th chapter of Matthew many things prophesied of, **which were not fulfilled at the destruction of Jerusalem**; such as the coming of the Son of Man in the clouds, the gathering his elect from the four winds of heaven, his taking one and leaving another. This shows a typical meaning in this prophecy, and that it will not all be fulfilled until the end of the world. Also, the transfiguration of Christ on the mount, prophesied of by himself eight days before, is noticed by Peter, 2nd Epistle 1:16-18, as being a type or figure of his second coming."
 >
@@ -452,13 +526,19 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 
 - _Matt. 24:29-31._ The words A.D. 70 left unmet — Miller's list, verbatim in the discourse: sun darkened, stars fall, Son of man in the clouds, elect gathered "from the four winds."
 
+**Gloss —** the scope-word test — "if one word lacks a fulfilment, then you must look for another event," because God makes history and prophecy agree (MWV1 22.6).
+
 > "To know whether we have the true historical event for the fulfilment of a prophecy. If you find every word of the prophecy (after the figures are understood) is literally fulfilled, then you may know that your history is the true event. **But if one word lacks a fulfilment, then you must look for another event, or wait its future development.** For God takes care that history and prophecy doth agree, so that the true believing children of God may never be ashamed."
 >
 > — William Miller, _Miller's Works, vol. 1_, MWV1 22.6
 
+**Gloss —** the national "burdens" stay unfulfilled until the seventh vial — Litch: "the burdens of different lands... have not yet been fulfilled; nor will they be until the seventh vial of God's wrath is poured out" (PREX1 172.2).
+
 > "The idea that this prophecy relates to the destruction of old Nineveh, is the opinion which generally prevails. But a few moments' reflection will set this matter right. Nineveh was the capital of the Assyrian empire, as was Babylon of the Chaldean. Both capitals have long been laid in ruins. The Assyrians were God's instruments of vengeance, and first carried the house of Judah captive to Babylon, while the Assyrian king had dominion of that city. God has a cup of indignation both for Babylon and Nineveh, which they have not yet drunk at the Lord's hand. **The burdens of different lands, as proclaimed by the prophets, have not yet been fulfilled; nor will they be until the seventh vial of God's wrath is poured out**, and Great Babylon comes into remembrance before him, to give her the wine of the fierceness of his wrath. The chronology of Nahum's prophecy is, when 'the mountains quake at him, and the hills melt; and the earth is burned at his PRESENCE, the world and all that dwell therein.' Verse 5. Has this taken place? Was it fulfilled at the destruction of Jerusalem? Again, in the 15th verse, the wicked is no more to pass through Judah, when the prophecy is realized, but is to be utterly cut off. Is this done? The feet of him that publisheth these good tidings, is to be seen upon the mountains before it is fulfilled. Rev. Mr. Nicolayison, a missionary at Jerusalem, is a firm believer in the speedy appearing of Christ at hand. A friend of the cause was at Jerusalem last spring, and had several most interesting conversations with him on the subject, and supplied him with our books and publications. So that upon the mountains of Jerusalem, stand the feet of him that bringeth glad tidings, that publisheth peace."
 >
 > — Josiah Litch, _Prophetic Expositions, vol. 1_, PREX1 172.2
+
+**Gloss —** the same cup passes from one city to every nation — God "punished Jerusalem... and so he will punish all the nations of the world," keyed to Jer. 25:15-33 (PREX2 230.2).
 
 > "God punishes nations, as such, by fire, sword, plague, earthquakes, captivity; and the desolation of their land and cities. So he has punished Jerusalem and his church; **and so he will punish all the nations of the world which are upon the face of the whole earth.** He punished the Jews once by sending them to Babylon; and he punished the kingdom of Babylon for exceeding their commission in afflicting the people of God. He has now given to Jerusalem and the cities of Judah the wine-cup of his fury; and he will give it to all the nations whither his people have been scattered. See Jeremiah 25:15-33. The reader will please turn to the passage if he wishes to have a clear view of God's purpose of inflicting judgments on the nations of the earth. The individual and personal judgment will be inflicted in the second resurrection. But as all the national crimes of the church, or Jerusalem the metropolis of the church, were to come on the generation of the Jews then alive, when their national ruin came; so all the blood of the saints and righteous men put to death and afflicted by the Gentiles while they have dominion over the church, will come on the generation who live at the great day when God shall make inquisition for blood. Hence, the souls under the altar cried, 'O Lord, how long, holy and true, dost thou not judge and avenge our blood on them which dwell on the earth? And it was said unto them that they should rest yet for a little season, until their brethren who should be killed as they were, should be fulfilled.' But the day of reckoning for the nations is coming. 'Lo,' says the Lord, (Jeremiah 25.) 'I begin to bring evil on the city which is called by my name, and shall ye be utterly unpunished? Ye shall not be unpunished. For I will call for a sword upon all flesh.'"
 >
@@ -489,6 +569,8 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 
 ### The Rule Stated
 
+**Gloss —** the type's lessons recur down the ages — "the same deceptions practiced prior to the destruction of Jerusalem have been practiced through the ages, and will be practiced again" (DA 628.2).
+
 > "Turning to the disciples, Christ said, 'Take heed that no man deceive you. For many shall come in My name, saying, I am Christ; and shall deceive many.' Many false messiahs will appear, claiming to work miracles, and declaring that the time of the deliverance of the Jewish nation has come. These will mislead many. Christ's words were fulfilled. Between His death and the siege of Jerusalem many false messiahs appeared. But this warning was given also to those who live in this age of the world. **The same deceptions practiced prior to the destruction of Jerusalem have been practiced through the ages, and will be practiced again.**"
 >
 > — Ellen White, _The Desire of Ages_, DA 628.2
@@ -514,9 +596,13 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 - _Isa. 13:6, 9-13._ Day of the LORD: stars, sun, moon give no light (fourth-trumpet lights) + the heavens shaken, earth removed (seventh-trumpet earthquake, Rev 11:19; 16:18).
 - _Isa. 34:8-10._ "vengeance... brimstone... smoke... up for ever" — sixth-trumpet/third-angel triad named flatly the day of the LORD.
 
+  **Gloss —** Isaiah 34's day-of-the-LORD conflagration is "a complete parallel to that of the third angel" — pioneer proof the prophets' day-language IS the seventh-trumpet plague (TMR 125.1).
+
   > 2. The prophet Isaiah (chap. 34) describes the final conflagration of our globe in language which is **a complete parallel to that of the third angel** in describing the punishment of the wicked. Those who contend that Isaiah refers only to ancient Idumea, must admit that the period of time described in this strong language must finally come to an end. And those who admit that Isaiah, in the language we are about to quote, refers to the conflagration of our earth, will find in what follows, ample proof that that scene will finally close.
   >
   > — J. N. Andrews, _The Three Messages of Revelation 14:6-12_, TMR 125.1
+
+  **Gloss —** the text Andrews builds on: "the day of the Lord's vengeance" with brimstone, unquenched smoke "go up forever" = the third-angel triad verbatim (TMR 125.2).
 
   > "For it is the day of the Lord's vengeance, and the year of recompenses for the controversy of Zion. And the streams thereof shall be turned into pitch, and the dust thereof into brimstone, and the land thereof shall become burning pitch. It shall not be quenched night nor day; the smoke thereof shall go up forever; from generation to generation it shall lie waste; none shall pass through it forever and ever." Isaiah 34:8-10.
   >
@@ -560,6 +646,8 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 - _Joel 2:4-5._ ↔ _Rev. 9:7, 9, 17._ same horses, chariot-roar, fire.
 - _Joel 2:3._ ↔ _Rev. 9:18._ same devouring fire.
 - _Joel 2:25._ "my great army which I sent" ↔ _Rev. 9:3._ God's army = the locust Smith fixed on the Arabs, DAR 473.
+
+  **Gloss —** Joel's army "which I sent" = the fifth trumpet: "swarms of Saracens, like locusts" — "the locusts (the fit symbol of the Arabs) issued from Arabia" (DAR 473.4).
 
   > “A false religion was set up, which, although the scourge of transgressions and idolatry, filled the world with darkness and delusion; and **swarms of Saracens, like locusts, overspread the earth**, and speedily extended their ravages over the Roman empire, from east to west. The hail descended from the frozen shores of the Baltic; the burning mountain fell upon the sea from Africa; and **the locusts (the fit symbol of the Arabs) issued from Arabia, their native region**. They came as destroyers, propagating a new doctrine, and stirred up to rapine and violence by motives of interest and religion.
   >
@@ -643,16 +731,24 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 - _Rev. 14:10._ The third angel's cup: "without mixture" — the same wine, mercy withdrawn.
 - _Rev. 15:1._ Where the wrath is "filled up": the seven last plagues — the Bible's own answer to "what is the wine?"
 
+**Gloss —** the wine of God's wrath defined straight from Rev 15:1 — "the wine of the wrath of God is the seven last plagues" (TMR 115.1).
+
 > "THE fearful penalty connected with the warning of the third angel now claims our attention. It consists of two things: 1. The wine of the wrath of God, poured out without mixture into the cup of his indignation; 2. The torment with fire and brimstone in the presence of the holy angels and of the Lamb. Let us carefully consider each in order. What is the wine of the wrath of God? The next chapter clearly explains this point: “And I saw another sign in heaven, great and marvelous, seven angels having the seven last plagues; for in them is filled up the wrath of God.” And one of the four beasts gave unto the seven angels seven golden vials, full of the wrath of God, who liveth forever and ever.” Verses 1, 7. **It follows, therefore, that the wine of the wrath of God is the seven last plagues.** The fact will be further apparent as we proceed to show that these plagues are future, and that they do pertain to the future we think can be established beyond controversy."
 >
 > — J. N. Andrews, _The Three Messages of Revelation 14:6-12_, TMR 115.1
 
+**Gloss —** first plague hits the very mark-receivers the third angel threatens (Rev 14:9-10 ↔ 16:1-2), proving "the identity of the wrath of God without mixture with the seven last plagues" (TMR 115.2).
+
 > "1. The wrath of God, as threatened by the third angel, is poured out in the seven last plagues; for the first plague is inflicted on the very class that the third angel threatens. Compare Revelation 14:9, 10; 16:1, 2. The fact proves that the plagues must be future when the Third Angel’s Message is given; and it also proves **the identity of the wrath of God without mixture with the seven last plagues**."
 > — J. N. Andrews, _The Three Messages of Revelation 14:6-12_, TMR 115.2
+
+**Gloss —** "without mixture" = "wrath without mercy," impossible "while our great High Priest ministers in the heavenly Sanctuary" — so the plagues fall only after probation closes (TMR 116.1).
 
 > "2. We have shown that the plagues and the wrath of God without mixture are the same. And wrath without mixture must be wrath with nothing else; that is, **wrath without mercy**. God has not yet visited the earth with unmixed wrath; nor can he **while our great High Priest ministers in the heavenly Sanctuary**, and stays the wrath of God by his intercession for sinful men. When the plagues are poured out, mercy has given place to vengeance."
 >
 > — J. N. Andrews, _The Three Messages of Revelation 14:6-12_, TMR 116.1
+
+**Gloss —** Smith concurs: the plagues are "the wine of God's wrath without mixture, threatened by the third angel," locatable only after probation closes (DAR 642.3).
 
 > "2. These plagues are **the wine of God’s wrath without mixture, threatened by the third angel**. Chapter 14:10; 15:1. Such language cannot be applied to any judgments visited upon the earth while Christ pleads between his Father and our fallen race; hence we must locate them in the future, when probation shall have closed."
 >
@@ -679,6 +775,8 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 - _Rev. 14:8._ Babylon's charge: she made all nations drink "the wine of the wrath of her fornication."
 - _Rev. 17:2._ The inhabitants of the earth "made drunk with the wine of her fornication."
 - _Rev. 18:3._ All nations have drunk — kings joined to her, merchants enriched by her.
+
+**Gloss —** Babylon's wine is not the sword but doctrine: "There is but one thing that this can refer to; viz., false doctrine" — her unlawful union corrupting Bible truth to intoxicate the nations (TMR 51.3).
 
 > "2. The consequences of her fall testify that that fall is her rejection by God, and not her destruction; for her fall causes her to become the hold of foul spirits, and the cage of unclean and hateful birds. This shows that God has given her up to strong delusions. It is for this reason that the voice from heaven cries,“Come out of her, my people.” The cause of the fall of Babylon is thus stated: “She made all nations drink of the wine of the wrath of her fornication.” Her fornication was her unlawful union with the kings of the earth; and the wine is that with which the church has intoxicated the nations of the earth. **There is but one thing that this can refer to; viz., false doctrine.** This harlot, in consequence of her unlawful union with the powers of the earth, has corrupted the pure truths of the Bible, and with the wine or her false doctrine has intoxicated the nations. A few instances of her corruption of the truths of the Bible must suffice:-"
 >
@@ -746,14 +844,22 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 - _Rev. 7:1-4._ Four winds held; "hurt not... till we have sealed the servants of our God in their foreheads" — 144,000 of all the tribes sealed.
 - _Ezek. 9:1-6, 11._ Mark first, slaughter after; the marked untouched ("come not near any man upon whom is the mark"); the destruction "begin at my sanctuary"; the inkhorn angel reports "I have done as thou hast commanded me."
 
+**Gloss —** EGW's own identity-statement: Revelation 7's sealing = Ezekiel 9's marking — "this sealing of the servants of God is the same that was shown to Ezekiel in vision" (TM 445.2).
+
 > "**This sealing of the servants of God is the same that was shown to Ezekiel in vision.** John also had been a witness of this most startling revelation. He saw the sea and the waves roaring, and men's hearts failing them for fear. He beheld the earth moved, and the mountains carried into the midst of the sea (which is literally taking place), the water thereof roaring and troubled, and the mountains shaking with the swelling thereof. He was shown plagues, pestilence, famine, and death performing their terrible mission."
 > — Ellen G. White, _Testimonies to Ministers and Gospel Workers_, TM 445.2
+
+**Gloss —** the sealing is the 144,000's closing work, set forth under Ezekiel 9's figure of slaughter-weapon men and the linen-clad inkhorn angel marking the sighing ones (3T 266.2).
 
 > "The true people of God, who have the spirit of the work of the Lord and the salvation of souls at heart, will ever view sin in its real, sinful character. They will always be on the side of faithful and plain dealing with sins which easily beset the people of God. Especially in the closing work for the church, in **the sealing time of the one hundred and forty-four thousand** who are to stand without fault before the throne of God, will they feel most deeply the wrongs of God's professed people. This is forcibly set forth by the prophet's illustration of the last work under the figure of the men each having a slaughter weapon in his hand. One man among them was clothed with linen, with a writer's inkhorn by his side. 'And the Lord said unto him, Go through the midst of the city, through the midst of Jerusalem, and set a mark upon the foreheads of the men that sigh and that cry for all the abominations that be done in the midst thereof.'"
 > — Ellen G. White, _Testimonies for the Church_, vol. 3, 3T 266.2
 
+**Gloss —** the seal = "the pure mark of truth" by the Holy Ghost, set only on those who sigh and cry; the rest fall with the wicked — EGW's explicit "Read the ninth chapter of Ezekiel" (3T 267.1).
+
 > "Who are standing in the counsel of God at this time? Is it those who virtually excuse wrongs among the professed people of God and who murmur in their hearts, if not openly, against those who would reprove sin? Is it those who take their stand against them and sympathize with those who commit wrong? No, indeed! Unless they repent, and leave the work of Satan in oppressing those who have the burden of the work and in holding up the hands of sinners in Zion, they will never receive the mark of God's sealing approval. They will fall in the general destruction of the wicked, represented by the work of the five men bearing slaughter weapons. Mark this point with care: Those who receive **the pure mark of truth**, wrought in them by the power of the Holy Ghost, represented by a mark by the man in linen, are those 'that sigh and that cry for all the abominations that be done' in the church. Their love for purity and the honor and glory of God is such, and they have so clear a view of the exceeding sinfulness of sin, that they are represented as being in agony, even sighing and crying. **Read the ninth chapter of Ezekiel.**"
 > — Ellen G. White, _Testimonies for the Church_, vol. 3, 3T 267.1
+
+**Gloss —** the seal is set only on the sighing-and-crying ones; the day of vengeance "just upon us" anchors the sealing at the day-of-slaughter threshold (5T 212.3).
 
 > "The day of God's vengeance is just upon us. **The seal of God will be placed upon the foreheads of those only who sigh and cry for the abominations done in the land.** Those who link in sympathy with the world are eating and drinking with the drunken and will surely be destroyed with the workers of iniquity. 'The eyes of the Lord are over the righteous, and His ears are open unto their prayers: but the face of the Lord is against them that do evil.'"
 > — Ellen G. White, _Testimonies for the Church_, vol. 5, 5T 212.3
@@ -762,29 +868,43 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 
 **1. Hold! — until sealed (Rev. 7:1-3):**
 
+**Gloss —** the four winds are held by angelic commission — "**Hold! Hold! Hold! Hold! until the servants of God are sealed**" — the winds wait on the sealing's completion (EW 38.1).
+
 > "I saw four angels who had a work to do on the earth, and were on their way to accomplish it. Jesus was clothed with priestly garments. He gazed in pity on the remnant, then raised His hands, and with a voice of deep pity cried, 'My blood, Father, My blood, My blood, My blood!' Then I saw an exceeding bright light come from God, who sat upon the great white throne, and was shed all about Jesus. Then I saw an angel with a commission from Jesus, swiftly flying to the four angels who had a work to do on the earth, and waving something up and down in his hand, and crying with a loud voice, '**Hold! Hold! Hold! Hold! until the servants of God are sealed in their foreheads.**'"
 > — Ellen G. White, _Early Writings_, EW 38.1
+
+**Gloss —** the four winds = restrained powers God's angels hold; their hands were loosening when Jesus pleaded — the hold is the sealing-interval, not a permanent stay (EW 38.2).
 
 > "I asked my accompanying angel the meaning of what I heard, and what the four angels were about to do. He said to me that it was God that restrained the powers, and that He gave His angels charge over things on the earth; that the four angels had power from God to hold the four winds, and that they were about to let them go; but while their hands were loosening, and the four winds were about to blow, the merciful eye of Jesus gazed on the remnant that were not sealed, and He raised His hands to the Father and pleaded with Him that He had spilled His blood for them. Then another angel was commissioned to fly swiftly to the four angels and bid them hold, until the servants of God were sealed with the seal of the living God in their foreheads."
 > — Ellen G. White, _Early Writings_, EW 38.2
 
 **2. The inkhorn angel reports — Ezek. 9:11's "I have done as thou hast commanded me":**
 
+**Gloss —** the inkhorn angel returns "the saints were numbered and sealed" = Ezek 9:11's report; the censer thrown down, "It is done," probation closes on the sealed roll (EW 279.2).
+
 > "I saw angels hurrying to and fro in heaven. An angel with a writer's inkhorn by his side returned from the earth and reported to Jesus that his work was done, and **the saints were numbered and sealed**. Then I saw Jesus, who had been ministering before the ark containing the ten commandments, throw down the censer. He raised His hands, and with a loud voice said, 'It is done.' And all the angelic host laid off their crowns as Jesus made the solemn declaration, 'He that is unjust, let him be unjust still: and he which is filthy, let him be filthy still: and he that is righteous, let him be righteous still: and he that is holy, let him be holy still.'"
 > — Ellen G. White, _Early Writings_, EW 279.2
 
 **3. Probation closes — then the plagues:**
 
+**Gloss —** "It was impossible for the plagues to be poured out while Jesus officiated" — the slaughter cannot fall until mediation ends; close of probation gates the wrath (EW 280.2).
+
 > "As Jesus moved out of the most holy place, I heard the tinkling of the bells upon His garment; and as He left, a cloud of darkness covered the inhabitants of the earth. There was then no mediator between guilty man and an offended God. While Jesus had been standing between God and guilty man, a restraint was upon the people; but when He stepped out from between man and the Father, the restraint was removed and Satan had entire control of the finally impenitent. It was impossible for the plagues to be poured out while Jesus officiated in the sanctuary; but as His work there is finished, and His intercession closes, there is nothing to stay the wrath of God, and it breaks with fury upon the shelterless head of the guilty sinner, who has slighted salvation and hated reproof. In that fearful time, after the close of Jesus' mediation, the saints were living in the sight of a holy God without an intercessor. Every case was decided, every jewel numbered. Jesus tarried a moment in the outer apartment of the heavenly sanctuary, and the sins which had been confessed while He was in the most holy place were placed upon Satan, the originator of sin, who must suffer their punishment."
 > — Ellen G. White, _Early Writings_, EW 280.2
+
+**Gloss —** the held winds release only when the sanctuary work is done — "**then will come the seven last plagues**"; the apostate Sabbath-keepers are the weighed-and-wanting slain (EW 36.2).
 
 > "I saw that the four angels would hold the four winds until Jesus' work was done in the sanctuary, and **then will come the seven last plagues**. These plagues enraged the wicked against the righteous; they thought that we had brought the judgments of God upon them, and that if they could rid the earth of us, the plagues would then be stayed. A decree went forth to slay the saints, which caused them to cry day and night for deliverance. This was the time of Jacob's trouble. Then all the saints cried out with anguish of spirit, and were delivered by the voice of God. The 144,000 triumphed. Their faces were lighted up with the glory of God. Then I was shown a company who were howling in agony. On their garments was written in large characters, 'Thou art weighed in the balance, and found wanting.' I asked who this company were. The angel said, 'These are they who have once kept the Sabbath and have given it up.' I heard them cry with a loud voice, 'We have believed in Thy coming, and taught it with energy.' And while they were speaking, their eyes would fall upon their garments and see the writing, and then they would wail aloud. I saw that they had drunk of the deep waters, and fouled the residue with their feet—trodden the Sabbath underfoot—and that was why they were weighed in the balance and found wanting."
 > — Ellen G. White, _Early Writings_, EW 36.2
 
 **4. The slaughter weapons execute — beginning at the sanctuary:**
 
+**Gloss —** the marked are spared, the unmarked slain "**begin at My sanctuary**" — "**the false watchmen are the first to fall**"; judgment opens on the professed guardians (GC 656.2).
+
 > "The mark of deliverance has been set upon those 'that sigh and that cry for all the abominations that be done.' Now the angel of death goes forth, represented in Ezekiel's vision by the men with the slaughtering weapons, to whom the command is given: 'Slay utterly old and young, both maids, and little children, and women: but come not near any man upon whom is the mark; and **begin at My sanctuary**.' Says the prophet: 'They began at the ancient men which were before the house.' Ezekiel 9:1-6. The work of destruction begins among those who have professed to be the spiritual guardians of the people. **The false watchmen are the first to fall.** There are none to pity or to spare. Men, women, maidens, and little children perish together."
 > — Ellen G. White, _The Great Controversy_, GC 656.2
+
+**Gloss —** the slaughter spreads from the sanctuary to all the world — "**the slain of the Lord shall be at that day from one end of the earth even unto the other**" (Jer 25:33); inner face becomes the day of the LORD proper (GC 656.3).
 
 > "'The Lord cometh out of His place to punish the inhabitants of the earth for their iniquity: the earth also shall disclose her blood, and shall no more cover her slain.' Isaiah 26:21. 'And this shall be the plague wherewith the Lord will smite all the people that have fought against Jerusalem; Their flesh shall consume away while they stand upon their feet, and their eyes shall consume away in their holes, and their tongue shall consume away in their mouth. And it shall come to pass in that day, that a great tumult from the Lord shall be among them; and they shall lay hold everyone on the hand of his neighbor, and his hand shall rise up against the hand of his neighbor.' Zechariah 14:12, 13. In the mad strife of their own fierce passions, and by the awful outpouring of God's unmingled wrath, fall the wicked inhabitants of the earth—priests, rulers, and people, rich and poor, high and low. '**And the slain of the Lord shall be at that day from one end of the earth even unto the other end of the earth**: they shall not be lamented, neither gathered, nor buried.' Jeremiah 25:33."
 > — Ellen G. White, _The Great Controversy_, GC 656.3
@@ -806,6 +926,8 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 - _Rev. 10:7._ "The mystery of God should be finished" — the seventh angel's sounding consummates all the prophets foretold. DAR 507.
 - _Rev. 11:15._ "The kingdoms of this world are become the kingdoms of our Lord" — kingdom-transfer from earthly to heavenly rule.
 - _Rev. 11:18._ "The time of the dead, that they should be judged... reward unto thy servants... destroy them which destroy the earth" — judgment, reward, destruction; one trumpet.
+
+**Gloss —** seventh trumpet's internal order — kingdom-transfer, then judgment on nations, then "the close of the priesthood of Christ" as the holy of holies opens at the 2300 days' end; probation shuts WITHIN the trumpet (DAR 507.4).
 
 > "Having introduced the seventh trumpet in verse 15, the first great event that strikes the mind of the seer is **the transfer of the kingdom from earthly to heavenly rule**. God takes to him his great power, and forever crushes the rebellion of this revolted earth, establishes Christ upon his own throne, and remains himself supreme over all. This picture being completed, we are pointed back, in verse 18, to the state of the nations, the judgment to fall upon them, and the final destiny of both saints and sinners. This field of vision having been scanned, we are taken back once more in the verse now under notice, and our attention is called to **the close of the priesthood of Christ, the last scene in the work of mercy for a guilty world. The temple is opened**; the second apartment of the sanctuary is entered. We know it is the holy of holies that is here opened; for the ark is seen; and in that apartment alone the ark was deposited. This took place at the end of the 2300 days, when the sanctuary was to be cleansed, the time when the prophetic periods expired, and the seventh angel commenced to sound. Since that time, the people of God have seen by faith the open door in heaven, and the ark of God's testament there. They are endeavoring to keep every precept of the holy law written upon the tables therein deposited. And that the tables of the law are there, just as in the ark in the sanctuary erected by Moses, is evident from the terms which John uses in describing the ark. He calls it the "ark of his testament." The ark was called the ark of the covenant, or testament, because it was made for the express purpose of containing the tables of the testimony, or ten commandments. Exodus 25:16; 31:18; Deuteronomy 10:2, 5. It was put to no other use, and owed its name solely to the fact that it contained the tables of the law. If the tables were not therein, it would not be the ark of his (God's) testament, and could not truthfully be so called. Yet John, beholding the ark in heaven under the sounding of the seventh trumpet, still calls it the "ark of his testament," affording unanswerable proof that the law is still there, unaltered in one jot or tittle from the copy which for a time was committed to the care of men in the typical ark of the tabernacle during the Mosaic dispensation."
 > — Uriah Smith, _Daniel and the Revelation_, DAR 507.4
@@ -875,14 +997,22 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 - _Rev. 9:12._ "One woe is past" — two woes more hereafter.
 - _Rev. 11:14._ "The second woe is past... the third woe cometh quickly" — the third woe is the seventh angel's plagues; "hence the plagues are future, and constitute the third woe"; heavenly Temple opened under that same angel. Andrews, _TMR_ 116.
 
+  **Gloss —** wrath "without mixture" = the plagues = "wrath without mercy" — withheld while the High Priest still intercedes, poured only when "mercy has given place to vengeance" (TMR 116.1).
+
   > "2. We have shown that the plagues and the wrath of God without mixture are the same. And **wrath without mixture must be wrath with nothing else; that is, wrath without mercy**. God has not yet visited the earth with unmixed wrath; nor can he while our great High Priest ministers in the heavenly Sanctuary, and stays the wrath of God by his intercession for sinful men. When the plagues are poured out, mercy has given place to vengeance."
   > — J. N. Andrews, _The Three Messages of Revelation 14:6-12_, TMR 116.1
+
+  **Gloss —** seven last plagues poured under the seventh angel's voice, after the heavenly Temple opens (Rev 11:15-19 = 16:1-21) — "hence the plagues are future, and constitute the third woe" (TMR 116.2).
 
   > "3. Hence it is that the seven angels are represented as receiving the vials of the wrath of God; - the seven last plagues - after the opening of the Temple of God in heaven. If we turn to Revelation 11:15-19, we shall find that the opening of the Temple in heaven is an event that transpires under the sounding of the seventh angel. And that account concludes with a brief statement of the events of the seventh vial, or last plague. Now if we turn to chap. 11:5-8; 16:1-21, we shall read an expanded view of the facts stated in chap. 11:15-19, and we shall find that the two accounts conclude in the same manner, viz., with the events of the last plague. These scriptures show that the seven angels do not receive the vials of the wrath of God to pour out upon the earth until the Temple in heaven is opened. That Temple is opened under the voice of the seventh angel. The third woe is by reason of the voice of the seventh angel. Revelation 8:13; 9:12; 11:14. The seven plagues are poured out under the sounding of that angel; **hence the plagues are future, and constitute the third woe**."
   > — J. N. Andrews, _The Three Messages of Revelation 14:6-12_, TMR 116.2
 
+**Gloss —** equates the "seven last plagues" with "the third woe" — naming the dread realities the third angel warns against (TMR 124.1).
+
 > "Such is a brief view of the dread realities of the seven last plagues, - the third woe! How fearful will be the events of that woe! May God count us worthy to escape the things coming on the earth, and to stand before the Son of man."
 > — J. N. Andrews, _The Three Messages of Revelation 14:6-12_, TMR 124.1
+
+**Gloss —** the plagues are only the first part of "the penalty affixed to the warning of the third angel"; the second part — the wicked raised and suffering — waits till the end of the thousand years (TMR 124.2).
 
 > "The seven last plagues are poured out on the living wicked; but the second part of **the penalty affixed to the warning of the third angel**, is not inflicted until the end of the thousand years, when all the wicked are raised and suffer together. This part of the penalty we will now consider."
 > — J. N. Andrews, _The Three Messages of Revelation 14:6-12_, TMR 124.2
@@ -900,20 +1030,28 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 - _Rev. 13:14._ Bids set up image to the beast.
 - _Rev. 13:16-17._ Forces mark; none buy or sell without it.
 
+  **Gloss —** two-horned beast's image-worship "pertains to the future" and the third angel exists to "prepare the church for this fearful scene" — message and Rev. 13 set in deliberate contrast (TMR 74.2).
+
   > "The work of the two-horned beast in performing miracles, and causing those that dwell upon the earth, by means of those miracles, to form an image to the beast which all men must worship, certainly pertains to the future. **The Third Angel’s Message is a warning to prepare the church for this fearful scene.** In proof of this fact, we place the prophecy respecting the two-horned beast, and the warning of the third angel, in contrast:-"
   > — J. N. Andrews, _The Three Messages of Revelation 14:6-12_, TMR 74.2
 
 - _Rev. 13:16-17._ Mark = substituted false sabbath vs seal of God (true Sabbath). TMR 112-113.
+
+  **Gloss —** worship of the beast = obeying his Sunday law over the fourth commandment: "whenever they obey the requirements of the beast, in the place of the commandments of God, they worship the beast" (TMR 112.3).
 
   > "We have already seen that the conflict is between the commandments of God and the requirements of the beast; and that a papal institution, which has usurped the place of one of the commandments of God, is yet to be made a test by the two-horned beast. It is not difficult, therefore, to see how men will be made to worship the beast; for **whenever they obey the requirements of the beast, in the place of the commandments of God, they worship the beast**; for they acknowledge him as above the Most High. It is a remarkable fact that the pagan festival of Sunday, which the great apostasy has substituted for the Sabbath of the Bible, is now enforced by law in most of the States of the union. A papal institution which directly contradicts the fourth commandments is thus enforced by a protestant government!"
   > — J. N. Andrews, _The Three Messages of Revelation 14:6-12_, TMR 112.3 (paragraph runs pp. 112-113)
 
 - _Rev. 13:16._ Forehead or hand — Andrews' own gloss: "not a literal mark, but a public profession, or act, that all may see or know." TMR 108.
 
+  **Gloss —** the mark in forehead/hand is Sunday-keeping made a test — "not a literal mark, but a public profession, or act, that all may see or know" (TMR 108.3).
+
   > "Notwithstanding the fourth commandment in the plainest terms enjoins the observance of the sanctified rest-day of the Lord, almost all the world now wonders after the beast, and observe the pagan festival of Sunday, which the great apostasy has substituted for the holy Sabbath. By the observance of the Sabbath, men acknowledge the great Creator as their God; but when they understandingly choose in its stead the Sabbath of the man of sin, they acknowledge him as above all that is called God, or that is worshiped, and as able to change the times and laws of God. There is no evading the point. If we observe the Sabbath of the Lord, and that of the apostasy also, we only make the man of sin equal with God. But when we profane the Lord’s Sabbath, and observe in its stead the Romish festival of Sunday, we acknowledge the papacy to be above God, and able to change his times and laws. We speak of those who have the light of truth and act contrary to it. Those who have never yet understood that the observance of Sunday is a tradition of the fathers which makes void the fourth commandment, are not referred to. It is the bringing of this Sabbath of the apostasy to the test that will constitute it the mark of that power that should think to change times and laws. There is no other papal institution that directly sets aside one of the ten commandments, that the whole Protestant world observes. This mark is very conspicuous in the forehead or hand, and signifies **not a literal mark, but a public profession, or act, that all may see or know**."
   > — J. N. Andrews, _The Three Messages of Revelation 14:6-12_, TMR 108.3
 
 - _GC 605._ White: false-sabbath compliance = mark of the beast; true Sabbath = seal of God.
+
+  **Gloss —** Sabbath is "the great test of loyalty": false-sabbath compliance receives "the mark of the beast," true-Sabbath obedience "the seal of God" (GC 605.2).
 
   > "The Sabbath will be the great test of loyalty, for it is the point of truth especially controverted. When the final test shall be brought to bear upon men, then the line of distinction will be drawn between those who serve God and those who serve Him not. While the observance of the false sabbath in compliance with the law of the state, contrary to the fourth commandment, will be an avowal of allegiance to a power that is in opposition to God, the keeping of the true Sabbath, in obedience to God’s law, is an evidence of loyalty to the Creator. While one class, by accepting the sign of submission to earthly powers, receive **the mark of the beast**, the other, choosing the token of allegiance to divine authority, receive **the seal of God**."
   > — Ellen G. White, _The Great Controversy_, GC 605.2
@@ -940,11 +1078,17 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 - _Rev. 20:10._ — devil cast into "the lake of **fire and brimstone**... tormented... for ever and ever."
 - _Rev. 21:8._ — the "lake which burneth with **fire and brimstone**: which is the second death."
 
+**Gloss —** third angel's fire/brimstone/smoke = the penalty sense — "the final perdition of ungodly men in the lake of fire is without doubt the subject of these awful words" (TMR 124.3).
+
 > "“He shall be tormented with fire and brimstone in the presence of the holy angels, and in the presence of the Lamb; and the smoke of their torment ascendeth up forever and ever,” etc. **The final perdition of ungodly men in the lake of fire is without doubt the subject of these awful words.** That we may rightly understand this text, we call attention to several important facts:-"
 > — J. N. Andrews, _The Three Messages of Revelation 14:6-12_, TMR 124.3
 
+**Gloss —** Isaiah 34's day-of-vengeance language is "a complete parallel to that of the third angel" — same fire/brimstone/smoke, same final judgment (TMR 125.1).
+
 > "2. The prophet Isaiah (chap. 34) describes the final conflagration of our globe in language which is **a complete parallel to that of the third angel** in describing the punishment of the wicked. Those who contend that Isaiah refers only to ancient Idumea, must admit that the period of time described in this strong language must finally come to an end. And those who admit that Isaiah, in the language we are about to quote, refers to the conflagration of our earth, will find in what follows, ample proof that that scene will finally close."
 > — J. N. Andrews, _The Three Messages of Revelation 14:6-12_, TMR 125.1
+
+**Gloss —** the parallel text itself: "the day of the Lord's vengeance," dust to brimstone, "the smoke thereof shall go up forever" — ties penalty to the day of vengeance (TMR 125.2).
 
 > "“For it is **the day of the Lord’s vengeance**, and the year of recompenses for the controversy of Zion. And the streams thereof shall be turned into pitch, and the dust thereof into brimstone, and the land thereof shall become burning pitch. It shall not be quenched night nor day; **the smoke thereof shall go up forever**; from generation to generation it shall lie waste; none shall pass through it forever and ever.” Isaiah 34:8-10."
 > — J. N. Andrews, _The Three Messages of Revelation 14:6-12_, TMR 125.2
@@ -987,10 +1131,14 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 - _Isa. 8:16._ "Bind up the testimony, seal the law among my disciples."
 - _Rev. 14:1._ 144,000 have "his Father's name written in their foreheads" — seal = Father's name/character, opposite of the mark.
 
+**Gloss —** the Sabbath crisis sorts the world in two: false sabbath = mark of the beast, true Sabbath = "the seal of God"; "the keeping of the true Sabbath... an evidence of loyalty to the Creator" (GC 605.2).
+
 > "The Sabbath will be the great test of loyalty, for it is the point of truth especially controverted. When the final test shall be brought to bear upon men, then the line of distinction will be drawn between those who serve God and those who serve Him not. While the observance of the false sabbath in compliance with the law of the state, contrary to the fourth commandment, will be an avowal of allegiance to a power that is in opposition to God, **the keeping of the true Sabbath, in obedience to God's law, is an evidence of loyalty to the Creator**. While one class, by accepting the sign of submission to earthly powers, receive the mark of the beast, the other, choosing the token of allegiance to divine authority, **receive the seal of God**."
 > — Ellen G. White, _The Great Controversy_, GC 605.2
 
 - _Rev. 9:4._ Fifth trumpet hurts "only those men which have not the seal of God" — eastern rod (Saracen) strikes only the unsealed. DAR 475-476.
+
+**Gloss —** fifth-trumpet history confirms the rule literally — Rome, "the very church which has robbed the law of God of its seal," lacked the seal and "were put to the sword," while "none of those who had the seal of God were molested" (DAR 475.1).
 
 > "These were doubtless a class of monks, or some other division of the Roman Catholic Church. Against these, the arms of the Mohammedans were directed. And it seems to us that there is a peculiar fitness, if not design, in describing them as those who had not the seal of God in their foreheads; inasmuch as that is the very church which has robbed the law of God of its seal, by tearing away the true Sabbath, and erecting a counterfeit in its place. And **we do not understand**, either from the prophecy or from history, **that those persons whom Abubeker charged his followers not to molest were in possession of the seal of God, or necessarily constituted the people of God**. Who they were, and for what reason they were spared, the meager testimony of Gibbon does not inform us, and we have no other means of knowing; but we have every reason to believe that none of those who had the seal of God were molested, while another class, who emphatically had it not, were put to the sword; and thus the specifications of the prophecy are amply met."
 > — Uriah Smith, _Daniel and the Revelation_, DAR 475.1
@@ -999,6 +1147,8 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 - _Ezek. 9:5-6._ "smite: let not your eye spare... but come not near any man upon whom is the mark; and begin at my sanctuary" — slaughter falls on the unmarked, begins at the church.
 - _Rev. 7:3._ "Hurt not the earth... till we have sealed the servants of our God" — no hurt till sealing complete.
 - _Jer. 25:33._ "the slain of the LORD shall be at that day from one end of the earth even unto the other" — same scene EGW joins to Ezekiel 9 + slaughter weapons. GC 656.
+
+**Gloss —** EGW fuses Ezekiel 9, the slaughter weapons, and Jer. 25:33 into one final scene — "the work of destruction begins among those who have professed to be the spiritual guardians... the false watchmen are the first to fall" (GC 656.2-656.3).
 
 > "The mark of deliverance has been set upon those 'that sigh and that cry for all the abominations that be done.' Now the angel of death goes forth, represented in Ezekiel's vision by the men with the slaughtering weapons, to whom the command is given: 'Slay utterly old and young, both maids, and little children, and women: but come not near any man upon whom is the mark; and begin at My sanctuary.' Says the prophet: 'They began at the ancient men which were before the house.' Ezekiel 9:1-6. **The work of destruction begins among those who have professed to be the spiritual guardians of the people. The false watchmen are the first to fall.** There are none to pity or to spare. Men, women, maidens, and little children perish together.
 >
@@ -1033,6 +1183,8 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 - _Jer. 25:32-33._ Great whirlwind from the coasts; "the slain of the LORD shall be at that day from one end of the earth even unto the other end" — loosed wind IS the day of the slain.
 - _EW 36._ Angels hold till Jesus' sanctuary work is done; "then will come the seven last plagues," then decree to slay the saints.
 
+  **Gloss —** holding-the-winds = the seal of probation: angels hold "until Jesus' work was done in the sanctuary, and then will come the seven last plagues," then "a decree went forth to slay the saints" (EW 36.1-36.2).
+
   > "At the commencement of the holy Sabbath, January 5, 1849, we engaged in prayer with Brother Belden's family at Rocky Hill, Connecticut, and the Holy Ghost fell upon us. I was taken off in vision to the most holy place, where I saw Jesus still interceding for Israel. On the bottom of His garment was a bell and a pomegranate. Then I saw that Jesus would not leave the most holy place until every case was decided either for salvation or destruction, and that the wrath of God could not come until Jesus had finished His work in the most holy place, laid off His priestly attire, and clothed Himself with the garments of vengeance. Then Jesus will step out from between the Father and man, and God will keep silence no longer, but pour out His wrath on those who have rejected His truth. I saw that **the anger of the nations, the wrath of God, and the time to judge the dead were separate and distinct, one following the other**, also that Michael had not stood up, and that the time of trouble, such as never was, had not yet commenced. The nations are now getting angry, but when our High Priest has finished His work in the sanctuary, He will stand up, put on the garments of vengeance, and then the seven last plagues will be poured out."
   >
   > "I saw that **the four angels would hold the four winds until Jesus' work was done in the sanctuary, and then will come the seven last plagues**. These plagues enraged the wicked against the righteous; they thought that we had brought the judgments of God upon them, and that if they could rid the earth of us, the plagues would then be stayed. **A decree went forth to slay the saints**, which caused them to cry day and night for deliverance. This was the time of Jacob's trouble. Then all the saints cried out with anguish of spirit, and were delivered by the voice of God. The 144,000 triumphed. Their faces were lighted up with the glory of God. Then I was shown a company who were howling in agony. On their garments was written in large characters, 'Thou art weighed in the balance, and found wanting.' I asked who this company were. The angel said, 'These are they who have once kept the Sabbath and have given it up.' I heard them cry with a loud voice, 'We have believed in Thy coming, and taught it with energy.' And while they were speaking, their eyes would fall upon their garments and see the writing, and then they would wail aloud. I saw that they had drunk of the deep waters, and fouled the residue with their feet—trodden the Sabbath underfoot—and that was why they were weighed in the balance and found wanting."
@@ -1040,12 +1192,16 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 
 - _EW 38._ Held winds = sealing restraint:
 
+  **Gloss —** the holding command is the sealing-deadline: angels charged "Hold! ... until the servants of God are sealed in their foreheads," for "it was God that restrained the powers" and they "were about to let them go" (EW 38.1-38.2).
+
   > "I saw four angels who had a work to do on the earth, and were on their way to accomplish it. Jesus was clothed with priestly garments. He gazed in pity on the remnant, then raised His hands, and with a voice of deep pity cried, 'My blood, Father, My blood, My blood, My blood!' Then I saw an exceeding bright light come from God, who sat upon the great white throne, and was shed all about Jesus. Then I saw an angel with a commission from Jesus, swiftly flying to the four angels who had a work to do on the earth, and waving something up and down in his hand, and crying with a loud voice, '**Hold! Hold! Hold! Hold! until the servants of God are sealed in their foreheads.**'"
   >
   > "I asked my accompanying angel the meaning of what I heard, and what the four angels were about to do. He said to me that **it was God that restrained the powers**, and that He gave His angels charge over things on the earth; that **the four angels had power from God to hold the four winds, and that they were about to let them go**; but while their hands were loosening, and the four winds were about to blow, the merciful eye of Jesus gazed on the remnant that were not sealed, and He raised His hands to the Father and pleaded with Him that He had spilled His blood for them. Then another angel was commissioned to fly swiftly to the four angels and bid them hold, until the servants of God were sealed with the seal of the living God in their foreheads."
   > — Ellen G. White, _Early Writings_, EW 38.1-38.2
 
 - _EW 44._ Winds loosed = day of slaughter, tied to the covering/sealing:
+
+  **Gloss —** the sealing is the covering against the loosed winds: drawn now "just now in this sealing time," and "soon... drawn over all who are to have a shelter in the day of slaughter" — unsealed left "without a shelter from the burning wrath of God" (EW 44.1-44.2).
 
   > "Some of these agents of Satan were affecting the bodies of some of the saints—those whom they could not deceive and draw away from the truth by a Satanic influence. Oh, that all could get a view of it as God revealed it to me, that they might know more of the wiles of Satan and be on their guard! I saw that Satan was at work in these ways to distract, deceive, and draw away God's people, **just now in this sealing time**. I saw some who were not standing stiffly for present truth. Their knees were trembling, and their feet sliding, because they were not firmly planted on the truth, and the covering of Almighty God could not be drawn over them while they were thus trembling."
   >
@@ -1137,6 +1293,8 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 - _Rev. 7:3._ Hurt not earth, sea, trees "till we have sealed the servants of our God in their foreheads."
 - _1 Pet. 4:17._ "judgment must begin at the house of God" — Ezekiel 9 = the judgment of the living, begun at the sanctuary.
 
+**Gloss —** Ezekiel 9 = sealing-then-slaughter that begins at the sanctuary; "the false watchmen are the first to fall" — judgment of the living on the professed church (GC 656.2).
+
 > The mark of deliverance has been set upon those “that sigh and that cry for all the abominations that be done.” Now the angel of death goes forth, represented in Ezekiel’s vision by the men with the slaughtering weapons, to whom the command is given: “Slay utterly old and young, both maids, and little children, and women: but come not near any man upon whom is the mark; and **begin at My sanctuary**.” Says the prophet: “They began at the ancient men which were before the house.” Ezekiel 9:1-6. The work of destruction begins among those who have professed to be the spiritual guardians of the people. **The false watchmen are the first to fall.** There are none to pity or to spare. Men, women, maidens, and little children perish together.
 > — Ellen G. White, _The Great Controversy_, GC 656.2 [quoted earlier, on the slaughter-weapons]
 
@@ -1176,14 +1334,22 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 
 **The EGW herald — New York's "fireproof" towers consumed.**
 
+**Gloss —** signs declare Christ near; "plagues and judgments are already falling" with "the alarms of war" — the day of slaughter already at the door (9T 11.1).
+
 > We are living in the time of the end. The fast-fulfilling signs of the times declare that the coming of Christ is near at hand. The days in which we live are solemn and important. The Spirit of God is gradually but surely being withdrawn from the earth. Plagues and judgments are already falling upon the despisers of the grace of God. The calamities by land and sea, the unsettled state of society, the alarms of war, are portentous. They forecast approaching events of the greatest magnitude.
 > — Ellen G. White, _Testimonies for the Church_, 9T 11.1
+
+**Gloss —** EGW's New York vision = the merchant-tower cluster — towers "warranted to be fireproof," reared "to glorify their owners" with God not in their thoughts (9T 12.1).
 
 > On one occasion, when in New York City, I was in the night season called upon to behold buildings rising story after story toward heaven. These buildings were **warranted to be fireproof**, and they were erected to glorify their owners and builders. Higher and still higher these buildings rose, and in them the most costly material was used. Those to whom these buildings belonged were not asking themselves: “How can we best glorify God?” The Lord was not in their thoughts.
 > — Ellen G. White, _Testimonies for the Church_, 9T 12.1
 
+**Gloss —** the towers fall — "supposedly fire-proof buildings" yet "consumed as if made of pitch," fire engines and firemen powerless to stay it (9T 13.1).
+
 > The scene that next passed before me was an alarm of fire. Men looked at the lofty and supposedly fire-proof buildings and said: “They are perfectly safe.” But these buildings were **consumed as if made of pitch**. The fire engines could do nothing to stay the destruction. The firemen were unable to operate the engines.
 > — Ellen G. White, _Testimonies for the Church_, 9T 13.1
+
+**Gloss —** the burning = God's retribution — no material preserves a building "when God's appointed time comes to send retribution" on proud men's disregard of His law (9T 13.2).
 
 > I am instructed that when the Lord’s time comes, should no change have taken place in the hearts of proud, ambitious human beings, men will find that the hand that had been strong to save will be strong to destroy. No earthly power can stay the hand of God. No material can be used in the erection of buildings that will preserve them from destruction when **God’s appointed time comes to send retribution** on men for their disregard of His law and for their selfish ambition.
 > — Ellen G. White, _Testimonies for the Church_, 9T 13.2
@@ -1258,6 +1424,9 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 - _Rev. 9:4._ Rod hurts only the unmarked — "those men which have not the seal of God in their foreheads."
 - _Ezek. 9:6._ Slay utterly old and young — but "come not near any man upon whom is the mark"; the slain = the unsealed.
 - _EW 44._ Loud cry = mercy's last call: flee by faith, out of the doomed cities, into the shelter over the sealed.
+
+  **Gloss —** the sealing-covering being "drawn over God's people" now = their only "shelter from the burning wrath of God" in the "day of slaughter"; flee before it closes (EW 44.2).
+
   > "Satan was trying his every art to hold them where they were, until the sealing was past, until the covering was drawn over God's people, and they left without a **shelter** from the burning wrath of God, in the seven last plagues. God has begun to draw this covering over His people, and it will soon be drawn over all who are to have a shelter in the **day of slaughter**. God will work in power for His people; and Satan will be permitted to work also."
   > — Ellen G. White, _Early Writings_, EW 44.2
 - _Ezek. 33:5._ Watchman's charge: sound it — "he that taketh warning shall deliver his soul"; hold peace, his blood on our hand.
