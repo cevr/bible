@@ -23,9 +23,9 @@ Scoreboard. Each term fills in as its section arrives — some carry their prove
 - **THE DAY OF THE LORD ( = THE SEVENTH TRUMPET = THE SEVEN PLAGUES)** — \_\_\_
 - **ALL NATIONS — the day's signature** — \_\_\_
 - **THE WINE OF GOD'S WRATH ( = THE CUP = THE SWORD)** — \_\_\_
+- **WITH MIXTURE vs WITHOUT MIXTURE** — \_\_\_
 - **ONE FORCE** — locusts = lions = horses = fire/brimstone/smoke.
 - **WOE** — \_\_\_
-- **WITH MIXTURE vs WITHOUT MIXTURE** — \_\_\_
 - **THE EQUATION — DAY OF THE LORD = SEVEN LAST PLAGUES = DAY OF SLAUGHTER = THE SEALING TIME** — \_\_\_
 - **THE SEVENTH TRUMPET** — \_\_\_
 - **SEVEN WITHIN A SEVEN** — the Jericho pattern.
@@ -1129,7 +1129,7 @@ The pattern = the trumpets' pattern: prophetic time first (seventy years // 1840
 
 ## What Is the Wine of God's Wrath? — The Cup Defined by Isaiah and Jeremiah
 
-> **The wine of God's wrath = the sword-judgment God serves the nations** — and filled up unmixed, it is the seven last plagues. The third angel threatens it (Rev 14:9-10); the chain trumpet = plague = war demands it be war; now let the Bible define its own cup (Rule 12). Jeremiah hands the cup round; Isaiah opens it and names the contents; Revelation fills it up without mixture.
+> **The wine of God's wrath = the sword-judgment God serves the nations** — and filled up unmixed, it is the seven last plagues. The third angel threatens it (Rev 14:9-10); the chain trumpet = plague = war demands it be war; now let the Bible define its own cup (Rule 12). Jeremiah hands the cup round; Isaiah opens it and names the contents; Revelation fills it up without mixture — and serves it on the trumpets' own targets.
 
 ### Part 1 — Jeremiah Defines the Cup: the Cup IS the Sword
 
@@ -1183,6 +1183,9 @@ The winepress is where the wine comes from — cup and press are one figure at t
 
 In history the cup was always mingled with mercy; the last serving is not.
 
+- _Rev. 8:7-12; 9:15, 18._ "The third part" — six times. **With mixture**: a third, not the whole; warning mingled with mercy.
+  > "[7] The first angel sounded, and there followed hail and fire mingled with blood, and they were cast upon the earth: and the third part of trees was burnt up, and all green grass was burnt up. [8] And the second angel sounded, and as it were a great mountain burning with fire was cast into the sea: and the third part of the sea became blood; [9] And the third part of the creatures which were in the sea, and had life, died; and the third part of the ships were destroyed. [10] And the third angel sounded, and there fell a great star from heaven, burning as it were a lamp, and it fell upon the third part of the rivers, and upon the fountains of waters; [11] And the name of the star is called Wormwood: and the third part of the waters became wormwood; and many men died of the waters, because they were made bitter. [12] And the fourth angel sounded, and the third part of the sun was smitten, and the third part of the moon, and the third part of the stars; so as the third part of them was darkened, and the day shone not for a third part of it, and the night likewise." (Rev. 8:7-12)
+  > "[15] And the four angels were loosed, which were prepared for an hour, and a day, and a month, and a year, for to slay the third part of men. [18] By these three was the third part of men killed, by the fire, and by the smoke, and by the brimstone, which issued out of their mouths." (Rev. 9:15, 18)
 - _Ps. 75:8._ The historical cup: "full of mixture" — judgment mingled with mercy, poured out by measure through the ages.
   > "For in the hand of the LORD [there is] a cup, and the wine is red; it is full of mixture; and he poureth out of the same: but the dregs thereof, all the wicked of the earth shall wring [them] out, [and] drink [them]."
 - _Rev. 14:10._ The third angel's cup: "without mixture" — the same wine, mercy withdrawn.
@@ -1196,6 +1199,9 @@ Andrews asks the question of this section by name — and answers it from the ne
 >
 > — J. N. Andrews, _The Three Messages of Revelation 14:6-12_, TMR 115.1
 
+> "1. The wrath of God, as threatened by the third angel, is poured out in the seven last plagues; for the first plague is inflicted on the very class that the third angel threatens. Compare Revelation 14:9, 10; 16:1, 2. The fact proves that the plagues must be future when the Third Angel’s Message is given; and it also proves **the identity of the wrath of God without mixture with the seven last plagues**."
+> — J. N. Andrews, _The Three Messages of Revelation 14:6-12_, TMR 115.2
+
 Unmixed = no mediating High Priest — the cup waits on the close of His intercession:
 
 > "2. We have shown that the plagues and the wrath of God without mixture are the same. And wrath without mixture must be wrath with nothing else; that is, **wrath without mercy**. God has not yet visited the earth with unmixed wrath; nor can he **while our great High Priest ministers in the heavenly Sanctuary**, and stays the wrath of God by his intercession for sinful men. When the plagues are poured out, mercy has given place to vengeance."
@@ -1208,7 +1214,37 @@ Smith concurs — same equation, same dating:
 >
 > — Uriah Smith, _Daniel and the Revelation_, DAR 642.3
 
-### Part 6 — Two Cups Answer Each Other: Never Conflate Them
+### Part 6 — Served on the Trumpets' Own Targets: the Vials in Order
+
+Trumpets = a third, mercy mingled. Vials = the whole, mercy withdrawn — vial by vial on the trumpets' own targets, in order.
+
+Vials on trumpets' targets, in order:
+
+- _Rev. 16:2 ↔ 8:7._ 1st / 1st — **the earth**.
+  > "And the first went, and poured out his vial upon the earth; and there fell a noisome and grievous sore upon the men which had the mark of the beast, and [upon] them which worshipped his image." (Rev. 16:2)
+  > "The first angel sounded, and there followed hail and fire mingled with blood, and they were cast upon the earth: and the third part of trees was burnt up, and all green grass was burnt up." (Rev. 8:7)
+- _Rev. 16:3 ↔ 8:8-9._ 2nd / 2nd — **the sea**, become blood.
+  > "And the second angel poured out his vial upon the sea; and it became as the blood of a dead [man]: and every living soul died in the sea." (Rev. 16:3)
+  > "[8] And the second angel sounded, and as it were a great mountain burning with fire was cast into the sea: and the third part of the sea became blood; [9] And the third part of the creatures which were in the sea, and had life, died; and the third part of the ships were destroyed." (Rev. 8:8-9)
+- _Rev. 16:4 ↔ 8:10-11._ 3rd / 3rd — **the rivers and fountains of waters**.
+  > "And the third angel poured out his vial upon the rivers and fountains of waters; and they became blood." (Rev. 16:4)
+  > "[10] And the third angel sounded, and there fell a great star from heaven, burning as it were a lamp, and it fell upon the third part of the rivers, and upon the fountains of waters; [11] And the name of the star is called Wormwood: and the third part of the waters became wormwood; and many men died of the waters, because they were made bitter." (Rev. 8:10-11)
+- _Rev. 16:8 ↔ 8:12._ 4th / 4th — **the sun**.
+  > "And the fourth angel poured out his vial upon the sun; and power was given unto him to scorch men with fire." (Rev. 16:8)
+  > "And the fourth angel sounded, and the third part of the sun was smitten, and the third part of the moon, and the third part of the stars; so as the third part of them was darkened, and the day shone not for a third part of it, and the night likewise." (Rev. 8:12)
+- _Rev. 16:10 ↔ 9:2._ 5th / 5th — **darkness** (beast's seat / the pit); match in effect, not target.
+  > "And the fifth angel poured out his vial upon the seat of the beast; and his kingdom was full of darkness; and they gnawed their tongues for pain," (Rev. 16:10)
+  > "And he opened the bottomless pit; and there arose a smoke out of the pit, as the smoke of a great furnace; and the sun and the air were darkened by reason of the smoke of the pit." (Rev. 9:2)
+- _Rev. 16:12 ↔ 9:14._ 6th / 6th — **the great river Euphrates**.
+  > "And the sixth angel poured out his vial upon the great river Euphrates; and the water thereof was dried up, that the way of the kings of the east might be prepared." (Rev. 16:12)
+  > "Saying to the sixth angel which had the trumpet, Loose the four angels which are bound in the great river Euphrates." (Rev. 9:14)
+- _Rev. 16:17-18 ↔ 11:15, 19._ 7th / 7th (keystone) — both "the seventh angel," both from the opened **temple** ("It is done" / "the kingdoms of this world are become... our Lord's"), both "voices... thunders... lightnings... a great earthquake." One event.
+  > "[17] And the seventh angel poured out his vial into the air; and there came a great voice out of the temple of heaven, from the throne, saying, It is done. [18] And there were voices, and thunders, and lightnings; and there was a great earthquake, such as was not since men were upon the earth, so mighty an earthquake, and so great." (Rev. 16:17-18)
+  > "[15] And the seventh angel sounded; and there were great voices in heaven, saying, The kingdoms of this world are become [the kingdoms] of our Lord, and of his Christ; and he shall reign for ever and ever. [19] And the temple of God was opened in heaven, and there was seen in his temple the ark of his testament: and there were lightnings, and voices, and thunderings, and an earthquake, and great hail." (Rev. 11:15, 19)
+
+**DEFINITION — WITH MIXTURE / WITHOUT MIXTURE =** trumpets strike a third, mercy mingled (Rev 8:7-12; 9:15, 18); vials strike same _kind_ ("plagues," Rev 9:20; 16:9), same targets, same order, now in full, mercy withdrawn — withdrawn only when High Priest ceases interceding = close of probation (Andrews _TMR_ 116). Interpretive harmony, not mechanical lockstep — anchored at 1st-4th, 6th, 7th; 5th matches in effect, not target.
+
+### Part 7 — Two Cups Answer Each Other: Never Conflate Them
 
 Babylon's wine and God's wine are not the same liquid. She serves doctrine; she is served destruction.
 
@@ -1242,58 +1278,13 @@ Babylon's wine and God's wine are not the same liquid. She serves doctrine; she 
 
 ---
 
-## With Mixture vs Without Mixture — The Vials Are the Trumpets Without Mercy
+## The Equation, Established — Day of the LORD = Seven Last Plagues = Day of Slaughter = the Sealing Time (Revelation 7, Ezekiel 9)
 
-The cup just defined is served two ways — a third with mercy mingled, then the whole without mixture.
+> **One event, four names, two outcomes — sealed or slain.** Every chain forged so far meets here. State the identity compactly, link by link, each with its proof.
 
-Trumpets = a third, mercy mingled. Vials = the whole, mercy withdrawn. Vial by vial on the trumpets' own targets, in order.
+### Link 1 — Day of the LORD = seventh trumpet = seven last plagues
 
-- _Rev. 8:7-12; 9:15, 18._ "The third part" — six times. **With mixture**: a third, not the whole; warning mingled with mercy.
-  > "[7] The first angel sounded, and there followed hail and fire mingled with blood, and they were cast upon the earth: and the third part of trees was burnt up, and all green grass was burnt up. [8] And the second angel sounded, and as it were a great mountain burning with fire was cast into the sea: and the third part of the sea became blood; [9] And the third part of the creatures which were in the sea, and had life, died; and the third part of the ships were destroyed. [10] And the third angel sounded, and there fell a great star from heaven, burning as it were a lamp, and it fell upon the third part of the rivers, and upon the fountains of waters; [11] And the name of the star is called Wormwood: and the third part of the waters became wormwood; and many men died of the waters, because they were made bitter. [12] And the fourth angel sounded, and the third part of the sun was smitten, and the third part of the moon, and the third part of the stars; so as the third part of them was darkened, and the day shone not for a third part of it, and the night likewise." (Rev. 8:7-12)
-  > "[15] And the four angels were loosed, which were prepared for an hour, and a day, and a month, and a year, for to slay the third part of men. [18] By these three was the third part of men killed, by the fire, and by the smoke, and by the brimstone, which issued out of their mouths." (Rev. 9:15, 18)
-- _Rev. 14:10._ "Without mixture" — third angel's wrath "poured out without mixture into the cup of his indignation."
-  > "The same shall drink of the wine of the wrath of God, which is poured out without mixture into the cup of his indignation; and he shall be tormented with fire and brimstone in the presence of the holy angels, and in the presence of the Lamb:"
-- _Ps. 75:8._ The contrast in the cup itself: in probationary time the wine is "full of mixture"; the unmixed dregs are reserved for the wicked at the end.
-  > "For in the hand of the LORD [there is] a cup, and the wine is red; it is full of mixture; and he poureth out of the same: but the dregs thereof, all the wicked of the earth shall wring [them] out, [and] drink [them]."
-- _Rev. 15:1._ Seven last plagues — wrath "filled up," complete, no longer a third = the vials. TMR 115.
-  > "And I saw another sign in heaven, great and marvellous, seven angels having the seven last plagues; for in them is filled up the wrath of God."
-
-> "THE fearful penalty connected with the warning of the third angel now claims our attention. It consists of two things: 1. The wine of the wrath of God, poured out without mixture into the cup of his indignation; 2. The torment with fire and brimstone in the presence of the holy angels and of the Lamb. Let us carefully consider each in order. What is the wine of the wrath of God? The next chapter clearly explains this point: “And I saw another sign in heaven, great and marvelous, seven angels having the seven last plagues; for in them is filled up the wrath of God.” And one of the four beasts gave unto the seven angels seven golden vials, full of the wrath of God, who liveth forever and ever.” Verses 1, 7. It follows, therefore, that **the wine of the wrath of God is the seven last plagues**. The fact will be further apparent as we proceed to show that these plagues are future, and that they do pertain to the future we think can be established beyond controversy."
-> — J. N. Andrews, _The Three Messages of Revelation 14:6-12_, TMR 115.1
-
-> "1. The wrath of God, as threatened by the third angel, is poured out in the seven last plagues; for the first plague is inflicted on the very class that the third angel threatens. Compare Revelation 14:9, 10; 16:1, 2. The fact proves that the plagues must be future when the Third Angel’s Message is given; and it also proves **the identity of the wrath of God without mixture with the seven last plagues**."
-> — J. N. Andrews, _The Three Messages of Revelation 14:6-12_, TMR 115.2
-
-> "2. We have shown that the plagues and the wrath of God without mixture are the same. And wrath without mixture must be wrath with nothing else; that is, **wrath without mercy**. God has not yet visited the earth with unmixed wrath; nor can he while our great High Priest ministers in the heavenly Sanctuary, and stays the wrath of God by his intercession for sinful men. **When the plagues are poured out, mercy has given place to vengeance.**"
-> — J. N. Andrews, _The Three Messages of Revelation 14:6-12_, TMR 116.1
-
-Vials on trumpets' targets, in order:
-
-- _Rev. 16:2 ↔ 8:7._ 1st / 1st — **the earth**.
-  > "And the first went, and poured out his vial upon the earth; and there fell a noisome and grievous sore upon the men which had the mark of the beast, and [upon] them which worshipped his image." (Rev. 16:2)
-  > "The first angel sounded, and there followed hail and fire mingled with blood, and they were cast upon the earth: and the third part of trees was burnt up, and all green grass was burnt up." (Rev. 8:7)
-- _Rev. 16:3 ↔ 8:8-9._ 2nd / 2nd — **the sea**, become blood.
-  > "And the second angel poured out his vial upon the sea; and it became as the blood of a dead [man]: and every living soul died in the sea." (Rev. 16:3)
-  > "[8] And the second angel sounded, and as it were a great mountain burning with fire was cast into the sea: and the third part of the sea became blood; [9] And the third part of the creatures which were in the sea, and had life, died; and the third part of the ships were destroyed." (Rev. 8:8-9)
-- _Rev. 16:4 ↔ 8:10-11._ 3rd / 3rd — **the rivers and fountains of waters**.
-  > "And the third angel poured out his vial upon the rivers and fountains of waters; and they became blood." (Rev. 16:4)
-  > "[10] And the third angel sounded, and there fell a great star from heaven, burning as it were a lamp, and it fell upon the third part of the rivers, and upon the fountains of waters; [11] And the name of the star is called Wormwood: and the third part of the waters became wormwood; and many men died of the waters, because they were made bitter." (Rev. 8:10-11)
-- _Rev. 16:8 ↔ 8:12._ 4th / 4th — **the sun**.
-  > "And the fourth angel poured out his vial upon the sun; and power was given unto him to scorch men with fire." (Rev. 16:8)
-  > "And the fourth angel sounded, and the third part of the sun was smitten, and the third part of the moon, and the third part of the stars; so as the third part of them was darkened, and the day shone not for a third part of it, and the night likewise." (Rev. 8:12)
-- _Rev. 16:10 ↔ 9:2._ 5th / 5th — **darkness** (beast's seat / the pit); match in effect, not target.
-  > "And the fifth angel poured out his vial upon the seat of the beast; and his kingdom was full of darkness; and they gnawed their tongues for pain," (Rev. 16:10)
-  > "And he opened the bottomless pit; and there arose a smoke out of the pit, as the smoke of a great furnace; and the sun and the air were darkened by reason of the smoke of the pit." (Rev. 9:2)
-- _Rev. 16:12 ↔ 9:14._ 6th / 6th — **the great river Euphrates**.
-  > "And the sixth angel poured out his vial upon the great river Euphrates; and the water thereof was dried up, that the way of the kings of the east might be prepared." (Rev. 16:12)
-  > "Saying to the sixth angel which had the trumpet, Loose the four angels which are bound in the great river Euphrates." (Rev. 9:14)
-- _Rev. 16:17-18 ↔ 11:15, 19._ 7th / 7th (keystone) — both "the seventh angel," both from the opened **temple** ("It is done" / "the kingdoms of this world are become... our Lord's"), both "voices... thunders... lightnings... a great earthquake." One event.
-  > "[17] And the seventh angel poured out his vial into the air; and there came a great voice out of the temple of heaven, from the throne, saying, It is done. [18] And there were voices, and thunders, and lightnings; and there was a great earthquake, such as was not since men were upon the earth, so mighty an earthquake, and so great." (Rev. 16:17-18)
-  > "[15] And the seventh angel sounded; and there were great voices in heaven, saying, The kingdoms of this world are become [the kingdoms] of our Lord, and of his Christ; and he shall reign for ever and ever. [19] And the temple of God was opened in heaven, and there was seen in his temple the ark of his testament: and there were lightnings, and voices, and thunderings, and an earthquake, and great hail." (Rev. 11:15, 19)
-
-**DEFINITION — WITH MIXTURE / WITHOUT MIXTURE =** trumpets strike a third, mercy mingled (Rev 8:7-12; 9:15, 18); vials strike same _kind_ ("plagues," Rev 9:20; 16:9), same targets, same order, now in full, mercy withdrawn — withdrawn only when High Priest ceases interceding = close of probation (Andrews _TMR_ 116). Interpretive harmony, not mechanical lockstep — anchored at 1st-4th, 6th, 7th; 5th matches in effect, not target.
-
-Seventh trumpet contains far more than the plagues — the consummation:
+Already proven above (The Day of the Lord IS the Seventh Trumpet; What Is the Wine of God's Wrath?): trumpet = plague = war; the prophets' day = Revelation's third woe / seventh trumpet / seven last plagues. One scope-note before the next link — the seventh trumpet contains far more than the plagues — the consummation:
 
 - _Rev. 10:7; 11:15, 18._ "The mystery of God should be finished"; "The kingdoms of this world are become the kingdoms of our Lord"; "the time of the dead, that they should be judged... reward unto thy servants... destroy them which destroy the earth." Kingdom-transfer, judgment, reward, destruction — one trumpet. DAR 507.
   > "But in the days of the voice of the seventh angel, when he shall begin to sound, the mystery of God should be finished, as he hath declared to his servants the prophets." (Rev. 10:7)
@@ -1303,16 +1294,6 @@ Seventh trumpet contains far more than the plagues — the consummation:
 > — Uriah Smith, _Daniel and the Revelation_, DAR 507.4
 
 **DEFINITION — THE SEVENTH TRUMPET =** the consummation-trumpet (Rev 10:7; 11:15-19; Smith DAR 507): Christ takes the kingdom, the dead judged, saints rewarded, probation closes (temple opened), wicked destroyed. Seven last plagues / day of slaughter (defined below) = executing-wrath phase WITHIN it — the third woe, after probation shuts — not the whole trumpet.
-
----
-
-## The Equation, Established — Day of the LORD = Seven Last Plagues = Day of Slaughter = the Sealing Time (Revelation 7, Ezekiel 9)
-
-> **One event, four names, two outcomes — sealed or slain.** Every chain forged so far meets here. State the identity compactly, link by link, each with its proof.
-
-### Link 1 — Day of the LORD = seventh trumpet = seven last plagues
-
-Already proven above (The Day of the Lord IS the Seventh Trumpet; With Mixture vs Without Mixture): trumpet = plague = war; the prophets' day = Revelation's third woe / seventh trumpet / seven last plagues. No re-proof needed.
 
 ### Link 2 — = the Day of Slaughter
 
