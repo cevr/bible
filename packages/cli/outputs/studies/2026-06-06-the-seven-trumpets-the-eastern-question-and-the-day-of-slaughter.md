@@ -12,148 +12,6 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 
 ---
 
-## How to Read a Symbol — The Bible's Own Lexicon (Rules 11-12)
-
-**DEFINITION — A PROPHETIC SYMBOL =** a figure whose meaning the Bible itself supplies; read literally unless it does violence to nature (Rule 11), and interpreted only by tracing it to where Scripture explains it (Rule 12) — never guessed, never imported.
-
-### Part 1 — The Rule
-
-- **Rule 11 — literal unless it does violence to nature.** Literal trumpet + literal hail/fire burning literal trees/grass = violence to nature -> figurative. Literal wherever it stands; figure only where nature refuses it.
-- _Rev. 8:7._ Hail and fire mingled with blood cast on the earth, a third of trees and all green grass burnt up — literal reading does violence to nature, so figurative.
-- **Rule 12 — trace the figure through the Bible.** Trace the word; where Scripture explains it, that's the meaning. Dictionary = the Bible; interpreter only looks it up.
-- _DAR 463._ Smith — "sun, moon, and stars... for they are undoubtedly here used as symbols — evidently denote the great luminaries of the Roman government, — its emperors, senators, and consuls."
-
-  **Gloss —** sun/moon/stars = the Roman government's "emperors, senators, and consuls" extinguished by A.D. 566 — the symbol read by Rule 12, not guessed (DAR 463.2).
-
-- _DAR 482._ Smith again — "fire... stands for red... jacinth, or hyacinth, for blue; and brimstone, for yellow" — colors, not substances (red/blue/yellow do no violence; flaming horses would).
-
-  **Gloss —** Rule 11 applied — fire/jacinth/brimstone read as the Turkish uniform's "red, or scarlet, blue, and yellow," not literal flame; the colors do no violence to nature (DAR 482.2).
-
-### Part 2 — The Lexicon: The Bible Hands You Every Key
-
-**Peoples and polities — who the symbols stand for.**
-
-- _Rev. 17:15._ Waters = peoples, multitudes, nations, tongues — God's own entry; unlocks 2nd trumpet ("the sea became blood").
-- _Rev. 16:12._ The Euphrates dried up "that the way of the kings of the east might be prepared" = the supporting population of the power on it; dry the river, undo the power; unlocks 6th trumpet.
-- _Rev. 9:14._ "Loose the four angels which are bound in the great river Euphrates" = the four Ottoman sultanies at Aleppo, Iconium, Damascus, Bagdad, "previously... restrained; but God commanded, and they were loosed" (DAR 480).
-
-  **Gloss —** the four angels on the Euphrates = the "four principal sultanies" at "Aleppo, Iconium, Damascus, and Bagdad" — restrained, then loosed at God's command (DAR 480.3).
-
-> 📖 **RIVERS / THE EUPHRATES** = the supporting population of a power (_Rev. 16:12_) -> the Ottoman sultanies loosed under the 6th trumpet.
-
-- _Isa. 40:6-7._ "All flesh is grass"; "surely the people is grass" — the common people, the mass; unlocks 1st trumpet ("all green grass was burnt up").
-- _1 Pet. 1:24._ "All flesh is as grass" — confirms flesh/grass = the populace.
-
-> 📖 **GRASS / FLESH** = the common people, the mass of the population (_Isa. 40:6-7_; 1 Pet. 1:24) -> the populace burnt up under the 1st trumpet.
-
-- _Isa. 2:13._ Cedars of Lebanon, "high and lifted up" = great men and rulers, the lofty; unlocks 1st trumpet ("the third part of trees was burnt up").
-- _Dan. 4:20-22._ The great tree — "It is thou, O king" — a tree = a ruler.
-- _Ezek. 31:3._ "The Assyrian was a cedar in Lebanon" — a cedar = a ruling power.
-
-> 📖 **TREES / CEDARS** = great men and rulers, the lofty and lifted-up (_Isa. 2:13_; Dan. 4:20-22; Ezek. 31:3) -> the rulers burnt up under the 1st trumpet.
-
-- _Dan. 2:35._ The stone became "a great mountain, and filled the whole earth" — a mountain = a kingdom; unlocks 2nd trumpet ("a great mountain burning with fire").
-- _Dan. 2:44._ "The God of heaven [shall] set up a kingdom" — the mountain-stone is that kingdom.
-- _Jer. 51:25._ "O destroying mountain... I will make thee a burnt mountain" — Babylon the kingdom called a mountain.
-- _Dan. 7:17._ "These great beasts, which are four, are four kings" — a beast = a king/kingdom.
-- _Dan. 7:23._ "The fourth beast shall be the fourth kingdom upon earth" — the master key for every beast in the Revelation.
-
-> 📖 **BEAST** = a kingdom or governing power (_Dan. 7:17, 23_) -> the master key for every beast/power named across the trumpets.
-
-**Rulers and governing powers — who leads them.**
-
-- _Rev. 1:20._ "The seven stars are the angels of the seven churches" — stars = rulers, leaders, those in authority; unlocks 3rd trumpet ("there fell a great star").
-- _Dan. 8:10._ The little horn cast down "some of the host and of the stars" — stars = those in authority cast down.
-- _Gen. 37:9-10._ "The sun and the moon and the eleven stars made obeisance to me" — sun/moon/stars = the great luminaries of a government, its emperors, senators, consuls (DAR 463); unlocks 4th trumpet ("the third part of the sun was smitten").
-
-> 📖 **SUN / MOON / STARS** = the great luminaries of a government, its emperors, senators, and consuls (_Gen. 37:9-10_; DAR 463) -> the Roman government smitten under the 4th trumpet.
-
-- _Isa. 14:12._ "How art thou fallen from heaven, O Lucifer... cut down to the ground" — a fallen, apostate power; unlocks 5th trumpet.
-- _Rev. 9:1._ The star fallen from heaven given "the key of the bottomless pit" — the fallen power armed with a key.
-
-> 📖 **A FALLEN STAR** = a fallen, apostate power, cut down yet armed with a key (_Isa. 14:12_; Rev. 9:1) -> the power loosed with the key of the pit under the 5th trumpet.
-
-**War and judgment — the trumpet-stroke vocabulary.**
-
-- _Num. 10:9._ "Blow an alarm with the trumpets" against the enemy — trumpet = alarm of war and coming judgment; master figure naming the whole series.
-- _Amos 3:6._ "Shall a trumpet be blown in the city, and the people not be afraid?" — the trumpet warns of evil the LORD has done.
-- _Joel 2:1._ "Blow ye the trumpet in Zion... for the day of the LORD cometh" — trumpet heralds the day of the LORD.
-- _Jer. 49:36._ "The four winds from the four quarters of heaven" scatter Elam — wind = strife and war let loose; unlocks the four winds held for the sealing (Rev 7:1), the loud-cry crisis.
-- _Dan. 7:2._ "The four winds of the heaven strove upon the great sea" — winds = warring powers loosed on the nations.
-- _Joel 2:3._ "A fire devoureth before them" — fire = devouring war and judgment; unlocks 1st and 2nd trumpets ("hail and fire mingled with blood"; "a great mountain burning with fire").
-- _Amos 1:4._ "I will send a fire into the house of Hazael" — fire = war-judgment on a kingdom.
-
-> 📖 **FIRE** = devouring war and judgment (_Joel 2:3_; Amos 1:4) -> the war that consumes under the 1st and 2nd trumpets.
-
-- _Isa. 28:17._ "The hail shall sweep away the refuge of lies" — sudden, sweeping destruction; unlocks 1st trumpet (Goths from the frozen north).
-- _Josh. 10:11._ Hailstones "more which died with hailstones than they whom the children of Israel slew with the sword" — hail = destruction from heaven outstripping the sword. Smith: "The hail descended from the frozen shores of the Baltic... They came as destroyers" (DAR 473).
-
-  **Gloss —** the three woe-symbols anchored to history — "the hail descended from the frozen shores of the Baltic," locusts "the fit symbol of the Arabs," and "they came as destroyers" (DAR 473.4).
-
-> 📖 **HAIL** = sudden, sweeping destruction falling from the north (_Isa. 28:17_; Josh. 10:11) -> the Goths who came down on Rome under the 1st trumpet.
-
-- _Ezek. 14:19._ "Pour out my fury upon it in blood, to cut off from it man and beast" — blood = slaughter; unlocks 1st and 2nd trumpets ("hail and fire mingled with blood"; "the sea became blood").
-- _Isa. 34:3._ The mountains "melted with their blood" — blood = the slain of a slaughter.
-
-> 📖 **BLOOD** = slaughter (_Ezek. 14:19_; Isa. 34:3) -> the bloodshed of the 1st and 2nd trumpets.
-
-- _Rev. 14:11._ "The smoke of their torment ascendeth up" — smoke = the rising token of torment and destruction; unlocks 5th trumpet ("there arose a smoke out of the pit," Rev 9:2) and the third angel's message.
-- _Gen. 19:28._ Sodom's "smoke of the country went up as the smoke of a furnace" — smoke = the token of a destroyed place.
-- _Rev. 9:2._ "There arose a smoke out of the pit, as the smoke of a great furnace" — smoke darkening sun and air under the 5th trumpet.
-
-> 📖 **SMOKE** = the rising token of torment and destruction (_Rev. 14:11_; Gen. 19:28) -> the smoke from the pit under the 5th trumpet, and the third angel's penalty.
-
-- _Gen. 19:24._ "The LORD rained upon Sodom... brimstone and fire" — brimstone = the fire of divine judgment; unlocks 6th trumpet ("fire and smoke and brimstone") and the third angel's message.
-- _Rev. 14:10._ He "shall be tormented with fire and brimstone... in the presence of the Lamb" — brimstone = the wrath of God on the mark.
-
-> 📖 **BRIMSTONE** = the fire of divine judgment (_Gen. 19:24_; Rev. 14:10) -> the 6th-trumpet gunpowder fire, and the third angel's penalty.
-
-- _Rev. 9:1-2._ "The key of the bottomless pit... and there arose a smoke out of the pit, as the smoke of a great furnace" — the deep, a dark power rising into view; unlocks 5th trumpet. Smith reads the pit (Gk. ἄβυσσος) as "the unknown wastes of the Arabian desert, from the borders of which issued the hordes of Saracens" (DAR 472).
-- _Gen. 1:2._ "Darkness was upon the face of the deep" — the abyss applied to the earth in its original state of chaos.
-
-  **Gloss —** the pit (ἄβυσσος) defined from the Greek = "the unknown wastes of the Arabian desert, from the borders of which issued the hordes of Saracens" under the 5th trumpet (DAR 472.2).
-
-> 📖 **THE BOTTOMLESS PIT** = the deep, a dark power rising into view (_Rev. 9:1-2_) -> the desert wastes whence the Saracens issued under the 5th trumpet.
-
-- _Joel 1:6._ "A nation is come up upon my land, strong, and without number" — locusts = innumerable invading armies; unlocks 5th trumpet, the Arabs ("the locusts... issued from Arabia... They came as destroyers," DAR 473).
-- _Joel 2:25._ "My great army which I sent among you" — the locust is an army God commissions.
-- _Judg. 6:3-5._ Midianites, Amalekites, and "the children of the east" came up "as grasshoppers for multitude" with camels without number — the locust-people God's word names.
-- _Judg. 7:12._ The children of the east "like grasshoppers for multitude; and their camels were without number" — Hebrew H697 'arbeh (the locust word of Exodus 10 and Joel 1-2): the only people-group the Bible ever calls 'arbeh = the camel-riding peoples of the Arabian east. (CHILDREN OF THE EAST takes its own dictionary entry at the First Woe.)
-
-> 📖 **LOCUSTS** = an invading army God commissions (_Joel 2:25_), identified by usage with the children of the east (_Judg. 6:5; 7:12_) -> the Saracen/Arab hosts of the 5th trumpet (_Rev. 9:3_).
-
-- _1 Kgs. 12:11._ "I will chastise you with scorpions" — power to sting and to chastise; unlocks 5th trumpet ("tails like unto scorpions, and there were stings in their tails," Rev 9:10).
-- _Luke 10:19._ "Power to tread on serpents and scorpions" — scorpion = the stinging power of the enemy.
-- _Rev. 9:10._ "Tails like unto scorpions, and there were stings in their tails... power to hurt men five months" — the 5th-trumpet stings.
-
-> 📖 **SCORPIONS** = power to sting and to chastise (_1 Kgs. 12:11_; Luke 10:19) -> the stinging tails of the 5th trumpet.
-
-- _Prov. 21:31._ "The horse is prepared against the day of battle" — strength for the day of battle, the mounted war-power; unlocks 5th and 6th trumpets. Smith: "the barbed Arabs, swift as locusts and armed like scorpions... were ever prepared unto battle" (DAR 476-477).
-- _Job 39:25._ The horse "smelleth the battle afar off, the thunder of the captains, and the shouting" — the war-horse made for battle.
-
-  **Gloss —** the horse-symbol matched to its people — "the barbed Arabs, swift as locusts and armed like scorpions," who "were ever prepared unto battle" (DAR 476.6).
-
-> 📖 **HORSES** = strength for the day of battle, the mounted war-power (_Prov. 21:31_; Job 39:25) -> the Arab and Turkish cavalry of the 5th and 6th trumpets.
-
-**Time — how the prophetic clock is read.**
-
-- _Num. 14:34._ "Each day for a year" — day = a year, the day-year principle; unlocks five months = 150 years (5th trumpet) and hour, day, month, year = 391 years 15 days (6th trumpet).
-- _Ezek. 4:6._ "I have appointed thee each day for a year" — confirms the day-year principle.
-- _"THE THIRD PART"_ = the third of the three Roman divisions under the scourge — empire split at Constantine's death among his three sons. Smith: "The Roman empire, after Constantine, was divided into three parts; and hence the frequent remark, 'a third part of men'... in allusion to the third part of the empire which was under the scourge" (DAR 457). James White: "Under the first four trumpets the two western divisions fell, and under the fifth and sixth the eastern empire was crushed; but under the seventh trumpet great Babylon entire will sink to rise no more" (_The Sounding of the Seven Trumpets_, 2). Unlocks every trumpet ("the third part," six times over).
-
-  **Gloss —** "the third part" decoded — "the Roman empire, after Constantine, was divided into three parts," so "a third part of men" = "the third part of the empire which was under the scourge" (DAR 457.5).
-
-  **Gloss —** White maps the third-parts onto the trumpets — "the two western divisions fell" under trumpets 1-4, "the eastern empire was crushed" under 5-6, and great Babylon sinks under the 7th (SSTR 2.1).
-
-### The Hinge — SMOKE, FIRE, and BRIMSTONE Link the Woes to the Third Angel
-
-- _Rev. 14:10-11._ "Tormented with fire and brimstone... and the smoke of their torment ascendeth up for ever and ever" — the same three symbols that name God's rod in the woes (6th-trumpet gunpowder fire, smoke, brimstone) name His wrath in the third angel's penalty.
-- _Rev. 9:17-18._ Out of the horses' mouths "issued fire and smoke and brimstone... by these three was the third part of men killed" — the lexicon binds the woes to the third angel's message.
-
-**Dictionary so far (added here):** RIVERS/THE EUPHRATES · GRASS/FLESH · TREES/CEDARS · BEAST · SUN/MOON/STARS · A FALLEN STAR · FIRE · HAIL · BLOOD · SMOKE · BRIMSTONE · THE BOTTOMLESS PIT · SCORPIONS · HORSES
-
----
-
 ## What Is a Trumpet?
 
 > The trumpet is the Bible's own alarm of war and of coming judgment. Define the figure by Scripture (Rule 12), then watch the history fill every word.
@@ -229,7 +87,6 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 - _Rev. 9:1-2._ Star falls, bottomless pit opened, smoke arises = rise of Mohammedanism out of the Arabian desert. Fall of Chosroes the Persian king = opening of the pit, letting Mohammed's followers issue from their obscure country and spread darkness over the Eastern empire (DAR 472.2).
 
   **Gloss —** bottomless pit = "the unknown wastes of the Arabian desert" whence the Saracens swarmed; Chosroes' fall = "the opening of the bottomless pit" loosing Islam (DAR 472.2).
-
   - _Symbols (Rule 12):_ **star fallen** = apostate power given a key (_Isa. 14:12_, "How art thou fallen from heaven, O Lucifer... cut down to the ground"); **bottomless pit** = deep/obscure region a dark power rises from (_Rev. 9:2_); **smoke** = rising token of error and torment (_Rev. 14:11_, "the smoke of their torment ascendeth up for ever"; _Gen. 19:28_, Sodom's "smoke... as the smoke of a furnace") — "It was not, like the latter, a light from heaven, but a smoke out of the bottomless pit" (Keith, quoted by Smith at DAR 473.2).
 
     **Gloss —** smoke from the pit = Mohammedanism, not gospel light — "not... a light from heaven, but a smoke out of the bottomless pit" (Keith, in DAR 473.2).
@@ -264,7 +121,6 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
   **Gloss —** crowns like gold = the Saracen turban — "a turban was unfurled before him to supply the deficiency of a standard" when Mohammed entered Medina (Keith, in DAR 477.1).
 
   **Gloss —** sound of wings = Arab cavalry charge — "the Arab horses darted away with the swiftness of the wind," conquest "marvelous both in rapidity and extent" (Keith, in DAR 477.7).
-
   - _Symbols (Rule 12):_ **locusts** = innumerable invading armies (_Joel 2:25_, "the locust... my great army which I sent among you"; _Joel 1:6_, "a nation... strong, and without number"); **scorpions** = power to sting/chastise (_1 Kgs. 12:11_, "I will chastise you with scorpions"; _Luke 10:19_) — torment, not yet slay; **horses prepared unto battle** = strength armed for the day of war (_Prov. 21:31_, "The horse is prepared against the day of battle") — the Arab cavalry.
 
 **DEFINITION — WOE = a trumpet (war) by which God scourges apostate Christendom, not merely pagan Rome. FIRST WOE = the Saracens (Arab Islam) — the children of the east, the locust-people (Judg. 6:5; 7:12) — commissioned to torment 150 years (1299-1449).**
@@ -341,77 +197,7 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 
 ---
 
-## Fulfilled Once, Applied Often — Matthew 24's Rule for Reading the Day Texts
-
-> **One discourse, two events; one oracle, two horizons.** Before the day texts are gathered under the seventh trumpet, fix the reading rule — and take it from Christ Himself. The Olivet discourse is the canon's worked example: a real, literal, local stroke (Jerusalem, A.D. 70) deliberately mingled with the universal day of the LORD, so that the local stroke reads as type and the universal day as the one complete fulfillment. The prophets' national "burdens" are built the same way: aimed at one nation, framed in all-nations language. Read them as Christ taught Matthew 24 to be read — **fulfilled once, applied often**.
-
-### Part 1 — The Canonical Pattern: Christ Blends Two Events in One Discourse
-
-- _Matt. 24:1-3._ "these things" + "thy coming, and... the end of the world" — one question, two horizons.
-- _Luke 21:20-24._ Luke isolates the local stroke — armies, flight, "days of vengeance" on one city, ending in "the times of the Gentiles."
-
-**Gloss —** Christ deliberately fused A.D. 70 with the final day — "He mingled the description of these two events," reaching "beyond that event to the final conflagration" (DA 628.1).
-
-**Gloss —** the discourse is intentionally double — "the prophecy which He uttered was twofold in its meaning," foreshadowing Jerusalem yet prefiguring "the last great day" (GC 25.3).
-
-### Part 2 — The Type Is Real but Partial
-
-**Gloss —** the type was a concrete, literal, datable stroke — flight triggered "when the idolatrous standards of the Romans should be set up in the holy ground" (GC 25.4).
-
-**Gloss —** the local city is itself the antitype's emblem — Christ saw in Jerusalem "a symbol of the world" hardened and rushing to retributive judgment (GC 22.1).
-
-**Gloss —** the A.D. 70 stroke was real yet partial — the prophecy is "to have another fulfillment," that desolation "but a faint shadow" of the universal day (GC 36.2).
-
-### Part 3 — The Pioneers State the Rule
-
-**Gloss —** Miller's own rule: "prophecy is sometimes typical... partly fulfilled in the type, but completely only in the antitype" — Isaac, Israel, and Babylon's captivity all partial (MWV2 7.1).
-
-**Gloss —** Matthew 24 itself has unmet items — clouds, gathered elect, one-taken — "which were not fulfilled at the destruction of Jerusalem," proving its typical reach to the world's end (MWV2 7.2).
-
-- _Matt. 24:29-31._ The words A.D. 70 left unmet — Miller's list, verbatim in the discourse: sun darkened, stars fall, Son of man in the clouds, elect gathered "from the four winds."
-
-**Gloss —** the scope-word test — "if one word lacks a fulfilment, then you must look for another event," because God makes history and prophecy agree (MWV1 22.6).
-
-**Gloss —** the national "burdens" stay unfulfilled until the seventh vial — Litch: "the burdens of different lands... have not yet been fulfilled; nor will they be until the seventh vial of God's wrath is poured out" (PREX1 172.2).
-
-**Gloss —** the same cup passes from one city to every nation — God "punished Jerusalem... and so he will punish all the nations of the world," keyed to Jer. 25:15-33 (PREX2 230.2).
-
-- _Jer. 25:29._ Litch's master text — the cup passes from the one city to "all the inhabitants of the earth" in a single verse.
-
-### Part 4 — The OT Carries the Structure Internally: Each Local "Day" Bursts Its Frame
-
-**Babylon.** The burden names one nation, dates one army — then punishes the WORLD and shakes the heavens.
-
-- _Isa. 13:1._ "The burden of Babylon" — aimed at one nation.
-- _Isa. 13:17-22._ The local stroke — the Medes named in advance; literally fulfilled, the city a ruin to this day.
-- _Isa. 13:6-13._ The frame the Medes never filled — "the day of the LORD... I will punish the world... I will shake the heavens."
-
-**Edom.** The local sacrifice at Bozrah sits nested inside indignation upon ALL nations and a dissolving heaven.
-
-- _Isa. 34:1-2._ The frame first — "indignation of the LORD is upon all nations," all their armies delivered to the slaughter.
-- _Isa. 34:5-6._ The one nation inside it — the sword comes down "upon Idumea," "a sacrifice in Bozrah."
-
-**Egypt.** One nation's day is named outright "the time of the heathen" — plural, all of them.
-
-- _Ezek. 30:2-4._ Egypt's sword-stroke carries the universal label — "the day of the LORD is near... the time of the heathen."
-
-**Edom again, in Obadiah** — the local cup drunk on the holy mountain becomes ALL the heathen drinking.
-
-- _Obad. 15-16._ "the day of the LORD is near upon all the heathen," keyed to the one nation's deed — "as ye have drunk upon my holy mountain, so shall all the heathen drink."
-
-### The Rule Stated
-
-**Gloss —** the type's lessons recur down the ages — "the same deceptions practiced prior to the destruction of Jerusalem have been practiced through the ages, and will be practiced again" (DA 628.2).
-
-**DEFINITION — FULFILLED ONCE, APPLIED OFTEN =** a day-of-the-LORD oracle aimed at one nation receives a real, literal, PARTIAL/typical fulfillment in history — an application that can repeat (DA 628.2: the same deceptions "will be practiced again"); but the oracle's ALL-NATIONS language belongs to the one COMPLETE fulfillment, the universal day of the LORD = the seventh trumpet / seven last plagues — "the burdens of different lands... have not yet been fulfilled; nor will they be until the seventh vial" (Litch, PREX1 172.2). Pioneers' terms: partial/typical fulfillment vs. complete/final — EGW calls the type "another fulfillment" (GC 36.2), Miller "partly fulfilled" (MWV2 7.1), so "fulfillment" is not reserved for the end alone; the SCOPE-WORDS decide which horizon a line belongs to (Rule XIII: one unmet word -> look for another event, MWV1 22.6).
-
-> 📖 **ALL NATIONS / ALL THE HEATHEN** = the scope-signature marking an oracle's complete, universal fulfillment — the one day of the LORD — as distinct from its repeatable local applications (_Jer. 25:29-33; Isa. 34:1-2; Obad. 15-16_) -> the day texts gathered under the seventh trumpet.
-
-**Dictionary so far (added here):** ALL NATIONS / ALL THE HEATHEN
-
----
-
-## The Day of the Lord IS the Seventh Trumpet — One Force Through All the Prophets
+## What Is the Day of the LORD — One Force Through All the Prophets
 
 > **The day of the LORD = the seventh trumpet = the seven last plagues.** The chain so far runs **trumpet = plague = war**. Now gather every prophet (Rule 4): the "day of the LORD" — the refrain of Joel, Isaiah, Jeremiah, Zephaniah, Amos, Obadiah, Zechariah, Malachi, Nahum, Habakkuk — is described in the exact symbol-vocabulary the trumpets and vials use. It is the plague; the plague is the third woe; the third woe is the seventh trumpet — so the prophets' day of the LORD lands precisely where Revelation's last trumpet sounds. "The day of the LORD" and "the seven last plagues" are the same day seen from two ends of the Book. The day's very first word, in Joel, is "**Blow ye the trumpet**" (Joel 2:1); Zephaniah's own name for the day is "a day of the trumpet and alarm" (Zeph 1:16) — and the last trumpet is the seventh.
 
@@ -449,7 +235,7 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 
 > 📖 **WINEPRESS** = the treading-out of the wrath of God (_Jer. 25:30_) -> the unmixed wine of the third angel and the seventh trumpet's vials (_Rev. 14:10, 19_).
 
-> 📖 **WHIRLWIND** = the storm-rush of God's judgment-army (_Jer. 25:32_) -> the four winds loosed for the day of slaughter (_Rev. 7:1_).
+> 📖 **WIND** = strife, commotion, war among nations (_Dan. 7:2_, "the four winds of the heaven strove upon the great sea") -> the loosed war-strife of the day of the LORD (WHIRLWIND and FOUR WINDS defined at "The Four Winds, the Whirlwind, the Winds," below).
 
 - _Isa. 66:15-16._ fire, whirlwind, sword, "the slain of the LORD shall be many" — same day.
 - _Amos 3:8._ "The lion hath roared, who will not fear?" — the day announced by a lion's roar.
@@ -471,7 +257,7 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 
 ### Part 4 — The Unnamed Texts: the Signature Without the Label
 
-> **The phrase "day of the LORD" is a label, not the boundary (see Fulfilled Once, Applied Often). Identification rides on the SIGNATURE — universal scope ("all nations," "all the heathen," "all the inhabitants of the earth," "from one end of the earth even unto the other") + the trumpet/vial vocabulary kit. Where the signature stands, the day stands, named or not.**
+> **The phrase "day of the LORD" is a label, not the boundary. Identification rides on the SIGNATURE — universal scope ("all nations," "all the heathen," "all the inhabitants of the earth," "from one end of the earth even unto the other") + the trumpet/vial vocabulary kit. Where the signature stands, the day stands, named or not.**
 
 **Jeremiah 25 — the structural key.** The most complete day-of-the-LORD scenario in the Old Testament — and the phrase never appears once in the chapter.
 
@@ -506,7 +292,7 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 
 **DEFINITION — ONE FORCE =** the single rod God deploys at three settings. Joel's locust-army "which I sent" (Joel 2:25) — lion-teeth, horses, chariots, devouring fire (Joel 1:6; 2:3-5) — = the fifth/sixth-trumpet cavalry (Rev 9:7-9, 17) and the seventh-trumpet vials (Rev 16), image for image: first woe = torment only (Rev 9:5), second = slay a third (Rev 9:15), third = slay without mixture (Rev 16). Same three words (fire, brimstone, smoke) name the sixth trumpet's rod (Rev 9:17-18) and the third angel's penalty (Rev 14:10-11).
 
-**Dictionary so far (added here):** WINEPRESS · WHIRLWIND · LION · SWORD
+**Dictionary so far (added here):** WINEPRESS · WIND · LION · SWORD
 
 ---
 
@@ -594,156 +380,22 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 
 ---
 
-## The Day of Slaughter — One Scene Across the Prophets
+## The Rod of His Indignation — A Heathen Power as God's Rod
 
-> **The day of slaughter and the day of the LORD are ONE judgment seen from two ends.** Named by its work — slaughter — it has a starting point and a full extent. It BEGINS at the house of God: the stroke on God's own professed-but-unsealed people, apostate Christendom, the false watchmen first (Ezek 9:6; 1 Pet 4:17). It then spreads OUTWARD to the world — all nations, end to end (the "day of the LORD," Jer 25:29-33). Inner face = day of slaughter (His apostate house); outer face = day of the LORD (the heathen world); one sword, one day. Gather every passage (Rule 4) → one picture: whirlwind, sword, winepress, sacrifice, slain of the LORD end to end. Who falls and who is sheltered is fixed by the sealing (next section); and escape — then as now — is by obedience to the warning.
+> **Settled figure: God raises a heathen power as His rod to punish His apostate people; the first two woes (Saracen, Ottoman) = that rod. Thesis: same kind of rod returns for the third.**
 
-- _Isa. 34:2-8._ All-nations slaughter NAMED "the day of the LORD'S vengeance" (v. 8) — slaughter and day-of-the-LORD bound in one text; "the LORD hath a sacrifice in Bozrah, and a great slaughter."
-- _Jer. 25:30._ LORD "shall roar... as they that tread the grapes, against all the inhabitants of the earth."
-- _Jer. 25:33._ "The slain of the LORD... from one end of the earth even unto the other end" — worldwide slaughter, end to end.
-- _Isa. 63:3._ "I have trodden the winepress alone... I will tread them in mine anger" — the day = winepress of wrath (cf. unmixed wine, _Rev. 14:10_).
-- _Isa. 63:4._ "The day of vengeance is in mine heart, and the year of my redeemed is come."
-- _Isa. 30:25._ "In the day of the great slaughter, when the towers fall" — day of slaughter = day towers fall.
-- _Zeph. 1:7._ "The day of the LORD is at hand: for the LORD hath prepared a sacrifice, he hath bid his guests" — the day = the LORD's prepared sacrifice.
-- _Zeph. 1:8._ In "the day of the LORD'S sacrifice" He punishes the princes and "all such as are clothed with strange apparel" — the victims appointed.
-- _Jer. 12:3._ God "prepare[s] them for the day of slaughter" — pulled out "like sheep for the slaughter."
-- _Jer. 50:25._ "The LORD hath opened his armoury, and hath brought forth the weapons of his indignation" against the Chaldeans.
-- _Jer. 50:26-27._ Babylon's bullocks "go down to the slaughter... for their day is come, the time of their visitation."
-- _James 5:1._ "Ye rich men, weep and howl" — woes coming.
-- _James 5:5._ "Ye have nourished your hearts, as in a day of slaughter."
-- _James 5:8._ "The coming of the Lord draweth nigh."
+- _Isa. 10:5._ Assyria = "the rod of mine anger," the staff "mine indignation."
+- _Isa. 10:6._ Sent against "an hypocritical nation" to spoil and tread down — heathen empire as God's rod against apostate Israel.
+- _Jer. 50:17._ Assyria + Babylon, the two rods, = "the lions" that devoured Israel.
+- _Rev. 9:8._ Eastern agent has teeth "as the teeth of lions" — heathen rod, lion-like.
+- _Rev. 9:17._ Horses' heads "as the heads of lions," mouths issuing fire, smoke, brimstone.
+- _Joel 1:6._ Locust-nation with "the teeth of a lion" — John's very imagery for the eastern rod.
+- _Joel 2:4._ Their appearance "as the appearance of horses," running as horsemen.
+- _Joel 2:5._ Leaping "like the noise of chariots," "like the noise of a flame of fire."
+- _Jer. 25:15._ Rod administers the "wine cup of this fury" to all nations.
+- _Jer. 25:16._ They drink and are mad "because of the sword that I will send among them."
 
-### Begins at the House of God — and the Way of Escape
-
-- _Ezek. 9:6._ "Begin at my sanctuary" — the stroke starts at God's professed people, the false watchmen first.
-- _1 Pet. 4:17._ "Judgment must begin at the house of God" — same fixed order, inward first.
-- _Jer. 25:29._ "I begin to bring evil on the city which is called by my name... THEN... a sword upon all the inhabitants of the earth" — inward → outward.
-
-- _GC 656.2._ — the false watchmen fall first; the professed guardians, not the heathen, are the first slain (see the Sealing Time section). The slaughter on the apostate house IS the inner face of the day of the LORD on the world.
-
-- **AD 70 — flee Judea.** _Luke 21:20-21._ The literal sign (armies / Roman standards) was given; those who obeyed lived. "Not one Christian perished in the destruction of Jerusalem... all who believed His words watched for the promised sign... an opportunity was offered for all who would, to obey the Saviour's warning... Without delay they fled to a place of safety—the city of Pella" (GC 30.2). Litch saw the same: "the Saviour took care to deliver those that trusted in him... and not a Christian perished there" (PREX1 176.2). And the herald of that doom was a four-winds cry against the temple: "A voice from the east! a voice from the west! a voice from the four winds! a voice against Jerusalem and against the temple!... 'Woe, woe to Jerusalem!'" (GC 30.1) — the day-of-slaughter warning in its type.
-- **Babylon's siege — surrender and live.** _Jer. 21:8-9._ "Behold, I set before you the way of life, and the way of death. He that abideth in this city shall die by the sword... but he that goeth out, and falleth to the Chaldeans... he shall live."
-- _Jer. 38:2._ He that stays dies by sword, famine, pestilence; he that goes out to the Chaldeans lives.
-- _Jer. 38:17-20._ "Obey, I beseech thee, the voice of the LORD... so it shall be well unto thee, and thy soul shall live" (v. 20) — go forth and live.
-- _Jer. 27:12-13._ Bring your necks under the yoke of Babylon and live; why die by sword, famine, pestilence?
-- _Rev. 18:4._ "Come out of her, my people" — the country-living / come-out-of-the-cities call (defined at the loud cry below); the same escape-by-warning the Christians obeyed before Jerusalem fell and Jeremiah preached before Babylon's fall.
-
-**DEFINITION — THE DAY OF SLAUGHTER =** the inner face of the day of the LORD — the stroke named by its work, falling FIRST on God's own apostate, unsealed people and beginning at His sanctuary (Ezek 9:6; 1 Pet 4:17; Jer 25:29; GC 656.2), then spreading outward to all nations (the day of the LORD proper). Painted in the prophets' fixed vocabulary: the LORD's day of vengeance (_Isa. 34:2-8_), the winepress trodden (_Isa. 63:3-4_), the towers fallen (_Isa. 30:25_), the sacrifice prepared (_Zeph. 1:7-8_), the armoury of His indignation opened (_Jer. 50:25-27_), the slain of the LORD end to end (_Jer. 25:33; James 5:5_) = the third woe / the seventh trumpet's executing judgment. Escape is by obedience to the warning — as AD 70 (flee Judea, GC 30.2) and Babylon's siege (surrender and live, Jer 21:8); the slain = the disobedient who would not be sealed. Who is sheltered is decided by the sealing (next section); its loosing (the four winds) and eastern-rod identity are locked in below.
-
----
-
-## The Sealing Time — Revelation 7 IS Ezekiel 9
-
-> **The sealing is the protective obverse of the slaughter.** Same vision, opposite outcome: the day of slaughter (previous section) falls on the unmarked; the sealing MARKS God's true people so the stroke passes them. Two prophets, one scene — Revelation 7 holds the winds till the servants of God are sealed; Ezekiel 9 marks the sighing ones before the slaughter weapons move. The mark is not arbitrary: it is set on "those that sigh and cry for all the abominations" — the obedient remnant grieved at the church's apostasy, those who heed the warning the apostate house refuses. To be sealed is to obey; the seal is on them BEFORE the stroke ("till we have sealed," Rev 7:3). The identity is not an inference — EGW states it; and the sequence locks the sealing to the day's threshold.
-
-### The Two Visions, Side by Side
-
-- _Rev. 7:1-4._ Four winds held; "hurt not... till we have sealed the servants of our God in their foreheads" — 144,000 of all the tribes sealed.
-- _Ezek. 9:1-6, 11._ Mark first, slaughter after; the marked untouched ("come not near any man upon whom is the mark"); the destruction "begin at my sanctuary"; the inkhorn angel reports "I have done as thou hast commanded me."
-
-**Gloss —** EGW's own identity-statement: Revelation 7's sealing = Ezekiel 9's marking — "this sealing of the servants of God is the same that was shown to Ezekiel in vision" (TM 445.2).
-
-**Gloss —** the sealing is the 144,000's closing work, set forth under Ezekiel 9's figure of slaughter-weapon men and the linen-clad inkhorn angel marking the sighing ones (3T 266.2).
-
-**Gloss —** the seal = "the pure mark of truth" by the Holy Ghost, set only on those who sigh and cry; the rest fall with the wicked — EGW's explicit "Read the ninth chapter of Ezekiel" (3T 267.1).
-
-**Gloss —** the seal is set only on the sighing-and-crying ones; the day of vengeance "just upon us" anchors the sealing at the day-of-slaughter threshold (5T 212.3).
-
-### The Sequence — Held, Sealed, Closed, Slain
-
-**1. Hold! — until sealed (Rev. 7:1-3):**
-
-**Gloss —** the four winds are held by angelic commission — "**Hold! Hold! Hold! Hold! until the servants of God are sealed**" — the winds wait on the sealing's completion (EW 38.1).
-
-**Gloss —** the four winds = restrained powers God's angels hold; their hands were loosening when Jesus pleaded — the hold is the sealing-interval, not a permanent stay (EW 38.2).
-
-**2. The inkhorn angel reports — Ezek. 9:11's "I have done as thou hast commanded me":**
-
-**Gloss —** the inkhorn angel returns "the saints were numbered and sealed" = Ezek 9:11's report; the censer thrown down, "It is done," probation closes on the sealed roll (EW 279.2).
-
-**3. Probation closes — then the plagues:**
-
-**Gloss —** "It was impossible for the plagues to be poured out while Jesus officiated" — the slaughter cannot fall until mediation ends; close of probation gates the wrath (EW 280.2).
-
-**Gloss —** the held winds release only when the sanctuary work is done — "**then will come the seven last plagues**"; the apostate Sabbath-keepers are the weighed-and-wanting slain (EW 36.2).
-
-**4. The slaughter weapons execute — beginning at the sanctuary:**
-
-**Gloss —** the marked are spared, the unmarked slain "**begin at My sanctuary**" — "**the false watchmen are the first to fall**"; judgment opens on the professed guardians (GC 656.2).
-
-**Gloss —** the slaughter spreads from the sanctuary to all the world — "**the slain of the Lord shall be at that day from one end of the earth even unto the other**" (Jer 25:33); inner face becomes the day of the LORD proper (GC 656.3).
-
-### The Bible Places the Sealing at the Day's Threshold
-
-- _Zeph. 2:1-3._ Gather "before the day of the LORD'S anger come upon you"; the meek who seek righteousness "may be hid in the day of the LORD'S anger" — sealing work belongs to the day's threshold.
-- _1 Pet. 4:17._ "Judgment must begin at the house of God" = "begin at my sanctuary" (Ezek. 9:6).
-- _Jer. 25:29._ Same order: "I begin to bring evil on the city which is called by my name," then the sword goes to all the inhabitants of the earth.
-
-**DEFINITION — THE SEALING TIME =** the held-winds interval of Rev 7:1-3 = the marking of Ezekiel 9 ("this sealing of the servants of God is the same that was shown to Ezekiel in vision," TM 445.2): the seal set on those only who sigh and cry (Ezek 9:4; 5T 212.3) while four angels hold the strife; the inkhorn angel reports the work done (Ezek 9:11; EW 279.2); the censer falls, probation closes (EW 280.2); then the slaughter weapons move, beginning at the sanctuary (Ezek 9:6; GC 656.2; 1 Pet 4:17). It stands "BEFORE the day of the LORD'S anger" (Zeph 2:2) — the day of slaughter's threshold: sealed = hid in the day (Zeph 2:3); unsealed = the slain just gathered (previous section).
-
----
-
-## The Equation, Established — Day of the LORD = Seven Last Plagues = Day of Slaughter = the Sealing Time (Revelation 7, Ezekiel 9)
-
-> **One judgment, three faces, two outcomes — sealed or slain.** Every chain forged so far meets here. The same single stroke wears three names by who is in view: turned on God's apostate, unsealed people (the **day of slaughter**, beginning at His house) it is the inner face; reaching the world, all nations (the **day of the LORD**) it is the outer; and its protective obverse — the marking that exempts the obedient — is the **sealing**. One scope-note, then the knot.
-
-- _Rev. 10:7._ "The mystery of God should be finished" — the seventh angel's sounding consummates all the prophets foretold. DAR 507.
-- _Rev. 11:15._ "The kingdoms of this world are become the kingdoms of our Lord" — kingdom-transfer from earthly to heavenly rule.
-- _Rev. 11:18._ "The time of the dead, that they should be judged... reward unto thy servants... destroy them which destroy the earth" — judgment, reward, destruction; one trumpet.
-
-**Gloss —** seventh trumpet's internal order — kingdom-transfer, then judgment on nations, then "the close of the priesthood of Christ" as the holy of holies opens at the 2300 days' end; probation shuts WITHIN the trumpet (DAR 507.4).
-
-**DEFINITION — THE SEVENTH TRUMPET =** the consummation-trumpet (Rev 10:7; 11:15-19; Smith DAR 507): Christ takes the kingdom, the dead judged, saints rewarded, probation closes (temple opened), wicked destroyed. Seven last plagues / day of slaughter (defined above) = executing-wrath phase WITHIN it — the third woe, after probation shuts — not the whole trumpet.
-
-- **Day of the LORD = seventh trumpet = seven last plagues** — The Day of the Lord IS the Seventh Trumpet (Parts 1-4).
-- **= the wine of God's wrath, unmixed** — What Is the Wine of God's Wrath? (cup = sword; Ps 75:8 vs Rev 14:10).
-- **= the day of slaughter (the INNER face — on God's apostate house, begins at the sanctuary)** — The Day of Slaughter (Isa 34:2-8 names it "the day of the LORD'S vengeance"; Jer 25:29-33 fixes the inward→outward order).
-- **whose protective obverse = the sealing time of Rev 7 / Ezek 9** — The Sealing Time (TM 445.2; EW 38 → 279 → 280; GC 656; Zeph 2:1-3).
-
-**DEFINITION — THE EQUATION =** one judgment, three faces by audience, two outcomes. The same stroke is the day of the LORD (the prophets) = the seventh trumpet / third woe / seven last plagues (Revelation) = the wine of God's wrath unmixed (the cup = the sword) = the day of slaughter (Jer 25:29-33; Isa 34:2-8). It BEGINS at God's own apostate, unsealed house and sanctuary — the inner face, the day of slaughter (1 Pet 4:17; Ezek 9:6; GC 656.2) — and sweeps OUTWARD to all nations — the outer face, the day of the LORD (Jer 25:29). Its protective obverse is the sealing time of Rev 7 = Ezek 9 (TM 445.2): four winds held while the sighing, obedient ones are marked; sealing reported done; probation closes; the slaughter-weapons move. Two outcomes — **sealed** (heed the warning, hid in the day, Zeph 2:3) or **slain** (the disobedient who would not be sealed, as AD 70 and Babylon's siege). Each member carries its own section above; this section only ties the knot.
-
----
-
-## Seven Within a Seven — Jericho and the Seventh Trumpet
-
-> 7th trumpet = 7th vial, one event: both "the seventh angel," both "It is done" from the opened temple, both close in "voices, thunders, lightnings, and a great earthquake" (_Rev. 11:15-19_ ↔ _16:17-18_). So the last trumpet _contains_ the seven last plagues — a seven within a seven, the Bible's pattern for a doomed city's fall, typified at Jericho.
-
-- _Rev. 11:15-19._ The seventh angel sounds; the kingdoms become the Lord's; the temple opened, "lightnings, and voices, and thunderings, and an earthquake, and great hail."
-- _Rev. 16:17-18._ The seventh vial poured; from the temple, "It is done"; "voices, and thunders, and lightnings," and the greatest earthquake "since men were upon the earth."
-
-**The Jericho type — seven priests, seven trumpets, the seventh day, seven circuits, the shout, the wall:**
-
-- _Josh. 6:3-5._ Seven priests, seven trumpets; seventh day, seven circuits; long blast, all shout, "the wall of the city shall fall down flat" — six days single circuits, seventh day holds seven.
-- _Josh. 6:15-16._ Seventh day, seven circuits; at the seventh, priests blow, Joshua: "Shout; for the LORD hath given you the city" — seventh circuit = moment of conquest.
-- _Josh. 6:20._ People shout, priests blow, "the wall fell down flat" — trumpet, shout, wall fallen.
-
-**Gloss —** the seventh circuit's "blast that shook the very earth" topples the walls and "towers" — trumpet-encircling, then the shout, then the fall (PP 491.1).
-
-- _Rev. 16:18._ "a great earthquake, such as was not since men were upon the earth."
-- _Isa. 30:25._ the day "when the towers fall."
-- _Rev. 16:19-20._ "great Babylon came in remembrance before God"; "every island fled away."
-
-**A pioneer draws the line — Miller reads the trumpet by Jericho** (his proof-text the same _Amos 3:6_ this study uses):
-
-**Gloss —** Miller's rule: "the sounding of trumpets is always used to denote the downfall" of empires; "at the fall of Jericho, the trumpet was the instrument... [that] cast down her walls" (MWV2 115.3).
-
-- _Amos 3:6._ "Shall a trumpet be blown in the city, and the people not be afraid?" — the LORD does the evil in the city.
-
-**Gloss —** James White maps the six fallen parts onto the trumpets, then: "under the seventh trumpet great Babylon entire will sink to rise no more at all" (SSTR 2.1).
-
-**Why the seventh contains seven — the covenant's sevenfold rod:**
-
-- _Lev. 26:21._ "I will bring **seven times more plagues** upon you" — covenant rod = sevenfold plague on the unrepentant.
-- _Lev. 26:28._ "I will chastise you seven times" — the same sevenfold chastisement in fury.
-- _Rev. 15:1._ "seven last plagues; for in them is filled up the wrath of God" — the sevenfold rod to full measure.
-- _2 Kgs. 5:14._ Naaman dips seven times, made whole — a lesser seven confirming completion lives in the seventh.
-
-**The loud cry = encircling trumpet; the shout = the fall.**
-
-- _Rev. 18:2._ "Babylon the great **is fallen, is fallen**" — the loud cry's announcement, the shout before the wall.
-- _Rev. 18:4._ "**Come out of her**, my people... that ye receive not of her plagues" — God's people called out before the wall falls in the day of slaughter.
-
-**DEFINITION — SEVEN WITHIN A SEVEN =** the Bible's own structure for a doomed city's downfall, typified at Jericho (Josh 6): seven priests, seven trumpets, and on the seventh day seven circuits, climaxing in the shout and the falling wall (PP 491). Miller fixes the prophetic trumpet by this type — "at the fall of Jericho, the trumpet was the instrument... which cast down her walls" (_Miller's Works_, vol. 2, 115). So Revelation's seven trumpets are Jericho's antitype: they sound the fall of great Babylon, and the SEVENTH trumpet — the seventh circuit — contains the SEVEN last plagues (the sevenfold covenant-rod of Lev 26:21), at whose pouring the shout goes up (Rev 18:2) and the wall falls flat (Rev 16:18-19). The loud cry is the encircling trumpet of warning; the seventh-trumpet plagues are the shout that brings the city down.
+**DEFINITION — THE ROD OF HIS INDIGNATION =** heathen power God raises to punish His apostate, idol-serving people (Assyria + Babylon — both "lions," Isa 10:5; Jer 50:17; + Saracen + Ottoman of the two past woes). First two woes = this rod, named + dated. QUALIFIER: that third woe = this rod again, and specifically the eastern Turk = the study's interpretive thesis by figure-transfer — no text names or dates it as the two past woes are named. Certain part = the _kind of thing_ (heathen rod, day of vengeance); identity = present-truth application.
 
 ---
 
@@ -827,77 +479,31 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 
 ---
 
-## The Rod of His Indignation — A Heathen Power as God's Rod
+## The Fourth Angel's Message — Strength to the Third, the Cry of the Plagues
 
-> **Settled figure: God raises a heathen power as His rod to punish His apostate people; the first two woes (Saracen, Ottoman) = that rod. Thesis: same kind of rod returns for the third.**
+> **The fourth angel brings no new message — it gives STRENGTH to the third, and (via Rev 18:4 "her plagues") presses the EASTERN question — the plagues — directly. It is the four-winds message (defined in "The Four Winds, the Whirlwind, the Winds," below).**
 
-- _Isa. 10:5._ Assyria = "the rod of mine anger," the staff "mine indignation."
-- _Isa. 10:6._ Sent against "an hypocritical nation" to spoil and tread down — heathen empire as God's rod against apostate Israel.
-- _Jer. 50:17._ Assyria + Babylon, the two rods, = "the lions" that devoured Israel.
-- _Rev. 9:8._ Eastern agent has teeth "as the teeth of lions" — heathen rod, lion-like.
-- _Rev. 9:17._ Horses' heads "as the heads of lions," mouths issuing fire, smoke, brimstone.
-- _Joel 1:6._ Locust-nation with "the teeth of a lion" — John's very imagery for the eastern rod.
-- _Joel 2:4._ Their appearance "as the appearance of horses," running as horsemen.
-- _Joel 2:5._ Leaping "like the noise of chariots," "like the noise of a flame of fire."
-- _Jer. 25:15._ Rod administers the "wine cup of this fury" to all nations.
-- _Jer. 25:16._ They drink and are mad "because of the sword that I will send among them."
+- _Rev. 18:1._ Another angel down from heaven, "the **earth was lightened with his glory**" — the fourth angel, the loud cry.
+- _Rev. 18:2._ "**Babylon the great is fallen, is fallen**" — the cry that swells the third angel's message.
+- _Rev. 14:9-10._ Third angel threatens "the **wine of the wrath of God**" (the plagues) on the worshippers of the beast and his mark — the fourth angel amplifies this same plague-warning.
+- _Rev. 18:4._ "Come out of her, my people... that ye **receive not of her plagues**" — names the PLAGUES (the eastern question) and calls God's people to escape them.
+- _EW 277.1._ Fourth angel gives "power and force" to the third angel's message — as the 1840 trumpet empowered the first.
+- _EW 278.2._ Loud cry hurries God's people out before destruction, "as **Lot was hurried out of Sodom** before her destruction."
 
-**DEFINITION — THE ROD OF HIS INDIGNATION =** heathen power God raises to punish His apostate, idol-serving people (Assyria + Babylon — both "lions," Isa 10:5; Jer 50:17; + Saracen + Ottoman of the two past woes). First two woes = this rod, named + dated. QUALIFIER: that third woe = this rod again, and specifically the eastern Turk = the study's interpretive thesis by figure-transfer — no text names or dates it as the two past woes are named. Certain part = the _kind of thing_ (heathen rod, day of vengeance); identity = present-truth application.
+**DEFINITION — THE FOURTH ANGEL'S MESSAGE =** the loud cry (Rev 18:1) that swells and empowers the third angel's message (EW 277.1), hurrying God's people out before the plagues (Rev 18:4; EW 278.2) — the cry that the day of slaughter / seventh trumpet (the eastern question) is at hand.
 
 ---
 
-## The Seal of God and the Sealing — In the Day of Slaughter, the Slain Are the Unsealed
-
-> **Rod strikes only the unsealed (Rev. 9:4; Ezek. 9:6) → slain = of necessity not sealed; sealing and slaughter = two opposite outcomes of one closing crisis. First: what IS the seal?**
-
-**The Seal Defined (Rule 12).** Seal = owner's name + title + extent of dominion. Fourth commandment alone carries all three — "the LORD" (name), "made" (Creator, His title), "heaven and earth" (His dominion) → Sabbath = seal of God's law.
-
-- _Ex. 31:13._ Sabbath a "sign between me and you... throughout your generations."
-- _Ex. 31:17._ Sign "for ever" — for in six days the LORD made heaven and earth.
-- _Ezek. 20:12._ My sabbaths a sign, that they "know that I am the LORD that sanctify them."
-- _Ezek. 20:20._ Hallow my sabbaths, "a sign... that ye may know that I am the LORD."
-- _Isa. 8:16._ "Bind up the testimony, seal the law among my disciples."
-- _Rev. 14:1._ 144,000 have "his Father's name written in their foreheads" — seal = Father's name/character, opposite of the mark.
-
-**Gloss —** the Sabbath crisis sorts the world in two: false sabbath = mark of the beast, true Sabbath = "the seal of God"; "the keeping of the true Sabbath... an evidence of loyalty to the Creator" (GC 605.2).
-
-- _Rev. 9:4._ Fifth trumpet hurts "only those men which have not the seal of God" — eastern rod (Saracen) strikes only the unsealed. DAR 475-476.
-
-**Gloss —** fifth-trumpet history confirms the rule literally — Rome, "the very church which has robbed the law of God of its seal," lacked the seal and "were put to the sword," while "none of those who had the seal of God were molested" (DAR 475.1).
-
-- _Ezek. 9:4._ "set a mark upon the foreheads of the men that sigh and that cry" — sealing of the faithful before the slaughter. ("this sealing of the servants of God is the same that was shown to Ezekiel in vision" TM 445.2; "the seal of God will be placed upon the foreheads of those only who sigh and cry for the abominations done in the land" 5T 212.3.)
-- _Ezek. 9:5-6._ "smite: let not your eye spare... but come not near any man upon whom is the mark; and begin at my sanctuary" — slaughter falls on the unmarked, begins at the church.
-- _Rev. 7:3._ "Hurt not the earth... till we have sealed the servants of our God" — no hurt till sealing complete.
-- _Jer. 25:33._ "the slain of the LORD shall be at that day from one end of the earth even unto the other" — same scene EGW joins to Ezekiel 9 + slaughter weapons. GC 656.
-
-**Gloss —** EGW fuses Ezekiel 9, the slaughter weapons, and Jer. 25:33 into one final scene — "the work of destruction begins among those who have professed to be the spiritual guardians... the false watchmen are the first to fall" (GC 656.2-656.3).
-
-**DEFINITION — SEAL OF GOD =** God's sign on foreheads of the faithful — the true Sabbath, the only commandment bearing His name, title, and dominion (Ex. 31:13, 17; Ezek. 20:12, 20; Isa. 8:16; Rev. 14:1; GC 605); settled, intelligent loyalty to the Creator.
-
-**DEFINITION — SEALING =** the work that must finish before the slaughter falls. Rev. 9:4 + Ezek. 9:6: rod strikes only the unmarked → whoever is slain is, of necessity, NOT sealed. Sealing and slaughter = two opposite outcomes of one closing crisis.
-
-**The sealing IS the judgment of the living.** Ezek. 9's mark-then-slay = a judgment that begins at the house of God (_1 Pet. 4:17_); the same closing-of-Christ's-sanctuary-work that decides who is sealed.
-
-- _1 Pet. 4:17._ "judgment must begin at the house of God" — the mark-then-slay is that judgment.
-
-> 📖 **JUDGMENT OF THE LIVING** = the closing phase of Christ's work in the heavenly sanctuary, the judgment now begun (_Dan. 7:9-10_) -> determines who is sealed before the four winds loose as the day of slaughter.
-
-**DEFINITION — JUDGMENT OF THE LIVING =** closing phase of Christ's sanctuary work, now begun (_Dan. 7:9-10_; _1 Pet. 4:17_, "judgment must begin at the house of God") — the marking of Ezekiel 9 (_Ezek. 9:4_), sealing the sighing ones before the unmarked are slain.
-
-- _Dan. 7:9-10._ "the judgment was set, and the books were opened" — the Ancient of days sits, the closing judgment now begun.
-
-**Dictionary so far (added here):** SEAL OF GOD · SEALING · JUDGMENT OF THE LIVING
-
----
-
-## The Four Winds — Held Back Until the Sealing Is Done
+## The Four Winds, the Whirlwind, the Winds — Held Back Until the Sealing Is Done
 
 > **One closing crisis, three consecutive phases: winds held → sealing finishes → winds loose → slaughter falls.**
 
 - _Rev. 7:1._ Four angels hold the four winds — restrained strife (see WIND, above).
 - _Rev. 7:2-3._ Held until "we have sealed the servants of our God" — winds wait on the sealing.
 - _Dan. 7:2._ "The four winds of the heaven strove upon the great sea" — Bible's own definition: winds = strife, commotion, war among nations.
+- _Jer. 23:19._ "a whirlwind of the LORD is gone forth in fury... it shall fall grievously upon the head of the wicked" — the LORD's wind of judgment on the wicked.
 - _Jer. 25:32-33._ Great whirlwind from the coasts; "the slain of the LORD shall be at that day from one end of the earth even unto the other end" — loosed wind IS the day of the slain.
+- _Jer. 30:23._ The same continuing whirlwind of the LORD falls upon the head of the wicked — the whirlwind-stroke of judgment.
 - _EW 36._ Angels hold till Jesus' sanctuary work is done; "then will come the seven last plagues," then decree to slay the saints.
 
   **Gloss —** holding-the-winds = the seal of probation: angels hold "until Jesus' work was done in the sanctuary, and then will come the seven last plagues," then "a decree went forth to slay the saints" (EW 36.1-36.2).
@@ -910,7 +516,15 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 
   **Gloss —** the sealing is the covering against the loosed winds: drawn now "just now in this sealing time," and "soon... drawn over all who are to have a shelter in the day of slaughter" — unsealed left "without a shelter from the burning wrath of God" (EW 44.1-44.2).
 
+> 📖 **WHIRLWIND** = the LORD's wind of judgment going forth upon the wicked (_Jer. 23:19; 25:32; 30:23_, "a whirlwind of the LORD is gone forth in fury... it shall fall grievously upon the head of the wicked") -> the loosed four-winds stroke = the day of the slain.
+
+> 📖 **FOUR WINDS** = the strife of all nations held back, then loosed (_Rev. 7:1; Dan. 7:2_) -> the seven last plagues / day of slaughter.
+
 **DEFINITION — THE FOUR WINDS =** strife/war of the nations (_Dan. 7:2_), held by the angels till the sealing is finished, then loosed as the seven last plagues. **THE DAY OF SLAUGHTER =** the loosing of the winds. **THE SEALING =** the work that closes the moment the winds blow. Four winds + sealing + day of slaughter = three consecutive phases of ONE closing crisis (EW 36, 38, 44) — sealed sheltered, unsealed slain.
+
+**Dictionary so far (added here):** WHIRLWIND · FOUR WINDS
+
+---
 
 ## The Loud Cry — The Warning That the Day of Slaughter Is at Hand
 
@@ -925,10 +539,7 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 
 **[Watchman's synthesis — drawn, not asserted from the pioneers.]** Bookend: first message lit by a _trumpet_ (sixth, "with mixture," 1840); last work (loud cry) lit as the _seventh_ trumpet ("without mixture") comes to sound — warning trumpet at the start, executing trumpet at the close. Symmetry = watchman's reading; certainty = the three sourced ignitions.
 
-- _Rev. 18:1._ Another angel down, "the **earth was lightened with his glory**" — fourth angel, loud cry.
-- _Rev. 18:4._ "Come out of her, my people... that ye **receive not of her plagues**" — call to escape the plagues (the day of slaughter).
-- _EW 277.1._ Fourth angel gives power and force to third angel's message — as the 1840 trumpet empowered the first.
-- _EW 278.2._ Loud cry hurries God's people out before destruction, as Lot from Sodom ("the precious were hurried out of the doomed churches, as Lot was hurried out of Sodom before her destruction").
+**The fourth angel (Rev 18, "the earth lightened with his glory") IS that loud cry — its strengthening of the third angel and its cry of the plagues were defined in "The Fourth Angel's Message," above. Here the loud cry is taken as the watchman's trumpet.**
 
 - _Num. 10:9._ War-alarm trumpet blown that ye be remembered and saved from the enemy.
 - _Joel 2:1._ "Blow ye the trumpet in Zion... sound an alarm" — the day of the LORD at hand.
@@ -971,32 +582,61 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 
 ---
 
-## The Day of Slaughter Is the Day of the LORD — Ezekiel 9, the Judgment of the Living, and the Sign of the Falling Towers
+## The Day of Slaughter — One Scene, Beginning at the House of God
 
-> The chain is established; here it converges. A symbol-cluster — towers, riches, a burning merchant-city watched from afar, slaughter-weapons from the north — marks the herald event; 9/11 / the World Trade Center fits it as the watchman's PRESENT-TRUTH sign, not a dated pioneer fulfilment.
+> **The day of slaughter and the day of the LORD are ONE judgment seen from two ends; here the chain converges.** Named by its work — slaughter — it has a starting point and a full extent. It BEGINS at the house of God: the stroke on God's own professed-but-unsealed people, apostate Christendom, the false watchmen first (Ezek 9:6; 1 Pet 4:17). It then spreads OUTWARD to the world — all nations, end to end (the "day of the LORD," Jer 25:29-33). Inner face = day of slaughter (His apostate house); outer face = day of the LORD (the heathen world); one sword, one day. Gather every passage (Rule 4) → one picture: whirlwind, sword, winepress, sacrifice, slain of the LORD end to end — and a symbol-cluster (towers, riches, a burning merchant-city watched from afar, slaughter-weapons from the north) marking the herald event. Who falls and who is sheltered is fixed by the sealing (next section); and escape — then as now — is by obedience to the warning.
 
 **The four-way equation, one line.**
 
 - Day of slaughter = day of the LORD = Ezekiel 9 (seal the sighing, slay the unmarked, "begin at my sanctuary") = the judgment of the living begun — judgment must begin at the house of God (_1 Pet. 4:17_).
 
-**Ezekiel 9 — seal first, then slaughter; begin at the sanctuary.**
+**The prophets' slaughter vocabulary — one scene across the prophets.**
+
+- _Isa. 34:2-8._ All-nations slaughter NAMED "the day of the LORD'S vengeance" (v. 8) — slaughter and day-of-the-LORD bound in one text; "the LORD hath a sacrifice in Bozrah, and a great slaughter"; the sword "filled with blood," "a great slaughter in the land of Idumea."
+- _Jer. 25:30._ LORD "shall roar... as they that tread the grapes, against all the inhabitants of the earth."
+- _Jer. 25:33._ "The slain of the LORD... from one end of the earth even unto the other end" — worldwide slaughter, end to end.
+- _Isa. 63:3._ "I have trodden the winepress alone... I will tread them in mine anger" — the day = winepress of wrath (cf. unmixed wine, _Rev. 14:10_).
+- _Isa. 63:4._ "The day of vengeance is in mine heart, and the year of my redeemed is come."
+- _Zeph. 1:7._ "The day of the LORD is at hand: for the LORD hath prepared a sacrifice, he hath bid his guests" — the day = the LORD's prepared sacrifice.
+- _Zeph. 1:8._ In "the day of the LORD'S sacrifice" He punishes the princes and "all such as are clothed with strange apparel" — the victims appointed.
+- _Jer. 12:3._ God "prepare[s] them for the day of slaughter" — pulled out "like sheep for the slaughter."
+- _Jer. 50:25._ "The LORD hath opened his armoury, and hath brought forth the weapons of his indignation" against the Chaldeans.
+- _Jer. 50:26-27._ Babylon's bullocks "go down to the slaughter... for their day is come, the time of their visitation."
+- _James 5:1._ "Ye rich men, weep and howl" — woes coming.
+- _James 5:5._ "Ye have nourished your hearts, as in a day of slaughter."
+- _James 5:8._ "The coming of the Lord draweth nigh."
+
+### Ezekiel 9 — Seal First, Then Slaughter; Begin at the Sanctuary
 
 - _Ezek. 9:1-2._ Slaughter-weapons summoned; six men from the gate "toward the north," each "a slaughter weapon"; one in linen with an inkhorn — the sealer among the slayers.
 - _Ezek. 9:4._ Mark first — set on the foreheads of "the men that sigh and that cry" — the sealing before the stroke.
-- _Ezek. 9:5-6._ Then slay — "begin at my sanctuary" — the rod falls on the unmarked, starting at the church.
+- _Ezek. 9:6._ Then slay — "begin at my sanctuary" — the rod falls on the unmarked, starting at the church; the stroke starts at God's professed people, the false watchmen first.
 - _Ezek. 9:11._ Sealing reported complete — "I have done as thou hast commanded" — before the slaughter runs.
 - _Rev. 7:3._ Hurt not earth, sea, trees "till we have sealed the servants of our God in their foreheads."
-- _1 Pet. 4:17._ "judgment must begin at the house of God" — Ezekiel 9 = the judgment of the living, begun at the sanctuary.
+- _1 Pet. 4:17._ "Judgment must begin at the house of God" — same fixed order, inward first; Ezekiel 9 = the judgment of the living, begun at the sanctuary.
+- _Jer. 25:29._ "I begin to bring evil on the city which is called by my name... THEN... a sword upon all the inhabitants of the earth" — inward → outward.
 
-**Gloss —** Ezekiel 9 = sealing-then-slaughter that begins at the sanctuary; "the false watchmen are the first to fall" — judgment of the living on the professed church (GC 656.2).
+**Gloss —** Ezekiel 9 = sealing-then-slaughter that begins at the sanctuary; the false watchmen fall first — the professed guardians, not the heathen, are the first slain; the slaughter on the apostate house IS the inner face of the day of the LORD on the world (GC 656.2).
 
-**The symbol-cluster — four strands point to one herald (Rule 4: gather every passage).**
+### Begins at the House of God — and the Way of Escape
 
-- **TOWERS FALL.** _Isa. 30:25._ "the day of the great slaughter, when the towers fall" — the day of slaughter dated by falling towers.
+- **AD 70 — flee Judea.** _Luke 21:20-21._ The literal sign (armies / Roman standards) was given; those who obeyed lived.
+- **Gloss —** "Not one Christian perished in the destruction of Jerusalem... all who believed His words watched for the promised sign... an opportunity was offered for all who would, to obey the Saviour's warning... Without delay they fled to a place of safety—the city of Pella" (GC 30.2).
+- **Gloss —** Litch saw the same: "the Saviour took care to deliver those that trusted in him... and not a Christian perished there" (PREX1 176.2).
+- **Gloss —** the herald of that doom was a four-winds cry against the temple: "A voice from the east! a voice from the west! a voice from the four winds! a voice against Jerusalem and against the temple!... 'Woe, woe to Jerusalem!'" — the day-of-slaughter warning in its type (GC 30.1).
+- **Babylon's siege — surrender and live.** _Jer. 21:8-9._ "Behold, I set before you the way of life, and the way of death. He that abideth in this city shall die by the sword... but he that goeth out, and falleth to the Chaldeans... he shall live."
+- _Jer. 38:2._ He that stays dies by sword, famine, pestilence; he that goes out to the Chaldeans lives.
+- _Jer. 38:17-20._ "Obey, I beseech thee, the voice of the LORD... so it shall be well unto thee, and thy soul shall live" (v. 20) — go forth and live.
+- _Jer. 27:12-13._ Bring your necks under the yoke of Babylon and live; why die by sword, famine, pestilence?
+- _Rev. 18:4._ "Come out of her, my people" — the country-living / come-out-of-the-cities call (defined at the loud cry); the same escape-by-warning the Christians obeyed before Jerusalem fell and Jeremiah preached before Babylon's fall.
+
+### The Symbol-Cluster — Four Strands Point to One Herald (Rule 4: gather every passage)
+
+- **TOWERS FALL.** _Isa. 30:25._ "In the day of the great slaughter, when the towers fall" — the day of slaughter dated by falling towers.
 - **THE LOFTY BROUGHT LOW.** _Isa. 2:12-19._ "the day of the LORD" upon every "high tower," every "fenced wall," "the ships of Tarshish" — the proud merchant-strength brought low, men hiding "for fear of the LORD."
 - _Isa. 26:5._ "the lofty city, he layeth it low... even to the dust."
 - _Ezek. 26:4._ Tyre's "towers" broken down — the merchant-tower felled.
-- **RICHES FAIL.** _James 5:1-3._ "ye rich men, weep and howl... ye have heaped treasure together for the last days" — wealth a witness against its hoarders in the day of slaughter (cf. _James 5:5_, "as in a day of slaughter," quoted earlier).
+- **RICHES FAIL.** _James 5:1-3._ "ye rich men, weep and howl... ye have heaped treasure together for the last days" — wealth a witness against its hoarders in the day of slaughter (cf. _James 5:5_, "as in a day of slaughter," quoted above).
 - _Zeph. 1:18._ silver and gold "shall not be able to deliver them in the day of the LORD'S wrath."
 - _Ezek. 7:19._ silver and gold "shall not be able to deliver them in the day of the wrath of the LORD."
 - _Prov. 11:4._ "Riches profit not in the day of wrath."
@@ -1005,16 +645,13 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 - _Rev. 18:9-11._ Kings and merchants "see the smoke of her burning, Standing afar off... for in one hour is thy judgment come... no man buyeth their merchandise any more."
 - _Rev. 18:15-19._ Merchants made rich by her "stand afar off... when they saw the smoke of her burning... for in one hour so great riches is come to nought."
 - _Ezek. 27:27._ Tyre's "riches... merchandise... men of war... shall fall... in the day of thy ruin" — the merchant-city's fall, the Old-Testament type.
-- **SLAUGHTER-WEAPONS FROM THE NORTH.** _Jer. 50:25._ "The LORD hath opened his armoury... the weapons of his indignation."
-- _Isa. 13:5._ the weapons of His indignation "from a far country... to destroy the whole land."
-- _Jer. 12:3._ "prepare them for the day of slaughter."
-- _Isa. 34:2-6._ The slaughter of all nations, the sword "filled with blood," "a great slaughter in the land of Idumea" — the day of slaughter's weaponry (quoted earlier as the day of the LORD's vengeance).
+- **SLAUGHTER-WEAPONS FROM THE NORTH.** _Isa. 13:5._ the weapons of His indignation "from a far country... to destroy the whole land."
 
 > 📖 **TOWER** = the lofty and proud brought low in the day of the LORD (_Isa. 2:15; 30:25; Ezek. 26:4_) -> the high towers/fenced walls felled in the day of slaughter (_Isa. 30:25_), antitype of Jericho's towers (PP 491).
 
 > 📖 **RICHES / MERCHANDISE** = trust in wealth that cannot deliver in the day of wrath (_Prov. 11:4; Zeph. 1:18; Ezek. 7:19_) -> the merchant-Babylon whose riches "come to nought" in one hour, watched burning afar (_Rev. 18:11, 17_).
 
-**North -> Euphrates -> the eastern question / third woe; 9/11 attributed to a Muslim force.**
+### North → Euphrates → the Eastern Question / Third Woe; 9/11 Attributed to a Muslim Force
 
 - _Jer. 46:10._ the day of vengeance set "in the north country by the river Euphrates" — the NORTH ties to the EUPHRATES = the seat of the eastern question (cf. _Rev. 9:14; 16:12_).
 - _Jer. 1:14-15._ "Out of the north an evil shall break forth" — the families of the north against Jerusalem's gates and walls.
@@ -1024,7 +661,7 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 
 > 📖 **THE NORTH** = the quarter the invading rod comes from, tied to the Euphrates (_Jer. 1:14; 6:1; 25:9; 46:10_) -> the slaughter-weapons of Ezekiel 9 (from "toward the north," _Ezek. 9:2_) and the eastern/Euphratean rod of the third woe.
 
-**The EGW herald — New York's "fireproof" towers consumed.**
+### The EGW Herald — New York's "Fireproof" Towers Consumed
 
 **Gloss —** signs declare Christ near; "plagues and judgments are already falling" with "the alarms of war" — the day of slaughter already at the door (9T 11.1).
 
@@ -1034,84 +671,234 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 
 **Gloss —** the burning = God's retribution — no material preserves a building "when God's appointed time comes to send retribution" on proud men's disregard of His law (9T 13.2).
 
-**The present-truth herald, LABELED.**
+### The Present-Truth Herald, LABELED
 
 > **[TANGENT — present application, beyond where the pioneers stopped]** The cluster — lofty merchant-city, its towers, its riches unable to deliver, struck and burning, watched worldwide, the weapons from the north/Euphratean east — fits September 11, 2001: the World Trade CENTER (commerce), its towers, New York, by fire, watched everywhere, publicly attributed to a Muslim force (the eastern-rod figure). EGW saw New York's "fireproof" towers consumed by a fire firemen could not stop (9T 12-13). This is the watchman's sign that the four winds are loosing and the judgment of the living is beginning — present-truth application of the proven symbol-chain, **not** a pioneer date-calculation; no text dates it as the past woes are dated. Certainty belongs to the chain (day of slaughter = day of the LORD = Ezek 9 = judgment of the living); the marker belongs to watchfulness (_Rev. 16:15_, "Blessed is he that watcheth").
 
 - _Rev. 16:15._ "Behold, I come as a thief. Blessed is he that watcheth" — the marker belongs to watchfulness, not a date.
 
-**DEFINITION — THE DAY OF SLAUGHTER = THE DAY OF THE LORD = EZEKIEL 9 = THE JUDGMENT OF THE LIVING BEGUN.** Ezekiel 9 seals the sighing ones, then slays the unmarked "beginning at my sanctuary" (_Ezek. 9:4-6_) — the judgment that "must begin at the house of God" (_1 Pet. 4:17_), executed by slaughter-weapons "toward the north" (_Ezek. 9:2_). The prophets cluster the herald: towers fall (_Isa. 30:25; 2:15_), riches cannot deliver (_Zeph. 1:18; Prov. 11:4; James 5:1-3_), the merchant-city is burned in one hour and watched afar (_Rev. 18:8-19; Ezek. 27:27_), the weapons come from the north by the Euphrates (_Jer. 46:10; 1:14; 50:3_) — the Islamic-east rod of the third woe. By the study's figure-transfer thesis (not a dated fact), the herald is 9/11 / the World Trade Center — its towers, riches, fire, and eastern attribution matching the cluster, and EGW's vision of New York's "fireproof" towers consumed (9T 12-13) — the watchman's present-truth sign that the winds are loosing and the judgment of the living has begun.
+**DEFINITION — THE DAY OF SLAUGHTER =** the inner face of the day of the LORD = Ezekiel 9 = the judgment of the living begun — the stroke named by its work, falling FIRST on God's own apostate, unsealed people and beginning at His sanctuary: Ezekiel 9 seals the sighing ones, then slays the unmarked "beginning at my sanctuary" (_Ezek. 9:4-6_) — the judgment that "must begin at the house of God" (_1 Pet. 4:17_; cf. _Jer. 25:29_; GC 656.2), executed by slaughter-weapons "toward the north" (_Ezek. 9:2_), then spreading outward to all nations (the day of the LORD proper). Painted in the prophets' fixed vocabulary: the LORD's day of vengeance (_Isa. 34:2-8_), the winepress trodden (_Isa. 63:3-4_), the sacrifice prepared (_Zeph. 1:7-8_), the armoury of His indignation opened (_Jer. 50:25-27_), the slain of the LORD end to end (_Jer. 25:33; James 5:5_) = the third woe / the seventh trumpet's executing judgment. The prophets cluster the herald: towers fall (_Isa. 30:25; 2:15_), riches cannot deliver (_Zeph. 1:18; Prov. 11:4; James 5:1-3_), the merchant-city is burned in one hour and watched afar (_Rev. 18:8-19; Ezek. 27:27_), the weapons come from the north by the Euphrates (_Jer. 46:10; 1:14; 50:3_) — the Islamic-east rod of the third woe. By the study's figure-transfer thesis (not a dated fact), the herald is 9/11 / the World Trade Center — its towers, riches, fire, and eastern attribution matching the cluster, and EGW's vision of New York's "fireproof" towers consumed (9T 12-13) — the watchman's present-truth sign that the winds are loosing and the judgment of the living has begun. Escape is by obedience to the warning — as AD 70 (flee Judea, GC 30.2) and Babylon's siege (surrender and live, Jer 21:8); the slain = the disobedient who would not be sealed. Who is sheltered is decided by the sealing (next section).
 
 **Dictionary so far (added here):** TOWER · RICHES/MERCHANDISE · THE NORTH
 
-## The Thesis, Assembled
+---
 
-- _Rev. 9:18._ Trumpet = real war God sends as judgment = "plague."
-- _Rev. 9:20._ The plague that slew = the trumpet's killing — same judgment, named "plagues."
-- _Rev. 8._ First six trumpets = **with mixture** (a third part); mercy still restraining.
-- First two **woes** = the rod: Saracens (1st), Ottomans (2nd); ended to the day Aug. 11, 1840.
-- _Rev. 16:9._ Plague = war, the same _kind_ of judgment, now poured **without mixture**.
-- _Rev. 9:20; 16:9._ Trumpet = plague = war, same _kind_ — so **third woe** = real rod **without mixture** = seven last plagues, "wrath of God without mixture," sounded by seventh trumpet. Andrews, _TMR_ 115-116.
-- _Matt. 24._ **Fulfilled once, applied often**: prophecy "twofold in its meaning" (GC 25.3), type only "partly" fulfilled, "exact fulfillment" reserved for the antitype (MWV2 7.1-2) — local day-texts = repeatable typical applications; **all-nations** language = the one complete fulfillment.
-- _Joel 2:1._ "Blow the trumpet" — opens the day of the LORD = seventh and last trumpet.
-- _Zeph. 1:16._ "A day of the trumpet and alarm" against fenced cities — same trumpet-day.
-- _Isa._ Paints that day in trumpet-and-vial vocabulary: darkened lights, blood, fire, smoke.
-- _Jer._ Same signature, never named: the slain of the LORD from one end of earth to the other.
-- _Amos._ The day of the LORD in trumpet-alarm and lion's-roar vocabulary — the seventh trumpet.
-- _Jer. 46:10._ "The day of the Lord GOD of hosts" set at the Euphrates — slain of the LORD.
-- _Jer. 25._ Seventy years -> cup to **all nations** -> slain of the LORD end to end; the phrase never appearing.
-- _Jer. 25:15-16._ The wine of God's wrath = the cup = the sword: "be mad, because of the sword that I will send among them" (_Jer. 25:16_).
-- _Jer. 25:27._ Drink, be drunken, fall, rise no more — the cup of wrath emptied.
-- _Isa. 51:19._ Its contents = desolation, destruction, famine, sword. Andrews, _TMR_ 115-116.
-- _Ps. 75:8._ The cup in history "full of mixture."
-- _Rev. 14:10._ At the end "without mixture" — wrath poured undiluted.
-- _TM 445.2._ **The equation**: day of the LORD = seven last plagues = day of slaughter = sealing time of Rev. 7/Ezek. 9 — "this sealing of the servants of God is the same that was shown to Ezekiel" (TM 445.2).
-- _Zeph. 2:1-3._ The gathering happens "before the day of the LORD'S anger."
-- _EW 38._ Winds held till the servants are sealed.
-- _EW 279-280._ Sealed and numbered, censer thrown down.
-- _GC 656._ Slaughter-weapons go forth.
-- _Joel 1:6._ **One force**, three settings: the locust-army with lion-teeth God "sent."
-- _Joel 2:3-5._ Locust-army as horses, chariots, fire = fifth-/sixth-trumpet cavalry.
-- _Joel 2:25._ "My great army which I sent among you" — the same force across the settings.
-- _Rev. 9:7-9._ Fifth-trumpet locusts = horses prepared for battle, lion-teeth — Joel's army.
-- _Rev. 9:17._ Sixth-trumpet horsemen, fire and brimstone — torment to slaughter.
-- _Rev. 16._ Seventh-trumpet vials = total slaughter — same force, third woe.
-- _Judg. 6:5._ The east-army 'arbeh, "like grasshoppers for multitude."
-- _Judg. 7:12._ Children of the east as locusts, camels without number — Arabian east.
-- _Josh. 6._ Structure = Jericho's **seven within a seven**: seven priests, seven trumpets, seventh day's seven circuits, shout, falling wall — seventh trumpet contains seven last plagues (sevenfold covenant-rod). PP 491.
-- _Lev. 26:21._ Sevenfold covenant-rod: "seven times more plagues" for refusing to hearken.
-- _Rev. 18:2._ Loud cry = encircling trumpet of warning, "Babylon is fallen."
-- _Rev. 16:18-19._ Seventh-trumpet plagues = the shout that fells Babylon — great city split.
-- _Miller's Works, vol. 2, 115._ Miller fixed the prophetic trumpet by this type: "at the fall of Jericho, the trumpet was the instrument... which cast down her walls."
-- _Rev. 14:10-11._ **Third angel's message** = this unmixed wrath — fire, brimstone, smoke.
-- _Rev. 9:2._ Penalty cast in first-woe smoke that points back to the rod.
-- _Rev. 9:17-18._ And first-two-woe fire and brimstone — the rod's symbols.
-- _Rev. 13._ **Western question**: beast from earth, image, mark — the third angel deals with it.
-- _Rev. 9:8._ **Eastern question** = third woe / day of vengeance — lion's teeth.
-- _Rev. 9:17._ The horsemen's lion-headed force — the eastern rod.
-- _Jer. 50:17._ By the study's figure-transfer thesis (not a dated pioneer fact) the rod = the eastern power, the Turk, a "lion" like past rods, against all who take the mark.
-- _Rev. 7:1-3._ **Four winds** held till sealing finished.
-- _Rev. 9:4._ **Sealing**: rod strikes only those without the seal.
-- _Ezek. 9:6._ **Day of slaughter**: slay the unmarked, begin at the sanctuary.
-- _Jer. 25:32-33._ Then loosed as day of slaughter — slain of the LORD end to end; the slain = **unsealed**.
-- _Ezek. 33:3-6._ **Loud cry** = message of the four winds = watchman's trumpet: warning the day of slaughter is at hand, call to escape before sealing closes. Ours to blow; the silent watchman bears the blood of the slain. EW 277-278.
-- _Rev. 18:4._ The call to escape: "Come out of her, my people."
+## The Sealing — Revelation 7 IS Ezekiel 9, the Judgment of the Living
 
-> **[TANGENT — present application, beyond where the pioneers stopped]** The pioneers traced the eastern question to August 11, 1840, where the prophetic time ran out and the second woe ended. This study carries the chain forward: the holding-back of the four winds, and the moment they begin to loose, finds its modern marker in the loosing of strife from the east — September 11, 2001 — a visible sign that the sealing time is closing and the third woe, the eastern rod against the mark, is at the door. This is present-truth application of the proven symbol-chain, **not** a pioneer date-calculation. The certainty belongs to the chain; the marker belongs to watchfulness (_Rev. 16:15_).
+> **The sealing is the protective obverse of the slaughter — and the seal is the Sabbath.** Same vision, opposite outcome: the day of slaughter falls on the unmarked; the sealing MARKS God's true people so the stroke passes them. Rod strikes only the unsealed (Rev. 9:4; Ezek. 9:6) → slain = of necessity NOT sealed; sealing and slaughter = two opposite outcomes of one closing crisis. First: what IS the seal? Then: Revelation 7 IS Ezekiel 9 — EGW states it, the sequence locks it to the day's threshold, and the whole is the judgment of the living.
 
-## Appeal
+### What the Seal Is — the Sabbath
 
-- _Rev. 9:4._ Rod hurts only the unmarked — "those men which have not the seal of God in their foreheads."
-- _Ezek. 9:6._ Slay utterly old and young — but "come not near any man upon whom is the mark"; the slain = the unsealed.
-- _EW 44._ Loud cry = mercy's last call: flee by faith, out of the doomed cities, into the shelter over the sealed.
+**The Seal Defined (Rule 12).** Seal = owner's name + title + extent of dominion. Fourth commandment alone carries all three — "the LORD" (name), "made" (Creator, His title), "heaven and earth" (His dominion) → Sabbath = seal of God's law.
 
-  **Gloss —** the sealing-covering being "drawn over God's people" now = their only "shelter from the burning wrath of God" in the "day of slaughter"; flee before it closes (EW 44.2).
+- _Ex. 31:13._ Sabbath a "sign between me and you... throughout your generations."
+- _Ex. 31:17._ Sign "for ever" — for in six days the LORD made heaven and earth.
+- _Ezek. 20:12._ My sabbaths a sign, that they "know that I am the LORD that sanctify them."
+- _Ezek. 20:20._ Hallow my sabbaths, "a sign... that ye may know that I am the LORD."
+- _Isa. 8:16._ "Bind up the testimony, seal the law among my disciples."
+- _Rev. 14:1._ 144,000 have "his Father's name written in their foreheads" — seal = Father's name/character, opposite of the mark.
 
-- _Ezek. 33:5._ Watchman's charge: sound it — "he that taketh warning shall deliver his soul"; hold peace, his blood on our hand.
-- _Rev. 18:4._ "Come out of her, my people, that ye be not partakers of her sins... that ye receive not of her plagues."
-- _Rev. 16:15._ "Behold, I come as a thief. Blessed is he that watcheth, and keepeth his garments."
+**Gloss —** the Sabbath crisis sorts the world in two: false sabbath = mark of the beast, true Sabbath = "the seal of God"; "the keeping of the true Sabbath... an evidence of loyalty to the Creator" (GC 605.2).
+
+- _Rev. 9:4._ Fifth trumpet hurts "only those men which have not the seal of God" — eastern rod (Saracen) strikes only the unsealed. DAR 475-476.
+
+**Gloss —** fifth-trumpet history confirms the rule literally — Rome, "the very church which has robbed the law of God of its seal," lacked the seal and "were put to the sword," while "none of those who had the seal of God were molested" (DAR 475.1).
+
+### The Two Visions, Side by Side — Revelation 7 IS Ezekiel 9
+
+- _Rev. 7:1-4._ Four winds held; "hurt not... till we have sealed the servants of our God in their foreheads" — 144,000 of all the tribes sealed.
+- _Rev. 7:3._ "Hurt not the earth... till we have sealed the servants of our God" — no hurt till sealing complete; the seal is on them BEFORE the stroke.
+- _Ezek. 9:1-6, 11._ Mark first, slaughter after; the marked untouched ("come not near any man upon whom is the mark"); the destruction "begin at my sanctuary"; the inkhorn angel reports "I have done as thou hast commanded me."
+- _Ezek. 9:4._ "set a mark upon the foreheads of the men that sigh and that cry" — sealing of the faithful before the slaughter; the seal set on those only who sigh and cry (5T 212.3).
+- _Ezek. 9:5-6._ "smite: let not your eye spare... but come not near any man upon whom is the mark; and begin at my sanctuary" — slaughter falls on the unmarked, begins at the church.
+
+**Gloss —** EGW's own identity-statement: Revelation 7's sealing = Ezekiel 9's marking — "this sealing of the servants of God is the same that was shown to Ezekiel in vision" (TM 445.2).
+
+**Gloss —** the sealing is the 144,000's closing work, set forth under Ezekiel 9's figure of slaughter-weapon men and the linen-clad inkhorn angel marking the sighing ones (3T 266.2).
+
+**Gloss —** the seal = "the pure mark of truth" by the Holy Ghost, set only on those who sigh and cry; the rest fall with the wicked — EGW's explicit "Read the ninth chapter of Ezekiel" (3T 267.1).
+
+**Gloss —** the seal is set only on the sighing-and-crying ones; the day of vengeance "just upon us" anchors the sealing at the day-of-slaughter threshold (5T 212.3).
+
+### The Sequence — Held, Sealed, Closed, Slain
+
+**1. Hold! — until sealed (Rev. 7:1-3):**
+
+**Gloss —** the four winds are held by angelic commission — "**Hold! Hold! Hold! Hold! until the servants of God are sealed**" — the winds wait on the sealing's completion (EW 38.1).
+
+**Gloss —** the four winds = restrained powers God's angels hold; their hands were loosening when Jesus pleaded — the hold is the sealing-interval, not a permanent stay (EW 38.2).
+
+**2. The inkhorn angel reports — Ezek. 9:11's "I have done as thou hast commanded me":**
+
+**Gloss —** the inkhorn angel returns "the saints were numbered and sealed" = Ezek 9:11's report; the censer thrown down, "It is done," probation closes on the sealed roll (EW 279.2).
+
+**3. Probation closes — then the plagues:**
+
+**Gloss —** "It was impossible for the plagues to be poured out while Jesus officiated" — the slaughter cannot fall until mediation ends; close of probation gates the wrath (EW 280.2).
+
+**Gloss —** the held winds release only when the sanctuary work is done — "**then will come the seven last plagues**"; the apostate Sabbath-keepers are the weighed-and-wanting slain (EW 36.2).
+
+**4. The slaughter weapons execute — beginning at the sanctuary:**
+
+**Gloss —** the marked are spared, the unmarked slain "**begin at My sanctuary**" — "**the false watchmen are the first to fall**"; judgment opens on the professed guardians (GC 656.2).
+
+**Gloss —** the slaughter spreads from the sanctuary to all the world — "**the slain of the Lord shall be at that day from one end of the earth even unto the other**" (Jer 25:33); inner face becomes the day of the LORD proper (GC 656.3).
+
+### The Sealing IS the Judgment of the Living
+
+> **Ezek. 9's mark-then-slay = a judgment that begins at the house of God — the same closing of Christ's sanctuary work that decides who is sealed.**
+
+- _Dan. 7:9-10._ "the judgment was set, and the books were opened" — the Ancient of days sits, the closing judgment now begun.
+- _1 Pet. 4:17._ "judgment must begin at the house of God" = "begin at my sanctuary" (Ezek. 9:6) — the mark-then-slay is that judgment.
+
+> 📖 **JUDGMENT OF THE LIVING** = the closing phase of Christ's work in the heavenly sanctuary, the judgment now begun (_Dan. 7:9-10_) -> determines who is sealed before the four winds loose as the day of slaughter.
+
+### The Bible Places the Sealing at the Day's Threshold
+
+- _Zeph. 2:1-3._ Gather "before the day of the LORD'S anger come upon you"; the meek who seek righteousness "may be hid in the day of the LORD'S anger" — sealing work belongs to the day's threshold.
+- _Jer. 25:29._ Same order: "I begin to bring evil on the city which is called by my name," then the sword goes to all the inhabitants of the earth.
+- _Jer. 25:33._ "the slain of the LORD shall be at that day from one end of the earth even unto the other" — same scene EGW fuses with Ezekiel 9 + the slaughter weapons; "the false watchmen are the first to fall" (GC 656.2-656.3).
+
+**DEFINITION — SEAL OF GOD =** God's sign on foreheads of the faithful — the true Sabbath, the only commandment bearing His name, title, and dominion (Ex. 31:13, 17; Ezek. 20:12, 20; Isa. 8:16; Rev. 14:1; GC 605); settled, intelligent loyalty to the Creator.
+
+**DEFINITION — SEALING =** the held-winds interval of Rev. 7:1-3 = the marking of Ezekiel 9 ("this sealing of the servants of God is the same that was shown to Ezekiel in vision," TM 445.2) — the work that must finish before the slaughter falls. Rev. 9:4 + Ezek. 9:6: rod strikes only the unmarked → whoever is slain is, of necessity, NOT sealed. The seal set on those only who sigh and cry (Ezek. 9:4; 5T 212.3) while four angels hold the strife; the inkhorn angel reports the work done (Ezek. 9:11; EW 279.2); the censer falls, probation closes (EW 280.2); then the slaughter weapons move, beginning at the sanctuary (Ezek. 9:6; GC 656.2; 1 Pet. 4:17). It stands "BEFORE the day of the LORD'S anger" (Zeph. 2:2): sealed = hid in the day (Zeph. 2:3); unsealed = the slain just gathered. Sealing and slaughter = two opposite outcomes of one closing crisis.
+
+**DEFINITION — JUDGMENT OF THE LIVING =** closing phase of Christ's sanctuary work, now begun (_Dan. 7:9-10_; _1 Pet. 4:17_, "judgment must begin at the house of God") — the marking of Ezekiel 9 (_Ezek. 9:4_), sealing the sighing ones before the unmarked are slain; the same closing-of-Christ's-sanctuary-work that decides who is sealed.
+
+**Dictionary so far (added here):** SEAL OF GOD · SEALING · JUDGMENT OF THE LIVING
 
 ---
+
+## The King of the North — Daniel 11:44-45
+
+> **This king of the north IS the same Ottoman/Turkish power of the SIXTH trumpet (the second woe) — the eastern question now converging on Jerusalem.**
+
+- _Dan. 11:44._ "Tidings out of the **east** and out of the **north**" trouble him; he goes forth "with **great fury** to destroy, and utterly to make away many."
+- _Dan. 11:45._ He plants "the tabernacles of his palace **between the seas in the glorious holy mountain**; yet he shall **come to his end, and none shall help him**."
+
+**Gloss —** Clarke (1825) held "this part of the prophecy is allowed to be **yet unfulfilled**"; the troubling tidings = Persia (east) + Russia (north) embarrassing the Ottoman (DAR 281.1).
+
+**Gloss —** the 1853-56 Crimean war fit it — Persia east, Russia north instigated it; Turkey ("the Sick Man of the East") went forth with "**great fury**" (DAR 281.2).
+
+**Gloss —** "**between the seas**" = the Dead Sea and the Mediterranean; "**the glorious holy mountain**" = Jerusalem; Palestine is a Turkish province — so the Turk driven from Europe makes Jerusalem his temporary seat (DAR 282.1).
+
+**Gloss —** "**come to his end, and none shall help him**" = the great powers who propped Turkey up since 1840 withdraw support — she comes to the ground (DAR 282.2).
+
+**DEFINITION — THE KING OF THE NORTH (Dan 11:44-45) =** the Ottoman/Turkish power (the sixth trumpet's second woe), troubled by tidings out of east and north (DAR 281.1-281.2), making his final stand at Jerusalem — "between the seas in the glorious holy mountain" = Dead Sea + Mediterranean, the Turkish province of Palestine (DAR 282.1) — then coming to his end with "none to help him" as the propping powers withdraw (DAR 282.2). The event that, per Dan 12:1, signals Michael's standing up (next section).
+
+---
+
+## Michael Stands Up — Daniel 12:1 = the Close of Probation
+
+> **"At that time" follows the king of the north's end (previous section): the Turk's final stand at Jerusalem, then his end → THEN Michael stands. Michael's standing = He takes the kingdom and lays down His priestly mediation = the close of probation.**
+
+- _Dan. 12:1._ "And at that time shall Michael stand up... and there shall be a time of trouble, such as never was... thy people shall be delivered, every one that shall be found written in the book" — Michael rises, the time of trouble, the delivered = the book-written.
+
+**Gloss —** "At that time" = the time of Dan 11:45 — the Turk's final stand at Jerusalem, then his end; THEN Michael stands. Order: pressure on the Turk → retire from Europe → final stand at Jerusalem → standing up of Michael (DAR 293.2).
+
+**Gloss —** "stand up" (from Dan 11:2-3) = to take the kingdom, to reign; Michael stands = takes the kingdom, commences His reign (DAR 295.1).
+
+**Gloss —** Michael's standing = "His priestly robes are laid aside for royal vesture. The work of mercy is done, and the probation of our race is ended... All cases are decided" (DAR 295.3).
+
+**Gloss —** when the investigative judgment closes, "Probation is ended a short time before the appearing of the Lord," sealed by Rev. 22:11 (GC 490.2).
+
+**Gloss —** as Jesus steps from the most holy place the restraint is removed — "It was impossible for the plagues to be poured out while Jesus officiated... Every case was decided, every jewel numbered" (EW 280.2).
+
+- _Rev. 22:11._ "He that is unjust, let him be unjust still... he that is holy, let him be holy still" — probation's irrevocable close, every case fixed.
+
+**DEFINITION — MICHAEL STANDING UP =** the close of probation (Dan. 12:1; DAR 295.1, 295.3): Christ takes His kingdom and lays down His priestly mediation — "the work of mercy is done, and the probation of our race is ended... All cases are decided" (DAR 295.3); every case decided, every jewel numbered (EW 280.2; GC 490.2; Rev. 22:11) — the gate of the seventh trumpet / seven last plagues (next section).
+
+---
+
+## The Seventh Trumpet — Seven Last Plagues, Armageddon
+
+> **The alarm now fulfilled as the stroke.** Michael has stood up; probation is shut (prev section). Now the seventh angel sounds — and the trumpet that for six soundings only _warned_ of war becomes the war itself: the kingdoms pass to Christ, the wrath comes, the vials pour "without mixture." Every chain forged so far meets here. The same single stroke wears three names by who is in view: turned on God's apostate, unsealed people (the **day of slaughter**, beginning at His house) it is the inner face; reaching the world, all nations (the **day of the LORD**) it is the outer; and its protective obverse — the marking that exempts the obedient — is the **sealing**. One knot, then the consummation.
+
+**The equation, held from the hinge:**
+
+- **Day of the LORD = seventh trumpet = seven last plagues** — the Day of the Lord IS the Seventh Trumpet.
+- **= the wine of God's wrath, unmixed** — cup = sword; Ps 75:8 vs Rev 14:10.
+- **= the day of slaughter (the INNER face — on God's apostate house, begins at the sanctuary)** — Isa 34:2-8 names it "the day of the LORD'S vengeance"; Jer 25:29-33 fixes the inward→outward order.
+- **whose protective obverse = the sealing time of Rev 7 / Ezek 9** — TM 445.2; EW 38 → 279 → 280; GC 656; Zeph 2:1-3.
+
+**DEFINITION — THE EQUATION =** one judgment, three faces by audience, two outcomes. The same stroke is the day of the LORD (the prophets) = the seventh trumpet / third woe / seven last plagues (Revelation) = the wine of God's wrath unmixed (the cup = the sword) = the day of slaughter (Jer 25:29-33; Isa 34:2-8). It BEGINS at God's own apostate, unsealed house and sanctuary — the inner face, the day of slaughter (1 Pet 4:17; Ezek 9:6; GC 656.2) — and sweeps OUTWARD to all nations — the outer face, the day of the LORD (Jer 25:29). Its protective obverse is the sealing time of Rev 7 = Ezek 9 (TM 445.2): four winds held while the sighing, obedient ones are marked; sealing reported done; probation closes; the slaughter-weapons move. Two outcomes — **sealed** (heed the warning, hid in the day, Zeph 2:3) or **slain** (the disobedient who would not be sealed, as AD 70 and Babylon's siege).
+
+**The seventh angel sounds:**
+
+- _Rev. 10:7._ "The mystery of God should be finished" — the seventh angel's sounding consummates all the prophets foretold. DAR 507.
+- _Rev. 11:15._ "The seventh angel sounded; and there were great voices... The kingdoms of this world are become the kingdoms of our Lord, and of his Christ" — kingdom-transfer from earthly to heavenly rule = Michael taking the kingdom (cf. Dan 12:1).
+
+**Gloss —** the seventh trumpet = the kingdom taken; "stand up" / take the kingdom and the trumpet's kingdom-transfer are one act (DAR 295.1).
+
+- _Rev. 11:18._ "the nations were angry, and thy wrath is come... that thou shouldest... destroy them which destroy the earth" — the wrath/plagues under the seventh trumpet; judgment, reward, destruction, one trumpet.
+
+**Gloss —** seventh trumpet's internal order — kingdom-transfer, then judgment on nations, then "the close of the priesthood of Christ" as the holy of holies opens at the 2300 days' end; probation shuts WITHIN the trumpet (DAR 507.4).
+
+**The seven last plagues poured — after probation:**
+
+- _Rev. 15:1._ "seven angels having the seven last plagues; for in them is filled up the wrath of God" — the wrath of Rev 11:18 named: the seven last plagues.
+- _Rev. 16:1._ "Go your ways, and pour out the vials of the wrath of God upon the earth" — the vials poured AFTER probation closes.
+
+**Gloss —** as Jesus steps from the most holy place the restraint is removed; "It was impossible for the plagues to be poured out while Jesus officiated... Every case was decided, every jewel numbered" (EW 280.2).
+
+**The sixth vial — the eastern question at the climax:**
+
+- _Rev. 16:12._ Sixth vial — Euphrates dried, "the way of the kings of the east" — the eastern question consummated; the sixth vial's Euphrates answers the sixth trumpet's Euphrates (cf. Rev 9:14).
+- _Rev. 16:16._ "gathered them together into a place called... Armageddon" — the nations mustered for the final war.
+
+**"It is done" — the day of slaughter's consummation:**
+
+- _Rev. 16:17-19._ Seventh vial — "It is done... great Babylon came in remembrance before God, to give unto her the cup of the wine of the fierceness of his wrath" — the cup of Rev 14:10 finally drained; Babylon remembered; the stroke complete.
+
+**Trumpets vs vials — the same blows, now without mixture:**
+
+- _Rev. 14:10._ "the wine of the wrath of God... poured out without mixture into the cup of his indignation" — the vials' wine is UNMIXED.
+- **Vials = the exact parallels of the trumpets** — the same blows (Rev 8-9 ‖ Rev 16), but the trumpets fell on a "third part" (with mixture, mercy still mingled), while the vials fall "without mixture" on all — because probation has closed.
+
+**DEFINITION — THE SEVENTH TRUMPET =** the executing judgment "without mixture": the seven last plagues / day of slaughter / day of the LORD poured after probation closes (Rev 11:15-18; 15:1; 16), culminating in Armageddon and "It is done" — the trumpets' alarm now fulfilled as the vials' stroke. Christ takes the kingdom (Rev 11:15 = Michael standing, DAR 295.1); the wrath comes (Rev 11:18); the vials pour after the mercy-seat is left (Rev 16:1; EW 280.2); the sixth vial dries the Euphrates for the kings of the east — the eastern question at last (Rev 16:12; cf. Rev 9:14); Armageddon gathers the nations (Rev 16:16); "It is done" and Babylon drinks the unmixed cup (Rev 16:17-19; Rev 14:10). The six warnings of war become the seven strokes of wrath.
+
+---
+
+## Seven Within a Seven — Jericho and the Seventh Trumpet
+
+> 7th trumpet = 7th vial, one event: both "the seventh angel," both "It is done" from the opened temple, both close in "voices, thunders, lightnings, and a great earthquake" (_Rev. 11:15-19_ ↔ _16:17-18_). So the last trumpet _contains_ the seven last plagues — a seven within a seven, the Bible's pattern for a doomed city's fall, typified at Jericho.
+
+- _Rev. 11:15-19._ The seventh angel sounds; the kingdoms become the Lord's; the temple opened, "lightnings, and voices, and thunderings, and an earthquake, and great hail."
+- _Rev. 16:17-18._ The seventh vial poured; from the temple, "It is done"; "voices, and thunders, and lightnings," and the greatest earthquake "since men were upon the earth."
+
+**The Jericho type — seven priests, seven trumpets, the seventh day, seven circuits, the shout, the wall:**
+
+- _Josh. 6:3-5._ Seven priests, seven trumpets; seventh day, seven circuits; long blast, all shout, "the wall of the city shall fall down flat" — six days single circuits, seventh day holds seven.
+- _Josh. 6:15-16._ Seventh day, seven circuits; at the seventh, priests blow, Joshua: "Shout; for the LORD hath given you the city" — seventh circuit = moment of conquest.
+- _Josh. 6:20._ People shout, priests blow, "the wall fell down flat" — trumpet, shout, wall fallen.
+
+**Gloss —** the seventh circuit's "blast that shook the very earth" topples the walls and "towers" — trumpet-encircling, then the shout, then the fall (PP 491.1).
+
+- _Rev. 16:18._ "a great earthquake, such as was not since men were upon the earth."
+- _Isa. 30:25._ the day "when the towers fall."
+- _Rev. 16:19-20._ "great Babylon came in remembrance before God"; "every island fled away."
+
+**A pioneer draws the line — Miller reads the trumpet by Jericho** (his proof-text the same _Amos 3:6_ this study uses):
+
+**Gloss —** Miller's rule: "the sounding of trumpets is always used to denote the downfall" of empires; "at the fall of Jericho, the trumpet was the instrument... [that] cast down her walls" (MWV2 115.3).
+
+- _Amos 3:6._ "Shall a trumpet be blown in the city, and the people not be afraid?" — the LORD does the evil in the city.
+
+**Gloss —** James White maps the six fallen parts onto the trumpets, then: "under the seventh trumpet great Babylon entire will sink to rise no more at all" (SSTR 2.1).
+
+**Why the seventh contains seven — the covenant's sevenfold rod:**
+
+- _Lev. 26:21._ "I will bring **seven times more plagues** upon you" — covenant rod = sevenfold plague on the unrepentant.
+- _Lev. 26:28._ "I will chastise you seven times" — the same sevenfold chastisement in fury.
+- _Rev. 15:1._ "seven last plagues; for in them is filled up the wrath of God" — the sevenfold rod to full measure.
+- _2 Kgs. 5:14._ Naaman dips seven times, made whole — a lesser seven confirming completion lives in the seventh.
+
+**The loud cry = encircling trumpet; the shout = the fall.**
+
+- _Rev. 18:2._ "Babylon the great **is fallen, is fallen**" — the loud cry's announcement, the shout before the wall.
+- _Rev. 18:4._ "**Come out of her**, my people... that ye receive not of her plagues" — God's people called out before the wall falls in the day of slaughter.
+
+**DEFINITION — SEVEN WITHIN A SEVEN =** the Bible's own structure for a doomed city's downfall, typified at Jericho (Josh 6): seven priests, seven trumpets, and on the seventh day seven circuits, climaxing in the shout and the falling wall (PP 491). Miller fixes the prophetic trumpet by this type — "at the fall of Jericho, the trumpet was the instrument... which cast down her walls" (_Miller's Works_, vol. 2, 115). So Revelation's seven trumpets are Jericho's antitype: they sound the fall of great Babylon, and the SEVENTH trumpet — the seventh circuit — contains the SEVEN last plagues (the sevenfold covenant-rod of Lev 26:21), at whose pouring the shout goes up (Rev 18:2) and the wall falls flat (Rev 16:18-19). The loud cry is the encircling trumpet of warning; the seventh-trumpet plagues are the shout that brings the city down.
 
 ---
 
