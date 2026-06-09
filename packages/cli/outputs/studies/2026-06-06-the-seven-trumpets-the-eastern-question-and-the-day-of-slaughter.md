@@ -203,6 +203,8 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 
 - **mountain** = a kingdom (_Dan. 2:35_; _Jer. 51:25_); **sea** = peoples/nations (_Rev. 17:15_) -> warring kingdom (Vandals) hurled on the maritime peoples.
 
+  **Gloss —** burning-mountain-into-sea = Genseric's naval war on the maritime coasts; "nothing but a fierce maritime warfare would fulfill the prediction" (DAR 458.1).
+
   > "The history illustrative of the sounding of the second trumpet evidently relates to the invasion and conquest of Africa, and afterward of Italy, by the terrible Genseric. **His conquests were, for the most part, naval**; and his triumphs were "as it were a great mountain burning with fire, cast into the sea." What figure would better, or even so well, illustrate the collision of navies, and the general havoc of war on the maritime coasts? In explaining this trumpet, we are to look for some events which will have a particular bearing on the commercial world. The symbol used naturally leads us to look for agitation and commotion. **Nothing but a fierce maritime warfare would fulfill the prediction.** If the sounding of the first four trumpets relates to four remarkable events which contributed to the downfall of the Roman empire, and the first trumpet refers to the ravages of the Goths under Alaric, in this we naturally look for the next succeeding act of invasion which shook the Roman power and conduced to its fall. The next great invasion was that of "the terrible Genseric," at the head of the Vandals. His career occurred during the years A. D. 428-468. This great Vandal chief had his headquarters in Africa. But, as Gibbon states, "The discovery and conquest of the black nations [in Africa], that might dwell beneath the torrid zone, could not tempt the rational ambition of Genseric; but he cast his eyes toward the sea; he resolved to create a naval power, and his bold resolution was executed with steady and active perseverance." From the port of Carthage he repeatedly made piratical sallies, and preyed on the Roman commerce, and waged war with that empire. To cope with this sea monarch, the Roman emperor, Majorian, made extensive naval preparations. Three hundred long galleys, with an adequate proportion of transports and smaller vessels, were collected in the secure and capacious harbor of Cartagena, in Spain. But Genseric was saved from impending and inevitable ruin by the treachery of some powerful subjects, envious or apprehensive of their master's success. Guided by their secret intelligence, he surprised the unguarded fleet in the bay of Cartagena; many of the ships were sunk, taken, or burned, and the preparations of three years were destroyed in a single day."
   > — Uriah Smith, _Daniel and the Revelation_, DAR 458.1
 
@@ -210,13 +212,19 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 
 - **star** = a ruler/leader (_Rev. 1:20_; _Dan. 8:10_) -> Attila, meteor-king of the Huns.
 
+  **Gloss —** the third-trumpet star = Attila, his "desolating wars and furious invasions" against Rome (DAR 461.3).
+
   > "It is here premised that this trumpet has allusion to **the desolating wars and furious invasions of Attila** against the Roman power, which he carried on at the head of his hordes of Huns. Speaking of this warrior, particularly of his personal appearance, Mr. Barnes says: —"
   > — Uriah Smith, _Daniel and the Revelation_, DAR 461.3
+
+  **Gloss —** "star... burning as a lamp" answered to the life: Attila "resembled a brilliant meteor flashing in the sky" (Barnes, in DAR 461.4).
 
   > "In the manner of his appearance, he strongly resembled **a brilliant meteor flashing in the sky**. He came from the East gathering his Huns, and poured them down, as we shall see, with the rapidity of a flashing meteor, suddenly on the empire. He regarded himself also as devoted to Mars, the god of war, and was accustomed to array himself in a peculiarly brilliant manner, so that his appearance, in the language of his flatterers, was such as to dazzle the eyes of beholders."
   > — Uriah Smith, _Daniel and the Revelation_, DAR 461.4 (quoting Albert Barnes)
 
 - _Rev. 8:11._ Star named Wormwood — bitterness, total ruin; Attila styled himself "The Scourge of God." DAR 462.2.
+
+  **Gloss —** Wormwood = bitterness/ruin; Attila's own title — "The Scourge of God" — names the figure (DAR 462.2).
 
   > "'Total extirpation and erasure,' are terms which best denote the calamities he inflicted." He styled himself, **"The Scourge of God."**
   > — Uriah Smith, _Daniel and the Revelation_, DAR 462.2
@@ -225,10 +233,14 @@ _Method: Bible as it reads; Scripture its own expositor (Rule 5); gather every p
 
 - **sun, moon, and stars** = a government's luminaries — rulers and officers (_Gen. 37:9-10_) -> Rome's emperors, senators, consuls; smiting = fall of Western Rome's offices.
 
+  **Gloss —** smitten sun/moon/stars = the extinguished "emperors, senators, and consuls" of Rome — "Western Rome fell A. D. 476" under Odoacer (DAR 463.2).
+
   > "We understand that this trumpet symbolizes **the career of Odoacer**, the barbarian monarch who was so intimately connected with the downfall of Western Rome. The symbols, sun, moon, and stars — for they are undoubtedly here used as symbols — evidently denote **the great luminaries of the Roman government, — its emperors, senators, and consuls**. Bishop Newton remarks that the last emperor of Western Rome was Momyllus, who in derision was called Augustulus, or the "diminutive Augustus." **Western Rome fell A. D. 476.** Still, however, though the Roman sun was extinguished, its subordinate luminaries shone faintly while the senate and consuls continued. But after many civil reverses and changes of political fortune, at length, A. D. 566, the whole form of the ancient government was subverted, and Rome itself was reduced from being the empress of the world to a poor dukedom tributary to the Exarch of Ravenna."
   > — Uriah Smith, _Daniel and the Revelation_, DAR 463.2
 
 - _Rev. 8:7-12._ "the third part," repeated every trumpet — empire split in three among Constantine's sons at his death: Constantius, Constantine II, Constans. DAR 457-458.
+
+  **Gloss —** "a third part" recurs because the empire was literally tripartite — split among Constantine's three sons; the scourge fell on one division at a time (DAR 457.5).
 
   > "The Roman empire, after Constantine, was divided into three parts; and hence the frequent remark, **"a third part of men,"** etc., in allusion to **the third part of the empire which was under the scourge**. This division of the Roman kingdom was made at the death of Constantine, between his three sons, Constantius, Constantine II, and Constans. Constantius possessed the East, and fixed his residence at Constantinople, the metropolis of the empire. Constantine the Second held Britain, Gaul, and Spain. Constans held Illyricum, Africa, and Italy. (See Sabine's Ecclesiastical History, p. 155.) Of this well-known historical fact, Elliott, as quoted by Albert Barnes, in his notes on Revelation 12:4, says: "Twice, at least, before the Roman empire became divided permanently into the two parts, the Eastern and the Western, there was a tripartite division of the empire. The first occurred A. D. 311, when it was divided between Constantine, Licinius, and Maximin; the other, A. D. 337, on the death of Constantine, when it was divided between his three sons, Constantine, Constans, and Constantius.""
   > — Uriah Smith, _Daniel and the Revelation_, DAR 457.5
