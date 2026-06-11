@@ -104,6 +104,7 @@ Appendix — Symbol Dictionary
 
 - _Dan. 2:41-42._ "the kingdom shall be divided; but there shall be in it of the strength of the iron... so the kingdom shall be partly strong, and partly broken" — Rome does not fall to a fifth empire; it fragments and stays fragmented.
 - _Dan. 2:43._ "they shall mingle themselves with the seed of men: but they shall not cleave one to another, even as iron is not mixed with clay" — the one thing post-Roman Europe has never achieved is re-unification.
+- _SDP 35.4._ Haskell: "The clay mixed with iron also denoted the union of church and state" — a combination peculiar to the feet-and-toes era, a union that "continues until the stone smites the image" (_SDP 35.5_). (Haskell's church-state reading is not this section's v. 43 gloss — the failed intermarriage, above — but the handbook's own church-state thesis takes it up in "The Two Beasts — Revelation 13.")
 - _DAR 57.5._ Smith: the clay = the weakness that corroded Rome's iron sinews and prepared its disruption into ten kingdoms.
 - _DAR 66.2._ Smith (quoting another): for fourteen centuries the tenfold division has held — "Charlemagne tried it... Napoleon tried it. But none succeeded," for "a single verse of prophecy was stronger than all their hosts."
 
@@ -114,6 +115,12 @@ Appendix — Symbol Dictionary
 - _Dan. 2:45._ "the stone was cut out of the mountain without hands... and the dream is certain, and the interpretation thereof sure" — four fulfilled metals stand surety for the unfulfilled fifth.
 - _DAR 62.4._ Smith: "in the days of these kings" requires a plurality of contemporaneous kings — the divided kingdoms of the feet — so the kingdom of God is set up in their day, not at the first advent.
 - _DAR 68.3._ Smith: verses 44-45 reach "the climax of this stupendous prophecy... the end of human history," when the kingdom of God ends this world's changing career.
+
+**The counterfeit image — Dan. 3:1-7:**
+
+- _Dan. 3:1, 5-6._ "Nebuchadnezzar the king made an image of gold... ye fall down and worship the golden image... cast into the midst of a burning fiery furnace" — the king answers the dream with a rival image and enforces its worship on pain of death.
+- _PK 504.2._ EGW: instead of reproducing the image, "he would excel the original" — "entirely of gold," symbolic of Babylon as a kingdom that "should break in pieces all other kingdoms and stand forever" — the prophecy's own verdict (Dan. 2:44) rewritten for Babylon; the enforced image-worship foreshadows "The Two Beasts — Revelation 13."
+- _SDP 39.2._ Haskell: "he made an image of gold, patterning it as closely as possible after the image revealed to him" — yet gratifying his pride: "no trace of the other kingdoms."
 
 **DEFINITION — THE GREAT IMAGE =** the canon's master timeline, self-interpreted by the text: a statue of four descending metals = four successive universal kingdoms — gold = Babylon ("thou art this head of gold," _Dan. 2:38_; _DAR 46.2_), silver = Media-Persia (_Dan. 2:39_; named _Dan. 8:20_; _DAR 48.1-3_), brass = Grecia (_Dan. 2:39_; named _Dan. 8:21_; _DAR 54.2_), iron = Rome (_Dan. 2:40_; _DAR 56.3-4_) — terminating in feet of iron and clay = divided post-Roman Europe that "shall not cleave one to another" (_Dan. 2:41-43_; _DAR 57.5_, _66.2_). A stone "cut out without hands" smites the image at the feet — in the divided-Rome era, which is ours — and the metals blow away as chaff while the stone becomes "a great mountain, and filled the whole earth" = the kingdom of God that "shall never be destroyed" (_Dan. 2:34-35, 44-45_; the stone is Christ, _Ps. 118:22_; _Matt. 21:44_; _DAR 68.3_). Every later vision of Daniel and Revelation walks this same skeleton by recapitulation.
 
@@ -223,6 +230,7 @@ Appendix — Symbol Dictionary
 - The reckoning, at the 50-shekel maneh: MENE (50 × 20 = 1000) + MENE (50 × 20 = 1000) + TEKEL (1 × 20 = 20) + PERES, the half-maneh (25 × 20 = 500) — **total 2520 gerahs.** The hand wrote out, in weights, the very number of the scattering the section has already proven from Lev. 26.
 - The reckoning — its weights and its maneh — is the section's own, not a pioneer's; and the maneh must be owned plainly: shekel = 20 gerahs is uncontested (_Exo. 30:13_; _Eze. 45:12_), but the 50-shekel maneh is the common Hebrew/Babylonian mina and the Septuagint's reading of Eze. 45:12 — the KJV there reckons "twenty shekels, five and twenty shekels, fifteen shekels, shall be your maneh" = 60 shekels, which would sum the wall to 3020. The 2520 stands only on the common/LXX 50-shekel maneh.
 - _Dan. 5:30-31._ "In that night was Belshazzar the king of the Chaldeans slain. And Darius the Median took the kingdom" — Babylon, the power that opened the seven times by carrying Manasseh to its own city (2 Chron. 33:11, above), is weighed on its last night, and the kingdom is divided and given away before morning.
+- _SDP 72.2._ Haskell: God "uses a language which appeals forcibly to their understanding" — the idolaters' common belief that "the gods weigh deeds in balances" made the verdict "familiar to King Belshazzar" — the weighing-of-deeds idiom is his ground; he works no gerah-sum, which remains the section's own, as owned above.
 - _MRSH 45.1._ Miller: "then will be seen the fingers of a man's hand... writing on the walls of the now kingdoms of the earth, 'mene, mene tekel.' That will be the period of the 'end of these wonders'" — Miller sets the mene-tekel hand at the close of the "seven times of captivity," binding the wall-writing to the terminus of the seven times this section has measured at 2520 — though he never works the wall's weights into a sum.
 - _MWV2 82.3-82.4._ Miller: MENE "is to count, to finish, or to destroy"; "the idolatrous and blasphemous kingdom of Babylon was numbered and finished by God... the MENE, TEKEL, of this last idolatrous Pagan beast... 'count the number of the beast'" — Miller reads the wall as a numbered, summed verdict and makes it the pattern for counting prophetic numbers — the counting, not the gerah-arithmetic, is his.
 
@@ -317,6 +325,7 @@ Appendix — Symbol Dictionary
 **The horn's voice triggers the verdict — Dan. 7:11-12:**
 
 - _Dan. 7:11-12._ "I beheld even till the beast was slain... given to the burning flame. As concerning the rest of the beasts, they had their dominion taken away: yet their lives were prolonged" — the fourth beast is destroyed outright; the first three only lost dominion.
+- _SDP 102.1._ Haskell: the horn's life "is prolonged beyond the time of the investigative judgment" — "the greatest word ever spoken against God," the 1870 decree of papal infallibility, uttered after 1844 while the court of vv. 9-10 sat.
 - _DAR 121.5._ Smith: the fourth beast's career "ends in the lake of fire" — it is not merged into a successor as the lion, bear, and leopard were, but cast into the fire to rest till the second death.
 
 **The Son of man comes _to_ the Ancient of days — Dan. 7:13-14:**
@@ -461,6 +470,7 @@ Appendix — Symbol Dictionary
 **DEFINITION — THE 2300 DAYS =** the longest explicitly numbered time-prophecy in Scripture (the seven times of "The Seven Times — Daniel 4" spans longer — 2520 years — but is derived, and ends at the same 1844 terminus) — 2300 prophetic days, read as 2300 literal years by the year-day rule (day = year; _Num. 14:34_; _Eze. 4:6_) — measuring the trampling of "both the sanctuary and the host" by "the daily" (pagan Rome) and "the transgression of desolation" (papal Rome), and ending in the cleansing of the heavenly sanctuary (_Dan. 8:13-14_; _DAR 156.3_; _DAR 157.1_). The line is anchored only by Dan. 9, where its starting decree (457 BC) is given; cut the seventy weeks (490 years) from the 2300 and the remainder reaches 1844 (_GC 328.2_).
 
 **Symbols defined in this section:**
+
 - **ram** = the kings of Media and Persia (_Dan. 8:20_).
 - **goat / great horn** = Grecia / its first king (Alexander) (_Dan. 8:21_).
 - **four notable ones** = four kingdoms out of the nation, Alexander's successors (_Dan. 8:22_; _Dan. 11:4_).
@@ -503,6 +513,7 @@ Appendix — Symbol Dictionary
 - _GC 327.1._ White: "The decree of Artaxerxes went into effect in the autumn of 457 B.C. From this date, 483 years extend to the autumn of A.D. 27... In the autumn of A.D. 27 Christ was baptized by John and received the anointing of the Spirit."
 - _Mark 1:14-15._ "Jesus came into Galilee, preaching the gospel... The time is fulfilled" — at His anointing Christ declared the prophesied time fulfilled.
 - _DAR 196.2._ Smith: the seventy weeks carry a fivefold test — decree, city restored at 7 weeks, Messiah manifested at 69 weeks, cut off in the midst of the last week, and the blessing turning to the Gentiles at its close.
+- _TRMC August 22, 1844, page 2.3._ Snow: the 69 weeks reach "the manifestation of the Messiah" — "it has been thought by many that this was at his baptism, but this is a mistake," for only John saw the Spirit descend (_John 1:26, 33-34_); the terminus is Christ's public, miracle-attested ministry. (Snow's baptism-denial is not the handbook's — _GC 327.1_ above holds the baptism-anointing; both forms land the 69 weeks in the same autumn of AD 27, Snow's own date, at _Mark 1:14-15_'s "the time is fulfilled.")
 
 **Messiah cut off — the covenant confirmed — Dan. 9:26-27:**
 
@@ -546,6 +557,7 @@ Appendix — Symbol Dictionary
 - _Dan. 10:5-6._ "a certain man clothed in linen, whose loins were girded with fine gold of Uphaz... his eyes as lamps of fire, and his arms and his feet like in colour to polished brass" — the pre-incarnate Christ in priestly linen (cf. _Rev. 1:13-15_, the same figure among the candlesticks; Michael identified as Christ in "Michael Stands Up — Daniel 12").
 - _Dan. 10:13._ "the prince of the kingdom of Persia withstood me one and twenty days: but, lo, Michael, one of the chief princes, came to help me" — the twenty-one days of heaven's contested journey match the prophet's twenty-one days of prayer; behind the empire stands an unseen prince (_Eph. 6:12_).
 - _Dan. 10:21._ "there is none that holdeth with me in these things, but Michael your prince" — Michael, the prince of Daniel's people, the one who will "stand up" at the chapter's end (Dan. 12, defined in "Michael Stands Up — Daniel 12").
+- _SDP 162.1._ Haskell: from Cyrus "to the end of the history of Medo-Persia, Gabriel worked with the kings"; when God's influence withdrew, "no power on earth could help them" — the unseen war drives the visible history of Dan. 11 (_Dan. 10:20_, "the prince of Grecia shall come").
 
 **Persia's three-plus-one — Dan. 11:2:**
 
@@ -615,6 +627,7 @@ Appendix — Symbol Dictionary
 
 - _Dan. 11:44._ "tidings out of the east and out of the north shall trouble him: therefore he shall go forth with great fury to destroy" — the Ottoman troubled at his last; the Eastern Question's closing act (verified anchors _DAR 280.5-282.2_, walked in "The Seventh Trumpet").
 - _Dan. 11:45._ "he shall plant the tabernacles of his palace between the seas in the glorious holy mountain; yet he shall come to his end, and none shall help him" — his final stand at Jerusalem, then his fall when the powers withdraw support (_DAR 282.1-2_).
+- _PREX2 113.2._ Litch: he found "the fall of Bonaparte to be the last event of the 11th chapter; and the next in order, is the reign of Michael." (Litch is leaned on for the trumpets; his Napoleon ending of Dan. 11:40-45 is not the handbook's — the Ottoman reading stands on the DEFINITION below and "The Seventh Trumpet.")
 - _Dan. 12:1._ "at that time shall Michael stand up" — the king of the north's end is the cue: Michael rises, probation closes, the seventh trumpet sounds (developed in "Michael Stands Up — Daniel 12" and "The Seventh Trumpet").
 
 **DEFINITION — THE KING OF THE NORTH =** the anti-covenant power lying north of Palestine that presses God's people, an office that telescopes across the chapter as history advances — "whatever power at any time should occupy the territory... would be the king of the north" (_DAR 224.3_) — first Seleucid Syria (_Dan. 11:6-15_; _DAR 225.2_), then Rome as "the robbers of thy people" enter and Pompey reduces Syria to a Roman province (_Dan. 11:14, 16, 22_; _DAR 231.1_; _233.5_), and at "the time of the end" the power on the Euphratean seat, Turkey, whose territory "has been for the past four hundred years wholly included within the dominions of the sultan" (_Dan. 11:40_; _DAR 273.3_; _277.1_) — the Ottoman second woe of "The Six Trumpets." He comes against France like a whirlwind in 1798 (_Dan. 11:40_), and at his end — his last stand "between the seas in the glorious holy mountain," Jerusalem, with "none [to] help him" (_Dan. 11:44-45_; _DAR 282.1-2_) — Michael stands up and probation closes (_Dan. 12:1_, in "Michael Stands Up — Daniel 12" and "The Seventh Trumpet").
@@ -650,6 +663,7 @@ Appendix — Symbol Dictionary
 - _Dan. 12:2._ "And **many of them that sleep** in the dust of the earth shall awake, some to everlasting life, and some to shame and everlasting contempt" — a partial waking, not the general resurrection, both classes named in one verse.
   - **many** (not all) = a special resurrection before the general one of Rev. 20 — that those who pierced Christ may see Him come (_Rev. 1:7_, "every eye shall see him, and they also which pierced him"), patterned by the saints raised at the cross (_Matt. 27:52-53_, "many bodies of the saints which slept arose").
 - _Dan. 12:2_ is an Old Testament witness to the bodily resurrection of both just and unjust (_John 5:28-29_, "they that have done good... and they that have done evil"; _Acts 24:15_, "a resurrection of the dead, both of the just and unjust").
+- _GC 637.1._ White: "all who have died in the faith of the third angel's message come forth from the tomb glorified," to hear God's covenant of peace, raised together with "they also which pierced Him" (_Rev. 1:7_).
 
 **The wise shall shine — Dan. 12:3:**
 
@@ -687,10 +701,12 @@ Appendix — Symbol Dictionary
   - **1335 days** = 1335 literal years, 508-1843 — from the same start as the 1290; the blessing = the judgment-hour message, the Advent awakening.
 - _DAR 314.2._ Smith: the 1335 dates "from the same point... as that from which the 1290 date; namely, 508... From this point they would extend to 1843; for 1335 added to 508 make 1843."
 - _DAR 314.3._ Smith: at 1843 "a remarkable fulfillment of prophecy in the great proclamation of the second coming of Christ... New life was imparted to the true disciples" — the blessing of those who waited and reached that hour.
+- _MWV2 296.2._ Miller: the original expectation — "another evidence is Daniel's resurrection at the end of the 1335 days," enumerated among his proofs for 1843; the terminus stood, the event proved to be the awakening, not the rising (_DAR 314.3_).
 
 **Go thy way; rest; stand in thy lot — Dan. 12:13:**
 
 - _Dan. 12:13._ "But go thou thy way till the end be: for thou shalt **rest**, and **stand in thy lot** at the end of the days" — three movements: go, rest, stand — life, death, and the assigned portion in the kingdom.
+- _SDP 265.1._ Haskell: "in the last days he stands in his lot as a prophet" — Daniel's unsealed words, "together with the Revelation given to John," and the spirit of prophecy guiding believers through the time of trouble (a reading distinct from Smith's Advocate below).
 - _DAR 316.1._ Smith: "the end of the days" reaches back over the whole vision to its principal period, the 2300 days, "rather than to any of its subdivisions."
 - _DAR 316.2._ Smith: the 2300 days "terminated in 1844, and brought us to the cleansing of the sanctuary"; Daniel stands in his lot "in the person of his Advocate, our great High Priest," when his case is judged and "he is found righteous."
 
@@ -768,6 +784,7 @@ Appendix — Symbol Dictionary
 **DEFINITION — THE SIX THOUSAND YEARS =** the appointed span of this world in its fallen state, typed by the six labor-days of the creation week before the Sabbath rest (_Gen. 2:2-3_; _Exo. 20:9-11_; _Heb. 4:4-10_); counted from creation by the genealogies and reigns of Scripture (_Gen. 5; 7:6; 11; 21:5; 25:26; 47:9_; _Exo. 12:40_; _Acts 13:20_; _Jer. 25:11_) the Millerite chronology placed creation at ~4157 BC and the six-thousand-year terminus at ~AD 1843, converging with the 2300 days and the seven times on 1843-44 — the threshold of the millennial Sabbath, a witness to the terminus, not a prophetic clock for the Advent (_Matt. 24:36_).
 
 **Symbols defined in this section:**
+
 - **day (with the Lord)** = a thousand years (_2 Pet. 3:8_; _Ps. 90:4_).
 - **the six thousand years** = this world's appointed span of toil, typed by the creation week, counted from creation to ~AD 1843 (_Gen. 2:2-3_; _Exo. 20:9-11_; _Heb. 4:4-10_; _2 Pet. 3:8_).
 
@@ -798,6 +815,7 @@ Appendix — Symbol Dictionary
 **The Son of man among the candlesticks — Rev. 1:10-20:**
 
 - _Rev. 1:10._ "I was in the Spirit on the Lord's day, and heard behind me a great voice, as of a trumpet" — John is taken into prophetic vision; the Lord's day is the day Christ called His own, "the Son of man is Lord even of the sabbath day" (_Matt. 12:8_).
+- _HSFD 209.1._ Andrews: the Lord's day "must be a day which the Lord had set apart for himself, and which he claimed as his" — "all true" of the seventh day, "not in any respect true" of the first.
 - _Rev. 1:11._ "What thou seest, write in a book, and send [it] unto the seven churches... unto Ephesus, and unto Smyrna" — seven real congregations in Roman Asia, named in postal order, which become the seven eras (unfolded in "The Seven Churches — Revelation 2-3").
 - _Rev. 1:12-13._ "I saw seven golden candlesticks; And in the midst of the seven candlesticks [one] like unto the Son of man, clothed with a garment down to the foot, and girt about the paps with a golden girdle" — Christ in His high-priestly robe and girdle, standing _among_ His churches, not outside them.
   - **candlestick** = a church (_Rev. 1:20_, "the seven candlesticks which thou sawest are the seven churches").
@@ -819,6 +837,7 @@ Appendix — Symbol Dictionary
 **DEFINITION — STAR =** the angel/messenger of a church — its ministry, the responsible human leadership (_Rev. 1:20_, "The seven stars are the angels of the seven churches"; cf. _Mal. 2:7_, the priest as "the messenger of the LORD"; _Dan. 8:10_, host-and-stars as persons cast down).
 
 **Symbols defined in this section:**
+
 - **signified** = shown in signs — the book is symbolic and self-decoding (_Rev. 1:1_, 20).
 - **candlestick** = a church (_Rev. 1:20_).
 - **star** = the angel/messenger of a church, its ministry (_Rev. 1:20_; _Mal. 2:7_; _Dan. 8:10_).
@@ -946,6 +965,7 @@ Appendix — Symbol Dictionary
 
 - _Rev. 5:1._ "a book written within and on the backside, sealed with seven seals" — in the Father's hand is the roll of futurity, locked with the maximum legal seal.
   - **the sealed book** = the roll of the future, the scenes of the church's history to the end of time, locked until the worthy One opens it (_Dan. 12:4_, "seal the book, even to the time of the end"; _Rev. 5:9_, the book the slain Lamb alone "art worthy to take"; opened seal by seal, _Rev. 6:1_).
+- _SSP 101.2._ Haskell: "the right hand of the Father holds the record of our lives" — within, "the life which is known only to God"; without, the outward life open to others (Haskell's record-of-lives reading is not the handbook's — the DEFINITION below stands on Smith's roll of the church's history, _DAR 391.2_ — but it joins Rev. 5 to the open record-books of the judgment, _Dan. 7:10_).
 - _DAR 391.2._ Smith: "the book which John here saw, contained a revelation of scenes that were to transpire in the history of the church to the end of time" — held in the right hand, which "may signify that a knowledge of the future rests with God alone."
 
 **The universal search — Rev. 5:2-4:**
@@ -1033,6 +1053,7 @@ Appendix — Symbol Dictionary
 
 - _Rev. 6:12._ "there was a great earthquake; and the sun became black as sackcloth of hair, and the moon became as blood" — the historicist anchors of the last days, in plain language.
 - _Matt. 24:29._ Jesus gives the same list "after the tribulation of those days" and before His coming — "the sun be darkened, and the moon shall not give her light, and the stars shall fall from heaven" (_Joel 2:31_, "before the great and the terrible day of the LORD").
+- _SSP 120.1._ Haskell: "eight writers of the Bible give the signs in the sun, moon, and stars" (Joel, Amos, Isaiah, Ezekiel, Matthew, Mark, Luke, John), pointing out "at least thirteen peculiarities" that fix "the time and nature of their occurrence" — Scripture itself names which earthquake, which dark day, which star-fall.
 - _DAR 414.3._ Smith: "The Great Earthquake. — The first event under this seal, perhaps the one which marks its opening... the great earthquake of Nov. 1, 1755, known as the earthquake of Lisbon."
 - _DAR 429.5._ Smith, citing Webster's: "Dark Day, The. May 19, 1780; so called on account of a remarkable darkness on that day, extending over all New England" — the sun "black as sackcloth," the moon that night "as blood" (_DAR 422.1_, "The darkness of the following night, May 19, 1780, was as unnatural as that of the day had been").
 - _Rev. 6:13._ "the stars of heaven fell unto the earth, even as a fig tree casteth her untimely figs, when she is shaken of a mighty wind" — the meteor storm of Nov. 13, 1833.
@@ -1180,6 +1201,7 @@ Appendix — Symbol Dictionary
 - _Rev. 9:3._ "there came out of the smoke locusts upon the earth... as the scorpions of the earth have power" — the Arabs (Saracens) swarming out of Arabia.
   - **locusts** = an innumerable invading army God commissions (_Joel 2:25_, "the locust... my great army which I sent among you"; _Joel 1:6_, "a nation... strong, and without number," with "the teeth of a lion") — identified with the children of the east, the only people-group Scripture lays "like grasshoppers for multitude" (_Judg. 6:3-5_; _Judg. 7:12_, Midian, Amalek, "the children of the east," camels "without number"; cf. _Nah. 3:17_, "Thy crowned are as the locusts").
   - **scorpions** = power to sting and chastise, not yet to slay (_1 Kgs. 12:11_, "I will chastise you with scorpions"; _Luke 10:19_, "to tread on serpents and scorpions").
+- _SSP 165.1._ Haskell: the Saracens "are called locusts by the prophet John," their doctrine "as a dense smoke," and their work "is described in the eighth plague, sent upon the land of Egypt" — Scripture's own plague-of-Egypt template for a trumpet-war (trumpet = plague).
 - _DAR 473.4._ Smith (Keith): "the locusts (the fit symbol of the Arabs) issued from Arabia, their native region... as destroyers, propagating a new doctrine."
 - _Rev. 9:4._ "they should not hurt the grass... neither any tree; but only those men which have not the seal of God" — Islam commissioned against apostate Christendom, sparing God's sealed.
 - _Rev. 9:5._ "they should not kill them, but that they should be tormented five months" — torment, not conquest, for 150 prophetic years (1299-1449).
@@ -1192,6 +1214,7 @@ Appendix — Symbol Dictionary
 - _DAR 477.7._ Smith (Keith): the sound of wings = the Arab charge — "the Arab horses darted away with the swiftness of the wind."
 - _Rev. 9:10._ "tails like unto scorpions, and there were stings in their tails: and their power was to hurt men five months" — the scorpion-commission to sting, repeated.
 - _Rev. 9:11._ "they had a king over them... Abaddon... Apollyon" — natural locusts "have no king" (_Prov. 30:27_), so the text's own signal that the symbol is men, not insects.
+- _SSTR 47.5._ J. White: the king is Othman — "near the close of the 13th century, Othman founded" the Ottoman government, consolidating the Mahometan tribes "into one grand monarchy" — a king over the locusts before the 150 years run from 1299; Abaddon/Apollyon = "a destroyer," that government's standing character (_SSTR 48.3_).
 - _Rev. 9:12._ "One woe is past... there come two woes more hereafter" — the woes counted off in sequence; one kind of event.
 
 **DEFINITION — WOE =** a trumpet (war) by which God scourges apostate, idolatrous Christendom, not merely pagan Rome. FIRST WOE = the Saracens (Arab Islam) — the children of the east, the locust-people (_Judg. 6:5; 7:12_) — commissioned to torment 150 years (1299-1449).
@@ -1270,6 +1293,7 @@ Appendix — Symbol Dictionary
 - _Rev. 10:3._ "cried with a loud voice, as when a lion roareth: and when he had cried, seven thunders uttered their voices" — the King's roar claims His territory across sea and land (_Amos 3:8_, "the lion hath roared, who will not fear?").
 - _Rev. 10:4._ "Seal up those things which the seven thunders uttered, and write them not" — the one place in Revelation where John is told to seal rather than record: revelation has limits even in the chapter that opens Daniel's book.
 - _DAR 491.2._ Smith: "It would be vain to speculate" on the seven thunders; we "leave them where he left them, sealed up, unwritten, and consequently to us unknown" — the conjecture that they hold the Advent movement's own coming disappointment, withheld lest an inspired record "defeat that movement."
+- _GSAM 128.1._ Loughborough: the message "was to increase to its 'loud cry'" in the span "from the close of the sixth trumpet to the end of... the twenty-three hundred days" — the lion-roar of verse 3 is loud-cry language, on the trumpet clock from 1840 to 1844.
 
 **The oath: time no longer — Rev. 10:5-7:**
 
@@ -1279,6 +1303,7 @@ Appendix — Symbol Dictionary
 - _DAR 492.2._ Smith: "time no longer" cannot mean world-time (the seventh angel still sounds afterward) nor probationary time (Christ's priesthood closes later) — "It must therefore mean prophetic time... no prophetic period should extend beyond this message."
 - _CTr 344.5._ White: the oath marks "not the end of this world's history, neither of probationary time, but of prophetic time... After this period of time, reaching from 1842 to 1844, there can be no definite tracing of the prophetic time."
 - _LDE 36.2._ White: "there can be no definite tracing of the prophetic time. The longest reckoning reaches to the autumn of 1844."
+- _MWV2 124.1._ Miller: the angel is "the angel of the covenant, the great Mediator" — the pioneer corroboration that the figure is Christ — yet he read the oath as "gospel or mediatorial time should cease. No more time for mercy." (Miller is cited for the identification; his probation-close reading of "time no longer" is not the handbook's — DEFINITION — TIME NO LONGER below reads it as prophetic time, the divergence _DAR 492.2_ and _CTr 344.5_ above are answering.)
 - _Rev. 10:7._ "in the days of the voice of the seventh angel, when he shall begin to sound, the mystery of God should be finished, as he hath declared to his servants the prophets" — the gospel-mystery the prophets foretold consummates when the last trumpet sounds (see "The Seventh Trumpet").
 
 **Eat the book: sweet, then bitter — Rev. 10:8-10:**
@@ -1301,6 +1326,7 @@ Appendix — Symbol Dictionary
 **DEFINITION — TIME NO LONGER =** the close of prophetic time, not of the world nor of probation (_Rev. 10:6_; _DAR 492.2_; _CTr 344.5_) — the prophetic lines — the 2300 days and the 2520-year seven times alike — ran out in 1844, and no inspired date-reckoning reaches past it (_LDE 36.2_); after it the church recognizes fulfillments as they strike rather than calculating them in advance.
 
 **Symbols defined in this section:**
+
 - **the little book** = Daniel's sealed prophecy now opened, sweet then bitter, the 1844 experience (_Rev. 10:2, 9-10_; _Dan. 12:4, 9_; _DAR 489.1, 495.3_).
 - **time no longer** = prophetic time, not world-time or probation, closed at 1844 (_Rev. 10:6_; _DAR 492.2_; _CTr 344.5_; _LDE 36.2_).
 
@@ -1424,6 +1450,7 @@ Appendix — Symbol Dictionary
 - _Jer. 25:30-33._ "The LORD shall roar from on high... a shout, as they that tread the grapes... a great whirlwind... the slain of the LORD... from one end of the earth even unto the other" — the day's lion-roar, winepress, whirlwind, and universal slain.
   - **winepress** = the treading-out of the wrath of God (_Jer. 25:30_, "a shout, as they that tread the grapes") — the seventh trumpet's vials (_Rev. 14:10, 19_).
   - **whirlwind** = the storm-rush of God's judgment-army (_Jer. 25:32_, "a great whirlwind... raised up from the coasts of the earth") — the four winds loosed for the day of slaughter (_Rev. 7:1_).
+- _PREX2 230.2._ Litch: God punishes nations as nations "by fire, sword, plague"; Jerusalem has been given "the wine-cup of his fury; and he will give it to all the nations" — and he cites _Jer. 25:15-33_ by name as the proof.
 - _Isa. 66:15-16._ "the LORD will come with fire, and with his chariots like a whirlwind... by fire and by his sword will the LORD plead with all flesh: and the slain of the LORD shall be many" — same day, fire, whirlwind, sword, slain.
 
 **Day-of-the-LORD texts unnamed but universal:**
@@ -1713,6 +1740,7 @@ Appendix — Symbol Dictionary
 **DEFINITION — SEALING TIME =** the held-winds interval of Rev. 7:1-3, which IS the marking of Ezekiel 9 ("this sealing... is the same that was shown to Ezekiel in vision," _TM 445.2_) — the closing judgment of the living (_Dan. 7:9-10_; _1 Pet. 4:17_) in which the seal of God, the true Sabbath (_Exo. 31:13, 17_; _Eze. 20:12, 20_; _Isa. 8:16_; _Rev. 14:1_; _GC 605.2_), is set on the foreheads of those only who sigh and cry (_Eze. 9:4_; _5T 212.3_; _3T 267.1_) while the four angels hold the strife (_Rev. 7:1_; _EW 38.1-2_). The sequence is fixed: winds held → servants sealed → the inkhorn angel reports the work done (_Eze. 9:11_; _EW 279.2_) → the censer falls and probation closes (_EW 280.2_) → the slaughter weapons move, beginning at the sanctuary (_Eze. 9:6_; _GC 656.2_). It stands "before the day of the LORD'S anger" (_Zeph. 2:2_): sealed = hid in the day (_Zeph. 2:3_); unsealed = the slain just gathered (_Jer. 25:29, 33_). The rod strikes only the unmarked (_Rev. 9:4_; _Eze. 9:6_) — so sealing and slaughter are the two opposite outcomes of one closing crisis.
 
 **Symbols defined in this section:**
+
 - **seal / sign** = an owner's mark of name, authority, and ownership — the true Sabbath (_Exo. 31:13, 17_; _Eze. 20:12, 20_; _Rev. 14:1_).
 - **four winds** = strife, war, and commotion among nations, held until the sealing is done (_Dan. 7:2_; _Jer. 25:32_).
 
@@ -1744,6 +1772,7 @@ Appendix — Symbol Dictionary
 
 - _Rev. 7:1._ "Four angels... holding the four winds of the earth, that the wind should not blow on the earth, nor on the sea, nor on any tree" — the strife of all nations restrained, not yet loosed.
 - _Rev. 7:2-3._ "Hurt not the earth, neither the sea, nor the trees, till we have sealed the servants of our God in their foreheads" — the winds wait on the sealing; the holding is the seal of probation.
+- _SSP 132.1._ Haskell: in 1848 "came a sudden calm" no man could explain — the four angels "hold the winds of strife till the servants of God could be sealed"; "the sealing work is now going on" — the holding recognized after it struck (since 1848 the Sabbath light has gone to every nation, _SSP 136.1_).
 - _DAR 436.3._ Smith: when the four winds "are all loosed, and all blow together, it will constitute the great whirlwind" of Jeremiah — the held winds and Jeremiah's whirlwind are one scene.
 - _EW 36.2._ White: "the four angels would hold the four winds until Jesus' work was done in the sanctuary, and then will come the seven last plagues," after which "a decree went forth to slay the saints" — held winds = the seven last plagues + slaughter restrained.
 - _EW 38.1._ The commission to the four angels: "Hold! Hold! Hold! Hold! until the servants of God are sealed in their foreheads" — the holding command is the sealing-deadline.
@@ -1822,6 +1851,7 @@ Appendix — Symbol Dictionary
 - _Rev. 18:8._ "her **plagues come in one day**... she shall be utterly **burned with fire**" — the merchant-city struck and burned in one day.
 - _Rev. 18:9-11, 15-19._ kings and merchants "**see the smoke of her burning, Standing afar off**... for in **one hour** is thy judgment come" — burned, watched afar, riches "come to nought."
 - _Eze. 27:27-32._ Tyre's "**riches**... **merchandise**... men of war... shall fall... in the day of thy ruin," mariners "**cast up dust upon their heads**... What city is like Tyrus" — the merchant-city's fall, the Old-Testament type of Revelation 18.
+- _TMR 42.3._ Andrews: in Revelation 18 Babylon "is represented as the great center of commerce, and its destruction causes universal mourning among the merchants and sailors of the world" — the commerce-and-mourning signature isolated. (Andrews is cited for the signature; he wields it to prove Babylon no literal city but the church — the identification "Mystery, Babylon the Great — Revelation 17" also holds; the figure-transfer of the merchant-city marks onto one literal burning is this section's own reading.)
 - _Jer. 46:10._ "a day of vengeance... the Lord GOD of hosts hath a **sacrifice in the north country by the river Euphrates**" — the slaughter-weapons from the north by the Euphrates (the eastern rod, defined above).
 - _Jer. 1:14._ "Out of the **north** an evil shall break forth upon all the inhabitants of the land" — the quarter the invading rod comes from.
 - — Towers fall, riches fail, the merchant-city burns in one hour and is watched afar, the weapons come from the north by the Euphrates: the four standing marks of the day of slaughter, gathered in one event.
@@ -1998,6 +2028,7 @@ Appendix — Symbol Dictionary
 
 - _Rev. 16:12 ‖ Rev. 9:14._ 6th vial / 6th trumpet — **the great river Euphrates**; the vial dries the very river in which the trumpet loosed "the four angels," "that the way of the kings of the east might be prepared."
   - **rivers / the Euphrates** = the power occupying the river's territory, the waters its king and hosts (_Isa. 8:7; Rev. 16:12; cf. Rev. 9:14_) — dry the river and the power is undone.
+- _SSP 284.1._ Haskell: "the Turkish power designated as the River Euphrates," the divider of East and West, "gives way"; and Armageddon is Megiddo, "the place of the troops" — the old battle-plain (Deborah, Josiah) naming the last contest of the nations.
 - _DAR 647.1._ Smith: the Euphrates is "a symbol of the nation occupying the territory," not the literal stream — dried up to prepare the way of the kings of the East, the eastern question at its climax.
 - _Rev. 16:14._ "the spirits of devils... go forth unto the kings of the earth and of the whole world, to gather them to the battle of that great day of God Almighty" — all nations mustered; the day of the LORD is global.
   - **all nations** = the scope-signature of the one complete, universal fulfillment — the day of the LORD (_Isa. 34:2; Jer. 25:31-33_).
@@ -2105,6 +2136,7 @@ Appendix — Symbol Dictionary
 **DEFINITION — THE REMNANT =** the last generation of the woman's seed after the 1260 years close — those who "keep the commandments of God, and have the testimony of Jesus Christ" (_Rev. 12:17_). Two marks the dragon makes war against: obedience to all God's commandments, including the fourth (_Rev. 14:12_), and the testimony of Jesus, defined verbatim as "the spirit of prophecy" (_Rev. 19:10_).
 
 **Symbols defined in this section:**
+
 - **woman** = the true church across both Testaments (_Jer. 6:2_; _2 Cor. 11:2_; _Isa. 54:5_; _DAR 509.3_).
 - **clothed with the sun** = gospel glory, Christ's righteousness (_Mal. 4:2_; _Rev. 19:8_).
 - **moon under her feet** = the typical/Mosaic system, reflected light now superseded (_DAR 509.5_).
@@ -2155,10 +2187,12 @@ Appendix — Symbol Dictionary
 
 - _Rev. 13:11._ "another beast coming up out of the earth; and he had two horns like a lamb, and he spake as a dragon" — where the sea is peoples, the earth is the unpeopled place: a new power, lamb-mild in look, dragon in voice.
   - **earth** (vs. sea) = a new and previously unoccupied territory — the contrast the chapter itself draws (_DAR 534.2_).
+- _SSP 240.1._ Haskell: the forming already underway in 1905 — "America has already repudiated her first principles of liberty," the professed Protestant nation "imitating the papal power of Rome, thus forming the image to the beast" (the completion is future, _GC 445.1_; the forming is recognized as it proceeds, _Rev. 16:15_).
 - _DAR 534.2._ Smith: since the sea is peoples (_Rev. 17:15_), "the earth would suggest, by contrast, a new and previously unoccupied territory."
 - _DAR 528.1._ Smith: "it does apply to Protestant America, or the government of the United States" — the only Protestant nation answering the symbol.
 - _DAR 537.2._ Smith: the lamb's two horns = "youthfulness" and "innocence and gentleness" — a land founded to be "a church without a pope, and a state without a king," civil and religious liberty.
 - _DAR 538.2._ Smith: the republican form is shown "by the absence of crowns both upon its head and its horns" — power "lodged in the hands of the people."
+- _TBUS 19.1._ Loughborough: the 1798 timing-test — the United States, "the only organized government in 1798 aside from the first beast" and "existing itself as an independent government," is "the very territory viewed by the prophet" for the two-horned beast's work.
 - _GC 442.1._ White: the "speaking" of the nation "is the action of its legislative and judicial authorities" — when it speaks "as a dragon" it gives the lie to its own liberal professions by intolerance and persecution.
 
 **The image to the beast — Rev. 13:12-15:**
@@ -2194,6 +2228,7 @@ Appendix — Symbol Dictionary
 **DEFINITION — THE MARK OF THE BEAST =** the sea-beast's claimed badge of authority, enforced by the earth beast — the Sunday institution, the counterfeit of the seal of God (the true Sabbath, defined in "The Sealing Time"). Rome herself claims it as "a token, or mark, of the authority of that church," the "very act of changing the Sabbath into Sunday" being its proof (_DAR 557.2_); so when Sunday-keeping is enforced by law against the known claim of the true Sabbath, the comply-er accepts "the sign of allegiance to Rome — 'the mark of the beast'" (_GC 449.1_; _578.3_). It is no literal brand but "a public profession, or act, that all may see or know" (_TMR 108.3_), received in the forehead (conviction, _Deut. 6:8_) or in the hand (compliance) — where God's seal is set in the forehead only (_Rev. 7:3_). Its first stage is economic, no buying or selling (_Rev. 13:17_); its end the death decree (_Rev. 13:15_; the slaughter treated in "The Day of Slaughter"); and the third angel warns against it before it falls (_Rev. 14:9-12_; owned in "The Third Angel's Message"). The number 666 = the number of a man (_Rev. 13:18_), read by the pioneers as _Vicarius Filii Dei_ summing to 666 (_DAR 580.1_).
 
 **Symbols defined in this section:**
+
 - **mark of the beast** = the enforced Sunday institution, the counterfeit sabbath, badge of Rome's claimed authority (_DAR 557.2_; _GC 449.1_; _578.3_; _Rev. 13:16-17_).
 - **image to the beast** = a church clothed with civil power, enforcing its dogmas by law (_Rev. 13:14_; _DAR 546.3_; _GC 443.2_; _445.1_).
 - **earth** (vs. the sea = peoples) = new, previously unoccupied territory — the New World (_Rev. 13:11_; _DAR 534.2_).
@@ -2220,6 +2255,7 @@ Appendix — Symbol Dictionary
 **The everlasting gospel — the frame of all three — Rev. 14:6:**
 
 - _Rev. 14:6._ "another angel fly in the midst of heaven, having the everlasting gospel to preach unto them that dwell on the earth, and to every nation, and kindred, and tongue, and people" — the one eternal gospel, freshly proclaimed for the final hour, going everywhere the dragon reached.
+- _TMR 22.1._ Andrews: the three supper-calls of Luke 14:16-24 are "the same as the three messages of Revelation 14:6-12" — "not the general work of the gospel, but special warnings" given as the great work of our High Priest is closing up.
 - _GC 311.3._ White: Rev. 14 is "a threefold message... immediately followed by the coming of the Son of man to reap 'the harvest of the earth.'"
 
 **FIRST angel — the hour of his judgment — Rev. 14:7:**
@@ -2238,6 +2274,7 @@ Appendix — Symbol Dictionary
   - the wine of wrath is defined in the trumpets fold ("The Day of the LORD").
 - _GC 389.2._ White: "The second angel's message of Revelation 14 was first preached in the summer of 1844," with direct application to the churches of the United States "where the warning of the judgment had been most widely proclaimed and most generally rejected."
 - _DAR 600.3._ Smith: the second message, "following the first," is "a part of that religious movement which takes place in the last days with especial reference to the coming of Christ."
+- _MWV1 136.1._ Miller: verse 8 "shows the downfall of the papal power, or mystical Babylon," "fulfilled in 1798, when she lost her power to rule over the kings of the earth" (Miller is cited as the first angel's own preacher, _GC 368.1_; his 1798 application of verse 8 is not the handbook's — the second message was first preached in the summer of 1844, of the churches that rejected the judgment cry, _GC 389.2_).
 
 **THIRD angel — the mark-warning — Rev. 14:9-12:**
 
@@ -2306,6 +2343,7 @@ Appendix — Symbol Dictionary
 - _DAR 659.2._ Smith: "Rome in its pagan form was a persecuting power... the beast that was; the empire was nominally converted... it lost its ferocious and persecuting character... the beast that it was not; it degenerated into popery, and again assumed its bloodthirsty... character... the beast that 'yet is.'"
 - _Rev. 17:9._ "The seven heads are seven mountains, on which the woman sitteth" — the city on seven hills, Rome; the heads do double duty as seven kings.
 - _Rev. 17:10._ "there are seven kings: five are fallen, and one is... the other is not yet come" — Smith reads the seven heads as forms of Roman government, not empires.
+- _SSP 298.1._ Haskell: paganism "the prevailing element" through the first five heads, "still the ruling principle" in the sixth, the controlling power under the seventh — "the papacy is baptized paganism" (a reading distinct from Smith's seven-forms scheme below; _SSP 298.2_ carries it to the end: paganism stands forth again in Spiritualism, confederate with papacy and daughters at Armageddon — the threefold union of _Rev. 16:13_).
 - _DAR 659.3._ Smith: the seven heads are "seven kings, or forms of government" — "(1) kingly; (2) consular; (3) decemvirate; (4) dictatorial; (5) triumvirate; (6) imperial; and (7) papal" — the papal head is the eighth, the Exarch of Ravenna the short-lived link between imperial and papal.
 
 **Ten horns, one mind, war with the Lamb — Rev. 17:12-14:**
@@ -2328,6 +2366,7 @@ Appendix — Symbol Dictionary
 - _DAR 661.2._ Smith: "they shall hate the harlot, make her desolate and naked, eat her flesh, and burn her with fire. A part of this work the nations of Europe have been doing for years. The completion of it, burning her with fire, will be accomplished when Revelation 18:8 is fulfilled" (_Rev. 18:8_).
 - _Rev. 17:17._ "God hath put in their hearts to fulfil his will... until the words of God shall be fulfilled" — the horns' violence is bracketed by God's word; He turns their independence into His justice (cf. _Dan. 7:26_, the judgment takes away his dominion).
 - _Rev. 17:18._ "the woman... is that great city, which reigneth over the kings of the earth" — concrete identification: Rome at the time of writing, the same throne carried from emperor to pontiff.
+- _TMR 41.3._ Andrews: "Rome was and is 'the seat of the beast;' therefore the city of Rome cannot be the woman seated upon the beast" — the woman symbolic church only, the heads successive governments, not literal hills. (Andrews is cited for the dissent; his no-literal-city reading of vv. 9 and 18 is not the handbook's — the glosses above keep Smith's seven-hilled Rome.)
 
 **The daughters — Babylon is not Rome alone — Rev. 17:5 enlarged:**
 
@@ -2394,10 +2433,11 @@ Appendix — Symbol Dictionary
   - _Jer. 25:10._ "the voice of the bridegroom, and the voice of the bride, the sound of the millstones, and the light of the candle" — the exact silenced-city litany, pronounced over Judah and the nations at Babylon's hand (_Jer. 25:9-11_), now turned back on Mystery Babylon herself.
 - _Rev. 18:23._ "for thy merchants were the great men of the earth; for by thy sorceries were all nations deceived" — her traders were the world's elite, and her deception was sorcery, not mere persuasion.
 - _Rev. 18:24._ "And in her was found the blood of prophets, and of saints, and of all that were slain upon the earth" — Babylon is named the responsible party for every martyr-blood across history; the indictment that justifies the sentence of v. 8.
+- _SSP 304.2._ Haskell: "every detail preserved in the record of ancient Babylon and its destruction, is to be fulfilled a second time in, and for, modern Babylon" — Jeremiah's stone-cast (_Jer. 51:63-64_) re-enacted on the church that became a whore.
 - _DAR 679.1._ Smith: "Like a great millstone, Babylon sinks to rise no more. The various arts and crafts... The pompous music... dies away forever."
 - _DAR 679.2._ Smith: "ever since the introduction of a false religion into the world, Babylon has existed. In her has been found, all along, opposition to the work of God, and persecution of his people."
 
-**DEFINITION — THE FALL OF BABYLON =** the judgment of Babylon in two stages — first a *moral* fall (_Rev. 14:8_), announced by the second angel and swelled to the loud cry when the angel of Revelation 18 lightens the earth and cries "Come out of her, my people" (_Rev. 18:1-5_; _EW 304.1_; defined in "The Fourth Angel's Message") — then her *execution* "after the fall" (_DAR 607.2_): repaid double into her own cup of wrath (_Rev. 18:6_; _Jer. 50:29_), her plagues falling in one day, utterly burned with fire (_Rev. 18:8_; _Rev. 17:16_), thrown down with violence like a millstone cast into the sea to rise no more (_Rev. 18:21_; _Jer. 51:63-64_; _DAR 679.1_), silenced of every voice (_Rev. 18:22-23_; _Jer. 25:10_), and answerable for the blood of prophets and saints (_Rev. 18:24_) — the saints' fifth-seal cry at last avenged (_Rev. 18:20_; _Rev. 6:10_), while the kings, merchants, and shipmasters who shared her wealth watch her burn from afar in one hour (_Rev. 18:9-19_; _Eze. 27:27-32_).
+**DEFINITION — THE FALL OF BABYLON =** the judgment of Babylon in two stages — first a _moral_ fall (_Rev. 14:8_), announced by the second angel and swelled to the loud cry when the angel of Revelation 18 lightens the earth and cries "Come out of her, my people" (_Rev. 18:1-5_; _EW 304.1_; defined in "The Fourth Angel's Message") — then her _execution_ "after the fall" (_DAR 607.2_): repaid double into her own cup of wrath (_Rev. 18:6_; _Jer. 50:29_), her plagues falling in one day, utterly burned with fire (_Rev. 18:8_; _Rev. 17:16_), thrown down with violence like a millstone cast into the sea to rise no more (_Rev. 18:21_; _Jer. 51:63-64_; _DAR 679.1_), silenced of every voice (_Rev. 18:22-23_; _Jer. 25:10_), and answerable for the blood of prophets and saints (_Rev. 18:24_) — the saints' fifth-seal cry at last avenged (_Rev. 18:20_; _Rev. 6:10_), while the kings, merchants, and shipmasters who shared her wealth watch her burn from afar in one hour (_Rev. 18:9-19_; _Eze. 27:27-32_).
 
 **Symbols defined in this section:**
 
@@ -2475,6 +2515,7 @@ Appendix — Symbol Dictionary
 **DEFINITION — THE RIDER ON THE WHITE HORSE =** Christ at His Second Coming, no longer the slain Lamb (_Rev. 5:6_) but the warrior-King who "in righteousness he doth judge and MAKE WAR" (_Rev. 19:11_) — "Faithful and True" (the Laodicean title, _Rev. 3:14_), eyes a flame of fire (_Rev. 1:14_), many crowns exceeding the dragon's and the beast's, vesture dipped in blood (the winepress-treader of _Isa. 63:1-4_), named "The Word of God" (the Logos of _John 1:1_) and KING OF KINGS, AND LORD OF LORDS (the title Rev. 17:14 named, now inscribed; the Yahweh-title of _Deut. 10:17_). His weapon is the sharp sword of His mouth (_Rev. 19:15, 21_; _2 Thess. 2:8_); His act is the treading of the winepress (defined in "The Seven Last Plagues"). He is NOT the first-seal white horse of the gospel age (defined in "The Seven Seals — Revelation 6-8:1") but the Coming that executes Rev. 17:14's verdict on the battlefield (_DAR 684.2; 685.1; 661.3_). His coming spreads two suppers: the marriage supper of the Lamb for the guest-saints (_Rev. 19:9_) and the supper of the great God for the fowls upon the slain (_Rev. 19:17-18_).
 
 **Symbols defined in this section:**
+
 - **the marriage** = Christ's reception of His kingdom and its capital city (_Dan. 7:14_; _Rev. 21:2, 9-10_; _GC 426.2_; _DAR 682.1_).
 - **fine linen** = the righteousness of saints (_Rev. 19:8_, self-interpreted; _Lev. 16:4_; _Rev. 19:14_).
 - **the testimony of Jesus** = the spirit of prophecy (_Rev. 19:10_, self-interpreted; _Rev. 12:17_).
@@ -2516,6 +2557,7 @@ Appendix — Symbol Dictionary
     - _Rev. 21:8._ "the fearful, and unbelieving... shall have their part in the lake which burneth with fire and brimstone: which is the second death" — the lake itself is named the second death.
 - _GC 660.4._ White: "During the thousand years... the judgment of the wicked takes place... 'the saints shall judge the world.'... In union with Christ they judge the wicked, comparing their acts with the statute book, the Bible."
 - _DAR 693.4._ Smith: "no language could more plainly prove two resurrections" — the righteous first, the wicked at the end; on such as share the first, "the second death will have no power."
+- _MWV1 154.1._ Miller: against the objectors who say judgment waits "until we have enjoyed one thousand years of peace and prosperity, and the world be converted" — the little horn wars on the saints until the Ancient of days comes (_Dan. 7:21-22_; _2 Thess. 2:8_; _MWV1 154.2-155.1_), so no converted-world golden age precedes the advent.
 - _GC 661.2._ White: at the close of the thousand years "the second resurrection will take place," the wicked raised "for the execution of 'the judgment written'" — citing _Isa. 24:22_ ("shut up in the prison, and after many days shall they be visited").
 
 **Satan loosed; Gog and Magog; the fire — Rev. 20:7-9:**
@@ -2541,6 +2583,7 @@ Appendix — Symbol Dictionary
 **DEFINITION — THE MILLENNIUM =** the thousand years (Rev. 20:2-7) between the two resurrections: the saints reign and judge with Christ in heaven (_Rev. 20:4_; _1 Cor. 6:2-3_; _Dan. 7:22_), while the earth lies desolate and depopulated — emptied by the plagues and the Coming, reduced to the chaos of _Gen. 1:2_ (_Jer. 4:23-27_) — with Satan bound to it by a chain of circumstance, having none left to deceive (_Rev. 20:1-3_; _1 Th. 4:16-17_); at its close the wicked are raised, Satan loosed, the lost gathered as Gog and Magog against the beloved city, and fire from God devours them at the great white throne, where death and hell are cast into the lake of fire — the second death (_Rev. 20:7-15_).
 
 **Symbols defined in this section:**
+
 - **bottomless pit** = the desolate, depopulated earth, in pre-creation chaos (_Jer. 4:23-27_; _Gen. 1:2_).
 - **the binding** = a chain of circumstance — none left to tempt (_Rev. 20:3_; _1 Th. 4:16-17_).
 - **the second death** = the final, irreversible extinction of the lost in the lake of fire — self-defined at _Rev. 20:14_ (_Rev. 2:11_; _Rev. 21:8_).
@@ -2563,6 +2606,7 @@ Appendix — Symbol Dictionary
 - _Rev. 21:2._ "I John saw the holy city, new Jerusalem, coming down from God out of heaven, prepared as a bride adorned for her husband" — the city descends TO the new earth; the saints do not float off to a far region, they receive the city here.
 - _Rev. 21:9-10._ The vial-angel SELF-INTERPRETS the bride: "I will shew thee the bride, the Lamb's wife. And he... shewed me that great city, the holy Jerusalem, descending out of heaven from God" — the bride and the city are one; the redeemed and their dwelling are inseparable.
   - **bride-city** = the New Jerusalem, the dwelling-place of the redeemed who made themselves ready (_Rev. 19:7-8_, the marriage; fine linen = the righteousness of saints, defined in "The Marriage and the Rider — Revelation 19") — the exact counterpart of the harlot-city Babylon, shown by the same vial-angel with the same words (_Rev. 17:1_, "Come hither; I will shew unto thee the judgment of the great whore"; Babylon defined in "Mystery, Babylon the Great — Revelation 17").
+- _SSP 340.1._ Haskell: Christ ascended to prepare the New Jerusalem as "the capital of the universal kingdom," and it "will be located on the precise spot where the city once stood" — the Mount of Olives parting to receive it (_Zech. 14:4_; the redeemed receive it as the trophy of His struggles, _SSP 341.1_).
 
 **The tabernacle of God with men — Rev. 21:3-8:**
 
