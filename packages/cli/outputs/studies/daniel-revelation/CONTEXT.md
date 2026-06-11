@@ -45,6 +45,9 @@ The teaching that the earthly sanctuary (Lev 16, Heb 8-9) was a model of the hea
 **Investigative judgment / pre-advent judgment**
 The phase of judgment that began in 1844 in the heavenly Most Holy Place. Dan 7:9-14's courtroom convened. Books opened. Final disposition of cases decided before Christ returns. Distinct from the executive judgment (the Second Coming itself) and the post-millennial Great White Throne (Rev 20).
 
+**Fulfillment-recognition vs date-setting**
+After 1844 prophetic time-calculation is closed — "there should be time no longer" (Rev 10:6); "there can be no definite tracing of the prophetic time. The longest reckoning reaches to the autumn of 1844" (LDE 36.2; cf. CTr 344.5 — the oath ends prophetic time, not probationary time). But the watchman may still RECOGNIZE a historic event as a fulfillment of the proven symbol-chain after it strikes (Rev 16:15 — watchfulness, not calculation). Canonical instance: 9/11 recognized as the herald of the day of slaughter / the opening of the loud-cry time (towers fall, Isa 30:25; the merchant-city burned and watched afar, Rev 18:8-19; eastern attribution; EGW's New York vision, 9T 12-13). Recognition asserts the event fits the chain; it never produces a new prophetic date.
+
 ---
 
 ## Pioneer-era figures (canonical usage in this series)
@@ -102,7 +105,7 @@ Younger ministers whose presentation of righteousness by faith at the 1888 Minne
 The day the Millerites expected the Second Coming and Christ did not return. The crisis from which the SDA sanctuary doctrine, Sabbath recovery, and remnant identity emerged. **NEVER referred to as "the failed prediction"** — the date was prophetically correct (Dan 8:14 / 2300 day-years from 457 BC); the **event** was misunderstood (heavenly sanctuary cleansing, not earthly Second Coming).
 
 **The Midnight Cry / The Loud Cry**
-The Aug-Oct 1844 phase of the Advent movement after Snow's True Midnight Cry message ignited Exeter. The proclamation that Oct 22 was the day. Distinct from the **Loud Cry of Rev 18** still future to us.
+The Aug-Oct 1844 phase of the Advent movement after Snow's True Midnight Cry message ignited Exeter. The proclamation that Oct 22 was the day. Distinct from the **Loud Cry of Rev 18**, whose time this corpus holds to have opened with the 9/11 herald — a fulfillment-recognition, not a date-calculation (see "Fulfillment-recognition vs date-setting").
 
 **The Exeter camp meeting (August 1844)**
 The Adventist camp meeting in Exeter, New Hampshire where Snow's True Midnight Cry message swept through the movement. The hinge moment of the 1844 Adventist experience.
