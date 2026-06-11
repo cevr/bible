@@ -88,7 +88,7 @@ Appendix — Symbol Dictionary
 **The next two kingdoms — Dan. 2:39:**
 
 - _Dan. 2:39._ "after thee shall arise another kingdom inferior to thee, and another third kingdom of brass, which shall bear rule over all the earth" — silver and brass succeed gold, each less precious than the last.
-  - **silver = Media-Persia / brass = Grecia** — defined in "The Ram, the Goat, and the 2300 Days — Daniel 8."
+  - **silver = Media-Persia / brass = Grecia** (_Dan. 2:39_; named by name in _Dan. 8:20-21_).
 - _DAR 48.1-3._ Smith heads verse 39 with Media-Persia, the silver kingdom that overthrew Babylon under Cyrus.
 - _DAR 54.1-2._ Smith: the brass kingdom = Grecia, decided on the field of Arbela, 331 BC, the third universal empire.
 
@@ -133,11 +133,11 @@ Appendix — Symbol Dictionary
 **Symbols defined here:**
 
 - **image-metal = a kingdom**; the king stands for the kingdom (_Dan. 2:38, 44_; confirmed _Dan. 7:17, 23_).
+- **silver = Media-Persia** (_Dan. 2:39_; named by name in _Dan. 8:20_).
+- **brass = Grecia** (_Dan. 2:39_; named by name in _Dan. 8:21_).
 - **mountain = a kingdom** (_Dan. 2:35, 44_; _Jer. 51:25_).
 - **stone cut out without hands = the kingdom of God / Christ** (_Dan. 2:44-45_; _Ps. 118:22_; _Matt. 21:44_).
 - **chaff carried by the wind = the ungodly swept away in judgment** (_Dan. 2:35_; _Ps. 1:4_).
-
-**Symbols carried:** silver = Media-Persia, brass = Grecia ("The Ram, the Goat, and the 2300 Days — Daniel 8").
 
 ---
 
@@ -409,6 +409,7 @@ Appendix — Symbol Dictionary
 - **horn** = a king or power (_Dan. 7:24_).
 - **day** = a year in symbolic time-prophecy (_Num. 14:34_; _Eze. 4:6_; DAR 141.1).
 - **little horn** = the papacy, every mark receipted (_Dan. 7:8, 20, 24, 25_; DAR 118.4, 119.1, 140.3, 141.1).
+- **a time and times and the dividing of time / the 1260** = 1260 year-days of papal supremacy, AD 538-1798 (_Dan. 7:25_; DAR 141.1; GC 439.2).
 - **the judgment** = the 1844 investigative judgment opened in heaven (_Dan. 7:9-10, 13, 26_; DAR 120.1, 122.3, 142.1; GC 479.3).
 
 ---
@@ -756,7 +757,7 @@ Appendix — Symbol Dictionary
 - **1290 days** = 508-1798, the daily taken away to 1798 (_Dan. 12:11_; _DAR 313.2_).
 - **1335 days** = 508-1843, the Advent awakening's blessing (_Dan. 12:12_; _DAR 314.2, 314.3_).
 
-**Symbols carried:** stand up (of Michael) ("The Seventh Trumpet"); a time, times, and an half / the 1260 ("The Four Beasts and the Judgment — Daniel 7"); the daily ("The Ram, the Goat, and the 2300 Days — Daniel 8").
+**Symbols carried:** stand up (of Michael) ("The Kings of the North and the South — Daniel 10-11"); a time, times, and an half / the 1260 ("The Four Beasts and the Judgment — Daniel 7"); the daily ("The Ram, the Goat, and the 2300 Days — Daniel 8").
 
 ---
 
@@ -1385,7 +1386,7 @@ Appendix — Symbol Dictionary
   - **measure** = to examine by a standard, the judgment-test (_Dan. 8:14_; the temple here is the literal sanctuary in heaven, the worshipers the church on earth — measured by character).
 - _DAR 497.2._ Smith: the temple is "the literal temple in heaven," the worshipers "the true church on earth" — measured not in feet but as worshipers, by the standard of the law.
 - _DAR 498.1._ Smith: the measuring-rod is the third angel's message embracing the ten commandments, calling the church to examine "the sanctuary on high" and the ministration of the great High Priest.
-- _Rev. 11:2._ "the court which is without the temple leave out... it is given unto the Gentiles: and the holy city shall they tread under foot forty and two months" — the outer court left to the nations; the 1260-year tread of papal supremacy (defined in "Michael Stands Up — Daniel 12").
+- _Rev. 11:2._ "the court which is without the temple leave out... it is given unto the Gentiles: and the holy city shall they tread under foot forty and two months" — the outer court left to the nations; the 1260-year tread of papal supremacy (defined in "The Four Beasts and the Judgment — Daniel 7").
 - _DAR 498.2._ Smith: the court is this earth, where the antitypical Victim died; the attention now turns to the inner temple, and back to the papal treading of the holy city.
 
 **The two witnesses in sackcloth — Rev. 11:3-4:**
@@ -2718,6 +2719,7 @@ Appendix — Symbol Dictionary
 
 Every symbol defined in this handbook, alphabetically (leading articles ignored), with its receipts and owning section; "also used in §§ ..." lists the sections that carry the symbol forward.
 
+- **1260, the / a time and times and the dividing of time** = 1260 year-days of papal supremacy, AD 538-1798 (_Dan. 7:25_; _DAR 141.1_; _GC 439.2_) — defined in "The Four Beasts and the Judgment — Daniel 7" (§3); also used in §§2, 6, 7, 16, 26.
 - **1290 days** = 508-1798, the daily taken away to 1798 (_Dan. 12:11_; _DAR 313.2_) — defined in "Michael Stands Up — Daniel 12" (§7).
 - **1335 days** = 508-1843, the Advent awakening's blessing (_Dan. 12:12_; _DAR 314.2, 314.3_) — defined in "Michael Stands Up — Daniel 12" (§7).
 - **2300 days** = 2300 years, ending 1844 at the cleansing of the sanctuary (_Dan. 8:14_; _GC 328.2_) — defined in "The Ram, the Goat, and the 2300 Days — Daniel 8" (§4); also used in §5.
@@ -2730,6 +2732,7 @@ Every symbol defined in this handbook, alphabetically (leading articles ignored)
 - **blood** = slaughter (_Eze. 14:19_) — defined in "What Is a Trumpet?" (§13); also used in §§14, 17.
 - **bottomless pit** — (a) a deep, waste region a dark power rises from (_Gen. 1:2_; _Rev. 9:2_) — defined in "The Six Trumpets" (§14); (b) the desolate, depopulated earth, in pre-creation chaos (_Jer. 4:23-27_; _Gen. 1:2_) — defined in "The Millennium and the Great White Throne — Revelation 20" (§32).
 - **bride-city** = the New Jerusalem, the redeemed and their dwelling as one, counterpart of Babylon (_Rev. 21:9-10_; _Rev. 19:7-8_) — defined in "The New Heaven and the New Earth — Revelation 21-22" (§33).
+- **brass** = Grecia, the third kingdom (_Dan. 2:39_; named by name in _Dan. 8:21_) — defined in "The Great Image — Daniel 2" (§1).
 - **brimstone** = the fire of divine judgment (_Gen. 19:24_) — defined in "The Six Trumpets" (§14); also used in §§17, 19.
 - **candlestick** = a church (_Rev. 1:20_) — defined in "The Revelation of Jesus Christ — Revelation 1" (§9).
 - **chaff carried by the wind** = the ungodly swept away in judgment (_Dan. 2:35_; _Ps. 1:4_) — defined in "The Great Image — Daniel 2" (§1).
@@ -2738,6 +2741,7 @@ Every symbol defined in this handbook, alphabetically (leading articles ignored)
 - **cup / wine of wrath** = the sword-judgment God serves the nations (_Jer. 25:15-16_; _Isa. 51:17_) — defined in "The Day of the LORD" (§17); also used in §§19, 25.
 - **daily, the** = the continual; here the pagan desolating power, paired with the papal "transgression of desolation" — "sacrifice" is a supplied word (_Dan. 8:11-13_; _DAR 154.6_; _DAR 157.2_; _EW 74.2_) — defined in "The Ram, the Goat, and the 2300 Days — Daniel 8" (§4); also used in §§2, 6, 7.
 - **day** = a year in symbolic time-prophecy (_Num. 14:34_; _Eze. 4:6_; _DAR 141.1_) — defined in "The Four Beasts and the Judgment — Daniel 7" (§3); also used in §§2, 4, 5, 14.
+- **day (with the Lord)** = a thousand years (_2 Pet. 3:8_; _Ps. 90:4_) — defined in "The Six Thousand Years" (§8).
 - **determined / cut off** = the 490 years severed from the 2300 (Heb. _chathak_, H2852) (_Dan. 9:24_; _Dan. 8:14_; _GC 326.2_) — defined in "The Seventy Weeks — Daniel 9" (§5).
 - **doctrine of Balaam** (Pergamos) = teaching God's people to mix pagan worship with His (_Num. 31:16_; _Rev. 2:14_) — defined in "The Seven Churches — Revelation 2-3" (§10).
 - **door / the apartment, the** = the heavenly sanctuary, the true tabernacle above (_Heb. 8:1-2_; _Heb. 9:24_) — defined in "The Throne and the Lamb — Revelation 4-5" (§11).
@@ -2810,6 +2814,8 @@ Every symbol defined in this handbook, alphabetically (leading articles ignored)
 - **seven times, the** = the 2520-year scattering, 677 BC to AD 1844 (_Lev. 26:18, 21, 24, 28_; _Dan. 4:16, 25_; _PREX2 124.2_; _MWV2 262.2_) — defined in "The Seven Times — Daniel 4" (§2).
 - **signified** = shown in signs — the book is symbolic and self-decoding (_Rev. 1:1, 20_) — defined in "The Revelation of Jesus Christ — Revelation 1" (§9).
 - **silence in heaven** = the Coming, heaven emptied as Christ descends with all His angels (_Rev. 8:1_; _Matt. 25:31_; _DAR 452.4_) — defined in "The Seven Seals — Revelation 6-8:1" (§12).
+- **silver** = Media-Persia, the second kingdom (_Dan. 2:39_; named by name in _Dan. 8:20_) — defined in "The Great Image — Daniel 2" (§1).
+- **six thousand years, the** = this world's appointed span of toil, typed by the creation week, counted from creation to ~AD 1843 (_Gen. 2:2-3_; _Exo. 20:9-11_; _Heb. 4:4-10_; _2 Pet. 3:8_) — defined in "The Six Thousand Years" (§8).
 - **sixth-seal signs, the** = Lisbon 1755, the Dark Day and blood moon 1780, the falling stars 1833 (_Rev. 6:12-13_; _DAR 414.3_, _422.1_, _429.5_, _431.2_) — defined in "The Seven Seals — Revelation 6-8:1" (§12).
 - **slaughter weapon** = war / the slaying stroke of judgment (_Eze. 14:21_; _Jer. 25:31_) — defined in "The Day of Slaughter" (§18).
 - **smoke** = the rising token of error and torment (_Rev. 14:11_; _Gen. 19:28_) — defined in "The Six Trumpets" (§14); also used in §§17, 19.
