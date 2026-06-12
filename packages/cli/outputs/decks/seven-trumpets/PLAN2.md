@@ -299,7 +299,7 @@ Rules: KJV fragments exactly as in VT/VW/V1 (already DB-verified). Claim lines a
 
 1. Cues 1-78, each exactly once, strictly increasing: `grep -oE '\[Slide ([0-9]+)' message.md | grep -oE '[0-9]+'` must equal `seq 1 78`.
 2. Zero pioneer/EGW quote-lines in message: `grep -nE '^- _(GC|EW|CL|Ev|LDE|SSTR|PREX|DAR|SSP|GSAM|TMR|MWV|AJB|TTAM|THB|PSC|LJL|HST|EVCO|HSFD|BP2|SLWM|LOF|[0-9]T|PP)'` returns nothing; refcodes appear only inside `\[Slide [0-9]+[^]]*\]`.
-3. Untagged core 85-95 lines (plan lands at 91): total `^- ` bullets minus `(if time)` bullets; total bullets ≤150.
+3. Untagged core 85-95 lines (plan landed at 91; post-build amendment 2026-06-12 adds 4 core lines at the §3 head — the why-Rome anchors: Rev. 8:3-5 ↔ 6:9-10 altar/martyrs scene + Dan. 2:40, 44 / 7:23 fourth-empire frame + ROME claim line, all KJV DB-verified, no slide cues — landing at 95, the band edge; header math updated to ≈61 min): total `^- ` bullets minus `(if time)` bullets; total bullets ≤150.
 4. Every verse line carries a VT/VW/V1 source ref (the micro-cloud appendix covers Luke 17:28, 30); no verse cited that resolves to none of the three.
 5. `[Slide` and `[Board:` never appear on an `(if time)` line: `grep -n '(if time)' message.md | grep -E '\[(Slide|Board)'` returns nothing.
 6. No quotation-marked non-KJV prose outside `[Slide ...]` annotations (catches EGW-paraphrase smuggling; §1.2 and §10.2 are the flagged rephrase points).
