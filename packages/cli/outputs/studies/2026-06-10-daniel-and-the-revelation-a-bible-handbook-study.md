@@ -1618,7 +1618,7 @@ Appendix — Symbol Dictionary
 - _Rev. 16:1-2._ "Pour out the vials of the wrath of God... there fell a noisome and grievous sore upon the men **which had the mark of the beast**" — the plagues strike the exact persons the third angel warned.
 - _Rev. 8:13._ "**Woe, woe, woe**, to the inhabiters of the earth" — three trumpet-woes yet to sound.
 - _Rev. 9:12._ "One woe is past; and, behold, there come two woes more hereafter." — the woes counted in sequence; the third stands next.
-- _Rev. 11:14-15._ "The second woe is past; behold, the **third woe** cometh quickly" — then "the seventh angel sounded."
+- _Rev. 11:14-15._ "The second woe is past; and, behold, the **third woe** cometh quickly" — then "the seventh angel sounded."
   - **woe** — defined in "The Six Trumpets."
 - _TMR 116.2._ Andrews: the seven plagues are poured out under the seventh angel — "the third woe is by reason of the voice of the seventh angel... hence the plagues are future, and constitute the third woe" (Rev. 11:15-19 = 16:1-21).
 - _TMR 124.1._ Andrews calls the seven last plagues by their other name — "the seven last plagues, — the third woe!"
