@@ -1,8 +1,28 @@
-# Fire and Brimstone: The Forgotten Half of the Third Angel's Message **[Slide 1]**
+---
+apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1688'
+---
 
-_Sabbath message — June 13, 2026 · companion deck: 78 slides (cloud of witnesses) · whiteboard carries the scripture exposition._
+# Fire and Brimstone: The Forgotten Half of the Third Angel's Message
 
-_Pacing: the untagged core spine (~95 lines) carries the whole argument; lines tagged **(if time)** may be compressed or skipped aloud without breaking the definition chain. **[Board: …]** marks what to write on the whiteboard as the line lands. **[Slide N]** marks the advance. **Two-tier slide protocol — the deck runs at two speeds:** **DWELL** the 27 starred cues (**[Slide N ★]**) — the lead witness for each claim: one spoken sentence of introduction ("Litch, 1842 — hear him"), then SILENCE while the congregation reads the whole paragraph (~25–40s each). **WALK** the 31 unstarred quote slides — do NOT wait for a full read; the speaker's one sentence IS the content ("White saw the same — next"), advance after ~8 seconds. Section and event slides are headline-only, advanced in stride. Honest math: 95 core lines ≈ 40 min + 27 dwells ≈ 14 min + 31 walks ≈ 4 min + boards ≈ 3 min ≈ 61 min — a minute over the hour; the **(if time)** lines are the slack, and §2's four optional proofs are the first to drop._
+## Order of Service
+
+**Central verse — _Revelation 14:12_:**
+
+> "Here is the patience of the saints: here are they that keep the commandments of God, and the faith of Jesus."
+
+The whole sermon hangs here: the third angel's message ends not in the torment-words but in the people who, knowing both halves, _keep the commandments of God and the faith of Jesus_. Read it at the call and again at the appeal.
+
+**Opening hymn** — pick one (all set the advent / watchman key the sermon opens in):
+
+- **#592 — _Watchman, Tell Us of the Night_** (Watchfulness) — the watchman figure of §2; "Traveler, yes; it brings the day." _Recommended — it is the sermon's own image._
+- **#210 — _Wake, Awake, for Night Is Flying_** (Second Advent) — "The watchmen on the heights are crying... He comes; prepare, ye virgins wise" — watchman + midnight-cry, the §9 loud cry in song.
+- **#209 — _That Glorious Day Is Coming_** (Second Advent) — names the day the trumpets announce; gentler, congregational opener.
+
+**Closing hymn** — pick one (all answer the §10 appeal: believe, come out, be ready):
+
+- **#211 — _Lo! He Comes_** (Second Advent) — "Lo! He comes, with clouds descending" — the seventh-trumpet day the whole chain points to; lands the appeal on the King who comes. _Recommended — it is where the trumpets end._
+- **#217 — _The Church Has Waited Long_** (Second Advent) — the waiting, watching church; quieter resolution after a heavy appeal.
+- **#64 — _Lord, Dismiss Us With Thy Blessing_** (Close of Worship) — if you want a plain benediction-hymn rather than a second advent-theme push.
 
 ---
 
