@@ -155,9 +155,25 @@ The whole sermon hangs here: the third angel's message ends not in the torment-w
 
 ---
 
-## 7. The Day of the LORD — the Trumpets Hand Us the Vocabulary
+## 7. The Seventh Trumpet — When Does It Start?
 
-> Every prophet on one subject: the "day of the LORD" named in the trumpets' own plague-and-war vocabulary — rod, wine of wrath, fire, brimstone, smoke. **[Slide 54]**
+> First fix the frame. The seventh trumpet is a PERIOD: it opens when Michael stands (probation closes), contains the seven last plagues, and ends at the coming. And those plagues are the day of the LORD — the SAME wrath, proved by one word. So "next on the clock since 1840" is not yet here — it begins when probation shuts.
+
+- TYPE — _Josh. 6:4-5, 15-16, 20._ "seven priests... seven trumpets... the seventh day ye shall compass the city seven times" → "at the seventh time... Shout; for the LORD hath given you the city" → "the wall fell down flat" — Jericho is the Bible's own type: seven trumpets, and on the SEVENTH the wall falls and the city is given to destruction. So Revelation's seventh trumpet is the fall. **[Board: JERICHO — 7th TRUMPET = THE FALL]**
+- _Zeph. 1:15; Isa. 13:9._ "That day is a day of **wrath**... the day of the LORD cometh, cruel both with **wrath** and fierce anger, to lay the land desolate" — the day of the LORD is, by name, the day of God's WRATH on all the land. **[Board: DAY OF THE LORD = WRATH]**
+- _Rev. 15:1; 16:1._ "seven angels having the seven last plagues; for in them is filled up the **wrath of God**" + "pour out the vials of the **wrath of God** upon the earth" — the seven last plagues are, by name, the wrath of God filled up and poured out on the earth.
+- _Rev. 11:18._ "the nations were angry, and thy **wrath is come**... and shouldest destroy them which destroy the earth" — and the seventh trumpet itself announces that wrath come. **DEFINITION — THE DAY OF THE LORD = THE SEVEN LAST PLAGUES =** one wrath, one event: the day of the LORD's vengeance executed in the seven vials of the wrath of God, poured "without mixture" (_Rev. 14:10_) on all nations. **[Board: 7 PLAGUES = THE WRATH = THE DAY]**
+- SYMBOL "stand up" — _Dan. 11:2-3._ "there shall stand up yet three kings in Persia... And a mighty king shall stand up, that shall rule with great dominion" — "stand up" = begin to reign, take the throne (Persia's kings, then Alexander); the idiom is settled before Daniel ever uses it of Michael. **[Board: STAND UP = BEGIN TO REIGN]**
+- _Dan. 12:1._ "at that time shall Michael stand up, the great prince... and at that time thy people shall be delivered" — the same idiom: Michael **begins to reign** — the close of probation, His people sealed and delivered.
+- _Rev. 11:15, 17._ "The kingdoms of this world are become the kingdoms of our Lord, and of his Christ; and he shall reign... thou hast taken to thee thy great power, and hast reigned" — the seventh trumpet **opens** with that same enthronement: the reign **begun**, not yet the return to earth.
+- _Rev. 11:19; 15:8._ "the temple of God was opened... and there was seen in his temple the ark of his testament" → "no man was able to enter into the temple, till the seven plagues... were fulfilled" — the Most Holy laid open = the Day of Atonement closed; then no man can enter (no mediator), then the plagues fall.
+- _Rev. 16:17._ "the seventh angel poured out his vial into the air; and there came a great voice out of the temple... It is done" — the seventh **vial** lands under the seventh **trumpet**: the trumpet is a PERIOD, not a point — it runs from Michael's standing to "It is done." **DEFINITION — THE SEVENTH TRUMPET =** a span, not an instant: it opens when Michael stands up (the close of probation), contains the seven last plagues = the day of the LORD, and ends at the coming — so the third woe, the seven last plagues, and the day of the LORD are one and the same. **[Board: 1840 ─ MICHAEL STANDS (probation closes) ─ 7 PLAGUES ─ HE COMES]** **(if time on:** _Rev. 10:7_ "begin to sound" — a span, not an instant**)**
+
+---
+
+## 8. The Day of the LORD — the Trumpets Hand Us the Vocabulary
+
+> The frame fixed, hear the prophets fill it: every one on one subject — the "day of the LORD" named in the trumpets' own plague-and-war vocabulary — rod, wine of wrath, fire, brimstone, smoke. **[Slide 54]**
 
 - _Zeph. 1:14-16._ "The great day of the LORD is near... A day of the trumpet and alarm against the fenced cities, and against the high towers" — the great day near, a day of the trumpet, a war on walled cities.
 - _Joel 2:30-31._ "blood, and fire, and pillars of smoke... before the great and the terrible day of the LORD" — the trumpets' own triad set before the day.
@@ -172,21 +188,6 @@ The whole sermon hangs here: the third angel's message ends not in the torment-w
 
 ---
 
-## 8. The Seventh Trumpet — When Does It Start?
-
-> The day of the LORD is the seven last plagues — the SAME wrath, proved by one word. And the seventh trumpet is a PERIOD: it opens when Michael stands (probation closes), contains the plagues, and ends at the coming. So "next on the clock since 1840" is not yet here — it begins when probation shuts.
-
-- _Zeph. 1:15; Isa. 13:9._ "That day is a day of **wrath**... the day of the LORD cometh, cruel both with **wrath** and fierce anger, to lay the land desolate" — the day of the LORD is, by name, the day of God's WRATH on all the land. **[Board: DAY OF THE LORD = WRATH]**
-- _Rev. 15:1; 16:1._ "seven angels having the seven last plagues; for in them is filled up the **wrath of God**" + "pour out the vials of the **wrath of God** upon the earth" — the seven last plagues are, by name, the wrath of God filled up and poured out on the earth.
-- _Rev. 11:18._ "the nations were angry, and thy **wrath is come**... and shouldest destroy them which destroy the earth" — and the seventh trumpet itself announces that wrath come. **DEFINITION — THE DAY OF THE LORD = THE SEVEN LAST PLAGUES =** one wrath, one event: the day of the LORD's vengeance executed in the seven vials of the wrath of God, poured "without mixture" (_Rev. 14:10_) on all nations. **[Board: 7 PLAGUES = THE WRATH = THE DAY]**
-- SYMBOL "stand up" — _Dan. 11:2-3._ "there shall stand up yet three kings in Persia... And a mighty king shall stand up, that shall rule with great dominion" — "stand up" = begin to reign, take the throne (Persia's kings, then Alexander); the idiom is settled before Daniel ever uses it of Michael. **[Board: STAND UP = BEGIN TO REIGN]**
-- _Dan. 12:1._ "at that time shall Michael stand up, the great prince... and at that time thy people shall be delivered" — the same idiom: Michael **begins to reign** — the close of probation, His people sealed and delivered.
-- _Rev. 11:15, 17._ "The kingdoms of this world are become the kingdoms of our Lord, and of his Christ; and he shall reign... thou hast taken to thee thy great power, and hast reigned" — the seventh trumpet **opens** with that same enthronement: the reign **begun**, not yet the return to earth.
-- _Rev. 11:19; 15:8._ "the temple of God was opened... and there was seen in his temple the ark of his testament" → "no man was able to enter into the temple, till the seven plagues... were fulfilled" — the Most Holy laid open = the Day of Atonement closed; then no man can enter (no mediator), then the plagues fall.
-- _Rev. 16:17._ "the seventh angel poured out his vial into the air; and there came a great voice out of the temple... It is done" — the seventh **vial** lands under the seventh **trumpet**: the trumpet is a PERIOD, not a point — it runs from Michael's standing to "It is done." **DEFINITION — THE SEVENTH TRUMPET =** a span, not an instant: it opens when Michael stands up (the close of probation), contains the seven last plagues = the day of the LORD, and ends at the coming — so the third woe, the seven last plagues, and the day of the LORD are one and the same. **[Board: 1840 ─ MICHAEL STANDS (probation closes) ─ 7 PLAGUES ─ HE COMES]** **(if time on:** _Rev. 10:7_ "begin to sound" — a span, not an instant**)**
-
----
-
 ## 9. The Third Angel's Message — Both Questions
 
 > The third angel's penalty wears the very words of the sixth trumpet. Read it whole, and the message warns BOTH questions — the Western (beast, image, mark) and the Eastern (the woe, the day of the LORD). **[Slide 57]**
@@ -195,8 +196,8 @@ The whole sermon hangs here: the third angel's message ends not in the torment-w
 - _Rev. 13:11, 16-17._ "two horns like a lamb, and he spake as a dragon"; "causeth all... to receive a **mark**... that no man might buy or sell" — beast, image, mark: the Western question returns.
 - CLAIM: the mark = enforced first-day observance, a prominent profession that all may see; the Sabbath the test. **[Slide 58 ★] [Slide 59]**
 - _Rev. 9:2; 9:17-18 ↔ 14:10-11._ "smoke out of the pit"; "fire and smoke and brimstone... the third part of men killed" ↔ "tormented with fire and brimstone... the smoke of their torment" — the SAME words: the third angel's penalty is the sixth trumpet's exact vocabulary — the Eastern question inside the message. **[Board: point to the FIRE · SMOKE · TORMENT · BRIMSTONE column while reading Rev. 14:10-11 aloud]** **[Slide 60 ★] [Slide 61]** **(if time:** _Isa. 34:8-10_ recall — the same three words**)**
-- _Rev. 11:14-15._ "The second woe is past; **and,** behold, the third woe cometh quickly... the seventh angel sounded" — the second past, the third announced, the seventh trumpet sounds (its reckoning at §8).
-- CLAIM: the third woe = the seven last plagues under the seventh trumpet — NEXT on the clock since 1840 (the day of the LORD, established at §8). **[Slide 62 ★] [Slide 63]**
+- _Rev. 11:14-15._ "The second woe is past; **and,** behold, the third woe cometh quickly... the seventh angel sounded" — the second past, the third announced, the seventh trumpet sounds (its reckoning at §7).
+- CLAIM: the third woe = the seven last plagues under the seventh trumpet — NEXT on the clock since 1840 (the day of the LORD, established at §7-8). **[Slide 62 ★] [Slide 63]**
 - CLAIM: under the seventh trumpet great Babylon entire sinks to rise no more — the cities of the nations fall. **[Slide 64 ★] [Slide 65]**
 - _Rev. 14:12._ "Here are they that **keep the commandments of God, and the faith of Jesus**" — **DEFINITION — THE THIRD ANGEL'S MESSAGE =** the loud warning of unmixed wrath on all who worship the beast and receive his mark, dealing with BOTH questions — Western (beast, image, enforced false sabbath as mark) and Eastern (the day of the LORD's vengeance — the THIRD woe, the seventh trumpet, next on the clock since 1840, announced in the very fire-brimstone-smoke vocabulary minted by the sixth).
 
