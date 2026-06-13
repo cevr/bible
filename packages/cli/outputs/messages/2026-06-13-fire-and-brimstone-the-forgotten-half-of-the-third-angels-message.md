@@ -124,6 +124,8 @@ The whole sermon hangs here: the third angel's message ends not in the torment-w
 > The Ottoman Turks, loosed 1449 to slay 391 years 15 days; the trumpet's own word names its slaughter a PLAGUE. **[Slide 33]**
 
 - _Rev. 9:13-14._ "Loose the four angels which are bound in the great river Euphrates" — the sixth angel sounds; four angels loosed from the Euphrates.
+- SYMBOL ANGEL — _Mal. 2:7._ "the priest's lips should keep knowledge... for he is the **messenger** of the LORD of hosts" — "angel" (Greek _angelos_, Hebrew _malak_) just means MESSENGER; here a man, the priest, is called it outright. **[Board: ANGEL = MESSENGER (can be a man)]**
+- _Hag. 1:13._ "Then spake Haggai the LORD's **messenger**" + _Luke 7:24._ "the **messengers** of John" + _Rev. 1:20._ "the seven stars are the **angels** of the seven churches" — the same word names a prophet, John's disciples, and the church-overseers — all men; so the four angels of the Euphrates = four human war-powers under restraint. **(if time on:** _Mal. 3:1_; _Luke 9:52_ — Christ's own "messengers"**)**
 - SYMBOL EUPHRATES — _Isa. 8:7._ "the Lord bringeth up upon them the waters of the river, strong and many, even the king of Assyria" — the river = the invading eastern empire, named outright.
 - _Rev. 16:12._ "the great river Euphrates... that the way of the kings of the east might be prepared" — the Euphrates gates the kings of the east. **[Board: EUPHRATES = THE EAST'S RIVER]** **(if time on:** _Jer. 46:10_; _Gen. 15:18_; _Rev. 7:1_ — angels holding winds = war-powers under restraint**)**
 - _Rev. 9:15._ "prepared for an hour, and a day, and a month, and a year, for to slay the third part of men" — a dated commission = 391 years 15 days by day-for-year (_Num. 14:34_).
