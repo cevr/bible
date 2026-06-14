@@ -9,6 +9,7 @@
  *   bible egw books                  - List installed books in the local DB
  *   bible egw catalog --search smith - Browse remote API catalog
  *   bible egw download <code>        - Fetch any book from API into local DB
+ *   bible egw study <subject>        - Rank books by remote hits, download top-N, show local hits
  *   bible egw search <query>         - Search (--remote hits the API directly)
  *   bible egw open "PP 351.1"        - Open the TUI at a refcode (handled in main.ts)
  */
@@ -477,6 +478,211 @@ export const egwDownload = Command.make(
 ).pipe(Command.provide(() => FullLayer));
 
 // ============================================================================
+// study — subject-driven corpus builder: remote-search a subject, download the
+// books that cover it best, then surface the local hits across everything.
+// ============================================================================
+
+const studySubject = Argument.string('subject').pipe(Argument.variadic());
+const studyLimit = Flag.integer('limit').pipe(
+  Flag.withDescription('Max books to download, ranked by hit count (default: 15)'),
+  Flag.withDefault(15),
+);
+const studyMinHits = Flag.integer('min-hits').pipe(
+  Flag.withDescription('Only download books with at least this many remote hits (default: 2)'),
+  Flag.withDefault(2),
+);
+const studyScan = Flag.integer('scan').pipe(
+  Flag.withDescription('Remote hits to scan when ranking books (default: 200, max useful ~500)'),
+  Flag.withDefault(200),
+);
+const studyLang = Flag.string('lang').pipe(
+  Flag.withDescription('Language code (default: en)'),
+  Flag.withDefault('en'),
+);
+const studyConcurrency = Flag.integer('concurrency').pipe(
+  Flag.withDescription('Parallel chapter fetches per book (default: 5)'),
+  Flag.withDefault(5),
+);
+const studyDryRun = Flag.boolean('dry-run').pipe(
+  Flag.withDescription('Rank and list the books that WOULD be downloaded; download nothing'),
+  Flag.withDefault(false),
+);
+const studyResults = Flag.integer('results').pipe(
+  Flag.withDescription('Local result snippets to print after downloading (default: 30)'),
+  Flag.withDefault(30),
+);
+
+/** A book ranked by how many remote hits it had for the subject. */
+interface RankedBook {
+  pubCode: string;
+  pubName: string;
+  hits: number;
+}
+
+export const egwStudy = Command.make(
+  'study',
+  {
+    subject: studySubject,
+    limit: studyLimit,
+    minHits: studyMinHits,
+    scan: studyScan,
+    lang: studyLang,
+    concurrency: studyConcurrency,
+    dryRun: studyDryRun,
+    results: studyResults,
+  },
+  (args) =>
+    Effect.gen(function* () {
+      const subject = args.subject.join(' ').trim();
+      if (subject.length === 0) {
+        yield* Console.log('Usage: bible egw study <subject> [flags]');
+        yield* Console.log('');
+        yield* Console.log(
+          'Remote-searches a subject, downloads the books that cover it best into the',
+        );
+        yield* Console.log('local DB, then prints the local hits across everything installed.');
+        yield* Console.log('');
+        yield* Console.log('Examples:');
+        yield* Console.log('  bible egw study "seven last plagues"');
+        yield* Console.log('  bible egw study "the day of the Lord" --limit 8 --min-hits 3');
+        yield* Console.log(
+          '  bible egw study "armageddon" --dry-run   # just rank, download nothing',
+        );
+        return;
+      }
+
+      const client = yield* EGWApiClient;
+      const db = yield* EGWParagraphDatabase;
+      const service = yield* EGWService;
+
+      // --- Phase 1: remote-search the subject and rank books by hit count -----
+      yield* Console.log(`Searching the EGW catalog for "${subject}"...`);
+      const response = yield* client.search({
+        query: subject,
+        lang: args.lang,
+        limit: args.scan,
+      });
+
+      if (response.results.length === 0) {
+        yield* Console.log(`No remote results for "${subject}".`);
+        return;
+      }
+
+      const rankMap = new Map<string, RankedBook>();
+      for (const hit of response.results) {
+        const existing = rankMap.get(hit.pub_code);
+        if (existing) {
+          existing.hits += 1;
+        } else {
+          rankMap.set(hit.pub_code, { pubCode: hit.pub_code, pubName: hit.pub_name, hits: 1 });
+        }
+      }
+
+      const ranked = [...rankMap.values()]
+        .filter((b) => b.hits >= args.minHits)
+        .sort((a, b) => b.hits - a.hits)
+        .slice(0, args.limit);
+
+      yield* Console.log(
+        `Scanned ${response.results.length} hit(s) across ${rankMap.size} book(s); ` +
+          `${ranked.length} book(s) clear the --min-hits ${args.minHits} threshold (top ${args.limit}):\n`,
+      );
+
+      // Which of these are already installed locally?
+      const installed = yield* service.getBooks();
+      const installedCodes = new Set(installed.map((b) => b.bookCode.toUpperCase()));
+
+      for (const [i, b] of ranked.entries()) {
+        const have = installedCodes.has(b.pubCode.toUpperCase()) ? ' [installed]' : '';
+        yield* Console.log(
+          `  ${String(i + 1).padStart(2)}. ${b.pubCode.padEnd(10)} ${String(b.hits).padStart(4)} hits${have}  ${b.pubName}`,
+        );
+      }
+      yield* Console.log('');
+
+      if (args.dryRun) {
+        yield* Console.log('--dry-run: nothing downloaded. Re-run without --dry-run to fetch.');
+        return;
+      }
+
+      // --- Phase 2: resolve each pub_code to a Book and download it -----------
+      const toDownload = ranked.filter((b) => !installedCodes.has(b.pubCode.toUpperCase()));
+      if (toDownload.length === 0) {
+        yield* Console.log('All ranked books are already installed. Skipping download.\n');
+      }
+
+      let downloaded = 0;
+      let failed = 0;
+      for (const b of toDownload) {
+        // Resolve pub_code -> Book (which carries book_id) via a title-search,
+        // matching exactly on code. Mirrors `bible egw download <code>`.
+        const candidates = yield* client
+          .getBooks({ lang: args.lang, search: b.pubName, limit: 50 })
+          .pipe(Stream.take(50), Stream.runCollect);
+        const exact = [...candidates].find((c) => c.code.toUpperCase() === b.pubCode.toUpperCase());
+
+        if (!exact) {
+          yield* Console.log(`  ✗ ${b.pubCode}: could not resolve to a catalog book; skipping.`);
+          failed += 1;
+          continue;
+        }
+
+        yield* Console.log(`  ↓ ${exact.code} — ${exact.title} (${exact.author})...`);
+        const result = yield* downloadBookToLocal(exact, {
+          chapterConcurrency: args.concurrency,
+        });
+        switch (result._tag) {
+          case 'success':
+            yield* Console.log(`    ✓ ${result.storedParagraphs} paragraphs.`);
+            downloaded += 1;
+            break;
+          case 'skipped':
+            yield* Console.log(`    – skipped: ${result.reason}`);
+            break;
+          case 'failed':
+            yield* Console.log(`    ✗ failed: ${result.reason}`);
+            failed += 1;
+            break;
+        }
+      }
+
+      if (downloaded > 0) {
+        yield* Console.log('\nRebuilding FTS5 index...');
+        yield* db.rebuildFtsIndex();
+      }
+      yield* Console.log(
+        `\nDownloaded ${downloaded} book(s)` +
+          (failed > 0 ? `, ${failed} failed/unresolved` : '') +
+          '.\n',
+      );
+
+      // --- Phase 3: local FTS across everything now installed -----------------
+      const allBooks = yield* service.getBooks();
+      const authorByCode = new Map(allBooks.map((b) => [b.bookCode.toUpperCase(), b.author]));
+      const localResults = yield* service.search(subject, args.results);
+
+      if (localResults.length === 0) {
+        yield* Console.log(
+          `No local hits for "${subject}". Try \`bible egw search <subject>\` with simpler terms.`,
+        );
+        return;
+      }
+
+      yield* Console.log(
+        `Local hits for "${subject}" (${localResults.length}, across the installed corpus):\n`,
+      );
+      for (const r of localResults) {
+        const ref = r.refcodeShort ?? `[${r.bookCode}]`;
+        const author = authorByCode.get(r.bookCode.toUpperCase()) ?? r.bookTitle;
+        const text = nodesToText(r.nodes).replace(/\s+/g, ' ').trim();
+        const snippet = text.length > 220 ? `${text.slice(0, 220)}…` : text;
+        yield* Console.log(`  ${ref} — ${author}`);
+        yield* Console.log(`    ${snippet}\n`);
+      }
+    }),
+).pipe(Command.provide(() => FullLayer));
+
+// ============================================================================
 // search — local FTS by default, --remote to hit the API
 // ============================================================================
 
@@ -801,6 +1007,7 @@ export const egwWithSubcommands = Command.make('egw', { query }, (args) =>
       yield* Console.log('       bible egw books');
       yield* Console.log('       bible egw catalog --search <term>');
       yield* Console.log('       bible egw download <code>');
+      yield* Console.log('       bible egw study <subject>');
       yield* Console.log('       bible egw search <query> [--remote]');
       yield* Console.log('       bible egw open <refcode>');
       yield* Console.log('');
@@ -814,6 +1021,7 @@ export const egwWithSubcommands = Command.make('egw', { query }, (args) =>
       yield* Console.log('  bible egw search "daniel" --remote');
       yield* Console.log('  bible egw catalog --search "uriah smith"');
       yield* Console.log('  bible egw download DAR');
+      yield* Console.log('  bible egw study "seven last plagues"');
       return;
     }
 
@@ -833,6 +1041,7 @@ export const egwWithSubcommands = Command.make('egw', { query }, (args) =>
     egwBooks,
     egwCatalog,
     egwDownload,
+    egwStudy,
     egwSearch,
     egwLookup,
     egwCommentary,
