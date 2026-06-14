@@ -33,7 +33,7 @@ import { downloadBookToLocal } from '@bible/core/sync';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
 import { FetchHttpClient } from 'effect/unstable/http';
 import { BunServices } from '@effect/platform-bun';
-import { Console, Effect, Layer, Option, Stream } from 'effect';
+import { Console, Effect, FileSystem, Layer, Option, Stream } from 'effect';
 
 import { parseVerseQuery } from '~/src/data/bible/parse';
 
@@ -492,8 +492,18 @@ const studyMinHits = Flag.integer('min-hits').pipe(
   Flag.withDefault(2),
 );
 const studyScan = Flag.integer('scan').pipe(
-  Flag.withDescription('Remote hits to scan when ranking books (default: 200, max useful ~500)'),
+  Flag.withDescription('Remote hits to scan when ranking (paged in 100s; default: 200)'),
   Flag.withDefault(200),
+);
+const studyAuthor = Flag.string('author').pipe(
+  Flag.withDescription(
+    'Only rank/download books whose author matches (case-insensitive substring). Repeatable.',
+  ),
+  Flag.atLeast(0),
+);
+const studyPioneers = Flag.boolean('pioneers').pipe(
+  Flag.withDescription('Preset --author filter for the nine SDA pioneers'),
+  Flag.withDefault(false),
 );
 const studyLang = Flag.string('lang').pipe(
   Flag.withDescription('Language code (default: en)'),
@@ -511,6 +521,23 @@ const studyResults = Flag.integer('results').pipe(
   Flag.withDescription('Local result snippets to print after downloading (default: 30)'),
   Flag.withDefault(30),
 );
+const studyExport = Flag.string('export').pipe(
+  Flag.withDescription('Write the local hits to a refcode-tagged markdown corpus at this path'),
+  Flag.optional,
+);
+
+/** The nine historic SDA pioneers, for the --pioneers preset. */
+const PIONEER_AUTHORS = [
+  'James Springer White',
+  'Uriah Smith',
+  'Josiah Litch',
+  'John Nevins Andrews',
+  'Stephen Nelson Haskell',
+  'William Miller',
+  'Sylvester Bliss',
+  'Apollos Hale',
+  'Charles Fitch',
+];
 
 /** A book ranked by how many remote hits it had for the subject. */
 interface RankedBook {
@@ -519,6 +546,12 @@ interface RankedBook {
   hits: number;
 }
 
+const REMOTE_PAGE_SIZE = 100; // the EGW /search endpoint caps results at 100 per call
+
+/** Does a book author match any of the requested author filters (substring, case-insensitive)? */
+const authorMatches = (author: string, filters: string[]): boolean =>
+  filters.length === 0 || filters.some((f) => author.toLowerCase().includes(f.toLowerCase()));
+
 export const egwStudy = Command.make(
   'study',
   {
@@ -526,10 +559,13 @@ export const egwStudy = Command.make(
     limit: studyLimit,
     minHits: studyMinHits,
     scan: studyScan,
+    author: studyAuthor,
+    pioneers: studyPioneers,
     lang: studyLang,
     concurrency: studyConcurrency,
     dryRun: studyDryRun,
     results: studyResults,
+    export: studyExport,
   },
   (args) =>
     Effect.gen(function* () {
@@ -540,36 +576,52 @@ export const egwStudy = Command.make(
         yield* Console.log(
           'Remote-searches a subject, downloads the books that cover it best into the',
         );
-        yield* Console.log('local DB, then prints the local hits across everything installed.');
+        yield* Console.log('local DB, then prints (and optionally exports) the local hits.');
         yield* Console.log('');
         yield* Console.log('Examples:');
         yield* Console.log('  bible egw study "seven last plagues"');
-        yield* Console.log('  bible egw study "the day of the Lord" --limit 8 --min-hits 3');
+        yield* Console.log('  bible egw study "the day of the Lord" --pioneers --limit 8');
         yield* Console.log(
-          '  bible egw study "armageddon" --dry-run   # just rank, download nothing',
+          '  bible egw study "wrath" --scan 500 --author "Smith" --author "Litch"',
         );
+        yield* Console.log('  bible egw study "armageddon" --dry-run');
+        yield* Console.log('  bible egw study "loud cry" --export corpus/loud-cry.md');
         return;
       }
 
       const client = yield* EGWApiClient;
       const db = yield* EGWParagraphDatabase;
       const service = yield* EGWService;
+      const fs = yield* FileSystem.FileSystem;
 
-      // --- Phase 1: remote-search the subject and rank books by hit count -----
+      const authorFilters = args.pioneers ? PIONEER_AUTHORS : [...args.author];
+      const scoped = authorFilters.length > 0;
+
+      // --- Phase 1: remote-search the subject (paged) and rank books by hits --
       yield* Console.log(`Searching the EGW catalog for "${subject}"...`);
-      const response = yield* client.search({
-        query: subject,
-        lang: args.lang,
-        limit: args.scan,
-      });
+      const hits: EGWSchemas.SearchHit[] = [];
+      let scanOffset = 0;
+      while (hits.length < args.scan) {
+        const page = yield* client.search({
+          query: subject,
+          lang: args.lang,
+          limit: Math.min(REMOTE_PAGE_SIZE, args.scan - hits.length),
+          offset: scanOffset,
+        });
+        if (page.results.length === 0) break;
+        hits.push(...page.results);
+        scanOffset += page.results.length;
+        // Stop when the server has no more (short page, or we've seen the lot).
+        if (page.results.length < REMOTE_PAGE_SIZE || scanOffset >= page.total) break;
+      }
 
-      if (response.results.length === 0) {
+      if (hits.length === 0) {
         yield* Console.log(`No remote results for "${subject}".`);
         return;
       }
 
       const rankMap = new Map<string, RankedBook>();
-      for (const hit of response.results) {
+      for (const hit of hits) {
         const existing = rankMap.get(hit.pub_code);
         if (existing) {
           existing.hits += 1;
@@ -578,43 +630,37 @@ export const egwStudy = Command.make(
         }
       }
 
-      const ranked = [...rankMap.values()]
+      // Rank by hits, threshold, take a generous slice (author filtering happens
+      // at resolve time below, since hits don't reliably carry the author).
+      const candidatePool = [...rankMap.values()]
         .filter((b) => b.hits >= args.minHits)
-        .sort((a, b) => b.hits - a.hits)
-        .slice(0, args.limit);
+        .sort((a, b) => b.hits - a.hits);
 
-      yield* Console.log(
-        `Scanned ${response.results.length} hit(s) across ${rankMap.size} book(s); ` +
-          `${ranked.length} book(s) clear the --min-hits ${args.minHits} threshold (top ${args.limit}):\n`,
-      );
-
-      // Which of these are already installed locally?
       const installed = yield* service.getBooks();
       const installedCodes = new Set(installed.map((b) => b.bookCode.toUpperCase()));
 
-      for (const [i, b] of ranked.entries()) {
-        const have = installedCodes.has(b.pubCode.toUpperCase()) ? ' [installed]' : '';
-        yield* Console.log(
-          `  ${String(i + 1).padStart(2)}. ${b.pubCode.padEnd(10)} ${String(b.hits).padStart(4)} hits${have}  ${b.pubName}`,
-        );
-      }
-      yield* Console.log('');
+      yield* Console.log(
+        `Scanned ${hits.length} hit(s) across ${rankMap.size} book(s); ` +
+          `${candidatePool.length} clear --min-hits ${args.minHits}` +
+          (scoped ? `; author filter: ${authorFilters.join(', ')}` : '') +
+          '.\n',
+      );
 
-      if (args.dryRun) {
-        yield* Console.log('--dry-run: nothing downloaded. Re-run without --dry-run to fetch.');
-        return;
-      }
-
-      // --- Phase 2: resolve each pub_code to a Book and download it -----------
-      const toDownload = ranked.filter((b) => !installedCodes.has(b.pubCode.toUpperCase()));
-      if (toDownload.length === 0) {
-        yield* Console.log('All ranked books are already installed. Skipping download.\n');
-      }
-
+      // --- Phase 2: resolve pub_code -> Book, apply author filter, download ----
+      // We resolve in rank order and keep going until --limit books are selected
+      // (a selected book = passes author filter; installed ones count toward the
+      // limit but aren't re-downloaded).
+      let selected = 0;
       let downloaded = 0;
       let failed = 0;
-      for (const b of toDownload) {
-        // Resolve pub_code -> Book (which carries book_id) via a title-search,
+      let skippedByAuthor = 0;
+      const selectedBooks: Array<{ code: string; title: string; author: string; hits: number }> =
+        [];
+
+      for (const b of candidatePool) {
+        if (selected >= args.limit) break;
+
+        // Resolve pub_code -> Book (carries book_id + author) via title-search,
         // matching exactly on code. Mirrors `bible egw download <code>`.
         const candidates = yield* client
           .getBooks({ lang: args.lang, search: b.pubName, limit: 50 })
@@ -622,54 +668,107 @@ export const egwStudy = Command.make(
         const exact = [...candidates].find((c) => c.code.toUpperCase() === b.pubCode.toUpperCase());
 
         if (!exact) {
-          yield* Console.log(`  ✗ ${b.pubCode}: could not resolve to a catalog book; skipping.`);
-          failed += 1;
+          // Unresolvable (e.g. compound pub_code). Only note it when unscoped, to
+          // avoid noise; it can't be author-checked anyway.
+          if (!scoped) {
+            yield* Console.log(`  ✗ ${b.pubCode}: could not resolve to a catalog book; skipping.`);
+            failed += 1;
+          }
           continue;
         }
 
-        yield* Console.log(`  ↓ ${exact.code} — ${exact.title} (${exact.author})...`);
+        if (!authorMatches(exact.author, authorFilters)) {
+          skippedByAuthor += 1;
+          continue;
+        }
+
+        selected += 1;
+        selectedBooks.push({
+          code: exact.code,
+          title: exact.title,
+          author: exact.author,
+          hits: b.hits,
+        });
+
+        if (installedCodes.has(exact.code.toUpperCase())) {
+          yield* Console.log(
+            `  ${String(selected).padStart(2)}. ${exact.code.padEnd(10)} ${String(b.hits).padStart(4)} hits [installed]  ${exact.title}`,
+          );
+          continue;
+        }
+
+        if (args.dryRun) {
+          yield* Console.log(
+            `  ${String(selected).padStart(2)}. ${exact.code.padEnd(10)} ${String(b.hits).padStart(4)} hits [would download]  ${exact.title} (${exact.author})`,
+          );
+          continue;
+        }
+
+        yield* Console.log(
+          `  ${String(selected).padStart(2)}. ↓ ${exact.code} — ${exact.title} (${exact.author})...`,
+        );
         const result = yield* downloadBookToLocal(exact, {
           chapterConcurrency: args.concurrency,
         });
         switch (result._tag) {
           case 'success':
-            yield* Console.log(`    ✓ ${result.storedParagraphs} paragraphs.`);
+            yield* Console.log(`      ✓ ${result.storedParagraphs} paragraphs.`);
             downloaded += 1;
             break;
           case 'skipped':
-            yield* Console.log(`    – skipped: ${result.reason}`);
+            yield* Console.log(`      – skipped: ${result.reason}`);
             break;
           case 'failed':
-            yield* Console.log(`    ✗ failed: ${result.reason}`);
+            yield* Console.log(`      ✗ failed: ${result.reason}`);
             failed += 1;
             break;
         }
       }
 
+      yield* Console.log('');
+      if (args.dryRun) {
+        yield* Console.log('--dry-run: nothing downloaded. Re-run without --dry-run to fetch.');
+        return;
+      }
+
       if (downloaded > 0) {
-        yield* Console.log('\nRebuilding FTS5 index...');
+        yield* Console.log('Rebuilding FTS5 index...');
         yield* db.rebuildFtsIndex();
       }
       yield* Console.log(
-        `\nDownloaded ${downloaded} book(s)` +
+        `Downloaded ${downloaded} book(s)` +
           (failed > 0 ? `, ${failed} failed/unresolved` : '') +
+          (skippedByAuthor > 0 ? `, ${skippedByAuthor} skipped by author filter` : '') +
           '.\n',
       );
 
       // --- Phase 3: local FTS across everything now installed -----------------
       const allBooks = yield* service.getBooks();
       const authorByCode = new Map(allBooks.map((b) => [b.bookCode.toUpperCase(), b.author]));
-      const localResults = yield* service.search(subject, args.results);
+      const rawResults = yield* service.search(subject, args.results * (scoped ? 4 : 1));
+
+      // When author-scoped, keep only hits whose book author matches.
+      const localResults = (
+        scoped
+          ? rawResults.filter((r) =>
+              authorMatches(authorByCode.get(r.bookCode.toUpperCase()) ?? '', authorFilters),
+            )
+          : rawResults
+      ).slice(0, args.results);
 
       if (localResults.length === 0) {
         yield* Console.log(
-          `No local hits for "${subject}". Try \`bible egw search <subject>\` with simpler terms.`,
+          `No local hits for "${subject}"` +
+            (scoped ? ' under the author filter' : '') +
+            `. Try \`bible egw search <subject>\` with simpler terms.`,
         );
         return;
       }
 
       yield* Console.log(
-        `Local hits for "${subject}" (${localResults.length}, across the installed corpus):\n`,
+        `Local hits for "${subject}" (${localResults.length}` +
+          (scoped ? ', author-scoped' : '') +
+          ', across the installed corpus):\n',
       );
       for (const r of localResults) {
         const ref = r.refcodeShort ?? `[${r.bookCode}]`;
@@ -678,6 +777,34 @@ export const egwStudy = Command.make(
         const snippet = text.length > 220 ? `${text.slice(0, 220)}…` : text;
         yield* Console.log(`  ${ref} — ${author}`);
         yield* Console.log(`    ${snippet}\n`);
+      }
+
+      // --- Optional: export the local hits as a refcode-tagged markdown corpus -
+      if (Option.isSome(args.export)) {
+        const path = args.export.value;
+        const lines: string[] = [];
+        lines.push(`# EGW study corpus — "${subject}"`);
+        lines.push('');
+        lines.push(
+          `_Generated by \`bible egw study\`${scoped ? ` (author filter: ${authorFilters.join(', ')})` : ''}. ` +
+            `${localResults.length} local hit(s) across the installed corpus. Snippets are leading text, not full paragraphs — verify against the refcode._`,
+        );
+        lines.push('');
+        let lastAuthor = '';
+        for (const r of localResults) {
+          const ref = r.refcodeShort ?? `[${r.bookCode}]`;
+          const author = authorByCode.get(r.bookCode.toUpperCase()) ?? r.bookTitle;
+          if (author !== lastAuthor) {
+            lines.push(`\n## ${author}\n`);
+            lastAuthor = author;
+          }
+          const text = nodesToText(r.nodes).replace(/\s+/g, ' ').trim();
+          lines.push(`> ${text}`);
+          lines.push(`> — **${ref}** (${r.bookTitle})`);
+          lines.push('');
+        }
+        yield* fs.writeFileString(path, `${lines.join('\n')}\n`);
+        yield* Console.log(`\nExported ${localResults.length} hit(s) → ${path}`);
       }
     }),
 ).pipe(Command.provide(() => FullLayer));
