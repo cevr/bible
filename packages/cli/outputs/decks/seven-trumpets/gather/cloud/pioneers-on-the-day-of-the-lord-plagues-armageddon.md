@@ -171,6 +171,12 @@ The battle that ends the day of the LORD. Two-stage: the nations _gather_ under 
 > "**The Turkish power designated as the River Euphrates**, which has separated between the East and the West, gives way."
 > — **SSP 284.1**, Haskell
 
+> "**'Armageddon' occurs but once in the Bible, and then refers to the final battle which closes all earthly scenes.**" _(Haskell's one-line definition, citing Testimonies for the Church 6:406)_
+> — **BHB 128.2**, Haskell
+
+> "...each universal empire has progressed mainly from east to west... **This continues until the globe is encircled, and all the kings of the earth finally meet in the great battle of Armageddon.**"
+> — **SDP 193.1**, Haskell
+
 The three frog-spirits (dragon / beast / false prophet) gather the nations by miracle (**DAR 649.2-650.2**, Smith). The seventh vial is universal — "poured out into the air... **It will be universal**" (**DAR 653.1**, Smith) — and Andrews ties it to the fall of Babylon: "**The destruction of Babylon, as described in Revelation 18, takes place under the seventh vial**" (**TMR 62.2**). It climaxes at the Second Coming — "**It is done!**" (**DAR 656.1**, Smith).
 
 **Divergences:**
@@ -204,7 +210,7 @@ The three frog-spirits (dragon / beast / false prophet) gather the nations by mi
 **J.N. Andrews** — TMR 3.1, 62.2, 115.1-2, 116.1-2, 117.1, 120.1-4, 121.1, 124.1-2, 124.4, 125.2, 126.1, 133.1, 134.1
 **Josiah Litch** — PREX1 175.1-2, 176.4, 177.1, 183.1, 186.1, 188.2, 195.1, 196.1; PREX2 199.2; PSC 106.1, 107.1
 **William Miller** — MWV2 201.2-3, 220.3, 221, 225.1, 257.1, 296.1; MWV3 121.5
-**Stephen Haskell** — SSP 160.1, 187.1, 190.2, 205.2, 206.1, 262.1, 267.2, 268.1, 269.1-2, 271.2, 274.2, 276.1, 281.4, 284.1, 285.1, 320.1, 322.1; SDP 247.3, 248.2, 254.1
+**Stephen Haskell** — SSP 160.1, 187.1, 190.2, 205.2, 206.1, 262.1, 267.2, 268.1, 269.1-2, 271.2, 274.2, 276.1, 281.4, 284.1, 285.1, 320.1, 322.1; SDP 193.1, 247.3, 248.2, 254.1; BHB 128.2
 **Charles Fitch** — LJL 23.2, 68.1
 **Ellen G. White (confirmations)** — 15MR 219.2 (Ms 59, 1895); GC 334-335 / Mar 152; GC 627.3, 628.2; DD 59.3; LDE 251.3, 251.4; YI Jan 1, 1854 ¶5; 9T 14.2
 
@@ -212,18 +218,21 @@ The three frog-spirits (dragon / beast / false prophet) gather the nations by mi
 
 ## Regenerating / extending this research
 
-`apps/studies/scripts/pioneer-topic.ts` runs the author-scoped LIKE search and prints refcode-tagged markdown:
+**Canonical path — `bible egw study`.** It searches the EGW catalog _remotely_, ranks candidate books by hit count, downloads the missing pioneer volumes into the local DB, then exports a refcode-tagged corpus from the full local hit set. Unlike the old local-only script it surfaces pioneer books you don't yet have installed:
 
 ```bash
-cd apps/studies
-# pioneers (default) on a topic, several OR-ed terms:
-bun run scripts/pioneer-topic.ts "Armageddon" "battle of that great day" "kings of the east"
-# Ellen White instead, full untruncated paragraphs:
-bun run scripts/pioneer-topic.ts --egw --full "battle of Armageddon"
-# one author only (note the `--` terminator after the author list):
-bun run scripts/pioneer-topic.ts --authors "Uriah Smith" -- "seven last plagues"
-# tune output:
-bun run scripts/pioneer-topic.ts --limit 60 --chars 700 "without mixture"
+# pioneers preset (the nine), download misses, export full paragraphs:
+bible egw study "armageddon" --pioneers --results 40 --export armageddon.md --full
+bible egw study "seven last plagues" --pioneers --export plagues.md --full
+bible egw study "day of the Lord" --pioneers --export dotl.md --full
+# preview what would download without fetching:
+bible egw study "armageddon" --pioneers --dry-run
+# one author / Ellen White only:
+bible egw study "battle of Armageddon" --author "Ellen Gould White" --export egw.md --full
 ```
+
+(Needs creds: `set -a; source packages/cli/.env; set +a` first.) This corpus was last cross-checked against `bible egw study --pioneers` on 2026-06-14 — the diff surfaced **BHB 128.2** and **SDP 193.1** (Haskell on Armageddon), now folded in above. WMAD / MWM biographical matches were reviewed and excluded as non-doctrinal.
+
+The older local-only helper `apps/studies/scripts/pioneer-topic.ts` still works for offline LIKE searches over the _already-installed_ corpus, but does not download new books — prefer `bible egw study`.
 
 _DB: `~/.bible/egw-paragraphs.db` (`paragraphs` ⋈ `books`). Pioneer authors: James White, Uriah Smith, Litch, Andrews, Haskell, Miller, Bliss, Hale, Fitch._
