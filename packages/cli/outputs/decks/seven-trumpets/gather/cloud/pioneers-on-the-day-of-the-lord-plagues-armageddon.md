@@ -1,6 +1,6 @@
 # The Pioneer Position — Seventh Trumpet · Seven Last Plagues · Day of the LORD · Armageddon
 
-_A corpus of the historic Seventh-day Adventist pioneer position on the four linked climax-doctrines, with Ellen White's confirmations set alongside. All quotations verified against `~/.bible/egw-paragraphs.db` (table `paragraphs` ⋈ `books`). Pioneer quotes are scoped to the nine pioneer `book_author` values; EGW quotes are scoped to `Ellen Gould White`. Regenerate any search with `apps/studies/scripts/pioneer-topic.ts` (see foot of file)._
+_A corpus of the historic Seventh-day Adventist pioneer position on the four linked climax-doctrines, with Ellen White's confirmations set alongside. All quotations verified against `~/.bible/egw-paragraphs.db` (table `paragraphs` ⋈ `books`). Pioneer quotes are scoped to the nine pioneer `book_author` values; EGW quotes are scoped to `Ellen Gould White`. Regenerate or extend with `bible egw study <subject> --pioneers --export <file> --full` (see foot of file)._
 
 **The thesis of this corpus:** these are not four separate teachings. The pioneers held them as **one continuous event under four names** — the climax of the historicist scheme. The seventh trumpet is the _period_; the seven last plagues are its _content_; the day of the LORD is its _prophetic-vocabulary name_; Armageddon is its _battle_. All fall **after probation closes**, all are **literal and future**, all **culminate at the Second Coming**.
 
