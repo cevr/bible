@@ -171,8 +171,11 @@ The battle that ends the day of the LORD. Two-stage: the nations _gather_ under 
 > "**The Turkish power designated as the River Euphrates**, which has separated between the East and the West, gives way."
 > — **SSP 284.1**, Haskell
 
-> "**'Armageddon' occurs but once in the Bible, and then refers to the final battle which closes all earthly scenes.**" _(Haskell's one-line definition, citing Testimonies for the Church 6:406)_
+> "**'Armageddon' occurs but once in the Bible, and then refers to the final battle which closes all earthly scenes.**" _(Haskell's one-line definition, citing Testimonies for the Church 6:406 — i.e. EGW's own **6T 406.3**, "the battle of Armageddon is soon to be fought")_
 > — **BHB 128.2**, Haskell
+
+> "**The battle of Armageddon takes place under the sixth plague when the river Euphrates is dried up.**"
+> — **BHB 128.6**, Haskell
 
 > "...each universal empire has progressed mainly from east to west... **This continues until the globe is encircled, and all the kings of the earth finally meet in the great battle of Armageddon.**"
 > — **SDP 193.1**, Haskell
@@ -184,6 +187,7 @@ The three frog-spirits (dragon / beast / false prophet) gather the nations by mi
 - **Literal vs. symbolic Euphrates:** Litch and Miller held the _river itself_ would literally dry up — "**The great river Euphrates will be as literally dried up to make way for the kings of the eastern world... as the same river was dried up before Cyrus.**" (**PREX1 183.1**, Litch); Smith corrected it to the symbolic Turkey-as-people reading (**DAR 648.2**).
 - **Identity of the false prophet:** Miller / Litch read one of the three powers as **Mahometanism (Islam)**; Smith / Haskell shifted to **dragon = paganism, beast = popery, false prophet = apostate Protestantism / Spiritualism** (**DAR 650.2**, **SSP 283.2**).
 - **Etymology:** Litch / Miller glossed "Armageddon" as "where the Lord will declare his precious fruit" (**PSC 107.1**); Haskell gave the now-standard "**the place of the troops**" / Mount Megiddo (**SSP 284.1**).
+- **Which vial _is_ Armageddon:** Smith reads it as two-stage — nations _gather_ under the **sixth** vial (Euphrates dried), God _slays_ under the **seventh** (**DAR 653.2**). Haskell's _Bible Handbook_ compresses this, saying the battle "takes place under the **sixth** plague when the river Euphrates is dried up" (**BHB 128.6**) — same Euphrates trigger, but he names the sixth where Smith reserves the slaying for the seventh. The substance (Euphrates/Turkey falls → nations mass → God destroys them at Christ's coming) is identical.
 - **Timing of the plagues vs. the Advent:** Litch placed the plagues _fully after_ the Advent (saints already glorified — **PREX1 175.2**); Smith / Andrews / White / Haskell have them fall in the brief post-probation time of trouble with the saints sealed on earth, delivered _at_ the Advent under the seventh vial. All agree: post-probation, culminating at the Second Coming.
 
 ---
@@ -195,7 +199,7 @@ The three frog-spirits (dragon / beast / false prophet) gather the nations by mi
 | **Seventh trumpet = literal judgments / a period**   | DAR 493.2-3, SSTR 67.5 — a prophetic period from 1844, not the last trump | **15MR 219.2**: "Revelation 6 and 7 are full of meaning... To them were given seven trumpets. **The Lord was going forth to punish the inhabitants of the earth.**" (context Ms 59, 1895: trumpets → vials → plague-hail → sealing, one outpouring)                                                                                                                            |
 | **Plagues literal, after probation, unmixed**        | DAR 638.1, 642.3; TMR 116.1                                               | **GC 627.3**: "**When Christ ceases His intercession in the sanctuary, the unmingled wrath**... will be poured out." • **GC 628.2**: "These plagues are not universal... **All the judgments upon men, prior to the close of probation, have been mingled with mercy.**" • **YI Jan 1, 1854 ¶5**: "Probation's hour will soon be ended. **The seven last plagues will fall.**" |
 | **Day of the LORD = Isaiah 34 / fire-and-brimstone** | TMR 3.1, 125.2; PREX1 188.2; SSP 281.4                                    | **DD 59.3**: quotes **Isa. 34:2** ("delivered them to the slaughter"), **Ps. 11:6** ("fire and brimstone and an horrible tempest"), and **Isa. 34:8** ("**the day of the Lord's vengeance, and the year of recompenses for the controversy of Zion**") — the pioneers' exact verse chain                                                                                       |
-| **Literal Armageddon = the seventh vial**            | DAR 652.5, 653.2                                                          | **LDE 251.3**: "**We need to study the pouring out of the seventh vial** [Rev. 16:17-21]... **Providence has a part to act in the battle of Armageddon.**" • **LDE 251.4**: "**The battle of Armageddon is soon to be fought.**"                                                                                                                                               |
+| **Literal Armageddon = the seventh vial**            | DAR 652.5, 653.2; BHB 128.2 (Haskell, citing 6T 406)                      | **LDE 251.3**: "**We need to study the pouring out of the seventh vial** [Rev. 16:17-21]... **Providence has a part to act in the battle of Armageddon.**" • **LDE 251.4** / **6T 406.3**: "**The battle of Armageddon is soon to be fought.**" _(6T 406.3 is the very page Haskell's BHB 128.2 cites)_                                                                        |
 | **Euphrates / Eastern Question / Turkey**            | DAR 648.2-6, SSP 284.1                                                    | **Mar 152** (= GC 334-335): titled "**Ottoman Empire in Prophecy**," opens on **Rev. 9:14-15** (the four angels in the Euphrates) and affirms Litch's Rev. 9 / Aug 11, 1840 fulfillment "**exactly fulfilled**"                                                                                                                                                                |
 | **Daniel 11 runs unbroken to a literal end**         | DAR (king of the north 11:40-45 = Turkey)                                 | **9T 14.2**: "**The prophecy of the eleventh chapter of Daniel has nearly reached its complete fulfillment.**"                                                                                                                                                                                                                                                                 |
 
@@ -210,7 +214,7 @@ The three frog-spirits (dragon / beast / false prophet) gather the nations by mi
 **J.N. Andrews** — TMR 3.1, 62.2, 115.1-2, 116.1-2, 117.1, 120.1-4, 121.1, 124.1-2, 124.4, 125.2, 126.1, 133.1, 134.1
 **Josiah Litch** — PREX1 175.1-2, 176.4, 177.1, 183.1, 186.1, 188.2, 195.1, 196.1; PREX2 199.2; PSC 106.1, 107.1
 **William Miller** — MWV2 201.2-3, 220.3, 221, 225.1, 257.1, 296.1; MWV3 121.5
-**Stephen Haskell** — SSP 160.1, 187.1, 190.2, 205.2, 206.1, 262.1, 267.2, 268.1, 269.1-2, 271.2, 274.2, 276.1, 281.4, 284.1, 285.1, 320.1, 322.1; SDP 193.1, 247.3, 248.2, 254.1; BHB 128.2
+**Stephen Haskell** — SSP 160.1, 187.1, 190.2, 205.2, 206.1, 262.1, 267.2, 268.1, 269.1-2, 271.2, 274.2, 276.1, 281.4, 284.1, 285.1, 320.1, 322.1; SDP 193.1, 247.3, 248.2, 254.1; BHB 128.2, 128.6
 **Charles Fitch** — LJL 23.2, 68.1
 **Ellen G. White (confirmations)** — 15MR 219.2 (Ms 59, 1895); GC 334-335 / Mar 152; GC 627.3, 628.2; DD 59.3; LDE 251.3, 251.4; YI Jan 1, 1854 ¶5; 9T 14.2
 
@@ -231,7 +235,7 @@ bible egw study "armageddon" --pioneers --dry-run
 bible egw study "battle of Armageddon" --author "Ellen Gould White" --export egw.md --full
 ```
 
-(Needs creds: `set -a; source packages/cli/.env; set +a` first.) This corpus was last cross-checked against `bible egw study --pioneers` on 2026-06-14 — the diff surfaced **BHB 128.2** and **SDP 193.1** (Haskell on Armageddon), now folded in above. WMAD / MWM biographical matches were reviewed and excluded as non-doctrinal.
+(Needs creds: `set -a; source packages/cli/.env; set +a` first.) This corpus was last cross-checked against `bible egw study --pioneers` on 2026-06-14 — the diff surfaced **BHB 128.2 / 128.6** and **SDP 193.1** (Haskell on Armageddon), now folded in above. A follow-up sweep of every candidate code (FUMP/Litch, SYNPT/Smith, TAR/Andrews, MWM/SLWM/WMAD/MWV1/PREX2) for statements _stronger_ than those already cited found nothing new: SYNPT 165.1 and TAR 123.3 only restate DAR 652.5 / TMR 120.2; the MWM / SLWM / WMAD / MWV1 / PREX2 matches are biographical or textual-critical (Miller's memoirs, the "I confess my error" apology, the Rev 22:18-19 don't-add note) — confirmed non-doctrinal and excluded.
 
 The older local-only helper `apps/studies/scripts/pioneer-topic.ts` still works for offline LIKE searches over the _already-installed_ corpus, but does not download new books — prefer `bible egw study`.
 

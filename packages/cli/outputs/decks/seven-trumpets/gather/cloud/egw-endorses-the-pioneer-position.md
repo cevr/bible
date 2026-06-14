@@ -46,6 +46,23 @@ _All quotations are from Ellen G. White's own pen (or her own compiled devotiona
 > "...the waymarks which have made us what we are, are to be preserved, and they will be preserved ... He calls upon us to hold firmly, with the grip of faith, to **the fundamental principles that are based upon unquestionable authority.**"
 > — **1SM 208.2**
 
+> "Our faith in reference to the messages of the first, second, and third angels was correct. **The great waymarks we have passed are immovable.** Although the hosts of hell may try to tear them from their foundation, and triumph in the thought that they have succeeded, yet they do not succeed. **These pillars of truth stand firm as the eternal hills**, unmoved by all the efforts of men combined with those of Satan and his host."
+> — **Ev 223.1** (= **CIHS 26.3**, **LS 278.2**)
+
+> "For more than half a century the different points of present truth have been questioned and opposed. New theories have been advanced as truth, which were not truth, **and the Spirit of God revealed their error.** As the great pillars of our faith have been presented, **the Holy Spirit has borne witness to them**, and especially is this so regarding the truths of the sanctuary."
+> — **Ev 224.2** (_Preaching the Sanctuary Doctrine Endorsed by Holy Spirit_)
+
+> "Some of those who are newly come to the faith claim to have special light from God in regard to these messages, but **their new light leads them to set aside established truths that are the pillars of our faith. They misinterpret and misapply the Scriptures. They misplace the messages of Revelation 14**, and set aside the work which these messages have accomplished. **Thus they reject the great waymarks which God Himself** [has established]."
+> — **6LtMs, Ms 31, 1890, par. 7** (her own hand — the original manuscript, naming **Revelation 14** as the very pillar being moved)
+
+> "**Spurious scientific theories are coming in as a thief in the night, stealing away the landmarks and undermining the pillars of our faith.** ... The most specious temptations of the enemy are coming in, and they are coming in on the highest, most elevated plane. **These spiritualize the doctrines** of present truth..."
+> — **MM 87.4** (and note: the mechanism she names is _spiritualizing_ — exactly the move the literal reading resists)
+
+**The honest counter-balance** — holding the pillars is _not_ a refusal to grow; she says both in the same breath:
+
+> "Led of God, but Not Infallible—**We must not think, 'Well, we have all the truth, we understand the main pillars of our faith, and we may rest on this knowledge.' The truth is an advancing truth, and we must walk in the increasing light.**"
+> — **CW 33.2** (= **Ev 296.4**) — advancing light _adds_ to the pillars; it never moves them (cf. CW 32.2 above).
+
 > "Satan ... will be more determined and decisive in his efforts to overthrow them. Men and women will arise professing to have some new light or some new revelation whose tendency is to **unsettle faith in the old landmarks.**"
 > — **CCh 344.4**
 
@@ -125,7 +142,10 @@ She strings together the exact day-of-the-LORD verse chain, verbatim:
 > — **LDE 251.4** (orig. _7BC_ 982, 1899)
 
 > "All the world will be on one side or the other of the question. **The battle of Armageddon will be fought.**"
-> — **LDE 250.3**
+> — **LDE 250.3** (= **3SM 426.1**; primary source **7BC 982.4**: "**There are only two parties in our world**, those who are loyal to God, and those who stand under the banner of the prince of darkness")
+
+> "**The battle of Armageddon is soon to be fought.** He on whose vesture is written the name, King of kings, and Lord of lords, is soon to lead forth the armies of heaven."
+> — **6T 406.3** — _this is the exact passage Haskell cites by page ("Testimonies for the Church 6:406") for his one-line definition that "'Armageddon' ... refers to the final battle which closes all earthly scenes" (**BHB 128.2**). Pioneer and prophet quoting the same page._
 
 **Armageddon tied to the four winds / sealing restraint** (the trumpet-woe powers held until the saints are sealed):
 
@@ -217,6 +237,11 @@ The objection only works if you assume one global switch — "literal" or "spiri
 | EW xxii.4                             | foundation laid 1844, vision                                                      | _Early Writings_ intro / _GW_ 1915                  |
 | CW 29.1, 30.1–2, 31.1–2, 32.1–2       | pillars & landmarks defined; pioneers identify truth; "mass of Scripture" warning | Ms 13, 1889 / _Preach the Word_ 1905                |
 | 1SM 196.4, 201.2, 204.2, 207.3, 208.2 | "Meet it!"; tear down the foundation                                              | _Selected Messages_ bk. 1                           |
+| Ev 223.1 (=CIHS 26.3, LS 278.2)       | the great waymarks are immovable; pillars firm as eternal hills                   | _Evangelism_ 223                                    |
+| Ev 224.2                              | new theories opposed 50 yrs; Spirit witnessed to the pillars (sanctuary)          | _Evangelism_ 224                                    |
+| 6LtMs Ms 31 1890 par. 7               | new light sets aside pillars — _misplaces the messages of Revelation 14_          | Ms 31, 1890                                         |
+| MM 87.4                               | spurious theories steal landmarks; the mechanism is _spiritualizing_              | _Medical Ministry_ 87                               |
+| CW 33.2 (=Ev 296.4)                   | counter-balance: truth is advancing — light adds to pillars, never moves them     | _Counsels to Writers_ 33                            |
 | CH 459.2, CTBH 116.1, CCh 344.4       | preserve the ancient landmarks                                                    | various                                             |
 | Ev 196.2                              | prophecy = foundation; Daniel & Revelation                                        | _GW_ 148, 1915                                      |
 | CTr 342.2, 363.3                      | don't set aside past Spirit-given truth                                           | Ms 82, 1894                                         |
@@ -228,8 +253,11 @@ The objection only works if you assume one global switch — "literal" or "spiri
 | GC 613.1, 614.1                       | Dan 12:1 quoted; "that time" = close of probation                                 | _The Great Controversy_                             |
 | HP 342.2; EW 142.2–143.1              | day of the Lord near / Joel future                                                | various                                             |
 | LDE 250.3, 251.3, 251.4, 229.2, 238.3 | literal Armageddon = 7th vial; four winds / sealing                               | _7BC_ 982-983, _6T_ 14, 1899-1900                   |
+| 6T 406.3 / 7BC 982.4 / 3SM 426.1      | Armageddon soon; "only two parties" (= the page Haskell BHB 128.2 cites)          | _6T_ 406, _7BC_ 982                                 |
 | 18MR 58.4 (=6MR 343.1)                | third angel's penalty = fire/brimstone/smoke → Rev 14:12                          | _Manuscript Releases_                               |
 | LDE 95.3 / 21MR 90.4                  | fire & brimstone on the cities                                                    | various                                             |
 | 9T 14.2 (=LDE 12.1, 13MR 394.1)       | Daniel 11 nearly fulfilled                                                        | _9T_ 14 (1909), _RH_ 1904                           |
 
 _DB: `~/.bible/egw-paragraphs.db`; KJV: `~/.bible/bible.db`. All EGW quotes confirmed `book_author = 'Ellen Gould White'`._
+
+_Cross-checked 2026-06-14 against `bible egw study --author "Ellen Gould White"` for "foundation of our faith / pillars of our faith / old landmarks / seven trumpets / day of the Lord / Armageddon." Net-new statements surfaced and folded in: Ev 223.1 (=CIHS 26.3, LS 278.2), Ev 224.2, 6LtMs Ms 31 1890 par. 7 (Rev 14 named as the pillar moved), MM 87.4 (spiritualizing), CW 33.2 (advancing-truth balance), and 6T 406.3 / 7BC 982.4 (the page Haskell's BHB 128.2 cites). Day-of-the-Lord and seven-trumpets exports surfaced only alternate refcodes of quotes already cited (Mar 284.6 = 15MR 219.2; the Jericho parallels already footnoted) plus topical false-positives (AA on Paul) — no new doctrine. See companion `pioneers-on-the-day-of-the-lord-plagues-armageddon.md` for the pioneer-side diff._
