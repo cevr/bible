@@ -1,0 +1,122 @@
+I have a thorough grasp of the format. Now I'll write the section, carrying forward both distinctions the review mandates (1843 vs 1844; AD 33 vs AD 31), dropping the refuted "19 eclipses"/"Andrews University" details, softening 1831 to "c. 1831", and grounding "cut off" on Smith rather than Strong's.
+
+## The Seventy Weeks — Daniel 9 / the 457 BC Anchor
+
+> The 2300 days of Daniel 8 float without a date until one word in Daniel 9 — "determined," literally "cut off" — fastens them to a single datable decree; this is the bead the key drew out that turned a floating number into the year 1844.
+
+**The man and the method — 1816-1818:**
+
+William Miller is the human anchor of this chapter as 457 BC is its chronological one. A Baptist farmer from Low Hampton, New York, and a captain in the War of 1812, Miller had until 1816 "favored the principles of infidelity," and took up the Bible partly to overthrow it — only to be conquered by it.
+
+- _DAR1909 792.2._ Smith: until 1816 Miller "was inclined to the views of the deists," and began his study of Scripture in such a temper that "the almost unexplored fields of prophecy" opened before a man who had meant to refute the book.
+- _WMAD 9.2._ Miller resolved to "harmonize all the apparent contradictions" by comparing Scripture with Scripture, taking the Bible as its own expositor — Miller's Rule, the key of the whole handbook, applied here to chronology.
+- _Num. 14:34._ "each day for a year" — the year-day measure Miller carried into every prophetic period (defined in "The Four Beasts and the Judgment — Daniel 7"; second witness _Eze. 4:6_).
+- _WMAD 11.1._ Miller: tracing the year-day rule through fulfilled periods, "the seventy weeks to the Messiah were fulfilled in 490 years" — the test case that proved a prophetic "week" is seven literal years, and so taught him to read "days" as years throughout.
+  - **the year-day principle** = a prophetic day stands for a literal year (_Num. 14:34_; _Eze. 4:6_; vindicated by the 490 years of the seventy weeks, _WMAD 11.1_).
+
+**The floating number — Daniel 8:14:**
+
+Daniel 8 hands the prophet a length but withholds a starting date. The vision closes with Daniel "astonished," and "none understood it" (_Dan. 8:27_) — the time element is the unsolved remainder.
+
+- _Dan. 8:14._ "Unto two thousand and three hundred days; then shall the sanctuary be cleansed." — the longest prophetic period in Scripture, given as a number with no stated beginning; this is the gap chapter 9 fills.
+  - **the 2300 days** = 2300 literal years (year-day) measuring to the cleansing of the sanctuary, but undated in chapter 8 — the "floating" period (_Dan. 8:14_; length owned by "The Ram, the Goat, and the 2300 Days — Daniel 8").
+
+**The hinge word — Daniel 9:24:**
+
+Gabriel had been commanded to make Daniel understand the vision (_Dan. 8:16_); in chapter 9 he returns and resumes at the very point omitted — time — and the first thing he says supplies the missing anchor.
+
+- _Dan. 9:24._ "Seventy weeks are determined upon thy people and upon thy holy city" — the angel measures off a 490-year span (70 weeks × 7, year-day) laid upon Israel.
+- _DAR 192.1._ Smith: "the word here rendered determined signifies 'cut off;' and there is no period from which the seventy weeks could be cut off but the 2300 days of the previous vision... 'Seventy weeks are cut off.' Cut off from what? — The 2300 days, most assuredly." — the lexical pivot of the whole calculation.
+- _CIHS 82.3._ "The word here translated 'determined' literally signifies 'cut off.'... As the 2300 days was the only period of time mentioned in chapter 8, it must be the period from which the seventy weeks were cut off; the seventy weeks must therefore be a part of the 2300 days, and the two periods must begin together." — because a part is cut off _from_ a whole, the two periods share one start.
+  - **the seventy weeks (= 490 years cut off)** = the 490-year portion "determined" (= cut off) from the 2300 and allotted especially to the Jews; because it is sliced _from_ the 2300, both periods must begin on the same day (_Dan. 9:24_; _DAR 192.1_; _CIHS 82.3_).
+
+- _Dan. 9:24._ "to seal up the vision and prophecy" — "seal up" (ratify, confirm) presupposes a vision _other than_ the seventy weeks: the unexplained vision of chapter 8. The seventy weeks confirm the 2300.
+- _DAR 194.3._ Smith: "Seventy weeks are determined [are cut off] upon thy people... to seal up the vision... it shows that the prediction of the seventy weeks necessarily relates to something else beyond itself, called 'the vision.'" — the textual tie binding chapter 9 back to the 2300 days, so that if the 70 weeks are years, the 2300 are years.
+
+**Miller's solemn conclusion — 1818:**
+
+Two years' study brought Miller to the load-bearing move: anchor the floating 2300 to the datable decree that begins the seventy weeks. The best chronologers of his day — Horne, Prideaux, Clarke, Scott, Cunninghame — dated that decree from 457 BC; 457 subtracted from 2300 left about 1843.
+
+- _WMAD 11.2._ Miller: "the 2300 days commenced with the seventy weeks, which the best chronologers dated from B.C. 457... they all would terminate together, about A.D. 1843. I was thus brought, in 1818, at the close of my two years study of the Scriptures, to the solemn conclusion, that in about twenty-five years... all the affairs of our present state would be wound up." — the founding calculation of the advent movement.
+- _SLWM 57.2._ James White preserves the same "solemn conclusion" verbatim; _AJB 271.1_, Joseph Bates' autobiography, repeats it again — the threefold witness to the 1818 conviction.
+- _MWM 192.2._ Bliss records Miller's settled ground: the seventy weeks "commence with the decree of Artaxerxes Longimanus to restore and build Jerusalem, according to Ezra seventh, B.C. 457," citing Horne, Prideaux, Clarke, Scott, and Cunninghame as the standard authorities for the date.
+- _MWM 96.9-96.10._ Bliss records Miller's catechetical form, the chain as he taught it to inquirers: "Seventy weeks are determined... what are these seventy weeks a part of?" — answer, "Of the 2300 days." The whole 1844 conclusion lived in that one exchange.
+
+**Note on Miller's figures.** Miller's own works land on **1843**, and reckon the crucifixion at Christ's thirty-third year ("after Christ 33 years"). The terminus moved to **1844** only when a later refinement corrected the reckoning across the BC/AD line (no year zero) and dated the decree's effect to _autumn_ 457; and the crucifixion was placed at AD 31 by the matured exposition. Both are carried below — Miller's 1843/AD 33 and the corrected 1844/AD 31/AD 34 — and must not be conflated.
+
+- _MWV2 54.2._ Miller: "Let us begin it where the angel told us, from the going forth of the decree to build the walls of Jerusalem in troublous times, 457 years before Christ; take 457 from 2300, and it will leave A.D. 1843." — the original reckoning in his own hand.
+- _MWV2 68.2._ Miller: "This decree was given 457 years before Christ: the seventy weeks began, and if they ended at the death of Christ... then the seventy weeks ended after Christ 33 years, making, in all, 490 years, which is 70 weeks of years." — Miller's AD 33 crucifixion figure.
+
+**The decree — Daniel 9:25 and Ezra 7:**
+
+The prophecy dates its own start: "from the going forth of the commandment to restore and to build Jerusalem." Of the candidate decrees — Cyrus (536 BC), Darius, Artaxerxes to Ezra (457 BC), Artaxerxes to Nehemiah (444 BC) — only the seventh-year decree to Ezra restored the Jewish state in full, civil and ecclesiastical; and Scripture itself reckons the three earlier kings' acts as one cumulative commandment.
+
+- _Dan. 9:25._ "from the going forth of the commandment to restore and to build Jerusalem unto the Messiah the Prince" — the start of both periods is a single, datable royal decree.
+- _Ezra 7:7._ "in the seventh year of Artaxerxes the king" — the decree that "went forth," dated to 457 BC; not Cyrus' nor Darius' earlier acts.
+- _Ezra 7:11-13._ "Now this is the copy of the letter that the king Artaxerxes gave unto Ezra the priest... I make a decree, that all they of the people of Israel... go up to Jerusalem" — inspiration preserved the actual decree, empowering Ezra to restore magistrates, judges, and law: the full "restore and build" the prophecy demands.
+- _Ezra 6:14._ "they builded, and finished it... according to the commandment of Cyrus, and Darius, and Artaxerxes, king of Persia" — Scripture binds the three decrees into one.
+- _DAR 206.2._ Smith: "It is thus evident that the decree to Ezra in the seventh of Artaxerxes, B.C. 457, is the point from which to date the seventy weeks. That was the going forth of the decree in the sense of the prophecy"; and on Ezra 6:14, the three kings' acts are "all reckoned as a unit."
+- _MWV2 53.1._ Miller works the Ezra 7 / seventh-year decree through Rollin and Josephus to 457 BC — the historian's confirmation under the prophet's text.
+  - **the 457 BC decree (= the start of the 2300)** = the seventh-year decree of Artaxerxes to Ezra (Ezra 7), completing the cumulative decree of Cyrus-Darius-Artaxerxes (Ezra 6:14), which "went into effect in the autumn of 457 BC" — the single datable event anchoring both the 70 weeks and the 2300 days; 457 BC + 2300 = autumn 1844 (_Dan. 9:25_; _Ezra 7_; _DAR 206.2_; _GSAM 160.5_).
+
+**The 490 years walked — Daniel 9:25-27:**
+
+The angel divides the 490 into 7 + 62 + 1 weeks, and each division strikes a dated event in the life of Christ.
+
+- _Dan. 9:25._ "shall be seven weeks, and threescore and two weeks" — 69 weeks = 483 years from autumn 457 BC reach to autumn AD 27.
+- _GC 327.1._ EGW: "The decree of Artaxerxes went into effect in the autumn of 457 B.C. From this date, 483 years extend to the autumn of A.D. 27... In the autumn of A.D. 27 Christ was baptized by John and received the anointing of the Spirit." — 69 weeks land on the baptism, where "Messiah" (the Anointed One) was anointed.
+- _Dan. 9:26._ "And after threescore and two weeks shall Messiah be cut off, but not for himself" — after the 69th week the Messiah is crucified, not for His own sin but as a sacrifice.
+- _Dan. 9:27._ "in the midst of the week he shall cause the sacrifice and the oblation to cease" — in the middle of the 70th week, three and a half years after the AD 27 anointing, the cross meets its antitype and the sacrificial type ceases.
+- _GC 410.1._ EGW: "In the midst of the seventieth week, Messiah was to be cut off. Three and a half years after His baptism, Christ was crucified, in the spring of A.D. 31... The first 490 years of the 2300 having then ended, 1810 years would remain. From A.D. 34, 1810 years extend to 1844." — the matured AD 31 crucifixion and the arithmetic carrying the remainder to 1844.
+- _DAR 202.1._ Smith: "the crucifixion is definitely located in the middle of the seventieth week... These Jewish ordinances, pointing to the death of Christ, could cease only at the cross." — the type can fall only at the antitype.
+- _HSFD 138.1._ "The Messiah was thus cut off in the midst of the seventieth week; and by his death he caused the sacrifice and oblation to cease." — the second pioneer witness to the mid-week cross.
+- _DAR 204.1._ Smith dates the AD 31 darkness of the crucifixion by Cassiodorus — the secular receipt under the prophetic date.
+- The 70th week runs its full seven years to AD 34, when, the nation having sealed its rejection at Stephen's stoning, "the apostles turned to the Gentiles, A.D. 34" (_GC 410.1_); the covenant's second half was carried by those who heard Him (_Heb. 2:3_).
+
+**The arithmetic closes — 457 to 1844:**
+
+- _CIHS 86.1._ "the beginning of the seventy weeks is fixed beyond question at 457 B.C., and their expiration in A.D. 34... The seventy weeks—490 days—having been cut off from the 2300, there were 1810 days remaining... From A.D. 34, 1810 years extend to 1844. Consequently the 2300 days of Daniel 8:14 terminate in 1844." — the full chain in one paragraph: 490 cut off, 1810 remain, terminus 1844.
+- _S23D 27.1._ "Sixty-nine of the 70 weeks from the decree in B.C. 457 ended in A.D. 27... the period of 70 weeks terminates in the autumn of A.D. 34." — the independent pioneer confirmation of the 27/34 markers.
+
+**The disappointment and the autumn correction — 1843 to 1844:**
+
+The first reckoning pointed to the end of 1843. When that year passed and the Lord did not come, the error was found not in the prophecy but in the starting point: the decree took _effect_ in the _autumn_ of 457 BC, not at the year's beginning. Reckoned from autumn 457, the 2300 years terminate in the autumn of 1844.
+
+- _CET 49.2._ EGW: "From the date of the decree of the king of Persia, found in Ezra 7, which was given in 457 before Christ, the 2300 years of Daniel 8:14 were supposed to terminate with 1843. Accordingly we looked to the end of this year for the coming of the Lord. We were sadly disappointed when the year entirely passed away." — the spring disappointment, in the words of one who waited.
+- _CIHS 122.2._ "the decree of Artaxerxes for the restoration of Jerusalem, which formed the starting point for the period of the 2300 days, went into effect in the autumn of the year 457 B.C., and not at the beginning of the year, as had been formerly believed. Reckoning from the autumn of 457, the 2300 years terminate in the autumn of 1844." — the correction that moved the terminus by one season and one year.
+- _GSAM 160.5._ Loughborough: the decree "was made at the first by Cyrus, renewed by Darius, and completed by Artaxerxes Longimanus in the seventh year of his reign. It was promulgated and went into effect in the autumn of the year B.C. 457, when Ezra... restored the Jewish commonwealth." — the autumn-457 effective date, stated plainly.
+
+**The midnight cry — summer and autumn 1844:**
+
+Samuel S. Snow drew the autumn-457 refinement to its sharp point: if the 2300 end in the autumn of 1844, then by the type of the seventh-month Day of Atonement they end on the tenth day of the seventh month — October 22, 1844. At the Exeter, New Hampshire camp meeting of August 12, 1844, the cry caught fire across New England.
+
+- _BP2 72.3._ Bates: "On the 12th of August, another was held in Exeter, N.H... the granite hills of New Hampshire rang with the mighty cry, Behold the Bridegroom cometh... Christ is coming on the tenth day of the seventh month! Time is short, get ready!... Here S.S. Snow published the true midnight cry (Aug. 22, 1844)." — the date and place the autumn-457 refinement became the movement's rallying point.
+- _TRMC August 22, 1844, page 2.3._ Snow argues the 69 weeks reach the Messiah's _manifestation_ — "not at baptism, but this is a mistake; as fully appears from John 1:19-34" — and, reckoning the 70th week from autumn AD 27, places the crucifixion in its midst at spring AD 31 (the Karaite reckoning, against the AD 33 of Rabbinical/Ferguson chronology); the covenant is confirmed half by Christ and half by the apostles (_Heb. 2:3_). — Snow's published argument that fixed October 22.
+
+**The external vindication — modern chronology:**
+
+The pioneers' 457 BC anchor was later confirmed by sources they did not have. Babylonian astronomical tablets place Artaxerxes I's accession in December 465 BC; on the Jewish fall-to-fall (Tishri) reckoning his seventh year ran fall 458 to fall 457 BC, putting Ezra's decree in 457 BC. (Secular scholarship dates Ezra's _journey_ to spring/summer 457, with the decree taking effect afterward — a season-level distinction from the pioneers' "autumn 457 effective," but not a year-level disagreement.)
+
+- Ministry Magazine, "Research: The Seventh Year of Artaxerxes I" (June 1953, S. H. Horn & L. H. Wood) — https://www.ministrymagazine.org/archive/1953/06/research-the-seventh-year-of-artaxerxes-i ; "Establishing the date 457 B.C." (April 1988) — https://www.ministrymagazine.org/archive/1988/04/establishing-the-date-457-b.c
+- Associates for Biblical Research, "Did Ezra Come to Jerusalem in 457 BC?" — https://biblearchaeology.org/research-articles/did-ezra-come-to-jerusalem-in-457-bc/
+- _CIHS 84.1._ The corpus' own note grounds the autumn-457 date on Horn & Wood, Kraeling, and the SDA Bible Commentary — the pioneers and the tablets meeting on one year.
+
+**The movement's reach — c. 1831-1844:**
+
+After thirteen years of private conviction Miller began (c. 1831) to lecture publicly on the second advent and the prophetic periods, spreading the 457 BC / 1843 calculation; in 1833 he received a license to preach from the Baptist Church, and the message ran through every denomination across the United States and into Europe.
+
+- _GC 332.1._ EGW: Miller received his license with the sanction of many ministers, and the advent message spread through the churches.
+- _MWM 74.2._ Bliss: the same patient comparison of Scripture with Scripture that opened the chronology to Miller is what carried it to thousands — the key, not the man, did the work.
+
+**DEFINITION — THE SEVENTY WEEKS / THE 457 BC ANCHOR =** the move that turned the undated 2300 of Daniel 8 into a fixed timeline. Because "determined" means _cut off_ (_Dan. 9:24_; _DAR 192.1_; _CIHS 82.3_), the 490 years of the seventy weeks are sliced _from_ the 2300 and the two periods begin together — at the seventh-year decree of Artaxerxes to Ezra (Ezra 7), which went into effect in the autumn of 457 BC (_Dan. 9:25_; _Ezra 7:7_; _DAR 206.2_; _GSAM 160.5_). From autumn 457: 69 weeks (483 yrs) reach AD 27 and Christ's baptism (_Dan. 9:25_; _GC 327.1_); the midst of the 70th week marks the crucifixion (Miller's AD 33; the matured exposition's spring AD 31 — _MWV2 68.2_; _GC 410.1_); the week ends AD 34 with the gospel's turn to the Gentiles (_S23D 27.1_); and the remaining 1810 years carry the 2300 to 1844 (Miller's 1843, corrected to autumn 1844 — _MWV2 54.2_; _CIHS 86.1, 122.2_; _CET 49.2_). This is the key opening the casket: one word self-defined by Scripture fixed the date that the rest of advent truth hangs upon (see "The Ram, the Goat, and the 2300 Days — Daniel 8").
+
+**Symbols defined here:**
+
+- **the year-day principle = a prophetic day stands for a literal year** (_Num. 14:34_; _Eze. 4:6_; vindicated by the 490 years, _WMAD 11.1_).
+- **the seventy weeks (= 490 years cut off) = the 490-year portion "determined" (cut off) from the 2300 and allotted to the Jews**, running autumn 457 BC to AD 34, the 69 weeks reaching Messiah's anointing at AD 27 and the midst of the 70th week the crucifixion (_Dan. 9:24-27_; _DAR 192.1_; _CIHS 82.3_; _GC 410.1_).
+- **the 457 BC decree (= the start of the 2300) = the seventh-year decree of Artaxerxes to Ezra** (Ezra 7), the threefold decree of Ezra 6:14 reckoned as one, in effect autumn 457 BC — the shared start of the 70 weeks and the 2300 days, and so the anchor of 1844 (_Dan. 9:25_; _Ezra 7:7, 11-13_; _Ezra 6:14_; _DAR 206.2_; _CIHS 122.2_).
+
+**Symbols carried:**
+
+- **the 2300 days = 2300 literal years to the cleansing of the sanctuary** — owned by "The Ram, the Goat, and the 2300 Days — Daniel 8"; here given its start date.
+- **Messiah / the Anointed One** and **the cleansing of the sanctuary / 1844** are carried forward to the judgment sections — see "The Four Beasts and the Judgment — Daniel 7" and "The Ram, the Goat, and the 2300 Days — Daniel 8."

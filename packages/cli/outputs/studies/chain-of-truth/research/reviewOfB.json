@@ -1,0 +1,79 @@
+{
+  "verdict": "mostly-sound",
+  "confirmedClaims": [
+    "MWV2 54.2 verbatim-accurate (modulo a source-side typo 'take 457 form 2300'): Miller explicitly rules out Nebuchadnezzar's dream (\u21921697) and Gabriel's first visit (\u21921762), then begins the 2300 years at the 457 BC decree. This grounds the claim that the 2300-day line is computationally anchored only by an external start date.",
+    "MWV1 46.2 accurate: the 70 weeks were given 'for the express purpose of showing the beginning of the vision' of the ram and he-goat \u2014 supports the load-bearing-anchor claim that Dan 9 supplies the start for the floating Dan 8:14 line.",
+    "S23D 19.2 verbatim-accurate: 'when the date of the seventy weeks is established, the key to unlock and understand the reckoning of the days is in our hand.' Carrier corroboration confirmed.",
+    "SOTB 4.1 verbatim-accurate: 'When we ascertain the date of the seventy weeks, we have also ascertained the point from which the twenty-three hundred days are to be reckoned.' Carrier corroboration confirmed.",
+    "GC 324.3 verbatim-accurate: year-for-a-day rule (Num 14:34; Ezek 4:6) and 'If, then, the correct starting point could be found for the 2300 days, he concluded that the time of the second advent could be readily ascertained' \u2014 confirms the dependency and EGW's framing of the method as prior. The same paragraph also confirms link 7 (Miller took the earth as the sanctuary, cleansing = purification by fire at the advent).",
+    "TSAM 65.3 verbatim-accurate: confirms the discovery-order wrinkle the findings themselves flag \u2014 Miller 'was satisfied that the seven times terminated in 1843. Then I came to the 2300 days; they brought me to the same conclusion.' Seven-times FIRST, 2300 days as confirmation.",
+    "GC 320.1 verbatim-accurate: 'Endeavoring to lay aside all preconceived opinions, and dispensing with commentaries, he compared scripture with scripture' \u2014 grounds the method-first link.",
+    "MWV1 188.2 accurate: 'these three visions are but one prophecy... The dreams are the same... then the little horn, instead of being Antiochus, must be the Roman kingdom' \u2014 confirms the spine/unity link 3.",
+    "DAR 193.3 accurate: 'if these seventy weeks are fulfilled as weeks of years, then the 2300 days, of which these are a part, are so many years. Thus the events of the seventy weeks furnish a key to the whole vision' \u2014 confirms the cut-off/key-date logic of link 5.",
+    "MWV2 68.2 verbatim-accurate: 'This decree was given 457 years before Christ: the seventy weeks began' \u2014 confirms link 5's 457 BC anchor.",
+    "All cited supporting refcodes resolve correctly: DAR 201.1 (457 BC / decree to Ezra), MWV1 42.3 (70 weeks tied to Dan 2 four kingdoms + stone), MWV1 43.2 (457 BC decree to Ezra, Ezra 7), MWV1 43.3 (seven times, Lev 26), MWV1 46.1 (2520 = 677 BC to 1843), MWV1 53.1-53.2 ('years for days' rule; 2300 days cannot be 6 years), MWV1 181.2 (Dan 8:14, anti-millennium challenge), MWV1 35.1 (1843, Lev 26 + Dan 2,7,8), GC 321.1/321.3 (rejection of spiritual millennium; literal personal advent), PSC 47.3 (70-weeks vision 'designed as a key' giving both day-length and start-date), DAR 201.1.",
+    "The structural distinction the findings draw \u2014 Dan 2 as 'spine' (structural backbone) vs Dan 8/9 as the datable machinery \u2014 is sound. Confirmed via MWV1 35.1 and 42.3 that Miller hangs the 70 weeks/2300 days off the Dan 2/7 four-kingdom frame, while the actual numeric computation never touches Dan 2."
+  ],
+  "refutedClaims": [
+    {
+      "claim": "The BMD 3.3 keyQuote presents the bracketed gloss as: ['the key' was his manner of interpreting the prophetic Word...].",
+      "why": "Misquote of the bracketed material. The source footnote reads: 'The \"key attached\" was his manner of interpreting the prophetic Word - Comparing scripture with scripture - the Bible its own interpreter.' The findings reworded the lead-in to '\"the key\" was', changing the quoted token. Substance is faithful (method = compare scripture with scripture, Bible its own interpreter), but it is paraphrase-presented-as-verbatim inside quotation/bracket marks. Minor, but flagged per the verbatim standard."
+    },
+    {
+      "claim": "Implicit framing that '457 BC starts the chain' is the clean answer to 'what comes first.'",
+      "why": "Not a refutation of the refcodes but of the framing's confidence: the findings' own startingPoint conflates three distinct 'firsts' (motive=Advent, structural spine=Dan 2/7/8, computational start=457 BC) and only the careful reader of the rationale sees they are different roles. Standing alone, 'the chain BEGINS at 457 BC' begs the question \u2014 457 BC is itself selected BY the 70-weeks reading, which is selected BY the method. The genuinely-first move is the method (which the chainLinks section correctly orders as link 1), so the headline 'starting point = 457 BC' is in tension with the findings' own link-1 = method claim. The findings resolve this in prose but the top-line answer is internally ambiguous."
+    }
+  ],
+  "misorderings": [
+    "Link 3 (spine: Dan 2/7/8 unity) is placed AFTER link 2 (Second Advent terminus). Defensible as a logical-frame choice, but note Miller's own published order in MWV1 leads with the four-kingdom image of Dan 2 (his lectures open on Nebuchadnezzar's image) as the structural starting move, with the advent as the conclusion drawn FROM the prophecies, not laid before them. The findings' ordering is a reconstruction of logical dependency, not Miller's expository order \u2014 acceptable, but the researcher should not imply Miller himself laid the advent before the spine.",
+    "Link 4 (2300 days) before link 5 (70 weeks cut-off): correct as logical dependency (the subject before its anchor), BUT in Miller's actual MWV1 exposition the 70 weeks are argued FIRST (MWV1 42.3, 43.2) as the established/undeniable definite time, and the 2300 days are then carried by them (MWV1 46.x, 53.x). So 'subject-then-anchor' is the findings' didactic reconstruction; Miller's rhetoric runs anchor-then-subject. Not wrong, but the ordering is the researcher's, not Miller's.",
+    "Link 8 (seven times / 2520 as 'converging witness, placed last and off-spine'): in Miller's MWV1 the 'seven times' is item 1 of 'prophecies remaining to be fulfilled' (MWV1 43.3) \u2014 i.e. Miller presents it BEFORE the 2300 days (MWV1 46.x). Demoting it to last is a defensible logical-priority call (it does not anchor the 2300 days), but it inverts Miller's own presentation order and his discovery order (TSAM 65.3). The findings flag this in uncertainties, so it is disclosed rather than concealed."
+  ],
+  "missingLinks": [
+    "The day-length half of the key is under-credited. PSC 47.3 (which the findings cite) states the 70-weeks vision supplies TWO things: (1) 'The length of a prophetic day' AND (2) 'The time when to commence... the days of the vision.' The chain treats year-for-a-day (link 1) and the 457 BC start (link 5) as separate, but Miller's own structure makes the 70 weeks the proof-text for BOTH \u2014 the 490 literal years fulfilled as 490 day-years is what VALIDATES year-for-a-day empirically. This validation loop (70 weeks proves the day=year rule that the whole chain depends on) is a load-bearing link the chain omits.",
+    "The Ezra-7 / Artaxerxes 457 BC decree identification is asserted but its competing-decree disambiguation is skipped. DAR 201.1 and MWM 192.2 show the carriers had to defend 457 BC against other candidate decrees (Cyrus, Darius, the 408 BC completion). The chain states '457 BC' as if self-evident; the actual argument required ruling out rival decrees \u2014 a missing sub-link in the load-bearing anchor (link 5).",
+    "The transition from Miller's earth-sanctuary (link 7) to the heavenly-sanctuary correction is named but its mechanism is omitted. DAR 193.3 (cited) already embeds the heavenly-sanctuary reading ('the most holy of the heavenly sanctuary'), so the corpus contains the correction inline; the findings defer it to scope. CIHS 83.1/84.1 carry the fuller decree+sanctuary argument and were not pulled in."
+  ],
+  "quoteChecks": [
+    {
+      "refcode": "MWV2 54.2",
+      "status": "verified-accurate"
+    },
+    {
+      "refcode": "MWV1 46.2",
+      "status": "verified-accurate"
+    },
+    {
+      "refcode": "S23D 19.2",
+      "status": "verified-accurate"
+    },
+    {
+      "refcode": "SOTB 4.1",
+      "status": "verified-accurate"
+    },
+    {
+      "refcode": "GC 324.3",
+      "status": "verified-accurate"
+    },
+    {
+      "refcode": "BMD 3.3",
+      "status": "misquoted"
+    },
+    {
+      "refcode": "TSAM 65.3",
+      "status": "verified-accurate"
+    },
+    {
+      "refcode": "MWV1 188.2",
+      "status": "verified-accurate"
+    },
+    {
+      "refcode": "DAR 193.3",
+      "status": "verified-accurate"
+    },
+    {
+      "refcode": "MWV2 68.2",
+      "status": "verified-accurate"
+    }
+  ]
+}

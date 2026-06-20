@@ -1,0 +1,107 @@
+I have the format. Now I'll write the section, obeying the adversarial review: cite AJB 297.1 for Exeter (Aug 12), drop the unsourced Sept 23 Rabbinic date, hedge the ~50,000 figure, and use only verified refcodes.
+
+## The Tarrying & the Great Disappointment — October 22
+
+> The date was right; only the event was misread — the same key that opened the casket measured the very delay that tested the watchers, and the very midnight that broke their hearts.
+
+The 2300 days of _Dan. 8:14_ are the spine of this whole study, and by 1843 the key had already turned: from the decree of 457 BC the longest numbered prophecy in Scripture must close in 1844 (see "The Seventy Weeks — Daniel 9 / the 457 BC Anchor"). The casket stood open. But between the opening and the cleansing lay a season the believers had not foreseen — a delay the Bible had named in advance, and a disappointment the Bible had pre-written. This section is that season: the tarrying time and the Great Disappointment, the testing-floor on which the true waiting ones were sifted out, and on which the difference between a wrong _date_ and a misread _event_ was burned into the movement forever.
+
+- _Dan. 8:14._ "Unto two thousand and three hundred days; then shall the sanctuary be cleansed." — the base prophecy and the prophetic clock. The 2300 "days" = 2300 years by the year-day principle (see "The Four Beasts and the Judgment — Daniel 7"); anchored to 457 BC, the period terminates in 1844. The date held all the way through; what shattered was the supposition of what "cleansed" meant — Christ coming to purge the earth by fire, when in truth it meant His entering the most holy place.
+
+**The first disappointment — spring 1844.**
+
+Miller and his associates first reckoned the period to the spring of 1844 — they had counted the 457 BC base from the _beginning_ of the year, ending the days in the Jewish year 1843. The spring came; the Lord did not. The believers were left "for a season involved in doubt and uncertainty," and around them the mockers exulted.
+
+- _GC 391.1._ EGW: "When the time passed at which the Lord's coming was first expected,—in the spring of 1844,—those who had looked in faith for His appearing were for a season involved in doubt and uncertainty... though the believers could not explain their disappointment, they felt assured that God had led them in their past experience." — the first disappointment did not overturn the providence; it deepened the search.
+- _CIHS 86.2._ "Miller and his associates at first believed that the 2300 days would terminate in the spring of 1844, whereas the prophecy points to the autumn of that year.... But this did not in the least affect the strength of the argument showing that the 2300 days terminated in the year 1844." — the year was never in question; only the season-boundary was misjudged.
+- _AJB 294.1._ Bates: "The passing of this time was the first disappointment in the advent movement." — the contemporaneous witness names it plainly.
+
+**The Bible's own name for the delay — the tarrying time.**
+
+Driven back to their Bibles, the believers found in Habakkuk what they had overlooked: a delay written into the vision itself, a "tarry or waiting time" they had never particularly examined before.
+
+- _Hab. 2:3._ "For the vision is yet for an appointed time, but at the end it shall speak, and not lie: though it tarry, wait for it; because it will surely come, it will not tarry." — the governing text of the season. "An appointed time" = the 2300 days have a fixed terminus that cannot be moved; "though it tarry, wait for it" = the believers' charter to hold the calculation through the apparent delay rather than abandon it.
+  - **the tarrying time** = the interval between the spring-1844 first disappointment and October 22, 1844, during which the vision of the 2300 days seemed to delay. It was not a failure but a divinely-appointed test "calculated to manifest the true waiting ones" — those who held the date by faith, not sight (_Hab. 2:3_; _EW 236.1_; _CET 50.3_; typified at _Matt. 25:5_).
+- _Hab. 2:2._ "Write the vision, and make it plain upon tables, that he may run that readeth it." — paired with v.3 in the corpus (AJB quotes _Hab. 2:2, 3_ together); it grounds the Millerite practice of charting the prophetic periods plainly — the 1843 chart — so the message could "run."
+- _Hab. 2:4._ "the just shall live by his faith." — the faith-anchor God set inside the tarrying passage itself: the disappointed were to wait by faith, not sight (echoed in the New Testament at _Heb. 10:38_).
+- _EW 236.1._ EGW: "they discovered a tarrying time—'Though it [the vision] tarry, wait for it.' In their love for Christ's immediate coming, they had overlooked the tarrying of the vision, which was calculated to manifest the true waiting ones." — the delay's purpose was to sift, not to break.
+- _AJB 294.2._ Bates: of the believers — perhaps fifty thousand by his own contemporary estimate — who "never, until the passing of the time, had realized or understood that there was a tarry or waiting time in the vision... 'Give it up, did you say? We dare not!' 'Why?' 'Because the command of the Lord to his confiding and disappointed people... was to WAIT.'" — the answer to every mocker was a single text: _wait for it_.
+- _CET 50.3._ EGW: "In the joyful expectation of the coming of Christ, the apparent tarrying of the vision had not been taken into account, and was a sad and unlooked-for surprise. Yet this very trial was necessary to develop and strengthen the sincere believers in the truth."
+
+**The error found — autumn 457, autumn 1844.**
+
+Searching the same prophecy by the same key, they found the boundary they had misplaced. The decree of Artaxerxes (_Ezra 7_) went into effect not at the head of the year but near its close — in the _autumn_ of 457 BC. Reckon from there, and the 2300 years reach the autumn of 1844, not 1843. The vision had not tarried at all; it had only seemed to.
+
+- _CET 50.1._ EGW: "the decree was given near the close of the year 457 B. C., and therefore the prophetic period must reach to the fall of the year 1844. Therefore the vision of time did not tarry, though it had seemed to do so.... 'though it tarry, wait for it; because it will surely come, it will not tarry.' Habakkuk 2:3." — the apparent delay was a miscounted half-year, not a moved terminus.
+- _GC 398.4._ EGW: "the decree of Artaxerxes... went into effect in the autumn of the year 457 B.C., and not at the beginning of the year, as had been formerly believed. Reckoning from the autumn of 457, the 2300 years terminate in the autumn of 1844." — the correction recovered the date; it did not surrender it.
+
+**The parable read as a chart — the ten virgins.**
+
+What the believers had lived, they now found drawn in advance in the parable of the ten virgins: a bridegroom who tarried past His expected hour, a slumber through the delay, and then a cry at midnight.
+
+- _Matt. 25:5._ "While the bridegroom tarried, they all slumbered and slept." — the bridegroom (Christ) tarried beyond 1843, the time in which He was expected; the believers slumbered through the delay — the very type of the tarrying time.
+- _Matt. 25:6._ "And at midnight there was a cry made, Behold, the bridegroom cometh; go ye out to meet him." — the "midnight cry" = the seventh-month message of summer 1844 that revived the movement and fixed the day.
+- _PREX1 165.1._ "while the bridegroom tarried, they all slumbered and slept" — applied to the Advent movement: the parable was not allegory only, but their own chart.
+- _GSAM 157.2._ Loughborough: the bridegroom "tarried beyond the time (1843) in which he was expected" — the delay of the parable and the delay of the movement were one.
+
+**The little book — sweet, then bitter.**
+
+And the bitterness itself was pre-written. In Revelation 10 the mighty angel gives John a little book to eat — sweet in the mouth, bitter in the belly — and the corpus reads it as the very experience of October 22: the joy of the time-message swallowed, then the gall of the disappointment when the time expired.
+
+- _Rev. 10:9._ "Take it, and eat it up; and it shall make thy belly bitter, but it shall be in thy mouth sweet as honey." — the little book (Daniel's prophecy, now open, "time... no longer") eaten: sweet = the joyful acceptance of the time proclamation; bitter = the disappointment when the day passed.
+- _Rev. 10:10._ "it was in my mouth sweet as honey: and as soon as I had eaten it, my belly was bitter." — the Bible pre-wrote the bitterness of October 22.
+- _Rev. 10:11._ "Thou must prophesy again before many peoples, and nations, and tongues, and kings." — the disappointment was not the end; John (representing the church) is told to prophesy _again_ — the mandate that would drive the post-1844 sanctuary recovery.
+- _GSAM 185.4._ Loughborough: "Eating this book, then, must represent the joyful acceptance of the time proclamation. The sudden bitterness of the morsel to those who ate it must represent the sad contrast in their experience after the time of the book is expired, and they find themselves sorely disappointed in their expectations."
+- _DAR 495.1._ Smith: the little book open in the angel's hand is Daniel's prophecy unsealed at the time of the end — the disappointment's setting (cf. "The Mighty Angel and the Little Book — Revelation 10").
+
+**The true midnight cry — Snow and the seventh month.**
+
+The cry that revived the movement had a date and a herald. On August 22, 1844, S. S. Snow issued his paper "The True Midnight Cry," setting forth the Mosaic types and the calculation that the 2300 days must end on the tenth day of the seventh month of the current Jewish year. Following the reckoning of the Caraite (Karaite) Jews, that day fell on October 22, 1844 — the antitypical Day of Atonement. The corpus narrative names this paper the "Midnight Cry" (Bates' shorthand for the same masthead).
+
+- _AJB 299.1._ Bates names Snow's August 22 paper as the instrument of the seventh-month / "midnight cry" message.
+- _MWM 269.4._ Bliss: the seventh-month date, "following the reckoning of the Caraite Jews, fell on the 22nd day of October." — the Karaite calendar, not the Rabbinic, is what landed the message on October 22.
+
+The message went out from a camp meeting the corpus itself dates and names — Exeter, New Hampshire — where the seventh-month conviction caught fire among the assembled believers.
+
+- _AJB 297.1._ Bates: "A camp-meeting was appointed to convene in Exeter, N. H., on the 12th of August." — the launch venue of the seventh-month cry is in the corpus, dated to the meeting's convening on August 12, 1844; Snow's address fell within that multi-day gathering.
+
+**Miller won, and the day named in print.**
+
+Miller himself had not joined the seventh-month movement — as late as September 30 he discountenanced positiveness about the month, having only written eighteen months earlier of the Mosaic types pointing to it. But the cry reached him too.
+
+- _WMAD 25.1._ Miller was won to the seventh-month expectation "about two or three weeks previous to the 22nd of October," having written eighteen months before merely of the Mosaic types pointing to that month — the herald's reckoning overtook even its slowest convert.
+- _MWM 269.4._ Bliss: "On the 6th of October he was first led to favor the expectation which pointed to that month, and thus wrote: 'If Christ does not come within twenty or twenty-five days, I shall feel twice the disappointment I did in the spring.'" — the man who had launched the movement followed it to the very edge of the cliff.
+
+The conviction was committed to primary print in the movement's own paper in the days before the day.
+
+- _HST Oct. 9, 1844, page 73.7._ Advent Herald: "Beyond a doubt, in my mind, the tenth day of the seventh month will witness the revelation of our Lord Jesus Christ in the clouds of heaven." — the seventh-month message in contemporaneous print, repeated _HST Oct. 16, 1844, page 83.7_.
+
+**The Great Disappointment — midnight, October 22.**
+
+They watched in ardent expectation until the clock tolled twelve. The day passed; the certainty fell; they wept till the dawn.
+
+- _CIHS 6.4._ Edson (eyewitness): "Our expectations were raised high, and thus we looked for our coming Lord until the clock tolled twelve at midnight. The day had then passed, and our disappointment had become a certainty. Our fondest hopes and expectations were blasted... We wept and wept, till the day dawn." — the primary eyewitness of the night itself.
+- _GC 374.1._ EGW: "The time of expectation passed, and Christ did not appear for the deliverance of His people. Those who with sincere faith and love had looked for their Saviour, experienced a bitter disappointment."
+- _GSAM 188.2._ James White: "The disappointment at the passing of the time was a bitter one. True believers had given up all for Christ, and had shared his presence as never before... with inexpressible desires they prayed, 'Come, Lord Jesus, and come quickly,' but he did not come."
+- _AJB 300.2._ Bates: "The day passed, and another twenty-four hours followed, but deliverance did not come.... nothing could be brought to extend the days beyond the tenth day of the seventh month, 1844." — the terminus could not be argued forward; the date was fixed.
+  - **the Great Disappointment** = October 22, 1844 — the night Christ did not come as expected and the believers wept till dawn. NOT a failed prediction: the date (_Dan. 8:14_ from autumn 457 BC) was correct; the event was misread. They expected Christ to come _out_ of the sanctuary to earth; in fact He _entered_ the most holy place to begin the antitypical Day of Atonement (_CIHS 6.3-6.4_; _GC 374.1_; _EW 243.2_; _CIHS 150.1_).
+
+**The resolution — right date, misread event.**
+
+The disappointment's cure was the same key reading the same prophecy one apartment deeper. The reckoning had been correct; the misjudgment lay only in what the cleansing of the sanctuary _was_.
+
+- _EW 243.2._ EGW: "I saw that they were correct in their reckoning of the prophetic periods; prophetic time closed in 1844, and Jesus entered the most holy place to cleanse the sanctuary at the ending of the days. Their mistake consisted in not understanding what the sanctuary was and the nature of its cleansing." — the verdict on the whole experience: the clock was right, the room was wrong.
+- _CIHS 150.1._ "the subject of the sanctuary was the key which unlocked the mystery of the disappointment of 1844." — the same key that opened the casket now opened the disappointment.
+- _CIHS 7.3._ The morning after — Hiram Edson, crossing a cornfield in mid-New York, was "stopped about midway of the field" and saw that on the tenth day of the seventh month Christ had not come _out_ of the most holy place to earth but had for the first time _entered_ it — the date right, the event misread. (This is the threshold of the sanctuary section that follows; included here as the immediate resolution of the Disappointment. The Edson account survives only in an unpublished manuscript, published in part in _The Review and Herald_, June 23, 1921 — a late, partial transcription, noted for provenance.)
+
+So the bead the key drew out here is not a broken prophecy but a tested one. The same method that compared Scripture with Scripture to fix 457 BC and 1844 also found, in Habakkuk, the delay that would test the watchers, and in Revelation 10 the bitterness that would break them — and then, by reading the cleansing of _Dan. 8:14_ one apartment deeper, turned the disappointment itself into the doorway of the sanctuary truth.
+
+**DEFINITION — THE TARRYING & THE GREAT DISAPPOINTMENT (OCTOBER 22) =** the testing-season of 1844, in two movements, both pre-written in Scripture and both read by the one key. **The tarrying time** (_Hab. 2:3_; _Matt. 25:5_; _EW 236.1_; _CET 50.1, 50.3_) = the interval between the spring-1844 first disappointment and October 22, during which the vision seemed to delay — resolved when the 457 BC decree was correctly dated to the autumn of the year, so the 2300 years close in the autumn of 1844 (_CET 50.1_; _GC 398.4_; _CIHS 86.2_) and "the vision of time did not tarry, though it had seemed to do so." **The Great Disappointment** (_CIHS 6.4_; _GC 374.1_; _EW 243.2_; _GSAM 188.2_) = midnight, October 22, 1844 — Christ did not come as expected and the believers wept till dawn — NOT a failed prediction but a right date with a misread event: they were "correct in their reckoning of the prophetic periods," but mistook Christ's _entry_ into the most holy place for His coming to earth (_EW 243.2_; _CIHS 150.1_), the disappointment Revelation 10 had named sweet-then-bitter in advance (_Rev. 10:9-10_; _GSAM 185.4_). The seventh-month "true midnight cry" (Snow, "The True Midnight Cry," August 22, 1844; the Exeter, N.H. camp meeting convening August 12, _AJB 297.1, 299.1_) fixed the day by the Caraite reckoning to October 22 (_MWM 269.4_), and even Miller was won "two or three weeks" before (_WMAD 25.1_).
+
+**Symbols defined here:**
+
+- **the tarrying time** = the interval of apparent delay between the spring-1844 first disappointment and October 22, 1844, drawn from _Hab. 2:3_ ("though it tarry, wait for it") and typified by the bridegroom's delay in _Matt. 25:5_ — a divinely-appointed test "calculated to manifest the true waiting ones" (_EW 236.1_; _CET 50.1, 50.3_; _AJB 294.1_; _GSAM 157.2_).
+- **the true midnight cry** = the seventh-month message of summer 1844 (Snow, August 22) proclaiming Christ's coming on the tenth day of the seventh month — the cry at midnight of _Matt. 25:6_ (_AJB 297.1, 299.1_; _MWM 269.4_; _HST Oct. 9, 1844, page 73.7_).
+- **the Great Disappointment** = October 22, 1844 — right date, misread event: prophetic time closed in 1844, but Christ entered the most holy place rather than coming to earth (_CIHS 6.4_; _GC 374.1_; _EW 243.2_; _GSAM 188.2_; _CIHS 150.1_).
+
+**Symbols carried:** the 2300 days, day = a year ("The Four Beasts and the Judgment — Daniel 7," "The Ram, the Goat, and the 2300 Days — Daniel 8"); the 457 BC anchor ("The Seventy Weeks — Daniel 9 / the 457 BC Anchor"); the little book open ("The Mighty Angel and the Little Book — Revelation 10"); the cleansing of the sanctuary, the most holy place, the antitypical Day of Atonement (owned by the sanctuary section that follows).

@@ -1,6 +1,29 @@
 ---
 created_at: '2026-06-17T12:00:00Z'
-topic: 'Righteousness by Faith — A Bible Handbook Study'
+topic: Righteousness by Faith — A Bible Handbook Study
+apple_note_split:
+  overview: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1720'
+  table-of-contents: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1721'
+  part-i-1-the-image-of-god-and-what-sin-lost: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1722'
+  part-i-2-the-law-an-image-of-god: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1723'
+  part-i-3-christ-the-express-image-the-life: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1724'
+  part-i-4-the-nature-of-christ-tempted-in-all-points: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1725'
+  part-i-5-beholding-we-are-changed-truth-the-sanctifier: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1726'
+  part-i-6-two-things-to-be-dealt-with-death-and-separation: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1727'
+  part-i-7-the-ladder-the-gate-the-house-of-god-christ-the-san: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1728'
+  part-i-8-the-three-compartments-justification-sanctification: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1729'
+  part-ii-9-the-gate-faith: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1730'
+  part-ii-10-the-altar-of-sacrifice-forgiveness: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1731'
+  part-ii-11-the-laver-power-to-overcome: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1732'
+  part-ii-12-justification-faith-forgiveness-power-as-one: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1733'
+  part-ii-13-the-daily-walk-to-heaven-entering-sanctification: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1734'
+  part-ii-14-the-table-of-shewbread-daily-the-word: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1735'
+  part-ii-15-the-candlestick-the-light-of-good-works: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1736'
+  part-ii-16-the-altar-of-incense-prayer-and-the-spirit: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1737'
+  part-ii-17-sanctification-the-daily-transformation: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1738'
+  part-ii-18-the-most-holy-place-glorification: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1739'
+  part-ii-19-the-image-restored-the-whole-in-one-view: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1740'
+  appendix-symbol-dictionary: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1741'
 ---
 
 # Righteousness by Faith — A Bible Handbook Study

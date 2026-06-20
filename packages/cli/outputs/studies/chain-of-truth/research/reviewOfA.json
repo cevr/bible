@@ -1,0 +1,123 @@
+{
+  "verdict": "mostly-sound",
+  "confirmedClaims": [
+    "WMAD 6.1 verifies verbatim: 'I determined to lay aside all my prepossessions, to thoroughly compare Scripture with Scripture... I commenced with Genesis, and read verse by verse... and was fully satisfied that it is its own interpreter.' A's keyQuote is an accurate (ellipsis-abridged) rendering of the actual paragraph.",
+    "WMAD 5.1 verifies: the 'if the Bible was the word of God, every thing contained therein might be understood, and all its parts be made to harmonize... or I would be a Deist still' quote is accurate.",
+    "WMAD 12.1 verifies verbatim, including 'I commenced their study with no expectation of finding the time of the Savior's coming' \u2014 A's rationale that Miller did NOT start FROM an advent prophecy is correctly grounded.",
+    "BMD 3.3 verifies: casket = great advent truths, key = 'his manner of interpreting the prophetic Word - Comparing scripture with scripture - the Bible its own interpreter,' jewels 'beautifully arranged in their several places' reflecting 'a light and glory.' A's casket-as-canonical-chain reading is well supported.",
+    "TSAM 65.3 verifies verbatim: 'I was satisfied that the seven times terminated in 1843. Then I came to the 2300 days; they brought me to the same conclusion.' A's central claim that the 2520/seven-times convinced Miller FIRST and the 2300 came as confirmation is textually correct.",
+    "GC 324.3 verifies verbatim: 'The prophecy which seemed most clearly to reveal the time of the second advent was that of Daniel 8:14... If, then, the correct starting point could be found for the 2300 days, he concluded that the time of the second advent could be readily ascertained.' A's Daniel 8:14-as-doorway claim is accurate.",
+    "MWV1 46.2 verifies: the 70 weeks given 'for the express purpose of showing the beginning of the vision,' 'seal (or make sure)' the vision, and the arithmetic 'If 490 days were fulfilled in the year A.D. 33... when will 1810 days afterwards be fulfilled in the same manner? Answer, 1843.' A's keyQuote is an accurate abridgment.",
+    "MWV1 188.2 verifies the 'four pillars' framing and the 'three visions... are but one prophecy... then the little horn, instead of being Antiochus, must be the Roman kingdom' argument. A's Link 4 and Link 7 grounding is sound.",
+    "WMAD 9.1 verifies the four-monarchies claim (Babylon, Medo-Persia, Grecia, Rome in last state) \u2014 Link 4 grounded.",
+    "WMAD 9.2 and 11.1 verify the day-year inductive proof from already-fulfilled time prophecies (Link 5).",
+    "WMAD 11.2 verifies the multi-period convergence on 1843 with anchor dates 677 BC (seven times/Manasseh), 457 BC (2300/seventy weeks), 508 AD (1335) \u2014 Link 6 grounded, and A's uncertainty #4 about dependence on 'the best chronologers' is textually justified.",
+    "MWM 70.6 verifies Rule V verbatim: 'Scripture must be its own expositor, since it is a rule of itself.' A correctly labels this the hinge rule.",
+    "MWV1 22.5 verifies the figure-rule verbatim ('trace your figurative word through your Bible...') \u2014 note it is Rule XIV, which A's keyQuotes correctly does NOT call Rule V.",
+    "MWV1 33.1 verifies the literal-as-makes-good-sense / let-the-Bible-explain-its-figures principle (Link 2)."
+  ],
+  "refutedClaims": [
+    {
+      "claim": "A states the WMAD 6.1 opening ('I determined to lay aside all my prepossessions... I commenced with Genesis') is 'verbatim in... SLWM 48.1.'",
+      "why": "FALSE for SLWM 48.1. SLWM 48.1 contains only the LATTER half ('In this way I pursued the study of the Bible, in my first perusal of it, for about two years, and was fully satisfied that it is its own interpreter...'). The 'I determined to lay aside all my prepossessions / commenced with Genesis' opening is NOT in SLWM 48.1; it appears in MWM 69.3. So the parallel-citation to SLWM is for a different (later) sentence than the one A is quoting."
+    },
+    {
+      "claim": "A's keyQuote for MWV1 20.10 renders the full Rule-V sentence ending '...then his guessing, desire, creed or wisdom, is my rule, and not the Bible.'",
+      "why": "MWV1 20.10 actually CUTS OFF at '...or to be' (end of page 20). The continuation 'thought wise, then his guessing, desire, creed or wisdom is my rule, not the Bible' is a SEPARATE paragraph, MWV1 21.1, on the next page. Moreover MWV1 21.1 reads 'is my rule, not the Bible' (no 'and'); A's 'is my rule, AND not the Bible' matches the MWM 70.6 wording, not the MWV1 text. A's MWV1 20.10 keyQuote thus splices across a paragraph/page boundary and imports the MWM 'and' \u2014 a quote presented as single-refcode verbatim that is actually a conflation."
+    }
+  ],
+  "misorderings": [
+    "Link 8 cites 'MWV1 47.1' as support for the 70-weeks/457 BC starting-point joint. MWV1 47.1 is actually about the 1260 days / three-and-a-half times (Daniel 12:7, the woman in the wilderness) \u2014 it continues 46.2's discourse but the verse content shown is NOT the 457 BC / seventy-weeks anchor. The load-bearing 457 BC + Artaxerxes material is at MWV1 245.2 and 246.5 (Ezra 7, Artaxerxes Longimanus, seventh year). The 47.1 refcode is off-target for the claim it is attached to.",
+    "Not a chain misordering per se, but A's own uncertainty #1 correctly flags the genuine tension: TSAM 65.3 (subjective: seven-times FIRST) vs GC 324.3 / published lectures (expository: Daniel 8:14 doorway, 2520 a converging witness). A handles this honestly rather than begging the question \u2014 the chain does NOT assert 2300/Dan 8:14 as Miller's literal first conviction; it distinguishes the two senses. This survives scrutiny."
+  ],
+  "missingLinks": [
+    "The explicit Artaxerxes-Longimanus / Ezra 7 grounding for the 457 BC decree (MWV1 245.2, 246.5) is never cited anywhere in the chain. A's Link 8/9 assert '457 BC' as the shared start of the 70 weeks and 2300 days but the only refs given (WMAD 11.2's bare 'best chronologers dated from B.C. 457', MWV1 46.2/47.1) do not show Miller's actual derivation of 457 from a named decree. For a chain claiming '457 BC proves 1844' is the spine, the primary-source receipt for WHY 457 (the Artaxerxes decree of Ezra 7) is the missing load-bearing link.",
+    "Uncertainty #5's 'laid by all commentaries' page-12 quote: A reports it did not surface under MWV1 12. The actual wording 'I laid by all commentaries, former views and prepossessions, and determined to read and try to understand for myself' is at MWV1 11.1 (page 11), with the parallel 'He laid aside all commentaries' at MWM 69.1. A left this refcode unresolved; it resolves to MWV1 11.1 / MWM 69.1, not MWV1 12. The 14-Rules study's attribution to 'Works vol.1 p.12' is therefore off by a page."
+  ],
+  "quoteChecks": [
+    {
+      "refcode": "WMAD 6.1",
+      "status": "verified-accurate"
+    },
+    {
+      "refcode": "WMAD 5.1",
+      "status": "verified-accurate"
+    },
+    {
+      "refcode": "WMAD 12.1",
+      "status": "verified-accurate"
+    },
+    {
+      "refcode": "BMD 3.3",
+      "status": "verified-accurate"
+    },
+    {
+      "refcode": "MWV1 20.10",
+      "status": "misquoted"
+    },
+    {
+      "refcode": "MWV1 22.5",
+      "status": "verified-accurate"
+    },
+    {
+      "refcode": "TSAM 65.3",
+      "status": "verified-accurate"
+    },
+    {
+      "refcode": "MWV1 46.2",
+      "status": "verified-accurate"
+    },
+    {
+      "refcode": "MWV1 188.2",
+      "status": "verified-accurate"
+    },
+    {
+      "refcode": "GC 324.3",
+      "status": "verified-accurate"
+    },
+    {
+      "refcode": "WMAD 9.1",
+      "status": "verified-accurate"
+    },
+    {
+      "refcode": "WMAD 11.2",
+      "status": "verified-accurate"
+    },
+    {
+      "refcode": "MWM 70.6",
+      "status": "verified-accurate"
+    },
+    {
+      "refcode": "MWM 69.3",
+      "status": "verified-accurate"
+    },
+    {
+      "refcode": "SLWM 48.1",
+      "status": "refcode-wrong"
+    },
+    {
+      "refcode": "MWV1 47.1",
+      "status": "refcode-wrong"
+    },
+    {
+      "refcode": "MWV1 33.1",
+      "status": "verified-accurate"
+    },
+    {
+      "refcode": "WMAD 6.2",
+      "status": "verified-accurate"
+    },
+    {
+      "refcode": "WMAD 9.2",
+      "status": "verified-accurate"
+    },
+    {
+      "refcode": "WMAD 10.1",
+      "status": "verified-accurate"
+    },
+    {
+      "refcode": "WMAD 11.1",
+      "status": "verified-accurate"
+    }
+  ]
+}
