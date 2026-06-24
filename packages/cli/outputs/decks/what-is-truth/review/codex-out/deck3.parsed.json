@@ -1,0 +1,722 @@
+{
+  "deck": 3,
+  "reviews": [
+    {
+      "slide": 1,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 2,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "Presenter notes recap includes high-risk claims not visible on slide: 'Daniel's manuscripts physically predate the fulfillments,' 'AD 27,' 'August 1840,' and 'friend and foe alike conceded the event.' If spoken without citations, a skeptical listener may feel the prior night is being smuggled in as settled."
+      ],
+      "suggestion": "Add one brief on-slide or spoken citation cue for the most contestable recap claim, or soften to 'we argued last night...'."
+    },
+    {
+      "slide": 3,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "'Consistent written record ✓ (5,800+ manuscripts; Dead Sea Scrolls)' risks implying manuscript quantity alone proves consistency; a hostile fact-checker can separate manuscript count from textual reliability."
+      ],
+      "suggestion": "Change to 'Textual record tested ✓ (manuscripts + Dead Sea Scrolls)' or add 'as argued Night 1'."
+    },
+    {
+      "slide": 4,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "'Tonight is what the divine Book SAYS' assumes the prior conclusion for anyone who missed or resisted Night 2, though the presenter notes frame this as a shift rather than proof."
+      ],
+      "suggestion": "Use 'Tonight is what this Book says, if that evidence holds' to keep skeptics inside the room."
+    },
+    {
+      "slide": 5,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "Jeremiah 29:11 is addressed to exiles in a specific covenant setting; the notes' move to 'against everything you have ever suffered' risks over-universalizing the promise."
+      ],
+      "suggestion": "Frame it as 'God's stated posture toward His people in exile' before applying the principle more broadly."
+    },
+    {
+      "slide": 6,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 7,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 8,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 9,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "Calling the Dawkins quote 'the materialist answer' overgeneralizes materialism; many materialists give moral-realism or humanist answers even if they deny cosmic purpose."
+      ],
+      "suggestion": "Change to 'one stark materialist answer' or 'Dawkins' materialist answer'."
+    },
+    {
+      "slide": 10,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "Presenter notes say Buddhism's cure releases 'the attachments — the very stuff love is made of,' which can sound like a caricature because Buddhism distinguishes craving from compassion."
+      ],
+      "suggestion": "Say 'releasing craving, including possessive attachment, rather than restoring the world itself'."
+    },
+    {
+      "slide": 11,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "'Suffering is karma working itself out' and the notes' 'everything is earned' flatten diverse Hindu traditions and can sound accusatory toward sufferers."
+      ],
+      "suggestion": "Soften to 'many Hindu frameworks explain suffering through karma and samsara...'."
+    },
+    {
+      "slide": 12,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "Presenter notes say the resolution is 'deferred entirely to the next life,' which overstates Islam's view because this-life purification, mercy, and moral formation also matter."
+      ],
+      "suggestion": "Change to 'the final accounting is deferred to the hereafter'."
+    },
+    {
+      "slide": 13,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "'New Age' is not a single doctrine, and 'suffering is illusion or self-generated' overgeneralizes a broad family of beliefs.",
+        "Presenter notes say the framework 'must deny the suffering is real or blame the sufferer,' which is too absolute and may trip seekers' defenses."
+      ],
+      "suggestion": "Narrow the target: 'In some New Age teachers, suffering is framed as illusion, resistance, or self-generated...'."
+    },
+    {
+      "slide": 14,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 15,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "'Not deserved' is pastorally strong but needs nuance after slides 11 and 49, because the deck later says some suffering is harvest/consequence."
+      ],
+      "suggestion": "Change to 'not originally designed, not mere illusion, not automatically deserved, not forever'."
+    },
+    {
+      "slide": 16,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 17,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 18,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "'Love requires freedom. Freedom creates risk.' is a plausible hinge, but it is asserted rather than argued; skeptics may ask why God could not create free beings who always freely love."
+      ],
+      "suggestion": "Add one sentence in notes: 'A love that cannot be refused is not chosen; that is the risk being defended here.'"
+    },
+    {
+      "slide": 19,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "Deuteronomy 30:19 supports covenant choice, but by itself does not prove the broader metaphysical claim that all love requires libertarian freedom."
+      ],
+      "suggestion": "Use it as evidence of God's appeal-based method, not as the whole proof of free will."
+    },
+    {
+      "slide": 20,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 21,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "'Image of God = moral agency. Not automation.' is too reductive; Genesis 1:27 does not itself define the image only as moral agency."
+      ],
+      "suggestion": "Change to 'Image of God includes moral agency — not automation'."
+    },
+    {
+      "slide": 22,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 23,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "'The question was never IF freedom would be tested' overstates inevitability; the prior slides establish possibility and risk, not necessity."
+      ],
+      "suggestion": "Change to 'The question is what God would do when freedom was tested'."
+    },
+    {
+      "slide": 24,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 25,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "Presenter notes say Revelation 12 is the 'origin-of-evil case' with 'no interpretive caveat needed'; the text names Satan, but its apocalyptic timing and symbolism still need careful handling for skeptics."
+      ],
+      "suggestion": "Say 'this is the Bible's clearest cosmic-conflict text' rather than making it carry the full origin case alone."
+    },
+    {
+      "slide": 26,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 27,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 28,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "'The rebellion's weapon was never force. It was DECEPTION.' overreaches because the same verse says 'murderer,' and later biblical conflict includes coercion and persecution."
+      ],
+      "suggestion": "Change to 'The rebellion began with deception; force follows the lie'."
+    },
+    {
+      "slide": 29,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 30,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "The four accusations are clear, but only #3 is immediately tied to a coming text; 'God is unjust and vengeful' is introduced as a charge without an on-slide receipt."
+      ],
+      "suggestion": "Add tiny anchors after each charge, or label them 'the accusations the story will test'."
+    },
+    {
+      "slide": 31,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "'God — the accused' is a strong courtroom inference, but it is not explicit in 1 Corinthians 4:9; skeptics may see the model outrunning the proof."
+      ],
+      "suggestion": "Frame it as 'In this courtroom reading: God — the accused'."
+    },
+    {
+      "slide": 32,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "Presenter notes say 'The only way to DISPROVE... is to let the hedge down. There is no third option'; that is theologically and emotionally risky because it can sound like Job's suffering was instrumentally necessary."
+      ],
+      "suggestion": "Soften to 'In the Job narrative, the accusation is answered by exposing it under permitted testing'."
+    },
+    {
+      "slide": 33,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 34,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 35,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "'A defendant who destroys his accuser looks guilty' works as courtroom rhetoric, but it is not universally true if the accuser is actively harming innocents."
+      ],
+      "suggestion": "Tie it explicitly to 'before the accusation has been publicly answered'."
+    },
+    {
+      "slide": 36,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 37,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "'God consents to BE JUDGED' leans heavily on the KJV wording of Romans 3:4; Paul's immediate argument is about God's faithfulness, and other translations can read differently."
+      ],
+      "suggestion": "Use this as a supporting resonance, not 'THE CENTRAL VERSE,' or add 'in the KJV wording' to the spoken claim."
+    },
+    {
+      "slide": 38,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "1 Corinthians 4:9 directly refers to apostles being a spectacle, so using it for all earth as a cosmic courtroom audience is an application, not the verse's immediate claim."
+      ],
+      "suggestion": "Say 'Paul gives the category of angelic spectatorship' before extending it."
+    },
+    {
+      "slide": 39,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "'Evil must be allowed' is the deck's core theodicy claim, but 'must' can sound like God is constrained by an abstract necessity the slides have not fully proved."
+      ],
+      "suggestion": "Change to 'In this answer, evil is allowed to show what it is...'."
+    },
+    {
+      "slide": 40,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 41,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 42,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 43,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "'The dominion of this world changed hands' is a major claim introduced before the supporting Luke and John texts on the next slides."
+      ],
+      "suggestion": "Change to 'The next texts describe the dominion of this world as changed hands'."
+    },
+    {
+      "slide": 44,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "'Jesus did not dispute it' is an argument from silence; skeptics may object that non-response does not prove Satan's claim was fully true."
+      ],
+      "suggestion": "Change to 'Jesus treats the temptation seriously; later He calls Satan prince of this world'."
+    },
+    {
+      "slide": 45,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 46,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 47,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "'The broken world you see is NOT the world God made' follows the fall logic, but 'the rebellion's exhibit' is an inferred courtroom metaphor rather than a direct textual statement."
+      ],
+      "suggestion": "Keep the metaphor but say in notes that it is the deck's synthesis of the prior texts."
+    },
+    {
+      "slide": 48,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 49,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "'Harvest, not punishment' is too absolute; the Bible also contains divine judgments, and later slides speak of final judgment. This can create a contradiction."
+      ],
+      "suggestion": "Change to 'Often harvest, not arbitrary punishment'."
+    },
+    {
+      "slide": 50,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "James 1:13,15 exonerates God from tempting people to evil; it does not by itself exonerate God from every question about permitted suffering."
+      ],
+      "suggestion": "Say 'exonerates God as the author of temptation and sin'."
+    },
+    {
+      "slide": 51,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "Matthew 13's tares parable is about the kingdom and final separation; calling it 'Jesus' own theodicy parable' may overstate its immediate purpose."
+      ],
+      "suggestion": "Frame it as 'a parable that gives the deck's theodicy language: An enemy hath done this'."
+    },
+    {
+      "slide": 52,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "The notes' examples, especially 'which abuser is also a father?', may sound like protecting perpetrators is part of the reason evil remains, which can wound survivors."
+      ],
+      "suggestion": "Use systemic examples instead: 'which corrupt structure also feeds families?' and avoid abuser-centered phrasing."
+    },
+    {
+      "slide": 53,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 54,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 55,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "'the shortest verse in the Bible' is factually risky; John 11:35 is the shortest verse in many English translations, but not necessarily in Greek or every Bible."
+      ],
+      "suggestion": "Change to 'the shortest verse in the KJV' or remove the claim."
+    },
+    {
+      "slide": 56,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 57,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 58,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "'Justice and mercy cannot coexist. Pick one, God.' is powerful as the prosecutor's charge, but without that frame on the slide it could sound like the presenter grants a false dilemma."
+      ],
+      "suggestion": "Add 'The charge:' before the three lines."
+    },
+    {
+      "slide": 59,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 60,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 61,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "'He paid them' is imprecise; rules are not paid, penalties or debts are paid. The imprecision slightly muddies the justice/mercy logic."
+      ],
+      "suggestion": "Change to 'He paid the penalty. Himself.'"
+    },
+    {
+      "slide": 62,
+      "soundness": "weak",
+      "merit": "strong",
+      "issues": [
+        "'written ~7 centuries early' is a citation risk because critical scholarship often dates Isaiah 53 later than the eighth-century Isaiah, though still before Jesus.",
+        "'copied ~125 BC' for the Great Isaiah Scroll is plausible but more safely given as a range; hostile fact-checkers may prefer c. 150-100 BC."
+      ],
+      "suggestion": "Change to 'composed centuries before Christ; preserved in the Great Isaiah Scroll, copied c. 150-100 BC'."
+    },
+    {
+      "slide": 63,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "'the watching universe saw the accuser torture and kill the only innocent man' is a theological synthesis, but Colossians 2:15 does not directly say Satan personally tortured Jesus.",
+        "'Whatever sympathy his case still had — died there' is rhetorically strong but unsupported on-slide."
+      ],
+      "suggestion": "Say 'At the cross, the powers were publicly exposed in what they did to the innocent Christ'."
+    },
+    {
+      "slide": 64,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "The notes' phrase 'the legal charge against US is cancelled' is a defensible reading, but 'handwriting of ordinances' is debated; avoid making a contested atonement-law point carry more than needed."
+      ],
+      "suggestion": "Keep the focus on public exposure of the powers and cancellation of the charge, without overdefining 'ordinances'."
+    },
+    {
+      "slide": 65,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 66,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "'That is criterion 5 — answered in blood' lands emotionally, but it answers benevolence more than it explains all mechanics of suffering; do not let it sound like pain is now fully explained."
+      ],
+      "suggestion": "Change to 'That is criterion 5's center — benevolence answered in blood'."
+    },
+    {
+      "slide": 67,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 68,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 69,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "Presenter notes say 'The harvest of §7 has a date,' but Matthew 24:14 gives a condition, not an actual date."
+      ],
+      "suggestion": "Change notes to 'The harvest has a defined trigger'."
+    },
+    {
+      "slide": 70,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 71,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "The notes' appeal to 'two nights of dated, fulfilled prophecy' imports previous contested material into this emotional moment; skeptics who remain unconvinced may hear it as pressure."
+      ],
+      "suggestion": "Say 'If the previous evidence holds, appointed time is not a brush-off'."
+    },
+    {
+      "slide": 72,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 73,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 74,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 75,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 76,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "'A transparent verdict' and notes saying the judgment is 'PUBLIC' go beyond Revelation 20:12's on-slide wording; 'books were opened' supports evidence, but not by itself full public transparency."
+      ],
+      "suggestion": "Add a supporting text or soften to 'evidence-based verdict'."
+    },
+    {
+      "slide": 77,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "Nahum 1:9 is originally about judgment on Nineveh/Judah's affliction; using 'affliction shall not rise up the second time' as a universal cosmic recurrence promise needs a contextual bridge."
+      ],
+      "suggestion": "Say 'The prophetic phrase becomes the Bible's hope: affliction will not rise again' or add the broader canonical support in notes."
+    },
+    {
+      "slide": 78,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 79,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 80,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "Isaiah 65:21-25 supports embodied restoration, but Isaiah 65 also includes death language in v20; using it as a clean eternal-state proof can invite a fact-check challenge."
+      ],
+      "suggestion": "Acknowledge in notes that Isaiah gives prophetic restoration imagery, then pair it with Revelation 21-22 for the final no-death state."
+    },
+    {
+      "slide": 81,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "1 Corinthians 2:9 is often quoted for heaven, but in context Paul immediately says God has revealed these things by the Spirit; as an afterlife cap it is a common but context-sensitive use."
+      ],
+      "suggestion": "Use it as 'our imagination is not the ceiling' and avoid implying Paul is only describing heaven."
+    },
+    {
+      "slide": 82,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "'Abolished — person kept, world restored, guaranteed from outside the system' is a strong summary, but the notes' 'only answer' claim overreaches comparative religion and may sound triumphalist."
+      ],
+      "suggestion": "Keep the on-slide summary; in notes say 'This is the Bible's distinctive answer' instead of 'only answer'."
+    },
+    {
+      "slide": 83,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 84,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "'Practical ✓' and 'Universal ✓' are checked without any recap on this slide; if the audience does not remember Nights 1-2, the scorecard may feel asserted."
+      ],
+      "suggestion": "Add tiny parenthetical cues for criteria 3 and 4, or say 'from Nights 1-2' in notes."
+    },
+    {
+      "slide": 85,
+      "soundness": "weak",
+      "merit": "weak",
+      "issues": [
+        "'You said yes' may be false for attendees who did not verbally agree or missed Night 1, and it can feel like social-pressure closure.",
+        "'The evidence is in. The next move is yours.' is rhetorically forceful but may sound overconfident to skeptical non-Christians who still have live objections."
+      ],
+      "suggestion": "Change to 'If that wager still seems fair, the next move is yours'."
+    },
+    {
+      "slide": 86,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 87,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "Revelation 3:20 is addressed to the Laodicean church, so using it as a general invitation is common but context-sensitive."
+      ],
+      "suggestion": "In notes, say 'spoken first to a church, but it reveals Christ's non-coercive posture'."
+    },
+    {
+      "slide": 88,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "Presenter notes say Psalm 34:8 is 'the same verse that opened the night,' but the night opened with Jeremiah 29:11, creating a coherence error.",
+        "'Study with me — one hour, your questions, any week night' is a good concrete ask, but make sure the promised availability is actually true."
+      ],
+      "suggestion": "Fix the note to 'close on Ps 34:8' unless a prior opening slide is changed to include it."
+    }
+  ]
+}

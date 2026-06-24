@@ -1,0 +1,1029 @@
+{
+  "deck": 2,
+  "reviews": [
+    {
+      "slide": 1,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": "Title slide. The question-mark framing ('Just Another Book?') is honest and invites the skeptic in rather than asserting. No changes needed."
+    },
+    {
+      "slide": 2,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "The line 'The candidate: the Bible — a reliable record (manuscripts, archaeology)' is asserted as settled from Night 1, but for a skeptic 'reliable record' is exactly what is contested. Stating it as recap-fact (rather than as a claim still being earned) risks tripping the defense of an audience member who does not grant it.",
+        "'a true standard must come from OUTSIDE us' is a strong philosophical claim compressed to one line; on its own it reads as asserted rather than argued. It depends on Night 1 having actually established it — fine as recap, but a returning-skeptic who half-bought it Night 1 sees it hardened into a premise here."
+      ],
+      "suggestion": "Soften 'a reliable record' to recall it as Night 1's claim under test (e.g., 'the candidate we put on the table'), so tonight's prophecy test is the thing that earns it rather than something assumed before the test runs."
+    },
+    {
+      "slide": 3,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": "Good move: voicing the skeptic's own question ('Okay, but how do we know the Bible is Inspired?') builds trust. Keep."
+    },
+    {
+      "slide": 4,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "On-slide title and body are both '(none)' — the audience sees a blank/image-only slide. The actual content ('so many religious writings, each with morals, dogmas, truths') lives only in presenter notes, so the reviewable on-slide claim is empty. Cannot verify what the audience reads."
+      ],
+      "suggestion": "Confirm an image or visible text exists; if this slide is meant to make the 'many religious books look alike' point, that point needs to appear on-slide, since it sets up the differentiation argument on slides 5 and 7."
+    },
+    {
+      "slide": 5,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "On-slide body is just an image placeholder (￼) under the title 'Prophecy'; the load-bearing claim is in notes only.",
+        "The notes claim 'The ability to predict the future is supernatural' — but the on-slide argument (and the deck's whole thesis) needs the narrower claim: SPECIFIC, DATED, pre-written prediction is what no human can fake. Generic 'predicting the future' is not obviously supernatural (lucky guesses, vague forecasts, self-fulfilling political moves). If any version of this reaches the slide, it overreaches; the qualifier 'specific + written in advance + verifiable' is what makes the argument sound. The deck fixes this on slide 7 (specificity/minuteness), so the bare claim here is a sequencing soft spot, not a fatal one."
+      ],
+      "suggestion": "Make sure the on-slide framing of 'prophecy' is the qualified version (specific, pre-dated, falsifiable), not 'predicting the future = supernatural,' which a skeptic deflates instantly with vague-prophecy and lucky-guess counters."
+    },
+    {
+      "slide": 6,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "Both quotes are internal to Scripture (Amos, John). Used here they establish what the Bible CLAIMS about prophecy, not evidence that it succeeds — fine if framed as 'here is the standard the text sets for itself,' but to a skeptic a chain of self-referential verses can read as circular ('the book says the book tells the future'). The persuasive weight has to come from the external fulfillments on slides 10-14, not these verses.",
+        "John 14:29 is Jesus speaking to disciples about a near-term event, not a long-range geopolitical prophecy; using it as a header for the Cyrus/Tyre/Babylon section is a mild category slip a careful listener could notice."
+      ],
+      "suggestion": "Add one framing word on-slide ('The Bible stakes its OWN test:') so these verses are clearly the standard the text volunteers, not offered as proof — that turns a potentially circular move into an honest 'it asked to be judged this way.'"
+    },
+    {
+      "slide": 7,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "Content ('other books have prophecies? Yes — the difference is Specificity and Minuteness') is entirely in presenter notes; on-slide title and body are '(none),' so the audience sees nothing reviewable.",
+        "'Minuteness' is an archaic/unusual word for a general audience; if it reaches the slide it may read as jargon. 'Specificity' and 'minuteness' also substantially overlap (both = precise detail), so as a two-part distinction it is weaker than it looks."
+      ],
+      "suggestion": "Put the actual distinction on-slide and consider collapsing the two near-synonyms into a cleaner pair like 'Specific details' + 'Verifiable timing' (which is how slide 9 breaks it down). Acknowledging that other books contain prophecies is a good, honest move — keep that concession visible."
+    },
+    {
+      "slide": 8,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": ["Section-divider slide (title 'Specificity' only). No claim to assess."],
+      "suggestion": "Fine as a divider."
+    },
+    {
+      "slide": 9,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": "'Details / Timing' cleanly decomposes the test the audience is about to watch. Good scaffolding."
+    },
+    {
+      "slide": 10,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "This is the Cyrus quote alone (Isaiah 44:28; 45:1). On its own slide it makes no claim yet — the argument lands on slide 11 — so soundness depends on slide 11. The big attackable issue (dating of Isaiah 40-66) is correctly held in notes, but the audience reading 'It is I who says of Cyrus, He is My shepherd' has no on-slide cue that the prediction-vs-late-authorship objection even exists.",
+        "Minor: the quoted text is presented in reversed verse order (44:28 material before 45:1's 'Thus says the Lord to Cyrus His anointed'); a follower-along with a Bible may find the ordering slightly confusing."
+      ],
+      "suggestion": "Acceptable as the quotation slide. Ensure slide 11 (not just the notes) carries at least a one-line acknowledgment that skeptics date this chapter late — otherwise the strongest objection is invisible to the audience and the case looks naive."
+    },
+    {
+      "slide": 11,
+      "soundness": "weak",
+      "merit": "weak",
+      "issues": [
+        "The on-slide claim presents this as a fulfilled PREDICTION ('Names him directly... Predicts he would free the captives... Fulfilled when Cyrus issued the decree in 538 BC') with zero on-slide acknowledgment of the late-Isaiah dating objection. The presenter's own v2-audit note flags this as 'the most attackable claim in the deck' and warns the Great Isaiah Scroll only proves pre-Christ, not pre-Cyrus. The audience sees only the triumphant version. A skeptic who knows the deutero-Isaiah position will conclude the presenter is unaware of it or hiding it — the exact trust-loss this series is trying to avoid. The honesty lives entirely in notes the audience never reads.",
+        "Stating 'Fulfilled when Cyrus issued the decree in 538 BC' as flat fact while the inspiration claim hinges on the text PREDATING 538 BC is the unstated premise. On-slide, nothing establishes that Isaiah's words existed before Cyrus — the whole point of calling it prophecy. The argument as the audience sees it is incomplete at exactly its load-bearing joint.",
+        "The Cyrus decree is conventionally dated 539/538 BC (Babylon fell Oct 539, decree 538) — defensible, but pairing it with the rebuild avoids a date nitpick."
+      ],
+      "suggestion": "This is the deck's weakest evidentiary slide for THIS audience because the strongest counter is invisible on-slide. Either (a) add one honest line acknowledging that critics date this chapter to the exile, then pivot to the Daniel manuscripts as the heavyweight testable case, or (b) demote Cyrus to an illustration of what the text CLAIMS and let the manuscript-predates-fulfillment cases carry the proof weight. As written, a sharp skeptic breaks it instantly."
+    },
+    {
+      "slide": 12,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "On-slide 'thou shalt be built no more' (Ezek 26:14) vs. the fact that a town named Tyre/Sour exists today is a gap the audience can see but the slide does not address — the careful concession ('original site never rebuilt as a city') is in notes only. A skeptic who knows modern Tyre exists sees an apparent falsification on-slide with no on-slide answer.",
+        "'Nebuchadnezzar took the mainland city (573 BC)' — the 13-year siege is conventionally dated c. 586–573 BC and did NOT result in the island city's destruction (terms were reached, the island not razed). Saying he 'took' it is defensible for the mainland but a hostile checker may note it was not a clean conquest. Diodorus 17.40 for Alexander's causeway is sound."
+      ],
+      "suggestion": "Add a short on-slide concession ('the original site, never rebuilt') so the modern-Tyre objection is disarmed where the audience can see it, not just in the presenter's head. The causeway detail is genuinely strong — lead visually with it."
+    },
+    {
+      "slide": 13,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "'a superpower for 2,000 years before Ezekiel' is a round, defensible figure but a pedant could quibble that Egypt was not CONTINUOUSLY a superpower for the full span (intermediate periods of fragmentation). Low risk.",
+        "On-slide 'has not ruled the nations since' is the falsifiable claim and it holds; this is the deck's most logically careful prophecy (predicts survival-without-dominance, which a forger would not invent)."
+      ],
+      "suggestion": "Strongest slide in the set. The 'base kingdom, never again an empire' framing is honest and hard to break. Consider making the falsifiability point explicit on-slide ('not destroyed — demoted'), since that restraint is what earns skeptic trust."
+    },
+    {
+      "slide": 14,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "On-slide absolutes 'It shall never be inhabited... desolate for ever... ~2,000 years uninhabited' collide with facts the audience may know: Babylon was inhabited well into the Hellenistic/Parthian era (decline was gradual over centuries, not abandonment at its fall), and Saddam's 1980s reconstruction plus the modern Hillah area sit right there. The Saddam rebuttal is in notes but NOT on-slide, so the audience again sees the maximal claim without the careful qualifier.",
+        "'uninhabited ruin for ~2,000 years' is the weakest factual claim in the set: depending on the end-of-habitation date used (commonly the early centuries AD), the figure is roughly defensible, but pairing 'never be inhabited / for ever' with a specific 2,000-year number invites a checker to point out Babylon WAS inhabited for centuries after the prophecies were uttered. The survivable reading ('never re-inhabited as a living city') is exactly the nuance missing on-slide."
+      ],
+      "suggestion": "Replace 'uninhabited ruin for ~2,000 years' with the narrower claim the notes already articulate ('never repopulated as a living city') and add a one-line on-slide acknowledgment of Saddam's reconstruction-as-monument. Right now the on-slide text is more absolute than the presenter's own audited position — the riskiest configuration for a skeptical audience."
+    },
+    {
+      "slide": 15,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "On-slide text is entirely two rhetorical questions ('How would you react?' / 'Now how would you react if it actually came true exactly as predicted?'). It sets up an expectation of a long-range, exact fulfillment that the following slides must actually deliver, or the skeptic will feel set up."
+      ],
+      "suggestion": "Keep it — the framing question is honest and disarming. Just ensure slides 16-28 truly deliver a '400+ years out, came true exactly' case, since this slide writes that check."
+    },
+    {
+      "slide": 16,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "'Fulfilled exactly: 605 BC (first captivity) → 536 BC (return under Cyrus)' — 605 to 536 BC is 69 years, not 70, so the word 'exactly' invites a hostile fact-checker to count and find the span is off by one. The 70-year prophecy is usually anchored differently (e.g., 605→536 is treated as ~70 inclusively, or 586→516 for the temple). Pairing the precise dates with the word 'exactly' creates a checkable mismatch.",
+        "This slide is about Jeremiah's 70-year captivity, but the title is 'Daniel' and the presenter pivots to 'prophecies in the book of Daniel.' The 70-year captivity prophecy is Jeremiah's, not Daniel's — a coherence seam the audience may notice.",
+        "Slide 15 promised a '400+ years from now' prophecy; this slide delivers a ~70-year one. The big timing payoff is deferred, so this slide under-delivers on the prior slide's setup."
+      ],
+      "suggestion": "Drop 'exactly' or change to 'fulfilled within the lifetime, ~70 years (605→536 BC).' Add one clause clarifying this is Jeremiah's prophecy that Daniel was reading — which is actually the on-ramp to Daniel 9, so naming that link strengthens coherence rather than weakening it."
+    },
+    {
+      "slide": 17,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "Blank slide (no title, no body, no notes). Cannot assess argument content; flagging only that it appears to be an intentional section/transition break."
+      ],
+      "suggestion": "If this is a deliberate visual transition (e.g., image or section divider), fine. Confirm it is not an accidental empty slide left in the deck."
+    },
+    {
+      "slide": 18,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "'The probability of one man fulfilling just 8 prophecies = 1 in 10^17' is presented on-slide as a bare fact with no source. The presenter notes correctly concede the inputs are estimates and tell the speaker not to 'die on the exact exponent' — but the AUDIENCE only sees the unqualified number, which is exactly the kind of made-up-feeling stat that trips a skeptic's defenses. The honesty in the notes never reaches the slide.",
+        "'over 300 prophecies relating to the Messiah' — this number is widely cited but contested (depends heavily on what counts as a 'prophecy'). A hostile fact-checker can challenge it as inflated.",
+        "Listing 'Josephus, Tacitus, Pliny the Younger' as attesting Jesus is sound for his existence/execution, but on this slide they sit beside the 10^17 probability claim, implying the historians corroborate the prophecy-fulfillment math. They corroborate only that Jesus existed and was executed — not that he fulfilled prophecies. The juxtaposition overreaches.",
+        "The slide makes a probability argument from fulfilled prophecy before the deck has established (in slides 19-28) which prophecies were fulfilled — so the dramatic number lands before the evidence for it."
+      ],
+      "suggestion": "Reword on-slide to own the estimate: 'Even by conservative estimates, the odds of one man fulfilling just 8 specific prophecies by chance are vanishingly small (~1 in 10^17, Stoner).' Separate the historians visually with a label like 'That Jesus existed and was executed is attested by non-Christian sources: Josephus, Tacitus, Pliny' so the audience doesn't read them as endorsing the math."
+    },
+    {
+      "slide": 19,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "Title-only slide ('70 Week Prophecy') with no body or notes — a section header. No argument to assess; coherent as a transition into the Daniel 9 sequence."
+      ],
+      "suggestion": "Fine as a divider. No change needed."
+    },
+    {
+      "slide": 20,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "Pure Scripture quotation (Daniel 9:2, NKJV) establishing Daniel reading Jeremiah's 70 years. Accurate citation, well-chosen to ground the day-year argument that follows. No overreach.",
+        "Minor: this is the same verse repeated verbatim on slide 26 ('70 Years'), which may read as redundant if both are shown close together."
+      ],
+      "suggestion": "Strong setup. Consider whether showing Daniel 9:2 twice (here and slide 26) is intentional reinforcement or accidental duplication."
+    },
+    {
+      "slide": 21,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "Pure Scripture quotation (Daniel 9:24, NKJV). Accurate. Lays out the 'seventy weeks' text the argument depends on. No claim to break."
+      ],
+      "suggestion": "No change. Good to let the text speak before interpreting."
+    },
+    {
+      "slide": 22,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "Pure Scripture quotation (Daniel 9:25, NKJV) giving the 'going forth of the command' starting point and the 'seven weeks and sixty-two weeks' structure. Accurate and load-bearing for the math."
+      ],
+      "suggestion": "No change. This is the keystone verse; presenting it verbatim is the right, honest move."
+    },
+    {
+      "slide": 23,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "Blank slide (no title/body/notes). Cannot assess content; flagging as a possible transition or accidental empty slide."
+      ],
+      "suggestion": "Confirm intentional. If it carries a visual (timeline graphic), that would actually help the audience follow the 7+62 weeks math being built."
+    },
+    {
+      "slide": 24,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "Title 'Week - Shabuim - Sevens' with no on-slide body — the whole substance ('Shabuim... means seven of anything... can refer to a week or seven of anything') lives ONLY in presenter notes. The audience sees three words and must take the Hebrew claim on the speaker's authority with nothing to anchor it.",
+        "The analogy in the notes ('like saying a couple... means two of') is a verbal aid the audience never sees, so the on-slide content does no argumentative work.",
+        "Transliteration: the more standard form is 'shabua' (sing.) / 'shabuim' (pl.). Putting only 'Shabuim' next to singular 'Week' is a minor inconsistency a Hebrew-literate skeptic could flag."
+      ],
+      "suggestion": "Put the core claim on the slide: 'Hebrew shabua = a unit of seven; usually seven days (a week), but can mean seven of anything.' Showing the definition (not just asserting it via the speaker) is what earns trust for the year-unit move on slide 28."
+    },
+    {
+      "slide": 25,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "'70 Sevens total / 7 weeks to rebuild Jerusalem / 62 after that until Messiah' accounts for only 69 of the 70 sevens. The slide says '70 Sevens total' then itemizes 7 + 62 = 69, silently omitting the 70th week. A numerate skeptic will immediately notice 7+62≠70 and that 'until Messiah' lands at week 69, not 70 — leaving the arithmetic visibly incomplete.",
+        "'Starting point: The decree to restore and rebuild Jerusalem' asserts the start without identifying WHICH decree (there are competing candidates — 538, 520, 457, 444 BC). The whole timing payoff promised on slide 15 hinges on this date, yet the slide leaves it unspecified."
+      ],
+      "suggestion": "Either footnote the 70th week ('+1 final week — covered shortly') so 7+62+1=70 is visibly accounted for, or relabel as '7 + 62 = 69 sevens until Messiah.' And name the decree you'll use (and its date) here or flag that the next slides will establish it, so the start point doesn't look hand-waved."
+    },
+    {
+      "slide": 26,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [
+        "Re-displays Daniel 9:2 (NKJV) verbatim — identical to slide 20. Under title '70 Years.' Accurate, but the repetition risks reading as filler unless the speaker is explicitly using it to contrast '70 years' (literal) with '70 sevens' (symbolic).",
+        "Coherence: this slide appears AFTER the 'seventy weeks' verses (21-22) and the shabuim slide (24), so returning to the 70-years verse can feel like the timeline jumps backward unless the contrast purpose is made obvious on-slide."
+      ],
+      "suggestion": "Give this slide a distinguishing on-slide line that states its job, e.g., 'Daniel was thinking in YEARS (70 of them) — that frames how to read the 70 sevens.' That converts an apparent duplicate into the explicit bridge to slide 28's hypothesis."
+    },
+    {
+      "slide": 27,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "Two Scripture quotations (Numbers 14:34 and Ezekiel 4:6, NKJV) establishing the day-year principle. Accurately cited and genuinely the strongest internal-Bible warrant for reading the 'weeks' as years — good evidentiary practice to show the principle from elsewhere in Scripture rather than just asserting it.",
+        "Minor: both texts apply the day=year principle to literal days standing for years; the prophecy applies it in the reverse direction (weeks/sevens of years). A sharp skeptic may note the day-year texts are not exactly the same operation as 'sevens = sevens of years.' This is a known seam, not a fatal one."
+      ],
+      "suggestion": "Strong slide. Consider one bridging line acknowledging these texts establish the day-for-year pattern that the 'weeks of years' reading builds on, so the analogy is stated rather than left for the skeptic to question."
+    },
+    {
+      "slide": 28,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "Framing it explicitly as a 'Hypothesis Statement' that the speaker is 'building' is honest and well-suited to a skeptical audience — it signals a falsifiable claim rather than a dogmatic assertion. Good evangelistic move.",
+        "'it is logical that the prophecy itself would also be measured in years' overstates the inference: Daniel thinking in years (9:2) makes the year-reading plausible/suggestive, not 'logical' in the strict sense. A skeptic will pounce on 'logical' as claiming necessity where only plausibility exists. The day-year texts (slide 27) and shabuim flexibility (slide 24) are the real support — context alone isn't a logical entailment.",
+        "'totaling 490 years' is the conclusion of the hypothesis; the slide presents the 490 as following from 70x7, which is correct arithmetic, but the slide has not yet tied 490 years to a start date or to Messiah — so as a standalone it states the claim cleanly without yet proving the timing payoff promised on slide 15."
+      ],
+      "suggestion": "Soften 'it is logical that' to 'it is reasonable to expect' or 'this strongly suggests,' and lean on the three converging supports (shabuim can mean sevens of anything + day-year texts + Daniel already in years) rather than implying logical necessity. The hypothesis framing is excellent — protect it by not overclaiming the inference."
+    },
+    {
+      "slide": 29,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "The slide is titled 'Assumptions' and openly lists four — which is honest and disarming for skeptics. But bullet 4 ('requires a timescale larger than literal days') is question-begging: it asserts the conclusion (years not days) as a premise. A skeptic will spot that you've baked the desired result into the assumption.",
+        "Bullet 3 states 'The day-year principle is a valid interpretive framework' as a bare assertion with no support shown on-slide; to this audience it reads as 'the rule we need to make our math work,' which trips the defenses the whole night is trying to lower."
+      ],
+      "suggestion": "Reframe bullet 4 from a requirement into an observation ('the prophecy spans covenant-scale events — decree, Messiah, end of sacrifice — that did not occur within 490 literal days'). Let the timescale be a finding, not an axiom. Consider giving the day-year principle one concrete textual anchor (Num 14:34 / Ezek 4:6) so it isn't naked assertion."
+    },
+    {
+      "slide": 30,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": "Strong move: framing the four items as 'Testable Predictions' is exactly the right epistemic posture for skeptics — it signals falsifiability rather than proof-texting. Keep it."
+    },
+    {
+      "slide": 31,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "On-slide numbers don't visibly reconcile: '490 Years Total', '49 Years until Jerusalem restored', '483 Years Until Messiah'. 49 + 483 = 532, not 490, and the slide never shows that the 49 is the FIRST segment OF the 483 (49 + 434 = 483, then +7 = 490). A sharp audience member doing quick arithmetic sees three numbers that appear to contradict.",
+        "The 70th week / final 7 years (the '+7' that completes 490) is invisible here, so 'Total' looks unaccounted-for."
+      ],
+      "suggestion": "Show the nesting explicitly: 7 weeks (49 yrs) + 62 weeks (434 yrs) = 69 weeks (483 yrs) to Messiah, + 1 week (7 yrs) = 70 weeks (490). Otherwise the headline numbers read as a math error to the very skeptic you're trying to win."
+    },
+    {
+      "slide": 32,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": "'538 BC' is well-supported (sources put Cyrus's first Babylonian year at 538/537 BC) and the v2 correction off 537 is sound. The honest 'why it can't start the clock — temple-focused, not the city' logic is exactly the disciplined elimination a skeptic respects. No change needed."
+    },
+    {
+      "slide": 33,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "Same elimination logic, applied consistently. 'around 520 BC' is appropriately hedged and correct for Darius I's second year. Good."
+      ],
+      "suggestion": "None."
+    },
+    {
+      "slide": 34,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "The on-slide claim '457 BC (7th year of Artaxerxes I)' is stated flatly, but the presenter's own note concedes 457 is a 'DEFENDED date' that 'standard reference books often print as 458.' The slide hides the contested-ness the notes admit is essential ('a skeptic ... will pounce if you hide it'). The audience SEES certainty the speaker knows isn't there.",
+        "'This is the only decree that truly fulfills Daniel 9:25' is a strong exclusivity claim; it rests on the city-vs-temple distinction established on slides 32-33, which is reasonable, but 'only' invites a fact-checker to test the boundary (e.g., Nehemiah's later commission, Neh 2)."
+      ],
+      "suggestion": "Add a half-line of honesty the notes already supply — e.g., '457 BC (7th year, Jewish fall-reckoning; some references print 458)'. Surfacing the one-year debate yourself converts a potential 'gotcha' into a trust-builder, the night's whole goal."
+    },
+    {
+      "slide": 35,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [
+        "On-slide text is fragmentary ('457 BC / - / 483 years / + / 1 year (no zero)') — as raw text it doesn't read as an equation. It depends entirely on live presenter narration to land; a reader of the slide alone can't follow it.",
+        "Minor: '1year' is a typo (missing space)."
+      ],
+      "suggestion": "The 'no zero year' correction is the rigorous, correct move (-457 + 483 + 1 = AD 27) and shows mathematical honesty. Make the equation render as one visible line: '457 BC + 483 yr − 1 (no year 0) = AD 27'. Fix '1year'. Note the tension this sets up with slide 40 (see that slide)."
+    },
+    {
+      "slide": 36,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "Bare '27 A.D.' as a payoff is fine, but the title punctuation is inconsistent with slide 41 ('27') and the period is missing after the final A.D ('27 A.D' vs '27 A.D.')."
+      ],
+      "suggestion": "Cosmetic only: standardize to '27 A.D.' and keep. The reveal/payoff rhythm is good for a live audience."
+    },
+    {
+      "slide": 37,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "The quotation elides between Luke 3:1 and 3:21 with an ellipsis but the citation 'Luke 3:1,21' correctly signals the gap, so this is honest. No overreach."
+      ],
+      "suggestion": "Good: pinning the date to Luke 3:1's named officials (Tiberius, Pilate, the tetrarchs) is the strongest historical anchor available and reads as evidence, not assertion. Keep."
+    },
+    {
+      "slide": 38,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": "Acts 10:38 ('God anointed Jesus') correctly supplies the 'Messiah = Anointed One' link that the Daniel 9:25 prediction (slide 30) needs. The chain 'decree → anointing/Messiah' is now textually closed. Good."
+    },
+    {
+      "slide": 39,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "On-slide: 'Tiberius began his reign in AD 12 as co-regent with Augustus, and became sole emperor in AD 14.' This states the AD 12 co-regency as settled fact. It is genuinely contested — scholarship splits between AD 11/12/13 for the provincial co-imperium, and the mainstream reckoning of Luke's 'fifteenth year' counts from sole accession (AD 14), yielding AD 28/29, not 27. The presenter notes acknowledge all of this ('NAME THE ALTERNATIVE OUT LOUD'); the SLIDE does not, so the audience sees only the convenient reading.",
+        "The slide selects exactly the start-year (AD 12) that makes the baptism land on 27, which a hostile fact-checker will read as motivated dating — especially since the deck needs 27 to match slide 35."
+      ],
+      "suggestion": "Put the honesty the notes demand onto the slide: 'Counting from the provincial co-regency (AD 12); from sole rule (AD 14) the 15th year is AD 28/29 — both land in the prophecy's window.' The 'every reckoning lands in the same narrow window' point (in the notes) is your strongest, most skeptic-proof argument and it is currently invisible to the audience."
+    },
+    {
+      "slide": 40,
+      "soundness": "broken",
+      "merit": "weak",
+      "issues": [
+        "'12 + 15 =' is arithmetically inconsistent with the deck's own rigor. Slide 35 explicitly subtracts a year because there is 'no year zero.' But if Tiberius's reign BEGAN in AD 12 (slide 39), his FIFTEENTH year is AD 26 by inclusive ancient regnal counting (the first year is AD 12 itself), or at most AD 26/27 — not a clean AD 27. '12 + 15 = 27' silently treats AD 12 as 'year 0', the exact move slide 35 forbids. The deck applies opposite counting conventions in the two halves of its own proof.",
+        "Displaying the chronology as naked addition ('12 + 15') invites the audience to do the sum — and the honest sum (15th year of a reign starting in 12) is 26, which a skeptic will catch. There is a real published 'AD 26 view of the fifteenth year.'"
+      ],
+      "suggestion": "Either (a) state it as '15th year of Tiberius (provincial reckoning) = AD 27' and drop the bare addition, or (b) if you keep the arithmetic, be explicit and consistent about inclusive vs. exclusive counting across BOTH slide 35 and here. As shown, the two key calculations of the night use contradictory counting rules — the single most breakable thing in this batch."
+    },
+    {
+      "slide": 41,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "'27' as the payoff inherits the soundness problem of slide 40: it presents AD 27 as the clean output of '12 + 15', when that result depends on a counting convention the deck contradicts elsewhere and on a contested co-regency start date."
+      ],
+      "suggestion": "Keep the dramatic single-number reveal — it works rhetorically — but only after slides 39-40 are repaired so '27' is the honest result of stated assumptions rather than a number the arithmetic doesn't quite yield."
+    },
+    {
+      "slide": 42,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": "Mark 1:15 ('The time is fulfilled') is the right capstone — Jesus Himself invoking a fulfilled timetable closes the night's thread powerfully. Strong, non-manipulative landing. Keep."
+    },
+    {
+      "slide": 43,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [
+        "Pure scripture quotation (Daniel 9:26, NKJV) with no on-slide claim being advanced yet, so nothing to break logically. For a skeptic, the phrase 'Messiah shall be cut off' lands with no context — the audience does not yet know what 'cut off,' 'the prince,' or the 70-weeks framing means. As the opening of the prophecy-test, dropping mid-prophecy (verse 26) without verse 24-25 setting up the 'seventy weeks / decree' anchor risks the skeptic feeling the deck started in the middle."
+      ],
+      "suggestion": "Confirm an earlier slide (in deck context) already established Daniel 9:24-25 — the seventy weeks and the starting decree. If not, add a framing line so the skeptic knows this is one prophecy with a defined start, middle, and end before quoting v.26."
+    },
+    {
+      "slide": 44,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [
+        "Quotation of Daniel 9:27 (NKJV), no on-slide argument yet. Risk is interpretive, not logical: the NKJV's 'Then he shall confirm a covenant' uses 'he,' and mainstream/critical scholarship frequently reads the antecedent as 'the prince who is to come' (v.26), not Messiah. The deck (slides 45-47) will assign 'he' to Messiah/Jesus. A prepared skeptic who looks up the passage can challenge that the text's nearest antecedent is the destroying prince, not Messiah. This is the single biggest fact-check exposure of the night and it is never acknowledged on-slide."
+      ],
+      "suggestion": "Have the presenter notes (or a slide) briefly flag and justify why 'he' = Messiah (covenant confirmed by Christ's blood, v.27 'bring an end to sacrifice' = the cross ending the sacrificial system). Pre-empting the antecedent objection earns more trust than ignoring it."
+    },
+    {
+      "slide": 45,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "This is the first interpretive claim on-slide ('After Messiah comes he will be cut off / In the middle of the seven years of him confirming the covenant') and it makes two non-obvious moves at once: (1) that 'one week' = seven years, and (2) that the cutting-off happens at the 'middle.' The seven-years reading depends on the day-year principle, which has not been stated on this slide — a skeptic cannot follow why 'week' = 7 years without it. (2) The slide asserts 'he' (the covenant-confirmer) is Messiah, the contested antecedent from slide 44, as if settled.",
+        "The text never numerically says the cutting-off is in the middle of the week; v.26 says 'after the sixty-two weeks,' and v.27 says sacrifice ends 'in the middle of the week.' The slide fuses these into 'cut off in the middle,' which is the deck's interpretation, not the verse's plain statement — presented here as flat fact."
+      ],
+      "suggestion": "State the day-year principle explicitly (1 prophetic day = 1 year, so 1 week = 7 years) before asserting the 7-year span, ideally citing where the deck established it. Distinguish 'the text says X' from 'the best reading is Y' so the skeptic sees the inference, not a sleight of hand."
+    },
+    {
+      "slide": 46,
+      "soundness": "weak",
+      "merit": "weak",
+      "issues": [
+        "The on-slide title '3.5 years until death' asserts a precise number, but the only support (presenter notes) is 'Jesus' ministry lasted at least 3 years (3 passovers).' 'At least 3' does not establish '3.5' — there is a gap between the evidence and the claimed figure. A skeptic sees 3.5 on screen and the math underneath is 'at least 3,' which does not land the precision claimed.",
+        "The presenter note 'this prophecy was fulfilled exactly as stated!' overreaches: the prophecy (Dan 9) does not state '3.5 years of ministry'; that figure is derived from the half-week interpretation. Claiming 'exactly as stated' invites the rebuttal that the 3.5 is read INTO the gospels, not stated by them. The three-Passover ministry length is itself a scholarly inference (the Synoptics arguably support a one-year ministry; the three-Passover count is Johannine), so 'exactly' is fragile.",
+        "A bare '3.5 years until death' title with no on-slide explanation will be opaque to the audience — they will not connect it to the half-week without the speaker."
+      ],
+      "suggestion": "Reframe to 'about 3.5 years of public ministry, ending at the cross — matching the half-week.' Drop 'exactly as stated'; say the half-week prediction (sacrifice ending mid-week) is matched by Christ's death mid-ministry. Acknowledge the ministry length is reconstructed from the Passovers in John rather than asserting it as uncontested fact."
+    },
+    {
+      "slide": 47,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "Three NKJV quotations (Matt 26:28, Luke 22:20, 1 Cor 11:25) establish that Jesus spoke of 'the new covenant in My blood' — this supports the 'covenant confirmed' reading of Dan 9:27. The logical link is reasonable, but the slide stacks three near-identical quotes without telling the skeptic why three are needed; it reads as proof-by-repetition rather than independent attestation. If the intent is multiple-attestation (Synoptics + Paul), that strengthening point is left unstated.",
+        "Slide is text-dense — three full verses with references — risking a wall-of-text that a skeptic skims."
+      ],
+      "suggestion": "Either trim to one verse or explicitly frame the three as 'three independent witnesses — two gospels and Paul — all naming the covenant in Christ's blood,' which converts repetition into corroboration the skeptic respects."
+    },
+    {
+      "slide": 48,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "The dating claim lives only in presenter notes ('Earliest copy of Daniel is around 2 century BC'). For this audience the manuscript-dating point — that copies of Daniel predate Jesus, so the prophecy could not be back-written after the fact — is the crucial credibility move and arguably should be ON the slide, not speaker-only. As stated it is also slightly imprecise: the oldest Dead Sea Daniel fragments (e.g., 4QDanc) are dated ~125 BC (2nd c. BC, defensible), but a hostile fact-checker will note that critical scholarship dates the COMPOSITION of Daniel to c.165 BC (Maccabean), which would place the 70-weeks 'prediction' of a 1st-century Messiah still as genuine prediction — but the speaker should be ready, because conceding the manuscript date does not by itself defeat the late-composition objection.",
+        "The chain 'proven, accurate, authentic track record → should be credible' is asserted, not shown, on this slide; it leans on prior nights."
+      ],
+      "suggestion": "Put a defensible, citable line on-slide: 'Dead Sea Scroll copies of Daniel date to ~125 BC — over a century before Jesus.' Brief the speaker that the live objection is composition date (c.165 BC), and that even that date leaves the Messiah-timing prophecy as real prediction, so the point survives."
+    },
+    {
+      "slide": 49,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "Framing the prophecy as 'Testable Predictions' (decree → Messiah → end of sacrifice → covenantal period) is exactly the right scientific-method posture for a skeptic and is honest. One soundness gap: the list presents these as if independently verifiable, but item 4 ('A determined period of covenantal fulfillment') is vague and not really a discrete testable prediction the way the first three are — it restates the interpretive frame rather than a falsifiable event.",
+        "Presenter note 'within 490 years…' introduces the 70-weeks = 490-years math that the on-slide deck has not shown the audience; the day-year basis for 490 is still speaker-only across this whole night."
+      ],
+      "suggestion": "Tighten item 4 to a concrete, datable event or drop it. Surface the 490-year figure and its day-year basis on a slide somewhere in 43-49 so the 'testable prediction' actually has the number the audience can check."
+    },
+    {
+      "slide": 50,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [
+        "Section-divider title only ('The World Empire Prophecies'), no claim to assess. Coherence note: the night pivots here from the Daniel 9 Messiah-timing prophecy (43-49) to the Daniel 2/7/8 empire prophecies (50-54). The transition is abrupt — a skeptic just walked through one detailed proof and is now started on an entirely different one with no bridge sentence explaining why a second, independent line of prophecy is being added (cumulative case)."
+      ],
+      "suggestion": "Add one bridge line: 'A second, independent test — does Daniel also predict the rise and fall of empires?' so the skeptic reads this as building a cumulative case rather than changing the subject."
+    },
+    {
+      "slide": 51,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "Slide has no title, no body, and no presenter notes in the file — content is presumably a visual/image (likely the Daniel 2 statue or an empire timeline). Cannot assess soundness of what isn't here. If it is an image with no caption, a skeptic gets no claim to evaluate; if it is a chart asserting empire identifications, the identifications need to be defensible."
+      ],
+      "suggestion": "Confirm what renders here. If it is the statue/timeline image, add a short caption tying it to the hypothesis on slide 52 so the visual carries an argument, not just decoration."
+    },
+    {
+      "slide": 52,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "Labeling it a 'Hypothesis' is strong evangelistic posture for skeptics — it signals falsifiability rather than dogma. The risk is in the embedded identifications: the four empires are named on slide 54 as Babylon, Medo-Persia, Greece, Rome. The 'Rome as fourth kingdom' identification is the historically contested one — many critical scholars hold the four-kingdom scheme is Babylon / Media / Persia / Greece (splitting Medo-Persia), making Greece the fourth. The deck's framework treats Medo-Persia as one kingdom; a prepared skeptic will challenge this exact seam. Slide 52 asserts 'the same sequence of four successive world empires' as the hypothesis without acknowledging the Media-vs-Medo-Persia split is the load-bearing assumption.",
+        "The paragraph is long and dense for a slide; the claim that Daniel 8 'continues the same prophetic sequence' is asserted, with the supporting parallels deferred."
+      ],
+      "suggestion": "Keep 'Hypothesis' framing. Add (slide or notes) the one defense the skeptic will demand: why Medo-Persia is one kingdom not two — Daniel 8:20 explicitly names 'the kings of Media and Persia' as the single two-horned ram, which is the textual anchor for treating them as one. That single verse neutralizes the strongest counter."
+    },
+    {
+      "slide": 53,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "Stating assumptions explicitly (reliability, testability, symbolic-of-real-powers, forward sequence) is intellectually honest and exactly what a skeptic respects. Soundness caveat: assumption 1 ('The Bible is a reliable historical and prophetic document') is the very thing the night is trying to PROVE via the prophecy test. Listing it as an assumption risks circularity — using the conclusion (Bible is reliable) as a premise. A sharp skeptic will catch 'you assumed what you set out to demonstrate.'",
+        "The Isaiah 46:9-10 citation supports that prophecy is meant to be tested (good), but it is a self-referential support (Bible cited to justify trusting the Bible), which the skeptic will note."
+      ],
+      "suggestion": "Reframe assumption 1 as a provisional/working assumption being tested ('Provisionally treat the text as reliable, then check whether history confirms or breaks it') rather than a granted premise — this dissolves the circularity charge and matches the hypothesis-testing frame of slide 52."
+    },
+    {
+      "slide": 54,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "Good falsifiable predictions overall. Two issues. (1) Wording: 'All three prophecies will describe all if not some of four successive world empires' is grammatically garbled and logically self-weakening — 'all if not some' inverts the intended 'some if not all' and, either way, 'some of four empires' is so loose it is nearly unfalsifiable. A prediction that can be satisfied by 'some' of the empires is not a real test, undermining the rigor the section claims.",
+        "(2) The four empires (Babylon, Medo-Persia, Greece, Rome) are named here as a flat prediction; as noted on slide 52, the Rome-as-fourth identification is the contested seam, and presenting it as a clean 'known historical attribute' to be matched risks the skeptic feeling the answer was written into the test.",
+        "Prediction 6 (final stage = God's everlasting kingdom) is not historically testable the way the empire-identifications are; it is a theological reading, so listing it among 'testable predictions' mixes a verifiable claim with an unverifiable one."
+      ],
+      "suggestion": "Fix the garbled line to 'each prophecy describes the same four successive empires.' Drop or footnote prediction 6 as the interpretive payoff rather than a 'testable' item. Brief the speaker to defend the four-empire (not five) scheme via Daniel 8:20-21 naming Media-Persia and Greece explicitly."
+    },
+    {
+      "slide": 55,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "No title, body, or notes in the file — content unverifiable. Presumably a payoff visual (empire comparison chart across Daniel 2/7/8). If it is the chart that supposedly 'confirms' the hypothesis, the actual historical matchups (iron legs = Rome, etc.) carry the night's fact-check risk and need to be defensible and sourced. Cannot assess what isn't present."
+      ],
+      "suggestion": "Confirm the rendered content. If it is the confirmation chart, ensure every empire label is historically defensible and that the iron/Rome and divided-kingdom (iron-and-clay / ten horns) identifications are stated as the interpretation, not as undisputed fact."
+    },
+    {
+      "slide": 56,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "No title, body, or notes — empty in the file. As the night's closing slide, this is where the cumulative case (Messiah-timing prophecy + empire prophecies → above-human origin) should be landed and the 'divine hand' conclusion drawn for the skeptic. If it renders blank or as a bare image, the night ends without explicitly cashing in the two proofs into the stated goal, and without connecting back to Night 1's criteria/wager. Cannot evaluate an empty slide."
+      ],
+      "suggestion": "Confirm what renders. Ensure the closing makes the inference explicit: two independent, pre-dated, historically-confirmed prophecies are best explained by a source above human foresight — tying back to Night 1's truth criteria so the thread closes."
+    },
+    {
+      "slide": 57,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "Section divider with only the title \"Daniel 2\" — no argument to evaluate; it sets up the prophecy test but carries no claim on its own."
+      ],
+      "suggestion": "Fine as a transition. Consider a one-line framing so a skeptic knows the bar being set (e.g., \"a 6th-century-BC dream that names successive empires\")."
+    },
+    {
+      "slide": 58,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": ["Verbatim NKJV of Daniel 2:1-3 — citation is accurate. No argumentative risk."],
+      "suggestion": "None needed. For a skeptic, the narrative slides only matter as setup; keep them tight so the payoff (the empire sequence) arrives quickly."
+    },
+    {
+      "slide": 59,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": ["Accurate NKJV of Daniel 2:4-6. No claim to break."],
+      "suggestion": "None."
+    },
+    {
+      "slide": 60,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [
+        "Accurate NKJV of Daniel 2:10. Note the verse jumps from 2:4-6 (slide 59) to 2:10 (slide 60), skipping 7-9; that gap is normal abridgment and not misleading.",
+        "Body text on slide 60 has an unclosed opening quotation mark (text begins with \" but no closing \") — cosmetic, but on a skeptic-facing slide visible typos slightly erode the \"careful\" credibility you're trying to build."
+      ],
+      "suggestion": "Close the quotation mark. Otherwise fine."
+    },
+    {
+      "slide": 61,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": ["Accurate NKJV of Daniel 2:16-19. No argumentative overreach."],
+      "suggestion": "None."
+    },
+    {
+      "slide": 62,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "Accurate NKJV of Daniel 2:31-35. This is the core image text; presenting it before the interpretation is good method for a skeptic — let them see the raw vision first."
+      ],
+      "suggestion": "None. The crush-and-stone imagery lands well as a cliffhanger before the interpretation slide."
+    },
+    {
+      "slide": 63,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "Accurate NKJV of Daniel 2:36-40. The on-slide text itself names the head as Babylon (\"you are this head of gold\") and asserts \"another kingdom inferior to yours; then another, a third... and the fourth\" — so the four-empire sequence is stated by the text, not imposed. That is exactly the right move for this audience: the slide doesn't yet identify Medo-Persia/Greece/Rome on-screen, so no contested historical-ID claim is exposed to a fact-checker here.",
+        "Presenter note (speaker-only) says the head \"is Babylon and three successive kingdoms will come afterwards\" and pivots to Daniel 7 — coherent, and correctly keeps the specific empire IDs in the speaker's mouth where they can be defended live rather than printed as bald assertions."
+      ],
+      "suggestion": "Strong as-is. When the presenter names the four empires verbally, be ready for the standard skeptic objection (critical dating of Daniel to ~165 BC) — that belongs in notes, not on-slide, and the deck wisely keeps it off."
+    },
+    {
+      "slide": 64,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "Accurate NKJV of Daniel 2:41-44. The divided-iron-and-clay + \"in the days of these kings the God of heaven will set up a kingdom\" is the interpretive climax and it is the text speaking, not an editorial gloss. Good — no overreach printed on-slide."
+      ],
+      "suggestion": "None. The argument that this slide is meant to support (a non-human source predicting the empire sequence) is carried by the speaker; the slide stays honest by letting Scripture make its own claim."
+    },
+    {
+      "slide": 65,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "Section divider \"The Four Beasts\" with no body. Coherent pivot from Daniel 2's metals to Daniel 7's beasts (flagged in slide 63's note). The implicit claim — that the two visions are parallel/the same sequence — is not yet argued on-slide.",
+        "Risk: a skeptic will want to know WHY the four beasts map onto the four metals. If the deck never makes that parallel explicit on-slide, the second prophecy looks like a separate assertion rather than corroboration."
+      ],
+      "suggestion": "Add (here or soon) a single slide making the metal-to-beast parallel explicit (gold=lion=Babylon, etc.) so the Daniel 7 material reads as confirmation of Daniel 2 rather than a fresh, unsupported claim."
+    },
+    {
+      "slide": 66,
+      "soundness": "adequate",
+      "merit": "weak",
+      "issues": [
+        "Completely blank: no title, no body, no notes. As shown, it conveys nothing to the audience — likely an image-only slide (a beasts illustration) whose content can't be reviewed from text, or an unfinished placeholder."
+      ],
+      "suggestion": "Confirm this slide actually carries an image. If it is a placeholder, fill or delete it — a blank slide in a skeptic-facing argument reads as sloppiness and breaks the build-up to the beasts."
+    },
+    {
+      "slide": 67,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [
+        "Accurate NKJV of Daniel 7:2-3. Clean introduction of the four beasts from the sea. No claim to break."
+      ],
+      "suggestion": "None."
+    },
+    {
+      "slide": 68,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "Accurate NKJV of Daniel 7:15-17. Including the explicit in-text interpretation (\"are four kings which arise out of the earth\") is the right honest move — the meaning is anchored by the passage itself, not by the presenter."
+      ],
+      "suggestion": "None. This is good skeptic-facing method: let the text define its own symbols."
+    },
+    {
+      "slide": 69,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [
+        "Accurate NKJV of Daniel 7:4. The on-slide text describes the first beast (lion/eagle's wings) but does NOT identify it as Babylon on-screen — the ID is in the truncated speaker note (\"The Lion was\"). So no contested historical claim is exposed on the slide yet.",
+        "Coherence dependency: the lion=Babylon=gold-head identification is the linchpin that ties Daniel 7 back to Daniel 2. If that parallel is only spoken and never shown, the corroboration argument is weaker on-slide than it could be."
+      ],
+      "suggestion": "On-slide (or the immediate next slide) state the lion=Babylon link and tie it explicitly to the gold head of Daniel 2 — that is the payoff that makes the second vision count as confirmation."
+    },
+    {
+      "slide": 70,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "Accurate NKJV of Jeremiah 4:7. The slide juxtaposes Jeremiah's \"lion... destroyer of nations\" with Daniel 7's lion to support identifying the lion as Babylon. SOUNDNESS CAUTION: Jeremiah 4:7's lion is a metaphor for an invader coming AGAINST Judah (the destroyer is Babylon in context, yes), but the verse does not itself say \"the lion = Babylon\" as a fixed symbol — the identification leans on broader context, not this verse alone. A sharp skeptic could note the proof-text is suggestive, not decisive.",
+        "Truncated speaker note \"The Lion was\" (same as slide 69) — incomplete; the actual identifying argument isn't written down."
+      ],
+      "suggestion": "Either strengthen the lion=Babylon case with a more direct anchor (e.g., the standard historical ID plus Daniel's own narrative placing this under Babylon) or frame Jeremiah 4:7 as supporting imagery rather than proof. Complete the presenter note so the spoken claim is defensible."
+    },
+    {
+      "slide": 71,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "On-slide text is Jeremiah 50:17 plus the title 'Lion with Eagle Wings.' The verse names 'Nebuchadnezzar king of Babylon' explicitly, so it does support associating the lion with Babylon — but the slide itself never states the inference; the lion=Babylon claim lives entirely in presenter notes (truncated: 'The Lion was'). A skeptic seeing only this slide sees a poetry quote and a title with no argument connecting them."
+      ],
+      "suggestion": "Either let the presenter verbally close the loop (the notes here are cut off mid-sentence — ensure they actually say 'the lion = Babylon, and Scripture names Babylon's king in the same breath') or add a short on-slide tag making the Babylon link explicit, so the visual symbol and the named kingdom are tied together for the viewer."
+    },
+    {
+      "slide": 72,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "On-slide claim 'Lion was the national symbol of Babylon' is a verifiable historical assertion (the Ishtar Gate / Processional Way lions are the standard evidence) and is broadly defensible, but it is stated flatly with no source shown. A hostile fact-checker could quibble that the lion was an emblem associated with the goddess Ishtar rather than a formal 'national symbol' in the modern sense — the phrasing slightly overreaches the cleaner claim 'the lion was a prominent Babylonian emblem.'"
+      ],
+      "suggestion": "Soften to 'The lion was a dominant symbol of Babylon (Ishtar Gate, palace lions)' or have the presenter reference the Ishtar Gate lions by name. This both lowers fact-check risk and adds a concrete, checkable archaeological anchor that builds trust with a skeptic."
+    },
+    {
+      "slide": 73,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "No on-slide title or body and no presenter notes — appears to be an image-only / transition slide. Cannot assess argument content. Coherence is fine if it is a visual of the lion-with-eagle-wings beast bridging to the bear."
+      ],
+      "suggestion": "Confirm this slide carries the intended image (the winged-lion beast) and isn't an accidental blank. If image-only, no text change needed."
+    },
+    {
+      "slide": 74,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "On-slide is Daniel 7:5 plus the descriptive title 'Bear with Hunched Side, Three Ribs' — accurate to the text. The substantive identification (Medo-Persia, the lopsided union, Persia stronger than Media) is all in presenter notes, which are historically sound. No on-slide overreach."
+      ],
+      "suggestion": "None needed for the on-slide content. Ensure the presenter delivers the 'raised up on one side = Persia dominant over Media' point verbally, since it is the persuasive payload and is invisible to the audience otherwise."
+    },
+    {
+      "slide": 75,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "Title-only slide (no on-slide body). Presenter notes correctly attribute the Egypt conquest (525 BC) to Cambyses II rather than Cyrus — good factual discipline. The three-ribs = Lydia/Babylon/Egypt mapping is the standard, defensible reading. Nothing on-slide for a fact-checker to attack."
+      ],
+      "suggestion": "If the dates/conquests are spoken aloud, keep the Cambyses attribution explicit as the notes instruct — stating 'Cyrus' for Egypt would be a factual error a skeptic could catch."
+    },
+    {
+      "slide": 76,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "Blank slide (no title, body, or notes) — presumably an image/transition to the leopard. No reviewable argument."
+      ],
+      "suggestion": "Verify intended imagery is present; otherwise no action."
+    },
+    {
+      "slide": 77,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [
+        "On-slide is Daniel 7:6 plus title 'Four-Headed Leopard with Wings.' The identification claim ('the nation after Medo-Persia was Greece') is in presenter notes only. The presenter note 'History tells us...' is a bare assertion — for a skeptical audience the four heads = the fourfold division of Alexander's empire (Cassander, Lysimachus, Ptolemy, Seleucus) is the strongest evidence and is not even mentioned in the notes here."
+      ],
+      "suggestion": "Add the four-heads → four-way division of Alexander's empire (Diadochi) to the presenter notes for this slide; it is the most checkable and persuasive correspondence for the leopard and is currently absent. On-slide text is fine as is."
+    },
+    {
+      "slide": 78,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "Title-only slide with no body and no notes. The Greece identification and the four-heads detail are not developed anywhere on these two leopard slides' notes beyond 'History tells us...the nation...was Greece.' Risk that the most persuasive correspondence (four divisions) goes unstated to the audience entirely."
+      ],
+      "suggestion": "Use this slide to surface the four-division evidence (either on-slide or in notes) so the leopard's distinctive '4 heads' feature is explained rather than asserted — otherwise a skeptic sees a vivid detail left unaccounted for."
+    },
+    {
+      "slide": 79,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "On-slide is Daniel 7:7 plus title 'Terrible Beast with Iron Teeth, 10 Horns' — faithful to text. The ten-kingdoms claim is presenter-notes-only, and those notes are unusually disciplined: they flag the disputed tenth slot (Huns vs Alemanni), refuse to claim a single canonical list, and cite Machiavelli/Barnes. This is the right epistemic posture for a skeptic. No on-slide fact-check exposure."
+      ],
+      "suggestion": "Keep the 'historians converge on the NUMBER, not one fixed list' framing in delivery. One caution: the Machiavelli/Barnes citation should be quoted accurately if spoken — verify the 'no design of furnishing an illustration of this prophecy' Barnes line before using it live."
+    },
+    {
+      "slide": 80,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [
+        "On-slide body and Scripture (Daniel 7:7) are IDENTICAL to slide 79, and the presenter notes duplicate slide 79's note. Three consecutive slides (79, 80, 81) repeat the same verse verbatim. This is a coherence/pacing problem: the audience re-reads the same quotation three times with no on-slide progression, which can read as padding and stall momentum for a skeptical viewer."
+      ],
+      "suggestion": "Differentiate the build: slide 79 = read the verse; slide 80 = highlight 'ten horns' and state Rome's fracture; slide 81 = show the ten-kingdom map/list. Repeating the full verse three times wastes the audience's attention on the night whose whole point is forward-moving evidence."
+    },
+    {
+      "slide": 81,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [
+        "Third verbatim repetition of Daniel 7:7 on-slide, with presenter notes again duplicated from slides 79-80. Same redundancy concern as slide 80 — no new on-slide content advances the argument."
+      ],
+      "suggestion": "Give this slide a distinct payload (e.g., the actual ten-kingdom list or a map of Rome's fragmentation, with the openly-stated 'lists differ on the tenth, the number is the convergence' caveat visible) so the repetition resolves into a concrete, checkable claim rather than a third reading of the same text."
+    },
+    {
+      "slide": 82,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "On-slide quotes Daniel 7:23-24, which explicitly says 'The fourth beast shall be a fourth kingdom on earth' and 'The ten horns are ten kings.' This is the strongest move in the sequence: the slide lets the text supply its own kingdoms-interpretation key, supporting the presenter note 'this interpretation...is not something I made up...directly from the bible.' Genuinely disarming for a skeptic worried about eisegesis. No overreach."
+      ],
+      "suggestion": "Consider moving this self-interpreting passage EARLIER (before or alongside the first beast) so the skeptic knows from the outset that 'beast = kingdom' is the text's own claim, not the presenter's imposition. Placed here it lands well; placed earlier it pre-empts the 'you're reading that in' objection during slides 71-81."
+    },
+    {
+      "slide": 83,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "On-slide quotes Daniel 7:26-27 (judgment scene, everlasting kingdom given to 'the saints of the Most High'). This pivots abruptly from the historical-kingdoms argument (the deck's Night-2 'above-human origins' thread) to an eschatological/devotional claim about a future everlasting kingdom. For a skeptic being shown verifiable prophecy-vs-history, the unfalsifiable future-kingdom claim is a different category of assertion and may trip defenses if presented as if it carries the same evidential weight as the past fulfillments."
+      ],
+      "suggestion": "Frame this verbally as the text's trajectory/conclusion, not as additional 'proof' — e.g., 'the same chapter that nailed four kingdoms in sequence ends by claiming a fifth no empire founded.' Keep the evidential weight clearly on the four verifiable kingdoms; present 7:26-27 as where the text points, not as a further fact-checkable datum, so the honest distinction between fulfilled-and-checkable vs. yet-future is preserved."
+    },
+    {
+      "slide": 84,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "Blank slide (no title, body, or notes) — likely a transition or image close to the Daniel 7 segment. No reviewable argument content."
+      ],
+      "suggestion": "Confirm intended content (image or section-break). If this is meant to land the 'four-for-four kingdoms in sequence' takeaway, consider an explicit summary slide here (Babylon→Medo-Persia→Greece→Rome→division) so the cumulative case is stated once, plainly, before moving on — that recap is the persuasive close the sequence currently lacks."
+    },
+    {
+      "slide": 85,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "No on-slide text, title, or notes are present, so soundness/merit cannot be independently evaluated. Assuming an image/transition slide. No coherence break detected, but reviewer cannot confirm it advances the Daniel 8 thread."
+      ],
+      "suggestion": "If this is a pure transition/image slide, confirm the visual reinforces the Daniel 8 ram/goat introduction rather than leaving a dead beat for a skeptic to disengage on."
+    },
+    {
+      "slide": 86,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "No on-slide text, title, or notes. Cannot evaluate argument or merit from content."
+      ],
+      "suggestion": "Ensure this slide carries a visible cue (title or image) so the empire-prophecy thread does not stall between slide 84 and the Daniel 8 reveal on slide 87."
+    },
+    {
+      "slide": 87,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "Title 'Daniel 8' alone is low-risk. Presenter note claims Daniel 8 goes 'even further in specificity for Medo-Persia and Greece' — this is accurate (Daniel 8:20-22 names them explicitly), and the note is speaker-only so not audience-facing."
+      ],
+      "suggestion": "None needed; the framing that Daniel 8 names the empires outright is the strongest evidentiary move in this section and is well-placed."
+    },
+    {
+      "slide": 88,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "Quoted text of Daniel 8:2-4 (NKJV) is accurate. No interpretive claim is made on-slide yet, so no overreach. Letting the text speak before interpretation is good practice for skeptics."
+      ],
+      "suggestion": "None. Presenting raw text first, interpretation later (slide 92), is the right honest order."
+    },
+    {
+      "slide": 89,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "Daniel 8:5-7 (NKJV) quoted accurately. No on-slide interpretive claim, so no soundness risk."
+      ],
+      "suggestion": "None."
+    },
+    {
+      "slide": 90,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": ["Daniel 8:8 (NKJV) quoted accurately. No interpretive overreach on-slide."],
+      "suggestion": "None."
+    },
+    {
+      "slide": 91,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [
+        "Plain-language summary accurately tracks the quoted verses (two horns, goat from west, single horn, horn broken, four in its place). No overreach.",
+        "Presenter note references 'the Bear with one side hunched higher' — this is a Daniel 7 cross-reference (the bear raised on one side = Medo-Persia, matching the ram's higher second horn). Speaker-only, accurate, not a slide risk."
+      ],
+      "suggestion": "None for the on-slide text. Optionally the presenter could make the ram-higher-horn / bear-raised-side parallel explicit to audience, since it reinforces the harmony claim made later on slide 95."
+    },
+    {
+      "slide": 92,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "Battle dates are correct: Issus 333 BC, Gaugamela 331 BC, Alexander died 323 BC, Battle of Ipsus 301 BC. Age 32 at death (born 356, died 323) is correct.",
+        "The four-kingdom claim is carefully worded as the empire SETTLED into four after ~20 years of successor wars, naming Cassander, Lysimachus, Seleucus, Ptolemy — this avoids the common 'four generals divided it the moment he died' error a fact-checker would pounce on. The presenter note explicitly guards this. Strong, honest handling.",
+        "Minor: 'first great king of Greece' for Alexander is defensible against Daniel 8:21 ('first king' of the goat/Greece) but a hostile reader could note Philip II and earlier Macedonian kings preceded him. The verse means first king of this prophetic Greek world-empire, which is what the slide intends."
+      ],
+      "suggestion": "Consider tightening 'the first great king of Greece' to 'the first king of the prophecy's Greek empire' to pre-empt the Philip II / earlier-kings objection, matching Daniel 8:21's own framing."
+    },
+    {
+      "slide": 93,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "Daniel 8:16,19-22 (NKJV) quoted accurately, including the explicit naming of Media, Persia, and Greece. This is the payoff slide — letting Scripture self-interpret the symbols is the most defensible possible move for a skeptic.",
+        "No overreach; the interpretation on slide 92 is here vindicated by the text itself rather than by the presenter."
+      ],
+      "suggestion": "None. This is the section's strongest evidentiary slide."
+    },
+    {
+      "slide": 94,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "No on-slide text or notes. Likely a transition. Cannot evaluate; no coherence break detected."
+      ],
+      "suggestion": "Confirm this slide bridges from the Daniel 8 payoff into the 'Testable Predictions' synthesis (slide 95) without a dead beat."
+    },
+    {
+      "slide": 95,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "Framing prophecies as 'Testable Predictions' is excellent for a skeptical audience — it invites falsification rather than asserting authority.",
+        "Bullet 3 wording is awkward: 'will describe all if not some of four successive world empires' — 'all if not some' is backwards/garbled (it should read 'all, if not some, of' meaning at minimum some). This is a grammatical stumble a careful listener will notice and it muddies a load-bearing claim.",
+        "Mild tension: the slide lists Rome among the 'four successive world empires (Babylon, Medo-Persia, Greece, Rome),' but Daniel 8 (just covered) starts at Medo-Persia and does not depict Babylon or clearly Rome as a named empire — bullet 2 acknowledges Daniel 8 starts at Medo-Persia, so the framework holds, but a skeptic may ask where Rome is demonstrated in Daniel 8. The Rome claim is asserted here before being shown.",
+        "'beyond the scope of earthly empires' (bullet 6) is a theological claim presented as a testable prediction, but the kingdom-of-God outcome is not historically verifiable the way the empire sequence is — this slightly weakens the 'testable' framing if a skeptic presses it."
+      ],
+      "suggestion": "Fix bullet 3 to 'will describe four successive world empires — Babylon, Medo-Persia, Greece, Rome — each followed by division.' Flag clearly that bullet 6 (everlasting kingdom) is the one prediction NOT yet historically testable, so the skeptic does not feel a bait-and-switch on the word 'testable.'"
+    },
+    {
+      "slide": 96,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "Title-only on-slide ('One more. In our era.'). The setup is rhetorically strong for skeptics: it pre-empts the 'someone fudged the dates' objection by promising a prediction made IN PRINT before the event in the documented modern era. This is the right move.",
+        "FACT-CHECK RISK lives in the presenter note and following slides, not here: the note claims Litch named it 'two years early.' Litch published in 1838; the event (fall of Ottoman power, Aug 11 1840) is ~2 years later — defensible. The claim must hold up on slides 97-98 where specifics appear."
+      ],
+      "suggestion": "None on-slide. Ensure the 'in print, before the event, on public record' promise made here is actually delivered with a verifiable citation on slide 98 (it is: Litch 1838), since this slide stakes the night's credibility on it."
+    },
+    {
+      "slide": 97,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "Revelation 9:13-15 (KJV) quoted accurately.",
+        "SOUNDNESS GAP (deferred, not on-slide): the slide presents the text but the interpretive leap — that 'the great river Euphrates' = the Ottoman Empire — is acknowledged in the note as something to NOT argue yet ('Don't argue the geography yet'). For a skeptic this is the weakest link: the identification of the trumpet with the Ottomans is an interpretive choice, not self-evident from the text. The slide is fine as pure quotation, but the audience is being set up to accept a contested identification on slides 96/98.",
+        "CITATION RISK ahead: the whole 'one you cannot escape' argument rests on Litch's identification being made BEFORE 1840. That is historically true (1838), so the argument can hold — but only if the Ottoman identification itself is granted."
+      ],
+      "suggestion": "Since this prophecy is staked as the night's un-escapable proof, the deck needs at least one slide that briefly justifies WHY Euphrates = Ottoman power (rather than deferring entirely to presenter talk), or a skeptic will treat the whole conclusion as assumption-loaded. The strength of the year-day math (slide 98) cannot rescue a contested starting identification."
+    },
+    {
+      "slide": 98,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "FACTUAL/CITATION RISK: 'Total: 391 years and 15 days.' Litch's published computation gives 391 years and 15 days, and counting from the traditionally cited 1449 produces Aug 11, 1840 — but the slide presents ONLY the duration, not the start date or end date. A skeptic's first question ('391 years from WHEN?') is unanswered on-slide, which makes the math look impressive but unanchored. The persuasive payoff (it landed on Aug 11 1840) is entirely in the presenter's head, not on the slide.",
+        "The 'hour = 1/24 of a year → 15 days' step is arithmetically 360/24 = 15 days, correct. 360+30+1 = 391 years, correct. The arithmetic is sound.",
+        "OVERREACH/COHERENCE: 'A prophetic day = a literal year — the same key that put Messiah at AD 27.' This asserts the year-day principle is the SAME key already validated earlier in the series. That cross-reference is good for coherence IF Night 2 actually established the 70-weeks/AD 27 result earlier; if AD 27 was only asserted and not demonstrated, this leans on an unproven prior. Reviewer cannot confirm AD 27 was earned earlier in this deck.",
+        "CITATION: 'Prophetic Expositions (1838)' — Litch's two-volume Prophetic Expositions is generally dated 1841/1842; his earlier 391-years computation appeared in 'The Probability of the Second Coming of Christ About A.D. 1843' (1838). Attributing the 1838 calculation to 'Prophetic Expositions (1838)' risks a fact-checker finding the title/date pairing wrong. The presenter note on slide 96 more safely cites 'Signs of the Times, Aug 1, 1840' and 'Litch, Prophetic Expositions.' The 1838 calculation and the Prophetic Expositions title should not be conflated."
+      ],
+      "suggestion": "Add the start and end anchors on-slide (e.g., 'from 1449 → Aug 11, 1840') so the math actually closes the loop the skeptic is tracking, rather than leaving the landing in presenter notes. Fix the citation: either 'Litch, 1838 (The Probability of the Second Coming...)' for the original calculation, or drop the (1838) date from 'Prophetic Expositions,' which was published ~1841. Confirm the AD 27 year-day result was actually demonstrated earlier in the series before leaning on it as 'the same key.'"
+    },
+    {
+      "slide": 99,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "Two clocks on one slide: the 5th-trumpet '150 years / five months' (1299-1449) and the '391-year clock' that 'starts here' (1449). The on-slide text never explains why 1449 — not 1299 — is where the 391 begins. A skeptic sees a date silently shifted from the attack (1299) to the emperor's submission (1449) with no stated reason, which reads as cherry-picking the start point.",
+        "'The 391-year clock starts here' asserts the start without justification; the logical link (END of the 150 = START of the 391, both keyed to a Greek emperor's loss of independence) lives only in presenter notes, not on the slide the audience sees.",
+        "Start date 1299 is presented as Gibbon-sourced fact on-slide, but the notes themselves concede modern Ottomanists date Osman's emergence loosely (c. 1299-1302). On-slide says only 'date per Edward Gibbon' — a hostile fact-checker can show 1299 is not a settled scholarly date."
+      ],
+      "suggestion": "Add one on-slide line making the start-point rule explicit and non-arbitrary, e.g. 'The 150 years end exactly where the 391 begin — both fixed to the Greek emperor losing independence (1449).' Consider softening the start date to 'the start-date Litch used, following Gibbon' as the notes recommend, so 1299 isn't presented as undisputed."
+    },
+    {
+      "slide": 100,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "On-slide text blends two claims that a careful skeptic will want separated: '1838 ... will end in August 1840' (month, two years early) and 'August 11, 1840 ... in print before the event (Signs of the Times, March 20, 1840).' The slide's own dating is internally cleaner than the notes admit — the notes say the exact day is verifiably in print Aug 1, 1840, yet the slide cites March 20, 1840 for the refined Aug 11 date. This is a potential self-inflicted citation risk: if the March 20, 1840 Signs of the Times does not actually carry 'August 11,' a fact-checker breaks the slide on the very point it's making.",
+        "The strongest defensible claim per the notes is 'month named two years early; day in print before it arrived' — but the slide asserts the precise day was refined and in print as early as March 20, 1840, a stronger and more checkable claim than the notes' own 'bulletproof' phrasing."
+      ],
+      "suggestion": "Verify that the March 20, 1840 Signs of the Times issue actually prints 'August 11' specifically. If it does not, change the citation to the Aug 1, 1840 source the notes call verifiable, or soften to 'refined to August 11 in print before the event.' Do not let the on-slide claim exceed what the notes call bulletproof."
+    },
+    {
+      "slide": 101,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": "Solid, fully secular, uncontested. No change needed. Optionally the excluded-France color from the notes could be added on-slide to underscore 'four powers acting together,' but it is fine as is."
+    },
+    {
+      "slide": 102,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [
+        "The slide says 'August 1840 — the messenger sails' but the dated detail (the sail) is not pinned; the cited FRUS 1879 doc. 518 confirms the mission and the presentation to Muhammad Ali, not specifically a sailing in early August. A skeptic checking doc. 518 will find the mission, but the verb 'sails' and the month-framing are softer than the citation strictly supports. Minor mismatch between the headline action ('sails') and what the neutral record actually certifies (the mission/presentation occurred)."
+      ],
+      "suggestion": "Keep 'August 1840' (good restraint), but consider making the headline match the citation: e.g. 'the Sultan sends his messenger' rather than 'sails,' since the neutral record confirms the mission and presentation, not the sailing date."
+    },
+    {
+      "slide": 103,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "The on-slide claim 'The ultimatum passes into Mehemet Ali's power' on 'August 11, 1840' is the most challengeable factual assertion in the segment, and the slide gives the audience no hedge. The presenter's own notes concede the neutral U.S. record (FRUS 1879 doc. 518) dates the written communication to August 19, not the 11th, and modern histories put the military resolution in November. The audience sees a hard, specific date the presenter privately knows is contested — exactly the kind of gap a hostile fact-checker exploits.",
+        "The phrase 'from that moment the Sultan's affairs rest in the hands of the four powers' overreaches: the empire 'limped on under European protection until 1922' (per the notes). The slide states as a completed fact on Aug 11 something the notes admit was a process, not an instant.",
+        "The Litch quote 'Ottoman Supremacy did depart on the eleventh of August' is the prediction's friend asserting its own fulfillment — circular as evidence on its own. The corroboration (Goodell, Balch) comes on later slides, so on THIS slide the only support for the date is the predictor's own claim."
+      ],
+      "suggestion": "Put the honest hold on the slide, not just in notes. Reframe to the defensible claim: the EVENT-TYPE (sovereignty passing to four Christian powers via the July 15 Convention and August events) matched what Litch deduced in 1838, rather than asserting a precise hand-off on Aug 11. If Aug 11 stays, add a line conceding the day is debated and pivoting to year + event-type + pre-printed date, so a fact-checker can't catch the slide claiming more than the neutral record supports."
+    },
+    {
+      "slide": 104,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "The quote rests on a single contemporary missionary (Goodell), who, as the notes correctly flag, certifies the trajectory ('exist now by mere sufferance,' surviving by Christian 'protection'), NOT the calendar day. The slide presents it under the heading '\"Broken forever\"' adjacent to the Aug 11 slide, which could let the audience read Goodell as confirming the date rather than the outcome. The rhetorical adjacency risks implying more than Goodell said.",
+        "'Broken forever' is rhetorically strong but in tension with the segment's own honest concession (notes, slide 103) that the empire survived until 1922. A skeptic who knows the Ottoman Empire lasted another 80 years may read 'broken forever' as overclaim — though Goodell's actual meaning (independent power broken, surviving only by sufferance) is defensible."
+      ],
+      "suggestion": "Good source choice (eyewitness, not a prophecy advocate). To pre-empt the 'but it lasted to 1922' objection, ensure the spoken framing makes clear 'broken' means independent power gone / surviving by sufferance, not annihilated — the quote itself says 'exist now by mere sufferance,' so lean on that phrase."
+    },
+    {
+      "slide": 105,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "The hostile-witness move is genuinely strong, but the slide's framing ('writing to ATTACK the prediction') asks the audience to accept the adversary's intent on the presenter's word; the quote itself ('re-organized by the European kingdoms... honorably treated as such') concedes reorganization but does not on its face read as an attack. The audience can't verify Balch's hostile intent from the quoted words alone — the 'enemy admits it' force depends on context the slide asserts but doesn't show.",
+        "Citation is thin for a hostile-fact-check: 'Rev. Mr. Balch of Providence, R.I.' with the source given only as '(Litch, PREX2 190.2)' in notes — i.e., the quote of the critic survives via the predictor's own book. A skeptic can object that we only have Litch's report of what his opponent said. The slide does not disclose that the adversary's words are preserved by the advocate."
+      ],
+      "suggestion": "Add the source line on-slide and consider noting the quote is preserved in Litch's account, to avoid the appearance of hiding that the 'enemy' is being quoted by his opponent. If an independent attestation of Balch exists, cite it; the hostile-witness argument is much stronger if the critic's words aren't sourced solely to the person he attacked."
+    },
+    {
+      "slide": 106,
+      "soundness": "weak",
+      "merit": "weak",
+      "issues": [
+        "The '1,000 skeptics' / 'infidel clubs could no longer fill a meeting' claim is, by the presenter's own notes, third-hand (Loughborough heard Pinney, who had it from Litch) and uncorroborated outside the Adventist tradition. For a SKEPTICAL audience this is the weakest evidentiary slide in the segment — an unverifiable in-house number presented to skeptics as a reason skeptics changed their minds. High risk of tripping the very defenses the series is trying to lower.",
+        "'By Litch's own report' is on-slide and honest, but the body sentence 'more than 1,000 self-described skeptics wrote to him accepting the Bible' still states the figure as a near-fact; the qualifier doesn't fully defuse that an unfalsifiable, self-reported number is being used as social proof.",
+        "'People exactly like you changed their minds' (the intended takeaway) is built on a self-serving, uncheckable statistic — the kind of move a skeptic reads as manipulation, undercutting the hard-won credibility from the genuinely strong slides (101, 105)."
+      ],
+      "suggestion": "Consider cutting this slide, or demoting the number. The segment is strongest on verifiable public record (Convention of London, Balch, pre-printed dates); leaning on an uncorroborated 1,000 figure risks net-negative trust. If kept, frame explicitly as 'Litch reported — uncorroborated outside his circle' and don't use it as a load-bearing proof, only as color."
+    },
+    {
+      "slide": 107,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "This summary slide inherits the precision of slide 100: 'The day — in print before it arrived' is defensible, but only if slide 100's March 20, 1840 citation actually carries 'August 11.' If that citation is wrong, this capstone repeats the broken claim. The summary is only as bulletproof as the weakest dated claim it compresses.",
+        "'placed the surrender of Ottoman independence in August 1840' — 'surrender of independence' is the careful framing the notes endorse and is defensible; no overreach here. Good restraint in not saying 'destroyed.'"
+      ],
+      "suggestion": "Excellent honest synthesis — it states exactly the three defensible claims (month two years early, day pre-printed, event-type as predicted). Just ensure slide 100's citation backs 'day in print before it arrived' so this capstone can't be broken by tracing it back."
+    },
+    {
+      "slide": 108,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "Bare list of four time-prophecies (1260, 2300, 1290, 1335 days) with the title 'Only a Portion…' and no on-slide explanation, claim, or payoff. To a skeptic this is opaque — four numbers with no stated significance, no resolution, and no argument. It neither establishes a claim nor previews one the audience can follow.",
+        "Presenter notes are empty, so there is no speaker scaffolding indicated for what is otherwise an unexplained slide. Risk that it reads as filler or as 'trust us, there's more' hand-waving rather than earning anything."
+      ],
+      "suggestion": "Either give each item a one-line 'and this one landed on ___' payoff, or reframe the title to make the rhetorical point explicit (e.g. 'We tested ONE of many — here are four more time-prophecies on the same key'). As-is it asserts there's more without showing why a skeptic should care; add the takeaway or cut to the night's close."
+    },
+    {
+      "slide": 109,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "Slide has no on-slide text or title at all — it is a closing beat carried entirely by presenter notes. For the audience there is nothing to SEE; the strong transition ('if this Book really is above human origins — what does it SAY?') exists only in the speaker's mouth, leaving the screen blank/uncaptioned at the night's most important pivot.",
+        "The transition logic is sound and well-paced for the night's thread (prophecy → therefore something supernatural → therefore the big question for night 3), but a blank slide gives the audience no anchor to retain the turn."
+      ],
+      "suggestion": "Add a single on-slide line to carry the pivot the notes deliver well, e.g. 'If this Book is above human origins — what does it SAY?' plus 'Tomorrow: why is the world broken?' A bare slide wastes the strongest rhetorical hinge of the night."
+    }
+  ]
+}

@@ -1,0 +1,745 @@
+{
+  "deck": 1,
+  "reviews": [
+    {
+      "slide": 1,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": "Title slide ('What is Truth / Part I: Beyond Opinion'). No argument to assess; it frames the series well and the Pilate echo ('What is truth?') is apt for a skeptical audience. Nothing to fix."
+    },
+    {
+      "slide": 2,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": "Speaker intro slide (name, 'Software Engineer', 'Husband and father of two kids'). Leading with a secular, non-clergy credential is a smart trust-builder for skeptics — it signals 'someone like you,' not a paid apologist. No soundness concern."
+    },
+    {
+      "slide": 3,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": "'What is truth?' as a bare question is the right opener — it invites rather than asserts, which disarms a skeptic. Strong for this audience."
+    },
+    {
+      "slide": 4,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "Slide has no on-slide text at all; the only content is a presenter note ('Of wars and rumours of wras'), which the audience never sees. As reviewed, the audience sees a blank/image slide.",
+        "The note phrase 'wars and rumours of wars' is a Scripture allusion (Matt 24:6). If it surfaces as on-slide text or spoken framing this early — before any case for Scripture's authority is made — it risks presupposing the conclusion the series is trying to earn."
+      ],
+      "suggestion": "Confirm what the audience actually sees here. If it is a visual-only 'turmoil' slide, fine. Avoid framing current events in biblical-prophecy language on Night 1 before authority is established — keep the observation secular ('the world is in conflict') and save the Scripture echo for Night 2. Also fix the typo 'wras'/'wars' if it ever reaches a slide."
+    },
+    {
+      "slide": 5,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "Again no on-slide text; the load-bearing claim lives only in the presenter note. The note makes the pivotal argument of the whole opening: 'we fight for what we believe to be true... This is the source of all the controversy - a difference in truth.'",
+        "Overreach / non-sequitur: 'Truth... This is the source of ALL the controversy' is too strong. Much conflict is over resources, power, fear, or tribal identity, not over competing truth-claims. A skeptic will immediately produce counterexamples (wars of conquest, economic conflict), and an overclaim this early erodes trust.",
+        "Equivocation risk: it slides from 'wars and social unrest/inequality' to 'a difference in truth' — but inequality is often a dispute about facts and interests, not about 'truth' in the philosophical sense the deck is about to define."
+      ],
+      "suggestion": "Soften to a defensible version: 'Much of our deepest conflict comes down to competing claims about what is true — especially what is morally true.' That preserves the bridge into the relative/absolute distinction without the universal 'all controversy' overclaim that a skeptic can puncture."
+    },
+    {
+      "slide": 6,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": "Defining truth as 'being in accord with fact or reality' and attributing it to Merriam-Webster is a strong, neutral, fact-checkable move — it grounds the term before any religious content. Verify the exact wording matches the dictionary entry; M-W's correspondence-style gloss is genuinely there, so citation risk is low. Good."
+    },
+    {
+      "slide": 7,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "On-slide is only the title 'Relative vs Absolute' with no definitions shown; the distinction (and the favorite-color vs. morality example) is in the presenter notes only. The audience sees a label without the content that makes it land."
+      ],
+      "suggestion": "Put the actual contrast on the slide: a one-line definition of each (e.g., 'Relative — true for me / in this context' vs. 'Absolute — true everywhere, for everyone, regardless of opinion'), ideally with the favorite-color vs. morality example. This is the conceptual hinge of the night; don't leave it speaker-only."
+    },
+    {
+      "slide": 8,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "Citation-mixing risk: the three on-slide stats come from AWVI 2025 (Arizona Christian University) and Barna 2016, but the three URLs printed on the slide are all Barna/CBN links — none point to the Arizona Christian University / Cultural Research Center AWVI 2025 source for the 66% and 75% figures. A hostile fact-checker can note the headline stats lack a matching link.",
+        "Source-framing risk for THIS audience: every cited source is a Christian research organization (Arizona Christian University, Barna, CBN). A skeptic may discount the stats as coming from religiously motivated pollsters. The numbers may be accurate, but the optics invite dismissal.",
+        "The 66% figure bundles 'reject OR doubt' absolute moral truth — combining outright rejection with mere doubt into one number is a softer claim than 'two-thirds reject absolute truth,' so the spoken framing must not harden it."
+      ],
+      "suggestion": "Add the direct AWVI 2025 / Cultural Research Center citation+URL for the 66%/75% figures so each on-slide number has a matching source link. Consider pairing or replacing one Christian-sourced stat with a secular one (Pew or Gallup on moral relativism) to inoculate against the 'biased pollster' objection. Keep the 'reject OR doubt' wording exactly as written and don't overstate it verbally."
+    },
+    {
+      "slide": 9,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": "'What are the benefits of moral relativism?' is an excellent steelman move — granting the opposing view its best case before critiquing it builds enormous credibility with skeptics. Strong setup."
+    },
+    {
+      "slide": 10,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": "'Promotes Tolerance' as a genuine benefit, fairly stated, continues the steelman. Good. (Minor: the later refutation must actually answer these three benefits, not just assert evil exists — see slide 13-14 note.)"
+    },
+    {
+      "slide": 11,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": "'Promotes Progress' — fairly granted. Honest framing. No change needed."
+    },
+    {
+      "slide": 12,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": "'Promotes Autonomy' — completes a fair three-part steelman of relativism. Well done; this earns the right to critique."
+    },
+    {
+      "slide": 13,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "'So what's the problem?' is purely a transition; the actual claim ('all these hinge on one crucial assumption that just does not exist') is in the presenter note only. As on-slide content there is nothing to evaluate."
+      ],
+      "suggestion": "Fine as a pivot beat. The weight falls on slide 14 — make sure the 'one crucial assumption' is stated precisely on-slide so the turn isn't speaker-only."
+    },
+    {
+      "slide": 14,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "Non-sequitur / overstated framing: 'Assumes humans have no capacity for evil' is not a fair characterization of the three benefits on slides 10-12. Relativism does not assume the absence of evil — it characteristically assumes there is no OBJECTIVE standard by which to call anything evil. The slide attacks a position the relativist doesn't actually hold (strawman risk), which an intelligent skeptic will spot immediately.",
+        "The argument as stated also doesn't yet defeat tolerance/progress/autonomy specifically; it asserts a single fatal assumption without showing how it undercuts each of the three named benefits, so the refutation feels like a jump.",
+        "There is a genuinely strong argument hiding here (the self-refutation/incoherence of relativism when confronted with acts everyone calls evil — e.g., you cannot consistently condemn atrocity while denying any absolute moral truth). The current wording obscures that stronger point."
+      ],
+      "suggestion": "Reframe to the actually sound version: 'Relativism gives you no ground to call ANYTHING truly evil.' Then drive it with a concrete case the audience already judges as absolutely wrong (genocide, child torture) — showing that everyone, including the relativist, behaves as if at least one absolute moral truth exists. That defeats tolerance/progress/autonomy on their own terms without the strawman that relativists 'assume no capacity for evil.'"
+    },
+    {
+      "slide": 15,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "On-slide text is only the title 'The problem with tolerance' — the actual argument lives entirely in speaker notes the audience never sees, so the slide itself carries no visible load-bearing claim.",
+        "The notes argument ('to tolerate everything means you allow everything... what standard would exist?') subtly equivocates on 'tolerance': moral relativists don't claim you must tolerate EVERYTHING; most hold a harm principle. A sharp skeptic will feel the strawman, but since this is speaker-only it won't show on-screen."
+      ],
+      "suggestion": "Keep the on-slide title; in delivery, frame tolerance as 'tolerance requires a line, and a line requires a standard' rather than implying relativists tolerate literally everything, to avoid the strawman tripwire."
+    },
+    {
+      "slide": 16,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "No on-slide title or text at all — the audience sees a blank/image-only slide, so there is nothing visible to fact-check or for an argument to overreach. Coherence depends entirely on the (unseen) image and the presenter's 'universally hated' setup leading into slides 17-18."
+      ],
+      "suggestion": "Ensure this slide carries a clear visual or short on-slide phrase so the 'would you tolerate this?' beat reads without narration; a silent blank slide weakens the rhetorical setup for the Holocaust/slavery examples."
+    },
+    {
+      "slide": 17,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "No on-slide text; the Holocaust example exists only in notes. Visible risk is minimal. Note phrasing 'the holocaust was considered a cultural practice' is historically loose — it was state genocide/ideology, not described by perpetrators as a 'cultural practice' — but this is speaker-only, so no on-slide citation risk.",
+        "'some deny it happened' (notes) is true but rhetorically risky to voice; if it leaks on-slide it could derail. As-is, on-slide is clean."
+      ],
+      "suggestion": "If any text goes on this slide, keep it to a neutral factual label (e.g. 'The Holocaust') and let the moral force carry it; avoid the 'cultural practice' framing aloud since it's easy to challenge."
+    },
+    {
+      "slide": 18,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "No on-slide text; slavery example is speaker-only. Nothing visible to break. The note 'slavery was considered a cultural institution' is defensible and lands well as a relativism counterexample."
+      ],
+      "suggestion": "Pair with a strong neutral image; if adding on-slide text, a single word like 'Slavery' suffices. No soundness fix needed."
+    },
+    {
+      "slide": 19,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "On-slide is title-only ('The problem with progress'). The real claim ('humanity can progress towards destruction just as easily as toward peace... under what measure?') is speaker-only and sound as a 'progress presupposes a standard/direction' argument.",
+        "Minor: the section is about to lean on military-tech examples (slide 20) that prove technological advance is value-neutral, not that 'progress' as a moral concept is incoherent — watch that the examples actually support the 'need a standard' conclusion rather than just 'tech can be misused.'"
+      ],
+      "suggestion": "Keep the title; in delivery, tie the examples explicitly back to 'progress toward what? you need a fixed reference point to even call it progress' so the military-tech beat doesn't read as a mere tangent."
+    },
+    {
+      "slide": 20,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "No on-slide text — the ARPANET/GPS/microwave facts live in notes, so there is no on-slide citation to break. The notes themselves are accurate (ARPANET 1969, NAVSTAR/DoD, Percy Spencer/Raytheon 1945 magnetron), and the precision flag shows good fact-discipline.",
+        "One soundness caveat for delivery: 'born from military research' implies origin in war; the internet/GPS were defense-FUNDED but developed largely by civilian researchers — a pedantic skeptic could quibble. Accurate enough as stated."
+      ],
+      "suggestion": "If putting any of these facts on-slide, cite them tightly (year + agency as in notes). Optionally soften 'built for war' to 'funded by the military' for GPS/internet to preempt the civilian-researcher quibble."
+    },
+    {
+      "slide": 21,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "No on-slide text. Notes claim 'the world has in its power to completely destroy everyone alive using nuclear weapons' — this 'destroy all life / everyone alive' framing is contested by experts (even full arsenals likely would not literally kill every human); if it ever reaches the slide it is fact-checkable. As speaker-only it's lower risk but still an overreach worth tightening.",
+        "Argument is rhetorical ('we get better at killing one another') rather than a tight proof that progress lacks a standard — it supports the emotional beat more than the logical conclusion."
+      ],
+      "suggestion": "Reword the nuclear claim to the defensible version: 'enough nuclear weapons to end civilization' rather than 'destroy everyone alive,' especially before it ever appears on-screen."
+    },
+    {
+      "slide": 22,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "No on-slide text. 'Remember chernobyl? our progress creates higher and higher consequences for failure' is a fair illustration; Chernobyl (1986) is uncontroversial as a reference. No visible citation risk.",
+        "The example proves 'higher stakes from advanced tech,' which is adjacent to — but not identical with — the night's thesis that progress needs an external moral standard. Coherence is loose but acceptable as supporting color."
+      ],
+      "suggestion": "In delivery, land the Chernobyl beat on 'advancement raises the cost of getting it wrong — so by what standard do we steer it?' to keep it threaded to the standard argument rather than a standalone scare."
+    },
+    {
+      "slide": 23,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "No on-slide text, so no visible citation risk — but the argument in notes overreaches: 'in a relative world any end justifies any means, there is no line to draw.' That's a slippery-slope/false-dilemma move; relativists can and do draw lines (consent, harm). A skeptic will spot that relativism ≠ 'anything goes,' and this is the load-bearing inference of the slide.",
+        "Yokes Nazi human experimentation, medical progress, and live-animal research together; a skeptic may feel the animal-research comparison to Nazi experiments is a manipulative conflation, risking the 'earn trust' goal."
+      ],
+      "suggestion": "Tighten to: 'without a fixed standard, there is no principled place to STOP' rather than 'any end justifies any means / no line.' Decouple the animal-research point from Nazi experimentation so it doesn't read as emotional conflation."
+    },
+    {
+      "slide": 24,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "On-slide is title-only ('The problem with autonomy'). The note framing is notably honest and well-pitched: 'No one is suggesting autonomy is evil, but unrestricted autonomy enables evil' — this concession preempts a skeptic's defense and earns trust. Strong evangelistic merit for this audience.",
+        "Argument 'serial killers/child abusers are exercising their autonomy, so we need a standard' is sound as far as it goes; the only gap is that a relativist already grants a harm-based standard, so the foil is again 'pure' relativism. Speaker-only, low risk."
+      ],
+      "suggestion": "Keep the explicit 'autonomy isn't evil' concession audible — it's the slide's best trust-builder. No on-slide fix needed."
+    },
+    {
+      "slide": 25,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "No on-slide text. Notes contain a real inference worth auditing: 'you cannot use morality to justify your actions unless you believe in absolute morality.' That's a strong claim — one can act morally and justify it on non-absolutist grounds (contractarian, consequentialist). It overreaches if voiced as stated; a philosophically literate skeptic will push back.",
+        "'moral relativism promotes tolerance to these things, since you can't say it's wrong' repeats the slide-15 equivocation (relativism = can't condemn anything). Consistent with prior slides but the strawman compounds across the night."
+      ],
+      "suggestion": "Soften the universal to: 'it's hard to consistently CONDEMN the abuse of a child without appealing to a standard above personal preference.' That keeps the gut-level force without the easily-falsified 'cannot use morality at all' overclaim."
+    },
+    {
+      "slide": 26,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "No on-slide text, so the stats live in notes — but if any of this reaches the slide, verify carefully. The divorce figure is handled responsibly: '~40% of first marriages projected to end in divorce' and explicitly flagging the '50% is a myth' — this is the honest, defensible number and the self-correction builds credibility. Good.",
+        "Caveat: '40% of FIRST marriages' vs. overall marriages differ, and projections vary by source/cohort; cite 'first marriages, projected' precisely if shown on-slide. Attribution 'Institute for Family Studies 2024; CDC' is plausible but should be locked to a specific stat to avoid a fact-checker mismatch.",
+        "'much of the time, claiming relativism is really a shield against being judged' is a motive-attribution that a skeptic may read as ad hominem; use sparingly."
+      ],
+      "suggestion": "If the divorce stat goes on-screen, render it exactly as 'roughly 40% of first marriages (projected) — IFS/CDC' and avoid the bare '50%.' Trim or soften the 'shield against being judged' line to protect trust."
+    },
+    {
+      "slide": 27,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "On-slide is just the question 'What's the answer?' — a clean pivot slide with no claim to break. Coherent transition out of the 'problems with relativism' block toward the external-standard resolution on slide 28. No issues beyond it being a content-light bridge."
+      ],
+      "suggestion": "Fine as a transition. Consider making the question slightly more pointed (e.g. 'If not relativism — then what?') so the pivot to an external standard feels earned rather than abrupt."
+    },
+    {
+      "slide": 28,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "On-slide text 'We need to look outside' is the night's hinge claim, and the supporting reasoning (notes) is an analogy that overreaches: 'Just as the laws of nature, physics, and mathematics exist outside the human element, so too should our moral truth.' This is an is/ought analogy — physical laws are descriptive and empirically verifiable; moral 'laws' are not established the same way. A skeptic will flag the equivocation between 'objective like physics' and 'therefore an external moral source.'",
+        "The analogy at best motivates that morality is external/objective; it does NOT by itself establish a divine source, yet the slide is positioned as the resolution that points outward. The logical gap between 'objective moral standard' and 'transcendent/divine standard' is left unbridged on-slide."
+      ],
+      "suggestion": "Reframe the analogy as suggestive, not proof: 'We treat math and physics as discovered, not invented — what if morality is the same?' Then explicitly name the remaining step (objective standard → its source) rather than letting the physics analogy silently carry the divine conclusion."
+    },
+    {
+      "slide": 29,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "On-slide text is a single word, 'Why?', with no presenter notes. As a transition from Slide 28 ('We need to look outside') it reads as a rhetorical hinge, but standing alone it carries no argument the audience can evaluate."
+      ],
+      "suggestion": "Fine as a transitional beat. Ensure the spoken framing makes the 'why do we need an external standard?' question explicit, since the bare word relies entirely on delivery."
+    },
+    {
+      "slide": 30,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "No on-slide title or body — only a speaker note ('morality changes when tired or stressed'). Nothing for the audience to read, so soundness rests entirely on delivery, not the slide."
+      ],
+      "suggestion": "If this is a visual-only build, ensure the image makes the 'compass bends' point legibly; the claim itself (mood affects moral judgment) is uncontroversial and lands fine."
+    },
+    {
+      "slide": 31,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "Again no on-slide content, only a speaker note ('angry or scared'). Part of a build with 30/32; in isolation there is nothing to review on-slide."
+      ],
+      "suggestion": "Same as 30 — acceptable as a build beat. No on-slide risk."
+    },
+    {
+      "slide": 32,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "Nothing is shown on-slide — the entire Milgram/Burger/Darley-Latane evidentiary load lives in speaker notes, so a skeptic in the room sees no citation to challenge (low on-slide fact-check risk).",
+        "If any of these figures DO get put on screen during delivery: Burger (2009) is widely described as a 'partial replication' that stopped at 150 volts, not a full reproduction of Milgram to 450V; the ~70% figure is Burger's continuation rate. Stating it as 'the same obedience' overreaches slightly and a hostile fact-checker could press the methodological difference.",
+        "The load-bearing inference 'a compass that bends is not a standard' appears only in notes; the audience never sees the premise-to-conclusion link spelled out."
+      ],
+      "suggestion": "The self-aware handling (proactively dropping the Stanford Prison Experiment, hedging the 'nobody helps' caricature) is genuinely trust-building — keep that posture. If you surface Burger on-slide, label it 'partial replication (Burger 2009)' rather than implying identical results."
+    },
+    {
+      "slide": 33,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": "Strong pivot — 'The Measuring Stick Principle' introduces the analogy cleanly with no claims to break. No change needed."
+    },
+    {
+      "slide": 34,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "All factual claims (IPK platinum-iridium since 1889, ~50 microgram drift, 20 May 2019 SI redefinition, metre via 1/299,792,458 s, kilogram via Planck's constant) live in speaker notes, not on-slide — so on-slide fact-check risk is nil, and the notes themselves are accurate.",
+        "Analogical caveat (notes only, not on-slide): the metrology story supports 'we need an external unchanging anchor' but does not by itself establish that the Bible IS that anchor; that gap is bridged later. Flagging only so the analogy isn't oversold as proof."
+      ],
+      "suggestion": "Excellent, verifiable, non-religious analogy for this audience. Make sure delivery frames the kilogram as illustrating the NEED for an external standard, not as evidence for Scripture specifically."
+    },
+    {
+      "slide": 35,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": ["'End of Part 1' is a structural marker only; nothing to evaluate for soundness."],
+      "suggestion": "Consider a one-line recap of the through-line (internal compass bends -> need an external unchanging standard -> here are 5 tests) so the audience carries the thread into the criteria."
+    },
+    {
+      "slide": 36,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "On-slide body '1. Consistent Written Records' is a clean criterion statement; the sub-points (unchanging nature, universal access, consistent principles) are notes-only, so nothing overreaches on-screen."
+      ],
+      "suggestion": "Good — this criterion is testable and gets paid off in Slide 42, a coherent setup."
+    },
+    {
+      "slide": 37,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "'2. Above Human Origins' is the most ambitious criterion to set as a TEST for a skeptical audience — naming 'above human origins' as a criterion risks sounding like it presupposes the supernatural conclusion the series is trying to earn. On-slide it is just a label so no claim breaks, but the framing leans toward begging the question.",
+        "The payoff (the Night 2 prophecy test) is not signaled on this slide."
+      ],
+      "suggestion": "In delivery, frame this as 'could ANY human author have produced this?' (an empirical test, e.g. predictive prophecy) rather than asserting divine origin up front. That keeps it falsifiable-sounding and avoids tripping the skeptic's 'circular' alarm."
+    },
+    {
+      "slide": 38,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "'3. Practical' with notes (real-world application, proven results, livable) is a clean, testable criterion. 'Proven results' is vague but notes-only, so no on-slide risk."
+      ],
+      "suggestion": "No on-slide issue. If 'proven results' ever surfaces on screen it invites 'proven how?' — keep the softer 'livable' framing."
+    },
+    {
+      "slide": 39,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "Criteria 3 ('Practical') and 4 ('Universal Application') overlap: 'livable principles' (38) and 'works across cultures / applies to all people' (39) are close, so the distinction may blur.",
+        "The notes line 'targets anyone' is awkwardly phrased and reads slightly negatively ('targets'). On-slide is just the label '4. Universal Application', so no claim risk."
+      ],
+      "suggestion": "Tighten the distinction in delivery: 3 = does it WORK when lived; 4 = does it apply to EVERYONE regardless of culture. Rephrase 'targets anyone' to 'addresses everyone.'"
+    },
+    {
+      "slide": 40,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "On-slide is only the title '5. Benevolent'; the strong argument ('a standard that profits its maker is an advertisement; one that costs its makers everything and heals its readers is something else') is notes-only and never shown.",
+        "That argument embeds an empirical claim ('costs its makers everything') that anticipates a conclusion about the biblical authors not yet established — fine as foreshadowing in notes, but it would overreach if asserted on-slide as fact."
+      ],
+      "suggestion": "Strong, personal criterion and a good emotional pivot toward Night 3. Keep the 'costs its makers' line as spoken foreshadowing; do not put it on-slide as asserted fact until it is earned."
+    },
+    {
+      "slide": 41,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "'Consider the Bible' cleanly transitions from the 5 abstract criteria to the test subject. The ordering (criteria first, candidate named second) avoids the circularity of starting with the Bible — the right move for this audience."
+      ],
+      "suggestion": "Good ordering. No change."
+    },
+    {
+      "slide": 42,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "'Consistent Written Records?' (with a question mark) frames criterion 1 as a test to be examined rather than a foregone conclusion — appropriately honest for a skeptical audience. No claim on this slide yet, so no fact-check risk here; the risk lives in whatever evidence follows."
+      ],
+      "suggestion": "The interrogative framing is exactly right for trust-building. Ensure the evidence slides that follow cite defensible figures (manuscript counts, dates), since this is where a hostile fact-checker will engage."
+    },
+    {
+      "slide": 43,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "The bare on-slide word 'Consistent' is the conclusion, not yet evidence. By itself it asserts what slides 44-45 are meant to demonstrate; a skeptic reads it as an unsupported claim until the manuscript slides land.",
+        "'40 Authors / 1500 years' — the unity-across-diversity argument is real, but the on-slide framing implies the diversity (fishermen, kings) makes consistency surprising without acknowledging later authors could read earlier texts. Not false, but a sharp skeptic will note the books are not independent."
+      ],
+      "suggestion": "Consider changing the standalone 'Consistent' to something that signals the claim is about to be tested (e.g. 'One coherent story') so it reads as a thesis to be proven, not an assertion. The numbers themselves (66/40/1500) are safe."
+    },
+    {
+      "slide": 44,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "'Over 95% identical' is a defensible summary but the figure varies by how variants are counted; a hostile fact-checker could cite scholars who frame the agreement differently (the famous Isaiah scroll word-variant analysis). The presenter note's 'mostly spelling' caveat is sound but is not on the slide.",
+        "'medieval Hebrew text' on-slide is vague; the precise referent is the Masoretic Text (in the notes). The audience sees an unnamed comparison point."
+      ],
+      "suggestion": "Good, honest slide. Optionally name 'Masoretic Text' on-slide for precision, and the ~95% claim is safest stated as 'word-for-word the same in the overwhelming majority of the text, variants mostly spelling' — which is exactly the note's framing."
+    },
+    {
+      "slide": 45,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "'5,800+ Copies' on-slide is correct (Greek NT mss) but the slide does not state what is being compared against, so the number lands without context for the audience — the Iliad/Caesar comparison that makes it impressive lives only in the notes.",
+        "Latent equivocation risk the deck must avoid: many copies proves textual transmission (we have what was written), not truth of content. The presenter HONESTY CARD handles this well, but nothing on-slide guards it, so if the speaker skips the card the slide can be heard as 'many copies = reliable = true.'"
+      ],
+      "suggestion": "Strongly keep and actually deliver the honesty card aloud — it is the highest-trust move in this batch. Consider adding the comparison (e.g. 'Iliad: ~1,900') on-slide so the number means something to a skeptic who has no baseline."
+    },
+    {
+      "slide": 46,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "The Glueck quote is the single highest fact-checker risk in the batch. 'no archaeological discovery has ever controverted a Biblical reference' is a 1959 categorical claim widely regarded as overstated/apologetic; a skeptic with a phone will surface critiques (e.g. archaeological challenges to the conquest of Jericho/Ai, the united-monarchy debates) within minutes and the absolute word 'categorically/ever' makes it easy to break.",
+        "Putting an overreaching absolute quote on-screen, then walking it back only in private notes, risks the exact credibility hit the deck elsewhere works hard to avoid. The on-slide claim is stronger than the defensible core the notes admit to ('confirms rather than contradicts')."
+      ],
+      "suggestion": "Replace the categorical quote with the defensible claim the notes already identify: archaeology keeps confirming the Bible's named people and places. If the Glueck quote stays, frame it on-slide as one archaeologist's assessment and immediately concede it is debated — do not let 'categorically... ever' stand unqualified to this audience."
+    },
+    {
+      "slide": 47,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "On-slide is just 'Hittites' — the doubted-then-vindicated argument (the persuasive part) is entirely in notes, so the slide alone carries no argument.",
+        "Minor accuracy guard handled in notes: the Bible was not the only source mentioning the Hittites (Egyptian 'Kheta'), so the claim must be 'critics doubted, then vindicated,' not 'only the Bible knew of them.' The note flags this correctly."
+      ],
+      "suggestion": "This is a genuinely strong example for this audience. Ensure the doubted-then-confirmed framing reaches the screen or is said clearly, and keep the 'not the only source' precision so a skeptic can't catch an overclaim."
+    },
+    {
+      "slide": 48,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "On-slide title only; the hostile-witness force ('House of David,' carved by an enemy of Israel) lives in notes. The slide alone does not convey the argument.",
+        "Citation precision is good in notes. Residual risk: a minority of scholars dispute the 'bytdwd = House of David' reading; the note's 'most scholars / mainstream consensus accepts' is the right hedge and should be honored aloud rather than presented as undisputed."
+      ],
+      "suggestion": "Strong evidence; the 'hostile witness' angle is exactly what earns skeptic trust. Say 'most scholars read it as House of David' rather than asserting it flatly, and the slide is bulletproof."
+    },
+    {
+      "slide": 49,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "On-slide title only; the persuasive detail (contemporary inscription, correct title 'Prefect') is note-only.",
+        "The note's 'only contemporary inscription naming Pilate' is fine, but the 'prefect vs procurator' point should be stated carefully: later Roman usage did shift, so frame it as period-correct precision rather than implying other writers were simply wrong. Low risk, well handled."
+      ],
+      "suggestion": "Keep the 'Prefect not procurator' detail — period-correct precision is a strong authenticity signal for skeptics. No change needed beyond surfacing the substance to the audience, not just the title."
+    },
+    {
+      "slide": 50,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "On-slide is just 'Exodus' with no notes. Of all the archaeology examples in this batch, the Exodus is the most contested: there is no scholarly consensus archaeological confirmation, and many mainstream archaeologists hold the opposite. Placing it in a sequence whose thesis is 'archaeology confirms the Bible' invites the strongest available counterexample.",
+        "Coherence risk: slides 47-49 are tight, consensus-backed confirmations; leading into Exodus (and then a disputed Sinai site) weakens the cumulative case by moving from 'vindicated' examples to a famously unsettled one."
+      ],
+      "suggestion": "Either reframe Exodus as 'narrative/criterion' rather than as another 'archaeology confirmed it' data point, or be explicit that this one is debated. Do not let it sit unqualified alongside the Hittites/Tel Dan/Pilate as if it carries the same evidentiary weight — a skeptic will pounce here."
+    },
+    {
+      "slide": 51,
+      "soundness": "weak",
+      "merit": "weak",
+      "issues": [
+        "The note's own v2 audit flags this: if the imagery is Jabal al-Lawz (Saudi Arabia), that identification is disputed and mainstream scholarship rejects the Wyatt/Cornuke claims. Showing a contested site as if it were 'Mount Sinai' is the single most credibility-threatening move in the batch for a skeptic audience.",
+        "Coherence: this directly undercuts the 'reliable track record' payoff on slide 55. Staking the Sinai section on a fringe identification hands a skeptic a clean refutation right before the conclusion slide."
+      ],
+      "suggestion": "Follow the note's own caution: present any site only as 'a candidate location,' or drop the site identification entirely and speak of the Exodus/Sinai narrative. Do not display a specific contested mountain as 'Mount Sinai.' This is the highest-priority fix in the batch."
+    },
+    {
+      "slide": 52,
+      "soundness": "weak",
+      "merit": "weak",
+      "issues": [
+        "Same 'Mount Sinai' title with no notes; inherits all the contested-identification risk of slide 51 with no guardrail at all (the caution note only appears on 51).",
+        "Four consecutive 'Mount Sinai' slides (51-54) with no on-slide content visible here means the entire run rests on imagery whose identification may be disputed — magnifying the exposure."
+      ],
+      "suggestion": "Apply the slide-51 caution to every slide in the 51-54 run. If these are image slides of a specific mountain, ensure none of them assert it IS Sinai; label as 'traditional/candidate site' or keep purely illustrative of the narrative."
+    },
+    {
+      "slide": 53,
+      "soundness": "weak",
+      "merit": "weak",
+      "issues": [
+        "Third 'Mount Sinai' slide, no notes — same unguarded contested-site exposure as 51-52.",
+        "Without on-slide text it is impossible to confirm whether any factual claim is being made, but the cumulative weight of a 4-slide Sinai run on a disputed identification is a coherence and credibility liability ahead of the slide-55 'reliable track record' claim."
+      ],
+      "suggestion": "Same fix as 51-52: ensure no slide in this run claims a proven Sinai location. Consider whether four Sinai slides are even needed given the identification is the weakest link in the archaeology chain."
+    },
+    {
+      "slide": 54,
+      "soundness": "weak",
+      "merit": "weak",
+      "issues": [
+        "Fourth 'Mount Sinai' slide, no notes — closes the contested-site run immediately before the 'reliable track record' summary, so the deck moves from its weakest archaeological claim straight into its strongest summary assertion.",
+        "If any of 51-54 visually asserts a specific mountain as Sinai, a skeptic's last impression before slide 55 is the deck's most refutable claim."
+      ],
+      "suggestion": "Either tighten the 51-54 run to fewer slides or ensure it lands the Exodus/Sinai as narrative, not as a proven archaeological site, so slide 55's 'reliable track record' is earned by the consensus examples (Hittites/Tel Dan/Pilate), not undermined by a contested mountain."
+    },
+    {
+      "slide": 55,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "'reliable track record' is a fair summary of the strong examples (manuscript fidelity, Hittites, Tel Dan, Pilate) but it over-generalizes if the Exodus/Sinai segment (50-54) was presented as proven, because that segment is the weakest and most contested — the summary then claims more than the run delivered.",
+        "The claim covers textual reliability AND archaeological confirmation; a careful skeptic distinguishes 'the text is well-preserved' (strongly shown) from 'the events are archaeologically verified' (only partly shown). The slide blurs the two into one 'track record.'"
+      ],
+      "suggestion": "Keep the summary but make sure it is earned by the consensus-backed examples. If Exodus/Sinai were presented honestly as narrative/debated, this slide is solid. Consider scoping it to 'where it can be checked, it checks out' rather than an unqualified blanket 'reliable.'"
+    },
+    {
+      "slide": 56,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "As a transition question this is well-pitched and honest — it explicitly separates 'the text is reliable' (tonight's claim) from 'it claims/has divine origin' (the next test), which matches the honesty-card discipline on slide 45. No factual exposure.",
+        "Minor: it presupposes the prior slides established reliability strongly enough to make the divine-origin question feel earned; that depends on the 46/50-54 weaknesses being fixed."
+      ],
+      "suggestion": "Good pivot. Keep it — distinguishing 'preserved/accurate' from 'divine' is exactly the move that earns a skeptic's trust and sets up Night 2 cleanly."
+    },
+    {
+      "slide": 57,
+      "soundness": "weak",
+      "merit": "weak",
+      "issues": [
+        "On-slide text is just 'Yep!' — the answer to 'Does it claim Divine Origin?' The slide ASSERTS the conclusion with no on-slide support; the supporting reasoning (Scripture's self-claims of inspiration) lives only in presenter notes the audience never sees.",
+        "For a skeptical audience, 'Yep!' to a divine-origin question reads as glib and question-begging — it states the very thing in dispute as if settled. A skeptic's defense goes up immediately.",
+        "A book claiming divine origin is not evidence of divine origin; the slide risks letting the audience think the claim is being treated as the proof (the slide 58 note acknowledges this gap, but slide 57 alone overreaches)."
+      ],
+      "suggestion": "Reframe on-slide to something like 'Yes — every book of the Bible claims God as its source' so the audience sees the actual (modest) claim: it CLAIMS divine origin. Keep the tone honest that a claim is not yet proof — slide 58 then supplies the test."
+    },
+    {
+      "slide": 58,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": "Strong honest pivot — 'Can a book PROVE that?' concedes that a claim isn't proof and sets up the falsifiable test (predictive prophecy). This earns skeptic trust. Consider surfacing the note's key line ('one test no human author can fake') on-slide so the audience, not just the speaker, gets the logic."
+    },
+    {
+      "slide": 59,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "On-slide 'Does it work? Does it seek your good?' bundles criteria 3 and 5. The audience sees the questions but no framing that these are formal criteria from Night 1's list — coherence depends on the earlier criteria slides having labeled them clearly."
+      ],
+      "suggestion": "Optionally tag the criteria numbers on-slide (e.g., 'Practical (3) + Benevolent (5)') so the audience tracks this against the 5-criteria scaffold rather than experiencing it as two loose rhetorical questions."
+    },
+    {
+      "slide": 60,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "'10 Commandments' as the lead example of 'practical, livable principles' is defensible, but for a skeptical non-Christian several commandments are explicitly religious (no other gods, no graven images, sabbath) rather than universally 'practical.' Leading with the most contested commands under a 'does it work?' banner can trip a skeptic who notes that half of them are cultic, not ethical.",
+        "On-slide is a bare label with no claim stated; the 'easy to understand / practical applications' reasoning is speaker-only."
+      ],
+      "suggestion": "If the point is practicality to a secular audience, consider foregrounding the interpersonal commandments (don't murder, steal, lie, honor parents) as the 'works in the real world' examples, and handle the first-table commands elsewhere, so the practicality claim isn't immediately falsifiable in the skeptic's head."
+    },
+    {
+      "slide": 61,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "The Golden Rule is widely known to predate and exist outside the Bible (Confucius, Hillel, etc.). A skeptic may think 'that's not unique to the Bible' — if the slide is read as 'the Bible originated this,' it overreaches. The criterion here is 'does it work?' (practicality), not originality, so this is survivable, but the risk is real if tone implies uniqueness."
+      ],
+      "suggestion": "Keep the framing strictly on 'these principles work / are livable,' not 'the Bible invented this.' If uniqueness is implied anywhere, drop it — the cross-cultural presence of the Golden Rule actually supports 'it works universally,' which you can lean into instead."
+    },
+    {
+      "slide": 62,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "'It has shaped the legal framework of the world' is a sweeping causal claim a hostile fact-checker can contest: many legal foundations (Roman law, Hammurabi, Greek jurisprudence, common-law evolution) have non-biblical or pre-biblical roots. The note's examples (jury, witnesses, property, rehabilitation) are not cleanly traceable to the Bible — juries derive largely from English/Norman practice, not Scripture.",
+        "'the world' overreaches — much of the world's legal systems (Chinese, Japanese, Islamic, indigenous) were not biblically shaped. A skeptic hears Western-centric overclaim."
+      ],
+      "suggestion": "Soften to a defensible claim, e.g., 'It shaped Western legal principles' and/or cite the genuinely traceable contributions (equality before law, witness standards, limits on rulers). Avoid 'the world' and avoid attributing the jury system to the Bible."
+    },
+    {
+      "slide": 63,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "'Promoted literacy throughout the world' plus the note's claims are fact-check exposed: (a) 'first universities (Cambridge, Oxford) founded to study the Bible' is shaky — Bologna (oldest European university, law) predates them, medieval universities taught the broad trivium/quadrivium and law/medicine, not solely Bible; Oxford/Cambridge were not 'founded to study the Bible' simpliciter. (b) 'drove the adoption of the printing press' overstates — Gutenberg's Bible was the famous first product, but the press spread for commercial/administrative reasons too. (c) 'most translated book in the world' is true and defensible.",
+        "'throughout the world' again overreaches; literacy drives in East Asia, the Islamic world, etc., were not Bible-driven."
+      ],
+      "suggestion": "Keep only the bulletproof claims on-slide: 'most translated book in history' and the documented Protestant-literacy push (sola-scriptura cultures pushing mass reading). Drop or heavily qualify the 'universities founded to study the Bible' and 'drove the printing press' claims, which a skeptic can break."
+    },
+    {
+      "slide": 64,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "'Inspired social reforms like religious liberties' is largely defensible (abolition, religious-liberty movements had strong biblical-Christian drivers), but a skeptic will counter that the Bible was also invoked to DEFEND slavery and persecute dissenters. Presenting only the reform side without acknowledging the contested history risks looking selective to an intelligent skeptic.",
+        "Note claim 'improved the lives of millions regardless of whether they believe it' is fair but unfalsifiable as stated; fine as rhetoric, weak as evidence."
+      ],
+      "suggestion": "Consider a brief honest acknowledgment that the book has been misused, then argue the reform movements appealed to its OWN principles to correct that abuse — this disarms the obvious counter and looks more honest to a skeptic than a one-sided 'it inspired liberty' claim."
+    },
+    {
+      "slide": 65,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": "Excellent pivot — 'But does it FIX the problem?' honestly concedes that benevolent principles aren't the same as a working cure, and defers the hardest question (evil/suffering) to Night 3 rather than over-promising. This is trust-building. No change needed."
+    },
+    {
+      "slide": 66,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "Bare title 'Universal Application?' — coherence is fine as a section header for criterion 4 (universality), but with no on-slide content the audience can't tell what's being claimed until slide 67 supplies the verse."
+      ],
+      "suggestion": "Fine as a transitional header. Ensure slide 67 lands immediately so the question isn't left hanging."
+    },
+    {
+      "slide": 67,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "The on-slide quotes Mark 16:15 to establish 'universal application' (criterion 4). The verse proves the Bible CLAIMS a universal mandate — it does not prove universal applicability/acceptance, which is what 'Universal Application?' (slide 66) asks. Mild equivocation between 'commands universal preaching' and 'applies universally.'",
+        "Citation risk: Mark 16:15 sits in the 'longer ending of Mark' (16:9-20), which is absent from the earliest manuscripts (Sinaiticus, Vaticanus) and flagged as disputed in most modern critical editions. A prepared skeptic could note you're quoting a textually contested passage — awkward given slide 70 leans hard on manuscript reliability. Matthew 28:19 (the Great Commission) is textually secure and makes the same point.",
+        "The presenter note's PRECISION guard (don't claim 'only missionary faith') is correct and important — but it's speaker-only; ensure nothing on-slide implies uniqueness."
+      ],
+      "suggestion": "Swap to or add Matthew 28:19-20, which is textually undisputed and avoids the Mark 16 problem — especially since slide 70 stakes credibility on manuscript fidelity. Keep the framing to 'the Bible's own commission is universal,' not 'applies to/accepted by all.'"
+    },
+    {
+      "slide": 68,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "On-slide is just the objection 'But it's outdated' with no visible rebuttal — the strong answer ('age isn't a defect, DRIFT is; Plato/Aristotle are old and still used') is speaker-only. The audience sees an unanswered objection unless the speaker delivers the note well.",
+        "The note's analogy (we still study Plato/Aristotle) is rhetorically strong but slightly imperfect: we study ancient philosophers as objects of study and freely disagree with them, not as binding standards — a sharp skeptic may notice the disanalogy between 'still read' and 'still authoritative.'"
+      ],
+      "suggestion": "Put the rebuttal kernel on-slide ('Age isn't the defect — DRIFT is'), so the audience receives the argument visually, not only if the speaker nails the delivery."
+    },
+    {
+      "slide": 69,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "On-slide shows only the objection 'It was written by men'; the genuinely strong rebuttal (every textbook is human-written; 'human-authored' ≠ disqualified, 'limited TO human knowledge' would be) is speaker-only. Audience sees a bare unanswered objection.",
+        "The rebuttal cleverly defers the real test to Night 2 (does it exceed human knowledge?) — coherent and honest, but it means slide 69 doesn't actually resolve the objection on its own; it relies on a promissory note for tomorrow."
+      ],
+      "suggestion": "Surface the core line on-slide: ''Written by humans' doesn't disqualify a source — being LIMITED to human knowledge would.' That gives the audience the logical move and sets up Night 2 explicitly."
+    },
+    {
+      "slide": 70,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "Citation risk on the speaker numbers: '5,800+ Greek NT manuscripts' is a commonly cited figure (~5,800) and defensible, but it counts fragments-to-full copies of wildly varying size — a hostile fact-checker can note it's not 5,800 complete Bibles. State it as 'Greek NT manuscripts/fragments' to be precise.",
+        "'Dead Sea Scrolls a thousand years older than the medieval Hebrew text and over 95% identical' — the famous Great Isaiah Scroll comparison is real and strong, but '95% identical / differences mostly spelling' is a popular summary that scholars nuance (variants exist beyond spelling; the DSS also contain divergent text-types for some books). Defensible as a headline but a specialist could press the '95%' and 'mostly spelling' precision.",
+        "Coherence tension with slide 67: slide 70 stakes the whole 'we know we're reading what the authors wrote' claim on manuscript fidelity, while slide 67 quotes Mark 16:15 — a passage whose authenticity manuscripts call into question. A prepared skeptic could use slide 70's own standard against slide 67.",
+        "These figures are speaker-only; if the audience is to be persuaded by the evidence, the headline numbers should be visible on-slide (note says 'we already did tonight,' implying an earlier evidence slide — ensure that slide carried the numbers)."
+      ],
+      "suggestion": "Tighten wording to 'manuscripts and fragments' and 'substantially identical (most differences are spelling),' avoiding a hard '95%' that invites a specialist rebuttal. Resolve the slide 67 tension by moving to Matthew 28:19 there. Ensure the manuscript numbers appear on a visible slide, since this is your strongest factual card."
+    },
+    {
+      "slide": 71,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "On-slide text is only the title 'I had a bad experience.' The argument that this objection is about the people not the standard lives entirely in the presenter notes — the audience SEES nothing but a bare objection label, so on-slide there is no claim to be unsound. The risk is purely visual/flow: a slide reading 'I had a bad experience' with no resolution text leans entirely on the speaker."
+      ],
+      "suggestion": "Consider adding a one-line on-slide takeaway (e.g., 'Being failed by people tells you about the people, not the standard') so the visual reinforces the spoken point rather than leaving the bare objection on screen. As-is the soundness is fine since the slide makes no on-screen argument."
+    },
+    {
+      "slide": 72,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [
+        "Again the on-slide text is only the title 'People are flawed' — the substantive argument (judge the standard by what it says, the Bible predicts/condemns corruption, medicine/malpractice analogy) is speaker-only. No on-screen overreach.",
+        "Coherence note: slides 71 and 72 are near-identical moves (hurt by people / people are flawed) both resolving to the same 'judge the standard not the violators' point. To a skeptic two back-to-back bare objection labels with no on-screen payoff may read as filler."
+      ],
+      "suggestion": "Either merge 71 and 72 into one 'objections about people, not the text' beat, or give each a distinct on-slide resolution line so the repetition reads as cumulative rather than redundant."
+    },
+    {
+      "slide": 73,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "On-slide title 'Truth is not' is a dangling fragment with no body text and no presenter notes. As shown, the audience sees an incomplete sentence with no completion — this is either a build/animation placeholder or a genuinely empty slide. A skeptic sees a half-thought.",
+        "No presenter notes means even the speaker has no scripted resolution, so coherence with the surrounding flow (objections 71-72 -> New Age 74) cannot be verified."
+      ],
+      "suggestion": "Complete the thought on-slide (e.g., 'Truth is not... a feeling, a vote, or whatever works for you') or cut the slide. Do not leave a sentence fragment on screen."
+    },
+    {
+      "slide": 74,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "Factual/citation: the 62% Pew figure (Oct 2018, 'New Age beliefs common among both religious and nonreligious Americans') is real and correctly attributed — low fact-check risk. Good that the weaker YouGov 87% was dropped.",
+        "Minor precision risk: Pew's actual wording is 'at least one of four New Age beliefs.' The slide's gloss 'spiritual energy in objects, psychics, reincarnation, or astrology' is faithful, but 'spiritual energy in objects' compresses Pew's 'spiritual energy located in physical things' — close enough, not breakable.",
+        "Soundness/relevance: the slide states a statistic but the on-slide text does not state the inference (that culture credulously accepts New Age claims while demanding proof of the Bible). The argumentative work is in the notes; on-screen it's a bare stat whose relevance to the 'standard' thread is not spelled out."
+      ],
+      "suggestion": "Add a one-line on-slide framing tying the stat to the double-standard point (e.g., 'We accept this with zero proof — yet demand proof of the Bible'), so the number lands as an argument rather than trivia."
+    },
+    {
+      "slide": 75,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "On-slide title is '(none)' and there is no on-slide body — the entire double-standard argument (wellness industry, influencers, 'hold this book to the same standard') is speaker-only. This is the strongest argumentative beat of this run, yet the audience SEES nothing. High risk that a load-bearing point is delivered with no visual anchor.",
+        "The spoken claim 'it survives it' / 'hold THIS book to the same standard... it survives it' asserts the conclusion before Night 2's evidence — but since it's speaker-only and framed as a promissory 'tonight I am asking,' it reads as a thesis statement, not an overreach."
+      ],
+      "suggestion": "Give this slide on-screen text — even a single line stating the double standard ('We demand of the Bible a proof we never ask of the sources we already trust'). A blank slide under the deck's single most persuasive line wastes it."
+    },
+    {
+      "slide": 76,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "The wager question on-slide is clean and fair: 'If a source met all five — would you follow it?' For a skeptic this is well-judged — it asks for conditional commitment, not conversion.",
+        "Soundness caveat (speaker-only, not on-slide): the note's claim that answering 'no' is 'not skepticism; that is a commitment to disbelief' is a slight overreach — a genuine skeptic could answer 'no' for reasons other than closed-mindedness (e.g., disputing that any source could meet all five, or rejecting 'benevolent/seeking your good' as verifiable). Since this is speaker-only it won't appear on screen, but if delivered as written it risks tripping the very defenses the wager is trying to disarm. The on-slide text itself is sound.",
+        "The five criteria are referenced as 'all five' — the on-slide question assumes the audience retained the five criteria from earlier in the night. Fine if slide order keeps them fresh."
+      ],
+      "suggestion": "On-slide text is good as-is. Flag for the presenter: soften the spoken 'commitment to disbelief' line, which can read as accusing the honest skeptic of bad faith — the wager lands harder as an invitation than as a verdict on their character."
+    },
+    {
+      "slide": 77,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "On-slide line 'Commit to the standard — not to a religion' is well-pitched for the audience: it lowers the threat by asking for intellectual honesty rather than allegiance, and it coheres directly with the wager on 76.",
+        "No on-slide overreach; the testable-prediction framing ('hypothesis, assumptions, testable predictions, evidence') is speaker-only and accurately previews Night 2."
+      ],
+      "suggestion": "None. This slide does its job — keep it."
+    },
+    {
+      "slide": 78,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [
+        "On-slide 'See for yourself' is a fitting close and coheres with the 'test it yourself' thread.",
+        "Minor merit tension: the speaker note 'see what an open heart and a willing mind can do to change your life' shifts from the night's evidential/skeptic-friendly register ('test it like any claim') toward a devotional/experiential appeal. For a skeptical audience this pivot, if voiced, slightly undercuts the 'commit to the standard, not a religion' promise from 77 — it presumes the outcome (life change) before the trial. This is speaker-only, so the on-slide text is clean.",
+        "'Bring your skepticism. You'll need it less than you think' (speaker-only) again presumes the verdict; charming but assumes what Night 2 must earn."
+      ],
+      "suggestion": "On-slide text is fine. Advise the presenter to keep the closing line in the evidential register established by 76-77 ('come test it') rather than the experiential 'change your life,' so the handoff to Night 2 stays consistent with the wager just made."
+    }
+  ]
+}

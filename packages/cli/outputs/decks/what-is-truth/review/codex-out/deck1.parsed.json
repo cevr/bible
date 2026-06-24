@@ -1,0 +1,677 @@
+{
+  "deck": 1,
+  "reviews": [
+    {
+      "slide": 1,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 2,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 3,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 4,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "Presenter note says \"wars and rumours of wras\"; the typo is speaker-only, but it can still trip delivery."
+      ],
+      "suggestion": "Fix the note to \"wars and rumours of wars.\""
+    },
+    {
+      "slide": 5,
+      "soundness": "weak",
+      "merit": "weak",
+      "issues": [
+        "The note claims \"This is the source of all the controversy - a difference in truth,\" which overexplains all social conflict through truth-claims and ignores power, fear, resources, trauma, and incentives.",
+        "For skeptics, \"we fight for what we believe to be true\" may feel reductionistic before the argument has earned that claim."
+      ],
+      "suggestion": "Soften to: \"Many of our deepest conflicts expose a deeper question: what standard are we appealing to when we say something is right or wrong?\""
+    },
+    {
+      "slide": 6,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 7,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 8,
+      "soundness": "adequate",
+      "merit": "weak",
+      "issues": [
+        "The slide leans on Barna, Arizona Christian University, CBN, and AWVI; a skeptical audience may see those as advocacy sources unless the survey method and primary links are made clear.",
+        "\"3 in 4 Americans (75%) say they decide moral truth by their feelings\" is a high-friction claim and needs exact wording from the source, because \"feelings\" can be a paraphrase that a fact-checker challenges.",
+        "The note's claim that \"three quarters have abandoned any METHOD\" overreaches the visible statistic; relying on feelings does not prove someone has no method at all."
+      ],
+      "suggestion": "Use one or two primary-source stats with neutral wording, sample size, date, and a short conclusion like: \"Many Americans locate moral authority internally.\""
+    },
+    {
+      "slide": 9,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 10,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 11,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 12,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 13,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 14,
+      "soundness": "broken",
+      "merit": "weak",
+      "issues": [
+        "\"Assumes humans have no capacity for evil\" is a strawman. Moral relativism does not require believing humans are incapable of evil; it usually questions whether moral claims are objective."
+      ],
+      "suggestion": "Change to: \"Cannot name evil as objectively wrong.\""
+    },
+    {
+      "slide": 15,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "\"To tolerate everything means you allow everything\" equivocates between tolerance as social humility and tolerance as unrestricted permission.",
+        "A moral relativist can still use legal, harm-based, or communal standards, so \"what standard would exist?\" needs to target objectivity, not all standards."
+      ],
+      "suggestion": "Frame the issue as: \"What makes intolerance itself wrong, not merely disliked by our group?\""
+    },
+    {
+      "slide": 16,
+      "soundness": "weak",
+      "merit": "weak",
+      "issues": [
+        "The note says \"universally hated\" and \"moral relativism would make it this is okay,\" but that jumps from \"not objectively wrong\" to \"okay,\" which is not the same claim.",
+        "Because the audience sees no text in the extract, the argument depends entirely on an unspecified example or image."
+      ],
+      "suggestion": "Ask the room: \"If nearly everyone condemns this, is it only unpopular, or actually wrong?\""
+    },
+    {
+      "slide": 17,
+      "soundness": "broken",
+      "merit": "weak",
+      "issues": [
+        "\"The holocaust was considered a cultural practice\" is historically and rhetorically risky; the Holocaust was a state genocide, not merely a cultural practice.",
+        "Using \"some deny it happened\" in this argument adds heat without improving the logic."
+      ],
+      "suggestion": "Say: \"The Holocaust forces the question: can a society normalize something that is still objectively evil?\""
+    },
+    {
+      "slide": 18,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "\"Slavery was considered a cultural institution\" is true in broad terms, but the slide needs the moral point stated carefully so it does not imply every relativist must approve slavery."
+      ],
+      "suggestion": "Tie it to the standard question: \"If a culture legalizes slavery, what higher standard lets us condemn it?\""
+    },
+    {
+      "slide": 19,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 20,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "The examples \"the internet,\" \"GPS,\" and \"microwave oven\" show morally mixed or beneficial byproducts of military research, so they do not cleanly support the warning that progress can move toward destruction.",
+        "The microwave note is careful, but it still distracts from the moral argument because the example is an accident that helped people."
+      ],
+      "suggestion": "Use examples where technical progress directly magnified harm, such as industrialized warfare, chemical weapons, or nuclear delivery systems."
+    },
+    {
+      "slide": 21,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "\"Completely destroy everyone alive using nuclear weapons\" is an overstatement a hostile fact-checker could challenge; nuclear war could destroy civilization without literally killing every person."
+      ],
+      "suggestion": "Say \"destroy civilization\" or \"cause catastrophic global loss of life\" instead of \"destroy everyone alive.\""
+    },
+    {
+      "slide": 22,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 23,
+      "soundness": "weak",
+      "merit": "weak",
+      "issues": [
+        "\"Ultimately in a relative world any end justifies any means\" overstates the case; many non-absolutist moral systems still reject harmful experimentation through consent, harm, rights, or law.",
+        "Pairing Nazi human experimentation with animal research may feel rhetorically manipulative unless the distinction is handled carefully."
+      ],
+      "suggestion": "Narrow the claim: \"Without a line higher than outcomes, progress can be used to excuse harms we later recognize as evil.\""
+    },
+    {
+      "slide": 24,
+      "soundness": "weak",
+      "merit": "weak",
+      "issues": [
+        "\"Criminals like serial killers and child abusers are exercising their autonomy\" conflates autonomy with violating another person's autonomy and rights.",
+        "The examples are so emotionally charged that skeptical listeners may hear the point as a smear rather than a reasoned critique."
+      ],
+      "suggestion": "Use: \"Autonomy is good, but it must answer to a standard when one person's freedom harms another.\""
+    },
+    {
+      "slide": 25,
+      "soundness": "broken",
+      "merit": "weak",
+      "issues": [
+        "\"Moral relativism promotes tolerance to these things\" is a strawman; a relativist can still oppose harassment or abuse from a harm-based framework.",
+        "\"You cannot use morality to justify your actions unless you believe in absolute morality\" overreaches; people can use moral reasoning without grounding it in absolutes."
+      ],
+      "suggestion": "Ask: \"When intervention is costly, what makes it an obligation rather than a preference?\""
+    },
+    {
+      "slide": 26,
+      "soundness": "weak",
+      "merit": "weak",
+      "issues": [
+        "The divorce statistic may be defensible, but \"usually a collision of two private moral standards\" is unsupported and risks alienating divorced listeners.",
+        "Using marriage failure as proof against relativism turns a painful personal reality into an argument before establishing causation."
+      ],
+      "suggestion": "Remove the divorce example or replace it with a less personal case where private standards clearly collide with public accountability."
+    },
+    {
+      "slide": 27,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 28,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "The analogy from physics and mathematics to morality is suggestive, but \"so too should our moral truth\" does not logically follow by itself.",
+        "A skeptic may object that natural laws describe what is, while moral laws prescribe what ought to be."
+      ],
+      "suggestion": "Reframe as a testable need: \"If moral truth is going to judge us, it cannot be authored only by the people being judged.\""
+    },
+    {
+      "slide": 29,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 30,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 31,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 32,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "The slide sequence says \"whether we are rich or poor,\" but the cited note discusses Milgram, Burger, authority, crowds, and diffusion of responsibility, not wealth or poverty.",
+        "\"About 70%\" for Milgram/Burger needs careful wording because Burger's 2009 replication used a 150-volt stopping point, not the full original procedure.",
+        "\"2019 CCTV research\" is too vague for a factual claim in speaker notes."
+      ],
+      "suggestion": "Limit the spoken claim to authority and group pressure, or add a precise wealth/poverty study if that slide is meant to make an economic point."
+    },
+    {
+      "slide": 33,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 34,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 35,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "\"End of Part 1\" may feel like the event is ending even though the deck continues for 43 more slides."
+      ],
+      "suggestion": "Rename the transition to \"Five Tests for Truth\" or \"So What Would a Standard Need?\""
+    },
+    {
+      "slide": 36,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 37,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 38,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "\"Practical\" is useful for a moral standard, but it is not obviously a criterion for whether something is true; a hard truth may still be true even if costly."
+      ],
+      "suggestion": "Clarify the criterion as \"Livable and fruitful in practice,\" not merely \"true because practical.\""
+    },
+    {
+      "slide": 39,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "The note \"targets anyone\" sounds hostile and imprecise for a criterion meant to be universal."
+      ],
+      "suggestion": "Use \"applies to anyone\" or \"addresses all people.\""
+    },
+    {
+      "slide": 40,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "\"A true external standard must seek YOUR good\" is appealing but not proven; truth and benevolence are related here by assertion.",
+        "\"A standard that costs its makers everything\" starts to smuggle in the Bible's later case before the criterion has been defended."
+      ],
+      "suggestion": "Define benevolence as a criterion for trustworthy moral authority: \"It must not exploit the people it judges; it must aim at their restoration.\""
+    },
+    {
+      "slide": 41,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 42,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 43,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "\"66 Books / 40 Authors / 1500 years\" are traditional rounded claims, but they need cautious phrasing because authorship and dating are debated.",
+        "\"Consistent\" is asserted rather than demonstrated on the slide.",
+        "The note \"The oldest ones are from the 6th century BC!\" is ambiguous and factually risky: oldest texts, oldest manuscripts, or oldest books are different claims."
+      ],
+      "suggestion": "Say \"A library of 66 books, written across more than a millennium, yet centered on one moral and redemptive storyline.\""
+    },
+    {
+      "slide": 44,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "\"Dead Sea Scrolls (c. 100 BC)\" compresses a wider date range and may be challenged.",
+        "\"Over 95% identical to the medieval Hebrew text\" is strongest for specific texts like Isaiah; as written under \"Old Testament,\" it can sound like the entire Old Testament is uniformly 95% identical."
+      ],
+      "suggestion": "Make the claim more precise: \"The Great Isaiah Scroll, over 1,000 years older than the medieval Masoretic text, is about 95% identical, with most differences spelling or minor variants.\""
+    },
+    {
+      "slide": 45,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "\"5,800+ Copies\" should specify Greek manuscripts or fragments; many are not complete New Testament copies."
+      ],
+      "suggestion": "Change on-slide text to \"5,800+ Greek manuscripts and fragments.\""
+    },
+    {
+      "slide": 46,
+      "soundness": "weak",
+      "merit": "weak",
+      "issues": [
+        "The Glueck quote \"no archaeological discovery has ever controverted a Biblical reference\" is too absolute and old enough to be attacked as rhetorical rather than evidential.",
+        "The speaker note admits scholars debate items like the Exodus route, so the on-slide quote overclaims beyond the deck's own caution."
+      ],
+      "suggestion": "Replace the quote with the modest claim the notes already defend: \"Archaeology has repeatedly confirmed named people, places, and settings in the Bible.\""
+    },
+    {
+      "slide": 47,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "The note says critics \"waved off\" the Hittites as fiction; that needs the included nuance that Egyptian records also mentioned them, or a skeptic may hear it as an apologetic legend."
+      ],
+      "suggestion": "Say: \"Some 19th-century critics doubted the Bible's Hittite references; later archaeology showed a major Hittite civilization.\""
+    },
+    {
+      "slide": 48,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 49,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 50,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "As a stand-alone slide, \"Exodus\" signals a major evidential claim but provides no claim or limitation yet."
+      ],
+      "suggestion": "Use it only as a transition, or add the precise question: \"What can and cannot be claimed from Exodus evidence?\""
+    },
+    {
+      "slide": 51,
+      "soundness": "weak",
+      "merit": "weak",
+      "issues": [
+        "The notes warn that if the imagery shows Jabal al-Lawz, that identification is disputed and mainstream scholarship rejects Wyatt/Cornuke claims; staking credibility here undercuts the fact-checking posture."
+      ],
+      "suggestion": "Either remove the Mount Sinai location claim or label it explicitly as \"candidate location, disputed\" and avoid making it evidential."
+    },
+    {
+      "slide": 52,
+      "soundness": "weak",
+      "merit": "weak",
+      "issues": [
+        "A repeated \"Mount Sinai\" slide with no visible qualification risks implying a proven site after the prior note says the identification may be disputed."
+      ],
+      "suggestion": "Add visible caution language or replace the slide with stronger archaeological examples."
+    },
+    {
+      "slide": 53,
+      "soundness": "weak",
+      "merit": "weak",
+      "issues": [
+        "A third \"Mount Sinai\" slide compounds the same issue: a skeptical audience may see contested geography presented as evidence."
+      ],
+      "suggestion": "Do not spend multiple slides on disputed Sinai-site material unless the point is explicitly about uncertainty."
+    },
+    {
+      "slide": 54,
+      "soundness": "weak",
+      "merit": "weak",
+      "issues": [
+        "A fourth \"Mount Sinai\" slide gives too much weight to the weakest evidential thread in the Bible reliability section."
+      ],
+      "suggestion": "Cut or compress these slides and move time to Tel Dan, Pilate, manuscript fidelity, or other better-attested examples."
+    },
+    {
+      "slide": 55,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "\"The Bible has a reliable track record\" is directionally supported by some prior examples, but the contested Mount Sinai sequence and absolute Glueck quote make the conclusion broader than the evidence shown."
+      ],
+      "suggestion": "Say \"The Bible has a track record worth testing\" to preserve credibility."
+    },
+    {
+      "slide": 56,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 57,
+      "soundness": "weak",
+      "merit": "weak",
+      "issues": [
+        "\"Yep!\" is too casual for a skeptical audience at a major claim point.",
+        "The note says \"throughout all the books of the bible God is considered the source and inspiration,\" but not every biblical book explicitly makes that claim in the same way."
+      ],
+      "suggestion": "Use a sober claim with a citation: \"The Bible repeatedly claims divine origin\" plus 2 Timothy 3:16 or 2 Peter 1:21."
+    },
+    {
+      "slide": 58,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "\"Every page of this Book claims God as its source\" is an overstatement.",
+        "\"There is exactly one test no human author can fake\" overclaims; prophecy can be vague, self-fulfilled, postdated, or misread unless the test is tightly defined.",
+        "\"With dates\" previews a strong prophecy test, but if tomorrow's examples do not actually include clear dates, this will create a credibility problem."
+      ],
+      "suggestion": "Say: \"One serious test is specific, written prophecy demonstrably given before the events it describes.\""
+    },
+    {
+      "slide": 59,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 60,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 61,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 62,
+      "soundness": "weak",
+      "merit": "weak",
+      "issues": [
+        "\"It has shaped the legal framework of the world\" is too broad; jury systems, witnesses, property rights, and rehabilitation have complex sources beyond the Bible.",
+        "A hostile fact-checker can break the word \"world\" by pointing to non-biblical legal traditions."
+      ],
+      "suggestion": "Narrow to: \"Biblical ethics helped shape major parts of Western legal and moral thought\" and use one concrete example."
+    },
+    {
+      "slide": 63,
+      "soundness": "weak",
+      "merit": "weak",
+      "issues": [
+        "\"Promoted literacy throughout the world\" is broad but plausible only with examples; the slide gives none.",
+        "\"It drove the adoption of the printing press\" oversimplifies printing history.",
+        "\"First universities (cambridge, oxford, etc) founded to study bible\" is factually risky and too simplified; universities had broader legal, clerical, philosophical, and institutional purposes."
+      ],
+      "suggestion": "Replace with precise examples: Bible translation movements, vernacular literacy, missionary schools, and the Gutenberg Bible as an early major printed book."
+    },
+    {
+      "slide": 64,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "\"Inspired social reforms like religious liberties\" is plausible, but the notes' \"improved the lives of millions and millions\" needs concrete examples to avoid sounding like a slogan.",
+        "The deck should acknowledge mixed religious history if speaking to skeptics; otherwise this can feel selective."
+      ],
+      "suggestion": "Give one or two named reforms and say \"at its best, biblical principles have inspired...\""
+    },
+    {
+      "slide": 65,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "\"Tonight: the candidate qualifies\" overstates the result because several criteria have only been sketched or asserted, not fully established.",
+        "\"It protects the weak, rebukes kings, costs its writers everything\" is asserted in the notes more than demonstrated in the prior slides."
+      ],
+      "suggestion": "Say \"Tonight: the candidate is worth testing. Tomorrow: divine origin. Night 3: the fix.\""
+    },
+    {
+      "slide": 66,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 67,
+      "soundness": "adequate",
+      "merit": "weak",
+      "issues": [
+        "Using Mark 16:15 as the visible proof text is risky because Mark 16:9-20 is textually disputed in many modern Bibles.",
+        "The notes already have a safer cross-reference in Matthew 28:19."
+      ],
+      "suggestion": "Use Matthew 28:19 on-slide as the primary text, and mention Mark 16:15 only if you address the textual issue."
+    },
+    {
+      "slide": 68,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 69,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 70,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "\"We KNOW we are reading what the authors wrote\" overstates textual certainty; textual criticism gives very high confidence, not omniscience.",
+        "Manuscript counts and Dead Sea Scrolls support textual stability, but they do not erase all meaningful variants."
+      ],
+      "suggestion": "Say: \"We can reconstruct the text with unusually high confidence, and the known variants are transparent rather than hidden.\""
+    },
+    {
+      "slide": 71,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "\"Your outrage proves you already believe in a standard\" is a valid philosophical move, but after acknowledging pain it may feel like using someone's wound to score a point."
+      ],
+      "suggestion": "Soften to: \"That outrage points back to the question of what standard was violated.\""
+    },
+    {
+      "slide": 72,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 73,
+      "soundness": "weak",
+      "merit": "weak",
+      "issues": [
+        "\"Truth is not\" is incomplete as visible text; without a subtitle, image, or next phrase, the audience may not know what claim is being made."
+      ],
+      "suggestion": "Complete the thought on-slide, or use it only as an animation build where the next words appear immediately."
+    },
+    {
+      "slide": 74,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "The title \"Rising New Age Beliefs\" makes a trend claim, but the slide gives only one 2018 Pew snapshot.",
+        "The body claim is stronger than the title: it shows commonness, not increase."
+      ],
+      "suggestion": "Change the title to \"New Age Beliefs Are Common\" unless you add trend data."
+    },
+    {
+      "slide": 75,
+      "soundness": "weak",
+      "merit": "weak",
+      "issues": [
+        "\"Zero scrutiny, zero accountability, no documentation\" is too absolute; wellness and spiritual claims often lack scrutiny, but \"zero\" is easy to disprove.",
+        "\"We eat those up without asking for a single footnote\" risks insulting the audience rather than inviting self-examination.",
+        "\"It survives it\" concludes too much before Night 2's divine-origin test."
+      ],
+      "suggestion": "Say: \"We often give modern spiritual claims far less scrutiny than we demand of the Bible; tonight I am asking for one consistent standard.\""
+    },
+    {
+      "slide": 76,
+      "soundness": "weak",
+      "merit": "weak",
+      "issues": [
+        "\"If the answer is no, then no amount of evidence will ever matter\" is a false dilemma; someone could reject the proposed criteria because they are insufficient or unclearly met.",
+        "\"That is not skepticism; that is a commitment to disbelief\" may feel manipulative to the exact skeptical audience you are trying to earn."
+      ],
+      "suggestion": "Ask instead: \"If not, what kind of evidence would be enough? If yes, then let's keep testing the candidate honestly.\""
+    },
+    {
+      "slide": 77,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "\"If it fails, you have lost nothing\" may understate the real cost of time, attention, and vulnerability for skeptical attendees, but the overall invitation is fair."
+      ],
+      "suggestion": "Say: \"If it fails, you have at least tested it honestly. If it passes, you already know the next honest step.\""
+    },
+    {
+      "slide": 78,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "\"You'll need it less than you think\" can sound smug to skeptics after asking them to bring skepticism.",
+        "\"See what an open heart and a willing mind can do to change your life\" shifts from testable inquiry to conversion language before Night 2 has done the evidential work."
+      ],
+      "suggestion": "End with: \"Bring your skepticism. Tomorrow, the Book goes on trial.\""
+    }
+  ]
+}

@@ -1,0 +1,924 @@
+{
+  "deck": 2,
+  "reviews": [
+    {
+      "slide": 1,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 2,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "The recap asserts 'relative truth collapses under real evil' and 'the Bible — a reliable record' without evidence on this slide; it works only for people who heard Night 1."
+      ],
+      "suggestion": "Label this explicitly as recap and keep the proof load on tonight's prophecy test."
+    },
+    {
+      "slide": 3,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 4,
+      "soundness": "adequate",
+      "merit": "weak",
+      "issues": [
+        "The audience sees no on-slide content, so the transition about many religious writings depends entirely on spoken explanation."
+      ],
+      "suggestion": "Add a visible line such as 'Many books claim truth. What would make one testable?'"
+    },
+    {
+      "slide": 5,
+      "soundness": "adequate",
+      "merit": "weak",
+      "issues": [
+        "The on-slide body appears to contain only a broken placeholder glyph, so 'Prophecy' has no visible explanation for why it is the chosen test."
+      ],
+      "suggestion": "Remove the placeholder and add a short definition: 'Specific prediction, written before fulfillment.'"
+    },
+    {
+      "slide": 6,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "Amos 3:7 and John 14:29 show the Bible's own stated test, but by themselves they can sound circular to skeptical non-Christians."
+      ],
+      "suggestion": "Add framing: 'The Bible invites this test.'"
+    },
+    {
+      "slide": 7,
+      "soundness": "adequate",
+      "merit": "weak",
+      "issues": [
+        "The slide has no audience-visible content; the key distinction between ordinary prophecy claims and biblical prophecy is only in notes."
+      ],
+      "suggestion": "Put the distinction on screen: 'Specificity + timing.'"
+    },
+    {
+      "slide": 8,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 9,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 10,
+      "soundness": "adequate",
+      "merit": "weak",
+      "issues": [
+        "The long Isaiah quotation has malformed nested quotation marks and no date/context, so the skeptical audience cannot yet see why Cyrus is evidentially important."
+      ],
+      "suggestion": "Split the quote and highlight only 'Cyrus,' 'Jerusalem,' and 'temple foundation.'"
+    },
+    {
+      "slide": 11,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "'Fulfilled when Cyrus issued the decree in 538 BC' overstates the case unless the audience already grants pre-Cyrus authorship of Isaiah 44-45; the notes admit the Deutero-Isaiah objection but the slide does not.",
+        "'Order Jerusalem rebuilt' is broader than Ezra 1:1-4, which is mainly return and temple rebuilding."
+      ],
+      "suggestion": "Reframe as 'If Isaiah 44-45 predates Cyrus, this is a named prediction; the text itself stakes God's case on prediction.'"
+    },
+    {
+      "slide": 12,
+      "soundness": "weak",
+      "merit": "weak",
+      "issues": [
+        "'Thou shalt be built no more' plus 'The ancient site lies bare rock' is vulnerable because modern Tyre/Sour exists and ancient Tyre included island and mainland phases.",
+        "The notes narrow the claim to the original walled mainland site, but the slide does not, so a hostile fact-checker can call it misleading."
+      ],
+      "suggestion": "Say 'Old mainland Tyre was scraped for Alexander's causeway and never rebuilt as that city-site.'"
+    },
+    {
+      "slide": 13,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "'Egypt ... fell to Babylon' is historically compressed and could be challenged because Egypt's decline was not simply a permanent Babylonian conquest."
+      ],
+      "suggestion": "Use the narrower claim: 'Egypt survived but never regained its old imperial dominance after the successive Babylonian/Persian/Greek/Roman era.'"
+    },
+    {
+      "slide": 14,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "'Never be inhabited' and '~2,000 years' are defensible only if limited to ancient Babylon as a living city, not the surrounding region, tourism, or restorations."
+      ],
+      "suggestion": "Change to 'Ancient Babylon has never been reinhabited as a living metropolis on that ruin site.'"
+    },
+    {
+      "slide": 15,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 16,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "The notes say Daniel was captive 'after they destroyed Jerusalem,' but Daniel's captivity is normally placed before Jerusalem's final destruction.",
+        "'605 BC -> 536 BC' is not 'exactly' 70 years by simple subtraction, so the precision claim is fact-checkable."
+      ],
+      "suggestion": "Say Daniel was taken in the Babylonian captivity before Jerusalem's final fall, and describe the 70 years as a conventional/inclusive prophetic period rather than pressing 'exactly' on 605-536."
+    },
+    {
+      "slide": 17,
+      "soundness": "adequate",
+      "merit": "weak",
+      "issues": [
+        "The audience sees no content and there are no notes, so the slide contributes nothing to the argument."
+      ],
+      "suggestion": "Remove it or make it a visual transition into Daniel 9."
+    },
+    {
+      "slide": 18,
+      "soundness": "weak",
+      "merit": "weak",
+      "issues": [
+        "'Over 300 prophecies' depends heavily on counting method and can sound inflated without qualification.",
+        "'1 in 10^17' relies on Stoner's estimated inputs; the notes admit the inputs are estimates, but the slide presents the number as hard probability.",
+        "'Josephus, Tacitus, Pliny the Younger' is not a complete claim, and Pliny does not do the same work as Tacitus on Jesus' execution."
+      ],
+      "suggestion": "Replace with a conservative claim: 'Ancient non-Christian sources attest Jesus and the early Christian movement; probability calculations are illustrative, not load-bearing.'"
+    },
+    {
+      "slide": 19,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 20,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "The notes move from Daniel thinking about 70 years to 'the sevens were years' too quickly; that is a hypothesis, not a proved conclusion yet."
+      ],
+      "suggestion": "Say 'Daniel is already thinking in years, so years become our test hypothesis.'"
+    },
+    {
+      "slide": 21,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 22,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 23,
+      "soundness": "adequate",
+      "merit": "weak",
+      "issues": [
+        "The audience sees no content and there are no notes, so the slide creates a dead spot in the logical flow."
+      ],
+      "suggestion": "Remove it or use it to introduce 'What is a week?'"
+    },
+    {
+      "slide": 24,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "'Shabuim' should be transliterated more carefully as 'shavuim' or 'shabu'im'; a knowledgeable listener may notice the rough spelling."
+      ],
+      "suggestion": "Use 'Weeks = Hebrew shavuim/shabu'im, literally sevens or heptads.'"
+    },
+    {
+      "slide": 25,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 26,
+      "soundness": "adequate",
+      "merit": "weak",
+      "issues": [
+        "This repeats Slide 20 almost exactly, which slows the argument before the hypothesis is tested."
+      ],
+      "suggestion": "Delete this duplicate or replace it with a one-line bridge from Jeremiah's 70 years to Daniel's 70 sevens."
+    },
+    {
+      "slide": 27,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "Numbers 14:34 and Ezekiel 4:6 provide biblical precedents for day-year symbolism, but the slide title 'Day-Year Principle' can sound like it has already proved universal application."
+      ],
+      "suggestion": "Retitle to 'Biblical precedent for day-year symbolism.'"
+    },
+    {
+      "slide": 28,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "'It is logical' slightly overstates the inference from Daniel 9:2; the argument is plausible and testable, not self-evident."
+      ],
+      "suggestion": "Change 'it is logical' to 'it is plausible enough to test.'"
+    },
+    {
+      "slide": 29,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "'Prophetic time often employs symbolic units' and 'requiring a timescale larger than literal days' are interpretive assumptions; the slide is honest to label them assumptions, but they still need testing."
+      ],
+      "suggestion": "Keep the heading 'Assumptions' and make clear the next slides will test them against dates."
+    },
+    {
+      "slide": 30,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 31,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "'Starting Point: Restore Jerusalem' is imprecise; Daniel 9:25 says the command to restore and build Jerusalem, not the completed restoration itself."
+      ],
+      "suggestion": "Change to 'Starting point: decree to restore and build Jerusalem.'"
+    },
+    {
+      "slide": 32,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 33,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 34,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "'This is the only decree that truly fulfills Daniel 9:25' is too absolute for a disputed chronological argument.",
+        "'Restore the Jewish state' overstates Ezra 7 under Persian rule; the decree grants civil/judicial authority but not independent statehood."
+      ],
+      "suggestion": "Use 'best candidate in this reading' and specify the civil/judicial provisions rather than 'restore the Jewish state.'"
+    },
+    {
+      "slide": 35,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "The arithmetic is terse; '457 BC - 483 years + 1 year' may confuse listeners without an explicit 'no year zero' explanation."
+      ],
+      "suggestion": "Show the result in one line: '457 BC + 483 years, crossing no year zero, lands in AD 27.'"
+    },
+    {
+      "slide": 36,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 37,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "Luke's 'fifteenth year of Tiberius' can be counted from AD 14 by many historians, so this slide alone does not establish AD 27."
+      ],
+      "suggestion": "Pair it immediately with the co-regency explanation and acknowledge the AD 28/29 reckoning."
+    },
+    {
+      "slide": 38,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 39,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "'Tiberius began his reign in AD 12 as co-regent' is phrased too strongly; standard histories usually mark his imperial reign from AD 14.",
+        "The notes responsibly acknowledge the alternate AD 14 count, but the slide hides that complexity."
+      ],
+      "suggestion": "Say 'Luke's 15th year can be reckoned from Tiberius's AD 12 provincial co-rule; sole emperor from AD 14.'"
+    },
+    {
+      "slide": 40,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 41,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "The slide says only '27' without 'AD,' which can look like a math answer rather than the claimed historical target."
+      ],
+      "suggestion": "Use 'AD 27.'"
+    },
+    {
+      "slide": 42,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 43,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 44,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 45,
+      "soundness": "adequate",
+      "merit": "weak",
+      "issues": [
+        "'In the middle of the seven years of him confirming the covenant' is grammatically unclear and assumes the disputed antecedent of 'he' in Daniel 9:27 without explaining it."
+      ],
+      "suggestion": "Rewrite as 'In this reading, the covenant-confirming figure is Messiah; midway through the final week, He brings sacrifice and offering to an end.'"
+    },
+    {
+      "slide": 46,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "'3.5 years until death' depends on a Johannine Passover chronology and is not stated explicitly as 3.5 years in the Gospels.",
+        "The notes say 'fulfilled exactly' after saying only 'at least 3 years,' which overclaims the evidence."
+      ],
+      "suggestion": "Say 'roughly 3.5 years in the Johannine Passover chronology, matching the prophetic midpoint.'"
+    },
+    {
+      "slide": 47,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 48,
+      "soundness": "weak",
+      "merit": "weak",
+      "issues": [
+        "The audience sees no content, while the notes make the important manuscript claim.",
+        "'Earliest copy of Daniel is around 2 century BC / Still far before Messiah' supports the messianic section but not all later Daniel empire claims equally.",
+        "'The Bible has a proven, accurate, and authentic track record' overstates the conclusion from the evidence shown so far."
+      ],
+      "suggestion": "Put the manuscript point on screen and narrow the conclusion to 'Daniel manuscripts predate Jesus, so the messianic timing is not a medieval backfill.'"
+    },
+    {
+      "slide": 49,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "The predictions are repeated, but the slide does not visibly mark which ones have been tested or fulfilled."
+      ],
+      "suggestion": "Turn this into a checklist with the tested items marked."
+    },
+    {
+      "slide": 50,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 51,
+      "soundness": "adequate",
+      "merit": "weak",
+      "issues": [
+        "The slide has no visible content and no notes, so it does not help the transition into the empire prophecies."
+      ],
+      "suggestion": "Remove it or use it for a simple Daniel 2/7/8 map."
+    },
+    {
+      "slide": 52,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "The hypothesis concludes with 'confirming their divine origin' before establishing that the texts predate the relevant fulfillments; historical alignment alone does not prove above-human origin."
+      ],
+      "suggestion": "End with 'would support the claim of above-human origin if the text predates the fulfillments.'"
+    },
+    {
+      "slide": 53,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "'The Bible is a reliable historical and prophetic document' is part of what the night is supposed to test, so using it as an assumption risks circularity."
+      ],
+      "suggestion": "Replace with 'Daniel's claims can be compared with the historical record.'"
+    },
+    {
+      "slide": 54,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "'The final stage in each prophecy' is too broad because Daniel 8 does not present the everlasting kingdom as directly as Daniel 2 and 7.",
+        "'All three prophecies will describe all if not some of four successive world empires' is grammatically muddy and weakens confidence."
+      ],
+      "suggestion": "Say 'Daniel 2 and 7 reach God's everlasting kingdom; Daniel 8 aligns with the Medo-Persia/Greece sequence.'"
+    },
+    {
+      "slide": 55,
+      "soundness": "adequate",
+      "merit": "weak",
+      "issues": [
+        "The audience sees no content and there are no notes, so the slide does no argumentative work."
+      ],
+      "suggestion": "Remove it."
+    },
+    {
+      "slide": 56,
+      "soundness": "adequate",
+      "merit": "weak",
+      "issues": [
+        "The audience sees no content and there are no notes, so the slide adds another dead spot before Daniel 2."
+      ],
+      "suggestion": "Remove it or combine with the Daniel 2 title."
+    },
+    {
+      "slide": 57,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 58,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 59,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 60,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 61,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 62,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 63,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "The notes say 'the head of gold is Babylon,' while the quoted text says 'you are this head of gold'; the king-to-kingdom move is valid in Daniel but should be stated."
+      ],
+      "suggestion": "Add one spoken sentence: 'In Daniel, the king represents the kingdom he rules.'"
+    },
+    {
+      "slide": 64,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 65,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 66,
+      "soundness": "adequate",
+      "merit": "weak",
+      "issues": [
+        "The audience sees no content and there are no notes, so it interrupts the flow from Daniel 2 to Daniel 7."
+      ],
+      "suggestion": "Remove it or add 'Daniel 7 retells the same sequence in beast symbols.'"
+    },
+    {
+      "slide": 67,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 68,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 69,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "The lion text is shown before the Babylon connection is visible, so the audience may not yet know what claim this evidence supports."
+      ],
+      "suggestion": "Add a subtitle: 'First beast: Babylon.'"
+    },
+    {
+      "slide": 70,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "Jeremiah 4:7 supports lion imagery for a destroyer, but the slide does not explicitly connect the verse to Babylon/Nebuchadnezzar."
+      ],
+      "suggestion": "Add a short line: 'Jeremiah uses lion imagery for the Babylonian destroyer.'"
+    },
+    {
+      "slide": 71,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 72,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "'Lion was the national symbol of Babylon' uses a modern category and can be challenged; lion imagery was prominent in Babylonian art, but 'national symbol' is too neat."
+      ],
+      "suggestion": "Say 'Lion imagery was prominent in Babylonian royal/iconographic art.'"
+    },
+    {
+      "slide": 73,
+      "soundness": "adequate",
+      "merit": "weak",
+      "issues": [
+        "The slide has no visible content and no notes, creating an avoidable gap before Medo-Persia."
+      ],
+      "suggestion": "Remove it or use it as 'Second beast: Medo-Persia.'"
+    },
+    {
+      "slide": 74,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "The notes claim Medo-Persia was '2 to 6 times the size of Babylon' without a citation and use 'a little stronger' for Persian dominance, which understates the historical asymmetry."
+      ],
+      "suggestion": "Keep the biblical text on screen, but cite the empire-size claim or remove the number range."
+    },
+    {
+      "slide": 75,
+      "soundness": "adequate",
+      "merit": "weak",
+      "issues": [
+        "The audience sees only the title, while the actual three-rib interpretation is hidden in notes."
+      ],
+      "suggestion": "Put 'Three ribs: Lydia, Babylon, Egypt' on the slide."
+    },
+    {
+      "slide": 76,
+      "soundness": "adequate",
+      "merit": "weak",
+      "issues": [
+        "The slide has no visible content and no notes, so it adds no evidence or transition."
+      ],
+      "suggestion": "Remove it."
+    },
+    {
+      "slide": 77,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 78,
+      "soundness": "adequate",
+      "merit": "weak",
+      "issues": [
+        "The audience sees only the title and gets no visible explanation of how the leopard maps to Greece."
+      ],
+      "suggestion": "Add the interpretation: 'Greece: speed of conquest, four heads after Alexander.'"
+    },
+    {
+      "slide": 79,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "The spoken claim that historians 'converge on the NUMBER ten' successor kingdoms after Rome is stronger than the historical evidence; the lists vary and the Huns/Alemanni issue is not trivial."
+      ],
+      "suggestion": "Frame this as the traditional historicist reading and say the exact tenth slot is disputed."
+    },
+    {
+      "slide": 80,
+      "soundness": "weak",
+      "merit": "weak",
+      "issues": [
+        "This repeats Slide 79 with the same Daniel 7:7 text, which makes the Rome/ten horns point feel padded rather than cumulative."
+      ],
+      "suggestion": "Replace with the actual ten-kingdom map or delete the duplicate."
+    },
+    {
+      "slide": 81,
+      "soundness": "weak",
+      "merit": "weak",
+      "issues": [
+        "This is a third repetition of the same Daniel 7:7 text and notes, so it stalls the argument without adding evidence."
+      ],
+      "suggestion": "Delete or use it for a concise 'Rome -> divided Europe' summary with a caveat."
+    },
+    {
+      "slide": 82,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 83,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 84,
+      "soundness": "adequate",
+      "merit": "weak",
+      "issues": [
+        "The slide has no visible content and no notes, so it contributes nothing after the Daniel 7 conclusion."
+      ],
+      "suggestion": "Remove it."
+    },
+    {
+      "slide": 85,
+      "soundness": "adequate",
+      "merit": "weak",
+      "issues": ["The slide has no visible content and no notes, creating another dead spot."],
+      "suggestion": "Remove it."
+    },
+    {
+      "slide": 86,
+      "soundness": "adequate",
+      "merit": "weak",
+      "issues": ["The slide has no visible content and no notes, delaying the move into Daniel 8."],
+      "suggestion": "Remove it or make it the Daniel 8 transition."
+    },
+    {
+      "slide": 87,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 88,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 89,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 90,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 91,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "'The goat kills the ram' is vivid but slightly imprecise; Daniel says the goat breaks the ram's horns, casts it down, and tramples it."
+      ],
+      "suggestion": "Use Daniel's wording: 'The goat defeats and tramples the ram.'"
+    },
+    {
+      "slide": 92,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 93,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 94,
+      "soundness": "adequate",
+      "merit": "weak",
+      "issues": [
+        "The slide has no visible content and no notes, so it does not help close the Daniel 8 section."
+      ],
+      "suggestion": "Remove it or use it for a one-line Daniel 8 takeaway."
+    },
+    {
+      "slide": 95,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "'All three prophecies will describe all if not some of four successive world empires' is awkward and less precise than the argument deserves.",
+        "As a 'Testable Predictions' slide placed after the evidence, it reads more like a summary than a prediction."
+      ],
+      "suggestion": "Retitle to 'What the three visions showed' and clean up the third bullet."
+    },
+    {
+      "slide": 96,
+      "soundness": "weak",
+      "merit": "weak",
+      "issues": [
+        "The notes say 'Every prophecy tonight was written, sealed, and copied centuries before it came true,' which overstates the case given the Isaiah authorship objection and Daniel dating debates already acknowledged.",
+        "'One you cannot escape' is likely to trigger skeptical defenses rather than earn trust."
+      ],
+      "suggestion": "Say 'One more case with a public pre-event print record in the modern era.'"
+    },
+    {
+      "slide": 97,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "The notes identify the Euphrates power as the Ottoman empire, but the slide itself only quotes Revelation 9 and does not yet justify that mapping."
+      ],
+      "suggestion": "Add a short transition after the quote: 'Historicist interpreters applied this to the Ottoman power on the Euphrates.'"
+    },
+    {
+      "slide": 98,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "'A prophetic day = a literal year — the same key that put Messiah at AD 27' overstates continuity; Daniel 9's weeks-of-years argument is not identical to converting Revelation 9's hour/day/month/year formula.",
+        "The 360-day prophetic year is assumed rather than shown."
+      ],
+      "suggestion": "Frame it conditionally: 'Applying the historicist day-year key and a 360-day prophetic year gives 391 years and 15 days.'"
+    },
+    {
+      "slide": 99,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "'July 27, 1299' is presented as settled, but the notes admit modern Ottomanists date Osman's emergence more loosely.",
+        "'The 5th trumpet runs 150 years' introduces another interpretive claim without support on this slide.",
+        "'The Greek emperor takes his throne only by permission' needs citation because it is load-bearing for the voluntary-submission parallel."
+      ],
+      "suggestion": "Say 'Litch used Gibbon's July 27, 1299 start date' and label the 150-year step as part of the historicist calculation."
+    },
+    {
+      "slide": 100,
+      "soundness": "broken",
+      "merit": "weak",
+      "issues": [
+        "The slide says the exact date 'August 11, 1840' was in print in 'Signs of the Times, March 20, 1840,' but the notes say the exact day is verifiably in print on August 1, 1840; that internal contradiction is a major citation risk.",
+        "'By early 1840 he had refined the date' depends on the disputed citation, so a hostile fact-checker could break the slide."
+      ],
+      "suggestion": "Correct the citation to the verifiable publication date or remove the March 20 claim until it is sourced."
+    },
+    {
+      "slide": 101,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": ""
+    },
+    {
+      "slide": 102,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "'The messenger sails' is cautious on date, but the body still needs the audience to trust a later 1879 diplomatic record for an 1840 mission."
+      ],
+      "suggestion": "Keep the August-only wording and avoid implying this proves August 11 specifically."
+    },
+    {
+      "slide": 103,
+      "soundness": "weak",
+      "merit": "weak",
+      "issues": [
+        "'August 11, 1840' is the most vulnerable exact-date claim; the notes admit FRUS dates written communication to August 19 and modern histories put military resolution in November.",
+        "The Litch quotation is not independent confirmation of the event; it is the predictor's own interpretation after the fact.",
+        "'The ultimatum passes into Mehemet Ali's power' is too precise for the disputed evidence."
+      ],
+      "suggestion": "Retitle to 'August 1840: Litch's claimed fulfillment' and make the strongest claim month + event-type, not exact day."
+    },
+    {
+      "slide": 104,
+      "soundness": "adequate",
+      "merit": "weak",
+      "issues": [
+        "The headline 'Broken forever' and quote about 'The power of Islamism' carry 19th-century anti-Islam polemical language that may alienate skeptical non-Christians.",
+        "The notes call Goodell 'not a prophecy advocate,' but as an American missionary he is not a neutral secular witness."
+      ],
+      "suggestion": "Contextualize it as 'A contemporary missionary observed Ottoman dependence' and avoid using the quote as neutral proof."
+    },
+    {
+      "slide": 105,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "'Even the critics admitted it' is rhetorically stronger than the quote proves; Balch appears to concede European reorganization, not necessarily the prophecy's fulfillment.",
+        "'Rev. Mr. Balch of Providence, R.I.' is too thin as a citation for a hostile audience."
+      ],
+      "suggestion": "Say 'Even a critic acknowledged European reorganization' and provide a fuller citation."
+    },
+    {
+      "slide": 106,
+      "soundness": "weak",
+      "merit": "weak",
+      "issues": [
+        "'More than 1,000 self-described skeptics' is third-hand and uncorroborated, which the notes admit; placing it on-slide invites a credibility hit.",
+        "The social-proof framing 'A thousand skeptics changed their minds' can feel manipulative to the exact skeptical audience being addressed."
+      ],
+      "suggestion": "Remove this slide or demote it to a clearly labeled historical anecdote after the evidential case is complete."
+    },
+    {
+      "slide": 107,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "'The event — exactly the kind predicted: sovereignty surrendered to four Christian powers' rests on the contested August 1840 slides and overstates the level of precision.",
+        "'The same day-for-a-year key' depends on accepting the Revelation 9 application, which has not been established as strongly as Daniel 9."
+      ],
+      "suggestion": "Use the humbler close: 'same historicist method, public pre-event month, and a matching dependency event-type.'"
+    },
+    {
+      "slide": 108,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "The slide lists more day prophecies without explaining why they matter, which can feel like teaser overload after a long argument."
+      ],
+      "suggestion": "Add a subtitle: 'We have only sampled the timeline material.'"
+    },
+    {
+      "slide": 109,
+      "soundness": "adequate",
+      "merit": "weak",
+      "issues": [
+        "The audience sees no final on-slide takeaway, while the notes carry the whole conclusion.",
+        "'Sufficient evidence that there is something supernatural about it' is stronger than some of the weaker sections, especially the disputed Litch material, can bear for a skeptical audience."
+      ],
+      "suggestion": "Put a visible bridge question on screen and say 'enough evidence to take the Bible's claim seriously' rather than 'sufficient evidence' as a settled verdict."
+    }
+  ]
+}

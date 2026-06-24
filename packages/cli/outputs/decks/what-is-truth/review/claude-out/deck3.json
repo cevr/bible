@@ -1,0 +1,771 @@
+{
+  "deck": 3,
+  "reviews": [
+    {
+      "slide": 1,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": "Title slide. 'Part III: Why Suffering?' is clear and honest about the night's question. No argument to evaluate."
+    },
+    {
+      "slide": 2,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": "Recap exists only in presenter notes; the on-slide is a bare 'THE SCOREBOARD' title. Nothing the audience sees can be fact-checked here, so no citation risk on-slide. Fine as a transition."
+    },
+    {
+      "slide": 3,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "'5,800+ manuscripts' is the standard count for Greek NT manuscripts specifically. On-slide it sits under 'Consistent written record' with no qualifier, so a hostile fact-checker can note it does not describe the whole Bible (the Hebrew OT manuscript tradition is counted differently). The number is defensible but the unlabeled framing invites the 'that's only the NT' objection.",
+        "The checkmarks assert criteria 3 (Practical) and 4 (Universal) as already-proven ('✓') but nothing on this slide or, per the notes, in Nights 1-2 visibly demonstrated 'Universal.' Marking it ✓ with no shown evidence is a mild overreach for a skeptic tracking the scorecard."
+      ],
+      "suggestion": "Label the manuscript count ('5,800+ Greek New Testament manuscripts') to pre-empt the scope objection, and make sure criteria 3-4 were actually evidenced earlier before stamping them ✓, or soften to 'argued.'"
+    },
+    {
+      "slide": 4,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": "Clean frame-shift. 'Tonight is not more proof THAT the Book is divine / Tonight is what the divine Book SAYS' is honest about the pivot from evidence to content and lowers the skeptic's defenses rather than smuggling a claim. Good."
+    },
+    {
+      "slide": 5,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "Jeremiah 29:11 is verbatim-accurate KJV and correctly cited. The latent risk is contextual, not factual: a prepared skeptic knows this verse is addressed to exiled Israel with a 70-year horizon, not a universal promise. Presented cold as 'God's stated intent... against everything you have ever suffered' (notes), it can read as the classic out-of-context inspirational use and trip a defense."
+      ],
+      "suggestion": "No on-slide change strictly required, but the presenter should be ready to own the original exile context if challenged; using it as the thesis-claim 'on trial' (as the notes do) is the right framing — just don't oversell it as a blanket personal guarantee."
+    },
+    {
+      "slide": 6,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": "Single-question slide. The note to 'honor' the audience's non-religion and the restrained image choice are exactly right for this audience. No argument to test."
+    },
+    {
+      "slide": 7,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": "The Epicurean trilemma is reproduced faithfully and the attribution caveat ('traditionally ascribed to Epicurus (via Lactantius, De Ira Dei 13); authorship debated') is accurate — verified against Lactantius De Ira Dei 13.20-21 and Glei 1988. Leading with the skeptic's strongest punch and citing the attribution honestly builds credibility. Strong."
+    },
+    {
+      "slide": 8,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": "The two-question rubric is fair and explicitly self-binding ('Same two questions for every view tonight — including the Bible's'). This is the integrity move that lets a skeptic trust the survey. Excellent."
+    },
+    {
+      "slide": 9,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": "Dawkins quote verified verbatim against River Out of Eden (1995); the cited source and 'the materialist answer' label are accurate. Quote is a genuine ellipsis of the real sentence, not a distortion. The notes' insistence on fairness (don't claim atheists lack morals) protects credibility. No issue."
+    },
+    {
+      "slide": 10,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": "Accurate compression of the Four Noble Truths (dukkha, tanha, nirvana, Eightfold Path) with correct transliterations and a correct source label. The honest-limitation framing is kept in notes, not weaponized on-slide. Fair representation."
+    },
+    {
+      "slide": 11,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [
+        "Minor: karma/samsara/moksha is a broadly accurate gloss, but Hinduism is internally diverse (Advaita vs. dvaita, theistic bhakti traditions) and the single-line summary flattens that. Not a factual error a checker can 'break,' but a knowledgeable Hindu in the room may feel the tradition was reduced to one schema. The 'Britannica' source label is appropriately modest."
+      ],
+      "suggestion": "Optional: a one-word hedge ('in many traditions') would acknowledge internal diversity, but the line is defensible as a mainstream summary and the source label already signals it's encyclopedic, not exhaustive."
+    },
+    {
+      "slide": 12,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": "Qur'an 67:2 quote and reference verified accurate (Surah Al-Mulk). 'ibtila' (test/trial) and the hereafter-justice framing are correct mainstream Islamic theology. The notes' caution against 'fatalistic' caricature is right. Solid and fair."
+    },
+    {
+      "slide": 13,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": "Tolle / 'pain-body' from The Power of Now is correctly attributed and the summary is fair. Critically, the slide states the New Age view neutrally and reserves the victim-blaming critique for notes only — preventing the cheap-shot that would alienate seekers. Well-handled."
+    },
+    {
+      "slide": 14,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": "Habakkuk 1:2-3 verified verbatim KJV; the move 'the Bible asks the question first' is honest and disarming for skeptics who expect Scripture to dodge. Strong pivot into the Bible's own answer. The same fairness scale promised on slide 8 is being honored here. No issue."
+    },
+    {
+      "slide": 15,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "The four negations ('not original, not illusion, not deserved, not forever') are asserted, not yet argued. On-slide they read as bald claims; the support is deferred to later slides. A skeptic sees a thesis, not yet a case — acceptable for a thesis slide but note nothing here earns it.",
+        "'guaranteed by Someone outside the system' is the strongest claim on the slide and the least supported at this point. 'Guaranteed' overreaches what the audience has been given; it asks for trust before evidence."
+      ],
+      "suggestion": "Frame the four negations explicitly as the claim to be tested across the night ('Here is the claim — weigh it against what follows'), so the assertions read as a roadmap rather than as conclusions presented as settled."
+    },
+    {
+      "slide": 16,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "Section header only; no argument to assess. Coherence holds — it transitions from the thesis (15) into the foundation."
+      ],
+      "suggestion": "Fine as a divider. No change needed."
+    },
+    {
+      "slide": 17,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "'God is love' is presented as a scriptural axiom, which is appropriate framing for an internal-consistency argument — the night tests whether the story stays coherent with this. The risk: a skeptic does not grant the axiom as true, only as the premise of the system. The on-slide text does not signal that this is being used as the story's own internal standard rather than a fact being asserted at the audience."
+      ],
+      "suggestion": "Consider a one-line on-slide cue that this is the Book's own axiom against which the rest will be tested ('the standard the story sets for itself'), matching the presenter-note framing so the skeptic reads it as internal-consistency, not assertion."
+    },
+    {
+      "slide": 18,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "'Love requires freedom' is the load-bearing premise and is stated, not defended. The intuition pump ('A forced I love you is not love') carries it well for most, but a sharp skeptic may grant that coerced love is not love while questioning the leap to 'therefore genuine love REQUIRES libertarian free will and that requirement justifies the existence of suffering.' The slide treats an intuition as a proof.",
+        "'Freedom creates risk' is sound and well-sequenced."
+      ],
+      "suggestion": "Acceptable as a hinge intuition. If you want to harden it against the philosophically literate, the presenter (not the slide) should acknowledge the free-will-defense is doing heavy lifting here rather than letting the three clean lines imply the case is closed."
+    },
+    {
+      "slide": 19,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "Deut 30:19 cleanly illustrates 'choice offered, not seized.' Coheres with the freedom thesis. No overreach — the verse genuinely says what the slide uses it for."
+      ],
+      "suggestion": "No change needed."
+    },
+    {
+      "slide": 20,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [
+        "Josh 24:15 also illustrates invited allegiance, but it is a second proof-text making the same point as slide 19. Two consecutive 'choose' verses risk redundancy for an impatient skeptical audience without adding a new logical step."
+      ],
+      "suggestion": "Consider whether 19 and 20 can be consolidated or differentiated (e.g., 19 = God appeals, 20 = humans model the choice) so the second slide earns its place rather than restating the first."
+    },
+    {
+      "slide": 21,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "'Image of God = moral agency. Not automation.' is an interpretive equation stated as definition. The biblical phrase 'image of God' (Gen 1:27) is not self-evidently equivalent to 'moral agency' — that is one reading among several (it has also been read as dominion, relationality, rationality, physical form). Presenting a contested interpretation with an equals sign as if it were the text's plain meaning is the kind of move a skeptic flags as smuggling.",
+        "The argument needs 'image = moral agency' to connect the love/freedom thesis to creation, but the slide asserts the link rather than showing it."
+      ],
+      "suggestion": "Soften the equals sign to a claim ('The image of God includes moral agency — the capacity to choose') so it reads as interpretation rather than as a definition the audience is expected to accept as given."
+    },
+    {
+      "slide": 22,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "Isa 1:18 ('let us reason together') strongly serves the 'God recruits by reason, not force' thread and lands well with an intelligent audience that prizes reason. Coheres with the deception-not-force payoff coming on slide 28."
+      ],
+      "suggestion": "No change needed."
+    },
+    {
+      "slide": 23,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "Clean logical pivot: if love is genuinely choosable, refusal is genuinely possible. Follows validly from the freedom premise established in 18. Good transition into the rebellion. The final line reframes the problem productively ('what God would do when it was')."
+      ],
+      "suggestion": "No change needed."
+    },
+    {
+      "slide": 24,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": ["Section header only. Coherent placement after the risk-of-freedom pivot."],
+      "suggestion": "Fine as a divider."
+    },
+    {
+      "slide": 25,
+      "soundness": "weak",
+      "merit": "adequate",
+      "issues": [
+        "Rev 12:7-9 is used as the literal origin-of-evil anchor ('the rebellion'). The presenter note calls it 'explicit, no interpretive caveat needed' — but this overstates the case. Many readers (including scholars) read Rev 12 as a vision set in the Christian era / cosmic-symbolic, not a literal datable account of evil's origin in the past. Presenting it on-slide as the straightforward origin narrative, while the SAME night (slides 26-27) carefully flags Ezekiel and Isaiah as having a surface addressee, creates an inconsistency: the most interpretively contested text gets the LEAST caveat. A skeptic who notices the asymmetry will distrust the careful honesty elsewhere.",
+        "On-slide the text is just the quotation, so the audience sees no overreach — the risk is in how the presenter frames it as caveat-free."
+      ],
+      "suggestion": "Apply the same intellectual honesty shown on 26-27 to the presenter handling of 25: present Rev 12 as the Bible's own dramatization of the conflict rather than asserting it needs 'no interpretive caveat.' Consistency of method is what earns the skeptic's trust here."
+    },
+    {
+      "slide": 26,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "The on-slide parenthetical ('spoken of the king of Tyre — long read as describing the power behind the throne') is exactly the right move for this audience: it pre-empts the fact-checker by naming the surface referent rather than hiding it. This is the deck at its most credible.",
+        "Minor: 'long read as' is a tradition-claim; it is accurate (the dual-fulfillment reading is genuinely centuries old), so low risk. The logical payload ('evil began in the highest created being, perfect until self-corrupted, so not a design flaw') depends on accepting the Lucifer application, which the slide honestly flags as a reading — good."
+      ],
+      "suggestion": "No change needed; this is the model the other rebellion slides should match."
+    },
+    {
+      "slide": 27,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "Same honest handling as 26 — the parenthetical ('a taunt against Babylon's king — the same pattern of self-exaltation') names the surface referent. Good. The 'pattern, not proof-text' framing in the notes is the right logic: the argument rides on the pattern of self-exaltation, not on a forced identification.",
+        "Citation check: the quoted fragments ('I will ascend into heaven, I will exalt my throne above the stars of God... I will be like the most High') are accurate KJV from Isa 14:13-14. The slide title says 'five I wills' but only three are shown on-slide — a skeptic counting will find the other two are real (14:13 'I will sit upon the mount,' 14:14 'I will ascend above the heights of the clouds'), so the count is defensible, but the slide shows three while claiming five, which invites a 'where are the other two?' question."
+      ],
+      "suggestion": "Either show all five 'I wills' (they fit) or change the title to match what is displayed, so the count on the slide cannot be challenged by someone reading carefully."
+    },
+    {
+      "slide": 28,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "John 8:44 cleanly supports 'the weapon was deception, not force,' and it ties back to the reason/recruitment thread (slide 22) — strong internal coherence. The payoff ('lies are not killed with swords,' notes) is a genuinely good answer to the latent 'why doesn't God just destroy evil?' objection.",
+        "'The rebellion's weapon was never force. It was DECEPTION.' — slight overstatement: Rev 12 (slide 25) literally describes 'war in heaven,' which is martial imagery. A skeptic could note tension between 'war in heaven' on 25 and 'never force, it was deception' on 28. The deck means the rebellion's METHOD of winning allegiance was deception, not that no conflict-language appears — but the absolute 'never' sits awkwardly against the 'war' two slides earlier."
+      ],
+      "suggestion": "Soften 'never force' to acknowledge the war imagery is about the conflict's nature, not a literal arms race ('The rebellion's real weapon was not force but deception'), to remove the tension with the 'war in heaven' text on slide 25."
+    },
+    {
+      "slide": 29,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": "Strong pivot. The verse cleanly reframes the enemy as 'accuser,' setting up the courtroom motif that carries the whole night. No on-slide overreach; the claim is just a label drawn from the cited text."
+    },
+    {
+      "slide": 30,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "The four charges are presented as 'the accusation' — a single coherent indictment Satan makes — but the slide shows no source on-slide, so a skeptic sees four assertive theological claims with no anchor. The receipts live only in presenter notes (Gen 3:5, Job 1:9-11). To the audience these read as the deck's framing, not Scripture's.",
+        "Charge #2 ('His law is arbitrary — impossible to keep') and #4 ('unjust and vengeful') are not actually voiced by the serpent or Satan in the cited texts the way #1 and #3 are; the notes even concede #4 is 'the caricature every skeptic carries,' i.e. not a textual accusation. Presenting all four as one unified prosecutorial case slightly overreaches what the cited verses support."
+      ],
+      "suggestion": "Consider trimming to the two charges the night actually litigates with text (selfishness/holding-out = Gen 3:5; bought loyalty = Job 1) or add a small on-slide tag showing these are reconstructed from Scripture, not direct quotes — otherwise a skeptic may flag the indictment as the speaker's invention dressed as 'the accusation.'"
+    },
+    {
+      "slide": 31,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "Minor: 'God — the accused' with no citation may jar a skeptic momentarily (it's the deck's framing, not a quote), but the two cited verses (1 Cor 4:9, Rev 12:10) carry enough of the structure that the role-assignment reads as reasonable inference rather than assertion."
+      ],
+      "suggestion": "Strong slide. The courtroom-not-battlefield frame is the night's best move for this audience — it converts an emotional 'problem of evil' into a structure where evidence matters, which is exactly the trust-earning posture. No change needed."
+    },
+    {
+      "slide": 32,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": "The 'accusation in action' tag does real work — it shows charge #3 (bought loyalty) is in the text, not invented. This retroactively shores up slide 30. Good evidential honesty: it lets the audience see the indictment is biblical, not editorial."
+    },
+    {
+      "slide": 33,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "Potential fact-checker snag the slide itself doesn't show: Job 1:21 ('the LORD hath taken away') sits in tension with 'God permits, the accuser afflicts.' A skeptic who knows the book may object that the text also attributes the harm to God. The presenter notes flag this, but the on-slide text presents only the clean half."
+      ],
+      "suggestion": "The notes handle this correctly (pair 1:21 with 2:7). Ensure the presenter actually voices Job 1:21 here — otherwise an informed skeptic lands the 'you cherry-picked the verse that fits' objection and the slide's clean distinction looks like proof-texting."
+    },
+    {
+      "slide": 34,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": "Good transition slide. Surfacing the obvious objection ('why not just destroy him?') before the audience raises it is trust-building and honest. No issues."
+    },
+    {
+      "slide": 35,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": "Excellent for this audience — pure courtroom logic, no theology required, lands as common sense. The three lines build cleanly. This is the kind of slide a skeptic nods along to before realizing it has theological teeth."
+    },
+    {
+      "slide": 36,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "The argument is strong but contains one compression that a sharp skeptic could probe: 'fear is exactly what the accusation claimed His government ran on.' Slide 30's charges (selfish/tyrannical, arbitrary law, bought loyalty, vengeful) imply rule-by-fear but none of them state it in those words. The 'proven by the rebuttal' payoff depends on the audience accepting that the accusation was specifically about fear-based rule — a link the deck asserts rather than having established verbatim.",
+        "'The charge would have been proven by the rebuttal' is rhetorically sharp but slightly overstated as logic: destroying Lucifer would corroborate the tyranny charge, not strictly 'prove' it. Skeptics notice when a clever line claims more certainty than the reasoning delivers."
+      ],
+      "suggestion": "Tighten the link to slide 30: if charge #1 reads 'tyrannical' and #4 'vengeful,' the fear-claim follows; consider softening 'proven' to 'confirmed' or 'handed the prosecution its case' to avoid overclaiming. The core move (force can't vindicate against a charge of ruling by force) is genuinely sound — protect it from the overstatement."
+    },
+    {
+      "slide": 37,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "Genuine citation/exegesis risk the presenter notes already flag: Romans 3:4 quotes Ps 51:4, and in context Paul is arguing God's faithfulness despite human unbelief — not literally 'God consents to be judged and wins by evidence.' The 'God submits to judgment' reading leans on KJV's 'overcome when thou art judged,' which most modern translations render as God prevailing when He judges (active), not when He is judged (passive). A skeptic with a study Bible or commentary could break this.",
+        "Because the slide shows no interpretive caveat, an audience member who checks finds the standard reading differs — exactly the 'invitation to verify' the series invites, which could backfire here."
+      ],
+      "suggestion": "Either downgrade this from 'THE CENTRAL VERSE' to a supporting one, or have the presenter own the translation point on-slide/aloud ('the KJV phrasing carries this; here's why it fits'). For a verify-everything series, resting the night's thesis on a contested rendering is the single highest fact-check exposure in this batch — handle it knowingly as the notes advise."
+    },
+    {
+      "slide": 38,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": "Clean. 1 Cor 4:9 directly supports 'the trial is public.' Reinforces the spectacle/jury frame from slide 31 without overreach. No change."
+    },
+    {
+      "slide": 39,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "'so the verdict, when it comes, stands forever. Beyond all question.' is a strong claim, but it's framed as the rationale of the trial, not as a proven fact, so it reads as coherent argument rather than overreach."
+      ],
+      "suggestion": "Good landing for the courtroom arc and a clean handoff to the Eden test ('which is where we go next'). The logic — a permanent verdict requires letting evil mature — follows from the prior slides. No change needed."
+    },
+    {
+      "slide": 40,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": "Section-break slide. Fine as a transition from the cosmic frame to the Eden specifics."
+    },
+    {
+      "slide": 41,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": "The 'total freedom, one labeled fence' framing is well chosen for a skeptic — it preempts the 'why set a trap?' objection by stressing 'every tree, freely' and 'stakes stated in advance.' Verse quoted accurately. Strong."
+    },
+    {
+      "slide": 42,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "The payoff line ties Gen 3:4-5 back to 'charge #1 from the courtroom slide.' This only fully lands if slide 30's charge #1 was clearly established as 'God is holding out on you / selfish.' Slide 30 phrased #1 as 'selfish and tyrannical' — close enough that the connection holds, but the 'holding out on you' gloss is the deck's paraphrase, not the slide-30 wording."
+      ],
+      "suggestion": "Strong close to the batch — 'same prosecutor, new jury' elegantly unifies the cosmic and human halves of the night. To make the callback airtight, ensure the presenter explicitly maps 'ye shall be as gods / God doth know' to the exact charge-#1 wording shown earlier so the skeptic sees a real textual echo, not just a thematic one."
+    },
+    {
+      "slide": 43,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "\"the dominion of this world changed hands\" is an interpretive leap that Genesis 3:6 alone does not state; the slide presents it as a direct readout of the verse. A skeptic may notice the verse describes eating fruit, not a transfer of dominion. The notes (allegiance reframe) carry the logic, but the on-slide claim outruns the on-slide citation.",
+        "\"We believed the accuser\" smuggles a collective \"we\" that an outsider has not yet agreed to; only persuasive if the courtroom/charge framing from §2 has landed."
+      ],
+      "suggestion": "Either soften to \"the world's allegiance changed hands\" (which the dominion-transfer slides 44-45 then prove) or add a connective so the dominion claim is explicitly forward-pointed to Luke 4 rather than asserted from Gen 3:6."
+    },
+    {
+      "slide": 44,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "\"Jesus did not dispute it\" is an argument from silence presented as affirmation. A skeptic can reply that not contradicting a tempter mid-temptation is not the same as endorsing his property claim — Jesus rejected the offer wholesale, which arguably moots the claim's truth value.",
+        "Citation precision: the quoted words span Luke 4:6 (the title says 4:5-6); minor but a hostile checker will note 4:5 is the \"showed him all the kingdoms\" verse, not part of the quoted speech."
+      ],
+      "suggestion": "Trim citation to Luke 4:6, and consider hedging the inference: \"Jesus rebuts the offer but never the ownership\" is stronger and more honest than \"did not dispute it,\" which overstates what silence proves."
+    },
+    {
+      "slide": 45,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": "Solid — a direct title from Jesus' own mouth, well chosen to corroborate slide 44 with explicit text rather than inference. No change needed."
+    },
+    {
+      "slide": 46,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "The on-slide pairing of Rom 5:12 + 6:23 supports \"death entered via sin\" cleanly, but the title \"The wages\" plus \"death passed upon all men\" implies a universal-guilt/inherited-death mechanism that a skeptic may find unjust (why do all die for one man's act?). The slide raises this tension without addressing it; it is left to land as theology rather than argument.",
+        "\"as by one man sin entered\" treats a contested Pauline theological claim as established fact for an audience that has not granted the framework."
+      ],
+      "suggestion": "This is acceptable as a scriptural assertion within the deck's own logic, but for a skeptic the strongest move is to lean on the \"death is an entrant, not original design\" point (which the night needs) rather than the imputation mechanism. Consider whether the universal-death implication needs a one-line acknowledgment."
+    },
+    {
+      "slide": 47,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "\"The broken world you see is NOT the world God made\" is the night's central reframe and lands well, but it functions as an unfalsifiable move: any evidence of suffering can be reassigned to \"the rebellion's exhibit.\" A sharp skeptic may flag that this insulates God from all counter-evidence. The slide does not yet earn the reframe — it asserts it; slides 49-56 do the earning.",
+        "\"running its course in front of the watching universe\" introduces the cosmic-audience premise on-slide without support; for this audience it may read as an unsupported add-on."
+      ],
+      "suggestion": "Strong rhetorically and coherent with the arc. To reduce the \"unfalsifiable\" defense-trip, ensure the following slides (49-52) are framed as the *mechanism* that makes this claim more than a relabeling — which they largely do. The \"watching universe\" phrase could be deferred unless §2 established it."
+    },
+    {
+      "slide": 48,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": "Clean section header that names the audience's actual question head-on. Honest framing; no change."
+    },
+    {
+      "slide": 49,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "\"Harvest, not punishment\" overstates: sowing/reaping (Gal 6:7, Hosea 8:7) establishes consequence, but the binary \"not punishment\" is doing more than the verses do — Hosea 8:7 is in fact framed as divine judgment on Israel in its context, so a hostile reader who checks the surrounding chapter will find the very \"punishment\" framing the title denies.",
+        "Using Hosea 8:7 to argue suffering is mechanical-consequence-not-divine-judgment is in tension with its own context, where the whirlwind IS portrayed as God's judgment."
+      ],
+      "suggestion": "Either pick a cleaner consequence proof-text than Hosea 8:7 (whose context cuts against the \"not punishment\" thesis), or soften the title to \"Harvest, not just punishment\" / \"Consequence, not lightning bolts\" so a context-check doesn't break the slide."
+    },
+    {
+      "slide": 50,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "The ellipsis between v13 and v15 silently drops v14 (\"every man is tempted, when he is drawn away of his own lust\"). The dropped material actually strengthens the slide's case, so this is low-risk, but a checker will note the title cites \"13, 15\" — accurate labeling, good."
+      ],
+      "suggestion": "Fine as is. The chain desire→sin→death directly exonerates God of authoring suffering, which is exactly the night's load-bearing claim. Strong."
+    },
+    {
+      "slide": 51,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "Citation says Matt 13:24-28 but the quoted/paraphrased material is drawn from 24-28 with the on-slide first sentence being a paraphrase, not a quotation, while only the final line is in quotes — the mixed paraphrase/quote presentation could let a checker say the first sentence isn't verbatim KJV. Low risk since it's clearly set as narration, not quotation marks."
+      ],
+      "suggestion": "Excellent choice — Jesus' own theodicy parable directly supplies the \"hostile author\" piece from inside Scripture. Consider making clear the first sentence is a summary (it already lacks quote marks, which is correct)."
+    },
+    {
+      "slide": 52,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "The on-slide text alone gives the \"why not now\" answer as \"lest ye root up the wheat,\" but the *entanglement* interpretation (every life entwined with every other) lives only in the presenter notes — the audience sees the verse but not the reasoning that makes it answer their question. The slide may land as \"because the parable says so\" rather than as an argument.",
+        "\"Then why not rip it out NOW?\" promises a satisfying answer; the on-slide verse gives a botanical metaphor whose force depends on the unstated entanglement gloss."
+      ],
+      "suggestion": "Surface one line of the entanglement logic on-slide (e.g., \"Evil is rooted into the good — pull one, you tear the other\") so the verse's answer is legible to a skeptic without the speaker's gloss carrying the whole weight."
+    },
+    {
+      "slide": 53,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": "Lam 3:33 cleanly states the divine disposition (\"not willingly\") and pairs well after the consequence/hostile-author slides. Strong and economical."
+    },
+    {
+      "slide": 54,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "Isa 63:9 has a well-known textual variant (the \"he was afflicted\" reading follows the Qere/KJV; the Kethib/some translations read \"he did not afflict\" / \"no envoy\"). A skeptic who cross-checks against a modern translation will find a materially different rendering and may charge cherry-picking. This is a genuine citation-risk slide."
+      ],
+      "suggestion": "Be aware Isa 63:9 is textually contested. Either keep but be ready in notes for the variant, or anchor the \"God suffers with\" claim on a less disputed text (the incarnation slides 55-56 carry it more securely). Worth a flag to the deck owner."
+    },
+    {
+      "slide": 55,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "\"the shortest verse in the Bible\" is true of the English KJV/most English texts but not strictly true of the Greek (1 Thess 5:16 \"Rejoice evermore\" / πάντοτε χαίρετε is shorter in Greek). A pedantic fact-checker could nitpick; specifying \"in English\" would be airtight."
+      ],
+      "suggestion": "Qualify to \"the shortest verse in the English Bible\" to preempt the Greek counterexample. Otherwise a beautifully restrained slide."
+    },
+    {
+      "slide": 56,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "\"He did not stay out of the pain\" is well supported by Heb 4:15, but the broader claim implied across 53-56 (a uniquely suffering-with God) is asserted comparatively (\"unique among the §2 answers\" lives in notes only) — on-slide it is safe and modest, which is good."
+      ],
+      "suggestion": "No change. Strong close to the empathy thread; \"Whatever else you say about the Bible's God\" is appropriately concessive for a skeptical room and earns trust."
+    },
+    {
+      "slide": 57,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "Section-title slide ('THE ANSWER: THE CROSS') with no body; it asserts a conclusion before any argument. For a skeptical audience the framing 'THE ANSWER' is a strong claim, but it functions as a heading and the argument follows immediately, so it carries no logical weight on its own."
+      ],
+      "suggestion": "Fine as a divider. Keep it brief and let slides 58-66 earn the claim."
+    },
+    {
+      "slide": 58,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "The slide states the dilemma as a flat assertion ('Justice and mercy cannot coexist') without attribution on-slide. A skeptic may not grant that this is a real dilemma rather than a strawman the deck sets up to knock down. The presenter notes anchor it to a real universal court problem, but the audience does not see that grounding.",
+        "Framing it as the 'prosecutor's' charge presupposes the great-controversy/Satan-as-accuser frame, which Night 3 must have established earlier; if a viewer dropped the thread, 'prosecutor' reads as undefined."
+      ],
+      "suggestion": "Consider a single on-slide line grounding the dilemma in ordinary experience ('Every human court faces this') so the skeptic sees it as a genuine tension, not a setup."
+    },
+    {
+      "slide": 59,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "Presenter note calls the verse 'Evidence, not sentiment' — but on-slide it is a bare quotation asserting God's love; to a skeptic this is a claim, not evidence. The evidential weight only arrives at slide 62 (predictive text) and 63 (universe-as-jury). The slide is fine as a step but does not itself prove anything."
+      ],
+      "suggestion": "No change needed; the verse does the intended work as a statement of the claim that later slides support."
+    },
+    {
+      "slide": 60,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "The ellipsis between v16 and v17 silently drops v16b ('should not perish but have everlasting life') and the first clause of v17. This is honest verse-joining, but a hostile checker could note the cut splices across the verse boundary. Low risk since the citation reads '3:16-17'.",
+        "Relies on the audience already carrying the 'caricature' of a condemning God (noted speaker-only); on-slide the corrective force of v17 only lands if that caricature is felt."
+      ],
+      "suggestion": "Acceptable. If you want to pre-empt the splice objection, render the omission cleanly or quote v17 in full."
+    },
+    {
+      "slide": 61,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "The claim 'He paid them. Himself.' asserts penal substitution as fact; the supporting quote (2 Cor 5:19, 'God was in Christ, reconciling') affirms reconciliation but does not by itself state that God 'paid' the law's penalty. There is a small gap between the metaphor on-slide ('absorbed it', 'paid them') and what the cited verse literally says. The doctrinal scaffolding sits in the EGW presenter note, invisible to the audience.",
+        "'He did not waive the law — He absorbed it' resolves slide 58's dilemma by assertion; a skeptic may ask how a third party 'absorbing' a penalty actually satisfies justice rather than relocating it. The slide declares the dilemma solved ('both horns taken') without showing the mechanism."
+      ],
+      "suggestion": "This is the load-bearing move of the night and currently rests on assertion. Consider one on-slide sentence making the substitution mechanism explicit (the lawgiver bears the penalty himself, so the law stands AND the lawbreaker goes free) so the resolution is shown, not just claimed."
+    },
+    {
+      "slide": 62,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "FACTUAL RISK — the dating claims are checkable and mostly defensible but have one soft spot. 'Great Isaiah Scroll, copied ~125 BC' is well-supported (1QIsaᵃ, c. 356-103 BC range, commonly cited ~125 BC). 'Written ~7 centuries early' presupposes single-author 8th-century Isaiah authorship for ch. 53; mainstream scholarship dates Isaiah 40-66 ('Deutero-Isaiah') to the 6th century BC. A skeptic primed on the documentary view will challenge '~7 centuries early' even though the scroll-predates-crucifixion point stands regardless.",
+        "The genuinely strong claim — the manuscript physically predates the crucifixion — does NOT depend on the 7-centuries figure. Coupling the two lets a hostile checker attack the weaker authorship date and appear to discredit the stronger pre-dating point."
+      ],
+      "suggestion": "Drop or soften '~7 centuries early' to protect the unassailable point. The defensible on-slide claim is: the manuscript (copied ~125 BC) predates the crucifixion — so this text was not written after the fact. That alone is the argument; the authorship century is a separate, contestable claim that adds risk without adding force."
+    },
+    {
+      "slide": 63,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "'the watching universe saw the accuser torture and kill the only innocent man' asserts the great-controversy courtroom frame as established fact on-slide; the support (Col 2:15, 'made a shew of them openly') speaks of triumph/exposure but does not state that Satan tortured/killed Christ — historically the Roman/Jewish authorities executed Jesus. The slide attributes the killing to 'the accuser,' a theological reading the cited verse does not directly carry. A skeptic will notice the agency claim outruns the proof-text.",
+        "'the only innocent man' is a doctrinal claim (sinlessness) stated as fact; defensible within the frame but unsupported on-slide.",
+        "EGW is the actual source for this slide's logic (DA 761.2) but is correctly kept speaker-only; the on-slide claim therefore rests on a verse that doesn't fully bear it."
+      ],
+      "suggestion": "Tighten the agency: either ground 'the accuser killed' in the great-controversy frame explicitly, or rephrase so the on-slide claim matches Col 2:15 (the cross publicly exposed and defeated the accusing powers) rather than asserting Satan as the literal executioner."
+    },
+    {
+      "slide": 64,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [
+        "Pure Scripture slide reinforcing 63; Col 2:14-15 is quoted accurately. Coherent with the courtroom thread.",
+        "Slight redundancy: the second half of v15 ('made a shew of them openly') already appeared on slide 63, so back-to-back slides repeat the same clause. Not an error, but a skeptic tracking the argument may feel the deck is restating rather than advancing."
+      ],
+      "suggestion": "Consider merging 63 and 64 or trimming the overlap so the two slides advance the argument rather than re-quoting the same phrase."
+    },
+    {
+      "slide": 65,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "'spoken days before the cross' is a checkable timing claim; John 12 is set during Passion week, so this is defensible. Low risk.",
+        "The argument (the casting-out of the 'prince of this world' is located AT the cross) depends on the callback to an earlier section (§6) the audience saw; on-slide it stands as Jesus' own statement, which is adequate self-support."
+      ],
+      "suggestion": "No change needed; this is one of the better-grounded slides since Jesus himself ties the judgment/casting-out to the lifting-up."
+    },
+    {
+      "slide": 66,
+      "soundness": "adequate",
+      "merit": "strong",
+      "issues": [
+        "'That is criterion 5 — answered in blood' renders a verdict on a Night-1 criterion (benevolence) here. The move is rhetorically strong but logically it asserts the criterion is MET; a skeptic could note that 'greater love' for one's friends (John 15:13, explicitly 'for his friends') is being extended to enemies/'you' — the verse's own scope is friends, while the deck's claim ('rather die than lose you,' addressed to skeptics) broadens it. Slide 59 (Rom 5:8, 'while we were yet sinners') supplies the enemy-love bridge, but it isn't on THIS slide.",
+        "'He would rather die than lose you' is an emotionally direct second-person claim; honest given the frame, but it personalizes a general verse and could read as overreach to a guarded skeptic if the enemy-love grounding (slide 59) isn't fresh."
+      ],
+      "suggestion": "Either pair the John 15:13 'friends' language with a nod to Rom 5:8 (died for enemies, not just friends) on-slide, or soften 'lose you' so the personal address rests on the earlier-established enemy-love rather than a friends-scoped verse."
+    },
+    {
+      "slide": 67,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "Divider slide raising the strongest honest objection ('THEN WHY IS IT STILL RUNNING?'). Excellent for this audience — it names the skeptic's own counter rather than dodging it. No on-slide argument to fault."
+      ],
+      "suggestion": "Keep. Owning the objection out loud is exactly the trust-earning move for a skeptical room."
+    },
+    {
+      "slide": 68,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "2 Peter 3:9 answers 'why the delay' with 'mercy/longsuffering.' To a skeptic this can read as unfalsifiable — any amount of suffering is reframed as 'rescue window,' so no observation could ever count against the claim. The slide doesn't acknowledge that tension; it asserts the reframe.",
+        "The personal note ('Maybe yours; that's why you're hearing this') is speaker-only — good — so the on-slide text stays non-manipulative. On-slide claim is a clean restatement of the verse."
+      ],
+      "suggestion": "Acceptable as the biblical answer to its own question; just be aware the 'mercy with a clock' frame is hard for a skeptic to test. Slides 69-70 (defined endpoint, martyrs' cry) partly answer the unfalsifiability worry, which helps."
+    },
+    {
+      "slide": 69,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "'The delay is a rescue window' + Matt 24:14 supplies a stated purpose and endpoint, which directly addresses the unfalsifiability worry latent in slide 68 (the delay is bounded, not infinite). Coherent.",
+        "Presenter note 'The harvest of §7 has a date' overstates slightly — Matt 24:14 gives a CONDITION ('then shall the end come' after the witness), not a date; but this is speaker-only and the on-slide text correctly says 'defined endpoint'-style framing without claiming a calendar date. No on-slide risk."
+      ],
+      "suggestion": "No change to on-slide text. Ensure the presenter doesn't verbally turn 'a condition' into 'a date,' which would invite a date-setting objection."
+    },
+    {
+      "slide": 70,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "Strong close: Rev 6:10-11 has Scripture's own martyrs voice the skeptic's impatience ('How long?'), which earns trust by showing the text owns the hard question. The '...rest yet for a little season' answer is honest about the unresolved wait.",
+        "'even the martyrs ask' is an accurate gloss of the quoted text. Low factual risk; the ellipsis trims v11's robe/fellow-servants clause but does not distort the sense."
+      ],
+      "suggestion": "No change needed. This is the right note to end the night on for this audience — validated impatience plus a reason for the wait."
+    },
+    {
+      "slide": 71,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": "Habakkuk 2:3 (KJV) is quoted accurately. The 'appointed time / it will not tarry' answer to the martyrs' 'how long?' (slide 70) closes a coherent loop. The note's claim that prior nights gave 'appointed time' a track record is reasonable and not on-slide, so no fact-check exposure. No change needed."
+    },
+    {
+      "slide": 72,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "Title-only transition slide ('HOW IT ENDS') carries no argument; it is a section divider and depends entirely on the slides that follow for content."
+      ],
+      "suggestion": "Fine as a divider. No soundness risk since it makes no claim."
+    },
+    {
+      "slide": 73,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": "John 14:1-3 (KJV) quoted accurately with ellipses honestly marking omissions. Establishes the personal promise cleanly. No issue."
+    },
+    {
+      "slide": 74,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": "Acts 1:11 (KJV) quoted accurately. The 'in like manner as ye have seen him go' anchoring is a fair reading of the text. No fact-check exposure."
+    },
+    {
+      "slide": 75,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": "1 Thessalonians 4:16-17 (KJV) quoted accurately. The pastoral framing ('the dead are not lost — they rise FIRST') is supported by the text and lands well for a grieving audience. No change."
+    },
+    {
+      "slide": 76,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "Citation reads 'Revelation 20:12' without the (KJV) tag that every other slide carries; minor inconsistency, not a soundness issue."
+      ],
+      "suggestion": "Rev 20:12 quoted accurately (KJV). The 'transparent verdict / books were opened / public' framing is a sound paraphrase and ties back to the series' 'judge me' thesis honestly. Add the '(KJV)' tag for consistency with neighboring slides."
+    },
+    {
+      "slide": 77,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "The on-slide quote is Nahum 1:9b ('he will make an utter end: affliction shall not rise up the second time'), accurate in KJV. But the load-bearing argument for THIS audience — WHY suffering won't recur — lives entirely in the presenter notes ('answered in PUBLIC, once, before the whole universe'). On-slide, the audience sees only an assertion that it won't happen again, with no visible reason. A skeptic reading only the screen gets a bare promise.",
+        "The note's strong claim ('the same act means opposite things before and after the evidence is in') is a substantive argument the audience never sees, so it cannot do persuasive work on-slide."
+      ],
+      "suggestion": "Consider surfacing one short line of the 'why' onto the slide (e.g., 'Why never again? The case was settled in the open, once.') so the no-recurrence claim is reasoned rather than merely asserted to the skeptic."
+    },
+    {
+      "slide": 78,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": "Revelation 21:4 (KJV) quoted accurately. The callback to Ecclesiastes 4:1 ('no comforter') is in notes only, so no on-slide exposure. Strong emotional payoff that is honest, not manipulative. No change."
+    },
+    {
+      "slide": 79,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": ["'Revelation 22:3-5' lacks the (KJV) tag used elsewhere; minor inconsistency."],
+      "suggestion": "The composite quote ('no more curse… see his face… no night there') accurately stitches Rev 22:3-5 with honest ellipses. 'Eden — bookended' is a defensible literary claim (curse reversed, tree of life restored). Add '(KJV)' for consistency."
+    },
+    {
+      "slide": 80,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "'Isaiah 65:21-25' lacks the (KJV) tag; minor inconsistency. The header says 21-25 but the note references 65:17 as well — on-slide only 21-25 is cited, which matches the quoted material, so no exposure."
+      ],
+      "suggestion": "The quote (houses, vineyards, 'not labour in vain', wolf and lamb) is accurate KJV and well-chosen for skeptics 'allergic to vaporous heaven-talk.' 'A restored EARTH' is a fair reading. Add '(KJV)'."
+    },
+    {
+      "slide": 81,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [],
+      "suggestion": "1 Corinthians 2:9 (KJV) quoted accurately. Functions as an honest humility cap ('floor, not ceiling' per notes). No issue."
+    },
+    {
+      "slide": 82,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "The answer to 'Does it ever END?' includes 'guaranteed from outside the system' — a strong claim. For a skeptic, 'guaranteed' is the very thing in dispute (the whole night argues toward it, it isn't independently established). On-slide it reads as an assertion of certainty about a future event, which a skeptic's defenses may flag as overreach relative to what prophecy-fulfillment (Nights 1-2) actually demonstrated.",
+        "The two-question framing assumes the audience accepts the diagnostic answer to Q1 ('An intruder — a real rebellion, a real fall') as established; that is the great-controversy premise, not a neutral given. The slide presents it as settled rather than as the Bible's claim."
+      ],
+      "suggestion": "Consider softening 'guaranteed' to language the night actually earned (e.g., 'promised by the same Book whose other promises came dated and on time') so the certainty claim is tethered to the evidentiary track record from Nights 1-2 rather than asserted flatly."
+    },
+    {
+      "slide": 83,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": ["Title-only transition ('THE VERDICT'); no claim to evaluate."],
+      "suggestion": "Fine as a closing divider."
+    },
+    {
+      "slide": 84,
+      "soundness": "adequate",
+      "merit": "adequate",
+      "issues": [
+        "The scorecard marks all five criteria with a ✓ as if each were independently proven across the series. For a skeptic, criterion 2 ('Above human origins ✓') rests on Night 2's prophecy argument and criterion 5 ('Benevolent ✓') rests on tonight's great-controversy narrative — a checkmark presents these as settled facts rather than as the case made. The visual finality of five checks can read as triumphalist/foregone to a skeptical audience and may trip defenses at the exact moment trust matters most.",
+        "Line 5's tricolon ('explains the wound, it entered the wound, it ends the wound') is rhetorically strong but the third clause ('ends the wound') asserts a future-tense guarantee — the same overreach flagged on slide 82 — now stamped with a ✓ as though demonstrated."
+      ],
+      "suggestion": "Consider framing the scorecard as 'what the series argued' rather than five proven checkmarks (e.g., a heading like 'The case, criterion by criterion') so it invites verdict rather than declaring it — more disarming for skeptics. At minimum, ensure the presenter delivers line 5 as a claim being submitted for judgment, consistent with the series' 'judge me' posture, not as a closed verdict."
+    },
+    {
+      "slide": 85,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "The slide leans on the audience's memory of Night 1's wager and scorecard. 'You said yes' attributes a commitment to the whole room — a skeptic who silently dissented three nights ago may bristle at being told what they said. This is a mild overreach of the collective-agreement framing, though the conditional 'If a source met all five' softens it."
+      ],
+      "suggestion": "Consider softening 'You said yes' to 'You said you would' or 'Most of you said yes' to avoid putting words in a dissenter's mouth — preserves the trust the night is built on. Otherwise sound: the conditional premise (meet all five → follow) plus the claimed antecedent (Slide 84 scorecard) validly yields the call to action."
+    },
+    {
+      "slide": 86,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "The on-slide gloss 'the Bereans, commended for fact-checking the preacher' is a fair paraphrase of Acts 17:11, but a hostile reader could note the Bereans searched scripture to verify Paul's preaching against the OT — i.e., they trusted the text as the standard while checking the messenger. The slide uses this to invite checking the preacher, which is accurate, but the verse does not endorse checking the Bible itself against external evidence. Low risk since the gloss only claims 'fact-checking the preacher.'"
+      ],
+      "suggestion": "No change needed — the quote is verbatim KJV and the gloss is defensible. The verse is well-chosen for a skeptical room and earns trust by inviting verification."
+    },
+    {
+      "slide": 87,
+      "soundness": "strong",
+      "merit": "adequate",
+      "issues": [
+        "Revelation 3:20 is verbatim KJV — no citation risk. The slide stands without an explicit argument, relying on the presenter's 'door handle is on your side' framing (notes-only). On-slide, a skeptic sees only an invitation image; the 'no coercion' point that ties it to the night's free-will thread lives entirely in speaker notes, so the on-slide text does less coherence work than it could.",
+        "Original context of Rev 3:20 is Christ addressing the Laodicean church (believers), not unbelievers/seekers. A theologically informed skeptic could note the verse is being repurposed as an evangelistic appeal. Low risk for this audience and a very common usage, but worth flagging as a factual-context point."
+      ],
+      "suggestion": "Optionally add a one-line on-slide gloss echoing the free-will thread (e.g., 'He knocks — He does not break in') so the slide carries the night's coherence even without the presenter's voice. The verse choice is strong for a non-coercive close."
+    },
+    {
+      "slide": 88,
+      "soundness": "strong",
+      "merit": "strong",
+      "issues": [
+        "The presenter note claims Ps 34:8 is 'the same verse that opened the night.' This is a coherence assertion that cannot be verified from the batch (Night 3 opener not shown); if the night did NOT in fact open on Ps 34:8, this is a self-inflicted inaccuracy in the framing — but it is notes-only, so no on-slide risk. Flagging so the bookend claim gets checked against the actual opening slide.",
+        "Psalm 34:8 quote is verbatim KJV — no citation risk. 'Test it the way we tested everything' is a fair callback to the empirical framing of the series."
+      ],
+      "suggestion": "Verify Ps 34:8 actually opened Night 3 before the presenter says so (notes-only, but a broken bookend undercuts the 'empirical' brand). The two-lane ask (study together / read John alone) is honest and low-pressure — well-calibrated for skeptics."
+    }
+  ]
+}
