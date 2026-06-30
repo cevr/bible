@@ -32,7 +32,7 @@ set beats to {¬
 	{"n22-world-groans.png", "He let the world groan — so it would never groan again.", "The case must mature so the verdict is unanswerable, and then — Nahum 1:9 — affliction will not rise a second time. You don't kill a weed by cutting the stem; you dig out the root. Once, fully, forever."}, ¬
 	{"n23-jesus-weeps.png", "And He did not watch from a safe distance.", "'In all their affliction He was afflicted' (Isaiah 63:9). 'Jesus wept' (John 11:35). The God of this Book entered the suffering — He felt it from the inside. Unique among all the answers. Let it breathe."}, ¬
 	{"n24-justice-mercy-dilemma.png", "Justice and mercy — pick one, God.", "The accuser's sharpest charge: if the law is just, the lawbreaker cannot be pardoned; justice and mercy cannot coexist. Every human court faces this. The cross takes both horns."}, ¬
-	{"25-calvary.png", "He did not waive the law. He paid it.", "God did not change the rules to excuse us — He absorbed the penalty Himself (2 Corinthians 5:19). Justice satisfied AND mercy extended. The Lawgiver pays the law's own price. Reverent; let the weight of it land."}, ¬
+	{"n25-calvary.png", "He did not waive the law. He paid it.", "God did not change the rules to excuse us — He absorbed the penalty Himself (2 Corinthians 5:19). Justice satisfied AND mercy extended. The Lawgiver pays the law's own price. Reverent; let the weight of it land."}, ¬
 	{"n26-accuser-exposed.png", "And the accuser was unmasked before the universe.", "Given a free hand, the accuser tortured and killed the only innocent man who ever lived (Colossians 2:15). His own work condemned him. Whatever sympathy his case still had — died at the cross, in full view of the watching universe."}, ¬
 	{"n27-mercy-justice-meet.png", "At the cross, mercy and justice met — and kissed.", "Psalm 85:10 — 'mercy and truth are met together; righteousness and peace have kissed.' THE heart of the night: He is both merciful AND just, and the cross is where the two become one. This is the character you were made to see."}, ¬
 	{"n28-grace-received.png", "None of us could ever earn this.", "Measured by love itself, none of us makes it (Romans 3:23). And that is exactly why the bridge is grace, not achievement (Titus 3:5). 'I've done my best' was never the standard — His love is. The insufficiency is good news. Say 'we,' never 'you.'"}, ¬
@@ -63,14 +63,18 @@ tell application "Keynote"
 				set theSlide to make new slide at end with properties {base slide:master slide "Blank"}
 			end if
 
+			-- verify the file exists BEFORE handing it to Keynote: a non-existent POSIX
+			-- file path can silently no-op (slide ends up blank) instead of throwing.
+			tell application "System Events" to set imgExists to (exists disk item imgPath)
+
 			tell theSlide
 				-- full-bleed background image
-				try
+				if imgExists then
 					make new image with properties {file:(POSIX file imgPath), position:{0, 0}, width:1920, height:1080}
-				on error errMsg
-					-- if an image is missing, leave a marker so the gap is visible
+				else
+					-- loud marker so a missing image can never ship unnoticed
 					make new text item with properties {object text:("[MISSING IMAGE: " & imgFile & "]"), position:{160, 480}, width:1600, height:120}
-				end try
+				end if
 				-- one-line caption, lower third, with a dark scrim text box behind for legibility
 				make new text item with properties {object text:theLine, position:{160, 870}, width:1600, height:150}
 				set presenter notes to theNote
