@@ -64,6 +64,45 @@ function basename(p: string): string {
   return p.split('/').pop() ?? p;
 }
 
+/**
+ * AppleScript that binds `theDoc` to the target deck. Path mode opens the .key
+ * and binds by exact basename (with an ERROR sentinel if the open didn't take);
+ * name mode binds the first OPEN document whose name contains the substring.
+ * `deckResolved` is the already-path.resolve()'d deck when isPath, else the raw
+ * name substring.
+ */
+function findDocAS(isPath: boolean, deckResolved: string): string {
+  return isPath
+    ? `\topen POSIX file ${asText(deckResolved)}\n` +
+        `\tif (count of (documents whose name is ${asText(basename(deckResolved))})) = 0 then return "ERROR: could not open deck — " & ${asText(deckResolved)}\n` +
+        `\tset theDoc to first document whose name is ${asText(basename(deckResolved))}`
+    : `\tif (count of (documents whose name contains ${asText(deckResolved)})) = 0 then return "ERROR: deck not open — " & ${asText(deckResolved)}\n` +
+        `\tset theDoc to item 1 of (documents whose name contains ${asText(deckResolved)})`;
+}
+
+/**
+ * AppleScript snippet (to run inside `tell theDoc`) that scans slides for the
+ * first whose concatenated text items contain `captionExpr` (an AppleScript
+ * string expression), leaving the 1-based index in the variable named `outVar`
+ * (0 if not found).
+ */
+function findSlideByCaptionAS(captionExpr: string, outVar: string): string {
+  return (
+    `\tset ${outVar} to 0\n` +
+    `\trepeat with i from 1 to (count of slides of theDoc)\n` +
+    `\t\tset s to slide i of theDoc\n` +
+    `\t\tset capText to ""\n` +
+    `\t\trepeat with t in (text items of s)\n` +
+    `\t\t\tset capText to capText & (object text of t)\n` +
+    `\t\tend repeat\n` +
+    `\t\tif capText contains ${captionExpr} then\n` +
+    `\t\t\tset ${outVar} to i\n` +
+    `\t\t\texit repeat\n` +
+    `\t\tend if\n` +
+    `\tend repeat`
+  );
+}
+
 // ============================================================================
 // Schema types
 // ============================================================================
@@ -561,6 +600,148 @@ end tell`;
 );
 
 // ============================================================================
+// insert — insert ONE full-bleed image slide after a matched caption
+// ============================================================================
+
+const insertDeck = Argument.string('deck').pipe(
+  Argument.withDescription('Open document name substring OR a .key path'),
+);
+const insertAfter = Argument.string('after').pipe(
+  Argument.withDescription('Caption substring of the slide to insert AFTER'),
+);
+const insertImage = Argument.string('image').pipe(
+  Argument.withDescription('Image: absolute path, or relative to CWD/--image-dir'),
+);
+const insertCaption = Flag.string('caption').pipe(
+  Flag.withDescription('On-slide caption for the new slide'),
+  Flag.withDefault(''),
+);
+const insertNote = Flag.string('note').pipe(
+  Flag.withDescription('Presenter note for the new slide'),
+  Flag.withDefault(''),
+);
+const insertImageDir = Flag.string('image-dir').pipe(
+  Flag.withDescription('Resolve <image> relative to this dir instead of CWD'),
+  Flag.optional,
+);
+const insertMaster = Flag.string('master').pipe(
+  Flag.withDescription('Master slide for the new slide'),
+  Flag.withDefault('Blank'),
+);
+
+export const slidesInsert = Command.make(
+  'insert',
+  {
+    deck: insertDeck,
+    after: insertAfter,
+    image: insertImage,
+    caption: insertCaption,
+    note: insertNote,
+    imageDir: insertImageDir,
+    master: insertMaster,
+  },
+  (args) =>
+    Effect.gen(function* () {
+      const path = yield* Path.Path;
+      const svc = yield* AppleScript;
+
+      const baseDir = Option.getOrElse(args.imageDir, () => process.cwd());
+      const imgPath = path.isAbsolute(args.image)
+        ? args.image
+        : path.resolve(baseDir, args.image);
+
+      const deckIsPath = isPathDeck(args.deck);
+      const deckResolved = deckIsPath ? path.resolve(args.deck) : args.deck;
+
+      const captionLine = args.caption
+        ? `\t\t\tmake new text item with properties {object text:${asText(args.caption)}, position:{160, 870}, width:1600, height:150}\n`
+        : '';
+      const noteLine = args.note
+        ? `\t\tset presenter notes of newSlide to ${asText(args.note)}\n`
+        : '';
+
+      const script = `tell application "System Events"
+\tif not (exists disk item ${asText(imgPath)}) then return "ERROR: image not found — " & ${asText(imgPath)}
+end tell
+tell application "Keynote"
+\tactivate
+${findDocAS(deckIsPath, deckResolved)}
+\ttell theDoc
+${findSlideByCaptionAS(asText(args.after), 'hitIdx')}
+\t\tif hitIdx = 0 then return "ERROR: no slide caption contains — " & ${asText(args.after)}
+\t\tset newSlide to make new slide at after slide hitIdx with properties {base slide:(master slide ${asText(args.master)} of theDoc)}
+\t\ttell newSlide
+\t\t\tmake new image with properties {file:(POSIX file ${asText(imgPath)}), position:{0, 0}, width:1920, height:1080}
+${captionLine}\t\tend tell
+${noteLine}\tend tell
+\tsave theDoc
+\treturn "INSERTED after slide " & hitIdx & " <- " & ${asText(basename(imgPath))}
+end tell`;
+
+      const out = (yield* svc.exec(script)).trim();
+      if (out.startsWith('ERROR')) {
+        yield* Console.error(out);
+        return yield* Effect.sync(() => process.exit(1));
+      }
+      yield* Console.log(out);
+    }),
+);
+
+// ============================================================================
+// move — move a captioned slide to before/after another captioned slide
+// ============================================================================
+
+const moveDeck = Argument.string('deck').pipe(
+  Argument.withDescription('Open document name substring OR a .key path'),
+);
+const moveCaption = Argument.string('caption').pipe(
+  Argument.withDescription('Caption substring of the slide to MOVE'),
+);
+const moveAnchor = Argument.string('anchor').pipe(
+  Argument.withDescription('Caption substring of the slide to move it relative to'),
+);
+const moveBefore = Flag.boolean('before').pipe(
+  Flag.withDescription('Place the moved slide BEFORE the anchor (default: after)'),
+  Flag.withDefault(false),
+);
+
+export const slidesMove = Command.make(
+  'move',
+  { deck: moveDeck, caption: moveCaption, anchor: moveAnchor, before: moveBefore },
+  (args) =>
+    Effect.gen(function* () {
+      const path = yield* Path.Path;
+      const svc = yield* AppleScript;
+
+      const deckIsPath = isPathDeck(args.deck);
+      const deckResolved = deckIsPath ? path.resolve(args.deck) : args.deck;
+      const rel = args.before ? 'before' : 'after';
+
+      const script = `tell application "Keynote"
+\tactivate
+${findDocAS(deckIsPath, deckResolved)}
+\ttell theDoc
+${findSlideByCaptionAS(asText(args.caption), 'fromIdx')}
+\t\tif fromIdx = 0 then return "ERROR: no slide caption contains — " & ${asText(args.caption)}
+${findSlideByCaptionAS(asText(args.anchor), 'anchorIdx')}
+\t\tif anchorIdx = 0 then return "ERROR: no anchor caption contains — " & ${asText(args.anchor)}
+\t\tif fromIdx = anchorIdx then return "ERROR: move source and anchor are the same slide"
+\t\tmove slide fromIdx to ${rel} slide anchorIdx
+\tend tell
+\tsave theDoc
+\treturn "MOVED slide from " & fromIdx & " to ${rel} " & anchorIdx
+end tell`;
+
+      const out = (yield* svc.exec(script)).trim();
+      if (out.startsWith('ERROR')) {
+        yield* Console.error(out);
+        return yield* Effect.sync(() => process.exit(1));
+      }
+      yield* Console.log(out);
+    }),
+);
+
+// ============================================================================
 // Root slides command
 // ============================================================================
 
@@ -572,5 +753,16 @@ export const slides = Command.make('slides', {}, () =>
     yield* Console.log('  swap       <deck> <caption> <image> [--image-dir <dir>]');
     yield* Console.log('  list       <deck> [--json]');
     yield* Console.log('  interleave <deck> <verses.json> [--master]   insert text-only verse slides');
+    yield* Console.log('  insert     <deck> <after> <image> [--caption] [--note] [--image-dir]');
+    yield* Console.log('  move       <deck> <caption> <anchor> [--before]   reorder a slide');
   }),
-).pipe(Command.withSubcommands([slidesBuild, slidesSwap, slidesList, slidesInterleave]));
+).pipe(
+  Command.withSubcommands([
+    slidesBuild,
+    slidesSwap,
+    slidesList,
+    slidesInterleave,
+    slidesInsert,
+    slidesMove,
+  ]),
+);
