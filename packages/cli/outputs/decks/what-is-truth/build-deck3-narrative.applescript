@@ -88,6 +88,17 @@ tell application "Keynote"
 
 	end tell
 
-	save theDoc in POSIX file "/Users/cvr/Library/Mobile Documents/com~apple~Keynote/Documents/why_suffering_narrative.key"
-	return "NARRATIVE DECK DONE — slides: " & (count of slides of theDoc)
+	set savePath to "/Users/cvr/Library/Mobile Documents/com~apple~Keynote/Documents/why_suffering_narrative.key"
+	set slideCount to (count of slides of theDoc)
+	save theDoc in POSIX file savePath
+
+	-- Cleanup: the build document was created untitled, so after persisting it to the
+	-- named path it (and any sibling autosaves) linger as "Untitled N.key" scratch
+	-- documents. Close every still-open document whose name starts with "Untitled"
+	-- WITHOUT saving, so they never get written to disk in the first place.
+	repeat with d in (every document whose name starts with "Untitled")
+		close d saving no
+	end repeat
+
+	return "NARRATIVE DECK DONE — slides: " & slideCount
 end tell
