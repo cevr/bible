@@ -245,6 +245,38 @@
       "subject": null
     },
     {
+      "id": "29a",
+      "section": "The unfinished prophecy",
+      "line": "And this story is not finished.",
+      "scene": "the Second Coming — Christ returns in glory",
+      "image": "e01-second-coming.png",
+      "subject": "The Second Coming of Christ in glory — Jesus returning on the clouds of heaven surrounded by a vast host of radiant angels, the sky ablaze with divine light breaking open over a darkened world that looks up. 'Behold, he cometh with clouds; and every eye shall see him' (Revelation 1:7). The hinge of history: from what God HAS done to what He has promised to do. Epic, triumphant, awe-filled."
+    },
+    {
+      "id": "29b",
+      "section": "The unfinished prophecy",
+      "line": "The world as it is will not stand.",
+      "scene": "Babylon / the old world-order falls",
+      "image": "e02-babylon-falls.png",
+      "subject": "The fall of the great world-system — 'Babylon the great is fallen, is fallen' (Revelation 18:2). A vast, proud, glittering city of empire and luxury collapsing under a sky torn with judgment, towers crumbling, fire and smoke rising. The corrupt order of this present world toppling. Dramatic, cinematic, sobering; focus on the falling city/system, not bodies."
+    },
+    {
+      "id": "29c",
+      "section": "The unfinished prophecy",
+      "line": "And every life will be weighed.",
+      "scene": "the great white throne — final reckoning (throne as glory, not a Father figure)",
+      "image": "e03-white-throne.png",
+      "subject": "The great white throne judgment (Revelation 20:11-12) — a blinding white throne of overwhelming divine glory, before which a great multitude stand to be judged, the books opened. The One on the throne is depicted ONLY as radiant light, never a seated figure or face ('from whose face the earth and the heaven fled away'). Earth and heaven flee into the distance. Epic, solemn, the great final reckoning."
+    },
+    {
+      "id": "29d",
+      "section": "The unfinished prophecy",
+      "line": "This world ends — so a new one can begin.",
+      "scene": "the great destruction — the old earth passes away in fire",
+      "image": "e04-world-fire.png",
+      "subject": "The great destruction — the present world passing away in cleansing fire (2 Peter 3:10): the heavens passing with a great noise, the elements melting, the earth and its works burned up. A cosmic vista of the old earth consumed in fire and light, the heavens rolling back — yet a dawning radiance at the edges, the promise of what comes next. Epic, dramatic, awe-filled; the destruction as a doorway, not the end."
+    },
+    {
       "id": "30",
       "section": "How it ends",
       "line": "He will wipe away every tear.",
