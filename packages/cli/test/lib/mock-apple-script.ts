@@ -38,6 +38,16 @@ export const createMockAppleScriptLayer = (
 
         return config.response ?? 'Success';
       }),
+    execJxa: (script: string) =>
+      Effect.gen(function* () {
+        state.calls.push({ _tag: 'AppleScript.execJxa', script });
+
+        if (config.success === false) {
+          return yield* new Cause.UnknownError('AppleScript (JXA) execution failed');
+        }
+
+        return config.response ?? 'Success';
+      }),
   };
 
   return Layer.succeed(AppleScript, service);
