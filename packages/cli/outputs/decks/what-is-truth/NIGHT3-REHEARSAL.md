@@ -120,7 +120,7 @@ All slides are full-bleed images with no on-slide text except **1** (title), **3
 
 **18 — Mercy stays the hand of power**
 
-*Image:* Golden throne room: a radiant figure enthroned atop steps, surrounded by white-robed onlookers; foreground angels bow their heads in grief, one covering his face.
+*Image:* Golden throne room: the throne holds only a blinding formless blaze of glory — no discernible figure; white-robed hosts line the stairs while foreground angels bow their heads in grief, one covering his face.
 
 > If God destroyed the rebel on the spot, a watching universe that had never seen sin would serve from fear, not love — and the doubt would survive. Force can win a fight; it cannot answer a charge. So mercy stays the hand of power.
 
@@ -138,13 +138,13 @@ All slides are full-bleed images with no on-slide text except **1** (title), **3
 
 **21 — The conflict becomes a cosmic trial**
 
-*Image:* A vast heavenly assembly hall with seated white-robed multitudes flanking a central aisle; a lone robed figure walks toward an enthroned figure of Christ — a courtroom-like scene.
+*Image:* A vast heavenly assembly hall with seated white-robed multitudes flanking a central aisle; a lone robed figure walks toward the throne, which holds only a towering blaze of formless glory — a courtroom-like scene.
 
 > So the conflict becomes — formally — a trial over God's character, heard before the whole universe. And a fair trial needs witnesses outside the original dispute (Deuteronomy 19:15) — the angels had already taken sides.
 
 **22 — THE REVEAL: you were created as witness**
 
-*Image:* A small solitary robed man stands at the center of an immense golden celestial amphitheater, facing a distant luminous throne under cascading rays, watched by countless hosts.
+*Image:* A small solitary robed man stands at the center of an immense golden celestial amphitheater, facing a distant throne crowned by a burst of formless glory-light under cascading rays, watched by countless hosts.
 
 > Same courtroom — nothing has changed but one thing: look who is standing in it now. Not an angel. You. THE REVEAL — you were created because you were needed: an honest, third-party witness, made after the conflict, given the facts. Not to flatter God — to SEE Him truly. 'For His glory' = to vindicate His character. Let it land.
 
