@@ -1,8 +1,8 @@
 # Night 3 — WHY SUFFERING? · Rehearsal Script
 
-93 slides · deck `why_suffering_narrative.key` · updated 2026-07-04
+95 slides · deck `why_suffering_narrative.key` · updated 2026-07-04
 
-All slides are full-bleed images with no on-slide text except **1** (title), **3** and **15** (black statement slides), and **92** (verdict text slide). The **Say** blocks are the presenter notes verbatim.
+All slides are full-bleed images with no on-slide text except **1** (title), **3** and **15** (black statement slides), and **94** (verdict text slide). The **Say** blocks are the presenter notes verbatim.
 
 ---
 
@@ -214,7 +214,7 @@ All slides are full-bleed images with no on-slide text except **1** (title), **3
 
 *Say:* He had not reckoned with the depths of the Father's and the Son's love — a plan already in place to do two things at once: redeem the witnesses, and conclude the case. Conceived in love, at infinite cost.
 
-## ACT VI — Two Seeds & the Counterfeit Gods (34–47)
+## ACT VI — Two Seeds & the Counterfeit Gods (34–48)
 
 **34 — Genesis 3:15 — enmity, two seeds promised**
 
@@ -240,29 +240,29 @@ All slides are full-bleed images with no on-slide text except **1** (title), **3
 
 *Say:* Watch how fast the poison runs. This is not a stranger killing a stranger — it is the first brothers, and the trigger is worship. 'Cain talked with Abel his brother: and it came to pass, when they were in the field, that Cain rose up against Abel his brother' (Genesis 4:8). The first human being ever to die dies over an offering — killed by a worshipper whose religion was refused, for the crime of being accepted. Mark the pattern; it runs to the end of the Book: false worship never just disagrees with true worship — sooner or later, it reaches for a stone.
 
-**38 — Antediluvian golden age: brilliance without God**
+**38 — Two civilizations: the mountains and the plain**
+
+*Image:* One frame, two realms: on the rocky heights a patriarch lifts his hands beside a stone altar with sacrifice smoke rising, his family and flocks gathered on the terraces around him — while far below, the fertile plain glows with a vast gleaming marble city, lit with feast-fires and revelry in the dusk haze.
+
+*Say:* Two brothers became two civilizations. Cain 'went out from the presence of the LORD… and he builded a city' (Genesis 4:16-17), and his line filled the fertile plains: cities, invention, music, feasting (Genesis 4:21-22) — life made delicious, with God edited out. And the line of Seth withdrew to the mountains: hard, simple shepherd lives — tents, flocks, altars — guarding the promise: 'then began men to call upon the name of the LORD' (Genesis 4:26). Mark the geography of the two seeds — the distinction was their protection. And watch how the enemy dissolved it, not with a sword but with a wedding: 'the sons of God saw the daughters of men that they were fair; and they took them wives of all which they chose' (Genesis 6:1-2). The mountain moved down into the plain — and within a few generations there were not two civilizations any more. There was one.
+
+**39 — Antediluvian golden age: brilliance without God**
 
 *Image:* Sprawling antediluvian golden-age city of white towers, gardens and waterfalls; robed sages on a terrace with brass astronomical instruments, globes and scrolls; two tall luminous golden-haired figures (angel tutors) standing among the men.
 
 *Say:* And the serpent's world? It looked like a golden age. Lives of nine hundred years meant Adam could speak with Methuselah, and Methuselah with Noah — many generations alive at once, knowledge compounding without loss. Reason, philosophy, science, art — and fallen angels as tutors. Men and rebel angels united in one project: life without God. And heaven's verdict on all that brilliance: every imagination of the thoughts of his heart was only evil continually.
 
-**39 — Noah: 120 years of preached mercy**
+**40 — Noah: 120 years of preached mercy**
 
 *Image:* White-bearded Noah preaches from wooden scaffolding beside the towering half-built ark, arm outstretched in warning; a richly dressed crowd laughs, mocks and turns away below while workers haul timber; dry ground, golden sky, no rain.
 
 *Say:* Into that brilliant, corrupt world God sent one last sermon — and gave it a hundred and twenty years to run (Genesis 6:3). Noah, 'a preacher of righteousness' (2 Peter 2:5), preached it with a hammer: every plank of that ark was a warning, every blow rang across the plain — the door is open, come inside. The geniuses of that age came, looked, and laughed: rain had never fallen; there was no sea for a thousand miles. 'By faith Noah, being warned of God of things not seen as yet, moved with fear, prepared an ark to the saving of his house' (Hebrews 11:7). And mark the pattern of mercy: in this Book, judgment never falls without a long, patient, unmistakable warning first. It will not fall any other way at the end, either.
 
-**40 — The flood takes the golden world away**
+**41 — The flood takes the golden world away**
 
 *Image:* The colossal dark wave now curls over the lavish white-marble antediluvian metropolis — gilded dome, colonnades, statues, gardens — its crowds tiny in the streets below; the world of the geniuses meeting the water it laughed at.
 
 *Say:* And the door shut. 'The flood came, and took them all away' (Matthew 24:39). The world of the geniuses — the towers, the philosophy, the art, all that brilliance — went under the water it laughed at. And Jesus reached for exactly that era to describe ours: 'as the days of Noe were, so shall also the coming of the Son of man be' (Matthew 24:37). An age of astonishing intellect, dazzling achievement, and total spiritual blindness — those days return before He comes. We are not drifting toward the days of Noah. We are living in them.
-
-**41 — This time by fire: the days of Lot**
-
-*Image:* The same modern skyline under judgment — fire and brimstone streaking down through a black-and-crimson sky, the twin glass towers ablaze and breaking apart, smoke columns everywhere, the crowd below fleeing.
-
-*Say:* But not water, the second time. Jesus gave the picture a twin: 'Likewise also as it was in the days of Lot… it rained fire and brimstone from heaven, and destroyed them all. Even thus shall it be in the day when the Son of man is revealed' (Luke 17:28-30). And Peter says it plainly: the world that then was, overflowed with water, perished — 'but the heavens and the earth, which are now… are reserved unto fire against the day of judgment' (2 Peter 3:6-7). One world has already ended for laughing at a preacher of righteousness. This one ends differently — and tonight ends with what that fire clears the ground for.
 
 **42 — Babel: the rebellion regroups in brick**
 
@@ -300,13 +300,13 @@ All slides are full-bleed images with no on-slide text except **1** (title), **3
 
 *Say:* Fear was one of their masks — the subtlest was love. The oldest and most universal worship on earth is the cult of the ancestors: the beloved dead appearing, speaking, guiding the family. Now hold that against what the night established in Eden: man does not HAVE a soul, he IS one — and ‘the dead know not any thing’ (Ecclesiastes 9:5). Then who is wearing your grandfather’s face? Beings who watched him for a lifetime — who know his voice, his stories, his tenderness — impersonators without equal, preaching one sermon at every family shrine: you do not really die. Ancestor worship is ‘ye shall not surely die’ with an altar.
 
-## ACT VII — The Chosen Line: Israel's Story (48–59)
-
 **48 — Seth's line: calling on the LORD**
 
 *Image:* Night encampment: a white-bearded patriarch (Seth/Enosh era) stands with arms open in prayer beside a stone altar with fire, a column of light/sparks rising to a starry sky, surrounded by kneeling multi-generational family with flocks and tents.
 
 *Say:* But God preserved His line. Another son — Seth, the appointed one — and in his days men began to call upon the name of the LORD. From Seth to Noah, to Abraham, to David, to Bethlehem: one unbroken line carrying the promise, while the serpent works through his own.
+
+## ACT VII — The Chosen Line: Israel's Story (49–59)
 
 **49 — The line preserved: Shem to Abraham to Joseph**
 
@@ -374,7 +374,7 @@ All slides are full-bleed images with no on-slide text except **1** (title), **3
 
 *Say:* But when the clock struck, the nation was asleep. The very scrolls that dated the Messiah sat in the temple, read aloud every Sabbath by scholars who missed their own hour. Pagan astronomers followed a star across deserts to the cradle — while Jerusalem's theologians, five miles away, had to look the address up for them (Matthew 2:4-6)… and then went back to bed. The darkness was not a lack of light; it was the enemy's oldest craft: a people slowly bewitched by tradition, position and politics until, 'seeing, they see not.' They knew the prophecies by heart. And they did not know 'the time of thy visitation' (Luke 19:44).
 
-## ACT VIII — He Entered It: Heaven to the Cross (60–66)
+## ACT VIII — He Entered It: Heaven to the Cross (60–70)
 
 **60 — Heaven weeps; then He came down**
 
@@ -418,8 +418,6 @@ All slides are full-bleed images with no on-slide text except **1** (title), **3
 
 *Say:* Psalm 85:10 — 'mercy and truth are met together; righteousness and peace have kissed.' THE heart of the night: He is both merciful AND just, and the cross is where the two become one. This is the character you were made to see. The scales you saw a few minutes ago — justice on one side, mercy on the other — now hang level, and the cross is what balanced them.
 
-## ACT IX — What It Means for Us (67–70)
-
 **67 — All fall short; grace not achievement**
 
 *Image:* A kneeling man in rough robes looks up with open hands as brilliant rays break through clouds, revealing a radiant Christ figure descending in light above ruins and a rocky stream.
@@ -444,7 +442,7 @@ All slides are full-bleed images with no on-slide text except **1** (title), **3
 
 *Say:* And there is the bridge. One act, both results: it vindicated God's character AND rebuilt the bridge to you. 'Behold, what manner of love' (1 John 3:1). Vindication and rescue, inseparable.
 
-## ACT X — The Wilderness, the Word & the Last Masquerade (71–85)
+## ACT IX — The Wilderness & the War on the Word (71–74)
 
 **71 — The church in the wilderness**
 
@@ -464,41 +462,43 @@ All slides are full-bleed images with no on-slide text except **1** (title), **3
 
 *Say:* But the Book would not stay buried either. Wycliffe translated it, and they dug up his bones to burn them. Hus preached it, and they burned him alive. Tyndale gave it English lungs and was strangled at a stake, praying with his last breath, 'Lord, open the king of England's eyes' — and within a few years of that prayer the Bible stood open by royal command in every parish church in the land. The presses ran faster than the fires. Understand what you hold: every Bible on your shelf has the fingerprints of burned men on it. 'And they overcame him by the blood of the Lamb, and by the word of their testimony; and they loved not their lives unto the death' (Revelation 12:11).
 
-**74 — Darkened once again**
-
-*Image:* A modern living room at night: an open Bible lies unread in a pool of warm lamplight in the foreground while the family sits with backs to it, faces lit by the cold blue glow of a huge screen; a city skyline through the window — and across the wall falls the same faint serpentine shadow.
-
-*Say:* And then — with the stakes long cold and the Book on every nightstand — the old question came back for its final tour: did God really say? Only now it wore a lectern and a doctorate: the miracles are legend, the prophecies were written after the fact, the Book is noble ancient literature — inspiring, of course, but hardly authoritative. The most Bible-saturated civilization in history quietly talked itself out of its Bible. No chains this time; none were needed. A Book that is doubted does not have to be banned — it just lies there, open and unread, while the same two Eden lies walk in through the front door. That is the world the last deception found waiting for it.
-
-**75 — He is coming back with clouds**
-
-*Image:* Christ crowned as King descends on golden clouds holding a sickle aloft and a sword, flanked by ranks of trumpet-blowing angels, with crowds below raising their hands.
-
-*Say:* Everything so far is settled history — the cross is behind us. But the Book has pages not yet turned. It says this present world is almost over, and One is coming back: 'Behold, he cometh with clouds; and every eye shall see him' (Revelation 1:7). Pivot the room here: from what God HAS done to what He has PROMISED to do. Soon. And the nearer that day comes, the harder the old deceiver works — with the same two lies he drew in Eden.
-
-**76 — History repeats: blinded at the second Advent**
+**74 — History repeats: blinded at the second Advent**
 
 *Image:* An unearthly dawn breaks over a modern city — glory and a cross of light filling the sky — while the crowds below walk heads-down away from it and a dark church stands shut; two small figures alone on a rooftop stand watching.
 
 *Say:* And now His advent approaches again — the real one, the one every masquerade we are about to examine is built to counterfeit — and history is repeating with terrible precision. His professed people are largely asleep again: the dated prophecies unread, the manner of His coming misunderstood, the lamps untrimmed while heaven's clock runs down. 'Thou knewest not the time of thy visitation' — must that be said twice? That is why these nights exist. So that this time, when the King comes — not on a donkey now, but on the clouds, with every eye seeing Him — His people will know exactly what His advent represents, and be found awake, and watching.
 
-**77 — Two Eden lies run through all history**
+## ACT X — The Last Masquerade (75–85)
+
+**75 — Two Eden lies run through all history**
 
 *Image:* Dark panoramic vista: the serpent coiled around the Eden tree in the foreground, its shadow stretching across a timeline of civilization — Greek temples, a pyramid, cathedrals, up to a smoking modern skyline under a stormy sky.
 
 *Say:* Two lies from Eden: doubt the Word of God, and deny that death is death. Every deception since — every apparition, every doctrine of an undying soul, every voice suggesting the Bible is not quite sure — is built on these two. And Revelation says this deceiver deceiveth the whole world, right up to the end of time.
 
-**78 — A second golden age: reason, science, progress**
+**76 — A second golden age: reason, science, progress**
 
 *Image:* A high terrace overlooking a gleaming modern metropolis at golden hour — scientists, surgeons and engineers of every nation among telescopes, brass instruments and glowing holograms; a rocket climbs on a distant pillar of light; the mirror of the antediluvian terrace.
 
 *Say:* Because look at the age we live in. It is another golden age — the second one. Reason enthroned, science working daily miracles, knowledge compounding faster than any generation can hold it, towers rising, horizons falling. Daniel was told to seal his book 'even to the time of the end: many shall run to and fro, and knowledge shall be increased' (Daniel 12:4) — and here we are, running to and fro, knowledge increased beyond measure. It is the world before the flood rebuilt with better tools — mankind again brilliant, again confident, again building a future with no room for God in it. And heaven's old question of all that brilliance still stands: what are the thoughts of the heart?
 
-**79 — Unparalleled distraction: amused into sleep**
+**77 — This time by fire: the days of Lot**
+
+*Image:* The same modern skyline under judgment — fire and brimstone streaking down through a black-and-crimson sky, the twin glass towers ablaze and breaking apart, smoke columns everywhere, the crowd below fleeing.
+
+*Say:* But not water, the second time. Jesus gave the picture a twin: 'Likewise also as it was in the days of Lot… it rained fire and brimstone from heaven, and destroyed them all. Even thus shall it be in the day when the Son of man is revealed' (Luke 17:28-30). And Peter says it plainly: the world that then was, overflowed with water, perished — 'but the heavens and the earth, which are now… are reserved unto fire against the day of judgment' (2 Peter 3:6-7). One world has already ended for laughing at a preacher of righteousness. This one ends differently — and tonight ends with what that fire clears the ground for.
+
+**78 — Unparalleled distraction: amused into sleep**
 
 *Image:* A night avenue packed with people, every face bent down and lit by phone-glow beneath enormous glowing billboards; earbuds in, nobody seeing anybody, the crowd walking like sleepwalkers — one small child alone looks up at the sky.
 
 *Say:* But our golden age has a chain Noah's never forged: a glowing screen in every hand. Unparalleled distraction — entertainment without end, feeds without bottom, noise without one second of silence. Not persecution — anesthesia. Jesus' words come closer than comfort now: in the days of Noe 'they were eating and drinking, marrying and giving in marriage… and knew not until the flood came' (Matthew 24:38-39). Knew not. Not because the warning was missing — because nobody could hear it over the music. The most informed, most connected generation in history — and the least awake. That is the stage the last deception walks onto.
+
+**79 — Darkened once again**
+
+*Image:* A modern living room at night: an open Bible lies unread in a pool of warm lamplight in the foreground while the family sits with backs to it, faces lit by the cold blue glow of a huge screen; a city skyline through the window — and across the wall falls the same faint serpentine shadow.
+
+*Say:* And then — with the stakes long cold and the Book on every nightstand — the old question came back for its final tour: did God really say? Only now it wore a lectern and a doctorate: the miracles are legend, the prophecies were written after the fact, the Book is noble ancient literature — inspiring, of course, but hardly authoritative. The most Bible-saturated civilization in history quietly talked itself out of its Bible. No chains this time; none were needed. A Book that is doubted does not have to be banned — it just lies there, open and unread, while the same two Eden lies walk in through the front door. That is the world the last deception found waiting for it.
 
 **80 — Old worship, new forms**
 
@@ -536,19 +536,21 @@ All slides are full-bleed images with no on-slide text except **1** (title), **3
 
 *Say:* Against the cry of many ways stands one sentence: I am the way, the truth, and the life. Not A way — THE way. Truth is not a mood, and not a consensus. Truth is a person. And every other road is built on a world already under sentence.
 
-## ACT XI — The End of the Story (86–91)
+## ACT XI — The Distinction & the Return (86–87)
 
-**86 — The world-system (Babylon) passes away**
+**86 — The distinction returns: come out of her, My people**
 
-*Image:* Apocalyptic oil painting of a grand Babylon-like city of ziggurats, domes, and temples collapsing in fire, smoke, and flood, with a shaft of divine light breaking through storm clouds above.
+*Image:* The same two realms, now: a family kneels in evening worship around an open Bible and a lantern on the porch of a mountain homestead — cabin, garden, laundry on the line — while far below, a glittering neon megacity fills the valley in the blue dusk, highways running like rivers of light.
 
-*Say:* The proud world-system — its money, its empires, its defiance — is temporary and already under sentence: 'the world passeth away' (1 John 2:17). Not cynicism, realism: what looks permanent is passing; what looks fragile — 'he that doeth the will of God' — abides for ever. (Revelation's own name for this world-system is 'Babylon' — Daniel's fallen empire reused as a symbol — and it announces her fall, Revelation 18:2. That is a study of its own: one more reason to open Revelation together.)
+*Say:* And just before He comes, the old geography returns one final time. You have seen this picture before — the mountains and the plain. Heaven's last call is a call of distinction: 'Come out of her, my people, that ye be not partakers of her sins, and that ye receive not of her plagues' (Revelation 18:4). And Babylon's epitaph reads like the plain of old: 'How much she hath glorified herself, and lived deliciously' (Revelation 18:7) — living deliciously, one last golden age in the doomed lowlands. So once again a people quietly separates: simpler lives, harder lives, further from the noise — not fleeing the world's people but its bewitching, keeping the lamps trimmed where the Word can still be heard. Two civilizations again; two seeds still. Distinction was their protection then. It is ours now — because what falls on the plain this time is not water.
 
-**87 — The judgment: books opened, same court**
+**87 — He is coming back with clouds**
 
-*Image:* Vast multitude of robed people from all eras standing before a blazing white throne atop stairs, with giant open books at its base, set against a cosmic sky.
+*Image:* Christ crowned as King descends on golden clouds holding a sickle aloft and a sword, flanked by ranks of trumpet-blowing angels, with crowds below raising their hands.
 
-*Say:* A great final reckoning — 'the books were opened… and the dead were judged… according to their works' (Revelation 20:11-12). Frame it inside the trial the night built: this is the SAME open court, the same just Judge whose fairness the universe watched Him prove at infinite cost — not a new threat. IF ASKED 'judged by works — but saved not by works?': no contradiction — the books establish the facts of the case; the book of LIFE holds those who accepted the rescue. Judged by works, saved by grace. Sober, not threatening — this is why the invitation matters.
+*Say:* Everything so far is settled history — the cross is behind us. But the Book has pages not yet turned. It says this present world is almost over, and One is coming back: 'Behold, he cometh with clouds; and every eye shall see him' (Revelation 1:7). Pivot the room here: from what God HAS done to what He has PROMISED to do. Soon. And the nearer that day comes, the harder the old deceiver works — with the same two lies he drew in Eden.
+
+## ACT XII — The End of the Story (88–93)
 
 **88 — Old earth cleansed by fire**
 
@@ -556,33 +558,45 @@ All slides are full-bleed images with no on-slide text except **1** (title), **3
 
 *Say:* The old earth itself passes away in fire: 'the heavens shall pass away with a great noise, and the elements shall melt… the earth also and the works that are therein shall be burned up' (2 Peter 3:10). Not annihilation for its own sake — a cleansing, the doorway the world passes through. The destruction is real, and it is not the end of the story.
 
-**89 — New earth: no more pain, home restored**
+**89 — The world-system (Babylon) passes away**
+
+*Image:* Apocalyptic oil painting of a grand Babylon-like city of ziggurats, domes, and temples collapsing in fire, smoke, and flood, with a shaft of divine light breaking through storm clouds above.
+
+*Say:* The proud world-system — its money, its empires, its defiance — is temporary and already under sentence: 'the world passeth away' (1 John 2:17). Not cynicism, realism: what looks permanent is passing; what looks fragile — 'he that doeth the will of God' — abides for ever. (Revelation's own name for this world-system is 'Babylon' — Daniel's fallen empire reused as a symbol — and it announces her fall, Revelation 18:2. That is a study of its own: one more reason to open Revelation together.)
+
+**90 — The judgment: books opened, same court**
+
+*Image:* Vast multitude of robed people from all eras standing before a blazing white throne atop stairs, with giant open books at its base, set against a cosmic sky.
+
+*Say:* A great final reckoning — 'the books were opened… and the dead were judged… according to their works' (Revelation 20:11-12). Frame it inside the trial the night built: this is the SAME open court, the same just Judge whose fairness the universe watched Him prove at infinite cost — not a new threat. IF ASKED 'judged by works — but saved not by works?': no contradiction — the books establish the facts of the case; the book of LIFE holds those who accepted the rescue. Judged by works, saved by grace. Sober, not threatening — this is why the invitation matters.
+
+**91 — New earth: no more pain, home restored**
 
 *Image:* Golden pastoral new-earth scene: joyful families in white robes among lions, leopards, lambs, and elephants beside a stream, with a radiant golden city and waterfalls in the distance.
 
 *Say:* Revelation 21:4 — no more death, sorrow, crying, or pain. Not clouds and harps — a restored earth, the home you were made for. The groaning of the world, ended personally. After the fire: 'I saw a new heaven and a new earth' (Revelation 21:1). THIS is what the destruction was making room for.
 
-**90 — Affliction never rises again; case closed**
+**92 — Affliction never rises again; case closed**
 
 *Image:* The new-earth throne holds only a blinding formless blaze of glory — no discernible figure; the glorified Christ stands beside it with arms open in welcome, and a vast multitude of white-robed redeemed of every nation fills the paradise among tame lions, leopards, sheep and deer.
 
 *Say:* Affliction shall not rise up the second time (Nahum 1:9). Secured not by force, but by a verdict the whole universe witnessed — which is why this peace is permanent. The case is closed forever. (Same Nahum context note as earlier: Nineveh's local promise is the pattern — when God ends a thing, He ends it so completely it cannot rise again.)
 
-**91 — He knocks; He never forces**
+**93 — He knocks; He never forces**
 
 *Image:* A weathered wooden door in a stone wall standing ajar, warm golden light streaming through, with a luminous hand and arm reaching in the light; flowering vines flank the wall.
 
 *Say:* Revelation 3:20 — He knocks; He does not break in. The God who refused to win the cosmos by force will not force you either. Consistent to the last page. He knocks — and the door only opens from the inside. This is that door, opened; the hand reaching through is the one that would never push it.
 
-## CLOSE — The Verdict & the Ask (92–93)
+## CLOSE — The Verdict & the Ask (94–95)
 
-**92 — Criteria callback: benevolent — you judge**
+**94 — Criteria callback: benevolent — you judge**
 
 *Image:* Black statement slide with white text: 'You set the standard: truth must seek your good.' and smaller subtext 'You have seen His answer to suffering. The verdict is yours.'
 
 *Say:* The criteria callback — Night 1's wager finally lands. Recall it gently: 'If a source met all five criteria — consistent record, above human origin, practical, universal, benevolent — would you follow it?' Nights 1 and 2 carried the first four. Tonight was the fifth and hardest: benevolent — does it seek your good, does it fix what is broken? Do NOT stamp the verdict for them: 'I'm not going to check that box for you. You've seen the character of God tonight — the freedom, the cross, the promise. You judge.' Then the ask.
 
-**93 — The invitation: taste and see**
+**95 — The invitation: taste and see**
 
 *Image:* Close portrait of Jesus in cream robes against radiant golden clouds, smiling warmly and extending an open hand toward the viewer.
 
