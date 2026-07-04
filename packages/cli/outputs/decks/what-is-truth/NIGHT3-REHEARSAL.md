@@ -460,7 +460,7 @@ All slides are full-bleed images with no on-slide text except **1** (title), **3
 
 **73 — Affliction never rises again; case closed**
 
-*Image:* Christ seated on a golden throne above steps and a waterfall pool, surrounded by white-robed figures and peaceable animals (lion, leopard, ram, deer) in a luminous garden.
+*Image:* The new-earth throne holds only a blinding formless blaze of glory — no discernible figure; the glorified Christ stands beside it with arms open in welcome, and a vast multitude of white-robed redeemed of every nation fills the paradise among tame lions, leopards, sheep and deer.
 
 *Say:* Affliction shall not rise up the second time (Nahum 1:9). Secured not by force, but by a verdict the whole universe witnessed — which is why this peace is permanent. The case is closed forever. (Same Nahum context note as earlier: Nineveh's local promise is the pattern — when God ends a thing, He ends it so completely it cannot rise again.)
 
