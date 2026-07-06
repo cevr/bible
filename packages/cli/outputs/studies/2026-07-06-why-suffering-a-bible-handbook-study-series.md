@@ -81,6 +81,7 @@ Scripture Index
 - *Rev. 12:7-8.* "And there was war in heaven: Michael and his angels fought against the dragon; and the dragon fought and his angels, and prevailed not; neither was their place found any more in heaven." — mercy exhausted every appeal first; when rebellion hardened, heaven was closed to it.
 - *Rev. 12:9.* "And the great dragon was cast out, that old serpent, called the Devil, and Satan, which deceiveth the whole world." — Scripture's own glossary line, equating all his titles in one verse.
   - **the dragon** = Satan, the fallen covering cherub — "that old serpent, called the Devil, and Satan, which deceiveth the whole world" (*Rev. 12:9*; *Ezek. 28:14-15*; *Isa. 14:12*).
+  - **the two castings out** = at the rebellion Satan lost his *place* in heaven (*Rev. 12:7-9*); not until the cross did he lose his *standing* as accuser before God (*Rev. 12:10*; *Job 1:6-7*, Study 3; Study 8). John's one vision holds both ends of the war.
 
 **Why he still deceives — 2 Corinthians 11:14:**
 
@@ -118,12 +119,18 @@ Scripture Index
 - *1 Tim. 2:14.* "And Adam was not deceived, but the woman being deceived was in the transgression." — Adam fell with open eyes, choosing to share Eve's fate rather than live without her — a broken, human echo of a love that would one day walk into death for its bride deliberately.
 - *2 Cor. 4:4.* "The god of this world hath blinded the minds of them which believe not." — the coup succeeded: Scripture concedes the usurper the title "god of this world." Earth became the theater where his principles get their full demonstration.
 
+**The stolen crown — Genesis 1:26; Luke 4:6; Job 1:6-7:**
+
+- *Gen. 1:26.* "And God said, Let us make man in our image, after our likeness: and let them have dominion... over all the earth." — dominion over this world was Adam's by creation grant: a real crown, really his.
+- *Luke 4:6.* "All this power will I give thee, and the glory of them: for that is delivered unto me; and to whomsoever I will I give it." — Satan's own account of the fall: when Adam surrendered, the crown changed hands. Notice that Christ, refusing the offer, never disputes the claim — He disputes the price.
+- *Job 1:6-7.* "Now there was a day when the sons of God came to present themselves before the LORD, and Satan came also among them... And the LORD said unto Satan, Whence comest thou? Then Satan answered the LORD, and said, From going to and fro in the earth, and from walking up and down in it." — and here is what the stolen title bought him: standing. Cast out of his place as covering cherub (Study 2), he walks back into heaven's councils as earth's self-made representative, holding Adam's forfeited crown. The accuser is inside the courtroom — until the cross revokes his credentials (Study 8).
+
 **War declared — on the serpent — Genesis 3:15:**
 
 - *Gen. 3:15.* "And I will put enmity between thee and the woman, and between thy seed and her seed; it shall bruise thy head, and thou shalt bruise his heel." — God's first recorded words after the fall are a declaration of war, but not against us. The enmity against evil in a fallen heart is not natural — *God puts it there*; that planted hostility is grace. And one line of the woman's seed will crush the serpent's head at the cost of a wounded heel.
   - **the Seed** = the promised line of the woman, narrowing through history to one Person — Christ — who destroys the serpent by being wounded (*Gen. 3:15*; *Gen. 22:18*, Study 6; *Gal. 3:16*).
 
-**DEFINITION.** The world was made very good and man free; suffering entered through two lies — doubt God's Word, deny that death is death — and the same two lies remain the enemy's entire arsenal. God's first response was a promise: enmity, a Seed, a crushed serpent.
+**DEFINITION.** The world was made very good and man free; suffering entered through two lies — doubt God's Word, deny that death is death — and the same two lies remain the enemy's entire arsenal. The fall also handed Adam's crown to the usurper: dominion claimed, and with it a standing in heaven's court that only the cross would revoke. God's first response was a promise: enmity, a Seed, a crushed serpent.
 
 ---
 
@@ -303,6 +310,11 @@ Scripture Index
 
 - *Acts 1:9-11.* "While they beheld, he was taken up; and a cloud received him... Ye men of Galilee, why stand ye gazing up into heaven? this same Jesus, which is taken up from you into heaven, shall so come in like manner as ye have seen him go into heaven." — mark every word: this *same* Jesus — not a spirit, not a symbol, not a secret inner experience — shall come *in like manner* — bodily, visibly, in the clouds. Every counterfeit advent in Study 9 breaks against this one sentence.
 
+**The dominion comes home — Matthew 28:18; John 12:31:**
+
+- *Matt. 28:18.* "All power is given unto me in heaven and in earth." — He ascended not only as the Son of God but as the Son of *man*: the second Adam, carrying the crown forfeited in Eden (*Gen. 1:26*; *Luke 4:6*, Study 3) back through the gates.
+- *John 12:31.* "Now is the judgment of this world: now shall the prince of this world be cast out." — spoken on the eve of the cross, and heaven confirmed it: "the accuser of our brethren is cast down" (*Rev. 12:10*, Study 7). The usurper who walked into heaven's councils on Adam's stolen title (*Job 1:6*, Study 3) lost his standing at Calvary. The old council scene from Job is over, forever; earth's representative before the throne is now our Brother, with our nature and His scars.
+
 **Babel reversed — Acts 2:2-4, 41:**
 
 - *Acts 2:2-4.* "Suddenly there came a sound from heaven as of a rushing mighty wind... And there appeared unto them cloven tongues like as of fire... and they began to speak with other tongues." — at Babel God scattered the languages to break a rebellion; at Pentecost He gave them back to spread a rescue.
@@ -318,7 +330,7 @@ Scripture Index
 - *Hos. 4:6.* "My people are destroyed for lack of knowledge." — through those centuries the Book itself was locked away — chained to lecterns, kept in a language the people could not read — because every deception walks in freely wherever the Word is silent.
 - *Rev. 12:11.* "And they overcame him by the blood of the Lamb, and by the word of their testimony; and they loved not their lives unto the death." — Wycliffe, Hus, Tyndale: the presses ran faster than the fires, and every Bible on your shelf has the fingerprints of burned men on it.
 
-**DEFINITION.** The resurrection is the hinge of everything after it: a bodily risen Christ, a bodily promised return, a Spirit-empowered church that reversed Babel, and a Word that could be chained and burned but not silenced. The manner of His going — visible, bodily, in clouds — is the test of every claimed coming.
+**DEFINITION.** The resurrection is the hinge of everything after it: a bodily risen Christ, a bodily promised return, Adam's dominion carried home by the second Adam while the accuser lost his standing forever, a Spirit-empowered church that reversed Babel, and a Word that could be chained and burned but not silenced. The manner of His going — visible, bodily, in clouds — is the test of every claimed coming.
 
 ---
 
@@ -400,44 +412,45 @@ Scripture Index
 
 | Reference | Study | Reference | Study |
 |---|---|---|---|
-| Genesis 1:31 | 3 | Isaiah 63:9 | 7 |
-| Genesis 2:3 | 3 | Jeremiah 25:4 | 6 |
-| Genesis 2:7 | 3 | Jeremiah 32:35 | 5 |
-| Genesis 2:16-17 | 3 | Ezekiel 28:12-15 | 2 |
-| Genesis 3:1, 4-6 | 3 | Daniel 9:24-25 | 6 |
-| Genesis 3:15 | 3 | Daniel 10:13 | 5 |
-| Genesis 4:8, 16-17, 26 | 4 | Daniel 12:4 | 9 |
-| Genesis 5:22-24 | 4 | Hosea 4:6 | 8 |
-| Genesis 6:1-3, 5 | 4 | Nahum 1:9 | 10 |
-| Genesis 11:4, 8-9 | 5 | Zechariah 9:9 | 7 |
-| Genesis 22:12, 18 | 6 | Matthew 2:4-6 | 6 |
-| Deuteronomy 4:7 | 6 | Matthew 4:4, 7, 10 | 7 |
-| Deuteronomy 18:10-12 | 5 | Matthew 22:37-40 | 2 |
-| Deuteronomy 19:15 | 1 | Matthew 24:24 | 9 |
-| Deuteronomy 32:8, 17 | 5 | Matthew 24:37-39 | 4, 9 |
-| Joshua 24:20 | 6 | Matthew 27:52-53 | 8 |
-| 1 Samuel 8:19-20 | 6 | Mark 7:13 | 6 |
-| 1 Kings 18:38-39 | 6 | Luke 17:28-30 | 4 |
-| 2 Chronicles 36:16 | 6 | Luke 19:41, 44 | 6, 7 |
-| Psalm 8:4-5 | 3 | John 5:39 | Method |
-| Psalm 34:8 | 1, 10 | John 8:11 | 7 |
-| Psalm 85:10 | 7 | John 11:11-14, 35 | 7, 9 |
-| Ecclesiastes 9:5 | 5, 9 | John 14:6 | 9 |
-| Isaiah 8:19-20 | 5, 9 | Acts 1:9-11 | 8, 10 |
-| Isaiah 14:12-14 | 2 | Acts 2:2-4, 41 | 8 |
-| Isaiah 59:2 | 6 | Acts 17:11 | Method |
-| Romans 3:23, 26 | 7 | Hebrews 11:5, 7 | 4 |
-| Romans 13:10 | 2 | Hebrews 11:37-38 | 8 |
-| Romans 14:11 | 10 | 2 Peter 1:4 | 7 |
-| 1 Corinthians 10:20 | 5 | 2 Peter 2:5 | 4 |
-| 2 Corinthians 4:4 | 3 | 2 Peter 3:6-7, 10 | 4, 10 |
-| 2 Corinthians 5:19, 21 | 7 | 1 John 2:17 | 10 |
-| 2 Corinthians 11:14 | 2, 9 | 1 John 3:1 | 7 |
-| Philippians 2:10-11 | 10 | 1 John 4:8 | 1 |
-| Colossians 2:15 | 7 | Revelation 1:7, 18 | 8, 10 |
-| 1 Thessalonians 5:3 | 9 | Revelation 3:20 | 10 |
-| 1 Timothy 2:14 | 3 | Revelation 12:3-11 | 2, 7, 8, 9 |
-| Titus 3:5 | 7 | Revelation 14:7 | 3 |
-| | | Revelation 18:2, 4, 7 | 10 |
-| | | Revelation 20:11-12 | 10 |
-| | | Revelation 21:1, 4 | 10 |
+| Genesis 1:26, 31 | 3 | Matthew 27:52-53 | 8 |
+| Genesis 2:3 | 3 | Matthew 28:18 | 8 |
+| Genesis 2:7 | 3 | Mark 7:13 | 6 |
+| Genesis 2:16-17 | 3 | Luke 4:6 | 3 |
+| Genesis 3:1, 4-6 | 3 | Luke 17:28-30 | 4 |
+| Genesis 3:15 | 3 | Luke 19:41, 44 | 6, 7 |
+| Genesis 4:8, 16-17, 26 | 4 | John 5:39 | Method |
+| Genesis 5:22-24 | 4 | John 8:11 | 7 |
+| Genesis 6:1-3, 5 | 4 | John 11:11-14, 35 | 7, 9 |
+| Genesis 11:4, 8-9 | 5 | John 12:31 | 8 |
+| Genesis 22:12, 18 | 6 | John 14:6 | 9 |
+| Deuteronomy 4:7 | 6 | Acts 1:9-11 | 8, 10 |
+| Deuteronomy 18:10-12 | 5 | Acts 2:2-4, 41 | 8 |
+| Deuteronomy 19:15 | 1 | Acts 17:11 | Method |
+| Deuteronomy 32:8, 17 | 5 | Romans 3:23, 26 | 7 |
+| Joshua 24:20 | 6 | Romans 13:10 | 2 |
+| 1 Samuel 8:19-20 | 6 | Romans 14:11 | 10 |
+| 1 Kings 18:38-39 | 6 | 1 Corinthians 10:20 | 5 |
+| 2 Chronicles 36:16 | 6 | 2 Corinthians 4:4 | 3 |
+| Job 1:6-7 | 3 | 2 Corinthians 5:19, 21 | 7 |
+| Psalm 8:4-5 | 3 | 2 Corinthians 11:14 | 2, 9 |
+| Psalm 34:8 | 1, 10 | Philippians 2:10-11 | 10 |
+| Psalm 85:10 | 7 | Colossians 2:15 | 7 |
+| Ecclesiastes 9:5 | 5, 9 | 1 Thessalonians 5:3 | 9 |
+| Isaiah 8:19-20 | 5, 9 | 1 Timothy 2:14 | 3 |
+| Isaiah 14:12-14 | 2 | Titus 3:5 | 7 |
+| Isaiah 59:2 | 6 | Hebrews 11:5, 7 | 4 |
+| Isaiah 63:9 | 7 | Hebrews 11:37-38 | 8 |
+| Jeremiah 25:4 | 6 | 2 Peter 1:4 | 7 |
+| Jeremiah 32:35 | 5 | 2 Peter 2:5 | 4 |
+| Ezekiel 28:12-15 | 2 | 2 Peter 3:6-7, 10 | 4, 10 |
+| Daniel 9:24-25 | 6 | 1 John 2:17 | 10 |
+| Daniel 10:13 | 5 | 1 John 3:1 | 7 |
+| Daniel 12:4 | 9 | 1 John 4:8 | 1 |
+| Hosea 4:6 | 8 | Revelation 1:7, 18 | 8, 10 |
+| Nahum 1:9 | 10 | Revelation 3:20 | 10 |
+| Zechariah 9:9 | 7 | Revelation 12:3-11 | 2, 3, 7, 8, 9 |
+| Matthew 2:4-6 | 6 | Revelation 14:7 | 3 |
+| Matthew 4:4, 7, 10 | 7 | Revelation 18:2, 4, 7 | 10 |
+| Matthew 22:37-40 | 2 | Revelation 20:11-12 | 10 |
+| Matthew 24:24 | 9 | Revelation 21:1, 4 | 10 |
+| Matthew 24:37-39 | 4, 9 | | |
