@@ -1,0 +1,1677 @@
+<!doctype html>
+<html lang="en" data-theme="paper">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Executive Summary — Bohr vs. Miller’s Rules</title>
+    <meta
+      name="description"
+      content="The single load-bearing finding, the three violation clusters, the eight zero-violation chapters, and the five Rule-XIII vindications — distilled from the full audit."
+    />
+    <meta name="theme-color" content="#faf8f5" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --paper: #faf8f5;
+        --paper-tint: #f3eee3;
+        --ink: #1a1612;
+        --ink-soft: #4a3f33;
+        --ink-mute: #7a6f63;
+        --rule: #d8d0c2;
+        --rule-soft: #e8e2d4;
+        --oxblood: #842817;
+        --oxblood-soft: #b85842;
+        --indigo: #2c4a5f;
+        --gold: #8a6d2f;
+        --green: #3d5a3a;
+        --pad: clamp(1rem, 3vw, 2rem);
+        --measure: 72ch;
+        --display: 'Fraunces', 'Times New Roman', Georgia, serif;
+        --body: 'IBM Plex Sans', -apple-system, sans-serif;
+        --mono: 'IBM Plex Mono', ui-monospace, monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        -webkit-text-size-adjust: 100%;
+      }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: var(--body);
+        font-size: 16px;
+        line-height: 1.55;
+        font-feature-settings: 'kern', 'liga', 'ss01';
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+      }
+      ::selection {
+        background: var(--ink);
+        color: var(--paper);
+      }
+
+      /* ============ TOP NAV ============ */
+      nav.topnav {
+        border-bottom: 1px solid var(--rule);
+        background: var(--paper);
+        position: sticky;
+        top: 0;
+        z-index: 20;
+      }
+      nav.topnav .nav-inner {
+        max-width: 1320px;
+        margin: 0 auto;
+        padding: 0.85rem var(--pad);
+        display: flex;
+        gap: clamp(1rem, 3vw, 2.5rem);
+        align-items: baseline;
+        flex-wrap: wrap;
+      }
+      nav.topnav a.brand {
+        font-family: var(--display);
+        font-weight: 500;
+        font-size: 1.05rem;
+        letter-spacing: -0.01em;
+        color: var(--ink);
+        text-decoration: none;
+      }
+      nav.topnav a.brand em {
+        font-style: italic;
+        color: var(--oxblood);
+      }
+      nav.topnav ul.nav-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        gap: clamp(0.85rem, 2vw, 1.6rem);
+        flex-wrap: wrap;
+      }
+      nav.topnav ul.nav-list a {
+        font-family: var(--body);
+        font-size: 0.72rem;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+        text-decoration: none;
+        padding: 0.3rem 0;
+        border-bottom: 1px solid transparent;
+        transition:
+          color 0.15s,
+          border-color 0.15s;
+      }
+      nav.topnav ul.nav-list a:hover,
+      nav.topnav ul.nav-list a:focus-visible {
+        color: var(--oxblood);
+        outline: none;
+        border-bottom-color: var(--oxblood);
+      }
+      nav.topnav ul.nav-list a[aria-current='page'] {
+        color: var(--ink);
+        border-bottom-color: var(--oxblood);
+      }
+
+      /* ============ LAYOUT ============ */
+      .shell {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        max-width: 1320px;
+        margin: 0 auto;
+        padding: 0 var(--pad);
+      }
+      @media (min-width: 1024px) {
+        .shell.with-toc {
+          grid-template-columns: 240px minmax(0, 1fr);
+          gap: 4rem;
+          padding: 0 3rem;
+        }
+      }
+
+      /* ============ HEADER ============ */
+      header.masthead {
+        border-bottom: 1px solid var(--rule);
+        padding: 3rem 0 2.5rem;
+        margin-bottom: 3rem;
+      }
+      header.masthead .eyebrow {
+        font-family: var(--body);
+        font-size: 0.7rem;
+        font-weight: 500;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+        margin: 0 0 1.5rem;
+      }
+      header.masthead h1 {
+        font-family: var(--display);
+        font-weight: 500;
+        font-size: clamp(2rem, 5.5vw, 3.4rem);
+        line-height: 1.05;
+        letter-spacing: -0.02em;
+        margin: 0 0 1.2rem;
+        text-wrap: balance;
+        max-width: 22ch;
+      }
+      header.masthead h1 em {
+        font-style: italic;
+        color: var(--oxblood);
+        font-weight: 500;
+      }
+      header.masthead .lede {
+        font-family: var(--display);
+        font-size: clamp(1.05rem, 1.5vw, 1.2rem);
+        line-height: 1.5;
+        color: var(--ink-soft);
+        max-width: 60ch;
+        margin: 0;
+        font-weight: 400;
+      }
+      header.masthead .meta {
+        display: flex;
+        gap: 2rem;
+        margin-top: 2rem;
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        color: var(--ink-mute);
+        letter-spacing: 0.04em;
+        flex-wrap: wrap;
+      }
+      header.masthead .meta span strong {
+        color: var(--ink);
+        font-weight: 500;
+        margin-right: 0.4em;
+      }
+
+      /* ============ TOC ============ */
+      .toc {
+        font-family: var(--body);
+        font-size: 0.78rem;
+        line-height: 1.5;
+      }
+      @media (min-width: 1024px) {
+        .toc {
+          position: sticky;
+          top: 4.5rem;
+          max-height: calc(100dvh - 6rem);
+          overflow-y: auto;
+          padding-right: 1rem;
+          border-right: 1px solid var(--rule-soft);
+        }
+      }
+      .toc-h {
+        font-family: var(--body);
+        font-size: 0.65rem;
+        font-weight: 600;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+        margin: 0 0 1rem;
+      }
+      .toc ol {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        counter-reset: toc;
+      }
+      .toc li {
+        counter-increment: toc;
+        padding: 0.45rem 0;
+        border-bottom: 1px dashed var(--rule-soft);
+        display: flex;
+        gap: 0.6rem;
+        align-items: baseline;
+      }
+      .toc li:last-child {
+        border-bottom: 0;
+      }
+      .toc li::before {
+        content: counter(toc, decimal-leading-zero);
+        font-family: var(--mono);
+        font-size: 0.62rem;
+        color: var(--ink-mute);
+        letter-spacing: 0;
+        flex: 0 0 auto;
+      }
+      .toc a {
+        color: var(--ink-soft);
+        text-decoration: none;
+        transition: color 0.15s;
+      }
+      .toc a:hover,
+      .toc a:focus-visible {
+        color: var(--oxblood);
+        outline: none;
+      }
+
+      /* ============ MAIN ============ */
+      main.content {
+        max-width: var(--measure);
+        padding-bottom: 6rem;
+        min-width: 0;
+      }
+
+      main.content h1 {
+        display: none;
+      }
+
+      main.content h2 {
+        font-family: var(--display);
+        font-weight: 500;
+        font-size: clamp(1.6rem, 3.2vw, 2.2rem);
+        line-height: 1.15;
+        letter-spacing: -0.015em;
+        margin: 5rem 0 1.5rem;
+        scroll-margin-top: 5rem;
+        text-wrap: balance;
+        position: relative;
+        padding-top: 2rem;
+        border-top: 1px solid var(--rule);
+      }
+      main.content h2:first-of-type {
+        margin-top: 0;
+        border-top: none;
+        padding-top: 0;
+      }
+
+      main.content h3 {
+        font-family: var(--body);
+        font-weight: 600;
+        font-size: 0.95rem;
+        line-height: 1.35;
+        letter-spacing: -0.005em;
+        margin: 2.5rem 0 1rem;
+        scroll-margin-top: 5rem;
+        color: var(--ink);
+      }
+
+      main.content h3.verse-h {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 0 1.25rem;
+        align-items: baseline;
+        border-top: 1px solid var(--rule-soft);
+        padding-top: 1.5rem;
+        margin-top: 3rem;
+      }
+      main.content h3.verse-h .verse-anchor {
+        text-decoration: none;
+        border: 0;
+        display: inline-block;
+      }
+      main.content h3.verse-h .verse-anchor:hover .verse-ref {
+        color: var(--ink);
+        background: var(--rule-soft);
+      }
+      main.content h3.verse-h .verse-ref {
+        font-family: var(--mono);
+        font-weight: 500;
+        font-size: 0.78rem;
+        letter-spacing: 0.02em;
+        color: var(--oxblood);
+        text-transform: uppercase;
+        white-space: nowrap;
+        padding: 0.1rem 0.4rem;
+        border-radius: 2px;
+        transition:
+          background 0.15s,
+          color 0.15s;
+      }
+      main.content h3.verse-h .verse-text {
+        font-family: var(--display);
+        font-weight: 400;
+        font-style: italic;
+        font-size: 1.05rem;
+        line-height: 1.4;
+        color: var(--indigo);
+        text-wrap: pretty;
+      }
+
+      main.content h4 {
+        font-family: var(--body);
+        font-size: 0.7rem;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+        margin: 2rem 0 0.6rem;
+      }
+
+      /* Anchor link on h2 */
+      .anchor {
+        position: absolute;
+        left: -1.4em;
+        top: 2.05rem;
+        font-family: var(--display);
+        font-size: 1.2rem;
+        color: var(--rule);
+        text-decoration: none;
+        opacity: 0;
+        transition:
+          opacity 0.15s,
+          color 0.15s;
+      }
+      h2:hover .anchor,
+      .anchor:focus-visible {
+        opacity: 1;
+        color: var(--oxblood);
+        outline: none;
+      }
+
+      main.content p {
+        margin: 0 0 1rem;
+        text-wrap: pretty;
+      }
+
+      main.content strong {
+        font-weight: 600;
+        color: var(--ink);
+      }
+      main.content em {
+        font-style: italic;
+      }
+
+      main.content blockquote {
+        border-left: 2px solid var(--oxblood);
+        padding: 0.5rem 0 0.5rem 1.5rem;
+        margin: 1.5rem 0;
+        font-family: var(--display);
+        font-style: italic;
+        font-size: 1.05rem;
+        line-height: 1.5;
+        color: var(--ink-soft);
+      }
+
+      main.content a {
+        color: var(--indigo);
+        text-decoration: underline;
+        text-decoration-thickness: 1px;
+        text-underline-offset: 0.15em;
+        text-decoration-color: var(--rule);
+        transition: text-decoration-color 0.15s;
+      }
+      main.content a:hover {
+        text-decoration-color: var(--indigo);
+      }
+
+      main.content hr {
+        border: 0;
+        margin: 2.5rem 0;
+        height: 1px;
+        background: transparent;
+      }
+
+      /* Preserve ASCII heatmap formatting */
+      main.content pre {
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        line-height: 1.4;
+        background: var(--paper-tint);
+        border: 1px solid var(--rule-soft);
+        border-radius: 3px;
+        padding: 1rem 1.25rem;
+        overflow-x: auto;
+        margin: 1.5rem 0;
+        color: var(--ink);
+      }
+      main.content code {
+        font-family: var(--mono);
+        font-size: 0.85em;
+        background: var(--paper-tint);
+        padding: 0.1em 0.35em;
+        border-radius: 2px;
+        color: var(--ink);
+      }
+      main.content pre code {
+        background: transparent;
+        padding: 0;
+        font-size: 1em;
+      }
+
+      /* ============ VERSE-ROW SEMANTICS ============ */
+      main.content p.row-pioneer {
+        background: linear-gradient(to right, var(--indigo) 2px, transparent 2px);
+        padding-left: 1.25rem;
+        font-size: 0.95rem;
+      }
+      main.content p.row-pioneer strong:first-child {
+        font-family: var(--body);
+        font-weight: 600;
+        font-size: 0.65rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--indigo);
+        display: block;
+        margin-bottom: 0.35rem;
+      }
+
+      main.content p.row-reading {
+        background: linear-gradient(to right, var(--oxblood-soft) 2px, transparent 2px);
+        padding-left: 1.25rem;
+        font-size: 0.95rem;
+      }
+      main.content p.row-reading strong:first-child {
+        font-family: var(--body);
+        font-weight: 600;
+        font-size: 0.65rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--oxblood-soft);
+        display: block;
+        margin-bottom: 0.35rem;
+      }
+
+      main.content p.row-note {
+        font-size: 0.92rem;
+        color: var(--ink-soft);
+        padding-left: 1.25rem;
+        border-left: 1px dashed var(--rule);
+        margin-left: 0.1rem;
+      }
+
+      main.content p.row-status,
+      main.content p.row-warrant {
+        background: linear-gradient(to right, var(--green) 2px, transparent 2px);
+        padding-left: 1.25rem;
+        font-size: 0.92rem;
+      }
+      main.content p.row-status strong:first-child,
+      main.content p.row-warrant strong:first-child {
+        font-family: var(--body);
+        font-weight: 600;
+        font-size: 0.65rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+        display: block;
+        margin-bottom: 0.35rem;
+      }
+
+      main.content p.row-violations-label {
+        background: linear-gradient(to right, var(--oxblood) 2px, transparent 2px);
+        padding-left: 1.25rem;
+        margin-bottom: 0.5rem;
+      }
+      main.content p.row-violations-label strong {
+        font-family: var(--body);
+        font-weight: 600;
+        font-size: 0.65rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--oxblood);
+      }
+
+      main.content ul.violations {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 1rem;
+        border-left: 2px solid var(--oxblood);
+        padding-left: 1.25rem;
+      }
+      main.content ul.violations li {
+        margin: 0 0 0.85rem;
+        padding-left: 0;
+        font-size: 0.92rem;
+        line-height: 1.55;
+      }
+      main.content ul.violations li:last-child {
+        margin-bottom: 0;
+      }
+
+      .rule-chip {
+        display: inline-block;
+        font-family: var(--mono);
+        font-weight: 500;
+        font-size: 0.68rem;
+        letter-spacing: 0.04em;
+        background: var(--oxblood);
+        color: var(--paper);
+        padding: 0.15rem 0.5rem 0.18rem;
+        border-radius: 2px;
+        margin-right: 0.4rem;
+        vertical-align: 0.1em;
+        white-space: nowrap;
+      }
+
+      main.content p.row-symbols {
+        background: linear-gradient(to right, var(--gold) 2px, transparent 2px);
+        padding-left: 1.25rem;
+        font-size: 0.88rem;
+        color: var(--ink-soft);
+      }
+      main.content p.row-symbols strong:first-child {
+        font-family: var(--body);
+        font-weight: 600;
+        font-size: 0.65rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+        display: block;
+        margin-bottom: 0.35rem;
+      }
+
+      /* Generic lists (not violations / not landing doc-cards) */
+      main.content ul:not(.violations) {
+        padding-left: 1.25rem;
+        margin: 0 0 1rem;
+      }
+      main.content ul:not(.violations) li {
+        margin-bottom: 0.4rem;
+      }
+      main.content ul:not(.violations) li::marker {
+        color: var(--ink-mute);
+      }
+
+      /* ============ VERSE CARDS (full audit) ============ */
+      main.content .verse {
+        margin: 1.5rem 0;
+        scroll-margin-top: 5rem;
+      }
+
+      /* COMPACT FORM — for verses with no violation, just a status note */
+      .verse-compact {
+        border-top: 1px solid var(--rule-soft);
+        padding: 0.6rem 0 0.6rem;
+        margin: 0;
+      }
+      .verse-compact:has(+ .verse-card),
+      .verse-card + .verse-compact {
+        border-top: 1px solid var(--rule);
+        margin-top: 1.25rem;
+        padding-top: 1.25rem;
+      }
+      .verse-compact-row {
+        display: grid;
+        grid-template-columns: 1.5rem auto 1fr;
+        gap: 0 0.85rem;
+        align-items: baseline;
+        text-decoration: none;
+        color: inherit;
+        padding: 0.25rem 0;
+      }
+      .verse-compact-row:hover .verse-compact-ref {
+        color: var(--ink);
+        background: var(--rule-soft);
+      }
+      .verse-mark {
+        font-family: var(--mono);
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--green);
+        text-align: center;
+        user-select: none;
+      }
+      .verse-mark-soft {
+        color: var(--gold);
+      }
+      .verse-compact-ref {
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+        color: var(--oxblood);
+        text-transform: uppercase;
+        white-space: nowrap;
+        padding: 0.1rem 0.4rem;
+        border-radius: 2px;
+        transition:
+          background 0.15s,
+          color 0.15s;
+        align-self: baseline;
+      }
+      .verse-compact-text {
+        font-family: var(--display);
+        font-style: italic;
+        font-size: 0.95rem;
+        line-height: 1.4;
+        color: var(--indigo);
+        text-wrap: pretty;
+      }
+      .verse-compact-body {
+        font-size: 0.88rem;
+        line-height: 1.55;
+        color: var(--ink-soft);
+        margin: 0.4rem 0 0 2.35rem;
+        padding-left: 0;
+      }
+      .verse-compact-body:empty {
+        display: none;
+      }
+      .verse-compact-body > p {
+        margin: 0 0 0.5rem;
+      }
+      .verse-compact-body > p:last-child {
+        margin-bottom: 0;
+      }
+      /* If "No violation." is literally all there is, suppress the body row entirely */
+      .verse-clean .verse-compact-body:where(:not(:has(p)):not(:has(*))) {
+        display: none;
+      }
+
+      /* EXPANDED FORM — for verses with violations or full pioneer/Bohr/status content */
+      .verse-card {
+        border: 1px solid var(--rule);
+        background: var(--paper);
+        border-radius: 3px;
+        padding: 1.5rem 1.5rem 1.25rem;
+        margin: 1.75rem 0;
+        break-inside: avoid;
+      }
+      .verse-card.verse-with-violations {
+        border-color: var(--oxblood);
+        border-left-width: 3px;
+      }
+
+      .verse-head {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 0.75rem 1.25rem;
+        align-items: baseline;
+        margin-bottom: 1.25rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--rule-soft);
+      }
+      .verse-head .verse-permalink {
+        text-decoration: none;
+        border: 0;
+      }
+      .verse-head .verse-permalink:hover .verse-ref {
+        color: var(--ink);
+        background: var(--rule-soft);
+      }
+      .verse-head .verse-ref {
+        font-family: var(--mono);
+        font-weight: 500;
+        font-size: 0.78rem;
+        letter-spacing: 0.02em;
+        color: var(--oxblood);
+        text-transform: uppercase;
+        white-space: nowrap;
+        padding: 0.15rem 0.45rem;
+        border-radius: 2px;
+        transition:
+          background 0.15s,
+          color 0.15s;
+      }
+      .verse-head .verse-text {
+        font-family: var(--display);
+        font-weight: 400;
+        font-style: italic;
+        font-size: 1.05rem;
+        line-height: 1.4;
+        color: var(--indigo);
+        text-wrap: pretty;
+        grid-column: 2;
+      }
+      .verse-count-badge {
+        font-family: var(--mono);
+        font-size: 0.65rem;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--paper);
+        background: var(--oxblood);
+        padding: 0.25rem 0.55rem 0.28rem;
+        border-radius: 2px;
+        white-space: nowrap;
+        align-self: center;
+      }
+      .verse-count-badge.verse-count-clean {
+        background: transparent;
+        color: var(--green);
+        border: 1px solid var(--green);
+        padding: 0.2rem 0.5rem 0.22rem;
+      }
+      @media (max-width: 640px) {
+        .verse-head {
+          grid-template-columns: auto 1fr;
+        }
+        .verse-count-badge {
+          grid-column: 1 / -1;
+          justify-self: start;
+        }
+      }
+
+      /* Readings: split column */
+      .verse-readings {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0;
+        margin: 0 0 1.25rem;
+        border: 1px solid var(--rule-soft);
+        border-radius: 2px;
+        overflow: hidden;
+      }
+      @media (max-width: 720px) {
+        .verse-readings {
+          grid-template-columns: 1fr;
+        }
+      }
+      .reading-col {
+        padding: 0.9rem 1rem 1rem;
+        background: var(--paper);
+      }
+      .reading-pioneer {
+        border-right: 1px solid var(--rule-soft);
+        background: linear-gradient(
+          to right,
+          color-mix(in srgb, var(--indigo) 4%, transparent),
+          transparent 40%
+        );
+      }
+      .reading-bohr {
+        background: linear-gradient(
+          to right,
+          color-mix(in srgb, var(--oxblood) 4%, transparent),
+          transparent 40%
+        );
+      }
+      @media (max-width: 720px) {
+        .reading-pioneer {
+          border-right: 0;
+          border-bottom: 1px solid var(--rule-soft);
+        }
+      }
+      .reading-tag {
+        font-family: var(--body);
+        font-size: 0.6rem;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+        margin: 0 0 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+      }
+      .reading-pioneer .reading-tag {
+        color: var(--indigo);
+      }
+      .reading-pioneer .reading-tag::before {
+        content: '';
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        background: var(--indigo);
+        border-radius: 1px;
+      }
+      .reading-bohr .reading-tag {
+        color: var(--oxblood);
+      }
+      .reading-bohr .reading-tag::before {
+        content: '';
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        background: var(--oxblood);
+        border-radius: 1px;
+      }
+      .reading-body {
+        font-size: 0.93rem;
+        line-height: 1.55;
+        color: var(--ink-soft);
+      }
+      .reading-body > p {
+        margin: 0 0 0.6rem;
+      }
+      .reading-body > p:last-child {
+        margin-bottom: 0;
+      }
+      .reading-empty {
+        font-style: italic;
+        color: var(--ink-mute);
+        font-size: 0.88rem;
+      }
+
+      /* Warrant */
+      .verse-warrant {
+        margin: 0 0 1.25rem;
+        padding: 0.85rem 1rem;
+        background: color-mix(in srgb, var(--gold) 8%, transparent);
+        border-left: 2px solid var(--gold);
+        border-radius: 0 2px 2px 0;
+      }
+      .verse-warrant .reading-tag {
+        color: var(--gold);
+      }
+      .verse-warrant .reading-tag::before {
+        content: '';
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        background: var(--gold);
+        border-radius: 1px;
+      }
+      .verse-warrant .reading-body {
+        font-size: 0.9rem;
+        font-style: italic;
+      }
+
+      /* Violations: numbered badges + reasoning */
+      .verse-violations {
+        margin: 0 0 1.25rem;
+      }
+      .violations-tag {
+        font-family: var(--body);
+        font-size: 0.6rem;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--oxblood);
+        margin: 0 0 0.85rem;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+      }
+      .violations-tag::before {
+        content: '';
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        background: var(--oxblood);
+        border-radius: 1px;
+      }
+      .violation-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
+        counter-reset: viol;
+      }
+      .violation-item {
+        counter-increment: viol;
+        display: grid;
+        grid-template-columns: minmax(150px, max-content) 1fr;
+        gap: 0 1.25rem;
+        align-items: start;
+        padding: 0.85rem 0;
+        border-top: 1px solid var(--rule-soft);
+      }
+      .violation-item:first-child {
+        border-top: 0;
+        padding-top: 0;
+      }
+      @media (max-width: 640px) {
+        .violation-item {
+          grid-template-columns: 1fr;
+          gap: 0.5rem;
+        }
+      }
+      .violation-badge {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 0.45rem 0.7rem 0.5rem;
+        background: var(--oxblood);
+        color: var(--paper);
+        border-radius: 2px;
+        position: relative;
+      }
+      .violation-badge::before {
+        content: counter(viol, decimal-leading-zero);
+        position: absolute;
+        top: -0.55rem;
+        left: -0.55rem;
+        font-family: var(--mono);
+        font-size: 0.6rem;
+        font-weight: 500;
+        letter-spacing: 0.04em;
+        background: var(--ink);
+        color: var(--paper);
+        padding: 0.1rem 0.35rem;
+        border-radius: 2px;
+      }
+      .violation-badge-broader {
+        background: color-mix(in srgb, var(--oxblood) 75%, var(--ink) 25%);
+      }
+      .violation-number {
+        font-family: var(--mono);
+        font-weight: 600;
+        font-size: 0.78rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        line-height: 1.1;
+      }
+      .violation-name {
+        font-family: var(--body);
+        font-size: 0.62rem;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        margin-top: 0.25rem;
+        opacity: 0.82;
+        line-height: 1.2;
+      }
+      .violation-body {
+        font-size: 0.9rem;
+        line-height: 1.6;
+        color: var(--ink-soft);
+      }
+      .violation-body :first-child {
+        margin-top: 0;
+      }
+      .violation-body :last-child {
+        margin-bottom: 0;
+      }
+
+      /* Status section */
+      .verse-status {
+        margin: 0 0 1rem;
+        padding: 0.8rem 1rem;
+        background: color-mix(in srgb, var(--green) 5%, transparent);
+        border-left: 2px solid var(--green);
+        border-radius: 0 2px 2px 0;
+      }
+      .verse-status + .verse-status {
+        margin-top: 0.5rem;
+      }
+      .status-tag {
+        font-family: var(--body);
+        font-size: 0.6rem;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--green);
+        margin: 0 0 0.4rem;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+      }
+      .status-tag::before {
+        content: '';
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        background: var(--green);
+        border-radius: 1px;
+      }
+      .status-body {
+        font-size: 0.9rem;
+        line-height: 1.55;
+        color: var(--ink-soft);
+      }
+      .status-body > p {
+        margin: 0 0 0.5rem;
+      }
+      .status-body > p:last-child {
+        margin-bottom: 0;
+      }
+
+      /* Symbols section */
+      .verse-symbols {
+        margin: 0 0 0.5rem;
+        padding-top: 0.85rem;
+        border-top: 1px dashed var(--rule-soft);
+      }
+      .symbols-tag {
+        font-family: var(--body);
+        font-size: 0.6rem;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+        margin: 0 0 0.4rem;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+      }
+      .symbols-tag::before {
+        content: '';
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        background: var(--gold);
+        border-radius: 1px;
+      }
+      .symbols-body {
+        font-size: 0.85rem;
+        line-height: 1.55;
+        color: var(--ink-soft);
+      }
+
+      /* Notes */
+      .verse-note {
+        margin: 0.5rem 0;
+        padding-left: 1rem;
+        border-left: 1px dashed var(--rule);
+      }
+      .verse-note .note-body {
+        font-size: 0.88rem;
+        color: var(--ink-soft);
+        font-style: italic;
+      }
+
+      /* ============ TABLES ============ */
+      .table-wrap {
+        overflow-x: auto;
+        margin: 1.5rem 0 2rem;
+        border-top: 1px solid var(--ink);
+        border-bottom: 1px solid var(--ink);
+      }
+      main.content table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.82rem;
+        font-variant-numeric: tabular-nums;
+        font-feature-settings: 'tnum';
+      }
+      main.content thead th {
+        font-family: var(--body);
+        font-weight: 600;
+        font-size: 0.62rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        text-align: left;
+        padding: 0.85rem 1rem;
+        border-bottom: 1px solid var(--ink);
+        color: var(--ink);
+        vertical-align: bottom;
+        background: var(--paper);
+      }
+      main.content tbody td {
+        padding: 0.85rem 1rem;
+        vertical-align: top;
+        border-bottom: 1px solid var(--rule-soft);
+        line-height: 1.45;
+        color: var(--ink-soft);
+      }
+      main.content tbody tr:last-child td {
+        border-bottom: 0;
+      }
+      main.content tbody tr:hover td {
+        background: var(--rule-soft);
+      }
+
+      main.content tbody td:first-child {
+        color: var(--ink);
+        font-weight: 500;
+        white-space: normal;
+      }
+
+      main.content td.num,
+      main.content th.num {
+        text-align: right;
+        font-family: var(--mono);
+        font-size: 0.78rem;
+      }
+
+      main.content blockquote p {
+        margin: 0;
+      }
+      main.content blockquote p + p {
+        margin-top: 0.6rem;
+      }
+
+      /* ============ LANDING-PAGE CARDS ============ */
+      .landing ol.doc-cards {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 3rem;
+        display: grid;
+        gap: 1.25rem;
+        counter-reset: card;
+      }
+      @media (min-width: 720px) {
+        .landing ol.doc-cards {
+          grid-template-columns: repeat(1, 1fr);
+        }
+      }
+      .doc-card {
+        border: 1px solid var(--rule);
+        background: var(--paper);
+        transition:
+          border-color 0.15s,
+          transform 0.15s;
+      }
+      .doc-card:hover {
+        border-color: var(--oxblood);
+      }
+      .doc-card a.doc-card-link {
+        display: block;
+        padding: 1.75rem 1.75rem 1.5rem;
+        text-decoration: none;
+        color: var(--ink);
+      }
+      .doc-card a.doc-card-link:hover {
+        text-decoration: none;
+      }
+      .doc-card .doc-eyebrow {
+        font-family: var(--mono);
+        font-size: 0.65rem;
+        font-weight: 500;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+        margin: 0 0 0.6rem;
+      }
+      .doc-card .doc-title {
+        font-family: var(--display);
+        font-weight: 500;
+        font-size: clamp(1.25rem, 2vw, 1.5rem);
+        line-height: 1.15;
+        letter-spacing: -0.01em;
+        color: var(--ink);
+        margin: 0 0 0.85rem;
+      }
+      .doc-card .doc-blurb {
+        font-size: 0.92rem;
+        line-height: 1.55;
+        color: var(--ink-soft);
+        margin: 0 0 1rem;
+        text-wrap: pretty;
+      }
+      .doc-card .doc-read {
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        font-weight: 500;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--oxblood);
+        margin: 0;
+      }
+
+      .landing .findings-grid {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(1, 1fr);
+        margin: 1.5rem 0 3rem;
+      }
+      @media (min-width: 640px) {
+        .landing .findings-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+      .finding {
+        border-top: 2px solid var(--oxblood);
+        padding: 1.25rem 0 0;
+      }
+      .finding-stat {
+        font-family: var(--display);
+        font-weight: 500;
+        font-size: clamp(2.5rem, 5vw, 3.5rem);
+        line-height: 1;
+        letter-spacing: -0.02em;
+        color: var(--ink);
+        margin: 0 0 0.5rem;
+        font-variant-numeric: tabular-nums;
+      }
+      .finding-stat-unit {
+        font-size: 0.5em;
+        color: var(--ink-mute);
+        margin-left: 0.1em;
+        font-weight: 400;
+      }
+      .finding-label {
+        font-size: 0.88rem;
+        line-height: 1.45;
+        color: var(--ink-soft);
+        margin: 0;
+        text-wrap: pretty;
+      }
+
+      /* ============ FOOTER ============ */
+      footer.colophon {
+        border-top: 1px solid var(--rule);
+        margin: 4rem auto 0;
+        padding: 2rem var(--pad) 4rem;
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        color: var(--ink-mute);
+        letter-spacing: 0.02em;
+        max-width: 1320px;
+      }
+      footer.colophon p {
+        margin: 0 0 0.5rem;
+      }
+
+      /* ============ ACCESSIBILITY ============ */
+      :focus-visible {
+        outline: 2px solid var(--oxblood);
+        outline-offset: 2px;
+        border-radius: 1px;
+      }
+
+      .skip-link {
+        position: absolute;
+        top: -100px;
+        left: 1rem;
+        background: var(--ink);
+        color: var(--paper);
+        padding: 0.5rem 1rem;
+        text-decoration: none;
+        font-family: var(--body);
+        font-size: 0.85rem;
+        z-index: 50;
+      }
+      .skip-link:focus {
+        top: 1rem;
+      }
+
+      /* ============ PRINT ============ */
+      @media print {
+        .toc,
+        .skip-link,
+        .anchor,
+        nav.topnav {
+          display: none;
+        }
+        body {
+          background: white;
+        }
+        main.content {
+          max-width: 100%;
+        }
+        h2,
+        h3 {
+          break-after: avoid;
+        }
+        p,
+        li {
+          orphans: 3;
+          widows: 3;
+        }
+      }
+
+      /* ============ REDUCED MOTION ============ */
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation: none !important;
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a href="#content" class="skip-link">Skip to content</a>
+
+    <nav class="topnav" aria-label="Site">
+      <div class="nav-inner">
+        <a href="index.html" class="brand">Bohr <em>vs.</em> Miller’s Rules</a>
+        <ul class="nav-list">
+          <li><a href="index.html">Index</a></li>
+          <li><a href="bohr-vs-millers-rules-summary.html" aria-current="page">Summary</a></li>
+          <li><a href="bohr-vs-millers-rules-heatmap.html">Heatmap</a></li>
+          <li><a href="bohr-vs-millers-rules.html">Full audit</a></li>
+        </ul>
+      </div>
+    </nav>
+
+    <header class="masthead">
+      <div style="max-width: 1320px; margin: 0 auto; padding: 0 var(--pad)">
+        <p class="eyebrow">Headline view · 1 page</p>
+        <h1>Executive Summary</h1>
+        <p class="lede">
+          The single load-bearing finding, the three violation clusters, the eight zero-violation
+          chapters, and the five Rule-XIII vindications — distilled from the full audit.
+        </p>
+      </div>
+    </header>
+
+    <div class="shell with-toc">
+      <nav class="toc" aria-label="Table of contents">
+        <h2 class="toc-h">Contents</h2>
+        <ol>
+          <li><a href="#the-audit-in-one-paragraph">The audit in one paragraph</a></li>
+          <li><a href="#the-single-load-bearing-finding">The single load-bearing finding</a></li>
+          <li><a href="#the-three-violation-clusters">The three violation clusters</a></li>
+          <li>
+            <a href="#the-eight-zero-violation-chapters">The eight zero-violation chapters</a>
+          </li>
+          <li>
+            <a href="#the-five-rule-xiii-vindications-bohrs-framework-must-set-aside"
+              >The five Rule-XIII vindications Bohr’s framework must set aside</a
+            >
+          </li>
+          <li>
+            <a href="#the-rev-11-temporal-vantage-problem">The Rev 1:1 temporal-vantage problem</a>
+          </li>
+          <li><a href="#rule-violation-frequency">Rule-violation frequency</a></li>
+          <li>
+            <a href="#what-this-audit-does-and-does-not-claim"
+              >What this audit does and does not claim</a
+            >
+          </li>
+        </ol>
+      </nav>
+      <main class="content" id="content">
+        <h1>Bohr vs. Miller’s 14 Rules — Executive Summary</h1>
+        <p>
+          <em
+            >One-page headline view of the full 280-verse audit covering Daniel 11 and all 22
+            chapters of Revelation. Companion to</em
+          >
+          <code>bohr-vs-millers-rules.md</code>.
+        </p>
+        <hr />
+        <h2 id="the-audit-in-one-paragraph">
+          <a href="#the-audit-in-one-paragraph" class="anchor" aria-hidden="true">§</a>The audit in
+          one paragraph
+        </h2>
+        <p>
+          Stephen Bohr’s published Revelation corpus (six volumes) was compared verse-by-verse
+          against Uriah Smith’s <em>Daniel and the Revelation</em> (the pioneer SDA baseline), with
+          each divergence scored against William Miller’s 14 Rules of Bible Interpretation (1842).
+          The 280-verse sweep covers Daniel 11 and the whole of Revelation 1-22.
+          <strong
+            >Bohr breaks one or more Miller rules in roughly 70 of those 280 verses (~25%) — but the
+            violations are not evenly distributed.</strong
+          >
+          They cluster sharply in three chapters and reflect two specific methodological
+          substitutions; the remaining nineteen chapters of the audit are largely rule-compliant,
+          and eight chapters score zero violations.
+        </p>
+        <hr />
+        <h2 id="the-single-load-bearing-finding">
+          <a href="#the-single-load-bearing-finding" class="anchor" aria-hidden="true">§</a>The
+          single load-bearing finding
+        </h2>
+        <p>
+          <strong
+            >Two extra-biblical interpretive principles, not differences in exegetical skill, drive
+            ~90% of Bohr’s divergences from the pioneer reading:</strong
+          >
+        </p>
+        <ol>
+          <li>
+            <strong
+              >The Louis-Were “automatic transition from literal to spiritual” principle</strong
+            >
+            (cited explicitly in Bohr’s <em>Studies on Daniel 11</em>, pp. 19-20). This sentence —
+            “<em
+              >when passing over into the Christian era there is an automatic transition from
+              literal to spiritual Babylon; from literal to spiritual Jerusalem; from the literal
+              lands of Israel and Babylon to their spiritual antitypes</em
+            >“ — is the engine that spiritualizes <em>geographic</em> specifiers in Dan 11:40-45,
+            Rev 9:14 (Euphrates), Rev 16:12 (Euphrates), Rev 16:16 (Armageddon), and the downstream
+            redefinitions of Egypt, Edom, Moab, Ammon, glorious land, and holy mountain.
+          </li>
+          <li>
+            <strong>The abandonment of the Keith-Gibbon historicist trumpet framework</strong>
+            (Visigoths / Vandals / Huns / Heruli-Ostrogoths-Justinian, AD 395-538), substituting a
+            spiritual / Christological / Jerusalem-Rome-Constantine-Papacy grid. This drives the Rev
+            8 first-four-trumpets cluster and registers Rule XIV’s first and only violation in the
+            audit (Trumpet 1 = AD 34-70 Jerusalem fulfillment, which predates John’s AD 95 prophetic
+            vantage).
+          </li>
+        </ol>
+        <p>
+          <strong>Both substitutions are Rule V (Scripture is its own expositor) violations</strong>
+          — they import an extra-biblical interpretive override where Scripture itself sets the
+          explanation.
+        </p>
+        <hr />
+        <h2 id="the-three-violation-clusters">
+          <a href="#the-three-violation-clusters" class="anchor" aria-hidden="true">§</a>The three
+          violation clusters
+        </h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Cluster</th>
+                <th>Density</th>
+                <th align="right">Driver</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Daniel 11:36-45</strong></td>
+                <td><strong>100%</strong> (10/10 verses)</td>
+                <td align="right">
+                  Were principle — papacy continued through vv. 36-39; spiritualization of vv. 40-45
+                </td>
+              </tr>
+              <tr>
+                <td><strong>Revelation 9</strong></td>
+                <td><strong>86%</strong> (18/21 verses)</td>
+                <td align="right">
+                  Were principle — Saracen/Ottoman fulfillment displaced by French Revolution +
+                  post-1844 demonic deception
+                </td>
+              </tr>
+              <tr>
+                <td><strong>Revelation 8</strong></td>
+                <td><strong>46%</strong> (6/13 verses)</td>
+                <td align="right">
+                  Keith-Gibbon abandonment — first four trumpets re-typed as church-history stages
+                  instead of barbarian invasions
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          The Eastern-Question cluster (Dan 11:40-45 + Rev 9 + Rev 16:12-16) spiritualizes
+          <em>geographic</em> specifiers. The Rev 8 cluster spiritualizes
+          <em>sequence-and-actor</em> specifiers. Different methodological errors, same load-bearing
+          chain collapsed.
+        </p>
+        <hr />
+        <h2 id="the-eight-zero-violation-chapters">
+          <a href="#the-eight-zero-violation-chapters" class="anchor" aria-hidden="true">§</a>The
+          eight zero-violation chapters
+        </h2>
+        <p>
+          <strong
+            >Rev 1 · Rev 2 · Rev 3 · Rev 7 · Rev 10 · Rev 15 · Rev 20 · Rev 21 · Rev 22</strong
+          >
+        </p>
+        <p>
+          These cluster at Revelation’s canonical bookends — the seven-churches block, the
+          sealing-and-144,000, the unsealing-of-Daniel / 1844 chapter, the post-probation plague
+          prelude, and the entire post-millennial / new-earth / Eden-restored sequence. The pattern:
+          <strong
+            >where the SDA pioneer framework is foundational to Bohr’s own identity and undisputed
+            within mainstream Adventism, his exegesis honours every Miller rule.</strong
+          >
+          In several of these chapters Bohr’s expositional richness exceeds Smith’s compressed
+          treatment.
+        </p>
+        <hr />
+        <h2 id="the-five-rule-xiii-vindications-bohrs-framework-must-set-aside">
+          <a
+            href="#the-five-rule-xiii-vindications-bohrs-framework-must-set-aside"
+            class="anchor"
+            aria-hidden="true"
+            >§</a
+          >The five Rule-XIII vindications Bohr’s framework must set aside
+        </h2>
+        <p>
+          Miller’s Rule XIII (“every word must be fulfilled”) demands publicly-checkable,
+          named-and-dated historical fulfillments. Five such fulfillments are well-documented in
+          pioneer Adventist history; all five are load-bearing evidence for the historicist method:
+        </p>
+        <ol>
+          <li>
+            <strong>Josiah Litch’s Aug 11 1840 prediction</strong> (Rev 9:15) — published 1838; the
+            Ottoman ultimatum was accepted on the exact predicted date.
+          </li>
+          <li>
+            <strong>1798 triangular war</strong> (Dan 11:40) — France-Egypt-Turkey, May-Sept 1798,
+            exactly as the prophecy stages.
+          </li>
+          <li>
+            <strong>Adam Clarke’s Crimean forecast</strong> (Dan 11:44) — written 1825;
+            Persia-Russia-Crimea war 1853-1856.
+          </li>
+          <li>
+            <strong>Bedouin tribute pattern</strong> (Dan 11:41) — documented Ottoman administrative
+            practice; Edom, Moab, and Ammon literally escaped the Ottoman tax-roll through the 19th
+            century.
+          </li>
+          <li>
+            <strong>Allenby at Megiddo</strong> (Rev 16:16) — September 1918 victory at literal
+            Megiddo; British Crown granted him the title <em>Viscount Allenby of Megiddo</em>.
+          </li>
+        </ol>
+        <p>
+          Each is a publicly-testable Rule-XIII case where the prophetic specification matched a
+          documented historical event with precision sufficient to vindicate the historicist method.
+          The Bohr/Were framework reads all five non-literally and therefore forfeits all five.
+        </p>
+        <hr />
+        <h2 id="the-rev-11-temporal-vantage-problem">
+          <a href="#the-rev-11-temporal-vantage-problem" class="anchor" aria-hidden="true">§</a>The
+          Rev 1:1 temporal-vantage problem
+        </h2>
+        <p>
+          Revelation fixes its own time-window: “things which must
+          <strong>shortly come to pass</strong>“ (Rev 1:1), “the time is at hand” (Rev 1:3), the
+          three-tense rubric “things which thou hast seen, and the things which are, and the things
+          which shall be hereafter” (Rev 1:19), and the closing inclusio “the things which must
+          shortly be done” (Rev 22:6). This anchors Rev 4-22 to a <em>forward-from-John</em> vantage
+          (c. AD 95).
+        </p>
+        <p>
+          Bohr’s framework breaks this anchor in
+          <strong>four structurally important places</strong> — Rev 8:7 (Trumpet 1 = AD 34-70
+          Jerusalem, 25 years <em>before</em> John), Rev 9:1 (fallen star = Satan’s Eden/cross fall,
+          both pre-John), Rev 17:10 (five world empires identified as already fallen, three of which
+          pre-date John), and Rev 12:1-5 (Christ’s birth as the opening scene of a post-1:19
+          future-vision section, 90 years past for John). The pioneer reading honors the vantage at
+          every contested clause without strain.
+        </p>
+        <hr />
+        <h2 id="rule-violation-frequency">
+          <a href="#rule-violation-frequency" class="anchor" aria-hidden="true">§</a>Rule-violation
+          frequency
+        </h2>
+        <p>
+          The historicist core (XIII / XII / XI) accounts for
+          <strong>~70% of all violations</strong>:
+        </p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Rule</th>
+                <th>Compressed statement</th>
+                <th align="right">Verses broken</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>XIII</td>
+                <td>Every word must be fulfilled</td>
+                <td align="right"><strong>49</strong></td>
+              </tr>
+              <tr>
+                <td>XII</td>
+                <td>Trace the figure through the Bible</td>
+                <td align="right"><strong>32</strong></td>
+              </tr>
+              <tr>
+                <td>XI</td>
+                <td>Literal first</td>
+                <td align="right"><strong>30</strong></td>
+              </tr>
+              <tr>
+                <td>V</td>
+                <td>Scripture is its own expositor</td>
+                <td align="right"><strong>24</strong></td>
+              </tr>
+              <tr>
+                <td>IV</td>
+                <td>No contradiction</td>
+                <td align="right"><strong>22</strong></td>
+              </tr>
+              <tr>
+                <td>I</td>
+                <td>Every word bears</td>
+                <td align="right"><strong>14</strong></td>
+              </tr>
+              <tr>
+                <td>VII</td>
+                <td>Bible-fixed symbol meanings</td>
+                <td align="right">5</td>
+              </tr>
+              <tr>
+                <td>III</td>
+                <td>Nothing hidden from faith</td>
+                <td align="right">2</td>
+              </tr>
+              <tr>
+                <td>IX/X</td>
+                <td>Multiple significations resolved by context</td>
+                <td align="right">2</td>
+              </tr>
+              <tr>
+                <td>II</td>
+                <td>All scripture necessary</td>
+                <td align="right">1</td>
+              </tr>
+              <tr>
+                <td>XIV</td>
+                <td>Faith — willingness to lose all</td>
+                <td align="right">1</td>
+              </tr>
+              <tr>
+                <td>VI</td>
+                <td>Recapitulation</td>
+                <td align="right">0</td>
+              </tr>
+              <tr>
+                <td>VIII</td>
+                <td>Parables explained as figures</td>
+                <td align="right">0</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <hr />
+        <h2 id="what-this-audit-does-and-does-not-claim">
+          <a href="#what-this-audit-does-and-does-not-claim" class="anchor" aria-hidden="true">§</a
+          >What this audit does and does not claim
+        </h2>
+        <p>
+          <strong>It claims:</strong> that Bohr’s divergences from the pioneer SDA reading are
+          concentrated, methodologically traceable, and inconsistent with the rules of
+          interpretation William Miller derived from Scripture and the pioneers used to found the
+          movement.
+        </p>
+        <p>
+          <strong>It does not claim:</strong> that Bohr is unfaithful to Adventism, careless as an
+          expositor, or wrong on every point. Bohr’s work on the seven-churches periodization, the
+          harlot’s identity, the USA as earth-beast, the Loud Cry, the Sabbath crisis, the seven
+          last plagues, the millennium-in-heaven, the literal new earth, and the close-of-probation
+          framework is in many places exemplary, and in the zero-violation chapters his expositional
+          richness frequently exceeds Smith’s. The audit makes <em>visible</em> a single
+          methodological seam — the substitution of Were’s principle (and, separately, the
+          substitution of a non-Keith-Gibbon trumpet grid) — so students of the v3
+          <em>The Sure Word</em> series can see exactly where the pioneer chain holds and where the
+          modern reframings depart from it.
+        </p>
+        <p>
+          <strong
+            >Miller’s Rules — published 1842, derived from Scripture itself — remain the
+            constitution.</strong
+          >
+        </p>
+        <hr />
+        <p>
+          <em
+            >For the full verse-by-verse audit see <code>bohr-vs-millers-rules.md</code>. For the
+            visual density heatmap see <code>bohr-vs-millers-rules-heatmap.md</code>.</em
+          >
+        </p>
+      </main>
+    </div>
+
+    <footer class="colophon">
+      <p>Set in Fraunces &amp; IBM Plex. Built from markdown sources with Bun.</p>
+      <p>
+        v3 The Sure Word · reference series · <a href="index.html" style="color: inherit">index</a>
+      </p>
+    </footer>
+  </body>
+</html>

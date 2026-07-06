@@ -1,0 +1,2 @@
+# The built static site is committed (deployed to Railway via `railway up`)
+!dist/
