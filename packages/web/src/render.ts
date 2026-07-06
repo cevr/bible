@@ -715,6 +715,163 @@ ${footer()}
 `;
 
 // ============================================================================
+// Comparison-page unification
+// ============================================================================
+
+/**
+ * Bridge stylesheet injected into the prebuilt comparison pages (which carry
+ * their own embedded CSS from the original Sure Word reference design). The
+ * archive pages use the same token names the site design was lifted from, so
+ * redefining tokens after their <style> re-skins them wholesale.
+ *
+ * Keep the token values in sync with STYLES above. Two deliberate departures:
+ * --oxblood stays a (calmer) red and --gold stays amber because the audit
+ * pages use them SEMANTICALLY — violation chips, partial-agreement marks,
+ * heatmap cells — where red must keep reading as "fail". Chrome accents are
+ * overridden to the spruce accent selector-by-selector instead.
+ */
+const COMPARISON_BRIDGE = `
+/* ==== The Sure Word bridge — tokens in sync with styles.css ==== */
+:root {
+  --paper: #f7f5f0;
+  --paper-raise: #fdfcf8;
+  --paper-tint: #eeebe1;
+  --ink: #2a2924;
+  --ink-soft: #514d42;
+  --ink-mute: #6f6a5c;
+  --rule: #dcd7c8;
+  --rule-soft: #e8e4d8;
+  --accent: #3d5a4c;
+  --accent-soft: #74907f;
+  --accent-wash: #e2e9e3;
+  --indigo: #3d5a4c;   /* legacy link token -> accent */
+  --green: #3d5a4c;    /* pass/agreement marks -> spruce (still green) */
+  --gold: #8a6d2f;     /* partial agreement — semantic, unchanged */
+  --oxblood: #7d3b2d;  /* violation red — calmer, but must stay red */
+  --oxblood-soft: #a4664f;
+  --body: 'Literata', Georgia, 'Times New Roman', serif;
+}
+body { font-size: 1.0625rem; line-height: 1.6; }
+::selection { background: var(--accent-wash); color: var(--ink); }
+a, summary { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+/* site topnav (markup injected by the builder) */
+nav.topnav a.brand em { color: var(--accent); }
+nav.topnav ul.nav-list a {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  padding: 0.6rem 0.1rem;
+}
+nav.topnav ul.nav-list a:hover,
+nav.topnav ul.nav-list a:focus-visible { color: var(--accent); border-bottom-color: var(--accent-soft); }
+nav.topnav ul.nav-list a[aria-current] { color: var(--ink); border-bottom-color: var(--accent); }
+
+/* local comparison sub-nav (markup injected by the builder) */
+nav.subnav { border-bottom: 1px solid var(--rule); background: var(--paper-tint); }
+nav.subnav .subnav-inner {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0.15rem var(--pad);
+  display: flex;
+  gap: clamp(1rem, 3vw, 2rem);
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+nav.subnav a.subnav-label {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink);
+  text-decoration: none;
+  padding: 0.55rem 0;
+}
+nav.subnav ul.nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: clamp(0.85rem, 2vw, 1.5rem);
+  flex-wrap: wrap;
+}
+nav.subnav ul.nav-list a {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  text-decoration: none;
+  display: inline-block;
+  padding: 0.55rem 0.1rem;
+  border-bottom: 1px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+nav.subnav ul.nav-list a:hover,
+nav.subnav ul.nav-list a:focus-visible { color: var(--accent); border-bottom-color: var(--accent-soft); }
+nav.subnav ul.nav-list a[aria-current] { color: var(--ink); border-bottom-color: var(--accent); }
+
+/* chrome accents -> spruce (verdict colors stay semantic) */
+header.masthead h1 em { color: var(--accent); }
+main.content blockquote { border-left-color: var(--accent-soft); }
+.toc a:hover, .toc a:focus-visible { color: var(--accent); }
+
+/* shared footer (replaces the archive colophon) */
+footer.site-footer { border-top: 1px solid var(--rule); margin-top: 2rem; }
+footer.site-footer .footer-inner {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 2rem var(--pad) 3rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  line-height: 1.6;
+  color: var(--ink-mute);
+  letter-spacing: 0.04em;
+}
+footer.site-footer em { font-style: italic; color: var(--accent); }
+@media print { nav.topnav, nav.subnav, footer.site-footer { display: none; } }
+`;
+
+/**
+ * Re-skin a prebuilt comparison page so it reads as part of the site:
+ * - swap its local topnav for the shared site nav plus a slim sub-nav that
+ *   keeps the comparison's own pages (with their aria-current markers)
+ * - replace the archive colophon with the shared footer
+ * - inject the site font set (Literata + Fraunces italics) and the bridge
+ *   stylesheet after the page's embedded CSS so the new tokens win
+ * Every replacement is best-effort: a page that lacks the expected block is
+ * passed through unchanged in that respect.
+ */
+export const unifyComparisonPage = (html: string, comp: Comparison.Source): string => {
+  let out = html;
+  const navMatch = out.match(/<nav class="topnav" aria-label="Site">[\s\S]*?<\/nav>/);
+  const pageList = navMatch?.[0].match(/<ul class="nav-list">[\s\S]*?<\/ul>/);
+  if (navMatch !== null && navMatch !== undefined && pageList !== null && pageList !== undefined) {
+    out = out.replace(
+      navMatch[0],
+      `${nav('', '/comparisons/').trim()}
+    <nav class="subnav" aria-label="${esc(comp.title)} pages">
+      <div class="subnav-inner">
+        <a class="subnav-label" href="index.html">${esc(comp.title)}</a>
+        ${pageList[0]}
+      </div>
+    </nav>`,
+    );
+  }
+  out = out.replace(/<footer class="colophon">[\s\S]*?<\/footer>/, footer().trim());
+  out = out.replace(/(<meta name="theme-color" content=")[^"]*(")/, '$1#f7f5f0$2');
+  out = out.replace('</head>', `${FONTS}\n    <style>${COMPARISON_BRIDGE}</style>\n  </head>`);
+  return out;
+};
+
+// ============================================================================
 // Page templates
 // ============================================================================
 

@@ -14,6 +14,7 @@ import {
   splitFrontmatter,
   studyPage,
   STYLES,
+  unifyComparisonPage,
 } from './render.js';
 import { Study } from './study.js';
 
@@ -155,6 +156,8 @@ export const layer: Layer.Layer<Service, PlatformError, FileSystem.FileSystem | 
         return { ...study.meta, words, sections: toc.length };
       });
 
+      // Prebuilt pages are re-skinned on the way through (shared nav/footer,
+      // bridge stylesheet) so the archive sources stay untouched.
       const copyComparison = Effect.fn('Builder.copyComparison')(function* (
         comp: Comparison.Source,
       ) {
@@ -164,7 +167,14 @@ export const layer: Layer.Layer<Service, PlatformError, FileSystem.FileSystem | 
         const pages = (yield* fs.readDirectory(srcDir)).filter((f) => f.endsWith('.html'));
         yield* Effect.forEach(
           pages,
-          (f) => fs.copyFile(path.join(srcDir, f), path.join(outDir, f)),
+          (f) =>
+            fs
+              .readFileString(path.join(srcDir, f))
+              .pipe(
+                Effect.flatMap((html) =>
+                  fs.writeFileString(path.join(outDir, f), unifyComparisonPage(html, comp)),
+                ),
+              ),
           { concurrency: 8, discard: true },
         );
         yield* Effect.logInfo('copied comparison', { outDir: comp.outDir, pages: pages.length });

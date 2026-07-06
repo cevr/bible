@@ -8,7 +8,7 @@
       name="description"
       content="Sparkline-style visualization of where Bohr’s divergences from the pioneer reading cluster across the 280-verse sweep."
     />
-    <meta name="theme-color" content="#faf8f5" />
+    <meta name="theme-color" content="#f7f5f0" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -1290,13 +1290,137 @@
         }
       }
     </style>
+  
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=IBM+Plex+Mono:wght@400;500&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;1,7..72,400;1,7..72,500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+/* ==== The Sure Word bridge — tokens in sync with styles.css ==== */
+:root {
+  --paper: #f7f5f0;
+  --paper-raise: #fdfcf8;
+  --paper-tint: #eeebe1;
+  --ink: #2a2924;
+  --ink-soft: #514d42;
+  --ink-mute: #6f6a5c;
+  --rule: #dcd7c8;
+  --rule-soft: #e8e4d8;
+  --accent: #3d5a4c;
+  --accent-soft: #74907f;
+  --accent-wash: #e2e9e3;
+  --indigo: #3d5a4c;   /* legacy link token -> accent */
+  --green: #3d5a4c;    /* pass/agreement marks -> spruce (still green) */
+  --gold: #8a6d2f;     /* partial agreement — semantic, unchanged */
+  --oxblood: #7d3b2d;  /* violation red — calmer, but must stay red */
+  --oxblood-soft: #a4664f;
+  --body: 'Literata', Georgia, 'Times New Roman', serif;
+}
+body { font-size: 1.0625rem; line-height: 1.6; }
+::selection { background: var(--accent-wash); color: var(--ink); }
+a, summary { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+/* site topnav (markup injected by the builder) */
+nav.topnav a.brand em { color: var(--accent); }
+nav.topnav ul.nav-list a {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  padding: 0.6rem 0.1rem;
+}
+nav.topnav ul.nav-list a:hover,
+nav.topnav ul.nav-list a:focus-visible { color: var(--accent); border-bottom-color: var(--accent-soft); }
+nav.topnav ul.nav-list a[aria-current] { color: var(--ink); border-bottom-color: var(--accent); }
+
+/* local comparison sub-nav (markup injected by the builder) */
+nav.subnav { border-bottom: 1px solid var(--rule); background: var(--paper-tint); }
+nav.subnav .subnav-inner {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0.15rem var(--pad);
+  display: flex;
+  gap: clamp(1rem, 3vw, 2rem);
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+nav.subnav a.subnav-label {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink);
+  text-decoration: none;
+  padding: 0.55rem 0;
+}
+nav.subnav ul.nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: clamp(0.85rem, 2vw, 1.5rem);
+  flex-wrap: wrap;
+}
+nav.subnav ul.nav-list a {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  text-decoration: none;
+  display: inline-block;
+  padding: 0.55rem 0.1rem;
+  border-bottom: 1px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+nav.subnav ul.nav-list a:hover,
+nav.subnav ul.nav-list a:focus-visible { color: var(--accent); border-bottom-color: var(--accent-soft); }
+nav.subnav ul.nav-list a[aria-current] { color: var(--ink); border-bottom-color: var(--accent); }
+
+/* chrome accents -> spruce (verdict colors stay semantic) */
+header.masthead h1 em { color: var(--accent); }
+main.content blockquote { border-left-color: var(--accent-soft); }
+.toc a:hover, .toc a:focus-visible { color: var(--accent); }
+
+/* shared footer (replaces the archive colophon) */
+footer.site-footer { border-top: 1px solid var(--rule); margin-top: 2rem; }
+footer.site-footer .footer-inner {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 2rem var(--pad) 3rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  line-height: 1.6;
+  color: var(--ink-mute);
+  letter-spacing: 0.04em;
+}
+footer.site-footer em { font-style: italic; color: var(--accent); }
+@media print { nav.topnav, nav.subnav, footer.site-footer { display: none; } }
+</style>
   </head>
   <body>
     <a href="#content" class="skip-link">Skip to content</a>
 
-    <nav class="topnav" aria-label="Site">
+    <nav class="topnav">
       <div class="nav-inner">
-        <a href="index.html" class="brand">Bohr <em>vs.</em> Miller’s Rules</a>
+        <a class="brand" href="/">The <em>Sure</em> Word</a>
+        <ul class="nav-list">
+          <li><a href="/">Studies</a></li>
+          <li><a href="/comparisons/" aria-current="true">Comparisons</a></li>
+        </ul>
+      </div>
+    </nav>
+    <nav class="subnav" aria-label="Bohr vs. Miller's Rules pages">
+      <div class="subnav-inner">
+        <a class="subnav-label" href="index.html">Bohr vs. Miller's Rules</a>
         <ul class="nav-list">
           <li><a href="index.html">Index</a></li>
           <li><a href="bohr-vs-millers-rules-summary.html">Summary</a></li>
@@ -1543,11 +1667,11 @@ VIII  (0)    ░                                                 parables as fig
       </main>
     </div>
 
-    <footer class="colophon">
-      <p>Set in Fraunces &amp; IBM Plex. Built from markdown sources with Bun.</p>
-      <p>
-        v3 The Sure Word · reference series · <a href="index.html" style="color: inherit">index</a>
-      </p>
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <span>The <em>Sure</em> Word — Bible handbook studies. Every line: reference → text → gloss.</span>
+        <span>"We have also a more sure word of prophecy" — 2 Peter 1:19</span>
+      </div>
     </footer>
   </body>
 </html>
