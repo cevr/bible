@@ -28,7 +28,7 @@ site:
   slug: righteousness-by-faith
   title: 'Righteousness by <em>Faith</em>'
   subtitle: 'A Bible handbook study'
-  description: 'Justification, sanctification, and glorification — the sanctuary''s three rooms traced ref by ref, from the image of God lost in Eden to its restoration in Christ.'
+  description: "Justification, sanctification, and glorification — the sanctuary's three rooms traced ref by ref, from the image of God lost in Eden to its restoration in Christ."
   eyebrow: 'Bible Handbook Study'
   date: '2026-06-17'
 ---

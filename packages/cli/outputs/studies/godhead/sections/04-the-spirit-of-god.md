@@ -1,0 +1,72 @@
+## The Spirit of God — the Presence of the Father and the Son
+
+> The Spirit of God is no third stranger peering in from outside, but God's own inmost self — the presence, life, knowledge, and power of the Father and the Son reaching into the heart; the Comforter is Christ Himself, present everywhere, "nearer to them than if He had not ascended on high."
+
+**The indwelling Spirit IS the presence of Christ — Rom. 8:9-11:**
+
+- _Rom. 8:9._ "But ye are not in the flesh, but in the Spirit, if so be that the Spirit of God dwell in you. Now if any man have not the Spirit of Christ, he is none of his." — in one breath Paul calls the one indwelling presence both "the Spirit of God" and "the Spirit of Christ"; to have the Spirit is to have Christ, not a third party.
+  - **the Spirit of God** = the divine presence, life, knowledge, and power of the Father and the Son — God's own inmost self reaching into the believer; Scripture uses "the Spirit of God" and "the Spirit of Christ" interchangeably for the one indwelling presence, and "the Lord is that Spirit" (_Rom. 8:9-11_; _1 Cor. 2:10-11_; _2 Cor. 3:17_; _1 Cor. 3:16_; _Gal. 4:6_). Defined in full at the close.
+- _Rom. 8:10._ "And if Christ be in you, the body is dead because of sin; but the Spirit is life because of righteousness." — Paul's own equation: having "the Spirit" (v. 9) is identical to having "Christ... in you" (v. 10); the Spirit's presence IS Christ's presence, and the Spirit is "life."
+- _Rom. 8:11._ "But if the Spirit of him that raised up Jesus from the dead dwell in you, he that raised up Christ from the dead shall also quicken your mortal bodies by his Spirit that dwelleth in you." — the selfsame Spirit is "the Spirit of him that raised up Jesus" (the Father's) and the agency by which the Father quickens; the Spirit is the Father's and Christ's own life and power reaching into the believer.
+
+**The Spirit is God's own self-knowledge — 1 Cor. 2:10-11:**
+
+- _1 Cor. 2:10._ "But God hath revealed them unto us by his Spirit: for the Spirit searcheth all things, yea, the deep things of God." — the Spirit reaches into "the deep things of God"; He is God's own searching intelligence, not an outsider peering in.
+- _1 Cor. 2:11._ "For what man knoweth the things of a man, save the spirit of man which is in him? even so the things of God knoweth no man, but the Spirit of God." — Paul's defining analogy: as a man's own spirit is in him and knows his own depths, so the Spirit of God is God's own self-knowledge — the inmost presence of God Himself.
+- _TM 482.2._ White: "the apostle brings to view the true source of wisdom for the believer: 'God hath revealed them unto us by His Spirit: for the Spirit searcheth all things, yea, the deep things of God....'" — the Spirit read as God's own revealing wisdom.
+- _AA 250.4._ White quotes the analogy in full — "even so the things of God knoweth no man, but the Spirit of God" — reading the Spirit of God as God's inmost self-knowledge, what a man's own spirit is to the man.
+
+**Named the Spirit of Christ across the Word — Gal. 4:6; Phil. 1:19; 1 Pet. 1:11:**
+
+- _Gal. 4:6._ "And because ye are sons, God hath sent forth the Spirit of his Son into your hearts, crying, Abba, Father." — the Spirit sent into the heart is "the Spirit of his Son," Christ's own Spirit, by which the Father's adopted children cry "Abba."
+- _Phil. 1:19._ "the supply of the Spirit of Jesus Christ" — Paul names the supplying Spirit "the Spirit of Jesus Christ"; the one Holy Spirit is Christ's Spirit, supplied to the believer.
+- _1 Pet. 1:11._ "Searching what... the Spirit of Christ which was in them did signify, when it testified beforehand the sufferings of Christ" — the Spirit who inspired the Old Testament prophets is "the Spirit of Christ which was in them"; Christ present and active by His Spirit long before Bethlehem.
+
+**The Comforter is Christ's own coming — John 14:16-18, 23, 26:**
+
+- _John 14:16._ "And I will pray the Father, and he shall give you another Comforter, that he may abide with you for ever" — Jesus promises "another Comforter," One of the same kind as Himself, given by the Father to abide for ever.
+  - **the Comforter** = Christ's own continuing presence with His people by the Spirit — "another Comforter" of His own kind, whom Jesus identifies with Himself: "I will come to you"; the Spirit of truth, sent by the Father in Christ's name to teach His words, glorify Him, and deliver "of mine" to the believer (_John 14:16-18, 23, 26_; _16:13-14_). Defined in full at the close.
+- _John 14:17._ "the Spirit of truth; whom the world cannot receive... but ye know him; for he dwelleth with you, and shall be in you." — the Comforter is named "the Spirit of truth," who already dwelt WITH them (in Christ) and would soon be IN them — the same divine presence moving from beside them to within them.
+- _John 14:18._ "I will not leave you comfortless: I will come to you." — Jesus interprets His own promise: the coming of the Comforter (vv. 16-17) is HIS OWN coming; the Comforter is Christ returning to His own by the Spirit, not a substitute stranger.
+- _John 14:23._ "If a man love me, he will keep my words: and my Father will love him, and we will come unto him, and make our abode with him." — the indwelling is the Father and the Son together: "we will come... and make our abode"; the Spirit's abiding is the abiding of the Father and the Son in the believer.
+- _John 14:26._ "But the Comforter, which is the Holy Ghost, whom the Father will send in my name, he shall teach you all things, and bring all things to your remembrance, whatsoever I have said unto you" — the Comforter is the Holy Ghost, sent by the Father "in my name" to teach and remind of Christ's words: the personal continuation of Christ's own ministry.
+- _DA 277.4._ White: "After His ascension He was to be absent in person; but through the Comforter He would still be with them... they were to open their hearts to the Holy Spirit, His representative, and to rejoice in the light of His presence." — through the Comforter Christ Himself "would still be with them," the Spirit His representative.
+- _CTr 301.5._ White: "On the day of Pentecost Christ gave His disciples the Holy Spirit as their Comforter. It was ever to abide with His church." — Christ gives the Spirit as the Comforter to abide, exactly the promise of _John 14:16_.
+
+**The Spirit speaks not of Himself but conveys Christ — John 16:13-14:**
+
+- _John 16:13._ "Howbeit when he, the Spirit of truth, is come, he will guide you into all truth: for he shall not speak of himself; but whatsoever he shall hear, that shall he speak" — the Spirit of truth "shall not speak of himself"; He is the conveying presence of the Father and the Son, never an independent voice apart from them.
+- _John 16:14._ "He shall glorify me: for he shall receive of mine, and shall shew it unto you." — the Spirit's whole office is to glorify Christ and deliver "of mine" to the believer; the Spirit is Christ's own self communicated, the channel of His presence.
+
+**Personal in operation — God Himself praying, sealing, grieved — Rom. 8:26-27; Eph. 4:30:**
+
+- _Rom. 8:26._ "the Spirit also helpeth our infirmities... the Spirit itself maketh intercession for us with groanings which cannot be uttered" — the Spirit intercedes within us; personal in operation, God Himself praying through the believer's weakness.
+- _Rom. 8:27._ "he that searcheth the hearts knoweth what is the mind of the Spirit, because he maketh intercession for the saints according to the will of God." — "the mind of the Spirit" is wholly "according to the will of God"; the Spirit's intercession is God's own mind operating in perfect unity, not a separate will.
+- _Eph. 4:30._ "And grieve not the holy Spirit of God, whereby ye are sealed unto the day of redemption." — the Spirit can be grieved, proof that the divine presence in the believer is personal and living; He is "the holy Spirit of God," God Himself wounded by sin.
+
+**The Spirit dwelling makes the heart God's temple — 1 Cor. 3:16; 2 Cor. 3:17:**
+
+- _1 Cor. 3:16._ "Know ye not that ye are the temple of God, and that the Spirit of God dwelleth in you?" — the Spirit dwelling makes the believer "the temple of God"; the indwelling Spirit is God Himself taking up residence in the inner sanctuary.
+- _2 Cor. 3:17._ "Now the Lord is that Spirit: and where the Spirit of the Lord is, there is liberty." — Paul flatly identifies them: "the Lord is that Spirit"; the Spirit of the Lord is the Lord present and at work, and liberty follows His presence.
+- _AA 50.1._ White: "The lapse of time has wrought no change in Christ's parting promise to send the Holy Spirit as His representative." — the Spirit is Christ's representative, sent by Christ; not a third self sending itself.
+- _AA 47.1._ White: "The Saviour was pointing forward to the time when the Holy Spirit should come to do a mighty work as His representative." — reads _John 14:16-17_ exactly thus: the Comforter is the Spirit coming as Christ's representative.
+- _DA 669.2._ White: "The Holy Spirit is Christ's representative, but divested of the personality of humanity, and independent thereof. Cumbered with humanity, Christ could not be in every place personally... By the Spirit the Saviour would be accessible to all. In this sense He would be nearer to them than if He had not ascended on high." — the keystone: by the Spirit the Saviour Himself is accessible and nearer than in the flesh.
+- _ChS 255.3._ White, under "Christ's Successor": "By the Spirit the Saviour would be accessible to all. In this sense He would be nearer to them than if He had not ascended on high." — corroborates that the Spirit makes Christ Himself accessible to all.
+- _14MR 23.3._ White: "He would represent Himself as present in all places by His Holy Spirit, as the Omnipresent." — Christ is present in all places BY His Holy Spirit; the Spirit is the mode of Christ's universal presence.
+- _DA 671.2._ White: "It is the Spirit that makes effectual what has been wrought out by the world's Redeemer.... Christ has given His Spirit as a divine power to overcome all hereditary and cultivated tendencies to evil, and to impress His own character upon His church." — the Spirit is "His Spirit," the operating power of Christ making His own work effectual. (The same paragraph also names the Spirit "the mighty agency of the Third Person of the Godhead," come "in the fullness of divine power" — Ellen White's own words, set beside the "representative... present everywhere as the Omnipresent" strand; this section frames the Spirit as the personal divine presence of the Father and the Son and quotes both strands without flattening either.)
+- _DA 672.1._ White: "Christ has promised the gift of the Holy Spirit to His church, and the promise belongs to us as much as to the first disciples." — the Spirit is Christ's promised gift, proceeding from and belonging to His promise.
+
+**DEFINITION — THE SPIRIT OF GOD, THE PRESENCE OF THE FATHER AND THE SON =** the Spirit of God is God's own inmost self — His presence, life, knowledge, and power reaching into creation and into the believer. As a man's own spirit is in him and knows his own depths, so the Spirit of God is God's self-knowledge searching "the deep things of God" (_1 Cor. 2:10-11_). Scripture names Him interchangeably "the Spirit of God" and "the Spirit of Christ" for the one indwelling presence (_Rom. 8:9-11_; _Gal. 4:6_; _Phil. 1:19_; _1 Pet. 1:11_), and "the Lord is that Spirit" (_2 Cor. 3:17_): not a separate third self apart from the Father and the Son but their very presence, by which they are everywhere present and dwell in the temple of the heart (_1 Cor. 3:16_; _John 14:23_). The Comforter is Christ Himself returning to His own — "I will not leave you comfortless: I will come to you" (_John 14:16-18_) — the Spirit of truth sent by the Father in Christ's name to teach His words, glorify Him, and deliver "of mine" to the believer (_John 14:26_; _16:13-14_). He is personal in operation: He intercedes (_Rom. 8:26-27_), seals, and can be grieved (_Eph. 4:30_). And He is the mode of Christ's omnipresence: "cumbered with humanity, Christ could not be in every place personally," but by the Spirit He is "present in all places... as the Omnipresent," and so "nearer to them than if He had not ascended on high" (_DA 669.2_; _14MR 23.3_). The Spirit is how the Father and the Son are with us still.
+
+**Symbols defined here:**
+
+- **the Spirit of God** = the divine presence, life, knowledge, and power of the Father and the Son — God's own inmost self reaching into the believer; named interchangeably "the Spirit of God" and "the Spirit of Christ," and "the Lord is that Spirit" (_Rom. 8:9-11_; _1 Cor. 2:10-11_; _2 Cor. 3:17_; _1 Cor. 3:16_; _Gal. 4:6_).
+- **the Comforter** = Christ's own continuing presence with His people by the Spirit — "another Comforter" of His own kind whom Jesus identifies with Himself ("I will come to you"), the Spirit of truth sent by the Father in Christ's name to teach His words, glorify Him, and abide for ever (_John 14:16-18, 23, 26_; _16:13-14_).
+
+**Symbols carried:** **glory (of God)** = the character of God, His goodness made visible — carried from "The Son — Begotten, Not Created; Did Christ Have a Beginning?," and now shown to be what the Spirit glorifies and communicates of Christ (_John 16:14_); and Christ the express image and Life — carried from "The Son — Begotten, Not Created; Did Christ Have a Beginning?," now shown present in all places by the Spirit (_14MR 23.3_).
+
+**For discussion:**
+
+1. Paul calls the one indwelling presence "the Spirit of God," "the Spirit of Christ," and "Christ... in you" within three verses (_Rom. 8:9-11_). What does this collapse of names mean for how we think about the Father, the Son, and the Spirit dwelling in us — are these three presences or one?
+2. Jesus said, "I will not leave you comfortless: I will come to you" (_John 14:18_) immediately after promising "another Comforter." If the Comforter is Christ's own coming, how should that change the way you pray to and walk with Him today?
+3. The Spirit "shall not speak of himself" but receives "of mine" and glorifies Christ (_John 16:13-14_), and He "can be grieved" (_Eph. 4:30_). How do we test whether a movement is truly of the Spirit — does it exalt and reveal Christ? — and what in your daily life either grieves that presence or makes room for it?

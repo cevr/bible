@@ -1,0 +1,67 @@
+## One God in Three Persons — Distinct, Divine, Eternal
+
+> There is one God, and only one (_Deut. 6:4_; _Isa. 45:5_); yet that one God is revealed in Scripture as three distinct Persons — Father, Son, and Holy Ghost — each fully divine, each eternal, named together and yet never divided into three Gods.
+
+**There is one God — and only one — Deut. 6:4; Isa. 45:5:**
+
+- _Deut. 6:4._ "Hear, O Israel: The LORD our God is one LORD" — the foundation of all Scripture: there is one and only one God. Whatever else is revealed must be held within this oneness, never against it.
+  - **the Godhead** = the one divine Being / divine nature — the one God who subsists in three distinct Persons; Scripture uses the very word, for creation reveals His "eternal power and Godhead" (_Rom. 1:20_) and all its fulness dwells bodily in Christ (_Col. 2:9_), the one undivided deity shared fully by Father, Son, and Holy Ghost (_Deut. 6:4_; _Isa. 45:5_). Defined in full at the close.
+- _Isa. 45:5._ "I am the LORD, and there is none else, there is no God beside me: I girded thee, though thou hast not known me" — God's own self-witness to His exclusive deity. The tri-personal revelation never adds a second or third God; it unfolds the inner life of the one God.
+
+**The earliest seam of plurality — Gen. 1:26:**
+
+- _Gen. 1:26._ "And God said, Let us make man in our image, after our likeness... and let them have dominion" — at creation God speaks of Himself in the plural — "let us... our" — the earliest seam of plurality within the one Creator (cf. _Gen. 11:7_; _Isa. 6:8_). The oneness of _Deut. 6:4_ is not a bare singularity; the "us" is already there in the first chapter.
+
+**The three named together — distinction shown, not division — Matt. 3:16-17; 28:19; 2 Cor. 13:14:**
+
+- _Matt. 3:16-17._ "he saw the Spirit of God descending like a dove, and lighting upon him: And lo a voice from heaven, saying, This is my beloved Son, in whom I am well pleased" — the three named together in one scene, simultaneously distinct: the Son in the water, the Spirit descending as a dove, the Father's voice from heaven. Distinction shown, not division.
+  - **a Person of the Godhead** = a distinct divine subject within the one God — a "he," not a mode, influence, or impersonal force; each Person is distinct yet fully God — the Father's voice, the Son who is "with God" and "one" with the Father (_Matt. 3:16-17_; _Matt. 28:19_; _2 Cor. 13:14_; _John 1:1_; _John 10:30_) — and each speaks, sends, is sent, and is dealt with as a person: the Spirit who is lied to, who proceeds, is sent, and testifies (_Acts 5:3-4_; _John 15:26_; _John 14:16-17_). Three Persons, one Godhead — distinction without division, co-equality without three Gods.
+- _Matt. 28:19._ "baptizing them in the name of the Father, and of the Son, and of the Holy Ghost" — one "name" (singular) shared by three Persons; the baptismal formula binds the believer to the Father, the Son, and the Holy Ghost as co-equal divine authorities.
+- _2 Cor. 13:14._ "The grace of the Lord Jesus Christ, and the love of God, and the communion of the Holy Ghost, be with you all. Amen" — the apostolic benediction places the three on a single plane of blessing — grace of the Son, love of the Father, communion of the Spirit — each a personal source of divine gift.
+- _Ev 615.1._ White: "There are three living persons of the heavenly trio; in the name of these three great powers—the Father, the Son, and the Holy Spirit—those who receive Christ by living faith are baptized" — three living Persons named together, tied directly to the baptismal name of _Matt. 28:19_, co-equal divine "powers."
+- _7MR 267.2._ White: "You are baptized in the name of the Father, of the Son, and of the Holy Ghost.... you stand under the sanction and the power of the three holiest beings in heaven, who are able to keep you from falling" — the baptismal formula tied to "the three holiest beings in heaven," three co-equal divine Persons sanctioning the believer.
+
+**The Son — distinct from God, yet fully God and eternal — John 1:1, 14; 10:30; Isa. 9:6:**
+
+- _John 1:1._ "In the beginning was the Word, and the Word was with God, and the Word was God" — the Son (the Word) is both distinct from God ("with God") and fully God ("was God") — distinction and full deity in one verse.
+- _John 1:14._ "And the Word was made flesh, and dwelt among us... the glory as of the only begotten of the Father" — the eternal Word, who was God, became flesh; the Son co-equal with the Father is the One who tabernacled among men. ("Begotten" / "only begotten" here, and in _PP 34.1_ and _1SM 247.4_, names the Son's eternal relation of origin to the Father — a sonship within co-eternity, not a point of creation, against the Arian misreading.)
+- _John 10:30._ "I and my Father are one" — Christ's own claim to unity of essence with the Father — one in nature and purpose, yet "I" and "Father" remain two distinct Persons.
+- _Isa. 9:6._ "his name shall be called Wonderful, Counsellor, The mighty God, The everlasting Father, The Prince of Peace" — the promised Son is titled "The mighty God" and "The everlasting Father"; the prophecy ascribes divine, fatherly eternity to the Messiah centuries before Bethlehem — it does not collapse the Son into the person of the Father, but credits the Child with the everlasting fatherhood proper to deity (the Son remains distinct from the Father, _John 1:1_; _John 10:30_).
+- _PP 34.1._ White: "Christ, the Word, the only begotten of God, was one with the eternal Father—one in nature, in character, in purpose—the only being that could enter into all the counsels and purposes of God" — the Son's co-eternity and oneness of nature with the Father — distinction (the only begotten) held with unity (one in nature).
+- _1SM 247.4._ White: "The Lord Jesus Christ, the divine Son of God, existed from eternity, a distinct person, yet one with the Father" — the clearest single sentence on distinction-without-division: "a distinct person, yet one with the Father."
+- _DA 530.3._ White: "In Christ is life, original, unborrowed, underived" — Christ's life is not derived from another, establishing His full, self-existent deity within the Godhead.
+- _Ev 615.2._ White: "Christ is the pre-existent, self-existent Son of God.... He assures us that there never was a time when He was not in close fellowship with the eternal God" — self-existence and eternity of the Son: "never a time when He was not," the absence of any beginning.
+- _8T 268.1._ White: "The Scriptures clearly indicate the relation between God and Christ, and they bring to view as clearly the personality and individuality of each" — distinction stated outright: the "personality and individuality of each" Person, grounded in Scripture.
+
+**The Holy Ghost — a divine Person, eternal, God Himself — Acts 5:3-4; Heb. 9:14; John 14:16-17; 15:26:**
+
+- _Acts 5:3-4._ "why hath Satan filled thine heart to lie to the Holy Ghost... thou hast not lied unto men, but unto God" — to lie to the Holy Ghost (v. 3) is to lie to God (v. 4); Scripture equates the Spirit with God Himself, establishing the Spirit's deity and personhood (one is lied to).
+- _Heb. 9:14._ "the blood of Christ, who through the eternal Spirit offered himself without spot to God" — the Spirit is called "the eternal Spirit"; eternity, a divine attribute, is ascribed to the Holy Ghost, and all three Persons appear in the work of atonement.
+- _John 14:16-17._ "I will pray the Father, and he shall give you another Comforter, that he may abide with you for ever; Even the Spirit of truth... for he dwelleth with you, and shall be in you" — "another Comforter," of the same kind as Christ, a personal "he" given by the Father at the Son's prayer: three Persons in one promise.
+- _John 15:26._ "But when the Comforter is come, whom I will send unto you from the Father, even the Spirit of truth, which proceedeth from the Father, he shall testify of me" — the Spirit ("he," a person) is sent by the Son, proceeds from the Father, and testifies of Christ — the three distinct yet acting in perfect concert.
+- _DA 671.2._ White: "Sin could be resisted and overcome only through the mighty agency of the Third Person of the Godhead, who would come with no modified energy, but in the fullness of divine power" — names the Holy Spirit "the Third Person of the Godhead," a divine Person, not a force, acting in the fullness of divine power.
+- _Ev 616.5._ White: "We need to realize that the Holy Spirit, who is as much a person as God is a person, is walking through these grounds" — affirms the personhood of the Holy Spirit — "as much a person as God is a person" — refuting any view of the Spirit as a mere influence.
+
+**Scripture's own word — the Godhead — Rom. 1:20; Col. 2:9:**
+
+- _Rom. 1:20._ "the invisible things of him from the creation of the world are clearly seen... even his eternal power and Godhead; so that they are without excuse" — Scripture's own word "Godhead" — the divine nature/being that creation itself reveals; the term this section defines comes straight from the text.
+- _Col. 2:9._ "For in him dwelleth all the fulness of the Godhead bodily" — all the fulness of the Godhead dwells in Christ bodily; the whole divine being is in the Son, anchoring His co-equal deity and giving the symbol "Godhead" its full weight.
+
+**A note on the history — historical fact.** From Ellen White's 1846 published vision (affirming the personal forms of Father and Son against the post-1844 spiritualizers) through the mature statements of the early 1900s (_Desire of Ages_, 1898; _Evangelism_ material, circa 1899-1906), the Adventist articulation of one God in three distinct Persons developed gradually out of, and beyond, the semi-Arian leanings of several founding pioneers (James White, Joseph Bates, Uriah Smith, J.N. Andrews held semi-Arian or anti-Trinitarian views on the eternity of the Son and the personhood of the Spirit). The witness cloud here rests chiefly on Ellen White's later, matured writings — not on a flat original consensus.
+
+- _1EGWLM 96.4._ White (1846 vision): "I saw a throne, and on it sat the Father and his Son Jesus Christ.... I asked Jesus if his Father had a form like himself; He said he had" — this published vision affirmed the distinct personality of the Father and the Son in direct opposition to the spiritualizing (impersonal-God) views then gaining ground among post-1844 Millerites — marking where the movement's articulation began.
+
+**DEFINITION — ONE GOD IN THREE PERSONS, DISTINCT, DIVINE, ETERNAL =** Scripture holds two truths without contradiction. First, there is one God and only one (_Deut. 6:4_; _Isa. 45:5_) — the one divine Being, the **Godhead**, whose "eternal power" creation reveals (_Rom. 1:20_) and whose whole fulness dwells bodily in Christ (_Col. 2:9_). Second, that one God is revealed as three distinct **Persons** — a "he" each, not modes or forces. The plural seam appears at creation ("let us... our," _Gen. 1:26_), is shown whole at the Jordan — Son in the water, Spirit as a dove, the Father's voice (_Matt. 3:16-17_) — and is sealed in the one "name" of baptism and the apostolic benediction (_Matt. 28:19_; _2 Cor. 13:14_). The Son is "with God" yet "was God" (_John 1:1_), "one" with the Father (_John 10:30_), "The mighty God" (_Isa. 9:6_), His life "unborrowed, underived" (_DA 530.3_), with never a time when He was not (_Ev 615.2_). The Holy Ghost is lied to as God (_Acts 5:3-4_), is "the eternal Spirit" (_Heb. 9:14_), a personal "he" who proceeds, is sent, and testifies (_John 14:16-17_; _John 15:26_) — "as much a person as God is a person" (_Ev 616.5_), "the Third Person of the Godhead" (_DA 671.2_). Thus: distinction without division, co-equality and co-eternity without three Gods — three Persons, one Godhead.
+
+**Symbols defined here:**
+
+- **the Godhead** = the one divine Being / divine nature — the one God who subsists in three distinct Persons; the one undivided deity shared fully by Father, Son, and Holy Ghost (_Rom. 1:20_; _Col. 2:9_; _Deut. 6:4_; _Isa. 45:5_).
+- **a Person of the Godhead** = a distinct divine subject within the one God — a "he," not a mode, influence, or impersonal force; each is distinct yet fully God (_Matt. 3:16-17_; _Matt. 28:19_; _2 Cor. 13:14_; _John 1:1_; _John 10:30_), and each speaks, sends, is sent, and is dealt with as a person (_Acts 5:3-4_; _John 15:26_; _John 14:16-17_).
+
+**Symbols carried:** none — this is the opening section of "Part I — The Three Persons," establishing the GODHEAD thread (one God; three distinct, divine, eternal Persons) that every section following inherits and builds upon.
+
+**For discussion:**
+
+1. _Deut. 6:4_ says "the LORD our God is one LORD," yet _Matt. 3:16-17_ shows three Persons at once. How does Scripture itself teach us to hold oneness and threeness together — without landing on either three Gods or one Person playing three parts?
+2. _Acts 5:3-4_ moves from "lie to the Holy Ghost" to "lied... unto God," and _Ev 616.5_ calls the Spirit "as much a person as God is a person." What practical difference does it make in your prayer and daily walk whether you treat the Holy Spirit as a divine Person to be grieved and trusted, or as a mere influence to be used?
+3. _DA 530.3_ says of Christ, "In Christ is life, original, unborrowed, underived," and _Col. 2:9_ that "all the fulness of the Godhead" dwells in Him bodily. If the Son is fully and eternally God, what weight does that add to His sacrifice and to His power "to keep you from falling" (_7MR 267.2_)?
