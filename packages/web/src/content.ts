@@ -70,16 +70,6 @@ export const STUDIES: readonly StudyMeta[] = [
     date: '2026-06-20',
   },
   {
-    file: `${STUDIES_DIR}/2026-06-20-four-and-three-how-scripture-divides-the-seven.md`,
-    slug: 'four-and-three',
-    title: 'Four and <em>Three</em>',
-    subtitle: 'How Scripture divides the seven',
-    description:
-      'The seven seals and trumpets carry a built-in 4+3 divide, and the churches mirror it in 3+4 — four for earth, three for heaven, traced from the pattern itself.',
-    eyebrow: 'Bible Handbook Study',
-    date: '2026-06-20',
-  },
-  {
     file: `${STUDIES_DIR}/2026-06-22-the-seven-times-a-bible-handbook-study-of-the-2520.md`,
     slug: 'seven-times',
     title: 'The Seven <em>Times</em>',
