@@ -167,9 +167,9 @@
       "name": "@bible/site",
       "version": "1.0.0",
       "devDependencies": {
-        "@effect/platform-bun": "catalog:",
-        "@types/bun": "catalog:",
-        "effect": "catalog:",
+        "@effect/platform-bun": "4.0.0-beta.68",
+        "@types/bun": "1.3.13",
+        "effect": "4.0.0-beta.68",
       },
     },
   },
