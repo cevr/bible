@@ -2,6 +2,13 @@
 created_at: '2026-06-26T12:00:00Z'
 topic: Why He Tarries — Country Living and the Third Angel in Verity
 apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1792'
+site:
+  slug: why-he-tarries
+  title: 'Why He <em>Tarries</em>'
+  subtitle: 'Country living and the third angel in verity'
+  description: 'What is Christ waiting for? The delay of the advent, the preparation of a people, and the call out of the cities.'
+  eyebrow: 'Bible Handbook Study'
+  date: '2026-06-26'
 ---
 
 # Why He Tarries — Country Living and the Third Angel in Verity

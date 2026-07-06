@@ -1,6 +1,13 @@
 ---
 created_at: '2026-06-20T12:00:00Z'
 topic: The Chain of Truth — A Bible-Only Handbook Study
+site:
+  slug: chain-of-truth-bible-only
+  title: 'The Chain of Truth — <em>Bible Only</em>'
+  subtitle: 'The same chain, proven from Scripture alone'
+  description: 'The Chain of Truth rebuilt with no authority outside the canon: every line is ref → text → gloss, KJV throughout.'
+  eyebrow: 'Bible-Only Handbook Study'
+  date: '2026-06-20'
 ---
 
 # The Chain of Truth — A Bible-Only Handbook Study

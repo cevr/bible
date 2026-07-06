@@ -24,6 +24,13 @@ apple_note_split:
   part-ii-18-the-most-holy-place-glorification: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1739'
   part-ii-19-the-image-restored-the-whole-in-one-view: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1740'
   appendix-symbol-dictionary: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1741'
+site:
+  slug: righteousness-by-faith
+  title: 'Righteousness by <em>Faith</em>'
+  subtitle: 'A Bible handbook study'
+  description: 'Justification, sanctification, and glorification — the sanctuary''s three rooms traced ref by ref, from the image of God lost in Eden to its restoration in Christ.'
+  eyebrow: 'Bible Handbook Study'
+  date: '2026-06-17'
 ---
 
 # Righteousness by Faith — A Bible Handbook Study

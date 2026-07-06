@@ -42,6 +42,13 @@
   ],
   "overrides": [
     {
+      "files": ["**/packages/web/src/**"],
+      "rules": {
+        "import/no-self-import": "off",
+        "import/namespace": "off"
+      }
+    },
+    {
       "files": ["**/apps/desktop/src/**"],
       "rules": {
         "solid/effect-service-no-setters": "error",

@@ -1,6 +1,13 @@
 ---
 created_at: '2026-06-20T12:00:00Z'
 topic: The Father, the Son, and the Spirit of God — A Bible Handbook Study
+site:
+  slug: father-son-and-holy-spirit
+  title: 'The Father, the Son, and the <em>Holy Spirit</em>'
+  subtitle: 'A Bible handbook study'
+  description: 'What Scripture actually says about the Godhead — gathered, defined, and weighed without a creed in hand.'
+  eyebrow: 'Bible Handbook Study'
+  date: '2026-06-20'
 ---
 
 # The Father, the Son, and the Spirit of God — A Bible Handbook Study

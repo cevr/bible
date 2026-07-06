@@ -1,6 +1,7 @@
 /**
- * Shared, dependency-free rendering helpers for The Sure Word static site.
- * Pure functions only — no Effect services, no Node builtins. `build.ts`
+ * Shared rendering helpers for The Sure Word static site. Pure functions only
+ * — no services, no filesystem, no Node builtins (domain imports are
+ * type-only, so this module stays runtime-dependency-free). `builder.ts`
  * imports from here so styling, markdown rendering, and page chrome live in
  * exactly one place (the korean-project pattern).
  *
@@ -10,29 +11,11 @@
  * accents, 72ch measure.
  */
 
+import type { Comparison } from './comparison.js';
+import type { Study } from './study.js';
+
 /** Bun's built-in CommonMark renderer (Bun >= 1.3). Tables render natively. */
 export const renderMarkdown = (md: string): string => Bun.markdown.html(md);
-
-// ============================================================================
-// Metadata
-// ============================================================================
-
-export interface StudyMeta {
-  /** Source markdown, relative to the repo root. */
-  readonly file: string;
-  /** URL slug: the study is served at /studies/<slug>/. */
-  readonly slug: string;
-  /** Display title (may contain <em> for the oxblood italic accent). */
-  readonly title: string;
-  /** One-line subtitle shown under the title and on the index card. */
-  readonly subtitle: string;
-  /** 1-2 sentence description for the index card and <meta description>. */
-  readonly description: string;
-  /** Small uppercase label over the card/masthead, e.g. "Bible Handbook Study". */
-  readonly eyebrow: string;
-  /** ISO date the study was created (from frontmatter). */
-  readonly date: string;
-}
 
 /** Strip YAML frontmatter and return { frontmatter-lines, body }. */
 export const splitFrontmatter = (raw: string): { fm: string; body: string } => {
@@ -695,7 +678,7 @@ const count = (n: number, singular: string, plural = `${singular}s`): string =>
   `<strong>${n}</strong> ${n === 1 ? singular : plural}`;
 
 export const studyPage = (opts: {
-  meta: StudyMeta;
+  meta: Study.Meta;
   articleHtml: string;
   toc: TocEntry[];
   words: number;
@@ -733,27 +716,19 @@ ${opts.articleHtml}
   return shell({
     title: `${opts.meta.title.replace(/<[^>]*>/g, '')} — The Sure Word`,
     description: opts.meta.description,
-    path: `/studies/${opts.meta.slug}/`,
+    path: `/${opts.meta.slug}/`,
     section: '/',
     body,
   });
 };
 
-export interface ComparisonCard {
-  readonly href: string;
-  readonly title: string;
-  readonly subtitle: string;
-  readonly description: string;
-  readonly eyebrow: string;
-}
-
 export const indexPage = (opts: {
-  studies: readonly (StudyMeta & { words: number; sections: number })[];
-  comparisons: readonly ComparisonCard[];
+  studies: readonly (Study.Meta & { words: number; sections: number })[];
+  comparisons: readonly Comparison.Card[];
 }): string => {
   const studyCards = opts.studies
     .map(
-      (s) => `        <a class="card" href="/studies/${s.slug}/">
+      (s) => `        <a class="card" href="/${s.slug}/">
           <span class="card-eyebrow">${esc(s.eyebrow)}</span>
           <h3>${s.title}</h3>
           <span class="card-sub">${esc(s.subtitle)}</span>
@@ -811,7 +786,7 @@ ${comparisonCards}
   });
 };
 
-export const comparisonsIndexPage = (comparisons: readonly ComparisonCard[]): string => {
+export const comparisonsIndexPage = (comparisons: readonly Comparison.Card[]): string => {
   const cards = comparisons
     .map(
       (c) => `        <a class="card" href="${c.href}">

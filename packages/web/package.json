@@ -10,6 +10,8 @@
     "typecheck": "tsgo --noEmit"
   },
   "devDependencies": {
-    "@types/bun": "1.3.13"
+    "@effect/platform-bun": "catalog:",
+    "@types/bun": "catalog:",
+    "effect": "catalog:"
   }
 }

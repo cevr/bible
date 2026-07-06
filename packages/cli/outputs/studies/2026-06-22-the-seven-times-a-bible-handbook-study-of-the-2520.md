@@ -1,6 +1,13 @@
 ---
 created_at: '2026-06-22T12:00:00Z'
 topic: The Seven Times — A Bible Handbook Study of the 2520
+site:
+  slug: seven-times
+  title: 'The Seven <em>Times</em>'
+  subtitle: 'A Bible handbook study of the 2520'
+  description: 'Leviticus 26''s seven times of scattering, followed through Daniel and the pioneer writings to their two termini, 1798 and 1844.'
+  eyebrow: 'Bible Handbook Study'
+  date: '2026-06-22'
 ---
 
 # The Seven Times — A Bible Handbook Study of the 2520

@@ -38,6 +38,13 @@ apple_note_split:
   part-ii-32-the-millennium-and-the-great-white-throne-revelat: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1776'
   part-ii-33-the-new-heaven-and-the-new-earth-revelation-21-22: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1777'
   appendix-symbol-dictionary: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1778'
+site:
+  slug: daniel-and-the-revelation
+  title: 'Daniel and the <em>Revelation</em>'
+  subtitle: 'A Bible handbook study'
+  description: 'The prophetic books opened line upon line — every symbol defined from Scripture, every time-prophecy anchored to its date in history.'
+  eyebrow: 'Bible Handbook Study'
+  date: '2026-06-10'
 ---
 
 # Daniel and the Revelation — A Bible Handbook Study

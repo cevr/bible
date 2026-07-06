@@ -21,6 +21,13 @@ apple_note_split:
   part-iii-15-the-remnant-organized-the-state-of-the-dead-heal: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1716'
   part-iv-16-righteousness-by-faith-1888-jones-waggoner-the-ch: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1717'
   appendix-symbol-dictionary: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1718'
+site:
+  slug: chain-of-truth
+  title: 'The Chain of <em>Truth</em>'
+  subtitle: 'A Bible handbook study'
+  description: 'The whole system of present truth as one connected chain — each link proven before the next is hung on it.'
+  eyebrow: 'Bible Handbook Study'
+  date: '2026-06-19'
 ---
 
 # The Chain of Truth — A Bible Handbook Study

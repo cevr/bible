@@ -1,6 +1,13 @@
 ---
 created_at: '2026-07-06T12:00:00Z'
 topic: Why Suffering? — A Bible Handbook Study Series
+site:
+  slug: why-suffering
+  title: 'Why <em>Suffering?</em>'
+  subtitle: 'Ten short Bible studies on the oldest question in the world'
+  description: 'If God is good, why is there suffering? From the first rebellion in heaven to the day God wipes away the last tear — a war about the character of God, settled at a cross.'
+  eyebrow: 'Handbook Study Series'
+  date: '2026-07-06'
 ---
 
 # Why Suffering? — A Bible Handbook Study Series

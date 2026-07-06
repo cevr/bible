@@ -50,6 +50,16 @@ Bun.serve({
   development: false,
   async fetch(req) {
     const url = new URL(req.url);
+
+    // studies moved from /studies/<slug>/ to /<slug>/ — permanent redirects
+    // keep printed QR codes and shared links alive. Collapse leading slashes on
+    // the target so `/studies//evil.com` can't become a protocol-relative
+    // (cross-origin) Location — the redirect must always stay same-origin.
+    if (url.pathname === '/studies' || url.pathname.startsWith('/studies/')) {
+      const rest = url.pathname.slice('/studies'.length).replace(/^[/\\]+/, '');
+      return Response.redirect(`/${rest}${url.search}`, 301);
+    }
+
     const base = resolve(url.pathname);
     if (base === null) return new Response('Bad request', { status: 400 });
 

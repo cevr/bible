@@ -2,6 +2,13 @@
 created_at: '2026-06-20T12:00:00Z'
 topic: 'Peace, Faith & Works — A Sabbath School Study of the Holy Place'
 apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1779'
+site:
+  slug: peace-faith-and-works
+  title: 'Peace, Faith, and <em>Works</em>'
+  subtitle: 'A Sabbath School study of the holy place'
+  description: 'The furniture of the holy place as the geography of the Christian life — peace, faith, and works in their sanctuary order.'
+  eyebrow: 'Sabbath School Study'
+  date: '2026-06-20'
 ---
 
 # Peace, Faith & Works — A Sabbath School Study of the Holy Place
