@@ -57,7 +57,9 @@ function jxaStr(value: string): string {
 
 /** A deck arg is a path (vs an open-document name substring) if it looks file-y. */
 function isPathDeck(deck: string): boolean {
-  return deck.endsWith('.key') || deck.startsWith('/') || deck.startsWith('~') || deck.includes('/');
+  return (
+    deck.endsWith('.key') || deck.startsWith('/') || deck.startsWith('~') || deck.includes('/')
+  );
 }
 
 function basename(p: string): string {
@@ -317,9 +319,7 @@ export const slidesSwap = Command.make(
       const svc = yield* AppleScript;
 
       const baseDir = Option.getOrElse(args.imageDir, () => process.cwd());
-      const imgPath = path.isAbsolute(args.image)
-        ? args.image
-        : path.resolve(baseDir, args.image);
+      const imgPath = path.isAbsolute(args.image) ? args.image : path.resolve(baseDir, args.image);
 
       const deckIsPath = isPathDeck(args.deck);
       const deckPath = deckIsPath ? path.resolve(args.deck) : '';
@@ -382,32 +382,29 @@ const listJson = Flag.boolean('json').pipe(
   Flag.withDefault(false),
 );
 
-export const slidesList = Command.make(
-  'list',
-  { deck: listDeck, json: listJson },
-  (args) =>
-    Effect.gen(function* () {
-      const path = yield* Path.Path;
-      const svc = yield* AppleScript;
+export const slidesList = Command.make('list', { deck: listDeck, json: listJson }, (args) =>
+  Effect.gen(function* () {
+    const path = yield* Path.Path;
+    const svc = yield* AppleScript;
 
-      const deckIsPath = isPathDeck(args.deck);
-      const target = deckIsPath ? path.resolve(args.deck) : args.deck;
-      const targetBase = deckIsPath ? basename(target) : '';
+    const deckIsPath = isPathDeck(args.deck);
+    const target = deckIsPath ? path.resolve(args.deck) : args.deck;
+    const targetBase = deckIsPath ? basename(target) : '';
 
-      const findDoc = deckIsPath
-        ? `
+    const findDoc = deckIsPath
+      ? `
   var existing = kn.documents.whose({ name: { _equals: ${jxaStr(targetBase)} } })();
   if (existing.length > 0) { doc = existing[0]; }
   else { doc = kn.open(Path(${jxaStr(target)})); openedByUs = true; if (!doc) { var after = kn.documents.whose({ name: { _equals: ${jxaStr(targetBase)} } })(); doc = after.length>0?after[0]:null; } }
   if (!doc) { return JSON.stringify({ error: 'could not open deck' }); }
   `
-        : `
+      : `
   var ds = kn.documents.whose({ name: { _contains: ${jxaStr(target)} } })();
   if (ds.length === 0) { return JSON.stringify({ error: 'deck not found' }); }
   doc = ds[0];
   `;
 
-      const script = `(function(){
+    const script = `(function(){
   var kn = Application('Keynote');
   var openedByUs = false;
   var doc;
@@ -437,37 +434,37 @@ export const slidesList = Command.make(
   return JSON.stringify({ ok: true, deck: deckName, slides: out });
 })();`;
 
-      const stdout = yield* svc.execJxa(script);
+    const stdout = yield* svc.execJxa(script);
 
-      let parsed: { ok: true; deck: string; slides: SlideRow[] } | { error: string };
-      try {
-        parsed = JSON.parse(stdout.trim()) as
-          | { ok: true; deck: string; slides: SlideRow[] }
-          | { error: string };
-      } catch {
-        yield* Console.error('Could not parse Keynote output.');
-        return yield* Effect.sync(() => process.exit(1));
-      }
-      if (!('ok' in parsed)) {
-        yield* Console.error(`ERROR: ${parsed.error}`);
-        return yield* Effect.sync(() => process.exit(1));
-      }
-      if (args.json) {
-        yield* Console.log(JSON.stringify(parsed.slides, null, 2));
-        return;
-      }
-      const trunc = (str: string, n: number): string => {
-        const first = str.split('\n')[0] ?? '';
-        return first.length > n ? first.slice(0, n - 1) + '…' : first;
-      };
-      yield* Console.log(`idx  caption                                                       image`);
-      for (const r of parsed.slides) {
-        yield* Console.log(
-          `${String(r.index).padStart(3)}  ${trunc(r.caption, 58).padEnd(58)}  ${r.image ? basename(r.image) : '∅'}`,
-        );
-      }
-      yield* Console.log(`\n${parsed.slides.length} slide(s) in ${parsed.deck}`);
-    }),
+    let parsed: { ok: true; deck: string; slides: SlideRow[] } | { error: string };
+    try {
+      parsed = JSON.parse(stdout.trim()) as
+        | { ok: true; deck: string; slides: SlideRow[] }
+        | { error: string };
+    } catch {
+      yield* Console.error('Could not parse Keynote output.');
+      return yield* Effect.sync(() => process.exit(1));
+    }
+    if (!('ok' in parsed)) {
+      yield* Console.error(`ERROR: ${parsed.error}`);
+      return yield* Effect.sync(() => process.exit(1));
+    }
+    if (args.json) {
+      yield* Console.log(JSON.stringify(parsed.slides, null, 2));
+      return;
+    }
+    const trunc = (str: string, n: number): string => {
+      const first = str.split('\n')[0] ?? '';
+      return first.length > n ? first.slice(0, n - 1) + '…' : first;
+    };
+    yield* Console.log(`idx  caption                                                       image`);
+    for (const r of parsed.slides) {
+      yield* Console.log(
+        `${String(r.index).padStart(3)}  ${trunc(r.caption, 58).padEnd(58)}  ${r.image ? basename(r.image) : '∅'}`,
+      );
+    }
+    yield* Console.log(`\n${parsed.slides.length} slide(s) in ${parsed.deck}`);
+  }),
 );
 
 // ============================================================================
@@ -646,9 +643,7 @@ export const slidesInsert = Command.make(
       const svc = yield* AppleScript;
 
       const baseDir = Option.getOrElse(args.imageDir, () => process.cwd());
-      const imgPath = path.isAbsolute(args.image)
-        ? args.image
-        : path.resolve(baseDir, args.image);
+      const imgPath = path.isAbsolute(args.image) ? args.image : path.resolve(baseDir, args.image);
 
       const deckIsPath = isPathDeck(args.deck);
       const deckResolved = deckIsPath ? path.resolve(args.deck) : args.deck;
@@ -749,10 +744,14 @@ export const slides = Command.make('slides', {}, () =>
   Effect.gen(function* () {
     yield* Console.log('Usage: bible slides <build|swap|list> [options]');
     yield* Console.log('');
-    yield* Console.log('  build      <beat-sheet.json> --out <deck.key> [--theme] [--master] [--open]');
+    yield* Console.log(
+      '  build      <beat-sheet.json> --out <deck.key> [--theme] [--master] [--open]',
+    );
     yield* Console.log('  swap       <deck> <caption> <image> [--image-dir <dir>]');
     yield* Console.log('  list       <deck> [--json]');
-    yield* Console.log('  interleave <deck> <verses.json> [--master]   insert text-only verse slides');
+    yield* Console.log(
+      '  interleave <deck> <verses.json> [--master]   insert text-only verse slides',
+    );
     yield* Console.log('  insert     <deck> <after> <image> [--caption] [--note] [--image-dir]');
     yield* Console.log('  move       <deck> <caption> <anchor> [--before]   reorder a slide');
   }),
