@@ -25,7 +25,7 @@ export const STUDIES: readonly StudyMeta[] = [
     title: 'Daniel and the <em>Revelation</em>',
     subtitle: 'A Bible handbook study',
     description:
-      'The prophetic books opened line upon line — every symbol defined from Scripture, every timeline anchored to its decree.',
+      'The prophetic books opened line upon line — every symbol defined from Scripture, every time-prophecy anchored to its date in history.',
     eyebrow: 'Bible Handbook Study',
     date: '2026-06-10',
   },
@@ -35,7 +35,7 @@ export const STUDIES: readonly StudyMeta[] = [
     title: 'Righteousness by <em>Faith</em>',
     subtitle: 'A Bible handbook study',
     description:
-      'Justification, sanctification, and the faith of Jesus — the gospel traced ref by ref through the whole canon.',
+      "Justification, sanctification, and glorification — the sanctuary's three rooms traced ref by ref, from the image of God lost in Eden to its restoration in Christ.",
     eyebrow: 'Bible Handbook Study',
     date: '2026-06-17',
   },
@@ -75,7 +75,7 @@ export const STUDIES: readonly StudyMeta[] = [
     title: 'Four and <em>Three</em>',
     subtitle: 'How Scripture divides the seven',
     description:
-      'The seven churches, seals, and trumpets carry a built-in 4+3 divide — traced from the pattern itself.',
+      'The seven seals and trumpets carry a built-in 4+3 divide, and the churches mirror it in 3+4 — four for earth, three for heaven, traced from the pattern itself.',
     eyebrow: 'Bible Handbook Study',
     date: '2026-06-20',
   },
@@ -85,7 +85,7 @@ export const STUDIES: readonly StudyMeta[] = [
     title: 'The Seven <em>Times</em>',
     subtitle: 'A Bible handbook study of the 2520',
     description:
-      "Leviticus 26's seven times of scattering, followed through Daniel and the pioneer charts to their terminus.",
+      "Leviticus 26's seven times of scattering, followed through Daniel and the pioneer writings to their two termini, 1798 and 1844.",
     eyebrow: 'Bible Handbook Study',
     date: '2026-06-22',
   },

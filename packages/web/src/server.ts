@@ -5,14 +5,14 @@
  */
 
 import { join, normalize } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const log = (line: string): void => {
   process.stdout.write(`${line}\n`);
 };
 
-
-const dist = join(new URL('.', import.meta.url).pathname, '..', 'dist');
-const port = Number(process.env['PORT'] ?? 3000);
+const dist = join(fileURLToPath(new URL('.', import.meta.url)), '..', 'dist');
+const port = Number(Bun.env['PORT'] ?? 3000);
 
 const TYPES: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -34,7 +34,12 @@ const contentType = (path: string): string => {
 };
 
 const resolve = (pathname: string): string | null => {
-  const decoded = decodeURIComponent(pathname);
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(pathname);
+  } catch {
+    return null; // malformed percent-encoding → 400, not a thrown 500
+  }
   const safe = normalize(decoded).replace(/^(\.\.[/\\])+/, '');
   if (safe.includes('..')) return null;
   return join(dist, safe);
@@ -42,24 +47,34 @@ const resolve = (pathname: string): string | null => {
 
 Bun.serve({
   port,
+  development: false,
   async fetch(req) {
     const url = new URL(req.url);
     const base = resolve(url.pathname);
     if (base === null) return new Response('Bad request', { status: 400 });
 
-    // /path/ → /path/index.html ; /path → try file, then /path/index.html
-    const candidates = url.pathname.endsWith('/')
-      ? [join(base, 'index.html')]
-      : [base, join(base, 'index.html')];
-
-    for (const path of candidates) {
-      const file = Bun.file(path);
-      if (await file.exists()) {
-        const immutable = url.pathname.endsWith('.css') || url.pathname.endsWith('.png');
-        return new Response(file, {
+    if (!url.pathname.endsWith('/')) {
+      const asFile = Bun.file(base);
+      if (await asFile.exists()) {
+        return new Response(asFile, {
           headers: {
-            'content-type': contentType(path),
-            'cache-control': immutable ? 'public, max-age=3600' : 'public, max-age=300',
+            'content-type': contentType(base),
+            'cache-control': 'public, max-age=300',
+          },
+        });
+      }
+      // directory hit without trailing slash: redirect so the page's
+      // relative links resolve against the directory, not its parent
+      if (await Bun.file(join(base, 'index.html')).exists()) {
+        return Response.redirect(`${url.pathname}/${url.search}`, 308);
+      }
+    } else {
+      const index = Bun.file(join(base, 'index.html'));
+      if (await index.exists()) {
+        return new Response(index, {
+          headers: {
+            'content-type': 'text/html; charset=utf-8',
+            'cache-control': 'public, max-age=300',
           },
         });
       }

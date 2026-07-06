@@ -36,7 +36,7 @@ export interface StudyMeta {
 
 /** Strip YAML frontmatter and return { frontmatter-lines, body }. */
 export const splitFrontmatter = (raw: string): { fm: string; body: string } => {
-  const m = raw.match(/^---\n([\s\S]*?)\n---\n/);
+  const m = raw.match(/^﻿?---\r?\n([\s\S]*?)\r?\n---\r?\n/);
   if (m === null || m[1] === undefined) return { fm: '', body: raw };
   return { fm: m[1], body: raw.slice(m[0].length) };
 };
@@ -77,27 +77,40 @@ export interface TocEntry {
  */
 export const anchorHeadings = (html: string): { html: string; toc: TocEntry[] } => {
   const toc: TocEntry[] = [];
-  const seen = new Map<string, number>();
-  const out = html.replace(
-    /<(h[23])>([\s\S]*?)<\/\1>/g,
-    (_m, tag: string, inner: string) => {
-      const base = slugify(inner) || 'section';
-      const n = seen.get(base) ?? 0;
-      seen.set(base, n + 1);
-      const id = n === 0 ? base : `${base}-${n + 1}`;
-      const text = inner
-        .replace(/<[^>]*>/g, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-      if (tag === 'h2') {
-        toc.push({ id, text });
-        return `<${tag} id="${id}"><a class="anchor" href="#${id}" aria-label="Link to section">¶</a>${inner}</${tag}>`;
-      }
-      return `<${tag} id="${id}">${inner}</${tag}>`;
-    },
-  );
+  const issued = new Set<string>();
+  const out = html.replace(/<(h[23])>([\s\S]*?)<\/\1>/g, (_m, tag: string, inner: string) => {
+    const base = slugify(inner) || 'section';
+    let id = base;
+    for (let n = 2; issued.has(id); n += 1) id = `${base}-${n}`;
+    issued.add(id);
+    // inner is already entity-encoded by the markdown renderer — strip tags only
+    const text = inner
+      .replace(/<[^>]*>/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (tag === 'h2') {
+      toc.push({ id, text });
+      return `<${tag} id="${id}"><a class="anchor" href="#${id}" aria-label="Link to section">¶</a>${inner}</${tag}>`;
+    }
+    return `<${tag} id="${id}">${inner}</${tag}>`;
+  });
   return { html: out, toc };
 };
+
+/**
+ * Prepare a rendered study body for the page shell:
+ * - drop the document's own <h1> title (the masthead already carries it)
+ * - drop an in-body "Table of Contents" section (the sticky aside replaces it,
+ *   and its markdown-era anchor links don't match our heading ids)
+ * - wrap tables so wide ones scroll without breaking table semantics
+ * Remaining h1s (part dividers like "Part I — Daniel") are kept and styled.
+ */
+export const prepareArticle = (html: string): string =>
+  html
+    .replace(/<h1>[\s\S]*?<\/h1>/, '')
+    .replace(/<h2>\s*Table of Contents\s*<\/h2>[\s\S]*?(?=<h[12])/i, '')
+    .replaceAll('<table>', '<div class="table-wrap"><table>')
+    .replaceAll('</table>', '</table></div>');
 
 // ============================================================================
 // Page chrome
@@ -152,6 +165,23 @@ body {
 }
 ::selection { background: var(--ink); color: var(--paper); }
 
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 40;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 0.6rem 1rem;
+  font-family: var(--body);
+  font-size: 0.8rem;
+}
+.skip-link:focus { left: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+
 /* ============ TOP NAV ============ */
 nav.topnav {
   border-bottom: 1px solid var(--rule);
@@ -204,7 +234,7 @@ nav.topnav ul.nav-list a:focus-visible {
   outline: none;
   border-bottom-color: var(--oxblood);
 }
-nav.topnav ul.nav-list a[aria-current='page'] {
+nav.topnav ul.nav-list a[aria-current] {
   color: var(--ink);
   border-bottom-color: var(--oxblood);
 }
@@ -319,7 +349,19 @@ main.content {
   padding-bottom: 6rem;
   min-width: 0;
 }
-main.content > h1:first-child { display: none; }
+
+/* part dividers (source h1s after the document title is stripped) */
+main.content h1 {
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: clamp(1.3rem, 2.4vw, 1.7rem);
+  font-style: italic;
+  letter-spacing: 0.01em;
+  color: var(--oxblood);
+  margin: 6rem 0 0;
+  padding-top: 2.5rem;
+  border-top: 3px double var(--rule);
+}
 
 main.content h2 {
   font-family: var(--display);
@@ -394,15 +436,15 @@ main.content a {
 }
 main.content a:hover { text-decoration-color: var(--indigo); }
 
-main.content hr { border: 0; margin: 2.5rem 0; height: 1px; background: var(--rule-soft); }
+/* h2s draw their own top rule — hr stays pure whitespace, as in the reference */
+main.content hr { border: 0; margin: 2.5rem 0; height: 1px; background: transparent; }
 
 main.content ul, main.content ol { padding-left: 1.4rem; margin: 0 0 1rem; }
 main.content li { margin: 0.4rem 0; }
 main.content li li { font-size: 0.95em; }
 
 /* ref → gloss handbook bullets: the leading italic ref reads as a hanging tag */
-main.content li > em:first-child,
-main.content p > em:first-child {
+main.content li > em:first-child {
   font-style: normal;
   font-family: var(--mono);
   font-size: 0.82em;
@@ -431,19 +473,24 @@ main.content code {
 }
 main.content pre code { background: transparent; padding: 0; font-size: 1em; }
 
+/* editorial tables, as in the reference: top/bottom frame, row rules only */
+main.content .table-wrap {
+  overflow-x: auto;
+  margin: 1.5rem 0;
+  border-top: 1px solid var(--ink);
+  border-bottom: 1px solid var(--ink);
+}
 main.content table {
   border-collapse: collapse;
   font-size: 0.82rem;
-  margin: 1.5rem 0;
   width: 100%;
-  display: block;
-  overflow-x: auto;
+  margin: 0;
 }
 main.content th, main.content td {
-  border: 1px solid var(--rule);
-  padding: 0.35rem 0.7rem;
+  padding: 0.45rem 0.8rem 0.45rem 0;
   text-align: left;
   vertical-align: top;
+  border-bottom: 1px solid var(--rule-soft);
 }
 main.content th {
   font-family: var(--body);
@@ -452,8 +499,10 @@ main.content th {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--ink-mute);
-  background: var(--paper-tint);
+  border-bottom: 1px solid var(--rule);
 }
+main.content tbody tr:last-child td { border-bottom: 0; }
+main.content tbody tr:hover td { background: var(--paper-tint); }
 
 /* ============ INDEX: SECTIONS + CARDS ============ */
 section.index-section { margin-bottom: 4.5rem; }
@@ -470,7 +519,7 @@ section.index-section > h2 {
 }
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
   gap: 1.25rem;
 }
 a.card {
@@ -483,13 +532,11 @@ a.card {
   padding: 1.4rem 1.5rem 1.25rem;
   text-decoration: none;
   color: var(--ink);
-  transition: border-color 0.15s, background 0.15s, transform 0.15s;
+  transition: border-color 0.15s;
 }
 a.card:hover, a.card:focus-visible {
   border-color: var(--oxblood-soft);
-  background: #fffdf9;
   outline: none;
-  transform: translateY(-1px);
 }
 a.card .card-eyebrow {
   font-family: var(--body);
@@ -570,15 +617,20 @@ export const NAV_PAGES: readonly NavPage[] = [
   { href: '/comparisons/', label: 'Comparisons' },
 ];
 
-export const nav = (current: string): string => `
+/**
+ * `path` is the page's actual URL (exact match → aria-current="page");
+ * `section` is the nav entry to highlight as ancestor (aria-current="true").
+ */
+export const nav = (path: string, section: string): string => `
     <nav class="topnav">
       <div class="nav-inner">
         <a class="brand" href="/">The <em>Sure</em> Word</a>
         <ul class="nav-list">
-${NAV_PAGES.map(
-  (p) =>
-    `          <li><a href="${p.href}"${p.href === current ? ` aria-current="page"` : ''}>${p.label}</a></li>`,
-).join('\n')}
+${NAV_PAGES.map((p) => {
+  const current =
+    p.href === path ? ` aria-current="page"` : p.href === section ? ` aria-current="true"` : '';
+  return `          <li><a href="${p.href}"${current}>${p.label}</a></li>`;
+}).join('\n')}
         </ul>
       </div>
     </nav>`;
@@ -594,7 +646,10 @@ export const footer = (): string => `
 export const shell = (opts: {
   title: string;
   description: string;
-  current: string;
+  /** Exact URL of this page (for aria-current="page"). */
+  path: string;
+  /** Nav section this page belongs to ('/' or '/comparisons/'). */
+  section: string;
   body: string;
 }): string => `<!doctype html>
 <html lang="en" data-theme="paper">
@@ -611,7 +666,8 @@ ${FONTS}
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-${nav(opts.current)}
+    <a class="skip-link" href="#content">Skip to content</a>
+${nav(opts.path, opts.section)}
 ${opts.body}
 ${footer()}
   </body>
@@ -624,10 +680,19 @@ ${footer()}
 
 const fmtDate = (iso: string): string => {
   const d = new Date(iso);
+  // date-only strings parse as UTC midnight — format in UTC or the day shifts
   return Number.isNaN(d.getTime())
     ? iso
-    : d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    : d.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        timeZone: 'UTC',
+      });
 };
+
+const count = (n: number, singular: string, plural = `${singular}s`): string =>
+  `<strong>${n}</strong> ${n === 1 ? singular : plural}`;
 
 export const studyPage = (opts: {
   meta: StudyMeta;
@@ -641,7 +706,7 @@ export const studyPage = (opts: {
       <aside class="toc" aria-label="Table of contents">
         <p class="toc-h">Contents</p>
         <ol>
-${opts.toc.map((t) => `          <li><a href="#${t.id}">${esc(t.text)}</a></li>`).join('\n')}
+${opts.toc.map((t) => `          <li><a href="#${t.id}">${t.text}</a></li>`).join('\n')}
         </ol>
       </aside>`
       : '';
@@ -653,7 +718,7 @@ ${opts.toc.map((t) => `          <li><a href="#${t.id}">${esc(t.text)}</a></li>`
         <p class="lede">${esc(opts.meta.subtitle)}</p>
         <div class="meta">
           <span><strong>${fmtDate(opts.meta.date)}</strong></span>
-          <span><strong>${opts.toc.length}</strong> sections</span>
+          <span>${count(opts.toc.length, 'section')}</span>
           <span><strong>${Math.round(opts.words / 1000)}k</strong> words</span>
           <span><strong>KJV</strong> throughout</span>
         </div>
@@ -661,14 +726,15 @@ ${opts.toc.map((t) => `          <li><a href="#${t.id}">${esc(t.text)}</a></li>`
     </div>
     <div class="shell with-toc">
 ${tocHtml}
-      <main class="content">
+      <main class="content" id="content">
 ${opts.articleHtml}
       </main>
     </div>`;
   return shell({
     title: `${opts.meta.title.replace(/<[^>]*>/g, '')} — The Sure Word`,
     description: opts.meta.description,
-    current: '/',
+    path: `/studies/${opts.meta.slug}/`,
+    section: '/',
     body,
   });
 };
@@ -707,7 +773,7 @@ export const indexPage = (opts: {
     )
     .join('\n');
   const body = `
-    <div class="shell">
+    <div class="shell" id="content">
       <header class="masthead">
         <p class="eyebrow">Bible Handbook Studies · KJV</p>
         <h1>The <em>Sure</em> Word</h1>
@@ -717,8 +783,8 @@ export const indexPage = (opts: {
           own Bible, and weigh them.
         </p>
         <div class="meta">
-          <span><strong>${opts.studies.length}</strong> studies</span>
-          <span><strong>${opts.comparisons.length}</strong> comparisons</span>
+          <span>${count(opts.studies.length, 'study', 'studies')}</span>
+          <span>${count(opts.comparisons.length, 'comparison')}</span>
           <span><strong>2 Peter 1:19</strong> "a more sure word"</span>
         </div>
       </header>
@@ -739,7 +805,8 @@ ${comparisonCards}
     title: 'The Sure Word — Bible Handbook Studies',
     description:
       'Long-form KJV Bible studies in the old handbook pattern: every line a reference, the verse itself, and a short explanation.',
-    current: '/',
+    path: '/',
+    section: '/',
     body,
   });
 };
@@ -756,7 +823,7 @@ export const comparisonsIndexPage = (comparisons: readonly ComparisonCard[]): st
     )
     .join('\n');
   const body = `
-    <div class="shell">
+    <div class="shell" id="content">
       <header class="masthead">
         <p class="eyebrow">Weighed in the Balances</p>
         <h1>Comparisons</h1>
@@ -773,9 +840,9 @@ ${cards}
     </div>`;
   return shell({
     title: 'Comparisons — The Sure Word',
-    description:
-      'Verse-by-verse audits of modern expositors weighed against the pioneer writings.',
-    current: '/comparisons/',
+    description: 'Verse-by-verse audits of modern expositors weighed against the pioneer writings.',
+    path: '/comparisons/',
+    section: '/comparisons/',
     body,
   });
 };

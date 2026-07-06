@@ -1,15 +1,6 @@
-I'll apply the two confirmed P2 fixes to the assembled handbook and return the complete corrected document.
-
-The fixes are:
-
-1. Normalize §1's EW 74.1 attribution to match §7's author-tagged framing
-2. Re-anchor Q2/Q3 of §1's discussion on Scripture's scatter-then-gather promise, keeping EW 74.1 as parenthetical echo
-
 ---
-
 created_at: '2026-06-22T12:00:00Z'
 topic: The Seven Times — A Bible Handbook Study of the 2520
-
 ---
 
 # The Seven Times — A Bible Handbook Study of the 2520

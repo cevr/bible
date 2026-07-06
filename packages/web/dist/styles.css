@@ -33,6 +33,23 @@ body {
 }
 ::selection { background: var(--ink); color: var(--paper); }
 
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 40;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 0.6rem 1rem;
+  font-family: var(--body);
+  font-size: 0.8rem;
+}
+.skip-link:focus { left: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+
 /* ============ TOP NAV ============ */
 nav.topnav {
   border-bottom: 1px solid var(--rule);
@@ -85,7 +102,7 @@ nav.topnav ul.nav-list a:focus-visible {
   outline: none;
   border-bottom-color: var(--oxblood);
 }
-nav.topnav ul.nav-list a[aria-current='page'] {
+nav.topnav ul.nav-list a[aria-current] {
   color: var(--ink);
   border-bottom-color: var(--oxblood);
 }
@@ -200,7 +217,19 @@ main.content {
   padding-bottom: 6rem;
   min-width: 0;
 }
-main.content > h1:first-child { display: none; }
+
+/* part dividers (source h1s after the document title is stripped) */
+main.content h1 {
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: clamp(1.3rem, 2.4vw, 1.7rem);
+  font-style: italic;
+  letter-spacing: 0.01em;
+  color: var(--oxblood);
+  margin: 6rem 0 0;
+  padding-top: 2.5rem;
+  border-top: 3px double var(--rule);
+}
 
 main.content h2 {
   font-family: var(--display);
@@ -275,15 +304,15 @@ main.content a {
 }
 main.content a:hover { text-decoration-color: var(--indigo); }
 
-main.content hr { border: 0; margin: 2.5rem 0; height: 1px; background: var(--rule-soft); }
+/* h2s draw their own top rule — hr stays pure whitespace, as in the reference */
+main.content hr { border: 0; margin: 2.5rem 0; height: 1px; background: transparent; }
 
 main.content ul, main.content ol { padding-left: 1.4rem; margin: 0 0 1rem; }
 main.content li { margin: 0.4rem 0; }
 main.content li li { font-size: 0.95em; }
 
 /* ref → gloss handbook bullets: the leading italic ref reads as a hanging tag */
-main.content li > em:first-child,
-main.content p > em:first-child {
+main.content li > em:first-child {
   font-style: normal;
   font-family: var(--mono);
   font-size: 0.82em;
@@ -312,19 +341,24 @@ main.content code {
 }
 main.content pre code { background: transparent; padding: 0; font-size: 1em; }
 
+/* editorial tables, as in the reference: top/bottom frame, row rules only */
+main.content .table-wrap {
+  overflow-x: auto;
+  margin: 1.5rem 0;
+  border-top: 1px solid var(--ink);
+  border-bottom: 1px solid var(--ink);
+}
 main.content table {
   border-collapse: collapse;
   font-size: 0.82rem;
-  margin: 1.5rem 0;
   width: 100%;
-  display: block;
-  overflow-x: auto;
+  margin: 0;
 }
 main.content th, main.content td {
-  border: 1px solid var(--rule);
-  padding: 0.35rem 0.7rem;
+  padding: 0.45rem 0.8rem 0.45rem 0;
   text-align: left;
   vertical-align: top;
+  border-bottom: 1px solid var(--rule-soft);
 }
 main.content th {
   font-family: var(--body);
@@ -333,8 +367,10 @@ main.content th {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--ink-mute);
-  background: var(--paper-tint);
+  border-bottom: 1px solid var(--rule);
 }
+main.content tbody tr:last-child td { border-bottom: 0; }
+main.content tbody tr:hover td { background: var(--paper-tint); }
 
 /* ============ INDEX: SECTIONS + CARDS ============ */
 section.index-section { margin-bottom: 4.5rem; }
@@ -351,7 +387,7 @@ section.index-section > h2 {
 }
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
   gap: 1.25rem;
 }
 a.card {
@@ -364,13 +400,11 @@ a.card {
   padding: 1.4rem 1.5rem 1.25rem;
   text-decoration: none;
   color: var(--ink);
-  transition: border-color 0.15s, background 0.15s, transform 0.15s;
+  transition: border-color 0.15s;
 }
 a.card:hover, a.card:focus-visible {
   border-color: var(--oxblood-soft);
-  background: #fffdf9;
   outline: none;
-  transform: translateY(-1px);
 }
 a.card .card-eyebrow {
   font-family: var(--body);
