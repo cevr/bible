@@ -18,7 +18,7 @@ _Say:_ Part III. Two nights of evidence that the Book is reliable and above huma
 
 _Image:_ Dark gold-on-black QR slide: 'Take tonight's study home' with a scannable code in a white card and the study URL beneath.
 
-_Say:_ QR — take tonight's study home. While people settle: every verse you'll see tonight is in a free written study series — scan now or at the end, it stays on the title screen area. Ten short Bible studies; the site also has the other handbooks (Daniel & Revelation, the Chain of Truth, and more). URL: studies.cvr.im
+_Say:_ QR — take tonight's study home. While people settle: every verse you'll see tonight is in a free written study series — scan now or at the end, it stays on the title screen area. Ten short Bible studies; the site also has the other handbooks (Daniel & Revelation, the Chain of Truth, and more). URL: studies.cvr.im/why-suffering
 
 **3 — Name the ache of pain honestly**
 
