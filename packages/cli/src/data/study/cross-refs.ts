@@ -1,5 +1,5 @@
 import type { BibleDatabaseService, CrossReference } from '@bible/core/bible-db';
-import type { CrossRefType } from '@bible/core/bible-cross-refs';
+import type { ClassifiedCrossReference, CrossRefType } from '@bible/core/bible-cross-refs';
 import { Effect } from 'effect';
 
 import {
@@ -7,22 +7,6 @@ import {
   type CrossRefClassification,
   type UserCrossRef,
 } from '../bible/state.js';
-
-/** Enriched cross-reference with optional classification and user metadata */
-export interface ClassifiedCrossReference {
-  book: number;
-  chapter: number;
-  verse: number | null;
-  verseEnd: number | null;
-  source: 'openbible' | 'tske' | 'user';
-  previewText: string | null;
-  classification: CrossRefType | null;
-  confidence: number | null;
-  isUserAdded: boolean;
-  userNote: string | null;
-  /** UUID of user-added ref (only set when isUserAdded === true) */
-  userRefId: string | null;
-}
 
 function classificationKey(book: number, chapter: number, verse: number | null): string {
   return `${book}:${chapter}:${verse ?? 0}`;
@@ -60,9 +44,6 @@ export function createCrossRefService(state: BibleStateService, database: BibleD
           previewText: r.previewText,
           classification: cls?.type ?? null,
           confidence: cls?.confidence ?? null,
-          isUserAdded: false,
-          userNote: null,
-          userRefId: null,
         };
       });
 
@@ -78,7 +59,6 @@ export function createCrossRefService(state: BibleStateService, database: BibleD
           previewText: null,
           classification: u.type,
           confidence: null,
-          isUserAdded: true,
           userNote: u.note,
           userRefId: u.id,
         });

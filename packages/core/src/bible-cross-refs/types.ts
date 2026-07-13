@@ -1,3 +1,5 @@
+import { Schema } from 'effect';
+
 /**
  * Cross-reference classification taxonomy. Shared between web (study sheet,
  * effect-service enrichment, app-service IPC layer) and the desktop Bible
@@ -87,4 +89,3 @@ export interface UserCrossReference extends CrossRefBase {
 /** Tagged union of every cross-ref shape the UI consumes. Discriminate on
  *  `source` — `'user'` is editable, the catalog values are not. */
 export type ClassifiedCrossReference = CatalogCrossReference | UserCrossReference;
-import { Schema } from 'effect';

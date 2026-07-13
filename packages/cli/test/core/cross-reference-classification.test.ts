@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 
 import { Reference } from '@bible/core/bible';
+import type { ClassifiedCrossReference } from '@bible/core/bible-cross-refs';
 import { BibleDatabase, type CrossReference } from '@bible/core/bible-db';
 import { Effect, Layer } from 'effect';
 
@@ -9,10 +10,7 @@ import {
   classifyVerseCrossRefs,
 } from '../../src/data/study/classification.js';
 import type { CrossRefClassification, UserCrossRef } from '../../src/data/bible/state.js';
-import type {
-  ClassifiedCrossReference,
-  CrossRefServiceInstance,
-} from '../../src/data/study/cross-refs.js';
+import type { CrossRefServiceInstance } from '../../src/data/study/cross-refs.js';
 import { createMockAILayer } from '../lib/mock-ai.js';
 
 const source = Reference.verse(43, 3, 16);
@@ -28,9 +26,6 @@ const classifiedReference: ClassifiedCrossReference = {
   ...databaseReference,
   classification: null,
   confidence: null,
-  isUserAdded: false,
-  userNote: null,
-  userRefId: null,
 };
 
 const databaseLayer = BibleDatabase.Test({

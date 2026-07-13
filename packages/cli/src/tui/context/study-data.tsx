@@ -7,7 +7,7 @@
 
 import type { BibleRouteReference } from '@bible/core/app';
 import type { VerseReference } from '@bible/core/bible';
-import type { CrossRefType } from '@bible/core/bible-cross-refs';
+import type { ClassifiedCrossReference, CrossRefType } from '@bible/core/bible-cross-refs';
 import {
   BibleDatabase,
   type ConcordanceResult,
@@ -22,14 +22,9 @@ import { createContext, useContext, type ParentProps } from 'solid-js';
 import { BibleState } from '../../data/bible/state.js';
 import type { UserCrossRef } from '../../data/bible/state.js';
 import { classifySingleCrossRef, classifyVerseCrossRefs } from '../../data/study/classification.js';
-import {
-  createCrossRefService,
-  type ClassifiedCrossReference,
-} from '../../data/study/cross-refs.js';
+import { createCrossRefService } from '../../data/study/cross-refs.js';
 import { AI } from '../../services/ai.js';
 import { useAppRuntime, type AppServices } from '../lib/index.js';
-
-export type { ClassifiedCrossReference };
 
 interface ClassificationModels {
   readonly high: LanguageModel;

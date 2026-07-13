@@ -1,11 +1,11 @@
 import type { VerseReference } from '@bible/core/bible';
-import { CROSS_REF_TYPES } from '@bible/core/bible-cross-refs';
+import { CROSS_REF_TYPES, type ClassifiedCrossReference } from '@bible/core/bible-cross-refs';
 import { BibleDatabase, type CrossReference } from '@bible/core/bible-db';
 import { Effect, Option, Schema } from 'effect';
 
 import { AI } from '../../services/ai.js';
 import type { CrossRefClassification } from '../bible/state.js';
-import type { ClassifiedCrossReference, CrossRefServiceInstance } from './cross-refs.js';
+import type { CrossRefServiceInstance } from './cross-refs.js';
 
 // Schema for generateObject output
 const ClassificationResult = Schema.Struct({

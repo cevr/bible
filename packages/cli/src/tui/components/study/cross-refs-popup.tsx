@@ -317,7 +317,7 @@ export function CrossRefsPopup(props: CrossRefsPopupProps) {
   const handleDeleteRef = () => {
     const refs = refsWithPreviews();
     const selected = refs[selectedIndex()];
-    if (!selected || !selected.ref.isUserAdded || selected.ref.userRefId === null) return;
+    if (!selected || selected.ref.source !== 'user') return;
 
     studyData.crossReferences.remove(selected.ref.userRefId);
     setRefreshKey((k) => k + 1);
@@ -574,7 +574,7 @@ export function CrossRefsPopup(props: CrossRefsPopupProps) {
                     const badge = item.ref.classification
                       ? TYPE_BADGES[item.ref.classification]
                       : null;
-                    const prefix = item.ref.isUserAdded ? ' * ' : badge ? '' : '   ';
+                    const prefix = item.ref.source === 'user' ? ' * ' : badge ? '' : '   ';
                     const badgeStr = badge ? `[${badge.label}]` : '';
                     return (
                       <text
