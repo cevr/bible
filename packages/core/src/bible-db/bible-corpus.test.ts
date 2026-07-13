@@ -53,6 +53,13 @@ describe('BibleCorpus + BibleDatabase', () => {
                 verse: 2,
                 text: 'And the earth',
               },
+              {
+                book_name: 'Exodus',
+                book: 2,
+                chapter: 1,
+                verse: 1,
+                text: 'A new beginning',
+              },
             ],
           },
           [
@@ -80,8 +87,23 @@ describe('BibleCorpus + BibleDatabase', () => {
 
         const chapter = yield* database.getChapter(1, 1);
         expect(chapter.map((verse) => verse.text)).toEqual(['In the beginning', 'And the earth']);
-        const search = yield* database.searchVerses('beginning');
-        expect(search.map((verse) => verse.verse)).toEqual([1]);
+        const search = yield* database.searchVerseWindow('beginning');
+        expect(search.results).toHaveLength(2);
+        expect(search.total).toBe(2);
+
+        const filteredSearch = yield* database.searchVerseWindow('beginning', {
+          books: [2],
+          limit: 1,
+        });
+        expect(filteredSearch.results.map((verse) => verse.book)).toEqual([2]);
+        expect(filteredSearch.total).toBe(1);
+
+        const secondSearchResult = yield* database.searchVerseWindow('beginning', {
+          offset: 1,
+          limit: 1,
+        });
+        expect(secondSearchResult.results).toHaveLength(1);
+        expect(secondSearchResult.total).toBe(2);
 
         const strongs = yield* database.getChapterStrongs(1, 1);
         expect(Option.getOrThrow(strongs).verses[0]?.words[1]?.strongsNumbers).toEqual(['H7225']);

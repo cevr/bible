@@ -18,6 +18,8 @@ import {
   type ChapterReference,
   Reference,
   SearchHit,
+  SearchWindow,
+  type SearchWindowOptions,
   Verse,
   bookNumber,
 } from './model.js';
@@ -40,6 +42,10 @@ export interface BibleServiceShape {
     query: string,
     limit?: number,
   ) => Effect.Effect<readonly SearchHit[], BibleError>;
+  readonly searchWindow: (
+    query: string,
+    options?: SearchWindowOptions,
+  ) => Effect.Effect<SearchWindow, BibleError>;
 }
 
 export class BibleService extends Context.Service<BibleService, BibleServiceShape>()(
@@ -116,30 +122,48 @@ export class BibleService extends Context.Service<BibleService, BibleServiceShap
           });
         });
 
-      const search = (query: string, limit = 50): Effect.Effect<readonly SearchHit[], BibleError> =>
-        database.searchVerses(query, limit).pipe(
-          Effect.mapError(unavailable('search')),
-          Effect.flatMap((rows) =>
-            Effect.forEach(rows, (row) =>
-              Effect.gen(function* () {
-                const foundBook = yield* requireBook(bookNumber(row.book));
-                return yield* Effect.try({
-                  try: () =>
-                    new SearchHit({
-                      book: foundBook,
-                      verse: new Verse({
-                        reference: Reference.verse(row.book, row.chapter, row.verse),
-                        text: row.text,
+      const searchWindow = (
+        query: string,
+        options: SearchWindowOptions = {},
+      ): Effect.Effect<SearchWindow, BibleError> =>
+        database
+          .searchVerseWindow(query, {
+            books: options.books,
+            offset: options.offset,
+            limit: options.limit,
+          })
+          .pipe(
+            Effect.mapError(unavailable('search')),
+            Effect.flatMap(({ results, total }) =>
+              Effect.forEach(results, (row) =>
+                Effect.gen(function* () {
+                  const foundBook = yield* requireBook(bookNumber(row.book));
+                  return yield* Effect.try({
+                    try: () =>
+                      new SearchHit({
+                        book: foundBook,
+                        verse: new Verse({
+                          reference: Reference.verse(row.book, row.chapter, row.verse),
+                          text: row.text,
+                        }),
                       }),
-                    }),
-                  catch: (cause) => integrity('search', cause),
-                });
-              }),
+                    catch: (cause) => integrity('search', cause),
+                  });
+                }),
+              ).pipe(Effect.map((hits) => new SearchWindow({ hits, total }))),
             ),
-          ),
-        );
+          );
 
-      return BibleService.of({ books: Effect.succeed(canon), book, chapter, search });
+      const search = (query: string, limit = 50): Effect.Effect<readonly SearchHit[], BibleError> =>
+        searchWindow(query, { limit }).pipe(Effect.map((window) => window.hits));
+
+      return BibleService.of({
+        books: Effect.succeed(canon),
+        book,
+        chapter,
+        search,
+        searchWindow,
+      });
     }),
   );
 
@@ -167,6 +191,20 @@ export class BibleService extends Context.Service<BibleService, BibleServiceShap
             },
           ),
         search: () => Effect.succeed(config.searchHits ?? []),
+        searchWindow: (_query, options = {}) => {
+          const hits = config.searchHits ?? [];
+          const books = new Set(options.books ?? []);
+          const filtered =
+            books.size === 0 ? hits : hits.filter((hit) => books.has(hit.book.number));
+          const offset = Math.max(0, Math.trunc(options.offset ?? 0));
+          const limit = Math.max(1, Math.trunc(options.limit ?? 50));
+          return Effect.succeed(
+            new SearchWindow({
+              hits: filtered.slice(offset, offset + limit),
+              total: filtered.length,
+            }),
+          );
+        },
       }),
     );
   };

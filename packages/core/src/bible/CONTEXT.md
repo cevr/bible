@@ -32,6 +32,10 @@ _Avoid_: Selection, excerpt
 A text or concordance query across Verses whose location is not known beforehand.
 _Avoid_: Reference lookup
 
+**Search Window**:
+A bounded, optionally Book-filtered slice of Search hits together with the total number of matching Verses.
+_Avoid_: Page, batch
+
 **Study**:
 The material gathered around a Verse, including cross-references, original-language words, margin notes, and Writings commentary.
 _Avoid_: Metadata, extras

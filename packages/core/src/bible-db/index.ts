@@ -17,6 +17,8 @@ export {
   type MarginNote,
   type ConcordanceHit,
   type VerseSearchResult,
+  type VerseSearchOptions,
+  type VerseSearchWindow,
   type StrongsVerse,
   type StrongsChapter,
 } from './bible-database.js';

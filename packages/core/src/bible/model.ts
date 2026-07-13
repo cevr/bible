@@ -87,6 +87,17 @@ export class SearchHit extends Schema.Class<SearchHit>('Bible/SearchHit')({
   verse: Verse,
 }) {}
 
+export interface SearchWindowOptions {
+  readonly books?: readonly BookNumber[];
+  readonly offset?: number;
+  readonly limit?: number;
+}
+
+export class SearchWindow extends Schema.Class<SearchWindow>('Bible/SearchWindow')({
+  hits: Schema.Array(SearchHit),
+  total: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+}) {}
+
 export const bookNumber = Schema.decodeSync(BookNumber);
 export const chapterNumber = Schema.decodeSync(ChapterNumber);
 export const verseNumber = Schema.decodeSync(VerseNumber);

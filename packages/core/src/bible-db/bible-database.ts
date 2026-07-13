@@ -70,6 +70,18 @@ export interface ConcordanceHit {
 
 export interface VerseSearchResult extends BibleVerse {}
 
+export interface VerseSearchOptions {
+  readonly books?: readonly number[];
+  readonly offset?: number;
+  readonly limit?: number;
+  readonly versionCode?: string;
+}
+
+export interface VerseSearchWindow {
+  readonly results: readonly VerseSearchResult[];
+  readonly total: number;
+}
+
 export interface StrongsVerse {
   readonly verse: number;
   readonly words: readonly VerseWord[];
@@ -94,11 +106,10 @@ export interface BibleDatabaseService {
     verse: number,
     versionCode?: string,
   ) => Effect.Effect<Option.Option<BibleVerse>, BibleDatabaseError>;
-  readonly searchVerses: (
+  readonly searchVerseWindow: (
     query: string,
-    limit?: number,
-    versionCode?: string,
-  ) => Effect.Effect<readonly VerseSearchResult[], BibleDatabaseError>;
+    options?: VerseSearchOptions,
+  ) => Effect.Effect<VerseSearchWindow, BibleDatabaseError>;
   readonly getCrossRefs: (
     book: number,
     chapter: number,
@@ -266,20 +277,65 @@ export class BibleDatabase extends Context.Service<BibleDatabase, BibleDatabaseS
           `.pipe(Effect.map((rows) => Option.fromNullishOr(rows[0]).pipe(Option.map(bibleVerse)))),
       );
 
-      const searchVerses = Effect.fn('BibleDatabase.searchVerses')((
+      const searchVerseWindow = Effect.fn('BibleDatabase.searchVerseWindow')((
         query: string,
-        limit = 50,
-        versionCode = 'KJV',
-      ) => {
+        options: VerseSearchOptions = {},
+      ): Effect.Effect<VerseSearchWindow, SqlError> => {
         const escaped = query.replace(/['"*]/g, '').trim();
-        if (escaped.length === 0) return Effect.succeed<VerseSearchResult[]>([]);
-        return sql<VerseSqlRow>`
-          SELECT v.book, v.chapter, v.verse, v.version_code, v.text
-          FROM verses AS v
-          JOIN verses_fts AS fts ON v.rowid = fts.rowid
-          WHERE verses_fts MATCH ${`"${escaped}"`} AND v.version_code = ${versionCode}
-          LIMIT ${limit}
-        `.pipe(Effect.map((rows) => rows.map(bibleVerse)));
+        if (escaped.length === 0) {
+          return Effect.succeed<VerseSearchWindow>({ results: [], total: 0 });
+        }
+
+        const versionCode = options.versionCode ?? 'KJV';
+        const offset = Math.max(0, Math.trunc(options.offset ?? 0));
+        const limit = Math.max(1, Math.trunc(options.limit ?? 50));
+        const books = options.books?.filter((book) => Number.isInteger(book)) ?? [];
+        const match = `"${escaped}"`;
+
+        const count =
+          books.length === 0
+            ? sql<{ readonly total: number }>`
+                SELECT COUNT(*) AS total
+                FROM verses AS v
+                JOIN verses_fts AS fts ON v.rowid = fts.rowid
+                WHERE verses_fts MATCH ${match} AND v.version_code = ${versionCode}
+              `
+            : sql<{ readonly total: number }>`
+                SELECT COUNT(*) AS total
+                FROM verses AS v
+                JOIN verses_fts AS fts ON v.rowid = fts.rowid
+                WHERE verses_fts MATCH ${match}
+                  AND v.version_code = ${versionCode}
+                  AND ${sql.in('v.book', books)}
+              `;
+
+        const results =
+          books.length === 0
+            ? sql<VerseSqlRow>`
+                SELECT v.book, v.chapter, v.verse, v.version_code, v.text
+                FROM verses AS v
+                JOIN verses_fts AS fts ON v.rowid = fts.rowid
+                WHERE verses_fts MATCH ${match} AND v.version_code = ${versionCode}
+                ORDER BY rank
+                LIMIT ${limit} OFFSET ${offset}
+              `
+            : sql<VerseSqlRow>`
+                SELECT v.book, v.chapter, v.verse, v.version_code, v.text
+                FROM verses AS v
+                JOIN verses_fts AS fts ON v.rowid = fts.rowid
+                WHERE verses_fts MATCH ${match}
+                  AND v.version_code = ${versionCode}
+                  AND ${sql.in('v.book', books)}
+                ORDER BY rank
+                LIMIT ${limit} OFFSET ${offset}
+              `;
+
+        return Effect.all({ count, results }).pipe(
+          Effect.map(({ count, results }) => ({
+            results: results.map(bibleVerse),
+            total: count[0]?.total ?? 0,
+          })),
+        );
       });
 
       const getCrossRefs = Effect.fn('BibleDatabase.getCrossRefs')(
@@ -521,7 +577,7 @@ export class BibleDatabase extends Context.Service<BibleDatabase, BibleDatabaseS
       return BibleDatabase.of({
         getChapter,
         getVerse,
-        searchVerses,
+        searchVerseWindow,
         getCrossRefs,
         getStrongsEntry,
         searchStrongs,
@@ -569,7 +625,27 @@ export class BibleDatabase extends Context.Service<BibleDatabase, BibleDatabaseS
             ),
           ),
         ),
-      searchVerses: () => Effect.succeed([]),
+      searchVerseWindow: (query, options = {}) => {
+        const normalized = query.replace(/['"*]/g, '').trim().toLocaleLowerCase();
+        if (normalized.length === 0) {
+          return Effect.succeed<VerseSearchWindow>({ results: [], total: 0 });
+        }
+        const versionCode = options.versionCode ?? 'KJV';
+        const books = new Set(options.books ?? []);
+        const matches =
+          config.verses?.filter(
+            (verse) =>
+              verse.versionCode === versionCode &&
+              (books.size === 0 || books.has(verse.book)) &&
+              verse.text.toLocaleLowerCase().includes(normalized),
+          ) ?? [];
+        const offset = Math.max(0, Math.trunc(options.offset ?? 0));
+        const limit = Math.max(1, Math.trunc(options.limit ?? 50));
+        return Effect.succeed({
+          results: matches.slice(offset, offset + limit),
+          total: matches.length,
+        });
+      },
       getCrossRefs: (book, chapter, verse) =>
         Effect.succeed(
           config.crossRefs?.find(

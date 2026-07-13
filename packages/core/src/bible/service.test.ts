@@ -54,4 +54,15 @@ describe('BibleService', () => {
       expect(result.failure).toBeInstanceOf(BibleChapterNotFoundError);
     }
   });
+
+  test('returns a filtered search window through the canonical interface', async () => {
+    const window = await run(
+      Effect.flatMap(BibleService, (bible) =>
+        bible.searchWindow('and', { books: [Reference.book(1).book], limit: 1 }),
+      ),
+    );
+
+    expect(window.total).toBe(1);
+    expect(window.hits.map((hit) => hit.verse.reference)).toEqual([Reference.verse(1, 50, 1)]);
+  });
 });
