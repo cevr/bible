@@ -18,21 +18,17 @@
  * 3. Structural Analysis (word frequency, Strong's data)
  */
 
-import { BibleDatabase } from '@bible/core/bible-db';
 import type { BibleRouteReference } from '@bible/core/app';
 import { formatBibleReference, Reference, type VerseReference } from '@bible/core/bible';
 import { CROSS_REF_TYPES, type CrossRefType } from '@bible/core/bible-cross-refs';
 import { EGWCommentaryService, type CommentaryEntry } from '@bible/core/egw-commentary';
-import * as EGWDbBun from '@bible/core/egw-db/bun';
 import {
   StructuralAnalysis,
   type WordFrequencyEntry,
   type PassageContext,
 } from '@bible/core/structural-analysis';
-import { BunServices } from '@effect/platform-bun';
 import type { ScrollBoxRenderable } from '@opentui/core';
 import { useModalKeyboard } from '../../hooks/use-modal-keyboard.js';
-import { Effect, Layer } from 'effect';
 import { createMemo, createSignal, For, Show } from 'solid-js';
 
 import { parseReaderReference } from '../../../lib/parse-reader-reference.js';
@@ -41,6 +37,7 @@ import { useModel } from '../../context/model.js';
 import { useStudyData } from '../../context/study-data.js';
 import { useTheme } from '../../context/theme.js';
 import { useScrollSync } from '../../hooks/use-scroll-sync.js';
+import { useAppRuntime, type AppServices } from '../../lib/index.js';
 import { formatNoteType } from '../bible/verse.js';
 
 /** Type badge abbreviations and colors */
@@ -71,6 +68,7 @@ export function CrossRefsPopup(props: CrossRefsPopupProps) {
   const reader = useBibleReader();
   const studyData = useStudyData();
   const model = useModel();
+  const runtime = useAppRuntime<AppServices>();
   const [selectedIndex, setSelectedIndex] = createSignal(0);
   const [currentPage, setCurrentPage] = createSignal<PopupPage>('crossrefs');
   const [commentary, setCommentary] = createSignal<readonly CommentaryEntry[]>([]);
@@ -220,23 +218,16 @@ export function CrossRefsPopup(props: CrossRefsPopupProps) {
   const loadCommentary = () => {
     setCommentaryLoading(true);
 
-    const CommentaryLayer = EGWCommentaryService.Default.pipe(
-      Layer.provideMerge(EGWDbBun.Default),
-      Layer.provideMerge(BunServices.layer),
-    );
-
     const verse = props.verseRef.verse ?? 1;
 
-    Effect.runPromise(
-      Effect.gen(function* () {
-        const service = yield* EGWCommentaryService;
-        return yield* service.getCommentary({
-          book: props.verseRef.book,
-          chapter: props.verseRef.chapter,
-          verse,
-        });
-      }).pipe(Effect.provide(CommentaryLayer), Effect.scoped),
-    )
+    runtime
+      .runPromise(
+        EGWCommentaryService.use((service) =>
+          service.getCommentary(
+            Reference.verse(props.verseRef.book, props.verseRef.chapter, verse),
+          ),
+        ),
+      )
       .then((result) => {
         setCommentary(result.entries);
         setCommentaryLoading(false);
@@ -251,24 +242,14 @@ export function CrossRefsPopup(props: CrossRefsPopupProps) {
   const loadStructure = () => {
     setStructureLoading(true);
 
-    const StructuralLayer = StructuralAnalysis.Live.pipe(
-      Layer.provideMerge(BibleDatabase.Default),
-      Layer.provideMerge(BunServices.layer),
-    );
-
     const verse = props.verseRef.verse ?? 1;
 
-    Effect.runPromise(
-      Effect.gen(function* () {
-        const service = yield* StructuralAnalysis;
-        return yield* service.getPassageContext(
-          props.verseRef.book,
-          props.verseRef.chapter,
-          verse,
-          verse,
-        );
-      }).pipe(Effect.provide(StructuralLayer), Effect.scoped),
-    )
+    runtime
+      .runPromise(
+        StructuralAnalysis.use((service) =>
+          service.getPassageContext(props.verseRef.book, props.verseRef.chapter, verse, verse),
+        ),
+      )
       .then((result) => {
         setStructureData(result);
         setStructureLoading(false);
