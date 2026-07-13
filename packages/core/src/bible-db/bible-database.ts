@@ -16,11 +16,31 @@ import type { PlatformError } from 'effect/PlatformError';
 import { Database } from 'bun:sqlite';
 import { Config, Context, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
 
-import {
-  DatabaseConnectionError,
-  DatabaseQueryError,
-  RecordNotFoundError,
-} from '../errors/index.js';
+export class DatabaseConnectionError extends Schema.TaggedErrorClass<DatabaseConnectionError>()(
+  'BibleDatabaseConnectionError',
+  {
+    cause: Schema.Unknown,
+    message: Schema.String,
+    database: Schema.optional(Schema.String),
+  },
+) {}
+
+export class DatabaseQueryError extends Schema.TaggedErrorClass<DatabaseQueryError>()(
+  'BibleDatabaseQueryError',
+  {
+    cause: Schema.Unknown,
+    operation: Schema.String,
+  },
+) {}
+
+export class RecordNotFoundError extends Schema.TaggedErrorClass<RecordNotFoundError>()(
+  'BibleDatabaseNotFoundError',
+  {
+    entity: Schema.String,
+    id: Schema.String,
+    context: Schema.optional(Schema.Record(Schema.String, Schema.Unknown)),
+  },
+) {}
 
 export type BibleDatabaseError = DatabaseConnectionError | DatabaseQueryError | RecordNotFoundError;
 
