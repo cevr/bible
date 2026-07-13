@@ -12,5 +12,6 @@ export {
   initialRouterState,
   type AppRoute,
   type AppRouterState,
-  type EGWReference,
 } from './types.js';
+
+export type { EGWLocation } from '../egw/parse.js';

@@ -68,6 +68,10 @@ export const EGWBookRef = Schema.TaggedStruct('book', {
 
 export type EGWBookRef = Schema.Schema.Type<typeof EGWBookRef>;
 
+/** A single routable location in the EGW corpus. Ranges and searches are queries, not locations. */
+export const EGWLocation = Schema.Union([EGWBookRef, EGWPageRef, EGWParagraphRef]);
+export type EGWLocation = typeof EGWLocation.Type;
+
 /**
  * Search query (not a reference)
  */

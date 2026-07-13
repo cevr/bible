@@ -1,5 +1,5 @@
 import { isRoute, Route } from '@bible/core/app';
-import type { BibleRouteReference, EGWReference } from '@bible/core/app';
+import type { BibleRouteReference, EGWLocation } from '@bible/core/app';
 import { render, useKeyboard, useRenderer, useTerminalDimensions } from '@opentui/solid';
 import type { ManagedRuntime } from 'effect';
 import { createResource, createSignal, Match, Show, Switch } from 'solid-js';
@@ -43,8 +43,8 @@ export {
 } from './lib/index.js';
 interface AppProps {
   initialRef?: BibleRouteReference;
-  /** EGW reference. Pass empty object {} to open EGW reader without specific ref */
-  initialEgwRef?: Partial<EGWReference>;
+  /** Open the EGW reader, optionally at a parsed location. */
+  initialEgw?: true | EGWLocation;
   model?: ModelService | null;
   runtime?: ManagedRuntime.ManagedRuntime<AppServices, unknown>;
 }
@@ -134,6 +134,11 @@ function AppContent(props: AppProps) {
     }
   };
 
+  const currentEgwLocation = () => {
+    const current = route();
+    return isRoute.egw(current) ? current.ref : undefined;
+  };
+
   return (
     <NavigationProvider initialRef={props.initialRef}>
       <SearchProvider>
@@ -170,18 +175,7 @@ function AppContent(props: AppProps) {
                       </Match>
                       <Match when={isRoute.egw(route())}>
                         <EGWProvider>
-                          <EGWNavigationProvider
-                            initialRef={
-                              isRoute.egw(route())
-                                ? (
-                                    route() as {
-                                      _tag: 'egw';
-                                      ref?: EGWReference;
-                                    }
-                                  ).ref
-                                : undefined
-                            }
-                          >
+                          <EGWNavigationProvider initialRef={currentEgwLocation()}>
                             <EGWView
                               onBack={() => {
                                 // Only go back if there's history, otherwise stay
@@ -242,9 +236,8 @@ function AppWithRuntime(
   props: AppProps & { runtime: ManagedRuntime.ManagedRuntime<AppServices, unknown> },
 ) {
   // Determine initial route based on props
-  // initialEgwRef can be {} to indicate "go to EGW" without a specific reference
-  const initialRoute = props.initialEgwRef
-    ? Route.egw(props.initialEgwRef.bookCode ? (props.initialEgwRef as EGWReference) : undefined)
+  const initialRoute = props.initialEgw
+    ? Route.egw(props.initialEgw === true ? undefined : props.initialEgw)
     : props.initialRef
       ? Route.bible(props.initialRef)
       : Route.bible();
@@ -285,8 +278,8 @@ export function App(props: AppProps) {
 
 export interface TuiOptions {
   initialRef?: BibleRouteReference;
-  /** EGW reference. Pass empty object {} to open EGW reader without specific ref */
-  initialEgwRef?: Partial<EGWReference>;
+  /** Open the EGW reader, optionally at a parsed location. */
+  initialEgw?: true | EGWLocation;
   model?: ModelService | null;
 }
 
@@ -295,7 +288,7 @@ export async function tui(options?: TuiOptions) {
     () => (
       <App
         initialRef={options?.initialRef}
-        initialEgwRef={options?.initialEgwRef}
+        initialEgw={options?.initialEgw}
         model={options?.model}
       />
     ),

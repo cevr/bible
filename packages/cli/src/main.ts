@@ -8,8 +8,8 @@
  * CLI mode lazy-loads TUI and AI dependencies for faster startup.
  */
 
-import type { BibleRouteReference, EGWReference } from '@bible/core/app';
-import { isSearchQuery, parseEGWRef } from '@bible/core/egw';
+import type { BibleRouteReference, EGWLocation } from '@bible/core/app';
+import { parseEGWRef } from '@bible/core/egw';
 import { Command } from 'effect/unstable/cli';
 // Core imports needed for both CLI and TUI
 import { BunServices, BunRuntime } from '@effect/platform-bun';
@@ -99,27 +99,29 @@ function parseReferenceFromArgs(args: string[]): BibleRouteReference | undefined
 }
 
 // Parse an EGW reference from the command line
-function parseEgwReferenceFromArgs(args: string[]): EGWReference | undefined {
+function parseEgwReferenceFromArgs(args: string[]): EGWLocation | undefined {
   if (args.length === 0) return undefined;
 
   const refString = args.join(' ');
   const parsed = parseEGWRef(refString);
 
-  if (isSearchQuery(parsed)) {
-    return undefined;
+  switch (parsed._tag) {
+    case 'book':
+    case 'page':
+    case 'paragraph':
+      return parsed;
+    case 'page-range':
+      return { _tag: 'page', bookCode: parsed.bookCode, page: parsed.pageStart };
+    case 'paragraph-range':
+      return {
+        _tag: 'paragraph',
+        bookCode: parsed.bookCode,
+        page: parsed.page,
+        paragraph: parsed.paragraphStart,
+      };
+    case 'search':
+      return undefined;
   }
-
-  // Convert parsed reference to EGWReference for router
-  return {
-    bookCode: parsed.bookCode,
-    page: 'page' in parsed ? parsed.page : 'pageStart' in parsed ? parsed.pageStart : undefined,
-    paragraph:
-      'paragraph' in parsed
-        ? parsed.paragraph
-        : 'paragraphStart' in parsed
-          ? parsed.paragraphStart
-          : undefined,
-  };
 }
 
 async function main() {
@@ -143,9 +145,7 @@ async function main() {
     await traceAsync('detectSystemTheme', deps.detectSystemThemeAsync);
     const model = deps.model;
 
-    // Pass empty object to signal "go to EGW route" even without a specific reference
-    // The EGW navigation context will load from saved state if no ref is provided
-    await traceAsync('tui', () => deps.tui({ initialEgwRef: egwRef ?? {}, model }));
+    await traceAsync('tui', () => deps.tui({ initialEgw: egwRef ?? true, model }));
     printSummary();
     return;
   }

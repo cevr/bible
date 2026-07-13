@@ -59,6 +59,7 @@ export {
   isChapterHeading,
   headingLevel,
   EGWParseError,
+  EGWLocation,
   type EGWParsedRef,
   type EGWParagraphRef,
   type EGWParagraphRangeRef,

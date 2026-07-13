@@ -14,14 +14,14 @@ describe('EGW Reader TUI', () => {
 
   beforeEach(async () => {
     // Render App starting in EGW view
-    tui = await createTUITest(() => <App initialEgwRef={{}} />, {
+    tui = await createTUITest(() => <App initialEgw />, {
       width: 80,
       height: 24,
     });
   });
 
   describe('Initial Render', () => {
-    it('renders EGW view when initialEgwRef is provided', async () => {
+    it('renders EGW view when initialEgw is provided', async () => {
       await tui.renderOnce();
       // Should show EGW Library title
       tui.expectScreenContains('EGW Library');

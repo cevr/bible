@@ -14,14 +14,6 @@ import { createContext, useContext, type ParentProps } from 'solid-js';
 
 import { useAppRuntime, type AppServices } from '../lib/index.js';
 
-/** Reader position persisted by the TUI; this is presentation state, not writings-domain identity. */
-export interface EGWReaderPosition {
-  readonly bookCode: string;
-  readonly page?: number;
-  readonly paragraph?: number;
-  readonly puborder?: number;
-}
-
 // Re-export canonical types for convenience to TUI consumers.
 export type { Paragraph, Publication };
 

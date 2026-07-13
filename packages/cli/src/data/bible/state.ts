@@ -9,6 +9,7 @@ import {
 } from '@bible/core/app';
 import { Reference, type VerseReference } from '@bible/core/bible';
 import { CrossRefType } from '@bible/core/bible-cross-refs';
+import { Reference as WritingsReference, type ParagraphReference } from '@bible/core/writings';
 import { Database } from 'bun:sqlite';
 import { Effect, Layer, Context, Option, Schema } from 'effect';
 
@@ -192,14 +193,6 @@ export interface CachedPalette {
   isDark: boolean;
 }
 
-// EGW position
-export interface EGWPosition {
-  bookCode: string;
-  page?: number;
-  paragraph?: number;
-  puborder?: number;
-}
-
 // Service interface
 export interface BibleStateService {
   readonly getLastPosition: () => Position;
@@ -216,8 +209,8 @@ export interface BibleStateService {
   readonly setCachedAISearch: (query: string, results: readonly BibleRouteReferenceType[]) => void;
   readonly getCachedPalette: () => CachedPalette | undefined;
   readonly setCachedPalette: (palette: CachedPalette) => void;
-  readonly getLastEGWPosition: () => EGWPosition | undefined;
-  readonly setLastEGWPosition: (pos: EGWPosition) => void;
+  readonly getLastEGWPosition: () => ParagraphReference | undefined;
+  readonly setLastEGWPosition: (reference: ParagraphReference) => void;
   readonly getClassifications: (
     book: number,
     chapter: number,
@@ -493,23 +486,23 @@ function createBibleStateService(): BibleStateService {
       setPaletteStmt.run(encodeCachedPalette(cached.palette), cached.isDark ? 1 : 0, Date.now());
     },
 
-    getLastEGWPosition(): EGWPosition | undefined {
+    getLastEGWPosition(): ParagraphReference | undefined {
       const row = getEGWPositionStmt.get();
-      if (row === null) return undefined;
-      return {
-        bookCode: row.book_code,
+      if (row === null || row.puborder === null) return undefined;
+      return WritingsReference.paragraph({
+        publication: row.book_code,
+        order: row.puborder,
         page: row.page ?? undefined,
-        paragraph: row.paragraph ?? undefined,
-        puborder: row.puborder ?? undefined,
-      };
+        number: row.paragraph ?? undefined,
+      });
     },
 
-    setLastEGWPosition(pos: EGWPosition): void {
+    setLastEGWPosition(reference: ParagraphReference): void {
       setEGWPositionStmt.run(
-        pos.bookCode,
-        pos.page ?? null,
-        pos.paragraph ?? null,
-        pos.puborder ?? null,
+        reference.publication,
+        Option.getOrNull(reference.page),
+        Option.getOrNull(reference.number),
+        reference.order,
       );
     },
 

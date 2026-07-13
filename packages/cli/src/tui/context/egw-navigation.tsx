@@ -5,10 +5,10 @@
  * Similar to the Bible navigation context but adapted for EGW paragraph structure.
  */
 
-import type { EGWReference } from '@bible/core/app';
+import type { EGWLocation } from '@bible/core/app';
 import { nodesToText } from '@bible/core/egw';
 import { isChapterHeading } from '@bible/core/egw-db';
-import type { Paragraph, Publication } from '@bible/core/writings';
+import type { Paragraph, ParagraphReference, Publication } from '@bible/core/writings';
 import { Option } from 'effect';
 import {
   createContext,
@@ -22,7 +22,7 @@ import {
 } from 'solid-js';
 
 import { useBibleState } from './bible.js';
-import { useEGW, type EGWReaderPosition } from './egw.js';
+import { useEGW } from './egw.js';
 
 /**
  * Loading state for async operations
@@ -57,7 +57,6 @@ interface EGWNavigationContextValue {
 
   // Navigation
   goToBook: (bookCode: string) => void;
-  goToPosition: (position: EGWReaderPosition) => void;
   nextParagraph: () => void;
   prevParagraph: () => void;
   goToFirstParagraph: () => void;
@@ -80,7 +79,7 @@ interface EGWNavigationContextValue {
 const EGWNavigationContext = createContext<EGWNavigationContextValue>();
 
 interface EGWNavigationProviderProps {
-  initialRef?: EGWReference;
+  initialRef?: EGWLocation;
 }
 
 export function EGWNavigationProvider(props: ParentProps<EGWNavigationProviderProps>) {
@@ -228,49 +227,46 @@ export function EGWNavigationProvider(props: ParentProps<EGWNavigationProviderPr
     loadBookData(bookCode, () => setSelectedParagraphIndex(0));
   };
 
-  // Navigate to a specific position (page/paragraph)
-  const goToPosition = (position: EGWReaderPosition) => {
-    const bookCode = position.bookCode;
+  const goToLocation = (location: EGWLocation) => {
+    const bookCode = location.bookCode;
     const book = currentBook();
 
-    // If same book, just navigate within it
     if (book && book.code.toUpperCase() === bookCode.toUpperCase()) {
-      navigateToPosition(paragraphs(), position);
+      navigateToLocation(paragraphs(), location);
       return;
     }
 
-    // Different book - load it first
-    loadBookData(bookCode, (_, paras) => navigateToPosition(paras, position));
+    loadBookData(bookCode, (_, paras) => navigateToLocation(paras, location));
   };
 
-  // Find paragraph index from position
-  const navigateToPosition = (paras: readonly Paragraph[], position: EGWReaderPosition) => {
-    if (position.page != null) {
-      const index = paras.findIndex((p) => {
-        const page = Option.getOrUndefined(p.reference.page);
-        const paragraph = Option.getOrUndefined(p.reference.number);
-        return (
-          page === position.page && (position.paragraph == null || paragraph === position.paragraph)
-        );
-      });
-
-      if (index >= 0) {
-        setSelectedParagraphIndex(index);
-        return;
-      }
+  const navigateToLocation = (paras: readonly Paragraph[], location: EGWLocation) => {
+    if (location._tag === 'book') {
+      setSelectedParagraphIndex(0);
+      return;
     }
 
-    // If we have puborder
-    if (position.puborder != null) {
-      const index = paras.findIndex((p) => p.reference.order === position.puborder);
-      if (index >= 0) {
-        setSelectedParagraphIndex(index);
-        return;
-      }
+    const index = paras.findIndex((paragraph) => {
+      const page = Option.getOrUndefined(paragraph.reference.page);
+      const number = Option.getOrUndefined(paragraph.reference.number);
+      return page === location.page && (location._tag === 'page' || number === location.paragraph);
+    });
+
+    setSelectedParagraphIndex(index >= 0 ? index : 0);
+  };
+
+  const goToParagraph = (reference: ParagraphReference) => {
+    const book = currentBook();
+    const navigate = (paras: readonly Paragraph[]) => {
+      const index = paras.findIndex((paragraph) => paragraph.reference.order === reference.order);
+      setSelectedParagraphIndex(index >= 0 ? index : 0);
+    };
+
+    if (book && book.code.toUpperCase() === reference.publication.toUpperCase()) {
+      navigate(paragraphs());
+      return;
     }
 
-    // Default to first
-    setSelectedParagraphIndex(0);
+    loadBookData(reference.publication, (_, paras) => navigate(paras));
   };
 
   // Navigation methods
@@ -404,14 +400,9 @@ export function EGWNavigationProvider(props: ParentProps<EGWNavigationProviderPr
     const book = currentBook();
     const para = currentParagraph();
     if (book && para) {
-      const page = currentPage();
       // Untrack the save operation to prevent reactive loops
       untrack(() => {
-        bibleState.setLastEGWPosition({
-          bookCode: book.code,
-          page: page ?? undefined,
-          puborder: para.reference.order,
-        });
+        bibleState.setLastEGWPosition(para.reference);
       });
     }
   });
@@ -419,21 +410,13 @@ export function EGWNavigationProvider(props: ParentProps<EGWNavigationProviderPr
   // Initialize from initial ref or saved state - only runs once on mount
   onMount(() => {
     const ref = props.initialRef;
-    if (ref?.bookCode) {
-      goToPosition({
-        bookCode: ref.bookCode,
-        page: ref.page ?? undefined,
-        paragraph: ref.paragraph ?? undefined,
-      });
+    if (ref) {
+      goToLocation(ref);
     } else {
       // Try to load last position from state
       const lastPos = bibleState.getLastEGWPosition();
       if (lastPos) {
-        goToPosition({
-          bookCode: lastPos.bookCode,
-          page: lastPos.page,
-          puborder: lastPos.puborder,
-        });
+        goToParagraph(lastPos);
       } else {
         // Load book list if no saved position
         loadBooks();
@@ -450,7 +433,6 @@ export function EGWNavigationProvider(props: ParentProps<EGWNavigationProviderPr
     currentChapter,
     selectedIndexInChapter,
     goToBook,
-    goToPosition,
     nextParagraph,
     prevParagraph,
     goToFirstParagraph,
