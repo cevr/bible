@@ -337,8 +337,13 @@ async function checkBibleDbExists(): Promise<boolean> {
   }
 }
 
-async function downloadBibleDb(): Promise<void> {
-  post({ type: 'init-progress', stage: 'Downloading Bible database...', progress: 0 });
+async function downloadBibleDb(requestId: number): Promise<void> {
+  post({
+    type: 'init-progress',
+    id: requestId,
+    stage: 'Downloading Bible database...',
+    progress: 0,
+  });
 
   const response = await fetch('/api/db/bible');
   if (!response.ok) {
@@ -367,6 +372,7 @@ async function downloadBibleDb(): Promise<void> {
     if (contentLength > 0) {
       post({
         type: 'init-progress',
+        id: requestId,
         stage: 'Downloading Bible database...',
         progress: Math.round((received / contentLength) * 100),
       });
@@ -460,14 +466,20 @@ async function getEgwSyncStatus(): Promise<
   }
 }
 
-async function syncBook(bookCode: string, _requestId?: number): Promise<number> {
+async function syncBook(bookCode: string, requestId = 0): Promise<number> {
   // Check if already synced
   if (await isBookSynced(bookCode)) {
     log(`[db-worker] sync: ${bookCode} already synced, skipping`);
     return 0;
   }
 
-  post({ type: 'sync-book-progress', bookCode, stage: 'Fetching...', progress: 0 });
+  post({
+    type: 'sync-book-progress',
+    id: requestId,
+    bookCode,
+    stage: 'Fetching...',
+    progress: 0,
+  });
 
   const response = await fetch(`/api/egw/${encodeURIComponent(bookCode)}/dump`);
   if (!response.ok) {
@@ -475,7 +487,13 @@ async function syncBook(bookCode: string, _requestId?: number): Promise<number> 
     throw new Error(errMsg);
   }
 
-  post({ type: 'sync-book-progress', bookCode, stage: 'Parsing...', progress: 30 });
+  post({
+    type: 'sync-book-progress',
+    id: requestId,
+    bookCode,
+    stage: 'Parsing...',
+    progress: 30,
+  });
   const dump = await response.json();
 
   const book = dump.book;
@@ -499,7 +517,13 @@ async function syncBook(bookCode: string, _requestId?: number): Promise<number> 
     bibleVerse: number | null;
   }[];
 
-  post({ type: 'sync-book-progress', bookCode, stage: 'Inserting...', progress: 50 });
+  post({
+    type: 'sync-book-progress',
+    id: requestId,
+    bookCode,
+    stage: 'Inserting...',
+    progress: 50,
+  });
 
   const now = new Date().toISOString();
 
@@ -549,7 +573,13 @@ async function syncBook(bookCode: string, _requestId?: number): Promise<number> 
       );
     }
 
-    post({ type: 'sync-book-progress', bookCode, stage: 'Bible refs...', progress: 80 });
+    post({
+      type: 'sync-book-progress',
+      id: requestId,
+      bookCode,
+      stage: 'Bible refs...',
+      progress: 80,
+    });
 
     for (const r of bibleRefs) {
       await execWrite(
@@ -582,16 +612,33 @@ async function syncBook(bookCode: string, _requestId?: number): Promise<number> 
   }
 
   // Rebuild FTS index for this book's paragraphs
-  post({ type: 'sync-book-progress', bookCode, stage: 'Indexing...', progress: 95 });
+  post({
+    type: 'sync-book-progress',
+    id: requestId,
+    bookCode,
+    stage: 'Indexing...',
+    progress: 95,
+  });
   await rebuildFtsForBook(book.bookId);
 
-  post({ type: 'sync-book-progress', bookCode, stage: 'Done', progress: 100 });
+  post({
+    type: 'sync-book-progress',
+    id: requestId,
+    bookCode,
+    stage: 'Done',
+    progress: 100,
+  });
   log(`[db-worker] sync: ${bookCode} done — ${paragraphs.length} paragraphs`);
   return paragraphs.length;
 }
 
-async function syncFullEgw(): Promise<void> {
-  post({ type: 'init-progress', stage: 'Downloading EGW commentary...', progress: 0 });
+async function syncFullEgw(requestId: number): Promise<void> {
+  post({
+    type: 'sync-full-egw-progress',
+    id: requestId,
+    stage: 'Downloading EGW commentary...',
+    progress: 0,
+  });
 
   const response = await fetch('/api/db/egw');
   if (!response.ok) {
@@ -619,7 +666,8 @@ async function syncFullEgw(): Promise<void> {
     received += value.byteLength;
     if (contentLength > 0) {
       post({
-        type: 'init-progress',
+        type: 'sync-full-egw-progress',
+        id: requestId,
         stage: 'Downloading EGW commentary...',
         progress: Math.round((received / contentLength) * 100),
       });
@@ -714,8 +762,13 @@ async function checkTopicsDbExists(): Promise<boolean> {
   }
 }
 
-async function downloadTopicsDb(): Promise<void> {
-  post({ type: 'init-topics-progress', stage: 'Downloading topics database...', progress: 0 });
+async function downloadTopicsDb(requestId: number): Promise<void> {
+  post({
+    type: 'init-topics-progress',
+    id: requestId,
+    stage: 'Downloading topics database...',
+    progress: 0,
+  });
 
   const response = await fetch('/api/db/topics');
   if (!response.ok) {
@@ -747,6 +800,7 @@ async function downloadTopicsDb(): Promise<void> {
     if (contentLength > 0) {
       post({
         type: 'init-topics-progress',
+        id: requestId,
         stage: 'Downloading topics database...',
         progress: Math.round((received / contentLength) * 100),
       });
@@ -760,7 +814,7 @@ async function downloadTopicsDb(): Promise<void> {
   topicsDb = await sqlite3.open_v2('topics.db', SQLite.SQLITE_OPEN_READONLY, 'opfs-coop-sync');
 }
 
-async function initTopics(): Promise<void> {
+async function initTopics(requestId: number): Promise<void> {
   try {
     // Try opening existing
     topicsDb = await sqlite3.open_v2(
@@ -771,15 +825,19 @@ async function initTopics(): Promise<void> {
 
     const hasData = await checkTopicsDbExists();
     if (!hasData) {
-      await downloadTopicsDb();
+      await downloadTopicsDb(requestId);
     }
 
-    post({ type: 'init-topics-complete' });
+    post({ type: 'init-topics-complete', id: requestId });
     log('[db-worker] topics.db ready');
   } catch (err) {
     console.error('[db-worker] topics init failed:', err);
     topicsDb = null;
-    post({ type: 'init-topics-error', error: err instanceof Error ? err.message : String(err) });
+    post({
+      type: 'init-topics-error',
+      id: requestId,
+      error: err instanceof Error ? err.message : String(err),
+    });
   }
 }
 
@@ -787,10 +845,10 @@ async function initTopics(): Promise<void> {
 // Init
 // ---------------------------------------------------------------------------
 
-async function init(): Promise<void> {
+async function initializeDatabases(requestId: number): Promise<void> {
   try {
     log('[db-worker] init: loading wa-sqlite module');
-    post({ type: 'init-progress', stage: 'Loading SQLite...', progress: 0 });
+    post({ type: 'init-progress', id: requestId, stage: 'Loading SQLite...', progress: 0 });
 
     const module = await SQLiteESMFactory();
     sqlite3 = SQLite.Factory(module);
@@ -810,11 +868,11 @@ async function init(): Promise<void> {
     const hasData = await checkBibleDbExists();
     log('[db-worker] init: bible.db hasData =', hasData);
     if (!hasData) {
-      await downloadBibleDb();
+      await downloadBibleDb(requestId);
       log('[db-worker] init: bible.db downloaded');
     }
 
-    post({ type: 'init-progress', stage: 'Initializing...', progress: 100 });
+    post({ type: 'init-progress', id: requestId, stage: 'Initializing...', progress: 100 });
     stateDb = await sqlite3.open_v2(
       'state.db',
       SQLite.SQLITE_OPEN_READWRITE | SQLite.SQLITE_OPEN_CREATE,
@@ -864,7 +922,7 @@ async function init(): Promise<void> {
       console.warn('[db-worker] init: EGW database unavailable, continuing without it', egwErr);
     }
 
-    post({ type: 'init-complete' });
+    post({ type: 'init-complete', id: requestId });
     log('[db-worker] init: complete');
 
     // Auto-sync BC volumes in background (non-blocking)
@@ -873,7 +931,11 @@ async function init(): Promise<void> {
     });
   } catch (err) {
     console.error('[db-worker] init: FAILED', err);
-    post({ type: 'init-error', error: err instanceof Error ? err.message : String(err) });
+    post({
+      type: 'init-error',
+      id: requestId,
+      error: err instanceof Error ? err.message : String(err),
+    });
   }
 }
 
@@ -892,7 +954,7 @@ self.onmessage = async (event: MessageEvent<unknown>) => {
 
   switch (msg.type) {
     case 'init':
-      await init();
+      await initializeDatabases(msg.id);
       break;
 
     case 'query': {
@@ -942,11 +1004,12 @@ self.onmessage = async (event: MessageEvent<unknown>) => {
         const file = await handle.getFile();
         const buffer = await file.arrayBuffer();
         dirty = false;
-        const msg: WorkerResponse = { type: 'export-state-result', data: buffer };
-        self.postMessage(decodeWorkerResponse(msg), [buffer]);
+        const response: WorkerResponse = { type: 'export-state-result', id: msg.id, data: buffer };
+        self.postMessage(decodeWorkerResponse(response), [buffer]);
       } catch (err) {
         post({
           type: 'export-state-error',
+          id: msg.id,
           error: err instanceof Error ? err.message : String(err),
         });
       }
@@ -954,7 +1017,7 @@ self.onmessage = async (event: MessageEvent<unknown>) => {
     }
 
     case 'is-dirty': {
-      post({ type: 'is-dirty-result', dirty });
+      post({ type: 'is-dirty-result', id: msg.id, dirty });
       break;
     }
 
@@ -979,18 +1042,27 @@ self.onmessage = async (event: MessageEvent<unknown>) => {
     }
 
     case 'get-egw-sync-status': {
-      const books = await getEgwSyncStatus();
-      post({ type: 'egw-sync-status', books });
+      try {
+        const books = await getEgwSyncStatus();
+        post({ type: 'egw-sync-status-result', id: msg.id, books });
+      } catch (err) {
+        post({
+          type: 'egw-sync-status-error',
+          id: msg.id,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
       break;
     }
 
     case 'sync-full-egw': {
       try {
-        await syncFullEgw();
-        post({ type: 'sync-full-egw-result' });
+        await syncFullEgw(msg.id);
+        post({ type: 'sync-full-egw-result', id: msg.id });
       } catch (err) {
         post({
           type: 'sync-full-egw-error',
+          id: msg.id,
           error: err instanceof Error ? err.message : String(err),
         });
       }
@@ -998,7 +1070,7 @@ self.onmessage = async (event: MessageEvent<unknown>) => {
     }
 
     case 'init-topics': {
-      await initTopics();
+      await initTopics(msg.id);
       break;
     }
   }

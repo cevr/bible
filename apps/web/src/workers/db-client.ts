@@ -6,15 +6,24 @@
  */
 import { Schema } from 'effect';
 
-import { decodeWorkerRequest, decodeWorkerResponse, type WorkerRequest } from './db-protocol.js';
+import {
+  makeWorkerRequest,
+  SyncStatus,
+  type WorkerRequest,
+  type WorkerRequestPayload,
+  decodeWorkerResponse,
+} from './db-protocol.js';
 
 const log = import.meta.env['DEV'] ? (...args: unknown[]) => console.log(...args) : () => {};
 
-export interface EgwSyncStatus {
-  bookCode: string;
-  status: string;
-  paragraphCount: number;
-}
+export type EgwSyncStatus = SyncStatus;
+
+const Integer = Schema.Number.pipe(Schema.check(Schema.isInt()));
+const decodeInteger = Schema.decodeUnknownSync(Integer);
+const decodeBoolean = Schema.decodeUnknownSync(Schema.Boolean);
+const decodeArrayBuffer = Schema.decodeUnknownSync(Schema.instanceOf(globalThis.ArrayBuffer));
+const decodeSyncStatus = Schema.decodeUnknownSync(Schema.Array(SyncStatus));
+const decodeVoid = (_input: unknown): void => undefined;
 
 /** Decode caller-specific row contracts after the transport envelope is validated. */
 export function decodeQueryRows<T>(row: Schema.Decoder<T>, input: unknown): T[] {
@@ -55,45 +64,89 @@ export interface DbClient {
   initTopics(): Promise<void>;
 }
 
-function createDbClient(): DbClient {
-  const worker = new Worker(new URL('./db-worker.ts', import.meta.url), { type: 'module' });
+/** Worker seam used by the browser adapter and the in-memory test adapter. */
+export interface DbWorkerPort {
+  onerror: ((event: ErrorEvent) => void) | null;
+  onmessage: ((event: MessageEvent<unknown>) => void) | null;
+  postMessage(message: WorkerRequest): void;
+}
 
+interface PendingRequest {
+  readonly resolve: (value: unknown) => void;
+  readonly reject: (error: Error) => void;
+}
+
+function errorFrom(cause: unknown, message: string): Error {
+  return cause instanceof Error ? cause : new Error(message, { cause });
+}
+
+export function createDbClient(worker: DbWorkerPort): DbClient {
   let nextId = 1;
-  const pending = new Map<
-    number,
-    { resolve: (value: unknown) => void; reject: (err: Error) => void }
-  >();
-  let initResolve: (() => void) | null = null;
-  let initReject: ((err: Error) => void) | null = null;
-  let progressCallbacks: ((stage: string, progress: number) => void)[] = [];
-  let execCallbacks: (() => void)[] = [];
-  let exportResolve: ((buf: ArrayBuffer) => void) | null = null;
-  let exportReject: ((err: Error) => void) | null = null;
-  let dirtyResolve: ((dirty: boolean) => void) | null = null;
-  let syncStatusResolve: ((status: readonly EgwSyncStatus[]) => void) | null = null;
-  let fullSyncResolve: (() => void) | null = null;
-  let fullSyncReject: ((err: Error) => void) | null = null;
-  let syncProgressCallbacks: ((bookCode: string, stage: string, progress: number) => void)[] = [];
-  let syncCompleteCallbacks: ((bookCode: string, paragraphCount: number) => void)[] = [];
-  let topicsInitResolve: (() => void) | null = null;
-  let topicsInitReject: ((err: Error) => void) | null = null;
+  const pending = new Map<number, PendingRequest>();
+  const progressCallbacks: ((stage: string, progress: number) => void)[] = [];
+  const execCallbacks: (() => void)[] = [];
+  const syncProgressCallbacks: ((bookCode: string, stage: string, progress: number) => void)[] = [];
+  const syncCompleteCallbacks: ((bookCode: string, paragraphCount: number) => void)[] = [];
+
+  const rejectAll = (error: Error): void => {
+    for (const request of pending.values()) request.reject(error);
+    pending.clear();
+  };
+
+  const resolve = (id: number, value: unknown): void => {
+    const request = pending.get(id);
+    if (!request) return;
+    pending.delete(id);
+    request.resolve(value);
+  };
+
+  const reject = (id: number, error: Error): void => {
+    const request = pending.get(id);
+    if (!request) return;
+    pending.delete(id);
+    request.reject(error);
+  };
+
+  const request = <T>(payload: WorkerRequestPayload, decode: (input: unknown) => T): Promise<T> => {
+    const id = nextId++;
+    return new Promise<T>((resolveRequest, rejectRequest) => {
+      pending.set(id, {
+        resolve: (value) => {
+          try {
+            resolveRequest(decode(value));
+          } catch (cause) {
+            rejectRequest(
+              new Error(`Database worker ${payload.type} request ${id} returned invalid data`, {
+                cause,
+              }),
+            );
+          }
+        },
+        reject: rejectRequest,
+      });
+
+      try {
+        worker.postMessage(makeWorkerRequest(id, payload));
+      } catch (cause) {
+        pending.delete(id);
+        rejectRequest(errorFrom(cause, `Failed to send database worker ${payload.type} request`));
+      }
+    });
+  };
 
   worker.onerror = (event) => {
+    const error = new Error(`Database worker failed: ${event.message}`);
+    rejectAll(error);
     console.error('[db-client] worker error:', event.message, event);
   };
 
-  worker.onmessage = (event: MessageEvent<unknown>) => {
+  worker.onmessage = (event) => {
     let msg;
     try {
       msg = decodeWorkerResponse(event.data);
     } catch (cause) {
       const error = new Error('Database worker returned an invalid protocol message', { cause });
-      for (const request of pending.values()) request.reject(error);
-      pending.clear();
-      initReject?.(error);
-      exportReject?.(error);
-      fullSyncReject?.(error);
-      topicsInitReject?.(error);
+      rejectAll(error);
       console.error('[db-client] rejected invalid response', cause);
       return;
     }
@@ -101,97 +154,80 @@ function createDbClient(): DbClient {
     switch (msg.type) {
       case 'init-progress': {
         log(`[db-client] progress: ${msg.stage} (${msg.progress}%)`);
-        for (const cb of progressCallbacks) {
-          cb(msg.stage, msg.progress);
-        }
+        for (const cb of progressCallbacks) cb(msg.stage, msg.progress);
         break;
       }
       case 'init-complete': {
         log('[db-client] init complete');
-        initResolve?.();
+        resolve(msg.id, undefined);
         break;
       }
       case 'init-error': {
         console.error('[db-client] init error:', msg.error);
-        initReject?.(new Error(msg.error));
+        reject(msg.id, new Error(msg.error));
         break;
       }
       case 'query-result': {
-        pending.get(msg.id)?.resolve(msg.rows);
-        pending.delete(msg.id);
+        resolve(msg.id, msg.rows);
         break;
       }
       case 'query-error': {
-        pending.get(msg.id)?.reject(new Error(msg.error));
-        pending.delete(msg.id);
+        reject(msg.id, new Error(msg.error));
         break;
       }
       case 'exec-result': {
-        pending.get(msg.id)?.resolve(msg.changes);
-        pending.delete(msg.id);
+        resolve(msg.id, msg.changes);
         for (const cb of execCallbacks) cb();
         break;
       }
       case 'exec-error': {
-        pending.get(msg.id)?.reject(new Error(msg.error));
-        pending.delete(msg.id);
+        reject(msg.id, new Error(msg.error));
         break;
       }
       case 'export-state-result': {
-        exportResolve?.(msg.data);
-        exportResolve = null;
-        exportReject = null;
+        resolve(msg.id, msg.data);
         break;
       }
       case 'export-state-error': {
-        exportReject?.(new Error(msg.error));
-        exportResolve = null;
-        exportReject = null;
+        reject(msg.id, new Error(msg.error));
         break;
       }
       case 'is-dirty-result': {
-        dirtyResolve?.(msg.dirty);
-        dirtyResolve = null;
+        resolve(msg.id, msg.dirty);
         break;
       }
       case 'sync-book-progress': {
-        for (const cb of syncProgressCallbacks) {
-          cb(msg.bookCode, msg.stage, msg.progress);
-        }
+        for (const cb of syncProgressCallbacks) cb(msg.bookCode, msg.stage, msg.progress);
         break;
       }
       case 'sync-book-result': {
-        // Resolve pending request if it exists
-        if (msg.id > 0) {
-          pending.get(msg.id)?.resolve(msg.paragraphCount);
-          pending.delete(msg.id);
-        }
-        // Notify listeners (covers auto-sync completions where id=0)
-        for (const cb of syncCompleteCallbacks) {
-          cb(msg.bookCode, msg.paragraphCount);
-        }
+        if (msg.id > 0) resolve(msg.id, msg.paragraphCount);
+        for (const cb of syncCompleteCallbacks) cb(msg.bookCode, msg.paragraphCount);
         break;
       }
       case 'sync-book-error': {
-        pending.get(msg.id)?.reject(new Error(msg.error));
-        pending.delete(msg.id);
+        if (msg.id > 0) reject(msg.id, new Error(msg.error));
         break;
       }
-      case 'egw-sync-status': {
-        syncStatusResolve?.(msg.books);
-        syncStatusResolve = null;
+      case 'egw-sync-status-result': {
+        resolve(msg.id, msg.books);
+        break;
+      }
+      case 'egw-sync-status-error': {
+        reject(msg.id, new Error(msg.error));
+        break;
+      }
+      case 'sync-full-egw-progress': {
+        log(`[db-client] EGW sync: ${msg.stage} (${msg.progress}%)`);
+        for (const cb of progressCallbacks) cb(msg.stage, msg.progress);
         break;
       }
       case 'sync-full-egw-result': {
-        fullSyncResolve?.();
-        fullSyncResolve = null;
-        fullSyncReject = null;
+        resolve(msg.id, undefined);
         break;
       }
       case 'sync-full-egw-error': {
-        fullSyncReject?.(new Error(msg.error));
-        fullSyncResolve = null;
-        fullSyncReject = null;
+        reject(msg.id, new Error(msg.error));
         break;
       }
       case 'init-topics-progress': {
@@ -200,151 +236,77 @@ function createDbClient(): DbClient {
       }
       case 'init-topics-complete': {
         log('[db-client] topics init complete');
-        topicsInitResolve?.();
-        topicsInitResolve = null;
-        topicsInitReject = null;
+        resolve(msg.id, undefined);
         break;
       }
       case 'init-topics-error': {
-        topicsInitReject?.(new Error(msg.error));
-        topicsInitResolve = null;
-        topicsInitReject = null;
+        reject(msg.id, new Error(msg.error));
         break;
       }
     }
   };
 
-  function send(msg: WorkerRequest) {
-    worker.postMessage(decodeWorkerRequest(msg));
-  }
-
   return {
-    init() {
-      return new Promise<void>((resolve, reject) => {
-        initResolve = resolve;
-        initReject = reject;
-        send({ type: 'init' });
-      });
-    },
+    init: () => request({ type: 'init' }, decodeVoid),
 
     onProgress(cb) {
       progressCallbacks.push(cb);
     },
 
-    query<T>(
+    query: <T>(
       row: Schema.Decoder<T>,
       db: 'bible' | 'state' | 'egw' | 'topics',
       sql: string,
       params?: readonly unknown[],
-    ): Promise<T[]> {
-      const id = nextId++;
-      return new Promise<T[]>((resolve, reject) => {
-        pending.set(id, {
-          resolve: (value) => {
-            try {
-              resolve(decodeQueryRows(row, value));
-            } catch (cause) {
-              reject(new Error(`Database query ${id} returned invalid rows`, { cause }));
-            }
-          },
-          reject,
-        });
-        send({ type: 'query', id, db, sql, params });
-      });
-    },
+    ) => request({ type: 'query', db, sql, params }, (input) => decodeQueryRows(row, input)),
 
-    exec(sql: string, params?: unknown[]): Promise<number> {
-      const id = nextId++;
-      return new Promise<number>((resolve, reject) => {
-        pending.set(id, {
-          resolve: resolve as (value: unknown) => void,
-          reject,
-        });
-        send({ type: 'exec', id, db: 'state', sql, params });
-      });
-    },
+    exec: (sql, params) => request({ type: 'exec', db: 'state', sql, params }, decodeInteger),
 
-    exportState(): Promise<ArrayBuffer> {
-      return new Promise<ArrayBuffer>((resolve, reject) => {
-        exportResolve = resolve;
-        exportReject = reject;
-        send({ type: 'export-state' });
-      });
-    },
+    exportState: () => request({ type: 'export-state' }, decodeArrayBuffer),
 
-    isDirty(): Promise<boolean> {
-      return new Promise<boolean>((resolve) => {
-        dirtyResolve = resolve;
-        send({ type: 'is-dirty' });
-      });
-    },
+    isDirty: () => request({ type: 'is-dirty' }, decodeBoolean),
 
-    onExec(cb: () => void) {
+    onExec(cb) {
       execCallbacks.push(cb);
       return () => {
-        const i = execCallbacks.indexOf(cb);
-        if (i >= 0) execCallbacks.splice(i, 1);
+        const index = execCallbacks.indexOf(cb);
+        if (index >= 0) execCallbacks.splice(index, 1);
       };
     },
 
-    syncBook(bookCode: string): Promise<number> {
-      const id = nextId++;
-      return new Promise<number>((resolve, reject) => {
-        pending.set(id, {
-          resolve: resolve as (value: unknown) => void,
-          reject,
-        });
-        send({ type: 'sync-book', id, bookCode });
-      });
-    },
+    syncBook: (bookCode) => request({ type: 'sync-book', bookCode }, decodeInteger),
 
-    getEgwSyncStatus(): Promise<readonly EgwSyncStatus[]> {
-      return new Promise<readonly EgwSyncStatus[]>((resolve) => {
-        syncStatusResolve = resolve;
-        send({ type: 'get-egw-sync-status' });
-      });
-    },
+    getEgwSyncStatus: () => request({ type: 'get-egw-sync-status' }, decodeSyncStatus),
 
-    syncFullEgw(): Promise<void> {
-      return new Promise<void>((resolve, reject) => {
-        fullSyncResolve = resolve;
-        fullSyncReject = reject;
-        send({ type: 'sync-full-egw' });
-      });
-    },
+    syncFullEgw: () => request({ type: 'sync-full-egw' }, decodeVoid),
 
-    onSyncProgress(cb: (bookCode: string, stage: string, progress: number) => void) {
+    onSyncProgress(cb) {
       syncProgressCallbacks.push(cb);
       return () => {
-        const i = syncProgressCallbacks.indexOf(cb);
-        if (i >= 0) syncProgressCallbacks.splice(i, 1);
+        const index = syncProgressCallbacks.indexOf(cb);
+        if (index >= 0) syncProgressCallbacks.splice(index, 1);
       };
     },
 
-    onSyncComplete(cb: (bookCode: string, paragraphCount: number) => void) {
+    onSyncComplete(cb) {
       syncCompleteCallbacks.push(cb);
       return () => {
-        const i = syncCompleteCallbacks.indexOf(cb);
-        if (i >= 0) syncCompleteCallbacks.splice(i, 1);
+        const index = syncCompleteCallbacks.indexOf(cb);
+        if (index >= 0) syncCompleteCallbacks.splice(index, 1);
       };
     },
 
-    initTopics(): Promise<void> {
-      return new Promise<void>((resolve, reject) => {
-        topicsInitResolve = resolve;
-        topicsInitReject = reject;
-        send({ type: 'init-topics' });
-      });
-    },
+    initTopics: () => request({ type: 'init-topics' }, decodeVoid),
   };
 }
 
-// Singleton
 let instance: DbClient | null = null;
 
 export function getDbClient(): DbClient {
   if (!instance) {
-    instance = createDbClient();
+    instance = createDbClient(
+      new Worker(new URL('./db-worker.ts', import.meta.url), { type: 'module' }),
+    );
   }
   return instance;
 }
