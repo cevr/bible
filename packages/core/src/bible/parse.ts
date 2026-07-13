@@ -75,11 +75,12 @@ export const ParsedBibleQuery = {
   search: (query: string): ParsedBibleQuery => ({ _tag: 'search', query }),
 } as const;
 
-/**
- * Try to resolve a book name to a book number
- */
+const normalizeBookName = (name: string): string =>
+  name.replace(/\.$/, '').replace(/\s+/g, ' ').trim().toLowerCase();
+
+/** Resolve every parser and extractor book token through the same alias rules. */
 function resolveBook(bookPart: string, options?: ParseBibleQueryOptions): number | undefined {
-  const normalized = bookPart.trim().toLowerCase();
+  const normalized = normalizeBookName(bookPart);
 
   // Direct alias lookup
   let bookNum = BIBLE_BOOK_ALIASES[normalized];
@@ -265,17 +266,6 @@ const CANDIDATE_PATTERN =
   /([123]?\s*[A-Za-z]+(?:\s+of\s+[A-Za-z]+)?\.?)\s*(\d+)\s*:\s*(\d+)(?:\s*[-–]\s*(\d+))?/g;
 
 /**
- * Normalize a book name for lookup in BIBLE_BOOK_ALIASES
- */
-function normalizeBookName(name: string): string {
-  return name
-    .replace(/\.$/, '') // Remove trailing period
-    .replace(/\s+/g, ' ') // Normalize multiple spaces to single
-    .trim()
-    .toLowerCase();
-}
-
-/**
  * Extract all Bible references from text
  *
  * Uses a two-phase approach for performance:
@@ -296,26 +286,6 @@ const CONTINUATION_PATTERN = /^,\s*(\d+)(?:\s*[-–]\s*(\d+))?(?![\s]*:)/;
 // "verse 3" or "verses 3-5" pattern — carries forward book+chapter from previous reference
 const VERSE_KEYWORD_PATTERN = /\bverses?\s+(\d+)(?:\s*[-–]\s*(\d+))?\b/gi;
 
-/**
- * Resolve a book name to a book number, trying alias lookup with common normalizations.
- */
-function resolveBookAlias(bookPart: string): number | undefined {
-  const normalized = normalizeBookName(bookPart);
-
-  // Direct lookup (O(1))
-  let bookNum = BIBLE_BOOK_ALIASES[normalized];
-  if (bookNum) return bookNum;
-
-  // Try without spaces (e.g., "1cor" for "1 cor")
-  const noSpaces = normalized.replace(/\s+/g, '');
-  bookNum = BIBLE_BOOK_ALIASES[noSpaces];
-  if (bookNum) return bookNum;
-
-  // Try adding space after number prefix (e.g., "1cor" -> "1 cor")
-  const withSpace = normalized.replace(/^(\d)([a-z])/, '$1 $2');
-  return BIBLE_BOOK_ALIASES[withSpace];
-}
-
 export function extractBibleReferences(text: string): ExtractedReference[] {
   const results: ExtractedReference[] = [];
 
@@ -334,7 +304,7 @@ export function extractBibleReferences(text: string): ExtractedReference[] {
       continue;
     }
 
-    const bookNum = resolveBookAlias(bookPart);
+    const bookNum = resolveBook(bookPart);
     if (!bookNum) continue;
 
     const chapter = parseInt(chapterStr, 10);

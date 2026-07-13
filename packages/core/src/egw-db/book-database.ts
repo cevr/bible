@@ -1104,7 +1104,38 @@ export class EGWParagraphDatabase extends Context.Service<
       storeBibleRefsBatch: (refs) => Effect.succeed(refs.length),
       getBibleRefsByBook: (bookId) =>
         Effect.succeed(config.bibleRefs?.filter((row) => row.para_book_id === bookId) ?? []),
-      getParagraphsByBibleRef: () => Effect.succeed([]),
+      getParagraphsByBibleRef: (bibleBook, bibleChapter, bibleVerse) => {
+        const matchingRefs =
+          config.bibleRefs?.filter(
+            (row) =>
+              row.bible_book === bibleBook &&
+              row.bible_chapter === bibleChapter &&
+              (bibleVerse === undefined || row.bible_verse === bibleVerse),
+          ) ?? [];
+        return Effect.succeed(
+          matchingRefs.flatMap((reference) => {
+            const book = config.books?.find(
+              (candidate) => candidate.book_id === reference.para_book_id,
+            );
+            const paragraph = config.paragraphs?.find(
+              (candidate) =>
+                candidate.bookCode === book?.book_code &&
+                (Option.getOrUndefined(candidate.refcode_short) === reference.para_ref_code ||
+                  candidate.refcode_long === reference.para_ref_code),
+            );
+            return book && paragraph
+              ? [
+                  {
+                    ...paragraph,
+                    bookId: book.book_id,
+                    bookCode: book.book_code,
+                    bookTitle: book.book_title,
+                  },
+                ]
+              : [];
+          }),
+        );
+      },
       getBibleVersesWithCommentary: () => Effect.succeed([]),
       setSyncStatus: () => Effect.void,
       getSyncStatus: () => Effect.succeed(Option.none()),
