@@ -1,0 +1,58 @@
+{
+  "title": "The Two Classes — A Bible Handbook Study",
+  "topic": "The Two Classes — A Bible Handbook Study",
+  "createdAt": "2026-07-12T12:00:00Z",
+  "thesis": "From the gate of Eden God Himself divided mankind into two classes, and only two: \"I will put enmity between thee and the woman, and between thy seed and her seed\" (Gen. 3:15). The enmity is God-put; the classes are not races or ranks but worshipers — Abel, who brought the appointed lamb by faith, and Cain, who brought the fruit of his own hands and his own way. From that altar the two lines diverge and never merge: Cain went out from the presence of the LORD and builded a city; Seth's line began to call upon the name of the LORD, dwelt apart, and walked with God. The serpent's seed congregates — cities, plains, valleys, convenience, the arts of a civilization that forgets God — and attacks the institutions of Eden: marriage by polygamy, appetite by indulgence, and appointed worship by will-worship. The woman's seed are pilgrims and strangers — tents, altars, mountains, the wilderness — a peculiar people who worship in spirit and in truth, needing no city. And every time God's people have mingled with the world — the sons of God taking the daughters of men, Israel joined to Baal-peor and demanding a king \"like all the nations,\" the church seeking the favor of the empire — the peculiar people lost their peculiarity, and the distinction had to be remade by judgment: the flood, the scattering, the wilderness. Christ fixed the type for the last age: \"as it was in the days of Noah... as it was in the days of Lot.\" The two classes stand at last fully formed and fully visible — they that worship the beast and his image, and they that keep the commandments of God, and the faith of Jesus — and the final call of the everlasting gospel is the old call of the ark and of Sodom's gate: \"Come out of her, my people.\"",
+  "method": "After Haskell's Bible Handbook: ref → gloss, scannable; every symbol and doctrine defined FIRST from Scripture (Miller's Rule — the Bible defines its own figures). The argument is built from the text — Genesis 3-6 (the two seeds, the two offerings, the two lineages, the mingling), Genesis 11-19 (Babel, Abraham the pilgrim, Lot in the plain), Numbers 22-25 and 1 Samuel 8 (Israel mingling), Hebrews 11 (the cloud of witnesses, pilgrims and strangers), Luke 17 and Matthew 24 (the days of Noah and of Lot), and Revelation 7, 12-14, 18 (the seal, the mark, the woman in the wilderness, the final call). Ellen White and the pioneers are the SECONDARY but indispensable witnesses — Patriarchs and Prophets 81-82 names 'the two classes' outright (Sethites in the mountains, Cainites in the plains), and Great Controversy supplies the church-world union and the Waldenses in the mountains. Quote every refcode verbatim; verify with `bible egw \"REF\"`; never invent one, and never let a doctrine or symbol rest on the testimony where Scripture must carry it.",
+  "outPath": "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/studies/2026-07-12-the-two-classes-a-bible-handbook-study.md",
+  "sections": [
+    {
+      "file": "01-the-enmity.md",
+      "part": "I — The Two Seeds"
+    },
+    {
+      "file": "02-cain-and-abel.md",
+      "part": "I — The Two Seeds"
+    },
+    {
+      "file": "03-the-two-lineages.md",
+      "part": "I — The Two Seeds"
+    },
+    {
+      "file": "04-the-mingling.md",
+      "part": "II — The Mingling and the Flood"
+    },
+    {
+      "file": "05-the-days-of-noah.md",
+      "part": "II — The Mingling and the Flood"
+    },
+    {
+      "file": "06-babel.md",
+      "part": "III — The Witnesses Repeat"
+    },
+    {
+      "file": "07-abraham-and-lot.md",
+      "part": "III — The Witnesses Repeat"
+    },
+    {
+      "file": "08-israel-mingles.md",
+      "part": "III — The Witnesses Repeat"
+    },
+    {
+      "file": "09-church-in-the-wilderness.md",
+      "part": "III — The Witnesses Repeat"
+    },
+    {
+      "file": "10-as-in-the-days-of-noah.md",
+      "part": "IV — The Days of the Son of Man"
+    },
+    {
+      "file": "11-seal-or-mark.md",
+      "part": "IV — The Days of the Son of Man"
+    },
+    {
+      "file": "12-the-pilgrim-call.md",
+      "part": "V — Come Out"
+    }
+  ]
+}
