@@ -8,9 +8,10 @@
 import {
   BibleService,
   type Book,
-  type ChapterResponse,
-  type SearchResult as BibleSearchResult,
-} from '@bible/core/bible-service';
+  type Chapter,
+  Reference,
+  type SearchHit,
+} from '@bible/core/bible';
 import {
   EGWService,
   type EGWBook,
@@ -33,11 +34,11 @@ export interface BibleClient {
   /** Load books */
   readonly loadBooks: () => void;
   /** Current chapter */
-  readonly chapter: Accessor<ResultType<ChapterResponse, unknown>>;
+  readonly chapter: Accessor<ResultType<Chapter, unknown>>;
   /** Load chapter */
   readonly loadChapter: (book: number, chapter: number) => void;
   /** Search results */
-  readonly searchResults: Accessor<ResultType<readonly BibleSearchResult[], unknown>>;
+  readonly searchResults: Accessor<ResultType<readonly SearchHit[], unknown>>;
   /** Search */
   readonly search: (query: string, limit?: number) => void;
   /** Get book by number (async with runtime) */
@@ -105,7 +106,7 @@ export function ClientProvider(props: ParentProps) {
   const [bibleBooks, loadBibleBooks] = useEffectRunner(runtime, () =>
     Effect.gen(function* () {
       const service = yield* BibleService;
-      return yield* service.getBooks();
+      return yield* service.books;
     }),
   );
 
@@ -114,7 +115,7 @@ export function ClientProvider(props: ParentProps) {
     (book: number, chapter: number) =>
       Effect.gen(function* () {
         const service = yield* BibleService;
-        return yield* service.getChapter(book, chapter);
+        return yield* service.chapter(Reference.chapter(book, chapter));
       }),
   );
 
@@ -131,8 +132,9 @@ export function ClientProvider(props: ParentProps) {
     runtime.runPromise(
       Effect.gen(function* () {
         const service = yield* BibleService;
-        const opt = yield* service.getBook(bookNum);
-        return Option.getOrUndefined(opt);
+        return yield* service
+          .book(Reference.book(bookNum))
+          .pipe(Effect.option, Effect.map(Option.getOrUndefined));
       }),
     );
 

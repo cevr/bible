@@ -82,6 +82,7 @@ export class Passage extends Schema.Class<Passage>('Bible/Passage')({
 }) {}
 
 export class SearchHit extends Schema.Class<SearchHit>('Bible/SearchHit')({
+  book: Book,
   verse: Verse,
 }) {}
 

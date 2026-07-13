@@ -24,12 +24,12 @@ import { homedir } from 'os';
 import { join } from 'path';
 
 import { BibleToolsApi } from '@bible/api';
+import { BibleService } from '@bible/core/bible';
 import { BibleDatabase } from '@bible/core/bible-db';
 import * as EGWDbBun from '@bible/core/egw-db/bun';
 
 import { BibleGroupLive } from './api/groups/BibleGroupLive.js';
 import { EGWGroupLive } from './api/groups/EGWGroupLive.js';
-import { BibleServiceLive } from './services/BibleService.js';
 import { EGWServiceLive } from './services/EGWService.js';
 
 // ============================================================================
@@ -45,7 +45,7 @@ const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 // Compose all group handlers
 const BibleGroupLayer = BibleGroupLive.pipe(
-  Layer.provide(BibleServiceLive),
+  Layer.provide(BibleService.Live),
   Layer.provide(BibleDatabase.Default),
 );
 

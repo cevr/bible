@@ -6,7 +6,7 @@
  */
 
 import { BibleDatabase } from '@bible/core/bible-db';
-import { BibleService } from '@bible/core/bible-service';
+import { BibleService } from '@bible/core/bible';
 import type { EGWParagraphDatabase } from '@bible/core/egw-db';
 import * as EGWDbBun from '@bible/core/egw-db/bun';
 import { EGWReaderService } from '@bible/core/egw-reader';
@@ -53,7 +53,7 @@ export const AppLayer = Layer.mergeAll(
   BibleDataLive,
   BibleStateLive,
   // Core services (unified API)
-  BibleService.Default,
+  BibleService.Live,
   EGWService.Default,
   // EGW reader service
   EGWReaderService.Default,
