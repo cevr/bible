@@ -976,6 +976,7 @@ export class EGWParagraphDatabase extends Context.Service<
     config: {
       books?: readonly BookRow[];
       paragraphs?: readonly (EGWSchemas.Paragraph & { bookCode: string })[];
+      bibleRefs?: readonly BibleRefRow[];
     } = {},
   ): Layer.Layer<EGWParagraphDatabase> =>
     Layer.succeed(EGWParagraphDatabase, {
@@ -1098,7 +1099,8 @@ export class EGWParagraphDatabase extends Context.Service<
       },
       storeBibleRef: () => Effect.void,
       storeBibleRefsBatch: (refs) => Effect.succeed(refs.length),
-      getBibleRefsByBook: () => Effect.succeed([]),
+      getBibleRefsByBook: (bookId) =>
+        Effect.succeed(config.bibleRefs?.filter((row) => row.para_book_id === bookId) ?? []),
       getParagraphsByBibleRef: () => Effect.succeed([]),
       getBibleVersesWithCommentary: () => Effect.succeed([]),
       setSyncStatus: () => Effect.void,
