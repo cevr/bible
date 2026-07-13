@@ -36,7 +36,7 @@ interface ThemeProviderProps {
 }
 
 // Generate a theme from terminal palette colors
-function generateSystemTheme(palette: string[], isDark: boolean): Theme {
+function generateSystemTheme(palette: readonly string[], isDark: boolean): Theme {
   const base = isDark ? darkTheme : lightTheme;
 
   if (palette.length < 16) {
@@ -113,7 +113,7 @@ function generateSystemTheme(palette: string[], isDark: boolean): Theme {
 
 export function ThemeProvider(props: ParentProps<ThemeProviderProps>) {
   const state = useBibleState();
-  const prefs = state.getPreferences();
+  const prefs = state.preferences.get();
 
   const [themeName, setThemeNameState] = createSignal(props.initialTheme ?? prefs.theme);
   const [systemTheme, setSystemTheme] = createSignal<Theme | null>(null);
@@ -121,7 +121,7 @@ export function ThemeProvider(props: ParentProps<ThemeProviderProps>) {
   const [ready, setReady] = createSignal(false);
 
   // Check for cached palette first (synchronous, no FOUC)
-  const cached = state.getCachedPalette();
+  const cached = state.preferences.getTerminalPalette();
   if (cached && cached.palette.length >= 16) {
     setSystemMode(cached.isDark ? 'dark' : 'light');
     setSystemTheme(generateSystemTheme(cached.palette, cached.isDark));
@@ -147,7 +147,7 @@ export function ThemeProvider(props: ParentProps<ThemeProviderProps>) {
           setSystemMode(isDark ? 'dark' : 'light');
           setSystemTheme(generateSystemTheme(palette, isDark));
           // Cache the palette for next launch
-          state.setCachedPalette({ palette, isDark });
+          state.preferences.saveTerminalPalette({ palette, isDark });
         }
       }
     } catch {
@@ -178,7 +178,7 @@ export function ThemeProvider(props: ParentProps<ThemeProviderProps>) {
   const setTheme = (name: string) => {
     if (themes[name] || name === 'system') {
       setThemeNameState(name);
-      state.setPreferences({ theme: name });
+      state.preferences.update({ theme: name });
     }
   };
 

@@ -25,7 +25,7 @@ export function createCrossRefService(state: BibleStateService, database: BibleD
       );
 
       // 2. Build classification lookup map
-      const classifications = state.getClassifications(book, chapter, verse);
+      const classifications = state.crossReferences.classificationsFor(book, chapter, verse);
       const classMap = new Map<string, CrossRefClassification>();
       for (const c of classifications) {
         classMap.set(classificationKey(c.refBook, c.refChapter, c.refVerse), c);
@@ -48,7 +48,7 @@ export function createCrossRefService(state: BibleStateService, database: BibleD
       });
 
       // 4. Append user cross-refs
-      const userRefs = state.getUserCrossRefs(book, chapter, verse);
+      const userRefs = state.crossReferences.userReferencesFor(book, chapter, verse);
       for (const u of userRefs) {
         enriched.push({
           book: u.refBook,
@@ -68,7 +68,7 @@ export function createCrossRefService(state: BibleStateService, database: BibleD
     },
 
     isClassified(book: number, chapter: number, verse: number): boolean {
-      return state.hasClassifications(book, chapter, verse);
+      return state.crossReferences.hasClassifications(book, chapter, verse);
     },
 
     saveClassifications(
@@ -77,7 +77,7 @@ export function createCrossRefService(state: BibleStateService, database: BibleD
       verse: number,
       classifications: CrossRefClassification[],
     ): void {
-      state.setClassifications(book, chapter, verse, classifications);
+      state.crossReferences.saveClassifications(book, chapter, verse, classifications);
     },
 
     addUserRef(
@@ -85,7 +85,7 @@ export function createCrossRefService(state: BibleStateService, database: BibleD
       target: { book: number; chapter: number; verse?: number; verseEnd?: number },
       options?: { type?: CrossRefType; note?: string },
     ): UserCrossRef {
-      return state.addUserCrossRef(source, target, options);
+      return state.crossReferences.addUserReference(source, target, options);
     },
 
     /** Save a single classification for one ref (upserts) */
@@ -95,11 +95,11 @@ export function createCrossRefService(state: BibleStateService, database: BibleD
       verse: number,
       classification: CrossRefClassification,
     ): void {
-      state.setClassifications(book, chapter, verse, [classification]);
+      state.crossReferences.saveClassifications(book, chapter, verse, [classification]);
     },
 
     removeUserRef(id: string): void {
-      state.removeUserCrossRef(id);
+      state.crossReferences.removeUserReference(id);
     },
   };
 }

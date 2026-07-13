@@ -51,7 +51,7 @@ export function NavigationProvider(props: ParentProps<NavigationProviderProps>) 
     if (props.initialRef) {
       return Reference.verse(props.initialRef.book, props.initialRef.chapter, initialVerse() ?? 1);
     }
-    return state.getLastPosition();
+    return state.reader.bible.loadPosition();
   };
 
   const [position, setPosition] = createSignal<VerseReference>(getInitialPosition());
@@ -78,7 +78,7 @@ export function NavigationProvider(props: ParentProps<NavigationProviderProps>) 
   // Save position when it changes
   createEffect(() => {
     const pos = position();
-    state.setLastPosition(pos);
+    state.reader.bible.savePosition(pos);
   });
 
   const goTo = (ref: BibleRouteReference) => {

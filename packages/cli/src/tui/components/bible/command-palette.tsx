@@ -18,14 +18,17 @@ import {
   type Book,
 } from '@bible/core/bible';
 import { useModalKeyboard } from '../../hooks/use-modal-keyboard.js';
+import { Effect } from 'effect';
 import { createEffect, createMemo, createSignal, For, onCleanup, Show } from 'solid-js';
 
 import { searchBibleByTopic } from '../../../data/study/ai-search.js';
-import { useBibleReader, useBibleState } from '../../context/bible.js';
+import { AI } from '../../../services/ai.js';
+import { useBibleReader } from '../../context/bible.js';
 import { useModel } from '../../context/model.js';
 import { useNavigation } from '../../context/navigation.js';
 import { useTheme } from '../../context/theme.js';
 import { useScrollSync } from '../../hooks/use-scroll-sync.js';
+import { useAppRuntime, type AppServices } from '../../lib/index.js';
 import { AiSearchState } from '../../types/ai-search.js';
 
 interface BibleCommandPaletteProps {
@@ -38,8 +41,8 @@ export function BibleCommandPalette(props: BibleCommandPaletteProps) {
   const { theme } = useTheme();
   const { position, goTo } = useNavigation();
   const reader = useBibleReader();
-  const state = useBibleState();
   const model = useModel();
+  const runtime = useAppRuntime<AppServices>();
 
   // Current position
   const currentBookNum = () => position().book;
@@ -103,7 +106,9 @@ export function BibleCommandPalette(props: BibleCommandPaletteProps) {
 
     aiSearchTimeout = setTimeout(async () => {
       try {
-        const refs = await searchBibleByTopic(currentAiQuery, model, state);
+        const refs = await runtime.runPromise(
+          searchBibleByTopic(currentAiQuery).pipe(Effect.provide(AI.fromModel(model.models))),
+        );
         if (refs.length === 0) {
           setAiState(AiSearchState.empty(currentAiQuery));
         } else {

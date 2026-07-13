@@ -13,11 +13,9 @@ import { Reference as WritingsReference, type ParagraphReference } from '@bible/
 import { Database } from 'bun:sqlite';
 import { Effect, Layer, Context, Option, Schema } from 'effect';
 
-export type Position = VerseReference;
-
 const DisplayMode = Schema.Literals(['verse', 'paragraph']);
-export const Preferences = Schema.Struct({ theme: Schema.String, displayMode: DisplayMode });
-export type Preferences = typeof Preferences.Type;
+const Preferences = Schema.Struct({ theme: Schema.String, displayMode: DisplayMode });
+type Preferences = typeof Preferences.Type;
 
 const CachedBibleReferences = Schema.fromJsonString(Schema.Array(BibleRouteReference));
 const decodeCachedBibleReferences = Schema.decodeUnknownOption(CachedBibleReferences);
@@ -156,43 +154,59 @@ function initDatabase(db: Database) {
 }
 
 // Terminal palette cache
-export interface CachedPalette {
-  palette: string[];
-  isDark: boolean;
+interface CachedPalette {
+  readonly palette: readonly string[];
+  readonly isDark: boolean;
 }
 
 // Service interface
 export interface BibleStateService {
-  readonly getLastPosition: () => Position;
-  readonly setLastPosition: (pos: Position) => void;
-  readonly getPreferences: () => Preferences;
-  readonly setPreferences: (prefs: Partial<Preferences>) => void;
-  readonly getCachedAISearch: (query: string) => readonly BibleRouteReferenceType[] | undefined;
-  readonly setCachedAISearch: (query: string, results: readonly BibleRouteReferenceType[]) => void;
-  readonly getCachedPalette: () => CachedPalette | undefined;
-  readonly setCachedPalette: (palette: CachedPalette) => void;
-  readonly getLastEGWPosition: () => ParagraphReference | undefined;
-  readonly setLastEGWPosition: (reference: ParagraphReference) => void;
-  readonly getClassifications: (
-    book: number,
-    chapter: number,
-    verse: number,
-  ) => CrossRefClassification[];
-  readonly setClassifications: (
-    book: number,
-    chapter: number,
-    verse: number,
-    classifications: CrossRefClassification[],
-  ) => void;
-  readonly hasClassifications: (book: number, chapter: number, verse: number) => boolean;
-  readonly getUserCrossRefs: (book: number, chapter: number, verse: number) => UserCrossRef[];
-  readonly addUserCrossRef: (
-    source: { book: number; chapter: number; verse: number },
-    target: { book: number; chapter: number; verse?: number; verseEnd?: number },
-    options?: { type?: CrossRefType; note?: string },
-  ) => UserCrossRef;
-  readonly removeUserCrossRef: (id: string) => void;
-  readonly close: () => void;
+  readonly reader: {
+    readonly bible: {
+      readonly loadPosition: () => VerseReference;
+      readonly savePosition: (position: VerseReference) => void;
+    };
+    readonly writings: {
+      readonly loadPosition: () => ParagraphReference | undefined;
+      readonly savePosition: (reference: ParagraphReference) => void;
+    };
+  };
+  readonly preferences: {
+    readonly get: () => Preferences;
+    readonly update: (preferences: Partial<Preferences>) => void;
+    readonly getTerminalPalette: () => CachedPalette | undefined;
+    readonly saveTerminalPalette: (palette: CachedPalette) => void;
+  };
+  readonly aiSearch: {
+    readonly getCached: (query: string) => readonly BibleRouteReferenceType[] | undefined;
+    readonly saveCached: (query: string, results: readonly BibleRouteReferenceType[]) => void;
+  };
+  readonly crossReferences: {
+    readonly classificationsFor: (
+      book: number,
+      chapter: number,
+      verse: number,
+    ) => CrossRefClassification[];
+    readonly saveClassifications: (
+      book: number,
+      chapter: number,
+      verse: number,
+      classifications: readonly CrossRefClassification[],
+    ) => void;
+    readonly hasClassifications: (book: number, chapter: number, verse: number) => boolean;
+    readonly userReferencesFor: (book: number, chapter: number, verse: number) => UserCrossRef[];
+    readonly addUserReference: (
+      source: { readonly book: number; readonly chapter: number; readonly verse: number },
+      target: {
+        readonly book: number;
+        readonly chapter: number;
+        readonly verse?: number;
+        readonly verseEnd?: number;
+      },
+      options?: { readonly type?: CrossRefType; readonly note?: string },
+    ) => UserCrossRef;
+    readonly removeUserReference: (id: string) => void;
+  };
 }
 
 // Effect service tag
@@ -201,7 +215,11 @@ export class BibleState extends Context.Service<BibleState, BibleStateService>()
 ) {}
 
 // Create the service implementation
-function createBibleStateService(): BibleStateService {
+interface BibleStateResource extends BibleStateService {
+  readonly close: () => void;
+}
+
+function createBibleStateService(): BibleStateResource {
   ensureStateDir();
   const db = new Database(DB_PATH);
   initDatabase(db);
@@ -296,183 +314,159 @@ function createBibleStateService(): BibleStateService {
   // Palette cache: 7 days (terminal colors rarely change)
   const PALETTE_CACHE_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
 
+  const getPreferences = (): Preferences => {
+    const row = getPreferencesStmt.get();
+    return {
+      theme: row?.theme ?? 'system',
+      displayMode: Option.getOrElse(decodeDisplayMode(row?.display_mode), () => 'verse'),
+    };
+  };
+
   return {
-    getLastPosition(): Position {
-      const row = getPositionStmt.get();
-      return row === null
-        ? Reference.verse(1, 1, 1)
-        : Reference.verse(row.book, row.chapter, row.verse);
-    },
-
-    setLastPosition(pos: Position): void {
-      setPositionStmt.run(pos.book, pos.chapter, pos.verse);
-    },
-
-    getPreferences(): Preferences {
-      const row = getPreferencesStmt.get();
-      return {
-        theme: row?.theme ?? 'system',
-        displayMode: Option.getOrElse(decodeDisplayMode(row?.display_mode), () => 'verse'),
-      };
-    },
-
-    setPreferences(prefs: Partial<Preferences>): void {
-      const current = this.getPreferences();
-      setPreferencesStmt.run(
-        prefs.theme ?? current.theme,
-        prefs.displayMode ?? current.displayMode,
-      );
-    },
-
-    getCachedAISearch(query: string): readonly BibleRouteReferenceType[] | undefined {
-      const row = getCacheStmt.get(query.toLowerCase().trim());
-      if (row === null) return undefined;
-
-      // Check if cache is expired
-      if (Date.now() - row.cached_at > CACHE_EXPIRY_MS) {
-        return undefined;
-      }
-
-      return Option.getOrUndefined(decodeCachedBibleReferences(row.results));
-    },
-
-    setCachedAISearch(query: string, results: readonly BibleRouteReferenceType[]): void {
-      setCacheStmt.run(
-        query.toLowerCase().trim(),
-        encodeCachedBibleReferences(results),
-        Date.now(),
-      );
-    },
-
-    getCachedPalette(): CachedPalette | undefined {
-      const row = getPaletteStmt.get();
-      if (row === null) return undefined;
-
-      // Check if cache is expired
-      if (Date.now() - row.cached_at > PALETTE_CACHE_EXPIRY_MS) {
-        return undefined;
-      }
-
-      return Option.map(decodeCachedPalette(row.palette), (palette) => ({
-        palette: [...palette],
-        isDark: row.is_dark === 1,
-      })).pipe(Option.getOrUndefined);
-    },
-
-    setCachedPalette(cached: CachedPalette): void {
-      setPaletteStmt.run(encodeCachedPalette(cached.palette), cached.isDark ? 1 : 0, Date.now());
-    },
-
-    getLastEGWPosition(): ParagraphReference | undefined {
-      const row = getEGWPositionStmt.get();
-      if (row === null || row.puborder === null) return undefined;
-      return WritingsReference.paragraph({
-        publication: row.book_code,
-        order: row.puborder,
-        page: row.page ?? undefined,
-        number: row.paragraph ?? undefined,
-      });
-    },
-
-    setLastEGWPosition(reference: ParagraphReference): void {
-      setEGWPositionStmt.run(
-        reference.publication,
-        Option.getOrNull(reference.page),
-        Option.getOrNull(reference.number),
-        reference.order,
-      );
-    },
-
-    getClassifications(book: number, chapter: number, verse: number): CrossRefClassification[] {
-      const rows = getClassificationsStmt.all(book, chapter, verse);
-      return rows.map((row) => ({
-        refBook: row.ref_book,
-        refChapter: row.ref_chapter,
-        refVerse: row.ref_verse,
-        refVerseEnd: row.ref_verse_end,
-        type: decodeCrossRefType(row.type),
-        confidence: row.confidence,
-        classifiedAt: row.classified_at,
-      }));
-    },
-
-    setClassifications(
-      book: number,
-      chapter: number,
-      verse: number,
-      classifications: CrossRefClassification[],
-    ): void {
-      db.transaction(() => {
-        for (const c of classifications) {
-          insertClassificationStmt.run(
-            book,
-            chapter,
-            verse,
-            c.refBook,
-            c.refChapter,
-            c.refVerse ?? null,
-            c.refVerseEnd ?? null,
-            c.type,
-            c.confidence ?? null,
-            c.classifiedAt,
+    reader: {
+      bible: {
+        loadPosition: () => {
+          const row = getPositionStmt.get();
+          return row === null
+            ? Reference.verse(1, 1, 1)
+            : Reference.verse(row.book, row.chapter, row.verse);
+        },
+        savePosition: (position) => {
+          setPositionStmt.run(position.book, position.chapter, position.verse);
+        },
+      },
+      writings: {
+        loadPosition: () => {
+          const row = getEGWPositionStmt.get();
+          if (row === null || row.puborder === null) return undefined;
+          return WritingsReference.paragraph({
+            publication: row.book_code,
+            order: row.puborder,
+            page: row.page ?? undefined,
+            number: row.paragraph ?? undefined,
+          });
+        },
+        savePosition: (reference) => {
+          setEGWPositionStmt.run(
+            reference.publication,
+            Option.getOrNull(reference.page),
+            Option.getOrNull(reference.number),
+            reference.order,
           );
+        },
+      },
+    },
+    preferences: {
+      get: getPreferences,
+      update: (preferences) => {
+        const current = getPreferences();
+        setPreferencesStmt.run(
+          preferences.theme ?? current.theme,
+          preferences.displayMode ?? current.displayMode,
+        );
+      },
+      getTerminalPalette: () => {
+        const row = getPaletteStmt.get();
+        if (row === null || Date.now() - row.cached_at > PALETTE_CACHE_EXPIRY_MS) {
+          return undefined;
         }
-      })();
+        return Option.map(decodeCachedPalette(row.palette), (palette) => ({
+          palette,
+          isDark: row.is_dark === 1,
+        })).pipe(Option.getOrUndefined);
+      },
+      saveTerminalPalette: (cached) => {
+        setPaletteStmt.run(encodeCachedPalette(cached.palette), cached.isDark ? 1 : 0, Date.now());
+      },
     },
-
-    hasClassifications(book: number, chapter: number, verse: number): boolean {
-      const row = hasClassificationsStmt.get(book, chapter, verse);
-      return row !== null && row.cnt > 0;
+    aiSearch: {
+      getCached: (query) => {
+        const row = getCacheStmt.get(query.toLowerCase().trim());
+        if (row === null || Date.now() - row.cached_at > CACHE_EXPIRY_MS) return undefined;
+        return Option.getOrUndefined(decodeCachedBibleReferences(row.results));
+      },
+      saveCached: (query, results) => {
+        setCacheStmt.run(
+          query.toLowerCase().trim(),
+          encodeCachedBibleReferences(results),
+          Date.now(),
+        );
+      },
     },
-
-    getUserCrossRefs(book: number, chapter: number, verse: number): UserCrossRef[] {
-      const rows = getUserCrossRefsStmt.all(book, chapter, verse);
-      return rows.map((row) => ({
-        id: row.id,
-        refBook: row.ref_book,
-        refChapter: row.ref_chapter,
-        refVerse: row.ref_verse,
-        refVerseEnd: row.ref_verse_end,
-        type: row.type === null ? null : decodeCrossRefType(row.type),
-        note: row.note,
-        createdAt: row.created_at,
-      }));
-    },
-
-    addUserCrossRef(
-      source: { book: number; chapter: number; verse: number },
-      target: { book: number; chapter: number; verse?: number; verseEnd?: number },
-      options?: { type?: CrossRefType; note?: string },
-    ): UserCrossRef {
-      const id = generateUuid();
-      const createdAt = Date.now();
-      addUserCrossRefStmt.run(
-        id,
-        source.book,
-        source.chapter,
-        source.verse,
-        target.book,
-        target.chapter,
-        target.verse ?? null,
-        target.verseEnd ?? null,
-        options?.type ?? null,
-        options?.note ?? null,
-        createdAt,
-      );
-      return {
-        id,
-        refBook: target.book,
-        refChapter: target.chapter,
-        refVerse: target.verse ?? null,
-        refVerseEnd: target.verseEnd ?? null,
-        type: options?.type ?? null,
-        note: options?.note ?? null,
-        createdAt,
-      };
-    },
-
-    removeUserCrossRef(id: string): void {
-      removeUserCrossRefStmt.run(id);
+    crossReferences: {
+      classificationsFor: (book, chapter, verse) =>
+        getClassificationsStmt.all(book, chapter, verse).map((row) => ({
+          refBook: row.ref_book,
+          refChapter: row.ref_chapter,
+          refVerse: row.ref_verse,
+          refVerseEnd: row.ref_verse_end,
+          type: decodeCrossRefType(row.type),
+          confidence: row.confidence,
+          classifiedAt: row.classified_at,
+        })),
+      saveClassifications: (book, chapter, verse, classifications) => {
+        db.transaction(() => {
+          for (const classification of classifications) {
+            insertClassificationStmt.run(
+              book,
+              chapter,
+              verse,
+              classification.refBook,
+              classification.refChapter,
+              classification.refVerse,
+              classification.refVerseEnd,
+              classification.type,
+              classification.confidence,
+              classification.classifiedAt,
+            );
+          }
+        })();
+      },
+      hasClassifications: (book, chapter, verse) => {
+        const row = hasClassificationsStmt.get(book, chapter, verse);
+        return row !== null && row.cnt > 0;
+      },
+      userReferencesFor: (book, chapter, verse) =>
+        getUserCrossRefsStmt.all(book, chapter, verse).map((row) => ({
+          id: row.id,
+          refBook: row.ref_book,
+          refChapter: row.ref_chapter,
+          refVerse: row.ref_verse,
+          refVerseEnd: row.ref_verse_end,
+          type: row.type === null ? null : decodeCrossRefType(row.type),
+          note: row.note,
+          createdAt: row.created_at,
+        })),
+      addUserReference: (source, target, options) => {
+        const id = generateUuid();
+        const createdAt = Date.now();
+        addUserCrossRefStmt.run(
+          id,
+          source.book,
+          source.chapter,
+          source.verse,
+          target.book,
+          target.chapter,
+          target.verse ?? null,
+          target.verseEnd ?? null,
+          options?.type ?? null,
+          options?.note ?? null,
+          createdAt,
+        );
+        return {
+          id,
+          refBook: target.book,
+          refChapter: target.chapter,
+          refVerse: target.verse ?? null,
+          refVerseEnd: target.verseEnd ?? null,
+          type: options?.type ?? null,
+          note: options?.note ?? null,
+          createdAt,
+        };
+      },
+      removeUserReference: (id) => {
+        removeUserCrossRefStmt.run(id);
+      },
     },
 
     close(): void {
@@ -486,6 +480,6 @@ export const BibleStateLive = Layer.effect(
   BibleState,
   Effect.acquireRelease(
     Effect.sync(() => createBibleStateService()),
-    (service) => Effect.sync(() => service.close()),
+    (resource) => Effect.sync(() => resource.close()),
   ),
 );

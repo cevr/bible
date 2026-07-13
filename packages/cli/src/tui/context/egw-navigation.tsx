@@ -402,7 +402,7 @@ export function EGWNavigationProvider(props: ParentProps<EGWNavigationProviderPr
     if (book && para) {
       // Untrack the save operation to prevent reactive loops
       untrack(() => {
-        bibleState.setLastEGWPosition(para.reference);
+        bibleState.reader.writings.savePosition(para.reference);
       });
     }
   });
@@ -414,7 +414,7 @@ export function EGWNavigationProvider(props: ParentProps<EGWNavigationProviderPr
       goToLocation(ref);
     } else {
       // Try to load last position from state
-      const lastPos = bibleState.getLastEGWPosition();
+      const lastPos = bibleState.reader.writings.loadPosition();
       if (lastPos) {
         goToParagraph(lastPos);
       } else {

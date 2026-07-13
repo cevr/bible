@@ -18,12 +18,12 @@ interface DisplayProviderProps {
 
 export function DisplayProvider(props: ParentProps<DisplayProviderProps>) {
   const state = useBibleState();
-  const prefs = state.getPreferences();
+  const prefs = state.preferences.get();
   const [mode, setModeState] = createSignal<DisplayMode>(props.initialMode ?? prefs.displayMode);
 
   const setMode = (newMode: DisplayMode) => {
     setModeState(newMode);
-    state.setPreferences({ displayMode: newMode });
+    state.preferences.update({ displayMode: newMode });
   };
 
   const toggleMode = () => {
