@@ -21,6 +21,7 @@
     "./egw-commentary": "./src/egw-commentary/index.ts",
     "./bible-cross-refs": "./src/bible-cross-refs/index.ts",
     "./bible-reader": "./src/bible-reader/index.ts",
+    "./bible": "./src/bible/index.ts",
     "./bible-rendering": "./src/bible-rendering/index.ts",
     "./gemini": "./src/gemini/index.ts",
     "./sabbath-school": "./src/sabbath-school/index.ts",
