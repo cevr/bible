@@ -3,9 +3,11 @@
 ## Contexts
 
 - [Bible](./packages/core/src/bible/CONTEXT.md) — identifies, reads, searches, and studies Scripture
-- [Writings Reader](./apps/desktop/CONTEXT.md) — browses and reads Ellen G. White writings offline
+- [Writings](./packages/core/src/writings/CONTEXT.md) — identifies, reads, and searches published writings
+- [Desktop Reader](./apps/desktop/CONTEXT.md) — presents Bible and Writings content offline
 
 ## Relationships
 
-- **Bible → Writings Reader**: a Writings Paragraph may contain a Scripture Reference.
-- **Writings Reader → Bible**: Writings commentary may be gathered around a Bible Verse.
+- **Bible → Writings**: a Writings Paragraph may contain a Scripture Reference.
+- **Writings → Bible**: Writings commentary may be gathered around a Bible Verse.
+- **Desktop Reader → Bible, Writings**: the desktop reader presents both domains without owning their models.
