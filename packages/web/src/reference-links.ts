@@ -1,5 +1,7 @@
 import { Database } from 'bun:sqlite';
 import { BIBLE_BOOK_ALIASES } from '@bible/core/bible';
+import { Config, Context, Effect, Layer, Schema } from 'effect';
+import { homedir } from 'node:os';
 
 const escapeRegex = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -22,7 +24,7 @@ const EGW_REFERENCE =
   /\b([1-9]\d?[A-Za-z][A-Za-z0-9_]{0,30}|[A-Za-z][A-Za-z0-9_]{1,31}) (\d+\.\d+)(?:[-–—](?:\d+\.)?\d+)?\b/g;
 const SUPPRESSED_TAGS = new Set(['a', 'code', 'pre', 'script', 'style']);
 
-export type EgwPanelMap = ReadonlyMap<string, string>;
+type EgwPanelMap = ReadonlyMap<string, string>;
 
 interface EgwPanelRow {
   readonly refcode: string;
@@ -30,7 +32,7 @@ interface EgwPanelRow {
 }
 
 /** Read the canonical EGW paragraph IDs used by egwwritings.org deep links. */
-export const loadEgwPanelMap = (databasePath: string): EgwPanelMap => {
+const loadEgwPanelMap = (databasePath: string): EgwPanelMap => {
   const database = new Database(databasePath, { readonly: true, strict: true });
   try {
     const rows = database
@@ -67,7 +69,7 @@ const linkTextReferences = (text: string, egwPanels: EgwPanelMap): string => {
  * Link references in rendered prose while leaving tags, existing anchors,
  * inline/fenced code, scripts, and styles untouched.
  */
-export const linkReferences = (html: string, egwPanels: EgwPanelMap): string => {
+const linkReferences = (html: string, egwPanels: EgwPanelMap): string => {
   const suppressed: string[] = [];
   return html
     .split(/(<[^>]+>)/g)
@@ -91,3 +93,40 @@ export const linkReferences = (html: string, egwPanels: EgwPanelMap): string => 
     })
     .join('');
 };
+
+export class ReferenceDatabaseError extends Schema.TaggedErrorClass<ReferenceDatabaseError>()(
+  'ReferenceLinks.ReferenceDatabaseError',
+  {
+    path: Schema.String,
+    message: Schema.String,
+  },
+) {}
+
+export interface Interface {
+  readonly link: (html: string) => string;
+}
+
+export class Service extends Context.Service<Service, Interface>()('@bible/site/ReferenceLinks') {
+  static Test = (panels: EgwPanelMap): Layer.Layer<Service> =>
+    Layer.succeed(Service, Service.of({ link: (html) => linkReferences(html, panels) }));
+}
+
+/** Load the canonical EGW corpus once, then hide it behind the linking interface. */
+export const layer: Layer.Layer<Service, ReferenceDatabaseError | Config.ConfigError> =
+  Layer.effect(
+    Service,
+    Effect.gen(function* () {
+      const databasePath = yield* Config.string('EGW_PARAGRAPH_DB').pipe(
+        Config.withDefault(`${homedir()}/.bible/egw-paragraphs.db`),
+      );
+      const panels = yield* Effect.try({
+        try: () => loadEgwPanelMap(databasePath),
+        catch: (cause) =>
+          new ReferenceDatabaseError({
+            path: databasePath,
+            message: cause instanceof globalThis.Error ? cause.message : String(cause),
+          }),
+      });
+      return Service.of({ link: (html) => linkReferences(html, panels) });
+    }),
+  );

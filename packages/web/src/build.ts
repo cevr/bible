@@ -13,9 +13,12 @@ import { BunRuntime, BunServices } from '@effect/platform-bun';
 import { Effect, Layer } from 'effect';
 
 import { Builder } from './builder.js';
+import * as ReferenceLinks from './reference-links.js';
 
 Builder.Service.use((builder) => builder.build()).pipe(
   Effect.flatMap((summary) => Effect.logInfo('done', summary)),
-  Effect.provide(Builder.layer.pipe(Layer.provide(BunServices.layer))),
+  Effect.provide(
+    Builder.layer.pipe(Layer.provideMerge(ReferenceLinks.layer), Layer.provide(BunServices.layer)),
+  ),
   BunRuntime.runMain,
 );

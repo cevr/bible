@@ -1,8 +1,6 @@
 export * as Builder from './builder.js';
 
-import { homedir } from 'node:os';
-
-import { Config, Context, Effect, FileSystem, Layer, Option, Path, Result, Schema } from 'effect';
+import { Context, Effect, FileSystem, Layer, Option, Path, Result, Schema } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 
 import type { Comparison } from './comparison.js';
@@ -19,7 +17,7 @@ import {
   unifyComparisonPage,
 } from './render.js';
 import { Study } from './study.js';
-import { type EgwPanelMap, linkReferences, loadEgwPanelMap } from './reference-links.js';
+import * as ReferenceLinks from './reference-links.js';
 
 export class InvalidFrontmatter extends Schema.TaggedErrorClass<InvalidFrontmatter>()(
   'Builder.InvalidFrontmatter',
@@ -37,14 +35,6 @@ export class DuplicateSlug extends Schema.TaggedErrorClass<DuplicateSlug>()(
   },
 ) {}
 
-export class ReferenceDatabaseError extends Schema.TaggedErrorClass<ReferenceDatabaseError>()(
-  'Builder.ReferenceDatabaseError',
-  {
-    path: Schema.String,
-    message: Schema.String,
-  },
-) {}
-
 class UnparseableYaml extends Schema.TaggedErrorClass<UnparseableYaml>()(
   'Builder.UnparseableYaml',
   {
@@ -52,11 +42,7 @@ class UnparseableYaml extends Schema.TaggedErrorClass<UnparseableYaml>()(
   },
 ) {}
 
-export type BuildError =
-  | InvalidFrontmatter
-  | DuplicateSlug
-  | ReferenceDatabaseError
-  | PlatformError;
+export type BuildError = InvalidFrontmatter | DuplicateSlug | PlatformError;
 
 export interface Summary {
   readonly studies: number;
@@ -79,20 +65,18 @@ interface Discovered {
 
 export const layer: Layer.Layer<
   Service,
-  PlatformError | Config.ConfigError,
-  FileSystem.FileSystem | Path.Path
+  PlatformError,
+  FileSystem.FileSystem | Path.Path | ReferenceLinks.Service
 > = Layer.effect(
   Service,
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
+    const references = yield* ReferenceLinks.Service;
     const here = yield* path.fromFileUrl(new URL('.', import.meta.url)).pipe(Effect.orDie);
     const repoRoot = path.join(here, '..', '..', '..');
     const dist = path.join(here, '..', 'dist');
     const studiesDir = path.join(repoRoot, STUDIES_DIR);
-    const egwDatabase = yield* Config.string('EGW_PARAGRAPH_DB').pipe(
-      Config.withDefault(path.join(homedir(), '.bible', 'egw-paragraphs.db')),
-    );
 
     const readCandidate = Effect.fnUntraced(function* (file: string) {
       const raw = yield* fs.readFileString(path.join(studiesDir, file));
@@ -161,16 +145,13 @@ export const layer: Layer.Layer<
       );
     });
 
-    const buildStudy = Effect.fn('Builder.buildStudy')(function* (
-      study: Discovered,
-      egwPanels: EgwPanelMap,
-    ) {
+    const buildStudy = Effect.fn('Builder.buildStudy')(function* (study: Discovered) {
       const words = countWords(study.body);
       const { html, toc } = anchorHeadings(prepareArticle(renderMarkdown(study.body)));
       yield* fs.makeDirectory(path.join(dist, study.meta.slug), { recursive: true });
       yield* fs.writeFileString(
         path.join(dist, study.meta.slug, 'index.html'),
-        linkReferences(studyPage({ meta: study.meta, articleHtml: html, toc, words }), egwPanels),
+        references.link(studyPage({ meta: study.meta, articleHtml: html, toc, words })),
       );
       yield* Effect.logInfo('built study', {
         slug: study.meta.slug,
@@ -182,10 +163,7 @@ export const layer: Layer.Layer<
 
     // Prebuilt pages are re-skinned on the way through (shared nav/footer,
     // bridge stylesheet) so the archive sources stay untouched.
-    const copyComparison = Effect.fn('Builder.copyComparison')(function* (
-      comp: Comparison.Source,
-      egwPanels: EgwPanelMap,
-    ) {
+    const copyComparison = Effect.fn('Builder.copyComparison')(function* (comp: Comparison.Source) {
       const srcDir = path.join(repoRoot, comp.srcDir);
       const outDir = path.join(dist, 'comparisons', comp.outDir);
       yield* fs.makeDirectory(outDir, { recursive: true });
@@ -199,7 +177,7 @@ export const layer: Layer.Layer<
               Effect.flatMap((html) =>
                 fs.writeFileString(
                   path.join(outDir, f),
-                  linkReferences(unifyComparisonPage(html, comp), egwPanels),
+                  references.link(unifyComparisonPage(html, comp)),
                 ),
               ),
             ),
@@ -210,16 +188,6 @@ export const layer: Layer.Layer<
 
     const build = Effect.fn('Builder.build')(function* () {
       yield* Effect.logInfo('building The Sure Word', { dist });
-      // Resolve the citation corpus before touching dist, so a missing or
-      // corrupt database cannot erase the last known-good static site.
-      const egwPanels = yield* Effect.try({
-        try: () => loadEgwPanelMap(egwDatabase),
-        catch: (cause) =>
-          new ReferenceDatabaseError({
-            path: egwDatabase,
-            message: cause instanceof globalThis.Error ? cause.message : String(cause),
-          }),
-      });
       // dist is committed and served verbatim; wipe it first so a slug rename
       // or an unpublished study can't leave a stale, orphaned page behind.
       yield* fs.remove(dist, { recursive: true, force: true });
@@ -228,8 +196,8 @@ export const layer: Layer.Layer<
       const studies = yield* discoverStudies();
       const [built] = yield* Effect.all(
         [
-          Effect.forEach(studies, (study) => buildStudy(study, egwPanels), { concurrency: 8 }),
-          Effect.forEach(COMPARISONS, (comparison) => copyComparison(comparison, egwPanels), {
+          Effect.forEach(studies, buildStudy, { concurrency: 8 }),
+          Effect.forEach(COMPARISONS, copyComparison, {
             concurrency: 4,
             discard: true,
           }),
@@ -238,11 +206,11 @@ export const layer: Layer.Layer<
       );
       yield* fs.writeFileString(
         path.join(dist, 'comparisons', 'index.html'),
-        linkReferences(comparisonsIndexPage(COMPARISONS), egwPanels),
+        references.link(comparisonsIndexPage(COMPARISONS)),
       );
       yield* fs.writeFileString(
         path.join(dist, 'index.html'),
-        linkReferences(indexPage({ studies: built, comparisons: COMPARISONS }), egwPanels),
+        references.link(indexPage({ studies: built, comparisons: COMPARISONS })),
       );
       yield* fs.writeFileString(path.join(dist, '404.html'), NOT_FOUND_HTML);
       return { studies: built.length, comparisons: COMPARISONS.length };
