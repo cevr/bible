@@ -31,7 +31,6 @@
     "./sync": "./src/sync/index.ts",
     "./bible-db": "./src/bible-db/index.ts",
     "./utils": "./src/utils/index.ts",
-    "./config": "./src/config/index.ts",
     "./types": "./src/types/index.ts",
     "./hymnal": "./src/hymnal/index.ts",
     "./structural-analysis": "./src/structural-analysis/index.ts",

@@ -2,7 +2,7 @@ import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI } from '@ai-sdk/openai';
 import { type LanguageModel } from 'ai';
-import { Config, Effect, Option, Schema } from 'effect';
+import { Config, Effect, Option, Redacted, Schema } from 'effect';
 
 /**
  * Supported AI providers.
@@ -34,69 +34,51 @@ export interface ProviderConfig {
  * Returns all providers that have valid API keys configured.
  */
 export const discoverProviders = Effect.fn('discoverProviders')(function* () {
-  const google = yield* Effect.gen(function* () {
-    return yield* Config.schema(Schema.NonEmptyString, 'GEMINI_API_KEY');
-  }).pipe(
-    Effect.option,
-    Effect.map((googleKey) =>
-      googleKey.pipe(
-        Option.map((googleKey) => {
-          const modelProvider = createGoogleGenerativeAI({
-            apiKey: googleKey,
-          });
-          return {
-            models: {
-              high: modelProvider('gemini-3-pro-preview'),
-              low: modelProvider('gemini-2.5-flash-lite'),
-            },
-            provider: Provider.Gemini,
-          } satisfies ProviderConfig;
-        }),
-      ),
-    ),
+  const googleKey = yield* Config.schema(Schema.NonEmptyString, 'GEMINI_API_KEY').pipe(
+    Config.map(Redacted.make),
+    Config.option,
+  );
+  const openaiKey = yield* Config.schema(Schema.NonEmptyString, 'OPENAI_API_KEY').pipe(
+    Config.map(Redacted.make),
+    Config.option,
+  );
+  const anthropicKey = yield* Config.schema(Schema.NonEmptyString, 'ANTHROPIC_API_KEY').pipe(
+    Config.map(Redacted.make),
+    Config.option,
   );
 
-  const openai = yield* Effect.gen(function* () {
-    return yield* Config.schema(Schema.NonEmptyString, 'OPENAI_API_KEY');
-  }).pipe(
-    Effect.option,
-    Effect.map((openaiKey) =>
-      openaiKey.pipe(
-        Option.map((openaiKey) => {
-          const modelProvider = createOpenAI({ apiKey: openaiKey });
-          return {
-            models: {
-              high: modelProvider('gpt-5.2'),
-              low: modelProvider('gpt-4.1-nano'),
-            },
-            provider: Provider.OpenAI,
-          } satisfies ProviderConfig;
-        }),
-      ),
-    ),
-  );
-
-  const anthropic = yield* Effect.gen(function* () {
-    return yield* Config.schema(Schema.NonEmptyString, 'ANTHROPIC_API_KEY');
-  }).pipe(
-    Effect.option,
-    Effect.map((anthropicKey) =>
-      anthropicKey.pipe(
-        Option.map((anthropicKey) => {
-          const modelProvider = createAnthropic({ apiKey: anthropicKey });
-          return {
-            models: {
-              high: modelProvider('claude-opus-4-5'),
-              low: modelProvider('claude-haiku-4-5'),
-            },
-            provider: Provider.Anthropic,
-          } satisfies ProviderConfig;
-        }),
-      ),
-    ),
-  );
-
-  const providers: Option.Option<ProviderConfig>[] = [google, openai, anthropic];
+  const providers: Option.Option<ProviderConfig>[] = [
+    Option.map(googleKey, (apiKey) => {
+      const provider = createGoogleGenerativeAI({ apiKey: Redacted.value(apiKey) });
+      return {
+        models: {
+          high: provider('gemini-3-pro-preview'),
+          low: provider('gemini-2.5-flash-lite'),
+        },
+        provider: Provider.Gemini,
+      } satisfies ProviderConfig;
+    }),
+    Option.map(openaiKey, (apiKey) => {
+      const provider = createOpenAI({ apiKey: Redacted.value(apiKey) });
+      return {
+        models: {
+          high: provider('gpt-5.2'),
+          low: provider('gpt-4.1-nano'),
+        },
+        provider: Provider.OpenAI,
+      } satisfies ProviderConfig;
+    }),
+    Option.map(anthropicKey, (apiKey) => {
+      const provider = createAnthropic({ apiKey: Redacted.value(apiKey) });
+      return {
+        models: {
+          high: provider('claude-opus-4-5'),
+          low: provider('claude-haiku-4-5'),
+        },
+        provider: Provider.Anthropic,
+      } satisfies ProviderConfig;
+    }),
+  ];
 
   return Option.reduceCompact(providers, [] as ProviderConfig[], (acc, model) => [...acc, model]);
 });

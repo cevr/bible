@@ -75,72 +75,23 @@ trace('arg parsing complete', {
 async function loadTuiDependencies() {
   trace('loading TUI dependencies');
 
-  const [{ tui }, { BibleDataLive, BibleData }, { detectSystemThemeAsync }, aiSdk] =
+  const [{ tui }, { BibleDataLive, BibleData }, { detectSystemThemeAsync }, model] =
     await Promise.all([
       traceAsync('import tui', () => import('./tui/app.js')),
       traceAsync('import bible/data', () => import('./data/bible/data.js')),
       traceAsync('import themes', () => import('./tui/themes/index.js')),
-      traceAsync('import AI SDKs', () => loadAiSdks()),
+      traceAsync('discover AI providers', loadModelService),
     ]);
 
   trace('TUI dependencies loaded');
 
-  return { tui, BibleDataLive, BibleData, detectSystemThemeAsync, ...aiSdk };
+  return { tui, BibleDataLive, BibleData, detectSystemThemeAsync, model };
 }
 
-// Lazy load AI SDKs
-async function loadAiSdks() {
-  const [{ createGoogleGenerativeAI }, { createOpenAI }, { createAnthropic }] = await Promise.all([
-    import('@ai-sdk/google'),
-    import('@ai-sdk/openai'),
-    import('@ai-sdk/anthropic'),
-  ]);
-
-  return { createGoogleGenerativeAI, createOpenAI, createAnthropic };
-}
-
-// Create model service from environment variables
-// Tries providers in order: Gemini, OpenAI, Anthropic
-function tryCreateModelService(aiSdk: Awaited<ReturnType<typeof loadAiSdks>>): ModelService | null {
-  const { createGoogleGenerativeAI, createOpenAI, createAnthropic } = aiSdk;
-
-  // Try Gemini first
-  const geminiKey = process.env['GEMINI_API_KEY'];
-  if (geminiKey !== undefined) {
-    const provider = createGoogleGenerativeAI({ apiKey: geminiKey });
-    return {
-      models: {
-        high: provider('gemini-3-pro-preview'),
-        low: provider('gemini-2.5-flash-lite'),
-      },
-    };
-  }
-
-  // Try OpenAI
-  const openaiKey = process.env['OPENAI_API_KEY'];
-  if (openaiKey !== undefined) {
-    const provider = createOpenAI({ apiKey: openaiKey });
-    return {
-      models: {
-        high: provider('gpt-5.2'),
-        low: provider('gpt-4.1-nano'),
-      },
-    };
-  }
-
-  // Try Anthropic
-  const anthropicKey = process.env['ANTHROPIC_API_KEY'];
-  if (anthropicKey !== undefined) {
-    const provider = createAnthropic({ apiKey: anthropicKey });
-    return {
-      models: {
-        high: provider('claude-opus-4-5'),
-        low: provider('claude-haiku-4-5'),
-      },
-    };
-  }
-
-  return null;
+async function loadModelService(): Promise<ModelService | null> {
+  const { discoverProviders } = await import('@bible/core/ai');
+  const [provider] = await Effect.runPromise(discoverProviders());
+  return provider ? { models: provider.models } : null;
 }
 
 // Parse a verse reference from the command line (lazy loads BibleData)
@@ -209,7 +160,7 @@ async function main() {
     const deps = await loadTuiDependencies();
 
     await traceAsync('detectSystemTheme', deps.detectSystemThemeAsync);
-    const model = traceSync('createModelService', () => tryCreateModelService(deps));
+    const model = deps.model;
 
     // Pass empty object to signal "go to EGW route" even without a specific reference
     // The EGW navigation context will load from saved state if no ref is provided
@@ -286,7 +237,7 @@ async function main() {
     const deps = await loadTuiDependencies();
 
     await traceAsync('detectSystemTheme', deps.detectSystemThemeAsync);
-    const model = traceSync('createModelService', () => tryCreateModelService(deps));
+    const model = deps.model;
 
     await traceAsync('tui', () => deps.tui({ initialRef: ref, model }));
     printSummary();
@@ -297,7 +248,7 @@ async function main() {
     const deps = await loadTuiDependencies();
 
     await traceAsync('detectSystemTheme', deps.detectSystemThemeAsync);
-    const model = traceSync('createModelService', () => tryCreateModelService(deps));
+    const model = deps.model;
 
     await traceAsync('tui', () => deps.tui({ model }));
     printSummary();
