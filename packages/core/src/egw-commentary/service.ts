@@ -55,10 +55,6 @@ export interface EGWCommentaryServiceShape {
   readonly getCommentary: (
     verse: VerseReference,
   ) => Effect.Effect<CommentaryResult, CommentaryServiceError>;
-  readonly searchCommentary: (
-    query: string,
-    limit?: number,
-  ) => Effect.Effect<readonly CommentaryEntry[], CommentaryServiceError>;
 }
 
 // ============================================================================
@@ -107,45 +103,8 @@ export class EGWCommentaryService extends Context.Service<
           ),
         );
 
-      /**
-       * Search commentary by text query
-       *
-       * Uses FTS5 full-text search for efficient text matching.
-       */
-      const searchCommentary = (
-        query: string,
-        limit: number = 20,
-      ): Effect.Effect<readonly CommentaryEntry[], CommentaryServiceError> =>
-        db.searchParagraphs(query, limit).pipe(
-          Effect.map((paragraphs) =>
-            // Filter to BC volumes only
-            paragraphs
-              .filter((para) => {
-                const refcode = Option.getOrElse(para.refcode_short, () => para.refcode_long ?? '');
-                return /^[1-7]BC/i.test(refcode);
-              })
-              .map((para) => {
-                const refcode = Option.getOrElse(para.refcode_short, () => para.refcode_long ?? '');
-                const bcVolume = refcode.substring(0, 3).toUpperCase();
-                return paragraphToEntry(
-                  para,
-                  bcVolume,
-                  `Bible Commentary Volume ${bcVolume.charAt(0)}`,
-                );
-              }),
-          ),
-          Effect.mapError(
-            (e) =>
-              new CommentaryError({
-                message: 'Failed to search commentary',
-                cause: e,
-              }),
-          ),
-        );
-
       return {
         getCommentary,
-        searchCommentary,
       };
     }),
   );
@@ -169,6 +128,5 @@ export class EGWCommentaryService extends Context.Service<
           verse,
           entries: config.entries ?? [],
         }),
-      searchCommentary: () => Effect.succeed(config.entries ?? []),
     });
 }

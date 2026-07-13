@@ -6,7 +6,7 @@
  *
  * @example
  * ```ts
- * import { AiService } from "@bible/core/ai";
+ * import { discoverProviders } from "@bible/core/ai";
  * import { BIBLE_BOOKS, getBibleBook } from "@bible/core/bible";
  * ```
  */

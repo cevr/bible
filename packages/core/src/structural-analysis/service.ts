@@ -29,43 +29,6 @@ import {
 // ============================================================================
 
 export interface StructuralAnalysisShape {
-  /** Get all verse words with Strong's data for a passage range */
-  readonly getPassageWords: (
-    book: number,
-    chapter: number,
-    verseStart: number,
-    verseEnd: number,
-  ) => Effect.Effect<ReadonlyMap<number, readonly VerseWord[]>, StructuralAnalysisError>;
-
-  /** Count word occurrences in a passage, flagging symbolic counts */
-  readonly getWordFrequency: (
-    book: number,
-    chapter: number,
-    verseStart: number,
-    verseEnd: number,
-  ) => Effect.Effect<WordFrequencyResult, StructuralAnalysisError>;
-
-  /** Batch-fetch Strong's entries for a set of Strong's numbers */
-  readonly getStrongsRoots: (
-    strongsNumbers: readonly string[],
-  ) => Effect.Effect<ReadonlyMap<string, StrongsEntry>, StructuralAnalysisError>;
-
-  /** Get cross-references for every verse in a range */
-  readonly getPassageCrossRefs: (
-    book: number,
-    chapter: number,
-    verseStart: number,
-    verseEnd: number,
-  ) => Effect.Effect<ReadonlyMap<number, readonly CrossReference[]>, StructuralAnalysisError>;
-
-  /** Get margin notes for every verse in a range */
-  readonly getPassageMarginNotes: (
-    book: number,
-    chapter: number,
-    verseStart: number,
-    verseEnd: number,
-  ) => Effect.Effect<ReadonlyMap<number, readonly MarginNote[]>, StructuralAnalysisError>;
-
   /** Combined: verses + words + strongs + crossrefs + margin notes + word frequency */
   readonly getPassageContext: (
     book: number,
@@ -104,7 +67,10 @@ export class StructuralAnalysis extends Context.Service<
         }).pipe(
           Effect.mapError(
             (e) =>
-              new StructuralAnalysisError({ message: 'Failed to get passage words', cause: e }),
+              new StructuralAnalysisError({
+                message: 'Failed to get passage words',
+                cause: e,
+              }),
           ),
         );
 
@@ -138,12 +104,8 @@ export class StructuralAnalysis extends Context.Service<
       };
 
       const getWordFrequency = (
-        book: number,
-        chapter: number,
-        verseStart: number,
-        verseEnd: number,
-      ): Effect.Effect<WordFrequencyResult, StructuralAnalysisError> =>
-        getPassageWords(book, chapter, verseStart, verseEnd).pipe(Effect.map(computeWordFrequency));
+        words: ReadonlyMap<number, readonly VerseWord[]>,
+      ): Effect.Effect<WordFrequencyResult> => Effect.succeed(computeWordFrequency(words));
 
       const getStrongsRoots = (
         strongsNumbers: readonly string[],
@@ -160,7 +122,10 @@ export class StructuralAnalysis extends Context.Service<
         }).pipe(
           Effect.mapError(
             (e) =>
-              new StructuralAnalysisError({ message: "Failed to get Strong's entries", cause: e }),
+              new StructuralAnalysisError({
+                message: "Failed to get Strong's entries",
+                cause: e,
+              }),
           ),
         );
 
@@ -180,7 +145,10 @@ export class StructuralAnalysis extends Context.Service<
         }).pipe(
           Effect.mapError(
             (e) =>
-              new StructuralAnalysisError({ message: 'Failed to get cross-references', cause: e }),
+              new StructuralAnalysisError({
+                message: 'Failed to get cross-references',
+                cause: e,
+              }),
           ),
         );
 
@@ -199,7 +167,11 @@ export class StructuralAnalysis extends Context.Service<
           return result;
         }).pipe(
           Effect.mapError(
-            (e) => new StructuralAnalysisError({ message: 'Failed to get margin notes', cause: e }),
+            (e) =>
+              new StructuralAnalysisError({
+                message: 'Failed to get margin notes',
+                cause: e,
+              }),
           ),
         );
 
@@ -242,7 +214,7 @@ export class StructuralAnalysis extends Context.Service<
           const marginNotes = yield* getPassageMarginNotes(book, chapter, verseStart, verseEnd);
 
           // Compute word frequency
-          const wordFrequency = computeWordFrequency(words);
+          const wordFrequency = yield* getWordFrequency(words);
 
           return {
             book,
@@ -259,16 +231,14 @@ export class StructuralAnalysis extends Context.Service<
         }).pipe(
           Effect.mapError(
             (e) =>
-              new StructuralAnalysisError({ message: 'Failed to get passage context', cause: e }),
+              new StructuralAnalysisError({
+                message: 'Failed to get passage context',
+                cause: e,
+              }),
           ),
         );
 
       return {
-        getPassageWords,
-        getWordFrequency,
-        getStrongsRoots,
-        getPassageCrossRefs,
-        getPassageMarginNotes,
         getPassageContext,
       };
     }),
@@ -282,11 +252,6 @@ export class StructuralAnalysis extends Context.Service<
     } = {},
   ): Layer.Layer<StructuralAnalysis> =>
     Layer.succeed(StructuralAnalysis, {
-      getPassageWords: () => Effect.succeed(new Map()),
-      getWordFrequency: () => Effect.succeed({ entries: [], symbolicEntries: [] }),
-      getStrongsRoots: () => Effect.succeed(new Map()),
-      getPassageCrossRefs: () => Effect.succeed(new Map()),
-      getPassageMarginNotes: () => Effect.succeed(new Map()),
       getPassageContext: () =>
         Effect.succeed(
           config.passageContext ?? {

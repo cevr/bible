@@ -39,7 +39,14 @@ const databaseLayer = BibleDatabase.Test({
       versionCode: 'KJV',
     },
   ],
-  crossRefs: [databaseReference],
+  crossRefs: [
+    {
+      book: source.book,
+      chapter: source.chapter,
+      verse: source.verse,
+      references: [databaseReference],
+    },
+  ],
 });
 
 function makeCrossReferences() {

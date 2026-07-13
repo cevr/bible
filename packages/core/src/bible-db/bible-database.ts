@@ -167,11 +167,6 @@ export interface BibleDatabaseService {
     chapter: number,
     verse: number,
   ) => Effect.Effect<readonly VerseWord[], BibleDatabaseError>;
-  readonly hasStrongsMapping: (
-    book: number,
-    chapter: number,
-    verse: number,
-  ) => Effect.Effect<boolean, BibleDatabaseError>;
   readonly getMarginNotes: (
     book: number,
     chapter: number,
@@ -470,13 +465,6 @@ export class BibleDatabase extends Context.Service<BibleDatabase, BibleDatabaseS
           ),
         );
 
-      const hasStrongsMapping = (book: number, chapter: number, verse: number) =>
-        sql<{ readonly count: number }>`
-          SELECT COUNT(*) AS count
-          FROM verse_words
-          WHERE book = ${book} AND chapter = ${chapter} AND verse = ${verse}
-        `.pipe(Effect.map((rows) => (rows[0]?.count ?? 0) > 0));
-
       const getMarginNotes = (book: number, chapter: number, verse: number) =>
         sql<MarginNoteSqlRow>`
           SELECT note_type, phrase, note_text
@@ -695,7 +683,6 @@ export class BibleDatabase extends Context.Service<BibleDatabase, BibleDatabaseS
         getVersesWithStrongs,
         getStrongsCount,
         getVerseWords,
-        hasStrongsMapping,
         getMarginNotes,
         getChapterStrongs,
         searchVersesByStrongs,
@@ -714,7 +701,12 @@ export class BibleDatabase extends Context.Service<BibleDatabase, BibleDatabaseS
     config: {
       readonly books?: readonly BibleBook[];
       readonly verses?: readonly BibleVerse[];
-      readonly crossRefs?: readonly CrossReference[];
+      readonly crossRefs?: readonly {
+        readonly book: number;
+        readonly chapter: number;
+        readonly verse: number;
+        readonly references: readonly CrossReference[];
+      }[];
       readonly strongsEntries?: readonly StrongsEntry[];
     } = {},
   ): Layer.Layer<BibleDatabase> =>
@@ -744,10 +736,10 @@ export class BibleDatabase extends Context.Service<BibleDatabase, BibleDatabaseS
       searchVerses: () => Effect.succeed([]),
       getCrossRefs: (book, chapter, verse) =>
         Effect.succeed(
-          config.crossRefs?.filter(
-            (reference) =>
-              reference.book === book && reference.chapter === chapter && reference.verse === verse,
-          ) ?? [],
+          config.crossRefs?.find(
+            (fixture) =>
+              fixture.book === book && fixture.chapter === chapter && fixture.verse === verse,
+          )?.references ?? [],
         ),
       getStrongsEntry: (number) =>
         Effect.succeed(
@@ -757,7 +749,6 @@ export class BibleDatabase extends Context.Service<BibleDatabase, BibleDatabaseS
       getVersesWithStrongs: () => Effect.succeed([]),
       getStrongsCount: () => Effect.succeed(0),
       getVerseWords: () => Effect.succeed([]),
-      hasStrongsMapping: () => Effect.succeed(false),
       getMarginNotes: () => Effect.succeed([]),
       getChapterStrongs: () => Effect.succeed(Option.none()),
       searchVersesByStrongs: () => Effect.succeed([]),

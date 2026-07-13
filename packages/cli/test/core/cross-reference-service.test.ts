@@ -41,7 +41,13 @@ describe('cross-reference service', () => {
       userReferences: [userReference],
     });
     const database = Effect.runSync(
-      BibleDatabase.pipe(Effect.provide(BibleDatabase.Test({ crossRefs: [catalogReference] }))),
+      BibleDatabase.pipe(
+        Effect.provide(
+          BibleDatabase.Test({
+            crossRefs: [{ ...source, references: [catalogReference] }],
+          }),
+        ),
+      ),
     );
     const service = createCrossRefService(state.service, database);
 

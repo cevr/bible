@@ -41,203 +41,9 @@ describe('StructuralAnalysis', () => {
     await run(
       Effect.gen(function* () {
         const sa = yield* StructuralAnalysis;
-        yield* sa.getPassageWords(1, 1, 1, 1);
+        yield* sa.getPassageContext(1, 1, 1, 1);
       }),
     );
-  });
-
-  describe('getPassageWords', () => {
-    it('returns words keyed by verse number', async () => {
-      if (skip()) return;
-      const result = await run(
-        Effect.gen(function* () {
-          const sa = yield* StructuralAnalysis;
-          return yield* sa.getPassageWords(1, 1, 1, 3); // Gen 1:1-3
-        }),
-      );
-
-      expect(result.size).toBe(3);
-      expect(result.has(1)).toBe(true);
-      expect(result.has(2)).toBe(true);
-      expect(result.has(3)).toBe(true);
-
-      const v1Words = result.get(1);
-      expect(v1Words).toBeDefined();
-      expect(v1Words?.length).toBeGreaterThan(0);
-      // Gen 1:1 should contain "In" or "beginning"
-      const texts = v1Words?.map((w) => w.text.toLowerCase()) ?? [];
-      expect(texts.some((t) => t.includes('beginning') || t.includes('in'))).toBe(true);
-    });
-
-    it("returns words with Strong's numbers attached", async () => {
-      if (skip()) return;
-      const result = await run(
-        Effect.gen(function* () {
-          const sa = yield* StructuralAnalysis;
-          return yield* sa.getPassageWords(1, 1, 1, 1); // Gen 1:1
-        }),
-      );
-
-      const v1Words = result.get(1) ?? [];
-      // At least some words should have Strong's numbers
-      const withStrongs = v1Words.filter(
-        (w) => w.strongsNumbers !== null && w.strongsNumbers.length > 0,
-      );
-      expect(withStrongs.length).toBeGreaterThan(0);
-    });
-  });
-
-  describe('getWordFrequency', () => {
-    it('counts word occurrences across a passage', async () => {
-      if (skip()) return;
-      const result = await run(
-        Effect.gen(function* () {
-          const sa = yield* StructuralAnalysis;
-          // Revelation 1:1-8 — enough text for meaningful counts
-          return yield* sa.getWordFrequency(66, 1, 1, 8);
-        }),
-      );
-
-      expect(result.entries.length).toBeGreaterThan(0);
-      // Entries should be sorted by count descending
-      for (let i = 1; i < result.entries.length; i++) {
-        const current = result.entries[i];
-        const previous = result.entries[i - 1];
-        if (current !== undefined && previous !== undefined) {
-          expect(current.count).toBeLessThanOrEqual(previous.count);
-        }
-      }
-    });
-
-    it('flags symbolic counts correctly', async () => {
-      if (skip()) return;
-      const result = await run(
-        Effect.gen(function* () {
-          const sa = yield* StructuralAnalysis;
-          // Use a larger passage to increase chance of symbolic counts
-          return yield* sa.getWordFrequency(1, 1, 1, 31); // Gen 1 (all 31 verses)
-        }),
-      );
-
-      // Every entry with a symbolic count should match the SYMBOLIC_NUMBERS list
-      for (const entry of result.entries) {
-        if (entry.symbolicCount !== null) {
-          expect((SYMBOLIC_NUMBERS as readonly number[]).includes(entry.symbolicCount)).toBe(true);
-          expect(entry.count).toBe(entry.symbolicCount);
-        }
-      }
-
-      // symbolicEntries should be a subset of entries
-      expect(result.symbolicEntries.length).toBeLessThanOrEqual(result.entries.length);
-      for (const se of result.symbolicEntries) {
-        expect(se.symbolicCount).not.toBeNull();
-      }
-    });
-
-    it('normalizes words to lowercase and strips punctuation', async () => {
-      if (skip()) return;
-      const result = await run(
-        Effect.gen(function* () {
-          const sa = yield* StructuralAnalysis;
-          return yield* sa.getWordFrequency(1, 1, 1, 5); // Gen 1:1-5
-        }),
-      );
-
-      for (const entry of result.entries) {
-        expect(entry.word).toBe(entry.word.toLowerCase());
-        expect(entry.word).toMatch(/^[a-z']+$/);
-      }
-    });
-  });
-
-  describe('getStrongsRoots', () => {
-    it("returns entries for known Strong's numbers", async () => {
-      if (skip()) return;
-      const result = await run(
-        Effect.gen(function* () {
-          const sa = yield* StructuralAnalysis;
-          return yield* sa.getStrongsRoots(['H430', 'H1254', 'G26']);
-        }),
-      );
-
-      expect(result.size).toBe(3);
-
-      const elohim = result.get('H430');
-      expect(elohim).toBeDefined();
-      expect(elohim?.lemma).toBeDefined();
-      expect(elohim?.definition).toBeDefined();
-
-      const agape = result.get('G26');
-      expect(agape).toBeDefined();
-    });
-
-    it("skips unknown Strong's numbers without error", async () => {
-      if (skip()) return;
-      const result = await run(
-        Effect.gen(function* () {
-          const sa = yield* StructuralAnalysis;
-          return yield* sa.getStrongsRoots(['H430', 'H99999', 'G26']);
-        }),
-      );
-
-      // Should have 2, not 3 — H99999 doesn't exist
-      expect(result.size).toBe(2);
-      expect(result.has('H430')).toBe(true);
-      expect(result.has('G26')).toBe(true);
-      expect(result.has('H99999')).toBe(false);
-    });
-
-    it('handles empty input', async () => {
-      if (skip()) return;
-      const result = await run(
-        Effect.gen(function* () {
-          const sa = yield* StructuralAnalysis;
-          return yield* sa.getStrongsRoots([]);
-        }),
-      );
-
-      expect(result.size).toBe(0);
-    });
-  });
-
-  describe('getPassageCrossRefs', () => {
-    it('returns cross-refs keyed by verse number', async () => {
-      if (skip()) return;
-      const result = await run(
-        Effect.gen(function* () {
-          const sa = yield* StructuralAnalysis;
-          return yield* sa.getPassageCrossRefs(43, 3, 16, 18); // John 3:16-18
-        }),
-      );
-
-      expect(result.size).toBe(3);
-      expect(result.has(16)).toBe(true);
-      expect(result.has(17)).toBe(true);
-      expect(result.has(18)).toBe(true);
-
-      // John 3:16 should have cross-refs
-      const v16Refs = result.get(16);
-      expect(v16Refs).toBeDefined();
-      expect(v16Refs?.length).toBeGreaterThan(0);
-    });
-  });
-
-  describe('getPassageMarginNotes', () => {
-    it('returns margin notes keyed by verse number', async () => {
-      if (skip()) return;
-      const result = await run(
-        Effect.gen(function* () {
-          const sa = yield* StructuralAnalysis;
-          return yield* sa.getPassageMarginNotes(1, 1, 1, 5); // Gen 1:1-5
-        }),
-      );
-
-      expect(result.size).toBe(5);
-      // All verse keys should be present even if no notes
-      for (let v = 1; v <= 5; v++) {
-        expect(result.has(v)).toBe(true);
-      }
-    });
   });
 
   describe('getPassageContext', () => {
@@ -261,19 +67,61 @@ describe('StructuralAnalysis', () => {
       expect(result.verses.length).toBeLessThanOrEqual(5);
 
       // Words
-      expect(result.words.size).toBeGreaterThan(0);
+      expect(result.words.size).toBe(5);
+      for (let verse = 1; verse <= 5; verse++) {
+        expect(result.words.has(verse)).toBe(true);
+      }
+      const firstVerseWords = result.words.get(1) ?? [];
+      expect(firstVerseWords.length).toBeGreaterThan(0);
+      expect(
+        firstVerseWords.some((word) =>
+          ['in', 'beginning'].some((text) => word.text.toLowerCase().includes(text)),
+        ),
+      ).toBe(true);
+      expect(
+        firstVerseWords.some(
+          (word) => word.strongsNumbers !== null && word.strongsNumbers.length > 0,
+        ),
+      ).toBe(true);
 
       // Strong's entries gathered from words
       expect(result.strongsEntries.size).toBeGreaterThan(0);
 
       // Cross-refs
       expect(result.crossRefs.size).toBe(5);
+      for (let verse = 1; verse <= 5; verse++) {
+        expect(result.crossRefs.has(verse)).toBe(true);
+      }
 
       // Margin notes
       expect(result.marginNotes.size).toBe(5);
+      for (let verse = 1; verse <= 5; verse++) {
+        expect(result.marginNotes.has(verse)).toBe(true);
+      }
 
       // Word frequency
       expect(result.wordFrequency.entries.length).toBeGreaterThan(0);
+      for (let index = 1; index < result.wordFrequency.entries.length; index++) {
+        const current = result.wordFrequency.entries[index];
+        const previous = result.wordFrequency.entries[index - 1];
+        if (current !== undefined && previous !== undefined) {
+          expect(current.count).toBeLessThanOrEqual(previous.count);
+        }
+      }
+      for (const entry of result.wordFrequency.entries) {
+        expect(entry.word).toBe(entry.word.toLowerCase());
+        expect(entry.word).toMatch(/^[a-z']+$/);
+        if (entry.symbolicCount !== null) {
+          expect((SYMBOLIC_NUMBERS as readonly number[]).includes(entry.symbolicCount)).toBe(true);
+          expect(entry.count).toBe(entry.symbolicCount);
+        }
+      }
+      expect(result.wordFrequency.symbolicEntries.length).toBeLessThanOrEqual(
+        result.wordFrequency.entries.length,
+      );
+      for (const entry of result.wordFrequency.symbolicEntries) {
+        expect(entry.symbolicCount).not.toBeNull();
+      }
     });
 
     it("gathers Strong's entries from all verse words", async () => {
@@ -302,6 +150,22 @@ describe('StructuralAnalysis', () => {
           expect(entry.number).toBe(sn);
         }
       }
+    });
+
+    it('includes cross-references for each verse in a passage', async () => {
+      if (skip()) return;
+      const result = await run(
+        Effect.gen(function* () {
+          const sa = yield* StructuralAnalysis;
+          return yield* sa.getPassageContext(43, 3, 16, 18); // John 3:16-18
+        }),
+      );
+
+      expect(result.crossRefs.size).toBe(3);
+      expect(result.crossRefs.has(16)).toBe(true);
+      expect(result.crossRefs.has(17)).toBe(true);
+      expect(result.crossRefs.has(18)).toBe(true);
+      expect(result.crossRefs.get(16)?.length).toBeGreaterThan(0);
     });
   });
 });
