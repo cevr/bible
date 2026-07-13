@@ -1,8 +1,6 @@
-import { BibleMarginNotesDatabase } from '@bible/core/bible-margin-notes-db';
-import { BibleXrefsDatabase } from '@bible/core/bible-xrefs-db';
+import { BibleCatalog, BibleDatabase } from '@bible/core/bible-db';
 import { EGWApiClient, EGWAuth, EGWTokenStore } from '@bible/core/egw';
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
-import { KjvBibleDatabase } from '@bible/core/kjv-bible-db';
 import * as SqliteNode from '@effect/sql-sqlite-node/SqliteClient';
 import { Effect, Layer, ManagedRuntime, Option, Schema } from 'effect';
 import type { Effect as EffectNs } from 'effect';
@@ -36,22 +34,17 @@ class TokenIoError extends Schema.TaggedErrorClass<TokenIoError>()('TokenIoError
 // process invites lock surprises (SQLITE_BUSY, lost PRAGMA writes) and doubles
 // the memory footprint. `CacheDatabase` is included here precisely so the
 // API-response cache no longer opens its own second `better-sqlite3` handle.
-const dbLayer = (
-  filename: string,
-): Layer.Layer<
-  | EGWParagraphDatabase
-  | KjvBibleDatabase
-  | BibleXrefsDatabase
-  | BibleMarginNotesDatabase
-  | CacheDatabase
-> =>
-  Layer.mergeAll(
-    EGWParagraphDatabase.layerCore,
-    KjvBibleDatabase.layerCore,
-    BibleXrefsDatabase.layerCore,
-    BibleMarginNotesDatabase.layerCore,
-    CacheDatabase.layerCore,
-  ).pipe(Layer.provide(SqliteNode.layer({ filename })), Layer.orDie);
+const cacheDbLayer = (filename: string): Layer.Layer<EGWParagraphDatabase | CacheDatabase> =>
+  Layer.merge(EGWParagraphDatabase.layerCore, CacheDatabase.layerCore).pipe(
+    Layer.provide(SqliteNode.layer({ filename })),
+    Layer.orDie,
+  );
+
+const bibleDbLayer = (filename: string): Layer.Layer<BibleCatalog | BibleDatabase> =>
+  Layer.merge(BibleCatalog.layerCore, BibleDatabase.layerCore).pipe(
+    Layer.provide(SqliteNode.layer({ filename })),
+    Layer.orDie,
+  );
 
 // Node-fs-backed token store. We don't pull in @effect/platform-node just for
 // this — Electron main already uses node:fs for settings + tokens, so the
@@ -103,28 +96,24 @@ const egwLayer = (tokenFile: string): Layer.Layer<EGWApiClient> =>
   );
 
 export type MainRuntime = ManagedRuntime.ManagedRuntime<
-  | EGWParagraphDatabase
-  | KjvBibleDatabase
-  | BibleXrefsDatabase
-  | BibleMarginNotesDatabase
-  | CacheDatabase
-  | EGWApiClient,
+  EGWParagraphDatabase | BibleCatalog | BibleDatabase | CacheDatabase | EGWApiClient,
   never
 >;
 
-export const makeRuntime = (cacheDbFile: string, tokenFile: string): MainRuntime =>
-  ManagedRuntime.make(Layer.mergeAll(dbLayer(cacheDbFile), egwLayer(tokenFile)));
+export const makeRuntime = (
+  cacheDbFile: string,
+  bibleDbFile: string,
+  tokenFile: string,
+): MainRuntime =>
+  ManagedRuntime.make(
+    Layer.mergeAll(cacheDbLayer(cacheDbFile), bibleDbLayer(bibleDbFile), egwLayer(tokenFile)),
+  );
 
 export const runtimeRun = <A, E>(
   runtime: MainRuntime,
   effect: EffectNs.Effect<
     A,
     E,
-    | EGWParagraphDatabase
-    | KjvBibleDatabase
-    | BibleXrefsDatabase
-    | BibleMarginNotesDatabase
-    | CacheDatabase
-    | EGWApiClient
+    EGWParagraphDatabase | BibleCatalog | BibleDatabase | CacheDatabase | EGWApiClient
   >,
 ): Promise<A> => runtime.runPromise(effect);

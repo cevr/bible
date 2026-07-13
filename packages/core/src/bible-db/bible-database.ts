@@ -75,6 +75,56 @@ export interface ConcordanceResult {
 
 export interface VerseSearchResult extends BibleVerse {}
 
+export interface StrongsWord {
+  readonly text: string;
+  readonly strongs?: readonly string[];
+  readonly italic?: boolean;
+}
+
+export interface StrongsVersePayload {
+  readonly book: number;
+  readonly chapter: number;
+  readonly verse: number;
+  readonly book_name: string;
+  readonly words: readonly StrongsWord[];
+}
+
+export interface StrongsChapterPayload {
+  readonly book: number;
+  readonly chapter: number;
+  readonly book_name: string;
+  readonly verses: readonly StrongsVersePayload[];
+}
+
+export interface StrongsLexiconEntry {
+  readonly code: string;
+  readonly language: 'hebrew' | 'greek';
+  readonly lemma: string;
+  readonly transliteration: string;
+  readonly definition: string;
+}
+
+export interface StrongsConcordanceHit {
+  readonly book: number;
+  readonly chapter: number;
+  readonly verse: number;
+  readonly book_name: string;
+  readonly text: string;
+  readonly word: string;
+}
+
+export interface CrossReferenceRow {
+  readonly source: 'openbible' | 'tske';
+  readonly targetBook: number;
+  readonly targetChapter: number;
+  readonly targetVerse: number;
+  readonly targetVerseEnd: number | null;
+}
+
+export interface MarginNoteRow extends MarginNote {
+  readonly idx: number;
+}
+
 export interface BibleDatabaseService {
   readonly getBooks: () => Effect.Effect<readonly BibleBook[], BibleDatabaseError>;
   readonly getBook: (
@@ -127,6 +177,41 @@ export interface BibleDatabaseService {
     chapter: number,
     verse: number,
   ) => Effect.Effect<readonly MarginNote[], BibleDatabaseError>;
+  readonly getChapterStrongs: (
+    book: number,
+    chapter: number,
+  ) => Effect.Effect<Option.Option<StrongsChapterPayload>, BibleDatabaseError>;
+  readonly searchVersesByStrongs: (
+    code: string,
+    limit: number | null,
+  ) => Effect.Effect<readonly StrongsConcordanceHit[], BibleDatabaseError>;
+  readonly countStrongsOccurrences: (code: string) => Effect.Effect<number, BibleDatabaseError>;
+  readonly searchLexicon: (
+    query: string,
+    limit: number,
+  ) => Effect.Effect<readonly StrongsLexiconEntry[], BibleDatabaseError>;
+  readonly getCatalogCrossRefs: (
+    book: number,
+    chapter: number,
+    verse: number,
+  ) => Effect.Effect<readonly CrossReferenceRow[], BibleDatabaseError>;
+  readonly versesWithCrossRefs: (
+    book: number,
+    chapter: number,
+  ) => Effect.Effect<readonly number[], BibleDatabaseError>;
+  readonly getCatalogMarginNotes: (
+    book: number,
+    chapter: number,
+    verse: number,
+  ) => Effect.Effect<readonly MarginNoteRow[], BibleDatabaseError>;
+  readonly versesWithNotes: (
+    book: number,
+    chapter: number,
+  ) => Effect.Effect<ReadonlySet<number>, BibleDatabaseError>;
+  readonly chapterMarginNotes: (
+    book: number,
+    chapter: number,
+  ) => Effect.Effect<ReadonlyMap<number, readonly MarginNoteRow[]>, BibleDatabaseError>;
 }
 
 interface BookSqlRow {
@@ -177,9 +262,30 @@ interface ConcordanceSqlRow {
 }
 
 interface MarginNoteSqlRow {
+  readonly note_index?: number;
+  readonly verse?: number;
   readonly note_type: string;
   readonly phrase: string;
   readonly note_text: string;
+}
+
+interface StrongsChapterSqlRow {
+  readonly book: number;
+  readonly chapter: number;
+  readonly verse: number;
+  readonly book_name: string;
+  readonly word_index: number;
+  readonly word_text: string;
+  readonly strongs_numbers: string | null;
+}
+
+interface StrongsHitSqlRow {
+  readonly book: number;
+  readonly chapter: number;
+  readonly verse: number;
+  readonly book_name: string;
+  readonly text: string;
+  readonly word_text: string | null;
 }
 
 const StrongsNumbersJson = Schema.fromJsonString(Schema.Array(Schema.String));
@@ -387,6 +493,196 @@ export class BibleDatabase extends Context.Service<BibleDatabase, BibleDatabaseS
           ),
         );
 
+      const decodeWord = (
+        row: Pick<StrongsChapterSqlRow, 'word_text' | 'strongs_numbers'>,
+        location: string,
+      ) =>
+        Effect.try({
+          try: (): StrongsWord => ({
+            text: row.word_text,
+            ...(row.strongs_numbers === null
+              ? {}
+              : { strongs: decodeStrongsNumbers(row.strongs_numbers) }),
+          }),
+          catch: (cause) => new BibleDataIntegrityError({ cause, location }),
+        });
+
+      const getChapterStrongs = (book: number, chapter: number) =>
+        sql<StrongsChapterSqlRow>`
+          SELECT v.book, v.chapter, v.verse, b.name AS book_name,
+                 w.word_index, w.word_text, w.strongs_numbers
+          FROM verse_words AS w
+          JOIN verses AS v
+            ON v.book = w.book AND v.chapter = w.chapter AND v.verse = w.verse
+           AND v.version_code = 'KJV'
+          JOIN books AS b ON b.number = v.book
+          WHERE w.book = ${book} AND w.chapter = ${chapter}
+          ORDER BY v.verse, w.word_index
+        `.pipe(
+          Effect.flatMap((rows) =>
+            Effect.gen(function* () {
+              const byVerse = new Map<number, StrongsWord[]>();
+              for (const row of rows) {
+                const word = yield* decodeWord(
+                  row,
+                  `verse_words(${row.book}:${row.chapter}:${row.verse}:${row.word_index})`,
+                );
+                const words = byVerse.get(row.verse);
+                if (words === undefined) byVerse.set(row.verse, [word]);
+                else words.push(word);
+              }
+              const first = rows[0];
+              if (first === undefined) return Option.none<StrongsChapterPayload>();
+              return Option.some<StrongsChapterPayload>({
+                book,
+                chapter,
+                book_name: first.book_name,
+                verses: Array.from(byVerse, ([verse, words]) => ({
+                  book,
+                  chapter,
+                  verse,
+                  book_name: first.book_name,
+                  words,
+                })),
+              });
+            }),
+          ),
+        );
+
+      const searchVersesByStrongs = (code: string, limit: number | null) => {
+        const normalized = code.toUpperCase();
+        const base = sql<StrongsHitSqlRow>`
+          SELECT sv.book, sv.chapter, sv.verse, b.name AS book_name,
+                 v.text, MIN(sv.word_text) AS word_text
+          FROM strongs_verses AS sv
+          JOIN verses AS v
+            ON v.book = sv.book AND v.chapter = sv.chapter AND v.verse = sv.verse
+           AND v.version_code = 'KJV'
+          JOIN books AS b ON b.number = sv.book
+          WHERE sv.strongs_number = ${normalized}
+          GROUP BY sv.book, sv.chapter, sv.verse, b.name, v.text
+          ORDER BY sv.book, sv.chapter, sv.verse
+        `;
+        return base.pipe(
+          Effect.map((rows) =>
+            rows.slice(0, limit ?? rows.length).map(
+              (row): StrongsConcordanceHit => ({
+                book: row.book,
+                chapter: row.chapter,
+                verse: row.verse,
+                book_name: row.book_name,
+                text: row.text,
+                word: row.word_text ?? '',
+              }),
+            ),
+          ),
+        );
+      };
+
+      const searchLexicon = (query: string, limit: number) => {
+        const like = `%${query}%`;
+        return sql<StrongsSqlRow>`
+          SELECT number, language, lemma, transliteration, pronunciation, definition, kjv_definition
+          FROM strongs
+          WHERE lemma LIKE ${like} COLLATE NOCASE
+             OR transliteration LIKE ${like} COLLATE NOCASE
+             OR definition LIKE ${like} COLLATE NOCASE
+          ORDER BY number
+          LIMIT ${limit}
+        `.pipe(
+          Effect.map((rows) =>
+            rows.map(
+              (row): StrongsLexiconEntry => ({
+                code: row.number,
+                language: row.language === 'greek' ? 'greek' : 'hebrew',
+                lemma: row.lemma,
+                transliteration: row.transliteration ?? '',
+                definition: row.definition,
+              }),
+            ),
+          ),
+        );
+      };
+
+      const getCatalogCrossRefs = (book: number, chapter: number, verse: number) =>
+        getCrossRefs(book, chapter, verse).pipe(
+          Effect.map((rows) =>
+            rows.flatMap((row): readonly CrossReferenceRow[] =>
+              row.verse === null
+                ? []
+                : [
+                    {
+                      source: row.source,
+                      targetBook: row.book,
+                      targetChapter: row.chapter,
+                      targetVerse: row.verse,
+                      targetVerseEnd: row.verseEnd,
+                    },
+                  ],
+            ),
+          ),
+        );
+
+      const versesWithCrossRefs = (book: number, chapter: number) =>
+        sql<{ readonly verse: number }>`
+          SELECT DISTINCT verse
+          FROM cross_refs
+          WHERE book = ${book} AND chapter = ${chapter}
+          ORDER BY verse
+        `.pipe(Effect.map((rows) => rows.map((row) => row.verse)));
+
+      const getCatalogMarginNotes = (book: number, chapter: number, verse: number) =>
+        sql<MarginNoteSqlRow>`
+          SELECT note_index, note_type, phrase, note_text
+          FROM margin_notes
+          WHERE book = ${book} AND chapter = ${chapter} AND verse = ${verse}
+          ORDER BY note_index
+        `.pipe(
+          Effect.map((rows) =>
+            rows.map(
+              (row): MarginNoteRow => ({
+                idx: row.note_index ?? 0,
+                type: marginNoteType(row.note_type),
+                phrase: row.phrase,
+                text: row.note_text,
+              }),
+            ),
+          ),
+        );
+
+      const versesWithNotes = (book: number, chapter: number) =>
+        sql<{ readonly verse: number }>`
+          SELECT DISTINCT verse
+          FROM margin_notes
+          WHERE book = ${book} AND chapter = ${chapter}
+          ORDER BY verse
+        `.pipe(Effect.map((rows) => new Set(rows.map((row) => row.verse)) as ReadonlySet<number>));
+
+      const chapterMarginNotes = (book: number, chapter: number) =>
+        sql<MarginNoteSqlRow>`
+          SELECT verse, note_index, note_type, phrase, note_text
+          FROM margin_notes
+          WHERE book = ${book} AND chapter = ${chapter}
+          ORDER BY verse, note_index
+        `.pipe(
+          Effect.map((rows) => {
+            const byVerse = new Map<number, MarginNoteRow[]>();
+            for (const row of rows) {
+              if (row.verse === undefined) continue;
+              const note: MarginNoteRow = {
+                idx: row.note_index ?? 0,
+                type: marginNoteType(row.note_type),
+                phrase: row.phrase,
+                text: row.note_text,
+              };
+              const notes = byVerse.get(row.verse);
+              if (notes === undefined) byVerse.set(row.verse, [note]);
+              else notes.push(note);
+            }
+            return byVerse as ReadonlyMap<number, readonly MarginNoteRow[]>;
+          }),
+        );
+
       return BibleDatabase.of({
         getBooks,
         getBook,
@@ -401,6 +697,15 @@ export class BibleDatabase extends Context.Service<BibleDatabase, BibleDatabaseS
         getVerseWords,
         hasStrongsMapping,
         getMarginNotes,
+        getChapterStrongs,
+        searchVersesByStrongs,
+        countStrongsOccurrences: getStrongsCount,
+        searchLexicon,
+        getCatalogCrossRefs,
+        versesWithCrossRefs,
+        getCatalogMarginNotes,
+        versesWithNotes,
+        chapterMarginNotes,
       });
     }),
   );
@@ -454,5 +759,14 @@ export class BibleDatabase extends Context.Service<BibleDatabase, BibleDatabaseS
       getVerseWords: () => Effect.succeed([]),
       hasStrongsMapping: () => Effect.succeed(false),
       getMarginNotes: () => Effect.succeed([]),
+      getChapterStrongs: () => Effect.succeed(Option.none()),
+      searchVersesByStrongs: () => Effect.succeed([]),
+      countStrongsOccurrences: () => Effect.succeed(0),
+      searchLexicon: () => Effect.succeed([]),
+      getCatalogCrossRefs: () => Effect.succeed([]),
+      versesWithCrossRefs: () => Effect.succeed([]),
+      getCatalogMarginNotes: () => Effect.succeed([]),
+      versesWithNotes: () => Effect.succeed(new Set()),
+      chapterMarginNotes: () => Effect.succeed(new Map()),
     });
 }

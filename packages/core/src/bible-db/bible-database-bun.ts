@@ -7,8 +7,23 @@ import type { SqlError } from 'effect/unstable/sql/SqlError';
 
 import { BibleDatabase } from './bible-database.js';
 
+const immutableFilename = (filename: string): string => {
+  const uri = filename.startsWith('file:') ? filename : `file:${encodeURI(filename)}`;
+  return `${uri}${uri.includes('?') ? '&' : '?'}immutable=1`;
+};
+
 export const layerBun = (filename: string): Layer.Layer<BibleDatabase, SqlError> =>
-  BibleDatabase.layerCore.pipe(Layer.provide(SqliteBun.layer({ filename })));
+  BibleDatabase.layerCore.pipe(
+    Layer.provide(
+      SqliteBun.layer({
+        filename: immutableFilename(filename),
+        readonly: true,
+        readwrite: false,
+        create: false,
+        disableWAL: true,
+      }),
+    ),
+  );
 
 export const layerBunConfig: Layer.Layer<
   BibleDatabase,
@@ -29,7 +44,13 @@ export const layerBunConfig: Layer.Layer<
         );
         const filename = path.resolve(configured);
         yield* fs.makeDirectory(path.dirname(filename), { recursive: true }).pipe(Effect.orDie);
-        return SqliteBun.layer({ filename });
+        return SqliteBun.layer({
+          filename: immutableFilename(filename),
+          readonly: true,
+          readwrite: false,
+          create: false,
+          disableWAL: true,
+        });
       }),
     ),
   ),
