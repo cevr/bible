@@ -5,20 +5,26 @@
  */
 
 import { beforeEach, describe, expect, it } from 'vitest';
+import { Reference } from '@bible/core/bible';
 
 import { App } from '../../src/tui/app.js';
+import { getAppRuntime } from '../../src/tui/lib/app-runtime.js';
 import { createTUITest, type TUITestHarness } from '../lib/tui-harness.js';
 
 describe('Bible Reader TUI', () => {
   let tui: TUITestHarness;
 
   beforeEach(async () => {
+    const runtime = await getAppRuntime();
     // Render App starting in Bible view with explicit initial reference
     // to avoid depending on saved state
-    tui = await createTUITest(() => <App initialRef={{ book: 1, chapter: 1, verse: 1 }} />, {
-      width: 80,
-      height: 24,
-    });
+    tui = await createTUITest(
+      () => <App initialRef={Reference.verse(1, 1, 1)} runtime={runtime} />,
+      {
+        width: 80,
+        height: 24,
+      },
+    );
   });
 
   describe('Initial Render', () => {

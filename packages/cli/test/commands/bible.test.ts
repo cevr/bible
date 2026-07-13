@@ -1,242 +1,101 @@
 import { describe, expect, it } from 'bun:test';
 
+import {
+  BIBLE_BOOKS,
+  Chapter,
+  ParsedBibleQuery,
+  Reference,
+  Verse,
+  getBibleBook,
+} from '@bible/core/bible';
+import { BibleService } from '@bible/core/bible/service';
+import { Effect, Option } from 'effect';
+
 import { isStrongsNumber } from '../../src/commands/bible.js';
-import { getBibleBook } from '@bible/core/bible';
-import { getVersesForQuery, ParsedQuery, parseVerseQuery } from '../../src/data/bible/parse.js';
-import type { BibleDataSyncService, Book, Verse } from '../../src/data/bible/types.js';
+import { versesForBibleQuery } from '../../src/lib/bible-query.js';
+import { parseReaderReference } from '../../src/lib/parse-reader-reference.js';
 
-// Minimal mock BibleDataSyncService for testing parsing logic
-function createMockBibleData(): BibleDataSyncService {
-  const books: Book[] = [8, 19, 43, 46].flatMap((number) => {
-    const book = getBibleBook(number);
-    return book === undefined ? [] : [book];
+const chapter = (bookNumber: number, chapterNumber: number, texts: readonly string[]) => {
+  const book = getBibleBook(bookNumber);
+  if (book === undefined) throw new Error(`Unknown test book ${bookNumber}`);
+  return new Chapter({
+    book,
+    reference: Reference.chapter(bookNumber, chapterNumber),
+    verses: texts.map(
+      (text, index) =>
+        new Verse({
+          reference: Reference.verse(bookNumber, chapterNumber, index + 1),
+          text,
+        }),
+    ) as [Verse, ...Verse[]],
+    previous: Option.none(),
+    next: Option.none(),
+  });
+};
+
+const chapters = new Map([
+  [
+    '43:3',
+    chapter(43, 3, [
+      'For God so loved the world...',
+      'For God sent not his Son...',
+      'He that believeth...',
+    ]),
+  ],
+  ['8:1', chapter(8, 1, ['Now it came to pass...', 'And the name of the man...'])],
+  ['8:2', chapter(8, 2, ['And Naomi had a kinsman...'])],
+  ['19:1', chapter(19, 1, ['Blessed is the man...', 'But his delight...'])],
+  ['19:2', chapter(19, 2, ['Why do the heathen rage...'])],
+  ['19:3', chapter(19, 3, ['LORD, how are they increased...'])],
+  ['31:1', chapter(31, 1, ['The vision of Obadiah...'])],
+]);
+
+const BibleTest = BibleService.Test({ books: BIBLE_BOOKS, chapters });
+const resolve = (query: ReturnType<typeof ParsedBibleQuery.search>) =>
+  Effect.runPromise(versesForBibleQuery(query).pipe(Effect.provide(BibleTest)));
+
+describe('canonical Bible query integration', () => {
+  it('resolves a single verse', async () => {
+    const verses = await resolve(ParsedBibleQuery.single(43, 3, 1));
+    expect(verses.map((verse) => Number(verse.reference.verse))).toEqual([1]);
   });
 
-  const verses: Record<string, Verse[]> = {
-    '43-3': [
-      {
-        book_name: 'John',
-        book: 43,
-        chapter: 3,
-        verse: 16,
-        text: 'For God so loved the world...',
-      },
-      {
-        book_name: 'John',
-        book: 43,
-        chapter: 3,
-        verse: 17,
-        text: 'For God sent not his Son...',
-      },
-      {
-        book_name: 'John',
-        book: 43,
-        chapter: 3,
-        verse: 18,
-        text: 'He that believeth...',
-      },
-    ],
-    '8-1': [
-      {
-        book_name: 'Ruth',
-        book: 8,
-        chapter: 1,
-        verse: 1,
-        text: 'Now it came to pass...',
-      },
-      {
-        book_name: 'Ruth',
-        book: 8,
-        chapter: 1,
-        verse: 2,
-        text: 'And the name of the man...',
-      },
-    ],
-    '8-2': [
-      {
-        book_name: 'Ruth',
-        book: 8,
-        chapter: 2,
-        verse: 1,
-        text: 'And Naomi had a kinsman...',
-      },
-    ],
-    '19-1': [
-      {
-        book_name: 'Psalms',
-        book: 19,
-        chapter: 1,
-        verse: 1,
-        text: 'Blessed is the man...',
-      },
-      {
-        book_name: 'Psalms',
-        book: 19,
-        chapter: 1,
-        verse: 2,
-        text: 'But his delight...',
-      },
-    ],
-    '19-2': [
-      {
-        book_name: 'Psalms',
-        book: 19,
-        chapter: 2,
-        verse: 1,
-        text: 'Why do the heathen rage...',
-      },
-    ],
-    '19-3': [
-      {
-        book_name: 'Psalms',
-        book: 19,
-        chapter: 3,
-        verse: 1,
-        text: 'LORD, how are they increased...',
-      },
-    ],
-  };
-
-  return {
-    getBooks: () => books,
-    getBook: (num) => books.find((b) => b.number === num),
-    getChapter: (book, chapter) => verses[`${book}-${chapter}`] ?? [],
-    getVerse: (book, chapter, verse) => {
-      const ch = verses[`${book}-${chapter}`];
-      return ch?.find((v) => v.verse === verse);
-    },
-    searchVerses: () => [],
-    parseReference: () => undefined,
-    getNextChapter: () => undefined,
-    getPrevChapter: () => undefined,
-  };
-}
-
-describe('bible verse parsing', () => {
-  const data = createMockBibleData();
-
-  describe('parseVerseQuery', () => {
-    it('should parse single verse reference', () => {
-      const result = parseVerseQuery('john 3:16', data);
-      expect(result).toEqual(ParsedQuery.single(43, 3, 16));
-    });
-
-    it('should parse chapter reference', () => {
-      const result = parseVerseQuery('john 3', data);
-      expect(result).toEqual(ParsedQuery.chapter(43, 3));
-    });
-
-    it('should parse verse range', () => {
-      const result = parseVerseQuery('john 3:16-18', data);
-      expect(result).toEqual(ParsedQuery.verseRange(43, 3, 16, 18));
-    });
-
-    it('should parse chapter range', () => {
-      const result = parseVerseQuery('psalm 1-3', data);
-      expect(result).toEqual(ParsedQuery.chapterRange(19, 1, 3));
-    });
-
-    it('should parse full book name', () => {
-      const result = parseVerseQuery('ruth', data);
-      expect(result).toEqual(ParsedQuery.fullBook(8));
-    });
-
-    it('should handle numbered book names', () => {
-      const result = parseVerseQuery('1 cor 13', data);
-      expect(result).toEqual(ParsedQuery.chapter(46, 13));
-    });
-
-    it('should fall back to search for unrecognized queries', () => {
-      const result = parseVerseQuery('faith without works', data);
-      expect(result).toEqual({
-        _tag: 'search',
-        query: 'faith without works',
-      });
-    });
-
-    it('should fall back to search for empty input', () => {
-      const result = parseVerseQuery('', data);
-      expect(result).toEqual({
-        _tag: 'search',
-        query: '',
-      });
-    });
+  it('resolves a full chapter', async () => {
+    expect(await resolve(ParsedBibleQuery.chapter(43, 3))).toHaveLength(3);
   });
 
-  describe('getVersesForQuery', () => {
-    it('should get single verse', () => {
-      const query = ParsedQuery.single(43, 3, 16);
-      const verses = getVersesForQuery(query, data);
-      expect(verses).toHaveLength(1);
-      expect(verses[0]?.verse).toBe(16);
-    });
+  it('resolves a verse range', async () => {
+    const verses = await resolve(ParsedBibleQuery.verseRange(43, 3, 1, 2));
+    expect(verses.map((verse) => Number(verse.reference.verse))).toEqual([1, 2]);
+  });
 
-    it('should get full chapter', () => {
-      const query = ParsedQuery.chapter(43, 3);
-      const verses = getVersesForQuery(query, data);
-      expect(verses).toHaveLength(3);
-    });
+  it('resolves a chapter range', async () => {
+    expect(await resolve(ParsedBibleQuery.chapterRange(19, 1, 3))).toHaveLength(4);
+  });
 
-    it('should get verse range', () => {
-      const query = ParsedQuery.verseRange(43, 3, 16, 17);
-      const verses = getVersesForQuery(query, data);
-      expect(verses).toHaveLength(2);
-      expect(verses[0]?.verse).toBe(16);
-      expect(verses[1]?.verse).toBe(17);
-    });
+  it('resolves a full book through the canonical book metadata', async () => {
+    expect(await resolve(ParsedBibleQuery.fullBook(31))).toHaveLength(1);
+  });
 
-    it('should get chapter range', () => {
-      const query = ParsedQuery.chapterRange(19, 1, 3);
-      const verses = getVersesForQuery(query, data);
-      expect(verses).toHaveLength(4); // 2 + 1 + 1 verses
-    });
-
-    it('should get full book', () => {
-      const query = ParsedQuery.fullBook(8);
-      const verses = getVersesForQuery(query, data);
-      expect(verses).toHaveLength(3); // 2 + 1 verses
-    });
-
-    it('should return empty array for search query', () => {
-      const query = ParsedQuery.search('test');
-      const verses = getVersesForQuery(query, data);
-      expect(verses).toHaveLength(0);
-    });
+  it('maps reader input to canonical route references', () => {
+    expect(parseReaderReference('john 3:16')).toEqual(Reference.verse(43, 3, 16));
+    expect(parseReaderReference('ruth')).toEqual(Reference.chapter(8, 1));
+    expect(parseReaderReference('faith without works')).toBeUndefined();
   });
 });
 
 describe('bible concordance', () => {
-  describe('isStrongsNumber', () => {
-    it("should detect Hebrew Strong's number (uppercase)", () => {
-      expect(isStrongsNumber('H1234')).toBe(true);
-    });
+  it("detects Hebrew and Greek Strong's numbers", () => {
+    expect(isStrongsNumber('H1234')).toBe(true);
+    expect(isStrongsNumber('h1234')).toBe(true);
+    expect(isStrongsNumber('G5678')).toBe(true);
+    expect(isStrongsNumber('g26')).toBe(true);
+  });
 
-    it("should detect Hebrew Strong's number (lowercase)", () => {
-      expect(isStrongsNumber('h1234')).toBe(true);
-    });
-
-    it("should detect Greek Strong's number (uppercase)", () => {
-      expect(isStrongsNumber('G5678')).toBe(true);
-    });
-
-    it("should detect Greek Strong's number (lowercase)", () => {
-      expect(isStrongsNumber('g26')).toBe(true);
-    });
-
-    it('should reject plain numbers', () => {
-      expect(isStrongsNumber('1234')).toBe(false);
-    });
-
-    it('should reject English words', () => {
-      expect(isStrongsNumber('love')).toBe(false);
-    });
-
-    it('should reject mixed content', () => {
-      expect(isStrongsNumber('H1234abc')).toBe(false);
-    });
-
-    it('should reject other prefixes', () => {
-      expect(isStrongsNumber('A1234')).toBe(false);
-    });
+  it("rejects invalid Strong's queries", () => {
+    expect(isStrongsNumber('1234')).toBe(false);
+    expect(isStrongsNumber('love')).toBe(false);
+    expect(isStrongsNumber('H1234abc')).toBe(false);
+    expect(isStrongsNumber('A1234')).toBe(false);
   });
 });
