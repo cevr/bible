@@ -1,4 +1,4 @@
-import type { BibleRouteReference } from '@bible/core/app';
+import type { ReaderReference } from '../../app/reader-reference.js';
 
 /**
  * AI search state machine for command palette.
@@ -24,7 +24,7 @@ export type AiSearchState =
   | {
       _tag: 'success';
       query: string;
-      results: readonly BibleRouteReference[];
+      results: readonly ReaderReference[];
     }
   | { _tag: 'empty'; query: string }
   | { _tag: 'error'; query: string; error: string };
@@ -34,7 +34,7 @@ export const AiSearchState = {
   idle: (): AiSearchState => ({ _tag: 'idle' }),
   typing: (query: string): AiSearchState => ({ _tag: 'typing', query }),
   loading: (query: string): AiSearchState => ({ _tag: 'loading', query }),
-  success: (query: string, results: readonly BibleRouteReference[]): AiSearchState => ({
+  success: (query: string, results: readonly ReaderReference[]): AiSearchState => ({
     _tag: 'success',
     query,
     results,
@@ -61,7 +61,7 @@ export function getAiSearchQuery(state: AiSearchState): string | null {
   return state.query;
 }
 
-export function getAiSearchResults(state: AiSearchState): readonly BibleRouteReference[] {
+export function getAiSearchResults(state: AiSearchState): readonly ReaderReference[] {
   if (state._tag === 'success') return state.results;
   return [];
 }

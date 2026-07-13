@@ -4,9 +4,11 @@
  * Owns the TUI's reactive route history and navigation actions.
  */
 
-import type { AppRoute, AppRouterState, BibleRouteReference, EGWLocation } from '@bible/core/app';
-import { initialRouterState, Route } from '@bible/core/app';
+import type { EGWLocation } from '@bible/core/egw';
 import { createContext, createSignal, useContext, type ParentProps } from 'solid-js';
+
+import type { ReaderReference } from '../../app/reader-reference.js';
+import { initialRouterState, Route, type AppRoute, type AppRouterState } from '../../app/route.js';
 
 /**
  * Router context value for TUI-owned reactive navigation
@@ -16,7 +18,7 @@ interface RouterContextValue {
   route: () => AppRoute;
 
   /** Navigate to Bible view */
-  navigateToBible: (ref?: BibleRouteReference) => void;
+  navigateToBible: (ref?: ReaderReference) => void;
 
   /** Navigate to EGW reader */
   navigateToEgw: (ref?: EGWLocation) => void;

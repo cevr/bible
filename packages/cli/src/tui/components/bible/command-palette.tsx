@@ -10,7 +10,6 @@
  */
 
 import type { ScrollBoxRenderable } from '@opentui/core';
-import type { BibleRouteReference } from '@bible/core/app';
 import {
   BIBLE_BOOKS as BOOKS,
   formatBibleReference,
@@ -21,6 +20,7 @@ import { useModalKeyboard } from '../../hooks/use-modal-keyboard.js';
 import { Effect } from 'effect';
 import { createEffect, createMemo, createSignal, For, onCleanup, Show } from 'solid-js';
 
+import type { ReaderReference } from '../../../app/reader-reference.js';
 import { searchBibleByTopic } from '../../../data/study/ai-search.js';
 import { AI } from '../../../services/ai.js';
 import { useBibleReader } from '../../context/bible.js';
@@ -176,7 +176,7 @@ export function BibleCommandPalette(props: BibleCommandPaletteProps) {
   });
 
   // AI search results
-  const aiResults = createMemo((): readonly BibleRouteReference[] => {
+  const aiResults = createMemo((): readonly ReaderReference[] => {
     const currentState = aiState();
     if (currentState._tag === 'success') {
       return currentState.results;
@@ -235,7 +235,7 @@ export function BibleCommandPalette(props: BibleCommandPaletteProps) {
   };
 
   // Handle selecting an AI result
-  const handleSelectAiResult = (ref: BibleRouteReference) => {
+  const handleSelectAiResult = (ref: ReaderReference) => {
     goTo(ref);
     props.onClose();
   };

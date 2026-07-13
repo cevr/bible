@@ -3,21 +3,22 @@ import { randomUUID } from 'node:crypto';
 import { homedir } from 'os';
 import { join } from 'path';
 
-import {
-  BibleRouteReference,
-  type BibleRouteReference as BibleRouteReferenceType,
-} from '@bible/core/app';
 import { Reference, type VerseReference } from '@bible/core/bible';
 import { CrossRefType } from '@bible/core/bible-cross-refs';
 import { Reference as WritingsReference, type ParagraphReference } from '@bible/core/writings';
 import { Database } from 'bun:sqlite';
 import { Effect, Layer, Context, Option, Schema } from 'effect';
 
+import {
+  ReaderReference,
+  type ReaderReference as ReaderReferenceType,
+} from '../../app/reader-reference.js';
+
 const DisplayMode = Schema.Literals(['verse', 'paragraph']);
 const Preferences = Schema.Struct({ theme: Schema.String, displayMode: DisplayMode });
 type Preferences = typeof Preferences.Type;
 
-const CachedBibleReferences = Schema.fromJsonString(Schema.Array(BibleRouteReference));
+const CachedBibleReferences = Schema.fromJsonString(Schema.Array(ReaderReference));
 const decodeCachedBibleReferences = Schema.decodeUnknownOption(CachedBibleReferences);
 const encodeCachedBibleReferences = Schema.encodeSync(CachedBibleReferences);
 const decodeDisplayMode = Schema.decodeUnknownOption(DisplayMode);
@@ -178,8 +179,8 @@ export interface BibleStateService {
     readonly saveTerminalPalette: (palette: CachedPalette) => void;
   };
   readonly aiSearch: {
-    readonly getCached: (query: string) => readonly BibleRouteReferenceType[] | undefined;
-    readonly saveCached: (query: string, results: readonly BibleRouteReferenceType[]) => void;
+    readonly getCached: (query: string) => readonly ReaderReferenceType[] | undefined;
+    readonly saveCached: (query: string, results: readonly ReaderReferenceType[]) => void;
   };
   readonly crossReferences: {
     readonly classificationsFor: (

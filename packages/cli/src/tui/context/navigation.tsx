@@ -8,16 +8,16 @@ import {
   type ParentProps,
 } from 'solid-js';
 
-import type { BibleRouteReference } from '@bible/core/app';
 import { getNextChapter, getPrevChapter, Reference, type VerseReference } from '@bible/core/bible';
 
+import type { ReaderReference } from '../../app/reader-reference.js';
 import { useBibleReader, useBibleState } from './bible.js';
 
 interface NavigationContextValue {
   // Current position
   position: () => VerseReference;
   // Navigation methods
-  goTo: (ref: BibleRouteReference) => void;
+  goTo: (ref: ReaderReference) => void;
   goToVerse: (verse: number) => void;
   goToFirstVerse: () => void;
   goToLastVerse: () => void;
@@ -37,7 +37,7 @@ interface NavigationContextValue {
 const NavigationContext = createContext<NavigationContextValue>();
 
 interface NavigationProviderProps {
-  initialRef?: BibleRouteReference;
+  initialRef?: ReaderReference;
 }
 
 export function NavigationProvider(props: ParentProps<NavigationProviderProps>) {
@@ -81,7 +81,7 @@ export function NavigationProvider(props: ParentProps<NavigationProviderProps>) 
     state.reader.bible.savePosition(pos);
   });
 
-  const goTo = (ref: BibleRouteReference) => {
+  const goTo = (ref: ReaderReference) => {
     const verse = ref._tag === 'verse' ? ref.verse : 1;
     setPosition(Reference.verse(ref.book, ref.chapter, verse));
     setSelectedVerse(verse);

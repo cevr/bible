@@ -5,8 +5,7 @@
  * Similar to the Bible navigation context but adapted for EGW paragraph structure.
  */
 
-import type { EGWLocation } from '@bible/core/app';
-import { nodesToText } from '@bible/core/egw';
+import { nodesToText, type EGWLocation } from '@bible/core/egw';
 import { isChapterHeading } from '@bible/core/egw-db';
 import type { Paragraph, ParagraphReference, Publication } from '@bible/core/writings';
 import { Option } from 'effect';

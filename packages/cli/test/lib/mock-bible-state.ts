@@ -1,6 +1,6 @@
-import type { BibleRouteReference } from '@bible/core/app';
 import { Reference } from '@bible/core/bible';
 
+import type { ReaderReference } from '../../src/app/reader-reference.js';
 import type {
   BibleStateService,
   CrossRefClassification,
@@ -8,7 +8,7 @@ import type {
 } from '../../src/data/bible/state.js';
 
 interface MockBibleStateConfig {
-  readonly cachedSearch?: ReadonlyMap<string, readonly BibleRouteReference[]>;
+  readonly cachedSearch?: ReadonlyMap<string, readonly ReaderReference[]>;
   readonly classifications?: readonly CrossRefClassification[];
   readonly userReferences?: readonly UserCrossRef[];
 }

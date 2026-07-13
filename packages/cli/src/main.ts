@@ -8,13 +8,14 @@
  * CLI mode lazy-loads TUI and AI dependencies for faster startup.
  */
 
-import type { BibleRouteReference, EGWLocation } from '@bible/core/app';
+import type { EGWLocation } from '@bible/core/egw';
 import { parseEGWRef } from '@bible/core/egw';
 import { Command } from 'effect/unstable/cli';
 // Core imports needed for both CLI and TUI
 import { BunServices, BunRuntime } from '@effect/platform-bun';
 import { Effect, Layer, References } from 'effect';
 
+import type { ReaderReference } from './app/reader-reference.js';
 import { concordance, verse } from './commands/bible.js';
 import { egwWithSubcommands } from './commands/egw.js';
 import { slides } from './commands/slides.js';
@@ -91,7 +92,7 @@ async function loadModelService(): Promise<ModelService | null> {
   return provider ? { models: provider.models } : null;
 }
 
-function parseReferenceFromArgs(args: string[]): BibleRouteReference | undefined {
+function parseReferenceFromArgs(args: string[]): ReaderReference | undefined {
   if (args.length === 0) return undefined;
 
   const refString = args.join(' ');

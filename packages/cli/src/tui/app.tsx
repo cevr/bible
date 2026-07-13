@@ -1,9 +1,10 @@
-import { isRoute, Route } from '@bible/core/app';
-import type { BibleRouteReference, EGWLocation } from '@bible/core/app';
+import type { EGWLocation } from '@bible/core/egw';
 import { render, useKeyboard, useRenderer, useTerminalDimensions } from '@opentui/solid';
 import type { ManagedRuntime } from 'effect';
 import { createSignal, Match, Show, Switch } from 'solid-js';
 
+import type { ReaderReference } from '../app/reader-reference.js';
+import { isRoute, Route } from '../app/route.js';
 import { ToolsPalette } from './components/shared/tools-palette.js';
 import { BibleProvider } from './context/bible.js';
 import { DisplayProvider } from './context/display.js';
@@ -42,7 +43,7 @@ export {
   match,
 } from './lib/index.js';
 interface AppProps {
-  initialRef?: BibleRouteReference;
+  initialRef?: ReaderReference;
   /** Open the EGW reader, optionally at a parsed location. */
   initialEgw?: true | EGWLocation;
   model?: ModelService | null;
@@ -259,7 +260,7 @@ export function App(props: AppProps) {
 }
 
 export interface TuiOptions {
-  initialRef?: BibleRouteReference;
+  initialRef?: ReaderReference;
   /** Open the EGW reader, optionally at a parsed location. */
   initialEgw?: true | EGWLocation;
   model?: ModelService | null;

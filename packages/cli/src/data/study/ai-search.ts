@@ -1,6 +1,6 @@
-import type { BibleRouteReference } from '@bible/core/app';
 import { Effect, Option, Schema } from 'effect';
 
+import type { ReaderReference } from '../../app/reader-reference.js';
 import { parseReaderReference } from '../../lib/parse-reader-reference.js';
 import { AI } from '../../services/ai.js';
 import { BibleState } from '../bible/state.js';
@@ -27,7 +27,7 @@ Rules:
 - Only return valid KJV Bible references
 - Return ONLY the JSON array, no other text`;
 
-export function parseAISearchResponse(response: string): readonly BibleRouteReference[] {
+export function parseAISearchResponse(response: string): readonly ReaderReference[] {
   const json = response.match(/\[[\s\S]*\]/)?.[0];
   if (json === undefined) return [];
 

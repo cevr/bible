@@ -5,7 +5,6 @@
  * persisted-state, and AI-classification coordination behind one local interface.
  */
 
-import type { BibleRouteReference } from '@bible/core/app';
 import type { VerseReference } from '@bible/core/bible';
 import type { ClassifiedCrossReference, CrossRefType } from '@bible/core/bible-cross-refs';
 import {
@@ -18,6 +17,7 @@ import {
 import { Effect, Option, Schema } from 'effect';
 import { createContext, useContext, type ParentProps } from 'solid-js';
 
+import type { ReaderReference } from '../../app/reader-reference.js';
 import { BibleState } from '../../data/bible/state.js';
 import type { UserCrossRef } from '../../data/bible/state.js';
 import { classifySingleCrossRef, classifyVerseCrossRefs } from '../../data/study/classification.js';
@@ -42,7 +42,7 @@ interface CrossReferenceCapabilities {
   ) => void;
   readonly add: (
     source: VerseReference,
-    target: BibleRouteReference,
+    target: ReaderReference,
     options?: { readonly type?: CrossRefType; readonly note?: string },
   ) => UserCrossRef;
   readonly remove: (id: string) => void;

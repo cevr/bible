@@ -1,8 +1,9 @@
-import type { BibleRouteReference } from '@bible/core/app';
 import { parseBibleQuery, Reference } from '@bible/core/bible';
 
+import type { ReaderReference } from '../app/reader-reference.js';
+
 /** Resolve free-form input to the canonical location the reader can open. */
-export function parseReaderReference(input: string): BibleRouteReference | undefined {
+export function parseReaderReference(input: string): ReaderReference | undefined {
   const parsed = parseBibleQuery(input);
   switch (parsed._tag) {
     case 'single':

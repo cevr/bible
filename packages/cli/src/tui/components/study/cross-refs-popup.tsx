@@ -18,7 +18,6 @@
  * 3. Structural Analysis (word frequency, Strong's data)
  */
 
-import type { BibleRouteReference } from '@bible/core/app';
 import { formatBibleReference, Reference, type VerseReference } from '@bible/core/bible';
 import { CROSS_REF_TYPES, type CrossRefType } from '@bible/core/bible-cross-refs';
 import { EGWCommentaryService, type CommentaryEntry } from '@bible/core/egw-commentary';
@@ -31,6 +30,7 @@ import type { ScrollBoxRenderable } from '@opentui/core';
 import { useModalKeyboard } from '../../hooks/use-modal-keyboard.js';
 import { createMemo, createSignal, For, Show } from 'solid-js';
 
+import type { ReaderReference } from '../../../app/reader-reference.js';
 import { parseReaderReference } from '../../../lib/parse-reader-reference.js';
 import { useBibleReader } from '../../context/bible.js';
 import { useModel } from '../../context/model.js';
@@ -60,7 +60,7 @@ const PAGES: PopupPage[] = ['crossrefs', 'commentary', 'structure'];
 interface CrossRefsPopupProps {
   verseRef: VerseReference;
   onClose: () => void;
-  onNavigate: (ref: BibleRouteReference) => void;
+  onNavigate: (ref: ReaderReference) => void;
 }
 
 export function CrossRefsPopup(props: CrossRefsPopupProps) {
