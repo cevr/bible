@@ -9,11 +9,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { BunServices } from '@effect/platform-bun';
+import { Database } from 'bun:sqlite';
 import { afterAll, describe, expect, test } from 'bun:test';
-import { ConfigProvider, Effect, Layer, Option } from 'effect';
+import { ConfigProvider, Effect, Layer, Option, Result } from 'effect';
 
 import type { Book, Paragraph } from '../egw/schemas.js';
-import { EGWParagraphDatabase } from './book-database.js';
+import { EGWParagraphDatabase, ParagraphDataIntegrityError } from './book-database.js';
 import * as EGWDbBun from './book-database-bun.js';
 
 // Track temp files for cleanup
@@ -41,9 +42,10 @@ afterAll(() => {
 });
 
 // Helper to run scoped effects in tests with fresh database
-const runTest = <A, E>(effect: Effect.Effect<A, E, EGWParagraphDatabase>): Promise<A> => {
-  const dbPath = getTempDbPath();
-
+const runTestAt = <A, E>(
+  dbPath: string,
+  effect: Effect.Effect<A, E, EGWParagraphDatabase>,
+): Promise<A> => {
   const provider = ConfigProvider.make((path) =>
     Effect.succeed(
       path.join('_') === 'EGW_PARAGRAPH_DB' ? ConfigProvider.makeValue(dbPath) : undefined,
@@ -56,6 +58,9 @@ const runTest = <A, E>(effect: Effect.Effect<A, E, EGWParagraphDatabase>): Promi
   );
   return Effect.runPromise(Effect.scoped(effect.pipe(Effect.provide(TestLayer))));
 };
+
+const runTest = <A, E>(effect: Effect.Effect<A, E, EGWParagraphDatabase>): Promise<A> =>
+  runTestAt(getTempDbPath(), effect);
 
 // Helper to create a mock book
 const mockBook = (id: number, code: string): Book => ({
@@ -254,6 +259,31 @@ describe('EGWParagraphDatabase', () => {
           expect(Option.isSome(storedBook)).toBe(true);
           if (Option.isSome(storedBook)) {
             expect(storedBook.value.book_title).toBe('Test Book BATCH');
+          }
+        }),
+      );
+    });
+
+    test('reports corrupt stored paragraph AST as a data-integrity error', () => {
+      const dbPath = getTempDbPath();
+      return runTestAt(
+        dbPath,
+        Effect.gen(function* () {
+          const db = yield* EGWParagraphDatabase;
+          const book = mockBook(102, 'CORRUPT');
+          yield* db.storeParagraphsBatch([mockParagraph(1, 'CORRUPT 1.1')], book);
+          yield* Effect.sync(() => {
+            const raw = new Database(dbPath);
+            raw.run(
+              'UPDATE paragraphs SET nodes_json = \'[{"_tag":"Text","text":42}]\' WHERE book_id = 102',
+            );
+            raw.close();
+          });
+
+          const result = yield* Effect.result(db.getParagraph(102, 'CORRUPT 1.1'));
+          expect(Result.isFailure(result)).toBe(true);
+          if (Result.isFailure(result)) {
+            expect(result.failure).toBeInstanceOf(ParagraphDataIntegrityError);
           }
         }),
       );

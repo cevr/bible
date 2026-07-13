@@ -25,7 +25,7 @@ import {
   writeSchemaVersion,
 } from '../db/schema-version.js';
 import * as EGWSchemas from '../egw/schemas.js';
-import { type Node, nodesToText } from '../egw/ast.js';
+import { Node, nodesToText } from '../egw/ast.js';
 import { isChapterHeading } from '../egw/parse.js';
 
 // Bump when the on-disk paragraphs schema changes shape (column rename, type
@@ -37,8 +37,16 @@ const SCHEMA_VERSION = 3;
 // Identity for this service's row in the shared `schema_versions` table.
 const SCHEMA_NAME = 'egw_paragraphs';
 
+export class ParagraphDataIntegrityError extends Schema.TaggedErrorClass<ParagraphDataIntegrityError>()(
+  'ParagraphDataIntegrityError',
+  {
+    cause: Schema.Unknown,
+    location: Schema.String,
+  },
+) {}
+
 /** Errors emitted by the Effect SQL persistence adapter. */
-export type ParagraphDatabaseError = SqlError;
+export type ParagraphDatabaseError = SqlError | ParagraphDataIntegrityError;
 
 export const BookRow = Schema.Struct({
   book_id: Schema.Number,
@@ -89,12 +97,13 @@ export const BibleRefRow = Schema.Struct({
 
 export type BibleRefRow = Schema.Schema.Type<typeof BibleRefRow>;
 
-export type SyncStatus = 'pending' | 'success' | 'failed';
+export const SyncStatus = Schema.Literals(['pending', 'success', 'failed']);
+export type SyncStatus = typeof SyncStatus.Type;
 
 export const SyncStatusRow = Schema.Struct({
   book_id: Schema.Number,
   book_code: Schema.String,
-  status: Schema.String as Schema.Schema<SyncStatus>,
+  status: SyncStatus,
   error_message: Schema.NullOr(Schema.String),
   last_attempt: Schema.String,
   paragraph_count: Schema.Number,
@@ -304,6 +313,10 @@ type FullParagraphRow = ParagraphRow & {
   book_author?: string;
 };
 
+const NodesJson = Schema.fromJsonString(Schema.Array(Node));
+const decodeNodes = Schema.decodeUnknownSync(NodesJson);
+const encodeNodes = Schema.encodeSync(NodesJson);
+
 const paragraphToRow = (
   paragraph: EGWSchemas.Paragraph,
   bookId: number,
@@ -325,7 +338,7 @@ const paragraphToRow = (
     refcode_short: refcodeShort,
     refcode_long: paragraph.refcode_long ?? null,
     // Canonical AST on disk; FTS index uses content_text projection.
-    nodes_json: JSON.stringify(paragraph.nodes),
+    nodes_json: encodeNodes(paragraph.nodes),
     content_text: nodesToText(paragraph.nodes),
     puborder: paragraph.puborder,
     element_type: paragraph.element_type ?? null,
@@ -340,34 +353,29 @@ const paragraphToRow = (
   };
 };
 
-const rowToParagraph = (row: ParagraphRow): EGWSchemas.Paragraph => {
-  // Tolerate empty / malformed rows defensively — bad data shouldn't crash
-  // navigation. Bad JSON yields an empty paragraph that renders as nothing.
-  let nodes: readonly Node[] = [];
-  if (row.nodes_json !== '') {
-    try {
-      const parsed: unknown = JSON.parse(row.nodes_json);
-      if (Array.isArray(parsed)) nodes = parsed as readonly Node[];
-    } catch {
-      nodes = [];
-    }
-  }
-  return {
-    para_id: Option.fromNullishOr(row.para_id),
-    id_prev: null,
-    id_next: null,
-    refcode_1: null,
-    refcode_2: null,
-    refcode_3: null,
-    refcode_4: null,
-    refcode_short: Option.fromNullishOr(row.refcode_short),
-    refcode_long: row.refcode_long ?? null,
-    element_type: row.element_type ?? null,
-    element_subtype: row.element_subtype ?? null,
-    nodes,
-    puborder: row.puborder,
-  };
-};
+const rowToParagraph = (row: ParagraphRow) =>
+  Effect.try({
+    try: (): EGWSchemas.Paragraph => ({
+      para_id: Option.fromNullishOr(row.para_id),
+      id_prev: null,
+      id_next: null,
+      refcode_1: null,
+      refcode_2: null,
+      refcode_3: null,
+      refcode_4: null,
+      refcode_short: Option.fromNullishOr(row.refcode_short),
+      refcode_long: row.refcode_long ?? null,
+      element_type: row.element_type ?? null,
+      element_subtype: row.element_subtype ?? null,
+      nodes: decodeNodes(row.nodes_json),
+      puborder: row.puborder,
+    }),
+    catch: (cause) =>
+      new ParagraphDataIntegrityError({
+        cause,
+        location: `paragraphs(${row.book_id}:${row.ref_code}).nodes_json`,
+      }),
+  });
 
 // ============================================================================
 // Service Definition
@@ -610,9 +618,11 @@ export class EGWParagraphDatabase extends Context.Service<
         sql<ParagraphRow>`
           SELECT * FROM paragraphs WHERE book_id = ${bookId} AND ref_code = ${refCode}
         `.pipe(
-          Effect.map((rows) => {
+          Effect.flatMap((rows) => {
             const row = rows[0];
-            return row ? Option.some(rowToParagraph(row)) : Option.none<EGWSchemas.Paragraph>();
+            return row
+              ? rowToParagraph(row).pipe(Effect.map(Option.some))
+              : Effect.succeed(Option.none<EGWSchemas.Paragraph>());
           }),
         );
 
@@ -621,7 +631,7 @@ export class EGWParagraphDatabase extends Context.Service<
           sql<ParagraphRow>`
             SELECT * FROM paragraphs WHERE book_id = ${bookId} ORDER BY puborder
           `,
-        ).pipe(Stream.map(rowToParagraph));
+        ).pipe(Stream.mapEffect(rowToParagraph));
 
       const getParagraphsByAuthor = (author: string) =>
         Stream.fromIterableEffect(
@@ -631,21 +641,21 @@ export class EGWParagraphDatabase extends Context.Service<
             WHERE b.book_author = ${author}
             ORDER BY p.book_id, p.puborder
           `,
-        ).pipe(Stream.map(rowToParagraph));
+        ).pipe(Stream.mapEffect(rowToParagraph));
 
       const getParagraphsByPage = (bookId: number, pageNumber: number) =>
         sql<ParagraphRow>`
           SELECT * FROM paragraphs
           WHERE book_id = ${bookId} AND page_number = ${pageNumber}
           ORDER BY puborder
-        `.pipe(Effect.map((rows) => rows.map(rowToParagraph)));
+        `.pipe(Effect.flatMap((rows) => Effect.forEach(rows, rowToParagraph)));
 
       const getChapterHeadings = (bookId: number) =>
         sql<ParagraphRow>`
           SELECT * FROM paragraphs
           WHERE book_id = ${bookId} AND is_chapter_heading = 1
           ORDER BY puborder
-        `.pipe(Effect.map((rows) => rows.map(rowToParagraph)));
+        `.pipe(Effect.flatMap((rows) => Effect.forEach(rows, rowToParagraph)));
 
       const searchParagraphs = (query: string, limit = 50, bookCode?: string) => {
         const base = bookCode
@@ -667,13 +677,17 @@ export class EGWParagraphDatabase extends Context.Service<
               LIMIT ${limit}
             `;
         return base.pipe(
-          Effect.map((rows) =>
-            rows.map((row) => ({
-              ...rowToParagraph(row),
-              bookCode: row.book_code,
-              bookTitle: row.book_title,
-              bookId: row.book_id,
-            })),
+          Effect.flatMap((rows) =>
+            Effect.forEach(rows, (row) =>
+              rowToParagraph(row).pipe(
+                Effect.map((paragraph) => ({
+                  ...paragraph,
+                  bookCode: row.book_code,
+                  bookTitle: row.book_title,
+                  bookId: row.book_id,
+                })),
+              ),
+            ),
           ),
         );
       };
@@ -721,13 +735,17 @@ export class EGWParagraphDatabase extends Context.Service<
           ORDER BY b.book_code, p.puborder
           LIMIT ${limit}
         `.pipe(
-          Effect.map((rows) =>
-            rows.map((row) => ({
-              ...rowToParagraph(row),
-              bookCode: row.book_code,
-              bookTitle: row.book_title,
-              bookId: row.book_id,
-            })),
+          Effect.flatMap((rows) =>
+            Effect.forEach(rows, (row) =>
+              rowToParagraph(row).pipe(
+                Effect.map((paragraph) => ({
+                  ...paragraph,
+                  bookCode: row.book_code,
+                  bookTitle: row.book_title,
+                  bookId: row.book_id,
+                })),
+              ),
+            ),
           ),
         );
       };
@@ -825,13 +843,17 @@ export class EGWParagraphDatabase extends Context.Service<
                 ORDER BY b.book_code, p.puborder
               `;
         return query.pipe(
-          Effect.map((rows) =>
-            rows.map((row) => ({
-              ...rowToParagraph(row),
-              bookId: row.book_id,
-              bookCode: row.book_code,
-              bookTitle: row.book_title,
-            })),
+          Effect.flatMap((rows) =>
+            Effect.forEach(rows, (row) =>
+              rowToParagraph(row).pipe(
+                Effect.map((paragraph) => ({
+                  ...paragraph,
+                  bookId: row.book_id,
+                  bookCode: row.book_code,
+                  bookTitle: row.book_title,
+                })),
+              ),
+            ),
           ),
         );
       };

@@ -42,7 +42,7 @@ export type {
 // It's a simplified version of VerseWord
 export interface WordWithStrongs {
   text: string;
-  strongs?: string[];
+  strongs?: readonly string[];
 }
 
 // Type for Strong's entry (aligned with study-db types for backwards compat)

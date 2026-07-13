@@ -54,13 +54,14 @@ export interface KjvAssetFile {
   readonly verses: readonly KjvAssetVerse[];
 }
 
-export interface StrongsWord {
-  readonly text: string;
-  readonly strongs?: readonly string[];
+export const StrongsWord = Schema.Struct({
+  text: Schema.String,
+  strongs: Schema.optional(Schema.Array(Schema.String)),
   // True for KJV translator-supplied words (italics). Stored in the asset and
   // round-tripped through `strongs_words` JSON; renderers italicize these.
-  readonly italic?: boolean;
-}
+  italic: Schema.optional(Schema.Boolean),
+});
+export type StrongsWord = typeof StrongsWord.Type;
 
 export interface StrongsVerseRow {
   readonly book: number;
@@ -156,14 +157,25 @@ type LexiconRow = Schema.Schema.Type<typeof LexiconRow>;
 // Helpers
 // ---------------------------------------------------------------------------
 
-const parseWords = (json: string): readonly StrongsWord[] => {
-  try {
-    const parsed: unknown = JSON.parse(json);
-    return Array.isArray(parsed) ? (parsed as readonly StrongsWord[]) : [];
-  } catch {
-    return [];
-  }
-};
+const StrongsWordsJson = Schema.fromJsonString(Schema.Array(StrongsWord));
+const decodeWords = Schema.decodeUnknownSync(StrongsWordsJson);
+const encodeWords = Schema.encodeSync(StrongsWordsJson);
+
+export class KjvDataIntegrityError extends Schema.TaggedErrorClass<KjvDataIntegrityError>()(
+  'KjvDataIntegrityError',
+  {
+    cause: Schema.Unknown,
+    location: Schema.String,
+  },
+) {}
+
+export type KjvDatabaseError = SqlError | KjvDataIntegrityError;
+
+const parseWords = (json: string, location: string) =>
+  Effect.try({
+    try: () => decodeWords(json),
+    catch: (cause) => new KjvDataIntegrityError({ cause, location }),
+  });
 
 const languageOf = (code: string): 'hebrew' | 'greek' | null => {
   const prefix = code.charAt(0);
@@ -212,7 +224,7 @@ export interface KjvBibleDatabaseService {
   readonly getChapterStrongs: (
     book: number,
     chapter: number,
-  ) => Effect.Effect<Option.Option<KjvStrongsChapterPayload>, SqlError>;
+  ) => Effect.Effect<Option.Option<KjvStrongsChapterPayload>, KjvDatabaseError>;
 
   readonly strongsLookup: (
     code: string,
@@ -228,13 +240,13 @@ export interface KjvBibleDatabaseService {
   readonly searchVersesByStrongs: (
     code: string,
     limit: number | null,
-  ) => Effect.Effect<readonly StrongsConcordanceHit[], SqlError>;
+  ) => Effect.Effect<readonly StrongsConcordanceHit[], KjvDatabaseError>;
 
   /**
    * Counts distinct verses tagged with `code`. Independent of `limit` — the
    * UI shows the true total even when only the first N hits render.
    */
-  readonly countStrongsOccurrences: (code: string) => Effect.Effect<number, SqlError>;
+  readonly countStrongsOccurrences: (code: string) => Effect.Effect<number, KjvDatabaseError>;
 
   /**
    * Substring search over the lexicon's lemma, transliteration, and definition
@@ -333,7 +345,7 @@ export class KjvBibleDatabase extends Context.Service<KjvBibleDatabase, KjvBible
             let withStrongs = 0;
             for (const v of kjv.verses) {
               const words = strongsByKey.get(`${v.book}:${v.chapter}:${v.verse}`);
-              const wordsJson = words === undefined ? null : JSON.stringify(words);
+              const wordsJson = words === undefined ? null : encodeWords(words);
               if (wordsJson !== null) withStrongs += 1;
               yield* sql`
                 INSERT INTO kjv_verses (book, chapter, verse, book_name, text, strongs_words)
@@ -407,22 +419,41 @@ export class KjvBibleDatabase extends Context.Service<KjvBibleDatabase, KjvBible
           WHERE book = ${book} AND chapter = ${chapter} AND strongs_words IS NOT NULL
           ORDER BY verse
         `.pipe(
-          Effect.map((rows) => {
-            if (rows.length === 0) return Option.none<KjvStrongsChapterPayload>();
+          Effect.flatMap((rows) => {
+            if (rows.length === 0) {
+              return Effect.succeed(Option.none<KjvStrongsChapterPayload>());
+            }
             const first = rows[0];
-            if (first === undefined) return Option.none<KjvStrongsChapterPayload>();
-            return Option.some<KjvStrongsChapterPayload>({
-              book,
-              chapter,
-              book_name: first.book_name,
-              verses: rows.map((r) => ({
-                book: r.book,
-                chapter: r.chapter,
-                verse: r.verse,
-                book_name: r.book_name,
-                words: r.strongs_words === null ? [] : parseWords(r.strongs_words),
-              })),
-            });
+            if (first === undefined) {
+              return Effect.succeed(Option.none<KjvStrongsChapterPayload>());
+            }
+            return Effect.forEach(rows, (row) => {
+              const words =
+                row.strongs_words === null
+                  ? Effect.succeed<readonly StrongsWord[]>([])
+                  : parseWords(
+                      row.strongs_words,
+                      `kjv_verses(${row.book}:${row.chapter}:${row.verse}).strongs_words`,
+                    );
+              return words.pipe(
+                Effect.map((decoded) => ({
+                  book: row.book,
+                  chapter: row.chapter,
+                  verse: row.verse,
+                  book_name: row.book_name,
+                  words: decoded,
+                })),
+              );
+            }).pipe(
+              Effect.map((verses) =>
+                Option.some<KjvStrongsChapterPayload>({
+                  book,
+                  chapter,
+                  book_name: first.book_name,
+                  verses,
+                }),
+              ),
+            );
           }),
         );
 
@@ -454,28 +485,33 @@ export class KjvBibleDatabase extends Context.Service<KjvBibleDatabase, KjvBible
             AND strongs_words LIKE ${`%"${code}"%`}
           ORDER BY book, chapter, verse
         `.pipe(
-          Effect.map((rows) => {
-            const out: StrongsConcordanceHit[] = [];
-            for (const row of rows) {
-              if (row.strongs_words === null) continue;
-              const words = parseWords(row.strongs_words);
-              for (const w of words) {
-                if (w.strongs?.includes(code) === true) {
-                  out.push({
-                    book: row.book,
-                    chapter: row.chapter,
-                    verse: row.verse,
-                    book_name: row.book_name,
-                    text: row.text,
-                    word: w.text,
-                  });
-                  break;
+          Effect.flatMap((rows) =>
+            Effect.gen(function* () {
+              const out: StrongsConcordanceHit[] = [];
+              for (const row of rows) {
+                if (row.strongs_words === null) continue;
+                const words = yield* parseWords(
+                  row.strongs_words,
+                  `kjv_verses(${row.book}:${row.chapter}:${row.verse}).strongs_words`,
+                );
+                for (const w of words) {
+                  if (w.strongs?.includes(code) === true) {
+                    out.push({
+                      book: row.book,
+                      chapter: row.chapter,
+                      verse: row.verse,
+                      book_name: row.book_name,
+                      text: row.text,
+                      word: w.text,
+                    });
+                    break;
+                  }
                 }
+                if (limit !== null && out.length >= limit) break;
               }
-              if (limit !== null && out.length >= limit) break;
-            }
-            return out;
-          }),
+              return out;
+            }),
+          ),
         );
 
       const countStrongsOccurrences = (code: string) =>
@@ -485,20 +521,25 @@ export class KjvBibleDatabase extends Context.Service<KjvBibleDatabase, KjvBible
           WHERE strongs_words IS NOT NULL
             AND strongs_words LIKE ${`%"${code}"%`}
         `.pipe(
-          Effect.map((rows) => {
-            let count = 0;
-            for (const row of rows) {
-              if (row.strongs_words === null) continue;
-              const words = parseWords(row.strongs_words);
-              for (const w of words) {
-                if (w.strongs?.includes(code) === true) {
-                  count += 1;
-                  break;
+          Effect.flatMap((rows) =>
+            Effect.gen(function* () {
+              let count = 0;
+              for (const row of rows) {
+                if (row.strongs_words === null) continue;
+                const words = yield* parseWords(
+                  row.strongs_words,
+                  `kjv_verses(${row.book}:${row.chapter}:${row.verse}).strongs_words`,
+                );
+                for (const w of words) {
+                  if (w.strongs?.includes(code) === true) {
+                    count += 1;
+                    break;
+                  }
                 }
               }
-            }
-            return count;
-          }),
+              return count;
+            }),
+          ),
         );
 
       const searchLexicon = (query: string, limit: number) => {

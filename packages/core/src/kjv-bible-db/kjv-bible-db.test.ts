@@ -11,10 +11,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { BunServices } from '@effect/platform-bun';
+import { Database } from 'bun:sqlite';
 import { afterAll, describe, expect, test } from 'bun:test';
-import { Effect, Layer, Option } from 'effect';
+import { Effect, Layer, Option, Result } from 'effect';
 
-import { KjvBibleDatabase } from './kjv-bible-db.js';
+import { KjvBibleDatabase, KjvDataIntegrityError } from './kjv-bible-db.js';
 import type { KjvAssetFile, StrongsLexiconRaw, StrongsVerseRow } from './kjv-bible-db.js';
 import * as KjvDbBun from './kjv-bible-db-bun.js';
 
@@ -38,11 +39,16 @@ afterAll(() => {
   }
 });
 
-const runTest = <A, E>(effect: Effect.Effect<A, E, KjvBibleDatabase>): Promise<A> => {
-  const dbPath = getTempDbPath();
+const runTestAt = <A, E>(
+  dbPath: string,
+  effect: Effect.Effect<A, E, KjvBibleDatabase>,
+): Promise<A> => {
   const TestLayer = Layer.fresh(KjvDbBun.layerBun(dbPath)).pipe(Layer.provide(BunServices.layer));
   return Effect.runPromise(Effect.scoped(effect.pipe(Effect.provide(TestLayer))));
 };
+
+const runTest = <A, E>(effect: Effect.Effect<A, E, KjvBibleDatabase>): Promise<A> =>
+  runTestAt(getTempDbPath(), effect);
 
 const mockKjv: KjvAssetFile = {
   verses: [
@@ -168,6 +174,30 @@ describe('KjvBibleDatabase', () => {
         expect(Option.isNone(chapter)).toBe(true);
       }),
     ));
+
+  test('getChapterStrongs reports corrupt stored word JSON as a data-integrity error', () => {
+    const dbPath = getTempDbPath();
+    return runTestAt(
+      dbPath,
+      Effect.gen(function* () {
+        const db = yield* KjvBibleDatabase;
+        yield* db.importKjv(mockKjv, mockStrongs);
+        yield* Effect.sync(() => {
+          const raw = new Database(dbPath);
+          raw.run(
+            'UPDATE kjv_verses SET strongs_words = \'[{"text":42}]\' WHERE book = 1 AND chapter = 1 AND verse = 1',
+          );
+          raw.close();
+        });
+
+        const result = yield* Effect.result(db.getChapterStrongs(1, 1));
+        expect(Result.isFailure(result)).toBe(true);
+        if (Result.isFailure(result)) {
+          expect(result.failure).toBeInstanceOf(KjvDataIntegrityError);
+        }
+      }),
+    );
+  });
 
   test('strongsLookup classifies H/G correctly', () =>
     runTest(

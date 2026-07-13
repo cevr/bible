@@ -110,6 +110,10 @@ export const VerseWordRow = Schema.Struct({
 });
 export type VerseWordRow = Schema.Schema.Type<typeof VerseWordRow>;
 
+const decodeStrongsNumbers = Schema.decodeUnknownSync(
+  Schema.fromJsonString(Schema.Array(Schema.String)),
+);
+
 export const StrongsVerseRow = Schema.Struct({
   strongs_number: Schema.String,
   book: Schema.Number,
@@ -172,7 +176,7 @@ export interface StrongsEntry {
 
 export interface VerseWord {
   text: string;
-  strongsNumbers: string[] | null;
+  strongsNumbers: readonly string[] | null;
 }
 
 export interface MarginNote {
@@ -623,9 +627,7 @@ export class BibleDatabase extends Context.Service<BibleDatabase, BibleDatabaseS
 
             return rows.map((r) => ({
               text: r.word_text,
-              strongsNumbers: r.strongs_numbers
-                ? (JSON.parse(r.strongs_numbers) as string[])
-                : null,
+              strongsNumbers: r.strongs_numbers ? decodeStrongsNumbers(r.strongs_numbers) : null,
             }));
           },
           catch: (error) =>

@@ -36,36 +36,18 @@ export class HymnalDatabaseError extends Schema.TaggedErrorClass<HymnalDatabaseE
 // Verse Parsing
 // ============================================================================
 
-interface RawVerse {
-  id: number;
-  text: string;
-}
+const HymnVersesJson = Schema.fromJsonString(Schema.Array(HymnVerse));
+const decodeHymnVerses = Schema.decodeUnknownSync(HymnVersesJson);
 
-function parseVerses(json: string): HymnVerse[] {
-  try {
-    const parsed = JSON.parse(json) as RawVerse[];
-    return parsed.map(
-      (v) =>
-        new HymnVerse({
-          id: v.id as HymnVerse['id'],
-          text: v.text,
-        }),
-    );
-  } catch {
-    return [];
-  }
+function parseVerses(json: string): readonly HymnVerse[] {
+  return decodeHymnVerses(json);
 }
 
 function getFirstLine(json: string): string {
-  try {
-    const parsed = JSON.parse(json) as RawVerse[];
-    const first = parsed[0];
-    if (first?.text !== undefined) {
-      const firstLine = first.text.split('\n')[0] ?? '';
-      return firstLine.slice(0, 60) + (firstLine.length > 60 ? '...' : '');
-    }
-  } catch {
-    // ignore
+  const first = decodeHymnVerses(json)[0];
+  if (first !== undefined) {
+    const firstLine = first.text.split('\n')[0] ?? '';
+    return firstLine.slice(0, 60) + (firstLine.length > 60 ? '...' : '');
   }
   return '';
 }

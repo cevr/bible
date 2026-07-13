@@ -1,8 +1,9 @@
-export { KjvBibleDatabase } from './kjv-bible-db.js';
+export { KjvBibleDatabase, KjvDataIntegrityError, StrongsWord } from './kjv-bible-db.js';
 export type {
   KjvAssetFile,
   KjvAssetVerse,
   KjvBibleDatabaseService,
+  KjvDatabaseError,
   KjvChapterPayload,
   KjvStrongsChapterPayload,
   KjvStrongsVersePayload,
@@ -10,5 +11,4 @@ export type {
   StrongsLexiconEntry,
   StrongsLexiconRaw,
   StrongsVerseRow,
-  StrongsWord,
 } from './kjv-bible-db.js';

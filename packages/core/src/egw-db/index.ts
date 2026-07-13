@@ -5,12 +5,11 @@
  * in a local SQLite database, avoiding repeated HTTP calls to the EGW API.
  */
 
-export { EGWParagraphDatabase } from './book-database.js';
+export { EGWParagraphDatabase, ParagraphDataIntegrityError, SyncStatus } from './book-database.js';
 export { isChapterHeading } from '../egw/parse.js';
 export type {
   BookRow,
   ParagraphDatabaseError,
   ParagraphRow,
-  SyncStatus,
   SyncStatusRow,
 } from './book-database.js';
