@@ -6,7 +6,8 @@
 
 import { Argument, Command, Flag } from 'effect/unstable/cli';
 import { BunServices } from '@effect/platform-bun';
-import { HymnalDatabase, HymnalService, type CategoryId, type HymnId } from '@bible/core/hymnal';
+import type { CategoryId, HymnId } from '@bible/core/hymnal';
+import { HymnalService } from '@bible/core/hymnal';
 import { Console, Effect, Layer, Option } from 'effect';
 
 const jsonFlag = Flag.boolean('json').pipe(
@@ -23,10 +24,7 @@ const limitFlag = Flag.integer('limit').pipe(
 // Layers
 // ============================================================================
 
-const HymnalLive = HymnalService.Live.pipe(
-  Layer.provide(HymnalDatabase.Live),
-  Layer.provideMerge(BunServices.layer),
-);
+const HymnalLive = HymnalService.Live.pipe(Layer.provide(BunServices.layer));
 
 // ============================================================================
 // Formatting
