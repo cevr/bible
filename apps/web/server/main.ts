@@ -27,10 +27,11 @@ import { BibleToolsApi } from '@bible/api';
 import { BibleService } from '@bible/core/bible/service';
 import { BibleDatabase } from '@bible/core/bible-db';
 import * as EGWDbBun from '@bible/core/egw-db/bun';
+import { WritingsArchive } from '@bible/core/writings/archive-service';
+import { WritingsService } from '@bible/core/writings/service';
 
 import { BibleGroupLive } from './api/groups/BibleGroupLive.js';
 import { EGWGroupLive } from './api/groups/EGWGroupLive.js';
-import { EGWServiceLive } from './services/EGWService.js';
 
 // ============================================================================
 // Configuration
@@ -49,9 +50,12 @@ const BibleGroupLayer = BibleGroupLive.pipe(
   Layer.provide(BibleDatabase.Default),
 );
 
+const WritingsServiceLive = WritingsService.Live.pipe(Layer.provide(EGWDbBun.Default));
+const WritingsArchiveLive = WritingsArchive.Live.pipe(
+  Layer.provide(Layer.merge(WritingsServiceLive, EGWDbBun.Default)),
+);
 const EGWGroupLayer = EGWGroupLive.pipe(
-  Layer.provide(EGWServiceLive),
-  Layer.provide(EGWDbBun.Default),
+  Layer.provide(Layer.merge(WritingsServiceLive, WritingsArchiveLive)),
 );
 
 const ApiLive = HttpApiBuilder.layer(BibleToolsApi).pipe(

@@ -43,7 +43,6 @@ export const EGWPageResponseSchema = S.Struct({
   // For prefetch hints
   prevPage: S.NullOr(S.Number),
   nextPage: S.NullOr(S.Number),
-  totalPages: S.Number,
 });
 
 export type EGWPageResponse = S.Schema.Type<typeof EGWPageResponseSchema>;
@@ -72,7 +71,6 @@ export const EGWBookDumpParagraphSchema = S.Struct({
   refCode: S.String,
   paraId: S.NullOr(S.String),
   refcodeShort: S.NullOr(S.String),
-  refcodeLong: S.NullOr(S.String),
   nodes: S.Array(Node),
   puborder: S.Number,
   elementType: S.NullOr(S.String),
@@ -100,6 +98,8 @@ export const EGWBookDumpSchema = S.Struct({
 });
 
 export type EGWBookDump = S.Schema.Type<typeof EGWBookDumpSchema>;
+
+const PositiveIntegerFromString = S.NumberFromString.pipe(S.check(S.isInt(), S.isGreaterThan(0)));
 
 // ============================================================================
 // Errors
@@ -132,6 +132,15 @@ export class EGWDatabaseError extends S.TaggedErrorClass<EGWDatabaseError>()(
   { httpApiStatus: 500 },
 ) {}
 
+export class EGWInvalidSearchError extends S.TaggedErrorClass<EGWInvalidSearchError>()(
+  'EGWInvalidSearchError',
+  {
+    reason: S.Literals(['empty-query', 'invalid-limit']),
+    message: S.String,
+  },
+  { httpApiStatus: 400 },
+) {}
+
 // ============================================================================
 // Group Definition
 // ============================================================================
@@ -147,7 +156,7 @@ export const EGWGroup = HttpApiGroup.make('EGW')
     HttpApiEndpoint.get('page', '/:bookCode/:page', {
       params: {
         bookCode: S.String,
-        page: S.NumberFromString,
+        page: PositiveIntegerFromString,
       },
       success: EGWPageResponseSchema,
       error: [EGWBookNotFoundError, EGWPageNotFoundError, EGWDatabaseError],
@@ -166,11 +175,11 @@ export const EGWGroup = HttpApiGroup.make('EGW')
     HttpApiEndpoint.get('search', '/search', {
       query: {
         q: S.String,
-        bookCode: S.optional(S.String),
+        bookCode: S.optional(S.NonEmptyString),
         limit: S.optional(S.NumberFromString).pipe(S.withDecodingDefault(Effect.succeed('50'))),
       },
       success: S.Array(EGWSearchResultSchema),
-      error: [EGWDatabaseError],
+      error: [EGWInvalidSearchError, EGWDatabaseError],
     }),
   )
   .add(
