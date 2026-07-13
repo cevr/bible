@@ -2,8 +2,15 @@ import { Suspense, useState, useTransition, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router';
 import { Trash2, ChevronLeft, RotateCcw } from 'lucide-react';
 import { useApp } from '@/providers/db-context';
-import { formatBibleReference } from '@bible/core/bible-reader';
+import { Reference, formatBibleReference } from '@bible/core/bible';
 import type { MemoryVerse } from '@/data/practice/types';
+
+const memoryVerseReference = (verse: MemoryVerse) => {
+  const start = Reference.verse(verse.book, verse.chapter, verse.verseStart);
+  return verse.verseEnd !== null && verse.verseEnd !== verse.verseStart
+    ? Reference.range(start, Reference.verse(verse.book, verse.chapter, verse.verseEnd))
+    : start;
+};
 
 export default function PracticeRoute() {
   const [searchParams] = useSearchParams();
@@ -60,12 +67,7 @@ function VerseList() {
       ) : (
         <div className="space-y-2">
           {verses.map((mv) => {
-            const ref = formatBibleReference({
-              book: mv.book,
-              chapter: mv.chapter,
-              verse: mv.verseStart,
-              verseEnd: mv.verseEnd ?? undefined,
-            });
+            const ref = formatBibleReference(memoryVerseReference(mv));
             return (
               <div
                 key={mv.id}
@@ -115,12 +117,7 @@ function PracticeSession({ verseId }: { verseId: string }) {
     );
   }
 
-  const ref = formatBibleReference({
-    book: mv.book,
-    chapter: mv.chapter,
-    verse: mv.verseStart,
-    verseEnd: mv.verseEnd ?? undefined,
-  });
+  const ref = formatBibleReference(memoryVerseReference(mv));
 
   return (
     <div className="space-y-6">
@@ -289,12 +286,7 @@ function TypeMode({ verse, onBack }: { verse: MemoryVerse; onBack: () => void })
     });
   };
 
-  const ref = formatBibleReference({
-    book: verse.book,
-    chapter: verse.chapter,
-    verse: verse.verseStart,
-    verseEnd: verse.verseEnd ?? undefined,
-  });
+  const ref = formatBibleReference(memoryVerseReference(verse));
 
   if (score != null) {
     const pct = Math.round(score * 100);

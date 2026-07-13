@@ -19,6 +19,7 @@
  */
 
 import { BibleDatabase } from '@bible/core/bible-db';
+import { Reference as CanonicalReference } from '@bible/core/bible';
 import { EGWCommentaryService, type CommentaryEntry } from '@bible/core/egw-commentary';
 import * as EGWDbBun from '@bible/core/egw-db/bun';
 import {
@@ -599,7 +600,17 @@ export function CrossRefsPopup(props: CrossRefsPopupProps) {
                 <For each={refsWithPreviews()}>
                   {(item, index) => {
                     const isSelected = () => index() === selectedIndex();
-                    const refText = formatReference(toReference(item.ref));
+                    const ref = toReference(item.ref);
+                    const canonicalReference =
+                      ref.verse === undefined
+                        ? CanonicalReference.chapter(ref.book, ref.chapter)
+                        : ref.verseEnd === undefined || ref.verseEnd === ref.verse
+                          ? CanonicalReference.verse(ref.book, ref.chapter, ref.verse)
+                          : CanonicalReference.range(
+                              CanonicalReference.verse(ref.book, ref.chapter, ref.verse),
+                              CanonicalReference.verse(ref.book, ref.chapter, ref.verseEnd),
+                            );
+                    const refText = formatReference(canonicalReference);
                     const paddedRef = refText.padEnd(18, ' ');
                     const badge = item.ref.classification
                       ? TYPE_BADGES[item.ref.classification]

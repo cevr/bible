@@ -7,7 +7,7 @@
  */
 import { useMemo } from 'react';
 import { isChapterHeading, headingLevel, nodesToText } from '@bible/core/egw';
-import { segmentTextWithReferences } from '@bible/core/bible-reader';
+import { segmentTextWithReferences } from '@bible/core/bible';
 import type { EGWParagraph } from '@/data/egw/api';
 
 // ---------------------------------------------------------------------------
@@ -109,7 +109,8 @@ function ParagraphElement({
                 className="text-primary underline decoration-primary/30 hover:decoration-primary transition-colors"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onRefClick?.(seg.ref);
+                  const ref = seg.ref._tag === 'range' ? seg.ref.start : seg.ref;
+                  onRefClick?.({ book: ref.book, chapter: ref.chapter, verse: ref.verse });
                 }}
               >
                 {seg.text}

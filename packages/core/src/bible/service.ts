@@ -2,6 +2,7 @@ import { Context, Effect, Layer, Option } from 'effect';
 
 import { BibleDatabase } from '../bible-db/bible-database.js';
 import type { BibleDatabaseError } from '../bible-db/bible-database.js';
+import { BIBLE_BOOKS } from './canon.js';
 import {
   BibleBookNotFoundError,
   BibleChapterNotFoundError,
@@ -10,7 +11,7 @@ import {
   BibleUnavailableError,
 } from './errors.js';
 import {
-  Book,
+  type Book,
   type BookNumber,
   type BookReference,
   Chapter,
@@ -19,7 +20,6 @@ import {
   SearchHit,
   Verse,
   bookNumber,
-  chapterNumber,
 } from './model.js';
 
 type Operation = BibleUnavailableError['operation'];
@@ -32,26 +32,9 @@ const unavailable =
 const integrity = (operation: Operation, cause: unknown): BibleDataIntegrityError =>
   new BibleDataIntegrityError({ operation, cause });
 
-const makeBook = (row: {
-  readonly number: number;
-  readonly name: string;
-  readonly chapters: number;
-  readonly testament: 'old' | 'new';
-}): Effect.Effect<Book, BibleDataIntegrityError> =>
-  Effect.try({
-    try: () =>
-      new Book({
-        number: bookNumber(row.number),
-        name: row.name,
-        chapters: chapterNumber(row.chapters),
-        testament: row.testament,
-      }),
-    catch: (cause) => integrity('load-canon', cause),
-  });
-
 export interface BibleServiceShape {
-  readonly books: Effect.Effect<readonly Book[], BibleError>;
-  readonly book: (reference: BookReference) => Effect.Effect<Book, BibleError>;
+  readonly books: Effect.Effect<readonly Book[]>;
+  readonly book: (reference: BookReference) => Effect.Effect<Book, BibleBookNotFoundError>;
   readonly chapter: (reference: ChapterReference) => Effect.Effect<Chapter, BibleError>;
   readonly search: (
     query: string,
@@ -66,10 +49,7 @@ export class BibleService extends Context.Service<BibleService, BibleServiceShap
     BibleService,
     Effect.gen(function* () {
       const database = yield* BibleDatabase;
-      const canon = yield* database.getBooks().pipe(
-        Effect.mapError(unavailable('load-canon')),
-        Effect.flatMap((rows) => Effect.all(rows.map(makeBook))),
-      );
+      const canon = BIBLE_BOOKS;
       const booksByNumber = new Map<BookNumber, Book>(canon.map((book) => [book.number, book]));
 
       const requireBook = (number: BookNumber): Effect.Effect<Book, BibleBookNotFoundError> =>
@@ -78,7 +58,7 @@ export class BibleService extends Context.Service<BibleService, BibleServiceShap
           onSome: Effect.succeed,
         });
 
-      const book = (reference: BookReference): Effect.Effect<Book, BibleError> =>
+      const book = (reference: BookReference): Effect.Effect<Book, BibleBookNotFoundError> =>
         requireBook(reference.book);
 
       const chapter = (reference: ChapterReference): Effect.Effect<Chapter, BibleError> =>

@@ -1,5 +1,5 @@
 import { Database } from 'bun:sqlite';
-import { BIBLE_BOOK_ALIASES } from '@bible/core/bible-reader';
+import { BIBLE_BOOK_ALIASES } from '@bible/core/bible';
 
 const escapeRegex = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 

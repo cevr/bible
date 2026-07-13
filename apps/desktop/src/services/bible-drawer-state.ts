@@ -1,4 +1,4 @@
-import { parseBibleQuery } from '@bible/core/bible-reader';
+import { parseBibleQuery } from '@bible/core/bible';
 import { type Accessor, createSignal } from 'solid-js';
 
 // Right-side verse-study drawer. Verse-pinned, four tabs (Notes / Cross-refs /
@@ -84,16 +84,20 @@ const targetFromQuery = (query: string): DrawerTarget | null => {
       return {
         book: parsed.ref.book,
         chapter: parsed.ref.chapter,
-        verse: parsed.ref.verse ?? 1,
+        verse: parsed.ref.verse,
       };
     case 'chapter':
-      return { book: parsed.book, chapter: parsed.chapter, verse: 1 };
+      return { book: parsed.ref.book, chapter: parsed.ref.chapter, verse: 1 };
     case 'verseRange':
-      return { book: parsed.book, chapter: parsed.chapter, verse: parsed.startVerse };
+      return {
+        book: parsed.ref.start.book,
+        chapter: parsed.ref.start.chapter,
+        verse: parsed.ref.start.verse,
+      };
     case 'chapterRange':
-      return { book: parsed.book, chapter: parsed.startChapter, verse: 1 };
+      return { book: parsed.start.book, chapter: parsed.start.chapter, verse: 1 };
     case 'fullBook':
-      return { book: parsed.book, chapter: 1, verse: 1 };
+      return { book: parsed.ref.book, chapter: 1, verse: 1 };
     case 'search':
       return null;
   }

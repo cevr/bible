@@ -7,7 +7,8 @@ import { HttpApiBuilder } from 'effect/unstable/httpapi';
 import { Effect, Option } from 'effect';
 
 import { BibleToolsApi, BookNotFoundError, ChapterNotFoundError, DatabaseError } from '@bible/api';
-import { BibleService, Reference, type BibleError, type ChapterReference } from '@bible/core/bible';
+import { Reference, type BibleError, type ChapterReference } from '@bible/core/bible';
+import { BibleService } from '@bible/core/bible/service';
 
 /**
  * Map database errors to API DatabaseError

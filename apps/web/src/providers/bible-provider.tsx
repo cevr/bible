@@ -1,12 +1,23 @@
 import type { ReactNode } from 'react';
-import { bibleDataService, formatReference, BOOKS } from '@/data/bible';
+import { bibleDataService, formatReference, getBook, BOOKS } from '@/data/bible';
+import { Reference as CanonicalReference } from '@bible/core/bible';
 import { BibleContext, type BibleContextValue } from '@/providers/bible-context';
 
 const value: BibleContextValue = {
   books: BOOKS,
-  getBook: (bookNumber) => bibleDataService.getBook(bookNumber),
+  getBook,
   parseReference: (ref) => bibleDataService.parseReference(ref),
-  formatReference,
+  formatReference: (ref) =>
+    formatReference(
+      ref.verse === undefined
+        ? CanonicalReference.chapter(ref.book, ref.chapter)
+        : ref.verseEnd === undefined || ref.verseEnd === ref.verse
+          ? CanonicalReference.verse(ref.book, ref.chapter, ref.verse)
+          : CanonicalReference.range(
+              CanonicalReference.verse(ref.book, ref.chapter, ref.verse),
+              CanonicalReference.verse(ref.book, ref.chapter, ref.verseEnd),
+            ),
+    ),
   getNextChapter: (book, chapter) => bibleDataService.getNextChapter(book, chapter),
   getPrevChapter: (book, chapter) => bibleDataService.getPrevChapter(book, chapter),
 };

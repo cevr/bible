@@ -5,31 +5,31 @@
  * No Effect dependency - can be used synchronously.
  */
 
-import type { BibleBook, BibleReference } from './types.js';
-import { BIBLE_BOOKS, getBibleBook } from './books.js';
+import { getBibleBook } from './canon.js';
+import type { Book, ChapterReference } from './model.js';
+import { Reference } from './model.js';
 
 /**
  * Get the next chapter reference.
  * Wraps to the next book when at the last chapter.
  * Wraps to Genesis 1 when at Revelation 22.
  */
-export function getNextChapter(book: number, chapter: number): BibleReference | undefined {
+export function getNextChapter(book: number, chapter: number): ChapterReference | undefined {
   const currentBook = getBibleBook(book);
   if (!currentBook) return undefined;
 
   // Next chapter in same book
   if (chapter < currentBook.chapters) {
-    return { book, chapter: chapter + 1 };
+    return Reference.chapter(book, chapter + 1);
   }
 
   // Move to next book
   const nextBook = getBibleBook(book + 1);
   if (nextBook) {
-    return { book: book + 1, chapter: 1 };
+    return Reference.chapter(book + 1, 1);
   }
 
-  // Wrap to Genesis
-  return { book: 1, chapter: 1 };
+  return undefined;
 }
 
 /**
@@ -37,22 +37,16 @@ export function getNextChapter(book: number, chapter: number): BibleReference | 
  * Wraps to the previous book when at chapter 1.
  * Wraps to Revelation 22 when at Genesis 1.
  */
-export function getPrevChapter(book: number, chapter: number): BibleReference | undefined {
+export function getPrevChapter(book: number, chapter: number): ChapterReference | undefined {
   // Previous chapter in same book
   if (chapter > 1) {
-    return { book, chapter: chapter - 1 };
+    return Reference.chapter(book, chapter - 1);
   }
 
   // Move to previous book
   const prevBook = getBibleBook(book - 1);
   if (prevBook) {
-    return { book: book - 1, chapter: prevBook.chapters };
-  }
-
-  // Wrap to Revelation
-  const lastBook = BIBLE_BOOKS[BIBLE_BOOKS.length - 1];
-  if (lastBook) {
-    return { book: lastBook.number, chapter: lastBook.chapters };
+    return Reference.chapter(book - 1, prevBook.chapters);
   }
 
   return undefined;
@@ -63,23 +57,23 @@ export function getPrevChapter(book: number, chapter: number): BibleReference | 
  * More efficient when you already have a Map of books.
  */
 export function getNextChapterWithMap(
-  bookMap: ReadonlyMap<number, BibleBook>,
+  bookMap: ReadonlyMap<number, Book>,
   book: number,
   chapter: number,
-): BibleReference | undefined {
+): ChapterReference | undefined {
   const currentBook = bookMap.get(book);
   if (!currentBook) return undefined;
 
   if (chapter < currentBook.chapters) {
-    return { book, chapter: chapter + 1 };
+    return Reference.chapter(book, chapter + 1);
   }
 
   const nextBook = bookMap.get(book + 1);
   if (nextBook) {
-    return { book: book + 1, chapter: 1 };
+    return Reference.chapter(book + 1, 1);
   }
 
-  return { book: 1, chapter: 1 };
+  return undefined;
 }
 
 /**
@@ -87,22 +81,17 @@ export function getNextChapterWithMap(
  * More efficient when you already have a Map of books.
  */
 export function getPrevChapterWithMap(
-  bookMap: ReadonlyMap<number, BibleBook>,
+  bookMap: ReadonlyMap<number, Book>,
   book: number,
   chapter: number,
-): BibleReference | undefined {
+): ChapterReference | undefined {
   if (chapter > 1) {
-    return { book, chapter: chapter - 1 };
+    return Reference.chapter(book, chapter - 1);
   }
 
   const prevBook = bookMap.get(book - 1);
   if (prevBook) {
-    return { book: book - 1, chapter: prevBook.chapters };
-  }
-
-  const lastBook = BIBLE_BOOKS[BIBLE_BOOKS.length - 1];
-  if (lastBook) {
-    return { book: lastBook.number, chapter: lastBook.chapters };
+    return Reference.chapter(book - 1, prevBook.chapters);
   }
 
   return undefined;

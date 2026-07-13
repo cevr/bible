@@ -5,8 +5,15 @@
  * Renderer-agnostic - can be used by TUI, Web, or CLI.
  */
 
-import type { BibleBook, BibleReference } from './types.js';
-import { BIBLE_BOOK_ALIASES, BIBLE_BOOKS, getBibleBook } from './books.js';
+import { BIBLE_BOOK_ALIASES, BIBLE_BOOKS, getBibleBook } from './canon.js';
+import type {
+  Book,
+  BookReference,
+  ChapterReference,
+  VerseRangeReference,
+  VerseReference,
+} from './model.js';
+import { Reference } from './model.js';
 
 /**
  * Options for parsing Bible queries
@@ -17,64 +24,54 @@ export interface ParseBibleQueryOptions {
    * If provided, will be used as a fallback when exact matching fails.
    * Signature: (books: BibleBook[], query: string) => BibleBook | undefined
    */
-  readonly fuzzyMatcher?: (books: readonly BibleBook[], query: string) => BibleBook | undefined;
+  readonly fuzzyMatcher?: (books: readonly Book[], query: string) => Book | undefined;
 }
 
 /**
  * Parsed query result - discriminated union
  */
 export type ParsedBibleQuery =
-  | { readonly _tag: 'single'; readonly ref: BibleReference }
-  | {
-      readonly _tag: 'chapter';
-      readonly book: number;
-      readonly chapter: number;
-    }
-  | {
-      readonly _tag: 'verseRange';
-      readonly book: number;
-      readonly chapter: number;
-      readonly startVerse: number;
-      readonly endVerse: number;
-    }
+  | { readonly _tag: 'single'; readonly ref: VerseReference }
+  | { readonly _tag: 'chapter'; readonly ref: ChapterReference }
+  | { readonly _tag: 'verseRange'; readonly ref: VerseRangeReference }
   | {
       readonly _tag: 'chapterRange';
-      readonly book: number;
-      readonly startChapter: number;
-      readonly endChapter: number;
+      readonly start: ChapterReference;
+      readonly end: ChapterReference;
     }
-  | { readonly _tag: 'fullBook'; readonly book: number }
+  | { readonly _tag: 'fullBook'; readonly ref: BookReference }
   | { readonly _tag: 'search'; readonly query: string };
 
 /**
  * Constructors for ParsedBibleQuery
  */
 export const ParsedBibleQuery = {
-  single: (ref: BibleReference): ParsedBibleQuery => ({ _tag: 'single', ref }),
+  single: (book: number, chapter: number, verse: number): ParsedBibleQuery => ({
+    _tag: 'single',
+    ref: Reference.verse(book, chapter, verse),
+  }),
   chapter: (book: number, chapter: number): ParsedBibleQuery => ({
     _tag: 'chapter',
-    book,
-    chapter,
+    ref: Reference.chapter(book, chapter),
   }),
   verseRange: (
     book: number,
     chapter: number,
     startVerse: number,
     endVerse: number,
-  ): ParsedBibleQuery => ({
-    _tag: 'verseRange',
-    book,
-    chapter,
-    startVerse,
-    endVerse,
-  }),
+  ): ParsedBibleQuery => {
+    const start = Reference.verse(book, chapter, startVerse);
+    return {
+      _tag: 'verseRange',
+      ref: Reference.range(start, Reference.verse(book, chapter, endVerse)),
+    };
+  },
   chapterRange: (book: number, startChapter: number, endChapter: number): ParsedBibleQuery => ({
     _tag: 'chapterRange',
-    book,
-    startChapter,
-    endChapter,
+    start: Reference.chapter(book, startChapter),
+    end: Reference.chapter(book, endChapter),
   }),
-  fullBook: (book: number): ParsedBibleQuery => ({ _tag: 'fullBook', book }),
+  fullBook: (book: number): ParsedBibleQuery => ({ _tag: 'fullBook', ref: Reference.book(book) }),
   search: (query: string): ParsedBibleQuery => ({ _tag: 'search', query }),
 } as const;
 
@@ -185,7 +182,7 @@ export function parseBibleQuery(query: string, options?: ParseBibleQueryOptions)
         const verse = parseInt(verseStr, 10);
         const book = getBibleBook(bookNum);
         if (book && chapter >= 1 && chapter <= book.chapters) {
-          return ParsedBibleQuery.single({ book: bookNum, chapter, verse });
+          return ParsedBibleQuery.single(bookNum, chapter, verse);
         }
       }
     }
@@ -249,7 +246,7 @@ export interface ExtractedReference {
   /** End position in original text */
   end: number;
   /** Parsed reference */
-  ref: BibleReference;
+  ref: VerseReference | VerseRangeReference;
 }
 
 /**
@@ -330,6 +327,7 @@ export function extractBibleReferences(text: string): ExtractedReference[] {
     const bookPart = match[1];
     const chapterStr = match[2];
     const verseStr = match[3];
+    const verseEndStr = match[4];
     const matchIndex = match.index;
 
     if (!fullMatch || !bookPart || !chapterStr || !verseStr || matchIndex === undefined) {
@@ -345,11 +343,19 @@ export function extractBibleReferences(text: string): ExtractedReference[] {
 
     if (!book || chapter < 1 || chapter > book.chapters) continue;
 
+    const startReference = Reference.verse(bookNum, chapter, verse);
+    const parsedReference = verseEndStr
+      ? Reference.range(
+          startReference,
+          Reference.verse(bookNum, chapter, parseInt(verseEndStr, 10)),
+        )
+      : startReference;
+
     results.push({
       text: fullMatch,
       start: matchIndex,
       end: matchIndex + fullMatch.length,
-      ref: { book: bookNum, chapter, verse },
+      ref: parsedReference,
     });
 
     // Scan for comma-separated continuations: "Eph 4:10, 15, 17-20"
@@ -360,13 +366,18 @@ export function extractBibleReferences(text: string): ExtractedReference[] {
       if (!cont) break;
 
       const contVerse = parseInt(cont[1] ?? '', 10);
+      const contVerseEnd = cont[2] ? parseInt(cont[2], 10) : undefined;
       const contText = cont[0] ?? '';
+      const continuationStart = Reference.verse(bookNum, chapter, contVerse);
 
       results.push({
         text: contText,
         start: pos,
         end: pos + contText.length,
-        ref: { book: bookNum, chapter, verse: contVerse },
+        ref:
+          contVerseEnd === undefined
+            ? continuationStart
+            : Reference.range(continuationStart, Reference.verse(bookNum, chapter, contVerseEnd)),
       });
 
       pos += contText.length;
@@ -390,16 +401,20 @@ export function extractBibleReferences(text: string): ExtractedReference[] {
     const verseEnd = match[2] ? parseInt(match[2], 10) : undefined;
     const fullMatch = match[0];
 
+    const contextReference = context.ref._tag === 'range' ? context.ref.start : context.ref;
+    const startReference = Reference.verse(contextReference.book, contextReference.chapter, verse);
+
     results.push({
       text: fullMatch,
       start: matchIndex,
       end: matchIndex + fullMatch.length,
-      ref: {
-        book: context.ref.book,
-        chapter: context.ref.chapter,
-        verse,
-        ...(verseEnd !== undefined ? { verseEnd } : {}),
-      },
+      ref:
+        verseEnd === undefined
+          ? startReference
+          : Reference.range(
+              startReference,
+              Reference.verse(contextReference.book, contextReference.chapter, verseEnd),
+            ),
     });
   }
 
@@ -415,7 +430,7 @@ export function extractBibleReferences(text: string): ExtractedReference[] {
  */
 export type TextSegmentWithRefs =
   | { type: 'text'; text: string }
-  | { type: 'ref'; text: string; ref: BibleReference };
+  | { type: 'ref'; text: string; ref: VerseReference | VerseRangeReference };
 
 export function segmentTextWithReferences(text: string): TextSegmentWithRefs[] {
   const refs = extractBibleReferences(text);

@@ -15,7 +15,7 @@ export class BibleChapterNotFoundError extends Schema.TaggedErrorClass<BibleChap
 export class BibleUnavailableError extends Schema.TaggedErrorClass<BibleUnavailableError>()(
   'BibleUnavailableError',
   {
-    operation: Schema.Literals(['load-canon', 'read-book', 'read-chapter', 'search']),
+    operation: Schema.Literals(['read-chapter', 'search']),
     cause: Schema.Unknown,
   },
 ) {}
@@ -23,7 +23,7 @@ export class BibleUnavailableError extends Schema.TaggedErrorClass<BibleUnavaila
 export class BibleDataIntegrityError extends Schema.TaggedErrorClass<BibleDataIntegrityError>()(
   'BibleDataIntegrityError',
   {
-    operation: Schema.Literals(['load-canon', 'read-book', 'read-chapter', 'search']),
+    operation: Schema.Literals(['read-chapter', 'search']),
     cause: Schema.Unknown,
   },
 ) {}

@@ -1,4 +1,4 @@
-import { getBibleBook } from '@bible/core/bible-reader';
+import { getBibleBook } from '@bible/core/bible';
 import { Effect, Fiber, Option, Stream } from 'effect';
 import {
   type Accessor,

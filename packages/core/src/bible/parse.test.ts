@@ -8,8 +8,9 @@ import {
   isReference,
   isSearch,
   parseBibleQuery,
-  ParsedBibleQueryConstructors as ParsedQuery,
-} from '@bible/core/bible-reader';
+  ParsedBibleQuery as ParsedQuery,
+  Reference,
+} from './index.js';
 import { describe, expect, it } from 'bun:test';
 
 describe('Bible reference parser (core)', () => {
@@ -18,7 +19,7 @@ describe('Bible reference parser (core)', () => {
       const result = parseBibleQuery('john 3:16');
       expect(result).toEqual({
         _tag: 'single',
-        ref: { book: 43, chapter: 3, verse: 16 },
+        ref: Reference.verse(43, 3, 16),
       });
     });
 
@@ -26,8 +27,7 @@ describe('Bible reference parser (core)', () => {
       const result = parseBibleQuery('john 3');
       expect(result).toEqual({
         _tag: 'chapter',
-        book: 43,
-        chapter: 3,
+        ref: Reference.chapter(43, 3),
       });
     });
 
@@ -35,10 +35,7 @@ describe('Bible reference parser (core)', () => {
       const result = parseBibleQuery('john 3:16-18');
       expect(result).toEqual({
         _tag: 'verseRange',
-        book: 43,
-        chapter: 3,
-        startVerse: 16,
-        endVerse: 18,
+        ref: Reference.range(Reference.verse(43, 3, 16), Reference.verse(43, 3, 18)),
       });
     });
 
@@ -46,9 +43,8 @@ describe('Bible reference parser (core)', () => {
       const result = parseBibleQuery('psalm 1-3');
       expect(result).toEqual({
         _tag: 'chapterRange',
-        book: 19,
-        startChapter: 1,
-        endChapter: 3,
+        start: Reference.chapter(19, 1),
+        end: Reference.chapter(19, 3),
       });
     });
 
@@ -56,7 +52,7 @@ describe('Bible reference parser (core)', () => {
       const result = parseBibleQuery('ruth');
       expect(result).toEqual({
         _tag: 'fullBook',
-        book: 8,
+        ref: Reference.book(8),
       });
     });
 
@@ -64,8 +60,7 @@ describe('Bible reference parser (core)', () => {
       const result = parseBibleQuery('1 cor 13');
       expect(result).toEqual({
         _tag: 'chapter',
-        book: 46,
-        chapter: 13,
+        ref: Reference.chapter(46, 13),
       });
     });
 
@@ -73,8 +68,7 @@ describe('Bible reference parser (core)', () => {
       const result = parseBibleQuery('1cor 13');
       expect(result).toEqual({
         _tag: 'chapter',
-        book: 46,
-        chapter: 13,
+        ref: Reference.chapter(46, 13),
       });
     });
 
@@ -82,7 +76,7 @@ describe('Bible reference parser (core)', () => {
       const result = parseBibleQuery('gen 1:1');
       expect(result).toEqual({
         _tag: 'single',
-        ref: { book: 1, chapter: 1, verse: 1 },
+        ref: Reference.verse(1, 1, 1),
       });
     });
 
@@ -90,8 +84,7 @@ describe('Bible reference parser (core)', () => {
       const result = parseBibleQuery('ps 23');
       expect(result).toEqual({
         _tag: 'chapter',
-        book: 19,
-        chapter: 23,
+        ref: Reference.chapter(19, 23),
       });
     });
 
@@ -99,7 +92,7 @@ describe('Bible reference parser (core)', () => {
       const result = parseBibleQuery('rev 22:21');
       expect(result).toEqual({
         _tag: 'single',
-        ref: { book: 66, chapter: 22, verse: 21 },
+        ref: Reference.verse(66, 22, 21),
       });
     });
 
@@ -123,7 +116,7 @@ describe('Bible reference parser (core)', () => {
       const result = parseBibleQuery('JOHN 3:16');
       expect(result).toEqual({
         _tag: 'single',
-        ref: { book: 43, chapter: 3, verse: 16 },
+        ref: Reference.verse(43, 3, 16),
       });
     });
 
@@ -131,14 +124,14 @@ describe('Bible reference parser (core)', () => {
       const result = parseBibleQuery('  john   3 : 16  ');
       expect(result).toEqual({
         _tag: 'single',
-        ref: { book: 43, chapter: 3, verse: 16 },
+        ref: Reference.verse(43, 3, 16),
       });
     });
   });
 
   describe('ParsedQuery constructors', () => {
     it('should create single verse query', () => {
-      const query = ParsedQuery.single({ book: 43, chapter: 3, verse: 16 });
+      const query = ParsedQuery.single(43, 3, 16);
       expect(query._tag).toBe('single');
     });
 
@@ -190,17 +183,17 @@ describe('Bible books data (core)', () => {
 
     it('should have Genesis as book 1', () => {
       const genesis = BIBLE_BOOKS[0];
-      expect(genesis?.number).toBe(1);
+      expect(Number(genesis?.number)).toBe(1);
       expect(genesis?.name).toBe('Genesis');
-      expect(genesis?.chapters).toBe(50);
+      expect(Number(genesis?.chapters)).toBe(50);
       expect(genesis?.testament).toBe('old');
     });
 
     it('should have Revelation as book 66', () => {
       const revelation = BIBLE_BOOKS[65];
-      expect(revelation?.number).toBe(66);
+      expect(Number(revelation?.number)).toBe(66);
       expect(revelation?.name).toBe('Revelation');
-      expect(revelation?.chapters).toBe(22);
+      expect(Number(revelation?.chapters)).toBe(22);
       expect(revelation?.testament).toBe('new');
     });
 
@@ -245,12 +238,12 @@ describe('Bible books data (core)', () => {
   describe('getBibleBookByName', () => {
     it('should return book by name', () => {
       const book = getBibleBookByName('Genesis');
-      expect(book?.number).toBe(1);
+      expect(Number(book?.number)).toBe(1);
     });
 
     it('should return book by abbreviation', () => {
       const book = getBibleBookByName('gen');
-      expect(book?.number).toBe(1);
+      expect(Number(book?.number)).toBe(1);
     });
 
     it('should return undefined for invalid name', () => {
@@ -260,15 +253,15 @@ describe('Bible books data (core)', () => {
 
   describe('formatBibleReference', () => {
     it('should format reference with verse', () => {
-      expect(formatBibleReference({ book: 43, chapter: 3, verse: 16 })).toBe('John 3:16');
+      expect(formatBibleReference(Reference.verse(43, 3, 16))).toBe('John 3:16');
     });
 
     it('should format reference without verse', () => {
-      expect(formatBibleReference({ book: 43, chapter: 3 })).toBe('John 3');
+      expect(formatBibleReference(Reference.chapter(43, 3))).toBe('John 3');
     });
 
-    it('should return empty string for invalid book', () => {
-      expect(formatBibleReference({ book: 99, chapter: 1 })).toBe('');
+    it('should reject an invalid book before formatting', () => {
+      expect(() => Reference.chapter(99, 1)).toThrow();
     });
   });
 });
@@ -277,15 +270,15 @@ describe('extractBibleReferences', () => {
   it('should extract standard references', () => {
     const refs = extractBibleReferences('Read John 3:16 and Gen 1:1');
     expect(refs).toHaveLength(2);
-    expect(refs[0]?.ref).toEqual({ book: 43, chapter: 3, verse: 16 });
-    expect(refs[1]?.ref).toEqual({ book: 1, chapter: 1, verse: 1 });
+    expect(refs[0]?.ref).toEqual(Reference.verse(43, 3, 16));
+    expect(refs[1]?.ref).toEqual(Reference.verse(1, 1, 1));
   });
 
   it('should handle comma continuations', () => {
     const refs = extractBibleReferences('Eph 4:10, 15');
     expect(refs).toHaveLength(2);
-    expect(refs[0]?.ref).toEqual({ book: 49, chapter: 4, verse: 10 });
-    expect(refs[1]?.ref).toEqual({ book: 49, chapter: 4, verse: 15 });
+    expect(refs[0]?.ref).toEqual(Reference.verse(49, 4, 10));
+    expect(refs[1]?.ref).toEqual(Reference.verse(49, 4, 15));
   });
 
   describe('verse keyword references', () => {
@@ -294,8 +287,8 @@ describe('extractBibleReferences', () => {
         'In John 3:16 we see love. Then verse 17 shows the purpose.',
       );
       expect(refs).toHaveLength(2);
-      expect(refs[0]?.ref).toEqual({ book: 43, chapter: 3, verse: 16 });
-      expect(refs[1]?.ref).toEqual({ book: 43, chapter: 3, verse: 17 });
+      expect(refs[0]?.ref).toEqual(Reference.verse(43, 3, 16));
+      expect(refs[1]?.ref).toEqual(Reference.verse(43, 3, 17));
       expect(refs[1]?.text).toBe('verse 17');
     });
 
@@ -304,14 +297,16 @@ describe('extractBibleReferences', () => {
         'Read Galatians 5:22. Then look at verses 19-21 for contrast.',
       );
       expect(refs).toHaveLength(2);
-      expect(refs[1]?.ref).toEqual({ book: 48, chapter: 5, verse: 19, verseEnd: 21 });
+      expect(refs[1]?.ref).toEqual(
+        Reference.range(Reference.verse(48, 5, 19), Reference.verse(48, 5, 21)),
+      );
       expect(refs[1]?.text).toBe('verses 19-21');
     });
 
     it('should handle "Verse" with capital V', () => {
       const refs = extractBibleReferences('Genesis 1:1 is foundational. Verse 2 continues.');
       expect(refs).toHaveLength(2);
-      expect(refs[1]?.ref).toEqual({ book: 1, chapter: 1, verse: 2 });
+      expect(refs[1]?.ref).toEqual(Reference.verse(1, 1, 2));
     });
 
     it('should use the nearest preceding reference for context', () => {
@@ -320,7 +315,7 @@ describe('extractBibleReferences', () => {
       );
       expect(refs).toHaveLength(3);
       // "verse 29" should resolve to Romans 8 (nearest preceding), not John 3
-      expect(refs[2]?.ref).toEqual({ book: 45, chapter: 8, verse: 29 });
+      expect(refs[2]?.ref).toEqual(Reference.verse(45, 8, 29));
     });
 
     it('should not match "verse N" without a preceding reference', () => {
@@ -333,9 +328,9 @@ describe('extractBibleReferences', () => {
         'Psalm 23:1 is comfort. Verse 2 paints a picture. Verse 4 brings courage.',
       );
       expect(refs).toHaveLength(3);
-      expect(refs[0]?.ref).toEqual({ book: 19, chapter: 23, verse: 1 });
-      expect(refs[1]?.ref).toEqual({ book: 19, chapter: 23, verse: 2 });
-      expect(refs[2]?.ref).toEqual({ book: 19, chapter: 23, verse: 4 });
+      expect(refs[0]?.ref).toEqual(Reference.verse(19, 23, 1));
+      expect(refs[1]?.ref).toEqual(Reference.verse(19, 23, 2));
+      expect(refs[2]?.ref).toEqual(Reference.verse(19, 23, 4));
     });
   });
 });

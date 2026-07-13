@@ -1,12 +1,5 @@
 import { Schema } from 'effect';
-import type {
-  BibleBook,
-  BibleReference,
-  BiblePosition,
-  BibleBookmark,
-  BibleHistoryEntry,
-  BiblePreferences,
-} from '@bible/core/bible-reader';
+import type { Book as CanonicalBook } from '@bible/core/bible';
 
 // Re-export Bible data from core (single source of truth)
 export {
@@ -15,15 +8,36 @@ export {
   getBibleBook as getBook,
   getBibleBookByName as getBookByName,
   formatBibleReference as formatReference,
-} from '@bible/core/bible-reader';
+} from '@bible/core/bible';
 
 // Re-export types with aliases for backwards compatibility
-export type Book = BibleBook;
-export type Reference = BibleReference;
-export type Position = BiblePosition;
-export type Bookmark = BibleBookmark;
-export type HistoryEntry = BibleHistoryEntry;
-export type Preferences = BiblePreferences;
+export type Book = CanonicalBook;
+export interface ReaderTarget {
+  readonly book: number;
+  readonly chapter: number;
+  readonly verse?: number;
+  readonly verseEnd?: number;
+}
+export type Reference = ReaderTarget;
+export interface Position {
+  readonly book: number;
+  readonly chapter: number;
+  readonly verse: number;
+}
+export interface Bookmark {
+  readonly id: string;
+  readonly reference: Reference;
+  readonly note?: string;
+  readonly createdAt: number;
+}
+export interface HistoryEntry {
+  readonly reference: Reference;
+  readonly visitedAt: number;
+}
+export interface Preferences {
+  readonly theme: string;
+  readonly displayMode: 'verse' | 'paragraph';
+}
 
 // Raw verse from kjv.json (CLI-specific schema for parsing JSON)
 // Note: Uses snake_case (book_name) to match the JSON file format

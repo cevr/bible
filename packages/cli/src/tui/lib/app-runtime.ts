@@ -6,7 +6,7 @@
  */
 
 import { BibleDatabase } from '@bible/core/bible-db';
-import { BibleService } from '@bible/core/bible';
+import { BibleService } from '@bible/core/bible/service';
 import type { EGWParagraphDatabase } from '@bible/core/egw-db';
 import * as EGWDbBun from '@bible/core/egw-db/bun';
 import { EGWReaderService } from '@bible/core/egw-reader';

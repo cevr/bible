@@ -1,4 +1,4 @@
-import { BIBLE_BOOKS, getBibleBook } from '@bible/core/bible-reader';
+import { BIBLE_BOOKS, getBibleBook } from '@bible/core/bible';
 import { Effect } from 'effect';
 import { type Component, createMemo, createSignal, For, Show } from 'solid-js';
 import { runtime } from '../runtime.js';

@@ -24,7 +24,7 @@ import { homedir } from 'os';
 import { join } from 'path';
 
 import { BibleToolsApi } from '@bible/api';
-import { BibleService } from '@bible/core/bible';
+import { BibleService } from '@bible/core/bible/service';
 import { BibleDatabase } from '@bible/core/bible-db';
 import * as EGWDbBun from '@bible/core/egw-db/bun';
 

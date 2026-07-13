@@ -1,4 +1,5 @@
 import { matchSorter } from 'match-sorter';
+import { Reference as CanonicalReference } from '@bible/core/bible';
 import {
   createContext,
   createEffect,
@@ -17,6 +18,19 @@ import { useModel } from '../../context/model.js';
 import { useNavigation } from '../../context/navigation.js';
 import { useOverlay } from '../../context/overlay.js';
 import { AiSearchState } from '../../types/ai-search.js';
+
+function toCanonicalReference(ref: Reference) {
+  if (ref.verse === undefined) {
+    return CanonicalReference.chapter(ref.book, ref.chapter);
+  }
+  const start = CanonicalReference.verse(ref.book, ref.chapter, ref.verse);
+  return ref.verseEnd === undefined || ref.verseEnd === ref.verse
+    ? start
+    : CanonicalReference.range(
+        start,
+        CanonicalReference.verse(ref.book, ref.chapter, ref.verseEnd),
+      );
+}
 
 // Types
 
@@ -205,7 +219,7 @@ export function PaletteProvider(props: PaletteProviderProps) {
 
         case 'success':
           for (const ref of currentState.results) {
-            const label = formatReference(ref);
+            const label = formatReference(toCanonicalReference(ref));
             const verse = data.getVerse(ref.book, ref.chapter, ref.verse ?? 1);
             const preview = verse
               ? verse.text.slice(0, 50) + (verse.text.length > 50 ? '...' : '')
@@ -259,7 +273,7 @@ export function PaletteProvider(props: PaletteProviderProps) {
       const history = state.getHistory(5);
       for (const entry of history) {
         const ref = entry.reference;
-        const label = formatReference(ref);
+        const label = formatReference(toCanonicalReference(ref));
         allOptions.push({
           type: 'history',
           group: 'recent',
@@ -275,7 +289,7 @@ export function PaletteProvider(props: PaletteProviderProps) {
       // Navigation: verse references
       const ref = data.parseReference(q);
       if (ref) {
-        const label = formatReference(ref);
+        const label = formatReference(toCanonicalReference(ref));
         allOptions.push({
           type: 'verse',
           group: 'navigation',

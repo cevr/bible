@@ -1,5 +1,5 @@
 import { Effect, Layer, Context } from 'effect';
-import { BIBLE_BOOK_ALIASES, getBibleBook } from '@bible/core/bible-reader';
+import { BIBLE_BOOK_ALIASES, getBibleBook } from '@bible/core/bible';
 import { DbClientService } from '../db-client-service';
 import type { DatabaseQueryError } from '../errors';
 import type {

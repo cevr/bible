@@ -3,7 +3,7 @@ import type { ChapterResponse, SearchResult, Verse } from '@bible/api';
 import {
   getNextChapter as getNextChapterNav,
   getPrevChapter as getPrevChapterNav,
-} from '@bible/core/bible-reader';
+} from '@bible/core/bible';
 
 import { getBook } from './types';
 import { DbClientService } from '../db-client-service';

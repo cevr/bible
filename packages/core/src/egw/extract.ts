@@ -19,7 +19,7 @@
 
 import { Option } from 'effect';
 
-import { parseBibleQuery } from '../bible-reader/index.js';
+import { parseBibleQuery } from '../bible/parse.js';
 import type { Node } from './ast.js';
 import type { Paragraph } from './schemas.js';
 
@@ -113,24 +113,24 @@ const expandParsed = (
 ): readonly { bibleBook: number; bibleChapter: number; bibleVerse: number | null }[] => {
   switch (parsed._tag) {
     case 'single': {
-      // parseBibleQuery always sets `verse` for the 'single' tag (whole-chapter
-      // titles fall through to the 'chapter' tag), but the BibleReference
-      // schema marks verse as optional. Treat a missing verse as chapter-wide.
-      const verse = parsed.ref.verse ?? null;
       return [
         {
           bibleBook: parsed.ref.book,
           bibleChapter: parsed.ref.chapter,
-          bibleVerse: verse,
+          bibleVerse: parsed.ref.verse,
         },
       ];
     }
     case 'chapter':
-      return [{ bibleBook: parsed.book, bibleChapter: parsed.chapter, bibleVerse: null }];
+      return [{ bibleBook: parsed.ref.book, bibleChapter: parsed.ref.chapter, bibleVerse: null }];
     case 'verseRange': {
       const rows: { bibleBook: number; bibleChapter: number; bibleVerse: number | null }[] = [];
-      for (let v = parsed.startVerse; v <= parsed.endVerse; v++) {
-        rows.push({ bibleBook: parsed.book, bibleChapter: parsed.chapter, bibleVerse: v });
+      for (let v = parsed.ref.start.verse; v <= parsed.ref.end.verse; v++) {
+        rows.push({
+          bibleBook: parsed.ref.start.book,
+          bibleChapter: parsed.ref.start.chapter,
+          bibleVerse: v,
+        });
       }
       return rows;
     }

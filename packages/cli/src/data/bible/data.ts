@@ -9,7 +9,7 @@ import { Effect, Layer, Option, Context } from 'effect';
 import { matchSorter } from 'match-sorter';
 
 import { BibleDatabase } from '@bible/core/bible-db';
-import { getNextChapterWithMap, getPrevChapterWithMap } from '@bible/core/bible-reader';
+import { getNextChapterWithMap, getPrevChapterWithMap } from '@bible/core/bible';
 
 import {
   BOOK_ALIASES,
@@ -46,46 +46,12 @@ const makeBibleDataService = Effect.gen(function* () {
   const db = yield* BibleDatabase;
 
   // Pre-load books for navigation helpers (sync operations)
-  const booksResult = yield* db.getBooks().pipe(Effect.orDie);
-  const bookMap = new Map<number, Book>();
-  for (const b of booksResult) {
-    bookMap.set(b.number, {
-      number: b.number,
-      name: b.name,
-      chapters: b.chapters,
-      testament: b.testament,
-    });
-  }
+  const bookMap = new Map<number, Book>(BOOKS.map((book) => [book.number, book]));
 
   return {
-    getBooks: () =>
-      db.getBooks().pipe(
-        Effect.map((books) =>
-          books.map((b) => ({
-            number: b.number,
-            name: b.name,
-            chapters: b.chapters,
-            testament: b.testament,
-          })),
-        ),
-        Effect.orDie,
-      ),
+    getBooks: () => Effect.succeed([...BOOKS]),
 
-    getBook: (bookNumber: number) =>
-      db.getBook(bookNumber).pipe(
-        Effect.map((opt) =>
-          Option.match(opt, {
-            onNone: () => undefined,
-            onSome: (b) => ({
-              number: b.number,
-              name: b.name,
-              chapters: b.chapters,
-              testament: b.testament,
-            }),
-          }),
-        ),
-        Effect.orDie,
-      ),
+    getBook: (bookNumber: number) => Effect.succeed(bookMap.get(bookNumber)),
 
     getChapter: (book: number, chapter: number) =>
       db.getChapter(book, chapter).pipe(

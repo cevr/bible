@@ -6,6 +6,7 @@
  */
 
 import type { ScrollBoxRenderable } from '@opentui/core';
+import { Reference as CanonicalReference } from '@bible/core/bible';
 import { useModalKeyboard } from '../../hooks/use-modal-keyboard.js';
 import { createMemo, createSignal, For, Show } from 'solid-js';
 
@@ -247,7 +248,9 @@ export function ConcordanceSearch(props: ConcordanceSearchProps) {
               const isSelected = () => index() === selectedIndex();
 
               if (item.type === 'verse') {
-                const refText = formatReference(item.ref).padEnd(20);
+                const refText = formatReference(
+                  CanonicalReference.verse(item.ref.book, item.ref.chapter, item.ref.verse),
+                ).padEnd(20);
                 return (
                   <text
                     id={`result-${index()}`}

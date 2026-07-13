@@ -5,7 +5,7 @@
  * No Effect service needed — stateless formatters that take deps as args.
  */
 import type { Verse } from '@bible/api';
-import { formatBibleReference } from '@bible/core/bible-reader';
+import { formatBibleReference, Reference } from '@bible/core/bible';
 import type { AppService } from './app-service';
 import type { DbClient } from '@/workers/db-client';
 import type { Bookmark, HistoryEntry, Preferences } from './state/effect-service';
@@ -25,7 +25,7 @@ export function versesToMarkdown(
   }
   for (const v of verses) {
     const ref = opts?.includeReference
-      ? `**${formatBibleReference({ book: v.book, chapter: v.chapter, verse: v.verse })}** `
+      ? `**${formatBibleReference(Reference.verse(v.book, v.chapter, v.verse))}** `
       : `**${v.verse}** `;
     lines.push(`${ref}${v.text}`);
   }
@@ -36,7 +36,16 @@ export function bookmarksToMarkdown(bookmarks: readonly Bookmark[]): string {
   if (bookmarks.length === 0) return 'No bookmarks.';
   const lines = ['# Bookmarks\n'];
   for (const bm of bookmarks) {
-    const ref = formatBibleReference(bm.reference);
+    const reference =
+      bm.reference.verse === undefined
+        ? Reference.chapter(bm.reference.book, bm.reference.chapter)
+        : bm.reference.verseEnd === undefined || bm.reference.verseEnd === bm.reference.verse
+          ? Reference.verse(bm.reference.book, bm.reference.chapter, bm.reference.verse)
+          : Reference.range(
+              Reference.verse(bm.reference.book, bm.reference.chapter, bm.reference.verse),
+              Reference.verse(bm.reference.book, bm.reference.chapter, bm.reference.verseEnd),
+            );
+    const ref = formatBibleReference(reference);
     const note = bm.note ? ` — ${bm.note}` : '';
     lines.push(`- ${ref}${note}`);
   }
@@ -52,9 +61,7 @@ export function collectionToMarkdown(
     lines.push(`${collection.description}\n`);
   }
   for (const cv of verses) {
-    lines.push(
-      `- ${formatBibleReference({ book: cv.book, chapter: cv.chapter, verse: cv.verse })}`,
-    );
+    lines.push(`- ${formatBibleReference(Reference.verse(cv.book, cv.chapter, cv.verse))}`);
   }
   return lines.join('\n');
 }

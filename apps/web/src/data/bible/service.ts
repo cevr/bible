@@ -9,7 +9,7 @@ import type { Book } from '@bible/api';
 import {
   getNextChapter as getNextChapterNav,
   getPrevChapter as getPrevChapterNav,
-} from '@bible/core/bible-reader';
+} from '@bible/core/bible';
 
 import { BOOKS, BOOK_ALIASES, getBook, type Reference } from './types.js';
 

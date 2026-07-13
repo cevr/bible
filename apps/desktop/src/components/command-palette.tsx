@@ -3,8 +3,9 @@ import {
   formatBibleReference,
   getBibleBook,
   parseBibleQuery,
+  Reference,
   type ParsedBibleQuery,
-} from '@bible/core/bible-reader';
+} from '@bible/core/bible';
 import { Effect, Fiber, Option } from 'effect';
 import {
   type Component,
@@ -401,7 +402,7 @@ export const CommandPalette: Component<CommandPaletteProps> = (props) => {
       const b = getBibleBook(v.book);
       return b ? `${b.name} — pick a chapter` : 'Pick a chapter';
     }
-    return `${formatBibleReference({ book: v.book, chapter: v.chapter })} — pick a verse`;
+    return `${formatBibleReference(Reference.chapter(v.book, v.chapter))} — pick a verse`;
   };
 
   return (
@@ -643,24 +644,25 @@ export const resolveParsedAction = (p: ParsedBibleQuery): PaletteAction | null =
   switch (p._tag) {
     case 'single': {
       const { book, chapter, verse } = p.ref;
-      // `verse` is typed optional on BibleReference, but the parser only
-      // emits `single` when it found one. Fall back to opening the chapter
-      // for the off-chance the schema is loosened later.
-      if (verse === undefined) return { kind: 'openChapter', book, chapter };
       return { kind: 'openChapterAt', book, chapter, verse };
     }
     case 'verseRange':
       // Verse ranges aren't a first-class concept in the reader yet — land
       // on the start verse.
-      return { kind: 'openChapterAt', book: p.book, chapter: p.chapter, verse: p.startVerse };
+      return {
+        kind: 'openChapterAt',
+        book: p.ref.start.book,
+        chapter: p.ref.start.chapter,
+        verse: p.ref.start.verse,
+      };
     case 'chapter':
-      return { kind: 'openChapter', book: p.book, chapter: p.chapter };
+      return { kind: 'openChapter', book: p.ref.book, chapter: p.ref.chapter };
     case 'chapterRange':
-      return { kind: 'openChapter', book: p.book, chapter: p.startChapter };
+      return { kind: 'openChapter', book: p.start.book, chapter: p.start.chapter };
     case 'fullBook':
       // Drill into the book view rather than guessing a chapter — gives
       // the user a chapter picker.
-      return { kind: 'drilldown', view: { _tag: 'book', book: p.book } };
+      return { kind: 'drilldown', view: { _tag: 'book', book: p.ref.book } };
     case 'search':
       return null;
   }
@@ -677,28 +679,28 @@ const describeParsed = (p: ParsedBibleQuery): { label: string; hint: string } | 
       };
     }
     case 'verseRange': {
-      const book = getBibleBook(p.book);
+      const book = getBibleBook(p.ref.start.book);
       if (!book) return null;
       return {
-        label: `${book.name} ${String(p.chapter)}:${String(p.startVerse)}–${String(p.endVerse)}`,
+        label: `${book.name} ${String(p.ref.start.chapter)}:${String(p.ref.start.verse)}–${String(p.ref.end.verse)}`,
         hint: 'Open at first verse',
       };
     }
     case 'chapter': {
-      const book = getBibleBook(p.book);
+      const book = getBibleBook(p.ref.book);
       if (!book) return null;
-      return { label: `${book.name} ${String(p.chapter)}`, hint: 'Open chapter' };
+      return { label: `${book.name} ${String(p.ref.chapter)}`, hint: 'Open chapter' };
     }
     case 'chapterRange': {
-      const book = getBibleBook(p.book);
+      const book = getBibleBook(p.start.book);
       if (!book) return null;
       return {
-        label: `${book.name} ${String(p.startChapter)}–${String(p.endChapter)}`,
+        label: `${book.name} ${String(p.start.chapter)}–${String(p.end.chapter)}`,
         hint: 'Open at first chapter',
       };
     }
     case 'fullBook': {
-      const book = getBibleBook(p.book);
+      const book = getBibleBook(p.ref.book);
       if (!book) return null;
       return { label: book.name, hint: 'Browse chapters' };
     }

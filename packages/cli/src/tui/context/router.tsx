@@ -10,7 +10,7 @@ import type {
   AppRoute,
   AppRouter,
   AppRouterState,
-  BibleReference,
+  BibleRouteReference,
   EGWReference,
 } from '@bible/core/app';
 import { createAppRouter, initialRouterState } from '@bible/core/app';
@@ -33,7 +33,7 @@ interface RouterContextValue {
   navigate: (route: AppRoute) => void;
 
   /** Navigate to Bible view */
-  navigateToBible: (ref?: BibleReference) => void;
+  navigateToBible: (ref?: BibleRouteReference) => void;
 
   /** Navigate to EGW reader */
   navigateToEgw: (ref?: EGWReference) => void;

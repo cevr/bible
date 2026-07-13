@@ -5,7 +5,7 @@
  * Renderer-agnostic - can be used by TUI, Web, or CLI.
  */
 
-import type { BibleBook } from './types.js';
+import { Book, type Reference as BibleReference, bookNumber, chapterNumber } from './model.js';
 
 /**
  * Book name aliases for reference parsing
@@ -257,7 +257,7 @@ export const BIBLE_BOOK_ALIASES: Record<string, number> = {
 /**
  * All 66 books of the Bible with metadata
  */
-export const BIBLE_BOOKS: readonly BibleBook[] = [
+const BOOK_DATA = [
   { number: 1, name: 'Genesis', chapters: 50, testament: 'old' },
   { number: 2, name: 'Exodus', chapters: 40, testament: 'old' },
   { number: 3, name: 'Leviticus', chapters: 27, testament: 'old' },
@@ -324,11 +324,20 @@ export const BIBLE_BOOKS: readonly BibleBook[] = [
   { number: 64, name: '3 John', chapters: 1, testament: 'new' },
   { number: 65, name: 'Jude', chapters: 1, testament: 'new' },
   { number: 66, name: 'Revelation', chapters: 22, testament: 'new' },
-];
+] as const;
 
-const BOOK_BY_NUMBER = new Map(BIBLE_BOOKS.map((b) => [b.number, b]));
+export const BIBLE_BOOKS: readonly Book[] = BOOK_DATA.map(
+  (book) =>
+    new Book({
+      ...book,
+      number: bookNumber(book.number),
+      chapters: chapterNumber(book.chapters),
+    }),
+);
 
-const BOOK_BY_NAME = new Map<string, BibleBook>([
+const BOOK_BY_NUMBER = new Map<number, Book>(BIBLE_BOOKS.map((b) => [b.number, b]));
+
+const BOOK_BY_NAME = new Map<string, Book>([
   ...BIBLE_BOOKS.map((b) => [b.name.toLowerCase(), b] as const),
   ...Object.entries(BIBLE_BOOK_ALIASES).flatMap(([alias, num]) => {
     const book = BOOK_BY_NUMBER.get(num);
@@ -336,11 +345,11 @@ const BOOK_BY_NAME = new Map<string, BibleBook>([
   }),
 ]);
 
-export function getBibleBook(bookNumber: number): BibleBook | undefined {
+export function getBibleBook(bookNumber: number): Book | undefined {
   return BOOK_BY_NUMBER.get(bookNumber);
 }
 
-export function getBibleBookByName(name: string): BibleBook | undefined {
+export function getBibleBookByName(name: string): Book | undefined {
   return BOOK_BY_NAME.get(name.trim().toLowerCase());
 }
 
@@ -348,19 +357,13 @@ export function getBibleBookByName(name: string): BibleBook | undefined {
  * Format a reference for display
  * Supports optional verse ranges (e.g., "John 3:16-18")
  */
-export function formatBibleReference(ref: {
-  book: number;
-  chapter: number;
-  verse?: number;
-  verseEnd?: number;
-}): string {
-  const book = getBibleBook(ref.book);
+export function formatBibleReference(ref: BibleReference): string {
+  const start = ref._tag === 'range' ? ref.start : ref;
+  const book = getBibleBook(start.book);
   if (!book) return '';
-  if (ref.verse !== undefined) {
-    if (ref.verseEnd !== undefined && ref.verseEnd !== ref.verse) {
-      return `${book.name} ${ref.chapter}:${ref.verse}-${ref.verseEnd}`;
-    }
-    return `${book.name} ${ref.chapter}:${ref.verse}`;
-  }
+  if (ref._tag === 'book') return book.name;
+  if (ref._tag === 'range')
+    return `${book.name} ${ref.start.chapter}:${ref.start.verse}-${ref.end.verse}`;
+  if (ref._tag === 'verse') return `${book.name} ${ref.chapter}:${ref.verse}`;
   return `${book.name} ${ref.chapter}`;
 }

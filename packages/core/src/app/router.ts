@@ -8,7 +8,7 @@
  * (keyboard shortcuts for TUI, click handlers for Web).
  */
 
-import type { AppRoute, AppRouterState, BibleReference, EGWReference } from './types.js';
+import type { AppRoute, AppRouterState, BibleRouteReference, EGWReference } from './types.js';
 import { initialRouterState, Route } from './types.js';
 
 /**
@@ -70,7 +70,7 @@ export interface AppRouter {
   navigate(route: AppRoute): void;
 
   /** Navigate to Bible view */
-  navigateToBible(ref?: BibleReference): void;
+  navigateToBible(ref?: BibleRouteReference): void;
 
   /** Navigate to EGW reader */
   navigateToEgw(ref?: EGWReference): void;

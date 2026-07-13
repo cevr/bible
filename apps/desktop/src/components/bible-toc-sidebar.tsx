@@ -1,4 +1,4 @@
-import { BIBLE_BOOKS, formatBibleReference, getBibleBook } from '@bible/core/bible-reader';
+import { BIBLE_BOOKS, formatBibleReference, getBibleBook, Reference } from '@bible/core/bible';
 import { Effect, Option } from 'effect';
 import {
   type Component,
@@ -245,7 +245,7 @@ const BibleVersesToc: Component<{
   readonly onOpenChapter: () => void;
   readonly onPickVerse: (verse: number) => void;
 }> = (props) => {
-  const title = (): string => formatBibleReference({ book: props.book, chapter: props.chapter });
+  const title = (): string => formatBibleReference(Reference.chapter(props.book, props.chapter));
 
   return (
     <div class="flex flex-col gap-3 px-4 py-3">

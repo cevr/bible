@@ -5,7 +5,11 @@
  * Navigate with j/k or up/down, select with Enter to navigate to Bible verse, close with Escape.
  */
 
-import { extractBibleReferences, formatBibleReference } from '@bible/core/bible-reader';
+import {
+  extractBibleReferences,
+  formatBibleReference,
+  type VerseReference,
+} from '@bible/core/bible';
 import { nodesToText } from '@bible/core/egw';
 import type { EGWParagraph } from '@bible/core/egw-reader';
 import type { ScrollBoxRenderable } from '@opentui/core';
@@ -20,7 +24,7 @@ type KeyEvent = { name?: string; sequence?: string; ctrl?: boolean };
 interface EGWBibleRefsPopupProps {
   paragraph: EGWParagraph;
   onClose: () => void;
-  onNavigate: (ref: { book: number; chapter: number; verse?: number }) => void;
+  onNavigate: (ref: VerseReference) => void;
   onKeyboard: (handler: (key: KeyEvent) => boolean) => void;
 }
 
@@ -39,11 +43,8 @@ export function EGWBibleRefsPopup(props: EGWBibleRefsPopupProps) {
   // Get preview text for each reference
   const refsWithPreviews = createMemo(() =>
     references().map((extracted) => {
-      const verse = data.getVerse(
-        extracted.ref.book,
-        extracted.ref.chapter,
-        extracted.ref.verse ?? 1,
-      );
+      const start = extracted.ref._tag === 'range' ? extracted.ref.start : extracted.ref;
+      const verse = data.getVerse(start.book, start.chapter, start.verse);
       let preview = '';
       if (verse) {
         preview = verse.text
@@ -73,7 +74,8 @@ export function EGWBibleRefsPopup(props: EGWBibleRefsPopupProps) {
     const refs = refsWithPreviews();
     const selected = refs[selectedIndex()];
     if (selected) {
-      props.onNavigate(selected.extracted.ref);
+      const ref = selected.extracted.ref;
+      props.onNavigate(ref._tag === 'range' ? ref.start : ref);
     }
   };
 

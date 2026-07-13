@@ -1,5 +1,6 @@
 import { isRoute, Route } from '@bible/core/app';
 import type { EGWReference } from '@bible/core/app';
+import { Reference as BibleReference } from '@bible/core/bible';
 import { render, useKeyboard, useRenderer, useTerminalDimensions } from '@opentui/solid';
 import type { ManagedRuntime } from 'effect';
 import { createResource, createSignal, Match, Show, Switch } from 'solid-js';
@@ -256,11 +257,15 @@ function AppWithRuntime(
   const initialRoute = props.initialEgwRef
     ? Route.egw(props.initialEgwRef.bookCode ? (props.initialEgwRef as EGWReference) : undefined)
     : props.initialRef
-      ? Route.bible({
-          book: props.initialRef.book,
-          chapter: props.initialRef.chapter,
-          verse: props.initialRef.verse,
-        })
+      ? Route.bible(
+          props.initialRef.verse === undefined
+            ? BibleReference.chapter(props.initialRef.book, props.initialRef.chapter)
+            : BibleReference.verse(
+                props.initialRef.book,
+                props.initialRef.chapter,
+                props.initialRef.verse,
+              ),
+        )
       : Route.bible();
 
   return (

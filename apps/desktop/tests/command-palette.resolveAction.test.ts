@@ -7,11 +7,7 @@
  * navigation contract the palette publishes to the rest of the app.
  */
 
-import {
-  type ParsedBibleQuery,
-  ParsedBibleQueryConstructors,
-  parseBibleQuery,
-} from '@bible/core/bible-reader';
+import { type ParsedBibleQuery, parseBibleQuery } from '@bible/core/bible';
 import { describe, expect, it } from 'vitest';
 import { resolveAction, resolveParsedAction, type Row } from '../src/components/command-palette.js';
 
@@ -124,16 +120,6 @@ describe('resolveParsedAction', () => {
     expect(resolveParsedAction(parsed)).toEqual({
       kind: 'drilldown',
       view: { _tag: 'book', book: 8 },
-    });
-  });
-
-  it('falls back to openChapter when a single ref has no verse', () => {
-    // Synthetic — guards the schema-loosening branch in the resolver.
-    const parsed = ParsedBibleQueryConstructors.single({ book: 43, chapter: 3 });
-    expect(resolveParsedAction(parsed)).toEqual({
-      kind: 'openChapter',
-      book: 43,
-      chapter: 3,
     });
   });
 

@@ -10,6 +10,7 @@
  */
 
 import type { ScrollBoxRenderable } from '@opentui/core';
+import { Reference as CanonicalReference } from '@bible/core/bible';
 import { useModalKeyboard } from '../../hooks/use-modal-keyboard.js';
 import { createEffect, createMemo, createSignal, For, onCleanup, Show } from 'solid-js';
 
@@ -447,7 +448,16 @@ export function BibleCommandPalette(props: BibleCommandPaletteProps) {
                               : theme().textHighlight,
                         }}
                       >
-                        {formatReference(ref)}
+                        {formatReference(
+                          ref.verse === undefined
+                            ? CanonicalReference.chapter(ref.book, ref.chapter)
+                            : ref.verseEnd === undefined || ref.verseEnd === ref.verse
+                              ? CanonicalReference.verse(ref.book, ref.chapter, ref.verse)
+                              : CanonicalReference.range(
+                                  CanonicalReference.verse(ref.book, ref.chapter, ref.verse),
+                                  CanonicalReference.verse(ref.book, ref.chapter, ref.verseEnd),
+                                ),
+                        )}
                       </span>{' '}
                       <span
                         style={{

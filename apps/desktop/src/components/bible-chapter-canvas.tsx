@@ -1,4 +1,4 @@
-import { formatBibleReference, getBibleBook } from '@bible/core/bible-reader';
+import { formatBibleReference, getBibleBook, Reference } from '@bible/core/bible';
 import { Effect, Fiber, Option } from 'effect';
 import {
   type Component,
@@ -238,7 +238,7 @@ const ChapterShell: Component<{
       return {
         book: b,
         chapter: nextChapter,
-        label: formatBibleReference({ book: b, chapter: nextChapter }),
+        label: formatBibleReference(Reference.chapter(b, nextChapter)),
       };
     }
     const adjBookNum = b + direction;
@@ -248,7 +248,7 @@ const ChapterShell: Component<{
     return {
       book: adjBookNum,
       chapter: adjChapter,
-      label: formatBibleReference({ book: adjBookNum, chapter: adjChapter }),
+      label: formatBibleReference(Reference.chapter(adjBookNum, adjChapter)),
     };
   };
   const prevLoc = createMemo<Loc | null>(() => adjacentChapter(-1));
@@ -323,7 +323,7 @@ const ChapterShell: Component<{
       for (let i = 1; i <= meta.chapters; i++) {
         out.push({
           value: `${String(book())}:${String(i)}`,
-          label: formatBibleReference({ book: book(), chapter: i }),
+          label: formatBibleReference(Reference.chapter(book(), i)),
         });
       }
       return out;
@@ -335,7 +335,7 @@ const ChapterShell: Component<{
     goTo({
       book: book(),
       chapter: 1,
-      label: formatBibleReference({ book: book(), chapter: 1 }),
+      label: formatBibleReference(Reference.chapter(book(), 1)),
     });
   };
   const goLast = (): void => {
@@ -345,7 +345,7 @@ const ChapterShell: Component<{
     goTo({
       book: book(),
       chapter: meta.chapters,
-      label: formatBibleReference({ book: book(), chapter: meta.chapters }),
+      label: formatBibleReference(Reference.chapter(book(), meta.chapters)),
     });
   };
 
@@ -382,7 +382,7 @@ const ChapterShell: Component<{
   const title = (): string => {
     const meta = getBibleBook(book());
     if (!meta) return `${String(book())} ${String(chapter())}`;
-    return formatBibleReference({ book: book(), chapter: chapter() });
+    return formatBibleReference(Reference.chapter(book(), chapter()));
   };
 
   // Resolve the chapter for render. Peek the LRU first so prev/next nav
@@ -417,7 +417,7 @@ const ChapterShell: Component<{
           const b = Number(bStr);
           const c = Number(cStr);
           if (!Number.isFinite(b) || !Number.isFinite(c)) return;
-          goTo({ book: b, chapter: c, label: formatBibleReference({ book: b, chapter: c }) });
+          goTo({ book: b, chapter: c, label: formatBibleReference(Reference.chapter(b, c)) });
         }}
       />
       <Show

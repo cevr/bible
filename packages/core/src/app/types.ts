@@ -6,18 +6,13 @@
  */
 
 import { Schema } from 'effect';
+import { ChapterReference, VerseReference } from '../bible/model.js';
 
 /**
  * Bible Reference - identifies a location in the Bible
  */
-export class BibleReference extends Schema.Class<BibleReference>('BibleReference')({
-  book: Schema.Number,
-  chapter: Schema.Number,
-  verse: Schema.optionalKey(Schema.NullishOr(Schema.Number)),
-}) {
-  static fromJson = Schema.decodeEffect(Schema.fromJsonString(BibleReference));
-  static toJson = Schema.encodeEffect(Schema.fromJsonString(BibleReference));
-}
+export const BibleRouteReference = Schema.Union([ChapterReference, VerseReference]);
+export type BibleRouteReference = typeof BibleRouteReference.Type;
 
 /**
  * EGW Reference - identifies a location in EGW writings
@@ -36,7 +31,7 @@ export class EGWReference extends Schema.Class<EGWReference>('EGWReference')({
  * App Route variants - discriminated union using Schema.TaggedClass
  */
 export class BibleRoute extends Schema.TaggedClass<BibleRoute>('BibleRoute')('bible', {
-  ref: Schema.optional(BibleReference),
+  ref: Schema.optional(BibleRouteReference),
 }) {}
 
 export class EGWRoute extends Schema.TaggedClass<EGWRoute>('EGWRoute')('egw', {
@@ -90,7 +85,7 @@ export const initialRouterState = new AppRouterState({
  * Route constructors for type-safe navigation
  */
 export const Route = {
-  bible: (ref?: BibleReference): AppRoute => new BibleRoute({ ref }),
+  bible: (ref?: BibleRouteReference): AppRoute => new BibleRoute({ ref }),
   egw: (ref?: EGWReference): AppRoute => new EGWRoute({ ref }),
   messages: (): AppRoute => new MessagesRoute({}),
   sabbathSchool: (): AppRoute => new SabbathSchoolRoute({}),

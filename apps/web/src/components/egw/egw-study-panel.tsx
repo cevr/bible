@@ -6,7 +6,7 @@
  */
 import { useMemo, useState, useTransition, Suspense } from 'react';
 import { XIcon, Trash2 } from 'lucide-react';
-import { extractBibleReferences, formatBibleReference } from '@bible/core/bible-reader';
+import { extractBibleReferences, formatBibleReference } from '@bible/core/bible';
 import { nodesToText } from '@bible/core/egw';
 import type { EGWParagraph } from '@/data/egw/api';
 import type { MarkerColor } from '@/data/study/service';
@@ -91,7 +91,11 @@ export function EgwStudyPanel({
                   <button
                     key={i}
                     className="w-full text-left px-3 py-2 rounded-lg text-sm transition-colors hover:bg-accent text-primary font-medium"
-                    onClick={() => onRefClick(extracted.ref)}
+                    onClick={() => {
+                      const ref =
+                        extracted.ref._tag === 'range' ? extracted.ref.start : extracted.ref;
+                      onRefClick({ book: ref.book, chapter: ref.chapter, verse: ref.verse });
+                    }}
                   >
                     {formatBibleReference(extracted.ref)}
                   </button>

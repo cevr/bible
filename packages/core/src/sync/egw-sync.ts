@@ -15,7 +15,7 @@
 
 import { Effect, Option, Ref, Stream } from 'effect';
 
-import { extractBibleReferences } from '../bible-reader/parse.js';
+import { extractBibleReferences } from '../bible/parse.js';
 import {
   EGWParagraphDatabase,
   type ParagraphDatabaseError,
@@ -224,13 +224,17 @@ export const downloadBookToLocal = (
         const refs = extractBibleReferences(content);
 
         for (const ref of refs) {
-          bibleRefs.push({
-            bookId: book.book_id,
-            refCode,
-            bibleBook: ref.ref.book,
-            bibleChapter: ref.ref.chapter,
-            bibleVerse: ref.ref.verse ?? null,
-          });
+          const start = ref.ref._tag === 'range' ? ref.ref.start : ref.ref;
+          const endVerse = ref.ref._tag === 'range' ? ref.ref.end.verse : start.verse;
+          for (let verse = start.verse; verse <= endVerse; verse++) {
+            bibleRefs.push({
+              bookId: book.book_id,
+              refCode,
+              bibleBook: start.book,
+              bibleChapter: start.chapter,
+              bibleVerse: verse,
+            });
+          }
         }
       }
 

@@ -4,7 +4,7 @@
  * Renders a single EGW paragraph with Bible reference highlighting.
  */
 
-import { segmentTextWithReferences } from '@bible/core/bible-reader';
+import { segmentTextWithReferences } from '@bible/core/bible';
 import { nodesToText } from '@bible/core/egw';
 import type { EGWParagraph } from '@bible/core/egw-reader';
 import { createMemo, For, Show } from 'solid-js';

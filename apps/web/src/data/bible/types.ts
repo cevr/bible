@@ -5,7 +5,7 @@
  * Verse and SearchResult types now come from @bible/api.
  */
 
-import type { BibleBook, BibleReference } from '@bible/core/bible-reader';
+import type { Book as CanonicalBook } from '@bible/core/bible';
 
 // Re-export Bible data from core (single source of truth)
 export {
@@ -14,11 +14,17 @@ export {
   getBibleBook as getBook,
   getBibleBookByName as getBookByName,
   formatBibleReference as formatReference,
-} from '@bible/core/bible-reader';
+} from '@bible/core/bible';
 
 // Re-export types with aliases for backwards compatibility
-export type Book = BibleBook;
-export type Reference = BibleReference;
+export type Book = CanonicalBook;
+export interface ReaderTarget {
+  readonly book: number;
+  readonly chapter: number;
+  readonly verse?: number;
+  readonly verseEnd?: number;
+}
+export type Reference = ReaderTarget;
 
 // Re-export API types for convenience
 export type { Verse, SearchResult, ChapterResponse } from '@bible/api';

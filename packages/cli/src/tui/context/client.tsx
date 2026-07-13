@@ -5,13 +5,8 @@
  * Uses the centralized app runtime with Result ADT for async state.
  */
 
-import {
-  BibleService,
-  type Book,
-  type Chapter,
-  Reference,
-  type SearchHit,
-} from '@bible/core/bible';
+import { type Book, type Chapter, Reference, type SearchHit } from '@bible/core/bible';
+import { BibleService } from '@bible/core/bible/service';
 import {
   EGWService,
   type EGWBook,

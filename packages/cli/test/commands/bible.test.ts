@@ -1,17 +1,16 @@
 import { describe, expect, it } from 'bun:test';
 
 import { isStrongsNumber } from '../../src/commands/bible.js';
+import { getBibleBook } from '@bible/core/bible';
 import { getVersesForQuery, ParsedQuery, parseVerseQuery } from '../../src/data/bible/parse.js';
 import type { BibleDataSyncService, Book, Verse } from '../../src/data/bible/types.js';
 
 // Minimal mock BibleDataSyncService for testing parsing logic
 function createMockBibleData(): BibleDataSyncService {
-  const books: Book[] = [
-    { number: 8, name: 'Ruth', chapters: 4, testament: 'old' },
-    { number: 19, name: 'Psalms', chapters: 150, testament: 'old' },
-    { number: 43, name: 'John', chapters: 21, testament: 'new' },
-    { number: 46, name: '1 Corinthians', chapters: 16, testament: 'new' },
-  ];
+  const books: Book[] = [8, 19, 43, 46].flatMap((number) => {
+    const book = getBibleBook(number);
+    return book === undefined ? [] : [book];
+  });
 
   const verses: Record<string, Verse[]> = {
     '43-3': [
@@ -119,57 +118,32 @@ describe('bible verse parsing', () => {
   describe('parseVerseQuery', () => {
     it('should parse single verse reference', () => {
       const result = parseVerseQuery('john 3:16', data);
-      expect(result).toEqual({
-        _tag: 'single',
-        ref: { book: 43, chapter: 3, verse: 16 },
-      });
+      expect(result).toEqual(ParsedQuery.single(43, 3, 16));
     });
 
     it('should parse chapter reference', () => {
       const result = parseVerseQuery('john 3', data);
-      expect(result).toEqual({
-        _tag: 'chapter',
-        book: 43,
-        chapter: 3,
-      });
+      expect(result).toEqual(ParsedQuery.chapter(43, 3));
     });
 
     it('should parse verse range', () => {
       const result = parseVerseQuery('john 3:16-18', data);
-      expect(result).toEqual({
-        _tag: 'verseRange',
-        book: 43,
-        chapter: 3,
-        startVerse: 16,
-        endVerse: 18,
-      });
+      expect(result).toEqual(ParsedQuery.verseRange(43, 3, 16, 18));
     });
 
     it('should parse chapter range', () => {
       const result = parseVerseQuery('psalm 1-3', data);
-      expect(result).toEqual({
-        _tag: 'chapterRange',
-        book: 19,
-        startChapter: 1,
-        endChapter: 3,
-      });
+      expect(result).toEqual(ParsedQuery.chapterRange(19, 1, 3));
     });
 
     it('should parse full book name', () => {
       const result = parseVerseQuery('ruth', data);
-      expect(result).toEqual({
-        _tag: 'fullBook',
-        book: 8,
-      });
+      expect(result).toEqual(ParsedQuery.fullBook(8));
     });
 
     it('should handle numbered book names', () => {
       const result = parseVerseQuery('1 cor 13', data);
-      expect(result).toEqual({
-        _tag: 'chapter',
-        book: 46,
-        chapter: 13,
-      });
+      expect(result).toEqual(ParsedQuery.chapter(46, 13));
     });
 
     it('should fall back to search for unrecognized queries', () => {
@@ -191,7 +165,7 @@ describe('bible verse parsing', () => {
 
   describe('getVersesForQuery', () => {
     it('should get single verse', () => {
-      const query = ParsedQuery.single({ book: 43, chapter: 3, verse: 16 });
+      const query = ParsedQuery.single(43, 3, 16);
       const verses = getVersesForQuery(query, data);
       expect(verses).toHaveLength(1);
       expect(verses[0]?.verse).toBe(16);
