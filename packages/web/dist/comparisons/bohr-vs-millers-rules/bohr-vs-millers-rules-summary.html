@@ -8,7 +8,8 @@
       name="description"
       content="The single load-bearing finding, the three violation clusters, the eight zero-violation chapters, and the five Rule-XIII vindications — distilled from the full audit."
     />
-    <meta name="theme-color" content="#f7f5f0" />
+    <meta name="theme-color" content="#f7f5f0" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#171b18" media="(prefers-color-scheme: dark)" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -1300,6 +1301,7 @@
     <style>
 /* ==== The Sure Word bridge — tokens in sync with styles.css ==== */
 :root {
+  color-scheme: light dark;
   --paper: #f7f5f0;
   --paper-raise: #fdfcf8;
   --paper-tint: #eeebe1;
@@ -1317,6 +1319,26 @@
   --oxblood: #7d3b2d;  /* violation red — calmer, but must stay red */
   --oxblood-soft: #a4664f;
   --body: 'Literata', Georgia, 'Times New Roman', serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #171b18;
+    --paper-raise: #202621;
+    --paper-tint: #242b25;
+    --ink: #e9e6dc;
+    --ink-soft: #c7c2b4;
+    --ink-mute: #a6a092;
+    --rule: #465047;
+    --rule-soft: #323a33;
+    --accent: #9bbfa9;
+    --accent-soft: #739784;
+    --accent-wash: #2c4034;
+    --indigo: #9bbfa9;
+    --green: #8fbea0;
+    --gold: #d1ad62;
+    --oxblood: #d88470;
+    --oxblood-soft: #e1a08e;
+  }
 }
 body { font-size: 1.0625rem; line-height: 1.6; }
 ::selection { background: var(--accent-wash); color: var(--ink); }

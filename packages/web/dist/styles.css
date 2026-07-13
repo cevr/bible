@@ -1,4 +1,5 @@
 :root {
+  color-scheme: light dark;
   --paper: #f7f5f0;
   --paper-raise: #fdfcf8;
   --paper-tint: #eeebe1;
@@ -15,6 +16,22 @@
   --display: 'Fraunces', 'Times New Roman', Georgia, serif;
   --body: 'Literata', Georgia, 'Times New Roman', serif;
   --mono: 'IBM Plex Mono', ui-monospace, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #171b18;
+    --paper-raise: #202621;
+    --paper-tint: #242b25;
+    --ink: #e9e6dc;
+    --ink-soft: #c7c2b4;
+    --ink-mute: #a6a092;
+    --rule: #465047;
+    --rule-soft: #323a33;
+    --accent: #9bbfa9;
+    --accent-soft: #739784;
+    --accent-wash: #2c4034;
+  }
 }
 
 * { box-sizing: border-box; }

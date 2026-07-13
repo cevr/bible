@@ -5,7 +5,7 @@
     "buildCommand": "echo 'dist/ is prebuilt and committed — run `bun run build` locally'"
   },
   "deploy": {
-    "startCommand": "bun run src/server.ts",
+    "startCommand": "bun run packages/web/src/server.ts",
     "restartPolicyType": "ON_FAILURE"
   }
 }

@@ -115,6 +115,7 @@ const FONTS = `
  * on desktop viewports).
  */
 export const STYLES = `:root {
+  color-scheme: light dark;
   --paper: #f7f5f0;
   --paper-raise: #fdfcf8;
   --paper-tint: #eeebe1;
@@ -131,6 +132,22 @@ export const STYLES = `:root {
   --display: 'Fraunces', 'Times New Roman', Georgia, serif;
   --body: 'Literata', Georgia, 'Times New Roman', serif;
   --mono: 'IBM Plex Mono', ui-monospace, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #171b18;
+    --paper-raise: #202621;
+    --paper-tint: #242b25;
+    --ink: #e9e6dc;
+    --ink-soft: #c7c2b4;
+    --ink-mute: #a6a092;
+    --rule: #465047;
+    --rule-soft: #323a33;
+    --accent: #9bbfa9;
+    --accent-soft: #739784;
+    --accent-wash: #2c4034;
+  }
 }
 
 * { box-sizing: border-box; }
@@ -698,7 +715,8 @@ export const shell = (opts: {
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>${esc(opts.title)}</title>
     <meta name="description" content="${esc(opts.description)}" />
-    <meta name="theme-color" content="#f7f5f0" />
+    <meta name="theme-color" content="#f7f5f0" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#171b18" media="(prefers-color-scheme: dark)" />
     <meta property="og:title" content="${esc(opts.title)}" />
     <meta property="og:description" content="${esc(opts.description)}" />
     <meta property="og:type" content="article" />
@@ -733,6 +751,7 @@ ${footer()}
 const COMPARISON_BRIDGE = `
 /* ==== The Sure Word bridge — tokens in sync with styles.css ==== */
 :root {
+  color-scheme: light dark;
   --paper: #f7f5f0;
   --paper-raise: #fdfcf8;
   --paper-tint: #eeebe1;
@@ -750,6 +769,26 @@ const COMPARISON_BRIDGE = `
   --oxblood: #7d3b2d;  /* violation red — calmer, but must stay red */
   --oxblood-soft: #a4664f;
   --body: 'Literata', Georgia, 'Times New Roman', serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #171b18;
+    --paper-raise: #202621;
+    --paper-tint: #242b25;
+    --ink: #e9e6dc;
+    --ink-soft: #c7c2b4;
+    --ink-mute: #a6a092;
+    --rule: #465047;
+    --rule-soft: #323a33;
+    --accent: #9bbfa9;
+    --accent-soft: #739784;
+    --accent-wash: #2c4034;
+    --indigo: #9bbfa9;
+    --green: #8fbea0;
+    --gold: #d1ad62;
+    --oxblood: #d88470;
+    --oxblood-soft: #e1a08e;
+  }
 }
 body { font-size: 1.0625rem; line-height: 1.6; }
 ::selection { background: var(--accent-wash); color: var(--ink); }
@@ -866,7 +905,10 @@ export const unifyComparisonPage = (html: string, comp: Comparison.Source): stri
     );
   }
   out = out.replace(/<footer class="colophon">[\s\S]*?<\/footer>/, footer().trim());
-  out = out.replace(/(<meta name="theme-color" content=")[^"]*(")/, '$1#f7f5f0$2');
+  out = out.replace(
+    /<meta name="theme-color" content="[^"]*"\s*\/?>/,
+    '<meta name="theme-color" content="#f7f5f0" media="(prefers-color-scheme: light)" />\n    <meta name="theme-color" content="#171b18" media="(prefers-color-scheme: dark)" />',
+  );
   out = out.replace('</head>', `${FONTS}\n    <style>${COMPARISON_BRIDGE}</style>\n  </head>`);
   return out;
 };
