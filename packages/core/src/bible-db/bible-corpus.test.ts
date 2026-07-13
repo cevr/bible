@@ -6,15 +6,15 @@ import * as SqliteBun from '@effect/sql-sqlite-bun/SqliteClient';
 import { afterAll, describe, expect, test } from 'bun:test';
 import { Effect, Layer, Option } from 'effect';
 
-import { BibleCatalog } from './bible-catalog.js';
+import { BibleCorpus } from './bible-corpus.js';
 import { BibleDatabase } from './bible-database.js';
 
 const files: string[] = [];
 
-const run = <A, E>(effect: Effect.Effect<A, E, BibleCatalog | BibleDatabase>): Promise<A> => {
-  const filename = join(tmpdir(), `bible-catalog-${crypto.randomUUID()}.sqlite`);
+const run = <A, E>(effect: Effect.Effect<A, E, BibleCorpus | BibleDatabase>): Promise<A> => {
+  const filename = join(tmpdir(), `bible-corpus-${crypto.randomUUID()}.sqlite`);
   files.push(filename);
-  const layer = Layer.merge(BibleCatalog.layerCore, BibleDatabase.layer).pipe(
+  const layer = Layer.merge(BibleCorpus.layer, BibleDatabase.layer).pipe(
     Layer.provide(SqliteBun.layer({ filename })),
   );
   return Effect.runPromise(Effect.scoped(effect.pipe(Effect.provide(layer))));
@@ -29,14 +29,14 @@ afterAll(() => {
   }
 });
 
-describe('BibleCatalog + BibleDatabase', () => {
+describe('BibleCorpus + BibleDatabase', () => {
   test('one unified schema supports imports and the canonical query interface', () =>
     run(
       Effect.gen(function* () {
-        const catalog = yield* BibleCatalog;
+        const corpus = yield* BibleCorpus;
         const database = yield* BibleDatabase;
 
-        yield* catalog.importKjv(
+        yield* corpus.importKjv(
           {
             verses: [
               {
@@ -64,19 +64,19 @@ describe('BibleCatalog + BibleDatabase', () => {
             },
           ],
         );
-        yield* catalog.importStrongsLexicon({
+        yield* corpus.importStrongsLexicon({
           H7225: { lemma: 'reshith', xlit: 'reshith', def: 'beginning' },
         });
-        yield* catalog.importCrossReferences('openbible', {
+        yield* corpus.importCrossReferences('openbible', {
           '1.1.1': { refs: [{ book: 43, chapter: 1, verse: 1 }] },
         });
-        yield* catalog.importCrossReferences('tske', {
+        yield* corpus.importCrossReferences('tske', {
           '1.1.1': { refs: [{ book: 58, chapter: 1, verse: 1, verseEnd: 2 }] },
         });
-        yield* catalog.importMarginNotes({
+        yield* corpus.importMarginNotes({
           '1.1.1': [{ type: 'hebrew', phrase: 'beginning', text: 'First in order' }],
         });
-        yield* catalog.finalizeImport('2026-07-13T00:00:00.000Z');
+        yield* corpus.finalizeImport('2026-07-13T00:00:00.000Z');
 
         const chapter = yield* database.getChapter(1, 1);
         expect(chapter.map((verse) => verse.text)).toEqual(['In the beginning', 'And the earth']);
@@ -107,10 +107,10 @@ describe('BibleCatalog + BibleDatabase', () => {
       }),
     ));
 
-  test('catalog re-import replaces source-owned rows instead of duplicating them', () =>
+  test('corpus re-import replaces source-owned rows instead of duplicating them', () =>
     run(
       Effect.gen(function* () {
-        const catalog = yield* BibleCatalog;
+        const corpus = yield* BibleCorpus;
         const database = yield* BibleDatabase;
         const xrefs = {
           '1.1.1': { refs: [{ book: 43, chapter: 3, verse: 16 }] },
@@ -119,10 +119,10 @@ describe('BibleCatalog + BibleDatabase', () => {
           '1.1.1': [{ type: 'other' as const, phrase: 'earth', text: 'world' }],
         };
 
-        yield* catalog.importCrossReferences('openbible', xrefs);
-        yield* catalog.importCrossReferences('openbible', xrefs);
-        yield* catalog.importMarginNotes(notes);
-        yield* catalog.importMarginNotes(notes);
+        yield* corpus.importCrossReferences('openbible', xrefs);
+        yield* corpus.importCrossReferences('openbible', xrefs);
+        yield* corpus.importMarginNotes(notes);
+        yield* corpus.importMarginNotes(notes);
 
         expect((yield* database.getCrossRefs(1, 1, 1)).length).toBe(1);
         expect((yield* database.getMarginNotes(1, 1, 1)).length).toBe(1);

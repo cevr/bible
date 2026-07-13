@@ -7,10 +7,10 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 
 import {
-  BibleCatalog,
-  type CrossReferenceCatalog,
+  BibleCorpus,
+  type CrossReferenceAsset,
   type KjvAssetFile,
-  type MarginNotesCatalog,
+  type MarginNotesAsset,
   type StrongsLexiconAsset,
   type StrongsVerseAsset,
 } from '../bible-db/index.js';
@@ -44,8 +44,8 @@ const loadJson = (assetsDirectory: string, filename: string): unknown => {
   return JSON.parse(fs.readFileSync(filepath, 'utf8')) as unknown;
 };
 
-const catalogLayer = (filename: string) =>
-  BibleCatalog.layerCore.pipe(
+const corpusLayer = (filename: string) =>
+  BibleCorpus.layer.pipe(
     Layer.provide(
       SqliteBun.layer({
         filename,
@@ -79,32 +79,32 @@ export async function syncBible(
   const strongs = loadJson(paths.assetsDirectory, 'strongs.json') as Readonly<
     Record<string, StrongsLexiconAsset>
   >;
-  const openBible = loadJson(paths.assetsDirectory, 'cross-refs.json') as CrossReferenceCatalog;
+  const openBible = loadJson(paths.assetsDirectory, 'cross-refs.json') as CrossReferenceAsset;
   const tskePath = path.join(paths.assetsDirectory, 'cross-refs-tske.json');
   const tske = fs.existsSync(tskePath)
-    ? (loadJson(paths.assetsDirectory, 'cross-refs-tske.json') as CrossReferenceCatalog)
+    ? (loadJson(paths.assetsDirectory, 'cross-refs-tske.json') as CrossReferenceAsset)
     : null;
-  const marginNotes = loadJson(paths.assetsDirectory, 'margin-notes.json') as MarginNotesCatalog;
+  const marginNotes = loadJson(paths.assetsDirectory, 'margin-notes.json') as MarginNotesAsset;
 
   console.log(`Creating database at ${paths.database}...`);
   try {
     const result = await Effect.runPromise(
       Effect.gen(function* () {
-        const catalog = yield* BibleCatalog;
+        const corpus = yield* BibleCorpus;
 
         console.log("Importing KJV verses and Strong's word mappings...");
-        const kjvResult = yield* catalog.importKjv(kjv, kjvStrongs);
+        const kjvResult = yield* corpus.importKjv(kjv, kjvStrongs);
 
         console.log("Importing Strong's lexicon...");
-        const lexiconResult = yield* catalog.importStrongsLexicon(strongs);
+        const lexiconResult = yield* corpus.importStrongsLexicon(strongs);
 
         console.log('Importing OpenBible cross-references...');
-        const openBibleResult = yield* catalog.importCrossReferences('openbible', openBible);
+        const openBibleResult = yield* corpus.importCrossReferences('openbible', openBible);
 
         const tskeResult =
           tske === null
             ? null
-            : yield* catalog
+            : yield* corpus
                 .importCrossReferences('tske', tske)
                 .pipe(
                   Effect.tap(() =>
@@ -113,13 +113,13 @@ export async function syncBible(
                 );
 
         console.log('Importing KJV margin notes...');
-        const marginResult = yield* catalog.importMarginNotes(marginNotes);
+        const marginResult = yield* corpus.importMarginNotes(marginNotes);
 
         console.log('Optimizing database...');
-        yield* catalog.finalizeImport(new Date().toISOString());
+        yield* corpus.finalizeImport(new Date().toISOString());
 
         return { kjvResult, lexiconResult, openBibleResult, tskeResult, marginResult };
-      }).pipe(Effect.provide(catalogLayer(buildingDatabase))),
+      }).pipe(Effect.provide(corpusLayer(buildingDatabase))),
     );
 
     removeDatabaseFiles(paths.database);

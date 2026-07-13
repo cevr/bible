@@ -1,10 +1,10 @@
 import {
-  BibleCatalog,
+  BibleCorpus,
   BibleDatabase,
-  type BibleCatalogService,
-  type CrossReferenceCatalog,
+  type BibleCorpusService,
+  type CrossReferenceAsset,
   type KjvAssetFile,
-  type MarginNotesCatalog,
+  type MarginNotesAsset,
   type StrongsLexiconAsset,
   type StrongsVerseAsset,
 } from '@bible/core/bible-db';
@@ -396,13 +396,13 @@ const readCoreAssetText = (name: string): string => readFileSync(coreAssetPath(n
 // Read all three bundled JSON assets and run the import transaction on the
 // given database service. Shared between the boot-time `ensureBibleImportsDone`
 // path and the renderer-driven `bible:reimportKjv` recovery flow.
-const runBundledKjvImport = (catalog: BibleCatalogService): Effect.Effect<void, SqlError> => {
+const runBundledKjvImport = (corpus: BibleCorpusService): Effect.Effect<void, SqlError> => {
   const kjv = JSON.parse(readCoreAssetText('kjv.json')) as KjvAssetFile;
   const strongs = JSON.parse(readCoreAssetText('kjv-strongs.json')) as readonly StrongsVerseAsset[];
   const lex = JSON.parse(readCoreAssetText('strongs.json')) as Record<string, StrongsLexiconAsset>;
-  return catalog
+  return corpus
     .importKjv(kjv, strongs)
-    .pipe(Effect.andThen(catalog.importStrongsLexicon(lex)), Effect.asVoid);
+    .pipe(Effect.andThen(corpus.importStrongsLexicon(lex)), Effect.asVoid);
 };
 
 // One-shot import on first launch (or after a schema-version bump dropped the
@@ -415,12 +415,12 @@ const ensureBibleImportsDone = (runtime: MainRuntime): Promise<void> => {
   if (cached !== null) return cached;
   const fresh = runtime
     .runPromise(
-      BibleCatalog.pipe(
-        Effect.flatMap((catalog) =>
-          catalog.status().pipe(
+      BibleCorpus.pipe(
+        Effect.flatMap((corpus) =>
+          corpus.status().pipe(
             Effect.flatMap((status) => {
               if (status.kjv) return Effect.asVoid(Effect.void);
-              return runBundledKjvImport(catalog);
+              return runBundledKjvImport(corpus);
             }),
           ),
         ),
@@ -513,9 +513,9 @@ ipcMain.handle(
       // cached Promise).
       bibleImportsPromise = null;
       await mainRuntime.runPromise(
-        BibleCatalog.pipe(
-          Effect.flatMap((catalog) =>
-            catalog.resetKjv().pipe(Effect.andThen(runBundledKjvImport(catalog)), Effect.asVoid),
+        BibleCorpus.pipe(
+          Effect.flatMap((corpus) =>
+            corpus.resetKjv().pipe(Effect.andThen(runBundledKjvImport(corpus)), Effect.asVoid),
           ),
         ),
       );
@@ -657,20 +657,20 @@ const ensureXrefsImportsDone = (runtime: MainRuntime): Promise<void> => {
   const cached = xrefsImportsPromise;
   if (cached !== null) return cached;
   const fresh = runtime.runPromise(
-    BibleCatalog.pipe(
-      Effect.flatMap((catalog) =>
-        catalog.status().pipe(
+    BibleCorpus.pipe(
+      Effect.flatMap((corpus) =>
+        corpus.status().pipe(
           Effect.flatMap((status) => {
             if (status.crossReferences) return Effect.asVoid(Effect.void);
             const openbible = JSON.parse(
               readCoreAssetText('cross-refs.json'),
-            ) as CrossReferenceCatalog;
+            ) as CrossReferenceAsset;
             const tske = JSON.parse(
               readCoreAssetText('cross-refs-tske.json'),
-            ) as CrossReferenceCatalog;
-            return catalog
+            ) as CrossReferenceAsset;
+            return corpus
               .importCrossReferences('openbible', openbible)
-              .pipe(Effect.andThen(catalog.importCrossReferences('tske', tske)), Effect.asVoid);
+              .pipe(Effect.andThen(corpus.importCrossReferences('tske', tske)), Effect.asVoid);
           }),
         ),
       ),
@@ -758,13 +758,13 @@ const ensureMarginNotesImportsDone = (runtime: MainRuntime): Promise<void> => {
   const cached = marginNotesImportsPromise;
   if (cached !== null) return cached;
   const fresh = runtime.runPromise(
-    BibleCatalog.pipe(
-      Effect.flatMap((catalog) =>
-        catalog.status().pipe(
+    BibleCorpus.pipe(
+      Effect.flatMap((corpus) =>
+        corpus.status().pipe(
           Effect.flatMap((status) => {
             if (status.marginNotes) return Effect.asVoid(Effect.void);
-            const notes = JSON.parse(readCoreAssetText('margin-notes.json')) as MarginNotesCatalog;
-            return catalog.importMarginNotes(notes).pipe(Effect.asVoid);
+            const notes = JSON.parse(readCoreAssetText('margin-notes.json')) as MarginNotesAsset;
+            return corpus.importMarginNotes(notes).pipe(Effect.asVoid);
           }),
         ),
       ),
@@ -1138,9 +1138,9 @@ void app.whenReady().then(async () => {
   // rather than on the first search query. Errors here are unrecoverable —
   // the layer is Layer.orDie, so a failed open throws synchronously.
   await mainRuntime.runPromise(EGWParagraphDatabase.pipe(Effect.asVoid));
-  await mainRuntime.runPromise(BibleCatalog.pipe(Effect.asVoid));
+  await mainRuntime.runPromise(BibleCorpus.pipe(Effect.asVoid));
   await mainRuntime.runPromise(BibleDatabase.pipe(Effect.asVoid));
-  console.error('[main] EGWParagraphDatabase + BibleCatalog + BibleDatabase ready, opening window');
+  console.error('[main] EGWParagraphDatabase + BibleCorpus + BibleDatabase ready, opening window');
   // Kick off the EGW bible-ref backfill in the background. Fire-and-forget
   // so window paint isn't blocked; the IPC handler awaits the same Promise
   // before serving the first commentary query.

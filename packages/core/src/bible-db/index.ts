@@ -21,14 +21,14 @@ export {
   type StrongsChapter,
 } from './bible-database.js';
 
-export { BibleCatalog, type BibleCatalogService } from './bible-catalog.js';
+export { BibleCorpus, type BibleCorpusService } from './bible-corpus.js';
 export type {
-  BibleCatalogStatus,
+  BibleCorpusStatus,
   KjvAssetFile,
   StrongsWordAsset,
   StrongsVerseAsset,
   StrongsLexiconAsset,
-  CrossReferenceCatalog,
+  CrossReferenceAsset,
   CrossReferenceSource,
-  MarginNotesCatalog,
-} from './bible-catalog.js';
+  MarginNotesAsset,
+} from './bible-corpus.js';

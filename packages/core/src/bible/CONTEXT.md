@@ -35,3 +35,7 @@ _Avoid_: Reference lookup
 **Study**:
 The material gathered around a Verse, including cross-references, original-language words, margin notes, and Writings commentary.
 _Avoid_: Metadata, extras
+
+**Corpus**:
+The installed, searchable Scripture text and Study data that back readers and analysis.
+_Avoid_: Catalog, library, cache

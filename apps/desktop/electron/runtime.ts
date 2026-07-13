@@ -1,4 +1,4 @@
-import { BibleCatalog, BibleDatabase } from '@bible/core/bible-db';
+import { BibleCorpus, BibleDatabase } from '@bible/core/bible-db';
 import { EGWApiClient, EGWAuth, EGWTokenStore } from '@bible/core/egw';
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
 import * as SqliteNode from '@effect/sql-sqlite-node/SqliteClient';
@@ -40,8 +40,8 @@ const cacheDbLayer = (filename: string): Layer.Layer<EGWParagraphDatabase | Cach
     Layer.orDie,
   );
 
-const bibleDbLayer = (filename: string): Layer.Layer<BibleCatalog | BibleDatabase> =>
-  Layer.merge(BibleCatalog.layerCore, BibleDatabase.layer).pipe(
+const bibleDbLayer = (filename: string): Layer.Layer<BibleCorpus | BibleDatabase> =>
+  Layer.merge(BibleCorpus.layer, BibleDatabase.layer).pipe(
     Layer.provide(SqliteNode.layer({ filename })),
     Layer.orDie,
   );
@@ -96,7 +96,7 @@ const egwLayer = (tokenFile: string): Layer.Layer<EGWApiClient> =>
   );
 
 export type MainRuntime = ManagedRuntime.ManagedRuntime<
-  EGWParagraphDatabase | BibleCatalog | BibleDatabase | CacheDatabase | EGWApiClient,
+  EGWParagraphDatabase | BibleCorpus | BibleDatabase | CacheDatabase | EGWApiClient,
   never
 >;
 
@@ -114,6 +114,6 @@ export const runtimeRun = <A, E>(
   effect: EffectNs.Effect<
     A,
     E,
-    EGWParagraphDatabase | BibleCatalog | BibleDatabase | CacheDatabase | EGWApiClient
+    EGWParagraphDatabase | BibleCorpus | BibleDatabase | CacheDatabase | EGWApiClient
   >,
 ): Promise<A> => runtime.runPromise(effect);

@@ -1,6 +1,6 @@
 /** Administrative import capability for the canonical unified Bible schema. */
 
-import { Context, Effect, Layer } from 'effect';
+import { Context, Effect, Layer, Schema } from 'effect';
 import * as SqlClient from 'effect/unstable/sql/SqlClient';
 import type { SqlError } from 'effect/unstable/sql/SqlError';
 
@@ -42,7 +42,7 @@ export interface StrongsLexiconAsset {
   readonly def: string;
 }
 
-export interface CrossReferenceCatalog {
+export interface CrossReferenceAsset {
   readonly [key: string]: {
     readonly refs: readonly {
       readonly book: number;
@@ -55,7 +55,7 @@ export interface CrossReferenceCatalog {
 
 export type CrossReferenceSource = 'openbible' | 'tske';
 
-export interface MarginNotesCatalog {
+export interface MarginNotesAsset {
   readonly [key: string]: readonly {
     readonly type: 'hebrew' | 'greek' | 'alternate' | 'name' | 'other';
     readonly phrase: string;
@@ -63,14 +63,14 @@ export interface MarginNotesCatalog {
   }[];
 }
 
-export interface BibleCatalogStatus {
+export interface BibleCorpusStatus {
   readonly kjv: boolean;
   readonly crossReferences: boolean;
   readonly marginNotes: boolean;
 }
 
-export interface BibleCatalogService {
-  readonly status: () => Effect.Effect<BibleCatalogStatus, SqlError>;
+export interface BibleCorpusService {
+  readonly status: () => Effect.Effect<BibleCorpusStatus, SqlError>;
   readonly importKjv: (
     kjv: KjvAssetFile,
     strongsVerses: readonly StrongsVerseAsset[],
@@ -80,14 +80,17 @@ export interface BibleCatalogService {
   ) => Effect.Effect<{ readonly imported: number; readonly skipped: number }, SqlError>;
   readonly importCrossReferences: (
     source: CrossReferenceSource,
-    catalog: CrossReferenceCatalog,
+    asset: CrossReferenceAsset,
   ) => Effect.Effect<{ readonly imported: number; readonly skipped: number }, SqlError>;
   readonly importMarginNotes: (
-    catalog: MarginNotesCatalog,
+    asset: MarginNotesAsset,
   ) => Effect.Effect<{ readonly imported: number; readonly skipped: number }, SqlError>;
   readonly finalizeImport: (createdAt: string) => Effect.Effect<void, SqlError>;
   readonly resetKjv: () => Effect.Effect<void, SqlError>;
 }
+
+const StrongsNumbersJson = Schema.fromJsonString(Schema.Array(Schema.String));
+const encodeStrongsNumbers = Schema.encodeSync(StrongsNumbersJson);
 
 const parseVerseKey = (
   key: string,
@@ -102,16 +105,16 @@ const parseVerseKey = (
     : null;
 };
 
-export class BibleCatalog extends Context.Service<BibleCatalog, BibleCatalogService>()(
-  '@bible/core/bible-db/BibleCatalog',
+export class BibleCorpus extends Context.Service<BibleCorpus, BibleCorpusService>()(
+  '@bible/core/bible-db/BibleCorpus',
 ) {
-  static layerCore: Layer.Layer<BibleCatalog, SqlError, SqlClient.SqlClient> = Layer.effect(
-    BibleCatalog,
+  static layer: Layer.Layer<BibleCorpus, SqlError, SqlClient.SqlClient> = Layer.effect(
+    BibleCorpus,
     Effect.gen(function* () {
       const sql = yield* SqlClient.SqlClient;
       yield* initializeBibleSchema(sql);
 
-      const status = () =>
+      const status = Effect.fn('BibleCorpus.status')(() =>
         Effect.all({
           verses: sql<{ readonly count: number }>`SELECT COUNT(*) AS count FROM verses`,
           lexicon: sql<{ readonly count: number }>`SELECT COUNT(*) AS count FROM strongs`,
@@ -128,13 +131,15 @@ export class BibleCatalog extends Context.Service<BibleCatalog, BibleCatalogServ
             crossReferences: (openbible[0]?.count ?? 0) > 0 && (tske[0]?.count ?? 0) > 0,
             marginNotes: (notes[0]?.count ?? 0) > 0,
           })),
-        );
+        ),
+      );
 
-      const importKjv = (kjv: KjvAssetFile, strongsVerses: readonly StrongsVerseAsset[]) =>
-        sql.withTransaction(
-          Effect.gen(function* () {
-            for (const book of BIBLE_BOOKS) {
-              yield* sql`
+      const importKjv = Effect.fn('BibleCorpus.importKjv')(
+        (kjv: KjvAssetFile, strongsVerses: readonly StrongsVerseAsset[]) =>
+          sql.withTransaction(
+            Effect.gen(function* () {
+              for (const book of BIBLE_BOOKS) {
+                yield* sql`
                 INSERT INTO books (number, name, abbreviation, testament, chapters)
                 VALUES (${book.number}, ${book.name}, ${book.abbreviation}, ${book.testament}, ${book.chapters})
                 ON CONFLICT(number) DO UPDATE SET
@@ -143,9 +148,9 @@ export class BibleCatalog extends Context.Service<BibleCatalog, BibleCatalogServ
                   testament = excluded.testament,
                   chapters = excluded.chapters
               `;
-            }
-            const metadata = kjv.metadata;
-            yield* sql`
+              }
+              const metadata = kjv.metadata;
+              yield* sql`
               INSERT INTO versions (code, name, language, year, copyright, is_default)
               VALUES (
                 'KJV',
@@ -161,21 +166,22 @@ export class BibleCatalog extends Context.Service<BibleCatalog, BibleCatalogServ
                 copyright = excluded.copyright,
                 is_default = 1
             `;
-            for (const verse of kjv.verses) {
-              yield* sql`
+              for (const verse of kjv.verses) {
+                yield* sql`
                 INSERT INTO verses (book, chapter, verse, version_code, text)
                 VALUES (${verse.book}, ${verse.chapter}, ${verse.verse}, 'KJV', ${verse.text})
                 ON CONFLICT(version_code, book, chapter, verse)
                 DO UPDATE SET text = excluded.text
               `;
-            }
-            yield* sql`DELETE FROM strongs_verses`;
-            yield* sql`DELETE FROM verse_words`;
-            for (const verse of strongsVerses) {
-              let wordIndex = 0;
-              for (const word of verse.words) {
-                const encoded = word.strongs === undefined ? null : JSON.stringify(word.strongs);
-                yield* sql`
+              }
+              yield* sql`DELETE FROM strongs_verses`;
+              yield* sql`DELETE FROM verse_words`;
+              for (const verse of strongsVerses) {
+                let wordIndex = 0;
+                for (const word of verse.words) {
+                  const encoded =
+                    word.strongs === undefined ? null : encodeStrongsNumbers(word.strongs);
+                  yield* sql`
                   INSERT INTO verse_words (
                     book, chapter, verse, word_index, word_text, strongs_numbers
                   ) VALUES (
@@ -183,8 +189,8 @@ export class BibleCatalog extends Context.Service<BibleCatalog, BibleCatalogServ
                     ${word.text}, ${encoded}
                   )
                 `;
-                for (const number of word.strongs ?? []) {
-                  yield* sql`
+                  for (const number of word.strongs ?? []) {
+                    yield* sql`
                     INSERT OR IGNORE INTO strongs_verses (
                       strongs_number, book, chapter, verse, word_text, word_index
                     ) VALUES (
@@ -192,31 +198,33 @@ export class BibleCatalog extends Context.Service<BibleCatalog, BibleCatalogServ
                       ${word.text}, ${wordIndex}
                     )
                   `;
+                  }
+                  wordIndex += 1;
                 }
-                wordIndex += 1;
               }
-            }
-            return { verses: kjv.verses.length, withStrongs: strongsVerses.length };
-          }),
-        );
+              return { verses: kjv.verses.length, withStrongs: strongsVerses.length };
+            }),
+          ),
+      );
 
-      const importStrongsLexicon = (lexicon: Readonly<Record<string, StrongsLexiconAsset>>) =>
-        sql.withTransaction(
-          Effect.gen(function* () {
-            let imported = 0;
-            let skipped = 0;
-            for (const [rawNumber, entry] of Object.entries(lexicon)) {
-              const number = rawNumber.toUpperCase();
-              const language = number.startsWith('H')
-                ? 'hebrew'
-                : number.startsWith('G')
-                  ? 'greek'
-                  : null;
-              if (language === null) {
-                skipped += 1;
-                continue;
-              }
-              yield* sql`
+      const importStrongsLexicon = Effect.fn('BibleCorpus.importStrongsLexicon')(
+        (lexicon: Readonly<Record<string, StrongsLexiconAsset>>) =>
+          sql.withTransaction(
+            Effect.gen(function* () {
+              let imported = 0;
+              let skipped = 0;
+              for (const [rawNumber, entry] of Object.entries(lexicon)) {
+                const number = rawNumber.toUpperCase();
+                const language = number.startsWith('H')
+                  ? 'hebrew'
+                  : number.startsWith('G')
+                    ? 'greek'
+                    : null;
+                if (language === null) {
+                  skipped += 1;
+                  continue;
+                }
+                yield* sql`
                 INSERT INTO strongs (
                   number, language, lemma, transliteration, pronunciation, definition, kjv_definition
                 ) VALUES (
@@ -229,29 +237,28 @@ export class BibleCatalog extends Context.Service<BibleCatalog, BibleCatalogServ
                   transliteration = excluded.transliteration,
                   definition = excluded.definition
               `;
-              imported += 1;
-            }
-            return { imported, skipped };
-          }),
-        );
-
-      const importCrossReferences = (
-        source: CrossReferenceSource,
-        catalog: CrossReferenceCatalog,
-      ) =>
-        sql.withTransaction(
-          Effect.gen(function* () {
-            yield* sql`DELETE FROM cross_refs WHERE source = ${source}`;
-            let imported = 0;
-            let skipped = 0;
-            for (const [key, entry] of Object.entries(catalog)) {
-              const from = parseVerseKey(key);
-              if (from === null) {
-                skipped += 1;
-                continue;
+                imported += 1;
               }
-              for (const reference of entry.refs) {
-                yield* sql`
+              return { imported, skipped };
+            }),
+          ),
+      );
+
+      const importCrossReferences = Effect.fn('BibleCorpus.importCrossReferences')(
+        (source: CrossReferenceSource, asset: CrossReferenceAsset) =>
+          sql.withTransaction(
+            Effect.gen(function* () {
+              yield* sql`DELETE FROM cross_refs WHERE source = ${source}`;
+              let imported = 0;
+              let skipped = 0;
+              for (const [key, entry] of Object.entries(asset)) {
+                const from = parseVerseKey(key);
+                if (from === null) {
+                  skipped += 1;
+                  continue;
+                }
+                for (const reference of entry.refs) {
+                  yield* sql`
                   INSERT INTO cross_refs (
                     book, chapter, verse, ref_book, ref_chapter, ref_verse,
                     ref_verse_end, source, preview_text
@@ -261,28 +268,30 @@ export class BibleCatalog extends Context.Service<BibleCatalog, BibleCatalogServ
                     ${reference.verseEnd ?? null}, ${source}, NULL
                   )
                 `;
-                imported += 1;
+                  imported += 1;
+                }
               }
-            }
-            return { imported, skipped };
-          }),
-        );
+              return { imported, skipped };
+            }),
+          ),
+      );
 
-      const importMarginNotes = (catalog: MarginNotesCatalog) =>
-        sql.withTransaction(
-          Effect.gen(function* () {
-            yield* sql`DELETE FROM margin_notes`;
-            let imported = 0;
-            let skipped = 0;
-            for (const [key, notes] of Object.entries(catalog)) {
-              const reference = parseVerseKey(key);
-              if (reference === null) {
-                skipped += 1;
-                continue;
-              }
-              let noteIndex = 0;
-              for (const note of notes) {
-                yield* sql`
+      const importMarginNotes = Effect.fn('BibleCorpus.importMarginNotes')(
+        (asset: MarginNotesAsset) =>
+          sql.withTransaction(
+            Effect.gen(function* () {
+              yield* sql`DELETE FROM margin_notes`;
+              let imported = 0;
+              let skipped = 0;
+              for (const [key, notes] of Object.entries(asset)) {
+                const reference = parseVerseKey(key);
+                if (reference === null) {
+                  skipped += 1;
+                  continue;
+                }
+                let noteIndex = 0;
+                for (const note of notes) {
+                  yield* sql`
                   INSERT INTO margin_notes (
                     book, chapter, verse, note_index, note_type, phrase, note_text
                   ) VALUES (
@@ -290,15 +299,16 @@ export class BibleCatalog extends Context.Service<BibleCatalog, BibleCatalogServ
                     ${note.type}, ${note.phrase}, ${note.text}
                   )
                 `;
-                noteIndex += 1;
-                imported += 1;
+                  noteIndex += 1;
+                  imported += 1;
+                }
               }
-            }
-            return { imported, skipped };
-          }),
-        );
+              return { imported, skipped };
+            }),
+          ),
+      );
 
-      const finalizeImport = (createdAt: string) =>
+      const finalizeImport = Effect.fn('BibleCorpus.finalizeImport')((createdAt: string) =>
         Effect.gen(function* () {
           yield* sql`
             INSERT INTO meta (key, value) VALUES ('schema_version', '1')
@@ -313,9 +323,10 @@ export class BibleCatalog extends Context.Service<BibleCatalog, BibleCatalogServ
           yield* sql.unsafe(`INSERT INTO margin_notes_fts(margin_notes_fts) VALUES('optimize')`);
           yield* sql.unsafe('ANALYZE');
           yield* sql.unsafe('VACUUM');
-        });
+        }),
+      );
 
-      const resetKjv = () =>
+      const resetKjv = Effect.fn('BibleCorpus.resetKjv')(() =>
         sql.withTransaction(
           Effect.gen(function* () {
             yield* sql`DELETE FROM strongs_verses`;
@@ -324,9 +335,10 @@ export class BibleCatalog extends Context.Service<BibleCatalog, BibleCatalogServ
             yield* sql`DELETE FROM verses WHERE version_code = 'KJV'`;
             yield* sql`DELETE FROM versions WHERE code = 'KJV'`;
           }),
-        );
+        ),
+      );
 
-      return BibleCatalog.of({
+      return BibleCorpus.of({
         status,
         importKjv,
         importStrongsLexicon,
