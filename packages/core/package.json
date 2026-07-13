@@ -23,10 +23,8 @@
     "./writings": "./src/writings/index.ts",
     "./writings/service": "./src/writings/service.ts",
     "./writings/archive-service": "./src/writings/archive-service.ts",
-    "./writings/tool": "./src/writings/tool.ts",
     "./bible-rendering": "./src/bible-rendering/index.ts",
     "./gemini": "./src/gemini/index.ts",
-    "./sabbath-school": "./src/sabbath-school/index.ts",
     "./sync": "./src/sync/index.ts",
     "./bible-db": "./src/bible-db/index.ts",
     "./utils": "./src/utils/index.ts",
@@ -60,10 +58,8 @@
     "@effect/sql-sqlite-bun": "catalog:",
     "@google/genai": "^1.41.0",
     "ai": "^6.0.84",
-    "cheerio": "^1.2.0",
     "effect": "catalog:",
-    "htmlparser2": "^12.0.0",
-    "zod": "^4.3.6"
+    "htmlparser2": "^12.0.0"
   },
   "devDependencies": {
     "@effect/vitest": "^0.27.0",

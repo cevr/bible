@@ -13,8 +13,5 @@ export { HymnalService, HymnNotFoundError, type HymnalServiceShape } from './ser
 // Schemas and types
 export { Category, Hymn, HymnSummary, HymnVerse } from './schemas.js';
 
-// AI tool
-export { createHymnalTool } from './tool.js';
-
 // Re-export ID types
 export { CategoryId, HymnId, VerseId, categoryId, hymnId, verseId } from '../types/ids.js';
