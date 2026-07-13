@@ -11,8 +11,9 @@ import {
   type VerseReference,
 } from '@bible/core/bible';
 import { nodesToText } from '@bible/core/egw';
-import type { EGWParagraph } from '@bible/core/egw-reader';
+import type { Paragraph } from '@bible/core/writings';
 import type { ScrollBoxRenderable } from '@opentui/core';
+import { Option } from 'effect';
 import { createMemo, createSignal, For, Show } from 'solid-js';
 
 import { useBibleData } from '../../context/bible.js';
@@ -22,7 +23,7 @@ import { useScrollSync } from '../../hooks/use-scroll-sync.js';
 type KeyEvent = { name?: string; sequence?: string; ctrl?: boolean };
 
 interface EGWBibleRefsPopupProps {
-  paragraph: EGWParagraph;
+  paragraph: Paragraph;
   onClose: () => void;
   onNavigate: (ref: VerseReference) => void;
   onKeyboard: (handler: (key: KeyEvent) => boolean) => void;
@@ -104,7 +105,7 @@ export function EGWBibleRefsPopup(props: EGWBibleRefsPopupProps) {
     return false;
   });
 
-  const refcode = () => props.paragraph.refcodeShort ?? props.paragraph.refcodeLong ?? '';
+  const refcode = () => Option.getOrElse(props.paragraph.reference.refcode, () => '');
   const hasRefs = () => refsWithPreviews().length > 0;
 
   return (

@@ -7,6 +7,7 @@
 
 import { isChapterHeading } from '@bible/core/egw-db';
 import type { ScrollBoxRenderable } from '@opentui/core';
+import { Option } from 'effect';
 import { For, Show } from 'solid-js';
 
 import { useEGWNavigation } from '../../context/egw-navigation.js';
@@ -91,7 +92,7 @@ export function EGWChapterView() {
       >
         <For each={currentChapter()?.paragraphs}>
           {(paragraph, index) => (
-            <Show when={!isChapterHeading(paragraph.elementType)}>
+            <Show when={!isChapterHeading(Option.getOrNull(paragraph.elementType))}>
               <EGWParagraphView
                 id={`para-${index()}`}
                 paragraph={paragraph}

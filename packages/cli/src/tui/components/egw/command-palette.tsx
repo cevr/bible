@@ -10,8 +10,9 @@
 
 import { nodesToText } from '@bible/core/egw';
 import { isChapterHeading } from '@bible/core/egw-db';
-import type { EGWBookInfo, EGWParagraph } from '@bible/core/egw-reader';
+import type { Paragraph, Publication } from '@bible/core/writings';
 import type { ScrollBoxRenderable } from '@opentui/core';
+import { Option } from 'effect';
 import { createEffect, createMemo, createSignal, For, onMount, Show, untrack } from 'solid-js';
 
 import { useEGWNavigation } from '../../context/egw-navigation.js';
@@ -75,7 +76,7 @@ export function EGWCommandPalette(props: EGWCommandPaletteProps) {
     for (let i = 0; i < paras.length; i++) {
       const para = paras[i];
       if (!para) continue;
-      const type = para.elementType;
+      const type = Option.getOrUndefined(para.elementType);
       if (isChapterHeading(type)) {
         const title = nodesToText(para.nodes).slice(0, 60);
         result.push({
@@ -89,7 +90,7 @@ export function EGWCommandPalette(props: EGWCommandPaletteProps) {
   });
 
   // Get paragraphs for selected chapter (from chapter heading to next chapter or end)
-  const chapterParagraphs = createMemo((): { para: EGWParagraph; index: number }[] => {
+  const chapterParagraphs = createMemo((): { para: Paragraph; index: number }[] => {
     const chaps = chapters();
     const chapterIdx = selectedChapterIndex();
     if (chapterIdx < 0 || chapterIdx >= chaps.length) return [];
@@ -101,7 +102,7 @@ export function EGWCommandPalette(props: EGWCommandPaletteProps) {
     const endIdx = nextChapter ? nextChapter.paragraphIndex : paragraphs().length;
 
     const paras = paragraphs();
-    const result: { para: EGWParagraph; index: number }[] = [];
+    const result: { para: Paragraph; index: number }[] = [];
     for (let i = startIdx; i < endIdx; i++) {
       const para = paras[i];
       if (para) {
@@ -123,7 +124,7 @@ export function EGWCommandPalette(props: EGWCommandPaletteProps) {
     const q = query().toLowerCase();
     if (!q) return books();
     return books().filter(
-      (book) => book.title.toLowerCase().includes(q) || book.bookCode.toLowerCase().includes(q),
+      (book) => book.title.toLowerCase().includes(q) || book.code.toLowerCase().includes(q),
     );
   });
 
@@ -163,23 +164,23 @@ export function EGWCommandPalette(props: EGWCommandPaletteProps) {
   });
 
   // Handle selecting a book (enter chapters view)
-  const handleSelectBook = (book: EGWBookInfo) => {
+  const handleSelectBook = (book: Publication) => {
     // If this is the current book, switch to chapters
-    if (currentBook()?.bookCode === book.bookCode) {
+    if (currentBook()?.code === book.code) {
       setMode('chapters');
       setQuery('');
       setSelectedIndex(0);
     } else {
       // Load the book and close
-      goToBook(book.bookCode);
+      goToBook(book.code);
       props.onClose();
     }
   };
 
   // Handle drilling into a book
-  const handleDrillIntoBook = (book: EGWBookInfo) => {
-    if (book.bookCode !== currentBook()?.bookCode) {
-      goToBook(book.bookCode);
+  const handleDrillIntoBook = (book: Publication) => {
+    if (book.code !== currentBook()?.code) {
+      goToBook(book.code);
     }
     setMode('chapters');
     setQuery('');
@@ -243,9 +244,9 @@ export function EGWCommandPalette(props: EGWCommandPaletteProps) {
         setMode('books');
         setQuery('');
         // Select the current book in the list
-        const currentBookCode = currentBook()?.bookCode;
+        const currentBookCode = currentBook()?.code;
         if (currentBookCode) {
-          const idx = books().findIndex((b) => b.bookCode === currentBookCode);
+          const idx = books().findIndex((b) => b.code === currentBookCode);
           setSelectedIndex(idx >= 0 ? idx : 0);
         } else {
           setSelectedIndex(0);
@@ -322,11 +323,11 @@ export function EGWCommandPalette(props: EGWCommandPaletteProps) {
       case 'books':
         return null;
       case 'chapters':
-        return book ? ` (${book.bookCode})` : '';
+        return book ? ` (${book.code})` : '';
       case 'paragraphs': {
         const chapter = chapters()[selectedChapterIndex()];
         const title = chapter?.title.slice(0, 20) ?? '';
-        return book ? ` (${book.bookCode} - ${title}${title.length >= 20 ? '...' : ''})` : '';
+        return book ? ` (${book.code} - ${title}${title.length >= 20 ? '...' : ''})` : '';
       }
     }
   };
@@ -403,10 +404,10 @@ export function EGWCommandPalette(props: EGWCommandPaletteProps) {
                           fg: index() === selectedIndex() ? theme().background : theme().textMuted,
                         }}
                       >
-                        [{book.bookCode}]
+                        [{book.code}]
                       </span>{' '}
                       {book.title}
-                      <Show when={book.bookCode === currentBook()?.bookCode}>
+                      <Show when={book.code === currentBook()?.code}>
                         <span
                           style={{
                             fg: index() === selectedIndex() ? theme().background : theme().accent,
@@ -476,7 +477,7 @@ export function EGWCommandPalette(props: EGWCommandPaletteProps) {
               const currentParaIndex = selectedParagraphIndex();
               const isCurrent = item.index === currentParaIndex;
               const content = nodesToText(item.para.nodes).slice(0, 55);
-              const refcode = item.para.refcodeShort ?? '';
+              const refcode = Option.getOrElse(item.para.reference.refcode, () => '');
 
               return (
                 <box

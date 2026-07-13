@@ -28,15 +28,6 @@ export {
   type SabbathSchoolError as SabbathSchoolErrorType,
 } from '../sabbath-school/errors.js';
 
-// EGW Reader errors
-export {
-  EGWReaderError,
-  BookNotFoundError,
-  DatabaseNotInitializedError,
-  ReaderError,
-  type ReaderError as ReaderErrorType,
-} from '../egw-reader/service.js';
-
 // EGW Commentary errors
 export { CommentaryError, type CommentaryServiceError } from '../egw-commentary/service.js';
 

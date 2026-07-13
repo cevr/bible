@@ -8,12 +8,13 @@
 import { type Book, type Chapter, Reference, type SearchHit } from '@bible/core/bible';
 import { BibleService } from '@bible/core/bible/service';
 import {
-  EGWService,
-  type EGWBook,
-  type EGWChapter,
-  type EGWPageResponse,
-  type EGWSearchResult,
-} from '@bible/core/egw-service';
+  Reference as WritingsReference,
+  type Heading,
+  type Page,
+  type Publication,
+  type SearchHit as WritingsSearchHit,
+} from '@bible/core/writings';
+import { WritingsService } from '@bible/core/writings/service';
 import { Effect, Option } from 'effect';
 import { createContext, useContext, type Accessor, type ParentProps } from 'solid-js';
 
@@ -46,23 +47,23 @@ export interface BibleClient {
 
 export interface EGWClient {
   /** Books list */
-  readonly books: Accessor<ResultType<readonly EGWBook[], unknown>>;
+  readonly books: Accessor<ResultType<readonly Publication[], unknown>>;
   /** Load books */
   readonly loadBooks: () => void;
   /** Current page */
-  readonly page: Accessor<ResultType<EGWPageResponse | null, unknown>>;
+  readonly page: Accessor<ResultType<Page, unknown>>;
   /** Load page */
   readonly loadPage: (bookCode: string, page: number) => void;
   /** Chapters (table of contents) */
-  readonly chapters: Accessor<ResultType<readonly EGWChapter[], unknown>>;
+  readonly chapters: Accessor<ResultType<readonly Heading[], unknown>>;
   /** Load chapters */
   readonly loadChapters: (bookCode: string) => void;
   /** Search results */
-  readonly searchResults: Accessor<ResultType<readonly EGWSearchResult[], unknown>>;
+  readonly searchResults: Accessor<ResultType<readonly WritingsSearchHit[], unknown>>;
   /** Search */
   readonly search: (query: string, limit?: number, bookCode?: string) => void;
   /** Get book by code (async with runtime) */
-  readonly getBook: (bookCode: string) => Promise<EGWBook | undefined>;
+  readonly getBook: (bookCode: string) => Promise<Publication | undefined>;
 }
 
 // ============================================================================
@@ -149,22 +150,22 @@ export function ClientProvider(props: ParentProps) {
 
   const [egwBooks, loadEgwBooks] = useEffectRunner(runtime, () =>
     Effect.gen(function* () {
-      const service = yield* EGWService;
-      return yield* service.getBooks();
+      const service = yield* WritingsService;
+      return yield* service.catalog();
     }),
   );
 
   const [egwPage, loadEgwPage] = useEffectRunner(runtime, (bookCode: string, page: number) =>
     Effect.gen(function* () {
-      const service = yield* EGWService;
-      return yield* service.getPage(bookCode, page);
+      const service = yield* WritingsService;
+      return yield* service.page(WritingsReference.page(bookCode, page));
     }),
   );
 
   const [egwChapters, loadEgwChapters] = useEffectRunner(runtime, (bookCode: string) =>
     Effect.gen(function* () {
-      const service = yield* EGWService;
-      return yield* service.getChapters(bookCode);
+      const service = yield* WritingsService;
+      return yield* service.headings(WritingsReference.publication(bookCode));
     }),
   );
 
@@ -172,17 +173,21 @@ export function ClientProvider(props: ParentProps) {
     runtime,
     (query: string, limit: number = 50, bookCode?: string) =>
       Effect.gen(function* () {
-        const service = yield* EGWService;
-        return yield* service.search(query, limit, bookCode);
+        const service = yield* WritingsService;
+        return yield* service.search(query, {
+          limit,
+          publication: bookCode === undefined ? undefined : WritingsReference.publication(bookCode),
+        });
       }),
   );
 
-  const getEgwBook = (bookCode: string): Promise<EGWBook | undefined> =>
+  const getEgwBook = (bookCode: string): Promise<Publication | undefined> =>
     runtime.runPromise(
       Effect.gen(function* () {
-        const service = yield* EGWService;
-        const opt = yield* service.getBook(bookCode);
-        return Option.getOrUndefined(opt);
+        const service = yield* WritingsService;
+        return yield* service
+          .publication(WritingsReference.publication(bookCode))
+          .pipe(Effect.option, Effect.map(Option.getOrUndefined));
       }),
     );
 

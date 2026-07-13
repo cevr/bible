@@ -9,9 +9,8 @@ import { BibleDatabase } from '@bible/core/bible-db';
 import { BibleService } from '@bible/core/bible/service';
 import type { EGWParagraphDatabase } from '@bible/core/egw-db';
 import * as EGWDbBun from '@bible/core/egw-db/bun';
-import { EGWReaderService } from '@bible/core/egw-reader';
-import { EGWService } from '@bible/core/egw-service';
 import { ensureBibleDb } from '@bible/core/sync';
+import { WritingsService } from '@bible/core/writings/service';
 import { BunServices } from '@effect/platform-bun';
 import { Effect, Layer, ManagedRuntime } from 'effect';
 
@@ -27,8 +26,7 @@ export type AppServices =
   | BibleData
   | BibleState
   | BibleService
-  | EGWService
-  | EGWReaderService
+  | WritingsService
   | EGWParagraphDatabase
   | BibleDatabase;
 
@@ -54,9 +52,7 @@ export const AppLayer = Layer.mergeAll(
   BibleStateLive,
   // Core services (unified API)
   BibleService.Live,
-  EGWService.Default,
-  // EGW reader service
-  EGWReaderService.Default,
+  WritingsService.Live,
 ).pipe(
   Layer.provideMerge(EGWDbBun.Default),
   Layer.provideMerge(BibleDatabaseWithSync),

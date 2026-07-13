@@ -28,8 +28,9 @@ import {
 import { EGWCommentaryService } from '@bible/core/egw-commentary';
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
 import * as EGWDbBun from '@bible/core/egw-db/bun';
-import { EGWService, type EGWSearchResult } from '@bible/core/egw-service';
 import { downloadBookToLocal } from '@bible/core/sync';
+import { Reference, type Paragraph, type Publication, type SearchHit } from '@bible/core/writings';
+import { WritingsService } from '@bible/core/writings/service';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
 import { FetchHttpClient } from 'effect/unstable/http';
 import { BunServices } from '@effect/platform-bun';
@@ -52,9 +53,9 @@ const ApiClientLayer = EGWApiClient.Live.pipe(
 );
 
 /**
- * Layer providing EGWService (local DB) — used by lookup/local-search commands.
+ * Layer providing WritingsService (local DB) — used by lookup/local-search commands.
  */
-const ServiceLayer = EGWService.Default.pipe(
+const ServiceLayer = WritingsService.Live.pipe(
   Layer.provide(EGWDbBun.Default),
   Layer.provide(BunServices.layer),
 );
@@ -68,13 +69,13 @@ const CommentaryLayer = EGWCommentaryService.Default.pipe(
 );
 
 /**
- * Layer providing EGWApiClient + EGWParagraphDatabase + EGWService — used by
+ * Layer providing EGWApiClient + EGWParagraphDatabase + WritingsService — used by
  * commands that mix remote API and local DB (catalog, download, --remote search).
  */
 const FullLayer = Layer.mergeAll(
   ApiClientLayer,
   EGWDbBun.Default,
-  EGWService.Default.pipe(Layer.provide(EGWDbBun.Default)),
+  WritingsService.Live.pipe(Layer.provide(EGWDbBun.Default)),
 ).pipe(Layer.provide(BunServices.layer));
 
 // ============================================================================
@@ -83,10 +84,40 @@ const FullLayer = Layer.mergeAll(
 
 const stripHtml = (html: string): string => html.replace(/<[^>]*>/g, '');
 
-function formatLocalSearchResult(r: EGWSearchResult, index: number): string {
-  const ref = r.refcodeShort ?? `[${r.bookCode}]`;
-  const title = r.bookTitle !== r.bookCode ? ` (${r.bookTitle})` : '';
-  const text = nodesToText(r.nodes);
+const paragraphRefcode = (paragraph: Paragraph): string =>
+  Option.getOrElse(paragraph.reference.refcode, () => `[${paragraph.reference.publication}]`);
+
+const publicationJson = (publication: Publication) => ({
+  id: publication.id,
+  code: publication.code,
+  title: publication.title,
+  author: publication.author,
+  paragraphCount: Option.getOrNull(publication.paragraphCount),
+});
+
+const paragraphJson = (paragraph: Paragraph) => ({
+  reference: {
+    publication: paragraph.reference.publication,
+    order: paragraph.reference.order,
+    page: Option.getOrNull(paragraph.reference.page),
+    number: Option.getOrNull(paragraph.reference.number),
+    refcode: Option.getOrNull(paragraph.reference.refcode),
+  },
+  paragraphId: Option.getOrNull(paragraph.paragraphId),
+  nodes: paragraph.nodes,
+  elementType: Option.getOrNull(paragraph.elementType),
+  elementSubtype: Option.getOrNull(paragraph.elementSubtype),
+});
+
+const searchHitJson = (hit: SearchHit) => ({
+  publication: publicationJson(hit.publication),
+  paragraph: paragraphJson(hit.paragraph),
+});
+
+function formatLocalSearchResult(r: SearchHit, index: number): string {
+  const ref = paragraphRefcode(r.paragraph);
+  const title = r.publication.title !== r.publication.code ? ` (${r.publication.title})` : '';
+  const text = nodesToText(r.paragraph.nodes);
   const snippet =
     text.length > 0 ? text.slice(0, 200) + (text.length > 200 ? '…' : '') : '(no content)';
   return `  ${index + 1}. ${ref}${title}\n     ${snippet}`;
@@ -110,8 +141,11 @@ function formatRemoteHit(h: EGWSchemas.SearchHit, index: number): string {
 
 const doLocalSearch = (query: string, bookCode?: string, limit = 20) =>
   Effect.gen(function* () {
-    const service = yield* EGWService;
-    const results = yield* service.search(query, limit, bookCode);
+    const service = yield* WritingsService;
+    const results = yield* service.search(query, {
+      limit,
+      publication: bookCode === undefined ? undefined : Reference.publication(bookCode),
+    });
 
     if (results.length === 0) {
       yield* Console.log(`No local results found for "${query}".`);
@@ -128,10 +162,13 @@ const doLocalSearch = (query: string, bookCode?: string, limit = 20) =>
 
 const doLookup = (parsed: Exclude<EGWParsedRef, EGWSearchQuery>) =>
   Effect.gen(function* () {
-    const service = yield* EGWService;
+    const service = yield* WritingsService;
     const refStr = formatEGWRef(parsed);
 
-    const bookOpt = yield* service.getBook(parsed.bookCode);
+    const bookOpt = yield* service.publication(Reference.publication(parsed.bookCode)).pipe(
+      Effect.map(Option.some),
+      Effect.catchTag('WritingsPublicationNotFoundError', () => Effect.succeed(Option.none())),
+    );
     if (Option.isNone(bookOpt)) {
       yield* Console.log(`Book "${parsed.bookCode}" not found in local database.`);
       yield* Console.log(`Try \`bible egw download ${parsed.bookCode}\` to fetch it from the API.`);
@@ -145,7 +182,9 @@ const doLookup = (parsed: Exclude<EGWParsedRef, EGWSearchQuery>) =>
       case 'paragraph-range':
       case 'page': {
         const page = parsed._tag === 'page' ? parsed.page : parsed.page;
-        const pageResponse = yield* service.getPage(parsed.bookCode, page);
+        const pageResponse = yield* service
+          .page(Reference.page(parsed.bookCode, page))
+          .pipe(Effect.catchTag('WritingsPageNotFoundError', () => Effect.succeed(null)));
         if (pageResponse === null) {
           yield* Console.log(`Page ${page} not found in ${book.title} (${parsed.bookCode}).`);
           return;
@@ -153,22 +192,22 @@ const doLookup = (parsed: Exclude<EGWParsedRef, EGWSearchQuery>) =>
 
         yield* Console.log(`${book.title} (${parsed.bookCode}) — Page ${page}\n`);
 
-        if (pageResponse.chapterHeading !== null) {
-          yield* Console.log(`  ${pageResponse.chapterHeading}\n`);
+        if (Option.isSome(pageResponse.heading)) {
+          yield* Console.log(`  ${pageResponse.heading.value}\n`);
         }
 
         const paragraphs =
           parsed._tag === 'paragraph'
-            ? pageResponse.paragraphs.filter((p) =>
-                p.refcodeShort?.endsWith(`.${parsed.paragraph}`),
+            ? pageResponse.paragraphs.filter(
+                (p) => Option.getOrUndefined(p.reference.number) === parsed.paragraph,
               )
             : parsed._tag === 'paragraph-range'
-              ? pageResponse.paragraphs.filter((p) => {
-                  const match = p.refcodeShort?.match(/\.(\d+)$/);
-                  if (match?.[1] === undefined) return false;
-                  const num = parseInt(match[1], 10);
-                  return num >= parsed.paragraphStart && num <= parsed.paragraphEnd;
-                })
+              ? pageResponse.paragraphs.filter((p) =>
+                  Option.exists(
+                    p.reference.number,
+                    (number) => number >= parsed.paragraphStart && number <= parsed.paragraphEnd,
+                  ),
+                )
               : pageResponse.paragraphs;
 
         if (paragraphs.length === 0) {
@@ -177,7 +216,7 @@ const doLookup = (parsed: Exclude<EGWParsedRef, EGWSearchQuery>) =>
         }
 
         for (const p of paragraphs) {
-          const ref = p.refcodeShort ?? '';
+          const ref = Option.getOrElse(p.reference.refcode, () => '');
           const text = nodesToText(p.nodes);
           yield* Console.log(`  ${ref}`);
           yield* Console.log(`  ${text}\n`);
@@ -189,11 +228,13 @@ const doLookup = (parsed: Exclude<EGWParsedRef, EGWSearchQuery>) =>
           `${book.title} (${parsed.bookCode}) — Pages ${parsed.pageStart}-${parsed.pageEnd}\n`,
         );
         for (let page = parsed.pageStart; page <= parsed.pageEnd; page++) {
-          const pageResponse = yield* service.getPage(parsed.bookCode, page);
+          const pageResponse = yield* service
+            .page(Reference.page(parsed.bookCode, page))
+            .pipe(Effect.catchTag('WritingsPageNotFoundError', () => Effect.succeed(null)));
           if (pageResponse === null) continue;
 
           for (const p of pageResponse.paragraphs) {
-            const ref = p.refcodeShort ?? '';
+            const ref = Option.getOrElse(p.reference.refcode, () => '');
             const text = nodesToText(p.nodes);
             yield* Console.log(`  ${ref}`);
             yield* Console.log(`  ${text}\n`);
@@ -203,14 +244,16 @@ const doLookup = (parsed: Exclude<EGWParsedRef, EGWSearchQuery>) =>
       }
       case 'book': {
         yield* Console.log(`${book.title} (${parsed.bookCode}) — ${book.author}`);
-        yield* Console.log(`Paragraphs: ${book.paragraphCount ?? 'unknown'}`);
+        yield* Console.log(
+          `Paragraphs: ${Option.getOrElse(book.paragraphCount, () => 'unknown' as const)}`,
+        );
 
-        const chapters = yield* service.getChapters(parsed.bookCode);
+        const chapters = yield* service.headings(Reference.publication(parsed.bookCode));
         if (chapters.length > 0) {
           yield* Console.log('\nTable of Contents:');
           for (const ch of chapters) {
-            const title = ch.title ?? '';
-            const ref = ch.refcodeShort ?? '';
+            const title = ch.title;
+            const ref = Option.getOrElse(ch.reference.refcode, () => '');
             yield* Console.log(`  ${ref}  ${title}`);
           }
         }
@@ -234,8 +277,8 @@ const booksJson = Flag.boolean('json').pipe(
 
 export const egwBooks = Command.make('books', { author: booksAuthor, json: booksJson }, (args) =>
   Effect.gen(function* () {
-    const service = yield* EGWService;
-    const all = yield* service.getBooks();
+    const service = yield* WritingsService;
+    const all = yield* service.catalog();
 
     const filtered =
       args.author._tag === 'Some'
@@ -247,7 +290,7 @@ export const egwBooks = Command.make('books', { author: booksAuthor, json: books
         : all;
 
     if (args.json) {
-      yield* Console.log(JSON.stringify(filtered, null, 2));
+      yield* Console.log(JSON.stringify(filtered.map(publicationJson), null, 2));
       return;
     }
 
@@ -263,9 +306,9 @@ export const egwBooks = Command.make('books', { author: booksAuthor, json: books
     yield* Console.log('CODE       | AUTHOR                          | PARAS    | TITLE');
     yield* Console.log('-----------|---------------------------------|----------|------');
     for (const b of filtered) {
-      const code = b.bookCode.padEnd(10);
+      const code = b.code.padEnd(10);
       const author = (b.author.length > 31 ? b.author.slice(0, 28) + '…' : b.author).padEnd(31);
-      const paras = String(b.paragraphCount ?? '-').padEnd(8);
+      const paras = String(Option.getOrElse(b.paragraphCount, () => '-')).padEnd(8);
       yield* Console.log(`${code} | ${author} | ${paras} | ${b.title}`);
     }
   }),
@@ -596,7 +639,7 @@ export const egwStudy = Command.make(
 
       const client = yield* EGWApiClient;
       const db = yield* EGWParagraphDatabase;
-      const service = yield* EGWService;
+      const service = yield* WritingsService;
       const fs = yield* FileSystem.FileSystem;
 
       const authorFilters = args.pioneers ? PIONEER_AUTHORS : [...args.author];
@@ -631,7 +674,11 @@ export const egwStudy = Command.make(
         if (existing) {
           existing.hits += 1;
         } else {
-          rankMap.set(hit.pub_code, { pubCode: hit.pub_code, pubName: hit.pub_name, hits: 1 });
+          rankMap.set(hit.pub_code, {
+            pubCode: hit.pub_code,
+            pubName: hit.pub_name,
+            hits: 1,
+          });
         }
       }
 
@@ -641,8 +688,8 @@ export const egwStudy = Command.make(
         .filter((b) => b.hits >= args.minHits)
         .sort((a, b) => b.hits - a.hits);
 
-      const installed = yield* service.getBooks();
-      const installedCodes = new Set(installed.map((b) => b.bookCode.toUpperCase()));
+      const installed = yield* service.catalog();
+      const installedCodes = new Set(installed.map((b) => b.code.toUpperCase()));
 
       yield* Console.log(
         `Scanned ${hits.length} hit(s) across ${rankMap.size} book(s); ` +
@@ -659,8 +706,12 @@ export const egwStudy = Command.make(
       let downloaded = 0;
       let failed = 0;
       let skippedByAuthor = 0;
-      const selectedBooks: Array<{ code: string; title: string; author: string; hits: number }> =
-        [];
+      const selectedBooks: Array<{
+        code: string;
+        title: string;
+        author: string;
+        hits: number;
+      }> = [];
 
       for (const b of candidatePool) {
         if (selected >= args.limit) break;
@@ -748,15 +799,20 @@ export const egwStudy = Command.make(
       );
 
       // --- Phase 3: local FTS across everything now installed -----------------
-      const allBooks = yield* service.getBooks();
-      const authorByCode = new Map(allBooks.map((b) => [b.bookCode.toUpperCase(), b.author]));
-      const rawResults = yield* service.search(subject, args.results * (scoped ? 4 : 1));
+      const allBooks = yield* service.catalog();
+      const authorByCode = new Map(allBooks.map((b) => [b.code.toUpperCase(), b.author]));
+      const rawResults = yield* service.search(subject, {
+        limit: args.results * (scoped ? 4 : 1),
+      });
 
       // When author-scoped, keep only hits whose book author matches.
       const localResults = (
         scoped
           ? rawResults.filter((r) =>
-              authorMatches(authorByCode.get(r.bookCode.toUpperCase()) ?? '', authorFilters),
+              authorMatches(
+                authorByCode.get(r.publication.code.toUpperCase()) ?? '',
+                authorFilters,
+              ),
             )
           : rawResults
       ).slice(0, args.results);
@@ -776,9 +832,9 @@ export const egwStudy = Command.make(
           ', across the installed corpus):\n',
       );
       for (const r of localResults) {
-        const ref = r.refcodeShort ?? `[${r.bookCode}]`;
-        const author = authorByCode.get(r.bookCode.toUpperCase()) ?? r.bookTitle;
-        const text = nodesToText(r.nodes).replace(/\s+/g, ' ').trim();
+        const ref = paragraphRefcode(r.paragraph);
+        const author = authorByCode.get(r.publication.code.toUpperCase()) ?? r.publication.title;
+        const text = nodesToText(r.paragraph.nodes).replace(/\s+/g, ' ').trim();
         const snippet = text.length > 220 ? `${text.slice(0, 220)}…` : text;
         yield* Console.log(`  ${ref} — ${author}`);
         yield* Console.log(`    ${snippet}\n`);
@@ -801,16 +857,16 @@ export const egwStudy = Command.make(
         lines.push('');
         let lastAuthor = '';
         for (const r of localResults) {
-          const ref = r.refcodeShort ?? `[${r.bookCode}]`;
-          const author = authorByCode.get(r.bookCode.toUpperCase()) ?? r.bookTitle;
+          const ref = paragraphRefcode(r.paragraph);
+          const author = authorByCode.get(r.publication.code.toUpperCase()) ?? r.publication.title;
           if (author !== lastAuthor) {
             lines.push(`\n## ${author}\n`);
             lastAuthor = author;
           }
-          const text = nodesToText(r.nodes).replace(/\s+/g, ' ').trim();
+          const text = nodesToText(r.paragraph.nodes).replace(/\s+/g, ' ').trim();
           const body = args.full || text.length <= 220 ? text : `${text.slice(0, 220)}…`;
           lines.push(`> ${body}`);
-          lines.push(`> — **${ref}** (${r.bookTitle})`);
+          lines.push(`> — **${ref}** (${r.publication.title})`);
           lines.push('');
         }
         yield* fs.writeFileString(path, `${lines.join('\n')}\n`);
@@ -857,60 +913,63 @@ export const egwSearch = Command.make(
     json: searchJson,
     lang: searchLang,
   },
-  (args) => {
-    const queryStr = args.query.join(' ').trim();
-    if (queryStr.length === 0) {
-      return Console.log('Usage: bible egw search <query> [--book CODE] [--remote] [--limit N]');
-    }
-
-    if (args.remote) {
-      // Remote path requires the API client + auth layer.
-      return Effect.gen(function* () {
-        const client = yield* EGWApiClient;
-        const response = yield* client.search({
-          query: queryStr,
-          lang: args.lang,
-          limit: args.limit,
-        });
-
-        if (args.json) {
-          yield* Console.log(JSON.stringify(response, null, 2));
-          return;
-        }
-
-        if (response.results.length === 0) {
-          yield* Console.log(`No remote results for "${queryStr}".`);
-          return;
-        }
-
-        yield* Console.log(
-          `Remote search "${queryStr}" — ${response.total} total, showing ${response.results.length}:\n`,
-        );
-        for (const [i, hit] of response.results.entries()) {
-          yield* Console.log(formatRemoteHit(hit, i));
-        }
-      }).pipe(Effect.provide(FullLayer));
-    }
-
-    // Local path — only needs the EGWService layer (no auth required).
-    return Effect.gen(function* () {
-      if (args.json) {
-        const service = yield* EGWService;
-        const results = yield* service.search(
-          queryStr,
-          args.limit,
-          args.book._tag === 'Some' ? args.book.value : undefined,
-        );
-        yield* Console.log(JSON.stringify(results, null, 2));
+  (args) =>
+    Effect.gen(function* () {
+      const queryStr = args.query.join(' ').trim();
+      if (queryStr.length === 0) {
+        yield* Console.log('Usage: bible egw search <query> [--book CODE] [--remote] [--limit N]');
         return;
       }
-      yield* doLocalSearch(
-        queryStr,
-        args.book._tag === 'Some' ? args.book.value : undefined,
-        args.limit,
-      );
-    }).pipe(Effect.provide(ServiceLayer));
-  },
+
+      if (args.remote) {
+        // Remote path requires the API client + auth layer.
+        yield* Effect.gen(function* () {
+          const client = yield* EGWApiClient;
+          const response = yield* client.search({
+            query: queryStr,
+            lang: args.lang,
+            limit: args.limit,
+          });
+
+          if (args.json) {
+            yield* Console.log(JSON.stringify(response, null, 2));
+            return;
+          }
+
+          if (response.results.length === 0) {
+            yield* Console.log(`No remote results for "${queryStr}".`);
+            return;
+          }
+
+          yield* Console.log(
+            `Remote search "${queryStr}" — ${response.total} total, showing ${response.results.length}:\n`,
+          );
+          for (const [i, hit] of response.results.entries()) {
+            yield* Console.log(formatRemoteHit(hit, i));
+          }
+        }).pipe(Effect.provide(FullLayer));
+        return;
+      }
+
+      // Local path — only needs the WritingsService layer (no auth required).
+      yield* Effect.gen(function* () {
+        if (args.json) {
+          const service = yield* WritingsService;
+          const results = yield* service.search(queryStr, {
+            limit: args.limit,
+            publication:
+              args.book._tag === 'Some' ? Reference.publication(args.book.value) : undefined,
+          });
+          yield* Console.log(JSON.stringify(results.map(searchHitJson), null, 2));
+          return;
+        }
+        yield* doLocalSearch(
+          queryStr,
+          args.book._tag === 'Some' ? args.book.value : undefined,
+          args.limit,
+        );
+      }).pipe(Effect.provide(ServiceLayer));
+    }),
 );
 
 // ============================================================================
@@ -925,10 +984,13 @@ const lookupJson = Flag.boolean('json').pipe(
 
 const collectLookupData = (parsed: Exclude<EGWParsedRef, EGWSearchQuery>) =>
   Effect.gen(function* () {
-    const service = yield* EGWService;
+    const service = yield* WritingsService;
     const refStr = formatEGWRef(parsed);
 
-    const bookOpt = yield* service.getBook(parsed.bookCode);
+    const bookOpt = yield* service.publication(Reference.publication(parsed.bookCode)).pipe(
+      Effect.map(Option.some),
+      Effect.catchTag('WritingsPublicationNotFoundError', () => Effect.succeed(Option.none())),
+    );
     if (Option.isNone(bookOpt)) {
       return { ref: refStr, found: false as const, bookCode: parsed.bookCode };
     }
@@ -940,34 +1002,41 @@ const collectLookupData = (parsed: Exclude<EGWParsedRef, EGWSearchQuery>) =>
       case 'paragraph-range':
       case 'page': {
         const page = parsed.page;
-        const pageResponse = yield* service.getPage(parsed.bookCode, page);
+        const pageResponse = yield* service
+          .page(Reference.page(parsed.bookCode, page))
+          .pipe(Effect.catchTag('WritingsPageNotFoundError', () => Effect.succeed(null)));
         if (pageResponse === null) {
-          return { ref: refStr, found: false as const, book, page };
+          return {
+            ref: refStr,
+            found: false as const,
+            book: publicationJson(book),
+            page,
+          };
         }
 
         const paragraphs =
           parsed._tag === 'paragraph'
-            ? pageResponse.paragraphs.filter((p) =>
-                p.refcodeShort?.endsWith(`.${parsed.paragraph}`),
+            ? pageResponse.paragraphs.filter(
+                (p) => Option.getOrUndefined(p.reference.number) === parsed.paragraph,
               )
             : parsed._tag === 'paragraph-range'
-              ? pageResponse.paragraphs.filter((p) => {
-                  const match = p.refcodeShort?.match(/\.(\d+)$/);
-                  if (match?.[1] === undefined) return false;
-                  const num = parseInt(match[1], 10);
-                  return num >= parsed.paragraphStart && num <= parsed.paragraphEnd;
-                })
+              ? pageResponse.paragraphs.filter((p) =>
+                  Option.exists(
+                    p.reference.number,
+                    (number) => number >= parsed.paragraphStart && number <= parsed.paragraphEnd,
+                  ),
+                )
               : pageResponse.paragraphs;
 
         return {
           ref: refStr,
           found: true as const,
           kind: 'page' as const,
-          book,
+          book: publicationJson(book),
           page,
-          chapterHeading: pageResponse.chapterHeading,
+          chapterHeading: Option.getOrNull(pageResponse.heading),
           paragraphs: paragraphs.map((p) => ({
-            refcode: p.refcodeShort ?? '',
+            refcode: Option.getOrElse(p.reference.refcode, () => ''),
             text: nodesToText(p.nodes),
           })),
         };
@@ -979,13 +1048,15 @@ const collectLookupData = (parsed: Exclude<EGWParsedRef, EGWSearchQuery>) =>
           paragraphs: Array<{ refcode: string; text: string }>;
         }> = [];
         for (let page = parsed.pageStart; page <= parsed.pageEnd; page++) {
-          const pageResponse = yield* service.getPage(parsed.bookCode, page);
+          const pageResponse = yield* service
+            .page(Reference.page(parsed.bookCode, page))
+            .pipe(Effect.catchTag('WritingsPageNotFoundError', () => Effect.succeed(null)));
           if (pageResponse === null) continue;
           pages.push({
             page,
-            chapterHeading: pageResponse.chapterHeading,
+            chapterHeading: Option.getOrNull(pageResponse.heading),
             paragraphs: pageResponse.paragraphs.map((p) => ({
-              refcode: p.refcodeShort ?? '',
+              refcode: Option.getOrElse(p.reference.refcode, () => ''),
               text: nodesToText(p.nodes),
             })),
           });
@@ -994,22 +1065,22 @@ const collectLookupData = (parsed: Exclude<EGWParsedRef, EGWSearchQuery>) =>
           ref: refStr,
           found: true as const,
           kind: 'page-range' as const,
-          book,
+          book: publicationJson(book),
           pageStart: parsed.pageStart,
           pageEnd: parsed.pageEnd,
           pages,
         };
       }
       case 'book': {
-        const chapters = yield* service.getChapters(parsed.bookCode);
+        const chapters = yield* service.headings(Reference.publication(parsed.bookCode));
         return {
           ref: refStr,
           found: true as const,
           kind: 'book' as const,
-          book,
+          book: publicationJson(book),
           chapters: chapters.map((ch) => ({
-            refcode: ch.refcodeShort ?? '',
-            title: ch.title ?? '',
+            refcode: Option.getOrElse(ch.reference.refcode, () => ''),
+            title: ch.title,
           })),
         };
       }

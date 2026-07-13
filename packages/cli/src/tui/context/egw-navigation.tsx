@@ -8,7 +8,8 @@
 import type { EGWReference } from '@bible/core/app';
 import { nodesToText } from '@bible/core/egw';
 import { isChapterHeading } from '@bible/core/egw-db';
-import type { EGWBookInfo, EGWParagraph, EGWReaderPosition } from '@bible/core/egw-reader';
+import type { Paragraph, Publication } from '@bible/core/writings';
+import { Option } from 'effect';
 import {
   createContext,
   createEffect,
@@ -21,7 +22,7 @@ import {
 } from 'solid-js';
 
 import { useBibleState } from './bible.js';
-import { useEGW } from './egw.js';
+import { useEGW, type EGWReaderPosition } from './egw.js';
 
 /**
  * Loading state for async operations
@@ -38,16 +39,16 @@ interface ChapterInfo {
   /** Chapter title (content of the heading paragraph) */
   title: string;
   /** Paragraphs in this chapter (including heading) */
-  paragraphs: readonly EGWParagraph[];
+  paragraphs: readonly Paragraph[];
 }
 
 interface EGWNavigationContextValue {
   // Current state
   loadingState: () => LoadingState;
-  currentBook: () => EGWBookInfo | null;
-  paragraphs: () => readonly EGWParagraph[];
+  currentBook: () => Publication | null;
+  paragraphs: () => readonly Paragraph[];
   selectedParagraphIndex: () => number;
-  currentParagraph: () => EGWParagraph | null;
+  currentParagraph: () => Paragraph | null;
 
   // Chapter-filtered view (like Bible reader)
   currentChapter: () => ChapterInfo | null;
@@ -68,7 +69,7 @@ interface EGWNavigationContextValue {
   prevChapter: () => void;
 
   // Book list
-  books: () => readonly EGWBookInfo[];
+  books: () => readonly Publication[];
   loadBooks: () => void;
 
   // Total paragraphs
@@ -90,9 +91,9 @@ export function EGWNavigationProvider(props: ParentProps<EGWNavigationProviderPr
   const [loadingState, setLoadingState] = createSignal<LoadingState>({
     _tag: 'idle',
   });
-  const [books, setBooks] = createSignal<readonly EGWBookInfo[]>([]);
-  const [currentBook, setCurrentBook] = createSignal<EGWBookInfo | null>(null);
-  const [paragraphs, setParagraphs] = createSignal<readonly EGWParagraph[]>([]);
+  const [books, setBooks] = createSignal<readonly Publication[]>([]);
+  const [currentBook, setCurrentBook] = createSignal<Publication | null>(null);
+  const [paragraphs, setParagraphs] = createSignal<readonly Paragraph[]>([]);
   const [selectedParagraphIndex, setSelectedParagraphIndex] = createSignal(0);
 
   // Derived state
@@ -104,15 +105,11 @@ export function EGWNavigationProvider(props: ParentProps<EGWNavigationProviderPr
 
   const totalParagraphs = createMemo(() => paragraphs().length);
 
-  // Extract page number from refcode (e.g., "PP 351.1" -> 351)
-  const getPageFromParagraph = (para: EGWParagraph | null): number | null => {
-    if (!para) return null;
-    const refcode = para.refcodeShort ?? para.refcodeLong ?? '';
-    const match = refcode.match(/\s(\d+)\.\d+$/);
-    if (!match) return null;
-    const pageNum = match[1];
-    return pageNum ? parseInt(pageNum, 10) : null;
-  };
+  const getPageFromParagraph = (para: Paragraph | null): number | null =>
+    para === null ? null : Option.getOrNull(para.reference.page);
+
+  const isParagraphChapterHeading = (paragraph: Paragraph): boolean =>
+    isChapterHeading(Option.getOrNull(paragraph.elementType));
 
   const currentPage = createMemo(() => getPageFromParagraph(currentParagraph()));
 
@@ -127,7 +124,7 @@ export function EGWNavigationProvider(props: ParentProps<EGWNavigationProviderPr
     let chapterStartIndex = 0;
     for (let i = currentIndex; i >= 0; i--) {
       const para = paras[i];
-      if (para && isChapterHeading(para.elementType)) {
+      if (para && isParagraphChapterHeading(para)) {
         chapterStartIndex = i;
         break;
       }
@@ -137,7 +134,7 @@ export function EGWNavigationProvider(props: ParentProps<EGWNavigationProviderPr
     let chapterEndIndex = paras.length;
     for (let i = chapterStartIndex + 1; i < paras.length; i++) {
       const para = paras[i];
-      if (para && isChapterHeading(para.elementType)) {
+      if (para && isParagraphChapterHeading(para)) {
         chapterEndIndex = i;
         break;
       }
@@ -190,7 +187,7 @@ export function EGWNavigationProvider(props: ParentProps<EGWNavigationProviderPr
   // Load book and paragraphs, then run callback with the data
   const loadBookData = (
     bookCode: string,
-    onLoaded: (book: EGWBookInfo, paras: readonly EGWParagraph[]) => void,
+    onLoaded: (book: Publication, paras: readonly Paragraph[]) => void,
   ) => {
     setLoadingState({ _tag: 'loading', message: 'Loading book...' });
 
@@ -237,7 +234,7 @@ export function EGWNavigationProvider(props: ParentProps<EGWNavigationProviderPr
     const book = currentBook();
 
     // If same book, just navigate within it
-    if (book && book.bookCode.toUpperCase() === bookCode.toUpperCase()) {
+    if (book && book.code.toUpperCase() === bookCode.toUpperCase()) {
       navigateToPosition(paragraphs(), position);
       return;
     }
@@ -247,19 +244,14 @@ export function EGWNavigationProvider(props: ParentProps<EGWNavigationProviderPr
   };
 
   // Find paragraph index from position
-  const navigateToPosition = (paras: readonly EGWParagraph[], position: EGWReaderPosition) => {
-    // If we have page and paragraph, build refcode
+  const navigateToPosition = (paras: readonly Paragraph[], position: EGWReaderPosition) => {
     if (position.page != null) {
-      const refcodePrefix =
-        position.paragraph != null
-          ? `${position.bookCode} ${position.page}.${position.paragraph}`
-          : `${position.bookCode} ${position.page}.`;
-
       const index = paras.findIndex((p) => {
-        const ref = p.refcodeShort ?? p.refcodeLong ?? '';
-        return position.paragraph != null
-          ? ref.toUpperCase() === refcodePrefix.toUpperCase()
-          : ref.toUpperCase().startsWith(refcodePrefix.toUpperCase());
+        const page = Option.getOrUndefined(p.reference.page);
+        const paragraph = Option.getOrUndefined(p.reference.number);
+        return (
+          page === position.page && (position.paragraph == null || paragraph === position.paragraph)
+        );
       });
 
       if (index >= 0) {
@@ -270,7 +262,7 @@ export function EGWNavigationProvider(props: ParentProps<EGWNavigationProviderPr
 
     // If we have puborder
     if (position.puborder != null) {
-      const index = paras.findIndex((p) => p.puborder === position.puborder);
+      const index = paras.findIndex((p) => p.reference.order === position.puborder);
       if (index >= 0) {
         setSelectedParagraphIndex(index);
         return;
@@ -371,7 +363,7 @@ export function EGWNavigationProvider(props: ParentProps<EGWNavigationProviderPr
     // Find next chapter heading after current position
     for (let i = currentIndex + 1; i < paras.length; i++) {
       const para = paras[i];
-      if (para && isChapterHeading(para.elementType)) {
+      if (para && isParagraphChapterHeading(para)) {
         setSelectedParagraphIndex(i);
         return;
       }
@@ -389,11 +381,11 @@ export function EGWNavigationProvider(props: ParentProps<EGWNavigationProviderPr
     // Otherwise, go to the chapter heading of the current section
     let foundCurrentChapter = false;
     const currentPara = paras[currentIndex];
-    const isCurrentChapterHeading = currentPara && isChapterHeading(currentPara.elementType);
+    const isCurrentChapterHeading = currentPara && isParagraphChapterHeading(currentPara);
 
     for (let i = currentIndex - 1; i >= 0; i--) {
       const para = paras[i];
-      if (para && isChapterHeading(para.elementType)) {
+      if (para && isParagraphChapterHeading(para)) {
         if (foundCurrentChapter || !isCurrentChapterHeading) {
           // We found the previous chapter
           setSelectedParagraphIndex(i);
@@ -416,9 +408,9 @@ export function EGWNavigationProvider(props: ParentProps<EGWNavigationProviderPr
       // Untrack the save operation to prevent reactive loops
       untrack(() => {
         bibleState.setLastEGWPosition({
-          bookCode: book.bookCode,
+          bookCode: book.code,
           page: page ?? undefined,
-          puborder: para.puborder,
+          puborder: para.reference.order,
         });
       });
     }

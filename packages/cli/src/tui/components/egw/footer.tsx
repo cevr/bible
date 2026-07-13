@@ -5,6 +5,7 @@
  * Similar layout to Bible reader footer.
  */
 
+import { Option } from 'effect';
 import { For, Show } from 'solid-js';
 
 import { useEGWNavigation } from '../../context/egw-navigation.js';
@@ -30,7 +31,7 @@ export function EGWFooter(props: EGWFooterProps) {
 
   const refcode = () => {
     const para = currentParagraph();
-    return para?.refcodeShort ?? para?.refcodeLong ?? '';
+    return para ? Option.getOrElse(para.reference.refcode, () => '') : '';
   };
 
   const chapterParagraphCount = () => currentChapter()?.paragraphs.length ?? 0;

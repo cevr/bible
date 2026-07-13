@@ -19,6 +19,6 @@ export * from './ai/index.js';
 export * from './sabbath-school/index.js';
 export * from './bible/index.js';
 
-// Core services (single source of truth for TUI/web)
-export * from './egw-service/index.js';
+// AI-facing Writings adapter
+export { createEGWTool } from './writings/tool.js';
 export * from './hymnal/index.js';

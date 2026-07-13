@@ -34,7 +34,7 @@ export function EGWBookPalette(props: EGWBookPaletteProps) {
     const q = query().toLowerCase();
     if (!q) return books();
     return books().filter(
-      (book) => book.title.toLowerCase().includes(q) || book.bookCode.toLowerCase().includes(q),
+      (book) => book.title.toLowerCase().includes(q) || book.code.toLowerCase().includes(q),
     );
   });
 
@@ -54,7 +54,7 @@ export function EGWBookPalette(props: EGWBookPaletteProps) {
     if (key.name === 'return') {
       const selected = filteredBooks()[selectedIndex()];
       if (selected) {
-        goToBook(selected.bookCode);
+        goToBook(selected.code);
         props.onClose();
       }
       return;
@@ -142,7 +142,7 @@ export function EGWBookPalette(props: EGWBookPaletteProps) {
                         fg: index() === selectedIndex() ? theme().background : theme().textMuted,
                       }}
                     >
-                      [{book.bookCode}]
+                      [{book.code}]
                     </span>{' '}
                     {book.title}
                   </text>

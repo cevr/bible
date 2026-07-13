@@ -7,13 +7,21 @@
 
 import { tool } from 'ai';
 import type { ManagedRuntime } from 'effect';
-import { Effect } from 'effect';
+import { Effect, Option } from 'effect';
 
 import { z } from 'zod';
 
 import { EGWCommentaryService } from '../egw-commentary/service.js';
-import { type Node, nodesToText } from '../egw/ast.js';
-import { EGWService } from './service.js';
+import { nodesToText } from '../egw/ast.js';
+import {
+  type Heading,
+  type Page,
+  type Paragraph,
+  type Publication,
+  Reference,
+  type SearchHit,
+} from './index.js';
+import { WritingsService } from './service.js';
 
 // ============================================================================
 // Tool Input Schema
@@ -60,14 +68,14 @@ type EGWToolInput = z.infer<typeof EGWToolSchema>;
 /**
  * Creates an ai-sdk tool for EGW writings queries.
  *
- * @param runtime - ManagedRuntime with EGWService and EGWCommentaryService available
+ * @param runtime - ManagedRuntime with WritingsService and EGWCommentaryService available
  * @returns ai-sdk tool definition
  *
  * @example
  * ```ts
  * import * as EGWDbBun from '../egw-db/book-database-bun.js';
  *
- * const egwLayer = EGWService.Live.pipe(
+ * const egwLayer = WritingsService.Live.pipe(
  *   Layer.provideMerge(EGWCommentaryService.Live),
  *   Layer.provide(EGWDbBun.Live),
  * );
@@ -80,7 +88,7 @@ type EGWToolInput = z.infer<typeof EGWToolSchema>;
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function createEGWTool(
-  runtime: ManagedRuntime.ManagedRuntime<EGWService | EGWCommentaryService, unknown>,
+  runtime: ManagedRuntime.ManagedRuntime<WritingsService | EGWCommentaryService, unknown>,
 ) {
   return tool({
     description: `Query the Ellen G. White writings database.
@@ -109,16 +117,20 @@ Always use this tool when citing EGW. Never guess or fabricate reference codes o
 
 function executeEGWTool(
   input: EGWToolInput,
-): Effect.Effect<string, never, EGWService | EGWCommentaryService> {
+): Effect.Effect<string, never, WritingsService | EGWCommentaryService> {
   return Effect.gen(function* () {
     switch (input.action) {
       case 'search': {
         if (input.query === undefined || input.query.length === 0) {
           return 'Error: query is required for search action';
         }
-        const service = yield* EGWService;
+        const service = yield* WritingsService;
         const results = yield* service
-          .search(input.query, input.limit ?? 10, input.bookCode)
+          .search(input.query, {
+            limit: input.limit ?? 10,
+            publication:
+              input.bookCode === undefined ? undefined : Reference.publication(input.bookCode),
+          })
           .pipe(Effect.catch(() => Effect.succeed([] as const)));
         if (results.length === 0) {
           return `No results found for "${input.query}"${input.bookCode !== undefined ? ` in ${input.bookCode}` : ''}`;
@@ -130,38 +142,41 @@ function executeEGWTool(
         if (input.ref === undefined || input.ref.length === 0) {
           return 'Error: ref is required for getByRef action (e.g., "GC 414.1")';
         }
-        const service = yield* EGWService;
-        // Parse the reference to extract book code and page
+        const service = yield* WritingsService;
         const parsed = parseRef(input.ref);
         if (parsed === null) {
           return `Error: could not parse reference "${input.ref}". Expected format: "GC 414.1" or "DA 25"`;
         }
-        const pageResponse = yield* service
-          .getPage(parsed.bookCode, parsed.page)
-          .pipe(Effect.catch(() => Effect.succeed(null)));
-        if (pageResponse === null) {
-          return `No content found for reference "${input.ref}"`;
-        }
-        // If a specific paragraph was requested, filter to it
         if (parsed.paragraph !== null) {
           const targetRef = `${parsed.bookCode} ${parsed.page}.${parsed.paragraph}`;
-          const match = pageResponse.paragraphs.find((p) => p.refcodeShort === targetRef);
-          if (match !== null && match !== undefined) {
+          const match = yield* service
+            .paragraphByRefcode(Reference.publication(parsed.bookCode), targetRef)
+            .pipe(Effect.catch(() => Effect.succeed(Option.none<Paragraph>())));
+          if (Option.isSome(match)) {
+            const publication = yield* Effect.option(
+              service.publication(Reference.publication(parsed.bookCode)),
+            );
             return formatParagraph(
-              match.refcodeShort ?? input.ref,
-              nodesToText(match.nodes),
-              pageResponse.book.title,
+              Option.getOrElse(match.value.reference.refcode, () => targetRef),
+              nodesToText(match.value.nodes),
+              Option.match(publication, {
+                onNone: () => parsed.bookCode,
+                onSome: (value) => value.title,
+              }),
             );
           }
-          // Fall through to showing the whole page if paragraph not found
         }
-        return formatPage(pageResponse);
+        const pageResponse = yield* Effect.option(
+          service.page(Reference.page(parsed.bookCode, parsed.page)),
+        );
+        if (Option.isNone(pageResponse)) return `No content found for reference "${input.ref}"`;
+        return formatPage(pageResponse.value);
       }
 
       case 'listBooks': {
-        const service = yield* EGWService;
+        const service = yield* WritingsService;
         const books = yield* service
-          .getBooks()
+          .catalog()
           .pipe(Effect.catch(() => Effect.succeed([] as const)));
         if (books.length === 0) {
           return 'No books available. The EGW database may need to be synced.';
@@ -173,9 +188,9 @@ function executeEGWTool(
         if (input.bookCode === undefined || input.bookCode.length === 0) {
           return 'Error: bookCode is required for getChapters action';
         }
-        const service = yield* EGWService;
+        const service = yield* WritingsService;
         const chapters = yield* service
-          .getChapters(input.bookCode)
+          .headings(Reference.publication(input.bookCode))
           .pipe(Effect.catch(() => Effect.succeed([] as const)));
         if (chapters.length === 0) {
           return `No chapters found for book "${input.bookCode}"`;
@@ -190,14 +205,14 @@ function executeEGWTool(
         if (input.page === undefined) {
           return 'Error: page number is required for getPage action';
         }
-        const service = yield* EGWService;
-        const pageResponse = yield* service
-          .getPage(input.bookCode, input.page)
-          .pipe(Effect.catch(() => Effect.succeed(null)));
-        if (pageResponse === null) {
+        const service = yield* WritingsService;
+        const pageResponse = yield* Effect.option(
+          service.page(Reference.page(input.bookCode, input.page)),
+        );
+        if (Option.isNone(pageResponse)) {
           return `No content found for ${input.bookCode} page ${input.page}`;
         }
-        return formatPage(pageResponse);
+        return formatPage(pageResponse.value);
       }
 
       case 'commentaryForVerse': {
@@ -247,38 +262,6 @@ function parseRef(
 // Formatting Helpers
 // ============================================================================
 
-interface SearchResultLike {
-  readonly refcodeShort: string | null;
-  readonly nodes: readonly Node[];
-  readonly bookCode: string;
-  readonly bookTitle: string;
-}
-
-interface ParagraphLike {
-  readonly refcodeShort: string | null;
-  readonly nodes: readonly Node[];
-  readonly puborder: number;
-}
-
-interface PageResponseLike {
-  readonly book: { readonly title: string; readonly bookCode: string };
-  readonly page: number;
-  readonly paragraphs: readonly ParagraphLike[];
-  readonly chapterHeading: string | null;
-  readonly totalPages: number;
-}
-
-interface BookLike {
-  readonly bookCode: string;
-  readonly title: string;
-}
-
-interface ChapterLike {
-  readonly title: string | null;
-  readonly refcodeShort: string | null;
-  readonly page: number | null;
-}
-
 interface CommentaryEntryLike {
   readonly refcode: string;
   readonly bookTitle: string;
@@ -292,7 +275,7 @@ interface VerseRefLike {
 }
 
 function formatSearchResults(
-  results: readonly SearchResultLike[],
+  results: readonly SearchHit[],
   query: string,
   bookCode?: string,
 ): string {
@@ -304,9 +287,9 @@ function formatSearchResults(
     header,
     '',
     ...results.map((r) => {
-      const ref = r.refcodeShort ?? 'unknown';
-      const content = truncate(nodesToText(r.nodes), 200);
-      return `[${ref}] (${r.bookTitle})\n${content}`;
+      const ref = Option.getOrElse(r.paragraph.reference.refcode, () => 'unknown');
+      const content = truncate(nodesToText(r.paragraph.nodes), 200);
+      return `[${ref}] (${r.publication.title})\n${content}`;
     }),
   ];
   return lines.join('\n');
@@ -316,14 +299,12 @@ function formatParagraph(ref: string, content: string, bookTitle: string): strin
   return `${ref} (${bookTitle})\n\n${content}`;
 }
 
-function formatPage(page: PageResponseLike): string {
-  const lines = [`${page.book.title} — Page ${page.page} of ${page.totalPages}`];
-  if (page.chapterHeading !== null) {
-    lines.push(`Chapter: ${page.chapterHeading}`);
-  }
+function formatPage(page: Page): string {
+  const lines = [`${page.publication.title} — Page ${page.reference.page}`];
+  Option.map(page.heading, (heading) => lines.push(`Chapter: ${heading}`));
   lines.push('');
   for (const p of page.paragraphs) {
-    const ref = p.refcodeShort ?? '';
+    const ref = Option.getOrElse(p.reference.refcode, () => '');
     const content = nodesToText(p.nodes);
     if (ref.length > 0) {
       lines.push(`[${ref}] ${content}`);
@@ -334,22 +315,22 @@ function formatPage(page: PageResponseLike): string {
   return lines.join('\n');
 }
 
-function formatBooks(books: readonly BookLike[]): string {
+function formatBooks(books: readonly Publication[]): string {
   const lines = [
     `Available EGW Books (${books.length}):`,
     '',
-    ...books.map((b) => `${b.bookCode} — ${b.title}`),
+    ...books.map((b) => `${b.code} — ${b.title}`),
   ];
   return lines.join('\n');
 }
 
-function formatChapters(chapters: readonly ChapterLike[], bookCode: string): string {
+function formatChapters(chapters: readonly Heading[], bookCode: string): string {
   const lines = [
     `Table of Contents — ${bookCode}`,
     '',
     ...chapters.map((c) => {
-      const title = c.title ?? 'Untitled';
-      const ref = c.refcodeShort ?? '';
+      const title = c.title;
+      const ref = Option.getOrElse(c.reference.refcode, () => '');
       return ref.length > 0 ? `[${ref}] ${title}` : title;
     }),
   ];

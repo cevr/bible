@@ -6,14 +6,15 @@
 
 import { segmentTextWithReferences } from '@bible/core/bible';
 import { nodesToText } from '@bible/core/egw';
-import type { EGWParagraph } from '@bible/core/egw-reader';
+import type { Paragraph } from '@bible/core/writings';
+import { Option } from 'effect';
 import { createMemo, For, Show } from 'solid-js';
 
 import { useTheme } from '../../context/theme.js';
 
 interface EGWParagraphViewProps {
   id: string;
-  paragraph: EGWParagraph;
+  paragraph: Paragraph;
   isSelected: boolean;
   showRefcode?: boolean;
 }
@@ -21,7 +22,7 @@ interface EGWParagraphViewProps {
 export function EGWParagraphView(props: EGWParagraphViewProps) {
   const { theme } = useTheme();
 
-  const refcode = () => props.paragraph.refcodeShort ?? props.paragraph.refcodeLong ?? '';
+  const refcode = () => Option.getOrElse(props.paragraph.reference.refcode, () => '');
   const cleanContent = createMemo(() => nodesToText(props.paragraph.nodes));
 
   // Segment content with Bible references highlighted
@@ -29,7 +30,7 @@ export function EGWParagraphView(props: EGWParagraphViewProps) {
 
   // Determine if this is a heading based on element_type
   const isHeading = () => {
-    const type = props.paragraph.elementType;
+    const type = Option.getOrUndefined(props.paragraph.elementType);
     return type === 'heading' || type === 'title' || type === 'chapter';
   };
 
