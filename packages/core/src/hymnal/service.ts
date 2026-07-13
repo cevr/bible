@@ -5,13 +5,16 @@
  * Wraps HymnalDatabase with additional business logic.
  */
 
-import { Context, Effect, Layer, Option } from 'effect';
+import { Context, Effect, Layer, Option, Schema } from 'effect';
 
-import { RecordNotFoundError } from '../errors/database.js';
-import type { HymnalDatabaseError } from '../errors/hymnal.js';
 import type { CategoryId, HymnId } from '../types/ids.js';
-import { HymnalDatabase } from './database.js';
+import { HymnalDatabase, type HymnalDatabaseError } from './database.js';
 import type { Category, Hymn, HymnSummary } from './schemas.js';
+
+export class HymnNotFoundError extends Schema.TaggedErrorClass<HymnNotFoundError>()(
+  'HymnNotFoundError',
+  { id: Schema.Number },
+) {}
 
 // ============================================================================
 // Theme to Category Mapping
@@ -117,7 +120,7 @@ export interface HymnalServiceShape {
    * Get a hymn by its number.
    * Returns HymnNotFoundError if not found.
    */
-  readonly getHymn: (id: HymnId) => Effect.Effect<Hymn, HymnalDatabaseError>;
+  readonly getHymn: (id: HymnId) => Effect.Effect<Hymn, HymnalDatabaseError | HymnNotFoundError>;
 
   /**
    * Get all hymn categories.
@@ -167,13 +170,7 @@ export class HymnalService extends Context.Service<HymnalService, HymnalServiceS
       const getHymn = Effect.fn('HymnalService.getHymn')(function* (id: HymnId) {
         const hymn = yield* db.getHymn(id);
         return yield* Option.match(hymn, {
-          onNone: () =>
-            Effect.fail(
-              new RecordNotFoundError({
-                entity: 'Hymn',
-                id: String(id),
-              }),
-            ),
+          onNone: () => Effect.fail(new HymnNotFoundError({ id })),
           onSome: Effect.succeed,
         });
       });
@@ -260,13 +257,7 @@ export class HymnalService extends Context.Service<HymnalService, HymnalServiceS
             db.getHymn(id).pipe(
               Effect.flatMap(
                 Option.match({
-                  onNone: () =>
-                    Effect.fail(
-                      new RecordNotFoundError({
-                        entity: 'Hymn',
-                        id: String(id),
-                      }),
-                    ),
+                  onNone: () => Effect.fail(new HymnNotFoundError({ id })),
                   onSome: Effect.succeed,
                 }),
               ),

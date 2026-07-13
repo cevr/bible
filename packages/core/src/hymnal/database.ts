@@ -11,14 +11,8 @@
 
 import type { PlatformError } from 'effect/PlatformError';
 import { Database } from 'bun:sqlite';
-import { Config, Context, Effect, FileSystem, Layer, Option, Path } from 'effect';
+import { Config, Context, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
 
-import {
-  DatabaseConnectionError,
-  DatabaseQueryError,
-  RecordNotFoundError,
-} from '../errors/database.js';
-import type { HymnalDatabaseError } from '../errors/hymnal.js';
 import type { CategoryId, HymnId } from '../types/ids.js';
 import {
   Category,
@@ -28,6 +22,15 @@ import {
   type CategoryRow,
   type HymnRow,
 } from './schemas.js';
+
+export class HymnalDatabaseError extends Schema.TaggedErrorClass<HymnalDatabaseError>()(
+  'HymnalDatabaseError',
+  {
+    cause: Schema.Unknown,
+    operation: Schema.String,
+    message: Schema.optional(Schema.String),
+  },
+) {}
 
 // ============================================================================
 // Verse Parsing
@@ -98,7 +101,7 @@ export class HymnalDatabase extends Context.Service<HymnalDatabase, HymnalDataba
    */
   static Live: Layer.Layer<
     HymnalDatabase,
-    DatabaseConnectionError | RecordNotFoundError | Config.ConfigError | PlatformError,
+    HymnalDatabaseError | Config.ConfigError | PlatformError,
     FileSystem.FileSystem | Path.Path
   > = Layer.effect(
     HymnalDatabase,
@@ -114,12 +117,10 @@ export class HymnalDatabase extends Context.Service<HymnalDatabase, HymnalDataba
       // Check if database exists
       const exists = yield* fs.exists(dbPath);
       if (!exists) {
-        return yield* new RecordNotFoundError({
-          entity: 'HymnalDatabase',
-          id: dbPath,
-          context: {
-            message: `Hymnal database not found at ${dbPath}.`,
-          },
+        return yield* new HymnalDatabaseError({
+          operation: 'open',
+          cause: dbPath,
+          message: `Hymnal database not found at ${dbPath}.`,
         });
       }
 
@@ -127,10 +128,10 @@ export class HymnalDatabase extends Context.Service<HymnalDatabase, HymnalDataba
       const db = yield* Effect.try({
         try: () => new Database(dbPath, { readonly: true }),
         catch: (error) =>
-          new DatabaseConnectionError({
+          new HymnalDatabaseError({
+            operation: 'open',
             message: `Failed to open hymnal database at ${dbPath}`,
             cause: error,
-            database: dbPath,
           }),
       });
 
@@ -155,7 +156,7 @@ export class HymnalDatabase extends Context.Service<HymnalDatabase, HymnalDataba
               }),
             );
           },
-          catch: (error) => new DatabaseQueryError({ operation: 'getHymn', cause: error }),
+          catch: (error) => new HymnalDatabaseError({ operation: 'getHymn', cause: error }),
         });
 
       const getCategories = (): Effect.Effect<readonly Category[], HymnalDatabaseError> =>
@@ -170,7 +171,7 @@ export class HymnalDatabase extends Context.Service<HymnalDatabase, HymnalDataba
                 }),
             );
           },
-          catch: (error) => new DatabaseQueryError({ operation: 'getCategories', cause: error }),
+          catch: (error) => new HymnalDatabaseError({ operation: 'getCategories', cause: error }),
         });
 
       const getHymnsByCategory = (
@@ -193,7 +194,7 @@ export class HymnalDatabase extends Context.Service<HymnalDatabase, HymnalDataba
             );
           },
           catch: (error) =>
-            new DatabaseQueryError({ operation: 'getHymnsByCategory', cause: error }),
+            new HymnalDatabaseError({ operation: 'getHymnsByCategory', cause: error }),
         });
 
       const searchHymns = (
@@ -224,7 +225,7 @@ export class HymnalDatabase extends Context.Service<HymnalDatabase, HymnalDataba
                 }),
             );
           },
-          catch: (error) => new DatabaseQueryError({ operation: 'searchHymns', cause: error }),
+          catch: (error) => new HymnalDatabaseError({ operation: 'searchHymns', cause: error }),
         });
 
       // Cleanup: close database when scope ends
@@ -232,7 +233,8 @@ export class HymnalDatabase extends Context.Service<HymnalDatabase, HymnalDataba
         Effect.try({
           try: () => db.close(false),
           catch: (error) =>
-            new DatabaseConnectionError({
+            new HymnalDatabaseError({
+              operation: 'close',
               message: 'Failed to close hymnal database',
               cause: error,
             }),

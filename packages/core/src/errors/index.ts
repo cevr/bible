@@ -46,6 +46,3 @@ export { AiError } from '../ai/service.js';
 // Adapter errors
 export { StorageError } from '../adapters/storage.js';
 export { ExportError } from '../adapters/export.js';
-
-// Hymnal errors
-export type { HymnalDatabaseError, HymnNotFoundError } from './hymnal.js';
