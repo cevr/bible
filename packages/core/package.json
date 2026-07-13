@@ -5,7 +5,6 @@
   "exports": {
     ".": "./src/index.ts",
     "./ai": "./src/ai/index.ts",
-    "./app": "./src/app/index.ts",
     "./cache": "./src/cache/index.ts",
     "./egw": "./src/egw/index.ts",
     "./egw-db": "./src/egw-db/index.ts",
