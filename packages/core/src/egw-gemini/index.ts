@@ -46,16 +46,5 @@
 export { EGWGeminiService, EGWGeminiError } from './service.js';
 export type { UploadBookOptions, QueryOptions, UploadAllEGWWritingsOptions } from './service.js';
 
-export {
-  EGWUploadStatus,
-  DatabaseConnectionError,
-  DatabaseQueryError,
-  ParagraphUploadNotFoundError,
-  SchemaInitializationError,
-} from './upload-status.js';
-export type {
-  BookUploadStatus,
-  ParagraphUploadStatus,
-  UploadStatusMap,
-  UploadStatusError,
-} from './upload-status.js';
+export { EGWUploadStatus, UploadStatusError } from './upload-status.js';
+export type { BookUploadStatus, ParagraphUploadStatus, UploadStatusMap } from './upload-status.js';

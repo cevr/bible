@@ -8,36 +8,18 @@
 
 import type { PlatformError } from 'effect/PlatformError';
 import { Database } from 'bun:sqlite';
-import { Config, Context, Effect, FileSystem, Layer, Option, Path } from 'effect';
+import { Config, Context, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
 
-import {
-  DatabaseConnectionError,
-  DatabaseQueryError,
-  RecordNotFoundError,
-  SchemaInitializationError,
-} from '../errors/index.js';
-
-// Re-export errors for backwards compatibility
-export {
-  DatabaseConnectionError,
-  DatabaseQueryError,
-  SchemaInitializationError,
-} from '../errors/index.js';
-
-/**
- * Paragraph upload not found error (domain-specific alias)
- */
-export const ParagraphUploadNotFoundError = RecordNotFoundError;
-export type ParagraphUploadNotFoundError = RecordNotFoundError;
-
-/**
- * Union type for all upload status errors
- */
-export type UploadStatusError =
-  | DatabaseConnectionError
-  | DatabaseQueryError
-  | RecordNotFoundError
-  | SchemaInitializationError;
+export class UploadStatusError extends Schema.TaggedErrorClass<UploadStatusError>()(
+  'UploadStatusError',
+  {
+    cause: Schema.Unknown,
+    operation: Schema.String,
+    message: Schema.optional(Schema.String),
+    storeDisplayName: Schema.optional(Schema.String),
+    refCode: Schema.optional(Schema.String),
+  },
+) {}
 
 /**
  * Paragraph Upload Status
@@ -134,7 +116,7 @@ export class EGWUploadStatus extends Context.Service<EGWUploadStatus, EGWUploadS
    */
   static Live: Layer.Layer<
     EGWUploadStatus,
-    DatabaseConnectionError | SchemaInitializationError | Config.ConfigError | PlatformError,
+    UploadStatusError | Config.ConfigError | PlatformError,
     FileSystem.FileSystem | Path.Path
   > = Layer.effect(
     EGWUploadStatus,
@@ -156,7 +138,8 @@ export class EGWUploadStatus extends Context.Service<EGWUploadStatus, EGWUploadS
       const db = yield* Effect.try({
         try: () => new Database(dbPath),
         catch: (error) =>
-          new DatabaseConnectionError({
+          new UploadStatusError({
+            operation: 'open',
             message: `Failed to open database at ${dbPath}`,
             cause: error,
           }),
@@ -188,7 +171,8 @@ export class EGWUploadStatus extends Context.Service<EGWUploadStatus, EGWUploadS
           `);
         },
         catch: (error) =>
-          new SchemaInitializationError({
+          new UploadStatusError({
+            operation: 'initialize-schema',
             message: 'Failed to initialize database schema',
             cause: error,
           }),
@@ -256,7 +240,7 @@ export class EGWUploadStatus extends Context.Service<EGWUploadStatus, EGWUploadS
               });
             },
             catch: (error) =>
-              new DatabaseQueryError({
+              new UploadStatusError({
                 operation: 'markParagraphInProgress',
                 storeDisplayName,
                 refCode,
@@ -284,7 +268,7 @@ export class EGWUploadStatus extends Context.Service<EGWUploadStatus, EGWUploadS
                 $refCode: refCode,
               }),
             catch: (error) =>
-              new DatabaseQueryError({
+              new UploadStatusError({
                 operation: 'getParagraphUploadStatus',
                 storeDisplayName,
                 refCode,
@@ -308,7 +292,7 @@ export class EGWUploadStatus extends Context.Service<EGWUploadStatus, EGWUploadS
               });
             },
             catch: (error) =>
-              new DatabaseQueryError({
+              new UploadStatusError({
                 operation: 'markParagraphComplete',
                 storeDisplayName,
                 refCode,
@@ -337,7 +321,7 @@ export class EGWUploadStatus extends Context.Service<EGWUploadStatus, EGWUploadS
                 $refCode: refCode,
               }),
             catch: (error) =>
-              new DatabaseQueryError({
+              new UploadStatusError({
                 operation: 'getParagraphUploadStatus',
                 storeDisplayName,
                 refCode,
@@ -361,7 +345,7 @@ export class EGWUploadStatus extends Context.Service<EGWUploadStatus, EGWUploadS
               });
             },
             catch: (error) =>
-              new DatabaseQueryError({
+              new UploadStatusError({
                 operation: 'markParagraphFailed',
                 storeDisplayName,
                 refCode,
@@ -385,7 +369,7 @@ export class EGWUploadStatus extends Context.Service<EGWUploadStatus, EGWUploadS
                 $refCode: refCode,
               }),
             catch: (error) =>
-              new DatabaseQueryError({
+              new UploadStatusError({
                 operation: 'getParagraphUploadStatus',
                 storeDisplayName,
                 refCode,
@@ -423,7 +407,7 @@ export class EGWUploadStatus extends Context.Service<EGWUploadStatus, EGWUploadS
                 $bookId: bookId,
               }),
             catch: (error) =>
-              new DatabaseQueryError({
+              new UploadStatusError({
                 operation: 'getBookUploadStatus',
                 storeDisplayName,
                 refCode: `book:${bookId}`,
@@ -478,7 +462,8 @@ export class EGWUploadStatus extends Context.Service<EGWUploadStatus, EGWUploadS
             db.close(false); // Allow pending queries to finish
           },
           catch: (error) =>
-            new DatabaseConnectionError({
+            new UploadStatusError({
+              operation: 'close',
               message: 'Failed to close database connection',
               cause: error,
             }),
