@@ -1,6 +1,11 @@
 import { Effect, Layer, Context, Schema } from 'effect';
 import { DbClientService, type DatabaseQueryError } from '../db-client-service';
-import type { ReadingPlan, ReadingPlanItem, PlanItemInput } from './types';
+import {
+  ReadingPlanType,
+  type PlanItemInput,
+  type ReadingPlan,
+  type ReadingPlanItem,
+} from './types';
 
 export class ReadingPlanDataError extends Schema.TaggedErrorClass<ReadingPlanDataError>()(
   'ReadingPlanDataError',
@@ -14,7 +19,7 @@ const PlanRow = Schema.Struct({
   id: Schema.String,
   name: Schema.String,
   description: Schema.NullOr(Schema.String),
-  type: Schema.String,
+  type: ReadingPlanType,
   source_id: Schema.NullOr(Schema.String),
   start_date: Schema.NullOr(Schema.Number),
   created_at: Schema.Number,
@@ -197,7 +202,7 @@ function mapPlan(r: PlanRow): ReadingPlan {
     id: r.id,
     name: r.name,
     description: r.description,
-    type: r.type as 'builtin' | 'custom',
+    type: r.type,
     sourceId: r.source_id,
     startDate: r.start_date,
     createdAt: r.created_at,

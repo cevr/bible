@@ -22,7 +22,12 @@ export const CROSS_REF_TYPES = [
   'thematic',
 ] as const;
 
-export type CrossRefType = (typeof CROSS_REF_TYPES)[number];
+export const CrossRefType = Schema.Literals(CROSS_REF_TYPES);
+export type CrossRefType = typeof CrossRefType.Type;
+
+export const CATALOG_CROSS_REF_SOURCES = ['openbible', 'tske'] as const;
+export const CatalogCrossRefSource = Schema.Literals(CATALOG_CROSS_REF_SOURCES);
+export type CatalogCrossRefSource = typeof CatalogCrossRefSource.Type;
 
 /** 3-letter uppercase abbreviation, suitable for compact badges next to a
  *  reference. Keep in sync with how the study sheet renders these so the
@@ -68,7 +73,7 @@ interface CrossRefBase {
  *  These are read-only — users can override the classification via their own
  *  user-cross-ref rows but the catalog row itself is treated as canonical. */
 export interface CatalogCrossReference extends CrossRefBase {
-  readonly source: 'openbible' | 'tske';
+  readonly source: CatalogCrossRefSource;
 }
 
 /** Cross reference authored by the user. Carries the row id so it can be
@@ -82,3 +87,4 @@ export interface UserCrossReference extends CrossRefBase {
 /** Tagged union of every cross-ref shape the UI consumes. Discriminate on
  *  `source` — `'user'` is editable, the catalog values are not. */
 export type ClassifiedCrossReference = CatalogCrossReference | UserCrossReference;
+import { Schema } from 'effect';

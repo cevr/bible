@@ -1,7 +1,13 @@
 import { Context, Effect, Layer, Schema } from 'effect';
 
 import { DbClientService, type DatabaseQueryError } from '../db-client-service';
-import type { EgwMarker, EgwNote, MarkerColor, VerseMarker, VerseNote } from './types';
+import {
+  MarkerColor,
+  type EgwMarker,
+  type EgwNote,
+  type VerseMarker,
+  type VerseNote,
+} from './types';
 
 export class AnnotationDataError extends Schema.TaggedErrorClass<AnnotationDataError>()(
   'AnnotationDataError',
@@ -16,7 +22,7 @@ const VerseMarkerRow = Schema.Struct({
   book: Schema.Number,
   chapter: Schema.Number,
   verse: Schema.Number,
-  color: Schema.String,
+  color: MarkerColor,
   created_at: Schema.Number,
 });
 
@@ -41,7 +47,7 @@ const EGWMarkerRow = Schema.Struct({
   id: Schema.String,
   book_code: Schema.String,
   puborder: Schema.Number,
-  color: Schema.String,
+  color: MarkerColor,
   created_at: Schema.Number,
 });
 
@@ -122,7 +128,7 @@ export class AnnotationService extends Context.Service<AnnotationService, Annota
             book: r.book,
             chapter: r.chapter,
             verse: r.verse,
-            color: r.color as MarkerColor,
+            color: r.color,
             createdAt: r.created_at,
           });
         }
@@ -250,7 +256,7 @@ export class AnnotationService extends Context.Service<AnnotationService, Annota
             id: r.id,
             bookCode: r.book_code,
             puborder: r.puborder,
-            color: r.color as MarkerColor,
+            color: r.color,
             createdAt: r.created_at,
           };
           const existing = map.get(r.puborder);

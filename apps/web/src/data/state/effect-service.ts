@@ -25,9 +25,15 @@ export interface HistoryEntry {
   visitedAt: number;
 }
 
+export const Theme = Schema.Literals(['light', 'dark', 'system']);
+export type Theme = typeof Theme.Type;
+
+export const DisplayMode = Schema.Literals(['verse', 'paragraph']);
+export type DisplayMode = typeof DisplayMode.Type;
+
 export interface Preferences {
-  theme: 'light' | 'dark' | 'system';
-  displayMode: 'verse' | 'paragraph';
+  theme: Theme;
+  displayMode: DisplayMode;
   fontFamily: string;
   fontSize: number;
   lineHeight: number;
@@ -67,8 +73,8 @@ const HistoryRow = Schema.Struct({
 });
 
 const PreferencesRow = Schema.Struct({
-  theme: Schema.String,
-  display_mode: Schema.String,
+  theme: Theme,
+  display_mode: DisplayMode,
   font_family: Schema.String,
   font_size: Schema.Number,
   line_height: Schema.Number,
@@ -184,8 +190,8 @@ export class AppStateService extends Context.Service<AppStateService, AppStateSe
         const row = rows[0];
         if (!row) return DEFAULT_PREFERENCES;
         return {
-          theme: row.theme as Preferences['theme'],
-          displayMode: row.display_mode as Preferences['displayMode'],
+          theme: row.theme,
+          displayMode: row.display_mode,
           fontFamily: row.font_family ?? DEFAULT_PREFERENCES.fontFamily,
           fontSize: row.font_size ?? DEFAULT_PREFERENCES.fontSize,
           lineHeight: row.line_height ?? DEFAULT_PREFERENCES.lineHeight,

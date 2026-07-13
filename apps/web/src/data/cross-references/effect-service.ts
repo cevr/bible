@@ -1,7 +1,12 @@
 import { Context, Effect, Layer, Schema } from 'effect';
 
 import { DbClientService, type DatabaseQueryError } from '../db-client-service';
-import type { ClassifiedCrossReference, CrossRefType, UserCrossRef } from './types';
+import {
+  CatalogCrossRefSource,
+  CrossRefType,
+  type ClassifiedCrossReference,
+  type UserCrossRef,
+} from './types';
 
 export class CrossReferenceDataError extends Schema.TaggedErrorClass<CrossReferenceDataError>()(
   'CrossReferenceDataError',
@@ -16,7 +21,7 @@ const CrossRefRow = Schema.Struct({
   ref_chapter: Schema.Number,
   ref_verse: Schema.NullOr(Schema.Number),
   ref_verse_end: Schema.NullOr(Schema.Number),
-  source: Schema.String,
+  source: CatalogCrossRefSource,
   preview_text: Schema.NullOr(Schema.String),
 });
 
@@ -24,7 +29,7 @@ const ClassificationRow = Schema.Struct({
   ref_book: Schema.Number,
   ref_chapter: Schema.Number,
   ref_verse: Schema.NullOr(Schema.Number),
-  type: Schema.String,
+  type: CrossRefType,
   confidence: Schema.NullOr(Schema.Number),
 });
 type ClassificationRow = typeof ClassificationRow.Type;
@@ -35,7 +40,7 @@ const UserCrossRefRow = Schema.Struct({
   ref_chapter: Schema.Number,
   ref_verse: Schema.NullOr(Schema.Number),
   ref_verse_end: Schema.NullOr(Schema.Number),
-  type: Schema.NullOr(Schema.String),
+  type: Schema.NullOr(CrossRefType),
   note: Schema.NullOr(Schema.String),
   created_at: Schema.Number,
 });
@@ -128,9 +133,9 @@ export class CrossReferenceService extends Context.Service<
             chapter: reference.ref_chapter,
             verse: reference.ref_verse,
             verseEnd: reference.ref_verse_end,
-            source: reference.source as 'openbible' | 'tske',
+            source: reference.source,
             previewText: reference.preview_text,
-            classification: (classification?.type as CrossRefType) ?? null,
+            classification: classification?.type ?? null,
             confidence: classification?.confidence ?? null,
           };
         });
@@ -143,7 +148,7 @@ export class CrossReferenceService extends Context.Service<
             verseEnd: reference.ref_verse_end,
             source: 'user',
             previewText: null,
-            classification: (reference.type as CrossRefType) ?? null,
+            classification: reference.type,
             confidence: null,
             userRefId: reference.id,
             userNote: reference.note,

@@ -9,9 +9,15 @@
  * client because they are tied to that client's design system.
  */
 
-export { CROSS_REF_TYPES, CROSS_REF_ABBREVIATIONS, CROSS_REF_LABELS } from './types.js';
-export type {
+export {
+  CATALOG_CROSS_REF_SOURCES,
+  CROSS_REF_TYPES,
+  CROSS_REF_ABBREVIATIONS,
+  CROSS_REF_LABELS,
+  CatalogCrossRefSource,
   CrossRefType,
+} from './types.js';
+export type {
   CatalogCrossReference,
   UserCrossReference,
   ClassifiedCrossReference,

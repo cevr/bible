@@ -1,4 +1,7 @@
-export type MarkerColor = 'red' | 'orange' | 'yellow' | 'green' | 'blue' | 'purple';
+import { Schema } from 'effect';
+
+export const MarkerColor = Schema.Literals(['red', 'orange', 'yellow', 'green', 'blue', 'purple']);
+export type MarkerColor = typeof MarkerColor.Type;
 
 export interface VerseMarker {
   id: string;

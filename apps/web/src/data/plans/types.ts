@@ -1,8 +1,13 @@
+import { Schema } from 'effect';
+
+export const ReadingPlanType = Schema.Literals(['builtin', 'custom']);
+export type ReadingPlanType = typeof ReadingPlanType.Type;
+
 export interface ReadingPlan {
   id: string;
   name: string;
   description: string | null;
-  type: 'builtin' | 'custom';
+  type: ReadingPlanType;
   sourceId: string | null;
   startDate: number | null;
   createdAt: number;
