@@ -6,27 +6,26 @@
  */
 
 import type { ScrollBoxRenderable } from '@opentui/core';
-import { Reference as CanonicalReference } from '@bible/core/bible';
+import type { BibleRouteReference } from '@bible/core/app';
+import { formatBibleReference, Reference } from '@bible/core/bible';
 import { useModalKeyboard } from '../../hooks/use-modal-keyboard.js';
 import { createMemo, createSignal, For, Show } from 'solid-js';
 
-import type { Reference } from '../../../data/bible/types.js';
-import { formatReference } from '../../../data/bible/types.js';
-import { useBibleData } from '../../context/bible.js';
+import { useBibleReader } from '../../context/bible.js';
 import { useStudyData } from '../../context/study-data.js';
 import { useTheme } from '../../context/theme.js';
 import { useScrollSync } from '../../hooks/use-scroll-sync.js';
 
 interface ConcordanceSearchProps {
   onClose: () => void;
-  onNavigate: (ref: Reference) => void;
+  onNavigate: (ref: BibleRouteReference) => void;
   /** Optional initial Strong's number to search */
   initialQuery?: string;
 }
 
 export function ConcordanceSearch(props: ConcordanceSearchProps) {
   const { theme } = useTheme();
-  const data = useBibleData();
+  const reader = useBibleReader();
   const studyData = useStudyData();
 
   const [query, setQuery] = createSignal(props.initialQuery ?? '');
@@ -73,7 +72,7 @@ export function ConcordanceSearch(props: ConcordanceSearchProps) {
       // Concordance results - verses containing the Strong's number
       return (res as ReturnType<typeof studyData.searchByStrongs>)
         .map((r) => {
-          const verse = data.getVerse(r.book, r.chapter, r.verse);
+          const verse = reader.verse(Reference.verse(r.book, r.chapter, r.verse));
           let preview = '';
           if (verse) {
             preview = verse.text
@@ -84,7 +83,7 @@ export function ConcordanceSearch(props: ConcordanceSearchProps) {
           }
           return {
             type: 'verse' as const,
-            ref: { book: r.book, chapter: r.chapter, verse: r.verse },
+            ref: Reference.verse(r.book, r.chapter, r.verse),
             word: r.word,
             preview,
           };
@@ -248,9 +247,7 @@ export function ConcordanceSearch(props: ConcordanceSearchProps) {
               const isSelected = () => index() === selectedIndex();
 
               if (item.type === 'verse') {
-                const refText = formatReference(
-                  CanonicalReference.verse(item.ref.book, item.ref.chapter, item.ref.verse),
-                ).padEnd(20);
+                const refText = formatBibleReference(item.ref).padEnd(20);
                 return (
                   <text
                     id={`result-${index()}`}

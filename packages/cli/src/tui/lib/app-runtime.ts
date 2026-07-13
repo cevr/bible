@@ -7,28 +7,19 @@
 
 import { BibleDatabase } from '@bible/core/bible-db';
 import { BibleService } from '@bible/core/bible/service';
-import type { EGWParagraphDatabase } from '@bible/core/egw-db';
 import * as EGWDbBun from '@bible/core/egw-db/bun';
 import { ensureBibleDb } from '@bible/core/sync';
 import { WritingsService } from '@bible/core/writings/service';
 import { BunServices } from '@effect/platform-bun';
 import { Effect, Layer, ManagedRuntime } from 'effect';
 
-import type { BibleData } from '../../data/bible/data.js';
-import { BibleDataLive } from '../../data/bible/data.js';
 import type { BibleState } from '../../data/bible/state.js';
 import { BibleStateLive } from '../../data/bible/state.js';
 
 /**
  * All services available in the TUI app runtime
  */
-export type AppServices =
-  | BibleData
-  | BibleState
-  | BibleService
-  | WritingsService
-  | EGWParagraphDatabase
-  | BibleDatabase;
+export type AppServices = BibleState | BibleService | WritingsService;
 
 /**
  * BibleDatabase layer that ensures bible.db is downloaded before connecting.
@@ -47,17 +38,10 @@ const BibleDatabaseWithSync = Layer.unwrap(
  * Layer composition order matters - dependencies go later in provideMerge chain.
  */
 export const AppLayer = Layer.mergeAll(
-  // Bible services (CLI data layer)
-  BibleDataLive,
   BibleStateLive,
-  // Core services (unified API)
-  BibleService.Live,
-  WritingsService.Live,
-).pipe(
-  Layer.provideMerge(EGWDbBun.Default),
-  Layer.provideMerge(BibleDatabaseWithSync),
-  Layer.provideMerge(BunServices.layer),
-);
+  BibleService.Live.pipe(Layer.provide(BibleDatabaseWithSync)),
+  WritingsService.Live.pipe(Layer.provide(EGWDbBun.Default)),
+).pipe(Layer.provide(BunServices.layer));
 
 /**
  * Managed runtime for the app
@@ -78,7 +62,10 @@ export const appRuntime = ManagedRuntime.make(AppLayer);
  * const [runtime] = createResource(() => getAppRuntime())
  * ```
  */
-export const getAppRuntime = () => appRuntime;
+export const getAppRuntime = async () => {
+  await appRuntime.runPromise(Effect.void);
+  return appRuntime;
+};
 
 /**
  * Run an effect with the app runtime

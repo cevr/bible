@@ -13,8 +13,8 @@ import {
   type Accessor,
   type ParentProps,
 } from 'solid-js';
+import type { VerseReference } from '@bible/core/bible';
 
-import type { Reference } from '../../data/bible/types.js';
 import { useStudyData, type WordWithStrongs } from './study-data.js';
 
 // State type using discriminated union pattern
@@ -22,7 +22,7 @@ export type WordModeState =
   | { _tag: 'inactive' }
   | {
       _tag: 'active';
-      verseRef: Reference;
+      verseRef: VerseReference;
       wordIndex: number;
       words: WordWithStrongs[];
     };
@@ -34,7 +34,7 @@ interface WordModeContextValue {
 
   // Actions
   /** Enter word mode for a verse. Returns 'entered' if successful, 'loading' if data not ready, 'no-strongs' if verse has no Strong's data */
-  enter: (verseRef: Reference) => 'entered' | 'loading' | 'no-strongs';
+  enter: (verseRef: VerseReference) => 'entered' | 'loading' | 'no-strongs';
   exit: () => void;
   nextWord: () => void;
   prevWord: () => void;
@@ -84,24 +84,21 @@ export function WordModeProvider(props: ParentProps) {
     return -1;
   };
 
-  const enter = (verseRef: Reference): 'entered' | 'loading' | 'no-strongs' => {
+  const enter = (verseRef: VerseReference): 'entered' | 'loading' | 'no-strongs' => {
     // Check if study data is still loading
     if (studyData.isLoading()) {
       return 'loading';
     }
 
-    const verse = verseRef.verse ?? 1;
-    const ref = { ...verseRef, verse };
-
     // First try to get words from the study database (with Strong's)
-    const words = studyData.getVerseWords(ref.book, ref.chapter, verse);
+    const words = studyData.getVerseWords(verseRef.book, verseRef.chapter, verseRef.verse);
 
     // Only enter word mode if there are words with Strong's numbers
     const firstStrongsIndex = findFirstWithStrongs(words);
     if (firstStrongsIndex >= 0) {
       setState({
         _tag: 'active',
-        verseRef: ref,
+        verseRef,
         wordIndex: firstStrongsIndex,
         words,
       });

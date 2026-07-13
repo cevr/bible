@@ -3,27 +3,45 @@ import { randomUUID } from 'node:crypto';
 import { homedir } from 'os';
 import { join } from 'path';
 
+import {
+  BibleRouteReference,
+  type BibleRouteReference as BibleRouteReferenceType,
+} from '@bible/core/app';
+import { Reference, type VerseReference } from '@bible/core/bible';
+import { CrossRefType } from '@bible/core/bible-cross-refs';
 import { Database } from 'bun:sqlite';
-import { Effect, Layer, Context } from 'effect';
+import { Effect, Layer, Context, Option, Schema } from 'effect';
 
-import type { Bookmark, HistoryEntry, Position, Preferences, Reference } from './types.js';
+export type Position = VerseReference;
+
+export interface Bookmark {
+  readonly id: string;
+  readonly reference: BibleRouteReferenceType;
+  readonly note?: string;
+  readonly createdAt: number;
+}
+
+export interface HistoryEntry {
+  readonly reference: BibleRouteReferenceType;
+  readonly visitedAt: number;
+}
+
+const DisplayMode = Schema.Literals(['verse', 'paragraph']);
+export const Preferences = Schema.Struct({ theme: Schema.String, displayMode: DisplayMode });
+export type Preferences = typeof Preferences.Type;
+
+const CachedBibleReferences = Schema.fromJsonString(Schema.Array(BibleRouteReference));
+const decodeCachedBibleReferences = Schema.decodeUnknownOption(CachedBibleReferences);
+const encodeCachedBibleReferences = Schema.encodeSync(CachedBibleReferences);
+const decodeDisplayMode = Schema.decodeUnknownOption(DisplayMode);
+const CachedPalette = Schema.fromJsonString(Schema.Array(Schema.String));
+const decodeCachedPalette = Schema.decodeUnknownOption(CachedPalette);
+const encodeCachedPalette = Schema.encodeSync(CachedPalette);
+const decodeCrossRefType = Schema.decodeUnknownSync(CrossRefType);
 
 // Local UUID generator — wraps node:crypto to keep the call site testable
 // while still using the platform implementation.
 const generateUuid = (): string => randomUUID();
-
-// Cross-reference classification types
-export const CROSS_REF_TYPES = [
-  'quotation',
-  'allusion',
-  'parallel',
-  'typological',
-  'prophecy',
-  'sanctuary',
-  'recapitulation',
-  'thematic',
-] as const;
-export type CrossRefType = (typeof CROSS_REF_TYPES)[number];
 
 export interface CrossRefClassification {
   refBook: number;
@@ -132,12 +150,21 @@ function initDatabase(db: Database) {
       ref_verse_end INTEGER,
       type TEXT NOT NULL,
       confidence REAL,
-      classified_at INTEGER NOT NULL,
-      UNIQUE(source_book, source_chapter, source_verse, ref_book, ref_chapter, COALESCE(ref_verse, 0))
+      classified_at INTEGER NOT NULL
     );
 
     CREATE INDEX IF NOT EXISTS idx_classifications_source
       ON cross_ref_classifications(source_book, source_chapter, source_verse);
+
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_classifications_unique_reference
+      ON cross_ref_classifications(
+        source_book,
+        source_chapter,
+        source_verse,
+        ref_book,
+        ref_chapter,
+        COALESCE(ref_verse, 0)
+      );
 
     -- User-added cross-references
     CREATE TABLE IF NOT EXISTS user_cross_refs (
@@ -178,15 +205,15 @@ export interface BibleStateService {
   readonly getLastPosition: () => Position;
   readonly setLastPosition: (pos: Position) => void;
   readonly getBookmarks: () => Bookmark[];
-  readonly addBookmark: (ref: Reference, note?: string) => Bookmark;
+  readonly addBookmark: (ref: BibleRouteReferenceType, note?: string) => Bookmark;
   readonly removeBookmark: (id: string) => void;
   readonly getHistory: (limit?: number) => HistoryEntry[];
-  readonly addToHistory: (ref: Reference) => void;
+  readonly addToHistory: (ref: BibleRouteReferenceType) => void;
   readonly clearHistory: () => void;
   readonly getPreferences: () => Preferences;
   readonly setPreferences: (prefs: Partial<Preferences>) => void;
-  readonly getCachedAISearch: (query: string) => Reference[] | undefined;
-  readonly setCachedAISearch: (query: string, results: Reference[]) => void;
+  readonly getCachedAISearch: (query: string) => readonly BibleRouteReferenceType[] | undefined;
+  readonly setCachedAISearch: (query: string, results: readonly BibleRouteReferenceType[]) => void;
   readonly getCachedPalette: () => CachedPalette | undefined;
   readonly setCachedPalette: (palette: CachedPalette) => void;
   readonly getLastEGWPosition: () => EGWPosition | undefined;
@@ -225,7 +252,7 @@ function createBibleStateService(): BibleStateService {
   initDatabase(db);
 
   // Prepare statements for performance
-  const getPositionStmt = db.prepare<Position, []>(
+  const getPositionStmt = db.prepare<{ book: number; chapter: number; verse: number }, []>(
     'SELECT book, chapter, verse FROM position WHERE id = 1',
   );
   const setPositionStmt = db.prepare(
@@ -342,7 +369,9 @@ function createBibleStateService(): BibleStateService {
   return {
     getLastPosition(): Position {
       const row = getPositionStmt.get();
-      return row ?? { book: 1, chapter: 1, verse: 1 };
+      return row === null
+        ? Reference.verse(1, 1, 1)
+        : Reference.verse(row.book, row.chapter, row.verse);
     },
 
     setLastPosition(pos: Position): void {
@@ -353,20 +382,26 @@ function createBibleStateService(): BibleStateService {
       const rows = getBookmarksStmt.all();
       return rows.map((row) => ({
         id: row.id,
-        reference: {
-          book: row.book,
-          chapter: row.chapter,
-          verse: row.verse ?? undefined,
-        },
+        reference:
+          row.verse === null
+            ? Reference.chapter(row.book, row.chapter)
+            : Reference.verse(row.book, row.chapter, row.verse),
         note: row.note ?? undefined,
         createdAt: row.created_at,
       }));
     },
 
-    addBookmark(ref: Reference, note?: string): Bookmark {
+    addBookmark(ref: BibleRouteReferenceType, note?: string): Bookmark {
       const id = generateUuid();
       const createdAt = Date.now();
-      addBookmarkStmt.run(id, ref.book, ref.chapter, ref.verse ?? null, note ?? null, createdAt);
+      addBookmarkStmt.run(
+        id,
+        ref.book,
+        ref.chapter,
+        ref._tag === 'verse' ? ref.verse : null,
+        note ?? null,
+        createdAt,
+      );
       return {
         id,
         reference: ref,
@@ -382,17 +417,21 @@ function createBibleStateService(): BibleStateService {
     getHistory(limit = 100): HistoryEntry[] {
       const rows = getHistoryStmt.all(limit);
       return rows.map((row) => ({
-        reference: {
-          book: row.book,
-          chapter: row.chapter,
-          verse: row.verse ?? undefined,
-        },
+        reference:
+          row.verse === null
+            ? Reference.chapter(row.book, row.chapter)
+            : Reference.verse(row.book, row.chapter, row.verse),
         visitedAt: row.visited_at,
       }));
     },
 
-    addToHistory(ref: Reference): void {
-      addHistoryStmt.run(ref.book, ref.chapter, ref.verse ?? null, Date.now());
+    addToHistory(ref: BibleRouteReferenceType): void {
+      addHistoryStmt.run(
+        ref.book,
+        ref.chapter,
+        ref._tag === 'verse' ? ref.verse : null,
+        Date.now(),
+      );
     },
 
     clearHistory(): void {
@@ -403,7 +442,7 @@ function createBibleStateService(): BibleStateService {
       const row = getPreferencesStmt.get();
       return {
         theme: row?.theme ?? 'system',
-        displayMode: (row?.display_mode as 'verse' | 'paragraph') ?? 'verse',
+        displayMode: Option.getOrElse(decodeDisplayMode(row?.display_mode), () => 'verse'),
       };
     },
 
@@ -415,7 +454,7 @@ function createBibleStateService(): BibleStateService {
       );
     },
 
-    getCachedAISearch(query: string): Reference[] | undefined {
+    getCachedAISearch(query: string): readonly BibleRouteReferenceType[] | undefined {
       const row = getCacheStmt.get(query.toLowerCase().trim());
       if (row === null) return undefined;
 
@@ -424,15 +463,15 @@ function createBibleStateService(): BibleStateService {
         return undefined;
       }
 
-      try {
-        return JSON.parse(row.results) as Reference[];
-      } catch {
-        return undefined;
-      }
+      return Option.getOrUndefined(decodeCachedBibleReferences(row.results));
     },
 
-    setCachedAISearch(query: string, results: Reference[]): void {
-      setCacheStmt.run(query.toLowerCase().trim(), JSON.stringify(results), Date.now());
+    setCachedAISearch(query: string, results: readonly BibleRouteReferenceType[]): void {
+      setCacheStmt.run(
+        query.toLowerCase().trim(),
+        encodeCachedBibleReferences(results),
+        Date.now(),
+      );
     },
 
     getCachedPalette(): CachedPalette | undefined {
@@ -444,18 +483,14 @@ function createBibleStateService(): BibleStateService {
         return undefined;
       }
 
-      try {
-        return {
-          palette: JSON.parse(row.palette) as string[],
-          isDark: row.is_dark === 1,
-        };
-      } catch {
-        return undefined;
-      }
+      return Option.map(decodeCachedPalette(row.palette), (palette) => ({
+        palette: [...palette],
+        isDark: row.is_dark === 1,
+      })).pipe(Option.getOrUndefined);
     },
 
     setCachedPalette(cached: CachedPalette): void {
-      setPaletteStmt.run(JSON.stringify(cached.palette), cached.isDark ? 1 : 0, Date.now());
+      setPaletteStmt.run(encodeCachedPalette(cached.palette), cached.isDark ? 1 : 0, Date.now());
     },
 
     getLastEGWPosition(): EGWPosition | undefined {
@@ -485,7 +520,7 @@ function createBibleStateService(): BibleStateService {
         refChapter: row.ref_chapter,
         refVerse: row.ref_verse,
         refVerseEnd: row.ref_verse_end,
-        type: row.type as CrossRefType,
+        type: decodeCrossRefType(row.type),
         confidence: row.confidence,
         classifiedAt: row.classified_at,
       }));
@@ -528,7 +563,7 @@ function createBibleStateService(): BibleStateService {
         refChapter: row.ref_chapter,
         refVerse: row.ref_verse,
         refVerseEnd: row.ref_verse_end,
-        type: row.type as CrossRefType | null,
+        type: row.type === null ? null : decodeCrossRefType(row.type),
         note: row.note,
         createdAt: row.created_at,
       }));

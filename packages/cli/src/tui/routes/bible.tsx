@@ -1,4 +1,6 @@
 import { useKeyboard, useTerminalDimensions } from '@opentui/solid';
+import type { BibleRouteReference } from '@bible/core/app';
+import { Reference } from '@bible/core/bible';
 import { createSignal, onCleanup, Show } from 'solid-js';
 
 import { ChapterView } from '../components/bible/chapter-view.js';
@@ -183,14 +185,11 @@ export function BibleView(_props: BibleViewProps) {
   };
 
   // Get current verse reference for popups
-  const currentVerseRef = () => ({
-    book: position().book,
-    chapter: position().chapter,
-    verse: selectedVerse(),
-  });
+  const currentVerseRef = () =>
+    Reference.verse(position().book, position().chapter, selectedVerse());
 
   // Handle navigation from cross-refs popup
-  const handleCrossRefNavigate = (ref: { book: number; chapter: number; verse?: number }) => {
+  const handleCrossRefNavigate = (ref: BibleRouteReference) => {
     goTo(ref);
     closeOverlay();
   };

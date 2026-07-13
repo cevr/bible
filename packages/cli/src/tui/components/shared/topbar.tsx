@@ -1,13 +1,15 @@
-import { useBibleData } from '../../context/bible.js';
+import { Reference } from '@bible/core/bible';
+
+import { useBibleReader } from '../../context/bible.js';
 import { useNavigation } from '../../context/navigation.js';
 import { useTheme } from '../../context/theme.js';
 
 export function Topbar() {
   const { theme } = useTheme();
   const { position } = useNavigation();
-  const data = useBibleData();
+  const reader = useBibleReader();
 
-  const book = () => data.getBook(position().book);
+  const book = () => reader.book(Reference.book(position().book));
   const bookName = () => book()?.name ?? 'Unknown';
 
   return (

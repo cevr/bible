@@ -8,7 +8,7 @@
  * CLI mode lazy-loads TUI and AI dependencies for faster startup.
  */
 
-import type { EGWReference } from '@bible/core/app';
+import type { BibleRouteReference, EGWReference } from '@bible/core/app';
 import { isSearchQuery, parseEGWRef } from '@bible/core/egw';
 import { Command } from 'effect/unstable/cli';
 // Core imports needed for both CLI and TUI
@@ -28,9 +28,8 @@ import { sabbathSchool } from './commands/sabbath-school.js';
 import { studies } from './commands/studies.js';
 import { init } from './commands/init.js';
 import { sync } from './commands/sync.js';
-// Types only (no runtime cost)
-import type { Reference } from './data/bible/types.js';
 import { printSummary, trace, traceAsync, traceSync } from './instrumentation/trace.js';
+import { parseReaderReference } from './lib/parse-reader-reference.js';
 // Lightweight CLI command imports (no TUI dependencies)
 import { AppleScriptLive } from './services/apple-script.js';
 import { ChimeLive } from './services/chime.js';
@@ -75,17 +74,15 @@ trace('arg parsing complete', {
 async function loadTuiDependencies() {
   trace('loading TUI dependencies');
 
-  const [{ tui }, { BibleDataLive, BibleData }, { detectSystemThemeAsync }, model] =
-    await Promise.all([
-      traceAsync('import tui', () => import('./tui/app.js')),
-      traceAsync('import bible/data', () => import('./data/bible/data.js')),
-      traceAsync('import themes', () => import('./tui/themes/index.js')),
-      traceAsync('discover AI providers', loadModelService),
-    ]);
+  const [{ tui }, { detectSystemThemeAsync }, model] = await Promise.all([
+    traceAsync('import tui', () => import('./tui/app.js')),
+    traceAsync('import themes', () => import('./tui/themes/index.js')),
+    traceAsync('discover AI providers', loadModelService),
+  ]);
 
   trace('TUI dependencies loaded');
 
-  return { tui, BibleDataLive, BibleData, detectSystemThemeAsync, model };
+  return { tui, detectSystemThemeAsync, model };
 }
 
 async function loadModelService(): Promise<ModelService | null> {
@@ -94,27 +91,11 @@ async function loadModelService(): Promise<ModelService | null> {
   return provider ? { models: provider.models } : null;
 }
 
-// Parse a verse reference from the command line (lazy loads BibleData)
-async function parseReferenceFromArgs(args: string[]): Promise<Reference | undefined> {
+function parseReferenceFromArgs(args: string[]): BibleRouteReference | undefined {
   if (args.length === 0) return undefined;
 
   const refString = args.join(' ');
-
-  const { BibleDataLive, BibleData } = await traceAsync(
-    'import bible/data for parsing',
-    () => import('./data/bible/data.js'),
-  );
-
-  const result = traceSync('parseReference', () => {
-    const data = Effect.runSync(
-      Effect.gen(function* () {
-        return yield* BibleData;
-      }).pipe(Effect.provide(BibleDataLive)),
-    );
-    return data.parseReference(refString);
-  });
-
-  return result;
+  return traceSync('parseReference', () => parseReaderReference(refString));
 }
 
 // Parse an EGW reference from the command line
@@ -226,7 +207,7 @@ async function main() {
     trace('TUI mode (open command)');
 
     const refArgs = args.slice(1);
-    const ref = await parseReferenceFromArgs(refArgs);
+    const ref = parseReferenceFromArgs(refArgs);
 
     if (refArgs.length > 0 && ref === undefined) {
       console.error(`Could not parse reference: "${refArgs.join(' ')}"`);

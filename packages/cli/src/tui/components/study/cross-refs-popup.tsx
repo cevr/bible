@@ -19,7 +19,9 @@
  */
 
 import { BibleDatabase } from '@bible/core/bible-db';
-import { Reference as CanonicalReference } from '@bible/core/bible';
+import type { BibleRouteReference } from '@bible/core/app';
+import { formatBibleReference, Reference, type VerseReference } from '@bible/core/bible';
+import { CROSS_REF_TYPES, type CrossRefType } from '@bible/core/bible-cross-refs';
 import { EGWCommentaryService, type CommentaryEntry } from '@bible/core/egw-commentary';
 import * as EGWDbBun from '@bible/core/egw-db/bun';
 import {
@@ -33,25 +35,13 @@ import { useModalKeyboard } from '../../hooks/use-modal-keyboard.js';
 import { Effect, Layer } from 'effect';
 import { createMemo, createSignal, For, Show } from 'solid-js';
 
-import { CROSS_REF_TYPES, type CrossRefType } from '../../../data/bible/state.js';
-import type { Reference } from '../../../data/bible/types.js';
-import { formatReference, getBook } from '../../../data/bible/types.js';
-import { useBibleData } from '../../context/bible.js';
+import { parseReaderReference } from '../../../lib/parse-reader-reference.js';
+import { useBibleReader } from '../../context/bible.js';
 import { useModel } from '../../context/model.js';
-import { useStudyData, type ClassifiedCrossReference } from '../../context/study-data.js';
+import { useStudyData } from '../../context/study-data.js';
 import { useTheme } from '../../context/theme.js';
 import { useScrollSync } from '../../hooks/use-scroll-sync.js';
 import { formatNoteType } from '../bible/verse.js';
-
-/** Convert ClassifiedCrossReference (null) to Reference (undefined) */
-function toReference(ref: ClassifiedCrossReference): Reference {
-  return {
-    book: ref.book,
-    chapter: ref.chapter,
-    verse: ref.verse ?? undefined,
-    verseEnd: ref.verseEnd ?? undefined,
-  };
-}
 
 /** Type badge abbreviations and colors */
 const TYPE_BADGES: Record<CrossRefType, { label: string; color: string }> = {
@@ -71,14 +61,14 @@ type PopupPage = 'crossrefs' | 'commentary' | 'structure';
 const PAGES: PopupPage[] = ['crossrefs', 'commentary', 'structure'];
 
 interface CrossRefsPopupProps {
-  verseRef: Reference;
+  verseRef: VerseReference;
   onClose: () => void;
-  onNavigate: (ref: Reference) => void;
+  onNavigate: (ref: BibleRouteReference) => void;
 }
 
 export function CrossRefsPopup(props: CrossRefsPopupProps) {
   const { theme } = useTheme();
-  const data = useBibleData();
+  const reader = useBibleReader();
   const studyData = useStudyData();
   const model = useModel();
   const [selectedIndex, setSelectedIndex] = createSignal(0);
@@ -119,7 +109,7 @@ export function CrossRefsPopup(props: CrossRefsPopupProps) {
     crossRefs().map((ref) => {
       let preview = ref.previewText ?? '';
       if (preview === '') {
-        const verse = data.getVerse(ref.book, ref.chapter, ref.verse ?? 1);
+        const verse = reader.verse(Reference.verse(ref.book, ref.chapter, ref.verse ?? 1));
         if (verse) {
           preview = verse.text
             .replace(/\u00b6\s*/, '')
@@ -200,7 +190,11 @@ export function CrossRefsPopup(props: CrossRefsPopupProps) {
       const refs = refsWithPreviews();
       const selected = refs[selectedIndex()];
       if (selected) {
-        props.onNavigate(toReference(selected.ref));
+        props.onNavigate(
+          selected.ref.verse === null
+            ? Reference.chapter(selected.ref.book, selected.ref.chapter)
+            : Reference.verse(selected.ref.book, selected.ref.chapter, selected.ref.verse),
+        );
       }
     }
     // Commentary and structure don't navigate
@@ -344,13 +338,17 @@ export function CrossRefsPopup(props: CrossRefsPopupProps) {
     const input = addRefInput().trim();
     if (input === '') return;
 
-    const parsed = data.parseReference(input);
+    const parsed = parseReaderReference(input);
     if (parsed === undefined) return;
 
     const verse = props.verseRef.verse ?? 1;
     studyData.addUserCrossRef(
       { book: props.verseRef.book, chapter: props.verseRef.chapter, verse },
-      { book: parsed.book, chapter: parsed.chapter, verse: parsed.verse },
+      {
+        book: parsed.book,
+        chapter: parsed.chapter,
+        verse: parsed._tag === 'verse' ? parsed.verse : undefined,
+      },
     );
     setAddingRef(false);
     setAddRefInput('');
@@ -494,7 +492,7 @@ export function CrossRefsPopup(props: CrossRefsPopupProps) {
     }
   });
 
-  const sourceBook = getBook(props.verseRef.book);
+  const sourceBook = reader.book(Reference.book(props.verseRef.book));
   const sourceLabel = sourceBook
     ? `${sourceBook.name} ${props.verseRef.chapter}:${props.verseRef.verse ?? 1}`
     : 'Unknown';
@@ -600,17 +598,20 @@ export function CrossRefsPopup(props: CrossRefsPopupProps) {
                 <For each={refsWithPreviews()}>
                   {(item, index) => {
                     const isSelected = () => index() === selectedIndex();
-                    const ref = toReference(item.ref);
-                    const canonicalReference =
-                      ref.verse === undefined
-                        ? CanonicalReference.chapter(ref.book, ref.chapter)
-                        : ref.verseEnd === undefined || ref.verseEnd === ref.verse
-                          ? CanonicalReference.verse(ref.book, ref.chapter, ref.verse)
-                          : CanonicalReference.range(
-                              CanonicalReference.verse(ref.book, ref.chapter, ref.verse),
-                              CanonicalReference.verse(ref.book, ref.chapter, ref.verseEnd),
-                            );
-                    const refText = formatReference(canonicalReference);
+                    const start =
+                      item.ref.verse === null
+                        ? Reference.chapter(item.ref.book, item.ref.chapter)
+                        : Reference.verse(item.ref.book, item.ref.chapter, item.ref.verse);
+                    const reference =
+                      start._tag === 'chapter' ||
+                      item.ref.verseEnd === null ||
+                      item.ref.verseEnd === item.ref.verse
+                        ? start
+                        : Reference.range(
+                            start,
+                            Reference.verse(item.ref.book, item.ref.chapter, item.ref.verseEnd),
+                          );
+                    const refText = formatBibleReference(reference);
                     const paddedRef = refText.padEnd(18, ' ');
                     const badge = item.ref.classification
                       ? TYPE_BADGES[item.ref.classification]

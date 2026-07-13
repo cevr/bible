@@ -1,4 +1,5 @@
 import { createContext, createMemo, createSignal, useContext, type ParentProps } from 'solid-js';
+import { Reference } from '@bible/core/bible';
 
 import {
   clearSearch as clearSearchTransition,
@@ -14,7 +15,7 @@ import {
   updateQuery,
   type SearchMatch,
 } from '../types/search-state.js';
-import { useBibleData } from './bible.js';
+import { useBibleReader } from './bible.js';
 import { useNavigation } from './navigation.js';
 
 // Re-export SearchMatch for consumers
@@ -40,7 +41,7 @@ interface SearchContextValue {
 const SearchContext = createContext<SearchContextValue>();
 
 export function SearchProvider(props: ParentProps) {
-  const data = useBibleData();
+  const reader = useBibleReader();
   const { position, goToVerse } = useNavigation();
 
   // Single state signal using discriminated union
@@ -51,7 +52,7 @@ export function SearchProvider(props: ParentProps) {
     if (!query || query.length < 2) return [];
 
     const q = query.toLowerCase();
-    const verses = data.getChapter(position().book, position().chapter);
+    const verses = reader.chapter(Reference.chapter(position().book, position().chapter));
     const results: SearchMatch[] = [];
 
     for (const verse of verses) {
@@ -61,7 +62,7 @@ export function SearchProvider(props: ParentProps) {
 
       while ((pos = text.indexOf(q, startIndex)) !== -1) {
         results.push({
-          verse: verse.verse,
+          verse: verse.reference.verse,
           startIndex: pos,
           endIndex: pos + q.length,
         });

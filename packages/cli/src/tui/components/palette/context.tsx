@@ -1,5 +1,6 @@
 import { matchSorter } from 'match-sorter';
-import { Reference as CanonicalReference } from '@bible/core/bible';
+import type { BibleRouteReference } from '@bible/core/app';
+import { BIBLE_BOOKS as BOOKS, formatBibleReference, Reference } from '@bible/core/bible';
 import {
   createContext,
   createEffect,
@@ -11,26 +12,13 @@ import {
   type ParentProps,
 } from 'solid-js';
 
-import { BOOKS, formatReference, type Reference } from '../../../data/bible/types.js';
+import { parseReaderReference } from '../../../lib/parse-reader-reference.js';
 import { searchBibleByTopic } from '../../../data/study/ai-search.js';
-import { useBibleData, useBibleState } from '../../context/bible.js';
+import { useBibleReader, useBibleState } from '../../context/bible.js';
 import { useModel } from '../../context/model.js';
 import { useNavigation } from '../../context/navigation.js';
 import { useOverlay } from '../../context/overlay.js';
 import { AiSearchState } from '../../types/ai-search.js';
-
-function toCanonicalReference(ref: Reference) {
-  if (ref.verse === undefined) {
-    return CanonicalReference.chapter(ref.book, ref.chapter);
-  }
-  const start = CanonicalReference.verse(ref.book, ref.chapter, ref.verse);
-  return ref.verseEnd === undefined || ref.verseEnd === ref.verse
-    ? start
-    : CanonicalReference.range(
-        start,
-        CanonicalReference.verse(ref.book, ref.chapter, ref.verseEnd),
-      );
-}
 
 // Types
 
@@ -44,7 +32,7 @@ export interface CommandOption {
   label: string;
   description?: string;
   value: string;
-  reference?: Reference;
+  reference?: BibleRouteReference;
   action?: () => void;
 }
 
@@ -96,7 +84,7 @@ interface PaletteProviderProps extends ParentProps {
 
 export function PaletteProvider(props: PaletteProviderProps) {
   // Dependencies from other contexts
-  const data = useBibleData();
+  const reader = useBibleReader();
   const state = useBibleState();
   const model = useModel();
   const { goTo } = useNavigation();
@@ -150,7 +138,7 @@ export function PaletteProvider(props: PaletteProviderProps) {
 
     aiSearchTimeout = setTimeout(async () => {
       try {
-        const refs = await searchBibleByTopic(currentAiQuery, model, data, state);
+        const refs = await searchBibleByTopic(currentAiQuery, model, state);
         if (refs.length === 0) {
           setAiState(AiSearchState.empty(currentAiQuery));
         } else {
@@ -219,8 +207,10 @@ export function PaletteProvider(props: PaletteProviderProps) {
 
         case 'success':
           for (const ref of currentState.results) {
-            const label = formatReference(toCanonicalReference(ref));
-            const verse = data.getVerse(ref.book, ref.chapter, ref.verse ?? 1);
+            const label = formatBibleReference(ref);
+            const verse = reader.verse(
+              ref._tag === 'verse' ? ref : Reference.verse(ref.book, ref.chapter, 1),
+            );
             const preview = verse
               ? verse.text.slice(0, 50) + (verse.text.length > 50 ? '...' : '')
               : '';
@@ -273,7 +263,7 @@ export function PaletteProvider(props: PaletteProviderProps) {
       const history = state.getHistory(5);
       for (const entry of history) {
         const ref = entry.reference;
-        const label = formatReference(toCanonicalReference(ref));
+        const label = formatBibleReference(ref);
         allOptions.push({
           type: 'history',
           group: 'recent',
@@ -287,9 +277,9 @@ export function PaletteProvider(props: PaletteProviderProps) {
       // Query mode - search everything
 
       // Navigation: verse references
-      const ref = data.parseReference(q);
+      const ref = parseReaderReference(q);
       if (ref) {
-        const label = formatReference(toCanonicalReference(ref));
+        const label = formatBibleReference(ref);
         allOptions.push({
           type: 'verse',
           group: 'navigation',
@@ -315,7 +305,7 @@ export function PaletteProvider(props: PaletteProviderProps) {
           label: book.name,
           description: `${book.chapters} chapters`,
           value: book.name,
-          reference: { book: book.number, chapter: 1 },
+          reference: Reference.chapter(book.number, 1),
         });
       }
 

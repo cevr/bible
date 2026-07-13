@@ -1,24 +1,30 @@
-import { Effect } from 'effect';
 import {
-  createContext,
-  createResource,
-  Show,
-  useContext,
-  type ParentProps,
-  type Resource,
-} from 'solid-js';
+  Reference,
+  type Book,
+  type BookReference,
+  type ChapterReference,
+  type SearchHit,
+  type Verse,
+  type VerseReference,
+} from '@bible/core/bible';
+import { BibleService } from '@bible/core/bible/service';
+import { Effect, Option } from 'effect';
+import { createContext, useContext, type ParentProps } from 'solid-js';
 
-import { BibleData } from '../../data/bible/data.js';
-import type { BibleDataSyncService } from '../../data/bible/types.js';
 import { BibleState, type BibleStateService } from '../../data/bible/state.js';
 import { useAppRuntime, type AppServices } from '../lib/index.js';
 
-// Combined services for the Bible viewer
+/** Synchronous presentation adapter over the canonical core Bible service. */
+export interface BibleReader {
+  readonly books: () => readonly Book[];
+  readonly book: (reference: BookReference) => Book | undefined;
+  readonly chapter: (reference: ChapterReference) => readonly Verse[];
+  readonly verse: (reference: VerseReference) => Verse | undefined;
+  readonly search: (query: string, limit?: number) => readonly SearchHit[];
+}
+
 interface BibleContextValue {
-  ready: Resource<boolean>;
-  isLoading: () => boolean;
-  error: () => Error | undefined;
-  data: BibleDataSyncService;
+  reader: BibleReader;
   state: BibleStateService;
 }
 
@@ -28,81 +34,39 @@ export function BibleProvider(props: ParentProps) {
   const runtime = useAppRuntime<AppServices>();
   const runSync = <A, E>(effect: Effect.Effect<A, E, AppServices>) => runtime.runSync(effect);
 
-  // Get services from the app runtime (scope stays alive)
-  const [services] = createResource(async () => {
-    const data = await runtime.runPromise(
-      Effect.gen(function* () {
-        return yield* BibleData;
-      }),
-    );
-    const state = await runtime.runPromise(
-      Effect.gen(function* () {
-        return yield* BibleState;
-      }),
-    );
-    return { data, state };
+  // AppWithRuntime receives an initialized ManagedRuntime, so service lookup is
+  // synchronous and the provider never exposes a partially-ready context.
+  const services = runSync(
+    Effect.gen(function* () {
+      return {
+        reader: yield* BibleService,
+        state: yield* BibleState,
+      };
+    }),
+  );
+
+  // BibleDatabase uses Bun's synchronous SQLite driver, so canonical service
+  // effects can be adapted synchronously at this TUI boundary.
+  const createReader = (): BibleReader => ({
+    books: () => runSync(services.reader.books),
+    book: (reference) =>
+      runSync(
+        services.reader.book(reference).pipe(Effect.option, Effect.map(Option.getOrUndefined)),
+      ),
+    chapter: (reference) => runSync(services.reader.chapter(reference)).verses,
+    verse: (reference) =>
+      runSync(
+        services.reader.chapter(Reference.chapter(reference.book, reference.chapter)),
+      ).verses.find((verse) => verse.reference.verse === reference.verse),
+    search: (query, limit) => runSync(services.reader.search(query, limit)),
   });
 
-  // Create sync wrapper that runs Effects synchronously
-  // This works because the database connection is already open after init
-  const createSyncWrapper = (): BibleDataSyncService => {
-    const svc = services();
-    if (!svc) {
-      // Return stub that returns empty results while loading
-      return {
-        getBooks: () => [],
-        getBook: () => undefined,
-        getChapter: () => [],
-        getVerse: () => undefined,
-        searchVerses: () => [],
-        parseReference: () => undefined,
-        getNextChapter: () => undefined,
-        getPrevChapter: () => undefined,
-      };
-    }
-
-    return {
-      getBooks: () => runSync(svc.data.getBooks()),
-      getBook: (n) => runSync(svc.data.getBook(n)),
-      getChapter: (b, c) => runSync(svc.data.getChapter(b, c)),
-      getVerse: (b, c, v) => runSync(svc.data.getVerse(b, c, v)),
-      searchVerses: (q, l) => runSync(svc.data.searchVerses(q, l)),
-      parseReference: (ref) => svc.data.parseReference(ref),
-      getNextChapter: (b, c) => svc.data.getNextChapter(b, c),
-      getPrevChapter: (b, c) => svc.data.getPrevChapter(b, c),
-    };
-  };
-
   const value: BibleContextValue = {
-    ready: services as Resource<boolean>,
-    isLoading: () => services.loading,
-    error: () => services.error as Error | undefined,
-    get data() {
-      return createSyncWrapper();
-    },
-    get state() {
-      const svc = services();
-      if (!svc) {
-        throw new Error('Bible services not initialized');
-      }
-      return svc.state;
-    },
+    reader: createReader(),
+    state: services.state,
   };
 
-  return (
-    <BibleContext.Provider value={value}>
-      <Show
-        when={services()}
-        fallback={
-          <box>
-            <text>Loading...</text>
-          </box>
-        }
-      >
-        {props.children}
-      </Show>
-    </BibleContext.Provider>
-  );
+  return <BibleContext.Provider value={value}>{props.children}</BibleContext.Provider>;
 }
 
 export function useBible(): BibleContextValue {
@@ -114,8 +78,8 @@ export function useBible(): BibleContextValue {
 }
 
 // Convenience hooks
-export function useBibleData(): BibleDataSyncService {
-  return useBible().data;
+export function useBibleReader(): BibleReader {
+  return useBible().reader;
 }
 
 export function useBibleState(): BibleStateService {

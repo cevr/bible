@@ -1,14 +1,11 @@
 import { isRoute, Route } from '@bible/core/app';
-import type { EGWReference } from '@bible/core/app';
-import { Reference as BibleReference } from '@bible/core/bible';
+import type { BibleRouteReference, EGWReference } from '@bible/core/app';
 import { render, useKeyboard, useRenderer, useTerminalDimensions } from '@opentui/solid';
 import type { ManagedRuntime } from 'effect';
 import { createResource, createSignal, Match, Show, Switch } from 'solid-js';
 
-import type { Reference } from '../data/bible/types.js';
 import { ToolsPalette } from './components/shared/tools-palette.js';
 import { BibleProvider } from './context/bible.js';
-import { ClientProvider } from './context/client.js';
 import { DisplayProvider } from './context/display.js';
 import { EGWNavigationProvider } from './context/egw-navigation.js';
 import { EGWProvider } from './context/egw.js';
@@ -44,20 +41,12 @@ export {
   isLoading,
   match,
 } from './lib/index.js';
-// Re-export client hooks
-export {
-  useClient,
-  useBibleClient,
-  useEGWClient,
-  type BibleClient,
-  type EGWClient,
-} from './context/client.js';
-
 interface AppProps {
-  initialRef?: Reference;
+  initialRef?: BibleRouteReference;
   /** EGW reference. Pass empty object {} to open EGW reader without specific ref */
   initialEgwRef?: Partial<EGWReference>;
   model?: ModelService | null;
+  runtime?: ManagedRuntime.ManagedRuntime<AppServices, unknown>;
 }
 
 /**
@@ -257,32 +246,26 @@ function AppWithRuntime(
   const initialRoute = props.initialEgwRef
     ? Route.egw(props.initialEgwRef.bookCode ? (props.initialEgwRef as EGWReference) : undefined)
     : props.initialRef
-      ? Route.bible(
-          props.initialRef.verse === undefined
-            ? BibleReference.chapter(props.initialRef.book, props.initialRef.chapter)
-            : BibleReference.verse(
-                props.initialRef.book,
-                props.initialRef.chapter,
-                props.initialRef.verse,
-              ),
-        )
+      ? Route.bible(props.initialRef)
       : Route.bible();
 
   return (
     <RuntimeProvider runtime={props.runtime}>
-      <ClientProvider>
-        <BibleProvider>
-          <RouterProvider initialRoute={initialRoute}>
-            <AppWithTheme {...props} />
-          </RouterProvider>
-        </BibleProvider>
-      </ClientProvider>
+      <BibleProvider>
+        <RouterProvider initialRoute={initialRoute}>
+          <AppWithTheme {...props} />
+        </RouterProvider>
+      </BibleProvider>
     </RuntimeProvider>
   );
 }
 
 // Export App for testing
 export function App(props: AppProps) {
+  if (props.runtime !== undefined) {
+    return <AppWithRuntime {...props} runtime={props.runtime} />;
+  }
+
   // Load runtime asynchronously
   const [runtime] = createResource(getAppRuntime);
 
@@ -301,7 +284,7 @@ export function App(props: AppProps) {
 }
 
 export interface TuiOptions {
-  initialRef?: Reference;
+  initialRef?: BibleRouteReference;
   /** EGW reference. Pass empty object {} to open EGW reader without specific ref */
   initialEgwRef?: Partial<EGWReference>;
   model?: ModelService | null;

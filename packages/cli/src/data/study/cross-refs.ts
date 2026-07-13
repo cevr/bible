@@ -1,11 +1,11 @@
 import { BibleDatabase, type CrossReference } from '@bible/core/bible-db';
+import type { CrossRefType } from '@bible/core/bible-cross-refs';
 import { BunServices } from '@effect/platform-bun';
 import { Effect, Layer, ManagedRuntime } from 'effect';
 
 import {
   type BibleStateService,
   type CrossRefClassification,
-  type CrossRefType,
   type UserCrossRef,
 } from '../bible/state.js';
 

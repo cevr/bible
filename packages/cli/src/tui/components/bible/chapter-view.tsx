@@ -1,7 +1,8 @@
 import type { ScrollBoxRenderable } from '@opentui/core';
+import { Reference } from '@bible/core/bible';
 import { createMemo, For, Show } from 'solid-js';
 
-import { useBibleData } from '../../context/bible.js';
+import { useBibleReader } from '../../context/bible.js';
 import { useDisplay } from '../../context/display.js';
 import { useNavigation } from '../../context/navigation.js';
 import { useSearch } from '../../context/search.js';
@@ -17,7 +18,7 @@ export function ChapterView() {
   const { mode } = useDisplay();
   const { query, matches, isActive } = useSearch();
   const wordMode = useWordMode();
-  const data = useBibleData();
+  const reader = useBibleReader();
   const studyData = useStudyData();
 
   // Get search match verse numbers for highlighting
@@ -29,7 +30,7 @@ export function ChapterView() {
   let scrollRef: ScrollBoxRenderable | undefined = undefined;
 
   // Get verses for current chapter
-  const verses = () => data.getChapter(position().book, position().chapter);
+  const verses = () => reader.chapter(Reference.chapter(position().book, position().chapter));
 
   // Sync scroll to selected verse
   useScrollSync(() => `verse-${selectedVerse()}`, { getRef: () => scrollRef });
@@ -86,31 +87,36 @@ export function ChapterView() {
             {(verse) => {
               const isWordModeVerse = () => {
                 const s = wordMode.state();
-                return s._tag === 'active' && s.verseRef.verse === verse.verse;
+                return s._tag === 'active' && s.verseRef.verse === verse.reference.verse;
               };
               const words = () => {
                 const s = wordMode.state();
-                return s._tag === 'active' && s.verseRef.verse === verse.verse
+                return s._tag === 'active' && s.verseRef.verse === verse.reference.verse
                   ? s.words
                   : undefined;
               };
               const selectedWordIndex = () => {
                 const s = wordMode.state();
-                return s._tag === 'active' && s.verseRef.verse === verse.verse
+                return s._tag === 'active' && s.verseRef.verse === verse.reference.verse
                   ? s.wordIndex
                   : undefined;
               };
               const marginNotes = () =>
-                studyData.getMarginNotes(position().book, position().chapter, verse.verse);
+                studyData.getMarginNotes(
+                  position().book,
+                  position().chapter,
+                  verse.reference.verse,
+                );
 
               return (
                 <Verse
-                  id={`verse-${verse.verse}`}
+                  id={`verse-${verse.reference.verse}`}
                   verse={verse}
                   isHighlighted={
-                    selectedVerse() === verse.verse || highlightedVerse() === verse.verse
+                    selectedVerse() === verse.reference.verse ||
+                    highlightedVerse() === verse.reference.verse
                   }
-                  isSearchMatch={searchMatchVerses().includes(verse.verse)}
+                  isSearchMatch={searchMatchVerses().includes(verse.reference.verse)}
                   searchQuery={isActive() ? query() : undefined}
                   wordModeActive={isWordModeVerse()}
                   words={words()}

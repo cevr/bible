@@ -1,11 +1,11 @@
 import { generateText } from 'ai';
 import type { LanguageModel } from 'ai';
+import type { BibleRouteReference } from '@bible/core/app';
 import { Data, Effect, Layer, Context } from 'effect';
 
 import { AI } from '../../services/ai.js';
-import { BibleData } from '../bible/data.js';
 import { BibleState, type BibleStateService } from '../bible/state.js';
-import type { BibleDataSyncService, Reference } from '../bible/types.js';
+import { parseReaderReference } from '../../lib/parse-reader-reference.js';
 
 // Tagged error for AI search failures
 export class AISearchError extends Data.TaggedError(
@@ -17,7 +17,9 @@ export class AISearchError extends Data.TaggedError(
 
 // AI Search service interface
 export interface AISearchService {
-  readonly searchByTopic: (query: string) => Effect.Effect<Reference[], AISearchError>;
+  readonly searchByTopic: (
+    query: string,
+  ) => Effect.Effect<readonly BibleRouteReference[], AISearchError>;
 }
 
 // Effect service tag
@@ -41,7 +43,7 @@ Rules:
 - Return ONLY the JSON array, no other text`;
 
 // Parse AI response to references
-function parseAIResponse(response: string, dataService: BibleDataSyncService): Reference[] {
+function parseAIResponse(response: string): BibleRouteReference[] {
   try {
     // Extract JSON from response (in case there's extra text)
     const jsonMatch = response.match(/\[[\s\S]*\]/);
@@ -53,14 +55,13 @@ function parseAIResponse(response: string, dataService: BibleDataSyncService): R
       verse?: number;
     }>;
 
-    const refs: Reference[] = [];
+    const refs: BibleRouteReference[] = [];
     for (const item of parsed) {
-      // Use the data service to parse and validate
       const refStr =
         item.verse !== undefined
           ? `${item.book} ${item.chapter}:${item.verse}`
           : `${item.book} ${item.chapter}`;
-      const ref = dataService.parseReference(refStr);
+      const ref = parseReaderReference(refStr);
       if (ref !== undefined) {
         refs.push(ref);
       }
@@ -76,9 +77,8 @@ function parseAIResponse(response: string, dataService: BibleDataSyncService): R
 export async function searchBibleByTopic(
   query: string,
   model: { models: { low: LanguageModel } },
-  data: BibleDataSyncService,
   state: BibleStateService,
-): Promise<Reference[]> {
+): Promise<readonly BibleRouteReference[]> {
   // Check cache first
   const cached = state.getCachedAISearch(query);
   if (cached !== undefined) {
@@ -94,7 +94,7 @@ export async function searchBibleByTopic(
     });
 
     // Parse response
-    const refs = parseAIResponse(result.text, data);
+    const refs = parseAIResponse(result.text);
 
     // Cache results
     if (refs.length > 0) {
@@ -108,30 +108,15 @@ export async function searchBibleByTopic(
   }
 }
 
-// Create a live layer (requires AI, BibleData, and BibleState)
+// Create a live layer (requires AI and BibleState)
 export const AISearchLive = Layer.effect(
   AISearch,
   Effect.gen(function* () {
     const ai = yield* AI;
-    const data = yield* BibleData;
     const state = yield* BibleState;
-    const services = yield* Effect.context();
-    const runSync = Effect.runSyncWith(services);
-
-    // Create sync wrapper for data service (only needs parseReference which is sync)
-    const syncData: BibleDataSyncService = {
-      getBooks: () => runSync(data.getBooks()),
-      getBook: (n) => runSync(data.getBook(n)),
-      getChapter: (b, c) => runSync(data.getChapter(b, c)),
-      getVerse: (b, c, v) => runSync(data.getVerse(b, c, v)),
-      searchVerses: (q, l) => runSync(data.searchVerses(q, l)),
-      parseReference: data.parseReference,
-      getNextChapter: data.getNextChapter,
-      getPrevChapter: data.getPrevChapter,
-    };
 
     return {
-      searchByTopic(query: string): Effect.Effect<Reference[], AISearchError> {
+      searchByTopic(query: string): Effect.Effect<readonly BibleRouteReference[], AISearchError> {
         return Effect.gen(function* () {
           // Check cache first
           const cached = state.getCachedAISearch(query);
@@ -158,10 +143,10 @@ export const AISearchLive = Layer.effect(
             );
 
           // Parse response
-          const refs = parseAIResponse(result.text, syncData);
+          const refs = parseAIResponse(result.text);
 
           // Cache results
-          if (refs !== undefined && refs.length > 0) {
+          if (refs.length > 0) {
             state.setCachedAISearch(query, refs);
           }
 

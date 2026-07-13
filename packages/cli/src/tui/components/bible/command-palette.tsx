@@ -10,13 +10,18 @@
  */
 
 import type { ScrollBoxRenderable } from '@opentui/core';
-import { Reference as CanonicalReference } from '@bible/core/bible';
+import type { BibleRouteReference } from '@bible/core/app';
+import {
+  BIBLE_BOOKS as BOOKS,
+  formatBibleReference,
+  Reference,
+  type Book,
+} from '@bible/core/bible';
 import { useModalKeyboard } from '../../hooks/use-modal-keyboard.js';
 import { createEffect, createMemo, createSignal, For, onCleanup, Show } from 'solid-js';
 
-import { BOOKS, formatReference, type Book, type Reference } from '../../../data/bible/types.js';
 import { searchBibleByTopic } from '../../../data/study/ai-search.js';
-import { useBibleData, useBibleState } from '../../context/bible.js';
+import { useBibleReader, useBibleState } from '../../context/bible.js';
 import { useModel } from '../../context/model.js';
 import { useNavigation } from '../../context/navigation.js';
 import { useTheme } from '../../context/theme.js';
@@ -32,7 +37,7 @@ type PaletteMode = 'books' | 'chapters' | 'verses';
 export function BibleCommandPalette(props: BibleCommandPaletteProps) {
   const { theme } = useTheme();
   const { position, goTo } = useNavigation();
-  const data = useBibleData();
+  const reader = useBibleReader();
   const state = useBibleState();
   const model = useModel();
 
@@ -44,8 +49,8 @@ export function BibleCommandPalette(props: BibleCommandPaletteProps) {
   const [query, setQuery] = createSignal('');
   const [selectedIndex, setSelectedIndex] = createSignal(0);
   const [mode, setMode] = createSignal<PaletteMode>('chapters');
-  const [selectedBookNum, setSelectedBookNum] = createSignal(currentBookNum());
-  const [selectedChapter, setSelectedChapter] = createSignal(currentChapter());
+  const [selectedBookNum, setSelectedBookNum] = createSignal<number>(currentBookNum());
+  const [selectedChapter, setSelectedChapter] = createSignal<number>(currentChapter());
   const [aiState, setAiState] = createSignal<AiSearchState>(AiSearchState.idle());
 
   let aiSearchTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -98,7 +103,7 @@ export function BibleCommandPalette(props: BibleCommandPaletteProps) {
 
     aiSearchTimeout = setTimeout(async () => {
       try {
-        const refs = await searchBibleByTopic(currentAiQuery, model, data, state);
+        const refs = await searchBibleByTopic(currentAiQuery, model, state);
         if (refs.length === 0) {
           setAiState(AiSearchState.empty(currentAiQuery));
         } else {
@@ -144,9 +149,9 @@ export function BibleCommandPalette(props: BibleCommandPaletteProps) {
   const verses = createMemo(() => {
     const bookNum = selectedBookNum();
     const chapter = selectedChapter();
-    const chapterVerses = data.getChapter(bookNum, chapter);
+    const chapterVerses = reader.chapter(Reference.chapter(bookNum, chapter));
     return chapterVerses.map((v) => ({
-      number: v.verse,
+      number: v.reference.verse,
       text: v.text,
     }));
   });
@@ -166,7 +171,7 @@ export function BibleCommandPalette(props: BibleCommandPaletteProps) {
   });
 
   // AI search results
-  const aiResults = createMemo((): Reference[] => {
+  const aiResults = createMemo((): readonly BibleRouteReference[] => {
     const currentState = aiState();
     if (currentState._tag === 'success') {
       return currentState.results;
@@ -206,7 +211,7 @@ export function BibleCommandPalette(props: BibleCommandPaletteProps) {
 
   // Handle selecting a chapter
   const handleSelectChapter = (chapter: number) => {
-    goTo({ book: selectedBookNum(), chapter });
+    goTo(Reference.chapter(selectedBookNum(), chapter));
     props.onClose();
   };
 
@@ -220,16 +225,12 @@ export function BibleCommandPalette(props: BibleCommandPaletteProps) {
 
   // Handle selecting a verse
   const handleSelectVerse = (verseNum: number) => {
-    goTo({
-      book: selectedBookNum(),
-      chapter: selectedChapter(),
-      verse: verseNum,
-    });
+    goTo(Reference.verse(selectedBookNum(), selectedChapter(), verseNum));
     props.onClose();
   };
 
   // Handle selecting an AI result
-  const handleSelectAiResult = (ref: Reference) => {
+  const handleSelectAiResult = (ref: BibleRouteReference) => {
     goTo(ref);
     props.onClose();
   };
@@ -428,7 +429,9 @@ export function BibleCommandPalette(props: BibleCommandPaletteProps) {
           <Show when={aiState()._tag === 'success'}>
             <For each={aiResults()}>
               {(ref, index) => {
-                const verse = data.getVerse(ref.book, ref.chapter, ref.verse ?? 1);
+                const verse = reader.verse(
+                  ref._tag === 'verse' ? ref : Reference.verse(ref.book, ref.chapter, 1),
+                );
                 const preview = verse
                   ? verse.text.slice(0, 40) + (verse.text.length > 40 ? '...' : '')
                   : '';
@@ -448,16 +451,7 @@ export function BibleCommandPalette(props: BibleCommandPaletteProps) {
                               : theme().textHighlight,
                         }}
                       >
-                        {formatReference(
-                          ref.verse === undefined
-                            ? CanonicalReference.chapter(ref.book, ref.chapter)
-                            : ref.verseEnd === undefined || ref.verseEnd === ref.verse
-                              ? CanonicalReference.verse(ref.book, ref.chapter, ref.verse)
-                              : CanonicalReference.range(
-                                  CanonicalReference.verse(ref.book, ref.chapter, ref.verse),
-                                  CanonicalReference.verse(ref.book, ref.chapter, ref.verseEnd),
-                                ),
-                        )}
+                        {formatBibleReference(ref)}
                       </span>{' '}
                       <span
                         style={{

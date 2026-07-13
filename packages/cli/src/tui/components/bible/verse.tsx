@@ -1,6 +1,6 @@
+import type { Verse as VerseType } from '@bible/core/bible';
 import { createMemo, For } from 'solid-js';
 
-import type { Verse as VerseType } from '../../../data/bible/types.js';
 import type { MarginNoteCompat as MarginNote, WordWithStrongs } from '../../context/study-data.js';
 import { useTheme } from '../../context/theme.js';
 
@@ -332,7 +332,7 @@ export function Verse(props: VerseProps) {
     >
       <box flexDirection="row">
         <text fg={theme().verseNumber} marginRight={1} minWidth={3}>
-          <strong>{props.verse.verse}</strong>
+          <strong>{props.verse.reference.verse}</strong>
         </text>
         <text fg={theme().verseText} wrapMode="word">
           {renderContent()}
@@ -343,7 +343,7 @@ export function Verse(props: VerseProps) {
 }
 
 interface VerseParagraphProps {
-  verses: VerseType[];
+  verses: readonly VerseType[];
   highlightedVerse?: number | null;
   searchQuery?: string;
   searchMatchVerses?: number[];
@@ -461,8 +461,9 @@ export function VerseParagraph(props: VerseParagraphProps) {
           {(verse, index) => {
             const cleanText = verse.text.replace(/^\u00b6\s*/, '');
 
-            const isHighlighted = () => props.highlightedVerse === verse.verse;
-            const isSearchMatch = () => props.searchMatchVerses?.includes(verse.verse) ?? false;
+            const isHighlighted = () => props.highlightedVerse === verse.reference.verse;
+            const isSearchMatch = () =>
+              props.searchMatchVerses?.includes(verse.reference.verse) ?? false;
 
             return (
               <span>
@@ -476,7 +477,7 @@ export function VerseParagraph(props: VerseParagraphProps) {
                         : undefined,
                   }}
                 >
-                  {verse.verse}
+                  {verse.reference.verse}
                 </strong>
                 <span
                   style={{

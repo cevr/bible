@@ -1,11 +1,11 @@
 import { BunServices } from '@effect/platform-bun';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
+import { formatBibleReference, getBibleBook, parseBibleQuery, type Verse } from '@bible/core/bible';
+import { BibleService } from '@bible/core/bible/service';
 import { BibleDatabase, type ConcordanceResult, type StrongsEntry } from '@bible/core/bible-db';
 import { Console, Effect, Layer, Option } from 'effect';
 
-import { BibleData, BibleDataLive } from '~/src/data/bible/data';
-import { getVersesForQuery, parseVerseQuery } from '~/src/data/bible/parse';
-import { getBook, type BibleDataSyncService, type Verse } from '~/src/data/bible/types';
+import { versesForBibleQuery } from '~/src/lib/bible-query';
 
 // Variadic args to capture "john 3:16" or "john" "3:16" etc.
 const query = Argument.string('query').pipe(Argument.variadic());
@@ -22,16 +22,19 @@ const limitFlag = Flag.integer('limit').pipe(
 
 // Format a single verse for output
 function formatVerse(verse: Verse): string {
-  const book = getBook(verse.book);
-  const ref =
-    book !== undefined
-      ? `${book.name} ${verse.chapter}:${verse.verse}`
-      : `${verse.book} ${verse.chapter}:${verse.verse}`;
-  return `${ref}\n${verse.text}`;
+  return `${formatBibleReference(verse.reference)}\n${verse.text}`;
 }
 
+const verseJson = (verse: Verse) => ({
+  book_name: getBibleBook(verse.reference.book)?.name ?? `Book ${verse.reference.book}`,
+  book: verse.reference.book,
+  chapter: verse.reference.chapter,
+  verse: verse.reference.verse,
+  text: verse.text,
+});
+
 // Print verses to stdout
-function printVerses(verses: Verse[]): Effect.Effect<void> {
+function printVerses(verses: readonly Verse[]): Effect.Effect<void> {
   if (verses.length === 0) {
     return Console.log('No verses found.');
   }
@@ -40,7 +43,7 @@ function printVerses(verses: Verse[]): Effect.Effect<void> {
 }
 
 // Print search results
-function printSearchResults(query: string, verses: Verse[]): Effect.Effect<void> {
+function printSearchResults(query: string, verses: readonly Verse[]): Effect.Effect<void> {
   if (verses.length === 0) {
     return Console.log(`No verses found matching "${query}".`);
   }
@@ -49,14 +52,16 @@ function printSearchResults(query: string, verses: Verse[]): Effect.Effect<void>
   return Console.log(header + '\n' + output);
 }
 
+const BibleCommandLive = BibleService.Live.pipe(
+  Layer.provide(BibleDatabase.Default),
+  Layer.provide(BunServices.layer),
+);
+
 export const verse = Command.make('verse', { query, json: jsonFlag, limit: limitFlag }, (args) =>
   Effect.gen(function* () {
-    const data = yield* BibleData;
+    const bible = yield* BibleService;
     const queryStr = args.query.join(' ').trim();
     const limit = Option.getOrElse(args.limit, () => 10);
-    const services = yield* Effect.context();
-    const runSync = Effect.runSyncWith(services);
-
     if (queryStr.length === 0) {
       yield* Console.log('Usage: bible verse <reference or search query> [--json]');
       yield* Console.log('');
@@ -70,39 +75,37 @@ export const verse = Command.make('verse', { query, json: jsonFlag, limit: limit
       return;
     }
 
-    // Create sync wrapper for parse functions
-    const syncData: BibleDataSyncService = {
-      getBooks: () => runSync(data.getBooks()),
-      getBook: (n) => runSync(data.getBook(n)),
-      getChapter: (b, c) => runSync(data.getChapter(b, c)),
-      getVerse: (b, c, v) => runSync(data.getVerse(b, c, v)),
-      searchVerses: (q, l) => runSync(data.searchVerses(q, l)),
-      parseReference: data.parseReference,
-      getNextChapter: data.getNextChapter,
-      getPrevChapter: data.getPrevChapter,
-    };
-
-    const parsed = parseVerseQuery(queryStr, syncData);
+    const parsed = parseBibleQuery(queryStr);
 
     if (parsed._tag === 'search') {
-      const results = syncData.searchVerses(parsed.query, limit);
+      const results = yield* bible.search(parsed.query, limit);
       const verses = results.map((r) => r.verse);
       if (args.json) {
         yield* Console.log(
-          JSON.stringify({ mode: 'search', query: parsed.query, verses }, null, 2),
+          JSON.stringify(
+            { mode: 'search', query: parsed.query, verses: verses.map(verseJson) },
+            null,
+            2,
+          ),
         );
         return;
       }
       yield* printSearchResults(parsed.query, verses);
     } else {
-      const verses = getVersesForQuery(parsed, syncData);
+      const verses = yield* versesForBibleQuery(parsed);
       if (args.json) {
-        yield* Console.log(JSON.stringify({ mode: 'reference', query: queryStr, verses }, null, 2));
+        yield* Console.log(
+          JSON.stringify(
+            { mode: 'reference', query: queryStr, verses: verses.map(verseJson) },
+            null,
+            2,
+          ),
+        );
         return;
       }
       yield* printVerses(verses);
     }
-  }).pipe(Effect.provide(BibleDataLive)),
+  }).pipe(Effect.provide(BibleCommandLive)),
 );
 
 // --- Concordance Command ---
@@ -121,7 +124,7 @@ function formatStrongsEntry(entry: StrongsEntry): string {
 
 // Format concordance results with verse reference
 function formatConcordanceResult(result: ConcordanceResult): string {
-  const book = getBook(result.book);
+  const book = getBibleBook(result.book);
   const bookName = book?.name ?? String(result.book);
   return `${bookName} ${result.chapter}:${result.verse} - "${result.word ?? ''}"`;
 }

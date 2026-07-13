@@ -1,10 +1,11 @@
 import type { LanguageModel } from 'ai';
+import { CROSS_REF_TYPES } from '@bible/core/bible-cross-refs';
 import { BibleDatabase, type CrossReference } from '@bible/core/bible-db';
 import { BunServices } from '@effect/platform-bun';
 import { Effect, Layer, Schema } from 'effect';
 
 import { AI } from '../../services/ai.js';
-import { CROSS_REF_TYPES, type CrossRefClassification } from '../bible/state.js';
+import type { CrossRefClassification } from '../bible/state.js';
 import type { ClassifiedCrossReference, CrossRefServiceInstance } from './cross-refs.js';
 
 // Schema for generateObject output

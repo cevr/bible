@@ -8,6 +8,7 @@
 import {
   extractBibleReferences,
   formatBibleReference,
+  Reference,
   type VerseReference,
 } from '@bible/core/bible';
 import { nodesToText } from '@bible/core/egw';
@@ -16,7 +17,7 @@ import type { ScrollBoxRenderable } from '@opentui/core';
 import { Option } from 'effect';
 import { createMemo, createSignal, For, Show } from 'solid-js';
 
-import { useBibleData } from '../../context/bible.js';
+import { useBibleReader } from '../../context/bible.js';
 import { useTheme } from '../../context/theme.js';
 import { useScrollSync } from '../../hooks/use-scroll-sync.js';
 
@@ -31,7 +32,7 @@ interface EGWBibleRefsPopupProps {
 
 export function EGWBibleRefsPopup(props: EGWBibleRefsPopupProps) {
   const { theme } = useTheme();
-  const data = useBibleData();
+  const reader = useBibleReader();
   const [selectedIndex, setSelectedIndex] = createSignal(0);
   let scrollRef: ScrollBoxRenderable | undefined = undefined;
 
@@ -45,7 +46,7 @@ export function EGWBibleRefsPopup(props: EGWBibleRefsPopupProps) {
   const refsWithPreviews = createMemo(() =>
     references().map((extracted) => {
       const start = extracted.ref._tag === 'range' ? extracted.ref.start : extracted.ref;
-      const verse = data.getVerse(start.book, start.chapter, start.verse);
+      const verse = reader.verse(Reference.verse(start.book, start.chapter, start.verse));
       let preview = '';
       if (verse) {
         preview = verse.text

@@ -25,6 +25,7 @@ import {
   type EGWSearchQuery,
   type Schemas as EGWSchemas,
 } from '@bible/core/egw';
+import { parseBibleQuery } from '@bible/core/bible';
 import { EGWCommentaryService } from '@bible/core/egw-commentary';
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
 import * as EGWDbBun from '@bible/core/egw-db/bun';
@@ -35,8 +36,6 @@ import { Argument, Command, Flag } from 'effect/unstable/cli';
 import { FetchHttpClient } from 'effect/unstable/http';
 import { BunServices } from '@effect/platform-bun';
 import { Console, Effect, FileSystem, Layer, Option, Stream } from 'effect';
-
-import { parseVerseQuery } from '~/src/data/bible/parse';
 
 // Variadic args to capture "PP 351.1" or "PP" "351.1" etc.
 const query = Argument.string('query').pipe(Argument.variadic());
@@ -1143,7 +1142,7 @@ export const egwCommentary = Command.make(
         return;
       }
 
-      const parsed = parseVerseQuery(verseStr);
+      const parsed = parseBibleQuery(verseStr);
       if (parsed._tag !== 'single') {
         yield* Console.error(
           `Commentary requires a single verse reference (e.g. "john 3:16"); got ${parsed._tag}.`,

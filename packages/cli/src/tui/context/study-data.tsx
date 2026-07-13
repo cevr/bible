@@ -14,12 +14,13 @@ import {
   type MarginNote,
   type ConcordanceResult,
 } from '@bible/core/bible-db';
+import type { CrossRefType } from '@bible/core/bible-cross-refs';
 import { BunServices } from '@effect/platform-bun';
 import { Effect, Layer, ManagedRuntime, Option } from 'effect';
 import { createContext, useContext, type ParentProps } from 'solid-js';
 
 import { BibleState } from '../../data/bible/state.js';
-import type { CrossRefType, UserCrossRef } from '../../data/bible/state.js';
+import type { UserCrossRef } from '../../data/bible/state.js';
 import {
   createCrossRefService,
   type ClassifiedCrossReference,
