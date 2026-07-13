@@ -1,218 +1,152 @@
 /**
- * CachedApp — transparent caching proxy for AppService.
+ * Suspense caching at feature-module seams.
  *
- * Read methods return T (via React 19's `use()`) instead of Promise<T>.
- * Write methods pass through as-is.
- * Invalidation is granular — per method + args.
- *
- * The useApp() hook subscribes to cache changes via useSyncExternalStore.
- * Only caches accessed during the render are tracked, so invalidating
- * an unrelated cache won't trigger a re-render.
+ * Each AppClient feature remains visible to callers. Configured read methods
+ * gain React `use()` semantics and cache controls; mutations pass through to
+ * the underlying Promise client unchanged.
  */
 import { use } from 'react';
 
+import type { AppClient } from '@/data/app-client';
 import { createCache, type Cache } from './cache';
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
+const READ_METHODS = {
+  annotations: ['getChapterMarkers', 'getVerseNotes', 'getEgwNotes', 'getEgwChapterMarkers'],
+  bible: ['fetchChapter', 'fetchVerses', 'searchVerses', 'searchVersesWithCount'],
+  collections: [
+    'getCollections',
+    'getVerseCollections',
+    'getCollectionVerses',
+    'getEgwParagraphCollections',
+  ],
+  commentary: ['getEgwCommentary'],
+  concordance: [
+    'getStrongsEntry',
+    'getVerseWords',
+    'getMarginNotes',
+    'getChapterMarginNotes',
+    'searchByStrongs',
+  ],
+  crossReferences: ['getCrossRefs'],
+  plans: ['getPlans', 'getPlanItems', 'getPlanProgress'],
+  practice: ['getMemoryVerses', 'getPracticeHistory'],
+  state: ['getPosition', 'getBookmarks', 'getHistory', 'getPreferences'],
+  sync: [],
+  topics: [
+    'searchTopics',
+    'getTopic',
+    'getTopicVerses',
+    'getVerseTopics',
+    'getTopicChildren',
+    'getRootTopics',
+    'getTopicsByLetter',
+  ],
+  writings: ['fetchEgwBooks', 'fetchEgwChapterContent', 'fetchEgwChapters'],
+} as const satisfies {
+  readonly [Feature in keyof AppClient]: readonly (keyof AppClient[Feature])[];
+};
 
-/** Service methods whose results are cached and read synchronously via Suspense. */
-export type ReadMethod =
-  | 'fetchChapter'
-  | 'fetchVerses'
-  | 'searchVerses'
-  | 'searchVersesWithCount'
-  | 'getPosition'
-  | 'getBookmarks'
-  | 'getHistory'
-  | 'getPreferences'
-  | 'getCrossRefs'
-  | 'getStrongsEntry'
-  | 'getVerseWords'
-  | 'getMarginNotes'
-  | 'getChapterMarginNotes'
-  | 'searchByStrongs'
-  | 'getVerseNotes'
-  | 'getChapterMarkers'
-  | 'getEgwCommentary'
-  | 'getCollections'
-  | 'getVerseCollections'
-  | 'getCollectionVerses'
-  | 'fetchEgwBooks'
-  | 'fetchEgwChapterContent'
-  | 'fetchEgwChapters'
-  | 'getEgwNotes'
-  | 'getEgwChapterMarkers'
-  | 'getEgwParagraphCollections'
-  | 'getPlans'
-  | 'getPlanItems'
-  | 'getPlanProgress'
-  | 'getMemoryVerses'
-  | 'getPracticeHistory'
-  | 'searchTopics'
-  | 'getTopic'
-  | 'getTopicVerses'
-  | 'getVerseTopics'
-  | 'getTopicChildren'
-  | 'getRootTopics'
-  | 'getTopicsByLetter';
+type StripPrefix<Name extends string> = Name extends `fetch${infer Rest}`
+  ? Uncapitalize<Rest>
+  : Name extends `get${infer Rest}`
+    ? Uncapitalize<Rest>
+    : Name;
 
-/** Strips get/fetch prefix — cache consumers don't need the verb. */
-type StripPrefix<S extends string> = S extends `fetch${infer R}`
-  ? Uncapitalize<R>
-  : S extends `get${infer R}`
-    ? Uncapitalize<R>
-    : S;
+type ReadMethod<Feature extends keyof AppClient> = (typeof READ_METHODS)[Feature][number] &
+  keyof AppClient[Feature];
 
-/** Maps service method names to their cached (prefix-stripped) names. */
-type CachedMethodName<K> = K extends ReadMethod ? StripPrefix<K & string> : K;
-
-const READ_METHODS: ReadMethod[] = [
-  'fetchChapter',
-  'fetchVerses',
-  'searchVerses',
-  'searchVersesWithCount',
-  'getPosition',
-  'getBookmarks',
-  'getHistory',
-  'getPreferences',
-  'getCrossRefs',
-  'getStrongsEntry',
-  'getVerseWords',
-  'getMarginNotes',
-  'getChapterMarginNotes',
-  'searchByStrongs',
-  'getVerseNotes',
-  'getChapterMarkers',
-  'getEgwCommentary',
-  'getCollections',
-  'getVerseCollections',
-  'getCollectionVerses',
-  'fetchEgwBooks',
-  'fetchEgwChapterContent',
-  'fetchEgwChapters',
-  'getEgwNotes',
-  'getEgwChapterMarkers',
-  'getEgwParagraphCollections',
-  'getPlans',
-  'getPlanItems',
-  'getPlanProgress',
-  'getMemoryVerses',
-  'getPracticeHistory',
-  'searchTopics',
-  'getTopic',
-  'getTopicVerses',
-  'getVerseTopics',
-  'getTopicChildren',
-  'getRootTopics',
-  'getTopicsByLetter',
-];
-
-/** Maps cached (prefix-stripped) proxy names back to service method names. */
-const PROXY_TO_SERVICE: Record<string, string> = {};
-for (const method of READ_METHODS) {
-  const stripped = method
-    .replace(/^fetch/, '')
-    .replace(/^get/, '')
-    .replace(/^./, (c) => c.toLowerCase());
-  PROXY_TO_SERVICE[stripped] = method;
-}
-// search* methods keep their names
-for (const method of READ_METHODS) {
-  if (method.startsWith('search')) {
-    PROXY_TO_SERVICE[method] = method;
-  }
-}
-
-/**
- * A read method that also exposes cache operations.
- * Callable to suspend + return T, with .preload/.invalidate/.invalidateAll.
- */
-type CachedReadFn<A extends unknown[], R> = ((...args: A) => R) & {
-  preload(...args: A): void;
-  invalidate(...args: A): void;
+type CachedRead<Args extends unknown[], Result> = ((...args: Args) => Result) & {
+  preload(...args: Args): void;
+  invalidate(...args: Args): void;
   invalidateAll(): void;
 };
 
-/**
- * Maps a service type:
- * - Read methods → prefix-stripped CachedReadFn (callable + cache ops)
- * - Write methods → pass through unchanged
- */
-export type CachedService<S> = {
-  [K in keyof S as CachedMethodName<K>]: K extends ReadMethod
-    ? S[K] extends (...args: infer A) => Promise<infer R>
-      ? CachedReadFn<A, R>
-      : S[K]
-    : S[K];
+type CachedFeature<Feature extends keyof AppClient> = {
+  [Method in keyof AppClient[Feature] as Method extends ReadMethod<Feature>
+    ? Method extends string
+      ? StripPrefix<Method>
+      : Method
+    : Method]: Method extends ReadMethod<Feature>
+    ? AppClient[Feature][Method] extends (...args: infer Args) => Promise<infer Result>
+      ? CachedRead<Args, Result>
+      : never
+    : AppClient[Feature][Method];
 };
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+export type CachedApp = {
+  readonly [Feature in keyof AppClient]: CachedFeature<Feature>;
+};
 
-/** Read the internal version counter from a Cache (attached by createCache). */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function cacheSnapshot(cache: Cache<any[], any>): number {
-  return (cache as unknown as { getSnapshot: () => number }).getSnapshot();
-}
-
-// ---------------------------------------------------------------------------
-// CacheWithVersion — Cache + per-cache version counter
-// ---------------------------------------------------------------------------
+type PromiseMethod = (...args: unknown[]) => Promise<unknown>;
 
 interface CacheWithVersion {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  cache: Cache<any[], any>;
+  readonly cache: Cache<unknown[], unknown>;
   version: number;
 }
 
-// ---------------------------------------------------------------------------
-// CachedAppCore — owns all caches, exposes subscription for useSyncExternalStore
-// ---------------------------------------------------------------------------
+function cacheSnapshot(cache: Cache<unknown[], unknown>): number {
+  return (cache as unknown as { getSnapshot: () => number }).getSnapshot();
+}
 
-export class CachedAppCore {
-  private caches = new Map<string, CacheWithVersion>();
-  private listeners = new Set<() => void>();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private service: any;
+function cachedName(method: string): string {
+  return method
+    .replace(/^fetch/, '')
+    .replace(/^get/, '')
+    .replace(/^./, (character) => character.toLowerCase());
+}
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  constructor(service: any) {
-    this.service = service;
-  }
+const READ_ALIASES = new Map<string, ReadonlyMap<string, string>>(
+  Object.entries(READ_METHODS).map(([feature, methods]) => [
+    feature,
+    new Map(methods.map((method) => [cachedName(method), method])),
+  ]),
+);
 
-  /** Get or create the cache for a read method. */
-  private getOrCreateCache(method: string): CacheWithVersion {
-    let entry = this.caches.get(method);
-    if (entry) return entry;
+export class CachedAppCore<Client extends object = AppClient> {
+  private readonly caches = new Map<string, CacheWithVersion>();
+  private readonly listeners = new Set<() => void>();
 
-    const fn = this.service[method];
-    if (typeof fn !== 'function') {
-      throw new Error(`Method ${method} not found on service`);
+  constructor(private readonly client: Client) {}
+
+  private resolve(path: string): { receiver: object; method: PromiseMethod } {
+    const separator = path.indexOf('.');
+    const featureName = path.slice(0, separator);
+    const methodName = path.slice(separator + 1);
+    const feature = Reflect.get(this.client, featureName);
+    if (typeof feature !== 'object' || feature === null) {
+      throw new Error(`Feature ${featureName} not found on app client`);
     }
 
-    entry = {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      cache: createCache((...args: any[]) => fn.apply(this.service, args)),
+    const method = Reflect.get(feature, methodName);
+    if (typeof method !== 'function') {
+      throw new Error(`Method ${path} not found on app client`);
+    }
+    return { receiver: feature, method: method as PromiseMethod };
+  }
+
+  private getOrCreateCache(path: string): CacheWithVersion {
+    const existing = this.caches.get(path);
+    if (existing) return existing;
+
+    const { receiver, method } = this.resolve(path);
+    const created: CacheWithVersion = {
+      cache: createCache((...args: unknown[]) => Reflect.apply(method, receiver, args)),
       version: 0,
     };
-    this.caches.set(method, entry);
-    return entry;
+    this.caches.set(path, created);
+    return created;
   }
 
-  /** Read from cache — returns the PromiseWithStatus (caller must use() it). */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  read(method: string, args: any[]): any {
-    const entry = this.getOrCreateCache(method);
-    return entry.cache.get(...args);
+  read(path: string, args: unknown[]): ReturnType<Cache<unknown[], unknown>['get']> {
+    return this.getOrCreateCache(path).cache.get(...args);
   }
 
-  /** Invalidate a specific cache entry. */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  invalidate(method: string, ...args: any[]): void {
-    const entry = this.caches.get(method);
+  preload(path: string, ...args: unknown[]): void {
+    this.read(path, args);
+  }
+
+  invalidate(path: string, ...args: unknown[]): void {
+    const entry = this.caches.get(path);
     if (!entry) return;
     const before = cacheSnapshot(entry.cache);
     entry.cache.invalidate(...args);
@@ -222,15 +156,8 @@ export class CachedAppCore {
     }
   }
 
-  /** Warm the cache for a read method without suspending. Fire-and-forget. */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  preload(method: string, ...args: any[]): void {
-    this.read(method, args);
-  }
-
-  /** Invalidate all entries for a method. */
-  invalidateAll(method: string): void {
-    const entry = this.caches.get(method);
+  invalidateAll(path: string): void {
+    const entry = this.caches.get(path);
     if (!entry) return;
     const before = cacheSnapshot(entry.cache);
     entry.cache.invalidateAll();
@@ -240,69 +167,66 @@ export class CachedAppCore {
     }
   }
 
-  /** Composite snapshot of only the accessed caches. */
-  snapshotFor(accessed: Set<string>): number {
-    let sum = 0;
-    for (const method of accessed) {
-      const entry = this.caches.get(method);
-      if (entry) sum += entry.version;
+  snapshotFor(accessed: ReadonlySet<string>): number {
+    let snapshot = 0;
+    for (const path of accessed) {
+      snapshot += this.caches.get(path)?.version ?? 0;
     }
-    return sum;
+    return snapshot;
   }
 
-  /** Subscribe to invalidation events (for useSyncExternalStore). */
-  subscribe = (cb: () => void): (() => void) => {
-    this.listeners.add(cb);
-    return () => this.listeners.delete(cb);
+  subscribe = (listener: () => void): (() => void) => {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
   };
 
-  /**
-   * Create a proxy that:
-   * - Intercepts read methods → cache.get() + use()
-   * - Records accessed method names in the tracking set
-   * - Passes write methods through to the service
-   * - Exposes invalidate/invalidateAll
-   */
-  withTracking(accessed: Set<string>): unknown {
+  withTracking(accessed: Set<string>): CachedApp {
     const read = this.read.bind(this);
     const preload = this.preload.bind(this);
     const invalidate = this.invalidate.bind(this);
     const invalidateAll = this.invalidateAll.bind(this);
-
-    return new Proxy(this.service, {
-      get(target: Record<string, unknown>, prop: string | symbol, receiver: unknown) {
-        if (typeof prop !== 'string') return Reflect.get(target, prop, receiver);
-
-        const serviceMethod = PROXY_TO_SERVICE[prop];
-        if (serviceMethod) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const fn = (...args: any[]) => {
-            accessed.add(serviceMethod);
-            const promise = read(serviceMethod, args) as Promise<unknown>;
-            return use(promise);
-          };
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          fn.preload = (...args: any[]) => preload(serviceMethod, ...args);
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          fn.invalidate = (...args: any[]) => invalidate(serviceMethod, ...args);
-          fn.invalidateAll = () => invalidateAll(serviceMethod);
-          return fn;
+    return new Proxy(this.client, {
+      get(target, featureName, receiver) {
+        const feature = Reflect.get(target, featureName, receiver);
+        if (typeof featureName !== 'string' || typeof feature !== 'object' || feature === null) {
+          return feature;
         }
-        return Reflect.get(target, prop, receiver);
+
+        const aliases = READ_ALIASES.get(featureName);
+        if (!aliases) return feature;
+
+        return new Proxy(feature, {
+          get(featureTarget, property, featureReceiver) {
+            if (typeof property !== 'string') {
+              return Reflect.get(featureTarget, property, featureReceiver);
+            }
+
+            const methodName = aliases.get(property);
+            if (!methodName) {
+              const value = Reflect.get(featureTarget, property, featureReceiver);
+              return typeof value === 'function' ? value.bind(featureTarget) : value;
+            }
+
+            const path = `${featureName}.${methodName}`;
+            const cached = (...args: unknown[]) => {
+              accessed.add(path);
+              return use(read(path, args));
+            };
+            cached.preload = (...args: unknown[]) => preload(path, ...args);
+            cached.invalidate = (...args: unknown[]) => invalidate(path, ...args);
+            cached.invalidateAll = () => invalidateAll(path);
+            return cached;
+          },
+        });
       },
-    });
+    }) as unknown as CachedApp;
   }
 
-  private notify() {
+  private notify(): void {
     for (const listener of this.listeners) listener();
   }
 }
 
-// ---------------------------------------------------------------------------
-// Factory
-// ---------------------------------------------------------------------------
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function createCachedApp(service: any): CachedAppCore {
-  return new CachedAppCore(service);
+export function createCachedApp(client: AppClient): CachedAppCore {
+  return new CachedAppCore(client);
 }

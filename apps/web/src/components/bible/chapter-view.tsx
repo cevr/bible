@@ -27,8 +27,8 @@ export function BibleChapterView({
   className,
 }: BibleChapterViewProps) {
   const app = useApp();
-  const verses = app.verses(book, chapter);
-  const marginNotesByVerse = app.chapterMarginNotes(book, chapter);
+  const verses = app.bible.verses(book, chapter);
+  const marginNotesByVerse = app.concordance.chapterMarginNotes(book, chapter);
 
   const highlightedVerse = highlightVerseProp ?? null;
 

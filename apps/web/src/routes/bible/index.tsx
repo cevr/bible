@@ -13,7 +13,9 @@ import { useOverlay } from '@/providers/overlay-context';
 import { useBible } from '@/providers/bible-context';
 import { useApp } from '@/providers/db-context';
 import { BOOK_ALIASES, toBookSlug, type Book, type Verse } from '@/data/bible';
-import type { ClassifiedCrossReference, MarginNote, VerseMarker } from '@/data/study/service';
+import type { ClassifiedCrossReference } from '@/data/cross-references/types';
+import type { MarginNote } from '@/data/concordance/types';
+import type { VerseMarker } from '@/data/annotations/types';
 import { MARKER_DOT_COLORS } from '@/components/bible/study-constants';
 import { VerseStudyPanel, type StudyTab } from '@/components/bible/verse-study-sheet';
 import {
@@ -57,10 +59,10 @@ function BibleRoute() {
   const book = bible.getBook(bookNumber);
 
   // Suspending reads — data is available synchronously on cache hit
-  const verses = app.verses(bookNumber, chapterNumber);
-  const marginNotesByVerse = app.chapterMarginNotes(bookNumber, chapterNumber);
-  const chapterMarkers = app.chapterMarkers(bookNumber, chapterNumber);
-  const preferences = app.preferences();
+  const verses = app.bible.verses(bookNumber, chapterNumber);
+  const marginNotesByVerse = app.concordance.chapterMarginNotes(bookNumber, chapterNumber);
+  const chapterMarkers = app.annotations.chapterMarkers(bookNumber, chapterNumber);
+  const preferences = app.state.preferences();
 
   // Display mode — initialized from preferences, toggleable locally
   const [displayMode, setDisplayMode] = useState(preferences.displayMode);
@@ -100,7 +102,7 @@ function BibleRoute() {
   selectedVerseRef.current = selectedVerse;
 
   // Redirect to saved position if no book param
-  const position = app.position();
+  const position = app.state.position();
   useEffect(() => {
     if (!params.book) {
       const savedBook = bible.getBook(position.book);
@@ -130,28 +132,36 @@ function BibleRoute() {
   useEffect(() => {
     const next = bible.getNextChapter(bookNumber, chapterNumber);
     if (next) {
-      app.verses.preload(next.book, next.chapter);
-      app.chapterMarginNotes.preload(next.book, next.chapter);
+      app.bible.verses.preload(next.book, next.chapter);
+      app.concordance.chapterMarginNotes.preload(next.book, next.chapter);
     }
     const prev = bible.getPrevChapter(bookNumber, chapterNumber);
     if (prev) {
-      app.verses.preload(prev.book, prev.chapter);
-      app.chapterMarginNotes.preload(prev.book, prev.chapter);
+      app.bible.verses.preload(prev.book, prev.chapter);
+      app.concordance.chapterMarginNotes.preload(prev.book, prev.chapter);
     }
   }, [bookNumber, chapterNumber, bible, app]);
 
   // Prefetch study data for selected verse
   useEffect(() => {
-    app.crossRefs.preload(bookNumber, chapterNumber, selectedVerse);
-    app.verseWords.preload(bookNumber, chapterNumber, selectedVerse);
-    app.marginNotes.preload(bookNumber, chapterNumber, selectedVerse);
+    app.crossReferences.crossRefs.preload(bookNumber, chapterNumber, selectedVerse);
+    app.concordance.verseWords.preload(bookNumber, chapterNumber, selectedVerse);
+    app.concordance.marginNotes.preload(bookNumber, chapterNumber, selectedVerse);
   }, [bookNumber, chapterNumber, selectedVerse, app]);
 
   // Save position
   useEffect(() => {
     if (bookNumber && chapterNumber && selectedVerse) {
-      void app.setPosition({ book: bookNumber, chapter: chapterNumber, verse: selectedVerse });
-      void app.addToHistory({ book: bookNumber, chapter: chapterNumber, verse: selectedVerse });
+      void app.state.setPosition({
+        book: bookNumber,
+        chapter: chapterNumber,
+        verse: selectedVerse,
+      });
+      void app.state.addToHistory({
+        book: bookNumber,
+        chapter: chapterNumber,
+        verse: selectedVerse,
+      });
     }
   }, [bookNumber, chapterNumber, selectedVerse, app]);
 
@@ -171,7 +181,7 @@ function BibleRoute() {
   const toggleDisplayMode = () => {
     const next = displayMode === 'verse' ? 'paragraph' : 'verse';
     setDisplayMode(next);
-    void app.setPreferences({ displayMode: next });
+    void app.state.setPreferences({ displayMode: next });
   };
 
   const openSheet = (tab: StudyTab = 'notes') => {

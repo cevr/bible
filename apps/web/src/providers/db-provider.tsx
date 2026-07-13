@@ -9,35 +9,24 @@ import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { ManagedRuntime, type Layer } from 'effect';
 import { getDbClient, type DbClient } from '@/workers/db-client';
 import { LoadingScreen } from '@/components/shared/loading-screen';
+import {
+  makeAppClient,
+  type AppClient,
+  type AppRuntime,
+  type AppServices,
+} from '@/data/app-client';
 import { AppLive } from '@/data/layer';
-import { AppService, type AppRuntime } from '@/data/app-service';
 import { type CachedAppCore, createCachedApp } from '@/lib/cached-app';
-import { CachedAppContext, DbContext, AppServiceContext } from '@/providers/db-context';
-import type { WebBibleService } from '@/data/bible/effect-service';
-import type { AppStateService } from '@/data/state/effect-service';
-import type { WebStudyDataService } from '@/data/study/effect-service';
-import type { WebSyncService } from '@/data/sync/effect-service';
-import type { WebReadingPlanService } from '@/data/plans/effect-service';
-import type { WebMemoryVerseService } from '@/data/practice/effect-service';
-import type { WebTopicService } from '@/data/topics/effect-service';
+import { AppClientContext, CachedAppContext, DbContext } from '@/providers/db-context';
 
 const log = import.meta.env['DEV'] ? (...args: unknown[]) => console.log(...args) : () => {};
-
-type AppServices =
-  | WebBibleService
-  | AppStateService
-  | WebStudyDataService
-  | WebSyncService
-  | WebReadingPlanService
-  | WebMemoryVerseService
-  | WebTopicService;
 
 export function DbProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [stage, setStage] = useState('Initializing...');
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const appServiceRef = useRef<AppService | null>(null);
+  const appClientRef = useRef<AppClient | null>(null);
   const dbClientRef = useRef<DbClient | null>(null);
   const runtimeRef = useRef<AppRuntime | null>(null);
   const cachedAppRef = useRef<CachedAppCore | null>(null);
@@ -61,16 +50,16 @@ export function DbProvider({ children }: { children: ReactNode }) {
         log('[db-provider] db ready, creating runtime');
         const runtime = ManagedRuntime.make(AppLive as Layer.Layer<AppServices>);
         runtimeRef.current = runtime;
-        const appService = new AppService(runtime, client);
-        appServiceRef.current = appService;
-        const cachedApp = createCachedApp(appService);
+        const appClient = makeAppClient(runtime);
+        appClientRef.current = appClient;
+        const cachedApp = createCachedApp(appClient);
         cachedAppRef.current = cachedApp;
 
         // Warm caches for data that's needed on first render
-        cachedApp.preload('getPosition');
-        cachedApp.preload('getPreferences');
-        cachedApp.preload('getBookmarks');
-        cachedApp.preload('getHistory');
+        cachedApp.preload('state.getPosition');
+        cachedApp.preload('state.getPreferences');
+        cachedApp.preload('state.getBookmarks');
+        cachedApp.preload('state.getHistory');
 
         setReady(true);
         log('[db-provider] ready');
@@ -102,11 +91,11 @@ export function DbProvider({ children }: { children: ReactNode }) {
 
   return (
     <DbContext.Provider value={dbClientRef.current}>
-      <AppServiceContext.Provider value={appServiceRef.current}>
+      <AppClientContext.Provider value={appClientRef.current}>
         <CachedAppContext.Provider value={cachedAppRef.current}>
           {children}
         </CachedAppContext.Provider>
-      </AppServiceContext.Provider>
+      </AppClientContext.Provider>
     </DbContext.Provider>
   );
 }

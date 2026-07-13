@@ -4,7 +4,7 @@
  * Separated from verse-study-sheet.tsx so that constant consumers don't cause
  * HMR invalidation of the component (or vice versa).
  */
-import type { MarkerColor } from '@/data/study/service';
+import type { MarkerColor } from '@/data/annotations/types';
 
 /** Width of the study panel for layout coordination. */
 export const STUDY_PANEL_WIDTH = 'sm:w-[28rem]';

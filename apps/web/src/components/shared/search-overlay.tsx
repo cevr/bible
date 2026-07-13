@@ -180,7 +180,7 @@ function SearchResults({
   let results: DisplayResult[];
 
   if (scope === 'chapter') {
-    const verses = app.verses(bookNumber, chapter);
+    const verses = app.bible.verses(bookNumber, chapter);
     results = verses
       .filter((v) => v.text.toLowerCase().includes(query))
       .map((v) => ({
@@ -189,7 +189,7 @@ function SearchResults({
       }))
       .slice(0, 20);
   } else {
-    const searchResults = app.searchVerses(query, 20);
+    const searchResults = app.bible.searchVerses(query, 20);
     results = searchResults.map((sr) => ({
       reference: { book: sr.book, chapter: sr.chapter, verse: sr.verse },
       text: sr.text,

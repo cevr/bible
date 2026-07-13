@@ -27,7 +27,7 @@ function PlanList() {
   const navigate = useNavigate();
   const [isPending, startTransition] = useTransition();
 
-  const plans = app.plans();
+  const plans = app.plans.plans();
 
   const handleAddBuiltin = (sourceId: string) => {
     const def = BUILTIN_PLANS.find((p) => p.sourceId === sourceId);
@@ -35,16 +35,16 @@ function PlanList() {
     // Check if already added
     if (plans.some((p) => p.sourceId === sourceId)) return;
     startTransition(async () => {
-      await app.createPlan(def.name, def.description, 'builtin', def.sourceId, def.items);
-      app.plans.invalidateAll();
+      await app.plans.createPlan(def.name, def.description, 'builtin', def.sourceId, def.items);
+      app.plans.plans.invalidateAll();
     });
   };
 
   const handleRemove = (id: string, name: string) => {
     if (!window.confirm(`Remove "${name}"? All progress will be lost.`)) return;
     startTransition(async () => {
-      await app.removePlan(id);
-      app.plans.invalidateAll();
+      await app.plans.removePlan(id);
+      app.plans.plans.invalidateAll();
     });
   };
 
@@ -155,8 +155,8 @@ function PlanCard({
 
 function PlanProgressBar({ planId }: { planId: string }) {
   const app = useApp();
-  const items = app.planItems(planId);
-  const progress = app.planProgress(planId);
+  const items = app.plans.planItems(planId);
+  const progress = app.plans.planProgress(planId);
 
   const total = items.length;
   const done = items.filter((i) => progress.has(i.id)).length;
@@ -186,10 +186,10 @@ function PlanDetail({ planId }: { planId: string }) {
   const navigate = useNavigate();
   const [isPending, startTransition] = useTransition();
 
-  const plans = app.plans();
+  const plans = app.plans.plans();
   const plan = plans.find((p) => p.id === planId);
-  const items = app.planItems(planId);
-  const progress = app.planProgress(planId);
+  const items = app.plans.planItems(planId);
+  const progress = app.plans.planProgress(planId);
 
   if (!plan) {
     return (
@@ -223,18 +223,18 @@ function PlanDetail({ planId }: { planId: string }) {
     const isComplete = progress.has(itemId);
     startTransition(async () => {
       if (isComplete) {
-        await app.markItemIncomplete(planId, itemId);
+        await app.plans.markItemIncomplete(planId, itemId);
       } else {
-        await app.markItemComplete(planId, itemId);
+        await app.plans.markItemComplete(planId, itemId);
       }
-      app.planProgress.invalidate(planId);
+      app.plans.planProgress.invalidate(planId);
     });
   };
 
   const handleSetStartDate = () => {
     startTransition(async () => {
-      await app.setPlanStartDate(planId, Date.now());
-      app.plans.invalidateAll();
+      await app.plans.setPlanStartDate(planId, Date.now());
+      app.plans.plans.invalidateAll();
     });
   };
 

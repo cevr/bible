@@ -1,7 +1,7 @@
 /**
  * EGW book categories — shared between the EGW route book list and the command palette.
  */
-import type { EGWBookInfo } from '@/data/egw/api';
+import type { EGWBookInfo } from '@/data/writings/types';
 
 export const EGW_CATEGORIES: { label: string; codes: Set<string> }[] = [
   {

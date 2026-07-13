@@ -8,8 +8,8 @@ import { useMemo, useState, useTransition, Suspense } from 'react';
 import { XIcon, Trash2 } from 'lucide-react';
 import { extractBibleReferences, formatBibleReference } from '@bible/core/bible';
 import { nodesToText } from '@bible/core/egw';
-import type { EGWParagraph } from '@/data/egw/api';
-import type { MarkerColor } from '@/data/study/service';
+import type { EGWParagraph } from '@/data/writings/types';
+import type { MarkerColor } from '@/data/annotations/types';
 import { useApp } from '@/providers/db-context';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -147,29 +147,29 @@ function EgwNotesTab({ bookCode, puborder }: { bookCode: string; puborder: numbe
   const [isPending, startTransition] = useTransition();
   const [noteText, setNoteText] = useState('');
 
-  const notes = app.egwNotes(bookCode, puborder);
+  const notes = app.annotations.egwNotes(bookCode, puborder);
 
   const handleAddNote = () => {
     if (!noteText.trim()) return;
     const text = noteText.trim();
     setNoteText('');
     startTransition(async () => {
-      await app.addEgwNote(bookCode, puborder, text);
-      app.egwNotes.invalidate(bookCode, puborder);
+      await app.annotations.addEgwNote(bookCode, puborder, text);
+      app.annotations.egwNotes.invalidate(bookCode, puborder);
     });
   };
 
   const handleRemoveNote = (id: string) => {
     startTransition(async () => {
-      await app.removeEgwNote(id);
-      app.egwNotes.invalidate(bookCode, puborder);
+      await app.annotations.removeEgwNote(id);
+      app.annotations.egwNotes.invalidate(bookCode, puborder);
     });
   };
 
   const handleToggleMarker = (color: MarkerColor) => {
     startTransition(async () => {
       // We don't have markers loaded here directly — just add
-      await app.addEgwMarker(bookCode, puborder, color);
+      await app.annotations.addEgwMarker(bookCode, puborder, color);
     });
   };
 

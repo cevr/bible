@@ -4,7 +4,7 @@
  * Displays verse text as individual words with Strong's number indicators.
  * Arrow keys navigate between words, Space/Enter opens Strong's popup.
  */
-import type { VerseWord } from '@/data/study/service';
+import type { VerseWord } from '@/data/concordance/types';
 
 export interface WordModeViewProps {
   words: VerseWord[];

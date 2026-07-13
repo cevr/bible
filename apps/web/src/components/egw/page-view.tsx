@@ -8,7 +8,7 @@
 import { useMemo } from 'react';
 import { isChapterHeading, headingLevel, nodesToText } from '@bible/core/egw';
 import { segmentTextWithReferences } from '@bible/core/bible';
-import type { EGWParagraph } from '@/data/egw/api';
+import type { EGWParagraph } from '@/data/writings/types';
 
 // ---------------------------------------------------------------------------
 // Component

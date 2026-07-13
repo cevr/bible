@@ -31,12 +31,10 @@ import {
   CROSS_REF_TYPES,
   type ClassifiedCrossReference,
   type CrossRefType,
-  type EGWCommentaryEntry,
-  type EGWContextParagraph,
-  type MarginNote,
-  type MarkerColor,
-  type VerseMarker,
-} from '@/data/study/service';
+} from '@/data/cross-references/types';
+import type { EGWCommentaryEntry, EGWContextParagraph } from '@/data/commentary/types';
+import type { MarginNote } from '@/data/concordance/types';
+import type { MarkerColor, VerseMarker } from '@/data/annotations/types';
 import { toBookSlug } from '@/data/bible';
 import { EGW_CATEGORIES } from '@/components/shared/egw-categories';
 
@@ -158,8 +156,8 @@ function CollectionChips({
   verse: number;
 }) {
   const app = useApp();
-  const verseCollections = app.verseCollections(book, chapter, verse);
-  const allCollections = app.collections();
+  const verseCollections = app.collections.verseCollections(book, chapter, verse);
+  const allCollections = app.collections.collections();
   const [showPicker, setShowPicker] = useState(false);
   const [newName, setNewName] = useState('');
   const [, startTransition] = useTransition();
@@ -169,16 +167,16 @@ function CollectionChips({
 
   const handleAdd = (collectionId: string) => {
     startTransition(async () => {
-      await app.addVerseToCollection(collectionId, book, chapter, verse);
-      app.verseCollections.invalidate(book, chapter, verse);
+      await app.collections.addVerseToCollection(collectionId, book, chapter, verse);
+      app.collections.verseCollections.invalidate(book, chapter, verse);
     });
     setShowPicker(false);
   };
 
   const handleRemove = (collectionId: string) => {
     startTransition(async () => {
-      await app.removeVerseFromCollection(collectionId, book, chapter, verse);
-      app.verseCollections.invalidate(book, chapter, verse);
+      await app.collections.removeVerseFromCollection(collectionId, book, chapter, verse);
+      app.collections.verseCollections.invalidate(book, chapter, verse);
     });
   };
 
@@ -186,10 +184,10 @@ function CollectionChips({
     const name = newName.trim();
     if (!name) return;
     startTransition(async () => {
-      const collection = await app.createCollection(name);
-      await app.addVerseToCollection(collection.id, book, chapter, verse);
-      app.collections.invalidateAll();
-      app.verseCollections.invalidate(book, chapter, verse);
+      const collection = await app.collections.createCollection(name);
+      await app.collections.addVerseToCollection(collection.id, book, chapter, verse);
+      app.collections.collections.invalidateAll();
+      app.collections.verseCollections.invalidate(book, chapter, verse);
     });
     setNewName('');
     setShowPicker(false);
@@ -303,18 +301,18 @@ export function VerseStudyPanel({
     startMarkerTransition(async () => {
       const existing = verseMarkers.find((m) => m.color === color);
       if (existing) {
-        await app.removeVerseMarker(existing.id);
+        await app.annotations.removeVerseMarker(existing.id);
       } else {
-        await app.addVerseMarker(book, chapter, verse, color);
+        await app.annotations.addVerseMarker(book, chapter, verse, color);
       }
-      app.chapterMarkers.invalidate(book, chapter);
+      app.annotations.chapterMarkers.invalidate(book, chapter);
     });
   };
 
   const handleAddToMemory = () => {
     startMarkerTransition(async () => {
-      await app.addMemoryVerse(book, chapter, verse);
-      app.memoryVerses.invalidateAll();
+      await app.practice.addMemoryVerse(book, chapter, verse);
+      app.practice.memoryVerses.invalidateAll();
       setMemoryAdded(true);
       clearTimeout(memoryTimerRef.current);
       memoryTimerRef.current = setTimeout(() => setMemoryAdded(false), 2000);
@@ -416,8 +414,8 @@ export function VerseStudyPanel({
 
 function NotesTab({ book, chapter, verse }: { book: number; chapter: number; verse: number }) {
   const app = useApp();
-  const notes = app.verseNotes(book, chapter, verse);
-  const marginNotes = app.marginNotes(book, chapter, verse);
+  const notes = app.annotations.verseNotes(book, chapter, verse);
+  const marginNotes = app.concordance.marginNotes(book, chapter, verse);
   const [draft, setDraft] = useState('');
   const [isPending, startTransition] = useTransition();
 
@@ -425,16 +423,16 @@ function NotesTab({ book, chapter, verse }: { book: number; chapter: number; ver
     const content = draft.trim();
     if (!content) return;
     startTransition(async () => {
-      await app.addVerseNote(book, chapter, verse, content);
-      app.verseNotes.invalidate(book, chapter, verse);
+      await app.annotations.addVerseNote(book, chapter, verse, content);
+      app.annotations.verseNotes.invalidate(book, chapter, verse);
     });
     setDraft('');
   };
 
   const handleRemove = (id: string) => {
     startTransition(async () => {
-      await app.removeVerseNote(id);
-      app.verseNotes.invalidate(book, chapter, verse);
+      await app.annotations.removeVerseNote(id);
+      app.annotations.verseNotes.invalidate(book, chapter, verse);
     });
   };
 
@@ -549,7 +547,7 @@ function VerseTopicsSection({
 
   let topics: { id: number; name: string; parentId: number | null; description: string | null }[];
   try {
-    topics = app.verseTopics(book, chapter, verse);
+    topics = app.topics.verseTopics(book, chapter, verse);
   } catch {
     // topics.db not initialized — silently skip
     return null;
@@ -612,7 +610,7 @@ function PopoverVersePeek({
   verseEnd: number | null;
 }) {
   const app = useApp();
-  const verses = app.verses(book, chapter);
+  const verses = app.bible.verses(book, chapter);
 
   if (verse == null) {
     return <p className="text-xs text-muted-foreground italic">Chapter-level reference</p>;
@@ -678,7 +676,7 @@ function CrossRefsTab({
   const bible = useBible();
   const app = useApp();
 
-  const crossRefs = app.crossRefs(book, chapter, verse);
+  const crossRefs = app.crossReferences.crossRefs(book, chapter, verse);
 
   const [editingRefKey, setEditingRefKey] = useState<string | null>(null);
   const [addRefInput, setAddRefInput] = useState('');
@@ -692,7 +690,7 @@ function CrossRefsTab({
       const key = `${ref.book}-${ref.chapter}`;
       if (!seen.has(key)) {
         seen.add(key);
-        app.verses.preload(ref.book, ref.chapter);
+        app.bible.verses.preload(ref.book, ref.chapter);
       }
     }
   }, [crossRefs, app]);
@@ -720,12 +718,12 @@ function CrossRefsTab({
   const handleSetType = (ref: ClassifiedCrossReference, type: CrossRefType) => {
     setEditingRefKey(null);
     startTransition(async () => {
-      await app.setRefType(
+      await app.crossReferences.setRefType(
         { book, chapter, verse },
         { book: ref.book, chapter: ref.chapter, verse: ref.verse },
         type,
       );
-      app.crossRefs.invalidate(book, chapter, verse);
+      app.crossReferences.crossRefs.invalidate(book, chapter, verse);
     });
   };
 
@@ -734,19 +732,19 @@ function CrossRefsTab({
     const parsed = bible.parseReference(addRefInput);
     if (!parsed) return;
     startTransition(async () => {
-      await app.addUserCrossRef(
+      await app.crossReferences.addUserCrossRef(
         { book, chapter, verse },
         { book: parsed.book, chapter: parsed.chapter, verse: parsed.verse },
       );
-      app.crossRefs.invalidate(book, chapter, verse);
+      app.crossReferences.crossRefs.invalidate(book, chapter, verse);
     });
     setAddRefInput('');
   };
 
   const handleRemoveUserRef = (id: string) => {
     startTransition(async () => {
-      await app.removeUserCrossRef(id);
-      app.crossRefs.invalidate(book, chapter, verse);
+      await app.crossReferences.removeUserCrossRef(id);
+      app.crossReferences.crossRefs.invalidate(book, chapter, verse);
     });
   };
 
@@ -994,7 +992,7 @@ function WordsTab({
   onClose: () => void;
 }) {
   const app = useApp();
-  const words = app.verseWords(book, chapter, verse);
+  const words = app.concordance.verseWords(book, chapter, verse);
 
   const [selectedWordIndex, setSelectedWordIndex] = useState(0);
   const [selectedStrongs, setSelectedStrongs] = useState<string | null>(null);
@@ -1081,8 +1079,8 @@ function StrongsDetail({
   const bible = useBible();
   const app = useApp();
 
-  const entry = app.strongsEntry(strongsNumber);
-  const usage = app.searchByStrongs(strongsNumber);
+  const entry = app.concordance.strongsEntry(strongsNumber);
+  const usage = app.concordance.searchByStrongs(strongsNumber);
 
   const usageListRef = useRef<HTMLDivElement>(null);
 
@@ -1214,7 +1212,11 @@ function EgwEntryCard({
       return;
     }
     startTransition(async () => {
-      const paragraphs = await app.getEgwParagraphContext(entry.bookCode, entry.puborder, 2);
+      const paragraphs = await app.commentary.getEgwParagraphContext(
+        entry.bookCode,
+        entry.puborder,
+        2,
+      );
       setContext(paragraphs);
       setContextOpen(true);
     });
@@ -1315,7 +1317,7 @@ function EgwEntryGroup({
 function EgwTab({ book, chapter, verse }: { book: number; chapter: number; verse: number }) {
   const app = useApp();
   const navigate = useNavigate();
-  const entries = app.egwCommentary(book, chapter, verse);
+  const entries = app.commentary.egwCommentary(book, chapter, verse);
 
   const { bcEntries, otherEntries } = useMemo(() => {
     const bcIndexed: EGWCommentaryEntry[] = [];
@@ -1337,7 +1339,7 @@ function EgwTab({ book, chapter, verse }: { book: number; chapter: number; verse
   }, [entries]);
 
   const handleNavigate = async (bookCode: string, puborder: number) => {
-    const chapterIndex = await app.getEgwChapterIndex(bookCode, puborder);
+    const chapterIndex = await app.commentary.getEgwChapterIndex(bookCode, puborder);
     navigate(`/egw/${bookCode}/${chapterIndex}/${puborder}`);
   };
 

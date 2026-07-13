@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/command';
 import { toBookSlug, BOOK_ALIASES, getBookByName, type Book } from '@/data/bible';
 import { nodesToText } from '@bible/core/egw';
-import type { EGWBookInfo } from '@/data/egw/api';
+import type { EGWBookInfo } from '@/data/writings/types';
 import { categorizeBooks } from '@/components/shared/egw-categories';
 
 // ---------------------------------------------------------------------------
@@ -646,7 +646,7 @@ function EgwBookList({
   booksRef: React.MutableRefObject<readonly EGWBookInfo[]>;
 }) {
   const app = useApp();
-  const { books } = app.egwBooks();
+  const { books } = app.writings.egwBooks();
 
   // Expose books to parent for ArrowRight drill
   booksRef.current = books;
@@ -726,7 +726,7 @@ function EgwChapterList({
   onSelectChapter: (chapterIndex: number) => void;
 }) {
   const app = useApp();
-  const chapters = app.egwChapters(bookCode);
+  const chapters = app.writings.egwChapters(bookCode);
 
   // Expose for ArrowRight drill lookup
   chaptersRef.current = chapters.map((ch, i) => ({
@@ -770,7 +770,7 @@ function EgwParagraphList({
   onNavigateParagraph: (puborder: number) => void;
 }) {
   const app = useApp();
-  const chapter = app.egwChapterContent(bookCode, chapterIndex);
+  const chapter = app.writings.egwChapterContent(bookCode, chapterIndex);
 
   if (chapter.paragraphs.length === 0) {
     return (
@@ -816,7 +816,7 @@ function VerseList({
   onSelect: (verse: number) => void;
 }) {
   const app = useApp();
-  const verses = app.verses(bookNumber, chapter);
+  const verses = app.bible.verses(bookNumber, chapter);
 
   return (
     <CommandGroup heading="Verses">

@@ -133,7 +133,7 @@ function TopicBrowser() {
 
 function SearchResults({ query, onSelect }: { query: string; onSelect: (id: number) => void }) {
   const app = useApp();
-  const results = app.searchTopics(query);
+  const results = app.topics.searchTopics(query);
 
   if (results.length === 0) {
     return (
@@ -154,7 +154,7 @@ function SearchResults({ query, onSelect }: { query: string; onSelect: (id: numb
 
 function LetterTopics({ letter, onSelect }: { letter: string; onSelect: (id: number) => void }) {
   const app = useApp();
-  const topics = app.topicsByLetter(letter);
+  const topics = app.topics.topicsByLetter(letter);
 
   if (topics.length === 0) {
     return (
@@ -192,8 +192,8 @@ function TopicDetail({ topicId }: { topicId: number }) {
   const bible = useBible();
   const navigate = useNavigate();
 
-  const topic = app.topic(topicId);
-  const verses = app.topicVerses(topicId);
+  const topic = app.topics.topic(topicId);
+  const verses = app.topics.topicVerses(topicId);
 
   if (!topic) {
     return (
@@ -294,7 +294,7 @@ function TopicDetail({ topicId }: { topicId: number }) {
 function SubtopicList({ topicId }: { topicId: number }) {
   const app = useApp();
   const navigate = useNavigate();
-  const children = app.topicChildren(topicId);
+  const children = app.topics.topicChildren(topicId);
 
   if (children.length === 0) return null;
 

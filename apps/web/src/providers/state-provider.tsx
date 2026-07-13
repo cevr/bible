@@ -16,61 +16,61 @@ export type { Position, Bookmark, HistoryEntry, Preferences };
 
 export function usePosition() {
   const app = useApp();
-  const position = app.position();
+  const position = app.state.position();
 
   return {
     position,
     async set(pos: Position) {
-      await app.setPosition(pos);
-      app.position.invalidateAll();
+      await app.state.setPosition(pos);
+      app.state.position.invalidateAll();
     },
   };
 }
 
 export function useBookmarks() {
   const app = useApp();
-  const bookmarks = app.bookmarks();
+  const bookmarks = app.state.bookmarks();
 
   return {
     bookmarks,
     async add(ref: Reference, note?: string) {
-      const bm = await app.addBookmark(ref, note);
-      app.bookmarks.invalidateAll();
+      const bm = await app.state.addBookmark(ref, note);
+      app.state.bookmarks.invalidateAll();
       return bm;
     },
     async remove(id: string) {
-      await app.removeBookmark(id);
-      app.bookmarks.invalidateAll();
+      await app.state.removeBookmark(id);
+      app.state.bookmarks.invalidateAll();
     },
   };
 }
 
 export function useHistory() {
   const app = useApp();
-  const history = app.history();
+  const history = app.state.history();
 
   return {
     history,
     async add(ref: Reference) {
-      await app.addToHistory(ref);
-      app.history.invalidateAll();
+      await app.state.addToHistory(ref);
+      app.state.history.invalidateAll();
     },
     async clear() {
-      await app.clearHistory();
-      app.history.invalidateAll();
+      await app.state.clearHistory();
+      app.state.history.invalidateAll();
     },
   };
 }
 
 export function usePreferences() {
   const app = useApp();
-  const preferences = app.preferences();
+  const preferences = app.state.preferences();
 
   return {
     preferences,
     async set(prefs: Partial<Preferences>) {
-      await app.setPreferences(prefs);
-      app.preferences.invalidateAll();
+      await app.state.setPreferences(prefs);
+      app.state.preferences.invalidateAll();
     },
   };
 }

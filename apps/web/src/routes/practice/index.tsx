@@ -32,13 +32,13 @@ function VerseList() {
   const navigate = useNavigate();
   const [, startTransition] = useTransition();
 
-  const verses = app.memoryVerses();
+  const verses = app.practice.memoryVerses();
 
   const handleRemove = (id: string, ref: string) => {
     if (!window.confirm(`Remove ${ref} from memory verses?`)) return;
     startTransition(async () => {
-      await app.removeMemoryVerse(id);
-      app.memoryVerses.invalidateAll();
+      await app.practice.removeMemoryVerse(id);
+      app.practice.memoryVerses.invalidateAll();
     });
   };
 
@@ -100,7 +100,7 @@ function PracticeSession({ verseId }: { verseId: string }) {
   const navigate = useNavigate();
   const [mode, setMode] = useState<'choose' | 'reveal' | 'type'>('choose');
 
-  const verses = app.memoryVerses();
+  const verses = app.practice.memoryVerses();
   const mv = verses.find((v) => v.id === verseId);
 
   if (!mv) {
@@ -172,7 +172,7 @@ function PracticeSession({ verseId }: { verseId: string }) {
 
 function useVerseText(mv: MemoryVerse): string {
   const app = useApp();
-  const allVerses = app.verses(mv.book, mv.chapter);
+  const allVerses = app.bible.verses(mv.book, mv.chapter);
   return allVerses
     .filter((v) => v.verse >= mv.verseStart && v.verse <= (mv.verseEnd ?? mv.verseStart))
     .map((v) => v.text)
@@ -216,8 +216,8 @@ function RevealMode({ verse, onBack }: { verse: MemoryVerse; onBack: () => void 
   const handleNext = () => {
     if (isDone) {
       startTransition(async () => {
-        await app.recordPractice(verse.id, 'reveal', 1.0);
-        app.practiceHistory.invalidate(verse.id);
+        await app.practice.recordPractice(verse.id, 'reveal', 1.0);
+        app.practice.practiceHistory.invalidate(verse.id);
       });
       onBack();
       return;
@@ -281,8 +281,8 @@ function TypeMode({ verse, onBack }: { verse: MemoryVerse; onBack: () => void })
     const computed = computeScore(input, fullText);
     setScore(computed);
     startTransition(async () => {
-      await app.recordPractice(verse.id, 'type', computed);
-      app.practiceHistory.invalidate(verse.id);
+      await app.practice.recordPractice(verse.id, 'type', computed);
+      app.practice.practiceHistory.invalidate(verse.id);
     });
   };
 

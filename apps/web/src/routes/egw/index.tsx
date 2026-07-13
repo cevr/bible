@@ -14,7 +14,7 @@ import { useOverlay } from '@/providers/overlay-context';
 import { useBible } from '@/providers/bible-context';
 import { useApp, useDb } from '@/providers/db-context';
 import type { EgwSyncStatus } from '@/workers/db-client';
-import type { EGWBookInfo } from '@/data/egw/api';
+import type { EGWBookInfo } from '@/data/writings/types';
 import { isChapterHeading } from '@bible/core/egw';
 import { PageView } from '@/components/egw/page-view';
 import { EgwStudyPanel } from '@/components/egw/egw-study-panel';
@@ -182,7 +182,7 @@ function BookCard({
 function BookListView() {
   const app = useApp();
   const db = useDb();
-  const { source, books } = app.egwBooks();
+  const { source, books } = app.writings.egwBooks();
 
   const [search, setSearch] = useState('');
   const [syncStatus, setSyncStatus] = useState<Map<string, EgwSyncStatus>>(new Map());
@@ -215,7 +215,7 @@ function BookListView() {
     refreshSyncStatus();
     return db.onSyncComplete(() => {
       refreshSyncStatus();
-      app.egwBooks.invalidateAll();
+      app.writings.egwBooks.invalidateAll();
     });
   }, [db]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -224,7 +224,7 @@ function BookListView() {
     try {
       await db.syncBook(bookCode);
       refreshSyncStatus();
-      app.egwBooks.invalidateAll();
+      app.writings.egwBooks.invalidateAll();
     } catch (err) {
       console.error(`Sync ${bookCode} failed:`, err);
     } finally {
@@ -251,7 +251,7 @@ function BookListView() {
     setFullSyncing(true);
     try {
       await db.syncFullEgw();
-      app.egwBooks.invalidateAll();
+      app.writings.egwBooks.invalidateAll();
       refreshSyncStatus();
     } catch (err) {
       console.error('Full sync failed:', err);
@@ -383,8 +383,8 @@ function ChapterReaderInner({
   const app = useApp();
 
   // Suspending reads
-  const chapter = app.egwChapterContent(bookCode, chapterIndex);
-  const chapters = app.egwChapters(bookCode);
+  const chapter = app.writings.egwChapterContent(bookCode, chapterIndex);
+  const chapters = app.writings.egwChapters(bookCode);
 
   const hasPrev = chapterIndex > 0;
   const hasNext = chapterIndex < chapter.totalChapters - 1;
@@ -454,8 +454,8 @@ function ChapterReaderInner({
 
   // Prefetch adjacent chapters
   useEffect(() => {
-    if (hasPrev) app.egwChapterContent.preload(bookCode, chapterIndex - 1);
-    if (hasNext) app.egwChapterContent.preload(bookCode, chapterIndex + 1);
+    if (hasPrev) app.writings.egwChapterContent.preload(bookCode, chapterIndex - 1);
+    if (hasNext) app.writings.egwChapterContent.preload(bookCode, chapterIndex + 1);
   }, [bookCode, chapterIndex, hasPrev, hasNext, app]);
 
   // Space/Enter toggles aside panel; Escape closes Bible pane or aside

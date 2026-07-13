@@ -6,7 +6,7 @@
  */
 import { segmentVerseText } from '@bible/core/bible-rendering';
 import type { Verse } from '@/data/bible';
-import type { MarginNote } from '@/data/study/service';
+import type { MarginNote } from '@/data/concordance/types';
 import { renderSegment } from './verse-renderer';
 
 export interface ParagraphViewProps {

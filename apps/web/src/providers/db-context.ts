@@ -7,14 +7,12 @@
  */
 import { createContext, useContext, useRef, useMemo, useSyncExternalStore } from 'react';
 import type { DbClient } from '@/workers/db-client';
-import type { CachedAppCore, CachedService } from '@/lib/cached-app';
-import type { AppService } from '@/data/app-service';
+import type { AppClient } from '@/data/app-client';
+import type { CachedApp, CachedAppCore } from '@/lib/cached-app';
 
 export const CachedAppContext = createContext<CachedAppCore | null>(null);
 export const DbContext = createContext<DbClient | null>(null);
-export const AppServiceContext = createContext<AppService | null>(null);
-
-export type CachedApp = CachedService<AppService>;
+export const AppClientContext = createContext<AppClient | null>(null);
 
 /**
  * Hook that returns a CachedApp proxy.
@@ -38,7 +36,7 @@ export function useApp(): CachedApp {
   );
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  return useMemo(() => core.withTracking(accessedRef.current), [core]) as CachedApp;
+  return useMemo(() => core.withTracking(accessedRef.current), [core]);
 }
 
 export function useDb(): DbClient {
@@ -47,9 +45,9 @@ export function useDb(): DbClient {
   return ctx;
 }
 
-/** Access the raw AppService and DbClient for non-cached operations (e.g. export/import). */
-export function useRawApp(): { app: AppService; db: DbClient } {
-  const app = useContext(AppServiceContext);
+/** Access the Promise client and DbClient for non-cached operations (e.g. export/import). */
+export function useRawApp(): { app: AppClient; db: DbClient } {
+  const app = useContext(AppClientContext);
   const db = useContext(DbContext);
   if (!app || !db) throw new Error('useRawApp must be used within a DbProvider');
   return { app, db };

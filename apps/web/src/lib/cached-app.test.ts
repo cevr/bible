@@ -15,14 +15,20 @@ import { CachedAppCore } from './cached-app';
 
 function createMockService() {
   return {
-    fetchVerses: mock((book: number, chapter: number) =>
-      Promise.resolve([{ verse: 1, text: `${book}:${chapter} verse 1` }]),
-    ),
-    getCrossRefs: mock((book: number, chapter: number, verse: number) =>
-      Promise.resolve([{ ref: `${book}:${chapter}:${verse}` }]),
-    ),
-    getStrongsEntry: mock((number: string) => Promise.resolve({ number, lemma: 'test' })),
-    setRefType: mock(() => Promise.resolve()),
+    bible: {
+      fetchVerses: mock((book: number, chapter: number) =>
+        Promise.resolve([{ verse: 1, text: `${book}:${chapter} verse 1` }]),
+      ),
+    },
+    crossReferences: {
+      getCrossRefs: mock((book: number, chapter: number, verse: number) =>
+        Promise.resolve([{ ref: `${book}:${chapter}:${verse}` }]),
+      ),
+      setRefType: mock(() => Promise.resolve()),
+    },
+    concordance: {
+      getStrongsEntry: mock((number: string) => Promise.resolve({ number, lemma: 'test' })),
+    },
   };
 }
 
@@ -35,10 +41,12 @@ type CachedReadFn = ((...args: unknown[]) => unknown) & {
 };
 
 type MockProxy = {
-  verses: CachedReadFn;
-  crossRefs: CachedReadFn;
-  strongsEntry: CachedReadFn;
-  setRefType: MockService['setRefType'];
+  bible: { verses: CachedReadFn };
+  crossReferences: {
+    crossRefs: CachedReadFn;
+    setRefType: MockService['crossReferences']['setRefType'];
+  };
+  concordance: { strongsEntry: CachedReadFn };
 };
 
 function createCore() {
@@ -58,11 +66,11 @@ describe('CachedAppCore', () => {
   describe('read()', () => {
     test('returns a promise from the service on first call', async () => {
       const { core, service } = createCore();
-      const promise = core.read('fetchVerses', [1, 1]);
+      const promise = core.read('bible.fetchVerses', [1, 1]);
 
       expect(promise).toBeInstanceOf(Promise);
-      expect(service.fetchVerses).toHaveBeenCalledTimes(1);
-      expect(service.fetchVerses).toHaveBeenCalledWith(1, 1);
+      expect(service.bible.fetchVerses).toHaveBeenCalledTimes(1);
+      expect(service.bible.fetchVerses).toHaveBeenCalledWith(1, 1);
 
       const result = await promise;
       expect(result).toEqual([{ verse: 1, text: '1:1 verse 1' }]);
@@ -71,31 +79,31 @@ describe('CachedAppCore', () => {
     test('returns cached promise on subsequent calls with same args', async () => {
       const { core, service } = createCore();
 
-      const p1 = core.read('fetchVerses', [1, 1]);
-      const p2 = core.read('fetchVerses', [1, 1]);
+      const p1 = core.read('bible.fetchVerses', [1, 1]);
+      const p2 = core.read('bible.fetchVerses', [1, 1]);
 
       expect(p1).toBe(p2); // same promise instance
-      expect(service.fetchVerses).toHaveBeenCalledTimes(1);
+      expect(service.bible.fetchVerses).toHaveBeenCalledTimes(1);
     });
 
     test('creates separate entries for different args', async () => {
       const { core, service } = createCore();
 
-      const p1 = core.read('fetchVerses', [1, 1]);
-      const p2 = core.read('fetchVerses', [1, 2]);
+      const p1 = core.read('bible.fetchVerses', [1, 1]);
+      const p2 = core.read('bible.fetchVerses', [1, 2]);
 
       expect(p1).not.toBe(p2);
-      expect(service.fetchVerses).toHaveBeenCalledTimes(2);
+      expect(service.bible.fetchVerses).toHaveBeenCalledTimes(2);
     });
 
     test('creates separate caches per method', async () => {
       const { core, service } = createCore();
 
-      core.read('fetchVerses', [1, 1]);
-      core.read('getCrossRefs', [1, 1, 1]);
+      core.read('bible.fetchVerses', [1, 1]);
+      core.read('crossReferences.getCrossRefs', [1, 1, 1]);
 
-      expect(service.fetchVerses).toHaveBeenCalledTimes(1);
-      expect(service.getCrossRefs).toHaveBeenCalledTimes(1);
+      expect(service.bible.fetchVerses).toHaveBeenCalledTimes(1);
+      expect(service.crossReferences.getCrossRefs).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -104,47 +112,47 @@ describe('CachedAppCore', () => {
       const { core, service } = createCore();
 
       // Populate cache
-      const p1 = core.read('fetchVerses', [1, 1]);
+      const p1 = core.read('bible.fetchVerses', [1, 1]);
       await flush();
 
       // Invalidate
-      core.invalidate('fetchVerses', 1, 1);
+      core.invalidate('bible.fetchVerses', 1, 1);
 
       // Next read should create a new entry
-      const p2 = core.read('fetchVerses', [1, 1]);
+      const p2 = core.read('bible.fetchVerses', [1, 1]);
       expect(p2).not.toBe(p1);
-      expect(service.fetchVerses).toHaveBeenCalledTimes(2);
+      expect(service.bible.fetchVerses).toHaveBeenCalledTimes(2);
     });
 
     test('does not affect other args in same method', async () => {
       const { core } = createCore();
 
-      const p1 = core.read('fetchVerses', [1, 1]);
-      const p2 = core.read('fetchVerses', [1, 2]);
+      const p1 = core.read('bible.fetchVerses', [1, 1]);
+      const p2 = core.read('bible.fetchVerses', [1, 2]);
       await flush();
 
-      core.invalidate('fetchVerses', 1, 1);
+      core.invalidate('bible.fetchVerses', 1, 1);
 
       // [1,2] should still be cached
-      const p2Again = core.read('fetchVerses', [1, 2]);
+      const p2Again = core.read('bible.fetchVerses', [1, 2]);
       expect(p2Again).toBe(p2);
 
       // [1,1] should be fresh
-      const p1Again = core.read('fetchVerses', [1, 1]);
+      const p1Again = core.read('bible.fetchVerses', [1, 1]);
       expect(p1Again).not.toBe(p1);
     });
 
     test('does not affect other methods', async () => {
       const { core } = createCore();
 
-      core.read('fetchVerses', [1, 1]);
-      const pCrossRefs = core.read('getCrossRefs', [1, 1, 1]);
+      core.read('bible.fetchVerses', [1, 1]);
+      const pCrossRefs = core.read('crossReferences.getCrossRefs', [1, 1, 1]);
       await flush();
 
-      core.invalidate('fetchVerses', 1, 1);
+      core.invalidate('bible.fetchVerses', 1, 1);
 
       // Cross-refs should still be cached
-      const pCrossRefsAgain = core.read('getCrossRefs', [1, 1, 1]);
+      const pCrossRefsAgain = core.read('crossReferences.getCrossRefs', [1, 1, 1]);
       expect(pCrossRefsAgain).toBe(pCrossRefs);
     });
 
@@ -153,8 +161,8 @@ describe('CachedAppCore', () => {
       const listener = mock(() => {});
 
       core.subscribe(listener);
-      core.read('fetchVerses', [1, 1]); // populate
-      core.invalidate('fetchVerses', 1, 1);
+      core.read('bible.fetchVerses', [1, 1]); // populate
+      core.invalidate('bible.fetchVerses', 1, 1);
 
       expect(listener).toHaveBeenCalledTimes(1);
     });
@@ -164,7 +172,7 @@ describe('CachedAppCore', () => {
       const listener = mock(() => {});
 
       core.subscribe(listener);
-      core.invalidate('fetchVerses', 99, 99);
+      core.invalidate('bible.fetchVerses', 99, 99);
 
       // No cache existed → no notification
       expect(listener).toHaveBeenCalledTimes(0);
@@ -175,30 +183,30 @@ describe('CachedAppCore', () => {
     test('clears all entries for a method', async () => {
       const { core, service } = createCore();
 
-      const p1 = core.read('fetchVerses', [1, 1]);
-      const p2 = core.read('fetchVerses', [1, 2]);
+      const p1 = core.read('bible.fetchVerses', [1, 1]);
+      const p2 = core.read('bible.fetchVerses', [1, 2]);
       await flush();
 
-      core.invalidateAll('fetchVerses');
+      core.invalidateAll('bible.fetchVerses');
 
-      const p1Again = core.read('fetchVerses', [1, 1]);
-      const p2Again = core.read('fetchVerses', [1, 2]);
+      const p1Again = core.read('bible.fetchVerses', [1, 1]);
+      const p2Again = core.read('bible.fetchVerses', [1, 2]);
 
       expect(p1Again).not.toBe(p1);
       expect(p2Again).not.toBe(p2);
-      expect(service.fetchVerses).toHaveBeenCalledTimes(4);
+      expect(service.bible.fetchVerses).toHaveBeenCalledTimes(4);
     });
 
     test('does not affect other methods', async () => {
       const { core } = createCore();
 
-      core.read('fetchVerses', [1, 1]);
-      const pCrossRefs = core.read('getCrossRefs', [1, 1, 1]);
+      core.read('bible.fetchVerses', [1, 1]);
+      const pCrossRefs = core.read('crossReferences.getCrossRefs', [1, 1, 1]);
       await flush();
 
-      core.invalidateAll('fetchVerses');
+      core.invalidateAll('bible.fetchVerses');
 
-      const pCrossRefsAgain = core.read('getCrossRefs', [1, 1, 1]);
+      const pCrossRefsAgain = core.read('crossReferences.getCrossRefs', [1, 1, 1]);
       expect(pCrossRefsAgain).toBe(pCrossRefs);
     });
   });
@@ -211,36 +219,36 @@ describe('CachedAppCore', () => {
 
     test('returns 0 for accessed methods that have never been invalidated', async () => {
       const { core } = createCore();
-      core.read('fetchVerses', [1, 1]); // creates the cache
+      core.read('bible.fetchVerses', [1, 1]); // creates the cache
       await flush();
 
-      expect(core.snapshotFor(new Set(['fetchVerses']))).toBe(0);
+      expect(core.snapshotFor(new Set(['bible.fetchVerses']))).toBe(0);
     });
 
     test('increments only for the invalidated method', async () => {
       const { core } = createCore();
 
-      core.read('fetchVerses', [1, 1]);
-      core.read('getCrossRefs', [1, 1, 1]);
+      core.read('bible.fetchVerses', [1, 1]);
+      core.read('crossReferences.getCrossRefs', [1, 1, 1]);
       await flush();
 
-      const versesSet = new Set(['fetchVerses']);
-      const crossRefsSet = new Set(['getCrossRefs']);
-      const bothSet = new Set(['fetchVerses', 'getCrossRefs']);
+      const versesSet = new Set(['bible.fetchVerses']);
+      const crossRefsSet = new Set(['crossReferences.getCrossRefs']);
+      const bothSet = new Set(['bible.fetchVerses', 'crossReferences.getCrossRefs']);
 
       expect(core.snapshotFor(versesSet)).toBe(0);
       expect(core.snapshotFor(crossRefsSet)).toBe(0);
       expect(core.snapshotFor(bothSet)).toBe(0);
 
       // Invalidate only fetchVerses
-      core.invalidate('fetchVerses', 1, 1);
+      core.invalidate('bible.fetchVerses', 1, 1);
 
       expect(core.snapshotFor(versesSet)).toBe(1);
       expect(core.snapshotFor(crossRefsSet)).toBe(0); // unchanged
       expect(core.snapshotFor(bothSet)).toBe(1);
 
       // Invalidate getCrossRefs
-      core.invalidate('getCrossRefs', 1, 1, 1);
+      core.invalidate('crossReferences.getCrossRefs', 1, 1, 1);
 
       expect(core.snapshotFor(versesSet)).toBe(1); // unchanged
       expect(core.snapshotFor(crossRefsSet)).toBe(1);
@@ -250,13 +258,13 @@ describe('CachedAppCore', () => {
     test('invalidateAll bumps version once', async () => {
       const { core } = createCore();
 
-      core.read('fetchVerses', [1, 1]);
-      core.read('fetchVerses', [1, 2]);
+      core.read('bible.fetchVerses', [1, 1]);
+      core.read('bible.fetchVerses', [1, 2]);
       await flush();
 
-      core.invalidateAll('fetchVerses');
+      core.invalidateAll('bible.fetchVerses');
 
-      expect(core.snapshotFor(new Set(['fetchVerses']))).toBe(1);
+      expect(core.snapshotFor(new Set(['bible.fetchVerses']))).toBe(1);
     });
   });
 
@@ -266,13 +274,13 @@ describe('CachedAppCore', () => {
       const listener = mock(() => {});
 
       core.subscribe(listener);
-      core.read('fetchVerses', [1, 1]);
+      core.read('bible.fetchVerses', [1, 1]);
       await flush();
 
-      core.invalidate('fetchVerses', 1, 1);
+      core.invalidate('bible.fetchVerses', 1, 1);
       expect(listener).toHaveBeenCalledTimes(1);
 
-      core.invalidate('fetchVerses', 1, 1); // no-op, entry gone
+      core.invalidate('bible.fetchVerses', 1, 1); // no-op, entry gone
       expect(listener).toHaveBeenCalledTimes(1); // not called again
     });
 
@@ -281,11 +289,11 @@ describe('CachedAppCore', () => {
       const listener = mock(() => {});
 
       const unsub = core.subscribe(listener);
-      core.read('fetchVerses', [1, 1]);
+      core.read('bible.fetchVerses', [1, 1]);
       await flush();
 
       unsub();
-      core.invalidate('fetchVerses', 1, 1);
+      core.invalidate('bible.fetchVerses', 1, 1);
 
       expect(listener).toHaveBeenCalledTimes(0);
     });
@@ -297,10 +305,10 @@ describe('CachedAppCore', () => {
 
       core.subscribe(l1);
       core.subscribe(l2);
-      core.read('fetchVerses', [1, 1]);
+      core.read('bible.fetchVerses', [1, 1]);
       await flush();
 
-      core.invalidate('fetchVerses', 1, 1);
+      core.invalidate('bible.fetchVerses', 1, 1);
 
       expect(l1).toHaveBeenCalledTimes(1);
       expect(l2).toHaveBeenCalledTimes(1);
@@ -314,58 +322,58 @@ describe('CachedAppCore', () => {
 
       // Proxy needs use() which is React-only, so test tracking via read()
       // directly instead of through the proxy
-      accessed.add('fetchVerses');
-      accessed.add('getCrossRefs');
+      accessed.add('bible.fetchVerses');
+      accessed.add('crossReferences.getCrossRefs');
 
-      expect(accessed.has('fetchVerses')).toBe(true);
-      expect(accessed.has('getCrossRefs')).toBe(true);
-      expect(accessed.has('getStrongsEntry')).toBe(false);
+      expect(accessed.has('bible.fetchVerses')).toBe(true);
+      expect(accessed.has('crossReferences.getCrossRefs')).toBe(true);
+      expect(accessed.has('concordance.getStrongsEntry')).toBe(false);
     });
 
     test('proxy passes through write methods to service', async () => {
       const { core, service } = createCore();
       const accessed = new Set<string>();
-      const proxy = core.withTracking(accessed) as MockProxy;
+      const proxy = core.withTracking(accessed) as unknown as MockProxy;
 
       // setRefType is not a read method — should pass through
-      await proxy.setRefType();
-      expect(service.setRefType).toHaveBeenCalledTimes(1);
+      await proxy.crossReferences.setRefType();
+      expect(service.crossReferences.setRefType).toHaveBeenCalledTimes(1);
 
       // Write methods should NOT be tracked
-      expect(accessed.has('setRefType')).toBe(false);
+      expect(accessed.has('crossReferences.setRefType')).toBe(false);
     });
 
     test('proxy exposes invalidate on read method', async () => {
       const { core, service } = createCore();
       const accessed = new Set<string>();
-      const proxy = core.withTracking(accessed) as MockProxy;
+      const proxy = core.withTracking(accessed) as unknown as MockProxy;
 
       // Populate cache directly
-      core.read('fetchVerses', [1, 1]);
+      core.read('bible.fetchVerses', [1, 1]);
       await flush();
 
       // Invalidate through proxy's stripped name
-      proxy.verses.invalidate(1, 1);
+      proxy.bible.verses.invalidate(1, 1);
 
       // Should have created a new cache entry on next read
-      core.read('fetchVerses', [1, 1]);
-      expect(service.fetchVerses).toHaveBeenCalledTimes(2);
+      core.read('bible.fetchVerses', [1, 1]);
+      expect(service.bible.fetchVerses).toHaveBeenCalledTimes(2);
     });
 
     test('proxy exposes invalidateAll on read method', async () => {
       const { core, service } = createCore();
       const accessed = new Set<string>();
-      const proxy = core.withTracking(accessed) as MockProxy;
+      const proxy = core.withTracking(accessed) as unknown as MockProxy;
 
-      core.read('fetchVerses', [1, 1]);
-      core.read('fetchVerses', [1, 2]);
+      core.read('bible.fetchVerses', [1, 1]);
+      core.read('bible.fetchVerses', [1, 2]);
       await flush();
 
-      proxy.verses.invalidateAll();
+      proxy.bible.verses.invalidateAll();
 
-      core.read('fetchVerses', [1, 1]);
-      core.read('fetchVerses', [1, 2]);
-      expect(service.fetchVerses).toHaveBeenCalledTimes(4);
+      core.read('bible.fetchVerses', [1, 1]);
+      core.read('bible.fetchVerses', [1, 2]);
+      expect(service.bible.fetchVerses).toHaveBeenCalledTimes(4);
     });
   });
 
@@ -373,46 +381,46 @@ describe('CachedAppCore', () => {
     test('warms the cache without requiring use()', async () => {
       const { core, service } = createCore();
 
-      core.preload('fetchVerses', 1, 1);
-      expect(service.fetchVerses).toHaveBeenCalledTimes(1);
+      core.preload('bible.fetchVerses', 1, 1);
+      expect(service.bible.fetchVerses).toHaveBeenCalledTimes(1);
 
       await flush();
 
       // Subsequent read returns the same cached promise
-      const p = core.read('fetchVerses', [1, 1]);
-      expect(service.fetchVerses).toHaveBeenCalledTimes(1); // no additional call
+      const p = core.read('bible.fetchVerses', [1, 1]);
+      expect(service.bible.fetchVerses).toHaveBeenCalledTimes(1); // no additional call
       expect(p.status).toBe('fulfilled');
     });
 
     test('is idempotent — multiple preloads same args do not refetch', () => {
       const { core, service } = createCore();
 
-      core.preload('fetchVerses', 1, 1);
-      core.preload('fetchVerses', 1, 1);
-      core.preload('fetchVerses', 1, 1);
+      core.preload('bible.fetchVerses', 1, 1);
+      core.preload('bible.fetchVerses', 1, 1);
+      core.preload('bible.fetchVerses', 1, 1);
 
-      expect(service.fetchVerses).toHaveBeenCalledTimes(1);
+      expect(service.bible.fetchVerses).toHaveBeenCalledTimes(1);
     });
 
     test('different args create separate entries', () => {
       const { core, service } = createCore();
 
-      core.preload('fetchVerses', 1, 1);
-      core.preload('fetchVerses', 1, 2);
+      core.preload('bible.fetchVerses', 1, 1);
+      core.preload('bible.fetchVerses', 1, 2);
 
-      expect(service.fetchVerses).toHaveBeenCalledTimes(2);
+      expect(service.bible.fetchVerses).toHaveBeenCalledTimes(2);
     });
 
     test('proxy exposes preload on read method', async () => {
       const { core, service } = createCore();
       const accessed = new Set<string>();
-      const proxy = core.withTracking(accessed) as MockProxy;
+      const proxy = core.withTracking(accessed) as unknown as MockProxy;
 
-      proxy.verses.preload(1, 1);
-      expect(service.fetchVerses).toHaveBeenCalledTimes(1);
+      proxy.bible.verses.preload(1, 1);
+      expect(service.bible.fetchVerses).toHaveBeenCalledTimes(1);
 
       // preload should not track access (it's not a render-time read)
-      expect(accessed.has('fetchVerses')).toBe(false);
+      expect(accessed.has('bible.fetchVerses')).toBe(false);
     });
   });
 
@@ -420,7 +428,7 @@ describe('CachedAppCore', () => {
     test('settled promise has status=fulfilled', async () => {
       const { core } = createCore();
 
-      const promise = core.read('fetchVerses', [1, 1]);
+      const promise = core.read('bible.fetchVerses', [1, 1]);
       expect(promise.status).toBe('pending');
 
       await flush();
@@ -431,11 +439,13 @@ describe('CachedAppCore', () => {
     test('rejected promise has status=rejected', async () => {
       const error = new Error('db fail');
       const service = {
-        fetchVerses: mock(() => Promise.reject(error)),
+        bible: {
+          fetchVerses: mock(() => Promise.reject(error)),
+        },
       };
       const core = new CachedAppCore(service);
 
-      const promise = core.read('fetchVerses', [1, 1]);
+      const promise = core.read('bible.fetchVerses', [1, 1]);
       await flush();
 
       expect(promise.status).toBe('rejected');

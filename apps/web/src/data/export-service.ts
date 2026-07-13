@@ -7,10 +7,11 @@
 import { Schema } from 'effect';
 import type { Verse } from '@bible/api';
 import { formatBibleReference, Reference } from '@bible/core/bible';
-import type { AppService } from './app-service';
+import type { AppClient } from './app-client';
 import type { DbClient } from '@/workers/db-client';
 import type { Bookmark, HistoryEntry, Preferences } from './state/effect-service';
-import type { VerseNote, VerseMarker, StudyCollection, CollectionVerse } from './study/service';
+import type { VerseNote, VerseMarker } from './annotations/types';
+import type { StudyCollection, CollectionVerse } from './collections/types';
 
 // ---------------------------------------------------------------------------
 // Markdown formatters
@@ -107,12 +108,12 @@ const VerseMarkerRow = Schema.Struct({
 // Export all data as JSON backup
 // ---------------------------------------------------------------------------
 
-export async function exportAllJsonFull(app: AppService, db: DbClient): Promise<Blob> {
+export async function exportAllJsonFull(app: AppClient, db: DbClient): Promise<Blob> {
   const [bookmarks, history, preferences, collections] = await Promise.all([
-    app.getBookmarks(),
-    app.getHistory(10000),
-    app.getPreferences(),
-    app.getCollections(),
+    app.state.getBookmarks(),
+    app.state.getHistory(10000),
+    app.state.getPreferences(),
+    app.collections.getCollections(),
   ]);
 
   const [noteRows, markerRows] = await Promise.all([
@@ -148,7 +149,7 @@ export async function exportAllJsonFull(app: AppService, db: DbClient): Promise<
 
   const collectionData: BackupData['collections'] = [];
   const collVersesAll = await Promise.all(
-    collections.map((coll) => app.getCollectionVerses(coll.id)),
+    collections.map((coll) => app.collections.getCollectionVerses(coll.id)),
   );
   for (let i = 0; i < collections.length; i++) {
     const coll = collections[i];

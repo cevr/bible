@@ -175,7 +175,7 @@ function SearchResults({
   const navigate = useNavigate();
 
   const limit = (page + 1) * PAGE_SIZE;
-  const { results, total } = app.searchVersesWithCount(query, {
+  const { results, total } = app.bible.searchVersesWithCount(query, {
     bookFilter: bookFilter.length > 0 ? bookFilter : undefined,
     limit,
     offset: 0,

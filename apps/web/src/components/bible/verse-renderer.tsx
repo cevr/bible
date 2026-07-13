@@ -16,7 +16,7 @@ import {
   segmentVerseText,
 } from '@bible/core/bible-rendering';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
-import type { MarginNote } from '@/data/study/service';
+import type { MarginNote } from '@/data/concordance/types';
 
 // --- Components ---
 
