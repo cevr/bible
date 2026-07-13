@@ -11,7 +11,6 @@ import { Config, Effect, FileSystem, Layer, Path } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import type { SqlError } from 'effect/unstable/sql/SqlError';
 
-import type { DatabaseConnectionError } from '../errors/database.js';
 import { EGWParagraphDatabase } from './book-database.js';
 
 /**
@@ -21,7 +20,7 @@ import { EGWParagraphDatabase } from './book-database.js';
  */
 export const layerBunConfig: Layer.Layer<
   EGWParagraphDatabase,
-  SqlError | Config.ConfigError | PlatformError | DatabaseConnectionError,
+  SqlError | Config.ConfigError | PlatformError,
   FileSystem.FileSystem | Path.Path
 > = EGWParagraphDatabase.layerCore.pipe(
   Layer.provide(
@@ -55,7 +54,7 @@ export const layerBun = (filename: string): Layer.Layer<EGWParagraphDatabase, Sq
  */
 export const Live: Layer.Layer<
   EGWParagraphDatabase,
-  SqlError | Config.ConfigError | PlatformError | DatabaseConnectionError,
+  SqlError | Config.ConfigError | PlatformError,
   FileSystem.FileSystem | Path.Path
 > = layerBunConfig;
 

@@ -36,28 +36,9 @@ import { isChapterHeading } from '../egw/parse.js';
 const SCHEMA_VERSION = 3;
 // Identity for this service's row in the shared `schema_versions` table.
 const SCHEMA_NAME = 'egw_paragraphs';
-import { RecordNotFoundError } from '../errors/database.js';
-import type {
-  DatabaseConnectionError,
-  DatabaseQueryError,
-  SchemaInitializationError,
-} from '../errors/database.js';
 
-export {
-  DatabaseConnectionError,
-  DatabaseQueryError,
-  SchemaInitializationError,
-} from '../errors/database.js';
-
-export const ParagraphNotFoundError = RecordNotFoundError;
-export type ParagraphNotFoundError = RecordNotFoundError;
-
-export type ParagraphDatabaseError =
-  | DatabaseConnectionError
-  | DatabaseQueryError
-  | RecordNotFoundError
-  | SchemaInitializationError
-  | SqlError;
+/** Errors emitted by the Effect SQL persistence adapter. */
+export type ParagraphDatabaseError = SqlError;
 
 export const BookRow = Schema.Struct({
   book_id: Schema.Number,
