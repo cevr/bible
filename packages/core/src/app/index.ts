@@ -14,7 +14,3 @@ export {
   type AppRouterState,
   type EGWReference,
 } from './types.js';
-
-export type { AppRouter, RouterAction } from './router.js';
-
-export { createAppRouter, routerReducer } from './router.js';

@@ -1,36 +1,19 @@
 /**
  * TUI Router Context
  *
- * Wraps the core AppRouter with Solid.js reactivity and TUI-specific
- * keyboard bindings. The core router logic is renderer-agnostic;
- * this context adds TUI-specific behavior.
+ * Owns the TUI's reactive route history and navigation actions.
  */
 
-import type {
-  AppRoute,
-  AppRouter,
-  AppRouterState,
-  BibleRouteReference,
-  EGWReference,
-} from '@bible/core/app';
-import { createAppRouter, initialRouterState } from '@bible/core/app';
-import { createContext, createSignal, onCleanup, useContext, type ParentProps } from 'solid-js';
+import type { AppRoute, AppRouterState, BibleRouteReference, EGWReference } from '@bible/core/app';
+import { initialRouterState, Route } from '@bible/core/app';
+import { createContext, createSignal, useContext, type ParentProps } from 'solid-js';
 
 /**
- * Router context value - reactive wrapper around core AppRouter
+ * Router context value for TUI-owned reactive navigation
  */
 interface RouterContextValue {
   /** Current route (reactive) */
   route: () => AppRoute;
-
-  /** Full router state (reactive) */
-  state: () => AppRouterState;
-
-  /** Core router instance for imperative access */
-  router: AppRouter;
-
-  /** Navigate to a route */
-  navigate: (route: AppRoute) => void;
 
   /** Navigate to Bible view */
   navigateToBible: (ref?: BibleRouteReference) => void;
@@ -64,8 +47,7 @@ interface RouterProviderProps {
 /**
  * Router Provider
  *
- * Creates a core AppRouter and provides reactive access to its state.
- * The router state is kept in sync with Solid.js signals for reactivity.
+ * Keeps the route state at the Solid presentation seam that consumes it.
  */
 export function RouterProvider(props: ParentProps<RouterProviderProps>) {
   // Create initial state from props if provided
@@ -73,33 +55,33 @@ export function RouterProvider(props: ParentProps<RouterProviderProps>) {
     ? { current: props.initialRoute, history: [] }
     : initialRouterState;
 
-  // Create core router
-  const router = createAppRouter(initialState);
+  const [state, setState] = createSignal<AppRouterState>(initialState);
 
-  // Create reactive state
-  const [state, setState] = createSignal<AppRouterState>(router.getState());
+  const navigate = (route: AppRoute) => {
+    setState((current) =>
+      current.current._tag === route._tag
+        ? { ...current, current: route }
+        : { current: route, history: [...current.history, current.current] },
+    );
+  };
 
-  // Subscribe to router changes and update reactive state
-  const unsubscribe = router.subscribe((newState) => {
-    setState(newState);
-  });
-
-  onCleanup(() => {
-    unsubscribe();
-  });
+  const back = (): boolean => {
+    const current = state();
+    const previous = current.history.at(-1);
+    if (!previous) return false;
+    setState({ current: previous, history: current.history.slice(0, -1) });
+    return true;
+  };
 
   const value: RouterContextValue = {
     route: () => state().current,
-    state,
-    router,
-    navigate: (route) => router.navigate(route),
-    navigateToBible: (ref) => router.navigateToBible(ref),
-    navigateToEgw: (ref) => router.navigateToEgw(ref),
-    navigateToMessages: () => router.navigateToMessages(),
-    navigateToSabbathSchool: () => router.navigateToSabbathSchool(),
-    navigateToStudies: () => router.navigateToStudies(),
-    back: () => router.back(),
-    canGoBack: () => router.canGoBack(),
+    navigateToBible: (ref) => navigate(Route.bible(ref)),
+    navigateToEgw: (ref) => navigate(Route.egw(ref)),
+    navigateToMessages: () => navigate(Route.messages()),
+    navigateToSabbathSchool: () => navigate(Route.sabbathSchool()),
+    navigateToStudies: () => navigate(Route.studies()),
+    back,
+    canGoBack: () => state().history.length > 0,
   };
 
   return <RouterContext.Provider value={value}>{props.children}</RouterContext.Provider>;
@@ -114,11 +96,4 @@ export function useRouter(): RouterContextValue {
     throw new Error('useRouter must be used within a RouterProvider');
   }
   return ctx;
-}
-
-/**
- * Use just the current route (convenience hook)
- */
-export function useRoute(): () => AppRoute {
-  return useRouter().route;
 }

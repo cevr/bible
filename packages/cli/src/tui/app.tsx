@@ -28,7 +28,7 @@ import { StudiesView } from './routes/studies.js';
 // Re-export useExit for components that need it
 export { useExit } from './context/exit.js';
 // Re-export router hooks
-export { useRouter, useRoute } from './context/router.js';
+export { useRouter } from './context/router.js';
 // Re-export runtime hooks for components using Effect
 export {
   useAppRuntime,
