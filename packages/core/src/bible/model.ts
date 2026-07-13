@@ -21,6 +21,7 @@ export type VerseNumber = typeof VerseNumber.Type;
 export class Book extends Schema.Class<Book>('Bible/Book')({
   number: BookNumber,
   name: Schema.NonEmptyString,
+  abbreviation: Schema.NonEmptyString,
   chapters: ChapterNumber,
   testament: Schema.Literals(['old', 'new']),
 }) {}

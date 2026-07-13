@@ -38,6 +38,7 @@ describe('Bible domain', () => {
     const book = new Book({
       number: bookNumber(43),
       name: 'John',
+      abbreviation: 'John',
       chapters: chapterNumber(21),
       testament: 'new',
     });

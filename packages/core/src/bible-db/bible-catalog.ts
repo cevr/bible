@@ -85,6 +85,7 @@ export interface BibleCatalogService {
   readonly importMarginNotes: (
     catalog: MarginNotesCatalog,
   ) => Effect.Effect<{ readonly imported: number; readonly skipped: number }, SqlError>;
+  readonly finalizeImport: (createdAt: string) => Effect.Effect<void, SqlError>;
   readonly resetKjv: () => Effect.Effect<void, SqlError>;
 }
 
@@ -135,9 +136,10 @@ export class BibleCatalog extends Context.Service<BibleCatalog, BibleCatalogServ
             for (const book of BIBLE_BOOKS) {
               yield* sql`
                 INSERT INTO books (number, name, abbreviation, testament, chapters)
-                VALUES (${book.number}, ${book.name}, ${book.name}, ${book.testament}, ${book.chapters})
+                VALUES (${book.number}, ${book.name}, ${book.abbreviation}, ${book.testament}, ${book.chapters})
                 ON CONFLICT(number) DO UPDATE SET
                   name = excluded.name,
+                  abbreviation = excluded.abbreviation,
                   testament = excluded.testament,
                   chapters = excluded.chapters
               `;
@@ -296,6 +298,23 @@ export class BibleCatalog extends Context.Service<BibleCatalog, BibleCatalogServ
           }),
         );
 
+      const finalizeImport = (createdAt: string) =>
+        Effect.gen(function* () {
+          yield* sql`
+            INSERT INTO meta (key, value) VALUES ('schema_version', '1')
+            ON CONFLICT(key) DO UPDATE SET value = excluded.value
+          `;
+          yield* sql`
+            INSERT INTO meta (key, value) VALUES ('created_at', ${createdAt})
+            ON CONFLICT(key) DO UPDATE SET value = excluded.value
+          `;
+          yield* sql.unsafe(`INSERT INTO verses_fts(verses_fts) VALUES('optimize')`);
+          yield* sql.unsafe(`INSERT INTO strongs_fts(strongs_fts) VALUES('optimize')`);
+          yield* sql.unsafe(`INSERT INTO margin_notes_fts(margin_notes_fts) VALUES('optimize')`);
+          yield* sql.unsafe('ANALYZE');
+          yield* sql.unsafe('VACUUM');
+        });
+
       const resetKjv = () =>
         sql.withTransaction(
           Effect.gen(function* () {
@@ -313,6 +332,7 @@ export class BibleCatalog extends Context.Service<BibleCatalog, BibleCatalogServ
         importStrongsLexicon,
         importCrossReferences,
         importMarginNotes,
+        finalizeImport,
         resetKjv,
       });
     }),

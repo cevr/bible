@@ -64,6 +64,7 @@ describe('BibleCatalog + BibleDatabase', () => {
         yield* catalog.importMarginNotes({
           '1.1.1': [{ type: 'hebrew', phrase: 'beginning', text: 'First in order' }],
         });
+        yield* catalog.finalizeImport('2026-07-13T00:00:00.000Z');
 
         const chapter = yield* database.getChapter(1, 1);
         expect(chapter.map((verse) => verse.text)).toEqual(['In the beginning', 'And the earth']);
