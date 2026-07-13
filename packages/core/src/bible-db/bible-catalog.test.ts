@@ -14,7 +14,7 @@ const files: string[] = [];
 const run = <A, E>(effect: Effect.Effect<A, E, BibleCatalog | BibleDatabase>): Promise<A> => {
   const filename = join(tmpdir(), `bible-catalog-${crypto.randomUUID()}.sqlite`);
   files.push(filename);
-  const layer = Layer.merge(BibleCatalog.layerCore, BibleDatabase.layerCore).pipe(
+  const layer = Layer.merge(BibleCatalog.layerCore, BibleDatabase.layer).pipe(
     Layer.provide(SqliteBun.layer({ filename })),
   );
   return Effect.runPromise(Effect.scoped(effect.pipe(Effect.provide(layer))));
@@ -30,7 +30,7 @@ afterAll(() => {
 });
 
 describe('BibleCatalog + BibleDatabase', () => {
-  test('one unified schema supports imports and every renderer query shape', () =>
+  test('one unified schema supports imports and the canonical query interface', () =>
     run(
       Effect.gen(function* () {
         const catalog = yield* BibleCatalog;
@@ -39,8 +39,20 @@ describe('BibleCatalog + BibleDatabase', () => {
         yield* catalog.importKjv(
           {
             verses: [
-              { book_name: 'Genesis', book: 1, chapter: 1, verse: 1, text: 'In the beginning' },
-              { book_name: 'Genesis', book: 1, chapter: 1, verse: 2, text: 'And the earth' },
+              {
+                book_name: 'Genesis',
+                book: 1,
+                chapter: 1,
+                verse: 1,
+                text: 'In the beginning',
+              },
+              {
+                book_name: 'Genesis',
+                book: 1,
+                chapter: 1,
+                verse: 2,
+                text: 'And the earth',
+              },
             ],
           },
           [
@@ -72,18 +84,23 @@ describe('BibleCatalog + BibleDatabase', () => {
         expect(search.map((verse) => verse.verse)).toEqual([1]);
 
         const strongs = yield* database.getChapterStrongs(1, 1);
-        expect(Option.getOrThrow(strongs).verses[0]?.words[1]?.strongs).toEqual(['H7225']);
-        expect((yield* database.searchVersesByStrongs('h7225', null))[0]?.word).toBe('beginning');
-        expect(yield* database.countStrongsOccurrences('H7225')).toBe(1);
-        expect((yield* database.searchLexicon('begin', 10))[0]?.code).toBe('H7225');
+        expect(Option.getOrThrow(strongs).verses[0]?.words[1]?.strongsNumbers).toEqual(['H7225']);
+        expect((yield* database.getVersesWithStrongs('h7225'))[0]?.word).toBe('beginning');
+        expect(yield* database.getStrongsCount('H7225')).toBe(1);
+        expect((yield* database.searchStrongs('begin', 10))[0]?.number).toBe('H7225');
 
-        const crossReferences = yield* database.getCatalogCrossRefs(1, 1, 1);
+        const crossReferences = yield* database.getCrossRefs(1, 1, 1);
         expect(crossReferences.map((reference) => reference.source)).toEqual(['openbible', 'tske']);
-        expect(yield* database.versesWithCrossRefs(1, 1)).toEqual([1]);
+        expect(Array.from(yield* database.versesWithCrossRefs(1, 1))).toEqual([1]);
 
-        const notes = yield* database.getCatalogMarginNotes(1, 1, 1);
+        const notes = yield* database.getMarginNotes(1, 1, 1);
         expect(notes).toEqual([
-          { idx: 0, type: 'hebrew', phrase: 'beginning', text: 'First in order' },
+          {
+            index: 0,
+            type: 'hebrew',
+            phrase: 'beginning',
+            text: 'First in order',
+          },
         ]);
         expect(Array.from(yield* database.versesWithNotes(1, 1))).toEqual([1]);
         expect((yield* database.chapterMarginNotes(1, 1)).get(1)).toEqual(notes);
@@ -95,7 +112,9 @@ describe('BibleCatalog + BibleDatabase', () => {
       Effect.gen(function* () {
         const catalog = yield* BibleCatalog;
         const database = yield* BibleDatabase;
-        const xrefs = { '1.1.1': { refs: [{ book: 43, chapter: 3, verse: 16 }] } } as const;
+        const xrefs = {
+          '1.1.1': { refs: [{ book: 43, chapter: 3, verse: 16 }] },
+        } as const;
         const notes = {
           '1.1.1': [{ type: 'other' as const, phrase: 'earth', text: 'world' }],
         };
@@ -105,8 +124,8 @@ describe('BibleCatalog + BibleDatabase', () => {
         yield* catalog.importMarginNotes(notes);
         yield* catalog.importMarginNotes(notes);
 
-        expect((yield* database.getCatalogCrossRefs(1, 1, 1)).length).toBe(1);
-        expect((yield* database.getCatalogMarginNotes(1, 1, 1)).length).toBe(1);
+        expect((yield* database.getCrossRefs(1, 1, 1)).length).toBe(1);
+        expect((yield* database.getMarginNotes(1, 1, 1)).length).toBe(1);
       }),
     ));
 });

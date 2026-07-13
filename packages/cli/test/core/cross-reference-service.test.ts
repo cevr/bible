@@ -43,7 +43,7 @@ describe('cross-reference service', () => {
     const database = Effect.runSync(
       BibleDatabase.pipe(
         Effect.provide(
-          BibleDatabase.Test({
+          BibleDatabase.layerTest({
             crossRefs: [{ ...source, references: [catalogReference] }],
           }),
         ),
@@ -74,7 +74,7 @@ describe('cross-reference service', () => {
 
   it('delegates classification and user-reference mutations to state', () => {
     const state = createMockBibleState();
-    const database = Effect.runSync(BibleDatabase.pipe(Effect.provide(BibleDatabase.Test())));
+    const database = Effect.runSync(BibleDatabase.pipe(Effect.provide(BibleDatabase.layerTest())));
     const service = createCrossRefService(state.service, database);
 
     service.saveClassification(source.book, source.chapter, source.verse, classification);
@@ -86,7 +86,12 @@ describe('cross-reference service', () => {
     service.removeUserRef(added.id);
 
     expect(state.savedClassifications).toEqual([[classification]]);
-    expect(added).toMatchObject({ refBook: 19, refChapter: 23, refVerse: 1, note: 'Psalm' });
+    expect(added).toMatchObject({
+      refBook: 19,
+      refChapter: 23,
+      refVerse: 1,
+      note: 'Psalm',
+    });
     expect(state.removedUserReferences).toEqual([added.id]);
   });
 });

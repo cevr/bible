@@ -41,7 +41,7 @@ const cacheDbLayer = (filename: string): Layer.Layer<EGWParagraphDatabase | Cach
   );
 
 const bibleDbLayer = (filename: string): Layer.Layer<BibleCatalog | BibleDatabase> =>
-  Layer.merge(BibleCatalog.layerCore, BibleDatabase.layerCore).pipe(
+  Layer.merge(BibleCatalog.layerCore, BibleDatabase.layer).pipe(
     Layer.provide(SqliteNode.layer({ filename })),
     Layer.orDie,
   );

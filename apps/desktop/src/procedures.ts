@@ -46,7 +46,7 @@ const KjvStrongsChapterSchema = Schema.Struct({
   verses: Schema.Array(KjvStrongsVerseSchema),
 });
 
-const StrongsLexiconEntrySchema = Schema.Struct({
+const StrongsLexiconPayloadSchema = Schema.Struct({
   code: Schema.String,
   language: Schema.Literals(['hebrew', 'greek']),
   lemma: Schema.String,
@@ -206,7 +206,10 @@ export const procedures = defineProcedures({
         ),
     }),
     findContainingChapter: query({
-      input: Schema.Struct({ bookId: Schema.Number, paragraphPuborder: Schema.Number }),
+      input: Schema.Struct({
+        bookId: Schema.Number,
+        paragraphPuborder: Schema.Number,
+      }),
       output: Schema.NullOr(Schemas.TocItem),
       // Encode the matched TocItem's inner Option fields back to the wire form
       // when present; `None` → `null`. Encoding only the outer Option (plain
@@ -268,7 +271,11 @@ export const procedures = defineProcedures({
         CacheService.pipe(Effect.flatMap((c) => c.putFolders(lang, json))),
     }),
     putFolderBooks: mutation({
-      input: Schema.Struct({ folderId: Schema.Number, lang: Schema.String, json: Schema.String }),
+      input: Schema.Struct({
+        folderId: Schema.Number,
+        lang: Schema.String,
+        json: Schema.String,
+      }),
       output: Schema.Void,
       handle: ({ folderId, lang, json }) =>
         CacheService.pipe(Effect.flatMap((c) => c.putFolderBooks(folderId, lang, json))),
@@ -355,7 +362,12 @@ export const procedures = defineProcedures({
             s.writeBible(
               pos.verse === null || pos.verse === undefined
                 ? { _tag: 'chapter', book: pos.book, chapter: pos.chapter }
-                : { _tag: 'verse', book: pos.book, chapter: pos.chapter, verse: pos.verse },
+                : {
+                    _tag: 'verse',
+                    book: pos.book,
+                    chapter: pos.chapter,
+                    verse: pos.verse,
+                  },
             ),
           ),
         ),
@@ -417,7 +429,7 @@ export const procedures = defineProcedures({
     }),
     strongsLookup: query({
       input: Schema.Struct({ code: Schema.String }),
-      output: Schema.NullOr(StrongsLexiconEntrySchema),
+      output: Schema.NullOr(StrongsLexiconPayloadSchema),
       handle: ({ code }) =>
         KjvBible.pipe(
           Effect.flatMap((k) => k.strongsLookup(code)),
@@ -436,7 +448,7 @@ export const procedures = defineProcedures({
     }),
     searchLexicon: query({
       input: Schema.Struct({ query: Schema.String }),
-      output: Schema.Array(StrongsLexiconEntrySchema),
+      output: Schema.Array(StrongsLexiconPayloadSchema),
       handle: ({ query: q }) => KjvBible.pipe(Effect.flatMap((k) => k.searchLexicon(q))),
     }),
     reimportKjv: mutation({
@@ -474,7 +486,10 @@ export const procedures = defineProcedures({
     getChapterMarginNotes: query({
       input: Schema.Struct({ book: Schema.Number, chapter: Schema.Number }),
       output: Schema.Array(
-        Schema.Struct({ verse: Schema.Number, notes: Schema.Array(MarginNoteSchema) }),
+        Schema.Struct({
+          verse: Schema.Number,
+          notes: Schema.Array(MarginNoteSchema),
+        }),
       ),
       handle: ({ book, chapter }) =>
         BibleMarginNotes.pipe(

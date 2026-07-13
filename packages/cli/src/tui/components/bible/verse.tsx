@@ -256,7 +256,7 @@ export function Verse(props: VerseProps) {
         <For each={props.words}>
           {(word, index) => {
             const isSelected = () => index() === props.selectedWordIndex;
-            const hasStrongs = () => word.strongsNumbers !== null && word.strongsNumbers.length > 0;
+            const hasStrongs = () => word.strongsNumbers.length > 0;
             return (
               <span>
                 <span

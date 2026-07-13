@@ -56,8 +56,7 @@ export function WordModeProvider(props: ParentProps) {
   const isActive = createMemo(() => state()._tag === 'active');
 
   // Helper to check if a word has Strong's numbers
-  const hasStrongs = (word: VerseWord) =>
-    word.strongsNumbers !== null && word.strongsNumbers.length > 0;
+  const hasStrongs = (word: VerseWord) => word.strongsNumbers.length > 0;
 
   // Find next word index with Strong's (or -1 if none)
   const findNextWithStrongs = (words: readonly VerseWord[], fromIndex: number): number => {

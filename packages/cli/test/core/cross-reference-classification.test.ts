@@ -29,7 +29,7 @@ const classifiedReference: ClassifiedCrossReference = {
   confidence: null,
 };
 
-const databaseLayer = BibleDatabase.Test({
+const databaseLayer = BibleDatabase.layerTest({
   verses: [
     {
       book: source.book,
@@ -145,7 +145,10 @@ describe('cross-reference classification module', () => {
 
   it('preserves AI failures instead of caching an empty classification', async () => {
     const crossReferences = makeCrossReferences();
-    const error = new AIError({ operation: 'generateObject', cause: new Error('offline') });
+    const error = new AIError({
+      operation: 'generateObject',
+      cause: new Error('offline'),
+    });
     const failingAI: AIService = {
       generateText: () => Effect.fail(error),
       generateTextWithTools: () => Effect.fail(error),

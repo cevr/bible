@@ -9,7 +9,7 @@ import type { VerseReference } from '@bible/core/bible';
 import type { ClassifiedCrossReference, CrossRefType } from '@bible/core/bible-cross-refs';
 import {
   BibleDatabase,
-  type ConcordanceResult,
+  type ConcordanceHit,
   type MarginNote,
   type StrongsEntry,
   type VerseWord,
@@ -51,7 +51,7 @@ interface CrossReferenceCapabilities {
 interface ConcordanceCapabilities {
   readonly entry: (number: string) => StrongsEntry | undefined;
   readonly words: (reference: VerseReference) => readonly VerseWord[];
-  readonly verses: (strongsNumber: string) => readonly ConcordanceResult[];
+  readonly verses: (strongsNumber: string) => readonly ConcordanceHit[];
   readonly count: (strongsNumber: string) => number;
   readonly search: (query: string) => readonly StrongsEntry[];
 }
@@ -82,7 +82,9 @@ export function StudyDataProvider(props: ParentProps) {
     if (model === null) {
       return Effect.runPromise(
         Effect.fail(
-          new ClassificationUnavailable({ reason: 'No AI model is configured for this session' }),
+          new ClassificationUnavailable({
+            reason: 'No AI model is configured for this session',
+          }),
         ),
       );
     }

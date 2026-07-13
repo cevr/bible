@@ -138,7 +138,7 @@ export function CrossRefsPopup(props: CrossRefsPopupProps) {
     const words = ctx.words.get(verse) ?? [];
     const strongsNums = new Set<string>();
     for (const w of words) {
-      if (w.strongsNumbers) {
+      if (w.strongsNumbers.length > 0) {
         for (const sn of w.strongsNumbers) strongsNums.add(sn);
       }
     }

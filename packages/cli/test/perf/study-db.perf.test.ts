@@ -36,7 +36,7 @@ describe('Bible Database Performance', () => {
     await runtime.runPromise(
       Effect.gen(function* () {
         const db = yield* BibleDatabase;
-        yield* db.getBooks();
+        yield* db.getChapter(1, 1);
       }),
     );
   });
@@ -112,7 +112,7 @@ describe('Bible Database Performance', () => {
     expect(elapsed).toBeLessThan(50);
   });
 
-  it('searchStrongs should complete in < 20ms (using FTS5)', async () => {
+  it('searchStrongs should complete in < 20ms', async () => {
     if (!existsSync(DB_PATH)) return;
 
     const start = performance.now();

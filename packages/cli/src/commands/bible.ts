@@ -2,7 +2,7 @@ import { BunServices } from '@effect/platform-bun';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
 import { formatBibleReference, getBibleBook, parseBibleQuery, type Verse } from '@bible/core/bible';
 import { BibleService } from '@bible/core/bible/service';
-import { BibleDatabase, type ConcordanceResult, type StrongsEntry } from '@bible/core/bible-db';
+import { BibleDatabase, type ConcordanceHit, type StrongsEntry } from '@bible/core/bible-db';
 import * as BibleDbBun from '@bible/core/bible-db/bun';
 import { Console, Effect, Layer, Option } from 'effect';
 
@@ -84,7 +84,11 @@ export const verse = Command.make('verse', { query, json: jsonFlag, limit: limit
       if (args.json) {
         yield* Console.log(
           JSON.stringify(
-            { mode: 'search', query: parsed.query, verses: verses.map(verseJson) },
+            {
+              mode: 'search',
+              query: parsed.query,
+              verses: verses.map(verseJson),
+            },
             null,
             2,
           ),
@@ -97,7 +101,11 @@ export const verse = Command.make('verse', { query, json: jsonFlag, limit: limit
       if (args.json) {
         yield* Console.log(
           JSON.stringify(
-            { mode: 'reference', query: queryStr, verses: verses.map(verseJson) },
+            {
+              mode: 'reference',
+              query: queryStr,
+              verses: verses.map(verseJson),
+            },
             null,
             2,
           ),
@@ -124,10 +132,10 @@ function formatStrongsEntry(entry: StrongsEntry): string {
 }
 
 // Format concordance results with verse reference
-function formatConcordanceResult(result: ConcordanceResult): string {
+function formatConcordanceHit(result: ConcordanceHit): string {
   const book = getBibleBook(result.book);
   const bookName = book?.name ?? String(result.book);
-  return `${bookName} ${result.chapter}:${result.verse} - "${result.word ?? ''}"`;
+  return `${bookName} ${result.chapter}:${result.verse} - "${result.word}"`;
 }
 
 // Layer for concordance command
@@ -186,7 +194,7 @@ export const concordance = Command.make(
           yield* Console.log(`Found in ${results.length} verse${results.length === 1 ? '' : 's'}:`);
           yield* Console.log('');
           for (const result of limitedResults) {
-            yield* Console.log(formatConcordanceResult(result));
+            yield* Console.log(formatConcordanceHit(result));
           }
           if (results.length > limit) {
             yield* Console.log(`... and ${results.length - limit} more`);

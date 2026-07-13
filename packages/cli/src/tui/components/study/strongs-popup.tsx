@@ -23,7 +23,7 @@ export function StrongsPopup(props: StrongsPopupProps) {
 
   // Get Strong's entries for all numbers on this word
   const entries = createMemo(() => {
-    if (!props.word.strongsNumbers) return [];
+    if (props.word.strongsNumbers.length === 0) return [];
     return props.word.strongsNumbers
       .map((num) => studyData.concordance.entry(num))
       .filter((entry) => entry !== undefined);
@@ -53,8 +53,8 @@ export function StrongsPopup(props: StrongsPopupProps) {
         <text fg={theme().accent}>
           <strong>"{props.word.text}"</strong>
         </text>
-        <Show when={props.word.strongsNumbers}>
-          <text fg={theme().textMuted}> ({props.word.strongsNumbers?.join(', ')})</text>
+        <Show when={props.word.strongsNumbers.length > 0}>
+          <text fg={theme().textMuted}> ({props.word.strongsNumbers.join(', ')})</text>
         </Show>
       </box>
 

@@ -21,7 +21,7 @@ export interface MarginNote {
   noteText: string;
 }
 
-export interface ConcordanceResult {
+export interface StrongsVerseHit {
   book: number;
   chapter: number;
   verse: number;

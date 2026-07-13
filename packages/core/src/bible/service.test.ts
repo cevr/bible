@@ -13,7 +13,7 @@ const verses = [
   { book: 66, chapter: 22, verse: 1, text: 'And he shewed me', versionCode: 'KJV' },
 ];
 
-const TestLayer = BibleService.Live.pipe(Layer.provide(BibleDatabase.Test({ verses })));
+const TestLayer = BibleService.Live.pipe(Layer.provide(BibleDatabase.layerTest({ verses })));
 
 const run = <A, E>(effect: Effect.Effect<A, E, BibleService>): Promise<A> =>
   Effect.runPromise(effect.pipe(Effect.provide(TestLayer)));

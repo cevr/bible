@@ -157,7 +157,10 @@ const api = {
       book: number,
       chapter: number,
     ): Promise<
-      readonly { readonly verse: number; readonly notes: readonly MarginNotePayload[] }[]
+      readonly {
+        readonly verse: number;
+        readonly notes: readonly MarginNotePayload[];
+      }[]
     > => ipcRenderer.invoke('bible:getChapterMarginNotes', book, chapter),
     // EGW paragraphs that reference the given Bible verse, drawn from the
     // local `paragraph_bible_refs` index (populated by the indexer + boot
@@ -206,7 +209,7 @@ export type KjvChapterPayload = {
 export type KjvStrongsWord = {
   readonly text: string;
   readonly strongs?: readonly string[];
-  // KJV translator-supplied (italic) word — see StrongsWord in @bible/core.
+  // KJV translator-supplied (italic) word — see VerseWord in @bible/core.
   readonly italic?: boolean;
 };
 

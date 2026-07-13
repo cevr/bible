@@ -22,7 +22,7 @@ export interface ParseBibleQueryOptions {
   /**
    * Optional fuzzy matcher function for book names.
    * If provided, will be used as a fallback when exact matching fails.
-   * Signature: (books: BibleBook[], query: string) => BibleBook | undefined
+   * Signature: (books: Book[], query: string) => Book | undefined
    */
   readonly fuzzyMatcher?: (books: readonly Book[], query: string) => Book | undefined;
 }
@@ -71,7 +71,10 @@ export const ParsedBibleQuery = {
     start: Reference.chapter(book, startChapter),
     end: Reference.chapter(book, endChapter),
   }),
-  fullBook: (book: number): ParsedBibleQuery => ({ _tag: 'fullBook', ref: Reference.book(book) }),
+  fullBook: (book: number): ParsedBibleQuery => ({
+    _tag: 'fullBook',
+    ref: Reference.book(book),
+  }),
   search: (query: string): ParsedBibleQuery => ({ _tag: 'search', query }),
 } as const;
 

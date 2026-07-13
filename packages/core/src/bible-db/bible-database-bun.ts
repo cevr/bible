@@ -13,7 +13,7 @@ const immutableFilename = (filename: string): string => {
 };
 
 export const layerBun = (filename: string): Layer.Layer<BibleDatabase, SqlError> =>
-  BibleDatabase.layerCore.pipe(
+  BibleDatabase.layer.pipe(
     Layer.provide(
       SqliteBun.layer({
         filename: immutableFilename(filename),
@@ -29,7 +29,7 @@ export const layerBunConfig: Layer.Layer<
   BibleDatabase,
   SqlError | Config.ConfigError | PlatformError,
   FileSystem.FileSystem | Path.Path
-> = BibleDatabase.layerCore.pipe(
+> = BibleDatabase.layer.pipe(
   Layer.provide(
     Layer.unwrap(
       Effect.gen(function* () {

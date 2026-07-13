@@ -11,7 +11,7 @@ export interface KjvChapter {
 export interface KjvStrongsWord {
   readonly text: string;
   readonly strongs?: readonly string[];
-  // KJV translator-supplied (italic) word — see StrongsWord in @bible/core.
+  // KJV translator-supplied (italic) word — see VerseWord in @bible/core.
   readonly italic?: boolean;
 }
 
@@ -25,7 +25,7 @@ export interface KjvStrongsChapter {
   }[];
 }
 
-export interface StrongsLexiconEntry {
+export interface StrongsLexiconPayload {
   readonly code: string;
   readonly language: 'hebrew' | 'greek';
   readonly lemma: string;
@@ -59,7 +59,7 @@ export interface KjvBibleShape {
   /** Lexicon entry for a single Strong's code (H#### / G####). Lazy-loaded —
    *  first call triggers a ~3 MB JSON parse in main. `None` for unknown codes
    *  or malformed input. */
-  readonly strongsLookup: (code: string) => Effect.Effect<Option.Option<StrongsLexiconEntry>>;
+  readonly strongsLookup: (code: string) => Effect.Effect<Option.Option<StrongsLexiconPayload>>;
   /** Concordance lookup — every verse tagged with `code`. Capped server-side
    *  (currently 200) so high-frequency codes don't blow up the IPC payload. */
   readonly searchVersesByStrongs: (code: string) => Effect.Effect<readonly ConcordanceHit[]>;
@@ -68,7 +68,7 @@ export interface KjvBibleShape {
   readonly countStrongsHits: (code: string) => Effect.Effect<number>;
   /** Substring search across lemma / transliteration / definition for the
    *  English-side concordance flow. Capped server-side. */
-  readonly searchLexicon: (query: string) => Effect.Effect<readonly StrongsLexiconEntry[]>;
+  readonly searchLexicon: (query: string) => Effect.Effect<readonly StrongsLexiconPayload[]>;
   /** Drop the cached LRU/lexicon entries and ask main to drop + re-import
    *  the bundled KJV verses + Strong's lexicon. Used by the chapter canvas'
    *  "Reimport KJV" recovery flow when a chapter came back empty (typically
@@ -89,7 +89,7 @@ export class KjvBible extends Context.Service<KjvBible, KjvBibleShape>()(
   static layer = Layer.sync(KjvBible, () => {
     const plainLru = makeLru<KjvChapter>(LRU_CAP);
     const strongsLru = makeLru<KjvStrongsChapter>(LRU_CAP);
-    const lexiconCache = new Map<string, StrongsLexiconEntry | null>();
+    const lexiconCache = new Map<string, StrongsLexiconPayload | null>();
     return {
       getChapter: (book, chapter) => {
         const key = `${String(book)}:${String(chapter)}`;
@@ -147,7 +147,7 @@ export class KjvBible extends Context.Service<KjvBible, KjvBibleShape>()(
   static layerTest = (
     chapters: readonly KjvChapter[],
     strongsChapters: readonly KjvStrongsChapter[] = [],
-    lexicon: readonly StrongsLexiconEntry[] = [],
+    lexicon: readonly StrongsLexiconPayload[] = [],
   ) =>
     Layer.succeed(KjvBible, {
       getChapter: (book, chapter) =>

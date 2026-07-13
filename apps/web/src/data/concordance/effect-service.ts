@@ -1,7 +1,7 @@
 import { Context, Effect, Layer, Option, Schema } from 'effect';
 
 import { DbClientService, type DatabaseQueryError } from '../db-client-service';
-import type { ConcordanceResult, MarginNote, StrongsEntry, VerseWord } from './types';
+import type { MarginNote, StrongsEntry, StrongsVerseHit, VerseWord } from './types';
 
 export class ConcordanceDataError extends Schema.TaggedErrorClass<ConcordanceDataError>()(
   'ConcordanceDataError',
@@ -27,14 +27,14 @@ const VerseWordRow = Schema.Struct({
   strongs_numbers: Schema.NullOr(Schema.String),
 });
 
-const MarginNoteRow = Schema.Struct({
+const MarginNoteSqlRow = Schema.Struct({
   note_index: Schema.Number,
   note_type: Schema.String,
   phrase: Schema.String,
   note_text: Schema.String,
 });
 
-const ChapterMarginNoteRow = Schema.Struct({
+const ChapterMarginNoteSqlRow = Schema.Struct({
   verse: Schema.Number,
   note_index: Schema.Number,
   note_type: Schema.String,
@@ -73,7 +73,7 @@ interface ConcordanceServiceShape {
   ) => Effect.Effect<Map<number, MarginNote[]>, ConcordanceDataError>;
   readonly searchByStrongs: (
     number: string,
-  ) => Effect.Effect<ConcordanceResult[], ConcordanceDataError>;
+  ) => Effect.Effect<StrongsVerseHit[], ConcordanceDataError>;
 }
 
 export class ConcordanceService extends Context.Service<
@@ -134,7 +134,7 @@ export class ConcordanceService extends Context.Service<
         verse: number,
       ) {
         const rows = yield* db.query(
-          MarginNoteRow,
+          MarginNoteSqlRow,
           'bible',
           'SELECT note_index, note_type, phrase, note_text FROM margin_notes WHERE book = ? AND chapter = ? AND verse = ? ORDER BY note_index',
           [book, chapter, verse],
@@ -152,7 +152,7 @@ export class ConcordanceService extends Context.Service<
       const getChapterMarginNotes = Effect.fn('ConcordanceService.getChapterMarginNotes')(
         function* (book: number, chapter: number) {
           const rows = yield* db.query(
-            ChapterMarginNoteRow,
+            ChapterMarginNoteSqlRow,
             'bible',
             'SELECT verse, note_index, note_type, phrase, note_text FROM margin_notes WHERE book = ? AND chapter = ? ORDER BY verse, note_index',
             [book, chapter],
@@ -182,7 +182,7 @@ export class ConcordanceService extends Context.Service<
           [number],
         );
         return rows.map(
-          (row): ConcordanceResult => ({
+          (row): StrongsVerseHit => ({
             book: row.book,
             chapter: row.chapter,
             verse: row.verse,

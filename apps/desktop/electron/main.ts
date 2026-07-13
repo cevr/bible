@@ -5,11 +5,10 @@ import {
   type CrossReferenceCatalog,
   type KjvAssetFile,
   type MarginNotesCatalog,
-  type StrongsChapterPayload as KjvStrongsChapterPayload,
   type StrongsLexiconAsset,
-  type StrongsLexiconEntry,
   type StrongsVerseAsset,
 } from '@bible/core/bible-db';
+import { getBibleBook } from '@bible/core/bible';
 import { EGWApiClient, extractScriptureRefs, nodesToText, Schemas } from '@bible/core/egw';
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
 import { Effect, Option, Schema, Stream } from 'effect';
@@ -385,9 +384,6 @@ const traceBibleIpc = <Args extends readonly unknown[], R>(
   };
 };
 
-// re-export types that other electron modules import
-export type { KjvStrongsChapterPayload, StrongsLexiconEntry };
-
 // Bundled main.cjs lives at apps/desktop/dist/main/main.cjs. The @bible/core
 // workspace is symlinked into apps/desktop/node_modules in dev, and electron-
 // builder ships the same layout in packaged builds. Resolve assets through
@@ -490,24 +486,15 @@ ipcMain.handle(
     async (_event, book: number, chapter: number): Promise<RendererKjvChapter | null> => {
       if (mainRuntime === null) return null;
       await ensureBibleImportsDone(mainRuntime);
-      const result = await mainRuntime.runPromise(
-        Effect.gen(function* () {
-          const database = yield* BibleDatabase;
-          return yield* Effect.all({
-            book: database.getBook(book),
-            verses: database.getChapter(book, chapter),
-          });
-        }),
+      const verses = await mainRuntime.runPromise(
+        BibleDatabase.pipe(Effect.flatMap((database) => database.getChapter(book, chapter))),
       );
-      if (result.verses.length === 0) return null;
+      if (verses.length === 0) return null;
       return {
         book,
-        bookName: Option.match(result.book, {
-          onNone: () => `Book ${String(book)}`,
-          onSome: (found) => found.name,
-        }),
+        bookName: getBibleBook(book)?.name ?? `Book ${String(book)}`,
         chapter,
-        verses: result.verses.map((verse) => ({ verse: verse.verse, text: verse.text })),
+        verses: verses.map((verse) => ({ verse: verse.verse, text: verse.text })),
       };
     },
     (r) =>
@@ -551,9 +538,15 @@ ipcMain.handle(
         onNone: () => null,
         onSome: (c): RendererKjvStrongsChapter => ({
           book: c.book,
-          bookName: c.book_name,
+          bookName: c.bookName,
           chapter: c.chapter,
-          verses: c.verses.map((v) => ({ verse: v.verse, words: v.words })),
+          verses: c.verses.map((v) => ({
+            verse: v.verse,
+            words: v.words.map((word) => ({
+              text: word.text,
+              ...(word.strongsNumbers.length === 0 ? {} : { strongs: word.strongsNumbers }),
+            })),
+          })),
         }),
       });
     },
@@ -598,13 +591,13 @@ ipcMain.handle(
       await ensureBibleImportsDone(mainRuntime);
       const hits = await mainRuntime.runPromise(
         BibleDatabase.pipe(
-          Effect.flatMap((database) => database.searchVersesByStrongs(code, CONCORDANCE_HIT_CAP)),
+          Effect.flatMap((database) => database.getVersesWithStrongs(code, CONCORDANCE_HIT_CAP)),
         ),
       );
       return hits.map(
         (h): RendererConcordanceHit => ({
           book: h.book,
-          bookName: h.book_name,
+          bookName: h.bookName,
           chapter: h.chapter,
           verse: h.verse,
           text: h.text,
@@ -624,7 +617,7 @@ ipcMain.handle(
       if (mainRuntime === null) return 0;
       await ensureBibleImportsDone(mainRuntime);
       return mainRuntime.runPromise(
-        BibleDatabase.pipe(Effect.flatMap((database) => database.countStrongsOccurrences(code))),
+        BibleDatabase.pipe(Effect.flatMap((database) => database.getStrongsCount(code))),
       );
     },
     (n) => `${String(n)} total`,
@@ -638,11 +631,18 @@ ipcMain.handle(
     async (_event, query: string): Promise<readonly RendererStrongsEntry[]> => {
       if (mainRuntime === null) return [];
       await ensureBibleImportsDone(mainRuntime);
-      return mainRuntime.runPromise(
+      const entries = await mainRuntime.runPromise(
         BibleDatabase.pipe(
-          Effect.flatMap((database) => database.searchLexicon(query, LEXICON_RESULT_CAP)),
+          Effect.flatMap((database) => database.searchStrongs(query, LEXICON_RESULT_CAP)),
         ),
       );
+      return entries.map((entry) => ({
+        code: entry.number,
+        language: entry.language,
+        lemma: entry.lemma,
+        transliteration: entry.transliteration ?? '',
+        definition: entry.definition,
+      }));
     },
     (r) => `${String(r.length)} entr(y/ies)`,
   ),
@@ -706,17 +706,21 @@ ipcMain.handle(
       await ensureXrefsImportsDone(mainRuntime);
       const rows = await mainRuntime.runPromise(
         BibleDatabase.pipe(
-          Effect.flatMap((database) => database.getCatalogCrossRefs(book, chapter, verse)),
+          Effect.flatMap((database) => database.getCrossRefs(book, chapter, verse)),
         ),
       );
-      return rows.map(
-        (r): RendererCrossRef => ({
-          source: r.source,
-          targetBook: r.targetBook,
-          targetChapter: r.targetChapter,
-          targetVerse: r.targetVerse,
-          targetVerseEnd: r.targetVerseEnd,
-        }),
+      return rows.flatMap((r): readonly RendererCrossRef[] =>
+        r.verse === null
+          ? []
+          : [
+              {
+                source: r.source,
+                targetBook: r.book,
+                targetChapter: r.chapter,
+                targetVerse: r.verse,
+                targetVerseEnd: r.verseEnd,
+              },
+            ],
       );
     },
     (r) => `${String(r.length)} xref(s)`,
@@ -734,11 +738,12 @@ ipcMain.handle(
     async (_event, book: number, chapter: number): Promise<readonly number[]> => {
       if (mainRuntime === null) return [];
       await ensureXrefsImportsDone(mainRuntime);
-      return mainRuntime.runPromise(
+      const verses = await mainRuntime.runPromise(
         BibleDatabase.pipe(
           Effect.flatMap((database) => database.versesWithCrossRefs(book, chapter)),
         ),
       );
+      return Array.from(verses).sort((a, b) => a - b);
     },
     (r) => `${String(r.length)} verse(s) w/ xrefs`,
   ),
@@ -769,9 +774,8 @@ const ensureMarginNotesImportsDone = (runtime: MainRuntime): Promise<void> => {
   return fresh;
 };
 
-// Renderer-facing margin-note row. camelCase mirrors the service's
-// MarginNoteRow shape — re-declared here to lock the IPC contract
-// independently of the core service shape.
+// Renderer-facing margin-note row. Re-declared here so the IPC contract stays
+// independent of the canonical Study representation.
 type RendererMarginNote = {
   readonly idx: number;
   readonly type: 'hebrew' | 'alternate' | 'other' | 'greek' | 'name';
@@ -793,12 +797,12 @@ ipcMain.handle(
       await ensureMarginNotesImportsDone(mainRuntime);
       const rows = await mainRuntime.runPromise(
         BibleDatabase.pipe(
-          Effect.flatMap((database) => database.getCatalogMarginNotes(book, chapter, verse)),
+          Effect.flatMap((database) => database.getMarginNotes(book, chapter, verse)),
         ),
       );
       return rows.map(
         (r): RendererMarginNote => ({
-          idx: r.idx,
+          idx: r.index,
           type: r.type,
           phrase: r.phrase,
           text: r.text,
@@ -857,7 +861,7 @@ ipcMain.handle(
         out.push({
           verse,
           notes: notes.map((n) => ({
-            idx: n.idx,
+            idx: n.index,
             type: n.type,
             phrase: n.phrase,
             text: n.text,
