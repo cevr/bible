@@ -373,20 +373,8 @@ export class GeminiFileSearchClient extends Context.Service<
             const apiMetadata = Schemas.toCustomMetadata(config.customMetadata);
 
             // Convert content to a File object (Bun supports File API)
-            // Handle different content types properly for File constructor
-            // Type assertion needed due to strict TypeScript types, but runtime works correctly
-            const fileParts =
-              typeof content === 'string'
-                ? [content]
-                : Buffer.isBuffer(content)
-                  ? [
-                      new Uint8Array(
-                        content.buffer,
-                        content.byteOffset,
-                        content.byteLength,
-                      ) as BlobPart,
-                    ]
-                  : [content as BlobPart];
+            // Copy binary input onto an ArrayBuffer-backed view accepted by File.
+            const fileParts = typeof content === 'string' ? [content] : [Uint8Array.from(content)];
 
             const file = new File(fileParts, config.displayName || 'document.txt', {
               type: 'text/plain',
