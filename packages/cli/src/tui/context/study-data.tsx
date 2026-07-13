@@ -24,7 +24,7 @@ import { classifySingleCrossRef, classifyVerseCrossRefs } from '../../data/study
 import { createCrossRefService } from '../../data/study/cross-refs.js';
 import { AI } from '../../services/ai.js';
 import { useModel } from './model.js';
-import { useAppRuntime, type AppServices } from '../lib/index.js';
+import { useAppRuntime } from '../lib/index.js';
 
 export class ClassificationUnavailable extends Schema.TaggedErrorClass<ClassificationUnavailable>()(
   'ClassificationUnavailable',
@@ -69,7 +69,7 @@ interface StudyDataContextValue {
 const StudyDataContext = createContext<StudyDataContextValue>();
 
 export function StudyDataProvider(props: ParentProps) {
-  const runtime = useAppRuntime<AppServices>();
+  const runtime = useAppRuntime();
   const model = useModel();
   const services = runtime.runSync(
     Effect.gen(function* () {

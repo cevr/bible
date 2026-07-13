@@ -4,6 +4,7 @@ import { Layer, Path } from 'effect';
 import type { AI } from '../../src/services/ai.js';
 import type { AppleScript } from '../../src/services/apple-script.js';
 import type { Chime } from '../../src/services/chime.js';
+import type { InteractiveReader } from '../../src/services/interactive-reader.js';
 
 import { createMockAILayer, type MockAIConfig } from './mock-ai.js';
 import {
@@ -12,6 +13,10 @@ import {
   type MockAppleScriptState,
 } from './mock-apple-script.js';
 import { createMockChimeLayer, type MockChimeState } from './mock-chime.js';
+import {
+  createMockInteractiveReaderLayer,
+  type MockInteractiveReaderState,
+} from './mock-interactive-reader.js';
 import { createMockFileSystemLayer, type MockFileSystemConfig } from './mock-filesystem.js';
 import { installMockFetch, type MockHttpConfig, type MockHttpState } from './mock-http.js';
 import { CallSequenceLayer, type CallSequence, type ServiceCall } from './sequence-recorder.js';
@@ -38,7 +43,9 @@ export interface TestLayerState {
   /** Call the cleanup function when done with the test */
   cleanup: () => void;
   /** The composed layer to provide to the CLI */
-  layer: Layer.Layer<FileSystem.FileSystem | Path.Path | AI | AppleScript | Chime | CallSequence>;
+  layer: Layer.Layer<
+    FileSystem.FileSystem | Path.Path | AI | AppleScript | Chime | InteractiveReader | CallSequence
+  >;
   /** Get all calls recorded (from services and external) */
   getAllCalls: () => ServiceCall[];
 }
@@ -55,6 +62,7 @@ export const createTestLayer = (config: TestLayerConfig = {}): TestLayerState =>
   // Shared state for service calls
   const appleScriptState: MockAppleScriptState = { calls: [] };
   const chimeState: MockChimeState = { calls: [] };
+  const interactiveReaderState: MockInteractiveReaderState = { calls: [] };
   let httpState: MockHttpState | null = null;
 
   // Create mock file system
@@ -68,6 +76,7 @@ export const createTestLayer = (config: TestLayerConfig = {}): TestLayerState =>
 
   // Create mock Chime service
   const mockChime = createMockChimeLayer(chimeState);
+  const mockInteractiveReader = createMockInteractiveReaderLayer(interactiveReaderState);
 
   // Install mock fetch
   if (config.http) {
@@ -87,6 +96,7 @@ export const createTestLayer = (config: TestLayerConfig = {}): TestLayerState =>
     mockAI.layer,
     mockAppleScript,
     mockChime,
+    mockInteractiveReader,
     mockPath,
   ).pipe(Layer.provideMerge(CallSequenceLayer));
 
@@ -101,6 +111,7 @@ export const createTestLayer = (config: TestLayerConfig = {}): TestLayerState =>
       // Service layer calls (recorded via Effect context)
       ...appleScriptState.calls,
       ...chimeState.calls,
+      ...interactiveReaderState.calls,
       // External calls (recorded outside Effect context)
       ...mockAI.state.calls,
       ...(httpState?.calls ?? []),

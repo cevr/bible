@@ -5,7 +5,6 @@
  * Based on gent's atom-solid pattern.
  */
 
-import type { BibleDatabase } from '@bible/core/bible-db';
 import * as BibleDbBun from '@bible/core/bible-db/bun';
 import { BibleService } from '@bible/core/bible/service';
 import { EGWCommentaryService } from '@bible/core/egw-commentary';
@@ -16,19 +15,7 @@ import { WritingsService } from '@bible/core/writings/service';
 import { BunServices } from '@effect/platform-bun';
 import { Effect, Layer, ManagedRuntime } from 'effect';
 
-import type { BibleState } from '../../data/bible/state.js';
 import { BibleStateLive } from '../../data/bible/state.js';
-
-/**
- * All services available in the TUI app runtime
- */
-export type AppServices =
-  | BibleDatabase
-  | BibleState
-  | BibleService
-  | EGWCommentaryService
-  | StructuralAnalysis
-  | WritingsService;
 
 /**
  * BibleDatabase layer that ensures bible.db is downloaded before connecting.
@@ -65,7 +52,18 @@ export const AppLayer = Layer.mergeAll(
  * const result = await Runtime.runPromise(runtime)(someEffect)
  * ```
  */
-export const appRuntime = ManagedRuntime.make(AppLayer);
+const runtime = ManagedRuntime.make(AppLayer);
+
+/** Services supplied by the application runtime, derived from its actual layer. */
+export type AppServices = ManagedRuntime.ManagedRuntime.Services<typeof runtime>;
+
+/** The bounded runtime interface exposed to the TUI and its Solid context. */
+export type AppRuntime = Pick<
+  typeof runtime,
+  'runSync' | 'runPromise' | 'runPromiseExit' | 'runFork' | 'runCallback' | 'dispose'
+>;
+
+export const appRuntime: AppRuntime = runtime;
 
 /**
  * Get the runtime effect for use with resources

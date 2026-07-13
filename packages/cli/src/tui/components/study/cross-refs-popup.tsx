@@ -37,7 +37,7 @@ import { useModel } from '../../context/model.js';
 import { useStudyData } from '../../context/study-data.js';
 import { useTheme } from '../../context/theme.js';
 import { useScrollSync } from '../../hooks/use-scroll-sync.js';
-import { useAppRuntime, type AppServices } from '../../lib/index.js';
+import { useAppRuntime } from '../../lib/index.js';
 import { formatNoteType } from '../bible/verse.js';
 
 /** Type badge abbreviations and colors */
@@ -68,7 +68,7 @@ export function CrossRefsPopup(props: CrossRefsPopupProps) {
   const reader = useBibleReader();
   const studyData = useStudyData();
   const model = useModel();
-  const runtime = useAppRuntime<AppServices>();
+  const runtime = useAppRuntime();
   const [selectedIndex, setSelectedIndex] = createSignal(0);
   const [currentPage, setCurrentPage] = createSignal<PopupPage>('crossrefs');
   const [commentary, setCommentary] = createSignal<readonly CommentaryEntry[]>([]);

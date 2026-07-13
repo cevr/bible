@@ -11,7 +11,7 @@
  *   bible egw download <code>        - Fetch any book from API into local DB
  *   bible egw study <subject>        - Rank books by remote hits, download top-N, show local hits
  *   bible egw search <query>         - Search (--remote hits the API directly)
- *   bible egw open "PP 351.1"        - Open the TUI at a refcode (handled in main.ts)
+ *   bible egw open "PP 351.1"        - Open the TUI at a refcode
  */
 
 import {
@@ -36,6 +36,9 @@ import { Argument, Command, Flag } from 'effect/unstable/cli';
 import { FetchHttpClient } from 'effect/unstable/http';
 import { BunServices } from '@effect/platform-bun';
 import { Console, Effect, FileSystem, Layer, Option, Stream } from 'effect';
+
+import { parseEgwLocation } from '../lib/parse-egw-location.js';
+import { InteractiveReader, InvalidReaderReference } from '../services/interactive-reader.js';
 
 // Variadic args to capture "PP 351.1" or "PP" "351.1" etc.
 const query = Argument.string('query').pipe(Argument.variadic());
@@ -1180,26 +1183,26 @@ export const egwCommentary = Command.make(
 ).pipe(Command.provide(() => CommentaryLayer));
 
 // ============================================================================
-// open — placeholder (intercepted in main.ts before reaching this)
+// open — interactive reader route
 // ============================================================================
 
 export const egwOpen = Command.make('open', { query }, (args) =>
   Effect.gen(function* () {
+    const reader = yield* InteractiveReader;
     const queryStr = args.query.join(' ').trim();
 
     if (queryStr.length === 0) {
-      yield* Console.log('Usage: bible egw open <refcode>');
-      yield* Console.log('');
-      yield* Console.log('Opens the EGW reader TUI at the specified location.');
-      yield* Console.log('');
-      yield* Console.log('Examples:');
-      yield* Console.log('  bible egw open "PP 351.1"');
-      yield* Console.log('  bible egw open "DA 1"');
-      return;
+      return yield* reader.open({ _tag: 'egw' });
     }
 
-    yield* Console.log(`Opening: ${queryStr}`);
-    yield* Console.log('(This should launch the TUI)');
+    const location = parseEgwLocation(queryStr);
+    if (location === undefined) {
+      yield* Console.error(`Could not parse EGW reference: "${queryStr}"`);
+      yield* Console.error('Examples: PP 351.1, DA 1, GC 100');
+      return yield* new InvalidReaderReference({ reader: 'egw', input: queryStr });
+    }
+
+    yield* reader.open({ _tag: 'egw', location });
   }),
 );
 

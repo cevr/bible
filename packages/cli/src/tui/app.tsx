@@ -1,6 +1,5 @@
 import type { EGWLocation } from '@bible/core/egw';
 import { render, useKeyboard, useRenderer, useTerminalDimensions } from '@opentui/solid';
-import type { ManagedRuntime } from 'effect';
 import { createSignal, Match, Show, Switch } from 'solid-js';
 
 import type { ReaderReference } from '../app/reader-reference.js';
@@ -19,7 +18,7 @@ import { SearchProvider } from './context/search.js';
 import { StudyDataProvider } from './context/study-data.js';
 import { ThemeProvider, useTheme } from './context/theme.js';
 import { WordModeProvider } from './context/word-mode.js';
-import { getAppRuntime, RuntimeProvider, type AppServices } from './lib/index.js';
+import { getAppRuntime, RuntimeProvider, type AppRuntime } from './lib/index.js';
 import { BibleView } from './routes/bible.js';
 import { EGWView } from './routes/egw.js';
 import { MessagesView } from './routes/messages.js';
@@ -47,7 +46,7 @@ interface AppProps {
   /** Open the EGW reader, optionally at a parsed location. */
   initialEgw?: true | EGWLocation;
   model?: ModelService | null;
-  runtime: ManagedRuntime.ManagedRuntime<AppServices, unknown>;
+  runtime: AppRuntime;
 }
 
 /**
@@ -233,9 +232,7 @@ function AppWithTheme(props: AppProps) {
  * Loads the centralized Effect runtime and provides it to the tree.
  * Uses RuntimeProvider from the gent pattern.
  */
-function AppWithRuntime(
-  props: AppProps & { runtime: ManagedRuntime.ManagedRuntime<AppServices, unknown> },
-) {
+function AppWithRuntime(props: AppProps & { runtime: AppRuntime }) {
   // Determine initial route based on props
   const initialRoute = props.initialEgw
     ? Route.egw(props.initialEgw === true ? undefined : props.initialEgw)

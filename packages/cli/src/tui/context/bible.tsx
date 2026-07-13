@@ -12,7 +12,7 @@ import { Effect, Option } from 'effect';
 import { createContext, useContext, type ParentProps } from 'solid-js';
 
 import { BibleState, type BibleStateService } from '../../data/bible/state.js';
-import { useAppRuntime, type AppServices } from '../lib/index.js';
+import { useAppRuntime } from '../lib/index.js';
 
 /** Synchronous presentation adapter over the canonical core Bible service. */
 export interface BibleReader {
@@ -31,8 +31,8 @@ interface BibleContextValue {
 const BibleContext = createContext<BibleContextValue>();
 
 export function BibleProvider(props: ParentProps) {
-  const runtime = useAppRuntime<AppServices>();
-  const runSync = <A, E>(effect: Effect.Effect<A, E, AppServices>) => runtime.runSync(effect);
+  const runtime = useAppRuntime();
+  const runSync = runtime.runSync;
 
   // AppWithRuntime receives an initialized ManagedRuntime, so service lookup is
   // synchronous and the provider never exposes a partially-ready context.

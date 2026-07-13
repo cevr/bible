@@ -1,240 +1,44 @@
 /**
  * Bible Tools CLI Entry Point
  *
- * Supports two modes:
- * - CLI mode: Fast, lightweight commands (concordance, verse, egw, etc.)
- * - TUI mode: Interactive terminal UI (default)
- *
- * CLI mode lazy-loads TUI and AI dependencies for faster startup.
+ * The Effect command graph owns both non-interactive commands and lazy TUI
+ * routes, so every invocation follows the same parsing and dependency seam.
  */
 
-import type { EGWLocation } from '@bible/core/egw';
-import { parseEGWRef } from '@bible/core/egw';
 import { Command } from 'effect/unstable/cli';
-// Core imports needed for both CLI and TUI
 import { BunServices, BunRuntime } from '@effect/platform-bun';
-import { Effect, Layer, References } from 'effect';
+import { Effect, Layer } from 'effect';
 
-import type { ReaderReference } from './app/reader-reference.js';
-import { concordance, verse } from './commands/bible.js';
-import { egwWithSubcommands } from './commands/egw.js';
-import { slides } from './commands/slides.js';
-import { exportOutput } from './commands/export.js';
-import { handbook } from './commands/handbook.js';
-import { hymns } from './commands/hymns.js';
-import { messages } from './commands/messages.js';
-import { notes } from './commands/notes.js';
-import { readings } from './commands/readings.js';
-import { sabbathSchool } from './commands/sabbath-school.js';
-import { studies } from './commands/studies.js';
-import { init } from './commands/init.js';
-import { sync } from './commands/sync.js';
-import { printSummary, trace, traceAsync, traceSync } from './instrumentation/trace.js';
-import { parseReaderReference } from './lib/parse-reader-reference.js';
-// Lightweight CLI command imports (no TUI dependencies)
+import { rootCommand } from './commands/root.js';
+import { printSummary, trace, traceSync } from './instrumentation/trace.js';
 import { AppleScriptLive } from './services/apple-script.js';
 import { ChimeLive } from './services/chime.js';
-import { cliOptions, CliOptions } from './services/cli-options.js';
+import { InteractiveReader } from './services/interactive-reader.js';
 import { CliLoggerLive } from './services/logger.js';
-import type { ModelService } from './tui/context/model.js';
 
 trace('process start');
 
-trace('core imports complete');
-
 trace('CLI command imports complete');
 
-// Check if any CLI subcommand is specified
-const cliSubcommands = [
-  'concordance',
-  'verse',
-  'egw',
-  'slides',
-  'handbook',
-  'hymns',
-  'messages',
-  'notes',
-  'sabbath-school',
-  'studies',
-  'readings',
-  'export',
-  'init',
-  'sync',
-];
-const args = process.argv.slice(2);
-const hasSubcommand = args.some((arg) => cliSubcommands.includes(arg));
-const isOpenCommand = args[0] === 'open';
-const isEgwOpenCommand = args[0] === 'egw' && args[1] === 'open';
-const isTuiMode = (!hasSubcommand && !isOpenCommand) || isOpenCommand || isEgwOpenCommand;
+const cli = traceSync('Command.run', () =>
+  Command.run(rootCommand, {
+    version: 'v1.0.0',
+  }),
+);
 
-trace('arg parsing complete', {
-  mode: hasSubcommand ? 'cli' : isTuiMode ? 'tui' : 'unknown',
-});
+const ServicesLayer = Layer.mergeAll(
+  AppleScriptLive,
+  ChimeLive,
+  CliLoggerLive,
+  InteractiveReader.layer,
+  BunServices.layer,
+);
 
-// Lazy imports for TUI mode only
-async function loadTuiDependencies() {
-  trace('loading TUI dependencies');
+trace('starting Effect execution');
 
-  const [{ tui }, { detectSystemThemeAsync }, model] = await Promise.all([
-    traceAsync('import tui', () => import('./tui/app.js')),
-    traceAsync('import themes', () => import('./tui/themes/index.js')),
-    traceAsync('discover AI providers', loadModelService),
-  ]);
-
-  trace('TUI dependencies loaded');
-
-  return { tui, detectSystemThemeAsync, model };
-}
-
-async function loadModelService(): Promise<ModelService | null> {
-  const { discoverProviders } = await import('@bible/core/ai');
-  const [provider] = await Effect.runPromise(discoverProviders());
-  return provider ? { models: provider.models } : null;
-}
-
-function parseReferenceFromArgs(args: string[]): ReaderReference | undefined {
-  if (args.length === 0) return undefined;
-
-  const refString = args.join(' ');
-  return traceSync('parseReference', () => parseReaderReference(refString));
-}
-
-// Parse an EGW reference from the command line
-function parseEgwReferenceFromArgs(args: string[]): EGWLocation | undefined {
-  if (args.length === 0) return undefined;
-
-  const refString = args.join(' ');
-  const parsed = parseEGWRef(refString);
-
-  switch (parsed._tag) {
-    case 'book':
-    case 'page':
-    case 'paragraph':
-      return parsed;
-    case 'page-range':
-      return { _tag: 'page', bookCode: parsed.bookCode, page: parsed.pageStart };
-    case 'paragraph-range':
-      return {
-        _tag: 'paragraph',
-        bookCode: parsed.bookCode,
-        page: parsed.page,
-        paragraph: parsed.paragraphStart,
-      };
-    case 'search':
-      return undefined;
-  }
-}
-
-async function main() {
-  trace('main() start');
-
-  // Handle egw open command - launches TUI at EGW location
-  if (isEgwOpenCommand) {
-    trace('TUI mode (egw open command)');
-
-    const refArgs = args.slice(2); // Skip "egw" and "open"
-    const egwRef = parseEgwReferenceFromArgs(refArgs);
-
-    if (refArgs.length > 0 && egwRef === undefined) {
-      console.error(`Could not parse EGW reference: "${refArgs.join(' ')}"`);
-      console.error('Examples: PP 351.1, DA 1, GC 100');
-      process.exit(1);
-    }
-
-    const deps = await loadTuiDependencies();
-
-    await traceAsync('detectSystemTheme', deps.detectSystemThemeAsync);
-    const model = deps.model;
-
-    await traceAsync('tui', () => deps.tui({ initialEgw: egwRef ?? true, model }));
-    printSummary();
-    return;
-  }
-
-  if (hasSubcommand) {
-    // CLI mode - fast path, no TUI/AI dependencies
-    trace('CLI mode');
-
-    const command = traceSync('Command.make', () =>
-      Command.make('bible', cliOptions).pipe(
-        Command.withSubcommands([
-          concordance,
-          verse,
-          egwWithSubcommands,
-          slides,
-          handbook,
-          hymns,
-          messages,
-          notes,
-          sabbathSchool,
-          studies,
-          readings,
-          exportOutput,
-          init,
-          sync,
-        ]),
-        Command.provideSync(CliOptions, (input) => ({
-          verbose: 'verbose' in input ? input.verbose : false,
-        })),
-        Command.provideEffect(References.MinimumLogLevel, (input) =>
-          Effect.succeed<'Debug' | 'Info'>('verbose' in input && input.verbose ? 'Debug' : 'Info'),
-        ),
-      ),
-    );
-
-    const cli = traceSync('Command.run', () =>
-      Command.run(command, {
-        version: 'v1.0.0',
-      }),
-    );
-
-    const ServicesLayer = Layer.mergeAll(
-      AppleScriptLive,
-      ChimeLive,
-      CliLoggerLive,
-      BunServices.layer,
-    );
-
-    trace('starting Effect execution');
-
-    cli.pipe(
-      Effect.tap(() => Effect.sync(() => trace('Effect execution complete'))),
-      Effect.provide(ServicesLayer),
-      Effect.ensuring(Effect.sync(() => printSummary())),
-      BunRuntime.runMain,
-    );
-  } else if (isOpenCommand) {
-    // TUI mode with specific Bible reference
-    trace('TUI mode (open command)');
-
-    const refArgs = args.slice(1);
-    const ref = parseReferenceFromArgs(refArgs);
-
-    if (refArgs.length > 0 && ref === undefined) {
-      console.error(`Could not parse reference: "${refArgs.join(' ')}"`);
-      console.error('Examples: john 3:16, gen 1:1, 1 cor 13, psalms');
-      process.exit(1);
-    }
-
-    const deps = await loadTuiDependencies();
-
-    await traceAsync('detectSystemTheme', deps.detectSystemThemeAsync);
-    const model = deps.model;
-
-    await traceAsync('tui', () => deps.tui({ initialRef: ref, model }));
-    printSummary();
-  } else {
-    // Default TUI mode
-    trace('TUI mode (default)');
-
-    const deps = await loadTuiDependencies();
-
-    await traceAsync('detectSystemTheme', deps.detectSystemThemeAsync);
-    const model = deps.model;
-
-    await traceAsync('tui', () => deps.tui({ model }));
-    printSummary();
-  }
-}
-
-main().catch(console.error);
+cli.pipe(
+  Effect.tap(() => Effect.sync(() => trace('Effect execution complete'))),
+  Effect.provide(ServicesLayer),
+  Effect.ensuring(Effect.sync(() => printSummary())),
+  BunRuntime.runMain,
+);

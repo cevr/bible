@@ -28,7 +28,7 @@ import { useModel } from '../../context/model.js';
 import { useNavigation } from '../../context/navigation.js';
 import { useTheme } from '../../context/theme.js';
 import { useScrollSync } from '../../hooks/use-scroll-sync.js';
-import { useAppRuntime, type AppServices } from '../../lib/index.js';
+import { useAppRuntime } from '../../lib/index.js';
 import { AiSearchState } from '../../types/ai-search.js';
 
 interface BibleCommandPaletteProps {
@@ -42,7 +42,7 @@ export function BibleCommandPalette(props: BibleCommandPaletteProps) {
   const { position, goTo } = useNavigation();
   const reader = useBibleReader();
   const model = useModel();
-  const runtime = useAppRuntime<AppServices>();
+  const runtime = useAppRuntime();
 
   // Current position
   const currentBookNum = () => position().book;

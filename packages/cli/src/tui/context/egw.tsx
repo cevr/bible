@@ -12,7 +12,7 @@ import { WritingsService } from '@bible/core/writings/service';
 import { Effect, Option } from 'effect';
 import { createContext, useContext, type ParentProps } from 'solid-js';
 
-import { useAppRuntime, type AppServices } from '../lib/index.js';
+import { useAppRuntime } from '../lib/index.js';
 
 // Re-export canonical types for convenience to TUI consumers.
 export type { Paragraph, Publication };
@@ -37,8 +37,8 @@ interface EGWContextValue {
 const EGWContext = createContext<EGWContextValue>();
 
 export function EGWProvider(props: ParentProps) {
-  const runtime = useAppRuntime<AppServices>();
-  const run = <A, E>(effect: Effect.Effect<A, E, AppServices>) => runtime.runPromise(effect);
+  const runtime = useAppRuntime();
+  const run = runtime.runPromise;
 
   const booksCache = createCache(async () =>
     run(WritingsService.use((service) => service.catalog('Ellen Gould White'))),

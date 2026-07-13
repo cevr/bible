@@ -37,5 +37,6 @@ export {
   appRuntime,
   getAppRuntime,
   runAppEffect,
+  type AppRuntime,
   type AppServices,
 } from './app-runtime.js';
