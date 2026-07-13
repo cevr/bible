@@ -1,6 +1,19 @@
-import { Effect, Layer, Context, type Schema } from 'effect';
+import { Effect, Layer, Context, Schema } from 'effect';
 import { getDbClient, type DbClient } from '@/workers/db-client';
-import { DatabaseQueryError, WorkerError } from './errors';
+
+export class DatabaseQueryError extends Schema.TaggedErrorClass<DatabaseQueryError>()(
+  'DatabaseQueryError',
+  {
+    cause: Schema.Unknown,
+    operation: Schema.String,
+  },
+) {}
+
+export class WorkerError extends Schema.TaggedErrorClass<WorkerError>()('WorkerError', {
+  cause: Schema.Unknown,
+  message: Schema.String,
+  operation: Schema.String,
+}) {}
 
 interface DbClientServiceShape {
   readonly query: <T>(

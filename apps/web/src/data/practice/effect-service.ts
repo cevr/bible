@@ -1,7 +1,14 @@
 import { Effect, Layer, Context, Schema } from 'effect';
-import { DbClientService } from '../db-client-service';
-import type { DatabaseQueryError } from '../errors';
+import { DbClientService, type DatabaseQueryError } from '../db-client-service';
 import type { MemoryVerse, PracticeRecord } from './types';
+
+export class PracticeDataError extends Schema.TaggedErrorClass<PracticeDataError>()(
+  'PracticeDataError',
+  {
+    cause: Schema.Unknown,
+    operation: Schema.String,
+  },
+) {}
 
 const MemoryVerseRow = Schema.Struct({
   id: Schema.String,
@@ -23,23 +30,23 @@ const PracticeRow = Schema.Struct({
 type PracticeRow = typeof PracticeRow.Type;
 
 interface WebMemoryVerseServiceShape {
-  readonly getMemoryVerses: () => Effect.Effect<MemoryVerse[], DatabaseQueryError>;
+  readonly getMemoryVerses: () => Effect.Effect<MemoryVerse[], PracticeDataError>;
   readonly addMemoryVerse: (
     book: number,
     chapter: number,
     verseStart: number,
     verseEnd?: number,
-  ) => Effect.Effect<MemoryVerse, DatabaseQueryError>;
-  readonly removeMemoryVerse: (id: string) => Effect.Effect<void, DatabaseQueryError>;
+  ) => Effect.Effect<MemoryVerse, PracticeDataError>;
+  readonly removeMemoryVerse: (id: string) => Effect.Effect<void, PracticeDataError>;
   readonly recordPractice: (
     verseId: string,
     mode: 'reveal' | 'type',
     score: number,
-  ) => Effect.Effect<void, DatabaseQueryError>;
+  ) => Effect.Effect<void, PracticeDataError>;
   readonly getPracticeHistory: (
     verseId: string,
     limit?: number,
-  ) => Effect.Effect<PracticeRecord[], DatabaseQueryError>;
+  ) => Effect.Effect<PracticeRecord[], PracticeDataError>;
 }
 
 export class WebMemoryVerseService extends Context.Service<
@@ -113,12 +120,18 @@ export class WebMemoryVerseService extends Context.Service<
         return rows.map(mapPractice);
       });
 
+      const mapDataError = <A>(operation: string, effect: Effect.Effect<A, DatabaseQueryError>) =>
+        effect.pipe(Effect.mapError((cause) => new PracticeDataError({ cause, operation })));
+
       return WebMemoryVerseService.of({
-        getMemoryVerses,
-        addMemoryVerse,
-        removeMemoryVerse,
-        recordPractice,
-        getPracticeHistory,
+        getMemoryVerses: () => mapDataError('getMemoryVerses', getMemoryVerses()),
+        addMemoryVerse: (book, chapter, verseStart, verseEnd) =>
+          mapDataError('addMemoryVerse', addMemoryVerse(book, chapter, verseStart, verseEnd)),
+        removeMemoryVerse: (id) => mapDataError('removeMemoryVerse', removeMemoryVerse(id)),
+        recordPractice: (verseId, mode, score) =>
+          mapDataError('recordPractice', recordPractice(verseId, mode, score)),
+        getPracticeHistory: (verseId, limit) =>
+          mapDataError('getPracticeHistory', getPracticeHistory(verseId, limit)),
       });
     }),
   );

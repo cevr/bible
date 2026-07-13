@@ -1,8 +1,15 @@
 import { Context, Effect, Layer, Schema } from 'effect';
 
-import { DbClientService } from '../db-client-service';
-import type { DatabaseQueryError } from '../errors';
+import { DbClientService, type DatabaseQueryError } from '../db-client-service';
 import type { CollectionVerse, StudyCollection } from './types';
+
+export class CollectionDataError extends Schema.TaggedErrorClass<CollectionDataError>()(
+  'CollectionDataError',
+  {
+    cause: Schema.Unknown,
+    operation: Schema.String,
+  },
+) {}
 
 const CollectionRow = Schema.Struct({
   id: Schema.String,
@@ -21,46 +28,46 @@ const CollectionVerseRow = Schema.Struct({
 });
 
 interface CollectionServiceShape {
-  readonly getCollections: () => Effect.Effect<StudyCollection[], DatabaseQueryError>;
+  readonly getCollections: () => Effect.Effect<StudyCollection[], CollectionDataError>;
   readonly createCollection: (
     name: string,
     opts?: { description?: string; color?: string },
-  ) => Effect.Effect<StudyCollection, DatabaseQueryError>;
-  readonly removeCollection: (id: string) => Effect.Effect<void, DatabaseQueryError>;
+  ) => Effect.Effect<StudyCollection, CollectionDataError>;
+  readonly removeCollection: (id: string) => Effect.Effect<void, CollectionDataError>;
   readonly getVerseCollections: (
     book: number,
     chapter: number,
     verse: number,
-  ) => Effect.Effect<StudyCollection[], DatabaseQueryError>;
+  ) => Effect.Effect<StudyCollection[], CollectionDataError>;
   readonly addVerseToCollection: (
     collectionId: string,
     book: number,
     chapter: number,
     verse: number,
-  ) => Effect.Effect<void, DatabaseQueryError>;
+  ) => Effect.Effect<void, CollectionDataError>;
   readonly removeVerseFromCollection: (
     collectionId: string,
     book: number,
     chapter: number,
     verse: number,
-  ) => Effect.Effect<void, DatabaseQueryError>;
+  ) => Effect.Effect<void, CollectionDataError>;
   readonly getCollectionVerses: (
     collectionId: string,
-  ) => Effect.Effect<CollectionVerse[], DatabaseQueryError>;
+  ) => Effect.Effect<CollectionVerse[], CollectionDataError>;
   readonly getEgwParagraphCollections: (
     bookCode: string,
     puborder: number,
-  ) => Effect.Effect<StudyCollection[], DatabaseQueryError>;
+  ) => Effect.Effect<StudyCollection[], CollectionDataError>;
   readonly addEgwToCollection: (
     collectionId: string,
     bookCode: string,
     puborder: number,
-  ) => Effect.Effect<void, DatabaseQueryError>;
+  ) => Effect.Effect<void, CollectionDataError>;
   readonly removeEgwFromCollection: (
     collectionId: string,
     bookCode: string,
     puborder: number,
-  ) => Effect.Effect<void, DatabaseQueryError>;
+  ) => Effect.Effect<void, CollectionDataError>;
 }
 
 export class CollectionService extends Context.Service<CollectionService, CollectionServiceShape>()(
@@ -224,17 +231,40 @@ export class CollectionService extends Context.Service<CollectionService, Collec
         },
       );
 
+      const mapDataError = <A>(operation: string, effect: Effect.Effect<A, DatabaseQueryError>) =>
+        effect.pipe(Effect.mapError((cause) => new CollectionDataError({ cause, operation })));
+
       return CollectionService.of({
-        getCollections,
-        createCollection,
-        removeCollection,
-        getVerseCollections,
-        addVerseToCollection,
-        removeVerseFromCollection,
-        getCollectionVerses,
-        getEgwParagraphCollections,
-        addEgwToCollection,
-        removeEgwFromCollection,
+        getCollections: () => mapDataError('getCollections', getCollections()),
+        createCollection: (name, options) =>
+          mapDataError('createCollection', createCollection(name, options)),
+        removeCollection: (id) => mapDataError('removeCollection', removeCollection(id)),
+        getVerseCollections: (book, chapter, verse) =>
+          mapDataError('getVerseCollections', getVerseCollections(book, chapter, verse)),
+        addVerseToCollection: (collectionId, book, chapter, verse) =>
+          mapDataError(
+            'addVerseToCollection',
+            addVerseToCollection(collectionId, book, chapter, verse),
+          ),
+        removeVerseFromCollection: (collectionId, book, chapter, verse) =>
+          mapDataError(
+            'removeVerseFromCollection',
+            removeVerseFromCollection(collectionId, book, chapter, verse),
+          ),
+        getCollectionVerses: (collectionId) =>
+          mapDataError('getCollectionVerses', getCollectionVerses(collectionId)),
+        getEgwParagraphCollections: (bookCode, puborder) =>
+          mapDataError(
+            'getEgwParagraphCollections',
+            getEgwParagraphCollections(bookCode, puborder),
+          ),
+        addEgwToCollection: (collectionId, bookCode, puborder) =>
+          mapDataError('addEgwToCollection', addEgwToCollection(collectionId, bookCode, puborder)),
+        removeEgwFromCollection: (collectionId, bookCode, puborder) =>
+          mapDataError(
+            'removeEgwFromCollection',
+            removeEgwFromCollection(collectionId, bookCode, puborder),
+          ),
       });
     }),
   );

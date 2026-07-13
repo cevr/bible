@@ -1,7 +1,11 @@
 import { Effect, Layer, Context, Schema } from 'effect';
 import type { Reference } from '../bible/types';
 import { DbClientService } from '../db-client-service';
-import type { DatabaseQueryError } from '../errors';
+
+export class StateDataError extends Schema.TaggedErrorClass<StateDataError>()('StateDataError', {
+  cause: Schema.Unknown,
+  operation: Schema.String,
+}) {}
 
 export interface Position {
   book: number;
@@ -72,19 +76,16 @@ const PreferencesRow = Schema.Struct({
 });
 
 interface AppStateServiceShape {
-  readonly getPosition: () => Effect.Effect<Position, DatabaseQueryError>;
-  readonly setPosition: (pos: Position) => Effect.Effect<void, DatabaseQueryError>;
-  readonly getBookmarks: () => Effect.Effect<Bookmark[], DatabaseQueryError>;
-  readonly addBookmark: (
-    ref: Reference,
-    note?: string,
-  ) => Effect.Effect<Bookmark, DatabaseQueryError>;
-  readonly removeBookmark: (id: string) => Effect.Effect<void, DatabaseQueryError>;
-  readonly getHistory: (limit?: number) => Effect.Effect<HistoryEntry[], DatabaseQueryError>;
-  readonly addToHistory: (ref: Reference) => Effect.Effect<void, DatabaseQueryError>;
-  readonly clearHistory: () => Effect.Effect<void, DatabaseQueryError>;
-  readonly getPreferences: () => Effect.Effect<Preferences, DatabaseQueryError>;
-  readonly setPreferences: (prefs: Partial<Preferences>) => Effect.Effect<void, DatabaseQueryError>;
+  readonly getPosition: () => Effect.Effect<Position, StateDataError>;
+  readonly setPosition: (pos: Position) => Effect.Effect<void, StateDataError>;
+  readonly getBookmarks: () => Effect.Effect<Bookmark[], StateDataError>;
+  readonly addBookmark: (ref: Reference, note?: string) => Effect.Effect<Bookmark, StateDataError>;
+  readonly removeBookmark: (id: string) => Effect.Effect<void, StateDataError>;
+  readonly getHistory: (limit?: number) => Effect.Effect<HistoryEntry[], StateDataError>;
+  readonly addToHistory: (ref: Reference) => Effect.Effect<void, StateDataError>;
+  readonly clearHistory: () => Effect.Effect<void, StateDataError>;
+  readonly getPreferences: () => Effect.Effect<Preferences, StateDataError>;
+  readonly setPreferences: (prefs: Partial<Preferences>) => Effect.Effect<void, StateDataError>;
 }
 
 export class AppStateService extends Context.Service<AppStateService, AppStateServiceShape>()(
@@ -210,17 +211,21 @@ export class AppStateService extends Context.Service<AppStateService, AppStateSe
         );
       });
 
+      const mapDataError = <A>(operation: string, effect: Effect.Effect<A, unknown>) =>
+        effect.pipe(Effect.mapError((cause) => new StateDataError({ cause, operation })));
+
       return AppStateService.of({
-        getPosition,
-        setPosition,
-        getBookmarks,
-        addBookmark,
-        removeBookmark,
-        getHistory,
-        addToHistory,
-        clearHistory,
-        getPreferences,
-        setPreferences,
+        getPosition: () => mapDataError('getPosition', getPosition()),
+        setPosition: (position) => mapDataError('setPosition', setPosition(position)),
+        getBookmarks: () => mapDataError('getBookmarks', getBookmarks()),
+        addBookmark: (reference, note) => mapDataError('addBookmark', addBookmark(reference, note)),
+        removeBookmark: (id) => mapDataError('removeBookmark', removeBookmark(id)),
+        getHistory: (limit) => mapDataError('getHistory', getHistory(limit)),
+        addToHistory: (reference) => mapDataError('addToHistory', addToHistory(reference)),
+        clearHistory: () => mapDataError('clearHistory', clearHistory()),
+        getPreferences: () => mapDataError('getPreferences', getPreferences()),
+        setPreferences: (preferences) =>
+          mapDataError('setPreferences', setPreferences(preferences)),
       });
     }),
   );

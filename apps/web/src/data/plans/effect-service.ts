@@ -1,7 +1,14 @@
 import { Effect, Layer, Context, Schema } from 'effect';
-import { DbClientService } from '../db-client-service';
-import type { DatabaseQueryError } from '../errors';
+import { DbClientService, type DatabaseQueryError } from '../db-client-service';
 import type { ReadingPlan, ReadingPlanItem, PlanItemInput } from './types';
+
+export class ReadingPlanDataError extends Schema.TaggedErrorClass<ReadingPlanDataError>()(
+  'ReadingPlanDataError',
+  {
+    cause: Schema.Unknown,
+    operation: Schema.String,
+  },
+) {}
 
 const PlanRow = Schema.Struct({
   id: Schema.String,
@@ -28,29 +35,29 @@ type PlanItemRow = typeof PlanItemRow.Type;
 const PlanProgressRow = Schema.Struct({ item_id: Schema.Number });
 
 interface WebReadingPlanServiceShape {
-  readonly getPlans: () => Effect.Effect<ReadingPlan[], DatabaseQueryError>;
-  readonly getPlanItems: (planId: string) => Effect.Effect<ReadingPlanItem[], DatabaseQueryError>;
-  readonly getPlanProgress: (planId: string) => Effect.Effect<Set<number>, DatabaseQueryError>;
+  readonly getPlans: () => Effect.Effect<ReadingPlan[], ReadingPlanDataError>;
+  readonly getPlanItems: (planId: string) => Effect.Effect<ReadingPlanItem[], ReadingPlanDataError>;
+  readonly getPlanProgress: (planId: string) => Effect.Effect<Set<number>, ReadingPlanDataError>;
   readonly createPlan: (
     name: string,
     description: string | null,
     type: 'builtin' | 'custom',
     sourceId: string | null,
     items: PlanItemInput[],
-  ) => Effect.Effect<ReadingPlan, DatabaseQueryError>;
-  readonly removePlan: (id: string) => Effect.Effect<void, DatabaseQueryError>;
+  ) => Effect.Effect<ReadingPlan, ReadingPlanDataError>;
+  readonly removePlan: (id: string) => Effect.Effect<void, ReadingPlanDataError>;
   readonly markItemComplete: (
     planId: string,
     itemId: number,
-  ) => Effect.Effect<void, DatabaseQueryError>;
+  ) => Effect.Effect<void, ReadingPlanDataError>;
   readonly markItemIncomplete: (
     planId: string,
     itemId: number,
-  ) => Effect.Effect<void, DatabaseQueryError>;
+  ) => Effect.Effect<void, ReadingPlanDataError>;
   readonly setPlanStartDate: (
     planId: string,
     startDate: number,
-  ) => Effect.Effect<void, DatabaseQueryError>;
+  ) => Effect.Effect<void, ReadingPlanDataError>;
 }
 
 export class WebReadingPlanService extends Context.Service<
@@ -164,15 +171,22 @@ export class WebReadingPlanService extends Context.Service<
         yield* db.exec('UPDATE reading_plans SET start_date = ? WHERE id = ?', [startDate, planId]);
       });
 
+      const mapDataError = <A>(operation: string, effect: Effect.Effect<A, DatabaseQueryError>) =>
+        effect.pipe(Effect.mapError((cause) => new ReadingPlanDataError({ cause, operation })));
+
       return WebReadingPlanService.of({
-        getPlans,
-        getPlanItems,
-        getPlanProgress,
-        createPlan,
-        removePlan,
-        markItemComplete,
-        markItemIncomplete,
-        setPlanStartDate,
+        getPlans: () => mapDataError('getPlans', getPlans()),
+        getPlanItems: (planId) => mapDataError('getPlanItems', getPlanItems(planId)),
+        getPlanProgress: (planId) => mapDataError('getPlanProgress', getPlanProgress(planId)),
+        createPlan: (name, description, type, sourceId, items) =>
+          mapDataError('createPlan', createPlan(name, description, type, sourceId, items)),
+        removePlan: (id) => mapDataError('removePlan', removePlan(id)),
+        markItemComplete: (planId, itemId) =>
+          mapDataError('markItemComplete', markItemComplete(planId, itemId)),
+        markItemIncomplete: (planId, itemId) =>
+          mapDataError('markItemIncomplete', markItemIncomplete(planId, itemId)),
+        setPlanStartDate: (planId, startDate) =>
+          mapDataError('setPlanStartDate', setPlanStartDate(planId, startDate)),
       });
     }),
   );

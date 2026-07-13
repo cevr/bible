@@ -1,14 +1,18 @@
 import { Effect, Layer, Ref, Context, Schema } from 'effect';
-import { DbClientService } from '../db-client-service';
-import type { DatabaseQueryError, WorkerError } from '../errors';
-import { SyncError } from '../errors';
+import { DbClientService, type DatabaseQueryError, type WorkerError } from '../db-client-service';
+
+export class SyncError extends Schema.TaggedErrorClass<SyncError>()('SyncError', {
+  cause: Schema.Unknown,
+  message: Schema.String,
+  statusCode: Schema.optional(Schema.Number),
+}) {}
 
 const SYNC_DEBOUNCE_MS = 30_000;
 
 const SyncMetaRow = Schema.Struct({ device_id: Schema.String });
 
 interface WebSyncServiceShape {
-  readonly syncNow: () => Effect.Effect<void, DatabaseQueryError | WorkerError | SyncError>;
+  readonly syncNow: () => Effect.Effect<void, SyncError>;
 }
 
 export class WebSyncService extends Context.Service<WebSyncService, WebSyncServiceShape>()(
@@ -47,7 +51,7 @@ export class WebSyncService extends Context.Service<WebSyncService, WebSyncServi
         return id;
       });
 
-      const doSync: Effect.Effect<void> = Effect.gen(function* () {
+      const doSync = Effect.gen(function* () {
         const isSyncing = yield* Ref.get(syncingRef);
         if (isSyncing) return;
 
@@ -84,16 +88,18 @@ export class WebSyncService extends Context.Service<WebSyncService, WebSyncServi
           }),
           Ref.set(syncingRef, false),
         );
-      }).pipe(
-        Effect.catch((error) =>
-          Effect.logWarning('[sync] error:', error).pipe(Effect.as(undefined)),
-        ),
-      );
+      });
 
       function resetTimer() {
         if (timer != null) clearTimeout(timer);
         timer = setTimeout(() => {
-          Effect.runFork(doSync);
+          Effect.runFork(
+            doSync.pipe(
+              Effect.catch((error) =>
+                Effect.logWarning('[sync] error:', error).pipe(Effect.as(undefined)),
+              ),
+            ),
+          );
         }, SYNC_DEBOUNCE_MS);
       }
 
@@ -110,15 +116,30 @@ export class WebSyncService extends Context.Service<WebSyncService, WebSyncServi
         }),
       );
 
+      const mapSyncError = (
+        operation: string,
+        effect: Effect.Effect<void, DatabaseQueryError | WorkerError | SyncError>,
+      ) =>
+        effect.pipe(
+          Effect.mapError((cause) =>
+            cause._tag === 'SyncError'
+              ? cause
+              : new SyncError({ cause, message: `${operation} failed` }),
+          ),
+        );
+
       return WebSyncService.of({
         syncNow: () =>
-          Effect.gen(function* () {
-            if (timer != null) {
-              clearTimeout(timer);
-              timer = null;
-            }
-            yield* doSync;
-          }),
+          mapSyncError(
+            'Sync',
+            Effect.gen(function* () {
+              if (timer != null) {
+                clearTimeout(timer);
+                timer = null;
+              }
+              yield* doSync;
+            }),
+          ),
       });
     }),
   );

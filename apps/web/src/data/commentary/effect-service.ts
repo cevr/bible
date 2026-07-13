@@ -1,9 +1,16 @@
 import { BIBLE_BOOK_ALIASES, getBibleBook } from '@bible/core/bible';
 import { Context, Effect, Layer, Schema } from 'effect';
 
-import { DbClientService } from '../db-client-service';
-import type { DatabaseQueryError } from '../errors';
+import { DbClientService, type DatabaseQueryError } from '../db-client-service';
 import type { EGWCommentaryEntry, EGWContextParagraph } from './types';
+
+export class CommentaryDataError extends Schema.TaggedErrorClass<CommentaryDataError>()(
+  'CommentaryDataError',
+  {
+    cause: Schema.Unknown,
+    operation: Schema.String,
+  },
+) {}
 
 const EGWCommentaryRow = Schema.Struct({
   refcode_short: Schema.String,
@@ -29,16 +36,16 @@ interface CommentaryServiceShape {
     book: number,
     chapter: number,
     verse: number,
-  ) => Effect.Effect<EGWCommentaryEntry[], DatabaseQueryError>;
+  ) => Effect.Effect<EGWCommentaryEntry[], CommentaryDataError>;
   readonly getEgwChapterIndex: (
     bookCode: string,
     puborder: number,
-  ) => Effect.Effect<number, DatabaseQueryError>;
+  ) => Effect.Effect<number, CommentaryDataError>;
   readonly getEgwParagraphContext: (
     bookCode: string,
     puborder: number,
     radius: number,
-  ) => Effect.Effect<EGWContextParagraph[], DatabaseQueryError>;
+  ) => Effect.Effect<EGWContextParagraph[], CommentaryDataError>;
 }
 
 export class CommentaryService extends Context.Service<CommentaryService, CommentaryServiceShape>()(
@@ -170,10 +177,19 @@ export class CommentaryService extends Context.Service<CommentaryService, Commen
         },
       );
 
+      const mapDataError = <A>(operation: string, effect: Effect.Effect<A, DatabaseQueryError>) =>
+        effect.pipe(Effect.mapError((cause) => new CommentaryDataError({ cause, operation })));
+
       return CommentaryService.of({
-        getEgwCommentary,
-        getEgwChapterIndex,
-        getEgwParagraphContext,
+        getEgwCommentary: (book, chapter, verse) =>
+          mapDataError('getEgwCommentary', getEgwCommentary(book, chapter, verse)),
+        getEgwChapterIndex: (bookCode, puborder) =>
+          mapDataError('getEgwChapterIndex', getEgwChapterIndex(bookCode, puborder)),
+        getEgwParagraphContext: (bookCode, puborder, radius) =>
+          mapDataError(
+            'getEgwParagraphContext',
+            getEgwParagraphContext(bookCode, puborder, radius),
+          ),
       });
     }),
   );

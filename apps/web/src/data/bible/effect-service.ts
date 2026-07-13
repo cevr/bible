@@ -6,9 +6,17 @@ import {
 } from '@bible/core/bible';
 
 import { getBook } from './types';
-import { DbClientService } from '../db-client-service';
-import type { DatabaseQueryError } from '../errors';
-import { RecordNotFoundError } from '../errors';
+import { DbClientService, type DatabaseQueryError } from '../db-client-service';
+
+export class BibleDataError extends Schema.TaggedErrorClass<BibleDataError>()('BibleDataError', {
+  cause: Schema.Unknown,
+  operation: Schema.String,
+}) {}
+
+export class BibleBookNotFoundError extends Schema.TaggedErrorClass<BibleBookNotFoundError>()(
+  'BibleBookNotFoundError',
+  { book: Schema.Number },
+) {}
 
 const VerseRow = VerseSchema;
 type VerseRow = typeof VerseRow.Type;
@@ -23,22 +31,22 @@ interface WebBibleServiceShape {
   readonly fetchChapter: (
     book: number,
     chapter: number,
-  ) => Effect.Effect<ChapterResponse, DatabaseQueryError | RecordNotFoundError>;
+  ) => Effect.Effect<ChapterResponse, BibleDataError | BibleBookNotFoundError>;
 
   readonly fetchVerses: (
     book: number,
     chapter: number,
-  ) => Effect.Effect<readonly Verse[], DatabaseQueryError>;
+  ) => Effect.Effect<readonly Verse[], BibleDataError>;
 
   readonly searchVerses: (
     query: string,
     limit?: number,
-  ) => Effect.Effect<readonly SearchResult[], DatabaseQueryError>;
+  ) => Effect.Effect<readonly SearchResult[], BibleDataError>;
 
   readonly searchVersesWithCount: (
     query: string,
     opts?: { bookFilter?: number[]; offset?: number; limit?: number },
-  ) => Effect.Effect<SearchWithCountResult, DatabaseQueryError>;
+  ) => Effect.Effect<SearchWithCountResult, BibleDataError>;
 }
 
 export class WebBibleService extends Context.Service<WebBibleService, WebBibleServiceShape>()(
@@ -62,10 +70,7 @@ export class WebBibleService extends Context.Service<WebBibleService, WebBibleSe
 
         const bookInfo = getBook(book);
         if (!bookInfo) {
-          return yield* new RecordNotFoundError({
-            entity: 'Book',
-            id: String(book),
-          });
+          return yield* new BibleBookNotFoundError({ book });
         }
 
         const prev = getPrevChapterNav(book, chapter);
@@ -180,7 +185,37 @@ export class WebBibleService extends Context.Service<WebBibleService, WebBibleSe
         return { results, total };
       });
 
-      return WebBibleService.of({ fetchChapter, fetchVerses, searchVerses, searchVersesWithCount });
+      return WebBibleService.of({
+        fetchChapter: (book, chapter) =>
+          fetchChapter(book, chapter).pipe(
+            Effect.mapError((cause) =>
+              cause._tag === 'DatabaseQueryError'
+                ? new BibleDataError({ cause, operation: 'fetchChapter' })
+                : cause,
+            ),
+          ),
+        fetchVerses: (book, chapter) =>
+          fetchVerses(book, chapter).pipe(
+            Effect.mapError(
+              (cause: DatabaseQueryError) =>
+                new BibleDataError({ cause, operation: 'fetchVerses' }),
+            ),
+          ),
+        searchVerses: (query, limit) =>
+          searchVerses(query, limit).pipe(
+            Effect.mapError(
+              (cause: DatabaseQueryError) =>
+                new BibleDataError({ cause, operation: 'searchVerses' }),
+            ),
+          ),
+        searchVersesWithCount: (query, options) =>
+          searchVersesWithCount(query, options).pipe(
+            Effect.mapError(
+              (cause: DatabaseQueryError) =>
+                new BibleDataError({ cause, operation: 'searchVersesWithCount' }),
+            ),
+          ),
+      });
     }),
   );
 }

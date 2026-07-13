@@ -1,8 +1,15 @@
 import { Context, Effect, Layer, Schema } from 'effect';
 
-import { DbClientService } from '../db-client-service';
-import type { DatabaseQueryError } from '../errors';
+import { DbClientService, type DatabaseQueryError } from '../db-client-service';
 import type { EgwMarker, EgwNote, MarkerColor, VerseMarker, VerseNote } from './types';
+
+export class AnnotationDataError extends Schema.TaggedErrorClass<AnnotationDataError>()(
+  'AnnotationDataError',
+  {
+    cause: Schema.Unknown,
+    operation: Schema.String,
+  },
+) {}
 
 const VerseMarkerRow = Schema.Struct({
   id: Schema.String,
@@ -42,47 +49,47 @@ interface AnnotationServiceShape {
   readonly getChapterMarkers: (
     book: number,
     chapter: number,
-  ) => Effect.Effect<Map<number, VerseMarker[]>, DatabaseQueryError>;
+  ) => Effect.Effect<Map<number, VerseMarker[]>, AnnotationDataError>;
   readonly addVerseMarker: (
     book: number,
     chapter: number,
     verse: number,
     color: MarkerColor,
-  ) => Effect.Effect<VerseMarker, DatabaseQueryError>;
-  readonly removeVerseMarker: (id: string) => Effect.Effect<void, DatabaseQueryError>;
+  ) => Effect.Effect<VerseMarker, AnnotationDataError>;
+  readonly removeVerseMarker: (id: string) => Effect.Effect<void, AnnotationDataError>;
   readonly getVerseNotes: (
     book: number,
     chapter: number,
     verse: number,
-  ) => Effect.Effect<VerseNote[], DatabaseQueryError>;
+  ) => Effect.Effect<VerseNote[], AnnotationDataError>;
   readonly addVerseNote: (
     book: number,
     chapter: number,
     verse: number,
     content: string,
-  ) => Effect.Effect<VerseNote, DatabaseQueryError>;
-  readonly removeVerseNote: (id: string) => Effect.Effect<void, DatabaseQueryError>;
+  ) => Effect.Effect<VerseNote, AnnotationDataError>;
+  readonly removeVerseNote: (id: string) => Effect.Effect<void, AnnotationDataError>;
   readonly getEgwNotes: (
     bookCode: string,
     puborder: number,
-  ) => Effect.Effect<EgwNote[], DatabaseQueryError>;
+  ) => Effect.Effect<EgwNote[], AnnotationDataError>;
   readonly addEgwNote: (
     bookCode: string,
     puborder: number,
     content: string,
-  ) => Effect.Effect<EgwNote, DatabaseQueryError>;
-  readonly removeEgwNote: (id: string) => Effect.Effect<void, DatabaseQueryError>;
+  ) => Effect.Effect<EgwNote, AnnotationDataError>;
+  readonly removeEgwNote: (id: string) => Effect.Effect<void, AnnotationDataError>;
   readonly getEgwChapterMarkers: (
     bookCode: string,
     startPuborder: number,
     endPuborder: number,
-  ) => Effect.Effect<Map<number, EgwMarker[]>, DatabaseQueryError>;
+  ) => Effect.Effect<Map<number, EgwMarker[]>, AnnotationDataError>;
   readonly addEgwMarker: (
     bookCode: string,
     puborder: number,
     color: MarkerColor,
-  ) => Effect.Effect<EgwMarker, DatabaseQueryError>;
-  readonly removeEgwMarker: (id: string) => Effect.Effect<void, DatabaseQueryError>;
+  ) => Effect.Effect<EgwMarker, AnnotationDataError>;
+  readonly removeEgwMarker: (id: string) => Effect.Effect<void, AnnotationDataError>;
 }
 
 export class AnnotationService extends Context.Service<AnnotationService, AnnotationServiceShape>()(
@@ -273,19 +280,33 @@ export class AnnotationService extends Context.Service<AnnotationService, Annota
         yield* db.exec('DELETE FROM egw_markers WHERE id = ?', [id]);
       });
 
+      const mapDataError = <A>(operation: string, effect: Effect.Effect<A, DatabaseQueryError>) =>
+        effect.pipe(Effect.mapError((cause) => new AnnotationDataError({ cause, operation })));
+
       return AnnotationService.of({
-        getChapterMarkers,
-        addVerseMarker,
-        removeVerseMarker,
-        getVerseNotes,
-        addVerseNote,
-        removeVerseNote,
-        getEgwNotes,
-        addEgwNote,
-        removeEgwNote,
-        getEgwChapterMarkers,
-        addEgwMarker,
-        removeEgwMarker,
+        getChapterMarkers: (book, chapter) =>
+          mapDataError('getChapterMarkers', getChapterMarkers(book, chapter)),
+        addVerseMarker: (book, chapter, verse, color) =>
+          mapDataError('addVerseMarker', addVerseMarker(book, chapter, verse, color)),
+        removeVerseMarker: (id) => mapDataError('removeVerseMarker', removeVerseMarker(id)),
+        getVerseNotes: (book, chapter, verse) =>
+          mapDataError('getVerseNotes', getVerseNotes(book, chapter, verse)),
+        addVerseNote: (book, chapter, verse, content) =>
+          mapDataError('addVerseNote', addVerseNote(book, chapter, verse, content)),
+        removeVerseNote: (id) => mapDataError('removeVerseNote', removeVerseNote(id)),
+        getEgwNotes: (bookCode, puborder) =>
+          mapDataError('getEgwNotes', getEgwNotes(bookCode, puborder)),
+        addEgwNote: (bookCode, puborder, content) =>
+          mapDataError('addEgwNote', addEgwNote(bookCode, puborder, content)),
+        removeEgwNote: (id) => mapDataError('removeEgwNote', removeEgwNote(id)),
+        getEgwChapterMarkers: (bookCode, startPuborder, endPuborder) =>
+          mapDataError(
+            'getEgwChapterMarkers',
+            getEgwChapterMarkers(bookCode, startPuborder, endPuborder),
+          ),
+        addEgwMarker: (bookCode, puborder, color) =>
+          mapDataError('addEgwMarker', addEgwMarker(bookCode, puborder, color)),
+        removeEgwMarker: (id) => mapDataError('removeEgwMarker', removeEgwMarker(id)),
       });
     }),
   );

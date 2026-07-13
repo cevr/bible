@@ -1,8 +1,15 @@
 import { Context, Effect, Layer, Option, Schema } from 'effect';
 
-import { DbClientService } from '../db-client-service';
-import type { DatabaseQueryError } from '../errors';
+import { DbClientService, type DatabaseQueryError } from '../db-client-service';
 import type { ConcordanceResult, MarginNote, StrongsEntry, VerseWord } from './types';
+
+export class ConcordanceDataError extends Schema.TaggedErrorClass<ConcordanceDataError>()(
+  'ConcordanceDataError',
+  {
+    cause: Schema.Unknown,
+    operation: Schema.String,
+  },
+) {}
 
 const StrongsRow = Schema.Struct({
   number: Schema.String,
@@ -49,24 +56,24 @@ const decodeStrongsNumbers = Schema.decodeUnknownOption(
 interface ConcordanceServiceShape {
   readonly getStrongsEntry: (
     number: string,
-  ) => Effect.Effect<StrongsEntry | null, DatabaseQueryError>;
+  ) => Effect.Effect<StrongsEntry | null, ConcordanceDataError>;
   readonly getVerseWords: (
     book: number,
     chapter: number,
     verse: number,
-  ) => Effect.Effect<VerseWord[], DatabaseQueryError>;
+  ) => Effect.Effect<VerseWord[], ConcordanceDataError>;
   readonly getMarginNotes: (
     book: number,
     chapter: number,
     verse: number,
-  ) => Effect.Effect<MarginNote[], DatabaseQueryError>;
+  ) => Effect.Effect<MarginNote[], ConcordanceDataError>;
   readonly getChapterMarginNotes: (
     book: number,
     chapter: number,
-  ) => Effect.Effect<Map<number, MarginNote[]>, DatabaseQueryError>;
+  ) => Effect.Effect<Map<number, MarginNote[]>, ConcordanceDataError>;
   readonly searchByStrongs: (
     number: string,
-  ) => Effect.Effect<ConcordanceResult[], DatabaseQueryError>;
+  ) => Effect.Effect<ConcordanceResult[], ConcordanceDataError>;
 }
 
 export class ConcordanceService extends Context.Service<
@@ -184,12 +191,18 @@ export class ConcordanceService extends Context.Service<
         );
       });
 
+      const mapDataError = <A>(operation: string, effect: Effect.Effect<A, DatabaseQueryError>) =>
+        effect.pipe(Effect.mapError((cause) => new ConcordanceDataError({ cause, operation })));
+
       return ConcordanceService.of({
-        getStrongsEntry,
-        getVerseWords,
-        getMarginNotes,
-        getChapterMarginNotes,
-        searchByStrongs,
+        getStrongsEntry: (number) => mapDataError('getStrongsEntry', getStrongsEntry(number)),
+        getVerseWords: (book, chapter, verse) =>
+          mapDataError('getVerseWords', getVerseWords(book, chapter, verse)),
+        getMarginNotes: (book, chapter, verse) =>
+          mapDataError('getMarginNotes', getMarginNotes(book, chapter, verse)),
+        getChapterMarginNotes: (book, chapter) =>
+          mapDataError('getChapterMarginNotes', getChapterMarginNotes(book, chapter)),
+        searchByStrongs: (number) => mapDataError('searchByStrongs', searchByStrongs(number)),
       });
     }),
   );

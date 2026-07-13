@@ -2,9 +2,16 @@ import { EGWBookInfoSchema, EGWChapterSchema, type EGWBookInfo, type EGWChapter 
 import { Node } from '@bible/core/egw';
 import { Context, Effect, Layer, Option, Schema } from 'effect';
 
-import { DbClientService } from '../db-client-service';
-import type { DatabaseQueryError } from '../errors';
+import { DbClientService, type DatabaseQueryError } from '../db-client-service';
 import type { EgwBooksResult, EgwChapterContent } from './types';
+
+export class WritingsDataError extends Schema.TaggedErrorClass<WritingsDataError>()(
+  'WritingsDataError',
+  {
+    cause: Schema.Unknown,
+    operation: Schema.String,
+  },
+) {}
 
 export class WritingsRequestError extends Schema.TaggedErrorClass<WritingsRequestError>()(
   'WritingsRequestError',
@@ -77,17 +84,14 @@ const fetchJson = <A>(schema: Schema.Decoder<A>, url: string) =>
   );
 
 interface WritingsServiceShape {
-  readonly fetchEgwBooks: () => Effect.Effect<
-    EgwBooksResult,
-    DatabaseQueryError | WritingsRequestError
-  >;
+  readonly fetchEgwBooks: () => Effect.Effect<EgwBooksResult>;
   readonly fetchEgwChapterContent: (
     bookCode: string,
     chapterIndex: number,
-  ) => Effect.Effect<EgwChapterContent, DatabaseQueryError | WritingsContentNotFound>;
+  ) => Effect.Effect<EgwChapterContent, WritingsDataError | WritingsContentNotFound>;
   readonly fetchEgwChapters: (
     bookCode: string,
-  ) => Effect.Effect<readonly EGWChapter[], DatabaseQueryError | WritingsRequestError>;
+  ) => Effect.Effect<readonly EGWChapter[], WritingsDataError>;
 }
 
 export class WritingsService extends Context.Service<WritingsService, WritingsServiceShape>()(
@@ -224,10 +228,21 @@ export class WritingsService extends Context.Service<WritingsService, WritingsSe
         ).pipe(Effect.catch(() => Effect.succeed([])));
       });
 
+      const mapDataError = <A>(operation: string, effect: Effect.Effect<A, DatabaseQueryError>) =>
+        effect.pipe(Effect.mapError((cause) => new WritingsDataError({ cause, operation })));
+
       return WritingsService.of({
         fetchEgwBooks,
-        fetchEgwChapterContent,
-        fetchEgwChapters,
+        fetchEgwChapterContent: (bookCode, chapterIndex) =>
+          fetchEgwChapterContent(bookCode, chapterIndex).pipe(
+            Effect.mapError((cause) =>
+              cause._tag === 'DatabaseQueryError'
+                ? new WritingsDataError({ cause, operation: 'fetchEgwChapterContent' })
+                : cause,
+            ),
+          ),
+        fetchEgwChapters: (bookCode) =>
+          mapDataError('fetchEgwChapters', fetchEgwChapters(bookCode)),
       });
     }),
   );

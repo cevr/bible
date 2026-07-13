@@ -1,7 +1,11 @@
 import { Effect, Layer, Context, Schema } from 'effect';
-import { DbClientService } from '../db-client-service';
-import type { DatabaseQueryError } from '../errors';
+import { DbClientService, type DatabaseQueryError } from '../db-client-service';
 import type { Topic, TopicVerse } from './types';
+
+export class TopicDataError extends Schema.TaggedErrorClass<TopicDataError>()('TopicDataError', {
+  cause: Schema.Unknown,
+  operation: Schema.String,
+}) {}
 
 const TopicRow = Schema.Struct({
   id: Schema.Number,
@@ -22,17 +26,17 @@ const TopicVerseRow = Schema.Struct({
 type TopicVerseRow = typeof TopicVerseRow.Type;
 
 interface WebTopicServiceShape {
-  readonly searchTopics: (query: string) => Effect.Effect<Topic[], DatabaseQueryError>;
-  readonly getTopic: (id: number) => Effect.Effect<Topic | null, DatabaseQueryError>;
-  readonly getTopicVerses: (id: number) => Effect.Effect<TopicVerse[], DatabaseQueryError>;
+  readonly searchTopics: (query: string) => Effect.Effect<Topic[], TopicDataError>;
+  readonly getTopic: (id: number) => Effect.Effect<Topic | null, TopicDataError>;
+  readonly getTopicVerses: (id: number) => Effect.Effect<TopicVerse[], TopicDataError>;
   readonly getVerseTopics: (
     book: number,
     chapter: number,
     verse: number,
-  ) => Effect.Effect<Topic[], DatabaseQueryError>;
-  readonly getTopicChildren: (parentId: number) => Effect.Effect<Topic[], DatabaseQueryError>;
-  readonly getRootTopics: () => Effect.Effect<Topic[], DatabaseQueryError>;
-  readonly getTopicsByLetter: (letter: string) => Effect.Effect<Topic[], DatabaseQueryError>;
+  ) => Effect.Effect<Topic[], TopicDataError>;
+  readonly getTopicChildren: (parentId: number) => Effect.Effect<Topic[], TopicDataError>;
+  readonly getRootTopics: () => Effect.Effect<Topic[], TopicDataError>;
+  readonly getTopicsByLetter: (letter: string) => Effect.Effect<Topic[], TopicDataError>;
 }
 
 export class WebTopicService extends Context.Service<WebTopicService, WebTopicServiceShape>()(
@@ -139,14 +143,19 @@ export class WebTopicService extends Context.Service<WebTopicService, WebTopicSe
         return rows.map(mapTopic);
       });
 
+      const mapDataError = <A>(operation: string, effect: Effect.Effect<A, DatabaseQueryError>) =>
+        effect.pipe(Effect.mapError((cause) => new TopicDataError({ cause, operation })));
+
       return WebTopicService.of({
-        searchTopics,
-        getTopic,
-        getTopicVerses,
-        getVerseTopics,
-        getTopicChildren,
-        getRootTopics,
-        getTopicsByLetter,
+        searchTopics: (query) => mapDataError('searchTopics', searchTopics(query)),
+        getTopic: (id) => mapDataError('getTopic', getTopic(id)),
+        getTopicVerses: (id) => mapDataError('getTopicVerses', getTopicVerses(id)),
+        getVerseTopics: (book, chapter, verse) =>
+          mapDataError('getVerseTopics', getVerseTopics(book, chapter, verse)),
+        getTopicChildren: (parentId) =>
+          mapDataError('getTopicChildren', getTopicChildren(parentId)),
+        getRootTopics: () => mapDataError('getRootTopics', getRootTopics()),
+        getTopicsByLetter: (letter) => mapDataError('getTopicsByLetter', getTopicsByLetter(letter)),
       });
     }),
   );

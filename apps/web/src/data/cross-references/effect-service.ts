@@ -1,8 +1,15 @@
 import { Context, Effect, Layer, Schema } from 'effect';
 
-import { DbClientService } from '../db-client-service';
-import type { DatabaseQueryError } from '../errors';
+import { DbClientService, type DatabaseQueryError } from '../db-client-service';
 import type { ClassifiedCrossReference, CrossRefType, UserCrossRef } from './types';
+
+export class CrossReferenceDataError extends Schema.TaggedErrorClass<CrossReferenceDataError>()(
+  'CrossReferenceDataError',
+  {
+    cause: Schema.Unknown,
+    operation: Schema.String,
+  },
+) {}
 
 const CrossRefRow = Schema.Struct({
   ref_book: Schema.Number,
@@ -42,18 +49,18 @@ interface CrossReferenceServiceShape {
     book: number,
     chapter: number,
     verse: number,
-  ) => Effect.Effect<ClassifiedCrossReference[], DatabaseQueryError>;
+  ) => Effect.Effect<ClassifiedCrossReference[], CrossReferenceDataError>;
   readonly setRefType: (
     source: { book: number; chapter: number; verse: number },
     target: { book: number; chapter: number; verse: number | null },
     type: CrossRefType,
-  ) => Effect.Effect<void, DatabaseQueryError>;
+  ) => Effect.Effect<void, CrossReferenceDataError>;
   readonly addUserCrossRef: (
     source: { book: number; chapter: number; verse: number },
     target: { book: number; chapter: number; verse?: number; verseEnd?: number },
     opts?: { type?: CrossRefType; note?: string },
-  ) => Effect.Effect<UserCrossRef, DatabaseQueryError>;
-  readonly removeUserCrossRef: (id: string) => Effect.Effect<void, DatabaseQueryError>;
+  ) => Effect.Effect<UserCrossRef, CrossReferenceDataError>;
+  readonly removeUserCrossRef: (id: string) => Effect.Effect<void, CrossReferenceDataError>;
 }
 
 export class CrossReferenceService extends Context.Service<
@@ -211,11 +218,17 @@ export class CrossReferenceService extends Context.Service<
         (id: string) => db.exec('DELETE FROM user_cross_refs WHERE id = ?', [id]),
       );
 
+      const mapDataError = <A>(operation: string, effect: Effect.Effect<A, DatabaseQueryError>) =>
+        effect.pipe(Effect.mapError((cause) => new CrossReferenceDataError({ cause, operation })));
+
       return CrossReferenceService.of({
-        getCrossRefs,
-        setRefType,
-        addUserCrossRef,
-        removeUserCrossRef,
+        getCrossRefs: (book, chapter, verse) =>
+          mapDataError('getCrossRefs', getCrossRefs(book, chapter, verse)),
+        setRefType: (fromRef, toRef, type) =>
+          mapDataError('setRefType', setRefType(fromRef, toRef, type)),
+        addUserCrossRef: (fromRef, toRef, type) =>
+          mapDataError('addUserCrossRef', addUserCrossRef(fromRef, toRef, type)),
+        removeUserCrossRef: (id) => mapDataError('removeUserCrossRef', removeUserCrossRef(id)),
       });
     }),
   );
