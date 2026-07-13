@@ -4,7 +4,7 @@
  *
  * Components never import Effect directly.
  */
-import { Effect, type ManagedRuntime } from 'effect';
+import { Effect, Schema, type ManagedRuntime } from 'effect';
 import { type Node } from '@bible/core/egw';
 import type { ChapterResponse, SearchResult, Verse } from '@bible/api';
 
@@ -77,6 +77,36 @@ export interface EgwChapterContent {
   title: string | null;
   paragraphs: EGWParagraph[];
 }
+
+const LocalEgwBookRow = Schema.Struct({
+  book_id: Schema.Number,
+  book_code: Schema.String,
+  book_title: Schema.String,
+  book_author: Schema.String,
+  paragraph_count: Schema.Number,
+});
+
+const EgwChapterBoundaryRow = Schema.Struct({
+  puborder: Schema.Number,
+  content_text: Schema.String,
+});
+
+const EgwParagraphRow = Schema.Struct({
+  para_id: Schema.NullOr(Schema.String),
+  refcode_short: Schema.NullOr(Schema.String),
+  nodes_json: Schema.String,
+  puborder: Schema.Number,
+  element_type: Schema.NullOr(Schema.String),
+});
+
+const LocalEgwBookIdRow = Schema.Struct({ book_id: Schema.Number });
+
+const EgwChapterRow = Schema.Struct({
+  content_text: Schema.String,
+  refcode_short: Schema.NullOr(Schema.String),
+  puborder: Schema.Number,
+  page_number: Schema.NullOr(Schema.Number),
+});
 
 type AppServices =
   | WebBibleService
@@ -359,13 +389,7 @@ export class AppService {
     // Local-first: try OPFS, fall back to server
     if (this.db) {
       const rows = await this.db
-        .query<{
-          book_id: number;
-          book_code: string;
-          book_title: string;
-          book_author: string;
-          paragraph_count: number;
-        }>('egw', 'SELECT * FROM books ORDER BY book_code')
+        .query(LocalEgwBookRow, 'egw', 'SELECT * FROM books ORDER BY book_code')
         .catch(() => []);
       if (rows.length > 0) {
         return {
@@ -405,17 +429,17 @@ export class AppService {
   ): Promise<EgwChapterContent> {
     const db = this.db;
     if (!db) throw new Error('No local database available');
-    const [bookRow] = await db.query<{
-      book_id: number;
-      book_code: string;
-      book_title: string;
-      book_author: string;
-      paragraph_count: number;
-    }>('egw', 'SELECT * FROM books WHERE book_code = ? LIMIT 1', [bookCode]);
+    const [bookRow] = await db.query(
+      LocalEgwBookRow,
+      'egw',
+      'SELECT * FROM books WHERE book_code = ? LIMIT 1',
+      [bookCode],
+    );
     if (!bookRow) throw new Error(`Book ${bookCode} not found locally`);
 
     // Get all chapter heading puborders to find boundaries
-    const headings = await db.query<{ puborder: number; content_text: string }>(
+    const headings = await db.query(
+      EgwChapterBoundaryRow,
       'egw',
       'SELECT puborder, content_text FROM paragraphs WHERE book_id = ? AND is_chapter_heading = 1 ORDER BY puborder',
       [bookRow.book_id],
@@ -443,13 +467,8 @@ export class AppService {
         ? [bookRow.book_id, startPuborder, endPuborder]
         : [bookRow.book_id, startPuborder];
 
-    const rows = await db.query<{
-      para_id: string | null;
-      refcode_short: string | null;
-      nodes_json: string;
-      puborder: number;
-      element_type: string | null;
-    }>(
+    const rows = await db.query(
+      EgwParagraphRow,
       'egw',
       `SELECT para_id, refcode_short, nodes_json, puborder, element_type FROM paragraphs WHERE ${whereClause} ORDER BY puborder`,
       params,
@@ -479,19 +498,16 @@ export class AppService {
   private async localEgwChapters(bookCode: string): Promise<readonly EGWChapter[]> {
     const db = this.db;
     if (!db) return [];
-    const [bookRow] = await db.query<{ book_id: number }>(
+    const [bookRow] = await db.query(
+      LocalEgwBookIdRow,
       'egw',
       'SELECT book_id FROM books WHERE book_code = ? LIMIT 1',
       [bookCode],
     );
     if (!bookRow) return [];
 
-    const rows = await db.query<{
-      content_text: string;
-      refcode_short: string | null;
-      puborder: number;
-      page_number: number | null;
-    }>(
+    const rows = await db.query(
+      EgwChapterRow,
       'egw',
       'SELECT content_text, refcode_short, puborder, page_number FROM paragraphs WHERE book_id = ? AND is_chapter_heading = 1 ORDER BY puborder',
       [bookRow.book_id],

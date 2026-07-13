@@ -1,6 +1,8 @@
 import { describe, expect, test } from 'bun:test';
+import { Schema } from 'effect';
 
 import { decodeWorkerRequest, decodeWorkerResponse } from './db-protocol';
+import { decodeQueryRows } from './db-client';
 
 describe('database worker protocol', () => {
   test('accepts a complete typed query request', () => {
@@ -35,5 +37,13 @@ describe('database worker protocol', () => {
       type: 'export-state-result',
       data,
     });
+  });
+
+  test('decodes query rows against the caller-owned contract', () => {
+    const VerseRow = Schema.Struct({ book: Schema.Number, text: Schema.String });
+    expect(decodeQueryRows(VerseRow, [{ book: 1, text: 'In the beginning' }])).toEqual([
+      { book: 1, text: 'In the beginning' },
+    ]);
+    expect(() => decodeQueryRows(VerseRow, [{ book: 'Genesis', text: 1 }])).toThrow();
   });
 });

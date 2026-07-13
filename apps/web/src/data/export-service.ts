@@ -4,6 +4,7 @@
  * Pure formatters for Markdown export + backup/restore via JSON.
  * No Effect service needed — stateless formatters that take deps as args.
  */
+import { Schema } from 'effect';
 import type { Verse } from '@bible/api';
 import { formatBibleReference, Reference } from '@bible/core/bible';
 import type { AppService } from './app-service';
@@ -84,6 +85,24 @@ interface BackupData {
   }>;
 }
 
+const VerseNoteRow = Schema.Struct({
+  id: Schema.String,
+  book: Schema.Number,
+  chapter: Schema.Number,
+  verse: Schema.Number,
+  content: Schema.String,
+  created_at: Schema.Number,
+});
+
+const VerseMarkerRow = Schema.Struct({
+  id: Schema.String,
+  book: Schema.Number,
+  chapter: Schema.Number,
+  verse: Schema.Number,
+  color: Schema.String,
+  created_at: Schema.Number,
+});
+
 // ---------------------------------------------------------------------------
 // Export all data as JSON backup
 // ---------------------------------------------------------------------------
@@ -97,22 +116,16 @@ export async function exportAllJsonFull(app: AppService, db: DbClient): Promise<
   ]);
 
   const [noteRows, markerRows] = await Promise.all([
-    db.query<{
-      id: string;
-      book: number;
-      chapter: number;
-      verse: number;
-      content: string;
-      created_at: number;
-    }>('state', 'SELECT id, book, chapter, verse, content, created_at FROM verse_notes'),
-    db.query<{
-      id: string;
-      book: number;
-      chapter: number;
-      verse: number;
-      color: string;
-      created_at: number;
-    }>('state', 'SELECT id, book, chapter, verse, color, created_at FROM verse_markers'),
+    db.query(
+      VerseNoteRow,
+      'state',
+      'SELECT id, book, chapter, verse, content, created_at FROM verse_notes',
+    ),
+    db.query(
+      VerseMarkerRow,
+      'state',
+      'SELECT id, book, chapter, verse, color, created_at FROM verse_markers',
+    ),
   ]);
 
   const notes: VerseNote[] = noteRows.map((r) => ({

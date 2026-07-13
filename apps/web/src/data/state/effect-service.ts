@@ -1,4 +1,4 @@
-import { Effect, Layer, Context } from 'effect';
+import { Effect, Layer, Context, Schema } from 'effect';
 import type { Reference } from '../bible/types';
 import { DbClientService } from '../db-client-service';
 import type { DatabaseQueryError } from '../errors';
@@ -40,36 +40,36 @@ const DEFAULT_PREFERENCES: Preferences = {
   letterSpacing: 0.01,
 };
 
-interface PositionRow {
-  book: number;
-  chapter: number;
-  verse: number;
-}
+const PositionRow = Schema.Struct({
+  book: Schema.Number,
+  chapter: Schema.Number,
+  verse: Schema.Number,
+});
 
-interface BookmarkRow {
-  id: string;
-  book: number;
-  chapter: number;
-  verse: number | null;
-  note: string | null;
-  created_at: number;
-}
+const BookmarkRow = Schema.Struct({
+  id: Schema.String,
+  book: Schema.Number,
+  chapter: Schema.Number,
+  verse: Schema.NullOr(Schema.Number),
+  note: Schema.NullOr(Schema.String),
+  created_at: Schema.Number,
+});
 
-interface HistoryRow {
-  book: number;
-  chapter: number;
-  verse: number | null;
-  visited_at: number;
-}
+const HistoryRow = Schema.Struct({
+  book: Schema.Number,
+  chapter: Schema.Number,
+  verse: Schema.NullOr(Schema.Number),
+  visited_at: Schema.Number,
+});
 
-interface PreferencesRow {
-  theme: string;
-  display_mode: string;
-  font_family: string;
-  font_size: number;
-  line_height: number;
-  letter_spacing: number;
-}
+const PreferencesRow = Schema.Struct({
+  theme: Schema.String,
+  display_mode: Schema.String,
+  font_family: Schema.String,
+  font_size: Schema.Number,
+  line_height: Schema.Number,
+  letter_spacing: Schema.Number,
+});
 
 interface AppStateServiceShape {
   readonly getPosition: () => Effect.Effect<Position, DatabaseQueryError>;
@@ -96,7 +96,8 @@ export class AppStateService extends Context.Service<AppStateService, AppStateSe
       const db = yield* DbClientService;
 
       const getPosition = Effect.fn('AppStateService.getPosition')(function* () {
-        const rows = yield* db.query<PositionRow>(
+        const rows = yield* db.query(
+          PositionRow,
           'state',
           'SELECT book, chapter, verse FROM position WHERE id = 1',
         );
@@ -112,7 +113,8 @@ export class AppStateService extends Context.Service<AppStateService, AppStateSe
       });
 
       const getBookmarks = Effect.fn('AppStateService.getBookmarks')(function* () {
-        const rows = yield* db.query<BookmarkRow>(
+        const rows = yield* db.query(
+          BookmarkRow,
           'state',
           'SELECT id, book, chapter, verse, note, created_at FROM bookmarks ORDER BY created_at DESC',
         );
@@ -144,7 +146,8 @@ export class AppStateService extends Context.Service<AppStateService, AppStateSe
       });
 
       const getHistory = Effect.fn('AppStateService.getHistory')(function* (limit = 100) {
-        const rows = yield* db.query<HistoryRow>(
+        const rows = yield* db.query(
+          HistoryRow,
           'state',
           'SELECT book, chapter, verse, visited_at FROM history ORDER BY visited_at DESC LIMIT ?',
           [limit],
@@ -172,7 +175,8 @@ export class AppStateService extends Context.Service<AppStateService, AppStateSe
       });
 
       const getPreferences = Effect.fn('AppStateService.getPreferences')(function* () {
-        const rows = yield* db.query<PreferencesRow>(
+        const rows = yield* db.query(
+          PreferencesRow,
           'state',
           'SELECT theme, display_mode, font_family, font_size, line_height, letter_spacing FROM preferences WHERE id = 1',
         );

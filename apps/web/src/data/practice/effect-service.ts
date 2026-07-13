@@ -1,24 +1,26 @@
-import { Effect, Layer, Context } from 'effect';
+import { Effect, Layer, Context, Schema } from 'effect';
 import { DbClientService } from '../db-client-service';
 import type { DatabaseQueryError } from '../errors';
 import type { MemoryVerse, PracticeRecord } from './types';
 
-interface MemoryVerseRow {
-  id: string;
-  book: number;
-  chapter: number;
-  verse_start: number;
-  verse_end: number | null;
-  created_at: number;
-}
+const MemoryVerseRow = Schema.Struct({
+  id: Schema.String,
+  book: Schema.Number,
+  chapter: Schema.Number,
+  verse_start: Schema.Number,
+  verse_end: Schema.NullOr(Schema.Number),
+  created_at: Schema.Number,
+});
+type MemoryVerseRow = typeof MemoryVerseRow.Type;
 
-interface PracticeRow {
-  id: number;
-  verse_id: string;
-  mode: string;
-  score: number | null;
-  practiced_at: number;
-}
+const PracticeRow = Schema.Struct({
+  id: Schema.Number,
+  verse_id: Schema.String,
+  mode: Schema.String,
+  score: Schema.NullOr(Schema.Number),
+  practiced_at: Schema.Number,
+});
+type PracticeRow = typeof PracticeRow.Type;
 
 interface WebMemoryVerseServiceShape {
   readonly getMemoryVerses: () => Effect.Effect<MemoryVerse[], DatabaseQueryError>;
@@ -50,7 +52,8 @@ export class WebMemoryVerseService extends Context.Service<
       const db = yield* DbClientService;
 
       const getMemoryVerses = Effect.fn('WebMemoryVerseService.getMemoryVerses')(function* () {
-        const rows = yield* db.query<MemoryVerseRow>(
+        const rows = yield* db.query(
+          MemoryVerseRow,
           'state',
           'SELECT id, book, chapter, verse_start, verse_end, created_at FROM memory_verses ORDER BY created_at DESC',
         );
@@ -101,7 +104,8 @@ export class WebMemoryVerseService extends Context.Service<
         verseId: string,
         limit = 20,
       ) {
-        const rows = yield* db.query<PracticeRow>(
+        const rows = yield* db.query(
+          PracticeRow,
           'state',
           'SELECT id, verse_id, mode, score, practiced_at FROM memory_practice WHERE verse_id = ? ORDER BY practiced_at DESC LIMIT ?',
           [verseId, limit],

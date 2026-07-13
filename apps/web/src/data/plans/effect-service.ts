@@ -1,27 +1,31 @@
-import { Effect, Layer, Context } from 'effect';
+import { Effect, Layer, Context, Schema } from 'effect';
 import { DbClientService } from '../db-client-service';
 import type { DatabaseQueryError } from '../errors';
 import type { ReadingPlan, ReadingPlanItem, PlanItemInput } from './types';
 
-interface PlanRow {
-  id: string;
-  name: string;
-  description: string | null;
-  type: string;
-  source_id: string | null;
-  start_date: number | null;
-  created_at: number;
-}
+const PlanRow = Schema.Struct({
+  id: Schema.String,
+  name: Schema.String,
+  description: Schema.NullOr(Schema.String),
+  type: Schema.String,
+  source_id: Schema.NullOr(Schema.String),
+  start_date: Schema.NullOr(Schema.Number),
+  created_at: Schema.Number,
+});
+type PlanRow = typeof PlanRow.Type;
 
-interface PlanItemRow {
-  id: number;
-  plan_id: string;
-  day_number: number;
-  book: number;
-  start_chapter: number;
-  end_chapter: number | null;
-  label: string | null;
-}
+const PlanItemRow = Schema.Struct({
+  id: Schema.Number,
+  plan_id: Schema.String,
+  day_number: Schema.Number,
+  book: Schema.Number,
+  start_chapter: Schema.Number,
+  end_chapter: Schema.NullOr(Schema.Number),
+  label: Schema.NullOr(Schema.String),
+});
+type PlanItemRow = typeof PlanItemRow.Type;
+
+const PlanProgressRow = Schema.Struct({ item_id: Schema.Number });
 
 interface WebReadingPlanServiceShape {
   readonly getPlans: () => Effect.Effect<ReadingPlan[], DatabaseQueryError>;
@@ -59,7 +63,8 @@ export class WebReadingPlanService extends Context.Service<
       const db = yield* DbClientService;
 
       const getPlans = Effect.fn('WebReadingPlanService.getPlans')(function* () {
-        const rows = yield* db.query<PlanRow>(
+        const rows = yield* db.query(
+          PlanRow,
           'state',
           'SELECT id, name, description, type, source_id, start_date, created_at FROM reading_plans ORDER BY created_at DESC',
         );
@@ -69,7 +74,8 @@ export class WebReadingPlanService extends Context.Service<
       const getPlanItems = Effect.fn('WebReadingPlanService.getPlanItems')(function* (
         planId: string,
       ) {
-        const rows = yield* db.query<PlanItemRow>(
+        const rows = yield* db.query(
+          PlanItemRow,
           'state',
           'SELECT id, plan_id, day_number, book, start_chapter, end_chapter, label FROM reading_plan_items WHERE plan_id = ? ORDER BY day_number, id',
           [planId],
@@ -80,7 +86,8 @@ export class WebReadingPlanService extends Context.Service<
       const getPlanProgress = Effect.fn('WebReadingPlanService.getPlanProgress')(function* (
         planId: string,
       ) {
-        const rows = yield* db.query<{ item_id: number }>(
+        const rows = yield* db.query(
+          PlanProgressRow,
           'state',
           'SELECT item_id FROM reading_plan_progress WHERE plan_id = ?',
           [planId],

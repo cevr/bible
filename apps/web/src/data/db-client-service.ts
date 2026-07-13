@@ -1,12 +1,13 @@
-import { Effect, Layer, Context } from 'effect';
+import { Effect, Layer, Context, type Schema } from 'effect';
 import { getDbClient, type DbClient } from '@/workers/db-client';
 import { DatabaseQueryError, WorkerError } from './errors';
 
 interface DbClientServiceShape {
-  readonly query: <T = Record<string, unknown>>(
+  readonly query: <T>(
+    row: Schema.Decoder<T>,
     db: 'bible' | 'state' | 'egw' | 'topics',
     sql: string,
-    params?: unknown[],
+    params?: readonly unknown[],
   ) => Effect.Effect<T[], DatabaseQueryError>;
 
   readonly exec: (sql: string, params?: unknown[]) => Effect.Effect<number, DatabaseQueryError>;
@@ -87,13 +88,14 @@ export class DbClientService extends Context.Service<DbClientService, DbClientSe
     }
 
     return DbClientService.of({
-      query: <T = Record<string, unknown>>(
+      query: <T>(
+        row: Schema.Decoder<T>,
         db: 'bible' | 'state' | 'egw' | 'topics',
         sql: string,
-        params?: unknown[],
+        params?: readonly unknown[],
       ) =>
         Effect.tryPromise({
-          try: () => client.query<T>(db, sql, params),
+          try: () => client.query(row, db, sql, params),
           catch: (cause) =>
             new DatabaseQueryError({
               cause,

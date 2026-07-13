@@ -4,6 +4,8 @@
  * Provides a Promise-based API for querying bible.db and state.db.
  * Singleton — call getDbClient() to get the shared instance.
  */
+import { Schema } from 'effect';
+
 import { decodeWorkerRequest, decodeWorkerResponse, type WorkerRequest } from './db-protocol.js';
 
 const log = import.meta.env['DEV'] ? (...args: unknown[]) => console.log(...args) : () => {};
@@ -14,16 +16,22 @@ export interface EgwSyncStatus {
   paragraphCount: number;
 }
 
+/** Decode caller-specific row contracts after the transport envelope is validated. */
+export function decodeQueryRows<T>(row: Schema.Decoder<T>, input: unknown): T[] {
+  return [...Schema.decodeUnknownSync(Schema.Array(row))(input)];
+}
+
 export interface DbClient {
   /** Initialize the worker and databases. Resolves when ready. */
   init(): Promise<void>;
   /** Register a progress callback for init. */
   onProgress(cb: (stage: string, progress: number) => void): void;
   /** Query a database. Returns rows as record arrays. */
-  query<T = Record<string, unknown>>(
+  query<T>(
+    row: Schema.Decoder<T>,
     db: 'bible' | 'state' | 'egw' | 'topics',
     sql: string,
-    params?: unknown[],
+    params?: readonly unknown[],
   ): Promise<T[]>;
   /** Execute a write statement on state.db. Returns affected row count. */
   exec(sql: string, params?: unknown[]): Promise<number>;
@@ -223,15 +231,22 @@ function createDbClient(): DbClient {
       progressCallbacks.push(cb);
     },
 
-    query<T = Record<string, unknown>>(
+    query<T>(
+      row: Schema.Decoder<T>,
       db: 'bible' | 'state' | 'egw' | 'topics',
       sql: string,
-      params?: unknown[],
+      params?: readonly unknown[],
     ): Promise<T[]> {
       const id = nextId++;
       return new Promise<T[]>((resolve, reject) => {
         pending.set(id, {
-          resolve: resolve as (value: unknown) => void,
+          resolve: (value) => {
+            try {
+              resolve(decodeQueryRows(row, value));
+            } catch (cause) {
+              reject(new Error(`Database query ${id} returned invalid rows`, { cause }));
+            }
+          },
           reject,
         });
         send({ type: 'query', id, db, sql, params });

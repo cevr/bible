@@ -1,4 +1,4 @@
-import { Effect, Layer, Context } from 'effect';
+import { Effect, Layer, Context, Schema } from 'effect';
 import { BIBLE_BOOK_ALIASES, getBibleBook } from '@bible/core/bible';
 import { DbClientService } from '../db-client-service';
 import type { DatabaseQueryError } from '../errors';
@@ -21,113 +21,141 @@ import type {
   VerseWord,
 } from './service';
 
-interface CrossRefRow {
-  ref_book: number;
-  ref_chapter: number;
-  ref_verse: number | null;
-  ref_verse_end: number | null;
-  source: string;
-  preview_text: string | null;
-}
+const CrossRefRow = Schema.Struct({
+  ref_book: Schema.Number,
+  ref_chapter: Schema.Number,
+  ref_verse: Schema.NullOr(Schema.Number),
+  ref_verse_end: Schema.NullOr(Schema.Number),
+  source: Schema.String,
+  preview_text: Schema.NullOr(Schema.String),
+});
 
-interface ClassificationRow {
-  ref_book: number;
-  ref_chapter: number;
-  ref_verse: number | null;
-  type: string;
-  confidence: number | null;
-}
+const ClassificationRow = Schema.Struct({
+  ref_book: Schema.Number,
+  ref_chapter: Schema.Number,
+  ref_verse: Schema.NullOr(Schema.Number),
+  type: Schema.String,
+  confidence: Schema.NullOr(Schema.Number),
+});
+type ClassificationRow = typeof ClassificationRow.Type;
 
-interface UserCrossRefRow {
-  id: string;
-  ref_book: number;
-  ref_chapter: number;
-  ref_verse: number | null;
-  ref_verse_end: number | null;
-  type: string | null;
-  note: string | null;
-  created_at: number;
-}
+const UserCrossRefRow = Schema.Struct({
+  id: Schema.String,
+  ref_book: Schema.Number,
+  ref_chapter: Schema.Number,
+  ref_verse: Schema.NullOr(Schema.Number),
+  ref_verse_end: Schema.NullOr(Schema.Number),
+  type: Schema.NullOr(Schema.String),
+  note: Schema.NullOr(Schema.String),
+  created_at: Schema.Number,
+});
 
-interface StrongsRow {
-  number: string;
-  language: string;
-  lemma: string;
-  transliteration: string | null;
-  pronunciation: string | null;
-  definition: string;
-  kjv_definition: string | null;
-}
+const StrongsRow = Schema.Struct({
+  number: Schema.String,
+  language: Schema.String,
+  lemma: Schema.String,
+  transliteration: Schema.NullOr(Schema.String),
+  pronunciation: Schema.NullOr(Schema.String),
+  definition: Schema.String,
+  kjv_definition: Schema.NullOr(Schema.String),
+});
 
-interface VerseWordRow {
-  word_index: number;
-  word_text: string;
-  strongs_numbers: string | null;
-}
+const VerseWordRow = Schema.Struct({
+  word_index: Schema.Number,
+  word_text: Schema.String,
+  strongs_numbers: Schema.NullOr(Schema.String),
+});
 
-interface MarginNoteRow {
-  verse?: number;
-  note_index: number;
-  note_type: string;
-  phrase: string;
-  note_text: string;
-}
+const MarginNoteRow = Schema.Struct({
+  note_index: Schema.Number,
+  note_type: Schema.String,
+  phrase: Schema.String,
+  note_text: Schema.String,
+});
 
-interface ConcordanceRow {
-  book: number;
-  chapter: number;
-  verse: number;
-  word_text: string | null;
-}
+const ChapterMarginNoteRow = Schema.Struct({
+  verse: Schema.Number,
+  note_index: Schema.Number,
+  note_type: Schema.String,
+  phrase: Schema.String,
+  note_text: Schema.String,
+});
 
-interface CollectionRow {
-  id: string;
-  name: string;
-  description: string | null;
-  color: string | null;
-  created_at: number;
-}
+const ConcordanceRow = Schema.Struct({
+  book: Schema.Number,
+  chapter: Schema.Number,
+  verse: Schema.Number,
+  word_text: Schema.NullOr(Schema.String),
+});
 
-interface CollectionVerseRow {
-  collection_id: string;
-  book: number;
-  chapter: number;
-  verse: number;
-  added_at: number;
-}
+const CollectionRow = Schema.Struct({
+  id: Schema.String,
+  name: Schema.String,
+  description: Schema.NullOr(Schema.String),
+  color: Schema.NullOr(Schema.String),
+  created_at: Schema.Number,
+});
 
-interface EGWCommentaryRow {
-  refcode_short: string;
-  book_code: string;
-  book_title: string;
-  content_text: string;
-  puborder: number;
-}
+const CollectionVerseRow = Schema.Struct({
+  collection_id: Schema.String,
+  book: Schema.Number,
+  chapter: Schema.Number,
+  verse: Schema.Number,
+  added_at: Schema.Number,
+});
 
-interface EGWContextRow {
-  refcode_short: string;
-  book_code: string;
-  content_text: string;
-  puborder: number;
-}
+const EGWCommentaryRow = Schema.Struct({
+  refcode_short: Schema.String,
+  book_code: Schema.String,
+  book_title: Schema.String,
+  content_text: Schema.String,
+  puborder: Schema.Number,
+});
 
-interface VerseMarkerRow {
-  id: string;
-  book: number;
-  chapter: number;
-  verse: number;
-  color: string;
-  created_at: number;
-}
+const EGWContextRow = Schema.Struct({
+  refcode_short: Schema.String,
+  book_code: Schema.String,
+  content_text: Schema.String,
+  puborder: Schema.Number,
+});
 
-interface VerseNoteRow {
-  id: string;
-  book: number;
-  chapter: number;
-  verse: number;
-  content: string;
-  created_at: number;
-}
+const VerseMarkerRow = Schema.Struct({
+  id: Schema.String,
+  book: Schema.Number,
+  chapter: Schema.Number,
+  verse: Schema.Number,
+  color: Schema.String,
+  created_at: Schema.Number,
+});
+
+const VerseNoteRow = Schema.Struct({
+  id: Schema.String,
+  book: Schema.Number,
+  chapter: Schema.Number,
+  verse: Schema.Number,
+  content: Schema.String,
+  created_at: Schema.Number,
+});
+
+const EGWChapterIndexRow = Schema.Struct({
+  chapter_index: Schema.Number,
+});
+
+const EGWNoteRow = Schema.Struct({
+  id: Schema.String,
+  book_code: Schema.String,
+  puborder: Schema.Number,
+  content: Schema.String,
+  created_at: Schema.Number,
+});
+
+const EGWMarkerRow = Schema.Struct({
+  id: Schema.String,
+  book_code: Schema.String,
+  puborder: Schema.Number,
+  color: Schema.String,
+  created_at: Schema.Number,
+});
 
 function classificationKey(book: number, chapter: number, verse: number | null): string {
   return `${book}:${chapter}:${verse ?? 0}`;
@@ -321,21 +349,24 @@ export class WebStudyDataService extends Context.Service<
         // Parallelize: rawRefs, classifications, and userRefs are independent
         const [rawRefs, classifications, userRefs] = yield* Effect.all(
           [
-            db.query<CrossRefRow>(
+            db.query(
+              CrossRefRow,
               'bible',
               `SELECT ref_book, ref_chapter, ref_verse, ref_verse_end, source, preview_text
                FROM cross_refs
                WHERE book = ? AND chapter = ? AND verse = ?`,
               [book, chapter, verse],
             ),
-            db.query<ClassificationRow>(
+            db.query(
+              ClassificationRow,
               'state',
               `SELECT ref_book, ref_chapter, ref_verse, type, confidence
                FROM cross_ref_classifications
                WHERE source_book = ? AND source_chapter = ? AND source_verse = ?`,
               [book, chapter, verse],
             ),
-            db.query<UserCrossRefRow>(
+            db.query(
+              UserCrossRefRow,
               'state',
               `SELECT id, ref_book, ref_chapter, ref_verse, ref_verse_end, type, note, created_at
                FROM user_cross_refs
@@ -387,7 +418,8 @@ export class WebStudyDataService extends Context.Service<
       const getStrongsEntry = Effect.fn('WebStudyDataService.getStrongsEntry')(function* (
         num: string,
       ) {
-        const rows = yield* db.query<StrongsRow>(
+        const rows = yield* db.query(
+          StrongsRow,
           'bible',
           'SELECT number, language, lemma, transliteration, pronunciation, definition, kjv_definition FROM strongs WHERE number = ?',
           [num],
@@ -410,7 +442,8 @@ export class WebStudyDataService extends Context.Service<
         chapter: number,
         verse: number,
       ) {
-        const rows = yield* db.query<VerseWordRow>(
+        const rows = yield* db.query(
+          VerseWordRow,
           'bible',
           'SELECT word_index, word_text, strongs_numbers FROM verse_words WHERE book = ? AND chapter = ? AND verse = ? ORDER BY word_index',
           [book, chapter, verse],
@@ -438,7 +471,8 @@ export class WebStudyDataService extends Context.Service<
         chapter: number,
         verse: number,
       ) {
-        const rows = yield* db.query<MarginNoteRow>(
+        const rows = yield* db.query(
+          MarginNoteRow,
           'bible',
           'SELECT note_index, note_type, phrase, note_text FROM margin_notes WHERE book = ? AND chapter = ? AND verse = ? ORDER BY note_index',
           [book, chapter, verse],
@@ -455,7 +489,8 @@ export class WebStudyDataService extends Context.Service<
 
       const getChapterMarginNotes = Effect.fn('WebStudyDataService.getChapterMarginNotes')(
         function* (book: number, chapter: number) {
-          const rows = yield* db.query<MarginNoteRow>(
+          const rows = yield* db.query(
+            ChapterMarginNoteRow,
             'bible',
             'SELECT verse, note_index, note_type, phrase, note_text FROM margin_notes WHERE book = ? AND chapter = ? ORDER BY verse, note_index',
             [book, chapter],
@@ -482,7 +517,8 @@ export class WebStudyDataService extends Context.Service<
       const searchByStrongs = Effect.fn('WebStudyDataService.searchByStrongs')(function* (
         num: string,
       ) {
-        const rows = yield* db.query<ConcordanceRow>(
+        const rows = yield* db.query(
+          ConcordanceRow,
           'bible',
           'SELECT book, chapter, verse, word_text FROM strongs_verses WHERE strongs_number = ? ORDER BY book, chapter, verse',
           [num],
@@ -568,7 +604,8 @@ export class WebStudyDataService extends Context.Service<
         book: number,
         chapter: number,
       ) {
-        const rows = yield* db.query<VerseMarkerRow>(
+        const rows = yield* db.query(
+          VerseMarkerRow,
           'state',
           'SELECT id, book, chapter, verse, color, created_at FROM verse_markers WHERE book = ? AND chapter = ? ORDER BY verse, created_at ASC',
           [book, chapter],
@@ -618,7 +655,8 @@ export class WebStudyDataService extends Context.Service<
         chapter: number,
         verse: number,
       ) {
-        const rows = yield* db.query<VerseNoteRow>(
+        const rows = yield* db.query(
+          VerseNoteRow,
           'state',
           'SELECT id, book, chapter, verse, content, created_at FROM verse_notes WHERE book = ? AND chapter = ? AND verse = ? ORDER BY created_at ASC',
           [book, chapter, verse],
@@ -657,7 +695,8 @@ export class WebStudyDataService extends Context.Service<
       });
 
       const getCollections = Effect.fn('WebStudyDataService.getCollections')(function* () {
-        const rows = yield* db.query<CollectionRow>(
+        const rows = yield* db.query(
+          CollectionRow,
           'state',
           'SELECT id, name, description, color, created_at FROM collections ORDER BY created_at DESC',
         );
@@ -702,7 +741,8 @@ export class WebStudyDataService extends Context.Service<
         chapter: number,
         verse: number,
       ) {
-        const rows = yield* db.query<CollectionRow>(
+        const rows = yield* db.query(
+          CollectionRow,
           'state',
           `SELECT c.id, c.name, c.description, c.color, c.created_at
            FROM collections c
@@ -746,7 +786,8 @@ export class WebStudyDataService extends Context.Service<
       const getCollectionVerses = Effect.fn('WebStudyDataService.getCollectionVerses')(function* (
         collectionId: string,
       ) {
-        const rows = yield* db.query<CollectionVerseRow>(
+        const rows = yield* db.query(
+          CollectionVerseRow,
           'state',
           'SELECT collection_id, book, chapter, verse, added_at FROM collection_verses WHERE collection_id = ? ORDER BY added_at DESC',
           [collectionId],
@@ -768,7 +809,8 @@ export class WebStudyDataService extends Context.Service<
         verse: number,
       ) {
         // Phase 1: Indexed results from paragraph_bible_refs
-        const indexedRows = yield* db.query<EGWCommentaryRow>(
+        const indexedRows = yield* db.query(
+          EGWCommentaryRow,
           'egw',
           `SELECT p.refcode_short, p.content_text, p.puborder, b.book_code, b.book_title
            FROM paragraphs p
@@ -810,7 +852,8 @@ export class WebStudyDataService extends Context.Service<
 
         const ftsQuery = ftsTerms.join(' OR ');
 
-        const searchRows = yield* db.query<EGWCommentaryRow>(
+        const searchRows = yield* db.query(
+          EGWCommentaryRow,
           'egw',
           `SELECT p.refcode_short, p.content_text, p.puborder, b.book_code, b.book_title
            FROM paragraphs p
@@ -846,7 +889,8 @@ export class WebStudyDataService extends Context.Service<
         bookCode: string,
         puborder: number,
       ) {
-        const rows = yield* db.query<{ chapter_index: number }>(
+        const rows = yield* db.query(
+          EGWChapterIndexRow,
           'egw',
           `SELECT COUNT(*) - 1 as chapter_index
            FROM paragraphs p
@@ -859,7 +903,8 @@ export class WebStudyDataService extends Context.Service<
 
       const getEgwParagraphContext = Effect.fn('WebStudyDataService.getEgwParagraphContext')(
         function* (bookCode: string, puborder: number, radius: number) {
-          const rows = yield* db.query<EGWContextRow>(
+          const rows = yield* db.query(
+            EGWContextRow,
             'egw',
             `SELECT p.refcode_short, p.content_text, p.puborder, b.book_code
              FROM paragraphs p
@@ -887,13 +932,8 @@ export class WebStudyDataService extends Context.Service<
         bookCode: string,
         puborder: number,
       ) {
-        const rows = yield* db.query<{
-          id: string;
-          book_code: string;
-          puborder: number;
-          content: string;
-          created_at: number;
-        }>(
+        const rows = yield* db.query(
+          EGWNoteRow,
           'state',
           'SELECT id, book_code, puborder, content, created_at FROM egw_notes WHERE book_code = ? AND puborder = ? ORDER BY created_at DESC',
           [bookCode, puborder],
@@ -932,13 +972,8 @@ export class WebStudyDataService extends Context.Service<
         startPuborder: number,
         endPuborder: number,
       ) {
-        const rows = yield* db.query<{
-          id: string;
-          book_code: string;
-          puborder: number;
-          color: string;
-          created_at: number;
-        }>(
+        const rows = yield* db.query(
+          EGWMarkerRow,
           'state',
           'SELECT id, book_code, puborder, color, created_at FROM egw_markers WHERE book_code = ? AND puborder >= ? AND puborder < ? ORDER BY puborder',
           [bookCode, startPuborder, endPuborder],
@@ -982,13 +1017,8 @@ export class WebStudyDataService extends Context.Service<
       const getEgwParagraphCollections = Effect.fn(
         'WebStudyDataService.getEgwParagraphCollections',
       )(function* (bookCode: string, puborder: number) {
-        const rows = yield* db.query<{
-          id: string;
-          name: string;
-          description: string | null;
-          color: string | null;
-          created_at: number;
-        }>(
+        const rows = yield* db.query(
+          CollectionRow,
           'state',
           `SELECT c.id, c.name, c.description, c.color, c.created_at
            FROM collections c

@@ -1,9 +1,11 @@
-import { Effect, Layer, Ref, Context } from 'effect';
+import { Effect, Layer, Ref, Context, Schema } from 'effect';
 import { DbClientService } from '../db-client-service';
 import type { DatabaseQueryError, WorkerError } from '../errors';
 import { SyncError } from '../errors';
 
 const SYNC_DEBOUNCE_MS = 30_000;
+
+const SyncMetaRow = Schema.Struct({ device_id: Schema.String });
 
 interface WebSyncServiceShape {
   readonly syncNow: () => Effect.Effect<void, DatabaseQueryError | WorkerError | SyncError>;
@@ -26,7 +28,8 @@ export class WebSyncService extends Context.Service<WebSyncService, WebSyncServi
         const cached = yield* Ref.get(deviceIdRef);
         if (cached) return cached;
 
-        const rows = yield* db.query<{ device_id: string }>(
+        const rows = yield* db.query(
+          SyncMetaRow,
           'state',
           'SELECT device_id FROM sync_meta WHERE id = 1',
         );

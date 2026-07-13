@@ -1,5 +1,5 @@
-import { Effect, Layer, Context } from 'effect';
-import type { ChapterResponse, SearchResult, Verse } from '@bible/api';
+import { Effect, Layer, Context, Schema } from 'effect';
+import { VerseSchema, type ChapterResponse, type SearchResult, type Verse } from '@bible/api';
 import {
   getNextChapter as getNextChapterNav,
   getPrevChapter as getPrevChapterNav,
@@ -10,12 +10,9 @@ import { DbClientService } from '../db-client-service';
 import type { DatabaseQueryError } from '../errors';
 import { RecordNotFoundError } from '../errors';
 
-interface VerseRow {
-  book: number;
-  chapter: number;
-  verse: number;
-  text: string;
-}
+const VerseRow = VerseSchema;
+type VerseRow = typeof VerseRow.Type;
+const CountedVerseRow = Schema.Struct({ ...VerseSchema.fields, total: Schema.Number });
 
 export interface SearchWithCountResult {
   results: readonly SearchResult[];
@@ -56,7 +53,8 @@ export class WebBibleService extends Context.Service<WebBibleService, WebBibleSe
         book: number,
         chapter: number,
       ) {
-        const verses = yield* db.query<VerseRow>(
+        const verses = yield* db.query(
+          VerseRow,
           'bible',
           'SELECT book, chapter, verse, text FROM verses WHERE book = ? AND chapter = ? ORDER BY verse',
           [book, chapter],
@@ -96,7 +94,8 @@ export class WebBibleService extends Context.Service<WebBibleService, WebBibleSe
         book: number,
         chapter: number,
       ) {
-        return yield* db.query<Verse>(
+        return yield* db.query(
+          VerseSchema,
           'bible',
           'SELECT book, chapter, verse, text FROM verses WHERE book = ? AND chapter = ? ORDER BY verse',
           [book, chapter],
@@ -109,7 +108,8 @@ export class WebBibleService extends Context.Service<WebBibleService, WebBibleSe
       ) {
         if (!query.trim()) return [] as readonly SearchResult[];
 
-        const rows = yield* db.query<VerseRow>(
+        const rows = yield* db.query(
+          VerseRow,
           'bible',
           `SELECT v.book, v.chapter, v.verse, v.text
            FROM verses_fts fts
@@ -163,7 +163,7 @@ export class WebBibleService extends Context.Service<WebBibleService, WebBibleSe
           params.push(limit, offset);
         }
 
-        const rows = yield* db.query<VerseRow & { total: number }>('bible', sql, params);
+        const rows = yield* db.query(CountedVerseRow, 'bible', sql, params);
 
         const total = rows[0]?.total ?? 0;
         const results: SearchResult[] = rows.map((r) => {
