@@ -1,7 +1,6 @@
-import { BibleDatabase, type CrossReference } from '@bible/core/bible-db';
+import type { BibleDatabaseService, CrossReference } from '@bible/core/bible-db';
 import type { CrossRefType } from '@bible/core/bible-cross-refs';
-import { BunServices } from '@effect/platform-bun';
-import { Effect, Layer, ManagedRuntime } from 'effect';
+import { Effect } from 'effect';
 
 import {
   type BibleStateService,
@@ -29,54 +28,16 @@ function classificationKey(book: number, chapter: number, verse: number | null):
   return `${book}:${chapter}:${verse ?? 0}`;
 }
 
-// Module-level runtime for BibleDatabase access
-const BibleDbLayer = BibleDatabase.Default.pipe(Layer.provideMerge(BunServices.layer));
-const dbRuntime = ManagedRuntime.make(BibleDbLayer);
-
-let dbInitialized = false;
-let dbInitPromise: Promise<void> | null = null;
-
-async function ensureDbInitialized(): Promise<void> {
-  if (dbInitialized) return;
-  if (dbInitPromise) return dbInitPromise;
-  dbInitPromise = dbRuntime
-    .runPromise(
-      Effect.gen(function* () {
-        return yield* BibleDatabase;
-      }),
-    )
-    .then(() => {
-      dbInitialized = true;
-    });
-  return dbInitPromise;
-}
-
-// Initialize at module load
-void ensureDbInitialized();
-
-function runDbSync<T>(effect: Effect.Effect<T, unknown, BibleDatabase>, defaultValue: T): T {
-  if (!dbInitialized) return defaultValue;
-  try {
-    return dbRuntime.runSync(effect);
-  } catch {
-    return defaultValue;
-  }
-}
-
 /**
  * CrossRefService merges bible.db cross-refs with state.db classifications and user refs.
- * Created with a BibleStateService instance (from app runtime).
+ * Created with services owned by the initialized app runtime.
  */
-export function createCrossRefService(state: BibleStateService) {
+export function createCrossRefService(state: BibleStateService, database: BibleDatabaseService) {
   return {
     getCrossRefs(book: number, chapter: number, verse: number): ClassifiedCrossReference[] {
       // 1. Get bible.db refs
-      const rawRefs = runDbSync(
-        Effect.gen(function* () {
-          const db = yield* BibleDatabase;
-          return yield* db.getCrossRefs(book, chapter, verse);
-        }),
-        [] as readonly CrossReference[],
+      const rawRefs: readonly CrossReference[] = Effect.runSync(
+        database.getCrossRefs(book, chapter, verse),
       );
 
       // 2. Build classification lookup map

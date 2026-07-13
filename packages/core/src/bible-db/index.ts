@@ -7,6 +7,7 @@
 
 export {
   BibleDatabase,
+  type BibleDatabaseService,
   type BibleDatabaseError,
   // Row schemas (for internal use / sync scripts)
   BookRow,

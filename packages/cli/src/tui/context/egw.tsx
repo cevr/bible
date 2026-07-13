@@ -7,12 +7,12 @@
  */
 
 import { createCache, type PromiseWithStatus } from '@bible/core/cache';
-import * as EGWDbBun from '@bible/core/egw-db/bun';
 import { Reference, type Paragraph, type Publication } from '@bible/core/writings';
 import { WritingsService } from '@bible/core/writings/service';
-import { BunServices } from '@effect/platform-bun';
-import { Effect, Layer, ManagedRuntime, Option } from 'effect';
+import { Effect, Option } from 'effect';
 import { createContext, useContext, type ParentProps } from 'solid-js';
+
+import { useAppRuntime, type AppServices } from '../lib/index.js';
 
 /** Reader position persisted by the TUI; this is presentation state, not writings-domain identity. */
 export interface EGWReaderPosition {
@@ -24,56 +24,6 @@ export interface EGWReaderPosition {
 
 // Re-export canonical types for convenience to TUI consumers.
 export type { Paragraph, Publication };
-
-// Create combined layer with all dependencies
-const EGWServicesLayer = WritingsService.Live.pipe(
-  Layer.provideMerge(EGWDbBun.Default),
-  Layer.provideMerge(BunServices.layer),
-);
-
-// Create ManagedRuntime
-const runtime = ManagedRuntime.make(EGWServicesLayer);
-
-// Create caches for each operation
-export const booksCache = createCache(async () =>
-  runtime.runPromise(
-    Effect.gen(function* () {
-      const service = yield* WritingsService;
-      return yield* service.catalog('Ellen Gould White');
-    }),
-  ),
-);
-
-export const bookCache = createCache(async (bookCode: string) =>
-  runtime.runPromise(
-    Effect.gen(function* () {
-      const service = yield* WritingsService;
-      return yield* service
-        .publication(Reference.publication(bookCode))
-        .pipe(Effect.option, Effect.map(Option.getOrUndefined));
-    }),
-  ),
-);
-
-export const paragraphsCache = createCache(async (bookCode: string) =>
-  runtime.runPromise(
-    Effect.gen(function* () {
-      const service = yield* WritingsService;
-      return yield* service.paragraphs(Reference.publication(bookCode));
-    }),
-  ),
-);
-
-export const searchCache = createCache(async (query: string, limit: number = 50) =>
-  runtime.runPromise(
-    Effect.gen(function* () {
-      const service = yield* WritingsService;
-      return yield* service
-        .search(query, { limit })
-        .pipe(Effect.map((hits) => hits.map((hit) => hit.paragraph)));
-    }),
-  ),
-);
 
 interface EGWContextValue {
   /** Get all books */
@@ -94,18 +44,46 @@ interface EGWContextValue {
 
 const EGWContext = createContext<EGWContextValue>();
 
-const egwService: EGWContextValue = {
-  getBooks: () => booksCache.get(),
-  getBookByCode: (bookCode) => bookCache.get(bookCode),
-  getParagraphsByBookCode: (bookCode) => paragraphsCache.get(bookCode),
-  searchParagraphs: (query, limit = 50) => searchCache.get(query, limit),
-  peekBooks: () => booksCache.peek(),
-  peekBook: (bookCode) => bookCache.peek(bookCode),
-  peekParagraphs: (bookCode) => paragraphsCache.peek(bookCode),
-};
-
 export function EGWProvider(props: ParentProps) {
-  return <EGWContext.Provider value={egwService}>{props.children}</EGWContext.Provider>;
+  const runtime = useAppRuntime<AppServices>();
+  const run = <A, E>(effect: Effect.Effect<A, E, AppServices>) => runtime.runPromise(effect);
+
+  const booksCache = createCache(async () =>
+    run(WritingsService.use((service) => service.catalog('Ellen Gould White'))),
+  );
+  const bookCache = createCache(async (bookCode: string) =>
+    run(
+      WritingsService.use((service) =>
+        service
+          .publication(Reference.publication(bookCode))
+          .pipe(Effect.option, Effect.map(Option.getOrUndefined)),
+      ),
+    ),
+  );
+  const paragraphsCache = createCache(async (bookCode: string) =>
+    run(WritingsService.use((service) => service.paragraphs(Reference.publication(bookCode)))),
+  );
+  const searchCache = createCache(async (query: string, limit: number = 50) =>
+    run(
+      WritingsService.use((service) =>
+        service
+          .search(query, { limit })
+          .pipe(Effect.map((hits) => hits.map((hit) => hit.paragraph))),
+      ),
+    ),
+  );
+
+  const value: EGWContextValue = {
+    getBooks: () => booksCache.get(),
+    getBookByCode: (bookCode) => bookCache.get(bookCode),
+    getParagraphsByBookCode: (bookCode) => paragraphsCache.get(bookCode),
+    searchParagraphs: (query, limit = 50) => searchCache.get(query, limit),
+    peekBooks: () => booksCache.peek(),
+    peekBook: (bookCode) => bookCache.peek(bookCode),
+    peekParagraphs: (bookCode) => paragraphsCache.peek(bookCode),
+  };
+
+  return <EGWContext.Provider value={value}>{props.children}</EGWContext.Provider>;
 }
 
 export function useEGW(): EGWContextValue {

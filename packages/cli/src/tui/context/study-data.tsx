@@ -15,8 +15,7 @@ import {
   type ConcordanceResult,
 } from '@bible/core/bible-db';
 import type { CrossRefType } from '@bible/core/bible-cross-refs';
-import { BunServices } from '@effect/platform-bun';
-import { Effect, Layer, ManagedRuntime, Option } from 'effect';
+import { Effect, Option } from 'effect';
 import { createContext, useContext, type ParentProps } from 'solid-js';
 
 import { BibleState } from '../../data/bible/state.js';
@@ -27,7 +26,7 @@ import {
   type CrossRefServiceInstance,
 } from '../../data/study/cross-refs.js';
 import { classifySingleCrossRef, classifyVerseCrossRefs } from '../../data/study/classification.js';
-import { appRuntime } from '../lib/app-runtime.js';
+import { useAppRuntime, type AppServices } from '../lib/index.js';
 
 // Re-export types from BibleDatabase for consumers
 export type {
@@ -71,53 +70,9 @@ export interface MarginNoteCompat {
   text: string;
 }
 
-// Create combined layer with all dependencies
-const BibleServicesLayer = BibleDatabase.Default.pipe(Layer.provideMerge(BunServices.layer));
-
-// Create ManagedRuntime
-const runtime = ManagedRuntime.make(BibleServicesLayer);
-
-// Module-level flag to track initialization
-let initialized = false;
-
-// Initialization promise
-let initPromise: Promise<void> | null = null;
-
-async function ensureInitialized(): Promise<void> {
-  if (initialized) return;
-  if (initPromise) return initPromise;
-
-  initPromise = runtime
-    .runPromise(
-      Effect.gen(function* () {
-        // Just access the database to trigger initialization
-        const db = yield* BibleDatabase;
-        yield* db.getBooks();
-      }),
-    )
-    .then(() => {
-      initialized = true;
-    });
-
-  return initPromise;
-}
-
-// Helper to run an effect synchronously if possible
-function runSync<T>(effect: Effect.Effect<T, unknown, BibleDatabase>, defaultValue: T): T {
-  if (!initialized) return defaultValue;
-  try {
-    return runtime.runSync(effect);
-  } catch {
-    return defaultValue;
-  }
-}
-
 interface StudyDataContextValue {
   /** Whether the database is still loading */
   isLoading: () => boolean;
-
-  /** Error from database initialization (if any) */
-  error: () => Error | undefined;
 
   /** Get enriched cross-references for a verse (returns empty array if not ready) */
   getCrossRefs: (book: number, chapter: number, verse: number) => ClassifiedCrossReference[];
@@ -178,62 +133,22 @@ interface StudyDataContextValue {
 
 const StudyDataContext = createContext<StudyDataContextValue>();
 
-// Initialize the database at module load time
-void ensureInitialized();
-
 export function StudyDataProvider(props: ParentProps) {
-  // Lazy cross-ref service (needs BibleState from bible context)
-  let crossRefSvc: CrossRefServiceInstance | null = null;
-  function getCrossRefSvc(): CrossRefServiceInstance | null {
-    if (crossRefSvc !== null) return crossRefSvc;
-    try {
-      // Get BibleState from the app runtime (available after BibleProvider mounts)
-      const state = appRuntime.runSync(
-        Effect.gen(function* () {
-          return yield* BibleState;
-        }),
-      );
-      crossRefSvc = createCrossRefService(state);
-      return crossRefSvc;
-    } catch {
-      return null;
-    }
-  }
+  const runtime = useAppRuntime<AppServices>();
+  const runSync = <A, E>(effect: Effect.Effect<A, E, AppServices>): A => runtime.runSync(effect);
+  const services = runSync(
+    Effect.gen(function* () {
+      return { database: yield* BibleDatabase, state: yield* BibleState };
+    }),
+  );
+  const crossRefSvc: CrossRefServiceInstance = createCrossRefService(
+    services.state,
+    services.database,
+  );
 
   // Wrap database methods to handle loading state
-  const getCrossRefs = (
-    book: number,
-    chapter: number,
-    verse: number,
-  ): ClassifiedCrossReference[] => {
-    const svc = getCrossRefSvc();
-    if (svc !== null) {
-      return svc.getCrossRefs(book, chapter, verse);
-    }
-    // Fallback: raw refs without classifications
-    return runSync(
-      Effect.gen(function* () {
-        const db = yield* BibleDatabase;
-        const refs = yield* db.getCrossRefs(book, chapter, verse);
-        return refs.map(
-          (r: CrossReference): ClassifiedCrossReference => ({
-            book: r.book,
-            chapter: r.chapter,
-            verse: r.verse,
-            verseEnd: r.verseEnd,
-            source: r.source,
-            previewText: r.previewText,
-            classification: null,
-            confidence: null,
-            isUserAdded: false,
-            userNote: null,
-            userRefId: null,
-          }),
-        );
-      }),
-      [],
-    );
-  };
+  const getCrossRefs = (book: number, chapter: number, verse: number): ClassifiedCrossReference[] =>
+    crossRefSvc.getCrossRefs(book, chapter, verse);
 
   const getStrongsEntry = (number: string): StrongsEntryCompat | null =>
     runSync(
@@ -252,7 +167,6 @@ export function StudyDataProvider(props: ParentProps) {
           }),
         });
       }),
-      null,
     );
 
   const getVerseWords = (book: number, chapter: number, verse: number): WordWithStrongs[] =>
@@ -265,7 +179,6 @@ export function StudyDataProvider(props: ParentProps) {
           strongs: w.strongsNumbers ?? undefined,
         }));
       }),
-      [],
     );
 
   const getMarginNotes = (book: number, chapter: number, verse: number): MarginNoteCompat[] =>
@@ -279,7 +192,6 @@ export function StudyDataProvider(props: ParentProps) {
           text: n.text,
         }));
       }),
-      [],
     );
 
   const searchByStrongs = (strongsNumber: string): ConcordanceResultCompat[] =>
@@ -294,7 +206,6 @@ export function StudyDataProvider(props: ParentProps) {
           word: r.word ?? '',
         }));
       }),
-      [],
     );
 
   const getStrongsOccurrenceCount = (strongsNumber: string): number =>
@@ -303,7 +214,6 @@ export function StudyDataProvider(props: ParentProps) {
         const db = yield* BibleDatabase;
         return yield* db.getStrongsCount(strongsNumber);
       }),
-      0,
     );
 
   const searchStrongsByDefinition = (query: string): StrongsEntryCompat[] =>
@@ -320,13 +230,10 @@ export function StudyDataProvider(props: ParentProps) {
           kjvDef: e.kjvDefinition ?? undefined,
         }));
       }),
-      [],
     );
 
-  const isClassified = (book: number, chapter: number, verse: number): boolean => {
-    const svc = getCrossRefSvc();
-    return svc !== null ? svc.isClassified(book, chapter, verse) : false;
-  };
+  const isClassified = (book: number, chapter: number, verse: number): boolean =>
+    crossRefSvc.isClassified(book, chapter, verse);
 
   const classifyVerse = async (
     book: number,
@@ -334,10 +241,8 @@ export function StudyDataProvider(props: ParentProps) {
     verse: number,
     models: { high: LanguageModel; low: LanguageModel },
   ): Promise<void> => {
-    const svc = getCrossRefSvc();
-    if (svc === null) return;
     try {
-      await classifyVerseCrossRefs(book, chapter, verse, svc, models);
+      await classifyVerseCrossRefs(book, chapter, verse, crossRefSvc, models);
     } catch {
       // AI not available — silently fail
     }
@@ -348,10 +253,8 @@ export function StudyDataProvider(props: ParentProps) {
     target: ClassifiedCrossReference,
     models: { high: LanguageModel; low: LanguageModel },
   ): Promise<void> => {
-    const svc = getCrossRefSvc();
-    if (svc === null) return;
     try {
-      await classifySingleCrossRef(source, target, svc, models);
+      await classifySingleCrossRef(source, target, crossRefSvc, models);
     } catch {
       // AI not available — silently fail
     }
@@ -362,9 +265,7 @@ export function StudyDataProvider(props: ParentProps) {
     target: ClassifiedCrossReference,
     type: CrossRefType,
   ): void => {
-    const svc = getCrossRefSvc();
-    if (svc === null) return;
-    svc.saveClassification(source.book, source.chapter, source.verse, {
+    crossRefSvc.saveClassification(source.book, source.chapter, source.verse, {
       refBook: target.book,
       refChapter: target.chapter,
       refVerse: target.verse,
@@ -379,24 +280,14 @@ export function StudyDataProvider(props: ParentProps) {
     source: { book: number; chapter: number; verse: number },
     target: { book: number; chapter: number; verse?: number; verseEnd?: number },
     options?: { type?: CrossRefType; note?: string },
-  ): UserCrossRef => {
-    const svc = getCrossRefSvc();
-    if (svc === null) {
-      throw new Error('CrossRefService not initialized');
-    }
-    return svc.addUserRef(source, target, options);
-  };
+  ): UserCrossRef => crossRefSvc.addUserRef(source, target, options);
 
   const removeUserCrossRef = (id: string): void => {
-    const svc = getCrossRefSvc();
-    if (svc !== null) {
-      svc.removeUserRef(id);
-    }
+    crossRefSvc.removeUserRef(id);
   };
 
   const value: StudyDataContextValue = {
-    isLoading: () => !initialized,
-    error: () => undefined,
+    isLoading: () => false,
     getCrossRefs,
     isClassified,
     classifyVerse,

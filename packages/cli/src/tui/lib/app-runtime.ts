@@ -19,7 +19,7 @@ import { BibleStateLive } from '../../data/bible/state.js';
 /**
  * All services available in the TUI app runtime
  */
-export type AppServices = BibleState | BibleService | WritingsService;
+export type AppServices = BibleDatabase | BibleState | BibleService | WritingsService;
 
 /**
  * BibleDatabase layer that ensures bible.db is downloaded before connecting.
@@ -39,7 +39,7 @@ const BibleDatabaseWithSync = Layer.unwrap(
  */
 export const AppLayer = Layer.mergeAll(
   BibleStateLive,
-  BibleService.Live.pipe(Layer.provide(BibleDatabaseWithSync)),
+  BibleService.Live.pipe(Layer.provideMerge(BibleDatabaseWithSync)),
   WritingsService.Live.pipe(Layer.provide(EGWDbBun.Default)),
 ).pipe(Layer.provide(BunServices.layer));
 
