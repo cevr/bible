@@ -79,7 +79,6 @@ export function NavigationProvider(props: ParentProps<NavigationProviderProps>) 
   createEffect(() => {
     const pos = position();
     state.setLastPosition(pos);
-    state.addToHistory(pos);
   });
 
   const goTo = (ref: BibleRouteReference) => {

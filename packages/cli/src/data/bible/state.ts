@@ -15,18 +15,6 @@ import { Effect, Layer, Context, Option, Schema } from 'effect';
 
 export type Position = VerseReference;
 
-export interface Bookmark {
-  readonly id: string;
-  readonly reference: BibleRouteReferenceType;
-  readonly note?: string;
-  readonly createdAt: number;
-}
-
-export interface HistoryEntry {
-  readonly reference: BibleRouteReferenceType;
-  readonly visitedAt: number;
-}
-
 const DisplayMode = Schema.Literals(['verse', 'paragraph']);
 export const Preferences = Schema.Struct({ theme: Schema.String, displayMode: DisplayMode });
 export type Preferences = typeof Preferences.Type;
@@ -86,23 +74,6 @@ function initDatabase(db: Database) {
       verse INTEGER NOT NULL
     );
 
-    CREATE TABLE IF NOT EXISTS bookmarks (
-      id TEXT PRIMARY KEY,
-      book INTEGER NOT NULL,
-      chapter INTEGER NOT NULL,
-      verse INTEGER,
-      note TEXT,
-      created_at INTEGER NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS history (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      book INTEGER NOT NULL,
-      chapter INTEGER NOT NULL,
-      verse INTEGER,
-      visited_at INTEGER NOT NULL
-    );
-
     CREATE TABLE IF NOT EXISTS preferences (
       id INTEGER PRIMARY KEY CHECK (id = 1),
       theme TEXT NOT NULL DEFAULT 'system',
@@ -135,9 +106,6 @@ function initDatabase(db: Database) {
 
     -- Initialize default preferences if not exists
     INSERT OR IGNORE INTO preferences (id, theme, display_mode) VALUES (1, 'system', 'verse');
-
-    -- Create index for history queries
-    CREATE INDEX IF NOT EXISTS idx_history_visited_at ON history(visited_at DESC);
 
     -- Cross-reference classifications (AI-generated, cached permanently)
     CREATE TABLE IF NOT EXISTS cross_ref_classifications (
@@ -197,12 +165,6 @@ export interface CachedPalette {
 export interface BibleStateService {
   readonly getLastPosition: () => Position;
   readonly setLastPosition: (pos: Position) => void;
-  readonly getBookmarks: () => Bookmark[];
-  readonly addBookmark: (ref: BibleRouteReferenceType, note?: string) => Bookmark;
-  readonly removeBookmark: (id: string) => void;
-  readonly getHistory: (limit?: number) => HistoryEntry[];
-  readonly addToHistory: (ref: BibleRouteReferenceType) => void;
-  readonly clearHistory: () => void;
   readonly getPreferences: () => Preferences;
   readonly setPreferences: (prefs: Partial<Preferences>) => void;
   readonly getCachedAISearch: (query: string) => readonly BibleRouteReferenceType[] | undefined;
@@ -251,31 +213,6 @@ function createBibleStateService(): BibleStateService {
   const setPositionStmt = db.prepare(
     'UPDATE position SET book = ?, chapter = ?, verse = ? WHERE id = 1',
   );
-
-  const getBookmarksStmt = db.prepare<
-    {
-      id: string;
-      book: number;
-      chapter: number;
-      verse: number | null;
-      note: string | null;
-      created_at: number;
-    },
-    []
-  >('SELECT id, book, chapter, verse, note, created_at FROM bookmarks ORDER BY created_at DESC');
-  const addBookmarkStmt = db.prepare(
-    'INSERT INTO bookmarks (id, book, chapter, verse, note, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-  );
-  const removeBookmarkStmt = db.prepare('DELETE FROM bookmarks WHERE id = ?');
-
-  const getHistoryStmt = db.prepare<
-    { book: number; chapter: number; verse: number | null; visited_at: number },
-    [number]
-  >('SELECT book, chapter, verse, visited_at FROM history ORDER BY visited_at DESC LIMIT ?');
-  const addHistoryStmt = db.prepare(
-    'INSERT INTO history (book, chapter, verse, visited_at) VALUES (?, ?, ?, ?)',
-  );
-  const clearHistoryStmt = db.prepare('DELETE FROM history');
 
   const getPreferencesStmt = db.prepare<{ theme: string; display_mode: string }, []>(
     'SELECT theme, display_mode FROM preferences WHERE id = 1',
@@ -369,66 +306,6 @@ function createBibleStateService(): BibleStateService {
 
     setLastPosition(pos: Position): void {
       setPositionStmt.run(pos.book, pos.chapter, pos.verse);
-    },
-
-    getBookmarks(): Bookmark[] {
-      const rows = getBookmarksStmt.all();
-      return rows.map((row) => ({
-        id: row.id,
-        reference:
-          row.verse === null
-            ? Reference.chapter(row.book, row.chapter)
-            : Reference.verse(row.book, row.chapter, row.verse),
-        note: row.note ?? undefined,
-        createdAt: row.created_at,
-      }));
-    },
-
-    addBookmark(ref: BibleRouteReferenceType, note?: string): Bookmark {
-      const id = generateUuid();
-      const createdAt = Date.now();
-      addBookmarkStmt.run(
-        id,
-        ref.book,
-        ref.chapter,
-        ref._tag === 'verse' ? ref.verse : null,
-        note ?? null,
-        createdAt,
-      );
-      return {
-        id,
-        reference: ref,
-        note,
-        createdAt,
-      };
-    },
-
-    removeBookmark(id: string): void {
-      removeBookmarkStmt.run(id);
-    },
-
-    getHistory(limit = 100): HistoryEntry[] {
-      const rows = getHistoryStmt.all(limit);
-      return rows.map((row) => ({
-        reference:
-          row.verse === null
-            ? Reference.chapter(row.book, row.chapter)
-            : Reference.verse(row.book, row.chapter, row.verse),
-        visitedAt: row.visited_at,
-      }));
-    },
-
-    addToHistory(ref: BibleRouteReferenceType): void {
-      addHistoryStmt.run(
-        ref.book,
-        ref.chapter,
-        ref._tag === 'verse' ? ref.verse : null,
-        Date.now(),
-      );
-    },
-
-    clearHistory(): void {
-      clearHistoryStmt.run();
     },
 
     getPreferences(): Preferences {

@@ -8,13 +8,11 @@
  * ```ts
  * import { SabbathSchool } from "@bible/core/sabbath-school";
  * import { AiService } from "@bible/core/ai";
- * import { StorageAdapter, ExportAdapter } from "@bible/core/adapters";
  * import { BIBLE_BOOKS, getBibleBook } from "@bible/core/bible";
  * ```
  */
 
 // Re-export main modules
-export * from './adapters/index.js';
 export * from './ai/index.js';
 export * from './sabbath-school/index.js';
 export * from './bible/index.js';
