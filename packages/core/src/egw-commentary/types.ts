@@ -4,6 +4,8 @@
  * Types for Bible commentary from EGW writings.
  */
 
+import type { VerseReference } from '../bible/model.js';
+
 /**
  * A single commentary entry for a Bible verse
  */
@@ -18,18 +20,6 @@ export interface CommentaryEntry {
   readonly content: string;
   /** Publication order in the original book */
   readonly puborder: number;
-}
-
-/**
- * Bible verse reference for commentary lookup
- */
-export interface VerseReference {
-  /** Bible book number (1-66) */
-  readonly book: number;
-  /** Chapter number */
-  readonly chapter: number;
-  /** Verse number */
-  readonly verse: number;
 }
 
 /**

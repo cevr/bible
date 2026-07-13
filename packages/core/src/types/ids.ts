@@ -8,31 +8,6 @@
 import { Schema } from 'effect';
 
 // ============================================================================
-// EGW Types
-// ============================================================================
-
-/**
- * EGW Book ID (numeric identifier)
- */
-export const EGWBookId = Schema.Number.pipe(
-  Schema.check(Schema.isInt(), Schema.isGreaterThan(0)),
-  Schema.brand('EGWBookId'),
-);
-export type EGWBookId = typeof EGWBookId.Type;
-
-/**
- * EGW Paragraph ID (string identifier)
- */
-export const EGWParagraphId = Schema.String.pipe(Schema.brand('EGWParagraphId'));
-export type EGWParagraphId = typeof EGWParagraphId.Type;
-
-/**
- * EGW Reference code (e.g., "DA 25.1")
- */
-export const EGWRefCode = Schema.String.pipe(Schema.brand('EGWRefCode'));
-export type EGWRefCode = typeof EGWRefCode.Type;
-
-// ============================================================================
 // Hymnal Types
 // ============================================================================
 
@@ -66,21 +41,6 @@ export type VerseId = typeof VerseId.Type;
 // ============================================================================
 // Utility Functions
 // ============================================================================
-
-/**
- * Create an EGW book ID from a raw number.
- */
-export const egwBookId = (n: number): EGWBookId => Schema.decodeSync(EGWBookId)(n);
-
-/**
- * Create an EGW paragraph ID from a raw string.
- */
-export const egwParagraphId = (s: string): EGWParagraphId => Schema.decodeSync(EGWParagraphId)(s);
-
-/**
- * Create an EGW reference code from a raw string.
- */
-export const egwRefCode = (s: string): EGWRefCode => Schema.decodeSync(EGWRefCode)(s);
 
 /**
  * Create a hymn ID from a raw number.

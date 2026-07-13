@@ -7,10 +7,11 @@
 
 import { Context, Effect, Layer, Option, Schema } from 'effect';
 
+import type { VerseReference } from '../bible/model.js';
 import { EGWParagraphDatabase } from '../egw-db/book-database.js';
 import { nodesToText } from '../egw/ast.js';
 import type * as EGWSchemas from '../egw/schemas.js';
-import type { CommentaryEntry, CommentaryResult, VerseReference } from './types.js';
+import type { CommentaryEntry, CommentaryResult } from './types.js';
 
 /**
  * Error types for the commentary service

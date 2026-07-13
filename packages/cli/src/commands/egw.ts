@@ -25,7 +25,7 @@ import {
   type EGWSearchQuery,
   type Schemas as EGWSchemas,
 } from '@bible/core/egw';
-import { parseBibleQuery } from '@bible/core/bible';
+import { parseBibleQuery, Reference as BibleReference } from '@bible/core/bible';
 import { EGWCommentaryService } from '@bible/core/egw-commentary';
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
 import * as EGWDbBun from '@bible/core/egw-db/bun';
@@ -1150,11 +1150,11 @@ export const egwCommentary = Command.make(
         return yield* Effect.sync(() => process.exit(1));
       }
 
-      const verseRef = {
-        book: parsed.ref.book,
-        chapter: parsed.ref.chapter,
-        verse: parsed.ref.verse ?? 1,
-      };
+      const verseRef = BibleReference.verse(
+        parsed.ref.book,
+        parsed.ref.chapter,
+        parsed.ref.verse ?? 1,
+      );
 
       const service = yield* EGWCommentaryService;
       const result = yield* service.getCommentary(verseRef);

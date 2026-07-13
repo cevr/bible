@@ -11,6 +11,7 @@ import { Effect, Option } from 'effect';
 
 import { z } from 'zod';
 
+import { Reference as BibleReference } from '../bible/model.js';
 import { EGWCommentaryService } from '../egw-commentary/service.js';
 import { nodesToText } from '../egw/ast.js';
 import {
@@ -220,11 +221,12 @@ function executeEGWTool(
           return 'Error: book, chapter, and verse are required for commentaryForVerse action';
         }
         const { book, chapter, verse } = input;
+        const bibleReference = BibleReference.verse(book, chapter, verse);
         const commentary = yield* EGWCommentaryService;
-        const result = yield* commentary.getCommentary({ book, chapter, verse }).pipe(
+        const result = yield* commentary.getCommentary(bibleReference).pipe(
           Effect.catch(() =>
             Effect.succeed({
-              verse: { book, chapter, verse },
+              verse: bibleReference,
               entries: [] as const,
             }),
           ),
