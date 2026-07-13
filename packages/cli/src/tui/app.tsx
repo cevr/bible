@@ -2,7 +2,7 @@ import { isRoute, Route } from '@bible/core/app';
 import type { BibleRouteReference, EGWLocation } from '@bible/core/app';
 import { render, useKeyboard, useRenderer, useTerminalDimensions } from '@opentui/solid';
 import type { ManagedRuntime } from 'effect';
-import { createResource, createSignal, Match, Show, Switch } from 'solid-js';
+import { createSignal, Match, Show, Switch } from 'solid-js';
 
 import { ToolsPalette } from './components/shared/tools-palette.js';
 import { BibleProvider } from './context/bible.js';
@@ -46,7 +46,7 @@ interface AppProps {
   /** Open the EGW reader, optionally at a parsed location. */
   initialEgw?: true | EGWLocation;
   model?: ModelService | null;
-  runtime?: ManagedRuntime.ManagedRuntime<AppServices, unknown>;
+  runtime: ManagedRuntime.ManagedRuntime<AppServices, unknown>;
 }
 
 /**
@@ -255,25 +255,7 @@ function AppWithRuntime(
 
 // Export App for testing
 export function App(props: AppProps) {
-  if (props.runtime !== undefined) {
-    return <AppWithRuntime {...props} runtime={props.runtime} />;
-  }
-
-  // Load runtime asynchronously
-  const [runtime] = createResource(getAppRuntime);
-
-  return (
-    <Show
-      when={runtime()}
-      fallback={
-        <box>
-          <text>Loading...</text>
-        </box>
-      }
-    >
-      {(rt) => <AppWithRuntime {...props} runtime={rt()} />}
-    </Show>
-  );
+  return <AppWithRuntime {...props} runtime={props.runtime} />;
 }
 
 export interface TuiOptions {
@@ -284,9 +266,11 @@ export interface TuiOptions {
 }
 
 export async function tui(options?: TuiOptions) {
+  const runtime = await getAppRuntime();
   await render(
     () => (
       <App
+        runtime={runtime}
         initialRef={options?.initialRef}
         initialEgw={options?.initialEgw}
         model={options?.model}

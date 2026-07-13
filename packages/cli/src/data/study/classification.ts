@@ -121,16 +121,12 @@ export const classifyVerseCrossRefs = Effect.fn('CrossReferenceClassification.cl
     const db = yield* BibleDatabase;
 
     // Get raw refs
-    const rawRefs = yield* db
-      .getCrossRefs(book, chapter, verse)
-      .pipe(Effect.catch(() => Effect.succeed([] as readonly CrossReference[])));
+    const rawRefs: readonly CrossReference[] = yield* db.getCrossRefs(book, chapter, verse);
 
     if (rawRefs.length === 0) return crossRefService.getCrossRefs(book, chapter, verse);
 
     // Get source verse text
-    const sourceVerse = yield* db
-      .getVerse(book, chapter, verse)
-      .pipe(Effect.catch(() => Effect.succeed(Option.none())));
+    const sourceVerse = yield* db.getVerse(book, chapter, verse);
     const sourceText = Option.match(sourceVerse, {
       onNone: () => '',
       onSome: (source) => source.text.slice(0, 200),
@@ -154,16 +150,14 @@ ${refLines.join('\n')}
 
 Classify each reference using the decision tree.`;
 
-      const aiResult = yield* ai
-        .generateObject({
-          model: 'low',
-          messages: [
-            { role: 'system', content: SYSTEM_PROMPT },
-            { role: 'user', content: userMessage },
-          ],
-          schema: ClassificationResult,
-        })
-        .pipe(Effect.catch(() => Effect.succeed({ object: { classifications: [] } })));
+      const aiResult = yield* ai.generateObject({
+        model: 'low',
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: userMessage },
+        ],
+        schema: ClassificationResult,
+      });
 
       for (const classification of aiResult.object.classifications) {
         allClassifications.push({
@@ -200,9 +194,7 @@ export const classifySingleCrossRef = Effect.fn('CrossReferenceClassification.cl
   const db = yield* BibleDatabase;
 
   // Get source verse text
-  const sourceVerse = yield* db
-    .getVerse(source.book, source.chapter, source.verse)
-    .pipe(Effect.catch(() => Effect.succeed(Option.none())));
+  const sourceVerse = yield* db.getVerse(source.book, source.chapter, source.verse);
   const sourceText = Option.match(sourceVerse, {
     onNone: () => '',
     onSome: (verse) => verse.text.slice(0, 200),
@@ -210,9 +202,7 @@ export const classifySingleCrossRef = Effect.fn('CrossReferenceClassification.cl
 
   // Get target verse text
   const targetVerse = target.verse ?? 1;
-  const targetVerseResult = yield* db
-    .getVerse(target.book, target.chapter, targetVerse)
-    .pipe(Effect.catch(() => Effect.succeed(Option.none())));
+  const targetVerseResult = yield* db.getVerse(target.book, target.chapter, targetVerse);
   const targetText = Option.match(targetVerseResult, {
     onNone: () => target.previewText ?? '',
     onSome: (verse) => verse.text.slice(0, 200),
@@ -224,18 +214,14 @@ Target reference (${target.book}:${target.chapter}:${target.verse ?? 'chapter'})
 
 Classify this single cross-reference using the decision tree.`;
 
-  const aiResult = yield* ai
-    .generateObject({
-      model: 'low',
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: userMessage },
-      ],
-      schema: SingleClassificationResult,
-    })
-    .pipe(Effect.catch(() => Effect.succeed(null)));
-
-  if (aiResult === null) return null;
+  const aiResult = yield* ai.generateObject({
+    model: 'low',
+    messages: [
+      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'user', content: userMessage },
+    ],
+    schema: SingleClassificationResult,
+  });
 
   const classification: CrossRefClassification = {
     refBook: target.book,

@@ -78,6 +78,7 @@ export function CrossRefsPopup(props: CrossRefsPopupProps) {
   const [structureLoading, setStructureLoading] = createSignal(false);
   const [selectedStructureIndex, setSelectedStructureIndex] = createSignal(0);
   const [classifying, setClassifying] = createSignal(false);
+  const [classificationError, setClassificationError] = createSignal<string | null>(null);
   const [addingRef, setAddingRef] = createSignal(false);
   const [addRefInput, setAddRefInput] = createSignal('');
   const [typingMode, setTypingMode] = createSignal(false);
@@ -263,13 +264,15 @@ export function CrossRefsPopup(props: CrossRefsPopupProps) {
     const selected = refs[selectedIndex()];
     if (!selected) return;
     setClassifying(true);
+    setClassificationError(null);
     studyData.crossReferences
-      .classify(props.verseRef, selected.ref, model.models)
+      .classify(props.verseRef, selected.ref)
       .then(() => {
         setRefreshKey((k) => k + 1);
         setClassifying(false);
       })
       .catch(() => {
+        setClassificationError('Unable to classify this reference');
         setClassifying(false);
       });
   };
@@ -278,13 +281,15 @@ export function CrossRefsPopup(props: CrossRefsPopupProps) {
   const handleClassifyAll = () => {
     if (classifying() || model === null) return;
     setClassifying(true);
+    setClassificationError(null);
     studyData.crossReferences
-      .classifyVerse(props.verseRef, model.models)
+      .classifyVerse(props.verseRef)
       .then(() => {
         setRefreshKey((k) => k + 1);
         setClassifying(false);
       })
       .catch(() => {
+        setClassificationError('Unable to classify these references');
         setClassifying(false);
       });
   };
@@ -494,6 +499,9 @@ export function CrossRefsPopup(props: CrossRefsPopupProps) {
       {/* Classifying indicator */}
       <Show when={classifying()}>
         <text fg={theme().accent}>Classifying cross-references...</text>
+      </Show>
+      <Show when={classificationError()}>
+        {(message) => <text fg={theme().error}>{message()}</text>}
       </Show>
 
       {/* Cross-References Page */}

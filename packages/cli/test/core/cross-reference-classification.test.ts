@@ -11,6 +11,7 @@ import {
 } from '../../src/data/study/classification.js';
 import type { CrossRefClassification, UserCrossRef } from '../../src/data/bible/state.js';
 import type { CrossRefServiceInstance } from '../../src/data/study/cross-refs.js';
+import { AI, AIError, type AIService } from '../../src/services/ai.js';
 import { createMockAILayer } from '../lib/mock-ai.js';
 
 const source = Reference.verse(43, 3, 16);
@@ -133,5 +134,24 @@ describe('cross-reference classification module', () => {
         confidence: 0.88,
       },
     ]);
+  });
+
+  it('preserves AI failures instead of caching an empty classification', async () => {
+    const crossReferences = makeCrossReferences();
+    const error = new AIError({ operation: 'generateObject', cause: new Error('offline') });
+    const failingAI: AIService = {
+      generateText: () => Effect.fail(error),
+      generateTextWithTools: () => Effect.fail(error),
+      generateObject: () => Effect.fail(error),
+    };
+
+    const exit = await Effect.runPromiseExit(
+      classifyVerseCrossRefs(source, crossReferences.service).pipe(
+        Effect.provide(Layer.merge(Layer.succeed(AI, failingAI), databaseLayer)),
+      ),
+    );
+
+    expect(exit._tag).toBe('Failure');
+    expect(crossReferences.saved).toEqual([]);
   });
 });

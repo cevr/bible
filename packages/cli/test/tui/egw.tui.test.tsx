@@ -7,14 +7,16 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { App } from '../../src/tui/app.js';
+import { getAppRuntime } from '../../src/tui/lib/app-runtime.js';
 import { createTUITest, type TUITestHarness } from '../lib/tui-harness.js';
 
 describe('EGW Reader TUI', () => {
   let tui: TUITestHarness;
 
   beforeEach(async () => {
+    const runtime = await getAppRuntime();
     // Render App starting in EGW view
-    tui = await createTUITest(() => <App initialEgw />, {
+    tui = await createTUITest(() => <App initialEgw runtime={runtime} />, {
       width: 80,
       height: 24,
     });

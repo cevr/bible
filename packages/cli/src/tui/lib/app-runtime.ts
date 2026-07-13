@@ -69,10 +69,7 @@ export const appRuntime = ManagedRuntime.make(AppLayer);
 /**
  * Get the runtime effect for use with resources
  *
- * @example
- * ```tsx
- * const [runtime] = createResource(() => getAppRuntime())
- * ```
+ * Resolve the managed runtime before mounting the TUI tree.
  */
 export const getAppRuntime = async () => {
   await appRuntime.runPromise(Effect.void);

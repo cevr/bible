@@ -15,8 +15,7 @@ import {
   type StrongsEntry,
   type VerseWord,
 } from '@bible/core/bible-db';
-import type { LanguageModel } from 'ai';
-import { Effect, Option } from 'effect';
+import { Effect, Option, Schema } from 'effect';
 import { createContext, useContext, type ParentProps } from 'solid-js';
 
 import { BibleState } from '../../data/bible/state.js';
@@ -24,24 +23,18 @@ import type { UserCrossRef } from '../../data/bible/state.js';
 import { classifySingleCrossRef, classifyVerseCrossRefs } from '../../data/study/classification.js';
 import { createCrossRefService } from '../../data/study/cross-refs.js';
 import { AI } from '../../services/ai.js';
+import { useModel } from './model.js';
 import { useAppRuntime, type AppServices } from '../lib/index.js';
 
-interface ClassificationModels {
-  readonly high: LanguageModel;
-  readonly low: LanguageModel;
-}
+export class ClassificationUnavailable extends Schema.TaggedErrorClass<ClassificationUnavailable>()(
+  'ClassificationUnavailable',
+  { reason: Schema.String },
+) {}
 
 interface CrossReferenceCapabilities {
   readonly forVerse: (reference: VerseReference) => readonly ClassifiedCrossReference[];
-  readonly classifyVerse: (
-    reference: VerseReference,
-    models: ClassificationModels,
-  ) => Promise<void>;
-  readonly classify: (
-    source: VerseReference,
-    target: ClassifiedCrossReference,
-    models: ClassificationModels,
-  ) => Promise<void>;
+  readonly classifyVerse: (reference: VerseReference) => Promise<void>;
+  readonly classify: (source: VerseReference, target: ClassifiedCrossReference) => Promise<void>;
   readonly setType: (
     source: VerseReference,
     target: ClassifiedCrossReference,
@@ -77,6 +70,7 @@ const StudyDataContext = createContext<StudyDataContextValue>();
 
 export function StudyDataProvider(props: ParentProps) {
   const runtime = useAppRuntime<AppServices>();
+  const model = useModel();
   const services = runtime.runSync(
     Effect.gen(function* () {
       return { database: yield* BibleDatabase, state: yield* BibleState };
@@ -84,35 +78,27 @@ export function StudyDataProvider(props: ParentProps) {
   );
   const crossReferences = createCrossRefService(services.state, services.database);
   const runDatabase = <A, E>(effect: Effect.Effect<A, E>): A => Effect.runSync(effect);
+  const runClassification = <A, E>(effect: Effect.Effect<A, E, AI | BibleDatabase>) => {
+    if (model === null) {
+      return Effect.runPromise(
+        Effect.fail(
+          new ClassificationUnavailable({ reason: 'No AI model is configured for this session' }),
+        ),
+      );
+    }
+    return runtime.runPromise(
+      effect.pipe(Effect.provide(AI.fromModel(model.models)), Effect.asVoid),
+    );
+  };
 
   const value: StudyDataContextValue = {
     crossReferences: {
       forVerse: (reference) =>
         crossReferences.getCrossRefs(reference.book, reference.chapter, reference.verse),
-      classifyVerse: async (reference, models) => {
-        await runtime
-          .runPromise(
-            classifyVerseCrossRefs(reference, crossReferences).pipe(
-              Effect.provide(AI.fromModel(models)),
-            ),
-          )
-          .then(
-            () => undefined,
-            () => undefined,
-          );
-      },
-      classify: async (source, target, models) => {
-        await runtime
-          .runPromise(
-            classifySingleCrossRef(source, target, crossReferences).pipe(
-              Effect.provide(AI.fromModel(models)),
-            ),
-          )
-          .then(
-            () => undefined,
-            () => undefined,
-          );
-      },
+      classifyVerse: (reference) =>
+        runClassification(classifyVerseCrossRefs(reference, crossReferences)),
+      classify: (source, target) =>
+        runClassification(classifySingleCrossRef(source, target, crossReferences)),
       setType: (source, target, type) => {
         crossReferences.saveClassification(source.book, source.chapter, source.verse, {
           refBook: target.book,

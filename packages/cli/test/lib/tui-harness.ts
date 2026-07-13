@@ -72,7 +72,7 @@ export interface TUITestOptions {
  *
  * @example
  * ```typescript
- * const tui = await createTUITest(() => <App />, { width: 80, height: 24 });
+ * const tui = await createTUITest(() => <App runtime={runtime} />, { width: 80, height: 24 });
  * await tui.renderOnce();
  * await tui.pressCtrlP();
  * await tui.renderOnce();
