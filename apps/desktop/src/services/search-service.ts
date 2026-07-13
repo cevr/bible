@@ -1,7 +1,7 @@
 import type { EGWApiClientError } from '@bible/core/egw';
 import { Context, Effect, Layer, Option } from 'effect';
 
-import type { SearchHit as IpcSearchHit } from '../../electron/preload.js';
+import type { SearchHitPayload as IpcSearchHit } from '../../electron/ipc-contract.js';
 import { EGWIpcClient } from './egw-ipc-client.js';
 
 /**

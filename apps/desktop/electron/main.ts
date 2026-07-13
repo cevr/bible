@@ -18,7 +18,7 @@ class EgwIpcError extends Schema.TaggedErrorClass<EgwIpcError>()('EgwIpcError', 
   message: Schema.String,
   cause: Schema.Unknown,
 }) {}
-import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, shell, type IpcMainInvokeEvent } from 'electron';
 import { promises as fs, readFileSync } from 'node:fs';
 import path from 'node:path';
 
@@ -29,7 +29,31 @@ import {
   type LastPositionRow,
 } from './cache-db.js';
 import { backfillIndex, indexChapter } from './indexer.js';
+import type {
+  ChapterMarginNotesPayload,
+  ConcordanceHitPayload,
+  CrossRefPayload,
+  EgwCommentaryHitPayload,
+  IpcInvokeArgs,
+  IpcInvokeChannel,
+  IpcInvokeResult,
+  KjvChapterPayload,
+  KjvStrongsChapterPayload,
+  MarginNotePayload,
+  SearchHitPayload,
+  StrongsLexiconPayload,
+} from './ipc-contract.js';
 import { makeRuntime, type MainRuntime } from './runtime.js';
+
+const handleIpc = <Channel extends IpcInvokeChannel>(
+  channel: Channel,
+  handler: (
+    event: IpcMainInvokeEvent,
+    ...args: IpcInvokeArgs<Channel>
+  ) => IpcInvokeResult<Channel> | Promise<IpcInvokeResult<Channel>>,
+): void => {
+  ipcMain.handle(channel, handler);
+};
 
 // Tiny .env loader. Vite handles env injection for the renderer; the main
 // process used to read nothing because EGW HTTP lived in the browser. Now
@@ -175,105 +199,95 @@ const createWindow = async (): Promise<void> => {
   }
 };
 
-ipcMain.handle('settings:read', () => readJsonFile(settingsPath()));
-ipcMain.handle('settings:write', (_event, text: string) => writeJsonFile(settingsPath(), text));
+handleIpc('settings:read', () => readJsonFile(settingsPath()));
+handleIpc('settings:write', (_event, text) => writeJsonFile(settingsPath(), text));
 
 // Cache IPC — get returns null on miss, put is upsert. The renderer is
 // responsible for Schema parsing on the way out and Schema encoding on the
 // way in, so main only ever sees opaque JSON strings.
-ipcMain.handle(
+handleIpc(
   'cache:getBooks',
-  (_event, lang: string): Promise<string | null> => runCache((c) => c.getBooks(lang), null),
+  (_event, lang): Promise<string | null> => runCache((c) => c.getBooks(lang), null),
 );
-ipcMain.handle(
+handleIpc(
   'cache:putBooks',
-  (_event, lang: string, json: string): Promise<void> =>
-    runCache((c) => c.putBooks(lang, json), undefined),
+  (_event, lang, json): Promise<void> => runCache((c) => c.putBooks(lang, json), undefined),
 );
 
-ipcMain.handle(
+handleIpc(
   'cache:getToc',
-  (_event, bookId: number): Promise<string | null> => runCache((c) => c.getToc(bookId), null),
+  (_event, bookId): Promise<string | null> => runCache((c) => c.getToc(bookId), null),
 );
-ipcMain.handle(
+handleIpc(
   'cache:putToc',
-  (_event, bookId: number, json: string): Promise<void> =>
-    runCache((c) => c.putToc(bookId, json), undefined),
+  (_event, bookId, json): Promise<void> => runCache((c) => c.putToc(bookId, json), undefined),
 );
 
-ipcMain.handle(
+handleIpc(
   'cache:getChapter',
-  (_event, bookId: number, paraId: string): Promise<string | null> =>
+  (_event, bookId, paraId): Promise<string | null> =>
     runCache((c) => c.getChapter(bookId, paraId), null),
 );
-ipcMain.handle(
-  'cache:putChapter',
-  async (_event, bookId: number, paraId: string, json: string): Promise<void> => {
-    await runCache((c) => c.putChapter(bookId, paraId, json), undefined);
-    // Mirror the chapter into the EGW paragraph index so search:fts /
-    // search:refcode can find it locally. Best-effort: failures inside
-    // indexChapter are logged and swallowed — search may lag, but cache writes
-    // (and thus reads) never block on indexing. Fire-and-forget; the renderer
-    // doesn't wait on the index either.
-    if (mainRuntime !== null) {
-      void indexChapter(mainRuntime, bookId, json, (touched) => {
-        // Broadcast to every renderer so the Bible reader can re-query the
-        // hit set for the (book, chapter) it's currently showing. Cheap to
-        // send — payload is a few small numbers.
-        for (const win of BrowserWindow.getAllWindows()) {
-          win.webContents.send('bible:egwCommentaryUpdated', touched);
-        }
-      });
-    }
-  },
-);
-ipcMain.handle(
+handleIpc('cache:putChapter', async (_event, bookId, paraId, json): Promise<void> => {
+  await runCache((c) => c.putChapter(bookId, paraId, json), undefined);
+  // Mirror the chapter into the EGW paragraph index so search:fts /
+  // search:refcode can find it locally. Best-effort: failures inside
+  // indexChapter are logged and swallowed — search may lag, but cache writes
+  // (and thus reads) never block on indexing. Fire-and-forget; the renderer
+  // doesn't wait on the index either.
+  if (mainRuntime !== null) {
+    void indexChapter(mainRuntime, bookId, json, (touched) => {
+      // Broadcast to every renderer so the Bible reader can re-query the
+      // hit set for the (book, chapter) it's currently showing. Cheap to
+      // send — payload is a few small numbers.
+      for (const win of BrowserWindow.getAllWindows()) {
+        win.webContents.send('bible:egwCommentaryUpdated', touched);
+      }
+    });
+  }
+});
+handleIpc(
   'cache:getFolders',
-  (_event, lang: string): Promise<string | null> => runCache((c) => c.getFolders(lang), null),
+  (_event, lang): Promise<string | null> => runCache((c) => c.getFolders(lang), null),
 );
-ipcMain.handle(
+handleIpc(
   'cache:putFolders',
-  (_event, lang: string, json: string): Promise<void> =>
-    runCache((c) => c.putFolders(lang, json), undefined),
+  (_event, lang, json): Promise<void> => runCache((c) => c.putFolders(lang, json), undefined),
 );
 
-ipcMain.handle(
+handleIpc(
   'cache:getFolderBooks',
-  (_event, folderId: number, lang: string): Promise<string | null> =>
+  (_event, folderId, lang): Promise<string | null> =>
     runCache((c) => c.getFolderBooks(folderId, lang), null),
 );
-ipcMain.handle(
+handleIpc(
   'cache:putFolderBooks',
-  (_event, folderId: number, lang: string, json: string): Promise<void> =>
+  (_event, folderId, lang, json): Promise<void> =>
     runCache((c) => c.putFolderBooks(folderId, lang, json), undefined),
 );
 
 // How many chapters of `bookId` are currently in the cache. The renderer
 // compares this to the TOC's navigable-chapter count to render a "downloaded"
 // badge. Main stays schema-blind — it's just a row count.
-ipcMain.handle(
+handleIpc(
   'cache:chapterCount',
-  (_event, bookId: number): Promise<number> => runCache((c) => c.chapterCount(bookId), 0),
+  (_event, bookId): Promise<number> => runCache((c) => c.chapterCount(bookId), 0),
 );
 
 // Last-open book/chapter — restored on launch so the app reopens where the
 // user left off. Single-row table; updates overwrite. paragraph_id is the
 // in-chapter scroll anchor (the topmost paragraph the user was viewing) so
 // restore lands them on the exact paragraph, not just the chapter top.
-ipcMain.handle(
+handleIpc(
   'lastPosition:read',
   (): Promise<LastPositionRow | null> => runCache((c) => c.readLastPosition(), null),
 );
-ipcMain.handle(
+handleIpc(
   'lastPosition:write',
-  (
-    _event,
-    bookId: number,
-    paraId: string | null,
-    paragraphId: string | null = null,
-  ): Promise<void> => runCache((c) => c.writeLastPosition(bookId, paraId, paragraphId), undefined),
+  (_event, bookId, paraId, paragraphId = null): Promise<void> =>
+    runCache((c) => c.writeLastPosition(bookId, paraId, paragraphId), undefined),
 );
-ipcMain.handle(
+handleIpc(
   'lastPosition:clear',
   (): Promise<void> => runCache((c) => c.clearLastPosition(), undefined),
 );
@@ -282,16 +296,16 @@ ipcMain.handle(
 // from BibleReaderState changes rather than the EGW reader's scroll anchor.
 // verse is nullable: the user may have opened a chapter without ever clicking
 // a specific verse.
-ipcMain.handle(
+handleIpc(
   'bibleLastPosition:read',
   (): Promise<BibleLastPositionRow | null> => runCache((c) => c.readBibleLastPosition(), null),
 );
-ipcMain.handle(
+handleIpc(
   'bibleLastPosition:write',
-  (_event, book: number, chapter: number, verse: number | null = null): Promise<void> =>
+  (_event, book, chapter, verse = null): Promise<void> =>
     runCache((c) => c.writeBibleLastPosition(book, chapter, verse), undefined),
 );
-ipcMain.handle(
+handleIpc(
   'bibleLastPosition:clear',
   (): Promise<void> => runCache((c) => c.clearBibleLastPosition(), undefined),
 );
@@ -305,24 +319,9 @@ ipcMain.handle(
 // plain-text snippet here — renderer consumers (SearchService) only need text
 // for highlighting/preview, and crossing the IPC boundary with the full nodes
 // array would just force re-serialization on the other side.
-type SearchHitPayload = {
-  readonly bookId: number;
-  readonly bookCode: string;
-  readonly bookTitle: string;
-  readonly paraId: string | null;
-  readonly refcodeShort: string | null;
-  readonly snippet: string;
-  readonly puborder: number;
-};
-
-ipcMain.handle(
+handleIpc(
   'search:fts',
-  async (
-    _event,
-    query: string,
-    limit: number | undefined,
-    bookCode: string | undefined,
-  ): Promise<readonly SearchHitPayload[]> => {
+  async (_event, query, limit, bookCode): Promise<readonly SearchHitPayload[]> => {
     if (mainRuntime === null) return [];
     const rows = await mainRuntime.runPromise(
       EGWParagraphDatabase.pipe(
@@ -346,7 +345,7 @@ ipcMain.handle(
 // after `app.whenReady` should have populated it). Without this the renderer
 // just sees every IPC returning empty/null and surfaces misleading
 // "missing data" screens.
-ipcMain.handle('__diag:runtimeReady', (): boolean => mainRuntime !== null);
+handleIpc('__diag:runtimeReady', (): boolean => mainRuntime !== null);
 
 // --- KJV bible + Strong's IPC -------------------------------------------
 // Data lives in bible.sqlite under the canonical Bible catalog. The bundled
@@ -365,7 +364,7 @@ const traceBibleIpc = <Args extends readonly unknown[], R>(
   if (!isDev) return handler;
   return async (...args: Args): Promise<R> => {
     const t0 = Date.now();
-    // ipcMain.handle prepends the IpcMainInvokeEvent — skip it for readability.
+    // Electron prepends the IpcMainInvokeEvent — skip it for readability.
     const payload = args
       .slice(1)
       .map((a) => (typeof a === 'string' ? `"${a}"` : String(a)))
@@ -436,54 +435,17 @@ const ensureBibleImportsDone = (runtime: MainRuntime): Promise<void> => {
   return fresh;
 };
 
-// Renderer-facing shapes (camelCase, plus only the fields the preload exposes).
-// The service emits snake_case SQL rows; we project here so the IPC contract
-// matches what preload.ts declares and the renderer already consumes.
-type RendererKjvChapter = {
-  readonly book: number;
-  readonly bookName: string;
-  readonly chapter: number;
-  readonly verses: readonly { readonly verse: number; readonly text: string }[];
-};
-type RendererKjvStrongsChapter = {
-  readonly book: number;
-  readonly bookName: string;
-  readonly chapter: number;
-  readonly verses: readonly {
-    readonly verse: number;
-    readonly words: readonly {
-      readonly text: string;
-      readonly strongs?: readonly string[];
-    }[];
-  }[];
-};
-type RendererStrongsEntry = {
-  readonly code: string;
-  readonly language: 'hebrew' | 'greek';
-  readonly lemma: string;
-  readonly transliteration: string;
-  readonly definition: string;
-};
-type RendererConcordanceHit = {
-  readonly book: number;
-  readonly bookName: string;
-  readonly chapter: number;
-  readonly verse: number;
-  readonly text: string;
-  readonly word: string;
-};
-
 // High-frequency Strong's codes (e.g. H776 "land/earth" ~2,500 hits) would
 // blow up the IPC payload; the drawer only needs enough hits to make the list
 // scrollable. Caller still gets the true total via `bible:countStrongsHits`.
 const CONCORDANCE_HIT_CAP = 200;
 const LEXICON_RESULT_CAP = 50;
 
-ipcMain.handle(
+handleIpc(
   'bible:getChapter',
   traceBibleIpc(
     'bible:getChapter',
-    async (_event, book: number, chapter: number): Promise<RendererKjvChapter | null> => {
+    async (_event, book, chapter): Promise<KjvChapterPayload | null> => {
       if (mainRuntime === null) return null;
       await ensureBibleImportsDone(mainRuntime);
       const verses = await mainRuntime.runPromise(
@@ -502,7 +464,7 @@ ipcMain.handle(
   ),
 );
 
-ipcMain.handle(
+handleIpc(
   'bible:reimportKjv',
   traceBibleIpc(
     'bible:reimportKjv',
@@ -524,11 +486,11 @@ ipcMain.handle(
   ),
 );
 
-ipcMain.handle(
+handleIpc(
   'bible:getChapterStrongs',
   traceBibleIpc(
     'bible:getChapterStrongs',
-    async (_event, book: number, chapter: number): Promise<RendererKjvStrongsChapter | null> => {
+    async (_event, book, chapter): Promise<KjvStrongsChapterPayload | null> => {
       if (mainRuntime === null) return null;
       await ensureBibleImportsDone(mainRuntime);
       const result = await mainRuntime.runPromise(
@@ -536,7 +498,7 @@ ipcMain.handle(
       );
       return Option.match(result, {
         onNone: () => null,
-        onSome: (c): RendererKjvStrongsChapter => ({
+        onSome: (c): KjvStrongsChapterPayload => ({
           book: c.book,
           bookName: c.bookName,
           chapter: c.chapter,
@@ -557,11 +519,11 @@ ipcMain.handle(
   ),
 );
 
-ipcMain.handle(
+handleIpc(
   'bible:strongsLookup',
   traceBibleIpc(
     'bible:strongsLookup',
-    async (_event, code: string): Promise<RendererStrongsEntry | null> => {
+    async (_event, code): Promise<StrongsLexiconPayload | null> => {
       if (mainRuntime === null) return null;
       await ensureBibleImportsDone(mainRuntime);
       const result = await mainRuntime.runPromise(
@@ -569,7 +531,7 @@ ipcMain.handle(
       );
       return Option.match(result, {
         onNone: () => null,
-        onSome: (entry): RendererStrongsEntry => ({
+        onSome: (entry): StrongsLexiconPayload => ({
           code: entry.number,
           language: entry.language,
           lemma: entry.lemma,
@@ -582,11 +544,11 @@ ipcMain.handle(
   ),
 );
 
-ipcMain.handle(
+handleIpc(
   'bible:searchVersesByStrongs',
   traceBibleIpc(
     'bible:searchVersesByStrongs',
-    async (_event, code: string): Promise<readonly RendererConcordanceHit[]> => {
+    async (_event, code): Promise<readonly ConcordanceHitPayload[]> => {
       if (mainRuntime === null) return [];
       await ensureBibleImportsDone(mainRuntime);
       const hits = await mainRuntime.runPromise(
@@ -595,7 +557,7 @@ ipcMain.handle(
         ),
       );
       return hits.map(
-        (h): RendererConcordanceHit => ({
+        (h): ConcordanceHitPayload => ({
           book: h.book,
           bookName: h.bookName,
           chapter: h.chapter,
@@ -609,11 +571,11 @@ ipcMain.handle(
   ),
 );
 
-ipcMain.handle(
+handleIpc(
   'bible:countStrongsHits',
   traceBibleIpc(
     'bible:countStrongsHits',
-    async (_event, code: string): Promise<number> => {
+    async (_event, code): Promise<number> => {
       if (mainRuntime === null) return 0;
       await ensureBibleImportsDone(mainRuntime);
       return mainRuntime.runPromise(
@@ -624,11 +586,11 @@ ipcMain.handle(
   ),
 );
 
-ipcMain.handle(
+handleIpc(
   'bible:searchLexicon',
   traceBibleIpc(
     'bible:searchLexicon',
-    async (_event, query: string): Promise<readonly RendererStrongsEntry[]> => {
+    async (_event, query): Promise<readonly StrongsLexiconPayload[]> => {
       if (mainRuntime === null) return [];
       await ensureBibleImportsDone(mainRuntime);
       const entries = await mainRuntime.runPromise(
@@ -680,28 +642,11 @@ const ensureXrefsImportsDone = (runtime: MainRuntime): Promise<void> => {
   return fresh;
 };
 
-// Renderer-facing cross-ref row. camelCase mirrors the service's CrossRefRow
-// shape exactly (the service already projects out of snake_case columns) so we
-// can pass it straight through, but we re-declare here to lock the IPC
-// contract independently of the core service shape.
-type RendererCrossRef = {
-  readonly source: 'openbible' | 'tske';
-  readonly targetBook: number;
-  readonly targetChapter: number;
-  readonly targetVerse: number;
-  readonly targetVerseEnd: number | null;
-};
-
-ipcMain.handle(
+handleIpc(
   'bible:getCrossRefs',
   traceBibleIpc(
     'bible:getCrossRefs',
-    async (
-      _event,
-      book: number,
-      chapter: number,
-      verse: number,
-    ): Promise<readonly RendererCrossRef[]> => {
+    async (_event, book, chapter, verse): Promise<readonly CrossRefPayload[]> => {
       if (mainRuntime === null) return [];
       await ensureXrefsImportsDone(mainRuntime);
       const rows = await mainRuntime.runPromise(
@@ -709,7 +654,7 @@ ipcMain.handle(
           Effect.flatMap((database) => database.getCrossRefs(book, chapter, verse)),
         ),
       );
-      return rows.flatMap((r): readonly RendererCrossRef[] =>
+      return rows.flatMap((r): readonly CrossRefPayload[] =>
         r.verse === null
           ? []
           : [
@@ -731,11 +676,11 @@ ipcMain.handle(
 // chapter renderer paints one `x` superscript per xref verse, so we return a
 // plain number array — much smaller than the full per-verse rows the
 // inline overlay doesn't need until the user actually clicks.
-ipcMain.handle(
+handleIpc(
   'bible:getVersesWithCrossRefs',
   traceBibleIpc(
     'bible:getVersesWithCrossRefs',
-    async (_event, book: number, chapter: number): Promise<readonly number[]> => {
+    async (_event, book, chapter): Promise<readonly number[]> => {
       if (mainRuntime === null) return [];
       await ensureXrefsImportsDone(mainRuntime);
       const verses = await mainRuntime.runPromise(
@@ -774,25 +719,11 @@ const ensureMarginNotesImportsDone = (runtime: MainRuntime): Promise<void> => {
   return fresh;
 };
 
-// Renderer-facing margin-note row. Re-declared here so the IPC contract stays
-// independent of the canonical Study representation.
-type RendererMarginNote = {
-  readonly idx: number;
-  readonly type: 'hebrew' | 'alternate' | 'other' | 'greek' | 'name';
-  readonly phrase: string;
-  readonly text: string;
-};
-
-ipcMain.handle(
+handleIpc(
   'bible:getMarginNotes',
   traceBibleIpc(
     'bible:getMarginNotes',
-    async (
-      _event,
-      book: number,
-      chapter: number,
-      verse: number,
-    ): Promise<readonly RendererMarginNote[]> => {
+    async (_event, book, chapter, verse): Promise<readonly MarginNotePayload[]> => {
       if (mainRuntime === null) return [];
       await ensureMarginNotesImportsDone(mainRuntime);
       const rows = await mainRuntime.runPromise(
@@ -801,7 +732,7 @@ ipcMain.handle(
         ),
       );
       return rows.map(
-        (r): RendererMarginNote => ({
+        (r): MarginNotePayload => ({
           idx: r.index,
           type: r.type,
           phrase: r.phrase,
@@ -816,11 +747,11 @@ ipcMain.handle(
 // Per-chapter "which verses have notes" lookup. Returns a plain sorted
 // number array (Set isn't serializable across IPC). Renderer rebuilds a
 // Set on its side for O(1) `.has` lookups in the verse loop.
-ipcMain.handle(
+handleIpc(
   'bible:getVersesWithNotes',
   traceBibleIpc(
     'bible:getVersesWithNotes',
-    async (_event, book: number, chapter: number): Promise<readonly number[]> => {
+    async (_event, book, chapter): Promise<readonly number[]> => {
       if (mainRuntime === null) return [];
       await ensureMarginNotesImportsDone(mainRuntime);
       const set = await mainRuntime.runPromise(
@@ -835,20 +766,11 @@ ipcMain.handle(
 // All margin notes in (book, chapter) grouped by verse. One round-trip
 // per chapter feeds the inline overlay so anchors can be rendered next to
 // the phrase they annotate (see web verse-renderer.tsx for the model).
-ipcMain.handle(
+handleIpc(
   'bible:getChapterMarginNotes',
   traceBibleIpc(
     'bible:getChapterMarginNotes',
-    async (
-      _event,
-      book: number,
-      chapter: number,
-    ): Promise<
-      readonly {
-        readonly verse: number;
-        readonly notes: readonly RendererMarginNote[];
-      }[]
-    > => {
+    async (_event, book, chapter): Promise<readonly ChapterMarginNotesPayload[]> => {
       if (mainRuntime === null) return [];
       await ensureMarginNotesImportsDone(mainRuntime);
       const byVerse = await mainRuntime.runPromise(
@@ -856,7 +778,7 @@ ipcMain.handle(
           Effect.flatMap((database) => database.chapterMarginNotes(book, chapter)),
         ),
       );
-      const out: { verse: number; notes: RendererMarginNote[] }[] = [];
+      const out: ChapterMarginNotesPayload[] = [];
       for (const [verse, notes] of byVerse) {
         out.push({
           verse,
@@ -906,28 +828,11 @@ const ensureCommentaryBackfillDone = (runtime: MainRuntime): Promise<void> => {
   return fresh;
 };
 
-// Renderer-facing commentary hit. Carries enough to render a list item and
-// click through to the reader: book metadata + the paragraph snippet + the
-// refcode (which the reader navigates by).
-type EgwCommentaryHit = {
-  readonly bookId: number;
-  readonly bookCode: string;
-  readonly bookTitle: string;
-  readonly refcodeShort: string | null;
-  readonly snippet: string;
-  readonly puborder: number;
-};
-
-ipcMain.handle(
+handleIpc(
   'bible:getEgwCommentary',
   traceBibleIpc(
     'bible:getEgwCommentary',
-    async (
-      _event,
-      book: number,
-      chapter: number,
-      verse: number,
-    ): Promise<readonly EgwCommentaryHit[]> => {
+    async (_event, book, chapter, verse): Promise<readonly EgwCommentaryHitPayload[]> => {
       if (mainRuntime === null) return [];
       await ensureCommentaryBackfillDone(mainRuntime);
       const rows = await mainRuntime.runPromise(
@@ -936,7 +841,7 @@ ipcMain.handle(
         ),
       );
       return rows.map(
-        (r): EgwCommentaryHit => ({
+        (r): EgwCommentaryHitPayload => ({
           bookId: r.bookId,
           bookCode: r.bookCode,
           bookTitle: r.bookTitle,
@@ -954,11 +859,11 @@ ipcMain.handle(
 // One round-trip per chapter so the renderer can paint footnote markers next
 // to verse numbers without N per-verse queries. Mirrors the margin-notes
 // `bible:getVersesWithNotes` pattern.
-ipcMain.handle(
+handleIpc(
   'bible:getBibleVersesWithCommentary',
   traceBibleIpc(
     'bible:getBibleVersesWithCommentary',
-    async (_event, book: number, chapter: number): Promise<readonly number[]> => {
+    async (_event, book, chapter): Promise<readonly number[]> => {
       if (mainRuntime === null) return [];
       await ensureCommentaryBackfillDone(mainRuntime);
       return mainRuntime.runPromise(
@@ -1016,9 +921,9 @@ const runEgw = <A>(
   );
 };
 
-ipcMain.handle(
+handleIpc(
   'egw:fetchBooks',
-  async (_event, lang: string): Promise<string> =>
+  async (_event, lang): Promise<string> =>
     runEgw(
       EGWApiClient.pipe(
         Effect.flatMap((client) =>
@@ -1031,9 +936,9 @@ ipcMain.handle(
     ),
 );
 
-ipcMain.handle(
+handleIpc(
   'egw:fetchToc',
-  async (_event, bookId: number): Promise<string> =>
+  async (_event, bookId): Promise<string> =>
     runEgw(
       EGWApiClient.pipe(
         Effect.flatMap((client) =>
@@ -1050,9 +955,9 @@ ipcMain.handle(
 // derived from a TocItem on the renderer side via `chapterIdFromTocItem`.
 // Renderer passes the already-derived string to keep main schema-blind to
 // the TocItem shape.
-ipcMain.handle(
+handleIpc(
   'egw:fetchChapter',
-  async (_event, bookId: number, chapterId: string): Promise<string> =>
+  async (_event, bookId, chapterId): Promise<string> =>
     runEgw(
       EGWApiClient.pipe(
         Effect.flatMap((client) =>
@@ -1065,9 +970,9 @@ ipcMain.handle(
     ),
 );
 
-ipcMain.handle(
+handleIpc(
   'egw:search',
-  async (_event, query: string, limit: number | undefined): Promise<string> =>
+  async (_event, query, limit): Promise<string> =>
     runEgw(
       EGWApiClient.pipe(
         Effect.flatMap((client) =>
@@ -1077,9 +982,9 @@ ipcMain.handle(
     ),
 );
 
-ipcMain.handle(
+handleIpc(
   'egw:fetchFolders',
-  async (_event, lang: string): Promise<string> =>
+  async (_event, lang): Promise<string> =>
     runEgw(
       EGWApiClient.pipe(
         Effect.flatMap((client) =>
@@ -1092,9 +997,9 @@ ipcMain.handle(
     ),
 );
 
-ipcMain.handle(
+handleIpc(
   'egw:fetchBooksByFolder',
-  async (_event, folderId: number, lang: string): Promise<string> =>
+  async (_event, folderId, lang): Promise<string> =>
     runEgw(
       EGWApiClient.pipe(
         Effect.flatMap((client) =>
@@ -1107,13 +1012,9 @@ ipcMain.handle(
     ),
 );
 
-ipcMain.handle(
+handleIpc(
   'search:refcode',
-  async (
-    _event,
-    refcode: string,
-    limit: number | undefined,
-  ): Promise<readonly SearchHitPayload[]> => {
+  async (_event, refcode, limit): Promise<readonly SearchHitPayload[]> => {
     if (mainRuntime === null) return [];
     const rows = await mainRuntime.runPromise(
       EGWParagraphDatabase.pipe(Effect.flatMap((db) => db.findByRefcodeShort(refcode, limit))),

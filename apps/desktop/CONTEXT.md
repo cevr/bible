@@ -1,6 +1,25 @@
 # EGW Reader (Desktop)
 
-A minimalist offline-first desktop reader for the Ellen G. White (EGW) writings API. Tauri shell, Solid UI, Effect data layer, SQLite cache.
+An offline-first Bible and Ellen G. White reader. Electron owns credentials,
+HTTP, and SQLite; the context-isolated preload exposes a typed bridge; Solid
+renders the UI over an Effect service layer in the renderer.
+
+## Architecture
+
+- **Main process**: owns the EGW API client, OAuth token store, Bible corpus,
+  EGW paragraph index, and both SQLite databases. `electron/runtime.ts`
+  composes these implementations into one managed Effect runtime.
+- **IPC contract**: `electron/ipc-contract.ts` is the single interface for
+  invoke-channel names, argument tuples, and serializable results. Both
+  `electron/main.ts` registrations and `electron/preload.ts` invocations are
+  typed from it.
+- **Preload bridge**: the only renderer access to Electron capabilities. It
+  presents a task-oriented `DesktopApi`; raw channel strings remain private to
+  the bridge implementation.
+- **Renderer services**: adapt `window.api` into domain-shaped Effect services.
+  `src/procedures.ts` then exposes those services through a schema-validated,
+  reactive query/mutation cache for Solid components. This procedure tree is a
+  renderer-local interface, not a second transport protocol.
 
 ## Language
 
@@ -33,11 +52,11 @@ An inline footnote marker inside a **Paragraph**. Renders as an interactive cont
 _Avoid_: Footnote, note marker
 
 **ScriptureRef**:
-An inline reference to a Bible passage inside a **Paragraph** (e.g. "John 3:16"). Renders visual-only in v1 — styled but not interactive. Popovers and navigation are deferred.
+An inline reference to a Bible passage inside a **Paragraph** (e.g. "John 3:16"). Activating it opens that passage in the shared Bible study drawer.
 _Avoid_: Verse link, bible reference, citation
 
 **Cache**:
-Local SQLite store (via `tauri-plugin-sql`) holding **Book** metadata and **Chapter** content keyed by `(book_id, chapter_para_id)`. Frontend-facing surface is the `CacheService` Effect service.
+Local SQLite stores owned by Electron main. `cache.sqlite` holds EGW API responses, the paragraph search index, and reading positions; `bible.sqlite` holds the canonical Bible corpus. The renderer-facing EGW seam is the `CacheService` Effect service.
 _Avoid_: Storage, database, offline store
 
 **Prefetch**:
@@ -76,7 +95,7 @@ _Avoid_: Position, bookmark, location
 > **Domain expert:** "Functionally yes. The button exists so the user can say 'I want this whole thing now, show me a progress bar' — versus the implicit 'I opened it, the rest is on its way' of auto-**Prefetch**. Both end with every **Chapter** in the **Cache**. There's no separate 'pinned' state — touching a **Book** _is_ adding it to the **Library**, and only explicit **Remove from library** takes it out."
 >
 > **Dev:** "What happens when a **Paragraph**'s **AST** has a **ScriptureRef**?"
-> **Domain expert:** "In v1: nothing on click — visual styling only. **NoteRefs** are interactive (scroll to anchor in same **Chapter**), but scripture popovers are a v2 concern. The fold-in to `bible-tools` makes that cheap later — `@bible/core` has bible-service — but we're not designing popover UX yet."
+> **Domain expert:** "It opens the shared Bible study drawer at that passage. **NoteRefs** still resolve within the current **Chapter**; ScriptureRefs cross from EGW reading into the canonical Bible corpus."
 >
 > **Dev:** "**Search** for 'great controversy' — what runs?"
 > **Domain expert:** "SQLite FTS5 over the **Cache** first. Results show matching **Paragraphs** with snippet, **Book** title, **Chapter** title. Below the result list: 'Search the full library online' → EGW `/search`, which can surface **Books** not yet in the **Library**. Clicking those results triggers the normal browse → open → auto-**Prefetch** flow."

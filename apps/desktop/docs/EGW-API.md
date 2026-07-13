@@ -1,6 +1,8 @@
 # @bible/core/egw — Surface Map
 
-One-page reference for the renderer's data layer. Source: `packages/core/src/egw/`.
+One-page reference for the desktop EGW data path. Source:
+`packages/core/src/egw/`, composed by `electron/runtime.ts` and adapted for the
+renderer by `src/services/egw-ipc-client.ts`.
 
 ## Imports
 
@@ -10,25 +12,33 @@ import { EGWApiClient, EGWAuth, EGWApiError, EGWAuthError, Schemas } from '@bibl
 
 ## Layers
 
-Both services are `Context.Service` (Effect v4). To use the live client in the renderer:
+Both services are `Context.Service` (Effect v4). The live client runs only in
+Electron main; OAuth credentials and tokens never enter the renderer:
 
 ```ts
+const AuthLayer = EGWAuth.Live.pipe(
+  Layer.provide(EGWTokenStore.layerFromJsonPort({ readJson, writeJson })),
+  Layer.provide(FetchHttpClient.layer),
+);
+
 const ApiLayer = EGWApiClient.Live.pipe(
-  Layer.provide(EGWAuth.Live),
-  Layer.provide(FetchHttpClient.layer), // browser fetch — no platform-bun/node needed
-  Layer.provide(BrowserFileSystem.layer), // EGWAuth.Live needs FileSystem + Path for token cache
-  Layer.provide(BrowserPath.layer),
+  Layer.provide(AuthLayer),
+  Layer.provide(FetchHttpClient.layer),
 );
 ```
 
-| Layer                                     | Requires                             | Provides              |
-| ----------------------------------------- | ------------------------------------ | --------------------- |
-| `EGWApiClient.Live`                       | `EGWAuth` + `HttpClient`             | `EGWApiClient`        |
-| `EGWApiClient.Test({books?, languages?})` | —                                    | `EGWApiClient` (mock) |
-| `EGWAuth.Live`                            | `FileSystem` + `Path` + `HttpClient` | `EGWAuth`             |
-| `EGWAuth.Test(token?)`                    | —                                    | `EGWAuth` (mock)      |
+| Layer                                     | Requires                 | Provides              |
+| ----------------------------------------- | ------------------------ | --------------------- |
+| `EGWApiClient.Live`                       | `EGWAuth` + `HttpClient` | `EGWApiClient`        |
+| `EGWApiClient.Test({books?, languages?})` | —                        | `EGWApiClient` (mock) |
+| `EGWAuth.Live`                            | `EGWTokenStore` + HTTP   | `EGWAuth`             |
+| `EGWAuth.Test(token?)`                    | —                        | `EGWAuth` (mock)      |
 
-**Service keys:** `@bible/core/egw/client/EGWApiClient`, `@bible/core/egw/auth/EGWAuth`.
+The renderer uses the narrower `EGWIpcClient` adapter. Its methods invoke the
+typed preload bridge and decode the returned JSON with the same core schemas
+used by the cache. `EGWData.cachedLayer` composes that adapter with
+`CacheService`, so components do not know whether a value came from SQLite or
+the network.
 
 ## Config (env vars, all have defaults)
 
@@ -39,10 +49,13 @@ const ApiLayer = EGWApiClient.Live.pipe(
 | `EGW_CLIENT_ID`     | `""`                                                  | **Required** at runtime — bake via Bun `define` at build time |
 | `EGW_CLIENT_SECRET` | `""`                                                  | **Required** — Redacted, same baking strategy                 |
 | `EGW_SCOPE`         | `writings search studycenter subscriptions user_info` | OAuth scope                                                   |
-| `EGW_TOKEN_FILE`    | `data/tokens.json`                                    | Path the live `EGWAuth` writes its cached token to            |
+| `EGW_TOKEN_FILE`    | `data/tokens.json`                                    | Used by the optional filesystem token-store layer             |
 | `EGW_USER_AGENT`    | `EGW-Effect-Client/1.0`                               | Outgoing UA header                                            |
 
-In Electron renderer: route `EGW_TOKEN_FILE` to a path inside `app.getPath('userData')` via env injection at build, OR replace `EGWAuth.Live` with a renderer-side implementation that stores the cached token through the existing settings IPC bridge. Either is fine; the latter is one fewer FS dep in the renderer bundle.
+Electron main resolves the token file beneath `app.getPath('userData')` and
+provides a Node-file `EGWTokenStore` adapter. `EGW_CLIENT_ID` and
+`EGW_CLIENT_SECRET` are read in main before the managed runtime is constructed.
+They are not baked into the renderer bundle.
 
 ## EGWApiClient methods
 
@@ -108,36 +121,25 @@ Pure utilities for `"PP 351.1"`-style refcodes — no HTTP. Used downstream of s
 
 `EGWParsedRef` is a tagged union: `paragraph` \| `paragraph-range` \| `page` \| `page-range` \| `book`.
 
-## Renderer wiring sketch (for #22)
+## Current desktop wiring
 
 ```ts
-// renderer/services/EGWData.ts
-class EGWData extends Context.Service<
-  EGWData,
-  {
-    readonly listBooks: (lang: string) => Effect.Effect<readonly Book[], EGWApiClientError>;
-    readonly getToc: (bookId: number) => Effect.Effect<readonly TocItem[], EGWApiClientError>;
-    readonly getChapter: (
-      bookId: number,
-      toc: TocItem,
-    ) => Effect.Effect<readonly Paragraph[], EGWApiClientError>;
-  }
->()('desktop/services/EGWData') {
-  static layer = Layer.effect(
-    EGWData,
-    Effect.gen(function* () {
-      const client = yield* EGWApiClient;
-      return {
-        listBooks: (lang) => Stream.runCollect(client.getBooks({ lang })),
-        getToc: (id) => client.getBookToc(id),
-        getChapter: (bookId, toc) => client.getChapterContent(bookId, chapterIdFromTocItem(toc)),
-      };
-    }),
-  );
-}
+// renderer runtime
+const EGWDataLayer = EGWData.cachedLayer.pipe(
+  Layer.provide(EGWIpcClient.layer),
+  Layer.provide(CacheService.layer),
+);
 ```
 
-The CacheService (#19) slots in by wrapping these three methods: try local SQLite first, fall through to `client.*`, persist the result. No call sites change.
+The transport boundary has two intentionally different interfaces:
+
+1. `IpcInvokeContract` describes serializable channel arguments/results shared
+   by main and preload.
+2. `EGWIpcClientShape` restores domain errors, streams, and decoded schemas for
+   the renderer.
+
+That adapter is the depth: transport details and JSON decoding can change
+without widening the interface consumed by `EGWData`.
 
 ## Notes for prefetch orchestrator (#24)
 

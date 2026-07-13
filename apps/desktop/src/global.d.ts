@@ -1,4 +1,4 @@
-import type { DesktopApi } from '../electron/preload.ts';
+import type { DesktopApi } from '../electron/ipc-contract.js';
 
 declare global {
   interface Window {
