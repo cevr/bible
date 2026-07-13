@@ -3,6 +3,7 @@ import { Argument, Command, Flag } from 'effect/unstable/cli';
 import { formatBibleReference, getBibleBook, parseBibleQuery, type Verse } from '@bible/core/bible';
 import { BibleService } from '@bible/core/bible/service';
 import { BibleDatabase, type ConcordanceResult, type StrongsEntry } from '@bible/core/bible-db';
+import * as BibleDbBun from '@bible/core/bible-db/bun';
 import { Console, Effect, Layer, Option } from 'effect';
 
 import { versesForBibleQuery } from '~/src/lib/bible-query';
@@ -53,7 +54,7 @@ function printSearchResults(query: string, verses: readonly Verse[]): Effect.Eff
 }
 
 const BibleCommandLive = BibleService.Live.pipe(
-  Layer.provide(BibleDatabase.Default),
+  Layer.provide(BibleDbBun.Default),
   Layer.provide(BunServices.layer),
 );
 
@@ -130,7 +131,7 @@ function formatConcordanceResult(result: ConcordanceResult): string {
 }
 
 // Layer for concordance command
-const ConcordanceLive = BibleDatabase.Default.pipe(Layer.provideMerge(BunServices.layer));
+const ConcordanceLive = BibleDbBun.Default.pipe(Layer.provideMerge(BunServices.layer));
 
 export const concordance = Command.make(
   'concordance',

@@ -5,7 +5,8 @@
  * Based on gent's atom-solid pattern.
  */
 
-import { BibleDatabase } from '@bible/core/bible-db';
+import type { BibleDatabase } from '@bible/core/bible-db';
+import * as BibleDbBun from '@bible/core/bible-db/bun';
 import { BibleService } from '@bible/core/bible/service';
 import { EGWCommentaryService } from '@bible/core/egw-commentary';
 import * as EGWDbBun from '@bible/core/egw-db/bun';
@@ -36,7 +37,7 @@ export type AppServices =
 const BibleDatabaseWithSync = Layer.unwrap(
   ensureBibleDb.pipe(
     Effect.catch(() => Effect.void),
-    Effect.as(BibleDatabase.Default),
+    Effect.as(BibleDbBun.Default),
   ),
 );
 

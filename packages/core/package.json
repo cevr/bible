@@ -26,6 +26,7 @@
     "./gemini": "./src/gemini/index.ts",
     "./sync": "./src/sync/index.ts",
     "./bible-db": "./src/bible-db/index.ts",
+    "./bible-db/bun": "./src/bible-db/bible-database-bun.ts",
     "./utils": "./src/utils/index.ts",
     "./types": "./src/types/index.ts",
     "./hymnal": "./src/hymnal/index.ts",

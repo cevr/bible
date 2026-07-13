@@ -7,18 +7,9 @@
 
 export {
   BibleDatabase,
+  BibleDataIntegrityError,
   type BibleDatabaseService,
   type BibleDatabaseError,
-  // Row schemas (for internal use / sync scripts)
-  BookRow,
-  VersionRow,
-  VerseRow,
-  CrossRefRow,
-  StrongsRow,
-  VerseWordRow,
-  StrongsVerseRow,
-  MarginNoteRow,
-  // API types (for external consumption)
   type BibleBook,
   type BibleVerse,
   type CrossReference,

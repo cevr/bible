@@ -8,21 +8,17 @@
 import { existsSync } from 'fs';
 import { join } from 'path';
 
-import { BunServices } from '@effect/platform-bun';
 import { beforeAll, describe, expect, it } from 'bun:test';
 import { Effect, Layer, ManagedRuntime } from 'effect';
 
-import { BibleDatabase } from '../bible-db/bible-database.js';
+import * as BibleDbBun from '../bible-db/bible-database-bun.js';
 import { StructuralAnalysis } from './service.js';
 import { SYMBOLIC_NUMBERS } from './types.js';
 
 const DB_PATH = join(import.meta.dir, '../../data/bible.db');
 const DB_EXISTS = existsSync(DB_PATH);
 
-const TestLayer = StructuralAnalysis.Live.pipe(
-  Layer.provideMerge(BibleDatabase.Default),
-  Layer.provideMerge(BunServices.layer),
-);
+const TestLayer = StructuralAnalysis.Live.pipe(Layer.provideMerge(BibleDbBun.layerBun(DB_PATH)));
 
 const runtime = ManagedRuntime.make(TestLayer);
 

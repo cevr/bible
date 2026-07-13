@@ -25,7 +25,7 @@ import { join } from 'path';
 
 import { BibleToolsApi } from '@bible/api';
 import { BibleService } from '@bible/core/bible/service';
-import { BibleDatabase } from '@bible/core/bible-db';
+import * as BibleDbBun from '@bible/core/bible-db/bun';
 import * as EGWDbBun from '@bible/core/egw-db/bun';
 import { WritingsArchive } from '@bible/core/writings/archive-service';
 import { WritingsService } from '@bible/core/writings/service';
@@ -47,7 +47,7 @@ const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 // Compose all group handlers
 const BibleGroupLayer = BibleGroupLive.pipe(
   Layer.provide(BibleService.Live),
-  Layer.provide(BibleDatabase.Default),
+  Layer.provide(BibleDbBun.Default),
 );
 
 const WritingsServiceLive = WritingsService.Live.pipe(Layer.provide(EGWDbBun.Default));

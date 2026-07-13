@@ -12,15 +12,15 @@ import { existsSync } from 'fs';
 import { join } from 'path';
 
 import { BibleDatabase } from '@bible/core/bible-db';
-import { BunServices } from '@effect/platform-bun';
+import * as BibleDbBun from '@bible/core/bible-db/bun';
 import { beforeAll, describe, expect, it } from 'bun:test';
-import { Effect, Layer, ManagedRuntime, Option } from 'effect';
+import { Effect, ManagedRuntime, Option } from 'effect';
 
 // Use the bible.db in packages/core/data
 const DB_PATH = join(import.meta.dir, '../../../core/data/bible.db');
 
 // Create combined layer with all dependencies
-const BibleServicesLayer = BibleDatabase.Default.pipe(Layer.provideMerge(BunServices.layer));
+const BibleServicesLayer = BibleDbBun.layerBun(DB_PATH);
 
 // Create ManagedRuntime
 const runtime = ManagedRuntime.make(BibleServicesLayer);
