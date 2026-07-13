@@ -8,12 +8,18 @@ const BIBLE_BOOK_PATTERN = Object.keys(BIBLE_BOOK_ALIASES)
   .map(escapeRegex)
   .join('|');
 
+const VERSE = `\\d+(?:[-–—]\\d+(?::\\d+)?)?`;
+const CHAPTER_VERSES = `\\d+:${VERSE}(?:, ?${VERSE})*`;
 const BIBLE_REFERENCE = new RegExp(
-  `\\b(?:${BIBLE_BOOK_PATTERN})\\.? \\d+:\\d+(?:[-–—]\\d+(?::\\d+)?)?(?:, ?\\d+(?:[-–—]\\d+)?)?`,
+  `\\b(?:${BIBLE_BOOK_PATTERN})\\.? ${CHAPTER_VERSES}(?:; ?${CHAPTER_VERSES})*`,
   'gi',
 );
 
-const EGW_REFERENCE = /\b([1-9]?[A-Z][A-Z0-9]{1,9}) (\d+\.\d+)(?:[-–—](?:\d+\.)?\d+)?\b/g;
+// Publication codes in the EGW corpus are case-sensitive and include shapes
+// such as CTr, 14MR, and LOF_ATJ. The database lookup is the authority that
+// distinguishes a citation from ordinary word-and-decimal prose.
+const EGW_REFERENCE =
+  /\b([1-9]\d?[A-Za-z][A-Za-z0-9_]{0,30}|[A-Za-z][A-Za-z0-9_]{1,31}) (\d+\.\d+)(?:[-–—](?:\d+\.)?\d+)?\b/g;
 const SUPPRESSED_TAGS = new Set(['a', 'code', 'pre', 'script', 'style']);
 
 export type EgwPanelMap = ReadonlyMap<string, string>;
