@@ -1,5 +1,5 @@
 import { Effect, Layer, Context, Schema } from 'effect';
-import { getDbClient, type DbClient } from '@/workers/db-client';
+import { getDbClient, type EgwSyncStatus } from '@/workers/db-client';
 
 export class DatabaseQueryError extends Schema.TaggedErrorClass<DatabaseQueryError>()(
   'DatabaseQueryError',
@@ -31,8 +31,17 @@ interface DbClientServiceShape {
 
   readonly onExec: (cb: () => void) => void;
 
-  /** Direct access to the raw client for edge cases (e.g. sync metadata queries). */
-  readonly raw: DbClient;
+  readonly initializeTopics: () => Effect.Effect<void, WorkerError>;
+
+  readonly syncWritingsPublication: (bookCode: string) => Effect.Effect<number, WorkerError>;
+
+  readonly getWritingsSyncStatus: () => Effect.Effect<readonly EgwSyncStatus[], WorkerError>;
+
+  readonly syncAllWritings: () => Effect.Effect<void, WorkerError>;
+
+  readonly onWritingsSyncComplete: (
+    cb: (bookCode: string, paragraphCount: number) => void,
+  ) => () => void;
 }
 
 export class DbClientService extends Context.Service<DbClientService, DbClientServiceShape>()(
@@ -150,7 +159,47 @@ export class DbClientService extends Context.Service<DbClientService, DbClientSe
 
       onExec: (cb) => client.onExec(cb),
 
-      raw: client,
+      initializeTopics: () =>
+        Effect.tryPromise({
+          try: () => client.initTopics(),
+          catch: (cause) =>
+            new WorkerError({ cause, message: 'Failed to initialize topics', operation: 'topics' }),
+        }),
+
+      syncWritingsPublication: (bookCode) =>
+        Effect.tryPromise({
+          try: () => client.syncBook(bookCode),
+          catch: (cause) =>
+            new WorkerError({
+              cause,
+              message: `Failed to sync ${bookCode}`,
+              operation: 'syncWritingsPublication',
+            }),
+        }),
+
+      getWritingsSyncStatus: () =>
+        Effect.tryPromise({
+          try: () => client.getEgwSyncStatus(),
+          catch: (cause) =>
+            new WorkerError({
+              cause,
+              message: 'Failed to read Writings sync status',
+              operation: 'getWritingsSyncStatus',
+            }),
+        }),
+
+      syncAllWritings: () =>
+        Effect.tryPromise({
+          try: () => client.syncFullEgw(),
+          catch: (cause) =>
+            new WorkerError({
+              cause,
+              message: 'Failed to sync all Writings',
+              operation: 'syncAllWritings',
+            }),
+        }),
+
+      onWritingsSyncComplete: (callback) => client.onSyncComplete(callback),
     });
   });
 }

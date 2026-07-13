@@ -1,7 +1,7 @@
 import { Suspense, useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router';
 import { ChevronLeft, Search } from 'lucide-react';
-import { useApp, useRawApp } from '@/providers/db-context';
+import { useApp } from '@/providers/db-context';
 import { useBible } from '@/providers/bible-context';
 import { toBookSlug } from '@/data/bible';
 import type { Topic, TopicVerse } from '@/data/topics/types';
@@ -14,15 +14,16 @@ type TopicsInitState =
   | { status: 'error'; message: string };
 
 export default function TopicsRoute() {
-  const { db } = useRawApp();
+  const app = useApp();
   const [state, setState] = useState<TopicsInitState>({ status: 'loading' });
 
   const initTopics = useCallback(() => {
     setState({ status: 'loading' });
-    db.initTopics()
+    app.topics
+      .initialize()
       .then(() => setState({ status: 'ready' }))
       .catch((err) => setState({ status: 'error', message: err.message }));
-  }, [db]);
+  }, [app]);
 
   useEffect(() => {
     initTopics();

@@ -1,5 +1,5 @@
 import { Effect, Layer, Context, Schema } from 'effect';
-import { DbClientService, type DatabaseQueryError } from '../db-client-service';
+import { DbClientService, type DatabaseQueryError, type WorkerError } from '../db-client-service';
 import type { Topic, TopicVerse } from './types';
 
 export class TopicDataError extends Schema.TaggedErrorClass<TopicDataError>()('TopicDataError', {
@@ -26,6 +26,7 @@ const TopicVerseRow = Schema.Struct({
 type TopicVerseRow = typeof TopicVerseRow.Type;
 
 interface WebTopicServiceShape {
+  readonly initialize: () => Effect.Effect<void, TopicDataError>;
   readonly searchTopics: (query: string) => Effect.Effect<Topic[], TopicDataError>;
   readonly getTopic: (id: number) => Effect.Effect<Topic | null, TopicDataError>;
   readonly getTopicVerses: (id: number) => Effect.Effect<TopicVerse[], TopicDataError>;
@@ -46,6 +47,15 @@ export class WebTopicService extends Context.Service<WebTopicService, WebTopicSe
     WebTopicService,
     Effect.gen(function* () {
       const db = yield* DbClientService;
+
+      const initialize = () =>
+        db
+          .initializeTopics()
+          .pipe(
+            Effect.mapError(
+              (cause: WorkerError) => new TopicDataError({ cause, operation: 'initialize' }),
+            ),
+          );
 
       const searchTopics = Effect.fn('WebTopicService.searchTopics')(function* (query: string) {
         const rows = yield* db.query(
@@ -147,6 +157,7 @@ export class WebTopicService extends Context.Service<WebTopicService, WebTopicSe
         effect.pipe(Effect.mapError((cause) => new TopicDataError({ cause, operation })));
 
       return WebTopicService.of({
+        initialize,
         searchTopics: (query) => mapDataError('searchTopics', searchTopics(query)),
         getTopic: (id) => mapDataError('getTopic', getTopic(id)),
         getTopicVerses: (id) => mapDataError('getTopicVerses', getTopicVerses(id)),

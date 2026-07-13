@@ -2,8 +2,8 @@ import { EGWBookInfoSchema, EGWChapterSchema, type EGWBookInfo, type EGWChapter 
 import { Node } from '@bible/core/egw';
 import { Context, Effect, Layer, Option, Schema } from 'effect';
 
-import { DbClientService, type DatabaseQueryError } from '../db-client-service';
-import type { EgwBooksResult, EgwChapterContent } from './types';
+import { DbClientService, type DatabaseQueryError, type WorkerError } from '../db-client-service';
+import type { EgwBooksResult, EgwChapterContent, WritingsSyncStatus } from './types';
 
 export class WritingsDataError extends Schema.TaggedErrorClass<WritingsDataError>()(
   'WritingsDataError',
@@ -84,6 +84,12 @@ const fetchJson = <A>(schema: Schema.Decoder<A>, url: string) =>
   );
 
 interface WritingsServiceShape {
+  readonly getSyncStatus: () => Effect.Effect<readonly WritingsSyncStatus[], WritingsDataError>;
+  readonly syncPublication: (bookCode: string) => Effect.Effect<number, WritingsDataError>;
+  readonly syncAll: () => Effect.Effect<void, WritingsDataError>;
+  readonly watchSyncCompletions: (
+    callback: (bookCode: string, paragraphCount: number) => void,
+  ) => Effect.Effect<() => void>;
   readonly fetchEgwBooks: () => Effect.Effect<EgwBooksResult>;
   readonly fetchEgwChapterContent: (
     bookCode: string,
@@ -101,6 +107,19 @@ export class WritingsService extends Context.Service<WritingsService, WritingsSe
     WritingsService,
     Effect.gen(function* () {
       const db = yield* DbClientService;
+
+      const mapWorkerError = <A>(operation: string, effect: Effect.Effect<A, WorkerError>) =>
+        effect.pipe(Effect.mapError((cause) => new WritingsDataError({ cause, operation })));
+
+      const getSyncStatus = () => mapWorkerError('getSyncStatus', db.getWritingsSyncStatus());
+
+      const syncPublication = (bookCode: string) =>
+        mapWorkerError('syncPublication', db.syncWritingsPublication(bookCode));
+
+      const syncAll = () => mapWorkerError('syncAll', db.syncAllWritings());
+
+      const watchSyncCompletions = (callback: (bookCode: string, paragraphCount: number) => void) =>
+        Effect.sync(() => db.onWritingsSyncComplete(callback));
 
       const localBooks = db
         .query(LocalEgwBookRow, 'egw', 'SELECT * FROM books ORDER BY book_code')
@@ -232,6 +251,10 @@ export class WritingsService extends Context.Service<WritingsService, WritingsSe
         effect.pipe(Effect.mapError((cause) => new WritingsDataError({ cause, operation })));
 
       return WritingsService.of({
+        getSyncStatus,
+        syncPublication,
+        syncAll,
+        watchSyncCompletions,
         fetchEgwBooks,
         fetchEgwChapterContent: (bookCode, chapterIndex) =>
           fetchEgwChapterContent(bookCode, chapterIndex).pipe(

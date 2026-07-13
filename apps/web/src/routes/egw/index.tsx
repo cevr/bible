@@ -12,9 +12,8 @@ import { XIcon } from 'lucide-react';
 import { useKeyboardAction } from '@/providers/keyboard-context';
 import { useOverlay } from '@/providers/overlay-context';
 import { useBible } from '@/providers/bible-context';
-import { useApp, useDb } from '@/providers/db-context';
-import type { EgwSyncStatus } from '@/workers/db-client';
-import type { EGWBookInfo } from '@/data/writings/types';
+import { useApp } from '@/providers/db-context';
+import type { EGWBookInfo, WritingsSyncStatus } from '@/data/writings/types';
 import { isChapterHeading } from '@bible/core/egw';
 import { PageView } from '@/components/egw/page-view';
 import { EgwStudyPanel } from '@/components/egw/egw-study-panel';
@@ -134,7 +133,7 @@ function BookCard({
   disabled,
 }: {
   book: EGWBookInfo;
-  syncStatus: EgwSyncStatus | undefined;
+  syncStatus: WritingsSyncStatus | undefined;
   isSyncing: boolean;
   onSync: () => void;
   disabled: boolean;
@@ -181,11 +180,10 @@ function BookCard({
 
 function BookListView() {
   const app = useApp();
-  const db = useDb();
   const { source, books } = app.writings.egwBooks();
 
   const [search, setSearch] = useState('');
-  const [syncStatus, setSyncStatus] = useState<Map<string, EgwSyncStatus>>(new Map());
+  const [syncStatus, setSyncStatus] = useState<Map<string, WritingsSyncStatus>>(new Map());
   const [syncing, setSyncing] = useState<Set<string>>(new Set());
   const [fullSyncing, setFullSyncing] = useState(false);
 
@@ -203,26 +201,41 @@ function BookListView() {
   const categories = useMemo(() => categorizeBooks(filteredBooks), [filteredBooks]);
 
   const refreshSyncStatus = () => {
-    db.getEgwSyncStatus().then((statuses) => {
-      const map = new Map<string, EgwSyncStatus>();
-      for (const s of statuses) map.set(s.bookCode, s);
-      setSyncStatus(map);
-    });
+    app.writings
+      .getSyncStatus()
+      .then((statuses) => {
+        const map = new Map<string, WritingsSyncStatus>();
+        for (const status of statuses) map.set(status.bookCode, status);
+        setSyncStatus(map);
+      })
+      .catch((error) => console.error('Failed to read Writings sync status:', error));
   };
 
   // Fetch sync status on mount + subscribe to background completions
   useEffect(() => {
+    let disposed = false;
+    let unsubscribe: (() => void) | undefined;
     refreshSyncStatus();
-    return db.onSyncComplete(() => {
-      refreshSyncStatus();
-      app.writings.egwBooks.invalidateAll();
-    });
-  }, [db]); // eslint-disable-line react-hooks/exhaustive-deps
+    app.writings
+      .watchSyncCompletions(() => {
+        refreshSyncStatus();
+        app.writings.egwBooks.invalidateAll();
+      })
+      .then((cleanup) => {
+        if (disposed) cleanup();
+        else unsubscribe = cleanup;
+      })
+      .catch((error) => console.error('Failed to watch Writings sync:', error));
+    return () => {
+      disposed = true;
+      unsubscribe?.();
+    };
+  }, [app]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSyncBook = async (bookCode: string) => {
     setSyncing((prev) => new Set(prev).add(bookCode));
     try {
-      await db.syncBook(bookCode);
+      await app.writings.syncPublication(bookCode);
       refreshSyncStatus();
       app.writings.egwBooks.invalidateAll();
     } catch (err) {
@@ -250,7 +263,7 @@ function BookListView() {
     if (!confirm('This will download ~635MB. Continue?')) return;
     setFullSyncing(true);
     try {
-      await db.syncFullEgw();
+      await app.writings.syncAll();
       app.writings.egwBooks.invalidateAll();
       refreshSyncStatus();
     } catch (err) {

@@ -14,3 +14,9 @@ export interface EgwChapterContent {
   title: string | null;
   paragraphs: readonly EGWParagraph[];
 }
+
+export interface WritingsSyncStatus {
+  readonly bookCode: string;
+  readonly status: string;
+  readonly paragraphCount: number;
+}
