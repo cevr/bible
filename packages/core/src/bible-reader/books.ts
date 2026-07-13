@@ -17,6 +17,7 @@ export const BIBLE_BOOK_ALIASES: Record<string, number> = {
   genesis: 1,
   // Exodus
   exod: 2,
+  exo: 2,
   exodus: 2,
   ex: 2,
   // Leviticus
@@ -106,6 +107,7 @@ export const BIBLE_BOOK_ALIASES: Record<string, number> = {
   lamentations: 25,
   // Ezekiel
   ezek: 26,
+  eze: 26,
   ezekiel: 26,
   // Daniel
   dan: 27,
@@ -185,12 +187,16 @@ export const BIBLE_BOOK_ALIASES: Record<string, number> = {
   colossians: 51,
   // 1 Thessalonians
   '1thess': 52,
+  '1th': 52,
   '1thessalonians': 52,
+  '1 th': 52,
   '1 thess': 52,
   '1 thessalonians': 52,
   // 2 Thessalonians
   '2thess': 53,
+  '2th': 53,
   '2thessalonians': 53,
+  '2 th': 53,
   '2 thess': 53,
   '2 thessalonians': 53,
   // 1 Timothy

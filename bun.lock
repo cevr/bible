@@ -166,6 +166,9 @@
     "packages/web": {
       "name": "@bible/site",
       "version": "1.0.0",
+      "dependencies": {
+        "@bible/core": "workspace:*",
+      },
       "devDependencies": {
         "@effect/platform-bun": "4.0.0-beta.68",
         "@types/bun": "1.3.13",

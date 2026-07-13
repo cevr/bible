@@ -7,7 +7,11 @@
   "scripts": {
     "build": "bun run src/build.ts",
     "start": "bun run src/server.ts",
+    "test": "bun test",
     "typecheck": "tsgo --noEmit"
+  },
+  "dependencies": {
+    "@bible/core": "workspace:*"
   },
   "devDependencies": {
     "@effect/platform-bun": "4.0.0-beta.68",
