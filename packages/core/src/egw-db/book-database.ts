@@ -218,6 +218,9 @@ export interface EGWParagraphDatabaseService {
     ParagraphDatabaseError
   >;
   readonly getMaxPage: (bookId: number) => Effect.Effect<number, ParagraphDatabaseError>;
+  readonly getPageNumbers: (
+    bookId: number,
+  ) => Effect.Effect<readonly number[], ParagraphDatabaseError>;
 
   // Bible reference operations
   readonly storeBibleRef: (
@@ -699,6 +702,13 @@ export class EGWParagraphDatabase extends Context.Service<
           SELECT MAX(page_number) as max_page FROM paragraphs WHERE book_id = ${bookId}
         `.pipe(Effect.map((rows) => rows[0]?.max_page ?? 1));
 
+      const getPageNumbers = (bookId: number) =>
+        sql<{ page_number: number }>`
+          SELECT DISTINCT page_number FROM paragraphs
+          WHERE book_id = ${bookId} AND page_number IS NOT NULL
+          ORDER BY page_number
+        `.pipe(Effect.map((rows) => rows.map((row) => row.page_number)));
+
       // The user types human refcodes ("DAR 62", "PP 351.1", "GC"); the index
       // stores them in the EGW canonical form ("DAR1909 62", "PP 351.1"). We
       // split on the first space: the head is matched as a book_code prefix
@@ -942,6 +952,7 @@ export class EGWParagraphDatabase extends Context.Service<
         searchParagraphs,
         findByRefcodeShort,
         getMaxPage,
+        getPageNumbers,
         storeBibleRef,
         storeBibleRefsBatch,
         getBibleRefsByBook,
@@ -983,14 +994,108 @@ export class EGWParagraphDatabase extends Context.Service<
       updateBookCount: () => Effect.void,
       storeParagraph: () => Effect.void,
       storeParagraphsBatch: (paragraphs) => Effect.succeed(paragraphs.length),
-      getParagraph: () => Effect.succeed(Option.none()),
-      getParagraphsByBook: () => Stream.empty,
-      getParagraphsByAuthor: () => Stream.empty,
-      getParagraphsByPage: () => Effect.succeed([]),
-      getChapterHeadings: () => Effect.succeed([]),
-      searchParagraphs: () => Effect.succeed([]),
+      getParagraph: (bookId, refcode) => {
+        const bookCode = config.books?.find((book) => book.book_id === bookId)?.book_code;
+        return Effect.succeed(
+          Option.fromNullishOr(
+            config.paragraphs?.find(
+              (paragraph) =>
+                paragraph.bookCode === bookCode &&
+                (Option.getOrUndefined(paragraph.refcode_short) === refcode ||
+                  paragraph.refcode_long === refcode),
+            ),
+          ),
+        );
+      },
+      getParagraphsByBook: (bookId) => {
+        const bookCode = config.books?.find((book) => book.book_id === bookId)?.book_code;
+        return Stream.fromIterable(
+          config.paragraphs?.filter((paragraph) => paragraph.bookCode === bookCode) ?? [],
+        );
+      },
+      getParagraphsByAuthor: (author) => {
+        const bookCodes = new Set(
+          config.books
+            ?.filter((book) => book.book_author === author)
+            .map((book) => book.book_code) ?? [],
+        );
+        return Stream.fromIterable(
+          config.paragraphs?.filter((paragraph) => bookCodes.has(paragraph.bookCode)) ?? [],
+        );
+      },
+      getParagraphsByPage: (bookId, page) => {
+        const bookCode = config.books?.find((book) => book.book_id === bookId)?.book_code;
+        return Effect.succeed(
+          config.paragraphs?.filter((paragraph) => {
+            const refcode =
+              Option.getOrUndefined(paragraph.refcode_short) ?? paragraph.refcode_long ?? '';
+            return paragraph.bookCode === bookCode && refcode.startsWith(`${bookCode} ${page}.`);
+          }) ?? [],
+        );
+      },
+      getChapterHeadings: (bookId) => {
+        const bookCode = config.books?.find((book) => book.book_id === bookId)?.book_code;
+        return Effect.succeed(
+          config.paragraphs?.filter(
+            (paragraph) =>
+              paragraph.bookCode === bookCode &&
+              (paragraph.element_type === 'chapter' ||
+                paragraph.element_type === 'title' ||
+                paragraph.element_type?.toLowerCase().startsWith('h')),
+          ) ?? [],
+        );
+      },
+      searchParagraphs: (_query, limit, bookCode) =>
+        Effect.succeed(
+          (
+            config.paragraphs?.filter(
+              (paragraph) => bookCode === undefined || paragraph.bookCode === bookCode,
+            ) ?? []
+          )
+            .slice(0, limit)
+            .flatMap((paragraph) => {
+              const book = config.books?.find(
+                (candidate) => candidate.book_code === paragraph.bookCode,
+              );
+              return book
+                ? [
+                    {
+                      ...paragraph,
+                      bookId: book.book_id,
+                      bookTitle: book.book_title,
+                    },
+                  ]
+                : [];
+            }),
+        ),
       findByRefcodeShort: () => Effect.succeed([]),
-      getMaxPage: () => Effect.succeed(1),
+      getMaxPage: (bookId) => {
+        const bookCode = config.books?.find((book) => book.book_id === bookId)?.book_code;
+        const pages =
+          config.paragraphs
+            ?.filter((paragraph) => paragraph.bookCode === bookCode)
+            .flatMap((paragraph) => {
+              const refcode =
+                Option.getOrUndefined(paragraph.refcode_short) ?? paragraph.refcode_long ?? '';
+              const match = refcode.match(/\s(\d+)\./);
+              return match?.[1] ? [Number.parseInt(match[1], 10)] : [];
+            }) ?? [];
+        return Effect.succeed(Math.max(0, ...pages));
+      },
+      getPageNumbers: (bookId) => {
+        const bookCode = config.books?.find((book) => book.book_id === bookId)?.book_code;
+        const pages = new Set(
+          config.paragraphs
+            ?.filter((paragraph) => paragraph.bookCode === bookCode)
+            .flatMap((paragraph) => {
+              const refcode =
+                Option.getOrUndefined(paragraph.refcode_short) ?? paragraph.refcode_long ?? '';
+              const match = refcode.match(/\s(\d+)\./);
+              return match?.[1] ? [Number.parseInt(match[1], 10)] : [];
+            }) ?? [],
+        );
+        return Effect.succeed([...pages].sort((left, right) => left - right));
+      },
       storeBibleRef: () => Effect.void,
       storeBibleRefsBatch: (refs) => Effect.succeed(refs.length),
       getBibleRefsByBook: () => Effect.succeed([]),

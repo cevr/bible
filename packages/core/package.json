@@ -23,6 +23,7 @@
     "./bible": "./src/bible/index.ts",
     "./bible/service": "./src/bible/service.ts",
     "./writings": "./src/writings/index.ts",
+    "./writings/service": "./src/writings/service.ts",
     "./bible-rendering": "./src/bible-rendering/index.ts",
     "./gemini": "./src/gemini/index.ts",
     "./sabbath-school": "./src/sabbath-school/index.ts",
