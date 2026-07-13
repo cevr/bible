@@ -12,6 +12,7 @@
 import { useState, useEffect, useRef, useMemo, useTransition, Suspense } from 'react';
 import { useNavigate } from 'react-router';
 import { XIcon, Trash2Icon, ExternalLinkIcon, ChevronDownIcon, BookMarkedIcon } from 'lucide-react';
+import { Reference as BibleReference } from '@bible/core/bible';
 import { useBible } from '@/providers/bible-context';
 import { useApp } from '@/providers/db-context';
 import { Button } from '@/components/ui/button';
@@ -610,14 +611,14 @@ function PopoverVersePeek({
   verseEnd: number | null;
 }) {
   const app = useApp();
-  const verses = app.bible.verses(book, chapter);
+  const verses = app.bible.chapter(BibleReference.chapter(book, chapter)).verses;
 
   if (verse == null) {
     return <p className="text-xs text-muted-foreground italic">Chapter-level reference</p>;
   }
 
   const end = verseEnd ?? verse;
-  const matched = verses.filter((v) => v.verse >= verse && v.verse <= end);
+  const matched = verses.filter((v) => v.reference.verse >= verse && v.reference.verse <= end);
   if (matched.length === 0) {
     return <p className="text-xs text-muted-foreground italic">Verse not found</p>;
   }
@@ -629,9 +630,9 @@ function PopoverVersePeek({
   return (
     <div className="reading-text text-sm flex flex-col gap-1.5">
       {clamped.map((v) => (
-        <p key={v.verse}>
+        <p key={v.reference.verse}>
           <span className="font-sans text-[0.65em] font-semibold text-muted-foreground align-super mr-[0.25em] select-none">
-            {v.verse}
+            {v.reference.verse}
           </span>
           <VerseRenderer text={v.text} />
         </p>
@@ -690,7 +691,7 @@ function CrossRefsTab({
       const key = `${ref.book}-${ref.chapter}`;
       if (!seen.has(key)) {
         seen.add(key);
-        app.bible.verses.preload(ref.book, ref.chapter);
+        app.bible.chapter.preload(BibleReference.chapter(ref.book, ref.chapter));
       }
     }
   }, [crossRefs, app]);

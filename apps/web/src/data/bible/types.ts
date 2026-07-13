@@ -2,10 +2,15 @@
  * Bible data types for the web application.
  *
  * Re-exports from @bible/core for consistency across packages.
- * Verse and SearchResult types now come from @bible/api.
  */
 
-import type { Book as CanonicalBook } from '@bible/core/bible';
+import type {
+  Book as CanonicalBook,
+  Chapter as CanonicalChapter,
+  SearchHit as CanonicalSearchHit,
+  SearchWindow as CanonicalSearchWindow,
+  Verse as CanonicalVerse,
+} from '@bible/core/bible';
 
 // Re-export Bible data from core (single source of truth)
 export {
@@ -26,8 +31,10 @@ export interface ReaderTarget {
 }
 export type Reference = ReaderTarget;
 
-// Re-export API types for convenience
-export type { Verse, SearchResult, ChapterResponse } from '@bible/api';
+export type Verse = CanonicalVerse;
+export type Chapter = CanonicalChapter;
+export type SearchHit = CanonicalSearchHit;
+export type SearchWindow = CanonicalSearchWindow;
 
 /** Convert a book name to a URL-safe slug (e.g. "1 Samuel" → "1-samuel"). */
 export function toBookSlug(name: string): string {

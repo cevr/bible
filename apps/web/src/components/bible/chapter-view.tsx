@@ -5,6 +5,7 @@
  * Used by Bible route's SecondaryReaderPane and EGW route's Bible pane.
  */
 import { useEffect, useRef, type ReactNode } from 'react';
+import { Reference as BibleReference } from '@bible/core/bible';
 import { useApp } from '@/providers/db-context';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { VerseRenderer } from '@/components/bible/verse-renderer';
@@ -27,7 +28,7 @@ export function BibleChapterView({
   className,
 }: BibleChapterViewProps) {
   const app = useApp();
-  const verses = app.bible.verses(book, chapter);
+  const verses = app.bible.chapter(BibleReference.chapter(book, chapter)).verses;
   const marginNotesByVerse = app.concordance.chapterMarginNotes(book, chapter);
 
   const highlightedVerse = highlightVerseProp ?? null;
@@ -49,17 +50,20 @@ export function BibleChapterView({
         <div ref={scrollRef} className="reading-text flex flex-col gap-3 pt-4 px-4 sm:px-0">
           {verses.map((v) => (
             <p
-              key={v.verse}
-              data-cv-verse={v.verse}
+              key={v.reference.verse}
+              data-cv-verse={v.reference.verse}
               className={`rounded px-2 py-1 cursor-pointer transition-colors ${
-                v.verse === highlightedVerse ? 'bg-accent' : 'hover:bg-accent/50'
+                v.reference.verse === highlightedVerse ? 'bg-accent' : 'hover:bg-accent/50'
               }`}
-              onClick={() => onVerseClick?.(v.verse)}
+              onClick={() => onVerseClick?.(v.reference.verse)}
             >
               <span className="font-sans text-[0.65em] font-semibold text-muted-foreground align-super mr-[0.25em] select-none">
-                {v.verse}
+                {v.reference.verse}
               </span>
-              <VerseRenderer text={v.text} marginNotes={marginNotesByVerse.get(v.verse)} />
+              <VerseRenderer
+                text={v.text}
+                marginNotes={marginNotesByVerse.get(v.reference.verse)}
+              />
             </p>
           ))}
         </div>

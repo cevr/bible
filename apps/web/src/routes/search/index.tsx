@@ -4,6 +4,7 @@ import { Search } from 'lucide-react';
 import { useApp } from '@/providers/db-context';
 import { useBible } from '@/providers/bible-context';
 import { toBookSlug } from '@/data/bible';
+import { HighlightMatch } from '@/components/shared/highlight-match';
 
 // OT books: 1-39, NT books: 40-66
 const OT_RANGE = Array.from({ length: 39 }, (_, i) => i + 1);
@@ -175,13 +176,17 @@ function SearchResults({
   const navigate = useNavigate();
 
   const limit = (page + 1) * PAGE_SIZE;
-  const { results, total } = app.bible.searchVersesWithCount(query, {
-    bookFilter: bookFilter.length > 0 ? bookFilter : undefined,
+  const books = bookFilter.flatMap((number) => {
+    const book = bible.getBook(number);
+    return book === undefined ? [] : [book.number];
+  });
+  const { hits, total } = app.bible.searchWindow(query, {
+    books: books.length > 0 ? books : undefined,
     limit,
     offset: 0,
   });
 
-  if (results.length === 0) {
+  if (hits.length === 0) {
     return (
       <p className="text-center text-muted-foreground py-12">
         No results for &ldquo;{query}&rdquo;
@@ -189,7 +194,7 @@ function SearchResults({
     );
   }
 
-  const hasMore = results.length < total;
+  const hasMore = hits.length < total;
 
   return (
     <div className="space-y-4">
@@ -198,25 +203,24 @@ function SearchResults({
       </p>
 
       <div className="space-y-2">
-        {results.map((result) => {
-          const book = bible.getBook(result.book);
+        {hits.map((hit) => {
+          const { reference, text } = hit.verse;
           return (
             <button
-              key={`${result.book}-${result.chapter}-${result.verse}`}
+              key={`${reference.book}-${reference.chapter}-${reference.verse}`}
               className="w-full text-left px-4 py-3 rounded-lg border border-border hover:bg-accent transition-colors"
               onClick={() => {
-                if (book) {
-                  navigate(`/bible/${toBookSlug(book.name)}/${result.chapter}/${result.verse}`);
-                }
+                navigate(
+                  `/bible/${toBookSlug(hit.book.name)}/${reference.chapter}/${reference.verse}`,
+                );
               }}
             >
               <div className="text-xs font-medium text-muted-foreground mb-1">
-                {book?.name ?? `Book ${result.book}`} {result.chapter}:{result.verse}
+                {hit.book.name} {reference.chapter}:{reference.verse}
               </div>
-              <div
-                className="text-sm text-foreground line-clamp-2 [&_mark]:bg-yellow-200/60 [&_mark]:dark:bg-yellow-500/30 [&_mark]:rounded [&_mark]:px-0.5"
-                dangerouslySetInnerHTML={{ __html: result.text }}
-              />
+              <div className="text-sm text-foreground line-clamp-2">
+                <HighlightMatch text={text} query={query} />
+              </div>
             </button>
           );
         })}
@@ -229,7 +233,7 @@ function SearchResults({
             onClick={onLoadMore}
             disabled={isPending}
           >
-            {isPending ? 'Loading…' : `Load more (${results.length} of ${total})`}
+            {isPending ? 'Loading…' : `Load more (${hits.length} of ${total})`}
           </button>
         </div>
       )}

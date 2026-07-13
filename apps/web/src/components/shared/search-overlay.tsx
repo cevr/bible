@@ -1,10 +1,12 @@
-import { useState, useEffect, Suspense, type ReactNode } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useNavigate, useParams } from 'react-router';
+import { Reference as BibleReference } from '@bible/core/bible';
 import { useBible } from '@/providers/bible-context';
 import { useOverlay, useOverlayData } from '@/providers/overlay-context';
 import { useApp } from '@/providers/db-context';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { HighlightMatch } from '@/components/shared/highlight-match';
 import { BOOK_ALIASES, toBookSlug, type Reference } from '@/data/bible';
 
 interface DisplayResult {
@@ -180,19 +182,19 @@ function SearchResults({
   let results: DisplayResult[];
 
   if (scope === 'chapter') {
-    const verses = app.bible.verses(bookNumber, chapter);
+    const verses = app.bible.chapter(BibleReference.chapter(bookNumber, chapter)).verses;
     results = verses
       .filter((v) => v.text.toLowerCase().includes(query))
       .map((v) => ({
-        reference: { book: bookNumber, chapter, verse: v.verse },
+        reference: v.reference,
         text: v.text,
       }))
       .slice(0, 20);
   } else {
-    const searchResults = app.bible.searchVerses(query, 20);
-    results = searchResults.map((sr) => ({
-      reference: { book: sr.book, chapter: sr.chapter, verse: sr.verse },
-      text: sr.text,
+    const searchResults = app.bible.search(query, 20);
+    results = searchResults.map((hit) => ({
+      reference: hit.verse.reference,
+      text: hit.verse.text,
     }));
   }
 
@@ -220,18 +222,5 @@ function SearchResults({
         );
       })}
     </div>
-  );
-}
-
-function HighlightMatch({ text, query }: { text: string; query: string }): ReactNode {
-  if (!query) return text;
-  const idx = text.toLowerCase().indexOf(query.toLowerCase());
-  if (idx === -1) return text;
-  return (
-    <>
-      {text.slice(0, idx)}
-      <mark className="bg-accent rounded px-0.5">{text.slice(idx, idx + query.length)}</mark>
-      {text.slice(idx + query.length)}
-    </>
   );
 }

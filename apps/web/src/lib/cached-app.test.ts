@@ -6,6 +6,7 @@
  * React integration (use() + useSyncExternalStore) is tested via E2E.
  */
 import { describe, expect, mock, test } from 'bun:test';
+import { Reference, type ChapterReference } from '@bible/core/bible';
 
 import { CachedAppCore } from './cached-app';
 
@@ -16,6 +17,16 @@ import { CachedAppCore } from './cached-app';
 function createMockService() {
   return {
     bible: {
+      chapter: mock((reference: ChapterReference) =>
+        Promise.resolve({
+          verses: [
+            {
+              reference: Reference.verse(reference.book, reference.chapter, 1),
+              text: `${reference.book}:${reference.chapter} verse 1`,
+            },
+          ],
+        }),
+      ),
       fetchVerses: mock((book: number, chapter: number) =>
         Promise.resolve([{ verse: 1, text: `${book}:${chapter} verse 1` }]),
       ),
@@ -41,7 +52,7 @@ type CachedReadFn = ((...args: unknown[]) => unknown) & {
 };
 
 type MockProxy = {
-  bible: { verses: CachedReadFn };
+  bible: { chapter: CachedReadFn };
   crossReferences: {
     crossRefs: CachedReadFn;
     setRefType: MockService['crossReferences']['setRefType'];
@@ -322,10 +333,10 @@ describe('CachedAppCore', () => {
 
       // Proxy needs use() which is React-only, so test tracking via read()
       // directly instead of through the proxy
-      accessed.add('bible.fetchVerses');
+      accessed.add('bible.chapter');
       accessed.add('crossReferences.getCrossRefs');
 
-      expect(accessed.has('bible.fetchVerses')).toBe(true);
+      expect(accessed.has('bible.chapter')).toBe(true);
       expect(accessed.has('crossReferences.getCrossRefs')).toBe(true);
       expect(accessed.has('concordance.getStrongsEntry')).toBe(false);
     });
@@ -349,15 +360,15 @@ describe('CachedAppCore', () => {
       const proxy = core.withTracking(accessed) as unknown as MockProxy;
 
       // Populate cache directly
-      core.read('bible.fetchVerses', [1, 1]);
+      const reference = Reference.chapter(1, 1);
+      core.read('bible.chapter', [reference]);
       await flush();
 
-      // Invalidate through proxy's stripped name
-      proxy.bible.verses.invalidate(1, 1);
+      proxy.bible.chapter.invalidate(reference);
 
       // Should have created a new cache entry on next read
-      core.read('bible.fetchVerses', [1, 1]);
-      expect(service.bible.fetchVerses).toHaveBeenCalledTimes(2);
+      core.read('bible.chapter', [reference]);
+      expect(service.bible.chapter).toHaveBeenCalledTimes(2);
     });
 
     test('proxy exposes invalidateAll on read method', async () => {
@@ -365,15 +376,17 @@ describe('CachedAppCore', () => {
       const accessed = new Set<string>();
       const proxy = core.withTracking(accessed) as unknown as MockProxy;
 
-      core.read('bible.fetchVerses', [1, 1]);
-      core.read('bible.fetchVerses', [1, 2]);
+      const first = Reference.chapter(1, 1);
+      const second = Reference.chapter(1, 2);
+      core.read('bible.chapter', [first]);
+      core.read('bible.chapter', [second]);
       await flush();
 
-      proxy.bible.verses.invalidateAll();
+      proxy.bible.chapter.invalidateAll();
 
-      core.read('bible.fetchVerses', [1, 1]);
-      core.read('bible.fetchVerses', [1, 2]);
-      expect(service.bible.fetchVerses).toHaveBeenCalledTimes(4);
+      core.read('bible.chapter', [first]);
+      core.read('bible.chapter', [second]);
+      expect(service.bible.chapter).toHaveBeenCalledTimes(4);
     });
   });
 
@@ -416,11 +429,12 @@ describe('CachedAppCore', () => {
       const accessed = new Set<string>();
       const proxy = core.withTracking(accessed) as unknown as MockProxy;
 
-      proxy.bible.verses.preload(1, 1);
-      expect(service.bible.fetchVerses).toHaveBeenCalledTimes(1);
+      const reference = Reference.chapter(1, 1);
+      proxy.bible.chapter.preload(reference);
+      expect(service.bible.chapter).toHaveBeenCalledTimes(1);
 
       // preload should not track access (it's not a render-time read)
-      expect(accessed.has('bible.fetchVerses')).toBe(false);
+      expect(accessed.has('bible.chapter')).toBe(false);
     });
   });
 

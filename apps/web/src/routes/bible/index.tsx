@@ -8,6 +8,8 @@
 import { useState, useEffect, useRef, useMemo, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { ArrowLeftIcon, ClipboardIcon, HashIcon, LinkIcon, XIcon } from 'lucide-react';
+import { Option } from 'effect';
+import { Reference as BibleReference } from '@bible/core/bible';
 import { useKeyboardAction } from '@/providers/keyboard-context';
 import { useOverlay } from '@/providers/overlay-context';
 import { useBible } from '@/providers/bible-context';
@@ -59,7 +61,8 @@ function BibleRoute() {
   const book = bible.getBook(bookNumber);
 
   // Suspending reads — data is available synchronously on cache hit
-  const verses = app.bible.verses(bookNumber, chapterNumber);
+  const chapter = app.bible.chapter(BibleReference.chapter(bookNumber, chapterNumber));
+  const verses = chapter.verses;
   const marginNotesByVerse = app.concordance.chapterMarginNotes(bookNumber, chapterNumber);
   const chapterMarkers = app.annotations.chapterMarkers(bookNumber, chapterNumber);
   const preferences = app.state.preferences();
@@ -130,17 +133,17 @@ function BibleRoute() {
 
   // Prefetch adjacent chapters
   useEffect(() => {
-    const next = bible.getNextChapter(bookNumber, chapterNumber);
+    const next = Option.getOrUndefined(chapter.next);
     if (next) {
-      app.bible.verses.preload(next.book, next.chapter);
+      app.bible.chapter.preload(next);
       app.concordance.chapterMarginNotes.preload(next.book, next.chapter);
     }
-    const prev = bible.getPrevChapter(bookNumber, chapterNumber);
+    const prev = Option.getOrUndefined(chapter.previous);
     if (prev) {
-      app.bible.verses.preload(prev.book, prev.chapter);
+      app.bible.chapter.preload(prev);
       app.concordance.chapterMarginNotes.preload(prev.book, prev.chapter);
     }
-  }, [bookNumber, chapterNumber, bible, app]);
+  }, [chapter, app]);
 
   // Prefetch study data for selected verse
   useEffect(() => {
@@ -197,7 +200,9 @@ function BibleRoute() {
   const searchMatchVerses = (() => {
     const q = searchQuery.toLowerCase();
     if (q.length < 2) return [];
-    return verses.filter((v) => v.text.toLowerCase().includes(q)).map((v) => v.verse);
+    return verses
+      .filter((verse) => verse.text.toLowerCase().includes(q))
+      .map((verse) => verse.reference.verse);
   })();
   const searchMatchVersesRef = useRef(searchMatchVerses);
   searchMatchVersesRef.current = searchMatchVerses;
@@ -399,16 +404,16 @@ function BibleRoute() {
         ) : (
           verses.map((verse) => (
             <VerseDisplay
-              key={verse.verse}
+              key={verse.reference.verse}
               verse={verse}
-              isSelected={selectedVerse === verse.verse}
-              marginNotes={marginNotesByVerse.get(verse.verse)}
-              markers={chapterMarkers.get(verse.verse)}
+              isSelected={selectedVerse === verse.reference.verse}
+              marginNotes={marginNotesByVerse.get(verse.reference.verse)}
+              markers={chapterMarkers.get(verse.reference.verse)}
               searchQuery={searchQuery}
               bookName={book?.name ?? ''}
               bookSlug={book ? toBookSlug(book.name) : ''}
               chapter={chapterNumber}
-              onClick={() => handleVerseClick(verse.verse)}
+              onClick={() => handleVerseClick(verse.reference.verse)}
             />
           ))
         )}
@@ -635,14 +640,15 @@ function VerseDisplay({
   chapter: number;
   onClick: () => void;
 }) {
-  const ref = `${bookName} ${chapter}:${verse.verse}`;
+  const verseNumber = verse.reference.verse;
+  const ref = `${bookName} ${chapter}:${verseNumber}`;
 
   return (
     <ContextMenu>
       <ContextMenuTrigger
         render={
           <p
-            data-verse={verse.verse}
+            data-verse={verseNumber}
             className={`cursor-pointer rounded px-2 py-1 transition-colors duration-100 flex items-start gap-1 ${
               isSelected ? 'bg-accent' : 'hover:bg-accent/50'
             }`}
@@ -666,7 +672,7 @@ function VerseDisplay({
         )}
         <span>
           <span className="font-sans text-[0.65em] font-semibold text-muted-foreground align-super mr-[0.25em] select-none">
-            {verse.verse}
+            {verseNumber}
           </span>
           <VerseRenderer text={verse.text} marginNotes={marginNotes} searchQuery={searchQuery} />
         </span>
@@ -681,7 +687,7 @@ function VerseDisplay({
           Copy as markdown
         </ContextMenuItem>
         <ContextMenuSeparator />
-        <ContextMenuItem onClick={() => copyShareLink(bookSlug, chapter, verse.verse)}>
+        <ContextMenuItem onClick={() => copyShareLink(bookSlug, chapter, verseNumber)}>
           <LinkIcon />
           Copy share link
         </ContextMenuItem>

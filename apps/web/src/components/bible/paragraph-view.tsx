@@ -27,26 +27,27 @@ export function ParagraphView({
   return (
     <div className="reading-text leading-[1.9]">
       {verses.map((verse, index) => {
-        const notes = marginNotesByVerse?.get(verse.verse) ?? [];
+        const verseNumber = verse.reference.verse;
+        const notes = marginNotesByVerse?.get(verseNumber) ?? [];
         const segments = segmentVerseText(verse.text, notes, searchQuery);
-        const isSelected = selectedVerse === verse.verse;
+        const isSelected = selectedVerse === verseNumber;
 
         return (
-          <span key={verse.verse}>
+          <span key={verseNumber}>
             <sup
               className={`font-sans text-[0.65em] font-semibold text-muted-foreground align-super mr-[0.25em] select-none cursor-pointer tabular-nums ${
                 isSelected ? 'text-primary font-bold' : ''
               }`}
-              onClick={() => onVerseClick(verse.verse)}
+              onClick={() => onVerseClick(verseNumber)}
             >
-              {verse.verse}
+              {verseNumber}
             </sup>
             <span
               className={`cursor-pointer transition-colors duration-100 ${
                 isSelected ? 'bg-accent rounded-sm' : ''
               }`}
-              onClick={() => onVerseClick(verse.verse)}
-              data-verse={verse.verse}
+              onClick={() => onVerseClick(verseNumber)}
+              data-verse={verseNumber}
             >
               {'\u2009'}
               {segments.map((segment, i) => renderSegment(segment, notes, i))}

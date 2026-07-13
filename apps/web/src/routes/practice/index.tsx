@@ -2,13 +2,13 @@ import { Suspense, useState, useTransition, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router';
 import { Trash2, ChevronLeft, RotateCcw } from 'lucide-react';
 import { useApp } from '@/providers/db-context';
-import { Reference, formatBibleReference } from '@bible/core/bible';
+import { Reference as BibleReference, formatBibleReference } from '@bible/core/bible';
 import type { MemoryVerse } from '@/data/practice/types';
 
 const memoryVerseReference = (verse: MemoryVerse) => {
-  const start = Reference.verse(verse.book, verse.chapter, verse.verseStart);
+  const start = BibleReference.verse(verse.book, verse.chapter, verse.verseStart);
   return verse.verseEnd !== null && verse.verseEnd !== verse.verseStart
-    ? Reference.range(start, Reference.verse(verse.book, verse.chapter, verse.verseEnd))
+    ? BibleReference.range(start, BibleReference.verse(verse.book, verse.chapter, verse.verseEnd))
     : start;
 };
 
@@ -172,9 +172,12 @@ function PracticeSession({ verseId }: { verseId: string }) {
 
 function useVerseText(mv: MemoryVerse): string {
   const app = useApp();
-  const allVerses = app.bible.verses(mv.book, mv.chapter);
+  const allVerses = app.bible.chapter(BibleReference.chapter(mv.book, mv.chapter)).verses;
   return allVerses
-    .filter((v) => v.verse >= mv.verseStart && v.verse <= (mv.verseEnd ?? mv.verseStart))
+    .filter(
+      (v) =>
+        v.reference.verse >= mv.verseStart && v.reference.verse <= (mv.verseEnd ?? mv.verseStart),
+    )
     .map((v) => v.text)
     .join(' ');
 }

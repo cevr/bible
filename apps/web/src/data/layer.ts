@@ -1,8 +1,10 @@
 import { Layer } from 'effect';
+import { BibleDatabase } from '@bible/core/bible-db';
+import { BibleService } from '@bible/core/bible/service';
 import { AnnotationService } from './annotations/effect-service';
 import { BackupService } from './backup/effect-service';
 import { DbClientService } from './db-client-service';
-import { WebBibleService } from './bible/effect-service';
+import { layerBrowserBibleSqlClient } from './bible/browser-sql-client';
 import { CollectionService } from './collections/effect-service';
 import { CommentaryService } from './commentary/effect-service';
 import { ConcordanceService } from './concordance/effect-service';
@@ -18,9 +20,14 @@ const UserDataLive = BackupService.layer.pipe(
   Layer.provideMerge(Layer.merge(AppStateService.Live, CollectionService.layer)),
 );
 
+const BibleLive = BibleService.Live.pipe(
+  Layer.provide(BibleDatabase.layer),
+  Layer.provide(layerBrowserBibleSqlClient),
+);
+
 export const AppLive = Layer.mergeAll(
   AnnotationService.layer,
-  WebBibleService.Live,
+  BibleLive,
   UserDataLive,
   CommentaryService.layer,
   ConcordanceService.layer,

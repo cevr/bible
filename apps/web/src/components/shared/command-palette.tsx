@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef, Suspense, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router';
+import { Reference as BibleReference } from '@bible/core/bible';
 import { useBible } from '@/providers/bible-context';
 import { useOverlay } from '@/providers/overlay-context';
 import { useApp } from '@/providers/db-context';
@@ -816,13 +817,17 @@ function VerseList({
   onSelect: (verse: number) => void;
 }) {
   const app = useApp();
-  const verses = app.bible.verses(bookNumber, chapter);
+  const verses = app.bible.chapter(BibleReference.chapter(bookNumber, chapter)).verses;
 
   return (
     <CommandGroup heading="Verses">
       {verses.map((v) => (
-        <CommandItem key={v.verse} value={`Verse ${v.verse}`} onSelect={() => onSelect(v.verse)}>
-          Verse {v.verse}
+        <CommandItem
+          key={v.reference.verse}
+          value={`Verse ${v.reference.verse}`}
+          onSelect={() => onSelect(v.reference.verse)}
+        >
+          Verse {v.reference.verse}
         </CommandItem>
       ))}
     </CommandGroup>
