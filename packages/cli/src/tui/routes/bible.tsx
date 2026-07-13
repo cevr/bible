@@ -1,7 +1,7 @@
 import { useKeyboard, useTerminalDimensions } from '@opentui/solid';
 import type { BibleRouteReference } from '@bible/core/app';
 import { Reference } from '@bible/core/bible';
-import { createSignal, onCleanup, Show } from 'solid-js';
+import { createSignal, Show } from 'solid-js';
 
 import { ChapterView } from '../components/bible/chapter-view.js';
 import { BibleCommandPalette } from '../components/bible/command-palette.js';
@@ -15,7 +15,6 @@ import { useDisplay } from '../context/display.js';
 import { useNavigation } from '../context/navigation.js';
 import { useOverlay } from '../context/overlay.js';
 import { useSearch } from '../context/search.js';
-import { useStudyData } from '../context/study-data.js';
 import { useTheme } from '../context/theme.js';
 import { useWordMode } from '../context/word-mode.js';
 import {
@@ -53,7 +52,7 @@ function handleWordModeKeys(
 
   if (key.name === 'space') {
     const word = wordMode.currentWord();
-    if (word?.strongs?.length) {
+    if (word?.strongsNumbers?.length) {
       openOverlay('strongs');
     }
     return true;
@@ -158,22 +157,9 @@ export function BibleView(_props: BibleViewProps) {
     close: closeOverlay,
   } = useOverlay();
   const wordMode = useWordMode();
-  const studyData = useStudyData();
 
   // Vim-style goto mode using state machine
   const [gotoMode, setGotoMode] = createSignal<GotoModeState>(GotoModeState.normal());
-
-  // Toast message for loading/status feedback
-  const [toast, setToast] = createSignal<string | null>(null);
-  let toastTimer: Timer | undefined;
-  const showToast = (msg: string, duration = 1500) => {
-    if (toastTimer) clearTimeout(toastTimer);
-    setToast(msg);
-    toastTimer = setTimeout(() => setToast(null), duration);
-  };
-  onCleanup(() => {
-    if (toastTimer) clearTimeout(toastTimer);
-  });
 
   // Execute actions from goto mode transitions
   const executeGotoAction = (action: GotoModeAction) => {
@@ -206,18 +192,11 @@ export function BibleView(_props: BibleViewProps) {
 
     // Normal mode: Space opens cross-refs, Enter enters word mode
     if (key.name === 'space') {
-      if (studyData.isLoading()) {
-        showToast('Loading cross-references...');
-        return;
-      }
       openOverlay('cross-refs');
       return;
     }
     if (key.name === 'return') {
-      const result = wordMode.enter(currentVerseRef());
-      if (result === 'loading') {
-        showToast("Loading Strong's data...");
-      }
+      wordMode.enter(currentVerseRef());
       return;
     }
 
@@ -255,10 +234,6 @@ export function BibleView(_props: BibleViewProps) {
 
     // Concordance search: Ctrl+S
     if (key.ctrl && key.name === 's') {
-      if (studyData.isLoading()) {
-        showToast('Loading concordance data...');
-        return;
-      }
       openOverlay('concordance');
       return;
     }
@@ -336,20 +311,6 @@ export function BibleView(_props: BibleViewProps) {
       <Show when={isSpecificOverlayOpen('concordance')}>
         <box position="absolute" top={2} left={Math.floor((dimensions().width - 70) / 2)}>
           <ConcordanceSearch onClose={closeOverlay} onNavigate={handleCrossRefNavigate} />
-        </box>
-      </Show>
-
-      {/* Toast notification for loading states */}
-      <Show when={toast()}>
-        <box
-          position="absolute"
-          bottom={3}
-          left={Math.floor((dimensions().width - 30) / 2)}
-          width={30}
-          height={1}
-          justifyContent="center"
-        >
-          <text fg={theme().accent}>{toast()}</text>
         </box>
       </Show>
     </box>

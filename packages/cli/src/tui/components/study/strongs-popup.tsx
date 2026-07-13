@@ -6,13 +6,14 @@
  */
 
 import { useModalKeyboard } from '../../hooks/use-modal-keyboard.js';
+import type { VerseWord } from '@bible/core/bible-db';
 import { createMemo, For, Show } from 'solid-js';
 
-import { useStudyData, type WordWithStrongs } from '../../context/study-data.js';
+import { useStudyData } from '../../context/study-data.js';
 import { useTheme } from '../../context/theme.js';
 
 interface StrongsPopupProps {
-  word: WordWithStrongs;
+  word: VerseWord;
   onClose: () => void;
 }
 
@@ -22,10 +23,10 @@ export function StrongsPopup(props: StrongsPopupProps) {
 
   // Get Strong's entries for all numbers on this word
   const entries = createMemo(() => {
-    if (!props.word.strongs) return [];
-    return props.word.strongs
-      .map((num) => studyData.getStrongsEntry(num))
-      .filter((e): e is NonNullable<typeof e> => e !== null);
+    if (!props.word.strongsNumbers) return [];
+    return props.word.strongsNumbers
+      .map((num) => studyData.concordance.entry(num))
+      .filter((entry) => entry !== undefined);
   });
 
   useModalKeyboard((key) => {
@@ -52,8 +53,8 @@ export function StrongsPopup(props: StrongsPopupProps) {
         <text fg={theme().accent}>
           <strong>"{props.word.text}"</strong>
         </text>
-        <Show when={props.word.strongs}>
-          <text fg={theme().textMuted}> ({props.word.strongs?.join(', ')})</text>
+        <Show when={props.word.strongsNumbers}>
+          <text fg={theme().textMuted}> ({props.word.strongsNumbers?.join(', ')})</text>
         </Show>
       </box>
 
@@ -80,12 +81,12 @@ export function StrongsPopup(props: StrongsPopupProps) {
                 </box>
 
                 {/* Original Word with Transliteration */}
-                <Show when={entry.xlit || entry.lemma}>
+                <Show when={entry.transliteration || entry.lemma}>
                   <box>
                     <text fg={theme().textMuted}>Word: </text>
                     <text fg={theme().text}>
-                      <strong>{entry.xlit || entry.lemma}</strong>
-                      <Show when={entry.xlit && entry.lemma}>
+                      <strong>{entry.transliteration || entry.lemma}</strong>
+                      <Show when={entry.transliteration && entry.lemma}>
                         <span style={{ fg: theme().textMuted }}> ({entry.lemma})</span>
                       </Show>
                     </text>
@@ -93,33 +94,33 @@ export function StrongsPopup(props: StrongsPopupProps) {
                 </Show>
 
                 {/* Pronunciation */}
-                <Show when={entry.pron}>
+                <Show when={entry.pronunciation}>
                   <box>
                     <text fg={theme().textMuted}>Pronunciation: </text>
-                    <text fg={theme().text}>{entry.pron}</text>
+                    <text fg={theme().text}>{entry.pronunciation}</text>
                   </box>
                 </Show>
 
                 {/* Definition */}
-                <Show when={entry.def}>
+                <Show when={entry.definition}>
                   <box marginTop={1}>
                     <text fg={theme().textMuted}>Definition: </text>
                   </box>
                   <box paddingLeft={2}>
                     <text fg={theme().text} wrapMode="word">
-                      {entry.def}
+                      {entry.definition}
                     </text>
                   </box>
                 </Show>
 
                 {/* KJV Usage */}
-                <Show when={entry.kjvDef}>
+                <Show when={entry.kjvDefinition}>
                   <box marginTop={1}>
                     <text fg={theme().textMuted}>KJV Usage: </text>
                   </box>
                   <box paddingLeft={2}>
                     <text fg={theme().text} wrapMode="word">
-                      {entry.kjvDef}
+                      {entry.kjvDefinition}
                     </text>
                   </box>
                 </Show>

@@ -38,39 +38,27 @@ export function ConcordanceSearch(props: ConcordanceSearchProps) {
     return /^[HG]\d+$/.test(q);
   });
 
-  // Search results - either verses with Strong's number or Strong's entries by definition
-  const results = createMemo(() => {
-    const q = query().trim();
-    if (q.length < 2) return [];
-
-    if (isStrongsQuery()) {
-      // Search for verses with this Strong's number
-      return studyData.searchByStrongs(q);
-    } else {
-      // Search Strong's entries by definition
-      return studyData.searchStrongsByDefinition(q);
-    }
-  });
-
   // Get occurrence count for Strong's searches
   const occurrenceCount = createMemo(() => {
     if (!isStrongsQuery()) return 0;
-    return studyData.getStrongsOccurrenceCount(query().trim());
+    return studyData.concordance.count(query().trim());
   });
 
   // Get Strong's entry info for header display
   const strongsInfo = createMemo(() => {
-    if (!isStrongsQuery()) return null;
-    return studyData.getStrongsEntry(query().trim().toUpperCase());
+    if (!isStrongsQuery()) return undefined;
+    return studyData.concordance.entry(query().trim().toUpperCase());
   });
 
   // Format results for display
   const formattedResults = createMemo(() => {
-    const res = results();
+    const q = query().trim();
+    if (q.length < 2) return [];
 
     if (isStrongsQuery()) {
       // Concordance results - verses containing the Strong's number
-      return (res as ReturnType<typeof studyData.searchByStrongs>)
+      return studyData.concordance
+        .verses(q)
         .map((r) => {
           const verse = reader.verse(Reference.verse(r.book, r.chapter, r.verse));
           let preview = '';
@@ -91,11 +79,11 @@ export function ConcordanceSearch(props: ConcordanceSearchProps) {
         .slice(0, 100); // Limit to 100 results for performance
     } else {
       // Strong's definition search results
-      return (res as ReturnType<typeof studyData.searchStrongsByDefinition>).map((entry) => ({
+      return studyData.concordance.search(q).map((entry) => ({
         type: 'strongs' as const,
         number: entry.number,
         lemma: entry.lemma,
-        def: entry.def.slice(0, 50) + (entry.def.length > 50 ? '...' : ''),
+        def: entry.definition.slice(0, 50) + (entry.definition.length > 50 ? '...' : ''),
       }));
     }
   });
@@ -202,7 +190,7 @@ export function ConcordanceSearch(props: ConcordanceSearchProps) {
             <span style={{ fg: theme().accent }}>{strongsInfo()?.number}</span>{' '}
             <span style={{ fg: theme().text }}>{strongsInfo()?.lemma}</span>
             {' - '}
-            {strongsInfo()?.def.slice(0, 40)}... ({occurrenceCount()} occurrences)
+            {strongsInfo()?.definition.slice(0, 40)}... ({occurrenceCount()} occurrences)
           </text>
         </box>
       </Show>
@@ -261,7 +249,7 @@ export function ConcordanceSearch(props: ConcordanceSearchProps) {
                     >
                       {isSelected() ? <strong>{refText}</strong> : refText}
                     </span>
-                    <span style={{ fg: theme().textMuted }}>{item.word.padEnd(12)}</span>
+                    <span style={{ fg: theme().textMuted }}>{(item.word ?? '').padEnd(12)}</span>
                     {item.preview}
                   </text>
                 );

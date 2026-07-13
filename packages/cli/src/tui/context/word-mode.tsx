@@ -14,8 +14,9 @@ import {
   type ParentProps,
 } from 'solid-js';
 import type { VerseReference } from '@bible/core/bible';
+import type { VerseWord } from '@bible/core/bible-db';
 
-import { useStudyData, type WordWithStrongs } from './study-data.js';
+import { useStudyData } from './study-data.js';
 
 // State type using discriminated union pattern
 export type WordModeState =
@@ -24,7 +25,7 @@ export type WordModeState =
       _tag: 'active';
       verseRef: VerseReference;
       wordIndex: number;
-      words: WordWithStrongs[];
+      words: readonly VerseWord[];
     };
 
 interface WordModeContextValue {
@@ -33,14 +34,14 @@ interface WordModeContextValue {
   isActive: Accessor<boolean>;
 
   // Actions
-  /** Enter word mode for a verse. Returns 'entered' if successful, 'loading' if data not ready, 'no-strongs' if verse has no Strong's data */
-  enter: (verseRef: VerseReference) => 'entered' | 'loading' | 'no-strongs';
+  /** Enter word mode for a verse when Strong's data is available. */
+  enter: (verseRef: VerseReference) => 'entered' | 'no-strongs';
   exit: () => void;
   nextWord: () => void;
   prevWord: () => void;
 
   // Computed
-  currentWord: Accessor<WordWithStrongs | undefined>;
+  currentWord: Accessor<VerseWord | undefined>;
   currentWordIndex: Accessor<number>;
   totalWords: Accessor<number>;
 }
@@ -55,10 +56,11 @@ export function WordModeProvider(props: ParentProps) {
   const isActive = createMemo(() => state()._tag === 'active');
 
   // Helper to check if a word has Strong's numbers
-  const hasStrongs = (word: WordWithStrongs) => word.strongs && word.strongs.length > 0;
+  const hasStrongs = (word: VerseWord) =>
+    word.strongsNumbers !== null && word.strongsNumbers.length > 0;
 
   // Find next word index with Strong's (or -1 if none)
-  const findNextWithStrongs = (words: WordWithStrongs[], fromIndex: number): number => {
+  const findNextWithStrongs = (words: readonly VerseWord[], fromIndex: number): number => {
     for (let i = fromIndex + 1; i < words.length; i++) {
       const word = words[i];
       if (word && hasStrongs(word)) return i;
@@ -67,7 +69,7 @@ export function WordModeProvider(props: ParentProps) {
   };
 
   // Find previous word index with Strong's (or -1 if none)
-  const findPrevWithStrongs = (words: WordWithStrongs[], fromIndex: number): number => {
+  const findPrevWithStrongs = (words: readonly VerseWord[], fromIndex: number): number => {
     for (let i = fromIndex - 1; i >= 0; i--) {
       const word = words[i];
       if (word && hasStrongs(word)) return i;
@@ -76,7 +78,7 @@ export function WordModeProvider(props: ParentProps) {
   };
 
   // Find first word index with Strong's
-  const findFirstWithStrongs = (words: WordWithStrongs[]): number => {
+  const findFirstWithStrongs = (words: readonly VerseWord[]): number => {
     for (let i = 0; i < words.length; i++) {
       const word = words[i];
       if (word && hasStrongs(word)) return i;
@@ -84,14 +86,9 @@ export function WordModeProvider(props: ParentProps) {
     return -1;
   };
 
-  const enter = (verseRef: VerseReference): 'entered' | 'loading' | 'no-strongs' => {
-    // Check if study data is still loading
-    if (studyData.isLoading()) {
-      return 'loading';
-    }
-
+  const enter = (verseRef: VerseReference): 'entered' | 'no-strongs' => {
     // First try to get words from the study database (with Strong's)
-    const words = studyData.getVerseWords(verseRef.book, verseRef.chapter, verseRef.verse);
+    const words = studyData.concordance.words(verseRef);
 
     // Only enter word mode if there are words with Strong's numbers
     const firstStrongsIndex = findFirstWithStrongs(words);

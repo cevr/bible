@@ -1,8 +1,7 @@
-import type { LanguageModel } from 'ai';
+import type { VerseReference } from '@bible/core/bible';
 import { CROSS_REF_TYPES } from '@bible/core/bible-cross-refs';
 import { BibleDatabase, type CrossReference } from '@bible/core/bible-db';
-import { BunServices } from '@effect/platform-bun';
-import { Effect, Layer, Schema } from 'effect';
+import { Effect, Option, Schema } from 'effect';
 
 import { AI } from '../../services/ai.js';
 import type { CrossRefClassification } from '../bible/state.js';
@@ -22,6 +21,11 @@ const ClassificationResult = Schema.Struct({
       ),
     }),
   ),
+});
+
+const SingleClassificationResult = Schema.Struct({
+  type: Schema.Literals(CROSS_REF_TYPES),
+  confidence: Schema.Number.check(Schema.isGreaterThanOrEqualTo(0), Schema.isLessThanOrEqualTo(1)),
 });
 
 const SYSTEM_PROMPT = `You are a biblical cross-reference classifier using a historicist/Adventist framework.
@@ -101,152 +105,54 @@ const BATCH_SIZE = 50;
 
 /**
  * Classify cross-references for a verse using AI.
- * Constructs a one-shot AI layer, runs classification, saves to state.db.
+ * Requires the app's existing AI and BibleDatabase services, then saves to state.db.
  * Returns enriched refs from CrossRefService.
  */
-export async function classifyVerseCrossRefs(
-  book: number,
-  chapter: number,
-  verse: number,
-  crossRefService: CrossRefServiceInstance,
-  aiModels: { high: LanguageModel; low: LanguageModel },
-): Promise<readonly ClassifiedCrossReference[]> {
-  // Skip if already classified
-  if (crossRefService.isClassified(book, chapter, verse)) {
-    return crossRefService.getCrossRefs(book, chapter, verse);
-  }
+export const classifyVerseCrossRefs = Effect.fn('CrossReferenceClassification.classifyVerse')(
+  function* (reference: VerseReference, crossRefService: CrossRefServiceInstance) {
+    const { book, chapter, verse } = reference;
 
-  // Build one-shot AI + BibleDatabase layer
-  const ClassificationLayer = AI.fromModel(aiModels).pipe(
-    Layer.provideMerge(BibleDatabase.Default),
-    Layer.provideMerge(BunServices.layer),
-  );
+    // Skip if already classified
+    if (crossRefService.isClassified(book, chapter, verse)) {
+      return crossRefService.getCrossRefs(book, chapter, verse);
+    }
 
-  await Effect.runPromise(
-    Effect.gen(function* () {
-      const ai = yield* AI;
-      const db = yield* BibleDatabase;
+    const ai = yield* AI;
+    const db = yield* BibleDatabase;
 
-      // Get raw refs
-      const rawRefs = yield* db
-        .getCrossRefs(book, chapter, verse)
-        .pipe(Effect.catch(() => Effect.succeed([] as readonly CrossReference[])));
+    // Get raw refs
+    const rawRefs = yield* db
+      .getCrossRefs(book, chapter, verse)
+      .pipe(Effect.catch(() => Effect.succeed([] as readonly CrossReference[])));
 
-      if (rawRefs.length === 0) return;
+    if (rawRefs.length === 0) return crossRefService.getCrossRefs(book, chapter, verse);
 
-      // Get source verse text
-      const sourceVerseOpt = yield* db
-        .getVerse(book, chapter, verse)
-        .pipe(Effect.catch(() => Effect.succeed(null)));
-      const sourceText =
-        sourceVerseOpt !== null && sourceVerseOpt._tag === 'Some'
-          ? sourceVerseOpt.value.text.slice(0, 200)
-          : '';
+    // Get source verse text
+    const sourceVerse = yield* db
+      .getVerse(book, chapter, verse)
+      .pipe(Effect.catch(() => Effect.succeed(Option.none())));
+    const sourceText = Option.match(sourceVerse, {
+      onNone: () => '',
+      onSome: (source) => source.text.slice(0, 200),
+    });
 
-      const allClassifications: CrossRefClassification[] = [];
-      const now = Date.now();
+    const allClassifications: CrossRefClassification[] = [];
+    const now = Date.now();
 
-      for (let i = 0; i < rawRefs.length; i += BATCH_SIZE) {
-        const batch = rawRefs.slice(i, i + BATCH_SIZE);
+    for (let i = 0; i < rawRefs.length; i += BATCH_SIZE) {
+      const batch = rawRefs.slice(i, i + BATCH_SIZE);
 
-        const refLines = batch.map((r, idx) => {
-          const preview = r.previewText ? ` — "${r.previewText.slice(0, 80)}"` : '';
-          return `${idx + 1}. ${r.book}:${r.chapter}:${r.verse ?? 'chapter'}${preview}`;
-        });
+      const refLines = batch.map((r, idx) => {
+        const preview = r.previewText ? ` — "${r.previewText.slice(0, 80)}"` : '';
+        return `${idx + 1}. ${r.book}:${r.chapter}:${r.verse ?? 'chapter'}${preview}`;
+      });
 
-        const userMessage = `Source verse (${book}:${chapter}:${verse}): "${sourceText}"
+      const userMessage = `Source verse (${book}:${chapter}:${verse}): "${sourceText}"
 
 Cross-references to classify:
 ${refLines.join('\n')}
 
 Classify each reference using the decision tree.`;
-
-        const aiResult = yield* ai
-          .generateObject({
-            model: 'low',
-            messages: [
-              { role: 'system', content: SYSTEM_PROMPT },
-              { role: 'user', content: userMessage },
-            ],
-            schema: ClassificationResult,
-          })
-          .pipe(Effect.catch(() => Effect.succeed({ object: { classifications: [] } })));
-
-        for (const c of aiResult.object.classifications) {
-          allClassifications.push({
-            refBook: c.refBook,
-            refChapter: c.refChapter,
-            refVerse: c.refVerse,
-            refVerseEnd: null,
-            type: c.type,
-            confidence: c.confidence,
-            classifiedAt: now,
-          });
-        }
-      }
-
-      // Save to state.db
-      if (allClassifications.length > 0) {
-        crossRefService.saveClassifications(book, chapter, verse, allClassifications);
-      }
-    }).pipe(Effect.provide(ClassificationLayer), Effect.scoped),
-  );
-
-  return crossRefService.getCrossRefs(book, chapter, verse);
-}
-
-/**
- * Classify a single cross-reference using AI.
- * Saves the result to state.db and returns the classification type.
- */
-export async function classifySingleCrossRef(
-  source: { book: number; chapter: number; verse: number },
-  target: ClassifiedCrossReference,
-  crossRefService: CrossRefServiceInstance,
-  aiModels: { high: LanguageModel; low: LanguageModel },
-): Promise<CrossRefClassification | null> {
-  const ClassificationLayer = AI.fromModel(aiModels).pipe(
-    Layer.provideMerge(BibleDatabase.Default),
-    Layer.provideMerge(BunServices.layer),
-  );
-
-  const SingleResult = Schema.Struct({
-    type: Schema.Literals(CROSS_REF_TYPES),
-    confidence: Schema.Number.check(
-      Schema.isGreaterThanOrEqualTo(0),
-      Schema.isLessThanOrEqualTo(1),
-    ),
-  });
-
-  const result = await Effect.runPromise(
-    Effect.gen(function* () {
-      const ai = yield* AI;
-      const db = yield* BibleDatabase;
-
-      // Get source verse text
-      const sourceVerseOpt = yield* db
-        .getVerse(source.book, source.chapter, source.verse)
-        .pipe(Effect.catch(() => Effect.succeed(null)));
-      const sourceText =
-        sourceVerseOpt !== null && sourceVerseOpt._tag === 'Some'
-          ? sourceVerseOpt.value.text.slice(0, 200)
-          : '';
-
-      // Get target verse text
-      const targetVerse = target.verse ?? 1;
-      const targetVerseOpt = yield* db
-        .getVerse(target.book, target.chapter, targetVerse)
-        .pipe(Effect.catch(() => Effect.succeed(null)));
-      const targetText =
-        targetVerseOpt !== null && targetVerseOpt._tag === 'Some'
-          ? targetVerseOpt.value.text.slice(0, 200)
-          : (target.previewText ?? '');
-
-      const userMessage = `Source verse (${source.book}:${source.chapter}:${source.verse}): "${sourceText}"
-
-Target reference (${target.book}:${target.chapter}:${target.verse ?? 'chapter'}): "${targetText}"
-
-Classify this single cross-reference using the decision tree.`;
 
       const aiResult = yield* ai
         .generateObject({
@@ -255,27 +161,93 @@ Classify this single cross-reference using the decision tree.`;
             { role: 'system', content: SYSTEM_PROMPT },
             { role: 'user', content: userMessage },
           ],
-          schema: SingleResult,
+          schema: ClassificationResult,
         })
-        .pipe(Effect.catch(() => Effect.succeed(null)));
+        .pipe(Effect.catch(() => Effect.succeed({ object: { classifications: [] } })));
 
-      if (aiResult === null) return null;
+      for (const classification of aiResult.object.classifications) {
+        allClassifications.push({
+          refBook: classification.refBook,
+          refChapter: classification.refChapter,
+          refVerse: classification.refVerse,
+          refVerseEnd: null,
+          type: classification.type,
+          confidence: classification.confidence,
+          classifiedAt: now,
+        });
+      }
+    }
 
-      const classification: CrossRefClassification = {
-        refBook: target.book,
-        refChapter: target.chapter,
-        refVerse: target.verse,
-        refVerseEnd: target.verseEnd,
-        type: aiResult.object.type,
-        confidence: aiResult.object.confidence,
-        classifiedAt: Date.now(),
-      };
+    // Save to state.db
+    if (allClassifications.length > 0) {
+      crossRefService.saveClassifications(book, chapter, verse, allClassifications);
+    }
 
-      crossRefService.saveClassification(source.book, source.chapter, source.verse, classification);
+    return crossRefService.getCrossRefs(book, chapter, verse);
+  },
+);
 
-      return classification;
-    }).pipe(Effect.provide(ClassificationLayer), Effect.scoped),
-  );
+/**
+ * Classify a single cross-reference using AI.
+ * Saves the result to state.db and returns the classification type.
+ */
+export const classifySingleCrossRef = Effect.fn('CrossReferenceClassification.classify')(function* (
+  source: VerseReference,
+  target: ClassifiedCrossReference,
+  crossRefService: CrossRefServiceInstance,
+) {
+  const ai = yield* AI;
+  const db = yield* BibleDatabase;
 
-  return result;
-}
+  // Get source verse text
+  const sourceVerse = yield* db
+    .getVerse(source.book, source.chapter, source.verse)
+    .pipe(Effect.catch(() => Effect.succeed(Option.none())));
+  const sourceText = Option.match(sourceVerse, {
+    onNone: () => '',
+    onSome: (verse) => verse.text.slice(0, 200),
+  });
+
+  // Get target verse text
+  const targetVerse = target.verse ?? 1;
+  const targetVerseResult = yield* db
+    .getVerse(target.book, target.chapter, targetVerse)
+    .pipe(Effect.catch(() => Effect.succeed(Option.none())));
+  const targetText = Option.match(targetVerseResult, {
+    onNone: () => target.previewText ?? '',
+    onSome: (verse) => verse.text.slice(0, 200),
+  });
+
+  const userMessage = `Source verse (${source.book}:${source.chapter}:${source.verse}): "${sourceText}"
+
+Target reference (${target.book}:${target.chapter}:${target.verse ?? 'chapter'}): "${targetText}"
+
+Classify this single cross-reference using the decision tree.`;
+
+  const aiResult = yield* ai
+    .generateObject({
+      model: 'low',
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: userMessage },
+      ],
+      schema: SingleClassificationResult,
+    })
+    .pipe(Effect.catch(() => Effect.succeed(null)));
+
+  if (aiResult === null) return null;
+
+  const classification: CrossRefClassification = {
+    refBook: target.book,
+    refChapter: target.chapter,
+    refVerse: target.verse,
+    refVerseEnd: target.verseEnd,
+    type: aiResult.object.type,
+    confidence: aiResult.object.confidence,
+    classifiedAt: Date.now(),
+  };
+
+  crossRefService.saveClassification(source.book, source.chapter, source.verse, classification);
+
+  return classification;
+});

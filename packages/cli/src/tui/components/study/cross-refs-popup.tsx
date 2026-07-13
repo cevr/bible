@@ -92,15 +92,11 @@ export function CrossRefsPopup(props: CrossRefsPopupProps) {
   const crossRefs = createMemo(() => {
     // Track refreshKey to re-evaluate after classify/add/delete
     refreshKey();
-    const verse = props.verseRef.verse ?? 1;
-    return studyData.getCrossRefs(props.verseRef.book, props.verseRef.chapter, verse);
+    return studyData.crossReferences.forVerse(props.verseRef);
   });
 
   // Get margin notes for this verse
-  const marginNotes = createMemo(() => {
-    const verse = props.verseRef.verse ?? 1;
-    return studyData.getMarginNotes(props.verseRef.book, props.verseRef.chapter, verse);
-  });
+  const marginNotes = createMemo(() => studyData.marginNotes.forVerse(props.verseRef));
 
   // Get preview text for each reference
   const refsWithPreviews = createMemo(() =>
@@ -267,13 +263,8 @@ export function CrossRefsPopup(props: CrossRefsPopupProps) {
     const selected = refs[selectedIndex()];
     if (!selected) return;
     setClassifying(true);
-    const verse = props.verseRef.verse ?? 1;
-    studyData
-      .classifyRef(
-        { book: props.verseRef.book, chapter: props.verseRef.chapter, verse },
-        selected.ref,
-        model.models,
-      )
+    studyData.crossReferences
+      .classify(props.verseRef, selected.ref, model.models)
       .then(() => {
         setRefreshKey((k) => k + 1);
         setClassifying(false);
@@ -287,9 +278,8 @@ export function CrossRefsPopup(props: CrossRefsPopupProps) {
   const handleClassifyAll = () => {
     if (classifying() || model === null) return;
     setClassifying(true);
-    const verse = props.verseRef.verse ?? 1;
-    studyData
-      .classifyVerse(props.verseRef.book, props.verseRef.chapter, verse, model.models)
+    studyData.crossReferences
+      .classifyVerse(props.verseRef, model.models)
       .then(() => {
         setRefreshKey((k) => k + 1);
         setClassifying(false);
@@ -304,12 +294,7 @@ export function CrossRefsPopup(props: CrossRefsPopupProps) {
     const refs = refsWithPreviews();
     const selected = refs[selectedIndex()];
     if (!selected) return;
-    const verse = props.verseRef.verse ?? 1;
-    studyData.setRefType(
-      { book: props.verseRef.book, chapter: props.verseRef.chapter, verse },
-      selected.ref,
-      type,
-    );
+    studyData.crossReferences.setType(props.verseRef, selected.ref, type);
     setTypingMode(false);
     setRefreshKey((k) => k + 1);
   };
@@ -322,15 +307,7 @@ export function CrossRefsPopup(props: CrossRefsPopupProps) {
     const parsed = parseReaderReference(input);
     if (parsed === undefined) return;
 
-    const verse = props.verseRef.verse ?? 1;
-    studyData.addUserCrossRef(
-      { book: props.verseRef.book, chapter: props.verseRef.chapter, verse },
-      {
-        book: parsed.book,
-        chapter: parsed.chapter,
-        verse: parsed._tag === 'verse' ? parsed.verse : undefined,
-      },
-    );
+    studyData.crossReferences.add(props.verseRef, parsed);
     setAddingRef(false);
     setAddRefInput('');
     setRefreshKey((k) => k + 1);
@@ -342,7 +319,7 @@ export function CrossRefsPopup(props: CrossRefsPopupProps) {
     const selected = refs[selectedIndex()];
     if (!selected || !selected.ref.isUserAdded || selected.ref.userRefId === null) return;
 
-    studyData.removeUserCrossRef(selected.ref.userRefId);
+    studyData.crossReferences.remove(selected.ref.userRefId);
     setRefreshKey((k) => k + 1);
 
     // Adjust selection if needed

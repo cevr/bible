@@ -101,12 +101,7 @@ export function ChapterView() {
                   ? s.wordIndex
                   : undefined;
               };
-              const marginNotes = () =>
-                studyData.getMarginNotes(
-                  position().book,
-                  position().chapter,
-                  verse.reference.verse,
-                );
+              const marginNotes = () => studyData.marginNotes.forVerse(verse.reference);
 
               return (
                 <Verse

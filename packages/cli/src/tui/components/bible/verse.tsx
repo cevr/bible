@@ -1,7 +1,7 @@
 import type { Verse as VerseType } from '@bible/core/bible';
+import type { MarginNote, VerseWord } from '@bible/core/bible-db';
 import { createMemo, For } from 'solid-js';
 
-import type { MarginNoteCompat as MarginNote, WordWithStrongs } from '../../context/study-data.js';
 import { useTheme } from '../../context/theme.js';
 
 interface VerseProps {
@@ -11,9 +11,9 @@ interface VerseProps {
   searchQuery?: string;
   id?: string;
   wordModeActive?: boolean;
-  words?: WordWithStrongs[];
+  words?: readonly VerseWord[];
   selectedWordIndex?: number;
-  marginNotes?: MarginNote[];
+  marginNotes?: readonly MarginNote[];
 }
 
 // Format margin note type prefix
@@ -138,7 +138,7 @@ function applyRedLetterSegments(segments: TextSegment[]): TextSegment[] {
  */
 function segmentVerseText(
   text: string,
-  marginNotes: MarginNote[],
+  marginNotes: readonly MarginNote[],
   searchQuery?: string,
 ): TextSegment[] {
   // First, find all phrase matches and their positions
@@ -256,7 +256,7 @@ export function Verse(props: VerseProps) {
         <For each={props.words}>
           {(word, index) => {
             const isSelected = () => index() === props.selectedWordIndex;
-            const hasStrongs = () => word.strongs && word.strongs.length > 0;
+            const hasStrongs = () => word.strongsNumbers !== null && word.strongsNumbers.length > 0;
             return (
               <span>
                 <span
