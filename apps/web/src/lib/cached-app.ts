@@ -12,6 +12,7 @@ import { createCache, type Cache } from './cache';
 
 const READ_METHODS = {
   annotations: ['getChapterMarkers', 'getVerseNotes', 'getEgwNotes', 'getEgwChapterMarkers'],
+  backup: [],
   bible: ['fetchChapter', 'fetchVerses', 'searchVerses', 'searchVersesWithCount'],
   collections: [
     'getCollections',

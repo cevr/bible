@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "start": "NODE_ENV=production bun server/main.ts",
     "typecheck": "tsgo --noEmit",
-    "test": "bun test server src/workers src/lib",
+    "test": "bun test server src/workers src/lib src/data/backup",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed"

@@ -6,13 +6,9 @@
  * break the old component tree's references).
  */
 import { createContext, useContext, useRef, useMemo, useSyncExternalStore } from 'react';
-import type { DbClient } from '@/workers/db-client';
-import type { AppClient } from '@/data/app-client';
 import type { CachedApp, CachedAppCore } from '@/lib/cached-app';
 
 export const CachedAppContext = createContext<CachedAppCore | null>(null);
-export const DbContext = createContext<DbClient | null>(null);
-export const AppClientContext = createContext<AppClient | null>(null);
 
 /**
  * Hook that returns a CachedApp proxy.
@@ -37,18 +33,4 @@ export function useApp(): CachedApp {
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   return useMemo(() => core.withTracking(accessedRef.current), [core]);
-}
-
-export function useDb(): DbClient {
-  const ctx = useContext(DbContext);
-  if (!ctx) throw new Error('useDb must be used within a DbProvider');
-  return ctx;
-}
-
-/** Access the Promise client and DbClient for non-cached operations (e.g. export/import). */
-export function useRawApp(): { app: AppClient; db: DbClient } {
-  const app = useContext(AppClientContext);
-  const db = useContext(DbContext);
-  if (!app || !db) throw new Error('useRawApp must be used within a DbProvider');
-  return { app, db };
 }

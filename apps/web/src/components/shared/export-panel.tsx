@@ -1,25 +1,24 @@
 import { useState } from 'react';
 import { Download, Upload, FileText, Check, AlertCircle } from 'lucide-react';
 import { useOverlay } from '@/providers/overlay-context';
-import { useRawApp } from '@/providers/db-context';
+import { useApp } from '@/providers/db-context';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { exportAllJsonFull, importFromJson } from '@/data/export-service';
 
 type ExportStatus = 'idle' | 'exporting' | 'importing' | 'success' | 'error';
 
 export function ExportPanel() {
   const { overlay, closeOverlay } = useOverlay();
-  const { app, db } = useRawApp();
+  const app = useApp();
   const [status, setStatus] = useState<ExportStatus>('idle');
   const [message, setMessage] = useState('');
 
   const isOpen = overlay === 'export';
 
   const handleExport = async () => {
-    if (!app || !db) return;
     setStatus('exporting');
     try {
-      const blob = await exportAllJsonFull(app, db);
+      const json = await app.backup.exportJson();
+      const blob = new Blob([json], { type: 'application/json' });
       const date = new Date().toISOString().split('T')[0];
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -41,12 +40,14 @@ export function ExportPanel() {
     input.accept = '.json';
     input.onchange = async () => {
       const file = input.files?.[0];
-      if (!file || !db) return;
+      if (!file) return;
       setStatus('importing');
       try {
-        const result = await importFromJson(db, file);
+        const result = await app.backup.restoreJson(await file.text());
         setStatus('success');
-        setMessage(`Restored: ${result.imported.join(', ')}`);
+        setMessage(
+          `Restored: ${result.bookmarks} bookmarks, ${result.historyEntries} history entries, ${result.notes} notes, ${result.markers} markers, ${result.collections} collections`,
+        );
         // Force a full page reload to pick up all restored data
         window.location.reload();
       } catch (err) {

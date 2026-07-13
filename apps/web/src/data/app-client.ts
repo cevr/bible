@@ -1,6 +1,7 @@
 import type { Context, ManagedRuntime } from 'effect';
 
 import { AnnotationService } from './annotations/effect-service';
+import { BackupService } from './backup/effect-service';
 import { WebBibleService } from './bible/effect-service';
 import { CollectionService } from './collections/effect-service';
 import { CommentaryService } from './commentary/effect-service';
@@ -16,6 +17,7 @@ import { WritingsService } from './writings/effect-service';
 
 export type AppServices =
   | AnnotationService
+  | BackupService
   | WebBibleService
   | CollectionService
   | CommentaryService
@@ -34,6 +36,7 @@ type Client<Service extends Context.Service.Any> = PromiseClient<Context.Service
 
 export interface AppClient {
   readonly annotations: Client<typeof AnnotationService>;
+  readonly backup: Client<typeof BackupService>;
   readonly bible: Client<typeof WebBibleService>;
   readonly collections: Client<typeof CollectionService>;
   readonly commentary: Client<typeof CommentaryService>;
@@ -50,6 +53,7 @@ export interface AppClient {
 export function makeAppClient(runtime: AppRuntime): AppClient {
   return {
     annotations: makeServiceClient(runtime, AnnotationService),
+    backup: makeServiceClient(runtime, BackupService),
     bible: makeServiceClient(runtime, WebBibleService),
     collections: makeServiceClient(runtime, CollectionService),
     commentary: makeServiceClient(runtime, CommentaryService),

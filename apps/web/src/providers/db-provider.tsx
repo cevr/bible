@@ -3,21 +3,16 @@
  *
  * Blocks rendering until wa-sqlite databases are ready.
  * Creates ManagedRuntime with all Effect services after init.
- * Provides CachedApp (suspending reads) and raw DbClient via context.
+ * Provides the feature-oriented CachedApp interface to presentation code.
  */
 import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { ManagedRuntime, type Layer } from 'effect';
-import { getDbClient, type DbClient } from '@/workers/db-client';
+import { getDbClient } from '@/workers/db-client';
 import { LoadingScreen } from '@/components/shared/loading-screen';
-import {
-  makeAppClient,
-  type AppClient,
-  type AppRuntime,
-  type AppServices,
-} from '@/data/app-client';
+import { makeAppClient, type AppRuntime, type AppServices } from '@/data/app-client';
 import { AppLive } from '@/data/layer';
 import { type CachedAppCore, createCachedApp } from '@/lib/cached-app';
-import { AppClientContext, CachedAppContext, DbContext } from '@/providers/db-context';
+import { CachedAppContext } from '@/providers/db-context';
 
 const log = import.meta.env['DEV'] ? (...args: unknown[]) => console.log(...args) : () => {};
 
@@ -26,16 +21,12 @@ export function DbProvider({ children }: { children: ReactNode }) {
   const [stage, setStage] = useState('Initializing...');
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const appClientRef = useRef<AppClient | null>(null);
-  const dbClientRef = useRef<DbClient | null>(null);
   const runtimeRef = useRef<AppRuntime | null>(null);
   const cachedAppRef = useRef<CachedAppCore | null>(null);
 
   useEffect(() => {
     let disposed = false;
     const client = getDbClient();
-    dbClientRef.current = client;
-
     client.onProgress((s, p) => {
       if (!disposed) {
         setStage(s);
@@ -51,7 +42,6 @@ export function DbProvider({ children }: { children: ReactNode }) {
         const runtime = ManagedRuntime.make(AppLive as Layer.Layer<AppServices>);
         runtimeRef.current = runtime;
         const appClient = makeAppClient(runtime);
-        appClientRef.current = appClient;
         const cachedApp = createCachedApp(appClient);
         cachedAppRef.current = cachedApp;
 
@@ -90,12 +80,6 @@ export function DbProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <DbContext.Provider value={dbClientRef.current}>
-      <AppClientContext.Provider value={appClientRef.current}>
-        <CachedAppContext.Provider value={cachedAppRef.current}>
-          {children}
-        </CachedAppContext.Provider>
-      </AppClientContext.Provider>
-    </DbContext.Provider>
+    <CachedAppContext.Provider value={cachedAppRef.current}>{children}</CachedAppContext.Provider>
   );
 }
