@@ -12,7 +12,7 @@ import * as SQLite from 'wa-sqlite';
 import SQLiteESMFactory from 'wa-sqlite/dist/wa-sqlite.mjs';
 import { OPFSCoopSyncVFS } from 'wa-sqlite/src/examples/OPFSCoopSyncVFS.js';
 
-import type { WorkerRequest, WorkerResponse } from './db-protocol.js';
+import { decodeWorkerRequest, decodeWorkerResponse, type WorkerResponse } from './db-protocol.js';
 
 // Schema version. Bump this when the EGW cache shape changes — startup will
 // detect the mismatch and rebuild the paragraph tables (preserving books +
@@ -29,7 +29,7 @@ let topicsDb: number | null = null;
 let dirty = false;
 
 function post(msg: WorkerResponse) {
-  self.postMessage(msg);
+  self.postMessage(decodeWorkerResponse(msg));
 }
 
 const STATE_SCHEMA = `
@@ -295,7 +295,7 @@ const BC_VOLUMES = ['1BC', '2BC', '3BC', '4BC', '5BC', '6BC', '7BC'];
 async function execQuery(
   db: number,
   sql: string,
-  params?: unknown[],
+  params?: readonly unknown[],
 ): Promise<Record<string, unknown>[]> {
   const rows: Record<string, unknown>[] = [];
   for await (const stmt of sqlite3.statements(db, sql)) {
@@ -318,7 +318,7 @@ async function execQuery(
   return rows;
 }
 
-async function execWrite(db: number, sql: string, params?: unknown[]): Promise<number> {
+async function execWrite(db: number, sql: string, params?: readonly unknown[]): Promise<number> {
   for await (const stmt of sqlite3.statements(db, sql)) {
     if (params?.length) {
       sqlite3.bind_collection(stmt, params as (SQLiteCompatibleType | null)[]);
@@ -881,8 +881,14 @@ async function init(): Promise<void> {
 // Message handler
 // ---------------------------------------------------------------------------
 
-self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
-  const msg = event.data;
+self.onmessage = async (event: MessageEvent<unknown>) => {
+  let msg;
+  try {
+    msg = decodeWorkerRequest(event.data);
+  } catch (error) {
+    console.error('[db-worker] rejected invalid request', error);
+    return;
+  }
 
   switch (msg.type) {
     case 'init':
@@ -937,7 +943,7 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
         const buffer = await file.arrayBuffer();
         dirty = false;
         const msg: WorkerResponse = { type: 'export-state-result', data: buffer };
-        self.postMessage(msg, [buffer]);
+        self.postMessage(decodeWorkerResponse(msg), [buffer]);
       } catch (err) {
         post({
           type: 'export-state-error',

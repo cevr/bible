@@ -4,7 +4,7 @@
  * Provides a Promise-based API for querying bible.db and state.db.
  * Singleton — call getDbClient() to get the shared instance.
  */
-import type { WorkerRequest, WorkerResponse } from './db-protocol.js';
+import { decodeWorkerRequest, decodeWorkerResponse, type WorkerRequest } from './db-protocol.js';
 
 const log = import.meta.env['DEV'] ? (...args: unknown[]) => console.log(...args) : () => {};
 
@@ -36,7 +36,7 @@ export interface DbClient {
   /** Sync a single EGW book by code. Returns paragraph count. */
   syncBook(bookCode: string): Promise<number>;
   /** Get EGW sync status for all books. */
-  getEgwSyncStatus(): Promise<EgwSyncStatus[]>;
+  getEgwSyncStatus(): Promise<readonly EgwSyncStatus[]>;
   /** Full monolithic EGW database download. */
   syncFullEgw(): Promise<void>;
   /** Register callback for EGW sync progress. Returns unsubscribe. */
@@ -62,7 +62,7 @@ function createDbClient(): DbClient {
   let exportResolve: ((buf: ArrayBuffer) => void) | null = null;
   let exportReject: ((err: Error) => void) | null = null;
   let dirtyResolve: ((dirty: boolean) => void) | null = null;
-  let syncStatusResolve: ((status: EgwSyncStatus[]) => void) | null = null;
+  let syncStatusResolve: ((status: readonly EgwSyncStatus[]) => void) | null = null;
   let fullSyncResolve: (() => void) | null = null;
   let fullSyncReject: ((err: Error) => void) | null = null;
   let syncProgressCallbacks: ((bookCode: string, stage: string, progress: number) => void)[] = [];
@@ -74,8 +74,21 @@ function createDbClient(): DbClient {
     console.error('[db-client] worker error:', event.message, event);
   };
 
-  worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
-    const msg = event.data;
+  worker.onmessage = (event: MessageEvent<unknown>) => {
+    let msg;
+    try {
+      msg = decodeWorkerResponse(event.data);
+    } catch (cause) {
+      const error = new Error('Database worker returned an invalid protocol message', { cause });
+      for (const request of pending.values()) request.reject(error);
+      pending.clear();
+      initReject?.(error);
+      exportReject?.(error);
+      fullSyncReject?.(error);
+      topicsInitReject?.(error);
+      console.error('[db-client] rejected invalid response', cause);
+      return;
+    }
 
     switch (msg.type) {
       case 'init-progress': {
@@ -194,7 +207,7 @@ function createDbClient(): DbClient {
   };
 
   function send(msg: WorkerRequest) {
-    worker.postMessage(msg);
+    worker.postMessage(decodeWorkerRequest(msg));
   }
 
   return {
@@ -270,8 +283,8 @@ function createDbClient(): DbClient {
       });
     },
 
-    getEgwSyncStatus(): Promise<EgwSyncStatus[]> {
-      return new Promise<EgwSyncStatus[]>((resolve) => {
+    getEgwSyncStatus(): Promise<readonly EgwSyncStatus[]> {
+      return new Promise<readonly EgwSyncStatus[]>((resolve) => {
         syncStatusResolve = resolve;
         send({ type: 'get-egw-sync-status' });
       });
