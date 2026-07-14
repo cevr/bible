@@ -4,6 +4,7 @@ import { describe, expect } from 'vitest';
 import {
   decode,
   encode,
+  selectionFromReaders,
   UrlStateRouter,
   type UrlSelection,
   type UrlStateRouterTestShape,
@@ -88,6 +89,42 @@ describe('encode/decode round-trips', () => {
     expect(decode('#/egw')).toStrictEqual(Option.none());
     expect(decode('#/egw/book')).toStrictEqual(Option.none());
     expect(decode('#/egw/book/abc')).toStrictEqual(Option.none());
+  });
+});
+
+describe('selectionFromReaders', () => {
+  it('projects only the reader selected by the active mode', () => {
+    const egw = Option.some({
+      _tag: 'highlight' as const,
+      bookId: 127,
+      chapterParaId: '127.46',
+      highlightParaId: '127.47',
+    });
+    const bible = Option.some({
+      _tag: 'verse' as const,
+      book: 43,
+      chapter: 3,
+      verse: 16,
+    });
+
+    expect(selectionFromReaders('egw', egw, bible)).toStrictEqual(
+      Option.some({
+        _tag: 'egw-highlight',
+        bookId: 127,
+        chapterParaId: '127.46',
+        highlightParaId: '127.47',
+      }),
+    );
+    expect(selectionFromReaders('bible', egw, bible)).toStrictEqual(
+      Option.some({ _tag: 'bible-verse', book: 43, chapter: 3, verse: 16 }),
+    );
+  });
+
+  it('returns none when the active reader has no selection', () => {
+    expect(selectionFromReaders('bible', Option.none(), Option.none())).toStrictEqual(
+      Option.none(),
+    );
+    expect(selectionFromReaders('egw', Option.none(), Option.none())).toStrictEqual(Option.none());
   });
 });
 

@@ -1,6 +1,10 @@
 import type { Stream } from 'effect';
 import { Context, Effect, Layer, Option, SubscriptionRef } from 'effect';
 
+import type { BibleReaderSelection } from './bible-reader-state.js';
+import type { ReaderMode } from './reader-settings.js';
+import type { ReaderSelection } from './reader-state.js';
+
 // Canonical URL representation of "where the user is reading right now".
 //
 // Two top-level modes share the URL hash, so the encoding must unambiguously
@@ -39,6 +43,48 @@ export type UrlSelection =
       readonly chapterParaId: string;
       readonly highlightParaId: string;
     };
+
+/** Project the active reader state into the one canonical URL selection. */
+export const selectionFromReaders = (
+  mode: ReaderMode,
+  egw: Option.Option<ReaderSelection>,
+  bible: Option.Option<BibleReaderSelection>,
+): Option.Option<UrlSelection> => {
+  if (mode === 'bible') {
+    if (Option.isNone(bible)) return Option.none();
+    const selection = bible.value;
+    return Option.some(
+      selection._tag === 'verse'
+        ? {
+            _tag: 'bible-verse',
+            book: selection.book,
+            chapter: selection.chapter,
+            verse: selection.verse,
+          }
+        : { _tag: 'bible-chapter', book: selection.book, chapter: selection.chapter },
+    );
+  }
+
+  if (Option.isNone(egw)) return Option.none();
+  const selection = egw.value;
+  switch (selection._tag) {
+    case 'book':
+      return Option.some({ _tag: 'egw-book', bookId: selection.bookId });
+    case 'chapter':
+      return Option.some({
+        _tag: 'egw-chapter',
+        bookId: selection.bookId,
+        chapterParaId: selection.chapterParaId,
+      });
+    case 'highlight':
+      return Option.some({
+        _tag: 'egw-highlight',
+        bookId: selection.bookId,
+        chapterParaId: selection.chapterParaId,
+        highlightParaId: selection.highlightParaId,
+      });
+  }
+};
 
 // Encode a selection into a hash fragment (including the leading `#`). `None`
 // encodes to the empty string, which `history.replaceState(null, '', '')`

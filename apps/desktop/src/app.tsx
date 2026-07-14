@@ -1,15 +1,4 @@
-import { Effect, Fiber, Option, Schedule, Stream } from 'effect';
-import {
-  batch,
-  type Component,
-  createMemo,
-  createSignal,
-  Match,
-  onCleanup,
-  onMount,
-  Show,
-  Switch,
-} from 'solid-js';
+import { type Component, createMemo, createSignal, Match, Show, Switch } from 'solid-js';
 import { BibleDrawer } from './components/bible-drawer.js';
 import { GlobalShortcuts } from './components/global-shortcuts.js';
 import { BibleModeView } from './components/modes/bible-mode-view.js';
@@ -26,21 +15,9 @@ import {
   useReaderSettingsCtx,
 } from './components/settings/reader-settings-provider.js';
 import { SettingsSheet } from './components/settings/settings-sheet.js';
-import { BibleReaderState, type BibleReaderSelection } from './services/bible-reader-state.js';
 import { createBibleDrawerState } from './services/bible-drawer-state.js';
-import { createDebouncedAction } from './lib/debounced-action.js';
-import { runtime, signalFromStream } from './runtime.js';
-import { lastChapterMemory } from './services/last-chapter-memory.js';
-import { type LastPosition, LastPositionStorage } from './services/last-position-storage.js';
-import { openBookAtFirstChapter } from './services/open-book.js';
-import { Prefetcher } from './services/prefetcher.js';
-import { ReaderSettings, type ReaderMode } from './services/reader-settings.js';
-import { ReaderState, type ReaderSelection } from './services/reader-state.js';
-import {
-  decode as decodeUrlHash,
-  UrlStateRouter,
-  type UrlSelection,
-} from './services/url-state-router.js';
+import { createReaderSession } from './services/reader-session.js';
+import type { ReaderMode } from './services/reader-settings.js';
 
 // Three-layer drawer stack for the open-book flow:
 //   - 'closed'      reader fills canvas
@@ -120,63 +97,7 @@ const AppInner: Component = () => {
   const bibleDrawer = createBibleDrawerState({
     persistTab: (tab) => settings.persistStudyTab(tab),
   });
-
-  // True once the main-process Effect runtime is up. Polled on mount and
-  // again once per second until it flips true. When false, we paint a
-  // dismissable banner across the top of the canvas — without it every IPC
-  // returns empty/null and the UI ends up rendering misleading "missing data"
-  // screens. Most common cause is a hot-reload that left a stale Electron
-  // running its old main bundle (see electron-dev plugin restart hardening).
-  const [mainReady, setMainReady] = createSignal<boolean>(true);
-
-  // Reader selection mirror — drives whether we render landing (FolderBrowser)
-  // or the reader, and feeds props.selection into ReaderPane.
-  const [selection, setSelection] = createSignal<Option.Option<ReaderSelection>>(Option.none());
-
-  // Bible-mode selection — projected directly from BibleReaderState's
-  // SubscriptionRef. Used so the Bible TOC drawer can highlight the active
-  // book/chapter, and so the shell can decide whether the right commentary
-  // drawer should mount. Storage + lastChapterMemory writes live in a
-  // separate persistence fiber below.
-  const bibleSelection = signalFromStream(
-    Effect.gen(function* () {
-      const state = yield* BibleReaderState;
-      return state.changes;
-    }),
-    Option.none<BibleReaderSelection>(),
-  );
-  const bibleTocSelection = createMemo(() => {
-    const sel = bibleSelection();
-    if (Option.isNone(sel))
-      return Option.none<{ readonly book: number; readonly chapter: number }>();
-    return Option.some({ book: sel.value.book, chapter: sel.value.chapter });
-  });
-
-  // Restore anchor — the paragraph paraId we persisted last time the user
-  // was reading this chapter. ReaderPane consumes it once on mount via
-  // restoreParagraphId. We clear it when selection changes (a TOC click /
-  // search-jump implies the user wants to land somewhere specific, not
-  // their old position). Otherwise it's the seed read from LastPositionStorage
-  // on first launch.
-  const [restoreParagraphId, setRestoreParagraphId] = createSignal<Option.Option<string>>(
-    Option.none(),
-  );
-
-  // Latest scroll-spy anchor reported by BookFeed. Used so selection-change
-  // writes can include the most-recent paragraph anchor (e.g. when chapter
-  // closes/reopens), avoiding a write that drops the paragraphId we just had.
-  let latestAnchorParaId: string | null = null;
-
-  // True between rehydration seeding the restore anchor and the matching
-  // ReaderState.changes emit arriving. Lets the change-handler skip its
-  // "clear restore on new chapter" branch for that one rehydration emit.
-  let pendingRestoreEmit = false;
-
-  // False until LastPositionStorage.read resolves. Renderer is mounted, but
-  // selection() is still None — without this gate we'd flash the FolderBrowser
-  // landing canvas for a few hundred ms on every refresh while the IPC
-  // round-trip + openChapter pipeline catches up.
-  const [rehydrated, setRehydrated] = createSignal(false);
+  const session = createReaderSession({ settings, bibleDrawer });
 
   // Drawer state. Only meaningful when a book is open.
   const [drawer, setDrawer] = createSignal<DrawerState>('closed');
@@ -206,402 +127,6 @@ const AppInner: Component = () => {
     else popOverlay('palette');
   };
 
-  onMount(() => {
-    // Poll the diag IPC until main reports ready. We assume ready until told
-    // otherwise so first-paint isn't gated on the roundtrip; if the first poll
-    // says "not ready" we flip the banner on and keep polling every second
-    // until it flips true. Effect.repeat owns the cancellation — the fiber is
-    // interrupted via onCleanup so the polling stops on unmount.
-    const checkReady = Effect.tryPromise(() => window.api.diag.runtimeReady()).pipe(
-      Effect.orElseSucceed(() => false),
-      Effect.tap((ready) => Effect.sync(() => setMainReady(ready))),
-    );
-    const pollFiber = runtime.runFork(
-      checkReady.pipe(
-        Effect.repeat({
-          schedule: Schedule.spaced('1 second'),
-          until: (ready: boolean) => ready,
-        }),
-      ),
-    );
-    onCleanup(() => {
-      runtime.runFork(Fiber.interrupt(pollFiber));
-    });
-
-    // Seed the bible drawer's active study tab from persisted settings.
-    // Every other persisted field flows through `settingsState`'s subscription
-    // and reactive memos — the drawer is the one consumer that needs a
-    // one-shot non-persisting setter (re-writing the tab back to disk on
-    // every launch would be redundant).
-    const drawerSeedFiber = runtime.runFork(
-      Effect.gen(function* () {
-        const s = yield* ReaderSettings;
-        const state = yield* s.get;
-        bibleDrawer.seedActiveStudyTab(state.bibleStudyTab);
-      }),
-    );
-    onCleanup(() => {
-      void runtime.runPromise(Fiber.interrupt(drawerSeedFiber));
-    });
-
-    // URL hash → boot selection. Read synchronously off `window.location`
-    // via the pure `decode` so the rehydration fibers below can gate on it
-    // without racing a Promise. We deliberately do NOT route this through
-    // `UrlStateRouter` + `runtime.runSync`: the router's `read` is sync, but
-    // resolving the service forces ManagedRuntime to *build* its layer, and
-    // that layer's `Effect.acquireRelease` (the popstate listener) makes
-    // construction async — so `runSync` throws `AsyncFiberError`, aborting
-    // the rest of onMount and leaving the EGW canvas stuck behind its
-    // `rehydrated()` gate. Reading the hash once at boot needs no service.
-    //
-    // A7-01: the URL is the canonical state store. When the hash names a
-    // valid selection we use it INSTEAD of LastPositionStorage for the
-    // matching mode, and switch readerMode to match the hash. The other
-    // mode still rehydrates from storage so a mode-flip mid-session lands
-    // on the user's persisted place there.
-    const bootUrlSelection: Option.Option<UrlSelection> = decodeUrlHash(window.location.hash);
-    const urlSelectsBible =
-      Option.isSome(bootUrlSelection) &&
-      (bootUrlSelection.value._tag === 'bible-chapter' ||
-        bootUrlSelection.value._tag === 'bible-verse');
-    const urlSelectsEgw =
-      Option.isSome(bootUrlSelection) &&
-      (bootUrlSelection.value._tag === 'egw-book' ||
-        bootUrlSelection.value._tag === 'egw-chapter' ||
-        bootUrlSelection.value._tag === 'egw-highlight');
-    // Switch readerMode to match the URL before any storage reads — keeps
-    // the first-paint canvas aligned with the hash even if persisted mode
-    // disagrees (e.g. user shared a `#/bible/...` link while EGW was last
-    // open).
-    if (urlSelectsBible) settings.setReaderMode('bible');
-    if (urlSelectsEgw) settings.setReaderMode('egw');
-
-    // Rehydrate last position on mount, then mirror + persist every change.
-    // The rehydration replays into ReaderState (openBook/openChapter), which
-    // fires `changes` and persists the same value back — harmless one-row
-    // upsert. Persisting from the same fiber that mirrors keeps the order
-    // deterministic: the signal updates before the disk write returns.
-    //
-    // URL hash takes precedence: when the boot hash names an EGW selection
-    // we replay it instead of the persisted position, then mark rehydrated
-    // so the canvas shows. The restore anchor (paragraphId) is only set
-    // from `egw-highlight` URLs, mirroring the LastPositionStorage path.
-    const egwRehydrateFiber = runtime.runFork(
-      Effect.gen(function* () {
-        if (urlSelectsEgw && Option.isSome(bootUrlSelection)) {
-          const url = bootUrlSelection.value;
-          const state = yield* ReaderState;
-          if (url._tag === 'egw-book') {
-            yield* openBookAtFirstChapter(url.bookId);
-          } else if (url._tag === 'egw-chapter') {
-            yield* state.openChapter(url.bookId, url.chapterParaId);
-          } else {
-            // egw-highlight: seed the restore anchor BEFORE the openChapterAt
-            // so BookFeed scrolls without a flicker on first render.
-            setRestoreParagraphId(Option.some(url.highlightParaId));
-            latestAnchorParaId = url.highlightParaId;
-            pendingRestoreEmit = true;
-            yield* state.openChapterAt(url.bookId, url.chapterParaId, url.highlightParaId);
-          }
-          setRehydrated(true);
-          return;
-        }
-        const storage = yield* LastPositionStorage;
-        const restored = yield* storage.read;
-        if (Option.isNone(restored)) {
-          setRehydrated(true);
-          return;
-        }
-        const pos = restored.value;
-        // Seed the restore anchor BEFORE opening the chapter so BookFeed sees
-        // it on first render and can scroll-to-restore without flicker.
-        if (pos._tag === 'paragraph') {
-          setRestoreParagraphId(Option.some(pos.paragraphId));
-          latestAnchorParaId = pos.paragraphId;
-          pendingRestoreEmit = true;
-        }
-        if (pos._tag === 'book') {
-          // Persisted bookId with no chapter (e.g. user closed before
-          // picking one) — auto-resolve to the first chapter rather
-          // than restoring into the "Pick a chapter" empty state.
-          yield* openBookAtFirstChapter(pos.bookId);
-        } else {
-          const state = yield* ReaderState;
-          yield* state.openChapter(pos.bookId, pos.paraId);
-        }
-        setRehydrated(true);
-      }).pipe(
-        Effect.tapError((err) =>
-          Effect.sync(() => {
-            console.error('[rehydrate] EGW position failed', err);
-            setRehydrated(true);
-          }),
-        ),
-        Effect.ignore,
-      ),
-    );
-    onCleanup(() => {
-      void runtime.runPromise(Fiber.interrupt(egwRehydrateFiber));
-    });
-
-    const fiber = runtime.runFork(
-      Effect.gen(function* () {
-        const state = yield* ReaderState;
-        const storage = yield* LastPositionStorage;
-        yield* state.changes.pipe(
-          Stream.runForEach((next) =>
-            Effect.gen(function* () {
-              const prev = selection();
-              // Compute restore-clear decision before mutating any signals so
-              // we can batch the writes. Without batching, `setSelection` fires
-              // the `<Show keyed>` remount synchronously and the new BookFeed
-              // reads `restoreParagraphId()` *before* we clear it — landing on
-              // the stale paragraph from the previous chapter instead of the
-              // new chapter break.
-              const prevSel = Option.getOrUndefined(prev);
-              const nextChapterParaId = Option.isSome(next)
-                ? next.value._tag === 'book'
-                  ? null
-                  : next.value.chapterParaId
-                : null;
-              const prevChapterParaId =
-                prevSel !== undefined && prevSel._tag !== 'book' ? prevSel.chapterParaId : null;
-              const sameChapter =
-                Option.isSome(next) &&
-                prevSel !== undefined &&
-                prevSel.bookId === next.value.bookId &&
-                prevChapterParaId !== null &&
-                nextChapterParaId !== null &&
-                prevChapterParaId === nextChapterParaId;
-              const shouldClearRestore =
-                Option.isNone(next) || (!sameChapter && !pendingRestoreEmit);
-              if (shouldClearRestore) {
-                latestAnchorParaId = null;
-              }
-              batch(() => {
-                setSelection(next);
-                if (shouldClearRestore) {
-                  setRestoreParagraphId(Option.none());
-                }
-              });
-              pendingRestoreEmit = false;
-              if (Option.isNone(next)) {
-                yield* storage.clear;
-              } else {
-                const v = next.value;
-                const position: LastPosition =
-                  v._tag === 'book'
-                    ? { _tag: 'book', bookId: v.bookId }
-                    : latestAnchorParaId === null
-                      ? { _tag: 'chapter', bookId: v.bookId, paraId: v.chapterParaId }
-                      : {
-                          _tag: 'paragraph',
-                          bookId: v.bookId,
-                          paraId: v.chapterParaId,
-                          paragraphId: latestAnchorParaId,
-                        };
-                yield* storage.write(position);
-                if (v._tag !== 'book') {
-                  lastChapterMemory.recordEgw(v.bookId, v.chapterParaId);
-                }
-              }
-            }),
-          ),
-        );
-      }),
-    );
-
-    // Rehydrate Bible-mode last position on mount. Symmetric with the EGW
-    // restore above: read the persisted row, replay it into BibleReaderState
-    // (which fires `changes` and persists the same value back — harmless
-    // one-row upsert through the mirror fiber).
-    //
-    // URL hash takes precedence: when the boot hash names a Bible selection
-    // we replay it instead of the persisted position.
-    const bibleRehydrateFiber = runtime.runFork(
-      Effect.gen(function* () {
-        if (urlSelectsBible && Option.isSome(bootUrlSelection)) {
-          const url = bootUrlSelection.value;
-          const state = yield* BibleReaderState;
-          if (url._tag === 'bible-verse') {
-            yield* state.openChapterAt(url.book, url.chapter, url.verse);
-          } else if (url._tag === 'bible-chapter') {
-            yield* state.openChapter(url.book, url.chapter);
-          }
-          return;
-        }
-        const storage = yield* LastPositionStorage;
-        const restored = yield* storage.readBible;
-        if (Option.isNone(restored)) return;
-        const pos = restored.value;
-        const state = yield* BibleReaderState;
-        if (pos._tag === 'verse') {
-          yield* state.openChapterAt(pos.book, pos.chapter, pos.verse);
-        } else {
-          yield* state.openChapter(pos.book, pos.chapter);
-        }
-      }).pipe(
-        Effect.tapError((err) =>
-          Effect.sync(() => {
-            console.error('[rehydrate] bible position failed', err);
-          }),
-        ),
-        Effect.ignore,
-      ),
-    );
-    onCleanup(() => {
-      void runtime.runPromise(Fiber.interrupt(bibleRehydrateFiber));
-    });
-
-    // Bible-mode persistence fiber. The local accessor is derived directly
-    // from BibleReaderState's changes stream above; this fiber is purely
-    // about persisting the (book, chapter, verse) on every change so a
-    // refresh/restart restores the user's place, plus the session-scoped
-    // last-chapter memory used for book-hopping continuity.
-    const bibleFiber = runtime.runFork(
-      Effect.gen(function* () {
-        const state = yield* BibleReaderState;
-        const storage = yield* LastPositionStorage;
-        yield* state.changes.pipe(
-          Stream.runForEach((next) =>
-            Effect.gen(function* () {
-              if (Option.isNone(next)) {
-                yield* storage.clearBible;
-              } else {
-                const v = next.value;
-                yield* storage.writeBible(
-                  v._tag === 'verse'
-                    ? { _tag: 'verse', book: v.book, chapter: v.chapter, verse: v.verse }
-                    : { _tag: 'chapter', book: v.book, chapter: v.chapter },
-                );
-                lastChapterMemory.recordBible(v.book, v.chapter);
-              }
-            }),
-          ),
-        );
-      }),
-    );
-
-    // Background chapter warmer.
-    const prefetchFiber = runtime.runFork(
-      Effect.gen(function* () {
-        const prefetcher = yield* Prefetcher;
-        yield* prefetcher.start;
-      }),
-    );
-
-    // A7-01: URL hash mirror. Subscribe to the THREE inputs that determine
-    // the canonical hash — reader mode (which mode's selection counts), and
-    // the two selection streams. On every emit snapshot all three and write
-    // the resulting URL via `history.replaceState`. The router's `write`
-    // no-ops when the encoded value matches the current hash, so this is
-    // cheap even when streams fire faster than the URL needs updating.
-    const computeUrlSelection = (
-      mode: ReaderMode,
-      egw: Option.Option<ReaderSelection>,
-      bible: Option.Option<BibleReaderSelection>,
-    ): Option.Option<UrlSelection> => {
-      if (mode === 'bible') {
-        if (Option.isNone(bible)) return Option.none();
-        const v = bible.value;
-        if (v._tag === 'verse') {
-          return Option.some({
-            _tag: 'bible-verse',
-            book: v.book,
-            chapter: v.chapter,
-            verse: v.verse,
-          });
-        }
-        return Option.some({ _tag: 'bible-chapter', book: v.book, chapter: v.chapter });
-      }
-      if (Option.isNone(egw)) return Option.none();
-      const v = egw.value;
-      if (v._tag === 'book') return Option.some({ _tag: 'egw-book', bookId: v.bookId });
-      if (v._tag === 'chapter') {
-        return Option.some({
-          _tag: 'egw-chapter',
-          bookId: v.bookId,
-          chapterParaId: v.chapterParaId,
-        });
-      }
-      return Option.some({
-        _tag: 'egw-highlight',
-        bookId: v.bookId,
-        chapterParaId: v.chapterParaId,
-        highlightParaId: v.highlightParaId,
-      });
-    };
-    const urlMirrorFiber = runtime.runFork(
-      Effect.gen(function* () {
-        const router = yield* UrlStateRouter;
-        const egwState = yield* ReaderState;
-        const bibleState = yield* BibleReaderState;
-        const settingsSvc = yield* ReaderSettings;
-        // Tag each input stream so a single `merge` produces one merged
-        // event channel; we re-fetch every input on every emit because the
-        // canonical hash depends on all three.
-        const modes = settingsSvc.changes.pipe(Stream.map((s) => ({ _tag: 'mode' as const, s })));
-        const egws = egwState.changes.pipe(Stream.map((s) => ({ _tag: 'egw' as const, s })));
-        const bibles = bibleState.changes.pipe(Stream.map((s) => ({ _tag: 'bible' as const, s })));
-        yield* Stream.merge(modes, Stream.merge(egws, bibles)).pipe(
-          Stream.runForEach(() =>
-            Effect.gen(function* () {
-              const settingsSnap = yield* settingsSvc.get;
-              const egwSnap = yield* egwState.get;
-              const bibleSnap = yield* bibleState.get;
-              const url = computeUrlSelection(settingsSnap.readerMode, egwSnap, bibleSnap);
-              yield* router.write(url);
-            }),
-          ),
-        );
-      }),
-    );
-
-    // A7-01: popstate handler. When the user hits back/forward, decode the
-    // resulting hash and replay it into whichever state machine the URL
-    // names. Symmetric with the boot read above — the same precedence rules
-    // (URL switches readerMode) apply.
-    const popstateFiber = runtime.runFork(
-      Effect.gen(function* () {
-        const router = yield* UrlStateRouter;
-        const egwState = yield* ReaderState;
-        const bibleState = yield* BibleReaderState;
-        yield* router.popstate.pipe(
-          Stream.runForEach((sel) =>
-            Effect.gen(function* () {
-              if (Option.isNone(sel)) return;
-              const url = sel.value;
-              if (url._tag === 'bible-chapter') {
-                settings.setReaderMode('bible');
-                yield* bibleState.openChapter(url.book, url.chapter);
-              } else if (url._tag === 'bible-verse') {
-                settings.setReaderMode('bible');
-                yield* bibleState.openChapterAt(url.book, url.chapter, url.verse);
-              } else if (url._tag === 'egw-book') {
-                settings.setReaderMode('egw');
-                yield* openBookAtFirstChapter(url.bookId);
-              } else if (url._tag === 'egw-chapter') {
-                settings.setReaderMode('egw');
-                yield* egwState.openChapter(url.bookId, url.chapterParaId);
-              } else {
-                settings.setReaderMode('egw');
-                yield* egwState.openChapterAt(url.bookId, url.chapterParaId, url.highlightParaId);
-              }
-            }),
-          ),
-        );
-      }),
-    );
-
-    onCleanup(() => {
-      void runtime.runPromise(Fiber.interrupt(fiber));
-      void runtime.runPromise(Fiber.interrupt(bibleFiber));
-      void runtime.runPromise(Fiber.interrupt(prefetchFiber));
-      void runtime.runPromise(Fiber.interrupt(urlMirrorFiber));
-      void runtime.runPromise(Fiber.interrupt(popstateFiber));
-    });
-  });
-
   const closeSheet = () => {
     setSettingsOpen(false);
   };
@@ -625,11 +150,8 @@ const AppInner: Component = () => {
     openSearch();
   };
 
-  const hasBook = () => Option.isSome(selection());
-  const currentBookId = () => {
-    const sel = selection();
-    return Option.isSome(sel) ? sel.value.bookId : null;
-  };
+  const hasBook = session.hasEgwBook;
+  const currentBookId = session.currentEgwBookId;
 
   // Library availability differs by mode: EGW gates the button on having a
   // book open (the landing canvas IS the library), but Bible mode's landing
@@ -649,105 +171,6 @@ const AppInner: Component = () => {
   const onPickBookFromLanding = (_bookId: number) => {
     // ReaderState.openBook already fired in FolderBrowser; nothing extra.
   };
-
-  // Shell-level write fibers — clearHighlight + position flushes. Joined on
-  // unmount so a pending write isn't truncated, then any survivors are
-  // interrupted. (Writes here are short SQLite upserts; the join keeps the
-  // last intent durable across a remount during HMR.)
-  const writeFibers = new Set<Fiber.Fiber<void>>();
-  onCleanup(() => {
-    const pending = [...writeFibers];
-    if (pending.length === 0) return;
-    void runtime.runPromise(Fiber.joinAll(pending).pipe(Effect.ignore));
-    writeFibers.clear();
-  });
-  const forkWrite = (
-    eff: Effect.Effect<void, unknown, ReaderState | LastPositionStorage>,
-  ): void => {
-    const fiber = runtime.runFork(
-      eff.pipe(
-        Effect.tapError(Effect.logError),
-        Effect.ignore,
-        Effect.ensuring(
-          Effect.sync(() => {
-            writeFibers.delete(fiber);
-          }),
-        ),
-      ),
-    );
-    writeFibers.add(fiber);
-  };
-
-  // ReaderPane reports when it has scrolled-to and flashed the highlighted
-  // paragraph (search-result jump). Clear the highlight on ReaderState so a
-  // re-render of the same chapter doesn't re-scroll.
-  const onHighlightApplied = () => {
-    forkWrite(
-      Effect.gen(function* () {
-        const state = yield* ReaderState;
-        yield* state.clearHighlight;
-      }),
-    );
-  };
-
-  // Scroll-spy anchor moved — persist the new (chapter, paragraph) pair so
-  // a relaunch restores at the topmost visible paragraph rather than just
-  // the chapter start.
-  //
-  // The renderer can fire this on every scroll frame; the underlying IPC
-  // write is a sync SQLite upsert behind an async Promise, and bursts of
-  // 60+ writes/sec from a wheel scroll can land out of order in the main
-  // process — so refresh would read whichever intermediate happened to
-  // commit last. We debounce to 250ms trailing-edge and flush on chapter
-  // swap or window unload so the *latest* intent always wins.
-  interface PositionPayload {
-    readonly bookId: number;
-    readonly chapterParaId: string;
-    readonly paragraphParaId: string;
-  }
-  let pendingChapterKey: string | undefined;
-  const positionWriter = createDebouncedAction<PositionPayload>((p) => {
-    pendingChapterKey = undefined;
-    forkWrite(
-      Effect.gen(function* () {
-        const storage = yield* LastPositionStorage;
-        yield* storage.write({
-          _tag: 'paragraph',
-          bookId: p.bookId,
-          paraId: p.chapterParaId,
-          paragraphId: p.paragraphParaId,
-        });
-      }),
-    );
-  }, 250);
-  const chapterKeyOf = (bookId: number, chapterParaId: string): string =>
-    `${String(bookId)}:${chapterParaId}`;
-  const onParagraphScrolledIntoView = (chapterParaId: string, paragraphParaId: string) => {
-    latestAnchorParaId = paragraphParaId;
-    const sel = selection();
-    if (Option.isNone(sel)) return;
-    const bookId = sel.value.bookId;
-    const nextKey = chapterKeyOf(bookId, chapterParaId);
-    // Flush immediately if the chapter/book changed under us — debouncing
-    // across chapters would drop a position write for the chapter we just
-    // left.
-    if (pendingChapterKey !== undefined && pendingChapterKey !== nextKey) {
-      positionWriter.flush();
-    }
-    pendingChapterKey = nextKey;
-    positionWriter.schedule({ bookId, chapterParaId, paragraphParaId });
-  };
-  // Flush on window unload (refresh, close) so the user's actual last scroll
-  // position survives even when the debounce hasn't fired.
-  onMount(() => {
-    const onUnload = (): void => positionWriter.flush();
-    window.addEventListener('beforeunload', onUnload);
-    window.addEventListener('pagehide', onUnload);
-    onCleanup(() => {
-      window.removeEventListener('beforeunload', onUnload);
-      window.removeEventListener('pagehide', onUnload);
-    });
-  });
 
   // Reader CSS-var bridge — these have to be on a root the chapter inherits
   // from. `--reader-*` names are consumed via arbitrary Tailwind value escapes
@@ -875,7 +298,7 @@ const AppInner: Component = () => {
         </button>
       </header>
 
-      <Show when={!mainReady()}>
+      <Show when={!session.mainReady()}>
         <div
           role="alert"
           class="flex items-center justify-between gap-3 px-4 py-2 bg-danger-soft border-b border-danger text-ui-sm text-danger"
@@ -887,7 +310,7 @@ const AppInner: Component = () => {
           <button
             type="button"
             class="text-ui-xs opacity-70 hover:opacity-100 underline cursor-pointer bg-transparent border-0 p-0"
-            onClick={() => setMainReady(true)}
+            onClick={session.dismissRuntimeWarning}
             title="Hide banner (poll continues in background)"
           >
             dismiss
@@ -918,20 +341,20 @@ const AppInner: Component = () => {
               drawer={drawer}
               closeDrawers={closeDrawers}
               bibleDrawer={bibleDrawer}
-              bibleTocSelection={bibleTocSelection}
-              bibleSelection={bibleSelection}
+              bibleTocSelection={session.bibleTocSelection}
+              bibleSelection={session.bibleSelection}
               paletteOpen={paletteOpen}
               setPaletteOpen={setPaletteOpen}
             />
           </Match>
           <Match when={!isBibleMode()}>
             <EgwModeView
-              selection={selection}
-              rehydrated={rehydrated}
-              restoreParagraphId={restoreParagraphId}
+              selection={session.egwSelection}
+              rehydrated={session.rehydrated}
+              restoreParagraphId={session.restoreParagraphId}
               readerFontFamily={readerFontFamily}
-              onHighlightApplied={onHighlightApplied}
-              onParagraphScrolledIntoView={onParagraphScrolledIntoView}
+              onHighlightApplied={session.onHighlightApplied}
+              onParagraphScrolledIntoView={session.onParagraphScrolledIntoView}
               onPickBookFromLanding={onPickBookFromLanding}
               onPickBookFromDrawer={onPickBookFromDrawer}
               bibleDrawer={bibleDrawer}
