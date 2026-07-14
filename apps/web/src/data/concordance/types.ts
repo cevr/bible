@@ -12,6 +12,7 @@ export interface VerseWord {
   wordIndex: number;
   wordText: string;
   strongsNumbers: readonly string[] | null;
+  italic: boolean;
 }
 
 export interface MarginNote {

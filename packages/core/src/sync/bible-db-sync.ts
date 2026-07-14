@@ -1,14 +1,14 @@
 /**
  * Bible DB Sync - Auto-download bible.db from GitHub if missing
  *
- * Downloads the pre-built SQLite database (~86MB) directly from the repo
- * rather than rebuilding from JSON sources.
+ * Downloads the pre-built SQLite database from the versioned GitHub release
+ * rather than rebuilding from JSON sources. The database is intentionally not
+ * committed to the repository because it is larger than GitHub's blob limit.
  */
 
 import { Effect, FileSystem, Path, Schema } from 'effect';
 
-const BIBLE_DB_URL =
-  'https://raw.githubusercontent.com/cevr/bible/main/packages/core/data/bible.db';
+export const BIBLE_DB_URL = 'https://github.com/cevr/bible/releases/download/db-v1/bible.db';
 
 export class BibleDbSyncError extends Schema.TaggedErrorClass<BibleDbSyncError>()(
   'BibleDbSyncError',

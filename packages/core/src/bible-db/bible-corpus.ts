@@ -183,10 +183,10 @@ export class BibleCorpus extends Context.Service<BibleCorpus, BibleCorpusService
                     word.strongs === undefined ? null : encodeStrongsNumbers(word.strongs);
                   yield* sql`
                   INSERT INTO verse_words (
-                    book, chapter, verse, word_index, word_text, strongs_numbers
+                    book, chapter, verse, word_index, word_text, strongs_numbers, italic
                   ) VALUES (
                     ${verse.book}, ${verse.chapter}, ${verse.verse}, ${wordIndex},
-                    ${word.text}, ${encoded}
+                    ${word.text}, ${encoded}, ${word.italic === true ? 1 : 0}
                   )
                 `;
                   for (const number of word.strongs ?? []) {
@@ -251,6 +251,7 @@ export class BibleCorpus extends Context.Service<BibleCorpus, BibleCorpusService
               yield* sql`DELETE FROM cross_refs WHERE source = ${source}`;
               let imported = 0;
               let skipped = 0;
+              const seen = new Set<string>();
               for (const [key, entry] of Object.entries(asset)) {
                 const from = parseVerseKey(key);
                 if (from === null) {
@@ -258,8 +259,21 @@ export class BibleCorpus extends Context.Service<BibleCorpus, BibleCorpusService
                   continue;
                 }
                 for (const reference of entry.refs) {
+                  const targetKey = [
+                    from.book,
+                    from.chapter,
+                    from.verse,
+                    reference.book,
+                    reference.chapter,
+                    reference.verse ?? '',
+                  ].join(':');
+                  if (seen.has(targetKey)) {
+                    skipped += 1;
+                    continue;
+                  }
+                  seen.add(targetKey);
                   yield* sql`
-                  INSERT INTO cross_refs (
+                  INSERT OR IGNORE INTO cross_refs (
                     book, chapter, verse, ref_book, ref_chapter, ref_verse,
                     ref_verse_end, source, preview_text
                   ) VALUES (

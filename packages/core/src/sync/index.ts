@@ -12,5 +12,5 @@ export {
   type DownloadBookResult,
 } from './egw-sync.js';
 
-export { ensureBibleDb } from './bible-db-sync.js';
+export { BIBLE_DB_URL, ensureBibleDb } from './bible-db-sync.js';
 export { syncBible } from './bible-sync.js';

@@ -10,6 +10,7 @@
  */
 
 import { Flag, Command } from 'effect/unstable/cli';
+import { BIBLE_DB_URL } from '@bible/core/sync';
 import { Console, Effect, Schema } from 'effect';
 import { existsSync, mkdirSync } from 'fs';
 import { homedir } from 'os';
@@ -21,12 +22,11 @@ class InitError extends Schema.TaggedErrorClass<InitError>()('InitError', {
 
 const BIBLE_DIR = join(homedir(), '.bible');
 const GITHUB_RAW = 'https://raw.githubusercontent.com/cevr/bible/main';
-const GITHUB_RELEASE = 'https://github.com/cevr/bible/releases/download/db-v1';
 
 const DBS = {
   bible: {
     name: 'bible.db',
-    url: `${GITHUB_RELEASE}/bible.db`,
+    url: BIBLE_DB_URL,
     description: "KJV Bible with Strong's concordance and cross-references",
     size: '~125MB',
   },

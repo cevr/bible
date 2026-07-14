@@ -4,7 +4,9 @@ import { join } from 'node:path';
 
 import * as SqliteBun from '@effect/sql-sqlite-bun/SqliteClient';
 import { afterAll, describe, expect, test } from 'bun:test';
+import { Database } from 'bun:sqlite';
 import { Effect, Layer, Option } from 'effect';
+import * as SqlClient from 'effect/unstable/sql/SqlClient';
 
 import { BibleCorpus } from './bible-corpus.js';
 import { BibleDatabase } from './bible-database.js';
@@ -67,7 +69,10 @@ describe('BibleCorpus + BibleDatabase', () => {
               book: 1,
               chapter: 1,
               verse: 1,
-              words: [{ text: 'In' }, { text: 'beginning', strongs: ['H7225'] }],
+              words: [
+                { text: 'In', italic: true },
+                { text: 'beginning', strongs: ['H7225'] },
+              ],
             },
           ],
         );
@@ -106,7 +111,9 @@ describe('BibleCorpus + BibleDatabase', () => {
         expect(secondSearchResult.total).toBe(2);
 
         const strongs = yield* database.getChapterStrongs(1, 1);
+        expect(Option.getOrThrow(strongs).verses[0]?.words[0]?.italic).toBe(true);
         expect(Option.getOrThrow(strongs).verses[0]?.words[1]?.strongsNumbers).toEqual(['H7225']);
+        expect((yield* database.getVerseWords(1, 1, 1))[0]?.italic).toBe(true);
         expect((yield* database.getVersesWithStrongs('h7225'))[0]?.word).toBe('beginning');
         expect(yield* database.getStrongsCount('H7225')).toBe(1);
         expect((yield* database.searchStrongs('begin', 10))[0]?.number).toBe('H7225');
@@ -135,7 +142,12 @@ describe('BibleCorpus + BibleDatabase', () => {
         const corpus = yield* BibleCorpus;
         const database = yield* BibleDatabase;
         const xrefs = {
-          '1.1.1': { refs: [{ book: 43, chapter: 3, verse: 16 }] },
+          '1.1.1': {
+            refs: [
+              { book: 43, chapter: 3, verse: 16 },
+              { book: 43, chapter: 3, verse: 16 },
+            ],
+          },
         } as const;
         const notes = {
           '1.1.1': [{ type: 'other' as const, phrase: 'earth', text: 'world' }],
@@ -150,4 +162,66 @@ describe('BibleCorpus + BibleDatabase', () => {
         expect((yield* database.getMarginNotes(1, 1, 1)).length).toBe(1);
       }),
     ));
+
+  test('readonly query interface treats legacy word rows as non-italic', () => {
+    const filename = join(tmpdir(), `bible-legacy-${crypto.randomUUID()}.sqlite`);
+    files.push(filename);
+    const layer = BibleDatabase.layer.pipe(Layer.provideMerge(SqliteBun.layer({ filename })));
+
+    return Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* () {
+          const sql = yield* SqlClient.SqlClient;
+          const database = yield* BibleDatabase;
+          yield* sql`
+            CREATE TABLE verse_words (
+              book INTEGER NOT NULL,
+              chapter INTEGER NOT NULL,
+              verse INTEGER NOT NULL,
+              word_index INTEGER NOT NULL,
+              word_text TEXT NOT NULL,
+              strongs_numbers TEXT
+            )
+          `;
+          yield* sql`
+            INSERT INTO verse_words VALUES (1, 1, 1, 0, 'Beginning', '["H7225"]')
+          `;
+
+          expect(yield* database.getVerseWords(1, 1, 1)).toEqual([
+            { text: 'Beginning', strongsNumbers: ['H7225'], italic: false },
+          ]);
+        }).pipe(Effect.provide(layer)),
+      ),
+    );
+  });
+
+  test('corpus initialization migrates an existing word table to preserve italics', () => {
+    const filename = join(tmpdir(), `bible-migration-${crypto.randomUUID()}.sqlite`);
+    files.push(filename);
+    const legacy = new Database(filename);
+    legacy.exec(`
+      CREATE TABLE verse_words (
+        book INTEGER NOT NULL,
+        chapter INTEGER NOT NULL,
+        verse INTEGER NOT NULL,
+        word_index INTEGER NOT NULL,
+        word_text TEXT NOT NULL,
+        strongs_numbers TEXT,
+        PRIMARY KEY (book, chapter, verse, word_index)
+      )
+    `);
+    legacy.close();
+
+    const layer = BibleCorpus.layer.pipe(Layer.provideMerge(SqliteBun.layer({ filename })));
+    return Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* () {
+          yield* BibleCorpus;
+          const sql = yield* SqlClient.SqlClient;
+          const columns = yield* sql<{ readonly name: string }>`PRAGMA table_info(verse_words)`;
+          expect(columns.map((column) => column.name)).toContain('italic');
+        }).pipe(Effect.provide(layer)),
+      ),
+    );
+  });
 });

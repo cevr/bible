@@ -50,6 +50,7 @@ export interface StrongsEntry {
 export interface VerseWord {
   readonly text: string;
   readonly strongsNumbers: readonly string[];
+  readonly italic: boolean;
 }
 
 export interface MarginNote {
@@ -185,6 +186,7 @@ interface StrongsSqlRow {
 interface VerseWordSqlRow {
   readonly word_text: string;
   readonly strongs_numbers: string | null;
+  readonly italic: number;
 }
 
 interface MarginNoteSqlRow {
@@ -203,6 +205,7 @@ interface StrongsChapterSqlRow {
   readonly word_index: number;
   readonly word_text: string;
   readonly strongs_numbers: string | null;
+  readonly italic: number;
 }
 
 interface StrongsHitSqlRow {
@@ -423,14 +426,39 @@ export class BibleDatabase extends Context.Service<BibleDatabase, BibleDatabaseS
           `.pipe(Effect.map((rows) => rows[0]?.count ?? 0)),
       );
 
+      // Published Bible databases predate the italic column. Detect it lazily
+      // at the first word query so readonly clients remain compatible with an
+      // older snapshot while newly imported databases preserve the richer
+      // corpus shape immediately.
+      let hasItalicColumn: boolean | undefined;
+      const supportsWordItalics = Effect.fn('BibleDatabase.supportsWordItalics')(() => {
+        if (hasItalicColumn !== undefined) return Effect.succeed(hasItalicColumn);
+        return sql<{ readonly name: string }>`PRAGMA table_info(verse_words)`.pipe(
+          Effect.map((columns) => {
+            hasItalicColumn = columns.some((column) => column.name === 'italic');
+            return hasItalicColumn;
+          }),
+        );
+      });
+
       const getVerseWords = Effect.fn('BibleDatabase.getVerseWords')(
         (book: number, chapter: number, verse: number) =>
-          sql<VerseWordSqlRow>`
-          SELECT word_text, strongs_numbers
-          FROM verse_words
-          WHERE book = ${book} AND chapter = ${chapter} AND verse = ${verse}
-          ORDER BY word_index
-        `.pipe(
+          supportsWordItalics().pipe(
+            Effect.flatMap((supportsItalics) =>
+              supportsItalics
+                ? sql<VerseWordSqlRow>`
+                    SELECT word_text, strongs_numbers, italic
+                    FROM verse_words
+                    WHERE book = ${book} AND chapter = ${chapter} AND verse = ${verse}
+                    ORDER BY word_index
+                  `
+                : sql<VerseWordSqlRow>`
+                    SELECT word_text, strongs_numbers, 0 AS italic
+                    FROM verse_words
+                    WHERE book = ${book} AND chapter = ${chapter} AND verse = ${verse}
+                    ORDER BY word_index
+                  `,
+            ),
             Effect.flatMap((rows) =>
               Effect.forEach(rows, (row) =>
                 Effect.try({
@@ -438,6 +466,7 @@ export class BibleDatabase extends Context.Service<BibleDatabase, BibleDatabaseS
                     text: row.word_text,
                     strongsNumbers:
                       row.strongs_numbers === null ? [] : decodeStrongsNumbers(row.strongs_numbers),
+                    italic: row.italic === 1,
                   }),
                   catch: (cause) =>
                     new BibleDataIntegrityError({
@@ -470,7 +499,7 @@ export class BibleDatabase extends Context.Service<BibleDatabase, BibleDatabaseS
       );
 
       const decodeWord = (
-        row: Pick<StrongsChapterSqlRow, 'word_text' | 'strongs_numbers'>,
+        row: Pick<StrongsChapterSqlRow, 'word_text' | 'strongs_numbers' | 'italic'>,
         location: string,
       ) =>
         Effect.try({
@@ -478,23 +507,39 @@ export class BibleDatabase extends Context.Service<BibleDatabase, BibleDatabaseS
             text: row.word_text,
             strongsNumbers:
               row.strongs_numbers === null ? [] : decodeStrongsNumbers(row.strongs_numbers),
+            italic: row.italic === 1,
           }),
           catch: (cause) => new BibleDataIntegrityError({ cause, location }),
         });
 
       const getChapterStrongs = Effect.fn('BibleDatabase.getChapterStrongs')(
         (book: number, chapter: number) =>
-          sql<StrongsChapterSqlRow>`
-          SELECT v.book, v.chapter, v.verse, b.name AS book_name,
-                 w.word_index, w.word_text, w.strongs_numbers
-          FROM verse_words AS w
-          JOIN verses AS v
-            ON v.book = w.book AND v.chapter = w.chapter AND v.verse = w.verse
-           AND v.version_code = 'KJV'
-          JOIN books AS b ON b.number = v.book
-          WHERE w.book = ${book} AND w.chapter = ${chapter}
-          ORDER BY v.verse, w.word_index
-        `.pipe(
+          supportsWordItalics().pipe(
+            Effect.flatMap((supportsItalics) =>
+              supportsItalics
+                ? sql<StrongsChapterSqlRow>`
+                    SELECT v.book, v.chapter, v.verse, b.name AS book_name,
+                           w.word_index, w.word_text, w.strongs_numbers, w.italic
+                    FROM verse_words AS w
+                    JOIN verses AS v
+                      ON v.book = w.book AND v.chapter = w.chapter AND v.verse = w.verse
+                     AND v.version_code = 'KJV'
+                    JOIN books AS b ON b.number = v.book
+                    WHERE w.book = ${book} AND w.chapter = ${chapter}
+                    ORDER BY v.verse, w.word_index
+                  `
+                : sql<StrongsChapterSqlRow>`
+                    SELECT v.book, v.chapter, v.verse, b.name AS book_name,
+                           w.word_index, w.word_text, w.strongs_numbers, 0 AS italic
+                    FROM verse_words AS w
+                    JOIN verses AS v
+                      ON v.book = w.book AND v.chapter = w.chapter AND v.verse = w.verse
+                     AND v.version_code = 'KJV'
+                    JOIN books AS b ON b.number = v.book
+                    WHERE w.book = ${book} AND w.chapter = ${chapter}
+                    ORDER BY v.verse, w.word_index
+                  `,
+            ),
             Effect.flatMap((rows) =>
               Effect.gen(function* () {
                 const byVerse = new Map<number, VerseWord[]>();
@@ -603,6 +648,19 @@ export class BibleDatabase extends Context.Service<BibleDatabase, BibleDatabaseS
         readonly references: readonly CrossReference[];
       }[];
       readonly strongsEntries?: readonly StrongsEntry[];
+      readonly verseWords?: readonly {
+        readonly book: number;
+        readonly chapter: number;
+        readonly verse: number;
+        readonly words: readonly VerseWord[];
+      }[];
+      readonly marginNotes?: readonly {
+        readonly book: number;
+        readonly chapter: number;
+        readonly verse: number;
+        readonly notes: readonly MarginNote[];
+      }[];
+      readonly concordanceHits?: Readonly<Record<string, readonly ConcordanceHit[]>>;
     } = {},
   ): Layer.Layer<BibleDatabase> =>
     Layer.succeed(BibleDatabase, {
@@ -658,13 +716,32 @@ export class BibleDatabase extends Context.Service<BibleDatabase, BibleDatabaseS
           Option.fromNullishOr(config.strongsEntries?.find((entry) => entry.number === number)),
         ),
       searchStrongs: () => Effect.succeed([]),
-      getVersesWithStrongs: () => Effect.succeed([]),
+      getVersesWithStrongs: (number) => Effect.succeed(config.concordanceHits?.[number] ?? []),
       getStrongsCount: () => Effect.succeed(0),
-      getVerseWords: () => Effect.succeed([]),
-      getMarginNotes: () => Effect.succeed([]),
+      getVerseWords: (book, chapter, verse) =>
+        Effect.succeed(
+          config.verseWords?.find(
+            (fixture) =>
+              fixture.book === book && fixture.chapter === chapter && fixture.verse === verse,
+          )?.words ?? [],
+        ),
+      getMarginNotes: (book, chapter, verse) =>
+        Effect.succeed(
+          config.marginNotes?.find(
+            (fixture) =>
+              fixture.book === book && fixture.chapter === chapter && fixture.verse === verse,
+          )?.notes ?? [],
+        ),
       getChapterStrongs: () => Effect.succeed(Option.none()),
       versesWithCrossRefs: () => Effect.succeed(new Set()),
       versesWithNotes: () => Effect.succeed(new Set()),
-      chapterMarginNotes: () => Effect.succeed(new Map()),
+      chapterMarginNotes: (book, chapter) =>
+        Effect.succeed(
+          new Map(
+            config.marginNotes
+              ?.filter((fixture) => fixture.book === book && fixture.chapter === chapter)
+              .map((fixture) => [fixture.verse, fixture.notes] as const) ?? [],
+          ),
+        ),
     });
 }

@@ -269,7 +269,13 @@ export function Verse(props: VerseProps) {
                     textDecoration: isSelected() ? 'underline' : undefined,
                   }}
                 >
-                  {isSelected() ? <strong>{word.text}</strong> : word.text}
+                  {word.italic ? (
+                    <i>{isSelected() ? <strong>{word.text}</strong> : word.text}</i>
+                  ) : isSelected() ? (
+                    <strong>{word.text}</strong>
+                  ) : (
+                    word.text
+                  )}
                 </span>
                 {index() < (props.words?.length ?? 0) - 1 ? ' ' : ''}
               </span>

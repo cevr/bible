@@ -56,6 +56,7 @@ export const BIBLE_SCHEMA_STATEMENTS = [
     word_index INTEGER NOT NULL,
     word_text TEXT NOT NULL,
     strongs_numbers TEXT,
+    italic INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (book, chapter, verse, word_index)
   )`,
   `CREATE TABLE IF NOT EXISTS strongs_verses (
@@ -139,6 +140,13 @@ export const BIBLE_SCHEMA_STATEMENTS = [
 ] as const;
 
 export const initializeBibleSchema = (sql: SqlClient.SqlClient): Effect.Effect<void, SqlError> =>
-  Effect.forEach(BIBLE_SCHEMA_STATEMENTS, (statement) => sql.unsafe(statement), {
-    discard: true,
+  Effect.gen(function* () {
+    yield* Effect.forEach(BIBLE_SCHEMA_STATEMENTS, (statement) => sql.unsafe(statement), {
+      discard: true,
+    });
+
+    const columns = yield* sql<{ readonly name: string }>`PRAGMA table_info(verse_words)`;
+    if (!columns.some((column) => column.name === 'italic')) {
+      yield* sql`ALTER TABLE verse_words ADD COLUMN italic INTEGER NOT NULL DEFAULT 0`;
+    }
   });

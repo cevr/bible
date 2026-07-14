@@ -20,7 +20,7 @@ const UserDataLive = BackupService.layer.pipe(
   Layer.provideMerge(Layer.merge(AppStateService.Live, CollectionService.layer)),
 );
 
-const BibleLive = BibleService.Live.pipe(
+const BibleLive = Layer.merge(BibleService.Live, ConcordanceService.layer).pipe(
   Layer.provide(BibleDatabase.layer),
   Layer.provide(layerBrowserBibleSqlClient),
 );
@@ -30,7 +30,6 @@ export const AppLive = Layer.mergeAll(
   BibleLive,
   UserDataLive,
   CommentaryService.layer,
-  ConcordanceService.layer,
   CrossReferenceService.layer,
   WebSyncService.Live,
   WebReadingPlanService.Live,

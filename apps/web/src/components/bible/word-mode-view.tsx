@@ -48,7 +48,7 @@ export function WordModeView({
                 }
               }}
             >
-              {word.wordText}
+              {word.italic ? <em className="italic opacity-85">{word.wordText}</em> : word.wordText}
             </span>
             {isSelected && hasStrongs && (
               <sup className="text-[0.6rem] font-mono text-muted-foreground ml-0.5">

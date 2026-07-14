@@ -507,6 +507,7 @@ handleIpc(
             words: v.words.map((word) => ({
               text: word.text,
               ...(word.strongsNumbers.length === 0 ? {} : { strongs: word.strongsNumbers }),
+              ...(word.italic ? { italic: true } : {}),
             })),
           })),
         }),
