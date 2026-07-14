@@ -14,15 +14,18 @@ const sortedUnique = (channels: readonly string[]): readonly string[] =>
 
 describe('Electron IPC invoke contract', () => {
   it('covers every preload invocation and main registration exactly once', async () => {
-    const [contract, preload, main] = await Promise.all([
+    const [contract, preload, main, bible, egw, storage] = await Promise.all([
       read('../electron/ipc-contract.ts'),
       read('../electron/preload.ts'),
       read('../electron/main.ts'),
+      read('../electron/ipc/bible-handlers.ts'),
+      read('../electron/ipc/egw-handlers.ts'),
+      read('../electron/ipc/storage-handlers.ts'),
     ]);
 
     const declared = matches(contract, /^  readonly '([^']+)': Invoke</gm);
     const invoked = matches(preload, /\binvoke\(\s*'([^']+)'/g);
-    const handled = matches(main, /\bhandleIpc\(\s*'([^']+)'/g);
+    const handled = matches([main, bible, egw, storage].join('\n'), /\bhandleIpc\(\s*'([^']+)'/g);
 
     expect(invoked).toHaveLength(declared.length);
     expect(handled).toHaveLength(declared.length);
@@ -31,13 +34,18 @@ describe('Electron IPC invoke contract', () => {
   });
 
   it('keeps raw Electron invoke and handle calls inside their typed adapters', async () => {
-    const [preload, main] = await Promise.all([
+    const [preload, handle, main, bible, egw, storage] = await Promise.all([
       read('../electron/preload.ts'),
+      read('../electron/ipc/handle.ts'),
       read('../electron/main.ts'),
+      read('../electron/ipc/bible-handlers.ts'),
+      read('../electron/ipc/egw-handlers.ts'),
+      read('../electron/ipc/storage-handlers.ts'),
     ]);
 
     expect(preload.match(/ipcRenderer\.invoke/g)).toHaveLength(1);
-    expect(main.match(/ipcMain\.handle\(/g)).toHaveLength(1);
-    expect(main).toContain('ipcMain.handle(channel, handler)');
+    expect(handle.match(/ipcMain\.handle\(/g)).toHaveLength(1);
+    expect(handle).toContain('ipcMain.handle(channel, handler)');
+    expect([main, bible, egw, storage].join('\n')).not.toMatch(/ipcMain\.handle\(/);
   });
 });
