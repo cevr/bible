@@ -18,7 +18,7 @@
  * 3. Structural Analysis (word frequency, Strong's data)
  */
 
-import { formatBibleReference, Reference, type VerseReference } from '@bible/core/bible';
+import { Reference, type VerseReference } from '@bible/core/bible';
 import { CROSS_REF_TYPES, type CrossRefType } from '@bible/core/bible-cross-refs';
 import { EGWCommentaryService, type CommentaryEntry } from '@bible/core/egw-commentary';
 import {
@@ -28,7 +28,7 @@ import {
 } from '@bible/core/structural-analysis';
 import type { ScrollBoxRenderable } from '@opentui/core';
 import { useModalKeyboard } from '../../hooks/use-modal-keyboard.js';
-import { createMemo, createSignal, For, Show } from 'solid-js';
+import { createMemo, createSignal, Show } from 'solid-js';
 
 import type { ReaderReference } from '../../../app/reader-reference.js';
 import { parseReaderReference } from '../../../lib/parse-reader-reference.js';
@@ -38,24 +38,10 @@ import { useStudyData } from '../../context/study-data.js';
 import { useTheme } from '../../context/theme.js';
 import { useScrollSync } from '../../hooks/use-scroll-sync.js';
 import { useAppRuntime } from '../../lib/index.js';
-import { formatNoteType } from '../bible/verse.js';
-
-/** Type badge abbreviations and colors */
-const TYPE_BADGES: Record<CrossRefType, { label: string; color: string }> = {
-  quotation: { label: 'QUO', color: '#e06c75' },
-  allusion: { label: 'ALL', color: '#c678dd' },
-  parallel: { label: 'PAR', color: '#61afef' },
-  typological: { label: 'TYP', color: '#e5c07b' },
-  prophecy: { label: 'PRO', color: '#d19a66' },
-  sanctuary: { label: 'SAN', color: '#56b6c2' },
-  recapitulation: { label: 'REC', color: '#98c379' },
-  thematic: { label: 'THM', color: '#abb2bf' },
-};
-
-/** Page type for the popup */
-type PopupPage = 'crossrefs' | 'commentary' | 'structure';
-
-const PAGES: PopupPage[] = ['crossrefs', 'commentary', 'structure'];
+import { CommentaryPage } from './cross-refs-popup/commentary-page.js';
+import { CrossRefsPage } from './cross-refs-popup/cross-refs-page.js';
+import { POPUP_PAGES, type CrossRefPreview, type PopupPage } from './cross-refs-popup/model.js';
+import { StructurePage } from './cross-refs-popup/structure-page.js';
 
 interface CrossRefsPopupProps {
   verseRef: VerseReference;
@@ -100,7 +86,7 @@ export function CrossRefsPopup(props: CrossRefsPopupProps) {
   const marginNotes = createMemo(() => studyData.marginNotes.forVerse(props.verseRef));
 
   // Get preview text for each reference
-  const refsWithPreviews = createMemo(() =>
+  const refsWithPreviews = createMemo((): readonly CrossRefPreview[] =>
     crossRefs().map((ref) => {
       let preview = ref.previewText ?? '';
       if (preview === '') {
@@ -197,10 +183,12 @@ export function CrossRefsPopup(props: CrossRefsPopupProps) {
 
   // Switch between pages (cycle through 3 pages)
   const switchPage = (direction: 'left' | 'right') => {
-    const idx = PAGES.indexOf(currentPage());
+    const idx = POPUP_PAGES.indexOf(currentPage());
     const nextIdx =
-      direction === 'right' ? (idx + 1) % PAGES.length : (idx - 1 + PAGES.length) % PAGES.length;
-    const nextPage = PAGES[nextIdx] ?? 'crossrefs';
+      direction === 'right'
+        ? (idx + 1) % POPUP_PAGES.length
+        : (idx - 1 + POPUP_PAGES.length) % POPUP_PAGES.length;
+    const nextPage = POPUP_PAGES[nextIdx] ?? 'crossrefs';
     setCurrentPage(nextPage);
 
     if (nextPage === 'commentary' && commentary().length === 0 && !commentaryLoading()) {
@@ -460,9 +448,7 @@ export function CrossRefsPopup(props: CrossRefsPopupProps) {
     ? `${sourceBook.name} ${props.verseRef.chapter}:${props.verseRef.verse ?? 1}`
     : 'Unknown';
 
-  const hasMarginNotes = () => marginNotes().length > 0;
   const hasCrossRefs = () => refsWithPreviews().length > 0;
-  const hasContent = () => hasMarginNotes() || hasCrossRefs();
   const hasCommentary = () => commentary().length > 0;
   const hasStructure = () => structureData() !== null;
 
@@ -506,317 +492,38 @@ export function CrossRefsPopup(props: CrossRefsPopupProps) {
 
       {/* Cross-References Page */}
       <Show when={currentPage() === 'crossrefs'}>
-        <Show
-          when={hasContent()}
-          fallback={<text fg={theme().textMuted}>No cross-references or margin notes</text>}
-        >
-          {/* Margin Notes Section */}
-          <Show when={hasMarginNotes()}>
-            <box flexDirection="column" marginBottom={1}>
-              <text fg={theme().textMuted} marginBottom={0}>
-                <strong>Margin Notes</strong>
-              </text>
-              <For each={marginNotes()}>
-                {(note, index) => (
-                  <text fg={theme().text} wrapMode="word">
-                    <span style={{ fg: theme().accent }}>{index() + 1}.</span>{' '}
-                    <span style={{ fg: theme().accentMuted }}>{formatNoteType(note.type)}</span>
-                    {formatNoteType(note.type) ? ' ' : ''}
-                    {note.text}
-                  </text>
-                )}
-              </For>
-            </box>
-          </Show>
-
-          {/* Cross-References Section */}
-          <Show when={hasCrossRefs()}>
-            <box flexDirection="column">
-              <text fg={theme().textMuted} marginBottom={0}>
-                <strong>Cross-References</strong>
-              </text>
-              <scrollbox
-                ref={(el) => (scrollRef = el)}
-                focused={false}
-                style={{
-                  height: hasMarginNotes() ? 6 : 10,
-                  rootOptions: {
-                    backgroundColor: theme().backgroundPanel,
-                  },
-                  wrapperOptions: {
-                    backgroundColor: theme().backgroundPanel,
-                  },
-                  viewportOptions: {
-                    backgroundColor: theme().backgroundPanel,
-                  },
-                  contentOptions: {
-                    backgroundColor: theme().backgroundPanel,
-                  },
-                  scrollbarOptions: {
-                    showArrows: false,
-                    trackOptions: {
-                      foregroundColor: theme().accent,
-                      backgroundColor: theme().border,
-                    },
-                  },
-                }}
-              >
-                <For each={refsWithPreviews()}>
-                  {(item, index) => {
-                    const isSelected = () => index() === selectedIndex();
-                    const start =
-                      item.ref.verse === null
-                        ? Reference.chapter(item.ref.book, item.ref.chapter)
-                        : Reference.verse(item.ref.book, item.ref.chapter, item.ref.verse);
-                    const reference =
-                      start._tag === 'chapter' ||
-                      item.ref.verseEnd === null ||
-                      item.ref.verseEnd === item.ref.verse
-                        ? start
-                        : Reference.range(
-                            start,
-                            Reference.verse(item.ref.book, item.ref.chapter, item.ref.verseEnd),
-                          );
-                    const refText = formatBibleReference(reference);
-                    const paddedRef = refText.padEnd(18, ' ');
-                    const badge = item.ref.classification
-                      ? TYPE_BADGES[item.ref.classification]
-                      : null;
-                    const prefix = item.ref.source === 'user' ? ' * ' : badge ? '' : '   ';
-                    const badgeStr = badge ? `[${badge.label}]` : '';
-                    return (
-                      <text
-                        id={`crossref-${index()}`}
-                        fg={isSelected() ? theme().accent : theme().textMuted}
-                      >
-                        {isSelected() ? '▶ ' : '  '}
-                        {badge ? <span style={{ fg: badge.color }}>{badgeStr}</span> : prefix}
-                        {badge ? ' ' : ''}
-                        <span
-                          style={{
-                            fg: isSelected() ? theme().accent : theme().text,
-                          }}
-                        >
-                          {isSelected() ? <strong>{paddedRef}</strong> : paddedRef}
-                        </span>
-                        {item.preview}
-                      </text>
-                    );
-                  }}
-                </For>
-              </scrollbox>
-            </box>
-          </Show>
-        </Show>
-
-        {/* Add reference input */}
-        <Show when={addingRef()}>
-          <box
-            border
-            borderColor={theme().borderFocused}
-            paddingLeft={1}
-            paddingRight={1}
-            marginTop={1}
-          >
-            <text fg={theme().text}>
-              Add ref:{' '}
-              {addRefInput() || (
-                <span style={{ fg: theme().textMuted }}>Type reference (e.g. John 3:16)...</span>
-              )}
-              <span style={{ fg: theme().accent }}>_</span>
-            </text>
-          </box>
-        </Show>
-
-        {/* Type picker */}
-        <Show when={typingMode()}>
-          <box
-            border
-            borderColor={theme().borderFocused}
-            paddingLeft={1}
-            paddingRight={1}
-            marginTop={1}
-            flexDirection="row"
-            gap={1}
-          >
-            <For each={[...CROSS_REF_TYPES]}>
-              {(type, index) => {
-                const badge = TYPE_BADGES[type];
-                const isSelected = () => index() === typePickerIndex();
-                return (
-                  <text fg={isSelected() ? badge.color : theme().textMuted}>
-                    {isSelected() ? <strong>[{badge.label}]</strong> : ` ${badge.label} `}
-                  </text>
-                );
-              }}
-            </For>
-          </box>
-        </Show>
+        <CrossRefsPage
+          marginNotes={marginNotes()}
+          refs={refsWithPreviews()}
+          selectedIndex={selectedIndex()}
+          addingRef={addingRef()}
+          addRefInput={addRefInput()}
+          typingMode={typingMode()}
+          typePickerIndex={typePickerIndex()}
+          setScrollRef={(element) => (scrollRef = element)}
+        />
       </Show>
 
       {/* Commentary Page */}
       <Show when={currentPage() === 'commentary'}>
-        <Show
-          when={!commentaryLoading()}
-          fallback={<text fg={theme().textMuted}>Loading EGW Commentary...</text>}
-        >
-          <Show
-            when={hasCommentary()}
-            fallback={<text fg={theme().textMuted}>No EGW commentary found for this verse</text>}
-          >
-            <scrollbox
-              ref={(el) => (commentaryScrollRef = el)}
-              focused={false}
-              style={{
-                height: 12,
-                rootOptions: {
-                  backgroundColor: theme().backgroundPanel,
-                },
-                wrapperOptions: {
-                  backgroundColor: theme().backgroundPanel,
-                },
-                viewportOptions: {
-                  backgroundColor: theme().backgroundPanel,
-                },
-                contentOptions: {
-                  backgroundColor: theme().backgroundPanel,
-                },
-                scrollbarOptions: {
-                  showArrows: false,
-                  trackOptions: {
-                    foregroundColor: theme().accent,
-                    backgroundColor: theme().border,
-                  },
-                },
-              }}
-            >
-              <For each={commentary()}>
-                {(entry, index) => {
-                  const isSelected = () => index() === selectedCommentaryIndex();
-                  return (
-                    <box
-                      id={`commentary-${index()}`}
-                      flexDirection="column"
-                      marginBottom={1}
-                      backgroundColor={isSelected() ? theme().verseHighlight : undefined}
-                      paddingLeft={1}
-                      paddingRight={1}
-                    >
-                      <text fg={isSelected() ? theme().accent : theme().textMuted}>
-                        {isSelected() ? <strong>{entry.refcode}</strong> : entry.refcode}
-                      </text>
-                      <text fg={theme().text} wrapMode="word">
-                        {entry.content.slice(0, 200)}
-                        {entry.content.length > 200 ? '...' : ''}
-                      </text>
-                    </box>
-                  );
-                }}
-              </For>
-            </scrollbox>
-          </Show>
-        </Show>
+        <CommentaryPage
+          entries={commentary()}
+          loading={commentaryLoading()}
+          selectedIndex={selectedCommentaryIndex()}
+          setScrollRef={(element) => (commentaryScrollRef = element)}
+        />
       </Show>
 
       {/* Structure Page */}
       <Show when={currentPage() === 'structure'}>
-        <Show
-          when={!structureLoading()}
-          fallback={<text fg={theme().textMuted}>Loading structural data...</text>}
-        >
-          <Show
-            when={hasStructure()}
-            fallback={<text fg={theme().textMuted}>No structural data available</text>}
-          >
-            <scrollbox
-              ref={(el) => (structureScrollRef = el)}
-              focused={false}
-              style={{
-                height: 12,
-                rootOptions: {
-                  backgroundColor: theme().backgroundPanel,
-                },
-                wrapperOptions: {
-                  backgroundColor: theme().backgroundPanel,
-                },
-                viewportOptions: {
-                  backgroundColor: theme().backgroundPanel,
-                },
-                contentOptions: {
-                  backgroundColor: theme().backgroundPanel,
-                },
-                scrollbarOptions: {
-                  showArrows: false,
-                  trackOptions: {
-                    foregroundColor: theme().accent,
-                    backgroundColor: theme().border,
-                  },
-                },
-              }}
-            >
-              {/* Word Frequency */}
-              <Show when={structureWords().length > 0}>
-                <text fg={theme().textMuted} marginBottom={0}>
-                  <strong>Word Frequency</strong>
-                </text>
-                <For each={structureWords()}>
-                  {(entry, index) => {
-                    const isSelected = () => index() === selectedStructureIndex();
-                    const symbolic = entry.symbolicCount !== null;
-                    return (
-                      <text
-                        id={`structure-${index()}`}
-                        fg={
-                          symbolic
-                            ? theme().accent
-                            : isSelected()
-                              ? theme().text
-                              : theme().textMuted
-                        }
-                      >
-                        {isSelected() ? '▶ ' : '  '}
-                        {entry.word.padEnd(20, ' ')} {String(entry.count).padStart(3, ' ')}x
-                        {symbolic ? ` (${entry.symbolicCount})` : ''}
-                      </text>
-                    );
-                  }}
-                </For>
-              </Show>
-
-              {/* Strong's Entries for current verse */}
-              <Show when={structureStrongs().length > 0}>
-                <text fg={theme().textMuted} marginTop={1} marginBottom={0}>
-                  <strong>Strong's (this verse)</strong>
-                </text>
-                <For each={structureStrongs()}>
-                  {(entry, index) => {
-                    const globalIdx = () => structureWords().length + index();
-                    const isSelected = () => globalIdx() === selectedStructureIndex();
-                    const lang = entry.number.startsWith('H') ? 'Heb' : 'Grk';
-                    return (
-                      <box
-                        id={`structure-${globalIdx()}`}
-                        flexDirection="column"
-                        marginBottom={0}
-                        backgroundColor={isSelected() ? theme().verseHighlight : undefined}
-                        paddingLeft={1}
-                      >
-                        <text fg={isSelected() ? theme().accent : theme().textMuted}>
-                          {entry.number} [{lang}] {entry.lemma} (
-                          {entry.transliteration ?? entry.lemma})
-                        </text>
-                        <text fg={theme().text} wrapMode="word">
-                          {entry.definition.slice(0, 120)}
-                          {entry.definition.length > 120 ? '...' : ''}
-                        </text>
-                      </box>
-                    );
-                  }}
-                </For>
-              </Show>
-            </scrollbox>
-          </Show>
-        </Show>
+        <StructurePage
+          words={structureWords()}
+          strongs={structureStrongs()}
+          hasStructure={hasStructure()}
+          loading={structureLoading()}
+          selectedIndex={selectedStructureIndex()}
+          setScrollRef={(element) => (structureScrollRef = element)}
+        />
       </Show>
 
       {/* Footer */}
