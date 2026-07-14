@@ -26,7 +26,6 @@
     "ai": "^7.0.26",
     "date-fns": "^4.4.0",
     "effect": "catalog:",
-    "foldkit": "^0.128.0",
     "gray-matter": "^4.0.3",
     "match-sorter": "^8.3.0",
     "solid-js": "^1.9.14"

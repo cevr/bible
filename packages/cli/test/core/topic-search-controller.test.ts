@@ -21,21 +21,17 @@ describe('Bible topic Search controller', () => {
 
     controller.update('John');
     expect(controller.active()).toBe(false);
-    expect(controller.state()).toEqual({ query: null, request: { _tag: 'Idle' } });
+    expect(controller.state()).toEqual({ _tag: 'idle' });
 
     controller.update('?ab');
     expect(controller.active()).toBe(true);
-    expect(controller.typing()).toBe(true);
-    expect(controller.state()).toEqual({ query: 'ab', request: { _tag: 'Idle' } });
+    expect(controller.state()).toEqual({ _tag: 'typing', query: 'ab' });
 
     controller.update('?atonement');
-    expect(controller.error()).toBe('AI search unavailable (no API key configured)');
     expect(controller.state()).toEqual({
+      _tag: 'error',
       query: 'atonement',
-      request: {
-        _tag: 'Failure',
-        error: 'AI search unavailable (no API key configured)',
-      },
+      error: 'AI search unavailable (no API key configured)',
     });
     controller.dispose();
   });
@@ -55,28 +51,21 @@ describe('Bible topic Search controller', () => {
     });
 
     controller.update('?love');
-    expect(controller.loading()).toBe(true);
-    expect(controller.state()).toEqual({ query: 'love', request: { _tag: 'Loading' } });
+    expect(controller.state()).toEqual({ _tag: 'loading', query: 'love' });
     await settleTimer();
-    expect(controller.state()).toEqual({
-      query: 'love',
-      request: { _tag: 'Success', data: [result] },
-    });
+    expect(controller.state()).toEqual({ _tag: 'success', query: 'love', results: [result] });
     expect(controller.results()).toEqual([result]);
 
     controller.update('?missing');
     await settleTimer();
-    expect(controller.empty()).toBe(true);
-    expect(controller.state()).toEqual({
-      query: 'missing',
-      request: { _tag: 'Success', data: [] },
-    });
+    expect(controller.state()).toEqual({ _tag: 'empty', query: 'missing' });
 
     controller.update('?failure');
     await settleTimer();
     expect(controller.state()).toEqual({
+      _tag: 'error',
       query: 'failure',
-      request: { _tag: 'Failure', error: 'network down' },
+      error: 'network down',
     });
     controller.dispose();
   });
@@ -97,17 +86,11 @@ describe('Bible topic Search controller', () => {
 
     second.resolve([newest]);
     await Promise.resolve();
-    expect(controller.state()).toEqual({
-      query: 'second',
-      request: { _tag: 'Success', data: [newest] },
-    });
+    expect(controller.state()).toEqual({ _tag: 'success', query: 'second', results: [newest] });
 
     first.resolve([]);
     await Promise.resolve();
-    expect(controller.state()).toEqual({
-      query: 'second',
-      request: { _tag: 'Success', data: [newest] },
-    });
+    expect(controller.state()).toEqual({ _tag: 'success', query: 'second', results: [newest] });
     controller.dispose();
   });
 
@@ -124,6 +107,6 @@ describe('Bible topic Search controller', () => {
     pending.resolve([Reference.verse(45, 3, 24)]);
     await Promise.resolve();
 
-    expect(controller.state()).toEqual({ query: null, request: { _tag: 'Idle' } });
+    expect(controller.state()).toEqual({ _tag: 'idle' });
   });
 });

@@ -30,11 +30,6 @@ import { useTheme } from '../../context/theme.js';
 import { useScrollSync } from '../../hooks/use-scroll-sync.js';
 import { useAppRuntime } from '../../lib/index.js';
 import {
-  Back,
-  ChooseBook,
-  DrillChapter,
-  MoveSelection,
-  QueryChanged,
   initialBiblePaletteNavigation,
   transitionBiblePaletteNavigation,
 } from './command-palette/navigation-model.js';
@@ -61,7 +56,7 @@ export function BibleCommandPalette(props: BibleCommandPaletteProps) {
   );
   const query = () => navigation().query;
   const selectedIndex = () => navigation().selectedIndex;
-  const mode = () => navigation()._tag;
+  const mode = () => navigation().mode;
   const selectedBookNum = () => navigation().selectedBook;
   const selectedChapter = () => navigation().selectedChapter;
   let scrollRef: ScrollBoxRenderable | undefined = undefined;
@@ -87,6 +82,7 @@ export function BibleCommandPalette(props: BibleCommandPaletteProps) {
   createEffect(() => topicSearch.update(query()));
 
   const isAiSearch = topicSearch.active;
+  const aiState = topicSearch.state;
 
   // Filter books based on query
   const filteredBooks = createMemo(() => {
@@ -158,7 +154,7 @@ export function BibleCommandPalette(props: BibleCommandPaletteProps) {
   // Handle selecting a book
   const handleSelectBook = (book: Book) => {
     setNavigation((state) =>
-      transitionBiblePaletteNavigation(state, ChooseBook({ book: book.number })),
+      transitionBiblePaletteNavigation(state, { _tag: 'chooseBook', book: book.number }),
     );
   };
 
@@ -170,7 +166,9 @@ export function BibleCommandPalette(props: BibleCommandPaletteProps) {
 
   // Handle drilling into a chapter to see verses
   const handleDrillIntoChapter = (chapter: number) => {
-    setNavigation((state) => transitionBiblePaletteNavigation(state, DrillChapter({ chapter })));
+    setNavigation((state) =>
+      transitionBiblePaletteNavigation(state, { _tag: 'drillChapter', chapter }),
+    );
   };
 
   // Handle selecting a verse
@@ -221,7 +219,7 @@ export function BibleCommandPalette(props: BibleCommandPaletteProps) {
     if (!isAiSearch()) {
       // Left to go back a tier
       if (key.name === 'left') {
-        setNavigation((state) => transitionBiblePaletteNavigation(state, Back()));
+        setNavigation((state) => transitionBiblePaletteNavigation(state, { _tag: 'back' }));
         return;
       }
 
@@ -231,7 +229,10 @@ export function BibleCommandPalette(props: BibleCommandPaletteProps) {
           const book = filteredBooks()[selectedIndex()];
           if (book) {
             setNavigation((state) =>
-              transitionBiblePaletteNavigation(state, ChooseBook({ book: book.number })),
+              transitionBiblePaletteNavigation(state, {
+                _tag: 'chooseBook',
+                book: book.number,
+              }),
             );
           }
         } else if (mode() === 'chapters') {
@@ -246,33 +247,32 @@ export function BibleCommandPalette(props: BibleCommandPaletteProps) {
 
     if (key.name === 'up' || (key.ctrl && key.name === 'p')) {
       setNavigation((state) =>
-        transitionBiblePaletteNavigation(
-          state,
-          MoveSelection({
-            delta: -1,
-            itemCount: currentItems().length,
-          }),
-        ),
+        transitionBiblePaletteNavigation(state, {
+          _tag: 'moveSelection',
+          delta: -1,
+          itemCount: currentItems().length,
+        }),
       );
       return;
     }
 
     if (key.name === 'down' || (key.ctrl && key.name === 'n')) {
       setNavigation((state) =>
-        transitionBiblePaletteNavigation(
-          state,
-          MoveSelection({
-            delta: 1,
-            itemCount: currentItems().length,
-          }),
-        ),
+        transitionBiblePaletteNavigation(state, {
+          _tag: 'moveSelection',
+          delta: 1,
+          itemCount: currentItems().length,
+        }),
       );
       return;
     }
 
     if (key.name === 'backspace') {
       setNavigation((state) =>
-        transitionBiblePaletteNavigation(state, QueryChanged({ query: state.query.slice(0, -1) })),
+        transitionBiblePaletteNavigation(state, {
+          _tag: 'queryChanged',
+          query: state.query.slice(0, -1),
+        }),
       );
       return;
     }
@@ -280,10 +280,10 @@ export function BibleCommandPalette(props: BibleCommandPaletteProps) {
     // Type characters into query
     if (key.sequence && key.sequence.length === 1 && !key.ctrl) {
       setNavigation((state) =>
-        transitionBiblePaletteNavigation(
-          state,
-          QueryChanged({ query: state.query + key.sequence }),
-        ),
+        transitionBiblePaletteNavigation(state, {
+          _tag: 'queryChanged',
+          query: state.query + key.sequence,
+        }),
       );
     }
   });
@@ -362,27 +362,29 @@ export function BibleCommandPalette(props: BibleCommandPaletteProps) {
       {/* AI Search Results */}
       <Show when={isAiSearch()}>
         <scrollbox ref={(el) => (scrollRef = el)} focused={false} style={scrollboxStyle()}>
-          <Show when={topicSearch.typing()}>
+          <Show when={aiState()._tag === 'typing'}>
             <box padding={1}>
               <text fg={theme().textMuted}>Type at least 3 characters to search...</text>
             </box>
           </Show>
-          <Show when={topicSearch.loading()}>
+          <Show when={aiState()._tag === 'loading'}>
             <box padding={1}>
               <text fg={theme().textMuted}>Searching...</text>
             </box>
           </Show>
-          <Show when={topicSearch.error()}>
+          <Show when={aiState()._tag === 'error'}>
             <box padding={1}>
-              <text fg={theme().error}>{topicSearch.error()}</text>
+              <text fg={theme().error}>
+                {(aiState() as { _tag: 'error'; error: string }).error}
+              </text>
             </box>
           </Show>
-          <Show when={topicSearch.empty()}>
+          <Show when={aiState()._tag === 'empty'}>
             <box padding={1}>
               <text fg={theme().textMuted}>No results found</text>
             </box>
           </Show>
-          <Show when={aiResults().length > 0}>
+          <Show when={aiState()._tag === 'success'}>
             <For each={aiResults()}>
               {(ref, index) => {
                 const verse = reader.verse(
