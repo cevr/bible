@@ -12,7 +12,7 @@ export type ReaderDestination =
 export class InteractiveReaderError extends Schema.TaggedErrorClass<InteractiveReaderError>()(
   'InteractiveReaderError',
   {
-    cause: Schema.Defect,
+    cause: Schema.Unknown,
   },
 ) {}
 

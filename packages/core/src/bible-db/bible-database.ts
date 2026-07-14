@@ -614,7 +614,7 @@ export class BibleDatabase extends Context.Service<BibleDatabase, BibleDatabaseS
                 if (notes === undefined) byVerse.set(row.verse, [note]);
                 else notes.push(note);
               }
-              return byVerse as ReadonlyMap<number, readonly MarginNote[]>;
+              return byVerse;
             }),
           ),
       );

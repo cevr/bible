@@ -183,10 +183,12 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
 
       /**
        * Retry schedule with exponential backoff
-       * Maximum 3 retries (1 initial attempt + 2 retries)
-       * Exponential delays: 100ms, 200ms, 400ms
+       * Maximum 2 retries (1 initial attempt + 2 retries)
+       * Exponential delays: 100ms, 200ms
        */
-      const retrySchedule = Schedule.exponential(Duration.millis(100)).pipe(Schedule.take(2));
+      const retrySchedule = Schedule.exponential(Duration.millis(100)).pipe(
+        Schedule.upTo({ times: 2 }),
+      );
 
       // Paginated response schema
       const PaginatedResponse = Schema.Struct({
@@ -430,7 +432,7 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
             const response = yield* httpClient.get('/content/mirrors');
             return yield* HttpClientResponse.schemaBodyJson(Schema.Array(Schema.String))(response);
           }).pipe(Effect.retry(retrySchedule)),
-      } as EGWApiClientService;
+      };
     }),
   );
 

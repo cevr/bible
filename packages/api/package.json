@@ -11,7 +11,7 @@
     "typecheck": "tsgo --noEmit"
   },
   "dependencies": {
-    "@bible/core": "*",
+    "@bible/core": "workspace:*",
     "effect": "catalog:"
   }
 }

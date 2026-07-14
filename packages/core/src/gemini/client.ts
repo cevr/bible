@@ -158,10 +158,12 @@ export class GeminiFileSearchClient extends Context.Service<
 
       /**
        * Retry schedule with exponential backoff
-       * Maximum 3 retries (1 initial attempt + 2 retries)
-       * Exponential delays: 100ms, 200ms, 400ms
+       * Maximum 2 retries (1 initial attempt + 2 retries)
+       * Exponential delays: 100ms, 200ms
        */
-      const retrySchedule = Schedule.exponential(Duration.millis(100)).pipe(Schedule.take(2));
+      const retrySchedule = Schedule.exponential(Duration.millis(100)).pipe(
+        Schedule.upTo({ times: 2 }),
+      );
 
       const pollOperation = (
         operation: UploadOperation,
@@ -187,7 +189,7 @@ export class GeminiFileSearchClient extends Context.Service<
                     }
                   : undefined,
               response: operation.response,
-            } as Schemas.Operation;
+            };
           }
 
           yield* Effect.sleep(Duration.millis(pollIntervalMs));
@@ -215,7 +217,7 @@ export class GeminiFileSearchClient extends Context.Service<
               return {
                 name: store.name || '',
                 displayName: store.displayName || '',
-              } as Schemas.FileSearchStore;
+              };
             }
           }
 
@@ -254,7 +256,7 @@ export class GeminiFileSearchClient extends Context.Service<
                 displayName: doc.displayName || '',
                 createTime: doc.createTime,
                 updateTime: doc.updateTime,
-              } as Schemas.Document;
+              };
             }
           }
 
@@ -338,7 +340,7 @@ export class GeminiFileSearchClient extends Context.Service<
             return {
               name: store.name || '',
               displayName: store.displayName || displayName,
-            } as Schemas.FileSearchStore;
+            };
           }).pipe(Effect.retry(retrySchedule)),
 
         findStoreByDisplayName: (displayName: string, pageSize: number = 10) =>
@@ -526,7 +528,7 @@ export class GeminiFileSearchClient extends Context.Service<
                           cause: error,
                         }),
                     }).pipe(Effect.retry(retrySchedule));
-                    pager = pagerResult as unknown as DocumentPager;
+                    pager = pagerResult;
                   }
 
                   const page = pager.page || [];
@@ -618,7 +620,7 @@ export class GeminiFileSearchClient extends Context.Service<
                           cause: error,
                         }),
                     }).pipe(Effect.retry(retrySchedule));
-                    pager = pagerResult as unknown as DocumentPager;
+                    pager = pagerResult;
                   }
 
                   const page = pager.page || [];
@@ -758,7 +760,7 @@ export class GeminiFileSearchClient extends Context.Service<
                 cause: error,
               }),
           }).pipe(Effect.retry(retrySchedule)),
-      } as GeminiFileSearchClientService;
+      };
     }),
   );
 

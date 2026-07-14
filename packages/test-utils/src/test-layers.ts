@@ -74,7 +74,7 @@ export const createRecordingTestLayer = <
             yield* recordCall({
               _tag: `${tagName}.${key}`,
               ...callArgs,
-            } as ServiceCall);
+            });
             return yield* (fn as (...a: unknown[]) => Effect.Effect<unknown, unknown>)(...args);
           });
       }

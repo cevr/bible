@@ -191,9 +191,7 @@ describe('buildIpc', () => {
     });
     const ipc = buildIpc(procedures, fakeRuntime);
 
-    await expect(ipc.cache.putAge.mutate({ age: 999 } as { age: number })).rejects.toBeInstanceOf(
-      IpcCacheError,
-    );
+    await expect(ipc.cache.putAge.mutate({ age: 999 })).rejects.toBeInstanceOf(IpcCacheError);
   });
 
   it('propagates handler failures as IpcCacheError on mutate', async () => {
@@ -338,7 +336,9 @@ describe('IPC Option-transform output round-trip', () => {
           output: Schema.Array(Schemas.TocItem),
           handle: () =>
             // Cast: deliberately violate the (now-correct) Encoded handler
-            // contract to reproduce the pre-fix shape.
+            // contract to reproduce the pre-fix shape. Derive the target from
+            // the production schema because its optional transform encodes
+            // Option.none() by omitting the key.
             Effect.succeed([
               {
                 para_id: Option.some('978.2'),
@@ -347,12 +347,7 @@ describe('IPC Option-transform output round-trip', () => {
                 refcode_short: Option.some('BHB 3'),
                 puborder: 3,
               },
-            ] as unknown as ReadonlyArray<{
-              readonly para_id: string | null | undefined;
-              readonly level: number;
-              readonly refcode_short: string | null | undefined;
-              readonly puborder: number;
-            }>),
+            ] as unknown as ReadonlyArray<Schema.Codec.Encoded<typeof Schemas.TocItem>>),
         }),
       },
     });

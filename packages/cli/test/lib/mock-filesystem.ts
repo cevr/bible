@@ -67,6 +67,33 @@ export const createMockFileSystemLayer = (config: MockFileSystemConfig) => {
         chown: () => Effect.void,
         copy: () => Effect.void,
         copyFile: () => Effect.void,
+        glob: (pattern, options) =>
+          Effect.sync(() => {
+            const root = options?.root?.replace(/\/+$/, '');
+            const matcher = new Bun.Glob(pattern);
+            const excluded = (options?.exclude ?? []).map((pattern) => new Bun.Glob(pattern));
+            const paths = new Set([...state.files.keys(), ...state.directories]);
+            const matches: string[] = [];
+
+            for (const path of paths) {
+              const relativePath =
+                root === undefined || root === '.'
+                  ? path
+                  : path.startsWith(`${root}/`)
+                    ? path.slice(root.length + 1)
+                    : undefined;
+
+              if (
+                relativePath !== undefined &&
+                matcher.match(relativePath) &&
+                !excluded.some((matcher) => matcher.match(relativePath))
+              ) {
+                matches.push(relativePath);
+              }
+            }
+
+            return matches;
+          }),
         link: () => Effect.void,
         symlink: () => Effect.void,
         readLink: () => Effect.succeed(''),

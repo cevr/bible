@@ -35,15 +35,18 @@ const make = Effect.gen(function* () {
       Effect.map((rows) => (transformRows === undefined ? rows : transformRows(rows))),
     );
 
+  const executeValues = (sql: string, params: ReadonlyArray<unknown>) =>
+    query(sql, params, 'executeValues').pipe(
+      Effect.map((rows) => rows.map((row) => Object.values(row))),
+    );
+
   const connection: Connection = {
     execute,
     executeRaw: (sql, params) => query(sql, params, 'executeRaw'),
     executeStream: (sql, params, transformRows) =>
       Stream.fromIterableEffect(execute(sql, params, transformRows)),
-    executeValues: (sql, params) =>
-      query(sql, params, 'executeValues').pipe(
-        Effect.map((rows) => rows.map((row) => Object.values(row))),
-      ),
+    executeValues,
+    executeValuesUnprepared: executeValues,
     executeUnprepared: execute,
   };
 

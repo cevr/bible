@@ -10,7 +10,7 @@ import { Effect, Layer, Option, Schema, Context } from 'effect';
 // Tagged error for AI operations
 export class AIError extends Schema.TaggedErrorClass<AIError>()('AIError', {
   operation: Schema.String,
-  cause: Schema.Defect,
+  cause: Schema.Unknown,
 }) {}
 
 type Quality = 'high' | 'low';
@@ -59,7 +59,7 @@ function toAISchema<A>(schema: Schema.Decoder<A>) {
     ...(Object.keys(doc.definitions).length > 0 ? { $defs: doc.definitions } : {}),
   };
   const decode = Schema.decodeUnknownSync(schema);
-  return jsonSchema<A>(js as Record<string, unknown>, {
+  return jsonSchema<A>(js, {
     validate: (value) => {
       try {
         const result = decode(value);

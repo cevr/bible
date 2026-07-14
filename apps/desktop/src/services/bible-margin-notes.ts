@@ -118,7 +118,7 @@ export class BibleMarginNotes extends Context.Service<BibleMarginNotes, BibleMar
           const verse = Number(verseStr);
           if (Number.isFinite(verse)) out.set(verse, value);
         }
-        return Effect.succeed(out as ReadonlyMap<number, readonly MarginNote[]>);
+        return Effect.succeed(out);
       },
     });
 }

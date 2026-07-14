@@ -10,7 +10,7 @@ import { Flag, Command } from 'effect/unstable/cli';
 import { Effect, Schema } from 'effect';
 
 class SyncError extends Schema.TaggedErrorClass<SyncError>()('SyncError', {
-  cause: Schema.Defect,
+  cause: Schema.Unknown,
 }) {}
 
 const force = Flag.boolean('force').pipe(Flag.withDefault(false));

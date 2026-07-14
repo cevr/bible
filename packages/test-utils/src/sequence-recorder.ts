@@ -71,6 +71,6 @@ export const withRecording = <T extends string, Args extends unknown[], R>(
 ) =>
   ((...args: Args) =>
     Effect.gen(function* () {
-      yield* recordCall({ _tag: tag, ...extractArgs(...args) } as ServiceCall<T>);
+      yield* recordCall({ _tag: tag, ...extractArgs(...args) });
       return yield* method(...args);
     })) as (...args: Args) => Effect.Effect<R, unknown, CallSequence>;

@@ -17,7 +17,7 @@ import { homedir } from 'os';
 import { join } from 'path';
 
 class InitError extends Schema.TaggedErrorClass<InitError>()('InitError', {
-  cause: Schema.Defect,
+  cause: Schema.Unknown,
 }) {}
 
 const BIBLE_DIR = join(homedir(), '.bible');

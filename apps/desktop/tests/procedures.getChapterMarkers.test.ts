@@ -79,7 +79,7 @@ it.effect('fans out the three lanes concurrently (not serially)', () =>
         Effect.gen(function* () {
           yield* Deferred.succeed(commentaryEntered, undefined);
           yield* Deferred.await(released);
-          return new Set([2, 5]) as ReadonlySet<number>;
+          return new Set([2, 5]);
         }),
       changes: Stream.make(0),
     });
@@ -90,7 +90,7 @@ it.effect('fans out the three lanes concurrently (not serially)', () =>
         Effect.gen(function* () {
           yield* Deferred.succeed(notesEntered, undefined);
           yield* Deferred.await(released);
-          return new Set([3]) as ReadonlySet<number>;
+          return new Set([3]);
         }),
       chapterMarginNotes: () => Effect.succeed(new Map() as ReadonlyMap<number, readonly never[]>),
     });
@@ -101,7 +101,7 @@ it.effect('fans out the three lanes concurrently (not serially)', () =>
         Effect.gen(function* () {
           yield* Deferred.succeed(xrefsEntered, undefined);
           yield* Deferred.await(released);
-          return new Set([1, 9]) as ReadonlySet<number>;
+          return new Set([1, 9]);
         }),
     });
 

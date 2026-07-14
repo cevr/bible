@@ -43,7 +43,7 @@ const folderPathGet = (bookId: number): ReadonlyArray<number> | undefined => {
     if (raw === null) return undefined;
     const parsed = JSON.parse(raw) as unknown;
     if (!Array.isArray(parsed) || !parsed.every((n) => typeof n === 'number')) return undefined;
-    return parsed as ReadonlyArray<number>;
+    return parsed;
   } catch {
     return undefined;
   }
