@@ -1,40 +1,12 @@
 import { it } from '@effect/vitest';
-import { Effect, Fiber, Option, Stream } from 'effect';
+import { Effect, Fiber } from 'effect';
 import { expect } from 'vitest';
+import { connectBibleDrawerCursor } from '../src/services/bible-drawer-cursor.js';
 import { createBibleDrawerState, type DrawerTarget } from '../src/services/bible-drawer-state.js';
 import { BibleReaderState } from '../src/services/bible-reader-state.js';
 
-// The cursor-sync wiring lives in `BibleDrawer.tsx` as an `onMount` body:
-// it subscribes to `BibleReaderState.changes` and forwards any selection
-// with a defined verse into the drawer's `cursorMoved`. The body is ~10
-// lines and tied to Solid's lifecycle, so testing it through
-// `renderToString` would mean spinning up the DOM AND it wouldn't run
-// `onMount` under SSR anyway.
-//
-// Instead, mirror the subscription contract in pure Effect here. If a
-// future refactor changes the translation (e.g. forwarding None
-// selections, or dropping the verse filter), this test fails — which is
-// exactly what we want, because the BibleDrawer body would have to
-// change too.
-
 const startCursorSync = (state: ReturnType<typeof createBibleDrawerState>) =>
-  Effect.gen(function* () {
-    const reader = yield* BibleReaderState;
-    return yield* reader.changes.pipe(
-      Stream.runForEach((sel) =>
-        Effect.sync(() => {
-          if (Option.isNone(sel)) return;
-          if (sel.value._tag !== 'verse') return;
-          state.cursorMoved({
-            book: sel.value.book,
-            chapter: sel.value.chapter,
-            verse: sel.value.verse,
-          });
-        }),
-      ),
-      Effect.forkDetach,
-    );
-  });
+  connectBibleDrawerCursor(state).pipe(Effect.forkDetach);
 
 it.effect('forwards (book, chapter, verse) from BibleReaderState into cursorMoved', () =>
   Effect.gen(function* () {
