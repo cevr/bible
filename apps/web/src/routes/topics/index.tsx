@@ -1,6 +1,7 @@
 import { Suspense, useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router';
 import { ChevronLeft, Search } from 'lucide-react';
+import * as AsyncData from 'foldkit/asyncData';
 import { useApp } from '@/providers/db-context';
 import { useBible } from '@/providers/bible-context';
 import { toBookSlug } from '@/data/bible';
@@ -8,47 +9,46 @@ import type { Topic, TopicVerse } from '@/data/topics/types';
 
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
-type TopicsInitState =
-  | { status: 'loading' }
-  | { status: 'ready' }
-  | { status: 'error'; message: string };
-
 export default function TopicsRoute() {
   const app = useApp();
-  const [state, setState] = useState<TopicsInitState>({ status: 'loading' });
+  const [state, setState] = useState<AsyncData.AsyncData<void, string>>(AsyncData.Loading());
 
   const initTopics = useCallback(() => {
-    setState({ status: 'loading' });
+    setState(AsyncData.Loading());
     app.topics
       .initialize()
-      .then(() => setState({ status: 'ready' }))
-      .catch((err) => setState({ status: 'error', message: err.message }));
+      .then(() => setState(AsyncData.succeed(undefined)))
+      .catch((cause: unknown) =>
+        setState(
+          AsyncData.fail(cause instanceof Error ? cause.message : 'Topics initialization failed'),
+        ),
+      );
   }, [app]);
 
   useEffect(() => {
     initTopics();
   }, [initTopics]);
 
-  switch (state.status) {
-    case 'error':
-      return (
-        <div className="text-center py-12">
-          <p className="text-destructive font-medium">Failed to load topics database</p>
-          <p className="text-sm text-muted-foreground mt-2">{state.message}</p>
-          <button className="mt-4 text-sm text-primary hover:underline" onClick={initTopics}>
-            Retry
-          </button>
-        </div>
-      );
-    case 'loading':
-      return (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground animate-pulse">Loading topics database…</p>
-        </div>
-      );
-    case 'ready':
-      return <TopicsContent />;
-  }
+  return AsyncData.match(state, {
+    onIdle: () => null,
+    onLoading: () => (
+      <div className="text-center py-12">
+        <p className="text-muted-foreground animate-pulse">Loading topics database…</p>
+      </div>
+    ),
+    onRefreshing: () => <TopicsContent />,
+    onFailure: (message) => (
+      <div className="text-center py-12">
+        <p className="text-destructive font-medium">Failed to load topics database</p>
+        <p className="text-sm text-muted-foreground mt-2">{message}</p>
+        <button className="mt-4 text-sm text-primary hover:underline" onClick={initTopics}>
+          Retry
+        </button>
+      </div>
+    ),
+    onStale: () => <TopicsContent />,
+    onSuccess: () => <TopicsContent />,
+  });
 }
 
 function TopicsContent() {

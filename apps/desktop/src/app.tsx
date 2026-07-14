@@ -16,45 +16,12 @@ import {
 } from './components/settings/reader-settings-provider.js';
 import { SettingsSheet } from './components/settings/settings-sheet.js';
 import { createBibleDrawerState } from './services/bible-drawer-state.js';
+import {
+  transitionDrawer,
+  type DrawerAction,
+  type DrawerState,
+} from './services/drawer-machine.js';
 import { createReaderSession } from './services/reader-session.js';
-import type { ReaderMode } from './services/reader-settings.js';
-
-// Three-layer drawer stack for the open-book flow:
-//   - 'closed'      reader fills canvas
-//   - 'toc'         TOC slides in over reader
-//   - 'tocPlusLib'  Library explorer slides in on top of TOC
-// State only applies when a book is open. Closing the book resets to 'closed'.
-export type DrawerState = 'closed' | 'toc' | 'tocPlusLib';
-
-// Mode-aware drawer transition reducer. `tocPlusLib` is only meaningful
-// in EGW mode (Bible mode has no Library pane); routing every transition
-// through this reducer means invalid combinations like
-// (mode='bible', drawer='tocPlusLib') become no-ops instead of being
-// reachable via a `setDrawer('tocPlusLib')` call from the wrong code path.
-type DrawerAction =
-  | { readonly _tag: 'libraryClick' }
-  | { readonly _tag: 'toggleLibraryPane' }
-  | { readonly _tag: 'close' };
-const drawerReducer = (mode: ReaderMode, curr: DrawerState, action: DrawerAction): DrawerState => {
-  if (action._tag === 'close') return 'closed';
-  if (mode === 'bible') {
-    // Bible mode: only `toc` is reachable; `tocPlusLib` is collapsed to
-    // `toc` if a stale transition somehow asked for it.
-    if (action._tag === 'libraryClick') return curr === 'closed' ? 'toc' : 'closed';
-    if (action._tag === 'toggleLibraryPane') return curr;
-    return curr;
-  }
-  // EGW mode: closed → toc → tocPlusLib → closed cycle.
-  if (action._tag === 'libraryClick') {
-    if (curr === 'closed') return 'toc';
-    if (curr === 'toc') return 'tocPlusLib';
-    return 'closed';
-  }
-  if (action._tag === 'toggleLibraryPane') {
-    return curr === 'tocPlusLib' ? 'toc' : 'tocPlusLib';
-  }
-  return curr;
-};
 
 const AppInner: Component = () => {
   // Typography signals + persist dispatchers come from <ReaderSettingsProvider>
@@ -105,7 +72,7 @@ const AppInner: Component = () => {
   // Reset drawers whenever the book is closed (e.g. via Esc, or future close
   // affordance). Keeps the layout coherent: drawers only exist over a reader.
   const closeDrawers = () =>
-    setDrawer((curr) => drawerReducer(readerMode(), curr, { _tag: 'close' }));
+    setDrawer((curr) => transitionDrawer(readerMode(), curr, { _tag: 'close' }));
 
   const [searchInputRef, setSearchInputRef] = createSignal<HTMLInputElement | undefined>(undefined);
   const [searchQuery, setSearchQuery] = createSignal('');
@@ -136,7 +103,7 @@ const AppInner: Component = () => {
   // mode the TOC is always reachable, and there's no Library pane to expand
   // — the reducer collapses `tocPlusLib` to a no-op there.
   const dispatchDrawer = (action: DrawerAction): void => {
-    setDrawer((curr) => drawerReducer(readerMode(), curr, action));
+    setDrawer((curr) => transitionDrawer(readerMode(), curr, action));
   };
   const onLibraryClick = () => {
     if (!libraryAvailable()) return;

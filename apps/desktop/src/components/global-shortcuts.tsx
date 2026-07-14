@@ -1,5 +1,5 @@
 import { type Component, onCleanup, onMount } from 'solid-js';
-import type { DrawerState } from '../app.js';
+import type { DrawerState } from '../services/drawer-machine.js';
 import { FONT_KEY_STEP, useReaderSettingsCtx } from './settings/reader-settings-provider.js';
 
 type OverlayKind = 'settings' | 'search' | 'palette';
