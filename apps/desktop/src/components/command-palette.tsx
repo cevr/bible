@@ -1,5 +1,4 @@
 import {
-  BIBLE_BOOKS,
   formatBibleReference,
   getBibleBook,
   parseBibleQuery,
@@ -12,19 +11,23 @@ import {
   createEffect,
   createMemo,
   createSignal,
-  For,
-  type JSX,
-  Match,
   on,
   onCleanup,
   Show,
-  Switch,
   untrack,
 } from 'solid-js';
-import { defaultEase, Motion, Presence } from '../motion/index.js';
-import { ipc, runtime } from '../runtime.js';
+import { runtime } from '../runtime.js';
 import { BibleReaderState, type BibleReaderSelection } from '../services/bible-reader-state.js';
 import { commandPaletteMemory, type PaletteSnapshot } from '../services/command-palette-memory.js';
+import {
+  type PaletteAction,
+  type PaletteView,
+  resolveAction,
+  type Row,
+  rowsForPalette,
+} from './command-palette/model.js';
+import { PaletteFooter, PaletteInput, PaletteList, PaletteModal } from './command-palette/view.js';
+import { VerseRowsFetcher } from './command-palette/verse-rows-fetcher.js';
 
 // Cmd+K palette for Bible navigation.
 //
@@ -47,15 +50,6 @@ import { commandPaletteMemory, type PaletteSnapshot } from '../services/command-
 // We don't use Portal — same convention as Drawer. Caller mounts at shell
 // level; the overlay is fixed at z-[60] which sits above drawers (z-50).
 
-// The view layer of the palette state union. `PaletteState` (below) carries
-// activeIdx alongside view+query so transitions are atomic — no window where
-// `view` has advanced but `activeIdx` is still pointing at the previous
-// view's row count.
-type PaletteView =
-  | { readonly _tag: 'root' }
-  | { readonly _tag: 'book'; readonly book: number }
-  | { readonly _tag: 'chapter'; readonly book: number; readonly chapter: number };
-
 // One state object instead of three independent signals. activeIdx is
 // scoped to (view, query) — setView and setQuery both reset it to 0
 // implicitly via withView / withQuery helpers, so a stale activeIdx after
@@ -66,47 +60,6 @@ interface PaletteState {
   readonly activeIdx: number;
 }
 
-// Action emitted by `resolveAction` for a row activation. The palette JSX
-// dispatches it (drilldown OR navigate-and-close). Pure shape keeps the
-// resolution rules testable without a DOM or runtime.
-type PaletteAction =
-  | { readonly kind: 'openChapter'; readonly book: number; readonly chapter: number }
-  | {
-      readonly kind: 'openChapterAt';
-      readonly book: number;
-      readonly chapter: number;
-      readonly verse: number;
-    }
-  | { readonly kind: 'drilldown'; readonly view: PaletteView };
-
-// A row that the user can highlight + activate. Concrete shape depends on
-// what the view is showing — discriminated so the renderer / activator can
-// pick the right action.
-export type Row =
-  | { readonly kind: 'book'; readonly id: string; readonly book: number; readonly label: string }
-  | {
-      readonly kind: 'chapter';
-      readonly id: string;
-      readonly book: number;
-      readonly chapter: number;
-      readonly label: string;
-    }
-  | {
-      readonly kind: 'verse';
-      readonly id: string;
-      readonly book: number;
-      readonly chapter: number;
-      readonly verse: number;
-      readonly label: string;
-    }
-  | {
-      readonly kind: 'parsed';
-      readonly id: string;
-      readonly parsed: ParsedBibleQuery;
-      readonly label: string;
-      readonly hint: string;
-    };
-
 export interface CommandPaletteProps {
   readonly open: boolean;
   readonly onOpenChange: (open: boolean) => void;
@@ -114,8 +67,6 @@ export interface CommandPaletteProps {
    *  chapter) so the palette opens in context. */
   readonly currentSelection: () => Option.Option<BibleReaderSelection>;
 }
-
-const PARSED_ID = 'parsed';
 
 export const CommandPalette: Component<CommandPaletteProps> = (props) => {
   // Single source of truth. Transitions that change view or query funnel
@@ -228,19 +179,9 @@ export const CommandPalette: Component<CommandPaletteProps> = (props) => {
     ),
   );
 
-  const rows = createMemo<readonly Row[]>(() => {
-    const q = query().trim().toLowerCase();
-    const head = parsedRow(parsed());
-    const v = view();
-    switch (v._tag) {
-      case 'root':
-        return head.concat(rowsForRoot(q));
-      case 'book':
-        return head.concat(rowsForBook(v, q));
-      case 'chapter':
-        return head.concat(rowsForChapter(v, q, chapterVerses()));
-    }
-  });
+  const rows = createMemo<readonly Row[]>(() =>
+    rowsForPalette(view(), query().trim().toLowerCase(), parsed(), chapterVerses()),
+  );
 
   // Reset highlight whenever the visible row set changes shape. `on` makes
   // the dependency explicit (we only care about rows() identity, not the
@@ -435,341 +376,4 @@ export const CommandPalette: Component<CommandPaletteProps> = (props) => {
       </Show>
     </PaletteModal>
   );
-};
-
-// Outer overlay + dialog chrome. Owns the Presence/Motion mount sequence and
-// the click-outside / overlay key handling so the inner CommandPalette body
-// reads as the palette's content, not its window.
-const PaletteModal: Component<{
-  readonly open: boolean;
-  readonly onClose: () => void;
-  readonly onOverlayKeyCapture: (e: KeyboardEvent) => void;
-  readonly children: JSX.Element;
-}> = (props) => (
-  <Presence>
-    <Show when={props.open}>
-      <Motion.div
-        class="fixed inset-0 z-[60] flex items-start justify-center bg-black/40 px-4 pt-[12vh] backdrop-blur-sm"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.12, ease: defaultEase }}
-        onClick={(e) => {
-          if (e.target === e.currentTarget) props.onClose();
-        }}
-        onKeyDown={props.onOverlayKeyCapture}
-      >
-        <Motion.div
-          class="w-full max-w-[560px] overflow-hidden rounded-xl border border-rule bg-bg shadow-2xl"
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.14, ease: defaultEase }}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Command palette"
-        >
-          {props.children}
-        </Motion.div>
-      </Motion.div>
-    </Show>
-  </Presence>
-);
-
-// The query input. Owned ref hand-off via `inputRef` so the parent can call
-// `.focus()` / `.select()` after a snapshot restore.
-const PaletteInput: Component<{
-  readonly value: string;
-  readonly onInput: (next: string) => void;
-  readonly onKeyDown: (e: KeyboardEvent) => void;
-  readonly inputRef: (el: HTMLInputElement) => void;
-}> = (props) => (
-  <input
-    ref={props.inputRef}
-    type="text"
-    class="w-full bg-transparent px-4 py-3 text-ui-base text-fg outline-none placeholder:text-muted"
-    placeholder="Type a reference (e.g. john 3:16) or filter…"
-    value={props.value}
-    onInput={(e) => props.onInput(e.currentTarget.value)}
-    onKeyDown={props.onKeyDown}
-    autocomplete="off"
-    spellcheck={false}
-  />
-);
-
-// Scrollable row list with empty-state fallback. The parent still owns
-// activeIdx and the row dispatcher — this component just renders.
-const PaletteList: Component<{
-  readonly listRef: (el: HTMLDivElement) => void;
-  readonly rows: readonly Row[];
-  readonly activeIdx: number;
-  readonly onActivate: (row: Row) => void;
-  readonly onHover: (idx: number) => void;
-}> = (props) => (
-  <div ref={props.listRef} class="max-h-[50vh] overflow-y-auto border-t border-rule" role="listbox">
-    <Show
-      when={props.rows.length > 0}
-      fallback={
-        <p class="px-4 py-6 text-center text-ui-sm text-muted">
-          No matches. Try a reference like "gen 1:1".
-        </p>
-      }
-    >
-      <For each={props.rows}>
-        {(row, idx) => (
-          <RowView
-            row={row}
-            active={idx() === props.activeIdx}
-            idx={idx()}
-            onClick={() => props.onActivate(row)}
-            onHover={() => props.onHover(idx())}
-          />
-        )}
-      </For>
-    </Show>
-  </div>
-);
-
-const RowView: Component<{
-  readonly row: Row;
-  readonly active: boolean;
-  readonly idx: number;
-  readonly onClick: () => void;
-  readonly onHover: () => void;
-}> = (props) => (
-  <button
-    type="button"
-    class="flex w-full items-center justify-between gap-3 px-4 py-2 text-left text-ui-sm text-fg data-[active=true]:bg-accent-soft data-[active=true]:text-accent"
-    data-active={props.active ? 'true' : undefined}
-    data-row-idx={String(props.idx)}
-    onClick={props.onClick}
-    onMouseMove={props.onHover}
-  >
-    <span class="flex min-w-0 items-center gap-3">
-      <RowIcon row={props.row} />
-      <span class="truncate">{props.row.label}</span>
-    </span>
-    <Switch>
-      <Match when={props.row.kind === 'parsed' && props.row}>
-        {(r) => <span class="shrink-0 text-ui-xs text-muted">{r().hint}</span>}
-      </Match>
-    </Switch>
-  </button>
-);
-
-const RowIcon: Component<{ readonly row: Row }> = (props) => (
-  <span
-    class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-ui-xs uppercase text-muted"
-    aria-hidden="true"
-  >
-    <Switch>
-      <Match when={props.row.kind === 'book'}>B</Match>
-      <Match when={props.row.kind === 'chapter'}>C</Match>
-      <Match when={props.row.kind === 'verse'}>V</Match>
-      <Match when={props.row.kind === 'parsed'}>↵</Match>
-    </Switch>
-  </span>
-);
-
-const PaletteFooter: Component<{ readonly view: PaletteView }> = (props) => (
-  <div class="flex items-center justify-between gap-3 border-t border-rule bg-bg-soft px-4 py-2 text-ui-xs text-muted">
-    <span>
-      <Switch>
-        <Match when={props.view._tag === 'root'}>All books</Match>
-        <Match when={props.view._tag === 'book'}>Chapters</Match>
-        <Match when={props.view._tag === 'chapter'}>Verses</Match>
-      </Switch>
-    </span>
-    <span class="flex items-center gap-3">
-      <Kbd>↑↓</Kbd>
-      <Kbd>Enter</Kbd>
-      <Kbd>Esc</Kbd>
-    </span>
-  </div>
-);
-
-const Kbd: Component<{ readonly children: string }> = (props) => (
-  <kbd class="rounded border border-rule px-1.5 py-0.5 font-mono text-[10px] text-muted">
-    {props.children}
-  </kbd>
-);
-
-// Mounted only while the palette is in chapter view. Subscribes to the
-// chapter IPC for a concrete (book, chapter) and lifts the verse number
-// list up to the parent — keeps the IPC accessor signature happy while
-// letting the parent's `rows()` memo own keyboard-navigable state.
-const VerseRowsFetcher: Component<{
-  readonly book: number;
-  readonly chapter: number;
-  readonly onVerses: (verses: readonly number[]) => void;
-}> = (props) => {
-  const chapterRes = ipc.bible.getChapter.query(() => ({
-    book: props.book,
-    chapter: props.chapter,
-  }));
-  createEffect(() => {
-    const c = chapterRes();
-    if (c === undefined || c === null) {
-      props.onVerses([]);
-      return;
-    }
-    props.onVerses(c.verses.map((v) => v.verse));
-  });
-  return null;
-};
-
-// Pure mapping from row → action. Returns null when the row is a parsed-
-// preview with no actionable interpretation (e.g. `search` tag, which the
-// rows() memo already filters out — kept for exhaustiveness). Exported so
-// tests can lock the activation rules down without spinning up a DOM.
-export const resolveAction = (row: Row): PaletteAction | null => {
-  switch (row.kind) {
-    case 'book':
-      return { kind: 'drilldown', view: { _tag: 'book', book: row.book } };
-    case 'chapter':
-      return { kind: 'openChapter', book: row.book, chapter: row.chapter };
-    case 'verse':
-      return {
-        kind: 'openChapterAt',
-        book: row.book,
-        chapter: row.chapter,
-        verse: row.verse,
-      };
-    case 'parsed':
-      return resolveParsedAction(row.parsed);
-  }
-};
-
-export const resolveParsedAction = (p: ParsedBibleQuery): PaletteAction | null => {
-  switch (p._tag) {
-    case 'single': {
-      const { book, chapter, verse } = p.ref;
-      return { kind: 'openChapterAt', book, chapter, verse };
-    }
-    case 'verseRange':
-      // Verse ranges aren't a first-class concept in the reader yet — land
-      // on the start verse.
-      return {
-        kind: 'openChapterAt',
-        book: p.ref.start.book,
-        chapter: p.ref.start.chapter,
-        verse: p.ref.start.verse,
-      };
-    case 'chapter':
-      return { kind: 'openChapter', book: p.ref.book, chapter: p.ref.chapter };
-    case 'chapterRange':
-      return { kind: 'openChapter', book: p.start.book, chapter: p.start.chapter };
-    case 'fullBook':
-      // Drill into the book view rather than guessing a chapter — gives
-      // the user a chapter picker.
-      return { kind: 'drilldown', view: { _tag: 'book', book: p.ref.book } };
-    case 'search':
-      return null;
-  }
-};
-
-const describeParsed = (p: ParsedBibleQuery): { label: string; hint: string } | null => {
-  switch (p._tag) {
-    case 'single': {
-      const book = getBibleBook(p.ref.book);
-      if (!book) return null;
-      return {
-        label: `${book.name} ${String(p.ref.chapter)}:${String(p.ref.verse)}`,
-        hint: 'Open verse',
-      };
-    }
-    case 'verseRange': {
-      const book = getBibleBook(p.ref.start.book);
-      if (!book) return null;
-      return {
-        label: `${book.name} ${String(p.ref.start.chapter)}:${String(p.ref.start.verse)}–${String(p.ref.end.verse)}`,
-        hint: 'Open at first verse',
-      };
-    }
-    case 'chapter': {
-      const book = getBibleBook(p.ref.book);
-      if (!book) return null;
-      return { label: `${book.name} ${String(p.ref.chapter)}`, hint: 'Open chapter' };
-    }
-    case 'chapterRange': {
-      const book = getBibleBook(p.start.book);
-      if (!book) return null;
-      return {
-        label: `${book.name} ${String(p.start.chapter)}–${String(p.end.chapter)}`,
-        hint: 'Open at first chapter',
-      };
-    }
-    case 'fullBook': {
-      const book = getBibleBook(p.ref.book);
-      if (!book) return null;
-      return { label: book.name, hint: 'Browse chapters' };
-    }
-    case 'search':
-      return null;
-  }
-};
-
-// Per-view row builders. Each owns one view's row shape, query-filter rules,
-// and id format — adding a new view means adding one function, not extending
-// a 70-line switch. The dispatcher in `rows()` simply concats `parsedRow` to
-// the active view's output.
-const parsedRow = (p: ParsedBibleQuery | null): Row[] => {
-  if (p === null) return [];
-  const desc = describeParsed(p);
-  if (desc === null) return [];
-  return [{ kind: 'parsed', id: PARSED_ID, parsed: p, label: desc.label, hint: desc.hint }];
-};
-
-const rowsForRoot = (q: string): Row[] => {
-  const filtered =
-    q === '' ? BIBLE_BOOKS : BIBLE_BOOKS.filter((b) => b.name.toLowerCase().includes(q));
-  return filtered.map((b) => ({
-    kind: 'book',
-    id: `book-${String(b.number)}`,
-    book: b.number,
-    label: b.name,
-  }));
-};
-
-const rowsForBook = (v: { readonly book: number }, q: string): Row[] => {
-  const book = getBibleBook(v.book);
-  if (!book) return [];
-  const out: Row[] = [];
-  for (let ch = 1; ch <= book.chapters; ch++) {
-    const label = `${book.name} ${String(ch)}`;
-    if (q === '' || label.toLowerCase().includes(q) || String(ch).includes(q)) {
-      out.push({
-        kind: 'chapter',
-        id: `ch-${String(v.book)}-${String(ch)}`,
-        book: v.book,
-        chapter: ch,
-        label,
-      });
-    }
-  }
-  return out;
-};
-
-const rowsForChapter = (
-  v: { readonly book: number; readonly chapter: number },
-  q: string,
-  verses: readonly number[],
-): Row[] => {
-  const book = getBibleBook(v.book);
-  const bookName = book?.name ?? `Book ${String(v.book)}`;
-  const out: Row[] = [];
-  for (const verseNum of verses) {
-    const label = `${bookName} ${String(v.chapter)}:${String(verseNum)}`;
-    if (q === '' || String(verseNum).includes(q) || label.toLowerCase().includes(q)) {
-      out.push({
-        kind: 'verse',
-        id: `v-${String(v.book)}-${String(v.chapter)}-${String(verseNum)}`,
-        book: v.book,
-        chapter: v.chapter,
-        verse: verseNum,
-        label,
-      });
-    }
-  }
-  return out;
 };

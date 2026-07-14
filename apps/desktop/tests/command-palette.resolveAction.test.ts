@@ -9,7 +9,11 @@
 
 import { type ParsedBibleQuery, parseBibleQuery } from '@bible/core/bible';
 import { describe, expect, it } from 'vitest';
-import { resolveAction, resolveParsedAction, type Row } from '../src/components/command-palette.js';
+import {
+  resolveAction,
+  resolveParsedAction,
+  type Row,
+} from '../src/components/command-palette/model.js';
 
 const bookRow = (book: number): Row => ({
   kind: 'book',
