@@ -6,7 +6,7 @@ import { CommandPalette } from '../command-palette.js';
 import { ReaderPanel } from '../ui/reader-panel.js';
 import type { BibleDrawerState } from '../../services/bible-drawer-state.js';
 import type { BibleReaderSelection } from '../../services/bible-reader-state.js';
-import type { DrawerState } from '../../services/drawer-machine.js';
+import type { DrawerState } from '../../app.js';
 
 interface BibleModeViewProps {
   readonly drawer: () => DrawerState;

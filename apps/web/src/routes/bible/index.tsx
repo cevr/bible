@@ -66,7 +66,7 @@ function BibleRoute() {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Goto mode state machine
-  const [gotoState, setGotoState] = useState<GotoModeState>(GotoModeState.normal());
+  const [gotoState, setGotoState] = useState(GotoModeState.normal());
   const gotoTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // Study sheet state
@@ -422,7 +422,7 @@ function BibleRoute() {
             {/* Goto mode indicator */}
             {gotoState._tag === 'awaiting' && (
               <span className="text-xs px-1.5 py-0.5 rounded bg-primary/20 text-primary font-mono">
-                g{gotoState.digits}…
+                g{(gotoState as { digits: string }).digits}…
               </span>
             )}
             {/* Search query indicator */}

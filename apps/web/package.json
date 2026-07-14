@@ -27,7 +27,6 @@
     "date-fns": "^4.4.0",
     "effect": "catalog:",
     "embla-carousel-react": "^8.6.0",
-    "foldkit": "catalog:",
     "input-otp": "^1.4.2",
     "lucide-react": "^1.24.0",
     "react": "^19.2.7",

@@ -6,7 +6,7 @@ import { TocPlusLibraryDrawer } from '../toc-plus-library-drawer.js';
 import { ReaderPanel } from '../ui/reader-panel.js';
 import type { BibleDrawerState } from '../../services/bible-drawer-state.js';
 import type { ReaderSelection } from '../../services/reader-state.js';
-import type { DrawerState } from '../../services/drawer-machine.js';
+import type { DrawerState } from '../../app.js';
 
 interface EgwModeViewProps {
   readonly selection: Accessor<Option.Option<ReaderSelection>>;

@@ -1,114 +1,129 @@
-import { Schema as S } from 'effect';
-import { Machine } from 'foldkit/experimental';
-import { m } from 'foldkit/message';
-import { ts } from 'foldkit/schema';
+/**
+ * Vim-style goto mode state machine.
+ *
+ * States:
+ * - normal: Default mode, no pending goto command
+ * - awaiting: After pressing 'g', waiting for digits or another 'g'
+ *
+ * Transitions:
+ * - normal + 'g' -> awaiting('')
+ * - normal + 'G' -> normal + goToLast action
+ * - awaiting + digit -> awaiting(digits + digit)
+ * - awaiting + 'g' (no digits) -> normal + goToFirst action
+ * - awaiting + 'g' (with digits) -> normal + goToVerse action
+ * - awaiting + Enter (with digits) -> normal + goToVerse action
+ * - awaiting + Escape -> normal
+ */
 
-const Normal = ts('normal');
-const Awaiting = ts('awaiting', { digits: S.String });
+// State types
+export type GotoModeState = { _tag: 'normal' } | { _tag: 'awaiting'; digits: string };
 
-const GotoModeStateSchema = S.Union([Normal, Awaiting]);
-export type GotoModeState = typeof GotoModeStateSchema.Type;
-
+// State constructors
 export const GotoModeState = {
-  normal: Normal,
-  awaiting: (digits: string = ''): GotoModeState => Awaiting({ digits }),
+  normal: (): GotoModeState => ({ _tag: 'normal' }),
+  awaiting: (digits: string = ''): GotoModeState => ({
+    _tag: 'awaiting',
+    digits,
+  }),
 } as const;
 
-const PressG = m('pressG');
-const PressShiftG = m('pressShiftG');
-const PressDigit = m('pressDigit', { digit: S.String });
-const PressEnter = m('pressEnter');
-const PressEscape = m('pressEscape');
-const Other = m('other');
+// Event types
+export type GotoModeEvent =
+  | { _tag: 'pressG' }
+  | { _tag: 'pressShiftG' }
+  | { _tag: 'pressDigit'; digit: string }
+  | { _tag: 'pressEnter' }
+  | { _tag: 'pressEscape' }
+  | { _tag: 'other' };
 
-const GotoModeEventSchema = S.Union([
-  PressG,
-  PressShiftG,
-  PressDigit,
-  PressEnter,
-  PressEscape,
-  Other,
-]);
-export type GotoModeEvent = typeof GotoModeEventSchema.Type;
-
+// Event constructors
 export const GotoModeEvent = {
-  pressG: PressG,
-  pressShiftG: PressShiftG,
-  pressDigit: (digit: string): GotoModeEvent => PressDigit({ digit }),
-  pressEnter: PressEnter,
-  pressEscape: PressEscape,
-  other: Other,
+  pressG: (): GotoModeEvent => ({ _tag: 'pressG' }),
+  pressShiftG: (): GotoModeEvent => ({ _tag: 'pressShiftG' }),
+  pressDigit: (digit: string): GotoModeEvent => ({ _tag: 'pressDigit', digit }),
+  pressEnter: (): GotoModeEvent => ({ _tag: 'pressEnter' }),
+  pressEscape: (): GotoModeEvent => ({ _tag: 'pressEscape' }),
+  other: (): GotoModeEvent => ({ _tag: 'other' }),
 } as const;
 
+// Action types (side effects to perform after transition)
 export type GotoModeAction =
-  | { readonly _tag: 'goToFirst' }
-  | { readonly _tag: 'goToLast' }
-  | { readonly _tag: 'goToVerse'; readonly verse: number };
+  | { _tag: 'goToFirst' }
+  | { _tag: 'goToLast' }
+  | { _tag: 'goToVerse'; verse: number };
 
+// Action constructors
 export const GotoModeAction = {
   goToFirst: (): GotoModeAction => ({ _tag: 'goToFirst' }),
   goToLast: (): GotoModeAction => ({ _tag: 'goToLast' }),
   goToVerse: (verse: number): GotoModeAction => ({ _tag: 'goToVerse', verse }),
 } as const;
 
-export interface GotoModeResult {
-  readonly state: GotoModeState;
-  readonly action?: GotoModeAction;
+// Transition result
+export type GotoModeResult = {
+  state: GotoModeState;
+  action?: GotoModeAction;
+};
+
+/**
+ * Pure state transition function for goto mode.
+ * Returns the new state and optionally an action to perform.
+ */
+export function gotoModeTransition(state: GotoModeState, event: GotoModeEvent): GotoModeResult {
+  switch (state._tag) {
+    case 'normal':
+      switch (event._tag) {
+        case 'pressG':
+          return { state: GotoModeState.awaiting('') };
+        case 'pressShiftG':
+          return {
+            state: GotoModeState.normal(),
+            action: GotoModeAction.goToLast(),
+          };
+        default:
+          return { state };
+      }
+
+    case 'awaiting':
+      switch (event._tag) {
+        case 'pressDigit':
+          return { state: GotoModeState.awaiting(state.digits + event.digit) };
+        case 'pressG':
+          if (state.digits === '') {
+            return {
+              state: GotoModeState.normal(),
+              action: GotoModeAction.goToFirst(),
+            };
+          }
+          const verse = parseInt(state.digits, 10);
+          return {
+            state: GotoModeState.normal(),
+            action: GotoModeAction.goToVerse(verse),
+          };
+        case 'pressEnter':
+          if (state.digits !== '') {
+            const verse = parseInt(state.digits, 10);
+            if (verse > 0) {
+              return {
+                state: GotoModeState.normal(),
+                action: GotoModeAction.goToVerse(verse),
+              };
+            }
+          }
+          return { state: GotoModeState.normal() };
+        case 'pressEscape':
+        case 'other':
+          return { state: GotoModeState.normal() };
+        default:
+          return { state };
+      }
+  }
 }
 
 /**
- * Renderer-independent Vim goto graph. OpenTUI owns the Solid signals and
- * renderer; Foldkit owns the legal transitions and makes the graph inspectable.
+ * Convert a key event to a GotoModeEvent.
+ * Use with ink's useInput key object.
  */
-export const gotoModeMachine = Machine.define({
-  state: GotoModeStateSchema,
-  message: GotoModeEventSchema,
-})({
-  initial: Normal(),
-  states: {
-    normal: {
-      on: {
-        pressG: Machine.to('awaiting', () => Awaiting({ digits: '' })),
-        pressShiftG: Machine.to('normal', () => Normal()),
-      },
-    },
-    awaiting: {
-      on: {
-        pressDigit: Machine.to('awaiting', ({ state, message }) =>
-          Awaiting({ digits: state.digits + message.digit }),
-        ),
-        pressG: Machine.to('normal', () => Normal()),
-        pressEnter: Machine.to('normal', () => Normal()),
-        pressEscape: Machine.to('normal', () => Normal()),
-        other: Machine.to('normal', () => Normal()),
-      },
-    },
-  },
-});
-
-const actionFor = (state: GotoModeState, event: GotoModeEvent): GotoModeAction | undefined => {
-  if (state._tag === 'normal') {
-    return event._tag === 'pressShiftG' ? GotoModeAction.goToLast() : undefined;
-  }
-  if (event._tag === 'pressG') {
-    return state.digits === ''
-      ? GotoModeAction.goToFirst()
-      : GotoModeAction.goToVerse(Number.parseInt(state.digits, 10));
-  }
-  if (event._tag === 'pressEnter' && state.digits !== '') {
-    const verse = Number.parseInt(state.digits, 10);
-    return verse > 0 ? GotoModeAction.goToVerse(verse) : undefined;
-  }
-  return undefined;
-};
-
-export const gotoModeTransition = (state: GotoModeState, event: GotoModeEvent): GotoModeResult => {
-  const action = actionFor(state, event);
-  const next = gotoModeMachine.transition(state, event)[0];
-  return action === undefined ? { state: next } : { state: next, action };
-};
-
-/** Convert an OpenTUI key event to a renderer-independent message. */
 export function keyToGotoEvent(key: { name?: string; sequence?: string }): GotoModeEvent {
   if (key.sequence === 'G') return GotoModeEvent.pressShiftG();
   if (key.name === 'g') return GotoModeEvent.pressG();
