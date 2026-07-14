@@ -29,13 +29,15 @@ import { useNavigation } from '../../context/navigation.js';
 import { useTheme } from '../../context/theme.js';
 import { useScrollSync } from '../../hooks/use-scroll-sync.js';
 import { useAppRuntime } from '../../lib/index.js';
-import { AiSearchState } from '../../types/ai-search.js';
+import {
+  initialBiblePaletteNavigation,
+  transitionBiblePaletteNavigation,
+} from './command-palette/navigation-model.js';
+import { createBibleTopicSearchController } from './command-palette/topic-search-controller.js';
 
 interface BibleCommandPaletteProps {
   onClose: () => void;
 }
-
-type PaletteMode = 'books' | 'chapters' | 'verses';
 
 export function BibleCommandPalette(props: BibleCommandPaletteProps) {
   const { theme } = useTheme();
@@ -49,81 +51,38 @@ export function BibleCommandPalette(props: BibleCommandPaletteProps) {
   const currentChapter = () => position().chapter;
   const currentVerse = () => position().verse;
 
-  const [query, setQuery] = createSignal('');
-  const [selectedIndex, setSelectedIndex] = createSignal(0);
-  const [mode, setMode] = createSignal<PaletteMode>('chapters');
-  const [selectedBookNum, setSelectedBookNum] = createSignal<number>(currentBookNum());
-  const [selectedChapter, setSelectedChapter] = createSignal<number>(currentChapter());
-  const [aiState, setAiState] = createSignal<AiSearchState>(AiSearchState.idle());
-
-  let aiSearchTimeout: ReturnType<typeof setTimeout> | null = null;
+  const [navigation, setNavigation] = createSignal(
+    initialBiblePaletteNavigation(currentBookNum(), currentChapter()),
+  );
+  const query = () => navigation().query;
+  const selectedIndex = () => navigation().selectedIndex;
+  const mode = () => navigation().mode;
+  const selectedBookNum = () => navigation().selectedBook;
+  const selectedChapter = () => navigation().selectedChapter;
   let scrollRef: ScrollBoxRenderable | undefined = undefined;
+
+  const topicSearch = createBibleTopicSearchController({
+    search:
+      model === null
+        ? null
+        : (topic) =>
+            runtime.runPromise(
+              searchBibleByTopic(topic).pipe(Effect.provide(AI.fromModel(model.models))),
+            ),
+  });
 
   // Scroll sync - keep selected item visible
   useScrollSync(() => `item-${selectedIndex()}`, { getRef: () => scrollRef });
 
-  // Cleanup timeout on unmount
-  onCleanup(() => {
-    if (aiSearchTimeout) {
-      clearTimeout(aiSearchTimeout);
-    }
-  });
+  onCleanup(topicSearch.dispose);
 
   // Book info
   const selectedBook = createMemo(() => BOOKS.find((b) => b.number === selectedBookNum()));
 
-  // Check if query is AI search
-  const isAiSearch = () => query().trim().startsWith('?');
-  const aiQuery = () => (isAiSearch() ? query().trim().slice(1).trim() : '');
+  createEffect(() => topicSearch.update(query()));
 
-  // AI search effect with debounce
-  createEffect(() => {
-    if (aiSearchTimeout) {
-      clearTimeout(aiSearchTimeout);
-      aiSearchTimeout = null;
-    }
-
-    if (!isAiSearch()) {
-      setAiState(AiSearchState.idle());
-      return;
-    }
-
-    const currentAiQuery = aiQuery();
-
-    if (currentAiQuery.length < 3) {
-      setAiState(AiSearchState.typing(currentAiQuery));
-      return;
-    }
-
-    if (!model) {
-      setAiState(
-        AiSearchState.error(currentAiQuery, 'AI search unavailable (no API key configured)'),
-      );
-      return;
-    }
-
-    setAiState(AiSearchState.loading(currentAiQuery));
-
-    aiSearchTimeout = setTimeout(async () => {
-      try {
-        const refs = await runtime.runPromise(
-          searchBibleByTopic(currentAiQuery).pipe(Effect.provide(AI.fromModel(model.models))),
-        );
-        if (refs.length === 0) {
-          setAiState(AiSearchState.empty(currentAiQuery));
-        } else {
-          setAiState(AiSearchState.success(currentAiQuery, refs));
-        }
-      } catch (err) {
-        setAiState(
-          AiSearchState.error(
-            currentAiQuery,
-            err instanceof Error ? err.message : 'AI search failed',
-          ),
-        );
-      }
-    }, 500);
-  });
+  const isAiSearch = topicSearch.active;
+  const aiState = topicSearch.state;
 
   // Filter books based on query
   const filteredBooks = createMemo(() => {
@@ -176,13 +135,7 @@ export function BibleCommandPalette(props: BibleCommandPaletteProps) {
   });
 
   // AI search results
-  const aiResults = createMemo((): readonly ReaderReference[] => {
-    const currentState = aiState();
-    if (currentState._tag === 'success') {
-      return currentState.results;
-    }
-    return [];
-  });
+  const aiResults = topicSearch.results;
 
   const currentItems = createMemo(() => {
     if (isAiSearch()) {
@@ -198,20 +151,11 @@ export function BibleCommandPalette(props: BibleCommandPaletteProps) {
     }
   });
 
-  // Reset selection when query or mode changes
-  createEffect(() => {
-    query();
-    mode();
-    setSelectedIndex(0);
-  });
-
   // Handle selecting a book
   const handleSelectBook = (book: Book) => {
-    setSelectedBookNum(book.number);
-    setSelectedChapter(1);
-    setMode('chapters');
-    setQuery('');
-    setSelectedIndex(0);
+    setNavigation((state) =>
+      transitionBiblePaletteNavigation(state, { _tag: 'chooseBook', book: book.number }),
+    );
   };
 
   // Handle selecting a chapter
@@ -222,10 +166,9 @@ export function BibleCommandPalette(props: BibleCommandPaletteProps) {
 
   // Handle drilling into a chapter to see verses
   const handleDrillIntoChapter = (chapter: number) => {
-    setSelectedChapter(chapter);
-    setMode('verses');
-    setQuery('');
-    setSelectedIndex(0);
+    setNavigation((state) =>
+      transitionBiblePaletteNavigation(state, { _tag: 'drillChapter', chapter }),
+    );
   };
 
   // Handle selecting a verse
@@ -276,19 +219,7 @@ export function BibleCommandPalette(props: BibleCommandPaletteProps) {
     if (!isAiSearch()) {
       // Left to go back a tier
       if (key.name === 'left') {
-        if (mode() === 'verses') {
-          setMode('chapters');
-          setQuery('');
-          // Select the current chapter in the list
-          const idx = chapters().findIndex((ch) => ch === selectedChapter());
-          setSelectedIndex(idx >= 0 ? idx : 0);
-        } else if (mode() === 'chapters') {
-          setMode('books');
-          setQuery('');
-          // Select the current book in the list
-          const idx = BOOKS.findIndex((b) => b.number === selectedBookNum());
-          setSelectedIndex(idx >= 0 ? idx : 0);
-        }
+        setNavigation((state) => transitionBiblePaletteNavigation(state, { _tag: 'back' }));
         return;
       }
 
@@ -297,11 +228,12 @@ export function BibleCommandPalette(props: BibleCommandPaletteProps) {
         if (mode() === 'books') {
           const book = filteredBooks()[selectedIndex()];
           if (book) {
-            setSelectedBookNum(book.number);
-            setSelectedChapter(1);
-            setMode('chapters');
-            setQuery('');
-            setSelectedIndex(0);
+            setNavigation((state) =>
+              transitionBiblePaletteNavigation(state, {
+                _tag: 'chooseBook',
+                book: book.number,
+              }),
+            );
           }
         } else if (mode() === 'chapters') {
           const chapter = filteredChapters()[selectedIndex()];
@@ -314,24 +246,45 @@ export function BibleCommandPalette(props: BibleCommandPaletteProps) {
     }
 
     if (key.name === 'up' || (key.ctrl && key.name === 'p')) {
-      setSelectedIndex((i) => Math.max(0, i - 1));
+      setNavigation((state) =>
+        transitionBiblePaletteNavigation(state, {
+          _tag: 'moveSelection',
+          delta: -1,
+          itemCount: currentItems().length,
+        }),
+      );
       return;
     }
 
     if (key.name === 'down' || (key.ctrl && key.name === 'n')) {
-      const maxIndex = currentItems().length - 1;
-      setSelectedIndex((i) => Math.min(maxIndex, i + 1));
+      setNavigation((state) =>
+        transitionBiblePaletteNavigation(state, {
+          _tag: 'moveSelection',
+          delta: 1,
+          itemCount: currentItems().length,
+        }),
+      );
       return;
     }
 
     if (key.name === 'backspace') {
-      setQuery((q) => q.slice(0, -1));
+      setNavigation((state) =>
+        transitionBiblePaletteNavigation(state, {
+          _tag: 'queryChanged',
+          query: state.query.slice(0, -1),
+        }),
+      );
       return;
     }
 
     // Type characters into query
     if (key.sequence && key.sequence.length === 1 && !key.ctrl) {
-      setQuery((q) => q + key.sequence);
+      setNavigation((state) =>
+        transitionBiblePaletteNavigation(state, {
+          _tag: 'queryChanged',
+          query: state.query + key.sequence,
+        }),
+      );
     }
   });
 
