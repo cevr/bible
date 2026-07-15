@@ -1094,8 +1094,24 @@ a.card .card-meta {
 
 .study-section { margin-bottom: 4rem; }
 .study-section h1, .study-section h2, .study-section h3, .symbol-entry { scroll-margin-top: calc(var(--topnav-height, 3.25rem) + 4rem); }
-.section-header h1 { font-family: var(--display); font-weight: 500; font-size: clamp(2rem, 5vw, 3.2rem); line-height: 1.08; text-wrap: balance; }
-.section-header .section-meta { font-family: var(--mono); font-size: 0.68rem; color: var(--ink-mute); margin-top: -0.8rem; }
+.section-header { margin-bottom: 2.5rem; }
+main.content .section-header h1 {
+  position: relative;
+  font-family: var(--display);
+  font-weight: 500;
+  font-style: normal;
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  text-wrap: balance;
+  margin: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+.section-header h1 .anchor { top: 0.15rem; }
+.section-header h1:hover .anchor, .section-header h1 .anchor:focus-visible { opacity: 1; color: var(--accent); }
+.section-header .section-meta { font-family: var(--mono); font-size: 0.68rem; color: var(--ink-mute); margin: 0.9rem 0 0; letter-spacing: 0.04em; }
 .section-end { border-top: 1px solid var(--rule); margin-top: 2.5rem; padding-top: 1.25rem; display: grid; gap: 1rem; }
 .completion-control { justify-self: start; gap: 0.65rem; cursor: pointer; }
 .completion-control input { inline-size: 1.1rem; block-size: 1.1rem; }
