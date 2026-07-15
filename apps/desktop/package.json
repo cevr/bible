@@ -13,7 +13,7 @@
     "typecheck": "tsgo --noEmit",
     "test": "vitest run && vitest run --config vitest.ipc-cache.config.ts",
     "test:watch": "vitest",
-    "postinstall": "electron-rebuild -f -w better-sqlite3"
+    "postinstall": "node -e \"process.exit(process.env.CI||process.env.RAILWAY_ENVIRONMENT||process.env.SKIP_ELECTRON_REBUILD?0:1)\" || electron-rebuild -f -w better-sqlite3"
   },
   "dependencies": {
     "@bible/core": "workspace:*",
