@@ -48,9 +48,47 @@ export const slugify = (s: string): string =>
 // HTML post-processing (Bun.markdown emits bare headings — inject anchors)
 // ============================================================================
 
-export interface TocEntry {
+export interface StudySection {
+  readonly ordinal: number;
   readonly id: string;
-  readonly text: string;
+  readonly title: string;
+  readonly href: string;
+  readonly words: number;
+  readonly summaryHtml?: string;
+  readonly html: string;
+  readonly partOrdinal: number;
+}
+
+export interface StudyPart {
+  readonly ordinal: number;
+  readonly label: string;
+  readonly title: string;
+  readonly href: string;
+  readonly words: number;
+  readonly sections: readonly StudySection[];
+}
+
+export interface SymbolEntry {
+  readonly id: string;
+  readonly term: string;
+  readonly normalizedTerm: string;
+  readonly owner?: StudySection;
+}
+
+export interface StudyAppendix {
+  readonly id: string;
+  readonly title: string;
+  readonly href: string;
+  readonly html: string;
+  readonly entries: readonly SymbolEntry[];
+}
+
+export interface StudyDocument {
+  readonly introductionHtml: string;
+  readonly parts: readonly StudyPart[];
+  readonly sections: readonly StudySection[];
+  readonly appendix?: StudyAppendix;
+  readonly words: number;
 }
 
 /**
@@ -58,26 +96,22 @@ export interface TocEntry {
  * return the h2 list for the sticky table of contents. The `¶` anchor link on
  * h2s mirrors the original comparison pages.
  */
-export const anchorHeadings = (html: string): { html: string; toc: TocEntry[] } => {
-  const toc: TocEntry[] = [];
+const anchorHeadings = (html: string): { html: string; ids: readonly string[] } => {
+  const ids: string[] = [];
   const issued = new Set<string>();
   const out = html.replace(/<(h[23])>([\s\S]*?)<\/\1>/g, (_m, tag: string, inner: string) => {
     const base = slugify(inner) || 'section';
     let id = base;
     for (let n = 2; issued.has(id); n += 1) id = `${base}-${n}`;
     issued.add(id);
-    // inner is already entity-encoded by the markdown renderer — strip tags only
-    const text = inner
-      .replace(/<[^>]*>/g, '')
-      .replace(/\s+/g, ' ')
-      .trim();
     if (tag === 'h2') {
-      toc.push({ id, text });
+      ids.push(id);
       return `<${tag} id="${id}"><a class="anchor" href="#${id}" aria-label="Link to section">¶</a>${inner}</${tag}>`;
     }
+    ids.push(id);
     return `<${tag} id="${id}">${inner}</${tag}>`;
   });
-  return { html: out, toc };
+  return { html: out, ids };
 };
 
 /**
@@ -86,7 +120,8 @@ export const anchorHeadings = (html: string): { html: string; toc: TocEntry[] } 
  * - drop an in-body "Table of Contents" section (the sticky aside replaces it,
  *   and its markdown-era anchor links don't match our heading ids)
  * - wrap tables so wide ones scroll without breaking table semantics
- * Remaining h1s (part dividers like "Part I — Daniel") are kept and styled.
+ * Remaining h1s are retained for the document parser to treat as Part
+ * boundaries; they are not emitted inside a Part page's article body.
  */
 export const prepareArticle = (html: string): string =>
   html
@@ -94,6 +129,377 @@ export const prepareArticle = (html: string): string =>
     .replace(/<h2>\s*Table of Contents\s*<\/h2>[\s\S]*?(?=<h[12])/i, '')
     .replaceAll('<table>', '<div class="table-wrap"><table>')
     .replaceAll('</table>', '</table></div>');
+
+const textFromHtml = (html: string): string =>
+  html
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&[a-z#0-9]+;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const normalizedText = (html: string): string => textFromHtml(html).toLowerCase();
+
+export const countStudyWords = (html: string): number => {
+  const text = textFromHtml(html);
+  return text === '' ? 0 : text.split(' ').length;
+};
+
+export const estimateReadingMinutes = (words: number): number =>
+  Math.max(1, Math.ceil(words / 200));
+
+export const formatReadingTime = (minutes: number): string => {
+  if (minutes < 60) return `≈${minutes}&nbsp;min`;
+  const hours = Math.floor(minutes / 60);
+  const remainder = minutes % 60;
+  return remainder === 0 ? `≈${hours}&nbsp;hr` : `≈${hours}&nbsp;hr ${remainder}&nbsp;min`;
+};
+
+const withoutAnchor = (html: string): string => html.replace(/^<a class="anchor"[\s\S]*?<\/a>/, '');
+
+const normalizedSectionTitle = (html: string): string =>
+  normalizedText(html).replace(/^\d+\.\s*/, '');
+
+const linkSectionReferences = (html: string, hrefByTitle: ReadonlyMap<string, string>): string => {
+  const suppressed: string[] = [];
+  return html
+    .split(/(<[^>]+>)/g)
+    .map((part) => {
+      if (!part.startsWith('<')) {
+        if (suppressed.length > 0) return part;
+        return part.replace(
+          /\b(see|defined in) &quot;([^&]+)&quot;/gi,
+          (match, prefix: string, title: string) => {
+            const href = hrefByTitle.get(normalizedSectionTitle(title));
+            return href === undefined
+              ? match
+              : `<a class="section-cross-reference" href="${href}">${prefix} “${title}”</a>`;
+          },
+        );
+      }
+      const closing = part.match(/^<\/(a|code|pre|script|style)/i)?.[1]?.toLowerCase();
+      if (closing !== undefined) suppressed.pop();
+      const opening = part.match(/^<(a|code|pre|script|style)(?:\s|>)/i)?.[1]?.toLowerCase();
+      if (opening !== undefined && !part.startsWith('</')) suppressed.push(opening);
+      return part;
+    })
+    .join('');
+};
+
+const decodeEntities = (value: string): string =>
+  value
+    .replace(/&#(\d+);/g, (_match, code: string) => String.fromCodePoint(Number(code)))
+    .replace(/&#x([\da-f]+);/gi, (_match, code: string) =>
+      String.fromCodePoint(Number.parseInt(code, 16)),
+    )
+    .replaceAll('&quot;', '"')
+    .replaceAll('&apos;', "'")
+    .replaceAll('&#39;', "'")
+    .replaceAll('&amp;', '&')
+    .replaceAll('&nbsp;', ' ');
+
+const normalizeDictionaryTerm = (html: string): string =>
+  decodeEntities(html.replace(/<[^>]*>/g, ' '))
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+
+const annotateAppendix = (
+  bodyHtml: string,
+  slug: string,
+  sections: readonly StudySection[],
+  issuedIds: readonly string[],
+): {
+  html: string;
+  entries: readonly SymbolEntry[];
+  symbols: ReadonlyMap<string, string>;
+} => {
+  const issued = new Set(issuedIds);
+  const symbols = new Map<string, string>();
+  const entries: SymbolEntry[] = [];
+  const byTitle = new Map(
+    sections.map((section) => [normalizedSectionTitle(section.title), section]),
+  );
+  const annotated = bodyHtml.replace(
+    /<li><strong>([\s\S]*?)<\/strong>\s*=\s*([\s\S]*?)<\/li>/g,
+    (whole, termHtml: string, trailing: string) => {
+      const normalizedTerm = normalizeDictionaryTerm(termHtml);
+      const base = `symbol-${slugify(termHtml) || 'entry'}`;
+      let id = base;
+      for (let n = 2; issued.has(id); n += 1) id = `${base}-${n}`;
+      issued.add(id);
+      if (!symbols.has(normalizedTerm)) symbols.set(normalizedTerm, id);
+      let owner: StudySection | undefined;
+      const linkedTrailing = trailing.replace(
+        /— defined in &quot;([\s\S]*?)&quot;\./i,
+        (sentence, titleHtml: string) => {
+          owner = byTitle.get(normalizedSectionTitle(titleHtml));
+          return owner === undefined
+            ? sentence
+            : `— defined in &quot;<a class="defined-in-link" href="${owner.href}#${owner.id}">${titleHtml}</a>&quot;.`;
+        },
+      );
+      entries.push({
+        id,
+        term: textFromHtml(termHtml),
+        normalizedTerm,
+        ...(owner === undefined ? {} : { owner }),
+      });
+      return `<li class="symbol-entry" id="${id}"><strong>${termHtml}</strong> = ${linkedTrailing}</li>`;
+    },
+  );
+  return { html: annotated, entries, symbols };
+};
+
+const linkSymbols = (html: string, slug: string, symbols: ReadonlyMap<string, string>): string =>
+  html.replace(
+    /<li><strong>([\s\S]*?)<\/strong>\s*=\s*([\s\S]*?)<\/li>/g,
+    (whole, termHtml: string) => {
+      const symbolId = symbols.get(normalizeDictionaryTerm(termHtml));
+      const href = symbolId === undefined ? `/${slug}/appendix/` : `/${slug}/appendix/#${symbolId}`;
+      return whole
+        .replace(
+          `<strong>${termHtml}</strong>`,
+          symbolId === undefined
+            ? `<strong>${termHtml}</strong>`
+            : `<a class="symbol-link" href="${href}"><strong>${termHtml}</strong></a>`,
+        )
+        .replace(
+          /Defined in full at the close\./g,
+          `<a class="appendix-link" href="${href}">Defined in full in the Symbol Dictionary.</a>`,
+        );
+    },
+  );
+
+const annotateListItem = (opening: string, inner: string): string => {
+  const leading = inner.match(/^(\s*)(<em>[\s\S]*?<\/em>)([\s\S]*)$/);
+  if (leading === null) return `${opening}${inner}</li>`;
+  const [, whitespace = '', reference = '', remainder = ''] = leading;
+  const scripture = /biblegateway\.com/i.test(reference);
+  const witness = /egwwritings\.org/i.test(reference) || /^\s*(?:White|Miller):/i.test(remainder);
+  if (!scripture && !witness) return `${opening}${inner}</li>`;
+  const register = scripture ? 'scripture' : 'witness';
+  const quoteAndGloss = remainder.includes('<ul>')
+    ? null
+    : remainder.match(/^(\s*)(&quot;[\s\S]*?&quot;)(\s+—[\s\S]*)$/);
+  const annotatedRemainder =
+    quoteAndGloss === null
+      ? remainder
+      : `${quoteAndGloss[1]}<span class="source-quotation">${quoteAndGloss[2]}</span><span class="source-gloss">${quoteAndGloss[3]}</span>`;
+  const label = witness ? '<span class="register-label">Witness</span>' : '';
+  const annotatedOpening = opening.replace('<li', `<li data-register="${register}"`);
+  return `${annotatedOpening}${whitespace}${label}<span class="source-ref">${reference}</span>${annotatedRemainder}</li>`;
+};
+
+export const annotateRegisters = (html: string): string => {
+  let output = '';
+  let cursor = 0;
+  while (true) {
+    const start = html.indexOf('<li', cursor);
+    if (start < 0) return output + html.slice(cursor);
+    const openingEnd = html.indexOf('>', start);
+    if (openingEnd < 0) return output + html.slice(cursor);
+    const tokens = /<li(?:\s[^>]*)?>|<\/li>/g;
+    const tail = html.slice(openingEnd + 1);
+    let depth = 1;
+    let closingStart = -1;
+    for (const token of tail.matchAll(tokens)) {
+      if (token[0] === '</li>') {
+        depth -= 1;
+        if (depth === 0) {
+          closingStart = openingEnd + 1 + token.index;
+          break;
+        }
+      } else {
+        depth += 1;
+      }
+    }
+    if (closingStart < 0) return output + html.slice(cursor);
+    const opening = html.slice(start, openingEnd + 1);
+    const inner = annotateRegisters(html.slice(openingEnd + 1, closingStart));
+    output += html.slice(cursor, start) + annotateListItem(opening, inner);
+    cursor = closingStart + 5;
+  }
+};
+
+export const annotateStudySection = (sectionId: string, linkedHtml: string): string => {
+  let html = linkedHtml;
+  html = html.replace(
+    /^\s*<blockquote>([\s\S]*?)<\/blockquote>/,
+    '<aside class="section-abstract" aria-label="In this section"><p class="apparatus-label">In This Section</p>$1</aside>',
+  );
+  html = html.replace(
+    /<p><strong>DEFINITION —[\s\S]*?<\/p>/g,
+    '<aside class="section-synthesis" aria-label="Section synthesis"><p class="apparatus-label">Synthesis</p>$&</aside>',
+  );
+  html = html.replace(
+    /<p><strong>Symbols defined here:<\/strong><\/p>\s*(<ul>[\s\S]*?<\/ul>)/gi,
+    '<aside class="concept-ledger concept-ledger-defined" aria-label="Symbols defined here"><p class="apparatus-label">Symbols Defined Here</p>$1</aside>',
+  );
+  html = html.replace(
+    /<p><strong>Symbols carried:<\/strong>([\s\S]*?)<\/p>\s*(<ul>[\s\S]*?<\/ul>)?/gi,
+    '<aside class="concept-ledger concept-ledger-carried" aria-label="Symbols carried"><p class="apparatus-label">Symbols Carried</p><p>$1</p>$2</aside>',
+  );
+  html = html.replace(
+    /<p><strong>For discussion:<\/strong><\/p>\s*(<ol>[\s\S]*?<\/ol>)/gi,
+    `<section class="section-review" aria-labelledby="review-${sectionId}"><h3 id="review-${sectionId}">For Discussion</h3>$1</section>`,
+  );
+  return annotateRegisters(html);
+};
+
+interface StructuralHeading {
+  readonly tag: 'h1' | 'h2';
+  readonly id: string;
+  readonly inner: string;
+  readonly titleHtml: string;
+  readonly titleText: string;
+  readonly start: number;
+  readonly end: number;
+}
+
+export const parseStudyArticle = ({
+  slug,
+  html,
+}: {
+  readonly slug: string;
+  readonly html: string;
+}): StudyDocument => {
+  const anchored = anchorHeadings(html);
+  const structural: StructuralHeading[] = [];
+  const pattern = /<(h1|h2)(?: id="([^"]+)")?>([\s\S]*?)<\/\1>/g;
+  for (const match of anchored.html.matchAll(pattern)) {
+    const tag = match[1];
+    if (tag !== 'h1' && tag !== 'h2') continue;
+    const inner = match[3] ?? '';
+    const titleHtml = tag === 'h2' ? withoutAnchor(inner) : inner;
+    structural.push({
+      tag,
+      id: match[2] ?? '',
+      inner,
+      titleHtml,
+      titleText: textFromHtml(titleHtml),
+      start: match.index,
+      end: match.index + match[0].length,
+    });
+  }
+  const appendixHeading = structural.find(
+    (heading) => heading.tag === 'h2' && normalizedText(heading.titleHtml).startsWith('appendix'),
+  );
+  const contentEnd = appendixHeading?.start ?? anchored.html.length;
+  const contentHeadings = structural.filter((heading) => heading.start < contentEnd);
+  const partHeadings = contentHeadings.filter((heading) => heading.tag === 'h1');
+  const sectionHeadings = contentHeadings.filter((heading) => heading.tag === 'h2');
+  const firstBoundary = partHeadings[0]?.start ?? sectionHeadings[0]?.start ?? contentEnd;
+  const introductionHtml = anchored.html.slice(0, firstBoundary).trim();
+  const partDrafts = (
+    partHeadings.length === 0
+      ? [
+          {
+            label: 'Study',
+            title: 'Study',
+            start: firstBoundary,
+            end: contentEnd,
+          },
+        ]
+      : partHeadings.map((heading, index) => ({
+          label: heading.titleHtml,
+          title: heading.titleHtml.replace(/^Part\s+(?:[IVXLCDM]+|\d+)\s*[—-]\s*/i, ''),
+          start: heading.end,
+          end: partHeadings[index + 1]?.start ?? contentEnd,
+        }))
+  )
+    .map((part) => ({
+      ...part,
+      headings: sectionHeadings.filter(
+        (heading) => heading.start >= part.start && heading.start < part.end,
+      ),
+    }))
+    .filter((part) => part.headings.length > 0);
+
+  const sectionDrafts: Array<Omit<StudySection, 'ordinal' | 'href' | 'partOrdinal'>> = [];
+  const sectionIndexesByPart: number[][] = [];
+  partDrafts.forEach((part) => {
+    const indexes: number[] = [];
+    part.headings.forEach((heading, index) => {
+      const nextHeading = part.headings[index + 1];
+      const html = anchored.html.slice(heading.end, nextHeading?.start ?? part.end).trim();
+      const summaryHtml = html.match(/^\s*<blockquote>([\s\S]*?)<\/blockquote>/)?.[1];
+      indexes.push(sectionDrafts.length);
+      sectionDrafts.push({
+        id: heading.id,
+        title: heading.titleHtml,
+        words: countStudyWords(`${heading.titleHtml} ${html}`),
+        ...(summaryHtml === undefined ? {} : { summaryHtml }),
+        html,
+      });
+    });
+    sectionIndexesByPart.push(indexes);
+  });
+
+  const bareSections: StudySection[] = sectionDrafts.map((section, index) => {
+    const partIndex = sectionIndexesByPart.findIndex((indexes) => indexes.includes(index));
+    const partOrdinal = partIndex + 1;
+    return {
+      ...section,
+      ordinal: index + 1,
+      partOrdinal,
+      href: `/${slug}/${index + 1}/`,
+    };
+  });
+  const appendixBody =
+    appendixHeading === undefined ? undefined : anchored.html.slice(appendixHeading.end).trim();
+  const annotatedAppendix =
+    appendixBody === undefined
+      ? undefined
+      : annotateAppendix(appendixBody, slug, bareSections, anchored.ids);
+  const hrefByTitle = new Map(
+    bareSections.map((section) => [normalizedSectionTitle(section.title), section.href]),
+  );
+  const sections = bareSections.map((section) => ({
+    ...section,
+    html: annotateStudySection(
+      section.id,
+      linkSectionReferences(
+        annotatedAppendix === undefined
+          ? section.html
+          : linkSymbols(section.html, slug, annotatedAppendix.symbols),
+        hrefByTitle,
+      ),
+    ),
+  }));
+  const parts = partDrafts.map((part, index) => {
+    const partSections =
+      sectionIndexesByPart[index]?.flatMap((sectionIndex) => {
+        const section = sections[sectionIndex];
+        return section === undefined ? [] : [section];
+      }) ?? [];
+    return {
+      ordinal: index + 1,
+      label: part.label,
+      title: part.title,
+      href: partSections[0]?.href ?? `/${slug}/`,
+      words: partSections.reduce((sum, section) => sum + section.words, 0),
+      sections: partSections,
+    };
+  });
+  const appendix =
+    appendixHeading === undefined || annotatedAppendix === undefined
+      ? undefined
+      : {
+          id: appendixHeading.id,
+          title: appendixHeading.titleHtml,
+          href: `/${slug}/appendix/`,
+          html: annotatedAppendix.html,
+          entries: annotatedAppendix.entries,
+        };
+  return {
+    introductionHtml,
+    parts,
+    sections,
+    ...(appendix === undefined ? {} : { appendix }),
+    words:
+      countStudyWords(introductionHtml) + sections.reduce((sum, section) => sum + section.words, 0),
+  };
+};
 
 // ============================================================================
 // Page chrome
@@ -111,8 +517,8 @@ const FONTS = `
  * Site-wide stylesheet, written once to <out>/styles.css and linked with a
  * root-absolute path from every generated page. Calm reading is the brief:
  * one accent, generous whitespace, a 65ch measure, and a table of contents
- * that collapses to a <details> box on mobile (a script in studyPage opens it
- * on desktop viewports).
+ * that collapses to a <details> box on mobile (the reading-page script
+ * opens it on desktop viewports).
  */
 export const STYLES = `:root {
   color-scheme: light dark;
@@ -345,22 +751,14 @@ header.masthead .meta span strong { color: var(--ink); font-weight: 500; margin-
   border-bottom: 1px solid var(--rule-soft);
   margin-bottom: 0.3rem;
 }
-.toc ol { list-style: none; padding: 0; margin: 0; counter-reset: toc; }
+.toc ol { list-style: none; padding: 0; margin: 0; }
 .toc li {
-  counter-increment: toc;
   display: flex;
   gap: 0.7rem;
   align-items: baseline;
   border-bottom: 1px dashed var(--rule-soft);
 }
 .toc li:last-child { border-bottom: 0; }
-.toc li::before {
-  content: counter(toc, decimal-leading-zero);
-  font-family: var(--mono);
-  font-size: 0.62rem;
-  color: var(--accent-soft);
-  flex: 0 0 auto;
-}
 .toc a {
   color: var(--ink-soft);
   text-decoration: none;
@@ -628,6 +1026,113 @@ a.card .card-meta {
   gap: 1.2rem;
   flex-wrap: wrap;
 }
+.card-progress { display: block; color: var(--accent); }
+
+/* ============ STUDY OVERVIEW ============ */
+.study-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.5rem; }
+.start-reading, .resume-reading, .section-pagination a, .completion-control {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--accent-soft);
+  border-radius: 6px;
+  padding: 0.65rem 1rem;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--accent);
+  background: var(--paper-raise);
+  text-decoration: none;
+}
+.start-reading { background: var(--accent); color: var(--paper); border-color: var(--accent); }
+.study-overview { max-width: 900px; padding-bottom: 6rem; }
+.study-introduction { max-width: var(--measure); margin-bottom: 3rem; }
+.study-introduction h2, .study-syllabus h2 {
+  font-family: var(--display);
+  font-weight: 500;
+  text-wrap: balance;
+}
+.part-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 1rem; }
+.part-card { border: 1px solid var(--rule); border-radius: 8px; background: var(--paper-raise); padding: 1.25rem; }
+.part-card h2 { margin: 0; font-family: var(--display); font-size: 1.25rem; line-height: 1.3; }
+.part-label, .part-card-meta {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--ink-mute);
+}
+.section-list { margin: 1rem 0 0; padding-left: 1.5rem; }
+.section-list li { padding: 0.35rem 0; }
+.section-list a { min-height: 44px; color: var(--ink-soft); display: grid; grid-template-columns: 1fr auto; gap: 0.4rem 1rem; }
+.section-summary { grid-column: 1 / -1; color: var(--ink-mute); font-size: 0.9em; line-height: 1.5; }
+.breadcrumbs { display: flex; gap: 0.5rem; padding-top: 1rem; font-family: var(--mono); font-size: 0.68rem; }
+.breadcrumbs span::before { content: '›'; margin-right: 0.5rem; color: var(--ink-mute); }
+
+/* ============ STUDY NAVIGATION ============ */
+.study-toc { position: sticky; top: var(--topnav-height, 3.25rem); align-self: start; }
+.study-toc .toc-box summary { min-height: 44px; display: flex; justify-content: space-between; align-items: center; }
+.study-toc .toc-box[open] { max-height: calc(100dvh - var(--topnav-height, 3.25rem) - 1rem); overflow-y: auto; }
+.study-toc li { display: block; border-bottom: 0; }
+.toc-part { border-bottom: 1px dashed var(--rule-soft) !important; padding: 0.35rem 0; }
+.study-toc a { min-height: 44px; display: flex; align-items: center; gap: 0.35rem; padding: 0.45rem; }
+.toc-part-label { color: var(--ink); min-height: 44px; display: flex; align-items: center; padding: 0.45rem; }
+.toc-sections { padding-left: 0.75rem !important; }
+.toc-sections a { justify-content: space-between; }
+.toc-sections li[data-active] > a { background: var(--accent-wash); border-radius: 4px; color: var(--accent); }
+.toc-status { white-space: nowrap; font-family: var(--mono); font-size: 0.58rem; color: var(--ink-mute); }
+.toc-appendix[aria-current='page'] { background: var(--accent-wash); }
+
+.reading-progress { --section-progress: 0; position: sticky; top: var(--topnav-height, 3.25rem); height: 3px; background: var(--rule-soft); overflow: hidden; }
+.reading-progress span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--accent);
+  transform: scaleX(var(--section-progress));
+  transform-origin: left;
+}
+
+.study-section { margin-bottom: 4rem; }
+.study-section h1, .study-section h2, .study-section h3, .symbol-entry { scroll-margin-top: calc(var(--topnav-height, 3.25rem) + 4rem); }
+.section-header h1 { font-family: var(--display); font-weight: 500; font-size: clamp(2rem, 5vw, 3.2rem); line-height: 1.08; text-wrap: balance; }
+.section-header .section-meta { font-family: var(--mono); font-size: 0.68rem; color: var(--ink-mute); margin-top: -0.8rem; }
+.section-end { border-top: 1px solid var(--rule); margin-top: 2.5rem; padding-top: 1.25rem; display: grid; gap: 1rem; }
+.completion-control { justify-self: start; gap: 0.65rem; cursor: pointer; }
+.completion-control input { inline-size: 1.1rem; block-size: 1.1rem; }
+.section-pagination { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.section-pagination a:last-child { text-align: right; justify-content: flex-end; }
+
+/* ============ LEARNING APPARATUS ============ */
+.section-abstract, .section-synthesis, .concept-ledger, .section-review {
+  padding: 1rem 1.15rem;
+  margin: 1.6rem 0;
+}
+.section-abstract { border: 1px solid var(--rule); background: var(--paper-raise); }
+.section-synthesis { background: var(--accent-wash); border: 1px solid var(--rule); }
+.concept-ledger { font-size: 0.92em; line-height: 1.5; }
+.section-review { border-top: 1px solid var(--rule); padding-top: 2rem; margin-top: 3rem; }
+.apparatus-label, .register-label {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+}
+.study-section li[data-register='witness'] { list-style: none; border: 1px solid var(--rule); border-radius: 6px; background: var(--paper-tint); padding: 0.45rem 0.75rem; }
+.register-label { display: block; }
+.source-ref { font-family: var(--mono); color: var(--accent); }
+.source-quotation { color: var(--ink); font-family: var(--body); }
+.source-gloss { color: var(--ink-soft); }
+.symbol-entry { padding-block: 0.4rem; }
+.sr-only { position: absolute; inline-size: 1px; block-size: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+@media (min-width: 1024px) {
+  .study-toc a, .study-toc .toc-box summary { min-height: 24px; }
+}
+@media (max-width: 600px) {
+  .section-pagination { grid-template-columns: 1fr; }
+  .section-pagination a:last-child { text-align: left; justify-content: flex-start; }
+}
 
 /* the newest study reads as the lead story */
 a.card.lead { grid-column: 1 / -1; padding: clamp(1.5rem, 4vw, 2.25rem); }
@@ -659,7 +1164,7 @@ footer.site-footer a { color: var(--ink-soft); text-decoration: none; }
 footer.site-footer a:hover { color: var(--accent); }
 
 @media print {
-  nav.topnav, .toc, footer.site-footer { display: none; }
+  nav.topnav, .toc, footer.site-footer, .study-rail, .completion-toggle, .part-pagination { display: none; }
   main.content { max-width: none; }
 }
 `;
@@ -692,11 +1197,11 @@ ${NAV_PAGES.map((p) => {
       </div>
     </nav>`;
 
-export const footer = (): string => `
+export const footer = (explicitReference = false): string => `
     <footer class="site-footer">
       <div class="footer-inner">
         <span>The <em>Sure</em> Word — Bible handbook studies. Every line: reference → text → gloss.</span>
-        <span>"We have also a more sure word of prophecy" — 2 Peter 1:19</span>
+        <span>"We have also a more sure word of prophecy" — ${explicitReference ? '<a href="https://www.biblegateway.com/passage/?search=2%20Peter%201%3A19&amp;version=KJV" target="_blank" rel="noopener noreferrer">2 Peter 1:19</a>' : '2 Peter 1:19'}</span>
       </div>
     </footer>`;
 
@@ -708,6 +1213,7 @@ export const shell = (opts: {
   /** Nav section this page belongs to ('/' or '/comparisons/'). */
   section: string;
   body: string;
+  explicitFooterReference?: boolean;
 }): string => `<!doctype html>
 <html lang="en" data-theme="paper">
   <head>
@@ -727,7 +1233,7 @@ ${FONTS}
     <a class="skip-link" href="#content">Skip to content</a>
 ${nav(opts.path, opts.section)}
 ${opts.body}
-${footer()}
+${footer(opts.explicitFooterReference)}
   </body>
 </html>
 `;
@@ -933,74 +1439,311 @@ const fmtDate = (iso: string): string => {
 const count = (n: number, singular: string, plural = `${singular}s`): string =>
   `<strong>${n}</strong> ${n === 1 ? singular : plural}`;
 
-export const studyPage = (opts: {
+const masthead = (opts: {
   meta: Study.Meta;
-  articleHtml: string;
-  toc: TocEntry[];
-  words: number;
-}): string => {
-  const hasToc = opts.toc.length > 1;
-  const tocHtml = hasToc
-    ? `
-      <aside class="toc" aria-label="Table of contents">
-        <details class="toc-box">
-          <summary>Contents</summary>
-          <ol>
-${opts.toc.map((t) => `            <li><a href="#${t.id}">${t.text}</a></li>`).join('\n')}
-          </ol>
-        </details>
-      </aside>`
-    : '';
-  // The <details> ships closed (mobile-first); on desktop viewports the
-  // sidebar TOC should read as always-open, so a one-liner opens it.
-  const tocScript = hasToc
-    ? `
-    <script>
-      matchMedia('(min-width: 1024px)').matches &&
-        document.querySelector('.toc-box').setAttribute('open', '');
-    </script>`
-    : '';
-  const body = `
+  title?: string;
+  eyebrow?: string;
+  lede: string;
+  values: readonly string[];
+  actions?: string;
+}): string => `
     <div class="shell">
       <header class="masthead">
-        <p class="eyebrow">${esc(opts.meta.eyebrow)}</p>
-        <h1>${opts.meta.title}</h1>
-        <p class="lede">${esc(opts.meta.subtitle)}</p>
-        <div class="meta">
-          <span><strong>${fmtDate(opts.meta.date)}</strong></span>
-          <span>${count(opts.toc.length, 'section')}</span>
-          <span><strong>${Math.round(opts.words / 1000)}k</strong> words</span>
-          <span><strong>KJV</strong> throughout</span>
-        </div>
+        <p class="eyebrow">${opts.eyebrow ?? esc(opts.meta.eyebrow)}</p>
+        <h1>${opts.title ?? opts.meta.title}</h1>
+        <p class="lede">${opts.lede}</p>
+        <div class="meta">${opts.values.map((value) => `<span>${value}</span>`).join('')}</div>
+${opts.actions ?? ''}
       </header>
-    </div>
-    <div class="shell with-toc">
-${tocHtml}
-      <main class="content" id="content">
-${opts.articleHtml}
+    </div>`;
+
+const renderToc = (
+  document: StudyDocument,
+  current: { readonly section?: StudySection; readonly appendix?: boolean },
+): string => `
+      <aside class="toc study-toc" aria-label="Study contents">
+        <details class="toc-box">
+          <summary><span>Contents</span><span class="toc-current" data-current-section>${current.appendix === true ? 'Symbol Dictionary' : `Section ${current.section?.ordinal ?? 1} of ${document.sections.length}`}</span></summary>
+          <ol class="toc-parts">
+${document.parts
+  .map(
+    (part) => `              <li class="toc-part">
+                <span class="toc-part-label">${part.label}</span>
+                <ol class="toc-sections">
+${part.sections
+  .map(
+    (
+      section,
+    ) => `                  <li data-toc-section="${section.id}" data-section-ordinal="${section.ordinal}" data-section-title="${esc(textFromHtml(section.title))}"${current.section?.id === section.id ? ' data-active' : ''}>
+                    <a data-section-link="${section.id}" href="${section.href}"${current.section?.id === section.id ? ' aria-current="page"' : ''}><span class="toc-section-title">${section.title}</span><span class="toc-status" aria-hidden="true"></span></a>
+                  </li>`,
+  )
+  .join('\n')}
+                </ol>
+              </li>`,
+  )
+  .join('\n')}
+          </ol>
+          ${document.appendix === undefined ? '' : `<a class="toc-appendix" href="${document.appendix.href}"${current.appendix === true ? ' aria-current="page"' : ''}>Symbol Dictionary</a>`}
+        </details>
+      </aside>`;
+
+const OVERVIEW_SCRIPT = `
+    <script>
+      (() => {
+        const routesNode = document.querySelector('#section-routes');
+        let routes = {};
+        try { routes = JSON.parse(routesNode?.textContent || '{}'); } catch {}
+        if (location.hash) {
+          try {
+            const id = decodeURIComponent(location.hash.slice(1));
+            if (typeof routes[id] === 'string') { location.replace(routes[id]); return; }
+          } catch {}
+        }
+        const root = document.querySelector('[data-study-slug]');
+        const slug = root?.dataset.studySlug;
+        if (!slug) return;
+        let progress = {};
+        try { progress = JSON.parse(localStorage.getItem('sure-word:study-progress:v1:' + slug) || '{}'); } catch { return; }
+        const sectionIds = new Set([...document.querySelectorAll('[data-syllabus-section]')].map((row) => row.dataset.syllabusSection));
+        const completed = Array.isArray(progress.completed) ? [...new Set(progress.completed.filter((id) => typeof id === 'string' && sectionIds.has(id)))] : [];
+        const total = Number(root.dataset.sectionCount);
+        const resume = document.querySelector('[data-resume-reading]');
+        if (completed.length === total && root.dataset.appendixHref) {
+          resume.href = root.dataset.appendixHref;
+          resume.textContent = 'Review the Symbol Dictionary';
+          resume.hidden = false;
+        } else if (typeof progress.current === 'string' && sectionIds.has(progress.current)) {
+          const row = document.querySelector('[data-syllabus-section="' + CSS.escape(progress.current) + '"]');
+          resume.href = routes[progress.current];
+          resume.textContent = 'Resume With Section ' + row?.dataset.sectionOrdinal;
+          resume.hidden = false;
+        }
+      })();
+    </script>`;
+
+const STUDY_SCRIPT = `
+    <script>
+      (() => {
+        const details = document.querySelector('.toc-box');
+        const desktop = matchMedia('(min-width: 1024px)');
+        const syncDisclosure = () => { if (details) details.open = desktop.matches; };
+        syncDisclosure();
+        desktop.addEventListener('change', syncDisclosure);
+        const section = document.querySelector('.study-section[data-section-id]');
+        const topnav = document.querySelector('.topnav');
+        const progress = document.querySelector('.reading-progress');
+        const allRows = [...document.querySelectorAll('[data-toc-section]')];
+        const slug = document.querySelector('[data-study-slug]')?.dataset.studySlug;
+        const key = 'sure-word:study-progress:v1:' + slug;
+        let frame = 0;
+        const validIds = new Set(allRows.map((row) => row.dataset.tocSection));
+        let state = { completed: [], current: '' };
+        try { const parsed = JSON.parse(localStorage.getItem(key) || '{}'); state = { completed: Array.isArray(parsed.completed) ? [...new Set(parsed.completed.filter((id) => typeof id === 'string' && validIds.has(id)))] : [], current: typeof parsed.current === 'string' && validIds.has(parsed.current) ? parsed.current : '' }; } catch {}
+        const save = () => {
+          try { localStorage.setItem(key, JSON.stringify({ completed: state.completed, current: state.current })); } catch {}
+        };
+        const renderCompletion = () => {
+          const completed = new Set(state.completed);
+          for (const row of allRows) {
+            const done = completed.has(row.dataset.tocSection);
+            row.toggleAttribute('data-complete', done);
+            const status = row.querySelector('.toc-status');
+            if (status) status.textContent = row.dataset.tocSection === sectionId ? 'Current' : done ? '✓ Complete' : '';
+          }
+          const input = document.querySelector('[data-completion-toggle]');
+          if (!input) return;
+          const done = completed.has(sectionId);
+          input.checked = done;
+          section.toggleAttribute('data-complete', done);
+          input.parentElement.querySelector('[data-completion-label]').textContent = done ? 'Section ' + input.dataset.sectionOrdinal + ' Complete' : 'Mark Section ' + input.dataset.sectionOrdinal + ' Complete';
+        };
+        if (!section) return;
+        const sectionId = section.dataset.sectionId;
+        const updateProgress = () => {
+          const start = section.offsetTop;
+          const end = start + section.offsetHeight - innerHeight;
+          const value = Math.max(0, Math.min(1, (scrollY - start) / Math.max(1, end - start)));
+          progress?.style.setProperty('--section-progress', String(value));
+          progress?.setAttribute('aria-valuenow', String(Math.round(value * 100)));
+        };
+        const restore = () => {
+          if (state.current !== sectionId) { state.current = sectionId; save(); }
+          renderCompletion();
+          updateProgress();
+        };
+        if (topnav) new ResizeObserver(() => document.documentElement.style.setProperty('--topnav-height', topnav.getBoundingClientRect().height + 'px')).observe(topnav);
+        const input = document.querySelector('[data-completion-toggle]');
+        if (input) {
+          input.addEventListener('change', () => {
+            const completed = new Set(state.completed);
+            if (input.checked) completed.add(sectionId); else completed.delete(sectionId);
+            state.completed = [...completed];
+            save(); renderCompletion();
+          });
+        }
+        restore();
+        addEventListener('scroll', () => {
+          if (frame) return;
+          frame = requestAnimationFrame(() => { frame = 0; updateProgress(); });
+        }, { passive: true });
+        addEventListener('pageshow', restore);
+      })();
+    </script>`;
+
+export const studyLandingPage = (opts: { meta: Study.Meta; document: StudyDocument }): string => {
+  const first = opts.document.sections[0];
+  const routeEntries = opts.document.sections.map((section) => [section.id, section.href]);
+  if (opts.document.appendix !== undefined)
+    routeEntries.push([opts.document.appendix.id, opts.document.appendix.href]);
+  const routes = JSON.stringify(Object.fromEntries(routeEntries)).replaceAll('<', '\\u003c');
+  const minutes = estimateReadingMinutes(opts.document.words);
+  const body = `${masthead({
+    meta: opts.meta,
+    lede: esc(opts.meta.subtitle),
+    values: [
+      `<strong>${fmtDate(opts.meta.date)}</strong>`,
+      count(opts.document.sections.length, 'section'),
+      `<strong>${formatReadingTime(minutes)}</strong>`,
+      '<strong>KJV</strong>',
+    ],
+  })}
+    <div class="shell">
+      <main class="study-overview" id="content" data-study-slug="${opts.meta.slug}" data-section-count="${opts.document.sections.length}"${opts.document.appendix === undefined ? '' : ` data-appendix-href="${opts.document.appendix.href}"`}>
+        <section class="study-introduction" aria-labelledby="before-you-begin">
+          <h2 id="before-you-begin">Before You Begin</h2>
+${opts.document.introductionHtml}
+        </section>
+        ${first === undefined ? '' : `<div class="study-actions"><a class="start-reading" href="${first.href}">Start With Section 1</a><a class="resume-reading" data-resume-reading hidden></a></div>`}
+        <nav class="study-syllabus" aria-label="Study outline">
+          <ol class="part-list">
+${opts.document.parts
+  .map(
+    (part) => `            <li class="part-card">
+              <p class="part-label">${part.label}</p>
+              <h2>${part.title}</h2>
+              <p class="part-card-meta">${count(part.sections.length, 'section')} · ${formatReadingTime(estimateReadingMinutes(part.words))}</p>
+              <ol class="section-list">
+${part.sections.map((section) => `                <li data-syllabus-section="${section.id}" data-section-ordinal="${section.ordinal}"><a href="${section.href}"><span>${section.title}</span><span>${formatReadingTime(estimateReadingMinutes(section.words))}</span>${section.summaryHtml === undefined ? '' : `<span class="section-summary">${section.summaryHtml}</span>`}</a></li>`).join('\n')}
+              </ol>
+            </li>`,
+  )
+  .join('\n')}
+          </ol>
+        </nav>
       </main>
-    </div>${tocScript}`;
+    </div>
+    <script type="application/json" id="section-routes">${routes}</script>${OVERVIEW_SCRIPT}`;
   return shell({
     title: `${opts.meta.title.replace(/<[^>]*>/g, '')} — The Sure Word`,
     description: opts.meta.description,
     path: `/${opts.meta.slug}/`,
     section: '/',
     body,
+    explicitFooterReference: true,
+  });
+};
+
+export const sectionPage = (opts: {
+  meta: Study.Meta;
+  document: StudyDocument;
+  section: StudySection;
+}): string => {
+  const section = opts.section;
+  const part = opts.document.parts[section.partOrdinal - 1];
+  const previous = opts.document.sections[section.ordinal - 2];
+  const next = opts.document.sections[section.ordinal];
+  const previousHref = previous?.href ?? `/${opts.meta.slug}/`;
+  const previousLabel = previous === undefined ? 'Study Overview' : `Previous: ${previous.title}`;
+  const nextHref = next?.href ?? opts.document.appendix?.href ?? `/${opts.meta.slug}/`;
+  const nextLabel =
+    next === undefined
+      ? opts.document.appendix === undefined
+        ? 'Next: Study Overview'
+        : 'Next: Symbol Dictionary'
+      : `Next: ${next.title}`;
+  const article = `        <section class="study-section" data-section-id="${section.id}" aria-labelledby="${section.id}">
+          <header class="section-header">
+            <h1 id="${section.id}"><a class="anchor" href="#${section.id}" aria-label="Link to section">¶</a>${section.title}</h1>
+            <p class="section-meta">Section ${section.ordinal} of ${opts.document.sections.length} · ${formatReadingTime(estimateReadingMinutes(section.words))}</p>
+          </header>
+${section.html}
+          <footer class="section-end">
+            <label class="completion-control"><input type="checkbox" data-completion-toggle="${section.id}" data-section-ordinal="${section.ordinal}" /><span data-completion-label>Mark Section ${section.ordinal} Complete</span></label>
+            <nav class="section-pagination" aria-label="Section navigation"><a rel="prev" href="${previousHref}">${previousLabel}</a><a rel="next" href="${nextHref}">${nextLabel}</a></nav>
+          </footer>
+        </section>`;
+  const body = `<div class="shell"><nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/${opts.meta.slug}/">${opts.meta.title}</a><span>${part?.label ?? 'Study'}</span><span aria-current="page">${section.title}</span></nav></div>
+    <div class="reading-progress" role="progressbar" aria-label="Current section progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+    <div class="shell with-toc" data-study-slug="${opts.meta.slug}">
+${renderToc(opts.document, { section })}
+      <main class="content section-content" id="content">
+${article}
+      </main>
+    </div>${STUDY_SCRIPT}`;
+  return shell({
+    title: `${textFromHtml(section.title)} — ${opts.meta.title.replace(/<[^>]*>/g, '')} — The Sure Word`,
+    description: opts.meta.description,
+    path: section.href,
+    section: '/',
+    body,
+    explicitFooterReference: true,
+  });
+};
+
+export const appendixPage = (opts: {
+  meta: Study.Meta;
+  document: StudyDocument;
+  appendix: StudyAppendix;
+}): string => {
+  const finalSection = opts.document.sections.at(-1);
+  const body = `<div class="shell"><nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/${opts.meta.slug}/">${opts.meta.title}</a><span aria-current="page">Symbol Dictionary</span></nav></div>${masthead(
+    {
+      meta: opts.meta,
+      eyebrow: esc(opts.meta.title.replace(/<[^>]*>/g, '')),
+      title: 'Symbol Dictionary',
+      lede: `Definitions for <a href="/${opts.meta.slug}/">${opts.meta.title}</a>.`,
+      values: ['<strong>Study Appendix</strong>'],
+    },
+  )}
+    <div class="shell with-toc" data-study-slug="${opts.meta.slug}">
+${renderToc(opts.document, { appendix: true })}
+      <main class="content appendix-content" id="content">
+${opts.appendix.html}
+        <nav class="section-pagination" aria-label="Appendix navigation"><a rel="prev" href="${finalSection?.href ?? `/${opts.meta.slug}/`}">Previous: ${finalSection?.title ?? 'Study Overview'}</a><a rel="next" href="/${opts.meta.slug}/">Back to Study Overview</a></nav>
+      </main>
+    </div>`;
+  return shell({
+    title: `Symbol Dictionary — ${opts.meta.title.replace(/<[^>]*>/g, '')} — The Sure Word`,
+    description: opts.meta.description,
+    path: opts.appendix.href,
+    section: '/',
+    body,
+    explicitFooterReference: true,
   });
 };
 
 export const indexPage = (opts: {
-  studies: readonly (Study.Meta & { words: number; sections: number })[];
+  studies: readonly (Study.Meta & {
+    words: number;
+    minutes: number;
+    parts: number;
+    sections: number;
+  })[];
   comparisons: readonly Comparison.Card[];
 }): string => {
   const studyCards = opts.studies
     .map(
-      (s, i) => `        <a class="card${i === 0 ? ' lead' : ''}" href="/${s.slug}/">
+      (
+        s,
+        i,
+      ) => `        <a class="card${i === 0 ? ' lead' : ''}" href="/${s.slug}/" data-study-slug="${s.slug}" data-section-count="${s.sections}">
           <span class="card-eyebrow">${esc(s.eyebrow)}</span>
           <h3>${s.title}</h3>
           <span class="card-sub">${esc(s.subtitle)}</span>
           <span class="card-desc">${esc(s.description)}</span>
-          <span class="card-meta"><span>${fmtDate(s.date)}</span><span>${s.sections} sections</span><span>${Math.round(s.words / 1000)}k words</span></span>
+          <span class="card-meta"><span>${s.parts} ${s.parts === 1 ? 'part' : 'parts'} · ${s.sections} ${s.sections === 1 ? 'section' : 'sections'} · ${formatReadingTime(s.minutes)}</span></span>
+          <span class="card-progress" data-progress-for="${s.slug}" hidden></span>
         </a>`,
     )
     .join('\n');
@@ -1042,7 +1785,22 @@ ${studyCards}
 ${comparisonCards}
         </div>
       </section>
-    </div>`;
+    </div>
+    <script>
+      (() => {
+        for (const card of document.querySelectorAll('[data-study-slug]')) {
+          try {
+            const progress = JSON.parse(localStorage.getItem('sure-word:study-progress:v1:' + card.dataset.studySlug) || '{}');
+            const completed = Array.isArray(progress.completed) ? new Set(progress.completed.filter((id) => typeof id === 'string')).size : 0;
+            if (Array.isArray(progress.completed) || typeof progress.current === 'string') {
+              const label = card.querySelector('.card-progress');
+              label.textContent = completed === Number(card.dataset.sectionCount) ? 'Complete' : completed + ' of ' + card.dataset.sectionCount + ' sections complete';
+              label.hidden = false;
+            }
+          } catch {}
+        }
+      })();
+    </script>`;
   return shell({
     title: 'The Sure Word — Bible Handbook Studies',
     description:

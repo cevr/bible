@@ -6,13 +6,15 @@ import type { PlatformError } from 'effect/PlatformError';
 import type { Comparison } from './comparison.js';
 import { COMPARISONS, STUDIES_DIR } from './content.js';
 import {
-  anchorHeadings,
   comparisonsIndexPage,
   indexPage,
+  parseStudyArticle,
   prepareArticle,
   renderMarkdown,
   splitFrontmatter,
-  studyPage,
+  studyLandingPage,
+  sectionPage,
+  appendixPage,
   STYLES,
   unifyComparisonPage,
 } from './render.js';
@@ -35,6 +37,14 @@ export class DuplicateSlug extends Schema.TaggedErrorClass<DuplicateSlug>()(
   },
 ) {}
 
+export class InvalidStudyStructure extends Schema.TaggedErrorClass<InvalidStudyStructure>()(
+  'Builder.InvalidStudyStructure',
+  {
+    file: Schema.String,
+    message: Schema.String,
+  },
+) {}
+
 class UnparseableYaml extends Schema.TaggedErrorClass<UnparseableYaml>()(
   'Builder.UnparseableYaml',
   {
@@ -42,7 +52,7 @@ class UnparseableYaml extends Schema.TaggedErrorClass<UnparseableYaml>()(
   },
 ) {}
 
-export type BuildError = InvalidFrontmatter | DuplicateSlug | PlatformError;
+export type BuildError = InvalidFrontmatter | DuplicateSlug | InvalidStudyStructure | PlatformError;
 
 export interface Summary {
   readonly studies: number;
@@ -122,7 +132,9 @@ export const layer: Layer.Layer<
     const discoverStudies = Effect.fn('Builder.discoverStudies')(function* () {
       const entries = yield* fs.readDirectory(studiesDir);
       const files = entries.filter((f) => f.endsWith('.md')).sort();
-      const candidates = yield* Effect.forEach(files, readCandidate, { concurrency: 8 });
+      const candidates = yield* Effect.forEach(files, readCandidate, {
+        concurrency: 8,
+      });
       const found = candidates.filter(Option.isSome).map((c) => c.value);
       const bySlug = new Map<string, Discovered>();
       for (const study of found) {
@@ -146,19 +158,67 @@ export const layer: Layer.Layer<
     });
 
     const buildStudy = Effect.fn('Builder.buildStudy')(function* (study: Discovered) {
-      const words = countWords(study.body);
-      const { html, toc } = anchorHeadings(prepareArticle(renderMarkdown(study.body)));
-      yield* fs.makeDirectory(path.join(dist, study.meta.slug), { recursive: true });
+      const linkedArticle = references.link(prepareArticle(renderMarkdown(study.body)));
+      const document = parseStudyArticle({
+        slug: study.meta.slug,
+        html: linkedArticle,
+      });
+      if (document.sections.length === 0) {
+        return yield* new InvalidStudyStructure({
+          file: study.file,
+          message: 'published study has zero non-Appendix sections',
+        });
+      }
+      yield* fs.makeDirectory(path.join(dist, study.meta.slug), {
+        recursive: true,
+      });
       yield* fs.writeFileString(
         path.join(dist, study.meta.slug, 'index.html'),
-        references.link(studyPage({ meta: study.meta, articleHtml: html, toc, words })),
+        studyLandingPage({ meta: study.meta, document }),
       );
+      yield* Effect.forEach(
+        document.sections,
+        (section) => {
+          const sectionDir = path.join(dist, study.meta.slug, String(section.ordinal));
+          return fs
+            .makeDirectory(sectionDir, { recursive: true })
+            .pipe(
+              Effect.andThen(
+                fs.writeFileString(
+                  path.join(sectionDir, 'index.html'),
+                  sectionPage({ meta: study.meta, document, section }),
+                ),
+              ),
+            );
+        },
+        { concurrency: 4, discard: true },
+      );
+      if (document.appendix !== undefined) {
+        const appendixDir = path.join(dist, study.meta.slug, 'appendix');
+        yield* fs.makeDirectory(appendixDir, { recursive: true });
+        yield* fs.writeFileString(
+          path.join(appendixDir, 'index.html'),
+          appendixPage({
+            meta: study.meta,
+            document,
+            appendix: document.appendix,
+          }),
+        );
+      }
       yield* Effect.logInfo('built study', {
         slug: study.meta.slug,
-        sections: toc.length,
-        words,
+        parts: document.parts.length,
+        sections: document.sections.length,
+        words: document.words,
+        minutes: Math.max(1, Math.ceil(document.words / 200)),
       });
-      return { ...study.meta, words, sections: toc.length };
+      return {
+        ...study.meta,
+        words: document.words,
+        minutes: Math.max(1, Math.ceil(document.words / 200)),
+        parts: document.parts.length,
+        sections: document.sections.length,
+      };
     });
 
     // Prebuilt pages are re-skinned on the way through (shared nav/footer,
@@ -183,7 +243,10 @@ export const layer: Layer.Layer<
             ),
         { concurrency: 8, discard: true },
       );
-      yield* Effect.logInfo('copied comparison', { outDir: comp.outDir, pages: pages.length });
+      yield* Effect.logInfo('copied comparison', {
+        outDir: comp.outDir,
+        pages: pages.length,
+      });
     });
 
     const build = Effect.fn('Builder.build')(function* () {
@@ -191,7 +254,9 @@ export const layer: Layer.Layer<
       // dist is committed and served verbatim; wipe it first so a slug rename
       // or an unpublished study can't leave a stale, orphaned page behind.
       yield* fs.remove(dist, { recursive: true, force: true });
-      yield* fs.makeDirectory(path.join(dist, 'comparisons'), { recursive: true });
+      yield* fs.makeDirectory(path.join(dist, 'comparisons'), {
+        recursive: true,
+      });
       yield* fs.writeFileString(path.join(dist, 'styles.css'), STYLES);
       const studies = yield* discoverStudies();
       const [built] = yield* Effect.all(
@@ -231,7 +296,3 @@ const parseYaml = (fm: string) =>
         message: cause instanceof globalThis.Error ? cause.message : String(cause),
       }),
   });
-
-function countWords(s: string): number {
-  return s.split(/\s+/).filter((w) => w.length > 0).length;
-}
