@@ -3,9 +3,10 @@ import { Schema } from 'effect';
 
 import {
   annotateRegisters,
+  appendixPage,
   estimateReadingMinutes,
   parseStudyArticle,
-  sectionPage,
+  partPage,
   studyLandingPage,
 } from './render.js';
 import { Study } from './study.js';
@@ -41,6 +42,8 @@ describe('parseStudyArticle', () => {
     expect(document.parts).toHaveLength(2);
     expect(document.parts[0]?.label).toBe('Part I — Beginnings');
     expect(document.parts[0]?.title).toBe('Beginnings');
+    expect(document.parts[0]?.sections).toHaveLength(2);
+    expect(document.parts[1]?.sections).toHaveLength(1);
     expect(document.sections).toHaveLength(3);
     expect(document.sections[0]?.summaryHtml).toBe('<p>The first summary.</p>');
     expect(document.appendix?.title).toBe('Appendix — Symbol Dictionary');
@@ -58,7 +61,7 @@ describe('parseStudyArticle', () => {
       ordinal: 1,
       label: 'Study',
       title: 'Study',
-      href: '/implicit/1/',
+      href: '/implicit/part-1/',
     });
     expect(document.parts[0]?.sections).toHaveLength(2);
   });
@@ -75,14 +78,17 @@ describe('parseStudyArticle', () => {
     expect(document.appendix).toBeDefined();
   });
 
-  test('uses stable numbered section routes and points Part groups at their first section', () => {
+  test('uses stable numbered Part routes and section hashes inside their Part', () => {
     const document = parseStudyArticle({ slug: 'fixture', html: fixture });
 
-    expect(document.parts.map((part) => part.href)).toEqual(['/fixture/1/', '/fixture/3/']);
+    expect(document.parts.map((part) => part.href)).toEqual([
+      '/fixture/part-1/',
+      '/fixture/part-2/',
+    ]);
     expect(document.sections.map((section) => section.href)).toEqual([
-      '/fixture/1/',
-      '/fixture/2/',
-      '/fixture/3/',
+      '/fixture/part-1/#1-first-light',
+      '/fixture/part-1/#2-second-witness',
+      '/fixture/part-2/#3-final-call',
     ]);
   });
 
@@ -138,7 +144,7 @@ describe('parseStudyArticle', () => {
     expect(section).toContain('class="symbol-link" href="/registers/appendix/#symbol-light"');
     expect(section).toContain('class="appendix-link"');
     expect(appendix).toContain('id="symbol-light"');
-    expect(appendix).toContain('class="defined-in-link" href="/registers/1/#1-owner"');
+    expect(appendix).toContain('class="defined-in-link" href="/registers/part-1/#1-owner"');
   });
 });
 
@@ -148,47 +154,69 @@ describe('study pages', () => {
   test('overview groups sections by Part while linking every action to a section route', () => {
     const html = studyLandingPage({ meta, document });
 
-    expect(html).toContain('href="/fixture/1/">Start With Section 1</a>');
+    expect(html).toContain('href="/fixture/part-1/#1-first-light">Start With Section 1</a>');
     expect(html).toContain('<h2>Beginnings</h2>');
-    expect(html).toContain('href="/fixture/2/"');
-    expect(html).not.toContain('/part-');
+    expect(html).toContain('href="/fixture/part-1/#2-second-witness"');
+    expect(html).toContain('<strong>2</strong> parts');
+    expect(html).toContain('<strong>3</strong> sections');
   });
 
-  test('renders one section with whole-study navigation, grouped TOC, and reading controls', () => {
-    const section = document.sections[1];
-    expect(section).toBeDefined();
-    if (section === undefined) return;
+  test('renders a Part with all its sections, grouped TOC, and reading controls', () => {
+    const part = document.parts[0];
+    expect(part).toBeDefined();
+    if (part === undefined) return;
 
-    const html = sectionPage({ meta, document, section });
+    const html = partPage({ meta, document, part });
 
-    expect(html).toContain('Section 2 of 3');
+    // both of Part I's sections are present
+    expect(html).toContain('data-section-id="1-first-light"');
     expect(html).toContain('data-section-id="2-second-witness"');
-    expect(html).not.toContain('data-section-id="1-first-light"');
+    // Part II's section is not on this page
     expect(html).not.toContain('data-section-id="3-final-call"');
-    expect(html).toContain('rel="prev" href="/fixture/1/"');
-    expect(html).toContain('rel="next" href="/fixture/3/"');
-    expect(html).toContain('href="/fixture/1/"');
-    expect(html).toContain('href="/fixture/3/"');
-    expect(html).toContain('aria-current="page"');
+    expect(html).toContain('Section 1 of 3');
+    expect(html).toContain('Section 2 of 3');
+    expect(html).toContain('data-part-ordinal="1"');
+    expect(html).toContain('data-section-total="3"');
     expect(html).toContain('role="progressbar"');
+    expect(html).toContain('data-completion-toggle="1-first-light"');
     expect(html).toContain('data-completion-toggle="2-second-witness"');
-    expect(html).not.toContain('/part-');
+    // current Part link is marked at render time
+    expect(html).toContain('class="toc-part-link" href="/fixture/part-1/" aria-current="page"');
+    // Part masthead h1 carries the full source label
+    expect(html).toContain('<h1>Part I — Beginnings</h1>');
   });
 
-  test('walks from the overview through every section and on to the Appendix', () => {
-    const first = document.sections[0];
-    const last = document.sections.at(-1);
-    expect(first).toBeDefined();
-    expect(last).toBeDefined();
-    if (first === undefined || last === undefined) return;
+  test('paginates sections within and across Part boundaries', () => {
+    const partOne = document.parts[0];
+    const partTwo = document.parts[1];
+    expect(partOne).toBeDefined();
+    expect(partTwo).toBeDefined();
+    if (partOne === undefined || partTwo === undefined) return;
 
-    const firstHtml = sectionPage({ meta, document, section: first });
-    const lastHtml = sectionPage({ meta, document, section: last });
+    const oneHtml = partPage({ meta, document, part: partOne });
+    const twoHtml = partPage({ meta, document, part: partTwo });
 
-    expect(firstHtml).toContain('rel="prev" href="/fixture/"');
-    expect(firstHtml).toContain('rel="next" href="/fixture/2/"');
-    expect(lastHtml).toContain('rel="prev" href="/fixture/2/"');
-    expect(lastHtml).toContain('rel="next" href="/fixture/appendix/"');
+    // first section previous → overview; same-Part next is a bare hash
+    expect(oneHtml).toContain('rel="prev" href="/fixture/"');
+    expect(oneHtml).toContain('rel="next" href="#2-second-witness"');
+    // last section of Part I crosses into Part II by absolute URL
+    expect(oneHtml).toContain('rel="next" href="/fixture/part-2/#3-final-call"');
+    // final numbered section: previous crosses back, next → Symbol Dictionary
+    expect(twoHtml).toContain('rel="prev" href="/fixture/part-1/#2-second-witness"');
+    expect(twoHtml).toContain('rel="next" href="/fixture/appendix/"');
+    expect(twoHtml).toContain('Next: Symbol Dictionary');
+  });
+
+  test('appendix links back to the final section and the overview', () => {
+    const appendix = document.appendix;
+    expect(appendix).toBeDefined();
+    if (appendix === undefined) return;
+
+    const html = appendixPage({ meta, document, appendix });
+
+    expect(html).toContain('rel="prev" href="/fixture/part-2/#3-final-call"');
+    expect(html).toContain('rel="next" href="/fixture/">Back to Study Overview');
+    expect(html).toContain('id="symbol-light"');
   });
 });
 

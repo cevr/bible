@@ -233,9 +233,10 @@ const annotateAppendix = (
         /— defined in &quot;([\s\S]*?)&quot;\./i,
         (sentence, titleHtml: string) => {
           owner = byTitle.get(normalizedSectionTitle(titleHtml));
+          // section.href already carries the in-Part hash, so link to it directly
           return owner === undefined
             ? sentence
-            : `— defined in &quot;<a class="defined-in-link" href="${owner.href}#${owner.id}">${titleHtml}</a>&quot;.`;
+            : `— defined in &quot;<a class="defined-in-link" href="${owner.href}">${titleHtml}</a>&quot;.`;
         },
       );
       entries.push({
@@ -442,7 +443,8 @@ export const parseStudyArticle = ({
       ...section,
       ordinal: index + 1,
       partOrdinal,
-      href: `/${slug}/${index + 1}/`,
+      // sections live inside their author Part's page; the anchor is the id
+      href: `/${slug}/part-${partOrdinal}/#${section.id}`,
     };
   });
   const appendixBody =
@@ -476,7 +478,8 @@ export const parseStudyArticle = ({
       ordinal: index + 1,
       label: part.label,
       title: part.title,
-      href: partSections[0]?.href ?? `/${slug}/`,
+      // stable numbered Part route — never encodes the mutable Part title
+      href: `/${slug}/part-${index + 1}/`,
       words: partSections.reduce((sum, section) => sum + section.words, 0),
       sections: partSections,
     };
@@ -1075,10 +1078,12 @@ a.card .card-meta {
 .study-toc li { display: block; border-bottom: 0; }
 .toc-part { border-bottom: 1px dashed var(--rule-soft) !important; padding: 0.35rem 0; }
 .study-toc a { min-height: 44px; display: flex; align-items: center; gap: 0.35rem; padding: 0.45rem; }
-.toc-part-label { color: var(--ink); min-height: 44px; display: flex; align-items: center; padding: 0.45rem; }
+.toc-part-link { color: var(--ink); min-height: 44px; display: flex; align-items: center; padding: 0.45rem; }
+.toc-part-link[aria-current='page'] { color: var(--accent); }
 .toc-sections { padding-left: 0.75rem !important; }
 .toc-sections a { justify-content: space-between; }
-.toc-sections li[data-active] > a { background: var(--accent-wash); border-radius: 4px; color: var(--accent); }
+.toc-sections li[data-active] > a,
+.toc-sections a[aria-current='location'] { background: var(--accent-wash); border-radius: 4px; color: var(--accent); }
 .toc-status { white-space: nowrap; font-family: var(--mono); font-size: 0.58rem; color: var(--ink-mute); }
 .toc-appendix[aria-current='page'] { background: var(--accent-wash); }
 
@@ -1092,10 +1097,13 @@ a.card .card-meta {
   transform-origin: left;
 }
 
-.study-section { margin-bottom: 4rem; }
+.study-section { margin-bottom: 5.5rem; }
 .study-section h1, .study-section h2, .study-section h3, .symbol-entry { scroll-margin-top: calc(var(--topnav-height, 3.25rem) + 4rem); }
+.part-content .study-section + .study-section { border-top: 1px solid var(--rule); padding-top: 3.5rem; }
 .section-header { margin-bottom: 2.5rem; }
-main.content .section-header h1 {
+/* the section heading is a display h2 — it must not inherit the generic
+   part-divider top rule that main.content h2 carries */
+main.content .section-header h2 {
   position: relative;
   font-family: var(--display);
   font-weight: 500;
@@ -1109,8 +1117,8 @@ main.content .section-header h1 {
   padding-top: 0;
   border-top: 0;
 }
-.section-header h1 .anchor { top: 0.15rem; }
-.section-header h1:hover .anchor, .section-header h1 .anchor:focus-visible { opacity: 1; color: var(--accent); }
+.section-header h2 .anchor { top: 0.15rem; }
+.section-header h2:hover .anchor, .section-header h2 .anchor:focus-visible { opacity: 1; color: var(--accent); }
 .section-header .section-meta { font-family: var(--mono); font-size: 0.68rem; color: var(--ink-mute); margin: 0.9rem 0 0; letter-spacing: 0.04em; }
 .section-end { border-top: 1px solid var(--rule); margin-top: 2.5rem; padding-top: 1.25rem; display: grid; gap: 1rem; }
 .completion-control { justify-self: start; gap: 0.65rem; cursor: pointer; }
@@ -1134,7 +1142,7 @@ main.content .section-header h1 {
   text-transform: uppercase;
   color: var(--ink-mute);
 }
-.study-section li[data-register='witness'] { list-style: none; border: 1px solid var(--rule); border-radius: 6px; background: var(--paper-tint); padding: 0.45rem 0.75rem; }
+.study-section li[data-register='witness'] { list-style: none; border-left: 1px solid var(--rule); background: var(--paper-tint); padding: 0.45rem 0.75rem; }
 .register-label { display: block; }
 .source-ref { font-family: var(--mono); color: var(--accent); }
 .source-quotation { color: var(--ink); font-family: var(--body); }
@@ -1473,25 +1481,40 @@ ${opts.actions ?? ''}
       </header>
     </div>`;
 
+/**
+ * Hierarchical Part → Section table of contents shared by Part and Appendix
+ * pages. Part links are real anchors to the numbered Part route; the current
+ * Part carries `aria-current="page"` at render time. Section links point at
+ * their in-Part hash and start unannotated — the page script sets
+ * `aria-current="location"` on the active one while scrolling, without ever
+ * touching the Part page's `aria-current="page"`. `data-current-section`
+ * seeds the "Part N · Section A of T" summary cue for no-JS readers.
+ */
 const renderToc = (
   document: StudyDocument,
-  current: { readonly section?: StudySection; readonly appendix?: boolean },
-): string => `
+  current: { readonly part?: StudyPart; readonly appendix?: boolean },
+): string => {
+  const firstSection = current.part?.sections[0] ?? document.sections[0];
+  const summary =
+    current.appendix === true
+      ? 'Symbol Dictionary'
+      : `Part ${current.part?.ordinal ?? 1} · Section ${firstSection?.ordinal ?? 1} of ${document.sections.length}`;
+  return `
       <aside class="toc study-toc" aria-label="Study contents">
         <details class="toc-box">
-          <summary><span>Contents</span><span class="toc-current" data-current-section>${current.appendix === true ? 'Symbol Dictionary' : `Section ${current.section?.ordinal ?? 1} of ${document.sections.length}`}</span></summary>
+          <summary><span>Contents</span><span class="toc-current" data-current-section>${summary}</span></summary>
           <ol class="toc-parts">
 ${document.parts
   .map(
     (part) => `              <li class="toc-part">
-                <span class="toc-part-label">${part.label}</span>
+                <a class="toc-part-link" href="${part.href}"${current.part?.ordinal === part.ordinal ? ' aria-current="page"' : ''}>${part.label}</a>
                 <ol class="toc-sections">
 ${part.sections
   .map(
     (
       section,
-    ) => `                  <li data-toc-section="${section.id}" data-section-ordinal="${section.ordinal}" data-section-title="${esc(textFromHtml(section.title))}"${current.section?.id === section.id ? ' data-active' : ''}>
-                    <a data-section-link="${section.id}" href="${section.href}"${current.section?.id === section.id ? ' aria-current="page"' : ''}><span class="toc-section-title">${section.title}</span><span class="toc-status" aria-hidden="true"></span></a>
+    ) => `                  <li data-toc-section="${section.id}" data-section-ordinal="${section.ordinal}" data-section-title="${esc(textFromHtml(section.title))}">
+                    <a data-section-link="${section.id}" href="${section.href}"><span class="toc-section-title">${section.title}</span><span class="toc-status" aria-hidden="true"></span></a>
                   </li>`,
   )
   .join('\n')}
@@ -1503,6 +1526,7 @@ ${part.sections
           ${document.appendix === undefined ? '' : `<a class="toc-appendix" href="${document.appendix.href}"${current.appendix === true ? ' aria-current="page"' : ''}>Symbol Dictionary</a>`}
         </details>
       </aside>`;
+};
 
 const OVERVIEW_SCRIPT = `
     <script>
@@ -1538,6 +1562,16 @@ const OVERVIEW_SCRIPT = `
       })();
     </script>`;
 
+/**
+ * Progressive enhancement for a Part page. Kept small (<6 KB), dependency-free,
+ * and non-throwing on corrupt storage. It never mutates location.hash or the
+ * history entry while scrolling — clicks navigate, scrolling only reflects.
+ *
+ *  - one IntersectionObserver drives scroll-spy across the Part's sections
+ *  - one rAF-throttled passive scroll listener drives per-section progress
+ *  - checkboxes persist completion; the active section persists as `current`
+ *  - a ResizeObserver keeps --topnav-height current for sticky offsets
+ */
 const STUDY_SCRIPT = `
     <script>
       (() => {
@@ -1546,63 +1580,96 @@ const STUDY_SCRIPT = `
         const syncDisclosure = () => { if (details) details.open = desktop.matches; };
         syncDisclosure();
         desktop.addEventListener('change', syncDisclosure);
-        const section = document.querySelector('.study-section[data-section-id]');
+        const sections = [...document.querySelectorAll('.study-section[data-section-id]')];
+        if (!sections.length) return;
+        const total = Number(document.querySelector('[data-section-total]')?.dataset.sectionTotal) || sections.length;
+        const partOrdinal = Number(document.querySelector('[data-part-ordinal]')?.dataset.partOrdinal) || 1;
         const topnav = document.querySelector('.topnav');
         const progress = document.querySelector('.reading-progress');
-        const allRows = [...document.querySelectorAll('[data-toc-section]')];
+        const currentLabel = document.querySelector('[data-current-section]');
+        const tocRows = new Map([...document.querySelectorAll('[data-toc-section]')].map((row) => [row.dataset.tocSection, row]));
+        const sectionLinks = new Map([...document.querySelectorAll('[data-section-link]')].map((a) => [a.dataset.sectionLink, a]));
         const slug = document.querySelector('[data-study-slug]')?.dataset.studySlug;
         const key = 'sure-word:study-progress:v1:' + slug;
+        const validIds = new Set(sections.map((s) => s.dataset.sectionId));
+        const allIds = new Set(tocRows.keys());
         let frame = 0;
-        const validIds = new Set(allRows.map((row) => row.dataset.tocSection));
+        let activeId = sections[0].dataset.sectionId;
         let state = { completed: [], current: '' };
-        try { const parsed = JSON.parse(localStorage.getItem(key) || '{}'); state = { completed: Array.isArray(parsed.completed) ? [...new Set(parsed.completed.filter((id) => typeof id === 'string' && validIds.has(id)))] : [], current: typeof parsed.current === 'string' && validIds.has(parsed.current) ? parsed.current : '' }; } catch {}
-        const save = () => {
-          try { localStorage.setItem(key, JSON.stringify({ completed: state.completed, current: state.current })); } catch {}
-        };
+        try { const parsed = JSON.parse(localStorage.getItem(key) || '{}'); state = { completed: Array.isArray(parsed.completed) ? [...new Set(parsed.completed.filter((id) => typeof id === 'string' && allIds.has(id)))] : [], current: typeof parsed.current === 'string' && allIds.has(parsed.current) ? parsed.current : '' }; } catch {}
+        const save = () => { try { localStorage.setItem(key, JSON.stringify({ completed: state.completed, current: state.current })); } catch {} };
+        const ordinalOf = (id) => Number(tocRows.get(id)?.dataset.sectionOrdinal) || 0;
         const renderCompletion = () => {
           const completed = new Set(state.completed);
-          for (const row of allRows) {
-            const done = completed.has(row.dataset.tocSection);
+          for (const [id, row] of tocRows) {
+            const done = completed.has(id);
             row.toggleAttribute('data-complete', done);
             const status = row.querySelector('.toc-status');
-            if (status) status.textContent = row.dataset.tocSection === sectionId ? 'Current' : done ? '✓ Complete' : '';
+            if (status) status.textContent = id === activeId ? 'Current' : done ? '✓ Complete' : '';
           }
-          const input = document.querySelector('[data-completion-toggle]');
-          if (!input) return;
-          const done = completed.has(sectionId);
-          input.checked = done;
-          section.toggleAttribute('data-complete', done);
-          input.parentElement.querySelector('[data-completion-label]').textContent = done ? 'Section ' + input.dataset.sectionOrdinal + ' Complete' : 'Mark Section ' + input.dataset.sectionOrdinal + ' Complete';
+          for (const section of sections) {
+            const id = section.dataset.sectionId;
+            const done = completed.has(id);
+            section.toggleAttribute('data-complete', done);
+            const input = section.querySelector('[data-completion-toggle]');
+            if (input) {
+              input.checked = done;
+              const label = input.parentElement.querySelector('[data-completion-label]');
+              if (label) label.textContent = (done ? 'Section ' : 'Mark Section ') + input.dataset.sectionOrdinal + ' Complete';
+            }
+          }
         };
-        if (!section) return;
-        const sectionId = section.dataset.sectionId;
+        const setActive = (id) => {
+          if (id === activeId) return;
+          activeId = id;
+          for (const [linkId, a] of sectionLinks) {
+            if (linkId === id) a.setAttribute('aria-current', 'location');
+            else if (a.getAttribute('aria-current') === 'location') a.removeAttribute('aria-current');
+          }
+          for (const [rowId, row] of tocRows) row.toggleAttribute('data-active', rowId === id);
+          if (currentLabel) currentLabel.textContent = 'Part ' + partOrdinal + ' · Section ' + ordinalOf(id) + ' of ' + total;
+          renderCompletion();
+          if (state.current !== id) { state.current = id; save(); }
+        };
+        const activeSection = () => sections.find((s) => s.dataset.sectionId === activeId) || sections[0];
         const updateProgress = () => {
+          const section = activeSection();
           const start = section.offsetTop;
           const end = start + section.offsetHeight - innerHeight;
           const value = Math.max(0, Math.min(1, (scrollY - start) / Math.max(1, end - start)));
           progress?.style.setProperty('--section-progress', String(value));
           progress?.setAttribute('aria-valuenow', String(Math.round(value * 100)));
         };
-        const restore = () => {
-          if (state.current !== sectionId) { state.current = sectionId; save(); }
-          renderCompletion();
+        const observer = new IntersectionObserver((entries) => {
+          const visible = entries.filter((e) => e.isIntersecting);
+          if (!visible.length) return;
+          visible.sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+          setActive(visible[0].target.dataset.sectionId);
           updateProgress();
-        };
-        if (topnav) new ResizeObserver(() => document.documentElement.style.setProperty('--topnav-height', topnav.getBoundingClientRect().height + 'px')).observe(topnav);
-        const input = document.querySelector('[data-completion-toggle]');
-        if (input) {
+        }, { rootMargin: '-20% 0px -65% 0px' });
+        for (const section of sections) {
+          observer.observe(section);
+          const input = section.querySelector('[data-completion-toggle]');
+          if (!input) continue;
           input.addEventListener('change', () => {
             const completed = new Set(state.completed);
-            if (input.checked) completed.add(sectionId); else completed.delete(sectionId);
+            if (input.checked) completed.add(input.dataset.completionToggle);
+            else completed.delete(input.dataset.completionToggle);
             state.completed = [...completed];
             save(); renderCompletion();
           });
         }
+        const initialActive = () => {
+          const hash = location.hash.slice(1);
+          if (hash) { try { if (validIds.has(decodeURIComponent(hash))) return decodeURIComponent(hash); } catch {} }
+          const line = innerHeight * 0.25;
+          const crossed = sections.find((s) => s.getBoundingClientRect().top <= line);
+          return (crossed || sections[0]).dataset.sectionId;
+        };
+        const restore = () => { activeId = ''; setActive(initialActive()); renderCompletion(); updateProgress(); };
+        if (topnav) new ResizeObserver(() => document.documentElement.style.setProperty('--topnav-height', topnav.getBoundingClientRect().height + 'px')).observe(topnav);
         restore();
-        addEventListener('scroll', () => {
-          if (frame) return;
-          frame = requestAnimationFrame(() => { frame = 0; updateProgress(); });
-        }, { passive: true });
+        addEventListener('scroll', () => { if (frame) return; frame = requestAnimationFrame(() => { frame = 0; updateProgress(); }); }, { passive: true });
         addEventListener('pageshow', restore);
       })();
     </script>`;
@@ -1619,9 +1686,10 @@ export const studyLandingPage = (opts: { meta: Study.Meta; document: StudyDocume
     lede: esc(opts.meta.subtitle),
     values: [
       `<strong>${fmtDate(opts.meta.date)}</strong>`,
+      count(opts.document.parts.length, 'part'),
       count(opts.document.sections.length, 'section'),
       `<strong>${formatReadingTime(minutes)}</strong>`,
-      '<strong>KJV</strong>',
+      '<strong>KJV throughout</strong>',
     ],
   })}
     <div class="shell">
@@ -1660,47 +1728,96 @@ ${part.sections.map((section) => `                <li data-syllabus-section="${s
   });
 };
 
-export const sectionPage = (opts: {
+/**
+ * Sequential previous/next targets for a numbered section. A move inside the
+ * same Part stays a same-page hash; a move across a Part boundary is the other
+ * section's absolute Part URL. The first section's previous is the overview;
+ * the final section's next is the Symbol Dictionary when present, else the
+ * overview.
+ */
+const sectionPagination = (
+  document: StudyDocument,
+  section: StudySection,
+  slug: string,
+): { previousHref: string; previousLabel: string; nextHref: string; nextLabel: string } => {
+  const previous = document.sections[section.ordinal - 2];
+  const next = document.sections[section.ordinal];
+  const sameHref = (target: StudySection): string =>
+    target.partOrdinal === section.partOrdinal ? `#${target.id}` : target.href;
+  return {
+    previousHref: previous === undefined ? `/${slug}/` : sameHref(previous),
+    previousLabel: previous === undefined ? 'Study Overview' : `Previous: ${previous.title}`,
+    nextHref: next === undefined ? (document.appendix?.href ?? `/${slug}/`) : sameHref(next),
+    nextLabel:
+      next === undefined
+        ? document.appendix === undefined
+          ? 'Next: Study Overview'
+          : 'Next: Symbol Dictionary'
+        : `Next: ${next.title}`,
+  };
+};
+
+/**
+ * One author Part on a single reading page: its numbered sections in order,
+ * each with its anchored heading, annotated content, completion control, and
+ * previous/next navigation. The masthead h1 carries the Part's full source
+ * label; the Part heading is never repeated inside <main>.
+ */
+export const partPage = (opts: {
   meta: Study.Meta;
   document: StudyDocument;
-  section: StudySection;
+  part: StudyPart;
 }): string => {
-  const section = opts.section;
-  const part = opts.document.parts[section.partOrdinal - 1];
-  const previous = opts.document.sections[section.ordinal - 2];
-  const next = opts.document.sections[section.ordinal];
-  const previousHref = previous?.href ?? `/${opts.meta.slug}/`;
-  const previousLabel = previous === undefined ? 'Study Overview' : `Previous: ${previous.title}`;
-  const nextHref = next?.href ?? opts.document.appendix?.href ?? `/${opts.meta.slug}/`;
-  const nextLabel =
-    next === undefined
-      ? opts.document.appendix === undefined
-        ? 'Next: Study Overview'
-        : 'Next: Symbol Dictionary'
-      : `Next: ${next.title}`;
-  const article = `        <section class="study-section" data-section-id="${section.id}" aria-labelledby="${section.id}">
+  const { part, document } = opts;
+  const slug = opts.meta.slug;
+  const total = document.sections.length;
+  const firstOrdinal = part.sections[0]?.ordinal ?? 1;
+  const lastOrdinal = part.sections.at(-1)?.ordinal ?? firstOrdinal;
+  const rangeLabel =
+    firstOrdinal === lastOrdinal
+      ? `Section ${firstOrdinal} of ${total}`
+      : `Sections ${firstOrdinal}–${lastOrdinal} of ${total}`;
+  const sectionsHtml = part.sections
+    .map((section) => {
+      const pagination = sectionPagination(document, section, slug);
+      return `        <section class="study-section" data-section-id="${section.id}" aria-labelledby="${section.id}">
           <header class="section-header">
-            <h1 id="${section.id}"><a class="anchor" href="#${section.id}" aria-label="Link to section">¶</a>${section.title}</h1>
-            <p class="section-meta">Section ${section.ordinal} of ${opts.document.sections.length} · ${formatReadingTime(estimateReadingMinutes(section.words))}</p>
+            <h2 id="${section.id}"><a class="anchor" href="#${section.id}" aria-label="Link to section">¶</a>${section.title}</h2>
+            <p class="section-meta">Section ${section.ordinal} of ${total} · ${formatReadingTime(estimateReadingMinutes(section.words))}</p>
           </header>
 ${section.html}
           <footer class="section-end">
             <label class="completion-control"><input type="checkbox" data-completion-toggle="${section.id}" data-section-ordinal="${section.ordinal}" /><span data-completion-label>Mark Section ${section.ordinal} Complete</span></label>
-            <nav class="section-pagination" aria-label="Section navigation"><a rel="prev" href="${previousHref}">${previousLabel}</a><a rel="next" href="${nextHref}">${nextLabel}</a></nav>
+            <nav class="section-pagination" aria-label="Section navigation"><a rel="prev" href="${pagination.previousHref}">${pagination.previousLabel}</a><a rel="next" href="${pagination.nextHref}">${pagination.nextLabel}</a></nav>
           </footer>
         </section>`;
-  const body = `<div class="shell"><nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/${opts.meta.slug}/">${opts.meta.title}</a><span>${part?.label ?? 'Study'}</span><span aria-current="page">${section.title}</span></nav></div>
+    })
+    .join('\n');
+  const body = `<div class="shell"><nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/${slug}/">${opts.meta.title}</a><span aria-current="page">${part.label}</span></nav></div>${masthead(
+    {
+      meta: opts.meta,
+      eyebrow: esc(opts.meta.title.replace(/<[^>]*>/g, '')),
+      title: part.label,
+      lede: esc(opts.meta.subtitle),
+      values: [
+        `<strong>Part ${part.ordinal} of ${document.parts.length}</strong>`,
+        rangeLabel,
+        `<strong>${formatReadingTime(estimateReadingMinutes(part.words))}</strong>`,
+        '<strong>KJV throughout</strong>',
+      ],
+    },
+  )}
     <div class="reading-progress" role="progressbar" aria-label="Current section progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
-    <div class="shell with-toc" data-study-slug="${opts.meta.slug}">
-${renderToc(opts.document, { section })}
-      <main class="content section-content" id="content">
-${article}
+    <div class="shell with-toc" data-study-slug="${slug}" data-part-ordinal="${part.ordinal}" data-section-total="${total}">
+${renderToc(document, { part })}
+      <main class="content part-content" id="content">
+${sectionsHtml}
       </main>
     </div>${STUDY_SCRIPT}`;
   return shell({
-    title: `${textFromHtml(section.title)} — ${opts.meta.title.replace(/<[^>]*>/g, '')} — The Sure Word`,
+    title: `${textFromHtml(part.title)} — ${opts.meta.title.replace(/<[^>]*>/g, '')} — The Sure Word`,
     description: opts.meta.description,
-    path: section.href,
+    path: part.href,
     section: '/',
     body,
     explicitFooterReference: true,

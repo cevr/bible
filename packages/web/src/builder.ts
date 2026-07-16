@@ -13,7 +13,7 @@ import {
   renderMarkdown,
   splitFrontmatter,
   studyLandingPage,
-  sectionPage,
+  partPage,
   appendixPage,
   STYLES,
   unifyComparisonPage,
@@ -177,16 +177,16 @@ export const layer: Layer.Layer<
         studyLandingPage({ meta: study.meta, document }),
       );
       yield* Effect.forEach(
-        document.sections,
-        (section) => {
-          const sectionDir = path.join(dist, study.meta.slug, String(section.ordinal));
+        document.parts,
+        (part) => {
+          const partDir = path.join(dist, study.meta.slug, `part-${part.ordinal}`);
           return fs
-            .makeDirectory(sectionDir, { recursive: true })
+            .makeDirectory(partDir, { recursive: true })
             .pipe(
               Effect.andThen(
                 fs.writeFileString(
-                  path.join(sectionDir, 'index.html'),
-                  sectionPage({ meta: study.meta, document, section }),
+                  path.join(partDir, 'index.html'),
+                  partPage({ meta: study.meta, document, part }),
                 ),
               ),
             );

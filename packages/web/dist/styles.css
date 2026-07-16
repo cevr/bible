@@ -553,10 +553,12 @@ a.card .card-meta {
 .study-toc li { display: block; border-bottom: 0; }
 .toc-part { border-bottom: 1px dashed var(--rule-soft) !important; padding: 0.35rem 0; }
 .study-toc a { min-height: 44px; display: flex; align-items: center; gap: 0.35rem; padding: 0.45rem; }
-.toc-part-label { color: var(--ink); min-height: 44px; display: flex; align-items: center; padding: 0.45rem; }
+.toc-part-link { color: var(--ink); min-height: 44px; display: flex; align-items: center; padding: 0.45rem; }
+.toc-part-link[aria-current='page'] { color: var(--accent); }
 .toc-sections { padding-left: 0.75rem !important; }
 .toc-sections a { justify-content: space-between; }
-.toc-sections li[data-active] > a { background: var(--accent-wash); border-radius: 4px; color: var(--accent); }
+.toc-sections li[data-active] > a,
+.toc-sections a[aria-current='location'] { background: var(--accent-wash); border-radius: 4px; color: var(--accent); }
 .toc-status { white-space: nowrap; font-family: var(--mono); font-size: 0.58rem; color: var(--ink-mute); }
 .toc-appendix[aria-current='page'] { background: var(--accent-wash); }
 
@@ -570,10 +572,13 @@ a.card .card-meta {
   transform-origin: left;
 }
 
-.study-section { margin-bottom: 4rem; }
+.study-section { margin-bottom: 5.5rem; }
 .study-section h1, .study-section h2, .study-section h3, .symbol-entry { scroll-margin-top: calc(var(--topnav-height, 3.25rem) + 4rem); }
+.part-content .study-section + .study-section { border-top: 1px solid var(--rule); padding-top: 3.5rem; }
 .section-header { margin-bottom: 2.5rem; }
-main.content .section-header h1 {
+/* the section heading is a display h2 — it must not inherit the generic
+   part-divider top rule that main.content h2 carries */
+main.content .section-header h2 {
   position: relative;
   font-family: var(--display);
   font-weight: 500;
@@ -587,8 +592,8 @@ main.content .section-header h1 {
   padding-top: 0;
   border-top: 0;
 }
-.section-header h1 .anchor { top: 0.15rem; }
-.section-header h1:hover .anchor, .section-header h1 .anchor:focus-visible { opacity: 1; color: var(--accent); }
+.section-header h2 .anchor { top: 0.15rem; }
+.section-header h2:hover .anchor, .section-header h2 .anchor:focus-visible { opacity: 1; color: var(--accent); }
 .section-header .section-meta { font-family: var(--mono); font-size: 0.68rem; color: var(--ink-mute); margin: 0.9rem 0 0; letter-spacing: 0.04em; }
 .section-end { border-top: 1px solid var(--rule); margin-top: 2.5rem; padding-top: 1.25rem; display: grid; gap: 1rem; }
 .completion-control { justify-self: start; gap: 0.65rem; cursor: pointer; }
@@ -612,7 +617,7 @@ main.content .section-header h1 {
   text-transform: uppercase;
   color: var(--ink-mute);
 }
-.study-section li[data-register='witness'] { list-style: none; border: 1px solid var(--rule); border-radius: 6px; background: var(--paper-tint); padding: 0.45rem 0.75rem; }
+.study-section li[data-register='witness'] { list-style: none; border-left: 1px solid var(--rule); background: var(--paper-tint); padding: 0.45rem 0.75rem; }
 .register-label { display: block; }
 .source-ref { font-family: var(--mono); color: var(--accent); }
 .source-quotation { color: var(--ink); font-family: var(--body); }
