@@ -6,6 +6,11 @@ import type {
   ReaderLocation,
   ReadingPlan,
 } from '../library-state/model.js';
+import type {
+  PublicationId,
+  WritingsDownloadResult,
+  WritingsLibraryPublication,
+} from '../writings/model.js';
 import type { LibraryMutationCommand } from '../local-first/model.js';
 import { Context, type Effect, type Stream } from 'effect';
 
@@ -73,6 +78,19 @@ export class LibraryStateRuntime extends Context.Service<
   LibraryStateRuntime,
   LibraryStateRuntimeShape
 >()('@bible/core/procedure/LibraryStateRuntime') {}
+
+export interface WritingsLibraryRuntimeShape {
+  readonly get: Effect.Effect<ReadonlyArray<WritingsLibraryPublication>, ProcedureError>;
+  readonly download: (
+    publicationId: PublicationId,
+  ) => Effect.Effect<WritingsDownloadResult, ProcedureError>;
+  readonly downloadAll: Effect.Effect<ReadonlyArray<WritingsDownloadResult>, ProcedureError>;
+}
+
+export class WritingsLibraryRuntime extends Context.Service<
+  WritingsLibraryRuntime,
+  WritingsLibraryRuntimeShape
+>()('@bible/core/procedure/WritingsLibraryRuntime') {}
 
 export interface DataPortabilityRuntimeShape {
   readonly export: Effect.Effect<string, ProcedureError>;

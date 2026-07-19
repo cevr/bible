@@ -22,6 +22,8 @@ import {
   ParagraphId,
   Publication,
   PublicationId,
+  WritingsDownloadResult,
+  WritingsLibraryPublication,
 } from '../writings/model.js';
 import {
   CURRENT_PROTOCOL_VERSION,
@@ -99,6 +101,27 @@ export const WritingsPublicationOpen = Rpc.make('v1.reading.writingsPublication.
 export const WritingsParagraphGet = Rpc.make('v1.reading.writingsParagraph.get', {
   payload: { publicationId: PublicationId, paragraphId: ParagraphId },
   success: Paragraph,
+  error: ProcedureError,
+  defect: sanitizedDefect,
+});
+
+export const WritingsLibraryGet = Rpc.make('v1.reading.writingsLibrary.get', {
+  payload: {},
+  success: Schema.Array(WritingsLibraryPublication),
+  error: ProcedureError,
+  defect: sanitizedDefect,
+});
+
+export const WritingsPublicationDownload = Rpc.make('v1.reading.writingsPublication.download', {
+  payload: { publicationId: PublicationId },
+  success: WritingsDownloadResult,
+  error: ProcedureError,
+  defect: sanitizedDefect,
+});
+
+export const WritingsLibraryDownloadAll = Rpc.make('v1.reading.writingsLibrary.downloadAll', {
+  payload: {},
+  success: Schema.Array(WritingsDownloadResult),
   error: ProcedureError,
   defect: sanitizedDefect,
 });
@@ -209,6 +232,9 @@ export const BibleProcedureGroup = RpcGroup.make(
   WritingsPageGet,
   WritingsPublicationOpen,
   WritingsParagraphGet,
+  WritingsLibraryGet,
+  WritingsPublicationDownload,
+  WritingsLibraryDownloadAll,
   ReadingContinuityGet,
   ReadingContinuityRecord,
   ReadingPreferencesGet,

@@ -38,6 +38,35 @@ export class Publication extends Schema.Class<Publication>('Writings/Publication
   paragraphCount: Schema.Option(NonNegativeInteger),
 }) {}
 
+export const WritingsLibrarySource = Schema.Literals(['local', 'remote', 'empty']);
+export type WritingsLibrarySource = typeof WritingsLibrarySource.Type;
+
+export const WritingsDownloadStatus = Schema.Literals(['pending', 'success', 'failed']);
+export type WritingsDownloadStatus = typeof WritingsDownloadStatus.Type;
+
+export class WritingsLibraryPublication extends Schema.Class<WritingsLibraryPublication>(
+  'Writings/LibraryPublication',
+)({
+  id: PublicationId,
+  code: PublicationCode,
+  title: Schema.NonEmptyString,
+  author: Schema.NonEmptyString,
+  paragraphCount: NonNegativeInteger,
+  source: WritingsLibrarySource,
+  status: WritingsDownloadStatus,
+  error: Schema.NullOr(Schema.String),
+}) {}
+
+export class WritingsDownloadResult extends Schema.Class<WritingsDownloadResult>(
+  'Writings/DownloadResult',
+)({
+  publicationId: PublicationId,
+  code: PublicationCode,
+  status: WritingsDownloadStatus,
+  paragraphCount: NonNegativeInteger,
+  error: Schema.NullOr(Schema.String),
+}) {}
+
 export class PublicationReference extends Schema.TaggedClass<PublicationReference>(
   'Writings/PublicationReference',
 )('publication', {

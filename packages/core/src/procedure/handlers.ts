@@ -13,6 +13,7 @@ import {
   ProcedureRuntime,
   ReadingContinuityRuntime,
   ReadingPreferencesRuntime,
+  WritingsLibraryRuntime,
 } from './services.js';
 
 const errorCode = (cause: unknown): string => {
@@ -48,6 +49,7 @@ export const BibleProcedureHandlers = BibleProcedureGroup.toLayer(
   Effect.gen(function* () {
     const bible = yield* BibleService;
     const writings = yield* WritingsService;
+    const writingsLibrary = yield* WritingsLibraryRuntime;
     const runtime = yield* ProcedureRuntime;
     const continuity = yield* ReadingContinuityRuntime;
     const preferences = yield* ReadingPreferencesRuntime;
@@ -86,6 +88,10 @@ export const BibleProcedureHandlers = BibleProcedureGroup.toLayer(
         writings
           .paragraph(WritingsReference.paragraph(input.publicationId, input.paragraphId))
           .pipe(Effect.mapError(normalizeFailure('v1.reading.writingsParagraph.get'))),
+      'v1.reading.writingsLibrary.get': () => writingsLibrary.get,
+      'v1.reading.writingsPublication.download': (input) =>
+        writingsLibrary.download(input.publicationId),
+      'v1.reading.writingsLibrary.downloadAll': () => writingsLibrary.downloadAll,
       'v1.reading.continuity.get': () =>
         continuity.get.pipe(Effect.map((location) => location ?? null)),
       'v1.reading.continuity.record': (input) => continuity.record(input),

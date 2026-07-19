@@ -8,6 +8,12 @@ import {
   applyReadingPreferencesPatch,
 } from '../reading-preferences/model.js';
 import { WritingsService } from '../writings/service.js';
+import {
+  publicationCode,
+  publicationId,
+  WritingsDownloadResult,
+  WritingsLibraryPublication,
+} from '../writings/model.js';
 import { TopicDetail, TopicId, TopicReference, TopicSection } from '../topics/model.js';
 import { TopicService } from '../topics/service.js';
 import { Effect, Layer, Option, Schema, Stream } from 'effect';
@@ -30,6 +36,7 @@ import {
   ProcedureRuntime,
   ReadingContinuityRuntime,
   ReadingPreferencesRuntime,
+  WritingsLibraryRuntime,
 } from './services.js';
 
 const genesis = BIBLE_BOOKS[0]!;
@@ -58,6 +65,17 @@ const resurrectionTopic = new TopicDetail({
   ],
 });
 
+const remotePublication = new WritingsLibraryPublication({
+  id: publicationId(127),
+  code: publicationCode('PP'),
+  title: 'Patriarchs and Prophets',
+  author: 'Ellen G. White',
+  paragraphCount: 0,
+  source: 'remote',
+  status: 'pending',
+  error: null,
+});
+
 const Dependencies = Layer.mergeAll(
   BibleService.Test({
     books: [genesis],
@@ -73,6 +91,23 @@ const Dependencies = Layer.mergeAll(
     Layer.provide(EGWParagraphDatabase.Test({ books: [], paragraphs: [] })),
   ),
   TopicService.Test([resurrectionTopic]),
+  Layer.succeed(
+    WritingsLibraryRuntime,
+    WritingsLibraryRuntime.of({
+      get: Effect.succeed([remotePublication]),
+      download: (id) =>
+        Effect.succeed(
+          new WritingsDownloadResult({
+            publicationId: id,
+            code: remotePublication.code,
+            status: 'success',
+            paragraphCount: 42,
+            error: null,
+          }),
+        ),
+      downloadAll: Effect.succeed([]),
+    }),
+  ),
   Layer.succeed(
     ProcedureRuntime,
     ProcedureRuntime.of({
@@ -162,6 +197,10 @@ describe('BibleProcedureHandlers', () => {
             limit: 20,
           });
           const catalog = yield* client['v1.reading.writingsCatalog.get']({});
+          const writingsLibrary = yield* client['v1.reading.writingsLibrary.get']({});
+          const downloaded = yield* client['v1.reading.writingsPublication.download']({
+            publicationId: remotePublication.id,
+          });
           const topics = yield* client['v1.topics.list']({ query: 'resurrection' });
           const topic = yield* client['v1.topics.get']({ id: resurrectionTopic.id });
           const preferences = yield* client['v1.preferences.reading.get']({});
@@ -174,6 +213,8 @@ describe('BibleProcedureHandlers', () => {
             foundChapter,
             search,
             catalog,
+            writingsLibrary,
+            downloaded,
             topics,
             topic,
             preferences,
@@ -188,6 +229,8 @@ describe('BibleProcedureHandlers', () => {
     expect(result.search.total).toBe(1);
     expect(result.search.hits[0]?.verse.text).toStartWith('In the beginning');
     expect(result.catalog).toEqual([]);
+    expect(result.writingsLibrary).toEqual([remotePublication]);
+    expect(result.downloaded).toMatchObject({ code: 'PP', status: 'success' });
     expect(result.topics).toEqual([
       {
         id: resurrectionTopic.id,
