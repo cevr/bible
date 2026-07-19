@@ -4,6 +4,7 @@ import { createMemo } from 'solid-js';
 
 import {
   BibleReader,
+  BibleSearch,
   WritingsCatalog,
   WritingsPageReader,
   WritingsParagraphReader,
@@ -35,6 +36,19 @@ const WritingsPageRoute = () => {
   return (
     <Show when={reference()} fallback={<NotFoundContent requestedPath={location.pathname} />}>
       {(current) => <WritingsPageReader reference={current()} />}
+    </Show>
+  );
+};
+
+const SearchRoute = () => {
+  const location = useLocation();
+  const route = createMemo(() => {
+    const decoded = decodeRoute(`${location.pathname}${location.search}`);
+    return decoded?._tag === 'search' ? decoded : undefined;
+  });
+  return (
+    <Show when={route()} fallback={<NotFoundContent requestedPath={location.pathname} />}>
+      {(current) => <BibleSearch route={current()} />}
     </Show>
   );
 };
@@ -93,6 +107,7 @@ export const SharedRoutes = () => (
     <Route path="/writings/:publicationId" component={PublicationRoute} />
     <Route path="/writings/:publicationId/page/:page" component={WritingsPageRoute} />
     <Route path="/writings/:publicationId/p/:paragraphId" component={ParagraphRoute} />
+    <Route path="/search" component={SearchRoute} />
     <Route path="*404" component={NotFoundRoute} />
   </>
 );

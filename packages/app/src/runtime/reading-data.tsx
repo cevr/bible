@@ -1,4 +1,4 @@
-import type { Chapter, BookNumber, ChapterNumber } from '@bible/core/bible';
+import type { Chapter, BookNumber, ChapterNumber, SearchWindow } from '@bible/core/bible';
 import type { ReadingPreferences, ReadingPreferencesPatch } from '@bible/core/reading-preferences';
 import type {
   Page,
@@ -27,6 +27,13 @@ export interface BibleChapterInput {
   readonly chapter: ChapterNumber;
 }
 
+export interface BibleSearchInput {
+  readonly query: string;
+  readonly books?: readonly BookNumber[];
+  readonly offset?: number;
+  readonly limit?: number;
+}
+
 export interface WritingsCatalogInput {
   readonly author?: string;
 }
@@ -53,6 +60,7 @@ type PreferencesMutation = ReturnType<typeof MutationCommit<typeof ReadingPrefer
 
 export interface ReadingData {
   readonly bibleChapters: AsyncCache<BibleChapterInput, Chapter>;
+  readonly bibleSearch: AsyncCache<BibleSearchInput, SearchWindow>;
   readonly writingsCatalog: AsyncCache<WritingsCatalogInput, readonly Publication[]>;
   readonly writingsPages: AsyncCache<WritingsPageInput, Page>;
   readonly writingsPublications: AsyncCache<WritingsPublicationInput, Page>;
@@ -77,6 +85,11 @@ export const createReadingData = (input: CreateReadingDataInput): ReadingData =>
       name: 'BibleChapter',
       runtime,
       lookup: (query) => input.procedures['v1.reading.bibleChapter.get'](query),
+    }),
+    bibleSearch: createAsyncCache({
+      name: 'BibleSearch',
+      runtime,
+      lookup: (query) => input.procedures['v1.reading.bibleSearch.get'](query),
     }),
     writingsCatalog: createAsyncCache({
       name: 'WritingsCatalog',

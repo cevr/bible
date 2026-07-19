@@ -455,6 +455,93 @@ a {
   padding: 0.6rem 0.75rem;
 }
 
+.bible-search {
+  width: min(calc(100% - 2rem), 48rem);
+  margin: 0 auto;
+  padding: clamp(3.5rem, 8vh, 6rem) 0 6rem;
+}
+
+.bible-search__heading {
+  margin-bottom: 2rem;
+}
+
+.bible-search__form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.65rem;
+}
+
+.bible-search__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0.85rem 0 2.5rem;
+}
+
+.bible-search__filters .bible-button {
+  min-height: 2rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  color: var(--bible-muted);
+  background: transparent;
+}
+
+.bible-search__filters .bible-button[aria-pressed='true'] {
+  border-color: color-mix(in srgb, var(--bible-accent) 45%, transparent);
+  color: var(--bible-accent);
+  background: var(--bible-accent-soft);
+}
+
+.bible-search__summary,
+.bible-search__empty {
+  color: var(--bible-muted);
+  font-family: var(--bible-reader-serif);
+  line-height: 1.65;
+  text-align: center;
+}
+
+.bible-search__summary {
+  margin: 0 0 1.25rem;
+  font-family: var(--bible-interface-sans);
+  font-size: 0.75rem;
+  letter-spacing: 0.025em;
+}
+
+.bible-search__results ol {
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--bible-rule);
+  list-style: none;
+}
+
+.bible-search__results li {
+  border-bottom: 1px solid var(--bible-rule);
+}
+
+.bible-search__results a {
+  display: grid;
+  gap: 0.55rem;
+  padding: 1.25rem 0.5rem;
+  text-decoration: none;
+}
+
+.bible-search__results a:hover {
+  background: var(--bible-accent-soft);
+}
+
+.bible-search__results strong {
+  color: var(--bible-accent);
+  font-family: var(--bible-interface-sans);
+  font-size: 0.72rem;
+  letter-spacing: 0.035em;
+}
+
+.bible-search__results span {
+  font-family: var(--bible-reader-serif);
+  font-size: 1.08rem;
+  line-height: 1.6;
+}
+
 @media (max-width: 44rem) {
   .bible-app-header {
     grid-template-columns: 1fr auto;
@@ -473,9 +560,14 @@ a {
 
   .bible-reader,
   .bible-library,
+  .bible-search,
   .bible-empty-route {
     width: min(calc(100% - 2rem), var(--bible-reading-measure));
     padding-top: 3.25rem;
+  }
+
+  .bible-search__form {
+    grid-template-columns: 1fr;
   }
 
   .bible-scripture,

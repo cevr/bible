@@ -23,6 +23,7 @@ const HandlerLayer = BibleProcedureGroup.toLayer(
     'v1.runtime.connect': () => Effect.succeed(connection),
     'v1.runtime.events': () => Stream.empty,
     'v1.reading.bibleChapter.get': () => Effect.die('unused'),
+    'v1.reading.bibleSearch.get': () => Effect.die('unused'),
     'v1.reading.writingsCatalog.get': () => Effect.succeed([]),
     'v1.reading.writingsPage.get': () => Effect.die('unused'),
     'v1.reading.writingsPublication.open': () => Effect.die('unused'),

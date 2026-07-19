@@ -1,7 +1,7 @@
 import { Schema } from 'effect';
 import { Rpc, RpcGroup } from 'effect/unstable/rpc';
 
-import { BookNumber, Chapter, ChapterNumber } from '../bible/model.js';
+import { BookNumber, Chapter, ChapterNumber, SearchWindow } from '../bible/model.js';
 import {
   ReadingPreferences,
   ReadingPreferencesPatch as ReadingPreferencesPatchSchema,
@@ -54,6 +54,18 @@ export const BibleChapterGet = Rpc.make('v1.reading.bibleChapter.get', {
   defect: sanitizedDefect,
 });
 
+export const BibleSearchGet = Rpc.make('v1.reading.bibleSearch.get', {
+  payload: {
+    query: Schema.String,
+    books: Schema.optional(Schema.Array(BookNumber)),
+    offset: Schema.optional(Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))),
+    limit: Schema.optional(Schema.Int.check(Schema.isGreaterThan(0))),
+  },
+  success: SearchWindow,
+  error: ProcedureError,
+  defect: sanitizedDefect,
+});
+
 export const WritingsCatalogGet = Rpc.make('v1.reading.writingsCatalog.get', {
   payload: { author: Schema.optional(Schema.NonEmptyString) },
   success: Schema.Array(Publication),
@@ -100,6 +112,7 @@ export const BibleProcedureGroup = RpcGroup.make(
   RuntimeConnect,
   RuntimeEvents,
   BibleChapterGet,
+  BibleSearchGet,
   WritingsCatalogGet,
   WritingsPageGet,
   WritingsPublicationOpen,

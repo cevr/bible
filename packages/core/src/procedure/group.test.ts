@@ -11,6 +11,7 @@ describe('BibleProcedureGroup', () => {
       'v1.runtime.connect',
       'v1.runtime.events',
       'v1.reading.bibleChapter.get',
+      'v1.reading.bibleSearch.get',
       'v1.reading.writingsCatalog.get',
       'v1.reading.writingsPage.get',
       'v1.reading.writingsPublication.open',

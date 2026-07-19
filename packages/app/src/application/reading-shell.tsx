@@ -1,9 +1,10 @@
 import { A, useLocation } from '@solidjs/router';
 import type { ParentProps } from 'solid-js';
 
-const sectionFor = (pathname: string): 'bible' | 'writings' | 'other' => {
+const sectionFor = (pathname: string): 'bible' | 'writings' | 'search' | 'other' => {
   if (pathname.startsWith('/bible')) return 'bible';
   if (pathname.startsWith('/writings')) return 'writings';
+  if (pathname.startsWith('/search')) return 'search';
   return 'other';
 };
 
@@ -27,6 +28,9 @@ export const ReadingShell = (props: ParentProps) => {
           </A>
           <A href="/writings" aria-current={activeSection() === 'writings' ? 'page' : undefined}>
             Writings
+          </A>
+          <A href="/search" aria-current={activeSection() === 'search' ? 'page' : undefined}>
+            Search
           </A>
         </nav>
         <span aria-hidden="true" />

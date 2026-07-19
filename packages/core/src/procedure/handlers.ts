@@ -51,6 +51,14 @@ export const BibleProcedureHandlers = BibleProcedureGroup.toLayer(
         bible
           .chapter(BibleReference.chapter(input.book, input.chapter))
           .pipe(Effect.mapError(normalizeFailure('v1.reading.bibleChapter.get'))),
+      'v1.reading.bibleSearch.get': (input) =>
+        bible
+          .searchWindow(input.query, {
+            books: input.books,
+            offset: input.offset,
+            limit: input.limit,
+          })
+          .pipe(Effect.mapError(normalizeFailure('v1.reading.bibleSearch.get'))),
       'v1.reading.writingsCatalog.get': (input) =>
         writings
           .catalog(input.author)

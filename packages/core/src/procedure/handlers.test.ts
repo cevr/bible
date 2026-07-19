@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { BIBLE_BOOKS } from '../bible/canon.js';
-import { Chapter, Reference as BibleReference, Verse } from '../bible/model.js';
+import { Chapter, Reference as BibleReference, SearchHit, Verse } from '../bible/model.js';
 import { BibleService } from '../bible/service.js';
 import { EGWParagraphDatabase } from '../egw-db/book-database.js';
 import {
@@ -42,6 +42,12 @@ const Dependencies = Layer.mergeAll(
   BibleService.Test({
     books: [genesis],
     chapters: new Map([['1:1', chapter]]),
+    searchHits: [
+      new SearchHit({
+        book: genesis,
+        verse: chapter.verses[0],
+      }),
+    ],
   }),
   WritingsService.Live.pipe(
     Layer.provide(EGWParagraphDatabase.Test({ books: [], paragraphs: [] })),
@@ -93,14 +99,20 @@ describe('BibleProcedureHandlers', () => {
             book: genesis.number,
             chapter: chapter.reference.chapter,
           });
+          const search = yield* client['v1.reading.bibleSearch.get']({
+            query: 'beginning',
+            limit: 20,
+          });
           const catalog = yield* client['v1.reading.writingsCatalog.get']({});
           const preferences = yield* client['v1.preferences.reading.get']({});
-          return { foundChapter, catalog, preferences };
+          return { foundChapter, search, catalog, preferences };
         }),
       ),
     );
 
     expect(result.foundChapter.verses[0]?.text).toStartWith('In the beginning');
+    expect(result.search.total).toBe(1);
+    expect(result.search.hits[0]?.verse.text).toStartWith('In the beginning');
     expect(result.catalog).toEqual([]);
     expect(result.preferences).toEqual(DEFAULT_READING_PREFERENCES);
   });
