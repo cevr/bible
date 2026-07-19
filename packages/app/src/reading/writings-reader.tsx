@@ -8,6 +8,7 @@ import { A } from '@solidjs/router';
 import { Errored, For, Loading, Show } from '@solidjs/web';
 import { Option } from 'effect';
 
+import { AnnotationTools } from '../library/annotation-tools.js';
 import { useReadingData } from '../runtime/index.js';
 import { ScrollViewport } from '../ui/index.js';
 import { ParagraphNodes } from './paragraph-nodes.js';
@@ -72,6 +73,14 @@ const WritingsPageContent = (props: {
               </For>
             </div>
           </ScrollViewport>
+          <AnnotationTools
+            location={{
+              source: 'egw',
+              resourceId: String(page().publication.id),
+              location: `/writings/${String(page().publication.id)}/page/${String(page().reference.page)}`,
+            }}
+            label={`${page().publication.code} ${String(page().reference.page)}`}
+          />
           <nav class="bible-reader__pagination" aria-label="Page navigation">
             <Show when={Option.getOrUndefined(page().previous)}>
               {(previous) => (
@@ -116,6 +125,14 @@ export const WritingsParagraphReader = (props: { readonly reference: ParagraphRe
               </Show>
             </p>
           </div>
+          <AnnotationTools
+            location={{
+              source: 'egw',
+              resourceId: String(paragraph().reference.publicationId),
+              location: `/writings/${String(paragraph().reference.publicationId)}/p/${encodeURIComponent(paragraph().reference.paragraphId)}`,
+            }}
+            label={Option.getOrElse(paragraph().refcode, () => paragraph().publicationCode)}
+          />
         </Loading>
       </Errored>
     </article>

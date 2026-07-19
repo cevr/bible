@@ -5,6 +5,7 @@ import { Option } from 'effect';
 
 import { useReadingData } from '../runtime/index.js';
 import { ScrollViewport } from '../ui/index.js';
+import { AnnotationTools } from '../library/annotation-tools.js';
 
 export interface BibleReaderProps {
   readonly reference: ChapterReference | VerseReference;
@@ -52,6 +53,16 @@ export const BibleReader = (props: BibleReaderProps) => {
               </For>
             </div>
           </ScrollViewport>
+          <Show when={props.reference._tag === 'verse'}>
+            <AnnotationTools
+              location={{
+                source: 'bible',
+                resourceId: 'KJV',
+                location: `/bible/${String(props.reference.book)}/${String(props.reference.chapter)}/${String(props.reference._tag === 'verse' ? props.reference.verse : 1)}`,
+              }}
+              label={`${chapter().book.name} ${String(props.reference.chapter)}:${String(props.reference._tag === 'verse' ? props.reference.verse : 1)}`}
+            />
+          </Show>
           <nav class="bible-reader__pagination" aria-label="Chapter navigation">
             <Show when={Option.getOrUndefined(chapter().previous)}>
               {(previous) => (
