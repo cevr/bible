@@ -20,6 +20,7 @@ export interface SqliteDatabase {
   readonly open: (flags: number) => Promise<void>;
   readonly close: () => Promise<void>;
   readonly query: (sql: string, params?: readonly unknown[]) => Promise<readonly SqliteRow[]>;
+  readonly values: (sql: string, params?: readonly unknown[]) => Promise<readonly unknown[][]>;
   readonly write: (sql: string, params?: readonly unknown[]) => Promise<number>;
   readonly exec: (sql: string) => Promise<void>;
 }
@@ -69,6 +70,23 @@ export const makeSqliteDatabase = (
     return rows;
   };
 
+  const values = async (
+    sql: string,
+    params?: readonly unknown[],
+  ): Promise<readonly unknown[][]> => {
+    const rows: unknown[][] = [];
+    for await (const statement of sqlite.statements(requireHandle(), sql)) {
+      if (params?.length) {
+        sqlite.bind_collection(statement, params as (SQLiteCompatibleType | null)[]);
+      }
+      // eslint-disable-next-line no-await-in-loop -- SQLite statements are sequential
+      while ((await sqlite.step(statement)) === SQLite.SQLITE_ROW) {
+        rows.push([...sqlite.row(statement)]);
+      }
+    }
+    return rows;
+  };
+
   const write = async (sql: string, params?: readonly unknown[]): Promise<number> => {
     const current = requireHandle();
     for await (const statement of sqlite.statements(current, sql)) {
@@ -92,6 +110,7 @@ export const makeSqliteDatabase = (
     open,
     close,
     query,
+    values,
     write,
     exec,
   };

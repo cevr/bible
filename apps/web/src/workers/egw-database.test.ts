@@ -14,6 +14,7 @@ const makeDatabase = (writes: WriteCall[]): SqliteDatabase => ({
   open: async () => {},
   close: async () => {},
   query: async () => [],
+  values: async () => [],
   write: async (sql, params) => {
     writes.push({ sql, params });
     return 1;

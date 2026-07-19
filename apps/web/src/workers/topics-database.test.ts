@@ -13,6 +13,7 @@ const makeDatabase = (rows: readonly SqliteRow[], events: string[]): SqliteDatab
     events.push('close');
   },
   query: async () => rows,
+  values: async () => [],
   write: async () => 0,
   exec: async () => {},
 });

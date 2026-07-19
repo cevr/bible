@@ -47,10 +47,13 @@ describe('worker SQLite database adapter', () => {
     await database.open(SQLite.SQLITE_OPEN_READWRITE);
     expect(database.isOpen).toBe(true);
     expect(await database.query('SELECT value', [1])).toEqual([{ value: 42 }]);
+    expect(await database.values('SELECT value', [1])).toEqual([[42]]);
     await database.close();
     expect(database.isOpen).toBe(false);
     expect(events).toEqual([
       `open:state.db:${String(SQLite.SQLITE_OPEN_READWRITE)}:opfs`,
+      'statements:SELECT value',
+      'bind:1',
       'statements:SELECT value',
       'bind:1',
       'close:7',

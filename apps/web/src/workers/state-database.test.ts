@@ -13,6 +13,10 @@ const makeDatabase = (events: string[], failWrites = false): SqliteDatabase => (
     events.push(`query:${sql}`);
     return [{ value: 1 }];
   },
+  values: async (sql) => {
+    events.push(`values:${sql}`);
+    return [[1]];
+  },
   write: async (sql) => {
     events.push(`write:${sql}`);
     if (failWrites) throw new Error('write failed');

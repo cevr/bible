@@ -67,7 +67,8 @@
         "**/packages/core/src/local-first/**",
         "**/packages/core/src/procedure/**",
         "**/packages/core/src/reading-preferences/**",
-        "**/packages/app/src/procedure/**"
+        "**/packages/app/src/procedure/**",
+        "**/apps/web/src/workers/user-state-database.ts"
       ],
       "rules": {
         "effect/noAsyncFunction": "error",
@@ -92,6 +93,12 @@
         "effect/noGlobals": "off",
         "effect/noNewPromise": "off",
         "effect/noNodeBuiltinImport": "off"
+      }
+    },
+    {
+      "files": ["**/apps/web/src/workers/user-state-database.ts"],
+      "rules": {
+        "effect/noAsyncFunction": "off"
       }
     },
     {
