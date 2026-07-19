@@ -1,81 +1,81 @@
-import { createRoot } from 'react-dom/client';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
-import { lazy, Suspense } from 'react';
-import App from './App';
-import './styles/app.css';
+import { ReadingApplication, SharedRoutes } from '@bible/app/application';
+import { Router } from '@solidjs/router';
+import { render, Show } from '@solidjs/web';
+import { createSignal, onSettled } from 'solid-js';
 
-const BibleRoute = lazy(() => import('./routes/bible'));
-const EgwRoute = lazy(() => import('./routes/egw'));
-const SearchRoute = lazy(() => import('./routes/search'));
-const PlansRoute = lazy(() => import('./routes/plans'));
-const PracticeRoute = lazy(() => import('./routes/practice'));
-const TopicsRoute = lazy(() => import('./routes/topics'));
+import { getDatabaseWorker } from './workers/database-worker.js';
+import { getDbClient } from './workers/db-client.js';
+import { startWebProcedureHost, type ActiveWebProcedureHost } from './workers/procedure-client.js';
+import '@bible/app/styles.css';
+
+const failureMessage = (cause: unknown): string =>
+  cause instanceof Error
+    ? cause.message
+    : 'An unknown startup error prevented the library from opening.';
+
+const WebApplication = () => {
+  const [host, setHost] = createSignal<ActiveWebProcedureHost>();
+  const [failure, setFailure] = createSignal<unknown>();
+
+  onSettled(() => {
+    let disposed = false;
+    let activeHost: ActiveWebProcedureHost | undefined;
+    const starting = startWebProcedureHost({
+      worker: getDatabaseWorker(),
+      initialize: () => getDbClient().init(),
+    });
+
+    void starting.then(
+      (started) => {
+        activeHost = started;
+        if (disposed) {
+          void started.dispose();
+          return;
+        }
+        setHost(started);
+      },
+      (cause: unknown) => {
+        if (!disposed) setFailure(() => cause);
+      },
+    );
+
+    return () => {
+      disposed = true;
+      if (activeHost !== undefined) void activeHost.dispose();
+    };
+  });
+
+  return (
+    <Show
+      when={host()}
+      fallback={
+        <main class="bible-bootstrap" aria-live="polite">
+          <Show when={failure()} fallback={<p role="status">Preparing your library…</p>}>
+            {(cause) => (
+              <div role="alert">
+                <strong>The library could not be opened.</strong>
+                <p>{failureMessage(cause())}</p>
+              </div>
+            )}
+          </Show>
+        </main>
+      }
+    >
+      {(current) => (
+        <Router
+          root={(props) => (
+            <ReadingApplication procedures={current().procedures}>
+              {props.children}
+            </ReadingApplication>
+          )}
+        >
+          <SharedRoutes />
+        </Router>
+      )}
+    </Show>
+  );
+};
 
 const root = document.getElementById('root');
-if (!root) throw new Error('Root element not found');
-
-createRoot(root).render(
-  <BrowserRouter>
-    <Routes>
-      <Route element={<App />}>
-        <Route path="/" element={<Navigate to="/bible" replace />} />
-        <Route
-          path="/bible/:book?/:chapter?/:verse?"
-          element={
-            <Suspense fallback={<FallbackScreen />}>
-              <BibleRoute />
-            </Suspense>
-          }
-        />
-        <Route
-          path="/egw/:bookCode?/:page?/:para?"
-          element={
-            <Suspense fallback={<FallbackScreen />}>
-              <EgwRoute />
-            </Suspense>
-          }
-        />
-        <Route
-          path="/search"
-          element={
-            <Suspense fallback={<FallbackScreen />}>
-              <SearchRoute />
-            </Suspense>
-          }
-        />
-        <Route
-          path="/plans"
-          element={
-            <Suspense fallback={<FallbackScreen />}>
-              <PlansRoute />
-            </Suspense>
-          }
-        />
-        <Route
-          path="/practice"
-          element={
-            <Suspense fallback={<FallbackScreen />}>
-              <PracticeRoute />
-            </Suspense>
-          }
-        />
-        <Route
-          path="/topics"
-          element={
-            <Suspense fallback={<FallbackScreen />}>
-              <TopicsRoute />
-            </Suspense>
-          }
-        />
-      </Route>
-    </Routes>
-  </BrowserRouter>,
-);
-
-function FallbackScreen() {
-  return (
-    <div className="flex h-dvh w-full items-center justify-center">
-      <div className="text-muted-foreground animate-pulse">Loading…</div>
-    </div>
-  );
-}
+if (root === null) throw new Error('#root not found');
+render(() => <WebApplication />, root);

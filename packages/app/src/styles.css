@@ -55,6 +55,22 @@ body {
   background: var(--bible-paper);
 }
 
+.bible-bootstrap {
+  display: grid;
+  min-height: 100dvh;
+  place-items: center;
+  padding: 2rem;
+  color: var(--bible-muted);
+  text-align: center;
+}
+
+.bible-bootstrap strong {
+  color: var(--bible-ink);
+  font-family: var(--bible-reader-serif);
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  font-weight: 500;
+}
+
 button,
 input {
   font: inherit;

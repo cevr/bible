@@ -61,6 +61,7 @@
     "drizzle-orm": "1.0.0-beta.22",
     "effect": "4.0.0-beta.98",
     "effect-bun-test": "0.3.0",
-    "solid-js": "2.0.0-beta.20"
+    "solid-js": "2.0.0-beta.20",
+    "vite-plugin-solid": "3.0.0-next.13"
   }
 }

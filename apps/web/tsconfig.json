@@ -1,12 +1,10 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "jsx": "react-jsx",
+    "jsx": "preserve",
+    "jsxImportSource": "@solidjs/web",
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
-    "allowImportingTsExtensions": true,
-    "paths": {
-      "@/*": ["./src/*"]
-    }
+    "allowImportingTsExtensions": true
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "server/**/*.ts", "vite.config.ts"],
   "exclude": ["node_modules", "e2e", "dist"]
