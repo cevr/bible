@@ -5,7 +5,6 @@
   "exports": {
     ".": "./src/index.ts",
     "./ai": "./src/ai/index.ts",
-    "./cache": "./src/cache/index.ts",
     "./local-first": "./src/local-first/index.ts",
     "./local-first/bun": "./src/local-first/database-bun.ts",
     "./local-first/migrations/0001_user_state.sql": "./src/local-first/migrations/0001_user_state.sql",
