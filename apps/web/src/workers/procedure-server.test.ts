@@ -7,6 +7,7 @@ import { Database } from 'bun:sqlite';
 import { Effect, Fiber, Layer, Schema } from 'effect';
 
 import type { SqliteDatabase } from './sqlite-database.js';
+import type { WorkerEgwDatabase } from './egw-database.js';
 import { startWebProcedureHost } from './procedure-client.js';
 import type { ProcedureWorkerEndpoint } from './procedure-worker-protocol.js';
 import { layerProcedureServer } from './procedure-server.js';
@@ -50,6 +51,16 @@ const makeDatabase = (client: Database): SqliteDatabase => ({
     Promise.resolve(client.query(sql).run(...params.map(toBinding)).changes),
 });
 
+const writingsLibrary: WorkerEgwDatabase = {
+  initialize: () => Promise.resolve(),
+  query: () => Promise.resolve([]),
+  getBooks: () => Promise.resolve([]),
+  getSyncStatus: () => Promise.resolve([]),
+  syncBook: () => Promise.resolve(0),
+  syncFull: () => Promise.resolve(),
+  autoSyncBibleCommentaries: () => Promise.resolve(),
+};
+
 describe('web procedure server', () => {
   test('negotiates the shared host over a transferred browser message port', async () => {
     const bibleClient = new Database(':memory:');
@@ -75,6 +86,7 @@ describe('web procedure server', () => {
               port,
               bibleDatabase: makeDatabase(bibleClient),
               writingsDatabase: makeDatabase(writingsClient),
+              writingsLibrary,
               runtime: {
                 clientId,
                 store: makeBunSyncStore(userDatabase, clientId),

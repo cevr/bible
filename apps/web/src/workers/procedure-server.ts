@@ -14,12 +14,15 @@ import { Layer } from 'effect';
 import * as RpcServer from 'effect/unstable/rpc/RpcServer';
 
 import type { SqliteDatabase } from './sqlite-database.js';
+import type { WorkerEgwDatabase } from './egw-database.js';
+import { layerWebWritingsLibrary } from './writings-library-runtime.js';
 import { layerWorkerSqlClient } from './worker-sql-client.js';
 
 export interface ProcedureServerInput {
   readonly port: MessagePort;
   readonly bibleDatabase: SqliteDatabase;
   readonly writingsDatabase: SqliteDatabase;
+  readonly writingsLibrary: WorkerEgwDatabase;
   readonly runtime: LocalProcedureRuntimeOptions;
 }
 
@@ -37,6 +40,7 @@ export const layerProcedureServer = (input: ProcedureServerInput) => {
     bible,
     writings,
     topics,
+    layerWebWritingsLibrary({ database: input.writingsLibrary }),
     layerLocalProcedureRuntime(input.runtime),
   );
 

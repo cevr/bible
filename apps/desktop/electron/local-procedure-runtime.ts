@@ -9,6 +9,7 @@ import {
   type ProcedureRuntime,
   type ReadingContinuityRuntime,
   type ReadingPreferencesRuntime,
+  type WritingsLibraryRuntime,
 } from '@bible/core/procedure';
 import { WritingsService } from '@bible/core/writings/service';
 import type { TopicService } from '@bible/core/topics';
@@ -19,6 +20,7 @@ import { makeDesktopSyncStore, makeDesktopUserDatabase } from './user-state-data
 export interface DesktopProcedureDependenciesInput {
   readonly writingsDatabase: Layer.Layer<EGWParagraphDatabase>;
   readonly bible: Layer.Layer<BibleService | TopicService>;
+  readonly writingsLibrary: Layer.Layer<WritingsLibraryRuntime>;
   readonly userStateDbFile: string;
   readonly migrationSql: string;
   readonly runtime: Omit<LocalProcedureRuntimeOptions, 'store' | 'transport'>;
@@ -32,6 +34,7 @@ export const layerDesktopProcedureDependencies = (
   | ProcedureRuntime
   | ReadingContinuityRuntime
   | ReadingPreferencesRuntime
+  | WritingsLibraryRuntime
   | LibraryStateRuntime
   | TopicService
   | DataPortabilityRuntime
@@ -48,7 +51,11 @@ export const layerDesktopProcedureDependencies = (
     transport: makeSimulatedTransport(),
   });
   const writings = WritingsService.Live.pipe(Layer.provide(input.writingsDatabase));
-  return Layer.mergeAll(input.bible, writings, localRuntime, userDatabaseLifecycle).pipe(
-    Layer.orDie,
-  );
+  return Layer.mergeAll(
+    input.bible,
+    writings,
+    input.writingsLibrary,
+    localRuntime,
+    userDatabaseLifecycle,
+  ).pipe(Layer.orDie);
 };

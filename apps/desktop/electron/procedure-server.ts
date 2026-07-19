@@ -4,6 +4,7 @@ import {
   type ProcedureRuntime,
   type ReadingContinuityRuntime,
   type ReadingPreferencesRuntime,
+  type WritingsLibraryRuntime,
   type LibraryStateRuntime,
   type DataPortabilityRuntime,
 } from '@bible/core/procedure';
@@ -78,6 +79,7 @@ export const layerDesktopProcedureServer = (
   | ProcedureRuntime
   | ReadingContinuityRuntime
   | ReadingPreferencesRuntime
+  | WritingsLibraryRuntime
   | LibraryStateRuntime
   | TopicService
   | DataPortabilityRuntime

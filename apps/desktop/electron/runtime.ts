@@ -1,6 +1,7 @@
 import { BibleCorpus, BibleDatabase } from '@bible/core/bible-db';
 import { BibleService } from '@bible/core/bible/service';
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
+import { EGWApiClient, EGWAuth } from '@bible/core/egw';
 import { LibraryEntityId } from '@bible/core/library-state';
 import userStateMigrationSql from '@bible/core/local-first/migrations/0001_user_state.sql';
 import { ClientId, MutationId, Timestamp } from '@bible/core/local-first';
@@ -11,15 +12,20 @@ import {
   type ProcedureRuntime,
   type ReadingContinuityRuntime,
   type ReadingPreferencesRuntime,
+  type WritingsLibraryRuntime,
   RuntimeGeneration,
 } from '@bible/core/procedure';
 import type { WritingsService } from '@bible/core/writings/service';
 import { TopicService } from '@bible/core/topics';
 import * as SqliteNode from '@effect/sql-sqlite-node/SqliteClient';
+import * as NodeFileSystem from '@effect/platform-node/NodeFileSystem';
+import * as NodeHttpClient from '@effect/platform-node/NodeHttpClient';
+import * as NodePath from '@effect/platform-node/NodePath';
 import { Layer, ManagedRuntime, Schema } from 'effect';
 import type { Effect as EffectNs } from 'effect';
 
 import { layerDesktopProcedureDependencies } from './local-procedure-runtime.js';
+import { layerDesktopWritingsLibrary } from './writings-library-runtime.js';
 
 /**
  * Main-process Effect runtime. Hosts:
@@ -52,6 +58,7 @@ export type MainRuntime = ManagedRuntime.ManagedRuntime<
   | ProcedureRuntime
   | ReadingContinuityRuntime
   | ReadingPreferencesRuntime
+  | WritingsLibraryRuntime
   | LibraryStateRuntime
   | TopicService
   | DataPortabilityRuntime,
@@ -64,11 +71,27 @@ export const makeRuntime = (
   userStateDbFile: string,
 ): MainRuntime => {
   const writings = writingsDbLayer(writingsDbFile);
+  const platform = Layer.mergeAll(
+    NodeFileSystem.layer,
+    NodePath.layer,
+    NodeHttpClient.layerNodeHttp,
+  );
+  const auth = EGWAuth.layerLiveFs().pipe(Layer.provide(platform));
+  const api = EGWApiClient.Live.pipe(
+    Layer.provide(auth),
+    Layer.provide(NodeHttpClient.layerNodeHttp),
+  );
+  const writingsLibrary = layerDesktopWritingsLibrary.pipe(
+    Layer.provide(writings),
+    Layer.provide(api),
+    Layer.orDie,
+  );
   const bible = bibleDbLayer(bibleDbFile);
   const clientId = Schema.decodeSync(ClientId)('desktop-local');
   const procedures = layerDesktopProcedureDependencies({
     writingsDatabase: writings,
     bible,
+    writingsLibrary,
     userStateDbFile,
     migrationSql: userStateMigrationSql,
     runtime: {
@@ -97,6 +120,7 @@ export const runtimeRun = <A, E>(
     | ProcedureRuntime
     | ReadingContinuityRuntime
     | ReadingPreferencesRuntime
+    | WritingsLibraryRuntime
     | LibraryStateRuntime
     | TopicService
     | DataPortabilityRuntime

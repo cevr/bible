@@ -7,8 +7,18 @@ import type { DatabaseFileDownloader } from './database-file-downloader.js';
 import type { SqliteDatabase, SqliteRow } from './sqlite-database.js';
 
 export interface EgwSyncStatus {
+  readonly bookId: number;
   readonly bookCode: string;
   readonly status: string;
+  readonly paragraphCount: number;
+  readonly error: string | null;
+}
+
+export interface EgwLocalBook {
+  readonly bookId: number;
+  readonly bookCode: string;
+  readonly title: string;
+  readonly author: string;
   readonly paragraphCount: number;
 }
 
@@ -21,6 +31,7 @@ export interface EgwBookProgress {
 export interface WorkerEgwDatabase {
   readonly initialize: () => Promise<void>;
   readonly query: (sql: string, params?: readonly unknown[]) => Promise<readonly SqliteRow[]>;
+  readonly getBooks: () => Promise<readonly EgwLocalBook[]>;
   readonly getSyncStatus: () => Promise<readonly EgwSyncStatus[]>;
   readonly syncBook: (
     bookCode: string,
@@ -106,7 +117,7 @@ export const makeWorkerEgwDatabase = (options: {
   readonly database: SqliteDatabase;
   readonly downloader: DatabaseFileDownloader;
   readonly fetch?: (url: string) => Promise<Response>;
-  readonly log?: (...args: unknown[]) => void;
+  readonly log?: (line: string) => void;
 }): WorkerEgwDatabase => {
   const fetchResponse = options.fetch ?? globalThis.fetch;
   const log = options.log ?? (() => {});
@@ -117,7 +128,7 @@ export const makeWorkerEgwDatabase = (options: {
     const currentVersion = typeof value === 'number' ? value : 0;
     if (currentVersion !== 0 && currentVersion !== EGW_SCHEMA_VERSION) {
       log(
-        `[db-worker] EGW schema version mismatch (${currentVersion} -> ${EGW_SCHEMA_VERSION}), dropping paragraph tables`,
+        `[web.writings] schema-reset from=${String(currentVersion)} to=${String(EGW_SCHEMA_VERSION)}`,
       );
       await options.database.write('DROP TABLE IF EXISTS paragraphs_fts');
       await options.database.write('DROP TABLE IF EXISTS paragraph_bible_refs');
@@ -144,7 +155,7 @@ export const makeWorkerEgwDatabase = (options: {
        SELECT rowid, content_text, refcode_short, book_id
        FROM paragraphs`,
     );
-    log('[db-worker] FTS: full rebuild complete');
+    log('[web.writings] fts-rebuild-complete scope=all');
   };
 
   const isBookSynced = async (bookCode: string): Promise<boolean> => {
@@ -162,24 +173,58 @@ export const makeWorkerEgwDatabase = (options: {
   const getSyncStatus = async (): Promise<readonly EgwSyncStatus[]> => {
     try {
       const rows = await options.database.query(
-        'SELECT book_code, status, paragraph_count FROM sync_status ORDER BY book_code',
+        'SELECT book_id, book_code, status, paragraph_count, error_message FROM sync_status ORDER BY book_code',
       );
       return rows.flatMap((row): readonly EgwSyncStatus[] => {
+        const bookId = row['book_id'];
         const bookCode = row['book_code'];
         const status = row['status'];
         const paragraphCount = row['paragraph_count'];
+        const error = row['error_message'];
         if (
+          typeof bookId !== 'number' ||
           typeof bookCode !== 'string' ||
           typeof status !== 'string' ||
           typeof paragraphCount !== 'number'
         ) {
           return [];
         }
-        return [{ bookCode, status, paragraphCount }];
+        return [
+          {
+            bookId,
+            bookCode,
+            status,
+            paragraphCount,
+            error: typeof error === 'string' ? error : null,
+          },
+        ];
       });
     } catch {
       return [];
     }
+  };
+
+  const getBooks = async (): Promise<readonly EgwLocalBook[]> => {
+    const rows = await options.database.query(
+      'SELECT book_id, book_code, book_title, book_author, paragraph_count FROM books ORDER BY book_author, book_title',
+    );
+    return rows.flatMap((row): readonly EgwLocalBook[] => {
+      const bookId = row['book_id'];
+      const bookCode = row['book_code'];
+      const title = row['book_title'];
+      const author = row['book_author'];
+      const paragraphCount = row['paragraph_count'];
+      if (
+        typeof bookId !== 'number' ||
+        typeof bookCode !== 'string' ||
+        typeof title !== 'string' ||
+        typeof author !== 'string' ||
+        typeof paragraphCount !== 'number'
+      ) {
+        return [];
+      }
+      return [{ bookId, bookCode, title, author, paragraphCount }];
+    });
   };
 
   const syncBook = async (
@@ -187,7 +232,7 @@ export const makeWorkerEgwDatabase = (options: {
     onProgress: (event: EgwBookProgress) => void,
   ): Promise<number> => {
     if (await isBookSynced(bookCode)) {
-      log(`[db-worker] sync: ${bookCode} already synced, skipping`);
+      log(`[web.writings] sync-skipped book=${bookCode}`);
       return 0;
     }
 
@@ -286,7 +331,9 @@ export const makeWorkerEgwDatabase = (options: {
     await rebuildFtsForBook(book.bookId);
 
     onProgress({ bookCode, stage: 'Done', progress: 100 });
-    log(`[db-worker] sync: ${bookCode} done — ${paragraphs.length} paragraphs`);
+    log(
+      `[web.writings] sync-complete book=${bookCode} paragraphs=${String(paragraphs.length)}`,
+    );
     return paragraphs.length;
   };
 
@@ -294,7 +341,7 @@ export const makeWorkerEgwDatabase = (options: {
     await options.database.open(SQLite.SQLITE_OPEN_READWRITE | SQLite.SQLITE_OPEN_CREATE);
     await ensureEgwSchemaVersion();
     await options.database.exec(EGW_SCHEMA);
-    log('[db-worker] init: egw-paragraphs.db schema applied');
+    log('[web.writings] schema-ready database=egw-paragraphs');
 
     const ftsCountRows = await options.database.query('SELECT COUNT(*) as n FROM paragraphs_fts');
     const paragraphCountRows = await options.database.query('SELECT COUNT(*) as n FROM paragraphs');
@@ -306,7 +353,7 @@ export const makeWorkerEgwDatabase = (options: {
       typeof ftsCount === 'number' &&
       ftsCount === 0
     ) {
-      log('[db-worker] init: FTS index empty, rebuilding...');
+      log('[web.writings] fts-rebuild-start reason=empty-index');
       await rebuildAllFts();
     }
   };
@@ -324,7 +371,7 @@ export const makeWorkerEgwDatabase = (options: {
        SELECT book_id, book_code, 'success', ?, paragraph_count FROM books`,
       [new Date().toISOString()],
     );
-    log('[db-worker] syncFullEgw: populated sync_status from books table');
+    log('[web.writings] full-sync-status-ready source=books');
 
     await rebuildAllFts();
   };
@@ -338,7 +385,7 @@ export const makeWorkerEgwDatabase = (options: {
     for (const bookCode of BC_VOLUMES) {
       try {
         if (await isBookSynced(bookCode)) continue;
-        log(`[db-worker] auto-sync: starting ${bookCode}`);
+        log(`[web.writings] auto-sync-start book=${bookCode}`);
         const count = await syncBook(bookCode, callbacks.onProgress);
         if (count > 0) callbacks.onComplete(bookCode, count);
       } catch (error) {
@@ -370,6 +417,7 @@ export const makeWorkerEgwDatabase = (options: {
   return {
     initialize,
     query: options.database.query,
+    getBooks,
     getSyncStatus,
     syncBook,
     syncFull,

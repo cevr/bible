@@ -24,11 +24,30 @@ import {
 } from './procedure-worker-protocol.js';
 import { layerProcedureServer, type ProcedureServerInput } from './procedure-server.js';
 import { makeSqliteDatabase } from './sqlite-database.js';
-import { makeBrowserSyncStore, makeBrowserUserDatabase } from './user-state-database.js';
+import { makeIndexedDbGenerationMarkerStore } from './generation-marker.js';
+import type { BrowserSqliteVfs } from './user-state-generation.js';
+import { migrateWebUserState } from './web-state-migration.js';
 
-const log = import.meta.env['DEV'] ? (...args: unknown[]) => console.log(...args) : () => {};
+const log = import.meta.env['DEV'] ? (line: string) => console.log(line) : () => {};
 const OPFS_VFS_NAME = 'opfs-adaptive';
 const IDB_VFS_NAME = 'idb-batch-atomic';
+
+const normalizeCategory = (value: string): string => {
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return normalized.length > 0 ? normalized : 'unknown';
+};
+
+const failureCategory = (cause: unknown): string => {
+  if (typeof cause !== 'object' || cause === null) return 'unknown';
+  if ('_tag' in cause && typeof cause._tag === 'string') return normalizeCategory(cause._tag);
+  if ('code' in cause && typeof cause.code === 'string') return normalizeCategory(cause.code);
+  if ('name' in cause && typeof cause.name === 'string') return normalizeCategory(cause.name);
+  return 'unknown';
+};
 
 let procedureServer: Omit<ProcedureServerInput, 'port'> | undefined;
 let initialization: Promise<void> | undefined;
@@ -47,6 +66,7 @@ const launchProcedureServer = (port: MessagePort): void => {
 const initializeSqlite = async (): Promise<{
   readonly sqlite3: ReturnType<typeof SQLite.Factory>;
   readonly vfsName: string;
+  readonly vfs: BrowserSqliteVfs;
   readonly downloader: DatabaseFileDownloader;
 }> => {
   const module = await SQLiteESMFactory();
@@ -74,51 +94,60 @@ const initializeSqlite = async (): Promise<{
     return {
       sqlite3,
       vfsName: OPFS_VFS_NAME,
+      vfs: opfs,
       downloader: makeDatabaseFileDownloader(),
     };
   } catch (cause) {
     await opfs?.close();
-    console.warn(`[web.runtime] sqlite-vfs-fallback from=opfs to=indexeddb cause=${String(cause)}`);
+    console.warn(
+      `[web.runtime] sqlite-vfs-fallback from=opfs to=indexeddb category=${failureCategory(cause)}`,
+    );
     const idb = await IDBBatchAtomicVFS.create(IDB_VFS_NAME, module);
     sqlite3.vfs_register(idb as unknown as SQLiteVFS, false);
     log('[web.runtime] sqlite-vfs-ready kind=indexeddb');
     return {
       sqlite3,
       vfsName: IDB_VFS_NAME,
+      vfs: idb,
       downloader: makeIndexedDbDatabaseFileDownloader(idb as unknown as IndexedDbImportVfs),
     };
   }
 };
 
 const initializeDatabases = async (): Promise<void> => {
-  log('[web.runtime] sqlite-loading');
-  const { sqlite3, vfsName, downloader } = await initializeSqlite();
+  log('[web.runtime] sqlite-loading state=started');
+  const { sqlite3, vfsName, vfs, downloader } = await initializeSqlite();
   const writingsSqlite = makeSqliteDatabase(sqlite3, 'egw-paragraphs.db', vfsName);
   const writings = makeWorkerEgwDatabase({ database: writingsSqlite, downloader, log });
   const bibleSqlite = makeSqliteDatabase(sqlite3, 'bible.db', vfsName);
   const bible = makeWorkerBibleDatabase({ database: bibleSqlite, downloader });
 
   await bible.initialize((progress) => {
-    log(`[web.runtime] bible-download progress=${String(progress)}`);
+    log(`[web.bible] download-progress progress=${String(progress)}`);
   });
   try {
     await writings.initialize();
   } catch (cause) {
-    console.warn(`[web.runtime] writings-unavailable cause=${String(cause)}`);
+    console.warn(`[web.writings] unavailable category=${failureCategory(cause)}`);
   }
 
-  const userStateSqlite = makeSqliteDatabase(sqlite3, 'user-state.db', vfsName);
-  await userStateSqlite.open(SQLite.SQLITE_OPEN_READWRITE | SQLite.SQLITE_OPEN_CREATE);
-  const userDatabase = makeBrowserUserDatabase({ database: userStateSqlite });
-  await Effect.runPromise(userDatabase.migrate(userStateMigrationSql));
+  const userState = await migrateWebUserState({
+    sqlite3,
+    vfsName,
+    vfs,
+    marker: makeIndexedDbGenerationMarkerStore(),
+    writingsDatabase: writingsSqlite,
+    migrationSql: userStateMigrationSql,
+    log,
+  });
   const localClientId = Schema.decodeSync(ClientId)('web-local');
-  const store = makeBrowserSyncStore(userDatabase, localClientId);
   procedureServer = {
     bibleDatabase: bibleSqlite,
     writingsDatabase: writingsSqlite,
+    writingsLibrary: writings,
     runtime: {
       clientId: localClientId,
-      store,
+      store: userState.store,
       transport: makeSimulatedTransport(),
       generation: Schema.decodeSync(RuntimeGeneration)(crypto.randomUUID()),
       capabilities: ['external-links'],
@@ -128,25 +157,27 @@ const initializeDatabases = async (): Promise<void> => {
       now: () => Schema.decodeSync(Timestamp)(new Date().toISOString()),
     },
   };
-  log('[web.runtime] persistence-ready');
+  log('[web.runtime] persistence-ready state=ready');
 
   void writings
     .autoSyncBibleCommentaries({
       onProgress: ({ bookCode, progress }) =>
-        log(`[web.runtime] writings-sync book=${bookCode} progress=${String(progress)}`),
+        log(`[web.writings] sync-progress book=${bookCode} progress=${String(progress)}`),
       onComplete: (bookCode, count) =>
-        log(`[web.runtime] writings-ready book=${bookCode} paragraphs=${String(count)}`),
+        log(`[web.writings] sync-complete book=${bookCode} paragraphs=${String(count)}`),
       onError: (bookCode, error) =>
-        console.warn(`[web.runtime] writings-failed book=${bookCode} cause=${String(error)}`),
+        console.warn(
+          `[web.writings] sync-failed book=${bookCode} category=${failureCategory(error)}`,
+        ),
     })
     .catch((cause: unknown) => {
-      console.warn(`[web.runtime] writings-sync-failed cause=${String(cause)}`);
+      console.warn(`[web.writings] auto-sync-failed category=${failureCategory(cause)}`);
     });
 };
 
 const ensureInitialized = (): Promise<void> => {
   initialization ??= initializeDatabases().catch((cause: unknown) => {
-    console.error(`[web.runtime] startup-failed cause=${String(cause)}`);
+    console.error(`[web.runtime] startup-failed category=${failureCategory(cause)}`);
     throw cause;
   });
   return initialization;
@@ -154,18 +185,18 @@ const ensureInitialized = (): Promise<void> => {
 
 self.onmessage = (event: MessageEvent<unknown>) => {
   if (!isProcedureConnect(event.data)) {
-    console.warn('[web.runtime] rejected-non-procedure-message');
+    console.warn('[web.runtime] message-rejected reason=non-procedure');
     return;
   }
   decodeProcedureWorkerConnect(event.data);
   const port = event.ports[0];
   if (port === undefined) {
-    console.error('[web.runtime] procedure-port-missing');
+    console.error('[web.runtime] port-missing kind=procedure');
     return;
   }
   const readinessPort = event.ports[1];
   if (readinessPort === undefined) {
-    console.error('[web.runtime] readiness-port-missing');
+    console.error('[web.runtime] port-missing kind=readiness');
     port.close();
     return;
   }

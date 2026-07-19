@@ -40,6 +40,23 @@ import { EGWGroupLive } from './api/groups/EGWGroupLive.js';
 const PORT = Number(process.env['PORT'] ?? 3001);
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
+const normalizeCategory = (value: string): string => {
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return normalized.length > 0 ? normalized : 'unknown';
+};
+
+const failureCategory = (cause: unknown): string => {
+  if (typeof cause !== 'object' || cause === null) return 'unknown';
+  if ('_tag' in cause && typeof cause._tag === 'string') return normalizeCategory(cause._tag);
+  if ('code' in cause && typeof cause.code === 'string') return normalizeCategory(cause.code);
+  if ('name' in cause && typeof cause.name === 'string') return normalizeCategory(cause.name);
+  return 'unknown';
+};
+
 // ============================================================================
 // API Implementation Layer
 // ============================================================================
@@ -276,15 +293,15 @@ const PlatformLive = Layer.mergeAll(
 
 const program = Layer.launch(HttpLive).pipe(
   Effect.provide(PlatformLive),
-  Effect.tapError(Effect.logError),
+  Effect.tapError((cause) =>
+    Effect.sync(() => {
+      console.error(`[api] startup-failed category=${failureCategory(cause)}`);
+    }),
+  ),
 );
 
-console.log(`Starting Bible Tools server on port ${PORT}...`);
-console.log(`  Mode: ${IS_PRODUCTION ? 'production' : 'development'}`);
-console.log(`  API: http://localhost:${PORT}/api`);
-console.log(`  Docs: http://localhost:${PORT}/docs`);
-if (IS_PRODUCTION) {
-  console.log(`  Static: http://localhost:${PORT}/`);
-}
+console.log(
+  `[api] listening port=${String(PORT)} mode=${IS_PRODUCTION ? 'production' : 'development'} api=/api docs=/docs static=${IS_PRODUCTION ? '/' : 'vite'}`,
+);
 
 BunRuntime.runMain(program);
