@@ -11,11 +11,23 @@ const openChapter = async (page: Page, route = '/bible/1/1'): Promise<void> => {
 const collectPageErrors = (page: Page): string[] => {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
+  page.on('console', (message) => {
+    if (
+      message.type() === 'error' ||
+      message.type() === 'warning' ||
+      /(?:persistence-ready|sqlite-vfs-ready|startup-failed)/u.test(message.text())
+    ) {
+      process.stdout.write(`[browser.${message.type()}] ${message.text()}\n`);
+    }
+    if (message.type() === 'error') errors.push(message.text());
+  });
   return errors;
 };
 
 test.describe('shared Solid reading application', () => {
-  test('negotiates the worker runtime and renders a canonical chapter', async ({ page }) => {
+  test('reads, navigates, searches, and remains responsive in one local session', async ({
+    page,
+  }) => {
     const errors = collectPageErrors(page);
 
     await openChapter(page);
@@ -28,20 +40,11 @@ test.describe('shared Solid reading application', () => {
       'href',
       '/bible/1/1/1',
     );
-    expect(errors).toEqual([]);
-  });
-
-  test('uses the shared canonical route for chapter navigation', async ({ page }) => {
-    await openChapter(page);
 
     await page.getByRole('link', { name: 'Next chapter' }).click();
 
     await expect(page).toHaveURL(/\/bible\/1\/2$/);
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Genesis 2');
-  });
-
-  test('searches Scripture through the shared procedure cache', async ({ page }) => {
-    await openChapter(page);
     await page.getByRole('link', { name: 'Search' }).click();
 
     const search = page.getByRole('textbox', { name: 'Search the Bible' });
@@ -51,9 +54,7 @@ test.describe('shared Solid reading application', () => {
     await expect(page).toHaveURL(/\/search\?q=beginning/);
     await expect(page.getByText(/results? for “beginning”/)).toBeVisible({ timeout: 30_000 });
     await expect(page.getByRole('link', { name: /Genesis 1:1/ })).toContainText('In the beginning');
-  });
 
-  test('keeps the reading surface usable at a mobile viewport', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await openChapter(page);
 
@@ -62,5 +63,6 @@ test.describe('shared Solid reading application', () => {
     expect(
       await readingCanvas.evaluate((element) => element.scrollWidth <= element.clientWidth),
     ).toBe(true);
+    expect(errors).toEqual([]);
   });
 });

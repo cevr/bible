@@ -9,8 +9,8 @@ import { connectProcedureWorker } from './procedure-worker-protocol.js';
 export const layerWebProcedureTransport = (port: MessagePort) =>
   RpcClient.layerProtocolWorker({ size: 1 }).pipe(Layer.provide(BrowserWorker.layer(() => port)));
 
-export const layerWebProcedureHost = (worker: ProcedureWorkerEndpoint) =>
-  ProcedureHostLive.pipe(Layer.provide(layerWebProcedureTransport(connectProcedureWorker(worker))));
+export const layerWebProcedureHost = (port: MessagePort) =>
+  ProcedureHostLive.pipe(Layer.provide(layerWebProcedureTransport(port)));
 
 export class WebProcedureHostStartError extends Schema.TaggedErrorClass<WebProcedureHostStartError>()(
   'WebProcedureHostStartError',
@@ -29,7 +29,11 @@ export const startWebProcedureHost = (
   worker: ProcedureWorkerEndpoint,
 ): Promise<ActiveWebProcedureHost> => {
   const start = Effect.gen(function* () {
-    const runtime = ManagedRuntime.make(layerWebProcedureHost(worker));
+    const connection = connectProcedureWorker(worker);
+    yield* connection.ready.pipe(
+      Effect.mapError((cause) => new WebProcedureHostStartError({ stage: 'connect', cause })),
+    );
+    const runtime = ManagedRuntime.make(layerWebProcedureHost(connection.port));
     const host = yield* Effect.tryPromise({
       try: () => runtime.runPromise(ProcedureHost),
       catch: (cause) => new WebProcedureHostStartError({ stage: 'connect', cause }),

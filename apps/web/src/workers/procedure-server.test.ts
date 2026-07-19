@@ -63,7 +63,11 @@ describe('web procedure server', () => {
     const worker: ProcedureWorkerEndpoint = {
       postMessage: (_message, transfer) => {
         const port = transfer[0];
+        const readinessPort = transfer[1];
         if (!(port instanceof MessagePort)) throw new TypeError('expected procedure message port');
+        if (!(readinessPort instanceof MessagePort)) {
+          throw new TypeError('expected readiness message port');
+        }
         server = Effect.runFork(
           Layer.launch(
             layerProcedureServer({
@@ -85,6 +89,7 @@ describe('web procedure server', () => {
             }),
           ),
         );
+        readinessPort.postMessage({ type: 'ready' });
       },
     };
 
