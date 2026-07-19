@@ -1,0 +1,21 @@
+{
+  "name": "@bible/app",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./cache": "./src/cache/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsgo --noEmit",
+    "test": "bun --conditions=browser test",
+    "gate": "bun run typecheck && bun run test"
+  },
+  "dependencies": {
+    "@bible/core": "workspace:*",
+    "@solidjs/router": "catalog:",
+    "@solidjs/web": "catalog:",
+    "effect": "catalog:",
+    "solid-js": "catalog:"
+  }
+}
