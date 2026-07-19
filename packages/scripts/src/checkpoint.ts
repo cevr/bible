@@ -34,13 +34,20 @@ const readJsonObject = async (path: string): Promise<JsonObject> => {
 
 const dependencyVersions = async (path: string): Promise<ReadonlyMap<string, string>> => {
   const manifest = await readJsonObject(join(ROOT, path));
+  const rootManifest = await readJsonObject(join(ROOT, 'package.json'));
+  const catalog = isJsonObject(rootManifest['catalog']) ? rootManifest['catalog'] : {};
   const entries: [string, string][] = [];
 
   for (const field of ['dependencies', 'devDependencies', 'peerDependencies'] as const) {
     const dependencies = manifest[field];
     if (!isJsonObject(dependencies)) continue;
     for (const [name, version] of Object.entries(dependencies)) {
-      if (typeof version === 'string') entries.push([name, version]);
+      if (typeof version !== 'string') continue;
+      const catalogVersion = catalog[name];
+      entries.push([
+        name,
+        version === 'catalog:' && typeof catalogVersion === 'string' ? catalogVersion : version,
+      ]);
     }
   }
 
