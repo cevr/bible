@@ -56,7 +56,7 @@
     "@effect/sql-sqlite-bun": "catalog:",
     "@google/genai": "^2.11.0",
     "ai": "^7.0.26",
-    "drizzle-orm": "1.0.0-beta.22",
+    "drizzle-orm": "catalog:",
     "effect": "catalog:",
     "htmlparser2": "^12.0.0"
   },
