@@ -1,6 +1,7 @@
 import { BibleCorpus, BibleDatabase } from '@bible/core/bible-db';
 import { BibleService } from '@bible/core/bible/service';
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
+import { LibraryEntityId } from '@bible/core/library-state';
 import userStateMigrationSql from '@bible/core/local-first/migrations/0001_user_state.sql';
 import { ClientId, MutationId, Timestamp } from '@bible/core/local-first';
 import {
@@ -8,6 +9,7 @@ import {
   type LibraryStateRuntime,
   type DataPortabilityRuntime,
   type ProcedureRuntime,
+  type ReadingContinuityRuntime,
   type ReadingPreferencesRuntime,
   RuntimeGeneration,
 } from '@bible/core/procedure';
@@ -48,6 +50,7 @@ export type MainRuntime = ManagedRuntime.ManagedRuntime<
   | BibleService
   | WritingsService
   | ProcedureRuntime
+  | ReadingContinuityRuntime
   | ReadingPreferencesRuntime
   | LibraryStateRuntime
   | TopicService
@@ -73,6 +76,7 @@ export const makeRuntime = (
       generation: Schema.decodeSync(RuntimeGeneration)(crypto.randomUUID()),
       capabilities: ['external-links', 'file-import', 'file-export', 'window-controls'],
       nextMutationId: () => Schema.decodeSync(MutationId)(crypto.randomUUID()),
+      nextHistoryId: () => Schema.decodeSync(LibraryEntityId)(crypto.randomUUID()),
       nextCommitId: () => Schema.decodeSync(CommitId)(crypto.randomUUID()),
       now: () => Schema.decodeSync(Timestamp)(new Date().toISOString()),
     },
@@ -91,6 +95,7 @@ export const runtimeRun = <A, E>(
     | BibleService
     | WritingsService
     | ProcedureRuntime
+    | ReadingContinuityRuntime
     | ReadingPreferencesRuntime
     | LibraryStateRuntime
     | TopicService

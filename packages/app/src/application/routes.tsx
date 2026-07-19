@@ -1,17 +1,19 @@
-import { A, Navigate, Route, useLocation } from '@solidjs/router';
-import { Show } from '@solidjs/web';
-import { createMemo } from 'solid-js';
+import { A, Navigate, Route, useLocation, useNavigate } from '@solidjs/router';
+import { Errored, Loading, Show } from '@solidjs/web';
+import { createEffect, createMemo } from 'solid-js';
 
 import { Plans, Practice, Settings, Topics } from '../library/index.js';
 import {
   BibleReader,
   BibleSearch,
+  ReaderLoading,
   WritingsCatalog,
   WritingsPageReader,
   WritingsParagraphReader,
   WritingsPublicationReader,
 } from '../reading/index.js';
-import { decodeRoute } from '../route/index.js';
+import { decodeRoute, encodeRoute, readingRouteForLocation } from '../route/index.js';
+import { useReadingData } from '../runtime/index.js';
 
 const BibleRoute = () => {
   const location = useLocation();
@@ -100,6 +102,33 @@ const NotFoundRoute = () => {
   return <NotFoundContent requestedPath={location.pathname} />;
 };
 
+const ResumeReading = () => {
+  const data = useReadingData();
+  const navigate = useNavigate();
+  const fallback = '/bible/1/1';
+
+  createEffect(
+    () => {
+      const route = readingRouteForLocation(data.readingContinuity.get()());
+      return route ? encodeRoute(route) : fallback;
+    },
+    (target) => navigate(target, { replace: true }),
+  );
+
+  return null;
+};
+
+const RootRoute = () => {
+  const fallback = '/bible/1/1';
+  return (
+    <Errored fallback={() => <Navigate href={fallback} />}>
+      <Loading fallback={<ReaderLoading label="Opening your last passage" />}>
+        <ResumeReading />
+      </Loading>
+    </Errored>
+  );
+};
+
 const SettingsRoute = () => {
   const location = useLocation();
   const route = createMemo(() => {
@@ -154,7 +183,7 @@ const TopicsRoute = () => {
 
 export const SharedRoutes = () => (
   <>
-    <Route path="/" component={() => <Navigate href="/bible/1/1" />} />
+    <Route path="/" component={RootRoute} />
     <Route path="/bible/:book/:chapter/:verse?" component={BibleRoute} />
     <Route path="/writings" component={WritingsCatalog} />
     <Route path="/writings/:publicationId" component={PublicationRoute} />

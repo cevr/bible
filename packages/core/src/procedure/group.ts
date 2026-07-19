@@ -103,6 +103,23 @@ export const WritingsParagraphGet = Rpc.make('v1.reading.writingsParagraph.get',
   defect: sanitizedDefect,
 });
 
+export const ReadingContinuityGet = Rpc.make('v1.reading.continuity.get', {
+  payload: {},
+  success: Schema.NullOr(ReaderLocation),
+  error: ProcedureError,
+  defect: sanitizedDefect,
+});
+
+export const ReadingContinuityRecord = Rpc.make('v1.reading.continuity.record', {
+  payload: {
+    location: ReaderLocation,
+    progress: Schema.Int.pipe(Schema.check(Schema.isBetween({ minimum: 0, maximum: 10_000 }))),
+  },
+  success: MutationCommit(Schema.Struct({})),
+  error: ProcedureError,
+  defect: sanitizedDefect,
+});
+
 export const ReadingPreferencesGet = Rpc.make('v1.preferences.reading.get', {
   payload: {},
   success: ReadingPreferences,
@@ -192,6 +209,8 @@ export const BibleProcedureGroup = RpcGroup.make(
   WritingsPageGet,
   WritingsPublicationOpen,
   WritingsParagraphGet,
+  ReadingContinuityGet,
+  ReadingContinuityRecord,
   ReadingPreferencesGet,
   PatchReadingPreferencesProcedure,
   LocationAnnotationsGet,

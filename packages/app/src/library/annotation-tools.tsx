@@ -9,7 +9,7 @@ import { Errored, For, Loading, Show } from '@solidjs/web';
 import { Schema } from 'effect';
 import { createMemo, createSignal } from 'solid-js';
 
-import { decodeRoute, encodeRoute, type AppRoute } from '../route/index.js';
+import { decodeRoute, readerLocationForRoute } from '../route/index.js';
 import { useReadingData } from '../runtime/index.js';
 import { Button, Input, Tabs } from '../ui/index.js';
 
@@ -28,20 +28,6 @@ const noteId = (location: ReaderLocation) =>
   Schema.decodeUnknownSync(NoteId)(
     `note:${location.source}:${location.resourceId}:${location.location}`,
   );
-
-const readerLocationFor = (route: AppRoute): ReaderLocation | undefined => {
-  if (route._tag === 'bible') {
-    return { source: 'bible', resourceId: 'KJV', location: encodeRoute(route) };
-  }
-  if (route._tag === 'writings') {
-    return {
-      source: 'egw',
-      resourceId: String(route.reference.publicationId),
-      location: encodeRoute(route),
-    };
-  }
-  return undefined;
-};
 
 const compactFailure = (cause: unknown): string =>
   (cause instanceof Error ? cause.message : String(cause)).replace(/\s+/g, ' ').trim();
@@ -142,7 +128,7 @@ export const AnnotationTools = (props: AnnotationToolsProps) => {
   const addReference = (event: SubmitEvent) => {
     event.preventDefault();
     const route = decodeRoute(referenceDraft().trim());
-    const target = route ? readerLocationFor(route) : undefined;
+    const target = route ? readerLocationForRoute(route) : undefined;
     if (!target) {
       setFailure('Enter a canonical Bible or Writings route.');
       return;

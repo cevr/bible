@@ -1,4 +1,5 @@
 /** One worker owns browser SQLite, the Effect runtime, and the procedure server. */
+import { LibraryEntityId } from '@bible/core/library-state';
 import { ClientId, makeSimulatedTransport, MutationId, Timestamp } from '@bible/core/local-first';
 import { CommitId, RuntimeGeneration } from '@bible/core/procedure';
 import { Effect, Layer, Schema } from 'effect';
@@ -122,6 +123,7 @@ const initializeDatabases = async (): Promise<void> => {
       generation: Schema.decodeSync(RuntimeGeneration)(crypto.randomUUID()),
       capabilities: ['external-links'],
       nextMutationId: () => Schema.decodeSync(MutationId)(crypto.randomUUID()),
+      nextHistoryId: () => Schema.decodeSync(LibraryEntityId)(crypto.randomUUID()),
       nextCommitId: () => Schema.decodeSync(CommitId)(crypto.randomUUID()),
       now: () => Schema.decodeSync(Timestamp)(new Date().toISOString()),
     },

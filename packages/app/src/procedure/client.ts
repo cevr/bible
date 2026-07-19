@@ -18,6 +18,7 @@ type OptionalInputCall<Call> = Call extends (
 
 type OptionalInputProcedure =
   | 'v1.reading.writingsCatalog.get'
+  | 'v1.reading.continuity.get'
   | 'v1.preferences.reading.get'
   | 'v1.library.collections.get'
   | 'v1.library.plans.get'
@@ -33,6 +34,8 @@ export const createProcedureClient = (raw: RawProcedureClient): ProcedureClient 
   ...raw,
   'v1.reading.writingsCatalog.get': (input = {}, options) =>
     raw['v1.reading.writingsCatalog.get'](input, options),
+  'v1.reading.continuity.get': (input = {}, options) =>
+    raw['v1.reading.continuity.get'](input, options),
   'v1.preferences.reading.get': (input = {}, options) =>
     raw['v1.preferences.reading.get'](input, options),
   'v1.library.collections.get': (input = {}, options) =>

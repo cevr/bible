@@ -1,3 +1,4 @@
+import type { LibraryEntityId, ReaderLocation } from '../library-state/index.js';
 import {
   LibraryBackupDocumentFromJson,
   changeSetFor,
@@ -33,9 +34,11 @@ import {
   DataPortabilityRuntime,
   LibraryStateRuntime,
   ProcedureRuntime,
+  ReadingContinuityRuntime,
   ReadingPreferencesRuntime,
   type LibraryStateRuntimeShape,
   type ProcedureRuntimeShape,
+  type ReadingContinuityRuntimeShape,
   type ReadingPreferencesRuntimeShape,
   type DataPortabilityRuntimeShape,
 } from './services.js';
@@ -43,6 +46,7 @@ import {
 interface LocalProcedureRuntimeShape {
   readonly procedures: ProcedureRuntimeShape;
   readonly preferences: ReadingPreferencesRuntimeShape;
+  readonly continuity: ReadingContinuityRuntimeShape;
   readonly library: LibraryStateRuntimeShape;
   readonly data: DataPortabilityRuntimeShape;
 }
@@ -59,6 +63,7 @@ export interface LocalProcedureRuntimeOptions {
   readonly generation: RuntimeGeneration;
   readonly capabilities: readonly RuntimeCapability[];
   readonly nextMutationId: () => MutationId;
+  readonly nextHistoryId: () => LibraryEntityId;
   readonly nextCommitId: () => CommitId;
   readonly now: () => Timestamp;
 }
@@ -164,6 +169,30 @@ const makeRuntime = (options: LocalProcedureRuntimeOptions) =>
         }).pipe(Effect.mapError(procedureFailure('v1.preferences.reading.patch'))),
     });
 
+    const continuity = ReadingContinuityRuntime.of({
+      get: options.store.latestReading.pipe(
+        Effect.mapError(procedureFailure('v1.reading.continuity.get')),
+      ),
+      record: (input: { readonly location: ReaderLocation; readonly progress: number }) => {
+        const command = {
+          _tag: 'RecordReading' as const,
+          historyId: options.nextHistoryId(),
+          location: input.location,
+          progress: input.progress,
+          readAt: options.now(),
+        };
+        return engine.mutate(command).pipe(
+          Effect.map((envelope) => ({
+            _tag: 'MutationCommit' as const,
+            value: {},
+            commitId: Schema.decodeSync(CommitId)(envelope.mutationId),
+            changes: changeSetFor(command),
+          })),
+          Effect.mapError(procedureFailure('v1.reading.continuity.record')),
+        );
+      },
+    });
+
     const library = LibraryStateRuntime.of({
       annotations: (input) =>
         options.store
@@ -206,13 +235,17 @@ const makeRuntime = (options: LocalProcedureRuntimeOptions) =>
         }).pipe(Effect.mapError(procedureFailure('v1.data.import'))),
     });
 
-    return LocalProcedureRuntime.of({ procedures, preferences, library, data });
+    return LocalProcedureRuntime.of({ procedures, preferences, continuity, library, data });
   });
 
 export const layerLocalProcedureRuntime = (
   options: LocalProcedureRuntimeOptions,
 ): Layer.Layer<
-  ProcedureRuntime | ReadingPreferencesRuntime | LibraryStateRuntime | DataPortabilityRuntime
+  | ProcedureRuntime
+  | ReadingPreferencesRuntime
+  | ReadingContinuityRuntime
+  | LibraryStateRuntime
+  | DataPortabilityRuntime
 > => {
   const base = Layer.effect(LocalProcedureRuntime, makeRuntime(options));
   return Layer.mergeAll(
@@ -223,6 +256,10 @@ export const layerLocalProcedureRuntime = (
     Layer.effect(
       ReadingPreferencesRuntime,
       LocalProcedureRuntime.pipe(Effect.map((runtime) => runtime.preferences)),
+    ),
+    Layer.effect(
+      ReadingContinuityRuntime,
+      LocalProcedureRuntime.pipe(Effect.map((runtime) => runtime.continuity)),
     ),
     Layer.effect(
       LibraryStateRuntime,

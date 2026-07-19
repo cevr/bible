@@ -2,6 +2,7 @@ import {
   BibleProcedureGroup,
   BibleProcedureHandlers,
   type ProcedureRuntime,
+  type ReadingContinuityRuntime,
   type ReadingPreferencesRuntime,
   type LibraryStateRuntime,
   type DataPortabilityRuntime,
@@ -75,6 +76,7 @@ export const layerDesktopProcedureServer = (
   | BibleService
   | WritingsService
   | ProcedureRuntime
+  | ReadingContinuityRuntime
   | ReadingPreferencesRuntime
   | LibraryStateRuntime
   | TopicService

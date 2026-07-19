@@ -6,6 +6,7 @@ import {
   LibraryCollection as LibraryCollectionSchema,
   LocationAnnotations as LocationAnnotationsSchema,
   MemoryPractice as MemoryPracticeSchema,
+  ReaderLocation as ReaderLocationSchema,
   ReadingPlan as ReadingPlanSchema,
 } from '../library-state/model.js';
 import type {
@@ -44,6 +45,8 @@ import {
   preferences as preferenceRows,
   readingPlanProgress,
   readingPlans as readingPlanRows,
+  readingHistory,
+  readingPositions,
   serverRevisions,
   syncClients,
   tombstones,
@@ -138,6 +141,54 @@ const applyCommand = <TResultKind extends ResultKind, TRunResult>(
         .run();
 
   switch (command._tag) {
+    case 'RecordReading': {
+      const positionId = `${command.location.source}:${command.location.resourceId}`;
+      return asVoid(
+        runThen(
+          [
+            () =>
+              database.drizzle
+                .insert(readingPositions)
+                .values({
+                  id: positionId,
+                  source: command.location.source,
+                  resourceId: command.location.resourceId,
+                  location: command.location.location,
+                  progress: command.progress,
+                  createdAt,
+                  updatedAt: command.readAt,
+                  deletedAt: null,
+                })
+                .onConflictDoUpdate({
+                  target: [readingPositions.source, readingPositions.resourceId],
+                  set: {
+                    location: command.location.location,
+                    progress: command.progress,
+                    updatedAt: command.readAt,
+                    deletedAt: null,
+                  },
+                })
+                .run(),
+            () =>
+              database.drizzle
+                .insert(readingHistory)
+                .values({
+                  id: command.historyId,
+                  source: command.location.source,
+                  resourceId: command.location.resourceId,
+                  location: command.location.location,
+                  readAt: command.readAt,
+                  createdAt,
+                  updatedAt: createdAt,
+                  deletedAt: null,
+                })
+                .onConflictDoNothing()
+                .run(),
+          ],
+          () => undefined,
+        ),
+      );
+    }
     case 'SetReadingPreferences':
       return asVoid(
         database.drizzle
@@ -977,6 +1028,31 @@ export const makeDrizzleSyncStore = <TResultKind extends ResultKind, TRunResult>
       Effect.mapError(mapStoreError('readingPreferences')),
     );
 
+  const latestReading = database.bridge
+    .all({
+      execute: () =>
+        database.drizzle
+          .select({
+            source: readingPositions.source,
+            resourceId: readingPositions.resourceId,
+            location: readingPositions.location,
+            updatedAt: readingPositions.updatedAt,
+          })
+          .from(readingPositions)
+          .where(isNull(readingPositions.deletedAt))
+          .all(),
+    })
+    .pipe(
+      Effect.map((rows) => {
+        const row = rows.toSorted((left, right) =>
+          right.updatedAt.localeCompare(left.updatedAt),
+        )[0];
+        if (row === undefined) return undefined;
+        return Schema.decodeUnknownSync(ReaderLocationSchema)(row);
+      }),
+      Effect.mapError(mapStoreError('latestReading')),
+    );
+
   const libraryBackup = Effect.fn('DrizzleSyncStore.libraryBackup')((exportedAt: Timestamp) =>
     Effect.all({
       annotations: Effect.all({
@@ -1033,6 +1109,7 @@ export const makeDrizzleSyncStore = <TResultKind extends ResultKind, TRunResult>
     readingPlans,
     memoryPractice,
     readingPreferences,
+    latestReading,
     libraryBackup,
   };
 };

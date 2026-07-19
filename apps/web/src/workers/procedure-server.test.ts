@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { makeBunSyncStore, makeBunUserDatabase } from '@bible/core/local-first/bun';
 import { ClientId, makeSimulatedTransport, MutationId, Timestamp } from '@bible/core/local-first';
+import { LibraryEntityId } from '@bible/core/library-state';
 import { CommitId, RuntimeGeneration } from '@bible/core/procedure';
 import { Database } from 'bun:sqlite';
 import { Effect, Fiber, Layer, Schema } from 'effect';
@@ -82,6 +83,8 @@ describe('web procedure server', () => {
                 capabilities: ['external-links'],
                 nextMutationId: () =>
                   Schema.decodeSync(MutationId)(`web-mutation-${String(++mutationIndex)}`),
+                nextHistoryId: () =>
+                  Schema.decodeSync(LibraryEntityId)(`web-history-${String(mutationIndex + 1)}`),
                 nextCommitId: () =>
                   Schema.decodeSync(CommitId)(`web-commit-${String(++commitIndex)}`),
                 now: () => Schema.decodeSync(Timestamp)('2026-07-19T00:00:00.000Z'),

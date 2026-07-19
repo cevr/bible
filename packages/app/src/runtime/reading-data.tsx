@@ -68,6 +68,11 @@ export interface PatchReadingPreferencesCommand {
   readonly patch: ReadingPreferencesPatch;
 }
 
+export interface RecordReadingCommand {
+  readonly location: ReaderLocation;
+  readonly progress: number;
+}
+
 type PreferencesMutation = MutationCommitValue<ReadingPreferences>;
 type LibraryMutation = MutationCommitValue<{}>;
 
@@ -99,6 +104,12 @@ export interface ReadingData {
     ReadingPreferences,
     PatchReadingPreferencesCommand,
     PreferencesMutation
+  >;
+  readonly readingContinuity: SyncedCache<
+    {},
+    ReaderLocation | null,
+    RecordReadingCommand,
+    LibraryMutation
   >;
   readonly annotations: SyncedCache<
     ReaderLocation,
@@ -175,6 +186,15 @@ export const createReadingData = (input: CreateReadingDataInput): ReadingData =>
         input.procedures['v1.preferences.reading.patch']({ patch: command.patch }),
       affects: () => ['reading-preferences'] as const,
       matches: () => true,
+    }),
+    readingContinuity: createSyncedCache({
+      name: 'ReadingContinuity',
+      runtime,
+      emptyInput: {},
+      lookup: () => input.procedures['v1.reading.continuity.get'](),
+      mutate: (command) => input.procedures['v1.reading.continuity.record'](command),
+      affects: () => [{ _tag: 'ReadingContinuity' as const }],
+      matches: (_query, scope) => scope._tag === 'ReadingContinuity',
     }),
     annotations: createSyncedCache({
       name: 'LocationAnnotations',

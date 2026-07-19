@@ -103,6 +103,10 @@ test.describe('shared Solid reading application', () => {
     await expect(page.getByText(/results? for “beginning”/)).toBeVisible({ timeout: 30_000 });
     await expect(page.getByRole('link', { name: /Genesis 1:1/ })).toContainText('In the beginning');
 
+    await page.goto('/');
+    await expect(page).toHaveURL(/\/bible\/1\/2$/);
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Genesis 2');
+
     await page.setViewportSize({ width: 390, height: 844 });
     await openChapter(page);
 

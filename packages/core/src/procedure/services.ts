@@ -44,6 +44,19 @@ export class ReadingPreferencesRuntime extends Context.Service<
   ReadingPreferencesRuntimeShape
 >()('@bible/core/procedure/ReadingPreferencesRuntime') {}
 
+export interface ReadingContinuityRuntimeShape {
+  readonly get: Effect.Effect<ReaderLocation | undefined, ProcedureError>;
+  readonly record: (input: {
+    readonly location: ReaderLocation;
+    readonly progress: number;
+  }) => Effect.Effect<MutationCommitValue<{}>, ProcedureError>;
+}
+
+export class ReadingContinuityRuntime extends Context.Service<
+  ReadingContinuityRuntime,
+  ReadingContinuityRuntimeShape
+>()('@bible/core/procedure/ReadingContinuityRuntime') {}
+
 export interface LibraryStateRuntimeShape {
   readonly annotations: (
     input: ReaderLocation,

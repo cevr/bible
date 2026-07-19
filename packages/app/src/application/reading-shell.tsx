@@ -2,6 +2,7 @@ import { A, useLocation, useNavigate } from '@solidjs/router';
 import { createEffect, createSignal, onCleanup, onSettled, type ParentProps } from 'solid-js';
 
 import type { ReaderTypeface } from '@bible/core/reading-preferences';
+import { decodeRoute, readerLocationForRoute } from '../route/index.js';
 import { useReadingData } from '../runtime/index.js';
 import { Button, CommandPalette, Menu, MenuIcon, SearchIcon } from '../ui/index.js';
 
@@ -49,6 +50,28 @@ const ReadingPreferenceBridge = () => {
     root.style.removeProperty('--bible-reader-leading');
     root.style.removeProperty('--bible-reader-tracking');
     root.style.removeProperty('--bible-reading-measure');
+  });
+
+  return null;
+};
+
+const compactFailure = (cause: unknown): string =>
+  (cause instanceof Error ? cause.message : String(cause)).replace(/\s+/g, ' ').trim();
+
+const ReadingContinuityBridge = () => {
+  const location = useLocation();
+  const continuity = useReadingData().readingContinuity;
+  const canonicalPath = () => `${location.pathname}${location.search}`;
+  let recordedPath: string | undefined;
+
+  createEffect(canonicalPath, (path) => {
+    const route = decodeRoute(path);
+    const readingLocation = route ? readerLocationForRoute(route) : undefined;
+    if (readingLocation === undefined || path === recordedPath) return;
+    recordedPath = path;
+    void continuity.mutate({ location: readingLocation, progress: 0 }).catch((cause: unknown) => {
+      console.error(`[continuity] mutation-failed operation=record cause=${compactFailure(cause)}`);
+    });
   });
 
   return null;
@@ -106,6 +129,7 @@ export const ReadingShell = (props: ParentProps) => {
   return (
     <div class="bible-app-shell">
       <ReadingPreferenceBridge />
+      <ReadingContinuityBridge />
       <a class="bible-skip-link" href="#reading-canvas">
         Skip to reading
       </a>

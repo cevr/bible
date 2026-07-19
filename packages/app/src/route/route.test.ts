@@ -13,6 +13,7 @@ import {
 } from './disclosure.js';
 import type { AppRoute, RouteHistory } from './model.js';
 import { bootRoute, navigate } from './navigation.js';
+import { readerLocationForRoute, readingRouteForLocation } from './reading-location.js';
 
 const routes: readonly AppRoute[] = [
   { _tag: 'bible', reference: BibleReference.chapter(1, 1) },
@@ -71,6 +72,29 @@ describe('route boot precedence', () => {
       historyMode: 'preserve',
       reason: 'not-found',
     });
+  });
+});
+
+describe('reading continuity route projection', () => {
+  test('round-trips canonical Bible and Writings locations', () => {
+    const bible = { _tag: 'bible', reference: BibleReference.verse(43, 3, 16) } as const;
+    const writings = {
+      _tag: 'writings',
+      reference: WritingsReference.page(12, 42),
+    } as const;
+
+    expect(readingRouteForLocation(readerLocationForRoute(bible))).toEqual(bible);
+    expect(readingRouteForLocation(readerLocationForRoute(writings))).toEqual(writings);
+  });
+
+  test('rejects non-reading and mismatched persisted locations', () => {
+    expect(readerLocationForRoute({ _tag: 'settings', section: 'reader' })).toBeUndefined();
+    expect(
+      readingRouteForLocation({ source: 'egw', resourceId: '99', location: '/writings/12' }),
+    ).toBeUndefined();
+    expect(
+      readingRouteForLocation({ source: 'bible', resourceId: 'KJV', location: '/search' }),
+    ).toBeUndefined();
   });
 });
 

@@ -5,6 +5,7 @@ import { join } from 'node:path';
 
 import { Effect, Schema } from 'effect';
 
+import { LibraryEntityId } from '../library-state/model.js';
 import {
   DEFAULT_READING_PREFERENCES,
   applyReadingPreferencesPatch,
@@ -40,6 +41,7 @@ const timestamp = Schema.decodeSync(Timestamp);
 const sequence = Schema.decodeSync(MutationSequence);
 const revision = Schema.decodeSync(ServerRevision);
 const schemaVersion = Schema.decodeSync(SchemaVersion);
+const libraryEntityId = Schema.decodeSync(LibraryEntityId);
 
 const saveNote = (id: string, content: string) => ({
   _tag: 'SaveNote' as const,
@@ -219,6 +221,49 @@ describe('local-first sync protocol', () => {
     await Effect.runPromise(beta.engine.synchronize());
 
     expect(await Effect.runPromise(beta.store.readingPreferences)).toEqual(darkReadingPreferences);
+    await closeHarness(alpha);
+    await closeHarness(beta);
+  });
+
+  test('records reading continuity and history atomically and converges the latest route', async () => {
+    const transport = makeSimulatedTransport();
+    const alpha = await makeHarness('reading-alpha', transport);
+    const beta = await makeHarness('reading-beta', transport);
+
+    await Effect.runPromise(
+      alpha.engine.mutate({
+        _tag: 'RecordReading',
+        historyId: libraryEntityId('history-genesis'),
+        location: { source: 'bible', resourceId: 'KJV', location: '/bible/1/1' },
+        progress: 0,
+        readAt: timestamp('2026-07-19T00:00:01.000Z'),
+      }),
+    );
+    await Effect.runPromise(
+      alpha.engine.mutate({
+        _tag: 'RecordReading',
+        historyId: libraryEntityId('history-john'),
+        location: { source: 'bible', resourceId: 'KJV', location: '/bible/43/3/16' },
+        progress: 0,
+        readAt: timestamp('2026-07-19T00:00:02.000Z'),
+      }),
+    );
+
+    expect(await Effect.runPromise(alpha.store.latestReading)).toEqual({
+      source: 'bible',
+      resourceId: 'KJV',
+      location: '/bible/43/3/16',
+    });
+    expect(alpha.published.at(-1)).toEqual({ scopes: [{ _tag: 'ReadingContinuity' }] });
+
+    await Effect.runPromise(alpha.engine.synchronize());
+    await Effect.runPromise(beta.engine.synchronize());
+    expect(await Effect.runPromise(beta.store.latestReading)).toEqual({
+      source: 'bible',
+      resourceId: 'KJV',
+      location: '/bible/43/3/16',
+    });
+
     await closeHarness(alpha);
     await closeHarness(beta);
   });

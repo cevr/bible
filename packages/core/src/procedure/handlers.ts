@@ -11,6 +11,7 @@ import {
   DataPortabilityRuntime,
   LibraryStateRuntime,
   ProcedureRuntime,
+  ReadingContinuityRuntime,
   ReadingPreferencesRuntime,
 } from './services.js';
 
@@ -48,6 +49,7 @@ export const BibleProcedureHandlers = BibleProcedureGroup.toLayer(
     const bible = yield* BibleService;
     const writings = yield* WritingsService;
     const runtime = yield* ProcedureRuntime;
+    const continuity = yield* ReadingContinuityRuntime;
     const preferences = yield* ReadingPreferencesRuntime;
     const library = yield* LibraryStateRuntime;
     const topics = yield* TopicService;
@@ -84,6 +86,9 @@ export const BibleProcedureHandlers = BibleProcedureGroup.toLayer(
         writings
           .paragraph(WritingsReference.paragraph(input.publicationId, input.paragraphId))
           .pipe(Effect.mapError(normalizeFailure('v1.reading.writingsParagraph.get'))),
+      'v1.reading.continuity.get': () =>
+        continuity.get.pipe(Effect.map((location) => location ?? null)),
+      'v1.reading.continuity.record': (input) => continuity.record(input),
       'v1.preferences.reading.get': () => preferences.get,
       'v1.preferences.reading.patch': (input) => preferences.patch(input.patch),
       'v1.library.annotations.get': (input) => library.annotations(input),

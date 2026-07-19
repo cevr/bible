@@ -28,6 +28,7 @@ import {
   DataPortabilityRuntime,
   LibraryStateRuntime,
   ProcedureRuntime,
+  ReadingContinuityRuntime,
   ReadingPreferencesRuntime,
 } from './services.js';
 
@@ -85,6 +86,19 @@ const Dependencies = Layer.mergeAll(
           }),
         ),
       events: () => Stream.empty,
+    }),
+  ),
+  Layer.succeed(
+    ReadingContinuityRuntime,
+    ReadingContinuityRuntime.of({
+      get: Effect.succeed({ source: 'bible', resourceId: 'KJV', location: '/bible/43/3/16' }),
+      record: () =>
+        Effect.succeed({
+          _tag: 'MutationCommit',
+          value: {},
+          commitId: Schema.decodeSync(CommitId)('test-continuity-commit'),
+          changes: { scopes: [{ _tag: 'ReadingContinuity' }] },
+        }),
     }),
   ),
   Layer.succeed(
@@ -151,7 +165,21 @@ describe('BibleProcedureHandlers', () => {
           const topics = yield* client['v1.topics.list']({ query: 'resurrection' });
           const topic = yield* client['v1.topics.get']({ id: resurrectionTopic.id });
           const preferences = yield* client['v1.preferences.reading.get']({});
-          return { foundChapter, search, catalog, topics, topic, preferences };
+          const continuity = yield* client['v1.reading.continuity.get']({});
+          const recorded = yield* client['v1.reading.continuity.record']({
+            location: { source: 'bible', resourceId: 'KJV', location: '/bible/43/3/16' },
+            progress: 0,
+          });
+          return {
+            foundChapter,
+            search,
+            catalog,
+            topics,
+            topic,
+            preferences,
+            continuity,
+            recorded,
+          };
         }),
       ),
     );
@@ -169,6 +197,12 @@ describe('BibleProcedureHandlers', () => {
     ]);
     expect(result.topic.sections[0]?.references[0]?.osis).toEqual(['John.11.25']);
     expect(result.preferences).toEqual(DEFAULT_READING_PREFERENCES);
+    expect(result.continuity).toEqual({
+      source: 'bible',
+      resourceId: 'KJV',
+      location: '/bible/43/3/16',
+    });
+    expect(result.recorded.changes.scopes).toEqual([{ _tag: 'ReadingContinuity' }]);
   });
 
   test('normalizes domain failures at the procedure seam', async () => {

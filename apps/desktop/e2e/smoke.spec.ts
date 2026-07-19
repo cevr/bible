@@ -63,6 +63,10 @@ test('boots the shared application through the desktop procedure runtime', async
       { timeout: 30_000 },
     );
 
+    await page.goto(`${page.url().split('#')[0]}#/`);
+    await expect(page).toHaveURL(/#\/bible\/1\/2$/);
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Genesis 2');
+
     expect(pageErrors).toEqual([]);
     expect(runtimeOutput.join('')).not.toMatch(/(?:uncaught|unhandled|fatal)/iu);
   } finally {

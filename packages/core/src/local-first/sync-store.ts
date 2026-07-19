@@ -73,6 +73,7 @@ export interface SyncStore {
   readonly readingPlans: Effect.Effect<ReadonlyArray<ReadingPlan>, SyncStoreError>;
   readonly memoryPractice: Effect.Effect<MemoryPractice, SyncStoreError>;
   readonly readingPreferences: Effect.Effect<ReadingPreferences, SyncStoreError>;
+  readonly latestReading: Effect.Effect<ReaderLocation | undefined, SyncStoreError>;
   readonly libraryBackup: (
     exportedAt: Timestamp,
   ) => Effect.Effect<LibraryBackupDocument, SyncStoreError>;

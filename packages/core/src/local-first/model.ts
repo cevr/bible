@@ -2,8 +2,10 @@ import { Schema } from 'effect';
 
 import { ReadingPreferences } from '../reading-preferences/model.js';
 import {
+  LibraryEntityId,
   LibraryStateCommand,
   LibraryStateScope,
+  ReaderLocation,
   scopeForLibraryCommand,
 } from '../library-state/model.js';
 
@@ -54,10 +56,22 @@ export const SetReadingPreferences = Schema.TaggedStruct('SetReadingPreferences'
 });
 export type SetReadingPreferences = typeof SetReadingPreferences.Type;
 
+export const RecordReading = Schema.TaggedStruct('RecordReading', {
+  historyId: LibraryEntityId,
+  location: ReaderLocation,
+  progress: Schema.Int.pipe(Schema.check(Schema.isBetween({ minimum: 0, maximum: 10_000 }))),
+  readAt: Timestamp,
+});
+export type RecordReading = typeof RecordReading.Type;
+
 export const LibraryMutationCommand = Schema.Union([SaveNote, DeleteNote, LibraryStateCommand]);
 export type LibraryMutationCommand = typeof LibraryMutationCommand.Type;
 
-export const DomainMutationCommand = Schema.Union([LibraryMutationCommand, SetReadingPreferences]);
+export const DomainMutationCommand = Schema.Union([
+  LibraryMutationCommand,
+  SetReadingPreferences,
+  RecordReading,
+]);
 export type DomainMutationCommand = typeof DomainMutationCommand.Type;
 
 export const MutationEnvelope = Schema.Struct({
@@ -81,7 +95,15 @@ export type NoteScope = typeof NoteScope.Type;
 export const ReadingPreferencesScope = Schema.TaggedStruct('ReadingPreferences', {});
 export type ReadingPreferencesScope = typeof ReadingPreferencesScope.Type;
 
-export const ChangeScope = Schema.Union([NoteScope, ReadingPreferencesScope, LibraryStateScope]);
+export const ReadingContinuityScope = Schema.TaggedStruct('ReadingContinuity', {});
+export type ReadingContinuityScope = typeof ReadingContinuityScope.Type;
+
+export const ChangeScope = Schema.Union([
+  NoteScope,
+  ReadingPreferencesScope,
+  ReadingContinuityScope,
+  LibraryStateScope,
+]);
 export type ChangeScope = typeof ChangeScope.Type;
 
 export const ChangeSet = Schema.Struct({ scopes: Schema.Array(ChangeScope) });
@@ -114,6 +136,8 @@ export const changeSetFor = (command: DomainMutationCommand): ChangeSet => ({
         return [{ _tag: 'Note' as const, noteId: command.noteId }];
       case 'SetReadingPreferences':
         return [{ _tag: 'ReadingPreferences' as const }];
+      case 'RecordReading':
+        return [{ _tag: 'ReadingContinuity' as const }];
       default:
         return [scopeForLibraryCommand(command)];
     }

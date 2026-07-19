@@ -16,6 +16,8 @@ describe('BibleProcedureGroup', () => {
       'v1.reading.writingsPage.get',
       'v1.reading.writingsPublication.open',
       'v1.reading.writingsParagraph.get',
+      'v1.reading.continuity.get',
+      'v1.reading.continuity.record',
       'v1.preferences.reading.get',
       'v1.preferences.reading.patch',
       'v1.library.annotations.get',
@@ -37,6 +39,12 @@ describe('BibleProcedureGroup', () => {
 
     expect(decode({})).toEqual({});
     expect(() => decode(undefined)).toThrow();
+
+    const continuity = BibleProcedureGroup.requests.get('v1.reading.continuity.get');
+    if (!continuity) throw new Error('reading continuity procedure is absent');
+    const decodeContinuity = Schema.decodeUnknownSync(continuity.payloadSchema);
+    expect(decodeContinuity({})).toEqual({});
+    expect(() => decodeContinuity(undefined)).toThrow();
   });
 
   test('encodes durable mutations as post-commit values with structural changes', () => {

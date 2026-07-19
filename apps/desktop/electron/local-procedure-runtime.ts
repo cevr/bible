@@ -7,6 +7,7 @@ import {
   type DataPortabilityRuntime,
   type LocalProcedureRuntimeOptions,
   type ProcedureRuntime,
+  type ReadingContinuityRuntime,
   type ReadingPreferencesRuntime,
 } from '@bible/core/procedure';
 import { WritingsService } from '@bible/core/writings/service';
@@ -29,6 +30,7 @@ export const layerDesktopProcedureDependencies = (
   | BibleService
   | WritingsService
   | ProcedureRuntime
+  | ReadingContinuityRuntime
   | ReadingPreferencesRuntime
   | LibraryStateRuntime
   | TopicService

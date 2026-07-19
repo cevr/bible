@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import {
   BibleProcedureGroup,
+  CommitId,
   CURRENT_PROTOCOL_VERSION,
   CURRENT_RUNTIME_SCHEMA_VERSION,
   RuntimeConnection,
@@ -28,6 +29,15 @@ const HandlerLayer = BibleProcedureGroup.toLayer(
     'v1.reading.writingsPage.get': () => Effect.die('unused'),
     'v1.reading.writingsPublication.open': () => Effect.die('unused'),
     'v1.reading.writingsParagraph.get': () => Effect.die('unused'),
+    'v1.reading.continuity.get': () =>
+      Effect.succeed({ source: 'bible', resourceId: 'KJV', location: '/bible/43/3/16' }),
+    'v1.reading.continuity.record': () =>
+      Effect.succeed({
+        _tag: 'MutationCommit',
+        value: {},
+        commitId: Schema.decodeSync(CommitId)('continuity-commit'),
+        changes: { scopes: [{ _tag: 'ReadingContinuity' }] },
+      }),
     'v1.library.annotations.get': () => Effect.die('unused'),
     'v1.library.collections.get': () => Effect.succeed([]),
     'v1.library.plans.get': () => Effect.succeed([]),
@@ -55,7 +65,20 @@ describe('ProcedureClient', () => {
           });
           const omitted = yield* client['v1.reading.writingsCatalog.get']();
           const explicit = yield* client['v1.reading.writingsCatalog.get']({});
-          return { negotiated, omitted, explicit };
+          const omittedContinuity = yield* client['v1.reading.continuity.get']();
+          const explicitContinuity = yield* client['v1.reading.continuity.get']({});
+          const recorded = yield* client['v1.reading.continuity.record']({
+            location: { source: 'bible', resourceId: 'KJV', location: '/bible/43/3/16' },
+            progress: 0,
+          });
+          return {
+            negotiated,
+            omitted,
+            explicit,
+            omittedContinuity,
+            explicitContinuity,
+            recorded,
+          };
         }).pipe(Effect.provide(HandlerLayer)),
       ),
     );
@@ -63,5 +86,7 @@ describe('ProcedureClient', () => {
     expect(result.negotiated).toEqual(connection);
     expect(result.omitted).toEqual([]);
     expect(result.explicit).toEqual([]);
+    expect(result.omittedContinuity).toEqual(result.explicitContinuity);
+    expect(result.recorded.changes.scopes).toEqual([{ _tag: 'ReadingContinuity' }]);
   });
 });
