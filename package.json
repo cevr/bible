@@ -17,7 +17,7 @@
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "logs": "agent-tail tail --log-dir tmp/logs -n 200",
-    "logs:errors": "rg -n -i 'error|warn|uncaught|unhandled|defect|failure' tmp/logs/latest/*.log || true",
+    "logs:errors": "rg -n -i '\\[console\\.(error|warn)\\]|\\b(ERROR|WARN)\\b|\\[[^]]+\\] [^ ]*(failed|failure)\\b|uncaught|unhandled|defect' tmp/logs/latest/combined.log || true",
     "logs:follow": "agent-tail tail --log-dir tmp/logs -f",
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
