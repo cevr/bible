@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
+import { dynamicImportPattern } from './boundaries.js';
 import { isRepositorySourcePath, snapshotLegacy, validateLegacySnapshot } from './legacy.js';
 import type { RemovalBaseline } from './model.js';
 import { renderCheckpointReport } from './report.js';
@@ -17,6 +18,11 @@ const emptyBaseline = (): RemovalBaseline => ({
 });
 
 describe('architecture checkpoint', () => {
+  test('distinguishes dynamic imports from methods named import', () => {
+    expect(dynamicImportPattern.test("const module = import('./feature.js')")).toBe(true);
+    expect(dynamicImportPattern.test('data.dataPortability.import(document)')).toBe(false);
+  });
+
   test('excludes generated dependency and build trees from architecture inventories', () => {
     expect(isRepositorySourcePath('apps/web/src/App.tsx')).toBe(true);
     expect(isRepositorySourcePath('apps/web/node_modules/.vite/deps/react.js')).toBe(false);

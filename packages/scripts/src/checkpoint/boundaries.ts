@@ -72,6 +72,8 @@ const scanSourcePattern = async (options: {
   };
 };
 
+export const dynamicImportPattern = /(?<![.$\w])import\s*\(/u;
+
 const dependencyCheck = (
   name: string,
   failures: readonly string[],
@@ -162,7 +164,7 @@ export const checkBoundaries = async (options: {
       await scanSourcePattern({
         title: 'shared app dynamic import ban',
         patterns: ['packages/app/src/**/*.{ts,tsx}'],
-        forbidden: /\bimport\s*\(/u,
+        forbidden: dynamicImportPattern,
         globFiles: options.globFiles,
         readText: options.readText,
         displayPath: options.displayPath,
@@ -175,7 +177,7 @@ export const checkBoundaries = async (options: {
       await scanSourcePattern({
         title: 'host dynamic import ban',
         patterns: ['apps/web/src/**/*.{ts,tsx}', 'apps/desktop/src/**/*.{ts,tsx}'],
-        forbidden: /\bimport\s*\(/u,
+        forbidden: dynamicImportPattern,
         globFiles: options.globFiles,
         readText: options.readText,
         displayPath: options.displayPath,
