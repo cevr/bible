@@ -11,11 +11,12 @@ import { createMemo, createSignal } from 'solid-js';
 
 import { decodeRoute, encodeRoute, type AppRoute } from '../route/index.js';
 import { useReadingData } from '../runtime/index.js';
-import { Button, Input } from '../ui/index.js';
+import { Button, Input, Tabs } from '../ui/index.js';
 
 export interface AnnotationToolsProps {
   readonly location: ReaderLocation;
   readonly label: string;
+  readonly expanded?: boolean;
 }
 
 const entityId = (kind: string, location: ReaderLocation, suffix = '') =>
@@ -221,7 +222,7 @@ export const AnnotationTools = (props: AnnotationToolsProps) => {
             </p>
           }
         >
-          <details>
+          <details open={props.expanded}>
             <summary>
               <span>Study</span>
               <Show when={annotationCount() > 0}>
@@ -237,87 +238,109 @@ export const AnnotationTools = (props: AnnotationToolsProps) => {
                   {marker() ? 'Highlighted' : 'Highlight'}
                 </Button>
               </div>
-              <form onSubmit={saveNote}>
-                <label for="annotation-note">Note</label>
-                <textarea
-                  id="annotation-note"
-                  value={draft()}
-                  placeholder="Write what you notice…"
-                  onInput={(event) => setNoteDraft(event.currentTarget.value)}
-                />
-                <Button type="submit" tone="accent" disabled={busy()}>
-                  {draft().trim().length === 0 && note() ? 'Delete note' : 'Save note'}
-                </Button>
-              </form>
-              <section aria-labelledby="references-title">
-                <h3 id="references-title">Your cross-references</h3>
-                <For each={annotations().crossReferences}>
-                  {(reference) => (
-                    <div class="bible-annotation-reference">
-                      <A href={reference.toLocation}>{reference.toLocation}</A>
-                      <Button
-                        aria-label={`Remove cross-reference to ${reference.toLocation}`}
-                        onClick={() =>
-                          mutate('delete-reference', {
-                            _tag: 'DeleteUserCrossReference',
-                            id: reference.id,
-                          })
-                        }
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  )}
-                </For>
-                <form class="bible-inline-form" onSubmit={addReference}>
-                  <Input
-                    value={referenceDraft()}
-                    placeholder="/bible/43/3/16"
-                    aria-label="Canonical reading route"
-                    onInput={(event) => setReferenceDraft(event.currentTarget.value)}
-                  />
-                  <Button type="submit" disabled={busy()}>
-                    Add reference
-                  </Button>
-                </form>
-              </section>
-              <section aria-labelledby="collections-title">
-                <h3 id="collections-title">Collections</h3>
-                <form class="bible-inline-form" onSubmit={createCollection}>
-                  <Input
-                    value={collectionName()}
-                    placeholder="Sabbath study"
-                    aria-label="New collection name"
-                    onInput={(event) => setCollectionName(event.currentTarget.value)}
-                  />
-                  <Button type="submit" disabled={busy()}>
-                    Create
-                  </Button>
-                </form>
-                <div class="bible-inline-form">
-                  <select
-                    aria-label="Collection"
-                    value={selectedCollection()}
-                    onChange={(event) => setSelectedCollection(event.currentTarget.value)}
-                  >
-                    <option value="">Choose a collection</option>
-                    <For each={collections()}>
-                      {(collection: LibraryCollection) => (
-                        <option value={collection.id}>{collection.name}</option>
-                      )}
-                    </For>
-                  </select>
-                  <Button
-                    disabled={busy() || !bookmark() || selectedCollection().length === 0}
-                    onClick={addToCollection}
-                  >
-                    Add bookmark
-                  </Button>
-                </div>
-                <Show when={!bookmark()}>
-                  <p>Bookmark this location before adding it to a collection.</p>
-                </Show>
-              </section>
+              <Tabs
+                label="Study tools"
+                defaultValue="notes"
+                items={[
+                  {
+                    id: 'notes',
+                    label: 'Notes',
+                    content: () => (
+                      <form onSubmit={saveNote}>
+                        <label for="annotation-note">Note</label>
+                        <textarea
+                          id="annotation-note"
+                          value={draft()}
+                          placeholder="Write what you notice…"
+                          onInput={(event) => setNoteDraft(event.currentTarget.value)}
+                        />
+                        <Button type="submit" tone="accent" disabled={busy()}>
+                          {draft().trim().length === 0 && note() ? 'Delete note' : 'Save note'}
+                        </Button>
+                      </form>
+                    ),
+                  },
+                  {
+                    id: 'references',
+                    label: 'References',
+                    content: () => (
+                      <section aria-label="Your cross-references">
+                        <For each={annotations().crossReferences}>
+                          {(reference) => (
+                            <div class="bible-annotation-reference">
+                              <A href={reference.toLocation}>{reference.toLocation}</A>
+                              <Button
+                                aria-label={`Remove cross-reference to ${reference.toLocation}`}
+                                onClick={() =>
+                                  mutate('delete-reference', {
+                                    _tag: 'DeleteUserCrossReference',
+                                    id: reference.id,
+                                  })
+                                }
+                              >
+                                Remove
+                              </Button>
+                            </div>
+                          )}
+                        </For>
+                        <form class="bible-inline-form" onSubmit={addReference}>
+                          <Input
+                            value={referenceDraft()}
+                            placeholder="/bible/43/3/16"
+                            aria-label="Canonical reading route"
+                            onInput={(event) => setReferenceDraft(event.currentTarget.value)}
+                          />
+                          <Button type="submit" disabled={busy()}>
+                            Add reference
+                          </Button>
+                        </form>
+                      </section>
+                    ),
+                  },
+                  {
+                    id: 'collections',
+                    label: 'Collections',
+                    content: () => (
+                      <section aria-label="Collections">
+                        <form class="bible-inline-form" onSubmit={createCollection}>
+                          <Input
+                            value={collectionName()}
+                            placeholder="Sabbath study"
+                            aria-label="New collection name"
+                            onInput={(event) => setCollectionName(event.currentTarget.value)}
+                          />
+                          <Button type="submit" disabled={busy()}>
+                            Create
+                          </Button>
+                        </form>
+                        <div class="bible-inline-form">
+                          <select
+                            aria-label="Collection"
+                            value={selectedCollection()}
+                            onChange={(event) => setSelectedCollection(event.currentTarget.value)}
+                          >
+                            <option value="">Choose a collection</option>
+                            <For each={collections()}>
+                              {(collection: LibraryCollection) => (
+                                <option value={collection.id}>{collection.name}</option>
+                              )}
+                            </For>
+                          </select>
+                          <Button
+                            disabled={busy() || !bookmark() || selectedCollection().length === 0}
+                            onClick={addToCollection}
+                          >
+                            Add bookmark
+                          </Button>
+                        </div>
+                        <Show when={!bookmark()}>
+                          <p>Bookmark this location before adding it to a collection.</p>
+                        </Show>
+                      </section>
+                    ),
+                  },
+                ]}
+              />
               <Show when={busy()}>
                 <p class="bible-form-status" role="status">
                   Saving…

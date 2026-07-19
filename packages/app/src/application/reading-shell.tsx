@@ -1,8 +1,9 @@
-import { A, useLocation } from '@solidjs/router';
-import { createEffect, onCleanup, type ParentProps } from 'solid-js';
+import { A, useLocation, useNavigate } from '@solidjs/router';
+import { createEffect, createSignal, onCleanup, onSettled, type ParentProps } from 'solid-js';
 
 import type { ReaderTypeface } from '@bible/core/reading-preferences';
 import { useReadingData } from '../runtime/index.js';
+import { Button, CommandPalette, Menu, MenuIcon, SearchIcon } from '../ui/index.js';
 
 const readerTypeface = (typeface: ReaderTypeface): string => {
   switch (typeface) {
@@ -68,7 +69,39 @@ const sectionFor = (
 
 export const ReadingShell = (props: ParentProps) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const activeSection = () => sectionFor(location.pathname);
+  const [commandOpen, setCommandOpen] = createSignal(false);
+  let commandTrigger: HTMLButtonElement | undefined;
+  const destinations = [
+    { id: 'bible', label: 'Read the Bible', path: '/bible/1/1', keywords: ['scripture'] },
+    { id: 'writings', label: 'Open Writings', path: '/writings', keywords: ['egw'] },
+    { id: 'search', label: 'Search Scripture', path: '/search', keywords: ['find'] },
+    { id: 'topics', label: 'Browse Topics', path: '/topics', keywords: ['study'] },
+    { id: 'plans', label: 'Reading Plans', path: '/plans', keywords: ['schedule'] },
+    { id: 'practice', label: 'Memory Practice', path: '/practice', keywords: ['verse'] },
+    { id: 'settings', label: 'Reader Settings', path: '/settings/reader', keywords: ['theme'] },
+  ] as const;
+
+  onSettled(() => {
+    const onKeyDown = (event: KeyboardEvent): void => {
+      const target = event.target;
+      const isEditing =
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        (target instanceof HTMLElement && target.isContentEditable);
+      if ((event.metaKey || event.ctrlKey) && event.key.toLocaleLowerCase() === 'k') {
+        event.preventDefault();
+        setCommandOpen(true);
+      } else if (event.key === '/' && !isEditing && !event.metaKey && !event.ctrlKey) {
+        event.preventDefault();
+        setCommandOpen(true);
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  });
 
   return (
     <div class="bible-app-shell">
@@ -101,6 +134,28 @@ export const ReadingShell = (props: ParentProps) => {
             Practice
           </A>
         </nav>
+        <div class="bible-mobile-nav">
+          <Menu
+            label="Library navigation"
+            trigger={<MenuIcon />}
+            items={destinations.map((destination) => ({
+              id: destination.id,
+              label: destination.label,
+              select: () => navigate(destination.path),
+            }))}
+          />
+        </div>
+        <Button
+          ref={(element) => {
+            commandTrigger = element;
+          }}
+          class="bible-command-trigger"
+          aria-label="Open command palette"
+          onClick={() => setCommandOpen(true)}
+        >
+          <SearchIcon />
+          <kbd>⌘K</kbd>
+        </Button>
         <A
           class="bible-settings-link"
           href="/settings/reader"
@@ -112,6 +167,17 @@ export const ReadingShell = (props: ParentProps) => {
       <main id="reading-canvas" class="bible-reading-canvas" tabindex="-1">
         {props.children}
       </main>
+      <CommandPalette
+        open={commandOpen()}
+        onOpenChange={setCommandOpen}
+        restoreFocus={() => commandTrigger}
+        commands={destinations.map((destination) => ({
+          id: destination.id,
+          label: destination.label,
+          keywords: destination.keywords,
+          run: () => navigate(destination.path),
+        }))}
+      />
     </div>
   );
 };

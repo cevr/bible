@@ -1,10 +1,10 @@
 import type { ChapterReference, VerseReference } from '@bible/core/bible';
-import { A } from '@solidjs/router';
+import { A, useNavigate } from '@solidjs/router';
 import { Errored, For, Loading, Show } from '@solidjs/web';
 import { Option } from 'effect';
 
 import { useReadingData } from '../runtime/index.js';
-import { ScrollViewport } from '../ui/index.js';
+import { ContextMenu, ScrollViewport, SplitPane } from '../ui/index.js';
 import { AnnotationTools } from '../library/annotation-tools.js';
 
 export interface BibleReaderProps {
@@ -13,8 +13,58 @@ export interface BibleReaderProps {
 
 export const BibleReader = (props: BibleReaderProps) => {
   const data = useReadingData();
+  const navigate = useNavigate();
   const chapter = () =>
     data.bibleChapters.get({ book: props.reference.book, chapter: props.reference.chapter })();
+  const versePath = (verse: number) =>
+    `/bible/${String(props.reference.book)}/${String(props.reference.chapter)}/${String(verse)}`;
+  const scripture = () => (
+    <ScrollViewport label={`${chapter().book.name} ${String(chapter().reference.chapter)}`}>
+      <div class="bible-scripture" role="list">
+        <For each={chapter().verses}>
+          {(verse) => (
+            <ContextMenu
+              label={`Verse ${String(verse.reference.verse)} actions`}
+              targetProps={{
+                role: 'listitem',
+                id: `verse-${String(verse.reference.verse)}`,
+              }}
+              items={[
+                {
+                  id: 'study',
+                  label: 'Open study tools',
+                  select: () => navigate(versePath(verse.reference.verse)),
+                },
+                {
+                  id: 'search',
+                  label: 'Search this wording',
+                  select: () => navigate(`/search?q=${encodeURIComponent(verse.text)}`),
+                },
+              ]}
+            >
+              <p
+                data-active={
+                  props.reference._tag === 'verse' &&
+                  props.reference.verse === verse.reference.verse
+                    ? ''
+                    : undefined
+                }
+              >
+                <A
+                  class="bible-verse-number"
+                  href={versePath(verse.reference.verse)}
+                  aria-label={`Verse ${String(verse.reference.verse)}`}
+                >
+                  {verse.reference.verse}
+                </A>
+                {verse.text}
+              </p>
+            </ContextMenu>
+          )}
+        </For>
+      </div>
+    </ScrollViewport>
+  );
 
   return (
     <article class="bible-reader">
@@ -26,43 +76,26 @@ export const BibleReader = (props: BibleReaderProps) => {
               {chapter().book.name} <span>{chapter().reference.chapter}</span>
             </h1>
           </header>
-          <ScrollViewport label={`${chapter().book.name} ${String(chapter().reference.chapter)}`}>
-            <div class="bible-scripture" role="list">
-              <For each={chapter().verses}>
-                {(verse) => (
-                  <p
-                    id={`verse-${String(verse.reference.verse)}`}
-                    role="listitem"
-                    data-active={
-                      props.reference._tag === 'verse' &&
-                      props.reference.verse === verse.reference.verse
-                        ? ''
-                        : undefined
-                    }
-                  >
-                    <A
-                      class="bible-verse-number"
-                      href={`/bible/${String(verse.reference.book)}/${String(verse.reference.chapter)}/${String(verse.reference.verse)}`}
-                      aria-label={`Verse ${String(verse.reference.verse)}`}
-                    >
-                      {verse.reference.verse}
-                    </A>
-                    {verse.text}
-                  </p>
-                )}
-              </For>
-            </div>
-          </ScrollViewport>
           <Show when={props.reference._tag === 'verse'}>
-            <AnnotationTools
-              location={{
-                source: 'bible',
-                resourceId: 'KJV',
-                location: `/bible/${String(props.reference.book)}/${String(props.reference.chapter)}/${String(props.reference._tag === 'verse' ? props.reference.verse : 1)}`,
-              }}
-              label={`${chapter().book.name} ${String(props.reference.chapter)}:${String(props.reference._tag === 'verse' ? props.reference.verse : 1)}`}
+            <SplitPane
+              label="Resize Scripture and study tools"
+              primary={scripture()}
+              secondary={
+                <AnnotationTools
+                  location={{
+                    source: 'bible',
+                    resourceId: 'KJV',
+                    location: versePath(
+                      props.reference._tag === 'verse' ? props.reference.verse : 1,
+                    ),
+                  }}
+                  label={`${chapter().book.name} ${String(props.reference.chapter)}:${String(props.reference._tag === 'verse' ? props.reference.verse : 1)}`}
+                  expanded
+                />
+              }
             />
           </Show>
+          <Show when={props.reference._tag !== 'verse'}>{scripture()}</Show>
           <nav class="bible-reader__pagination" aria-label="Chapter navigation">
             <Show when={Option.getOrUndefined(chapter().previous)}>
               {(previous) => (

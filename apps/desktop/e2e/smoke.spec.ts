@@ -30,6 +30,26 @@ test('boots the shared application through the desktop procedure runtime', async
     await expect(page.getByRole('listitem').first()).toContainText('In the beginning');
     await expect(page.getByRole('navigation', { name: 'Primary navigation' })).toBeVisible();
 
+    await page.getByRole('button', { name: 'Open command palette' }).click();
+    const commandSearch = page.getByRole('textbox', { name: 'Search commands' });
+    await expect(commandSearch).toBeFocused();
+    await commandSearch.fill('Topics');
+    await commandSearch.press('Enter');
+    await expect(page).toHaveURL(/#\/topics$/);
+
+    await page.goto(`${page.url().split('#')[0]}#/bible/1/1/1`);
+    await expect(
+      page.getByRole('separator', { name: 'Resize Scripture and study tools' }),
+    ).toBeVisible();
+    const notesTab = page.getByRole('tab', { name: 'Notes' });
+    if (!(await notesTab.isVisible())) await page.getByText('Study', { exact: true }).click();
+    await notesTab.focus();
+    await notesTab.press('ArrowRight');
+    await expect(page.getByRole('tab', { name: 'References' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+
     await page.getByRole('link', { name: 'Next chapter' }).click();
     await expect(page).toHaveURL(/#\/bible\/1\/2$/);
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Genesis 2');

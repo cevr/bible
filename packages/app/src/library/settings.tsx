@@ -11,7 +11,7 @@ import { Effect, Schema } from 'effect';
 import { useCapabilities } from '../application/capabilities-context.js';
 import type { SettingsSection } from '../route/index.js';
 import { useReadingData } from '../runtime/index.js';
-import { Button } from '../ui/index.js';
+import { Button, Popover } from '../ui/index.js';
 import { ReaderFailure, ReaderLoading } from '../reading/index.js';
 
 const settingsSections: ReadonlyArray<{ readonly id: SettingsSection; readonly label: string }> = [
@@ -233,11 +233,20 @@ export const Settings = (props: SettingsProps) => {
             </section>
           </Show>
           <Show when={props.section === 'sync'}>
-            <SettingsNotice
-              eyebrow="Local first"
-              title="Your reading never waits for a network"
-              body="Changes commit to this device first. The shared sync runtime journals them in order and safely retries when a transport is available."
-            />
+            <section class="bible-settings__section bible-settings__notice">
+              <div>
+                <p class="bible-reader__eyebrow">Local first</p>
+                <h2>Your reading never waits for a network</h2>
+                <p>
+                  Changes commit to this device first. The shared sync runtime journals them in
+                  order and safely retries when a transport is available.
+                </p>
+              </div>
+              <Popover label="How local-first sync works" trigger="How sync works">
+                SQLite remains the source of truth. Each validated change updates local state and
+                its durable journal together before the reading cache refreshes.
+              </Popover>
+            </section>
           </Show>
           <Show when={props.section === 'data'}>
             <section class="bible-settings__section bible-settings__notice">
