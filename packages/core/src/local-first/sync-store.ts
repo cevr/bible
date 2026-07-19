@@ -9,6 +9,8 @@ import type {
 } from '../library-state/model.js';
 import type { ReadingPreferences } from '../reading-preferences/model.js';
 
+import type { LibraryBackupDocument } from './backup.js';
+
 import type {
   ChangeSet,
   ClientId,
@@ -71,4 +73,7 @@ export interface SyncStore {
   readonly readingPlans: Effect.Effect<ReadonlyArray<ReadingPlan>, SyncStoreError>;
   readonly memoryPractice: Effect.Effect<MemoryPractice, SyncStoreError>;
   readonly readingPreferences: Effect.Effect<ReadingPreferences, SyncStoreError>;
+  readonly libraryBackup: (
+    exportedAt: Timestamp,
+  ) => Effect.Effect<LibraryBackupDocument, SyncStoreError>;
 }

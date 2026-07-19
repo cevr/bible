@@ -695,6 +695,12 @@ a {
   justify-self: start;
 }
 
+.bible-settings__data-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
 .bible-library > section > h2,
 .bible-library__empty h2,
 .bible-library-form h2,

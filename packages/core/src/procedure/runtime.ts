@@ -1,5 +1,7 @@
 import {
+  LibraryBackupDocumentFromJson,
   changeSetFor,
+  commandsForLibraryBackup,
   type ChangeSet,
   type ClientId,
   type MutationEnvelope,
@@ -28,18 +30,21 @@ import {
   type RuntimeGeneration,
 } from './model.js';
 import {
+  DataPortabilityRuntime,
   LibraryStateRuntime,
   ProcedureRuntime,
   ReadingPreferencesRuntime,
   type LibraryStateRuntimeShape,
   type ProcedureRuntimeShape,
   type ReadingPreferencesRuntimeShape,
+  type DataPortabilityRuntimeShape,
 } from './services.js';
 
 interface LocalProcedureRuntimeShape {
   readonly procedures: ProcedureRuntimeShape;
   readonly preferences: ReadingPreferencesRuntimeShape;
   readonly library: LibraryStateRuntimeShape;
+  readonly data: DataPortabilityRuntimeShape;
 }
 
 class LocalProcedureRuntime extends Context.Service<
@@ -185,12 +190,30 @@ const makeRuntime = (options: LocalProcedureRuntimeOptions) =>
         ),
     });
 
-    return LocalProcedureRuntime.of({ procedures, preferences, library });
+    const data = DataPortabilityRuntime.of({
+      export: options.store
+        .libraryBackup(options.now())
+        .pipe(
+          Effect.flatMap(Schema.encodeEffect(LibraryBackupDocumentFromJson)),
+          Effect.mapError(procedureFailure('v1.data.export')),
+        ),
+      import: (document) =>
+        Effect.gen(function* () {
+          const backup = yield* Schema.decodeUnknownEffect(LibraryBackupDocumentFromJson)(document);
+          const commands = commandsForLibraryBackup(backup);
+          yield* Effect.forEach(commands, (command) => engine.mutate(command), { discard: true });
+          return { imported: commands.length };
+        }).pipe(Effect.mapError(procedureFailure('v1.data.import'))),
+    });
+
+    return LocalProcedureRuntime.of({ procedures, preferences, library, data });
   });
 
 export const layerLocalProcedureRuntime = (
   options: LocalProcedureRuntimeOptions,
-): Layer.Layer<ProcedureRuntime | ReadingPreferencesRuntime | LibraryStateRuntime> => {
+): Layer.Layer<
+  ProcedureRuntime | ReadingPreferencesRuntime | LibraryStateRuntime | DataPortabilityRuntime
+> => {
   const base = Layer.effect(LocalProcedureRuntime, makeRuntime(options));
   return Layer.mergeAll(
     Layer.effect(
@@ -204,6 +227,10 @@ export const layerLocalProcedureRuntime = (
     Layer.effect(
       LibraryStateRuntime,
       LocalProcedureRuntime.pipe(Effect.map((runtime) => runtime.library)),
+    ),
+    Layer.effect(
+      DataPortabilityRuntime,
+      LocalProcedureRuntime.pipe(Effect.map((runtime) => runtime.data)),
     ),
   ).pipe(Layer.provide(base));
 };

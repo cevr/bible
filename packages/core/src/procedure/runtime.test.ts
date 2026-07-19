@@ -12,7 +12,7 @@ import {
   RuntimeGeneration,
 } from './model.js';
 import { layerLocalProcedureRuntime } from './runtime.js';
-import { ProcedureRuntime, ReadingPreferencesRuntime } from './services.js';
+import { DataPortabilityRuntime, ProcedureRuntime, ReadingPreferencesRuntime } from './services.js';
 
 const migrationSql = await Bun.file(
   new URL('../local-first/migrations/0001_user_state.sql', import.meta.url),
@@ -84,6 +84,30 @@ describe('local procedure runtime', () => {
     );
 
     expect(exit._tag).toBe('Failure');
+    await Effect.runPromise(database.close);
+  });
+
+  test('exports a versioned document and fully validates imports before mutation', async () => {
+    const { database, layer } = await makeLayer();
+    const result = await Effect.runPromise(
+      Effect.gen(function* () {
+        const preferences = yield* ReadingPreferencesRuntime;
+        const data = yield* DataPortabilityRuntime;
+        yield* preferences.patch({ colorMode: 'sepia' });
+        const document = yield* data.export;
+        const backup = JSON.parse(document) as {
+          readonly format?: unknown;
+          readonly version?: unknown;
+        };
+        const imported = yield* data.import(document);
+        const invalid = yield* Effect.exit(data.import('{"format":"not-a-backup"}'));
+        return { backup, imported, invalid };
+      }).pipe(Effect.provide(layer)),
+    );
+
+    expect(result.backup).toMatchObject({ format: 'bible-library-backup', version: 1 });
+    expect(result.imported.imported).toBeGreaterThan(0);
+    expect(result.invalid._tag).toBe('Failure');
     await Effect.runPromise(database.close);
   });
 });

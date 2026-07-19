@@ -1,8 +1,8 @@
 import { BibleCorpus, BibleDatabase } from '@bible/core/bible-db';
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
 import { Effect, Fiber, Layer } from 'effect';
-import { app, BrowserWindow, MessageChannelMain, shell } from 'electron';
-import { readFileSync } from 'node:fs';
+import { app, BrowserWindow, dialog, ipcMain, MessageChannelMain, shell } from 'electron';
+import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { provisionBibleCorpus } from './bible-corpus-file.js';
@@ -51,6 +51,30 @@ if (configuredUserDataPath !== undefined && configuredUserDataPath !== '') {
 const writingsDbPath = () => path.join(app.getPath('home'), '.bible', 'egw-paragraphs.db');
 const bibleDbPath = () => path.join(app.getPath('userData'), 'bible.db');
 const userStateDbPath = () => path.join(app.getPath('userData'), 'user-state.sqlite');
+
+ipcMain.handle('bible:file-select', async () => {
+  const selected = await dialog.showOpenDialog({
+    properties: ['openFile'],
+    filters: [{ name: 'Bible library backup', extensions: ['json'] }],
+  });
+  if (selected.canceled) return [];
+  return selected.filePaths.map((file) => ({
+    name: path.basename(file),
+    contents: new Uint8Array(readFileSync(file)),
+  }));
+});
+
+ipcMain.handle(
+  'bible:file-save',
+  async (_event, options: { readonly suggestedName: string; readonly contents: Uint8Array }) => {
+    const selected = await dialog.showSaveDialog({
+      defaultPath: options.suggestedName,
+      filters: [{ name: 'Bible library backup', extensions: ['json'] }],
+    });
+    if (selected.canceled || selected.filePath === undefined) return;
+    writeFileSync(selected.filePath, options.contents);
+  },
+);
 
 let mainRuntime: MainRuntime | null = null;
 

@@ -4,6 +4,7 @@ import {
   type ProcedureRuntime,
   type ReadingPreferencesRuntime,
   type LibraryStateRuntime,
+  type DataPortabilityRuntime,
 } from '@bible/core/procedure';
 import type { BibleService } from '@bible/core/bible/service';
 import type { WritingsService } from '@bible/core/writings/service';
@@ -77,6 +78,7 @@ export const layerDesktopProcedureServer = (
   | ReadingPreferencesRuntime
   | LibraryStateRuntime
   | TopicService
+  | DataPortabilityRuntime
 > =>
   RpcServer.layer(BibleProcedureGroup).pipe(
     Layer.provide(BibleProcedureHandlers),

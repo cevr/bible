@@ -4,6 +4,7 @@ import { render, Show } from '@solidjs/web';
 import { createSignal, onSettled } from 'solid-js';
 
 import { getDatabaseWorker } from './workers/database-worker.js';
+import { webCapabilities } from './platform-capabilities.js';
 import { startWebProcedureHost, type ActiveWebProcedureHost } from './workers/procedure-client.js';
 import '@bible/app/styles.css';
 
@@ -60,7 +61,7 @@ const WebApplication = () => {
       {(current) => (
         <Router
           root={(props) => (
-            <ReadingApplication procedures={current().procedures}>
+            <ReadingApplication procedures={current().procedures} capabilities={webCapabilities}>
               {props.children}
             </ReadingApplication>
           )}

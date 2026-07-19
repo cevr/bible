@@ -152,6 +152,20 @@ export const LibraryMutate = Rpc.make('v1.library.mutate', {
   defect: sanitizedDefect,
 });
 
+export const DataExport = Rpc.make('v1.data.export', {
+  payload: {},
+  success: Schema.String,
+  error: ProcedureError,
+  defect: sanitizedDefect,
+});
+
+export const DataImport = Rpc.make('v1.data.import', {
+  payload: { document: Schema.String },
+  success: Schema.Struct({ imported: Schema.Int.pipe(Schema.check(Schema.isGreaterThan(0))) }),
+  error: ProcedureError,
+  defect: sanitizedDefect,
+});
+
 export const TopicsList = Rpc.make('v1.topics.list', {
   payload: {
     query: Schema.optional(Schema.String),
@@ -185,6 +199,8 @@ export const BibleProcedureGroup = RpcGroup.make(
   ReadingPlansGet,
   MemoryPracticeGet,
   LibraryMutate,
+  DataExport,
+  DataImport,
   TopicsList,
   TopicGet,
 );

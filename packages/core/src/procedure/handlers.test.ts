@@ -24,7 +24,12 @@ import {
   RuntimeEventSequence,
   RuntimeGeneration,
 } from './model.js';
-import { LibraryStateRuntime, ProcedureRuntime, ReadingPreferencesRuntime } from './services.js';
+import {
+  DataPortabilityRuntime,
+  LibraryStateRuntime,
+  ProcedureRuntime,
+  ReadingPreferencesRuntime,
+} from './services.js';
 
 const genesis = BIBLE_BOOKS[0]!;
 const chapter = new Chapter({
@@ -110,6 +115,13 @@ const Dependencies = Layer.mergeAll(
           commitId: Schema.decodeSync(CommitId)('test-library-commit'),
           changes: { scopes: [] },
         }),
+    }),
+  ),
+  Layer.succeed(
+    DataPortabilityRuntime,
+    DataPortabilityRuntime.of({
+      export: Effect.succeed('{}'),
+      import: () => Effect.succeed({ imported: 1 }),
     }),
   ),
 );

@@ -22,6 +22,7 @@ type OptionalInputProcedure =
   | 'v1.library.collections.get'
   | 'v1.library.plans.get'
   | 'v1.library.practice.get'
+  | 'v1.data.export'
   | 'v1.topics.list';
 
 export type ProcedureClient = Omit<RawProcedureClient, OptionalInputProcedure> & {
@@ -39,6 +40,7 @@ export const createProcedureClient = (raw: RawProcedureClient): ProcedureClient 
   'v1.library.plans.get': (input = {}, options) => raw['v1.library.plans.get'](input, options),
   'v1.library.practice.get': (input = {}, options) =>
     raw['v1.library.practice.get'](input, options),
+  'v1.data.export': (input = {}, options) => raw['v1.data.export'](input, options),
   'v1.topics.list': (input = {}, options) => raw['v1.topics.list'](input, options),
 });
 

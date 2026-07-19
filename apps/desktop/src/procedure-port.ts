@@ -4,7 +4,18 @@ import { DesktopProcedurePortMessage } from '../shared/procedure-channel.js';
 
 declare global {
   interface Window {
-    readonly api: { readonly procedure: { readonly ready: () => void } };
+    readonly api: {
+      readonly procedure: { readonly ready: () => void };
+      readonly files: {
+        readonly select: (
+          accept: readonly string[],
+        ) => Promise<readonly { readonly name: string; readonly contents: Uint8Array }[]>;
+        readonly save: (options: {
+          readonly suggestedName: string;
+          readonly contents: Uint8Array;
+        }) => Promise<void>;
+      };
+    };
   }
 }
 

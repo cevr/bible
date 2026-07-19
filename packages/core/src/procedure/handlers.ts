@@ -7,7 +7,12 @@ import { Effect } from 'effect';
 
 import { BibleProcedureGroup } from './group.js';
 import { ProcedureError } from './model.js';
-import { LibraryStateRuntime, ProcedureRuntime, ReadingPreferencesRuntime } from './services.js';
+import {
+  DataPortabilityRuntime,
+  LibraryStateRuntime,
+  ProcedureRuntime,
+  ReadingPreferencesRuntime,
+} from './services.js';
 
 const errorCode = (cause: unknown): string => {
   if (typeof cause === 'object' && cause !== null && '_tag' in cause) {
@@ -46,6 +51,7 @@ export const BibleProcedureHandlers = BibleProcedureGroup.toLayer(
     const preferences = yield* ReadingPreferencesRuntime;
     const library = yield* LibraryStateRuntime;
     const topics = yield* TopicService;
+    const data = yield* DataPortabilityRuntime;
 
     return {
       'v1.runtime.connect': (input) => runtime.connect(input),
@@ -85,6 +91,8 @@ export const BibleProcedureHandlers = BibleProcedureGroup.toLayer(
       'v1.library.plans.get': () => library.readingPlans,
       'v1.library.practice.get': () => library.memoryPractice,
       'v1.library.mutate': (input) => library.mutate(input.command),
+      'v1.data.export': () => data.export,
+      'v1.data.import': (input) => data.import(input.document),
       'v1.topics.list': (input) =>
         topics.list(input).pipe(Effect.mapError(normalizeFailure('v1.topics.list'))),
       'v1.topics.get': (input) =>

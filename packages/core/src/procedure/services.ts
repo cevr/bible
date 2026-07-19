@@ -60,3 +60,15 @@ export class LibraryStateRuntime extends Context.Service<
   LibraryStateRuntime,
   LibraryStateRuntimeShape
 >()('@bible/core/procedure/LibraryStateRuntime') {}
+
+export interface DataPortabilityRuntimeShape {
+  readonly export: Effect.Effect<string, ProcedureError>;
+  readonly import: (
+    document: string,
+  ) => Effect.Effect<{ readonly imported: number }, ProcedureError>;
+}
+
+export class DataPortabilityRuntime extends Context.Service<
+  DataPortabilityRuntime,
+  DataPortabilityRuntimeShape
+>()('@bible/core/procedure/DataPortabilityRuntime') {}

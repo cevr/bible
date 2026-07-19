@@ -6,6 +6,7 @@ import { ClientId, MutationId, Timestamp } from '@bible/core/local-first';
 import {
   CommitId,
   type LibraryStateRuntime,
+  type DataPortabilityRuntime,
   type ProcedureRuntime,
   type ReadingPreferencesRuntime,
   RuntimeGeneration,
@@ -49,7 +50,8 @@ export type MainRuntime = ManagedRuntime.ManagedRuntime<
   | ProcedureRuntime
   | ReadingPreferencesRuntime
   | LibraryStateRuntime
-  | TopicService,
+  | TopicService
+  | DataPortabilityRuntime,
   never
 >;
 
@@ -92,5 +94,6 @@ export const runtimeRun = <A, E>(
     | ReadingPreferencesRuntime
     | LibraryStateRuntime
     | TopicService
+    | DataPortabilityRuntime
   >,
 ): Promise<A> => runtime.runPromise(effect);

@@ -4,6 +4,7 @@ import { makeSimulatedTransport } from '@bible/core/local-first';
 import {
   layerLocalProcedureRuntime,
   type LibraryStateRuntime,
+  type DataPortabilityRuntime,
   type LocalProcedureRuntimeOptions,
   type ProcedureRuntime,
   type ReadingPreferencesRuntime,
@@ -31,6 +32,7 @@ export const layerDesktopProcedureDependencies = (
   | ReadingPreferencesRuntime
   | LibraryStateRuntime
   | TopicService
+  | DataPortabilityRuntime
 > => {
   const userDatabase = makeDesktopUserDatabase(input.userStateDbFile);
   const userDatabaseLifecycle = Layer.effectDiscard(

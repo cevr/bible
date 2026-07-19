@@ -24,6 +24,11 @@ const api = {
       deliverProcedurePort();
     },
   },
+  files: {
+    select: (accept: readonly string[]) => ipcRenderer.invoke('bible:file-select', accept),
+    save: (options: { readonly suggestedName: string; readonly contents: Uint8Array }) =>
+      ipcRenderer.invoke('bible:file-save', options),
+  },
 };
 
 contextBridge.exposeInMainWorld('api', api);

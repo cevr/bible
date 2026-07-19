@@ -22,6 +22,7 @@ import type { MutationCommitValue } from '@bible/core/procedure';
 import type { TopicDetail, TopicId, TopicListInput, TopicSummary } from '@bible/core/topics';
 import type { ParentProps } from 'solid-js';
 import { createContext, untrack, useContext } from 'solid-js';
+import { Effect } from 'effect';
 
 import {
   createAsyncCache,
@@ -120,6 +121,10 @@ export interface ReadingData {
   readonly memoryPractice: SyncedCache<{}, MemoryPractice, LibraryMutationCommand, LibraryMutation>;
   readonly topics: AsyncCache<TopicListInput, readonly TopicSummary[]>;
   readonly topicDetails: AsyncCache<{ readonly id: TopicId }, TopicDetail>;
+  readonly dataPortability: {
+    readonly export: () => Promise<string>;
+    readonly import: (document: string) => Promise<{ readonly imported: number }>;
+  };
 }
 
 export interface CreateReadingDataInput {
@@ -225,6 +230,10 @@ export const createReadingData = (input: CreateReadingDataInput): ReadingData =>
       runtime,
       lookup: (query) => input.procedures['v1.topics.get'](query),
     }),
+    dataPortability: {
+      export: () => Effect.runPromise(input.procedures['v1.data.export']()),
+      import: (document) => Effect.runPromise(input.procedures['v1.data.import']({ document })),
+    },
   };
 };
 

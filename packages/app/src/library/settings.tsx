@@ -6,8 +6,9 @@ import {
 import { A } from '@solidjs/router';
 import { Errored, Loading, Show } from '@solidjs/web';
 import { createSignal } from 'solid-js';
-import { Schema } from 'effect';
+import { Effect, Schema } from 'effect';
 
+import { useCapabilities } from '../application/capabilities-context.js';
 import type { SettingsSection } from '../route/index.js';
 import { useReadingData } from '../runtime/index.js';
 import { Button } from '../ui/index.js';
@@ -27,9 +28,62 @@ export interface SettingsProps {
 
 export const Settings = (props: SettingsProps) => {
   const data = useReadingData();
+  const capabilities = useCapabilities();
   const preferences = () => data.readingPreferences.get()();
   const [failure, setFailure] = createSignal<string>();
   const [saving, setSaving] = createSignal(false);
+  const [dataStatus, setDataStatus] = createSignal<string>();
+  const [dataFailure, setDataFailure] = createSignal<string>();
+
+  const failDataOperation = (operation: string, cause: unknown): void => {
+    console.error(
+      `[settings] ${operation}-failed category=data-portability cause=${String(cause)}`,
+    );
+    setDataStatus(undefined);
+    setDataFailure(cause instanceof Error ? cause.message : String(cause));
+  };
+
+  const exportLibrary = (): void => {
+    const fileExport = capabilities.fileExport;
+    if (fileExport === undefined) return;
+    setDataFailure(undefined);
+    setDataStatus('Preparing backup…');
+    void data.dataPortability.export().then(
+      (document) =>
+        Effect.runPromise(
+          fileExport.save({
+            suggestedName: `bible-library-${new Date().toISOString().slice(0, 10)}.json`,
+            contents: new TextEncoder().encode(document),
+          }),
+        ).then(
+          () => setDataStatus('Backup saved.'),
+          (cause: unknown) => failDataOperation('export', cause),
+        ),
+      (cause: unknown) => failDataOperation('export', cause),
+    );
+  };
+
+  const importLibrary = (): void => {
+    const fileImport = capabilities.fileImport;
+    if (fileImport === undefined) return;
+    setDataFailure(undefined);
+    setDataStatus('Choose a backup…');
+    void Effect.runPromise(fileImport.select({ accept: ['application/json', '.json'] })).then(
+      (files) => {
+        const file = files[0];
+        if (file === undefined) {
+          setDataStatus(undefined);
+          return;
+        }
+        setDataStatus(`Importing ${file.name}…`);
+        void data.dataPortability.import(new TextDecoder().decode(file.contents)).then(
+          ({ imported }) => setDataStatus(`Imported ${String(imported)} library records.`),
+          (cause: unknown) => failDataOperation('import', cause),
+        );
+      },
+      (cause: unknown) => failDataOperation('import', cause),
+    );
+  };
 
   const patch = (value: ReadingPreferencesPatch) => {
     setSaving(true);
@@ -186,11 +240,38 @@ export const Settings = (props: SettingsProps) => {
             />
           </Show>
           <Show when={props.section === 'data'}>
-            <SettingsNotice
-              eyebrow="Portable library"
-              title="Import and export"
-              body="Data portability appears here when the host supplies a file capability. The reading surface does not guess which platform it is running on."
-            />
+            <section class="bible-settings__section bible-settings__notice">
+              <div>
+                <p class="bible-reader__eyebrow">Portable library</p>
+                <h2>Import and export</h2>
+                <p>
+                  Save a versioned copy of your preferences, annotations, collections, plans, and
+                  memory practice. Importing merges those records into this library.
+                </p>
+              </div>
+              <div class="bible-settings__data-actions">
+                <Button onClick={exportLibrary} disabled={capabilities.fileExport === undefined}>
+                  Export library
+                </Button>
+                <Button onClick={importLibrary} disabled={capabilities.fileImport === undefined}>
+                  Import backup
+                </Button>
+              </div>
+              <Show when={dataStatus()}>
+                {(message) => (
+                  <p class="bible-form-status" role="status">
+                    {message()}
+                  </p>
+                )}
+              </Show>
+              <Show when={dataFailure()}>
+                {(message) => (
+                  <p class="bible-form-status bible-form-status--error" role="alert">
+                    {message()}
+                  </p>
+                )}
+              </Show>
+            </section>
           </Show>
           <Show when={props.section === 'shortcuts'}>
             <section class="bible-settings__section">

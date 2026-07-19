@@ -16,6 +16,7 @@ import type {
 } from '../library-state/model.js';
 import { DEFAULT_READING_PREFERENCES, ReadingPreferences } from '../reading-preferences/model.js';
 
+import { LibraryBackupDocument } from './backup.js';
 import type { SqliteEffectBridgeShape } from './database.js';
 import {
   changeSetFor,
@@ -976,6 +977,50 @@ export const makeDrizzleSyncStore = <TResultKind extends ResultKind, TRunResult>
       Effect.mapError(mapStoreError('readingPreferences')),
     );
 
+  const libraryBackup = Effect.fn('DrizzleSyncStore.libraryBackup')((exportedAt: Timestamp) =>
+    Effect.all({
+      annotations: Effect.all({
+        bookmarks: database.bridge.all({
+          execute: () =>
+            database.drizzle.select().from(bookmarks).where(isNull(bookmarks.deletedAt)).all(),
+        }),
+        notes: database.bridge.all({
+          execute: () => database.drizzle.select().from(notes).where(isNull(notes.deletedAt)).all(),
+        }),
+        markers: database.bridge.all({
+          execute: () =>
+            database.drizzle.select().from(markers).where(isNull(markers.deletedAt)).all(),
+        }),
+        crossReferences: database.bridge.all({
+          execute: () =>
+            database.drizzle
+              .select()
+              .from(userCrossReferences)
+              .where(isNull(userCrossReferences.deletedAt))
+              .all(),
+        }),
+      }).pipe(Effect.map(Schema.decodeUnknownSync(LocationAnnotationsSchema))),
+      collections,
+      memoryPractice,
+      preferences: readingPreferences,
+      readingPlans,
+    }).pipe(
+      Effect.map(({ annotations: active, ...state }) =>
+        Schema.decodeUnknownSync(LibraryBackupDocument)({
+          format: 'bible-library-backup',
+          version: 1,
+          exportedAt,
+          ...state,
+          bookmarks: active.bookmarks,
+          notes: active.notes,
+          markers: active.markers,
+          crossReferences: active.crossReferences,
+        }),
+      ),
+      Effect.mapError(mapStoreError('libraryBackup')),
+    ),
+  );
+
   return {
     mutate,
     pending,
@@ -988,5 +1033,6 @@ export const makeDrizzleSyncStore = <TResultKind extends ResultKind, TRunResult>
     readingPlans,
     memoryPractice,
     readingPreferences,
+    libraryBackup,
   };
 };

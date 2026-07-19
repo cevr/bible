@@ -4,6 +4,7 @@ import { render, Show } from '@solidjs/web';
 import { createSignal, onSettled } from 'solid-js';
 
 import { startDesktopProcedureHost, type ActiveDesktopProcedureHost } from './procedure-client.js';
+import { desktopCapabilities } from './platform-capabilities.js';
 import '@bible/app/styles.css';
 
 const failureMessage = (cause: unknown): string =>
@@ -59,7 +60,10 @@ const DesktopApplication = () => {
       {(current) => (
         <HashRouter
           root={(props) => (
-            <ReadingApplication procedures={current().procedures}>
+            <ReadingApplication
+              procedures={current().procedures}
+              capabilities={desktopCapabilities}
+            >
               {props.children}
             </ReadingApplication>
           )}
