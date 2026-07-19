@@ -5,12 +5,14 @@ import path from 'node:path';
 
 test('boots the shared application through the desktop procedure runtime', async () => {
   const userDataPath = await mkdtemp(path.join(tmpdir(), 'bible-desktop-e2e-'));
+  const legacyCliStatePath = path.join(userDataPath, 'missing-legacy-cli-state.db');
   const application = await electron.launch({
     args: ['dist/main/main.cjs'],
     cwd: path.resolve(import.meta.dirname, '..'),
     env: {
       // eslint-disable-next-line node/no-process-env -- preserve the Playwright worker environment
       ...process.env,
+      BIBLE_LEGACY_CLI_STATE_PATH: legacyCliStatePath,
       BIBLE_USER_DATA_PATH: userDataPath,
       NODE_ENV: 'test',
     },
@@ -68,6 +70,7 @@ test('boots the shared application through the desktop procedure runtime', async
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Genesis 2');
 
     expect(pageErrors).toEqual([]);
+    expect(runtimeOutput.join('')).toContain('[main] legacy-cli-source configured=true');
     expect(runtimeOutput.join('')).not.toMatch(/(?:uncaught|unhandled|fatal)/iu);
   } finally {
     await application.close();

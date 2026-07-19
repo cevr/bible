@@ -1,5 +1,6 @@
 import { BibleCorpus, BibleDatabase } from '@bible/core/bible-db';
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
+import userStateMigrationSql from '@bible/core/local-first/migrations/0001_user_state.sql';
 import { Effect, Fiber, Layer } from 'effect';
 import { app, BrowserWindow, dialog, ipcMain, MessageChannelMain, shell } from 'electron';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -11,6 +12,7 @@ import {
   type DesktopProcedureServerPort,
 } from './procedure-server.js';
 import { makeRuntime, type MainRuntime } from './runtime.js';
+import { prepareDesktopUserState } from './user-state-generation.js';
 
 // Tiny .env loader for the plain Electron bootstrap. The Effect runtime reads
 // its configuration after this has populated process.env.
@@ -47,10 +49,22 @@ const configuredUserDataPath = process.env['BIBLE_USER_DATA_PATH'];
 if (configuredUserDataPath !== undefined && configuredUserDataPath !== '') {
   app.setPath('userData', configuredUserDataPath);
 }
+// eslint-disable-next-line node/no-process-env -- Electron bootstrap boundary
+const configuredLegacyCliStatePath = process.env['BIBLE_LEGACY_CLI_STATE_PATH'];
 
-const writingsDbPath = () => path.join(app.getPath('home'), '.bible', 'egw-paragraphs.db');
+const writingsDbPath = (): string => {
+  if (configuredUserDataPath !== undefined && configuredUserDataPath !== '') {
+    return path.join(app.getPath('userData'), 'egw-paragraphs.db');
+  }
+  return path.join(app.getPath('home'), '.bible', 'egw-paragraphs.db');
+};
+const cliStateDbPath = (): string => {
+  if (configuredLegacyCliStatePath !== undefined && configuredLegacyCliStatePath !== '') {
+    return configuredLegacyCliStatePath;
+  }
+  return path.join(app.getPath('home'), '.bible', 'state.db');
+};
 const bibleDbPath = () => path.join(app.getPath('userData'), 'bible.db');
-const userStateDbPath = () => path.join(app.getPath('userData'), 'user-state.sqlite');
 
 ipcMain.handle('bible:file-select', async () => {
   const selected = await dialog.showOpenDialog({
@@ -168,8 +182,20 @@ void app.whenReady().then(async () => {
   console.info(
     `[main] bible-corpus-ready source=${provisionedCorpus.source.label} copied=${String(provisionedCorpus.copied)} bytes=${String(provisionedCorpus.bytes)}`,
   );
+  console.info(
+    `[main] legacy-cli-source configured=${String(configuredLegacyCliStatePath !== undefined && configuredLegacyCliStatePath !== '')}`,
+  );
+  const userState = await Effect.runPromise(
+    prepareDesktopUserState({
+      userDataPath: app.getPath('userData'),
+      cliStateFile: cliStateDbPath(),
+      writingsFile: writingsDbPath(),
+      migrationSql: userStateMigrationSql,
+      log: (line) => console.info(line),
+    }),
+  );
   console.info('[main] runtime-creating');
-  const runtime = makeRuntime(writingsDbPath(), bibleDbPath(), userStateDbPath());
+  const runtime = makeRuntime(writingsDbPath(), bibleDbPath(), userState.filename);
   mainRuntime = runtime;
 
   // Construct every persistent module before opening a renderer. This runs
