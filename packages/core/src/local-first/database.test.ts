@@ -29,6 +29,8 @@ describe('local-first SQLite foundation', () => {
         'collections',
         'markers',
         'memory_verses',
+        'migration_diagnostics',
+        'migration_receipts',
         'mutation_journal',
         'notes',
         'practice_history',

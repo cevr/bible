@@ -13,6 +13,11 @@ import {
 
 import { makeBunUserDatabase, makeBunSyncStore } from './database-bun.js';
 import {
+  MigrationDiagnosticId,
+  MigrationSourceId,
+  type LegacyMigrationBatch,
+} from './legacy-migration.js';
+import {
   ClientId,
   INITIAL_SERVER_REVISION,
   MutationId,
@@ -42,6 +47,8 @@ const sequence = Schema.decodeSync(MutationSequence);
 const revision = Schema.decodeSync(ServerRevision);
 const schemaVersion = Schema.decodeSync(SchemaVersion);
 const libraryEntityId = Schema.decodeSync(LibraryEntityId);
+const migrationDiagnosticId = Schema.decodeSync(MigrationDiagnosticId);
+const migrationSourceId = Schema.decodeSync(MigrationSourceId);
 
 const saveNote = (id: string, content: string) => ({
   _tag: 'SaveNote' as const,
@@ -223,6 +230,107 @@ describe('local-first sync protocol', () => {
     expect(await Effect.runPromise(beta.store.readingPreferences)).toEqual(darkReadingPreferences);
     await closeHarness(alpha);
     await closeHarness(beta);
+  });
+
+  test('imports legacy mutations and diagnostics atomically with a last-written receipt', async () => {
+    const client = await makeHarness('migration-client', makeSimulatedTransport());
+    const sourceId = migrationSourceId('web-state-v1');
+    const batch: LegacyMigrationBatch = {
+      sourceId,
+      fingerprint: 'sha256:complete-fixture',
+      generation: 'user-state-v1-complete-fixture',
+      items: [
+        {
+          mutationId: mutationId('migration-note'),
+          command: saveNote('migrated-note', 'preserved'),
+          createdAt: timestamp('2026-07-19T00:00:01.000Z'),
+        },
+        {
+          mutationId: mutationId('migration-preferences'),
+          command: { _tag: 'SetReadingPreferences', preferences: darkReadingPreferences },
+          createdAt: timestamp('2026-07-19T00:00:02.000Z'),
+        },
+      ],
+      diagnostics: [
+        {
+          id: migrationDiagnosticId('diagnostic-overlay'),
+          path: 'cross_ref_classifications[0]',
+          category: 'discarded',
+          message: 'unattributed catalog overlay remains local-only',
+        },
+      ],
+      semanticCounts: [
+        { entity: 'notes', count: 1 },
+        { entity: 'reading-preferences', count: 1 },
+      ],
+      completedAt: timestamp('2026-07-19T00:00:03.000Z'),
+    };
+
+    const imported = await Effect.runPromise(client.store.importLegacy(batch));
+    const secondPass = await Effect.runPromise(client.store.importLegacy(batch));
+
+    expect(imported.imported).toBe(true);
+    expect(imported.receipt.mutationCount).toBe(2);
+    expect(imported.receipt.diagnosticCount).toBe(1);
+    expect(secondPass).toEqual({ imported: false, receipt: imported.receipt });
+    expect((await Effect.runPromise(client.store.note('migrated-note')))?.content).toBe(
+      'preserved',
+    );
+    expect(await Effect.runPromise(client.store.readingPreferences)).toEqual(
+      darkReadingPreferences,
+    );
+    expect(await Effect.runPromise(client.store.pending)).toHaveLength(2);
+    expect(await Effect.runPromise(client.store.migrationReceipt(sourceId))).toEqual(
+      imported.receipt,
+    );
+
+    const conflict = await Effect.runPromiseExit(
+      client.store.importLegacy({ ...batch, fingerprint: 'sha256:changed-source' }),
+    );
+    expect(conflict._tag).toBe('Failure');
+    await closeHarness(client);
+  });
+
+  test('rolls back materialized state and diagnostics when legacy import cannot finish', async () => {
+    const client = await makeHarness('migration-rollback', makeSimulatedTransport());
+    const sourceId = migrationSourceId('desktop-cache-v1');
+    const duplicateId = migrationDiagnosticId('duplicate-diagnostic');
+    const failed = await Effect.runPromiseExit(
+      client.store.importLegacy({
+        sourceId,
+        fingerprint: 'sha256:interrupted-fixture',
+        generation: 'user-state-v1-interrupted-fixture',
+        items: [
+          {
+            mutationId: mutationId('rollback-note'),
+            command: saveNote('rolled-back-note', 'must not survive'),
+            createdAt: timestamp('2026-07-19T00:00:01.000Z'),
+          },
+        ],
+        diagnostics: [
+          {
+            id: duplicateId,
+            path: 'position',
+            category: 'malformed',
+            message: 'first diagnostic',
+          },
+          {
+            id: duplicateId,
+            path: 'position',
+            category: 'malformed',
+            message: 'duplicate forces rollback',
+          },
+        ],
+        semanticCounts: [{ entity: 'notes', count: 1 }],
+        completedAt: timestamp('2026-07-19T00:00:02.000Z'),
+      }),
+    );
+
+    expect(failed._tag).toBe('Failure');
+    expect(await Effect.runPromise(client.store.note('rolled-back-note'))).toBeUndefined();
+    expect(await Effect.runPromise(client.store.migrationReceipt(sourceId))).toBeUndefined();
+    expect(await Effect.runPromise(client.store.pending)).toEqual([]);
+    await closeHarness(client);
   });
 
   test('records reading continuity and history atomically and converges the latest route', async () => {

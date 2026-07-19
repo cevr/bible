@@ -10,6 +10,12 @@ import type {
 import type { ReadingPreferences } from '../reading-preferences/model.js';
 
 import type { LibraryBackupDocument } from './backup.js';
+import type {
+  LegacyMigrationBatch,
+  LegacyMigrationReceipt,
+  LegacyMigrationResult,
+  MigrationSourceId,
+} from './legacy-migration.js';
 
 import type {
   ChangeSet,
@@ -56,6 +62,12 @@ export interface NoteRecord {
 
 export interface SyncStore {
   readonly mutate: (input: LocalMutationInput) => Effect.Effect<CommittedMutation, SyncStoreError>;
+  readonly importLegacy: (
+    batch: LegacyMigrationBatch,
+  ) => Effect.Effect<LegacyMigrationResult, SyncStoreError>;
+  readonly migrationReceipt: (
+    sourceId: MigrationSourceId,
+  ) => Effect.Effect<LegacyMigrationReceipt | undefined, SyncStoreError>;
   readonly pending: Effect.Effect<ReadonlyArray<MutationEnvelope>, SyncStoreError>;
   readonly markAccepted: (
     mutationId: MutationId,

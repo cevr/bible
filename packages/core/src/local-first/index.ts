@@ -1,4 +1,5 @@
 export * from './database.js';
+export * from './legacy-migration.js';
 export * from './migrations.js';
 export * from './model.js';
 export * from './schema.js';

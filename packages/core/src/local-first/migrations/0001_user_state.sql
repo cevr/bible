@@ -1,6 +1,9 @@
 PRAGMA foreign_keys = ON;
 
 CREATE TABLE IF NOT EXISTS sync_metadata (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL, updated_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS migration_receipts (source_id TEXT PRIMARY KEY NOT NULL, fingerprint TEXT NOT NULL, generation TEXT NOT NULL, mutation_count INTEGER NOT NULL, diagnostic_count INTEGER NOT NULL, semantic_counts TEXT NOT NULL, completed_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS migration_diagnostics (id TEXT PRIMARY KEY NOT NULL, source_id TEXT NOT NULL, path TEXT NOT NULL, category TEXT NOT NULL, message TEXT NOT NULL, created_at TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS migration_diagnostics_source ON migration_diagnostics (source_id);
 CREATE TABLE IF NOT EXISTS sync_clients (client_id TEXT PRIMARY KEY NOT NULL, next_sequence INTEGER DEFAULT 1 NOT NULL, last_server_revision INTEGER DEFAULT 0 NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS reading_positions (id TEXT PRIMARY KEY NOT NULL, source TEXT NOT NULL, resource_id TEXT NOT NULL, location TEXT NOT NULL, progress INTEGER DEFAULT 0 NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT);
 CREATE UNIQUE INDEX IF NOT EXISTS reading_positions_source_resource ON reading_positions (source, resource_id);

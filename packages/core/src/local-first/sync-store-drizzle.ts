@@ -20,6 +20,12 @@ import { DEFAULT_READING_PREFERENCES, ReadingPreferences } from '../reading-pref
 import { LibraryBackupDocument } from './backup.js';
 import type { SqliteEffectBridgeShape } from './database.js';
 import {
+  LegacyMigrationReceipt,
+  type LegacyMigrationBatch,
+  type LegacyMigrationResult,
+  type MigrationSourceId,
+} from './legacy-migration.js';
+import {
   changeSetFor,
   CURRENT_SCHEMA_VERSION,
   MutationEnvelope,
@@ -39,6 +45,8 @@ import {
   collections as collectionRows,
   markers,
   memoryVerses,
+  migrationDiagnostics,
+  migrationReceipts,
   mutationJournal,
   notes,
   practiceHistory,
@@ -69,6 +77,7 @@ const mapStoreError = (operation: string) => (cause: unknown) =>
   new SyncStoreError({ operation, message: messageOf(cause), cause });
 
 const decodeEnvelope = Schema.decodeUnknownSync(MutationEnvelope);
+const decodeMigrationReceipt = Schema.decodeUnknownSync(LegacyMigrationReceipt);
 
 type ResultKind = 'sync' | 'async';
 type MaybePromise<A> = A | PromiseLike<A>;
@@ -730,6 +739,151 @@ export const makeDrizzleSyncStore = <TResultKind extends ResultKind, TRunResult>
       ),
   );
 
+  const migrationReceipt = Effect.fn('DrizzleSyncStore.migrationReceipt')(
+    (sourceId: MigrationSourceId) =>
+      database.bridge
+        .get({
+          execute: () =>
+            database.drizzle
+              .select()
+              .from(migrationReceipts)
+              .where(eq(migrationReceipts.sourceId, sourceId))
+              .get(),
+        })
+        .pipe(
+          Effect.map((row) => {
+            if (row === undefined) return undefined;
+            return decodeMigrationReceipt(row);
+          }),
+          Effect.mapError(mapStoreError('migrationReceipt')),
+        ),
+  );
+
+  const importLegacy = Effect.fn('DrizzleSyncStore.importLegacy')((batch: LegacyMigrationBatch) =>
+    database.bridge
+      .transaction(() =>
+        flatMap(
+          database.drizzle
+            .select()
+            .from(migrationReceipts)
+            .where(eq(migrationReceipts.sourceId, batch.sourceId))
+            .get(),
+          (existingRow) => {
+            if (existingRow !== undefined) {
+              const existing = decodeMigrationReceipt(existingRow);
+              if (existing.fingerprint === batch.fingerprint) {
+                return { _tag: 'Existing' as const, receipt: existing };
+              }
+              return { _tag: 'Conflict' as const, receipt: existing };
+            }
+
+            return flatMap(ensureClient(batch.completedAt), () =>
+              flatMap(clientRow(database, localClientId), (client) => {
+                if (client === undefined) return { _tag: 'MissingClient' as const };
+                const initialSequence = client.nextSequence;
+                const operations: Array<Operation> = [];
+
+                for (const [index, item] of batch.items.entries()) {
+                  const sequence = Schema.decodeSync(MutationSequence)(initialSequence + index);
+                  const envelope = decodeEnvelope({
+                    clientId: localClientId,
+                    sequence,
+                    mutationId: item.mutationId,
+                    schemaVersion: CURRENT_SCHEMA_VERSION,
+                    command: item.command,
+                    createdAt: item.createdAt,
+                  });
+                  operations.push(
+                    () =>
+                      applyCommand(
+                        database,
+                        envelope.command,
+                        envelope.createdAt,
+                        envelope.mutationId,
+                      ),
+                    () =>
+                      database.drizzle
+                        .insert(mutationJournal)
+                        .values({
+                          mutationId: envelope.mutationId,
+                          clientId: envelope.clientId,
+                          sequence: envelope.sequence,
+                          schemaVersion: envelope.schemaVersion,
+                          command: envelope.command,
+                          createdAt: envelope.createdAt,
+                        })
+                        .run(),
+                  );
+                }
+
+                operations.push(() =>
+                  database.drizzle
+                    .update(syncClients)
+                    .set({
+                      nextSequence: initialSequence + batch.items.length,
+                      updatedAt: batch.completedAt,
+                    })
+                    .where(eq(syncClients.clientId, localClientId))
+                    .run(),
+                );
+                for (const diagnostic of batch.diagnostics) {
+                  operations.push(() =>
+                    database.drizzle
+                      .insert(migrationDiagnostics)
+                      .values({
+                        ...diagnostic,
+                        sourceId: batch.sourceId,
+                        createdAt: batch.completedAt,
+                      })
+                      .run(),
+                  );
+                }
+
+                const receipt = decodeMigrationReceipt({
+                  sourceId: batch.sourceId,
+                  fingerprint: batch.fingerprint,
+                  generation: batch.generation,
+                  mutationCount: batch.items.length,
+                  diagnosticCount: batch.diagnostics.length,
+                  semanticCounts: batch.semanticCounts,
+                  completedAt: batch.completedAt,
+                });
+                operations.push(() =>
+                  database.drizzle.insert(migrationReceipts).values(receipt).run(),
+                );
+                return runThen(operations, () => ({ _tag: 'Imported' as const, receipt }));
+              }),
+            );
+          },
+        ),
+      )
+      .pipe(
+        Effect.mapError(mapStoreError('importLegacy')),
+        Effect.flatMap((result): Effect.Effect<LegacyMigrationResult, SyncStoreError> => {
+          if (result._tag === 'Imported') {
+            return Effect.succeed({ imported: true, receipt: result.receipt });
+          }
+          if (result._tag === 'Existing') {
+            return Effect.succeed({ imported: false, receipt: result.receipt });
+          }
+          if (result._tag === 'Conflict') {
+            return Effect.fail(
+              new SyncStoreError({
+                operation: 'importLegacy',
+                message: `migration source ${batch.sourceId} already completed with a different fingerprint`,
+              }),
+            );
+          }
+          return Effect.fail(
+            new SyncStoreError({
+              operation: 'importLegacy',
+              message: 'sync client was not created',
+            }),
+          );
+        }),
+      ),
+  );
+
   const pending = database.bridge
     .all({
       execute: () =>
@@ -1099,6 +1253,8 @@ export const makeDrizzleSyncStore = <TResultKind extends ResultKind, TRunResult>
 
   return {
     mutate,
+    importLegacy,
+    migrationReceipt,
     pending,
     markAccepted,
     revision,

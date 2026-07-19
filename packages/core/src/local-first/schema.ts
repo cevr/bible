@@ -22,6 +22,31 @@ export const syncMetadata = sqliteTable('sync_metadata', {
   updatedAt: text('updated_at').notNull(),
 });
 
+export const migrationReceipts = sqliteTable('migration_receipts', {
+  sourceId: text('source_id').primaryKey(),
+  fingerprint: text('fingerprint').notNull(),
+  generation: text('generation').notNull(),
+  mutationCount: integer('mutation_count').notNull(),
+  diagnosticCount: integer('diagnostic_count').notNull(),
+  semanticCounts: text('semantic_counts', { mode: 'json' }).notNull(),
+  completedAt: text('completed_at').notNull(),
+});
+
+export const migrationDiagnostics = sqliteTable(
+  'migration_diagnostics',
+  {
+    id: text('id').primaryKey(),
+    sourceId: text('source_id').notNull(),
+    path: text('path').notNull(),
+    category: text('category', {
+      enum: ['malformed', 'out-of-range', 'ambiguous', 'quarantined', 'discarded'],
+    }).notNull(),
+    message: text('message').notNull(),
+    createdAt: text('created_at').notNull(),
+  },
+  (table) => [index('migration_diagnostics_source').on(table.sourceId)],
+);
+
 export const syncClients = sqliteTable('sync_clients', {
   clientId: text('client_id').primaryKey(),
   nextSequence: integer('next_sequence').notNull().default(1),
@@ -254,6 +279,8 @@ export const userStateSchema = {
   collections,
   markers,
   memoryVerses,
+  migrationDiagnostics,
+  migrationReceipts,
   mutationJournal,
   notes,
   practiceHistory,
