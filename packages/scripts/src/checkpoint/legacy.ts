@@ -119,6 +119,18 @@ type GlobFiles = (pattern: string) => Promise<readonly string[]>;
 type ReadText = (path: string) => Promise<string>;
 type ReadDependencies = (path: string) => Promise<ReadonlySet<string>>;
 
+const GENERATED_PATH_SEGMENTS = new Set([
+  '.git',
+  '.turbo',
+  '.vite',
+  'coverage',
+  'dist',
+  'node_modules',
+]);
+
+export const isRepositorySourcePath = (path: string): boolean =>
+  path.split('/').every((segment) => !GENERATED_PATH_SEGMENTS.has(segment));
+
 export const snapshotLegacy = async (options: {
   readonly globFiles: GlobFiles;
   readonly readText: ReadText;
@@ -130,12 +142,15 @@ export const snapshotLegacy = async (options: {
     const matches = new Set<string>();
 
     for (const pattern of category.globs) {
-      for (const path of await options.globFiles(pattern)) matches.add(path);
+      for (const path of await options.globFiles(pattern)) {
+        if (isRepositorySourcePath(path)) matches.add(path);
+      }
     }
 
     if (category.search !== undefined) {
       for (const pattern of category.searchGlobs ?? []) {
         for (const path of await options.globFiles(pattern)) {
+          if (!isRepositorySourcePath(path)) continue;
           if (category.search.test(await options.readText(path))) matches.add(path);
         }
       }

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { snapshotLegacy, validateLegacySnapshot } from './legacy.js';
+import { isRepositorySourcePath, snapshotLegacy, validateLegacySnapshot } from './legacy.js';
 import type { RemovalBaseline } from './model.js';
 import { renderCheckpointReport } from './report.js';
 
@@ -17,6 +17,12 @@ const emptyBaseline = (): RemovalBaseline => ({
 });
 
 describe('architecture checkpoint', () => {
+  test('excludes generated dependency and build trees from architecture inventories', () => {
+    expect(isRepositorySourcePath('apps/web/src/App.tsx')).toBe(true);
+    expect(isRepositorySourcePath('apps/web/node_modules/.vite/deps/react.js')).toBe(false);
+    expect(isRepositorySourcePath('apps/web/dist/assets/index.js')).toBe(false);
+  });
+
   test('snapshots matching paths, source references, and dependencies structurally', async () => {
     const files = new Map([
       ['packages/cli/src/tui/app.tsx', 'export {}'],
