@@ -345,6 +345,29 @@ The app is a quiet, typography-led reading surface. “Minimal” means progress
 
 After functional migration, run `$ui` and `$impeccable` audits, record exact findings with file/line receipts, fix them, and verify representative routes in browser and Electron at narrow and wide widths, all themes, keyboard-only interaction, and reduced motion.
 
+## Development observability
+
+Development feedback is a local, plain-text contract rather than a telemetry
+deployment. Agent Tail starts one session for each app command, captures every
+named process, and joins Vite browser logs into that same session. The canonical
+path is `tmp/logs/latest`; agents inspect its `combined.log` and run
+`bun run logs:errors` before reaching for DevTools or temporary UI diagnostics.
+
+Log records must be easy to scan and grep:
+
+- one physical line per event
+- a stable event name or `[area] action` prefix
+- structured `key=value` context instead of prose dumps
+- errors include the operation and failure category
+- no credentials, tokens, or private reading/note content
+
+Effect-native modules use `Effect.log*` with inline `key=value` context so the
+browser formatter does not expand annotation objects across multiple lines.
+Electron/Bun/Vite host boundaries may use console output with the same stable
+event vocabulary; Agent Tail is the only development file transport. This keeps
+the runtime independent of OTEL while leaving room for an OTEL logger or tracer
+Layer later if production operations require one.
+
 ## Removal scope
 
 ### CLI TUI
@@ -392,12 +415,27 @@ Commit boundaries may move slightly to preserve a green tree, but must not intro
 - Existing features remain available through the reading-first interface.
 - Dialogs, menus, tabs, command palette, and panes pass keyboard/focus expectations.
 - Web and desktop builds, typecheck, lint, unit tests, and relevant end-to-end smoke tests pass.
+- Desktop, web, API, and browser failures are inspectable through one active `tmp/logs/latest` session without opening DevTools.
 - Every migrated Effect-native module is covered by the full `oxlint-plugin-effect` recommended preset, with only narrow named-adapter overrides.
 - `$ui` and `$impeccable` findings are fixed or explicitly documented with evidence.
 
 ## `$repo` reference index
 
 Refresh a GitHub source with `okra repo fetch --json owner/repo[@ref]`; use `okra repo path owner/repo[@ref]` for a network-free lookup. Commit hashes below record the research snapshot, not dependency pins unless explicitly stated.
+
+### Agent Tail
+
+- Spec: `gillkyle/agent-tail`
+- Research snapshot: `934946c9f93e8fdaf27f57f8431591224c519d6f`
+- Cache: `/Users/cvr/.cache/repo/gillkyle/agent-tail`
+- Use for: named development-process capture, combined plain-text sessions,
+  canonical latest-session lookup, and Vite browser error/rejection forwarding.
+- Key receipts:
+  - `/Users/cvr/.cache/repo/gillkyle/agent-tail/packages/core/src/log-manager.ts:7`
+  - `/Users/cvr/.cache/repo/gillkyle/agent-tail/packages/core/src/log-manager.ts:14`
+  - `/Users/cvr/.cache/repo/gillkyle/agent-tail/packages/core/src/log-manager.ts:46`
+  - `/Users/cvr/.cache/repo/gillkyle/agent-tail/packages/core/src/commands.ts:100`
+  - `/Users/cvr/.cache/repo/gillkyle/agent-tail/packages/vite-plugin/src/plugin.ts:22`
 
 ### Solid 2
 

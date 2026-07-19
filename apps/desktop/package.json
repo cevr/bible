@@ -5,7 +5,8 @@
   "type": "module",
   "main": "dist/main/main.cjs",
   "scripts": {
-    "dev": "vite",
+    "dev": "agent-tail run --log-dir ../../tmp/logs 'desktop: bun run vite:dev'",
+    "vite:dev": "vite",
     "build": "bun run build:renderer && bun run build:main",
     "build:renderer": "vite build",
     "build:main": "bun run scripts/build-main.ts",
@@ -18,7 +19,6 @@
   "dependencies": {
     "@bible/app": "workspace:*",
     "@bible/core": "workspace:*",
-    "@effect/platform-browser": "catalog:",
     "@effect/sql-sqlite-node": "catalog:",
     "@solidjs/router": "catalog:",
     "@solidjs/web": "catalog:",

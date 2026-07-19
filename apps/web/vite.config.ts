@@ -1,8 +1,16 @@
+import { agentTail } from 'agent-tail/vite';
 import { defineConfig } from 'vite';
 import solid from 'vite-plugin-solid';
 
 export default defineConfig({
-  plugins: [solid()],
+  plugins: [
+    agentTail({
+      logDir: '../../tmp/logs',
+      logFileName: 'web-browser.log',
+      excludes: ['[vite] connected.', '[vite] connecting...'],
+    }),
+    solid(),
+  ],
   optimizeDeps: {
     exclude: ['wa-sqlite'],
   },

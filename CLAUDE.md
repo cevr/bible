@@ -8,7 +8,7 @@ A monorepo for Bible study tools with CLI and web interfaces.
 bible/
 ├── apps/
 │   ├── desktop/        # Desktop app
-│   └── web/            # Web application (@bible/web, React/Vite)
+│   └── web/            # Web application (@bible/web, shared Solid 2/Vite app)
 ├── packages/
 │   ├── core/           # Shared business logic (@bible/core)
 │   │   ├── adapters/   # Platform abstraction (storage, export)
@@ -49,8 +49,28 @@ This project uses **Bun** as its package manager and runtime.
 ```bash
 bun install                    # Install dependencies
 bun run typecheck              # Type check all packages
-bun run format                 # Format code with Prettier
+bun run fmt                    # Format code with oxfmt
 ```
+
+## Runtime observability
+
+Development servers run through Agent Tail and keep one plain-text session in
+`tmp/logs/`. `tmp/logs/latest` points at the active session.
+
+```bash
+bun run dev:desktop            # desktop.log + desktop-renderer.log
+bun run dev:web                # web.log + api.log + web-browser.log
+bun run logs                   # last 200 lines from the active session
+bun run logs:errors            # scan the active session for likely failures
+bun run logs:follow            # follow every log in the active session
+```
+
+Before opening DevTools or adding temporary diagnostics, inspect
+`tmp/logs/latest/combined.log` and run `bun run logs:errors`. Effect-native code
+uses `Effect.log*` with stable event names and inline `key=value` context. Host
+boundaries use one line per event in the form `[area] action key=value`. Never
+log credentials, tokens, or private reading/note content. Do not introduce a
+second development log directory or transport.
 
 <!-- effect-solutions:start -->
 

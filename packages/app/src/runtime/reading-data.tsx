@@ -10,7 +10,7 @@ import type {
 } from '@bible/core/writings';
 import type { MutationCommit } from '@bible/core/procedure';
 import type { ParentProps } from 'solid-js';
-import { createContext, useContext } from 'solid-js';
+import { createContext, untrack, useContext } from 'solid-js';
 
 import {
   createAsyncCache,
@@ -133,7 +133,9 @@ export interface ReadingDataProviderProps extends ParentProps {
 }
 
 export const ReadingDataProvider = (props: ReadingDataProviderProps) => {
-  const data = createReadingData({ procedures: props.procedures, runtime: props.runtime });
+  const data = untrack(() =>
+    createReadingData({ procedures: props.procedures, runtime: props.runtime }),
+  );
   return <ReadingDataContext value={data}>{props.children}</ReadingDataContext>;
 };
 

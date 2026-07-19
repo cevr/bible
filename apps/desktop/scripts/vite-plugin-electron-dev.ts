@@ -143,6 +143,7 @@ export function electronDev(): Plugin {
         format: 'cjs',
         target: 'node20',
         external: ['electron', 'better-sqlite3'],
+        loader: { '.sql': 'text' },
         sourcemap: true,
         logLevel: 'info',
         plugins: [

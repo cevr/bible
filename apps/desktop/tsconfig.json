@@ -12,6 +12,7 @@
     "tests/**/*.ts",
     "tests/**/*.tsx",
     "electron/**/*.ts",
+    "shared/**/*.ts",
     "scripts/**/*.ts"
   ],
   "exclude": ["node_modules", "src-tauri", "dist"]

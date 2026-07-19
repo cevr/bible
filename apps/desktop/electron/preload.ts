@@ -6,11 +6,22 @@ import type {
   IpcInvokeChannel,
   IpcInvokeResult,
 } from './ipc-contract.js';
+import { DesktopProcedurePortMessage } from '../shared/procedure-channel.js';
 
+let procedurePort: MessagePort | undefined;
+let procedurePortReady = false;
+
+const deliverProcedurePort = (): void => {
+  if (!procedurePortReady || procedurePort === undefined) return;
+  const port = procedurePort;
+  procedurePort = undefined;
+  window.postMessage(DesktopProcedurePortMessage, '*', [port]);
+};
 ipcRenderer.on('bible:procedure-port', (event) => {
   const port = event.ports[0];
   if (port === undefined) return;
-  window.postMessage({ type: 'bible-procedure-port' }, '*', [port]);
+  procedurePort = port;
+  deliverProcedurePort();
 });
 
 const invoke = <Channel extends IpcInvokeChannel>(
@@ -19,6 +30,12 @@ const invoke = <Channel extends IpcInvokeChannel>(
 ): Promise<IpcInvokeResult<Channel>> => ipcRenderer.invoke(channel, ...args);
 
 const api: DesktopApi = {
+  procedure: {
+    ready: () => {
+      procedurePortReady = true;
+      deliverProcedurePort();
+    },
+  },
   diag: {
     // True once main has constructed mainRuntime in `app.whenReady` and the
     // database layers are initialized. The renderer polls this on mount so it

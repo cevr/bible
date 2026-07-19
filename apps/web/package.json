@@ -3,7 +3,7 @@
   "version": "0.2.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"bun run server:dev\" \"bun run vite:dev\"",
+    "dev": "agent-tail run --log-dir ../../tmp/logs 'web: bun run vite:dev' 'api: bun run server:dev'",
     "vite:dev": "vite",
     "server:dev": "bun --watch server/main.ts",
     "build": "vite build",
@@ -30,7 +30,6 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
-    "concurrently": "^10.0.3",
     "vite": "^8.1.4",
     "vite-plugin-solid": "catalog:"
   }

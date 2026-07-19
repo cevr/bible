@@ -186,6 +186,9 @@ export type IpcInvokeResult<Channel extends IpcInvokeChannel> =
   IpcInvokeContract[Channel]['result'];
 
 export interface DesktopApi {
+  readonly procedure: {
+    readonly ready: () => void;
+  };
   readonly diag: {
     readonly runtimeReady: () => Promise<boolean>;
   };

@@ -77,7 +77,9 @@
         "**/apps/desktop/electron/local-procedure-runtime.ts",
         "**/apps/desktop/electron/procedure-server.ts",
         "**/apps/desktop/src/procedure-client.ts",
-        "**/apps/desktop/src/procedure-port.ts"
+        "**/apps/desktop/src/procedure-client-protocol.ts",
+        "**/apps/desktop/src/procedure-port.ts",
+        "**/apps/desktop/shared/procedure-channel.ts"
       ],
       "rules": {
         "effect/noAsyncFunction": "error",

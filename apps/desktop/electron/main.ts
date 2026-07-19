@@ -116,7 +116,7 @@ const createWindow = async (runtime: MainRuntime): Promise<void> => {
   };
   const procedureServer = runtime.runFork(Layer.launch(layerDesktopProcedureServer(procedurePort)));
   port1.once('close', () => {
-    void runtime.runPromise(Fiber.interrupt(procedureServer));
+    Effect.runFork(Fiber.interrupt(procedureServer));
   });
   win.webContents.once('did-finish-load', () => {
     win.webContents.postMessage('bible:procedure-port', undefined, [port2]);
@@ -132,7 +132,7 @@ const createWindow = async (runtime: MainRuntime): Promise<void> => {
 
 void app.whenReady().then(async () => {
   loadDotEnv(path.join(process.cwd(), '.env'));
-  console.error('[main] app.whenReady → constructing main runtime');
+  console.info('[main] runtime-creating');
   const runtime = makeRuntime(cacheDbPath(), bibleDbPath(), egwTokenPath(), userStateDbPath());
   mainRuntime = runtime;
 
@@ -141,18 +141,18 @@ void app.whenReady().then(async () => {
   await runtime.runPromise(EGWParagraphDatabase.pipe(Effect.asVoid));
   await runtime.runPromise(BibleCorpus.pipe(Effect.asVoid));
   await runtime.runPromise(BibleDatabase.pipe(Effect.asVoid));
-  console.error('[main] persistence modules ready, opening window');
+  console.info('[main] persistence-ready');
 
   // Commentary backfill and legacy chapter indexing are opportunistic. Their
   // handler modules own the work; bootstrap only schedules lifecycle timing.
   void bibleIpc.ensureCommentaryBackfillDone(runtime).then(() => {
-    console.error('[main] EGW commentary backfill complete, broadcasting pulse');
+    console.info('[main] commentary-backfill-complete');
     for (const win of BrowserWindow.getAllWindows()) {
       win.webContents.send('bible:egwCommentaryUpdated', []);
     }
   });
   void backfillIndex(runtime).catch((error: unknown) => {
-    console.warn('[main] backfillIndex failed:', error);
+    console.warn(`[main] bible-index-backfill-failed cause=${String(error)}`);
   });
 
   void createWindow(runtime);

@@ -1,12 +1,8 @@
-import * as BrowserWorker from '@effect/platform-browser/BrowserWorker';
 import { ProcedureHost, ProcedureHostLive, type ProcedureHostShape } from '@bible/app/procedure';
 import { Effect, Layer, ManagedRuntime, Schema } from 'effect';
-import * as RpcClient from 'effect/unstable/rpc/RpcClient';
 
+import { layerDesktopProcedureTransport } from './procedure-client-protocol.js';
 import { waitForDesktopProcedurePort } from './procedure-port.js';
-
-export const layerDesktopProcedureTransport = (port: MessagePort) =>
-  RpcClient.layerProtocolWorker({ size: 1 }).pipe(Layer.provide(BrowserWorker.layer(() => port)));
 
 export const layerDesktopProcedureHost = (port: MessagePort) =>
   ProcedureHostLive.pipe(Layer.provide(layerDesktopProcedureTransport(port)));
