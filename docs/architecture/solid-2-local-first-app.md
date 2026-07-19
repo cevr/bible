@@ -46,6 +46,7 @@ The target is one aesthetic, minimal reading application implemented once in Sol
 8. There is one canonical API. Migration adapters do not become permanent parallel APIs.
 9. Accessibility behavior is part of primitive correctness, not a polish phase.
 10. The reading surface is primary; tools appear in context and on demand.
+11. Effect-native ownership and the full `oxlint-plugin-effect` recommended preset move together; migrating a legacy module without extending lint coverage is incomplete.
 
 ## Target module graph
 
@@ -294,6 +295,14 @@ The stronger desktop reading experience and the broader web route/feature set ar
 - Do not add Solid 1 compatibility packages.
 - Use `@solidjs/router@next` with one shared route definition and platform history adapters.
 
+## Effect lint ownership
+
+- Every module that enters the Effect-native architecture must be added to the strict `oxlint-plugin-effect` recommended-preset scope in the same change.
+- Treat an Oxlint scope change as part of the module migration, alongside import rewrites, caller migration, tests, and legacy deletion. Do not defer it to a later cleanup pass.
+- Keep platform adapters, generated code, build configuration, and compatibility shims outside strict application policy only when their boundary requires it.
+- Adapter exceptions must be narrow file-level overrides for the specific unavailable Effect capability; they must not disable the preset for a directory or feature.
+- Run Oxlint before Effect tsgo, typecheck, and focused tests at every migration checkpoint.
+
 ## Local Solid UI primitives
 
 Migrate only the behaviors currently consumed from Base UI and other React-only libraries:
@@ -361,6 +370,7 @@ This is high-blast-radius work and should land as reviewable conventional subcom
    - Gate package typecheck and focused tests.
 4. `refactor(app): unify web and desktop on solid 2`
    - Migrate shared routes/UI, platform entries, remaining cache callers, and runtime adapters; remove React and legacy desktop cache code.
+   - Extend the strict Effect Oxlint scope in the same batch whenever a legacy module becomes Effect-native.
    - Delegate repetitive caller migration only after the first examples establish exact rules and gates.
    - Gate web and desktop typecheck/tests/builds between batches.
 5. `style(app): refine reading experience`
@@ -382,6 +392,7 @@ Commit boundaries may move slightly to preserve a green tree, but must not intro
 - Existing features remain available through the reading-first interface.
 - Dialogs, menus, tabs, command palette, and panes pass keyboard/focus expectations.
 - Web and desktop builds, typecheck, lint, unit tests, and relevant end-to-end smoke tests pass.
+- Every migrated Effect-native module is covered by the full `oxlint-plugin-effect` recommended preset, with only narrow named-adapter overrides.
 - `$ui` and `$impeccable` findings are fixed or explicitly documented with evidence.
 
 ## `$repo` reference index

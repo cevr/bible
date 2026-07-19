@@ -14,6 +14,7 @@ Generated: `<ISO-8601 timestamp>`
 ### PASS | FAIL — <check>
 
 - Reproducible result with full file references.
+- Confirm every Effect-native module added or migrated since the preceding checkpoint entered the full `oxlint-plugin-effect` recommended-preset scope in the same change; list any narrow adapter overrides with their capability rationale.
 
 ## Legacy-removal inventory
 
