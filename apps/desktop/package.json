@@ -10,7 +10,7 @@
     "build": "bun run build:renderer && bun run build:main",
     "build:renderer": "vite build",
     "build:main": "bun run scripts/build-main.ts",
-    "package": "bun run build && electron-builder",
+    "package": "bun run --cwd ../../packages/core sync:bible --force && bun run build && electron-builder",
     "typecheck": "tsgo --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -55,6 +55,10 @@
         "filter": [
           "icon.png"
         ]
+      },
+      {
+        "from": "../../packages/core/data/bible.db",
+        "to": "data/bible.db"
       }
     ],
     "mac": {

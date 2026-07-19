@@ -6,6 +6,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { backfillIndex } from './indexer.js';
+import { provisionBibleCorpus } from './bible-corpus-file.js';
 import { makeBibleIpc } from './ipc/bible-handlers.js';
 import { registerEgwIpc } from './ipc/egw-handlers.js';
 import { handleIpc } from './ipc/handle.js';
@@ -46,7 +47,7 @@ const VITE_DEV_URL = 'http://localhost:1420';
 
 const settingsPath = () => path.join(app.getPath('userData'), 'settings.json');
 const cacheDbPath = () => path.join(app.getPath('userData'), 'cache.sqlite');
-const bibleDbPath = () => path.join(app.getPath('userData'), 'bible.sqlite');
+const bibleDbPath = () => path.join(app.getPath('userData'), 'bible.db');
 const userStateDbPath = () => path.join(app.getPath('userData'), 'user-state.sqlite');
 const egwTokenPath = () => path.join(app.getPath('userData'), 'egw-tokens.json');
 
@@ -132,6 +133,23 @@ const createWindow = async (runtime: MainRuntime): Promise<void> => {
 
 void app.whenReady().then(async () => {
   loadDotEnv(path.join(process.cwd(), '.env'));
+  const provisionedCorpus = await provisionBibleCorpus({
+    destination: bibleDbPath(),
+    sources: [
+      { path: path.join(process.resourcesPath, 'data', 'bible.db'), label: 'packaged' },
+      {
+        path: path.resolve(process.cwd(), '..', '..', 'packages', 'core', 'data', 'bible.db'),
+        label: 'workspace',
+      },
+      {
+        path: path.join(app.getPath('home'), '.bible', 'bible.db'),
+        label: 'runtime',
+      },
+    ],
+  });
+  console.info(
+    `[main] bible-corpus-ready source=${provisionedCorpus.source.label} copied=${String(provisionedCorpus.copied)} bytes=${String(provisionedCorpus.bytes)}`,
+  );
   console.info('[main] runtime-creating');
   const runtime = makeRuntime(cacheDbPath(), bibleDbPath(), egwTokenPath(), userStateDbPath());
   mainRuntime = runtime;
