@@ -13,6 +13,8 @@ describe('BibleProcedureGroup', () => {
       'v1.reading.bibleChapter.get',
       'v1.reading.writingsCatalog.get',
       'v1.reading.writingsPage.get',
+      'v1.reading.writingsPublication.open',
+      'v1.reading.writingsParagraph.get',
       'v1.preferences.reading.get',
       'v1.preferences.reading.patch',
     ]);

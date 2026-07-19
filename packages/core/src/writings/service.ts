@@ -12,6 +12,7 @@ import {
   WritingsDataIntegrityError,
   type WritingsError,
   WritingsInvalidSearchError,
+  WritingsParagraphNotFoundError,
   WritingsPageNotFoundError,
   WritingsPublicationNotFoundError,
   WritingsUnavailableError,
@@ -112,7 +113,9 @@ export interface WritingsServiceShape {
     reference: PublicationReference,
     refcode: string,
   ) => Effect.Effect<Option.Option<Paragraph>, WritingsError>;
+  readonly paragraph: (reference: ParagraphReference) => Effect.Effect<Paragraph, WritingsError>;
   readonly page: (reference: PageReference) => Effect.Effect<Page, WritingsError>;
+  readonly openingPage: (reference: PublicationReference) => Effect.Effect<Page, WritingsError>;
   readonly headings: (
     reference: PublicationReference,
   ) => Effect.Effect<readonly Heading[], WritingsError>;
@@ -217,6 +220,21 @@ export class WritingsService extends Context.Service<WritingsService, WritingsSe
           });
         });
 
+      const paragraph = (reference: ParagraphReference): Effect.Effect<Paragraph, WritingsError> =>
+        Effect.gen(function* () {
+          const foundPublication = yield* publication(
+            Reference.publication(reference.publicationId),
+          );
+          const rows = yield* database
+            .getParagraphsByBook(foundPublication.id)
+            .pipe(Stream.runCollect, Effect.mapError(unavailable('read-paragraphs')));
+          const row = [...rows].find((candidate) =>
+            Option.contains(candidate.para_id, reference.paragraphId),
+          );
+          if (!row) return yield* new WritingsParagraphNotFoundError({ reference });
+          return yield* makeParagraph(foundPublication, row, 'read-paragraphs');
+        });
+
       const page = (reference: PageReference): Effect.Effect<Page, WritingsError> =>
         Effect.gen(function* () {
           const publicationReference = Reference.publication(reference.publicationId);
@@ -264,6 +282,21 @@ export class WritingsService extends Context.Service<WritingsService, WritingsSe
                   )
                 : Option.none(),
           });
+        });
+
+      const openingPage = (reference: PublicationReference): Effect.Effect<Page, WritingsError> =>
+        Effect.gen(function* () {
+          yield* publication(reference);
+          const pageNumbers = yield* database
+            .getPageNumbers(reference.publicationId)
+            .pipe(Effect.mapError(unavailable('read-page')));
+          const firstPage = pageNumbers[0];
+          if (firstPage === undefined) {
+            return yield* new WritingsPageNotFoundError({
+              reference: Reference.page(reference.publicationId, 1),
+            });
+          }
+          return yield* page(Reference.page(reference.publicationId, firstPage));
         });
 
       const headings = (
@@ -347,7 +380,9 @@ export class WritingsService extends Context.Service<WritingsService, WritingsSe
         publicationByCode,
         paragraphs,
         paragraphByRefcode,
+        paragraph,
         page,
+        openingPage,
         headings,
         search,
         locate,

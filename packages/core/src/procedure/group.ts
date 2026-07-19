@@ -6,7 +6,14 @@ import {
   ReadingPreferences,
   ReadingPreferencesPatch as ReadingPreferencesPatchSchema,
 } from '../reading-preferences/model.js';
-import { Page, PageNumber, Publication, PublicationId } from '../writings/model.js';
+import {
+  Page,
+  PageNumber,
+  Paragraph,
+  ParagraphId,
+  Publication,
+  PublicationId,
+} from '../writings/model.js';
 import {
   CURRENT_PROTOCOL_VERSION,
   CURRENT_RUNTIME_SCHEMA_VERSION,
@@ -61,6 +68,20 @@ export const WritingsPageGet = Rpc.make('v1.reading.writingsPage.get', {
   defect: sanitizedDefect,
 });
 
+export const WritingsPublicationOpen = Rpc.make('v1.reading.writingsPublication.open', {
+  payload: { publicationId: PublicationId },
+  success: Page,
+  error: ProcedureError,
+  defect: sanitizedDefect,
+});
+
+export const WritingsParagraphGet = Rpc.make('v1.reading.writingsParagraph.get', {
+  payload: { publicationId: PublicationId, paragraphId: ParagraphId },
+  success: Paragraph,
+  error: ProcedureError,
+  defect: sanitizedDefect,
+});
+
 export const ReadingPreferencesGet = Rpc.make('v1.preferences.reading.get', {
   payload: {},
   success: ReadingPreferences,
@@ -81,6 +102,8 @@ export const BibleProcedureGroup = RpcGroup.make(
   BibleChapterGet,
   WritingsCatalogGet,
   WritingsPageGet,
+  WritingsPublicationOpen,
+  WritingsParagraphGet,
   ReadingPreferencesGet,
   PatchReadingPreferencesProcedure,
 );

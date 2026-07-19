@@ -1,6 +1,6 @@
 import { Schema } from 'effect';
 
-import { PageReference, PublicationCode, PublicationId } from './model.js';
+import { PageReference, ParagraphReference, PublicationCode, PublicationId } from './model.js';
 
 export class WritingsPublicationNotFoundError extends Schema.TaggedErrorClass<WritingsPublicationNotFoundError>()(
   'WritingsPublicationNotFoundError',
@@ -18,6 +18,11 @@ export class WritingsAmbiguousPublicationCodeError extends Schema.TaggedErrorCla
 export class WritingsPageNotFoundError extends Schema.TaggedErrorClass<WritingsPageNotFoundError>()(
   'WritingsPageNotFoundError',
   { reference: PageReference },
+) {}
+
+export class WritingsParagraphNotFoundError extends Schema.TaggedErrorClass<WritingsParagraphNotFoundError>()(
+  'WritingsParagraphNotFoundError',
+  { reference: ParagraphReference },
 ) {}
 
 export class WritingsUnavailableError extends Schema.TaggedErrorClass<WritingsUnavailableError>()(
@@ -61,6 +66,7 @@ export type WritingsError =
   | WritingsAmbiguousPublicationCodeError
   | WritingsPublicationNotFoundError
   | WritingsPageNotFoundError
+  | WritingsParagraphNotFoundError
   | WritingsUnavailableError
   | WritingsDataIntegrityError
   | WritingsInvalidSearchError;

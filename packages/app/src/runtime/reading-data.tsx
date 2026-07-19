@@ -1,0 +1,127 @@
+import type { Chapter, BookNumber, ChapterNumber } from '@bible/core/bible';
+import type { ReadingPreferences, ReadingPreferencesPatch } from '@bible/core/reading-preferences';
+import type {
+  Page,
+  PageNumber,
+  Paragraph,
+  ParagraphId,
+  Publication,
+  PublicationId,
+} from '@bible/core/writings';
+import type { MutationCommit } from '@bible/core/procedure';
+import type { ParentProps } from 'solid-js';
+import { createContext, useContext } from 'solid-js';
+
+import {
+  createAsyncCache,
+  createSyncedCache,
+  defaultCacheRuntime,
+  type AsyncCache,
+  type CacheRuntime,
+  type SyncedCache,
+} from '../cache/index.js';
+import type { ProcedureClient } from '../procedure/index.js';
+
+export interface BibleChapterInput {
+  readonly book: BookNumber;
+  readonly chapter: ChapterNumber;
+}
+
+export interface WritingsCatalogInput {
+  readonly author?: string;
+}
+
+export interface WritingsPageInput {
+  readonly publicationId: PublicationId;
+  readonly page: PageNumber;
+}
+
+export interface WritingsPublicationInput {
+  readonly publicationId: PublicationId;
+}
+
+export interface WritingsParagraphInput {
+  readonly publicationId: PublicationId;
+  readonly paragraphId: ParagraphId;
+}
+
+export interface PatchReadingPreferencesCommand {
+  readonly patch: ReadingPreferencesPatch;
+}
+
+type PreferencesMutation = ReturnType<typeof MutationCommit<typeof ReadingPreferences>>['Type'];
+
+export interface ReadingData {
+  readonly bibleChapters: AsyncCache<BibleChapterInput, Chapter>;
+  readonly writingsCatalog: AsyncCache<WritingsCatalogInput, readonly Publication[]>;
+  readonly writingsPages: AsyncCache<WritingsPageInput, Page>;
+  readonly writingsPublications: AsyncCache<WritingsPublicationInput, Page>;
+  readonly writingsParagraphs: AsyncCache<WritingsParagraphInput, Paragraph>;
+  readonly readingPreferences: SyncedCache<
+    {},
+    ReadingPreferences,
+    PatchReadingPreferencesCommand,
+    PreferencesMutation
+  >;
+}
+
+export interface CreateReadingDataInput {
+  readonly procedures: ProcedureClient;
+  readonly runtime?: CacheRuntime<never>;
+}
+
+export const createReadingData = (input: CreateReadingDataInput): ReadingData => {
+  const runtime = input.runtime ?? defaultCacheRuntime;
+  return {
+    bibleChapters: createAsyncCache({
+      name: 'BibleChapter',
+      runtime,
+      lookup: (query) => input.procedures['v1.reading.bibleChapter.get'](query),
+    }),
+    writingsCatalog: createAsyncCache({
+      name: 'WritingsCatalog',
+      runtime,
+      emptyInput: {},
+      lookup: (query) => input.procedures['v1.reading.writingsCatalog.get'](query),
+    }),
+    writingsPages: createAsyncCache({
+      name: 'WritingsPage',
+      runtime,
+      lookup: (query) => input.procedures['v1.reading.writingsPage.get'](query),
+    }),
+    writingsPublications: createAsyncCache({
+      name: 'WritingsPublication',
+      runtime,
+      lookup: (query) => input.procedures['v1.reading.writingsPublication.open'](query),
+    }),
+    writingsParagraphs: createAsyncCache({
+      name: 'WritingsParagraph',
+      runtime,
+      lookup: (query) => input.procedures['v1.reading.writingsParagraph.get'](query),
+    }),
+    readingPreferences: createSyncedCache({
+      name: 'ReadingPreferences',
+      runtime,
+      emptyInput: {},
+      lookup: () => input.procedures['v1.preferences.reading.get'](),
+      mutate: (command) =>
+        input.procedures['v1.preferences.reading.patch']({ patch: command.patch }),
+      affects: () => ['reading-preferences'] as const,
+      matches: () => true,
+    }),
+  };
+};
+
+const ReadingDataContext = createContext<ReadingData>();
+
+export interface ReadingDataProviderProps extends ParentProps {
+  readonly procedures: ProcedureClient;
+  readonly runtime?: CacheRuntime<never>;
+}
+
+export const ReadingDataProvider = (props: ReadingDataProviderProps) => {
+  const data = createReadingData({ procedures: props.procedures, runtime: props.runtime });
+  return <ReadingDataContext value={data}>{props.children}</ReadingDataContext>;
+};
+
+export const useReadingData = (): ReadingData => useContext(ReadingDataContext);

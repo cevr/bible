@@ -4,7 +4,11 @@ import { Effect, Layer, Option } from 'effect';
 import { EGWParagraphDatabase } from '../egw-db/book-database.js';
 import type { BookRow } from '../egw-db/book-database.js';
 import type { Paragraph as StoredParagraph } from '../egw/schemas.js';
-import { WritingsInvalidSearchError, WritingsPageNotFoundError } from './errors.js';
+import {
+  WritingsInvalidSearchError,
+  WritingsPageNotFoundError,
+  WritingsParagraphNotFoundError,
+} from './errors.js';
 import { Reference } from './model.js';
 import { WritingsService } from './service.js';
 
@@ -111,6 +115,16 @@ describe('WritingsService', () => {
     expect(Option.getOrThrow(second.heading)).toBe('Content for PP 102.1');
   });
 
+  test('opens a publication at its first stored page rather than assuming page one', async () => {
+    const opening = await run(
+      Effect.flatMap(WritingsService, (writings) =>
+        writings.openingPage(Reference.publication(127)),
+      ),
+    );
+
+    expect(Number(opening.reference.page)).toBe(100);
+  });
+
   test('missing pages fail in Writings language', async () => {
     const result = await run(
       Effect.flatMap(WritingsService, (writings) =>
@@ -132,6 +146,25 @@ describe('WritingsService', () => {
     expect(paragraph && Option.isNone(paragraph.elementSubtype)).toBe(true);
     expect(paragraph && Number(Option.getOrThrow(paragraph.page))).toBe(100);
     expect(paragraph && Option.getOrThrow(paragraph.number)).toBe(1);
+  });
+
+  test('resolves canonical stable paragraph identities directly', async () => {
+    const paragraph = await run(
+      Effect.flatMap(WritingsService, (writings) =>
+        writings.paragraph(Reference.paragraph(127, 'PP-3')),
+      ),
+    );
+    const missing = await run(
+      Effect.flatMap(WritingsService, (writings) =>
+        Effect.result(writings.paragraph(Reference.paragraph(127, 'missing'))),
+      ),
+    );
+
+    expect(String(paragraph.reference.paragraphId)).toBe('PP-3');
+    expect(missing._tag).toBe('Failure');
+    if (missing._tag === 'Failure') {
+      expect(missing.failure).toBeInstanceOf(WritingsParagraphNotFoundError);
+    }
   });
 
   test('rejects routeable corpus paragraphs without stable identifiers', async () => {
