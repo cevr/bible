@@ -2,7 +2,7 @@
  * Bible Reference Parser
  *
  * Parses Bible references from strings like "john 3:16", "gen 1", "1 cor 13:1-5".
- * Renderer-agnostic - can be used by TUI, Web, or CLI.
+ * Renderer-agnostic - shared by application and command-line hosts.
  */
 
 import { BIBLE_BOOK_ALIASES, BIBLE_BOOKS, getBibleBook } from './canon.js';

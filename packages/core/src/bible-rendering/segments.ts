@@ -1,6 +1,6 @@
 /**
  * Pure text segmentation for verse rendering. Framework-agnostic — produces
- * a typed `TextSegment[]` that any UI (React, Solid, plain HTML) can map
+ * a typed `TextSegment[]` that any UI or plain HTML renderer can map
  * to its own primitives.
  *
  * Handles the KJV editorial conventions in our source JSON:

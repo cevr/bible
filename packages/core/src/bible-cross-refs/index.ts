@@ -2,8 +2,8 @@
  * Bible Cross References Module
  *
  * Classification taxonomy + shared types for biblical cross references.
- * Framework-agnostic — every Bible-reading UI (web React, desktop Solid,
- * future CLI summaries) consumes the same types and abbreviations.
+ * Framework-agnostic — every Bible-reading UI and command-line summary
+ * consumes the same types and abbreviations.
  *
  * Presentational tokens (colors, badge styles) intentionally live in each
  * client because they are tied to that client's design system.

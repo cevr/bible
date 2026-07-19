@@ -8,7 +8,7 @@
  * - "PP 351-355" → book="PP", pageStart=351, pageEnd=355
  * - "1BC 1111.2" → book="1BC", page=1111, para=2
  *
- * This parser is renderer-agnostic and can be used by CLI, TUI, or Web.
+ * This parser is renderer-agnostic and shared by application and command-line hosts.
  */
 
 import { Effect, Option, Schema } from 'effect';

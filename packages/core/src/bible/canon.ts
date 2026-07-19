@@ -2,7 +2,7 @@
  * Bible Books Data
  *
  * Static data for all 66 books of the Bible.
- * Renderer-agnostic - can be used by TUI, Web, or CLI.
+ * Renderer-agnostic - shared by application and command-line hosts.
  */
 
 import { Book, type Reference as BibleReference, bookNumber, chapterNumber } from './model.js';
