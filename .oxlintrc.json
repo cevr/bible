@@ -9,7 +9,7 @@
     "perf": "error"
   },
   "plugins": ["typescript", "import", "node"],
-  "jsPlugins": ["./apps/desktop/lint/solid-audit.ts"],
+  "jsPlugins": ["oxlint-plugin-effect/plugin", "./apps/desktop/lint/solid-audit.ts"],
   "rules": {
     "typescript/no-explicit-any": "error",
     "typescript/no-unsafe-type-assertion": "error",
@@ -28,7 +28,8 @@
     "no-shadow": "off",
     "no-nested-ternary": "off",
     "complexity": ["error", 50],
-    "typescript/consistent-return": "off"
+    "typescript/consistent-return": "off",
+    "effect/noDynamicImports": "error"
   },
   "ignorePatterns": [
     "**/dist/**",
@@ -36,8 +37,7 @@
     "**/*.d.ts",
     "**/scripts/**",
     "**/bin/**",
-    "**/outputs/**/_raw/**",
-    "**/outputs/studies/**",
+    "**/outputs/**",
     "**/src-tauri/**"
   ],
   "overrides": [
@@ -63,12 +63,57 @@
       }
     },
     {
+      "files": [
+        "**/packages/core/src/local-first/**",
+        "**/packages/core/src/procedure/**",
+        "**/packages/core/src/reading-preferences/**"
+      ],
+      "rules": {
+        "effect/noAsyncFunction": "error",
+        "effect/noDynamicImports": "error",
+        "effect/noEffectBind": "error",
+        "effect/noEffectDo": "error",
+        "effect/noGlobals": "error",
+        "effect/noNewError": "error",
+        "effect/noNewPromise": "error",
+        "effect/noNodeBuiltinImport": "error",
+        "effect/noTernary": "error",
+        "effect/noThrowStatement": "error",
+        "effect/noTryCatch": "error"
+      }
+    },
+    {
+      "files": [
+        "**/packages/core/src/local-first/*-bun.ts",
+        "**/packages/core/src/local-first/database.ts"
+      ],
+      "rules": {
+        "effect/noGlobals": "off",
+        "effect/noNewPromise": "off",
+        "effect/noNodeBuiltinImport": "off"
+      }
+    },
+    {
       "files": ["**/tests/**", "**/test/**", "**/*.test.ts", "**/*.test.tsx"],
       "rules": {
         "typescript/no-non-null-assertion": "off",
         "typescript/no-explicit-any": "off",
         "typescript/no-unsafe-type-assertion": "off",
-        "node/no-process-env": "off"
+        "node/no-process-env": "off",
+        "effect/noAsyncFunction": "off",
+        "effect/noGlobals": "off",
+        "effect/noNewError": "off",
+        "effect/noNewPromise": "off",
+        "effect/noNodeBuiltinImport": "off",
+        "effect/noTernary": "off",
+        "effect/noThrowStatement": "off",
+        "effect/noTryCatch": "off"
+      }
+    },
+    {
+      "files": ["**/apps/web/src/index.tsx", "**/apps/desktop/tests/motion-reduced-motion.test.ts"],
+      "rules": {
+        "effect/noDynamicImports": "off"
       }
     },
     {

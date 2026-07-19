@@ -41,7 +41,7 @@
           "effectMapFlatten": "off",
           "effectMapVoid": "error",
           "effectSucceedWithVoid": "error",
-          "extendsNativeError": "off",
+          "extendsNativeError": "error",
           "floatingEffect": "error",
           "genericEffectServices": "error",
           "globalConsole": "error",
@@ -87,9 +87,10 @@
           "scopeInLayerEffect": "error",
           "serviceNotAsClass": "error",
           "strictBooleanExpressions": "off",
-          "strictEffectProvide": "off",
+          "strictEffectProvide": "error",
           "tryCatchInEffectGen": "off",
           "unknownInEffectCatch": "error",
+          "unsafeEffectTypeAssertion": "error",
           "unnecessaryArrowBlock": "error",
           "unnecessaryEffectGen": "off",
           "unnecessaryFailYieldableError": "error",
@@ -101,6 +102,36 @@
           { "target": "error", "pattern": "default", "skipLeadingPath": ["src/", "packages/"] }
         ],
         "overrides": [
+          {
+            "include": [
+              "**/packages/core/src/local-first/**/*.ts",
+              "**/packages/core/src/procedure/**/*.ts",
+              "**/packages/core/src/reading-preferences/**/*.ts"
+            ],
+            "options": {
+              "diagnosticSeverity": {
+                "asyncFunction": "off",
+                "cryptoRandomUUID": "off",
+                "cryptoRandomUUIDInEffect": "off",
+                "globalConsole": "off",
+                "globalConsoleInEffect": "off",
+                "globalDate": "off",
+                "globalDateInEffect": "off",
+                "globalFetch": "off",
+                "globalFetchInEffect": "off",
+                "globalRandom": "off",
+                "globalRandomInEffect": "off",
+                "globalTimers": "off",
+                "globalTimersInEffect": "off",
+                "newPromise": "off",
+                "nodeBuiltinImport": "off",
+                "preferSchemaOverJson": "off",
+                "processEnv": "off",
+                "processEnvInEffect": "off",
+                "tryCatchInEffectGen": "off"
+              }
+            }
+          },
           {
             "include": [
               "**/tests/**/*.ts",
