@@ -4,7 +4,10 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./cache": "./src/cache/index.ts"
+    "./cache": "./src/cache/index.ts",
+    "./platform": "./src/platform/index.ts",
+    "./procedure": "./src/procedure/index.ts",
+    "./route": "./src/route/index.ts"
   },
   "scripts": {
     "typecheck": "tsgo --noEmit",
