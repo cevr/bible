@@ -1,4 +1,4 @@
-import { Argument, Command } from 'effect/unstable/cli';
+import { Command } from 'effect/unstable/cli';
 import { Console, Effect, References } from 'effect';
 
 import { concordance, verse } from './bible.js';
@@ -14,41 +14,33 @@ import { sabbathSchool } from './sabbath-school.js';
 import { slides } from './slides.js';
 import { studies } from './studies.js';
 import { sync } from './sync.js';
-import { parseReaderReference } from '../lib/parse-reader-reference.js';
 import { cliOptions, CliOptions } from '../services/cli-options.js';
-import { InteractiveReader, InvalidReaderReference } from '../services/interactive-reader.js';
 
-const reference = Argument.string('reference').pipe(Argument.variadic());
+const rootHelp = `Bible study tools
 
-export const open = Command.make('open', { reference }, ({ reference }) =>
-  Effect.gen(function* () {
-    const reader = yield* InteractiveReader;
-    const input = reference.join(' ').trim();
+Usage: bible <command> [options]
 
-    if (input.length === 0) {
-      return yield* reader.open({ _tag: 'bible' });
-    }
+Commands:
+  verse             Read or search Bible text
+  concordance       Search Strong's concordance entries
+  egw               Read or search Ellen G. White writings
+  studies           Generate and manage studies
+  sabbath-school    Generate Sabbath School outlines
+  messages          Generate sermon messages
+  readings          Manage reading material
+  slides            Build presentation decks
+  handbook          Generate handbook studies
+  hymns             Search hymns
+  notes             Export and organize Apple Notes
+  export            Export generated output
+  init              Initialize local data
+  sync              Synchronize local data
 
-    const parsed = parseReaderReference(input);
-    if (parsed === undefined) {
-      yield* Console.error(`Could not parse Bible reference: "${input}"`);
-      yield* Console.error('Examples: john 3:16, gen 1:1, 1 cor 13, psalms');
-      return yield* new InvalidReaderReference({ reader: 'bible', input });
-    }
+Run 'bible <command> --help' for command-specific help.`;
 
-    yield* reader.open({ _tag: 'bible', reference: parsed });
-  }),
-);
-
-/** The single production command graph, including interactive reader routes. */
-export const rootCommand = Command.make('bible', cliOptions, () =>
-  Effect.gen(function* () {
-    const reader = yield* InteractiveReader;
-    yield* reader.open({ _tag: 'bible' });
-  }),
-).pipe(
+/** The single production graph for non-interactive CLI commands. */
+export const rootCommand = Command.make('bible', cliOptions, () => Console.log(rootHelp)).pipe(
   Command.withSubcommands([
-    open,
     concordance,
     verse,
     egwWithSubcommands,

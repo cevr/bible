@@ -1,8 +1,7 @@
 /**
  * Bible Tools CLI Entry Point
  *
- * The Effect command graph owns both non-interactive commands and lazy TUI
- * routes, so every invocation follows the same parsing and dependency seam.
+ * The Effect command graph owns the non-interactive command surface.
  */
 
 import { Command } from 'effect/unstable/cli';
@@ -13,7 +12,6 @@ import { rootCommand } from './commands/root.js';
 import { printSummary, trace, traceSync } from './instrumentation/trace.js';
 import { AppleScriptLive } from './services/apple-script.js';
 import { ChimeLive } from './services/chime.js';
-import { InteractiveReader } from './services/interactive-reader.js';
 import { CliLoggerLive } from './services/logger.js';
 
 trace('process start');
@@ -26,13 +24,7 @@ const cli = traceSync('Command.run', () =>
   }),
 );
 
-const ServicesLayer = Layer.mergeAll(
-  AppleScriptLive,
-  ChimeLive,
-  CliLoggerLive,
-  InteractiveReader.layer,
-  BunServices.layer,
-);
+const ServicesLayer = Layer.mergeAll(AppleScriptLive, ChimeLive, CliLoggerLive, BunServices.layer);
 
 trace('starting Effect execution');
 

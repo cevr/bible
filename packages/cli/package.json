@@ -14,21 +14,16 @@
     "typecheck": "tsgo --noEmit",
     "test": "bun test test/commands test/core",
     "test:watch": "bun test test/commands test/core --watch",
-    "test:tui": "bun test test/tui",
     "test:perf": "bun test test/perf"
   },
   "dependencies": {
     "@bible/core": "workspace:*",
     "@effect/platform-bun": "catalog:",
-    "@opentui/core": "^0.4.3",
-    "@opentui/core-darwin-arm64": "^0.4.3",
-    "@opentui/solid": "^0.4.3",
     "ai": "^7.0.26",
     "date-fns": "^4.4.0",
     "effect": "catalog:",
     "gray-matter": "^4.0.3",
-    "match-sorter": "^8.3.0",
-    "solid-js": "^1.9.14"
+    "match-sorter": "^8.3.0"
   },
   "devDependencies": {
     "effect-bun-test": "catalog:",

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 
-import { egwOpen, egwWithSubcommands } from '../../src/commands/egw.js';
+import { egwWithSubcommands } from '../../src/commands/egw.js';
 import { runCli } from '../lib/run-cli.js';
 
 describe('egw commands', () => {
@@ -60,31 +60,6 @@ describe('egw commands', () => {
     });
   });
 
-  describe('egw open command', () => {
-    it('should open the EGW reader when no query is provided', async () => {
-      const result = await runCli(egwOpen, []);
-
-      expect(result.success).toBe(true);
-      expect(result.calls).toContainEqual({
-        _tag: 'InteractiveReader.open',
-        destination: { _tag: 'egw' },
-      });
-    });
-
-    it('should accept reference for TUI launch', async () => {
-      const result = await runCli(egwOpen, ['PP', '351.1']);
-
-      expect(result.success).toBe(true);
-      expect(result.calls).toContainEqual({
-        _tag: 'InteractiveReader.open',
-        destination: {
-          _tag: 'egw',
-          location: { _tag: 'paragraph', bookCode: 'PP', page: 351, paragraph: 1 },
-        },
-      });
-    });
-  });
-
   describe('egwWithSubcommands', () => {
     it('should show help when no args', async () => {
       const result = await runCli(egwWithSubcommands, []);
@@ -102,19 +77,6 @@ describe('egw commands', () => {
       const result = await runCli(egwWithSubcommands, ['faith', 'and', 'works']);
 
       expect(result.success).toBe(true);
-    });
-
-    it('should route to open subcommand', async () => {
-      const result = await runCli(egwWithSubcommands, ['open', 'PP', '351.1']);
-
-      expect(result.success).toBe(true);
-      expect(result.calls).toContainEqual({
-        _tag: 'InteractiveReader.open',
-        destination: {
-          _tag: 'egw',
-          location: { _tag: 'paragraph', bookCode: 'PP', page: 351, paragraph: 1 },
-        },
-      });
     });
   });
 });

@@ -13,7 +13,6 @@ import { Effect, Option } from 'effect';
 
 import { isStrongsNumber } from '../../src/commands/bible.js';
 import { versesForBibleQuery } from '../../src/lib/bible-query.js';
-import { parseReaderReference } from '../../src/lib/parse-reader-reference.js';
 
 const chapter = (bookNumber: number, chapterNumber: number, texts: readonly string[]) => {
   const book = getBibleBook(bookNumber);
@@ -75,12 +74,6 @@ describe('canonical Bible query integration', () => {
 
   it('resolves a full book through the canonical book metadata', async () => {
     expect(await resolve(ParsedBibleQuery.fullBook(31))).toHaveLength(1);
-  });
-
-  it('maps reader input to canonical route references', () => {
-    expect(parseReaderReference('john 3:16')).toEqual(Reference.verse(43, 3, 16));
-    expect(parseReaderReference('ruth')).toEqual(Reference.chapter(8, 1));
-    expect(parseReaderReference('faith without works')).toBeUndefined();
   });
 });
 

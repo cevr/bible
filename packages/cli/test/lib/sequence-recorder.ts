@@ -1,7 +1,5 @@
 import { Effect, Layer, Ref, Context } from 'effect';
 
-import type { ReaderDestination } from '../../src/services/interactive-reader.js';
-
 /**
  * Types for recorded service calls.
  * Each call captures the service, method, and relevant arguments.
@@ -24,7 +22,6 @@ export type ServiceCall =
   | { _tag: 'AppleScript.exec'; script: string }
   | { _tag: 'AppleScript.execJxa'; script: string }
   | { _tag: 'Console.log'; message: string }
-  | { _tag: 'InteractiveReader.open'; destination: ReaderDestination }
   | { _tag: 'Chime.play' };
 
 /**

@@ -16,20 +16,10 @@ import { egwCommentary } from './egw/commentary.js';
 import { egwDownload } from './egw/download.js';
 import { ServiceLayer } from './egw/layers.js';
 import { egwLookup, lookupReference } from './egw/lookup.js';
-import { egwOpen } from './egw/open.js';
 import { egwSearch, localSearch } from './egw/search.js';
 import { egwStudy } from './egw/study.js';
 
-export {
-  egwBooks,
-  egwCatalog,
-  egwCommentary,
-  egwDownload,
-  egwLookup,
-  egwOpen,
-  egwSearch,
-  egwStudy,
-};
+export { egwBooks, egwCatalog, egwCommentary, egwDownload, egwLookup, egwSearch, egwStudy };
 
 const query = Argument.string('query').pipe(Argument.variadic());
 
@@ -44,7 +34,6 @@ export const egwWithSubcommands = Command.make('egw', { query }, (args) =>
       yield* Console.log('       bible egw download <code>');
       yield* Console.log('       bible egw study <subject>');
       yield* Console.log('       bible egw search <query> [--remote]');
-      yield* Console.log('       bible egw open <refcode>');
       yield* Console.log('');
       yield* Console.log('Examples:');
       yield* Console.log('  bible egw "PP 351.1"          # Single paragraph');
@@ -69,7 +58,6 @@ export const egwWithSubcommands = Command.make('egw', { query }, (args) =>
   }),
 ).pipe(
   Command.withSubcommands([
-    egwOpen,
     egwBooks,
     egwCatalog,
     egwDownload,
