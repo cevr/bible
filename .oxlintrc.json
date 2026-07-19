@@ -69,15 +69,20 @@
         "**/packages/core/src/procedure/**",
         "**/packages/core/src/reading-preferences/**",
         "**/packages/core/src/topics/**",
+        "**/packages/core/src/writings/model.ts",
         "**/packages/app/src/procedure/**",
         "**/apps/web/src/workers/user-state-database.ts",
         "**/apps/web/src/workers/procedure-client.ts",
         "**/apps/web/src/workers/procedure-worker-protocol.ts",
         "**/apps/web/src/workers/procedure-server.ts",
+        "**/apps/web/src/workers/writings-library-runtime.ts",
         "**/apps/web/src/workers/worker-sql-client.ts",
         "**/apps/desktop/electron/user-state-database.ts",
+        "**/apps/desktop/electron/user-state-generation.ts",
         "**/apps/desktop/electron/local-procedure-runtime.ts",
         "**/apps/desktop/electron/procedure-server.ts",
+        "**/apps/desktop/electron/runtime.ts",
+        "**/apps/desktop/electron/writings-library-runtime.ts",
         "**/apps/desktop/src/procedure-client.ts",
         "**/apps/desktop/src/procedure-client-protocol.ts",
         "**/apps/desktop/src/procedure-port.ts",
@@ -115,6 +120,19 @@
       }
     },
     {
+      "files": ["**/apps/desktop/electron/user-state-generation.ts"],
+      "rules": {
+        "effect/noGlobals": "off",
+        "effect/noNodeBuiltinImport": "off"
+      }
+    },
+    {
+      "files": ["**/apps/desktop/electron/runtime.ts"],
+      "rules": {
+        "effect/noGlobals": "off"
+      }
+    },
+    {
       "files": ["**/tests/**", "**/test/**", "**/*.test.ts", "**/*.test.tsx"],
       "rules": {
         "typescript/no-non-null-assertion": "off",
@@ -132,12 +150,6 @@
       }
     },
     {
-      "files": ["**/apps/web/src/index.tsx", "**/apps/desktop/tests/motion-reduced-motion.test.ts"],
-      "rules": {
-        "effect/noDynamicImports": "off"
-      }
-    },
-    {
       "files": [
         "**/scripts/**",
         "**/packages/core/src/sync/**",
@@ -146,7 +158,6 @@
         "**/packages/cli/src/services/logger.ts",
         "**/packages/cli/src/services/model.ts",
         "**/packages/cli/src/lib/paths.ts",
-        "**/packages/cli/src/tui/themes/**",
         "**/apps/web/server/main.ts",
         "**/apps/web/e2e/**",
         "**/packages/core/src/egw/auth.ts",
@@ -185,7 +196,6 @@
         "**/packages/cli/src/data/**",
         "**/packages/cli/src/services/**",
         "**/packages/cli/src/commands/**",
-        "**/packages/cli/src/tui/**",
         "**/apps/desktop/electron/**"
       ],
       "rules": {
@@ -202,8 +212,7 @@
     {
       "files": [
         "**/packages/core/src/egw-reader/**",
-        "**/packages/core/src/app/**",
-        "**/packages/cli/src/tui/context/**"
+        "**/packages/core/src/app/**"
       ],
       "rules": {
         "typescript/no-misused-spread": "off"
