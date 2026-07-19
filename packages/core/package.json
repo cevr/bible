@@ -25,6 +25,7 @@
     "./bible-rendering": "./src/bible-rendering/index.ts",
     "./gemini": "./src/gemini/index.ts",
     "./sync": "./src/sync/index.ts",
+    "./sync/egw": "./src/sync/egw-sync.ts",
     "./bible-db": "./src/bible-db/index.ts",
     "./bible-db/bun": "./src/bible-db/bible-database-bun.ts",
     "./utils": "./src/utils/index.ts",

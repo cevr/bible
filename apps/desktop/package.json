@@ -12,14 +12,16 @@
     "build:main": "bun run scripts/build-main.ts",
     "package": "bun run --cwd ../../packages/core sync:bible --force && bun run build && electron-builder",
     "typecheck": "tsgo --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --exclude tests/user-state-generation.test.ts && bun run test:electron-native",
+    "test:electron-native": "ELECTRON_RUN_AS_NODE=1 electron node_modules/vitest/vitest.mjs run tests/user-state-generation.test.ts",
     "test:e2e": "bun run build && playwright test --config=e2e/playwright.config.ts",
-    "test:watch": "vitest",
+    "test:watch": "vitest --exclude tests/user-state-generation.test.ts",
     "postinstall": "node -e \"process.exit(process.env.CI||process.env.RAILWAY_ENVIRONMENT||process.env.SKIP_ELECTRON_REBUILD?0:1)\" || electron-rebuild -f -w better-sqlite3"
   },
   "dependencies": {
     "@bible/app": "workspace:*",
     "@bible/core": "workspace:*",
+    "@effect/platform-node": "catalog:",
     "@effect/sql-sqlite-node": "catalog:",
     "@solidjs/router": "catalog:",
     "@solidjs/web": "catalog:",
