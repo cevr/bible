@@ -5,7 +5,12 @@
   "keywords": [],
   "license": "ISC",
   "author": "",
-  "scripts": {},
+  "type": "module",
+  "scripts": {
+    "checkpoint": "bun src/checkpoint.ts",
+    "typecheck": "tsgo --noEmit",
+    "test": "bun test src/checkpoint"
+  },
   "dependencies": {
     "@effect/platform-bun": "catalog:",
     "effect": "catalog:",
