@@ -1,4 +1,4 @@
-import { agentTail } from 'agent-tail/vite';
+import { agentTail } from 'vite-plugin-agent-tail';
 import { defineConfig } from 'vite';
 import solid from 'vite-plugin-solid';
 

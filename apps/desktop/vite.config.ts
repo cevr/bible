@@ -1,4 +1,4 @@
-import { agentTail } from 'agent-tail/vite';
+import { agentTail } from 'vite-plugin-agent-tail';
 import { defineConfig, loadEnv } from 'vite';
 import solid from 'vite-plugin-solid';
 import { electronDev } from './scripts/vite-plugin-electron-dev.js';
