@@ -55,6 +55,35 @@ describe('createSyncedCache', () => {
     owned.dispose();
   });
 
+  test('treats omitted and explicit empty structural inputs as the same key', async () => {
+    let lookups = 0;
+    const owned = createRoot((dispose) => ({
+      dispose,
+      cache: createSyncedCache({
+        name: 'empty-input',
+        runtime: defaultCacheRuntime,
+        emptyInput: {},
+        lookup: (_input: {}) =>
+          Effect.sync(() => {
+            lookups += 1;
+            return 'ready';
+          }),
+        mutate: (_command: never) => Effect.void,
+        affects: (_command: never): ReadonlyArray<never> => [],
+        matches: (_input: {}, _scope: never) => false,
+      }),
+    }));
+
+    const omitted = owned.cache.get();
+    const explicit = owned.cache.get({});
+    expect(explicit).toBe(omitted);
+    expect(await resolve(omitted)).toBe('ready');
+    await settle();
+    expect(owned.cache.status()).toBe(owned.cache.status({}));
+    expect(lookups).toBe(1);
+    owned.dispose();
+  });
+
   test('normalizes initial failures and retains the error in status', async () => {
     const owned = createRoot((dispose) => ({
       dispose,

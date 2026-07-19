@@ -49,6 +49,29 @@ const scanImports = async (options: {
   };
 };
 
+const scanSourcePattern = async (options: {
+  readonly title: string;
+  readonly patterns: readonly string[];
+  readonly forbidden: RegExp;
+  readonly globFiles: GlobFiles;
+  readonly readText: ReadText;
+  readonly displayPath: (path: string) => string;
+}): Promise<CheckResult> => {
+  const violations: string[] = [];
+  for (const pattern of options.patterns) {
+    for (const path of await options.globFiles(pattern)) {
+      if (options.forbidden.test(await options.readText(path))) {
+        violations.push(options.displayPath(path));
+      }
+    }
+  }
+  return {
+    name: options.title,
+    status: violations.length === 0 ? 'pass' : 'fail',
+    details: violations.length === 0 ? ['no forbidden source patterns'] : violations.sort(),
+  };
+};
+
 const dependencyCheck = (
   name: string,
   failures: readonly string[],
@@ -132,6 +155,27 @@ export const checkBoundaries = async (options: {
           specifier.startsWith('@bible/web') ||
           specifier.startsWith('@bible/desktop') ||
           specifier.includes('/apps/'),
+        globFiles: options.globFiles,
+        readText: options.readText,
+        displayPath: options.displayPath,
+      }),
+      await scanSourcePattern({
+        title: 'shared app dynamic import ban',
+        patterns: ['packages/app/src/**/*.{ts,tsx}'],
+        forbidden: /\bimport\s*\(/u,
+        globFiles: options.globFiles,
+        readText: options.readText,
+        displayPath: options.displayPath,
+      }),
+    );
+  }
+
+  if (preCutoverReached) {
+    results.push(
+      await scanSourcePattern({
+        title: 'host dynamic import ban',
+        patterns: ['apps/web/src/**/*.{ts,tsx}', 'apps/desktop/src/**/*.{ts,tsx}'],
+        forbidden: /\bimport\s*\(/u,
         globFiles: options.globFiles,
         readText: options.readText,
         displayPath: options.displayPath,

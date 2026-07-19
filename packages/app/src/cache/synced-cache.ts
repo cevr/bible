@@ -25,12 +25,20 @@ export interface CreateSyncedCacheOptions<Input, A, E, R, Command, MutationResul
   readonly mutate: (command: Command) => Effect.Effect<MutationResult, E, R>;
   readonly affects: (command: Command) => ReadonlyArray<Scope>;
   readonly matches: (input: Input, scope: Scope) => boolean;
+  readonly emptyInput?: Input;
 }
 
+type RequiredKeys<Input> = {
+  [Key in keyof Input]-?: {} extends Pick<Input, Key> ? never : Key;
+}[keyof Input];
+
+export type CacheInputArgs<Input> =
+  RequiredKeys<Input> extends never ? readonly [input?: Input] : readonly [input: Input];
+
 export interface SyncedCache<Input, A, Command, MutationResult> {
-  readonly get: (input: Input) => Accessor<A>;
-  readonly status: (input: Input) => Accessor<SyncedCacheStatus>;
-  readonly refresh: (input: Input) => Promise<A>;
+  readonly get: (...args: CacheInputArgs<Input>) => Accessor<A>;
+  readonly status: (...args: CacheInputArgs<Input>) => Accessor<SyncedCacheStatus>;
+  readonly refresh: (...args: CacheInputArgs<Input>) => Promise<A>;
   readonly mutate: (command: Command) => Promise<MutationResult>;
 }
 
@@ -182,6 +190,15 @@ export const createSyncedCache = <Input, A, E, R, Command, MutationResult, Scope
 
   const refresh = (input: Input): Promise<A> => refreshEntry(entryFor(input));
 
+  const inputFrom = (args: CacheInputArgs<Input>): Input => {
+    const input = args[0] ?? options.emptyInput;
+    if (input !== undefined) return input;
+    throw new IpcCacheError({
+      cache: options.name,
+      message: 'cache input is required',
+    });
+  };
+
   const mutate = (command: Command): Promise<MutationResult> =>
     run(options.mutate(command)).then(async (result) => {
       const scopes = options.affects(command);
@@ -203,9 +220,9 @@ export const createSyncedCache = <Input, A, E, R, Command, MutationResult, Scope
   });
 
   return {
-    get: (input) => entryFor(input).accessor,
-    status: (input) => entryFor(input).status,
-    refresh,
+    get: (...args) => entryFor(inputFrom(args)).accessor,
+    status: (...args) => entryFor(inputFrom(args)).status,
+    refresh: (...args) => refresh(inputFrom(args)),
     mutate,
   };
 };
