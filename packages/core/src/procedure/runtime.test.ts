@@ -29,9 +29,13 @@ const makeLayer = async () => {
   await Effect.runPromise(database.migrate(migrationSql));
   let mutation = 0;
   let commit = 0;
+  const store = makeBunSyncStore(
+    database,
+    Schema.decodeSync(ClientId)('procedure-client'),
+  );
   const layer = layerLocalProcedureRuntime({
     clientId: Schema.decodeSync(ClientId)('procedure-client'),
-    store: makeBunSyncStore(database, Schema.decodeSync(ClientId)('procedure-client')),
+    store,
     transport: makeSimulatedTransport(),
     generation: Schema.decodeSync(RuntimeGeneration)('procedure-test'),
     capabilities: ['external-links'],
@@ -40,7 +44,7 @@ const makeLayer = async () => {
     nextCommitId: () => Schema.decodeSync(CommitId)(`commit-${++commit}`),
     now: () => Schema.decodeSync(Timestamp)(`2026-07-19T00:00:0${mutation}.000Z`),
   });
-  return { database, layer };
+  return { database, layer, store };
 };
 
 describe('local procedure runtime', () => {
@@ -121,7 +125,7 @@ describe('local procedure runtime', () => {
   });
 
   test('exports a versioned document and fully validates imports before mutation', async () => {
-    const { database, layer } = await makeLayer();
+    const { database, layer, store } = await makeLayer();
     const result = await Effect.runPromise(
       Effect.gen(function* () {
         const preferences = yield* ReadingPreferencesRuntime;
@@ -141,6 +145,7 @@ describe('local procedure runtime', () => {
     expect(result.backup).toMatchObject({ format: 'bible-library-backup', version: 1 });
     expect(result.imported.imported).toBeGreaterThan(0);
     expect(result.invalid._tag).toBe('Failure');
+    expect(await Effect.runPromise(store.pending)).toHaveLength(2);
     await Effect.runPromise(database.close);
   });
 });

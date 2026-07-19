@@ -7,6 +7,7 @@ import {
   type ClientId,
   type MutationEnvelope,
   type MutationId,
+  MigrationSourceId,
   type LibraryMutationCommand,
   type SyncStore,
   type SyncTransport,
@@ -230,7 +231,26 @@ const makeRuntime = (options: LocalProcedureRuntimeOptions) =>
         Effect.gen(function* () {
           const backup = yield* Schema.decodeUnknownEffect(LibraryBackupDocumentFromJson)(document);
           const commands = commandsForLibraryBackup(backup);
-          yield* Effect.forEach(commands, (command) => engine.mutate(command), { discard: true });
+          const importId = options.nextMutationId();
+          const completedAt = options.now();
+          yield* options.store.importLegacy({
+            sourceId: Schema.decodeSync(MigrationSourceId)(`backup-${String(importId)}`),
+            fingerprint: `backup-${String(importId)}`,
+            generation: String(options.generation),
+            items: commands.map((command) => ({
+              mutationId: options.nextMutationId(),
+              command,
+              createdAt: options.now(),
+            })),
+            diagnostics: [],
+            semanticCounts: [{ entity: 'backup-commands', count: commands.length }],
+            completedAt,
+          });
+          yield* Effect.forEach(
+            commands,
+            (command) => publish(changeSetFor(command), { source: 'local' }),
+            { discard: true },
+          );
           return { imported: commands.length };
         }).pipe(Effect.mapError(procedureFailure('v1.data.import'))),
     });
