@@ -70,7 +70,9 @@
         "**/packages/app/src/procedure/**",
         "**/apps/web/src/workers/user-state-database.ts",
         "**/apps/web/src/workers/procedure-client.ts",
-        "**/apps/web/src/workers/procedure-worker-protocol.ts"
+        "**/apps/web/src/workers/procedure-worker-protocol.ts",
+        "**/apps/web/src/workers/procedure-server.ts",
+        "**/apps/web/src/workers/worker-sql-client.ts"
       ],
       "rules": {
         "effect/noAsyncFunction": "error",

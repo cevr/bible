@@ -11,14 +11,25 @@
 import * as SQLite from 'wa-sqlite';
 import SQLiteESMFactory from 'wa-sqlite/dist/wa-sqlite.mjs';
 import { OPFSCoopSyncVFS } from 'wa-sqlite/src/examples/OPFSCoopSyncVFS.js';
+import { ClientId, makeSimulatedTransport, MutationId, Timestamp } from '@bible/core/local-first';
+import { CommitId, RuntimeGeneration } from '@bible/core/procedure';
+import { Effect, Layer, Schema } from 'effect';
+
+import userStateMigrationSql from '../../../../packages/core/src/local-first/migrations/0001_user_state.sql?raw';
 
 import { makeWorkerBibleDatabase, type WorkerBibleDatabase } from './bible-database.js';
 import { makeDatabaseFileDownloader } from './database-file-downloader.js';
 import { decodeWorkerRequest, decodeWorkerResponse, type WorkerResponse } from './db-protocol.js';
 import { makeWorkerEgwDatabase, type WorkerEgwDatabase } from './egw-database.js';
+import {
+  decodeProcedureWorkerConnect,
+  type ProcedureWorkerConnect,
+} from './procedure-worker-protocol.js';
+import { layerProcedureServer, type ProcedureServerInput } from './procedure-server.js';
 import { makeSqliteDatabase } from './sqlite-database.js';
 import { makeStateDatabase, type StateDatabase } from './state-database.js';
 import { makeWorkerTopicsDatabase, type WorkerTopicsDatabase } from './topics-database.js';
+import { makeBrowserSyncStore, makeBrowserUserDatabase } from './user-state-database.js';
 
 const log = import.meta.env['DEV'] ? (...args: unknown[]) => console.log(...args) : () => {};
 const VFS_NAME = 'opfs-coop-sync';
@@ -27,6 +38,22 @@ let bibleDatabase: WorkerBibleDatabase;
 let stateDatabase: StateDatabase;
 let egwDatabase: WorkerEgwDatabase;
 let topicsDatabase: WorkerTopicsDatabase;
+let procedureServer: Omit<ProcedureServerInput, 'port'> | undefined;
+const pendingProcedurePorts: MessagePort[] = [];
+
+const isProcedureConnect = (input: unknown): input is ProcedureWorkerConnect =>
+  typeof input === 'object' &&
+  input !== null &&
+  'type' in input &&
+  input.type === 'procedure-connect';
+
+const launchProcedureServer = (port: MessagePort): void => {
+  if (procedureServer === undefined) {
+    pendingProcedurePorts.push(port);
+    return;
+  }
+  Effect.runFork(Layer.launch(layerProcedureServer({ ...procedureServer, port })));
+};
 
 function post(msg: WorkerResponse) {
   self.postMessage(decodeWorkerResponse(msg));
@@ -81,13 +108,15 @@ async function initializeDatabases(requestId: number): Promise<void> {
     log('[db-worker] init: OPFS VFS registered');
 
     const downloader = makeDatabaseFileDownloader();
+    const writingsSqlite = makeSqliteDatabase(sqlite3, 'egw-paragraphs.db', VFS_NAME);
     egwDatabase = makeWorkerEgwDatabase({
-      database: makeSqliteDatabase(sqlite3, 'egw-paragraphs.db', VFS_NAME),
+      database: writingsSqlite,
       downloader,
       log,
     });
+    const bibleSqlite = makeSqliteDatabase(sqlite3, 'bible.db', VFS_NAME);
     bibleDatabase = makeWorkerBibleDatabase({
-      database: makeSqliteDatabase(sqlite3, 'bible.db', VFS_NAME),
+      database: bibleSqlite,
       downloader,
     });
     await bibleDatabase.initialize((progress) => {
@@ -120,6 +149,30 @@ async function initializeDatabases(requestId: number): Promise<void> {
     } catch (egwErr) {
       console.warn('[db-worker] init: EGW database unavailable, continuing without it', egwErr);
     }
+
+    const userStateSqlite = makeSqliteDatabase(sqlite3, 'user-state.db', VFS_NAME);
+    await userStateSqlite.open(SQLite.SQLITE_OPEN_READWRITE | SQLite.SQLITE_OPEN_CREATE);
+    const userDatabase = makeBrowserUserDatabase({ database: userStateSqlite });
+    await Effect.runPromise(userDatabase.migrate(userStateMigrationSql));
+    const localClientId = Schema.decodeSync(ClientId)('web-local');
+    const store = makeBrowserSyncStore(userDatabase, localClientId);
+    const generation = Schema.decodeSync(RuntimeGeneration)(crypto.randomUUID());
+    procedureServer = {
+      bibleDatabase: bibleSqlite,
+      writingsDatabase: writingsSqlite,
+      runtime: {
+        clientId: localClientId,
+        store,
+        transport: makeSimulatedTransport(),
+        generation,
+        capabilities: ['external-links'],
+        nextMutationId: () => Schema.decodeSync(MutationId)(crypto.randomUUID()),
+        nextCommitId: () => Schema.decodeSync(CommitId)(crypto.randomUUID()),
+        now: () => Schema.decodeSync(Timestamp)(new Date().toISOString()),
+      },
+    };
+    for (const port of pendingProcedurePorts.splice(0)) launchProcedureServer(port);
+    log('[db-worker] init: procedure runtime ready');
 
     post({ type: 'init-complete', id: requestId });
     log('[db-worker] init: complete');
@@ -155,6 +208,17 @@ async function initializeDatabases(requestId: number): Promise<void> {
 // ---------------------------------------------------------------------------
 
 self.onmessage = async (event: MessageEvent<unknown>) => {
+  if (isProcedureConnect(event.data)) {
+    decodeProcedureWorkerConnect(event.data);
+    const port = event.ports[0];
+    if (port === undefined) {
+      console.error('[db-worker] procedure connection omitted its message port');
+      return;
+    }
+    launchProcedureServer(port);
+    return;
+  }
+
   let msg;
   try {
     msg = decodeWorkerRequest(event.data);
