@@ -9,7 +9,7 @@ renders the UI over an Effect service layer in the renderer.
 - **Main process**: owns the EGW API client, OAuth token store, Bible corpus,
   EGW paragraph index, and both SQLite databases. `electron/runtime.ts`
   composes these implementations into one managed Effect runtime.
-- **IPC contract**: `electron/ipc-contract.ts` is the single interface for
+- **Procedure transport**: `electron/procedure-server.ts` and the transferred MessagePort are the single renderer interface for
   invoke-channel names, argument tuples, and serializable results. Both
   `electron/main.ts` registrations and `electron/preload.ts` invocations are
   typed from it.

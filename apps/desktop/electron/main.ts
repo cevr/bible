@@ -5,12 +5,7 @@ import { app, BrowserWindow, MessageChannelMain, shell } from 'electron';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { backfillIndex } from './indexer.js';
 import { provisionBibleCorpus } from './bible-corpus-file.js';
-import { makeBibleIpc } from './ipc/bible-handlers.js';
-import { registerEgwIpc } from './ipc/egw-handlers.js';
-import { handleIpc } from './ipc/handle.js';
-import { registerStorageIpc } from './ipc/storage-handlers.js';
 import {
   layerDesktopProcedureServer,
   type DesktopProcedureServerPort,
@@ -45,20 +40,11 @@ const loadDotEnv = (file: string): void => {
 const isDev = process.env['NODE_ENV'] === 'development';
 const VITE_DEV_URL = 'http://localhost:1420';
 
-const settingsPath = () => path.join(app.getPath('userData'), 'settings.json');
-const cacheDbPath = () => path.join(app.getPath('userData'), 'cache.sqlite');
+const writingsDbPath = () => path.join(app.getPath('home'), '.bible', 'egw-paragraphs.db');
 const bibleDbPath = () => path.join(app.getPath('userData'), 'bible.db');
 const userStateDbPath = () => path.join(app.getPath('userData'), 'user-state.sqlite');
-const egwTokenPath = () => path.join(app.getPath('userData'), 'egw-tokens.json');
 
 let mainRuntime: MainRuntime | null = null;
-const getRuntime = (): MainRuntime | null => mainRuntime;
-
-const bibleIpc = makeBibleIpc({ getRuntime, isDev });
-bibleIpc.register();
-registerEgwIpc(getRuntime);
-registerStorageIpc({ getRuntime, settingsFile: settingsPath });
-handleIpc('__diag:runtimeReady', (): boolean => mainRuntime !== null);
 
 const resolveWindowIcon = (): string | undefined => {
   const candidates = [
@@ -151,7 +137,7 @@ void app.whenReady().then(async () => {
     `[main] bible-corpus-ready source=${provisionedCorpus.source.label} copied=${String(provisionedCorpus.copied)} bytes=${String(provisionedCorpus.bytes)}`,
   );
   console.info('[main] runtime-creating');
-  const runtime = makeRuntime(cacheDbPath(), bibleDbPath(), egwTokenPath(), userStateDbPath());
+  const runtime = makeRuntime(writingsDbPath(), bibleDbPath(), userStateDbPath());
   mainRuntime = runtime;
 
   // Construct every persistent module before opening a renderer. This runs
@@ -160,18 +146,6 @@ void app.whenReady().then(async () => {
   await runtime.runPromise(BibleCorpus.pipe(Effect.asVoid));
   await runtime.runPromise(BibleDatabase.pipe(Effect.asVoid));
   console.info('[main] persistence-ready');
-
-  // Commentary backfill and legacy chapter indexing are opportunistic. Their
-  // handler modules own the work; bootstrap only schedules lifecycle timing.
-  void bibleIpc.ensureCommentaryBackfillDone(runtime).then(() => {
-    console.info('[main] commentary-backfill-complete');
-    for (const win of BrowserWindow.getAllWindows()) {
-      win.webContents.send('bible:egwCommentaryUpdated', []);
-    }
-  });
-  void backfillIndex(runtime).catch((error: unknown) => {
-    console.warn(`[main] bible-index-backfill-failed cause=${String(error)}`);
-  });
 
   void createWindow(runtime);
   app.on('activate', () => {

@@ -15,7 +15,7 @@ import { Effect, Layer } from 'effect';
 import { makeDesktopSyncStore, makeDesktopUserDatabase } from './user-state-database.js';
 
 export interface DesktopProcedureDependenciesInput {
-  readonly cacheDatabase: Layer.Layer<EGWParagraphDatabase>;
+  readonly writingsDatabase: Layer.Layer<EGWParagraphDatabase>;
   readonly bible: Layer.Layer<BibleService | TopicService>;
   readonly userStateDbFile: string;
   readonly migrationSql: string;
@@ -43,7 +43,7 @@ export const layerDesktopProcedureDependencies = (
     store: makeDesktopSyncStore(userDatabase, input.runtime.clientId),
     transport: makeSimulatedTransport(),
   });
-  const writings = WritingsService.Live.pipe(Layer.provide(input.cacheDatabase));
+  const writings = WritingsService.Live.pipe(Layer.provide(input.writingsDatabase));
   return Layer.mergeAll(input.bible, writings, localRuntime, userDatabaseLifecycle).pipe(
     Layer.orDie,
   );

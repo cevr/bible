@@ -1,11 +1,10 @@
 import { Effect } from 'effect';
-import type { DesktopApi } from '../electron/ipc-contract.js';
 
 import { DesktopProcedurePortMessage } from '../shared/procedure-channel.js';
 
 declare global {
   interface Window {
-    readonly api: DesktopApi;
+    readonly api: { readonly procedure: { readonly ready: () => void } };
   }
 }
 
