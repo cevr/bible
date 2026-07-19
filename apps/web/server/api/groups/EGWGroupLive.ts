@@ -67,27 +67,31 @@ export const EGWGroupLive = HttpApiBuilder.group(BibleToolsApi, 'EGW', (handlers
         writings.catalog().pipe(Effect.map(EGWWire.books), Effect.mapError(databaseError)),
       )
       .handle('page', ({ params: { bookCode, page } }) =>
-        writings
-          .page(Reference.page(bookCode, page))
-          .pipe(Effect.map(EGWWire.page), Effect.mapError(pageError(bookCode, page))),
+        Effect.gen(function* () {
+          const publication = yield* writings.publicationByCode(bookCode);
+          return yield* writings.page(Reference.page(publication.id, page));
+        }).pipe(Effect.map(EGWWire.page), Effect.mapError(pageError(bookCode, page))),
       )
       .handle('chapters', ({ params: { bookCode } }) =>
-        writings
-          .headings(Reference.publication(bookCode))
-          .pipe(Effect.map(EGWWire.chapters), Effect.mapError(bookError(bookCode))),
+        Effect.gen(function* () {
+          const publication = yield* writings.publicationByCode(bookCode);
+          return yield* writings.headings(Reference.publication(publication.id));
+        }).pipe(Effect.map(EGWWire.chapters), Effect.mapError(bookError(bookCode))),
       )
       .handle('search', ({ query: { q, limit, bookCode } }) =>
-        writings
-          .search(q, {
+        Effect.gen(function* () {
+          const publication = bookCode ? yield* writings.publicationByCode(bookCode) : undefined;
+          return yield* writings.search(q, {
             limit,
-            publication: bookCode ? Reference.publication(bookCode) : undefined,
-          })
-          .pipe(Effect.map(EGWWire.searchResults), Effect.mapError(searchError)),
+            publication: publication ? Reference.publication(publication.id) : undefined,
+          });
+        }).pipe(Effect.map(EGWWire.searchResults), Effect.mapError(searchError)),
       )
       .handle('bookDump', ({ params: { bookCode } }) =>
-        archives
-          .exportPublication(Reference.publication(bookCode))
-          .pipe(Effect.map(EGWWire.archive), Effect.mapError(bookError(bookCode))),
+        Effect.gen(function* () {
+          const publication = yield* writings.publicationByCode(bookCode);
+          return yield* archives.exportPublication(Reference.publication(publication.id));
+        }).pipe(Effect.map(EGWWire.archive), Effect.mapError(bookError(bookCode))),
       );
   }),
 );

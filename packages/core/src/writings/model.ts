@@ -1,4 +1,4 @@
-import { Option, Schema } from 'effect';
+import { Schema } from 'effect';
 
 import { Node } from '../egw/ast.js';
 
@@ -27,6 +27,9 @@ export const PublicationOrder = Schema.Number.pipe(
 );
 export type PublicationOrder = typeof PublicationOrder.Type;
 
+export const ParagraphId = Schema.NonEmptyString.pipe(Schema.brand('Writings/ParagraphId'));
+export type ParagraphId = typeof ParagraphId.Type;
+
 export class Publication extends Schema.Class<Publication>('Writings/Publication')({
   id: PublicationId,
   code: PublicationCode,
@@ -38,13 +41,13 @@ export class Publication extends Schema.Class<Publication>('Writings/Publication
 export class PublicationReference extends Schema.TaggedClass<PublicationReference>(
   'Writings/PublicationReference',
 )('publication', {
-  publication: PublicationCode,
+  publicationId: PublicationId,
 }) {}
 
 export class PageReference extends Schema.TaggedClass<PageReference>('Writings/PageReference')(
   'page',
   {
-    publication: PublicationCode,
+    publicationId: PublicationId,
     page: PageNumber,
   },
 ) {}
@@ -52,11 +55,8 @@ export class PageReference extends Schema.TaggedClass<PageReference>('Writings/P
 export class ParagraphReference extends Schema.TaggedClass<ParagraphReference>(
   'Writings/ParagraphReference',
 )('paragraph', {
-  publication: PublicationCode,
-  order: PublicationOrder,
-  page: Schema.Option(PageNumber),
-  number: Schema.Option(NonNegativeInteger),
-  refcode: Schema.Option(Schema.NonEmptyString),
+  publicationId: PublicationId,
+  paragraphId: ParagraphId,
 }) {}
 
 export const ReferenceSchema = Schema.Union([
@@ -68,7 +68,11 @@ export type Reference = typeof ReferenceSchema.Type;
 
 export class Paragraph extends Schema.Class<Paragraph>('Writings/Paragraph')({
   reference: ParagraphReference,
-  paragraphId: Schema.Option(Schema.NonEmptyString),
+  publicationCode: PublicationCode,
+  order: PublicationOrder,
+  page: Schema.Option(PageNumber),
+  number: Schema.Option(NonNegativeInteger),
+  refcode: Schema.Option(Schema.NonEmptyString),
   nodes: Schema.Array(Node),
   elementType: Schema.Option(Schema.NonEmptyString),
   elementSubtype: Schema.Option(Schema.NonEmptyString),
@@ -76,6 +80,11 @@ export class Paragraph extends Schema.Class<Paragraph>('Writings/Paragraph')({
 
 export class Heading extends Schema.Class<Heading>('Writings/Heading')({
   reference: ParagraphReference,
+  publicationCode: PublicationCode,
+  order: PublicationOrder,
+  page: Schema.Option(PageNumber),
+  number: Schema.Option(NonNegativeInteger),
+  refcode: Schema.Option(Schema.NonEmptyString),
   title: Schema.NonEmptyString,
   level: NonNegativeInteger,
 }) {}
@@ -98,24 +107,19 @@ export const publicationId = Schema.decodeSync(PublicationId);
 export const publicationCode = Schema.decodeSync(PublicationCode);
 export const pageNumber = Schema.decodeSync(PageNumber);
 export const publicationOrder = Schema.decodeSync(PublicationOrder);
+export const paragraphId = Schema.decodeSync(ParagraphId);
 
 export const Reference = {
-  publication: (publication: string): PublicationReference =>
-    new PublicationReference({ publication: publicationCode(publication) }),
-  page: (publication: string, page: number): PageReference =>
-    new PageReference({ publication: publicationCode(publication), page: pageNumber(page) }),
-  paragraph: (input: {
-    readonly publication: string;
-    readonly order: number;
-    readonly page?: number;
-    readonly number?: number;
-    readonly refcode?: string;
-  }): ParagraphReference =>
+  publication: (publication: number): PublicationReference =>
+    new PublicationReference({ publicationId: publicationId(publication) }),
+  page: (publication: number, page: number): PageReference =>
+    new PageReference({
+      publicationId: publicationId(publication),
+      page: pageNumber(page),
+    }),
+  paragraph: (publication: number, paragraph: string): ParagraphReference =>
     new ParagraphReference({
-      publication: publicationCode(input.publication),
-      order: publicationOrder(input.order),
-      page: Option.fromNullishOr(input.page).pipe(Option.map(pageNumber)),
-      number: Option.fromNullishOr(input.number),
-      refcode: Option.fromNullishOr(input.refcode),
+      publicationId: publicationId(publication),
+      paragraphId: paragraphId(paragraph),
     }),
 } as const;

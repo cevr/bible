@@ -1,27 +1,34 @@
 import { describe, expect, test } from 'bun:test';
 import { Option } from 'effect';
 
-import { Page, Paragraph, Publication, Reference, publicationId } from '@bible/core/writings';
+import {
+  Page,
+  Paragraph,
+  Publication,
+  Reference,
+  pageNumber,
+  publicationCode,
+  publicationId,
+  publicationOrder,
+} from '@bible/core/writings';
 
 import { EGWWire } from './EGWWire.js';
 
 const publication = new Publication({
   id: publicationId(127),
-  code: Reference.publication('PP').publication,
+  code: publicationCode('PP'),
   title: 'Patriarchs and Prophets',
   author: 'Ellen G. White',
   paragraphCount: Option.some(2),
 });
 
 const paragraph = new Paragraph({
-  reference: Reference.paragraph({
-    publication: 'PP',
-    order: 10,
-    page: 5,
-    number: 2,
-    refcode: 'PP 5.2',
-  }),
-  paragraphId: Option.some('127.10'),
+  reference: Reference.paragraph(127, '127.10'),
+  publicationCode: publicationCode('PP'),
+  order: publicationOrder(10),
+  page: Option.some(pageNumber(5)),
+  number: Option.some(2),
+  refcode: Option.some('PP 5.2'),
   nodes: [{ _tag: 'Text', text: 'The paragraph.' }],
   elementType: Option.some('p'),
   elementSubtype: Option.none(),
@@ -32,11 +39,11 @@ describe('EGWWire', () => {
     const wire = EGWWire.page(
       new Page({
         publication,
-        reference: Reference.page('PP', 5),
+        reference: Reference.page(127, 5),
         paragraphs: [paragraph],
         heading: Option.some('A Heading'),
-        previous: Option.some(Reference.page('PP', 3)),
-        next: Option.some(Reference.page('PP', 9)),
+        previous: Option.some(Reference.page(127, 3)),
+        next: Option.some(Reference.page(127, 9)),
       }),
     );
 

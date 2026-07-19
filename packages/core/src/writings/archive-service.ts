@@ -33,14 +33,15 @@ export class WritingsArchive extends Context.Service<WritingsArchive, WritingsAr
           Effect.gen(function* () {
             const publication = yield* writings.publication(reference);
             const paragraphs = yield* writings.paragraphs(reference);
-            const bibleReferences = yield* database
-              .getBibleRefsByBook(publication.id)
-              .pipe(
-                Effect.mapError(
-                  (cause) =>
-                    new WritingsUnavailableError({ operation: 'export-publication', cause }),
-                ),
-              );
+            const bibleReferences = yield* database.getBibleRefsByBook(publication.id).pipe(
+              Effect.mapError(
+                (cause) =>
+                  new WritingsUnavailableError({
+                    operation: 'export-publication',
+                    cause,
+                  }),
+              ),
+            );
 
             return yield* Effect.try({
               try: () =>
@@ -48,9 +49,7 @@ export class WritingsArchive extends Context.Service<WritingsArchive, WritingsAr
                   publication,
                   paragraphs: paragraphs.map((paragraph) => {
                     const refcode =
-                      Option.getOrUndefined(paragraph.reference.refcode) ??
-                      Option.getOrUndefined(paragraph.paragraphId) ??
-                      `${publication.id}-${paragraph.reference.order}`;
+                      Option.getOrUndefined(paragraph.refcode) ?? paragraph.reference.paragraphId;
                     return new ArchivedParagraph({
                       refcode,
                       paragraph,
@@ -78,7 +77,10 @@ export class WritingsArchive extends Context.Service<WritingsArchive, WritingsAr
                   ),
                 }),
               catch: (cause) =>
-                new WritingsDataIntegrityError({ operation: 'export-publication', cause }),
+                new WritingsDataIntegrityError({
+                  operation: 'export-publication',
+                  cause,
+                }),
             });
           });
 

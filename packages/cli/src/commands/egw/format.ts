@@ -3,7 +3,7 @@ import type { Paragraph, Publication, SearchHit } from '@bible/core/writings';
 import { Option } from 'effect';
 
 export const paragraphRefcode = (paragraph: Paragraph): string =>
-  Option.getOrElse(paragraph.reference.refcode, () => `[${paragraph.reference.publication}]`);
+  Option.getOrElse(paragraph.refcode, () => `[${paragraph.publicationCode}]`);
 
 export const publicationJson = (publication: Publication) => ({
   id: publication.id,
@@ -15,13 +15,13 @@ export const publicationJson = (publication: Publication) => ({
 
 export const paragraphJson = (paragraph: Paragraph) => ({
   reference: {
-    publication: paragraph.reference.publication,
-    order: paragraph.reference.order,
-    page: Option.getOrNull(paragraph.reference.page),
-    number: Option.getOrNull(paragraph.reference.number),
-    refcode: Option.getOrNull(paragraph.reference.refcode),
+    publication: paragraph.publicationCode,
+    order: paragraph.order,
+    page: Option.getOrNull(paragraph.page),
+    number: Option.getOrNull(paragraph.number),
+    refcode: Option.getOrNull(paragraph.refcode),
   },
-  paragraphId: Option.getOrNull(paragraph.paragraphId),
+  paragraphId: paragraph.reference.paragraphId,
   nodes: paragraph.nodes,
   elementType: Option.getOrNull(paragraph.elementType),
   elementSubtype: Option.getOrNull(paragraph.elementSubtype),

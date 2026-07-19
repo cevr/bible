@@ -59,7 +59,7 @@ const DatabaseLayer = EGWParagraphDatabase.Test({
   books: [book],
   paragraphs: [
     storedParagraph(1, Option.some('PP 1.1'), Option.some('127.1'), 'h2'),
-    storedParagraph(2, Option.none(), Option.none(), 'p'),
+    storedParagraph(2, Option.none(), Option.some('127.2'), 'p'),
   ],
   bibleRefs,
 });
@@ -76,12 +76,12 @@ describe('WritingsArchive', () => {
   test('exports a publication with stable paragraph identities and canonical Scripture references', async () => {
     const archive = await run(
       Effect.flatMap(WritingsArchive, (service) =>
-        service.exportPublication(Reference.publication('PP')),
+        service.exportPublication(Reference.publication(127)),
       ),
     );
 
     expect(String(archive.publication.code)).toBe('PP');
-    expect(archive.paragraphs.map((paragraph) => paragraph.refcode)).toEqual(['PP 1.1', '127-2']);
+    expect(archive.paragraphs.map((paragraph) => paragraph.refcode)).toEqual(['PP 1.1', '127.2']);
     expect(archive.paragraphs.map((paragraph) => paragraph.isHeading)).toEqual([true, false]);
     expect(archive.bibleReferences.map((reference) => reference.scripture._tag)).toEqual([
       'verse',
@@ -92,6 +92,9 @@ describe('WritingsArchive', () => {
       chapter: 1,
       verse: 1,
     });
-    expect(archive.bibleReferences[1]?.scripture).toMatchObject({ book: 2, chapter: 20 });
+    expect(archive.bibleReferences[1]?.scripture).toMatchObject({
+      book: 2,
+      chapter: 20,
+    });
   });
 });

@@ -8,6 +8,7 @@ import {
 import type * as EGWSchemas from '../egw/schemas.js';
 import { nodesToText } from '../egw/ast.js';
 import {
+  WritingsAmbiguousPublicationCodeError,
   WritingsDataIntegrityError,
   type WritingsError,
   WritingsInvalidSearchError,
@@ -25,7 +26,10 @@ import {
   type PublicationReference,
   Reference,
   SearchHit,
+  publicationCode,
   publicationId,
+  publicationOrder,
+  pageNumber,
 } from './model.js';
 
 type Operation = WritingsUnavailableError['operation'];
@@ -57,7 +61,7 @@ const makePublication = (
     try: () =>
       new Publication({
         id: publicationId(row.book_id),
-        code: Reference.publication(row.book_code).publication,
+        code: publicationCode(row.book_code),
         title: row.book_title,
         author: row.book_author,
         paragraphCount: Option.some(row.paragraph_count),
@@ -72,17 +76,19 @@ const makeParagraph = (
 ): Effect.Effect<Paragraph, WritingsDataIntegrityError> =>
   Effect.try({
     try: () => {
+      const stableParagraphId = Option.getOrThrowWith(
+        row.para_id,
+        () => new Error(`paragraph ${String(row.puborder)} has no stable paragraph identifier`),
+      );
       const refcode = Option.getOrUndefined(row.refcode_short) ?? row.refcode_long ?? undefined;
       const numbers = refcodeNumbers(refcode);
       return new Paragraph({
-        reference: Reference.paragraph({
-          publication: publication.code,
-          order: row.puborder,
-          page: numbers.page,
-          number: numbers.paragraph,
-          refcode,
-        }),
-        paragraphId: row.para_id,
+        reference: Reference.paragraph(publication.id, stableParagraphId),
+        publicationCode: publication.code,
+        order: publicationOrder(row.puborder),
+        page: Option.fromNullishOr(numbers.page).pipe(Option.map(pageNumber)),
+        number: Option.fromNullishOr(numbers.paragraph),
+        refcode: Option.fromNullishOr(refcode),
         nodes: row.nodes,
         elementType: optionalText(row.element_type),
         elementSubtype: optionalText(row.element_subtype),
@@ -98,6 +104,7 @@ export interface WritingsServiceShape {
   readonly publication: (
     reference: PublicationReference,
   ) => Effect.Effect<Publication, WritingsError>;
+  readonly publicationByCode: (code: string) => Effect.Effect<Publication, WritingsError>;
   readonly paragraphs: (
     reference: PublicationReference,
   ) => Effect.Effect<readonly Paragraph[], WritingsError>;
@@ -111,7 +118,10 @@ export interface WritingsServiceShape {
   ) => Effect.Effect<readonly Heading[], WritingsError>;
   readonly search: (
     query: string,
-    options?: { readonly limit?: number; readonly publication?: PublicationReference },
+    options?: {
+      readonly limit?: number;
+      readonly publication?: PublicationReference;
+    },
   ) => Effect.Effect<readonly SearchHit[], WritingsError>;
   readonly locate: (
     paragraphs: readonly Paragraph[],
@@ -142,14 +152,38 @@ export class WritingsService extends Context.Service<WritingsService, WritingsSe
       ): Effect.Effect<Publication, WritingsError> =>
         Effect.gen(function* () {
           const row = yield* database
-            .getBookByCode(reference.publication)
+            .getBookById(reference.publicationId)
             .pipe(Effect.mapError(unavailable('read-publication')));
           if (Option.isNone(row)) {
             return yield* new WritingsPublicationNotFoundError({
-              publication: reference.publication,
+              publication: reference.publicationId,
             });
           }
           return yield* makePublication(row.value, 'read-publication');
+        });
+
+      const publicationByCode = (code: string): Effect.Effect<Publication, WritingsError> =>
+        Effect.gen(function* () {
+          const canonicalCode = publicationCode(code);
+          const rows = yield* database
+            .getBooksByCode(canonicalCode)
+            .pipe(Effect.mapError(unavailable('read-publication')));
+          const [row, ...duplicates] = rows;
+          if (!row) {
+            return yield* new WritingsPublicationNotFoundError({
+              publication: canonicalCode,
+            });
+          }
+          if (duplicates.length > 0) {
+            return yield* new WritingsAmbiguousPublicationCodeError({
+              publication: canonicalCode,
+              candidates: [
+                publicationId(row.book_id),
+                ...duplicates.map((candidate) => publicationId(candidate.book_id)),
+              ],
+            });
+          }
+          return yield* makePublication(row, 'read-publication');
         });
 
       const paragraphs = (
@@ -185,7 +219,7 @@ export class WritingsService extends Context.Service<WritingsService, WritingsSe
 
       const page = (reference: PageReference): Effect.Effect<Page, WritingsError> =>
         Effect.gen(function* () {
-          const publicationReference = Reference.publication(reference.publication);
+          const publicationReference = Reference.publication(reference.publicationId);
           const foundPublication = yield* publication(publicationReference);
           const rows = yield* database
             .getParagraphsByPage(foundPublication.id, reference.page)
@@ -220,13 +254,13 @@ export class WritingsService extends Context.Service<WritingsService, WritingsSe
             previous:
               pageIndex > 0
                 ? Option.fromNullishOr(pageNumbers[pageIndex - 1]).pipe(
-                    Option.map((number) => Reference.page(reference.publication, number)),
+                    Option.map((number) => Reference.page(reference.publicationId, number)),
                   )
                 : Option.none(),
             next:
               pageIndex >= 0
                 ? Option.fromNullishOr(pageNumbers[pageIndex + 1]).pipe(
-                    Option.map((number) => Reference.page(reference.publication, number)),
+                    Option.map((number) => Reference.page(reference.publicationId, number)),
                   )
                 : Option.none(),
           });
@@ -249,6 +283,11 @@ export class WritingsService extends Context.Service<WritingsService, WritingsSe
                     const levelText = headingType?.match(/^h(\d+)$/i)?.[1];
                     return new Heading({
                       reference: paragraph.reference,
+                      publicationCode: paragraph.publicationCode,
+                      order: paragraph.order,
+                      page: paragraph.page,
+                      number: paragraph.number,
+                      refcode: paragraph.refcode,
                       title: nodesToText(paragraph.nodes),
                       level: levelText ? Number.parseInt(levelText, 10) : 1,
                     });
@@ -267,36 +306,45 @@ export class WritingsService extends Context.Service<WritingsService, WritingsSe
         if (options?.limit !== undefined && options.limit <= 0) {
           return Effect.fail(new WritingsInvalidSearchError({ reason: 'invalid-limit' }));
         }
-        return database
-          .searchParagraphs(query, options?.limit ?? 50, options?.publication?.publication)
-          .pipe(
-            Effect.mapError(unavailable('search')),
-            Effect.flatMap((rows) =>
-              Effect.forEach(rows, (row) =>
-                Effect.gen(function* () {
-                  const foundPublication = yield* publication(Reference.publication(row.bookCode));
-                  const paragraph = yield* makeParagraph(foundPublication, row, 'search');
-                  return new SearchHit({ publication: foundPublication, paragraph });
-                }),
+        return Effect.gen(function* () {
+          const publicationFilter = options?.publication
+            ? yield* publication(options.publication)
+            : undefined;
+          return yield* database
+            .searchParagraphs(query, options?.limit ?? 50, publicationFilter?.code)
+            .pipe(
+              Effect.mapError(unavailable('search')),
+              Effect.flatMap((rows) =>
+                Effect.forEach(rows, (row) =>
+                  Effect.gen(function* () {
+                    const foundPublication = yield* publication(Reference.publication(row.bookId));
+                    const paragraph = yield* makeParagraph(foundPublication, row, 'search');
+                    return new SearchHit({
+                      publication: foundPublication,
+                      paragraph,
+                    });
+                  }),
+                ),
               ),
-            ),
-          );
+            );
+        });
       };
 
       const locate: WritingsServiceShape['locate'] = (items, reference) => {
         if (reference._tag === 'paragraph') {
           return Option.fromNullishOr(
-            items.find((item) => item.reference.order === reference.order),
+            items.find((item) => item.reference.paragraphId === reference.paragraphId),
           );
         }
         return Option.fromNullishOr(
-          items.find((item) => Option.contains(item.reference.page, reference.page)),
+          items.find((item) => Option.contains(item.page, reference.page)),
         );
       };
 
       return WritingsService.of({
         catalog,
         publication,
+        publicationByCode,
         paragraphs,
         paragraphByRefcode,
         page,

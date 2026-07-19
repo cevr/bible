@@ -10,9 +10,13 @@ import { FullLayer, ServiceLayer } from './layers.js';
 export const localSearch = (query: string, bookCode?: string, limit = 20) =>
   Effect.gen(function* () {
     const service = yield* WritingsService;
+    const publication =
+      bookCode === undefined
+        ? undefined
+        : Reference.publication((yield* service.publicationByCode(bookCode)).id);
     const results = yield* service.search(query, {
       limit,
-      publication: bookCode === undefined ? undefined : Reference.publication(bookCode),
+      publication,
     });
 
     if (results.length === 0) {
@@ -96,10 +100,13 @@ export const egwSearch = Command.make(
       yield* Effect.gen(function* () {
         if (args.json) {
           const service = yield* WritingsService;
+          const publication =
+            args.book._tag === 'Some'
+              ? Reference.publication((yield* service.publicationByCode(args.book.value)).id)
+              : undefined;
           const results = yield* service.search(queryStr, {
             limit: args.limit,
-            publication:
-              args.book._tag === 'Some' ? Reference.publication(args.book.value) : undefined,
+            publication,
           });
           yield* Console.log(JSON.stringify(results.map(searchHitJson), null, 2));
           return;

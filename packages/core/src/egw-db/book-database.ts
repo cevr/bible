@@ -147,6 +147,9 @@ export interface EGWParagraphDatabaseService {
   readonly getBookByCode: (
     bookCode: string,
   ) => Effect.Effect<Option.Option<BookRow>, ParagraphDatabaseError>;
+  readonly getBooksByCode: (
+    bookCode: string,
+  ) => Effect.Effect<readonly BookRow[], ParagraphDatabaseError>;
   readonly getBooksByAuthor: (author: string) => Stream.Stream<BookRow, ParagraphDatabaseError>;
   readonly getAllBooks: () => Stream.Stream<BookRow, ParagraphDatabaseError>;
   readonly updateBookCount: (bookId: number) => Effect.Effect<void, ParagraphDatabaseError>;
@@ -529,6 +532,9 @@ export class EGWParagraphDatabase extends Context.Service<
         sql<BookRow>`SELECT * FROM books WHERE book_code = ${bookCode} COLLATE NOCASE`.pipe(
           Effect.map((rows) => Option.fromNullishOr(rows[0])),
         );
+
+      const getBooksByCode = (bookCode: string) =>
+        sql<BookRow>`SELECT * FROM books WHERE book_code = ${bookCode} COLLATE NOCASE ORDER BY book_id`;
 
       const getBooksByAuthor = (author: string) =>
         Stream.fromIterableEffect(
@@ -942,6 +948,7 @@ export class EGWParagraphDatabase extends Context.Service<
         storeBook,
         getBookById,
         getBookByCode,
+        getBooksByCode,
         getBooksByAuthor,
         getAllBooks,
         updateBookCount,
@@ -991,6 +998,11 @@ export class EGWParagraphDatabase extends Context.Service<
           Option.fromNullishOr(
             config.books?.find((b) => b.book_code.toLowerCase() === bookCode.toLowerCase()),
           ),
+        ),
+      getBooksByCode: (bookCode) =>
+        Effect.succeed(
+          config.books?.filter((book) => book.book_code.toLowerCase() === bookCode.toLowerCase()) ??
+            [],
         ),
       getBooksByAuthor: (author) =>
         Stream.fromIterable(config.books?.filter((b) => b.book_author === author) ?? []),

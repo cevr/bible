@@ -13,6 +13,8 @@
     "./egw-db/bun": "./src/egw-db/book-database-bun.ts",
     "./egw-commentary": "./src/egw-commentary/index.ts",
     "./bible-cross-refs": "./src/bible-cross-refs/index.ts",
+    "./reading-preferences": "./src/reading-preferences/index.ts",
+    "./procedure": "./src/procedure/index.ts",
     "./bible": "./src/bible/index.ts",
     "./bible/service": "./src/bible/service.ts",
     "./writings": "./src/writings/index.ts",

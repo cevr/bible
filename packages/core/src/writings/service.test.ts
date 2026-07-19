@@ -34,7 +34,7 @@ const storedParagraph = (
   elementType: string | null = 'p',
 ): StoredParagraph & { bookCode: string } => ({
   bookCode,
-  para_id: Option.none(),
+  para_id: Option.some(`${bookCode}-${String(order)}`),
   id_prev: null,
   id_next: null,
   refcode_1: null,
@@ -74,26 +74,47 @@ describe('WritingsService', () => {
     expect(filtered.map((publication) => String(publication.code))).toEqual(['PP']);
   });
 
+  test('rejects ambiguous publication-code aliases instead of guessing identity', async () => {
+    const ambiguousLayer = WritingsService.Live.pipe(
+      Layer.provide(
+        EGWParagraphDatabase.Test({
+          books: [books[0]!, { ...books[1]!, book_code: 'PP' }],
+          paragraphs,
+        }),
+      ),
+    );
+    const result = await Effect.runPromise(
+      Effect.flatMap(WritingsService, (writings) =>
+        Effect.result(writings.publicationByCode('PP')),
+      ).pipe(Effect.provide(ambiguousLayer)),
+    );
+
+    expect(result._tag).toBe('Failure');
+    if (result._tag === 'Failure') {
+      expect(result.failure._tag).toBe('WritingsAmbiguousPublicationCodeError');
+    }
+  });
+
   test('page navigation follows stored printed pages rather than arithmetic adjacency', async () => {
     const first = await run(
-      Effect.flatMap(WritingsService, (writings) => writings.page(Reference.page('PP', 100))),
+      Effect.flatMap(WritingsService, (writings) => writings.page(Reference.page(127, 100))),
     );
     const second = await run(
-      Effect.flatMap(WritingsService, (writings) => writings.page(Reference.page('PP', 102))),
+      Effect.flatMap(WritingsService, (writings) => writings.page(Reference.page(127, 102))),
     );
 
     expect(Option.isNone(first.previous)).toBe(true);
-    expect(Option.getOrThrow(first.next)).toEqual(Reference.page('PP', 102));
-    expect(Option.getOrThrow(second.previous)).toEqual(Reference.page('PP', 100));
+    expect(Option.getOrThrow(first.next)).toEqual(Reference.page(127, 102));
+    expect(Option.getOrThrow(second.previous)).toEqual(Reference.page(127, 100));
     expect(Option.isNone(second.next)).toBe(true);
-    expect(second.paragraphs.map((paragraph) => Number(paragraph.reference.order))).toEqual([2, 3]);
+    expect(second.paragraphs.map((paragraph) => Number(paragraph.order))).toEqual([2, 3]);
     expect(Option.getOrThrow(second.heading)).toBe('Content for PP 102.1');
   });
 
   test('missing pages fail in Writings language', async () => {
     const result = await run(
       Effect.flatMap(WritingsService, (writings) =>
-        Effect.result(writings.page(Reference.page('PP', 101))),
+        Effect.result(writings.page(Reference.page(127, 101))),
       ),
     );
 
@@ -103,14 +124,32 @@ describe('WritingsService', () => {
 
   test('normalizes nullable paragraph metadata to Option once', async () => {
     const page = await run(
-      Effect.flatMap(WritingsService, (writings) => writings.page(Reference.page('PP', 100))),
+      Effect.flatMap(WritingsService, (writings) => writings.page(Reference.page(127, 100))),
     );
     const paragraph = page.paragraphs[0];
 
-    expect(paragraph && Option.isNone(paragraph.paragraphId)).toBe(true);
+    expect(String(paragraph?.reference.paragraphId)).toBe('PP-1');
     expect(paragraph && Option.isNone(paragraph.elementSubtype)).toBe(true);
-    expect(paragraph && Number(Option.getOrThrow(paragraph.reference.page))).toBe(100);
-    expect(paragraph && Option.getOrThrow(paragraph.reference.number)).toBe(1);
+    expect(paragraph && Number(Option.getOrThrow(paragraph.page))).toBe(100);
+    expect(paragraph && Option.getOrThrow(paragraph.number)).toBe(1);
+  });
+
+  test('rejects routeable corpus paragraphs without stable identifiers', async () => {
+    const brokenLayer = WritingsService.Live.pipe(
+      Layer.provide(
+        EGWParagraphDatabase.Test({
+          books,
+          paragraphs: [{ ...storedParagraph('PP', 1, 'PP 100.1'), para_id: Option.none() }],
+        }),
+      ),
+    );
+    const result = await Effect.runPromise(
+      Effect.flatMap(WritingsService, (writings) =>
+        Effect.result(writings.page(Reference.page(127, 100))),
+      ).pipe(Effect.provide(brokenLayer)),
+    );
+
+    expect(result._tag).toBe('Failure');
   });
 
   test('validates search before reaching persistence and returns nested domain models', async () => {
@@ -120,7 +159,7 @@ describe('WritingsService', () => {
     const hits = await run(
       Effect.flatMap(WritingsService, (writings) =>
         writings.search('content', {
-          publication: Reference.publication('PP'),
+          publication: Reference.publication(127),
           limit: 2,
         }),
       ),

@@ -26,10 +26,10 @@ const book = (publication: Publication): EGWBookInfo => ({
 });
 
 const paragraph = (value: Paragraph): EGWParagraph => ({
-  paraId: Option.getOrNull(value.paragraphId),
-  refcodeShort: Option.getOrNull(value.reference.refcode),
+  paraId: value.reference.paragraphId,
+  refcodeShort: Option.getOrNull(value.refcode),
   nodes: value.nodes,
-  puborder: value.reference.order,
+  puborder: value.order,
   elementType: Option.getOrNull(value.elementType),
 });
 
@@ -44,9 +44,9 @@ const page = (value: Page): EGWPageResponse => ({
 
 const chapter = (value: Heading): EGWChapter => ({
   title: value.title,
-  refcodeShort: Option.getOrNull(value.reference.refcode),
-  puborder: value.reference.order,
-  page: Option.getOrNull(value.reference.page),
+  refcodeShort: Option.getOrNull(value.refcode),
+  puborder: value.order,
+  page: Option.getOrNull(value.page),
 });
 
 const searchResult = (value: SearchHit): EGWSearchResult => ({
@@ -59,14 +59,14 @@ const archive = (value: PublicationArchive): EGWBookDump => ({
   book: book(value.publication),
   paragraphs: value.paragraphs.map((archived) => ({
     refCode: archived.refcode,
-    paraId: Option.getOrNull(archived.paragraph.paragraphId),
-    refcodeShort: Option.getOrNull(archived.paragraph.reference.refcode),
+    paraId: archived.paragraph.reference.paragraphId,
+    refcodeShort: Option.getOrNull(archived.paragraph.refcode),
     nodes: archived.paragraph.nodes,
-    puborder: archived.paragraph.reference.order,
+    puborder: archived.paragraph.order,
     elementType: Option.getOrNull(archived.paragraph.elementType),
     elementSubtype: Option.getOrNull(archived.paragraph.elementSubtype),
-    pageNumber: Option.getOrNull(archived.paragraph.reference.page),
-    paragraphNumber: Option.getOrNull(archived.paragraph.reference.number),
+    pageNumber: Option.getOrNull(archived.paragraph.page),
+    paragraphNumber: Option.getOrNull(archived.paragraph.number),
     isChapterHeading: archived.isHeading,
   })),
   bibleRefs: value.bibleReferences.map((reference) => ({

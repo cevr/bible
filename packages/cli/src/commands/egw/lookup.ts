@@ -21,7 +21,7 @@ export const lookupReference = (parsed: LookupReference) =>
     const service = yield* WritingsService;
     const refStr = formatEGWRef(parsed);
 
-    const book = yield* service.publication(Reference.publication(parsed.bookCode)).pipe(
+    const book = yield* service.publicationByCode(parsed.bookCode).pipe(
       Effect.map(Option.some),
       Effect.catchTag('WritingsPublicationNotFoundError', () => Effect.succeed(Option.none())),
     );
@@ -37,7 +37,7 @@ export const lookupReference = (parsed: LookupReference) =>
       case 'page': {
         const page = parsed.page;
         const pageResponse = yield* service
-          .page(Reference.page(parsed.bookCode, page))
+          .page(Reference.page(book.value.id, page))
           .pipe(Effect.catchTag('WritingsPageNotFoundError', () => Effect.succeed(null)));
         if (pageResponse === null) {
           yield* Console.log(`Page ${page} not found in ${book.value.title} (${parsed.bookCode}).`);
@@ -52,13 +52,12 @@ export const lookupReference = (parsed: LookupReference) =>
         const paragraphs =
           parsed._tag === 'paragraph'
             ? pageResponse.paragraphs.filter(
-                (paragraph) =>
-                  Option.getOrUndefined(paragraph.reference.number) === parsed.paragraph,
+                (paragraph) => Option.getOrUndefined(paragraph.number) === parsed.paragraph,
               )
             : parsed._tag === 'paragraph-range'
               ? pageResponse.paragraphs.filter((paragraph) =>
                   Option.exists(
-                    paragraph.reference.number,
+                    paragraph.number,
                     (number) => number >= parsed.paragraphStart && number <= parsed.paragraphEnd,
                   ),
                 )
@@ -70,7 +69,7 @@ export const lookupReference = (parsed: LookupReference) =>
         }
 
         for (const paragraph of paragraphs) {
-          const ref = Option.getOrElse(paragraph.reference.refcode, () => '');
+          const ref = Option.getOrElse(paragraph.refcode, () => '');
           yield* Console.log(`  ${ref}`);
           yield* Console.log(`  ${nodesToText(paragraph.nodes)}\n`);
         }
@@ -82,12 +81,12 @@ export const lookupReference = (parsed: LookupReference) =>
         );
         for (let page = parsed.pageStart; page <= parsed.pageEnd; page++) {
           const pageResponse = yield* service
-            .page(Reference.page(parsed.bookCode, page))
+            .page(Reference.page(book.value.id, page))
             .pipe(Effect.catchTag('WritingsPageNotFoundError', () => Effect.succeed(null)));
           if (pageResponse === null) continue;
 
           for (const paragraph of pageResponse.paragraphs) {
-            const ref = Option.getOrElse(paragraph.reference.refcode, () => '');
+            const ref = Option.getOrElse(paragraph.refcode, () => '');
             yield* Console.log(`  ${ref}`);
             yield* Console.log(`  ${nodesToText(paragraph.nodes)}\n`);
           }
@@ -100,11 +99,11 @@ export const lookupReference = (parsed: LookupReference) =>
           `Paragraphs: ${Option.getOrElse(book.value.paragraphCount, () => 'unknown' as const)}`,
         );
 
-        const chapters = yield* service.headings(Reference.publication(parsed.bookCode));
+        const chapters = yield* service.headings(Reference.publication(book.value.id));
         if (chapters.length > 0) {
           yield* Console.log('\nTable of Contents:');
           for (const chapter of chapters) {
-            const ref = Option.getOrElse(chapter.reference.refcode, () => '');
+            const ref = Option.getOrElse(chapter.refcode, () => '');
             yield* Console.log(`  ${ref}  ${chapter.title}`);
           }
         }
@@ -118,7 +117,7 @@ const collectLookupData = (parsed: LookupReference) =>
     const service = yield* WritingsService;
     const refStr = formatEGWRef(parsed);
 
-    const book = yield* service.publication(Reference.publication(parsed.bookCode)).pipe(
+    const book = yield* service.publicationByCode(parsed.bookCode).pipe(
       Effect.map(Option.some),
       Effect.catchTag('WritingsPublicationNotFoundError', () => Effect.succeed(Option.none())),
     );
@@ -131,7 +130,7 @@ const collectLookupData = (parsed: LookupReference) =>
       case 'paragraph-range':
       case 'page': {
         const pageResponse = yield* service
-          .page(Reference.page(parsed.bookCode, parsed.page))
+          .page(Reference.page(book.value.id, parsed.page))
           .pipe(Effect.catchTag('WritingsPageNotFoundError', () => Effect.succeed(null)));
         if (pageResponse === null) {
           return {
@@ -145,13 +144,12 @@ const collectLookupData = (parsed: LookupReference) =>
         const paragraphs =
           parsed._tag === 'paragraph'
             ? pageResponse.paragraphs.filter(
-                (paragraph) =>
-                  Option.getOrUndefined(paragraph.reference.number) === parsed.paragraph,
+                (paragraph) => Option.getOrUndefined(paragraph.number) === parsed.paragraph,
               )
             : parsed._tag === 'paragraph-range'
               ? pageResponse.paragraphs.filter((paragraph) =>
                   Option.exists(
-                    paragraph.reference.number,
+                    paragraph.number,
                     (number) => number >= parsed.paragraphStart && number <= parsed.paragraphEnd,
                   ),
                 )
@@ -165,7 +163,7 @@ const collectLookupData = (parsed: LookupReference) =>
           page: parsed.page,
           chapterHeading: Option.getOrNull(pageResponse.heading),
           paragraphs: paragraphs.map((paragraph) => ({
-            refcode: Option.getOrElse(paragraph.reference.refcode, () => ''),
+            refcode: Option.getOrElse(paragraph.refcode, () => ''),
             text: nodesToText(paragraph.nodes),
           })),
         };
@@ -178,14 +176,14 @@ const collectLookupData = (parsed: LookupReference) =>
         }> = [];
         for (let page = parsed.pageStart; page <= parsed.pageEnd; page++) {
           const pageResponse = yield* service
-            .page(Reference.page(parsed.bookCode, page))
+            .page(Reference.page(book.value.id, page))
             .pipe(Effect.catchTag('WritingsPageNotFoundError', () => Effect.succeed(null)));
           if (pageResponse === null) continue;
           pages.push({
             page,
             chapterHeading: Option.getOrNull(pageResponse.heading),
             paragraphs: pageResponse.paragraphs.map((paragraph) => ({
-              refcode: Option.getOrElse(paragraph.reference.refcode, () => ''),
+              refcode: Option.getOrElse(paragraph.refcode, () => ''),
               text: nodesToText(paragraph.nodes),
             })),
           });
@@ -201,14 +199,14 @@ const collectLookupData = (parsed: LookupReference) =>
         };
       }
       case 'book': {
-        const chapters = yield* service.headings(Reference.publication(parsed.bookCode));
+        const chapters = yield* service.headings(Reference.publication(book.value.id));
         return {
           ref: refStr,
           found: true as const,
           kind: 'book' as const,
           book: publicationJson(book.value),
           chapters: chapters.map((chapter) => ({
-            refcode: Option.getOrElse(chapter.reference.refcode, () => ''),
+            refcode: Option.getOrElse(chapter.refcode, () => ''),
             title: chapter.title,
           })),
         };

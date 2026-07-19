@@ -22,3 +22,4 @@ export type {
   UserCrossReference,
   ClassifiedCrossReference,
 } from './types.js';
+export * from './authored.js';
