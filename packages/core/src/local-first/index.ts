@@ -4,5 +4,6 @@ export * from './model.js';
 export * from './schema.js';
 export * from './simulated-transport.js';
 export * from './sync-engine.js';
+export * from './sync-store-drizzle.js';
 export * from './sync-store.js';
 export * from './transport.js';
