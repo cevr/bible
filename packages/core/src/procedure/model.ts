@@ -41,6 +41,7 @@ export const RuntimeCapability = Schema.Literals([
   'notifications',
   'window-controls',
 ]);
+export type RuntimeCapability = typeof RuntimeCapability.Type;
 
 export class RuntimeConnection extends Schema.Class<RuntimeConnection>('RuntimeConnection')({
   protocolVersion: ProtocolVersion,

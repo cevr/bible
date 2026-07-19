@@ -22,7 +22,10 @@ export interface SyncEngineOptions {
   readonly transport: SyncTransport;
   readonly nextMutationId: () => MutationId;
   readonly now: () => Timestamp;
-  readonly publish: (changes: ChangeSet) => Effect.Effect<void>;
+  readonly publish: (
+    changes: ChangeSet,
+    context: { readonly source: 'local' | 'sync'; readonly mutation?: MutationEnvelope },
+  ) => Effect.Effect<void>;
 }
 
 export interface SyncEngine {
@@ -53,7 +56,10 @@ export const makeSyncEngine = (options: SyncEngineOptions): SyncEngine => {
         command,
         createdAt: options.now(),
       });
-      yield* options.publish(committed.changes);
+      yield* options.publish(committed.changes, {
+        source: 'local',
+        mutation: committed.envelope,
+      });
       return committed.envelope;
     }),
   );
@@ -70,7 +76,7 @@ export const makeSyncEngine = (options: SyncEngineOptions): SyncEngine => {
       const patch = yield* options.transport.pull(revision);
       const changes = yield* options.store.applyPatch(patch);
       if (changes.scopes.length > 0) {
-        yield* options.publish(changes);
+        yield* options.publish(changes, { source: 'sync' });
       }
     }),
   );
