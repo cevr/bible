@@ -141,6 +141,10 @@ dist
 # Turborepo
 .turbo
 
+# Browser and desktop end-to-end test artifacts
+**/playwright-report/
+**/test-results/
+
 .opencode
 .react-router
 bin/
@@ -153,6 +157,8 @@ packages/cli/data/tokens.json
 # Generated databases (rebuilt via sync scripts from JSON assets)
 packages/core/data/bible.db
 packages/core/data/egw-paragraphs.db
+packages/core/data/*.db-shm
+packages/core/data/*.db-wal
 packages/cli/data/
 # Cached Sabbath School PDFs (re-downloadable)
 packages/cli/outputs/sabbath-school/pdfs/

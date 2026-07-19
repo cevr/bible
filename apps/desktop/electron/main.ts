@@ -40,6 +40,14 @@ const loadDotEnv = (file: string): void => {
 const isDev = process.env['NODE_ENV'] === 'development';
 const VITE_DEV_URL = 'http://localhost:1420';
 
+// Tests and portable hosts can isolate Electron's writable state without
+// changing any shared application or persistence behavior.
+// eslint-disable-next-line node/no-process-env -- Electron bootstrap boundary
+const configuredUserDataPath = process.env['BIBLE_USER_DATA_PATH'];
+if (configuredUserDataPath !== undefined && configuredUserDataPath !== '') {
+  app.setPath('userData', configuredUserDataPath);
+}
+
 const writingsDbPath = () => path.join(app.getPath('home'), '.bible', 'egw-paragraphs.db');
 const bibleDbPath = () => path.join(app.getPath('userData'), 'bible.db');
 const userStateDbPath = () => path.join(app.getPath('userData'), 'user-state.sqlite');
@@ -162,5 +170,5 @@ app.on('will-quit', (event) => {
   if (runtime === null) return;
   event.preventDefault();
   mainRuntime = null;
-  void runtime.dispose().then(() => app.quit());
+  void runtime.dispose().then(() => app.exit(0));
 });

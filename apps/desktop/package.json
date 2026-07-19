@@ -13,6 +13,7 @@
     "package": "bun run --cwd ../../packages/core sync:bible --force && bun run build && electron-builder",
     "typecheck": "tsgo --noEmit",
     "test": "vitest run",
+    "test:e2e": "bun run build && playwright test --config=e2e/playwright.config.ts",
     "test:watch": "vitest",
     "postinstall": "node -e \"process.exit(process.env.CI||process.env.RAILWAY_ENVIRONMENT||process.env.SKIP_ELECTRON_REBUILD?0:1)\" || electron-rebuild -f -w better-sqlite3"
   },
@@ -30,6 +31,7 @@
   "devDependencies": {
     "@effect/vitest": "catalog:",
     "@electron/rebuild": "^4.2.0",
+    "@playwright/test": "^1.61.1",
     "@types/better-sqlite3": "^7.6.13",
     "electron": "^43.1.0",
     "electron-builder": "^26.15.3",
