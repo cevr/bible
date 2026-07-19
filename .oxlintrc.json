@@ -68,7 +68,9 @@
         "**/packages/core/src/procedure/**",
         "**/packages/core/src/reading-preferences/**",
         "**/packages/app/src/procedure/**",
-        "**/apps/web/src/workers/user-state-database.ts"
+        "**/apps/web/src/workers/user-state-database.ts",
+        "**/apps/web/src/workers/procedure-client.ts",
+        "**/apps/web/src/workers/procedure-worker-protocol.ts"
       ],
       "rules": {
         "effect/noAsyncFunction": "error",

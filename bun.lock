@@ -58,13 +58,16 @@
       "dependencies": {
         "@base-ui/react": "^1.6.0",
         "@bible/api": "workspace:*",
+        "@bible/app": "workspace:*",
         "@bible/core": "workspace:*",
+        "@effect/platform-browser": "catalog:",
         "@effect/platform-bun": "catalog:",
         "@hookform/resolvers": "^5.4.0",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
         "cmdk": "^1.1.1",
         "date-fns": "^4.4.0",
+        "drizzle-orm": "1.0.0-beta.22",
         "effect": "catalog:",
         "embla-carousel-react": "^8.6.0",
         "input-otp": "^1.4.2",
@@ -192,6 +195,7 @@
   "catalog": {
     "@effect/ai-anthropic": "4.0.0-beta.98",
     "@effect/ai-openai": "4.0.0-beta.98",
+    "@effect/platform-browser": "4.0.0-beta.98",
     "@effect/platform-bun": "4.0.0-beta.98",
     "@effect/sql-sqlite-bun": "4.0.0-beta.98",
     "@effect/sql-sqlite-node": "4.0.0-beta.98",
@@ -311,6 +315,8 @@
     "@dotenvx/dotenvx": ["@dotenvx/dotenvx@1.66.0", "", { "dependencies": { "commander": "^11.1.0", "dotenv": "^17.2.1", "eciesjs": "^0.4.10", "execa": "^5.1.1", "fdir": "^6.2.0", "ignore": "^5.3.0", "object-treeify": "1.1.33", "picomatch": "^4.0.4", "which": "^4.0.0", "yocto-spinner": "^1.1.0" }, "bin": { "dotenvx": "src/cli/dotenvx.js" } }, "sha512-qlQFhHUjhRDybrinqLAD0MClVZDOrsq80O8eD5iSjz3Qa/4f3Jg7SQrOaSobrRyP1QaWIYLGtGpj2c7H0D8NUw=="],
 
     "@ecies/ciphers": ["@ecies/ciphers@0.2.6", "", { "peerDependencies": { "@noble/ciphers": "^1.0.0" } }, "sha512-patgsRPKGkhhoBjETV4XxD0En4ui5fbX0hzayqI3M8tvNMGUoUvmyYAIWwlxBc1KX5cturfqByYdj5bYGRpN9g=="],
+
+    "@effect/platform-browser": ["@effect/platform-browser@4.0.0-beta.98", "", { "dependencies": { "multipasta": "^0.2.8" }, "peerDependencies": { "effect": "^4.0.0-beta.98" } }, "sha512-Y0BEe0N8clKmJTHqmZpS85pLZbqAxP5uV3IYF0tDw/1dcs8AbTRHjbRmOLdyLtmU32NBVAiaUD3Vopb5Et5R/g=="],
 
     "@effect/platform-bun": ["@effect/platform-bun@4.0.0-beta.98", "", { "dependencies": { "@effect/platform-node-shared": "^4.0.0-beta.98" }, "peerDependencies": { "effect": "^4.0.0-beta.98" } }, "sha512-QorRKhvwHDPwvE8lH5lE0r0dI2z+zj12VUN4h7hfoIunKUiXSoSOMZqF3w13W30RpV6ivsvJywUycaa/18yMPA=="],
 

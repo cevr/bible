@@ -13,6 +13,7 @@ import {
   type WorkerRequestPayload,
   decodeWorkerResponse,
 } from './db-protocol.js';
+import { getDatabaseWorker } from './database-worker.js';
 
 const log = import.meta.env['DEV'] ? (...args: unknown[]) => console.log(...args) : () => {};
 
@@ -304,9 +305,7 @@ let instance: DbClient | null = null;
 
 export function getDbClient(): DbClient {
   if (!instance) {
-    instance = createDbClient(
-      new Worker(new URL('./db-worker.ts', import.meta.url), { type: 'module' }),
-    );
+    instance = createDbClient(getDatabaseWorker());
   }
   return instance;
 }

@@ -50,6 +50,7 @@
   "catalog": {
     "@effect/ai-anthropic": "4.0.0-beta.98",
     "@effect/ai-openai": "4.0.0-beta.98",
+    "@effect/platform-browser": "4.0.0-beta.98",
     "@effect/platform-bun": "4.0.0-beta.98",
     "@effect/sql-sqlite-bun": "4.0.0-beta.98",
     "@effect/sql-sqlite-node": "4.0.0-beta.98",
