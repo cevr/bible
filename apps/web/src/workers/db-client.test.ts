@@ -55,20 +55,20 @@ describe('database worker client', () => {
     const worker = new TestWorker();
     const client = createDbClient(worker);
     const dirty = client.isDirty();
-    const topics = client.initTopics();
+    const egw = client.syncFullEgw();
 
-    worker.respond({ type: 'init-topics-complete', id: 2 });
+    worker.respond({ type: 'sync-full-egw-result', id: 2 });
     worker.respond({ type: 'is-dirty-result', id: 1, dirty: true });
 
     expect(await dirty).toBe(true);
-    expect(await topics).toBeUndefined();
+    expect(await egw).toBeUndefined();
   });
 
   test('rejects every pending request after an invalid response', async () => {
     const worker = new TestWorker();
     const client = createDbClient(worker);
     const first = client.isDirty();
-    const second = client.initTopics();
+    const second = client.syncFullEgw();
 
     worker.respond({ type: 'is-dirty-result', id: 0, dirty: true });
 

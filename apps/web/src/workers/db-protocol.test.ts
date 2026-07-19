@@ -37,7 +37,6 @@ describe('database worker protocol', () => {
       { type: 'sync-book', bookCode: '1BC' },
       { type: 'get-egw-sync-status' },
       { type: 'sync-full-egw' },
-      { type: 'init-topics' },
     ];
 
     for (const request of requestsWithoutIds) {
@@ -69,11 +68,10 @@ describe('database worker protocol', () => {
       { type: 'sync-book-result', id: 16, bookCode: '1BC', paragraphCount: 10 },
       { type: 'egw-sync-status-result', id: 17, books: [] },
       { type: 'sync-full-egw-result', id: 18 },
-      { type: 'init-topics-complete', id: 19 },
     ] as const;
 
     expect(responses.map((response) => decodeWorkerResponse(response).id)).toEqual([
-      11, 12, 13, 14, 15, 16, 17, 18, 19,
+      11, 12, 13, 14, 15, 16, 17, 18,
     ]);
   });
 

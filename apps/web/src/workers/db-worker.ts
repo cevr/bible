@@ -2,11 +2,10 @@
  * SQLite Web Worker
  *
  * Runs wa-sqlite with OPFSCoopSyncVFS for persistent local-first storage.
- * Composes four database modules:
+ * Composes three database modules:
  *   - bible.db (read-only, downloaded from server on first visit)
  *   - state.db (read-write, user data — position, bookmarks, etc.)
  *   - egw-paragraphs.db (read-write, EGW commentary — incrementally synced per book)
- *   - topics.db (read-only, downloaded lazily on first use)
  */
 import * as SQLite from 'wa-sqlite';
 import SQLiteESMFactory from 'wa-sqlite/dist/wa-sqlite.mjs';
@@ -28,7 +27,6 @@ import {
 import { layerProcedureServer, type ProcedureServerInput } from './procedure-server.js';
 import { makeSqliteDatabase } from './sqlite-database.js';
 import { makeStateDatabase, type StateDatabase } from './state-database.js';
-import { makeWorkerTopicsDatabase, type WorkerTopicsDatabase } from './topics-database.js';
 import { makeBrowserSyncStore, makeBrowserUserDatabase } from './user-state-database.js';
 
 const log = import.meta.env['DEV'] ? (...args: unknown[]) => console.log(...args) : () => {};
@@ -37,7 +35,6 @@ const VFS_NAME = 'opfs-coop-sync';
 let bibleDatabase: WorkerBibleDatabase;
 let stateDatabase: StateDatabase;
 let egwDatabase: WorkerEgwDatabase;
-let topicsDatabase: WorkerTopicsDatabase;
 let procedureServer: Omit<ProcedureServerInput, 'port'> | undefined;
 const pendingProcedurePorts: MessagePort[] = [];
 
@@ -57,37 +54,6 @@ const launchProcedureServer = (port: MessagePort): void => {
 
 function post(msg: WorkerResponse) {
   self.postMessage(decodeWorkerResponse(msg));
-}
-
-// ---------------------------------------------------------------------------
-// Topics database (lazy-loaded on first access)
-// ---------------------------------------------------------------------------
-
-// topics.db schema (pre-built, downloaded on first access):
-// - topics (id, name, parent_id, description) + FTS5 on name/description
-// - topic_verses (topic_id, book, chapter, verse_start, verse_end, note)
-
-async function initTopics(requestId: number): Promise<void> {
-  try {
-    await topicsDatabase.initialize((progress) => {
-      post({
-        type: 'init-topics-progress',
-        id: requestId,
-        stage: 'Downloading topics database...',
-        progress,
-      });
-    });
-
-    post({ type: 'init-topics-complete', id: requestId });
-    log('[db-worker] topics.db ready');
-  } catch (err) {
-    console.error('[db-worker] topics init failed:', err);
-    post({
-      type: 'init-topics-error',
-      id: requestId,
-      error: err instanceof Error ? err.message : String(err),
-    });
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -128,11 +94,6 @@ async function initializeDatabases(requestId: number): Promise<void> {
       });
     });
     log('[db-worker] init: bible.db ready');
-
-    topicsDatabase = makeWorkerTopicsDatabase({
-      database: makeSqliteDatabase(sqlite3, 'topics.db', VFS_NAME),
-      downloader,
-    });
 
     post({ type: 'init-progress', id: requestId, stage: 'Initializing...', progress: 100 });
     log('[db-worker] init: state.db opening, running schema');
@@ -239,8 +200,6 @@ self.onmessage = async (event: MessageEvent<unknown>) => {
           rows = await bibleDatabase.query(msg.sql, msg.params);
         } else if (msg.db === 'state') {
           rows = await stateDatabase.query(msg.sql, msg.params);
-        } else if (msg.db === 'topics') {
-          rows = await topicsDatabase.query(msg.sql, msg.params);
         } else {
           rows = await egwDatabase.query(msg.sql, msg.params);
         }
@@ -343,11 +302,6 @@ self.onmessage = async (event: MessageEvent<unknown>) => {
           error: err instanceof Error ? err.message : String(err),
         });
       }
-      break;
-    }
-
-    case 'init-topics': {
-      await initTopics(msg.id);
       break;
     }
   }

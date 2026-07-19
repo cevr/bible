@@ -7,7 +7,7 @@ const ResponseId = Integer.pipe(Schema.check(Schema.isGreaterThanOrEqualTo(0)));
 const Progress = Schema.Number.pipe(
   Schema.check(Schema.isGreaterThanOrEqualTo(0), Schema.isLessThanOrEqualTo(100)),
 );
-const DatabaseName = Schema.Literals(['bible', 'state', 'egw', 'topics']);
+const DatabaseName = Schema.Literals(['bible', 'state', 'egw']);
 const SqlParameters = Schema.optional(Schema.Array(Schema.Unknown));
 const Row = Schema.Record(Schema.String, Schema.Unknown);
 
@@ -36,7 +36,6 @@ export const WorkerRequestSchema = Schema.Union([
   }),
   Schema.Struct({ type: Schema.Literal('get-egw-sync-status'), id: RequestId }),
   Schema.Struct({ type: Schema.Literal('sync-full-egw'), id: RequestId }),
-  Schema.Struct({ type: Schema.Literal('init-topics'), id: RequestId }),
 ]);
 export type WorkerRequest = typeof WorkerRequestSchema.Type;
 export type WorkerRequestPayload = WorkerRequest extends infer Request
@@ -114,18 +113,6 @@ export const WorkerResponseSchema = Schema.Union([
   Schema.Struct({ type: Schema.Literal('sync-full-egw-result'), id: RequestId }),
   Schema.Struct({
     type: Schema.Literal('sync-full-egw-error'),
-    id: RequestId,
-    error: Schema.String,
-  }),
-  Schema.Struct({
-    type: Schema.Literal('init-topics-progress'),
-    id: RequestId,
-    stage: Schema.String,
-    progress: Progress,
-  }),
-  Schema.Struct({ type: Schema.Literal('init-topics-complete'), id: RequestId }),
-  Schema.Struct({
-    type: Schema.Literal('init-topics-error'),
     id: RequestId,
     error: Schema.String,
   }),

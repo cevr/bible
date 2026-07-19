@@ -39,7 +39,7 @@ export interface DbClient {
   /** Query a database. Returns rows as record arrays. */
   query<T>(
     row: Schema.Decoder<T>,
-    db: 'bible' | 'state' | 'egw' | 'topics',
+    db: 'bible' | 'state' | 'egw',
     sql: string,
     params?: readonly unknown[],
   ): Promise<T[]>;
@@ -61,8 +61,6 @@ export interface DbClient {
   onSyncProgress(cb: (bookCode: string, stage: string, progress: number) => void): () => void;
   /** Register callback for background sync book completions. Returns unsubscribe. */
   onSyncComplete(cb: (bookCode: string, paragraphCount: number) => void): () => void;
-  /** Initialize topics database (download on first access). */
-  initTopics(): Promise<void>;
 }
 
 /** Worker seam used by the browser adapter and the in-memory test adapter. */
@@ -237,19 +235,6 @@ export function createDbClient(worker: DbWorkerPort): DbClient {
         reject(msg.id, new Error(msg.error));
         break;
       }
-      case 'init-topics-progress': {
-        log(`[db-client] topics: ${msg.stage} (${msg.progress}%)`);
-        break;
-      }
-      case 'init-topics-complete': {
-        log('[db-client] topics init complete');
-        resolve(msg.id, undefined);
-        break;
-      }
-      case 'init-topics-error': {
-        reject(msg.id, new Error(msg.error));
-        break;
-      }
     }
   };
 
@@ -262,7 +247,7 @@ export function createDbClient(worker: DbWorkerPort): DbClient {
 
     query: <T>(
       row: Schema.Decoder<T>,
-      db: 'bible' | 'state' | 'egw' | 'topics',
+      db: 'bible' | 'state' | 'egw',
       sql: string,
       params?: readonly unknown[],
     ) => request({ type: 'query', db, sql, params }, (input) => decodeQueryRows(row, input)),
@@ -302,8 +287,6 @@ export function createDbClient(worker: DbWorkerPort): DbClient {
         if (index >= 0) syncCompleteCallbacks.splice(index, 1);
       };
     },
-
-    initTopics: () => request({ type: 'init-topics' }, decodeVoid),
   };
 }
 
