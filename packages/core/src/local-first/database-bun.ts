@@ -12,6 +12,8 @@ import {
 import { makeInitialUserStateMigration } from './migrations.js';
 import { userStateSchema, type UserStateSchema } from './schema.js';
 
+export { makeBunSyncStore } from './sync-store-bun.js';
+
 export interface BunUserDatabase {
   readonly client: Database;
   readonly drizzle: SQLiteBunDatabase<UserStateSchema>;
