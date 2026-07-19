@@ -75,7 +75,9 @@
         "**/apps/web/src/workers/worker-sql-client.ts",
         "**/apps/desktop/electron/user-state-database.ts",
         "**/apps/desktop/electron/local-procedure-runtime.ts",
-        "**/apps/desktop/electron/procedure-server.ts"
+        "**/apps/desktop/electron/procedure-server.ts",
+        "**/apps/desktop/src/procedure-client.ts",
+        "**/apps/desktop/src/procedure-port.ts"
       ],
       "rules": {
         "effect/noAsyncFunction": "error",

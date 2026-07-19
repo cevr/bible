@@ -1,5 +1,3 @@
-import { agentTail } from 'agent-tail/vite';
-import tailwind from '@tailwindcss/vite';
 import { defineConfig, loadEnv } from 'vite';
 import solid from 'vite-plugin-solid';
 import { electronDev } from './scripts/vite-plugin-electron-dev.js';
@@ -23,7 +21,7 @@ export default defineConfig(({ mode }) => {
   const bake = (key: string): string => JSON.stringify(env[key] ?? '');
 
   return {
-    plugins: [tailwind(), solid(), electronDev(), agentTail()],
+    plugins: [solid(), electronDev()],
     clearScreen: false,
     server: {
       port: 1420,

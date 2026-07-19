@@ -11,35 +11,31 @@
     "build:main": "bun run scripts/build-main.ts",
     "package": "bun run build && electron-builder",
     "typecheck": "tsgo --noEmit",
-    "test": "vitest run && vitest run --config vitest.ipc-cache.config.ts",
+    "test": "vitest run",
     "test:watch": "vitest",
     "postinstall": "node -e \"process.exit(process.env.CI||process.env.RAILWAY_ENVIRONMENT||process.env.SKIP_ELECTRON_REBUILD?0:1)\" || electron-rebuild -f -w better-sqlite3"
   },
   "dependencies": {
+    "@bible/app": "workspace:*",
     "@bible/core": "workspace:*",
-    "@chenglou/pretext": "^0.0.8",
+    "@effect/platform-browser": "catalog:",
     "@effect/sql-sqlite-node": "catalog:",
-    "@solid-primitives/transition-group": "^1.1.2",
-    "@tanstack/solid-virtual": "^3.13.33",
+    "@solidjs/router": "catalog:",
+    "@solidjs/web": "catalog:",
     "better-sqlite3": "^12.11.1",
     "drizzle-orm": "catalog:",
     "effect": "catalog:",
-    "htmlparser2": "^12.0.0",
-    "motion-dom": "^12.42.2",
-    "solid-js": "^1.9.14"
+    "solid-js": "catalog:"
   },
   "devDependencies": {
     "@effect/vitest": "catalog:",
     "@electron/rebuild": "^4.2.0",
-    "@tailwindcss/vite": "^4.3.2",
     "@types/better-sqlite3": "^7.6.13",
-    "agent-tail": "^0.4.0",
     "electron": "^43.1.0",
     "electron-builder": "^26.15.3",
     "esbuild": "^0.28.1",
-    "tailwindcss": "^4.3.2",
     "vite": "^8.1.4",
-    "vite-plugin-solid": "^2.11.12",
+    "vite-plugin-solid": "catalog:",
     "vitest": "^4.1.10"
   },
   "build": {
