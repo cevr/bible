@@ -29,10 +29,7 @@ const makeLayer = async () => {
   await Effect.runPromise(database.migrate(migrationSql));
   let mutation = 0;
   let commit = 0;
-  const store = makeBunSyncStore(
-    database,
-    Schema.decodeSync(ClientId)('procedure-client'),
-  );
+  const store = makeBunSyncStore(database, Schema.decodeSync(ClientId)('procedure-client'));
   const layer = layerLocalProcedureRuntime({
     clientId: Schema.decodeSync(ClientId)('procedure-client'),
     store,
