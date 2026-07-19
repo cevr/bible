@@ -2,6 +2,7 @@ import { A, Navigate, Route, useLocation } from '@solidjs/router';
 import { Show } from '@solidjs/web';
 import { createMemo } from 'solid-js';
 
+import { Plans, Practice, Settings } from '../library/index.js';
 import {
   BibleReader,
   BibleSearch,
@@ -99,6 +100,45 @@ const NotFoundRoute = () => {
   return <NotFoundContent requestedPath={location.pathname} />;
 };
 
+const SettingsRoute = () => {
+  const location = useLocation();
+  const route = createMemo(() => {
+    const decoded = decodeRoute(location.pathname);
+    return decoded?._tag === 'settings' ? decoded : undefined;
+  });
+  return (
+    <Show when={route()} fallback={<NotFoundContent requestedPath={location.pathname} />}>
+      {(current) => <Settings section={current().section} />}
+    </Show>
+  );
+};
+
+const PlansRoute = () => {
+  const location = useLocation();
+  const route = createMemo(() => {
+    const decoded = decodeRoute(location.pathname);
+    return decoded?._tag === 'plans' ? decoded : undefined;
+  });
+  return (
+    <Show when={route()} fallback={<NotFoundContent requestedPath={location.pathname} />}>
+      {(current) => <Plans planId={current().planId} />}
+    </Show>
+  );
+};
+
+const PracticeRoute = () => {
+  const location = useLocation();
+  const route = createMemo(() => {
+    const decoded = decodeRoute(location.pathname);
+    return decoded?._tag === 'practice' ? decoded : undefined;
+  });
+  return (
+    <Show when={route()} fallback={<NotFoundContent requestedPath={location.pathname} />}>
+      {(current) => <Practice memoryVerseId={current().memoryVerseId} />}
+    </Show>
+  );
+};
+
 export const SharedRoutes = () => (
   <>
     <Route path="/" component={() => <Navigate href="/bible/1/1" />} />
@@ -108,6 +148,9 @@ export const SharedRoutes = () => (
     <Route path="/writings/:publicationId/page/:page" component={WritingsPageRoute} />
     <Route path="/writings/:publicationId/p/:paragraphId" component={ParagraphRoute} />
     <Route path="/search" component={SearchRoute} />
+    <Route path="/settings/:section?" component={SettingsRoute} />
+    <Route path="/plans/:planId?" component={PlansRoute} />
+    <Route path="/practice/:memoryVerseId?" component={PracticeRoute} />
     <Route path="*404" component={NotFoundRoute} />
   </>
 );

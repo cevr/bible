@@ -1,4 +1,5 @@
 export * from './application/index.js';
+export * from './library/index.js';
 export * from './cache/index.js';
 export * from './platform/index.js';
 export * from './procedure/index.js';
