@@ -103,6 +103,7 @@ export const ReadingPlanStep = Schema.Struct({
   id: Schema.NonEmptyString,
   title: Schema.NonEmptyString,
   route: Schema.NonEmptyString,
+  endRoute: Schema.optional(Schema.NonEmptyString),
 });
 export type ReadingPlanStep = typeof ReadingPlanStep.Type;
 
@@ -129,6 +130,7 @@ export const MemoryVerse = Schema.Struct({
   id: LibraryEntityId,
   resourceId: Schema.NonEmptyString,
   location: Schema.NonEmptyString,
+  endLocation: Schema.optional(Schema.NonEmptyString),
   prompt: nullableString,
   nextPracticeAt: Schema.NullOr(timestamp),
   intervalDays: Schema.Int.pipe(Schema.check(Schema.isGreaterThanOrEqualTo(0))),
@@ -242,6 +244,7 @@ export const SaveMemoryVerse = Schema.TaggedStruct('SaveMemoryVerse', {
   id: LibraryEntityId,
   resourceId: Schema.NonEmptyString,
   location: Schema.NonEmptyString,
+  endLocation: Schema.optional(Schema.NonEmptyString),
   prompt: nullableString,
   nextPracticeAt: Schema.NullOr(timestamp),
   intervalDays: Schema.Int.pipe(Schema.check(Schema.isGreaterThanOrEqualTo(0))),

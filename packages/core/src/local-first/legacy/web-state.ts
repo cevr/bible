@@ -543,23 +543,33 @@ export const projectWebState = (
   });
   const planItemIds = new Map<string, string>();
   decodeRows('reading_plans', ReadingPlanRow, (row, path) => {
-    const steps: Array<{ readonly id: string; readonly title: string; readonly route: string }> =
-      [];
+    const steps: Array<{
+      readonly id: string;
+      readonly title: string;
+      readonly route: string;
+      readonly endRoute?: string;
+    }> = [];
     const items = [...(planItems.get(row.id) ?? [])].sort(
       (left, right) => left.row.day_number - right.row.day_number,
     );
     for (const item of items) {
-      if (item.row.end_chapter !== null && item.row.end_chapter !== item.row.start_chapter) {
-        diagnostic(item.path, 'ambiguous', 'quarantined a multi-chapter reading plan item');
-        continue;
-      }
       const location = bibleLocation(item.path, item.row.book, item.row.start_chapter, null);
       if (location === undefined) continue;
+      let endRoute: string | undefined;
+      if (item.row.end_chapter !== null) {
+        if (item.row.end_chapter < item.row.start_chapter) {
+          diagnostic(item.path, 'out-of-range', 'quarantined a reversed reading plan range');
+          continue;
+        }
+        const end = bibleLocation(item.path, item.row.book, item.row.end_chapter, null);
+        if (end === undefined) continue;
+        endRoute = end.location;
+      }
       const stepId = options.planStepId(item.path, item.row.id);
       planItemIds.set(`${row.id}:${legacyIdKey(item.row.id)}`, stepId);
       let title = `Day ${item.row.day_number}`;
       if (item.row.label !== null) title = item.row.label;
-      steps.push({ id: stepId, title, route: location.location });
+      steps.push({ id: stepId, title, route: location.location, endRoute });
     }
     pushCommand(path, {
       _tag: 'SaveReadingPlan',
@@ -585,21 +595,24 @@ export const projectWebState = (
   });
 
   decodeRows('memory_verses', MemoryVerseRow, (row, path) => {
-    if (row.verse_end !== null && row.verse_end !== row.verse_start) {
-      diagnostic(
-        path,
-        'ambiguous',
-        'quarantined a memory verse range without a canonical range identity',
-      );
-      return;
-    }
     const location = bibleLocation(path, row.book, row.chapter, row.verse_start);
     if (location === undefined) return;
+    let endLocation: string | undefined;
+    if (row.verse_end !== null) {
+      if (row.verse_end < row.verse_start) {
+        diagnostic(path, 'out-of-range', 'quarantined a reversed memory verse range');
+        return;
+      }
+      const end = bibleLocation(path, row.book, row.chapter, row.verse_end);
+      if (end === undefined) return;
+      endLocation = end.location;
+    }
     pushCommand(path, {
       _tag: 'SaveMemoryVerse',
       id: row.id,
       resourceId: location.resourceId,
       location: location.location,
+      endLocation,
       prompt: null,
       nextPracticeAt: null,
       intervalDays: 0,

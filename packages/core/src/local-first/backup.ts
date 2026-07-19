@@ -142,6 +142,7 @@ export const commandsForLibraryBackup = (
       id: verse.id,
       resourceId: verse.resourceId,
       location: verse.location,
+      endLocation: verse.endLocation,
       prompt: verse.prompt,
       nextPracticeAt: verse.nextPracticeAt,
       intervalDays: verse.intervalDays,

@@ -213,6 +213,7 @@ export const memoryVerses = sqliteTable(
     id: text('id').primaryKey(),
     resourceId: text('resource_id').notNull(),
     location: text('location').notNull(),
+    endLocation: text('end_location'),
     prompt: text('prompt'),
     nextPracticeAt: text('next_practice_at'),
     intervalDays: integer('interval_days').notNull().default(0),

@@ -588,6 +588,7 @@ const applyCommand = <TResultKind extends ResultKind, TRunResult>(
                   id: command.id,
                   resourceId: command.resourceId,
                   location: command.location,
+                  endLocation: command.endLocation,
                   prompt: command.prompt,
                   nextPracticeAt: command.nextPracticeAt,
                   intervalDays: command.intervalDays,
@@ -600,6 +601,7 @@ const applyCommand = <TResultKind extends ResultKind, TRunResult>(
                   set: {
                     resourceId: command.resourceId,
                     location: command.location,
+                    endLocation: command.endLocation,
                     prompt: command.prompt,
                     nextPracticeAt: command.nextPracticeAt,
                     intervalDays: command.intervalDays,
@@ -1170,7 +1172,13 @@ export const makeDrizzleSyncStore = <TResultKind extends ResultKind, TRunResult>
   }).pipe(
     Effect.map(
       ({ verses, history }): MemoryPractice =>
-        Schema.decodeUnknownSync(MemoryPracticeSchema)({ verses, history }),
+        Schema.decodeUnknownSync(MemoryPracticeSchema)({
+          verses: verses.map((verse) => ({
+            ...verse,
+            endLocation: verse.endLocation ?? undefined,
+          })),
+          history,
+        }),
     ),
     Effect.mapError(mapStoreError('memoryPractice')),
   );

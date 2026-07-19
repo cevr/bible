@@ -479,7 +479,14 @@ describe('local-first sync protocol', () => {
         id: 'plan-gospel-of-john',
         title: 'The Gospel of John',
         description: null,
-        steps: [{ id: 'john-1', title: 'The Word', route: '/bible/KJV/John.1' }],
+        steps: [
+          {
+            id: 'john-1',
+            title: 'The Word',
+            route: '/bible/43/1',
+            endRoute: '/bible/43/3',
+          },
+        ],
       }),
     );
     await Effect.runPromise(
@@ -494,7 +501,7 @@ describe('local-first sync protocol', () => {
     expect(await Effect.runPromise(alpha.store.readingPlans)).toMatchObject([
       {
         id: 'plan-gospel-of-john',
-        steps: [{ id: 'john-1', route: '/bible/KJV/John.1' }],
+        steps: [{ id: 'john-1', route: '/bible/43/1', endRoute: '/bible/43/3' }],
         progress: [{ stepId: 'john-1', completedAt: '2026-07-19T00:05:00.000Z' }],
       },
     ]);
@@ -506,6 +513,41 @@ describe('local-first sync protocol', () => {
     );
     await closeHarness(alpha);
     await closeHarness(beta);
+  });
+
+  test('preserves a memory verse range through storage and library backup', async () => {
+    const client = await makeHarness('memory-range', makeSimulatedTransport());
+
+    await Effect.runPromise(
+      client.engine.mutate({
+        _tag: 'SaveMemoryVerse',
+        id: 'memory-john-3',
+        resourceId: 'KJV',
+        location: '/bible/43/3/16',
+        endLocation: '/bible/43/3/18',
+        prompt: null,
+        nextPracticeAt: null,
+        intervalDays: 0,
+      }),
+    );
+
+    expect(await Effect.runPromise(client.store.memoryPractice)).toMatchObject({
+      verses: [
+        {
+          id: 'memory-john-3',
+          location: '/bible/43/3/16',
+          endLocation: '/bible/43/3/18',
+        },
+      ],
+    });
+    expect(
+      await Effect.runPromise(client.store.libraryBackup(timestamp('backup-time'))),
+    ).toMatchObject({
+      memoryPractice: {
+        verses: [{ endLocation: '/bible/43/3/18' }],
+      },
+    });
+    await closeHarness(client);
   });
 
   test('recovers the journal and next device sequence after a database restart', async () => {

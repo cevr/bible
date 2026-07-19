@@ -97,7 +97,7 @@ describe('web state legacy projection', () => {
             day_number: 1,
             book: 43,
             start_chapter: 3,
-            end_chapter: null,
+            end_chapter: 5,
             label: 'The new birth',
           },
         ],
@@ -119,7 +119,7 @@ describe('web state legacy projection', () => {
             book: 43,
             chapter: 3,
             verse_start: 16,
-            verse_end: null,
+            verse_end: 18,
             created_at: 12,
           },
         ],
@@ -157,7 +157,20 @@ describe('web state legacy projection', () => {
       }),
     );
     expect(result.commands).toContainEqual(
+      expect.objectContaining({
+        _tag: 'SaveReadingPlan',
+        steps: [expect.objectContaining({ route: '/bible/43/3', endRoute: '/bible/43/5' })],
+      }),
+    );
+    expect(result.commands).toContainEqual(
       expect.objectContaining({ _tag: 'RecordMemoryPractice', rating: 4 }),
+    );
+    expect(result.commands).toContainEqual(
+      expect.objectContaining({
+        _tag: 'SaveMemoryVerse',
+        location: '/bible/43/3/16',
+        endLocation: '/bible/43/3/18',
+      }),
     );
   });
 
