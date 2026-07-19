@@ -1,5 +1,7 @@
 import { Schema, type Effect } from 'effect';
 
+import type { ReadingPreferences } from '../reading-preferences/model.js';
+
 import type {
   ChangeSet,
   ClientId,
@@ -55,4 +57,5 @@ export interface SyncStore {
     patch: RevisionPatch,
   ) => Effect.Effect<ChangeSet, SyncStoreError | StaleRevisionError>;
   readonly note: (id: string) => Effect.Effect<NoteRecord | undefined, SyncStoreError>;
+  readonly readingPreferences: Effect.Effect<ReadingPreferences, SyncStoreError>;
 }

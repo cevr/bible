@@ -34,14 +34,14 @@ export const makeSimulatedTransport = (): SimulatedTransport => {
 
   const requireOnline = <A, E>(
     effect: Effect.Effect<A, E>,
-  ): Effect.Effect<A, E | TransportOfflineError> =>
-    online
-      ? effect
-      : Effect.fail(
-          new TransportOfflineError({
-            message: 'simulated transport is offline',
-          }),
-        );
+  ): Effect.Effect<A, E | TransportOfflineError> => {
+    if (online) return effect;
+    return Effect.fail(
+      new TransportOfflineError({
+        message: 'simulated transport is offline',
+      }),
+    );
+  };
 
   const push = Effect.fn('SimulatedTransport.push')((envelope: MutationEnvelope) =>
     requireOnline(

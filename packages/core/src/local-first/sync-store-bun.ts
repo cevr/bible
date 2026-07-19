@@ -1,5 +1,7 @@
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, eq, isNull } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
+
+import { DEFAULT_READING_PREFERENCES, ReadingPreferences } from '../reading-preferences/model.js';
 
 import type { BunUserDatabase } from './database-bun.js';
 import {
@@ -16,7 +18,14 @@ import {
   type MutationId,
   type RevisionPatch,
 } from './model.js';
-import { mutationJournal, notes, serverRevisions, syncClients, tombstones } from './schema.js';
+import {
+  mutationJournal,
+  notes,
+  preferences as preferenceRows,
+  serverRevisions,
+  syncClients,
+  tombstones,
+} from './schema.js';
 import {
   StaleRevisionError,
   type SyncStore,
@@ -24,8 +33,10 @@ import {
   type LocalMutationInput,
 } from './sync-store.js';
 
-const messageOf = (cause: unknown): string =>
-  cause instanceof Error ? cause.message : String(cause);
+const messageOf = (cause: unknown): string => {
+  if (cause instanceof Error) return cause.message;
+  return String(cause);
+};
 
 const mapStoreError = (operation: string) => (cause: unknown) =>
   new SyncStoreError({ operation, message: messageOf(cause), cause });
@@ -39,6 +50,28 @@ const applyCommand = (
   mutationId: MutationId,
   serverRevision?: ServerRevision,
 ): void => {
+  if (command._tag === 'SetReadingPreferences') {
+    database.drizzle
+      .insert(preferenceRows)
+      .values({
+        key: 'reading',
+        value: command.preferences,
+        createdAt,
+        updatedAt: createdAt,
+        deletedAt: null,
+      })
+      .onConflictDoUpdate({
+        target: preferenceRows.key,
+        set: {
+          value: command.preferences,
+          updatedAt: createdAt,
+          deletedAt: null,
+        },
+      })
+      .run();
+    return;
+  }
+
   if (command._tag === 'SaveNote') {
     database.drizzle
       .insert(notes)
@@ -114,9 +147,7 @@ export const makeBunSyncStore = (database: BunUserDatabase, localClientId: Clien
       .transaction(() => {
         ensureClient(input.createdAt);
         const client = clientRow(database, localClientId);
-        if (!client) {
-          throw new Error('sync client was not created');
-        }
+        if (!client) return undefined;
         const sequence = Schema.decodeSync(MutationSequence)(client.nextSequence);
         const envelope = decodeEnvelope({
           clientId: input.clientId,
@@ -147,7 +178,18 @@ export const makeBunSyncStore = (database: BunUserDatabase, localClientId: Clien
 
         return { envelope, changes: changeSetFor(input.command) };
       })
-      .pipe(Effect.mapError(mapStoreError('mutate'))),
+      .pipe(
+        Effect.mapError(mapStoreError('mutate')),
+        Effect.flatMap((result) => {
+          if (result !== undefined) return Effect.succeed(result);
+          return Effect.fail(
+            new SyncStoreError({
+              operation: 'mutate',
+              message: 'sync client was not created',
+            }),
+          );
+        }),
+      ),
   );
 
   const pending = database.bridge
@@ -233,9 +275,9 @@ export const makeBunSyncStore = (database: BunUserDatabase, localClientId: Clien
           applyCommand(database, envelope.command, envelope.createdAt, envelope.mutationId);
         }
 
-        const timestamp =
-          patch.mutations.at(-1)?.createdAt ??
-          Schema.decodeSync(Timestamp)('1970-01-01T00:00:00.000Z');
+        const lastMutation = patch.mutations.at(-1);
+        let timestamp = Schema.decodeSync(Timestamp)('1970-01-01T00:00:00.000Z');
+        if (lastMutation !== undefined) timestamp = lastMutation.createdAt;
         ensureClient(timestamp);
         database.drizzle
           .update(syncClients)
@@ -255,5 +297,22 @@ export const makeBunSyncStore = (database: BunUserDatabase, localClientId: Clien
       .pipe(Effect.mapError(mapStoreError('note'))),
   );
 
-  return { mutate, pending, markAccepted, revision, applyPatch, note };
+  const readingPreferences = database.bridge
+    .get({
+      execute: () =>
+        database.drizzle
+          .select({ value: preferenceRows.value })
+          .from(preferenceRows)
+          .where(and(eq(preferenceRows.key, 'reading'), isNull(preferenceRows.deletedAt)))
+          .get(),
+    })
+    .pipe(
+      Effect.flatMap((row) => {
+        if (row === undefined) return Effect.succeed(DEFAULT_READING_PREFERENCES);
+        return Schema.decodeUnknownEffect(ReadingPreferences)(row.value);
+      }),
+      Effect.mapError(mapStoreError('readingPreferences')),
+    );
+
+  return { mutate, pending, markAccepted, revision, applyPatch, note, readingPreferences };
 };

@@ -73,6 +73,13 @@ export const MutationCommit = <Value extends Schema.Top>(value: Value) =>
     changes: ChangeSet,
   });
 
+export interface MutationCommitValue<Value> {
+  readonly _tag: 'MutationCommit';
+  readonly value: Value;
+  readonly commitId: CommitId;
+  readonly changes: ChangeSet;
+}
+
 export const RuntimeProgress = Schema.TaggedStruct('RuntimeProgress', {
   sequence: RuntimeEventSequence,
   operationId: OperationId,

@@ -5,6 +5,7 @@ import {
   DEFAULT_READING_PREFERENCES,
   ReadingPreferences,
   ReadingPreferencesPatch,
+  applyReadingPreferencesPatch,
 } from './model.js';
 
 describe('ReadingPreferences', () => {
@@ -35,5 +36,16 @@ describe('ReadingPreferences', () => {
     expect(() => decode({})).toThrow();
     expect(() => decode({ fontSizePx: 33 })).toThrow();
     expect(() => decode({ readerTypeface: 'url(javascript:bad)' })).toThrow();
+  });
+
+  test('projects an absolute patch over the current total value', () => {
+    const updated = applyReadingPreferencesPatch(DEFAULT_READING_PREFERENCES, {
+      colorMode: 'dark',
+      fontSizePx: 22,
+    });
+
+    expect(updated.colorMode).toBe('dark');
+    expect(updated.fontSizePx).toBe(22);
+    expect(updated.lineHeightRatio).toBe(DEFAULT_READING_PREFERENCES.lineHeightRatio);
   });
 });

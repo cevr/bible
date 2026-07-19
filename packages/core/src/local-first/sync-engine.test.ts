@@ -5,6 +5,11 @@ import { join } from 'node:path';
 
 import { Effect, Schema } from 'effect';
 
+import {
+  DEFAULT_READING_PREFERENCES,
+  applyReadingPreferencesPatch,
+} from '../reading-preferences/model.js';
+
 import { makeBunUserDatabase, makeBunSyncStore } from './database-bun.js';
 import {
   ClientId,
@@ -43,6 +48,11 @@ const saveNote = (id: string, content: string) => ({
   resourceId: 'KJV',
   location: 'John.3.16',
   content,
+});
+
+const darkReadingPreferences = applyReadingPreferencesPatch(DEFAULT_READING_PREFERENCES, {
+  colorMode: 'dark',
+  fontSizePx: 22,
 });
 
 interface Harness {
@@ -186,6 +196,29 @@ describe('local-first sync protocol', () => {
       content: 'restored',
       deletedAt: null,
     });
+    await closeHarness(alpha);
+    await closeHarness(beta);
+  });
+
+  test('persists reading preferences locally and converges them across clients', async () => {
+    const transport = makeSimulatedTransport();
+    const alpha = await makeHarness('preferences-alpha', transport);
+    const beta = await makeHarness('preferences-beta', transport);
+
+    await Effect.runPromise(
+      alpha.engine.mutate({
+        _tag: 'SetReadingPreferences',
+        preferences: darkReadingPreferences,
+      }),
+    );
+
+    expect(await Effect.runPromise(alpha.store.readingPreferences)).toEqual(darkReadingPreferences);
+    expect(alpha.published.at(-1)).toEqual({ scopes: [{ _tag: 'ReadingPreferences' }] });
+
+    await Effect.runPromise(alpha.engine.synchronize());
+    await Effect.runPromise(beta.engine.synchronize());
+
+    expect(await Effect.runPromise(beta.store.readingPreferences)).toEqual(darkReadingPreferences);
     await closeHarness(alpha);
     await closeHarness(beta);
   });

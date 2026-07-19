@@ -1,5 +1,7 @@
 import { Schema } from 'effect';
 
+import { ReadingPreferences } from '../reading-preferences/model.js';
+
 export const ClientId = Schema.NonEmptyString.pipe(Schema.brand('LocalFirst/ClientId'));
 export type ClientId = typeof ClientId.Type;
 
@@ -42,7 +44,12 @@ export type SaveNote = typeof SaveNote.Type;
 export const DeleteNote = Schema.TaggedStruct('DeleteNote', { noteId: NoteId });
 export type DeleteNote = typeof DeleteNote.Type;
 
-export const DomainMutationCommand = Schema.Union([SaveNote, DeleteNote]);
+export const SetReadingPreferences = Schema.TaggedStruct('SetReadingPreferences', {
+  preferences: ReadingPreferences,
+});
+export type SetReadingPreferences = typeof SetReadingPreferences.Type;
+
+export const DomainMutationCommand = Schema.Union([SaveNote, DeleteNote, SetReadingPreferences]);
 export type DomainMutationCommand = typeof DomainMutationCommand.Type;
 
 export const MutationEnvelope = Schema.Struct({
@@ -63,7 +70,10 @@ export const NoteScope = Schema.TaggedStruct('Note', {
 });
 export type NoteScope = typeof NoteScope.Type;
 
-export const ChangeScope = Schema.Union([NoteScope]);
+export const ReadingPreferencesScope = Schema.TaggedStruct('ReadingPreferences', {});
+export type ReadingPreferencesScope = typeof ReadingPreferencesScope.Type;
+
+export const ChangeScope = Schema.Union([NoteScope, ReadingPreferencesScope]);
 export type ChangeScope = typeof ChangeScope.Type;
 
 export const ChangeSet = Schema.Struct({ scopes: Schema.Array(ChangeScope) });
@@ -80,15 +90,22 @@ export const CURRENT_SCHEMA_VERSION = Schema.decodeSync(SchemaVersion)(1);
 export const INITIAL_SERVER_REVISION = Schema.decodeSync(ServerRevision)(0);
 
 export const changeSetFor = (command: DomainMutationCommand): ChangeSet => ({
-  scopes: [
-    command._tag === 'SaveNote'
-      ? {
-          _tag: 'Note',
-          noteId: command.noteId,
-          source: command.source,
-          resourceId: command.resourceId,
-          location: command.location,
-        }
-      : { _tag: 'Note', noteId: command.noteId },
-  ],
+  scopes: (() => {
+    switch (command._tag) {
+      case 'SaveNote':
+        return [
+          {
+            _tag: 'Note' as const,
+            noteId: command.noteId,
+            source: command.source,
+            resourceId: command.resourceId,
+            location: command.location,
+          },
+        ];
+      case 'DeleteNote':
+        return [{ _tag: 'Note' as const, noteId: command.noteId }];
+      case 'SetReadingPreferences':
+        return [{ _tag: 'ReadingPreferences' as const }];
+    }
+  })(),
 });

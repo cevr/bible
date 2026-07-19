@@ -58,11 +58,10 @@ const patchFields = {
 
 export const ReadingPreferencesPatch = Schema.Struct(patchFields).pipe(
   Schema.check(
-    Schema.makeFilter((patch) =>
-      Object.values(patch).some((value) => value !== undefined)
-        ? undefined
-        : 'a reading preferences patch must set at least one field',
-    ),
+    Schema.makeFilter((patch) => {
+      if (Object.values(patch).some((value) => value !== undefined)) return undefined;
+      return 'a reading preferences patch must set at least one field';
+    }),
   ),
 );
 export type ReadingPreferencesPatch = typeof ReadingPreferencesPatch.Type;
@@ -84,3 +83,20 @@ export const DEFAULT_READING_PREFERENCES = new ReadingPreferences({
   showMarginNotes: true,
   showCrossReferences: true,
 });
+
+export const applyReadingPreferencesPatch = (
+  current: ReadingPreferences,
+  patch: ReadingPreferencesPatch,
+): ReadingPreferences =>
+  new ReadingPreferences({
+    colorMode: patch.colorMode ?? current.colorMode,
+    readerTypeface: patch.readerTypeface ?? current.readerTypeface,
+    fontSizePx: patch.fontSizePx ?? current.fontSizePx,
+    lineHeightRatio: patch.lineHeightRatio ?? current.lineHeightRatio,
+    letterSpacingEm: patch.letterSpacingEm ?? current.letterSpacingEm,
+    measureCh: patch.measureCh ?? current.measureCh,
+    bibleLayout: patch.bibleLayout ?? current.bibleLayout,
+    showStrongs: patch.showStrongs ?? current.showStrongs,
+    showMarginNotes: patch.showMarginNotes ?? current.showMarginNotes,
+    showCrossReferences: patch.showCrossReferences ?? current.showCrossReferences,
+  });
