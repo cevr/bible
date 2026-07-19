@@ -42,6 +42,20 @@ export const LibraryBackupDocument = Schema.Struct({
 export type LibraryBackupDocument = typeof LibraryBackupDocument.Type;
 export const LibraryBackupDocumentFromJson = Schema.fromJsonString(LibraryBackupDocument);
 
+const crossReferenceEnd = (reference: UserCrossReference) => {
+  if (
+    reference.toEndSource === null ||
+    reference.toEndResourceId === null ||
+    reference.toEndLocation === null
+  )
+    return null;
+  return {
+    source: reference.toEndSource,
+    resourceId: reference.toEndResourceId,
+    location: reference.toEndLocation,
+  };
+};
+
 export const commandsForLibraryBackup = (
   backup: LibraryBackupDocument,
 ): ReadonlyArray<typeof DomainMutationCommand.Type> =>
@@ -89,6 +103,9 @@ export const commandsForLibraryBackup = (
         resourceId: reference.toResourceId,
         location: reference.toLocation,
       },
+      toEnd: crossReferenceEnd(reference),
+      kind: reference.kind,
+      note: reference.note,
     })),
     ...backup.collections.flatMap((collection) => [
       {

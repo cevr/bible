@@ -140,6 +140,9 @@ export const AnnotationTools = (props: AnnotationToolsProps) => {
         id: entityId('reference', props.location, `:${target.location}`),
         from: props.location,
         to: target,
+        toEnd: null,
+        kind: null,
+        note: null,
       },
       () => setReferenceDraft(''),
     );
@@ -254,7 +257,13 @@ export const AnnotationTools = (props: AnnotationToolsProps) => {
                         <For each={annotations().crossReferences}>
                           {(reference) => (
                             <div class="bible-annotation-reference">
-                              <A href={reference.toLocation}>{reference.toLocation}</A>
+                              <A href={reference.toLocation}>
+                                {reference.toLocation}
+                                <Show when={reference.toEndLocation}>
+                                  {(end) => `–${end().split('/').at(-1)}`}
+                                </Show>
+                              </A>
+                              <Show when={reference.note}>{(note) => <span>{note()}</span>}</Show>
                               <Button
                                 aria-label={`Remove cross-reference to ${reference.toLocation}`}
                                 onClick={() =>

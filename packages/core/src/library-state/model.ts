@@ -58,6 +58,11 @@ export const UserCrossReference = Schema.Struct({
   toSource: ReaderSource,
   toResourceId: Schema.NonEmptyString,
   toLocation: Schema.NonEmptyString,
+  toEndSource: Schema.NullOr(ReaderSource),
+  toEndResourceId: nullableString,
+  toEndLocation: nullableString,
+  kind: nullableString,
+  note: nullableString,
   createdAt: timestamp,
   updatedAt: timestamp,
 });
@@ -178,6 +183,9 @@ export const SaveUserCrossReference = Schema.TaggedStruct('SaveUserCrossReferenc
   id: LibraryEntityId,
   from: ReaderLocation,
   to: ReaderLocation,
+  toEnd: Schema.NullOr(ReaderLocation),
+  kind: nullableString,
+  note: nullableString,
 });
 export type SaveUserCrossReference = typeof SaveUserCrossReference.Type;
 

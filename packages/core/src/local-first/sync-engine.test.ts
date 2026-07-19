@@ -232,6 +232,52 @@ describe('local-first sync protocol', () => {
     await closeHarness(beta);
   });
 
+  test('preserves user-authored cross-reference metadata locally and across clients', async () => {
+    const transport = makeSimulatedTransport();
+    const alpha = await makeHarness('reference-alpha', transport);
+    const beta = await makeHarness('reference-beta', transport);
+    const from = { source: 'bible' as const, resourceId: 'KJV', location: '/bible/43/3/16' };
+
+    await Effect.runPromise(
+      alpha.engine.mutate({
+        _tag: 'SaveUserCrossReference',
+        id: libraryEntityId('reference-promise'),
+        from,
+        to: { source: 'bible', resourceId: 'KJV', location: '/bible/1/3/15' },
+        toEnd: { source: 'bible', resourceId: 'KJV', location: '/bible/1/3/16' },
+        kind: 'promise',
+        note: 'The first gospel promise.',
+      }),
+    );
+
+    expect(await Effect.runPromise(alpha.store.annotations(from))).toMatchObject({
+      crossReferences: [
+        {
+          id: 'reference-promise',
+          toEndLocation: '/bible/1/3/16',
+          kind: 'promise',
+          note: 'The first gospel promise.',
+        },
+      ],
+    });
+
+    await Effect.runPromise(alpha.engine.synchronize());
+    await Effect.runPromise(beta.engine.synchronize());
+
+    expect(await Effect.runPromise(beta.store.annotations(from))).toMatchObject({
+      crossReferences: [
+        {
+          id: 'reference-promise',
+          toEndLocation: '/bible/1/3/16',
+          kind: 'promise',
+          note: 'The first gospel promise.',
+        },
+      ],
+    });
+    await closeHarness(alpha);
+    await closeHarness(beta);
+  });
+
   test('imports legacy mutations and diagnostics atomically with a last-written receipt', async () => {
     const client = await makeHarness('migration-client', makeSimulatedTransport());
     const sourceId = migrationSourceId('web-state-v1');
