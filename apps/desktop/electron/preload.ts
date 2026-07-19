@@ -7,6 +7,12 @@ import type {
   IpcInvokeResult,
 } from './ipc-contract.js';
 
+ipcRenderer.on('bible:procedure-port', (event) => {
+  const port = event.ports[0];
+  if (port === undefined) return;
+  window.postMessage({ type: 'bible-procedure-port' }, '*', [port]);
+});
+
 const invoke = <Channel extends IpcInvokeChannel>(
   channel: Channel,
   ...args: IpcInvokeArgs<Channel>

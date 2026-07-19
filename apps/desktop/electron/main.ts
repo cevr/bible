@@ -1,7 +1,7 @@
 import { BibleCorpus, BibleDatabase } from '@bible/core/bible-db';
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
-import { Effect } from 'effect';
-import { app, BrowserWindow, shell } from 'electron';
+import { Effect, Fiber, Layer } from 'effect';
+import { app, BrowserWindow, MessageChannelMain, shell } from 'electron';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
@@ -10,6 +10,10 @@ import { makeBibleIpc } from './ipc/bible-handlers.js';
 import { registerEgwIpc } from './ipc/egw-handlers.js';
 import { handleIpc } from './ipc/handle.js';
 import { registerStorageIpc } from './ipc/storage-handlers.js';
+import {
+  layerDesktopProcedureServer,
+  type DesktopProcedureServerPort,
+} from './procedure-server.js';
 import { makeRuntime, type MainRuntime } from './runtime.js';
 
 // Tiny .env loader for the plain Electron bootstrap. The Effect runtime reads
@@ -71,7 +75,7 @@ const resolveWindowIcon = (): string | undefined => {
   return undefined;
 };
 
-const createWindow = async (): Promise<void> => {
+const createWindow = async (runtime: MainRuntime): Promise<void> => {
   const icon = resolveWindowIcon();
   const win = new BrowserWindow({
     width: 1280,
@@ -92,6 +96,30 @@ const createWindow = async (): Promise<void> => {
   win.webContents.setWindowOpenHandler(({ url }) => {
     void shell.openExternal(url);
     return { action: 'deny' };
+  });
+
+  const { port1, port2 } = new MessageChannelMain();
+  const procedurePort: DesktopProcedureServerPort = {
+    subscribe: (listener) => {
+      const onMessage = (event: Electron.MessageEvent): void => {
+        listener(event.data);
+      };
+      port1.on('message', onMessage);
+      return () => port1.off('message', onMessage);
+    },
+    onClose: (listener) => {
+      port1.on('close', listener);
+      return () => port1.off('close', listener);
+    },
+    send: (message) => port1.postMessage(message),
+    start: () => port1.start(),
+  };
+  const procedureServer = runtime.runFork(Layer.launch(layerDesktopProcedureServer(procedurePort)));
+  port1.once('close', () => {
+    void runtime.runPromise(Fiber.interrupt(procedureServer));
+  });
+  win.webContents.once('did-finish-load', () => {
+    win.webContents.postMessage('bible:procedure-port', undefined, [port2]);
   });
 
   if (isDev) {
@@ -127,9 +155,9 @@ void app.whenReady().then(async () => {
     console.warn('[main] backfillIndex failed:', error);
   });
 
-  void createWindow();
+  void createWindow(runtime);
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) void createWindow();
+    if (BrowserWindow.getAllWindows().length === 0) void createWindow(runtime);
   });
 });
 
