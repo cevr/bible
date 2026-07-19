@@ -61,9 +61,7 @@ export const layerWebWritingsLibrary = (options: {
       Effect.result(remoteCatalog),
     ]);
     if (Result.isFailure(localResult) && Result.isFailure(remoteResult)) {
-      return yield* Effect.fail(
-        failure('v1.reading.writingsLibrary.get', remoteResult.failure),
-      );
+      return yield* Effect.fail(failure('v1.reading.writingsLibrary.get', remoteResult.failure));
     }
 
     let localBooks: readonly EgwLocalBook[] = [];

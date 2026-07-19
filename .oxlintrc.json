@@ -210,10 +210,7 @@
       }
     },
     {
-      "files": [
-        "**/packages/core/src/egw-reader/**",
-        "**/packages/core/src/app/**"
-      ],
+      "files": ["**/packages/core/src/egw-reader/**", "**/packages/core/src/app/**"],
       "rules": {
         "typescript/no-misused-spread": "off"
       }

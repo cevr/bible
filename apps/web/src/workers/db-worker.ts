@@ -99,7 +99,7 @@ const initializeSqlite = async (): Promise<{
     };
   } catch (cause) {
     await opfs?.close();
-    console.warn(
+    log(
       `[web.runtime] sqlite-vfs-fallback from=opfs to=indexeddb category=${failureCategory(cause)}`,
     );
     const idb = await IDBBatchAtomicVFS.create(IDB_VFS_NAME, module);

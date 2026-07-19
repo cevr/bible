@@ -331,9 +331,7 @@ export const makeWorkerEgwDatabase = (options: {
     await rebuildFtsForBook(book.bookId);
 
     onProgress({ bookCode, stage: 'Done', progress: 100 });
-    log(
-      `[web.writings] sync-complete book=${bookCode} paragraphs=${String(paragraphs.length)}`,
-    );
+    log(`[web.writings] sync-complete book=${bookCode} paragraphs=${String(paragraphs.length)}`);
     return paragraphs.length;
   };
 

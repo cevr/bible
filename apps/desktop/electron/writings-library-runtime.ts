@@ -1,9 +1,5 @@
 import { EGWApiClient, type Schemas } from '@bible/core/egw';
-import {
-  EGWParagraphDatabase,
-  type BookRow,
-  type SyncStatusRow,
-} from '@bible/core/egw-db';
+import { EGWParagraphDatabase, type BookRow, type SyncStatusRow } from '@bible/core/egw-db';
 import { ProcedureError, WritingsLibraryRuntime } from '@bible/core/procedure';
 import { downloadBookToLocal } from '@bible/core/sync/egw';
 import {
@@ -50,11 +46,7 @@ export const layerDesktopWritingsLibrary = Layer.effect(
         Effect.result(database.getAllSyncStatus()),
       ]);
       let hasLocalCatalog = Result.isSuccess(localResult);
-      if (
-        !hasLocalCatalog &&
-        Result.isSuccess(statusResult) &&
-        statusResult.success.length > 0
-      ) {
+      if (!hasLocalCatalog && Result.isSuccess(statusResult) && statusResult.success.length > 0) {
         hasLocalCatalog = true;
       }
       if (Result.isFailure(remoteResult) && !hasLocalCatalog) {
