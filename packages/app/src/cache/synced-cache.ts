@@ -120,9 +120,14 @@ export const createSyncedCache = <Input, A, E, R, Command, MutationResult, Scope
 
   const launch = (entry: CacheEntry<Input, A>, refresh: boolean): Promise<A> => {
     const current = entry.value();
-    entry.setStatus(
-      refresh && Option.isSome(current) ? { state: 'refreshing' } : { state: 'loading' },
-    );
+    // Initial lookup is launched by the async memo while Solid owns its
+    // computation. The entry already starts in `loading`, so writing the same
+    // state there would violate Solid 2's no-writes-in-owned-scopes rule.
+    // Explicit refreshes enter through imperative callers and own the only
+    // status transition needed before the Effect starts.
+    if (refresh) {
+      entry.setStatus(Option.isSome(current) ? { state: 'refreshing' } : { state: 'loading' });
+    }
     const operation = refresh
       ? Cache.refresh(effectCache, entry.input)
       : Cache.get(effectCache, entry.input);
