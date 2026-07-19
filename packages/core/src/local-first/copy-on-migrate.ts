@@ -109,7 +109,7 @@ export const copyOnMigrate = Effect.fn('LocalFirst.copyOnMigrate')(
   (options: CopyOnMigrateOptions): Effect.Effect<CopyOnMigrateResult, CopyOnMigrateError> =>
     Effect.gen(function* () {
       const active = yield* options.adapter.activeGeneration;
-      if (active === options.generation) {
+      if (active !== undefined) {
         return { generation: active, activated: false, receipts: [] };
       }
 

@@ -146,6 +146,18 @@ describe('copy-on-migrate activation', () => {
     expect(harness.events).toEqual([]);
   });
 
+  test('keeps an active canonical generation authoritative when legacy fingerprints change', async () => {
+    const harness = makeAdapter();
+    await Effect.runPromise(run(harness.adapter, 'generation-canonical'));
+    harness.events.splice(0);
+
+    const second = await Effect.runPromise(run(harness.adapter, 'generation-from-changed-legacy'));
+
+    expect(second).toEqual({ generation: 'generation-canonical', activated: false, receipts: [] });
+    expect(harness.events).toEqual([]);
+    expect(harness.active()).toBe('generation-canonical');
+  });
+
   test.each(['import', 'verify', 'activate'] as const)(
     'never activates after a %s failure',
     async (failure) => {
