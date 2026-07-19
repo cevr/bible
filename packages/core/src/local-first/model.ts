@@ -1,6 +1,11 @@
 import { Schema } from 'effect';
 
 import { ReadingPreferences } from '../reading-preferences/model.js';
+import {
+  LibraryStateCommand,
+  LibraryStateScope,
+  scopeForLibraryCommand,
+} from '../library-state/model.js';
 
 export const ClientId = Schema.NonEmptyString.pipe(Schema.brand('LocalFirst/ClientId'));
 export type ClientId = typeof ClientId.Type;
@@ -49,7 +54,10 @@ export const SetReadingPreferences = Schema.TaggedStruct('SetReadingPreferences'
 });
 export type SetReadingPreferences = typeof SetReadingPreferences.Type;
 
-export const DomainMutationCommand = Schema.Union([SaveNote, DeleteNote, SetReadingPreferences]);
+export const LibraryMutationCommand = Schema.Union([SaveNote, DeleteNote, LibraryStateCommand]);
+export type LibraryMutationCommand = typeof LibraryMutationCommand.Type;
+
+export const DomainMutationCommand = Schema.Union([LibraryMutationCommand, SetReadingPreferences]);
 export type DomainMutationCommand = typeof DomainMutationCommand.Type;
 
 export const MutationEnvelope = Schema.Struct({
@@ -73,7 +81,7 @@ export type NoteScope = typeof NoteScope.Type;
 export const ReadingPreferencesScope = Schema.TaggedStruct('ReadingPreferences', {});
 export type ReadingPreferencesScope = typeof ReadingPreferencesScope.Type;
 
-export const ChangeScope = Schema.Union([NoteScope, ReadingPreferencesScope]);
+export const ChangeScope = Schema.Union([NoteScope, ReadingPreferencesScope, LibraryStateScope]);
 export type ChangeScope = typeof ChangeScope.Type;
 
 export const ChangeSet = Schema.Struct({ scopes: Schema.Array(ChangeScope) });
@@ -106,6 +114,8 @@ export const changeSetFor = (command: DomainMutationCommand): ChangeSet => ({
         return [{ _tag: 'Note' as const, noteId: command.noteId }];
       case 'SetReadingPreferences':
         return [{ _tag: 'ReadingPreferences' as const }];
+      default:
+        return [scopeForLibraryCommand(command)];
     }
   })(),
 });

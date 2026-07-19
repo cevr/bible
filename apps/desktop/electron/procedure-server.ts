@@ -3,6 +3,7 @@ import {
   BibleProcedureHandlers,
   type ProcedureRuntime,
   type ReadingPreferencesRuntime,
+  type LibraryStateRuntime,
 } from '@bible/core/procedure';
 import type { BibleService } from '@bible/core/bible/service';
 import type { WritingsService } from '@bible/core/writings/service';
@@ -69,7 +70,11 @@ export const layerDesktopProcedureServer = (
 ): Layer.Layer<
   never,
   never,
-  BibleService | WritingsService | ProcedureRuntime | ReadingPreferencesRuntime
+  | BibleService
+  | WritingsService
+  | ProcedureRuntime
+  | ReadingPreferencesRuntime
+  | LibraryStateRuntime
 > =>
   RpcServer.layer(BibleProcedureGroup).pipe(
     Layer.provide(BibleProcedureHandlers),

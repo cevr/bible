@@ -6,6 +6,7 @@ import userStateMigrationSql from '@bible/core/local-first/migrations/0001_user_
 import { ClientId, MutationId, Timestamp } from '@bible/core/local-first';
 import {
   CommitId,
+  type LibraryStateRuntime,
   type ProcedureRuntime,
   type ReadingPreferencesRuntime,
   RuntimeGeneration,
@@ -115,7 +116,8 @@ export type MainRuntime = ManagedRuntime.ManagedRuntime<
   | BibleService
   | WritingsService
   | ProcedureRuntime
-  | ReadingPreferencesRuntime,
+  | ReadingPreferencesRuntime
+  | LibraryStateRuntime,
   never
 >;
 
@@ -159,5 +161,6 @@ export const runtimeRun = <A, E>(
     | WritingsService
     | ProcedureRuntime
     | ReadingPreferencesRuntime
+    | LibraryStateRuntime
   >,
 ): Promise<A> => runtime.runPromise(effect);

@@ -2,6 +2,18 @@ import { and, eq, isNull } from 'drizzle-orm';
 import type { BaseSQLiteDatabase } from 'drizzle-orm/sqlite-core';
 import { Effect, Schema } from 'effect';
 
+import {
+  LibraryCollection as LibraryCollectionSchema,
+  LocationAnnotations as LocationAnnotationsSchema,
+  MemoryPractice as MemoryPracticeSchema,
+  ReadingPlan as ReadingPlanSchema,
+} from '../library-state/model.js';
+import type {
+  LibraryCollection,
+  MemoryPractice,
+  ReaderLocation,
+  ReadingPlan,
+} from '../library-state/model.js';
 import { DEFAULT_READING_PREFERENCES, ReadingPreferences } from '../reading-preferences/model.js';
 
 import type { SqliteEffectBridgeShape } from './database.js';
@@ -20,12 +32,21 @@ import {
   type RevisionPatch,
 } from './model.js';
 import {
+  bookmarks,
+  collectionMembers,
+  collections as collectionRows,
+  markers,
+  memoryVerses,
   mutationJournal,
   notes,
+  practiceHistory,
   preferences as preferenceRows,
+  readingPlanProgress,
+  readingPlans as readingPlanRows,
   serverRevisions,
   syncClients,
   tombstones,
+  userCrossReferences,
   type UserStateSchema,
 } from './schema.js';
 import {
@@ -90,103 +111,494 @@ const applyCommand = <TResultKind extends ResultKind, TRunResult>(
   mutationId: MutationId,
   serverRevision?: ServerRevision,
 ): MaybePromise<void> => {
-  if (command._tag === 'SetReadingPreferences') {
-    return asVoid(
+  const removeTombstone =
+    (entityType: string, entityId: string): Operation =>
+    () =>
       database.drizzle
-        .insert(preferenceRows)
+        .delete(tombstones)
+        .where(and(eq(tombstones.entityType, entityType), eq(tombstones.entityId, entityId)))
+        .run();
+  const saveTombstone =
+    (entityType: string, entityId: string): Operation =>
+    () =>
+      database.drizzle
+        .insert(tombstones)
         .values({
-          key: 'reading',
-          value: command.preferences,
-          createdAt,
-          updatedAt: createdAt,
-          deletedAt: null,
+          entityType,
+          entityId,
+          deletedByMutationId: mutationId,
+          serverRevision,
+          deletedAt: createdAt,
         })
         .onConflictDoUpdate({
-          target: preferenceRows.key,
-          set: {
+          target: [tombstones.entityType, tombstones.entityId],
+          set: { deletedByMutationId: mutationId, serverRevision, deletedAt: createdAt },
+        })
+        .run();
+
+  switch (command._tag) {
+    case 'SetReadingPreferences':
+      return asVoid(
+        database.drizzle
+          .insert(preferenceRows)
+          .values({
+            key: 'reading',
             value: command.preferences,
+            createdAt,
             updatedAt: createdAt,
             deletedAt: null,
-          },
-        })
-        .run(),
-    );
-  }
-
-  if (command._tag === 'SaveNote') {
-    return asVoid(
-      runThen(
-        [
-          () =>
-            database.drizzle
-              .insert(notes)
-              .values({
-                id: command.noteId,
-                source: command.source,
-                resourceId: command.resourceId,
-                location: command.location,
-                content: command.content,
-                createdAt,
-                updatedAt: createdAt,
-                deletedAt: null,
-              })
-              .onConflictDoUpdate({
-                target: notes.id,
-                set: {
+          })
+          .onConflictDoUpdate({
+            target: preferenceRows.key,
+            set: { value: command.preferences, updatedAt: createdAt, deletedAt: null },
+          })
+          .run(),
+      );
+    case 'SaveNote':
+      return asVoid(
+        runThen(
+          [
+            () =>
+              database.drizzle
+                .insert(notes)
+                .values({
+                  id: command.noteId,
                   source: command.source,
                   resourceId: command.resourceId,
                   location: command.location,
                   content: command.content,
+                  createdAt,
                   updatedAt: createdAt,
                   deletedAt: null,
-                },
-              })
-              .run(),
-          () =>
-            database.drizzle
-              .delete(tombstones)
-              .where(
-                and(eq(tombstones.entityType, 'note'), eq(tombstones.entityId, command.noteId)),
-              )
-              .run(),
-        ],
-        () => undefined,
-      ),
-    );
+                })
+                .onConflictDoUpdate({
+                  target: notes.id,
+                  set: {
+                    source: command.source,
+                    resourceId: command.resourceId,
+                    location: command.location,
+                    content: command.content,
+                    updatedAt: createdAt,
+                    deletedAt: null,
+                  },
+                })
+                .run(),
+            removeTombstone('note', command.noteId),
+          ],
+          () => undefined,
+        ),
+      );
+    case 'DeleteNote':
+      return asVoid(
+        runThen(
+          [
+            () =>
+              database.drizzle
+                .update(notes)
+                .set({ deletedAt: createdAt, updatedAt: createdAt })
+                .where(eq(notes.id, command.noteId))
+                .run(),
+            saveTombstone('note', command.noteId),
+          ],
+          () => undefined,
+        ),
+      );
+    case 'SaveBookmark':
+      return asVoid(
+        runThen(
+          [
+            () =>
+              database.drizzle
+                .insert(bookmarks)
+                .values({
+                  id: command.id,
+                  source: command.location.source,
+                  resourceId: command.location.resourceId,
+                  location: command.location.location,
+                  label: command.label,
+                  createdAt,
+                  updatedAt: createdAt,
+                  deletedAt: null,
+                })
+                .onConflictDoUpdate({
+                  target: bookmarks.id,
+                  set: {
+                    source: command.location.source,
+                    resourceId: command.location.resourceId,
+                    location: command.location.location,
+                    label: command.label,
+                    updatedAt: createdAt,
+                    deletedAt: null,
+                  },
+                })
+                .run(),
+            removeTombstone('bookmark', command.id),
+          ],
+          () => undefined,
+        ),
+      );
+    case 'DeleteBookmark':
+      return asVoid(
+        runThen(
+          [
+            () =>
+              database.drizzle
+                .update(bookmarks)
+                .set({ deletedAt: createdAt, updatedAt: createdAt })
+                .where(eq(bookmarks.id, command.id))
+                .run(),
+            saveTombstone('bookmark', command.id),
+          ],
+          () => undefined,
+        ),
+      );
+    case 'SaveMarker':
+      return asVoid(
+        runThen(
+          [
+            () =>
+              database.drizzle
+                .insert(markers)
+                .values({
+                  id: command.id,
+                  source: command.location.source,
+                  resourceId: command.location.resourceId,
+                  location: command.location.location,
+                  style: command.style,
+                  color: command.color,
+                  createdAt,
+                  updatedAt: createdAt,
+                  deletedAt: null,
+                })
+                .onConflictDoUpdate({
+                  target: markers.id,
+                  set: {
+                    source: command.location.source,
+                    resourceId: command.location.resourceId,
+                    location: command.location.location,
+                    style: command.style,
+                    color: command.color,
+                    updatedAt: createdAt,
+                    deletedAt: null,
+                  },
+                })
+                .run(),
+            removeTombstone('marker', command.id),
+          ],
+          () => undefined,
+        ),
+      );
+    case 'DeleteMarker':
+      return asVoid(
+        runThen(
+          [
+            () =>
+              database.drizzle
+                .update(markers)
+                .set({ deletedAt: createdAt, updatedAt: createdAt })
+                .where(eq(markers.id, command.id))
+                .run(),
+            saveTombstone('marker', command.id),
+          ],
+          () => undefined,
+        ),
+      );
+    case 'SaveUserCrossReference':
+      return asVoid(
+        runThen(
+          [
+            () =>
+              database.drizzle
+                .insert(userCrossReferences)
+                .values({
+                  id: command.id,
+                  fromSource: command.from.source,
+                  fromResourceId: command.from.resourceId,
+                  fromLocation: command.from.location,
+                  toSource: command.to.source,
+                  toResourceId: command.to.resourceId,
+                  toLocation: command.to.location,
+                  createdAt,
+                  updatedAt: createdAt,
+                  deletedAt: null,
+                })
+                .onConflictDoUpdate({
+                  target: userCrossReferences.id,
+                  set: {
+                    fromSource: command.from.source,
+                    fromResourceId: command.from.resourceId,
+                    fromLocation: command.from.location,
+                    toSource: command.to.source,
+                    toResourceId: command.to.resourceId,
+                    toLocation: command.to.location,
+                    updatedAt: createdAt,
+                    deletedAt: null,
+                  },
+                })
+                .run(),
+            removeTombstone('reference', command.id),
+          ],
+          () => undefined,
+        ),
+      );
+    case 'DeleteUserCrossReference':
+      return asVoid(
+        runThen(
+          [
+            () =>
+              database.drizzle
+                .update(userCrossReferences)
+                .set({ deletedAt: createdAt, updatedAt: createdAt })
+                .where(eq(userCrossReferences.id, command.id))
+                .run(),
+            saveTombstone('reference', command.id),
+          ],
+          () => undefined,
+        ),
+      );
+    case 'SaveCollection':
+      return asVoid(
+        runThen(
+          [
+            () =>
+              database.drizzle
+                .insert(collectionRows)
+                .values({
+                  id: command.id,
+                  name: command.name,
+                  description: command.description,
+                  createdAt,
+                  updatedAt: createdAt,
+                  deletedAt: null,
+                })
+                .onConflictDoUpdate({
+                  target: collectionRows.id,
+                  set: {
+                    name: command.name,
+                    description: command.description,
+                    updatedAt: createdAt,
+                    deletedAt: null,
+                  },
+                })
+                .run(),
+            removeTombstone('collection', command.id),
+          ],
+          () => undefined,
+        ),
+      );
+    case 'DeleteCollection':
+      return asVoid(
+        runThen(
+          [
+            () =>
+              database.drizzle
+                .update(collectionRows)
+                .set({ deletedAt: createdAt, updatedAt: createdAt })
+                .where(eq(collectionRows.id, command.id))
+                .run(),
+            saveTombstone('collection', command.id),
+          ],
+          () => undefined,
+        ),
+      );
+    case 'AddCollectionMember':
+      return asVoid(
+        database.drizzle
+          .insert(collectionMembers)
+          .values({
+            collectionId: command.collectionId,
+            memberId: command.memberId,
+            memberType: command.memberType,
+            position: command.position,
+            createdAt,
+            updatedAt: createdAt,
+            deletedAt: null,
+          })
+          .onConflictDoUpdate({
+            target: [collectionMembers.collectionId, collectionMembers.memberId],
+            set: {
+              memberType: command.memberType,
+              position: command.position,
+              updatedAt: createdAt,
+              deletedAt: null,
+            },
+          })
+          .run(),
+      );
+    case 'RemoveCollectionMember':
+      return asVoid(
+        database.drizzle
+          .update(collectionMembers)
+          .set({ deletedAt: createdAt, updatedAt: createdAt })
+          .where(
+            and(
+              eq(collectionMembers.collectionId, command.collectionId),
+              eq(collectionMembers.memberId, command.memberId),
+            ),
+          )
+          .run(),
+      );
+    case 'SaveReadingPlan':
+      return asVoid(
+        runThen(
+          [
+            () =>
+              database.drizzle
+                .insert(readingPlanRows)
+                .values({
+                  id: command.id,
+                  title: command.title,
+                  description: command.description,
+                  definition: { steps: command.steps },
+                  createdAt,
+                  updatedAt: createdAt,
+                  deletedAt: null,
+                })
+                .onConflictDoUpdate({
+                  target: readingPlanRows.id,
+                  set: {
+                    title: command.title,
+                    description: command.description,
+                    definition: { steps: command.steps },
+                    updatedAt: createdAt,
+                    deletedAt: null,
+                  },
+                })
+                .run(),
+            removeTombstone('plan', command.id),
+          ],
+          () => undefined,
+        ),
+      );
+    case 'DeleteReadingPlan':
+      return asVoid(
+        runThen(
+          [
+            () =>
+              database.drizzle
+                .update(readingPlanRows)
+                .set({ deletedAt: createdAt, updatedAt: createdAt })
+                .where(eq(readingPlanRows.id, command.id))
+                .run(),
+            saveTombstone('plan', command.id),
+          ],
+          () => undefined,
+        ),
+      );
+    case 'SetReadingPlanProgress': {
+      let deletedAt: Timestamp | null = null;
+      if (command.completedAt === null) deletedAt = createdAt;
+      return asVoid(
+        database.drizzle
+          .insert(readingPlanProgress)
+          .values({
+            planId: command.planId,
+            stepId: command.stepId,
+            completedAt: command.completedAt,
+            createdAt,
+            updatedAt: createdAt,
+            deletedAt,
+          })
+          .onConflictDoUpdate({
+            target: [readingPlanProgress.planId, readingPlanProgress.stepId],
+            set: { completedAt: command.completedAt, updatedAt: createdAt, deletedAt },
+          })
+          .run(),
+      );
+    }
+    case 'SaveMemoryVerse':
+      return asVoid(
+        runThen(
+          [
+            () =>
+              database.drizzle
+                .insert(memoryVerses)
+                .values({
+                  id: command.id,
+                  resourceId: command.resourceId,
+                  location: command.location,
+                  prompt: command.prompt,
+                  nextPracticeAt: command.nextPracticeAt,
+                  intervalDays: command.intervalDays,
+                  createdAt,
+                  updatedAt: createdAt,
+                  deletedAt: null,
+                })
+                .onConflictDoUpdate({
+                  target: memoryVerses.id,
+                  set: {
+                    resourceId: command.resourceId,
+                    location: command.location,
+                    prompt: command.prompt,
+                    nextPracticeAt: command.nextPracticeAt,
+                    intervalDays: command.intervalDays,
+                    updatedAt: createdAt,
+                    deletedAt: null,
+                  },
+                })
+                .run(),
+            removeTombstone('memory-verse', command.id),
+          ],
+          () => undefined,
+        ),
+      );
+    case 'DeleteMemoryVerse':
+      return asVoid(
+        runThen(
+          [
+            () =>
+              database.drizzle
+                .update(memoryVerses)
+                .set({ deletedAt: createdAt, updatedAt: createdAt })
+                .where(eq(memoryVerses.id, command.id))
+                .run(),
+            saveTombstone('memory-verse', command.id),
+          ],
+          () => undefined,
+        ),
+      );
+    case 'RecordMemoryPractice':
+      return asVoid(
+        runThen(
+          [
+            () =>
+              database.drizzle
+                .insert(practiceHistory)
+                .values({
+                  id: command.id,
+                  memoryVerseId: command.memoryVerseId,
+                  rating: command.rating,
+                  practicedAt: command.practicedAt,
+                  createdAt,
+                  updatedAt: createdAt,
+                  deletedAt: null,
+                })
+                .onConflictDoUpdate({
+                  target: practiceHistory.id,
+                  set: {
+                    memoryVerseId: command.memoryVerseId,
+                    rating: command.rating,
+                    practicedAt: command.practicedAt,
+                    updatedAt: createdAt,
+                    deletedAt: null,
+                  },
+                })
+                .run(),
+            () =>
+              database.drizzle
+                .update(memoryVerses)
+                .set({
+                  nextPracticeAt: command.nextPracticeAt,
+                  intervalDays: command.intervalDays,
+                  updatedAt: createdAt,
+                })
+                .where(eq(memoryVerses.id, command.memoryVerseId))
+                .run(),
+          ],
+          () => undefined,
+        ),
+      );
   }
-
-  return asVoid(
-    runThen(
-      [
-        () =>
-          database.drizzle
-            .update(notes)
-            .set({ deletedAt: createdAt, updatedAt: createdAt })
-            .where(eq(notes.id, command.noteId))
-            .run(),
-        () =>
-          database.drizzle
-            .insert(tombstones)
-            .values({
-              entityType: 'note',
-              entityId: command.noteId,
-              deletedByMutationId: mutationId,
-              serverRevision,
-              deletedAt: createdAt,
-            })
-            .onConflictDoUpdate({
-              target: [tombstones.entityType, tombstones.entityId],
-              set: {
-                deletedByMutationId: mutationId,
-                serverRevision,
-                deletedAt: createdAt,
-              },
-            })
-            .run(),
-      ],
-      () => undefined,
-    ),
-  );
 };
 
 const clientRow = <TResultKind extends ResultKind, TRunResult>(
@@ -385,6 +797,168 @@ export const makeDrizzleSyncStore = <TResultKind extends ResultKind, TRunResult>
       .pipe(Effect.mapError(mapStoreError('note'))),
   );
 
+  const annotations = Effect.fn('DrizzleSyncStore.annotations')((location: ReaderLocation) =>
+    Effect.all({
+      bookmarks: database.bridge.all({
+        execute: () =>
+          database.drizzle
+            .select()
+            .from(bookmarks)
+            .where(
+              and(
+                eq(bookmarks.source, location.source),
+                eq(bookmarks.resourceId, location.resourceId),
+                eq(bookmarks.location, location.location),
+                isNull(bookmarks.deletedAt),
+              ),
+            )
+            .all(),
+      }),
+      notes: database.bridge.all({
+        execute: () =>
+          database.drizzle
+            .select()
+            .from(notes)
+            .where(
+              and(
+                eq(notes.source, location.source),
+                eq(notes.resourceId, location.resourceId),
+                eq(notes.location, location.location),
+                isNull(notes.deletedAt),
+              ),
+            )
+            .all(),
+      }),
+      markers: database.bridge.all({
+        execute: () =>
+          database.drizzle
+            .select()
+            .from(markers)
+            .where(
+              and(
+                eq(markers.source, location.source),
+                eq(markers.resourceId, location.resourceId),
+                eq(markers.location, location.location),
+                isNull(markers.deletedAt),
+              ),
+            )
+            .all(),
+      }),
+      crossReferences: database.bridge.all({
+        execute: () =>
+          database.drizzle
+            .select()
+            .from(userCrossReferences)
+            .where(
+              and(
+                eq(userCrossReferences.fromSource, location.source),
+                eq(userCrossReferences.fromResourceId, location.resourceId),
+                eq(userCrossReferences.fromLocation, location.location),
+                isNull(userCrossReferences.deletedAt),
+              ),
+            )
+            .all(),
+      }),
+    }).pipe(
+      Effect.map((rows) =>
+        Schema.decodeUnknownSync(LocationAnnotationsSchema)({
+          bookmarks: rows.bookmarks,
+          notes: rows.notes,
+          markers: rows.markers,
+          crossReferences: rows.crossReferences,
+        }),
+      ),
+      Effect.mapError(mapStoreError('annotations')),
+    ),
+  );
+
+  const collections = Effect.all({
+    parents: database.bridge.all({
+      execute: () =>
+        database.drizzle
+          .select()
+          .from(collectionRows)
+          .where(isNull(collectionRows.deletedAt))
+          .all(),
+    }),
+    members: database.bridge.all({
+      execute: () =>
+        database.drizzle
+          .select()
+          .from(collectionMembers)
+          .where(isNull(collectionMembers.deletedAt))
+          .all(),
+    }),
+  }).pipe(
+    Effect.map(
+      ({ parents, members }): ReadonlyArray<LibraryCollection> =>
+        parents.map((parent) =>
+          Schema.decodeUnknownSync(LibraryCollectionSchema)({
+            ...parent,
+            members: members
+              .filter((member) => member.collectionId === parent.id)
+              .toSorted((left, right) => left.position - right.position),
+          }),
+        ),
+    ),
+    Effect.mapError(mapStoreError('collections')),
+  );
+
+  const readingPlans = Effect.all({
+    plans: database.bridge.all({
+      execute: () =>
+        database.drizzle
+          .select()
+          .from(readingPlanRows)
+          .where(isNull(readingPlanRows.deletedAt))
+          .all(),
+    }),
+    progress: database.bridge.all({
+      execute: () =>
+        database.drizzle
+          .select()
+          .from(readingPlanProgress)
+          .where(isNull(readingPlanProgress.deletedAt))
+          .all(),
+    }),
+  }).pipe(
+    Effect.map(
+      ({ plans, progress }): ReadonlyArray<ReadingPlan> =>
+        plans.map((plan) => {
+          const definition = Schema.decodeUnknownSync(
+            Schema.Struct({ steps: ReadingPlanSchema.fields.steps }),
+          )(plan.definition);
+          return Schema.decodeUnknownSync(ReadingPlanSchema)({
+            ...plan,
+            steps: definition.steps,
+            progress: progress.filter((entry) => entry.planId === plan.id),
+          });
+        }),
+    ),
+    Effect.mapError(mapStoreError('readingPlans')),
+  );
+
+  const memoryPractice = Effect.all({
+    verses: database.bridge.all({
+      execute: () =>
+        database.drizzle.select().from(memoryVerses).where(isNull(memoryVerses.deletedAt)).all(),
+    }),
+    history: database.bridge.all({
+      execute: () =>
+        database.drizzle
+          .select()
+          .from(practiceHistory)
+          .where(isNull(practiceHistory.deletedAt))
+          .all(),
+    }),
+  }).pipe(
+    Effect.map(
+      ({ verses, history }): MemoryPractice =>
+        Schema.decodeUnknownSync(MemoryPracticeSchema)({ verses, history }),
+    ),
+    Effect.mapError(mapStoreError('memoryPractice')),
+  );
+
   const readingPreferences = database.bridge
     .get({
       execute: () =>
@@ -402,5 +976,17 @@ export const makeDrizzleSyncStore = <TResultKind extends ResultKind, TRunResult>
       Effect.mapError(mapStoreError('readingPreferences')),
     );
 
-  return { mutate, pending, markAccepted, revision, applyPatch, note, readingPreferences };
+  return {
+    mutate,
+    pending,
+    markAccepted,
+    revision,
+    applyPatch,
+    note,
+    annotations,
+    collections,
+    readingPlans,
+    memoryPractice,
+    readingPreferences,
+  };
 };

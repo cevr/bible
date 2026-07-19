@@ -223,6 +223,92 @@ describe('local-first sync protocol', () => {
     await closeHarness(beta);
   });
 
+  test('lists active annotations and converges bookmark deletion', async () => {
+    const transport = makeSimulatedTransport();
+    const alpha = await makeHarness('bookmark-alpha', transport);
+    const beta = await makeHarness('bookmark-beta', transport);
+    const location = { source: 'bible' as const, resourceId: 'KJV', location: 'John.3.16' };
+
+    await Effect.runPromise(
+      alpha.engine.mutate({
+        _tag: 'SaveBookmark',
+        id: 'bookmark-john-3-16',
+        location,
+        label: 'The gospel in miniature',
+      }),
+    );
+
+    expect(await Effect.runPromise(alpha.store.annotations(location))).toMatchObject({
+      bookmarks: [
+        {
+          id: 'bookmark-john-3-16',
+          source: 'bible',
+          resourceId: 'KJV',
+          location: 'John.3.16',
+          label: 'The gospel in miniature',
+        },
+      ],
+      notes: [],
+      markers: [],
+      crossReferences: [],
+    });
+
+    await Effect.runPromise(alpha.engine.synchronize());
+    await Effect.runPromise(beta.engine.synchronize());
+    expect((await Effect.runPromise(beta.store.annotations(location))).bookmarks).toHaveLength(1);
+
+    await Effect.runPromise(
+      alpha.engine.mutate({ _tag: 'DeleteBookmark', id: 'bookmark-john-3-16' }),
+    );
+    await Effect.runPromise(alpha.engine.synchronize());
+    await Effect.runPromise(beta.engine.synchronize());
+
+    expect((await Effect.runPromise(alpha.store.annotations(location))).bookmarks).toEqual([]);
+    expect((await Effect.runPromise(beta.store.annotations(location))).bookmarks).toEqual([]);
+    await closeHarness(alpha);
+    await closeHarness(beta);
+  });
+
+  test('persists reading-plan progress and converges its structural definition', async () => {
+    const transport = makeSimulatedTransport();
+    const alpha = await makeHarness('plan-alpha', transport);
+    const beta = await makeHarness('plan-beta', transport);
+
+    await Effect.runPromise(
+      alpha.engine.mutate({
+        _tag: 'SaveReadingPlan',
+        id: 'plan-gospel-of-john',
+        title: 'The Gospel of John',
+        description: null,
+        steps: [{ id: 'john-1', title: 'The Word', route: '/bible/KJV/John.1' }],
+      }),
+    );
+    await Effect.runPromise(
+      alpha.engine.mutate({
+        _tag: 'SetReadingPlanProgress',
+        planId: 'plan-gospel-of-john',
+        stepId: 'john-1',
+        completedAt: '2026-07-19T00:05:00.000Z',
+      }),
+    );
+
+    expect(await Effect.runPromise(alpha.store.readingPlans)).toMatchObject([
+      {
+        id: 'plan-gospel-of-john',
+        steps: [{ id: 'john-1', route: '/bible/KJV/John.1' }],
+        progress: [{ stepId: 'john-1', completedAt: '2026-07-19T00:05:00.000Z' }],
+      },
+    ]);
+
+    await Effect.runPromise(alpha.engine.synchronize());
+    await Effect.runPromise(beta.engine.synchronize());
+    expect(await Effect.runPromise(beta.store.readingPlans)).toEqual(
+      await Effect.runPromise(alpha.store.readingPlans),
+    );
+    await closeHarness(alpha);
+    await closeHarness(beta);
+  });
+
   test('recovers the journal and next device sequence after a database restart', async () => {
     const transport = makeSimulatedTransport();
     const filename = join(temporaryDirectory, `restart-${harnessIndex}.sqlite`);

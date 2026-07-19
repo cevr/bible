@@ -6,7 +6,7 @@ import { Effect } from 'effect';
 
 import { BibleProcedureGroup } from './group.js';
 import { ProcedureError } from './model.js';
-import { ProcedureRuntime, ReadingPreferencesRuntime } from './services.js';
+import { LibraryStateRuntime, ProcedureRuntime, ReadingPreferencesRuntime } from './services.js';
 
 const errorCode = (cause: unknown): string => {
   if (typeof cause === 'object' && cause !== null && '_tag' in cause) {
@@ -43,6 +43,7 @@ export const BibleProcedureHandlers = BibleProcedureGroup.toLayer(
     const writings = yield* WritingsService;
     const runtime = yield* ProcedureRuntime;
     const preferences = yield* ReadingPreferencesRuntime;
+    const library = yield* LibraryStateRuntime;
 
     return {
       'v1.runtime.connect': (input) => runtime.connect(input),
@@ -77,6 +78,11 @@ export const BibleProcedureHandlers = BibleProcedureGroup.toLayer(
           .pipe(Effect.mapError(normalizeFailure('v1.reading.writingsParagraph.get'))),
       'v1.preferences.reading.get': () => preferences.get,
       'v1.preferences.reading.patch': (input) => preferences.patch(input.patch),
+      'v1.library.annotations.get': (input) => library.annotations(input),
+      'v1.library.collections.get': () => library.collections,
+      'v1.library.plans.get': () => library.readingPlans,
+      'v1.library.practice.get': () => library.memoryPractice,
+      'v1.library.mutate': (input) => library.mutate(input.command),
     };
   }),
 );

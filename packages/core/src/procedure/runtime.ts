@@ -1,8 +1,10 @@
 import {
+  changeSetFor,
   type ChangeSet,
   type ClientId,
   type MutationEnvelope,
   type MutationId,
+  type LibraryMutationCommand,
   type SyncStore,
   type SyncTransport,
   type Timestamp,
@@ -26,8 +28,10 @@ import {
   type RuntimeGeneration,
 } from './model.js';
 import {
+  LibraryStateRuntime,
   ProcedureRuntime,
   ReadingPreferencesRuntime,
+  type LibraryStateRuntimeShape,
   type ProcedureRuntimeShape,
   type ReadingPreferencesRuntimeShape,
 } from './services.js';
@@ -35,6 +39,7 @@ import {
 interface LocalProcedureRuntimeShape {
   readonly procedures: ProcedureRuntimeShape;
   readonly preferences: ReadingPreferencesRuntimeShape;
+  readonly library: LibraryStateRuntimeShape;
 }
 
 class LocalProcedureRuntime extends Context.Service<
@@ -154,14 +159,40 @@ const makeRuntime = (options: LocalProcedureRuntimeOptions) =>
         }).pipe(Effect.mapError(procedureFailure('v1.preferences.reading.patch'))),
     });
 
-    return LocalProcedureRuntime.of({ procedures, preferences });
+    const library = LibraryStateRuntime.of({
+      annotations: (input) =>
+        options.store
+          .annotations(input)
+          .pipe(Effect.mapError(procedureFailure('v1.library.annotations.get'))),
+      collections: options.store.collections.pipe(
+        Effect.mapError(procedureFailure('v1.library.collections.get')),
+      ),
+      readingPlans: options.store.readingPlans.pipe(
+        Effect.mapError(procedureFailure('v1.library.plans.get')),
+      ),
+      memoryPractice: options.store.memoryPractice.pipe(
+        Effect.mapError(procedureFailure('v1.library.practice.get')),
+      ),
+      mutate: (command: LibraryMutationCommand) =>
+        engine.mutate(command).pipe(
+          Effect.map((envelope) => ({
+            _tag: 'MutationCommit' as const,
+            value: {},
+            commitId: Schema.decodeSync(CommitId)(envelope.mutationId),
+            changes: changeSetFor(command),
+          })),
+          Effect.mapError(procedureFailure('v1.library.mutate')),
+        ),
+    });
+
+    return LocalProcedureRuntime.of({ procedures, preferences, library });
   });
 
 export const layerLocalProcedureRuntime = (
   options: LocalProcedureRuntimeOptions,
-): Layer.Layer<ProcedureRuntime | ReadingPreferencesRuntime> => {
+): Layer.Layer<ProcedureRuntime | ReadingPreferencesRuntime | LibraryStateRuntime> => {
   const base = Layer.effect(LocalProcedureRuntime, makeRuntime(options));
-  return Layer.merge(
+  return Layer.mergeAll(
     Layer.effect(
       ProcedureRuntime,
       LocalProcedureRuntime.pipe(Effect.map((runtime) => runtime.procedures)),
@@ -169,6 +200,10 @@ export const layerLocalProcedureRuntime = (
     Layer.effect(
       ReadingPreferencesRuntime,
       LocalProcedureRuntime.pipe(Effect.map((runtime) => runtime.preferences)),
+    ),
+    Layer.effect(
+      LibraryStateRuntime,
+      LocalProcedureRuntime.pipe(Effect.map((runtime) => runtime.library)),
     ),
   ).pipe(Layer.provide(base));
 };

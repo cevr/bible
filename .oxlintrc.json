@@ -65,6 +65,7 @@
     {
       "files": [
         "**/packages/core/src/local-first/**",
+        "**/packages/core/src/library-state/**",
         "**/packages/core/src/procedure/**",
         "**/packages/core/src/reading-preferences/**",
         "**/packages/app/src/procedure/**",

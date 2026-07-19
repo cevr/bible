@@ -22,7 +22,7 @@ import {
   RuntimeEventSequence,
   RuntimeGeneration,
 } from './model.js';
-import { ProcedureRuntime, ReadingPreferencesRuntime } from './services.js';
+import { LibraryStateRuntime, ProcedureRuntime, ReadingPreferencesRuntime } from './services.js';
 
 const genesis = BIBLE_BOOKS[0]!;
 const chapter = new Chapter({
@@ -76,6 +76,23 @@ const Dependencies = Layer.mergeAll(
           _tag: 'MutationCommit',
           value: applyReadingPreferencesPatch(DEFAULT_READING_PREFERENCES, patch),
           commitId: Schema.decodeSync(CommitId)('test-commit'),
+          changes: { scopes: [] },
+        }),
+    }),
+  ),
+  Layer.succeed(
+    LibraryStateRuntime,
+    LibraryStateRuntime.of({
+      annotations: () =>
+        Effect.succeed({ bookmarks: [], notes: [], markers: [], crossReferences: [] }),
+      collections: Effect.succeed([]),
+      readingPlans: Effect.succeed([]),
+      memoryPractice: Effect.succeed({ verses: [], history: [] }),
+      mutate: () =>
+        Effect.succeed({
+          _tag: 'MutationCommit',
+          value: {},
+          commitId: Schema.decodeSync(CommitId)('test-library-commit'),
           changes: { scopes: [] },
         }),
     }),

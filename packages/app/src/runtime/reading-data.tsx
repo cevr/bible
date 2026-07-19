@@ -1,5 +1,15 @@
 import type { Chapter, BookNumber, ChapterNumber, SearchWindow } from '@bible/core/bible';
 import type { ReadingPreferences, ReadingPreferencesPatch } from '@bible/core/reading-preferences';
+import {
+  scopeForLibraryCommand,
+  type LibraryCollection,
+  type LibraryStateScope,
+  type LocationAnnotations,
+  type MemoryPractice,
+  type ReaderLocation,
+  type ReadingPlan,
+} from '@bible/core/library-state';
+import type { LibraryMutationCommand } from '@bible/core/local-first';
 import type {
   Page,
   PageNumber,
@@ -8,7 +18,7 @@ import type {
   Publication,
   PublicationId,
 } from '@bible/core/writings';
-import type { MutationCommit } from '@bible/core/procedure';
+import type { MutationCommitValue } from '@bible/core/procedure';
 import type { ParentProps } from 'solid-js';
 import { createContext, untrack, useContext } from 'solid-js';
 
@@ -56,7 +66,24 @@ export interface PatchReadingPreferencesCommand {
   readonly patch: ReadingPreferencesPatch;
 }
 
-type PreferencesMutation = ReturnType<typeof MutationCommit<typeof ReadingPreferences>>['Type'];
+type PreferencesMutation = MutationCommitValue<ReadingPreferences>;
+type LibraryMutation = MutationCommitValue<{}>;
+
+const scopeForMutation = (command: LibraryMutationCommand): LibraryStateScope => {
+  if (command._tag === 'SaveNote') {
+    return {
+      _tag: 'LibraryState',
+      area: 'annotations',
+      location: {
+        source: command.source,
+        resourceId: command.resourceId,
+        location: command.location,
+      },
+    };
+  }
+  if (command._tag === 'DeleteNote') return { _tag: 'LibraryState', area: 'annotations' };
+  return scopeForLibraryCommand(command);
+};
 
 export interface ReadingData {
   readonly bibleChapters: AsyncCache<BibleChapterInput, Chapter>;
@@ -71,6 +98,25 @@ export interface ReadingData {
     PatchReadingPreferencesCommand,
     PreferencesMutation
   >;
+  readonly annotations: SyncedCache<
+    ReaderLocation,
+    LocationAnnotations,
+    LibraryMutationCommand,
+    LibraryMutation
+  >;
+  readonly collections: SyncedCache<
+    {},
+    readonly LibraryCollection[],
+    LibraryMutationCommand,
+    LibraryMutation
+  >;
+  readonly readingPlans: SyncedCache<
+    {},
+    readonly ReadingPlan[],
+    LibraryMutationCommand,
+    LibraryMutation
+  >;
+  readonly memoryPractice: SyncedCache<{}, MemoryPractice, LibraryMutationCommand, LibraryMutation>;
 }
 
 export interface CreateReadingDataInput {
@@ -121,6 +167,49 @@ export const createReadingData = (input: CreateReadingDataInput): ReadingData =>
         input.procedures['v1.preferences.reading.patch']({ patch: command.patch }),
       affects: () => ['reading-preferences'] as const,
       matches: () => true,
+    }),
+    annotations: createSyncedCache({
+      name: 'LocationAnnotations',
+      runtime,
+      lookup: (location) => input.procedures['v1.library.annotations.get'](location),
+      mutate: (command) => input.procedures['v1.library.mutate']({ command }),
+      affects: (command) => [scopeForMutation(command)],
+      matches: (location, scope) => {
+        if (scope.area !== 'annotations') return false;
+        if (scope.location === undefined) return true;
+        return (
+          scope.location.source === location.source &&
+          scope.location.resourceId === location.resourceId &&
+          scope.location.location === location.location
+        );
+      },
+    }),
+    collections: createSyncedCache({
+      name: 'Collections',
+      runtime,
+      emptyInput: {},
+      lookup: () => input.procedures['v1.library.collections.get'](),
+      mutate: (command) => input.procedures['v1.library.mutate']({ command }),
+      affects: (command) => [scopeForMutation(command)],
+      matches: (_query, scope) => scope.area === 'collections',
+    }),
+    readingPlans: createSyncedCache({
+      name: 'ReadingPlans',
+      runtime,
+      emptyInput: {},
+      lookup: () => input.procedures['v1.library.plans.get'](),
+      mutate: (command) => input.procedures['v1.library.mutate']({ command }),
+      affects: (command) => [scopeForMutation(command)],
+      matches: (_query, scope) => scope.area === 'plans',
+    }),
+    memoryPractice: createSyncedCache({
+      name: 'MemoryPractice',
+      runtime,
+      emptyInput: {},
+      lookup: () => input.procedures['v1.library.practice.get'](),
+      mutate: (command) => input.procedures['v1.library.mutate']({ command }),
+      affects: (command) => [scopeForMutation(command)],
+      matches: (_query, scope) => scope.area === 'practice',
     }),
   };
 };

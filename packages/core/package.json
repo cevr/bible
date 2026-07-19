@@ -8,6 +8,7 @@
     "./local-first": "./src/local-first/index.ts",
     "./local-first/bun": "./src/local-first/database-bun.ts",
     "./local-first/migrations/0001_user_state.sql": "./src/local-first/migrations/0001_user_state.sql",
+    "./library-state": "./src/library-state/index.ts",
     "./egw": "./src/egw/index.ts",
     "./egw-db": "./src/egw-db/index.ts",
     "./egw-db/bun": "./src/egw-db/book-database-bun.ts",

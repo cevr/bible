@@ -18,6 +18,11 @@ describe('BibleProcedureGroup', () => {
       'v1.reading.writingsParagraph.get',
       'v1.preferences.reading.get',
       'v1.preferences.reading.patch',
+      'v1.library.annotations.get',
+      'v1.library.collections.get',
+      'v1.library.plans.get',
+      'v1.library.practice.get',
+      'v1.library.mutate',
     ]);
   });
 

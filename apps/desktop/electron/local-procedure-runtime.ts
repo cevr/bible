@@ -4,6 +4,7 @@ import type { EGWParagraphDatabase } from '@bible/core/egw-db';
 import { makeSimulatedTransport } from '@bible/core/local-first';
 import {
   layerLocalProcedureRuntime,
+  type LibraryStateRuntime,
   type LocalProcedureRuntimeOptions,
   type ProcedureRuntime,
   type ReadingPreferencesRuntime,
@@ -23,7 +24,13 @@ export interface DesktopProcedureDependenciesInput {
 
 export const layerDesktopProcedureDependencies = (
   input: DesktopProcedureDependenciesInput,
-): Layer.Layer<BibleService | WritingsService | ProcedureRuntime | ReadingPreferencesRuntime> => {
+): Layer.Layer<
+  | BibleService
+  | WritingsService
+  | ProcedureRuntime
+  | ReadingPreferencesRuntime
+  | LibraryStateRuntime
+> => {
   const userDatabase = makeDesktopUserDatabase(input.userStateDbFile);
   const userDatabaseLifecycle = Layer.effectDiscard(
     Effect.acquireRelease(Effect.succeed(userDatabase), (database) => database.close).pipe(

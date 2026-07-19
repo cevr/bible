@@ -1,4 +1,12 @@
 import type { ReadingPreferences, ReadingPreferencesPatch } from '../reading-preferences/model.js';
+import type {
+  LibraryCollection,
+  LocationAnnotations,
+  MemoryPractice,
+  ReaderLocation,
+  ReadingPlan,
+} from '../library-state/model.js';
+import type { LibraryMutationCommand } from '../local-first/model.js';
 import { Context, type Effect, type Stream } from 'effect';
 
 import type {
@@ -35,3 +43,20 @@ export class ReadingPreferencesRuntime extends Context.Service<
   ReadingPreferencesRuntime,
   ReadingPreferencesRuntimeShape
 >()('@bible/core/procedure/ReadingPreferencesRuntime') {}
+
+export interface LibraryStateRuntimeShape {
+  readonly annotations: (
+    input: ReaderLocation,
+  ) => Effect.Effect<LocationAnnotations, ProcedureError>;
+  readonly collections: Effect.Effect<ReadonlyArray<LibraryCollection>, ProcedureError>;
+  readonly readingPlans: Effect.Effect<ReadonlyArray<ReadingPlan>, ProcedureError>;
+  readonly memoryPractice: Effect.Effect<MemoryPractice, ProcedureError>;
+  readonly mutate: (
+    command: LibraryMutationCommand,
+  ) => Effect.Effect<MutationCommitValue<{}>, ProcedureError>;
+}
+
+export class LibraryStateRuntime extends Context.Service<
+  LibraryStateRuntime,
+  LibraryStateRuntimeShape
+>()('@bible/core/procedure/LibraryStateRuntime') {}

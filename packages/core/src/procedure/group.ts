@@ -3,6 +3,14 @@ import { Rpc, RpcGroup } from 'effect/unstable/rpc';
 
 import { BookNumber, Chapter, ChapterNumber, SearchWindow } from '../bible/model.js';
 import {
+  LibraryCollection,
+  LocationAnnotations,
+  MemoryPractice,
+  ReaderLocation,
+  ReadingPlan,
+} from '../library-state/model.js';
+import { LibraryMutationCommand } from '../local-first/model.js';
+import {
   ReadingPreferences,
   ReadingPreferencesPatch as ReadingPreferencesPatchSchema,
 } from '../reading-preferences/model.js';
@@ -108,6 +116,41 @@ export const PatchReadingPreferencesProcedure = Rpc.make('v1.preferences.reading
   defect: sanitizedDefect,
 });
 
+export const LocationAnnotationsGet = Rpc.make('v1.library.annotations.get', {
+  payload: ReaderLocation.fields,
+  success: LocationAnnotations,
+  error: ProcedureError,
+  defect: sanitizedDefect,
+});
+
+export const CollectionsGet = Rpc.make('v1.library.collections.get', {
+  payload: {},
+  success: Schema.Array(LibraryCollection),
+  error: ProcedureError,
+  defect: sanitizedDefect,
+});
+
+export const ReadingPlansGet = Rpc.make('v1.library.plans.get', {
+  payload: {},
+  success: Schema.Array(ReadingPlan),
+  error: ProcedureError,
+  defect: sanitizedDefect,
+});
+
+export const MemoryPracticeGet = Rpc.make('v1.library.practice.get', {
+  payload: {},
+  success: MemoryPractice,
+  error: ProcedureError,
+  defect: sanitizedDefect,
+});
+
+export const LibraryMutate = Rpc.make('v1.library.mutate', {
+  payload: { command: LibraryMutationCommand },
+  success: MutationCommit(Schema.Struct({})),
+  error: ProcedureError,
+  defect: sanitizedDefect,
+});
+
 export const BibleProcedureGroup = RpcGroup.make(
   RuntimeConnect,
   RuntimeEvents,
@@ -119,6 +162,11 @@ export const BibleProcedureGroup = RpcGroup.make(
   WritingsParagraphGet,
   ReadingPreferencesGet,
   PatchReadingPreferencesProcedure,
+  LocationAnnotationsGet,
+  CollectionsGet,
+  ReadingPlansGet,
+  MemoryPracticeGet,
+  LibraryMutate,
 );
 
 export const expectedRuntimeConnection = {

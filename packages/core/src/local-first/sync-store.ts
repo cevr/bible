@@ -1,5 +1,12 @@
 import { Schema, type Effect } from 'effect';
 
+import type {
+  LibraryCollection,
+  LocationAnnotations,
+  MemoryPractice,
+  ReaderLocation,
+  ReadingPlan,
+} from '../library-state/model.js';
 import type { ReadingPreferences } from '../reading-preferences/model.js';
 
 import type {
@@ -57,5 +64,11 @@ export interface SyncStore {
     patch: RevisionPatch,
   ) => Effect.Effect<ChangeSet, SyncStoreError | StaleRevisionError>;
   readonly note: (id: string) => Effect.Effect<NoteRecord | undefined, SyncStoreError>;
+  readonly annotations: (
+    location: ReaderLocation,
+  ) => Effect.Effect<LocationAnnotations, SyncStoreError>;
+  readonly collections: Effect.Effect<ReadonlyArray<LibraryCollection>, SyncStoreError>;
+  readonly readingPlans: Effect.Effect<ReadonlyArray<ReadingPlan>, SyncStoreError>;
+  readonly memoryPractice: Effect.Effect<MemoryPractice, SyncStoreError>;
   readonly readingPreferences: Effect.Effect<ReadingPreferences, SyncStoreError>;
 }
