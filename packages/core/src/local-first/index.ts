@@ -9,3 +9,4 @@ export * from './sync-store-drizzle.js';
 export * from './sync-store.js';
 export * from './transport.js';
 export * from './backup.js';
+export * from './copy-on-migrate.js';
