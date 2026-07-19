@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-import { ProcedureHost, ProcedureHostLive } from '@bible/app/procedure';
 import { makeBunSyncStore, makeBunUserDatabase } from '@bible/core/local-first/bun';
 import { ClientId, makeSimulatedTransport, MutationId, Timestamp } from '@bible/core/local-first';
 import { CommitId, RuntimeGeneration } from '@bible/core/procedure';
@@ -7,7 +6,8 @@ import { Database } from 'bun:sqlite';
 import { Effect, Fiber, Layer, Schema } from 'effect';
 
 import type { SqliteDatabase } from './sqlite-database.js';
-import { layerWebProcedureTransport } from './procedure-client.js';
+import { startWebProcedureHost } from './procedure-client.js';
+import type { ProcedureWorkerEndpoint } from './procedure-worker-protocol.js';
 import { layerProcedureServer } from './procedure-server.js';
 
 const migrationSql = await Bun.file(
@@ -51,7 +51,6 @@ const makeDatabase = (client: Database): SqliteDatabase => ({
 
 describe('web procedure server', () => {
   test('negotiates the shared host over a transferred browser message port', async () => {
-    const channel = new MessageChannel();
     const bibleClient = new Database(':memory:');
     const writingsClient = new Database(':memory:');
     const userDatabase = makeBunUserDatabase();
@@ -60,41 +59,50 @@ describe('web procedure server', () => {
     let mutationIndex = 0;
     let commitIndex = 0;
 
-    const server = Effect.runFork(
-      Layer.launch(
-        layerProcedureServer({
-          port: channel.port2,
-          bibleDatabase: makeDatabase(bibleClient),
-          writingsDatabase: makeDatabase(writingsClient),
-          runtime: {
-            clientId,
-            store: makeBunSyncStore(userDatabase, clientId),
-            transport: makeSimulatedTransport(),
-            generation: Schema.decodeSync(RuntimeGeneration)('web-procedure-test'),
-            capabilities: ['external-links'],
-            nextMutationId: () =>
-              Schema.decodeSync(MutationId)(`web-mutation-${String(++mutationIndex)}`),
-            nextCommitId: () => Schema.decodeSync(CommitId)(`web-commit-${String(++commitIndex)}`),
-            now: () => Schema.decodeSync(Timestamp)('2026-07-19T00:00:00.000Z'),
-          },
-        }),
-      ),
-    );
-
-    const host = await Effect.runPromise(
-      Effect.scoped(
-        ProcedureHost.pipe(
-          Effect.provide(
-            ProcedureHostLive.pipe(Layer.provide(layerWebProcedureTransport(channel.port1))),
+    let initialized = false;
+    let server: ReturnType<typeof Effect.runFork> | undefined;
+    const worker: ProcedureWorkerEndpoint = {
+      postMessage: (_message, transfer) => {
+        expect(initialized).toBe(true);
+        const port = transfer[0];
+        if (!(port instanceof MessagePort)) throw new TypeError('expected procedure message port');
+        server = Effect.runFork(
+          Layer.launch(
+            layerProcedureServer({
+              port,
+              bibleDatabase: makeDatabase(bibleClient),
+              writingsDatabase: makeDatabase(writingsClient),
+              runtime: {
+                clientId,
+                store: makeBunSyncStore(userDatabase, clientId),
+                transport: makeSimulatedTransport(),
+                generation: Schema.decodeSync(RuntimeGeneration)('web-procedure-test'),
+                capabilities: ['external-links'],
+                nextMutationId: () =>
+                  Schema.decodeSync(MutationId)(`web-mutation-${String(++mutationIndex)}`),
+                nextCommitId: () =>
+                  Schema.decodeSync(CommitId)(`web-commit-${String(++commitIndex)}`),
+                now: () => Schema.decodeSync(Timestamp)('2026-07-19T00:00:00.000Z'),
+              },
+            }),
           ),
-        ),
-      ),
-    );
+        );
+      },
+    };
+
+    const host = await startWebProcedureHost({
+      worker,
+      initialize: () => {
+        initialized = true;
+        return Promise.resolve();
+      },
+    });
 
     expect(String(host.connection.generation)).toBe('web-procedure-test');
     expect(host.connection.capabilities).toEqual(['external-links']);
 
-    await Effect.runPromise(Fiber.interrupt(server));
+    await host.dispose();
+    if (server !== undefined) await Effect.runPromise(Fiber.interrupt(server));
     await Effect.runPromise(userDatabase.close);
     bibleClient.close();
     writingsClient.close();

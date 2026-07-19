@@ -18,6 +18,19 @@ class TestWorker implements DbWorkerPort {
 }
 
 describe('database worker client', () => {
+  test('initializes a shared worker exactly once', async () => {
+    const worker = new TestWorker();
+    const client = createDbClient(worker);
+
+    const first = client.init();
+    const second = client.init();
+
+    expect(second).toBe(first);
+    expect(worker.sent).toEqual([{ type: 'init', id: 1 }]);
+    worker.respond({ type: 'init-complete', id: 1 });
+    expect(await Promise.all([first, second])).toEqual([undefined, undefined]);
+  });
+
   test('correlates concurrent requests of the same operation', async () => {
     const worker = new TestWorker();
     const client = createDbClient(worker);

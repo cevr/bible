@@ -83,6 +83,7 @@ function errorFrom(cause: unknown, message: string): Error {
 
 export function createDbClient(worker: DbWorkerPort): DbClient {
   let nextId = 1;
+  let initialization: Promise<void> | undefined;
   const pending = new Map<number, PendingRequest>();
   const progressCallbacks: ((stage: string, progress: number) => void)[] = [];
   const execCallbacks: (() => void)[] = [];
@@ -133,6 +134,11 @@ export function createDbClient(worker: DbWorkerPort): DbClient {
         rejectRequest(errorFrom(cause, `Failed to send database worker ${payload.type} request`));
       }
     });
+  };
+
+  const initialize = (): Promise<void> => {
+    initialization ??= request({ type: 'init' }, decodeVoid);
+    return initialization;
   };
 
   worker.onerror = (event) => {
@@ -248,7 +254,7 @@ export function createDbClient(worker: DbWorkerPort): DbClient {
   };
 
   return {
-    init: () => request({ type: 'init' }, decodeVoid),
+    init: initialize,
 
     onProgress(cb) {
       progressCallbacks.push(cb);
