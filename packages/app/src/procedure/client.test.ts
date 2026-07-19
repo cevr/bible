@@ -29,6 +29,9 @@ const HandlerLayer = BibleProcedureGroup.toLayer(
     'v1.reading.writingsPage.get': () => Effect.die('unused'),
     'v1.reading.writingsPublication.open': () => Effect.die('unused'),
     'v1.reading.writingsParagraph.get': () => Effect.die('unused'),
+    'v1.reading.writingsLibrary.get': () => Effect.succeed([]),
+    'v1.reading.writingsPublication.download': () => Effect.die('unused'),
+    'v1.reading.writingsLibrary.downloadAll': () => Effect.succeed([]),
     'v1.reading.continuity.get': () =>
       Effect.succeed({ source: 'bible', resourceId: 'KJV', location: '/bible/43/3/16' }),
     'v1.reading.continuity.record': () =>
@@ -65,6 +68,8 @@ describe('ProcedureClient', () => {
           });
           const omitted = yield* client['v1.reading.writingsCatalog.get']();
           const explicit = yield* client['v1.reading.writingsCatalog.get']({});
+          const omittedLibrary = yield* client['v1.reading.writingsLibrary.get']();
+          const explicitLibrary = yield* client['v1.reading.writingsLibrary.get']({});
           const omittedContinuity = yield* client['v1.reading.continuity.get']();
           const explicitContinuity = yield* client['v1.reading.continuity.get']({});
           const recorded = yield* client['v1.reading.continuity.record']({
@@ -75,6 +80,8 @@ describe('ProcedureClient', () => {
             negotiated,
             omitted,
             explicit,
+            omittedLibrary,
+            explicitLibrary,
             omittedContinuity,
             explicitContinuity,
             recorded,
@@ -86,6 +93,7 @@ describe('ProcedureClient', () => {
     expect(result.negotiated).toEqual(connection);
     expect(result.omitted).toEqual([]);
     expect(result.explicit).toEqual([]);
+    expect(result.omittedLibrary).toEqual(result.explicitLibrary);
     expect(result.omittedContinuity).toEqual(result.explicitContinuity);
     expect(result.recorded.changes.scopes).toEqual([{ _tag: 'ReadingContinuity' }]);
   });

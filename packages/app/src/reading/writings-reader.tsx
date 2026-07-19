@@ -7,10 +7,12 @@ import type {
 import { A } from '@solidjs/router';
 import { Errored, For, Loading, Show } from '@solidjs/web';
 import { Option } from 'effect';
+import { createSignal } from 'solid-js';
 
 import { AnnotationTools } from '../library/annotation-tools.js';
 import { useReadingData } from '../runtime/index.js';
-import { ScrollViewport } from '../ui/index.js';
+import { writingsDownloadLabel } from '../runtime/writings-cache.js';
+import { Button, ScrollViewport } from '../ui/index.js';
 import { ParagraphNodes } from './paragraph-nodes.js';
 import { ReaderFailure, ReaderLoading } from './bible-reader.js';
 
@@ -141,28 +143,103 @@ export const WritingsParagraphReader = (props: { readonly reference: ParagraphRe
 
 export const WritingsCatalog = () => {
   const data = useReadingData();
-  const catalog = data.writingsCatalog.get();
+  const library = data.writingsLibrary.get();
+  const [downloading, setDownloading] = createSignal<string>();
+  const [failedTarget, setFailedTarget] = createSignal<string>();
+  const [failure, setFailure] = createSignal<string>();
+
+  const download = (command: Parameters<typeof data.writingsLibrary.mutate>[0], key: string) => {
+    setDownloading(key);
+    setFailedTarget(undefined);
+    setFailure(undefined);
+    void data.writingsLibrary.mutate(command).then(
+      () => setDownloading(undefined),
+      (cause: unknown) => {
+        const message = (cause instanceof Error ? cause.message : String(cause))
+          .replace(/\s+/g, ' ')
+          .trim();
+        console.error(`[writings] download-failed target=${key} cause=${message}`);
+        setFailure(message);
+        setFailedTarget(key);
+        setDownloading(undefined);
+      },
+    );
+  };
   return (
     <article class="bible-library">
       <header class="bible-reader__heading">
         <p class="bible-reader__eyebrow">Library</p>
         <h1>Writings</h1>
-        <p>Read quietly across the complete local collection.</p>
+        <p>Keep the books you read available on this device.</p>
       </header>
       <Errored fallback={(error) => <ReaderFailure error={error()} />}>
         <Loading fallback={<ReaderLoading label="Opening library" />}>
+          <Show when={library().some((publication) => publication.status !== 'success')}>
+            <div class="bible-library__actions">
+              <Button
+                disabled={downloading() !== undefined}
+                onClick={() => download({ _tag: 'DownloadAll' }, 'all')}
+              >
+                Download all
+              </Button>
+            </div>
+          </Show>
           <ul class="bible-library__list">
-            <For each={catalog()}>
+            <For each={library()}>
               {(publication) => (
                 <li>
-                  <A href={`/writings/${String(publication.id)}`}>
-                    <span>{publication.title}</span>
-                    <small>{publication.code}</small>
-                  </A>
+                  <div>
+                    <Show
+                      when={publication.status === 'success'}
+                      fallback={<strong>{publication.title}</strong>}
+                    >
+                      <A href={`/writings/${String(publication.id)}`}>{publication.title}</A>
+                    </Show>
+                    <small>
+                      {publication.code} · {publication.paragraphCount.toLocaleString()} paragraphs
+                    </small>
+                    <Show when={publication.error}>
+                      {(error) => <span role="status">Download failed: {error()}</span>}
+                    </Show>
+                  </div>
+                  <Show when={publication.status !== 'success'}>
+                    <Button
+                      aria-label={writingsDownloadLabel(
+                        publication.status === 'failed' || failedTarget() === publication.code
+                          ? 'Retry'
+                          : 'Download',
+                        publication.title,
+                        publication.code,
+                      )}
+                      disabled={downloading() !== undefined}
+                      onClick={() =>
+                        download(
+                          { _tag: 'DownloadPublication', publicationId: publication.id },
+                          publication.code,
+                        )
+                      }
+                    >
+                      {publication.status === 'failed' || failedTarget() === publication.code
+                        ? 'Retry'
+                        : 'Download'}
+                    </Button>
+                  </Show>
                 </li>
               )}
             </For>
           </ul>
+          <Show when={downloading()}>
+            <p class="bible-form-status" role="status">
+              Downloading…
+            </p>
+          </Show>
+          <Show when={failure()}>
+            {(message) => (
+              <p class="bible-form-status bible-form-status--error" role="alert">
+                {message()}
+              </p>
+            )}
+          </Show>
         </Loading>
       </Errored>
     </article>

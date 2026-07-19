@@ -17,6 +17,8 @@ import type {
   ParagraphId,
   Publication,
   PublicationId,
+  WritingsDownloadResult,
+  WritingsLibraryPublication,
 } from '@bible/core/writings';
 import type { MutationCommitValue } from '@bible/core/procedure';
 import type { TopicDetail, TopicId, TopicListInput, TopicSummary } from '@bible/core/topics';
@@ -33,6 +35,7 @@ import {
   type SyncedCache,
 } from '../cache/index.js';
 import type { ProcedureClient } from '../procedure/index.js';
+import { refreshWritingsCatalogAfter } from './writings-cache.js';
 
 export interface BibleChapterInput {
   readonly book: BookNumber;
@@ -63,6 +66,12 @@ export interface WritingsParagraphInput {
   readonly publicationId: PublicationId;
   readonly paragraphId: ParagraphId;
 }
+
+export type WritingsLibraryCommand =
+  | { readonly _tag: 'DownloadPublication'; readonly publicationId: PublicationId }
+  | { readonly _tag: 'DownloadAll' };
+
+type WritingsLibraryMutation = readonly WritingsDownloadResult[];
 
 export interface PatchReadingPreferencesCommand {
   readonly patch: ReadingPreferencesPatch;
@@ -99,6 +108,12 @@ export interface ReadingData {
   readonly writingsPages: AsyncCache<WritingsPageInput, Page>;
   readonly writingsPublications: AsyncCache<WritingsPublicationInput, Page>;
   readonly writingsParagraphs: AsyncCache<WritingsParagraphInput, Paragraph>;
+  readonly writingsLibrary: SyncedCache<
+    {},
+    readonly WritingsLibraryPublication[],
+    WritingsLibraryCommand,
+    WritingsLibraryMutation
+  >;
   readonly readingPreferences: SyncedCache<
     {},
     ReadingPreferences,
@@ -145,6 +160,34 @@ export interface CreateReadingDataInput {
 
 export const createReadingData = (input: CreateReadingDataInput): ReadingData => {
   const runtime = input.runtime ?? defaultCacheRuntime;
+  const writingsCatalog = createAsyncCache({
+    name: 'WritingsCatalog',
+    runtime,
+    emptyInput: {},
+    lookup: (query: WritingsCatalogInput) =>
+      input.procedures['v1.reading.writingsCatalog.get'](query),
+  });
+  const writingsLibraryBase = createSyncedCache({
+    name: 'WritingsLibrary',
+    runtime,
+    emptyInput: {},
+    lookup: () => input.procedures['v1.reading.writingsLibrary.get'](),
+    mutate: (command: WritingsLibraryCommand) =>
+      command._tag === 'DownloadPublication'
+        ? input.procedures['v1.reading.writingsPublication.download']({
+            publicationId: command.publicationId,
+          }).pipe(Effect.map((result) => [result]))
+        : input.procedures['v1.reading.writingsLibrary.downloadAll'](),
+    affects: () => ['writings-library'] as const,
+    matches: () => true,
+  });
+  const writingsLibrary: ReadingData['writingsLibrary'] = {
+    ...writingsLibraryBase,
+    mutate: (command) =>
+      refreshWritingsCatalogAfter(writingsLibraryBase.mutate(command), () =>
+        writingsCatalog.refresh(),
+      ),
+  };
   return {
     bibleChapters: createAsyncCache({
       name: 'BibleChapter',
@@ -156,12 +199,7 @@ export const createReadingData = (input: CreateReadingDataInput): ReadingData =>
       runtime,
       lookup: (query) => input.procedures['v1.reading.bibleSearch.get'](query),
     }),
-    writingsCatalog: createAsyncCache({
-      name: 'WritingsCatalog',
-      runtime,
-      emptyInput: {},
-      lookup: (query) => input.procedures['v1.reading.writingsCatalog.get'](query),
-    }),
+    writingsCatalog,
     writingsPages: createAsyncCache({
       name: 'WritingsPage',
       runtime,
@@ -177,6 +215,7 @@ export const createReadingData = (input: CreateReadingDataInput): ReadingData =>
       runtime,
       lookup: (query) => input.procedures['v1.reading.writingsParagraph.get'](query),
     }),
+    writingsLibrary,
     readingPreferences: createSyncedCache({
       name: 'ReadingPreferences',
       runtime,

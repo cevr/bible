@@ -432,7 +432,18 @@ a {
 }
 
 .bible-library__list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 4.25rem;
+  padding: 1.05rem 1rem;
   border-bottom: 1px solid var(--bible-rule);
+}
+
+.bible-library__list li > div {
+  display: grid;
+  gap: 0.3rem;
 }
 
 .bible-library__list li:nth-child(odd) {
@@ -440,12 +451,7 @@ a {
 }
 
 .bible-library__list a {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 1rem;
-  min-height: 4.25rem;
-  padding: 1.05rem 1rem;
+  font-family: var(--bible-reader-serif);
   text-decoration: none;
   transition: background-color 140ms ease;
 }
@@ -457,6 +463,12 @@ a {
 .bible-library__list span {
   font-family: var(--bible-reader-serif);
   line-height: 1.25;
+}
+
+.bible-library__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1rem;
 }
 
 .bible-library__list small {
