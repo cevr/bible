@@ -14,6 +14,7 @@ import {
   ReadingPreferences,
   ReadingPreferencesPatch as ReadingPreferencesPatchSchema,
 } from '../reading-preferences/model.js';
+import { TopicDetail, TopicId, TopicSummary } from '../topics/model.js';
 import {
   Page,
   PageNumber,
@@ -151,6 +152,23 @@ export const LibraryMutate = Rpc.make('v1.library.mutate', {
   defect: sanitizedDefect,
 });
 
+export const TopicsList = Rpc.make('v1.topics.list', {
+  payload: {
+    query: Schema.optional(Schema.String),
+    letter: Schema.optional(Schema.String),
+  },
+  success: Schema.Array(TopicSummary),
+  error: ProcedureError,
+  defect: sanitizedDefect,
+});
+
+export const TopicGet = Rpc.make('v1.topics.get', {
+  payload: { id: TopicId },
+  success: TopicDetail,
+  error: ProcedureError,
+  defect: sanitizedDefect,
+});
+
 export const BibleProcedureGroup = RpcGroup.make(
   RuntimeConnect,
   RuntimeEvents,
@@ -167,6 +185,8 @@ export const BibleProcedureGroup = RpcGroup.make(
   ReadingPlansGet,
   MemoryPracticeGet,
   LibraryMutate,
+  TopicsList,
+  TopicGet,
 );
 
 export const expectedRuntimeConnection = {

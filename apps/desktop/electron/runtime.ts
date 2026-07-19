@@ -1,5 +1,5 @@
 import { BibleCorpus, BibleDatabase } from '@bible/core/bible-db';
-import type { BibleService } from '@bible/core/bible/service';
+import { BibleService } from '@bible/core/bible/service';
 import { EGWApiClient, EGWAuth, EGWTokenStore } from '@bible/core/egw';
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
 import userStateMigrationSql from '@bible/core/local-first/migrations/0001_user_state.sql';
@@ -12,6 +12,7 @@ import {
   RuntimeGeneration,
 } from '@bible/core/procedure';
 import type { WritingsService } from '@bible/core/writings/service';
+import { TopicService } from '@bible/core/topics';
 import * as SqliteNode from '@effect/sql-sqlite-node/SqliteClient';
 import { Effect, Layer, ManagedRuntime, Option, Schema } from 'effect';
 import type { Effect as EffectNs } from 'effect';
@@ -52,11 +53,18 @@ const cacheDbLayer = (filename: string): Layer.Layer<EGWParagraphDatabase | Cach
     Layer.orDie,
   );
 
-const bibleDbLayer = (filename: string): Layer.Layer<BibleCorpus | BibleDatabase> =>
-  Layer.merge(BibleCorpus.layer, BibleDatabase.layer).pipe(
-    Layer.provide(SqliteNode.layer({ filename })),
+const bibleDbLayer = (
+  filename: string,
+): Layer.Layer<BibleCorpus | BibleDatabase | BibleService | TopicService> => {
+  const driver = SqliteNode.layer({ filename });
+  const database = Layer.merge(BibleCorpus.layer, BibleDatabase.layer).pipe(
+    Layer.provide(driver),
     Layer.orDie,
   );
+  const bible = BibleService.Live.pipe(Layer.provide(database), Layer.orDie);
+  const topics = TopicService.Live.pipe(Layer.provide(driver), Layer.orDie);
+  return Layer.mergeAll(database, bible, topics);
+};
 
 // Node-fs-backed token store. We don't pull in @effect/platform-node just for
 // this — Electron main already uses node:fs for settings + tokens, so the
@@ -117,7 +125,8 @@ export type MainRuntime = ManagedRuntime.ManagedRuntime<
   | WritingsService
   | ProcedureRuntime
   | ReadingPreferencesRuntime
-  | LibraryStateRuntime,
+  | LibraryStateRuntime
+  | TopicService,
   never
 >;
 
@@ -132,7 +141,7 @@ export const makeRuntime = (
   const clientId = Schema.decodeSync(ClientId)('desktop-local');
   const procedures = layerDesktopProcedureDependencies({
     cacheDatabase: cache,
-    bibleDatabase: bible,
+    bible,
     userStateDbFile,
     migrationSql: userStateMigrationSql,
     runtime: {
@@ -162,5 +171,6 @@ export const runtimeRun = <A, E>(
     | ProcedureRuntime
     | ReadingPreferencesRuntime
     | LibraryStateRuntime
+    | TopicService
   >,
 ): Promise<A> => runtime.runPromise(effect);

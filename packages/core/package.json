@@ -15,6 +15,7 @@
     "./egw-commentary": "./src/egw-commentary/index.ts",
     "./bible-cross-refs": "./src/bible-cross-refs/index.ts",
     "./reading-preferences": "./src/reading-preferences/index.ts",
+    "./topics": "./src/topics/index.ts",
     "./procedure": "./src/procedure/index.ts",
     "./bible": "./src/bible/index.ts",
     "./bible/service": "./src/bible/service.ts",

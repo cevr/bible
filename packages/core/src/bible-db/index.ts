@@ -33,4 +33,5 @@ export type {
   CrossReferenceAsset,
   CrossReferenceSource,
   MarginNotesAsset,
+  TopicalReferenceAsset,
 } from './bible-corpus.js';

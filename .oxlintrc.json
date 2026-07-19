@@ -68,6 +68,7 @@
         "**/packages/core/src/library-state/**",
         "**/packages/core/src/procedure/**",
         "**/packages/core/src/reading-preferences/**",
+        "**/packages/core/src/topics/**",
         "**/packages/app/src/procedure/**",
         "**/apps/web/src/workers/user-state-database.ts",
         "**/apps/web/src/workers/procedure-client.ts",

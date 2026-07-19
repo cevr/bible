@@ -11,6 +11,7 @@ import {
   type CrossReferenceAsset,
   type KjvAssetFile,
   type MarginNotesAsset,
+  type TopicalReferenceAsset,
   type StrongsLexiconAsset,
   type StrongsVerseAsset,
 } from '../bible-db/index.js';
@@ -85,6 +86,10 @@ export async function syncBible(
     ? (loadJson(paths.assetsDirectory, 'cross-refs-tske.json') as CrossReferenceAsset)
     : null;
   const marginNotes = loadJson(paths.assetsDirectory, 'margin-notes.json') as MarginNotesAsset;
+  const topics = loadJson(
+    paths.assetsDirectory,
+    'naves-topical-bible.json',
+  ) as TopicalReferenceAsset;
 
   console.log(`Creating database at ${paths.database}...`);
   try {
@@ -115,10 +120,20 @@ export async function syncBible(
         console.log('Importing KJV margin notes...');
         const marginResult = yield* corpus.importMarginNotes(marginNotes);
 
+        console.log("Importing Nave's topical index...");
+        const topicResult = yield* corpus.importTopics(topics);
+
         console.log('Optimizing database...');
         yield* corpus.finalizeImport(new Date().toISOString());
 
-        return { kjvResult, lexiconResult, openBibleResult, tskeResult, marginResult };
+        return {
+          kjvResult,
+          lexiconResult,
+          openBibleResult,
+          tskeResult,
+          marginResult,
+          topicResult,
+        };
       }).pipe(Effect.provide(corpusLayer(buildingDatabase))),
     );
 
@@ -131,6 +146,8 @@ export async function syncBible(
     console.log(`  OpenBible references: ${result.openBibleResult.imported}`);
     console.log(`  TSKe references: ${result.tskeResult?.imported ?? 0}`);
     console.log(`  Margin notes: ${result.marginResult.imported}`);
+    console.log(`  Topics: ${result.topicResult.topics}`);
+    console.log(`  Topic references: ${result.topicResult.references}`);
   } catch (error) {
     removeDatabaseFiles(buildingDatabase);
     throw error;

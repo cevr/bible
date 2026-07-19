@@ -2,6 +2,7 @@ import { Reference as BibleReference } from '../bible/index.js';
 import { BibleService } from '../bible/service.js';
 import { Reference as WritingsReference } from '../writings/index.js';
 import { WritingsService } from '../writings/service.js';
+import { TopicService } from '../topics/service.js';
 import { Effect } from 'effect';
 
 import { BibleProcedureGroup } from './group.js';
@@ -44,6 +45,7 @@ export const BibleProcedureHandlers = BibleProcedureGroup.toLayer(
     const runtime = yield* ProcedureRuntime;
     const preferences = yield* ReadingPreferencesRuntime;
     const library = yield* LibraryStateRuntime;
+    const topics = yield* TopicService;
 
     return {
       'v1.runtime.connect': (input) => runtime.connect(input),
@@ -83,6 +85,10 @@ export const BibleProcedureHandlers = BibleProcedureGroup.toLayer(
       'v1.library.plans.get': () => library.readingPlans,
       'v1.library.practice.get': () => library.memoryPractice,
       'v1.library.mutate': (input) => library.mutate(input.command),
+      'v1.topics.list': (input) =>
+        topics.list(input).pipe(Effect.mapError(normalizeFailure('v1.topics.list'))),
+      'v1.topics.get': (input) =>
+        topics.topic(input.id).pipe(Effect.mapError(normalizeFailure('v1.topics.get'))),
     };
   }),
 );

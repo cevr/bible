@@ -78,11 +78,34 @@ export const BIBLE_SCHEMA_STATEMENTS = [
     note_text TEXT NOT NULL,
     PRIMARY KEY (book, chapter, verse, note_index)
   )`,
+  `CREATE TABLE IF NOT EXISTS topics (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    alternative_names TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS topic_sections (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    topic_id TEXT NOT NULL REFERENCES topics(id) ON DELETE CASCADE,
+    label TEXT NOT NULL,
+    position INTEGER NOT NULL,
+    UNIQUE(topic_id, position)
+  )`,
+  `CREATE TABLE IF NOT EXISTS topic_references (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    section_id INTEGER NOT NULL REFERENCES topic_sections(id) ON DELETE CASCADE,
+    raw TEXT NOT NULL,
+    osis TEXT NOT NULL,
+    position INTEGER NOT NULL,
+    UNIQUE(section_id, position)
+  )`,
   `CREATE INDEX IF NOT EXISTS idx_verses_book_chapter ON verses(version_code, book, chapter)`,
   `CREATE INDEX IF NOT EXISTS idx_cross_refs_source ON cross_refs(book, chapter, verse)`,
   `CREATE INDEX IF NOT EXISTS idx_strongs_verses_number ON strongs_verses(strongs_number)`,
   `CREATE INDEX IF NOT EXISTS idx_verse_words_verse ON verse_words(book, chapter, verse)`,
   `CREATE INDEX IF NOT EXISTS idx_margin_notes_verse ON margin_notes(book, chapter, verse)`,
+  `CREATE INDEX IF NOT EXISTS idx_topics_name ON topics(name)`,
+  `CREATE INDEX IF NOT EXISTS idx_topic_sections_topic ON topic_sections(topic_id, position)`,
+  `CREATE INDEX IF NOT EXISTS idx_topic_references_section ON topic_references(section_id, position)`,
   `CREATE VIRTUAL TABLE IF NOT EXISTS verses_fts USING fts5(
     text, book UNINDEXED, chapter UNINDEXED, verse UNINDEXED, version_code UNINDEXED,
     content=verses, content_rowid=rowid, tokenize='unicode61 remove_diacritics 1'

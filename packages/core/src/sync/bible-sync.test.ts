@@ -55,6 +55,27 @@ describe('Bible sync', () => {
     writeAsset('margin-notes.json', {
       '1.1.1': [{ type: 'hebrew', phrase: 'beginning', text: 'First in order' }],
     });
+    writeAsset('naves-topical-bible.json', {
+      meta: {
+        id: 'test-topics',
+        title: 'Test topics',
+        license: 'public-domain',
+        provenance: { source_url: 'https://example.test/topics', source_hash: 'test-hash' },
+      },
+      data: [
+        {
+          entry_id: 'test-topics.creation',
+          topic: 'CREATION',
+          alt_topics: [],
+          subtopics: [
+            {
+              label: 'General references',
+              references: [{ raw: 'Gen 1:1', osis: ['Gen.1.1'] }],
+            },
+          ],
+        },
+      ],
+    });
 
     await syncBible(true, { assetsDirectory, database, runtimeDatabase });
 

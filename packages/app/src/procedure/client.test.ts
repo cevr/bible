@@ -33,6 +33,8 @@ const HandlerLayer = BibleProcedureGroup.toLayer(
     'v1.library.plans.get': () => Effect.succeed([]),
     'v1.library.practice.get': () => Effect.die('unused'),
     'v1.library.mutate': () => Effect.die('unused'),
+    'v1.topics.list': () => Effect.succeed([]),
+    'v1.topics.get': () => Effect.die('unused'),
     'v1.preferences.reading.get': () => Effect.die('unused'),
     'v1.preferences.reading.patch': () => Effect.die('unused'),
   }),

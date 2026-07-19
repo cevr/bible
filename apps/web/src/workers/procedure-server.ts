@@ -9,6 +9,7 @@ import {
   type LocalProcedureRuntimeOptions,
 } from '@bible/core/procedure';
 import { WritingsService } from '@bible/core/writings/service';
+import { TopicService } from '@bible/core/topics';
 import { Layer } from 'effect';
 import * as RpcServer from 'effect/unstable/rpc/RpcServer';
 
@@ -31,7 +32,13 @@ export const layerProcedureServer = (input: ProcedureServerInput) => {
     Layer.provide(EGWParagraphDatabase.layerCore),
     Layer.provide(layerWorkerSqlClient(input.writingsDatabase)),
   );
-  const dependencies = Layer.mergeAll(bible, writings, layerLocalProcedureRuntime(input.runtime));
+  const topics = TopicService.Live.pipe(Layer.provide(layerWorkerSqlClient(input.bibleDatabase)));
+  const dependencies = Layer.mergeAll(
+    bible,
+    writings,
+    topics,
+    layerLocalProcedureRuntime(input.runtime),
+  );
 
   const handlers = BibleProcedureHandlers.pipe(Layer.provide(dependencies));
 

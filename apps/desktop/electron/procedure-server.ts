@@ -7,6 +7,7 @@ import {
 } from '@bible/core/procedure';
 import type { BibleService } from '@bible/core/bible/service';
 import type { WritingsService } from '@bible/core/writings/service';
+import type { TopicService } from '@bible/core/topics';
 import { Effect, Layer, Option, Queue } from 'effect';
 import type { FromClientEncoded, FromServerEncoded } from 'effect/unstable/rpc/RpcMessage';
 import * as RpcServer from 'effect/unstable/rpc/RpcServer';
@@ -75,6 +76,7 @@ export const layerDesktopProcedureServer = (
   | ProcedureRuntime
   | ReadingPreferencesRuntime
   | LibraryStateRuntime
+  | TopicService
 > =>
   RpcServer.layer(BibleProcedureGroup).pipe(
     Layer.provide(BibleProcedureHandlers),

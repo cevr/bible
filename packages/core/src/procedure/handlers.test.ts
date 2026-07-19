@@ -8,6 +8,8 @@ import {
   applyReadingPreferencesPatch,
 } from '../reading-preferences/model.js';
 import { WritingsService } from '../writings/service.js';
+import { TopicDetail, TopicId, TopicReference, TopicSection } from '../topics/model.js';
+import { TopicService } from '../topics/service.js';
 import { Effect, Layer, Option, Schema, Stream } from 'effect';
 import type { Rpc, RpcGroup } from 'effect/unstable/rpc';
 import { RpcTest } from 'effect/unstable/rpc';
@@ -38,6 +40,18 @@ const chapter = new Chapter({
   next: Option.some(BibleReference.chapter(1, 2)),
 });
 
+const resurrectionTopic = new TopicDetail({
+  id: Schema.decodeSync(TopicId)('naves-topical-bible.resurrection'),
+  name: 'RESURRECTION',
+  alternativeNames: [],
+  sections: [
+    new TopicSection({
+      label: 'General references',
+      references: [new TopicReference({ raw: 'John 11:25', osis: ['John.11.25'] })],
+    }),
+  ],
+});
+
 const Dependencies = Layer.mergeAll(
   BibleService.Test({
     books: [genesis],
@@ -52,6 +66,7 @@ const Dependencies = Layer.mergeAll(
   WritingsService.Live.pipe(
     Layer.provide(EGWParagraphDatabase.Test({ books: [], paragraphs: [] })),
   ),
+  TopicService.Test([resurrectionTopic]),
   Layer.succeed(
     ProcedureRuntime,
     ProcedureRuntime.of({
@@ -121,8 +136,10 @@ describe('BibleProcedureHandlers', () => {
             limit: 20,
           });
           const catalog = yield* client['v1.reading.writingsCatalog.get']({});
+          const topics = yield* client['v1.topics.list']({ query: 'resurrection' });
+          const topic = yield* client['v1.topics.get']({ id: resurrectionTopic.id });
           const preferences = yield* client['v1.preferences.reading.get']({});
-          return { foundChapter, search, catalog, preferences };
+          return { foundChapter, search, catalog, topics, topic, preferences };
         }),
       ),
     );
@@ -131,6 +148,14 @@ describe('BibleProcedureHandlers', () => {
     expect(result.search.total).toBe(1);
     expect(result.search.hits[0]?.verse.text).toStartWith('In the beginning');
     expect(result.catalog).toEqual([]);
+    expect(result.topics).toEqual([
+      {
+        id: resurrectionTopic.id,
+        name: resurrectionTopic.name,
+        alternativeNames: [],
+      },
+    ]);
+    expect(result.topic.sections[0]?.references[0]?.osis).toEqual(['John.11.25']);
     expect(result.preferences).toEqual(DEFAULT_READING_PREFERENCES);
   });
 

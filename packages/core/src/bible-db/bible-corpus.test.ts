@@ -5,18 +5,22 @@ import { join } from 'node:path';
 import * as SqliteBun from '@effect/sql-sqlite-bun/SqliteClient';
 import { afterAll, describe, expect, test } from 'bun:test';
 import { Database } from 'bun:sqlite';
-import { Effect, Layer, Option } from 'effect';
+import { Effect, Layer, Option, Schema } from 'effect';
 import * as SqlClient from 'effect/unstable/sql/SqlClient';
 
 import { BibleCorpus } from './bible-corpus.js';
 import { BibleDatabase } from './bible-database.js';
+import { TopicId } from '../topics/model.js';
+import { TopicService } from '../topics/service.js';
 
 const files: string[] = [];
 
-const run = <A, E>(effect: Effect.Effect<A, E, BibleCorpus | BibleDatabase>): Promise<A> => {
+const run = <A, E>(
+  effect: Effect.Effect<A, E, BibleCorpus | BibleDatabase | TopicService>,
+): Promise<A> => {
   const filename = join(tmpdir(), `bible-corpus-${crypto.randomUUID()}.sqlite`);
   files.push(filename);
-  const layer = Layer.merge(BibleCorpus.layer, BibleDatabase.layer).pipe(
+  const layer = Layer.mergeAll(BibleCorpus.layer, BibleDatabase.layer, TopicService.Live).pipe(
     Layer.provide(SqliteBun.layer({ filename })),
   );
   return Effect.runPromise(Effect.scoped(effect.pipe(Effect.provide(layer))));
@@ -88,6 +92,30 @@ describe('BibleCorpus + BibleDatabase', () => {
         yield* corpus.importMarginNotes({
           '1.1.1': [{ type: 'hebrew', phrase: 'beginning', text: 'First in order' }],
         });
+        const topicImport = yield* corpus.importTopics({
+          meta: {
+            id: 'naves-topical-bible',
+            title: "Nave's Topical Bible",
+            license: 'public-domain',
+            provenance: {
+              source_url: 'https://example.test/naves',
+              source_hash: `sha256:${'a'.repeat(64)}`,
+            },
+          },
+          data: [
+            {
+              entry_id: 'naves-topical-bible.creation',
+              topic: 'CREATION',
+              alt_topics: ['Beginning'],
+              subtopics: [
+                {
+                  label: 'The beginning',
+                  references: [{ raw: 'Ge 1:1', osis: ['Gen.1.1'] }],
+                },
+              ],
+            },
+          ],
+        });
         yield* corpus.finalizeImport('2026-07-13T00:00:00.000Z');
 
         const chapter = yield* database.getChapter(1, 1);
@@ -133,6 +161,14 @@ describe('BibleCorpus + BibleDatabase', () => {
         ]);
         expect(Array.from(yield* database.versesWithNotes(1, 1))).toEqual([1]);
         expect((yield* database.chapterMarginNotes(1, 1)).get(1)).toEqual(notes);
+
+        const topics = yield* TopicService;
+        expect((yield* topics.list({ query: 'creation' }))[0]?.name).toBe('CREATION');
+        const topic = yield* topics.topic(
+          Schema.decodeUnknownSync(TopicId)('naves-topical-bible.creation'),
+        );
+        expect(topic.sections[0]?.references[0]?.osis).toEqual(['Gen.1.1']);
+        expect(topicImport).toEqual({ topics: 1, sections: 1, references: 1 });
       }),
     ));
 

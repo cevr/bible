@@ -2,7 +2,7 @@ import { A, Navigate, Route, useLocation } from '@solidjs/router';
 import { Show } from '@solidjs/web';
 import { createMemo } from 'solid-js';
 
-import { Plans, Practice, Settings } from '../library/index.js';
+import { Plans, Practice, Settings, Topics } from '../library/index.js';
 import {
   BibleReader,
   BibleSearch,
@@ -139,6 +139,19 @@ const PracticeRoute = () => {
   );
 };
 
+const TopicsRoute = () => {
+  const location = useLocation();
+  const route = createMemo(() => {
+    const decoded = decodeRoute(location.pathname);
+    return decoded?._tag === 'topics' ? decoded : undefined;
+  });
+  return (
+    <Show when={route()} fallback={<NotFoundContent requestedPath={location.pathname} />}>
+      {(current) => <Topics topicId={current().topicId} />}
+    </Show>
+  );
+};
+
 export const SharedRoutes = () => (
   <>
     <Route path="/" component={() => <Navigate href="/bible/1/1" />} />
@@ -148,6 +161,7 @@ export const SharedRoutes = () => (
     <Route path="/writings/:publicationId/page/:page" component={WritingsPageRoute} />
     <Route path="/writings/:publicationId/p/:paragraphId" component={ParagraphRoute} />
     <Route path="/search" component={SearchRoute} />
+    <Route path="/topics/:topicId?" component={TopicsRoute} />
     <Route path="/settings/:section?" component={SettingsRoute} />
     <Route path="/plans/:planId?" component={PlansRoute} />
     <Route path="/practice/:memoryVerseId?" component={PracticeRoute} />

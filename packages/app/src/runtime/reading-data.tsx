@@ -19,6 +19,7 @@ import type {
   PublicationId,
 } from '@bible/core/writings';
 import type { MutationCommitValue } from '@bible/core/procedure';
+import type { TopicDetail, TopicId, TopicListInput, TopicSummary } from '@bible/core/topics';
 import type { ParentProps } from 'solid-js';
 import { createContext, untrack, useContext } from 'solid-js';
 
@@ -117,6 +118,8 @@ export interface ReadingData {
     LibraryMutation
   >;
   readonly memoryPractice: SyncedCache<{}, MemoryPractice, LibraryMutationCommand, LibraryMutation>;
+  readonly topics: AsyncCache<TopicListInput, readonly TopicSummary[]>;
+  readonly topicDetails: AsyncCache<{ readonly id: TopicId }, TopicDetail>;
 }
 
 export interface CreateReadingDataInput {
@@ -210,6 +213,17 @@ export const createReadingData = (input: CreateReadingDataInput): ReadingData =>
       mutate: (command) => input.procedures['v1.library.mutate']({ command }),
       affects: (command) => [scopeForMutation(command)],
       matches: (_query, scope) => scope.area === 'practice',
+    }),
+    topics: createAsyncCache({
+      name: 'Topics',
+      runtime,
+      emptyInput: {},
+      lookup: (query) => input.procedures['v1.topics.list'](query),
+    }),
+    topicDetails: createAsyncCache({
+      name: 'TopicDetail',
+      runtime,
+      lookup: (query) => input.procedures['v1.topics.get'](query),
     }),
   };
 };

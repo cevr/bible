@@ -63,10 +63,35 @@ export interface MarginNotesAsset {
   }[];
 }
 
+export interface TopicalReferenceAsset {
+  readonly meta: {
+    readonly id: string;
+    readonly title: string;
+    readonly license: string;
+    readonly provenance: {
+      readonly source_url: string;
+      readonly source_hash: string;
+    };
+  };
+  readonly data: readonly {
+    readonly entry_id: string;
+    readonly topic: string;
+    readonly alt_topics?: readonly string[];
+    readonly subtopics: readonly {
+      readonly label: string;
+      readonly references: readonly {
+        readonly raw: string;
+        readonly osis: readonly string[];
+      }[];
+    }[];
+  }[];
+}
+
 export interface BibleCorpusStatus {
   readonly kjv: boolean;
   readonly crossReferences: boolean;
   readonly marginNotes: boolean;
+  readonly topics: boolean;
 }
 
 export interface BibleCorpusService {
@@ -85,6 +110,12 @@ export interface BibleCorpusService {
   readonly importMarginNotes: (
     asset: MarginNotesAsset,
   ) => Effect.Effect<{ readonly imported: number; readonly skipped: number }, SqlError>;
+  readonly importTopics: (
+    asset: TopicalReferenceAsset,
+  ) => Effect.Effect<
+    { readonly topics: number; readonly sections: number; readonly references: number },
+    SqlError
+  >;
   readonly finalizeImport: (createdAt: string) => Effect.Effect<void, SqlError>;
   readonly resetKjv: () => Effect.Effect<void, SqlError>;
 }
@@ -125,11 +156,13 @@ export class BibleCorpus extends Context.Service<BibleCorpus, BibleCorpusService
             SELECT COUNT(*) AS count FROM cross_refs WHERE source = 'tske'
           `,
           notes: sql<{ readonly count: number }>`SELECT COUNT(*) AS count FROM margin_notes`,
+          topics: sql<{ readonly count: number }>`SELECT COUNT(*) AS count FROM topics`,
         }).pipe(
-          Effect.map(({ verses, lexicon, openbible, tske, notes }) => ({
+          Effect.map(({ verses, lexicon, openbible, tske, notes, topics }) => ({
             kjv: (verses[0]?.count ?? 0) >= 31_102 && (lexicon[0]?.count ?? 0) > 0,
             crossReferences: (openbible[0]?.count ?? 0) > 0 && (tske[0]?.count ?? 0) > 0,
             marginNotes: (notes[0]?.count ?? 0) > 0,
+            topics: (topics[0]?.count ?? 0) > 0,
           })),
         ),
       );
@@ -322,6 +355,66 @@ export class BibleCorpus extends Context.Service<BibleCorpus, BibleCorpusService
           ),
       );
 
+      const importTopics = Effect.fn('BibleCorpus.importTopics')((asset: TopicalReferenceAsset) =>
+        sql.withTransaction(
+          Effect.gen(function* () {
+            yield* sql`DELETE FROM topic_references`;
+            yield* sql`DELETE FROM topic_sections`;
+            yield* sql`DELETE FROM topics`;
+            let topicCount = 0;
+            let sectionCount = 0;
+            let referenceCount = 0;
+            for (const topic of asset.data) {
+              const alternativeNames = Schema.encodeSync(
+                Schema.fromJsonString(Schema.Array(Schema.String)),
+              )(topic.alt_topics ?? []);
+              yield* sql`
+                  INSERT INTO topics (id, name, alternative_names)
+                  VALUES (${topic.entry_id}, ${topic.topic}, ${alternativeNames})
+                `;
+              topicCount += 1;
+              let sectionPosition = 0;
+              for (const section of topic.subtopics) {
+                const inserted = yield* sql<{ readonly id: number }>`
+                    INSERT INTO topic_sections (topic_id, label, position)
+                    VALUES (${topic.entry_id}, ${section.label}, ${sectionPosition})
+                    RETURNING id
+                  `;
+                const sectionId = inserted[0]?.id;
+                if (sectionId === undefined) continue;
+                sectionCount += 1;
+                let referencePosition = 0;
+                for (const reference of section.references) {
+                  const osis = Schema.encodeSync(
+                    Schema.fromJsonString(Schema.Array(Schema.String)),
+                  )(reference.osis);
+                  yield* sql`
+                      INSERT INTO topic_references (section_id, raw, osis, position)
+                      VALUES (${sectionId}, ${reference.raw}, ${osis}, ${referencePosition})
+                    `;
+                  referencePosition += 1;
+                  referenceCount += 1;
+                }
+                sectionPosition += 1;
+              }
+            }
+            yield* sql`
+                INSERT INTO meta (key, value) VALUES ('topics_source', ${asset.meta.id})
+                ON CONFLICT(key) DO UPDATE SET value = excluded.value
+              `;
+            yield* sql`
+                INSERT INTO meta (key, value) VALUES ('topics_source_hash', ${asset.meta.provenance.source_hash})
+                ON CONFLICT(key) DO UPDATE SET value = excluded.value
+              `;
+            return {
+              topics: topicCount,
+              sections: sectionCount,
+              references: referenceCount,
+            };
+          }),
+        ),
+      );
+
       const finalizeImport = Effect.fn('BibleCorpus.finalizeImport')((createdAt: string) =>
         Effect.gen(function* () {
           yield* sql`
@@ -358,6 +451,7 @@ export class BibleCorpus extends Context.Service<BibleCorpus, BibleCorpusService
         importStrongsLexicon,
         importCrossReferences,
         importMarginNotes,
+        importTopics,
         finalizeImport,
         resetKjv,
       });

@@ -23,6 +23,8 @@ describe('BibleProcedureGroup', () => {
       'v1.library.plans.get',
       'v1.library.practice.get',
       'v1.library.mutate',
+      'v1.topics.list',
+      'v1.topics.get',
     ]);
   });
 

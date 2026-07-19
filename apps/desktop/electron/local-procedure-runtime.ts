@@ -1,5 +1,4 @@
-import type { BibleDatabase } from '@bible/core/bible-db';
-import { BibleService } from '@bible/core/bible/service';
+import type { BibleService } from '@bible/core/bible/service';
 import type { EGWParagraphDatabase } from '@bible/core/egw-db';
 import { makeSimulatedTransport } from '@bible/core/local-first';
 import {
@@ -10,13 +9,14 @@ import {
   type ReadingPreferencesRuntime,
 } from '@bible/core/procedure';
 import { WritingsService } from '@bible/core/writings/service';
+import type { TopicService } from '@bible/core/topics';
 import { Effect, Layer } from 'effect';
 
 import { makeDesktopSyncStore, makeDesktopUserDatabase } from './user-state-database.js';
 
 export interface DesktopProcedureDependenciesInput {
   readonly cacheDatabase: Layer.Layer<EGWParagraphDatabase>;
-  readonly bibleDatabase: Layer.Layer<BibleDatabase>;
+  readonly bible: Layer.Layer<BibleService | TopicService>;
   readonly userStateDbFile: string;
   readonly migrationSql: string;
   readonly runtime: Omit<LocalProcedureRuntimeOptions, 'store' | 'transport'>;
@@ -30,6 +30,7 @@ export const layerDesktopProcedureDependencies = (
   | ProcedureRuntime
   | ReadingPreferencesRuntime
   | LibraryStateRuntime
+  | TopicService
 > => {
   const userDatabase = makeDesktopUserDatabase(input.userStateDbFile);
   const userDatabaseLifecycle = Layer.effectDiscard(
@@ -42,7 +43,8 @@ export const layerDesktopProcedureDependencies = (
     store: makeDesktopSyncStore(userDatabase, input.runtime.clientId),
     transport: makeSimulatedTransport(),
   });
-  const bible = BibleService.Live.pipe(Layer.provide(input.bibleDatabase));
   const writings = WritingsService.Live.pipe(Layer.provide(input.cacheDatabase));
-  return Layer.mergeAll(bible, writings, localRuntime, userDatabaseLifecycle).pipe(Layer.orDie);
+  return Layer.mergeAll(input.bible, writings, localRuntime, userDatabaseLifecycle).pipe(
+    Layer.orDie,
+  );
 };

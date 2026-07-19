@@ -758,6 +758,73 @@ a {
   font-size: 0.72rem;
 }
 
+.bible-topic-letters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin: 1.25rem 0 0.75rem;
+}
+
+.bible-topic-letters .bible-button {
+  min-width: 2rem;
+  padding-inline: 0.45rem;
+}
+
+.bible-topic-letters .bible-button[aria-pressed='true'] {
+  border-color: var(--bible-accent);
+  color: var(--bible-accent);
+  background: var(--bible-accent-soft);
+}
+
+.bible-topic-detail {
+  display: grid;
+  gap: 1.75rem;
+  margin-bottom: 4rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--bible-rule);
+}
+
+.bible-topic-detail > .bible-button {
+  justify-self: start;
+}
+
+.bible-topic-detail h2,
+.bible-topic-detail h3 {
+  margin: 0;
+  font-family: var(--bible-reader-serif);
+  font-weight: 450;
+  letter-spacing: -0.02em;
+}
+
+.bible-topic-detail h2 {
+  font-size: clamp(1.8rem, 5vw, 3rem);
+}
+
+.bible-topic-detail h3 {
+  margin-bottom: 0.75rem;
+  font-size: 1.15rem;
+}
+
+.bible-topic-detail ul {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bible-topic-detail li {
+  color: var(--bible-muted);
+  font-family: var(--bible-reader-serif);
+  line-height: 1.55;
+}
+
+.bible-topic-detail a {
+  color: var(--bible-accent);
+  text-decoration-thickness: 0.06em;
+  text-underline-offset: 0.18em;
+}
+
 .bible-library-form form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
