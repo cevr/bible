@@ -15,7 +15,7 @@ export const layerWebProcedureHost = (worker: ProcedureWorkerEndpoint) =>
 export class WebProcedureHostStartError extends Schema.TaggedErrorClass<WebProcedureHostStartError>()(
   'WebProcedureHostStartError',
   {
-    stage: Schema.Literals(['initialize', 'connect']),
+    stage: Schema.Literal('connect'),
     cause: Schema.Unknown,
   },
 ) {}
@@ -24,21 +24,12 @@ export interface ActiveWebProcedureHost extends ProcedureHostShape {
   readonly dispose: () => Promise<void>;
 }
 
-export interface StartWebProcedureHostInput {
-  readonly worker: ProcedureWorkerEndpoint;
-  readonly initialize: () => Promise<void>;
-}
-
 /** Owns the renderer-side Effect runtime for exactly as long as its Solid root. */
 export const startWebProcedureHost = (
-  input: StartWebProcedureHostInput,
+  worker: ProcedureWorkerEndpoint,
 ): Promise<ActiveWebProcedureHost> => {
   const start = Effect.gen(function* () {
-    yield* Effect.tryPromise({
-      try: input.initialize,
-      catch: (cause) => new WebProcedureHostStartError({ stage: 'initialize', cause }),
-    });
-    const runtime = ManagedRuntime.make(layerWebProcedureHost(input.worker));
+    const runtime = ManagedRuntime.make(layerWebProcedureHost(worker));
     const host = yield* Effect.tryPromise({
       try: () => runtime.runPromise(ProcedureHost),
       catch: (cause) => new WebProcedureHostStartError({ stage: 'connect', cause }),

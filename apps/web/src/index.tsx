@@ -4,7 +4,6 @@ import { render, Show } from '@solidjs/web';
 import { createSignal, onSettled } from 'solid-js';
 
 import { getDatabaseWorker } from './workers/database-worker.js';
-import { getDbClient } from './workers/db-client.js';
 import { startWebProcedureHost, type ActiveWebProcedureHost } from './workers/procedure-client.js';
 import '@bible/app/styles.css';
 
@@ -20,10 +19,7 @@ const WebApplication = () => {
   onSettled(() => {
     let disposed = false;
     let activeHost: ActiveWebProcedureHost | undefined;
-    const starting = startWebProcedureHost({
-      worker: getDatabaseWorker(),
-      initialize: () => getDbClient().init(),
-    });
+    const starting = startWebProcedureHost(getDatabaseWorker());
 
     void starting.then(
       (started) => {

@@ -59,11 +59,9 @@ describe('web procedure server', () => {
     let mutationIndex = 0;
     let commitIndex = 0;
 
-    let initialized = false;
     let server: ReturnType<typeof Effect.runFork> | undefined;
     const worker: ProcedureWorkerEndpoint = {
       postMessage: (_message, transfer) => {
-        expect(initialized).toBe(true);
         const port = transfer[0];
         if (!(port instanceof MessagePort)) throw new TypeError('expected procedure message port');
         server = Effect.runFork(
@@ -90,13 +88,7 @@ describe('web procedure server', () => {
       },
     };
 
-    const host = await startWebProcedureHost({
-      worker,
-      initialize: () => {
-        initialized = true;
-        return Promise.resolve();
-      },
-    });
+    const host = await startWebProcedureHost(worker);
 
     expect(String(host.connection.generation)).toBe('web-procedure-test');
     expect(host.connection.capabilities).toEqual(['external-links']);

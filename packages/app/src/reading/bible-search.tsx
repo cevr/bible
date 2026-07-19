@@ -3,7 +3,7 @@ import type { AppRoute } from '../route/index.js';
 import { encodeRoute } from '../route/index.js';
 import { A, useNavigate } from '@solidjs/router';
 import { Errored, For, Loading, Show } from '@solidjs/web';
-import { createMemo, createSignal } from 'solid-js';
+import { createEffect, createMemo, createSignal } from 'solid-js';
 
 import { useReadingData } from '../runtime/index.js';
 import { Button, Input } from '../ui/index.js';
@@ -29,7 +29,13 @@ const searchRoute = (query: string, books: readonly number[]): SearchRoute => ({
 export const BibleSearch = (props: BibleSearchProps) => {
   const navigate = useNavigate();
   const data = useReadingData();
-  const [draft, setDraft] = createSignal(props.route.query);
+  const [draft, setDraft] = createSignal('');
+  createEffect(
+    () => props.route.query,
+    (routeQuery) => {
+      setDraft(routeQuery);
+    },
+  );
   const books = createMemo(() => props.route.books.map((book) => bookNumber(book)));
   const query = createMemo(() => ({
     query: props.route.query,

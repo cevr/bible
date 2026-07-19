@@ -30,8 +30,7 @@ const readerTypeface = (typeface: ReaderTypeface): string => {
 const ReadingPreferenceBridge = () => {
   const preferences = useReadingData().readingPreferences.get();
 
-  createEffect(() => {
-    const current = preferences();
+  createEffect(preferences, (current) => {
     const root = document.documentElement;
     root.dataset['readingTheme'] = current.colorMode;
     root.style.setProperty('--bible-reader-serif', readerTypeface(current.readerTypeface));
