@@ -10,3 +10,7 @@ export * from './sync-store.js';
 export * from './transport.js';
 export * from './backup.js';
 export * from './copy-on-migrate.js';
+export * from './legacy/desktop-cache.js';
+export * from './legacy/desktop-settings.js';
+export * from './legacy/cli-state.js';
+export * from './legacy/web-state.js';

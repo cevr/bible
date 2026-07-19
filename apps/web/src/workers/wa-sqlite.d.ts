@@ -2,6 +2,8 @@ declare module 'wa-sqlite/src/examples/OPFSAdaptiveVFS.js' {
   export class OPFSAdaptiveVFS {
     static create(name: string, module: unknown): Promise<OPFSAdaptiveVFS>;
     close(): Promise<void>;
+    jAccess(name: string, flags: number, output: DataView): Promise<number>;
+    jDelete(name: string, syncDirectory: number): Promise<number>;
   }
 }
 
@@ -9,6 +11,8 @@ declare module 'wa-sqlite/src/examples/IDBBatchAtomicVFS.js' {
   export class IDBBatchAtomicVFS {
     static create(name: string, module: unknown): Promise<IDBBatchAtomicVFS>;
     close(): void;
+    jAccess(name: string, flags: number, output: DataView): Promise<number>;
+    jDelete(name: string, syncDirectory: number): Promise<number>;
   }
 }
 
