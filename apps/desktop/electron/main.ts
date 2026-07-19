@@ -43,6 +43,7 @@ const VITE_DEV_URL = 'http://localhost:1420';
 const settingsPath = () => path.join(app.getPath('userData'), 'settings.json');
 const cacheDbPath = () => path.join(app.getPath('userData'), 'cache.sqlite');
 const bibleDbPath = () => path.join(app.getPath('userData'), 'bible.sqlite');
+const userStateDbPath = () => path.join(app.getPath('userData'), 'user-state.sqlite');
 const egwTokenPath = () => path.join(app.getPath('userData'), 'egw-tokens.json');
 
 let mainRuntime: MainRuntime | null = null;
@@ -104,7 +105,7 @@ const createWindow = async (): Promise<void> => {
 void app.whenReady().then(async () => {
   loadDotEnv(path.join(process.cwd(), '.env'));
   console.error('[main] app.whenReady → constructing main runtime');
-  const runtime = makeRuntime(cacheDbPath(), bibleDbPath(), egwTokenPath());
+  const runtime = makeRuntime(cacheDbPath(), bibleDbPath(), egwTokenPath(), userStateDbPath());
   mainRuntime = runtime;
 
   // Construct every persistent module before opening a renderer. This runs

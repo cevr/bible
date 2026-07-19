@@ -1,6 +1,16 @@
 import { BibleCorpus, BibleDatabase } from '@bible/core/bible-db';
+import type { BibleService } from '@bible/core/bible/service';
 import { EGWApiClient, EGWAuth, EGWTokenStore } from '@bible/core/egw';
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
+import userStateMigrationSql from '@bible/core/local-first/migrations/0001_user_state.sql';
+import { ClientId, MutationId, Timestamp } from '@bible/core/local-first';
+import {
+  CommitId,
+  type ProcedureRuntime,
+  type ReadingPreferencesRuntime,
+  RuntimeGeneration,
+} from '@bible/core/procedure';
+import type { WritingsService } from '@bible/core/writings/service';
 import * as SqliteNode from '@effect/sql-sqlite-node/SqliteClient';
 import { Effect, Layer, ManagedRuntime, Option, Schema } from 'effect';
 import type { Effect as EffectNs } from 'effect';
@@ -9,6 +19,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
 import { CacheDatabase } from './cache-db.js';
+import { layerDesktopProcedureDependencies } from './local-procedure-runtime.js';
 
 // Token-store fs operations always `Effect.orDie` afterward — a token-file
 // IO failure at boot is unrecoverable — but the language-service still
@@ -96,7 +107,15 @@ const egwLayer = (tokenFile: string): Layer.Layer<EGWApiClient> =>
   );
 
 export type MainRuntime = ManagedRuntime.ManagedRuntime<
-  EGWParagraphDatabase | BibleCorpus | BibleDatabase | CacheDatabase | EGWApiClient,
+  | EGWParagraphDatabase
+  | BibleCorpus
+  | BibleDatabase
+  | CacheDatabase
+  | EGWApiClient
+  | BibleService
+  | WritingsService
+  | ProcedureRuntime
+  | ReadingPreferencesRuntime,
   never
 >;
 
@@ -104,16 +123,41 @@ export const makeRuntime = (
   cacheDbFile: string,
   bibleDbFile: string,
   tokenFile: string,
-): MainRuntime =>
-  ManagedRuntime.make(
-    Layer.mergeAll(cacheDbLayer(cacheDbFile), bibleDbLayer(bibleDbFile), egwLayer(tokenFile)),
-  );
+  userStateDbFile: string,
+): MainRuntime => {
+  const cache = cacheDbLayer(cacheDbFile);
+  const bible = bibleDbLayer(bibleDbFile);
+  const clientId = Schema.decodeSync(ClientId)('desktop-local');
+  const procedures = layerDesktopProcedureDependencies({
+    cacheDatabase: cache,
+    bibleDatabase: bible,
+    userStateDbFile,
+    migrationSql: userStateMigrationSql,
+    runtime: {
+      clientId,
+      generation: Schema.decodeSync(RuntimeGeneration)(crypto.randomUUID()),
+      capabilities: ['external-links', 'file-import', 'file-export', 'window-controls'],
+      nextMutationId: () => Schema.decodeSync(MutationId)(crypto.randomUUID()),
+      nextCommitId: () => Schema.decodeSync(CommitId)(crypto.randomUUID()),
+      now: () => Schema.decodeSync(Timestamp)(new Date().toISOString()),
+    },
+  });
+  return ManagedRuntime.make(Layer.mergeAll(cache, bible, egwLayer(tokenFile), procedures));
+};
 
 export const runtimeRun = <A, E>(
   runtime: MainRuntime,
   effect: EffectNs.Effect<
     A,
     E,
-    EGWParagraphDatabase | BibleCorpus | BibleDatabase | CacheDatabase | EGWApiClient
+    | EGWParagraphDatabase
+    | BibleCorpus
+    | BibleDatabase
+    | CacheDatabase
+    | EGWApiClient
+    | BibleService
+    | WritingsService
+    | ProcedureRuntime
+    | ReadingPreferencesRuntime
   >,
 ): Promise<A> => runtime.runPromise(effect);

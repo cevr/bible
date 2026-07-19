@@ -20,6 +20,7 @@ await build({
   // a broken bundle. Keep it as an extern so the require() resolves at runtime
   // against the node_modules copy electron-builder ships.
   external: ['electron', 'better-sqlite3'],
+  loader: { '.sql': 'text' },
   sourcemap: true,
   logLevel: 'info',
 });
