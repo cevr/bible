@@ -1,7 +1,13 @@
-import type { BibleProcedureGroup } from '@bible/core/procedure';
-import type { RpcClient } from 'effect/unstable/rpc';
+import {
+  BibleProcedureGroup,
+  expectedRuntimeConnection,
+  type RuntimeConnection,
+} from '@bible/core/procedure';
+import { Context, Effect, Layer } from 'effect';
+import { RpcClient } from 'effect/unstable/rpc';
+import type { RpcClientError } from 'effect/unstable/rpc/RpcClientError';
 
-export type RawProcedureClient = RpcClient.FromGroup<typeof BibleProcedureGroup>;
+export type RawProcedureClient = RpcClient.FromGroup<typeof BibleProcedureGroup, RpcClientError>;
 
 type OptionalInputCall<Call> = Call extends (
   input: infer Input,
@@ -23,3 +29,26 @@ export const createProcedureClient = (raw: RawProcedureClient): ProcedureClient 
   'v1.preferences.reading.get': (input = {}, options) =>
     raw['v1.preferences.reading.get'](input, options),
 });
+
+export interface ProcedureHostShape {
+  readonly connection: RuntimeConnection;
+  readonly procedures: ProcedureClient;
+}
+
+export class ProcedureHost extends Context.Service<ProcedureHost, ProcedureHostShape>()(
+  '@bible/app/procedure/ProcedureHost',
+) {}
+
+const makeProcedureHost = Effect.gen(function* () {
+  const raw = yield* RpcClient.make(BibleProcedureGroup);
+  const procedures = createProcedureClient(raw);
+  const connection = yield* procedures['v1.runtime.connect'](expectedRuntimeConnection);
+  return ProcedureHost.of({ connection, procedures });
+});
+
+/**
+ * Transport-neutral, scoped procedure client. Platform hosts provide only an
+ * `RpcClient.Protocol`; the shared application owns compatibility negotiation
+ * and the client lifetime.
+ */
+export const ProcedureHostLive = Layer.effect(ProcedureHost, makeProcedureHost);
