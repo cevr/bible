@@ -10,7 +10,7 @@ import { Schema } from 'effect';
 import { createMemo, createSignal } from 'solid-js';
 
 import { decodeRoute, readerLocationForRoute } from '../route/index.js';
-import { useReadingData } from '../runtime/index.js';
+import { failureCategory, useReadingData } from '../runtime/index.js';
 import { Button, Input, Tabs } from '../ui/index.js';
 
 export interface AnnotationToolsProps {
@@ -62,7 +62,9 @@ export const AnnotationTools = (props: AnnotationToolsProps) => {
       },
       (cause: unknown) => {
         const message = compactFailure(cause);
-        console.error(`[annotations] mutation-failed operation=${operation} cause=${message}`);
+        console.error(
+          `[annotations] mutation-failed operation=${operation} category=${failureCategory(cause)}`,
+        );
         setFailure(message);
         setBusy(false);
       },
@@ -163,7 +165,9 @@ export const AnnotationTools = (props: AnnotationToolsProps) => {
       },
       (cause: unknown) => {
         const message = compactFailure(cause);
-        console.error(`[collections] mutation-failed operation=save cause=${message}`);
+        console.error(
+          `[collections] mutation-failed operation=save category=${failureCategory(cause)}`,
+        );
         setFailure(message);
         setBusy(false);
       },
@@ -188,7 +192,9 @@ export const AnnotationTools = (props: AnnotationToolsProps) => {
         () => setBusy(false),
         (cause: unknown) => {
           const message = compactFailure(cause);
-          console.error(`[collections] mutation-failed operation=add-member cause=${message}`);
+          console.error(
+            `[collections] mutation-failed operation=add-member category=${failureCategory(cause)}`,
+          );
           setFailure(message);
           setBusy(false);
         },

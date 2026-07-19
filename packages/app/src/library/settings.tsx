@@ -10,7 +10,7 @@ import { Effect, Schema } from 'effect';
 
 import { useCapabilities } from '../application/capabilities-context.js';
 import type { SettingsSection } from '../route/index.js';
-import { useReadingData } from '../runtime/index.js';
+import { failureCategory, useReadingData } from '../runtime/index.js';
 import { Button, Popover } from '../ui/index.js';
 import { ReaderFailure, ReaderLoading } from '../reading/index.js';
 
@@ -37,7 +37,7 @@ export const Settings = (props: SettingsProps) => {
 
   const failDataOperation = (operation: string, cause: unknown): void => {
     console.error(
-      `[settings] ${operation}-failed category=data-portability cause=${String(cause)}`,
+      `[settings] operation-failed operation=${operation} category=${failureCategory(cause)}`,
     );
     setDataStatus(undefined);
     setDataFailure(cause instanceof Error ? cause.message : String(cause));
@@ -91,7 +91,9 @@ export const Settings = (props: SettingsProps) => {
     void data.readingPreferences.mutate({ patch: value }).then(
       () => setSaving(false),
       (cause: unknown) => {
-        console.error(`[settings] save-failed category=reading-preferences cause=${String(cause)}`);
+        console.error(
+          `[settings] mutation-failed operation=reading-preferences category=${failureCategory(cause)}`,
+        );
         setFailure(cause instanceof Error ? cause.message : String(cause));
         setSaving(false);
       },

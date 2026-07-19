@@ -3,7 +3,7 @@ import { createEffect, createSignal, onCleanup, onSettled, type ParentProps } fr
 
 import type { ReaderTypeface } from '@bible/core/reading-preferences';
 import { decodeRoute, readerLocationForRoute } from '../route/index.js';
-import { useReadingData } from '../runtime/index.js';
+import { failureCategory, useReadingData } from '../runtime/index.js';
 import { Button, CommandPalette, Menu, MenuIcon, SearchIcon } from '../ui/index.js';
 
 const readerTypeface = (typeface: ReaderTypeface): string => {
@@ -55,9 +55,6 @@ const ReadingPreferenceBridge = () => {
   return null;
 };
 
-const compactFailure = (cause: unknown): string =>
-  (cause instanceof Error ? cause.message : String(cause)).replace(/\s+/g, ' ').trim();
-
 const ReadingContinuityBridge = () => {
   const location = useLocation();
   const continuity = useReadingData().readingContinuity;
@@ -70,7 +67,9 @@ const ReadingContinuityBridge = () => {
     if (readingLocation === undefined || path === recordedPath) return;
     recordedPath = path;
     void continuity.mutate({ location: readingLocation, progress: 0 }).catch((cause: unknown) => {
-      console.error(`[continuity] mutation-failed operation=record cause=${compactFailure(cause)}`);
+      console.error(
+        `[continuity] mutation-failed operation=record category=${failureCategory(cause)}`,
+      );
     });
   });
 

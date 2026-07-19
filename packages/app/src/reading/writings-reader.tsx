@@ -10,7 +10,7 @@ import { Option } from 'effect';
 import { createSignal } from 'solid-js';
 
 import { AnnotationTools } from '../library/annotation-tools.js';
-import { useReadingData } from '../runtime/index.js';
+import { failureCategory, useReadingData } from '../runtime/index.js';
 import { writingsDownloadLabel } from '../runtime/writings-cache.js';
 import { Button, ScrollViewport } from '../ui/index.js';
 import { ParagraphNodes } from './paragraph-nodes.js';
@@ -158,7 +158,9 @@ export const WritingsCatalog = () => {
         const message = (cause instanceof Error ? cause.message : String(cause))
           .replace(/\s+/g, ' ')
           .trim();
-        console.error(`[writings] download-failed target=${key} cause=${message}`);
+        console.error(
+          `[writings] download-failed target=${key} category=${failureCategory(cause)}`,
+        );
         setFailure(message);
         setFailedTarget(key);
         setDownloading(undefined);

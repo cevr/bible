@@ -10,7 +10,7 @@ import { Schema } from 'effect';
 import { createSignal } from 'solid-js';
 
 import { ReaderFailure, ReaderLoading } from '../reading/index.js';
-import { useReadingData } from '../runtime/index.js';
+import { failureCategory, useReadingData } from '../runtime/index.js';
 import { Button, Input } from '../ui/index.js';
 
 export interface PracticeProps {
@@ -65,7 +65,9 @@ export const Practice = (props: PracticeProps) => {
       },
       (cause: unknown) => {
         const message = failureMessage(cause);
-        console.error(`[practice] mutation-failed operation=${operation} cause=${message}`);
+        console.error(
+          `[practice] mutation-failed operation=${operation} category=${failureCategory(cause)}`,
+        );
         setFailure(message);
         setBusy(false);
       },

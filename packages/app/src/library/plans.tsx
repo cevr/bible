@@ -9,7 +9,7 @@ import { Schema } from 'effect';
 import { createSignal } from 'solid-js';
 
 import { ReaderFailure, ReaderLoading } from '../reading/index.js';
-import { useReadingData } from '../runtime/index.js';
+import { failureCategory, useReadingData } from '../runtime/index.js';
 import { Button, Input } from '../ui/index.js';
 
 export interface PlansProps {
@@ -45,7 +45,9 @@ export const Plans = (props: PlansProps) => {
       },
       (cause: unknown) => {
         const message = failureMessage(cause);
-        console.error(`[plans] mutation-failed operation=${operation} cause=${message}`);
+        console.error(
+          `[plans] mutation-failed operation=${operation} category=${failureCategory(cause)}`,
+        );
         setFailure(message);
         setBusy(false);
       },
