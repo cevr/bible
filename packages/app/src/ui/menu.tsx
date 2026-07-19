@@ -14,6 +14,7 @@ interface MenuListProps {
   readonly items: readonly MenuItem[];
   readonly close: () => void;
   readonly restoreFocus?: () => void;
+  readonly initialFocus?: 'first' | 'last';
   readonly style?: JSX.CSSProperties;
 }
 
@@ -29,7 +30,7 @@ const MenuList = (props: MenuListProps) => {
   };
 
   onSettled(() => {
-    queueMicrotask(() => focusAt(0));
+    queueMicrotask(() => focusAt(props.initialFocus === 'last' ? -1 : 0));
     const outside = (event: PointerEvent): void => {
       if (event.target instanceof Node && !popup?.contains(event.target)) props.close();
     };
@@ -107,6 +108,7 @@ export interface MenuProps {
 export const Menu = (props: MenuProps) => {
   const id = `menu-${createUniqueId()}`;
   const [localOpen, setLocalOpen] = createSignal(props.defaultOpen ?? false);
+  const [initialFocus, setInitialFocus] = createSignal<'first' | 'last'>('first');
   const open = () => props.open ?? localOpen();
   const setOpen = (next: boolean): void => {
     if (props.open === undefined) setLocalOpen(next);
@@ -125,10 +127,14 @@ export const Menu = (props: MenuProps) => {
         aria-haspopup="menu"
         aria-expanded={open() ? 'true' : 'false'}
         aria-controls={open() ? id : undefined}
-        onClick={() => setOpen(!open())}
+        onClick={() => {
+          setInitialFocus('first');
+          setOpen(!open());
+        }}
         onKeyDown={(event) => {
           if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
           event.preventDefault();
+          setInitialFocus(event.key === 'ArrowUp' ? 'last' : 'first');
           setOpen(true);
         }}
       >
@@ -141,6 +147,7 @@ export const Menu = (props: MenuProps) => {
           items={props.items}
           close={() => setOpen(false)}
           restoreFocus={() => trigger?.focus()}
+          initialFocus={initialFocus()}
         />
       </Show>
     </div>
@@ -158,7 +165,13 @@ export const ContextMenu = (props: ContextMenuProps) => {
   const id = `context-menu-${createUniqueId()}`;
   const [position, setPosition] = createSignal<{ readonly x: number; readonly y: number }>();
   let target: HTMLDivElement | undefined;
+  let restoreTarget: HTMLElement | undefined;
   const close = (): void => setPosition(undefined);
+  const openAt = (x: number, y: number): void => {
+    restoreTarget =
+      document.activeElement instanceof HTMLElement ? document.activeElement : undefined;
+    setPosition({ x, y });
+  };
   return (
     <>
       <div
@@ -169,7 +182,13 @@ export const ContextMenu = (props: ContextMenuProps) => {
         class="bible-context-menu-target"
         onContextMenu={(event) => {
           event.preventDefault();
-          setPosition({ x: event.clientX, y: event.clientY });
+          openAt(event.clientX, event.clientY);
+        }}
+        onKeyDown={(event) => {
+          if (event.key !== 'ContextMenu' && !(event.shiftKey && event.key === 'F10')) return;
+          event.preventDefault();
+          const bounds = target?.getBoundingClientRect();
+          if (bounds !== undefined) openAt(bounds.left + 16, bounds.top + 16);
         }}
       >
         {props.children}
@@ -182,7 +201,7 @@ export const ContextMenu = (props: ContextMenuProps) => {
               label={props.label}
               items={props.items}
               close={close}
-              restoreFocus={() => target?.focus()}
+              restoreFocus={() => restoreTarget?.focus()}
               style={{ left: `${String(current().x)}px`, top: `${String(current().y)}px` }}
             />
           </Portal>

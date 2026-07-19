@@ -68,6 +68,12 @@ test.describe('shared Solid reading application', () => {
       const verseMenu = page.getByRole('menu', { name: 'Verse 1 actions' });
       await expect(verseMenu).toBeVisible();
       await page.keyboard.press('Escape');
+      const firstVerse = page.getByRole('link', { name: 'Verse 1', exact: true });
+      await firstVerse.focus();
+      await firstVerse.press('Shift+F10');
+      await expect(verseMenu).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(firstVerse).toBeFocused();
     }
     const notesTab = page.getByRole('tab', { name: 'Notes' });
     if (!(await notesTab.isVisible())) await page.getByText('Study', { exact: true }).click();
