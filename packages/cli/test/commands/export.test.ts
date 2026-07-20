@@ -8,18 +8,16 @@ describe('export command', () => {
   describe('export files to Apple Notes', () => {
     it.effect('should export a single file to Apple Notes', () =>
       Effect.gen(function* () {
-        const result = yield* Effect.tryPromise(() =>
-          runCli(exportOutput, ['--files', '/path/to/message.md'], {
+        const result = yield* runCli(exportOutput, ['--files', '/path/to/message.md'], {
+          files: {
             files: {
-              files: {
-                '/path/to/message.md': '# Test Message\n\nThis is a test message.',
-              },
+              '/path/to/message.md': '# Test Message\n\nThis is a test message.',
             },
-            appleScript: {
-              success: true,
-            },
-          }),
-        );
+          },
+          appleScript: {
+            success: true,
+          },
+        });
 
         expect(result.success).toBe(true);
         expectSequence(result.calls, [
@@ -31,8 +29,10 @@ describe('export command', () => {
 
     it.effect('should export multiple files to Apple Notes', () =>
       Effect.gen(function* () {
-        const result = yield* Effect.tryPromise(() =>
-          runCli(exportOutput, ['--files', '/path/to/file1.md', '--files', '/path/to/file2.md'], {
+        const result = yield* runCli(
+          exportOutput,
+          ['--files', '/path/to/file1.md', '--files', '/path/to/file2.md'],
+          {
             files: {
               files: {
                 '/path/to/file1.md': '# File 1\n\nContent 1',
@@ -42,7 +42,7 @@ describe('export command', () => {
             appleScript: {
               success: true,
             },
-          }),
+          },
         );
 
         expect(result.success).toBe(true);
@@ -53,13 +53,11 @@ describe('export command', () => {
 
     it.effect('should handle no files specified', () =>
       Effect.gen(function* () {
-        const result = yield* Effect.tryPromise(() =>
-          runCli(exportOutput, [], {
-            files: {
-              files: {},
-            },
-          }),
-        );
+        const result = yield* runCli(exportOutput, [], {
+          files: {
+            files: {},
+          },
+        });
 
         expect(result.success).toBe(true);
         // No file operations should happen
@@ -70,13 +68,11 @@ describe('export command', () => {
 
     it.effect('should fail when file does not exist', () =>
       Effect.gen(function* () {
-        const result = yield* Effect.tryPromise(() =>
-          runCli(exportOutput, ['--files', '/path/to/nonexistent.md'], {
-            files: {
-              files: {},
-            },
-          }),
-        );
+        const result = yield* runCli(exportOutput, ['--files', '/path/to/nonexistent.md'], {
+          files: {
+            files: {},
+          },
+        });
 
         expect(result.success).toBe(false);
       }),
@@ -93,18 +89,16 @@ apple_note_id: x-coredata://abc/ICNote/p1
 # Test
 
 Body.`;
-        const result = yield* Effect.tryPromise(() =>
-          runCli(exportOutput, ['--files', '/path/to/withid.md'], {
+        const result = yield* runCli(exportOutput, ['--files', '/path/to/withid.md'], {
+          files: {
             files: {
-              files: {
-                '/path/to/withid.md': existing,
-              },
+              '/path/to/withid.md': existing,
             },
-            appleScript: {
-              success: true,
-            },
-          }),
-        );
+          },
+          appleScript: {
+            success: true,
+          },
+        });
 
         expect(result.success).toBe(true);
         expectCallCount(result.calls, 'FileSystem.readFile', 1);
@@ -124,8 +118,10 @@ apple_note_id: x-coredata://abc/ICNote/p1
 # Test
 
 Body.`;
-        const result = yield* Effect.tryPromise(() =>
-          runCli(exportOutput, ['--files', '/path/to/withid.md', '--force-create'], {
+        const result = yield* runCli(
+          exportOutput,
+          ['--files', '/path/to/withid.md', '--force-create'],
+          {
             files: {
               files: {
                 '/path/to/withid.md': existing,
@@ -134,7 +130,7 @@ Body.`;
             appleScript: {
               success: true,
             },
-          }),
+          },
         );
 
         expect(result.success).toBe(true);

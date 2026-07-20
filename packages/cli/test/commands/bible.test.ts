@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'effect-bun-test';
 
 import {
   BIBLE_BOOKS,
@@ -16,9 +16,9 @@ import { versesForBibleQuery } from '../../src/lib/bible-query.js';
 
 const chapter = (bookNumber: number, chapterNumber: number, texts: readonly string[]) => {
   const book = getBibleBook(bookNumber);
-  if (book === undefined) throw new Error(`Unknown test book ${bookNumber}`);
+  const knownBook = Option.getOrThrow(Option.fromNullishOr(book));
   return new Chapter({
-    book,
+    book: knownBook,
     reference: Reference.chapter(bookNumber, chapterNumber),
     verses: texts.map(
       (text, index) =>
@@ -51,44 +51,58 @@ const chapters = new Map([
 
 const BibleTest = BibleService.Test({ books: BIBLE_BOOKS, chapters });
 const resolve = (query: ReturnType<typeof ParsedBibleQuery.search>) =>
-  Effect.runPromise(versesForBibleQuery(query).pipe(Effect.provide(BibleTest)));
+  versesForBibleQuery(query).pipe(Effect.provide(BibleTest));
 
 describe('canonical Bible query integration', () => {
-  it('resolves a single verse', async () => {
-    const verses = await resolve(ParsedBibleQuery.single(43, 3, 1));
-    expect(verses.map((verse) => Number(verse.reference.verse))).toEqual([1]);
-  });
+  it.effect('resolves a single verse', () =>
+    Effect.gen(function* () {
+      const verses = yield* resolve(ParsedBibleQuery.single(43, 3, 1));
+      expect(verses.map((verse) => Number(verse.reference.verse))).toEqual([1]);
+    }),
+  );
 
-  it('resolves a full chapter', async () => {
-    expect(await resolve(ParsedBibleQuery.chapter(43, 3))).toHaveLength(3);
-  });
+  it.effect('resolves a full chapter', () =>
+    Effect.gen(function* () {
+      expect(yield* resolve(ParsedBibleQuery.chapter(43, 3))).toHaveLength(3);
+    }),
+  );
 
-  it('resolves a verse range', async () => {
-    const verses = await resolve(ParsedBibleQuery.verseRange(43, 3, 1, 2));
-    expect(verses.map((verse) => Number(verse.reference.verse))).toEqual([1, 2]);
-  });
+  it.effect('resolves a verse range', () =>
+    Effect.gen(function* () {
+      const verses = yield* resolve(ParsedBibleQuery.verseRange(43, 3, 1, 2));
+      expect(verses.map((verse) => Number(verse.reference.verse))).toEqual([1, 2]);
+    }),
+  );
 
-  it('resolves a chapter range', async () => {
-    expect(await resolve(ParsedBibleQuery.chapterRange(19, 1, 3))).toHaveLength(4);
-  });
+  it.effect('resolves a chapter range', () =>
+    Effect.gen(function* () {
+      expect(yield* resolve(ParsedBibleQuery.chapterRange(19, 1, 3))).toHaveLength(4);
+    }),
+  );
 
-  it('resolves a full book through the canonical book metadata', async () => {
-    expect(await resolve(ParsedBibleQuery.fullBook(31))).toHaveLength(1);
-  });
+  it.effect('resolves a full book through the canonical book metadata', () =>
+    Effect.gen(function* () {
+      expect(yield* resolve(ParsedBibleQuery.fullBook(31))).toHaveLength(1);
+    }),
+  );
 });
 
 describe('bible concordance', () => {
-  it("detects Hebrew and Greek Strong's numbers", () => {
-    expect(isStrongsNumber('H1234')).toBe(true);
-    expect(isStrongsNumber('h1234')).toBe(true);
-    expect(isStrongsNumber('G5678')).toBe(true);
-    expect(isStrongsNumber('g26')).toBe(true);
-  });
+  it.effect("detects Hebrew and Greek Strong's numbers", () =>
+    Effect.sync(() => {
+      expect(isStrongsNumber('H1234')).toBe(true);
+      expect(isStrongsNumber('h1234')).toBe(true);
+      expect(isStrongsNumber('G5678')).toBe(true);
+      expect(isStrongsNumber('g26')).toBe(true);
+    }),
+  );
 
-  it("rejects invalid Strong's queries", () => {
-    expect(isStrongsNumber('1234')).toBe(false);
-    expect(isStrongsNumber('love')).toBe(false);
-    expect(isStrongsNumber('H1234abc')).toBe(false);
-    expect(isStrongsNumber('A1234')).toBe(false);
-  });
+  it.effect("rejects invalid Strong's queries", () =>
+    Effect.sync(() => {
+      expect(isStrongsNumber('1234')).toBe(false);
+      expect(isStrongsNumber('love')).toBe(false);
+      expect(isStrongsNumber('H1234abc')).toBe(false);
+      expect(isStrongsNumber('A1234')).toBe(false);
+    }),
+  );
 });

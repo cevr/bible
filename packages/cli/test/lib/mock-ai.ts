@@ -1,31 +1,42 @@
-import { Effect, Layer } from 'effect';
+import type { ModelMessage } from 'ai';
+import { Effect, Layer, Schema, SchemaGetter } from 'effect';
 
-import { AI, type AIService } from '../../src/services/ai.js';
+import { AI, AIError, type AIService } from '../../src/services/ai.js';
 import type { ServiceCall } from './sequence-recorder.js';
 
-/**
- * Configuration for mock AI responses.
- */
 export interface MockAIConfig {
-  /** Queued responses for each model quality level */
   responses: {
     high: Array<string | object>;
     low: Array<string | object>;
   };
 }
 
-/**
- * State for tracking response indices and calls.
- */
 export interface MockAIState {
   highIndex: number;
   lowIndex: number;
   calls: ServiceCall[];
 }
 
-/**
- * Create a mock AI layer that records all AI calls.
- */
+const JsonString = Schema.Unknown.pipe(
+  Schema.encodeTo(Schema.String, {
+    decode: SchemaGetter.parseJson(),
+    encode: SchemaGetter.stringifyJson(),
+  }),
+);
+const encodeJson = Schema.encodeUnknownEffect(JsonString);
+const decodeJson = Schema.decodeUnknownEffect(JsonString);
+
+const promptFrom = (messages: Array<ModelMessage>): string =>
+  messages
+    .filter((message) => message.role === 'user')
+    .map((message) => {
+      if (typeof message.content === 'string') {
+        return message.content;
+      }
+      return '[complex]';
+    })
+    .join(' ');
+
 export const createMockAILayer = (config: MockAIConfig) => {
   const state: MockAIState = {
     highIndex: 0,
@@ -33,78 +44,71 @@ export const createMockAILayer = (config: MockAIConfig) => {
     calls: [],
   };
 
+  const nextResponse = (quality: 'high' | 'low'): string | object => {
+    let index = state.lowIndex++;
+    if (quality === 'high') {
+      index = state.highIndex++;
+    }
+    const response = config.responses[quality][index];
+    if (response !== undefined) {
+      return response;
+    }
+    return `mock ${quality} response ${index}`;
+  };
+
+  const responseText = (response: string | object) => {
+    if (typeof response === 'string') {
+      return Effect.succeed(response);
+    }
+    return encodeJson(response);
+  };
+
   const mockAI: AIService = {
     generateText: (options) => {
       const quality = options.model ?? 'high';
-      const responses = config.responses[quality];
-      const index = quality === 'high' ? state.highIndex++ : state.lowIndex++;
-      const response = responses[index] ?? `mock ${quality} response ${index}`;
-
-      // Extract prompt from messages for recording
-      const prompt =
-        options.messages
-          ?.filter((m) => m.role === 'user')
-          .map((m) => (typeof m.content === 'string' ? m.content : '[complex]'))
-          .join(' ') ?? '';
-
-      // Record the call
+      const response = nextResponse(quality);
       state.calls.push({
         _tag: 'AI.generateText',
         model: quality,
-        prompt: prompt.slice(0, 100),
+        prompt: promptFrom(options.messages).slice(0, 100),
       });
-
-      return Effect.succeed({
-        text: typeof response === 'string' ? response : JSON.stringify(response),
-      });
+      return responseText(response).pipe(
+        Effect.map((text) => ({ text })),
+        Effect.mapError((cause) => new AIError({ operation: 'mock.generateText', cause })),
+      );
     },
 
     generateTextWithTools: (options) => {
       const quality = options.model ?? 'high';
-      const responses = config.responses[quality];
-      const index = quality === 'high' ? state.highIndex++ : state.lowIndex++;
-      const response = responses[index] ?? `mock ${quality} response ${index}`;
-
-      const prompt =
-        options.messages
-          ?.filter((m) => m.role === 'user')
-          .map((m) => (typeof m.content === 'string' ? m.content : '[complex]'))
-          .join(' ') ?? '';
-
+      const response = nextResponse(quality);
       state.calls.push({
         _tag: 'AI.generateTextWithTools',
         model: quality,
-        prompt: prompt.slice(0, 100),
+        prompt: promptFrom(options.messages).slice(0, 100),
       });
-
-      return Effect.succeed({
-        text: typeof response === 'string' ? response : JSON.stringify(response),
-      });
+      return responseText(response).pipe(
+        Effect.map((text) => ({ text })),
+        Effect.mapError((cause) => new AIError({ operation: 'mock.generateTextWithTools', cause })),
+      );
     },
 
     generateObject: (options) => {
       const quality = options.model ?? 'high';
-      const responses = config.responses[quality];
-      const index = quality === 'high' ? state.highIndex++ : state.lowIndex++;
-      const response = responses[index] ?? { result: `mock ${quality} object` };
-
-      // Extract prompt from messages for recording
-      const prompt =
-        options.messages
-          ?.filter((m) => m.role === 'user')
-          .map((m) => (typeof m.content === 'string' ? m.content : '[complex]'))
-          .join(' ') ?? '';
-
-      // Record the call
+      const response = nextResponse(quality);
       state.calls.push({
         _tag: 'AI.generateObject',
         model: quality,
-        prompt: prompt.slice(0, 100),
+        prompt: promptFrom(options.messages).slice(0, 100),
       });
-
-      return Effect.succeed({
-        object: typeof response === 'object' ? response : JSON.parse(response),
-      });
+      let decodedResponse: Effect.Effect<unknown, Schema.SchemaError> = Effect.succeed(response);
+      if (typeof response === 'string') {
+        decodedResponse = decodeJson(response);
+      }
+      return decodedResponse.pipe(
+        Effect.flatMap(Schema.decodeUnknownEffect(options.schema)),
+        Effect.map((object) => ({ object })),
+        Effect.mapError((cause) => new AIError({ operation: 'mock.generateObject', cause })),
+      );
     },
   };
 

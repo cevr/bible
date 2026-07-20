@@ -9,16 +9,14 @@ describe('readings commands', () => {
   describe('sync command', () => {
     it.effect('should update existing Apple Note when apple_note_id present', () =>
       Effect.gen(function* () {
-        const result = yield* Effect.tryPromise(() =>
-          runCli(readings, ['sync', '--files', '/path/to/chapter-1.md'], {
+        const result = yield* runCli(readings, ['sync', '--files', '/path/to/chapter-1.md'], {
+          files: {
             files: {
-              files: {
-                '/path/to/chapter-1.md':
-                  '---\ncreated_at: "2024-01-01"\nchapter: 1\napple_note_id: "note-123"\n---\n\n# Study\n\nContent...',
-              },
+              '/path/to/chapter-1.md':
+                '---\ncreated_at: "2024-01-01"\nchapter: 1\napple_note_id: "note-123"\n---\n\n# Study\n\nContent...',
             },
-          }),
-        );
+          },
+        });
 
         expect(result.success).toBe(true);
         expectContains(result.calls, [
@@ -30,16 +28,14 @@ describe('readings commands', () => {
 
     it.effect('should create new Apple Note and write ID back when no apple_note_id', () =>
       Effect.gen(function* () {
-        const result = yield* Effect.tryPromise(() =>
-          runCli(readings, ['sync', '--files', '/path/to/chapter-1.md'], {
+        const result = yield* runCli(readings, ['sync', '--files', '/path/to/chapter-1.md'], {
+          files: {
             files: {
-              files: {
-                '/path/to/chapter-1.md':
-                  '---\ncreated_at: "2024-01-01"\nchapter: 1\n---\n\n# Study\n\nContent...',
-              },
+              '/path/to/chapter-1.md':
+                '---\ncreated_at: "2024-01-01"\nchapter: 1\n---\n\n# Study\n\nContent...',
             },
-          }),
-        );
+          },
+        });
 
         expect(result.success).toBe(true);
         expectContains(result.calls, [
@@ -54,17 +50,15 @@ describe('readings commands', () => {
   describe('list command', () => {
     it.effect('should list all readings', () =>
       Effect.gen(function* () {
-        const result = yield* Effect.tryPromise(() =>
-          runCli(readings, ['list'], {
+        const result = yield* runCli(readings, ['list'], {
+          files: {
             files: {
-              files: {
-                [getOutputsPath('readings', 'chapter-1.md')]: 'content',
-                [getOutputsPath('readings', 'chapter-2.md')]: 'content',
-              },
-              directories: [getOutputsPath('readings')],
+              [getOutputsPath('readings', 'chapter-1.md')]: 'content',
+              [getOutputsPath('readings', 'chapter-2.md')]: 'content',
             },
-          }),
-        );
+            directories: [getOutputsPath('readings')],
+          },
+        });
 
         expect(result.success).toBe(true);
         expectSequence(result.calls, [{ _tag: 'FileSystem.readDirectory' }]);
@@ -73,14 +67,12 @@ describe('readings commands', () => {
 
     it.effect('should handle empty readings directory', () =>
       Effect.gen(function* () {
-        const result = yield* Effect.tryPromise(() =>
-          runCli(readings, ['list'], {
-            files: {
-              files: {},
-              directories: [getOutputsPath('readings')],
-            },
-          }),
-        );
+        const result = yield* runCli(readings, ['list'], {
+          files: {
+            files: {},
+            directories: [getOutputsPath('readings')],
+          },
+        });
 
         expect(result.success).toBe(true);
         expectSequence(result.calls, [{ _tag: 'FileSystem.readDirectory' }]);
@@ -89,16 +81,14 @@ describe('readings commands', () => {
 
     it.effect('should output JSON when --json flag is used', () =>
       Effect.gen(function* () {
-        const result = yield* Effect.tryPromise(() =>
-          runCli(readings, ['list', '--json'], {
+        const result = yield* runCli(readings, ['list', '--json'], {
+          files: {
             files: {
-              files: {
-                [getOutputsPath('readings', 'chapter-1.md')]: 'content',
-              },
-              directories: [getOutputsPath('readings')],
+              [getOutputsPath('readings', 'chapter-1.md')]: 'content',
             },
-          }),
-        );
+            directories: [getOutputsPath('readings')],
+          },
+        });
 
         expect(result.success).toBe(true);
         expectSequence(result.calls, [{ _tag: 'FileSystem.readDirectory' }]);

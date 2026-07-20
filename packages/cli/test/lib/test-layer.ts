@@ -1,5 +1,6 @@
 import type { FileSystem } from 'effect';
 import { Layer, Path } from 'effect';
+import type { HttpClient } from 'effect/unstable/http';
 
 import type { AI } from '../../src/services/ai.js';
 import type { AppleScript } from '../../src/services/apple-script.js';
@@ -13,7 +14,7 @@ import {
 } from './mock-apple-script.js';
 import { createMockChimeLayer, type MockChimeState } from './mock-chime.js';
 import { createMockFileSystemLayer, type MockFileSystemConfig } from './mock-filesystem.js';
-import { installMockFetch, type MockHttpConfig, type MockHttpState } from './mock-http.js';
+import { createMockHttpLayer, type MockHttpConfig } from './mock-http.js';
 import { CallSequenceLayer, type CallSequence, type ServiceCall } from './sequence-recorder.js';
 
 /**
@@ -35,10 +36,16 @@ export interface TestLayerConfig {
  * Includes cleanup functions and mutable state for assertions.
  */
 export interface TestLayerState {
-  /** Call the cleanup function when done with the test */
-  cleanup: () => void;
   /** The composed layer to provide to the CLI */
-  layer: Layer.Layer<FileSystem.FileSystem | Path.Path | AI | AppleScript | Chime | CallSequence>;
+  layer: Layer.Layer<
+    | FileSystem.FileSystem
+    | Path.Path
+    | HttpClient.HttpClient
+    | AI
+    | AppleScript
+    | Chime
+    | CallSequence
+  >;
   /** Get all calls recorded (from services and external) */
   getAllCalls: () => ServiceCall[];
 }
@@ -50,12 +57,10 @@ export interface TestLayerState {
  * for all external dependencies while running actual command logic.
  */
 export const createTestLayer = (config: TestLayerConfig = {}): TestLayerState => {
-  const cleanupFns: Array<() => void> = [];
-
   // Shared state for service calls
   const appleScriptState: MockAppleScriptState = { calls: [] };
   const chimeState: MockChimeState = { calls: [] };
-  let httpState: MockHttpState | null = null;
+  const mockHttp = createMockHttpLayer(config.http ?? { responses: {} });
 
   // Create mock file system
   const mockFs = createMockFileSystemLayer(config.files ?? { files: {}, directories: [] });
@@ -69,13 +74,6 @@ export const createTestLayer = (config: TestLayerConfig = {}): TestLayerState =>
   // Create mock Chime service
   const mockChime = createMockChimeLayer(chimeState);
 
-  // Install mock fetch
-  if (config.http) {
-    const fetchResult = installMockFetch(config.http);
-    httpState = fetchResult.state;
-    cleanupFns.push(fetchResult.cleanup);
-  }
-
   // Use the real Path layer (it's pure computation, no mocking needed)
   const mockPath = Path.layer;
 
@@ -87,23 +85,19 @@ export const createTestLayer = (config: TestLayerConfig = {}): TestLayerState =>
     mockAI.layer,
     mockAppleScript,
     mockChime,
+    mockHttp.layer,
     mockPath,
   ).pipe(Layer.provideMerge(CallSequenceLayer));
 
   return {
     layer: composedLayer,
-    cleanup: () => {
-      for (const fn of cleanupFns) {
-        fn();
-      }
-    },
     getAllCalls: () => [
       // Service layer calls (recorded via Effect context)
       ...appleScriptState.calls,
       ...chimeState.calls,
       // External calls (recorded outside Effect context)
       ...mockAI.state.calls,
-      ...(httpState?.calls ?? []),
+      ...mockHttp.state.calls,
     ],
   };
 };

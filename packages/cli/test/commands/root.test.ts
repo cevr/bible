@@ -7,7 +7,7 @@ import { runCli } from '../lib/run-cli.js';
 describe('root command graph', () => {
   it.effect('renders help instead of opening an interactive application', () =>
     Effect.gen(function* () {
-      const result = yield* Effect.tryPromise(() => runCli(rootCommand, []));
+      const result = yield* runCli(rootCommand, []);
 
       expect(result.success).toBe(true);
     }),
@@ -15,7 +15,7 @@ describe('root command graph', () => {
 
   it.effect('supports explicit help', () =>
     Effect.gen(function* () {
-      const result = yield* Effect.tryPromise(() => runCli(rootCommand, ['--help']));
+      const result = yield* runCli(rootCommand, ['--help']);
 
       expect(result.success).toBe(true);
     }),

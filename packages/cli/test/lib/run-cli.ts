@@ -1,6 +1,6 @@
 import * as BunServices from '@effect/platform-bun/BunServices';
 import { Command } from 'effect/unstable/cli';
-import { Effect, Exit, Layer, Logger } from 'effect';
+import { ConfigProvider, Effect, Exit, Inspectable, Layer, Logger } from 'effect';
 import { expect } from 'bun:test';
 
 import { getCallSequence, type ServiceCall } from './sequence-recorder.js';
@@ -38,23 +38,13 @@ export interface RunCliResult {
 // residual context to `never` after Effect.provide. If a command actually
 // references a service the test layer doesn't supply, the run will die at
 // runtime; tests will catch it immediately.
-export const runCli = async <Name extends string, Input, ContextInput, E, R>(
+export const runCli = <Name extends string, Input, ContextInput, E, R>(
   command: Command.Command<Name, Input, ContextInput, E, R>,
   args: string[],
   config: TestLayerConfig = {},
-): Promise<RunCliResult> => {
-  const { layer, cleanup, getAllCalls } = createTestLayer(config);
-
-  // Provide stub API keys so the `--model` flag can pass `extractModel` and
-  // resolve to a provider config. The mock AI layer will short-circuit
-  // `AI.fromModel` before any real provider call is made.
-  const envBackup: Record<string, string | undefined> = {};
-  for (const key of ['GEMINI_API_KEY', 'OPENAI_API_KEY', 'ANTHROPIC_API_KEY'] as const) {
-    envBackup[key] = process.env[key];
-    process.env[key] = 'test-key';
-  }
-
-  try {
+): Effect.Effect<RunCliResult> =>
+  Effect.gen(function* () {
+    const { layer, getAllCalls } = createTestLayer(config);
     // Use Command.runWith to pass args directly (v4 pattern)
     const cli = Command.runWith(command, { version: 'test' });
 
@@ -71,12 +61,16 @@ export const runCli = async <Name extends string, Input, ContextInput, E, R>(
     // Order matters in Layer.mergeAll: later layers overwrite earlier ones for
     // shared services. The mock `layer` must come last so its FileSystem/Path
     // mocks beat BunServices' real implementations.
+    const provider = ConfigProvider.fromUnknown({
+      GEMINI_API_KEY: 'test-key',
+      OPENAI_API_KEY: 'test-key',
+      ANTHROPIC_API_KEY: 'test-key',
+    });
     const provided = program.pipe(
       Effect.provide(Layer.mergeAll(BunServices.layer, Logger.layer([]), layer)),
-    ) as Effect.Effect<
-      typeof program extends Effect.Effect<infer A, infer _E, unknown> ? A : never
-    >;
-    const result = await Effect.runPromise(provided);
+      Effect.provideService(ConfigProvider.ConfigProvider, provider),
+    ) as Effect.Effect<{ cliExit: Exit.Exit<void, unknown>; calls: ServiceCall[] }>;
+    const result = yield* provided;
 
     const exit = result.cliExit;
     const effectCalls = result.calls;
@@ -90,7 +84,11 @@ export const runCli = async <Name extends string, Input, ContextInput, E, R>(
 
     // Log failure details for debugging
     if (!success) {
-      console.error('CLI command failed:', Exit.isFailure(exit) ? exit.cause : 'unknown');
+      let failure: unknown = 'unknown';
+      if (Exit.isFailure(exit)) {
+        failure = exit.cause;
+      }
+      yield* Effect.logError(`CLI command failed: ${Inspectable.toStringUnknown(failure, 0)}`);
     }
 
     return {
@@ -98,14 +96,7 @@ export const runCli = async <Name extends string, Input, ContextInput, E, R>(
       calls,
       success,
     };
-  } finally {
-    cleanup();
-    for (const [key, value] of Object.entries(envBackup)) {
-      if (value === undefined) delete process.env[key];
-      else process.env[key] = value;
-    }
-  }
-};
+  });
 
 /**
  * Assertion helper for verifying call sequences.
@@ -157,13 +148,7 @@ export const expectSequence = (actual: ServiceCall[], expected: Array<Partial<Se
       }
     }
 
-    if (!found) {
-      const actualTags = actual.map((c) => c._tag).join(', ');
-      throw new Error(
-        `Expected call ${JSON.stringify(expectedCall)} not found in sequence.\n` +
-          `Actual calls: [${actualTags}]`,
-      );
-    }
+    expect(found).toBe(true);
   }
 };
 
@@ -214,15 +199,6 @@ export const expectContains = (actual: ServiceCall[], expected: Array<Partial<Se
       return true;
     });
 
-    if (!found) {
-      const matchingCalls = actual.filter((c) => c._tag === expectedCall._tag);
-      const actualSummary =
-        matchingCalls.length > 0
-          ? `Matching calls: ${JSON.stringify(matchingCalls, null, 2)}`
-          : `All calls: ${JSON.stringify(actual.map((c) => c._tag))}`;
-      throw new Error(
-        `Expected call ${JSON.stringify(expectedCall)} not found in calls.\n` + actualSummary,
-      );
-    }
+    expect(found).toBe(true);
   }
 };

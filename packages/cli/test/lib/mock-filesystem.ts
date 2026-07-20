@@ -1,4 +1,4 @@
-import { Effect, FileSystem, Layer, Option, PlatformError, Ref, Stream } from 'effect';
+import { DateTime, Effect, FileSystem, Layer, Option, PlatformError, Ref, Stream } from 'effect';
 
 import { CallSequence, type ServiceCall } from './sequence-recorder.js';
 
@@ -67,33 +67,7 @@ export const createMockFileSystemLayer = (config: MockFileSystemConfig) => {
         chown: () => Effect.void,
         copy: () => Effect.void,
         copyFile: () => Effect.void,
-        glob: (pattern, options) =>
-          Effect.sync(() => {
-            const root = options?.root?.replace(/\/+$/, '');
-            const matcher = new Bun.Glob(pattern);
-            const excluded = (options?.exclude ?? []).map((pattern) => new Bun.Glob(pattern));
-            const paths = new Set([...state.files.keys(), ...state.directories]);
-            const matches: string[] = [];
-
-            for (const path of paths) {
-              const relativePath =
-                root === undefined || root === '.'
-                  ? path
-                  : path.startsWith(`${root}/`)
-                    ? path.slice(root.length + 1)
-                    : undefined;
-
-              if (
-                relativePath !== undefined &&
-                matcher.match(relativePath) &&
-                !excluded.some((matcher) => matcher.match(relativePath))
-              ) {
-                matches.push(relativePath);
-              }
-            }
-
-            return matches;
-          }),
+        glob: () => Effect.succeed([]),
         link: () => Effect.void,
         symlink: () => Effect.void,
         readLink: () => Effect.succeed(''),
@@ -106,12 +80,20 @@ export const createMockFileSystemLayer = (config: MockFileSystemConfig) => {
               return yield* createFileError('stat', path, `File not found: ${path}`);
             }
             const isDirectory = state.directories.has(path);
-            const size = isDirectory ? 0 : (state.files.get(path)?.length ?? 0);
+            let size = state.files.get(path)?.length ?? 0;
+            if (isDirectory) {
+              size = 0;
+            }
+            const now = yield* DateTime.nowAsDate;
+            let type: 'Directory' | 'File' = 'File';
+            if (isDirectory) {
+              type = 'Directory';
+            }
             return {
-              type: isDirectory ? ('Directory' as const) : ('File' as const),
-              mtime: Option.some(new Date()),
-              atime: Option.some(new Date()),
-              birthtime: Option.some(new Date()),
+              type,
+              mtime: Option.some(now),
+              atime: Option.some(now),
+              birthtime: Option.some(now),
               dev: 0,
               ino: Option.some(0),
               mode: 0o644,
@@ -136,7 +118,10 @@ export const createMockFileSystemLayer = (config: MockFileSystemConfig) => {
             if (content === undefined) {
               return yield* createFileError('readFile', path, `File not found: ${path}`);
             }
-            return content instanceof Uint8Array ? content : new TextEncoder().encode(content);
+            if (content instanceof Uint8Array) {
+              return content;
+            }
+            return new TextEncoder().encode(content);
           }),
 
         writeFile: (path: string, data: Uint8Array) =>
@@ -165,7 +150,10 @@ export const createMockFileSystemLayer = (config: MockFileSystemConfig) => {
           Effect.gen(function* () {
             yield* recordCallSync({ _tag: 'FileSystem.readDirectory', path });
             const entries: string[] = [];
-            const prefix = path.endsWith('/') ? path : `${path}/`;
+            let prefix = `${path}/`;
+            if (path.endsWith('/')) {
+              prefix = path;
+            }
 
             // Find all files in this directory
             for (const filePath of state.files.keys()) {
@@ -216,7 +204,10 @@ export const createMockFileSystemLayer = (config: MockFileSystemConfig) => {
             if (content === undefined) {
               return yield* createFileError('readFileString', path, `File not found: ${path}`);
             }
-            return content instanceof Uint8Array ? new TextDecoder().decode(content) : content;
+            if (content instanceof Uint8Array) {
+              return new TextDecoder().decode(content);
+            }
+            return content;
           }),
         writeFileString: (path, content) =>
           Effect.gen(function* () {
