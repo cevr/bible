@@ -7,12 +7,12 @@ import type { SqliteDatabase, SqliteDatabaseFamily } from './sqlite-database.js'
 
 const database: SqliteDatabase = {
   isOpen: true,
-  open: () => Effect.runPromise(Effect.void),
-  close: () => Effect.runPromise(Effect.void),
-  query: () => Effect.runPromise(Effect.succeed([])),
-  values: () => Effect.runPromise(Effect.succeed([])),
-  write: () => Effect.runPromise(Effect.succeed(0)),
-  exec: () => Effect.runPromise(Effect.void),
+  open: () => Effect.void,
+  close: () => Effect.void,
+  query: () => Effect.succeed([]),
+  values: () => Effect.succeed([]),
+  write: () => Effect.succeed(0),
+  exec: () => Effect.void,
 };
 
 const registryWriteFailure = { _tag: 'RegistryWriteFailure' } as const;
@@ -26,19 +26,15 @@ const harness = (initial: GenerationRegistry) => {
     active: database,
     candidate: () => database,
     activate: (filename) =>
-      Effect.runPromise(
-        Effect.sync(() => {
-          events.push(`activate:${filename}`);
-          activeFilename = filename;
-        }),
-      ),
+      Effect.sync(() => {
+        events.push(`activate:${filename}`);
+        activeFilename = filename;
+      }),
     deactivate: () =>
-      Effect.runPromise(
-        Effect.sync(() => {
-          events.push('deactivate');
-          activeFilename = undefined;
-        }),
-      ),
+      Effect.sync(() => {
+        events.push('deactivate');
+        activeFilename = undefined;
+      }),
     get activeFilename() {
       return activeFilename;
     },
@@ -61,11 +57,9 @@ const harness = (initial: GenerationRegistry) => {
     databases,
     registry,
     discard: (filename) =>
-      Effect.runPromise(
-        Effect.sync(() => {
-          events.push(`discard:${filename}`);
-        }),
-      ),
+      Effect.sync(() => {
+        events.push(`discard:${filename}`);
+      }),
   });
   return {
     events,
@@ -85,7 +79,7 @@ describe('browser Bible generation store', () => {
       const stale = 'bible-db-v1-111111111111.db';
       const fixture = harness({ active, managed: [stale, active, interrupted] });
 
-      expect(yield* Effect.tryPromise(() => fixture.store.openActive())).toBe(true);
+      expect(yield* fixture.store.openActive()).toBe(true);
       expect(fixture.events).toContain(`activate:${active}`);
       expect(fixture.events).toContain(`discard:${stale}`);
       expect(fixture.events).toContain(`discard:${interrupted}`);
@@ -98,16 +92,11 @@ describe('browser Bible generation store', () => {
       const previous = 'bible-db-v1-111111111111.db';
       const candidate = 'bible-db-v2-e72244f576be.db';
       const fixture = harness({ active: previous, managed: [previous] });
-      yield* Effect.tryPromise(() => fixture.store.openActive());
-      yield* Effect.tryPromise(() => fixture.store.reserve(candidate));
+      yield* fixture.store.openActive();
+      yield* fixture.store.reserve(candidate);
       fixture.failRegistryWrite();
 
-      const failure = yield* Effect.flip(
-        Effect.tryPromise({
-          try: () => fixture.store.activateVerified(candidate),
-          catch: (cause) => cause,
-        }),
-      );
+      const failure = yield* Effect.flip(fixture.store.activateVerified(candidate));
 
       expect(failure).toEqual(registryWriteFailure);
       expect(fixture.events.slice(-3)).toEqual([
@@ -125,9 +114,9 @@ describe('browser Bible generation store', () => {
       const candidate = 'bible-db-v2-e72244f576be.db';
       const fixture = harness({ active, managed: [active] });
 
-      yield* Effect.tryPromise(() => fixture.store.reserve(candidate));
+      yield* fixture.store.reserve(candidate);
       expect(fixture.state().managed).toContain(candidate);
-      expect(yield* Effect.tryPromise(() => fixture.store.openActive())).toBe(true);
+      expect(yield* fixture.store.openActive()).toBe(true);
       expect(fixture.events).toContain(`discard:${candidate}`);
       expect(fixture.state()).toEqual({ active, managed: [active] });
     }),
@@ -138,7 +127,7 @@ describe('browser Bible generation store', () => {
       const active = 'bible-db-v2-e72244f576be.db';
       const fixture = harness({ active, managed: [active] });
 
-      const reserved = yield* Effect.tryPromise(() => fixture.store.reserve(active));
+      const reserved = yield* fixture.store.reserve(active);
 
       expect(reserved.filename).toBe('bible-db-v2-e72244f576be-next.db');
       expect(reserved.filename).not.toBe(active);

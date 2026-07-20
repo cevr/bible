@@ -1,6 +1,6 @@
 import { BIBLE_ARTIFACT_RELEASE, CorpusSupply } from '@bible/core/corpus-supply';
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, Layer } from 'effect';
+import { Effect, Layer, Stream } from 'effect';
 
 import { layerBrowserBibleArtifacts } from './bible-database.js';
 import { makeBibleGenerationStore } from './bible-generation-store.js';
@@ -20,55 +20,45 @@ const makeDatabase = (options: {
 }): SqliteDatabase => ({
   isOpen: false,
   open: (flags) =>
-    Effect.runPromise(
-      Effect.sync(() => options.events.push(`open:${String(flags)}`)).pipe(Effect.asVoid),
-    ),
-  close: () =>
-    Effect.runPromise(Effect.sync(() => options.events.push('close')).pipe(Effect.asVoid)),
+    Effect.sync(() => options.events.push(`open:${String(flags)}`)).pipe(Effect.asVoid),
+  close: () => Effect.sync(() => options.events.push('close')).pipe(Effect.asVoid),
   query: (sql) =>
-    Effect.runPromise(
-      Effect.sync((): readonly SqliteRow[] => {
-        if (sql === 'PRAGMA integrity_check') return [{ integrity_check: 'ok' }];
-        if (sql.includes('FROM meta')) {
-          if (!options.provenance) return [];
-          return [
-            { key: 'corpus_source', value: 'bible-release' },
-            {
-              key: 'corpus_revision',
-              value: options.revision ?? BIBLE_ARTIFACT_RELEASE.revision,
-            },
-            { key: 'corpus_digest', value: digest },
-          ];
-        }
-        if (sql.includes('FROM books')) {
-          if (options.valid === false) return [{ count: 0 }];
-          return [{ count: 66 }];
-        }
-        if (sql.includes('FROM verses')) return [{ count: 31_102 }];
-        return [{ count: 1 }];
-      }),
-    ),
-  values: () => Effect.runPromise(Effect.succeed([])),
+    Effect.sync((): readonly SqliteRow[] => {
+      if (sql === 'PRAGMA integrity_check') return [{ integrity_check: 'ok' }];
+      if (sql.includes('FROM meta')) {
+        if (!options.provenance) return [];
+        return [
+          { key: 'corpus_source', value: 'bible-release' },
+          {
+            key: 'corpus_revision',
+            value: options.revision ?? BIBLE_ARTIFACT_RELEASE.revision,
+          },
+          { key: 'corpus_digest', value: digest },
+        ];
+      }
+      if (sql.includes('FROM books')) {
+        if (options.valid === false) return [{ count: 0 }];
+        return [{ count: 66 }];
+      }
+      if (sql.includes('FROM verses')) return [{ count: 31_102 }];
+      return [{ count: 1 }];
+    }),
+  values: () => Effect.succeed([]),
   write: (_sql, params) =>
-    Effect.runPromise(
-      Effect.sync(() => {
-        options.events.push(`write:${String(params?.[0])}`);
-        return 1;
-      }),
-    ),
-  exec: (sql) =>
-    Effect.runPromise(Effect.sync(() => options.events.push(`exec:${sql}`)).pipe(Effect.asVoid)),
+    Effect.sync(() => {
+      options.events.push(`write:${String(params?.[0])}`);
+      return 1;
+    }),
+  exec: (sql) => Effect.sync(() => options.events.push(`exec:${sql}`)).pipe(Effect.asVoid),
 });
 
 const makeDownloader = (events: string[]): DatabaseFileDownloader => ({
   install: (_bytes, filename, onProgress) =>
-    Effect.runPromise(
-      Effect.sync(() => {
-        events.push(`install:${filename}`);
-        onProgress(100);
-        return { bytes: 149_000_000, digest };
-      }),
-    ),
+    Effect.sync(() => {
+      events.push(`install:${filename}`);
+      onProgress(100);
+      return { bytes: 149_000_000, digest };
+    }),
 });
 
 const ensure = (options: {
@@ -85,19 +75,15 @@ const ensure = (options: {
     active: database,
     candidate: () => database,
     activate: (filename) =>
-      Effect.runPromise(
-        Effect.sync(() => {
-          options.events.push(`activate:${filename}`);
-          activeFilename = filename;
-        }),
-      ),
+      Effect.sync(() => {
+        options.events.push(`activate:${filename}`);
+        activeFilename = filename;
+      }),
     deactivate: () =>
-      Effect.runPromise(
-        Effect.sync(() => {
-          options.events.push('deactivate');
-          activeFilename = undefined;
-        }),
-      ),
+      Effect.sync(() => {
+        options.events.push('deactivate');
+        activeFilename = undefined;
+      }),
     get activeFilename() {
       return activeFilename;
     },
@@ -128,12 +114,10 @@ const ensure = (options: {
       databases,
       registry: registryStore,
       discard: (filename) =>
-        Effect.runPromise(
-          Effect.sync(() => options.events.push(`discard:${filename}`)).pipe(Effect.asVoid),
-        ),
+        Effect.sync(() => options.events.push(`discard:${filename}`)).pipe(Effect.asVoid),
     }),
     downloader: makeDownloader(options.events),
-    fetch: () => Effect.runPromise(Effect.succeed(new Response(new Uint8Array([1])))),
+    fetch: () => Effect.succeed({ status: 200, bytes: Stream.make(new Uint8Array([1])) }),
   });
   const supply = CorpusSupply.layer.pipe(Layer.provide(artifacts));
   return Effect.gen(function* () {
