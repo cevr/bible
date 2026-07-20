@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'effect-bun-test';
+import { Effect, Stream } from 'effect';
 import * as SQLite from 'wa-sqlite';
 
 import {
@@ -10,83 +11,101 @@ import {
 const makeApi = (events: string[]): WorkerSqliteApi => {
   let stepped = false;
   return {
-    open_v2: async (filename, flags, vfs) => {
-      events.push(`open:${filename}:${String(flags)}:${vfs ?? ''}`);
-      return 7;
-    },
-    close: async (handle) => {
-      events.push(`close:${String(handle)}`);
-      return SQLite.SQLITE_OK;
-    },
-    statements: async function* (_handle, sql) {
+    open_v2: (filename, flags, vfs) =>
+      Effect.runPromise(
+        Effect.sync(() => {
+          events.push(`open:${filename}:${String(flags)}:${vfs ?? ''}`);
+          return 7;
+        }),
+      ),
+    close: (handle) =>
+      Effect.runPromise(
+        Effect.sync(() => {
+          events.push(`close:${String(handle)}`);
+          return SQLite.SQLITE_OK;
+        }),
+      ),
+    statements: (_handle, sql) => {
       events.push(`statements:${sql}`);
       stepped = false;
-      yield 11;
+      return Stream.toAsyncIterable(Stream.make(11));
     },
     bind_collection: (_statement, values) => {
       events.push(`bind:${String(values.length)}`);
       return SQLite.SQLITE_OK;
     },
     column_names: () => ['value'],
-    step: async () => {
-      if (stepped) return SQLite.SQLITE_DONE;
-      stepped = true;
-      return SQLite.SQLITE_ROW;
-    },
+    step: () =>
+      Effect.runPromise(
+        Effect.sync(() => {
+          if (stepped) return SQLite.SQLITE_DONE;
+          stepped = true;
+          return SQLite.SQLITE_ROW;
+        }),
+      ),
     row: () => [42],
     changes: () => 3,
-    exec: async (_handle, sql) => {
-      events.push(`exec:${sql}`);
-      return SQLite.SQLITE_OK;
-    },
+    exec: (_handle, sql) =>
+      Effect.runPromise(
+        Effect.sync(() => {
+          events.push(`exec:${sql}`);
+          return SQLite.SQLITE_OK;
+        }),
+      ),
   };
 };
 
 describe('worker SQLite database adapter', () => {
-  it('owns a replaceable connection and maps rows by column name', async () => {
-    const events: string[] = [];
-    const database = makeSqliteDatabase(makeApi(events), 'state.db', 'opfs');
+  it.effect('owns a replaceable connection and maps rows by column name', () =>
+    Effect.gen(function* () {
+      const events: string[] = [];
+      const database = makeSqliteDatabase(makeApi(events), 'state.db', 'opfs');
 
-    expect(database.isOpen).toBe(false);
-    await database.open(SQLite.SQLITE_OPEN_READWRITE);
-    expect(database.isOpen).toBe(true);
-    expect(await database.query('SELECT value', [1])).toEqual([{ value: 42 }]);
-    expect(await database.values('SELECT value', [1])).toEqual([[42]]);
-    await database.close();
-    expect(database.isOpen).toBe(false);
-    expect(events).toEqual([
-      `open:state.db:${String(SQLite.SQLITE_OPEN_READWRITE)}:opfs`,
-      'statements:SELECT value',
-      'bind:1',
-      'statements:SELECT value',
-      'bind:1',
-      'close:7',
-    ]);
-  });
+      expect(database.isOpen).toBe(false);
+      yield* database.open(SQLite.SQLITE_OPEN_READWRITE);
+      expect(database.isOpen).toBe(true);
+      expect(yield* database.query('SELECT value', [1])).toEqual([{ value: 42 }]);
+      expect(yield* database.values('SELECT value', [1])).toEqual([[42]]);
+      yield* database.close();
+      expect(database.isOpen).toBe(false);
+      expect(events).toEqual([
+        `open:state.db:${String(SQLite.SQLITE_OPEN_READWRITE)}:opfs`,
+        'statements:SELECT value',
+        'bind:1',
+        'statements:SELECT value',
+        'bind:1',
+        'close:7',
+      ]);
+    }),
+  );
 
-  it('reports write changes and executes schema SQL on the active handle', async () => {
-    const database = makeSqliteDatabase(makeApi([]), 'state.db', 'opfs');
-    await database.open(SQLite.SQLITE_OPEN_READWRITE);
+  it.effect('reports write changes and executes schema SQL on the active handle', () =>
+    Effect.gen(function* () {
+      const database = makeSqliteDatabase(makeApi([]), 'state.db', 'opfs');
+      yield* database.open(SQLite.SQLITE_OPEN_READWRITE);
 
-    expect(await database.write('UPDATE value SET n = ?', [2])).toBe(3);
-    expect(await database.exec('CREATE TABLE value (n INTEGER)')).toBeUndefined();
-  });
+      expect(yield* database.write('UPDATE value SET n = ?', [2])).toBe(3);
+      expect(yield* database.exec('CREATE TABLE value (n INTEGER)')).toBeUndefined();
+    }),
+  );
 
-  it('opens a candidate before replacing the active generation', async () => {
-    const events: string[] = [];
-    const family = makeSqliteDatabaseFamily(makeApi(events), 'opfs');
-    await family.activate('bible-v1.db', SQLite.SQLITE_OPEN_READWRITE);
-    await family.activate('bible-v2.db', SQLite.SQLITE_OPEN_READWRITE);
+  it.effect('opens a candidate before replacing the active generation', () =>
+    Effect.gen(function* () {
+      const events: string[] = [];
+      const family = makeSqliteDatabaseFamily(makeApi(events), 'opfs');
+      yield* family.activate('bible-v1.db', SQLite.SQLITE_OPEN_READWRITE);
+      yield* family.activate('bible-v2.db', SQLite.SQLITE_OPEN_READWRITE);
 
-    expect(family.activeFilename).toBe('bible-v2.db');
-    expect(family.active.isOpen).toBe(true);
-    expect(events.filter((event) => event.startsWith('open:'))).toEqual([
-      `open:bible-v1.db:${String(SQLite.SQLITE_OPEN_READWRITE)}:opfs`,
-      `open:bible-v2.db:${String(SQLite.SQLITE_OPEN_READWRITE)}:opfs`,
-    ]);
-    expect(events).toContain('close:7');
+      expect(family.activeFilename).toBe('bible-v2.db');
+      expect(family.active.isOpen).toBe(true);
+      expect(events.filter((event) => event.startsWith('open:'))).toEqual([
+        `open:bible-v1.db:${String(SQLite.SQLITE_OPEN_READWRITE)}:opfs`,
+        `open:bible-v2.db:${String(SQLite.SQLITE_OPEN_READWRITE)}:opfs`,
+      ]);
+      expect(events).toContain('close:7');
 
-    await family.deactivate();
-    expect(family.activeFilename).toBeUndefined();
-  });
+      yield* family.deactivate();
+      expect(family.activeFilename).toBeUndefined();
+    }),
+  );
 });

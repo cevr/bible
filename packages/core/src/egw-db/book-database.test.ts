@@ -4,14 +4,10 @@
  * Uses unique temp files for database isolation between tests.
  */
 
-import { existsSync, unlinkSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-
 import { BunServices } from '@effect/platform-bun';
 import { Database } from 'bun:sqlite';
-import { describe, expect, test } from 'bun:test';
-import { ConfigProvider, Effect, Layer, Option, Result, Stream } from 'effect';
+import { describe, expect, it } from 'effect-bun-test';
+import { ConfigProvider, Effect, FileSystem, Layer, Option, Result, Stream } from 'effect';
 
 import { Reference as BibleReference } from '../bible/model.js';
 import {
@@ -37,46 +33,37 @@ import {
 import { EGWParagraphDatabase, ParagraphDataIntegrityError } from './book-database.js';
 import * as EGWDbBun from './book-database-bun.js';
 
-// Helper to get a unique temp db path
-const getTempDbPath = (): string =>
-  join(tmpdir(), `egw-test-${Date.now()}-${Math.random().toString(36).slice(2)}.db`);
-
-const tempDatabase = (path: string) =>
-  Effect.acquireRelease(Effect.succeed(path), (file) =>
-    Effect.sync(() => {
-      for (const suffix of ['', '-wal', '-shm']) {
-        const candidate = `${file}${suffix}`;
-        if (existsSync(candidate)) unlinkSync(candidate);
-      }
-    }),
-  );
-
 // Helper to run scoped effects in tests with fresh database
-const runTestAt = <A, E>(
+const runTestAt = <A, E, R>(
   dbPath: string,
-  effect: Effect.Effect<A, E, EGWParagraphDatabase>,
-): Promise<A> => {
-  const provider = ConfigProvider.make((path) =>
-    Effect.succeed(
-      path.join('_') === 'EGW_PARAGRAPH_DB' ? ConfigProvider.makeValue(dbPath) : undefined,
-    ),
-  );
+  effect: Effect.Effect<A, E, EGWParagraphDatabase | R>,
+) => {
+  const provider = ConfigProvider.make((path) => {
+    if (path.join('_') === 'EGW_PARAGRAPH_DB') {
+      return Effect.succeed(ConfigProvider.makeValue(dbPath));
+    }
+    return Effect.succeed(undefined);
+  });
 
   const TestLayer = Layer.fresh(EGWDbBun.Default).pipe(
     Layer.provide(BunServices.layer),
     Layer.provide(ConfigProvider.layer(provider)),
   );
-  return Effect.runPromise(
-    Effect.scoped(
-      Effect.flatMap(tempDatabase(dbPath), () =>
-        effect.pipe(Effect.provide(TestLayer), Effect.scoped),
-      ),
-    ),
-  );
+  return effect.pipe(Effect.provide(TestLayer), Effect.scoped);
 };
 
-const runTest = <A, E>(effect: Effect.Effect<A, E, EGWParagraphDatabase>): Promise<A> =>
-  runTestAt(getTempDbPath(), effect);
+const runTestWithPath = <A, E, R>(
+  makeEffect: (dbPath: string) => Effect.Effect<A, E, EGWParagraphDatabase | R>,
+) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const directory = yield* fs.makeTempDirectoryScoped({ prefix: 'egw-database-' });
+    const dbPath = `${directory}/egw.db`;
+    return yield* runTestAt(dbPath, makeEffect(dbPath));
+  });
+
+const runTest = <A, E, R>(effect: Effect.Effect<A, E, EGWParagraphDatabase | R>) =>
+  runTestWithPath(() => effect);
 
 // Helper to create a mock book
 const mockBook = (id: number, code: string): Book => ({
@@ -131,6 +118,16 @@ const mockArchive = (refcodes: readonly string[]): PublicationArchive => {
     });
     return new ArchivedParagraph({ refcode, paragraph, isHeading: false });
   });
+  let bibleReferences: readonly ArchivedBibleReference[] = [];
+  const firstRefcode = refcodes[0];
+  if (firstRefcode !== undefined) {
+    bibleReferences = [
+      new ArchivedBibleReference({
+        paragraphRefcode: firstRefcode,
+        scripture: BibleReference.verse(1, 1, 1),
+      }),
+    ];
+  }
   return new PublicationArchive({
     publication: new Publication({
       id,
@@ -140,22 +137,15 @@ const mockArchive = (refcodes: readonly string[]): PublicationArchive => {
       paragraphCount: Option.some(refcodes.length),
     }),
     paragraphs,
-    bibleReferences:
-      refcodes[0] === undefined
-        ? []
-        : [
-            new ArchivedBibleReference({
-              paragraphRefcode: refcodes[0],
-              scripture: BibleReference.verse(1, 1, 1),
-            }),
-          ],
+    bibleReferences,
   });
 };
 
 describe('EGWParagraphDatabase', () => {
+  const test = it.scopedLive.layer(BunServices.layer);
   describe('canonical publication installation', () => {
-    test('persists Provenance atomically and derives readiness from exact identity', async () => {
-      await runTest(
+    test('persists Provenance atomically and derives readiness from exact identity', () =>
+      runTest(
         Effect.gen(function* () {
           const db = yield* EGWParagraphDatabase;
           const provenance = new CorpusProvenance({
@@ -183,11 +173,10 @@ describe('EGWParagraphDatabase', () => {
             ),
           ).toBe(true);
         }),
-      );
-    });
+      ));
 
-    test('atomically replaces one publication and activates its verified counts', async () => {
-      await runTest(
+    test('atomically replaces one publication and activates its verified counts', () =>
+      runTest(
         Effect.gen(function* () {
           const db = yield* EGWParagraphDatabase;
           yield* db.installPublicationArchive(mockArchive(['TEST 1.1', 'TEST 1.2']));
@@ -203,11 +192,10 @@ describe('EGWParagraphDatabase', () => {
           expect(Option.getOrThrow(status).status).toBe('success');
           expect(Option.getOrThrow(status).paragraph_count).toBe(1);
         }),
-      );
-    });
+      ));
 
-    test('rejects a malformed contribution before replacing the active publication', async () => {
-      await runTest(
+    test('rejects a malformed contribution before replacing the active publication', () =>
+      runTest(
         Effect.gen(function* () {
           const db = yield* EGWParagraphDatabase;
           yield* db.installPublicationArchive(mockArchive(['TEST 1.1']));
@@ -232,13 +220,12 @@ describe('EGWParagraphDatabase', () => {
           expect(paragraphs).toHaveLength(1);
           expect(Option.getOrThrow(paragraphs[0]!.refcode_short)).toBe('TEST 1.1');
         }),
-      );
-    });
+      ));
   });
 
   describe('chapter heading detection', () => {
-    test('detects h1-h6 elements as chapter headings', async () => {
-      await runTest(
+    test('detects h1-h6 elements as chapter headings', () =>
+      runTest(
         Effect.gen(function* () {
           const db = yield* EGWParagraphDatabase;
           const book = mockBook(99998, 'CHAPTEST');
@@ -256,13 +243,12 @@ describe('EGWParagraphDatabase', () => {
           expect(chapters[0]?.element_type).toBe('h1');
           expect(chapters[1]?.element_type).toBe('h3');
         }),
-      );
-    });
+      ));
   });
 
   describe('sync status', () => {
-    test('sets and gets sync status for a book', async () => {
-      await runTest(
+    test('sets and gets sync status for a book', () =>
+      runTest(
         Effect.gen(function* () {
           const db = yield* EGWParagraphDatabase;
 
@@ -287,11 +273,10 @@ describe('EGWParagraphDatabase', () => {
             expect(success.value.paragraph_count).toBe(100);
           }
         }),
-      );
-    });
+      ));
 
-    test('sets error message on failed status', async () => {
-      await runTest(
+    test('sets error message on failed status', () =>
+      runTest(
         Effect.gen(function* () {
           const db = yield* EGWParagraphDatabase;
 
@@ -304,11 +289,10 @@ describe('EGWParagraphDatabase', () => {
             expect(status.value.error_message).toBe('API timeout');
           }
         }),
-      );
-    });
+      ));
 
-    test('gets books by status', async () => {
-      await runTest(
+    test('gets books by status', () =>
+      runTest(
         Effect.gen(function* () {
           const db = yield* EGWParagraphDatabase;
 
@@ -329,11 +313,10 @@ describe('EGWParagraphDatabase', () => {
           expect(pending.length).toBe(1);
           expect(pending[0]?.book_code).toBe('1BC');
         }),
-      );
-    });
+      ));
 
-    test('gets all sync statuses', async () => {
-      await runTest(
+    test('gets all sync statuses', () =>
+      runTest(
         Effect.gen(function* () {
           const db = yield* EGWParagraphDatabase;
 
@@ -344,11 +327,10 @@ describe('EGWParagraphDatabase', () => {
           const all = yield* db.getAllSyncStatus();
           expect(all.length).toBe(3);
         }),
-      );
-    });
+      ));
 
-    test('needsSync returns true for non-success books', async () => {
-      await runTest(
+    test('needsSync returns true for non-success books', () =>
+      runTest(
         Effect.gen(function* () {
           const db = yield* EGWParagraphDatabase;
 
@@ -371,13 +353,12 @@ describe('EGWParagraphDatabase', () => {
           const needsSuccess = yield* db.needsSync(32);
           expect(needsSuccess).toBe(false);
         }),
-      );
-    });
+      ));
   });
 
   describe('batch operations', () => {
-    test('stores paragraphs in batch', async () => {
-      await runTest(
+    test('stores paragraphs in batch', () =>
+      runTest(
         Effect.gen(function* () {
           const db = yield* EGWParagraphDatabase;
           const book = mockBook(100, 'BATCH');
@@ -398,23 +379,22 @@ describe('EGWParagraphDatabase', () => {
             expect(storedBook.value.book_title).toBe('Test Book BATCH');
           }
         }),
-      );
-    });
+      ));
 
-    test('reports corrupt stored paragraph AST as a data-integrity error', () => {
-      const dbPath = getTempDbPath();
-      return runTestAt(
-        dbPath,
+    test('reports corrupt stored paragraph AST as a data-integrity error', () =>
+      runTestWithPath((dbPath) =>
         Effect.gen(function* () {
           const db = yield* EGWParagraphDatabase;
           const book = mockBook(102, 'CORRUPT');
           yield* db.storeParagraphsBatch([mockParagraph(1, 'CORRUPT 1.1')], book);
+          const raw = yield* Effect.acquireRelease(
+            Effect.sync(() => new Database(dbPath)),
+            (database) => Effect.sync(() => database.close()),
+          );
           yield* Effect.sync(() => {
-            const raw = new Database(dbPath);
             raw.run(
               'UPDATE paragraphs SET nodes_json = \'[{"_tag":"Text","text":42}]\' WHERE book_id = 102',
             );
-            raw.close();
           });
 
           const result = yield* Effect.result(db.getParagraph(102, 'CORRUPT 1.1'));
@@ -423,11 +403,10 @@ describe('EGWParagraphDatabase', () => {
             expect(result.failure).toBeInstanceOf(ParagraphDataIntegrityError);
           }
         }),
-      );
-    });
+      ));
 
-    test('stores Bible refs in batch', async () => {
-      await runTest(
+    test('stores Bible refs in batch', () =>
+      runTest(
         Effect.gen(function* () {
           const db = yield* EGWParagraphDatabase;
           const book = mockBook(101, '1BC');
@@ -469,13 +448,12 @@ describe('EGWParagraphDatabase', () => {
           expect(results.length).toBe(1);
           expect(results[0]?.bookCode).toBe('1BC');
         }),
-      );
-    });
+      ));
   });
 
   describe('book operations', () => {
-    test('stores and retrieves books by code', async () => {
-      await runTest(
+    test('stores and retrieves books by code', () =>
+      runTest(
         Effect.gen(function* () {
           const db = yield* EGWParagraphDatabase;
           const book = mockBook(200, 'TEST');
@@ -492,11 +470,10 @@ describe('EGWParagraphDatabase', () => {
           const lowerCase = yield* db.getBookByCode('test');
           expect(Option.isSome(lowerCase)).toBe(true);
         }),
-      );
-    });
+      ));
 
-    test('retrieves books by ID', async () => {
-      await runTest(
+    test('retrieves books by ID', () =>
+      runTest(
         Effect.gen(function* () {
           const db = yield* EGWParagraphDatabase;
           const book = mockBook(201, 'BYID');
@@ -509,7 +486,6 @@ describe('EGWParagraphDatabase', () => {
             expect(retrieved.value.book_code).toBe('BYID');
           }
         }),
-      );
-    });
+      ));
   });
 });
