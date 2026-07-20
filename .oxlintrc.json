@@ -29,7 +29,8 @@
     "no-nested-ternary": "off",
     "complexity": ["error", 50],
     "typescript/consistent-return": "off",
-    "effect/noDynamicImports": "error"
+    "effect/noDynamicImports": "error",
+    "effect/noTestLifecycleHooks": "error"
   },
   "ignorePatterns": [
     "**/dist/**",
@@ -96,7 +97,6 @@
         "effect/noNewError": "error",
         "effect/noNewPromise": "error",
         "effect/noNodeBuiltinImport": "error",
-        "effect/noTestLifecycleHooks": "error",
         "effect/noTernary": "error",
         "effect/noThrowStatement": "error",
         "effect/noTryCatch": "error"
@@ -163,7 +163,6 @@
         "effect/noNewError": "error",
         "effect/noNewPromise": "error",
         "effect/noNodeBuiltinImport": "error",
-        "effect/noTestLifecycleHooks": "error",
         "effect/noTernary": "error",
         "effect/noThrowStatement": "error",
         "effect/noTryCatch": "error"
