@@ -1,4 +1,3 @@
-import { describe, expect, test } from 'bun:test';
 import { CorpusSupply, Target } from '@bible/core/corpus-supply';
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
 import {
@@ -12,6 +11,7 @@ import {
   publicationId,
   publicationOrder,
 } from '@bible/core/writings';
+import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Layer, Option, Result, Schema } from 'effect';
 
 import { layerHttpWritingsAssetSource } from './writings-http-source.js';
@@ -57,53 +57,56 @@ const remoteCatalog = [
 
 const makeFetch =
   (dump: unknown) =>
-  (url: string): Promise<Response> => {
-    if (url === '/api/egw/books') return Promise.resolve(Response.json(remoteCatalog));
-    return Promise.resolve(Response.json(dump));
-  };
+  (url: string): Promise<Response> =>
+    Effect.runPromise(
+      Effect.sync(() => {
+        if (url === '/api/egw/books') return Response.json(remoteCatalog);
+        return Response.json(dump);
+      }),
+    );
 
 describe('HTTP Writings asset source', () => {
-  test('coerces the catalog and archive before CorpusSupply installs it', async () => {
-    const installed: PublicationArchive[] = [];
-    const database = EGWParagraphDatabase.Test({
-      needsSync: () => true,
-      installPublicationArchive: (value) => {
-        installed.push(value);
-        return value.paragraphs.length;
-      },
-    });
-    const source = layerHttpWritingsAssetSource(
-      makeFetch(Schema.encodeSync(PublicationArchiveJson)(archive)),
-    );
-    const layer = CorpusSupply.layer.pipe(Layer.provide(database), Layer.provide(source));
+  it.effect('coerces the catalog and archive before CorpusSupply installs it', () =>
+    Effect.gen(function* () {
+      const installed: PublicationArchive[] = [];
+      const database = EGWParagraphDatabase.Test({
+        needsSync: () => true,
+        installPublicationArchive: (value) => {
+          installed.push(value);
+          return value.paragraphs.length;
+        },
+      });
+      const source = layerHttpWritingsAssetSource(
+        makeFetch(Schema.encodeSync(PublicationArchiveJson)(archive)),
+      );
+      const layer = CorpusSupply.layer.pipe(Layer.provide(database), Layer.provide(source));
 
-    const receipt = await Effect.runPromise(
-      Effect.flatMap(CorpusSupply, (supply) =>
+      const receipt = yield* Effect.flatMap(CorpusSupply, (supply) =>
         supply.ensure({ target: Target.writings([id]), refresh: true }),
-      ).pipe(Effect.provide(layer)),
-    );
+      ).pipe(Effect.provide(layer));
 
-    expect(receipt.activated).toHaveLength(1);
-    expect(installed).toEqual([archive]);
-  });
+      expect(receipt.activated).toHaveLength(1);
+      expect(installed).toEqual([archive]);
+    }),
+  );
 
-  test('rejects malformed archive JSON without touching the destination', async () => {
-    let installs = 0;
-    const database = EGWParagraphDatabase.Test({
-      needsSync: () => true,
-      installPublicationArchive: () => ++installs,
-    });
-    const source = layerHttpWritingsAssetSource(makeFetch({ formatVersion: 1 }));
-    const layer = CorpusSupply.layer.pipe(Layer.provide(database), Layer.provide(source));
-    const result = await Effect.runPromise(
-      Effect.flatMap(CorpusSupply, (supply) =>
+  it.effect('rejects malformed archive JSON without touching the destination', () =>
+    Effect.gen(function* () {
+      let installs = 0;
+      const database = EGWParagraphDatabase.Test({
+        needsSync: () => true,
+        installPublicationArchive: () => ++installs,
+      });
+      const source = layerHttpWritingsAssetSource(makeFetch({ formatVersion: 1 }));
+      const layer = CorpusSupply.layer.pipe(Layer.provide(database), Layer.provide(source));
+      const result = yield* Effect.flatMap(CorpusSupply, (supply) =>
         Effect.result(supply.ensure({ target: Target.writings([id]), refresh: true })),
-      ).pipe(Effect.provide(layer)),
-    );
+      ).pipe(Effect.provide(layer));
 
-    expect(Result.isFailure(result)).toBe(true);
-    if (Result.isFailure(result))
-      expect(result.failure._tag).toBe('CorpusContributionRejectedError');
-    expect(installs).toBe(0);
-  });
+      expect(Result.isFailure(result)).toBe(true);
+      if (Result.isFailure(result))
+        expect(result.failure._tag).toBe('CorpusContributionRejectedError');
+      expect(installs).toBe(0);
+    }),
+  );
 });

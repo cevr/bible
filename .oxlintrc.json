@@ -213,12 +213,16 @@
         "**/packages/core/src/bible/service.test.ts",
         "**/packages/core/src/bible-db/archive.test.ts",
         "**/packages/core/src/egw-commentary/service.test.ts",
+        "**/packages/core/src/local-first/sync-engine.test.ts",
         "**/packages/core/src/structural-analysis/service.test.ts",
         "**/packages/core/src/writings/archive-service.test.ts",
         "**/packages/core/src/platform-node/bible-artifact.test.ts",
         "**/packages/app/src/procedure/client.test.ts",
         "**/apps/desktop/tests/procedure-client.test.ts",
-        "**/apps/desktop/tests/procedure-server.test.ts"
+        "**/apps/desktop/tests/procedure-server.test.ts",
+        "**/apps/web/src/workers/generation-marker.test.ts",
+        "**/apps/web/src/workers/procedure-worker-protocol.test.ts",
+        "**/apps/web/src/workers/writings-http-source.test.ts"
       ],
       "rules": {
         "effect/noAsyncFunction": "error",

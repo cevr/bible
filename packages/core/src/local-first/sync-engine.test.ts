@@ -1,8 +1,6 @@
-import { BunFileSystem } from '@effect/platform-bun';
-import { describe, expect, test } from 'bun:test';
-import { it } from 'effect-bun-test';
-
-import { Effect, FileSystem, Schema } from 'effect';
+import { BunServices } from '@effect/platform-bun';
+import { Effect, FileSystem, Path, Schema } from 'effect';
+import { describe, expect, it } from 'effect-bun-test';
 
 import { LibraryEntityId } from '../library-state/model.js';
 import {
@@ -31,9 +29,6 @@ import {
 import { makeSimulatedTransport, type SimulatedTransport } from './simulated-transport.js';
 import { makeSyncEngine } from './sync-engine.js';
 
-const migrationSql = await Bun.file(
-  new URL('./migrations/0001_user_state.sql', import.meta.url),
-).text();
 const clientId = Schema.decodeSync(ClientId);
 const mutationId = Schema.decodeSync(MutationId);
 const noteId = Schema.decodeSync(NoteId);
@@ -66,14 +61,19 @@ interface Harness {
   readonly published: Array<ChangeSet>;
 }
 
-const makeHarness = async (
+const makeHarness = Effect.fn('SyncEngineTest.makeHarness')(function* (
   name: string,
   transport: SimulatedTransport,
   filename = ':memory:',
   firstMutation = 1,
-): Promise<Harness> => {
+) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const migrationSql = yield* fs.readFileString(
+    path.join(import.meta.dir, 'migrations/0001_user_state.sql'),
+  );
   const database = makeBunUserDatabase(filename);
-  await Effect.runPromise(database.migrate(migrationSql));
+  yield* database.migrate(migrationSql);
   const id = clientId(name);
   const store = makeBunSyncStore(database, id);
   const published: Array<ChangeSet> = [];
@@ -88,151 +88,150 @@ const makeHarness = async (
     publish: (changes) => Effect.sync(() => published.push(changes)).pipe(Effect.asVoid),
   });
   return { database, store, engine, published };
-};
+});
 
-const closeHarness = (harness: Harness) => Effect.runPromise(harness.database.close);
+const closeHarness = (harness: Harness) => harness.database.close;
 
 describe('local-first sync protocol', () => {
-  const scopedTest = it.scopedLive.layer(BunFileSystem.layer);
-  test('keeps offline writes durable and retries the same envelope exactly once', async () => {
-    const transport = makeSimulatedTransport();
-    const client = await makeHarness('offline-client', transport);
-    transport.setOnline(false);
+  const test = it.scopedLive.layer(BunServices.layer);
+  test('keeps offline writes durable and retries the same envelope exactly once', () =>
+    Effect.gen(function* () {
+      const transport = makeSimulatedTransport();
+      const client = yield* makeHarness('offline-client', transport);
+      transport.setOnline(false);
 
-    const envelope = await Effect.runPromise(
-      client.engine.mutate(saveNote('note-offline', 'local')),
-    );
-    const offline = await Effect.runPromiseExit(client.engine.synchronize());
+      const envelope = yield* client.engine.mutate(saveNote('note-offline', 'local'));
+      const offline = yield* Effect.exit(client.engine.synchronize());
 
-    expect(offline._tag).toBe('Failure');
-    expect((await Effect.runPromise(client.store.note('note-offline')))?.content).toBe('local');
-    expect(await Effect.runPromise(client.store.pending)).toEqual([envelope]);
+      expect(offline._tag).toBe('Failure');
+      expect((yield* client.store.note('note-offline'))?.content).toBe('local');
+      expect(yield* client.store.pending).toEqual([envelope]);
 
-    transport.setOnline(true);
-    await Effect.runPromise(client.engine.synchronize());
-    const duplicate = await Effect.runPromise(transport.push(envelope));
+      transport.setOnline(true);
+      yield* client.engine.synchronize();
+      const duplicate = yield* transport.push(envelope);
 
-    expect(duplicate.duplicate).toBe(true);
-    expect(transport.acceptedCount()).toBe(1);
-    expect(await Effect.runPromise(client.store.pending)).toEqual([]);
-    expect(await Effect.runPromise(client.store.revision)).toBe(revision(1));
-    await closeHarness(client);
-  });
+      expect(duplicate.duplicate).toBe(true);
+      expect(transport.acceptedCount()).toBe(1);
+      expect(yield* client.store.pending).toEqual([]);
+      expect(yield* client.store.revision).toBe(revision(1));
+      yield* closeHarness(client);
+    }));
 
-  test('rejects sequence gaps and stale out-of-order pull responses', async () => {
-    const transport = makeSimulatedTransport();
-    const client = await makeHarness('ordered-client', transport);
-    const gapEnvelope: MutationEnvelope = {
-      clientId: clientId('gap-client'),
-      sequence: sequence(2),
-      mutationId: mutationId('gap-mutation'),
-      schemaVersion: schemaVersion(1),
-      command: saveNote('gap-note', 'gap'),
-      createdAt: timestamp('2026-07-19T00:00:01.000Z'),
-    };
+  test('rejects sequence gaps and stale out-of-order pull responses', () =>
+    Effect.gen(function* () {
+      const transport = makeSimulatedTransport();
+      const client = yield* makeHarness('ordered-client', transport);
+      const gapEnvelope: MutationEnvelope = {
+        clientId: clientId('gap-client'),
+        sequence: sequence(2),
+        mutationId: mutationId('gap-mutation'),
+        schemaVersion: schemaVersion(1),
+        command: saveNote('gap-note', 'gap'),
+        createdAt: timestamp('2026-07-19T00:00:01.000Z'),
+      };
 
-    const gap = await Effect.runPromiseExit(transport.push(gapEnvelope));
-    const stale = await Effect.runPromiseExit(
-      client.store.applyPatch({
-        baseRevision: revision(1),
-        revision: revision(1),
-        mutations: [],
-      }),
-    );
+      const gap = yield* Effect.exit(transport.push(gapEnvelope));
+      const stale = yield* Effect.exit(
+        client.store.applyPatch({
+          baseRevision: revision(1),
+          revision: revision(1),
+          mutations: [],
+        }),
+      );
 
-    expect(gap._tag).toBe('Failure');
-    expect(stale._tag).toBe('Failure');
-    expect(await Effect.runPromise(client.store.revision)).toBe(INITIAL_SERVER_REVISION);
-    await closeHarness(client);
-  });
+      expect(gap._tag).toBe('Failure');
+      expect(stale._tag).toBe('Failure');
+      expect(yield* client.store.revision).toBe(INITIAL_SERVER_REVISION);
+      yield* closeHarness(client);
+    }));
 
-  test('rebases pending local edits over pulled state and converges by server order', async () => {
-    const transport = makeSimulatedTransport();
-    const alpha = await makeHarness('alpha', transport);
-    const beta = await makeHarness('beta', transport);
+  test('rebases pending local edits over pulled state and converges by server order', () =>
+    Effect.gen(function* () {
+      const transport = makeSimulatedTransport();
+      const alpha = yield* makeHarness('alpha', transport);
+      const beta = yield* makeHarness('beta', transport);
 
-    await Effect.runPromise(beta.engine.mutate(saveNote('shared-note', 'from beta')));
-    await Effect.runPromise(beta.engine.synchronize());
-    await Effect.runPromise(alpha.engine.mutate(saveNote('shared-note', 'from alpha')));
-    await Effect.runPromise(alpha.engine.synchronize());
+      yield* beta.engine.mutate(saveNote('shared-note', 'from beta'));
+      yield* beta.engine.synchronize();
+      yield* alpha.engine.mutate(saveNote('shared-note', 'from alpha'));
+      yield* alpha.engine.synchronize();
 
-    expect((await Effect.runPromise(alpha.store.note('shared-note')))?.content).toBe('from alpha');
+      expect((yield* alpha.store.note('shared-note'))?.content).toBe('from alpha');
 
-    await Effect.runPromise(beta.engine.synchronize());
+      yield* beta.engine.synchronize();
 
-    expect((await Effect.runPromise(beta.store.note('shared-note')))?.content).toBe('from alpha');
-    expect(await Effect.runPromise(alpha.store.revision)).toBe(revision(2));
-    expect(await Effect.runPromise(beta.store.revision)).toBe(revision(2));
-    await closeHarness(alpha);
-    await closeHarness(beta);
-  });
+      expect((yield* beta.store.note('shared-note'))?.content).toBe('from alpha');
+      expect(yield* alpha.store.revision).toBe(revision(2));
+      expect(yield* beta.store.revision).toBe(revision(2));
+      yield* closeHarness(alpha);
+      yield* closeHarness(beta);
+    }));
 
-  test('replicates tombstone deletion and allows a later accepted save to restore the note', async () => {
-    const transport = makeSimulatedTransport();
-    const alpha = await makeHarness('delete-alpha', transport);
-    const beta = await makeHarness('delete-beta', transport);
+  test('replicates tombstone deletion and allows a later accepted save to restore the note', () =>
+    Effect.gen(function* () {
+      const transport = makeSimulatedTransport();
+      const alpha = yield* makeHarness('delete-alpha', transport);
+      const beta = yield* makeHarness('delete-beta', transport);
 
-    await Effect.runPromise(alpha.engine.mutate(saveNote('deleted-note', 'first')));
-    await Effect.runPromise(alpha.engine.synchronize());
-    await Effect.runPromise(beta.engine.synchronize());
-    await Effect.runPromise(
-      beta.engine.mutate({
+      yield* alpha.engine.mutate(saveNote('deleted-note', 'first'));
+      yield* alpha.engine.synchronize();
+      yield* beta.engine.synchronize();
+      yield* beta.engine.mutate({
         _tag: 'DeleteNote',
         noteId: noteId('deleted-note'),
-      }),
-    );
-    await Effect.runPromise(beta.engine.synchronize());
-    await Effect.runPromise(alpha.engine.synchronize());
+      });
+      yield* beta.engine.synchronize();
+      yield* alpha.engine.synchronize();
 
-    expect((await Effect.runPromise(alpha.store.note('deleted-note')))?.deletedAt).not.toBeNull();
+      expect((yield* alpha.store.note('deleted-note'))?.deletedAt).not.toBeNull();
 
-    await Effect.runPromise(alpha.engine.mutate(saveNote('deleted-note', 'restored')));
-    await Effect.runPromise(alpha.engine.synchronize());
-    await Effect.runPromise(beta.engine.synchronize());
+      yield* alpha.engine.mutate(saveNote('deleted-note', 'restored'));
+      yield* alpha.engine.synchronize();
+      yield* beta.engine.synchronize();
 
-    expect(await Effect.runPromise(alpha.store.note('deleted-note'))).toMatchObject({
-      content: 'restored',
-      deletedAt: null,
-    });
-    expect(await Effect.runPromise(beta.store.note('deleted-note'))).toMatchObject({
-      content: 'restored',
-      deletedAt: null,
-    });
-    await closeHarness(alpha);
-    await closeHarness(beta);
-  });
+      expect(yield* alpha.store.note('deleted-note')).toMatchObject({
+        content: 'restored',
+        deletedAt: null,
+      });
+      expect(yield* beta.store.note('deleted-note')).toMatchObject({
+        content: 'restored',
+        deletedAt: null,
+      });
+      yield* closeHarness(alpha);
+      yield* closeHarness(beta);
+    }));
 
-  test('persists reading preferences locally and converges them across clients', async () => {
-    const transport = makeSimulatedTransport();
-    const alpha = await makeHarness('preferences-alpha', transport);
-    const beta = await makeHarness('preferences-beta', transport);
+  test('persists reading preferences locally and converges them across clients', () =>
+    Effect.gen(function* () {
+      const transport = makeSimulatedTransport();
+      const alpha = yield* makeHarness('preferences-alpha', transport);
+      const beta = yield* makeHarness('preferences-beta', transport);
 
-    await Effect.runPromise(
-      alpha.engine.mutate({
+      yield* alpha.engine.mutate({
         _tag: 'SetReadingPreferences',
         preferences: darkReadingPreferences,
-      }),
-    );
+      });
 
-    expect(await Effect.runPromise(alpha.store.readingPreferences)).toEqual(darkReadingPreferences);
-    expect(alpha.published.at(-1)).toEqual({ scopes: [{ _tag: 'ReadingPreferences' }] });
+      expect(yield* alpha.store.readingPreferences).toEqual(darkReadingPreferences);
+      expect(alpha.published.at(-1)).toEqual({ scopes: [{ _tag: 'ReadingPreferences' }] });
 
-    await Effect.runPromise(alpha.engine.synchronize());
-    await Effect.runPromise(beta.engine.synchronize());
+      yield* alpha.engine.synchronize();
+      yield* beta.engine.synchronize();
 
-    expect(await Effect.runPromise(beta.store.readingPreferences)).toEqual(darkReadingPreferences);
-    await closeHarness(alpha);
-    await closeHarness(beta);
-  });
+      expect(yield* beta.store.readingPreferences).toEqual(darkReadingPreferences);
+      yield* closeHarness(alpha);
+      yield* closeHarness(beta);
+    }));
 
-  test('preserves user-authored cross-reference metadata locally and across clients', async () => {
-    const transport = makeSimulatedTransport();
-    const alpha = await makeHarness('reference-alpha', transport);
-    const beta = await makeHarness('reference-beta', transport);
-    const from = { source: 'bible' as const, resourceId: 'KJV', location: '/bible/43/3/16' };
+  test('preserves user-authored cross-reference metadata locally and across clients', () =>
+    Effect.gen(function* () {
+      const transport = makeSimulatedTransport();
+      const alpha = yield* makeHarness('reference-alpha', transport);
+      const beta = yield* makeHarness('reference-beta', transport);
+      const from = { source: 'bible' as const, resourceId: 'KJV', location: '/bible/43/3/16' };
 
-    await Effect.runPromise(
-      alpha.engine.mutate({
+      yield* alpha.engine.mutate({
         _tag: 'SaveUserCrossReference',
         id: libraryEntityId('reference-promise'),
         from,
@@ -240,234 +239,223 @@ describe('local-first sync protocol', () => {
         toEnd: { source: 'bible', resourceId: 'KJV', location: '/bible/1/3/16' },
         kind: 'promise',
         note: 'The first gospel promise.',
-      }),
-    );
+      });
 
-    expect(await Effect.runPromise(alpha.store.annotations(from))).toMatchObject({
-      crossReferences: [
-        {
-          id: 'reference-promise',
-          toEndLocation: '/bible/1/3/16',
-          kind: 'promise',
-          note: 'The first gospel promise.',
-        },
-      ],
-    });
+      expect(yield* alpha.store.annotations(from)).toMatchObject({
+        crossReferences: [
+          {
+            id: 'reference-promise',
+            toEndLocation: '/bible/1/3/16',
+            kind: 'promise',
+            note: 'The first gospel promise.',
+          },
+        ],
+      });
 
-    await Effect.runPromise(alpha.engine.synchronize());
-    await Effect.runPromise(beta.engine.synchronize());
+      yield* alpha.engine.synchronize();
+      yield* beta.engine.synchronize();
 
-    expect(await Effect.runPromise(beta.store.annotations(from))).toMatchObject({
-      crossReferences: [
-        {
-          id: 'reference-promise',
-          toEndLocation: '/bible/1/3/16',
-          kind: 'promise',
-          note: 'The first gospel promise.',
-        },
-      ],
-    });
-    await closeHarness(alpha);
-    await closeHarness(beta);
-  });
+      expect(yield* beta.store.annotations(from)).toMatchObject({
+        crossReferences: [
+          {
+            id: 'reference-promise',
+            toEndLocation: '/bible/1/3/16',
+            kind: 'promise',
+            note: 'The first gospel promise.',
+          },
+        ],
+      });
+      yield* closeHarness(alpha);
+      yield* closeHarness(beta);
+    }));
 
-  test('imports legacy mutations and diagnostics atomically with a last-written receipt', async () => {
-    const client = await makeHarness('migration-client', makeSimulatedTransport());
-    const sourceId = migrationSourceId('web-state-v1');
-    const batch: LegacyMigrationBatch = {
-      sourceId,
-      fingerprint: 'sha256:complete-fixture',
-      generation: 'user-state-v1-complete-fixture',
-      items: [
-        {
-          mutationId: mutationId('migration-note'),
-          command: saveNote('migrated-note', 'preserved'),
-          createdAt: timestamp('2026-07-19T00:00:01.000Z'),
-        },
-        {
-          mutationId: mutationId('migration-preferences'),
-          command: { _tag: 'SetReadingPreferences', preferences: darkReadingPreferences },
-          createdAt: timestamp('2026-07-19T00:00:02.000Z'),
-        },
-      ],
-      diagnostics: [
-        {
-          id: migrationDiagnosticId('diagnostic-overlay'),
-          path: 'cross_ref_classifications[0]',
-          category: 'discarded',
-          message: 'unattributed catalog overlay remains local-only',
-        },
-      ],
-      semanticCounts: [
-        { entity: 'notes', count: 1 },
-        { entity: 'reading-preferences', count: 1 },
-      ],
-      completedAt: timestamp('2026-07-19T00:00:03.000Z'),
-    };
-
-    const imported = await Effect.runPromise(client.store.importLegacy(batch));
-    const secondPass = await Effect.runPromise(client.store.importLegacy(batch));
-
-    expect(imported.imported).toBe(true);
-    expect(imported.receipt.mutationCount).toBe(2);
-    expect(imported.receipt.diagnosticCount).toBe(1);
-    expect(secondPass).toEqual({ imported: false, receipt: imported.receipt });
-    expect((await Effect.runPromise(client.store.note('migrated-note')))?.content).toBe(
-      'preserved',
-    );
-    expect(await Effect.runPromise(client.store.readingPreferences)).toEqual(
-      darkReadingPreferences,
-    );
-    expect(await Effect.runPromise(client.store.pending)).toHaveLength(2);
-    expect(await Effect.runPromise(client.store.migrationReceipt(sourceId))).toEqual(
-      imported.receipt,
-    );
-
-    const conflict = await Effect.runPromiseExit(
-      client.store.importLegacy({ ...batch, fingerprint: 'sha256:changed-source' }),
-    );
-    expect(conflict._tag).toBe('Failure');
-    await closeHarness(client);
-  });
-
-  test('rolls back materialized state and diagnostics when legacy import cannot finish', async () => {
-    const client = await makeHarness('migration-rollback', makeSimulatedTransport());
-    const sourceId = migrationSourceId('desktop-cache-v1');
-    const duplicateId = migrationDiagnosticId('duplicate-diagnostic');
-    const failed = await Effect.runPromiseExit(
-      client.store.importLegacy({
+  test('imports legacy mutations and diagnostics atomically with a last-written receipt', () =>
+    Effect.gen(function* () {
+      const client = yield* makeHarness('migration-client', makeSimulatedTransport());
+      const sourceId = migrationSourceId('web-state-v1');
+      const batch: LegacyMigrationBatch = {
         sourceId,
-        fingerprint: 'sha256:interrupted-fixture',
-        generation: 'user-state-v1-interrupted-fixture',
+        fingerprint: 'sha256:complete-fixture',
+        generation: 'user-state-v1-complete-fixture',
         items: [
           {
-            mutationId: mutationId('rollback-note'),
-            command: saveNote('rolled-back-note', 'must not survive'),
+            mutationId: mutationId('migration-note'),
+            command: saveNote('migrated-note', 'preserved'),
             createdAt: timestamp('2026-07-19T00:00:01.000Z'),
+          },
+          {
+            mutationId: mutationId('migration-preferences'),
+            command: { _tag: 'SetReadingPreferences', preferences: darkReadingPreferences },
+            createdAt: timestamp('2026-07-19T00:00:02.000Z'),
           },
         ],
         diagnostics: [
           {
-            id: duplicateId,
-            path: 'position',
-            category: 'malformed',
-            message: 'first diagnostic',
-          },
-          {
-            id: duplicateId,
-            path: 'position',
-            category: 'malformed',
-            message: 'duplicate forces rollback',
+            id: migrationDiagnosticId('diagnostic-overlay'),
+            path: 'cross_ref_classifications[0]',
+            category: 'discarded',
+            message: 'unattributed catalog overlay remains local-only',
           },
         ],
-        semanticCounts: [{ entity: 'notes', count: 1 }],
-        completedAt: timestamp('2026-07-19T00:00:02.000Z'),
-      }),
-    );
+        semanticCounts: [
+          { entity: 'notes', count: 1 },
+          { entity: 'reading-preferences', count: 1 },
+        ],
+        completedAt: timestamp('2026-07-19T00:00:03.000Z'),
+      };
 
-    expect(failed._tag).toBe('Failure');
-    expect(await Effect.runPromise(client.store.note('rolled-back-note'))).toBeUndefined();
-    expect(await Effect.runPromise(client.store.migrationReceipt(sourceId))).toBeUndefined();
-    expect(await Effect.runPromise(client.store.pending)).toEqual([]);
-    await closeHarness(client);
-  });
+      const imported = yield* client.store.importLegacy(batch);
+      const secondPass = yield* client.store.importLegacy(batch);
 
-  test('records reading continuity and history atomically and converges the latest route', async () => {
-    const transport = makeSimulatedTransport();
-    const alpha = await makeHarness('reading-alpha', transport);
-    const beta = await makeHarness('reading-beta', transport);
+      expect(imported.imported).toBe(true);
+      expect(imported.receipt.mutationCount).toBe(2);
+      expect(imported.receipt.diagnosticCount).toBe(1);
+      expect(secondPass).toEqual({ imported: false, receipt: imported.receipt });
+      expect((yield* client.store.note('migrated-note'))?.content).toBe('preserved');
+      expect(yield* client.store.readingPreferences).toEqual(darkReadingPreferences);
+      expect(yield* client.store.pending).toHaveLength(2);
+      expect(yield* client.store.migrationReceipt(sourceId)).toEqual(imported.receipt);
 
-    await Effect.runPromise(
-      alpha.engine.mutate({
+      const conflict = yield* Effect.exit(
+        client.store.importLegacy({ ...batch, fingerprint: 'sha256:changed-source' }),
+      );
+      expect(conflict._tag).toBe('Failure');
+      yield* closeHarness(client);
+    }));
+
+  test('rolls back materialized state and diagnostics when legacy import cannot finish', () =>
+    Effect.gen(function* () {
+      const client = yield* makeHarness('migration-rollback', makeSimulatedTransport());
+      const sourceId = migrationSourceId('desktop-cache-v1');
+      const duplicateId = migrationDiagnosticId('duplicate-diagnostic');
+      const failed = yield* Effect.exit(
+        client.store.importLegacy({
+          sourceId,
+          fingerprint: 'sha256:interrupted-fixture',
+          generation: 'user-state-v1-interrupted-fixture',
+          items: [
+            {
+              mutationId: mutationId('rollback-note'),
+              command: saveNote('rolled-back-note', 'must not survive'),
+              createdAt: timestamp('2026-07-19T00:00:01.000Z'),
+            },
+          ],
+          diagnostics: [
+            {
+              id: duplicateId,
+              path: 'position',
+              category: 'malformed',
+              message: 'first diagnostic',
+            },
+            {
+              id: duplicateId,
+              path: 'position',
+              category: 'malformed',
+              message: 'duplicate forces rollback',
+            },
+          ],
+          semanticCounts: [{ entity: 'notes', count: 1 }],
+          completedAt: timestamp('2026-07-19T00:00:02.000Z'),
+        }),
+      );
+
+      expect(failed._tag).toBe('Failure');
+      expect(yield* client.store.note('rolled-back-note')).toBeUndefined();
+      expect(yield* client.store.migrationReceipt(sourceId)).toBeUndefined();
+      expect(yield* client.store.pending).toEqual([]);
+      yield* closeHarness(client);
+    }));
+
+  test('records reading continuity and history atomically and converges the latest route', () =>
+    Effect.gen(function* () {
+      const transport = makeSimulatedTransport();
+      const alpha = yield* makeHarness('reading-alpha', transport);
+      const beta = yield* makeHarness('reading-beta', transport);
+
+      yield* alpha.engine.mutate({
         _tag: 'RecordReading',
         historyId: libraryEntityId('history-genesis'),
         location: { source: 'bible', resourceId: 'KJV', location: '/bible/1/1' },
         progress: 0,
         readAt: timestamp('2026-07-19T00:00:01.000Z'),
-      }),
-    );
-    await Effect.runPromise(
-      alpha.engine.mutate({
+      });
+      yield* alpha.engine.mutate({
         _tag: 'RecordReading',
         historyId: libraryEntityId('history-john'),
         location: { source: 'bible', resourceId: 'KJV', location: '/bible/43/3/16' },
         progress: 0,
         readAt: timestamp('2026-07-19T00:00:02.000Z'),
-      }),
-    );
+      });
 
-    expect(await Effect.runPromise(alpha.store.latestReading)).toEqual({
-      source: 'bible',
-      resourceId: 'KJV',
-      location: '/bible/43/3/16',
-    });
-    expect(alpha.published.at(-1)).toEqual({ scopes: [{ _tag: 'ReadingContinuity' }] });
+      expect(yield* alpha.store.latestReading).toEqual({
+        source: 'bible',
+        resourceId: 'KJV',
+        location: '/bible/43/3/16',
+      });
+      expect(alpha.published.at(-1)).toEqual({ scopes: [{ _tag: 'ReadingContinuity' }] });
 
-    await Effect.runPromise(alpha.engine.synchronize());
-    await Effect.runPromise(beta.engine.synchronize());
-    expect(await Effect.runPromise(beta.store.latestReading)).toEqual({
-      source: 'bible',
-      resourceId: 'KJV',
-      location: '/bible/43/3/16',
-    });
+      yield* alpha.engine.synchronize();
+      yield* beta.engine.synchronize();
+      expect(yield* beta.store.latestReading).toEqual({
+        source: 'bible',
+        resourceId: 'KJV',
+        location: '/bible/43/3/16',
+      });
 
-    await closeHarness(alpha);
-    await closeHarness(beta);
-  });
+      yield* closeHarness(alpha);
+      yield* closeHarness(beta);
+    }));
 
-  test('lists active annotations and converges bookmark deletion', async () => {
-    const transport = makeSimulatedTransport();
-    const alpha = await makeHarness('bookmark-alpha', transport);
-    const beta = await makeHarness('bookmark-beta', transport);
-    const location = { source: 'bible' as const, resourceId: 'KJV', location: 'John.3.16' };
+  test('lists active annotations and converges bookmark deletion', () =>
+    Effect.gen(function* () {
+      const transport = makeSimulatedTransport();
+      const alpha = yield* makeHarness('bookmark-alpha', transport);
+      const beta = yield* makeHarness('bookmark-beta', transport);
+      const location = { source: 'bible' as const, resourceId: 'KJV', location: 'John.3.16' };
 
-    await Effect.runPromise(
-      alpha.engine.mutate({
+      yield* alpha.engine.mutate({
         _tag: 'SaveBookmark',
         id: 'bookmark-john-3-16',
         location,
         label: 'The gospel in miniature',
-      }),
-    );
+      });
 
-    expect(await Effect.runPromise(alpha.store.annotations(location))).toMatchObject({
-      bookmarks: [
-        {
-          id: 'bookmark-john-3-16',
-          source: 'bible',
-          resourceId: 'KJV',
-          location: 'John.3.16',
-          label: 'The gospel in miniature',
-        },
-      ],
-      notes: [],
-      markers: [],
-      crossReferences: [],
-    });
+      expect(yield* alpha.store.annotations(location)).toMatchObject({
+        bookmarks: [
+          {
+            id: 'bookmark-john-3-16',
+            source: 'bible',
+            resourceId: 'KJV',
+            location: 'John.3.16',
+            label: 'The gospel in miniature',
+          },
+        ],
+        notes: [],
+        markers: [],
+        crossReferences: [],
+      });
 
-    await Effect.runPromise(alpha.engine.synchronize());
-    await Effect.runPromise(beta.engine.synchronize());
-    expect((await Effect.runPromise(beta.store.annotations(location))).bookmarks).toHaveLength(1);
+      yield* alpha.engine.synchronize();
+      yield* beta.engine.synchronize();
+      expect((yield* beta.store.annotations(location)).bookmarks).toHaveLength(1);
 
-    await Effect.runPromise(
-      alpha.engine.mutate({ _tag: 'DeleteBookmark', id: 'bookmark-john-3-16' }),
-    );
-    await Effect.runPromise(alpha.engine.synchronize());
-    await Effect.runPromise(beta.engine.synchronize());
+      yield* alpha.engine.mutate({ _tag: 'DeleteBookmark', id: 'bookmark-john-3-16' });
+      yield* alpha.engine.synchronize();
+      yield* beta.engine.synchronize();
 
-    expect((await Effect.runPromise(alpha.store.annotations(location))).bookmarks).toEqual([]);
-    expect((await Effect.runPromise(beta.store.annotations(location))).bookmarks).toEqual([]);
-    await closeHarness(alpha);
-    await closeHarness(beta);
-  });
+      expect((yield* alpha.store.annotations(location)).bookmarks).toEqual([]);
+      expect((yield* beta.store.annotations(location)).bookmarks).toEqual([]);
+      yield* closeHarness(alpha);
+      yield* closeHarness(beta);
+    }));
 
-  test('persists reading-plan progress and converges its structural definition', async () => {
-    const transport = makeSimulatedTransport();
-    const alpha = await makeHarness('plan-alpha', transport);
-    const beta = await makeHarness('plan-beta', transport);
+  test('persists reading-plan progress and converges its structural definition', () =>
+    Effect.gen(function* () {
+      const transport = makeSimulatedTransport();
+      const alpha = yield* makeHarness('plan-alpha', transport);
+      const beta = yield* makeHarness('plan-beta', transport);
 
-    await Effect.runPromise(
-      alpha.engine.mutate({
+      yield* alpha.engine.mutate({
         _tag: 'SaveReadingPlan',
         id: 'plan-gospel-of-john',
         title: 'The Gospel of John',
@@ -480,39 +468,35 @@ describe('local-first sync protocol', () => {
             endRoute: '/bible/43/3',
           },
         ],
-      }),
-    );
-    await Effect.runPromise(
-      alpha.engine.mutate({
+      });
+      yield* alpha.engine.mutate({
         _tag: 'SetReadingPlanProgress',
         planId: 'plan-gospel-of-john',
         stepId: 'john-1',
         completedAt: '2026-07-19T00:05:00.000Z',
-      }),
-    );
+      });
 
-    expect(await Effect.runPromise(alpha.store.readingPlans)).toMatchObject([
-      {
-        id: 'plan-gospel-of-john',
-        steps: [{ id: 'john-1', route: '/bible/43/1', endRoute: '/bible/43/3' }],
-        progress: [{ stepId: 'john-1', completedAt: '2026-07-19T00:05:00.000Z' }],
-      },
-    ]);
+      expect(yield* alpha.store.readingPlans).toMatchObject([
+        {
+          id: 'plan-gospel-of-john',
+          steps: [{ id: 'john-1', route: '/bible/43/1', endRoute: '/bible/43/3' }],
+          progress: [{ stepId: 'john-1', completedAt: '2026-07-19T00:05:00.000Z' }],
+        },
+      ]);
 
-    await Effect.runPromise(alpha.engine.synchronize());
-    await Effect.runPromise(beta.engine.synchronize());
-    expect(await Effect.runPromise(beta.store.readingPlans)).toEqual(
-      await Effect.runPromise(alpha.store.readingPlans),
-    );
-    await closeHarness(alpha);
-    await closeHarness(beta);
-  });
+      yield* alpha.engine.synchronize();
+      yield* beta.engine.synchronize();
+      const alphaPlans = yield* alpha.store.readingPlans;
+      expect(yield* beta.store.readingPlans).toEqual(alphaPlans);
+      yield* closeHarness(alpha);
+      yield* closeHarness(beta);
+    }));
 
-  test('preserves a memory verse range through storage and library backup', async () => {
-    const client = await makeHarness('memory-range', makeSimulatedTransport());
+  test('preserves a memory verse range through storage and library backup', () =>
+    Effect.gen(function* () {
+      const client = yield* makeHarness('memory-range', makeSimulatedTransport());
 
-    await Effect.runPromise(
-      client.engine.mutate({
+      yield* client.engine.mutate({
         _tag: 'SaveMemoryVerse',
         id: 'memory-john-3',
         resourceId: 'KJV',
@@ -521,43 +505,36 @@ describe('local-first sync protocol', () => {
         prompt: null,
         nextPracticeAt: null,
         intervalDays: 0,
-      }),
-    );
+      });
 
-    expect(await Effect.runPromise(client.store.memoryPractice)).toMatchObject({
-      verses: [
-        {
-          id: 'memory-john-3',
-          location: '/bible/43/3/16',
-          endLocation: '/bible/43/3/18',
+      expect(yield* client.store.memoryPractice).toMatchObject({
+        verses: [
+          {
+            id: 'memory-john-3',
+            location: '/bible/43/3/16',
+            endLocation: '/bible/43/3/18',
+          },
+        ],
+      });
+      expect(yield* client.store.libraryBackup(timestamp('backup-time'))).toMatchObject({
+        memoryPractice: {
+          verses: [{ endLocation: '/bible/43/3/18' }],
         },
-      ],
-    });
-    expect(
-      await Effect.runPromise(client.store.libraryBackup(timestamp('backup-time'))),
-    ).toMatchObject({
-      memoryPractice: {
-        verses: [{ endLocation: '/bible/43/3/18' }],
-      },
-    });
-    await closeHarness(client);
-  });
+      });
+      yield* closeHarness(client);
+    }));
 
-  scopedTest('recovers the journal and next device sequence after a database restart', () =>
+  test('recovers the journal and next device sequence after a database restart', () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const directory = yield* fs.makeTempDirectoryScoped({ prefix: 'bible-local-first-' });
       const transport = makeSimulatedTransport();
       const filename = `${directory}/restart.sqlite`;
-      const first = yield* Effect.tryPromise(() =>
-        makeHarness('restart-client', transport, filename),
-      );
+      const first = yield* makeHarness('restart-client', transport, filename);
       const firstEnvelope = yield* first.engine.mutate(saveNote('restart-note-1', 'one'));
       yield* first.database.close;
 
-      const reopened = yield* Effect.tryPromise(() =>
-        makeHarness('restart-client', transport, filename, 2),
-      );
+      const reopened = yield* makeHarness('restart-client', transport, filename, 2);
       const recovered = yield* reopened.store.pending;
       const secondEnvelope = yield* reopened.engine.mutate(saveNote('restart-note-2', 'two'));
 
@@ -566,47 +543,46 @@ describe('local-first sync protocol', () => {
       yield* reopened.engine.synchronize();
       expect(transport.acceptedCount()).toBe(2);
       yield* reopened.database.close;
-    }),
-  );
+    }));
 
-  test('validates commands before opening a mutation transaction', async () => {
-    const transport = makeSimulatedTransport();
-    const client = await makeHarness('decode-client', transport);
+  test('validates commands before opening a mutation transaction', () =>
+    Effect.gen(function* () {
+      const transport = makeSimulatedTransport();
+      const client = yield* makeHarness('decode-client', transport);
 
-    const invalid = await Effect.runPromiseExit(
-      client.engine.mutate({ _tag: 'SaveNote', noteId: '', content: 42 }),
-    );
+      const invalid = yield* Effect.exit(
+        client.engine.mutate({ _tag: 'SaveNote', noteId: '', content: 42 }),
+      );
 
-    expect(invalid._tag).toBe('Failure');
-    expect(await Effect.runPromise(client.store.pending)).toEqual([]);
-    await closeHarness(client);
-  });
+      expect(invalid._tag).toBe('Failure');
+      expect(yield* client.store.pending).toEqual([]);
+      yield* closeHarness(client);
+    }));
 
-  test('commits materialized state and its journal envelope atomically', async () => {
-    const transport = makeSimulatedTransport();
-    const client = await makeHarness('atomic-client', transport);
-    const id = mutationId('atomic-mutation');
+  test('commits materialized state and its journal envelope atomically', () =>
+    Effect.gen(function* () {
+      const transport = makeSimulatedTransport();
+      const client = yield* makeHarness('atomic-client', transport);
+      const id = mutationId('atomic-mutation');
 
-    await Effect.runPromise(
-      client.store.mutate({
+      yield* client.store.mutate({
         clientId: clientId('atomic-client'),
         mutationId: id,
         command: saveNote('atomic-note', 'committed'),
         createdAt: timestamp('2026-07-19T00:00:01.000Z'),
-      }),
-    );
-    const duplicate = await Effect.runPromiseExit(
-      client.store.mutate({
-        clientId: clientId('atomic-client'),
-        mutationId: id,
-        command: saveNote('atomic-note', 'must roll back'),
-        createdAt: timestamp('2026-07-19T00:00:02.000Z'),
-      }),
-    );
+      });
+      const duplicate = yield* Effect.exit(
+        client.store.mutate({
+          clientId: clientId('atomic-client'),
+          mutationId: id,
+          command: saveNote('atomic-note', 'must roll back'),
+          createdAt: timestamp('2026-07-19T00:00:02.000Z'),
+        }),
+      );
 
-    expect(duplicate._tag).toBe('Failure');
-    expect((await Effect.runPromise(client.store.note('atomic-note')))?.content).toBe('committed');
-    expect(await Effect.runPromise(client.store.pending)).toHaveLength(1);
-    await closeHarness(client);
-  });
+      expect(duplicate._tag).toBe('Failure');
+      expect((yield* client.store.note('atomic-note'))?.content).toBe('committed');
+      expect(yield* client.store.pending).toHaveLength(1);
+      yield* closeHarness(client);
+    }));
 });

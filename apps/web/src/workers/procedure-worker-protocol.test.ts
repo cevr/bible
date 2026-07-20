@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, it } from 'effect-bun-test';
 import { Effect } from 'effect';
 
 import {
@@ -9,45 +9,69 @@ import {
 } from './procedure-worker-protocol.js';
 
 describe('procedure worker bootstrap', () => {
-  test('transfers procedure and readiness ports without entering the legacy protocol', async () => {
-    let message: ProcedureWorkerConnect | undefined;
-    let transferred: Transferable[] = [];
-    const worker: ProcedureWorkerEndpoint = {
-      postMessage: (nextMessage, transfer) => {
-        message = nextMessage;
-        transferred = transfer;
-      },
-    };
+  it.scoped('transfers procedure and readiness ports without entering the legacy protocol', () =>
+    Effect.gen(function* () {
+      let message: ProcedureWorkerConnect | undefined;
+      let transferred: Transferable[] = [];
+      const worker: ProcedureWorkerEndpoint = {
+        postMessage: (nextMessage, transfer) => {
+          message = nextMessage;
+          transferred = transfer;
+        },
+      };
 
-    const connection = connectProcedureWorker(worker);
+      const connection = connectProcedureWorker(worker);
+      yield* Effect.addFinalizer(() =>
+        Effect.sync(() => {
+          connection.port.close();
+          for (const transferable of transferred)
+            if (transferable instanceof MessagePort) transferable.close();
+        }),
+      );
 
-    expect(message).toEqual({ type: 'procedure-connect' });
-    expect(transferred).toHaveLength(2);
-    expect(transferred[0]).toBeInstanceOf(MessagePort);
-    expect(transferred[1]).toBeInstanceOf(MessagePort);
-    if (transferred[1] instanceof MessagePort) transferred[1].postMessage({ type: 'ready' });
-    await Effect.runPromise(connection.ready);
-    connection.port.close();
-    if (transferred[0] instanceof MessagePort) transferred[0].close();
-    if (transferred[1] instanceof MessagePort) transferred[1].close();
-  });
+      expect(message).toEqual({ type: 'procedure-connect' });
+      expect(transferred).toHaveLength(2);
+      expect(transferred[0]).toBeInstanceOf(MessagePort);
+      expect(transferred[1]).toBeInstanceOf(MessagePort);
+      if (transferred[1] instanceof MessagePort) transferred[1].postMessage({ type: 'ready' });
+      yield* connection.ready;
+    }),
+  );
 
-  test('rejects malformed bootstrap messages', () => {
-    expect(() => decodeProcedureWorkerConnect({ type: 'init' })).toThrow();
-  });
+  it.effect('rejects malformed bootstrap messages', () =>
+    Effect.gen(function* () {
+      const failure = yield* Effect.flip(
+        Effect.try(() => decodeProcedureWorkerConnect({ type: 'init' })),
+      );
 
-  test('rejects startup when the worker reports a persistent runtime failure', async () => {
-    const worker: ProcedureWorkerEndpoint = {
-      postMessage: (_message, transfer) => {
-        const readinessPort = transfer[1];
-        if (!(readinessPort instanceof MessagePort)) throw new TypeError('expected readiness port');
-        readinessPort.postMessage({ type: 'failed', message: 'database unavailable' });
-      },
-    };
+      expect(failure).toBeDefined();
+    }),
+  );
 
-    const connection = connectProcedureWorker(worker);
-    const failure = await Effect.runPromise(Effect.flip(connection.ready));
-    expect(failure.message).toBe('database unavailable');
-    connection.port.close();
-  });
+  it.scoped('rejects startup when the worker reports a persistent runtime failure', () =>
+    Effect.gen(function* () {
+      let transferred: Transferable[] = [];
+      const worker: ProcedureWorkerEndpoint = {
+        postMessage: (_message, transfer) => {
+          transferred = transfer;
+        },
+      };
+
+      const connection = connectProcedureWorker(worker);
+      yield* Effect.addFinalizer(() =>
+        Effect.sync(() => {
+          connection.port.close();
+          for (const transferable of transferred)
+            if (transferable instanceof MessagePort) transferable.close();
+        }),
+      );
+      const readinessPort = transferred[1];
+      if (!(readinessPort instanceof MessagePort))
+        return yield* Effect.die('expected readiness port');
+      readinessPort.postMessage({ type: 'failed', message: 'database unavailable' });
+
+      const failure = yield* Effect.flip(connection.ready);
+      expect(failure.message).toBe('database unavailable');
+    }),
+  );
 });
