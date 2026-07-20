@@ -1,5 +1,5 @@
-import { describe, expect, test } from 'bun:test';
 import { Effect, Layer, Option, Stream } from 'effect';
+import { describe, expect, it } from 'effect-bun-test';
 
 import { EGWParagraphDatabase } from '../egw-db/book-database.js';
 import { EGWApiClient, type EGWApiClientService } from '../egw/client.js';
@@ -72,33 +72,33 @@ const api: EGWApiClientService = {
 };
 
 describe('direct EGW Writings asset source', () => {
-  test('coerces a complete provider publication before installation', async () => {
-    const installed: PublicationArchive[] = [];
-    const database = EGWParagraphDatabase.Test({
-      needsSync: () => true,
-      installPublicationArchive: (archive) => {
-        installed.push(archive);
-        return archive.paragraphs.length;
-      },
-    });
-    const source = layerEgwWritingsAssetSource.pipe(
-      Layer.provide(Layer.succeed(EGWApiClient, EGWApiClient.of(api))),
-    );
-    const layer = CorpusSupply.layer.pipe(Layer.provide(source), Layer.provide(database));
+  it.effect('coerces a complete provider publication before installation', () =>
+    Effect.gen(function* () {
+      const installed: PublicationArchive[] = [];
+      const database = EGWParagraphDatabase.Test({
+        needsSync: () => true,
+        installPublicationArchive: (archive) => {
+          installed.push(archive);
+          return archive.paragraphs.length;
+        },
+      });
+      const source = layerEgwWritingsAssetSource.pipe(
+        Layer.provide(Layer.succeed(EGWApiClient, EGWApiClient.of(api))),
+      );
+      const layer = CorpusSupply.layer.pipe(Layer.provide(source), Layer.provide(database));
 
-    await Effect.runPromise(
-      Effect.flatMap(CorpusSupply, (supply) =>
+      yield* Effect.flatMap(CorpusSupply, (supply) =>
         supply.ensure({ target: Target.writings([publicationId(127)]), refresh: true }),
-      ).pipe(Effect.provide(layer)),
-    );
+      ).pipe(Effect.provide(layer));
 
-    expect(installed).toHaveLength(1);
-    expect(String(installed[0]?.paragraphs[0]?.paragraph.reference.paragraphId)).toBe('pp-1-1');
-    expect(installed[0]?.bibleReferences[0]?.scripture).toMatchObject({
-      _tag: 'verse',
-      book: 1,
-      chapter: 1,
-      verse: 1,
-    });
-  });
+      expect(installed).toHaveLength(1);
+      expect(String(installed[0]?.paragraphs[0]?.paragraph.reference.paragraphId)).toBe('pp-1-1');
+      expect(installed[0]?.bibleReferences[0]?.scripture).toMatchObject({
+        _tag: 'verse',
+        book: 1,
+        chapter: 1,
+        verse: 1,
+      });
+    }),
+  );
 });

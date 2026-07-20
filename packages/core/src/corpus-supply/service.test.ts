@@ -1,5 +1,5 @@
-import { describe, expect, test } from 'bun:test';
-import { Effect, Layer, Option, Result, Stream } from 'effect';
+import { Effect, Layer, Option, Stream } from 'effect';
+import { describe, expect, it } from 'effect-bun-test';
 
 import { EGWParagraphDatabase } from '../egw-db/book-database.js';
 import { ArchivedParagraph, PublicationArchive } from '../writings/archive.js';
@@ -95,55 +95,56 @@ const makeLayer = (options: {
 };
 
 describe('CorpusSupply', () => {
-  test('treats omitted and explicit empty inputs as the same Bootstrap request', async () => {
-    const layer = makeLayer({ needsSync: true });
-    const [omitted, empty] = await Effect.runPromise(
-      Effect.gen(function* () {
+  it.effect('treats omitted and explicit empty inputs as the same Bootstrap request', () =>
+    Effect.gen(function* () {
+      const layer = makeLayer({ needsSync: true });
+      const [omitted, empty] = yield* Effect.gen(function* () {
         const supply = yield* CorpusSupply;
         return [yield* supply.ensure(), yield* supply.ensure({})] as const;
-      }).pipe(Effect.provide(layer)),
-    );
+      }).pipe(Effect.provide(layer));
 
-    expect(empty).toEqual(omitted);
-    expect(omitted.activated).toHaveLength(1);
-    expect(omitted.activated[0]?.corpus).toBe('bible');
-    expect(omitted.skipped).toEqual([]);
-  });
+      expect(empty).toEqual(omitted);
+      expect(omitted.activated).toHaveLength(1);
+      expect(omitted.activated[0]?.corpus).toBe('bible');
+      expect(omitted.skipped).toEqual([]);
+    }),
+  );
 
-  test('revalidates installed Provenance and skips an identical Contribution', async () => {
-    let catalogCalls = 0;
-    let acquireCalls = 0;
-    const layer = makeLayer({
-      needsSync: false,
-      onCatalog: () => catalogCalls++,
-      onAcquire: () => acquireCalls++,
-    });
-    const [current, refreshed] = await Effect.runPromise(
-      Effect.gen(function* () {
+  it.effect('revalidates installed Provenance and skips an identical Contribution', () =>
+    Effect.gen(function* () {
+      let catalogCalls = 0;
+      let acquireCalls = 0;
+      const layer = makeLayer({
+        needsSync: false,
+        onCatalog: () => catalogCalls++,
+        onAcquire: () => acquireCalls++,
+      });
+      const [current, refreshed] = yield* Effect.gen(function* () {
         const supply = yield* CorpusSupply;
         const target = Target.writings([id]);
         return [
           yield* supply.ensure({ target }),
           yield* supply.ensure({ target, refresh: true }),
         ] as const;
-      }).pipe(Effect.provide(layer)),
-    );
+      }).pipe(Effect.provide(layer));
 
-    expect(current.skipped).toEqual([id]);
-    expect(refreshed.skipped).toEqual([id]);
-    expect(catalogCalls).toBe(0);
-    expect(acquireCalls).toBe(2);
-  });
+      expect(current.skipped).toEqual([id]);
+      expect(refreshed.skipped).toEqual([id]);
+      expect(catalogCalls).toBe(0);
+      expect(acquireCalls).toBe(2);
+    }),
+  );
 
-  test('reports an unavailable recipe instead of partially bootstrapping Bible assets', async () => {
-    const result = await Effect.runPromise(
-      Effect.gen(function* () {
-        const supply = yield* CorpusSupply;
-        return yield* Effect.result(supply.ensure({ target: Target.bible() }));
-      }).pipe(Effect.provide(makeLayer({ needsSync: true, includeBible: false }))),
-    );
+  it.effect('reports an unavailable recipe instead of partially bootstrapping Bible assets', () =>
+    Effect.gen(function* () {
+      const failure = yield* Effect.flip(
+        Effect.gen(function* () {
+          const supply = yield* CorpusSupply;
+          return yield* supply.ensure({ target: Target.bible() });
+        }).pipe(Effect.provide(makeLayer({ needsSync: true, includeBible: false }))),
+      );
 
-    expect(Result.isFailure(result)).toBe(true);
-    if (Result.isFailure(result)) expect(result.failure._tag).toBe('CorpusRecipeUnavailableError');
-  });
+      expect(failure._tag).toBe('CorpusRecipeUnavailableError');
+    }),
+  );
 });
