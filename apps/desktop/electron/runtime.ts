@@ -1,5 +1,10 @@
 import { BibleCorpus, BibleDatabase } from '@bible/core/bible-db';
 import { BibleService } from '@bible/core/bible/service';
+import {
+  CorpusSupply,
+  layerEgwWritingsAssetSource,
+  layerWritingsLibraryRuntime,
+} from '@bible/core/corpus-supply';
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
 import { EGWApiClient, EGWAuth } from '@bible/core/egw';
 import { LibraryEntityId } from '@bible/core/library-state';
@@ -25,7 +30,6 @@ import { Layer, ManagedRuntime, Schema } from 'effect';
 import type { Effect as EffectNs } from 'effect';
 
 import { layerDesktopProcedureDependencies } from './local-procedure-runtime.js';
-import { layerDesktopWritingsLibrary } from './writings-library-runtime.js';
 
 /**
  * Main-process Effect runtime. Hosts:
@@ -81,9 +85,15 @@ export const makeRuntime = (
     Layer.provide(auth),
     Layer.provide(NodeHttpClient.layerNodeHttp),
   );
-  const writingsLibrary = layerDesktopWritingsLibrary.pipe(
+  const writingsSource = layerEgwWritingsAssetSource.pipe(Layer.provide(api));
+  const corpusSupply = CorpusSupply.layer.pipe(
+    Layer.provide(writingsSource),
     Layer.provide(writings),
-    Layer.provide(api),
+  );
+  const writingsLibrary = layerWritingsLibraryRuntime.pipe(
+    Layer.provide(writingsSource),
+    Layer.provide(writings),
+    Layer.provide(corpusSupply),
     Layer.orDie,
   );
   const bible = bibleDbLayer(bibleDbFile);

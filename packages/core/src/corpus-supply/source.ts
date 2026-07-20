@@ -1,4 +1,4 @@
-import { Context } from 'effect';
+import { Context, Layer } from 'effect';
 import type { Effect } from 'effect';
 
 import type { Publication, PublicationId } from '../writings/model.js';
@@ -19,3 +19,8 @@ export class WritingsAssetSource extends Context.Service<
   WritingsAssetSource,
   WritingsAssetSourceShape
 >()('@bible/core/corpus-supply/WritingsAssetSource') {}
+
+export const layerWritingsAssetSource = (
+  source: WritingsAssetSourceShape,
+): Layer.Layer<WritingsAssetSource> =>
+  Layer.succeed(WritingsAssetSource, WritingsAssetSource.of(source));

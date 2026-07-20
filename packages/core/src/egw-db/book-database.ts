@@ -1133,6 +1133,7 @@ export class EGWParagraphDatabase extends Context.Service<
       books?: readonly BookRow[];
       paragraphs?: readonly (EGWSchemas.Paragraph & { bookCode: string })[];
       bibleRefs?: readonly BibleRefRow[];
+      syncStatuses?: readonly SyncStatusRow[];
       installPublicationArchive?: (archive: PublicationArchive) => number;
       needsSync?: (bookId: number) => boolean;
     } = {},
@@ -1300,9 +1301,13 @@ export class EGWParagraphDatabase extends Context.Service<
       },
       getBibleVersesWithCommentary: () => Effect.succeed([]),
       setSyncStatus: () => Effect.void,
-      getSyncStatus: () => Effect.succeed(Option.none()),
-      getBooksByStatus: () => Effect.succeed([]),
-      getAllSyncStatus: () => Effect.succeed([]),
+      getSyncStatus: (bookId) =>
+        Effect.succeed(
+          Option.fromNullishOr(config.syncStatuses?.find((row) => row.book_id === bookId)),
+        ),
+      getBooksByStatus: (status) =>
+        Effect.succeed(config.syncStatuses?.filter((row) => row.status === status) ?? []),
+      getAllSyncStatus: () => Effect.succeed(config.syncStatuses ?? []),
       needsSync: (bookId) => Effect.succeed(config.needsSync?.(bookId) ?? true),
       rebuildFtsIndex: () => Effect.void,
       backfillBibleRefs: () => Effect.succeed({ scanned: 0, inserted: 0 }),

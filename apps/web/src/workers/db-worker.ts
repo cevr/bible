@@ -17,7 +17,7 @@ import {
   type DatabaseFileDownloader,
   type IndexedDbImportVfs,
 } from './database-file-downloader.js';
-import { makeWorkerEgwDatabase } from './egw-database.js';
+import { initializeWritingsDatabase } from './initialize-writings-database.js';
 import {
   decodeProcedureWorkerConnect,
   type ProcedureWorkerConnect,
@@ -118,7 +118,6 @@ const initializeDatabases = async (): Promise<void> => {
   log('[web.runtime] sqlite-loading state=started');
   const { sqlite3, vfsName, vfs, downloader } = await initializeSqlite();
   const writingsSqlite = makeSqliteDatabase(sqlite3, 'egw-paragraphs.db', vfsName);
-  const writings = makeWorkerEgwDatabase({ database: writingsSqlite, downloader, log });
   const bibleSqlite = makeSqliteDatabase(sqlite3, 'bible.db', vfsName);
   const bible = makeWorkerBibleDatabase({ database: bibleSqlite, downloader });
 
@@ -126,7 +125,7 @@ const initializeDatabases = async (): Promise<void> => {
     log(`[web.bible] download-progress progress=${String(progress)}`);
   });
   try {
-    await writings.initialize();
+    await initializeWritingsDatabase(writingsSqlite);
   } catch (cause) {
     console.warn(`[web.writings] unavailable category=${failureCategory(cause)}`);
   }
@@ -144,7 +143,7 @@ const initializeDatabases = async (): Promise<void> => {
   procedureServer = {
     bibleDatabase: bibleSqlite,
     writingsDatabase: writingsSqlite,
-    writingsLibrary: writings,
+    writingsFetch: globalThis.fetch,
     runtime: {
       clientId: localClientId,
       store: userState.store,
@@ -158,21 +157,6 @@ const initializeDatabases = async (): Promise<void> => {
     },
   };
   log('[web.runtime] persistence-ready state=ready');
-
-  void writings
-    .autoSyncBibleCommentaries({
-      onProgress: ({ bookCode, progress }) =>
-        log(`[web.writings] sync-progress book=${bookCode} progress=${String(progress)}`),
-      onComplete: (bookCode, count) =>
-        log(`[web.writings] sync-complete book=${bookCode} paragraphs=${String(count)}`),
-      onError: (bookCode, error) =>
-        console.warn(
-          `[web.writings] sync-failed book=${bookCode} category=${failureCategory(error)}`,
-        ),
-    })
-    .catch((cause: unknown) => {
-      console.warn(`[web.writings] auto-sync-failed category=${failureCategory(cause)}`);
-    });
 };
 
 const ensureInitialized = (): Promise<void> => {
