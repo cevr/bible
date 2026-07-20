@@ -2,6 +2,7 @@ import { EGWApiClient, type Schemas as EGWSchemas } from '@bible/core/egw';
 import { Console, Effect, Stream } from 'effect';
 import { Command, Flag } from 'effect/unstable/cli';
 
+import { encodeJson } from './format.js';
 import { FullLayer } from './layers.js';
 
 const catalogLang = Flag.string('lang').pipe(
@@ -39,27 +40,26 @@ export const egwCatalog = Command.make(
     Effect.gen(function* () {
       const client = yield* EGWApiClient;
 
-      const params: Partial<EGWSchemas.BooksQueryParams> = {
+      let params: Partial<EGWSchemas.BooksQueryParams> = {
         lang: args.lang,
         limit: args.limit,
-        ...(args.search._tag === 'Some' ? { search: args.search.value } : {}),
       };
+      if (args.search._tag === 'Some') {
+        params = { ...params, search: args.search.value };
+      }
 
       const stream = client.getBooks(params);
       const collected = yield* stream.pipe(Stream.take(args.limit), Stream.runCollect);
 
       const books = [...collected];
-      const filtered =
-        args.author._tag === 'Some'
-          ? books.filter((b) =>
-              b.author
-                .toLowerCase()
-                .includes(args.author._tag === 'Some' ? args.author.value.toLowerCase() : ''),
-            )
-          : books;
+      let filtered = books;
+      if (args.author._tag === 'Some') {
+        const authorFilter = args.author.value.toLowerCase();
+        filtered = books.filter((book) => book.author.toLowerCase().includes(authorFilter));
+      }
 
       if (args.json) {
-        yield* Console.log(JSON.stringify(filtered, null, 2));
+        yield* Console.log(yield* encodeJson(filtered));
         return;
       }
 
@@ -74,7 +74,11 @@ export const egwCatalog = Command.make(
       for (const b of filtered) {
         const code = b.code.padEnd(10);
         const id = String(b.book_id).padEnd(6);
-        const author = (b.author.length > 31 ? b.author.slice(0, 28) + '…' : b.author).padEnd(31);
+        let author = b.author;
+        if (author.length > 31) {
+          author = `${author.slice(0, 28)}…`;
+        }
+        author = author.padEnd(31);
         yield* Console.log(`${code} | ${id} | ${author} | ${b.title}`);
       }
       yield* Console.log(

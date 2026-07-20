@@ -4,16 +4,16 @@ import { WritingsService } from '@bible/core/writings/service';
 import { Console, Effect } from 'effect';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
 
-import { formatLocalSearchResult, formatRemoteHit, searchHitJson } from './format.js';
+import { encodeJson, formatLocalSearchResult, formatRemoteHit, searchHitJson } from './format.js';
 import { FullLayer, ServiceLayer } from './layers.js';
 
 export const localSearch = (query: string, bookCode?: string, limit = 20) =>
   Effect.gen(function* () {
     const service = yield* WritingsService;
-    const publication =
-      bookCode === undefined
-        ? undefined
-        : Reference.publication((yield* service.publicationByCode(bookCode)).id);
+    let publication;
+    if (bookCode !== undefined) {
+      publication = Reference.publication((yield* service.publicationByCode(bookCode)).id);
+    }
     const results = yield* service.search(query, {
       limit,
       publication,
@@ -25,7 +25,10 @@ export const localSearch = (query: string, bookCode?: string, limit = 20) =>
       return;
     }
 
-    const scope = bookCode !== undefined ? ` in ${bookCode}` : '';
+    let scope = '';
+    if (bookCode !== undefined) {
+      scope = ` in ${bookCode}`;
+    }
     yield* Console.log(`Local search results for "${query}"${scope} (${results.length}):\n`);
     for (const [i, r] of results.entries()) {
       yield* Console.log(formatLocalSearchResult(r, i));
@@ -77,7 +80,7 @@ export const egwSearch = Command.make(
           const response = yield* client.search(params);
 
           if (args.json) {
-            yield* Console.log(JSON.stringify(response, null, 2));
+            yield* Console.log(yield* encodeJson(response));
             return;
           }
 
@@ -100,22 +103,24 @@ export const egwSearch = Command.make(
       yield* Effect.gen(function* () {
         if (args.json) {
           const service = yield* WritingsService;
-          const publication =
-            args.book._tag === 'Some'
-              ? Reference.publication((yield* service.publicationByCode(args.book.value)).id)
-              : undefined;
+          let publication;
+          if (args.book._tag === 'Some') {
+            publication = Reference.publication(
+              (yield* service.publicationByCode(args.book.value)).id,
+            );
+          }
           const results = yield* service.search(queryStr, {
             limit: args.limit,
             publication,
           });
-          yield* Console.log(JSON.stringify(results.map(searchHitJson), null, 2));
+          yield* Console.log(yield* encodeJson(results.map(searchHitJson)));
           return;
         }
-        yield* localSearch(
-          queryStr,
-          args.book._tag === 'Some' ? args.book.value : undefined,
-          args.limit,
-        );
+        let bookCode;
+        if (args.book._tag === 'Some') {
+          bookCode = args.book.value;
+        }
+        yield* localSearch(queryStr, bookCode, args.limit);
       }).pipe(Effect.provide(ServiceLayer));
     }),
 );

@@ -2,7 +2,7 @@ import { WritingsService } from '@bible/core/writings/service';
 import { Console, Effect, Option } from 'effect';
 import { Command, Flag } from 'effect/unstable/cli';
 
-import { publicationJson } from './format.js';
+import { encodeJson, publicationJson } from './format.js';
 import { ServiceLayer } from './layers.js';
 
 const author = Flag.string('author').pipe(
@@ -26,7 +26,7 @@ export const egwBooks = Command.make('books', { author, json }, (args) =>
     });
 
     if (args.json) {
-      yield* Console.log(JSON.stringify(filtered.map(publicationJson), null, 2));
+      yield* Console.log(yield* encodeJson(filtered.map(publicationJson)));
       return;
     }
 
@@ -46,9 +46,11 @@ export const egwBooks = Command.make('books', { author, json }, (args) =>
     yield* Console.log('-----------|---------------------------------|----------|------');
     for (const book of filtered) {
       const code = book.code.padEnd(10);
-      const bookAuthor = (
-        book.author.length > 31 ? `${book.author.slice(0, 28)}…` : book.author
-      ).padEnd(31);
+      let bookAuthor = book.author;
+      if (bookAuthor.length > 31) {
+        bookAuthor = `${bookAuthor.slice(0, 28)}…`;
+      }
+      bookAuthor = bookAuthor.padEnd(31);
       const paragraphs = String(Option.getOrElse(book.paragraphCount, () => '-')).padEnd(8);
       yield* Console.log(`${code} | ${bookAuthor} | ${paragraphs} | ${book.title}`);
     }

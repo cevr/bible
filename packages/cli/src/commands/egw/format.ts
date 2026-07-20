@@ -1,6 +1,15 @@
 import { nodesToText, type Schemas as EGWSchemas } from '@bible/core/egw';
 import type { Paragraph, Publication, SearchHit } from '@bible/core/writings';
-import { Option } from 'effect';
+import { Option, Schema, SchemaGetter } from 'effect';
+
+const JsonString = Schema.Unknown.pipe(
+  Schema.encodeTo(Schema.String, {
+    decode: SchemaGetter.parseJson(),
+    encode: SchemaGetter.stringifyJson({ space: 2 }),
+  }),
+);
+
+export const encodeJson = Schema.encodeUnknownEffect(JsonString);
 
 export const paragraphRefcode = (paragraph: Paragraph): string =>
   Option.getOrElse(paragraph.refcode, () => `[${paragraph.publicationCode}]`);
@@ -34,25 +43,40 @@ export const searchHitJson = (hit: SearchHit) => ({
 
 export const formatLocalSearchResult = (hit: SearchHit, index: number): string => {
   const ref = paragraphRefcode(hit.paragraph);
-  const title = hit.publication.title !== hit.publication.code ? ` (${hit.publication.title})` : '';
+  let title = '';
+  if (hit.publication.title !== hit.publication.code) {
+    title = ` (${hit.publication.title})`;
+  }
   const text = nodesToText(hit.paragraph.nodes);
-  const snippet =
-    text.length > 0 ? text.slice(0, 200) + (text.length > 200 ? '…' : '') : '(no content)';
+  let snippet = '(no content)';
+  if (text.length > 0) {
+    snippet = text.slice(0, 200);
+    if (text.length > 200) {
+      snippet += '…';
+    }
+  }
   return `  ${index + 1}. ${ref}${title}\n     ${snippet}`;
 };
 
 export const formatRemoteHit = (hit: EGWSchemas.SearchHit, index: number): string => {
   const ref = hit.refcode_short ?? `[${hit.pub_code}]`;
   const author = hit.refcode_long?.match(/\(([^)]+)\)\s*$/)?.[1];
-  const title = ` (${hit.pub_name}${author !== undefined ? ` — ${author}` : ''})`;
-  const snippet =
-    hit.snippet !== null && hit.snippet !== undefined
-      ? hit.snippet
-          .replace(/<[^>]*>/g, '')
-          .replace(/\s+/g, ' ')
-          .trim()
-          .slice(0, 240)
-      : '';
-  const gated = hit.action_required !== undefined ? ` [${hit.action_required}]` : '';
+  let authorSuffix = '';
+  if (author !== undefined) {
+    authorSuffix = ` — ${author}`;
+  }
+  const title = ` (${hit.pub_name}${authorSuffix})`;
+  let snippet = '';
+  if (hit.snippet !== null && hit.snippet !== undefined) {
+    snippet = hit.snippet
+      .replace(/<[^>]*>/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 240);
+  }
+  let gated = '';
+  if (hit.action_required !== undefined) {
+    gated = ` [${hit.action_required}]`;
+  }
   return `  ${index + 1}. ${ref}${title}${gated}\n     ${snippet}`;
 };
