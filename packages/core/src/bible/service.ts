@@ -194,8 +194,8 @@ export class BibleService extends Context.Service<BibleService, BibleServiceShap
         searchWindow: (_query, options = {}) => {
           const hits = config.searchHits ?? [];
           const books = new Set(options.books ?? []);
-          const filtered =
-            books.size === 0 ? hits : hits.filter((hit) => books.has(hit.book.number));
+          let filtered = hits;
+          if (books.size !== 0) filtered = hits.filter((hit) => books.has(hit.book.number));
           const offset = Math.max(0, Math.trunc(options.offset ?? 0));
           const limit = Math.max(1, Math.trunc(options.limit ?? 50));
           return Effect.succeed(

@@ -57,9 +57,10 @@ const parseVerseKey = (
   const book = Number(parts[0]);
   const chapter = Number(parts[1]);
   const verse = Number(parts[2]);
-  return Number.isInteger(book) && Number.isInteger(chapter) && Number.isInteger(verse)
-    ? { book, chapter, verse }
-    : null;
+  if (Number.isInteger(book) && Number.isInteger(chapter) && Number.isInteger(verse)) {
+    return { book, chapter, verse };
+  }
+  return null;
 };
 
 export class BibleCorpus extends Context.Service<BibleCorpus, BibleCorpusService>()(
@@ -138,14 +139,16 @@ export class BibleCorpus extends Context.Service<BibleCorpus, BibleCorpusService
               for (const verse of strongsVerses) {
                 let wordIndex = 0;
                 for (const word of verse.words) {
-                  const encoded =
-                    word.strongs === undefined ? null : encodeStrongsNumbers(word.strongs);
+                  let encoded: string | null = null;
+                  if (word.strongs !== undefined) encoded = encodeStrongsNumbers(word.strongs);
+                  let italic = 0;
+                  if (word.italic === true) italic = 1;
                   yield* sql`
                   INSERT INTO verse_words (
                     book, chapter, verse, word_index, word_text, strongs_numbers, italic
                   ) VALUES (
                     ${verse.book}, ${verse.chapter}, ${verse.verse}, ${wordIndex},
-                    ${word.text}, ${encoded}, ${word.italic === true ? 1 : 0}
+                    ${word.text}, ${encoded}, ${italic}
                   )
                 `;
                   for (const number of word.strongs ?? []) {
@@ -174,11 +177,9 @@ export class BibleCorpus extends Context.Service<BibleCorpus, BibleCorpusService
               let skipped = 0;
               for (const [rawNumber, entry] of Object.entries(lexicon)) {
                 const number = rawNumber.toUpperCase();
-                const language = number.startsWith('H')
-                  ? 'hebrew'
-                  : number.startsWith('G')
-                    ? 'greek'
-                    : null;
+                let language: 'greek' | 'hebrew' | null = null;
+                if (number.startsWith('G')) language = 'greek';
+                if (number.startsWith('H')) language = 'hebrew';
                 if (language === null) {
                   skipped += 1;
                   continue;

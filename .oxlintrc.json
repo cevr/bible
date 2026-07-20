@@ -101,6 +101,10 @@
         "**/packages/core/src/bible/canon.ts",
         "**/packages/core/src/bible/parse.ts",
         "**/packages/core/src/bible-rendering/segments.ts",
+        "**/packages/core/src/bible-db/bible-corpus.ts",
+        "**/packages/core/src/bible-db/bible-database.ts",
+        "**/packages/core/src/bible/service.ts",
+        "**/packages/core/src/egw/auth-types.ts",
         "**/packages/app/src/procedure/**",
         "**/apps/web/src/workers/user-state-database.ts",
         "**/apps/web/src/workers/procedure-client.ts",
@@ -182,6 +186,7 @@
     {
       "files": [
         "**/packages/core/src/corpus-supply/**/*.test.ts",
+        "**/packages/core/src/bible/service.test.ts",
         "**/packages/core/src/platform-node/bible-artifact.test.ts"
       ],
       "rules": {

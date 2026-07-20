@@ -228,15 +228,19 @@ const bibleVerse = (row: VerseSqlRow): BibleVerse => ({
   versionCode: row.version_code,
 });
 
-const strongsEntry = (row: StrongsSqlRow): StrongsEntry => ({
-  number: row.number,
-  language: row.language === 'greek' ? 'greek' : 'hebrew',
-  lemma: row.lemma,
-  transliteration: row.transliteration,
-  pronunciation: row.pronunciation,
-  definition: row.definition,
-  kjvDefinition: row.kjv_definition,
-});
+const strongsEntry = (row: StrongsSqlRow): StrongsEntry => {
+  let language: StrongsEntry['language'] = 'hebrew';
+  if (row.language === 'greek') language = 'greek';
+  return {
+    number: row.number,
+    language,
+    lemma: row.lemma,
+    transliteration: row.transliteration,
+    pronunciation: row.pronunciation,
+    definition: row.definition,
+    kjvDefinition: row.kjv_definition,
+  };
+};
 
 const marginNoteType = (value: string): MarginNote['type'] => {
   switch (value) {
@@ -295,15 +299,7 @@ export class BibleDatabase extends Context.Service<BibleDatabase, BibleDatabaseS
         const books = options.books?.filter((book) => Number.isInteger(book)) ?? [];
         const match = `"${escaped}"`;
 
-        const count =
-          books.length === 0
-            ? sql<{ readonly total: number }>`
-                SELECT COUNT(*) AS total
-                FROM verses AS v
-                JOIN verses_fts AS fts ON v.rowid = fts.rowid
-                WHERE verses_fts MATCH ${match} AND v.version_code = ${versionCode}
-              `
-            : sql<{ readonly total: number }>`
+        let count = sql<{ readonly total: number }>`
                 SELECT COUNT(*) AS total
                 FROM verses AS v
                 JOIN verses_fts AS fts ON v.rowid = fts.rowid
@@ -311,18 +307,16 @@ export class BibleDatabase extends Context.Service<BibleDatabase, BibleDatabaseS
                   AND v.version_code = ${versionCode}
                   AND ${sql.in('v.book', books)}
               `;
+        if (books.length === 0) {
+          count = sql<{ readonly total: number }>`
+                SELECT COUNT(*) AS total
+                FROM verses AS v
+                JOIN verses_fts AS fts ON v.rowid = fts.rowid
+                WHERE verses_fts MATCH ${match} AND v.version_code = ${versionCode}
+              `;
+        }
 
-        const results =
-          books.length === 0
-            ? sql<VerseSqlRow>`
-                SELECT v.book, v.chapter, v.verse, v.version_code, v.text
-                FROM verses AS v
-                JOIN verses_fts AS fts ON v.rowid = fts.rowid
-                WHERE verses_fts MATCH ${match} AND v.version_code = ${versionCode}
-                ORDER BY rank
-                LIMIT ${limit} OFFSET ${offset}
-              `
-            : sql<VerseSqlRow>`
+        let results = sql<VerseSqlRow>`
                 SELECT v.book, v.chapter, v.verse, v.version_code, v.text
                 FROM verses AS v
                 JOIN verses_fts AS fts ON v.rowid = fts.rowid
@@ -332,6 +326,16 @@ export class BibleDatabase extends Context.Service<BibleDatabase, BibleDatabaseS
                 ORDER BY rank
                 LIMIT ${limit} OFFSET ${offset}
               `;
+        if (books.length === 0) {
+          results = sql<VerseSqlRow>`
+                SELECT v.book, v.chapter, v.verse, v.version_code, v.text
+                FROM verses AS v
+                JOIN verses_fts AS fts ON v.rowid = fts.rowid
+                WHERE verses_fts MATCH ${match} AND v.version_code = ${versionCode}
+                ORDER BY rank
+                LIMIT ${limit} OFFSET ${offset}
+              `;
+        }
 
         return Effect.all({ count, results }).pipe(
           Effect.map(({ count, results }) => ({
@@ -349,16 +353,18 @@ export class BibleDatabase extends Context.Service<BibleDatabase, BibleDatabaseS
           WHERE book = ${book} AND chapter = ${chapter} AND verse = ${verse}
         `.pipe(
             Effect.map((rows) =>
-              rows.map(
-                (row): CrossReference => ({
+              rows.map((row): CrossReference => {
+                let source: CrossReference['source'] = 'openbible';
+                if (row.source === 'tske') source = 'tske';
+                return {
                   book: row.ref_book,
                   chapter: row.ref_chapter,
                   verse: row.ref_verse,
                   verseEnd: row.ref_verse_end,
-                  source: row.source === 'tske' ? 'tske' : 'openbible',
+                  source,
                   previewText: row.preview_text,
-                }),
-              ),
+                };
+              }),
             ),
           ),
       );
@@ -444,30 +450,36 @@ export class BibleDatabase extends Context.Service<BibleDatabase, BibleDatabaseS
       const getVerseWords = Effect.fn('BibleDatabase.getVerseWords')(
         (book: number, chapter: number, verse: number) =>
           supportsWordItalics().pipe(
-            Effect.flatMap((supportsItalics) =>
-              supportsItalics
-                ? sql<VerseWordSqlRow>`
+            Effect.flatMap((supportsItalics) => {
+              if (supportsItalics) {
+                return sql<VerseWordSqlRow>`
                     SELECT word_text, strongs_numbers, italic
                     FROM verse_words
                     WHERE book = ${book} AND chapter = ${chapter} AND verse = ${verse}
                     ORDER BY word_index
-                  `
-                : sql<VerseWordSqlRow>`
+                  `;
+              }
+              return sql<VerseWordSqlRow>`
                     SELECT word_text, strongs_numbers, 0 AS italic
                     FROM verse_words
                     WHERE book = ${book} AND chapter = ${chapter} AND verse = ${verse}
                     ORDER BY word_index
-                  `,
-            ),
+                  `;
+            }),
             Effect.flatMap((rows) =>
               Effect.forEach(rows, (row) =>
                 Effect.try({
-                  try: (): VerseWord => ({
-                    text: row.word_text,
-                    strongsNumbers:
-                      row.strongs_numbers === null ? [] : decodeStrongsNumbers(row.strongs_numbers),
-                    italic: row.italic === 1,
-                  }),
+                  try: (): VerseWord => {
+                    let strongsNumbers: readonly string[] = [];
+                    if (row.strongs_numbers !== null) {
+                      strongsNumbers = decodeStrongsNumbers(row.strongs_numbers);
+                    }
+                    return {
+                      text: row.word_text,
+                      strongsNumbers,
+                      italic: row.italic === 1,
+                    };
+                  },
                   catch: (cause) =>
                     new BibleDataIntegrityError({
                       cause,
@@ -503,21 +515,26 @@ export class BibleDatabase extends Context.Service<BibleDatabase, BibleDatabaseS
         location: string,
       ) =>
         Effect.try({
-          try: (): VerseWord => ({
-            text: row.word_text,
-            strongsNumbers:
-              row.strongs_numbers === null ? [] : decodeStrongsNumbers(row.strongs_numbers),
-            italic: row.italic === 1,
-          }),
+          try: (): VerseWord => {
+            let strongsNumbers: readonly string[] = [];
+            if (row.strongs_numbers !== null) {
+              strongsNumbers = decodeStrongsNumbers(row.strongs_numbers);
+            }
+            return {
+              text: row.word_text,
+              strongsNumbers,
+              italic: row.italic === 1,
+            };
+          },
           catch: (cause) => new BibleDataIntegrityError({ cause, location }),
         });
 
       const getChapterStrongs = Effect.fn('BibleDatabase.getChapterStrongs')(
         (book: number, chapter: number) =>
           supportsWordItalics().pipe(
-            Effect.flatMap((supportsItalics) =>
-              supportsItalics
-                ? sql<StrongsChapterSqlRow>`
+            Effect.flatMap((supportsItalics) => {
+              if (supportsItalics) {
+                return sql<StrongsChapterSqlRow>`
                     SELECT v.book, v.chapter, v.verse, b.name AS book_name,
                            w.word_index, w.word_text, w.strongs_numbers, w.italic
                     FROM verse_words AS w
@@ -527,8 +544,9 @@ export class BibleDatabase extends Context.Service<BibleDatabase, BibleDatabaseS
                     JOIN books AS b ON b.number = v.book
                     WHERE w.book = ${book} AND w.chapter = ${chapter}
                     ORDER BY v.verse, w.word_index
-                  `
-                : sql<StrongsChapterSqlRow>`
+                  `;
+              }
+              return sql<StrongsChapterSqlRow>`
                     SELECT v.book, v.chapter, v.verse, b.name AS book_name,
                            w.word_index, w.word_text, w.strongs_numbers, 0 AS italic
                     FROM verse_words AS w
@@ -538,8 +556,8 @@ export class BibleDatabase extends Context.Service<BibleDatabase, BibleDatabaseS
                     JOIN books AS b ON b.number = v.book
                     WHERE w.book = ${book} AND w.chapter = ${chapter}
                     ORDER BY v.verse, w.word_index
-                  `,
-            ),
+                  `;
+            }),
             Effect.flatMap((rows) =>
               Effect.gen(function* () {
                 const byVerse = new Map<number, VerseWord[]>();

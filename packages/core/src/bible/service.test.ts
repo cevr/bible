@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Layer, Option } from 'effect';
 
 import { BibleDatabase } from '../bible-db/bible-database.js';
@@ -15,54 +15,50 @@ const verses = [
 
 const TestLayer = BibleService.Live.pipe(Layer.provide(BibleDatabase.layerTest({ verses })));
 
-const run = <A, E>(effect: Effect.Effect<A, E, BibleService>): Promise<A> =>
-  Effect.runPromise(effect.pipe(Effect.provide(TestLayer)));
-
 describe('BibleService', () => {
-  test('returns a non-empty chapter with finite canonical navigation', async () => {
-    const chapter = await run(
-      Effect.flatMap(BibleService, (bible) => bible.chapter(Reference.chapter(1, 50))),
-    );
+  const test = it.effect;
 
-    expect(chapter.book.name).toBe('Genesis');
-    expect(chapter.verses.map((verse) => verse.text)).toEqual(['And Joseph fell']);
-    expect(Option.getOrThrow(chapter.previous)).toEqual(Reference.chapter(1, 49));
-    expect(Option.getOrThrow(chapter.next)).toEqual(Reference.chapter(2, 1));
-  });
+  test('returns a non-empty chapter with finite canonical navigation', () =>
+    Effect.gen(function* () {
+      const bible = yield* BibleService;
+      const chapter = yield* bible.chapter(Reference.chapter(1, 50));
 
-  test('ends navigation at the edge of the available canon', async () => {
-    const first = await run(
-      Effect.flatMap(BibleService, (bible) => bible.chapter(Reference.chapter(1, 1))),
-    );
-    const last = await run(
-      Effect.flatMap(BibleService, (bible) => bible.chapter(Reference.chapter(66, 22))),
-    );
+      expect(chapter.book.name).toBe('Genesis');
+      expect(chapter.verses.map((verse) => verse.text)).toEqual(['And Joseph fell']);
+      expect(Option.getOrThrow(chapter.previous)).toEqual(Reference.chapter(1, 49));
+      expect(Option.getOrThrow(chapter.next)).toEqual(Reference.chapter(2, 1));
+    }).pipe(Effect.provide(TestLayer)));
 
-    expect(Option.isNone(first.previous)).toBe(true);
-    expect(Option.isNone(last.next)).toBe(true);
-  });
+  test('ends navigation at the edge of the available canon', () =>
+    Effect.gen(function* () {
+      const bible = yield* BibleService;
+      const first = yield* bible.chapter(Reference.chapter(1, 1));
+      const last = yield* bible.chapter(Reference.chapter(66, 22));
 
-  test('reports an absent chapter in Bible language', async () => {
-    const result = await run(
-      Effect.flatMap(BibleService, (bible) =>
-        Effect.result(bible.chapter(Reference.chapter(1, 3))),
-      ),
-    );
+      expect(Option.isNone(first.previous)).toBe(true);
+      expect(Option.isNone(last.next)).toBe(true);
+    }).pipe(Effect.provide(TestLayer)));
 
-    expect(result._tag).toBe('Failure');
-    if (result._tag === 'Failure') {
-      expect(result.failure).toBeInstanceOf(BibleChapterNotFoundError);
-    }
-  });
+  test('reports an absent chapter in Bible language', () =>
+    Effect.gen(function* () {
+      const bible = yield* BibleService;
+      const result = yield* Effect.result(bible.chapter(Reference.chapter(1, 3)));
 
-  test('returns a filtered search window through the canonical interface', async () => {
-    const window = await run(
-      Effect.flatMap(BibleService, (bible) =>
-        bible.searchWindow('and', { books: [Reference.book(1).book], limit: 1 }),
-      ),
-    );
+      expect(result._tag).toBe('Failure');
+      if (result._tag === 'Failure') {
+        expect(result.failure).toBeInstanceOf(BibleChapterNotFoundError);
+      }
+    }).pipe(Effect.provide(TestLayer)));
 
-    expect(window.total).toBe(1);
-    expect(window.hits.map((hit) => hit.verse.reference)).toEqual([Reference.verse(1, 50, 1)]);
-  });
+  test('returns a filtered search window through the canonical interface', () =>
+    Effect.gen(function* () {
+      const bible = yield* BibleService;
+      const window = yield* bible.searchWindow('and', {
+        books: [Reference.book(1).book],
+        limit: 1,
+      });
+
+      expect(window.total).toBe(1);
+      expect(window.hits.map((hit) => hit.verse.reference)).toEqual([Reference.verse(1, 50, 1)]);
+    }).pipe(Effect.provide(TestLayer)));
 });

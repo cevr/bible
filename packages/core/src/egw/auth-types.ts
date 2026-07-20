@@ -20,9 +20,13 @@ export class AccessToken extends Schema.Class<AccessToken>('lib/EGW/Auth/AccessT
 }
 
 // Convenience for callers that want a plain object (e.g. for JSON persistence).
-export const accessTokenToJson = (token: AccessToken) => ({
-  accessToken: Redacted.value(token.accessToken),
-  refreshToken: token.refreshToken !== undefined ? Redacted.value(token.refreshToken) : undefined,
-  expiresAt: token.expiresAt,
-  scope: token.scope,
-});
+export const accessTokenToJson = (token: AccessToken) => {
+  let refreshToken: string | undefined;
+  if (token.refreshToken !== undefined) refreshToken = Redacted.value(token.refreshToken);
+  return {
+    accessToken: Redacted.value(token.accessToken),
+    refreshToken,
+    expiresAt: token.expiresAt,
+    scope: token.scope,
+  };
+};
