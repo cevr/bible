@@ -70,7 +70,8 @@ export const createRecordingTestLayer = <
             const extractFn = extractArgs[key as keyof typeof extractArgs] as
               | ((...a: unknown[]) => Record<string, unknown>)
               | undefined;
-            const callArgs = extractFn ? extractFn(...args) : {};
+            let callArgs: Record<string, unknown> = {};
+            if (extractFn !== undefined) callArgs = extractFn(...args);
             yield* recordCall({
               _tag: `${tagName}.${key}`,
               ...callArgs,
@@ -105,18 +106,15 @@ export const createRecordingTestLayer = <
  * ]);
  * ```
  */
-export const runWithCallSequence = async <A, E>(
+export const runWithCallSequence = <A, E>(
   effect: Effect.Effect<A, E, CallSequence>,
-): Promise<{ result: A; calls: ServiceCall[] }> => {
-  const program = Effect.gen(function* () {
+): Effect.Effect<{ result: A; calls: ServiceCall[] }, E> =>
+  Effect.gen(function* () {
     const result = yield* effect;
     const callRef = yield* CallSequence;
     const calls = yield* Ref.get(callRef);
     return { result, calls };
-  });
-
-  return Effect.runPromise(program.pipe(Effect.provide(CallSequenceLayer)));
-};
+  }).pipe(Effect.provide(CallSequenceLayer));
 
 // Re-export for convenience
 export { CallSequence, CallSequenceLayer, recordCall };

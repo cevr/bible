@@ -4,18 +4,19 @@
  * Runner-agnostic assertion helpers that work with any test framework.
  */
 
+import { Effect, Schema } from 'effect';
+
 import type { ServiceCall } from './sequence-recorder.js';
 
 /**
  * Error thrown when an assertion fails.
  * Test frameworks should catch this and report appropriately.
  */
-export class AssertionError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'AssertionError';
-  }
-}
+export class AssertionError extends Schema.TaggedErrorClass<AssertionError>()('AssertionError', {
+  message: Schema.String,
+}) {}
+
+const encodeJson = Schema.encodeSync(Schema.UnknownFromJsonString);
 
 /**
  * Check if a value matches an expected pattern.
@@ -64,32 +65,34 @@ const callMatches = (actual: ServiceCall, expected: Partial<ServiceCall>): boole
 export const assertSequence = (
   actual: ServiceCall[],
   expected: Array<Partial<ServiceCall>>,
-): void => {
-  let actualIndex = 0;
+): Effect.Effect<void, AssertionError> =>
+  Effect.gen(function* () {
+    let actualIndex = 0;
 
-  for (const expectedCall of expected) {
-    let found = false;
+    for (const expectedCall of expected) {
+      let found = false;
 
-    while (actualIndex < actual.length) {
-      const actualCall = actual[actualIndex];
-      actualIndex++;
-      if (!actualCall) continue;
+      while (actualIndex < actual.length) {
+        const actualCall = actual[actualIndex];
+        actualIndex++;
+        if (!actualCall) continue;
 
-      if (callMatches(actualCall, expectedCall)) {
-        found = true;
-        break;
+        if (callMatches(actualCall, expectedCall)) {
+          found = true;
+          break;
+        }
+      }
+
+      if (!found) {
+        const actualTags = actual.map((c) => c._tag).join(', ');
+        return yield* new AssertionError({
+          message:
+            `Expected call ${encodeJson(expectedCall)} not found in sequence.\n` +
+            `Actual calls: [${actualTags}]`,
+        });
       }
     }
-
-    if (!found) {
-      const actualTags = actual.map((c) => c._tag).join(', ');
-      throw new AssertionError(
-        `Expected call ${JSON.stringify(expectedCall)} not found in sequence.\n` +
-          `Actual calls: [${actualTags}]`,
-      );
-    }
-  }
-};
+  });
 
 /**
  * Assert that all expected calls are present (order-independent).
@@ -103,23 +106,23 @@ export const assertSequence = (
 export const assertContains = (
   actual: ServiceCall[],
   expected: Array<Partial<ServiceCall>>,
-): void => {
-  for (const expectedCall of expected) {
-    const found = actual.some((actualCall) => callMatches(actualCall, expectedCall));
+): Effect.Effect<void, AssertionError> =>
+  Effect.gen(function* () {
+    for (const expectedCall of expected) {
+      const found = actual.some((actualCall) => callMatches(actualCall, expectedCall));
 
-    if (!found) {
-      const matchingCalls = actual.filter((c) => c._tag === expectedCall._tag);
-      const actualSummary =
-        matchingCalls.length > 0
-          ? `Matching calls: ${JSON.stringify(matchingCalls, null, 2)}`
-          : `All calls: ${JSON.stringify(actual.map((c) => c._tag))}`;
+      if (!found) {
+        const matchingCalls = actual.filter((c) => c._tag === expectedCall._tag);
+        let actualSummary = `All calls: ${encodeJson(actual.map((c) => c._tag))}`;
+        if (matchingCalls.length > 0)
+          actualSummary = `Matching calls: ${encodeJson(matchingCalls)}`;
 
-      throw new AssertionError(
-        `Expected call ${JSON.stringify(expectedCall)} not found in calls.\n` + actualSummary,
-      );
+        return yield* new AssertionError({
+          message: `Expected call ${encodeJson(expectedCall)} not found in calls.\n${actualSummary}`,
+        });
+      }
     }
-  }
-};
+  });
 
 /**
  * Assert that a specific call type appears exactly N times.
@@ -129,12 +132,19 @@ export const assertContains = (
  * @param count Expected count
  * @throws AssertionError if count doesn't match
  */
-export const assertCallCount = (calls: ServiceCall[], tag: string, count: number): void => {
-  const actual = calls.filter((c) => c._tag === tag).length;
-  if (actual !== count) {
-    throw new AssertionError(`Expected ${count} calls of type "${tag}", but found ${actual}`);
-  }
-};
+export const assertCallCount = (
+  calls: ServiceCall[],
+  tag: string,
+  count: number,
+): Effect.Effect<void, AssertionError> =>
+  Effect.gen(function* () {
+    const actual = calls.filter((c) => c._tag === tag).length;
+    if (actual !== count) {
+      return yield* new AssertionError({
+        message: `Expected ${count} calls of type "${tag}", but found ${actual}`,
+      });
+    }
+  });
 
 /**
  * Assert that no calls of a specific type were made.
@@ -143,9 +153,10 @@ export const assertCallCount = (calls: ServiceCall[], tag: string, count: number
  * @param tag The call type that should not appear
  * @throws AssertionError if any calls of that type exist
  */
-export const assertNoCalls = (calls: ServiceCall[], tag: string): void => {
-  assertCallCount(calls, tag, 0);
-};
+export const assertNoCalls = (
+  calls: ServiceCall[],
+  tag: string,
+): Effect.Effect<void, AssertionError> => assertCallCount(calls, tag, 0);
 
 /**
  * Get all calls of a specific type.
