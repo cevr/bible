@@ -1,95 +1,103 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-
-import { afterAll, describe, expect, test } from 'bun:test';
-import { Effect } from 'effect';
+import { BunServices } from '@effect/platform-bun';
+import { Effect, FileSystem, Path, Schema } from 'effect';
+import { describe, expect, it } from 'effect-bun-test';
 
 import { BibleDatabase } from '../bible-db/bible-database.js';
 import * as BibleDatabaseBun from '../bible-db/bible-database-bun.js';
 import { syncBible } from './bible-sync.js';
 
-const directory = mkdtempSync(join(tmpdir(), 'bible-sync-'));
-const assetsDirectory = join(directory, 'assets');
-const database = join(directory, 'bible.db');
-const runtimeDatabase = join(directory, 'runtime', 'bible.db');
+const encodeJson = Schema.encodeSync(Schema.UnknownFromJsonString);
 
-const writeAsset = (name: string, value: unknown): void => {
-  writeFileSync(join(assetsDirectory, name), JSON.stringify(value));
-};
+const writeAsset = Effect.fn('BibleSyncTest.writeAsset')(function* (
+  assetsDirectory: string,
+  name: string,
+  value: unknown,
+) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  yield* fs.writeFileString(path.join(assetsDirectory, name), encodeJson(value));
+});
 
-const readGenesis = (): Promise<string> =>
-  Effect.runPromise(
-    Effect.gen(function* () {
-      const bible = yield* BibleDatabase;
-      return (yield* bible.getChapter(1, 1))[0]?.text ?? '';
-    }).pipe(Effect.provide(BibleDatabaseBun.layerBun(database))),
-  );
-
-afterAll(() => rmSync(directory, { recursive: true, force: true }));
+const readGenesis = (database: string) =>
+  Effect.gen(function* () {
+    const bible = yield* BibleDatabase;
+    return (yield* bible.getChapter(1, 1))[0]?.text ?? '';
+  }).pipe(Effect.provide(BibleDatabaseBun.layerBun(database)));
 
 describe('Bible sync', () => {
-  test('atomically builds the canonical schema and preserves an existing database without force', async () => {
-    mkdirSync(assetsDirectory, { recursive: true });
-    writeAsset('kjv.json', {
-      metadata: { name: 'King James Version', year: '1611/1769' },
-      verses: [{ book_name: 'Genesis', book: 1, chapter: 1, verse: 1, text: 'In the beginning' }],
-    });
-    writeAsset('kjv-strongs.json', [
-      {
-        book: 1,
-        chapter: 1,
-        verse: 1,
-        words: [{ text: 'In' }, { text: 'beginning', strongs: ['H7225'] }],
-      },
-    ]);
-    writeAsset('strongs.json', {
-      H7225: { lemma: 'reshith', xlit: 'reshith', def: 'beginning' },
-    });
-    writeAsset('cross-refs.json', {
-      '1.1.1': { refs: [{ book: 43, chapter: 1, verse: 1 }] },
-    });
-    writeAsset('cross-refs-tske.json', {
-      '1.1.1': { refs: [{ book: 58, chapter: 1, verse: 1 }] },
-    });
-    writeAsset('margin-notes.json', {
-      '1.1.1': [{ type: 'hebrew', phrase: 'beginning', text: 'First in order' }],
-    });
-    writeAsset('naves-topical-bible.json', {
-      meta: {
-        id: 'test-topics',
-        title: 'Test topics',
-        license: 'public-domain',
-        provenance: { source_url: 'https://example.test/topics', source_hash: 'test-hash' },
-      },
-      data: [
+  const test = it.scopedLive.layer(BunServices.layer);
+
+  test('atomically builds the canonical schema and preserves an existing database without force', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const directory = yield* fs.makeTempDirectoryScoped({ prefix: 'bible-sync-' });
+      const assetsDirectory = path.join(directory, 'assets');
+      const database = path.join(directory, 'bible.db');
+      const runtimeDatabase = path.join(directory, 'runtime', 'bible.db');
+      yield* fs.makeDirectory(assetsDirectory, { recursive: true });
+      yield* writeAsset(assetsDirectory, 'kjv.json', {
+        metadata: { name: 'King James Version', year: '1611/1769' },
+        verses: [{ book_name: 'Genesis', book: 1, chapter: 1, verse: 1, text: 'In the beginning' }],
+      });
+      yield* writeAsset(assetsDirectory, 'kjv-strongs.json', [
         {
-          entry_id: 'test-topics.creation',
-          topic: 'CREATION',
-          alt_topics: [],
-          subtopics: [
-            {
-              label: 'General references',
-              references: [{ raw: 'Gen 1:1', osis: ['Gen.1.1'] }],
-            },
-          ],
+          book: 1,
+          chapter: 1,
+          verse: 1,
+          words: [{ text: 'In' }, { text: 'beginning', strongs: ['H7225'] }],
         },
-      ],
-    });
+      ]);
+      yield* writeAsset(assetsDirectory, 'strongs.json', {
+        H7225: { lemma: 'reshith', xlit: 'reshith', def: 'beginning' },
+      });
+      yield* writeAsset(assetsDirectory, 'cross-refs.json', {
+        '1.1.1': { refs: [{ book: 43, chapter: 1, verse: 1 }] },
+      });
+      yield* writeAsset(assetsDirectory, 'cross-refs-tske.json', {
+        '1.1.1': { refs: [{ book: 58, chapter: 1, verse: 1 }] },
+      });
+      yield* writeAsset(assetsDirectory, 'margin-notes.json', {
+        '1.1.1': [{ type: 'hebrew', phrase: 'beginning', text: 'First in order' }],
+      });
+      yield* writeAsset(assetsDirectory, 'naves-topical-bible.json', {
+        meta: {
+          id: 'test-topics',
+          title: 'Test topics',
+          license: 'public-domain',
+          provenance: { source_url: 'https://example.test/topics', source_hash: 'test-hash' },
+        },
+        data: [
+          {
+            entry_id: 'test-topics.creation',
+            topic: 'CREATION',
+            alt_topics: [],
+            subtopics: [
+              {
+                label: 'General references',
+                references: [{ raw: 'Gen 1:1', osis: ['Gen.1.1'] }],
+              },
+            ],
+          },
+        ],
+      });
 
-    await syncBible(true, { assetsDirectory, database, runtimeDatabase });
+      yield* Effect.tryPromise(() =>
+        syncBible(true, { assetsDirectory, database, runtimeDatabase }),
+      );
 
-    expect(await readGenesis()).toBe('In the beginning');
-    expect(readFileSync(runtimeDatabase).byteLength).toBeGreaterThan(0);
-    expect(existsSync(`${database}.building`)).toBe(false);
+      expect(yield* readGenesis(database)).toBe('In the beginning');
+      expect((yield* fs.readFile(runtimeDatabase)).byteLength).toBeGreaterThan(0);
+      expect(yield* fs.exists(`${database}.building`)).toBe(false);
 
-    const kjv = JSON.parse(readFileSync(join(assetsDirectory, 'kjv.json'), 'utf8')) as {
-      verses: Array<{ text: string }>;
-    };
-    kjv.verses[0]!.text = 'Changed source';
-    writeFileSync(join(assetsDirectory, 'kjv.json'), JSON.stringify(kjv));
+      yield* writeAsset(assetsDirectory, 'kjv.json', {
+        metadata: { name: 'King James Version', year: '1611/1769' },
+        verses: [{ book_name: 'Genesis', book: 1, chapter: 1, verse: 1, text: 'Changed source' }],
+      });
 
-    await syncBible(false, { assetsDirectory, database, runtimeDatabase });
-    expect(await readGenesis()).toBe('In the beginning');
-  });
+      yield* Effect.tryPromise(() =>
+        syncBible(false, { assetsDirectory, database, runtimeDatabase }),
+      );
+      expect(yield* readGenesis(database)).toBe('In the beginning');
+    }));
 });
