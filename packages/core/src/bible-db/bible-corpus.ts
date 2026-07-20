@@ -5,87 +5,18 @@ import * as SqlClient from 'effect/unstable/sql/SqlClient';
 import type { SqlError } from 'effect/unstable/sql/SqlError';
 
 import { BIBLE_BOOKS } from '../bible/canon.js';
+import type {
+  BibleCorpusArchive,
+  CrossReferenceAsset,
+  KjvAssetFile,
+  MarginNotesAsset,
+  StrongsLexiconAsset,
+  StrongsVerseAsset,
+  TopicalReferenceAsset,
+} from './archive.js';
 import { initializeBibleSchema } from './schema.js';
 
-export interface KjvAssetFile {
-  readonly metadata?: {
-    readonly name?: string;
-    readonly shortname?: string;
-    readonly year?: string;
-    readonly copyright_statement?: string;
-  };
-  readonly verses: readonly {
-    readonly book_name: string;
-    readonly book: number;
-    readonly chapter: number;
-    readonly verse: number;
-    readonly text: string;
-  }[];
-}
-
-export interface StrongsWordAsset {
-  readonly text: string;
-  readonly strongs?: readonly string[];
-  readonly italic?: boolean;
-}
-
-export interface StrongsVerseAsset {
-  readonly book: number;
-  readonly chapter: number;
-  readonly verse: number;
-  readonly words: readonly StrongsWordAsset[];
-}
-
-export interface StrongsLexiconAsset {
-  readonly lemma: string;
-  readonly xlit?: string;
-  readonly def: string;
-}
-
-export interface CrossReferenceAsset {
-  readonly [key: string]: {
-    readonly refs: readonly {
-      readonly book: number;
-      readonly chapter: number;
-      readonly verse?: number;
-      readonly verseEnd?: number;
-    }[];
-  };
-}
-
 export type CrossReferenceSource = 'openbible' | 'tske';
-
-export interface MarginNotesAsset {
-  readonly [key: string]: readonly {
-    readonly type: 'hebrew' | 'greek' | 'alternate' | 'name' | 'other';
-    readonly phrase: string;
-    readonly text: string;
-  }[];
-}
-
-export interface TopicalReferenceAsset {
-  readonly meta: {
-    readonly id: string;
-    readonly title: string;
-    readonly license: string;
-    readonly provenance: {
-      readonly source_url: string;
-      readonly source_hash: string;
-    };
-  };
-  readonly data: readonly {
-    readonly entry_id: string;
-    readonly topic: string;
-    readonly alt_topics?: readonly string[];
-    readonly subtopics: readonly {
-      readonly label: string;
-      readonly references: readonly {
-        readonly raw: string;
-        readonly osis: readonly string[];
-      }[];
-    }[];
-  }[];
-}
 
 export interface BibleCorpusStatus {
   readonly kjv: boolean;
@@ -96,28 +27,23 @@ export interface BibleCorpusStatus {
 
 export interface BibleCorpusService {
   readonly status: () => Effect.Effect<BibleCorpusStatus, SqlError>;
-  readonly importKjv: (
-    kjv: KjvAssetFile,
-    strongsVerses: readonly StrongsVerseAsset[],
-  ) => Effect.Effect<{ readonly verses: number; readonly withStrongs: number }, SqlError>;
-  readonly importStrongsLexicon: (
-    lexicon: Readonly<Record<string, StrongsLexiconAsset>>,
-  ) => Effect.Effect<{ readonly imported: number; readonly skipped: number }, SqlError>;
-  readonly importCrossReferences: (
-    source: CrossReferenceSource,
-    asset: CrossReferenceAsset,
-  ) => Effect.Effect<{ readonly imported: number; readonly skipped: number }, SqlError>;
-  readonly importMarginNotes: (
-    asset: MarginNotesAsset,
-  ) => Effect.Effect<{ readonly imported: number; readonly skipped: number }, SqlError>;
-  readonly importTopics: (
-    asset: TopicalReferenceAsset,
-  ) => Effect.Effect<
-    { readonly topics: number; readonly sections: number; readonly references: number },
-    SqlError
-  >;
-  readonly finalizeImport: (createdAt: string) => Effect.Effect<void, SqlError>;
-  readonly resetKjv: () => Effect.Effect<void, SqlError>;
+  readonly install: (
+    archive: BibleCorpusArchive,
+    installedAt: string,
+  ) => Effect.Effect<BibleCorpusInstallResult, SqlError>;
+}
+
+export interface BibleCorpusInstallResult {
+  readonly kjv: { readonly verses: number; readonly withStrongs: number };
+  readonly lexicon: { readonly imported: number; readonly skipped: number };
+  readonly openBible: { readonly imported: number; readonly skipped: number };
+  readonly tske: { readonly imported: number; readonly skipped: number };
+  readonly marginNotes: { readonly imported: number; readonly skipped: number };
+  readonly topics: {
+    readonly topics: number;
+    readonly sections: number;
+    readonly references: number;
+  };
 }
 
 const StrongsNumbersJson = Schema.fromJsonString(Schema.Array(Schema.String));
@@ -415,45 +341,44 @@ export class BibleCorpus extends Context.Service<BibleCorpus, BibleCorpusService
         ),
       );
 
-      const finalizeImport = Effect.fn('BibleCorpus.finalizeImport')((createdAt: string) =>
-        Effect.gen(function* () {
-          yield* sql`
-            INSERT INTO meta (key, value) VALUES ('schema_version', '1')
-            ON CONFLICT(key) DO UPDATE SET value = excluded.value
-          `;
-          yield* sql`
-            INSERT INTO meta (key, value) VALUES ('created_at', ${createdAt})
-            ON CONFLICT(key) DO UPDATE SET value = excluded.value
-          `;
-          yield* sql.unsafe(`INSERT INTO verses_fts(verses_fts) VALUES('optimize')`);
-          yield* sql.unsafe(`INSERT INTO strongs_fts(strongs_fts) VALUES('optimize')`);
-          yield* sql.unsafe(`INSERT INTO margin_notes_fts(margin_notes_fts) VALUES('optimize')`);
-          yield* sql.unsafe('ANALYZE');
-          yield* sql.unsafe('VACUUM');
-        }),
-      );
-
-      const resetKjv = Effect.fn('BibleCorpus.resetKjv')(() =>
-        sql.withTransaction(
-          Effect.gen(function* () {
-            yield* sql`DELETE FROM strongs_verses`;
-            yield* sql`DELETE FROM verse_words`;
-            yield* sql`DELETE FROM strongs`;
-            yield* sql`DELETE FROM verses WHERE version_code = 'KJV'`;
-            yield* sql`DELETE FROM versions WHERE code = 'KJV'`;
-          }),
-        ),
+      const install = Effect.fn('BibleCorpus.install')(
+        (archive: BibleCorpusArchive, installedAt: string) =>
+          sql.withTransaction(
+            Effect.gen(function* () {
+              const kjv = yield* importKjv(archive.kjv, archive.strongsVerses);
+              const lexicon = yield* importStrongsLexicon(archive.strongsLexicon);
+              const openBible = yield* importCrossReferences(
+                'openbible',
+                archive.openBibleCrossReferences,
+              );
+              const tske = yield* importCrossReferences('tske', archive.tskeCrossReferences);
+              const marginNotes = yield* importMarginNotes(archive.marginNotes);
+              const topics = yield* importTopics(archive.topics);
+              yield* sql`
+                  INSERT INTO meta (key, value) VALUES ('schema_version', '1')
+                  ON CONFLICT(key) DO UPDATE SET value = excluded.value
+                `;
+              yield* sql`
+                  INSERT INTO meta (key, value) VALUES ('created_at', ${installedAt})
+                  ON CONFLICT(key) DO UPDATE SET value = excluded.value
+                `;
+              yield* Effect.all(
+                [
+                  sql.unsafe(`INSERT INTO verses_fts(verses_fts) VALUES('optimize')`),
+                  sql.unsafe(`INSERT INTO strongs_fts(strongs_fts) VALUES('optimize')`),
+                  sql.unsafe(`INSERT INTO margin_notes_fts(margin_notes_fts) VALUES('optimize')`),
+                  sql.unsafe('ANALYZE'),
+                ],
+                { concurrency: 1, discard: true },
+              );
+              return { kjv, lexicon, openBible, tske, marginNotes, topics };
+            }),
+          ),
       );
 
       return BibleCorpus.of({
         status,
-        importKjv,
-        importStrongsLexicon,
-        importCrossReferences,
-        importMarginNotes,
-        importTopics,
-        finalizeImport,
-        resetKjv,
+        install,
       });
     }),
   );

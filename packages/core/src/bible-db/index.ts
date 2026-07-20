@@ -24,14 +24,16 @@ export {
 } from './bible-database.js';
 
 export { BibleCorpus, type BibleCorpusService } from './bible-corpus.js';
-export type {
-  BibleCorpusStatus,
+export {
+  BibleCorpusArchive,
+  decodeBibleCorpusArchive,
   KjvAssetFile,
   StrongsWordAsset,
   StrongsVerseAsset,
   StrongsLexiconAsset,
+  StrongsLexicon,
   CrossReferenceAsset,
-  CrossReferenceSource,
   MarginNotesAsset,
   TopicalReferenceAsset,
-} from './bible-corpus.js';
+} from './archive.js';
+export type { BibleCorpusStatus, CrossReferenceSource } from './bible-corpus.js';

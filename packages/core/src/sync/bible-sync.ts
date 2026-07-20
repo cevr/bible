@@ -6,15 +6,7 @@ import { Effect, Layer } from 'effect';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
-import {
-  BibleCorpus,
-  type CrossReferenceAsset,
-  type KjvAssetFile,
-  type MarginNotesAsset,
-  type TopicalReferenceAsset,
-  type StrongsLexiconAsset,
-  type StrongsVerseAsset,
-} from '../bible-db/index.js';
+import { BibleCorpus, decodeBibleCorpusArchive } from '../bible-db/index.js';
 
 export interface BibleSyncPaths {
   readonly assetsDirectory: string;
@@ -72,82 +64,39 @@ export async function syncBible(
   const buildingDatabase = `${paths.database}.building`;
   removeDatabaseFiles(buildingDatabase);
 
-  const kjv = loadJson(paths.assetsDirectory, 'kjv.json') as KjvAssetFile;
-  const kjvStrongs = loadJson(
-    paths.assetsDirectory,
-    'kjv-strongs.json',
-  ) as readonly StrongsVerseAsset[];
-  const strongs = loadJson(paths.assetsDirectory, 'strongs.json') as Readonly<
-    Record<string, StrongsLexiconAsset>
-  >;
-  const openBible = loadJson(paths.assetsDirectory, 'cross-refs.json') as CrossReferenceAsset;
-  const tskePath = path.join(paths.assetsDirectory, 'cross-refs-tske.json');
-  const tske = fs.existsSync(tskePath)
-    ? (loadJson(paths.assetsDirectory, 'cross-refs-tske.json') as CrossReferenceAsset)
-    : null;
-  const marginNotes = loadJson(paths.assetsDirectory, 'margin-notes.json') as MarginNotesAsset;
-  const topics = loadJson(
-    paths.assetsDirectory,
-    'naves-topical-bible.json',
-  ) as TopicalReferenceAsset;
+  const archive = await Effect.runPromise(
+    decodeBibleCorpusArchive({
+      kjv: loadJson(paths.assetsDirectory, 'kjv.json'),
+      strongsVerses: loadJson(paths.assetsDirectory, 'kjv-strongs.json'),
+      strongsLexicon: loadJson(paths.assetsDirectory, 'strongs.json'),
+      openBibleCrossReferences: loadJson(paths.assetsDirectory, 'cross-refs.json'),
+      tskeCrossReferences: loadJson(paths.assetsDirectory, 'cross-refs-tske.json'),
+      marginNotes: loadJson(paths.assetsDirectory, 'margin-notes.json'),
+      topics: loadJson(paths.assetsDirectory, 'naves-topical-bible.json'),
+    }),
+  );
 
   console.log(`Creating database at ${paths.database}...`);
   try {
     const result = await Effect.runPromise(
       Effect.gen(function* () {
         const corpus = yield* BibleCorpus;
-
-        console.log("Importing KJV verses and Strong's word mappings...");
-        const kjvResult = yield* corpus.importKjv(kjv, kjvStrongs);
-
-        console.log("Importing Strong's lexicon...");
-        const lexiconResult = yield* corpus.importStrongsLexicon(strongs);
-
-        console.log('Importing OpenBible cross-references...');
-        const openBibleResult = yield* corpus.importCrossReferences('openbible', openBible);
-
-        const tskeResult =
-          tske === null
-            ? null
-            : yield* corpus
-                .importCrossReferences('tske', tske)
-                .pipe(
-                  Effect.tap(() =>
-                    Effect.sync(() => console.log('Imported TSKe cross-references.')),
-                  ),
-                );
-
-        console.log('Importing KJV margin notes...');
-        const marginResult = yield* corpus.importMarginNotes(marginNotes);
-
-        console.log("Importing Nave's topical index...");
-        const topicResult = yield* corpus.importTopics(topics);
-
-        console.log('Optimizing database...');
-        yield* corpus.finalizeImport(new Date().toISOString());
-
-        return {
-          kjvResult,
-          lexiconResult,
-          openBibleResult,
-          tskeResult,
-          marginResult,
-          topicResult,
-        };
+        console.log('Installing canonical Bible Corpus...');
+        return yield* corpus.install(archive, new Date().toISOString());
       }).pipe(Effect.provide(corpusLayer(buildingDatabase))),
     );
 
     removeDatabaseFiles(paths.database);
     fs.renameSync(buildingDatabase, paths.database);
 
-    console.log(`  Verses: ${result.kjvResult.verses}`);
-    console.log(`  Strong's verses: ${result.kjvResult.withStrongs}`);
-    console.log(`  Strong's definitions: ${result.lexiconResult.imported}`);
-    console.log(`  OpenBible references: ${result.openBibleResult.imported}`);
-    console.log(`  TSKe references: ${result.tskeResult?.imported ?? 0}`);
-    console.log(`  Margin notes: ${result.marginResult.imported}`);
-    console.log(`  Topics: ${result.topicResult.topics}`);
-    console.log(`  Topic references: ${result.topicResult.references}`);
+    console.log(`  Verses: ${result.kjv.verses}`);
+    console.log(`  Strong's verses: ${result.kjv.withStrongs}`);
+    console.log(`  Strong's definitions: ${result.lexicon.imported}`);
+    console.log(`  OpenBible references: ${result.openBible.imported}`);
+    console.log(`  TSKe references: ${result.tske.imported}`);
+    console.log(`  Margin notes: ${result.marginNotes.imported}`);
+    console.log(`  Topics: ${result.topics.topics}`);
+    console.log(`  Topic references: ${result.topics.references}`);
   } catch (error) {
     removeDatabaseFiles(buildingDatabase);
     throw error;
