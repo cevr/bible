@@ -1,10 +1,10 @@
 import { bookNumber } from '@bible/core/bible';
-import type { AppRoute } from '../route/index.js';
-import { encodeRoute } from '../route/index.js';
 import { A, useNavigate } from '@solidjs/router';
 import { Errored, For, Loading, Show } from '@solidjs/web';
 import { createEffect, createMemo, createSignal } from 'solid-js';
 
+import type { AppRoute } from '../route/index.js';
+import { encodeRoute } from '../route/index.js';
 import { useReadingData } from '../runtime/index.js';
 import { Button, Input } from '../ui/index.js';
 import { ReaderFailure, ReaderLoading } from './bible-reader.js';
@@ -37,12 +37,22 @@ export const BibleSearch = (props: BibleSearchProps) => {
     },
   );
   const books = createMemo(() => props.route.books.map((book) => bookNumber(book)));
-  const query = createMemo(() => ({
-    query: props.route.query,
-    books: books().length > 0 ? books() : undefined,
-    limit: PAGE_SIZE,
-  }));
+  const query = createMemo(() => {
+    const selectedBooks = books();
+    if (selectedBooks.length > 0) {
+      return { query: props.route.query, books: selectedBooks, limit: PAGE_SIZE };
+    }
+    return { query: props.route.query, limit: PAGE_SIZE };
+  });
   const results = () => data.bibleSearch.get(query())();
+  const emptyPrompt = (): string => {
+    if (props.route.query.length > 0) return 'Type at least two characters to search.';
+    return 'Enter a word or phrase to find it in Scripture.';
+  };
+  const resultCountLabel = (): string => {
+    if (results().total === 1) return 'result';
+    return 'results';
+  };
 
   const apply = (nextQuery: string, nextBooks = props.route.books) => {
     navigate(encodeRoute(searchRoute(nextQuery.trim(), nextBooks)));
@@ -97,20 +107,13 @@ export const BibleSearch = (props: BibleSearchProps) => {
       </nav>
       <Show
         when={props.route.query.trim().length >= 2}
-        fallback={
-          <p class="bible-search__empty">
-            {props.route.query.length > 0
-              ? 'Type at least two characters to search.'
-              : 'Enter a word or phrase to find it in Scripture.'}
-          </p>
-        }
+        fallback={<p class="bible-search__empty">{emptyPrompt()}</p>}
       >
         <Errored fallback={(error) => <ReaderFailure error={error()} />}>
           <Loading fallback={<ReaderLoading label="Searching Scripture" />}>
             <section class="bible-search__results" aria-live="polite">
               <p class="bible-search__summary">
-                {results().total} {results().total === 1 ? 'result' : 'results'} for “
-                {props.route.query}”
+                {results().total} {resultCountLabel()} for “{props.route.query}”
               </p>
               <Show
                 when={results().hits.length > 0}
@@ -146,8 +149,14 @@ const SearchFilter = (props: {
   readonly label: string;
   readonly active: boolean;
   readonly select: () => void;
-}) => (
-  <Button aria-pressed={props.active ? 'true' : 'false'} onClick={props.select}>
-    {props.label}
-  </Button>
-);
+}) => {
+  const pressed = (): 'true' | 'false' => {
+    if (props.active) return 'true';
+    return 'false';
+  };
+  return (
+    <Button aria-pressed={pressed()} onClick={props.select}>
+      {props.label}
+    </Button>
+  );
+};

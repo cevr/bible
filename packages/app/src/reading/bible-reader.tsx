@@ -18,6 +18,14 @@ export const BibleReader = (props: BibleReaderProps) => {
     data.bibleChapters.get({ book: props.reference.book, chapter: props.reference.chapter })();
   const versePath = (verse: number) =>
     `/bible/${String(props.reference.book)}/${String(props.reference.chapter)}/${String(verse)}`;
+  const activeVerse = (verse: number): '' | undefined => {
+    if (props.reference._tag === 'verse' && props.reference.verse === verse) return '';
+    return undefined;
+  };
+  const selectedVerse = (): number => {
+    if (props.reference._tag === 'verse') return props.reference.verse;
+    return 1;
+  };
   const scripture = () => (
     <ScrollViewport label={`${chapter().book.name} ${String(chapter().reference.chapter)}`}>
       <div class="bible-scripture" role="list">
@@ -42,14 +50,7 @@ export const BibleReader = (props: BibleReaderProps) => {
                 },
               ]}
             >
-              <p
-                data-active={
-                  props.reference._tag === 'verse' &&
-                  props.reference.verse === verse.reference.verse
-                    ? ''
-                    : undefined
-                }
-              >
+              <p data-active={activeVerse(verse.reference.verse)}>
                 <A
                   class="bible-verse-number"
                   href={versePath(verse.reference.verse)}
@@ -85,11 +86,9 @@ export const BibleReader = (props: BibleReaderProps) => {
                   location={{
                     source: 'bible',
                     resourceId: 'KJV',
-                    location: versePath(
-                      props.reference._tag === 'verse' ? props.reference.verse : 1,
-                    ),
+                    location: versePath(selectedVerse()),
                   }}
-                  label={`${chapter().book.name} ${String(props.reference.chapter)}:${String(props.reference._tag === 'verse' ? props.reference.verse : 1)}`}
+                  label={`${chapter().book.name} ${String(props.reference.chapter)}:${String(selectedVerse())}`}
                   expanded
                 />
               }
@@ -123,9 +122,15 @@ export const ReaderLoading = (props: { readonly label: string }) => (
   </div>
 );
 
-export const ReaderFailure = (props: { readonly error: unknown }) => (
-  <div class="bible-reader-state bible-reader-state--error" role="alert">
-    <strong>This passage could not be opened.</strong>
-    <span>{props.error instanceof Error ? props.error.message : String(props.error)}</span>
-  </div>
-);
+export const ReaderFailure = (props: { readonly error: unknown }) => {
+  const message = (): string => {
+    if (props.error instanceof Error) return props.error.message;
+    return String(props.error);
+  };
+  return (
+    <div class="bible-reader-state bible-reader-state--error" role="alert">
+      <strong>This passage could not be opened.</strong>
+      <span>{message()}</span>
+    </div>
+  );
+};

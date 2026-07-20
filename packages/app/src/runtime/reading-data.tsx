@@ -172,12 +172,14 @@ export const createReadingData = (input: CreateReadingDataInput): ReadingData =>
     runtime,
     emptyInput: {},
     lookup: () => input.procedures['v1.reading.writingsLibrary.get'](),
-    mutate: (command: WritingsLibraryCommand) =>
-      command._tag === 'DownloadPublication'
-        ? input.procedures['v1.reading.writingsPublication.download']({
-            publicationId: command.publicationId,
-          }).pipe(Effect.map((result) => [result]))
-        : input.procedures['v1.reading.writingsLibrary.downloadAll'](),
+    mutate: (command: WritingsLibraryCommand) => {
+      if (command._tag === 'DownloadPublication') {
+        return input.procedures['v1.reading.writingsPublication.download']({
+          publicationId: command.publicationId,
+        }).pipe(Effect.map((result) => [result]));
+      }
+      return input.procedures['v1.reading.writingsLibrary.downloadAll']();
+    },
     affects: () => ['writings-library'] as const,
     matches: () => true,
   });

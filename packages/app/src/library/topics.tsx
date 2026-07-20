@@ -36,19 +36,32 @@ export const Topics = (props: TopicsProps) => {
   const [letter, setLetter] = createSignal('A');
   const listInput = createMemo(() => {
     const current = query().trim();
-    return current.length > 0 ? { query: current } : { letter: letter() };
+    if (current.length > 0) return { query: current };
+    return { letter: letter() };
   });
   const topics = () => data.topics.get(listInput())();
   const topic = () => {
     const id = Schema.decodeUnknownSync(TopicId)(props.topicId ?? 'missing-topic');
     return data.topicDetails.get({ id })();
   };
+  const title = (): string => {
+    if (props.topicId) return 'Topic';
+    return 'Topical index';
+  };
+  const isSelectedLetter = (initial: string): 'true' | 'false' => {
+    if (query().length === 0 && letter() === initial) return 'true';
+    return 'false';
+  };
+  const topicCountLabel = (): string => {
+    if (topics().length === 1) return 'topic';
+    return 'topics';
+  };
 
   return (
     <article class="bible-library bible-topics">
       <header class="bible-reader__heading bible-library__heading">
         <p class="bible-reader__eyebrow">Nave’s Topical Bible</p>
-        <h1>{props.topicId ? 'Topic' : 'Topical index'}</h1>
+        <h1>{title()}</h1>
       </header>
       <Errored fallback={(error) => <ReaderFailure error={error()} />}>
         <Loading fallback={<ReaderLoading label="Opening topical index" />}>
@@ -77,9 +90,7 @@ export const Topics = (props: TopicsProps) => {
                   <For each={LETTERS}>
                     {(initial) => (
                       <Button
-                        aria-pressed={
-                          query().length === 0 && letter() === initial ? 'true' : 'false'
-                        }
+                        aria-pressed={isSelectedLetter(initial)}
                         onClick={() => {
                           setQuery('');
                           setDraft('');
@@ -92,7 +103,7 @@ export const Topics = (props: TopicsProps) => {
                   </For>
                 </nav>
                 <p class="bible-search__summary">
-                  {topics().length} {topics().length === 1 ? 'topic' : 'topics'}
+                  {topics().length} {topicCountLabel()}
                 </p>
                 <ul class="bible-library-list">
                   <For each={topics()}>
@@ -128,7 +139,11 @@ export const Topics = (props: TopicsProps) => {
                         {(reference) => {
                           const href = bibleRouteFor(reference);
                           return (
-                            <li>{href ? <A href={href}>{reference.raw}</A> : reference.raw}</li>
+                            <li>
+                              <Show when={href} fallback={reference.raw}>
+                                {(route) => <A href={route()}>{reference.raw}</A>}
+                              </Show>
+                            </li>
                           );
                         }}
                       </For>
