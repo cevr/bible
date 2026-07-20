@@ -42,15 +42,7 @@
     "effect/noThrowStatement": "error",
     "effect/noTryCatch": "error"
   },
-  "ignorePatterns": [
-    "**/dist/**",
-    "**/node_modules/**",
-    "**/*.d.ts",
-    "**/scripts/**",
-    "**/bin/**",
-    "**/outputs/**",
-    "**/src-tauri/**"
-  ],
+  "ignorePatterns": ["**/dist/**", "**/node_modules/**", "**/*.d.ts", "**/outputs/**"],
   "overrides": [
     {
       "files": ["**/packages/web/src/**"],
@@ -71,116 +63,6 @@
         "solid/runpromise-needs-cleanup": "error",
         "solid/no-pushup-loader-component": "error",
         "solid/no-hand-rolled-debounce": "error"
-      }
-    },
-    {
-      "files": ["**/*"],
-      "rules": {
-        "effect/noAsyncFunction": "off",
-        "effect/noEffectBind": "off",
-        "effect/noEffectDo": "off",
-        "effect/noGlobals": "off",
-        "effect/noNewError": "off",
-        "effect/noNewPromise": "off",
-        "effect/noNodeBuiltinImport": "off",
-        "effect/noTernary": "off",
-        "effect/noThrowStatement": "off",
-        "effect/noTryCatch": "off"
-      }
-    },
-    {
-      "files": [
-        "**/packages/core/src/local-first/**",
-        "**/packages/core/src/library-state/**",
-        "**/packages/core/src/procedure/**",
-        "**/packages/core/src/reading-preferences/**",
-        "**/packages/core/src/topics/**",
-        "**/packages/core/src/corpus-supply/**",
-        "**/packages/core/src/writings/model.ts",
-        "**/packages/core/src/platform-node/bible-artifact.ts",
-        "**/packages/core/src/platform-node/bible-artifact.test.ts",
-        "**/packages/core/src/sync/bible-sync.ts",
-        "**/packages/core/src/sync/bible-sync-main.ts",
-        "**/packages/core/src/bible/canon.ts",
-        "**/packages/core/src/bible/parse.ts",
-        "**/packages/core/src/bible-rendering/segments.ts",
-        "**/packages/core/src/bible-db/bible-corpus.ts",
-        "**/packages/core/src/bible-db/bible-database.ts",
-        "**/packages/core/src/bible/service.ts",
-        "**/packages/core/src/egw/auth-types.ts",
-        "**/packages/core/src/egw/build-defines.ts",
-        "**/packages/web/src/server.ts",
-        "**/packages/core/src/hymnal/service.ts",
-        "**/packages/core/src/structural-analysis/service.ts",
-        "**/packages/core/src/writings/archive.ts",
-        "**/packages/core/src/writings/archive-service.ts",
-        "**/packages/app/src/procedure/**",
-        "**/packages/app/src/cache/synced-cache.ts",
-        "**/packages/cli/src/commands/egw/books.ts",
-        "**/packages/cli/src/commands/egw/catalog.ts",
-        "**/packages/cli/src/commands/egw/format.ts",
-        "**/packages/cli/src/commands/egw/search.ts",
-        "**/packages/cli/src/commands/egw/commentary.ts",
-        "**/packages/cli/src/commands/egw/lookup.ts",
-        "**/packages/cli/src/commands/sync.ts",
-        "**/packages/cli/src/commands/handbook.ts",
-        "**/packages/cli/src/commands/slides/build.ts",
-        "**/packages/cli/src/commands/slides/insert.ts",
-        "**/packages/cli/src/commands/slides/interleave.ts",
-        "**/packages/cli/src/commands/slides/list.ts",
-        "**/packages/cli/src/commands/slides/move.ts",
-        "**/packages/cli/src/commands/slides/swap.ts",
-        "**/packages/cli/src/services/process.ts",
-        "**/packages/app/src/route/codec.ts",
-        "**/packages/app/src/route/disclosure.ts",
-        "**/packages/app/src/runtime/failure-category.ts",
-        "**/packages/app/src/runtime/writings-cache.ts",
-        "**/packages/app/src/application/routes.tsx",
-        "**/packages/app/src/application/reading-shell.tsx",
-        "**/packages/app/src/reading/paragraph-nodes.tsx",
-        "**/packages/app/src/ui/button.tsx",
-        "**/packages/app/src/ui/command-palette.tsx",
-        "**/packages/app/src/ui/icon.tsx",
-        "**/packages/app/src/ui/input.tsx",
-        "**/packages/app/src/ui/popover.tsx",
-        "**/packages/app/src/ui/scroll-viewport.tsx",
-        "**/packages/app/src/ui/split-pane.tsx",
-        "**/packages/app/src/ui/tabs.tsx",
-        "**/apps/desktop/lint/solid-audit/ast.ts",
-        "**/apps/desktop/lint/solid-audit/component-max-loc.ts",
-        "**/apps/desktop/lint/solid-audit/effect-service-no-setters.ts",
-        "**/apps/desktop/src/platform-capabilities.ts",
-        "**/apps/web/server/api/groups/BibleGroupLive.ts",
-        "**/apps/web/server/api/groups/EGWGroupLive.ts",
-        "**/apps/web/src/platform-capabilities.ts",
-        "**/apps/web/src/workers/user-state-database.ts",
-        "**/apps/web/src/workers/procedure-client.ts",
-        "**/apps/web/src/workers/procedure-worker-protocol.ts",
-        "**/apps/web/src/workers/procedure-server.ts",
-        "**/apps/web/src/workers/worker-sql-client.ts",
-        "**/apps/desktop/electron/user-state-database.ts",
-        "**/apps/desktop/electron/user-state-generation.ts",
-        "**/apps/desktop/electron/local-procedure-runtime.ts",
-        "**/apps/desktop/electron/procedure-server.ts",
-        "**/apps/desktop/electron/runtime.ts",
-        "**/apps/desktop/src/procedure-client.ts",
-        "**/apps/desktop/src/procedure-client-protocol.ts",
-        "**/apps/desktop/src/procedure-port.ts",
-        "**/apps/desktop/shared/procedure-channel.ts"
-      ],
-      "rules": {
-        "effect/noAsyncFunction": "error",
-        "effect/noDynamicImports": "error",
-        "effect/noEffectBind": "error",
-        "effect/noEffectDo": "error",
-        "effect/noGlobals": "error",
-        "effect/noNewError": "error",
-        "effect/noNewPromise": "error",
-        "effect/noNodeBuiltinImport": "error",
-        "effect/noTernary": "error",
-        "effect/noTestLifecycleHooks": "error",
-        "effect/noThrowStatement": "error",
-        "effect/noTryCatch": "error"
       }
     },
     {
@@ -206,22 +88,84 @@
       }
     },
     {
-      "files": ["**/apps/web/src/workers/user-state-database.ts"],
+      "files": ["**/apps/web/src/workers/sqlite-host.ts"],
       "rules": {
         "effect/noAsyncFunction": "off"
       }
     },
     {
-      "files": ["**/apps/desktop/electron/user-state-generation.ts"],
+      "files": ["**/apps/web/src/workers/database-file-downloader.ts"],
+      "rules": {
+        "effect/noGlobals": "off"
+      }
+    },
+    {
+      "files": ["**/apps/web/src/workers/db-worker-host.ts"],
+      "rules": {
+        "effect/noGlobals": "off"
+      }
+    },
+    {
+      "files": ["**/apps/web/src/workers/database-worker.ts"],
+      "rules": {
+        "effect/noGlobals": "off"
+      }
+    },
+    {
+      "files": ["**/apps/web/e2e/smoke.spec.ts"],
+      "rules": {
+        "effect/noAsyncFunction": "off",
+        "effect/noGlobals": "off"
+      }
+    },
+    {
+      "files": ["**/apps/web/e2e/playwright.config.ts", "**/apps/desktop/e2e/playwright.config.ts"],
+      "rules": {
+        "effect/noGlobals": "off"
+      }
+    },
+    {
+      "files": ["**/apps/desktop/e2e/smoke.spec.ts"],
+      "rules": {
+        "effect/noAsyncFunction": "off",
+        "effect/noGlobals": "off",
+        "effect/noNodeBuiltinImport": "off",
+        "effect/noTryCatch": "off"
+      }
+    },
+    {
+      "files": ["**/apps/desktop/electron/main.ts"],
+      "rules": {
+        "effect/noAsyncFunction": "off",
+        "effect/noGlobals": "off",
+        "effect/noNodeBuiltinImport": "off"
+      }
+    },
+    {
+      "files": ["**/apps/web/server/main.ts"],
       "rules": {
         "effect/noGlobals": "off",
         "effect/noNodeBuiltinImport": "off"
       }
     },
     {
-      "files": ["**/apps/desktop/electron/runtime.ts"],
+      "files": ["**/apps/desktop/scripts/mark-audit.ts"],
       "rules": {
         "effect/noGlobals": "off"
+      }
+    },
+    {
+      "files": ["**/apps/desktop/scripts/vite-plugin-electron-dev.ts"],
+      "rules": {
+        "effect/noAsyncFunction": "off",
+        "effect/noGlobals": "off",
+        "effect/noNodeBuiltinImport": "off"
+      }
+    },
+    {
+      "files": ["**/apps/desktop/electron/user-state-generation-host.ts"],
+      "rules": {
+        "effect/noNodeBuiltinImport": "off"
       }
     },
     {
@@ -230,65 +174,7 @@
         "typescript/no-non-null-assertion": "off",
         "typescript/no-explicit-any": "off",
         "typescript/no-unsafe-type-assertion": "off",
-        "node/no-process-env": "off",
-        "effect/noAsyncFunction": "off",
-        "effect/noGlobals": "off",
-        "effect/noNewError": "off",
-        "effect/noNewPromise": "off",
-        "effect/noNodeBuiltinImport": "off",
-        "effect/noTernary": "off",
-        "effect/noThrowStatement": "off",
-        "effect/noTryCatch": "off"
-      }
-    },
-    {
-      "files": [
-        "**/packages/core/src/corpus-supply/**/*.test.ts",
-        "**/packages/core/src/bible/service.test.ts",
-        "**/packages/core/src/bible-db/archive.test.ts",
-        "**/packages/core/src/egw-commentary/service.test.ts",
-        "**/packages/core/src/local-first/sync-engine.test.ts",
-        "**/packages/core/src/sync/bible-sync.test.ts",
-        "**/packages/core/src/structural-analysis/service.test.ts",
-        "**/packages/core/src/writings/archive-service.test.ts",
-        "**/packages/core/src/writings/service.test.ts",
-        "**/packages/core/src/hymnal/service.test.ts",
-        "**/packages/core/src/platform-node/bible-artifact.test.ts",
-        "**/packages/app/src/procedure/client.test.ts",
-        "**/packages/app/src/cache/synced-cache.test.ts",
-        "**/packages/app/src/runtime/reading-data.test.ts",
-        "**/packages/cli/test/commands/egw.test.ts",
-        "**/packages/cli/test/commands/export.test.ts",
-        "**/packages/cli/test/commands/messages.test.ts",
-        "**/packages/cli/test/commands/notes.test.ts",
-        "**/packages/cli/test/commands/readings.test.ts",
-        "**/packages/cli/test/commands/root.test.ts",
-        "**/packages/cli/test/commands/sabbath-school.test.ts",
-        "**/packages/cli/test/commands/studies.test.ts",
-        "**/apps/desktop/tests/procedure-client.test.ts",
-        "**/apps/desktop/tests/procedure-server.test.ts",
-        "**/apps/web/src/workers/bible-database.test.ts",
-        "**/apps/web/src/workers/bible-generation-store.test.ts",
-        "**/apps/web/src/workers/database-file-downloader.test.ts",
-        "**/apps/web/src/workers/generation-marker.test.ts",
-        "**/apps/web/src/workers/procedure-worker-protocol.test.ts",
-        "**/apps/web/src/workers/user-state-generation.test.ts",
-        "**/apps/web/src/workers/web-state-migration.test.ts",
-        "**/apps/web/src/workers/writings-http-source.test.ts"
-      ],
-      "rules": {
-        "effect/noAsyncFunction": "error",
-        "effect/noDynamicImports": "error",
-        "effect/noEffectBind": "error",
-        "effect/noEffectDo": "error",
-        "effect/noGlobals": "error",
-        "effect/noNewError": "error",
-        "effect/noNewPromise": "error",
-        "effect/noNodeBuiltinImport": "error",
-        "effect/noTernary": "error",
-        "effect/noTestLifecycleHooks": "error",
-        "effect/noThrowStatement": "error",
-        "effect/noTryCatch": "error"
+        "node/no-process-env": "off"
       }
     },
     {
