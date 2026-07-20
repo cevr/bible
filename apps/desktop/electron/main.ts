@@ -2,7 +2,7 @@ import { BibleCorpus, BibleDatabase } from '@bible/core/bible-db';
 import { BIBLE_ARTIFACT_RELEASE, CorpusSupply } from '@bible/core/corpus-supply';
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
 import userStateMigrationSql from '@bible/core/local-first/migrations/0001_user_state.sql';
-import { Effect, Fiber, Layer } from 'effect';
+import { Effect, Fiber, Layer, Option } from 'effect';
 import { app, BrowserWindow, dialog, ipcMain, MessageChannelMain, shell } from 'electron';
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -18,13 +18,9 @@ import { prepareDesktopUserState } from './user-state-generation.js';
 // Tiny .env loader for the plain Electron bootstrap. The Effect runtime reads
 // its configuration after this has populated process.env.
 const loadDotEnv = (file: string): void => {
-  let text: string;
-  try {
-    text = readFileSync(file, 'utf-8');
-  } catch {
-    return;
-  }
-  for (const rawLine of text.split('\n')) {
+  const text = Effect.runSync(Effect.option(Effect.try(() => readFileSync(file, 'utf-8'))));
+  if (Option.isNone(text)) return;
+  for (const rawLine of text.value.split('\n')) {
     const line = rawLine.trim();
     if (line === '' || line.startsWith('#')) continue;
     const eq = line.indexOf('=');
@@ -99,33 +95,30 @@ const resolveWindowIcon = (): string | undefined => {
     path.join(process.resourcesPath, 'assets', 'icon.png'),
   ];
   for (const candidate of candidates) {
-    try {
-      readFileSync(candidate);
-      return candidate;
-    } catch {
-      // Try the packaged/development alternative.
-    }
+    const readable = Effect.runSync(Effect.option(Effect.try(() => readFileSync(candidate))));
+    if (Option.isSome(readable)) return candidate;
   }
   return undefined;
 };
 
 const createWindow = async (runtime: MainRuntime): Promise<void> => {
   const icon = resolveWindowIcon();
-  const win = new BrowserWindow({
+  const windowOptions: Electron.BrowserWindowConstructorOptions = {
     width: 1280,
     height: 860,
     minWidth: 720,
     minHeight: 480,
     titleBarStyle: 'hiddenInset',
     backgroundColor: '#ffffff',
-    ...(icon !== undefined ? { icon } : {}),
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
     },
-  });
+  };
+  if (icon !== undefined) windowOptions.icon = icon;
+  const win = new BrowserWindow(windowOptions);
 
   win.webContents.setWindowOpenHandler(({ url }) => {
     void shell.openExternal(url);
@@ -197,8 +190,14 @@ void app.whenReady().then(async () => {
   const bibleActivation = provisionedCorpus.activated.find(
     (activation) => activation.corpus === 'bible',
   );
+  let activationState = 'activated';
+  let activationSource: string = 'current';
+  let installedVerses = 31_102;
+  if (bibleActivation === undefined) activationState = 'current';
+  if (bibleActivation?.source !== undefined) activationSource = bibleActivation.source;
+  if (bibleActivation?.installed !== undefined) installedVerses = bibleActivation.installed;
   console.info(
-    `[main] bible-corpus-ready state=${bibleActivation === undefined ? 'current' : 'activated'} source=${bibleActivation?.source ?? 'current'} verses=${String(bibleActivation?.installed ?? 31_102)}`,
+    `[main] bible-corpus-ready state=${activationState} source=${activationSource} verses=${String(installedVerses)}`,
   );
   console.info(
     `[main] legacy-cli-source configured=${String(configuredLegacyCliStatePath !== undefined && configuredLegacyCliStatePath !== '')}`,
