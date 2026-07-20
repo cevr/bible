@@ -12,10 +12,11 @@
     "build:main": "bun run scripts/build-main.ts",
     "package": "bun run --cwd ../../packages/core sync:bible --force && bun run build && electron-builder",
     "typecheck": "tsgo --noEmit",
-    "test": "vitest run --exclude tests/user-state-generation.test.ts && bun run test:electron-native",
+    "test": "bun run test:unit && bun run test:electron-native",
+    "test:unit": "bun test tests/paragraph-ast.test.ts tests/procedure-client.test.ts tests/procedure-server.test.ts",
     "test:electron-native": "ELECTRON_RUN_AS_NODE=1 electron node_modules/vitest/vitest.mjs run tests/user-state-generation.test.ts",
     "test:e2e": "bun run build && playwright test --config=e2e/playwright.config.ts",
-    "test:watch": "vitest --exclude tests/user-state-generation.test.ts",
+    "test:watch": "bun test --watch tests/paragraph-ast.test.ts tests/procedure-client.test.ts tests/procedure-server.test.ts",
     "postinstall": "node -e \"process.exit(process.env.CI||process.env.RAILWAY_ENVIRONMENT||process.env.SKIP_ELECTRON_REBUILD?0:1)\" || electron-rebuild -f -w better-sqlite3"
   },
   "dependencies": {
@@ -35,6 +36,7 @@
     "@electron/rebuild": "^4.2.0",
     "@playwright/test": "^1.61.1",
     "@types/better-sqlite3": "^7.6.13",
+    "effect-bun-test": "catalog:",
     "electron": "^43.1.0",
     "electron-builder": "^26.15.3",
     "esbuild": "^0.28.1",

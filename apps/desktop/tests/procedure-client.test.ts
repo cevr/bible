@@ -1,4 +1,4 @@
-import { describe, expect, it } from '@effect/vitest';
+import { describe, expect, it } from 'effect-bun-test';
 import { Deferred, Effect, Fiber } from 'effect';
 import type { FromClientEncoded, FromServerEncoded } from 'effect/unstable/rpc/RpcMessage';
 import * as RpcClient from 'effect/unstable/rpc/RpcClient';
@@ -16,7 +16,7 @@ const nextMessage = (port: MessagePort): Effect.Effect<FromClientEncoded> =>
   });
 
 describe('desktop procedure client protocol', () => {
-  it.effect('moves raw encoded RPC messages over the Electron port boundary', () =>
+  it.scoped('moves raw encoded RPC messages over the Electron port boundary', () =>
     Effect.gen(function* () {
       const channel = yield* Effect.acquireRelease(
         Effect.sync(() => new MessageChannel()),

@@ -1,4 +1,4 @@
-import { describe, expect, it } from '@effect/vitest';
+import { describe, expect, it } from 'effect-bun-test';
 import { Deferred, Effect, Queue } from 'effect';
 import type { FromClientEncoded, FromServerEncoded } from 'effect/unstable/rpc/RpcMessage';
 import * as RpcServer from 'effect/unstable/rpc/RpcServer';
@@ -9,7 +9,7 @@ import {
 } from '../electron/procedure-server.js';
 
 describe('desktop procedure protocol', () => {
-  it.effect('moves encoded RPC messages over the Electron port boundary', () =>
+  it.scoped('moves encoded RPC messages over the Electron port boundary', () =>
     Effect.gen(function* () {
       let receive: ((message: FromClientEncoded) => void) | undefined;
       let close: (() => void) | undefined;
