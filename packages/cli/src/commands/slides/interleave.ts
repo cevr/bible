@@ -1,14 +1,19 @@
-import { Console, Effect, FileSystem, Path } from 'effect';
+import { Console, Effect, FileSystem, Path, Schema } from 'effect';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
 
 import { AppleScript } from '../../services/apple-script.js';
+import { CliProcess } from '../../services/process.js';
 import { asText, basename, isPathDeck } from './apple-script.js';
 
-interface VerseSlide {
-  readonly after: string; // caption substring of the scene to insert AFTER
-  readonly ref: string; // e.g. "Psalm 85:10"
-  readonly text: string; // full verse text
-}
+const VerseSlide = Schema.Struct({
+  after: Schema.String,
+  ref: Schema.String,
+  text: Schema.String,
+});
+
+const decodeVerseSlides = Schema.decodeUnknownEffect(
+  Schema.fromJsonString(Schema.Array(VerseSlide)),
+);
 
 const interleaveDeck = Argument.string('deck').pipe(
   Argument.withDescription('Open document name substring OR a .key path'),
@@ -29,28 +34,34 @@ export const slidesInterleave = Command.make(
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const svc = yield* AppleScript;
+      const cliProcess = yield* CliProcess;
 
       const raw = yield* fs.readFileString(path.resolve(args.verses));
-      let verses: VerseSlide[];
-      try {
-        verses = JSON.parse(raw) as VerseSlide[];
-      } catch (e) {
-        yield* Console.error(`Could not parse verses JSON: ${String(e)}`);
-        return yield* Effect.sync(() => process.exit(1));
-      }
+      const verses = yield* decodeVerseSlides(raw).pipe(
+        Effect.catch((error) =>
+          Effect.gen(function* () {
+            yield* Console.error(`Could not parse verses JSON: ${String(error)}`);
+            return yield* cliProcess.exitFailure;
+          }),
+        ),
+      );
       if (!Array.isArray(verses) || verses.length === 0) {
         yield* Console.error('verses file has no entries.');
-        return yield* Effect.sync(() => process.exit(1));
+        return yield* cliProcess.exitFailure;
       }
 
       const deckIsPath = isPathDeck(args.deck);
-      const deckPath = deckIsPath ? path.resolve(args.deck) : '';
-      const findDoc = deckIsPath
-        ? `\topen POSIX file ${asText(deckPath)}\n` +
+      let deckPath = '';
+      if (deckIsPath) deckPath = path.resolve(args.deck);
+      let findDoc =
+        `\tif (count of (documents whose name contains ${asText(args.deck)})) = 0 then return "ERROR: deck not open — " & ${asText(args.deck)}\n` +
+        `\tset theDoc to item 1 of (documents whose name contains ${asText(args.deck)})`;
+      if (deckIsPath) {
+        findDoc =
+          `\topen POSIX file ${asText(deckPath)}\n` +
           `\tif (count of (documents whose name is ${asText(basename(deckPath))})) = 0 then return "ERROR: could not open deck — " & ${asText(deckPath)}\n` +
-          `\tset theDoc to first document whose name is ${asText(basename(deckPath))}`
-        : `\tif (count of (documents whose name contains ${asText(args.deck)})) = 0 then return "ERROR: deck not open — " & ${asText(args.deck)}\n` +
-          `\tset theDoc to item 1 of (documents whose name contains ${asText(args.deck)})`;
+          `\tset theDoc to first document whose name is ${asText(basename(deckPath))}`;
+      }
 
       // Build the AppleScript `verses` list. Each entry carries the match
       // substring, the verse text, and the reference. The script resolves the
@@ -123,7 +134,7 @@ end tell`;
       const out = (yield* svc.exec(script)).trim();
       if (out.startsWith('ERROR')) {
         yield* Console.error(out);
-        return yield* Effect.sync(() => process.exit(1));
+        return yield* cliProcess.exitFailure;
       }
       yield* Console.log(out);
     }),

@@ -2,6 +2,7 @@ import { Console, Effect, Path } from 'effect';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
 
 import { AppleScript } from '../../services/apple-script.js';
+import { CliProcess } from '../../services/process.js';
 import { asText, findDocAS, findSlideByCaptionAS, isPathDeck } from './apple-script.js';
 
 const moveDeck = Argument.string('deck').pipe(
@@ -25,10 +26,13 @@ export const slidesMove = Command.make(
     Effect.gen(function* () {
       const path = yield* Path.Path;
       const svc = yield* AppleScript;
+      const cliProcess = yield* CliProcess;
 
       const deckIsPath = isPathDeck(args.deck);
-      const deckResolved = deckIsPath ? path.resolve(args.deck) : args.deck;
-      const rel = args.before ? 'before' : 'after';
+      let deckResolved = args.deck;
+      if (deckIsPath) deckResolved = path.resolve(args.deck);
+      let rel = 'after';
+      if (args.before) rel = 'before';
 
       const script = `tell application "Keynote"
 \tactivate
@@ -48,7 +52,7 @@ end tell`;
       const out = (yield* svc.exec(script)).trim();
       if (out.startsWith('ERROR')) {
         yield* Console.error(out);
-        return yield* Effect.sync(() => process.exit(1));
+        return yield* cliProcess.exitFailure;
       }
       yield* Console.log(out);
     }),

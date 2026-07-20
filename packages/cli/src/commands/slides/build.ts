@@ -1,22 +1,26 @@
-import { Console, Effect, FileSystem, Path } from 'effect';
+import { Console, Effect, FileSystem, Path, Schema } from 'effect';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
 
 import { AppleScript } from '../../services/apple-script.js';
+import { CliProcess } from '../../services/process.js';
 import { asText, basename } from './apple-script.js';
 
-interface Beat {
-  readonly id?: string;
-  readonly section?: string;
-  readonly line: string; // on-slide caption
-  readonly scene?: string; // one-word art label — NOT narration, NOT used as note
-  readonly note?: string; // optional explicit presenter narration (preferred when present)
-  readonly image?: string | null; // filename rel to beat-sheet dir, or "NEW"/null
-  readonly subject?: string | null;
-}
-interface BeatSheet {
-  readonly deck?: string;
-  readonly beats: ReadonlyArray<Beat>;
-}
+const Beat = Schema.Struct({
+  id: Schema.optional(Schema.String),
+  section: Schema.optional(Schema.String),
+  line: Schema.String,
+  scene: Schema.optional(Schema.String),
+  note: Schema.optional(Schema.String),
+  image: Schema.optional(Schema.NullOr(Schema.String)),
+  subject: Schema.optional(Schema.NullOr(Schema.String)),
+});
+
+const BeatSheet = Schema.Struct({
+  deck: Schema.optional(Schema.String),
+  beats: Schema.Array(Beat),
+});
+
+const decodeBeatSheet = Schema.decodeUnknownEffect(Schema.fromJsonString(BeatSheet));
 interface BuildRecord {
   line: string;
   note: string;
@@ -62,21 +66,23 @@ export const slidesBuild = Command.make(
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const svc = yield* AppleScript;
+      const cliProcess = yield* CliProcess;
 
       const sheetPath = path.resolve(args.beatSheet);
       const raw = yield* fs.readFileString(sheetPath);
 
-      let sheet: BeatSheet;
-      try {
-        sheet = JSON.parse(raw) as BeatSheet;
-      } catch (e) {
-        yield* Console.error(`Could not parse beat-sheet JSON: ${String(e)}`);
-        return yield* Effect.sync(() => process.exit(1));
-      }
+      const sheet = yield* decodeBeatSheet(raw).pipe(
+        Effect.catch((error) =>
+          Effect.gen(function* () {
+            yield* Console.error(`Could not parse beat-sheet JSON: ${String(error)}`);
+            return yield* cliProcess.exitFailure;
+          }),
+        ),
+      );
 
       if (!Array.isArray(sheet.beats) || sheet.beats.length === 0) {
         yield* Console.error('beat-sheet has no beats.');
-        return yield* Effect.sync(() => process.exit(1));
+        return yield* cliProcess.exitFailure;
       }
 
       const dir = path.dirname(sheetPath);
@@ -85,25 +91,29 @@ export const slidesBuild = Command.make(
       let missing = 0;
       let noteless = 0;
       for (const b of sheet.beats) {
-        const file = (typeof b.image === 'string' ? b.image : '') ?? '';
+        let file = '';
+        if (typeof b.image === 'string') file = b.image;
         const isNew = file === '' || file.toUpperCase() === 'NEW';
-        const abs = isNew ? '' : path.resolve(dir, file);
-        const exists = abs !== '' ? yield* fs.exists(abs) : false;
+        let abs = '';
+        if (!isNew) abs = path.resolve(dir, file);
+        let exists = false;
+        if (abs !== '') exists = yield* fs.exists(abs);
         if (!exists) missing++;
         const note = b.note ?? '';
         if ((b.note ?? '') === '') noteless++;
+        let imgPath = '';
+        if (exists) imgPath = abs;
         records.push({
           line: b.line ?? '',
           note,
-          imgPath: exists ? abs : '',
+          imgPath,
           hasImg: exists,
           file: file || '(none)',
         });
       }
 
-      const outPath = args.out.endsWith('.key')
-        ? path.resolve(args.out)
-        : path.resolve(dir, args.out + '.key');
+      let outPath = path.resolve(dir, args.out + '.key');
+      if (args.out.endsWith('.key')) outPath = path.resolve(args.out);
 
       yield* fs
         .makeDirectory(path.dirname(outPath), { recursive: true })
@@ -119,9 +129,8 @@ export const slidesBuild = Command.make(
       // When !open, close the just-saved deck by basename after the build so we
       // don't leave it open. (The Untitled sweep can't catch it — Keynote renames
       // the doc in place on save-as.)
-      const closeNamed = args.open
-        ? ''
-        : `\tclose (every document whose name is ${asText(basename(outPath))}) saving no\n`;
+      let closeNamed = `\tclose (every document whose name is ${asText(basename(outPath))}) saving no\n`;
+      if (args.open) closeNamed = '';
 
       const script = `tell application "Keynote"
 \tactivate

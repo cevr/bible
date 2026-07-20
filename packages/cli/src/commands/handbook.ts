@@ -27,26 +27,32 @@
 
 import { Argument, Command, Flag } from 'effect/unstable/cli';
 import { BunServices } from '@effect/platform-bun';
-import { Console, Effect, FileSystem, Option } from 'effect';
+import { Console, DateTime, Effect, FileSystem, Option, Schema } from 'effect';
+
+import { CliProcess } from '../services/process.js';
 
 // ============================================================================
 // Manifest shape (parsed from handbook.json)
 // ============================================================================
 
-interface ManifestSection {
-  readonly file: string;
-  readonly part: string;
-}
+const ManifestSection = Schema.Struct({
+  file: Schema.String,
+  part: Schema.String,
+});
 
-interface HandbookManifest {
-  readonly title: string;
-  readonly topic?: string;
-  readonly createdAt?: string;
-  readonly thesis: string;
-  readonly method: string;
-  readonly outPath?: string;
-  readonly sections: ReadonlyArray<ManifestSection>;
-}
+const HandbookManifest = Schema.Struct({
+  title: Schema.String,
+  topic: Schema.optional(Schema.String),
+  createdAt: Schema.optional(Schema.String),
+  thesis: Schema.String,
+  method: Schema.String,
+  outPath: Schema.optional(Schema.String),
+  sections: Schema.Array(ManifestSection),
+});
+
+type HandbookManifest = typeof HandbookManifest.Type;
+
+const decodeHandbookManifest = Schema.decodeUnknownEffect(Schema.fromJsonString(HandbookManifest));
 
 // ============================================================================
 // Parsing helpers (pure)
@@ -120,8 +126,14 @@ function extractDefinedSymbols(bodyLines: ReadonlyArray<string>): ReadonlyArray<
 /** Renumber a section body's heading from "## Title" to "## N. Title". */
 function numberHeading(body: string, n: number, title: string): string {
   const firstNl = body.indexOf('\n');
-  const rest = firstNl === -1 ? '' : body.slice(firstNl);
+  let rest = '';
+  if (firstNl !== -1) rest = body.slice(firstNl);
   return `## ${n}. ${title}${rest}`;
+}
+
+function partHeading(part: string): string {
+  if (part.startsWith('Part')) return part;
+  return `Part ${part}`;
 }
 
 /** A leading article ("the", "a", "an") ignored for alphabetizing the appendix. */
@@ -144,9 +156,10 @@ function frontmatter(topic: string, createdAt: string): string {
 function assemble(
   manifest: HandbookManifest,
   sections: ReadonlyArray<{ parsed: ParsedSection; part: string }>,
+  defaultCreatedAt: string,
 ): string {
   const topic = manifest.topic ?? manifest.title;
-  const createdAt = manifest.createdAt ?? new Date().toISOString();
+  const createdAt = manifest.createdAt ?? defaultCreatedAt;
 
   // Group sections into parts, preserving first-appearance order of parts.
   const partOrder: string[] = [];
@@ -167,7 +180,7 @@ function assemble(
   // --- Table of Contents ---
   const tocLines: string[] = ['## Table of Contents', ''];
   for (const part of partOrder) {
-    tocLines.push(`**${part.startsWith('Part') ? part : `Part ${part}`}**`, '');
+    tocLines.push(`**${partHeading(part)}**`, '');
     for (const sec of byPart.get(part) ?? []) {
       tocLines.push(`${sec.n}. ${sec.title}`);
     }
@@ -177,7 +190,7 @@ function assemble(
   // --- Body: Part dividers + section bodies ---
   const bodyLines: string[] = [];
   for (const part of partOrder) {
-    bodyLines.push(`# ${part.startsWith('Part') ? part : `Part ${part}`}`, '');
+    bodyLines.push(`# ${partHeading(part)}`, '');
     for (const sec of byPart.get(part) ?? []) {
       bodyLines.push(sec.body.trim(), '');
     }
@@ -188,7 +201,9 @@ function assemble(
   for (const s of sections) {
     for (const sym of s.parsed.definedSymbols) {
       // Tag each entry with its owning section title.
-      const line = `- ${sym}${/\.\s*$/.test(sym) ? '' : '.'} — defined in "${s.parsed.title}".`;
+      let punctuation = '.';
+      if (/\.\s*$/.test(sym)) punctuation = '';
+      const line = `- ${sym}${punctuation} — defined in "${s.parsed.title}".`;
       appendixEntries.push({ key: appendixSortKey(sym), line });
     }
   }
@@ -253,6 +268,7 @@ export const handbookSave = Command.make(
   (args) =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
+      const cliProcess = yield* CliProcess;
 
       const manifestPath = Option.match(args.manifest, {
         onSome: (m) => m,
@@ -268,36 +284,45 @@ export const handbookSave = Command.make(
         yield* Console.error(
           '  { "title", "thesis", "method", "outPath", "sections": [ { "file", "part" } ] }',
         );
-        return yield* Effect.sync(() => process.exit(1));
+        return yield* cliProcess.exitFailure;
       }
 
       const manifestRaw = yield* fs.readFileString(manifestPath);
-      const manifest = JSON.parse(manifestRaw) as HandbookManifest;
+      const manifest = yield* decodeHandbookManifest(manifestRaw).pipe(
+        Effect.catch((error) =>
+          Effect.gen(function* () {
+            yield* Console.error(`Could not parse handbook manifest: ${String(error)}`);
+            return yield* cliProcess.exitFailure;
+          }),
+        ),
+      );
 
       if (!Array.isArray(manifest.sections) || manifest.sections.length === 0) {
         yield* Console.error('Manifest has no sections[].');
-        return yield* Effect.sync(() => process.exit(1));
+        return yield* cliProcess.exitFailure;
       }
 
       // Read + parse each section in manifest order.
       const parsed: Array<{ parsed: ParsedSection; part: string }> = [];
       for (const s of manifest.sections) {
-        const path = s.file.startsWith('/') ? s.file : `${args.dir}/${s.file}`;
+        let path = `${args.dir}/${s.file}`;
+        if (s.file.startsWith('/')) path = s.file;
         const exists = yield* fs.exists(path);
         if (!exists) {
           yield* Console.error(`Section file missing: ${path}`);
-          return yield* Effect.sync(() => process.exit(1));
+          return yield* cliProcess.exitFailure;
         }
         const raw = yield* fs.readFileString(path);
         const parsedSection = parseSection(raw);
         if (parsedSection === null) {
           yield* Console.error(`Section "${s.file}" has no "## Title" heading.`);
-          return yield* Effect.sync(() => process.exit(1));
+          return yield* cliProcess.exitFailure;
         }
         parsed.push({ parsed: parsedSection, part: s.part });
       }
 
-      const document = assemble(manifest, parsed);
+      const now = yield* DateTime.now;
+      const document = assemble(manifest, parsed, DateTime.formatIso(now));
 
       // Count symbols for the summary line.
       const symbolCount = parsed.reduce((acc, p) => acc + p.parsed.definedSymbols.length, 0);
@@ -316,7 +341,7 @@ export const handbookSave = Command.make(
       });
       if (outPath === undefined) {
         yield* Console.error('No output path: set "outPath" in the manifest or pass --out.');
-        return yield* Effect.sync(() => process.exit(1));
+        return yield* cliProcess.exitFailure;
       }
 
       yield* fs.writeFileString(outPath, document);

@@ -1,15 +1,34 @@
-import { Console, Effect, Path } from 'effect';
+import { Console, Effect, Path, Schema, SchemaGetter } from 'effect';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
 
 import { AppleScript } from '../../services/apple-script.js';
+import { CliProcess } from '../../services/process.js';
 import { basename, isPathDeck, jxaStr } from './apple-script.js';
 
-interface SlideRow {
-  index: number;
-  caption: string;
-  image: string | null;
-  notes: string;
-}
+const SlideRow = Schema.Struct({
+  index: Schema.Number,
+  caption: Schema.String,
+  image: Schema.NullOr(Schema.String),
+  notes: Schema.String,
+});
+
+const ListResult = Schema.Union([
+  Schema.Struct({
+    ok: Schema.Literal(true),
+    deck: Schema.String,
+    slides: Schema.Array(SlideRow),
+  }),
+  Schema.Struct({ error: Schema.String }),
+]);
+
+const decodeListResult = Schema.decodeUnknownEffect(Schema.fromJsonString(ListResult));
+const JsonString = Schema.Unknown.pipe(
+  Schema.encodeTo(Schema.String, {
+    decode: SchemaGetter.parseJson(),
+    encode: SchemaGetter.stringifyJson({ space: 2 }),
+  }),
+);
+const encodeJson = Schema.encodeUnknownEffect(JsonString);
 
 const listDeck = Argument.string('deck').pipe(
   Argument.withDescription('Open document name substring OR a .key path'),
@@ -23,23 +42,27 @@ export const slidesList = Command.make('list', { deck: listDeck, json: listJson 
   Effect.gen(function* () {
     const path = yield* Path.Path;
     const svc = yield* AppleScript;
+    const cliProcess = yield* CliProcess;
 
     const deckIsPath = isPathDeck(args.deck);
-    const target = deckIsPath ? path.resolve(args.deck) : args.deck;
-    const targetBase = deckIsPath ? basename(target) : '';
+    let target = args.deck;
+    if (deckIsPath) target = path.resolve(args.deck);
+    let targetBase = '';
+    if (deckIsPath) targetBase = basename(target);
 
-    const findDoc = deckIsPath
-      ? `
-  var existing = kn.documents.whose({ name: { _equals: ${jxaStr(targetBase)} } })();
-  if (existing.length > 0) { doc = existing[0]; }
-  else { doc = kn.open(Path(${jxaStr(target)})); openedByUs = true; if (!doc) { var after = kn.documents.whose({ name: { _equals: ${jxaStr(targetBase)} } })(); doc = after.length>0?after[0]:null; } }
-  if (!doc) { return JSON.stringify({ error: 'could not open deck' }); }
-  `
-      : `
+    let findDoc = `
   var ds = kn.documents.whose({ name: { _contains: ${jxaStr(target)} } })();
   if (ds.length === 0) { return JSON.stringify({ error: 'deck not found' }); }
   doc = ds[0];
   `;
+    if (deckIsPath) {
+      findDoc = `
+  var existing = kn.documents.whose({ name: { _equals: ${jxaStr(targetBase)} } })();
+  if (existing.length > 0) { doc = existing[0]; }
+  else { doc = kn.open(Path(${jxaStr(target)})); openedByUs = true; if (!doc) { var after = kn.documents.whose({ name: { _equals: ${jxaStr(targetBase)} } })(); doc = after.length>0?after[0]:null; } }
+  if (!doc) { return JSON.stringify({ error: 'could not open deck' }); }
+  `;
+    }
 
     const script = `(function(){
   var kn = Application('Keynote');
@@ -73,31 +96,33 @@ export const slidesList = Command.make('list', { deck: listDeck, json: listJson 
 
     const stdout = yield* svc.execJxa(script);
 
-    let parsed: { ok: true; deck: string; slides: SlideRow[] } | { error: string };
-    try {
-      parsed = JSON.parse(stdout.trim()) as
-        | { ok: true; deck: string; slides: SlideRow[] }
-        | { error: string };
-    } catch {
-      yield* Console.error('Could not parse Keynote output.');
-      return yield* Effect.sync(() => process.exit(1));
-    }
+    const parsed = yield* decodeListResult(stdout.trim()).pipe(
+      Effect.catch(() =>
+        Effect.gen(function* () {
+          yield* Console.error('Could not parse Keynote output.');
+          return yield* cliProcess.exitFailure;
+        }),
+      ),
+    );
     if (!('ok' in parsed)) {
       yield* Console.error(`ERROR: ${parsed.error}`);
-      return yield* Effect.sync(() => process.exit(1));
+      return yield* cliProcess.exitFailure;
     }
     if (args.json) {
-      yield* Console.log(JSON.stringify(parsed.slides, null, 2));
+      yield* Console.log(yield* encodeJson(parsed.slides));
       return;
     }
     const trunc = (str: string, n: number): string => {
       const first = str.split('\n')[0] ?? '';
-      return first.length > n ? first.slice(0, n - 1) + '…' : first;
+      if (first.length > n) return first.slice(0, n - 1) + '…';
+      return first;
     };
     yield* Console.log(`idx  caption                                                       image`);
     for (const r of parsed.slides) {
+      let image = '∅';
+      if (r.image !== null) image = basename(r.image);
       yield* Console.log(
-        `${String(r.index).padStart(3)}  ${trunc(r.caption, 58).padEnd(58)}  ${r.image ? basename(r.image) : '∅'}`,
+        `${String(r.index).padStart(3)}  ${trunc(r.caption, 58).padEnd(58)}  ${image}`,
       );
     }
     yield* Console.log(`\n${parsed.slides.length} slide(s) in ${parsed.deck}`);

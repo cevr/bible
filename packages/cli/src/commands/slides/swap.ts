@@ -2,6 +2,7 @@ import { Console, Effect, Option, Path } from 'effect';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
 
 import { AppleScript } from '../../services/apple-script.js';
+import { CliProcess } from '../../services/process.js';
 import { asText, basename, isPathDeck } from './apple-script.js';
 
 const swapDeck = Argument.string('deck').pipe(
@@ -25,19 +26,25 @@ export const slidesSwap = Command.make(
     Effect.gen(function* () {
       const path = yield* Path.Path;
       const svc = yield* AppleScript;
+      const cliProcess = yield* CliProcess;
 
       const baseDir = Option.getOrElse(args.imageDir, () => process.cwd());
-      const imgPath = path.isAbsolute(args.image) ? args.image : path.resolve(baseDir, args.image);
+      let imgPath = path.resolve(baseDir, args.image);
+      if (path.isAbsolute(args.image)) imgPath = args.image;
 
       const deckIsPath = isPathDeck(args.deck);
-      const deckPath = deckIsPath ? path.resolve(args.deck) : '';
+      let deckPath = '';
+      if (deckIsPath) deckPath = path.resolve(args.deck);
 
-      const findDoc = deckIsPath
-        ? `\topen POSIX file ${asText(deckPath)}\n` +
+      let findDoc =
+        `\tif (count of (documents whose name contains ${asText(args.deck)})) = 0 then return "ERROR: deck not open — " & ${asText(args.deck)}\n` +
+        `\tset theDoc to item 1 of (documents whose name contains ${asText(args.deck)})`;
+      if (deckIsPath) {
+        findDoc =
+          `\topen POSIX file ${asText(deckPath)}\n` +
           `\tif (count of (documents whose name is ${asText(basename(deckPath))})) = 0 then return "ERROR: could not open deck — " & ${asText(deckPath)}\n` +
-          `\tset theDoc to first document whose name is ${asText(basename(deckPath))}`
-        : `\tif (count of (documents whose name contains ${asText(args.deck)})) = 0 then return "ERROR: deck not open — " & ${asText(args.deck)}\n` +
-          `\tset theDoc to item 1 of (documents whose name contains ${asText(args.deck)})`;
+          `\tset theDoc to first document whose name is ${asText(basename(deckPath))}`;
+      }
 
       const script = `tell application "System Events"
 \tif not (exists disk item ${asText(imgPath)}) then return "ERROR: image not found — " & ${asText(imgPath)}
@@ -72,7 +79,7 @@ end tell`;
       const out = (yield* svc.exec(script)).trim();
       if (out.startsWith('ERROR')) {
         yield* Console.error(out);
-        return yield* Effect.sync(() => process.exit(1));
+        return yield* cliProcess.exitFailure;
       }
       yield* Console.log(out);
     }),

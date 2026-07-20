@@ -2,6 +2,7 @@ import { Console, Effect, Option, Path } from 'effect';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
 
 import { AppleScript } from '../../services/apple-script.js';
+import { CliProcess } from '../../services/process.js';
 import { asText, basename, findDocAS, findSlideByCaptionAS, isPathDeck } from './apple-script.js';
 
 const insertDeck = Argument.string('deck').pipe(
@@ -45,19 +46,22 @@ export const slidesInsert = Command.make(
     Effect.gen(function* () {
       const path = yield* Path.Path;
       const svc = yield* AppleScript;
+      const cliProcess = yield* CliProcess;
 
       const baseDir = Option.getOrElse(args.imageDir, () => process.cwd());
-      const imgPath = path.isAbsolute(args.image) ? args.image : path.resolve(baseDir, args.image);
+      let imgPath = path.resolve(baseDir, args.image);
+      if (path.isAbsolute(args.image)) imgPath = args.image;
 
       const deckIsPath = isPathDeck(args.deck);
-      const deckResolved = deckIsPath ? path.resolve(args.deck) : args.deck;
+      let deckResolved = args.deck;
+      if (deckIsPath) deckResolved = path.resolve(args.deck);
 
-      const captionLine = args.caption
-        ? `\t\t\tmake new text item with properties {object text:${asText(args.caption)}, position:{160, 870}, width:1600, height:150}\n`
-        : '';
-      const noteLine = args.note
-        ? `\t\tset presenter notes of newSlide to ${asText(args.note)}\n`
-        : '';
+      let captionLine = '';
+      if (args.caption) {
+        captionLine = `\t\t\tmake new text item with properties {object text:${asText(args.caption)}, position:{160, 870}, width:1600, height:150}\n`;
+      }
+      let noteLine = '';
+      if (args.note) noteLine = `\t\tset presenter notes of newSlide to ${asText(args.note)}\n`;
 
       const script = `tell application "System Events"
 \tif not (exists disk item ${asText(imgPath)}) then return "ERROR: image not found — " & ${asText(imgPath)}
@@ -80,7 +84,7 @@ end tell`;
       const out = (yield* svc.exec(script)).trim();
       if (out.startsWith('ERROR')) {
         yield* Console.error(out);
-        return yield* Effect.sync(() => process.exit(1));
+        return yield* cliProcess.exitFailure;
       }
       yield* Console.log(out);
     }),
