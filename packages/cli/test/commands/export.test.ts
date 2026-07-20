@@ -1,13 +1,9 @@
-import { beforeEach, describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
 
 import { exportOutput } from '../../src/commands/export.js';
 import { expectCallCount, expectNoCalls, expectSequence, runCli } from '../lib/run-cli.js';
 
 describe('export command', () => {
-  beforeEach(() => {
-    // Reset any test state between tests
-  });
-
   describe('export files to Apple Notes', () => {
     it('should export a single file to Apple Notes', async () => {
       const result = await runCli(exportOutput, ['--files', '/path/to/message.md'], {

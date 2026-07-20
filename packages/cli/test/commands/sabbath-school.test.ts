@@ -1,14 +1,9 @@
-import { beforeEach, it } from 'bun:test';
-import { describe, expect } from 'effect-bun-test';
+import { describe, expect, it } from 'bun:test';
 
 import { sabbathSchool } from '../../src/commands/sabbath-school.js';
 import { expectContains, expectNoCalls, runCli } from '../lib/run-cli.js';
 
 describe('sabbath-school commands', () => {
-  beforeEach(() => {
-    // Reset test state
-  });
-
   describe('sync command', () => {
     it('should update existing Apple Note when apple_note_id present', async () => {
       const result = await runCli(sabbathSchool, ['sync', '--files', '/path/to/2024-Q1-W1.md'], {

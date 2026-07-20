@@ -8,7 +8,7 @@
 import { existsSync } from 'fs';
 import { join } from 'path';
 
-import { beforeAll, describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
 import { Effect, Layer, ManagedRuntime } from 'effect';
 
 import * as BibleDbBun from '../bible-db/bible-database-bun.js';
@@ -35,17 +35,6 @@ const skip = () => {
 };
 
 describe('StructuralAnalysis', () => {
-  beforeAll(async () => {
-    if (!DB_EXISTS) return;
-    // Warm up runtime
-    await run(
-      Effect.gen(function* () {
-        const sa = yield* StructuralAnalysis;
-        yield* sa.getPassageContext(1, 1, 1, 1);
-      }),
-    );
-  });
-
   describe('getPassageContext', () => {
     it('returns combined context for a passage', async () => {
       if (skip()) return;

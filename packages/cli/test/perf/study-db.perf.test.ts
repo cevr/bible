@@ -13,7 +13,7 @@ import { join } from 'path';
 
 import { BibleDatabase } from '@bible/core/bible-db';
 import * as BibleDbBun from '@bible/core/bible-db/bun';
-import { beforeAll, describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
 import { Effect, ManagedRuntime, Option } from 'effect';
 
 // Use the bible.db in packages/core/data
@@ -26,21 +26,6 @@ const BibleServicesLayer = BibleDbBun.layerBun(DB_PATH);
 const runtime = ManagedRuntime.make(BibleServicesLayer);
 
 describe('Bible Database Performance', () => {
-  beforeAll(async () => {
-    if (!existsSync(DB_PATH)) {
-      console.log('Bible database not found at', DB_PATH);
-      console.log('Run `bun run sync:bible` in packages/core to initialize it.');
-      return;
-    }
-    // Initialize the runtime
-    await runtime.runPromise(
-      Effect.gen(function* () {
-        const db = yield* BibleDatabase;
-        yield* db.getChapter(1, 1);
-      }),
-    );
-  });
-
   it('getCrossRefs should complete in < 10ms', async () => {
     if (!existsSync(DB_PATH)) return;
 

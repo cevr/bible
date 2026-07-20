@@ -1,14 +1,9 @@
-import { beforeEach, it } from 'bun:test';
-import { describe, expect } from 'effect-bun-test';
+import { describe, expect, it } from 'bun:test';
 
 import { studies } from '../../src/commands/studies.js';
 import { expectContains, expectSequence, runCli } from '../lib/run-cli.js';
 
 describe('studies commands', () => {
-  beforeEach(() => {
-    // Reset test state
-  });
-
   describe('sync command', () => {
     it('should update existing Apple Note when apple_note_id present', async () => {
       const result = await runCli(studies, ['sync', '--files', '/path/to/study.md'], {
