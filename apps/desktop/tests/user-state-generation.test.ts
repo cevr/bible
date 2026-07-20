@@ -6,20 +6,10 @@ import {
   copyOnMigrate,
 } from '@bible/core/local-first';
 import { LibraryEntityId } from '@bible/core/library-state';
+import { NodeServices } from '@effect/platform-node';
+import { describe, expect, it } from '@effect/vitest';
 import Database from 'better-sqlite3';
-import { Effect, Schema } from 'effect';
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  statSync,
-  writeFileSync,
-} from 'node:fs';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
-import { afterEach, describe, expect, test } from 'vitest';
+import { Effect, FileSystem, Path, Schema } from 'effect';
 
 import {
   makeDesktopCanonicalGenerationAdapter,
@@ -27,32 +17,28 @@ import {
 } from '../electron/user-state-generation.js';
 import { makeDesktopSyncStore, makeDesktopUserDatabase } from '../electron/user-state-database.js';
 
-const directories: string[] = [];
-const userStateMigrationSql = readFileSync(
-  path.resolve(
-    import.meta.dirname,
-    '../../../packages/core/src/local-first/migrations/0001_user_state.sql',
-  ),
-  'utf8',
-);
-const makeDirectory = (): string => {
-  const directory = mkdtempSync(path.join(tmpdir(), 'bible-desktop-generation-'));
-  directories.push(directory);
-  return directory;
-};
-
-afterEach(() => {
-  for (const directory of directories.splice(0)) {
-    rmSync(directory, { recursive: true, force: true });
-  }
-});
-
 const clientId = Schema.decodeSync(ClientId)('desktop-generation-test');
 const verificationTimestamp = Schema.decodeSync(Timestamp)('2026-07-19T00:00:00.000Z');
+const encodeJson = Schema.encodeSync(Schema.UnknownFromJsonString);
+const decodeJson = Schema.decodeSync(Schema.UnknownFromJsonString);
 
-const writeLegacyCache = (filename: string): void => {
-  const database = new Database(filename);
-  database.exec(`
+const withDatabase = <A, E, R>(
+  filename: string,
+  use: (database: Database.Database) => Effect.Effect<A, E, R>,
+): Effect.Effect<A, E, R> =>
+  Effect.acquireUseRelease(
+    Effect.sync(() => new Database(filename)),
+    use,
+    (database) => Effect.sync(() => database.close()),
+  );
+
+const writeDatabase = (filename: string, sql: string): Effect.Effect<void> =>
+  withDatabase(filename, (database) => Effect.sync(() => database.exec(sql)));
+
+const writeLegacyCache = (filename: string): Effect.Effect<void> =>
+  writeDatabase(
+    filename,
+    `
     CREATE TABLE bible_last_position (
       id INTEGER PRIMARY KEY,
       book INTEGER NOT NULL,
@@ -78,13 +64,13 @@ const writeLegacyCache = (filename: string): void => {
     INSERT INTO paragraphs VALUES (127, 'AA 1.1', 'AA-paragraph-1', 1);
     CREATE TABLE book_lists (book_id INTEGER PRIMARY KEY);
     INSERT INTO book_lists VALUES (0);
-  `);
-  database.close();
-};
+  `,
+  );
 
-const writeLegacyCliState = (filename: string): void => {
-  const database = new Database(filename);
-  database.exec(`
+const writeLegacyCliState = (filename: string): Effect.Effect<void> =>
+  writeDatabase(
+    filename,
+    `
     CREATE TABLE position (id INTEGER PRIMARY KEY, book, chapter, verse);
     INSERT INTO position VALUES (1, 43, 3, 16);
     INSERT INTO position VALUES (2, 'malformed', 1, 1);
@@ -120,13 +106,13 @@ const writeLegacyCliState = (filename: string): void => {
     INSERT INTO ai_search_cache VALUES ('derived');
     CREATE TABLE terminal_palette (id INTEGER PRIMARY KEY);
     INSERT INTO terminal_palette VALUES (1);
-  `);
-  database.close();
-};
+  `,
+  );
 
-const writeWritingsCorpus = (filename: string): void => {
-  const database = new Database(filename);
-  database.exec(`
+const writeWritingsCorpus = (filename: string): Effect.Effect<void> =>
+  writeDatabase(
+    filename,
+    `
     CREATE TABLE books (book_id INTEGER PRIMARY KEY, book_code TEXT NOT NULL);
     INSERT INTO books VALUES (127, 'AA');
     CREATE TABLE paragraphs (
@@ -135,327 +121,363 @@ const writeWritingsCorpus = (filename: string): void => {
       puborder INTEGER NOT NULL
     );
     INSERT INTO paragraphs VALUES (127, 'AA-paragraph-17', 17);
-  `);
-  database.close();
-};
+  `,
+  );
+
+const useCanonicalDatabase = <A, E, R>(
+  filename: string,
+  use: (database: ReturnType<typeof makeDesktopUserDatabase>) => Effect.Effect<A, E, R>,
+): Effect.Effect<A, E, R> =>
+  Effect.acquireUseRelease(
+    Effect.sync(() => makeDesktopUserDatabase(filename)),
+    use,
+    (database) => database.close,
+  );
+
+const testWorkspace = Effect.gen(function* () {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const directory = yield* fs.makeTempDirectoryScoped({ prefix: 'bible-desktop-generation-' });
+  const migrationSql = yield* fs.readFileString(
+    path.resolve(
+      import.meta.dirname,
+      '../../../packages/core/src/local-first/migrations/0001_user_state.sql',
+    ),
+  );
+  return { fs, path, directory, migrationSql };
+});
 
 describe('desktop canonical user-state generation', () => {
-  test('verifies before atomic activation and preserves both legacy files byte-for-byte', async () => {
-    const directory = makeDirectory();
-    const cacheFile = path.join(directory, 'cache.sqlite');
-    const settingsFile = path.join(directory, 'settings.json');
-    const marker = path.join(directory, 'user-state.active');
-    writeLegacyCache(cacheFile);
-    writeFileSync(
-      settingsFile,
-      JSON.stringify({
-        theme: 'dark',
-        fontFamily: 42,
-        inlineStrongs: false,
-        uiScale: 'lg',
-        bibleDrawerWidth: 420,
-        bibleStudyTab: 'words',
-        readerMode: 'egw',
-      }),
-    );
-    const cacheBefore = readFileSync(cacheFile);
-    const settingsBefore = readFileSync(settingsFile);
-    const observations: Array<{ readonly line: string; readonly active: boolean }> = [];
+  it.layer(NodeServices.layer)((it) => {
+    const test = it.effect;
 
-    const result = await Effect.runPromise(
-      prepareDesktopUserState({
-        userDataPath: directory,
-        cacheFile,
-        settingsFile,
-        migrationSql: userStateMigrationSql,
-        clientId,
-        log: (line) => observations.push({ line, active: existsSync(marker) }),
-      }),
-    );
+    test('verifies before atomic activation and preserves both legacy files byte-for-byte', () =>
+      Effect.gen(function* () {
+        const { fs, path, directory, migrationSql } = yield* testWorkspace;
+        const cacheFile = path.join(directory, 'cache.sqlite');
+        const settingsFile = path.join(directory, 'settings.json');
+        const marker = path.join(directory, 'user-state.active');
+        yield* writeLegacyCache(cacheFile);
+        yield* fs.writeFileString(
+          settingsFile,
+          encodeJson({
+            theme: 'dark',
+            fontFamily: 42,
+            inlineStrongs: false,
+            uiScale: 'lg',
+            bibleDrawerWidth: 420,
+            bibleStudyTab: 'words',
+            readerMode: 'egw',
+          }),
+        );
+        const cacheBefore = yield* fs.readFile(cacheFile);
+        const settingsBefore = yield* fs.readFile(settingsFile);
+        const observations: string[] = [];
 
-    expect(result.activated).toBe(true);
-    expect(readFileSync(marker, 'utf8').trim()).toBe(result.generation);
-    expect(readFileSync(cacheFile)).toEqual(cacheBefore);
-    expect(readFileSync(settingsFile)).toEqual(settingsBefore);
-    expect(JSON.parse(readFileSync(path.join(directory, 'device-state.v1.json'), 'utf8'))).toEqual({
-      version: 1,
-      uiScale: 'lg',
-      bibleDrawerWidth: 420,
-      bibleStudyTab: 'words',
-    });
-    expect(
-      observations.find((event) => event.line.startsWith('[migration] generation-verified')),
-    ).toEqual(expect.objectContaining({ active: false }));
-    expect(
-      observations.find((event) => event.line.startsWith('[migration] generation-activated')),
-    ).toEqual(expect.objectContaining({ active: true }));
-    expect(observations.map((event) => event.line)).toEqual(
-      expect.arrayContaining([
-        expect.stringMatching(/^\[migration\] generation-created /u),
-        expect.stringMatching(/^\[migration\] generation-reopened /u),
-        expect.stringMatching(/^\[migration\] generation-verified /u),
-        expect.stringMatching(/^\[migration\] generation-activated /u),
-      ]),
-    );
+        const result = yield* prepareDesktopUserState({
+          userDataPath: directory,
+          cacheFile,
+          settingsFile,
+          migrationSql,
+          clientId,
+          log: (line) => observations.push(line),
+        });
 
-    const canonical = makeDesktopUserDatabase(result.filename);
-    await Effect.runPromise(canonical.migrate(userStateMigrationSql));
-    const store = makeDesktopSyncStore(canonical, clientId);
-    expect(await Effect.runPromise(store.readingPreferences)).toEqual(
-      expect.objectContaining({ colorMode: 'dark', showStrongs: false }),
-    );
-    expect(await Effect.runPromise(store.latestReading)).toBeDefined();
-    await Effect.runPromise(store.libraryBackup(verificationTimestamp));
-    await Effect.runPromise(canonical.close);
-  });
+        expect(result.activated).toBe(true);
+        expect((yield* fs.readFileString(marker)).trim()).toBe(result.generation);
+        expect(yield* fs.readFile(cacheFile)).toEqual(cacheBefore);
+        expect(yield* fs.readFile(settingsFile)).toEqual(settingsBefore);
+        expect(
+          decodeJson(yield* fs.readFileString(path.join(directory, 'device-state.v1.json'))),
+        ).toEqual({
+          version: 1,
+          uiScale: 'lg',
+          bibleDrawerWidth: 420,
+          bibleStudyTab: 'words',
+        });
+        const verifiedIndex = observations.findIndex((event) =>
+          event.startsWith('[migration] generation-verified'),
+        );
+        const activatedIndex = observations.findIndex((event) =>
+          event.startsWith('[migration] generation-activated'),
+        );
+        expect(verifiedIndex).toBeGreaterThanOrEqual(0);
+        expect(activatedIndex).toBeGreaterThan(verifiedIndex);
+        expect(observations).toEqual(
+          expect.arrayContaining([
+            expect.stringMatching(/^\[migration\] generation-created /u),
+            expect.stringMatching(/^\[migration\] generation-reopened /u),
+            expect.stringMatching(/^\[migration\] generation-verified /u),
+            expect.stringMatching(/^\[migration\] generation-activated /u),
+          ]),
+        );
 
-  test('imports CLI personal state, quarantines malformed siblings, and preserves the source', async () => {
-    const directory = makeDirectory();
-    const cliStateFile = path.join(directory, 'state.db');
-    const writingsFile = path.join(directory, 'writings.db');
-    writeLegacyCliState(cliStateFile);
-    writeWritingsCorpus(writingsFile);
-    const bytesBefore = readFileSync(cliStateFile);
+        yield* useCanonicalDatabase(result.filename, (canonical) =>
+          Effect.gen(function* () {
+            yield* canonical.migrate(migrationSql);
+            const store = makeDesktopSyncStore(canonical, clientId);
+            expect(yield* store.readingPreferences).toEqual(
+              expect.objectContaining({ colorMode: 'dark', showStrongs: false }),
+            );
+            expect(yield* store.latestReading).toBeDefined();
+            yield* store.libraryBackup(verificationTimestamp);
+          }),
+        );
+      }));
 
-    const result = await Effect.runPromise(
-      prepareDesktopUserState({
-        userDataPath: directory,
-        cliStateFile,
-        writingsFile,
-        migrationSql: userStateMigrationSql,
-        clientId,
-      }),
-    );
+    test('imports CLI personal state, quarantines malformed siblings, and preserves the source', () =>
+      Effect.gen(function* () {
+        const { fs, path, directory, migrationSql } = yield* testWorkspace;
+        const cliStateFile = path.join(directory, 'state.db');
+        const writingsFile = path.join(directory, 'writings.db');
+        yield* writeLegacyCliState(cliStateFile);
+        yield* writeWritingsCorpus(writingsFile);
+        const bytesBefore = yield* fs.readFile(cliStateFile);
 
-    expect(readFileSync(cliStateFile)).toEqual(bytesBefore);
-    const canonical = makeDesktopUserDatabase(result.filename);
-    await Effect.runPromise(canonical.migrate(userStateMigrationSql));
-    const store = makeDesktopSyncStore(canonical, clientId);
-    const backup = await Effect.runPromise(store.libraryBackup(verificationTimestamp));
-    expect(backup.crossReferences).toEqual([
-      expect.objectContaining({
-        id: 'cli-xref',
-        kind: 'thematic',
-        note: 'reader note',
-        toLocation: '/bible/1/1/1',
-        toEndLocation: '/bible/1/1/2',
-      }),
-    ]);
-    expect(await Effect.runPromise(store.readingPreferences)).toEqual(
-      expect.objectContaining({ colorMode: 'sepia', bibleLayout: 'paragraph' }),
-    );
-    const diagnosticPaths = canonical.client
-      .prepare('SELECT path FROM migration_diagnostics WHERE source_id = ? ORDER BY path')
-      .pluck()
-      .all('cli-state');
-    expect(diagnosticPaths).toEqual([
-      'ai_search_cache',
-      'cross_ref_classifications',
-      'position[1]',
-      'terminal_palette',
-    ]);
-    await Effect.runPromise(canonical.close);
-  });
+        const result = yield* prepareDesktopUserState({
+          userDataPath: directory,
+          cliStateFile,
+          writingsFile,
+          migrationSql,
+          clientId,
+        });
 
-  test('does not activate or mutate a corrupt CLI source', async () => {
-    const directory = makeDirectory();
-    const cliStateFile = path.join(directory, 'state.db');
-    writeFileSync(cliStateFile, 'not a sqlite database');
-    const bytesBefore = readFileSync(cliStateFile);
+        expect(yield* fs.readFile(cliStateFile)).toEqual(bytesBefore);
+        yield* useCanonicalDatabase(result.filename, (canonical) =>
+          Effect.gen(function* () {
+            yield* canonical.migrate(migrationSql);
+            const store = makeDesktopSyncStore(canonical, clientId);
+            const backup = yield* store.libraryBackup(verificationTimestamp);
+            expect(backup.crossReferences).toEqual([
+              expect.objectContaining({
+                id: 'cli-xref',
+                kind: 'thematic',
+                note: 'reader note',
+                toLocation: '/bible/1/1/1',
+                toEndLocation: '/bible/1/1/2',
+              }),
+            ]);
+            expect(yield* store.readingPreferences).toEqual(
+              expect.objectContaining({ colorMode: 'sepia', bibleLayout: 'paragraph' }),
+            );
+            const diagnosticPaths = canonical.client
+              .prepare('SELECT path FROM migration_diagnostics WHERE source_id = ? ORDER BY path')
+              .pluck()
+              .all('cli-state');
+            expect(diagnosticPaths).toEqual([
+              'ai_search_cache',
+              'cross_ref_classifications',
+              'position[1]',
+              'terminal_palette',
+            ]);
+          }),
+        );
+      }));
 
-    const result = await Effect.runPromiseExit(
-      prepareDesktopUserState({
-        userDataPath: directory,
-        cliStateFile,
-        migrationSql: userStateMigrationSql,
-        clientId,
-      }),
-    );
+    test('does not activate or mutate a corrupt CLI source', () =>
+      Effect.gen(function* () {
+        const { fs, path, directory, migrationSql } = yield* testWorkspace;
+        const cliStateFile = path.join(directory, 'state.db');
+        yield* fs.writeFileString(cliStateFile, 'not a sqlite database');
+        const bytesBefore = yield* fs.readFile(cliStateFile);
 
-    expect(result._tag).toBe('Failure');
-    expect(existsSync(path.join(directory, 'user-state.active'))).toBe(false);
-    expect(readFileSync(cliStateFile)).toEqual(bytesBefore);
-  });
+        const result = yield* Effect.exit(
+          prepareDesktopUserState({
+            userDataPath: directory,
+            cliStateFile,
+            migrationSql,
+            clientId,
+          }),
+        );
 
-  test('quarantines CLI Writings continuity when the replaceable corpus is corrupt', async () => {
-    const directory = makeDirectory();
-    const cliStateFile = path.join(directory, 'state.db');
-    const writingsFile = path.join(directory, 'writings.db');
-    writeLegacyCliState(cliStateFile);
-    writeFileSync(writingsFile, 'not a sqlite database');
-    const cliBefore = readFileSync(cliStateFile);
-    const writingsBefore = readFileSync(writingsFile);
+        expect(result._tag).toBe('Failure');
+        expect(yield* fs.exists(path.join(directory, 'user-state.active'))).toBe(false);
+        expect(yield* fs.readFile(cliStateFile)).toEqual(bytesBefore);
+      }));
 
-    const result = await Effect.runPromise(
-      prepareDesktopUserState({
-        userDataPath: directory,
-        cliStateFile,
-        writingsFile,
-        migrationSql: userStateMigrationSql,
-        clientId,
-      }),
-    );
+    test('quarantines CLI Writings continuity when the replaceable corpus is corrupt', () =>
+      Effect.gen(function* () {
+        const { fs, path, directory, migrationSql } = yield* testWorkspace;
+        const cliStateFile = path.join(directory, 'state.db');
+        const writingsFile = path.join(directory, 'writings.db');
+        yield* writeLegacyCliState(cliStateFile);
+        yield* fs.writeFileString(writingsFile, 'not a sqlite database');
+        const cliBefore = yield* fs.readFile(cliStateFile);
+        const writingsBefore = yield* fs.readFile(writingsFile);
 
-    expect(result.activated).toBe(true);
-    expect(readFileSync(cliStateFile)).toEqual(cliBefore);
-    expect(readFileSync(writingsFile)).toEqual(writingsBefore);
-    const canonical = makeDesktopUserDatabase(result.filename);
-    await Effect.runPromise(canonical.migrate(userStateMigrationSql));
-    const backup = await Effect.runPromise(
-      makeDesktopSyncStore(canonical, clientId).libraryBackup(verificationTimestamp),
-    );
-    expect(backup.crossReferences).toHaveLength(1);
-    expect(
-      canonical.client
-        .prepare(
-          "SELECT category FROM migration_diagnostics WHERE source_id = 'cli-state' AND path = 'egw_position[0]'",
-        )
-        .pluck()
-        .get(),
-    ).toBe('quarantined');
-    await Effect.runPromise(canonical.close);
-  });
+        const result = yield* prepareDesktopUserState({
+          userDataPath: directory,
+          cliStateFile,
+          writingsFile,
+          migrationSql,
+          clientId,
+        });
 
-  test('returns an already-active generation without reopening or rewriting it', async () => {
-    const directory = makeDirectory();
-    const settingsFile = path.join(directory, 'settings.json');
-    writeFileSync(settingsFile, JSON.stringify({ theme: 'sepia' }));
-    const first = await Effect.runPromise(
-      prepareDesktopUserState({
-        userDataPath: directory,
-        settingsFile,
-        migrationSql: userStateMigrationSql,
-        clientId,
-      }),
-    );
-    const modifiedBefore = statSync(first.filename).mtimeMs;
-    const deviceModifiedBefore = statSync(path.join(directory, 'device-state.v1.json')).mtimeMs;
-    const logs: string[] = [];
+        expect(result.activated).toBe(true);
+        expect(yield* fs.readFile(cliStateFile)).toEqual(cliBefore);
+        expect(yield* fs.readFile(writingsFile)).toEqual(writingsBefore);
+        yield* useCanonicalDatabase(result.filename, (canonical) =>
+          Effect.gen(function* () {
+            yield* canonical.migrate(migrationSql);
+            const backup = yield* makeDesktopSyncStore(canonical, clientId).libraryBackup(
+              verificationTimestamp,
+            );
+            expect(backup.crossReferences).toHaveLength(1);
+            expect(
+              canonical.client
+                .prepare(
+                  "SELECT category FROM migration_diagnostics WHERE source_id = 'cli-state' AND path = 'egw_position[0]'",
+                )
+                .pluck()
+                .get(),
+            ).toBe('quarantined');
+          }),
+        );
+      }));
 
-    const second = await Effect.runPromise(
-      prepareDesktopUserState({
-        userDataPath: directory,
-        settingsFile,
-        migrationSql: userStateMigrationSql,
-        clientId,
-        log: (line) => logs.push(line),
-      }),
-    );
+    test('returns an already-active generation without reopening or rewriting it', () =>
+      Effect.gen(function* () {
+        const { fs, path, directory, migrationSql } = yield* testWorkspace;
+        const settingsFile = path.join(directory, 'settings.json');
+        yield* fs.writeFileString(settingsFile, encodeJson({ theme: 'sepia' }));
+        const first = yield* prepareDesktopUserState({
+          userDataPath: directory,
+          settingsFile,
+          migrationSql,
+          clientId,
+        });
+        const modifiedBefore = (yield* fs.stat(first.filename)).mtime;
+        const deviceModifiedBefore = (yield* fs.stat(path.join(directory, 'device-state.v1.json')))
+          .mtime;
+        const logs: string[] = [];
 
-    expect(second).toEqual({ ...first, activated: false });
-    expect(statSync(first.filename).mtimeMs).toBe(modifiedBefore);
-    expect(statSync(path.join(directory, 'device-state.v1.json')).mtimeMs).toBe(
-      deviceModifiedBefore,
-    );
-    expect(logs.some((line) => line.includes('already-active'))).toBe(true);
-    expect(logs.some((line) => line.includes('generation-reopened'))).toBe(false);
-  });
+        const second = yield* prepareDesktopUserState({
+          userDataPath: directory,
+          settingsFile,
+          migrationSql,
+          clientId,
+          log: (line) => logs.push(line),
+        });
 
-  test('recovers from a corrupt marker and removes only known inactive generation files', async () => {
-    const directory = makeDirectory();
-    const marker = path.join(directory, 'user-state.active');
-    const inactive = path.join(directory, 'user-state-v1-deadbeefdeadbeef.sqlite');
-    const inactiveWal = `${inactive}-wal`;
-    const inactiveJournal = `${inactive}-journal`;
-    const unrelated = path.join(directory, 'user-state-not-ours.sqlite');
-    const unrelatedSuffix = `${inactive}-backup`;
-    writeFileSync(marker, '../../not-a-generation');
-    writeFileSync(inactive, 'interrupted');
-    writeFileSync(inactiveWal, 'interrupted wal');
-    writeFileSync(inactiveJournal, 'interrupted journal');
-    writeFileSync(unrelated, 'keep');
-    writeFileSync(unrelatedSuffix, 'keep suffix');
-    writeFileSync(path.join(directory, 'user-state.active.tmp'), 'interrupted marker');
+        expect(second).toEqual({ ...first, activated: false });
+        expect((yield* fs.stat(first.filename)).mtime).toEqual(modifiedBefore);
+        expect((yield* fs.stat(path.join(directory, 'device-state.v1.json'))).mtime).toEqual(
+          deviceModifiedBefore,
+        );
+        expect(logs.some((line) => line.includes('already-active'))).toBe(true);
+        expect(logs.some((line) => line.includes('generation-reopened'))).toBe(false);
+      }));
 
-    const result = await Effect.runPromise(
-      prepareDesktopUserState({
-        userDataPath: directory,
-        migrationSql: userStateMigrationSql,
-        clientId,
-      }),
-    );
+    test('recovers from a corrupt marker and removes only known inactive generation files', () =>
+      Effect.gen(function* () {
+        const { fs, path, directory, migrationSql } = yield* testWorkspace;
+        const marker = path.join(directory, 'user-state.active');
+        const inactive = path.join(directory, 'user-state-v1-deadbeefdeadbeef.sqlite');
+        const inactiveWal = `${inactive}-wal`;
+        const inactiveJournal = `${inactive}-journal`;
+        const unrelated = path.join(directory, 'user-state-not-ours.sqlite');
+        const unrelatedSuffix = `${inactive}-backup`;
+        yield* fs.writeFileString(marker, '../../not-a-generation');
+        yield* fs.writeFileString(inactive, 'interrupted');
+        yield* fs.writeFileString(inactiveWal, 'interrupted wal');
+        yield* fs.writeFileString(inactiveJournal, 'interrupted journal');
+        yield* fs.writeFileString(unrelated, 'keep');
+        yield* fs.writeFileString(unrelatedSuffix, 'keep suffix');
+        yield* fs.writeFileString(
+          path.join(directory, 'user-state.active.tmp'),
+          'interrupted marker',
+        );
 
-    expect(result.activated).toBe(true);
-    expect(existsSync(inactive)).toBe(false);
-    expect(existsSync(inactiveWal)).toBe(false);
-    expect(existsSync(inactiveJournal)).toBe(false);
-    expect(readFileSync(unrelated, 'utf8')).toBe('keep');
-    expect(readFileSync(unrelatedSuffix, 'utf8')).toBe('keep suffix');
-    expect(readFileSync(marker, 'utf8').trim()).toBe(result.generation);
-    expect(existsSync(path.join(directory, 'user-state.active.tmp'))).toBe(false);
-  });
+        const result = yield* prepareDesktopUserState({
+          userDataPath: directory,
+          migrationSql,
+          clientId,
+        });
 
-  test('semantic mismatch prevents activation', async () => {
-    const directory = makeDirectory();
-    const generation = 'user-state-v1-1111111111111111';
-    const adapter = makeDesktopCanonicalGenerationAdapter({
-      userDataPath: directory,
-      migrationSql: userStateMigrationSql,
-      clientId,
-      verificationTimestamp,
-      log: () => undefined,
-    });
-    const sourceId = Schema.decodeSync(MigrationSourceId)('desktop-test-mismatch');
-    const result = await Effect.runPromiseExit(
-      copyOnMigrate({
-        generation,
-        adapter,
-        sources: [
-          {
-            sourceId,
-            fingerprint: 'sha256:test',
-            commands: [
+        expect(result.activated).toBe(true);
+        expect(yield* fs.exists(inactive)).toBe(false);
+        expect(yield* fs.exists(inactiveWal)).toBe(false);
+        expect(yield* fs.exists(inactiveJournal)).toBe(false);
+        expect(yield* fs.readFileString(unrelated)).toBe('keep');
+        expect(yield* fs.readFileString(unrelatedSuffix)).toBe('keep suffix');
+        expect((yield* fs.readFileString(marker)).trim()).toBe(result.generation);
+        expect(yield* fs.exists(path.join(directory, 'user-state.active.tmp'))).toBe(false);
+      }));
+
+    test('semantic mismatch prevents activation', () =>
+      Effect.gen(function* () {
+        const { fs, directory, migrationSql } = yield* testWorkspace;
+        const generation = 'user-state-v1-1111111111111111';
+        const adapter = makeDesktopCanonicalGenerationAdapter({
+          userDataPath: directory,
+          migrationSql,
+          clientId,
+          verificationTimestamp,
+          log: () => undefined,
+        });
+        const sourceId = Schema.decodeSync(MigrationSourceId)('desktop-test-mismatch');
+        const result = yield* Effect.exit(
+          copyOnMigrate({
+            generation,
+            adapter,
+            sources: [
               {
-                _tag: 'RecordReading',
-                historyId: Schema.decodeSync(LibraryEntityId)('history-mismatch'),
-                location: {
-                  source: 'bible',
-                  resourceId: 'KJV',
-                  location: '/bible/43/3/16',
-                },
-                progress: 0,
-                readAt: verificationTimestamp,
+                sourceId,
+                fingerprint: 'sha256:test',
+                commands: [
+                  {
+                    _tag: 'RecordReading',
+                    historyId: Schema.decodeSync(LibraryEntityId)('history-mismatch'),
+                    location: {
+                      source: 'bible',
+                      resourceId: 'KJV',
+                      location: '/bible/43/3/16',
+                    },
+                    progress: 0,
+                    readAt: verificationTimestamp,
+                  },
+                ],
+                diagnostics: [],
+                semanticCounts: [{ entity: 'reading_positions', count: 2 }],
               },
             ],
-            diagnostics: [],
-            semanticCounts: [{ entity: 'reading_positions', count: 2 }],
-          },
-        ],
-        mutationId: () => Schema.decodeSync(MutationId)('mutation-mismatch'),
-        mutationTimestamp: () => verificationTimestamp,
-        completedAt: verificationTimestamp,
-      }),
-    );
+            mutationId: () => Schema.decodeSync(MutationId)('mutation-mismatch'),
+            mutationTimestamp: () => verificationTimestamp,
+            completedAt: verificationTimestamp,
+          }),
+        );
 
-    expect(result._tag).toBe('Failure');
-    expect(existsSync(path.join(directory, 'user-state.active'))).toBe(false);
-  });
+        expect(result._tag).toBe('Failure');
+        expect(yield* fs.exists(`${directory}/user-state.active`)).toBe(false);
+      }));
 
-  test('device-state persistence failure prevents canonical marker activation', async () => {
-    const directory = makeDirectory();
-    mkdirSync(path.join(directory, 'device-state.v1.json.tmp'));
-    const generation = 'user-state-v1-2222222222222222';
-    const adapter = makeDesktopCanonicalGenerationAdapter({
-      userDataPath: directory,
-      migrationSql: userStateMigrationSql,
-      clientId,
-      verificationTimestamp,
-      deviceState: { uiScale: 'lg' },
-      log: () => undefined,
-    });
+    test('device-state persistence failure prevents canonical marker activation', () =>
+      Effect.gen(function* () {
+        const { fs, path, directory, migrationSql } = yield* testWorkspace;
+        yield* fs.makeDirectory(path.join(directory, 'device-state.v1.json.tmp'));
+        const generation = 'user-state-v1-2222222222222222';
+        const adapter = makeDesktopCanonicalGenerationAdapter({
+          userDataPath: directory,
+          migrationSql,
+          clientId,
+          verificationTimestamp,
+          deviceState: { uiScale: 'lg' },
+          log: () => undefined,
+        });
 
-    const result = await Effect.runPromiseExit(
-      copyOnMigrate({
-        generation,
-        adapter,
-        sources: [],
-        mutationId: () => Schema.decodeSync(MutationId)('unused-mutation'),
-        mutationTimestamp: () => verificationTimestamp,
-        completedAt: verificationTimestamp,
-      }),
-    );
+        const result = yield* Effect.exit(
+          copyOnMigrate({
+            generation,
+            adapter,
+            sources: [],
+            mutationId: () => Schema.decodeSync(MutationId)('unused-mutation'),
+            mutationTimestamp: () => verificationTimestamp,
+            completedAt: verificationTimestamp,
+          }),
+        );
 
-    expect(result._tag).toBe('Failure');
-    expect(existsSync(path.join(directory, 'user-state.active'))).toBe(false);
+        expect(result._tag).toBe('Failure');
+        expect(yield* fs.exists(path.join(directory, 'user-state.active'))).toBe(false);
+      }));
   });
 });
