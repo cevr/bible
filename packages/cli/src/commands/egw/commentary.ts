@@ -3,6 +3,8 @@ import { EGWCommentaryService } from '@bible/core/egw-commentary';
 import { Console, Effect } from 'effect';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
 
+import { CliProcess } from '../../services/process.js';
+import { encodeJson } from './format.js';
 import { CommentaryLayer } from './layers.js';
 
 const verse = Argument.string('verse').pipe(Argument.variadic());
@@ -28,7 +30,8 @@ export const egwCommentary = Command.make('commentary', { verse, json }, (args) 
       yield* Console.error(
         `Commentary requires a single verse reference (e.g. "john 3:16"); got ${parsed._tag}.`,
       );
-      return yield* Effect.sync(() => process.exit(1));
+      const cliProcess = yield* CliProcess;
+      return yield* cliProcess.exitFailure;
     }
 
     const verseRef = BibleReference.verse(
@@ -41,7 +44,7 @@ export const egwCommentary = Command.make('commentary', { verse, json }, (args) 
     const result = yield* service.getCommentary(verseRef);
 
     if (args.json) {
-      yield* Console.log(JSON.stringify(result, null, 2));
+      yield* Console.log(yield* encodeJson(result));
       return;
     }
 
@@ -50,9 +53,9 @@ export const egwCommentary = Command.make('commentary', { verse, json }, (args) 
       return;
     }
 
-    yield* Console.log(
-      `${result.entries.length} commentary entr${result.entries.length === 1 ? 'y' : 'ies'} for ${verseStr}:\n`,
-    );
+    let entryLabel = 'entries';
+    if (result.entries.length === 1) entryLabel = 'entry';
+    yield* Console.log(`${result.entries.length} commentary ${entryLabel} for ${verseStr}:\n`);
     for (const entry of result.entries) {
       yield* Console.log(`  ${entry.refcode} (${entry.bookTitle})`);
       yield* Console.log(`  ${entry.content}\n`);

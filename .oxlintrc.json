@@ -117,6 +117,9 @@
         "**/packages/cli/src/commands/egw/catalog.ts",
         "**/packages/cli/src/commands/egw/format.ts",
         "**/packages/cli/src/commands/egw/search.ts",
+        "**/packages/cli/src/commands/egw/commentary.ts",
+        "**/packages/cli/src/commands/egw/lookup.ts",
+        "**/packages/cli/src/services/process.ts",
         "**/packages/app/src/route/codec.ts",
         "**/packages/app/src/route/disclosure.ts",
         "**/packages/app/src/runtime/failure-category.ts",
@@ -177,6 +180,12 @@
       }
     },
     {
+      "files": ["**/packages/cli/src/services/process.ts"],
+      "rules": {
+        "effect/noGlobals": "off"
+      }
+    },
+    {
       "files": ["**/apps/web/src/workers/user-state-database.ts"],
       "rules": {
         "effect/noAsyncFunction": "off"
@@ -221,9 +230,17 @@
         "**/packages/core/src/local-first/sync-engine.test.ts",
         "**/packages/core/src/structural-analysis/service.test.ts",
         "**/packages/core/src/writings/archive-service.test.ts",
+        "**/packages/core/src/writings/service.test.ts",
+        "**/packages/core/src/hymnal/service.test.ts",
         "**/packages/core/src/platform-node/bible-artifact.test.ts",
         "**/packages/app/src/procedure/client.test.ts",
         "**/packages/app/src/cache/synced-cache.test.ts",
+        "**/packages/cli/test/commands/egw.test.ts",
+        "**/packages/cli/test/commands/export.test.ts",
+        "**/packages/cli/test/commands/messages.test.ts",
+        "**/packages/cli/test/commands/notes.test.ts",
+        "**/packages/cli/test/commands/readings.test.ts",
+        "**/packages/cli/test/commands/studies.test.ts",
         "**/apps/desktop/tests/procedure-client.test.ts",
         "**/apps/desktop/tests/procedure-server.test.ts",
         "**/apps/web/src/workers/generation-marker.test.ts",

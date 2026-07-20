@@ -11,7 +11,8 @@ import { WritingsService } from '@bible/core/writings/service';
 import { Console, Effect, Option } from 'effect';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
 
-import { publicationJson } from './format.js';
+import { CliProcess } from '../../services/process.js';
+import { encodeJson, publicationJson } from './format.js';
 import { ServiceLayer } from './layers.js';
 
 type LookupReference = Exclude<EGWParsedRef, EGWSearchQuery>;
@@ -49,19 +50,21 @@ export const lookupReference = (parsed: LookupReference) =>
           yield* Console.log(`  ${pageResponse.heading.value}\n`);
         }
 
-        const paragraphs =
-          parsed._tag === 'paragraph'
-            ? pageResponse.paragraphs.filter(
-                (paragraph) => Option.getOrUndefined(paragraph.number) === parsed.paragraph,
-              )
-            : parsed._tag === 'paragraph-range'
-              ? pageResponse.paragraphs.filter((paragraph) =>
-                  Option.exists(
-                    paragraph.number,
-                    (number) => number >= parsed.paragraphStart && number <= parsed.paragraphEnd,
-                  ),
-                )
-              : pageResponse.paragraphs;
+        let paragraphs: ReadonlyArray<(typeof pageResponse.paragraphs)[number]> =
+          pageResponse.paragraphs;
+        if (parsed._tag === 'paragraph') {
+          paragraphs = pageResponse.paragraphs.filter(
+            (paragraph) => Option.getOrUndefined(paragraph.number) === parsed.paragraph,
+          );
+        }
+        if (parsed._tag === 'paragraph-range') {
+          paragraphs = pageResponse.paragraphs.filter((paragraph) =>
+            Option.exists(
+              paragraph.number,
+              (number) => number >= parsed.paragraphStart && number <= parsed.paragraphEnd,
+            ),
+          );
+        }
 
         if (paragraphs.length === 0) {
           yield* Console.log(`No paragraphs found for ${refStr}.`);
@@ -141,19 +144,21 @@ const collectLookupData = (parsed: LookupReference) =>
           };
         }
 
-        const paragraphs =
-          parsed._tag === 'paragraph'
-            ? pageResponse.paragraphs.filter(
-                (paragraph) => Option.getOrUndefined(paragraph.number) === parsed.paragraph,
-              )
-            : parsed._tag === 'paragraph-range'
-              ? pageResponse.paragraphs.filter((paragraph) =>
-                  Option.exists(
-                    paragraph.number,
-                    (number) => number >= parsed.paragraphStart && number <= parsed.paragraphEnd,
-                  ),
-                )
-              : pageResponse.paragraphs;
+        let paragraphs: ReadonlyArray<(typeof pageResponse.paragraphs)[number]> =
+          pageResponse.paragraphs;
+        if (parsed._tag === 'paragraph') {
+          paragraphs = pageResponse.paragraphs.filter(
+            (paragraph) => Option.getOrUndefined(paragraph.number) === parsed.paragraph,
+          );
+        }
+        if (parsed._tag === 'paragraph-range') {
+          paragraphs = pageResponse.paragraphs.filter((paragraph) =>
+            Option.exists(
+              paragraph.number,
+              (number) => number >= parsed.paragraphStart && number <= parsed.paragraphEnd,
+            ),
+          );
+        }
 
         return {
           ref: refStr,
@@ -238,11 +243,12 @@ export const egwLookup = Command.make('lookup', { ref, json }, (args) =>
     if (isSearchQuery(parsed)) {
       yield* Console.error(`Not a valid EGW refcode: "${refStr}"`);
       yield* Console.error('Use `bible egw search <query>` for FTS instead.');
-      return yield* Effect.sync(() => process.exit(1));
+      const cliProcess = yield* CliProcess;
+      return yield* cliProcess.exitFailure;
     }
 
     if (args.json) {
-      yield* Console.log(JSON.stringify(yield* collectLookupData(parsed), null, 2));
+      yield* Console.log(yield* encodeJson(yield* collectLookupData(parsed)));
       return;
     }
 

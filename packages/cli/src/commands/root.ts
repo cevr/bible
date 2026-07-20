@@ -15,6 +15,7 @@ import { slides } from './slides.js';
 import { studies } from './studies.js';
 import { sync } from './sync.js';
 import { cliOptions, CliOptions } from '../services/cli-options.js';
+import { CliProcessLive } from '../services/process.js';
 
 const rootHelp = `Bible study tools
 
@@ -62,4 +63,5 @@ export const rootCommand = Command.make('bible', cliOptions, () => Console.log(r
   Command.provideEffect(References.MinimumLogLevel, (input) =>
     Effect.succeed<'Debug' | 'Info'>('verbose' in input && input.verbose ? 'Debug' : 'Info'),
   ),
+  Command.provide(() => CliProcessLive),
 );
