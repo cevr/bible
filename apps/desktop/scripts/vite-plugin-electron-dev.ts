@@ -1,7 +1,8 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import { rm } from 'node:fs/promises';
 import path from 'node:path';
-import electronPath from 'electron';
+import electronPath from 'electron/index.js';
+import { Effect, Result } from 'effect';
 import * as esbuild from 'esbuild';
 import type { Plugin, ViteDevServer } from 'vite';
 
@@ -31,75 +32,98 @@ export function electronDev(): Plugin {
   // leave a zombie that blocks port 9333 and prevents respawn.
   const KILL_ESCALATION_MS = 3000;
 
-  const killElectron = () =>
-    new Promise<void>((resolve) => {
-      const c = child;
-      if (!c || c.exitCode !== null) {
-        child = undefined;
-        resolve();
-        return;
-      }
-      c.removeAllListeners('exit');
-      const escalate = setTimeout(() => {
-        if (c.exitCode !== null) return;
-        console.warn(
-          `[electron-dev] SIGTERM ignored after ${String(KILL_ESCALATION_MS)}ms — sending SIGKILL to pid ${String(c.pid ?? 0)}`,
-        );
-        try {
-          c.kill('SIGKILL');
-        } catch (err) {
-          console.warn(
-            `[electron-dev] SIGKILL failed: ${err instanceof Error ? err.message : String(err)}`,
-          );
-          // Resolve anyway so the dev loop doesn't deadlock. The next spawn
-          // will likely fail loudly, which is the warning we want.
-          child = undefined;
-          resolve();
-        }
-      }, KILL_ESCALATION_MS);
-      c.once('exit', () => {
-        clearTimeout(escalate);
-        child = undefined;
-        resolve();
-      });
-      try {
-        c.kill();
-      } catch (err) {
-        clearTimeout(escalate);
-        console.warn(
-          `[electron-dev] SIGTERM failed: ${err instanceof Error ? err.message : String(err)} — trying SIGKILL`,
-        );
-        try {
-          c.kill('SIGKILL');
-        } catch (err2) {
-          console.warn(
-            `[electron-dev] SIGKILL failed: ${err2 instanceof Error ? err2.message : String(err2)}`,
-          );
-          child = undefined;
-          resolve();
-        }
-      }
+  const failureMessage = (cause: unknown): string => {
+    if (cause instanceof Error) return cause.message;
+    return String(cause);
+  };
+
+  const attemptKill = (active: ChildProcess, signal?: NodeJS.Signals) =>
+    Effect.try({
+      try: () => active.kill(signal),
+      catch: (cause) => cause,
     });
 
-  const spawnElectron = (): boolean => {
-    try {
-      child = spawn(electronPath as unknown as string, ['.', '--remote-debugging-port=9333'], {
-        cwd: root,
-        stdio: 'inherit',
-        env: { ...process.env, NODE_ENV: 'development' },
-      });
-    } catch (err) {
+  const killElectron = Effect.callback<void>((resume) => {
+    const c = child;
+    if (!c || c.exitCode !== null) {
+      child = undefined;
+      resume(Effect.void);
+      return;
+    }
+    let complete = false;
+    const finish = (): void => {
+      if (complete) return;
+      complete = true;
+      child = undefined;
+      resume(Effect.void);
+    };
+    c.removeAllListeners('exit');
+    const escalate = setTimeout(() => {
+      if (c.exitCode !== null) return;
       console.warn(
-        `[electron-dev] FAILED TO SPAWN ELECTRON: ${err instanceof Error ? err.message : String(err)}`,
+        `[electron-dev] SIGTERM ignored after ${String(KILL_ESCALATION_MS)}ms — sending SIGKILL to pid ${String(c.pid ?? 0)}`,
       );
+      const killed = Effect.runSync(Effect.result(attemptKill(c, 'SIGKILL')));
+      if (Result.isFailure(killed)) {
+        console.warn(`[electron-dev] SIGKILL failed: ${failureMessage(killed.failure)}`);
+        // Resolve anyway so the dev loop doesn't deadlock. The next spawn
+        // will likely fail loudly, which is the warning we want.
+        child = undefined;
+        finish();
+      }
+    }, KILL_ESCALATION_MS);
+    c.once('exit', () => {
+      clearTimeout(escalate);
+      finish();
+    });
+    const terminated = Effect.runSync(Effect.result(attemptKill(c)));
+    if (Result.isFailure(terminated)) {
+      clearTimeout(escalate);
+      console.warn(
+        `[electron-dev] SIGTERM failed: ${failureMessage(terminated.failure)} — trying SIGKILL`,
+      );
+      const killed = Effect.runSync(Effect.result(attemptKill(c, 'SIGKILL')));
+      if (Result.isFailure(killed)) {
+        console.warn(`[electron-dev] SIGKILL failed: ${failureMessage(killed.failure)}`);
+        finish();
+      }
+    }
+    return Effect.sync(() => {
+      clearTimeout(escalate);
+      c.removeAllListeners('exit');
+    });
+  });
+
+  const spawnElectron = (): boolean => {
+    if (typeof electronPath !== 'string') {
+      console.warn('[electron-dev] FAILED TO SPAWN ELECTRON: executable path is unavailable');
+      return false;
+    }
+    const spawned = Effect.runSync(
+      Effect.result(
+        Effect.try({
+          try: () =>
+            spawn(electronPath, ['.', '--remote-debugging-port=9333'], {
+              cwd: root,
+              stdio: 'inherit',
+              env: { ...process.env, NODE_ENV: 'development' },
+            }),
+          catch: (cause) => cause,
+        }),
+      ),
+    );
+    if (Result.isFailure(spawned)) {
+      console.warn(`[electron-dev] FAILED TO SPAWN ELECTRON: ${failureMessage(spawned.failure)}`);
       console.warn('[electron-dev] dev server is running but no renderer is attached');
       child = undefined;
       return false;
     }
-    child.once('error', (err) => {
+    const activeChild = spawned.success;
+    child = activeChild;
+    activeChild.once('error', (err) => {
       console.warn(`[electron-dev] electron process error: ${err.message}`);
     });
-    child.once('exit', (code) => {
+    activeChild.once('exit', (code) => {
       child = undefined;
       // If Electron quits on its own (user closed the window, crash), tear
       // down the Vite server so `bun run dev` exits cleanly instead of
@@ -112,7 +136,7 @@ export function electronDev(): Plugin {
   };
 
   const restartElectron = async () => {
-    await killElectron();
+    await Effect.runPromise(killElectron);
     if (stopping) return;
     const spawned = spawnElectron();
     if (!spawned) {
@@ -181,7 +205,7 @@ export function electronDev(): Plugin {
       const stop = async () => {
         if (stopping) return;
         stopping = true;
-        await killElectron();
+        await Effect.runPromise(killElectron);
         await ctx?.dispose();
       };
 
