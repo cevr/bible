@@ -1,8 +1,8 @@
 import { BunFileSystem } from '@effect/platform-bun';
-import { Effect, FileSystem, Layer, Option } from 'effect';
+import { Effect, FileSystem, Layer } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 
-import type { CorpusSupplyReceipt } from '../corpus-supply/model.js';
+import type { CorpusProvenance, CorpusSupplyReceipt } from '../corpus-supply/model.js';
 import { CorpusSupply } from '../corpus-supply/service.js';
 import {
   layerNativeBibleArtifacts,
@@ -11,13 +11,17 @@ import {
 } from './bible-artifact.js';
 
 const makeProvenanceStore = (): NativeBibleArtifactProvenanceStore => {
-  let current: ReturnType<NativeBibleArtifactProvenanceStore['read']> | undefined;
+  let current: CorpusProvenance | undefined;
 
   return {
-    read: () => Option.getOrThrow(Option.fromNullishOr(current)),
-    write: (_filename, provenance) => {
-      current = provenance;
+    read: () => {
+      if (current === undefined) return Effect.fail('provenance is unavailable');
+      return Effect.succeed(current);
     },
+    write: (_filename, provenance) =>
+      Effect.sync(() => {
+        current = provenance;
+      }),
   };
 };
 
@@ -32,7 +36,7 @@ const ensure = (
     sources,
     fetch,
     provenanceStore,
-    verify: () => 1,
+    verify: () => Effect.succeed(1),
   });
   const supply = CorpusSupply.layer.pipe(Layer.provide(artifacts));
   return Effect.gen(function* () {
