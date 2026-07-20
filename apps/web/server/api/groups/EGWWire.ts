@@ -1,21 +1,13 @@
 import { Option } from 'effect';
 
 import type {
-  EGWBookDump,
   EGWBookInfo,
   EGWChapter,
   EGWPageResponse,
   EGWParagraph,
   EGWSearchResult,
 } from '@bible/api';
-import type {
-  Heading,
-  Page,
-  Paragraph,
-  Publication,
-  PublicationArchive,
-  SearchHit,
-} from '@bible/core/writings';
+import type { Heading, Page, Paragraph, Publication, SearchHit } from '@bible/core/writings';
 
 const book = (publication: Publication): EGWBookInfo => ({
   bookId: publication.id,
@@ -55,28 +47,6 @@ const searchResult = (value: SearchHit): EGWSearchResult => ({
   bookTitle: value.publication.title,
 });
 
-const archive = (value: PublicationArchive): EGWBookDump => ({
-  book: book(value.publication),
-  paragraphs: value.paragraphs.map((archived) => ({
-    refCode: archived.refcode,
-    paraId: archived.paragraph.reference.paragraphId,
-    refcodeShort: Option.getOrNull(archived.paragraph.refcode),
-    nodes: archived.paragraph.nodes,
-    puborder: archived.paragraph.order,
-    elementType: Option.getOrNull(archived.paragraph.elementType),
-    elementSubtype: Option.getOrNull(archived.paragraph.elementSubtype),
-    pageNumber: Option.getOrNull(archived.paragraph.page),
-    paragraphNumber: Option.getOrNull(archived.paragraph.number),
-    isChapterHeading: archived.isHeading,
-  })),
-  bibleRefs: value.bibleReferences.map((reference) => ({
-    refCode: reference.paragraphRefcode,
-    bibleBook: reference.scripture.book,
-    bibleChapter: reference.scripture.chapter,
-    bibleVerse: reference.scripture._tag === 'verse' ? reference.scripture.verse : null,
-  })),
-});
-
 export const EGWWire = {
   book,
   books: (publications: readonly Publication[]): readonly EGWBookInfo[] => publications.map(book),
@@ -84,5 +54,4 @@ export const EGWWire = {
   page,
   chapters: (headings: readonly Heading[]): readonly EGWChapter[] => headings.map(chapter),
   searchResults: (hits: readonly SearchHit[]): readonly EGWSearchResult[] => hits.map(searchResult),
-  archive,
 } as const;

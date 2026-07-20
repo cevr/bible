@@ -11,9 +11,23 @@ import { join } from 'node:path';
 import { BunServices } from '@effect/platform-bun';
 import { Database } from 'bun:sqlite';
 import { afterAll, describe, expect, test } from 'bun:test';
-import { ConfigProvider, Effect, Layer, Option, Result } from 'effect';
+import { ConfigProvider, Effect, Layer, Option, Result, Stream } from 'effect';
 
+import { Reference as BibleReference } from '../bible/model.js';
 import type { Book, Paragraph } from '../egw/schemas.js';
+import {
+  ArchivedBibleReference,
+  ArchivedParagraph,
+  PublicationArchive,
+} from '../writings/archive.js';
+import {
+  Paragraph as WritingsParagraph,
+  Publication,
+  Reference as WritingsReference,
+  publicationCode,
+  publicationId,
+  publicationOrder,
+} from '../writings/model.js';
 import { EGWParagraphDatabase, ParagraphDataIntegrityError } from './book-database.js';
 import * as EGWDbBun from './book-database-bun.js';
 
@@ -98,7 +112,96 @@ const mockParagraph = (puborder: number, refcodeShort: string): Paragraph => ({
   puborder,
 });
 
+const mockArchive = (refcodes: readonly string[]): PublicationArchive => {
+  const id = publicationId(9001);
+  const code = publicationCode('TEST');
+  const paragraphs = refcodes.map((refcode, index) => {
+    const paragraph = new WritingsParagraph({
+      reference: WritingsReference.paragraph(id, `paragraph-${String(index + 1)}`),
+      publicationCode: code,
+      order: publicationOrder(index + 1),
+      page: Option.none(),
+      number: Option.none(),
+      refcode: Option.some(refcode),
+      nodes: [{ _tag: 'Text', text: `Content for ${refcode}` }],
+      elementType: Option.some('paragraph'),
+      elementSubtype: Option.none(),
+    });
+    return new ArchivedParagraph({ refcode, paragraph, isHeading: false });
+  });
+  return new PublicationArchive({
+    publication: new Publication({
+      id,
+      code,
+      title: 'Test Publication',
+      author: 'Test Author',
+      paragraphCount: Option.some(refcodes.length),
+    }),
+    paragraphs,
+    bibleReferences:
+      refcodes[0] === undefined
+        ? []
+        : [
+            new ArchivedBibleReference({
+              paragraphRefcode: refcodes[0],
+              scripture: BibleReference.verse(1, 1, 1),
+            }),
+          ],
+  });
+};
+
 describe('EGWParagraphDatabase', () => {
+  describe('canonical publication installation', () => {
+    test('atomically replaces one publication and activates its verified counts', async () => {
+      await runTest(
+        Effect.gen(function* () {
+          const db = yield* EGWParagraphDatabase;
+          yield* db.installPublicationArchive(mockArchive(['TEST 1.1', 'TEST 1.2']));
+          yield* db.installPublicationArchive(mockArchive(['TEST 2.1']));
+
+          const paragraphs = yield* Stream.runCollect(db.getParagraphsByBook(9001));
+          const references = yield* db.getBibleRefsByBook(9001);
+          const status = yield* db.getSyncStatus(9001);
+
+          expect(paragraphs).toHaveLength(1);
+          expect(Option.getOrThrow(paragraphs[0]!.refcode_short)).toBe('TEST 2.1');
+          expect(references).toHaveLength(1);
+          expect(Option.getOrThrow(status).status).toBe('success');
+          expect(Option.getOrThrow(status).paragraph_count).toBe(1);
+        }),
+      );
+    });
+
+    test('rejects a malformed contribution before replacing the active publication', async () => {
+      await runTest(
+        Effect.gen(function* () {
+          const db = yield* EGWParagraphDatabase;
+          yield* db.installPublicationArchive(mockArchive(['TEST 1.1']));
+          const invalid = mockArchive(['TEST 2.1']);
+          const result = yield* Effect.result(
+            db.installPublicationArchive(
+              new PublicationArchive({
+                publication: invalid.publication,
+                paragraphs: invalid.paragraphs,
+                bibleReferences: [
+                  new ArchivedBibleReference({
+                    paragraphRefcode: 'TEST missing',
+                    scripture: BibleReference.chapter(1, 1),
+                  }),
+                ],
+              }),
+            ),
+          );
+
+          expect(Result.isFailure(result)).toBe(true);
+          const paragraphs = yield* Stream.runCollect(db.getParagraphsByBook(9001));
+          expect(paragraphs).toHaveLength(1);
+          expect(Option.getOrThrow(paragraphs[0]!.refcode_short)).toBe('TEST 1.1');
+        }),
+      );
+    });
+  });
+
   describe('chapter heading detection', () => {
     test('detects h1-h6 elements as chapter headings', async () => {
       await runTest(

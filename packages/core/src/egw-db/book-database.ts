@@ -27,6 +27,7 @@ import {
 import * as EGWSchemas from '../egw/schemas.js';
 import { Node, nodesToText } from '../egw/ast.js';
 import { isChapterHeading } from '../egw/parse.js';
+import type { PublicationArchive } from '../writings/archive.js';
 
 // Bump when the on-disk paragraphs schema changes shape (column rename, type
 // change, FTS index source change, …). The init code reads PRAGMA user_version
@@ -139,6 +140,11 @@ function parseRefcodeNumbers(refcode: string | null): {
 // ============================================================================
 
 export interface EGWParagraphDatabaseService {
+  /** Atomically replaces one publication from its canonical portable archive. */
+  readonly installPublicationArchive: (
+    archive: PublicationArchive,
+  ) => Effect.Effect<number, ParagraphDatabaseError>;
+
   // Book operations
   readonly storeBook: (book: EGWSchemas.Book) => Effect.Effect<void, ParagraphDatabaseError>;
   readonly getBookById: (
@@ -355,6 +361,66 @@ const paragraphToRow = (
     updated_at: updatedAt,
   };
 };
+
+const archivedParagraphToRow = (
+  archived: PublicationArchive['paragraphs'][number],
+  bookId: number,
+  createdAt: string,
+): ParagraphRow => ({
+  para_id: archived.paragraph.reference.paragraphId,
+  refcode_short: Option.getOrNull(archived.paragraph.refcode),
+  refcode_long: null,
+  nodes_json: encodeNodes(archived.paragraph.nodes),
+  content_text: nodesToText(archived.paragraph.nodes),
+  puborder: archived.paragraph.order,
+  element_type: Option.getOrNull(archived.paragraph.elementType),
+  element_subtype: Option.getOrNull(archived.paragraph.elementSubtype),
+  book_id: bookId,
+  ref_code: archived.refcode,
+  page_number: Option.getOrNull(archived.paragraph.page),
+  paragraph_number: Option.getOrNull(archived.paragraph.number),
+  is_chapter_heading: archived.isHeading ? 1 : 0,
+  created_at: createdAt,
+  updated_at: createdAt,
+});
+
+const validatePublicationArchive = (archive: PublicationArchive) =>
+  Effect.gen(function* () {
+    const publicationId = archive.publication.id;
+    const publicationCode = archive.publication.code;
+    const refcodes = new Set<string>();
+
+    for (const archived of archive.paragraphs) {
+      if (archived.paragraph.reference.publicationId !== publicationId) {
+        return yield* new ParagraphDataIntegrityError({
+          cause: archived.paragraph.reference,
+          location: `publication(${String(publicationId)}).paragraph-publication`,
+        });
+      }
+      if (archived.paragraph.publicationCode !== publicationCode) {
+        return yield* new ParagraphDataIntegrityError({
+          cause: archived.paragraph.publicationCode,
+          location: `publication(${String(publicationId)}).paragraph-code`,
+        });
+      }
+      if (refcodes.has(archived.refcode)) {
+        return yield* new ParagraphDataIntegrityError({
+          cause: archived.refcode,
+          location: `publication(${String(publicationId)}).duplicate-refcode`,
+        });
+      }
+      refcodes.add(archived.refcode);
+    }
+
+    for (const reference of archive.bibleReferences) {
+      if (!refcodes.has(reference.paragraphRefcode)) {
+        return yield* new ParagraphDataIntegrityError({
+          cause: reference.paragraphRefcode,
+          location: `publication(${String(publicationId)}).bible-reference`,
+        });
+      }
+    }
+  });
 
 const rowToParagraph = (row: ParagraphRow) =>
   Effect.try({
@@ -582,6 +648,85 @@ export class EGWParagraphDatabase extends Context.Service<
             is_chapter_heading = excluded.is_chapter_heading,
             updated_at = excluded.updated_at
         `.pipe(Effect.asVoid);
+
+      const installPublicationArchive = Effect.fn('EGWParagraphDatabase.installPublicationArchive')(
+        function* (archive: PublicationArchive) {
+          yield* validatePublicationArchive(archive);
+
+          const publication = archive.publication;
+          const publicationId = publication.id;
+          const now = new Date().toISOString();
+          const rows = archive.paragraphs.map((paragraph) =>
+            archivedParagraphToRow(paragraph, publicationId, now),
+          );
+
+          return yield* sql.withTransaction(
+            Effect.gen(function* () {
+              yield* sql`
+              DELETE FROM paragraph_bible_refs WHERE para_book_id = ${publicationId}
+            `;
+              yield* sql`DELETE FROM paragraphs WHERE book_id = ${publicationId}`;
+              yield* sql`
+              INSERT INTO books (
+                book_id, book_code, book_title, book_author, paragraph_count, created_at
+              ) VALUES (
+                ${publicationId}, ${publication.code}, ${publication.title},
+                ${publication.author}, ${rows.length}, ${now}
+              )
+              ON CONFLICT(book_id) DO UPDATE SET
+                book_code = excluded.book_code,
+                book_title = excluded.book_title,
+                book_author = excluded.book_author,
+                paragraph_count = excluded.paragraph_count
+            `;
+
+              for (const row of rows) {
+                yield* insertParagraphRow(row);
+              }
+              for (const reference of archive.bibleReferences) {
+                yield* sql`
+                INSERT INTO paragraph_bible_refs (
+                  para_book_id, para_ref_code, bible_book, bible_chapter, bible_verse
+                ) VALUES (
+                  ${publicationId}, ${reference.paragraphRefcode}, ${reference.scripture.book},
+                  ${reference.scripture.chapter},
+                  ${reference.scripture._tag === 'verse' ? reference.scripture.verse : null}
+                )
+              `;
+              }
+
+              yield* sql
+                .unsafe(`INSERT INTO paragraphs_fts(paragraphs_fts) VALUES('rebuild')`)
+                .pipe(Effect.asVoid);
+              yield* sql`
+              INSERT INTO sync_status (
+                book_id, book_code, status, error_message, last_attempt, paragraph_count
+              ) VALUES (
+                ${publicationId}, ${publication.code}, 'success', NULL, ${now}, ${rows.length}
+              )
+              ON CONFLICT(book_id) DO UPDATE SET
+                book_code = excluded.book_code,
+                status = excluded.status,
+                error_message = NULL,
+                last_attempt = excluded.last_attempt,
+                paragraph_count = excluded.paragraph_count
+            `;
+
+              const installed = yield* sql<{ count: number }>`
+              SELECT COUNT(*) AS count FROM paragraphs WHERE book_id = ${publicationId}
+            `;
+              const installedCount = installed[0]?.count ?? -1;
+              if (installedCount !== rows.length) {
+                return yield* new ParagraphDataIntegrityError({
+                  cause: { expected: rows.length, actual: installedCount },
+                  location: `publication(${String(publicationId)}).installed-count`,
+                });
+              }
+              return installedCount;
+            }),
+          );
+        },
+      );
 
       const storeParagraph = (paragraph: EGWSchemas.Paragraph, book: EGWSchemas.Book) =>
         Effect.gen(function* () {
@@ -945,6 +1090,7 @@ export class EGWParagraphDatabase extends Context.Service<
         });
 
       return {
+        installPublicationArchive,
         storeBook,
         getBookById,
         getBookByCode,
@@ -990,6 +1136,7 @@ export class EGWParagraphDatabase extends Context.Service<
     } = {},
   ): Layer.Layer<EGWParagraphDatabase> =>
     Layer.succeed(EGWParagraphDatabase, {
+      installPublicationArchive: (archive) => Effect.succeed(archive.paragraphs.length),
       storeBook: () => Effect.void,
       getBookById: (bookId) =>
         Effect.succeed(Option.fromNullishOr(config.books?.find((b) => b.book_id === bookId))),

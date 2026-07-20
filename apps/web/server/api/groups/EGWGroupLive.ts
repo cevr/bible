@@ -91,7 +91,7 @@ export const EGWGroupLive = HttpApiBuilder.group(BibleToolsApi, 'EGW', (handlers
         Effect.gen(function* () {
           const publication = yield* writings.publicationByCode(bookCode);
           return yield* archives.exportPublication(Reference.publication(publication.id));
-        }).pipe(Effect.map(EGWWire.archive), Effect.mapError(bookError(bookCode))),
+        }).pipe(Effect.mapError(bookError(bookCode))),
       );
   }),
 );

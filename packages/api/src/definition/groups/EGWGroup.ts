@@ -8,6 +8,7 @@
  * - Searching paragraphs
  */
 import { Node } from '@bible/core/egw';
+import { PublicationArchiveJson } from '@bible/core/writings';
 import { HttpApiEndpoint, HttpApiGroup } from 'effect/unstable/httpapi';
 import { Effect, Schema as S } from 'effect';
 
@@ -66,38 +67,6 @@ export const EGWSearchResultSchema = S.Struct({
 });
 
 export type EGWSearchResult = S.Schema.Type<typeof EGWSearchResultSchema>;
-
-export const EGWBookDumpParagraphSchema = S.Struct({
-  refCode: S.String,
-  paraId: S.NullOr(S.String),
-  refcodeShort: S.NullOr(S.String),
-  nodes: S.Array(Node),
-  puborder: S.Number,
-  elementType: S.NullOr(S.String),
-  elementSubtype: S.NullOr(S.String),
-  pageNumber: S.NullOr(S.Number),
-  paragraphNumber: S.NullOr(S.Number),
-  isChapterHeading: S.Boolean,
-});
-
-export type EGWBookDumpParagraph = S.Schema.Type<typeof EGWBookDumpParagraphSchema>;
-
-export const EGWBookDumpBibleRefSchema = S.Struct({
-  refCode: S.String,
-  bibleBook: S.Number,
-  bibleChapter: S.Number,
-  bibleVerse: S.NullOr(S.Number),
-});
-
-export type EGWBookDumpBibleRef = S.Schema.Type<typeof EGWBookDumpBibleRefSchema>;
-
-export const EGWBookDumpSchema = S.Struct({
-  book: EGWBookInfoSchema,
-  paragraphs: S.Array(EGWBookDumpParagraphSchema),
-  bibleRefs: S.Array(EGWBookDumpBibleRefSchema),
-});
-
-export type EGWBookDump = S.Schema.Type<typeof EGWBookDumpSchema>;
 
 const PositiveIntegerFromString = S.NumberFromString.pipe(S.check(S.isInt(), S.isGreaterThan(0)));
 
@@ -185,7 +154,7 @@ export const EGWGroup = HttpApiGroup.make('EGW')
   .add(
     HttpApiEndpoint.get('bookDump', '/:bookCode/dump', {
       params: { bookCode: S.String },
-      success: EGWBookDumpSchema,
+      success: PublicationArchiveJson,
       error: [EGWBookNotFoundError, EGWDatabaseError],
     }),
   )
