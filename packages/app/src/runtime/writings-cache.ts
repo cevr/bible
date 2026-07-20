@@ -2,10 +2,7 @@ export function refreshWritingsCatalogAfter<A>(
   download: Promise<A>,
   refresh: () => Promise<unknown>,
 ): Promise<A> {
-  return download.then(async (result) => {
-    await refresh();
-    return result;
-  });
+  return download.then((result) => refresh().then(() => result));
 }
 
 export const writingsDownloadLabel = (
