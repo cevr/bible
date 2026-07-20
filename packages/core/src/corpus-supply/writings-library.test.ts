@@ -96,6 +96,7 @@ describe('shared Writings library runtime', () => {
       },
     });
     const source = layerWritingsAssetSource({
+      kind: 'archive',
       catalog: Effect.succeed([publication]),
       acquire: () =>
         Effect.sync(() => {
@@ -139,6 +140,7 @@ describe('shared Writings library runtime', () => {
     };
     const database = EGWParagraphDatabase.Test({ books: [local], syncStatuses: [failed] });
     const source = layerWritingsAssetSource({
+      kind: 'archive',
       catalog: Effect.fail(
         new CorpusSourceUnavailableError({ operation: 'catalog', cause: 'offline' }),
       ),

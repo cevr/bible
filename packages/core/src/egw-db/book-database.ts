@@ -28,6 +28,7 @@ import * as EGWSchemas from '../egw/schemas.js';
 import { Node, nodesToText } from '../egw/ast.js';
 import { isChapterHeading } from '../egw/parse.js';
 import type { PublicationArchive } from '../writings/archive.js';
+import type { CorpusProvenance } from '../corpus-supply/model.js';
 
 // Bump when the on-disk paragraphs schema changes shape (column rename, type
 // change, FTS index source change, …). The init code reads PRAGMA user_version
@@ -108,6 +109,9 @@ export const SyncStatusRow = Schema.Struct({
   error_message: Schema.NullOr(Schema.String),
   last_attempt: Schema.String,
   paragraph_count: Schema.Number,
+  source: Schema.optional(Schema.NullOr(Schema.String)),
+  revision: Schema.optional(Schema.NullOr(Schema.String)),
+  digest: Schema.optional(Schema.NullOr(Schema.String)),
 });
 
 export type SyncStatusRow = Schema.Schema.Type<typeof SyncStatusRow>;
@@ -143,6 +147,7 @@ export interface EGWParagraphDatabaseService {
   /** Atomically replaces one publication from its canonical portable archive. */
   readonly installPublicationArchive: (
     archive: PublicationArchive,
+    provenance?: CorpusProvenance,
   ) => Effect.Effect<number, ParagraphDatabaseError>;
 
   // Book operations
@@ -306,7 +311,10 @@ export interface EGWParagraphDatabaseService {
     status: SyncStatus,
   ) => Effect.Effect<readonly SyncStatusRow[], ParagraphDatabaseError>;
   readonly getAllSyncStatus: () => Effect.Effect<readonly SyncStatusRow[], ParagraphDatabaseError>;
-  readonly needsSync: (bookId: number) => Effect.Effect<boolean, ParagraphDatabaseError>;
+  readonly needsSync: (
+    bookId: number,
+    expected?: CorpusProvenance,
+  ) => Effect.Effect<boolean, ParagraphDatabaseError>;
 
   // Maintenance
   readonly rebuildFtsIndex: () => Effect.Effect<void, ParagraphDatabaseError>;
@@ -568,9 +576,20 @@ export class EGWParagraphDatabase extends Context.Service<
           status TEXT NOT NULL DEFAULT 'pending',
           error_message TEXT,
           last_attempt TEXT NOT NULL,
-          paragraph_count INTEGER DEFAULT 0
+          paragraph_count INTEGER DEFAULT 0,
+          source TEXT,
+          revision TEXT,
+          digest TEXT
         )
       `);
+      const syncColumns = yield* sql<{ readonly name: string }>`PRAGMA table_info(sync_status)`;
+      const syncColumnNames = new Set(syncColumns.map((column) => column.name));
+      if (!syncColumnNames.has('source'))
+        yield* sql.unsafe(`ALTER TABLE sync_status ADD COLUMN source TEXT`);
+      if (!syncColumnNames.has('revision'))
+        yield* sql.unsafe(`ALTER TABLE sync_status ADD COLUMN revision TEXT`);
+      if (!syncColumnNames.has('digest'))
+        yield* sql.unsafe(`ALTER TABLE sync_status ADD COLUMN digest TEXT`);
       yield* sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_sync_status ON sync_status(status)`);
 
       // Stamp our schema version; the next open sees the match and skips the
@@ -650,7 +669,7 @@ export class EGWParagraphDatabase extends Context.Service<
         `.pipe(Effect.asVoid);
 
       const installPublicationArchive = Effect.fn('EGWParagraphDatabase.installPublicationArchive')(
-        function* (archive: PublicationArchive) {
+        function* (archive: PublicationArchive, provenance?: CorpusProvenance) {
           yield* validatePublicationArchive(archive);
 
           const publication = archive.publication;
@@ -700,16 +719,22 @@ export class EGWParagraphDatabase extends Context.Service<
                 .pipe(Effect.asVoid);
               yield* sql`
               INSERT INTO sync_status (
-                book_id, book_code, status, error_message, last_attempt, paragraph_count
+                book_id, book_code, status, error_message, last_attempt, paragraph_count,
+                source, revision, digest
               ) VALUES (
-                ${publicationId}, ${publication.code}, 'success', NULL, ${now}, ${rows.length}
+                ${publicationId}, ${publication.code}, 'success', NULL, ${now}, ${rows.length},
+                ${provenance?.source ?? null}, ${provenance?.revision ?? null},
+                ${provenance === undefined ? null : Option.getOrNull(provenance.digest)}
               )
               ON CONFLICT(book_id) DO UPDATE SET
                 book_code = excluded.book_code,
                 status = excluded.status,
                 error_message = NULL,
                 last_attempt = excluded.last_attempt,
-                paragraph_count = excluded.paragraph_count
+                paragraph_count = excluded.paragraph_count,
+                source = excluded.source,
+                revision = excluded.revision,
+                digest = excluded.digest
             `;
 
               const installed = yield* sql<{ count: number }>`
@@ -1039,11 +1064,17 @@ export class EGWParagraphDatabase extends Context.Service<
       const getAllSyncStatus = () =>
         sql<SyncStatusRow>`SELECT * FROM sync_status ORDER BY book_code`;
 
-      const needsSync = (bookId: number) =>
+      const needsSync = (bookId: number, expected?: CorpusProvenance) =>
         getSyncStatus(bookId).pipe(
-          Effect.map(
-            (optStatus) => Option.isNone(optStatus) || optStatus.value.status !== 'success',
-          ),
+          Effect.map((optStatus) => {
+            if (Option.isNone(optStatus) || optStatus.value.status !== 'success') return true;
+            if (expected === undefined) return false;
+            const status = optStatus.value;
+            if (status.source !== expected.source || status.revision !== expected.revision)
+              return true;
+            if (Option.isNone(expected.digest)) return false;
+            return status.digest !== expected.digest.value;
+          }),
         );
 
       const rebuildFtsIndex = () =>
@@ -1134,13 +1165,18 @@ export class EGWParagraphDatabase extends Context.Service<
       paragraphs?: readonly (EGWSchemas.Paragraph & { bookCode: string })[];
       bibleRefs?: readonly BibleRefRow[];
       syncStatuses?: readonly SyncStatusRow[];
-      installPublicationArchive?: (archive: PublicationArchive) => number;
-      needsSync?: (bookId: number) => boolean;
+      installPublicationArchive?: (
+        archive: PublicationArchive,
+        provenance?: CorpusProvenance,
+      ) => number;
+      needsSync?: (bookId: number, expected?: CorpusProvenance) => boolean;
     } = {},
   ): Layer.Layer<EGWParagraphDatabase> =>
     Layer.succeed(EGWParagraphDatabase, {
-      installPublicationArchive: (archive) =>
-        Effect.succeed(config.installPublicationArchive?.(archive) ?? archive.paragraphs.length),
+      installPublicationArchive: (archive, provenance) =>
+        Effect.succeed(
+          config.installPublicationArchive?.(archive, provenance) ?? archive.paragraphs.length,
+        ),
       storeBook: () => Effect.void,
       getBookById: (bookId) =>
         Effect.succeed(Option.fromNullishOr(config.books?.find((b) => b.book_id === bookId))),
@@ -1308,7 +1344,7 @@ export class EGWParagraphDatabase extends Context.Service<
       getBooksByStatus: (status) =>
         Effect.succeed(config.syncStatuses?.filter((row) => row.status === status) ?? []),
       getAllSyncStatus: () => Effect.succeed(config.syncStatuses ?? []),
-      needsSync: (bookId) => Effect.succeed(config.needsSync?.(bookId) ?? true),
+      needsSync: (bookId, expected) => Effect.succeed(config.needsSync?.(bookId, expected) ?? true),
       rebuildFtsIndex: () => Effect.void,
       backfillBibleRefs: () => Effect.succeed({ scanned: 0, inserted: 0 }),
     });

@@ -3,7 +3,7 @@ import {
   CorpusContributionRejectedError,
   CorpusSourceUnavailableError,
   layerWritingsAssetSource,
-  unknownProvenance,
+  provenanceForArchive,
   WritingsContribution,
 } from '@bible/core/corpus-supply';
 import {
@@ -91,11 +91,13 @@ export const layerHttpWritingsAssetSource = (fetchResponse: (url: string) => Pro
           cause: `Received publication ${String(archive.publication.id)}`,
         });
       }
-      return new WritingsContribution({
-        provenance: unknownProvenance('bible-tools-http', 'publication-archive-v1'),
+      const provenance = yield* provenanceForArchive(
+        'bible-tools-http',
+        'publication-archive-v1',
         archive,
-      });
+      );
+      return new WritingsContribution({ provenance, archive });
     });
 
-  return layerWritingsAssetSource({ catalog, acquire });
+  return layerWritingsAssetSource({ kind: 'archive', catalog, acquire });
 };

@@ -24,8 +24,8 @@ import {
   publicationOrder,
 } from '../writings/model.js';
 import { CorpusContributionRejectedError, CorpusSourceUnavailableError } from './errors.js';
-import { WritingsContribution, unknownProvenance } from './model.js';
-import { WritingsAssetSource } from './source.js';
+import { provenanceForArchive, WritingsContribution } from './model.js';
+import { makeWritingsAssetRecipe, WritingsAssetRecipe } from './source.js';
 
 const sourceUnavailable = (operation: string) => (cause: unknown) =>
   new CorpusSourceUnavailableError({ operation, cause });
@@ -137,9 +137,9 @@ const archiveFromBook = (
     });
   });
 
-export const layerEgwWritingsAssetSource: Layer.Layer<WritingsAssetSource, never, EGWApiClient> =
+export const layerEgwWritingsAssetSource: Layer.Layer<WritingsAssetRecipe, never, EGWApiClient> =
   Layer.effect(
-    WritingsAssetSource,
+    WritingsAssetRecipe,
     Effect.gen(function* () {
       const api = yield* EGWApiClient;
       const catalog = api.getBooks({ lang: 'en' }).pipe(
@@ -191,11 +191,9 @@ export const layerEgwWritingsAssetSource: Layer.Layer<WritingsAssetSource, never
         if (book.last_modified !== null && book.last_modified !== undefined) {
           revision = book.last_modified;
         }
-        return new WritingsContribution({
-          provenance: unknownProvenance('egw-api', revision),
-          archive,
-        });
+        const provenance = yield* provenanceForArchive('egw-api', revision, archive);
+        return new WritingsContribution({ provenance, archive });
       });
-      return WritingsAssetSource.of({ catalog, acquire });
+      return makeWritingsAssetRecipe([{ kind: 'provider', catalog, acquire }]);
     }),
   );

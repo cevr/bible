@@ -13,7 +13,7 @@ import {
 } from '../writings/model.js';
 import { CorpusSupply } from './service.js';
 import { Target, WritingsContribution, unknownProvenance } from './model.js';
-import { WritingsAssetSource } from './source.js';
+import { WritingsAssetRecipe } from './source.js';
 import { layerBibleArtifactInstaller, layerBibleArtifactRecipe } from './bible-artifact.js';
 
 const id = publicationId(127);
@@ -59,8 +59,8 @@ const makeLayer = (options: {
 }) => {
   const database = EGWParagraphDatabase.Test({ needsSync: () => options.needsSync });
   const source = Layer.succeed(
-    WritingsAssetSource,
-    WritingsAssetSource.of({
+    WritingsAssetRecipe,
+    WritingsAssetRecipe.of({
       catalog: Effect.sync(() => {
         options.onCatalog?.();
         return [publication];
@@ -110,7 +110,7 @@ describe('CorpusSupply', () => {
     expect(omitted.skipped).toEqual([]);
   });
 
-  test('does not acquire an installed publication unless refresh is requested', async () => {
+  test('revalidates installed Provenance and skips an identical Contribution', async () => {
     let catalogCalls = 0;
     let acquireCalls = 0;
     const layer = makeLayer({
@@ -130,9 +130,9 @@ describe('CorpusSupply', () => {
     );
 
     expect(current.skipped).toEqual([id]);
-    expect(refreshed.activated).toHaveLength(1);
+    expect(refreshed.skipped).toEqual([id]);
     expect(catalogCalls).toBe(0);
-    expect(acquireCalls).toBe(1);
+    expect(acquireCalls).toBe(2);
   });
 
   test('reports an unavailable recipe instead of partially bootstrapping Bible assets', async () => {

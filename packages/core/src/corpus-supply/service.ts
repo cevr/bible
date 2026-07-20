@@ -14,7 +14,7 @@ import {
   type CorpusSupplyInput,
   type WritingsTarget,
 } from './model.js';
-import { WritingsAssetSource, type WritingsAssetSourceShape } from './source.js';
+import { WritingsAssetRecipe, type WritingsAssetRecipeShape } from './source.js';
 
 export interface CorpusSupplyShape {
   readonly ensure: (
@@ -23,7 +23,7 @@ export interface CorpusSupplyShape {
 }
 
 const requestedPublications = (
-  source: WritingsAssetSourceShape,
+  source: WritingsAssetRecipeShape,
   target: WritingsTarget | undefined,
 ) => {
   if (target?.publications !== undefined) return Effect.succeed(target.publications);
@@ -36,14 +36,14 @@ export class CorpusSupply extends Context.Service<CorpusSupply, CorpusSupplyShap
   static layer: Layer.Layer<CorpusSupply> = Layer.effect(
     CorpusSupply,
     Effect.gen(function* () {
-      const sourceOption = yield* Effect.serviceOption(WritingsAssetSource);
+      const sourceOption = yield* Effect.serviceOption(WritingsAssetRecipe);
       const databaseOption = yield* Effect.serviceOption(EGWParagraphDatabase);
       const bibleRecipeOption = yield* Effect.serviceOption(BibleArtifactRecipe);
       const bibleInstallerOption = yield* Effect.serviceOption(BibleArtifactInstaller);
 
       const ensureWritings = Effect.fn('CorpusSupply.ensureWritings')(function* (
         target: WritingsTarget | undefined,
-        refresh: boolean,
+        _refresh: boolean,
       ) {
         if (Option.isNone(sourceOption) || Option.isNone(databaseOption)) {
           return yield* new CorpusRecipeUnavailableError({ corpus: 'writings' });
@@ -55,25 +55,8 @@ export class CorpusSupply extends Context.Service<CorpusSupply, CorpusSupplyShap
         const skipped: PublicationId[] = [];
 
         for (const publication of publications) {
-          let needsInstall = refresh;
-          if (!needsInstall) {
-            needsInstall = yield* database.needsSync(publication).pipe(
-              Effect.mapError(
-                (cause) =>
-                  new CorpusInstallationError({
-                    publication,
-                    cause,
-                  }),
-              ),
-            );
-          }
-          if (!needsInstall) {
-            skipped.push(publication);
-            continue;
-          }
-
           const contribution = yield* source.acquire(publication);
-          const installed = yield* database.installPublicationArchive(contribution.archive).pipe(
+          const needsInstall = yield* database.needsSync(publication, contribution.provenance).pipe(
             Effect.mapError(
               (cause) =>
                 new CorpusInstallationError({
@@ -82,6 +65,22 @@ export class CorpusSupply extends Context.Service<CorpusSupply, CorpusSupplyShap
                 }),
             ),
           );
+          if (!needsInstall) {
+            skipped.push(publication);
+            continue;
+          }
+
+          const installed = yield* database
+            .installPublicationArchive(contribution.archive, contribution.provenance)
+            .pipe(
+              Effect.mapError(
+                (cause) =>
+                  new CorpusInstallationError({
+                    publication,
+                    cause,
+                  }),
+              ),
+            );
           activated.push(
             new CorpusActivation({
               corpus: 'writings',

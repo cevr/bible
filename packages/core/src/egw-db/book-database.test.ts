@@ -14,6 +14,12 @@ import { afterAll, describe, expect, test } from 'bun:test';
 import { ConfigProvider, Effect, Layer, Option, Result, Stream } from 'effect';
 
 import { Reference as BibleReference } from '../bible/model.js';
+import {
+  assetSourceId,
+  corpusDigest,
+  corpusRevision,
+  CorpusProvenance,
+} from '../corpus-supply/model.js';
 import type { Book, Paragraph } from '../egw/schemas.js';
 import {
   ArchivedBibleReference,
@@ -152,6 +158,38 @@ const mockArchive = (refcodes: readonly string[]): PublicationArchive => {
 
 describe('EGWParagraphDatabase', () => {
   describe('canonical publication installation', () => {
+    test('persists Provenance atomically and derives readiness from exact identity', async () => {
+      await runTest(
+        Effect.gen(function* () {
+          const db = yield* EGWParagraphDatabase;
+          const provenance = new CorpusProvenance({
+            source: assetSourceId('fixture'),
+            revision: corpusRevision('2'),
+            digest: Option.some(corpusDigest(`sha256:${'a'.repeat(64)}`)),
+          });
+          yield* db.installPublicationArchive(mockArchive(['TEST 1.1']), provenance);
+
+          const status = Option.getOrThrow(yield* db.getSyncStatus(9001));
+          expect(status).toMatchObject({
+            source: 'fixture',
+            revision: '2',
+            digest: `sha256:${'a'.repeat(64)}`,
+          });
+          expect(yield* db.needsSync(9001, provenance)).toBe(false);
+          expect(
+            yield* db.needsSync(
+              9001,
+              new CorpusProvenance({
+                source: provenance.source,
+                revision: corpusRevision('3'),
+                digest: provenance.digest,
+              }),
+            ),
+          ).toBe(true);
+        }),
+      );
+    });
+
     test('atomically replaces one publication and activates its verified counts', async () => {
       await runTest(
         Effect.gen(function* () {

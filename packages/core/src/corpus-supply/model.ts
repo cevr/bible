@@ -1,4 +1,4 @@
-import { Option, Schema } from 'effect';
+import { Effect, Option, Schema } from 'effect';
 
 import { PublicationArchive } from '../writings/archive.js';
 import { PublicationId } from '../writings/model.js';
@@ -74,6 +74,26 @@ export const unknownProvenance = (source: string, revision: string): CorpusProve
     revision: corpusRevision(revision),
     digest: Option.none(),
   });
+
+export const provenanceForArchive = Effect.fn('CorpusSupply.provenanceForArchive')(function* (
+  source: string,
+  revision: string,
+  archive: PublicationArchive,
+) {
+  const encoded = Schema.encodeSync(Schema.fromJsonString(PublicationArchive))(archive);
+  const bytes = new TextEncoder().encode(encoded);
+  const digest = yield* Effect.tryPromise(() =>
+    globalThis.crypto.subtle.digest('SHA-256', bytes),
+  ).pipe(Effect.orDie);
+  const hex = [...new Uint8Array(digest)]
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
+  return new CorpusProvenance({
+    source: assetSourceId(source),
+    revision: corpusRevision(revision),
+    digest: Option.some(corpusDigest(`sha256:${hex}`)),
+  });
+});
 
 export const Target = {
   bootstrap: (): BootstrapTarget => new BootstrapTarget({}),

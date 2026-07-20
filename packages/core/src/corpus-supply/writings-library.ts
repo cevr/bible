@@ -13,7 +13,7 @@ import {
 } from '../writings/model.js';
 import { Target } from './model.js';
 import { CorpusSupply } from './service.js';
-import { WritingsAssetSource } from './source.js';
+import { WritingsAssetRecipe } from './source.js';
 
 const failure = (procedure: string, cause: unknown) => {
   let message = String(cause);
@@ -100,11 +100,11 @@ const resultFor = (publication: WritingsLibraryPublication) =>
 export const layerWritingsLibraryRuntime: Layer.Layer<
   WritingsLibraryRuntime,
   never,
-  WritingsAssetSource | EGWParagraphDatabase | CorpusSupply
+  WritingsAssetRecipe | EGWParagraphDatabase | CorpusSupply
 > = Layer.effect(
   WritingsLibraryRuntime,
   Effect.gen(function* () {
-    const source = yield* WritingsAssetSource;
+    const source = yield* WritingsAssetRecipe;
     const database = yield* EGWParagraphDatabase;
     const supply = yield* CorpusSupply;
 
