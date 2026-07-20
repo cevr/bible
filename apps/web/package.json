@@ -21,6 +21,7 @@
     "@bible/core": "workspace:*",
     "@effect/platform-browser": "catalog:",
     "@effect/platform-bun": "catalog:",
+    "@noble/hashes": "^2.2.0",
     "@solidjs/router": "catalog:",
     "@solidjs/web": "catalog:",
     "drizzle-orm": "catalog:",

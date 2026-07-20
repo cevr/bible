@@ -21,7 +21,8 @@ export class CorpusContributionRejectedError extends Schema.TaggedErrorClass<Cor
 export class CorpusInstallationError extends Schema.TaggedErrorClass<CorpusInstallationError>()(
   'CorpusInstallationError',
   {
-    publication: PublicationId,
+    publication: Schema.optional(PublicationId),
+    corpus: Schema.optional(Schema.Literals(['bible', 'writings'])),
     cause: Schema.Unknown,
   },
 ) {}

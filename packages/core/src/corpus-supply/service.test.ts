@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { Effect, Layer, Option, Result } from 'effect';
+import { Effect, Layer, Option, Result, Stream } from 'effect';
 
 import { EGWParagraphDatabase } from '../egw-db/book-database.js';
 import { ArchivedParagraph, PublicationArchive } from '../writings/archive.js';
@@ -14,6 +14,7 @@ import {
 import { CorpusSupply } from './service.js';
 import { Target, WritingsContribution, unknownProvenance } from './model.js';
 import { WritingsAssetSource } from './source.js';
+import { layerBibleArtifactInstaller, layerBibleArtifactRecipe } from './bible-artifact.js';
 
 const id = publicationId(127);
 const code = publicationCode('PP');
@@ -52,6 +53,7 @@ const contribution = new WritingsContribution({
 
 const makeLayer = (options: {
   readonly needsSync: boolean;
+  readonly includeBible?: boolean;
   readonly onCatalog?: () => void;
   readonly onAcquire?: () => void;
 }) => {
@@ -70,7 +72,26 @@ const makeLayer = (options: {
         }),
     }),
   );
-  return CorpusSupply.layer.pipe(Layer.provide(database), Layer.provide(source));
+  if (options.includeBible === false) {
+    return CorpusSupply.layer.pipe(Layer.provide(Layer.merge(database, source)));
+  }
+  const recipe = layerBibleArtifactRecipe([
+    {
+      kind: 'release',
+      acquire: Effect.succeed({
+        kind: 'release',
+        provenance: contribution.provenance,
+        bytes: Stream.empty,
+      }),
+    },
+  ]);
+  const installer = layerBibleArtifactInstaller({
+    current: Effect.succeed(Option.none()),
+    install: (artifact) => Effect.succeed({ installed: 31_102, provenance: artifact.provenance }),
+  });
+  return CorpusSupply.layer.pipe(
+    Layer.provide(Layer.mergeAll(database, source, recipe, installer)),
+  );
 };
 
 describe('CorpusSupply', () => {
@@ -84,7 +105,8 @@ describe('CorpusSupply', () => {
     );
 
     expect(empty).toEqual(omitted);
-    expect(omitted.activated).toEqual([]);
+    expect(omitted.activated).toHaveLength(1);
+    expect(omitted.activated[0]?.corpus).toBe('bible');
     expect(omitted.skipped).toEqual([]);
   });
 
@@ -118,7 +140,7 @@ describe('CorpusSupply', () => {
       Effect.gen(function* () {
         const supply = yield* CorpusSupply;
         return yield* Effect.result(supply.ensure({ target: Target.bible() }));
-      }).pipe(Effect.provide(makeLayer({ needsSync: true }))),
+      }).pipe(Effect.provide(makeLayer({ needsSync: true, includeBible: false }))),
     );
 
     expect(Result.isFailure(result)).toBe(true);

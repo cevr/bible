@@ -23,6 +23,7 @@
     "./writings/service": "./src/writings/service.ts",
     "./writings/archive-service": "./src/writings/archive-service.ts",
     "./corpus-supply": "./src/corpus-supply/index.ts",
+    "./corpus-supply/node": "./src/platform-node/bible-artifact.ts",
     "./bible-rendering": "./src/bible-rendering/index.ts",
     "./gemini": "./src/gemini/index.ts",
     "./sync": "./src/sync/index.ts",
@@ -56,12 +57,14 @@
     "@effect/sql-sqlite-bun": "catalog:",
     "@google/genai": "^2.11.0",
     "ai": "^7.0.26",
+    "better-sqlite3": "^12.11.1",
     "drizzle-orm": "catalog:",
     "effect": "catalog:",
     "htmlparser2": "^12.0.0"
   },
   "devDependencies": {
     "@effect/vitest": "catalog:",
+    "@types/better-sqlite3": "^7.6.13",
     "vitest": "^4.1.10"
   }
 }

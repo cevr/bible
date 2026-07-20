@@ -52,8 +52,8 @@ export class CorpusSupplyInput extends Schema.Class<CorpusSupplyInput>('CorpusSu
 }) {}
 
 export class CorpusActivation extends Schema.Class<CorpusActivation>('CorpusSupply/Activation')({
-  corpus: Schema.Literal('writings'),
-  identity: PublicationId,
+  corpus: Schema.Literals(['bible', 'writings']),
+  identity: Schema.Union([Schema.Literal('canonical'), PublicationId]),
   source: AssetSourceId,
   revision: CorpusRevision,
   installed: Schema.Number.pipe(Schema.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0))),
@@ -61,7 +61,7 @@ export class CorpusActivation extends Schema.Class<CorpusActivation>('CorpusSupp
 
 export class CorpusSupplyReceipt extends Schema.Class<CorpusSupplyReceipt>('CorpusSupply/Receipt')({
   activated: Schema.Array(CorpusActivation),
-  skipped: Schema.Array(PublicationId),
+  skipped: Schema.Array(Schema.Union([Schema.Literal('canonical'), PublicationId])),
 }) {}
 
 export const assetSourceId = Schema.decodeSync(AssetSourceId);
