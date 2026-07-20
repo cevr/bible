@@ -10,7 +10,7 @@ import { join } from 'node:path';
 
 import { BunServices } from '@effect/platform-bun';
 import { Database } from 'bun:sqlite';
-import { afterAll, describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'bun:test';
 import { ConfigProvider, Effect, Layer, Option, Result, Stream } from 'effect';
 
 import { Reference as BibleReference } from '../bible/model.js';
@@ -37,29 +37,19 @@ import {
 import { EGWParagraphDatabase, ParagraphDataIntegrityError } from './book-database.js';
 import * as EGWDbBun from './book-database-bun.js';
 
-// Track temp files for cleanup
-const tempFiles: string[] = [];
-
 // Helper to get a unique temp db path
-const getTempDbPath = (): string => {
-  const path = join(tmpdir(), `egw-test-${Date.now()}-${Math.random().toString(36).slice(2)}.db`);
-  tempFiles.push(path);
-  return path;
-};
+const getTempDbPath = (): string =>
+  join(tmpdir(), `egw-test-${Date.now()}-${Math.random().toString(36).slice(2)}.db`);
 
-// Cleanup temp files after all tests
-afterAll(() => {
-  for (const file of tempFiles) {
-    try {
-      if (existsSync(file)) unlinkSync(file);
-      // Also try to remove WAL and SHM files
-      if (existsSync(`${file}-wal`)) unlinkSync(`${file}-wal`);
-      if (existsSync(`${file}-shm`)) unlinkSync(`${file}-shm`);
-    } catch {
-      // Ignore cleanup errors
-    }
-  }
-});
+const tempDatabase = (path: string) =>
+  Effect.acquireRelease(Effect.succeed(path), (file) =>
+    Effect.sync(() => {
+      for (const suffix of ['', '-wal', '-shm']) {
+        const candidate = `${file}${suffix}`;
+        if (existsSync(candidate)) unlinkSync(candidate);
+      }
+    }),
+  );
 
 // Helper to run scoped effects in tests with fresh database
 const runTestAt = <A, E>(
@@ -76,7 +66,13 @@ const runTestAt = <A, E>(
     Layer.provide(BunServices.layer),
     Layer.provide(ConfigProvider.layer(provider)),
   );
-  return Effect.runPromise(Effect.scoped(effect.pipe(Effect.provide(TestLayer))));
+  return Effect.runPromise(
+    Effect.scoped(
+      Effect.flatMap(tempDatabase(dbPath), () =>
+        effect.pipe(Effect.provide(TestLayer), Effect.scoped),
+      ),
+    ),
+  );
 };
 
 const runTest = <A, E>(effect: Effect.Effect<A, E, EGWParagraphDatabase>): Promise<A> =>

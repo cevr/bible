@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import * as SqliteBun from '@effect/sql-sqlite-bun/SqliteClient';
-import { afterAll, describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'bun:test';
 import { Database } from 'bun:sqlite';
 import { Effect, Layer, Option, Result, Schema } from 'effect';
 import * as SqlClient from 'effect/unstable/sql/SqlClient';
@@ -14,27 +14,38 @@ import { BibleCorpusArchive } from './archive.js';
 import { TopicId } from '../topics/model.js';
 import { TopicService } from '../topics/service.js';
 
-const files: string[] = [];
+const withTempDatabase = <A, E>(
+  prefix: string,
+  use: (filename: string) => Effect.Effect<A, E>,
+): Promise<A> =>
+  Effect.runPromise(
+    Effect.scoped(
+      Effect.flatMap(
+        Effect.acquireRelease(
+          Effect.sync(() => join(tmpdir(), `${prefix}-${crypto.randomUUID()}.sqlite`)),
+          (filename) =>
+            Effect.sync(() => {
+              for (const suffix of ['', '-wal', '-shm']) {
+                const candidate = `${filename}${suffix}`;
+                if (existsSync(candidate)) unlinkSync(candidate);
+              }
+            }),
+        ),
+        use,
+      ),
+    ),
+  );
 
 const run = <A, E>(
   effect: Effect.Effect<A, E, BibleCorpus | BibleDatabase | TopicService>,
 ): Promise<A> => {
-  const filename = join(tmpdir(), `bible-corpus-${crypto.randomUUID()}.sqlite`);
-  files.push(filename);
-  const layer = Layer.mergeAll(BibleCorpus.layer, BibleDatabase.layer, TopicService.Live).pipe(
-    Layer.provide(SqliteBun.layer({ filename })),
-  );
-  return Effect.runPromise(Effect.scoped(effect.pipe(Effect.provide(layer))));
+  return withTempDatabase('bible-corpus', (filename) => {
+    const layer = Layer.mergeAll(BibleCorpus.layer, BibleDatabase.layer, TopicService.Live).pipe(
+      Layer.provide(SqliteBun.layer({ filename })),
+    );
+    return effect.pipe(Effect.provide(layer), Effect.scoped);
+  });
 };
-
-afterAll(() => {
-  for (const filename of files) {
-    for (const suffix of ['', '-wal', '-shm']) {
-      const candidate = `${filename}${suffix}`;
-      if (existsSync(candidate)) unlinkSync(candidate);
-    }
-  }
-});
 
 const archive = (): BibleCorpusArchive =>
   new BibleCorpusArchive({
@@ -199,12 +210,9 @@ describe('BibleCorpus + BibleDatabase', () => {
     ));
 
   test('readonly query interface treats legacy word rows as non-italic', () => {
-    const filename = join(tmpdir(), `bible-legacy-${crypto.randomUUID()}.sqlite`);
-    files.push(filename);
-    const layer = BibleDatabase.layer.pipe(Layer.provideMerge(SqliteBun.layer({ filename })));
-
-    return Effect.runPromise(
-      Effect.scoped(
+    return withTempDatabase('bible-legacy', (filename) => {
+      const layer = BibleDatabase.layer.pipe(Layer.provideMerge(SqliteBun.layer({ filename })));
+      return Effect.scoped(
         Effect.gen(function* () {
           const sql = yield* SqlClient.SqlClient;
           const database = yield* BibleDatabase;
@@ -226,15 +234,15 @@ describe('BibleCorpus + BibleDatabase', () => {
             { text: 'Beginning', strongsNumbers: ['H7225'], italic: false },
           ]);
         }).pipe(Effect.provide(layer)),
-      ),
-    );
+      );
+    });
   });
 
   test('corpus initialization migrates an existing word table to preserve italics', () => {
-    const filename = join(tmpdir(), `bible-migration-${crypto.randomUUID()}.sqlite`);
-    files.push(filename);
-    const legacy = new Database(filename);
-    legacy.exec(`
+    return withTempDatabase('bible-migration', (filename) => {
+      const initializeLegacy = Effect.sync(() => {
+        const legacy = new Database(filename);
+        legacy.exec(`
       CREATE TABLE verse_words (
         book INTEGER NOT NULL,
         chapter INTEGER NOT NULL,
@@ -245,18 +253,20 @@ describe('BibleCorpus + BibleDatabase', () => {
         PRIMARY KEY (book, chapter, verse, word_index)
       )
     `);
-    legacy.close();
-
-    const layer = BibleCorpus.layer.pipe(Layer.provideMerge(SqliteBun.layer({ filename })));
-    return Effect.runPromise(
-      Effect.scoped(
-        Effect.gen(function* () {
-          yield* BibleCorpus;
-          const sql = yield* SqlClient.SqlClient;
-          const columns = yield* sql<{ readonly name: string }>`PRAGMA table_info(verse_words)`;
-          expect(columns.map((column) => column.name)).toContain('italic');
-        }).pipe(Effect.provide(layer)),
-      ),
-    );
+        legacy.close();
+      });
+      const layer = BibleCorpus.layer.pipe(Layer.provideMerge(SqliteBun.layer({ filename })));
+      return Effect.andThen(
+        initializeLegacy,
+        Effect.scoped(
+          Effect.gen(function* () {
+            yield* BibleCorpus;
+            const sql = yield* SqlClient.SqlClient;
+            const columns = yield* sql<{ readonly name: string }>`PRAGMA table_info(verse_words)`;
+            expect(columns.map((column) => column.name)).toContain('italic');
+          }).pipe(Effect.provide(layer)),
+        ),
+      );
+    });
   });
 });

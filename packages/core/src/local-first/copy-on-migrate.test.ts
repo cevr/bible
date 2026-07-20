@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, test } from 'bun:test';
+import { describe, expect, it } from 'effect-bun-test';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -17,15 +17,19 @@ import { ClientId, MutationId, NoteId, Timestamp } from './model.js';
 const migrationSql = await Bun.file(
   new URL('./migrations/0001_user_state.sql', import.meta.url),
 ).text();
-const directory = mkdtempSync(join(tmpdir(), 'bible-copy-on-migrate-'));
-
-afterAll(() => rmSync(directory, { recursive: true, force: true }));
+const makeDirectory = Effect.acquireRelease(
+  Effect.sync(() => mkdtempSync(join(tmpdir(), 'bible-copy-on-migrate-'))),
+  (directory) => Effect.sync(() => rmSync(directory, { recursive: true, force: true })),
+);
 
 const clientId = Schema.decodeSync(ClientId)('migration-test');
 const sourceId = Schema.decodeSync(MigrationSourceId)('legacy-test');
 const timestamp = Schema.decodeSync(Timestamp)('2026-07-19T00:00:00.000Z');
 
-const makeAdapter = (fail: 'none' | 'import' | 'verify' | 'activate' = 'none') => {
+const makeAdapter = (
+  directory: string,
+  fail: 'none' | 'import' | 'verify' | 'activate' = 'none',
+) => {
   let active: string | undefined;
   const databases = new Map<string, ReturnType<typeof makeBunUserDatabase>>();
   const events: string[] = [];
@@ -125,47 +129,70 @@ const run = (adapter: CanonicalGenerationAdapter, generation: string) =>
   });
 
 describe('copy-on-migrate activation', () => {
-  test('activates only after close, reopen, receipt verification, and semantic verification', async () => {
-    const harness = makeAdapter();
-    const result = await Effect.runPromise(run(harness.adapter, 'generation-complete'));
+  it.scoped(
+    'activates only after close, reopen, receipt verification, and semantic verification',
+    () =>
+      Effect.gen(function* () {
+        const directory = yield* makeDirectory;
+        const harness = makeAdapter(directory);
+        const result = yield* run(harness.adapter, 'generation-complete');
 
-    expect(result.activated).toBe(true);
-    expect(result.receipts).toHaveLength(1);
-    expect(harness.events).toEqual(['discard:none', 'verify:1', 'activate:generation-complete']);
-    expect(harness.active()).toBe('generation-complete');
-  });
-
-  test('returns an already-active generation without rebuilding it', async () => {
-    const harness = makeAdapter();
-    await Effect.runPromise(run(harness.adapter, 'generation-stable'));
-    harness.events.splice(0);
-
-    const second = await Effect.runPromise(run(harness.adapter, 'generation-stable'));
-
-    expect(second).toEqual({ generation: 'generation-stable', activated: false, receipts: [] });
-    expect(harness.events).toEqual([]);
-  });
-
-  test('keeps an active canonical generation authoritative when legacy fingerprints change', async () => {
-    const harness = makeAdapter();
-    await Effect.runPromise(run(harness.adapter, 'generation-canonical'));
-    harness.events.splice(0);
-
-    const second = await Effect.runPromise(run(harness.adapter, 'generation-from-changed-legacy'));
-
-    expect(second).toEqual({ generation: 'generation-canonical', activated: false, receipts: [] });
-    expect(harness.events).toEqual([]);
-    expect(harness.active()).toBe('generation-canonical');
-  });
-
-  test.each(['import', 'verify', 'activate'] as const)(
-    'never activates after a %s failure',
-    async (failure) => {
-      const harness = makeAdapter(failure);
-      const exit = await Effect.runPromiseExit(run(harness.adapter, `generation-${failure}`));
-
-      expect(exit._tag).toBe('Failure');
-      expect(harness.active()).toBeUndefined();
-    },
+        expect(result.activated).toBe(true);
+        expect(result.receipts).toHaveLength(1);
+        expect(harness.events).toEqual([
+          'discard:none',
+          'verify:1',
+          'activate:generation-complete',
+        ]);
+        expect(harness.active()).toBe('generation-complete');
+      }),
   );
+
+  it.scoped('returns an already-active generation without rebuilding it', () =>
+    Effect.gen(function* () {
+      const directory = yield* makeDirectory;
+      const harness = makeAdapter(directory);
+      yield* run(harness.adapter, 'generation-stable');
+      harness.events.splice(0);
+
+      const second = yield* run(harness.adapter, 'generation-stable');
+
+      expect(second).toEqual({ generation: 'generation-stable', activated: false, receipts: [] });
+      expect(harness.events).toEqual([]);
+    }),
+  );
+
+  it.scoped(
+    'keeps an active canonical generation authoritative when legacy fingerprints change',
+    () =>
+      Effect.gen(function* () {
+        const directory = yield* makeDirectory;
+        const harness = makeAdapter(directory);
+        yield* run(harness.adapter, 'generation-canonical');
+        harness.events.splice(0);
+
+        const second = yield* run(harness.adapter, 'generation-from-changed-legacy');
+
+        expect(second).toEqual({
+          generation: 'generation-canonical',
+          activated: false,
+          receipts: [],
+        });
+        expect(harness.events).toEqual([]);
+        expect(harness.active()).toBe('generation-canonical');
+      }),
+  );
+
+  for (const failure of ['import', 'verify', 'activate'] as const) {
+    it.scoped(`never activates after a ${failure} failure`, () =>
+      Effect.gen(function* () {
+        const directory = yield* makeDirectory;
+        const harness = makeAdapter(directory, failure);
+        const exit = yield* Effect.exit(run(harness.adapter, `generation-${failure}`));
+
+        expect(exit._tag).toBe('Failure');
+        expect(harness.active()).toBeUndefined();
+      }),
+    );
+  }
 });
