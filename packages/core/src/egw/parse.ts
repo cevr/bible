@@ -272,7 +272,8 @@ export function isChapterHeading(elementType: string | null | undefined): boolea
 export function headingLevel(elementType: string | null | undefined): number {
   if (!elementType) return 0;
   const match = elementType.toLowerCase().match(/^h(\d)$/);
-  return match?.[1] ? parseInt(match[1], 10) : 0;
+  if (match?.[1]) return parseInt(match[1], 10);
+  return 0;
 }
 
 /**

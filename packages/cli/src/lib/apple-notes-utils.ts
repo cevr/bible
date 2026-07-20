@@ -162,9 +162,8 @@ export function prepareMarkdownForAppleNotes(
   keepH1: boolean = false,
 ): string {
   // Remove the H1 heading from content if not keeping it
-  const contentToParse = keepH1
-    ? markdownContent
-    : markdownContent.replace(/^\s*#\s+.*?(\s+#*)?$/m, '').trim();
+  let contentToParse = markdownContent;
+  if (!keepH1) contentToParse = markdownContent.replace(/^\s*#\s+.*?(\s+#*)?$/m, '').trim();
 
   // Add extra line breaks between sections
   return contentToParse

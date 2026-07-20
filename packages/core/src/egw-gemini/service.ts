@@ -26,6 +26,11 @@ export class EGWGeminiError extends Schema.TaggedErrorClass<EGWGeminiError>()('E
   message: Schema.String,
 }) {}
 
+const failureMessage = (cause: unknown): string => {
+  if (cause instanceof Error) return cause.message;
+  return String(cause);
+};
+
 /**
  * Upload Book Options
  */
@@ -234,9 +239,8 @@ export class EGWGeminiService extends Context.Service<EGWGeminiService, EGWGemin
                   // Create content from paragraph (flatten AST to plain text for the upload payload)
                   const paraRefcode = refcodeShort ?? paragraph.refcode_long ?? null;
                   const paragraphContent = nodesToText(paragraph.nodes);
-                  const content = paraRefcode
-                    ? `${paraRefcode}\n${paragraphContent}`
-                    : paragraphContent;
+                  let content = paragraphContent;
+                  if (paraRefcode) content = `${paraRefcode}\n${paragraphContent}`;
 
                   // Prepare metadata using simple key-value format
                   // The client will convert this to the API format automatically
@@ -295,7 +299,7 @@ export class EGWGeminiService extends Context.Service<EGWGeminiService, EGWGemin
                               options.storeDisplayName,
                               refcode,
                               options.book.book_id,
-                              error instanceof Error ? error.message : String(error),
+                              failureMessage(error),
                             )
                             .pipe(Effect.ignore);
                           return yield* error;
@@ -459,20 +463,21 @@ export class EGWGeminiService extends Context.Service<EGWGeminiService, EGWGemin
                     );
                   }
 
-                  const uploadResult = yield* uploadBook(
-                    options.customMetadata
-                      ? {
-                          storeDisplayName: options.storeDisplayName,
-                          book,
-                          toc,
-                          customMetadata: options.customMetadata,
-                        }
-                      : {
-                          storeDisplayName: options.storeDisplayName,
-                          book,
-                          toc,
-                        },
-                  );
+                  let uploadResult;
+                  if (options.customMetadata) {
+                    uploadResult = yield* uploadBook({
+                      storeDisplayName: options.storeDisplayName,
+                      book,
+                      toc,
+                      customMetadata: options.customMetadata,
+                    });
+                  } else {
+                    uploadResult = yield* uploadBook({
+                      storeDisplayName: options.storeDisplayName,
+                      book,
+                      toc,
+                    });
+                  }
 
                   return Option.some(uploadResult);
                 }).pipe(

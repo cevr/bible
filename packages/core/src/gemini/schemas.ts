@@ -101,7 +101,10 @@ export function toCustomMetadata(
       return { key, stringValue: String(value) };
     } else if (Array.isArray(value)) {
       // For arrays, convert to StringList format { values: string[] }
-      const stringArray = value.map((v) => (typeof v === 'string' ? v : String(v)));
+      const stringArray = value.map((item) => {
+        if (typeof item === 'string') return item;
+        return String(item);
+      });
       return { key, stringListValue: { values: stringArray } };
     } else {
       // Fallback: convert to string

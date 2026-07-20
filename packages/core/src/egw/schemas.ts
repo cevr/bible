@@ -259,7 +259,8 @@ export const ParagraphFromHtml = ParagraphWire.pipe(
   Schema.decodeTo(Paragraph, {
     decode: SchemaGetter.transform((wire) => {
       const html = wire.content ?? '';
-      const nodes = html === '' ? [] : parseParagraphContent(html);
+      let nodes: readonly Node[] = [];
+      if (html !== '') nodes = parseParagraphContent(html);
       return {
         para_id: wire.para_id,
         id_prev: wire.id_prev,

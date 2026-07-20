@@ -57,11 +57,15 @@ export const rootCommand = Command.make('bible', cliOptions, () => Console.log(r
     init,
     sync,
   ]),
-  Command.provideSync(CliOptions, (input) => ({
-    verbose: 'verbose' in input ? input.verbose : false,
-  })),
-  Command.provideEffect(References.MinimumLogLevel, (input) =>
-    Effect.succeed<'Debug' | 'Info'>('verbose' in input && input.verbose ? 'Debug' : 'Info'),
-  ),
+  Command.provideSync(CliOptions, (input) => {
+    let verbose = false;
+    if ('verbose' in input) verbose = input.verbose;
+    return { verbose };
+  }),
+  Command.provideEffect(References.MinimumLogLevel, (input) => {
+    let level: 'Debug' | 'Info' = 'Info';
+    if ('verbose' in input && input.verbose) level = 'Debug';
+    return Effect.succeed(level);
+  }),
   Command.provide(() => CliProcessLive),
 );

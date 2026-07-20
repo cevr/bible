@@ -1,5 +1,5 @@
 import { Command, Flag } from 'effect/unstable/cli';
-import { Effect, FileSystem } from 'effect';
+import { Effect, FileSystem, Option } from 'effect';
 
 import { dryRun, files, folder } from '~/src/lib/content/options';
 import {
@@ -55,10 +55,16 @@ export const exportOutput = Command.make(
         return;
       }
 
-      const targetFolder = args.folder._tag === 'Some' ? args.folder.value : undefined;
+      const targetFolder = Option.getOrUndefined(args.folder);
 
+      let exportVerb = 'Exporting';
+      if (args.dryRun) exportVerb = '[dry-run] Would export';
+      let splitSummary = '';
+      if (args.split) splitSummary = ' (split per section)';
+      let folderSummary = '';
+      if (targetFolder !== undefined) folderSummary = ` (folder: ${targetFolder})`;
       yield* Effect.log(
-        `${args.dryRun ? '[dry-run] Would export' : 'Exporting'} ${args.files.length} file(s) to Apple Notes${args.split ? ' (split per section)' : ''}${targetFolder !== undefined ? ` (folder: ${targetFolder})` : ''}...`,
+        `${exportVerb} ${args.files.length} file(s) to Apple Notes${splitSummary}${folderSummary}...`,
       );
 
       for (const filePath of args.files) {
@@ -94,9 +100,9 @@ export const exportOutput = Command.make(
         if (args.dryRun) {
           const title =
             parseFrontmatter<MessageFrontmatter>(rawContent).frontmatter.topic ?? filePath;
-          yield* Effect.log(
-            `  Would create note "${title}"${targetFolder !== undefined ? ` in folder "${targetFolder}"` : ''}`,
-          );
+          let targetFolderDescription = '';
+          if (targetFolder !== undefined) targetFolderDescription = ` in folder "${targetFolder}"`;
+          yield* Effect.log(`  Would create note "${title}"${targetFolderDescription}`);
           continue;
         }
 
@@ -112,9 +118,13 @@ export const exportOutput = Command.make(
         yield* Effect.log(`  Exported: ${filePath} → ${noteId}`);
       }
 
-      yield* Effect.log(
-        `${args.dryRun ? '[dry-run] No changes made. ' : 'Successfully exported '}${args.files.length} file(s)${args.dryRun ? ' previewed.' : ' to Apple Notes.'}`,
-      );
+      let completionPrefix = 'Successfully exported ';
+      let completionSuffix = ' to Apple Notes.';
+      if (args.dryRun) {
+        completionPrefix = '[dry-run] No changes made. ';
+        completionSuffix = ' previewed.';
+      }
+      yield* Effect.log(`${completionPrefix}${args.files.length} file(s)${completionSuffix}`);
     }),
 );
 
@@ -137,13 +147,14 @@ const exportSplit = Effect.fn('exportSplit')(function* (
   // The document title is the folder, unless --folder overrides it.
   const noteFolder = folderOverride ?? folderTitle;
   // Existing slug -> note id map (for update-in-place on re-export).
-  const existingIds: Record<string, string> =
-    !forceCreate && typeof frontmatter.apple_note_split === 'object'
-      ? { ...frontmatter.apple_note_split }
-      : {};
+  let existingIds: Record<string, string> = {};
+  if (!forceCreate && typeof frontmatter.apple_note_split === 'object')
+    existingIds = { ...frontmatter.apple_note_split };
 
+  let splitVerb = 'Splitting';
+  if (dryRun) splitVerb = '[dry-run] Would split';
   yield* Effect.log(
-    `  ${dryRun ? '[dry-run] Would split' : 'Splitting'} "${filePath}" → ${blocks.length} note(s) in folder "${noteFolder}"...`,
+    `  ${splitVerb} "${filePath}" → ${blocks.length} note(s) in folder "${noteFolder}"...`,
   );
 
   const noteIds: Record<string, string> = {};
@@ -153,9 +164,9 @@ const exportSplit = Effect.fn('exportSplit')(function* (
     const willUpdate = existingId !== undefined && existingId !== '';
 
     if (dryRun) {
-      yield* Effect.log(
-        `    Would ${willUpdate ? `update: ${block.title} → ${existingId}` : `create: ${block.title}`}`,
-      );
+      let operation = `create: ${block.title}`;
+      if (willUpdate) operation = `update: ${block.title} → ${existingId}`;
+      yield* Effect.log(`    Would ${operation}`);
       continue;
     }
 

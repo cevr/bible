@@ -79,11 +79,18 @@ export const makeAppleNoteFromMarkdown = Effect.fn('makeAppleNoteFromMarkdown')(
 
   // Construct the AppleScript command (always targets the main Notes application)
   yield* Effect.log('🔨 Constructing AppleScript command for default location...');
-  const activateCommand = options.activateNotesApp === true ? 'activate' : '';
+  let activateCommand = '';
+  if (options.activateNotesApp === true) activateCommand = 'activate';
 
-  const appleScriptCommand =
-    options.folder !== undefined
-      ? `
+  let appleScriptCommand = `
+      tell application "Notes"
+        set newNote to make new note with properties {name:"${escapedNoteTitle}", body:"${escapedHtmlBody.trim()}"}
+        ${activateCommand}
+        return id of newNote
+      end tell
+    `;
+  if (options.folder !== undefined)
+    appleScriptCommand = `
       tell application "Notes"
         set targetFolder to missing value
         repeat with f in folders
@@ -100,18 +107,11 @@ export const makeAppleNoteFromMarkdown = Effect.fn('makeAppleNoteFromMarkdown')(
         ${activateCommand}
         return id of newNote
       end tell
-    `
-      : `
-      tell application "Notes"
-        set newNote to make new note with properties {name:"${escapedNoteTitle}", body:"${escapedHtmlBody.trim()}"}
-        ${activateCommand}
-        return id of newNote
-      end tell
     `;
 
   // Execute the AppleScript
-  const locationInfo =
-    options.folder !== undefined ? `folder "${options.folder}"` : 'default location';
+  let locationInfo = 'default location';
+  if (options.folder !== undefined) locationInfo = `folder "${options.folder}"`;
   yield* Effect.log(`🚀 Executing AppleScript to create note in ${locationInfo}...`);
 
   const appleScript = yield* AppleScript;
@@ -177,7 +177,8 @@ export const updateAppleNoteFromMarkdown = Effect.fn('updateAppleNoteFromMarkdow
 
   // Construct the AppleScript command to update existing note
   yield* Effect.log(`🔨 Constructing AppleScript command to update note ID: ${noteId}...`);
-  const activateCommand = options.activateNotesApp === true ? 'activate' : '';
+  let activateCommand = '';
+  if (options.activateNotesApp === true) activateCommand = 'activate';
 
   const appleScriptCommand = `
       tell application "Notes"

@@ -1,5 +1,5 @@
 import { Command, Flag } from 'effect/unstable/cli';
-import { Console, Effect, FileSystem } from 'effect';
+import { Console, Effect, FileSystem, Option } from 'effect';
 
 import { file, files, folder, json, noteId } from '~/src/lib/content/options';
 import { parseFrontmatter, type MessageFrontmatter } from '~/src/lib/frontmatter';
@@ -9,12 +9,13 @@ import {
   updateAppleNoteFromMarkdown,
 } from '~/src/lib/markdown-to-notes';
 import { listNotes } from '~/src/lib/notes-utils';
+import { encodeJson } from './egw/format.js';
 
 const list = Command.make('list', { json }, (args) =>
   Effect.gen(function* () {
     const notes = yield* listNotes();
     if (args.json) {
-      const jsonOutput = JSON.stringify(notes, null, 2);
+      const jsonOutput = yield* encodeJson(notes);
       yield* Console.log(jsonOutput);
     } else {
       if (notes.length === 0) {
@@ -31,8 +32,10 @@ const list = Command.make('list', { json }, (args) =>
       );
 
       for (const note of notes) {
-        const id = note.id.length > 64 ? note.id.slice(0, 61) + '...' : note.id.padEnd(64);
-        const name = note.name.length > 40 ? note.name.slice(0, 37) + '...' : note.name.padEnd(40);
+        let id = note.id.padEnd(64);
+        if (note.id.length > 64) id = note.id.slice(0, 61) + '...';
+        let name = note.name.padEnd(40);
+        if (note.name.length > 40) name = note.name.slice(0, 37) + '...';
         const modified = note.modificationDate.slice(0, 20);
         yield* Console.log(`${id}| ${name}| ${modified}`);
       }
@@ -59,10 +62,10 @@ const exportNote = Command.make('export', { file, noteId: optionalNoteId, folder
       yield* Console.log(`Updated note: "${title}"`);
     } else {
       // Create new note
-      const folderName = args.folder._tag === 'Some' ? args.folder.value : undefined;
-      yield* Effect.log(
-        `Creating new note${folderName !== undefined ? ` in folder "${folderName}"` : ''}...`,
-      );
+      const folderName = Option.getOrUndefined(args.folder);
+      let folderDescription = '';
+      if (folderName !== undefined) folderDescription = ` in folder "${folderName}"`;
+      yield* Effect.log(`Creating new note${folderDescription}...`);
       const created = yield* makeAppleNoteFromMarkdown(markdownContent, {
         folder: folderName,
       });

@@ -288,11 +288,16 @@ export const layer: Layer.Layer<
 const NOT_FOUND_HTML =
   '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=/" /><title>Not found</title><p>Not found — <a href="/">The Sure Word</a></p>';
 
+const failureMessage = (cause: unknown): string => {
+  if (cause instanceof globalThis.Error) return cause.message;
+  return String(cause);
+};
+
 const parseYaml = (fm: string) =>
   Effect.try({
     try: () => Bun.YAML.parse(fm),
     catch: (cause) =>
       new UnparseableYaml({
-        message: cause instanceof globalThis.Error ? cause.message : String(cause),
+        message: failureMessage(cause),
       }),
   });

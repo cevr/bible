@@ -1,6 +1,6 @@
 export * as Study from './study.js';
 
-import { Schema } from 'effect';
+import { DateTime, Option, Schema } from 'effect';
 
 /**
  * Studies are served at the site root (/<slug>/), so a slug must never shadow
@@ -12,9 +12,10 @@ const RESERVED = new Set(['studies', 'comparisons', 'index', '404', 'styles']);
 export const Slug = Schema.String.check(
   Schema.isNonEmpty(),
   Schema.isPattern(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, { expected: 'a lowercase kebab-case slug' }),
-  Schema.makeFilter<string>((slug) =>
-    RESERVED.has(slug) ? `"${slug}" collides with a root-level site path` : undefined,
-  ),
+  Schema.makeFilter<string>((slug) => {
+    if (RESERVED.has(slug)) return `"${slug}" collides with a root-level site path`;
+    return undefined;
+  }),
 ).pipe(Schema.brand('Study.Slug'));
 export type Slug = typeof Slug.Type;
 
@@ -22,10 +23,10 @@ export type Slug = typeof Slug.Type;
 const DateISO = Schema.String.check(
   Schema.isPattern(/^\d{4}-\d{2}-\d{2}$/, { expected: 'a YYYY-MM-DD date string' }),
   Schema.makeFilter<string>((s) => {
-    const d = new Date(`${s}T00:00:00Z`);
-    return Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== s
-      ? `"${s}" is not a valid calendar date`
-      : undefined;
+    const date = DateTime.make(s);
+    if (Option.isNone(date) || DateTime.formatIsoDateUtc(date.value) !== s)
+      return `"${s}" is not a valid calendar date`;
+    return undefined;
   }),
 );
 

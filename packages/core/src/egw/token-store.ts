@@ -31,21 +31,29 @@ const PersistedToken = Schema.Struct({
 const decodePersisted = Schema.decodeEffect(Schema.fromJsonString(PersistedToken));
 const encodePersisted = Schema.encodeEffect(Schema.fromJsonString(PersistedToken));
 
+const optionalRedacted = (value: string | undefined) => {
+  if (value === undefined) return undefined;
+  return Redacted.make(value);
+};
+
 const toAccessToken = (parsed: typeof PersistedToken.Type): AccessToken =>
   new AccessToken({
     accessToken: Redacted.make(parsed.accessToken),
-    refreshToken:
-      parsed.refreshToken !== undefined ? Redacted.make(parsed.refreshToken) : undefined,
+    refreshToken: optionalRedacted(parsed.refreshToken),
     expiresAt: parsed.expiresAt,
     scope: parsed.scope,
   });
 
-const toPersisted = (token: AccessToken): typeof PersistedToken.Type => ({
-  accessToken: Redacted.value(token.accessToken),
-  refreshToken: token.refreshToken !== undefined ? Redacted.value(token.refreshToken) : undefined,
-  expiresAt: token.expiresAt,
-  scope: token.scope,
-});
+const toPersisted = (token: AccessToken): typeof PersistedToken.Type => {
+  let refreshToken: string | undefined;
+  if (token.refreshToken !== undefined) refreshToken = Redacted.value(token.refreshToken);
+  return {
+    accessToken: Redacted.value(token.accessToken),
+    refreshToken,
+    expiresAt: token.expiresAt,
+    scope: token.scope,
+  };
+};
 
 export interface EGWTokenStoreShape {
   readonly read: Effect.Effect<Option.Option<AccessToken>, Schema.SchemaError | PlatformError>;

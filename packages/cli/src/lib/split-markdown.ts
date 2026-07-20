@@ -136,8 +136,10 @@ export function splitMarkdownIntoSections(content: string): SplitMarkdown {
       // heading, so note titles stay readable: "Part I — 1. The Casket...".
       const text = headingText(line);
       const isNumbered = /^\d+\./.test(text);
-      const partLabel = currentPart !== null ? partShortLabel(currentPart) : null;
-      curTitle = partLabel !== null && isNumbered ? `${partLabel} — ${text}` : text;
+      let partLabel: string | null = null;
+      if (currentPart !== null) partLabel = partShortLabel(currentPart);
+      curTitle = text;
+      if (partLabel !== null && isNumbered) curTitle = `${partLabel} — ${text}`;
       curLines = [line];
       continue;
     }
@@ -163,10 +165,12 @@ export function splitMarkdownIntoSections(content: string): SplitMarkdown {
   // Edge case: a document with no "## " headings at all — emit the preface.
   if (blocks.length === 0) {
     const preface = prefaceLines.join('\n').trim();
+    let markdown = content.trim();
+    if (preface.length > 0) markdown = preface;
     blocks.push({
       slug: 'overview',
       title: folderTitle,
-      markdown: preface.length > 0 ? preface : content.trim(),
+      markdown,
     });
   }
 
