@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test';
+import { Stream } from 'effect';
 
 import {
   makeDatabaseFileDownloader,
@@ -33,35 +34,34 @@ describe('database file downloader', () => {
     const progress: number[] = [];
     const body = new Uint8Array([1, 2, 3, 4]);
     const downloader = makeDatabaseFileDownloader({
-      fetch: async () => new Response(body, { headers: { 'Content-Length': '4' } }),
       getStorageRoot: async () => makeDirectory(events, chunks),
     });
 
-    await downloader.download('/database', 'bible.db', (value) => progress.push(value));
+    const installed = await downloader.install(Stream.make(body), 'bible.db', (value) =>
+      progress.push(value),
+    );
 
     expect(events).toEqual(['file:bible.db', 'close']);
     expect(Array.from(chunks[0] ?? [])).toEqual([1, 2, 3, 4]);
     expect(progress).toEqual([100]);
+    expect(installed.bytes).toBe(4);
+    expect(installed.digest).toMatch(/^sha256:[a-f0-9]{64}$/);
   });
 
-  it('rejects an HTTP failure before touching OPFS', async () => {
-    let opened = false;
+  it('aborts an OPFS replacement when its Artifact stream fails', async () => {
+    const events: string[] = [];
     const downloader = makeDatabaseFileDownloader({
-      fetch: async () => new Response(null, { status: 503, statusText: 'Unavailable' }),
-      getStorageRoot: async () => {
-        opened = true;
-        return makeDirectory([], []);
-      },
+      getStorageRoot: async () => makeDirectory(events, []),
     });
 
     const error = await downloader
-      .download('/database', 'bible.db', () => {})
+      .install(Stream.fail(new Error('Unavailable')), 'bible.db', () => {})
       .then(
         () => undefined,
         (cause: unknown) => cause,
       );
-    expect(error).toEqual(new Error('Failed to download bible.db: Unavailable'));
-    expect(opened).toBe(false);
+    expect(error).toEqual(new Error('Unavailable'));
+    expect(events).toEqual(['file:bible.db', 'abort']);
   });
 
   it('validates and imports SQLite pages through the IndexedDB VFS', async () => {
@@ -101,11 +101,11 @@ describe('database file downloader', () => {
       jSync: () => 0,
     };
     const progress: number[] = [];
-    const downloader = makeIndexedDbDatabaseFileDownloader(vfs, {
-      fetch: async () => new Response(bytes),
-    });
+    const downloader = makeIndexedDbDatabaseFileDownloader(vfs);
 
-    await downloader.download('/database', 'bible.db', (value) => progress.push(value));
+    const installed = await downloader.install(Stream.make(bytes), 'bible.db', (value) =>
+      progress.push(value),
+    );
 
     expect(events[0]).toBe('open:bible.db');
     expect(events.at(-1)).toBe('close');
@@ -113,5 +113,7 @@ describe('database file downloader', () => {
     expect(writes[0]?.offset).toBe(0);
     expect(writes[0]?.bytes).toEqual(bytes);
     expect(progress).toEqual([100]);
+    expect(installed.bytes).toBe(512);
+    expect(installed.digest).toMatch(/^sha256:[a-f0-9]{64}$/);
   });
 });

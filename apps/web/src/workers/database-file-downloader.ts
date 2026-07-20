@@ -1,11 +1,14 @@
 import * as VFS from 'wa-sqlite/src/VFS.js';
+import { sha256 } from '@noble/hashes/sha2.js';
+import { bytesToHex } from '@noble/hashes/utils.js';
+import { Stream } from 'effect';
 
 export interface DatabaseFileDownloader {
-  readonly download: (
-    url: string,
+  readonly install: (
+    bytes: Stream.Stream<Uint8Array, unknown>,
     filename: string,
     onProgress: (progress: number) => void,
-  ) => Promise<void>;
+  ) => Promise<{ readonly bytes: number; readonly digest: string }>;
 }
 
 export interface IndexedDbImportVfs {
@@ -47,49 +50,57 @@ export interface DatabaseFileDirectory {
 
 /** Replace one OPFS database file from a streamed HTTP response. */
 export const makeDatabaseFileDownloader = (options?: {
-  readonly fetch?: (url: string) => Promise<Response>;
   readonly getStorageRoot?: () => Promise<DatabaseFileDirectory>;
 }): DatabaseFileDownloader => {
-  const fetchResponse = options?.fetch ?? globalThis.fetch;
-  const getStorageRoot = options?.getStorageRoot ?? (() => navigator.storage.getDirectory());
+  const getStorageRoot: () => Promise<DatabaseFileDirectory> =
+    options?.getStorageRoot ??
+    (async () => {
+      const root = await navigator.storage.getDirectory();
+      return {
+        getFileHandle: async (filename, fileOptions) => {
+          const handle = await root.getFileHandle(filename, fileOptions);
+          return {
+            createWritable: async () => {
+              const writable = await handle.createWritable();
+              return {
+                write: (data) => writable.write(Uint8Array.from(data)),
+                close: () => writable.close(),
+                abort: (reason) => writable.abort(reason),
+              };
+            },
+          };
+        },
+      };
+    });
 
-  const download = async (
-    url: string,
+  const install = async (
+    bytes: Stream.Stream<Uint8Array, unknown>,
     filename: string,
     onProgress: (progress: number) => void,
-  ): Promise<void> => {
-    const response = await fetchResponse(url);
-    if (!response.ok) throw new Error(`Failed to download ${filename}: ${response.statusText}`);
-    if (response.body === null) throw new Error(`No response body for ${filename} download`);
-
-    const contentLength = Number(response.headers.get('Content-Length') ?? 0);
+  ): Promise<{ readonly bytes: number; readonly digest: string }> => {
     const root = await getStorageRoot();
     const fileHandle = await root.getFileHandle(filename, { create: true });
     const writable = await fileHandle.createWritable();
-    const reader = response.body.getReader();
     let received = 0;
+    const hasher = sha256.create();
 
     try {
-      // eslint-disable-next-line no-constant-condition -- stream termination is signaled by done
-      while (true) {
-        // eslint-disable-next-line no-await-in-loop -- response chunks must be written in order
-        const { done, value } = await reader.read();
-        if (done) break;
+      for await (const value of Stream.toAsyncIterable(bytes)) {
         // eslint-disable-next-line no-await-in-loop -- OPFS writes must preserve response order
         await writable.write(value);
         received += value.byteLength;
-        if (contentLength > 0) {
-          onProgress(Math.round((received / contentLength) * 100));
-        }
+        hasher.update(value);
       }
       await writable.close();
+      onProgress(100);
+      return { bytes: received, digest: `sha256:${bytesToHex(hasher.digest())}` };
     } catch (error) {
       await writable.abort(error);
       throw error;
     }
   };
 
-  return { download };
+  return { install };
 };
 
 const SQLITE_MAGIC = 'SQLite format 3\0';
@@ -107,29 +118,26 @@ const checkVfsResult = async (
 /** Stream a SQLite file into the IndexedDB VFS one validated database page at a time. */
 export const makeIndexedDbDatabaseFileDownloader = (
   vfs: IndexedDbImportVfs,
-  options?: { readonly fetch?: (url: string) => Promise<Response> },
 ): DatabaseFileDownloader => {
-  const fetchResponse = options?.fetch ?? globalThis.fetch;
-
-  const download = async (
-    url: string,
+  const install = async (
+    bytes: Stream.Stream<Uint8Array, unknown>,
     filename: string,
     onProgress: (progress: number) => void,
-  ): Promise<void> => {
-    const response = await fetchResponse(url);
-    if (!response.ok) throw new Error(`Failed to download ${filename}: ${response.statusText}`);
-    if (response.body === null) throw new Error(`No response body for ${filename} download`);
-
-    const reader = response.body.getReader();
+  ): Promise<{ readonly bytes: number; readonly digest: string }> => {
+    const iterator = Stream.toAsyncIterable(bytes)[Symbol.asyncIterator]();
     const chunks: Uint8Array[] = [];
     let bufferedBytes = 0;
+    let receivedBytes = 0;
+    const hasher = sha256.create();
     const readUntil = async (size: number): Promise<void> => {
       while (bufferedBytes < size) {
         // eslint-disable-next-line no-await-in-loop -- stream chunks are ordered
-        const { done, value } = await reader.read();
+        const { done, value } = await iterator.next();
         if (done) throw new Error(`Unexpected end of ${filename}`);
         chunks.push(value);
         bufferedBytes += value.byteLength;
+        receivedBytes += value.byteLength;
+        hasher.update(value);
       }
     };
     const take = async (size: number): Promise<Uint8Array> => {
@@ -219,10 +227,11 @@ export const makeIndexedDbDatabaseFileDownloader = (
       await vfs.jFileControl(fileId, VFS.SQLITE_FCNTL_SYNC, controlArgument);
       await checkVfsResult('sync imported database', vfs.jSync(fileId, VFS.SQLITE_SYNC_NORMAL));
 
-      const trailing = await reader.read();
+      const trailing = await iterator.next();
       if (!trailing.done || bufferedBytes > 0) {
         throw new Error(`${filename} contains data beyond its declared SQLite pages`);
       }
+      return { bytes: receivedBytes, digest: `sha256:${bytesToHex(hasher.digest())}` };
     } finally {
       for (const release of cleanup.reverse()) {
         // eslint-disable-next-line no-await-in-loop -- locks and file handles unwind in reverse order
@@ -231,5 +240,5 @@ export const makeIndexedDbDatabaseFileDownloader = (
     }
   };
 
-  return { download };
+  return { install };
 };

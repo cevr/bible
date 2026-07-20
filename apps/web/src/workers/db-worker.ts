@@ -1,5 +1,6 @@
 /** One worker owns browser SQLite, the Effect runtime, and the procedure server. */
 import { LibraryEntityId } from '@bible/core/library-state';
+import { CorpusSupply } from '@bible/core/corpus-supply';
 import { ClientId, makeSimulatedTransport, MutationId, Timestamp } from '@bible/core/local-first';
 import { CommitId, RuntimeGeneration } from '@bible/core/procedure';
 import { Effect, Layer, Schema } from 'effect';
@@ -10,7 +11,7 @@ import { OPFSAdaptiveVFS } from 'wa-sqlite/src/examples/OPFSAdaptiveVFS.js';
 
 import userStateMigrationSql from '../../../../packages/core/src/local-first/migrations/0001_user_state.sql?raw';
 
-import { makeWorkerBibleDatabase } from './bible-database.js';
+import { layerBrowserBibleArtifacts } from './bible-database.js';
 import {
   makeDatabaseFileDownloader,
   makeIndexedDbDatabaseFileDownloader,
@@ -119,11 +120,17 @@ const initializeDatabases = async (): Promise<void> => {
   const { sqlite3, vfsName, vfs, downloader } = await initializeSqlite();
   const writingsSqlite = makeSqliteDatabase(sqlite3, 'egw-paragraphs.db', vfsName);
   const bibleSqlite = makeSqliteDatabase(sqlite3, 'bible.db', vfsName);
-  const bible = makeWorkerBibleDatabase({ database: bibleSqlite, downloader });
-
-  await bible.initialize((progress) => {
-    log(`[web.bible] download-progress progress=${String(progress)}`);
+  const bibleArtifacts = layerBrowserBibleArtifacts({
+    database: bibleSqlite,
+    downloader,
+    onProgress: (progress) => log(`[web.bible] install-progress progress=${String(progress)}`),
   });
+  const corpusSupply = CorpusSupply.layer.pipe(Layer.provide(bibleArtifacts));
+  await Effect.runPromise(
+    Effect.gen(function* () {
+      yield* (yield* CorpusSupply).ensure();
+    }).pipe(Effect.provide(corpusSupply)),
+  );
   try {
     await initializeWritingsDatabase(writingsSqlite);
   } catch (cause) {

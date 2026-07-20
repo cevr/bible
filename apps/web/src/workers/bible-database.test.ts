@@ -1,58 +1,89 @@
 import { describe, expect, it } from 'bun:test';
+import { BIBLE_ARTIFACT_RELEASE, CorpusSupply } from '@bible/core/corpus-supply';
+import { Effect, Layer } from 'effect';
 
-import { makeWorkerBibleDatabase } from './bible-database.js';
+import { layerBrowserBibleArtifacts } from './bible-database.js';
 import type { DatabaseFileDownloader } from './database-file-downloader.js';
 import type { SqliteDatabase, SqliteRow } from './sqlite-database.js';
 
-const makeDatabase = (rows: readonly SqliteRow[], events: string[]): SqliteDatabase => ({
+const digest = `sha256:${'a'.repeat(64)}`;
+
+const makeDatabase = (options: {
+  readonly events: string[];
+  readonly provenance: boolean;
+}): SqliteDatabase => ({
   isOpen: false,
   open: async (flags) => {
-    events.push(`open:${String(flags)}`);
+    options.events.push(`open:${String(flags)}`);
   },
   close: async () => {
-    events.push('close');
+    options.events.push('close');
   },
-  query: async () => rows,
+  query: async (sql): Promise<readonly SqliteRow[]> => {
+    if (sql === 'PRAGMA integrity_check') return [{ integrity_check: 'ok' }];
+    if (sql.includes('FROM meta')) {
+      return options.provenance
+        ? [
+            { key: 'corpus_source', value: 'bible-release' },
+            { key: 'corpus_revision', value: BIBLE_ARTIFACT_RELEASE.revision },
+            { key: 'corpus_digest', value: digest },
+          ]
+        : [];
+    }
+    if (sql.includes('FROM books')) return [{ count: 66 }];
+    if (sql.includes('FROM verses')) return [{ count: 31_102 }];
+    return [{ count: 1 }];
+  },
   values: async () => [],
-  write: async () => 0,
+  write: async (_sql, params) => {
+    options.events.push(`write:${String(params?.[0])}`);
+    return 1;
+  },
   exec: async () => {},
 });
 
 const makeDownloader = (events: string[]): DatabaseFileDownloader => ({
-  download: async (url, filename, onProgress) => {
-    events.push(`download:${url}:${filename}`);
+  install: async (_bytes, filename, onProgress) => {
+    events.push(`install:${filename}`);
     onProgress(100);
+    return { bytes: 149_000_000, digest };
   },
 });
 
-describe('worker Bible database', () => {
-  it('keeps an existing catalog open without downloading it again', async () => {
+const ensure = async (options: { readonly provenance: boolean; readonly events: string[] }) => {
+  const artifacts = layerBrowserBibleArtifacts({
+    database: makeDatabase(options),
+    downloader: makeDownloader(options.events),
+    fetch: async () => new Response(new Uint8Array([1])),
+  });
+  const supply = CorpusSupply.layer.pipe(Layer.provide(artifacts));
+  return Effect.runPromise(
+    Effect.gen(function* () {
+      return yield* (yield* CorpusSupply).ensure();
+    }).pipe(Effect.provide(supply)),
+  );
+};
+
+describe('browser Bible Artifact adapter', () => {
+  it('keeps an exact verified Artifact active', async () => {
     const events: string[] = [];
-    const database = makeWorkerBibleDatabase({
-      database: makeDatabase([{ cnt: 66 }], events),
-      downloader: makeDownloader(events),
-    });
+    const receipt = await ensure({ provenance: true, events });
 
-    await database.initialize(() => {});
-
+    expect(receipt.activated).toEqual([]);
+    expect(receipt.skipped).toEqual(['canonical']);
     expect(events).toHaveLength(1);
     expect(events[0]).toStartWith('open:');
   });
 
-  it('replaces an empty catalog and reopens it read-only', async () => {
+  it('atomically installs, verifies, and records Provenance for an absent Artifact', async () => {
     const events: string[] = [];
-    const progress: number[] = [];
-    const database = makeWorkerBibleDatabase({
-      database: makeDatabase([{ cnt: 0 }], events),
-      downloader: makeDownloader(events),
-    });
+    const receipt = await ensure({ provenance: false, events });
 
-    await database.initialize((value) => progress.push(value));
-
-    expect(events[0]).toStartWith('open:');
-    expect(events.slice(1, 3)).toEqual(['close', 'download:/api/db/bible:bible.db']);
-    expect(events[3]).toStartWith('open:');
-    expect(events[3]).not.toBe(events[0]);
-    expect(progress).toEqual([0, 100]);
+    expect(receipt.activated).toMatchObject([{ corpus: 'bible', installed: 31_102 }]);
+    expect(events).toContain('close');
+    expect(events).toContain('install:bible.db');
+    expect(events).toContain('write:corpus_source');
+    expect(events).toContain('write:corpus_revision');
+    expect(events).toContain('write:corpus_digest');
   });
 });

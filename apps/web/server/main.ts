@@ -113,66 +113,15 @@ const getContentType = (path: string): string => {
   return 'application/octet-stream';
 };
 
-const BIBLE_DB_PATH = join(homedir(), '.bible', 'bible.db');
-const EGW_DB_PATH = join(homedir(), '.bible', 'egw-paragraphs.db');
 const SYNC_DIR = join(homedir(), '.bible', 'sync');
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const MAX_SYNC_BODY = 5 * 1024 * 1024; // 5MB
-
-const serveBibleDb = Effect.gen(function* () {
-  const file = Bun.file(BIBLE_DB_PATH);
-  const exists = yield* Effect.promise(() => file.exists());
-  if (!exists) {
-    return HttpServerResponse.text('bible.db not found', { status: 404 });
-  }
-  const size = file.size;
-  const stream = file.stream();
-  return HttpServerResponse.raw(stream, {
-    status: 200,
-    headers: {
-      'Content-Type': 'application/octet-stream',
-      'Content-Length': String(size),
-      'Cache-Control': 'public, max-age=86400',
-      ...CROSS_ORIGIN_HEADERS,
-    },
-  });
-});
-const serveEgwDb = Effect.gen(function* () {
-  const file = Bun.file(EGW_DB_PATH);
-  const exists = yield* Effect.promise(() => file.exists());
-  if (!exists) {
-    return HttpServerResponse.text('egw-paragraphs.db not found', { status: 404 });
-  }
-  const size = file.size;
-  const stream = file.stream();
-  return HttpServerResponse.raw(stream, {
-    status: 200,
-    headers: {
-      'Content-Type': 'application/octet-stream',
-      'Content-Length': String(size),
-      'Cache-Control': 'public, max-age=86400',
-      ...CROSS_ORIGIN_HEADERS,
-    },
-  });
-});
 
 const StaticFilesMiddleware = HttpMiddleware.make((app) =>
   Effect.gen(function* () {
     const request = yield* HttpServerRequest.HttpServerRequest;
     const url = new URL(request.url, 'http://localhost');
     const pathname = url.pathname;
-
-    // Serve bible.db download
-    if (pathname === '/api/db/bible') {
-      const response = yield* serveBibleDb;
-      return response;
-    }
-
-    // Serve egw-paragraphs.db download
-    if (pathname === '/api/db/egw') {
-      const response = yield* serveEgwDb;
-      return response;
-    }
 
     // Sync state backup
     if (pathname === '/api/sync/state') {
