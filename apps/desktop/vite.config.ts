@@ -1,6 +1,7 @@
 import { agentTail } from 'vite-plugin-agent-tail';
 import { defineConfig, loadEnv } from 'vite';
 import solid from 'vite-plugin-solid';
+import { Schema } from 'effect';
 import { electronDev } from './scripts/vite-plugin-electron-dev.js';
 
 // Renderer-process Vite config. The Electron main process is built separately
@@ -19,7 +20,8 @@ export default defineConfig(({ mode }) => {
   // plus any matching process.env entries — so we don't need a separate
   // process.env fallback.
   const env = loadEnv(mode, process.cwd(), '');
-  const bake = (key: string): string => JSON.stringify(env[key] ?? '');
+  const encodeJson = Schema.encodeSync(Schema.UnknownFromJsonString);
+  const bake = (key: string): string => encodeJson(env[key] ?? '');
 
   return {
     base: './',

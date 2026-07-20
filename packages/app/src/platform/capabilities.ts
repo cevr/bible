@@ -35,6 +35,10 @@ export interface Notifications {
   }) => Effect.Effect<void, CapabilityError>;
 }
 
+export interface Identity {
+  readonly randomUuid: () => string;
+}
+
 export interface WindowControls {
   readonly minimize: (input: {}) => Effect.Effect<void, CapabilityError>;
   readonly toggleMaximized: (input: {}) => Effect.Effect<void, CapabilityError>;
@@ -46,5 +50,6 @@ export interface AppCapabilities {
   readonly fileImport?: FileImport;
   readonly fileExport?: FileExport;
   readonly notifications?: Notifications;
+  readonly identity?: Identity;
   readonly windowControls?: WindowControls;
 }

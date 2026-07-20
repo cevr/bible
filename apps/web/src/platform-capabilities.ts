@@ -14,6 +14,9 @@ const failure = (operation: string, cause: unknown) => {
 };
 
 export const webCapabilities: AppCapabilities = {
+  identity: {
+    randomUuid: () => globalThis.crypto.randomUUID(),
+  },
   fileImport: {
     select: ({ accept }) =>
       Effect.callback<

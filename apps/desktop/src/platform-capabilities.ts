@@ -12,6 +12,9 @@ const failure = (capability: string, operation: string, cause: unknown) => {
 };
 
 export const desktopCapabilities: AppCapabilities = {
+  identity: {
+    randomUuid: () => globalThis.crypto.randomUUID(),
+  },
   fileImport: {
     select: ({ accept }) =>
       Effect.tryPromise({

@@ -1,4 +1,5 @@
 import { For, Portal, Show, type JSX } from '@solidjs/web';
+import { Effect, type Fiber } from 'effect';
 import { createSignal, createUniqueId, onSettled } from 'solid-js';
 
 export interface MenuItem {
@@ -21,7 +22,7 @@ interface MenuListProps {
 const MenuList = (props: MenuListProps) => {
   let popup: HTMLDivElement | undefined;
   let typeahead = '';
-  let typeaheadTimer: ReturnType<typeof setTimeout> | undefined;
+  let typeaheadFiber: Fiber.Fiber<void> | undefined;
   const enabled = () => props.items.filter((item) => !item.disabled);
   const focusAt = (index: number): void => {
     const items = enabled();
@@ -30,14 +31,22 @@ const MenuList = (props: MenuListProps) => {
   };
 
   onSettled(() => {
-    queueMicrotask(() => focusAt(props.initialFocus === 'last' ? -1 : 0));
+    let initialIndex = 0;
+    if (props.initialFocus === 'last') initialIndex = -1;
+    const focusFiber = Effect.runFork(
+      Effect.andThen(
+        Effect.yieldNow,
+        Effect.sync(() => focusAt(initialIndex)),
+      ),
+    );
     const outside = (event: PointerEvent): void => {
       if (event.target instanceof Node && !popup?.contains(event.target)) props.close();
     };
     document.addEventListener('pointerdown', outside, true);
     return () => {
       document.removeEventListener('pointerdown', outside, true);
-      if (typeaheadTimer !== undefined) clearTimeout(typeaheadTimer);
+      focusFiber.interruptUnsafe();
+      typeaheadFiber?.interruptUnsafe();
     };
   });
 
@@ -65,8 +74,16 @@ const MenuList = (props: MenuListProps) => {
           props.restoreFocus?.();
         } else if (event.key.length === 1 && !event.metaKey && !event.ctrlKey && !event.altKey) {
           typeahead += event.key.toLocaleLowerCase();
-          if (typeaheadTimer !== undefined) clearTimeout(typeaheadTimer);
-          typeaheadTimer = setTimeout(() => (typeahead = ''), 500);
+          typeaheadFiber?.interruptUnsafe();
+          typeaheadFiber = Effect.runFork(
+            Effect.sleep('500 millis').pipe(
+              Effect.andThen(
+                Effect.sync(() => {
+                  typeahead = '';
+                }),
+              ),
+            ),
+          );
           const match = items.findIndex((item) =>
             item.label.toLocaleLowerCase().startsWith(typeahead),
           );
@@ -114,6 +131,14 @@ export const Menu = (props: MenuProps) => {
     if (props.open === undefined) setLocalOpen(next);
     props.onOpenChange?.(next);
   };
+  const expandedState = (): 'true' | 'false' => {
+    if (open()) return 'true';
+    return 'false';
+  };
+  const controls = (): string | undefined => {
+    if (open()) return id;
+    return undefined;
+  };
   let trigger: HTMLButtonElement | undefined;
   return (
     <div class="bible-menu-root">
@@ -125,8 +150,8 @@ export const Menu = (props: MenuProps) => {
         class="bible-menu-trigger"
         aria-label={props.label}
         aria-haspopup="menu"
-        aria-expanded={open() ? 'true' : 'false'}
-        aria-controls={open() ? id : undefined}
+        aria-expanded={expandedState()}
+        aria-controls={controls()}
         onClick={() => {
           setInitialFocus('first');
           setOpen(!open());
@@ -134,7 +159,8 @@ export const Menu = (props: MenuProps) => {
         onKeyDown={(event) => {
           if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
           event.preventDefault();
-          setInitialFocus(event.key === 'ArrowUp' ? 'last' : 'first');
+          if (event.key === 'ArrowUp') setInitialFocus('last');
+          else setInitialFocus('first');
           setOpen(true);
         }}
       >
@@ -168,8 +194,8 @@ export const ContextMenu = (props: ContextMenuProps) => {
   let restoreTarget: HTMLElement | undefined;
   const close = (): void => setPosition(undefined);
   const openAt = (x: number, y: number): void => {
-    restoreTarget =
-      document.activeElement instanceof HTMLElement ? document.activeElement : undefined;
+    restoreTarget = undefined;
+    if (document.activeElement instanceof HTMLElement) restoreTarget = document.activeElement;
     setPosition({ x, y });
   };
   return (

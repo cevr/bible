@@ -6,10 +6,11 @@ import {
 } from '@bible/core/library-state';
 import { A, useNavigate } from '@solidjs/router';
 import { Errored, For, Loading, Show } from '@solidjs/web';
-import { Schema } from 'effect';
+import { DateTime, Effect, Schema } from 'effect';
 import { createSignal } from 'solid-js';
 
 import { ReaderFailure, ReaderLoading } from '../reading/index.js';
+import { useCapabilities } from '../application/capabilities-context.js';
 import { failureCategory, useReadingData } from '../runtime/index.js';
 import { Button, Input } from '../ui/index.js';
 
@@ -27,17 +28,34 @@ const intervalForRating = (rating: typeof PracticeRating.Type): number => {
   return 14;
 };
 
-const failureMessage = (cause: unknown): string =>
-  (cause instanceof Error ? cause.message : String(cause)).replace(/\s+/g, ' ').trim();
+const failureMessage = (cause: unknown): string => {
+  let message = String(cause);
+  if (cause instanceof Error) message = cause.message;
+  return message.replace(/\s+/g, ' ').trim();
+};
+
+const practiceHeading = (memoryVerseId: string | undefined): string => {
+  if (memoryVerseId !== undefined) return 'Memory practice';
+  return 'Practice';
+};
+
+const nextReviewLabel = (nextPracticeAt: string | null): string => {
+  if (nextPracticeAt !== null) {
+    return `Next review ${DateTime.format(DateTime.makeUnsafe(nextPracticeAt))}`;
+  }
+  return 'Ready to review';
+};
 
 const nextPracticeDate = (practicedAt: string, intervalDays: number): string => {
-  const next = new Date(practicedAt);
-  next.setUTCDate(next.getUTCDate() + intervalDays);
-  return next.toISOString();
+  const next = DateTime.add(DateTime.makeUnsafe(practicedAt), { days: intervalDays });
+  return DateTime.formatIso(next);
 };
+
+const nowIso = (): string => DateTime.formatIso(Effect.runSync(DateTime.now));
 
 export const Practice = (props: PracticeProps) => {
   const data = useReadingData();
+  const capabilities = useCapabilities();
   const navigate = useNavigate();
   const practice = () => data.memoryPractice.get()();
   const selectedVerse = () => practice().verses.find((verse) => verse.id === props.memoryVerseId);
@@ -65,8 +83,10 @@ export const Practice = (props: PracticeProps) => {
       },
       (cause: unknown) => {
         const message = failureMessage(cause);
-        console.error(
-          `[practice] mutation-failed operation=${operation} category=${failureCategory(cause)}`,
+        Effect.runFork(
+          Effect.logError(
+            `[practice] mutation-failed operation=${operation} category=${failureCategory(cause)}`,
+          ),
         );
         setFailure(message);
         setBusy(false);
@@ -79,8 +99,13 @@ export const Practice = (props: PracticeProps) => {
     const requestedResource = resourceId().trim();
     const requestedLocation = location().trim();
     if (requestedResource.length === 0 || requestedLocation.length === 0) return;
+    const identity = capabilities.identity;
+    if (identity === undefined) {
+      setFailure('This platform cannot create memory verses because identity is unavailable.');
+      return;
+    }
 
-    const id = Schema.decodeUnknownSync(LibraryEntityId)(crypto.randomUUID());
+    const id = Schema.decodeUnknownSync(LibraryEntityId)(identity.randomUuid());
     mutate(
       'save',
       {
@@ -89,7 +114,7 @@ export const Practice = (props: PracticeProps) => {
         resourceId: requestedResource,
         location: requestedLocation,
         prompt: prompt().trim() || null,
-        nextPracticeAt: new Date().toISOString(),
+        nextPracticeAt: nowIso(),
         intervalDays: 0,
       },
       () => {
@@ -105,12 +130,17 @@ export const Practice = (props: PracticeProps) => {
     mutate('delete', { _tag: 'DeleteMemoryVerse', id: verse.id }, () => navigate('/practice'));
 
   const recordPractice = (verse: MemoryVerse, ratingInput: number) => {
+    const identity = capabilities.identity;
+    if (identity === undefined) {
+      setFailure('This platform cannot record practice because identity is unavailable.');
+      return;
+    }
     const rating = Schema.decodeUnknownSync(PracticeRating)(ratingInput);
-    const practicedAt = new Date().toISOString();
+    const practicedAt = nowIso();
     const intervalDays = intervalForRating(rating);
     mutate('record', {
       _tag: 'RecordMemoryPractice',
-      id: Schema.decodeUnknownSync(LibraryEntityId)(crypto.randomUUID()),
+      id: Schema.decodeUnknownSync(LibraryEntityId)(identity.randomUuid()),
       memoryVerseId: verse.id,
       rating,
       practicedAt,
@@ -123,7 +153,7 @@ export const Practice = (props: PracticeProps) => {
     <article class="bible-library bible-practice">
       <header class="bible-reader__heading bible-library__heading">
         <p class="bible-reader__eyebrow">Keep Scripture close</p>
-        <h1>{props.memoryVerseId ? 'Memory practice' : 'Practice'}</h1>
+        <h1>{practiceHeading(props.memoryVerseId)}</h1>
       </header>
       <Errored fallback={(error) => <ReaderFailure error={error()} />}>
         <Loading fallback={<ReaderLoading label="Loading memory practice" />}>
@@ -149,11 +179,7 @@ export const Practice = (props: PracticeProps) => {
                           <li>
                             <A href={`/practice/${encodeURIComponent(verse.id)}`}>
                               <strong>{verse.location}</strong>
-                              <span>
-                                {verse.nextPracticeAt
-                                  ? `Next review ${new Date(verse.nextPracticeAt).toLocaleDateString()}`
-                                  : 'Ready to review'}
-                              </span>
+                              <span>{nextReviewLabel(verse.nextPracticeAt)}</span>
                             </A>
                           </li>
                         )}
@@ -216,7 +242,7 @@ export const Practice = (props: PracticeProps) => {
                           {(record) => (
                             <li>
                               <time datetime={record.practicedAt}>
-                                {new Date(record.practicedAt).toLocaleDateString()}
+                                {DateTime.format(DateTime.makeUnsafe(record.practicedAt))}
                               </time>
                               <span>Rating {record.rating} of 5</span>
                             </li>

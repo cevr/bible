@@ -1,4 +1,5 @@
 import { Portal, Show, type JSX } from '@solidjs/web';
+import { Effect } from 'effect';
 import { createEffect, createUniqueId } from 'solid-js';
 
 const focusableSelector =
@@ -19,20 +20,29 @@ export const Dialog = (props: DialogProps) => {
   const descriptionId = `dialog-description-${createUniqueId()}`;
   const identity = Symbol('dialog');
   let popup: HTMLDivElement | undefined;
+  const describedBy = (): string | undefined => {
+    if (props.description !== undefined) return descriptionId;
+    return undefined;
+  };
 
   createEffect(
     () => props.open,
     (open) => {
       if (!open || typeof document === 'undefined') return;
-      const previousFocus =
-        document.activeElement instanceof HTMLElement ? document.activeElement : undefined;
+      let previousFocus: HTMLElement | undefined;
+      if (document.activeElement instanceof HTMLElement) previousFocus = document.activeElement;
       const previousOverflow = document.body.style.overflow;
       dialogStack.push(identity);
       document.body.style.overflow = 'hidden';
-      queueMicrotask(() => {
-        const first = popup?.querySelector<HTMLElement>(focusableSelector);
-        (first ?? popup)?.focus();
-      });
+      const focusFiber = Effect.runFork(
+        Effect.andThen(
+          Effect.yieldNow,
+          Effect.sync(() => {
+            const first = popup?.querySelector<HTMLElement>(focusableSelector);
+            (first ?? popup)?.focus();
+          }),
+        ),
+      );
 
       const onKeyDown = (event: KeyboardEvent): void => {
         if (dialogStack.at(-1) !== identity) return;
@@ -59,10 +69,16 @@ export const Dialog = (props: DialogProps) => {
         const index = dialogStack.lastIndexOf(identity);
         if (index >= 0) dialogStack.splice(index, 1);
         document.body.style.overflow = previousOverflow;
-        queueMicrotask(() => {
-          const returnTarget = props.restoreFocus?.() ?? previousFocus;
-          if (returnTarget?.isConnected) returnTarget.focus();
-        });
+        focusFiber.interruptUnsafe();
+        Effect.runFork(
+          Effect.andThen(
+            Effect.yieldNow,
+            Effect.sync(() => {
+              const returnTarget = props.restoreFocus?.() ?? previousFocus;
+              if (returnTarget?.isConnected) returnTarget.focus();
+            }),
+          ),
+        );
       };
     },
   );
@@ -84,7 +100,7 @@ export const Dialog = (props: DialogProps) => {
             role="dialog"
             aria-modal="true"
             aria-labelledby={titleId}
-            aria-describedby={props.description === undefined ? undefined : descriptionId}
+            aria-describedby={describedBy()}
             tabindex="-1"
           >
             <h2 id={titleId} class="bible-visually-hidden">

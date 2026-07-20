@@ -6,7 +6,7 @@ import {
 import { NoteId, type LibraryMutationCommand } from '@bible/core/local-first';
 import { A } from '@solidjs/router';
 import { Errored, For, Loading, Show } from '@solidjs/web';
-import { Schema } from 'effect';
+import { Effect, Schema } from 'effect';
 import { createMemo, createSignal } from 'solid-js';
 
 import { decodeRoute, readerLocationForRoute } from '../route/index.js';
@@ -29,8 +29,11 @@ const noteId = (location: ReaderLocation) =>
     `note:${location.source}:${location.resourceId}:${location.location}`,
   );
 
-const compactFailure = (cause: unknown): string =>
-  (cause instanceof Error ? cause.message : String(cause)).replace(/\s+/g, ' ').trim();
+const compactFailure = (cause: unknown): string => {
+  let message = String(cause);
+  if (cause instanceof Error) message = cause.message;
+  return message.replace(/\s+/g, ' ').trim();
+};
 
 export const AnnotationTools = (props: AnnotationToolsProps) => {
   const data = useReadingData();
@@ -51,6 +54,26 @@ export const AnnotationTools = (props: AnnotationToolsProps) => {
     annotations().notes.length +
     annotations().markers.length +
     annotations().crossReferences.length;
+  const bookmarkPressed = (): 'true' | 'false' => {
+    if (bookmark() !== undefined) return 'true';
+    return 'false';
+  };
+  const bookmarkLabel = (): string => {
+    if (bookmark() !== undefined) return 'Bookmarked';
+    return 'Bookmark';
+  };
+  const markerPressed = (): 'true' | 'false' => {
+    if (marker() !== undefined) return 'true';
+    return 'false';
+  };
+  const markerLabel = (): string => {
+    if (marker() !== undefined) return 'Highlighted';
+    return 'Highlight';
+  };
+  const noteAction = (): string => {
+    if (draft().trim().length === 0 && note() !== undefined) return 'Delete note';
+    return 'Save note';
+  };
 
   const mutate = (operation: string, command: LibraryMutationCommand, onSuccess?: () => void) => {
     setBusy(true);
@@ -62,8 +85,10 @@ export const AnnotationTools = (props: AnnotationToolsProps) => {
       },
       (cause: unknown) => {
         const message = compactFailure(cause);
-        console.error(
-          `[annotations] mutation-failed operation=${operation} category=${failureCategory(cause)}`,
+        Effect.runFork(
+          Effect.logError(
+            `[annotations] mutation-failed operation=${operation} category=${failureCategory(cause)}`,
+          ),
         );
         setFailure(message);
         setBusy(false);
@@ -130,7 +155,8 @@ export const AnnotationTools = (props: AnnotationToolsProps) => {
   const addReference = (event: SubmitEvent) => {
     event.preventDefault();
     const route = decodeRoute(referenceDraft().trim());
-    const target = route ? readerLocationForRoute(route) : undefined;
+    let target: ReaderLocation | undefined;
+    if (route !== undefined) target = readerLocationForRoute(route);
     if (!target) {
       setFailure('Enter a canonical Bible or Writings route.');
       return;
@@ -165,8 +191,10 @@ export const AnnotationTools = (props: AnnotationToolsProps) => {
       },
       (cause: unknown) => {
         const message = compactFailure(cause);
-        console.error(
-          `[collections] mutation-failed operation=save category=${failureCategory(cause)}`,
+        Effect.runFork(
+          Effect.logError(
+            `[collections] mutation-failed operation=save category=${failureCategory(cause)}`,
+          ),
         );
         setFailure(message);
         setBusy(false);
@@ -192,8 +220,10 @@ export const AnnotationTools = (props: AnnotationToolsProps) => {
         () => setBusy(false),
         (cause: unknown) => {
           const message = compactFailure(cause);
-          console.error(
-            `[collections] mutation-failed operation=add-member category=${failureCategory(cause)}`,
+          Effect.runFork(
+            Effect.logError(
+              `[collections] mutation-failed operation=add-member category=${failureCategory(cause)}`,
+            ),
           );
           setFailure(message);
           setBusy(false);
@@ -226,11 +256,11 @@ export const AnnotationTools = (props: AnnotationToolsProps) => {
             </summary>
             <div class="bible-annotation-tools__body">
               <div class="bible-annotation-tools__actions">
-                <Button aria-pressed={bookmark() ? 'true' : 'false'} onClick={toggleBookmark}>
-                  {bookmark() ? 'Bookmarked' : 'Bookmark'}
+                <Button aria-pressed={bookmarkPressed()} onClick={toggleBookmark}>
+                  {bookmarkLabel()}
                 </Button>
-                <Button aria-pressed={marker() ? 'true' : 'false'} onClick={toggleMarker}>
-                  {marker() ? 'Highlighted' : 'Highlight'}
+                <Button aria-pressed={markerPressed()} onClick={toggleMarker}>
+                  {markerLabel()}
                 </Button>
               </div>
               <Tabs
@@ -250,7 +280,7 @@ export const AnnotationTools = (props: AnnotationToolsProps) => {
                           onInput={(event) => setNoteDraft(event.currentTarget.value)}
                         />
                         <Button type="submit" tone="accent" disabled={busy()}>
-                          {draft().trim().length === 0 && note() ? 'Delete note' : 'Save note'}
+                          {noteAction()}
                         </Button>
                       </form>
                     ),

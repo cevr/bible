@@ -1,16 +1,17 @@
 import { ReadingApplication, SharedRoutes } from '@bible/app/application';
 import { HashRouter } from '@solidjs/router';
 import { render, Show } from '@solidjs/web';
+import { Effect } from 'effect';
 import { createSignal, onSettled } from 'solid-js';
 
 import { startDesktopProcedureHost, type ActiveDesktopProcedureHost } from './procedure-client.js';
 import { desktopCapabilities } from './platform-capabilities.js';
 import '@bible/app/styles.css';
 
-const failureMessage = (cause: unknown): string =>
-  cause instanceof Error
-    ? cause.message
-    : 'An unknown startup error prevented the library from opening.';
+const failureMessage = (cause: unknown): string => {
+  if (cause instanceof Error) return cause.message;
+  return 'An unknown startup error prevented the library from opening.';
+};
 
 const DesktopApplication = () => {
   const [host, setHost] = createSignal<ActiveDesktopProcedureHost>();
@@ -75,6 +76,9 @@ const DesktopApplication = () => {
   );
 };
 
-const root = document.getElementById('root');
-if (root === null) throw new Error('#root not found');
+const root = (() => {
+  const element = document.getElementById('root');
+  if (element === null) return Effect.runSync(Effect.die('#root not found'));
+  return element;
+})();
 render(() => <DesktopApplication />, root);

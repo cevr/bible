@@ -6,7 +6,7 @@ import type {
 } from '@bible/core/writings';
 import { A } from '@solidjs/router';
 import { Errored, For, Loading, Show } from '@solidjs/web';
-import { Option } from 'effect';
+import { Effect, Option } from 'effect';
 import { createSignal } from 'solid-js';
 
 import { AnnotationTools } from '../library/annotation-tools.js';
@@ -20,6 +20,25 @@ export interface WritingsPageReaderProps {
   readonly reference: PageReference;
   readonly selected?: ParagraphReference;
 }
+
+const activeParagraph = (
+  selected: ParagraphReference | undefined,
+  paragraphId: string,
+): '' | undefined => {
+  if (selected?.paragraphId === paragraphId) return '';
+  return undefined;
+};
+
+const compactFailure = (cause: unknown): string => {
+  let message = String(cause);
+  if (cause instanceof Error) message = cause.message;
+  return message.replace(/\s+/g, ' ').trim();
+};
+
+const downloadAction = (status: string, failedTarget: string | undefined, code: string) => {
+  if (status === 'failed' || failedTarget === code) return 'Retry';
+  return 'Download';
+};
 
 export const WritingsPageReader = (props: WritingsPageReaderProps) => {
   const data = useReadingData();
@@ -60,11 +79,7 @@ const WritingsPageContent = (props: {
                 {(paragraph) => (
                   <p
                     id={`paragraph-${paragraph.reference.paragraphId}`}
-                    data-active={
-                      props.selected?.paragraphId === paragraph.reference.paragraphId
-                        ? ''
-                        : undefined
-                    }
+                    data-active={activeParagraph(props.selected, paragraph.reference.paragraphId)}
                   >
                     <ParagraphNodes nodes={paragraph.nodes} />
                     <Show when={Option.getOrUndefined(paragraph.refcode)}>
@@ -155,11 +170,11 @@ export const WritingsCatalog = () => {
     void data.writingsLibrary.mutate(command).then(
       () => setDownloading(undefined),
       (cause: unknown) => {
-        const message = (cause instanceof Error ? cause.message : String(cause))
-          .replace(/\s+/g, ' ')
-          .trim();
-        console.error(
-          `[writings] download-failed target=${key} category=${failureCategory(cause)}`,
+        const message = compactFailure(cause);
+        Effect.runFork(
+          Effect.logError(
+            `[writings] download-failed target=${key} category=${failureCategory(cause)}`,
+          ),
         );
         setFailure(message);
         setFailedTarget(key);
@@ -207,9 +222,7 @@ export const WritingsCatalog = () => {
                   <Show when={publication.status !== 'success'}>
                     <Button
                       aria-label={writingsDownloadLabel(
-                        publication.status === 'failed' || failedTarget() === publication.code
-                          ? 'Retry'
-                          : 'Download',
+                        downloadAction(publication.status, failedTarget(), publication.code),
                         publication.title,
                         publication.code,
                       )}
@@ -221,9 +234,7 @@ export const WritingsCatalog = () => {
                         )
                       }
                     >
-                      {publication.status === 'failed' || failedTarget() === publication.code
-                        ? 'Retry'
-                        : 'Download'}
+                      {downloadAction(publication.status, failedTarget(), publication.code)}
                     </Button>
                   </Show>
                 </li>

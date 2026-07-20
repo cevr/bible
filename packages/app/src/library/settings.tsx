@@ -6,7 +6,7 @@ import {
 import { A } from '@solidjs/router';
 import { Errored, Loading, Show } from '@solidjs/web';
 import { createSignal } from 'solid-js';
-import { Effect, Schema } from 'effect';
+import { DateTime, Effect, Schema } from 'effect';
 
 import { useCapabilities } from '../application/capabilities-context.js';
 import type { SettingsSection } from '../route/index.js';
@@ -22,6 +22,24 @@ const settingsSections: ReadonlyArray<{ readonly id: SettingsSection; readonly l
   { id: 'about', label: 'About' },
 ];
 
+const failureMessage = (cause: unknown): string => {
+  if (cause instanceof Error) return cause.message;
+  return String(cause);
+};
+
+const currentSection = (
+  selected: SettingsSection,
+  section: SettingsSection,
+): 'page' | undefined => {
+  if (selected === section) return 'page';
+  return undefined;
+};
+
+const bibleLayoutLabel = (layout: 'verse' | 'paragraph'): string => {
+  if (layout === 'verse') return 'One verse at a time';
+  return 'Natural paragraphs';
+};
+
 export interface SettingsProps {
   readonly section: SettingsSection;
 }
@@ -36,11 +54,13 @@ export const Settings = (props: SettingsProps) => {
   const [dataFailure, setDataFailure] = createSignal<string>();
 
   const failDataOperation = (operation: string, cause: unknown): void => {
-    console.error(
-      `[settings] operation-failed operation=${operation} category=${failureCategory(cause)}`,
+    Effect.runFork(
+      Effect.logError(
+        `[settings] operation-failed operation=${operation} category=${failureCategory(cause)}`,
+      ),
     );
     setDataStatus(undefined);
-    setDataFailure(cause instanceof Error ? cause.message : String(cause));
+    setDataFailure(failureMessage(cause));
   };
 
   const exportLibrary = (): void => {
@@ -52,7 +72,7 @@ export const Settings = (props: SettingsProps) => {
       (document) =>
         Effect.runPromise(
           fileExport.save({
-            suggestedName: `bible-library-${new Date().toISOString().slice(0, 10)}.json`,
+            suggestedName: `bible-library-${DateTime.formatIsoDateUtc(Effect.runSync(DateTime.now))}.json`,
             contents: new TextEncoder().encode(document),
           }),
         ).then(
@@ -91,10 +111,12 @@ export const Settings = (props: SettingsProps) => {
     void data.readingPreferences.mutate({ patch: value }).then(
       () => setSaving(false),
       (cause: unknown) => {
-        console.error(
-          `[settings] mutation-failed operation=reading-preferences category=${failureCategory(cause)}`,
+        Effect.runFork(
+          Effect.logError(
+            `[settings] mutation-failed operation=reading-preferences category=${failureCategory(cause)}`,
+          ),
         );
-        setFailure(cause instanceof Error ? cause.message : String(cause));
+        setFailure(failureMessage(cause));
         setSaving(false);
       },
     );
@@ -110,7 +132,7 @@ export const Settings = (props: SettingsProps) => {
         {settingsSections.map((section) => (
           <A
             href={`/settings/${section.id}`}
-            aria-current={props.section === section.id ? 'page' : undefined}
+            aria-current={currentSection(props.section, section.id)}
           >
             {section.label}
           </A>
@@ -198,7 +220,7 @@ export const Settings = (props: SettingsProps) => {
                       checked={preferences().bibleLayout === layout}
                       onChange={() => patch({ bibleLayout: layout })}
                     />
-                    <span>{layout === 'verse' ? 'One verse at a time' : 'Natural paragraphs'}</span>
+                    <span>{bibleLayoutLabel(layout)}</span>
                   </label>
                 ))}
               </fieldset>

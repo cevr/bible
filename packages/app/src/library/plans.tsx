@@ -5,10 +5,11 @@ import {
 } from '@bible/core/library-state';
 import { A, useNavigate } from '@solidjs/router';
 import { Errored, For, Loading, Show } from '@solidjs/web';
-import { Schema } from 'effect';
+import { DateTime, Effect, Schema } from 'effect';
 import { createSignal } from 'solid-js';
 
 import { ReaderFailure, ReaderLoading } from '../reading/index.js';
+import { useCapabilities } from '../application/capabilities-context.js';
 import { failureCategory, useReadingData } from '../runtime/index.js';
 import { Button, Input } from '../ui/index.js';
 
@@ -16,11 +17,20 @@ export interface PlansProps {
   readonly planId?: string;
 }
 
-const failureMessage = (cause: unknown): string =>
-  (cause instanceof Error ? cause.message : String(cause)).replace(/\s+/g, ' ').trim();
+const failureMessage = (cause: unknown): string => {
+  let message = String(cause);
+  if (cause instanceof Error) message = cause.message;
+  return message.replace(/\s+/g, ' ').trim();
+};
+
+const plansHeading = (planId: string | undefined): string => {
+  if (planId !== undefined) return 'Reading plan';
+  return 'Plans';
+};
 
 export const Plans = (props: PlansProps) => {
   const data = useReadingData();
+  const capabilities = useCapabilities();
   const navigate = useNavigate();
   const plans = () => data.readingPlans.get()();
   const selectedPlan = () => plans().find((plan) => plan.id === props.planId);
@@ -45,8 +55,10 @@ export const Plans = (props: PlansProps) => {
       },
       (cause: unknown) => {
         const message = failureMessage(cause);
-        console.error(
-          `[plans] mutation-failed operation=${operation} category=${failureCategory(cause)}`,
+        Effect.runFork(
+          Effect.logError(
+            `[plans] mutation-failed operation=${operation} category=${failureCategory(cause)}`,
+          ),
         );
         setFailure(message);
         setBusy(false);
@@ -61,8 +73,13 @@ export const Plans = (props: PlansProps) => {
     const firstStepRoute = stepRoute().trim();
     if (planTitle.length === 0 || firstStepTitle.length === 0 || firstStepRoute.length === 0)
       return;
+    const identity = capabilities.identity;
+    if (identity === undefined) {
+      setFailure('This platform cannot create reading plans because identity is unavailable.');
+      return;
+    }
 
-    const id = Schema.decodeUnknownSync(LibraryEntityId)(crypto.randomUUID());
+    const id = Schema.decodeUnknownSync(LibraryEntityId)(identity.randomUuid());
     mutate(
       'save',
       {
@@ -70,7 +87,7 @@ export const Plans = (props: PlansProps) => {
         id,
         title: planTitle,
         description: description().trim() || null,
-        steps: [{ id: crypto.randomUUID(), title: firstStepTitle, route: firstStepRoute }],
+        steps: [{ id: identity.randomUuid(), title: firstStepTitle, route: firstStepRoute }],
       },
       () => {
         setTitle('');
@@ -87,11 +104,13 @@ export const Plans = (props: PlansProps) => {
 
   const toggleStep = (plan: ReadingPlan, stepId: string) => {
     const progress = plan.progress.find((entry) => entry.stepId === stepId);
+    let completedAt: string | null = DateTime.formatIso(Effect.runSync(DateTime.now));
+    if (progress?.completedAt) completedAt = null;
     mutate('progress', {
       _tag: 'SetReadingPlanProgress',
       planId: plan.id,
       stepId,
-      completedAt: progress?.completedAt ? null : new Date().toISOString(),
+      completedAt,
     });
   };
 
@@ -99,7 +118,7 @@ export const Plans = (props: PlansProps) => {
     <article class="bible-library bible-plans">
       <header class="bible-reader__heading bible-library__heading">
         <p class="bible-reader__eyebrow">A steady path through Scripture</p>
-        <h1>{props.planId ? 'Reading plan' : 'Plans'}</h1>
+        <h1>{plansHeading(props.planId)}</h1>
       </header>
       <Errored fallback={(error) => <ReaderFailure error={error()} />}>
         <Loading fallback={<ReaderLoading label="Loading reading plans" />}>
