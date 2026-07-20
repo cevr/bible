@@ -1,4 +1,4 @@
-import { Cause, Inspectable, Logger } from 'effect';
+import { Cause, Inspectable, Logger, Option, Schema } from 'effect';
 import type { LogLevel } from 'effect';
 
 type LevelStyle = {
@@ -18,16 +18,20 @@ const ANSI = {
   gray: '\x1b[90m',
 } as const;
 
-const hasProcess = typeof process === 'object' && process !== null;
-const hasStdout = hasProcess && typeof process.stdout === 'object' && process.stdout !== null;
-const isTty = hasStdout && process.stdout.isTTY;
-const hasEnv = hasProcess && typeof process.env === 'object' && process.env !== null;
-const noColor = hasEnv && 'NO_COLOR' in process.env;
-const colorsEnabled = isTty && !noColor;
+const colorsEnabled = false;
 
-const colorize = (text: string, color: string) =>
-  colorsEnabled ? `${color}${text}${ANSI.reset}` : text;
-const dim = (text: string) => (colorsEnabled ? `${ANSI.dim}${text}${ANSI.reset}` : text);
+const colorize = (text: string, color: string) => {
+  if (colorsEnabled) {
+    return `${color}${text}${ANSI.reset}`;
+  }
+  return text;
+};
+const dim = (text: string) => {
+  if (colorsEnabled) {
+    return `${ANSI.dim}${text}${ANSI.reset}`;
+  }
+  return text;
+};
 
 const levelStyles: Record<LogLevel.LogLevel, LevelStyle> = {
   None: { label: 'log', prefix: '-', color: ANSI.gray },
@@ -40,11 +44,19 @@ const levelStyles: Record<LogLevel.LogLevel, LevelStyle> = {
   Fatal: { label: 'fatal', prefix: 'x', color: ANSI.red },
 };
 
-const toMessages = (message: unknown): ReadonlyArray<unknown> =>
-  Array.isArray(message) ? message : [message];
+const toMessages = (message: unknown): ReadonlyArray<unknown> => {
+  if (Array.isArray(message)) {
+    return message;
+  }
+  return [message];
+};
 
-const formatValue = (value: unknown): string =>
-  typeof value === 'string' ? value : Inspectable.toStringUnknown(value, 0);
+const formatValue = (value: unknown): string => {
+  if (typeof value === 'string') {
+    return value;
+  }
+  return Inspectable.toStringUnknown(value, 0);
+};
 
 const formatMessages = (messages: ReadonlyArray<unknown>): string =>
   messages.map(formatValue).join(' ');
@@ -59,12 +71,7 @@ const isJsonLike = (value: string): boolean => {
     return false;
   }
 
-  try {
-    JSON.parse(trimmed);
-    return true;
-  } catch {
-    return false;
-  }
+  return Option.isSome(Schema.decodeUnknownOption(Schema.fromJsonString(Schema.Json))(trimmed));
 };
 
 const shouldRenderRaw = (
@@ -93,7 +100,10 @@ const cliLogger = Logger.make<unknown, string>(({ cause, logLevel, message }) =>
   }
 
   const style = levelStyles[logLevel] ?? levelStyles.Info;
-  const prefix = colorsEnabled ? colorize(style.prefix, style.color) : `[${style.label}]`;
+  let prefix = `[${style.label}]`;
+  if (colorsEnabled) {
+    prefix = colorize(style.prefix, style.color);
+  }
   const formattedMessage = formatMessages(messages);
 
   const parts: string[] = [];

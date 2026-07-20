@@ -8,7 +8,15 @@ import { Argument, Command, Flag } from 'effect/unstable/cli';
 import { BunServices } from '@effect/platform-bun';
 import type { CategoryId, HymnId } from '@bible/core/hymnal';
 import { HymnalService } from '@bible/core/hymnal';
-import { Console, Effect, Layer, Option } from 'effect';
+import { Console, Effect, Layer, Option, Schema, SchemaGetter } from 'effect';
+
+const JsonString = Schema.Unknown.pipe(
+  Schema.encodeTo(Schema.String, {
+    decode: SchemaGetter.parseJson(),
+    encode: SchemaGetter.stringifyJson({ space: 2 }),
+  }),
+);
+const encodeJson = Schema.encodeUnknownEffect(JsonString);
 
 const jsonFlag = Flag.boolean('json').pipe(
   Flag.withDescription('Output JSON instead of formatted text'),
@@ -71,7 +79,7 @@ const getCommand = Command.make('get', { hymnNumber, json: jsonFlag }, (args) =>
 
     if (hymn === null) {
       if (args.json) {
-        yield* Console.log(JSON.stringify({ id: args.hymnNumber, hymn: null }, null, 2));
+        yield* Console.log(yield* encodeJson({ id: args.hymnNumber, hymn: null }));
         return;
       }
       yield* Console.log(`Hymn #${args.hymnNumber} not found.`);
@@ -80,7 +88,7 @@ const getCommand = Command.make('get', { hymnNumber, json: jsonFlag }, (args) =>
     }
 
     if (args.json) {
-      yield* Console.log(JSON.stringify(hymn, null, 2));
+      yield* Console.log(yield* encodeJson(hymn));
       return;
     }
 
@@ -112,7 +120,7 @@ const searchCommand = Command.make(
       const results = yield* service.searchHymns(query, limit);
 
       if (args.json) {
-        yield* Console.log(JSON.stringify({ query, matches: results }, null, 2));
+        yield* Console.log(yield* encodeJson({ query, matches: results }));
         return;
       }
 
@@ -121,9 +129,11 @@ const searchCommand = Command.make(
         return;
       }
 
-      yield* Console.log(
-        `Found ${results.length} hymn${results.length === 1 ? '' : 's'} matching "${query}":\n`,
-      );
+      let plural = 's';
+      if (results.length === 1) {
+        plural = '';
+      }
+      yield* Console.log(`Found ${results.length} hymn${plural} matching "${query}":\n`);
       for (const hymn of results) {
         yield* Console.log(formatHymnSummary(hymn));
         yield* Console.log('');

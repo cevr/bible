@@ -1,7 +1,6 @@
-import { $ } from 'bun';
-import { Effect, Layer, Context } from 'effect';
-import type { Cause } from 'effect';
-import { join } from 'path';
+import type * as PlatformError from 'effect/PlatformError';
+import { Effect, Layer, Path, Context } from 'effect';
+import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
 
 import { getCliRoot } from '~/src/lib/paths';
 
@@ -12,18 +11,23 @@ export interface ChimeService {
   /**
    * Play the done/notification chime.
    */
-  readonly play: Effect.Effect<void, Cause.UnknownError>;
+  readonly play: Effect.Effect<void, PlatformError.PlatformError>;
 }
 
 export class Chime extends Context.Service<Chime, ChimeService>()('@bible/cli/services/chime') {}
 
 /**
- * Live implementation using Bun shell to call afplay.
+ * Live implementation using the Effect child-process service.
  */
-export const ChimeLive = Layer.succeed(Chime, {
-  play: Effect.gen(function* () {
-    const assetPath = join(getCliRoot(), 'assets', 'notification.mp3');
-
-    yield* Effect.tryPromise(async () => await $`afplay ${assetPath} -v 0.15`);
+export const ChimeLive = Layer.effect(
+  Chime,
+  Effect.gen(function* () {
+    const path = yield* Path.Path;
+    const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+    const assetPath = path.join(getCliRoot(), 'assets', 'notification.mp3');
+    const play = spawner
+      .exitCode(ChildProcess.make('afplay', [assetPath, '-v', '0.15']))
+      .pipe(Effect.asVoid);
+    return Chime.of({ play });
   }),
-});
+);

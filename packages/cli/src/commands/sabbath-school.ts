@@ -1,13 +1,33 @@
 import { Command, Flag } from 'effect/unstable/cli';
-import { Array, Console, Data, Effect, FileSystem, Option, Schema } from 'effect';
+import { HttpClient, HttpClientResponse } from 'effect/unstable/http';
+import {
+  Array,
+  Console,
+  Data,
+  DateTime,
+  Effect,
+  FileSystem,
+  Option,
+  Path,
+  Schema,
+  SchemaGetter,
+} from 'effect';
 import * as cheerio from 'cheerio';
-import { dirname, join } from 'path';
 
 import { makeDeleteCommand, makeSyncCommand } from '~/src/lib/content/commands';
 import { SabbathSchoolConfig } from '~/src/lib/content/configs';
 import { parseFrontmatter, updateFrontmatter } from '~/src/lib/frontmatter';
 import { makeAppleNoteFromMarkdown } from '~/src/lib/markdown-to-notes';
 import { getOutputsPath } from '~/src/lib/paths';
+
+const currentDate = DateTime.toParts(DateTime.nowUnsafe());
+const JsonString = Schema.Unknown.pipe(
+  Schema.encodeTo(Schema.String, {
+    decode: SchemaGetter.parseJson(),
+    encode: SchemaGetter.stringifyJson({ space: 2 }),
+  }),
+);
+const encodeJson = Schema.encodeUnknownEffect(JsonString);
 
 class DownloadError extends Data.TaggedError('@bible/cli/commands/sabbath-school/DownloadError')<{
   week: number;
@@ -27,9 +47,9 @@ class MissingPdfError extends Data.TaggedError(
 
 const year = Flag.integer('year').pipe(
   Flag.withAlias('y'),
-  Flag.withSchema(Schema.Number.check(Schema.isLessThanOrEqualTo(new Date().getFullYear()))),
+  Flag.withSchema(Schema.Number.check(Schema.isLessThanOrEqualTo(currentDate.year))),
   Flag.optional,
-  Flag.map(Option.getOrElse(() => new Date().getFullYear())),
+  Flag.map(Option.getOrElse(() => currentDate.year)),
 );
 const quarter = Flag.integer('quarter').pipe(
   Flag.withAlias('q'),
@@ -37,7 +57,7 @@ const quarter = Flag.integer('quarter').pipe(
     Schema.Number.check(Schema.isGreaterThanOrEqualTo(1), Schema.isLessThanOrEqualTo(4)),
   ),
   Flag.optional,
-  Flag.map(Option.getOrElse(() => Math.floor(new Date().getMonth() / 3) + 1)),
+  Flag.map(Option.getOrElse(() => Math.floor((currentDate.month - 1) / 3) + 1)),
 );
 
 const week = Flag.integer('week').pipe(
@@ -60,20 +80,11 @@ interface WeekUrls {
 
 const findQuarterUrls = Effect.fn('findQuarterUrls')(function* (year: number, quarter: number) {
   const baseUrl = `https://www.sabbath.school/LessonBook?year=${year}&quarter=${quarter}`;
-  const response = yield* Effect.tryPromise({
-    try: () =>
-      fetch(baseUrl).then((res) => {
-        if (!res.ok) {
-          throw new Error(`HTTP error! status: ${res.status}`);
-        }
-        return res.text();
-      }),
-    catch: (cause: unknown) =>
-      new DownloadError({
-        week: 0,
-        cause,
-      }),
-  });
+  const response = yield* HttpClient.get(baseUrl).pipe(
+    Effect.flatMap(HttpClientResponse.filterStatusOk),
+    Effect.flatMap((result) => result.text),
+    Effect.mapError((cause) => new DownloadError({ week: 0, cause })),
+  );
 
   const $ = yield* Effect.try({
     try: () => cheerio.load(response),
@@ -123,42 +134,45 @@ const findQuarterUrls = Effect.fn('findQuarterUrls')(function* (year: number, qu
 
 const downloadPdf = Effect.fn('downloadPdf')(function* (url: string, cachePath: string) {
   const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
   const exists = yield* fs.exists(cachePath);
   if (exists) {
     const bytes = yield* fs.readFile(cachePath);
     return bytes.buffer as ArrayBuffer;
   }
 
-  const buffer = yield* Effect.tryPromise({
-    try: () =>
-      fetch(url).then((res) => {
-        if (!res.ok) {
-          throw new Error(`HTTP error! status: ${res.status}`);
-        }
-        return res.arrayBuffer();
-      }),
-    catch: (cause: unknown) =>
-      new DownloadError({
-        week: 0,
-        cause,
-      }),
-  });
+  const buffer = yield* HttpClient.get(url).pipe(
+    Effect.flatMap(HttpClientResponse.filterStatusOk),
+    Effect.flatMap((result) => result.arrayBuffer),
+    Effect.mapError((cause) => new DownloadError({ week: 0, cause })),
+  );
 
-  yield* fs.makeDirectory(dirname(cachePath), { recursive: true });
+  yield* fs.makeDirectory(path.dirname(cachePath), { recursive: true });
   yield* fs.writeFile(cachePath, new Uint8Array(buffer));
 
   return buffer;
 });
 
-const getFilePath = (year: number, quarter: number, week: number) => {
+const getFilePath = Effect.fn('getFilePath')(function* (
+  year: number,
+  quarter: number,
+  week: number,
+) {
+  const path = yield* Path.Path;
   const outputDir = getOutputsPath('sabbath-school');
-  return join(outputDir, `${year}-Q${quarter}-W${week}.md`);
-};
+  return path.join(outputDir, `${year}-Q${quarter}-W${week}.md`);
+});
 
-const getPdfPath = (year: number, quarter: number, week: number, type: 'lesson' | 'egw') => {
+const getPdfPath = Effect.fn('getPdfPath')(function* (
+  year: number,
+  quarter: number,
+  week: number,
+  type: 'lesson' | 'egw',
+) {
+  const path = yield* Path.Path;
   const pdfDir = getOutputsPath('sabbath-school', 'pdfs');
-  return join(pdfDir, `${year}-Q${quarter}-W${week}-${type}.pdf`);
-};
+  return path.join(pdfDir, `${year}-Q${quarter}-W${week}-${type}.pdf`);
+});
 
 const fetchJson = Flag.boolean('json').pipe(
   Flag.withDescription('Output JSON with paths and metadata instead of human-readable status'),
@@ -168,11 +182,11 @@ const fetchJson = Flag.boolean('json').pipe(
 const fetchQuarter = Command.make('fetch', { year, quarter, week, json: fetchJson }, (args) =>
   Effect.gen(function* () {
     if (!args.json) {
-      yield* Effect.log(
-        `Fetching PDFs for Q${args.quarter} ${args.year}${
-          Option.isSome(args.week) ? ` Week ${args.week.value}` : ''
-        }`,
-      );
+      const weekDescription = Option.match(args.week, {
+        onSome: (selectedWeek) => ` Week ${selectedWeek}`,
+        onNone: () => '',
+      });
+      yield* Effect.log(`Fetching PDFs for Q${args.quarter} ${args.year}${weekDescription}`);
     }
 
     const weeks = Option.match(args.week, {
@@ -200,8 +214,8 @@ const fetchQuarter = Command.make('fetch', { year, quarter, week, json: fetchJso
       requested,
       (urls) =>
         Effect.gen(function* () {
-          const lessonPath = getPdfPath(args.year, args.quarter, urls.weekNumber, 'lesson');
-          const egwPath = getPdfPath(args.year, args.quarter, urls.weekNumber, 'egw');
+          const lessonPath = yield* getPdfPath(args.year, args.quarter, urls.weekNumber, 'lesson');
+          const egwPath = yield* getPdfPath(args.year, args.quarter, urls.weekNumber, 'egw');
           yield* downloadPdf(urls.files.lessonPdf, lessonPath);
           yield* downloadPdf(urls.files.egwPdf, egwPath);
           downloaded.push({
@@ -221,7 +235,7 @@ const fetchQuarter = Command.make('fetch', { year, quarter, week, json: fetchJso
     );
 
     if (args.json) {
-      yield* Console.log(JSON.stringify({ weeks: downloaded }, null, 2));
+      yield* Console.log(yield* encodeJson({ weeks: downloaded }));
     } else {
       yield* Effect.log(`Done — ${downloaded.length} week(s) fetched`);
     }
@@ -230,11 +244,11 @@ const fetchQuarter = Command.make('fetch', { year, quarter, week, json: fetchJso
 
 const exportQuarter = Command.make('export', { year, quarter, week }, ({ year, quarter, week }) =>
   Effect.gen(function* () {
-    yield* Effect.log(
-      `Starting outline export for Q${quarter} ${year}${
-        Option.isSome(week) ? ` Week ${week.value}` : ''
-      }`,
-    );
+    const weekDescription = Option.match(week, {
+      onSome: (selectedWeek) => ` Week ${selectedWeek}`,
+      onNone: () => '',
+    });
+    yield* Effect.log(`Starting outline export for Q${quarter} ${year}${weekDescription}`);
 
     const weeks = Option.match(week, {
       onSome: (w) => [w],
@@ -245,7 +259,7 @@ const exportQuarter = Command.make('export', { year, quarter, week }, ({ year, q
 
     const weeksToExport = yield* Effect.filter(weeks, (weekNumber) =>
       Effect.gen(function* () {
-        const outlinePath = getFilePath(year, quarter, weekNumber);
+        const outlinePath = yield* getFilePath(year, quarter, weekNumber);
         const exists = yield* fs.exists(outlinePath);
         return exists;
       }),
@@ -258,7 +272,7 @@ const exportQuarter = Command.make('export', { year, quarter, week }, ({ year, q
 
     yield* Effect.forEach(weeksToExport, (weekNumber, index) =>
       Effect.gen(function* () {
-        const outlinePath = getFilePath(year, quarter, weekNumber);
+        const outlinePath = yield* getFilePath(year, quarter, weekNumber);
         const rawContent = yield* fs
           .readFile(outlinePath)
           .pipe(Effect.map((i) => new TextDecoder().decode(i)));

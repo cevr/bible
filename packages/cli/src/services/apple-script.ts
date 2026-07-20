@@ -1,6 +1,5 @@
-import Bun from 'bun';
-import { Effect, Layer, Context } from 'effect';
-import type { Cause } from 'effect';
+import { Cause, Context, Effect, Layer, Stream } from 'effect';
+import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process';
 
 /**
  * Service for executing AppleScript commands.
@@ -27,35 +26,38 @@ export class AppleScript extends Context.Service<AppleScript, AppleScriptService
 ) {}
 
 /**
- * Live implementation using Bun.spawn to call osascript.
+ * Live implementation using the Effect child-process service.
  */
-export const AppleScriptLive = Layer.succeed(AppleScript, {
-  exec: (script: string) =>
-    Effect.tryPromise({
-      try: async () => {
-        const child = Bun.spawn(['osascript', '-e', script]);
-        const text = await new Response(child.stdout).text();
-        return text;
-      },
-      catch: (error) => error as Cause.UnknownError,
-    }),
-  execJxa: (script: string) =>
-    Effect.tryPromise({
-      try: async () => {
-        const child = Bun.spawn(['osascript', '-l', 'JavaScript', '-e', script], {
-          stdout: 'pipe',
-          stderr: 'pipe',
-        });
-        const [out, err] = await Promise.all([
-          new Response(child.stdout).text(),
-          new Response(child.stderr).text(),
-        ]);
-        const code = await child.exited;
-        if (code !== 0) {
-          throw new Error(`osascript (JXA) exited ${code}: ${err.trim() || out.trim()}`);
-        }
-        return out;
-      },
-      catch: (error) => error as Cause.UnknownError,
-    }),
-});
+export const AppleScriptLive = Layer.effect(
+  AppleScript,
+  Effect.gen(function* () {
+    const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+    const exec = (script: string) =>
+      spawner
+        .string(ChildProcess.make('osascript', ['-e', script]))
+        .pipe(Effect.mapError((cause) => new Cause.UnknownError(cause)));
+    const execJxa = (script: string) =>
+      Effect.scoped(
+        Effect.gen(function* () {
+          const handle = yield* spawner.spawn(
+            ChildProcess.make('osascript', ['-l', 'JavaScript', '-e', script]),
+          );
+          const [out, err, code] = yield* Effect.all(
+            [
+              Stream.decodeText(handle.stdout).pipe(Stream.mkString),
+              Stream.decodeText(handle.stderr).pipe(Stream.mkString),
+              handle.exitCode,
+            ],
+            { concurrency: 'unbounded' },
+          );
+          if (code !== 0) {
+            return yield* new Cause.UnknownError(
+              `osascript (JXA) exited ${code}: ${err.trim() || out.trim()}`,
+            );
+          }
+          return out;
+        }),
+      ).pipe(Effect.mapError((cause) => new Cause.UnknownError(cause)));
+    return AppleScript.of({ exec, execJxa });
+  }),
+);

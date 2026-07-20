@@ -11,17 +11,14 @@
 
 import { BIBLE_ARTIFACT_RELEASE, CorpusSupply } from '@bible/core/corpus-supply';
 import { layerNativeBibleArtifacts } from '@bible/core/corpus-supply/node';
-import { Console, Effect, Layer, Schema } from 'effect';
+import { Config, Console, Effect, FileSystem, Layer, Path, Schema } from 'effect';
 import { Command, Flag } from 'effect/unstable/cli';
-import { existsSync, mkdirSync } from 'fs';
-import { homedir } from 'os';
-import { join } from 'path';
+import { HttpClient, HttpClientResponse } from 'effect/unstable/http';
 
 class InitError extends Schema.TaggedErrorClass<InitError>()('InitError', {
   cause: Schema.Unknown,
 }) {}
 
-const BIBLE_DIR = join(homedir(), '.bible');
 const GITHUB_RAW = 'https://raw.githubusercontent.com/cevr/bible/main';
 
 const DBS = {
@@ -40,42 +37,46 @@ const force = Flag.boolean('force').pipe(
 
 const downloadFile = (url: string, dest: string, label: string) =>
   Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
     yield* Console.log(`Downloading ${label}...`);
-    yield* Effect.tryPromise({
-      try: async () => {
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-        const buf = await res.arrayBuffer();
-        await Bun.write(dest, new Uint8Array(buf));
-      },
-      catch: (error) => new InitError({ cause: error }),
-    });
+    const bytes = yield* HttpClient.get(url).pipe(
+      Effect.flatMap(HttpClientResponse.filterStatusOk),
+      Effect.flatMap((response) => response.arrayBuffer),
+      Effect.mapError((cause) => new InitError({ cause })),
+    );
+    yield* fs.writeFile(dest, new Uint8Array(bytes));
   });
 
 export const init = Command.make('init', { force }, (args) =>
   Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    const home = yield* Config.string('HOME');
+    const bibleDir = path.join(home, '.bible');
     // Ensure ~/.bible/ exists
-    if (!existsSync(BIBLE_DIR)) {
-      mkdirSync(BIBLE_DIR, { recursive: true });
-      yield* Console.log(`Created ${BIBLE_DIR}`);
+    if (!(yield* fs.exists(bibleDir))) {
+      yield* fs.makeDirectory(bibleDir, { recursive: true });
+      yield* Console.log(`Created ${bibleDir}`);
     }
 
     const bibleArtifacts = layerNativeBibleArtifacts({
-      destination: join(BIBLE_DIR, 'bible.db'),
+      destination: path.join(bibleDir, 'bible.db'),
       sources: [{ kind: 'release', ...BIBLE_ARTIFACT_RELEASE }],
     });
     const bibleSupply = CorpusSupply.layer.pipe(Layer.provide(bibleArtifacts));
     const bible = yield* Effect.gen(function* () {
       return yield* (yield* CorpusSupply).ensure({ refresh: args.force });
     }).pipe(Effect.provide(bibleSupply));
-    yield* Console.log(
-      `✓ bible.db (${bible.activated.length === 0 ? 'ready' : 'installed and verified'})`,
-    );
+    let bibleStatus = 'installed and verified';
+    if (bible.activated.length === 0) {
+      bibleStatus = 'ready';
+    }
+    yield* Console.log(`✓ bible.db (${bibleStatus})`);
 
     // Download each database
     for (const db of Object.values(DBS)) {
-      const dbPath = join(BIBLE_DIR, db.name);
-      if (!args.force && existsSync(dbPath)) {
+      const dbPath = path.join(bibleDir, db.name);
+      if (!args.force && (yield* fs.exists(dbPath))) {
         yield* Console.log(`✓ ${db.name} (${db.description})`);
       } else {
         yield* downloadFile(db.url, dbPath, `${db.name} ${db.size}`);
@@ -84,8 +85,8 @@ export const init = Command.make('init', { force }, (args) =>
     }
 
     // EGW database status
-    const egwDbPath = join(BIBLE_DIR, 'egw-paragraphs.db');
-    if (existsSync(egwDbPath)) {
+    const egwDbPath = path.join(bibleDir, 'egw-paragraphs.db');
+    if (yield* fs.exists(egwDbPath)) {
       yield* Console.log(`✓ egw-paragraphs.db (EGW writings)`);
     } else {
       yield* Console.log(`✗ egw-paragraphs.db — add publications with:`);
@@ -93,6 +94,6 @@ export const init = Command.make('init', { force }, (args) =>
     }
 
     yield* Console.log(``);
-    yield* Console.log(`Databases: ${BIBLE_DIR}`);
+    yield* Console.log(`Databases: ${bibleDir}`);
   }),
 );

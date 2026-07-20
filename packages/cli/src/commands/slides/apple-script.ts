@@ -1,4 +1,14 @@
 import { escapeAppleScriptString } from '../../lib/apple-notes-utils.js';
+import { Schema, SchemaGetter } from 'effect';
+
+const JsonString = Schema.Unknown.pipe(
+  Schema.encodeTo(Schema.String, {
+    decode: SchemaGetter.parseJson(),
+    encode: SchemaGetter.stringifyJson(),
+  }),
+);
+
+const encodeJson = Schema.encodeUnknownSync(JsonString);
 
 /**
  * Convert ANY JS string (including embedded newlines) into a VALID AppleScript
@@ -19,7 +29,7 @@ export function asText(str: string): string {
 
 /** Embed a runtime string into generated JXA source safely (valid JS literal). */
 export function jxaStr(value: string): string {
-  return JSON.stringify(value);
+  return encodeJson(value);
 }
 
 /** A deck arg is a path (vs an open-document name substring) if it looks file-y. */
@@ -41,12 +51,17 @@ export function basename(p: string): string {
  * name substring.
  */
 export function findDocAS(isPath: boolean, deckResolved: string): string {
-  return isPath
-    ? `\topen POSIX file ${asText(deckResolved)}\n` +
-        `\tif (count of (documents whose name is ${asText(basename(deckResolved))})) = 0 then return "ERROR: could not open deck — " & ${asText(deckResolved)}\n` +
-        `\tset theDoc to first document whose name is ${asText(basename(deckResolved))}`
-    : `\tif (count of (documents whose name contains ${asText(deckResolved)})) = 0 then return "ERROR: deck not open — " & ${asText(deckResolved)}\n` +
-        `\tset theDoc to item 1 of (documents whose name contains ${asText(deckResolved)})`;
+  if (isPath) {
+    return (
+      `\topen POSIX file ${asText(deckResolved)}\n` +
+      `\tif (count of (documents whose name is ${asText(basename(deckResolved))})) = 0 then return "ERROR: could not open deck — " & ${asText(deckResolved)}\n` +
+      `\tset theDoc to first document whose name is ${asText(basename(deckResolved))}`
+    );
+  }
+  return (
+    `\tif (count of (documents whose name contains ${asText(deckResolved)})) = 0 then return "ERROR: deck not open — " & ${asText(deckResolved)}\n` +
+    `\tset theDoc to item 1 of (documents whose name contains ${asText(deckResolved)})`
+  );
 }
 
 /**

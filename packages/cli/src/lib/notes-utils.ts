@@ -1,5 +1,6 @@
-import Bun from 'bun';
 import { Data, Effect, Option } from 'effect';
+
+import { AppleScript } from '~/src/services/apple-script';
 
 // --- Helper Function: Execute AppleScript Command ---
 class AppleScriptExecError extends Data.TaggedError(
@@ -9,25 +10,18 @@ class AppleScriptExecError extends Data.TaggedError(
   cause?: unknown;
 }> {}
 
-const execCommand = Effect.fn('execCommand')(function* (command: string[]) {
-  return yield* Effect.tryPromise({
-    try: async () => {
-      const child = Bun.spawn(command);
-      const text = await new Response(child.stdout).text();
-      const errorText = await new Response(child.stderr).text();
-      if (errorText.length > 0) {
-        throw new AppleScriptExecError({
-          message: `AppleScript Error: ${errorText}`,
-        });
-      }
-      return text.trim();
-    },
-    catch: (cause) =>
-      new AppleScriptExecError({
-        message: 'AppleScript execution failed',
-        cause,
-      }),
-  });
+const execCommand = Effect.fn('execCommand')(function* (script: string) {
+  const appleScript = yield* AppleScript;
+  return yield* appleScript.exec(script).pipe(
+    Effect.map((text) => text.trim()),
+    Effect.mapError(
+      (cause) =>
+        new AppleScriptExecError({
+          message: 'AppleScript execution failed',
+          cause,
+        }),
+    ),
+  );
 });
 
 // --- Types ---
@@ -83,7 +77,7 @@ export const listNotes = Effect.fn('listNotes')(function* () {
     return output
   `;
 
-  const rawOutput = yield* execCommand(['osascript', '-e', script]).pipe(
+  const rawOutput = yield* execCommand(script).pipe(
     Effect.mapError(
       (error) =>
         new NoteOperationError({
@@ -143,7 +137,7 @@ export const getNoteContent = Effect.fn('getNoteContent')(function* (noteId: str
     end tell
   `;
 
-  const content = yield* execCommand(['osascript', '-e', script]).pipe(
+  const content = yield* execCommand(script).pipe(
     Effect.mapError(
       (error) =>
         new NoteOperationError({
@@ -192,7 +186,7 @@ export const updateNoteContent = Effect.fn('updateNoteContent')(function* (
     end tell
   `;
 
-  const result = yield* execCommand(['osascript', '-e', script]).pipe(
+  const result = yield* execCommand(script).pipe(
     Effect.mapError(
       (error) =>
         new NoteOperationError({
@@ -233,7 +227,7 @@ export const deleteNote = Effect.fn('deleteNote')(function* (noteId: string) {
     end tell
   `;
 
-  const result = yield* execCommand(['osascript', '-e', script]).pipe(
+  const result = yield* execCommand(script).pipe(
     Effect.mapError(
       (error) =>
         new NoteOperationError({
@@ -281,7 +275,7 @@ export const createNote = Effect.fn('createNote')(function* (title: string, body
     end tell
   `;
 
-  const newNoteId = yield* execCommand(['osascript', '-e', script]).pipe(
+  const newNoteId = yield* execCommand(script).pipe(
     Effect.mapError(
       (error) =>
         new NoteOperationError({
@@ -346,7 +340,7 @@ export const findNoteByTitle = Effect.fn('findNoteByTitle')(function* (
     end tell
   `;
 
-  const result = yield* execCommand(['osascript', '-e', script]).pipe(
+  const result = yield* execCommand(script).pipe(
     Effect.mapError(
       (error) =>
         new NoteOperationError({

@@ -1,19 +1,27 @@
-import { Effect, Option } from 'effect';
+import { Clock, Effect, Option } from 'effect';
 import { matchSorter } from 'match-sorter';
 
 export const spin = Effect.fn('prelude/spin')(function* <V, E, R>(
   message: string,
   job: Effect.Effect<V, E, R>,
 ) {
-  const start = Date.now();
+  const start = yield* Clock.currentTimeMillis;
   yield* Effect.logDebug(`${message}...`);
   const result = yield* job.pipe(
-    Effect.tap(() => Effect.logDebug(`${message} done (${msToMinutes(Date.now() - start)})`)),
+    Effect.tap(() =>
+      Clock.currentTimeMillis.pipe(
+        Effect.flatMap((end) => Effect.logDebug(`${message} done (${msToMinutes(end - start)})`)),
+      ),
+    ),
     Effect.tapError(() =>
-      Effect.logError(`${message} failed (${msToMinutes(Date.now() - start)})`),
+      Clock.currentTimeMillis.pipe(
+        Effect.flatMap((end) => Effect.logError(`${message} failed (${msToMinutes(end - start)})`)),
+      ),
     ),
     Effect.tapDefect(() =>
-      Effect.logError(`${message} failed (${msToMinutes(Date.now() - start)})`),
+      Clock.currentTimeMillis.pipe(
+        Effect.flatMap((end) => Effect.logError(`${message} failed (${msToMinutes(end - start)})`)),
+      ),
     ),
   );
 

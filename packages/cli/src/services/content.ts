@@ -1,7 +1,6 @@
-import type { Cause, Schema } from 'effect';
-import { Effect, FileSystem, Layer, Match, Context } from 'effect';
+import type { Cause } from 'effect';
+import { Context, Effect, FileSystem, Layer, Match, Path, Schema, SchemaGetter } from 'effect';
 import type * as PlatformError from 'effect/PlatformError';
-import { join } from 'path';
 
 import type { ContentTypeConfig, SortStrategy } from '~/src/lib/content/types';
 import {
@@ -17,6 +16,15 @@ import {
 } from '~/src/lib/markdown-to-notes';
 import { deleteNote, type NoteOperationError } from '~/src/lib/notes-utils';
 import type { AppleScript } from '~/src/services/apple-script';
+
+const JsonString = Schema.Unknown.pipe(
+  Schema.encodeTo(Schema.String, {
+    decode: SchemaGetter.parseJson(),
+    encode: SchemaGetter.stringifyJson({ space: 2 }),
+  }),
+);
+
+const encodeJson = Schema.encodeUnknownEffect(JsonString);
 
 type ContentListError = Schema.SchemaError;
 type ContentExportError =
@@ -39,7 +47,9 @@ export class ContentService extends Context.Service<
     readonly sync: (
       filePaths: readonly string[],
     ) => Effect.Effect<void, ContentSyncError, AppleScript>;
-    readonly deleteNotes: (filePaths: readonly string[]) => Effect.Effect<void, ContentDeleteError>;
+    readonly deleteNotes: (
+      filePaths: readonly string[],
+    ) => Effect.Effect<void, ContentDeleteError, AppleScript>;
   }
 >()('@bible/cli/services/content/ContentService') {
   static make = <F extends Schema.Top>(config: ContentTypeConfig<F>) =>
@@ -47,6 +57,7 @@ export class ContentService extends Context.Service<
       ContentService,
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
 
         const list = (json: boolean) =>
           Effect.gen(function* () {
@@ -57,10 +68,10 @@ export class ContentService extends Context.Service<
 
             const mdFiles = files.filter((f) => f.endsWith('.md'));
             const sorted = sortFiles(mdFiles, config.sortStrategy);
-            const filePaths = sorted.map((f) => join(outputDir, f));
+            const filePaths = sorted.map((f) => path.join(outputDir, f));
 
             if (json) {
-              const jsonOutput = JSON.stringify(filePaths, null, 2);
+              const jsonOutput = yield* encodeJson(filePaths);
               yield* Effect.log(jsonOutput);
             } else if (sorted.length === 0) {
               yield* Effect.log(`No ${config.displayName.toLowerCase()}s found.`);

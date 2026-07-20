@@ -4,6 +4,7 @@ import {
   generateText as aiGenerateText,
   jsonSchema,
   stepCountIs,
+  TypeValidationError,
 } from 'ai';
 import { Effect, Layer, Option, Schema, Context } from 'effect';
 
@@ -54,19 +55,21 @@ export interface AIService {
  */
 function toAISchema<A>(schema: Schema.Decoder<A>) {
   const doc = Schema.toJsonSchemaDocument(schema);
-  const js = {
-    ...doc.schema,
-    ...(Object.keys(doc.definitions).length > 0 ? { $defs: doc.definitions } : {}),
-  };
-  const decode = Schema.decodeUnknownSync(schema);
+  const js = { ...doc.schema };
+  if (Object.keys(doc.definitions).length > 0) {
+    js['$defs'] = doc.definitions;
+  }
+  const decode = Schema.decodeUnknownOption(schema);
   return jsonSchema<A>(js, {
     validate: (value) => {
-      try {
-        const result = decode(value);
-        return { success: true, value: result } as const;
-      } catch (e) {
-        return { success: false, error: e instanceof Error ? e : new Error(String(e)) } as const;
+      const decoded = decode(value);
+      if (Option.isSome(decoded)) {
+        return { success: true, value: decoded.value } as const;
       }
+      return {
+        success: false,
+        error: TypeValidationError.wrap({ value, cause: 'Effect schema validation failed' }),
+      } as const;
     },
   });
 }
@@ -88,67 +91,70 @@ export class AI extends Context.Service<AI, AIService>()('@bible/cli/services/ai
   }
 
   static #createService(models: ModelService): AIService {
-    const getModel = (quality: Quality = 'high'): LanguageModel =>
-      quality === 'high' ? models.high : models.low;
+    const getModel = (quality: Quality = 'high'): LanguageModel => {
+      if (quality === 'high') {
+        return models.high;
+      }
+      return models.low;
+    };
 
     return {
       generateText: (options) =>
         Effect.tryPromise({
-          try: async () => {
-            const result = await aiGenerateText({
+          try: () =>
+            aiGenerateText({
               model: getModel(options.model),
               system: options.system,
               messages: options.messages,
               maxOutputTokens: options.maxOutputTokens,
-            });
-            return { text: result.text };
-          },
+            }),
           catch: (error) =>
             new AIError({
               operation: 'generateText',
               cause: error,
             }),
-        }),
+        }).pipe(Effect.map((result) => ({ text: result.text }))),
 
       generateTextWithTools: (options) =>
         Effect.tryPromise({
-          try: async () => {
-            const result = await aiGenerateText({
+          try: () =>
+            aiGenerateText({
               model: getModel(options.model),
               system: options.system,
               messages: options.messages,
               maxOutputTokens: options.maxOutputTokens,
               tools: options.tools,
               stopWhen: stepCountIs(options.maxSteps ?? 5),
-            });
-            // result.text is empty when the final step is a tool call, not a text response
-            const text = result.text || [...result.steps].reverse().find((s) => s.text)?.text || '';
-            return { text };
-          },
+            }),
           catch: (error) =>
             new AIError({
               operation: 'generateTextWithTools',
               cause: error,
             }),
-        }),
+        }).pipe(
+          Effect.map((result) => {
+            // result.text is empty when the final step is a tool call, not a text response
+            const text = result.text || [...result.steps].reverse().find((s) => s.text)?.text || '';
+            return { text };
+          }),
+        ),
 
       generateObject: <A>(options: GenerateObjectOptions<A>) =>
         Effect.tryPromise({
-          try: async () => {
+          try: () => {
             const aiSchema = toAISchema(options.schema);
-            const result = await aiGenerateObject({
+            return aiGenerateObject({
               model: getModel(options.model),
               messages: options.messages,
               schema: aiSchema,
             });
-            return { object: result.object };
           },
           catch: (error) =>
             new AIError({
               operation: 'generateObject',
               cause: error,
             }),
-        }),
+        }).pipe(Effect.map((result) => ({ object: result.object }))),
     };
   }
 }

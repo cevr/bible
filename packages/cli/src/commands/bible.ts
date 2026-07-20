@@ -4,9 +4,17 @@ import { formatBibleReference, getBibleBook, parseBibleQuery, type Verse } from 
 import { BibleService } from '@bible/core/bible/service';
 import { BibleDatabase, type ConcordanceHit, type StrongsEntry } from '@bible/core/bible-db';
 import * as BibleDbBun from '@bible/core/bible-db/bun';
-import { Console, Effect, Layer, Option } from 'effect';
+import { Console, Effect, Layer, Option, Schema, SchemaGetter } from 'effect';
 
 import { versesForBibleQuery } from '~/src/lib/bible-query';
+
+const JsonString = Schema.Unknown.pipe(
+  Schema.encodeTo(Schema.String, {
+    decode: SchemaGetter.parseJson(),
+    encode: SchemaGetter.stringifyJson({ space: 2 }),
+  }),
+);
+const encodeJson = Schema.encodeUnknownEffect(JsonString);
 
 // Variadic args to capture "john 3:16" or "john" "3:16" etc.
 const query = Argument.string('query').pipe(Argument.variadic());
@@ -48,7 +56,11 @@ function printSearchResults(query: string, verses: readonly Verse[]): Effect.Eff
   if (verses.length === 0) {
     return Console.log(`No verses found matching "${query}".`);
   }
-  const header = `Found ${verses.length} verse${verses.length === 1 ? '' : 's'} matching "${query}":\n`;
+  let plural = 's';
+  if (verses.length === 1) {
+    plural = '';
+  }
+  const header = `Found ${verses.length} verse${plural} matching "${query}":\n`;
   const output = verses.map(formatVerse).join('\n\n');
   return Console.log(header + '\n' + output);
 }
@@ -83,15 +95,11 @@ export const verse = Command.make('verse', { query, json: jsonFlag, limit: limit
       const verses = results.map((r) => r.verse);
       if (args.json) {
         yield* Console.log(
-          JSON.stringify(
-            {
-              mode: 'search',
-              query: parsed.query,
-              verses: verses.map(verseJson),
-            },
-            null,
-            2,
-          ),
+          yield* encodeJson({
+            mode: 'search',
+            query: parsed.query,
+            verses: verses.map(verseJson),
+          }),
         );
         return;
       }
@@ -100,15 +108,11 @@ export const verse = Command.make('verse', { query, json: jsonFlag, limit: limit
       const verses = yield* versesForBibleQuery(parsed);
       if (args.json) {
         yield* Console.log(
-          JSON.stringify(
-            {
-              mode: 'reference',
-              query: queryStr,
-              verses: verses.map(verseJson),
-            },
-            null,
-            2,
-          ),
+          yield* encodeJson({
+            mode: 'reference',
+            query: queryStr,
+            verses: verses.map(verseJson),
+          }),
         );
         return;
       }
@@ -126,7 +130,10 @@ export function isStrongsNumber(query: string): boolean {
 
 // Format a Strong's entry for output
 function formatStrongsEntry(entry: StrongsEntry): string {
-  const prefix = entry.number.startsWith('H') ? 'Hebrew' : 'Greek';
+  let prefix = 'Greek';
+  if (entry.number.startsWith('H')) {
+    prefix = 'Hebrew';
+  }
   const xlit = entry.transliteration ?? entry.lemma;
   return `${entry.number} - ${entry.lemma} (${xlit}) [${prefix}]\n${entry.definition}`;
 }
@@ -166,7 +173,7 @@ export const concordance = Command.make(
 
         if (Option.isNone(entryOpt)) {
           if (args.json) {
-            yield* Console.log(JSON.stringify({ mode: 'strongs', number, entry: null }, null, 2));
+            yield* Console.log(yield* encodeJson({ mode: 'strongs', number, entry: null }));
             return;
           }
           yield* Console.log(`Strong's number ${number} not found.`);
@@ -180,7 +187,7 @@ export const concordance = Command.make(
 
         if (args.json) {
           yield* Console.log(
-            JSON.stringify({ mode: 'strongs', number, entry, verses: limitedResults }, null, 2),
+            yield* encodeJson({ mode: 'strongs', number, entry, verses: limitedResults }),
           );
           return;
         }
@@ -191,7 +198,11 @@ export const concordance = Command.make(
         if (results.length === 0) {
           yield* Console.log('No verses found with this word.');
         } else {
-          yield* Console.log(`Found in ${results.length} verse${results.length === 1 ? '' : 's'}:`);
+          let plural = 's';
+          if (results.length === 1) {
+            plural = '';
+          }
+          yield* Console.log(`Found in ${results.length} verse${plural}:`);
           yield* Console.log('');
           for (const result of limitedResults) {
             yield* Console.log(formatConcordanceHit(result));
@@ -204,7 +215,7 @@ export const concordance = Command.make(
         const entries = yield* db.searchStrongs(queryStr, limit);
 
         if (args.json) {
-          yield* Console.log(JSON.stringify({ mode: 'search', query: queryStr, entries }, null, 2));
+          yield* Console.log(yield* encodeJson({ mode: 'search', query: queryStr, entries }));
           return;
         }
 
@@ -213,8 +224,12 @@ export const concordance = Command.make(
           return;
         }
 
+        let entrySuffix = 'ies';
+        if (entries.length === 1) {
+          entrySuffix = 'y';
+        }
         yield* Console.log(
-          `Found ${entries.length} Strong's entr${entries.length === 1 ? 'y' : 'ies'} matching "${queryStr}":`,
+          `Found ${entries.length} Strong's entr${entrySuffix} matching "${queryStr}":`,
         );
         yield* Console.log('');
         for (const entry of entries) {

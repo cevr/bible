@@ -1,6 +1,5 @@
 import { Command } from 'effect/unstable/cli';
-import { Effect, FileSystem, Option } from 'effect';
-import { join } from 'path';
+import { Effect, FileSystem, Option, Path } from 'effect';
 
 import { MessagesConfig } from '~/src/lib/content/configs';
 import {
@@ -18,13 +17,16 @@ import { getOutputsPath } from '~/src/lib/paths';
 const linkMessages = Command.make('link', { dryRun }, (args) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
 
     const messagesDir = getOutputsPath('messages');
     const files = yield* fs
       .readDirectory(messagesDir)
       .pipe(Effect.catch(() => Effect.succeed([] as string[])));
 
-    const mdFiles = files.filter((f) => f.endsWith('.md')).map((file) => join(messagesDir, file));
+    const mdFiles = files
+      .filter((f) => f.endsWith('.md'))
+      .map((file) => path.join(messagesDir, file));
 
     if (mdFiles.length === 0) {
       yield* Effect.log('No messages found to sync.');
