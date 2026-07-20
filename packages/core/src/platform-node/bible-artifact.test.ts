@@ -1,112 +1,130 @@
-import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
-import { statSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
+import { BunFileSystem } from '@effect/platform-bun';
+import { Effect, FileSystem, Layer, Option } from 'effect';
+import { describe, expect, it } from 'effect-bun-test';
 
-import { afterEach, describe, expect, test } from 'bun:test';
-import { Effect, Layer } from 'effect';
-
-import { layerNativeBibleArtifacts, type NativeBibleArtifactSource } from './bible-artifact.js';
 import type { CorpusSupplyReceipt } from '../corpus-supply/model.js';
 import { CorpusSupply } from '../corpus-supply/service.js';
+import {
+  layerNativeBibleArtifacts,
+  type NativeBibleArtifactProvenanceStore,
+  type NativeBibleArtifactSource,
+} from './bible-artifact.js';
 
-const directories: string[] = [];
+const makeProvenanceStore = (): NativeBibleArtifactProvenanceStore => {
+  let current: ReturnType<NativeBibleArtifactProvenanceStore['read']> | undefined;
 
-const temporaryDirectory = async (): Promise<string> => {
-  const directory = await mkdtemp(path.join(tmpdir(), 'bible-desktop-corpus-'));
-  directories.push(directory);
-  return directory;
+  return {
+    read: () => Option.getOrThrow(Option.fromNullishOr(current)),
+    write: (_filename, provenance) => {
+      current = provenance;
+    },
+  };
 };
-
-afterEach(async () => {
-  await Promise.all(directories.splice(0).map((directory) => rm(directory, { recursive: true })));
-});
 
 const ensure = (
   destination: string,
   sources: readonly NativeBibleArtifactSource[],
-  fetch?: (url: string) => Promise<Response>,
-): Promise<CorpusSupplyReceipt> => {
+  provenanceStore: NativeBibleArtifactProvenanceStore,
+  fetch?: (url: string) => Effect.Effect<Response, unknown>,
+): Effect.Effect<CorpusSupplyReceipt, unknown> => {
   const artifacts = layerNativeBibleArtifacts({
     destination,
     sources,
     fetch,
-    verify: (filename) => statSync(filename).size,
+    provenanceStore,
+    verify: () => 1,
   });
   const supply = CorpusSupply.layer.pipe(Layer.provide(artifacts));
-  return Effect.runPromise(
-    Effect.gen(function* () {
-      return yield* (yield* CorpusSupply).ensure();
-    }).pipe(Effect.provide(supply)),
-  );
+  return Effect.gen(function* () {
+    return yield* (yield* CorpusSupply).ensure();
+  }).pipe(Effect.provide(supply));
 };
 
 describe('desktop Bible Artifact adapter', () => {
-  test('activates the first available source atomically and reuses exact Provenance', async () => {
-    const directory = await temporaryDirectory();
-    const missing = path.join(directory, 'missing.db');
-    const source = path.join(directory, 'source.db');
-    const destination = path.join(directory, 'user-data', 'bible.db');
-    await writeFile(source, 'canonical-corpus');
-    const sources: readonly NativeBibleArtifactSource[] = [
-      { kind: 'packaged', path: missing, label: 'packaged' },
-      { kind: 'workspace', path: source, label: 'development' },
-    ];
+  const test = it.scopedLive.layer(BunFileSystem.layer);
 
-    const first = await ensure(destination, sources);
-    const second = await ensure(destination, sources);
+  test('activates the first available source atomically and reuses exact Provenance', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const directory = yield* fs.makeTempDirectoryScoped({ prefix: 'bible-desktop-corpus-' });
+      const missing = `${directory}/missing.db`;
+      const source = `${directory}/source.db`;
+      const destination = `${directory}/user-data/bible.db`;
+      const provenanceStore = makeProvenanceStore();
+      yield* fs.writeFileString(source, 'canonical-corpus');
+      const sources: readonly NativeBibleArtifactSource[] = [
+        { kind: 'packaged', path: missing, label: 'packaged' },
+        { kind: 'workspace', path: source, label: 'development' },
+      ];
 
-    expect(first.activated).toMatchObject([{ corpus: 'bible', identity: 'canonical' }]);
-    expect(second.activated).toEqual([]);
-    expect(second.skipped).toEqual(['canonical']);
-    expect(await readFile(destination, 'utf8')).toBe('canonical-corpus');
-    expect(stat(`${destination}.building`)).rejects.toMatchObject({ code: 'ENOENT' });
-  });
+      const first = yield* ensure(destination, sources, provenanceStore);
+      const second = yield* ensure(destination, sources, provenanceStore);
 
-  test('replaces the active Artifact when source revision changes', async () => {
-    const directory = await temporaryDirectory();
-    const source = path.join(directory, 'source.db');
-    const destination = path.join(directory, 'bible.db');
-    const sources: readonly NativeBibleArtifactSource[] = [
-      { kind: 'workspace', path: source, label: 'test' },
-    ];
-    await writeFile(source, 'first');
-    await ensure(destination, sources);
+      expect(first.activated).toMatchObject([{ corpus: 'bible', identity: 'canonical' }]);
+      expect(second.activated).toEqual([]);
+      expect(second.skipped).toEqual(['canonical']);
+      expect(yield* fs.readFileString(destination)).toBe('canonical-corpus');
+      expect(yield* fs.exists(`${destination}.building`)).toBe(false);
+      expect(yield* fs.exists(`${destination}.provenance.json`)).toBe(false);
+    }));
 
-    await writeFile(source, 'second-version');
-    const result = await ensure(destination, sources);
+  test('replaces the active Artifact when source revision changes', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const directory = yield* fs.makeTempDirectoryScoped({ prefix: 'bible-desktop-corpus-' });
+      const source = `${directory}/source.db`;
+      const destination = `${directory}/bible.db`;
+      const provenanceStore = makeProvenanceStore();
+      const sources: readonly NativeBibleArtifactSource[] = [
+        { kind: 'workspace', path: source, label: 'test' },
+      ];
+      yield* fs.writeFileString(source, 'first');
+      yield* ensure(destination, sources, provenanceStore);
 
-    expect(result.activated).toHaveLength(1);
-    expect(await readFile(destination, 'utf8')).toBe('second-version');
-  });
+      yield* fs.writeFileString(source, 'second-version');
+      const result = yield* ensure(destination, sources, provenanceStore);
 
-  test('fails before runtime construction when every source is unavailable', async () => {
-    const directory = await temporaryDirectory();
-    expect(
-      ensure(path.join(directory, 'bible.db'), [
-        { kind: 'packaged', path: path.join(directory, 'missing.db'), label: 'missing' },
-      ]),
-    ).rejects.toMatchObject({ _tag: 'CorpusSourceUnavailableError' });
-  });
+      expect(result.activated).toHaveLength(1);
+      expect(yield* fs.readFileString(destination)).toBe('second-version');
+    }));
 
-  test('rejects release bytes that do not match the pinned manifest', async () => {
-    const directory = await temporaryDirectory();
-    const destination = path.join(directory, 'bible.db');
+  test('fails before runtime construction when every source is unavailable', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const directory = yield* fs.makeTempDirectoryScoped({ prefix: 'bible-desktop-corpus-' });
+      const failure = yield* Effect.flip(
+        ensure(
+          `${directory}/bible.db`,
+          [{ kind: 'packaged', path: `${directory}/missing.db`, label: 'missing' }],
+          makeProvenanceStore(),
+        ),
+      );
 
-    expect(
-      ensure(
-        destination,
-        [
-          {
-            kind: 'release',
-            url: 'https://example.test/bible.db',
-            revision: 'fixture',
-            digest: `sha256:${'a'.repeat(64)}`,
-          },
-        ],
-        async () => new Response('wrong bytes'),
-      ),
-    ).rejects.toMatchObject({ _tag: 'CorpusInstallationError' });
-    expect(stat(destination)).rejects.toMatchObject({ code: 'ENOENT' });
-  });
+      expect(failure).toMatchObject({ _tag: 'CorpusSourceUnavailableError' });
+    }));
+
+  test('rejects release bytes that do not match the pinned manifest', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const directory = yield* fs.makeTempDirectoryScoped({ prefix: 'bible-desktop-corpus-' });
+      const destination = `${directory}/bible.db`;
+      const failure = yield* Effect.flip(
+        ensure(
+          destination,
+          [
+            {
+              kind: 'release',
+              url: 'https://example.test/bible.db',
+              revision: 'fixture',
+              digest: `sha256:${'a'.repeat(64)}`,
+            },
+          ],
+          makeProvenanceStore(),
+          () => Effect.succeed(new Response('wrong bytes')),
+        ),
+      );
+
+      expect(failure).toMatchObject({ _tag: 'CorpusInstallationError' });
+      expect(yield* fs.exists(destination)).toBe(false);
+    }));
 });

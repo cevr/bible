@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { createReadStream, createWriteStream } from 'node:fs';
-import { mkdir, readFile, rename, stat, unlink, writeFile } from 'node:fs/promises';
+import { mkdir, rename, stat, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import { Readable, Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
@@ -42,7 +42,10 @@ const StoredProvenance = Schema.Struct({
   digest: Schema.String,
 });
 
-const sidecarPath = (destination: string): string => `${destination}.provenance.json`;
+export interface NativeBibleArtifactProvenanceStore {
+  readonly read: (filename: string) => CorpusProvenance;
+  readonly write: (filename: string, provenance: CorpusProvenance) => void;
+}
 
 const sourceError = (operation: string, cause: unknown): CorpusSourceUnavailableError =>
   new CorpusSourceUnavailableError({ operation, cause });
@@ -72,7 +75,7 @@ const localSource = (source: LocalBibleArtifactSource) => ({
 
 const releaseSource = (
   source: ReleaseBibleArtifactSource,
-  fetchArtifact: (url: string) => Promise<Response>,
+  fetchArtifact: (url: string) => Effect.Effect<Response, unknown>,
 ) => ({
   kind: source.kind,
   acquire: Effect.succeed({
@@ -83,17 +86,22 @@ const releaseSource = (
       digest: Option.some(corpusDigest(source.digest)),
     }),
     bytes: Stream.unwrap(
-      Effect.tryPromise({
-        try: async () => {
-          const response = await fetchArtifact(source.url);
-          if (!response.ok) throw new Error(`HTTP ${String(response.status)}`);
-          if (response.body === null) throw new Error('response has no body');
-          return Stream.fromAsyncIterable(response.body, (cause) =>
-            sourceError('read-bible-release', cause),
+      fetchArtifact(source.url).pipe(
+        Effect.mapError((cause) => sourceError('fetch-bible-release', cause)),
+        Effect.flatMap((response) => {
+          if (!response.ok)
+            return Effect.fail(
+              sourceError('fetch-bible-release', `HTTP ${String(response.status)}`),
+            );
+          if (response.body === null)
+            return Effect.fail(sourceError('fetch-bible-release', 'response has no body'));
+          return Effect.succeed(
+            Stream.fromAsyncIterable(response.body, (cause) =>
+              sourceError('read-bible-release', cause),
+            ),
           );
-        },
-        catch: (cause) => sourceError('fetch-bible-release', cause),
-      }),
+        }),
+      ),
     ),
   }),
 });
@@ -125,22 +133,53 @@ const verifyBibleDatabase = (filename: string): number => {
   }
 };
 
-const readCurrent = async (
-  destination: string,
-  verify: (filename: string) => number,
-): Promise<Option.Option<CorpusProvenance>> => {
-  try {
-    verify(destination);
-    const stored = Schema.decodeUnknownSync(StoredProvenance)(
-      JSON.parse(await readFile(sidecarPath(destination), 'utf8')),
-    );
-    return Option.some(
-      new CorpusProvenance({
+const sqliteProvenanceStore: NativeBibleArtifactProvenanceStore = {
+  read: (filename) => {
+    const database = new Database(filename, { readonly: true, fileMustExist: true });
+    try {
+      const value = (key: string): unknown =>
+        database.prepare('SELECT value FROM meta WHERE key = ?').get(key);
+      const row = Schema.Struct({ value: Schema.String });
+      const stored = Schema.decodeUnknownSync(StoredProvenance)({
+        source: Schema.decodeUnknownSync(row)(value('corpus_source')).value,
+        revision: Schema.decodeUnknownSync(row)(value('corpus_revision')).value,
+        digest: Schema.decodeUnknownSync(row)(value('corpus_digest')).value,
+      });
+      return new CorpusProvenance({
         source: assetSourceId(stored.source),
         revision: corpusRevision(stored.revision),
         digest: Option.some(corpusDigest(stored.digest)),
-      }),
-    );
+      });
+    } finally {
+      database.close();
+    }
+  },
+  write: (filename, provenance) => {
+    const database = new Database(filename, { fileMustExist: true });
+    try {
+      database.exec('CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)');
+      const upsert = database.prepare(
+        'INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
+      );
+      database.transaction(() => {
+        upsert.run('corpus_source', provenance.source);
+        upsert.run('corpus_revision', provenance.revision);
+        upsert.run('corpus_digest', Option.getOrThrow(provenance.digest));
+      })();
+    } finally {
+      database.close();
+    }
+  },
+};
+
+const readCurrent = async (
+  destination: string,
+  verify: (filename: string) => number,
+  provenanceStore: NativeBibleArtifactProvenanceStore,
+): Promise<Option.Option<CorpusProvenance>> => {
+  try {
+    verify(destination);
+    return Option.some(provenanceStore.read(destination));
   } catch {
     return Option.none();
   }
@@ -149,11 +188,19 @@ const readCurrent = async (
 export const layerNativeBibleArtifacts = (input: {
   readonly destination: string;
   readonly sources: readonly NativeBibleArtifactSource[];
-  readonly fetch?: (url: string) => Promise<Response>;
+  readonly fetch?: (url: string) => Effect.Effect<Response, unknown>;
   readonly verify?: (filename: string) => number;
+  readonly provenanceStore?: NativeBibleArtifactProvenanceStore;
 }): Layer.Layer<BibleArtifactInstaller | BibleArtifactRecipe> => {
   const verify = input.verify ?? verifyBibleDatabase;
-  const fetchArtifact = input.fetch ?? globalThis.fetch;
+  const fetchArtifact =
+    input.fetch ??
+    ((url: string) =>
+      Effect.tryPromise({
+        try: () => globalThis.fetch(url),
+        catch: (cause) => sourceError('fetch-bible-release', cause),
+      }));
+  const provenanceStore = input.provenanceStore ?? sqliteProvenanceStore;
   const recipe = layerBibleArtifactRecipe(
     input.sources.map((source) =>
       source.kind === 'release' ? releaseSource(source, fetchArtifact) : localSource(source),
@@ -163,7 +210,7 @@ export const layerNativeBibleArtifacts = (input: {
     BibleArtifactInstaller,
     BibleArtifactInstaller.of({
       current: Effect.tryPromise({
-        try: () => readCurrent(input.destination, verify),
+        try: () => readCurrent(input.destination, verify, provenanceStore),
         catch: (cause) => new CorpusInstallationError({ corpus: 'bible', cause }),
       }),
       install: (artifact) =>
@@ -194,18 +241,9 @@ export const layerNativeBibleArtifacts = (input: {
                 revision: artifact.provenance.revision,
                 digest: Option.some(digest),
               });
+              provenanceStore.write(building, provenance);
               await rename(building, input.destination);
-              const sidecar = sidecarPath(input.destination);
-              const buildingSidecar = `${sidecar}.building`;
-              await writeFile(
-                buildingSidecar,
-                JSON.stringify({
-                  source: provenance.source,
-                  revision: provenance.revision,
-                  digest,
-                }),
-              );
-              await rename(buildingSidecar, sidecar);
+              await unlink(`${input.destination}.provenance.json`).catch(() => undefined);
               return { installed, provenance };
             } catch (cause) {
               await unlink(building).catch(() => undefined);
