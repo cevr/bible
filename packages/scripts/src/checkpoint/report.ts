@@ -2,6 +2,31 @@ import type { CheckpointName, CheckResult, CommandResult, RemovalBaseline } from
 
 const formatCommand = (command: readonly string[]): string => command.join(' ');
 
+const resultLabel = (status: CheckResult['status']): string => {
+  if (status === 'pass') return 'PASS';
+  return 'FAIL';
+};
+
+const commandLabel = (command: CommandResult): string => {
+  if (command.exitCode === 0) return 'PASS';
+  return `FAIL (${String(command.exitCode)})`;
+};
+
+const targetSuffix = (count: number): string => {
+  if (count === 1) return '';
+  return 's';
+};
+
+const sectionOrNone = (content: string): string => {
+  if (content === '') return '- None';
+  return content;
+};
+
+const findings = (status: 'PASS' | 'FAIL'): string => {
+  if (status === 'PASS') return '- No blocking findings.';
+  return '- One or more checks above are blocking. The next wave is not authorized.';
+};
+
 export const renderCheckpointReport = (options: {
   readonly checkpoint: CheckpointName;
   readonly reviewedCommit: string;
@@ -15,19 +40,16 @@ export const renderCheckpointReport = (options: {
   const checks = options.checks
     .map(
       (check) =>
-        `### ${check.status === 'pass' ? 'PASS' : 'FAIL'} — ${check.name}\n\n${check.details.map((detail) => `- ${detail}`).join('\n')}`,
+        `### ${resultLabel(check.status)} — ${check.name}\n\n${check.details.map((detail) => `- ${detail}`).join('\n')}`,
     )
     .join('\n\n');
   const commands = options.commands
-    .map(
-      (command) =>
-        `- \`${formatCommand(command.command)}\` — ${command.exitCode === 0 ? 'PASS' : `FAIL (${String(command.exitCode)})`}`,
-    )
+    .map((command) => `- \`${formatCommand(command.command)}\` — ${commandLabel(command)}`)
     .join('\n');
   const inventory = options.currentLegacy.categories
     .map(
       (category) =>
-        `- **${category.title}** (${category.removalCheckpoint}): ${String(category.matches.length)} target${category.matches.length === 1 ? '' : 's'}`,
+        `- **${category.title}** (${category.removalCheckpoint}): ${String(category.matches.length)} target${targetSuffix(category.matches.length)}`,
     )
     .join('\n');
 
@@ -41,7 +63,7 @@ Repository root: \`${options.repositoryRoot}\`
 
 ## Commands
 
-${commands === '' ? '- None' : commands}
+${sectionOrNone(commands)}
 
 ## Static architecture checks
 
@@ -66,6 +88,6 @@ The immutable target list is recorded in \`../inventories/removal-baseline.json\
 
 ## Findings
 
-${options.status === 'PASS' ? '- No blocking findings.' : '- One or more checks above are blocking. The next wave is not authorized.'}
+${findings(options.status)}
 `;
 };

@@ -1,3 +1,5 @@
+import { Effect } from 'effect';
+
 import type {
   CheckpointName,
   LegacyCategory,
@@ -115,9 +117,9 @@ export const LEGACY_CATEGORIES: readonly LegacyCategory[] = [
   },
 ] as const;
 
-type GlobFiles = (pattern: string) => Promise<readonly string[]>;
-type ReadText = (path: string) => Promise<string>;
-type ReadDependencies = (path: string) => Promise<ReadonlySet<string>>;
+type GlobFiles = (pattern: string) => Effect.Effect<readonly string[], unknown>;
+type ReadText = (path: string) => Effect.Effect<string, unknown>;
+type ReadDependencies = (path: string) => Effect.Effect<ReadonlySet<string>, unknown>;
 
 const GENERATED_PATH_SEGMENTS = new Set([
   '.git',
@@ -131,48 +133,88 @@ const GENERATED_PATH_SEGMENTS = new Set([
 export const isRepositorySourcePath = (path: string): boolean =>
   path.split('/').every((segment) => !GENERATED_PATH_SEGMENTS.has(segment));
 
-export const snapshotLegacy = async (options: {
+export const snapshotLegacy = (options: {
   readonly globFiles: GlobFiles;
   readonly readText: ReadText;
   readonly readDependencies: ReadDependencies;
-}): Promise<RemovalBaseline> => {
-  const categories: LegacyCategorySnapshot[] = [];
+}): Effect.Effect<RemovalBaseline, unknown> =>
+  Effect.gen(function* () {
+    const categories: LegacyCategorySnapshot[] = [];
 
-  for (const category of LEGACY_CATEGORIES) {
-    const matches = new Set<string>();
+    yield* Effect.forEach(
+      LEGACY_CATEGORIES,
+      (category) =>
+        Effect.gen(function* () {
+          const matches = new Set<string>();
 
-    for (const pattern of category.globs) {
-      for (const path of await options.globFiles(pattern)) {
-        if (isRepositorySourcePath(path)) matches.add(path);
-      }
-    }
+          yield* Effect.forEach(
+            category.globs,
+            (pattern) =>
+              options.globFiles(pattern).pipe(
+                Effect.tap((paths) =>
+                  Effect.sync(() => {
+                    for (const path of paths) {
+                      if (isRepositorySourcePath(path)) matches.add(path);
+                    }
+                  }),
+                ),
+              ),
+            { concurrency: 1, discard: true },
+          );
 
-    if (category.search !== undefined) {
-      for (const pattern of category.searchGlobs ?? []) {
-        for (const path of await options.globFiles(pattern)) {
-          if (!isRepositorySourcePath(path)) continue;
-          if (category.search.test(await options.readText(path))) matches.add(path);
-        }
-      }
-    }
+          const search = category.search;
+          if (search !== undefined) {
+            yield* Effect.forEach(
+              category.searchGlobs ?? [],
+              (pattern) =>
+                options.globFiles(pattern).pipe(
+                  Effect.flatMap((paths) =>
+                    Effect.forEach(
+                      paths,
+                      (path) => {
+                        if (!isRepositorySourcePath(path)) return Effect.void;
+                        return options.readText(path).pipe(
+                          Effect.tap((source) => {
+                            if (!search.test(source)) return Effect.void;
+                            return Effect.sync(() => matches.add(path));
+                          }),
+                        );
+                      },
+                      { concurrency: 1, discard: true },
+                    ),
+                  ),
+                ),
+              { concurrency: 1, discard: true },
+            );
+          }
 
-    for (const [manifest, names] of Object.entries(category.dependencies ?? {})) {
-      const dependencies = await options.readDependencies(manifest);
-      for (const name of names) {
-        if (dependencies.has(name)) matches.add(`${manifest}#${name}`);
-      }
-    }
+          yield* Effect.forEach(
+            Object.entries(category.dependencies ?? {}),
+            ([manifest, names]) =>
+              options.readDependencies(manifest).pipe(
+                Effect.tap((dependencies) =>
+                  Effect.sync(() => {
+                    for (const name of names) {
+                      if (dependencies.has(name)) matches.add(`${manifest}#${name}`);
+                    }
+                  }),
+                ),
+              ),
+            { concurrency: 1, discard: true },
+          );
 
-    categories.push({
-      id: category.id,
-      title: category.title,
-      removalCheckpoint: category.removalCheckpoint,
-      matches: [...matches].sort(),
-    });
-  }
+          categories.push({
+            id: category.id,
+            title: category.title,
+            removalCheckpoint: category.removalCheckpoint,
+            matches: [...matches].sort(),
+          });
+        }),
+      { concurrency: 1, discard: true },
+    );
 
-  return { schemaVersion: 1, categories };
-};
+    return { schemaVersion: 1, categories };
+  });
 
 export const validateLegacySnapshot = (
   checkpoint: CheckpointName,

@@ -35,8 +35,10 @@ export interface RemovalBaseline {
   readonly categories: readonly LegacyCategorySnapshot[];
 }
 
-export const displayLegacyMatch = (match: string, root?: string): string =>
-  root === undefined ? match : `${root}/${match}`;
+export const displayLegacyMatch = (match: string, root?: string): string => {
+  if (root === undefined) return match;
+  return `${root}/${match}`;
+};
 
 export const checkpointIndex = (name: CheckpointName): number => CHECKPOINT_NAMES.indexOf(name);
 
