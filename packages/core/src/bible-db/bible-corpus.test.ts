@@ -1,11 +1,8 @@
-import { existsSync, unlinkSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-
+import * as BunServices from '@effect/platform-bun/BunServices';
 import * as SqliteBun from '@effect/sql-sqlite-bun/SqliteClient';
-import { describe, expect, test } from 'bun:test';
 import { Database } from 'bun:sqlite';
-import { Effect, Layer, Option, Result, Schema } from 'effect';
+import { Effect, FileSystem, Layer, Option, Path, Result, Schema } from 'effect';
+import { describe, expect, it } from 'effect-bun-test';
 import * as SqlClient from 'effect/unstable/sql/SqlClient';
 
 import { BibleCorpus } from './bible-corpus.js';
@@ -14,31 +11,15 @@ import { BibleCorpusArchive } from './archive.js';
 import { TopicId } from '../topics/model.js';
 import { TopicService } from '../topics/service.js';
 
-const withTempDatabase = <A, E>(
-  prefix: string,
-  use: (filename: string) => Effect.Effect<A, E>,
-): Promise<A> =>
-  Effect.runPromise(
-    Effect.scoped(
-      Effect.flatMap(
-        Effect.acquireRelease(
-          Effect.sync(() => join(tmpdir(), `${prefix}-${crypto.randomUUID()}.sqlite`)),
-          (filename) =>
-            Effect.sync(() => {
-              for (const suffix of ['', '-wal', '-shm']) {
-                const candidate = `${filename}${suffix}`;
-                if (existsSync(candidate)) unlinkSync(candidate);
-              }
-            }),
-        ),
-        use,
-      ),
-    ),
-  );
+const withTempDatabase = <A, E>(prefix: string, use: (filename: string) => Effect.Effect<A, E>) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    const directory = yield* fs.makeTempDirectoryScoped({ prefix: `${prefix}-` });
+    return yield* use(path.join(directory, 'database.sqlite'));
+  });
 
-const run = <A, E>(
-  effect: Effect.Effect<A, E, BibleCorpus | BibleDatabase | TopicService>,
-): Promise<A> => {
+const run = <A, E>(effect: Effect.Effect<A, E, BibleCorpus | BibleDatabase | TopicService>) => {
   return withTempDatabase('bible-corpus', (filename) => {
     const layer = Layer.mergeAll(BibleCorpus.layer, BibleDatabase.layer, TopicService.Live).pipe(
       Layer.provide(SqliteBun.layer({ filename })),
@@ -106,6 +87,7 @@ const archive = (): BibleCorpusArchive =>
   });
 
 describe('BibleCorpus + BibleDatabase', () => {
+  const test = it.scopedLive.layer(BunServices.layer);
   test('one unified schema supports imports and the canonical query interface', () =>
     run(
       Effect.gen(function* () {
@@ -188,7 +170,7 @@ describe('BibleCorpus + BibleDatabase', () => {
         const database = yield* BibleDatabase;
         const valid = archive();
         const topic = valid.topics.data[0];
-        if (topic === undefined) throw new Error('test topic is missing');
+        if (topic === undefined) return yield* Effect.fail('test topic is missing');
         const invalid = new BibleCorpusArchive({
           kjv: valid.kjv,
           strongsVerses: valid.strongsVerses,
@@ -240,9 +222,11 @@ describe('BibleCorpus + BibleDatabase', () => {
 
   test('corpus initialization migrates an existing word table to preserve italics', () => {
     return withTempDatabase('bible-migration', (filename) => {
-      const initializeLegacy = Effect.sync(() => {
-        const legacy = new Database(filename);
-        legacy.exec(`
+      const initializeLegacy = Effect.acquireUseRelease(
+        Effect.sync(() => new Database(filename)),
+        (legacy) =>
+          Effect.sync(() =>
+            legacy.exec(`
       CREATE TABLE verse_words (
         book INTEGER NOT NULL,
         chapter INTEGER NOT NULL,
@@ -252,9 +236,10 @@ describe('BibleCorpus + BibleDatabase', () => {
         strongs_numbers TEXT,
         PRIMARY KEY (book, chapter, verse, word_index)
       )
-    `);
-        legacy.close();
-      });
+    `),
+          ),
+        (legacy) => Effect.sync(() => legacy.close()),
+      );
       const layer = BibleCorpus.layer.pipe(Layer.provideMerge(SqliteBun.layer({ filename })));
       return Effect.andThen(
         initializeLegacy,

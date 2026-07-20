@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, it } from 'effect-bun-test';
 import { BIBLE_BOOKS } from '../bible/canon.js';
 import { Chapter, Reference as BibleReference, SearchHit, Verse } from '../bible/model.js';
 import { BibleService } from '../bible/service.js';
@@ -179,13 +179,13 @@ const HandlerLayer = BibleProcedureHandlers.pipe(Layer.provide(Dependencies));
 
 type ProcedureHandlers = Rpc.ToHandler<RpcGroup.Rpcs<typeof BibleProcedureGroup>>;
 
-const run = <A, E>(effect: Effect.Effect<A, E, ProcedureHandlers>): Promise<A> =>
-  Effect.runPromise(effect.pipe(Effect.provide(HandlerLayer)));
+const run = <A, E, R>(effect: Effect.Effect<A, E, ProcedureHandlers | R>): Effect.Effect<A, E, R> =>
+  effect.pipe(Effect.provide(HandlerLayer));
 
 describe('BibleProcedureHandlers', () => {
-  test('serves canonical domain values through the real RPC client/server path', async () => {
-    const result = await run(
-      Effect.scoped(
+  it.scoped('serves canonical domain values through the real RPC client/server path', () =>
+    Effect.gen(function* () {
+      const result = yield* run(
         Effect.gen(function* () {
           const client = yield* RpcTest.makeClient(BibleProcedureGroup);
           const foundChapter = yield* client['v1.reading.bibleChapter.get']({
@@ -222,35 +222,35 @@ describe('BibleProcedureHandlers', () => {
             recorded,
           };
         }),
-      ),
-    );
+      );
 
-    expect(result.foundChapter.verses[0]?.text).toStartWith('In the beginning');
-    expect(result.search.total).toBe(1);
-    expect(result.search.hits[0]?.verse.text).toStartWith('In the beginning');
-    expect(result.catalog).toEqual([]);
-    expect(result.writingsLibrary).toEqual([remotePublication]);
-    expect(result.downloaded).toMatchObject({ code: 'PP', status: 'success' });
-    expect(result.topics).toEqual([
-      {
-        id: resurrectionTopic.id,
-        name: resurrectionTopic.name,
-        alternativeNames: [],
-      },
-    ]);
-    expect(result.topic.sections[0]?.references[0]?.osis).toEqual(['John.11.25']);
-    expect(result.preferences).toEqual(DEFAULT_READING_PREFERENCES);
-    expect(result.continuity).toEqual({
-      source: 'bible',
-      resourceId: 'KJV',
-      location: '/bible/43/3/16',
-    });
-    expect(result.recorded.changes.scopes).toEqual([{ _tag: 'ReadingContinuity' }]);
-  });
+      expect(result.foundChapter.verses[0]?.text).toStartWith('In the beginning');
+      expect(result.search.total).toBe(1);
+      expect(result.search.hits[0]?.verse.text).toStartWith('In the beginning');
+      expect(result.catalog).toEqual([]);
+      expect(result.writingsLibrary).toEqual([remotePublication]);
+      expect(result.downloaded).toMatchObject({ code: 'PP', status: 'success' });
+      expect(result.topics).toEqual([
+        {
+          id: resurrectionTopic.id,
+          name: resurrectionTopic.name,
+          alternativeNames: [],
+        },
+      ]);
+      expect(result.topic.sections[0]?.references[0]?.osis).toEqual(['John.11.25']);
+      expect(result.preferences).toEqual(DEFAULT_READING_PREFERENCES);
+      expect(result.continuity).toEqual({
+        source: 'bible',
+        resourceId: 'KJV',
+        location: '/bible/43/3/16',
+      });
+      expect(result.recorded.changes.scopes).toEqual([{ _tag: 'ReadingContinuity' }]);
+    }),
+  );
 
-  test('normalizes domain failures at the procedure seam', async () => {
-    const result = await run(
-      Effect.scoped(
+  it.scoped('normalizes domain failures at the procedure seam', () =>
+    Effect.gen(function* () {
+      const result = yield* run(
         Effect.gen(function* () {
           const client = yield* RpcTest.makeClient(BibleProcedureGroup);
           return yield* Effect.result(
@@ -260,22 +260,22 @@ describe('BibleProcedureHandlers', () => {
             }),
           );
         }),
-      ),
-    );
+      );
 
-    expect(result._tag).toBe('Failure');
-    if (result._tag === 'Failure') {
-      expect(result.failure).toMatchObject({
-        _tag: 'ProcedureError',
-        procedure: 'v1.reading.bibleChapter.get',
-        code: 'BibleChapterNotFoundError',
-      });
-    }
-  });
+      expect(result._tag).toBe('Failure');
+      if (result._tag === 'Failure') {
+        expect(result.failure).toMatchObject({
+          _tag: 'ProcedureError',
+          procedure: 'v1.reading.bibleChapter.get',
+          code: 'BibleChapterNotFoundError',
+        });
+      }
+    }),
+  );
 
-  test('streams runtime events from an explicit cursor', async () => {
-    const events = await run(
-      Effect.scoped(
+  it.scoped('streams runtime events from an explicit cursor', () =>
+    Effect.gen(function* () {
+      const events = yield* run(
         Effect.gen(function* () {
           const client = yield* RpcTest.makeClient(BibleProcedureGroup);
           return yield* Stream.runCollect(
@@ -284,9 +284,9 @@ describe('BibleProcedureHandlers', () => {
             }),
           );
         }),
-      ),
-    );
+      );
 
-    expect([...events]).toEqual([]);
-  });
+      expect([...events]).toEqual([]);
+    }),
+  );
 });
