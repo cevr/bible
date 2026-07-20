@@ -59,14 +59,25 @@ const messageOf = (cause: unknown): string => {
   return String(cause);
 };
 
+const isPromiseLike = <A>(value: A | PromiseLike<A>): value is PromiseLike<A> =>
+  typeof value === 'object' &&
+  value !== null &&
+  'then' in value &&
+  typeof value.then === 'function';
+
 const adapt = <A>(
   operation: UserDatabaseError['operation'],
   evaluate: () => PromiseLike<A> | A,
-): Effect.Effect<A, UserDatabaseError> =>
-  Effect.tryPromise({
-    try: () => Promise.resolve(evaluate()),
-    catch: (cause) => new UserDatabaseError({ operation, message: messageOf(cause), cause }),
-  });
+): Effect.Effect<A, UserDatabaseError> => {
+  const failure = (cause: unknown) =>
+    new UserDatabaseError({ operation, message: messageOf(cause), cause });
+  return Effect.try({ try: evaluate, catch: failure }).pipe(
+    Effect.flatMap((result) => {
+      if (!isPromiseLike(result)) return Effect.succeed(result);
+      return Effect.tryPromise({ try: () => result, catch: failure });
+    }),
+  );
+};
 
 export const makeSqliteEffectBridge = (adapter: SqliteBridgeAdapter): SqliteEffectBridgeShape => ({
   run: (operation) => adapt('run', () => adapter.run(operation)),

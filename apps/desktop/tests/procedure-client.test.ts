@@ -1,48 +1,58 @@
-import { Effect, Fiber, ManagedRuntime } from 'effect';
+import { describe, expect, it } from '@effect/vitest';
+import { Deferred, Effect, Fiber } from 'effect';
 import type { FromClientEncoded, FromServerEncoded } from 'effect/unstable/rpc/RpcMessage';
 import * as RpcClient from 'effect/unstable/rpc/RpcClient';
-import { describe, expect, test, vi } from 'vitest';
 
 import { layerDesktopProcedureTransport } from '../src/procedure-client-protocol.js';
 
-describe('desktop procedure client protocol', () => {
-  test('moves raw encoded RPC messages over the Electron port boundary', async () => {
-    const channel = new MessageChannel();
-    const runtime = ManagedRuntime.make(layerDesktopProcedureTransport(channel.port1));
-    const protocol = await runtime.runPromise(RpcClient.Protocol);
-    const received: FromServerEncoded[] = [];
-    const runner = runtime.runFork(
-      protocol.run(7, (message) =>
-        Effect.sync(() => {
-          received.push(message);
-        }),
-      ),
-    );
-    const sent = new Promise<FromClientEncoded>((resolve) => {
-      channel.port2.addEventListener('message', (event) => resolve(event.data));
-      channel.port2.start();
-    });
-    const request: FromClientEncoded = {
-      _tag: 'Request',
-      id: 'desktop-request-1',
-      tag: 'v1.runtime.connect',
-      payload: {},
-      headers: [],
+const nextMessage = (port: MessagePort): Effect.Effect<FromClientEncoded> =>
+  Effect.callback((resume) => {
+    const listener = (event: MessageEvent<FromClientEncoded>) => {
+      resume(Effect.succeed(event.data));
     };
-
-    await runtime.runPromise(protocol.send(7, request));
-    await expect(sent).resolves.toEqual(request);
-
-    const response: FromServerEncoded = {
-      _tag: 'Exit',
-      requestId: request.id,
-      exit: { _tag: 'Success', value: { ready: true } },
-    };
-    channel.port2.postMessage(response);
-    await vi.waitFor(() => expect(received).toEqual([response]));
-
-    await Effect.runPromise(Fiber.interrupt(runner));
-    await runtime.dispose();
-    channel.port2.close();
+    port.addEventListener('message', listener);
+    port.start();
+    return Effect.sync(() => port.removeEventListener('message', listener));
   });
+
+describe('desktop procedure client protocol', () => {
+  it.effect('moves raw encoded RPC messages over the Electron port boundary', () =>
+    Effect.gen(function* () {
+      const channel = yield* Effect.acquireRelease(
+        Effect.sync(() => new MessageChannel()),
+        (active) =>
+          Effect.sync(() => {
+            active.port1.close();
+            active.port2.close();
+          }),
+      );
+
+      yield* Effect.gen(function* () {
+        const protocol = yield* RpcClient.Protocol;
+        const received = yield* Deferred.make<FromServerEncoded>();
+        yield* protocol
+          .run(7, (message) => Deferred.succeed(received, message).pipe(Effect.asVoid))
+          .pipe(Effect.forkScoped);
+        const sent = yield* nextMessage(channel.port2).pipe(Effect.forkScoped);
+        const request: FromClientEncoded = {
+          _tag: 'Request',
+          id: 'desktop-request-1',
+          tag: 'v1.runtime.connect',
+          payload: {},
+          headers: [],
+        };
+
+        yield* protocol.send(7, request);
+        expect(yield* Fiber.join(sent)).toEqual(request);
+
+        const response: FromServerEncoded = {
+          _tag: 'Exit',
+          requestId: request.id,
+          exit: { _tag: 'Success', value: { ready: true } },
+        };
+        channel.port2.postMessage(response);
+        expect(yield* Deferred.await(received)).toEqual(response);
+      }).pipe(Effect.provide(layerDesktopProcedureTransport(channel.port1)));
+    }),
+  );
 });

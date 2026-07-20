@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Layer, Option } from 'effect';
 
 import { Reference } from '../bible/model.js';
@@ -50,33 +50,34 @@ const TestLayer = EGWCommentaryService.Live.pipe(
   ),
 );
 
-const run = <A, E>(effect: Effect.Effect<A, E, EGWCommentaryService>): Promise<A> =>
-  Effect.runPromise(effect.pipe(Effect.provide(TestLayer)));
-
 describe('EGWCommentaryService', () => {
-  test('looks up commentary through the canonical Bible reference interface', async () => {
-    const reference = Reference.verse(1, 3, 15);
-    const result = await run(
-      EGWCommentaryService.use((commentary) => commentary.getCommentary(reference)),
-    );
+  const test = it.effect;
 
-    expect(result.verse).toBe(reference);
-    expect(result.entries).toEqual([
-      {
-        refcode: '1BC 24.1',
-        bookCode: '1BC',
-        bookTitle: 'Bible Commentary Volume 1',
-        content: 'Commentary on the promised Seed.',
-        puborder: 24,
-      },
-    ]);
-  });
+  test('looks up commentary through the canonical Bible reference interface', () =>
+    Effect.gen(function* () {
+      const reference = Reference.verse(1, 3, 15);
+      const result = yield* EGWCommentaryService.use((commentary) =>
+        commentary.getCommentary(reference),
+      );
 
-  test('returns no entries when no paragraph is indexed for the verse', async () => {
-    const result = await run(
-      EGWCommentaryService.use((commentary) => commentary.getCommentary(Reference.verse(1, 3, 16))),
-    );
+      expect(result.verse).toBe(reference);
+      expect(result.entries).toEqual([
+        {
+          refcode: '1BC 24.1',
+          bookCode: '1BC',
+          bookTitle: 'Bible Commentary Volume 1',
+          content: 'Commentary on the promised Seed.',
+          puborder: 24,
+        },
+      ]);
+    }).pipe(Effect.provide(TestLayer)));
 
-    expect(result.entries).toEqual([]);
-  });
+  test('returns no entries when no paragraph is indexed for the verse', () =>
+    Effect.gen(function* () {
+      const result = yield* EGWCommentaryService.use((commentary) =>
+        commentary.getCommentary(Reference.verse(1, 3, 16)),
+      );
+
+      expect(result.entries).toEqual([]);
+    }).pipe(Effect.provide(TestLayer)));
 });

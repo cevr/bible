@@ -1,12 +1,14 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Result } from 'effect';
 
 import { decodeBibleCorpusArchive } from './archive.js';
 
 describe('BibleCorpusArchive', () => {
-  test('rejects malformed source coordinates before installation', async () => {
-    const decoded = await Effect.runPromise(
-      Effect.result(
+  const test = it.effect;
+
+  test('rejects malformed source coordinates before installation', () =>
+    Effect.gen(function* () {
+      const decoded = yield* Effect.result(
         decodeBibleCorpusArchive({
           kjv: {
             verses: [{ book_name: 'Genesis', book: 0, chapter: 1, verse: 1, text: 'invalid' }],
@@ -26,9 +28,8 @@ describe('BibleCorpusArchive', () => {
             data: [],
           },
         }),
-      ),
-    );
+      );
 
-    expect(Result.isFailure(decoded)).toBe(true);
-  });
+      expect(Result.isFailure(decoded)).toBe(true);
+    }));
 });

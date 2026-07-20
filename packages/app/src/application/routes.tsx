@@ -19,7 +19,8 @@ const BibleRoute = () => {
   const location = useLocation();
   const reference = createMemo(() => {
     const route = decodeRoute(`${location.pathname}${location.search}`);
-    return route?._tag === 'bible' ? route.reference : undefined;
+    if (route?._tag === 'bible') return route.reference;
+    return undefined;
   });
   return (
     <Show when={reference()} fallback={<NotFoundContent requestedPath={location.pathname} />}>
@@ -32,9 +33,8 @@ const WritingsPageRoute = () => {
   const location = useLocation();
   const reference = createMemo(() => {
     const route = decodeRoute(`${location.pathname}${location.search}`);
-    return route?._tag === 'writings' && route.reference._tag === 'page'
-      ? route.reference
-      : undefined;
+    if (route?._tag === 'writings' && route.reference._tag === 'page') return route.reference;
+    return undefined;
   });
   return (
     <Show when={reference()} fallback={<NotFoundContent requestedPath={location.pathname} />}>
@@ -47,7 +47,8 @@ const SearchRoute = () => {
   const location = useLocation();
   const route = createMemo(() => {
     const decoded = decodeRoute(`${location.pathname}${location.search}`);
-    return decoded?._tag === 'search' ? decoded : undefined;
+    if (decoded?._tag === 'search') return decoded;
+    return undefined;
   });
   return (
     <Show when={route()} fallback={<NotFoundContent requestedPath={location.pathname} />}>
@@ -60,9 +61,10 @@ const PublicationRoute = () => {
   const location = useLocation();
   const reference = createMemo(() => {
     const route = decodeRoute(location.pathname);
-    return route?._tag === 'writings' && route.reference._tag === 'publication'
-      ? route.reference
-      : undefined;
+    if (route?._tag === 'writings' && route.reference._tag === 'publication') {
+      return route.reference;
+    }
+    return undefined;
   });
   return (
     <Show when={reference()} fallback={<NotFoundContent requestedPath={location.pathname} />}>
@@ -75,9 +77,10 @@ const ParagraphRoute = () => {
   const location = useLocation();
   const reference = createMemo(() => {
     const route = decodeRoute(location.pathname);
-    return route?._tag === 'writings' && route.reference._tag === 'paragraph'
-      ? route.reference
-      : undefined;
+    if (route?._tag === 'writings' && route.reference._tag === 'paragraph') {
+      return route.reference;
+    }
+    return undefined;
   });
   return (
     <Show when={reference()} fallback={<NotFoundContent requestedPath={location.pathname} />}>
@@ -110,7 +113,8 @@ const ResumeReading = () => {
   createEffect(
     () => {
       const route = readingRouteForLocation(data.readingContinuity.get()());
-      return route ? encodeRoute(route) : fallback;
+      if (route) return encodeRoute(route);
+      return fallback;
     },
     (target) => navigate(target, { replace: true }),
   );
@@ -133,7 +137,8 @@ const SettingsRoute = () => {
   const location = useLocation();
   const route = createMemo(() => {
     const decoded = decodeRoute(location.pathname);
-    return decoded?._tag === 'settings' ? decoded : undefined;
+    if (decoded?._tag === 'settings') return decoded;
+    return undefined;
   });
   return (
     <Show when={route()} fallback={<NotFoundContent requestedPath={location.pathname} />}>
@@ -146,7 +151,8 @@ const PlansRoute = () => {
   const location = useLocation();
   const route = createMemo(() => {
     const decoded = decodeRoute(location.pathname);
-    return decoded?._tag === 'plans' ? decoded : undefined;
+    if (decoded?._tag === 'plans') return decoded;
+    return undefined;
   });
   return (
     <Show when={route()} fallback={<NotFoundContent requestedPath={location.pathname} />}>
@@ -159,7 +165,8 @@ const PracticeRoute = () => {
   const location = useLocation();
   const route = createMemo(() => {
     const decoded = decodeRoute(location.pathname);
-    return decoded?._tag === 'practice' ? decoded : undefined;
+    if (decoded?._tag === 'practice') return decoded;
+    return undefined;
   });
   return (
     <Show when={route()} fallback={<NotFoundContent requestedPath={location.pathname} />}>
@@ -172,7 +179,8 @@ const TopicsRoute = () => {
   const location = useLocation();
   const route = createMemo(() => {
     const decoded = decodeRoute(location.pathname);
-    return decoded?._tag === 'topics' ? decoded : undefined;
+    if (decoded?._tag === 'topics') return decoded;
+    return undefined;
   });
   return (
     <Show when={route()} fallback={<NotFoundContent requestedPath={location.pathname} />}>

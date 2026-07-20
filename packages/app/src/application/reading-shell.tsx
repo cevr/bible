@@ -1,4 +1,5 @@
 import { A, useLocation, useNavigate } from '@solidjs/router';
+import { Effect } from 'effect';
 import { createEffect, createSignal, onCleanup, onSettled, type ParentProps } from 'solid-js';
 
 import type { ReaderTypeface } from '@bible/core/reading-preferences';
@@ -63,12 +64,15 @@ const ReadingContinuityBridge = () => {
 
   createEffect(canonicalPath, (path) => {
     const route = decodeRoute(path);
-    const readingLocation = route ? readerLocationForRoute(route) : undefined;
+    let readingLocation: ReturnType<typeof readerLocationForRoute> = undefined;
+    if (route) readingLocation = readerLocationForRoute(route);
     if (readingLocation === undefined || path === recordedPath) return;
     recordedPath = path;
     void continuity.mutate({ location: readingLocation, progress: 0 }).catch((cause: unknown) => {
-      console.error(
-        `[continuity] mutation-failed operation=record category=${failureCategory(cause)}`,
+      Effect.runFork(
+        Effect.logError(
+          `[continuity] mutation-failed operation=record category=${failureCategory(cause)}`,
+        ),
       );
     });
   });
@@ -87,6 +91,11 @@ const sectionFor = (
   if (pathname.startsWith('/practice')) return 'practice';
   if (pathname.startsWith('/settings')) return 'settings';
   return 'other';
+};
+
+const ariaCurrent = (active: boolean): 'page' | undefined => {
+  if (active) return 'page';
+  return undefined;
 };
 
 export const ReadingShell = (props: ParentProps) => {
@@ -138,22 +147,22 @@ export const ReadingShell = (props: ParentProps) => {
           <span>The Word</span>
         </A>
         <nav class="bible-primary-nav" aria-label="Primary navigation">
-          <A href="/bible/1/1" aria-current={activeSection() === 'bible' ? 'page' : undefined}>
+          <A href="/bible/1/1" aria-current={ariaCurrent(activeSection() === 'bible')}>
             Bible
           </A>
-          <A href="/writings" aria-current={activeSection() === 'writings' ? 'page' : undefined}>
+          <A href="/writings" aria-current={ariaCurrent(activeSection() === 'writings')}>
             Writings
           </A>
-          <A href="/search" aria-current={activeSection() === 'search' ? 'page' : undefined}>
+          <A href="/search" aria-current={ariaCurrent(activeSection() === 'search')}>
             Search
           </A>
-          <A href="/topics" aria-current={activeSection() === 'topics' ? 'page' : undefined}>
+          <A href="/topics" aria-current={ariaCurrent(activeSection() === 'topics')}>
             Topics
           </A>
-          <A href="/plans" aria-current={activeSection() === 'plans' ? 'page' : undefined}>
+          <A href="/plans" aria-current={ariaCurrent(activeSection() === 'plans')}>
             Plans
           </A>
-          <A href="/practice" aria-current={activeSection() === 'practice' ? 'page' : undefined}>
+          <A href="/practice" aria-current={ariaCurrent(activeSection() === 'practice')}>
             Practice
           </A>
         </nav>
@@ -182,7 +191,7 @@ export const ReadingShell = (props: ParentProps) => {
         <A
           class="bible-settings-link"
           href="/settings/reader"
-          aria-current={activeSection() === 'settings' ? 'page' : undefined}
+          aria-current={ariaCurrent(activeSection() === 'settings')}
         >
           Settings
         </A>

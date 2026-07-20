@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Layer, Option } from 'effect';
 
 import { EGWParagraphDatabase, type BibleRefRow, type BookRow } from '../egw-db/book-database.js';
@@ -69,32 +69,30 @@ const ArchiveLayer = WritingsArchive.Live.pipe(
   Layer.provide(DatabaseLayer),
 );
 
-const run = <A, E>(effect: Effect.Effect<A, E, WritingsArchive>): Promise<A> =>
-  Effect.runPromise(effect.pipe(Effect.provide(ArchiveLayer)));
-
 describe('WritingsArchive', () => {
-  test('exports a publication with stable paragraph identities and canonical Scripture references', async () => {
-    const archive = await run(
-      Effect.flatMap(WritingsArchive, (service) =>
-        service.exportPublication(Reference.publication(127)),
-      ),
-    );
+  const test = it.effect;
 
-    expect(String(archive.publication.code)).toBe('PP');
-    expect(archive.paragraphs.map((paragraph) => paragraph.refcode)).toEqual(['PP 1.1', '127.2']);
-    expect(archive.paragraphs.map((paragraph) => paragraph.isHeading)).toEqual([true, false]);
-    expect(archive.bibleReferences.map((reference) => reference.scripture._tag)).toEqual([
-      'verse',
-      'chapter',
-    ]);
-    expect(archive.bibleReferences[0]?.scripture).toMatchObject({
-      book: 1,
-      chapter: 1,
-      verse: 1,
-    });
-    expect(archive.bibleReferences[1]?.scripture).toMatchObject({
-      book: 2,
-      chapter: 20,
-    });
-  });
+  test('exports a publication with stable paragraph identities and canonical Scripture references', () =>
+    Effect.gen(function* () {
+      const archive = yield* WritingsArchive.use((service) =>
+        service.exportPublication(Reference.publication(127)),
+      );
+
+      expect(String(archive.publication.code)).toBe('PP');
+      expect(archive.paragraphs.map((paragraph) => paragraph.refcode)).toEqual(['PP 1.1', '127.2']);
+      expect(archive.paragraphs.map((paragraph) => paragraph.isHeading)).toEqual([true, false]);
+      expect(archive.bibleReferences.map((reference) => reference.scripture._tag)).toEqual([
+        'verse',
+        'chapter',
+      ]);
+      expect(archive.bibleReferences[0]?.scripture).toMatchObject({
+        book: 1,
+        chapter: 1,
+        verse: 1,
+      });
+      expect(archive.bibleReferences[1]?.scripture).toMatchObject({
+        book: 2,
+        chapter: 20,
+      });
+    }).pipe(Effect.provide(ArchiveLayer)));
 });

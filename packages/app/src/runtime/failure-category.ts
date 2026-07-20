@@ -4,7 +4,8 @@ const normalizeCategory = (value: string): string => {
     .toLowerCase()
     .replace(/[^a-z0-9._-]+/g, '-')
     .replace(/^-+|-+$/g, '');
-  return normalized.length > 0 ? normalized : 'unknown';
+  if (normalized.length > 0) return normalized;
+  return 'unknown';
 };
 
 export const failureCategory = (cause: unknown): string => {

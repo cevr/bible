@@ -113,6 +113,11 @@
         "**/packages/core/src/writings/archive-service.ts",
         "**/packages/app/src/procedure/**",
         "**/packages/app/src/route/codec.ts",
+        "**/packages/app/src/route/disclosure.ts",
+        "**/packages/app/src/runtime/failure-category.ts",
+        "**/packages/app/src/application/routes.tsx",
+        "**/packages/app/src/application/reading-shell.tsx",
+        "**/packages/app/src/reading/paragraph-nodes.tsx",
         "**/apps/desktop/lint/solid-audit/ast.ts",
         "**/apps/desktop/lint/solid-audit/component-max-loc.ts",
         "**/apps/desktop/lint/solid-audit/effect-service-no-setters.ts",
@@ -167,17 +172,6 @@
       }
     },
     {
-      "files": [
-        "**/packages/core/src/local-first/*-bun.ts",
-        "**/packages/core/src/local-first/database.ts"
-      ],
-      "rules": {
-        "effect/noGlobals": "off",
-        "effect/noNewPromise": "off",
-        "effect/noNodeBuiltinImport": "off"
-      }
-    },
-    {
       "files": ["**/apps/web/src/workers/user-state-database.ts"],
       "rules": {
         "effect/noAsyncFunction": "off"
@@ -217,8 +211,14 @@
       "files": [
         "**/packages/core/src/corpus-supply/**/*.test.ts",
         "**/packages/core/src/bible/service.test.ts",
+        "**/packages/core/src/bible-db/archive.test.ts",
+        "**/packages/core/src/egw-commentary/service.test.ts",
+        "**/packages/core/src/structural-analysis/service.test.ts",
+        "**/packages/core/src/writings/archive-service.test.ts",
         "**/packages/core/src/platform-node/bible-artifact.test.ts",
-        "**/packages/app/src/procedure/client.test.ts"
+        "**/packages/app/src/procedure/client.test.ts",
+        "**/apps/desktop/tests/procedure-client.test.ts",
+        "**/apps/desktop/tests/procedure-server.test.ts"
       ],
       "rules": {
         "effect/noAsyncFunction": "error",

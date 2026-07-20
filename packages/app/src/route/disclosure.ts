@@ -85,11 +85,14 @@ const canvasFor = (route: AppRoute): SurfaceProjection['canvas'] => {
     case 'search':
       return 'unified-search';
     case 'topics':
-      return route.topicId ? 'topic-detail' : 'topic-browser';
+      if (route.topicId) return 'topic-detail';
+      return 'topic-browser';
     case 'plans':
-      return route.planId ? 'plan-detail' : 'plan-list';
+      if (route.planId) return 'plan-detail';
+      return 'plan-list';
     case 'practice':
-      return route.memoryVerseId ? 'practice-session' : 'memory-verse-list';
+      if (route.memoryVerseId) return 'practice-session';
+      return 'memory-verse-list';
     case 'settings':
       return 'settings';
     case 'not-found':
@@ -98,22 +101,21 @@ const canvasFor = (route: AppRoute): SurfaceProjection['canvas'] => {
 };
 
 export const projectSurface = (route: AppRoute, disclosure: DisclosureState): SurfaceProjection => {
-  const navigation = disclosure.navigation === 'closed' ? null : disclosure.navigation;
+  let navigation: Exclude<NavigationPane, 'closed'> | null = null;
+  if (disclosure.navigation !== 'closed') navigation = disclosure.navigation;
   const context = disclosure.context;
   const overlay = disclosure.overlays.at(-1) ?? null;
 
   if (disclosure.viewport === 'narrow') {
+    let replacement: SurfaceProjection['replacement'] = null;
+    if (context !== null) replacement = { _tag: 'context', pane: context };
+    else if (navigation !== null) replacement = { _tag: 'navigation', pane: navigation };
     return {
       shell: 'reading-shell',
       canvas: canvasFor(route),
       left: null,
       right: null,
-      replacement:
-        context !== null
-          ? { _tag: 'context', pane: context }
-          : navigation !== null
-            ? { _tag: 'navigation', pane: navigation }
-            : null,
+      replacement,
       overlay,
     };
   }
