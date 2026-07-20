@@ -11,11 +11,16 @@
  * - Book intros (just book name) and chapter overviews (no verse) are skipped
  */
 
-import { readFileSync, writeFileSync } from 'fs';
-import { join } from 'path';
+import { BunRuntime, BunServices } from '@effect/platform-bun';
+import { Effect, FileSystem, Path, Schema, SchemaGetter } from 'effect';
 
-const DATA_RAW = join(import.meta.dir, '../assets/data-raw');
-const CORE_ASSETS = join(import.meta.dir, '../../core/assets');
+const JsonString = Schema.Unknown.pipe(
+  Schema.encodeTo(Schema.String, {
+    decode: SchemaGetter.parseJson(),
+    encode: SchemaGetter.stringifyJson(),
+  }),
+);
+const encodeJson = Schema.encodeUnknownEffect(JsonString);
 
 // ============================================================================
 // Types
@@ -127,11 +132,14 @@ function parseTskeRef(raw: string): Reference | null {
   if (!m) return null;
 
   const bookAbbr = m[1];
+  const chapterText = m[2];
+  const verseText = m[3];
+  if (bookAbbr === undefined || chapterText === undefined || verseText === undefined) return null;
   const bookNum = TSKE_BOOK_MAP.get(bookAbbr);
   if (bookNum === undefined) return null;
 
-  const chapter = parseInt(m[2], 10);
-  const verse = parseInt(m[3], 10);
+  const chapter = parseInt(chapterText, 10);
+  const verse = parseInt(verseText, 10);
   if (isNaN(chapter) || isNaN(verse)) return null;
 
   const ref: Reference = { book: bookNum, chapter, verse };
@@ -146,11 +154,15 @@ function parseTskeRef(raw: string): Reference | null {
   return ref;
 }
 
-function processTske(): void {
-  console.log('=== Processing TSKe Data ===\n');
+const processTske = Effect.gen(function* () {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const dataRaw = path.join(import.meta.dir, '../assets/data-raw');
+  const coreAssets = path.join(import.meta.dir, '../../core/assets');
+  yield* Effect.log('=== Processing TSKe Data ===\n');
 
-  const inputPath = join(DATA_RAW, 'tske.txt');
-  const content = readFileSync(inputPath, 'utf-8');
+  const inputPath = path.join(dataRaw, 'tske.txt');
+  const content = yield* fs.readFileString(inputPath);
   const lines = content.split('\n');
 
   const crossRefs: Record<string, CrossRefEntry> = {};
@@ -170,6 +182,16 @@ function processTske(): void {
     }
 
     const sourceBookAbbr = headerMatch[1];
+    const sourceChapterText = headerMatch[2];
+    const sourceVerseText = headerMatch[3];
+    if (
+      sourceBookAbbr === undefined ||
+      sourceChapterText === undefined ||
+      sourceVerseText === undefined
+    ) {
+      linesSkipped++;
+      continue;
+    }
     const sourceBookNum = TSKE_BOOK_MAP.get(sourceBookAbbr);
     if (sourceBookNum === undefined) {
       unknownBooks.add(sourceBookAbbr);
@@ -177,8 +199,8 @@ function processTske(): void {
       continue;
     }
 
-    const sourceChapter = parseInt(headerMatch[2], 10);
-    const sourceVerse = parseInt(headerMatch[3], 10);
+    const sourceChapter = parseInt(sourceChapterText, 10);
+    const sourceVerse = parseInt(sourceVerseText, 10);
     const key = `${sourceBookNum}.${sourceChapter}.${sourceVerse}`;
 
     // Extract all <u> tag contents
@@ -186,7 +208,9 @@ function processTske(): void {
     U_TAG_RE.lastIndex = 0; // Reset global regex per line
     let uMatch: RegExpExecArray | null;
     while ((uMatch = U_TAG_RE.exec(line)) !== null) {
-      const ref = parseTskeRef(uMatch[1]);
+      const rawRef = uMatch[1];
+      if (rawRef === undefined) continue;
+      const ref = parseTskeRef(rawRef);
       if (ref) {
         refs.push(ref);
       }
@@ -206,20 +230,20 @@ function processTske(): void {
   }
 
   // Write output
-  const outputPath = join(CORE_ASSETS, 'cross-refs-tske.json');
-  writeFileSync(outputPath, JSON.stringify(crossRefs), 'utf-8');
+  const outputPath = path.join(coreAssets, 'cross-refs-tske.json');
+  yield* fs.writeFileString(outputPath, yield* encodeJson(crossRefs));
 
   // Stats
   const verseKeys = Object.keys(crossRefs).length;
-  console.log(`  Verses processed: ${versesProcessed}`);
-  console.log(`  Verse keys with refs: ${verseKeys}`);
-  console.log(`  Total refs extracted: ${refsExtracted}`);
-  console.log(`  Lines skipped: ${linesSkipped}`);
+  yield* Effect.log(`  Verses processed: ${versesProcessed}`);
+  yield* Effect.log(`  Verse keys with refs: ${verseKeys}`);
+  yield* Effect.log(`  Total refs extracted: ${refsExtracted}`);
+  yield* Effect.log(`  Lines skipped: ${linesSkipped}`);
   if (unknownBooks.size > 0) {
-    console.log(`  Unknown books: ${[...unknownBooks].join(', ')}`);
+    yield* Effect.log(`  Unknown books: ${[...unknownBooks].join(', ')}`);
   }
-  console.log(`\n  Wrote ${outputPath}\n`);
-  console.log('=== Done ===');
-}
+  yield* Effect.log(`\n  Wrote ${outputPath}\n`);
+  yield* Effect.log('=== Done ===');
+});
 
-processTske();
+processTske.pipe(Effect.provide(BunServices.layer), BunRuntime.runMain);

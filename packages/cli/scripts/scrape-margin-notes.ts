@@ -15,12 +15,20 @@
  * }
  */
 
-import { writeFileSync } from 'fs';
-import { join } from 'path';
+import { BunRuntime, BunServices } from '@effect/platform-bun';
+import * as BunHttpClient from '@effect/platform-bun/BunHttpClient';
+import { Effect, FileSystem, Layer, Path, Schema, SchemaGetter } from 'effect';
+import { HttpClient, HttpClientResponse } from 'effect/unstable/http';
 
 const URL =
   'https://en.literaturabautista.com/exhaustive-listing-marginal-notes-1611-edition-king-james-bible';
-const ASSETS = join(import.meta.dir, '../assets');
+const JsonString = Schema.Unknown.pipe(
+  Schema.encodeTo(Schema.String, {
+    decode: SchemaGetter.parseJson(),
+    encode: SchemaGetter.stringifyJson({ space: 2 }),
+  }),
+);
+const encodeJson = Schema.encodeUnknownEffect(JsonString);
 
 // Book name to number mapping
 const BOOK_MAP: Record<string, number> = {
@@ -130,14 +138,19 @@ function cleanText(text: string): string {
     .trim();
 }
 
-async function main() {
-  console.log('=== Scraping KJV 1611 Margin Notes ===\n');
-  console.log(`Fetching ${URL}...\n`);
+const main = Effect.gen(function* () {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const assets = path.join(import.meta.dir, '../assets');
+  yield* Effect.log('=== Scraping KJV 1611 Margin Notes ===\n');
+  yield* Effect.log(`Fetching ${URL}...\n`);
 
-  const response = await fetch(URL);
-  const html = await response.text();
+  const html = yield* HttpClient.get(URL).pipe(
+    Effect.flatMap(HttpClientResponse.filterStatusOk),
+    Effect.flatMap((response) => response.text),
+  );
 
-  console.log(`Downloaded ${html.length} bytes\n`);
+  yield* Effect.log(`Downloaded ${html.length} bytes\n`);
 
   // Extract all margin note entries
   const notesMap: Record<string, MarginNote[]> = {};
@@ -147,15 +160,24 @@ async function main() {
   let match;
   while ((match = ENTRY_REGEX.exec(html)) !== null) {
     const [, bookName, chapter, verse, phraseRaw, noteTextRaw] = match;
-    const bookNum = BOOK_MAP[bookName!];
+    if (
+      bookName === undefined ||
+      chapter === undefined ||
+      verse === undefined ||
+      phraseRaw === undefined ||
+      noteTextRaw === undefined
+    ) {
+      continue;
+    }
+    const bookNum = BOOK_MAP[bookName];
 
     if (!bookNum) {
-      console.log(`  Unknown book: ${bookName}`);
+      yield* Effect.logWarning(`  Unknown book: ${bookName}`);
       continue;
     }
 
-    const phrase = cleanText(phraseRaw!);
-    const noteText = cleanText(noteTextRaw!);
+    const phrase = cleanText(phraseRaw);
+    const noteText = cleanText(noteTextRaw);
 
     // Skip if phrase starts with dash (artifact)
     if (phrase.startsWith('-')) continue;
@@ -187,30 +209,35 @@ async function main() {
     }
   }
 
-  console.log(`Extracted ${count} margin notes from ${Object.keys(notesMap).length} verses\n`);
-  console.log('By type:');
-  console.log(`  Hebrew: ${byType.hebrew}`);
-  console.log(`  Greek: ${byType.greek}`);
-  console.log(`  Alternate: ${byType.alternate}`);
-  console.log(`  Name meanings: ${byType.name}`);
-  console.log(`  Other: ${byType.other}`);
+  yield* Effect.log(
+    `Extracted ${count} margin notes from ${Object.keys(notesMap).length} verses\n`,
+  );
+  yield* Effect.log('By type:');
+  yield* Effect.log(`  Hebrew: ${byType.hebrew}`);
+  yield* Effect.log(`  Greek: ${byType.greek}`);
+  yield* Effect.log(`  Alternate: ${byType.alternate}`);
+  yield* Effect.log(`  Name meanings: ${byType.name}`);
+  yield* Effect.log(`  Other: ${byType.other}`);
 
   // Write output
-  const outputPath = join(ASSETS, 'margin-notes.json');
-  writeFileSync(outputPath, JSON.stringify(notesMap, null, 2));
-  console.log(`\nWrote ${outputPath}\n`);
+  const outputPath = path.join(assets, 'margin-notes.json');
+  yield* fs.writeFileString(outputPath, yield* encodeJson(notesMap));
+  yield* Effect.log(`\nWrote ${outputPath}\n`);
 
   // Sample output
-  console.log('Sample entries:');
+  yield* Effect.log('Sample entries:');
   const samples = Object.entries(notesMap).slice(0, 5);
   for (const [key, notes] of samples) {
-    console.log(`  ${key}:`);
+    yield* Effect.log(`  ${key}:`);
     for (const note of notes) {
-      console.log(`    "${note.phrase}" -> ${note.text}`);
+      yield* Effect.log(`    "${note.phrase}" -> ${note.text}`);
     }
   }
 
-  console.log('\n=== Done ===');
-}
+  yield* Effect.log('\n=== Done ===');
+});
 
-main();
+main.pipe(
+  Effect.provide(Layer.mergeAll(BunServices.layer, BunHttpClient.layer)),
+  BunRuntime.runMain,
+);
