@@ -1,49 +1,46 @@
 #!/usr/bin/env bun
-/* Mark Violations rows in SOLID_AUDIT.md as resolved.
+/** Mark selected SOLID_AUDIT.md violations as resolved. */
+import { NodeRuntime, NodeServices } from '@effect/platform-node';
+import { Console, Effect, FileSystem, Path } from 'effect';
 
-   Usage:
-     bun scripts/mark-audit.ts <commit-sha> <id...>
-
-   For each ID:
-     - wraps the ID cell in ~~strikethrough~~
-     - replaces the trailing ☐ with ✓ <short-sha>
-
-   Idempotent — re-running on an already-resolved ID is a no-op. */
-import { readFileSync, writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
-
-const [, , sha, ...ids] = process.argv;
-if (!sha || ids.length === 0) {
-  console.error('usage: bun scripts/mark-audit.ts <sha> <id...>');
-  process.exit(1);
-}
-const shortSha = sha.slice(0, 8);
-
-const file = resolve(import.meta.dir, '../SOLID_AUDIT.md');
-let text = readFileSync(file, 'utf8');
-
-let changed = 0;
-for (const id of ids) {
-  if (text.includes(`~~${id}~~`)) continue;
-  const idCell = new RegExp(`(\\|)( *)${id.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')}( *)(\\|)`);
-  const match = text.match(idCell);
-  if (!match) {
-    console.error(`mark-audit: ${id} not found`);
-    process.exit(2);
+const program = Effect.gen(function* () {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const [sha, ...ids] = process.argv.slice(2);
+  if (sha === undefined || ids.length === 0) {
+    yield* Console.error('usage: bun scripts/mark-audit.ts <sha> <id...>');
+    return yield* Effect.fail('invalid mark-audit arguments');
   }
-  text = text.replace(idCell, `$1$2~~${id}~~$3$4`);
-  // Replace the row's trailing ☐ — find the row containing the id, swap the
-  // last ☐ on that line for ✓ <sha>.
-  const lines = text.split('\n');
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i]?.includes(`~~${id}~~`) && lines[i]?.includes('☐')) {
-      lines[i] = lines[i]!.replace(/☐/, `✓ ${shortSha}`);
-      break;
+  const shortSha = sha.slice(0, 8);
+  const file = path.resolve(import.meta.dir, '../SOLID_AUDIT.md');
+  let contents = yield* fs.readFileString(file);
+  let changed = 0;
+
+  for (const id of ids) {
+    if (contents.includes(`~~${id}~~`)) continue;
+    const idCell = new RegExp(`(\\|)( *)${id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}( *)(\\|)`);
+    const match = contents.match(idCell);
+    if (match === null) {
+      yield* Console.error(`mark-audit: ${id} not found`);
+      return yield* Effect.fail(`unknown audit id ${id}`);
     }
+    contents = contents.replace(idCell, `$1$2~~${id}~~$3$4`);
+    const lines = contents.split('\n');
+    for (let index = 0; index < lines.length; index += 1) {
+      const line = lines[index];
+      if (line?.includes(`~~${id}~~`) && line.includes('☐')) {
+        lines[index] = line.replace(/☐/, `✓ ${shortSha}`);
+        break;
+      }
+    }
+    contents = lines.join('\n');
+    changed += 1;
   }
-  text = lines.join('\n');
-  changed++;
-}
 
-writeFileSync(file, text);
-console.log(`marked ${changed} row${changed === 1 ? '' : 's'} as resolved (sha=${shortSha})`);
+  yield* fs.writeFileString(file, contents);
+  let suffix = 's';
+  if (changed === 1) suffix = '';
+  yield* Console.log(`marked ${String(changed)} row${suffix} as resolved (sha=${shortSha})`);
+}).pipe(Effect.provide(NodeServices.layer));
+
+NodeRuntime.runMain(program);
