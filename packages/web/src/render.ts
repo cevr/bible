@@ -13,6 +13,9 @@
 
 import type { Comparison } from './comparison.js';
 import type { Study } from './study.js';
+import { DateTime, Option, Schema } from 'effect';
+
+const encodeJson = Schema.encodeSync(Schema.UnknownFromJsonString);
 
 /** Bun's built-in CommonMark renderer (Bun >= 1.3). Tables render natively. */
 export const renderMarkdown = (md: string): string => Bun.markdown.html(md);
@@ -141,7 +144,8 @@ const normalizedText = (html: string): string => textFromHtml(html).toLowerCase(
 
 export const countStudyWords = (html: string): number => {
   const text = textFromHtml(html);
-  return text === '' ? 0 : text.split(' ').length;
+  if (text === '') return 0;
+  return text.split(' ').length;
 };
 
 export const estimateReadingMinutes = (words: number): number =>
@@ -151,7 +155,8 @@ export const formatReadingTime = (minutes: number): string => {
   if (minutes < 60) return `≈${minutes}&nbsp;min`;
   const hours = Math.floor(minutes / 60);
   const remainder = minutes % 60;
-  return remainder === 0 ? `≈${hours}&nbsp;hr` : `≈${hours}&nbsp;hr ${remainder}&nbsp;min`;
+  if (remainder === 0) return `≈${hours}&nbsp;hr`;
+  return `≈${hours}&nbsp;hr ${remainder}&nbsp;min`;
 };
 
 const withoutAnchor = (html: string): string => html.replace(/^<a class="anchor"[\s\S]*?<\/a>/, '');
@@ -170,9 +175,8 @@ const linkSectionReferences = (html: string, hrefByTitle: ReadonlyMap<string, st
           /\b(see|defined in) &quot;([^&]+)&quot;/gi,
           (match, prefix: string, title: string) => {
             const href = hrefByTitle.get(normalizedSectionTitle(title));
-            return href === undefined
-              ? match
-              : `<a class="section-cross-reference" href="${href}">${prefix} “${title}”</a>`;
+            if (href === undefined) return match;
+            return `<a class="section-cross-reference" href="${href}">${prefix} “${title}”</a>`;
           },
         );
       }
@@ -234,17 +238,17 @@ const annotateAppendix = (
         (sentence, titleHtml: string) => {
           owner = byTitle.get(normalizedSectionTitle(titleHtml));
           // section.href already carries the in-Part hash, so link to it directly
-          return owner === undefined
-            ? sentence
-            : `— defined in &quot;<a class="defined-in-link" href="${owner.href}">${titleHtml}</a>&quot;.`;
+          if (owner === undefined) return sentence;
+          return `— defined in &quot;<a class="defined-in-link" href="${owner.href}">${titleHtml}</a>&quot;.`;
         },
       );
-      entries.push({
+      const entry = {
         id,
         term: textFromHtml(termHtml),
         normalizedTerm,
-        ...(owner === undefined ? {} : { owner }),
-      });
+      };
+      if (owner === undefined) entries.push(entry);
+      else entries.push({ ...entry, owner });
       return `<li class="symbol-entry" id="${id}"><strong>${termHtml}</strong> = ${linkedTrailing}</li>`;
     },
   );
@@ -256,14 +260,14 @@ const linkSymbols = (html: string, slug: string, symbols: ReadonlyMap<string, st
     /<li><strong>([\s\S]*?)<\/strong>\s*=\s*([\s\S]*?)<\/li>/g,
     (whole, termHtml: string) => {
       const symbolId = symbols.get(normalizeDictionaryTerm(termHtml));
-      const href = symbolId === undefined ? `/${slug}/appendix/` : `/${slug}/appendix/#${symbolId}`;
+      let href = `/${slug}/appendix/`;
+      if (symbolId !== undefined) href = `/${slug}/appendix/#${symbolId}`;
+      let linkedTerm = `<strong>${termHtml}</strong>`;
+      if (symbolId !== undefined) {
+        linkedTerm = `<a class="symbol-link" href="${href}"><strong>${termHtml}</strong></a>`;
+      }
       return whole
-        .replace(
-          `<strong>${termHtml}</strong>`,
-          symbolId === undefined
-            ? `<strong>${termHtml}</strong>`
-            : `<a class="symbol-link" href="${href}"><strong>${termHtml}</strong></a>`,
-        )
+        .replace(`<strong>${termHtml}</strong>`, linkedTerm)
         .replace(
           /Defined in full at the close\./g,
           `<a class="appendix-link" href="${href}">Defined in full in the Symbol Dictionary.</a>`,
@@ -278,15 +282,18 @@ const annotateListItem = (opening: string, inner: string): string => {
   const scripture = /biblegateway\.com/i.test(reference);
   const witness = /egwwritings\.org/i.test(reference) || /^\s*(?:White|Miller):/i.test(remainder);
   if (!scripture && !witness) return `${opening}${inner}</li>`;
-  const register = scripture ? 'scripture' : 'witness';
-  const quoteAndGloss = remainder.includes('<ul>')
-    ? null
-    : remainder.match(/^(\s*)(&quot;[\s\S]*?&quot;)(\s+—[\s\S]*)$/);
-  const annotatedRemainder =
-    quoteAndGloss === null
-      ? remainder
-      : `${quoteAndGloss[1]}<span class="source-quotation">${quoteAndGloss[2]}</span><span class="source-gloss">${quoteAndGloss[3]}</span>`;
-  const label = witness ? '<span class="register-label">Witness</span>' : '';
+  let register = 'witness';
+  if (scripture) register = 'scripture';
+  let quoteAndGloss: RegExpMatchArray | null = null;
+  if (!remainder.includes('<ul>')) {
+    quoteAndGloss = remainder.match(/^(\s*)(&quot;[\s\S]*?&quot;)(\s+—[\s\S]*)$/);
+  }
+  let annotatedRemainder = remainder;
+  if (quoteAndGloss !== null) {
+    annotatedRemainder = `${quoteAndGloss[1]}<span class="source-quotation">${quoteAndGloss[2]}</span><span class="source-gloss">${quoteAndGloss[3]}</span>`;
+  }
+  let label = '';
+  if (witness) label = '<span class="register-label">Witness</span>';
   const annotatedOpening = opening.replace('<li', `<li data-register="${register}"`);
   return `${annotatedOpening}${whitespace}${label}<span class="source-ref">${reference}</span>${annotatedRemainder}</li>`;
 };
@@ -371,7 +378,8 @@ export const parseStudyArticle = ({
     const tag = match[1];
     if (tag !== 'h1' && tag !== 'h2') continue;
     const inner = match[3] ?? '';
-    const titleHtml = tag === 'h2' ? withoutAnchor(inner) : inner;
+    let titleHtml = inner;
+    if (tag === 'h2') titleHtml = withoutAnchor(inner);
     structural.push({
       tag,
       id: match[2] ?? '',
@@ -391,23 +399,30 @@ export const parseStudyArticle = ({
   const sectionHeadings = contentHeadings.filter((heading) => heading.tag === 'h2');
   const firstBoundary = partHeadings[0]?.start ?? sectionHeadings[0]?.start ?? contentEnd;
   const introductionHtml = anchored.html.slice(0, firstBoundary).trim();
-  const partDrafts = (
-    partHeadings.length === 0
-      ? [
-          {
-            label: 'Study',
-            title: 'Study',
-            start: firstBoundary,
-            end: contentEnd,
-          },
-        ]
-      : partHeadings.map((heading, index) => ({
-          label: heading.titleHtml,
-          title: heading.titleHtml.replace(/^Part\s+(?:[IVXLCDM]+|\d+)\s*[—-]\s*/i, ''),
-          start: heading.end,
-          end: partHeadings[index + 1]?.start ?? contentEnd,
-        }))
-  )
+  let partBoundaries: readonly {
+    readonly label: string;
+    readonly title: string;
+    readonly start: number;
+    readonly end: number;
+  }[];
+  if (partHeadings.length === 0) {
+    partBoundaries = [
+      {
+        label: 'Study',
+        title: 'Study',
+        start: firstBoundary,
+        end: contentEnd,
+      },
+    ];
+  } else {
+    partBoundaries = partHeadings.map((heading, index) => ({
+      label: heading.titleHtml,
+      title: heading.titleHtml.replace(/^Part\s+(?:[IVXLCDM]+|\d+)\s*[—-]\s*/i, ''),
+      start: heading.end,
+      end: partHeadings[index + 1]?.start ?? contentEnd,
+    }));
+  }
+  const partDrafts = partBoundaries
     .map((part) => ({
       ...part,
       headings: sectionHeadings.filter(
@@ -425,13 +440,14 @@ export const parseStudyArticle = ({
       const html = anchored.html.slice(heading.end, nextHeading?.start ?? part.end).trim();
       const summaryHtml = html.match(/^\s*<blockquote>([\s\S]*?)<\/blockquote>/)?.[1];
       indexes.push(sectionDrafts.length);
-      sectionDrafts.push({
+      const sectionDraft = {
         id: heading.id,
         title: heading.titleHtml,
         words: countStudyWords(`${heading.titleHtml} ${html}`),
-        ...(summaryHtml === undefined ? {} : { summaryHtml }),
         html,
-      });
+      };
+      if (summaryHtml === undefined) sectionDrafts.push(sectionDraft);
+      else sectionDrafts.push({ ...sectionDraft, summaryHtml });
     });
     sectionIndexesByPart.push(indexes);
   });
@@ -447,32 +463,33 @@ export const parseStudyArticle = ({
       href: `/${slug}/part-${partOrdinal}/#${section.id}`,
     };
   });
-  const appendixBody =
-    appendixHeading === undefined ? undefined : anchored.html.slice(appendixHeading.end).trim();
-  const annotatedAppendix =
-    appendixBody === undefined
-      ? undefined
-      : annotateAppendix(appendixBody, slug, bareSections, anchored.ids);
+  let appendixBody: string | undefined;
+  if (appendixHeading !== undefined) {
+    appendixBody = anchored.html.slice(appendixHeading.end).trim();
+  }
+  let annotatedAppendix: ReturnType<typeof annotateAppendix> | undefined;
+  if (appendixBody !== undefined) {
+    annotatedAppendix = annotateAppendix(appendixBody, slug, bareSections, anchored.ids);
+  }
   const hrefByTitle = new Map(
     bareSections.map((section) => [normalizedSectionTitle(section.title), section.href]),
   );
-  const sections = bareSections.map((section) => ({
-    ...section,
-    html: annotateStudySection(
-      section.id,
-      linkSectionReferences(
-        annotatedAppendix === undefined
-          ? section.html
-          : linkSymbols(section.html, slug, annotatedAppendix.symbols),
-        hrefByTitle,
-      ),
-    ),
-  }));
+  const sections = bareSections.map((section) => {
+    let symbolLinkedHtml = section.html;
+    if (annotatedAppendix !== undefined) {
+      symbolLinkedHtml = linkSymbols(section.html, slug, annotatedAppendix.symbols);
+    }
+    return {
+      ...section,
+      html: annotateStudySection(section.id, linkSectionReferences(symbolLinkedHtml, hrefByTitle)),
+    };
+  });
   const parts = partDrafts.map((part, index) => {
     const partSections =
       sectionIndexesByPart[index]?.flatMap((sectionIndex) => {
         const section = sections[sectionIndex];
-        return section === undefined ? [] : [section];
+        if (section === undefined) return [];
+        return [section];
       }) ?? [];
     return {
       ordinal: index + 1,
@@ -484,24 +501,25 @@ export const parseStudyArticle = ({
       sections: partSections,
     };
   });
-  const appendix =
-    appendixHeading === undefined || annotatedAppendix === undefined
-      ? undefined
-      : {
-          id: appendixHeading.id,
-          title: appendixHeading.titleHtml,
-          href: `/${slug}/appendix/`,
-          html: annotatedAppendix.html,
-          entries: annotatedAppendix.entries,
-        };
-  return {
+  let appendix: StudyAppendix | undefined;
+  if (appendixHeading !== undefined && annotatedAppendix !== undefined) {
+    appendix = {
+      id: appendixHeading.id,
+      title: appendixHeading.titleHtml,
+      href: `/${slug}/appendix/`,
+      html: annotatedAppendix.html,
+      entries: annotatedAppendix.entries,
+    };
+  }
+  const document = {
     introductionHtml,
     parts,
     sections,
-    ...(appendix === undefined ? {} : { appendix }),
     words:
       countStudyWords(introductionHtml) + sections.reduce((sum, section) => sum + section.words, 0),
   };
+  if (appendix === undefined) return document;
+  return { ...document, appendix };
 };
 
 // ============================================================================
@@ -1203,6 +1221,12 @@ export const NAV_PAGES: readonly NavPage[] = [
   { href: '/comparisons/', label: 'Comparisons' },
 ];
 
+const navCurrent = (page: NavPage, path: string, section: string): string => {
+  if (page.href === path) return ` aria-current="page"`;
+  if (page.href === section) return ` aria-current="true"`;
+  return '';
+};
+
 /**
  * `path` is the page's actual URL (exact match → aria-current="page");
  * `section` is the nav entry to highlight as ancestor (aria-current="true").
@@ -1213,21 +1237,27 @@ export const nav = (path: string, section: string): string => `
         <a class="brand" href="/">The <em>Sure</em> Word</a>
         <ul class="nav-list">
 ${NAV_PAGES.map((p) => {
-  const current =
-    p.href === path ? ` aria-current="page"` : p.href === section ? ` aria-current="true"` : '';
+  const current = navCurrent(p, path, section);
   return `          <li><a href="${p.href}"${current}>${p.label}</a></li>`;
 }).join('\n')}
         </ul>
       </div>
     </nav>`;
 
-export const footer = (explicitReference = false): string => `
+export const footer = (explicitReference = false): string => {
+  let reference = '2 Peter 1:19';
+  if (explicitReference) {
+    reference =
+      '<a href="https://www.biblegateway.com/passage/?search=2%20Peter%201%3A19&amp;version=KJV" target="_blank" rel="noopener noreferrer">2 Peter 1:19</a>';
+  }
+  return `
     <footer class="site-footer">
       <div class="footer-inner">
         <span>The <em>Sure</em> Word — Bible handbook studies. Every line: reference → text → gloss.</span>
-        <span>"We have also a more sure word of prophecy" — ${explicitReference ? '<a href="https://www.biblegateway.com/passage/?search=2%20Peter%201%3A19&amp;version=KJV" target="_blank" rel="noopener noreferrer">2 Peter 1:19</a>' : '2 Peter 1:19'}</span>
+        <span>"We have also a more sure word of prophecy" — ${reference}</span>
       </div>
     </footer>`;
+};
 
 export const shell = (opts: {
   title: string;
@@ -1448,20 +1478,22 @@ export const unifyComparisonPage = (html: string, comp: Comparison.Source): stri
 // ============================================================================
 
 const fmtDate = (iso: string): string => {
-  const d = new Date(iso);
+  const date = DateTime.make(iso);
   // date-only strings parse as UTC midnight — format in UTC or the day shifts
-  return Number.isNaN(d.getTime())
-    ? iso
-    : d.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        timeZone: 'UTC',
-      });
+  if (Option.isNone(date)) return iso;
+  return DateTime.formatUtc(date.value, {
+    locale: 'en-US',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
 };
 
-const count = (n: number, singular: string, plural = `${singular}s`): string =>
-  `<strong>${n}</strong> ${n === 1 ? singular : plural}`;
+const count = (n: number, singular: string, plural = `${singular}s`): string => {
+  let label = plural;
+  if (n === 1) label = singular;
+  return `<strong>${n}</strong> ${label}`;
+};
 
 const masthead = (opts: {
   meta: Study.Meta;
@@ -1495,19 +1527,25 @@ const renderToc = (
   current: { readonly part?: StudyPart; readonly appendix?: boolean },
 ): string => {
   const firstSection = current.part?.sections[0] ?? document.sections[0];
-  const summary =
-    current.appendix === true
-      ? 'Symbol Dictionary'
-      : `Part ${current.part?.ordinal ?? 1} · Section ${firstSection?.ordinal ?? 1} of ${document.sections.length}`;
+  let summary = `Part ${current.part?.ordinal ?? 1} · Section ${firstSection?.ordinal ?? 1} of ${document.sections.length}`;
+  if (current.appendix === true) summary = 'Symbol Dictionary';
+  let appendixLink = '';
+  if (document.appendix !== undefined) {
+    let appendixCurrent = '';
+    if (current.appendix === true) appendixCurrent = ' aria-current="page"';
+    appendixLink = `<a class="toc-appendix" href="${document.appendix.href}"${appendixCurrent}>Symbol Dictionary</a>`;
+  }
   return `
       <aside class="toc study-toc" aria-label="Study contents">
         <details class="toc-box">
           <summary><span>Contents</span><span class="toc-current" data-current-section>${summary}</span></summary>
           <ol class="toc-parts">
 ${document.parts
-  .map(
-    (part) => `              <li class="toc-part">
-                <a class="toc-part-link" href="${part.href}"${current.part?.ordinal === part.ordinal ? ' aria-current="page"' : ''}>${part.label}</a>
+  .map((part) => {
+    let partCurrent = '';
+    if (current.part?.ordinal === part.ordinal) partCurrent = ' aria-current="page"';
+    return `              <li class="toc-part">
+                <a class="toc-part-link" href="${part.href}"${partCurrent}>${part.label}</a>
                 <ol class="toc-sections">
 ${part.sections
   .map(
@@ -1519,11 +1557,11 @@ ${part.sections
   )
   .join('\n')}
                 </ol>
-              </li>`,
-  )
+              </li>`;
+  })
   .join('\n')}
           </ol>
-          ${document.appendix === undefined ? '' : `<a class="toc-appendix" href="${document.appendix.href}"${current.appendix === true ? ' aria-current="page"' : ''}>Symbol Dictionary</a>`}
+          ${appendixLink}
         </details>
       </aside>`;
 };
@@ -1679,8 +1717,16 @@ export const studyLandingPage = (opts: { meta: Study.Meta; document: StudyDocume
   const routeEntries = opts.document.sections.map((section) => [section.id, section.href]);
   if (opts.document.appendix !== undefined)
     routeEntries.push([opts.document.appendix.id, opts.document.appendix.href]);
-  const routes = JSON.stringify(Object.fromEntries(routeEntries)).replaceAll('<', '\\u003c');
+  const routes = encodeJson(Object.fromEntries(routeEntries)).replaceAll('<', '\\u003c');
   const minutes = estimateReadingMinutes(opts.document.words);
+  let appendixHref = '';
+  if (opts.document.appendix !== undefined) {
+    appendixHref = ` data-appendix-href="${opts.document.appendix.href}"`;
+  }
+  let studyActions = '';
+  if (first !== undefined) {
+    studyActions = `<div class="study-actions"><a class="start-reading" href="${first.href}">Start With Section 1</a><a class="resume-reading" data-resume-reading hidden></a></div>`;
+  }
   const body = `${masthead({
     meta: opts.meta,
     lede: esc(opts.meta.subtitle),
@@ -1693,12 +1739,12 @@ export const studyLandingPage = (opts: { meta: Study.Meta; document: StudyDocume
     ],
   })}
     <div class="shell">
-      <main class="study-overview" id="content" data-study-slug="${opts.meta.slug}" data-section-count="${opts.document.sections.length}"${opts.document.appendix === undefined ? '' : ` data-appendix-href="${opts.document.appendix.href}"`}>
+      <main class="study-overview" id="content" data-study-slug="${opts.meta.slug}" data-section-count="${opts.document.sections.length}"${appendixHref}>
         <section class="study-introduction" aria-labelledby="before-you-begin">
           <h2 id="before-you-begin">Before You Begin</h2>
 ${opts.document.introductionHtml}
         </section>
-        ${first === undefined ? '' : `<div class="study-actions"><a class="start-reading" href="${first.href}">Start With Section 1</a><a class="resume-reading" data-resume-reading hidden></a></div>`}
+        ${studyActions}
         <nav class="study-syllabus" aria-label="Study outline">
           <ol class="part-list">
 ${opts.document.parts
@@ -1708,7 +1754,15 @@ ${opts.document.parts
               <h2>${part.title}</h2>
               <p class="part-card-meta">${count(part.sections.length, 'section')} · ${formatReadingTime(estimateReadingMinutes(part.words))}</p>
               <ol class="section-list">
-${part.sections.map((section) => `                <li data-syllabus-section="${section.id}" data-section-ordinal="${section.ordinal}"><a href="${section.href}"><span>${section.title}</span><span>${formatReadingTime(estimateReadingMinutes(section.words))}</span>${section.summaryHtml === undefined ? '' : `<span class="section-summary">${section.summaryHtml}</span>`}</a></li>`).join('\n')}
+${part.sections
+  .map((section) => {
+    let summary = '';
+    if (section.summaryHtml !== undefined) {
+      summary = `<span class="section-summary">${section.summaryHtml}</span>`;
+    }
+    return `                <li data-syllabus-section="${section.id}" data-section-ordinal="${section.ordinal}"><a href="${section.href}"><span>${section.title}</span><span>${formatReadingTime(estimateReadingMinutes(section.words))}</span>${summary}</a></li>`;
+  })
+  .join('\n')}
               </ol>
             </li>`,
   )
@@ -1742,18 +1796,28 @@ const sectionPagination = (
 ): { previousHref: string; previousLabel: string; nextHref: string; nextLabel: string } => {
   const previous = document.sections[section.ordinal - 2];
   const next = document.sections[section.ordinal];
-  const sameHref = (target: StudySection): string =>
-    target.partOrdinal === section.partOrdinal ? `#${target.id}` : target.href;
+  const sameHref = (target: StudySection): string => {
+    if (target.partOrdinal === section.partOrdinal) return `#${target.id}`;
+    return target.href;
+  };
+  let previousHref = `/${slug}/`;
+  let previousLabel = 'Study Overview';
+  if (previous !== undefined) {
+    previousHref = sameHref(previous);
+    previousLabel = `Previous: ${previous.title}`;
+  }
+  let nextHref = document.appendix?.href ?? `/${slug}/`;
+  let nextLabel = 'Next: Study Overview';
+  if (document.appendix !== undefined) nextLabel = 'Next: Symbol Dictionary';
+  if (next !== undefined) {
+    nextHref = sameHref(next);
+    nextLabel = `Next: ${next.title}`;
+  }
   return {
-    previousHref: previous === undefined ? `/${slug}/` : sameHref(previous),
-    previousLabel: previous === undefined ? 'Study Overview' : `Previous: ${previous.title}`,
-    nextHref: next === undefined ? (document.appendix?.href ?? `/${slug}/`) : sameHref(next),
-    nextLabel:
-      next === undefined
-        ? document.appendix === undefined
-          ? 'Next: Study Overview'
-          : 'Next: Symbol Dictionary'
-        : `Next: ${next.title}`,
+    previousHref,
+    previousLabel,
+    nextHref,
+    nextLabel,
   };
 };
 
@@ -1773,10 +1837,8 @@ export const partPage = (opts: {
   const total = document.sections.length;
   const firstOrdinal = part.sections[0]?.ordinal ?? 1;
   const lastOrdinal = part.sections.at(-1)?.ordinal ?? firstOrdinal;
-  const rangeLabel =
-    firstOrdinal === lastOrdinal
-      ? `Section ${firstOrdinal} of ${total}`
-      : `Sections ${firstOrdinal}–${lastOrdinal} of ${total}`;
+  let rangeLabel = `Sections ${firstOrdinal}–${lastOrdinal} of ${total}`;
+  if (firstOrdinal === lastOrdinal) rangeLabel = `Section ${firstOrdinal} of ${total}`;
   const sectionsHtml = part.sections
     .map((section) => {
       const pagination = sectionPagination(document, section, slug);
@@ -1866,19 +1928,22 @@ export const indexPage = (opts: {
   comparisons: readonly Comparison.Card[];
 }): string => {
   const studyCards = opts.studies
-    .map(
-      (
-        s,
-        i,
-      ) => `        <a class="card${i === 0 ? ' lead' : ''}" href="/${s.slug}/" data-study-slug="${s.slug}" data-section-count="${s.sections}">
+    .map((s, i) => {
+      let lead = '';
+      if (i === 0) lead = ' lead';
+      let partLabel = 'parts';
+      if (s.parts === 1) partLabel = 'part';
+      let sectionLabel = 'sections';
+      if (s.sections === 1) sectionLabel = 'section';
+      return `        <a class="card${lead}" href="/${s.slug}/" data-study-slug="${s.slug}" data-section-count="${s.sections}">
           <span class="card-eyebrow">${esc(s.eyebrow)}</span>
           <h3>${s.title}</h3>
           <span class="card-sub">${esc(s.subtitle)}</span>
           <span class="card-desc">${esc(s.description)}</span>
-          <span class="card-meta"><span>${s.parts} ${s.parts === 1 ? 'part' : 'parts'} · ${s.sections} ${s.sections === 1 ? 'section' : 'sections'} · ${formatReadingTime(s.minutes)}</span></span>
+          <span class="card-meta"><span>${s.parts} ${partLabel} · ${s.sections} ${sectionLabel} · ${formatReadingTime(s.minutes)}</span></span>
           <span class="card-progress" data-progress-for="${s.slug}" hidden></span>
-        </a>`,
-    )
+        </a>`;
+    })
     .join('\n');
   const comparisonCards = opts.comparisons
     .map(

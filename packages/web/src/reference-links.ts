@@ -1,6 +1,6 @@
 import { Database } from 'bun:sqlite';
 import { BIBLE_BOOK_ALIASES } from '@bible/core/bible';
-import { Config, Context, Effect, Layer, Schema } from 'effect';
+import { Config, Context, Effect, Layer, Option, Schema } from 'effect';
 import { homedir } from 'node:os';
 
 const escapeRegex = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -32,21 +32,28 @@ interface EgwPanelRow {
 }
 
 /** Read the canonical EGW paragraph IDs used by egwwritings.org deep links. */
-const loadEgwPanelMap = (databasePath: string): EgwPanelMap => {
-  const database = new Database(databasePath, { readonly: true, strict: true });
-  try {
-    const rows = database
-      .query<EgwPanelRow, []>(
-        `select refcode_short as refcode, para_id as panelId
+const loadEgwPanelMap = (databasePath: string): Effect.Effect<EgwPanelMap, unknown> =>
+  Effect.acquireUseRelease(
+    Effect.try({
+      try: () => new Database(databasePath, { readonly: true, strict: true }),
+      catch: (cause) => cause,
+    }),
+    (database) =>
+      Effect.try({
+        try: () => {
+          const rows = database
+            .query<EgwPanelRow, []>(
+              `select refcode_short as refcode, para_id as panelId
          from paragraphs
          where refcode_short is not null and para_id is not null`,
-      )
-      .all();
-    return new Map(rows.map((row) => [row.refcode, row.panelId]));
-  } finally {
-    database.close();
-  }
-};
+            )
+            .all();
+          return new Map(rows.map((row) => [row.refcode, row.panelId]));
+        },
+        catch: (cause) => cause,
+      }),
+    (database) => Effect.sync(() => database.close()),
+  );
 
 const externalLink = (href: string, label: string): string =>
   `<a href="${href}" target="_blank" rel="noopener noreferrer">${label}</a>`;
@@ -75,7 +82,8 @@ const linkReferences = (html: string, egwPanels: EgwPanelMap): string => {
     .split(/(<[^>]+>)/g)
     .map((part) => {
       if (!part.startsWith('<')) {
-        return suppressed.length === 0 ? linkTextReferences(part, egwPanels) : part;
+        if (suppressed.length === 0) return linkTextReferences(part, egwPanels);
+        return part;
       }
 
       const closing = part.match(/^<\/([a-z0-9]+)/i)?.[1]?.toLowerCase();
@@ -111,6 +119,14 @@ export class Service extends Context.Service<Service, Interface>()('@bible/site/
     Layer.succeed(Service, Service.of({ link: (html) => linkReferences(html, panels) }));
 }
 
+const CauseMessage = Schema.Struct({ message: Schema.String });
+
+const causeMessage = (cause: unknown): string => {
+  const decoded = Schema.decodeUnknownOption(CauseMessage)(cause);
+  if (Option.isSome(decoded)) return decoded.value.message;
+  return String(cause);
+};
+
 /** Load the canonical EGW corpus once, then hide it behind the linking interface. */
 export const layer: Layer.Layer<Service, ReferenceDatabaseError | Config.ConfigError> =
   Layer.effect(
@@ -119,14 +135,15 @@ export const layer: Layer.Layer<Service, ReferenceDatabaseError | Config.ConfigE
       const databasePath = yield* Config.string('EGW_PARAGRAPH_DB').pipe(
         Config.withDefault(`${homedir()}/.bible/egw-paragraphs.db`),
       );
-      const panels = yield* Effect.try({
-        try: () => loadEgwPanelMap(databasePath),
-        catch: (cause) =>
-          new ReferenceDatabaseError({
-            path: databasePath,
-            message: cause instanceof globalThis.Error ? cause.message : String(cause),
-          }),
-      });
+      const panels = yield* loadEgwPanelMap(databasePath).pipe(
+        Effect.mapError(
+          (cause) =>
+            new ReferenceDatabaseError({
+              path: databasePath,
+              message: causeMessage(cause),
+            }),
+        ),
+      );
       return Service.of({ link: (html) => linkReferences(html, panels) });
     }),
   );
