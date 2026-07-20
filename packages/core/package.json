@@ -26,7 +26,6 @@
     "./bible-rendering": "./src/bible-rendering/index.ts",
     "./gemini": "./src/gemini/index.ts",
     "./sync": "./src/sync/index.ts",
-    "./sync/egw": "./src/sync/egw-sync.ts",
     "./bible-db": "./src/bible-db/index.ts",
     "./bible-db/bun": "./src/bible-db/bible-database-bun.ts",
     "./utils": "./src/utils/index.ts",
@@ -45,9 +44,6 @@
     "typecheck": "tsgo --noEmit",
     "test": "bun test",
     "test:watch": "bun test --watch",
-    "sync:egw": "bun run src/sync/cli.ts",
-    "sync:egw:status": "bun run src/sync/cli.ts --status",
-    "sync:egw:failed": "bun run src/sync/cli.ts --failed",
     "sync:bible": "bun run src/sync/bible-sync.ts",
     "sync:bible:force": "bun run src/sync/bible-sync.ts --force"
   },

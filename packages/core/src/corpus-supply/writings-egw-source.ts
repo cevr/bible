@@ -143,7 +143,6 @@ export const layerEgwWritingsAssetSource: Layer.Layer<WritingsAssetSource, never
     Effect.gen(function* () {
       const api = yield* EGWApiClient;
       const catalog = api.getBooks({ lang: 'en' }).pipe(
-        Stream.filter((book) => book.author === 'Ellen Gould White'),
         Stream.mapEffect(publicationFromBook),
         Stream.runCollect,
         Effect.map((items) => [...items]),

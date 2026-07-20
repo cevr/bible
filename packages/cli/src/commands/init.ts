@@ -81,8 +81,8 @@ export const init = Command.make('init', { force }, (args) =>
     if (existsSync(egwDbPath)) {
       yield* Console.log(`✓ egw-paragraphs.db (EGW writings)`);
     } else {
-      yield* Console.log(`✗ egw-paragraphs.db — sync from API:`);
-      yield* Console.log(`  cd packages/core && bun run sync:egw`);
+      yield* Console.log(`✗ egw-paragraphs.db — add publications with:`);
+      yield* Console.log(`  bible egw download <CODE>`);
     }
 
     yield* Console.log(``);

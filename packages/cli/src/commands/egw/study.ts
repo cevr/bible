@@ -1,8 +1,8 @@
 import { EGWApiClient, nodesToText, type Schemas as EGWSchemas } from '@bible/core/egw';
-import { EGWParagraphDatabase } from '@bible/core/egw-db';
-import { downloadBookToLocal } from '@bible/core/sync';
+import { CorpusSupply, Target } from '@bible/core/corpus-supply';
+import { publicationId } from '@bible/core/writings';
 import { WritingsService } from '@bible/core/writings/service';
-import { Console, Effect, FileSystem, Option, Stream } from 'effect';
+import { Console, Effect, FileSystem, Option, Result, Stream } from 'effect';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
 
 import { paragraphRefcode } from './format.js';
@@ -34,10 +34,6 @@ const studyPioneers = Flag.boolean('pioneers').pipe(
 const studyLang = Flag.string('lang').pipe(
   Flag.withDescription('Language code (default: en)'),
   Flag.withDefault('en'),
-);
-const studyConcurrency = Flag.integer('concurrency').pipe(
-  Flag.withDescription('Parallel chapter fetches per book (default: 5)'),
-  Flag.withDefault(5),
 );
 const studyDryRun = Flag.boolean('dry-run').pipe(
   Flag.withDescription('Rank and list the books that WOULD be downloaded; download nothing'),
@@ -92,7 +88,6 @@ export const egwStudy = Command.make(
     author: studyAuthor,
     pioneers: studyPioneers,
     lang: studyLang,
-    concurrency: studyConcurrency,
     dryRun: studyDryRun,
     results: studyResults,
     export: studyExport,
@@ -121,7 +116,7 @@ export const egwStudy = Command.make(
       }
 
       const client = yield* EGWApiClient;
-      const db = yield* EGWParagraphDatabase;
+      const supply = yield* CorpusSupply;
       const service = yield* WritingsService;
       const fs = yield* FileSystem.FileSystem;
 
@@ -246,21 +241,19 @@ export const egwStudy = Command.make(
         yield* Console.log(
           `  ${String(selected).padStart(2)}. ↓ ${exact.code} — ${exact.title} (${exact.author})...`,
         );
-        const result = yield* downloadBookToLocal(exact, {
-          chapterConcurrency: args.concurrency,
-        });
-        switch (result._tag) {
-          case 'success':
-            yield* Console.log(`      ✓ ${result.storedParagraphs} paragraphs.`);
-            downloaded += 1;
-            break;
-          case 'skipped':
-            yield* Console.log(`      – skipped: ${result.reason}`);
-            break;
-          case 'failed':
-            yield* Console.log(`      ✗ failed: ${result.reason}`);
-            failed += 1;
-            break;
+        const result = yield* Effect.result(
+          supply.ensure({
+            target: Target.writings([publicationId(exact.book_id)]),
+            refresh: true,
+          }),
+        );
+        if (Result.isFailure(result)) {
+          yield* Console.log(`      ✗ failed: ${result.failure._tag}`);
+          failed += 1;
+        } else {
+          const activation = result.success.activated[0];
+          yield* Console.log(`      ✓ ${activation?.installed ?? 0} paragraphs.`);
+          downloaded += 1;
         }
       }
 
@@ -270,10 +263,6 @@ export const egwStudy = Command.make(
         return;
       }
 
-      if (downloaded > 0) {
-        yield* Console.log('Rebuilding FTS5 index...');
-        yield* db.rebuildFtsIndex();
-      }
       yield* Console.log(
         `Downloaded ${downloaded} book(s)` +
           (failed > 0 ? `, ${failed} failed/unresolved` : '') +

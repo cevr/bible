@@ -1,6 +1,6 @@
 import { EGWApiClient, type Schemas as EGWSchemas } from '@bible/core/egw';
-import { EGWParagraphDatabase } from '@bible/core/egw-db';
-import { downloadBookToLocal } from '@bible/core/sync';
+import { CorpusSupply, Target } from '@bible/core/corpus-supply';
+import { publicationId } from '@bible/core/writings';
 import { Console, Effect, Stream } from 'effect';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
 
@@ -15,23 +15,17 @@ const downloadLang = Flag.string('lang').pipe(
   Flag.withDescription('Language code (default: en)'),
   Flag.withDefault('en'),
 );
-const downloadConcurrency = Flag.integer('concurrency').pipe(
-  Flag.withDescription('Parallel chapter fetches (default: 5)'),
-  Flag.withDefault(5),
-);
-
 export const egwDownload = Command.make(
   'download',
   {
     code: downloadCode,
     id: downloadId,
     lang: downloadLang,
-    concurrency: downloadConcurrency,
   },
   (args) =>
     Effect.gen(function* () {
       const client = yield* EGWApiClient;
-      const db = yield* EGWParagraphDatabase;
+      const supply = yield* CorpusSupply;
 
       // Resolve the target Book (from API). Prefer --id, else search by code.
       let book: EGWSchemas.Book | null = null;
@@ -88,39 +82,15 @@ export const egwDownload = Command.make(
         `Downloading "${book.title}" (${book.code}, id ${book.book_id}) by ${book.author}...`,
       );
 
-      const result = yield* downloadBookToLocal(book, {
-        chapterConcurrency: args.concurrency,
+      const receipt = yield* supply.ensure({
+        target: Target.writings([publicationId(book.book_id)]),
+        refresh: true,
       });
-
-      switch (result._tag) {
-        case 'success':
-          yield* Console.log(
-            `✓ Stored ${result.storedParagraphs} paragraphs (${result.storedBibleRefs} bible refs).`,
-          );
-          if (result.chapterErrors.length > 0) {
-            yield* Console.log(
-              `  ${result.chapterErrors.length} chapter(s) failed; book marked as 'failed' in sync_status.`,
-            );
-            for (const err of result.chapterErrors.slice(0, 5)) {
-              yield* Console.log(`    - ${err}`);
-            }
-          }
-          break;
-        case 'skipped':
-          yield* Console.log(`Skipped: ${result.reason}`);
-          break;
-        case 'failed':
-          yield* Console.log(`✗ Failed: ${result.reason}`);
-          if (result.chapterErrors.length > 0) {
-            for (const err of result.chapterErrors.slice(0, 5)) {
-              yield* Console.log(`    - ${err}`);
-            }
-          }
-          break;
+      const activation = receipt.activated[0];
+      if (activation === undefined) {
+        yield* Console.log('Already installed.');
+        return;
       }
-
-      yield* Console.log('Rebuilding FTS5 index...');
-      yield* db.rebuildFtsIndex();
-      yield* Console.log('Done.');
+      yield* Console.log(`✓ Stored ${activation.installed} paragraphs.`);
     }),
 ).pipe(Command.provide(() => FullLayer));

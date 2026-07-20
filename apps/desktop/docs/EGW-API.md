@@ -78,16 +78,16 @@ All return `Effect<A, EGWApiError | HttpClientError | SchemaError>` unless noted
 
 ## Chapter ID extraction (the gotcha)
 
-The chapter endpoint expects only the integer after the dot in a `para_id`. From `core/src/sync/egw-sync.ts:148-163`:
+The chapter endpoint expects only the integer after the dot in a `para_id`. The canonical coercion lives in `packages/core/src/egw/parse.ts`:
 
 ```ts
-const chapterIdFromTocItem = (toc: Schemas.TocItem): string => {
-  if (toc.para_id !== undefined && toc.para_id !== null) {
-    const match = toc.para_id.match(/\.(\d+)$/);
+export function chapterIdFromTocItem(toc: Schemas.TocItem): string {
+  if (Option.isSome(toc.para_id)) {
+    const match = toc.para_id.value.match(/\.(\d+)$/);
     return match?.[1] ?? String(toc.puborder);
   }
   return String(toc.puborder);
-};
+}
 ```
 
 Always derive `chapterId` this way. Passing the full `para_id` returns wrong data without erroring.

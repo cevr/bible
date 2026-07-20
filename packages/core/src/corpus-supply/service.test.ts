@@ -84,7 +84,7 @@ describe('CorpusSupply', () => {
     );
 
     expect(empty).toEqual(omitted);
-    expect(omitted.activated).toHaveLength(1);
+    expect(omitted.activated).toEqual([]);
     expect(omitted.skipped).toEqual([]);
   });
 

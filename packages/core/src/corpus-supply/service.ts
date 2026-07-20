@@ -29,6 +29,9 @@ const requestedPublications = (
   return source.catalog.pipe(Effect.map((publications) => publications.map((item) => item.id)));
 };
 
+const emptyReceipt = (): CorpusSupplyReceipt =>
+  new CorpusSupplyReceipt({ activated: [], skipped: [] });
+
 export class CorpusSupply extends Context.Service<CorpusSupply, CorpusSupplyShape>()(
   '@bible/core/corpus-supply/CorpusSupply',
 ) {
@@ -94,6 +97,9 @@ export class CorpusSupply extends Context.Service<CorpusSupply, CorpusSupplyShap
           const target = input.target;
           if (target?._tag === 'bible') {
             return Effect.fail(new CorpusRecipeUnavailableError({ corpus: 'bible' }));
+          }
+          if (target === undefined || target._tag === 'bootstrap') {
+            return Effect.succeed(emptyReceipt());
           }
           let writingsTarget: WritingsTarget | undefined;
           if (target?._tag === 'writings') writingsTarget = target;
