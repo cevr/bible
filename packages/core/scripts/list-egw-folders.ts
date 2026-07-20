@@ -15,17 +15,19 @@
  *   - EGW_SCOPE: (optional) Defaults to "writings search studycenter subscriptions user_info"
  */
 
-import { FetchHttpClient } from 'effect/unstable/http';
-import { BunServices, BunRuntime } from '@effect/platform-bun';
+import * as BunRuntime from '@effect/platform-bun/BunRuntime';
+import * as BunServices from '@effect/platform-bun/BunServices';
 import { Effect, Layer } from 'effect';
+import { Argument, Command } from 'effect/unstable/cli';
+import { FetchHttpClient } from 'effect/unstable/http';
 
 import { EGWAuth } from '../src/egw/auth.js';
 import { EGWApiClient } from '../src/egw/client.js';
-import * as EGWSchemas from '../src/egw/schemas.js';
+import type * as EGWSchemas from '../src/egw/schemas.js';
 
-const languageCode = process.argv[2] || 'en';
+const languageCodeArgument = Argument.string('languageCode').pipe(Argument.withDefault('en'));
 
-const program = Effect.gen(function* () {
+const listFolders = Effect.fn('listEgwFolders')(function* (languageCode: string) {
   const egwClient = yield* EGWApiClient;
 
   yield* Effect.log(`Fetching folders for language: ${languageCode}...`);
@@ -37,16 +39,19 @@ const program = Effect.gen(function* () {
     folders: ReadonlyArray<EGWSchemas.Folder>,
     indent = '',
   ): Effect.Effect<void> =>
-    Effect.gen(function* () {
-      for (const folder of folders) {
-        yield* Effect.log(
-          `${indent}📁 ${folder.name} (ID: ${folder.folder_id}) - ${folder.nbooks} books, ${folder.naudiobooks} audiobooks`,
-        );
-        if (folder.children && folder.children.length > 0) {
-          yield* displayFolders(folder.children, indent + '  ');
-        }
-      }
-    });
+    Effect.forEach(
+      folders,
+      (folder) =>
+        Effect.gen(function* () {
+          yield* Effect.log(
+            `${indent}📁 ${folder.name} (ID: ${folder.folder_id}) - ${folder.nbooks} books, ${folder.naudiobooks} audiobooks`,
+          );
+          if (folder.children !== undefined && folder.children.length > 0) {
+            yield* displayFolders(folder.children, `${indent}  `);
+          }
+        }),
+      { concurrency: 1, discard: true },
+    );
 
   yield* Effect.log(`\nFound ${folders.length} top-level folders:\n`);
   yield* displayFolders(folders);
@@ -55,9 +60,13 @@ const program = Effect.gen(function* () {
   yield* Effect.log(
     `💡 Tip: Use the folder ID in upload-egw.ts or sync-egw-books.ts to filter books by folder.`,
   );
-
-  return folders;
 });
+
+const cli = Command.make(
+  'list-egw-folders',
+  { languageCode: languageCodeArgument },
+  ({ languageCode }) => listFolders(languageCode).pipe(Effect.provide(LiveEgwApi)),
+);
 
 // Compose all layers - EGWApiClient needs EGWAuth and HttpClient
 const AuthLayer = Layer.provide(EGWAuth.layerLiveFs(), FetchHttpClient.layer);
@@ -66,7 +75,7 @@ const ApiClientLayer = EGWApiClient.Live.pipe(
   Layer.provide(FetchHttpClient.layer),
 );
 
-const AppLayer = ApiClientLayer.pipe(Layer.provide(BunServices.layer));
+const LiveEgwApi = ApiClientLayer.pipe(Layer.provide(BunServices.layer));
 
 // Run the program with all required dependencies
-BunRuntime.runMain(program.pipe(Effect.provide(AppLayer)));
+Command.run(cli, { version: '1.0.0' }).pipe(Effect.provide(BunServices.layer), BunRuntime.runMain);

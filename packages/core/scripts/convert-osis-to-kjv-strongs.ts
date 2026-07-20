@@ -20,8 +20,10 @@
  *   # writes to packages/core/assets/kjv-strongs.json
  */
 
-import * as fs from 'node:fs';
-import * as path from 'node:path';
+import * as BunRuntime from '@effect/platform-bun/BunRuntime';
+import * as BunServices from '@effect/platform-bun/BunServices';
+import { Console, Effect, FileSystem, Option, Path, Schema, SchemaGetter } from 'effect';
+import { Argument, Command } from 'effect/unstable/cli';
 
 // OSIS book IDs -> our canonical 1-66 numbering (KJV ordering, matches
 // packages/core/src/sync/bible-sync.ts BOOKS array)
@@ -111,6 +113,33 @@ interface OutVerse {
   words: Word[];
 }
 
+class MissingBooksError extends Schema.TaggedErrorClass<MissingBooksError>()('MissingBooksError', {
+  missing: Schema.Array(Schema.Number),
+}) {}
+
+const WordSchema = Schema.Struct({
+  text: Schema.String,
+  strongs: Schema.optional(Schema.Array(Schema.String)),
+  italic: Schema.optional(Schema.Boolean),
+});
+
+const OutVerseSchema = Schema.Struct({
+  book: Schema.Number,
+  chapter: Schema.Number,
+  verse: Schema.Number,
+  words: Schema.Array(WordSchema),
+});
+
+const CompactJson = Schema.Unknown.pipe(
+  Schema.encodeTo(Schema.String, {
+    decode: SchemaGetter.parseJson(),
+    encode: SchemaGetter.stringifyJson(),
+  }),
+);
+
+const validateOutput = Schema.encodeEffect(Schema.Array(OutVerseSchema));
+const encodeJson = Schema.encodeEffect(CompactJson);
+
 // OSIS encodes Strong's as `strong:H07225` / `strong:G2316`. Our target
 // strips leading zeros from the numeric portion (H07225 -> H7225, H0853 ->
 // H853) while keeping the H/G prefix and not touching the digits' magnitude.
@@ -174,7 +203,8 @@ export function parseVerseBody(rawBody: string): Word[] {
     if (words.length > 0) {
       const lead = raw.match(/^[^\s]+/);
       if (lead !== null && !/^\s/.test(raw)) {
-        words[words.length - 1]!.text += lead[0];
+        const previous = words[words.length - 1];
+        if (previous !== undefined) previous.text += lead[0];
         raw = raw.slice(lead[0].length);
       }
     }
@@ -189,9 +219,11 @@ export function parseVerseBody(rawBody: string): Word[] {
     const tokens = raw.split(/\s+/).filter((s) => s !== '');
     if (tokens.length === 0) return;
     for (let i = 0; i < tokens.length - 1; i++) {
-      words.push({ text: tokens[i]! });
+      const token = tokens[i];
+      if (token !== undefined) words.push({ text: token });
     }
-    const lastTok = tokens[tokens.length - 1]!;
+    const lastTok = tokens[tokens.length - 1];
+    if (lastTok === undefined) return;
     if (wStrongs !== undefined && wStrongs.length > 0) {
       words.push({ text: lastTok, strongs: wStrongs });
     } else {
@@ -223,7 +255,9 @@ export function parseVerseBody(rawBody: string): Word[] {
       const lemmaMatch = tag.match(/lemma="([^"]*)"/);
       wStrongs = undefined;
       if (lemmaMatch !== null) {
-        const parts = lemmaMatch[1]!.split(/\s+/);
+        const lemma = lemmaMatch[1];
+        if (lemma === undefined) continue;
+        const parts = lemma.split(/\s+/);
         const norm: string[] = [];
         for (const p of parts) {
           const n = normalizeStrong(p);
@@ -266,10 +300,11 @@ export function decodeEntities(s: string): string {
     .replace(/&apos;/g, "'");
 }
 
-function convert(osisPath: string, outPath: string): void {
-  console.log(`Reading ${osisPath}...`);
-  const xml = fs.readFileSync(osisPath, 'utf-8');
-  console.log(`  ${xml.length.toLocaleString()} bytes`);
+const convert = Effect.fn('convertOsisToKjvStrongs')(function* (osisPath: string, outPath: string) {
+  const fs = yield* FileSystem.FileSystem;
+  yield* Console.log(`Reading ${osisPath}...`);
+  const xml = yield* fs.readFileString(osisPath);
+  yield* Console.log(`  ${xml.length.toLocaleString()} bytes`);
 
   // Match every verse: <verse osisID="Book.C.V" sID="..."/> ... <verse eID="Book.C.V"/>
   const VERSE = /<verse osisID="([^"]+)" sID="[^"]*"\/>([\s\S]*?)<verse eID="\1"\/>/g;
@@ -279,14 +314,18 @@ function convert(osisPath: string, outPath: string): void {
 
   let m: RegExpExecArray | null;
   while ((m = VERSE.exec(xml)) !== null) {
-    const osisID = m[1]!;
-    const body = m[2]!;
+    const osisID = m[1];
+    const body = m[2];
+    if (osisID === undefined || body === undefined) continue;
     const parts = osisID.split('.');
     if (parts.length !== 3) {
       skipped.push(osisID);
       continue;
     }
-    const [bookOsis, chapStr, verseStr] = parts as [string, string, string];
+    const bookOsis = parts[0];
+    const chapStr = parts[1];
+    const verseStr = parts[2];
+    if (bookOsis === undefined || chapStr === undefined || verseStr === undefined) continue;
     const bookNum = BOOK_NUMBER[bookOsis];
     if (bookNum === undefined) {
       skipped.push(osisID);
@@ -300,41 +339,56 @@ function convert(osisPath: string, outPath: string): void {
       words,
     });
     count++;
-    if (count % 5000 === 0) console.log(`  parsed ${count} verses...`);
+    if (count % 5000 === 0) yield* Console.log(`  parsed ${count} verses...`);
   }
 
   // Sanity: confirm all 66 books present.
   const books = new Set(out.map((v) => v.book));
   const missing = Array.from({ length: 66 }, (_, i) => i + 1).filter((b) => !books.has(b));
   if (missing.length > 0) {
-    console.error(`\nERROR: missing books from output: ${missing.join(', ')}`);
-    process.exit(1);
+    yield* Console.error(`\nERROR: missing books from output: ${missing.join(', ')}`);
+    return yield* new MissingBooksError({ missing });
   }
 
   // Sort to match canonical iteration order (book, chapter, verse).
-  out.sort((a, b) =>
-    a.book !== b.book
-      ? a.book - b.book
-      : a.chapter !== b.chapter
-        ? a.chapter - b.chapter
-        : a.verse - b.verse,
-  );
+  out.sort((a, b) => {
+    if (a.book !== b.book) return a.book - b.book;
+    if (a.chapter !== b.chapter) return a.chapter - b.chapter;
+    return a.verse - b.verse;
+  });
 
-  console.log(`Writing ${out.length.toLocaleString()} verses to ${outPath}...`);
-  fs.writeFileSync(outPath, JSON.stringify(out));
-  console.log(`  ${fs.statSync(outPath).size.toLocaleString()} bytes`);
-  if (skipped.length > 0) console.log(`  skipped ${skipped.length} unrecognised osisIDs`);
-}
+  yield* Console.log(`Writing ${out.length.toLocaleString()} verses to ${outPath}...`);
+  const output = yield* validateOutput(out);
+  const encoded = yield* encodeJson(output);
+  yield* fs.writeFileString(outPath, encoded);
+  const outputInfo = yield* fs.stat(outPath);
+  yield* Console.log(`  ${outputInfo.size.toLocaleString()} bytes`);
+  if (skipped.length > 0) {
+    yield* Console.log(`  skipped ${skipped.length} unrecognised osisIDs`);
+  }
+});
+
+const inputArgument = Argument.file('path-to-kjv.xml');
+const outputArgument = Argument.file('output-path').pipe(Argument.optional);
+
+const cli = Command.make(
+  'convert-osis-to-kjv-strongs',
+  { input: inputArgument, output: outputArgument },
+  ({ input, output }) =>
+    Effect.gen(function* () {
+      const path = yield* Path.Path;
+      const outputPath = Option.getOrElse(output, () =>
+        path.resolve(import.meta.dir, '../assets/kjv-strongs.json'),
+      );
+      yield* convert(input, outputPath);
+    }),
+);
 
 // Only run the CLI conversion when invoked directly — keep `parseVerseBody`
 // importable from tests without triggering a file read/write.
 if (import.meta.main) {
-  const args = process.argv.slice(2);
-  if (args.length < 1) {
-    console.error('usage: convert-osis-to-kjv-strongs.ts <path-to-kjv.xml> [output-path]');
-    process.exit(1);
-  }
-  const inPath = args[0]!;
-  const outPath = args[1] ?? path.resolve(import.meta.dir, '../assets/kjv-strongs.json');
-  convert(inPath, outPath);
+  Command.run(cli, { version: '1.0.0' }).pipe(
+    Effect.provide(BunServices.layer),
+    BunRuntime.runMain,
+  );
 }

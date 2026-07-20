@@ -18,11 +18,12 @@
  *   - EGW_CLIENT_SECRET: EGW API client secret (optional, only needed if querying requires auth)
  */
 
-import { Argument, Command } from 'effect/unstable/cli';
+import * as BunRuntime from '@effect/platform-bun/BunRuntime';
+import * as BunServices from '@effect/platform-bun/BunServices';
+import { Console, Effect, Layer, Option, Schema } from 'effect';
+import { Argument, Command, Flag } from 'effect/unstable/cli';
 import { text } from 'effect/unstable/cli/Prompt';
 import { FetchHttpClient } from 'effect/unstable/http';
-import { BunServices, BunFileSystem, BunPath, BunRuntime } from '@effect/platform-bun';
-import { Console, Effect, Layer, Option } from 'effect';
 
 import * as EGWDbBun from '../src/egw-db/book-database-bun.js';
 import { EGWGeminiService } from '../src/egw-gemini/index.js';
@@ -33,33 +34,46 @@ import { GeminiFileSearchClient } from '../src/gemini/index.js';
 
 const queryArg = Argument.string('query').pipe(Argument.optional);
 
-const storeOption = Argument.string('store').pipe(
-  Argument.withDefault('egw-writings'),
-  Argument.withDescription('The display name of the Gemini File Search store'),
+const storeOption = Flag.string('store').pipe(
+  Flag.withDefault('egw-writings'),
+  Flag.withDescription('The display name of the Gemini File Search store'),
 );
 
-const metadataFilterOption = Argument.string('metadata-filter').pipe(
-  Argument.optional,
-  Argument.withDescription(
+const metadataFilterOption = Flag.string('metadata-filter').pipe(
+  Flag.optional,
+  Flag.withDescription(
     'Optional metadata filter to narrow search results (e.g., book_title="The Desire of Ages")',
   ),
 );
 
-// Response type for display purposes
-interface GenerateContentResponse {
-  candidates?: Array<{
-    content?: {
-      parts?: Array<{ text?: string }>;
-    };
-    groundingMetadata?: {
-      searchEntryPoint?: string;
-      retrievalMetadata?: {
-        score?: number;
-        chunk?: string;
-      };
-    };
-  }>;
-}
+const GenerateContentResponse = Schema.Struct({
+  candidates: Schema.optional(
+    Schema.Array(
+      Schema.Struct({
+        content: Schema.optional(
+          Schema.Struct({
+            parts: Schema.optional(
+              Schema.Array(Schema.Struct({ text: Schema.optional(Schema.String) })),
+            ),
+          }),
+        ),
+        groundingMetadata: Schema.optional(
+          Schema.Struct({
+            searchEntryPoint: Schema.optional(Schema.String),
+            retrievalMetadata: Schema.optional(
+              Schema.Struct({
+                score: Schema.optional(Schema.Number),
+                chunk: Schema.optional(Schema.String),
+              }),
+            ),
+          }),
+        ),
+      }),
+    ),
+  ),
+});
+
+const decodeGenerateContentResponse = Schema.decodeUnknownEffect(GenerateContentResponse);
 
 const cli = Command.make(
   'query-egw',
@@ -73,39 +87,31 @@ const cli = Command.make(
       const service = yield* EGWGeminiService;
 
       // Get query from args or prompt user
-      const query: string = Option.isSome(args.query)
-        ? args.query.value
-        : yield* text({
-            message: 'What would you like to query from the EGW store?',
-          });
+      const query = yield* Option.match(args.query, {
+        onNone: () => text({ message: 'What would you like to query from the EGW store?' }),
+        onSome: Effect.succeed,
+      });
 
       yield* Console.log(`Querying store: ${args.store}`);
       yield* Console.log(`Query: ${query}`);
 
-      const metadataFilter = Option.isSome(args.metadataFilter)
-        ? args.metadataFilter.value
-        : undefined;
+      const metadataFilter = Option.getOrUndefined(args.metadataFilter);
 
       if (metadataFilter) {
         yield* Console.log(`Metadata filter: ${metadataFilter}`);
       }
 
       // Query the store
-      const result = yield* service.queryStore(
-        metadataFilter
-          ? {
-              storeDisplayName: args.store,
-              query,
-              metadataFilter,
-            }
-          : {
-              storeDisplayName: args.store,
-              query,
-            },
-      );
+      const queryOptions: {
+        storeDisplayName: string;
+        query: string;
+        metadataFilter?: string;
+      } = { storeDisplayName: args.store, query };
+      if (metadataFilter !== undefined) queryOptions.metadataFilter = metadataFilter;
+      const result = yield* service.queryStore(queryOptions);
 
       // Type the response for display
-      const response = result.response as GenerateContentResponse;
+      const response = yield* decodeGenerateContentResponse(result.response);
 
       // Display query information
       yield* Console.log('\n═══════════════════════════════════════════════════════');
@@ -113,80 +119,86 @@ const cli = Command.make(
       yield* Console.log('═══════════════════════════════════════════════════════');
       yield* Console.log(`Store: ${result.store.displayName} (${result.store.name})`);
       yield* Console.log(`Query: ${result.query}`);
-      yield* Console.log(`Candidates: ${response.candidates?.length || 0}`);
+      yield* Console.log(`Candidates: ${response.candidates?.length ?? 0}`);
       yield* Console.log('');
 
       // Display all candidates
-      const candidates = response.candidates || [];
+      const candidates = response.candidates ?? [];
       if (candidates.length === 0) {
         yield* Console.log('No candidates found in response');
       } else {
-        for (let i = 0; i < candidates.length; i++) {
-          const candidate = candidates[i];
-          if (!candidate) continue;
+        yield* Effect.forEach(
+          candidates,
+          (candidate, index) =>
+            Effect.gen(function* () {
+              yield* Console.log(
+                `\n${'─'.repeat(55)}\nCANDIDATE ${index + 1} of ${candidates.length}\n${'─'.repeat(55)}`,
+              );
 
-          yield* Console.log(
-            `\n${'─'.repeat(55)}\nCANDIDATE ${i + 1} of ${candidates.length}\n${'─'.repeat(55)}`,
-          );
-
-          // Display content parts
-          if (candidate.content?.parts) {
-            yield* Console.log('\nContent:');
-            for (let j = 0; j < candidate.content.parts.length; j++) {
-              const part = candidate.content.parts[j];
-              if (part?.text) {
-                yield* Console.log(`\nPart ${j + 1}:`);
-                yield* Console.log(part.text);
+              // Display content parts
+              if (candidate.content?.parts) {
+                yield* Console.log('\nContent:');
+                yield* Effect.forEach(
+                  candidate.content.parts,
+                  (part, partIndex) =>
+                    Effect.gen(function* () {
+                      if (part.text) {
+                        yield* Console.log(`\nPart ${partIndex + 1}:`);
+                        yield* Console.log(part.text);
+                      } else {
+                        yield* Console.log(`\nPart ${partIndex + 1}: (non-text content)`);
+                      }
+                    }),
+                  { concurrency: 1, discard: true },
+                );
               } else {
-                yield* Console.log(`\nPart ${j + 1}: (non-text content)`);
-              }
-            }
-          } else {
-            yield* Console.log('\nContent: (no content parts)');
-          }
-
-          // Display grounding metadata
-          if (candidate.groundingMetadata) {
-            yield* Console.log('\nGrounding Metadata:');
-            const metadata = candidate.groundingMetadata;
-
-            if (metadata.searchEntryPoint) {
-              yield* Console.log(`  Search Entry Point: ${metadata.searchEntryPoint}`);
-            }
-
-            if (metadata.retrievalMetadata) {
-              yield* Console.log('  Retrieval Metadata:');
-              const retrieval = metadata.retrievalMetadata;
-
-              if (retrieval.score !== undefined) {
-                yield* Console.log(`    Relevance Score: ${retrieval.score}`);
+                yield* Console.log('\nContent: (no content parts)');
               }
 
-              if (retrieval.chunk) {
-                const chunkPreview =
-                  retrieval.chunk.length > 300
-                    ? `${retrieval.chunk.substring(0, 300)}...`
-                    : retrieval.chunk;
-                yield* Console.log(`    Retrieved Chunk (${retrieval.chunk.length} chars):`);
-                yield* Console.log(`    ${chunkPreview.split('\n').join('\n    ')}`);
+              // Display grounding metadata
+              if (candidate.groundingMetadata) {
+                yield* Console.log('\nGrounding Metadata:');
+                const metadata = candidate.groundingMetadata;
+
+                if (metadata.searchEntryPoint) {
+                  yield* Console.log(`  Search Entry Point: ${metadata.searchEntryPoint}`);
+                }
+
+                if (metadata.retrievalMetadata) {
+                  yield* Console.log('  Retrieval Metadata:');
+                  const retrieval = metadata.retrievalMetadata;
+
+                  if (retrieval.score !== undefined) {
+                    yield* Console.log(`    Relevance Score: ${retrieval.score}`);
+                  }
+
+                  if (retrieval.chunk) {
+                    let chunkPreview = retrieval.chunk;
+                    if (retrieval.chunk.length > 300) {
+                      chunkPreview = `${retrieval.chunk.substring(0, 300)}...`;
+                    }
+                    yield* Console.log(`    Retrieved Chunk (${retrieval.chunk.length} chars):`);
+                    yield* Console.log(`    ${chunkPreview.split('\n').join('\n    ')}`);
+                  }
+                } else {
+                  yield* Console.log('  (no retrieval metadata)');
+                }
+              } else {
+                yield* Console.log('\nGrounding Metadata: (none)');
               }
-            } else {
-              yield* Console.log('  (no retrieval metadata)');
-            }
-          } else {
-            yield* Console.log('\nGrounding Metadata: (none)');
-          }
-        }
+            }),
+          { concurrency: 1, discard: true },
+        );
       }
 
       // Display any additional response data
       yield* Console.log(`\n${'═'.repeat(55)}`);
       yield* Console.log('RESPONSE SUMMARY');
-      yield* Console.log(`${'═'.repeat(55)}`);
+      yield* Console.log('═'.repeat(55));
       yield* Console.log(`Total candidates: ${candidates.length}`);
       yield* Console.log(`Store: ${result.store.displayName}`);
-      yield* Console.log(`${'═'.repeat(55)}\n`);
-    }),
+      yield* Console.log('═'.repeat(55) + '\n');
+    }).pipe(Effect.provide(EGWGeminiLayer)),
 );
 
 const program = Command.run(cli, {
@@ -218,11 +230,8 @@ const EGWGeminiLayer = EGWGeminiService.Live.pipe(
   Layer.provide(GeminiClientLayer),
   Layer.provide(UploadStatusLayer),
   Layer.provide(ParagraphDbLayer),
-  Layer.provide(BunFileSystem.layer),
-  Layer.provide(BunPath.layer),
+  Layer.provide(BunServices.layer),
 );
 
 // App layer with all services
-const AppLayer = Layer.mergeAll(EGWGeminiLayer, BunServices.layer);
-
-program.pipe(Effect.provide(AppLayer), Effect.scoped, BunRuntime.runMain);
+program.pipe(Effect.provide(BunServices.layer), Effect.scoped, BunRuntime.runMain);

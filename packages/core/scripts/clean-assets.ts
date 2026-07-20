@@ -6,30 +6,61 @@
  * Run: bun run packages/core/scripts/clean-assets.ts
  */
 
-import * as fs from 'node:fs';
-import * as path from 'node:path';
+import * as BunRuntime from '@effect/platform-bun/BunRuntime';
+import * as BunServices from '@effect/platform-bun/BunServices';
+import { Console, Effect, FileSystem, Path, Schema, SchemaGetter } from 'effect';
 
-const ASSETS_DIR = path.resolve(import.meta.dir, '../assets');
+const StrongsEntry = Schema.Struct({
+  lemma: Schema.String,
+  xlit: Schema.optional(Schema.String),
+  pron: Schema.optional(Schema.String),
+  def: Schema.String,
+  kjvDef: Schema.optional(Schema.String),
+});
+
+const StrongsLexicon = Schema.Record(Schema.String, StrongsEntry);
+
+const PrettyJson = Schema.Unknown.pipe(
+  Schema.encodeTo(Schema.String, {
+    decode: SchemaGetter.parseJson(),
+    encode: SchemaGetter.stringifyJson({ space: 2 }),
+  }),
+);
+
+const decodeStrongs = Schema.decodeUnknownEffect(Schema.fromJsonString(StrongsLexicon));
+const encodeJson = Schema.encodeEffect(PrettyJson);
 
 function decodeHtmlEntities(text: string): string {
-  return text.replace(/&#(\d+)/g, (_, code) => String.fromCharCode(parseInt(code, 10)));
+  return text.replace(/&#(\d+)/g, (entity, code: string | undefined) => {
+    if (code === undefined) return entity;
+    return String.fromCharCode(Number.parseInt(code, 10));
+  });
 }
 
-// Clean strongs.json — HTML entities in definitions
-const strongsPath = path.join(ASSETS_DIR, 'strongs.json');
-console.log('Cleaning strongs.json...');
-const strongs = JSON.parse(fs.readFileSync(strongsPath, 'utf-8'));
+const program = Effect.gen(function* () {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const assetsDirectory = path.resolve(import.meta.dir, '../assets');
+  const strongsPath = path.join(assetsDirectory, 'strongs.json');
 
-let strongsFixed = 0;
-for (const [, entry] of Object.entries<{ lemma: string; xlit?: string; def: string }>(strongs)) {
-  const cleaned = decodeHtmlEntities(entry.def);
-  if (cleaned !== entry.def) {
-    entry.def = cleaned;
-    strongsFixed++;
+  yield* Console.log('Cleaning strongs.json...');
+  const source = yield* fs.readFileString(strongsPath);
+  const strongs = yield* decodeStrongs(source);
+
+  let strongsFixed = 0;
+  const cleanedStrongs: Record<string, typeof StrongsEntry.Type> = {};
+  for (const [strongsNumber, entry] of Object.entries(strongs)) {
+    const cleaned = decodeHtmlEntities(entry.def);
+    if (cleaned !== entry.def) {
+      strongsFixed += 1;
+    }
+    cleanedStrongs[strongsNumber] = { ...entry, def: cleaned };
   }
-}
 
-fs.writeFileSync(strongsPath, JSON.stringify(strongs, null, 2) + '\n');
-console.log(`  Fixed ${strongsFixed} definitions`);
+  const encoded = yield* encodeJson(cleanedStrongs);
+  yield* fs.writeFileString(strongsPath, `${encoded}\n`);
+  yield* Console.log(`  Fixed ${strongsFixed} definitions`);
+  yield* Console.log('Done');
+});
 
-console.log('Done');
+program.pipe(Effect.provide(BunServices.layer), BunRuntime.runMain);
