@@ -45,8 +45,8 @@
     "typecheck": "tsgo --noEmit",
     "test": "bun test",
     "test:watch": "bun test --watch",
-    "sync:bible": "bun run src/sync/bible-sync.ts",
-    "sync:bible:force": "bun run src/sync/bible-sync.ts --force"
+    "sync:bible": "bun run src/sync/bible-sync-main.ts",
+    "sync:bible:force": "bun run src/sync/bible-sync-main.ts --force"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.14",

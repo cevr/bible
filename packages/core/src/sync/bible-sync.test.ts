@@ -82,9 +82,7 @@ describe('Bible sync', () => {
         ],
       });
 
-      yield* Effect.tryPromise(() =>
-        syncBible(true, { assetsDirectory, database, runtimeDatabase }),
-      );
+      yield* syncBible(true, { assetsDirectory, database, runtimeDatabase });
 
       expect(yield* readGenesis(database)).toBe('In the beginning');
       expect((yield* fs.readFile(runtimeDatabase)).byteLength).toBeGreaterThan(0);
@@ -95,9 +93,7 @@ describe('Bible sync', () => {
         verses: [{ book_name: 'Genesis', book: 1, chapter: 1, verse: 1, text: 'Changed source' }],
       });
 
-      yield* Effect.tryPromise(() =>
-        syncBible(false, { assetsDirectory, database, runtimeDatabase }),
-      );
+      yield* syncBible(false, { assetsDirectory, database, runtimeDatabase });
       expect(yield* readGenesis(database)).toBe('In the beginning');
     }));
 });
