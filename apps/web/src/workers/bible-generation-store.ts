@@ -33,11 +33,10 @@ const inactiveFilename = (preferredFilename: string, active: string | undefined)
   return preferredFilename;
 };
 
-const registryRead = (registry: GenerationRegistryStore) =>
-  Effect.tryPromise({ try: registry.read, catch: (cause) => cause });
+const registryRead = (registry: GenerationRegistryStore) => registry.read();
 
 const registryWrite = (registry: GenerationRegistryStore, value: GenerationRegistry) =>
-  Effect.tryPromise({ try: () => registry.write(value), catch: (cause) => cause });
+  registry.write(value);
 
 /**
  * Owns the durable marker, reader handoff, and retirement policy for browser Bible generations.

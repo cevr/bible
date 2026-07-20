@@ -19,10 +19,7 @@ const sqlError = (cause: unknown, operation: string): SqlError =>
 const make = (database: SqliteDatabase) =>
   Effect.gen(function* () {
     const query = (sql: string, params: ReadonlyArray<unknown>, operation: string) =>
-      Effect.tryPromise({
-        try: () => database.query(sql, params),
-        catch: (cause) => sqlError(cause, operation),
-      });
+      database.query(sql, params).pipe(Effect.mapError((cause) => sqlError(cause, operation)));
 
     const execute = (
       sql: string,
@@ -37,10 +34,9 @@ const make = (database: SqliteDatabase) =>
       );
 
     const executeValues = (sql: string, params: ReadonlyArray<unknown>) =>
-      Effect.tryPromise({
-        try: () => database.values(sql, params),
-        catch: (cause) => sqlError(cause, 'executeValues'),
-      });
+      database
+        .values(sql, params)
+        .pipe(Effect.mapError((cause) => sqlError(cause, 'executeValues')));
 
     const connection: Connection = {
       execute,

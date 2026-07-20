@@ -32,6 +32,8 @@ import {
 const LEGACY_FILENAME = 'state.db';
 const SOURCE_ID = Schema.decodeSync(MigrationSourceId)('web-state.db');
 const EMPTY_SOURCE = '{"legacy":"missing"}';
+const encodeJson = Schema.encodeUnknownEffect(Schema.UnknownFromJsonString);
+const decodeJson = Schema.decodeUnknownEffect(Schema.UnknownFromJsonString);
 
 const legacyTables = [
   ['history', 'SELECT * FROM history ORDER BY visited_at, id'],
@@ -75,46 +77,61 @@ export interface OpenWebUserState {
   readonly store: SyncStore;
 }
 
-const fingerprint = (serialized: string): Promise<string> =>
-  crypto.subtle
-    .digest('SHA-256', new TextEncoder().encode(serialized))
-    .then((digest) =>
+const fingerprint = (serialized: string): Effect.Effect<string, unknown> =>
+  Effect.tryPromise(() =>
+    globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(serialized)),
+  ).pipe(
+    Effect.map((digest) =>
       [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join(''),
-    );
+    ),
+  );
 
 const queryOptionalLegacyTable = (
   database: SqliteDatabase,
   sql: string,
-): Promise<readonly Readonly<Record<string, unknown>>[]> =>
-  database.query(sql).catch((cause: unknown) => {
-    if (String(cause).includes('no such table')) return [];
-    return Promise.reject(cause);
+): Effect.Effect<readonly Readonly<Record<string, unknown>>[], unknown> =>
+  database.query(sql).pipe(
+    Effect.catch((cause) => {
+      if (String(cause).includes('no such table')) return Effect.succeed([]);
+      return Effect.fail(cause);
+    }),
+  );
+
+const snapshotLegacyWebStateEffect = (
+  database: SqliteDatabase,
+): Effect.Effect<Readonly<Record<string, unknown>>, unknown> =>
+  Effect.gen(function* () {
+    const positionRows = yield* queryOptionalLegacyTable(
+      database,
+      'SELECT * FROM position ORDER BY id',
+    );
+    const preferenceRows = yield* queryOptionalLegacyTable(
+      database,
+      'SELECT * FROM preferences ORDER BY id',
+    );
+    const snapshot: Record<string, unknown> = {
+      position: positionRows[0],
+      preferences: preferenceRows[0],
+    };
+    yield* Effect.forEach(
+      legacyTables,
+      ([name, sql]) =>
+        queryOptionalLegacyTable(database, sql).pipe(
+          Effect.tap((rows) =>
+            Effect.sync(() => {
+              snapshot[name] = rows;
+            }),
+          ),
+        ),
+      { concurrency: 1, discard: true },
+    );
+    return snapshot;
   });
 
 export const snapshotLegacyWebState = (
   database: SqliteDatabase,
-): Promise<Readonly<Record<string, unknown>>> =>
-  queryOptionalLegacyTable(database, 'SELECT * FROM position ORDER BY id').then((positionRows) =>
-    queryOptionalLegacyTable(database, 'SELECT * FROM preferences ORDER BY id').then(
-      (preferenceRows) => {
-        const snapshot: Record<string, unknown> = {
-          position: positionRows[0],
-          preferences: preferenceRows[0],
-        };
-        return legacyTables
-          .reduce(
-            (pending, [name, sql]) =>
-              pending.then(() =>
-                queryOptionalLegacyTable(database, sql).then((rows) => {
-                  snapshot[name] = rows;
-                }),
-              ),
-            Promise.resolve(),
-          )
-          .then(() => snapshot);
-      },
-    ),
-  );
+): Effect.Effect<Readonly<Record<string, unknown>>, unknown> =>
+  snapshotLegacyWebStateEffect(database);
 
 const semanticCounts = (
   commands: ReadonlyArray<DomainMutationCommand>,
@@ -192,7 +209,7 @@ export const resolveLegacyEgwCoordinates = (
   snapshot: Readonly<Record<string, unknown>>,
   writingsDatabase: SqliteDatabase,
   log: (line: string) => void,
-): Promise<ReadonlyMap<string, ReaderLocation>> => {
+): Effect.Effect<ReadonlyMap<string, ReaderLocation>> => {
   const coordinates = new Map<string, { readonly bookCode: string; readonly puborder: number }>();
   for (const table of ['egw_notes', 'egw_markers', 'egw_collection_items']) {
     for (const candidate of rowsFor(snapshot, table)) {
@@ -205,20 +222,21 @@ export const resolveLegacyEgwCoordinates = (
     }
   }
   const resolved = new Map<string, ReaderLocation>();
-  return [...coordinates.entries()]
-    .reduce(
-      (pending, [key, coordinate]) =>
-        pending.then(() =>
-          writingsDatabase
-            .query(
-              `SELECT b.book_id, p.para_id
+  return Effect.forEach(
+    coordinates.entries(),
+    ([key, coordinate]) =>
+      writingsDatabase
+        .query(
+          `SELECT b.book_id, p.para_id
                FROM paragraphs p
                JOIN books b ON b.book_id = p.book_id
                WHERE b.book_code = ? COLLATE NOCASE AND p.puborder = ? AND p.para_id IS NOT NULL
                ORDER BY b.book_id, p.para_id`,
-              [coordinate.bookCode, coordinate.puborder],
-            )
-            .then((rows) => {
+          [coordinate.bookCode, coordinate.puborder],
+        )
+        .pipe(
+          Effect.tap((rows) =>
+            Effect.sync(() => {
               const row = rows[0];
               if (rows.length !== 1 || row === undefined) return;
               const publicationId = row['book_id'];
@@ -229,14 +247,16 @@ export const resolveLegacyEgwCoordinates = (
                 resourceId: String(publicationId),
                 location: `/writings/${String(publicationId)}/p/${encodeURIComponent(paragraphId)}`,
               });
-            })
-            .catch(() => {
+            }),
+          ),
+          Effect.catch(() =>
+            Effect.sync(() => {
               log(`[migration] writings-resolver-unavailable coordinate=${key}`);
             }),
+          ),
         ),
-      Promise.resolve(),
-    )
-    .then(() => resolved);
+    { concurrency: 1, discard: true },
+  ).pipe(Effect.as(resolved));
 };
 
 const bibleLocationFromRow = (
@@ -342,66 +362,72 @@ export const makeResolvedWebStateProjection = (
 const openActivated = (
   options: WebUserStateMigrationOptions,
   generation: string,
-): Promise<OpenWebUserState> => {
+): Effect.Effect<OpenWebUserState, unknown> => {
   const database = makeSqliteDatabase(
     options.sqlite3,
     generationDatabaseName(generation),
     options.vfsName,
   );
-  return database.open(SQLite.SQLITE_OPEN_READWRITE).then(() => {
-    const userDatabase = makeBrowserUserDatabase({ database });
-    return {
-      generation,
-      database,
-      store: makeBrowserSyncStore(userDatabase, Schema.decodeSync(ClientId)('web-local')),
-    };
-  });
+  return database.open(SQLite.SQLITE_OPEN_READWRITE).pipe(
+    Effect.map(() => {
+      const userDatabase = makeBrowserUserDatabase({ database });
+      return {
+        generation,
+        database,
+        store: makeBrowserSyncStore(userDatabase, Schema.decodeSync(ClientId)('web-local')),
+      };
+    }),
+  );
 };
 
 export const migrateWebUserState = (
   options: WebUserStateMigrationOptions,
-): Promise<OpenWebUserState> =>
-  vfsFileExists(options.vfs, LEGACY_FILENAME).then((legacyExists) => {
+): Effect.Effect<OpenWebUserState, unknown> =>
+  Effect.gen(function* () {
+    const legacyExists = yield* vfsFileExists(options.vfs, LEGACY_FILENAME);
     const legacyDatabase = makeSqliteDatabase(options.sqlite3, LEGACY_FILENAME, options.vfsName);
-    const serialized = legacyExists
-      ? legacyDatabase
-          .open(SQLite.SQLITE_OPEN_READONLY)
-          .then(() => snapshotLegacyWebState(legacyDatabase))
-          .then((snapshot) => JSON.stringify(snapshot))
-          .finally(() => legacyDatabase.close())
-      : Promise.resolve(EMPTY_SOURCE);
-    return serialized.then((exactSnapshot) =>
-      fingerprint(exactSnapshot).then((hash) => {
-        const snapshot = JSON.parse(exactSnapshot);
-        const resolvedLocations = legacyExists
-          ? resolveLegacyEgwCoordinates(snapshot, options.writingsDatabase, options.log)
-          : Promise.resolve(new Map<string, ReaderLocation>());
-        return resolvedLocations.then((egwLocations) => {
-          const generation = `user-state-v1-${hash.slice(0, 12)}`;
-          const adapter = makeWebCanonicalGenerationAdapter({
-            ...options,
-            targetGeneration: generation,
-          });
-          const sources: ReadonlyArray<LegacySourceProjection> = legacyExists
-            ? [makeResolvedWebStateProjection(snapshot, hash, egwLocations)]
-            : [];
-          const completedAt = deterministicTimestamp(hash, 'completed');
-          options.log(
-            `[migration] prepared source=${legacyExists ? 'state.db' : 'none'} generation=${generation}`,
-          );
-          return Effect.runPromise(
-            copyOnMigrate({
-              generation,
-              sources,
-              adapter,
-              mutationId: (_sourceId, index) =>
-                Schema.decodeSync(MutationId)(`web:${hash}:mutation:${String(index)}`),
-              mutationTimestamp: (_sourceId, index) =>
-                deterministicTimestamp(hash, `mutation:${String(index)}`),
-              completedAt,
-            }),
-          ).then((result) => openActivated(options, result.generation));
-        });
-      }),
-    );
+    let exactSnapshot = EMPTY_SOURCE;
+    if (legacyExists) {
+      exactSnapshot = yield* Effect.acquireUseRelease(
+        legacyDatabase.open(SQLite.SQLITE_OPEN_READONLY),
+        () => snapshotLegacyWebStateEffect(legacyDatabase).pipe(Effect.flatMap(encodeJson)),
+        () => legacyDatabase.close().pipe(Effect.ignore),
+      );
+    }
+    const hash = yield* fingerprint(exactSnapshot);
+    const decoded = yield* decodeJson(exactSnapshot);
+    if (!isRecord(decoded)) return yield* Effect.fail('legacy snapshot did not decode');
+    const snapshot = decoded;
+    let egwLocations: ReadonlyMap<string, ReaderLocation> = new Map();
+    if (legacyExists) {
+      egwLocations = yield* resolveLegacyEgwCoordinates(
+        snapshot,
+        options.writingsDatabase,
+        options.log,
+      );
+    }
+    const generation = `user-state-v1-${hash.slice(0, 12)}`;
+    const adapter = makeWebCanonicalGenerationAdapter({
+      ...options,
+      targetGeneration: generation,
+    });
+    let sources: ReadonlyArray<LegacySourceProjection> = [];
+    if (legacyExists) {
+      sources = [makeResolvedWebStateProjection(snapshot, hash, egwLocations)];
+    }
+    const completedAt = deterministicTimestamp(hash, 'completed');
+    let source = 'none';
+    if (legacyExists) source = 'state.db';
+    options.log(`[migration] prepared source=${source} generation=${generation}`);
+    const result = yield* copyOnMigrate({
+      generation,
+      sources,
+      adapter,
+      mutationId: (_sourceId, index) =>
+        Schema.decodeSync(MutationId)(`web:${hash}:mutation:${String(index)}`),
+      mutationTimestamp: (_sourceId, index) =>
+        deterministicTimestamp(hash, `mutation:${String(index)}`),
+      completedAt,
+    });
+    return yield* openActivated(options, result.generation);
   });

@@ -3,13 +3,13 @@ const STORE_NAME = 'runtime';
 const ACTIVE_GENERATION_KEY = 'active-generation';
 
 export interface GenerationMarkerStore {
-  readonly read: () => Promise<string | undefined>;
-  readonly write: (generation: string) => Promise<void>;
+  readonly read: () => Effect.Effect<string | undefined, unknown>;
+  readonly write: (generation: string) => Effect.Effect<void, unknown>;
 }
 
 export interface GenerationMarkerOperations {
-  readonly read: (key: string) => Promise<string | undefined>;
-  readonly write: (key: string, value: string) => Promise<void>;
+  readonly read: (key: string) => Effect.Effect<string | undefined, unknown>;
+  readonly write: (key: string, value: string) => Effect.Effect<void, unknown>;
 }
 
 export interface GenerationRegistry {
@@ -18,8 +18,8 @@ export interface GenerationRegistry {
 }
 
 export interface GenerationRegistryStore {
-  readonly read: () => Promise<GenerationRegistry>;
-  readonly write: (registry: GenerationRegistry) => Promise<void>;
+  readonly read: () => Effect.Effect<GenerationRegistry, unknown>;
+  readonly write: (registry: GenerationRegistry) => Effect.Effect<void, unknown>;
 }
 
 export const makeGenerationMarkerStore = (
@@ -30,51 +30,64 @@ export const makeGenerationMarkerStore = (
   write: (generation) => operations.write(key, generation),
 });
 
-const requestResult = <A>(request: IDBRequest<A>): Promise<A> =>
-  new Promise((resolve, reject) => {
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
+const requestResult = <A>(request: IDBRequest<A>): Effect.Effect<A, unknown> =>
+  Effect.callback((resume) => {
+    request.onsuccess = () => resume(Effect.succeed(request.result));
+    request.onerror = () => resume(Effect.fail(request.error));
   });
 
-const transactionComplete = (transaction: IDBTransaction): Promise<void> =>
-  new Promise((resolve, reject) => {
-    transaction.oncomplete = () => resolve();
-    transaction.onerror = () => reject(transaction.error);
-    transaction.onabort = () => reject(transaction.error);
+const transactionComplete = (transaction: IDBTransaction): Effect.Effect<void, unknown> =>
+  Effect.callback((resume) => {
+    transaction.oncomplete = () => resume(Effect.void);
+    transaction.onerror = () => resume(Effect.fail(transaction.error));
+    transaction.onabort = () => resume(Effect.fail(transaction.error));
   });
 
-const openDatabase = (databaseName: string): Promise<IDBDatabase> => {
-  const request = indexedDB.open(databaseName, 1);
-  request.onupgradeneeded = () => {
-    const database = request.result;
-    if (!database.objectStoreNames.contains(STORE_NAME)) database.createObjectStore(STORE_NAME);
-  };
-  return requestResult(request);
-};
+const openDatabase = (databaseName: string): Effect.Effect<IDBDatabase, unknown> =>
+  Effect.suspend(() => {
+    const request = indexedDB.open(databaseName, 1);
+    request.onupgradeneeded = () => {
+      const database = request.result;
+      if (!database.objectStoreNames.contains(STORE_NAME)) database.createObjectStore(STORE_NAME);
+    };
+    return requestResult(request);
+  });
+
+const withDatabase = <A>(
+  databaseName: string,
+  use: (database: IDBDatabase) => Effect.Effect<A, unknown>,
+): Effect.Effect<A, unknown> =>
+  Effect.acquireUseRelease(openDatabase(databaseName), use, (database) =>
+    Effect.sync(() => database.close()),
+  );
 
 export const makeIndexedDbGenerationMarkerStore = (options?: {
   readonly databaseName?: string;
   readonly key?: string;
 }): GenerationMarkerStore => {
-  const databaseName = options?.databaseName ?? DATABASE_NAME;
+  let databaseName = DATABASE_NAME;
+  if (options?.databaseName !== undefined) databaseName = options.databaseName;
   return makeGenerationMarkerStore(
     {
-      read: async (key) => {
-        const database = await openDatabase(databaseName);
-        const transaction = database.transaction(STORE_NAME, 'readonly');
-        const value = await requestResult(transaction.objectStore(STORE_NAME).get(key));
-        await transactionComplete(transaction);
-        database.close();
-        if (typeof value === 'string') return value;
-        return undefined;
-      },
-      write: async (key, value) => {
-        const database = await openDatabase(databaseName);
-        const transaction = database.transaction(STORE_NAME, 'readwrite', { durability: 'strict' });
-        transaction.objectStore(STORE_NAME).put(value, key);
-        await transactionComplete(transaction);
-        database.close();
-      },
+      read: (key) =>
+        withDatabase(databaseName, (database) => {
+          const transaction = database.transaction(STORE_NAME, 'readonly');
+          return requestResult(transaction.objectStore(STORE_NAME).get(key)).pipe(
+            Effect.tap(() => transactionComplete(transaction)),
+            Effect.map((value) => {
+              if (typeof value === 'string') return value;
+              return undefined;
+            }),
+          );
+        }),
+      write: (key, value) =>
+        withDatabase(databaseName, (database) => {
+          const transaction = database.transaction(STORE_NAME, 'readwrite', {
+            durability: 'strict',
+          });
+          transaction.objectStore(STORE_NAME).put(value, key);
+          return transactionComplete(transaction);
+        }),
     },
     options?.key,
   );
@@ -93,23 +106,25 @@ export const makeIndexedDbGenerationRegistryStore = (options: {
   readonly databaseName: string;
   readonly key: string;
 }): GenerationRegistryStore => ({
-  read: async () => {
-    const database = await openDatabase(options.databaseName);
-    const transaction = database.transaction(STORE_NAME, 'readonly');
-    const value: unknown = await requestResult(
-      transaction.objectStore(STORE_NAME).get(options.key),
-    );
-    await transactionComplete(transaction);
-    database.close();
-    if (typeof value === 'string') return { active: value, managed: [value] };
-    if (isGenerationRegistry(value)) return value;
-    return { active: undefined, managed: [] };
-  },
-  write: async (registry) => {
-    const database = await openDatabase(options.databaseName);
-    const transaction = database.transaction(STORE_NAME, 'readwrite', { durability: 'strict' });
-    transaction.objectStore(STORE_NAME).put(registry, options.key);
-    await transactionComplete(transaction);
-    database.close();
-  },
+  read: () =>
+    withDatabase(options.databaseName, (database) => {
+      const transaction = database.transaction(STORE_NAME, 'readonly');
+      return requestResult(transaction.objectStore(STORE_NAME).get(options.key)).pipe(
+        Effect.tap(() => transactionComplete(transaction)),
+        Effect.map((value) => {
+          if (typeof value === 'string') return { active: value, managed: [value] };
+          if (isGenerationRegistry(value)) return value;
+          return { active: undefined, managed: [] };
+        }),
+      );
+    }),
+  write: (registry) =>
+    withDatabase(options.databaseName, (database) => {
+      const transaction = database.transaction(STORE_NAME, 'readwrite', {
+        durability: 'strict',
+      });
+      transaction.objectStore(STORE_NAME).put(registry, options.key);
+      return transactionComplete(transaction);
+    }),
 });
+import { Effect } from 'effect';

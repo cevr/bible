@@ -6,7 +6,7 @@ import {
   type LegacyMigrationReceipt,
   type SyncStore,
 } from '@bible/core/local-first';
-import { Effect, Schema } from 'effect';
+import { Effect, Option, Schema } from 'effect';
 import * as SQLite from 'wa-sqlite';
 
 import type { GenerationMarkerStore } from './generation-marker.js';
@@ -20,8 +20,8 @@ import { makeBrowserSyncStore, makeBrowserUserDatabase } from './user-state-data
 const GENERATED_NAME = /^user-state-v1-[a-f0-9]{12}$/u;
 
 export interface BrowserSqliteVfs {
-  readonly jAccess: (name: string, flags: number, output: DataView) => Promise<number>;
-  readonly jDelete: (name: string, syncDirectory: number) => Promise<number>;
+  readonly jAccess: (name: string, flags: number, output: DataView) => number | Promise<number>;
+  readonly jDelete: (name: string, syncDirectory: number) => number | Promise<number>;
 }
 
 export interface WebCanonicalGenerationOptions {
@@ -37,7 +37,7 @@ export interface WebCanonicalGenerationOptions {
 export interface CanonicalGenerationOperations {
   readonly marker: GenerationMarkerStore;
   readonly targetGeneration: string;
-  readonly discardTarget: () => Promise<void>;
+  readonly discardTarget: () => Effect.Effect<void, CopyOnMigrateError>;
   readonly create: (generation: string) => Effect.Effect<CanonicalGeneration, CopyOnMigrateError>;
   readonly open: (generation: string) => Effect.Effect<CanonicalGeneration, CopyOnMigrateError>;
   readonly verify: (
@@ -51,42 +51,77 @@ const failure = (operation: string, message: string, cause?: unknown): CopyOnMig
   new CopyOnMigrateError({ operation, message, cause });
 
 export const generationDatabaseName = (generation: string): string => {
-  if (!GENERATED_NAME.test(generation)) {
-    throw failure('generation-name', 'refused a non-canonical generated database name');
-  }
-  return `${generation}.db`;
+  const canonical = Option.liftPredicate(generation, (name) => GENERATED_NAME.test(name));
+  return `${Option.getOrThrowWith(canonical, () => failure('generation-name', 'refused a non-canonical generated database name'))}.db`;
 };
 
-export const vfsFileExists = (vfs: BrowserSqliteVfs, filename: string): Promise<boolean> => {
-  const bytes = new ArrayBuffer(4);
-  const output = new DataView(bytes);
-  return vfs.jAccess(filename, 0, output).then((result) => {
+export const vfsFileExists = (
+  vfs: BrowserSqliteVfs,
+  filename: string,
+): Effect.Effect<boolean, CopyOnMigrateError> =>
+  Effect.gen(function* () {
+    const output = new DataView(new ArrayBuffer(4));
+    const pending = yield* Effect.try({
+      try: () => vfs.jAccess(filename, 0, output),
+      catch: (cause) => failure('vfs-access', `could not inspect ${filename}`, cause),
+    });
+    let result: number;
+    if (typeof pending === 'number') result = pending;
+    else {
+      result = yield* Effect.tryPromise({
+        try: () => pending,
+        catch: (cause) => failure('vfs-access', `could not inspect ${filename}`, cause),
+      });
+    }
     if (result !== SQLite.SQLITE_OK) {
-      throw failure('vfs-access', `could not inspect ${filename}`);
+      return yield* Effect.fail(failure('vfs-access', `could not inspect ${filename}`));
     }
     return output.getInt32(0, true) === 1;
   });
-};
 
 export const deleteKnownGeneratedFile = (
   vfs: BrowserSqliteVfs,
   generation: string,
-): Promise<void> => {
+): Effect.Effect<void, CopyOnMigrateError> => {
   const filename = generationDatabaseName(generation);
   const knownFiles = [filename, `${filename}-journal`, `${filename}-wal`, `${filename}-shm`];
-  return knownFiles.reduce(
-    (pending, knownFile) =>
-      pending.then(() =>
-        vfsFileExists(vfs, knownFile).then((exists) => {
-          if (!exists) return;
-          return vfs.jDelete(knownFile, 1).then((result) => {
-            if (result !== SQLite.SQLITE_OK) {
-              throw failure('vfs-delete', `could not delete inactive generation file ${knownFile}`);
-            }
+  return Effect.forEach(
+    knownFiles,
+    (knownFile) =>
+      vfsFileExists(vfs, knownFile).pipe(
+        Effect.flatMap((exists) => {
+          if (!exists) return Effect.void;
+          const pending = Effect.try({
+            try: () => vfs.jDelete(knownFile, 1),
+            catch: (cause) =>
+              failure(
+                'vfs-delete',
+                `could not delete inactive generation file ${knownFile}`,
+                cause,
+              ),
           });
+          return pending.pipe(
+            Effect.flatMap((result) => {
+              if (typeof result === 'number') return Effect.succeed(result);
+              return Effect.tryPromise({
+                try: () => result,
+                catch: (cause) =>
+                  failure(
+                    'vfs-delete',
+                    `could not delete inactive generation file ${knownFile}`,
+                    cause,
+                  ),
+              });
+            }),
+            Effect.filterOrFail(
+              (result) => result === SQLite.SQLITE_OK,
+              () => failure('vfs-delete', `could not delete inactive generation file ${knownFile}`),
+            ),
+            Effect.asVoid,
+          );
         }),
       ),
-    Promise.resolve(),
+    { concurrency: 1, discard: true },
   );
 };
 
@@ -121,12 +156,20 @@ const countTables: ReadonlyArray<keyof typeof countQueries> = [
   'practice_history',
 ];
 
-const countRows = (database: SqliteDatabase, table: keyof typeof countQueries): Promise<number> =>
-  database.values(countQueries[table]).then((rows) => {
-    const value = rows[0]?.[0];
-    if (typeof value === 'number') return value;
-    throw failure('verify-count', `canonical ${table} count did not decode`);
-  });
+const countRows = (
+  database: SqliteDatabase,
+  table: keyof typeof countQueries,
+): Effect.Effect<number, CopyOnMigrateError> =>
+  database.values(countQueries[table]).pipe(
+    Effect.mapError((cause) =>
+      failure('verify-count', `could not count canonical ${table}`, cause),
+    ),
+    Effect.flatMap((rows) => {
+      const value = rows[0]?.[0];
+      if (typeof value === 'number') return Effect.succeed(value);
+      return Effect.fail(failure('verify-count', `canonical ${table} count did not decode`));
+    }),
+  );
 
 const expectedCounts = (
   receipts: ReadonlyArray<LegacyMigrationReceipt>,
@@ -157,16 +200,19 @@ const verifyPublicDecodes = (store: SyncStore): Effect.Effect<void, CopyOnMigrat
 export const makeCanonicalGenerationAdapter = (
   operations: CanonicalGenerationOperations,
 ): CanonicalGenerationAdapter => ({
-  activeGeneration: Effect.tryPromise({
-    try: operations.marker.read,
-    catch: (cause) => failure('read-activation', 'could not read active generation', cause),
-  }),
+  activeGeneration: operations.marker
+    .read()
+    .pipe(
+      Effect.mapError((cause) =>
+        failure('read-activation', 'could not read active generation', cause),
+      ),
+    ),
   discardInactive: (activeGeneration) => {
     if (activeGeneration === operations.targetGeneration) return Effect.void;
-    return Effect.tryPromise({
-      try: operations.discardTarget,
-      catch: (cause) => failure('discard-inactive', 'could not discard inactive generation', cause),
-    }).pipe(
+    return operations.discardTarget().pipe(
+      Effect.mapError((cause) =>
+        failure('discard-inactive', 'could not discard inactive generation', cause),
+      ),
       Effect.tap(() =>
         Effect.sync(() =>
           operations.log(
@@ -180,10 +226,10 @@ export const makeCanonicalGenerationAdapter = (
   open: operations.open,
   verify: operations.verify,
   activate: (generation) =>
-    Effect.tryPromise({
-      try: () => operations.marker.write(generation),
-      catch: (cause) => failure('activate', `could not activate generation ${generation}`, cause),
-    }).pipe(
+    operations.marker.write(generation).pipe(
+      Effect.mapError((cause) =>
+        failure('activate', `could not activate generation ${generation}`, cause),
+      ),
       Effect.tap(() =>
         Effect.sync(() => operations.log(`[migration] activated generation=${generation}`)),
       ),
@@ -198,37 +244,32 @@ export const makeWebCanonicalGenerationAdapter = (
   const open = (
     generation: string,
     create: boolean,
-  ): Effect.Effect<CanonicalGeneration, CopyOnMigrateError> =>
-    Effect.tryPromise({
-      try: () => {
-        const filename = generationDatabaseName(generation);
-        const database = makeSqliteDatabase(options.sqlite3, filename, options.vfsName);
-        let flags = SQLite.SQLITE_OPEN_READWRITE;
-        if (create) flags |= SQLite.SQLITE_OPEN_CREATE;
-        return database
-          .open(flags)
-          .then(() => {
-            const userDatabase = makeBrowserUserDatabase({ database });
-            const migrate = create
-              ? Effect.runPromise(userDatabase.migrate(options.migrationSql))
-              : Promise.resolve();
-            return migrate.then(() => {
-              const store = makeBrowserSyncStore(userDatabase, localClientId);
-              databaseByStore.set(store, database);
-              return {
-                store,
-                close: Effect.tryPromise({
-                  try: () => database.close(),
-                  catch: (cause) =>
-                    failure('close', `could not close generation ${generation}`, cause),
-                }),
-              };
-            });
-          })
-          .catch((cause: unknown) => database.close().then(() => Promise.reject(cause)));
-      },
-      catch: (cause) => failure('open', `could not open generation ${generation}`, cause),
-    });
+  ): Effect.Effect<CanonicalGeneration, CopyOnMigrateError> => {
+    const filename = generationDatabaseName(generation);
+    const database = makeSqliteDatabase(options.sqlite3, filename, options.vfsName);
+    return Effect.gen(function* () {
+      let flags = SQLite.SQLITE_OPEN_READWRITE;
+      if (create) flags |= SQLite.SQLITE_OPEN_CREATE;
+      yield* database.open(flags);
+      const userDatabase = makeBrowserUserDatabase({ database });
+      if (create) yield* userDatabase.migrate(options.migrationSql);
+      const store = makeBrowserSyncStore(userDatabase, localClientId);
+      databaseByStore.set(store, database);
+      return {
+        store,
+        close: database
+          .close()
+          .pipe(
+            Effect.mapError((cause) =>
+              failure('close', `could not close generation ${generation}`, cause),
+            ),
+          ),
+      };
+    }).pipe(
+      Effect.onError(() => database.close().pipe(Effect.ignore)),
+      Effect.mapError((cause) => failure('open', `could not open generation ${generation}`, cause)),
+    );
+  };
 
   return makeCanonicalGenerationAdapter({
     marker: options.marker,
@@ -246,10 +287,7 @@ export const makeWebCanonicalGenerationAdapter = (
       }
       const wanted = expectedCounts(receipts);
       return Effect.forEach(countTables, (table) =>
-        Effect.tryPromise({
-          try: () => countRows(database, table),
-          catch: (cause) => failure('verify-count', `could not count canonical ${table}`, cause),
-        }).pipe(
+        countRows(database, table).pipe(
           Effect.flatMap((actual) => {
             const expected = wanted.get(table) ?? 0;
             if (actual === expected) return Effect.void;
