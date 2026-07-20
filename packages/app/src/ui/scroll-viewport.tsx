@@ -8,12 +8,9 @@ export type ScrollViewportProps = Omit<JSX.HTMLAttributes<HTMLElement>, 'class'>
 
 export const ScrollViewport = (props: ScrollViewportProps) => {
   const attributes = omit(props, 'label', 'class');
-  return (
-    <section
-      {...attributes}
-      aria-label={props.label}
-      class={`bible-scroll-viewport${props.class ? ` ${props.class}` : ''}`}
-      tabindex="0"
-    />
-  );
+  const className = (): string => {
+    if (props.class !== undefined) return `bible-scroll-viewport ${props.class}`;
+    return 'bible-scroll-viewport';
+  };
+  return <section {...attributes} aria-label={props.label} class={className()} tabindex="0" />;
 };

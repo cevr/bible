@@ -18,6 +18,14 @@ export const Popover = (props: PopoverProps) => {
     if (props.open === undefined) setLocalOpen(next);
     props.onOpenChange?.(next);
   };
+  const expandedState = (): 'true' | 'false' => {
+    if (open()) return 'true';
+    return 'false';
+  };
+  const controls = (): string | undefined => {
+    if (open()) return id;
+    return undefined;
+  };
   let root: HTMLDivElement | undefined;
   let trigger: HTMLButtonElement | undefined;
 
@@ -54,8 +62,8 @@ export const Popover = (props: PopoverProps) => {
         class="bible-popover-trigger"
         aria-label={props.label}
         aria-haspopup="dialog"
-        aria-expanded={open() ? 'true' : 'false'}
-        aria-controls={open() ? id : undefined}
+        aria-expanded={expandedState()}
+        aria-controls={controls()}
         onClick={() => setOpen(!open())}
       >
         {props.trigger}

@@ -9,10 +9,11 @@ export type ButtonProps = Omit<JSX.ButtonHTMLAttributes<HTMLButtonElement>, 'cla
 export const Button = (input: ButtonProps) => {
   const props = merge({ type: 'button' as const, tone: 'quiet' as const }, input);
   const attributes = omit(props, 'tone', 'class');
-  return (
-    <button
-      {...attributes}
-      class={`bible-button bible-button--${props.tone}${props.class ? ` ${props.class}` : ''}`}
-    />
-  );
+  const className = (): string => {
+    if (props.class !== undefined) {
+      return `bible-button bible-button--${props.tone} ${props.class}`;
+    }
+    return `bible-button bible-button--${props.tone}`;
+  };
+  return <button {...attributes} class={className()} />;
 };

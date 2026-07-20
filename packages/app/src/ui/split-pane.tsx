@@ -38,7 +38,8 @@ export const SplitPane = (props: SplitPaneProps) => {
         aria-valuenow={size()}
         tabindex="0"
         onKeyDown={(event) => {
-          const step = event.shiftKey ? 10 : 2;
+          let step = 2;
+          if (event.shiftKey) step = 10;
           if (event.key === 'ArrowLeft') update(size() - step);
           else if (event.key === 'ArrowRight') update(size() + step);
           else if (event.key === 'Home') update(minimum());

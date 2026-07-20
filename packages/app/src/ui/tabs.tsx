@@ -23,6 +23,14 @@ export const Tabs = (props: TabsProps) => {
     if (props.value === undefined) setLocalValue(next);
     props.onValueChange?.(next);
   };
+  const selectedState = (itemId: string): 'true' | 'false' => {
+    if (value() === itemId) return 'true';
+    return 'false';
+  };
+  const tabIndex = (itemId: string): 0 | -1 => {
+    if (value() === itemId) return 0;
+    return -1;
+  };
   const move = (current: string, offset: number): void => {
     const index = props.items.findIndex((item) => item.id === current);
     const next = props.items[(index + offset + props.items.length) % props.items.length];
@@ -40,9 +48,9 @@ export const Tabs = (props: TabsProps) => {
               id={`${identity}-tab-${item.id}`}
               type="button"
               role="tab"
-              aria-selected={value() === item.id ? 'true' : 'false'}
+              aria-selected={selectedState(item.id)}
               aria-controls={`${identity}-panel-${item.id}`}
-              tabindex={value() === item.id ? 0 : -1}
+              tabindex={tabIndex(item.id)}
               onClick={() => select(item.id)}
               onKeyDown={(event) => {
                 if (event.key === 'ArrowRight') move(item.id, 1);

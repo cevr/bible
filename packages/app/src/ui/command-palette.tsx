@@ -38,11 +38,22 @@ export const CommandPalette = (props: CommandPaletteProps) => {
     command.run();
     close();
   };
+  const changeOpen = (open: boolean): void => {
+    if (open) {
+      props.onOpenChange(true);
+      return;
+    }
+    close();
+  };
+  const selectedState = (index: number): 'true' | 'false' => {
+    if (active() === index) return 'true';
+    return 'false';
+  };
 
   return (
     <Dialog
       open={props.open}
-      onOpenChange={(open) => (open ? props.onOpenChange(true) : close())}
+      onOpenChange={changeOpen}
       title="Command palette"
       description="Search the library and move to a reading surface"
       restoreFocus={props.restoreFocus}
@@ -79,7 +90,7 @@ export const CommandPalette = (props: CommandPaletteProps) => {
                 <button
                   type="button"
                   role="option"
-                  aria-selected={active() === index() ? 'true' : 'false'}
+                  aria-selected={selectedState(index())}
                   onPointerMove={() => setActive(index())}
                   onClick={() => run(command)}
                 >
