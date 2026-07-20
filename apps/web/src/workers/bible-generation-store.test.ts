@@ -15,6 +15,8 @@ const database: SqliteDatabase = {
   exec: () => Effect.runPromise(Effect.void),
 };
 
+const registryWriteFailure = { _tag: 'RegistryWriteFailure' } as const;
+
 const harness = (initial: GenerationRegistry) => {
   const events: string[] = [];
   let state = initial;
@@ -48,7 +50,7 @@ const harness = (initial: GenerationRegistry) => {
         Effect.gen(function* () {
           if (failNextWrite) {
             failNextWrite = false;
-            return yield* Effect.fail(new Error('registry write failed'));
+            return yield* Effect.fail(registryWriteFailure);
           }
           events.push(`registry:${next.active ?? 'none'}:${next.managed.join(',')}`);
           state = next;
@@ -101,10 +103,13 @@ describe('browser Bible generation store', () => {
       fixture.failRegistryWrite();
 
       const failure = yield* Effect.flip(
-        Effect.tryPromise(() => fixture.store.activateVerified(candidate)),
+        Effect.tryPromise({
+          try: () => fixture.store.activateVerified(candidate),
+          catch: (cause) => cause,
+        }),
       );
 
-      expect(failure).toBeInstanceOf(Error);
+      expect(failure).toEqual(registryWriteFailure);
       expect(fixture.events.slice(-3)).toEqual([
         `activate:${previous}`,
         `discard:${candidate}`,
