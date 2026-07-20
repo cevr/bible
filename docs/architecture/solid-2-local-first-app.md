@@ -297,10 +297,10 @@ The stronger desktop reading experience and the broader web route/feature set ar
 
 ## Effect lint ownership
 
-- Every module that enters the Effect-native architecture must be added to the strict `oxlint-plugin-effect` recommended-preset scope in the same change.
-- Treat an Oxlint scope change as part of the module migration, alongside import rewrites, caller migration, tests, and legacy deletion. Do not defer it to a later cleanup pass.
-- Keep platform adapters, generated code, build configuration, and compatibility shims outside strict application policy only when their boundary requires it.
-- Adapter exceptions must be narrow file-level overrides for the specific unavailable Effect capability; they must not disable the preset for a directory or feature.
+- The full `oxlint-plugin-effect` recommended preset is repository-wide policy for production code, tests, scripts, and build tooling.
+- A rule may be disabled only for an exact named host-boundary file whose external API requires the prohibited construct. Each override must disable only the required rule; directory, feature, and file-class exemptions are forbidden.
+- Prefer extracting the unavoidable platform operation into a named adapter over weakening the application module that consumes it.
+- Generated build output, dependencies, declarations, and user-authored publishing outputs remain outside lint ownership because they are artifacts rather than application source.
 - Run Oxlint before Effect tsgo, typecheck, and focused tests at every migration checkpoint.
 
 ## Local Solid UI primitives
@@ -393,7 +393,7 @@ This is high-blast-radius work and should land as reviewable conventional subcom
    - Gate package typecheck and focused tests.
 4. `refactor(app): unify web and desktop on solid 2`
    - Migrate shared routes/UI, platform entries, remaining cache callers, and runtime adapters; remove React and legacy desktop cache code.
-   - Extend the strict Effect Oxlint scope in the same batch whenever a legacy module becomes Effect-native.
+   - Preserve repository-wide Effect Oxlint enforcement; isolate any externally required exception in an exact named host adapter.
    - Delegate repetitive caller migration only after the first examples establish exact rules and gates.
    - Gate web and desktop typecheck/tests/builds between batches.
 5. `style(app): refine reading experience`
@@ -416,7 +416,7 @@ Commit boundaries may move slightly to preserve a green tree, but must not intro
 - Dialogs, menus, tabs, command palette, and panes pass keyboard/focus expectations.
 - Web and desktop builds, typecheck, lint, unit tests, and relevant end-to-end smoke tests pass.
 - Desktop, web, API, and browser failures are inspectable through one active `tmp/logs/latest` session without opening DevTools.
-- Every migrated Effect-native module is covered by the full `oxlint-plugin-effect` recommended preset, with only narrow named-adapter overrides.
+- All repository source is covered by the full `oxlint-plugin-effect` recommended preset, with only exact rule-level overrides on named host adapters.
 - `$ui` and `$impeccable` findings are fixed or explicitly documented with evidence.
 
 ## `$repo` reference index
