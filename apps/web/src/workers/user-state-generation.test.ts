@@ -35,26 +35,20 @@ describe('web canonical generation lifecycle', () => {
         'user-state-v1-fedcba987654.db-wal',
       ]);
       const vfs = {
-        jAccess: (name: string, _flags: number, output: DataView) =>
-          Effect.runPromise(
-            Effect.sync(() => {
-              let exists = 0;
-              if (files.has(name)) exists = 1;
-              output.setInt32(0, exists, true);
-              return SQLite.SQLITE_OK;
-            }),
-          ),
-        jDelete: (name: string) =>
-          Effect.runPromise(
-            Effect.sync(() => {
-              deleted.push(name);
-              files.delete(name);
-              return SQLite.SQLITE_OK;
-            }),
-          ),
+        jAccess: (name: string, _flags: number, output: DataView) => {
+          let exists = 0;
+          if (files.has(name)) exists = 1;
+          output.setInt32(0, exists, true);
+          return SQLite.SQLITE_OK;
+        },
+        jDelete: (name: string) => {
+          deleted.push(name);
+          files.delete(name);
+          return SQLite.SQLITE_OK;
+        },
       };
 
-      yield* Effect.tryPromise(() => deleteKnownGeneratedFile(vfs, generation));
+      yield* deleteKnownGeneratedFile(vfs, generation);
 
       expect(deleted).toEqual([
         'user-state-v1-0123456789ab.db',
@@ -70,26 +64,18 @@ describe('web canonical generation lifecycle', () => {
   it.effect('detects a missing legacy source without creating it', () =>
     Effect.gen(function* () {
       let deleted = false;
-      const exists = yield* Effect.tryPromise(() =>
-        vfsFileExists(
-          {
-            jAccess: (_name, _flags, output) =>
-              Effect.runPromise(
-                Effect.sync(() => {
-                  output.setInt32(0, 0, true);
-                  return SQLite.SQLITE_OK;
-                }),
-              ),
-            jDelete: () =>
-              Effect.runPromise(
-                Effect.sync(() => {
-                  deleted = true;
-                  return SQLite.SQLITE_OK;
-                }),
-              ),
+      const exists = yield* vfsFileExists(
+        {
+          jAccess: (_name, _flags, output) => {
+            output.setInt32(0, 0, true);
+            return SQLite.SQLITE_OK;
           },
-          'state.db',
-        ),
+          jDelete: () => {
+            deleted = true;
+            return SQLite.SQLITE_OK;
+          },
+        },
+        'state.db',
       );
 
       expect(exists).toBe(false);
@@ -101,15 +87,13 @@ describe('web canonical generation lifecycle', () => {
     Effect.gen(function* () {
       const events: string[] = [];
       const marker = makeGenerationMarkerStore({
-        read: () => Effect.runPromise(Effect.succeed(generation)),
-        write: () =>
-          Effect.runPromise(Effect.sync(() => events.push('activate')).pipe(Effect.asVoid)),
+        read: () => Effect.succeed(generation),
+        write: () => Effect.sync(() => events.push('activate')).pipe(Effect.asVoid),
       });
       const adapter = makeCanonicalGenerationAdapter({
         marker,
         targetGeneration: generation,
-        discardTarget: () =>
-          Effect.runPromise(Effect.sync(() => events.push('discard')).pipe(Effect.asVoid)),
+        discardTarget: () => Effect.sync(() => events.push('discard')).pipe(Effect.asVoid),
         create: () => Effect.die('create must not run'),
         open: () => Effect.die('open must not run'),
         verify: () => Effect.die('verify must not run'),
@@ -139,15 +123,13 @@ describe('web canonical generation lifecycle', () => {
       } as unknown as SyncStore;
       const target: CanonicalGeneration = { store: emptyStore, close: Effect.void };
       const marker = makeGenerationMarkerStore({
-        read: () => Effect.runPromise(Effect.succeed(active)),
-        write: (_key, value) =>
-          Effect.runPromise(Effect.sync(() => (active = value)).pipe(Effect.asVoid)),
+        read: () => Effect.succeed(active),
+        write: (_key, value) => Effect.sync(() => (active = value)).pipe(Effect.asVoid),
       });
       const adapter = makeCanonicalGenerationAdapter({
         marker,
         targetGeneration: generation,
-        discardTarget: () =>
-          Effect.runPromise(Effect.sync(() => events.push('discard')).pipe(Effect.asVoid)),
+        discardTarget: () => Effect.sync(() => events.push('discard')).pipe(Effect.asVoid),
         create: () => Effect.succeed(target),
         open: () => Effect.succeed(target),
         verify: () => Effect.void,
@@ -209,12 +191,11 @@ describe('web canonical generation lifecycle', () => {
       const target: CanonicalGeneration = { store, close: Effect.void };
       const adapter = makeCanonicalGenerationAdapter({
         marker: makeGenerationMarkerStore({
-          read: () => Effect.runPromise(Effect.succeed(active)),
-          write: (_key, value) =>
-            Effect.runPromise(Effect.sync(() => (active = value)).pipe(Effect.asVoid)),
+          read: () => Effect.succeed(active),
+          write: (_key, value) => Effect.sync(() => (active = value)).pipe(Effect.asVoid),
         }),
         targetGeneration: generation,
-        discardTarget: () => Effect.runPromise(Effect.void),
+        discardTarget: () => Effect.void,
         create: () => Effect.succeed(target),
         open: () => Effect.succeed(target),
         verify: () =>

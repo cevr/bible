@@ -40,18 +40,16 @@ const harness = (initial: GenerationRegistry) => {
     },
   };
   const registry: GenerationRegistryStore = {
-    read: () => Effect.runPromise(Effect.succeed(state)),
+    read: () => Effect.succeed(state),
     write: (next) =>
-      Effect.runPromise(
-        Effect.gen(function* () {
-          if (failNextWrite) {
-            failNextWrite = false;
-            return yield* Effect.fail(registryWriteFailure);
-          }
-          events.push(`registry:${next.active ?? 'none'}:${next.managed.join(',')}`);
-          state = next;
-        }),
-      ),
+      Effect.gen(function* () {
+        if (failNextWrite) {
+          failNextWrite = false;
+          return yield* Effect.fail(registryWriteFailure);
+        }
+        events.push(`registry:${next.active ?? 'none'}:${next.managed.join(',')}`);
+        state = next;
+      }),
   };
   const store = makeBibleGenerationStore({
     databases,

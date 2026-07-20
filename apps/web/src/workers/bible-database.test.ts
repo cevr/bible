@@ -95,19 +95,15 @@ const ensure = (options: {
   }
   const registryStore: GenerationRegistryStore = {
     read: () =>
-      Effect.runPromise(
-        Effect.sync(() => {
-          options.events.push('registry:read');
-          return registry;
-        }),
-      ),
+      Effect.sync(() => {
+        options.events.push('registry:read');
+        return registry;
+      }),
     write: (next) =>
-      Effect.runPromise(
-        Effect.sync(() => {
-          options.events.push(`registry:write:${next.active ?? 'none'}`);
-          registry = next;
-        }),
-      ),
+      Effect.sync(() => {
+        options.events.push(`registry:write:${next.active ?? 'none'}`);
+        registry = next;
+      }),
   };
   const artifacts = layerBrowserBibleArtifacts({
     generations: makeBibleGenerationStore({

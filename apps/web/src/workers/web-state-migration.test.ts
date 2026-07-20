@@ -20,22 +20,18 @@ describe('legacy web state snapshot', () => {
       let writes = 0;
       const database = {
         query: (sql: string) =>
-          Effect.runPromise(
-            Effect.sync(() => {
-              queries.push(sql);
-              return [{ sql }];
-            }),
-          ),
+          Effect.sync(() => {
+            queries.push(sql);
+            return [{ sql }];
+          }),
         write: () =>
-          Effect.runPromise(
-            Effect.sync(() => {
-              writes += 1;
-              return 0;
-            }),
-          ),
+          Effect.sync(() => {
+            writes += 1;
+            return 0;
+          }),
       } as unknown as SqliteDatabase;
 
-      const snapshot = yield* Effect.tryPromise(() => snapshotLegacyWebState(database));
+      const snapshot = yield* snapshotLegacyWebState(database);
 
       expect(snapshot['position']).toEqual({ sql: 'SELECT * FROM position ORDER BY id' });
       expect(snapshot['memory_practice']).toEqual([
@@ -51,22 +47,15 @@ describe('legacy web state snapshot', () => {
       const database = {
         query: (sql: string) => {
           if (sql.includes('verse_notes')) {
-            return Effect.runPromise(
-              Effect.fail(
-                new LegacyDatabaseFailure({ message: 'database disk image is malformed' }),
-              ),
+            return Effect.fail(
+              new LegacyDatabaseFailure({ message: 'database disk image is malformed' }),
             );
           }
-          return Effect.runPromise(Effect.succeed([]));
+          return Effect.succeed([]);
         },
       } as unknown as SqliteDatabase;
 
-      const failure = yield* Effect.flip(
-        Effect.tryPromise({
-          try: () => snapshotLegacyWebState(database),
-          catch: (cause) => cause,
-        }),
-      );
+      const failure = yield* Effect.flip(snapshotLegacyWebState(database));
       expect(String(failure)).toContain('database disk image');
     }),
   );
@@ -76,15 +65,15 @@ describe('legacy web state snapshot', () => {
       const database = {
         query: (sql: string) => {
           if (sql.includes('egw_markers')) {
-            return Effect.runPromise(
-              Effect.fail(new LegacyDatabaseFailure({ message: 'no such table: egw_markers' })),
+            return Effect.fail(
+              new LegacyDatabaseFailure({ message: 'no such table: egw_markers' }),
             );
           }
-          return Effect.runPromise(Effect.succeed([]));
+          return Effect.succeed([]);
         },
       } as unknown as SqliteDatabase;
 
-      const snapshot = yield* Effect.tryPromise(() => snapshotLegacyWebState(database));
+      const snapshot = yield* snapshotLegacyWebState(database);
 
       expect(snapshot['egw_markers']).toEqual([]);
     }),
@@ -192,13 +181,11 @@ describe('legacy web state snapshot', () => {
       const logs: string[] = [];
       const unavailableWritings = {
         query: () =>
-          Effect.runPromise(
-            Effect.fail(new LegacyDatabaseFailure({ message: 'no such table: paragraphs' })),
-          ),
+          Effect.fail(new LegacyDatabaseFailure({ message: 'no such table: paragraphs' })),
       } as unknown as SqliteDatabase;
 
-      const resolved = yield* Effect.tryPromise(() =>
-        resolveLegacyEgwCoordinates(snapshot, unavailableWritings, (line) => logs.push(line)),
+      const resolved = yield* resolveLegacyEgwCoordinates(snapshot, unavailableWritings, (line) =>
+        logs.push(line),
       );
       const projection = makeResolvedWebStateProjection(snapshot, 'fixture', resolved);
 
