@@ -4,7 +4,7 @@
  */
 
 import type { HttpClientError } from 'effect/unstable/http';
-import { HttpClient, HttpClientRequest, HttpClientResponse } from 'effect/unstable/http';
+import { HttpClient, HttpClientRequest, HttpClientResponse, UrlParams } from 'effect/unstable/http';
 import {
   Config,
   Context,
@@ -15,6 +15,7 @@ import {
   Redacted,
   Schedule,
   Schema,
+  SchemaGetter,
   Stream,
 } from 'effect';
 
@@ -30,7 +31,13 @@ export class EGWApiError extends Schema.TaggedErrorClass<EGWApiError>()('EGWApiE
   message: Schema.String,
 }) {}
 
-const encodeJson = (value: unknown) => JSON.stringify(value, null, 2);
+const JsonString = Schema.Unknown.pipe(
+  Schema.encodeTo(Schema.String, {
+    decode: SchemaGetter.parseJson(),
+    encode: SchemaGetter.stringifyJson({ space: 2 }),
+  }),
+);
+const encodeJson = Schema.encodeSync(JsonString);
 
 // ============================================================================
 // Service Interface
@@ -120,9 +127,8 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
         rawHttpClient.pipe(
           HttpClient.mapRequest((request) => {
             // Conditionally prepend baseUrl based on the parameter
-            const withBaseUrl = prependBaseUrl
-              ? HttpClientRequest.prependUrl(baseUrl)(request)
-              : request;
+            let withBaseUrl = request;
+            if (prependBaseUrl) withBaseUrl = HttpClientRequest.prependUrl(baseUrl)(request);
             return withBaseUrl.pipe(
               HttpClientRequest.setHeader('User-Agent', userAgent),
               HttpClientRequest.acceptJson,
@@ -136,11 +142,8 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
           ),
           // Log outgoing requests
           HttpClient.tapRequest((request) => {
-            const params = Array.isArray(request.urlParams)
-              ? Object.fromEntries(request.urlParams)
-              : request.urlParams;
             return Effect.logDebug(
-              `-> req ${request.method} ${request.url}${new URLSearchParams(params as Record<string, string>).toString()}`,
+              `-> req ${request.method} ${request.url}${UrlParams.toString(request.urlParams)}`,
             );
           }),
           // Log incoming responses
@@ -165,10 +168,10 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
           // Log errors
           HttpClient.tapError((error) =>
             Effect.gen(function* () {
-              const request =
-                error && typeof error === 'object' && 'request' in error
-                  ? (error as { request?: { method?: string; url?: string } }).request
-                  : undefined;
+              let request: HttpClientRequest.HttpClientRequest | undefined;
+              if (error && typeof error === 'object' && 'request' in error) {
+                request = error.request;
+              }
               yield* Effect.logError(`✗ res ${request?.method} ${request?.url}`, error);
             }),
           ),
@@ -210,9 +213,11 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
           // Determine if URL is absolute or relative
           const isAbsoluteUrl = url.startsWith('http://') || url.startsWith('https://');
 
-          const response = yield* isAbsoluteUrl
-            ? absoluteUrlHttpClient.get(url)
-            : httpClient.get(url.startsWith('/') ? url : `/${url}`);
+          let requestUrl = url;
+          if (!url.startsWith('/')) requestUrl = `/${url}`;
+          let responseEffect = httpClient.get(requestUrl);
+          if (isAbsoluteUrl) responseEffect = absoluteUrlHttpClient.get(url);
+          const response = yield* responseEffect;
 
           return yield* HttpClientResponse.schemaBodyJson(PaginatedResponse)(response);
         }).pipe(
@@ -234,7 +239,7 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
         Stream.paginate(initialUrl, (url) =>
           Effect.gen(function* () {
             const page = yield* fetchBooksPage(url);
-            return [page.results, page.next ? Option.some(page.next) : Option.none()] as const;
+            return [page.results, Option.fromNullishOr(page.next)] as const;
           }),
         );
 
@@ -262,9 +267,9 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
             if (params.page) urlParams.append('page', String(params.page));
 
             const queryString = urlParams.toString();
-            const endpoint = `/content/books/by_folder/${folderId}${
-              queryString ? `?${queryString}` : ''
-            }`;
+            let query = '';
+            if (queryString) query = `?${queryString}`;
+            const endpoint = `/content/books/by_folder/${folderId}${query}`;
 
             const response = yield* httpClient.get(endpoint);
             return yield* HttpClientResponse.schemaBodyJson(Schema.Array(Schemas.Book))(response);
@@ -292,14 +297,17 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
           if (params.search) urlParams.append('search', params.search);
           if (params.folder) urlParams.append('folder', String(params.folder));
           if (params.trans) {
-            const transValue = typeof params.trans === 'string' ? params.trans : 'all';
+            let transValue = 'all';
+            if (typeof params.trans === 'string') transValue = params.trans;
             urlParams.append('trans', transValue);
           }
           if (params.limit) urlParams.append('limit', String(params.limit));
           if (params.offset) urlParams.append('offset', String(params.offset));
 
           const queryString = urlParams.toString();
-          const endpoint = `/content/books${queryString ? `?${queryString}` : ''}`;
+          let query = '';
+          if (queryString) query = `?${queryString}`;
+          const endpoint = `/content/books${query}`;
 
           // If page is explicitly specified, return a stream of that page's results
           // Otherwise, return a stream that fetches all pages
@@ -333,7 +341,9 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
             if (params.trans) urlParams.append('trans', params.trans);
 
             const queryString = urlParams.toString();
-            const endpoint = `/content/books/${bookId}${queryString ? `?${queryString}` : ''}`;
+            let query = '';
+            if (queryString) query = `?${queryString}`;
+            const endpoint = `/content/books/${bookId}${query}`;
 
             const response = yield* httpClient.get(endpoint);
             return yield* HttpClientResponse.schemaBodyJson(Schemas.Book)(response);
@@ -380,9 +390,9 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
             }
 
             const queryString = urlParams.toString();
-            const endpoint = `/content/books/${bookId}/chapter/${chapterId}${
-              queryString ? `?${queryString}` : ''
-            }`;
+            let query = '';
+            if (queryString) query = `?${queryString}`;
+            const endpoint = `/content/books/${bookId}/chapter/${chapterId}${query}`;
 
             const response = yield* httpClient.get(endpoint);
             // Wire shape uses `content: string` (HTML). ParagraphFromHtml decodes

@@ -56,6 +56,21 @@ export class VerseRangeReference extends Schema.TaggedClass<VerseRangeReference>
   end: VerseReference,
 }) {}
 
+const OrderedVerseRangeReference = VerseRangeReference.check(
+  Schema.makeFilter<VerseRangeReference>((range) => {
+    const startsAfterEnd =
+      range.start.book > range.end.book ||
+      (range.start.book === range.end.book && range.start.chapter > range.end.chapter) ||
+      (range.start.book === range.end.book &&
+        range.start.chapter === range.end.chapter &&
+        range.start.verse > range.end.verse);
+    if (startsAfterEnd) return 'Bible verse range must be ordered';
+    return undefined;
+  }),
+);
+
+const orderedVerseRange = Schema.decodeSync(OrderedVerseRangeReference);
+
 export const ReferenceSchema = Schema.Union([
   BookReference,
   ChapterReference,
@@ -112,14 +127,8 @@ export const Reference = {
       chapter: chapterNumber(chapter),
       verse: verseNumber(verse),
     }),
-  range: (start: VerseReference, end: VerseReference): VerseRangeReference => {
-    const startsAfterEnd =
-      start.book > end.book ||
-      (start.book === end.book && start.chapter > end.chapter) ||
-      (start.book === end.book && start.chapter === end.chapter && start.verse > end.verse);
-    if (startsAfterEnd) throw new RangeError('Bible verse range must be ordered');
-    return new VerseRangeReference({ start, end });
-  },
+  range: (start: VerseReference, end: VerseReference): VerseRangeReference =>
+    orderedVerseRange(new VerseRangeReference({ start, end })),
   chapterOf: (reference: Reference): ChapterReference => {
     switch (reference._tag) {
       case 'book':

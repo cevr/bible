@@ -28,7 +28,10 @@ export const layerBunConfig: Layer.Layer<
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
-        const homeDir = process.env['HOME'] ?? process.env['USERPROFILE'] ?? '.';
+        const homeDir = yield* Config.string('HOME').pipe(
+          Config.orElse(() => Config.string('USERPROFILE')),
+          Config.withDefault('.'),
+        );
         const defaultDbPath = path.join(homeDir, '.bible', 'egw-paragraphs.db');
         const dbFile = yield* Config.string('EGW_PARAGRAPH_DB').pipe(
           Config.withDefault(defaultDbPath),

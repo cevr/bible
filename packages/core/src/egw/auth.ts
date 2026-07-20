@@ -20,6 +20,7 @@ import {
   Duration,
   Effect,
   Layer,
+  Option,
   Predicate,
   Redacted,
   Schedule,
@@ -58,6 +59,10 @@ const OAuthTokenResponse = Schema.Struct({
   scope: Schema.String,
 });
 
+const RequestLogBody = Schema.fromJsonString(Schema.Record(Schema.String, Schema.Unknown));
+const decodeRequestLogBody = Schema.decodeUnknownOption(RequestLogBody);
+const encodeJson = Schema.encodeSync(Schema.UnknownFromJsonString);
+
 /**
  * Transform OAuth token response to AccessToken
  */
@@ -67,9 +72,11 @@ const decodeOAuthToAccessToken = (
   Effect.gen(function* () {
     const createdAt = yield* Clock.currentTimeMillis;
     const expiresIn = encoded.expires_in * 1000;
+    let refreshToken: Redacted.Redacted | undefined;
+    if (encoded.refresh_token !== undefined) refreshToken = Redacted.make(encoded.refresh_token);
     return new AccessToken({
       accessToken: Redacted.make(encoded.access_token),
-      refreshToken: encoded.refresh_token ? Redacted.make(encoded.refresh_token) : undefined,
+      refreshToken,
       expiresAt: createdAt + expiresIn,
       scope: encoded.scope,
     });
@@ -156,21 +163,21 @@ export class EGWAuth extends Context.Service<EGWAuth, EGWAuthService>()(
         HttpClient.tapRequest((request) => {
           if (request.body._tag === 'Uint8Array' && request.body.contentType.includes('json')) {
             const text = new TextDecoder().decode(request.body.body);
-            try {
-              const json = JSON.parse(text);
-              // Mask sensitive fields
+            const decoded = decodeRequestLogBody(text);
+            if (Option.isSome(decoded)) {
+              const json = decoded.value;
+              let clientSecret: string | undefined;
+              if (json['client_secret']) clientSecret = '[REDACTED]';
+              let refreshToken: string | undefined;
+              if (json['refresh_token']) refreshToken = '[REDACTED]';
               const maskedJson = {
                 ...json,
-                client_secret: json.client_secret ? '[REDACTED]' : undefined,
-                refresh_token: json.refresh_token ? '[REDACTED]' : undefined,
+                client_secret: clientSecret,
+                refresh_token: refreshToken,
               };
-              return Effect.log(
-                `-> req ${request.method} ${request.url}`,
-                JSON.stringify(maskedJson),
-              );
-            } catch {
-              return Effect.log(`-> req ${request.method} ${request.url}`);
+              return Effect.log(`-> req ${request.method} ${request.url}`, encodeJson(maskedJson));
             }
+            return Effect.log(`-> req ${request.method} ${request.url}`);
           }
           return Effect.log(`-> req ${request.method} ${request.url}`);
         }),
@@ -194,7 +201,8 @@ export class EGWAuth extends Context.Service<EGWAuth, EGWAuthService>()(
         ),
         HttpClient.tapError((error) =>
           Effect.gen(function* () {
-            const request = 'request' in error ? error.request : undefined;
+            let request: HttpClientRequest.HttpClientRequest | undefined;
+            if ('request' in error) request = error.request;
             yield* Effect.logError(`✗ res ${request?.method} ${request?.url}`, error);
           }),
         ),
@@ -244,17 +252,18 @@ export class EGWAuth extends Context.Service<EGWAuth, EGWAuthService>()(
           .pipe(
             Effect.flatMap(HttpClientResponse.schemaBodyJson(OAuthTokenResponse)),
             Effect.flatMap(decodeOAuthToAccessToken),
-            Effect.map(
-              (response) =>
-                new AccessToken({
-                  accessToken: response.accessToken,
-                  refreshToken: Predicate.isNotUndefined(response.refreshToken)
-                    ? response.refreshToken
-                    : token.refreshToken,
-                  expiresAt: response.expiresAt,
-                  scope: response.scope,
-                }),
-            ),
+            Effect.map((response) => {
+              let refreshToken = token.refreshToken;
+              if (Predicate.isNotUndefined(response.refreshToken)) {
+                refreshToken = response.refreshToken;
+              }
+              return new AccessToken({
+                accessToken: response.accessToken,
+                refreshToken,
+                expiresAt: response.expiresAt,
+                scope: response.scope,
+              });
+            }),
           );
 
         yield* writeTokenToCache(refreshedToken);
@@ -282,7 +291,10 @@ export class EGWAuth extends Context.Service<EGWAuth, EGWAuthService>()(
 
       const initialToken = yield* readTokenFromCache().pipe(
         Effect.flatMap((maybeToken) =>
-          maybeToken._tag === 'Some' ? refreshTokenIfExpired(maybeToken.value) : fetchToken(),
+          Option.match(maybeToken, {
+            onNone: () => fetchToken(),
+            onSome: refreshTokenIfExpired,
+          }),
         ),
       );
 
@@ -331,7 +343,9 @@ export class EGWAuth extends Context.Service<EGWAuth, EGWAuthService>()(
     // this at module load and crashed renderers (no `process` global). The
     // static field was removed; this guard belts-and-suspenders any future
     // caller that imports from a browser context.
-    const path = tokenFile ?? envVar('EGW_TOKEN_FILE') ?? 'data/tokens.json';
+    let path = tokenFile;
+    if (path === undefined) path = envVar('EGW_TOKEN_FILE');
+    if (path === undefined) path = 'data/tokens.json';
     return Layer.provide(EGWAuth.Live, EGWTokenStore.layerFileSystem(path));
   };
 
@@ -341,13 +355,14 @@ export class EGWAuth extends Context.Service<EGWAuth, EGWAuthService>()(
   static Test = (token?: AccessToken): Layer.Layer<EGWAuth> =>
     Layer.succeed(EGWAuth, {
       getToken: () =>
-        Effect.succeed(
-          token ??
-            new AccessToken({
-              accessToken: Redacted.make('test-token'),
-              expiresAt: Date.now() + 3600000,
-              scope: 'test',
-            }),
-        ),
+        Effect.gen(function* () {
+          if (token !== undefined) return token;
+          const now = yield* Clock.currentTimeMillis;
+          return new AccessToken({
+            accessToken: Redacted.make('test-token'),
+            expiresAt: now + 3600000,
+            scope: 'test',
+          });
+        }),
     });
 }

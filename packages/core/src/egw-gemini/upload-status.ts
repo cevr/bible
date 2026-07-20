@@ -8,7 +8,7 @@
 
 import type { PlatformError } from 'effect/PlatformError';
 import { Database } from 'bun:sqlite';
-import { Config, Context, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
+import { Config, Context, DateTime, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
 
 export class UploadStatusError extends Schema.TaggedErrorClass<UploadStatusError>()(
   'UploadStatusError',
@@ -225,7 +225,7 @@ export class EGWUploadStatus extends Context.Service<EGWUploadStatus, EGWUploadS
         bookId: number,
       ): Effect.Effect<void, UploadStatusError> =>
         Effect.gen(function* () {
-          const now = new Date().toISOString();
+          const now = DateTime.formatIso(yield* DateTime.now);
           yield* Effect.try({
             try: () => {
               insertOrUpdateQuery.run({
@@ -258,7 +258,7 @@ export class EGWUploadStatus extends Context.Service<EGWUploadStatus, EGWUploadS
         bookId: number,
       ): Effect.Effect<void, UploadStatusError> =>
         Effect.gen(function* () {
-          const now = new Date().toISOString();
+          const now = DateTime.formatIso(yield* DateTime.now);
 
           // First check if record exists to preserve created_at
           const existing = yield* Effect.try({
@@ -311,7 +311,7 @@ export class EGWUploadStatus extends Context.Service<EGWUploadStatus, EGWUploadS
         error: string,
       ): Effect.Effect<void, UploadStatusError> =>
         Effect.gen(function* () {
-          const now = new Date().toISOString();
+          const now = DateTime.formatIso(yield* DateTime.now);
 
           // First check if record exists to preserve created_at
           const existing = yield* Effect.try({
@@ -500,12 +500,13 @@ export class EGWUploadStatus extends Context.Service<EGWUploadStatus, EGWUploadS
           });
         }),
       markParagraphComplete: (storeDisplayName, refCode, bookId) =>
-        Effect.sync(() => {
+        Effect.gen(function* () {
+          const uploadedAt = DateTime.formatIso(yield* DateTime.now);
           storage.set(`${storeDisplayName}:${refCode}`, {
             status: 'complete',
             refCode,
             bookId,
-            uploadedAt: new Date().toISOString(),
+            uploadedAt,
           });
         }),
       markParagraphFailed: (storeDisplayName, refCode, bookId, error) =>

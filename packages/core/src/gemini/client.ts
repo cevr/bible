@@ -32,20 +32,28 @@ type FileSearchStorePager = Pager<FileSearchStore>;
 type DocumentPager = Pager<Document>;
 type UploadOperation = UploadToFileSearchStoreOperation;
 
+const PagerFallback = Schema.Struct({
+  params: Schema.optional(
+    Schema.Struct({
+      config: Schema.optional(Schema.Struct({ pageToken: Schema.optional(Schema.String) })),
+    }),
+  ),
+});
+
 // Helper to check if pager has next page (handles incomplete type definitions)
 function pagerHasNextPage(pager: unknown): boolean {
   if (typeof pager !== 'object' || pager === null) return false;
-  const p = pager as { hasNextPage?: () => boolean; params?: { config?: { pageToken?: string } } };
-  if (typeof p.hasNextPage === 'function') {
-    try {
-      return p.hasNextPage();
-    } catch {
-      // If hasNextPage throws, check params directly
-      return p.params?.config?.pageToken !== undefined;
-    }
-  }
-  // Fallback: check params directly
-  return p.params?.config?.pageToken !== undefined;
+  const fallback = Schema.decodeUnknownOption(PagerFallback)(pager).pipe(
+    Option.exists((value) => value.params?.config?.pageToken !== undefined),
+  );
+  if (!('hasNextPage' in pager) || typeof pager.hasNextPage !== 'function') return fallback;
+  const check = pager.hasNextPage;
+  return Effect.runSync(
+    Effect.try({
+      try: () => check.call(pager) === true,
+      catch: () => fallback,
+    }).pipe(Effect.catch((result) => Effect.succeed(result))),
+  );
 }
 
 /**
@@ -145,11 +153,7 @@ export class GeminiFileSearchClient extends Context.Service<
     GeminiFileSearchClient,
     Effect.gen(function* () {
       const apiKey = yield* Config.redacted('GOOGLE_AI_API_KEY').pipe(
-        Config.withDefault(
-          process.env['GOOGLE_AI_API_KEY']
-            ? Redacted.make(process.env['GOOGLE_AI_API_KEY'])
-            : Redacted.make(''),
-        ),
+        Config.withDefault(Redacted.make('')),
       );
 
       const ai = new GoogleGenAI({
@@ -171,23 +175,25 @@ export class GeminiFileSearchClient extends Context.Service<
       ): Effect.Effect<Schemas.Operation, GeminiFileSearchError> =>
         Effect.gen(function* () {
           if (operation.done) {
+            let operationError: Schemas.Operation['error'];
+            if (
+              operation.error &&
+              typeof operation.error === 'object' &&
+              'code' in operation.error &&
+              'message' in operation.error
+            ) {
+              let code = 0;
+              if (typeof operation.error['code'] === 'number') code = operation.error['code'];
+              let message = 'Unknown error';
+              if (typeof operation.error['message'] === 'string') {
+                message = operation.error['message'];
+              }
+              operationError = { code, message };
+            }
             return {
               name: operation.name || '',
               done: true,
-              error:
-                operation.error &&
-                typeof operation.error === 'object' &&
-                'code' in operation.error &&
-                'message' in operation.error
-                  ? {
-                      code:
-                        typeof operation.error['code'] === 'number' ? operation.error['code'] : 0,
-                      message:
-                        typeof operation.error['message'] === 'string'
-                          ? operation.error['message']
-                          : 'Unknown error',
-                    }
-                  : undefined,
+              error: operationError,
               response: operation.response,
             };
           }
@@ -376,14 +382,21 @@ export class GeminiFileSearchClient extends Context.Service<
 
             // Convert content to a File object (Bun supports File API)
             // Copy binary input onto an ArrayBuffer-backed view accepted by File.
-            const fileParts = typeof content === 'string' ? [content] : [Uint8Array.from(content)];
+            let fileParts: BlobPart[];
+            let contentLength: number;
+            if (typeof content === 'string') {
+              fileParts = [content];
+              contentLength = content.length;
+            } else {
+              const bytes = new Uint8Array(content.byteLength);
+              bytes.set(content);
+              fileParts = [bytes.buffer];
+              contentLength = content.byteLength || content.length;
+            }
 
             const file = new File(fileParts, config.displayName || 'document.txt', {
               type: 'text/plain',
             });
-
-            const contentLength =
-              typeof content === 'string' ? content.length : content.byteLength || content.length;
 
             yield* Effect.log(
               `Uploading content (${contentLength} bytes) to store: ${fileSearchStoreName} with displayName: ${config.displayName}`,
@@ -466,35 +479,37 @@ export class GeminiFileSearchClient extends Context.Service<
                   cause: error,
                 }),
             });
+            const mapPart = (part: { readonly text?: string }): { readonly text?: string } => {
+              if ('text' in part) return { text: part.text };
+              return { text: undefined };
+            };
             return {
-              candidates: (response.candidates || []).map((candidate) => ({
-                content: {
-                  parts: (candidate.content?.parts || []).map((part) => ({
-                    text: 'text' in part ? part.text : undefined,
-                  })),
-                },
-                groundingMetadata: candidate.groundingMetadata
-                  ? {
-                      searchEntryPoint: candidate.groundingMetadata.searchEntryPoint,
-                      retrievalMetadata: candidate.groundingMetadata.retrievalMetadata
-                        ? {
-                            score: (
-                              candidate.groundingMetadata.retrievalMetadata as Record<
-                                string,
-                                unknown
-                              >
-                            )['score'] as number | undefined,
-                            chunk: (
-                              candidate.groundingMetadata.retrievalMetadata as Record<
-                                string,
-                                unknown
-                              >
-                            )['chunk'] as string | undefined,
-                          }
-                        : undefined,
-                    }
-                  : undefined,
-              })),
+              candidates: (response.candidates || []).map((candidate) => {
+                let groundingMetadata;
+                if (candidate.groundingMetadata) {
+                  let retrievalMetadata: Schemas.GroundingMetadata['retrievalMetadata'];
+                  if (candidate.groundingMetadata.retrievalMetadata) {
+                    retrievalMetadata = {
+                      score: (
+                        candidate.groundingMetadata.retrievalMetadata as Record<string, unknown>
+                      )['score'] as number | undefined,
+                      chunk: (
+                        candidate.groundingMetadata.retrievalMetadata as Record<string, unknown>
+                      )['chunk'] as string | undefined,
+                    };
+                  }
+                  groundingMetadata = {
+                    searchEntryPoint: candidate.groundingMetadata.searchEntryPoint,
+                    retrievalMetadata,
+                  };
+                }
+                return {
+                  content: {
+                    parts: (candidate.content?.parts || []).map(mapPart),
+                  },
+                  groundingMetadata,
+                };
+              }),
             };
           }).pipe(Effect.retry(retrySchedule)),
 
@@ -540,8 +555,9 @@ export class GeminiFileSearchClient extends Context.Service<
                   }));
 
                   const hasNext = pagerHasNextPage(pager);
-
-                  return [documents, hasNext ? Option.some(pager) : Option.none()] as const;
+                  let next = Option.none<DocumentPager>();
+                  if (hasNext) next = Option.some(pager);
+                  return [documents, next] as const;
                 }),
             );
 
@@ -631,8 +647,9 @@ export class GeminiFileSearchClient extends Context.Service<
                   }));
 
                   const hasNext = pagerHasNextPage(pager);
-
-                  return [documents, hasNext ? Option.some(pager) : Option.none()] as const;
+                  let next = Option.none<DocumentPager>();
+                  if (hasNext) next = Option.some(pager);
+                  return [documents, next] as const;
                 }),
             );
 

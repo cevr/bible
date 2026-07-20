@@ -15,7 +15,7 @@
  * - sync_status: incremental sync bookkeeping
  */
 
-import { Context, Effect, Layer, Option, Schema, Stream } from 'effect';
+import { Context, DateTime, Effect, Layer, Option, Schema, Stream } from 'effect';
 import * as SqlClient from 'effect/unstable/sql/SqlClient';
 import type { SqlError } from 'effect/unstable/sql/SqlError';
 
@@ -126,15 +126,21 @@ function parseRefcodeNumbers(refcode: string | null): {
   if (match) {
     const pageStr = match[1];
     const paraStr = match[2];
+    let page: number | null = null;
+    if (pageStr) page = Number.parseInt(pageStr, 10);
+    let paragraph: number | null = null;
+    if (paraStr) paragraph = Number.parseInt(paraStr, 10);
     return {
-      page: pageStr ? parseInt(pageStr, 10) : null,
-      paragraph: paraStr ? parseInt(paraStr, 10) : null,
+      page,
+      paragraph,
     };
   }
   const pageMatch = refcode.match(/\s(\d+)$/);
   if (pageMatch) {
     const pageStr = pageMatch[1];
-    return { page: pageStr ? parseInt(pageStr, 10) : null, paragraph: null };
+    let page: number | null = null;
+    if (pageStr) page = Number.parseInt(pageStr, 10);
+    return { page, paragraph: null };
   }
   return { page: null, paragraph: null };
 }
@@ -349,6 +355,8 @@ const paragraphToRow = (
     refcodeShort ?? paragraph.refcode_long ?? null,
   );
   const chapterHeading = isChapterHeading(paragraph.element_type ?? null);
+  let chapterHeadingValue = 0;
+  if (chapterHeading) chapterHeadingValue = 1;
 
   return {
     para_id: paraId,
@@ -364,7 +372,7 @@ const paragraphToRow = (
     ref_code: refCode,
     page_number: page,
     paragraph_number: paraNum,
-    is_chapter_heading: chapterHeading ? 1 : 0,
+    is_chapter_heading: chapterHeadingValue,
     created_at: createdAt,
     updated_at: updatedAt,
   };
@@ -374,23 +382,27 @@ const archivedParagraphToRow = (
   archived: PublicationArchive['paragraphs'][number],
   bookId: number,
   createdAt: string,
-): ParagraphRow => ({
-  para_id: archived.paragraph.reference.paragraphId,
-  refcode_short: Option.getOrNull(archived.paragraph.refcode),
-  refcode_long: null,
-  nodes_json: encodeNodes(archived.paragraph.nodes),
-  content_text: nodesToText(archived.paragraph.nodes),
-  puborder: archived.paragraph.order,
-  element_type: Option.getOrNull(archived.paragraph.elementType),
-  element_subtype: Option.getOrNull(archived.paragraph.elementSubtype),
-  book_id: bookId,
-  ref_code: archived.refcode,
-  page_number: Option.getOrNull(archived.paragraph.page),
-  paragraph_number: Option.getOrNull(archived.paragraph.number),
-  is_chapter_heading: archived.isHeading ? 1 : 0,
-  created_at: createdAt,
-  updated_at: createdAt,
-});
+): ParagraphRow => {
+  let chapterHeading = 0;
+  if (archived.isHeading) chapterHeading = 1;
+  return {
+    para_id: archived.paragraph.reference.paragraphId,
+    refcode_short: Option.getOrNull(archived.paragraph.refcode),
+    refcode_long: null,
+    nodes_json: encodeNodes(archived.paragraph.nodes),
+    content_text: nodesToText(archived.paragraph.nodes),
+    puborder: archived.paragraph.order,
+    element_type: Option.getOrNull(archived.paragraph.elementType),
+    element_subtype: Option.getOrNull(archived.paragraph.elementSubtype),
+    book_id: bookId,
+    ref_code: archived.refcode,
+    page_number: Option.getOrNull(archived.paragraph.page),
+    paragraph_number: Option.getOrNull(archived.paragraph.number),
+    is_chapter_heading: chapterHeading,
+    created_at: createdAt,
+    updated_at: createdAt,
+  };
+};
 
 const validatePublicationArchive = (archive: PublicationArchive) =>
   Effect.gen(function* () {
@@ -599,14 +611,17 @@ export class EGWParagraphDatabase extends Context.Service<
       // ========== Book operations ==========
 
       const storeBook = (book: EGWSchemas.Book) =>
-        sql`
+        Effect.gen(function* () {
+          const createdAt = DateTime.formatIso(yield* DateTime.now);
+          yield* sql`
           INSERT INTO books (book_id, book_code, book_title, book_author, paragraph_count, created_at)
-          VALUES (${book.book_id}, ${book.code}, ${book.title}, ${book.author}, 0, ${new Date().toISOString()})
+          VALUES (${book.book_id}, ${book.code}, ${book.title}, ${book.author}, 0, ${createdAt})
           ON CONFLICT(book_id) DO UPDATE SET
             book_code = excluded.book_code,
             book_title = excluded.book_title,
             book_author = excluded.book_author
-        `.pipe(Effect.asVoid);
+        `;
+        });
 
       const getBookById = (bookId: number) =>
         sql<BookRow>`SELECT * FROM books WHERE book_id = ${bookId}`.pipe(
@@ -674,7 +689,7 @@ export class EGWParagraphDatabase extends Context.Service<
 
           const publication = archive.publication;
           const publicationId = publication.id;
-          const now = new Date().toISOString();
+          const now = DateTime.formatIso(yield* DateTime.now);
           const rows = archive.paragraphs.map((paragraph) =>
             archivedParagraphToRow(paragraph, publicationId, now),
           );
@@ -703,15 +718,21 @@ export class EGWParagraphDatabase extends Context.Service<
                 yield* insertParagraphRow(row);
               }
               for (const reference of archive.bibleReferences) {
+                let verse: number | null = null;
+                if (reference.scripture._tag === 'verse') verse = reference.scripture.verse;
                 yield* sql`
                 INSERT INTO paragraph_bible_refs (
                   para_book_id, para_ref_code, bible_book, bible_chapter, bible_verse
                 ) VALUES (
                   ${publicationId}, ${reference.paragraphRefcode}, ${reference.scripture.book},
-                  ${reference.scripture.chapter},
-                  ${reference.scripture._tag === 'verse' ? reference.scripture.verse : null}
+                  ${reference.scripture.chapter}, ${verse}
                 )
               `;
+              }
+
+              let provenanceDigest: string | null = null;
+              if (provenance !== undefined) {
+                provenanceDigest = Option.getOrNull(provenance.digest);
               }
 
               yield* sql
@@ -723,8 +744,7 @@ export class EGWParagraphDatabase extends Context.Service<
                 source, revision, digest
               ) VALUES (
                 ${publicationId}, ${publication.code}, 'success', NULL, ${now}, ${rows.length},
-                ${provenance?.source ?? null}, ${provenance?.revision ?? null},
-                ${provenance === undefined ? null : Option.getOrNull(provenance.digest)}
+                ${provenance?.source ?? null}, ${provenance?.revision ?? null}, ${provenanceDigest}
               )
               ON CONFLICT(book_id) DO UPDATE SET
                 book_code = excluded.book_code,
@@ -755,7 +775,7 @@ export class EGWParagraphDatabase extends Context.Service<
 
       const storeParagraph = (paragraph: EGWSchemas.Paragraph, book: EGWSchemas.Book) =>
         Effect.gen(function* () {
-          const now = new Date().toISOString();
+          const now = DateTime.formatIso(yield* DateTime.now);
 
           yield* storeBook(book);
 
@@ -780,7 +800,7 @@ export class EGWParagraphDatabase extends Context.Service<
       ) =>
         sql.withTransaction(
           Effect.gen(function* () {
-            const now = new Date().toISOString();
+            const now = DateTime.formatIso(yield* DateTime.now);
             yield* storeBook(book);
             for (const paragraph of paragraphs) {
               const row = paragraphToRow(paragraph, book.book_id, now, now);
@@ -796,9 +816,8 @@ export class EGWParagraphDatabase extends Context.Service<
         `.pipe(
           Effect.flatMap((rows) => {
             const row = rows[0];
-            return row
-              ? rowToParagraph(row).pipe(Effect.map(Option.some))
-              : Effect.succeed(Option.none<EGWSchemas.Paragraph>());
+            if (row !== undefined) return rowToParagraph(row).pipe(Effect.map(Option.some));
+            return Effect.succeed(Option.none<EGWSchemas.Paragraph>());
           }),
         );
 
@@ -834,17 +853,7 @@ export class EGWParagraphDatabase extends Context.Service<
         `.pipe(Effect.flatMap((rows) => Effect.forEach(rows, rowToParagraph)));
 
       const searchParagraphs = (query: string, limit = 50, bookCode?: string) => {
-        const base = bookCode
-          ? sql<FullParagraphRow>`
-              SELECT p.*, b.book_code, b.book_title
-              FROM paragraphs p
-              JOIN paragraphs_fts fts ON p.rowid = fts.rowid
-              JOIN books b ON p.book_id = b.book_id
-              WHERE paragraphs_fts MATCH ${query}
-                AND b.book_code = ${bookCode} COLLATE NOCASE
-              LIMIT ${limit}
-            `
-          : sql<FullParagraphRow>`
+        let base = sql<FullParagraphRow>`
               SELECT p.*, b.book_code, b.book_title
               FROM paragraphs p
               JOIN paragraphs_fts fts ON p.rowid = fts.rowid
@@ -852,6 +861,17 @@ export class EGWParagraphDatabase extends Context.Service<
               WHERE paragraphs_fts MATCH ${query}
               LIMIT ${limit}
             `;
+        if (bookCode !== undefined) {
+          base = sql<FullParagraphRow>`
+              SELECT p.*, b.book_code, b.book_title
+              FROM paragraphs p
+              JOIN paragraphs_fts fts ON p.rowid = fts.rowid
+              JOIN books b ON p.book_id = b.book_id
+              WHERE paragraphs_fts MATCH ${query}
+                AND b.book_code = ${bookCode} COLLATE NOCASE
+              LIMIT ${limit}
+            `;
+        }
         return base.pipe(
           Effect.flatMap((rows) =>
             Effect.forEach(rows, (row) =>
@@ -890,8 +910,13 @@ export class EGWParagraphDatabase extends Context.Service<
       const findByRefcodeShort = (refcodeShort: string, limit = 5) => {
         const trimmed = refcodeShort.trim();
         const spaceAt = trimmed.indexOf(' ');
-        const head = (spaceAt === -1 ? trimmed : trimmed.slice(0, spaceAt)).trim();
-        const tail = spaceAt === -1 ? '' : trimmed.slice(spaceAt + 1).trim();
+        let head = trimmed;
+        let tail = '';
+        if (spaceAt !== -1) {
+          head = trimmed.slice(0, spaceAt);
+          tail = trimmed.slice(spaceAt + 1).trim();
+        }
+        head = head.trim();
         const codePrefix = `${head}%`;
         // Tail variants: exact match ("DAR1909 62"), child-paragraph match
         // ("DAR1909 62.X"), and bare-code fallback for tail === '' (any row
@@ -949,23 +974,23 @@ export class EGWParagraphDatabase extends Context.Service<
           bibleChapter: number;
           bibleVerse: number | null;
         }[],
-      ) =>
-        refs.length === 0
-          ? Effect.succeed(0)
-          : sql.withTransaction(
-              Effect.gen(function* () {
-                for (const ref of refs) {
-                  yield* storeBibleRef(
-                    ref.bookId,
-                    ref.refCode,
-                    ref.bibleBook,
-                    ref.bibleChapter,
-                    ref.bibleVerse,
-                  );
-                }
-                return refs.length;
-              }),
-            );
+      ) => {
+        if (refs.length === 0) return Effect.succeed(0);
+        return sql.withTransaction(
+          Effect.gen(function* () {
+            for (const ref of refs) {
+              yield* storeBibleRef(
+                ref.bookId,
+                ref.refCode,
+                ref.bibleBook,
+                ref.bibleChapter,
+                ref.bibleVerse,
+              );
+            }
+            return refs.length;
+          }),
+        );
+      };
 
       const getBibleRefsByBook = (bookId: number) =>
         sql<BibleRefRow>`
@@ -995,20 +1020,7 @@ export class EGWParagraphDatabase extends Context.Service<
         bibleChapter: number,
         bibleVerse?: number,
       ) => {
-        const query =
-          bibleVerse !== undefined
-            ? sql<FullParagraphRow>`
-                SELECT p.*, b.book_code, b.book_title
-                FROM paragraphs p
-                JOIN paragraph_bible_refs pbr
-                  ON p.book_id = pbr.para_book_id AND p.ref_code = pbr.para_ref_code
-                JOIN books b ON p.book_id = b.book_id
-                WHERE pbr.bible_book = ${bibleBook}
-                  AND pbr.bible_chapter = ${bibleChapter}
-                  AND pbr.bible_verse = ${bibleVerse}
-                ORDER BY b.book_code, p.puborder
-              `
-            : sql<FullParagraphRow>`
+        let query = sql<FullParagraphRow>`
                 SELECT p.*, b.book_code, b.book_title
                 FROM paragraphs p
                 JOIN paragraph_bible_refs pbr
@@ -1018,6 +1030,19 @@ export class EGWParagraphDatabase extends Context.Service<
                   AND pbr.bible_chapter = ${bibleChapter}
                 ORDER BY b.book_code, p.puborder
               `;
+        if (bibleVerse !== undefined) {
+          query = sql<FullParagraphRow>`
+                SELECT p.*, b.book_code, b.book_title
+                FROM paragraphs p
+                JOIN paragraph_bible_refs pbr
+                  ON p.book_id = pbr.para_book_id AND p.ref_code = pbr.para_ref_code
+                JOIN books b ON p.book_id = b.book_id
+                WHERE pbr.bible_book = ${bibleBook}
+                  AND pbr.bible_chapter = ${bibleChapter}
+                  AND pbr.bible_verse = ${bibleVerse}
+                ORDER BY b.book_code, p.puborder
+              `;
+        }
         return query.pipe(
           Effect.flatMap((rows) =>
             Effect.forEach(rows, (row) =>
@@ -1043,15 +1068,18 @@ export class EGWParagraphDatabase extends Context.Service<
         paragraphCount: number,
         errorMessage?: string,
       ) =>
-        sql`
+        Effect.gen(function* () {
+          const lastAttempt = DateTime.formatIso(yield* DateTime.now);
+          yield* sql`
           INSERT INTO sync_status (book_id, book_code, status, error_message, last_attempt, paragraph_count)
-          VALUES (${bookId}, ${bookCode}, ${status}, ${errorMessage ?? null}, ${new Date().toISOString()}, ${paragraphCount})
+          VALUES (${bookId}, ${bookCode}, ${status}, ${errorMessage ?? null}, ${lastAttempt}, ${paragraphCount})
           ON CONFLICT(book_id) DO UPDATE SET
             status = excluded.status,
             error_message = excluded.error_message,
             last_attempt = excluded.last_attempt,
             paragraph_count = excluded.paragraph_count
-        `.pipe(Effect.asVoid);
+        `;
+        });
 
       const getSyncStatus = (bookId: number) =>
         sql<SyncStatusRow>`SELECT * FROM sync_status WHERE book_id = ${bookId}`.pipe(
@@ -1260,15 +1288,14 @@ export class EGWParagraphDatabase extends Context.Service<
               const book = config.books?.find(
                 (candidate) => candidate.book_code === paragraph.bookCode,
               );
-              return book
-                ? [
-                    {
-                      ...paragraph,
-                      bookId: book.book_id,
-                      bookTitle: book.book_title,
-                    },
-                  ]
-                : [];
+              if (book === undefined) return [];
+              return [
+                {
+                  ...paragraph,
+                  bookId: book.book_id,
+                  bookTitle: book.book_title,
+                },
+              ];
             }),
         ),
       findByRefcodeShort: () => Effect.succeed([]),
@@ -1281,7 +1308,8 @@ export class EGWParagraphDatabase extends Context.Service<
               const refcode =
                 Option.getOrUndefined(paragraph.refcode_short) ?? paragraph.refcode_long ?? '';
               const match = refcode.match(/\s(\d+)\./);
-              return match?.[1] ? [Number.parseInt(match[1], 10)] : [];
+              if (match?.[1]) return [Number.parseInt(match[1], 10)];
+              return [];
             }) ?? [];
         return Effect.succeed(Math.max(0, ...pages));
       },
@@ -1294,7 +1322,8 @@ export class EGWParagraphDatabase extends Context.Service<
               const refcode =
                 Option.getOrUndefined(paragraph.refcode_short) ?? paragraph.refcode_long ?? '';
               const match = refcode.match(/\s(\d+)\./);
-              return match?.[1] ? [Number.parseInt(match[1], 10)] : [];
+              if (match?.[1]) return [Number.parseInt(match[1], 10)];
+              return [];
             }) ?? [],
         );
         return Effect.succeed([...pages].sort((left, right) => left - right));
@@ -1322,16 +1351,15 @@ export class EGWParagraphDatabase extends Context.Service<
                 (Option.getOrUndefined(candidate.refcode_short) === reference.para_ref_code ||
                   candidate.refcode_long === reference.para_ref_code),
             );
-            return book && paragraph
-              ? [
-                  {
-                    ...paragraph,
-                    bookId: book.book_id,
-                    bookCode: book.book_code,
-                    bookTitle: book.book_title,
-                  },
-                ]
-              : [];
+            if (book === undefined || paragraph === undefined) return [];
+            return [
+              {
+                ...paragraph,
+                bookId: book.book_id,
+                bookCode: book.book_code,
+                bookTitle: book.book_title,
+              },
+            ];
           }),
         );
       },

@@ -43,14 +43,20 @@ const unavailable =
 const integrity = (operation: Operation, cause: unknown): WritingsDataIntegrityError =>
   new WritingsDataIntegrityError({ operation, cause });
 
-const optionalText = (value: string | null | undefined): Option.Option<string> =>
-  value && value.length > 0 ? Option.some(value) : Option.none();
+const optionalText = (value: string | null | undefined): Option.Option<string> => {
+  if (value && value.length > 0) return Option.some(value);
+  return Option.none();
+};
 
 const refcodeNumbers = (refcode: string | null | undefined) => {
   const match = refcode?.match(/\s(\d+)(?:\.(\d+))?$/);
+  let page: number | undefined;
+  if (match?.[1]) page = Number.parseInt(match[1], 10);
+  let paragraph: number | undefined;
+  if (match?.[2]) paragraph = Number.parseInt(match[2], 10);
   return {
-    page: match?.[1] ? Number.parseInt(match[1], 10) : undefined,
-    paragraph: match?.[2] ? Number.parseInt(match[2], 10) : undefined,
+    page,
+    paragraph,
   };
 };
 
@@ -75,27 +81,34 @@ const makeParagraph = (
   row: EGWSchemas.Paragraph,
   operation: Operation,
 ): Effect.Effect<Paragraph, WritingsDataIntegrityError> =>
-  Effect.try({
-    try: () => {
-      const stableParagraphId = Option.getOrThrowWith(
-        row.para_id,
-        () => new Error(`paragraph ${String(row.puborder)} has no stable paragraph identifier`),
+  Effect.gen(function* () {
+    if (Option.isNone(row.para_id)) {
+      return yield* Effect.fail(
+        integrity(
+          operation,
+          `paragraph ${String(row.puborder)} has no stable paragraph identifier`,
+        ),
       );
-      const refcode = Option.getOrUndefined(row.refcode_short) ?? row.refcode_long ?? undefined;
-      const numbers = refcodeNumbers(refcode);
-      return new Paragraph({
-        reference: Reference.paragraph(publication.id, stableParagraphId),
-        publicationCode: publication.code,
-        order: publicationOrder(row.puborder),
-        page: Option.fromNullishOr(numbers.page).pipe(Option.map(pageNumber)),
-        number: Option.fromNullishOr(numbers.paragraph),
-        refcode: Option.fromNullishOr(refcode),
-        nodes: row.nodes,
-        elementType: optionalText(row.element_type),
-        elementSubtype: optionalText(row.element_subtype),
-      });
-    },
-    catch: (cause) => integrity(operation, cause),
+    }
+    const stableParagraphId = row.para_id.value;
+    return yield* Effect.try({
+      try: () => {
+        const refcode = Option.getOrUndefined(row.refcode_short) ?? row.refcode_long ?? undefined;
+        const numbers = refcodeNumbers(refcode);
+        return new Paragraph({
+          reference: Reference.paragraph(publication.id, stableParagraphId),
+          publicationCode: publication.code,
+          order: publicationOrder(row.puborder),
+          page: Option.fromNullishOr(numbers.page).pipe(Option.map(pageNumber)),
+          number: Option.fromNullishOr(numbers.paragraph),
+          refcode: Option.fromNullishOr(refcode),
+          nodes: row.nodes,
+          elementType: optionalText(row.element_type),
+          elementSubtype: optionalText(row.element_subtype),
+        });
+      },
+      catch: (cause) => integrity(operation, cause),
+    });
   });
 
 export interface WritingsServiceShape {
@@ -141,7 +154,8 @@ export class WritingsService extends Context.Service<WritingsService, WritingsSe
       const database = yield* EGWParagraphDatabase;
 
       const catalog = (author?: string) => {
-        const rows = author ? database.getBooksByAuthor(author) : database.getAllBooks();
+        let rows = database.getAllBooks();
+        if (author !== undefined) rows = database.getBooksByAuthor(author);
         return Stream.runCollect(rows).pipe(
           Effect.mapError(unavailable('read-catalog')),
           Effect.flatMap((chunk) =>
@@ -261,6 +275,19 @@ export class WritingsService extends Context.Service<WritingsService, WritingsSe
             ),
           );
 
+          let previous = Option.none<PageReference>();
+          if (pageIndex > 0) {
+            previous = Option.fromNullishOr(pageNumbers[pageIndex - 1]).pipe(
+              Option.map((number) => Reference.page(reference.publicationId, number)),
+            );
+          }
+          let next = Option.none<PageReference>();
+          if (pageIndex >= 0) {
+            next = Option.fromNullishOr(pageNumbers[pageIndex + 1]).pipe(
+              Option.map((number) => Reference.page(reference.publicationId, number)),
+            );
+          }
+
           return new Page({
             publication: foundPublication,
             reference,
@@ -269,18 +296,8 @@ export class WritingsService extends Context.Service<WritingsService, WritingsSe
               Option.map((paragraph) => nodesToText(paragraph.nodes)),
               Option.filter((title) => title.length > 0),
             ),
-            previous:
-              pageIndex > 0
-                ? Option.fromNullishOr(pageNumbers[pageIndex - 1]).pipe(
-                    Option.map((number) => Reference.page(reference.publicationId, number)),
-                  )
-                : Option.none(),
-            next:
-              pageIndex >= 0
-                ? Option.fromNullishOr(pageNumbers[pageIndex + 1]).pipe(
-                    Option.map((number) => Reference.page(reference.publicationId, number)),
-                  )
-                : Option.none(),
+            previous,
+            next,
           });
         });
 
@@ -314,6 +331,8 @@ export class WritingsService extends Context.Service<WritingsService, WritingsSe
                   try: () => {
                     const headingType = Option.getOrUndefined(paragraph.elementType);
                     const levelText = headingType?.match(/^h(\d+)$/i)?.[1];
+                    let level = 1;
+                    if (levelText) level = Number.parseInt(levelText, 10);
                     return new Heading({
                       reference: paragraph.reference,
                       publicationCode: paragraph.publicationCode,
@@ -322,7 +341,7 @@ export class WritingsService extends Context.Service<WritingsService, WritingsSe
                       number: paragraph.number,
                       refcode: paragraph.refcode,
                       title: nodesToText(paragraph.nodes),
-                      level: levelText ? Number.parseInt(levelText, 10) : 1,
+                      level,
                     });
                   },
                   catch: (cause) => integrity('read-headings', cause),
@@ -340,9 +359,10 @@ export class WritingsService extends Context.Service<WritingsService, WritingsSe
           return Effect.fail(new WritingsInvalidSearchError({ reason: 'invalid-limit' }));
         }
         return Effect.gen(function* () {
-          const publicationFilter = options?.publication
-            ? yield* publication(options.publication)
-            : undefined;
+          let publicationFilter: Publication | undefined;
+          if (options?.publication !== undefined) {
+            publicationFilter = yield* publication(options.publication);
+          }
           return yield* database
             .searchParagraphs(query, options?.limit ?? 50, publicationFilter?.code)
             .pipe(

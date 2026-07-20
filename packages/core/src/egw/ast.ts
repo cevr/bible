@@ -136,7 +136,10 @@ const spanClose = (attribs: Record<string, string>): ((children: readonly Node[]
     // page-break is always empty; data-page is a string in the source, parse it.
     const raw = attribs['data-page'] ?? '';
     const page = Number.parseInt(raw, 10);
-    return () => ({ _tag: 'PageBreak', page: Number.isFinite(page) ? page : 0 });
+    return () => {
+      if (Number.isFinite(page)) return { _tag: 'PageBreak', page };
+      return { _tag: 'PageBreak', page: 0 };
+    };
   }
 
   if (classes.includes('egwlink_bible')) {
@@ -189,8 +192,8 @@ export const parseParagraphContent = (html: string): readonly Node[] => {
   const stack: Frame[] = [root];
   const top = (): Frame => {
     const t = stack[stack.length - 1];
-    // Stack always has root, so this can't happen — but TS can't see that.
-    if (t === undefined) throw new Error('parser stack underflow');
+    // Stack always has root; retain it as the total fallback for malformed close sequences.
+    if (t === undefined) return root;
     return t;
   };
 
