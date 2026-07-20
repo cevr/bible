@@ -46,7 +46,7 @@ The target is one aesthetic, minimal reading application implemented once in Sol
 8. There is one canonical API. Migration adapters do not become permanent parallel APIs.
 9. Accessibility behavior is part of primitive correctness, not a polish phase.
 10. The reading surface is primary; tools appear in context and on demand.
-11. Effect-native ownership and the full `oxlint-plugin-effect` recommended preset move together; migrating a legacy module without extending lint coverage is incomplete.
+11. The full `oxlint-plugin-effect` recommended preset is a repository invariant; host-boundary exceptions are exact, rule-level, and evidence-backed.
 
 ## Target module graph
 
