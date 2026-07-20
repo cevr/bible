@@ -1,37 +1,52 @@
-import * as SQLite from 'wa-sqlite';
+import { Effect, Schema } from 'effect';
+
+import * as SqliteHost from './sqlite-host.js';
 
 export type SqliteRow = Record<string, unknown>;
-export type WorkerSqliteApi = Pick<
-  SQLiteAPI,
-  | 'bind_collection'
-  | 'changes'
-  | 'close'
-  | 'column_names'
-  | 'exec'
-  | 'open_v2'
-  | 'row'
-  | 'statements'
-  | 'step'
->;
+export type WorkerSqliteApi = SqliteHost.WorkerSqliteApi;
+
+export class SqliteDatabaseError extends Schema.TaggedErrorClass<SqliteDatabaseError>()(
+  'SqliteDatabaseError',
+  {
+    operation: Schema.String,
+    filename: Schema.String,
+    cause: Schema.Unknown,
+  },
+) {}
 
 /** Mutable connection to one named SQLite file inside the worker VFS. */
 export interface SqliteDatabase {
   readonly isOpen: boolean;
-  readonly open: (flags: number) => Promise<void>;
-  readonly close: () => Promise<void>;
-  readonly query: (sql: string, params?: readonly unknown[]) => Promise<readonly SqliteRow[]>;
-  readonly values: (sql: string, params?: readonly unknown[]) => Promise<readonly unknown[][]>;
-  readonly write: (sql: string, params?: readonly unknown[]) => Promise<number>;
-  readonly exec: (sql: string) => Promise<void>;
+  readonly open: (flags: number) => Effect.Effect<void, SqliteDatabaseError>;
+  readonly close: () => Effect.Effect<void, SqliteDatabaseError>;
+  readonly query: (
+    sql: string,
+    params?: readonly unknown[],
+  ) => Effect.Effect<readonly SqliteRow[], SqliteDatabaseError>;
+  readonly values: (
+    sql: string,
+    params?: readonly unknown[],
+  ) => Effect.Effect<readonly unknown[][], SqliteDatabaseError>;
+  readonly write: (
+    sql: string,
+    params?: readonly unknown[],
+  ) => Effect.Effect<number, SqliteDatabaseError>;
+  readonly exec: (sql: string) => Effect.Effect<void, SqliteDatabaseError>;
 }
 
 export interface SqliteDatabaseFamily {
   readonly active: SqliteDatabase;
   readonly candidate: (filename: string) => SqliteDatabase;
-  readonly activate: (filename: string, flags: number) => Promise<void>;
-  readonly deactivate: () => Promise<void>;
+  readonly activate: (filename: string, flags: number) => Effect.Effect<void, SqliteDatabaseError>;
+  readonly deactivate: () => Effect.Effect<void, SqliteDatabaseError>;
   readonly activeFilename: string | undefined;
 }
+
+const hostOperation = <A>(filename: string, operation: string, evaluate: () => Promise<A>) =>
+  Effect.tryPromise({
+    try: evaluate,
+    catch: (cause) => new SqliteDatabaseError({ operation, filename, cause }),
+  });
 
 export const makeSqliteDatabase = (
   sqlite: WorkerSqliteApi,
@@ -40,76 +55,61 @@ export const makeSqliteDatabase = (
 ): SqliteDatabase => {
   let handle: number | null = null;
 
-  const requireHandle = (): number => {
-    if (handle === null) throw new Error(`Database '${filename}' is not initialized`);
-    return handle;
+  const requireHandle = (): Effect.Effect<number, SqliteDatabaseError> => {
+    if (handle !== null) return Effect.succeed(handle);
+    return Effect.fail(
+      new SqliteDatabaseError({
+        operation: 'require-open-database',
+        filename,
+        cause: 'database is not initialized',
+      }),
+    );
   };
 
-  const open = async (flags: number): Promise<void> => {
-    if (handle !== null) await sqlite.close(handle);
-    handle = await sqlite.open_v2(filename, flags, vfsName);
-  };
+  const open = Effect.fn('SqliteDatabase.open')(function* (flags: number) {
+    if (handle !== null) {
+      const current = handle;
+      yield* hostOperation(filename, 'close-before-open', () => SqliteHost.close(sqlite, current));
+    }
+    handle = yield* hostOperation(filename, 'open', () =>
+      SqliteHost.open(sqlite, filename, flags, vfsName),
+    );
+  });
 
-  const close = async (): Promise<void> => {
+  const close = Effect.fn('SqliteDatabase.close')(function* () {
     if (handle === null) return;
     const current = handle;
     handle = null;
-    await sqlite.close(current);
-  };
+    yield* hostOperation(filename, 'close', () => SqliteHost.close(sqlite, current));
+  });
 
-  const query = async (sql: string, params?: readonly unknown[]): Promise<readonly SqliteRow[]> => {
-    const rows: SqliteRow[] = [];
-    for await (const statement of sqlite.statements(requireHandle(), sql)) {
-      if (params?.length) {
-        sqlite.bind_collection(statement, params as (SQLiteCompatibleType | null)[]);
-      }
-      const columns = sqlite.column_names(statement);
-      // eslint-disable-next-line no-await-in-loop -- SQLite statements are sequential
-      while ((await sqlite.step(statement)) === SQLite.SQLITE_ROW) {
-        const row: SqliteRow = {};
-        const values = sqlite.row(statement);
-        for (let index = 0; index < columns.length; index++) {
-          const column = columns[index];
-          if (column !== undefined) row[column] = values[index];
-        }
-        rows.push(row);
-      }
-    }
-    return rows;
-  };
+  const query: SqliteDatabase['query'] = (sql, params) =>
+    requireHandle().pipe(
+      Effect.flatMap((current) =>
+        hostOperation(filename, 'query', () => SqliteHost.query(sqlite, current, sql, params)),
+      ),
+    );
 
-  const values = async (
-    sql: string,
-    params?: readonly unknown[],
-  ): Promise<readonly unknown[][]> => {
-    const rows: unknown[][] = [];
-    for await (const statement of sqlite.statements(requireHandle(), sql)) {
-      if (params?.length) {
-        sqlite.bind_collection(statement, params as (SQLiteCompatibleType | null)[]);
-      }
-      // eslint-disable-next-line no-await-in-loop -- SQLite statements are sequential
-      while ((await sqlite.step(statement)) === SQLite.SQLITE_ROW) {
-        rows.push([...sqlite.row(statement)]);
-      }
-    }
-    return rows;
-  };
+  const values: SqliteDatabase['values'] = (sql, params) =>
+    requireHandle().pipe(
+      Effect.flatMap((current) =>
+        hostOperation(filename, 'values', () => SqliteHost.values(sqlite, current, sql, params)),
+      ),
+    );
 
-  const write = async (sql: string, params?: readonly unknown[]): Promise<number> => {
-    const current = requireHandle();
-    for await (const statement of sqlite.statements(current, sql)) {
-      if (params?.length) {
-        sqlite.bind_collection(statement, params as (SQLiteCompatibleType | null)[]);
-      }
-      // eslint-disable-next-line no-await-in-loop -- SQLite statements are sequential
-      await sqlite.step(statement);
-    }
-    return sqlite.changes(current);
-  };
+  const write: SqliteDatabase['write'] = (sql, params) =>
+    requireHandle().pipe(
+      Effect.flatMap((current) =>
+        hostOperation(filename, 'write', () => SqliteHost.write(sqlite, current, sql, params)),
+      ),
+    );
 
-  const exec = async (sql: string): Promise<void> => {
-    await sqlite.exec(requireHandle(), sql);
-  };
+  const exec: SqliteDatabase['exec'] = (sql) =>
+    requireHandle().pipe(
+      Effect.flatMap((current) =>
+        hostOperation(filename, 'exec', () => SqliteHost.exec(sqlite, current, sql)),
+      ),
+    );
 
   return {
     get isOpen() {
@@ -131,37 +131,50 @@ export const makeSqliteDatabaseFamily = (
 ): SqliteDatabaseFamily => {
   let activeDatabase: SqliteDatabase | undefined;
   let filename: string | undefined;
-  const requireActive = (): SqliteDatabase => {
-    if (activeDatabase === undefined) throw new Error('No SQLite generation is active');
-    return activeDatabase;
+  const requireActive = (): Effect.Effect<SqliteDatabase, SqliteDatabaseError> => {
+    if (activeDatabase !== undefined) return Effect.succeed(activeDatabase);
+    return Effect.fail(
+      new SqliteDatabaseError({
+        operation: 'require-active-generation',
+        filename: '',
+        cause: 'no SQLite generation is active',
+      }),
+    );
   };
   const active: SqliteDatabase = {
     get isOpen() {
-      return activeDatabase?.isOpen ?? false;
+      if (activeDatabase === undefined) return false;
+      return activeDatabase.isOpen;
     },
-    open: (flags) => requireActive().open(flags),
-    close: () => activeDatabase?.close() ?? Promise.resolve(),
-    query: (sql, params) => requireActive().query(sql, params),
-    values: (sql, params) => requireActive().values(sql, params),
-    write: (sql, params) => requireActive().write(sql, params),
-    exec: (sql) => requireActive().exec(sql),
+    open: (flags) => requireActive().pipe(Effect.flatMap((database) => database.open(flags))),
+    close: () => {
+      if (activeDatabase === undefined) return Effect.void;
+      return activeDatabase.close();
+    },
+    query: (sql, params) =>
+      requireActive().pipe(Effect.flatMap((database) => database.query(sql, params))),
+    values: (sql, params) =>
+      requireActive().pipe(Effect.flatMap((database) => database.values(sql, params))),
+    write: (sql, params) =>
+      requireActive().pipe(Effect.flatMap((database) => database.write(sql, params))),
+    exec: (sql) => requireActive().pipe(Effect.flatMap((database) => database.exec(sql))),
   };
   return {
     active,
     candidate: (candidateFilename) => makeSqliteDatabase(sqlite, candidateFilename, vfsName),
-    activate: async (candidateFilename, flags) => {
+    activate: Effect.fn('SqliteDatabaseFamily.activate')(function* (candidateFilename, flags) {
       if (filename === candidateFilename && activeDatabase?.isOpen === true) return;
       const candidate = makeSqliteDatabase(sqlite, candidateFilename, vfsName);
-      await candidate.open(flags);
-      await activeDatabase?.close();
+      yield* candidate.open(flags);
+      if (activeDatabase !== undefined) yield* activeDatabase.close();
       activeDatabase = candidate;
       filename = candidateFilename;
-    },
-    deactivate: async () => {
-      await activeDatabase?.close();
+    }),
+    deactivate: Effect.fn('SqliteDatabaseFamily.deactivate')(function* () {
+      if (activeDatabase !== undefined) yield* activeDatabase.close();
       activeDatabase = undefined;
       filename = undefined;
-    },
+    }),
     get activeFilename() {
       return filename;
     },

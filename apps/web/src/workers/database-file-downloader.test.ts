@@ -46,8 +46,8 @@ describe('database file downloader', () => {
         getStorageRoot: () => Effect.runPromise(Effect.succeed(makeDirectory(events, chunks))),
       });
 
-      const installed = yield* Effect.tryPromise(() =>
-        downloader.install(Stream.make(body), 'bible.db', (value) => progress.push(value)),
+      const installed = yield* downloader.install(Stream.make(body), 'bible.db', (value) =>
+        progress.push(value),
       );
 
       expect(events).toEqual(['file:bible.db', 'close']);
@@ -67,10 +67,7 @@ describe('database file downloader', () => {
       const unavailable = new DownloadUnavailable({ message: 'Unavailable' });
 
       const error = yield* Effect.flip(
-        Effect.tryPromise({
-          try: () => downloader.install(Stream.fail(unavailable), 'bible.db', () => {}),
-          catch: (cause) => cause,
-        }),
+        downloader.install(Stream.fail(unavailable), 'bible.db', () => {}),
       );
 
       expect(error).toEqual(unavailable);
@@ -118,8 +115,8 @@ describe('database file downloader', () => {
       const progress: number[] = [];
       const downloader = makeIndexedDbDatabaseFileDownloader(vfs);
 
-      const installed = yield* Effect.tryPromise(() =>
-        downloader.install(Stream.make(bytes), 'bible.db', (value) => progress.push(value)),
+      const installed = yield* downloader.install(Stream.make(bytes), 'bible.db', (value) =>
+        progress.push(value),
       );
 
       expect(events[0]).toBe('open:bible.db');
