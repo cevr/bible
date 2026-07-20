@@ -1,82 +1,107 @@
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'effect-bun-test';
+import { Effect } from 'effect';
 
 import { egwWithSubcommands } from '../../src/commands/egw.js';
 import { runCli } from '../lib/run-cli.js';
 
 describe('egw commands', () => {
+  const test = it.effect;
+
   describe('egw command', () => {
-    it('should show help when no query provided', async () => {
-      const result = await runCli(egwWithSubcommands, []);
+    test('should show help when no query provided', () =>
+      Effect.gen(function* () {
+        const result = yield* Effect.tryPromise(() => runCli(egwWithSubcommands, []));
 
-      expect(result.success).toBe(true);
-    });
+        expect(result.success).toBe(true);
+      }));
 
-    it('should parse single paragraph reference', async () => {
-      const result = await runCli(egwWithSubcommands, ['PP', '351.1']);
+    test('should parse single paragraph reference', () =>
+      Effect.gen(function* () {
+        const result = yield* Effect.tryPromise(() => runCli(egwWithSubcommands, ['PP', '351.1']));
 
-      expect(result.success).toBe(true);
-    });
+        expect(result.success).toBe(true);
+      }));
 
-    it('should parse paragraph range reference', async () => {
-      const result = await runCli(egwWithSubcommands, ['PP', '351.1-5']);
+    test('should parse paragraph range reference', () =>
+      Effect.gen(function* () {
+        const result = yield* Effect.tryPromise(() =>
+          runCli(egwWithSubcommands, ['PP', '351.1-5']),
+        );
 
-      expect(result.success).toBe(true);
-    });
+        expect(result.success).toBe(true);
+      }));
 
-    it('should parse page reference', async () => {
-      const result = await runCli(egwWithSubcommands, ['PP', '351']);
+    test('should parse page reference', () =>
+      Effect.gen(function* () {
+        const result = yield* Effect.tryPromise(() => runCli(egwWithSubcommands, ['PP', '351']));
 
-      expect(result.success).toBe(true);
-    });
+        expect(result.success).toBe(true);
+      }));
 
-    it('should parse page range reference', async () => {
-      const result = await runCli(egwWithSubcommands, ['PP', '351-355']);
+    test('should parse page range reference', () =>
+      Effect.gen(function* () {
+        const result = yield* Effect.tryPromise(() =>
+          runCli(egwWithSubcommands, ['PP', '351-355']),
+        );
 
-      expect(result.success).toBe(true);
-    });
+        expect(result.success).toBe(true);
+      }));
 
-    it('should parse book reference', async () => {
-      const result = await runCli(egwWithSubcommands, ['PP']);
+    test('should parse book reference', () =>
+      Effect.gen(function* () {
+        const result = yield* Effect.tryPromise(() => runCli(egwWithSubcommands, ['PP']));
 
-      expect(result.success).toBe(true);
-    });
+        expect(result.success).toBe(true);
+      }));
 
-    it('should handle numbered book codes', async () => {
-      const result = await runCli(egwWithSubcommands, ['1BC', '1111.2']);
+    test('should handle numbered book codes', () =>
+      Effect.gen(function* () {
+        const result = yield* Effect.tryPromise(() =>
+          runCli(egwWithSubcommands, ['1BC', '1111.2']),
+        );
 
-      expect(result.success).toBe(true);
-    });
+        expect(result.success).toBe(true);
+      }));
 
-    it('should handle search queries', async () => {
-      const result = await runCli(egwWithSubcommands, ['great', 'controversy']);
+    test('should handle search queries', () =>
+      Effect.gen(function* () {
+        const result = yield* Effect.tryPromise(() =>
+          runCli(egwWithSubcommands, ['great', 'controversy']),
+        );
 
-      expect(result.success).toBe(true);
-    });
+        expect(result.success).toBe(true);
+      }));
 
-    it('should handle quoted reference', async () => {
-      const result = await runCli(egwWithSubcommands, ['PP 351.1']);
+    test('should handle quoted reference', () =>
+      Effect.gen(function* () {
+        const result = yield* Effect.tryPromise(() => runCli(egwWithSubcommands, ['PP 351.1']));
 
-      expect(result.success).toBe(true);
-    });
+        expect(result.success).toBe(true);
+      }));
   });
 
   describe('egwWithSubcommands', () => {
-    it('should show help when no args', async () => {
-      const result = await runCli(egwWithSubcommands, []);
+    test('should show help when no args', () =>
+      Effect.gen(function* () {
+        const result = yield* Effect.tryPromise(() => runCli(egwWithSubcommands, []));
 
-      expect(result.success).toBe(true);
-    });
+        expect(result.success).toBe(true);
+      }));
 
-    it('should handle lookup at top level', async () => {
-      const result = await runCli(egwWithSubcommands, ['PP', '351.1']);
+    test('should handle lookup at top level', () =>
+      Effect.gen(function* () {
+        const result = yield* Effect.tryPromise(() => runCli(egwWithSubcommands, ['PP', '351.1']));
 
-      expect(result.success).toBe(true);
-    });
+        expect(result.success).toBe(true);
+      }));
 
-    it('should handle search at top level', async () => {
-      const result = await runCli(egwWithSubcommands, ['faith', 'and', 'works']);
+    test('should handle search at top level', () =>
+      Effect.gen(function* () {
+        const result = yield* Effect.tryPromise(() =>
+          runCli(egwWithSubcommands, ['faith', 'and', 'works']),
+        );
 
-      expect(result.success).toBe(true);
-    });
+        expect(result.success).toBe(true);
+      }));
   });
 });
