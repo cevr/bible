@@ -33,6 +33,21 @@ const log = import.meta.env['DEV'] ? (line: string) => console.log(line) : () =>
 const OPFS_VFS_NAME = 'opfs-adaptive';
 const IDB_VFS_NAME = 'idb-batch-atomic';
 
+const discardBibleGeneration = async (vfs: BrowserSqliteVfs, filename: string): Promise<void> => {
+  await Promise.all(
+    [filename, `${filename}-journal`, `${filename}-wal`, `${filename}-shm`].map(
+      async (candidate) => {
+        const exists = new DataView(new ArrayBuffer(4));
+        const access = await vfs.jAccess(candidate, 0, exists);
+        if (access !== SQLite.SQLITE_OK) throw new Error(`Could not inspect ${candidate}`);
+        if (exists.getInt32(0, true) !== 1) return;
+        const deleted = await vfs.jDelete(candidate, 1);
+        if (deleted !== SQLite.SQLITE_OK) throw new Error(`Could not delete ${candidate}`);
+      },
+    ),
+  );
+};
+
 const normalizeCategory = (value: string): string => {
   const normalized = value
     .trim()
@@ -126,6 +141,7 @@ const initializeDatabases = async (): Promise<void> => {
       databaseName: 'bible-corpus-metadata',
       key: 'active-bible-generation',
     }),
+    discard: (filename) => discardBibleGeneration(vfs, filename),
     downloader,
     onProgress: (progress) => log(`[web.bible] install-progress progress=${String(progress)}`),
   });

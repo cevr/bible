@@ -75,6 +75,8 @@ const generationName = (provenance: CorpusProvenance): string => {
   return `bible-${revision}-${digest.slice('sha256:'.length, 'sha256:'.length + 12)}.db`;
 };
 
+const BIBLE_GENERATION = /^bible-[a-zA-Z0-9._-]+-[a-f0-9]{12}\.db$/u;
+
 const writeProvenance = async (
   database: SqliteDatabase,
   provenance: CorpusProvenance,
@@ -97,6 +99,7 @@ const writeProvenance = async (
 export const layerBrowserBibleArtifacts = (input: {
   readonly databases: SqliteDatabaseFamily;
   readonly marker: GenerationMarkerStore;
+  readonly discard: (filename: string) => Promise<void>;
   readonly downloader: DatabaseFileDownloader;
   readonly fetch?: (url: string) => Promise<Response>;
   readonly onProgress?: (progress: number) => void;
@@ -146,31 +149,46 @@ export const layerBrowserBibleArtifacts = (input: {
           try: async () => {
             const expectedDigest = Option.getOrThrow(artifact.provenance.digest);
             const candidateName = generationName(artifact.provenance);
-            const written = await input.downloader.install(
-              artifact.bytes,
-              candidateName,
-              input.onProgress ?? (() => undefined),
-            );
-            if (written.digest !== expectedDigest) {
-              throw new Error('Bible Artifact digest does not match its release manifest');
-            }
-            const candidate = input.databases.candidate(candidateName);
-            await candidate.open(SQLite.SQLITE_OPEN_READWRITE);
-            let installed: number;
-            const provenance = new CorpusProvenance({
-              source: artifact.provenance.source,
-              revision: artifact.provenance.revision,
-              digest: Option.some(corpusDigest(written.digest)),
-            });
+            const previous = input.databases.activeFilename;
             try {
-              installed = await verifyBibleDatabase(candidate);
-              await writeProvenance(candidate, provenance);
-            } finally {
-              await candidate.close();
+              const written = await input.downloader.install(
+                artifact.bytes,
+                candidateName,
+                input.onProgress ?? (() => undefined),
+              );
+              if (written.digest !== expectedDigest) {
+                throw new Error('Bible Artifact digest does not match its release manifest');
+              }
+              const candidate = input.databases.candidate(candidateName);
+              await candidate.open(SQLite.SQLITE_OPEN_READWRITE);
+              let installed: number;
+              const provenance = new CorpusProvenance({
+                source: artifact.provenance.source,
+                revision: artifact.provenance.revision,
+                digest: Option.some(corpusDigest(written.digest)),
+              });
+              try {
+                installed = await verifyBibleDatabase(candidate);
+                await writeProvenance(candidate, provenance);
+              } finally {
+                await candidate.close();
+              }
+              await input.marker.write(candidateName);
+              await input.databases.activate(candidateName, SQLite.SQLITE_OPEN_READWRITE);
+              if (
+                previous !== undefined &&
+                previous !== candidateName &&
+                BIBLE_GENERATION.test(previous)
+              ) {
+                await input.discard(previous).catch(() => undefined);
+              }
+              return { installed, provenance };
+            } catch (cause) {
+              if (input.databases.activeFilename !== candidateName) {
+                await input.discard(candidateName).catch(() => undefined);
+              }
+              throw cause;
             }
-            await input.marker.write(candidateName);
-            await input.databases.activate(candidateName, SQLite.SQLITE_OPEN_READWRITE);
-            return { installed, provenance };
           },
           catch: (cause) => new CorpusInstallationError({ corpus: 'bible', cause }),
         }),

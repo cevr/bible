@@ -13,6 +13,8 @@ const makeDatabase = (options: {
   readonly events: string[];
   readonly provenance: boolean;
   readonly valid?: boolean;
+  readonly revision?: string;
+  readonly generation?: string;
 }): SqliteDatabase => ({
   isOpen: false,
   open: async (flags) => {
@@ -27,7 +29,10 @@ const makeDatabase = (options: {
       return options.provenance
         ? [
             { key: 'corpus_source', value: 'bible-release' },
-            { key: 'corpus_revision', value: BIBLE_ARTIFACT_RELEASE.revision },
+            {
+              key: 'corpus_revision',
+              value: options.revision ?? BIBLE_ARTIFACT_RELEASE.revision,
+            },
             { key: 'corpus_digest', value: digest },
           ]
         : [];
@@ -58,6 +63,8 @@ const ensure = async (options: {
   readonly provenance: boolean;
   readonly events: string[];
   readonly valid?: boolean;
+  readonly revision?: string;
+  readonly generation?: string;
 }) => {
   const database = makeDatabase(options);
   let activeFilename: string | undefined;
@@ -75,7 +82,7 @@ const ensure = async (options: {
   const marker: GenerationMarkerStore = {
     read: async () => {
       options.events.push('marker:read');
-      return options.provenance ? 'bible-db-v2-e72244f576be.db' : undefined;
+      return options.provenance ? (options.generation ?? 'bible-db-v2-e72244f576be.db') : undefined;
     },
     write: async (generation) => {
       options.events.push(`marker:write:${generation}`);
@@ -84,6 +91,9 @@ const ensure = async (options: {
   const artifacts = layerBrowserBibleArtifacts({
     databases,
     marker,
+    discard: async (filename) => {
+      options.events.push(`discard:${filename}`);
+    },
     downloader: makeDownloader(options.events),
     fetch: async () => new Response(new Uint8Array([1])),
   });
@@ -133,5 +143,21 @@ describe('browser Bible Artifact adapter', () => {
     });
     expect(events.some((event) => event.startsWith('marker:write:'))).toBe(false);
     expect(events.some((event) => event.startsWith('activate:'))).toBe(false);
+    expect(events).toContain('discard:bible-db-v2-e72244f576be.db');
+  });
+
+  it('retires the closed predecessor only after activating the verified generation', async () => {
+    const events: string[] = [];
+    await ensure({
+      provenance: true,
+      revision: 'db-v1',
+      generation: 'bible-db-v1-5f3bfd31151b.db',
+      events,
+    });
+
+    const activated = events.indexOf('activate:bible-db-v2-e72244f576be.db');
+    const discarded = events.indexOf('discard:bible-db-v1-5f3bfd31151b.db');
+    expect(activated).toBeGreaterThanOrEqual(0);
+    expect(discarded).toBeGreaterThan(activated);
   });
 });
