@@ -13,13 +13,13 @@ import { BibleService } from '@bible/core/bible/service';
 /**
  * Map database errors to API DatabaseError
  */
-const toDatabaseError = (error: BibleError): DatabaseError =>
-  new DatabaseError({
-    message:
-      error._tag === 'BibleUnavailableError' || error._tag === 'BibleDataIntegrityError'
-        ? `Bible ${error.operation} failed`
-        : 'Bible data is inconsistent',
-  });
+const toDatabaseError = (error: BibleError): DatabaseError => {
+  let message = 'Bible data is inconsistent';
+  if (error._tag === 'BibleUnavailableError' || error._tag === 'BibleDataIntegrityError') {
+    message = `Bible ${error.operation} failed`;
+  }
+  return new DatabaseError({ message });
+};
 
 const toChapterApiError = (error: BibleError) => {
   switch (error._tag) {

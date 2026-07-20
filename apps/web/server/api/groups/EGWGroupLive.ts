@@ -15,18 +15,21 @@ import { WritingsService } from '@bible/core/writings/service';
 
 import { EGWWire } from './EGWWire.js';
 
-const databaseError = (error: WritingsError): EGWDatabaseError =>
-  new EGWDatabaseError({
-    message: 'cause' in error && error.cause instanceof Error ? error.cause.message : error._tag,
-  });
+const databaseError = (error: WritingsError): EGWDatabaseError => {
+  let message: string = error._tag;
+  if ('cause' in error && error.cause instanceof Error) message = error.cause.message;
+  return new EGWDatabaseError({ message });
+};
 
-const bookError = (bookCode: string) => (error: WritingsError) =>
-  error._tag === 'WritingsPublicationNotFoundError'
-    ? new EGWBookNotFoundError({
-        bookCode,
-        message: `Publication '${bookCode}' was not found`,
-      })
-    : databaseError(error);
+const bookError = (bookCode: string) => (error: WritingsError) => {
+  if (error._tag === 'WritingsPublicationNotFoundError') {
+    return new EGWBookNotFoundError({
+      bookCode,
+      message: `Publication '${bookCode}' was not found`,
+    });
+  }
+  return databaseError(error);
+};
 
 const pageError = (bookCode: string, page: number) => (error: WritingsError) => {
   switch (error._tag) {
@@ -46,16 +49,12 @@ const pageError = (bookCode: string, page: number) => (error: WritingsError) => 
   }
 };
 
-const searchError = (error: WritingsError) =>
-  error._tag === 'WritingsInvalidSearchError'
-    ? new EGWInvalidSearchError({
-        reason: error.reason,
-        message:
-          error.reason === 'empty-query'
-            ? 'Search query must not be empty'
-            : 'Search limit must be greater than zero',
-      })
-    : databaseError(error);
+const searchError = (error: WritingsError) => {
+  if (error._tag !== 'WritingsInvalidSearchError') return databaseError(error);
+  let message = 'Search limit must be greater than zero';
+  if (error.reason === 'empty-query') message = 'Search query must not be empty';
+  return new EGWInvalidSearchError({ reason: error.reason, message });
+};
 
 export const EGWGroupLive = HttpApiBuilder.group(BibleToolsApi, 'EGW', (handlers) =>
   Effect.gen(function* () {
@@ -80,10 +79,14 @@ export const EGWGroupLive = HttpApiBuilder.group(BibleToolsApi, 'EGW', (handlers
       )
       .handle('search', ({ query: { q, limit, bookCode } }) =>
         Effect.gen(function* () {
-          const publication = bookCode ? yield* writings.publicationByCode(bookCode) : undefined;
+          let publication: ReturnType<typeof Reference.publication> | undefined;
+          if (bookCode) {
+            const selected = yield* writings.publicationByCode(bookCode);
+            publication = Reference.publication(selected.id);
+          }
           return yield* writings.search(q, {
             limit,
-            publication: publication ? Reference.publication(publication.id) : undefined,
+            publication,
           });
         }).pipe(Effect.map(EGWWire.searchResults), Effect.mapError(searchError)),
       )

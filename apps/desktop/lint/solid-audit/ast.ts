@@ -15,12 +15,14 @@ export const isAstNode = (value: unknown): value is AstNode => {
 
 export const getStringField = (n: AstNode, field: string): string | undefined => {
   const v = n[field];
-  return typeof v === 'string' ? v : undefined;
+  if (typeof v === 'string') return v;
+  return undefined;
 };
 
 export const getNodeField = (n: AstNode, field: string): AstNode | undefined => {
   const v = n[field];
-  return isAstNode(v) ? v : undefined;
+  if (isAstNode(v)) return v;
+  return undefined;
 };
 
 export const getNodeArrayField = (n: AstNode, field: string): AstNode[] | undefined => {
@@ -36,7 +38,7 @@ export const memberKeyName = (member: AstNode): string | undefined => {
   if (key.type === 'Identifier') return getStringField(key, 'name');
   if (key.type === 'Literal') {
     const v = key['value'];
-    return typeof v === 'string' ? v : undefined;
+    if (typeof v === 'string') return v;
   }
   return undefined;
 };

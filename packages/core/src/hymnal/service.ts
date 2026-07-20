@@ -37,21 +37,27 @@ const decodeHymnVerses = Schema.decodeUnknownSync(HymnVersesJson);
 
 const truncateFirstLine = (text: string): string => {
   const firstLine = text.split('\n')[0] ?? '';
-  return firstLine.slice(0, 60) + (firstLine.length > 60 ? '...' : '');
+  let suffix = '';
+  if (firstLine.length > 60) suffix = '...';
+  return firstLine.slice(0, 60) + suffix;
 };
 
 const firstLineFromJson = (json: string): string => {
   const first = decodeHymnVerses(json)[0];
-  return first === undefined ? '' : truncateFirstLine(first.text);
+  if (first === undefined) return '';
+  return truncateFirstLine(first.text);
 };
 
-const summarizeHymn = (hymn: Hymn): HymnSummary =>
-  new HymnSummary({
+const summarizeHymn = (hymn: Hymn): HymnSummary => {
+  let firstLine = '';
+  if (hymn.verses[0] !== undefined) firstLine = truncateFirstLine(hymn.verses[0].text);
+  return new HymnSummary({
     id: hymn.id,
     name: hymn.name,
     category: hymn.category,
-    firstLine: hymn.verses[0] === undefined ? '' : truncateFirstLine(hymn.verses[0].text),
+    firstLine,
   });
+};
 
 export interface HymnalServiceShape {
   readonly getHymn: (id: HymnId) => Effect.Effect<Hymn, HymnalError | HymnNotFoundError>;
@@ -211,9 +217,8 @@ export class HymnalService extends Context.Service<HymnalService, HymnalServiceS
     return Layer.succeed(HymnalService, {
       getHymn: (id) => {
         const hymn = hymns.find((candidate) => candidate.id === id);
-        return hymn === undefined
-          ? Effect.fail(new HymnNotFoundError({ id }))
-          : Effect.succeed(hymn);
+        if (hymn === undefined) return Effect.fail(new HymnNotFoundError({ id }));
+        return Effect.succeed(hymn);
       },
       getCategories: () => Effect.succeed(categories),
       getHymnsByCategory: (categoryId) =>
@@ -225,7 +230,9 @@ export class HymnalService extends Context.Service<HymnalService, HymnalServiceS
             hymn.name.toLowerCase().includes(normalizedQuery) ||
             hymn.verses.some((verse) => verse.text.toLowerCase().includes(normalizedQuery)),
         );
-        return Effect.succeed((limit < 0 ? matches : matches.slice(0, limit)).map(summarizeHymn));
+        let limited = matches;
+        if (limit >= 0) limited = matches.slice(0, limit);
+        return Effect.succeed(limited.map(summarizeHymn));
       },
     });
   };

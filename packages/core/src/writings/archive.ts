@@ -118,20 +118,23 @@ export const PublicationArchiveJson = PublicationArchiveWire.pipe(
               isHeading: item.isHeading,
             }),
         ),
-        bibleReferences: wire.bibleReferences.map(
-          (reference) =>
-            new ArchivedBibleReference({
-              paragraphRefcode: reference.paragraphRefcode,
-              scripture:
-                reference.bibleVerse === null
-                  ? BibleReference.chapter(reference.bibleBook, reference.bibleChapter)
-                  : BibleReference.verse(
-                      reference.bibleBook,
-                      reference.bibleChapter,
-                      reference.bibleVerse,
-                    ),
-            }),
-        ),
+        bibleReferences: wire.bibleReferences.map((reference) => {
+          let scripture: ChapterReference | VerseReference = BibleReference.chapter(
+            reference.bibleBook,
+            reference.bibleChapter,
+          );
+          if (reference.bibleVerse !== null) {
+            scripture = BibleReference.verse(
+              reference.bibleBook,
+              reference.bibleChapter,
+              reference.bibleVerse,
+            );
+          }
+          return new ArchivedBibleReference({
+            paragraphRefcode: reference.paragraphRefcode,
+            scripture,
+          });
+        }),
       });
     }),
     encode: SchemaGetter.transform((archive) => ({
@@ -155,13 +158,18 @@ export const PublicationArchiveJson = PublicationArchiveWire.pipe(
         elementSubtype: Option.getOrNull(archived.paragraph.elementSubtype),
         isHeading: archived.isHeading,
       })),
-      bibleReferences: archive.bibleReferences.map((reference) => ({
-        paragraphRefcode: reference.paragraphRefcode,
-        bibleBook: bookNumber(reference.scripture.book),
-        bibleChapter: chapterNumber(reference.scripture.chapter),
-        bibleVerse:
-          reference.scripture._tag === 'verse' ? verseNumber(reference.scripture.verse) : null,
-      })),
+      bibleReferences: archive.bibleReferences.map((reference) => {
+        let bibleVerse: VerseNumber | null = null;
+        if (reference.scripture._tag === 'verse') {
+          bibleVerse = verseNumber(reference.scripture.verse);
+        }
+        return {
+          paragraphRefcode: reference.paragraphRefcode,
+          bibleBook: bookNumber(reference.scripture.book),
+          bibleChapter: chapterNumber(reference.scripture.chapter),
+          bibleVerse,
+        };
+      }),
     })),
   }),
 );

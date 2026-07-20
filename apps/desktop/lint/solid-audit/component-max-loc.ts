@@ -36,7 +36,8 @@ export const componentMaxLoc: SolidRule = {
     if (!filename.includes('/apps/desktop/src/components/')) return {};
 
     const opts = context.options;
-    const rawOpt: unknown = Array.isArray(opts) ? opts[0] : undefined;
+    let rawOpt: unknown;
+    if (Array.isArray(opts)) rawOpt = opts[0];
     let max = 1000;
     if (typeof rawOpt === 'number' && Number.isFinite(rawOpt) && rawOpt > 0) {
       max = rawOpt;

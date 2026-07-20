@@ -55,10 +55,12 @@ export const effectServiceNoSetters: SolidRule = {
     return {
       TSInterfaceDeclaration(node) {
         const id = getNodeField(node, 'id');
-        const name = id === undefined ? undefined : getStringField(id, 'name');
+        let name: string | undefined;
+        if (id !== undefined) name = getStringField(id, 'name');
         if (name === undefined || !name.endsWith('Shape')) return;
         const body = getNodeField(node, 'body');
-        const members = body === undefined ? undefined : getNodeArrayField(body, 'body');
+        let members: AstNode[] | undefined;
+        if (body !== undefined) members = getNodeArrayField(body, 'body');
         if (members === undefined) return;
         reportSetters(members, name);
       },
@@ -80,10 +82,10 @@ export const effectServiceNoSetters: SolidRule = {
           if (cursor.type === 'MemberExpression') {
             const object = getNodeField(cursor, 'object');
             const property = getNodeField(cursor, 'property');
-            const objectName =
-              object?.type === 'Identifier' ? getStringField(object, 'name') : undefined;
-            const propertyName =
-              property?.type === 'Identifier' ? getStringField(property, 'name') : undefined;
+            let objectName: string | undefined;
+            if (object?.type === 'Identifier') objectName = getStringField(object, 'name');
+            let propertyName: string | undefined;
+            if (property?.type === 'Identifier') propertyName = getStringField(property, 'name');
             if (
               propertyName === 'Service' &&
               (objectName === 'Context' || objectName === 'Effect')
@@ -96,11 +98,12 @@ export const effectServiceNoSetters: SolidRule = {
         }
         if (!foundService) return;
         const body = getNodeField(node, 'body');
-        const members = body === undefined ? undefined : getNodeArrayField(body, 'body');
+        let members: AstNode[] | undefined;
+        if (body !== undefined) members = getNodeArrayField(body, 'body');
         if (members === undefined) return;
         const idNode = getNodeField(node, 'id');
-        const className =
-          idNode === undefined ? '<anonymous>' : (getStringField(idNode, 'name') ?? '<anonymous>');
+        let className = '<anonymous>';
+        if (idNode !== undefined) className = getStringField(idNode, 'name') ?? '<anonymous>';
         reportSetters(members, className);
       },
     };

@@ -26,8 +26,10 @@ declare const __EGW_USER_AGENT__: string | undefined;
 // undefined so `bakedX() ?? fallback` actually falls through — nullish
 // coalescing doesn't fire for `""`, which was silently sending OAuth requests
 // to the dev-server origin and 404-ing.
-const orUndefined = (value: string | undefined): string | undefined =>
-  value === undefined || value === '' ? undefined : value;
+const orUndefined = (value: string | undefined): string | undefined => {
+  if (value === undefined || value === '') return undefined;
+  return value;
+};
 
 // Safe `process.env` lookup. `process` is not defined in the renderer; a bare
 // `process.env[...]` read throws ReferenceError there. Use this anywhere the
@@ -40,7 +42,8 @@ export const envVar = (key: string): string | undefined => {
   if (typeof process === 'undefined' || !process.env) return undefined;
   // eslint-disable-next-line node/no-process-env
   const value = process.env[key];
-  return value === undefined || value === '' ? undefined : value;
+  if (value === undefined || value === '') return undefined;
+  return value;
 };
 
 export const bakedAuthBaseUrl = (): string | undefined =>

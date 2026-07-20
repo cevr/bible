@@ -105,7 +105,21 @@
         "**/packages/core/src/bible-db/bible-database.ts",
         "**/packages/core/src/bible/service.ts",
         "**/packages/core/src/egw/auth-types.ts",
+        "**/packages/core/src/egw/build-defines.ts",
+        "**/packages/web/src/server.ts",
+        "**/packages/core/src/hymnal/service.ts",
+        "**/packages/core/src/structural-analysis/service.ts",
+        "**/packages/core/src/writings/archive.ts",
+        "**/packages/core/src/writings/archive-service.ts",
         "**/packages/app/src/procedure/**",
+        "**/packages/app/src/route/codec.ts",
+        "**/apps/desktop/lint/solid-audit/ast.ts",
+        "**/apps/desktop/lint/solid-audit/component-max-loc.ts",
+        "**/apps/desktop/lint/solid-audit/effect-service-no-setters.ts",
+        "**/apps/desktop/src/platform-capabilities.ts",
+        "**/apps/web/server/api/groups/BibleGroupLive.ts",
+        "**/apps/web/server/api/groups/EGWGroupLive.ts",
+        "**/apps/web/src/platform-capabilities.ts",
         "**/apps/web/src/workers/user-state-database.ts",
         "**/apps/web/src/workers/procedure-client.ts",
         "**/apps/web/src/workers/procedure-worker-protocol.ts",
@@ -134,6 +148,22 @@
         "effect/noTestLifecycleHooks": "error",
         "effect/noThrowStatement": "error",
         "effect/noTryCatch": "error"
+      }
+    },
+    {
+      "files": ["**/packages/core/src/egw/build-defines.ts"],
+      "rules": {
+        "effect/noGlobals": "off",
+        "effect/noTernary": "off"
+      }
+    },
+    {
+      "files": ["**/packages/web/src/server.ts"],
+      "rules": {
+        "effect/noAsyncFunction": "off",
+        "effect/noGlobals": "off",
+        "effect/noNodeBuiltinImport": "off",
+        "effect/noTryCatch": "off"
       }
     },
     {
@@ -187,7 +217,8 @@
       "files": [
         "**/packages/core/src/corpus-supply/**/*.test.ts",
         "**/packages/core/src/bible/service.test.ts",
-        "**/packages/core/src/platform-node/bible-artifact.test.ts"
+        "**/packages/core/src/platform-node/bible-artifact.test.ts",
+        "**/packages/app/src/procedure/client.test.ts"
       ],
       "rules": {
         "effect/noAsyncFunction": "error",

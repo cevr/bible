@@ -1,12 +1,15 @@
 import { CapabilityError, type AppCapabilities } from '@bible/app/platform';
 import { Effect } from 'effect';
 
-const failure = (capability: string, operation: string, cause: unknown) =>
-  new CapabilityError({
+const failure = (capability: string, operation: string, cause: unknown) => {
+  let message = String(cause);
+  if (cause instanceof Error) message = cause.message;
+  return new CapabilityError({
     capability,
     operation,
-    message: cause instanceof Error ? cause.message : String(cause),
+    message,
   });
+};
 
 export const desktopCapabilities: AppCapabilities = {
   fileImport: {

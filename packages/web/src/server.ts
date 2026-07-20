@@ -29,7 +29,8 @@ const TYPES: Record<string, string> = {
 
 const contentType = (path: string): string => {
   const dot = path.lastIndexOf('.');
-  const ext = dot === -1 ? '' : path.slice(dot).toLowerCase();
+  let ext = '';
+  if (dot !== -1) ext = path.slice(dot).toLowerCase();
   return TYPES[ext] ?? 'application/octet-stream';
 };
 

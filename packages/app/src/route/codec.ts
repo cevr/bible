@@ -1,5 +1,6 @@
 import { Reference as BibleReference } from '@bible/core/bible';
 import { Reference as WritingsReference } from '@bible/core/writings';
+import { Option } from 'effect';
 
 import type { AppRoute, SearchScope, SettingsSection } from './model.js';
 
@@ -13,17 +14,20 @@ const isSettingsSection = (value: string): value is SettingsSection =>
 const positiveInteger = (value: string | undefined): number | undefined => {
   if (value === undefined || !/^[1-9][0-9]*$/.test(value)) return undefined;
   const parsed = Number.parseInt(value, 10);
-  return Number.isSafeInteger(parsed) ? parsed : undefined;
+  if (!Number.isSafeInteger(parsed)) return undefined;
+  return parsed;
 };
+
+const decodeUriComponent = Option.liftThrowable(decodeURIComponent);
+const parseUrl = Option.liftThrowable(
+  (pathWithQuery: string) => new URL(pathWithQuery, 'https://local.bible'),
+);
 
 const decodeSegment = (value: string | undefined): string | undefined => {
   if (!value) return undefined;
-  try {
-    const decoded = decodeURIComponent(value);
-    return decoded.length > 0 ? decoded : undefined;
-  } catch {
-    return undefined;
-  }
+  const decoded = Option.getOrUndefined(decodeUriComponent(value));
+  if (decoded === undefined || decoded.length === 0) return undefined;
+  return decoded;
 };
 
 const normalizeBooks = (books: readonly number[]): readonly number[] =>
@@ -36,7 +40,8 @@ export const encodeRoute = (route: AppRoute): string => {
     case 'bible': {
       const { reference } = route;
       const base = `/bible/${String(reference.book)}/${String(reference.chapter)}`;
-      return reference._tag === 'verse' ? `${base}/${String(reference.verse)}` : base;
+      if (reference._tag === 'verse') return `${base}/${String(reference.verse)}`;
+      return base;
     }
     case 'writings-catalog':
       return '/writings';
@@ -54,16 +59,23 @@ export const encodeRoute = (route: AppRoute): string => {
       const books = normalizeBooks(route.books);
       if (books.length > 0) params.set('books', books.join(','));
       const query = params.toString();
-      return query.length > 0 ? `/search?${query}` : '/search';
+      if (query.length > 0) return `/search?${query}`;
+      return '/search';
     }
-    case 'topics':
-      return route.topicId ? `/topics/${encodeURIComponent(route.topicId)}` : '/topics';
-    case 'plans':
-      return route.planId ? `/plans/${encodeURIComponent(route.planId)}` : '/plans';
-    case 'practice':
-      return route.memoryVerseId
-        ? `/practice/${encodeURIComponent(route.memoryVerseId)}`
-        : '/practice';
+    case 'topics': {
+      if (route.topicId) return `/topics/${encodeURIComponent(route.topicId)}`;
+      return '/topics';
+    }
+    case 'plans': {
+      if (route.planId) return `/plans/${encodeURIComponent(route.planId)}`;
+      return '/plans';
+    }
+    case 'practice': {
+      if (route.memoryVerseId) {
+        return `/practice/${encodeURIComponent(route.memoryVerseId)}`;
+      }
+      return '/practice';
+    }
     case 'settings':
       return `/settings/${route.section}`;
     case 'not-found':
@@ -72,12 +84,8 @@ export const encodeRoute = (route: AppRoute): string => {
 };
 
 export const decodeRoute = (pathWithQuery: string): AppRoute | undefined => {
-  let url: URL;
-  try {
-    url = new URL(pathWithQuery, 'https://local.bible');
-  } catch {
-    return undefined;
-  }
+  const url = Option.getOrUndefined(parseUrl(pathWithQuery));
+  if (url === undefined) return undefined;
 
   const segments = url.pathname.split('/').filter(Boolean);
   const [root, one, two, three] = segments;
@@ -88,9 +96,8 @@ export const decodeRoute = (pathWithQuery: string): AppRoute | undefined => {
     const verse = positiveInteger(three);
     if (book === undefined || book > 66 || chapter === undefined) return undefined;
     if (segments.length === 4) {
-      return verse === undefined
-        ? undefined
-        : { _tag: 'bible', reference: BibleReference.verse(book, chapter, verse) };
+      if (verse === undefined) return undefined;
+      return { _tag: 'bible', reference: BibleReference.verse(book, chapter, verse) };
     }
     return { _tag: 'bible', reference: BibleReference.chapter(book, chapter) };
   }
@@ -104,26 +111,24 @@ export const decodeRoute = (pathWithQuery: string): AppRoute | undefined => {
     }
     if (segments.length === 4 && two === 'page') {
       const page = positiveInteger(three);
-      return page === undefined
-        ? undefined
-        : { _tag: 'writings', reference: WritingsReference.page(publicationId, page) };
+      if (page === undefined) return undefined;
+      return { _tag: 'writings', reference: WritingsReference.page(publicationId, page) };
     }
     if (segments.length === 4 && two === 'p') {
       const paragraphId = decodeSegment(three);
-      return paragraphId === undefined
-        ? undefined
-        : {
-            _tag: 'writings',
-            reference: WritingsReference.paragraph(publicationId, paragraphId),
-          };
+      if (paragraphId === undefined) return undefined;
+      return {
+        _tag: 'writings',
+        reference: WritingsReference.paragraph(publicationId, paragraphId),
+      };
     }
     return undefined;
   }
 
   if (root === 'search' && segments.length === 1) {
     const requestedScope = url.searchParams.get('scope');
-    const scope: SearchScope =
-      requestedScope === 'bible' || requestedScope === 'writings' ? requestedScope : 'all';
+    let scope: SearchScope = 'all';
+    if (requestedScope === 'bible' || requestedScope === 'writings') scope = requestedScope;
     const books = normalizeBooks(
       (url.searchParams.get('books') ?? '').split(',').map((book) => Number.parseInt(book, 10)),
     );
@@ -141,7 +146,8 @@ export const decodeRoute = (pathWithQuery: string): AppRoute | undefined => {
   }
   if (root === 'settings' && segments.length <= 2) {
     const section = one ?? 'reader';
-    return isSettingsSection(section) ? { _tag: 'settings', section } : undefined;
+    if (!isSettingsSection(section)) return undefined;
+    return { _tag: 'settings', section };
   }
 
   return undefined;

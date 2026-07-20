@@ -1,6 +1,7 @@
 import { Context, Effect, Layer, Option } from 'effect';
 
 import { Reference as BibleReference } from '../bible/model.js';
+import type { ChapterReference, VerseReference } from '../bible/model.js';
 import { EGWParagraphDatabase } from '../egw-db/book-database.js';
 import { ArchivedBibleReference, ArchivedParagraph, PublicationArchive } from './archive.js';
 import {
@@ -61,20 +62,23 @@ export class WritingsArchive extends Context.Service<WritingsArchive, WritingsAr
                       ),
                     });
                   }),
-                  bibleReferences: bibleReferences.map(
-                    (row) =>
-                      new ArchivedBibleReference({
-                        paragraphRefcode: row.para_ref_code,
-                        scripture:
-                          row.bible_verse === null
-                            ? BibleReference.chapter(row.bible_book, row.bible_chapter)
-                            : BibleReference.verse(
-                                row.bible_book,
-                                row.bible_chapter,
-                                row.bible_verse,
-                              ),
-                      }),
-                  ),
+                  bibleReferences: bibleReferences.map((row) => {
+                    let scripture: ChapterReference | VerseReference = BibleReference.chapter(
+                      row.bible_book,
+                      row.bible_chapter,
+                    );
+                    if (row.bible_verse !== null) {
+                      scripture = BibleReference.verse(
+                        row.bible_book,
+                        row.bible_chapter,
+                        row.bible_verse,
+                      );
+                    }
+                    return new ArchivedBibleReference({
+                      paragraphRefcode: row.para_ref_code,
+                      scripture,
+                    });
+                  }),
                 }),
               catch: (cause) =>
                 new WritingsDataIntegrityError({

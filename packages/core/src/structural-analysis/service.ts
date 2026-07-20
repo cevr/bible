@@ -89,9 +89,10 @@ export class StructuralAnalysis extends Context.Service<
 
         const entries: WordFrequencyEntry[] = [];
         for (const [word, count] of counts) {
-          const symbolicCount = (SYMBOLIC_NUMBERS as readonly number[]).includes(count)
-            ? (count as SymbolicNumber)
-            : null;
+          let symbolicCount: SymbolicNumber | null = null;
+          if ((SYMBOLIC_NUMBERS as readonly number[]).includes(count)) {
+            symbolicCount = count as SymbolicNumber;
+          }
           entries.push({ word, count, symbolicCount });
         }
 

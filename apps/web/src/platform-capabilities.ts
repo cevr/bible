@@ -1,45 +1,51 @@
 import { CapabilityError, type AppCapabilities } from '@bible/app/platform';
 import { Effect } from 'effect';
 
-const failure = (operation: string, cause: unknown) =>
-  new CapabilityError({
-    capability: operation.startsWith('import') ? 'file-import' : 'file-export',
+const failure = (operation: string, cause: unknown) => {
+  let capability: 'file-import' | 'file-export' = 'file-export';
+  if (operation.startsWith('import')) capability = 'file-import';
+  let message = String(cause);
+  if (cause instanceof Error) message = cause.message;
+  return new CapabilityError({
+    capability,
     operation,
-    message: cause instanceof Error ? cause.message : String(cause),
+    message,
   });
+};
 
 export const webCapabilities: AppCapabilities = {
   fileImport: {
     select: ({ accept }) =>
-      Effect.tryPromise({
-        try: () =>
-          new Promise<readonly { readonly name: string; readonly contents: Uint8Array }[]>(
-            (resolve, reject) => {
-              const input = document.createElement('input');
-              input.type = 'file';
-              input.accept = accept.join(',');
-              input.addEventListener('cancel', () => resolve([]), { once: true });
-              input.addEventListener(
-                'change',
-                () => {
-                  const file = input.files?.[0];
-                  if (file === undefined) {
-                    resolve([]);
-                    return;
-                  }
-                  void file
-                    .arrayBuffer()
-                    .then(
-                      (buffer) => resolve([{ name: file.name, contents: new Uint8Array(buffer) }]),
-                      reject,
-                    );
-                },
-                { once: true },
-              );
-              input.click();
-            },
-          ),
-        catch: (cause) => failure('import.select', cause),
+      Effect.callback<
+        readonly { readonly name: string; readonly contents: Uint8Array }[],
+        CapabilityError
+      >((resume) => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = accept.join(',');
+        const cancelled = () => resume(Effect.succeed([]));
+        const changed = () => {
+          const file = input.files?.[0];
+          if (file === undefined) {
+            resume(Effect.succeed([]));
+            return;
+          }
+          resume(
+            Effect.tryPromise({
+              try: () => file.arrayBuffer(),
+              catch: (cause) => failure('import.select', cause),
+            }).pipe(
+              Effect.map((buffer) => [{ name: file.name, contents: new Uint8Array(buffer) }]),
+            ),
+          );
+        };
+        input.addEventListener('cancel', cancelled, { once: true });
+        input.addEventListener('change', changed, { once: true });
+        input.click();
+        return Effect.sync(() => {
+          input.removeEventListener('cancel', cancelled);
+          input.removeEventListener('change', changed);
+        });
       }),
   },
   fileExport: {
