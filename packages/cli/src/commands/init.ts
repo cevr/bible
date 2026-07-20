@@ -9,9 +9,10 @@
  * - egw-paragraphs.db: too large to host — prints sync instructions
  */
 
-import { Flag, Command } from 'effect/unstable/cli';
-import { BIBLE_DB_URL } from '@bible/core/sync';
-import { Console, Effect, Schema } from 'effect';
+import { BIBLE_ARTIFACT_RELEASE, CorpusSupply } from '@bible/core/corpus-supply';
+import { layerNativeBibleArtifacts } from '@bible/core/corpus-supply/node';
+import { Console, Effect, Layer, Schema } from 'effect';
+import { Command, Flag } from 'effect/unstable/cli';
 import { existsSync, mkdirSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
@@ -24,12 +25,6 @@ const BIBLE_DIR = join(homedir(), '.bible');
 const GITHUB_RAW = 'https://raw.githubusercontent.com/cevr/bible/main';
 
 const DBS = {
-  bible: {
-    name: 'bible.db',
-    url: BIBLE_DB_URL,
-    description: "KJV Bible with Strong's concordance and cross-references",
-    size: '~125MB',
-  },
   hymnal: {
     name: 'hymnal.db',
     url: `${GITHUB_RAW}/packages/core/data/hymnal.db`,
@@ -64,6 +59,18 @@ export const init = Command.make('init', { force }, (args) =>
       mkdirSync(BIBLE_DIR, { recursive: true });
       yield* Console.log(`Created ${BIBLE_DIR}`);
     }
+
+    const bibleArtifacts = layerNativeBibleArtifacts({
+      destination: join(BIBLE_DIR, 'bible.db'),
+      sources: [{ kind: 'release', ...BIBLE_ARTIFACT_RELEASE }],
+    });
+    const bibleSupply = CorpusSupply.layer.pipe(Layer.provide(bibleArtifacts));
+    const bible = yield* Effect.gen(function* () {
+      return yield* (yield* CorpusSupply).ensure({ refresh: args.force });
+    }).pipe(Effect.provide(bibleSupply));
+    yield* Console.log(
+      `✓ bible.db (${bible.activated.length === 0 ? 'ready' : 'installed and verified'})`,
+    );
 
     // Download each database
     for (const db of Object.values(DBS)) {

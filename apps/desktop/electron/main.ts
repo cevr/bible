@@ -1,4 +1,5 @@
 import { BibleCorpus, BibleDatabase } from '@bible/core/bible-db';
+import { BIBLE_ARTIFACT_RELEASE, CorpusSupply } from '@bible/core/corpus-supply';
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
 import userStateMigrationSql from '@bible/core/local-first/migrations/0001_user_state.sql';
 import { Effect, Fiber, Layer } from 'effect';
@@ -6,7 +7,7 @@ import { app, BrowserWindow, dialog, ipcMain, MessageChannelMain, shell } from '
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { provisionBibleCorpus } from './bible-corpus-file.js';
+import { layerNativeBibleArtifacts } from './bible-corpus-file.js';
 import {
   layerDesktopProcedureServer,
   type DesktopProcedureServerPort,
@@ -165,22 +166,39 @@ const createWindow = async (runtime: MainRuntime): Promise<void> => {
 
 void app.whenReady().then(async () => {
   loadDotEnv(path.join(process.cwd(), '.env'));
-  const provisionedCorpus = await provisionBibleCorpus({
+  const bibleArtifacts = layerNativeBibleArtifacts({
     destination: bibleDbPath(),
     sources: [
-      { path: path.join(process.resourcesPath, 'data', 'bible.db'), label: 'packaged' },
       {
+        kind: 'packaged',
+        path: path.join(process.resourcesPath, 'data', 'bible.db'),
+        label: 'packaged',
+      },
+      {
+        kind: 'workspace',
         path: path.resolve(process.cwd(), '..', '..', 'packages', 'core', 'data', 'bible.db'),
         label: 'workspace',
       },
       {
+        kind: 'runtime',
         path: path.join(app.getPath('home'), '.bible', 'bible.db'),
         label: 'runtime',
       },
+      { kind: 'release', ...BIBLE_ARTIFACT_RELEASE },
     ],
   });
+  const corpusSupply = CorpusSupply.layer.pipe(Layer.provide(bibleArtifacts));
+  const provisionedCorpus = await Effect.runPromise(
+    Effect.gen(function* () {
+      const supply = yield* CorpusSupply;
+      return yield* supply.ensure();
+    }).pipe(Effect.provide(corpusSupply)),
+  );
+  const bibleActivation = provisionedCorpus.activated.find(
+    (activation) => activation.corpus === 'bible',
+  );
   console.info(
-    `[main] bible-corpus-ready source=${provisionedCorpus.source.label} copied=${String(provisionedCorpus.copied)} bytes=${String(provisionedCorpus.bytes)}`,
+    `[main] bible-corpus-ready state=${bibleActivation === undefined ? 'current' : 'activated'} source=${bibleActivation?.source ?? 'current'} verses=${String(bibleActivation?.installed ?? 31_102)}`,
   );
   console.info(
     `[main] legacy-cli-source configured=${String(configuredLegacyCliStatePath !== undefined && configuredLegacyCliStatePath !== '')}`,
