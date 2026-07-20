@@ -57,9 +57,9 @@ export const layerHttpWritingsAssetSource = (fetchResponse: (url: string) => Pro
       const publications = yield* catalog;
       const requested = publications.find((candidate) => candidate.id === publication);
       if (requested === undefined) {
-        return yield* new CorpusContributionRejectedError({
-          publication,
-          cause: 'Publication is absent from the source catalog',
+        return yield* new CorpusSourceUnavailableError({
+          operation: 'locate-writings-publication',
+          cause: `Publication ${String(publication)} is absent from the source catalog`,
         });
       }
       const response = yield* Effect.tryPromise({

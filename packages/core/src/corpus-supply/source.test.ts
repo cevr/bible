@@ -1,5 +1,5 @@
-import { describe, expect, test } from 'bun:test';
-import { Effect, Option, Result } from 'effect';
+import { Effect, Option } from 'effect';
+import { describe, expect, it } from 'effect-bun-test';
 
 import { PublicationArchive } from '../writings/archive.js';
 import { Publication, publicationCode, publicationId } from '../writings/model.js';
@@ -26,55 +26,84 @@ const unavailable = (kind: WritingsAssetSourceShape['kind']): WritingsAssetSourc
 });
 
 describe('Writings Asset Recipe', () => {
-  test('owns priority and falls back only when a source is unavailable', async () => {
-    const attempts: string[] = [];
-    const packaged: WritingsAssetSourceShape = {
-      ...unavailable('packaged'),
-      acquire: () =>
-        Effect.gen(function* () {
-          attempts.push('packaged');
-          return yield* new CorpusSourceUnavailableError({
-            operation: 'packaged',
-            cause: 'absent',
-          });
-        }),
-    };
-    const provider: WritingsAssetSourceShape = {
-      ...unavailable('provider'),
-      acquire: () =>
-        Effect.sync(() => {
-          attempts.push('provider');
-          return contribution;
-        }),
-    };
-    const recipe = makeWritingsAssetRecipe([provider, packaged]);
+  it.effect('merges available catalogs in priority order without duplicating identities', () =>
+    Effect.gen(function* () {
+      const higher = new Publication({
+        id: publication.id,
+        code: publication.code,
+        title: 'Packaged title',
+        author: publication.author,
+        paragraphCount: publication.paragraphCount,
+      });
+      const another = new Publication({
+        id: publicationId(128),
+        code: publicationCode('GC'),
+        title: 'The Great Controversy',
+        author: publication.author,
+        paragraphCount: Option.none(),
+      });
+      const recipe = makeWritingsAssetRecipe([
+        { ...unavailable('archive'), catalog: Effect.succeed([publication, another]) },
+        { ...unavailable('packaged'), catalog: Effect.succeed([higher]) },
+      ]);
 
-    expect(await Effect.runPromise(recipe.acquire(publication.id))).toEqual(contribution);
-    expect(attempts).toEqual(['packaged', 'provider']);
-  });
+      const catalog = yield* recipe.catalog;
+      expect(catalog.map((item) => item.id)).toEqual([publication.id, another.id]);
+      expect(catalog[0]?.title).toBe('Packaged title');
+    }),
+  );
 
-  test('fails closed on a rejected Contribution instead of trying another source', async () => {
-    let fallbackAttempts = 0;
-    const rejected: WritingsAssetSourceShape = {
-      ...unavailable('packaged'),
-      acquire: (id) =>
-        Effect.fail(new CorpusContributionRejectedError({ publication: id, cause: 'invalid' })),
-    };
-    const fallback: WritingsAssetSourceShape = {
-      ...unavailable('archive'),
-      acquire: () =>
-        Effect.sync(() => {
-          fallbackAttempts += 1;
-          return contribution;
-        }),
-    };
-    const result = await Effect.runPromise(
-      Effect.result(makeWritingsAssetRecipe([fallback, rejected]).acquire(publication.id)),
-    );
+  it.effect('owns priority and falls back only when a source is unavailable', () =>
+    Effect.gen(function* () {
+      const attempts: string[] = [];
+      const packaged: WritingsAssetSourceShape = {
+        ...unavailable('packaged'),
+        acquire: () =>
+          Effect.gen(function* () {
+            attempts.push('packaged');
+            return yield* new CorpusSourceUnavailableError({
+              operation: 'packaged',
+              cause: 'absent',
+            });
+          }),
+      };
+      const provider: WritingsAssetSourceShape = {
+        ...unavailable('provider'),
+        acquire: () =>
+          Effect.sync(() => {
+            attempts.push('provider');
+            return contribution;
+          }),
+      };
+      const recipe = makeWritingsAssetRecipe([provider, packaged]);
 
-    expect(Result.isFailure(result)).toBe(true);
-    if (Result.isFailure(result))
-      expect(result.failure._tag).toBe('CorpusContributionRejectedError');
-    expect(fallbackAttempts).toBe(0);
-  });
+      expect(yield* recipe.acquire(publication.id)).toEqual(contribution);
+      expect(attempts).toEqual(['packaged', 'provider']);
+    }),
+  );
+
+  it.effect('fails closed on a rejected Contribution instead of trying another source', () =>
+    Effect.gen(function* () {
+      let fallbackAttempts = 0;
+      const rejected: WritingsAssetSourceShape = {
+        ...unavailable('packaged'),
+        acquire: (id) =>
+          Effect.fail(new CorpusContributionRejectedError({ publication: id, cause: 'invalid' })),
+      };
+      const fallback: WritingsAssetSourceShape = {
+        ...unavailable('archive'),
+        acquire: () =>
+          Effect.sync(() => {
+            fallbackAttempts += 1;
+            return contribution;
+          }),
+      };
+      const failure = yield* Effect.flip(
+        makeWritingsAssetRecipe([fallback, rejected]).acquire(publication.id),
+      );
+
+      expect(failure._tag).toBe('CorpusContributionRejectedError');
+      expect(fallbackAttempts).toBe(0);
+    }),
+  );
 });

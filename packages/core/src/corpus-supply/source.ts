@@ -41,19 +41,25 @@ const sourcePriority: Readonly<Record<WritingsAssetSourceKind, number>> = {
 const ordered = (sources: readonly WritingsAssetSourceShape[]) =>
   [...sources].sort((left, right) => sourcePriority[left.kind] - sourcePriority[right.kind]);
 
-const firstAvailable = <A>(
+const mergedCatalog = (
   sources: readonly WritingsAssetSourceShape[],
-  operation: (source: WritingsAssetSourceShape) => Effect.Effect<A, CorpusSourceUnavailableError>,
-): Effect.Effect<A, CorpusSourceUnavailableError> =>
+): Effect.Effect<readonly Publication[], CorpusSourceUnavailableError> =>
   Effect.gen(function* () {
+    const publications = new Map<PublicationId, Publication>();
     let unavailable: CorpusSourceUnavailableError | undefined;
     for (const source of sources) {
-      const result = yield* Effect.result(operation(source));
-      if (Result.isSuccess(result)) return result.success;
-      unavailable = result.failure;
+      const result = yield* Effect.result(source.catalog);
+      if (Result.isFailure(result)) {
+        unavailable = result.failure;
+        continue;
+      }
+      for (const publication of result.success) {
+        if (!publications.has(publication.id)) publications.set(publication.id, publication);
+      }
     }
+    if (publications.size > 0) return [...publications.values()];
     if (unavailable !== undefined) return yield* unavailable;
-    return yield* Effect.die('Writings Asset Recipe requires at least one source');
+    return [];
   });
 
 export const makeWritingsAssetRecipe = (
@@ -61,7 +67,7 @@ export const makeWritingsAssetRecipe = (
 ): WritingsAssetRecipeShape => {
   const recipe = ordered(sources);
   return WritingsAssetRecipe.of({
-    catalog: firstAvailable(recipe, (source) => source.catalog),
+    catalog: mergedCatalog(recipe),
     acquire: (publication) =>
       Effect.gen(function* () {
         let unavailable: CorpusSourceUnavailableError | undefined;
