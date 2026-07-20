@@ -12,6 +12,16 @@ export interface GenerationMarkerOperations {
   readonly write: (key: string, value: string) => Promise<void>;
 }
 
+export interface GenerationRegistry {
+  readonly active: string | undefined;
+  readonly managed: readonly string[];
+}
+
+export interface GenerationRegistryStore {
+  readonly read: () => Promise<GenerationRegistry>;
+  readonly write: (registry: GenerationRegistry) => Promise<void>;
+}
+
 export const makeGenerationMarkerStore = (
   operations: GenerationMarkerOperations,
   key = ACTIVE_GENERATION_KEY,
@@ -69,3 +79,37 @@ export const makeIndexedDbGenerationMarkerStore = (options?: {
     options?.key,
   );
 };
+
+const isGenerationRegistry = (value: unknown): value is GenerationRegistry =>
+  typeof value === 'object' &&
+  value !== null &&
+  'managed' in value &&
+  Array.isArray(value.managed) &&
+  value.managed.every((generation) => typeof generation === 'string') &&
+  (!('active' in value) || value.active === undefined || typeof value.active === 'string');
+
+/** Durable inventory for a generation family. A legacy string marker is migrated on read. */
+export const makeIndexedDbGenerationRegistryStore = (options: {
+  readonly databaseName: string;
+  readonly key: string;
+}): GenerationRegistryStore => ({
+  read: async () => {
+    const database = await openDatabase(options.databaseName);
+    const transaction = database.transaction(STORE_NAME, 'readonly');
+    const value: unknown = await requestResult(
+      transaction.objectStore(STORE_NAME).get(options.key),
+    );
+    await transactionComplete(transaction);
+    database.close();
+    if (typeof value === 'string') return { active: value, managed: [value] };
+    if (isGenerationRegistry(value)) return value;
+    return { active: undefined, managed: [] };
+  },
+  write: async (registry) => {
+    const database = await openDatabase(options.databaseName);
+    const transaction = database.transaction(STORE_NAME, 'readwrite', { durability: 'strict' });
+    transaction.objectStore(STORE_NAME).put(registry, options.key);
+    await transactionComplete(transaction);
+    database.close();
+  },
+});

@@ -12,10 +12,9 @@ import {
 } from '@bible/core/corpus-supply';
 import { Effect, Layer, Option, Stream } from 'effect';
 import * as SQLite from 'wa-sqlite';
-
+import type { BibleGenerationStore } from './bible-generation-store.js';
 import type { DatabaseFileDownloader } from './database-file-downloader.js';
-import type { GenerationMarkerStore } from './generation-marker.js';
-import type { SqliteDatabase, SqliteDatabaseFamily } from './sqlite-database.js';
+import type { SqliteDatabase } from './sqlite-database.js';
 
 const sourceError = (operation: string, cause: unknown): CorpusSourceUnavailableError =>
   new CorpusSourceUnavailableError({ operation, cause });
@@ -75,8 +74,6 @@ const generationName = (provenance: CorpusProvenance): string => {
   return `bible-${revision}-${digest.slice('sha256:'.length, 'sha256:'.length + 12)}.db`;
 };
 
-const BIBLE_GENERATION = /^bible-[a-zA-Z0-9._-]+-[a-f0-9]{12}\.db$/u;
-
 const writeProvenance = async (
   database: SqliteDatabase,
   provenance: CorpusProvenance,
@@ -97,9 +94,7 @@ const writeProvenance = async (
 };
 
 export const layerBrowserBibleArtifacts = (input: {
-  readonly databases: SqliteDatabaseFamily;
-  readonly marker: GenerationMarkerStore;
-  readonly discard: (filename: string) => Promise<void>;
+  readonly generations: BibleGenerationStore;
   readonly downloader: DatabaseFileDownloader;
   readonly fetch?: (url: string) => Promise<Response>;
   readonly onProgress?: (progress: number) => void;
@@ -137,10 +132,8 @@ export const layerBrowserBibleArtifacts = (input: {
     BibleArtifactInstaller.of({
       current: Effect.tryPromise({
         try: async () => {
-          const active = await input.marker.read();
-          if (active === undefined) return Option.none();
-          await input.databases.activate(active, SQLite.SQLITE_OPEN_READWRITE);
-          return readProvenance(input.databases.active);
+          if (!(await input.generations.openActive())) return Option.none();
+          return readProvenance(input.generations.active);
         },
         catch: (cause) => new CorpusInstallationError({ corpus: 'bible', cause }),
       }),
@@ -149,8 +142,8 @@ export const layerBrowserBibleArtifacts = (input: {
           try: async () => {
             const expectedDigest = Option.getOrThrow(artifact.provenance.digest);
             const candidateName = generationName(artifact.provenance);
-            const previous = input.databases.activeFilename;
             try {
+              const candidate = await input.generations.reserve(candidateName);
               const written = await input.downloader.install(
                 artifact.bytes,
                 candidateName,
@@ -159,7 +152,6 @@ export const layerBrowserBibleArtifacts = (input: {
               if (written.digest !== expectedDigest) {
                 throw new Error('Bible Artifact digest does not match its release manifest');
               }
-              const candidate = input.databases.candidate(candidateName);
               await candidate.open(SQLite.SQLITE_OPEN_READWRITE);
               let installed: number;
               const provenance = new CorpusProvenance({
@@ -173,20 +165,11 @@ export const layerBrowserBibleArtifacts = (input: {
               } finally {
                 await candidate.close();
               }
-              await input.marker.write(candidateName);
-              await input.databases.activate(candidateName, SQLite.SQLITE_OPEN_READWRITE);
-              if (
-                previous !== undefined &&
-                previous !== candidateName &&
-                BIBLE_GENERATION.test(previous)
-              ) {
-                await input.discard(previous).catch(() => undefined);
-              }
+              await input.generations.activateVerified(candidateName);
               return { installed, provenance };
             } catch (cause) {
-              if (input.databases.activeFilename !== candidateName) {
-                await input.discard(candidateName).catch(() => undefined);
-              }
+              if (input.generations.activeFilename !== candidateName)
+                await input.generations.discardCandidate(candidateName);
               throw cause;
             }
           },

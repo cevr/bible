@@ -11,6 +11,8 @@
 
 The manifest is declared once in `packages/core/src/corpus-supply/bible-artifact.ts`. Native sources stream directly from GitHub. Browser sources use `/api/assets/bible` so GitHub's transport-specific CORS behavior remains in the web adapter.
 
+Browser generations are owned by one durable generation store. It registers a candidate before acquisition, activates the verified reader before publishing its marker, rolls the reader back if that durable commit fails, and reconciles every registered inactive generation on startup. The worker composition root supplies VFS mechanics but cannot reorder activation or retirement.
+
 ## Adapter contract
 
 Bible inputs become a `BibleCorpusArchive` by decoding all seven source shapes before the single SQL Installation. A portable database becomes a `BibleArtifact` only when its declared Provenance matches its bytes and semantic verification proves the complete Canon and Study data.

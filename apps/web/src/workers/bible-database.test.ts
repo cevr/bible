@@ -3,8 +3,9 @@ import { BIBLE_ARTIFACT_RELEASE, CorpusSupply } from '@bible/core/corpus-supply'
 import { Effect, Layer } from 'effect';
 
 import { layerBrowserBibleArtifacts } from './bible-database.js';
+import { makeBibleGenerationStore } from './bible-generation-store.js';
 import type { DatabaseFileDownloader } from './database-file-downloader.js';
-import type { GenerationMarkerStore } from './generation-marker.js';
+import type { GenerationRegistry, GenerationRegistryStore } from './generation-marker.js';
 import type { SqliteDatabase, SqliteDatabaseFamily, SqliteRow } from './sqlite-database.js';
 
 const digest = BIBLE_ARTIFACT_RELEASE.digest;
@@ -75,25 +76,36 @@ const ensure = async (options: {
       options.events.push(`activate:${filename}`);
       activeFilename = filename;
     },
+    deactivate: async () => {
+      options.events.push('deactivate');
+      activeFilename = undefined;
+    },
     get activeFilename() {
       return activeFilename;
     },
   };
-  const marker: GenerationMarkerStore = {
+  let registry: GenerationRegistry = {
+    active: options.provenance ? (options.generation ?? 'bible-db-v2-e72244f576be.db') : undefined,
+    managed: options.provenance ? [options.generation ?? 'bible-db-v2-e72244f576be.db'] : [],
+  };
+  const registryStore: GenerationRegistryStore = {
     read: async () => {
-      options.events.push('marker:read');
-      return options.provenance ? (options.generation ?? 'bible-db-v2-e72244f576be.db') : undefined;
+      options.events.push('registry:read');
+      return registry;
     },
-    write: async (generation) => {
-      options.events.push(`marker:write:${generation}`);
+    write: async (next) => {
+      options.events.push(`registry:write:${next.active ?? 'none'}`);
+      registry = next;
     },
   };
   const artifacts = layerBrowserBibleArtifacts({
-    databases,
-    marker,
-    discard: async (filename) => {
-      options.events.push(`discard:${filename}`);
-    },
+    generations: makeBibleGenerationStore({
+      databases,
+      registry: registryStore,
+      discard: async (filename) => {
+        options.events.push(`discard:${filename}`);
+      },
+    }),
     downloader: makeDownloader(options.events),
     fetch: async () => new Response(new Uint8Array([1])),
   });
@@ -112,7 +124,7 @@ describe('browser Bible Artifact adapter', () => {
 
     expect(receipt.activated).toEqual([]);
     expect(receipt.skipped).toEqual(['canonical']);
-    expect(events[0]).toBe('marker:read');
+    expect(events[0]).toBe('registry:read');
     expect(events[1]).toStartWith('activate:');
   });
 
@@ -128,10 +140,10 @@ describe('browser Bible Artifact adapter', () => {
     expect(events).toContain('write:corpus_revision');
     expect(events).toContain('write:corpus_digest');
     expect(events.indexOf('exec:COMMIT')).toBeLessThan(
-      events.indexOf('marker:write:bible-db-v2-e72244f576be.db'),
+      events.lastIndexOf('registry:write:bible-db-v2-e72244f576be.db'),
     );
-    expect(events.indexOf('marker:write:bible-db-v2-e72244f576be.db')).toBeLessThan(
-      events.indexOf('activate:bible-db-v2-e72244f576be.db'),
+    expect(events.indexOf('activate:bible-db-v2-e72244f576be.db')).toBeLessThan(
+      events.lastIndexOf('registry:write:bible-db-v2-e72244f576be.db'),
     );
   });
 
@@ -141,7 +153,9 @@ describe('browser Bible Artifact adapter', () => {
     expect(ensure({ provenance: false, valid: false, events })).rejects.toMatchObject({
       _tag: 'CorpusInstallationError',
     });
-    expect(events.some((event) => event.startsWith('marker:write:'))).toBe(false);
+    expect(events.some((event) => event === 'registry:write:bible-db-v2-e72244f576be.db')).toBe(
+      false,
+    );
     expect(events.some((event) => event.startsWith('activate:'))).toBe(false);
     expect(events).toContain('discard:bible-db-v2-e72244f576be.db');
   });

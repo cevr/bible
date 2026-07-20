@@ -12,6 +12,7 @@ import { OPFSAdaptiveVFS } from 'wa-sqlite/src/examples/OPFSAdaptiveVFS.js';
 import userStateMigrationSql from '../../../../packages/core/src/local-first/migrations/0001_user_state.sql?raw';
 
 import { layerBrowserBibleArtifacts } from './bible-database.js';
+import { makeBibleGenerationStore } from './bible-generation-store.js';
 import {
   makeDatabaseFileDownloader,
   makeIndexedDbDatabaseFileDownloader,
@@ -25,7 +26,10 @@ import {
 } from './procedure-worker-protocol.js';
 import { layerProcedureServer, type ProcedureServerInput } from './procedure-server.js';
 import { makeSqliteDatabase, makeSqliteDatabaseFamily } from './sqlite-database.js';
-import { makeIndexedDbGenerationMarkerStore } from './generation-marker.js';
+import {
+  makeIndexedDbGenerationMarkerStore,
+  makeIndexedDbGenerationRegistryStore,
+} from './generation-marker.js';
 import type { BrowserSqliteVfs } from './user-state-generation.js';
 import { migrateWebUserState } from './web-state-migration.js';
 
@@ -136,12 +140,14 @@ const initializeDatabases = async (): Promise<void> => {
   const writingsSqlite = makeSqliteDatabase(sqlite3, 'egw-paragraphs.db', vfsName);
   const bibleDatabases = makeSqliteDatabaseFamily(sqlite3, vfsName);
   const bibleArtifacts = layerBrowserBibleArtifacts({
-    databases: bibleDatabases,
-    marker: makeIndexedDbGenerationMarkerStore({
-      databaseName: 'bible-corpus-metadata',
-      key: 'active-bible-generation',
+    generations: makeBibleGenerationStore({
+      databases: bibleDatabases,
+      registry: makeIndexedDbGenerationRegistryStore({
+        databaseName: 'bible-corpus-metadata',
+        key: 'active-bible-generation',
+      }),
+      discard: (filename) => discardBibleGeneration(vfs, filename),
     }),
-    discard: (filename) => discardBibleGeneration(vfs, filename),
     downloader,
     onProgress: (progress) => log(`[web.bible] install-progress progress=${String(progress)}`),
   });

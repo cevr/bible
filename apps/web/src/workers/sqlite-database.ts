@@ -29,6 +29,7 @@ export interface SqliteDatabaseFamily {
   readonly active: SqliteDatabase;
   readonly candidate: (filename: string) => SqliteDatabase;
   readonly activate: (filename: string, flags: number) => Promise<void>;
+  readonly deactivate: () => Promise<void>;
   readonly activeFilename: string | undefined;
 }
 
@@ -155,6 +156,11 @@ export const makeSqliteDatabaseFamily = (
       await activeDatabase?.close();
       activeDatabase = candidate;
       filename = candidateFilename;
+    },
+    deactivate: async () => {
+      await activeDatabase?.close();
+      activeDatabase = undefined;
+      filename = undefined;
     },
     get activeFilename() {
       return filename;

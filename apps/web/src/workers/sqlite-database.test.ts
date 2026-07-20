@@ -85,5 +85,8 @@ describe('worker SQLite database adapter', () => {
       `open:bible-v2.db:${String(SQLite.SQLITE_OPEN_READWRITE)}:opfs`,
     ]);
     expect(events).toContain('close:7');
+
+    await family.deactivate();
+    expect(family.activeFilename).toBeUndefined();
   });
 });
