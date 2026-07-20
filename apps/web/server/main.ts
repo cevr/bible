@@ -47,7 +47,8 @@ const normalizeCategory = (value: string): string => {
     .toLowerCase()
     .replace(/[^a-z0-9._-]+/g, '-')
     .replace(/^-+|-+$/g, '');
-  return normalized.length > 0 ? normalized : 'unknown';
+  if (normalized.length > 0) return normalized;
+  return 'unknown';
 };
 
 const failureCategory = (cause: unknown): string => {
@@ -212,16 +213,17 @@ const StaticFilesMiddleware = HttpMiddleware.make((app) =>
     const distDir = new URL('../dist', import.meta.url).pathname;
 
     // Try to serve the exact file
-    const filePath = `${distDir}${pathname === '/' ? '/index.html' : pathname}`;
+    let staticPath = pathname;
+    if (pathname === '/') staticPath = '/index.html';
+    const filePath = `${distDir}${staticPath}`;
     const contentType = getContentType(filePath);
 
     const result = yield* serveStaticFile(filePath, contentType).pipe(
-      Effect.catch(() =>
+      Effect.catch(() => {
         // SPA fallback: serve index.html for non-file routes
-        pathname.includes('.')
-          ? Effect.fail('not-found' as const)
-          : serveStaticFile(`${distDir}/index.html`, 'text/html'),
-      ),
+        if (pathname.includes('.')) return Effect.fail('not-found' as const);
+        return serveStaticFile(`${distDir}/index.html`, 'text/html');
+      }),
       Effect.catch(() => app),
     );
 
@@ -270,8 +272,14 @@ const program = Layer.launch(HttpLive).pipe(
   ),
 );
 
+let mode = 'development';
+let staticRoot = 'vite';
+if (IS_PRODUCTION) {
+  mode = 'production';
+  staticRoot = '/';
+}
 console.log(
-  `[api] listening port=${String(PORT)} mode=${IS_PRODUCTION ? 'production' : 'development'} api=/api docs=/docs static=${IS_PRODUCTION ? '/' : 'vite'}`,
+  `[api] listening port=${String(PORT)} mode=${mode} api=/api docs=/docs static=${staticRoot}`,
 );
 
 BunRuntime.runMain(program);
