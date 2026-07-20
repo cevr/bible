@@ -7,7 +7,8 @@ import {
   type ProcedureWorkerConnect,
 } from './procedure-worker-protocol.js';
 
-const log = import.meta.env['DEV'] ? (line: string) => console.log(line) : () => {};
+let log = (_line: string): void => {};
+if (import.meta.env['DEV']) log = (line) => console.log(line);
 
 const syncAccessHandle = (
   globalThis as typeof globalThis & {
