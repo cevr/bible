@@ -22,6 +22,7 @@
     "./writings": "./src/writings/index.ts",
     "./writings/service": "./src/writings/service.ts",
     "./writings/archive-service": "./src/writings/archive-service.ts",
+    "./corpus-supply": "./src/corpus-supply/index.ts",
     "./bible-rendering": "./src/bible-rendering/index.ts",
     "./gemini": "./src/gemini/index.ts",
     "./sync": "./src/sync/index.ts",

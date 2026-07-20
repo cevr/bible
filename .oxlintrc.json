@@ -69,6 +69,7 @@
         "**/packages/core/src/procedure/**",
         "**/packages/core/src/reading-preferences/**",
         "**/packages/core/src/topics/**",
+        "**/packages/core/src/corpus-supply/**",
         "**/packages/core/src/writings/model.ts",
         "**/packages/app/src/procedure/**",
         "**/apps/web/src/workers/user-state-database.ts",

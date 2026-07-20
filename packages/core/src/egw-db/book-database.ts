@@ -1133,10 +1133,13 @@ export class EGWParagraphDatabase extends Context.Service<
       books?: readonly BookRow[];
       paragraphs?: readonly (EGWSchemas.Paragraph & { bookCode: string })[];
       bibleRefs?: readonly BibleRefRow[];
+      installPublicationArchive?: (archive: PublicationArchive) => number;
+      needsSync?: (bookId: number) => boolean;
     } = {},
   ): Layer.Layer<EGWParagraphDatabase> =>
     Layer.succeed(EGWParagraphDatabase, {
-      installPublicationArchive: (archive) => Effect.succeed(archive.paragraphs.length),
+      installPublicationArchive: (archive) =>
+        Effect.succeed(config.installPublicationArchive?.(archive) ?? archive.paragraphs.length),
       storeBook: () => Effect.void,
       getBookById: (bookId) =>
         Effect.succeed(Option.fromNullishOr(config.books?.find((b) => b.book_id === bookId))),
@@ -1300,7 +1303,7 @@ export class EGWParagraphDatabase extends Context.Service<
       getSyncStatus: () => Effect.succeed(Option.none()),
       getBooksByStatus: () => Effect.succeed([]),
       getAllSyncStatus: () => Effect.succeed([]),
-      needsSync: () => Effect.succeed(true),
+      needsSync: (bookId) => Effect.succeed(config.needsSync?.(bookId) ?? true),
       rebuildFtsIndex: () => Effect.void,
       backfillBibleRefs: () => Effect.succeed({ scanned: 0, inserted: 0 }),
     });
