@@ -1,249 +1,294 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, it } from 'effect-bun-test';
 
-import { Effect } from 'effect';
+import { Cause, Effect, Exit, Fiber } from 'effect';
 import { createRoot, flush, resolve } from 'solid-js';
 
 import { createSyncedCache, defaultCacheRuntime, IpcCacheError } from './synced-cache.js';
 
-const settle = async (): Promise<void> => {
-  await Promise.resolve();
+const settle = Effect.gen(function* () {
+  yield* Effect.yieldNow;
   flush();
-};
+});
 
-const waitFor = async (condition: () => boolean, attempts = 20): Promise<void> => {
-  if (condition()) return;
-  if (attempts > 0) {
-    await Promise.resolve();
-    return waitFor(condition, attempts - 1);
-  }
-  throw new Error('condition did not settle');
-};
-
-const rejectionOf = <A>(promise: Promise<A>): Promise<unknown> =>
-  promise.then(
-    () => undefined,
-    (cause: unknown) => cause,
-  );
+const waitFor = (condition: () => boolean): Effect.Effect<void> =>
+  Effect.gen(function* () {
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      if (condition()) return;
+      yield* Effect.yieldNow;
+    }
+    return yield* Effect.die('condition did not settle');
+  });
 
 describe('createSyncedCache', () => {
-  test('uses structural keys and returns one stable accessor per input', async () => {
-    let lookups = 0;
-    const owned = createRoot((dispose) => ({
-      dispose,
-      cache: createSyncedCache({
-        name: 'structural',
-        runtime: defaultCacheRuntime,
-        lookup: (input: { readonly id: number }) =>
-          Effect.sync(() => {
-            lookups += 1;
-            return `value-${input.id}`;
-          }),
-        mutate: (_command: never) => Effect.void,
-        affects: (_command: never): ReadonlyArray<never> => [],
-        matches: (_input: { readonly id: number }, _scope: never) => false,
-      }),
-    }));
+  const test = it.scoped;
 
-    const first = owned.cache.get({ id: 1 });
-    const same = owned.cache.get({ id: 1 });
-
-    expect(same).toBe(first);
-    expect(await resolve(first)).toBe('value-1');
-    expect(lookups).toBe(1);
-    await settle();
-    expect(owned.cache.status({ id: 1 })()).toEqual({ state: 'ready' });
-    owned.dispose();
-  });
-
-  test('treats omitted and explicit empty structural inputs as the same key', async () => {
-    let lookups = 0;
-    const owned = createRoot((dispose) => ({
-      dispose,
-      cache: createSyncedCache({
-        name: 'empty-input',
-        runtime: defaultCacheRuntime,
-        emptyInput: {},
-        lookup: (_input: {}) =>
-          Effect.sync(() => {
-            lookups += 1;
-            return 'ready';
-          }),
-        mutate: (_command: never) => Effect.void,
-        affects: (_command: never): ReadonlyArray<never> => [],
-        matches: (_input: {}, _scope: never) => false,
-      }),
-    }));
-
-    const omitted = owned.cache.get();
-    const explicit = owned.cache.get({});
-    expect(explicit).toBe(omitted);
-    expect(await resolve(omitted)).toBe('ready');
-    await settle();
-    expect(owned.cache.status()).toBe(owned.cache.status({}));
-    expect(lookups).toBe(1);
-    owned.dispose();
-  });
-
-  test('normalizes initial failures and retains the error in status', async () => {
-    const owned = createRoot((dispose) => ({
-      dispose,
-      cache: createSyncedCache({
-        name: 'failure',
-        runtime: defaultCacheRuntime,
-        lookup: (_input: { readonly id: number }) => Effect.fail('not found'),
-        mutate: (_command: never) => Effect.void,
-        affects: (_command: never): ReadonlyArray<never> => [],
-        matches: (_input: { readonly id: number }, _scope: never) => false,
-      }),
-    }));
-    const value = owned.cache.get({ id: 1 });
-
-    expect(await rejectionOf(resolve(value))).toBeInstanceOf(IpcCacheError);
-    await settle();
-
-    const status = owned.cache.status({ id: 1 })();
-    expect(status.state).toBe('failed');
-    if (status.state === 'failed') expect(status.error).toBeInstanceOf(IpcCacheError);
-    owned.dispose();
-  });
-
-  test('preserves the last value when an explicit refresh fails', async () => {
-    let fail = false;
-    let value = 1;
-    const owned = createRoot((dispose) => ({
-      dispose,
-      cache: createSyncedCache({
-        name: 'retained',
-        runtime: defaultCacheRuntime,
-        lookup: (_input: { readonly id: number }) =>
-          fail ? Effect.fail('refresh failed') : Effect.succeed(value),
-        mutate: (_command: never) => Effect.void,
-        affects: (_command: never): ReadonlyArray<never> => [],
-        matches: (_input: { readonly id: number }, _scope: never) => false,
-      }),
-    }));
-    const read = owned.cache.get({ id: 1 });
-    expect(await resolve(read)).toBe(1);
-    await settle();
-
-    fail = true;
-    value = 2;
-    const refreshed = owned.cache.refresh({ id: 1 });
-    flush();
-    expect(owned.cache.status({ id: 1 })()).toEqual({ state: 'refreshing' });
-    expect(await rejectionOf(refreshed)).toBeInstanceOf(IpcCacheError);
-    await settle();
-
-    expect(read()).toBe(1);
-    expect(owned.cache.status({ id: 1 })().state).toBe('failed');
-    owned.dispose();
-  });
-
-  test('allows one active and one shared trailing refresh per key', async () => {
-    let lookups = 0;
-    const resolvers: Array<(value: number) => void> = [];
-    const owned = createRoot((dispose) => ({
-      dispose,
-      cache: createSyncedCache({
-        name: 'trailing',
-        runtime: defaultCacheRuntime,
-        lookup: (_input: { readonly id: number }) =>
-          Effect.callback<number>((resume) => {
-            lookups += 1;
-            resolvers.push((next) => resume(Effect.succeed(next)));
-          }),
-        mutate: (_command: never) => Effect.void,
-        affects: (_command: never): ReadonlyArray<never> => [],
-        matches: (_input: { readonly id: number }, _scope: never) => false,
-      }),
-    }));
-    const read = owned.cache.get({ id: 1 });
-    await waitFor(() => resolvers.length === 1);
-    resolvers[0]?.(1);
-    expect(await resolve(read)).toBe(1);
-
-    const active = owned.cache.refresh({ id: 1 });
-    await waitFor(() => resolvers.length === 2);
-    const trailing = owned.cache.refresh({ id: 1 });
-    const sameTrailing = owned.cache.refresh({ id: 1 });
-    expect(sameTrailing).toBe(trailing);
-    expect(lookups).toBe(2);
-
-    resolvers[1]?.(2);
-    expect(await active).toBe(2);
-    await waitFor(() => resolvers.length === 3);
-    resolvers[2]?.(3);
-    expect(await trailing).toBe(3);
-    await settle();
-
-    expect(read()).toBe(3);
-    expect(lookups).toBe(3);
-    owned.dispose();
-  });
-
-  test('mutations refresh only structurally affected active entries', async () => {
-    const source = new Map([
-      [1, 'one'],
-      [2, 'two'],
-    ]);
-    const lookups = new Map<number, number>();
-    const owned = createRoot((dispose) => ({
-      dispose,
-      cache: createSyncedCache({
-        name: 'mutation',
-        runtime: defaultCacheRuntime,
-        lookup: (input: { readonly id: number }) =>
-          Effect.sync(() => {
-            lookups.set(input.id, (lookups.get(input.id) ?? 0) + 1);
-            return source.get(input.id) ?? 'missing';
-          }),
-        mutate: (command: { readonly id: number; readonly value: string }) =>
-          Effect.sync(() => source.set(command.id, command.value)).pipe(Effect.asVoid),
-        affects: (command) => [{ id: command.id }],
-        matches: (input, scope) => input.id === scope.id,
-      }),
-    }));
-    const one = owned.cache.get({ id: 1 });
-    const two = owned.cache.get({ id: 2 });
-    expect(await Promise.all([resolve(one), resolve(two)])).toEqual(['one', 'two']);
-
-    await owned.cache.mutate({ id: 1, value: 'updated' });
-    await settle();
-
-    expect(one()).toBe('updated');
-    expect(two()).toBe('two');
-    expect(lookups).toEqual(
-      new Map([
-        [1, 2],
-        [2, 1],
-      ]),
-    );
-    owned.dispose();
-  });
-
-  test('interrupts every in-flight lookup when its Solid owner disposes', async () => {
-    let interrupted = false;
-    const owned = createRoot((dispose) => ({
-      dispose,
-      cache: createSyncedCache({
-        name: 'disposal',
-        runtime: defaultCacheRuntime,
-        lookup: (_input: { readonly id: number }) =>
-          Effect.callback<never>(() =>
+  test('uses structural keys and returns one stable accessor per input', () =>
+    Effect.gen(function* () {
+      let lookups = 0;
+      const owned = createRoot((dispose) => ({
+        dispose,
+        cache: createSyncedCache({
+          name: 'structural',
+          runtime: defaultCacheRuntime,
+          lookup: (input: { readonly id: number }) =>
             Effect.sync(() => {
-              interrupted = true;
+              lookups += 1;
+              return `value-${input.id}`;
             }),
-          ),
-        mutate: (_command: never) => Effect.void,
-        affects: (_command: never): ReadonlyArray<never> => [],
-        matches: (_input: { readonly id: number }, _scope: never) => false,
-      }),
+          mutate: (_command: never) => Effect.void,
+          affects: (_command: never): ReadonlyArray<never> => [],
+          matches: (_input: { readonly id: number }, _scope: never) => false,
+        }),
+      }));
+      yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
+
+      const first = owned.cache.get({ id: 1 });
+      const same = owned.cache.get({ id: 1 });
+
+      expect(same).toBe(first);
+      expect(yield* Effect.tryPromise(() => resolve(first))).toBe('value-1');
+      expect(lookups).toBe(1);
+      yield* settle;
+      expect(owned.cache.status({ id: 1 })()).toEqual({ state: 'ready' });
     }));
 
-    owned.cache.get({ id: 1 });
-    owned.dispose();
-    await waitFor(() => interrupted);
+  test('treats omitted and explicit empty structural inputs as the same key', () =>
+    Effect.gen(function* () {
+      let lookups = 0;
+      const owned = createRoot((dispose) => ({
+        dispose,
+        cache: createSyncedCache({
+          name: 'empty-input',
+          runtime: defaultCacheRuntime,
+          emptyInput: {},
+          lookup: (_input: {}) =>
+            Effect.sync(() => {
+              lookups += 1;
+              return 'ready';
+            }),
+          mutate: (_command: never) => Effect.void,
+          affects: (_command: never): ReadonlyArray<never> => [],
+          matches: (_input: {}, _scope: never) => false,
+        }),
+      }));
+      yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
 
-    expect(interrupted).toBe(true);
-  });
+      const omitted = owned.cache.get();
+      const explicit = owned.cache.get({});
+      expect(explicit).toBe(omitted);
+      expect(yield* Effect.tryPromise(() => resolve(omitted))).toBe('ready');
+      yield* settle;
+      expect(owned.cache.status()).toBe(owned.cache.status({}));
+      expect(lookups).toBe(1);
+    }));
+
+  test('normalizes initial failures and retains the error in status', () =>
+    Effect.gen(function* () {
+      const owned = createRoot((dispose) => ({
+        dispose,
+        cache: createSyncedCache({
+          name: 'failure',
+          runtime: defaultCacheRuntime,
+          lookup: (_input: { readonly id: number }) => Effect.fail('not found'),
+          mutate: (_command: never) => Effect.void,
+          affects: (_command: never): ReadonlyArray<never> => [],
+          matches: (_input: { readonly id: number }, _scope: never) => false,
+        }),
+      }));
+      yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
+      const value = owned.cache.get({ id: 1 });
+
+      const result = yield* Effect.exit(Effect.tryPromise(() => resolve(value)));
+      expect(Exit.isFailure(result)).toBe(true);
+      if (Exit.isFailure(result)) {
+        const failure = Cause.squash(result.cause);
+        expect(Cause.isUnknownError(failure)).toBe(true);
+        if (Cause.isUnknownError(failure)) {
+          expect(failure.cause).toBeInstanceOf(IpcCacheError);
+        }
+      }
+      yield* settle;
+
+      const status = owned.cache.status({ id: 1 })();
+      expect(status.state).toBe('failed');
+      if (status.state === 'failed') expect(status.error).toBeInstanceOf(IpcCacheError);
+    }));
+
+  test('preserves the last value when an explicit refresh fails', () =>
+    Effect.gen(function* () {
+      let fail = false;
+      let value = 1;
+      const owned = createRoot((dispose) => ({
+        dispose,
+        cache: createSyncedCache({
+          name: 'retained',
+          runtime: defaultCacheRuntime,
+          lookup: (_input: { readonly id: number }) => {
+            if (fail) return Effect.fail('refresh failed');
+            return Effect.succeed(value);
+          },
+          mutate: (_command: never) => Effect.void,
+          affects: (_command: never): ReadonlyArray<never> => [],
+          matches: (_input: { readonly id: number }, _scope: never) => false,
+        }),
+      }));
+      yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
+      const read = owned.cache.get({ id: 1 });
+      expect(yield* Effect.tryPromise(() => resolve(read))).toBe(1);
+      yield* settle;
+
+      fail = true;
+      value = 2;
+      const refreshed = yield* Effect.forkChild(
+        Effect.exit(Effect.tryPromise(() => owned.cache.refresh({ id: 1 }))),
+        { startImmediately: true },
+      );
+      yield* Effect.yieldNow;
+      flush();
+      expect(owned.cache.status({ id: 1 })()).toEqual({ state: 'refreshing' });
+      const result = yield* Fiber.join(refreshed);
+      expect(Exit.isFailure(result)).toBe(true);
+      if (Exit.isFailure(result)) {
+        const failure = Cause.squash(result.cause);
+        expect(Cause.isUnknownError(failure)).toBe(true);
+        if (Cause.isUnknownError(failure)) {
+          expect(failure.cause).toBeInstanceOf(IpcCacheError);
+        }
+      }
+      yield* settle;
+
+      expect(read()).toBe(1);
+      expect(owned.cache.status({ id: 1 })().state).toBe('failed');
+    }));
+
+  test('allows one active and one shared trailing refresh per key', () =>
+    Effect.gen(function* () {
+      let lookups = 0;
+      const resolvers: Array<(value: number) => void> = [];
+      const owned = createRoot((dispose) => ({
+        dispose,
+        cache: createSyncedCache({
+          name: 'trailing',
+          runtime: defaultCacheRuntime,
+          lookup: (_input: { readonly id: number }) =>
+            Effect.callback<number>((resume) => {
+              lookups += 1;
+              resolvers.push((next) => resume(Effect.succeed(next)));
+            }),
+          mutate: (_command: never) => Effect.void,
+          affects: (_command: never): ReadonlyArray<never> => [],
+          matches: (_input: { readonly id: number }, _scope: never) => false,
+        }),
+      }));
+      yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
+      const read = owned.cache.get({ id: 1 });
+      yield* waitFor(() => resolvers.length === 1);
+      resolvers[0]?.(1);
+      expect(yield* Effect.tryPromise(() => resolve(read))).toBe(1);
+
+      const active = yield* Effect.forkChild(
+        Effect.tryPromise(() => owned.cache.refresh({ id: 1 })),
+        { startImmediately: true },
+      );
+      yield* waitFor(() => resolvers.length === 2);
+      const trailingRequest = owned.cache.refresh({ id: 1 });
+      const sameTrailingRequest = owned.cache.refresh({ id: 1 });
+      expect(sameTrailingRequest).toBe(trailingRequest);
+      const trailing = yield* Effect.forkChild(
+        Effect.all([
+          Effect.tryPromise(() => trailingRequest),
+          Effect.tryPromise(() => sameTrailingRequest),
+        ]),
+        { startImmediately: true },
+      );
+      yield* Effect.yieldNow;
+      expect(lookups).toBe(2);
+
+      resolvers[1]?.(2);
+      expect(yield* Fiber.join(active)).toBe(2);
+      yield* waitFor(() => resolvers.length === 3);
+      resolvers[2]?.(3);
+      expect(yield* Fiber.join(trailing)).toEqual([3, 3]);
+      yield* settle;
+
+      expect(read()).toBe(3);
+      expect(lookups).toBe(3);
+    }));
+
+  test('mutations refresh only structurally affected active entries', () =>
+    Effect.gen(function* () {
+      const source = new Map([
+        [1, 'one'],
+        [2, 'two'],
+      ]);
+      const lookups = new Map<number, number>();
+      const owned = createRoot((dispose) => ({
+        dispose,
+        cache: createSyncedCache({
+          name: 'mutation',
+          runtime: defaultCacheRuntime,
+          lookup: (input: { readonly id: number }) =>
+            Effect.sync(() => {
+              lookups.set(input.id, (lookups.get(input.id) ?? 0) + 1);
+              return source.get(input.id) ?? 'missing';
+            }),
+          mutate: (command: { readonly id: number; readonly value: string }) =>
+            Effect.sync(() => source.set(command.id, command.value)).pipe(Effect.asVoid),
+          affects: (command) => [{ id: command.id }],
+          matches: (input, scope) => input.id === scope.id,
+        }),
+      }));
+      yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
+      const one = owned.cache.get({ id: 1 });
+      const two = owned.cache.get({ id: 2 });
+      expect(
+        yield* Effect.all([
+          Effect.tryPromise(() => resolve(one)),
+          Effect.tryPromise(() => resolve(two)),
+        ]),
+      ).toEqual(['one', 'two']);
+
+      yield* Effect.tryPromise(() => owned.cache.mutate({ id: 1, value: 'updated' }));
+      yield* settle;
+
+      expect(one()).toBe('updated');
+      expect(two()).toBe('two');
+      expect(lookups).toEqual(
+        new Map([
+          [1, 2],
+          [2, 1],
+        ]),
+      );
+    }));
+
+  test('interrupts every in-flight lookup when its Solid owner disposes', () =>
+    Effect.gen(function* () {
+      let interrupted = false;
+      yield* Effect.scoped(
+        Effect.gen(function* () {
+          const owned = createRoot((dispose) => ({
+            dispose,
+            cache: createSyncedCache({
+              name: 'disposal',
+              runtime: defaultCacheRuntime,
+              lookup: (_input: { readonly id: number }) =>
+                Effect.callback<never>(() =>
+                  Effect.sync(() => {
+                    interrupted = true;
+                  }),
+                ),
+              mutate: (_command: never) => Effect.void,
+              affects: (_command: never): ReadonlyArray<never> => [],
+              matches: (_input: { readonly id: number }, _scope: never) => false,
+            }),
+          }));
+          yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
+          owned.cache.get({ id: 1 });
+          yield* settle;
+        }),
+      );
+      yield* waitFor(() => interrupted);
+
+      expect(interrupted).toBe(true);
+    }));
 });
