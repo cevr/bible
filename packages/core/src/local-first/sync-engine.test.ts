@@ -1,9 +1,8 @@
-import { afterAll, describe, expect, test } from 'bun:test';
-import { mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { BunFileSystem } from '@effect/platform-bun';
+import { describe, expect, test } from 'bun:test';
+import { it } from 'effect-bun-test';
 
-import { Effect, Schema } from 'effect';
+import { Effect, FileSystem, Schema } from 'effect';
 
 import { LibraryEntityId } from '../library-state/model.js';
 import {
@@ -35,10 +34,6 @@ import { makeSyncEngine } from './sync-engine.js';
 const migrationSql = await Bun.file(
   new URL('./migrations/0001_user_state.sql', import.meta.url),
 ).text();
-const temporaryDirectory = mkdtempSync(join(tmpdir(), 'bible-local-first-'));
-
-afterAll(() => rmSync(temporaryDirectory, { recursive: true, force: true }));
-
 const clientId = Schema.decodeSync(ClientId);
 const mutationId = Schema.decodeSync(MutationId);
 const noteId = Schema.decodeSync(NoteId);
@@ -71,8 +66,6 @@ interface Harness {
   readonly published: Array<ChangeSet>;
 }
 
-let harnessIndex = 0;
-
 const makeHarness = async (
   name: string,
   transport: SimulatedTransport,
@@ -94,13 +87,13 @@ const makeHarness = async (
     now: () => timestamp(`2026-07-19T00:00:${String(timeIndex++).padStart(2, '0')}.000Z`),
     publish: (changes) => Effect.sync(() => published.push(changes)).pipe(Effect.asVoid),
   });
-  harnessIndex += 1;
   return { database, store, engine, published };
 };
 
 const closeHarness = (harness: Harness) => Effect.runPromise(harness.database.close);
 
 describe('local-first sync protocol', () => {
+  const scopedTest = it.scopedLive.layer(BunFileSystem.layer);
   test('keeps offline writes durable and retries the same envelope exactly once', async () => {
     const transport = makeSimulatedTransport();
     const client = await makeHarness('offline-client', transport);
@@ -550,27 +543,31 @@ describe('local-first sync protocol', () => {
     await closeHarness(client);
   });
 
-  test('recovers the journal and next device sequence after a database restart', async () => {
-    const transport = makeSimulatedTransport();
-    const filename = join(temporaryDirectory, `restart-${harnessIndex}.sqlite`);
-    const first = await makeHarness('restart-client', transport, filename);
-    const firstEnvelope = await Effect.runPromise(
-      first.engine.mutate(saveNote('restart-note-1', 'one')),
-    );
-    await closeHarness(first);
+  scopedTest('recovers the journal and next device sequence after a database restart', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const directory = yield* fs.makeTempDirectoryScoped({ prefix: 'bible-local-first-' });
+      const transport = makeSimulatedTransport();
+      const filename = `${directory}/restart.sqlite`;
+      const first = yield* Effect.tryPromise(() =>
+        makeHarness('restart-client', transport, filename),
+      );
+      const firstEnvelope = yield* first.engine.mutate(saveNote('restart-note-1', 'one'));
+      yield* first.database.close;
 
-    const reopened = await makeHarness('restart-client', transport, filename, 2);
-    const recovered = await Effect.runPromise(reopened.store.pending);
-    const secondEnvelope = await Effect.runPromise(
-      reopened.engine.mutate(saveNote('restart-note-2', 'two')),
-    );
+      const reopened = yield* Effect.tryPromise(() =>
+        makeHarness('restart-client', transport, filename, 2),
+      );
+      const recovered = yield* reopened.store.pending;
+      const secondEnvelope = yield* reopened.engine.mutate(saveNote('restart-note-2', 'two'));
 
-    expect(recovered).toEqual([firstEnvelope]);
-    expect(secondEnvelope.sequence).toBe(sequence(2));
-    await Effect.runPromise(reopened.engine.synchronize());
-    expect(transport.acceptedCount()).toBe(2);
-    await closeHarness(reopened);
-  });
+      expect(recovered).toEqual([firstEnvelope]);
+      expect(secondEnvelope.sequence).toBe(sequence(2));
+      yield* reopened.engine.synchronize();
+      expect(transport.acceptedCount()).toBe(2);
+      yield* reopened.database.close;
+    }),
+  );
 
   test('validates commands before opening a mutation transaction', async () => {
     const transport = makeSimulatedTransport();
