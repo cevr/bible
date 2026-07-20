@@ -3,13 +3,18 @@ import * as SQLite from 'wa-sqlite';
 import type { GenerationRegistry, GenerationRegistryStore } from './generation-marker.js';
 import type { SqliteDatabase, SqliteDatabaseFamily } from './sqlite-database.js';
 
-const BIBLE_GENERATION = /^bible-[a-zA-Z0-9._-]+-[a-f0-9]{12}\.db$/u;
+const BIBLE_GENERATION = /^bible-[a-zA-Z0-9._-]+-[a-f0-9]{12}(?:-next)?\.db$/u;
+
+export interface ReservedBibleGeneration {
+  readonly filename: string;
+  readonly database: SqliteDatabase;
+}
 
 export interface BibleGenerationStore {
   readonly active: SqliteDatabase;
   readonly activeFilename: string | undefined;
   readonly openActive: () => Promise<boolean>;
-  readonly reserve: (filename: string) => Promise<SqliteDatabase>;
+  readonly reserve: (preferredFilename: string) => Promise<ReservedBibleGeneration>;
   readonly activateVerified: (filename: string) => Promise<void>;
   readonly discardCandidate: (filename: string) => Promise<void>;
 }
@@ -23,6 +28,11 @@ const withGeneration = (registry: GenerationRegistry, generation: string): Gener
     ? registry.managed
     : [...registry.managed, generation],
 });
+
+const inactiveFilename = (preferredFilename: string, active: string | undefined): string =>
+  preferredFilename === active
+    ? preferredFilename.replace(/\.db$/u, '-next.db')
+    : preferredFilename;
 
 /**
  * Owns the durable marker, reader handoff, and retirement policy for browser Bible generations.
@@ -85,10 +95,14 @@ export const makeBibleGenerationStore = (input: {
       await reconcile(withGeneration(registry, registry.active));
       return true;
     },
-    reserve: async (filename) => {
-      const registry = withGeneration(await input.registry.read(), filename);
+    reserve: async (preferredFilename) => {
+      const current = await input.registry.read();
+      const filename = inactiveFilename(preferredFilename, current.active);
+      if (filename === current.active)
+        throw new Error('Bible candidate generation must be inactive');
+      const registry = withGeneration(current, filename);
       await input.registry.write(registry);
-      return input.databases.candidate(filename);
+      return { filename, database: input.databases.candidate(filename) };
     },
     activateVerified: async (filename) => {
       const before = withGeneration(await input.registry.read(), filename);

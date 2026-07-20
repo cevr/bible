@@ -141,9 +141,11 @@ export const layerBrowserBibleArtifacts = (input: {
         Effect.tryPromise({
           try: async () => {
             const expectedDigest = Option.getOrThrow(artifact.provenance.digest);
-            const candidateName = generationName(artifact.provenance);
+            const preferredName = generationName(artifact.provenance);
+            let candidateName: string | undefined;
             try {
-              const candidate = await input.generations.reserve(candidateName);
+              const reserved = await input.generations.reserve(preferredName);
+              candidateName = reserved.filename;
               const written = await input.downloader.install(
                 artifact.bytes,
                 candidateName,
@@ -152,7 +154,7 @@ export const layerBrowserBibleArtifacts = (input: {
               if (written.digest !== expectedDigest) {
                 throw new Error('Bible Artifact digest does not match its release manifest');
               }
-              await candidate.open(SQLite.SQLITE_OPEN_READWRITE);
+              await reserved.database.open(SQLite.SQLITE_OPEN_READWRITE);
               let installed: number;
               const provenance = new CorpusProvenance({
                 source: artifact.provenance.source,
@@ -160,15 +162,15 @@ export const layerBrowserBibleArtifacts = (input: {
                 digest: Option.some(corpusDigest(written.digest)),
               });
               try {
-                installed = await verifyBibleDatabase(candidate);
-                await writeProvenance(candidate, provenance);
+                installed = await verifyBibleDatabase(reserved.database);
+                await writeProvenance(reserved.database, provenance);
               } finally {
-                await candidate.close();
+                await reserved.database.close();
               }
               await input.generations.activateVerified(candidateName);
               return { installed, provenance };
             } catch (cause) {
-              if (input.generations.activeFilename !== candidateName)
+              if (candidateName !== undefined && input.generations.activeFilename !== candidateName)
                 await input.generations.discardCandidate(candidateName);
               throw cause;
             }

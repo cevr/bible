@@ -16,6 +16,7 @@ const makeDatabase = (options: {
   readonly valid?: boolean;
   readonly revision?: string;
   readonly generation?: string;
+  readonly refresh?: boolean;
 }): SqliteDatabase => ({
   isOpen: false,
   open: async (flags) => {
@@ -66,6 +67,7 @@ const ensure = async (options: {
   readonly valid?: boolean;
   readonly revision?: string;
   readonly generation?: string;
+  readonly refresh?: boolean;
 }) => {
   const database = makeDatabase(options);
   let activeFilename: string | undefined;
@@ -112,7 +114,7 @@ const ensure = async (options: {
   const supply = CorpusSupply.layer.pipe(Layer.provide(artifacts));
   return Effect.runPromise(
     Effect.gen(function* () {
-      return yield* (yield* CorpusSupply).ensure();
+      return yield* (yield* CorpusSupply).ensure({ refresh: options.refresh });
     }).pipe(Effect.provide(supply)),
   );
 };
@@ -173,5 +175,19 @@ describe('browser Bible Artifact adapter', () => {
     const discarded = events.indexOf('discard:bible-db-v1-5f3bfd31151b.db');
     expect(activated).toBeGreaterThanOrEqual(0);
     expect(discarded).toBeGreaterThan(activated);
+  });
+
+  it('refreshes a current Artifact through an inactive generation slot', async () => {
+    const events: string[] = [];
+    const active = 'bible-db-v2-e72244f576be.db';
+
+    await ensure({ provenance: true, generation: active, refresh: true, events });
+
+    expect(events).toContain('install:bible-db-v2-e72244f576be-next.db');
+    expect(events).toContain('activate:bible-db-v2-e72244f576be-next.db');
+    expect(events).toContain(`discard:${active}`);
+    expect(events.indexOf(`discard:${active}`)).toBeGreaterThan(
+      events.indexOf('activate:bible-db-v2-e72244f576be-next.db'),
+    );
   });
 });

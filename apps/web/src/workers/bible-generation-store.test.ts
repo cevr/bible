@@ -127,4 +127,17 @@ describe('browser Bible generation store', () => {
       expect(fixture.state()).toEqual({ active, managed: [active] });
     }),
   );
+
+  it.effect('allocates an inactive slot when refresh requests the active identity', () =>
+    Effect.gen(function* () {
+      const active = 'bible-db-v2-e72244f576be.db';
+      const fixture = harness({ active, managed: [active] });
+
+      const reserved = yield* Effect.tryPromise(() => fixture.store.reserve(active));
+
+      expect(reserved.filename).toBe('bible-db-v2-e72244f576be-next.db');
+      expect(reserved.filename).not.toBe(active);
+      expect(fixture.state()).toEqual({ active, managed: [active, reserved.filename] });
+    }),
+  );
 });
