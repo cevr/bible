@@ -14,9 +14,10 @@ export interface GenerationMarkerOperations {
 
 export const makeGenerationMarkerStore = (
   operations: GenerationMarkerOperations,
+  key = ACTIVE_GENERATION_KEY,
 ): GenerationMarkerStore => ({
-  read: () => operations.read(ACTIVE_GENERATION_KEY),
-  write: (generation) => operations.write(ACTIVE_GENERATION_KEY, generation),
+  read: () => operations.read(key),
+  write: (generation) => operations.write(key, generation),
 });
 
 const requestResult = <A>(request: IDBRequest<A>): Promise<A> =>
@@ -32,8 +33,8 @@ const transactionComplete = (transaction: IDBTransaction): Promise<void> =>
     transaction.onabort = () => reject(transaction.error);
   });
 
-const openDatabase = (): Promise<IDBDatabase> => {
-  const request = indexedDB.open(DATABASE_NAME, 1);
+const openDatabase = (databaseName: string): Promise<IDBDatabase> => {
+  const request = indexedDB.open(databaseName, 1);
   request.onupgradeneeded = () => {
     const database = request.result;
     if (!database.objectStoreNames.contains(STORE_NAME)) database.createObjectStore(STORE_NAME);
@@ -41,22 +42,30 @@ const openDatabase = (): Promise<IDBDatabase> => {
   return requestResult(request);
 };
 
-export const makeIndexedDbGenerationMarkerStore = (): GenerationMarkerStore =>
-  makeGenerationMarkerStore({
-    read: async (key) => {
-      const database = await openDatabase();
-      const transaction = database.transaction(STORE_NAME, 'readonly');
-      const value = await requestResult(transaction.objectStore(STORE_NAME).get(key));
-      await transactionComplete(transaction);
-      database.close();
-      if (typeof value === 'string') return value;
-      return undefined;
+export const makeIndexedDbGenerationMarkerStore = (options?: {
+  readonly databaseName?: string;
+  readonly key?: string;
+}): GenerationMarkerStore => {
+  const databaseName = options?.databaseName ?? DATABASE_NAME;
+  return makeGenerationMarkerStore(
+    {
+      read: async (key) => {
+        const database = await openDatabase(databaseName);
+        const transaction = database.transaction(STORE_NAME, 'readonly');
+        const value = await requestResult(transaction.objectStore(STORE_NAME).get(key));
+        await transactionComplete(transaction);
+        database.close();
+        if (typeof value === 'string') return value;
+        return undefined;
+      },
+      write: async (key, value) => {
+        const database = await openDatabase(databaseName);
+        const transaction = database.transaction(STORE_NAME, 'readwrite', { durability: 'strict' });
+        transaction.objectStore(STORE_NAME).put(value, key);
+        await transactionComplete(transaction);
+        database.close();
+      },
     },
-    write: async (key, value) => {
-      const database = await openDatabase();
-      const transaction = database.transaction(STORE_NAME, 'readwrite', { durability: 'strict' });
-      transaction.objectStore(STORE_NAME).put(value, key);
-      await transactionComplete(transaction);
-      database.close();
-    },
-  });
+    options?.key,
+  );
+};

@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'bun:test';
 import * as SQLite from 'wa-sqlite';
 
-import { makeSqliteDatabase, type WorkerSqliteApi } from './sqlite-database.js';
+import {
+  makeSqliteDatabase,
+  makeSqliteDatabaseFamily,
+  type WorkerSqliteApi,
+} from './sqlite-database.js';
 
 const makeApi = (events: string[]): WorkerSqliteApi => {
   let stepped = false;
@@ -66,5 +70,20 @@ describe('worker SQLite database adapter', () => {
 
     expect(await database.write('UPDATE value SET n = ?', [2])).toBe(3);
     expect(await database.exec('CREATE TABLE value (n INTEGER)')).toBeUndefined();
+  });
+
+  it('opens a candidate before replacing the active generation', async () => {
+    const events: string[] = [];
+    const family = makeSqliteDatabaseFamily(makeApi(events), 'opfs');
+    await family.activate('bible-v1.db', SQLite.SQLITE_OPEN_READWRITE);
+    await family.activate('bible-v2.db', SQLite.SQLITE_OPEN_READWRITE);
+
+    expect(family.activeFilename).toBe('bible-v2.db');
+    expect(family.active.isOpen).toBe(true);
+    expect(events.filter((event) => event.startsWith('open:'))).toEqual([
+      `open:bible-v1.db:${String(SQLite.SQLITE_OPEN_READWRITE)}:opfs`,
+      `open:bible-v2.db:${String(SQLite.SQLITE_OPEN_READWRITE)}:opfs`,
+    ]);
+    expect(events).toContain('close:7');
   });
 });

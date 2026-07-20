@@ -31,6 +31,7 @@ export interface ReleaseBibleArtifactSource {
   readonly kind: 'release';
   readonly url: string;
   readonly revision: string;
+  readonly digest: string;
 }
 
 export type NativeBibleArtifactSource = LocalBibleArtifactSource | ReleaseBibleArtifactSource;
@@ -79,7 +80,7 @@ const releaseSource = (
     provenance: new CorpusProvenance({
       source: assetSourceId('bible-release'),
       revision: corpusRevision(source.revision),
-      digest: Option.none(),
+      digest: Option.some(corpusDigest(source.digest)),
     }),
     bytes: Stream.unwrap(
       Effect.tryPromise({
@@ -183,8 +184,11 @@ export const layerNativeBibleArtifacts = (input: {
                 hashStream,
                 createWriteStream(building),
               );
-              const installed = verify(building);
               const digest = corpusDigest(`sha256:${hasher.digest('hex')}`);
+              if (Option.exists(artifact.provenance.digest, (expected) => expected !== digest)) {
+                throw new Error('Bible Artifact digest does not match its release manifest');
+              }
+              const installed = verify(building);
               const provenance = new CorpusProvenance({
                 source: artifact.provenance.source,
                 revision: artifact.provenance.revision,

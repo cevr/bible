@@ -25,6 +25,13 @@ export interface SqliteDatabase {
   readonly exec: (sql: string) => Promise<void>;
 }
 
+export interface SqliteDatabaseFamily {
+  readonly active: SqliteDatabase;
+  readonly candidate: (filename: string) => SqliteDatabase;
+  readonly activate: (filename: string, flags: number) => Promise<void>;
+  readonly activeFilename: string | undefined;
+}
+
 export const makeSqliteDatabase = (
   sqlite: WorkerSqliteApi,
   filename: string,
@@ -113,5 +120,44 @@ export const makeSqliteDatabase = (
     values,
     write,
     exec,
+  };
+};
+
+/** Keeps readers on one verified database while another named generation is prepared. */
+export const makeSqliteDatabaseFamily = (
+  sqlite: WorkerSqliteApi,
+  vfsName: string,
+): SqliteDatabaseFamily => {
+  let activeDatabase: SqliteDatabase | undefined;
+  let filename: string | undefined;
+  const requireActive = (): SqliteDatabase => {
+    if (activeDatabase === undefined) throw new Error('No SQLite generation is active');
+    return activeDatabase;
+  };
+  const active: SqliteDatabase = {
+    get isOpen() {
+      return activeDatabase?.isOpen ?? false;
+    },
+    open: (flags) => requireActive().open(flags),
+    close: () => activeDatabase?.close() ?? Promise.resolve(),
+    query: (sql, params) => requireActive().query(sql, params),
+    values: (sql, params) => requireActive().values(sql, params),
+    write: (sql, params) => requireActive().write(sql, params),
+    exec: (sql) => requireActive().exec(sql),
+  };
+  return {
+    active,
+    candidate: (candidateFilename) => makeSqliteDatabase(sqlite, candidateFilename, vfsName),
+    activate: async (candidateFilename, flags) => {
+      if (filename === candidateFilename && activeDatabase?.isOpen === true) return;
+      const candidate = makeSqliteDatabase(sqlite, candidateFilename, vfsName);
+      await candidate.open(flags);
+      await activeDatabase?.close();
+      activeDatabase = candidate;
+      filename = candidateFilename;
+    },
+    get activeFilename() {
+      return filename;
+    },
   };
 };

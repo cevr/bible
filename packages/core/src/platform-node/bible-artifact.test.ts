@@ -25,10 +25,12 @@ afterEach(async () => {
 const ensure = (
   destination: string,
   sources: readonly NativeBibleArtifactSource[],
+  fetch?: (url: string) => Promise<Response>,
 ): Promise<CorpusSupplyReceipt> => {
   const artifacts = layerNativeBibleArtifacts({
     destination,
     sources,
+    fetch,
     verify: (filename) => statSync(filename).size,
   });
   const supply = CorpusSupply.layer.pipe(Layer.provide(artifacts));
@@ -85,5 +87,26 @@ describe('desktop Bible Artifact adapter', () => {
         { kind: 'packaged', path: path.join(directory, 'missing.db'), label: 'missing' },
       ]),
     ).rejects.toMatchObject({ _tag: 'CorpusSourceUnavailableError' });
+  });
+
+  test('rejects release bytes that do not match the pinned manifest', async () => {
+    const directory = await temporaryDirectory();
+    const destination = path.join(directory, 'bible.db');
+
+    expect(
+      ensure(
+        destination,
+        [
+          {
+            kind: 'release',
+            url: 'https://example.test/bible.db',
+            revision: 'fixture',
+            digest: `sha256:${'a'.repeat(64)}`,
+          },
+        ],
+        async () => new Response('wrong bytes'),
+      ),
+    ).rejects.toMatchObject({ _tag: 'CorpusInstallationError' });
+    expect(stat(destination)).rejects.toMatchObject({ code: 'ENOENT' });
   });
 });

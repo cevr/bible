@@ -14,7 +14,8 @@ import { Effect, Layer, Option, Stream } from 'effect';
 import * as SQLite from 'wa-sqlite';
 
 import type { DatabaseFileDownloader } from './database-file-downloader.js';
-import type { SqliteDatabase } from './sqlite-database.js';
+import type { GenerationMarkerStore } from './generation-marker.js';
+import type { SqliteDatabase, SqliteDatabaseFamily } from './sqlite-database.js';
 
 const sourceError = (operation: string, cause: unknown): CorpusSourceUnavailableError =>
   new CorpusSourceUnavailableError({ operation, cause });
@@ -68,8 +69,34 @@ const readProvenance = async (
   }
 };
 
+const generationName = (provenance: CorpusProvenance): string => {
+  const digest = Option.getOrThrow(provenance.digest);
+  const revision = provenance.revision.replace(/[^a-zA-Z0-9._-]/gu, '-');
+  return `bible-${revision}-${digest.slice('sha256:'.length, 'sha256:'.length + 12)}.db`;
+};
+
+const writeProvenance = async (
+  database: SqliteDatabase,
+  provenance: CorpusProvenance,
+): Promise<void> => {
+  const digest = Option.getOrThrow(provenance.digest);
+  await database.exec('BEGIN IMMEDIATE');
+  try {
+    const upsert =
+      'INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value';
+    await database.write(upsert, ['corpus_source', provenance.source]);
+    await database.write(upsert, ['corpus_revision', provenance.revision]);
+    await database.write(upsert, ['corpus_digest', digest]);
+    await database.exec('COMMIT');
+  } catch (cause) {
+    await database.exec('ROLLBACK').catch(() => undefined);
+    throw cause;
+  }
+};
+
 export const layerBrowserBibleArtifacts = (input: {
-  readonly database: SqliteDatabase;
+  readonly databases: SqliteDatabaseFamily;
+  readonly marker: GenerationMarkerStore;
   readonly downloader: DatabaseFileDownloader;
   readonly fetch?: (url: string) => Promise<Response>;
   readonly onProgress?: (progress: number) => void;
@@ -83,12 +110,12 @@ export const layerBrowserBibleArtifacts = (input: {
         provenance: new CorpusProvenance({
           source: assetSourceId('bible-release'),
           revision: corpusRevision(BIBLE_ARTIFACT_RELEASE.revision),
-          digest: Option.none(),
+          digest: Option.some(corpusDigest(BIBLE_ARTIFACT_RELEASE.digest)),
         }),
         bytes: Stream.unwrap(
           Effect.tryPromise({
             try: async () => {
-              const response = await fetchArtifact(BIBLE_ARTIFACT_RELEASE.url);
+              const response = await fetchArtifact('/api/assets/bible');
               if (!response.ok) throw new Error(`HTTP ${String(response.status)}`);
               if (response.body === null) throw new Error('response has no body');
               return Stream.fromReadableStream({
@@ -107,39 +134,42 @@ export const layerBrowserBibleArtifacts = (input: {
     BibleArtifactInstaller.of({
       current: Effect.tryPromise({
         try: async () => {
-          await input.database.open(SQLite.SQLITE_OPEN_READWRITE | SQLite.SQLITE_OPEN_CREATE);
-          return readProvenance(input.database);
+          const active = await input.marker.read();
+          if (active === undefined) return Option.none();
+          await input.databases.activate(active, SQLite.SQLITE_OPEN_READWRITE);
+          return readProvenance(input.databases.active);
         },
         catch: (cause) => new CorpusInstallationError({ corpus: 'bible', cause }),
       }),
       install: (artifact) =>
         Effect.tryPromise({
           try: async () => {
-            await input.database.close();
+            const expectedDigest = Option.getOrThrow(artifact.provenance.digest);
+            const candidateName = generationName(artifact.provenance);
             const written = await input.downloader.install(
               artifact.bytes,
-              'bible.db',
+              candidateName,
               input.onProgress ?? (() => undefined),
             );
-            await input.database.open(SQLite.SQLITE_OPEN_READWRITE);
-            const installed = await verifyBibleDatabase(input.database);
+            if (written.digest !== expectedDigest) {
+              throw new Error('Bible Artifact digest does not match its release manifest');
+            }
+            const candidate = input.databases.candidate(candidateName);
+            await candidate.open(SQLite.SQLITE_OPEN_READWRITE);
+            let installed: number;
             const provenance = new CorpusProvenance({
               source: artifact.provenance.source,
               revision: artifact.provenance.revision,
               digest: Option.some(corpusDigest(written.digest)),
             });
-            await input.database.write(
-              'INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
-              ['corpus_source', provenance.source],
-            );
-            await input.database.write(
-              'INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
-              ['corpus_revision', provenance.revision],
-            );
-            await input.database.write(
-              'INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
-              ['corpus_digest', written.digest],
-            );
+            try {
+              installed = await verifyBibleDatabase(candidate);
+              await writeProvenance(candidate, provenance);
+            } finally {
+              await candidate.close();
+            }
+            await input.marker.write(candidateName);
+            await input.databases.activate(candidateName, SQLite.SQLITE_OPEN_READWRITE);
             return { installed, provenance };
           },
           catch: (cause) => new CorpusInstallationError({ corpus: 'bible', cause }),

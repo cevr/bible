@@ -24,7 +24,7 @@ import {
   type ProcedureWorkerConnect,
 } from './procedure-worker-protocol.js';
 import { layerProcedureServer, type ProcedureServerInput } from './procedure-server.js';
-import { makeSqliteDatabase } from './sqlite-database.js';
+import { makeSqliteDatabase, makeSqliteDatabaseFamily } from './sqlite-database.js';
 import { makeIndexedDbGenerationMarkerStore } from './generation-marker.js';
 import type { BrowserSqliteVfs } from './user-state-generation.js';
 import { migrateWebUserState } from './web-state-migration.js';
@@ -119,9 +119,13 @@ const initializeDatabases = async (): Promise<void> => {
   log('[web.runtime] sqlite-loading state=started');
   const { sqlite3, vfsName, vfs, downloader } = await initializeSqlite();
   const writingsSqlite = makeSqliteDatabase(sqlite3, 'egw-paragraphs.db', vfsName);
-  const bibleSqlite = makeSqliteDatabase(sqlite3, 'bible.db', vfsName);
+  const bibleDatabases = makeSqliteDatabaseFamily(sqlite3, vfsName);
   const bibleArtifacts = layerBrowserBibleArtifacts({
-    database: bibleSqlite,
+    databases: bibleDatabases,
+    marker: makeIndexedDbGenerationMarkerStore({
+      databaseName: 'bible-corpus-metadata',
+      key: 'active-bible-generation',
+    }),
     downloader,
     onProgress: (progress) => log(`[web.bible] install-progress progress=${String(progress)}`),
   });
@@ -148,7 +152,7 @@ const initializeDatabases = async (): Promise<void> => {
   });
   const localClientId = Schema.decodeSync(ClientId)('web-local');
   procedureServer = {
-    bibleDatabase: bibleSqlite,
+    bibleDatabase: bibleDatabases.active,
     writingsDatabase: writingsSqlite,
     writingsFetch: globalThis.fetch,
     runtime: {

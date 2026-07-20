@@ -7,8 +7,10 @@ import type { CorpusProvenance } from './model.js';
 export type BibleArtifactSourceKind = 'packaged' | 'workspace' | 'runtime' | 'release';
 
 export const BIBLE_ARTIFACT_RELEASE = {
-  url: 'https://github.com/cevr/bible/releases/download/db-v1/bible.db',
-  revision: 'db-v1',
+  url: 'https://github.com/cevr/bible/releases/download/db-v2/bible.db',
+  revision: 'db-v2',
+  digest: 'sha256:e72244f576be2bfa1b28c4816f60d3668338c1322d7cd329d73143ec43bf277c',
+  size: 156_291_072,
 } as const;
 
 export interface BibleArtifact {

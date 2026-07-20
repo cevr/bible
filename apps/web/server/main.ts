@@ -24,6 +24,7 @@ import { homedir } from 'os';
 import { join } from 'path';
 
 import { BibleToolsApi } from '@bible/api';
+import { BIBLE_ARTIFACT_RELEASE } from '@bible/core/corpus-supply';
 import { BibleService } from '@bible/core/bible/service';
 import * as BibleDbBun from '@bible/core/bible-db/bun';
 import * as EGWDbBun from '@bible/core/egw-db/bun';
@@ -122,6 +123,26 @@ const StaticFilesMiddleware = HttpMiddleware.make((app) =>
     const request = yield* HttpServerRequest.HttpServerRequest;
     const url = new URL(request.url, 'http://localhost');
     const pathname = url.pathname;
+
+    if (pathname === '/api/assets/bible' && request.method === 'GET') {
+      const upstream = yield* Effect.tryPromise(() => fetch(BIBLE_ARTIFACT_RELEASE.url)).pipe(
+        Effect.catch(() => Effect.succeed(undefined)),
+      );
+      if (upstream === undefined || !upstream.ok || upstream.body === null) {
+        return HttpServerResponse.text('Bible Artifact unavailable', {
+          status: 502,
+          headers: CROSS_ORIGIN_HEADERS,
+        });
+      }
+      return HttpServerResponse.raw(upstream.body, {
+        headers: {
+          'Content-Type': 'application/octet-stream',
+          'Content-Length': String(BIBLE_ARTIFACT_RELEASE.size),
+          'X-Artifact-Digest': BIBLE_ARTIFACT_RELEASE.digest,
+          ...CROSS_ORIGIN_HEADERS,
+        },
+      });
+    }
 
     // Sync state backup
     if (pathname === '/api/sync/state') {
