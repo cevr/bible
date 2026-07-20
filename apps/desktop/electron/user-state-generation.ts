@@ -21,23 +21,14 @@ import {
 } from '@bible/core/local-first';
 import { LibraryEntityId, type ReaderLocation } from '@bible/core/library-state';
 import Database from 'better-sqlite3';
-import { Effect, Option, Schema } from 'effect';
-import { createHash } from 'node:crypto';
-import {
-  existsSync,
-  readFileSync,
-  readdirSync,
-  renameSync,
-  unlinkSync,
-  writeFileSync,
-} from 'node:fs';
-import path from 'node:path';
+import { DateTime, Effect, Option, Schema } from 'effect';
 
 import {
   makeDesktopSyncStore,
   makeDesktopUserDatabase,
   type DesktopUserDatabase,
 } from './user-state-database.js';
+import * as Host from './user-state-generation-host.js';
 
 const GENERATION_PATTERN = /^user-state-v1-[0-9a-f]{16}$/u;
 const GENERATED_FILE_PATTERN = /^(user-state-v1-[0-9a-f]{16})\.sqlite(?:-(?:wal|shm|journal))?$/u;
@@ -45,6 +36,7 @@ const ACTIVE_MARKER = 'user-state.active';
 const ACTIVE_MARKER_TEMP = 'user-state.active.tmp';
 const DEVICE_STATE = 'device-state.v1.json';
 const DEVICE_STATE_TEMP = 'device-state.v1.json.tmp';
+const encodeJson = Schema.encodeSync(Schema.UnknownFromJsonString);
 
 const CacheBook = Schema.Struct({ book_id: Schema.Int });
 const CacheParagraph = Schema.Struct({
@@ -109,17 +101,11 @@ const mapCopyError = (operation: string, message: string) => (cause: unknown) =>
 const attempt = <A>(operation: string, message: string, evaluate: () => A) =>
   Effect.try({ try: evaluate, catch: mapCopyError(operation, message) });
 
-const digest = (input: string | Uint8Array): string =>
-  createHash('sha256').update(input).digest('hex');
+const digest = Host.digest;
 
 const fingerprint = (bytes: Uint8Array): string => `sha256:${digest(bytes)}`;
 
-const databaseFingerprint = (filename: string, bytes: Uint8Array): string => {
-  const hash = createHash('sha256').update(bytes);
-  const wal = `${filename}-wal`;
-  if (existsSync(wal)) hash.update(readFileSync(wal));
-  return `sha256:${hash.digest('hex')}`;
-};
+const databaseFingerprint = Host.databaseFingerprint;
 
 const deterministicKey = (fingerprintValue: string, pathValue: string): string =>
   digest(`${fingerprintValue}\u0000${pathValue}`).slice(0, 32);
@@ -127,11 +113,11 @@ const deterministicKey = (fingerprintValue: string, pathValue: string): string =
 const deterministicTimestamp = (fingerprintValue: string, pathValue: string): Timestamp => {
   const seconds = Number.parseInt(deterministicKey(fingerprintValue, pathValue).slice(0, 8), 16);
   const epoch = 946_684_800_000 + (seconds % 1_000_000_000) * 1_000;
-  return Schema.decodeSync(Timestamp)(new Date(epoch).toISOString());
+  return Schema.decodeSync(Timestamp)(DateTime.formatIso(DateTime.makeUnsafe(epoch)));
 };
 
 const generationFilename = (userDataPath: string, generation: string): string =>
-  path.join(userDataPath, `${generation}.sqlite`);
+  Host.join(userDataPath, `${generation}.sqlite`);
 
 const tableExists = (database: Database.Database, table: string): boolean =>
   database
@@ -257,7 +243,7 @@ const makeCliEgwResolver = (
   if (writingsFile === undefined) return Effect.succeed(unavailable);
   const file = writingsFile;
   return attempt('inspect-writings', 'local Writings corpus could not be inspected', () =>
-    existsSync(file),
+    Host.exists(file),
   ).pipe(
     Effect.flatMap((exists) => {
       if (!exists) return Effect.succeed(unavailable);
@@ -336,8 +322,8 @@ const semanticCountsFor = (
 };
 
 const readLegacyBytes = (filename: string): Uint8Array => {
-  if (!existsSync(filename)) return new Uint8Array();
-  return readFileSync(filename);
+  if (!Host.exists(filename)) return new Uint8Array();
+  return Host.readBytes(filename);
 };
 
 const snapshotDesktopCache = (
@@ -543,8 +529,8 @@ const activeEntityCount = (database: DesktopUserDatabase, entity: string): numbe
 export const makeDesktopCanonicalGenerationAdapter = (
   options: DesktopCanonicalGenerationAdapterOptions,
 ): CanonicalGenerationAdapter => {
-  const marker = path.join(options.userDataPath, ACTIVE_MARKER);
-  const markerTemp = path.join(options.userDataPath, ACTIVE_MARKER_TEMP);
+  const marker = Host.join(options.userDataPath, ACTIVE_MARKER);
+  const markerTemp = Host.join(options.userDataPath, ACTIVE_MARKER_TEMP);
   const opened = new Map<object, DesktopUserDatabase>();
   const log = (action: string, context: string): void => {
     options.log(`[migration] ${action} ${context}`);
@@ -589,13 +575,13 @@ export const makeDesktopCanonicalGenerationAdapter = (
 
   return {
     activeGeneration: attempt('read-active', 'activation marker could not be read', () => {
-      if (!existsSync(marker)) return undefined;
-      const generation = readFileSync(marker, 'utf8').trim();
+      if (!Host.exists(marker)) return undefined;
+      const generation = Host.readText(marker).trim();
       if (!GENERATION_PATTERN.test(generation)) {
         log('marker-invalid', 'reason=malformed');
         return undefined;
       }
-      if (!existsSync(generationFilename(options.userDataPath, generation))) {
+      if (!Host.exists(generationFilename(options.userDataPath, generation))) {
         log('marker-invalid', 'reason=missing-generation');
         return undefined;
       }
@@ -603,15 +589,15 @@ export const makeDesktopCanonicalGenerationAdapter = (
     }),
     discardInactive: (activeGeneration) =>
       attempt('discard-inactive', 'inactive canonical generations could not be discarded', () => {
-        for (const entry of readdirSync(options.userDataPath)) {
+        for (const entry of Host.entries(options.userDataPath)) {
           const match = GENERATED_FILE_PATTERN.exec(entry);
           if (match === null) continue;
           const generation = match[1];
           if (generation === activeGeneration) continue;
-          unlinkSync(path.join(options.userDataPath, entry));
+          Host.unlink(Host.join(options.userDataPath, entry));
           log('generation-discarded', `file=${entry}`);
         }
-        if (existsSync(markerTemp)) unlinkSync(markerTemp);
+        if (Host.exists(markerTemp)) Host.unlink(markerTemp);
       }),
     create: (generation) => openGeneration(generation, 'generation-created'),
     open: (generation) => openGeneration(generation, 'generation-reopened'),
@@ -667,21 +653,21 @@ export const makeDesktopCanonicalGenerationAdapter = (
     activate: (generation) =>
       Effect.gen(function* () {
         const deviceState = options.deviceState ?? {};
-        const target = path.join(options.userDataPath, DEVICE_STATE);
-        const temporary = path.join(options.userDataPath, DEVICE_STATE_TEMP);
-        const encoded = `${JSON.stringify({ version: 1, ...deviceState })}\n`;
+        const target = Host.join(options.userDataPath, DEVICE_STATE);
+        const temporary = Host.join(options.userDataPath, DEVICE_STATE_TEMP);
+        const encoded = `${encodeJson({ version: 1, ...deviceState })}\n`;
         yield* attempt(
           'persist-device-state',
           'desktop device state could not be persisted',
           () => {
-            writeFileSync(temporary, encoded, 'utf8');
-            renameSync(temporary, target);
+            Host.writeText(temporary, encoded);
+            Host.rename(temporary, target);
           },
         );
         const persisted = yield* attempt(
           'verify-device-state',
           'desktop device state could not be verified',
-          () => readFileSync(target, 'utf8'),
+          () => Host.readText(target),
         );
         if (persisted !== encoded) {
           return yield* new CopyOnMigrateError({
@@ -691,8 +677,8 @@ export const makeDesktopCanonicalGenerationAdapter = (
         }
         log('device-state-persisted', 'version=1');
         yield* attempt('activate', 'canonical generation could not be activated', () => {
-          writeFileSync(markerTemp, `${generation}\n`, 'utf8');
-          renameSync(markerTemp, marker);
+          Host.writeText(markerTemp, `${generation}\n`);
+          Host.rename(markerTemp, marker);
           log('generation-activated', `generation=${generation}`);
         });
       }),
@@ -704,8 +690,8 @@ export const prepareDesktopUserState = Effect.fn('Desktop.prepareUserState')(
     options: DesktopUserStateGenerationOptions,
   ): Effect.Effect<DesktopUserStateGeneration, CopyOnMigrateError> =>
     Effect.gen(function* () {
-      const cacheFile = options.cacheFile ?? path.join(options.userDataPath, 'cache.sqlite');
-      const settingsFile = options.settingsFile ?? path.join(options.userDataPath, 'settings.json');
+      const cacheFile = options.cacheFile ?? Host.join(options.userDataPath, 'cache.sqlite');
+      const settingsFile = options.settingsFile ?? Host.join(options.userDataPath, 'settings.json');
       const log = options.log ?? (() => undefined);
       const cache = yield* snapshotDesktopCache(cacheFile);
       const settings = yield* snapshotDesktopSettings(settingsFile);
