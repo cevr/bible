@@ -1,18 +1,23 @@
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'effect-bun-test';
+import { Effect } from 'effect';
 
 import { rootCommand } from '../../src/commands/root.js';
 import { runCli } from '../lib/run-cli.js';
 
 describe('root command graph', () => {
-  it('renders help instead of opening an interactive application', async () => {
-    const result = await runCli(rootCommand, []);
+  it.effect('renders help instead of opening an interactive application', () =>
+    Effect.gen(function* () {
+      const result = yield* Effect.tryPromise(() => runCli(rootCommand, []));
 
-    expect(result.success).toBe(true);
-  });
+      expect(result.success).toBe(true);
+    }),
+  );
 
-  it('supports explicit help', async () => {
-    const result = await runCli(rootCommand, ['--help']);
+  it.effect('supports explicit help', () =>
+    Effect.gen(function* () {
+      const result = yield* Effect.tryPromise(() => runCli(rootCommand, ['--help']));
 
-    expect(result.success).toBe(true);
-  });
+      expect(result.success).toBe(true);
+    }),
+  );
 });
