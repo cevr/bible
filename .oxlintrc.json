@@ -29,8 +29,18 @@
     "no-nested-ternary": "off",
     "complexity": ["error", 50],
     "typescript/consistent-return": "off",
+    "effect/noAsyncFunction": "error",
     "effect/noDynamicImports": "error",
-    "effect/noTestLifecycleHooks": "error"
+    "effect/noEffectBind": "error",
+    "effect/noEffectDo": "error",
+    "effect/noGlobals": "error",
+    "effect/noNewError": "error",
+    "effect/noNewPromise": "error",
+    "effect/noNodeBuiltinImport": "error",
+    "effect/noTernary": "error",
+    "effect/noTestLifecycleHooks": "error",
+    "effect/noThrowStatement": "error",
+    "effect/noTryCatch": "error"
   },
   "ignorePatterns": [
     "**/dist/**",
@@ -64,6 +74,21 @@
       }
     },
     {
+      "files": ["**/*"],
+      "rules": {
+        "effect/noAsyncFunction": "off",
+        "effect/noEffectBind": "off",
+        "effect/noEffectDo": "off",
+        "effect/noGlobals": "off",
+        "effect/noNewError": "off",
+        "effect/noNewPromise": "off",
+        "effect/noNodeBuiltinImport": "off",
+        "effect/noTernary": "off",
+        "effect/noThrowStatement": "off",
+        "effect/noTryCatch": "off"
+      }
+    },
+    {
       "files": [
         "**/packages/core/src/local-first/**",
         "**/packages/core/src/library-state/**",
@@ -72,6 +97,10 @@
         "**/packages/core/src/topics/**",
         "**/packages/core/src/corpus-supply/**",
         "**/packages/core/src/writings/model.ts",
+        "**/packages/core/src/platform-node/bible-artifact.test.ts",
+        "**/packages/core/src/bible/canon.ts",
+        "**/packages/core/src/bible/parse.ts",
+        "**/packages/core/src/bible-rendering/segments.ts",
         "**/packages/app/src/procedure/**",
         "**/apps/web/src/workers/user-state-database.ts",
         "**/apps/web/src/workers/procedure-client.ts",
@@ -98,6 +127,7 @@
         "effect/noNewPromise": "error",
         "effect/noNodeBuiltinImport": "error",
         "effect/noTernary": "error",
+        "effect/noTestLifecycleHooks": "error",
         "effect/noThrowStatement": "error",
         "effect/noTryCatch": "error"
       }
@@ -164,6 +194,7 @@
         "effect/noNewPromise": "error",
         "effect/noNodeBuiltinImport": "error",
         "effect/noTernary": "error",
+        "effect/noTestLifecycleHooks": "error",
         "effect/noThrowStatement": "error",
         "effect/noTryCatch": "error"
       }

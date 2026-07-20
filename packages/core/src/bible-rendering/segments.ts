@@ -43,8 +43,8 @@ export const applyItalicSegments = (segments: readonly TextSegment[]): TextSegme
       result.push(segment);
       continue;
     }
-    const italicType: TextSegment['type'] =
-      segment.type === 'redLetter' ? 'redLetterItalic' : 'italic';
+    let italicType: TextSegment['type'] = 'italic';
+    if (segment.type === 'redLetter') italicType = 'redLetterItalic';
     const parts = segment.text.split(/(\[[^\]]+\])/);
     for (const part of parts) {
       if (part.startsWith('[') && part.endsWith(']')) {
@@ -197,10 +197,10 @@ export const segmentVerseText = (
     segments.push({ type: 'text', text });
   }
 
-  const highlighted =
-    searchQuery !== undefined && searchQuery.length > 0
-      ? applySearchHighlights(segments, searchQuery)
-      : segments;
+  let highlighted = segments;
+  if (searchQuery !== undefined && searchQuery.length > 0) {
+    highlighted = applySearchHighlights(segments, searchQuery);
+  }
 
   return applyItalicSegments(applyRedLetterSegments(highlighted));
 };

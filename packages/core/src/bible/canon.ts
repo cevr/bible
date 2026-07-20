@@ -341,7 +341,8 @@ const BOOK_BY_NAME = new Map<string, Book>([
   ...BIBLE_BOOKS.map((b) => [b.name.toLowerCase(), b] as const),
   ...Object.entries(BIBLE_BOOK_ALIASES).flatMap(([alias, num]) => {
     const book = BOOK_BY_NUMBER.get(num);
-    return book ? ([[alias, book]] as const) : [];
+    if (!book) return [];
+    return [[alias, book]] as const;
   }),
 ]);
 
@@ -358,8 +359,13 @@ export function getBibleBookByName(name: string): Book | undefined {
  * Supports optional verse ranges (e.g., "John 3:16-18")
  */
 export function formatBibleReference(ref: BibleReference): string {
-  const start = ref._tag === 'range' ? ref.start : ref;
-  const book = getBibleBook(start.book);
+  let startBook: number;
+  if (ref._tag === 'range') {
+    startBook = ref.start.book;
+  } else {
+    startBook = ref.book;
+  }
+  const book = getBibleBook(startBook);
   if (!book) return '';
   if (ref._tag === 'book') return book.name;
   if (ref._tag === 'range')

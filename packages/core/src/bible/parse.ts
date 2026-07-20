@@ -317,12 +317,13 @@ export function extractBibleReferences(text: string): ExtractedReference[] {
     if (!book || chapter < 1 || chapter > book.chapters) continue;
 
     const startReference = Reference.verse(bookNum, chapter, verse);
-    const parsedReference = verseEndStr
-      ? Reference.range(
-          startReference,
-          Reference.verse(bookNum, chapter, parseInt(verseEndStr, 10)),
-        )
-      : startReference;
+    let parsedReference: VerseReference | VerseRangeReference = startReference;
+    if (verseEndStr) {
+      parsedReference = Reference.range(
+        startReference,
+        Reference.verse(bookNum, chapter, parseInt(verseEndStr, 10)),
+      );
+    }
 
     results.push({
       text: fullMatch,
@@ -339,18 +340,23 @@ export function extractBibleReferences(text: string): ExtractedReference[] {
       if (!cont) break;
 
       const contVerse = parseInt(cont[1] ?? '', 10);
-      const contVerseEnd = cont[2] ? parseInt(cont[2], 10) : undefined;
+      let contVerseEnd: number | undefined;
+      if (cont[2]) contVerseEnd = parseInt(cont[2], 10);
       const contText = cont[0] ?? '';
       const continuationStart = Reference.verse(bookNum, chapter, contVerse);
+      let continuationReference: VerseReference | VerseRangeReference = continuationStart;
+      if (contVerseEnd !== undefined) {
+        continuationReference = Reference.range(
+          continuationStart,
+          Reference.verse(bookNum, chapter, contVerseEnd),
+        );
+      }
 
       results.push({
         text: contText,
         start: pos,
         end: pos + contText.length,
-        ref:
-          contVerseEnd === undefined
-            ? continuationStart
-            : Reference.range(continuationStart, Reference.verse(bookNum, chapter, contVerseEnd)),
+        ref: continuationReference,
       });
 
       pos += contText.length;
@@ -371,23 +377,30 @@ export function extractBibleReferences(text: string): ExtractedReference[] {
     if (!context) continue;
 
     const verse = parseInt(match[1] ?? '', 10);
-    const verseEnd = match[2] ? parseInt(match[2], 10) : undefined;
+    let verseEnd: number | undefined;
+    if (match[2]) verseEnd = parseInt(match[2], 10);
     const fullMatch = match[0];
 
-    const contextReference = context.ref._tag === 'range' ? context.ref.start : context.ref;
+    let contextReference: VerseReference;
+    if (context.ref._tag === 'range') {
+      contextReference = context.ref.start;
+    } else {
+      contextReference = context.ref;
+    }
     const startReference = Reference.verse(contextReference.book, contextReference.chapter, verse);
+    let keywordReference: VerseReference | VerseRangeReference = startReference;
+    if (verseEnd !== undefined) {
+      keywordReference = Reference.range(
+        startReference,
+        Reference.verse(contextReference.book, contextReference.chapter, verseEnd),
+      );
+    }
 
     results.push({
       text: fullMatch,
       start: matchIndex,
       end: matchIndex + fullMatch.length,
-      ref:
-        verseEnd === undefined
-          ? startReference
-          : Reference.range(
-              startReference,
-              Reference.verse(contextReference.book, contextReference.chapter, verseEnd),
-            ),
+      ref: keywordReference,
     });
   }
 
