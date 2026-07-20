@@ -69,10 +69,16 @@ export type MainRuntime = ManagedRuntime.ManagedRuntime<
   never
 >;
 
+export interface MainRuntimeHost {
+  readonly randomUuid: () => string;
+  readonly nowIso: () => string;
+}
+
 export const makeRuntime = (
   writingsDbFile: string,
   bibleDbFile: string,
   userStateDbFile: string,
+  host: MainRuntimeHost,
 ): MainRuntime => {
   const writings = writingsDbLayer(writingsDbFile);
   const platform = Layer.mergeAll(
@@ -106,12 +112,12 @@ export const makeRuntime = (
     migrationSql: userStateMigrationSql,
     runtime: {
       clientId,
-      generation: Schema.decodeSync(RuntimeGeneration)(crypto.randomUUID()),
+      generation: Schema.decodeSync(RuntimeGeneration)(host.randomUuid()),
       capabilities: ['external-links', 'file-import', 'file-export', 'window-controls'],
-      nextMutationId: () => Schema.decodeSync(MutationId)(crypto.randomUUID()),
-      nextHistoryId: () => Schema.decodeSync(LibraryEntityId)(crypto.randomUUID()),
-      nextCommitId: () => Schema.decodeSync(CommitId)(crypto.randomUUID()),
-      now: () => Schema.decodeSync(Timestamp)(new Date().toISOString()),
+      nextMutationId: () => Schema.decodeSync(MutationId)(host.randomUuid()),
+      nextHistoryId: () => Schema.decodeSync(LibraryEntityId)(host.randomUuid()),
+      nextCommitId: () => Schema.decodeSync(CommitId)(host.randomUuid()),
+      now: () => Schema.decodeSync(Timestamp)(host.nowIso()),
     },
   });
   return ManagedRuntime.make(Layer.mergeAll(writings, bible, procedures));
