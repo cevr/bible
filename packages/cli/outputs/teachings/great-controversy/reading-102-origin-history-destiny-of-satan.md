@@ -58,18 +58,36 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1271'
 
 - _Eze 28:14._ "Thou art the anointed cherub that covereth; and I have set thee so: thou wast upon the holy mountain of God" — the title is a station, not a compliment
 - _Eze 28:12._ "Thou sealest up the sum, full of wisdom, and perfect in beauty" — the ceiling of creaturehood
-- _Eze 28:13._ "Thou hast been in Eden the garden of God; every precious stone was thy covering" — his biography starts in Eden's vocabulary; watch it end there (§16)
 
-**"That covereth" — the sanctuary shows the post — Ex 25; Heb 8-9:**
+**His station — the sanctuary shows the post — Ex 25; Heb 8-9:**
 
 - chain: Ex 25:18-20 (two cherubs, wings covering mercy seat) → Ex 25:21-22 (law inside the ark; God speaks from between them) → Heb 8:5 (earthly = pattern of heavenly) → Heb 9:3-5 (cherubims of glory over the mercyseat) → Ps 99:1 (He sitteth between the cherubims)
 - _Rev 11:19._ "there was seen in his temple the ark of his testament" — the ark is still there; the post beside it stands vacant
 
-[SOP SR 13.1] "Lucifer in heaven, before his rebellion, was a high and exalted angel, next in honor to God's dear Son." — his rank
+[SOP SR 13.1] "Lucifer in heaven, before his rebellion, was a high and exalted angel, next in honor to God's dear Son." — his rank: nearest to Jesus
 
 [PIONEER Jones, ECE 572.4] "who stood close to the throne of God with outstretched, covering wings covering the mercy-seat" — the pioneers read Eze 28 the same way
 
-[→] his wing was over the law — sin is never a stranger's crime; it began beside the mercy seat
+**His dress — the high priest's stones — Eze 28:13 ↔ Ex 28:17-21:**
+
+- _Eze 28:13._ "Thou hast been in Eden the garden of God; every precious stone was thy covering, the sardius, topaz, and the diamond, the beryl, the onyx, and the jasper, the sapphire, the emerald, and the carbuncle, and gold" — his covering is the breastplate's jewel case
+
+| breastplate row (Ex 28:17-20)  | on Lucifer (Eze 28:13) |
+| ------------------------------ | ---------------------- |
+| sardius · topaz · carbuncle    | all three              |
+| emerald · sapphire · diamond   | all three              |
+| ligure · agate · amethyst      | — none                 |
+| beryl · onyx · jasper          | all three              |
+
+- nine of the twelve, set in gold both places (Ex 28:20) — heaven's covering cherub wore the wardrobe of earth's high priest
+- _Ex 28:2._ "holy garments... for glory and for beauty" — the priest's wardrobe vocabulary is Lucifer's own: "perfect in beauty" (Eze 28:12)
+- _Ex 28:21, 29._ "the stones shall be with the names of the children of Israel... Aaron shall bear the names... upon his heart" — the priest wears jewels to carry others before God; the cherub's heart went the other way — "lifted up because of thy beauty" (Eze 28:17)
+
+[SOP 4BC 1143.1] "the exalted angel who was given a position next to Jesus Christ in the heavenly courts. Lucifer was enshrouded with glory as the covering cherub." — EGW's comment on this very verse
+
+[SOP DA 758.4] "Lucifer had been the covering cherub. He had stood in the light of God's presence. He had been the highest of all created beings." — the ceiling: no creature was ever made greater
+
+[→] dressed like the ministering priest, stationed beside the mercy seat, next in honor to the Son — the highest being creation can produce, and still a creature
 
 ---
 
