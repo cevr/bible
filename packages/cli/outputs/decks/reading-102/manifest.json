@@ -1,0 +1,383 @@
+{
+  "title": "Origin, History, and Destiny of Satan",
+  "subtitle": "Bible Readings — Chapter 102",
+  "titleConcept": "a golden ark of the covenant with one covering cherub of light above it, and at the far edge of the canvas a drift of grey ashes on dark ground, the whole arc from glory to ashes in one composition",
+  "canvas": {
+    "w": 1920,
+    "h": 1080
+  },
+  "layouts": {
+    "A_imageRight": {
+      "text": [
+        131,
+        408,
+        805,
+        264
+      ],
+      "image": [
+        1037,
+        75,
+        750,
+        903
+      ]
+    },
+    "B_imageLeft": {
+      "image": [
+        133,
+        75,
+        750,
+        903
+      ],
+      "text": [
+        984,
+        408,
+        805,
+        264
+      ]
+    }
+  },
+  "slides": [
+    {
+      "id": "s01-2pet-2-4",
+      "ref": "2 Peter 2:4",
+      "section": 1,
+      "sectionTitle": "Sin Before Eden",
+      "text": "For if God spared not the angels that sinned, but cast them down to hell, and delivered them into chains of darkness, to be reserved unto judgment;",
+      "concept": "distant shadowed angelic figures descending into a deep dark abyss beneath rolling storm clouds, faint shadow-chains, somber blue-grey depths with one shaft of cold light",
+      "side": "right"
+    },
+    {
+      "id": "s02-eze-28-14",
+      "ref": "Ezekiel 28:14",
+      "section": 2,
+      "sectionTitle": "The Covering Cherub",
+      "text": "Thou art the anointed cherub that covereth; and I have set thee so: thou wast upon the holy mountain of God; thou hast walked up and down in the midst of the stones of fire.",
+      "concept": "two golden winged cherubim with wings outstretched over a radiant golden ark of the covenant, glory light rising between the wings in a dark holy chamber",
+      "side": "left"
+    },
+    {
+      "id": "s03-eze-28-13",
+      "ref": "Ezekiel 28:13",
+      "section": 2,
+      "sectionTitle": "The Covering Cherub",
+      "text": "Thou hast been in Eden the garden of God; every precious stone was thy covering, the sardius, topaz, and the diamond, the beryl, the onyx, and the jasper, the sapphire, the emerald, and the carbuncle, and gold: the workmanship of thy tabrets and of thy pipes was prepared in thee in the day that thou wast created.",
+      "concept": "an arrangement of glowing precious gemstones, ruby topaz emerald sapphire onyx, set in worked gold, catching warm candlelight against dark velvet",
+      "side": "right"
+    },
+    {
+      "id": "s04-eze-28-15",
+      "ref": "Ezekiel 28:15",
+      "section": 3,
+      "sectionTitle": "Iniquity Found",
+      "text": "Thou wast perfect in thy ways from the day that thou wast created, till iniquity was found in thee.",
+      "concept": "a radiant angelic figure standing in perfect light on a holy mountain summit, a faint thin shadow just beginning to pool at his feet",
+      "side": "left"
+    },
+    {
+      "id": "s05-isa-14-12",
+      "ref": "Isaiah 14:12",
+      "section": 3,
+      "sectionTitle": "Iniquity Found",
+      "text": "How art thou fallen from heaven, O Lucifer, son of the morning! how art thou cut down to the ground, which didst weaken the nations!",
+      "concept": "a brilliant morning star falling from a dawn sky, long trail of fading golden light, dark mountain ridges below",
+      "side": "right"
+    },
+    {
+      "id": "s06-isa-14-13-14",
+      "ref": "Isaiah 14:13-14",
+      "section": 3,
+      "sectionTitle": "Iniquity Found",
+      "text": "For thou hast said in thine heart, I will ascend into heaven, I will exalt my throne above the stars of God: I will sit also upon the mount of the congregation, in the sides of the north: I will ascend above the heights of the clouds; I will be like the most High.",
+      "concept": "a grand staircase of storm clouds ascending toward a distant high throne of light above the stars, cold ambitious blues against warm throne gold",
+      "side": "left"
+    },
+    {
+      "id": "s07-ps-2-6-7",
+      "ref": "Psalm 2:6-7",
+      "section": 4,
+      "sectionTitle": "The Convocation",
+      "text": "Yet have I set my king upon my holy hill of Zion. I will declare the decree: the LORD hath said unto me, Thou art my Son; this day have I begotten thee.",
+      "concept": "a vast assembly of angels in luminous ranks gathered before a blazing throne on a holy hill, a pillar of glory light declaring over the host",
+      "side": "right"
+    },
+    {
+      "id": "s08-heb-1-5-6",
+      "ref": "Hebrews 1:5-6",
+      "section": 4,
+      "sectionTitle": "The Convocation",
+      "text": "For unto which of the angels said he at any time, Thou art my Son, this day have I begotten thee? And again, I will be to him a Father, and he shall be to me a Son? And again, when he bringeth in the firstbegotten into the world, he saith, And let all the angels of God worship him.",
+      "concept": "countless angels bowing low in concentric arcs of worship within a vast temple of golden light",
+      "side": "left"
+    },
+    {
+      "id": "s09-rev-12-7-8",
+      "ref": "Revelation 12:7-8",
+      "section": 5,
+      "sectionTitle": "War in Heaven",
+      "text": "And there was war in heaven: Michael and his angels fought against the dragon; and the dragon fought and his angels, And prevailed not; neither was their place found any more in heaven.",
+      "concept": "war in heaven, ranks of bright angels of light driving back dark winged forms through towering storm clouds, swords of light",
+      "side": "right"
+    },
+    {
+      "id": "s10-luke-10-18",
+      "ref": "Luke 10:18",
+      "section": 5,
+      "sectionTitle": "War in Heaven",
+      "text": "And he said unto them, ‹I beheld Satan as lightning fall from heaven.›",
+      "concept": "a single great bolt of lightning falling from the height of heaven down to a dark curved horizon, night sky, painterly",
+      "side": "left"
+    },
+    {
+      "id": "s11-jude-6",
+      "ref": "Jude 6",
+      "section": 6,
+      "sectionTitle": "Why Not Destroy Him Then?",
+      "text": "And the angels which kept not their first estate, but left their own habitation, he hath reserved in everlasting chains under darkness unto the judgment of the great day.",
+      "concept": "heavy ancient iron chains hanging in deep darkness, one faint cold shaft of light from far above, waiting stillness",
+      "side": "right"
+    },
+    {
+      "id": "s12-rev-12-9",
+      "ref": "Revelation 12:9",
+      "section": 7,
+      "sectionTitle": "His Names, His Record",
+      "text": "And the great dragon was cast out, that old serpent, called the Devil, and Satan, which deceiveth the whole world: he was cast out into the earth, and his angels were cast out with him.",
+      "concept": "a great red dragon cast down out of the heavens, falling toward a small distant blue earth, trailing darkness",
+      "side": "left"
+    },
+    {
+      "id": "s13-matt-25-41",
+      "ref": "Matthew 25:41",
+      "section": 7,
+      "sectionTitle": "His Names, His Record",
+      "text": "‹Then shall he say also unto them on the left hand, Depart from me, ye cursed, into everlasting fire, prepared for the devil and his angels:›",
+      "concept": "a solitary great fire burning on a vast empty dark plain under a starless sky, prepared and unoccupied",
+      "side": "right"
+    },
+    {
+      "id": "s14-gen-3-4-5",
+      "ref": "Genesis 3:4-5",
+      "section": 8,
+      "sectionTitle": "Eden: The First Lie",
+      "text": "And the serpent said unto the woman, Ye shall not surely die: For God doth know that in the day ye eat thereof, then your eyes shall be opened, and ye shall be as gods, knowing good and evil.",
+      "concept": "a serpent coiled among the branches of a fruit-laden tree in a lush garden, golden dappled light, beauty with menace",
+      "side": "left"
+    },
+    {
+      "id": "s15-gen-3-15",
+      "ref": "Genesis 3:15",
+      "section": 8,
+      "sectionTitle": "Eden: The First Lie",
+      "text": "And I will put enmity between thee and the woman, and between thy seed and her seed; it shall bruise thy head, and thou shalt bruise his heel.",
+      "concept": "a serpent's head beneath a descending human heel lit by a shaft of promise light in a garden clearing at dusk",
+      "side": "right"
+    },
+    {
+      "id": "s16-john-8-44",
+      "ref": "John 8:44",
+      "section": 8,
+      "sectionTitle": "Eden: The First Lie",
+      "text": "‹Ye are of your father the devil, and the lusts of your father ye will do. He was a murderer from the beginning, and abode not in the truth, because there is no truth in him. When he speaketh a lie, he speaketh of his own: for he is a liar, and the father of it.›",
+      "concept": "a dark hooded figure casting an impossibly long shadow across a beautiful garden at twilight",
+      "side": "left"
+    },
+    {
+      "id": "s17-zech-3-1-2",
+      "ref": "Zechariah 3:1-2",
+      "section": 9,
+      "sectionTitle": "The Accuser at Court",
+      "text": "And he shewed me Joshua the high priest standing before the angel of the LORD, and Satan standing at his right hand to resist him. And the LORD said unto Satan, The LORD rebuke thee, O Satan; even the LORD that hath chosen Jerusalem rebuke thee: is not this a brand plucked out of the fire?",
+      "concept": "a burning branch plucked out of a fire by a hand of light, sparks rising, deep darkness around the flame",
+      "side": "right"
+    },
+    {
+      "id": "s18-rom-8-33-34",
+      "ref": "Romans 8:33-34",
+      "section": 9,
+      "sectionTitle": "The Accuser at Court",
+      "text": "Who shall lay any thing to the charge of God's elect? It is God that justifieth. Who is he that condemneth? It is Christ that died, yea rather, that is risen again, who is even at the right hand of God, who also maketh intercession for us.",
+      "concept": "a risen figure of light with arms raised in intercession before a radiant throne, warm advocate light filling a high hall",
+      "side": "left"
+    },
+    {
+      "id": "s19-matt-4-4",
+      "ref": "Matthew 4:4",
+      "section": 10,
+      "sectionTitle": "The Wilderness",
+      "text": "But he answered and said, ‹It is written, Man shall not live by bread alone, but by every word that proceedeth out of the mouth of God.›",
+      "concept": "an open ancient book glowing with steady light in a barren stony wilderness at dusk, smooth stones in the foreground",
+      "side": "right"
+    },
+    {
+      "id": "s20-heb-4-15",
+      "ref": "Hebrews 4:15",
+      "section": 10,
+      "sectionTitle": "The Wilderness",
+      "text": "For we have not an high priest which cannot be touched with the feeling of our infirmities; but was in all points tempted like as we are, yet without sin.",
+      "concept": "a high priest figure in white laying a hand on a kneeling weary traveler's shoulder, warm compassionate light in a desert",
+      "side": "left"
+    },
+    {
+      "id": "s21-john-12-31",
+      "ref": "John 12:31",
+      "section": 11,
+      "sectionTitle": "The Cross",
+      "text": "‹Now is the judgment of this world: now shall the prince of this world be cast out.›",
+      "concept": "the hill of Calvary with three crosses against a darkened storm sky, one great shaft of light breaking from the center cross",
+      "side": "right"
+    },
+    {
+      "id": "s22-heb-2-14",
+      "ref": "Hebrews 2:14",
+      "section": 11,
+      "sectionTitle": "The Cross",
+      "text": "Forasmuch then as the children are partakers of flesh and blood, he also himself likewise took part of the same; that through death he might destroy him that had the power of death, that is, the devil;",
+      "concept": "a shattered dark iron crown and broken chains lying at the foot of a rough wooden cross in early dawn light",
+      "side": "left"
+    },
+    {
+      "id": "s23-rev-12-17",
+      "ref": "Revelation 12:17",
+      "section": 12,
+      "sectionTitle": "War on the Remnant",
+      "text": "And the dragon was wroth with the woman, and went to make war with the remnant of her seed, which keep the commandments of God, and have the testimony of Jesus Christ.",
+      "concept": "a small faithful band of pilgrims on a mountain ridge holding two banners of light, vast dark storm clouds massing against them",
+      "side": "right"
+    },
+    {
+      "id": "s24-rev-12-11",
+      "ref": "Revelation 12:11",
+      "section": 12,
+      "sectionTitle": "War on the Remnant",
+      "text": "And they overcame him by the blood of the Lamb, and by the word of their testimony; and they loved not their lives unto the death.",
+      "concept": "a white lamb glowing on a height at dawn, a great multitude below lifting palm branches toward the light",
+      "side": "left"
+    },
+    {
+      "id": "s25-2cor-11-14",
+      "ref": "2 Corinthians 11:14",
+      "section": 13,
+      "sectionTitle": "Angel of Light",
+      "text": "And no marvel; for Satan himself is transformed into an angel of light.",
+      "concept": "a dazzling luminous angelic figure whose brilliant light casts a wrong deep shadow behind it, subtle unease in the glow",
+      "side": "right"
+    },
+    {
+      "id": "s26-matt-24-24",
+      "ref": "Matthew 24:24",
+      "section": 13,
+      "sectionTitle": "Angel of Light",
+      "text": "‹For there shall arise false Christs, and false prophets, and shall shew great signs and wonders; insomuch that, if it were possible, they shall deceive the very elect.›",
+      "concept": "a night crowd drawn toward a great deceptive glow on the horizon while a few figures turn instead to a small true lamplit open book",
+      "side": "left"
+    },
+    {
+      "id": "s27-isa-8-20",
+      "ref": "Isaiah 8:20",
+      "section": 14,
+      "sectionTitle": "The Crowning Act",
+      "text": "To the law and to the testimony: if they speak not according to this word, it is because there is no light in them.",
+      "concept": "an open Bible radiating calm steady light on a stone table inside, a wild storm raging outside a window",
+      "side": "right"
+    },
+    {
+      "id": "s28-matt-24-27",
+      "ref": "Matthew 24:27",
+      "section": 14,
+      "sectionTitle": "The Crowning Act",
+      "text": "‹For as the lightning cometh out of the east, and shineth even unto the west; so shall also the coming of the Son of man be.›",
+      "concept": "brilliant lightning spanning the entire sky from east to west over a wide landscape, every cloud lit with glory, every field visible",
+      "side": "left"
+    },
+    {
+      "id": "s29-1pet-5-8-9",
+      "ref": "1 Peter 5:8-9",
+      "section": 14,
+      "sectionTitle": "The Crowning Act",
+      "text": "Be sober, be vigilant; because your adversary the devil, as a roaring lion, walketh about, seeking whom he may devour: Whom resist stedfast in the faith, knowing that the same afflictions are accomplished in your brethren that are in the world.",
+      "concept": "a lion prowling in darkness just beyond a campfire's circle of light, a watchful shepherd standing guard with a staff",
+      "side": "right"
+    },
+    {
+      "id": "s30-rev-20-1-3",
+      "ref": "Revelation 20:1-3",
+      "section": 15,
+      "sectionTitle": "Bound in the Pit",
+      "text": "And I saw an angel come down from heaven, having the key of the bottomless pit and a great chain in his hand. And he laid hold on the dragon, that old serpent, which is the Devil, and Satan, and bound him a thousand years, And cast him into the bottomless pit, and shut him up, and set a seal upon him, that he should deceive the nations no more, till the thousand years should be fulfilled: and after that he must be loosed a little season.",
+      "concept": "a mighty angel descending from heaven holding a great chain and a key, above a dark broken desolate earth",
+      "side": "left"
+    },
+    {
+      "id": "s31-lev-16-21-22",
+      "ref": "Leviticus 16:21-22",
+      "section": 15,
+      "sectionTitle": "Bound in the Pit",
+      "text": "And Aaron shall lay both his hands upon the head of the live goat, and confess over him all the iniquities of the children of Israel, and all their transgressions in all their sins, putting them upon the head of the goat, and shall send him away by the hand of a fit man into the wilderness: And the goat shall bear upon him all their iniquities unto a land not inhabited: and he shall let go the goat in the wilderness.",
+      "concept": "a lone goat led away by a solitary figure into a vast uninhabited wilderness at dusk, long shadows, empty land to the horizon",
+      "side": "right"
+    },
+    {
+      "id": "s32-rev-20-7-8",
+      "ref": "Revelation 20:7-8",
+      "section": 16,
+      "sectionTitle": "Loosed: The Last Campaign",
+      "text": "And when the thousand years are expired, Satan shall be loosed out of his prison, And shall go out to deceive the nations which are in the four quarters of the earth, Gog and Magog, to gather them together to battle: the number of whom is as the sand of the sea.",
+      "concept": "an innumerable dark host like the sand of the sea gathering across a broken plain toward a distant shining city descended from heaven",
+      "side": "left"
+    },
+    {
+      "id": "s33-eze-28-18-19",
+      "ref": "Ezekiel 28:18-19",
+      "section": 17,
+      "sectionTitle": "Ashes: An Utter End",
+      "text": "Thou hast defiled thy sanctuaries by the multitude of thine iniquities, by the iniquity of thy traffick; therefore will I bring forth a fire from the midst of thee, it shall devour thee, and I will bring thee to ashes upon the earth in the sight of all them that behold thee. All they that know thee among the people shall be astonished at thee: thou shalt be a terror, and never shalt thou be any more.",
+      "concept": "grey ashes scattered on scorched earth with one last ember dying, clean dawn light rising beyond the burned ground",
+      "side": "right"
+    },
+    {
+      "id": "s34-mal-4-1-3",
+      "ref": "Malachi 4:1, 3",
+      "section": 17,
+      "sectionTitle": "Ashes: An Utter End",
+      "text": "For, behold, the day cometh, that shall burn as an oven; and all the proud, yea, and all that do wickedly, shall be stubble: and the day that cometh shall burn them up, saith the LORD of hosts, that it shall leave them neither root nor branch. ... And ye shall tread down the wicked; for they shall be ashes under the soles of your feet in the day that I shall do this, saith the LORD of hosts.",
+      "concept": "a burned field of stubble at sunrise, ashes underfoot, the sun rising with warm healing rays over a clean horizon",
+      "side": "left"
+    },
+    {
+      "id": "s35-nah-1-9",
+      "ref": "Nahum 1:9",
+      "section": 18,
+      "sectionTitle": "A Clean Universe",
+      "text": "What do ye imagine against the LORD? he will make an utter end: affliction shall not rise up the second time.",
+      "concept": "a calm brilliant field of stars over a peaceful new earth at night, still waters reflecting the heavens, no storm anywhere",
+      "side": "right"
+    },
+    {
+      "id": "s36-rev-5-13",
+      "ref": "Revelation 5:13",
+      "section": 18,
+      "sectionTitle": "A Clean Universe",
+      "text": "And every creature which is in heaven, and on the earth, and under the earth, and such as are in the sea, and all that are in them, heard I saying, Blessing, and honour, and glory, and power, be unto him that sitteth upon the throne, and unto the Lamb for ever and ever.",
+      "concept": "vast concentric rings of angels and redeemed multitudes around one radiant central throne, the whole canvas filled with warm light",
+      "side": "left"
+    },
+    {
+      "id": "s37-rom-16-20",
+      "ref": "Romans 16:20",
+      "section": 19,
+      "sectionTitle": "Appeal",
+      "text": "And the God of peace shall bruise Satan under your feet shortly. The grace of our Lord Jesus Christ be with you. Amen.",
+      "concept": "a serpent crushed beneath a bare foot in dawn-lit grass, wide peaceful morning landscape beyond",
+      "side": "right"
+    },
+    {
+      "id": "s38-james-4-7-8",
+      "ref": "James 4:7-8",
+      "section": 19,
+      "sectionTitle": "Appeal",
+      "text": "Submit yourselves therefore to God. Resist the devil, and he will flee from you. Draw nigh to God, and he will draw nigh to you. Cleanse your hands, ye sinners; and purify your hearts, ye double minded.",
+      "concept": "a man kneeling in open-handed surrender in warm morning light on a hilltop, darkness retreating off the edge of the canvas",
+      "side": "left"
+    }
+  ]
+}
