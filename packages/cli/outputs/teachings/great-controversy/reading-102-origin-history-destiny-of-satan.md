@@ -255,6 +255,16 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1271'
 - [SOP SR 33.1] "It was Satan that spoke, not the serpent." — the medium was a mask
 - _Gen 3:2-3._ the woman still holds the command — "Ye shall not eat of it, neither shall ye touch it, lest ye die"
 - _Gen 3:4-5._ "Ye shall not surely die: for God doth know... ye shall be as gods" — the first lie plus the first slander: God is withholding
+
+**The two lies — the seed stock of every deception after:**
+
+- lie 1 — _Gen 3:1._ "Yea, hath God said?" — distrust God at His word: the word doesn't mean what it says
+- lie 2 — _Gen 3:4._ "Ye shall not surely die" — the immortality of the soul: you cannot really die
+
+[SOP COL 108.1] "By deceptive reasoning he led Adam and Eve to doubt God's word, and to supply its place with a theory" — the method has never changed
+
+[→] both lies outlive Eden — they return "with all power and signs and lying wonders" just before the Lord comes (§15)
+
 - _Gen 3:6._ "she took of the fruit thereof, and did eat, and gave also unto her husband" — the fall
 - _Gen 3:14-15._ "upon thy belly shalt thou go... And I will put enmity between thee and the woman, and between thy seed and her seed; it shall bruise thy head" — the curse grounds the flyer, and war is declared: Head-wound scheduled; the rest of the Bible is this verse unfolding
 
@@ -415,6 +425,17 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1271'
 - _Rev 13:13-14._ "he maketh fire come down from heaven... and deceiveth them that dwell on the earth by the means of those miracles" — fire from heaven is on both résumés (1 Kings 18)
 - _Rev 16:13-14._ "the spirits of devils, working miracles, which go forth unto the kings of the earth" — miracle as diplomacy, gathering the kings to the last battle
 - _Matt 24:24._ "if it were possible, they shall deceive the very elect" — the margin of safety is thin
+
+**Eden's two lies return in greater force — Gen 3 ↔ the last deception:**
+
+| the lie in Eden (§9)                       | at the end, in force                                              |
+| ------------------------------------------ | ----------------------------------------------------------------- |
+| "Yea, hath God said?" — distrust the word  | the Word set aside for wonders — 2 Thess 2:9-10; Rev 13:13-14     |
+| "Ye shall not surely die" — immortal soul  | spiritualism: "spirits of devils, working miracles" — Rev 16:14   |
+
+- _2 Thess 2:9-10._ "with all power and signs and lying wonders, and with all deceivableness... because they received not the love of the truth" — lie 1 full grown: the Word distrusted, the wonder believed
+- [SOP GC 561.1] "Thousands reject the word of God as unworthy of belief and with eager confidence receive the deceptions of Satan." — the exchange stated plainly
+- [SOP GC 561.2] "The foundation of his work was laid by the assurance given to Eve in Eden: 'Ye shall not surely die.'" — lie 2's pedigree: Eden to the séance in one straight line
 
 [SOP GC 588.1] "Through the two great errors, the immortality of the soul and Sunday sacredness, Satan will bring the people under his deceptions." — the two load-bearing errors
 
