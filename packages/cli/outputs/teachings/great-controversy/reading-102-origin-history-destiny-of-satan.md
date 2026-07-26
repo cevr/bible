@@ -258,6 +258,18 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1271'
 - _Gen 3:6._ "she took of the fruit thereof, and did eat, and gave also unto her husband" — the fall
 - _Gen 3:14-15._ "upon thy belly shalt thou go... And I will put enmity between thee and the woman, and between thy seed and her seed; it shall bruise thy head" — the curse grounds the flyer, and war is declared: Head-wound scheduled; the rest of the Bible is this verse unfolding
 
+**The parameters — a war for the mind — Gen 3:15 ↔ Rom 8:7:**
+
+- _Gen 3:15._ "I will put enmity" — the declaration names the weapon and the terrain: enmity, planted inside; the battleground is not territory but the mind
+- _Rom 8:7._ "the carnal mind is enmity against God" — the same word, mapped: two enmities on offer, and the one you host declares whose seed you are
+- _2 Cor 10:4-5._ "the weapons of our warfare are not carnal... casting down imaginations... bringing into captivity every thought to the obedience of Christ" — the terrain itemized: imaginations, thoughts
+- _Eph 6:12._ "we wrestle not against flesh and blood, but against principalities, against powers" — the combatant behind every human front
+- _Phil 2:5._ "Let this mind be in you, which was also in Christ Jesus" — the war aim, stated positively
+
+[SOP AA 518.2] "Those who would not fall a prey to Satan's devices, must guard well the avenues of the soul." — the senses are the approach roads to the battlefield
+
+[→] every later section is this one battle in a new theater — accusation (§11), "It is written" in the wilderness (§12), miracles and personation (§15-16): all of it aimed at the mind's allegiance
+
 [SOP SR 42.1] "Sorrow filled heaven, as it was realized that man was lost" — and in that sorrow the Son offered Himself (SR 42.2): the fall's first echo is the plan of salvation
 
 [SOP PP 53.4] "Satan chose to employ as his medium the serpent—a disguise well adapted for his purpose of deception." — he has never worked undisguised since

@@ -154,7 +154,7 @@
       "section": 8,
       "sectionTitle": "Created: The Third Party",
       "text": "And God said, Let us make man in our image, after our likeness: and let them have dominion over the fish of the sea, and over the fowl of the air, and over the cattle, and over all the earth, and over every creeping thing that creepeth upon the earth. So God created man in his own image, in the image of God created he him; male and female created he them.",
-      "concept": "the creation of Adam: a noble man standing newly formed in a radiant garden at dawn, a hand of divine light above him, animals and a wide new earth spread before him awaiting his dominion",
+      "concept": "the creation of Adam: a noble man standing newly formed in a radiant garden at dawn, his whole body enveloped in a soft luminous robe of white-gold light that clothes him like a garment, a hand of divine light above him, animals and a wide new earth spread before him awaiting his dominion",
       "side": "left"
     },
     {
@@ -174,7 +174,7 @@
       "section": 9,
       "sectionTitle": "Eden: The First Lie",
       "text": "And the LORD God commanded the man, saying, Of every tree of the garden thou mayest freely eat: But of the tree of the knowledge of good and evil, thou shalt not eat of it: for in the day that thou eatest thereof thou shalt surely die.",
-      "concept": "a single beautiful fruit-laden tree standing apart in a lush abundant garden, marked off by a soft boundary of light and shadow at its edge, inviting and solemn",
+      "concept": "a single majestic fruit-laden tree standing alone in a radiant golden garden clearing, warm shafts of dawn light around it but its own shade deep and solemn, rich fruit glowing amber in the branches, inviting and forbidden at once",
       "side": "left"
     },
     {
@@ -199,13 +199,23 @@
     },
     {
       "type": "verse",
+      "id": "s15b-2cor-10-4-5",
+      "ref": "2 Corinthians 10:4-5",
+      "section": 9,
+      "sectionTitle": "Eden: The First Lie",
+      "text": "(For the weapons of our warfare are not carnal, but mighty through God to the pulling down of strong holds;) Casting down imaginations, and every high thing that exalteth itself against the knowledge of God, and bringing into captivity every thought to the obedience of Christ;",
+      "concept": "a lone man kneeling in an open field between two great opposing skies, warm golden light streaming toward his brow from one side and cold creeping darkness reaching toward his head from the other, the front line of a vast unseen battle running through his mind",
+      "side": "right"
+    },
+    {
+      "type": "verse",
       "id": "s16-john-8-44",
       "ref": "John 8:44",
       "section": 9,
       "sectionTitle": "Eden: The First Lie",
       "text": "‹Ye are of your father the devil, and the lusts of your father ye will do. He was a murderer from the beginning, and abode not in the truth, because there is no truth in him. When he speaketh a lie, he speaketh of his own: for he is a liar, and the father of it.›",
-      "concept": "a dark hooded figure casting an impossibly long shadow across a beautiful garden at twilight",
-      "side": "right"
+      "concept": "Lucifer matching the reference character exactly: a youthful beardless angel with golden curly shoulder-length hair, ornate gold armor set with colored jewels, a crimson mantle, great golden wings, standing in a beautiful garden at twilight and casting an impossibly long dark shadow across it, his beauty intact but the shadow wrong",
+      "side": "left"
     },
     {
       "type": "verse",
@@ -214,8 +224,8 @@
       "section": 10,
       "sectionTitle": "Dominion Usurped: Back at the Gate",
       "text": "Now there was a day when the sons of God came to present themselves before the LORD, and Satan came also among them. And the LORD said unto Satan, Whence comest thou? Then Satan answered the LORD, and said, From going to and fro in the earth, and from walking up and down in it.",
-      "concept": "a vast heavenly assembly of luminous radiant representatives presenting themselves in ordered ranks before a blazing throne of light, and one dark cloaked figure standing among them in the ranks, subtly out of place",
-      "side": "left"
+      "concept": "a vast heavenly assembly of luminous white-robed representatives in ordered ranks before a blazing distant throne of light, and standing among them Lucifer matching the reference character exactly: a youthful beardless angel with golden curly shoulder-length hair, ornate gold armor set with colored jewels, a crimson mantle, great golden wings, subtly out of place among the white ranks",
+      "side": "right"
     },
     {
       "type": "verse",
@@ -225,7 +235,7 @@
       "sectionTitle": "The Accuser at Court",
       "text": "And he shewed me Joshua the high priest standing before the angel of the LORD, and Satan standing at his right hand to resist him. And the LORD said unto Satan, The LORD rebuke thee, O Satan; even the LORD that hath chosen Jerusalem rebuke thee: is not this a brand plucked out of the fire?",
       "concept": "a burning branch plucked out of a fire by a hand of light, sparks rising, deep darkness around the flame",
-      "side": "right"
+      "side": "left"
     },
     {
       "type": "verse",
@@ -235,7 +245,7 @@
       "sectionTitle": "The Accuser at Court",
       "text": "Who shall lay any thing to the charge of God's elect? It is God that justifieth. Who is he that condemneth? It is Christ that died, yea rather, that is risen again, who is even at the right hand of God, who also maketh intercession for us.",
       "concept": "Jesus the risen Advocate: long dark brown hair, short beard, white robe with gold-trimmed sleeves and a golden sash, arms raised in intercession before a radiant throne, warm advocate light filling a high hall",
-      "side": "left"
+      "side": "right"
     },
     {
       "type": "verse",
@@ -245,7 +255,7 @@
       "sectionTitle": "The Wilderness",
       "text": "But he answered and said, ‹It is written, Man shall not live by bread alone, but by every word that proceedeth out of the mouth of God.›",
       "concept": "an open ancient book glowing with steady light in a barren stony wilderness at dusk, smooth stones in the foreground",
-      "side": "right"
+      "side": "left"
     },
     {
       "type": "verse",
@@ -255,7 +265,7 @@
       "sectionTitle": "The Wilderness",
       "text": "For we have not an high priest which cannot be touched with the feeling of our infirmities; but was in all points tempted like as we are, yet without sin.",
       "concept": "Jesus with long dark brown hair, a short beard, gentle compassionate face, wearing a white robe with gold-trimmed sleeves and a golden sash, kneeling to lay a hand on a weary kneeling traveler's shoulder, warm compassionate light in a desert at dusk",
-      "side": "left"
+      "side": "right"
     },
     {
       "type": "verse",
@@ -265,7 +275,7 @@
       "sectionTitle": "The Cross",
       "text": "‹Now is the judgment of this world: now shall the prince of this world be cast out.›",
       "concept": "the hill of Calvary with three crosses against a darkened storm sky, one great shaft of light breaking from the center cross",
-      "side": "right"
+      "side": "left"
     },
     {
       "type": "verse",
@@ -275,7 +285,7 @@
       "sectionTitle": "The Cross",
       "text": "Forasmuch then as the children are partakers of flesh and blood, he also himself likewise took part of the same; that through death he might destroy him that had the power of death, that is, the devil;",
       "concept": "a shattered dark iron crown and broken chains lying at the foot of a rough wooden cross in early dawn light",
-      "side": "left"
+      "side": "right"
     },
     {
       "type": "verse",
@@ -285,7 +295,7 @@
       "sectionTitle": "The Cross",
       "text": "And I heard a loud voice saying in heaven, Now is come salvation, and strength, and the kingdom of our God, and the power of his Christ: for the accuser of our brethren is cast down, which accused them before our God day and night.",
       "concept": "a dark cloaked figure hurled down from a great shining gate of heaven, the gate closing in light above him, falling toward a small distant blue earth far below",
-      "side": "right"
+      "side": "left"
     },
     {
       "type": "verse",
@@ -295,7 +305,7 @@
       "sectionTitle": "The Cross",
       "text": "And he said unto them, ‹I beheld Satan as lightning fall from heaven.›",
       "concept": "a single great bolt of lightning falling from the height of heaven down to a dark curved horizon, night sky, painterly",
-      "side": "left"
+      "side": "right"
     },
     {
       "type": "verse",
@@ -305,7 +315,7 @@
       "sectionTitle": "The Cross",
       "text": "And the great dragon was cast out, that old serpent, called the Devil, and Satan, which deceiveth the whole world: he was cast out into the earth, and his angels were cast out with him.",
       "concept": "a great red dragon cast down out of the heavens, falling toward a small distant blue earth, trailing darkness",
-      "side": "right"
+      "side": "left"
     },
     {
       "type": "verse",
@@ -315,7 +325,7 @@
       "sectionTitle": "War on the Remnant",
       "text": "And the dragon was wroth with the woman, and went to make war with the remnant of her seed, which keep the commandments of God, and have the testimony of Jesus Christ.",
       "concept": "a small faithful band of pilgrims on a mountain ridge holding two banners of light, vast dark storm clouds massing against them",
-      "side": "left"
+      "side": "right"
     },
     {
       "type": "verse",
@@ -325,7 +335,7 @@
       "sectionTitle": "War on the Remnant",
       "text": "And they overcame him by the blood of the Lamb, and by the word of their testimony; and they loved not their lives unto the death.",
       "concept": "a white lamb glowing on a height at dawn, a great multitude below lifting palm branches toward the light",
-      "side": "right"
+      "side": "left"
     },
     {
       "type": "verse",
@@ -335,7 +345,7 @@
       "sectionTitle": "Angel of Light",
       "text": "And no marvel; for Satan himself is transformed into an angel of light.",
       "concept": "Satan transformed into an angel of light: a beautiful youthful beardless angel with golden curly shoulder-length hair, dazzling white and gold raiment, great luminous wings, whose brilliant light casts a wrong deep dark shadow behind him, subtle unease in the glow",
-      "side": "left"
+      "side": "right"
     },
     {
       "type": "verse",
@@ -345,7 +355,7 @@
       "sectionTitle": "Angel of Light",
       "text": "‹For there shall arise false Christs, and false prophets, and shall shew great signs and wonders; insomuch that, if it were possible, they shall deceive the very elect.›",
       "concept": "a night crowd drawn toward a great deceptive glow on the horizon while a few figures turn instead to a small true lamplit open book",
-      "side": "right"
+      "side": "left"
     },
     {
       "type": "verse",
@@ -355,7 +365,7 @@
       "sectionTitle": "The Crowning Act",
       "text": "To the law and to the testimony: if they speak not according to this word, it is because there is no light in them.",
       "concept": "an open Bible radiating calm steady light on a stone table inside, a wild storm raging outside a window",
-      "side": "left"
+      "side": "right"
     },
     {
       "type": "verse",
@@ -365,7 +375,7 @@
       "sectionTitle": "The Crowning Act",
       "text": "‹For as the lightning cometh out of the east, and shineth even unto the west; so shall also the coming of the Son of man be.›",
       "concept": "brilliant lightning spanning the entire sky from east to west over a wide landscape, every cloud lit with glory, every field visible",
-      "side": "right"
+      "side": "left"
     },
     {
       "type": "verse",
@@ -375,7 +385,7 @@
       "sectionTitle": "The Crowning Act",
       "text": "Be sober, be vigilant; because your adversary the devil, as a roaring lion, walketh about, seeking whom he may devour: Whom resist stedfast in the faith, knowing that the same afflictions are accomplished in your brethren that are in the world.",
       "concept": "a lion prowling in darkness just beyond a campfire's circle of light, a watchful shepherd standing guard with a staff",
-      "side": "left"
+      "side": "right"
     },
     {
       "type": "verse",
@@ -385,7 +395,7 @@
       "sectionTitle": "Bound in the Pit",
       "text": "And I saw an angel come down from heaven, having the key of the bottomless pit and a great chain in his hand. And he laid hold on the dragon, that old serpent, which is the Devil, and Satan, and bound him a thousand years, And cast him into the bottomless pit, and shut him up, and set a seal upon him, that he should deceive the nations no more, till the thousand years should be fulfilled: and after that he must be loosed a little season.",
       "concept": "a mighty angel descending from heaven holding a great chain and a key, above a dark broken desolate earth",
-      "side": "right"
+      "side": "left"
     },
     {
       "type": "verse",
@@ -395,7 +405,7 @@
       "sectionTitle": "Bound in the Pit",
       "text": "And Aaron shall lay both his hands upon the head of the live goat, and confess over him all the iniquities of the children of Israel, and all their transgressions in all their sins, putting them upon the head of the goat, and shall send him away by the hand of a fit man into the wilderness: And the goat shall bear upon him all their iniquities unto a land not inhabited: and he shall let go the goat in the wilderness.",
       "concept": "a lone goat led away by a solitary figure into a vast uninhabited wilderness at dusk, long shadows, empty land to the horizon",
-      "side": "left"
+      "side": "right"
     },
     {
       "type": "verse",
@@ -405,7 +415,7 @@
       "sectionTitle": "Loosed: The Last Campaign",
       "text": "And when the thousand years are expired, Satan shall be loosed out of his prison, And shall go out to deceive the nations which are in the four quarters of the earth, Gog and Magog, to gather them together to battle: the number of whom is as the sand of the sea.",
       "concept": "an innumerable dark host like the sand of the sea gathering across a broken plain toward a distant shining city descended from heaven",
-      "side": "right"
+      "side": "left"
     },
     {
       "type": "verse",
@@ -415,7 +425,7 @@
       "sectionTitle": "Ashes: An Utter End",
       "text": "Thou hast defiled thy sanctuaries by the multitude of thine iniquities, by the iniquity of thy traffick; therefore will I bring forth a fire from the midst of thee, it shall devour thee, and I will bring thee to ashes upon the earth in the sight of all them that behold thee. All they that know thee among the people shall be astonished at thee: thou shalt be a terror, and never shalt thou be any more.",
       "concept": "grey ashes scattered on scorched earth with one last ember dying, clean dawn light rising beyond the burned ground",
-      "side": "left"
+      "side": "right"
     },
     {
       "type": "verse",
@@ -425,7 +435,7 @@
       "sectionTitle": "Ashes: An Utter End",
       "text": "For, behold, the day cometh, that shall burn as an oven; and all the proud, yea, and all that do wickedly, shall be stubble: and the day that cometh shall burn them up, saith the LORD of hosts, that it shall leave them neither root nor branch. ... And ye shall tread down the wicked; for they shall be ashes under the soles of your feet in the day that I shall do this, saith the LORD of hosts.",
       "concept": "a burned field of stubble at sunrise, ashes underfoot, the sun rising with warm healing rays over a clean horizon",
-      "side": "right"
+      "side": "left"
     },
     {
       "type": "verse",
@@ -435,7 +445,7 @@
       "sectionTitle": "A Clean Universe",
       "text": "What do ye imagine against the LORD? he will make an utter end: affliction shall not rise up the second time.",
       "concept": "a calm brilliant field of stars over a peaceful new earth at night, still waters reflecting the heavens, no storm anywhere",
-      "side": "left"
+      "side": "right"
     },
     {
       "type": "verse",
@@ -445,7 +455,7 @@
       "sectionTitle": "A Clean Universe",
       "text": "And every creature which is in heaven, and on the earth, and under the earth, and such as are in the sea, and all that are in them, heard I saying, Blessing, and honour, and glory, and power, be unto him that sitteth upon the throne, and unto the Lamb for ever and ever.",
       "concept": "vast concentric rings of angels and redeemed multitudes around one radiant central throne, the whole canvas filled with warm light",
-      "side": "right"
+      "side": "left"
     },
     {
       "type": "diagram",
@@ -460,7 +470,7 @@
       "sectionTitle": "Appeal",
       "text": "And the God of peace shall bruise Satan under your feet shortly. The grace of our Lord Jesus Christ be with you. Amen.",
       "concept": "a serpent crushed beneath a bare foot in dawn-lit grass, wide peaceful morning landscape beyond",
-      "side": "left"
+      "side": "right"
     },
     {
       "type": "verse",
@@ -470,7 +480,7 @@
       "sectionTitle": "Appeal",
       "text": "Submit yourselves therefore to God. Resist the devil, and he will flee from you. Draw nigh to God, and he will draw nigh to you. Cleanse your hands, ye sinners; and purify your hearts, ye double minded.",
       "concept": "a man kneeling in open-handed surrender in warm morning light on a hilltop, darkness retreating off the edge of the canvas",
-      "side": "right"
+      "side": "left"
     }
   ]
 }

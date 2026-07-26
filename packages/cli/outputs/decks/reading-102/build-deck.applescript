@@ -422,6 +422,31 @@ tell application "Keynote"
 				set the width of tx to 805
 				set the position of tx to {984, 735}
 			end tell
+		-- s15b-2cor-10-4-5 (2 Corinthians 10:4-5)
+		set fb to make new slide with properties {base slide:master slide "Blank"}
+		tell fb
+			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s15b-2cor-10-4-5-full.png"), position:{0, 0}, width:1920, height:1080}
+		end tell
+		set sp to make new slide with properties {base slide:master slide "Blank"}
+		tell sp
+			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s15b-2cor-10-4-5-panel.png"), position:{1037, 75}, width:750, height:903}
+		end tell
+			tell sp
+				set tx to make new text item with properties {object text:"(For the weapons of our warfare are not carnal, but mighty through God to the pulling down of strong holds;) Casting down imaginations, and every high thing that exalteth itself against the knowledge of God, and bringing into captivity every thought to the obedience of Christ;"}
+				set the font of the object text of tx to "Helvetica Neue Light"
+				set the size of the object text of tx to 40
+				set the color of the object text of tx to {65535, 65535, 65535}
+				set the width of tx to 805
+				set the position of tx to {131, 295}
+			end tell
+			tell sp
+				set tx to make new text item with properties {object text:"2 Corinthians 10:4-5"}
+				set the font of the object text of tx to "Helvetica Neue"
+				set the size of the object text of tx to 30
+				set the color of the object text of tx to {39321, 39321, 39321}
+				set the width of tx to 805
+				set the position of tx to {131, 785}
+			end tell
 		-- s16-john-8-44 (John 8:44)
 		set fb to make new slide with properties {base slide:master slide "Blank"}
 		tell fb
@@ -429,7 +454,7 @@ tell application "Keynote"
 		end tell
 		set sp to make new slide with properties {base slide:master slide "Blank"}
 		tell sp
-			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s16-john-8-44-panel.png"), position:{1037, 75}, width:750, height:903}
+			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s16-john-8-44-panel.png"), position:{133, 75}, width:750, height:903}
 		end tell
 			tell sp
 				set tx to make new text item with properties {object text:"‹Ye are of your father the devil, and the lusts of your father ye will do. He was a murderer from the beginning, and abode not in the truth, because there is no truth in him. When he speaketh a lie, he speaketh of his own: for he is a liar, and the father of it.›"}
@@ -437,7 +462,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 40
 				set the color of the object text of tx to {65535, 65535, 65535}
 				set the width of tx to 805
-				set the position of tx to {131, 320}
+				set the position of tx to {984, 320}
 			end tell
 			tell sp
 				set tx to make new text item with properties {object text:"John 8:44"}
@@ -445,7 +470,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 30
 				set the color of the object text of tx to {39321, 39321, 39321}
 				set the width of tx to 805
-				set the position of tx to {131, 760}
+				set the position of tx to {984, 760}
 			end tell
 		-- s16b-job-1-6-7 (Job 1:6-7)
 		set fb to make new slide with properties {base slide:master slide "Blank"}
@@ -454,7 +479,7 @@ tell application "Keynote"
 		end tell
 		set sp to make new slide with properties {base slide:master slide "Blank"}
 		tell sp
-			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s16b-job-1-6-7-panel.png"), position:{133, 75}, width:750, height:903}
+			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s16b-job-1-6-7-panel.png"), position:{1037, 75}, width:750, height:903}
 		end tell
 			tell sp
 				set tx to make new text item with properties {object text:"Now there was a day when the sons of God came to present themselves before the LORD, and Satan came also among them. And the LORD said unto Satan, Whence comest thou? Then Satan answered the LORD, and said, From going to and fro in the earth, and from walking up and down in it."}
@@ -462,7 +487,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 40
 				set the color of the object text of tx to {65535, 65535, 65535}
 				set the width of tx to 805
-				set the position of tx to {984, 295}
+				set the position of tx to {131, 295}
 			end tell
 			tell sp
 				set tx to make new text item with properties {object text:"Job 1:6-7"}
@@ -470,7 +495,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 30
 				set the color of the object text of tx to {39321, 39321, 39321}
 				set the width of tx to 805
-				set the position of tx to {984, 785}
+				set the position of tx to {131, 785}
 			end tell
 		-- s17-zech-3-1-2 (Zechariah 3:1-2)
 		set fb to make new slide with properties {base slide:master slide "Blank"}
@@ -479,7 +504,7 @@ tell application "Keynote"
 		end tell
 		set sp to make new slide with properties {base slide:master slide "Blank"}
 		tell sp
-			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s17-zech-3-1-2-panel.png"), position:{1037, 75}, width:750, height:903}
+			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s17-zech-3-1-2-panel.png"), position:{133, 75}, width:750, height:903}
 		end tell
 			tell sp
 				set tx to make new text item with properties {object text:"And he shewed me Joshua the high priest standing before the angel of the LORD, and Satan standing at his right hand to resist him. And the LORD said unto Satan, The LORD rebuke thee, O Satan; even the LORD that hath chosen Jerusalem rebuke thee: is not this a brand plucked out of the fire?"}
@@ -487,7 +512,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 40
 				set the color of the object text of tx to {65535, 65535, 65535}
 				set the width of tx to 805
-				set the position of tx to {131, 295}
+				set the position of tx to {984, 295}
 			end tell
 			tell sp
 				set tx to make new text item with properties {object text:"Zechariah 3:1-2"}
@@ -495,7 +520,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 30
 				set the color of the object text of tx to {39321, 39321, 39321}
 				set the width of tx to 805
-				set the position of tx to {131, 785}
+				set the position of tx to {984, 785}
 			end tell
 		-- s18-rom-8-33-34 (Romans 8:33-34)
 		set fb to make new slide with properties {base slide:master slide "Blank"}
@@ -504,7 +529,7 @@ tell application "Keynote"
 		end tell
 		set sp to make new slide with properties {base slide:master slide "Blank"}
 		tell sp
-			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s18-rom-8-33-34-panel.png"), position:{133, 75}, width:750, height:903}
+			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s18-rom-8-33-34-panel.png"), position:{1037, 75}, width:750, height:903}
 		end tell
 			tell sp
 				set tx to make new text item with properties {object text:"Who shall lay any thing to the charge of God's elect? It is God that justifieth. Who is he that condemneth? It is Christ that died, yea rather, that is risen again, who is even at the right hand of God, who also maketh intercession for us."}
@@ -512,7 +537,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 40
 				set the color of the object text of tx to {65535, 65535, 65535}
 				set the width of tx to 805
-				set the position of tx to {984, 320}
+				set the position of tx to {131, 320}
 			end tell
 			tell sp
 				set tx to make new text item with properties {object text:"Romans 8:33-34"}
@@ -520,7 +545,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 30
 				set the color of the object text of tx to {39321, 39321, 39321}
 				set the width of tx to 805
-				set the position of tx to {984, 760}
+				set the position of tx to {131, 760}
 			end tell
 		-- s19-matt-4-4 (Matthew 4:4)
 		set fb to make new slide with properties {base slide:master slide "Blank"}
@@ -529,7 +554,7 @@ tell application "Keynote"
 		end tell
 		set sp to make new slide with properties {base slide:master slide "Blank"}
 		tell sp
-			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s19-matt-4-4-panel.png"), position:{1037, 75}, width:750, height:903}
+			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s19-matt-4-4-panel.png"), position:{133, 75}, width:750, height:903}
 		end tell
 			tell sp
 				set tx to make new text item with properties {object text:"But he answered and said, ‹It is written, Man shall not live by bread alone, but by every word that proceedeth out of the mouth of God.›"}
@@ -537,7 +562,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 48
 				set the color of the object text of tx to {65535, 65535, 65535}
 				set the width of tx to 805
-				set the position of tx to {131, 345}
+				set the position of tx to {984, 345}
 			end tell
 			tell sp
 				set tx to make new text item with properties {object text:"Matthew 4:4"}
@@ -545,7 +570,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 30
 				set the color of the object text of tx to {39321, 39321, 39321}
 				set the width of tx to 805
-				set the position of tx to {131, 735}
+				set the position of tx to {984, 735}
 			end tell
 		-- s20-heb-4-15 (Hebrews 4:15)
 		set fb to make new slide with properties {base slide:master slide "Blank"}
@@ -554,7 +579,7 @@ tell application "Keynote"
 		end tell
 		set sp to make new slide with properties {base slide:master slide "Blank"}
 		tell sp
-			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s20-heb-4-15-panel.png"), position:{133, 75}, width:750, height:903}
+			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s20-heb-4-15-panel.png"), position:{1037, 75}, width:750, height:903}
 		end tell
 			tell sp
 				set tx to make new text item with properties {object text:"For we have not an high priest which cannot be touched with the feeling of our infirmities; but was in all points tempted like as we are, yet without sin."}
@@ -562,7 +587,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 48
 				set the color of the object text of tx to {65535, 65535, 65535}
 				set the width of tx to 805
-				set the position of tx to {984, 345}
+				set the position of tx to {131, 345}
 			end tell
 			tell sp
 				set tx to make new text item with properties {object text:"Hebrews 4:15"}
@@ -570,7 +595,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 30
 				set the color of the object text of tx to {39321, 39321, 39321}
 				set the width of tx to 805
-				set the position of tx to {984, 735}
+				set the position of tx to {131, 735}
 			end tell
 		-- s21-john-12-31 (John 12:31)
 		set fb to make new slide with properties {base slide:master slide "Blank"}
@@ -579,7 +604,7 @@ tell application "Keynote"
 		end tell
 		set sp to make new slide with properties {base slide:master slide "Blank"}
 		tell sp
-			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s21-john-12-31-panel.png"), position:{1037, 75}, width:750, height:903}
+			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s21-john-12-31-panel.png"), position:{133, 75}, width:750, height:903}
 		end tell
 			tell sp
 				set tx to make new text item with properties {object text:"‹Now is the judgment of this world: now shall the prince of this world be cast out.›"}
@@ -587,7 +612,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 48
 				set the color of the object text of tx to {65535, 65535, 65535}
 				set the width of tx to 805
-				set the position of tx to {131, 405}
+				set the position of tx to {984, 405}
 			end tell
 			tell sp
 				set tx to make new text item with properties {object text:"John 12:31"}
@@ -595,7 +620,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 30
 				set the color of the object text of tx to {39321, 39321, 39321}
 				set the width of tx to 805
-				set the position of tx to {131, 675}
+				set the position of tx to {984, 675}
 			end tell
 		-- s22-heb-2-14 (Hebrews 2:14)
 		set fb to make new slide with properties {base slide:master slide "Blank"}
@@ -604,7 +629,7 @@ tell application "Keynote"
 		end tell
 		set sp to make new slide with properties {base slide:master slide "Blank"}
 		tell sp
-			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s22-heb-2-14-panel.png"), position:{133, 75}, width:750, height:903}
+			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s22-heb-2-14-panel.png"), position:{1037, 75}, width:750, height:903}
 		end tell
 			tell sp
 				set tx to make new text item with properties {object text:"Forasmuch then as the children are partakers of flesh and blood, he also himself likewise took part of the same; that through death he might destroy him that had the power of death, that is, the devil;"}
@@ -612,7 +637,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 40
 				set the color of the object text of tx to {65535, 65535, 65535}
 				set the width of tx to 805
-				set the position of tx to {984, 345}
+				set the position of tx to {131, 345}
 			end tell
 			tell sp
 				set tx to make new text item with properties {object text:"Hebrews 2:14"}
@@ -620,7 +645,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 30
 				set the color of the object text of tx to {39321, 39321, 39321}
 				set the width of tx to 805
-				set the position of tx to {984, 735}
+				set the position of tx to {131, 735}
 			end tell
 		-- s22b-rev-12-10 (Revelation 12:10)
 		set fb to make new slide with properties {base slide:master slide "Blank"}
@@ -629,7 +654,7 @@ tell application "Keynote"
 		end tell
 		set sp to make new slide with properties {base slide:master slide "Blank"}
 		tell sp
-			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s22b-rev-12-10-panel.png"), position:{1037, 75}, width:750, height:903}
+			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s22b-rev-12-10-panel.png"), position:{133, 75}, width:750, height:903}
 		end tell
 			tell sp
 				set tx to make new text item with properties {object text:"And I heard a loud voice saying in heaven, Now is come salvation, and strength, and the kingdom of our God, and the power of his Christ: for the accuser of our brethren is cast down, which accused them before our God day and night."}
@@ -637,7 +662,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 40
 				set the color of the object text of tx to {65535, 65535, 65535}
 				set the width of tx to 805
-				set the position of tx to {131, 320}
+				set the position of tx to {984, 320}
 			end tell
 			tell sp
 				set tx to make new text item with properties {object text:"Revelation 12:10"}
@@ -645,7 +670,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 30
 				set the color of the object text of tx to {39321, 39321, 39321}
 				set the width of tx to 805
-				set the position of tx to {131, 760}
+				set the position of tx to {984, 760}
 			end tell
 		-- s22c-luke-10-18 (Luke 10:18)
 		set fb to make new slide with properties {base slide:master slide "Blank"}
@@ -654,7 +679,7 @@ tell application "Keynote"
 		end tell
 		set sp to make new slide with properties {base slide:master slide "Blank"}
 		tell sp
-			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s22c-luke-10-18-panel.png"), position:{133, 75}, width:750, height:903}
+			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s22c-luke-10-18-panel.png"), position:{1037, 75}, width:750, height:903}
 		end tell
 			tell sp
 				set tx to make new text item with properties {object text:"And he said unto them, ‹I beheld Satan as lightning fall from heaven.›"}
@@ -662,7 +687,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 48
 				set the color of the object text of tx to {65535, 65535, 65535}
 				set the width of tx to 805
-				set the position of tx to {984, 405}
+				set the position of tx to {131, 405}
 			end tell
 			tell sp
 				set tx to make new text item with properties {object text:"Luke 10:18"}
@@ -670,7 +695,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 30
 				set the color of the object text of tx to {39321, 39321, 39321}
 				set the width of tx to 805
-				set the position of tx to {984, 675}
+				set the position of tx to {131, 675}
 			end tell
 		-- s22d-rev-12-9 (Revelation 12:9)
 		set fb to make new slide with properties {base slide:master slide "Blank"}
@@ -679,7 +704,7 @@ tell application "Keynote"
 		end tell
 		set sp to make new slide with properties {base slide:master slide "Blank"}
 		tell sp
-			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s22d-rev-12-9-panel.png"), position:{1037, 75}, width:750, height:903}
+			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s22d-rev-12-9-panel.png"), position:{133, 75}, width:750, height:903}
 		end tell
 			tell sp
 				set tx to make new text item with properties {object text:"And the great dragon was cast out, that old serpent, called the Devil, and Satan, which deceiveth the whole world: he was cast out into the earth, and his angels were cast out with him."}
@@ -687,7 +712,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 40
 				set the color of the object text of tx to {65535, 65535, 65535}
 				set the width of tx to 805
-				set the position of tx to {131, 370}
+				set the position of tx to {984, 370}
 			end tell
 			tell sp
 				set tx to make new text item with properties {object text:"Revelation 12:9"}
@@ -695,7 +720,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 30
 				set the color of the object text of tx to {39321, 39321, 39321}
 				set the width of tx to 805
-				set the position of tx to {131, 710}
+				set the position of tx to {984, 710}
 			end tell
 		-- s23-rev-12-17 (Revelation 12:17)
 		set fb to make new slide with properties {base slide:master slide "Blank"}
@@ -704,7 +729,7 @@ tell application "Keynote"
 		end tell
 		set sp to make new slide with properties {base slide:master slide "Blank"}
 		tell sp
-			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s23-rev-12-17-panel.png"), position:{133, 75}, width:750, height:903}
+			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s23-rev-12-17-panel.png"), position:{1037, 75}, width:750, height:903}
 		end tell
 			tell sp
 				set tx to make new text item with properties {object text:"And the dragon was wroth with the woman, and went to make war with the remnant of her seed, which keep the commandments of God, and have the testimony of Jesus Christ."}
@@ -712,7 +737,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 48
 				set the color of the object text of tx to {65535, 65535, 65535}
 				set the width of tx to 805
-				set the position of tx to {984, 315}
+				set the position of tx to {131, 315}
 			end tell
 			tell sp
 				set tx to make new text item with properties {object text:"Revelation 12:17"}
@@ -720,7 +745,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 30
 				set the color of the object text of tx to {39321, 39321, 39321}
 				set the width of tx to 805
-				set the position of tx to {984, 765}
+				set the position of tx to {131, 765}
 			end tell
 		-- s24-rev-12-11 (Revelation 12:11)
 		set fb to make new slide with properties {base slide:master slide "Blank"}
@@ -729,7 +754,7 @@ tell application "Keynote"
 		end tell
 		set sp to make new slide with properties {base slide:master slide "Blank"}
 		tell sp
-			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s24-rev-12-11-panel.png"), position:{1037, 75}, width:750, height:903}
+			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s24-rev-12-11-panel.png"), position:{133, 75}, width:750, height:903}
 		end tell
 			tell sp
 				set tx to make new text item with properties {object text:"And they overcame him by the blood of the Lamb, and by the word of their testimony; and they loved not their lives unto the death."}
@@ -737,7 +762,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 48
 				set the color of the object text of tx to {65535, 65535, 65535}
 				set the width of tx to 805
-				set the position of tx to {131, 345}
+				set the position of tx to {984, 345}
 			end tell
 			tell sp
 				set tx to make new text item with properties {object text:"Revelation 12:11"}
@@ -745,7 +770,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 30
 				set the color of the object text of tx to {39321, 39321, 39321}
 				set the width of tx to 805
-				set the position of tx to {131, 735}
+				set the position of tx to {984, 735}
 			end tell
 		-- s25-2cor-11-14 (2 Corinthians 11:14)
 		set fb to make new slide with properties {base slide:master slide "Blank"}
@@ -754,7 +779,7 @@ tell application "Keynote"
 		end tell
 		set sp to make new slide with properties {base slide:master slide "Blank"}
 		tell sp
-			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s25-2cor-11-14-panel.png"), position:{133, 75}, width:750, height:903}
+			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s25-2cor-11-14-panel.png"), position:{1037, 75}, width:750, height:903}
 		end tell
 			tell sp
 				set tx to make new text item with properties {object text:"And no marvel; for Satan himself is transformed into an angel of light."}
@@ -762,7 +787,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 48
 				set the color of the object text of tx to {65535, 65535, 65535}
 				set the width of tx to 805
-				set the position of tx to {984, 405}
+				set the position of tx to {131, 405}
 			end tell
 			tell sp
 				set tx to make new text item with properties {object text:"2 Corinthians 11:14"}
@@ -770,7 +795,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 30
 				set the color of the object text of tx to {39321, 39321, 39321}
 				set the width of tx to 805
-				set the position of tx to {984, 675}
+				set the position of tx to {131, 675}
 			end tell
 		-- s26-matt-24-24 (Matthew 24:24)
 		set fb to make new slide with properties {base slide:master slide "Blank"}
@@ -779,7 +804,7 @@ tell application "Keynote"
 		end tell
 		set sp to make new slide with properties {base slide:master slide "Blank"}
 		tell sp
-			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s26-matt-24-24-panel.png"), position:{1037, 75}, width:750, height:903}
+			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s26-matt-24-24-panel.png"), position:{133, 75}, width:750, height:903}
 		end tell
 			tell sp
 				set tx to make new text item with properties {object text:"‹For there shall arise false Christs, and false prophets, and shall shew great signs and wonders; insomuch that, if it were possible, they shall deceive the very elect.›"}
@@ -787,7 +812,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 48
 				set the color of the object text of tx to {65535, 65535, 65535}
 				set the width of tx to 805
-				set the position of tx to {131, 315}
+				set the position of tx to {984, 315}
 			end tell
 			tell sp
 				set tx to make new text item with properties {object text:"Matthew 24:24"}
@@ -795,7 +820,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 30
 				set the color of the object text of tx to {39321, 39321, 39321}
 				set the width of tx to 805
-				set the position of tx to {131, 765}
+				set the position of tx to {984, 765}
 			end tell
 		-- s27-isa-8-20 (Isaiah 8:20)
 		set fb to make new slide with properties {base slide:master slide "Blank"}
@@ -804,7 +829,7 @@ tell application "Keynote"
 		end tell
 		set sp to make new slide with properties {base slide:master slide "Blank"}
 		tell sp
-			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s27-isa-8-20-panel.png"), position:{133, 75}, width:750, height:903}
+			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s27-isa-8-20-panel.png"), position:{1037, 75}, width:750, height:903}
 		end tell
 			tell sp
 				set tx to make new text item with properties {object text:"To the law and to the testimony: if they speak not according to this word, it is because there is no light in them."}
@@ -812,7 +837,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 48
 				set the color of the object text of tx to {65535, 65535, 65535}
 				set the width of tx to 805
-				set the position of tx to {984, 375}
+				set the position of tx to {131, 375}
 			end tell
 			tell sp
 				set tx to make new text item with properties {object text:"Isaiah 8:20"}
@@ -820,7 +845,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 30
 				set the color of the object text of tx to {39321, 39321, 39321}
 				set the width of tx to 805
-				set the position of tx to {984, 705}
+				set the position of tx to {131, 705}
 			end tell
 		-- s28-matt-24-27 (Matthew 24:27)
 		set fb to make new slide with properties {base slide:master slide "Blank"}
@@ -829,7 +854,7 @@ tell application "Keynote"
 		end tell
 		set sp to make new slide with properties {base slide:master slide "Blank"}
 		tell sp
-			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s28-matt-24-27-panel.png"), position:{1037, 75}, width:750, height:903}
+			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s28-matt-24-27-panel.png"), position:{133, 75}, width:750, height:903}
 		end tell
 			tell sp
 				set tx to make new text item with properties {object text:"‹For as the lightning cometh out of the east, and shineth even unto the west; so shall also the coming of the Son of man be.›"}
@@ -837,7 +862,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 48
 				set the color of the object text of tx to {65535, 65535, 65535}
 				set the width of tx to 805
-				set the position of tx to {131, 375}
+				set the position of tx to {984, 375}
 			end tell
 			tell sp
 				set tx to make new text item with properties {object text:"Matthew 24:27"}
@@ -845,7 +870,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 30
 				set the color of the object text of tx to {39321, 39321, 39321}
 				set the width of tx to 805
-				set the position of tx to {131, 705}
+				set the position of tx to {984, 705}
 			end tell
 		-- s29-1pet-5-8-9 (1 Peter 5:8-9)
 		set fb to make new slide with properties {base slide:master slide "Blank"}
@@ -854,7 +879,7 @@ tell application "Keynote"
 		end tell
 		set sp to make new slide with properties {base slide:master slide "Blank"}
 		tell sp
-			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s29-1pet-5-8-9-panel.png"), position:{133, 75}, width:750, height:903}
+			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s29-1pet-5-8-9-panel.png"), position:{1037, 75}, width:750, height:903}
 		end tell
 			tell sp
 				set tx to make new text item with properties {object text:"Be sober, be vigilant; because your adversary the devil, as a roaring lion, walketh about, seeking whom he may devour: Whom resist stedfast in the faith, knowing that the same afflictions are accomplished in your brethren that are in the world."}
@@ -862,7 +887,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 40
 				set the color of the object text of tx to {65535, 65535, 65535}
 				set the width of tx to 805
-				set the position of tx to {984, 320}
+				set the position of tx to {131, 320}
 			end tell
 			tell sp
 				set tx to make new text item with properties {object text:"1 Peter 5:8-9"}
@@ -870,7 +895,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 30
 				set the color of the object text of tx to {39321, 39321, 39321}
 				set the width of tx to 805
-				set the position of tx to {984, 760}
+				set the position of tx to {131, 760}
 			end tell
 		-- s30-rev-20-1-3 (Revelation 20:1-3)
 		set fb to make new slide with properties {base slide:master slide "Blank"}
@@ -879,7 +904,7 @@ tell application "Keynote"
 		end tell
 		set sp to make new slide with properties {base slide:master slide "Blank"}
 		tell sp
-			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s30-rev-20-1-3-panel.png"), position:{1037, 75}, width:750, height:903}
+			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s30-rev-20-1-3-panel.png"), position:{133, 75}, width:750, height:903}
 		end tell
 			tell sp
 				set tx to make new text item with properties {object text:"And I saw an angel come down from heaven, having the key of the bottomless pit and a great chain in his hand. And he laid hold on the dragon, that old serpent, which is the Devil, and Satan, and bound him a thousand years, And cast him into the bottomless pit, and shut him up, and set a seal upon him, that he should deceive the nations no more, till the thousand years should be fulfilled: and after that he must be loosed a little season."}
@@ -887,7 +912,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 30
 				set the color of the object text of tx to {65535, 65535, 65535}
 				set the width of tx to 805
-				set the position of tx to {131, 327}
+				set the position of tx to {984, 327}
 			end tell
 			tell sp
 				set tx to make new text item with properties {object text:"Revelation 20:1-3"}
@@ -895,7 +920,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 30
 				set the color of the object text of tx to {39321, 39321, 39321}
 				set the width of tx to 805
-				set the position of tx to {131, 754}
+				set the position of tx to {984, 754}
 			end tell
 		-- s31-lev-16-21-22 (Leviticus 16:21-22)
 		set fb to make new slide with properties {base slide:master slide "Blank"}
@@ -904,7 +929,7 @@ tell application "Keynote"
 		end tell
 		set sp to make new slide with properties {base slide:master slide "Blank"}
 		tell sp
-			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s31-lev-16-21-22-panel.png"), position:{133, 75}, width:750, height:903}
+			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s31-lev-16-21-22-panel.png"), position:{1037, 75}, width:750, height:903}
 		end tell
 			tell sp
 				set tx to make new text item with properties {object text:"And Aaron shall lay both his hands upon the head of the live goat, and confess over him all the iniquities of the children of Israel, and all their transgressions in all their sins, putting them upon the head of the goat, and shall send him away by the hand of a fit man into the wilderness: And the goat shall bear upon him all their iniquities unto a land not inhabited: and he shall let go the goat in the wilderness."}
@@ -912,7 +937,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 34
 				set the color of the object text of tx to {65535, 65535, 65535}
 				set the width of tx to 805
-				set the position of tx to {984, 283}
+				set the position of tx to {131, 283}
 			end tell
 			tell sp
 				set tx to make new text item with properties {object text:"Leviticus 16:21-22"}
@@ -920,7 +945,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 30
 				set the color of the object text of tx to {39321, 39321, 39321}
 				set the width of tx to 805
-				set the position of tx to {984, 798}
+				set the position of tx to {131, 798}
 			end tell
 		-- s32-rev-20-7-8 (Revelation 20:7-8)
 		set fb to make new slide with properties {base slide:master slide "Blank"}
@@ -929,7 +954,7 @@ tell application "Keynote"
 		end tell
 		set sp to make new slide with properties {base slide:master slide "Blank"}
 		tell sp
-			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s32-rev-20-7-8-panel.png"), position:{1037, 75}, width:750, height:903}
+			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s32-rev-20-7-8-panel.png"), position:{133, 75}, width:750, height:903}
 		end tell
 			tell sp
 				set tx to make new text item with properties {object text:"And when the thousand years are expired, Satan shall be loosed out of his prison, And shall go out to deceive the nations which are in the four quarters of the earth, Gog and Magog, to gather them together to battle: the number of whom is as the sand of the sea."}
@@ -937,7 +962,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 40
 				set the color of the object text of tx to {65535, 65535, 65535}
 				set the width of tx to 805
-				set the position of tx to {131, 320}
+				set the position of tx to {984, 320}
 			end tell
 			tell sp
 				set tx to make new text item with properties {object text:"Revelation 20:7-8"}
@@ -945,7 +970,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 30
 				set the color of the object text of tx to {39321, 39321, 39321}
 				set the width of tx to 805
-				set the position of tx to {131, 760}
+				set the position of tx to {984, 760}
 			end tell
 		-- s33-eze-28-18-19 (Ezekiel 28:18-19)
 		set fb to make new slide with properties {base slide:master slide "Blank"}
@@ -954,7 +979,7 @@ tell application "Keynote"
 		end tell
 		set sp to make new slide with properties {base slide:master slide "Blank"}
 		tell sp
-			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s33-eze-28-18-19-panel.png"), position:{133, 75}, width:750, height:903}
+			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s33-eze-28-18-19-panel.png"), position:{1037, 75}, width:750, height:903}
 		end tell
 			tell sp
 				set tx to make new text item with properties {object text:"Thou hast defiled thy sanctuaries by the multitude of thine iniquities, by the iniquity of thy traffick; therefore will I bring forth a fire from the midst of thee, it shall devour thee, and I will bring thee to ashes upon the earth in the sight of all them that behold thee. All they that know thee among the people shall be astonished at thee: thou shalt be a terror, and never shalt thou be any more."}
@@ -962,7 +987,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 34
 				set the color of the object text of tx to {65535, 65535, 65535}
 				set the width of tx to 805
-				set the position of tx to {984, 304}
+				set the position of tx to {131, 304}
 			end tell
 			tell sp
 				set tx to make new text item with properties {object text:"Ezekiel 28:18-19"}
@@ -970,7 +995,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 30
 				set the color of the object text of tx to {39321, 39321, 39321}
 				set the width of tx to 805
-				set the position of tx to {984, 776}
+				set the position of tx to {131, 776}
 			end tell
 		-- s34-mal-4-1-3 (Malachi 4:1, 3)
 		set fb to make new slide with properties {base slide:master slide "Blank"}
@@ -979,7 +1004,7 @@ tell application "Keynote"
 		end tell
 		set sp to make new slide with properties {base slide:master slide "Blank"}
 		tell sp
-			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s34-mal-4-1-3-panel.png"), position:{1037, 75}, width:750, height:903}
+			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s34-mal-4-1-3-panel.png"), position:{133, 75}, width:750, height:903}
 		end tell
 			tell sp
 				set tx to make new text item with properties {object text:"For, behold, the day cometh, that shall burn as an oven; and all the proud, yea, and all that do wickedly, shall be stubble: and the day that cometh shall burn them up, saith the LORD of hosts, that it shall leave them neither root nor branch. ... And ye shall tread down the wicked; for they shall be ashes under the soles of your feet in the day that I shall do this, saith the LORD of hosts."}
@@ -987,7 +1012,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 34
 				set the color of the object text of tx to {65535, 65535, 65535}
 				set the width of tx to 805
-				set the position of tx to {131, 304}
+				set the position of tx to {984, 304}
 			end tell
 			tell sp
 				set tx to make new text item with properties {object text:"Malachi 4:1, 3"}
@@ -995,7 +1020,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 30
 				set the color of the object text of tx to {39321, 39321, 39321}
 				set the width of tx to 805
-				set the position of tx to {131, 776}
+				set the position of tx to {984, 776}
 			end tell
 		-- s35-nah-1-9 (Nahum 1:9)
 		set fb to make new slide with properties {base slide:master slide "Blank"}
@@ -1004,7 +1029,7 @@ tell application "Keynote"
 		end tell
 		set sp to make new slide with properties {base slide:master slide "Blank"}
 		tell sp
-			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s35-nah-1-9-panel.png"), position:{133, 75}, width:750, height:903}
+			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s35-nah-1-9-panel.png"), position:{1037, 75}, width:750, height:903}
 		end tell
 			tell sp
 				set tx to make new text item with properties {object text:"What do ye imagine against the LORD? he will make an utter end: affliction shall not rise up the second time."}
@@ -1012,7 +1037,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 48
 				set the color of the object text of tx to {65535, 65535, 65535}
 				set the width of tx to 805
-				set the position of tx to {984, 375}
+				set the position of tx to {131, 375}
 			end tell
 			tell sp
 				set tx to make new text item with properties {object text:"Nahum 1:9"}
@@ -1020,7 +1045,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 30
 				set the color of the object text of tx to {39321, 39321, 39321}
 				set the width of tx to 805
-				set the position of tx to {984, 705}
+				set the position of tx to {131, 705}
 			end tell
 		-- s36-rev-5-13 (Revelation 5:13)
 		set fb to make new slide with properties {base slide:master slide "Blank"}
@@ -1029,7 +1054,7 @@ tell application "Keynote"
 		end tell
 		set sp to make new slide with properties {base slide:master slide "Blank"}
 		tell sp
-			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s36-rev-5-13-panel.png"), position:{1037, 75}, width:750, height:903}
+			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s36-rev-5-13-panel.png"), position:{133, 75}, width:750, height:903}
 		end tell
 			tell sp
 				set tx to make new text item with properties {object text:"And every creature which is in heaven, and on the earth, and under the earth, and such as are in the sea, and all that are in them, heard I saying, Blessing, and honour, and glory, and power, be unto him that sitteth upon the throne, and unto the Lamb for ever and ever."}
@@ -1037,7 +1062,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 40
 				set the color of the object text of tx to {65535, 65535, 65535}
 				set the width of tx to 805
-				set the position of tx to {131, 295}
+				set the position of tx to {984, 295}
 			end tell
 			tell sp
 				set tx to make new text item with properties {object text:"Revelation 5:13"}
@@ -1045,7 +1070,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 30
 				set the color of the object text of tx to {39321, 39321, 39321}
 				set the width of tx to 805
-				set the position of tx to {131, 785}
+				set the position of tx to {984, 785}
 			end tell
 		-- diagram: chrono-last-days
 		set dg to make new slide with properties {base slide:master slide "Blank"}
@@ -1059,7 +1084,7 @@ tell application "Keynote"
 		end tell
 		set sp to make new slide with properties {base slide:master slide "Blank"}
 		tell sp
-			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s37-rom-16-20-panel.png"), position:{133, 75}, width:750, height:903}
+			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s37-rom-16-20-panel.png"), position:{1037, 75}, width:750, height:903}
 		end tell
 			tell sp
 				set tx to make new text item with properties {object text:"And the God of peace shall bruise Satan under your feet shortly. The grace of our Lord Jesus Christ be with you. Amen."}
@@ -1067,7 +1092,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 48
 				set the color of the object text of tx to {65535, 65535, 65535}
 				set the width of tx to 805
-				set the position of tx to {984, 375}
+				set the position of tx to {131, 375}
 			end tell
 			tell sp
 				set tx to make new text item with properties {object text:"Romans 16:20"}
@@ -1075,7 +1100,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 30
 				set the color of the object text of tx to {39321, 39321, 39321}
 				set the width of tx to 805
-				set the position of tx to {984, 705}
+				set the position of tx to {131, 705}
 			end tell
 		-- s38-james-4-7-8 (James 4:7-8)
 		set fb to make new slide with properties {base slide:master slide "Blank"}
@@ -1084,7 +1109,7 @@ tell application "Keynote"
 		end tell
 		set sp to make new slide with properties {base slide:master slide "Blank"}
 		tell sp
-			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s38-james-4-7-8-panel.png"), position:{1037, 75}, width:750, height:903}
+			make new image with properties {file:(POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/images/s38-james-4-7-8-panel.png"), position:{133, 75}, width:750, height:903}
 		end tell
 			tell sp
 				set tx to make new text item with properties {object text:"Submit yourselves therefore to God. Resist the devil, and he will flee from you. Draw nigh to God, and he will draw nigh to you. Cleanse your hands, ye sinners; and purify your hearts, ye double minded."}
@@ -1092,7 +1117,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 40
 				set the color of the object text of tx to {65535, 65535, 65535}
 				set the width of tx to 805
-				set the position of tx to {131, 345}
+				set the position of tx to {984, 345}
 			end tell
 			tell sp
 				set tx to make new text item with properties {object text:"James 4:7-8"}
@@ -1100,7 +1125,7 @@ tell application "Keynote"
 				set the size of the object text of tx to 30
 				set the color of the object text of tx to {39321, 39321, 39321}
 				set the width of tx to 805
-				set the position of tx to {131, 735}
+				set the position of tx to {984, 735}
 			end tell
 		save theDoc in POSIX file "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102/Reading 102 - Origin History and Destiny of Satan.key"
 	end tell

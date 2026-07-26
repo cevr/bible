@@ -1,0 +1,20 @@
+{
+  "mode": "reference",
+  "query": "2 Corinthians 10:4-5",
+  "verses": [
+    {
+      "book_name": "2 Corinthians",
+      "book": 47,
+      "chapter": 10,
+      "verse": 4,
+      "text": "(For the weapons of our warfare [are] not carnal, but mighty through God to the pulling down of strong holds;)"
+    },
+    {
+      "book_name": "2 Corinthians",
+      "book": 47,
+      "chapter": 10,
+      "verse": 5,
+      "text": "Casting down imaginations, and every high thing that exalteth itself against the knowledge of God, and bringing into captivity every thought to the obedience of Christ;"
+    }
+  ]
+}
