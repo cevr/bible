@@ -22,7 +22,7 @@ SLIDES = [
  ("s08-heb-1-5-6", "Hebrews 1:5-6", ["Hebrews-1-5-6"], 4, "The Convocation",
   "countless angels bowing low in concentric arcs of worship within a vast temple of golden light"),
  ("s09-rev-12-7-8", "Revelation 12:7-8", ["Revelation-12-7-8"], 5, "War in Heaven",
-  "war in heaven, ranks of bright angels of light driving back dark winged forms through towering storm clouds, swords of light"),
+  "war in heaven: Michael leading the host — Jesus with long dark brown hair and a short beard, in radiant white and gold, raising a sword of light at the front of ranks of bright angels driving back dark winged forms through towering storm clouds"),
  ("s10-luke-10-18", "Luke 10:18", ["Luke-10-18"], 5, "War in Heaven",
   "a single great bolt of lightning falling from the height of heaven down to a dark curved horizon, night sky, painterly"),
  ("s11-jude-6", "Jude 6", ["Jude-1-6"], 6, "Why Not Destroy Him Then?",

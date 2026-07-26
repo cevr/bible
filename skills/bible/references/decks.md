@@ -74,8 +74,18 @@ okra image "<prompt>" --ref <existing series painting> --size 1536x1024 \
 
 - `--ref` an existing deck painting (e.g. a `what-is-truth/images/day1-v2`
   png) so the palette matches across decks.
-- Concepts: reverent, figurative, scene-per-verse; divine figures as light,
-  never detailed faces of Christ. Always end with the NO-text clause.
+- Concepts: reverent, figurative, scene-per-verse. Always end with the
+  NO-text clause.
+- **Character continuity** — recurring persons keep the series character
+  canon; pass the canonical painting as `--ref` AND describe the features
+  in the prompt ("matching the reference character exactly: ..."):
+  - **Lucifer** (unfallen/angel-of-light): youthful beardless face, golden
+    curly shoulder-length hair, jeweled gold armor, crimson mantle, great
+    golden wings — ref `what-is-truth/images/day3/01-covering-cherub.png`.
+  - **Jesus**: long dark brown hair, short beard, white robe with
+    gold-trimmed sleeves and golden sash — ref
+    `what-is-truth/images/day3/n20-father-and-son.png`.
+  - **Satan fallen**: dark hooded/cloaked figure, face unseen.
 - ~1-2 min per image. Run **3-4 background batches** in parallel with a
   skip-if-exists guard and one retry, logging failures — then rerun the
   batch script to sweep stragglers.
