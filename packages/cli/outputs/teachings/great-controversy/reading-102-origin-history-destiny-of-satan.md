@@ -17,23 +17,24 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1271'
 1. Sin before Eden — 2 Pet 2:4
 2. The covering cherub — Eze 28:14
 3. Iniquity found: five "I wills" — Isa 14:13-14
-4. War in heaven — Rev 12:7-9
-5. Why not destroy him then? — Jude 6
-6. His names, his record — Rev 12:9
-7. Eden: the first lie — Gen 3:15
-8. The accuser at court — Zech 3:1-2
-9. The wilderness: the second Adam — Matt 4:1-11
-10. The cross: the death knell — John 12:31
-11. War on the remnant — Rev 12:17
-12. Angel of light — 2 Cor 11:14
-13. The crowning act — Isa 8:20
-14. Bound in the pit — Rev 20:1-3
-15. Loosed: the last campaign — Rev 20:7-9
-16. Ashes: an utter end — Eze 28:18-19
-17. A clean universe — Nah 1:9
-18. Appeal
+4. The convocation: the decree declared — Ps 2:6-7
+5. War in heaven — Rev 12:7-9
+6. Why not destroy him then? — Jude 6
+7. His names, his record — Rev 12:9
+8. Eden: the first lie — Gen 3:15
+9. The accuser at court — Zech 3:1-2
+10. The wilderness: the second Adam — Matt 4:1-11
+11. The cross: the death knell — John 12:31
+12. War on the remnant — Rev 12:17
+13. Angel of light — 2 Cor 11:14
+14. The crowning act — Isa 8:20
+15. Bound in the pit — Rev 20:1-3
+16. Loosed: the last campaign — Rev 20:7-9
+17. Ashes: an utter end — Eze 28:18-19
+18. A clean universe — Nah 1:9
+19. Appeal
 
-[Q] index: why create him? →3 · why not destroy him at once? →5 · couldn't he repent? →5 · why is strong delusion allowed? →12 · "for ever and ever"? →16
+[Q] index: why create him? →3 · why not destroy him at once? →6 · couldn't he repent? →6 · why is strong delusion allowed? →13 · "for ever and ever"? →17
 
 ---
 
@@ -116,7 +117,41 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1271'
 
 ---
 
-## 4. War in Heaven — Rev 12:7-9
+## 4. The Convocation: The Decree Declared — Ps 2:6-7
+
+> Before war, a summons: God's answer to hidden envy was to assemble the host and declare the Son. Grace convenes before justice fights.
+
+[WB]: two assemblies — God's: declares the SON | Lucifer's: "his subject — himself"
+
+- _Ps 2:6-7._ "Yet have I set my king upon my holy hill... I will declare the decree: the LORD hath said unto me, Thou art my Son" — a decree, declared, on the holy hill: the cherub's own beat (Eze 28:14) and his target seat, "the mount of the congregation" (Isa 14:13)
+- _Heb 1:5-6._ "unto which of the angels said he at any time, Thou art my Son?... And let all the angels of God worship him" — the decree marks the Son off from the angel class, and the worship command is addressed to angels
+- _Heb 1:9._ "anointed thee with the oil of gladness above thy fellows" — the Anointed One, resented by the anointed cherub (Eze 28:14)
+- _Col 1:16._ "by him were all things created... thrones, or dominions, or principalities, or powers" — the decree's content: not the highest peer favored, but the Maker of the very one envying Him (John 1:3)
+- chain: the counsel he envied — Prov 8:30 (daily his delight) → Zech 6:13 (counsel of peace "between them both" — two seats, no third) → John 1:18 (in the bosom of the Father)
+
+**The pattern in the type — dispute the position, God convenes — Num 12; 16-17:**
+
+| the challenge                              | God's answer                                    |
+| ------------------------------------------ | ----------------------------------------------- |
+| Miriam: "only by Moses?" (Num 12:2)        | "Come out ye three" — declared (Num 12:4-8)     |
+| Korah: "lift ye up yourselves" (Num 16:3)  | public showing; rod before the ark (Num 17:10)  |
+
+- _Num 12:7-8._ "My servant Moses is not so... with him will I speak mouth to mouth" — the disputed position publicly declared, at the tabernacle of the congregation
+- _Jude 11._ "perished in the gainsaying of Core" — the NT makes Korah the standing type of this rebellion
+- earthly copies heavenly (Heb 8:5): when a high official disputes a mediatorial position, God convenes the congregation and declares — never a private answer
+- the venue on record: 1 Kings 22:19 (throne, host on right and left) → Job 1:6 (a day to present themselves) → Ps 89:6-7 (the assembly's standing question: "who can be likened unto the LORD?")
+
+[SOP PP 36.2] "The King of the universe summoned the heavenly hosts before Him, that in their presence He might set forth the true position of His Son" — the scene the texts predict
+
+[SOP SR 14.2] "Concealing his real purposes, he assembled the angelic host. He introduced his subject, which was himself." — the counter-assembly: the convocation parodied
+
+- honest line: Scripture states the counsel, the venue, the decree, and the convene-and-declare pattern; the dated pre-fall scene is composite inference (Rule 4) — and the Testimony narrates exactly what the inference predicts (Isa 8:20 order kept)
+
+[→] Phil 2 holds both minds — the One equal by nature emptied Himself; the creature grasped — and at every crisis since, heaven's knees are commanded to the Son again (Heb 1:6; Phil 2:9-10)
+
+---
+
+## 5. War in Heaven — Rev 12:7-9
 
 > The war has one question for a battle cry — and the rebel keeps losing it, one rung at a time.
 
@@ -133,11 +168,11 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1271'
 
 [PIONEER U. Smith, DAR 515.1] "we behold a regularly increasing limitation of his power. He falls a degree lower in every succeeding combat." — read his whole history as a descent with landings
 
-[→] cast down is not one event but a staircase — expelled (2 Pet 2:4), shut out as accuser at the cross (§10), bound to a dead world (§14), ashes (§16)
+[→] cast down is not one event but a staircase — expelled (2 Pet 2:4), shut out as accuser at the cross (§11), bound to a dead world (§15), ashes (§17)
 
 ---
 
-## 5. Why Not Destroy Him Then? — Jude 6
+## 6. Why Not Destroy Him Then? — Jude 6
 
 > An executed accuser leaves his accusations alive. The delay is judicial, not indecisive.
 
@@ -153,11 +188,11 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1271'
 [Q] couldn't he have repented and been taken back?
 → he wished reinstatement, but sin originated with him and the seeds remained — EW 146.1; sorrow for consequences is not surrender of the "I will"
 
-[→] the universe watches the case argued to the end — that is why the sentence, when it falls (§16), falls with every juror's signature
+[→] the universe watches the case argued to the end — that is why the sentence, when it falls (§17), falls with every juror's signature
 
 ---
 
-## 6. His Names, His Record — Rev 12:9
+## 7. His Names, His Record — Rev 12:9
 
 > Four names, one career. And note the fire's address label — it was never addressed to you.
 
@@ -175,11 +210,11 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1271'
 
 ---
 
-## 7. Eden: The First Lie — Gen 3:15
+## 8. Eden: The First Lie — Gen 3:15
 
-> His first doctrine on earth — "ye shall not surely die" — is also his last (§12). And the sentence on him carried a promise for us.
+> His first doctrine on earth — "ye shall not surely die" — is also his last (§13). And the sentence on him carried a promise for us.
 
-[WB]: "ye shall not surely die" (Gen 3:4) → immortal soul → spiritualism (§12)
+[WB]: "ye shall not surely die" (Gen 3:4) → immortal soul → spiritualism (§13)
 
 - _Gen 3:1._ "Now the serpent was more subtil than any beast of the field... Yea, hath God said?" — the attack opens on the word of God
 - _Gen 3:2-3._ the woman still holds the command — "Ye shall not eat of it, neither shall ye touch it, lest ye die"
@@ -197,7 +232,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1271'
 
 ---
 
-## 8. The Accuser at Court — Zech 3:1-2
+## 9. The Accuser at Court — Zech 3:1-2
 
 > Two right hands are occupied over every soul — the accuser at yours, the Advocate at God's.
 
@@ -217,7 +252,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1271'
 
 ---
 
-## 9. The Wilderness: The Second Adam — Matt 4:1-11
+## 10. The Wilderness: The Second Adam — Matt 4:1-11
 
 > Just where the ruin began, the recovery began — and the only weapon drawn was "It is written."
 
@@ -242,7 +277,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1271'
 
 ---
 
-## 10. The Cross: The Death Knell — John 12:31
+## 11. The Cross: The Death Knell — John 12:31
 
 > The war was decided at Calvary; it is not yet concluded. A.D. 31 is the verdict — the execution has a later date.
 
@@ -267,11 +302,11 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1271'
 
 - _Rev 12:12._ "the devil is come down unto you, having great wrath, because he knoweth that he hath but a short time" — a condemned prisoner reads his own clock
 
-[→] the remnant is the closing exhibit in the trial — that is exactly why the dragon hunts them (§11)
+[→] the remnant is the closing exhibit in the trial — that is exactly why the dragon hunts them (§12)
 
 ---
 
-## 11. War on the Remnant — Rev 12:17
+## 12. War on the Remnant — Rev 12:17
 
 > The last battlefield flies two flags: the commandments of God and the testimony of Jesus.
 
@@ -287,7 +322,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1271'
 
 ---
 
-## 12. Angel of Light — 2 Cor 11:14
+## 13. Angel of Light — 2 Cor 11:14
 
 > His end-game is miracle, not argument — and the whole apparatus stands on Eden's first lie.
 
@@ -307,7 +342,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1271'
 
 ---
 
-## 13. The Crowning Act — Isa 8:20
+## 14. The Crowning Act — Isa 8:20
 
 > He will personate Christ Himself. Two tests survive a dazzling counterfeit: the Book, and the manner.
 
@@ -329,7 +364,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1271'
 
 ---
 
-## 14. Bound in the Pit — Rev 20:1-3
+## 15. Bound in the Pit — Rev 20:1-3
 
 > The chain is circumstance: a deceiver with no one left to deceive, on the wreck his own rebellion made.
 
@@ -351,7 +386,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1271'
 
 ---
 
-## 15. Loosed: The Last Campaign — Rev 20:7-9
+## 16. Loosed: The Last Campaign — Rev 20:7-9
 
 > His last act is his first act — marshal a host against the throne. Six thousand years taught the "I will" nothing.
 
@@ -362,13 +397,13 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1271'
 
 **The sentence confessed before it falls:**
 
-[SOP GC 670.2] "And now Satan bows down and confesses the justice of his sentence." — the trial of §5 closes with the defendant conceding the verdict
+[SOP GC 670.2] "And now Satan bows down and confesses the justice of his sentence." — the trial of §6 closes with the defendant conceding the verdict
 
-[→] mercy exhausted persuasion (§3); justice ran a full trial (§5); the verdict is now signed by the condemned himself — then, only then, the fire
+[→] mercy exhausted persuasion (§3); justice ran a full trial (§6); the verdict is now signed by the condemned himself — then, only then, the fire
 
 ---
 
-## 16. Ashes: An Utter End — Eze 28:18-19
+## 17. Ashes: An Utter End — Eze 28:18-19
 
 > Not eternal torment — eternal end. The fire comes out of the rebel, and what it leaves is ashes.
 
@@ -396,7 +431,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1271'
 
 ---
 
-## 17. A Clean Universe — Nah 1:9
+## 18. A Clean Universe — Nah 1:9
 
 > Eternity's security is not a wall — it is a memory. The experiment ran once, start to ashes.
 
@@ -410,11 +445,11 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1271'
 
 ---
 
-## 18. Appeal
+## 19. Appeal
 
 - his story: mercy seat → ashes. Five "I wills" — one "never shalt thou be any more."
 - _Matt 25:41._ "prepared for the devil and his angels" — the fire was never addressed to you; the only way in is holding his hand when it falls
-- two right hands over your case tonight (§8): the accuser at yours, the Advocate at God's — and the Advocate has never lost a surrendered case
+- two right hands over your case tonight (§9): the accuser at yours, the Advocate at God's — and the Advocate has never lost a surrendered case
 - _Rev 12:11._ "they overcame him by the blood of the Lamb, and by the word of their testimony" — the same weapons that won the war are issued to you
 - _Rom 16:20._ "And the God of peace shall bruise Satan under your feet shortly" — Gen 3:15 finished, with your foot in it
 - _James 4:7-8._ "Submit yourselves therefore to God. Resist the devil, and he will flee from you. Draw nigh to God, and he will draw nigh to you."
