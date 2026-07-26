@@ -1,0 +1,13 @@
+{
+  "mode": "reference",
+  "query": "John 12:31",
+  "verses": [
+    {
+      "book_name": "John",
+      "book": 43,
+      "chapter": 12,
+      "verse": 31,
+      "text": "‹Now is the judgment of this world: now shall the prince of this world be cast out.›"
+    }
+  ]
+}

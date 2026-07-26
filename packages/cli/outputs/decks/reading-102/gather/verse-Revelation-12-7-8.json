@@ -1,0 +1,20 @@
+{
+  "mode": "reference",
+  "query": "Revelation 12:7-8",
+  "verses": [
+    {
+      "book_name": "Revelation",
+      "book": 66,
+      "chapter": 12,
+      "verse": 7,
+      "text": "And there was war in heaven: Michael and his angels fought against the dragon; and the dragon fought and his angels,"
+    },
+    {
+      "book_name": "Revelation",
+      "book": 66,
+      "chapter": 12,
+      "verse": 8,
+      "text": "And prevailed not; neither was their place found any more in heaven."
+    }
+  ]
+}

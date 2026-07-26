@@ -21,7 +21,7 @@ def crop(src, dst, ratio):  # ratio = w/h of target
                    capture_output=True, check=True)
 
 m = json.load(open(os.path.join(DECK, "manifest.json")))
-ids = ["title"] + [s["id"] for s in m["slides"]]
+ids = ["title"] + [s["id"] for s in m["slides"] if s.get("type") != "diagram"]
 done, missing = 0, []
 for sid in ids:
     src = os.path.join(IMG, f"{sid}.png")

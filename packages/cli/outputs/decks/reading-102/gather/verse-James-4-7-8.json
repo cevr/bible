@@ -1,0 +1,20 @@
+{
+  "mode": "reference",
+  "query": "James 4:7-8",
+  "verses": [
+    {
+      "book_name": "James",
+      "book": 59,
+      "chapter": 4,
+      "verse": 7,
+      "text": "Submit yourselves therefore to God. Resist the devil, and he will flee from you."
+    },
+    {
+      "book_name": "James",
+      "book": 59,
+      "chapter": 4,
+      "verse": 8,
+      "text": "Draw nigh to God, and he will draw nigh to you. Cleanse [your] hands, [ye] sinners; and purify [your] hearts, [ye] double minded."
+    }
+  ]
+}

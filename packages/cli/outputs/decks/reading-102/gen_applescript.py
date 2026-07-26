@@ -48,6 +48,13 @@ lines.append(text_block("slide 1", "Origin, History, and Destiny of Satan", 160,
 lines.append(text_block("slide 1", "Bible Readings · 102", 160, 950, 1600, 30, GRAY, "Helvetica Neue").rstrip())
 
 for s in m["slides"]:
+    if s.get("type") == "diagram":
+        lines.append(f'\t\t-- diagram: {s["id"]}')
+        lines.append('\t\tset dg to make new slide with properties {base slide:master slide "Blank"}')
+        lines.append('\t\ttell dg')
+        lines.append(f'\t\t\tmake new image with properties {{file:(POSIX file "{IMG}/{s["id"]}.png"), position:{{0, 0}}, width:1920, height:1080}}')
+        lines.append('\t\tend tell')
+        continue
     sid, ref, text, side = s["id"], s["ref"], s["text"], s["side"]
     # full-bleed slide
     lines.append(f'\t\t-- {sid} ({ref})')
@@ -82,4 +89,6 @@ script = "\n".join(lines)
 out = os.path.join(DECK, "build-deck.applescript")
 with open(out, "w") as f:
     f.write(script)
-print(f"wrote {out}: {script.count(chr(10)) + 1} lines, {2 * len(m['slides']) + 1} slides")
+n_verse = sum(1 for s in m["slides"] if s.get("type") != "diagram")
+n_diag = len(m["slides"]) - n_verse
+print(f"wrote {out}: {script.count(chr(10)) + 1} lines, {2 * n_verse + n_diag + 1} slides")

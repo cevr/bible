@@ -1,0 +1,20 @@
+{
+  "mode": "reference",
+  "query": "Hebrews 1:5-6",
+  "verses": [
+    {
+      "book_name": "Hebrews",
+      "book": 58,
+      "chapter": 1,
+      "verse": 5,
+      "text": "For unto which of the angels said he at any time, Thou art my Son, this day have I begotten thee? And again, I will be to him a Father, and he shall be to me a Son?"
+    },
+    {
+      "book_name": "Hebrews",
+      "book": 58,
+      "chapter": 1,
+      "verse": 6,
+      "text": "And again, when he bringeth in the firstbegotten into the world, he saith, And let all the angels of God worship him."
+    }
+  ]
+}

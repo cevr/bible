@@ -1,7 +1,7 @@
 import json, re, os
 
-SCRATCH = os.path.dirname(os.path.abspath(__file__))
-OUT = "/Users/cvr/Developer/personal/bible-tools/packages/cli/outputs/decks/reading-102"
+OUT = os.path.dirname(os.path.abspath(__file__))
+SCRATCH = os.path.join(OUT, "gather")
 
 # (id, display ref, fetch refs, section#, section title, image concept)
 SLIDES = [
@@ -37,6 +37,8 @@ SLIDES = [
   "a serpent's head beneath a descending human heel lit by a shaft of promise light in a garden clearing at dusk"),
  ("s16-john-8-44", "John 8:44", ["John-8-44"], 8, "Eden: The First Lie",
   "a dark hooded figure casting an impossibly long shadow across a beautiful garden at twilight"),
+ ("s16b-job-1-6-7", "Job 1:6-7", ["Job-1-6-7"], 8, "Dominion Usurped",
+  "a vast heavenly assembly of luminous radiant representatives presenting themselves in ordered ranks before a blazing throne of light, and one dark cloaked figure standing among them in the ranks, subtly out of place"),
  ("s17-zech-3-1-2", "Zechariah 3:1-2", ["Zechariah-3-1-2"], 9, "The Accuser at Court",
   "a burning branch plucked out of a fire by a hand of light, sparks rising, deep darkness around the flame"),
  ("s18-rom-8-33-34", "Romans 8:33-34", ["Romans-8-33-34"], 9, "The Accuser at Court",
@@ -102,10 +104,17 @@ for i, (sid, ref, files, sec, sectitle, concept) in enumerate(SLIDES):
         parts.append(" ".join(clean(v["text"]) for v in data["verses"]))
     text = " ... ".join(parts) if len(parts) > 1 else parts[0]
     slides.append({
+        "type": "verse",
         "id": sid, "ref": ref, "section": sec, "sectionTitle": sectitle,
         "text": text, "concept": concept,
         "side": "right" if i % 2 == 0 else "left",  # side the IMAGE panel sits on
     })
+
+# diagram slides: rendered PNGs (render_chrono.py), placed full-slide, no crops
+slides.insert(
+    [i for i, s in enumerate(slides) if s["id"] == "s37-rom-16-20"][0],
+    {"type": "diagram", "id": "chrono-last-days", "title": "The Last Days"},
+)
 
 manifest = {
     "title": "Origin, History, and Destiny of Satan",

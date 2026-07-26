@@ -90,6 +90,18 @@ The generated ~1536×1024 painting becomes **two center crops**:
 `sips -c <height> <width> <src> --out <dst>` center-crops. Compute crop
 dims from actual pixel size (codex output size varies slightly).
 
+### 3b. Diagram slides (line chronologies)
+
+Timelines/chronologies follow the *Just Another Book* day-2 grammar: black
+canvas, one big bold title, a single horizontal line, span labels above
+("49 Years" / "1,000 Years"), bold event labels + refs below the ticks.
+Render them as a full-slide 1920×1080 PNG with Pillow
+(`uv run --with pillow python3 render_chrono.py` — see
+`outputs/decks/reading-102/render_chrono.py`; Helvetica Neue from the
+system .ttc, all white on black). In the manifest they are
+`{"type": "diagram", "id": "..."}` entries — one slide, no full-bleed
+pair, no crops.
+
 ### 4. Build the .key (stock Keynote AppleScript)
 
 Generate `build-deck.applescript` from the manifest (script it — don't

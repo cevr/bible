@@ -1,0 +1,20 @@
+{
+  "mode": "reference",
+  "query": "Romans 8:33-34",
+  "verses": [
+    {
+      "book_name": "Romans",
+      "book": 45,
+      "chapter": 8,
+      "verse": 33,
+      "text": "Who shall lay any thing to the charge of God's elect? [It is] God that justifieth."
+    },
+    {
+      "book_name": "Romans",
+      "book": 45,
+      "chapter": 8,
+      "verse": 34,
+      "text": "Who [is] he that condemneth? [It is] Christ that died, yea rather, that is risen again, who is even at the right hand of God, who also maketh intercession for us."
+    }
+  ]
+}

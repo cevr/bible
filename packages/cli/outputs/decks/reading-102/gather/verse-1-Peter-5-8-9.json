@@ -1,0 +1,20 @@
+{
+  "mode": "reference",
+  "query": "1 Peter 5:8-9",
+  "verses": [
+    {
+      "book_name": "1 Peter",
+      "book": 60,
+      "chapter": 5,
+      "verse": 8,
+      "text": "¶ Be sober, be vigilant; because your adversary the devil, as a roaring lion, walketh about, seeking whom he may devour:"
+    },
+    {
+      "book_name": "1 Peter",
+      "book": 60,
+      "chapter": 5,
+      "verse": 9,
+      "text": "Whom resist stedfast in the faith, knowing that the same afflictions are accomplished in your brethren that are in the world."
+    }
+  ]
+}
