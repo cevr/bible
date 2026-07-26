@@ -21,20 +21,22 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1271'
 5. War in heaven — Rev 12:7-9
 6. Why not destroy him then? — Jude 6
 7. His names, his record — Rev 12:9
-8. Eden: the first lie — Gen 3:15
-9. The accuser at court — Zech 3:1-2
-10. The wilderness: the second Adam — Matt 4:1-11
-11. The cross: the death knell — John 12:31
-12. War on the remnant — Rev 12:17
-13. Angel of light — 2 Cor 11:14
-14. The crowning act — Isa 8:20
-15. Bound in the pit — Rev 20:1-3
-16. Loosed: the last campaign — Rev 20:7-9
-17. Ashes: an utter end — Eze 28:18-19
-18. A clean universe — Nah 1:9
-19. Appeal
+8. Created: the third party — Gen 1:26
+9. Eden: the first lie — Gen 3:15
+10. Dominion usurped: back at the gate — Job 1:6
+11. The accuser at court — Zech 3:1-2
+12. The wilderness: the second Adam — Matt 4:1-11
+13. The cross: the death knell — John 12:31
+14. War on the remnant — Rev 12:17
+15. Angel of light — 2 Cor 11:14
+16. The crowning act — Isa 8:20
+17. Bound in the pit — Rev 20:1-3
+18. Loosed: the last campaign — Rev 20:7-9
+19. Ashes: an utter end — Eze 28:18-19
+20. A clean universe — Nah 1:9
+21. Appeal
 
-[Q] index: why create him? →3 · why not destroy him at once? →6 · couldn't he repent? →6 · why is strong delusion allowed? →13 · "for ever and ever"? →17
+[Q] index: why create him? →3 · why not destroy him at once? →6 · couldn't he repent? →6 · why make man mid-war? →8 · how is Satan back in heaven's council (Job 1)? →10 · why is strong delusion allowed? →15 · "for ever and ever"? →19
 
 ---
 
@@ -168,7 +170,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1271'
 
 [PIONEER U. Smith, DAR 515.1] "we behold a regularly increasing limitation of his power. He falls a degree lower in every succeeding combat." — read his whole history as a descent with landings
 
-[→] cast down is not one event but a staircase — expelled (2 Pet 2:4), shut out as accuser at the cross (§11), bound to a dead world (§15), ashes (§17)
+[→] cast down is not one event but a staircase — expelled (2 Pet 2:4), shut out as accuser at the cross (§13), bound to a dead world (§17), ashes (§19)
 
 ---
 
@@ -188,7 +190,9 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1271'
 [Q] couldn't he have repented and been taken back?
 → he wished reinstatement, but sin originated with him and the seeds remained — EW 146.1; sorrow for consequences is not surrender of the "I will"
 
-[→] the universe watches the case argued to the end — that is why the sentence, when it falls (§17), falls with every juror's signature
+[SOP SR 27.1] "When Satan became fully convinced that there was no possibility of his being reinstated in the favor of God, he manifested his malice with increased hatred" — the door closed, the malice doubled
+
+[→] the universe watches the case argued to the end — that is why the sentence, when it falls (§19), falls with every juror's signature
 
 ---
 
@@ -210,17 +214,51 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1271'
 
 ---
 
-## 8. Eden: The First Lie — Gen 3:15
+## 8. Created: The Third Party — Gen 1:26
 
-> His first doctrine on earth — "ye shall not surely die" — is also his last (§13). And the sentence on him carried a promise for us.
+> Into a universe at war, God planted a new order of beings — under Him by faith, crowned with dominion. Earth becomes the theater where the whole case is tried.
 
-[WB]: "ye shall not surely die" (Gen 3:4) → immortal soul → spiritualism (§13)
+[WB]: heaven's war → EARTH: the theater — angels + worlds in the galleries
 
+- _Gen 1:26-27._ "Let us make man in our image, after our likeness: and let them have dominion... over all the earth" — a new order: God's image, holding earth's crown
+- _Ps 8:6._ "Thou madest him to have dominion over the works of thy hands" — the grant on record: earth was legally Adam's
+- _1 Cor 4:9._ "we are made a spectacle unto the world, and to angels, and to men" — the trial is public; the theater has galleries
+- _Eph 3:9-10._ "to the intent that now unto the principalities and powers in heavenly places might be known by the church the manifold wisdom of God" — heaven's unfallen learn God by watching what He does here
+
+[SOP SR 20.2] "the Father and Son carried out their purpose, which was designed before the fall of Satan, to make man in their own image." — man is no afterthought: the purpose predates the war
+
+[SOP EP 96.3] "The field on which the plan of redemption is wrought out is the lesson book of the universe." — smallest world, loudest classroom
+
+[SOP SR 27.3] barred from heaven, Satan "informed them of his plans to wrest from God the noble Adam and his companion Eve" — the fallen general picks the new world as his next front
+
+[→] a third party now enters the war — and both governments will make their case to him at a tree (§9)
+
+---
+
+## 9. Eden: The First Lie — Gen 3:15
+
+> His first doctrine on earth — "ye shall not surely die" — is also his last (§15). And the sentence on him carried a promise for us.
+
+[WB]: "ye shall not surely die" (Gen 3:4) → immortal soul → spiritualism (§15)
+
+**The quarantine — one tree, one door — Gen 2:16-17:**
+
+- _Gen 2:16-17._ "Of every tree of the garden thou mayest freely eat: But of the tree of the knowledge of good and evil, thou shalt not eat of it" — one withheld tree; the test has an address
+- [SOP PP 53.3] "Satan was not to follow them with continual temptations; he could have access to them only at the forbidden tree." — the tempter quarantined: keep clear of the tree and he could never reach them
+- [→] the enemy could not roam Eden — every step toward the tree was a step toward the only ambush on the map
+
+**The medium — no crawling snake, but a flying gold-bright creature:**
+
+- [SOP SR 32.1] "The serpent was a beautiful creature with wings, and while flying through the air his appearance was bright, resembling burnished gold." — the pre-curse serpent: winged, dazzling, gold — nearer a dragon than a snake
+- _Rev 12:9._ "that old serpent" is "the great dragon" — the Bible files both names on one being
 - _Gen 3:1._ "Now the serpent was more subtil than any beast of the field... Yea, hath God said?" — the attack opens on the word of God
+- [SOP SR 33.1] "It was Satan that spoke, not the serpent." — the medium was a mask
 - _Gen 3:2-3._ the woman still holds the command — "Ye shall not eat of it, neither shall ye touch it, lest ye die"
 - _Gen 3:4-5._ "Ye shall not surely die: for God doth know... ye shall be as gods" — the first lie plus the first slander: God is withholding
 - _Gen 3:6._ "she took of the fruit thereof, and did eat, and gave also unto her husband" — the fall
-- _Gen 3:14-15._ "thou art cursed... And I will put enmity between thee and the woman, and between thy seed and her seed; it shall bruise thy head" — war declared, Head-wound scheduled; the rest of the Bible is this verse unfolding
+- _Gen 3:14-15._ "upon thy belly shalt thou go... And I will put enmity between thee and the woman, and between thy seed and her seed; it shall bruise thy head" — the curse grounds the flyer, and war is declared: Head-wound scheduled; the rest of the Bible is this verse unfolding
+
+[SOP SR 42.1] "Sorrow filled heaven, as it was realized that man was lost" — and in that sorrow the Son offered Himself (SR 42.2): the fall's first echo is the plan of salvation
 
 [SOP PP 53.4] "Satan chose to employ as his medium the serpent—a disguise well adapted for his purpose of deception." — he has never worked undisguised since
 
@@ -232,7 +270,29 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1271'
 
 ---
 
-## 9. The Accuser at Court — Zech 3:1-2
+## 10. Dominion Usurped: Back at the Gate — Job 1:6
+
+> Adam fell, and earth's crown changed heads. The gate Satan was barred from as a rebel he re-entered as a delegate — holding a stolen title.
+
+[WB]: Adam's dominion —(sin)→ Satan "god of this world" → a seat at heaven's council — foreclosed at the cross (§13)
+
+- _2 Pet 2:19._ "of whom a man is overcome, of the same is he brought in bondage" — the legal principle: lose the fight, lose the crown
+- _Job 1:6-7._ "there was a day when the sons of God came to present themselves before the LORD, and Satan came also among them... From going to and fro in the earth" — earth's chair at the council, occupied; his stated credentials: "in the earth"
+- _Luke 4:6._ "All this power will I give thee... for that is delivered unto me; and to whomsoever I will I give it" — his own account of the title: delivered, not created
+- _2 Cor 4:4._ "the god of this world" — Scripture concedes the tenure, never the right
+- _John 14:30._ "the prince of this world cometh" — Christ uses the title too, three times (John 12:31; 16:11), each time announcing its termination
+
+[SOP SR 27.2] "As he could not gain admission within the gates of heaven, he would wait just at the entrance" — before Eden: barred, loitering at the gate
+
+[SOP PP 67.1] "When man became Satan's captive, the dominion which he held, passed to his conqueror. Thus Satan became 'the god of this world.'" — after Eden: the deed transferred
+
+[PIONEER Haskell, SSP 218.1] "As a representative of the earth, he claimed the right to meet at the gate" — how the accuser of Job 1 got in: Adam's seat, by proxy
+
+[→] the audacity of Job 1: the courtroom he was expelled from (§5) he re-enters on a stolen deed — and files accusations (§11) until the cross cancels the credential (§13)
+
+---
+
+## 11. The Accuser at Court — Zech 3:1-2
 
 > Two right hands are occupied over every soul — the accuser at yours, the Advocate at God's.
 
@@ -240,7 +300,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1271'
 
 - _Zech 3:1._ "Joshua the high priest standing before the angel of the LORD, and Satan standing at his right hand to resist him" — the anchor scene: filthy garments, real guilt, live accuser
 - _Zech 3:2._ "The LORD rebuke thee, O Satan... is not this a brand plucked out of the fire?" — the defense never denies the fire; it claims the plucking
-- _Job 1:6-7._ "Satan came also among them... From going to and fro in the earth" — he attends court
+- _Job 1:6-7._ "Satan came also among them" — he attends court on the usurped seat of §10: a squatter litigating on a stolen deed
 - _Rev 12:10._ "which accused them before our God day and night" — his standing occupation
 
 [SOP PK 585.2] "Never is one received into the family of God without exciting the determined resistance of the enemy." — expect the resistance; it is evidence, not verdict
@@ -252,7 +312,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1271'
 
 ---
 
-## 10. The Wilderness: The Second Adam — Matt 4:1-11
+## 12. The Wilderness: The Second Adam — Matt 4:1-11
 
 > Just where the ruin began, the recovery began — and the only weapon drawn was "It is written."
 
@@ -265,6 +325,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1271'
 | the world — bow to me        | "him only shalt thou serve" (Matt 4:8-10)    |
 
 - _Matt 4:11._ "Then the devil leaveth him, and, behold, angels came and ministered unto him" — the field held
+- _Luke 4:6._ "All this power will I give thee... for that is delivered unto me" — the third temptation was the stolen deed (§10) offered back cheap; Christ would recover it by purchase, not by homage (§13)
 - first Adam: a garden, every need met — fell at one fruit; second Adam: a wilderness, forty days fasted — stood three times on the Word
 
 [SOP DA 117.3] "Just where the ruin began, the work of our redemption must begin." — appetite first, both times
@@ -277,16 +338,26 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1271'
 
 ---
 
-## 11. The Cross: The Death Knell — John 12:31
+## 13. The Cross: The Death Knell — John 12:31
 
 > The war was decided at Calvary; it is not yet concluded. A.D. 31 is the verdict — the execution has a later date.
 
 [WB]: cross = VERDICT → end of millennium = EXECUTION
 
-- _John 12:31._ "Now is the judgment of this world: now shall the prince of this world be cast out" — "now" twice: a landing on the staircase (§4)
+- _John 12:31._ "Now is the judgment of this world: now shall the prince of this world be cast out" — "now" twice: a landing on the staircase (§5)
 - _Heb 2:14._ "that through death he might destroy him that had the power of death, that is, the devil" — death used to kill death's holder
 - _Col 2:15._ "having spoiled principalities and powers, he made a shew of them openly" — the cross as public triumph
 - Gen 3:15 lands: heel bruised at Calvary — the Head-wound is fatal and cannot be dressed
+
+**The second casting-out — the stolen seat foreclosed — Rev 12:10:**
+
+- _Rev 12:10._ "Now is come salvation... for the accuser of our brethren is cast down, which accused them before our God day and night" — "now is come": dated at the cross; this casting is not from angel ranks (§5) but from the council door — the usurped credential (§10) canceled
+- _Matt 28:18._ "All power is given unto me in heaven and in earth" — the deed changes hands again, this time by purchase
+- _Micah 4:8._ "unto thee shall it come, even the first dominion" — Adam's crown comes home with the second Adam
+
+[SOP PP 67.1] "Christ, by His sacrifice paying the penalty of sin, would not only redeem man, but recover the dominion which he had forfeited." — both losses of Eden bought back
+
+[PIONEER Haskell, SSP 219.1] "At the cross, the fate of Satan was forever sealed." — the gate shuts behind him for good
 
 [SOP GC 503.3] "In the Saviour's expiring cry, 'It is finished,' the death knell of Satan was rung." — the verdict rung out loud
 
@@ -302,11 +373,11 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1271'
 
 - _Rev 12:12._ "the devil is come down unto you, having great wrath, because he knoweth that he hath but a short time" — a condemned prisoner reads his own clock
 
-[→] the remnant is the closing exhibit in the trial — that is exactly why the dragon hunts them (§12)
+[→] the remnant is the closing exhibit in the trial — that is exactly why the dragon hunts them (§14)
 
 ---
 
-## 12. War on the Remnant — Rev 12:17
+## 14. War on the Remnant — Rev 12:17
 
 > The last battlefield flies two flags: the commandments of God and the testimony of Jesus.
 
@@ -322,7 +393,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1271'
 
 ---
 
-## 13. Angel of Light — 2 Cor 11:14
+## 15. Angel of Light — 2 Cor 11:14
 
 > His end-game is miracle, not argument — and the whole apparatus stands on Eden's first lie.
 
@@ -342,7 +413,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1271'
 
 ---
 
-## 14. The Crowning Act — Isa 8:20
+## 16. The Crowning Act — Isa 8:20
 
 > He will personate Christ Himself. Two tests survive a dazzling counterfeit: the Book, and the manner.
 
@@ -364,7 +435,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1271'
 
 ---
 
-## 15. Bound in the Pit — Rev 20:1-3
+## 17. Bound in the Pit — Rev 20:1-3
 
 > The chain is circumstance: a deceiver with no one left to deceive, on the wreck his own rebellion made.
 
@@ -386,7 +457,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1271'
 
 ---
 
-## 16. Loosed: The Last Campaign — Rev 20:7-9
+## 18. Loosed: The Last Campaign — Rev 20:7-9
 
 > His last act is his first act — marshal a host against the throne. Six thousand years taught the "I will" nothing.
 
@@ -403,7 +474,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1271'
 
 ---
 
-## 17. Ashes: An Utter End — Eze 28:18-19
+## 19. Ashes: An Utter End — Eze 28:18-19
 
 > Not eternal torment — eternal end. The fire comes out of the rebel, and what it leaves is ashes.
 
@@ -431,7 +502,7 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1271'
 
 ---
 
-## 18. A Clean Universe — Nah 1:9
+## 20. A Clean Universe — Nah 1:9
 
 > Eternity's security is not a wall — it is a memory. The experiment ran once, start to ashes.
 
@@ -445,11 +516,11 @@ apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p1271'
 
 ---
 
-## 19. Appeal
+## 21. Appeal
 
 - his story: mercy seat → ashes. Five "I wills" — one "never shalt thou be any more."
 - _Matt 25:41._ "prepared for the devil and his angels" — the fire was never addressed to you; the only way in is holding his hand when it falls
-- two right hands over your case tonight (§9): the accuser at yours, the Advocate at God's — and the Advocate has never lost a surrendered case
+- two right hands over your case tonight (§11): the accuser at yours, the Advocate at God's — and the Advocate has never lost a surrendered case
 - _Rev 12:11._ "they overcame him by the blood of the Lamb, and by the word of their testimony" — the same weapons that won the war are issued to you
 - _Rom 16:20._ "And the God of peace shall bruise Satan under your feet shortly" — Gen 3:15 finished, with your foot in it
 - _James 4:7-8._ "Submit yourselves therefore to God. Resist the devil, and he will flee from you. Draw nigh to God, and he will draw nigh to you."
