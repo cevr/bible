@@ -61,81 +61,77 @@ bible egw lookup "<refcode cited by the lesson>" --json
 
 ## Output shape
 
-There is no formal system prompt for Sabbath School (the original
-`PROMPT_REGISTRY` had no entry). Build the outline using the same
-**teacher-mode whiteboard** principles as `references/studies.md`, scoped
-to the week's lesson — including its interpretive method: **Miller's 14 Rules
-of Interpretation** and the **EGW + SDA-pioneer (William Miller foremost)
-corpus** (the "Hermeneutic & Sources" section of `SKILL.md`). The lesson PDFs
-set the week's frame; the pioneer reading and Miller's rules govern how its
-proof-texts are interpreted:
+The voice and marker family are the universal teaching format —
+`references/teachings.md` — scoped to the week's lesson: scannable
+telegraphic bullets, no prose, a bold thesis, `[SOP]`/`[PIONEER]` witness
+lines, and the interpretive method of `SKILL.md` ("Hermeneutic & Sources"):
+**Miller's 14 Rules** and the **EGW + SDA-pioneer corpus — historic pioneer
+Adventism, not modern Adventism**. The lesson PDFs set the week's frame; the
+pioneer reading governs how its proof-texts are interpreted. Where the
+quarterly's reading and the pioneer reading diverge, teach the pioneer
+position from Scripture (charitably, with the verses on the table).
+
+Gather before writing (Phase 1 of `references/teachings.md`): pull the
+week's verses via `bible verse`, and hunt EGW + pioneer witnesses for each
+day's subtopic via `bible egw search`/`lookup` — beyond what the EGW Notes
+PDF hands you.
 
 ```markdown
 # Sabbath School — Q[QUARTER] W[WEEK] ([YEAR])
 
 ## [Lesson Title]
 
-**Memory Verse:** "[verse text]" (Book X:Y)
+**Memory Verse:** — _Book X:Y._ "[verse text]"
+
+**[Burden — ONE bold sentence: the week compressed.]**
+
+## MAP
+
+1. Sabbath — [phrase] — [anchor ref]
+2. Sunday — [phrase] — [anchor ref]
+   ... (one line per day)
+8. Appeal
+
+[Q] index: [objection]? →[day] · [objection]? →[day]
 
 ---
 
-## Sabbath Afternoon — Introduction
+## 1. Sabbath Afternoon — [Anchor Ref]
 
-- **Theme**: [1-2 line statement of the week's burden]
-- "key verse text" (Book X:Y)
-- [DYK🔎] historical / linguistic context
+> [Day burden — ≤2 lines.]
 
----
+- _Ref._ "anchor verse quoted in full" — gloss
+- chain: Ref (gloss) → Ref (gloss) → Ref (gloss)
 
-## Sunday — [Subtopic]
-
-- **point** — brief
-  - "inline verse" (Book X:Y)
-  - supporting detail
-- [→] transition
-
-[Q] **anticipated objection / question**
-→ concise answer with scripture
+[SOP REFCODE] "punchline ≤30 words" — why this quote
 
 ---
 
-## Monday — [Subtopic]
+## 2. Sunday — [Subtopic] — [Anchor Ref]
 
-(... same shape ...)
-
----
-
-## Friday — Further Thought
-
-- EGW citation from EGW Notes PDF
-  - "EGW quote..." (BookCode page.para)
-- [TANGENT] optional deep-dive
+(... same shape; [WB] board moves where a day has a shape;
+[PIONEER Name, REFCODE] wherever a pioneer carries the day's point ...)
 
 ---
 
-## Discussion Questions
+## 7. Friday — Further Thought — [Anchor Ref]
 
-1. ...
-2. ...
-3. ...
+- EGW Notes PDF citations as [SOP REFCODE] lines
+- [TANGENT] hop-chain: Ref (gloss) → Ref (gloss) → Ref (gloss)
 
 ---
 
-## Appeal
+## 8. Appeal
 
-- call to action grounded in the week's central truth
-- _closing scripture_
+- the week's central truth pressed home — decision language
+- _Ref._ "closing scripture"
 ```
 
-Markers (same as `references/studies.md`):
-
-| Marker      | Use                            |
-| ----------- | ------------------------------ |
-| `[→]`       | Transition                     |
-| `[TANGENT]` | Optional deep-dive             |
-| `[DYK🔎]`   | Word study, historical context |
-| `[Q]`       | Anticipated question + answer  |
-| `[ILL]`     | Christ's parable method        |
+Line grammar and marker set are `references/teachings.md`'s — ref-first
+verse bullets with em-dash glosses, `[WB]`, `[SOP REFCODE]`,
+`[PIONEER Name, REFCODE]`, `[Q]`/`[RQ]`, `[Aside]`, `[TANGENT]` hop-chains,
+one-line `[→]`, contrasts as tables, one-screen sections, self-contained
+days.
 
 ## Frontmatter
 
@@ -176,6 +172,8 @@ bible sync -f outputs/sabbath-school/2026-Q2-W5.md
 
 - **Don't generate without fetching the PDFs first** — the lesson + EGW
   Notes PDFs are the source of truth for the week's content.
+- **Don't write prose paragraphs** — the thesis block is the only
+  multi-sentence run; everything else is scannable bullets and markers.
 - **Don't paraphrase EGW from the EGW Notes PDF** — quote with the refcode.
 - **Don't drift from the lesson's daily structure** — Sabbath afternoon /
   Sun–Fri / Discussion Questions is the format SS teachers expect.
