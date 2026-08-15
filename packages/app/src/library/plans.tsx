@@ -10,19 +10,13 @@ import { createSignal } from 'solid-js';
 
 import { ReaderFailure, ReaderLoading } from '../reading/index.js';
 import { useCapabilities } from '../application/capabilities-context.js';
-import { failureCategory } from '@bible/core/observability';
+import { failureCategory, failureMessage } from '@bible/core/observability';
 import { useReadingData } from '../runtime/index.js';
 import { Button, Input } from '../ui/index.js';
 
 export interface PlansProps {
   readonly planId?: string;
 }
-
-const failureMessage = (cause: unknown): string => {
-  let message = String(cause);
-  if (cause instanceof Error) message = cause.message;
-  return message.replace(/\s+/g, ' ').trim();
-};
 
 const plansHeading = (planId: string | undefined): string => {
   if (planId !== undefined) return 'Reading plan';

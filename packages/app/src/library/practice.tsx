@@ -11,7 +11,7 @@ import { createSignal } from 'solid-js';
 
 import { ReaderFailure, ReaderLoading } from '../reading/index.js';
 import { useCapabilities } from '../application/capabilities-context.js';
-import { failureCategory } from '@bible/core/observability';
+import { failureCategory, failureMessage } from '@bible/core/observability';
 import { useReadingData } from '../runtime/index.js';
 import { Button, Input } from '../ui/index.js';
 
@@ -27,12 +27,6 @@ const intervalForRating = (rating: typeof PracticeRating.Type): number => {
   if (rating === 3) return 4;
   if (rating === 4) return 7;
   return 14;
-};
-
-const failureMessage = (cause: unknown): string => {
-  let message = String(cause);
-  if (cause instanceof Error) message = cause.message;
-  return message.replace(/\s+/g, ' ').trim();
 };
 
 const practiceHeading = (memoryVerseId: string | undefined): string => {

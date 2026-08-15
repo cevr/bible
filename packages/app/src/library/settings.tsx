@@ -10,7 +10,7 @@ import { DateTime, Effect, Schema } from 'effect';
 
 import { useCapabilities } from '../application/capabilities-context.js';
 import type { SettingsSection } from '../route/index.js';
-import { failureCategory } from '@bible/core/observability';
+import { failureCategory, failureMessage } from '@bible/core/observability';
 import { useReadingData } from '../runtime/index.js';
 import { Button, Popover } from '../ui/index.js';
 import { ReaderFailure, ReaderLoading } from '../reading/index.js';
@@ -22,11 +22,6 @@ const settingsSections: ReadonlyArray<{ readonly id: SettingsSection; readonly l
   { id: 'shortcuts', label: 'Shortcuts' },
   { id: 'about', label: 'About' },
 ];
-
-const failureMessage = (cause: unknown): string => {
-  if (cause instanceof Error) return cause.message;
-  return String(cause);
-};
 
 const currentSection = (
   selected: SettingsSection,

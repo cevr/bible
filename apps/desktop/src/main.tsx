@@ -1,4 +1,5 @@
 import { ReadingApplication, SharedRoutes } from '@bible/app/application';
+import { failureMessage } from '@bible/core/observability';
 import { HashRouter } from '@solidjs/router';
 import { render, Show } from '@solidjs/web';
 import { Effect } from 'effect';
@@ -8,10 +9,7 @@ import { startDesktopProcedureHost, type ActiveDesktopProcedureHost } from './pr
 import { desktopCapabilities } from './platform-capabilities.js';
 import '@bible/app/styles.css';
 
-const failureMessage = (cause: unknown): string => {
-  if (cause instanceof Error) return cause.message;
-  return 'An unknown startup error prevented the library from opening.';
-};
+const STARTUP_FALLBACK = 'An unknown startup error prevented the library from opening.';
 
 const DesktopApplication = () => {
   const [host, setHost] = createSignal<ActiveDesktopProcedureHost>();
@@ -51,7 +49,7 @@ const DesktopApplication = () => {
             {(cause) => (
               <div role="alert">
                 <strong>The library could not be opened.</strong>
-                <p>{failureMessage(cause())}</p>
+                <p>{failureMessage(cause(), STARTUP_FALLBACK)}</p>
               </div>
             )}
           </Show>
