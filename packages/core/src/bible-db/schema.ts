@@ -160,7 +160,7 @@ export const BIBLE_SCHEMA_STATEMENTS = [
     INSERT INTO margin_notes_fts(rowid, note_text, phrase, book, chapter, verse)
     VALUES (new.rowid, new.note_text, new.phrase, new.book, new.chapter, new.verse);
   END`,
-] as const;
+];
 
 export const initializeBibleSchema = (sql: SqlClient.SqlClient): Effect.Effect<void, SqlError> =>
   Effect.gen(function* () {

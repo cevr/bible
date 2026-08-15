@@ -238,4 +238,4 @@ export const BibleProcedureGroup = RpcGroup.make(
 export const expectedRuntimeConnection = {
   protocolVersion: CURRENT_PROTOCOL_VERSION,
   schemaVersion: CURRENT_RUNTIME_SCHEMA_VERSION,
-} as const;
+};

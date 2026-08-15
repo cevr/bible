@@ -1,4 +1,4 @@
-import { Effect } from 'effect';
+import { Effect, Option } from 'effect';
 
 import type {
   CheckpointName,
@@ -115,7 +115,7 @@ export const LEGACY_CATEGORIES: readonly LegacyCategory[] = [
     search: /platform\s*(?:===|!==)|switch\s*\(\s*platform\s*\)|\bis(?:Web|Desktop)\b/u,
     searchGlobs: ['packages/app/src/**/*.{ts,tsx}'],
   },
-] as const;
+];
 
 type GlobFiles = (pattern: string) => Effect.Effect<readonly string[], unknown>;
 type ReadText = (path: string) => Effect.Effect<string, unknown>;
@@ -162,8 +162,9 @@ export const snapshotLegacy = (options: {
             { concurrency: 1, discard: true },
           );
 
-          const search = category.search;
-          if (search !== undefined) {
+          const search = Option.fromUndefinedOr(category.search);
+          if (Option.isSome(search)) {
+            const searchPattern = search.value;
             yield* Effect.forEach(
               category.searchGlobs ?? [],
               (pattern) =>
@@ -175,7 +176,7 @@ export const snapshotLegacy = (options: {
                         if (!isRepositorySourcePath(path)) return Effect.void;
                         return options.readText(path).pipe(
                           Effect.tap((source) => {
-                            if (!search.test(source)) return Effect.void;
+                            if (!searchPattern.test(source)) return Effect.void;
                             return Effect.sync(() => matches.add(path));
                           }),
                         );
@@ -226,15 +227,15 @@ export const validateLegacySnapshot = (
   const baselineById = new Map(baseline.categories.map((category) => [category.id, category]));
 
   for (const category of current.categories) {
-    const original = baselineById.get(category.id);
-    if (original === undefined) {
+    const original = Option.fromUndefinedOr(baselineById.get(category.id));
+    if (Option.isNone(original)) {
       failures.push(`legacy category ${category.id} is absent from the initial baseline`);
       continue;
     }
 
-    if (category.matches.length > original.matches.length) {
+    if (category.matches.length > original.value.matches.length) {
       failures.push(
-        `${category.title} grew from ${String(original.matches.length)} to ${String(category.matches.length)} targets`,
+        `${category.title} grew from ${String(original.value.matches.length)} to ${String(category.matches.length)} targets`,
       );
     }
 

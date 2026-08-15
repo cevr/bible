@@ -1,4 +1,4 @@
-import { Console, Effect, FileSystem, Path, Schema } from 'effect';
+import { Console, Effect, FileSystem, Option, Path, Schema } from 'effect';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
 
 import { AppleScript } from '../../services/apple-script.js';
@@ -91,8 +91,7 @@ export const slidesBuild = Command.make(
       let missing = 0;
       let noteless = 0;
       for (const b of sheet.beats) {
-        let file = '';
-        if (typeof b.image === 'string') file = b.image;
+        const file = Option.getOrElse(Option.fromNullishOr(b.image), () => '');
         const isNew = file === '' || file.toUpperCase() === 'NEW';
         let abs = '';
         if (!isNew) abs = path.resolve(dir, file);
@@ -115,9 +114,7 @@ export const slidesBuild = Command.make(
       let outPath = path.resolve(dir, args.out + '.key');
       if (args.out.endsWith('.key')) outPath = path.resolve(args.out);
 
-      yield* fs
-        .makeDirectory(path.dirname(outPath), { recursive: true })
-        .pipe(Effect.catch(() => Effect.void));
+      yield* fs.makeDirectory(path.dirname(outPath), { recursive: true }).pipe(Effect.ignore);
 
       const beatList = records
         .map(

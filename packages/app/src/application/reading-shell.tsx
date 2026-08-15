@@ -1,5 +1,5 @@
-import { A, useLocation, useNavigate } from '@solidjs/router';
-import { Effect } from 'effect';
+import { useLocation, useNavigate } from '@solidjs/router';
+import { Effect, Option } from 'effect';
 import { createEffect, createSignal, onCleanup, onSettled, type ParentProps } from 'solid-js';
 
 import type { ReaderTypeface } from '@bible/core/reading-preferences';
@@ -54,31 +54,32 @@ const ReadingPreferenceBridge = () => {
     root.style.removeProperty('--bible-reading-measure');
   });
 
-  return null;
+  return <></>;
 };
 
 const ReadingContinuityBridge = () => {
   const location = useLocation();
   const continuity = useReadingData().readingContinuity;
   const canonicalPath = () => `${location.pathname}${location.search}`;
-  let recordedPath: string | undefined;
+  let recordedPath = Option.none<string>();
 
   createEffect(canonicalPath, (path) => {
-    const route = decodeRoute(path);
-    let readingLocation: ReturnType<typeof readerLocationForRoute> = undefined;
-    if (route) readingLocation = readerLocationForRoute(route);
-    if (readingLocation === undefined || path === recordedPath) return;
-    recordedPath = path;
-    void continuity.mutate({ location: readingLocation, progress: 0 }).catch((cause: unknown) => {
-      Effect.runFork(
-        Effect.logError(
-          `[continuity] mutation-failed operation=record category=${failureCategory(cause)}`,
-        ),
-      );
-    });
+    const readingLocation = Option.flatMap(decodeRoute(path), readerLocationForRoute);
+    if (Option.isNone(readingLocation)) return;
+    if (Option.isSome(recordedPath) && recordedPath.value === path) return;
+    recordedPath = Option.some(path);
+    void continuity
+      .mutate({ location: readingLocation.value, progress: 0 })
+      .catch((cause: unknown) => {
+        Effect.runFork(
+          Effect.logError(
+            `[continuity] mutation-failed operation=record category=${failureCategory(cause)}`,
+          ),
+        );
+      });
   });
 
-  return null;
+  return <></>;
 };
 
 const sectionFor = (
@@ -94,9 +95,10 @@ const sectionFor = (
   return 'other';
 };
 
-const ariaCurrent = (active: boolean): 'page' | undefined => {
-  if (active) return 'page';
-  return undefined;
+const ariaCurrent = (active: boolean) => {
+  let marker = Option.none<'page'>();
+  if (active) marker = Option.some('page');
+  return Option.getOrUndefined(marker);
 };
 
 export const ReadingShell = (props: ParentProps) => {
@@ -104,8 +106,14 @@ export const ReadingShell = (props: ParentProps) => {
   const navigate = useNavigate();
   const activeSection = () => sectionFor(location.pathname);
   const [commandOpen, setCommandOpen] = createSignal(false);
-  let commandTrigger: HTMLButtonElement | undefined;
-  const destinations = [
+  let commandTrigger = Option.none<HTMLButtonElement>();
+  interface Destination {
+    readonly id: string;
+    readonly label: string;
+    readonly path: string;
+    readonly keywords: readonly string[];
+  }
+  const destinations: readonly Destination[] = [
     { id: 'bible', label: 'Read the Bible', path: '/bible/1/1', keywords: ['scripture'] },
     { id: 'writings', label: 'Open Writings', path: '/writings', keywords: ['egw'] },
     { id: 'search', label: 'Search Scripture', path: '/search', keywords: ['find'] },
@@ -113,7 +121,7 @@ export const ReadingShell = (props: ParentProps) => {
     { id: 'plans', label: 'Reading Plans', path: '/plans', keywords: ['schedule'] },
     { id: 'practice', label: 'Memory Practice', path: '/practice', keywords: ['verse'] },
     { id: 'settings', label: 'Reader Settings', path: '/settings/reader', keywords: ['theme'] },
-  ] as const;
+  ];
 
   onSettled(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
@@ -143,29 +151,29 @@ export const ReadingShell = (props: ParentProps) => {
         Skip to reading
       </a>
       <header class="bible-app-header">
-        <A class="bible-wordmark" href="/bible/1/1" aria-label="Bible reader home">
+        <a class="bible-wordmark" href="/bible/1/1" aria-label="Bible reader home">
           <span aria-hidden="true">B</span>
           <span>The Word</span>
-        </A>
+        </a>
         <nav class="bible-primary-nav" aria-label="Primary navigation">
-          <A href="/bible/1/1" aria-current={ariaCurrent(activeSection() === 'bible')}>
+          <a href="/bible/1/1" aria-current={ariaCurrent(activeSection() === 'bible')}>
             Bible
-          </A>
-          <A href="/writings" aria-current={ariaCurrent(activeSection() === 'writings')}>
+          </a>
+          <a href="/writings" aria-current={ariaCurrent(activeSection() === 'writings')}>
             Writings
-          </A>
-          <A href="/search" aria-current={ariaCurrent(activeSection() === 'search')}>
+          </a>
+          <a href="/search" aria-current={ariaCurrent(activeSection() === 'search')}>
             Search
-          </A>
-          <A href="/topics" aria-current={ariaCurrent(activeSection() === 'topics')}>
+          </a>
+          <a href="/topics" aria-current={ariaCurrent(activeSection() === 'topics')}>
             Topics
-          </A>
-          <A href="/plans" aria-current={ariaCurrent(activeSection() === 'plans')}>
+          </a>
+          <a href="/plans" aria-current={ariaCurrent(activeSection() === 'plans')}>
             Plans
-          </A>
-          <A href="/practice" aria-current={ariaCurrent(activeSection() === 'practice')}>
+          </a>
+          <a href="/practice" aria-current={ariaCurrent(activeSection() === 'practice')}>
             Practice
-          </A>
+          </a>
         </nav>
         <div class="bible-mobile-nav">
           <Menu
@@ -180,7 +188,7 @@ export const ReadingShell = (props: ParentProps) => {
         </div>
         <Button
           ref={(element) => {
-            commandTrigger = element;
+            commandTrigger = Option.some(element);
           }}
           class="bible-command-trigger"
           aria-label="Open command palette"
@@ -189,13 +197,13 @@ export const ReadingShell = (props: ParentProps) => {
           <SearchIcon />
           <kbd>⌘K</kbd>
         </Button>
-        <A
+        <a
           class="bible-settings-link"
           href="/settings/reader"
           aria-current={ariaCurrent(activeSection() === 'settings')}
         >
           Settings
-        </A>
+        </a>
       </header>
       <main id="reading-canvas" class="bible-reading-canvas" tabindex="-1">
         {props.children}

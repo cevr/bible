@@ -25,7 +25,7 @@ export const startWebProcedureHost = (
     Effect.gen(function* () {
       const connection = connectProcedureWorker(worker);
       yield* connection.ready.pipe(
-        Effect.mapError((cause) => new ProcedureHostStartError({ stage: 'connect', cause })),
+        Effect.mapError((cause) => ProcedureHostStartError.make({ stage: 'connect', cause })),
       );
       return layerWebProcedureHost(connection.port);
     }),

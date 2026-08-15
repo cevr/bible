@@ -1,5 +1,5 @@
 import { For, Portal, Show, type JSX } from '@solidjs/web';
-import { Effect, type Fiber } from 'effect';
+import { Effect, Option, type Fiber } from 'effect';
 import { createSignal, createUniqueId, onSettled } from 'solid-js';
 
 export interface MenuItem {
@@ -20,14 +20,16 @@ interface MenuListProps {
 }
 
 const MenuList = (props: MenuListProps) => {
-  let popup: HTMLDivElement | undefined;
+  let popup = Option.none<HTMLDivElement>();
   let typeahead = '';
-  let typeaheadFiber: Fiber.Fiber<void> | undefined;
+  let typeaheadFiber = Option.none<Fiber.Fiber<void>>();
   const enabled = () => props.items.filter((item) => !item.disabled);
   const focusAt = (index: number): void => {
     const items = enabled();
-    const item = items[(index + items.length) % items.length];
-    if (item !== undefined) document.getElementById(`${props.id}-${item.id}`)?.focus();
+    const item = Option.fromNullishOr(items[(index + items.length) % items.length]);
+    if (Option.isSome(item)) {
+      document.getElementById(`${props.id}-${item.value.id}`)?.focus();
+    }
   };
 
   onSettled(() => {
@@ -40,20 +42,23 @@ const MenuList = (props: MenuListProps) => {
       ),
     );
     const outside = (event: PointerEvent): void => {
-      if (event.target instanceof Node && !popup?.contains(event.target)) props.close();
+      const container = popup;
+      if (!(event.target instanceof Node)) return;
+      if (Option.isSome(container) && container.value.contains(event.target)) return;
+      props.close();
     };
     document.addEventListener('pointerdown', outside, true);
     return () => {
       document.removeEventListener('pointerdown', outside, true);
       focusFiber.interruptUnsafe();
-      typeaheadFiber?.interruptUnsafe();
+      if (Option.isSome(typeaheadFiber)) typeaheadFiber.value.interruptUnsafe();
     };
   });
 
   return (
     <div
       ref={(element) => {
-        popup = element;
+        popup = Option.some(element);
       }}
       id={props.id}
       class="bible-menu"
@@ -74,13 +79,15 @@ const MenuList = (props: MenuListProps) => {
           props.restoreFocus?.();
         } else if (event.key.length === 1 && !event.metaKey && !event.ctrlKey && !event.altKey) {
           typeahead += event.key.toLocaleLowerCase();
-          typeaheadFiber?.interruptUnsafe();
-          typeaheadFiber = Effect.runFork(
-            Effect.sleep('500 millis').pipe(
-              Effect.andThen(
-                Effect.sync(() => {
-                  typeahead = '';
-                }),
+          if (Option.isSome(typeaheadFiber)) typeaheadFiber.value.interruptUnsafe();
+          typeaheadFiber = Option.some(
+            Effect.runFork(
+              Effect.sleep('500 millis').pipe(
+                Effect.andThen(
+                  Effect.sync(() => {
+                    typeahead = '';
+                  }),
+                ),
               ),
             ),
           );
@@ -128,30 +135,30 @@ export const Menu = (props: MenuProps) => {
   const [initialFocus, setInitialFocus] = createSignal<'first' | 'last'>('first');
   const open = () => props.open ?? localOpen();
   const setOpen = (next: boolean): void => {
-    if (props.open === undefined) setLocalOpen(next);
+    if (Option.isNone(Option.fromNullishOr(props.open))) setLocalOpen(next);
     props.onOpenChange?.(next);
   };
   const expandedState = (): 'true' | 'false' => {
     if (open()) return 'true';
     return 'false';
   };
-  const controls = (): string | undefined => {
-    if (open()) return id;
-    return undefined;
+  const controls = () => {
+    if (open()) return Option.some(id);
+    return Option.none<string>();
   };
-  let trigger: HTMLButtonElement | undefined;
+  let trigger = Option.none<HTMLButtonElement>();
   return (
     <div class="bible-menu-root">
       <button
         ref={(element) => {
-          trigger = element;
+          trigger = Option.some(element);
         }}
         type="button"
         class="bible-menu-trigger"
         aria-label={props.label}
         aria-haspopup="menu"
         aria-expanded={expandedState()}
-        aria-controls={controls()}
+        aria-controls={Option.getOrUndefined(controls())}
         onClick={() => {
           setInitialFocus('first');
           setOpen(!open());
@@ -172,7 +179,9 @@ export const Menu = (props: MenuProps) => {
           label={props.label}
           items={props.items}
           close={() => setOpen(false)}
-          restoreFocus={() => trigger?.focus()}
+          restoreFocus={() => {
+            if (Option.isSome(trigger)) trigger.value.focus();
+          }}
           initialFocus={initialFocus()}
         />
       </Show>
@@ -189,21 +198,27 @@ export interface ContextMenuProps {
 
 export const ContextMenu = (props: ContextMenuProps) => {
   const id = `context-menu-${createUniqueId()}`;
-  const [position, setPosition] = createSignal<{ readonly x: number; readonly y: number }>();
-  let target: HTMLDivElement | undefined;
-  let restoreTarget: HTMLElement | undefined;
-  const close = (): void => setPosition(undefined);
+  const [position, setPosition] = createSignal<
+    Option.Option<{ readonly x: number; readonly y: number }>
+  >(Option.none());
+  let target = Option.none<HTMLDivElement>();
+  let restoreTarget = Option.none<HTMLElement>();
+  const close = (): void => {
+    setPosition(Option.none());
+  };
   const openAt = (x: number, y: number): void => {
-    restoreTarget = undefined;
-    if (document.activeElement instanceof HTMLElement) restoreTarget = document.activeElement;
-    setPosition({ x, y });
+    restoreTarget = Option.none();
+    if (document.activeElement instanceof HTMLElement) {
+      restoreTarget = Option.some(document.activeElement);
+    }
+    setPosition(Option.some({ x, y }));
   };
   return (
     <>
       <div
         {...props.targetProps}
         ref={(element) => {
-          target = element;
+          target = Option.some(element);
         }}
         class="bible-context-menu-target"
         onContextMenu={(event) => {
@@ -213,13 +228,13 @@ export const ContextMenu = (props: ContextMenuProps) => {
         onKeyDown={(event) => {
           if (event.key !== 'ContextMenu' && !(event.shiftKey && event.key === 'F10')) return;
           event.preventDefault();
-          const bounds = target?.getBoundingClientRect();
-          if (bounds !== undefined) openAt(bounds.left + 16, bounds.top + 16);
+          const bounds = Option.map(target, (element) => element.getBoundingClientRect());
+          if (Option.isSome(bounds)) openAt(bounds.value.left + 16, bounds.value.top + 16);
         }}
       >
         {props.children}
       </div>
-      <Show when={position()}>
+      <Show when={Option.getOrUndefined(position())}>
         {(current) => (
           <Portal>
             <MenuList
@@ -227,7 +242,9 @@ export const ContextMenu = (props: ContextMenuProps) => {
               label={props.label}
               items={props.items}
               close={close}
-              restoreFocus={() => restoreTarget?.focus()}
+              restoreFocus={() => {
+                if (Option.isSome(restoreTarget)) restoreTarget.value.focus();
+              }}
               style={{ left: `${String(current().x)}px`, top: `${String(current().y)}px` }}
             />
           </Portal>

@@ -11,7 +11,7 @@
  *
  * const program = Effect.gen(function* () {
  *   const client = yield* EGWApiClient;
- *   const languages = yield* client.getLanguages();
+ *   const languages = yield* client.getLanguages;
  *   return languages;
  * });
  *

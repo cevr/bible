@@ -1,7 +1,7 @@
 import { parseParagraphContent, type Node } from '@bible/core/egw';
 import { NodeServices } from '@effect/platform-node';
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, FileSystem, Path, Schema } from 'effect';
+import { Effect, FileSystem, Option, Path, Schema } from 'effect';
 
 interface Paragraph {
   readonly para_id: string;
@@ -15,19 +15,16 @@ const loadFixture = (name: string): Effect.Effect<readonly Paragraph[], unknown>
     const path = yield* Path.Path;
     const fixturesDir = yield* path.fromFileUrl(new URL('fixtures/', import.meta.url));
     const text = yield* fs.readFileString(path.join(fixturesDir, name));
-    return yield* Schema.decodeUnknownEffect(Schema.fromJsonString(Paragraphs))(text);
+    return yield* Schema.decodeEffect(Schema.fromJsonString(Paragraphs))(text);
   }).pipe(Effect.provide(NodeServices.layer));
 
 // Convenience: find a paragraph by id in a fixture, fail loudly if missing so
 // fixture renames don't silently degrade the test.
-const find = (
-  paragraphs: readonly Paragraph[],
-  paraId: string,
-): Effect.Effect<Paragraph, string> => {
-  const found = paragraphs.find((p) => p.para_id === paraId);
-  if (found === undefined) return Effect.fail(`fixture missing para_id ${paraId}`);
-  return Effect.succeed(found);
-};
+const find = (paragraphs: readonly Paragraph[], paraId: string): Effect.Effect<Paragraph, string> =>
+  Option.match(Option.fromUndefinedOr(paragraphs.find((p) => p.para_id === paraId)), {
+    onNone: () => Effect.fail(`fixture missing para_id ${paraId}`),
+    onSome: Effect.succeed,
+  });
 
 const concatText = (nodes: readonly Node[]): string =>
   nodes

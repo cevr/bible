@@ -21,7 +21,7 @@ import {
 import { Study } from './study.js';
 import * as ReferenceLinks from './reference-links.js';
 
-export class InvalidFrontmatter extends Schema.TaggedErrorClass<InvalidFrontmatter>()(
+export class InvalidFrontmatter extends Schema.TaggedError<InvalidFrontmatter>()(
   'Builder.InvalidFrontmatter',
   {
     file: Schema.String,
@@ -29,15 +29,12 @@ export class InvalidFrontmatter extends Schema.TaggedErrorClass<InvalidFrontmatt
   },
 ) {}
 
-export class DuplicateSlug extends Schema.TaggedErrorClass<DuplicateSlug>()(
-  'Builder.DuplicateSlug',
-  {
-    slug: Schema.String,
-    message: Schema.String,
-  },
-) {}
+export class DuplicateSlug extends Schema.TaggedError<DuplicateSlug>()('Builder.DuplicateSlug', {
+  slug: Schema.String,
+  message: Schema.String,
+}) {}
 
-export class InvalidStudyStructure extends Schema.TaggedErrorClass<InvalidStudyStructure>()(
+export class InvalidStudyStructure extends Schema.TaggedError<InvalidStudyStructure>()(
   'Builder.InvalidStudyStructure',
   {
     file: Schema.String,
@@ -45,12 +42,9 @@ export class InvalidStudyStructure extends Schema.TaggedErrorClass<InvalidStudyS
   },
 ) {}
 
-class UnparseableYaml extends Schema.TaggedErrorClass<UnparseableYaml>()(
-  'Builder.UnparseableYaml',
-  {
-    message: Schema.String,
-  },
-) {}
+class UnparseableYaml extends Schema.TaggedError<UnparseableYaml>()('Builder.UnparseableYaml', {
+  message: Schema.String,
+}) {}
 
 export type BuildError = InvalidFrontmatter | DuplicateSlug | InvalidStudyStructure | PlatformError;
 
@@ -61,7 +55,7 @@ export interface Summary {
 
 export interface Interface {
   /** Render the whole site into dist/ and return what was emitted. */
-  readonly build: () => Effect.Effect<Summary, BuildError>;
+  readonly build: Effect.Effect<Summary, BuildError>;
 }
 
 export class Service extends Context.Service<Service, Interface>()('@bible/site/Builder') {}
@@ -96,7 +90,7 @@ export const layer: Layer.Layer<
       // block after that — unparseable YAML, wrong shape, bad card copy — is a
       // hard build error; without the marker the file is simply unpublished.
       const optedIn = /^site\s*:/m.test(fm);
-      const fail = (message: string) => new InvalidFrontmatter({ file, message });
+      const fail = (message: string) => InvalidFrontmatter.make({ file, message });
 
       const parsed = yield* Effect.result(parseYaml(fm));
       if (Result.isFailure(parsed)) {
@@ -139,8 +133,8 @@ export const layer: Layer.Layer<
       const bySlug = new Map<string, Discovered>();
       for (const study of found) {
         const existing = bySlug.get(study.meta.slug);
-        if (existing !== undefined) {
-          return yield* new DuplicateSlug({
+        if (existing) {
+          return yield* DuplicateSlug.make({
             slug: study.meta.slug,
             message: `slug "${study.meta.slug}" is claimed by both ${existing.file} and ${study.file}`,
           });
@@ -164,7 +158,7 @@ export const layer: Layer.Layer<
         html: linkedArticle,
       });
       if (document.sections.length === 0) {
-        return yield* new InvalidStudyStructure({
+        return yield* InvalidStudyStructure.make({
           file: study.file,
           message: 'published study has zero non-Appendix sections',
         });
@@ -193,7 +187,7 @@ export const layer: Layer.Layer<
         },
         { concurrency: 4, discard: true },
       );
-      if (document.appendix !== undefined) {
+      if (document.appendix) {
         const appendixDir = path.join(dist, study.meta.slug, 'appendix');
         yield* fs.makeDirectory(appendixDir, { recursive: true });
         yield* fs.writeFileString(
@@ -281,7 +275,7 @@ export const layer: Layer.Layer<
       return { studies: built.length, comparisons: COMPARISONS.length };
     });
 
-    return Service.of({ build });
+    return Service.of({ build: build() });
   }),
 );
 
@@ -297,7 +291,7 @@ const parseYaml = (fm: string) =>
   Effect.try({
     try: () => Bun.YAML.parse(fm),
     catch: (cause) =>
-      new UnparseableYaml({
+      UnparseableYaml.make({
         message: failureMessage(cause),
       }),
   });

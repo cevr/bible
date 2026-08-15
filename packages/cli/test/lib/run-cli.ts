@@ -1,6 +1,15 @@
 import * as BunServices from '@effect/platform-bun/BunServices';
 import { Command } from 'effect/unstable/cli';
-import { ConfigProvider, Effect, Exit, Inspectable, Layer, Logger } from 'effect';
+import {
+  ConfigProvider,
+  Effect,
+  Exit,
+  Inspectable,
+  Layer,
+  Logger,
+  Option,
+  Predicate,
+} from 'effect';
 import { expect } from 'bun:test';
 
 import { getCallSequence, type ServiceCall } from './sequence-recorder.js';
@@ -66,6 +75,7 @@ export const runCli = <Name extends string, Input, ContextInput, E, R>(
       OPENAI_API_KEY: 'test-key',
       ANTHROPIC_API_KEY: 'test-key',
     });
+    // @effect-diagnostics-next-line unsafeEffectTypeAssertion:off
     const provided = program.pipe(
       Effect.provide(Layer.mergeAll(BunServices.layer, Logger.layer([]), layer)),
       Effect.provideService(ConfigProvider.ConfigProvider, provider),
@@ -83,12 +93,8 @@ export const runCli = <Name extends string, Input, ContextInput, E, R>(
     const calls = [...effectCalls, ...allServiceCalls];
 
     // Log failure details for debugging
-    if (!success) {
-      let failure: unknown = 'unknown';
-      if (Exit.isFailure(exit)) {
-        failure = exit.cause;
-      }
-      yield* Effect.logError(`CLI command failed: ${Inspectable.toStringUnknown(failure, 0)}`);
+    if (Exit.isFailure(exit)) {
+      yield* Effect.logError(`CLI command failed: ${Inspectable.toStringUnknown(exit.cause, 0)}`);
     }
 
     return {
@@ -114,10 +120,11 @@ export const expectSequence = (actual: ServiceCall[], expected: Array<Partial<Se
     let found = false;
 
     while (actualIndex < actual.length) {
-      const actualCall = actual[actualIndex];
+      const actualCallOpt = Option.fromNullishOr(actual[actualIndex]);
       actualIndex++;
 
-      if (actualCall === undefined) continue;
+      if (Option.isNone(actualCallOpt)) continue;
+      const actualCall = actualCallOpt.value;
 
       if (actualCall._tag === expectedCall._tag) {
         // Check additional properties
@@ -125,13 +132,11 @@ export const expectSequence = (actual: ServiceCall[], expected: Array<Partial<Se
         for (const [key, value] of Object.entries(expectedCall)) {
           if (key === '_tag') continue;
 
-          const actualValue = (actualCall as Record<string, unknown>)[key];
+          const actualValue: unknown = Reflect.get(actualCall, key);
 
           // Handle expect.stringContaining and other matchers
-          if (value && typeof value === 'object' && 'asymmetricMatch' in value) {
-            if (
-              !(value as { asymmetricMatch: (v: unknown) => boolean }).asymmetricMatch(actualValue)
-            ) {
+          if (Predicate.hasProperty(value, 'asymmetricMatch')) {
+            if (!(value as { asymmetricMatch: (v: any) => boolean }).asymmetricMatch(actualValue)) {
               matches = false;
               break;
             }
@@ -183,13 +188,11 @@ export const expectContains = (actual: ServiceCall[], expected: Array<Partial<Se
       for (const [key, value] of Object.entries(expectedCall)) {
         if (key === '_tag') continue;
 
-        const actualValue = (actualCall as Record<string, unknown>)[key];
+        const actualValue: unknown = Reflect.get(actualCall, key);
 
         // Handle expect.stringContaining and other matchers
-        if (value && typeof value === 'object' && 'asymmetricMatch' in value) {
-          if (
-            !(value as { asymmetricMatch: (v: unknown) => boolean }).asymmetricMatch(actualValue)
-          ) {
+        if (Predicate.hasProperty(value, 'asymmetricMatch')) {
+          if (!(value as { asymmetricMatch: (v: any) => boolean }).asymmetricMatch(actualValue)) {
             return false;
           }
         } else if (actualValue !== value) {

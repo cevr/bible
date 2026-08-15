@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'effect-bun-test';
-import { Deferred, Effect, Queue } from 'effect';
+import { Deferred, Effect, Option, Queue } from 'effect';
 import type { FromClientEncoded, FromServerEncoded } from 'effect/unstable/rpc/RpcMessage';
 import * as RpcServer from 'effect/unstable/rpc/RpcServer';
 
@@ -11,24 +11,24 @@ import {
 describe('desktop procedure protocol', () => {
   it.scoped('moves encoded RPC messages over the Electron port boundary', () =>
     Effect.gen(function* () {
-      let receive: ((message: FromClientEncoded) => void) | undefined;
-      let close: (() => void) | undefined;
+      let receive: Option.Option<(message: FromClientEncoded) => void> = Option.none();
+      let close: Option.Option<() => void> = Option.none();
       let started = false;
       let unsubscribed = 0;
       const sent: FromServerEncoded[] = [];
       const port: DesktopProcedureServerPort = {
         subscribe: (listener) => {
-          receive = listener;
+          receive = Option.some(listener);
           return () => {
             unsubscribed += 1;
-            receive = undefined;
+            receive = Option.none();
           };
         },
         onClose: (listener) => {
-          close = listener;
+          close = Option.some(listener);
           return () => {
             unsubscribed += 1;
-            close = undefined;
+            close = Option.none();
           };
         },
         send: (message) => sent.push(message),
@@ -51,8 +51,8 @@ describe('desktop procedure protocol', () => {
           payload: {},
           headers: [],
         };
-        if (receive === undefined) return yield* Effect.die('port did not subscribe');
-        receive(request);
+        if (Option.isNone(receive)) return yield* Effect.die('port did not subscribe');
+        receive.value(request);
         expect(yield* Deferred.await(received)).toEqual(request);
 
         const response: FromServerEncoded = {
@@ -64,8 +64,8 @@ describe('desktop procedure protocol', () => {
         expect(sent).toEqual([response]);
         expect(started).toBe(true);
 
-        if (close === undefined) return yield* Effect.die('port did not register close');
-        close();
+        if (Option.isNone(close)) return yield* Effect.die('port did not register close');
+        close.value();
         expect(yield* Queue.take(protocol.disconnects)).toBe(0);
         expect(yield* protocol.clientIds).toEqual(new Set());
       }).pipe(Effect.provide(layerDesktopProcedureProtocol(port)));

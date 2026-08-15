@@ -1,4 +1,4 @@
-import { Schema } from 'effect';
+import { Predicate, Schema } from 'effect';
 
 export const ColorMode = Schema.Literals(['system', 'light', 'sepia', 'dark']);
 export type ColorMode = typeof ColorMode.Type;
@@ -16,16 +16,16 @@ export const ReaderTypeface = Schema.Literals([
 ]);
 export type ReaderTypeface = typeof ReaderTypeface.Type;
 
-export const FontSizePx = Schema.Number.pipe(
+export const FontSizePx = Schema.Finite.pipe(
   Schema.check(Schema.isFinite(), Schema.isBetween({ minimum: 14, maximum: 32 })),
 );
-export const LineHeightRatio = Schema.Number.pipe(
+export const LineHeightRatio = Schema.Finite.pipe(
   Schema.check(Schema.isFinite(), Schema.isBetween({ minimum: 1, maximum: 4 })),
 );
-export const LetterSpacingEm = Schema.Number.pipe(
+export const LetterSpacingEm = Schema.Finite.pipe(
   Schema.check(Schema.isFinite(), Schema.isBetween({ minimum: -0.02, maximum: 0.1 })),
 );
-export const MeasureCh = Schema.Number.pipe(
+export const MeasureCh = Schema.Finite.pipe(
   Schema.check(Schema.isInt(), Schema.isBetween({ minimum: 40, maximum: 120 })),
 );
 export const BibleLayout = Schema.Literals(['verse', 'paragraph']);
@@ -54,12 +54,12 @@ const patchFields = {
   showStrongs: Schema.optional(Schema.Boolean),
   showMarginNotes: Schema.optional(Schema.Boolean),
   showCrossReferences: Schema.optional(Schema.Boolean),
-} as const;
+};
 
 export const ReadingPreferencesPatch = Schema.Struct(patchFields).pipe(
   Schema.check(
     Schema.makeFilter((patch) => {
-      if (Object.values(patch).some((value) => value !== undefined)) return undefined;
+      if (Object.values(patch).some(Predicate.isNotUndefined)) return true;
       return 'a reading preferences patch must set at least one field';
     }),
   ),
@@ -71,7 +71,7 @@ export const PatchReadingPreferences = Schema.TaggedStruct('PatchReadingPreferen
 });
 export type PatchReadingPreferences = typeof PatchReadingPreferences.Type;
 
-export const DEFAULT_READING_PREFERENCES = new ReadingPreferences({
+export const DEFAULT_READING_PREFERENCES = ReadingPreferences.make({
   colorMode: 'system',
   readerTypeface: 'crimson-pro',
   fontSizePx: 18,
@@ -88,7 +88,7 @@ export const applyReadingPreferencesPatch = (
   current: ReadingPreferences,
   patch: ReadingPreferencesPatch,
 ): ReadingPreferences =>
-  new ReadingPreferences({
+  ReadingPreferences.make({
     colorMode: patch.colorMode ?? current.colorMode,
     readerTypeface: patch.readerTypeface ?? current.readerTypeface,
     fontSizePx: patch.fontSizePx ?? current.fontSizePx,

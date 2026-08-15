@@ -29,12 +29,12 @@ type Operation = BibleUnavailableError['operation'];
 const unavailable =
   (operation: Operation) =>
   (cause: BibleDatabaseError): BibleUnavailableError =>
-    new BibleUnavailableError({ operation, cause });
+    BibleUnavailableError.make({ operation, cause });
 
 const integrity = (operation: Operation, cause: unknown): BibleDataIntegrityError =>
-  new BibleDataIntegrityError({ operation, cause });
+  BibleDataIntegrityError.make({ operation, cause });
 
-export interface BibleServiceShape {
+export interface BibleServiceApi {
   readonly books: Effect.Effect<readonly Book[]>;
   readonly book: (reference: BookReference) => Effect.Effect<Book, BibleBookNotFoundError>;
   readonly chapter: (reference: ChapterReference) => Effect.Effect<Chapter, BibleError>;
@@ -48,7 +48,7 @@ export interface BibleServiceShape {
   ) => Effect.Effect<SearchWindow, BibleError>;
 }
 
-export class BibleService extends Context.Service<BibleService, BibleServiceShape>()(
+export class BibleService extends Context.Service<BibleService, BibleServiceApi>()(
   '@bible/core/bible/BibleService',
 ) {
   static Live: Layer.Layer<BibleService, BibleError, BibleDatabase> = Layer.effect(
@@ -60,7 +60,7 @@ export class BibleService extends Context.Service<BibleService, BibleServiceShap
 
       const requireBook = (number: BookNumber): Effect.Effect<Book, BibleBookNotFoundError> =>
         Option.match(Option.fromNullishOr(booksByNumber.get(number)), {
-          onNone: () => Effect.fail(new BibleBookNotFoundError({ book: number })),
+          onNone: () => Effect.fail(BibleBookNotFoundError.make({ book: number })),
           onSome: Effect.succeed,
         });
 
@@ -71,23 +71,26 @@ export class BibleService extends Context.Service<BibleService, BibleServiceShap
         Effect.gen(function* () {
           const currentBook = yield* requireBook(reference.book);
           if (reference.chapter > currentBook.chapters) {
-            return yield* new BibleChapterNotFoundError({ reference });
+            return yield* BibleChapterNotFoundError.make({ reference });
           }
 
           const rows = yield* database
             .getChapter(reference.book, reference.chapter)
             .pipe(Effect.mapError(unavailable('read-chapter')));
           const [firstRow, ...remainingRows] = rows;
-          if (!firstRow) return yield* new BibleChapterNotFoundError({ reference });
+          if (!firstRow) return yield* BibleChapterNotFoundError.make({ reference });
 
           const verses = yield* Effect.try({
             try: () => {
               const makeVerse = (row: (typeof rows)[number]) =>
-                new Verse({
+                Verse.make({
                   reference: Reference.verse(row.book, row.chapter, row.verse),
                   text: row.text,
                 });
-              return [makeVerse(firstRow), ...remainingRows.map(makeVerse)] as const;
+              return [makeVerse(firstRow), ...remainingRows.map(makeVerse)] satisfies readonly [
+                Verse,
+                ...Verse[],
+              ];
             },
             catch: (cause) => integrity('read-chapter', cause),
           });
@@ -113,7 +116,7 @@ export class BibleService extends Context.Service<BibleService, BibleServiceShap
             );
           })();
 
-          return new Chapter({
+          return Chapter.make({
             book: currentBook,
             reference,
             verses,
@@ -140,9 +143,9 @@ export class BibleService extends Context.Service<BibleService, BibleServiceShap
                   const foundBook = yield* requireBook(bookNumber(row.book));
                   return yield* Effect.try({
                     try: () =>
-                      new SearchHit({
+                      SearchHit.make({
                         book: foundBook,
-                        verse: new Verse({
+                        verse: Verse.make({
                           reference: Reference.verse(row.book, row.chapter, row.verse),
                           text: row.text,
                         }),
@@ -150,7 +153,7 @@ export class BibleService extends Context.Service<BibleService, BibleServiceShap
                     catch: (cause) => integrity('search', cause),
                   });
                 }),
-              ).pipe(Effect.map((hits) => new SearchWindow({ hits, total }))),
+              ).pipe(Effect.map((hits) => SearchWindow.make({ hits, total }))),
             ),
           );
 
@@ -179,14 +182,14 @@ export class BibleService extends Context.Service<BibleService, BibleServiceShap
         books: Effect.succeed(config.books),
         book: (reference) =>
           Option.match(Option.fromNullishOr(booksByNumber.get(reference.book)), {
-            onNone: () => Effect.fail(new BibleBookNotFoundError({ book: reference.book })),
+            onNone: () => Effect.fail(BibleBookNotFoundError.make({ book: reference.book })),
             onSome: Effect.succeed,
           }),
         chapter: (reference) =>
           Option.match(
             Option.fromNullishOr(config.chapters?.get(`${reference.book}:${reference.chapter}`)),
             {
-              onNone: () => Effect.fail(new BibleChapterNotFoundError({ reference })),
+              onNone: () => Effect.fail(BibleChapterNotFoundError.make({ reference })),
               onSome: Effect.succeed,
             },
           ),
@@ -199,7 +202,7 @@ export class BibleService extends Context.Service<BibleService, BibleServiceShap
           const offset = Math.max(0, Math.trunc(options.offset ?? 0));
           const limit = Math.max(1, Math.trunc(options.limit ?? 50));
           return Effect.succeed(
-            new SearchWindow({
+            SearchWindow.make({
               hits: filtered.slice(offset, offset + limit),
               total: filtered.length,
             }),

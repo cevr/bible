@@ -1,6 +1,7 @@
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
+import type { SQL } from 'drizzle-orm';
 import type { BaseSQLiteDatabase } from 'drizzle-orm/sqlite-core';
-import { Effect, Schema } from 'effect';
+import { Effect, Function, Option, Predicate, Schema } from 'effect';
 
 import {
   LibraryCollection as LibraryCollectionSchema,
@@ -18,7 +19,7 @@ import type {
 import { DEFAULT_READING_PREFERENCES, ReadingPreferences } from '../reading-preferences/model.js';
 
 import { LibraryBackupDocument } from './backup.js';
-import type { SqliteEffectBridgeShape } from './database.js';
+import type { SqliteEffectBridgeService } from './database.js';
 import {
   LegacyMigrationReceipt,
   type LegacyMigrationBatch,
@@ -68,13 +69,15 @@ import {
   type LocalMutationInput,
 } from './sync-store.js';
 
+const SQL_NULL = sql`null`;
+
 const messageOf = (cause: unknown): string => {
   if (cause instanceof Error) return cause.message;
   return String(cause);
 };
 
 const mapStoreError = (operation: string) => (cause: unknown) =>
-  new SyncStoreError({ operation, message: messageOf(cause), cause });
+  SyncStoreError.make({ operation, message: messageOf(cause), cause });
 
 const decodeEnvelope = Schema.decodeUnknownSync(MutationEnvelope);
 const decodeMigrationReceipt = Schema.decodeUnknownSync(LegacyMigrationReceipt);
@@ -84,14 +87,11 @@ type MaybePromise<A> = A | PromiseLike<A>;
 
 export interface DrizzleUserDatabase<TResultKind extends ResultKind, TRunResult> {
   readonly drizzle: BaseSQLiteDatabase<TResultKind, TRunResult, UserStateSchema>;
-  readonly bridge: SqliteEffectBridgeShape;
+  readonly bridge: SqliteEffectBridgeService;
 }
 
 const isPromiseLike = <A>(value: MaybePromise<A>): value is PromiseLike<A> =>
-  typeof value === 'object' &&
-  value !== null &&
-  'then' in value &&
-  typeof value.then === 'function';
+  Predicate.isPromiseLike(value);
 
 const flatMap = <A, B>(
   value: MaybePromise<A>,
@@ -103,7 +103,8 @@ const flatMap = <A, B>(
   return continuation(value);
 };
 
-const asVoid = <A>(value: MaybePromise<A>): MaybePromise<void> => flatMap(value, () => undefined);
+const asVoid = <A>(value: MaybePromise<A>): MaybePromise<void> =>
+  flatMap(value, Function.constVoid);
 
 type Operation = () => MaybePromise<unknown>;
 
@@ -113,7 +114,7 @@ const runThen = <A>(
   index = 0,
 ): MaybePromise<A> => {
   const operation = operations[index];
-  if (operation === undefined) return done();
+  if (Predicate.isUndefined(operation)) return done();
   return flatMap(operation(), () => runThen(operations, done, index + 1));
 };
 
@@ -166,7 +167,6 @@ const applyCommand = <TResultKind extends ResultKind, TRunResult>(
                   progress: command.progress,
                   createdAt,
                   updatedAt: command.readAt,
-                  deletedAt: null,
                 })
                 .onConflictDoUpdate({
                   target: [readingPositions.source, readingPositions.resourceId],
@@ -174,7 +174,7 @@ const applyCommand = <TResultKind extends ResultKind, TRunResult>(
                     location: command.location.location,
                     progress: command.progress,
                     updatedAt: command.readAt,
-                    deletedAt: null,
+                    deletedAt: SQL_NULL,
                   },
                 })
                 .run(),
@@ -189,12 +189,11 @@ const applyCommand = <TResultKind extends ResultKind, TRunResult>(
                   readAt: command.readAt,
                   createdAt,
                   updatedAt: createdAt,
-                  deletedAt: null,
                 })
                 .onConflictDoNothing()
                 .run(),
           ],
-          () => undefined,
+          Function.constVoid,
         ),
       );
     }
@@ -207,11 +206,10 @@ const applyCommand = <TResultKind extends ResultKind, TRunResult>(
             value: command.preferences,
             createdAt,
             updatedAt: createdAt,
-            deletedAt: null,
           })
           .onConflictDoUpdate({
             target: preferenceRows.key,
-            set: { value: command.preferences, updatedAt: createdAt, deletedAt: null },
+            set: { value: command.preferences, updatedAt: createdAt, deletedAt: SQL_NULL },
           })
           .run(),
       );
@@ -230,7 +228,6 @@ const applyCommand = <TResultKind extends ResultKind, TRunResult>(
                   content: command.content,
                   createdAt,
                   updatedAt: createdAt,
-                  deletedAt: null,
                 })
                 .onConflictDoUpdate({
                   target: notes.id,
@@ -240,13 +237,13 @@ const applyCommand = <TResultKind extends ResultKind, TRunResult>(
                     location: command.location,
                     content: command.content,
                     updatedAt: createdAt,
-                    deletedAt: null,
+                    deletedAt: SQL_NULL,
                   },
                 })
                 .run(),
             removeTombstone('note', command.noteId),
           ],
-          () => undefined,
+          Function.constVoid,
         ),
       );
     case 'DeleteNote':
@@ -261,7 +258,7 @@ const applyCommand = <TResultKind extends ResultKind, TRunResult>(
                 .run(),
             saveTombstone('note', command.noteId),
           ],
-          () => undefined,
+          Function.constVoid,
         ),
       );
     case 'SaveBookmark':
@@ -279,7 +276,6 @@ const applyCommand = <TResultKind extends ResultKind, TRunResult>(
                   label: command.label,
                   createdAt,
                   updatedAt: createdAt,
-                  deletedAt: null,
                 })
                 .onConflictDoUpdate({
                   target: bookmarks.id,
@@ -289,13 +285,13 @@ const applyCommand = <TResultKind extends ResultKind, TRunResult>(
                     location: command.location.location,
                     label: command.label,
                     updatedAt: createdAt,
-                    deletedAt: null,
+                    deletedAt: SQL_NULL,
                   },
                 })
                 .run(),
             removeTombstone('bookmark', command.id),
           ],
-          () => undefined,
+          Function.constVoid,
         ),
       );
     case 'DeleteBookmark':
@@ -310,7 +306,7 @@ const applyCommand = <TResultKind extends ResultKind, TRunResult>(
                 .run(),
             saveTombstone('bookmark', command.id),
           ],
-          () => undefined,
+          Function.constVoid,
         ),
       );
     case 'SaveMarker':
@@ -329,7 +325,6 @@ const applyCommand = <TResultKind extends ResultKind, TRunResult>(
                   color: command.color,
                   createdAt,
                   updatedAt: createdAt,
-                  deletedAt: null,
                 })
                 .onConflictDoUpdate({
                   target: markers.id,
@@ -340,13 +335,13 @@ const applyCommand = <TResultKind extends ResultKind, TRunResult>(
                     style: command.style,
                     color: command.color,
                     updatedAt: createdAt,
-                    deletedAt: null,
+                    deletedAt: SQL_NULL,
                   },
                 })
                 .run(),
             removeTombstone('marker', command.id),
           ],
-          () => undefined,
+          Function.constVoid,
         ),
       );
     case 'DeleteMarker':
@@ -361,7 +356,7 @@ const applyCommand = <TResultKind extends ResultKind, TRunResult>(
                 .run(),
             saveTombstone('marker', command.id),
           ],
-          () => undefined,
+          Function.constVoid,
         ),
       );
     case 'SaveUserCrossReference':
@@ -379,14 +374,13 @@ const applyCommand = <TResultKind extends ResultKind, TRunResult>(
                   toSource: command.to.source,
                   toResourceId: command.to.resourceId,
                   toLocation: command.to.location,
-                  toEndSource: command.toEnd?.source ?? null,
-                  toEndResourceId: command.toEnd?.resourceId ?? null,
-                  toEndLocation: command.toEnd?.location ?? null,
+                  toEndSource: command.toEnd?.source ?? SQL_NULL,
+                  toEndResourceId: command.toEnd?.resourceId ?? SQL_NULL,
+                  toEndLocation: command.toEnd?.location ?? SQL_NULL,
                   kind: command.kind,
                   note: command.note,
                   createdAt,
                   updatedAt: createdAt,
-                  deletedAt: null,
                 })
                 .onConflictDoUpdate({
                   target: userCrossReferences.id,
@@ -397,19 +391,19 @@ const applyCommand = <TResultKind extends ResultKind, TRunResult>(
                     toSource: command.to.source,
                     toResourceId: command.to.resourceId,
                     toLocation: command.to.location,
-                    toEndSource: command.toEnd?.source ?? null,
-                    toEndResourceId: command.toEnd?.resourceId ?? null,
-                    toEndLocation: command.toEnd?.location ?? null,
+                    toEndSource: command.toEnd?.source ?? SQL_NULL,
+                    toEndResourceId: command.toEnd?.resourceId ?? SQL_NULL,
+                    toEndLocation: command.toEnd?.location ?? SQL_NULL,
                     kind: command.kind,
                     note: command.note,
                     updatedAt: createdAt,
-                    deletedAt: null,
+                    deletedAt: SQL_NULL,
                   },
                 })
                 .run(),
             removeTombstone('reference', command.id),
           ],
-          () => undefined,
+          Function.constVoid,
         ),
       );
     case 'DeleteUserCrossReference':
@@ -424,7 +418,7 @@ const applyCommand = <TResultKind extends ResultKind, TRunResult>(
                 .run(),
             saveTombstone('reference', command.id),
           ],
-          () => undefined,
+          Function.constVoid,
         ),
       );
     case 'SaveCollection':
@@ -440,7 +434,6 @@ const applyCommand = <TResultKind extends ResultKind, TRunResult>(
                   description: command.description,
                   createdAt,
                   updatedAt: createdAt,
-                  deletedAt: null,
                 })
                 .onConflictDoUpdate({
                   target: collectionRows.id,
@@ -448,13 +441,13 @@ const applyCommand = <TResultKind extends ResultKind, TRunResult>(
                     name: command.name,
                     description: command.description,
                     updatedAt: createdAt,
-                    deletedAt: null,
+                    deletedAt: SQL_NULL,
                   },
                 })
                 .run(),
             removeTombstone('collection', command.id),
           ],
-          () => undefined,
+          Function.constVoid,
         ),
       );
     case 'DeleteCollection':
@@ -469,7 +462,7 @@ const applyCommand = <TResultKind extends ResultKind, TRunResult>(
                 .run(),
             saveTombstone('collection', command.id),
           ],
-          () => undefined,
+          Function.constVoid,
         ),
       );
     case 'AddCollectionMember':
@@ -483,7 +476,6 @@ const applyCommand = <TResultKind extends ResultKind, TRunResult>(
             position: command.position,
             createdAt,
             updatedAt: createdAt,
-            deletedAt: null,
           })
           .onConflictDoUpdate({
             target: [collectionMembers.collectionId, collectionMembers.memberId],
@@ -491,7 +483,7 @@ const applyCommand = <TResultKind extends ResultKind, TRunResult>(
               memberType: command.memberType,
               position: command.position,
               updatedAt: createdAt,
-              deletedAt: null,
+              deletedAt: SQL_NULL,
             },
           })
           .run(),
@@ -523,7 +515,6 @@ const applyCommand = <TResultKind extends ResultKind, TRunResult>(
                   definition: { steps: command.steps },
                   createdAt,
                   updatedAt: createdAt,
-                  deletedAt: null,
                 })
                 .onConflictDoUpdate({
                   target: readingPlanRows.id,
@@ -532,13 +523,13 @@ const applyCommand = <TResultKind extends ResultKind, TRunResult>(
                     description: command.description,
                     definition: { steps: command.steps },
                     updatedAt: createdAt,
-                    deletedAt: null,
+                    deletedAt: SQL_NULL,
                   },
                 })
                 .run(),
             removeTombstone('plan', command.id),
           ],
-          () => undefined,
+          Function.constVoid,
         ),
       );
     case 'DeleteReadingPlan':
@@ -553,12 +544,12 @@ const applyCommand = <TResultKind extends ResultKind, TRunResult>(
                 .run(),
             saveTombstone('plan', command.id),
           ],
-          () => undefined,
+          Function.constVoid,
         ),
       );
     case 'SetReadingPlanProgress': {
-      let deletedAt: Timestamp | null = null;
-      if (command.completedAt === null) deletedAt = createdAt;
+      let deletedAt: Timestamp | SQL = SQL_NULL;
+      if (Predicate.isNull(command.completedAt)) deletedAt = createdAt;
       return asVoid(
         database.drizzle
           .insert(readingPlanProgress)
@@ -594,7 +585,6 @@ const applyCommand = <TResultKind extends ResultKind, TRunResult>(
                   intervalDays: command.intervalDays,
                   createdAt,
                   updatedAt: createdAt,
-                  deletedAt: null,
                 })
                 .onConflictDoUpdate({
                   target: memoryVerses.id,
@@ -606,13 +596,13 @@ const applyCommand = <TResultKind extends ResultKind, TRunResult>(
                     nextPracticeAt: command.nextPracticeAt,
                     intervalDays: command.intervalDays,
                     updatedAt: createdAt,
-                    deletedAt: null,
+                    deletedAt: SQL_NULL,
                   },
                 })
                 .run(),
             removeTombstone('memory-verse', command.id),
           ],
-          () => undefined,
+          Function.constVoid,
         ),
       );
     case 'DeleteMemoryVerse':
@@ -627,7 +617,7 @@ const applyCommand = <TResultKind extends ResultKind, TRunResult>(
                 .run(),
             saveTombstone('memory-verse', command.id),
           ],
-          () => undefined,
+          Function.constVoid,
         ),
       );
     case 'RecordMemoryPractice':
@@ -644,7 +634,6 @@ const applyCommand = <TResultKind extends ResultKind, TRunResult>(
                   practicedAt: command.practicedAt,
                   createdAt,
                   updatedAt: createdAt,
-                  deletedAt: null,
                 })
                 .onConflictDoUpdate({
                   target: practiceHistory.id,
@@ -653,7 +642,7 @@ const applyCommand = <TResultKind extends ResultKind, TRunResult>(
                     rating: command.rating,
                     practicedAt: command.practicedAt,
                     updatedAt: createdAt,
-                    deletedAt: null,
+                    deletedAt: SQL_NULL,
                   },
                 })
                 .run(),
@@ -668,11 +657,17 @@ const applyCommand = <TResultKind extends ResultKind, TRunResult>(
                 .where(eq(memoryVerses.id, command.memoryVerseId))
                 .run(),
           ],
-          () => undefined,
+          Function.constVoid,
         ),
       );
   }
 };
+
+type ImportOutcome =
+  | { readonly _tag: 'Existing'; readonly receipt: LegacyMigrationReceipt }
+  | { readonly _tag: 'Conflict'; readonly receipt: LegacyMigrationReceipt }
+  | { readonly _tag: 'Imported'; readonly receipt: LegacyMigrationReceipt }
+  | { readonly _tag: 'MissingClient' };
 
 const clientRow = <TResultKind extends ResultKind, TRunResult>(
   database: DrizzleUserDatabase<TResultKind, TRunResult>,
@@ -684,8 +679,8 @@ export const makeDrizzleSyncStore = <TResultKind extends ResultKind, TRunResult>
   localClientId: ClientId,
 ): SyncStore => {
   const ensureClient = (createdAt: Timestamp): MaybePromise<void> =>
-    flatMap(clientRow(database, localClientId), (client) => {
-      if (client !== undefined) return undefined;
+    flatMap(clientRow(database, localClientId), (client): MaybePromise<void> => {
+      if (Predicate.isNotUndefined(client)) return;
       return asVoid(
         database.drizzle
           .insert(syncClients)
@@ -699,7 +694,7 @@ export const makeDrizzleSyncStore = <TResultKind extends ResultKind, TRunResult>
       .transaction(() =>
         flatMap(ensureClient(input.createdAt), () =>
           flatMap(clientRow(database, localClientId), (client) => {
-            if (client === undefined) return undefined;
+            if (Predicate.isUndefined(client)) return Option.none();
             const sequence = Schema.decodeSync(MutationSequence)(client.nextSequence);
             const envelope = decodeEnvelope({
               clientId: input.clientId,
@@ -732,22 +727,25 @@ export const makeDrizzleSyncStore = <TResultKind extends ResultKind, TRunResult>
                     .where(eq(syncClients.clientId, localClientId))
                     .run(),
               ],
-              () => ({ envelope, changes: changeSetFor(input.command) }),
+              () => Option.some({ envelope, changes: changeSetFor(input.command) }),
             );
           }),
         ),
       )
       .pipe(
         Effect.mapError(mapStoreError('mutate')),
-        Effect.flatMap((result) => {
-          if (result !== undefined) return Effect.succeed(result);
-          return Effect.fail(
-            new SyncStoreError({
-              operation: 'mutate',
-              message: 'sync client was not created',
-            }),
-          );
-        }),
+        Effect.flatMap(
+          Option.match({
+            onSome: Effect.succeed,
+            onNone: () =>
+              Effect.fail(
+                SyncStoreError.make({
+                  operation: 'mutate',
+                  message: 'sync client was not created',
+                }),
+              ),
+          }),
+        ),
       ),
   );
 
@@ -763,10 +761,7 @@ export const makeDrizzleSyncStore = <TResultKind extends ResultKind, TRunResult>
               .get(),
         })
         .pipe(
-          Effect.map((row) => {
-            if (row === undefined) return undefined;
-            return decodeMigrationReceipt(row);
-          }),
+          Effect.map(Option.map(decodeMigrationReceipt)),
           Effect.mapError(mapStoreError('migrationReceipt')),
         ),
   );
@@ -780,18 +775,18 @@ export const makeDrizzleSyncStore = <TResultKind extends ResultKind, TRunResult>
             .from(migrationReceipts)
             .where(eq(migrationReceipts.sourceId, batch.sourceId))
             .get(),
-          (existingRow) => {
-            if (existingRow !== undefined) {
+          (existingRow): MaybePromise<ImportOutcome> => {
+            if (Predicate.isNotUndefined(existingRow)) {
               const existing = decodeMigrationReceipt(existingRow);
               if (existing.fingerprint === batch.fingerprint) {
-                return { _tag: 'Existing' as const, receipt: existing };
+                return { _tag: 'Existing', receipt: existing };
               }
-              return { _tag: 'Conflict' as const, receipt: existing };
+              return { _tag: 'Conflict', receipt: existing };
             }
 
             return flatMap(ensureClient(batch.completedAt), () =>
-              flatMap(clientRow(database, localClientId), (client) => {
-                if (client === undefined) return { _tag: 'MissingClient' as const };
+              flatMap(clientRow(database, localClientId), (client): MaybePromise<ImportOutcome> => {
+                if (Predicate.isUndefined(client)) return { _tag: 'MissingClient' };
                 const initialSequence = client.nextSequence;
                 const operations: Array<Operation> = [];
 
@@ -863,7 +858,7 @@ export const makeDrizzleSyncStore = <TResultKind extends ResultKind, TRunResult>
                 operations.push(() =>
                   database.drizzle.insert(migrationReceipts).values(receipt).run(),
                 );
-                return runThen(operations, () => ({ _tag: 'Imported' as const, receipt }));
+                return runThen(operations, (): ImportOutcome => ({ _tag: 'Imported', receipt }));
               }),
             );
           },
@@ -880,14 +875,14 @@ export const makeDrizzleSyncStore = <TResultKind extends ResultKind, TRunResult>
           }
           if (result._tag === 'Conflict') {
             return Effect.fail(
-              new SyncStoreError({
+              SyncStoreError.make({
                 operation: 'importLegacy',
                 message: `migration source ${batch.sourceId} already completed with a different fingerprint`,
               }),
             );
           }
           return Effect.fail(
-            new SyncStoreError({
+            SyncStoreError.make({
               operation: 'importLegacy',
               message: 'sync client was not created',
             }),
@@ -937,7 +932,14 @@ export const makeDrizzleSyncStore = <TResultKind extends ResultKind, TRunResult>
   );
 
   const revision = database.bridge.get({ execute: () => clientRow(database, localClientId) }).pipe(
-    Effect.map((row) => Schema.decodeSync(ServerRevision)(row?.lastServerRevision ?? 0)),
+    Effect.map((row) =>
+      Schema.decodeSync(ServerRevision)(
+        row.pipe(
+          Option.map((client) => client.lastServerRevision),
+          Option.getOrElse(() => 0),
+        ),
+      ),
+    ),
     Effect.mapError(mapStoreError('revision')),
   );
 
@@ -946,7 +948,7 @@ export const makeDrizzleSyncStore = <TResultKind extends ResultKind, TRunResult>
   ): Effect.fn.Return<ChangeSet, SyncStoreError | StaleRevisionError> {
     const currentRevision = yield* revision;
     if (currentRevision !== patch.baseRevision) {
-      return yield* new StaleRevisionError({
+      return yield* StaleRevisionError.make({
         expected: currentRevision,
         actual: patch.baseRevision,
       });
@@ -992,7 +994,7 @@ export const makeDrizzleSyncStore = <TResultKind extends ResultKind, TRunResult>
 
         const lastMutation = patch.mutations.at(-1);
         let timestamp = Schema.decodeSync(Timestamp)('1970-01-01T00:00:00.000Z');
-        if (lastMutation !== undefined) timestamp = lastMutation.createdAt;
+        if (Predicate.isNotUndefined(lastMutation)) timestamp = lastMutation.createdAt;
         operations.push(
           () => ensureClient(timestamp),
           () =>
@@ -1012,7 +1014,19 @@ export const makeDrizzleSyncStore = <TResultKind extends ResultKind, TRunResult>
       .get({
         execute: () => database.drizzle.select().from(notes).where(eq(notes.id, id)).get(),
       })
-      .pipe(Effect.mapError(mapStoreError('note'))),
+      .pipe(
+        Effect.map(
+          Option.map((found) => ({
+            id: found.id,
+            source: found.source,
+            resourceId: found.resourceId,
+            location: found.location,
+            content: found.content,
+            deletedAt: Option.fromNullOr(found.deletedAt),
+          })),
+        ),
+        Effect.mapError(mapStoreError('note')),
+      ),
   );
 
   const annotations = Effect.fn('DrizzleSyncStore.annotations')((location: ReaderLocation) =>
@@ -1079,7 +1093,7 @@ export const makeDrizzleSyncStore = <TResultKind extends ResultKind, TRunResult>
       }),
     }).pipe(
       Effect.map((rows) =>
-        Schema.decodeUnknownSync(LocationAnnotationsSchema)({
+        Schema.decodeSync(LocationAnnotationsSchema)({
           bookmarks: rows.bookmarks,
           notes: rows.notes,
           markers: rows.markers,
@@ -1108,16 +1122,15 @@ export const makeDrizzleSyncStore = <TResultKind extends ResultKind, TRunResult>
           .all(),
     }),
   }).pipe(
-    Effect.map(
-      ({ parents, members }): ReadonlyArray<LibraryCollection> =>
-        parents.map((parent) =>
-          Schema.decodeUnknownSync(LibraryCollectionSchema)({
-            ...parent,
-            members: members
-              .filter((member) => member.collectionId === parent.id)
-              .toSorted((left, right) => left.position - right.position),
-          }),
-        ),
+    Effect.map(({ parents, members }): ReadonlyArray<LibraryCollection> =>
+      parents.map((parent) =>
+        Schema.decodeUnknownSync(LibraryCollectionSchema)({
+          ...parent,
+          members: members
+            .filter((member) => member.collectionId === parent.id)
+            .toSorted((left, right) => left.position - right.position),
+        }),
+      ),
     ),
     Effect.mapError(mapStoreError('collections')),
   );
@@ -1140,18 +1153,17 @@ export const makeDrizzleSyncStore = <TResultKind extends ResultKind, TRunResult>
           .all(),
     }),
   }).pipe(
-    Effect.map(
-      ({ plans, progress }): ReadonlyArray<ReadingPlan> =>
-        plans.map((plan) => {
-          const definition = Schema.decodeUnknownSync(
-            Schema.Struct({ steps: ReadingPlanSchema.fields.steps }),
-          )(plan.definition);
-          return Schema.decodeUnknownSync(ReadingPlanSchema)({
-            ...plan,
-            steps: definition.steps,
-            progress: progress.filter((entry) => entry.planId === plan.id),
-          });
-        }),
+    Effect.map(({ plans, progress }): ReadonlyArray<ReadingPlan> =>
+      plans.map((plan) => {
+        const definition = Schema.decodeUnknownSync(
+          Schema.Struct({ steps: ReadingPlanSchema.fields.steps }),
+        )(plan.definition);
+        return Schema.decodeUnknownSync(ReadingPlanSchema)({
+          ...plan,
+          steps: definition.steps,
+          progress: progress.filter((entry) => entry.planId === plan.id),
+        });
+      }),
     ),
     Effect.mapError(mapStoreError('readingPlans')),
   );
@@ -1170,15 +1182,14 @@ export const makeDrizzleSyncStore = <TResultKind extends ResultKind, TRunResult>
           .all(),
     }),
   }).pipe(
-    Effect.map(
-      ({ verses, history }): MemoryPractice =>
-        Schema.decodeUnknownSync(MemoryPracticeSchema)({
-          verses: verses.map((verse) => ({
-            ...verse,
-            endLocation: verse.endLocation ?? undefined,
-          })),
-          history,
-        }),
+    Effect.map(({ verses, history }): MemoryPractice =>
+      Schema.decodeSync(MemoryPracticeSchema)({
+        verses: verses.map((verse) => ({
+          ...verse,
+          endLocation: Option.getOrUndefined(Option.fromNullishOr(verse.endLocation)),
+        })),
+        history,
+      }),
     ),
     Effect.mapError(mapStoreError('memoryPractice')),
   );
@@ -1193,10 +1204,12 @@ export const makeDrizzleSyncStore = <TResultKind extends ResultKind, TRunResult>
           .get(),
     })
     .pipe(
-      Effect.flatMap((row) => {
-        if (row === undefined) return Effect.succeed(DEFAULT_READING_PREFERENCES);
-        return Schema.decodeUnknownEffect(ReadingPreferences)(row.value);
-      }),
+      Effect.flatMap(
+        Option.match({
+          onNone: () => Effect.succeed(DEFAULT_READING_PREFERENCES),
+          onSome: (found) => Schema.decodeUnknownEffect(ReadingPreferences)(found.value),
+        }),
+      ),
       Effect.mapError(mapStoreError('readingPreferences')),
     );
 
@@ -1215,13 +1228,11 @@ export const makeDrizzleSyncStore = <TResultKind extends ResultKind, TRunResult>
           .all(),
     })
     .pipe(
-      Effect.map((rows) => {
-        const row = rows.toSorted((left, right) =>
-          right.updatedAt.localeCompare(left.updatedAt),
-        )[0];
-        if (row === undefined) return undefined;
-        return Schema.decodeUnknownSync(ReaderLocationSchema)(row);
-      }),
+      Effect.map((rows) =>
+        Option.fromNullishOr(
+          rows.toSorted((left, right) => right.updatedAt.localeCompare(left.updatedAt))[0],
+        ).pipe(Option.map(Schema.decodeUnknownSync(ReaderLocationSchema))),
+      ),
       Effect.mapError(mapStoreError('latestReading')),
     );
 
@@ -1254,7 +1265,7 @@ export const makeDrizzleSyncStore = <TResultKind extends ResultKind, TRunResult>
       readingPlans,
     }).pipe(
       Effect.map(({ annotations: active, ...state }) =>
-        Schema.decodeUnknownSync(LibraryBackupDocument)({
+        Schema.decodeSync(LibraryBackupDocument)({
           format: 'bible-library-backup',
           version: 1,
           exportedAt,

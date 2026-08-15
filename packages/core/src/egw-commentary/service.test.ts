@@ -6,6 +6,9 @@ import { EGWParagraphDatabase, type BibleRefRow, type BookRow } from '../egw-db/
 import type { Paragraph } from '../egw/schemas.js';
 import { EGWCommentaryService } from './service.js';
 
+// Wire-shape fields the schema encodes as `null` when absent.
+const wireNull = Option.getOrNull(Option.none<never>());
+
 const book: BookRow = {
   book_id: 127,
   book_code: '1BC',
@@ -18,16 +21,16 @@ const book: BookRow = {
 const paragraph: Paragraph & { bookCode: string } = {
   bookCode: '1BC',
   para_id: Option.some('127.24'),
-  id_prev: null,
-  id_next: null,
-  refcode_1: null,
-  refcode_2: null,
-  refcode_3: null,
-  refcode_4: null,
+  id_prev: wireNull,
+  id_next: wireNull,
+  refcode_1: wireNull,
+  refcode_2: wireNull,
+  refcode_3: wireNull,
+  refcode_4: wireNull,
   refcode_short: Option.some('1BC 24.1'),
-  refcode_long: null,
+  refcode_long: wireNull,
   element_type: 'p',
-  element_subtype: null,
+  element_subtype: wireNull,
   nodes: [{ _tag: 'Text', text: 'Commentary on the promised Seed.' }],
   puborder: 24,
 };

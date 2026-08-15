@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { Schema } from 'effect';
+import { Option, Schema } from 'effect';
 
 import { LibraryEntityId } from '../../library-state/model.js';
 import { Timestamp } from '../model.js';
@@ -7,15 +7,18 @@ import { MigrationDiagnosticId } from '../legacy-migration.js';
 import { projectDesktopCache } from './desktop-cache.js';
 import type { DesktopCacheProjectionOptions } from './desktop-cache.js';
 
+// Wire-shape fields the schema encodes as `null` when absent.
+const wireNull = Option.getOrNull(Option.none<never>());
+
 const options: DesktopCacheProjectionOptions = {
   nextDiagnosticId: (path) =>
     Schema.decodeSync(MigrationDiagnosticId)(`desktop-cache:diagnostic:${path}`),
   nextHistoryId: (path) => Schema.decodeSync(LibraryEntityId)(`desktop-cache:history:${path}`),
   timestampFor: () => Schema.decodeSync(Timestamp)('2026-07-19T12:00:00.000Z'),
   resolveEgwLocation: (position) => {
-    if (position.book_id !== 127) return undefined;
-    if (position.paragraph_id !== 'paragraph-3') return undefined;
-    return { source: 'egw', resourceId: 'AA', location: '/writings/AA/3' };
+    if (position.book_id !== 127) return Option.none();
+    if (position.paragraph_id !== 'paragraph-3') return Option.none();
+    return Option.some({ source: 'egw', resourceId: 'AA', location: '/writings/AA/3' });
   },
 };
 
@@ -56,7 +59,7 @@ describe('desktop cache legacy projection', () => {
       {
         bible_last_position: [
           { book: 67, chapter: 1, verse: 1 },
-          { book: 1, chapter: 2, verse: null },
+          { book: 1, chapter: 2, verse: wireNull },
         ],
         last_position: [],
       },
@@ -98,7 +101,7 @@ describe('desktop cache legacy projection', () => {
     const result = projectDesktopCache(
       {
         bible_last_position: [],
-        last_position: [{ book_id: 999, para_id: 'legacy', paragraph_id: null }],
+        last_position: [{ book_id: 999, para_id: 'legacy', paragraph_id: wireNull }],
       },
       options,
     );

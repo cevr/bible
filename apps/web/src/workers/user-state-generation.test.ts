@@ -8,7 +8,7 @@ import {
   type SyncStore,
 } from '@bible/core/local-first';
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, Schema } from 'effect';
+import { Effect, Option, Schema } from 'effect';
 import * as SQLite from 'wa-sqlite';
 
 import { makeGenerationMarkerStore } from './generation-marker.js';
@@ -87,13 +87,13 @@ describe('web canonical generation lifecycle', () => {
     Effect.gen(function* () {
       const events: string[] = [];
       const marker = makeGenerationMarkerStore({
-        read: () => Effect.succeed(generation),
+        read: () => Effect.succeed(Option.some(generation)),
         write: () => Effect.sync(() => events.push('activate')).pipe(Effect.asVoid),
       });
       const adapter = makeCanonicalGenerationAdapter({
         marker,
         targetGeneration: generation,
-        discardTarget: () => Effect.sync(() => events.push('discard')).pipe(Effect.asVoid),
+        discardTarget: Effect.sync(() => events.push('discard')).pipe(Effect.asVoid),
         create: () => Effect.die('create must not run'),
         open: () => Effect.die('open must not run'),
         verify: () => Effect.die('verify must not run'),
@@ -116,20 +116,21 @@ describe('web canonical generation lifecycle', () => {
 
   it.effect('creates and activates an empty canonical generation for a missing source', () =>
     Effect.gen(function* () {
-      let active: string | undefined;
+      let active: Option.Option<string> = Option.none();
       const events: string[] = [];
       const emptyStore = {
-        migrationReceipt: () => Effect.succeed(undefined),
+        migrationReceipt: () => Effect.void,
       } as unknown as SyncStore;
       const target: CanonicalGeneration = { store: emptyStore, close: Effect.void };
       const marker = makeGenerationMarkerStore({
         read: () => Effect.succeed(active),
-        write: (_key, value) => Effect.sync(() => (active = value)).pipe(Effect.asVoid),
+        write: (_key, value) =>
+          Effect.sync(() => (active = Option.some(value))).pipe(Effect.asVoid),
       });
       const adapter = makeCanonicalGenerationAdapter({
         marker,
         targetGeneration: generation,
-        discardTarget: () => Effect.sync(() => events.push('discard')).pipe(Effect.asVoid),
+        discardTarget: Effect.sync(() => events.push('discard')).pipe(Effect.asVoid),
         create: () => Effect.succeed(target),
         open: () => Effect.succeed(target),
         verify: () => Effect.void,
@@ -146,36 +147,34 @@ describe('web canonical generation lifecycle', () => {
       });
 
       expect(result.activated).toBe(true);
-      expect(active).toBe(generation);
+      expect(Option.getOrUndefined(active)).toBe(generation);
       expect(events).toContain(`[migration] activated generation=${generation}`);
     }),
   );
 
   it.effect('does not activate when semantic verification fails', () =>
     Effect.gen(function* () {
-      let active: string | undefined;
-      let receipt:
-        | {
-            readonly sourceId: typeof MigrationSourceId.Type;
-            readonly fingerprint: string;
-            readonly generation: string;
-            readonly mutationCount: number;
-            readonly diagnosticCount: number;
-            readonly semanticCounts: readonly { readonly entity: string; readonly count: number }[];
-            readonly completedAt: typeof Timestamp.Type;
-          }
-        | undefined;
+      let active: Option.Option<string> = Option.none();
+      let receipt: Option.Option<{
+        readonly sourceId: MigrationSourceId;
+        readonly fingerprint: string;
+        readonly generation: string;
+        readonly mutationCount: number;
+        readonly diagnosticCount: number;
+        readonly semanticCounts: readonly { readonly entity: string; readonly count: number }[];
+        readonly completedAt: Timestamp;
+      }> = Option.none();
       const store = {
         importLegacy: (batch: {
-          readonly sourceId: typeof MigrationSourceId.Type;
+          readonly sourceId: MigrationSourceId;
           readonly fingerprint: string;
           readonly generation: string;
           readonly items: readonly unknown[];
           readonly diagnostics: readonly unknown[];
           readonly semanticCounts: readonly { readonly entity: string; readonly count: number }[];
-          readonly completedAt: typeof Timestamp.Type;
+          readonly completedAt: Timestamp;
         }) => {
-          receipt = {
+          const stored = {
             sourceId: batch.sourceId,
             fingerprint: batch.fingerprint,
             generation: batch.generation,
@@ -184,7 +183,8 @@ describe('web canonical generation lifecycle', () => {
             semanticCounts: batch.semanticCounts,
             completedAt: batch.completedAt,
           };
-          return Effect.succeed({ imported: true, receipt });
+          receipt = Option.some(stored);
+          return Effect.succeed({ imported: true, receipt: stored });
         },
         migrationReceipt: () => Effect.succeed(receipt),
       } as unknown as SyncStore;
@@ -192,15 +192,16 @@ describe('web canonical generation lifecycle', () => {
       const adapter = makeCanonicalGenerationAdapter({
         marker: makeGenerationMarkerStore({
           read: () => Effect.succeed(active),
-          write: (_key, value) => Effect.sync(() => (active = value)).pipe(Effect.asVoid),
+          write: (_key, value) =>
+            Effect.sync(() => (active = Option.some(value))).pipe(Effect.asVoid),
         }),
         targetGeneration: generation,
-        discardTarget: () => Effect.void,
+        discardTarget: Effect.void,
         create: () => Effect.succeed(target),
         open: () => Effect.succeed(target),
         verify: () =>
           Effect.fail(
-            new CopyOnMigrateError({
+            CopyOnMigrateError.make({
               operation: 'verify-semantic-counts',
               message: 'forced mismatch',
             }),
@@ -208,12 +209,15 @@ describe('web canonical generation lifecycle', () => {
         log: () => {},
       });
 
+      const sourceId = yield* Schema.decodeEffect(MigrationSourceId)('web-state.db').pipe(
+        Effect.orDie,
+      );
       const exit = yield* Effect.exit(
         copyOnMigrate({
           generation,
           sources: [
             {
-              sourceId: Schema.decodeSync(MigrationSourceId)('web-state.db'),
+              sourceId,
               fingerprint: 'sha256:fixture',
               commands: [],
               diagnostics: [],
@@ -228,7 +232,7 @@ describe('web canonical generation lifecycle', () => {
       );
 
       expect(exit._tag).toBe('Failure');
-      expect(active).toBeUndefined();
+      expect(Option.isNone(active)).toBe(true);
     }),
   );
 });

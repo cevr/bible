@@ -15,7 +15,7 @@ import {
   type SqliteRemoteDatabase,
   type SqliteRemoteResult,
 } from 'drizzle-orm/sqlite-proxy';
-import { Effect } from 'effect';
+import { Effect, Predicate } from 'effect';
 
 import type { SqliteDatabase } from './sqlite-database.js';
 
@@ -34,10 +34,7 @@ const execute = <A>(operation: {
 }): PromiseLike<A> | A => operation.execute();
 
 const isPromiseLike = <A>(value: A | PromiseLike<A>): value is PromiseLike<A> =>
-  typeof value === 'object' &&
-  value !== null &&
-  'then' in value &&
-  typeof value.then === 'function';
+  Predicate.hasProperty(value, 'then') && Predicate.isFunction(value.then);
 
 export const makeBrowserUserDatabase = (input: BrowserUserDatabaseInput): BrowserUserDatabase => {
   const executeRemote = (

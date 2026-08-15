@@ -54,4 +54,4 @@ export const EGWWire = {
   page,
   chapters: (headings: readonly Heading[]): readonly EGWChapter[] => headings.map(chapter),
   searchResults: (hits: readonly SearchHit[]): readonly EGWSearchResult[] => hits.map(searchResult),
-} as const;
+};

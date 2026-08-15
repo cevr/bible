@@ -14,7 +14,7 @@ import {
 
 import { EGWWire } from './EGWWire.js';
 
-const publication = new Publication({
+const publication = Publication.make({
   id: publicationId(127),
   code: publicationCode('PP'),
   title: 'Patriarchs and Prophets',
@@ -22,7 +22,7 @@ const publication = new Publication({
   paragraphCount: Option.some(2),
 });
 
-const paragraph = new Paragraph({
+const paragraph = Paragraph.make({
   reference: Reference.paragraph(127, '127.10'),
   publicationCode: publicationCode('PP'),
   order: publicationOrder(10),
@@ -37,7 +37,7 @@ const paragraph = new Paragraph({
 describe('EGWWire', () => {
   test('maps canonical page navigation without inventing arithmetic page totals', () => {
     const wire = EGWWire.page(
-      new Page({
+      Page.make({
         publication,
         reference: Reference.page(127, 5),
         paragraphs: [paragraph],

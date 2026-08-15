@@ -1,4 +1,4 @@
-import { Option, Schema } from 'effect';
+import { Option, Predicate, Schema } from 'effect';
 
 import { getBibleBook } from '../../bible/canon.js';
 import { ChapterNumber, VerseNumber } from '../../bible/model.js';
@@ -37,9 +37,6 @@ const UserCrossReferenceRow = Schema.Struct({
 
 export type LegacyCliEgwPosition = typeof LegacyEgwPosition.Type;
 
-const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
-
 export interface CliStateProjection {
   readonly commands: ReadonlyArray<DomainMutationCommand>;
   readonly diagnostics: ReadonlyArray<MigrationDiagnostic>;
@@ -47,14 +44,13 @@ export interface CliStateProjection {
 
 export interface CliStateProjectionOptions {
   readonly nextDiagnosticId: (path: string) => MigrationDiagnosticId;
-  readonly nextHistoryId: (path: string) => typeof LibraryEntityId.Type;
+  readonly nextHistoryId: (path: string) => LibraryEntityId;
   readonly timestampFor: (path: string, legacyEpochMilliseconds?: number) => Timestamp;
-  readonly resolveEgwLocation: (
-    position: LegacyCliEgwPosition,
-  ) => typeof ReaderLocation.Type | undefined;
+  readonly resolveEgwLocation: (position: LegacyCliEgwPosition) => Option.Option<ReaderLocation>;
 }
 
 export const projectCliState = (
+  // oxlint-disable-next-line effect/noUnknownParameters -- legacy snapshot I/O boundary: raw JSON is decoded field-by-field with schemas below
   input: unknown,
   options: CliStateProjectionOptions,
 ): CliStateProjection => {
@@ -68,7 +64,7 @@ export const projectCliState = (
     diagnostics.push({ id: options.nextDiagnosticId(path), path, category, message });
   };
 
-  if (!isRecord(input)) {
+  if (!Predicate.isObject(input)) {
     diagnostic('$', 'malformed', 'CLI state snapshot must decode to an object');
     return { commands, diagnostics };
   }
@@ -101,37 +97,37 @@ export const projectCliState = (
     path: string,
     book: number,
     chapter: number,
-    verse: number | null,
-  ): typeof ReaderLocation.Type | undefined => {
+    verse: Option.Option<number>,
+  ): Option.Option<ReaderLocation> => {
     const canonicalBook = getBibleBook(book);
-    const canonicalChapter = Schema.decodeUnknownOption(ChapterNumber)(chapter);
+    const canonicalChapter = Schema.decodeOption(ChapterNumber)(chapter);
     if (
-      canonicalBook === undefined ||
+      Option.isNone(canonicalBook) ||
       Option.isNone(canonicalChapter) ||
-      chapter > canonicalBook.chapters
+      chapter > canonicalBook.value.chapters
     ) {
       diagnostic(path, 'out-of-range', 'legacy Bible coordinate is outside the canonical range');
-      return undefined;
+      return Option.none();
     }
     let location = `/bible/${String(book)}/${String(chapter)}`;
-    if (verse !== null) {
-      const canonicalVerse = Schema.decodeUnknownOption(VerseNumber)(verse);
+    if (Option.isSome(verse)) {
+      const canonicalVerse = Schema.decodeOption(VerseNumber)(verse.value);
       if (Option.isNone(canonicalVerse)) {
         diagnostic(path, 'out-of-range', 'legacy Bible coordinate is outside the canonical range');
-        return undefined;
+        return Option.none();
       }
-      location = `${location}/${String(verse)}`;
+      location = `${location}/${String(verse.value)}`;
     }
-    return { source: 'bible', resourceId: 'KJV', location };
+    return Option.some({ source: 'bible', resourceId: 'KJV', location });
   };
 
   decodeRows('position', PositionRow, (row, path) => {
-    const location = bibleLocation(path, row.book, row.chapter, row.verse);
-    if (location === undefined) return;
+    const location = bibleLocation(path, row.book, row.chapter, Option.some(row.verse));
+    if (Option.isNone(location)) return;
     commands.push({
       _tag: 'RecordReading',
       historyId: options.nextHistoryId(path),
-      location,
+      location: location.value,
       progress: 0,
       readAt: options.timestampFor(path),
     });
@@ -144,13 +140,13 @@ export const projectCliState = (
       fallback: A,
     ): A => {
       const value = row[key];
-      if (value === undefined) return fallback;
-      const decoded = Schema.decodeUnknownOption(schema)(value);
+      if (Predicate.isUndefined(value)) return fallback;
+      const decoded = Schema.decodeOption(schema)(value);
       if (Option.isSome(decoded)) return decoded.value;
       diagnostic(`${path}.${key}`, 'malformed', 'ignored invalid legacy preference field');
       return fallback;
     };
-    const preferences = new ReadingPreferences({
+    const preferences = ReadingPreferences.make({
       colorMode: field(
         'theme',
         Schema.Literals(['system', 'light', 'sepia', 'dark']),
@@ -175,11 +171,11 @@ export const projectCliState = (
 
   decodeRows('egw_position', LegacyEgwPosition, (row, path) => {
     const location = options.resolveEgwLocation(row);
-    if (location === undefined) {
+    if (Option.isNone(location)) {
       diagnostic(path, 'quarantined', 'legacy writings position could not be resolved exactly');
       return;
     }
-    const canonicalLocation = Schema.decodeUnknownOption(ReaderLocation)(location);
+    const canonicalLocation = Schema.decodeOption(ReaderLocation)(location.value);
     if (Option.isNone(canonicalLocation) || canonicalLocation.value.source !== 'egw') {
       diagnostic(path, 'malformed', 'legacy writings resolver returned an invalid location');
       return;
@@ -198,34 +194,39 @@ export const projectCliState = (
       `${path}.source`,
       row.source_book,
       row.source_chapter,
-      row.source_verse,
+      Option.some(row.source_verse),
     );
-    const to = bibleLocation(`${path}.ref`, row.ref_book, row.ref_chapter, row.ref_verse);
-    if (from === undefined || to === undefined) return;
-    const id = Schema.decodeUnknownOption(LibraryEntityId)(row.id);
+    const to = bibleLocation(
+      `${path}.ref`,
+      row.ref_book,
+      row.ref_chapter,
+      Option.fromNullishOr(row.ref_verse),
+    );
+    if (Option.isNone(from) || Option.isNone(to)) return;
+    const id = Schema.decodeOption(LibraryEntityId)(row.id);
     if (Option.isNone(id)) {
       diagnostic(`${path}.id`, 'malformed', 'legacy cross-reference ID is invalid');
       return;
     }
-    let toEnd: typeof ReaderLocation.Type | null = null;
-    if (row.ref_verse_end !== null) {
+    let toEnd = Option.none<ReaderLocation>();
+    if (Predicate.isNotNull(row.ref_verse_end)) {
       if (row.ref_verse_end !== row.ref_verse) {
         const resolvedEnd = bibleLocation(
           `${path}.ref_verse_end`,
           row.ref_book,
           row.ref_chapter,
-          row.ref_verse_end,
+          Option.some(row.ref_verse_end),
         );
-        if (resolvedEnd === undefined) return;
+        if (Option.isNone(resolvedEnd)) return;
         toEnd = resolvedEnd;
       }
     }
     commands.push({
       _tag: 'SaveUserCrossReference',
       id: id.value,
-      from,
-      to,
-      toEnd,
+      from: from.value,
+      to: to.value,
+      toEnd: Option.getOrNull(toEnd),
       kind: row.type,
       note: row.note,
     });

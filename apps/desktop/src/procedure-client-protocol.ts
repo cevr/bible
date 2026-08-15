@@ -1,10 +1,10 @@
-import { Effect, Layer, Queue } from 'effect';
+import { Effect, Layer, Option, Queue } from 'effect';
 import type { FromClientEncoded, FromServerEncoded } from 'effect/unstable/rpc/RpcMessage';
 import * as RpcClient from 'effect/unstable/rpc/RpcClient';
 import { RpcClientDefect, RpcClientError } from 'effect/unstable/rpc/RpcClientError';
 
 const protocolFailure = (message: string, cause: unknown): RpcClientError =>
-  new RpcClientError({ reason: new RpcClientDefect({ message, cause }) });
+  RpcClientError.make({ reason: RpcClientDefect.make({ message, cause }) });
 
 /** Moves Effect RPC's raw encoded protocol over one renderer-owned MessagePort. */
 export const layerDesktopProcedureTransport = (
@@ -25,10 +25,13 @@ export const layerDesktopProcedureTransport = (
           });
         const receive = (response: FromServerEncoded) => {
           if (response._tag !== 'Chunk' && response._tag !== 'Exit') return broadcast(response);
-          const clientId = requestClients.get(response.requestId);
-          if (clientId === undefined) return broadcast(response);
-          if (response._tag === 'Exit') requestClients.delete(response.requestId);
-          return writeResponse(clientId, response);
+          return Option.match(Option.fromUndefinedOr(requestClients.get(response.requestId)), {
+            onNone: () => broadcast(response),
+            onSome: (clientId) => {
+              if (response._tag === 'Exit') requestClients.delete(response.requestId);
+              return writeResponse(clientId, response);
+            },
+          });
         };
 
         port.addEventListener('message', onMessage);

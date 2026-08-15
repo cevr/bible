@@ -1,4 +1,5 @@
 import { For, Show } from '@solidjs/web';
+import { Option } from 'effect';
 import { createMemo, createSignal } from 'solid-js';
 
 import { Dialog } from './dialog.js';
@@ -16,7 +17,7 @@ export interface CommandPaletteProps {
   readonly open: boolean;
   readonly onOpenChange: (open: boolean) => void;
   readonly commands: readonly CommandItem[];
-  readonly restoreFocus?: () => HTMLElement | undefined;
+  readonly restoreFocus?: () => Option.Option<HTMLElement>;
 }
 
 export const CommandPalette = (props: CommandPaletteProps) => {
@@ -76,8 +77,8 @@ export const CommandPalette = (props: CommandPaletteProps) => {
               if (event.key === 'ArrowDown') setActive((active() + 1) % count);
               else if (event.key === 'ArrowUp') setActive((active() - 1 + count) % count);
               else if (event.key === 'Enter') {
-                const command = commands()[active()];
-                if (command !== undefined) run(command);
+                const command = Option.fromNullishOr(commands()[active()]);
+                if (Option.isSome(command)) run(command.value);
               } else return;
               event.preventDefault();
             }}

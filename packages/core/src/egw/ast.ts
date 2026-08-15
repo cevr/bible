@@ -1,4 +1,4 @@
-import { Schema } from 'effect';
+import { Predicate, Schema } from 'effect';
 import { Parser } from 'htmlparser2';
 
 // EGW paragraph content is small HTML. The AST below is a closed model of the
@@ -22,7 +22,7 @@ export type LineBreak = typeof LineBreak.Type;
 // flow isn't interrupted.
 export const PageBreak = Schema.Struct({
   _tag: Schema.tag('PageBreak'),
-  page: Schema.Number,
+  page: Schema.Finite,
 });
 export type PageBreak = typeof PageBreak.Type;
 
@@ -193,7 +193,7 @@ export const parseParagraphContent = (html: string): readonly Node[] => {
   const top = (): Frame => {
     const t = stack[stack.length - 1];
     // Stack always has root; retain it as the total fallback for malformed close sequences.
-    if (t === undefined) return root;
+    if (Predicate.isUndefined(t)) return root;
     return t;
   };
 
@@ -214,7 +214,7 @@ export const parseParagraphContent = (html: string): readonly Node[] => {
         // boundaries, and the AST is cleaner with one Text per contiguous run.
         const frame = top();
         const last = frame.children[frame.children.length - 1];
-        if (last !== undefined && last._tag === 'Text') {
+        if (Predicate.isNotUndefined(last) && last._tag === 'Text') {
           frame.children[frame.children.length - 1] = { _tag: 'Text', text: last.text + text };
         } else {
           frame.children.push({ _tag: 'Text', text });
@@ -224,7 +224,7 @@ export const parseParagraphContent = (html: string): readonly Node[] => {
         // br closes were already handled at open time (no frame pushed).
         if (name === 'br') return;
         const finished = stack.pop();
-        if (finished === undefined || stack.length === 0) {
+        if (Predicate.isUndefined(finished) || stack.length === 0) {
           // Malformed HTML closing more than opened; ignore rather than crash.
           return;
         }

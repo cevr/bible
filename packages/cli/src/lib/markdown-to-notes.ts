@@ -89,29 +89,32 @@ export const makeAppleNoteFromMarkdown = Effect.fn('makeAppleNoteFromMarkdown')(
         return id of newNote
       end tell
     `;
-  if (options.folder !== undefined)
+  const folderOpt = Option.fromNullishOr(options.folder);
+  if (Option.isSome(folderOpt)) {
+    const escapedFolder = escapeAppleScriptString(folderOpt.value);
     appleScriptCommand = `
       tell application "Notes"
         set targetFolder to missing value
         repeat with f in folders
-          if name of f is "${escapeAppleScriptString(options.folder)}" then
+          if name of f is "${escapedFolder}" then
             set targetFolder to f
             exit repeat
           end if
         end repeat
         if targetFolder is missing value then
-          make new folder with properties {name:"${escapeAppleScriptString(options.folder)}"}
-          set targetFolder to folder "${escapeAppleScriptString(options.folder)}"
+          make new folder with properties {name:"${escapedFolder}"}
+          set targetFolder to folder "${escapedFolder}"
         end if
         set newNote to make new note at targetFolder with properties {name:"${escapedNoteTitle}", body:"${escapedHtmlBody.trim()}"}
         ${activateCommand}
         return id of newNote
       end tell
     `;
+  }
 
   // Execute the AppleScript
   let locationInfo = 'default location';
-  if (options.folder !== undefined) locationInfo = `folder "${options.folder}"`;
+  if (Option.isSome(folderOpt)) locationInfo = `folder "${folderOpt.value}"`;
   yield* Effect.log(`🚀 Executing AppleScript to create note in ${locationInfo}...`);
 
   const appleScript = yield* AppleScript;

@@ -1,25 +1,21 @@
 import { failureMessage } from '@bible/core/observability';
-import type { RouteSectionProps } from '@solidjs/router';
-import { Show, type JSX } from '@solidjs/web';
-import { createSignal, onSettled, type Component } from 'solid-js';
+import type { RouterHistory } from '@solidjs/router';
+import { createRouter } from '@solidjs/router';
+import { Show } from '@solidjs/web';
+import { Option } from 'effect';
+import { createSignal, onSettled } from 'solid-js';
 
 import type { AppCapabilities } from '../platform/index.js';
 import type { ActiveProcedureHost } from '../procedure/index.js';
 import { ReadingApplication } from './application.js';
-import { SharedRoutes } from './routes.js';
+import { sharedRoutes } from './routes.js';
 
 const STARTUP_FALLBACK = 'An unknown startup error prevented the library from opening.';
 
-/** The slice of a Solid router's interface the bootstrap needs: a root
- *  wrapper and route children. `Router` and `HashRouter` both satisfy it. */
-export type BootstrapRouter = Component<{
-  readonly root?: Component<RouteSectionProps>;
-  readonly children?: JSX.Element;
-}>;
-
 export interface ApplicationBootstrapProps {
-  /** History choice stays with the host: `Router` (web), `HashRouter` (desktop). */
-  readonly router: BootstrapRouter;
+  /** History choice stays with the host: `browserHistory()` (web, also the
+   *  default), `hashHistory()` (desktop). */
+  readonly history?: RouterHistory;
   /** Starts the host's procedure runtime; owned for the life of the Solid root. */
   readonly start: () => Promise<ActiveProcedureHost>;
   readonly capabilities?: AppCapabilities;
@@ -32,17 +28,17 @@ export interface ApplicationBootstrapProps {
  * transport start, and capabilities.
  */
 export const ApplicationBootstrap = (props: ApplicationBootstrapProps) => {
-  const RouterComponent = props.router;
+  const AppRouter = createRouter({ routes: sharedRoutes, history: props.history });
   const [host, setHost] = createSignal<ActiveProcedureHost>();
   const [failure, setFailure] = createSignal<unknown>();
 
   onSettled(() => {
     let disposed = false;
-    let activeHost: ActiveProcedureHost | undefined;
+    let activeHost = Option.none<ActiveProcedureHost>();
 
     void props.start().then(
       (started) => {
-        activeHost = started;
+        activeHost = Option.some(started);
         if (disposed) {
           void started.dispose();
           return;
@@ -56,7 +52,7 @@ export const ApplicationBootstrap = (props: ApplicationBootstrapProps) => {
 
     return () => {
       disposed = true;
-      if (activeHost !== undefined) void activeHost.dispose();
+      if (Option.isSome(activeHost)) void activeHost.value.dispose();
     };
   });
 
@@ -77,15 +73,13 @@ export const ApplicationBootstrap = (props: ApplicationBootstrapProps) => {
       }
     >
       {(current) => (
-        <RouterComponent
-          root={(rootProps) => (
+        <AppRouter>
+          {(rootProps) => (
             <ReadingApplication procedures={current().procedures} capabilities={props.capabilities}>
               {rootProps.children}
             </ReadingApplication>
           )}
-        >
-          <SharedRoutes />
-        </RouterComponent>
+        </AppRouter>
       )}
     </Show>
   );

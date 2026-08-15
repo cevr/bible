@@ -11,7 +11,7 @@ import {
 } from './render.js';
 import { Study } from './study.js';
 
-const meta = Schema.decodeUnknownSync(Study.Meta)({
+const meta = Schema.decodeSync(Study.Meta)({
   slug: 'fixture',
   title: 'Fixture Study',
   subtitle: 'A fixture subtitle.',
@@ -164,7 +164,7 @@ describe('study pages', () => {
   test('renders a Part with all its sections, grouped TOC, and reading controls', () => {
     const part = document.parts[0];
     expect(part).toBeDefined();
-    if (part === undefined) return;
+    if (!part) return;
 
     const html = partPage({ meta, document, part });
 
@@ -191,7 +191,7 @@ describe('study pages', () => {
     const partTwo = document.parts[1];
     expect(partOne).toBeDefined();
     expect(partTwo).toBeDefined();
-    if (partOne === undefined || partTwo === undefined) return;
+    if (!partOne || !partTwo) return;
 
     const oneHtml = partPage({ meta, document, part: partOne });
     const twoHtml = partPage({ meta, document, part: partTwo });
@@ -210,7 +210,7 @@ describe('study pages', () => {
   test('appendix links back to the final section and the overview', () => {
     const appendix = document.appendix;
     expect(appendix).toBeDefined();
-    if (appendix === undefined) return;
+    if (!appendix) return;
 
     const html = appendixPage({ meta, document, appendix });
 

@@ -2,12 +2,12 @@ import { Schema } from 'effect';
 
 import { PageReference, ParagraphReference, PublicationCode, PublicationId } from './model.js';
 
-export class WritingsPublicationNotFoundError extends Schema.TaggedErrorClass<WritingsPublicationNotFoundError>()(
+export class WritingsPublicationNotFoundError extends Schema.TaggedError<WritingsPublicationNotFoundError>()(
   'WritingsPublicationNotFoundError',
   { publication: Schema.Union([PublicationId, PublicationCode]) },
 ) {}
 
-export class WritingsAmbiguousPublicationCodeError extends Schema.TaggedErrorClass<WritingsAmbiguousPublicationCodeError>()(
+export class WritingsAmbiguousPublicationCodeError extends Schema.TaggedError<WritingsAmbiguousPublicationCodeError>()(
   'WritingsAmbiguousPublicationCodeError',
   {
     publication: PublicationCode,
@@ -15,17 +15,17 @@ export class WritingsAmbiguousPublicationCodeError extends Schema.TaggedErrorCla
   },
 ) {}
 
-export class WritingsPageNotFoundError extends Schema.TaggedErrorClass<WritingsPageNotFoundError>()(
+export class WritingsPageNotFoundError extends Schema.TaggedError<WritingsPageNotFoundError>()(
   'WritingsPageNotFoundError',
   { reference: PageReference },
 ) {}
 
-export class WritingsParagraphNotFoundError extends Schema.TaggedErrorClass<WritingsParagraphNotFoundError>()(
+export class WritingsParagraphNotFoundError extends Schema.TaggedError<WritingsParagraphNotFoundError>()(
   'WritingsParagraphNotFoundError',
   { reference: ParagraphReference },
 ) {}
 
-export class WritingsUnavailableError extends Schema.TaggedErrorClass<WritingsUnavailableError>()(
+export class WritingsUnavailableError extends Schema.TaggedError<WritingsUnavailableError>()(
   'WritingsUnavailableError',
   {
     operation: Schema.Literals([
@@ -41,7 +41,7 @@ export class WritingsUnavailableError extends Schema.TaggedErrorClass<WritingsUn
   },
 ) {}
 
-export class WritingsDataIntegrityError extends Schema.TaggedErrorClass<WritingsDataIntegrityError>()(
+export class WritingsDataIntegrityError extends Schema.TaggedError<WritingsDataIntegrityError>()(
   'WritingsDataIntegrityError',
   {
     operation: Schema.Literals([
@@ -57,7 +57,7 @@ export class WritingsDataIntegrityError extends Schema.TaggedErrorClass<Writings
   },
 ) {}
 
-export class WritingsInvalidSearchError extends Schema.TaggedErrorClass<WritingsInvalidSearchError>()(
+export class WritingsInvalidSearchError extends Schema.TaggedError<WritingsInvalidSearchError>()(
   'WritingsInvalidSearchError',
   { reason: Schema.Literals(['empty-query', 'invalid-limit']) },
 ) {}

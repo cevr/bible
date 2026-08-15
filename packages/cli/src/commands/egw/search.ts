@@ -1,18 +1,18 @@
 import { EGWApiClient, type Schemas as EGWSchemas } from '@bible/core/egw';
 import { Reference } from '@bible/core/writings';
 import { WritingsService } from '@bible/core/writings/service';
-import { Console, Effect } from 'effect';
+import { Console, Effect, Option } from 'effect';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
 
 import { encodeJson, formatLocalSearchResult, formatRemoteHit, searchHitJson } from './format.js';
 import { FullLayer, ServiceLayer } from './layers.js';
 
-export const localSearch = (query: string, bookCode?: string, limit = 20) =>
+export const localSearch = (query: string, bookCode: Option.Option<string>, limit = 20) =>
   Effect.gen(function* () {
     const service = yield* WritingsService;
     let publication;
-    if (bookCode !== undefined) {
-      publication = Reference.publication((yield* service.publicationByCode(bookCode)).id);
+    if (Option.isSome(bookCode)) {
+      publication = Reference.publication((yield* service.publicationByCode(bookCode.value)).id);
     }
     const results = yield* service.search(query, {
       limit,
@@ -26,8 +26,8 @@ export const localSearch = (query: string, bookCode?: string, limit = 20) =>
     }
 
     let scope = '';
-    if (bookCode !== undefined) {
-      scope = ` in ${bookCode}`;
+    if (Option.isSome(bookCode)) {
+      scope = ` in ${bookCode.value}`;
     }
     yield* Console.log(`Local search results for "${query}"${scope} (${results.length}):\n`);
     for (const [i, r] of results.entries()) {
@@ -116,11 +116,7 @@ export const egwSearch = Command.make(
           yield* Console.log(yield* encodeJson(results.map(searchHitJson)));
           return;
         }
-        let bookCode;
-        if (args.book._tag === 'Some') {
-          bookCode = args.book.value;
-        }
-        yield* localSearch(queryStr, bookCode, args.limit);
+        yield* localSearch(queryStr, args.book, args.limit);
       }).pipe(Effect.provide(ServiceLayer));
     }),
 );

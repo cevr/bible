@@ -4,7 +4,7 @@ import { Effect } from 'effect';
 const failure = (capability: string, operation: string, cause: unknown) => {
   let message = String(cause);
   if (cause instanceof Error) message = cause.message;
-  return new CapabilityError({
+  return CapabilityError.make({
     capability,
     operation,
     message,

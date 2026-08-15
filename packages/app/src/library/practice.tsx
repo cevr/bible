@@ -4,9 +4,9 @@ import {
   type LibraryStateCommand,
   type MemoryVerse,
 } from '@bible/core/library-state';
-import { A, useNavigate } from '@solidjs/router';
+import { useNavigate } from '@solidjs/router';
 import { Errored, For, Loading, Show } from '@solidjs/web';
-import { DateTime, Effect, Schema } from 'effect';
+import { DateTime, Effect, Option, Schema } from 'effect';
 import { createSignal } from 'solid-js';
 
 import { ReaderFailure, ReaderLoading } from '../reading/index.js';
@@ -19,9 +19,9 @@ export interface PracticeProps {
   readonly memoryVerseId?: string;
 }
 
-const ratingLabels = ['Again', 'Hard', 'Uncertain', 'Good', 'Easy', 'Known'] as const;
+const ratingLabels: readonly string[] = ['Again', 'Hard', 'Uncertain', 'Good', 'Easy', 'Known'];
 
-const intervalForRating = (rating: typeof PracticeRating.Type): number => {
+const intervalForRating = (rating: PracticeRating): number => {
   if (rating <= 1) return 1;
   if (rating === 2) return 2;
   if (rating === 3) return 4;
@@ -29,17 +29,16 @@ const intervalForRating = (rating: typeof PracticeRating.Type): number => {
   return 14;
 };
 
-const practiceHeading = (memoryVerseId: string | undefined): string => {
-  if (memoryVerseId !== undefined) return 'Memory practice';
+const practiceHeading = (memoryVerseId?: string): string => {
+  if (Option.isSome(Option.fromNullishOr(memoryVerseId))) return 'Memory practice';
   return 'Practice';
 };
 
-const nextReviewLabel = (nextPracticeAt: string | null): string => {
-  if (nextPracticeAt !== null) {
-    return `Next review ${DateTime.format(DateTime.makeUnsafe(nextPracticeAt))}`;
-  }
-  return 'Ready to review';
-};
+const nextReviewLabel = (nextPracticeAt: Option.Option<string>): string =>
+  Option.match(nextPracticeAt, {
+    onNone: () => 'Ready to review',
+    onSome: (at) => `Next review ${DateTime.format(DateTime.makeUnsafe(at))}`,
+  });
 
 const nextPracticeDate = (practicedAt: string, intervalDays: number): string => {
   const next = DateTime.add(DateTime.makeUnsafe(practicedAt), { days: intervalDays });
@@ -62,7 +61,7 @@ export const Practice = (props: PracticeProps) => {
   const [location, setLocation] = createSignal('');
   const [prompt, setPrompt] = createSignal('');
   const [busy, setBusy] = createSignal(false);
-  const [failure, setFailure] = createSignal<string>();
+  const [failure, setFailure] = createSignal(Option.none<string>());
 
   const mutate = (
     operation: 'save' | 'delete' | 'record',
@@ -70,7 +69,7 @@ export const Practice = (props: PracticeProps) => {
     onSuccess?: () => void,
   ) => {
     setBusy(true);
-    setFailure(undefined);
+    setFailure(Option.none());
     void data.memoryPractice.mutate(command).then(
       () => {
         setBusy(false);
@@ -83,7 +82,7 @@ export const Practice = (props: PracticeProps) => {
             `[practice] mutation-failed operation=${operation} category=${failureCategory(cause)}`,
           ),
         );
-        setFailure(message);
+        setFailure(Option.some(message));
         setBusy(false);
       },
     );
@@ -94,13 +93,15 @@ export const Practice = (props: PracticeProps) => {
     const requestedResource = resourceId().trim();
     const requestedLocation = location().trim();
     if (requestedResource.length === 0 || requestedLocation.length === 0) return;
-    const identity = capabilities.identity;
-    if (identity === undefined) {
-      setFailure('This platform cannot create memory verses because identity is unavailable.');
+    const identity = Option.fromNullishOr(capabilities.identity);
+    if (Option.isNone(identity)) {
+      setFailure(
+        Option.some('This platform cannot create memory verses because identity is unavailable.'),
+      );
       return;
     }
 
-    const id = Schema.decodeUnknownSync(LibraryEntityId)(identity.randomUuid());
+    const id = Schema.decodeSync(LibraryEntityId)(identity.value.randomUuid());
     mutate(
       'save',
       {
@@ -108,7 +109,9 @@ export const Practice = (props: PracticeProps) => {
         id,
         resourceId: requestedResource,
         location: requestedLocation,
-        prompt: prompt().trim() || null,
+        prompt: Option.getOrNull(
+          Option.filter(Option.some(prompt().trim()), (text) => text.length > 0),
+        ),
         nextPracticeAt: nowIso(),
         intervalDays: 0,
       },
@@ -125,17 +128,19 @@ export const Practice = (props: PracticeProps) => {
     mutate('delete', { _tag: 'DeleteMemoryVerse', id: verse.id }, () => navigate('/practice'));
 
   const recordPractice = (verse: MemoryVerse, ratingInput: number) => {
-    const identity = capabilities.identity;
-    if (identity === undefined) {
-      setFailure('This platform cannot record practice because identity is unavailable.');
+    const identity = Option.fromNullishOr(capabilities.identity);
+    if (Option.isNone(identity)) {
+      setFailure(
+        Option.some('This platform cannot record practice because identity is unavailable.'),
+      );
       return;
     }
-    const rating = Schema.decodeUnknownSync(PracticeRating)(ratingInput);
+    const rating = Schema.decodeSync(PracticeRating)(ratingInput);
     const practicedAt = nowIso();
     const intervalDays = intervalForRating(rating);
     mutate('record', {
       _tag: 'RecordMemoryPractice',
-      id: Schema.decodeUnknownSync(LibraryEntityId)(identity.randomUuid()),
+      id: Schema.decodeSync(LibraryEntityId)(identity.value.randomUuid()),
       memoryVerseId: verse.id,
       rating,
       practicedAt,
@@ -172,10 +177,12 @@ export const Practice = (props: PracticeProps) => {
                       <For each={practice().verses}>
                         {(verse) => (
                           <li>
-                            <A href={`/practice/${encodeURIComponent(verse.id)}`}>
+                            <a href={`/practice/${encodeURIComponent(verse.id)}`}>
                               <strong>{verse.location}</strong>
-                              <span>{nextReviewLabel(verse.nextPracticeAt)}</span>
-                            </A>
+                              <span>
+                                {nextReviewLabel(Option.fromNullishOr(verse.nextPracticeAt))}
+                              </span>
+                            </a>
                           </li>
                         )}
                       </For>
@@ -201,13 +208,13 @@ export const Practice = (props: PracticeProps) => {
                 <section class="bible-library__empty" role="status">
                   <p class="bible-reader__eyebrow">Verse not found</p>
                   <h2>This memory verse is no longer in your library.</h2>
-                  <A href="/practice">Return to practice</A>
+                  <a href="/practice">Return to practice</a>
                 </section>
               }
             >
               {(verse) => (
                 <section class="bible-library-detail" aria-labelledby="memory-verse-title">
-                  <A href="/practice">All memory verses</A>
+                  <a href="/practice">All memory verses</a>
                   <div>
                     <p class="bible-reader__eyebrow">Bible · {verse().resourceId}</p>
                     <h2 id="memory-verse-title">{verse().location}</h2>
@@ -253,7 +260,7 @@ export const Practice = (props: PracticeProps) => {
               )}
             </Show>
           </Show>
-          <MutationStatus busy={busy()} failure={failure()} />
+          <MutationStatus busy={busy()} failure={Option.getOrUndefined(failure())} />
         </Loading>
       </Errored>
     </article>

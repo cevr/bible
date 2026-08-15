@@ -24,7 +24,7 @@ import type { MutationCommitValue } from '@bible/core/procedure';
 import type { TopicDetail, TopicId, TopicListInput, TopicSummary } from '@bible/core/topics';
 import type { ParentProps } from 'solid-js';
 import { createContext, untrack, useContext } from 'solid-js';
-import { Effect } from 'effect';
+import { Effect, Option } from 'effect';
 
 import {
   createAsyncCache,
@@ -122,7 +122,7 @@ export interface ReadingData {
   >;
   readonly readingContinuity: SyncedCache<
     {},
-    ReaderLocation | null,
+    Option.Option<ReaderLocation>,
     RecordReadingCommand,
     LibraryMutation
   >;
@@ -180,7 +180,7 @@ export const createReadingData = (input: CreateReadingDataInput): ReadingData =>
       }
       return input.procedures['v1.reading.writingsLibrary.downloadAll']();
     },
-    affects: () => ['writings-library'] as const,
+    affects: (): ReadonlyArray<'writings-library'> => ['writings-library'],
     matches: () => true,
   });
   const writingsLibrary: ReadingData['writingsLibrary'] = {
@@ -225,16 +225,19 @@ export const createReadingData = (input: CreateReadingDataInput): ReadingData =>
       lookup: () => input.procedures['v1.preferences.reading.get'](),
       mutate: (command) =>
         input.procedures['v1.preferences.reading.patch']({ patch: command.patch }),
-      affects: () => ['reading-preferences'] as const,
+      affects: (): ReadonlyArray<'reading-preferences'> => ['reading-preferences'],
       matches: () => true,
     }),
     readingContinuity: createSyncedCache({
       name: 'ReadingContinuity',
       runtime,
       emptyInput: {},
-      lookup: () => input.procedures['v1.reading.continuity.get'](),
+      lookup: () =>
+        input.procedures['v1.reading.continuity.get']().pipe(Effect.map(Option.fromNullishOr)),
       mutate: (command) => input.procedures['v1.reading.continuity.record'](command),
-      affects: () => [{ _tag: 'ReadingContinuity' as const }],
+      affects: (): ReadonlyArray<{ readonly _tag: 'ReadingContinuity' }> => [
+        { _tag: 'ReadingContinuity' },
+      ],
       matches: (_query, scope) => scope._tag === 'ReadingContinuity',
     }),
     annotations: createSyncedCache({
@@ -245,11 +248,12 @@ export const createReadingData = (input: CreateReadingDataInput): ReadingData =>
       affects: (command) => [scopeForMutation(command)],
       matches: (location, scope) => {
         if (scope.area !== 'annotations') return false;
-        if (scope.location === undefined) return true;
+        const scopeLocation = Option.fromNullishOr(scope.location);
+        if (Option.isNone(scopeLocation)) return true;
         return (
-          scope.location.source === location.source &&
-          scope.location.resourceId === location.resourceId &&
-          scope.location.location === location.location
+          scopeLocation.value.source === location.source &&
+          scopeLocation.value.resourceId === location.resourceId &&
+          scopeLocation.value.location === location.location
         );
       },
     }),

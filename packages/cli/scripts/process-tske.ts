@@ -12,7 +12,7 @@
  */
 
 import { BunRuntime, BunServices } from '@effect/platform-bun';
-import { Effect, FileSystem, Path, Schema, SchemaGetter } from 'effect';
+import { Effect, FileSystem, Option, Path, Schema, SchemaGetter } from 'effect';
 
 const JsonString = Schema.Unknown.pipe(
   Schema.encodeTo(Schema.String, {
@@ -127,31 +127,34 @@ const REF_RE = /^(\d?[A-Za-z]+)_(\d+):(\d+)(?:-(\d+))?$/;
 // Parser
 // ============================================================================
 
-function parseTskeRef(raw: string): Reference | null {
-  const m = REF_RE.exec(raw);
-  if (!m) return null;
+function parseTskeRef(raw: string): Option.Option<Reference> {
+  const m = Option.fromNullishOr(REF_RE.exec(raw));
+  if (Option.isNone(m)) return Option.none();
 
-  const bookAbbr = m[1];
-  const chapterText = m[2];
-  const verseText = m[3];
-  if (bookAbbr === undefined || chapterText === undefined || verseText === undefined) return null;
-  const bookNum = TSKE_BOOK_MAP.get(bookAbbr);
-  if (bookNum === undefined) return null;
+  const bookAbbr = Option.fromNullishOr(m.value[1]);
+  const chapterText = Option.fromNullishOr(m.value[2]);
+  const verseText = Option.fromNullishOr(m.value[3]);
+  if (Option.isNone(bookAbbr) || Option.isNone(chapterText) || Option.isNone(verseText)) {
+    return Option.none();
+  }
+  const bookNum = Option.fromNullishOr(TSKE_BOOK_MAP.get(bookAbbr.value));
+  if (Option.isNone(bookNum)) return Option.none();
 
-  const chapter = parseInt(chapterText, 10);
-  const verse = parseInt(verseText, 10);
-  if (isNaN(chapter) || isNaN(verse)) return null;
+  const chapter = parseInt(chapterText.value, 10);
+  const verse = parseInt(verseText.value, 10);
+  if (isNaN(chapter) || isNaN(verse)) return Option.none();
 
-  const ref: Reference = { book: bookNum, chapter, verse };
+  const ref: Reference = { book: bookNum.value, chapter, verse };
 
-  if (m[4] !== undefined) {
-    const verseEnd = parseInt(m[4], 10);
+  const verseEndText = Option.fromNullishOr(m.value[4]);
+  if (Option.isSome(verseEndText)) {
+    const verseEnd = parseInt(verseEndText.value, 10);
     if (!isNaN(verseEnd)) {
       ref.verseEnd = verseEnd;
     }
   }
 
-  return ref;
+  return Option.some(ref);
 }
 
 const processTske = Effect.gen(function* () {
@@ -181,38 +184,36 @@ const processTske = Effect.gen(function* () {
       continue;
     }
 
-    const sourceBookAbbr = headerMatch[1];
-    const sourceChapterText = headerMatch[2];
-    const sourceVerseText = headerMatch[3];
+    const sourceBookAbbr = Option.fromNullishOr(headerMatch[1]);
+    const sourceChapterText = Option.fromNullishOr(headerMatch[2]);
+    const sourceVerseText = Option.fromNullishOr(headerMatch[3]);
     if (
-      sourceBookAbbr === undefined ||
-      sourceChapterText === undefined ||
-      sourceVerseText === undefined
+      Option.isNone(sourceBookAbbr) ||
+      Option.isNone(sourceChapterText) ||
+      Option.isNone(sourceVerseText)
     ) {
       linesSkipped++;
       continue;
     }
-    const sourceBookNum = TSKE_BOOK_MAP.get(sourceBookAbbr);
-    if (sourceBookNum === undefined) {
-      unknownBooks.add(sourceBookAbbr);
+    const sourceBookNum = Option.fromNullishOr(TSKE_BOOK_MAP.get(sourceBookAbbr.value));
+    if (Option.isNone(sourceBookNum)) {
+      unknownBooks.add(sourceBookAbbr.value);
       linesSkipped++;
       continue;
     }
 
-    const sourceChapter = parseInt(sourceChapterText, 10);
-    const sourceVerse = parseInt(sourceVerseText, 10);
-    const key = `${sourceBookNum}.${sourceChapter}.${sourceVerse}`;
+    const sourceChapter = parseInt(sourceChapterText.value, 10);
+    const sourceVerse = parseInt(sourceVerseText.value, 10);
+    const key = `${sourceBookNum.value}.${sourceChapter}.${sourceVerse}`;
 
     // Extract all <u> tag contents
     const refs: Reference[] = [];
-    U_TAG_RE.lastIndex = 0; // Reset global regex per line
-    let uMatch: RegExpExecArray | null;
-    while ((uMatch = U_TAG_RE.exec(line)) !== null) {
-      const rawRef = uMatch[1];
-      if (rawRef === undefined) continue;
-      const ref = parseTskeRef(rawRef);
-      if (ref) {
-        refs.push(ref);
+    for (const uMatch of line.matchAll(U_TAG_RE)) {
+      const rawRef = Option.fromNullishOr(uMatch[1]);
+      if (Option.isNone(rawRef)) continue;
+      const ref = parseTskeRef(rawRef.value);
+      if (Option.isSome(ref)) {
+        refs.push(ref.value);
       }
     }
 

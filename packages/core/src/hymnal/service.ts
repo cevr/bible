@@ -9,7 +9,17 @@ import { homedir } from 'node:os';
 
 import type { PlatformError } from 'effect/PlatformError';
 import { Database } from 'bun:sqlite';
-import { Config, Context, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
+import {
+  Config,
+  Context,
+  Effect,
+  FileSystem,
+  Layer,
+  Option,
+  Path,
+  Predicate,
+  Schema,
+} from 'effect';
 
 import type { CategoryId, HymnId } from '../types/ids.js';
 import {
@@ -21,15 +31,15 @@ import {
   type HymnRow,
 } from './schemas.js';
 
-export class HymnalError extends Schema.TaggedErrorClass<HymnalError>()('HymnalError', {
+export class HymnalError extends Schema.TaggedError<HymnalError>()('HymnalError', {
   cause: Schema.Unknown,
   operation: Schema.String,
   message: Schema.optional(Schema.String),
 }) {}
 
-export class HymnNotFoundError extends Schema.TaggedErrorClass<HymnNotFoundError>()(
+export class HymnNotFoundError extends Schema.TaggedError<HymnNotFoundError>()(
   'HymnNotFoundError',
-  { id: Schema.Number },
+  { id: Schema.Finite },
 ) {}
 
 const HymnVersesJson = Schema.fromJsonString(Schema.Array(HymnVerse));
@@ -44,14 +54,15 @@ const truncateFirstLine = (text: string): string => {
 
 const firstLineFromJson = (json: string): string => {
   const first = decodeHymnVerses(json)[0];
-  if (first === undefined) return '';
+  if (Predicate.isUndefined(first)) return '';
   return truncateFirstLine(first.text);
 };
 
 const summarizeHymn = (hymn: Hymn): HymnSummary => {
   let firstLine = '';
-  if (hymn.verses[0] !== undefined) firstLine = truncateFirstLine(hymn.verses[0].text);
-  return new HymnSummary({
+  const firstVerse = hymn.verses[0];
+  if (Predicate.isNotUndefined(firstVerse)) firstLine = truncateFirstLine(firstVerse.text);
+  return HymnSummary.make({
     id: hymn.id,
     name: hymn.name,
     category: hymn.category,
@@ -59,9 +70,9 @@ const summarizeHymn = (hymn: Hymn): HymnSummary => {
   });
 };
 
-export interface HymnalServiceShape {
+export interface HymnalServiceApi {
   readonly getHymn: (id: HymnId) => Effect.Effect<Hymn, HymnalError | HymnNotFoundError>;
-  readonly getCategories: () => Effect.Effect<readonly Category[], HymnalError>;
+  readonly getCategories: Effect.Effect<readonly Category[], HymnalError>;
   readonly getHymnsByCategory: (
     categoryId: CategoryId,
   ) => Effect.Effect<readonly HymnSummary[], HymnalError>;
@@ -71,7 +82,7 @@ export interface HymnalServiceShape {
   ) => Effect.Effect<readonly HymnSummary[], HymnalError>;
 }
 
-export class HymnalService extends Context.Service<HymnalService, HymnalServiceShape>()(
+export class HymnalService extends Context.Service<HymnalService, HymnalServiceApi>()(
   '@bible/core/hymnal/HymnalService',
 ) {
   static Live: Layer.Layer<
@@ -88,7 +99,7 @@ export class HymnalService extends Context.Service<HymnalService, HymnalServiceS
       const dbPath = yield* Config.string('HYMNAL_DB_PATH').pipe(Config.withDefault(defaultDbPath));
 
       if (!(yield* fs.exists(dbPath))) {
-        return yield* new HymnalError({
+        return yield* HymnalError.make({
           operation: 'open',
           cause: dbPath,
           message: `Hymnal database not found at ${dbPath}.`,
@@ -98,7 +109,7 @@ export class HymnalService extends Context.Service<HymnalService, HymnalServiceS
       const db = yield* Effect.try({
         try: () => new Database(dbPath, { readonly: true }),
         catch: (error) =>
-          new HymnalError({
+          HymnalError.make({
             operation: 'open',
             message: `Failed to open hymnal database at ${dbPath}`,
             cause: error,
@@ -109,7 +120,7 @@ export class HymnalService extends Context.Service<HymnalService, HymnalServiceS
         Effect.try({
           try: () => db.close(false),
           catch: (error) =>
-            new HymnalError({
+            HymnalError.make({
               operation: 'close',
               message: 'Failed to close hymnal database',
               cause: error,
@@ -121,10 +132,10 @@ export class HymnalService extends Context.Service<HymnalService, HymnalServiceS
         const hymn = yield* Effect.try({
           try: () => {
             const row = db.query<HymnRow, [number]>('SELECT * FROM hymns WHERE id = ?').get(id);
-            if (row === null) return Option.none<Hymn>();
+            if (Predicate.isNull(row)) return Option.none<Hymn>();
 
             return Option.some(
-              new Hymn({
+              Hymn.make({
                 id: row.id as Hymn['id'],
                 name: row.name,
                 category: row.category,
@@ -133,25 +144,23 @@ export class HymnalService extends Context.Service<HymnalService, HymnalServiceS
               }),
             );
           },
-          catch: (error) => new HymnalError({ operation: 'getHymn', cause: error }),
+          catch: (error) => HymnalError.make({ operation: 'getHymn', cause: error }),
         });
 
         return yield* Option.match(hymn, {
-          onNone: () => Effect.fail(new HymnNotFoundError({ id })),
+          onNone: () => Effect.fail(HymnNotFoundError.make({ id })),
           onSome: Effect.succeed,
         });
       });
 
-      const getCategories = Effect.fn('HymnalService.getCategories')(() =>
-        Effect.try({
-          try: () =>
-            db
-              .query<CategoryRow, []>('SELECT * FROM categories ORDER BY id')
-              .all()
-              .map((row) => new Category({ id: row.id as Category['id'], name: row.name })),
-          catch: (error) => new HymnalError({ operation: 'getCategories', cause: error }),
-        }),
-      );
+      const getCategories = Effect.try({
+        try: () =>
+          db
+            .query<CategoryRow, []>('SELECT * FROM categories ORDER BY id')
+            .all()
+            .map((row) => Category.make({ id: row.id as Category['id'], name: row.name })),
+        catch: (error) => HymnalError.make({ operation: 'getCategories', cause: error }),
+      }).pipe(Effect.withSpan('HymnalService.getCategories'));
 
       const getHymnsByCategory = Effect.fn('HymnalService.getHymnsByCategory')(
         (categoryId: CategoryId) =>
@@ -160,16 +169,15 @@ export class HymnalService extends Context.Service<HymnalService, HymnalServiceS
               db
                 .query<HymnRow, [number]>('SELECT * FROM hymns WHERE category_id = ? ORDER BY id')
                 .all(categoryId)
-                .map(
-                  (row) =>
-                    new HymnSummary({
-                      id: row.id as HymnSummary['id'],
-                      name: row.name,
-                      category: row.category,
-                      firstLine: firstLineFromJson(row.verses),
-                    }),
+                .map((row) =>
+                  HymnSummary.make({
+                    id: row.id as HymnSummary['id'],
+                    name: row.name,
+                    category: row.category,
+                    firstLine: firstLineFromJson(row.verses),
+                  }),
                 ),
-            catch: (error) => new HymnalError({ operation: 'getHymnsByCategory', cause: error }),
+            catch: (error) => HymnalError.make({ operation: 'getHymnsByCategory', cause: error }),
           }),
       );
 
@@ -185,17 +193,16 @@ export class HymnalService extends Context.Service<HymnalService, HymnalServiceS
                    LIMIT ?`,
               )
               .all(searchTerm, searchTerm, limit)
-              .map(
-                (row) =>
-                  new HymnSummary({
-                    id: row.id as HymnSummary['id'],
-                    name: row.name,
-                    category: row.category,
-                    firstLine: firstLineFromJson(row.verses),
-                  }),
+              .map((row) =>
+                HymnSummary.make({
+                  id: row.id as HymnSummary['id'],
+                  name: row.name,
+                  category: row.category,
+                  firstLine: firstLineFromJson(row.verses),
+                }),
               );
           },
-          catch: (error) => new HymnalError({ operation: 'searchHymns', cause: error }),
+          catch: (error) => HymnalError.make({ operation: 'searchHymns', cause: error }),
         }),
       );
 
@@ -217,10 +224,10 @@ export class HymnalService extends Context.Service<HymnalService, HymnalServiceS
     return Layer.succeed(HymnalService, {
       getHymn: (id) => {
         const hymn = hymns.find((candidate) => candidate.id === id);
-        if (hymn === undefined) return Effect.fail(new HymnNotFoundError({ id }));
+        if (Predicate.isUndefined(hymn)) return Effect.fail(HymnNotFoundError.make({ id }));
         return Effect.succeed(hymn);
       },
-      getCategories: () => Effect.succeed(categories),
+      getCategories: Effect.succeed(categories),
       getHymnsByCategory: (categoryId) =>
         Effect.succeed(hymns.filter((hymn) => hymn.categoryId === categoryId).map(summarizeHymn)),
       searchHymns: (query, limit = 20) => {

@@ -60,23 +60,25 @@ export const formatLocalSearchResult = (hit: SearchHit, index: number): string =
 
 export const formatRemoteHit = (hit: EGWSchemas.SearchHit, index: number): string => {
   const ref = hit.refcode_short ?? `[${hit.pub_code}]`;
-  const author = hit.refcode_long?.match(/\(([^)]+)\)\s*$/)?.[1];
+  const author = Option.fromNullishOr(hit.refcode_long?.match(/\(([^)]+)\)\s*$/)?.[1]);
   let authorSuffix = '';
-  if (author !== undefined) {
-    authorSuffix = ` — ${author}`;
+  if (Option.isSome(author)) {
+    authorSuffix = ` — ${author.value}`;
   }
   const title = ` (${hit.pub_name}${authorSuffix})`;
+  const rawSnippet = Option.fromNullishOr(hit.snippet);
   let snippet = '';
-  if (hit.snippet !== null && hit.snippet !== undefined) {
-    snippet = hit.snippet
+  if (Option.isSome(rawSnippet)) {
+    snippet = rawSnippet.value
       .replace(/<[^>]*>/g, '')
       .replace(/\s+/g, ' ')
       .trim()
       .slice(0, 240);
   }
+  const actionRequired = Option.fromNullishOr(hit.action_required);
   let gated = '';
-  if (hit.action_required !== undefined) {
-    gated = ` [${hit.action_required}]`;
+  if (Option.isSome(actionRequired)) {
+    gated = ` [${actionRequired.value}]`;
   }
   return `  ${index + 1}. ${ref}${title}${gated}\n     ${snippet}`;
 };

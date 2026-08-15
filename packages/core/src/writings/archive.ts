@@ -1,4 +1,4 @@
-import { Option, Schema, SchemaGetter } from 'effect';
+import { Option, Predicate, Schema, SchemaGetter } from 'effect';
 
 import {
   BookNumber,
@@ -50,7 +50,7 @@ export class PublicationArchive extends Schema.Class<PublicationArchive>(
   bibleReferences: Schema.Array(ArchivedBibleReference),
 }) {}
 
-const NonNegativeInteger = Schema.Number.pipe(
+const NonNegativeInteger = Schema.Finite.pipe(
   Schema.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0)),
 );
 
@@ -87,50 +87,52 @@ const PublicationArchiveWire = Schema.Struct({
   ),
 });
 
+type ArchiveFormatVersion = 1;
+const ARCHIVE_FORMAT_VERSION: ArchiveFormatVersion = 1;
+
 /** JSON-safe codec for the canonical portable publication contribution. */
 export const PublicationArchiveJson = PublicationArchiveWire.pipe(
   Schema.decodeTo(PublicationArchive, {
     decode: SchemaGetter.transform((wire) => {
-      const publication = new Publication({
+      const publication = Publication.make({
         ...wire.publication,
         paragraphCount: Option.fromNullishOr(wire.publication.paragraphCount),
       });
-      return new PublicationArchive({
+      return PublicationArchive.make({
         publication,
-        paragraphs: wire.paragraphs.map(
-          (item) =>
-            new ArchivedParagraph({
-              refcode: item.refcode,
-              paragraph: new Paragraph({
-                reference: new ParagraphReference({
-                  publicationId: publication.id,
-                  paragraphId: item.paragraphId,
-                }),
-                publicationCode: publication.code,
-                order: item.order,
-                page: Option.fromNullishOr(item.page),
-                number: Option.fromNullishOr(item.number),
-                refcode: Option.fromNullishOr(item.displayRefcode),
-                nodes: item.nodes,
-                elementType: Option.fromNullishOr(item.elementType),
-                elementSubtype: Option.fromNullishOr(item.elementSubtype),
+        paragraphs: wire.paragraphs.map((item) =>
+          ArchivedParagraph.make({
+            refcode: item.refcode,
+            paragraph: Paragraph.make({
+              reference: ParagraphReference.make({
+                publicationId: publication.id,
+                paragraphId: item.paragraphId,
               }),
-              isHeading: item.isHeading,
+              publicationCode: publication.code,
+              order: item.order,
+              page: Option.fromNullishOr(item.page),
+              number: Option.fromNullishOr(item.number),
+              refcode: Option.fromNullishOr(item.displayRefcode),
+              nodes: item.nodes,
+              elementType: Option.fromNullishOr(item.elementType),
+              elementSubtype: Option.fromNullishOr(item.elementSubtype),
             }),
+            isHeading: item.isHeading,
+          }),
         ),
         bibleReferences: wire.bibleReferences.map((reference) => {
           let scripture: ChapterReference | VerseReference = BibleReference.chapter(
             reference.bibleBook,
             reference.bibleChapter,
           );
-          if (reference.bibleVerse !== null) {
+          if (Predicate.isNotNull(reference.bibleVerse)) {
             scripture = BibleReference.verse(
               reference.bibleBook,
               reference.bibleChapter,
               reference.bibleVerse,
             );
           }
-          return new ArchivedBibleReference({
+          return ArchivedBibleReference.make({
             paragraphRefcode: reference.paragraphRefcode,
             scripture,
           });
@@ -138,7 +140,7 @@ export const PublicationArchiveJson = PublicationArchiveWire.pipe(
       });
     }),
     encode: SchemaGetter.transform((archive) => ({
-      formatVersion: 1 as const,
+      formatVersion: ARCHIVE_FORMAT_VERSION,
       publication: {
         id: publicationId(archive.publication.id),
         code: publicationCode(archive.publication.code),
@@ -159,15 +161,15 @@ export const PublicationArchiveJson = PublicationArchiveWire.pipe(
         isHeading: archived.isHeading,
       })),
       bibleReferences: archive.bibleReferences.map((reference) => {
-        let bibleVerse: VerseNumber | null = null;
+        let bibleVerse = Option.none<VerseNumber>();
         if (reference.scripture._tag === 'verse') {
-          bibleVerse = verseNumber(reference.scripture.verse);
+          bibleVerse = Option.some(verseNumber(reference.scripture.verse));
         }
         return {
           paragraphRefcode: reference.paragraphRefcode,
           bibleBook: bookNumber(reference.scripture.book),
           bibleChapter: chapterNumber(reference.scripture.chapter),
-          bibleVerse,
+          bibleVerse: Option.getOrNull(bibleVerse),
         };
       }),
     })),

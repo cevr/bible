@@ -5,13 +5,17 @@
  * Renderer-agnostic - shared by application and command-line hosts.
  */
 
+import { Option } from 'effect';
+
 import { Book, type Reference as BibleReference, bookNumber, chapterNumber } from './model.js';
 
 /**
  * Book name aliases for reference parsing
  * Maps lowercase aliases to book numbers (1-66)
  */
-export const BIBLE_BOOK_ALIASES: Record<string, number> = {
+type BibleBookAliasMap = Readonly<Record<string, number>>;
+
+export const BIBLE_BOOK_ALIASES: BibleBookAliasMap = {
   // Genesis
   gen: 1,
   genesis: 1,
@@ -257,7 +261,15 @@ export const BIBLE_BOOK_ALIASES: Record<string, number> = {
 /**
  * All 66 books of the Bible with metadata
  */
-const BOOK_DATA = [
+interface BookSeed {
+  readonly number: number;
+  readonly name: string;
+  readonly abbreviation: string;
+  readonly chapters: number;
+  readonly testament: 'old' | 'new';
+}
+
+const BOOK_DATA: readonly BookSeed[] = [
   { number: 1, name: 'Genesis', abbreviation: 'Gen', chapters: 50, testament: 'old' },
   { number: 2, name: 'Exodus', abbreviation: 'Exod', chapters: 40, testament: 'old' },
   { number: 3, name: 'Leviticus', abbreviation: 'Lev', chapters: 27, testament: 'old' },
@@ -324,34 +336,35 @@ const BOOK_DATA = [
   { number: 64, name: '3 John', abbreviation: '3John', chapters: 1, testament: 'new' },
   { number: 65, name: 'Jude', abbreviation: 'Jude', chapters: 1, testament: 'new' },
   { number: 66, name: 'Revelation', abbreviation: 'Rev', chapters: 22, testament: 'new' },
-] as const;
+];
 
-export const BIBLE_BOOKS: readonly Book[] = BOOK_DATA.map(
-  (book) =>
-    new Book({
-      ...book,
-      number: bookNumber(book.number),
-      chapters: chapterNumber(book.chapters),
-    }),
+export const BIBLE_BOOKS: readonly Book[] = BOOK_DATA.map((book) =>
+  Book.make({
+    ...book,
+    number: bookNumber(book.number),
+    chapters: chapterNumber(book.chapters),
+  }),
 );
 
 const BOOK_BY_NUMBER = new Map<number, Book>(BIBLE_BOOKS.map((b) => [b.number, b]));
 
 const BOOK_BY_NAME = new Map<string, Book>([
-  ...BIBLE_BOOKS.map((b) => [b.name.toLowerCase(), b] as const),
-  ...Object.entries(BIBLE_BOOK_ALIASES).flatMap(([alias, num]) => {
-    const book = BOOK_BY_NUMBER.get(num);
-    if (!book) return [];
-    return [[alias, book]] as const;
-  }),
+  ...BIBLE_BOOKS.map((b): readonly [string, Book] => [b.name.toLowerCase(), b]),
+  ...Object.entries(BIBLE_BOOK_ALIASES).flatMap(
+    ([alias, num]): readonly (readonly [string, Book])[] => {
+      const book = BOOK_BY_NUMBER.get(num);
+      if (!book) return [];
+      return [[alias, book]];
+    },
+  ),
 ]);
 
-export function getBibleBook(bookNumber: number): Book | undefined {
-  return BOOK_BY_NUMBER.get(bookNumber);
+export function getBibleBook(bookNumber: number): Option.Option<Book> {
+  return Option.fromUndefinedOr(BOOK_BY_NUMBER.get(bookNumber));
 }
 
-export function getBibleBookByName(name: string): Book | undefined {
-  return BOOK_BY_NAME.get(name.trim().toLowerCase());
+export function getBibleBookByName(name: string): Option.Option<Book> {
+  return Option.fromUndefinedOr(BOOK_BY_NAME.get(name.trim().toLowerCase()));
 }
 
 /**
@@ -365,8 +378,9 @@ export function formatBibleReference(ref: BibleReference): string {
   } else {
     startBook = ref.book;
   }
-  const book = getBibleBook(startBook);
-  if (!book) return '';
+  const found = getBibleBook(startBook);
+  if (Option.isNone(found)) return '';
+  const book = found.value;
   if (ref._tag === 'book') return book.name;
   if (ref._tag === 'range')
     return `${book.name} ${ref.start.chapter}:${ref.start.verse}-${ref.end.verse}`;

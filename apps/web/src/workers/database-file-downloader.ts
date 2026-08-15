@@ -1,9 +1,9 @@
 import { sha256 } from '@noble/hashes/sha2.js';
 import { bytesToHex } from '@noble/hashes/utils.js';
-import { Effect, Exit, Schema, Stream } from 'effect';
+import { Effect, Exit, Option, Predicate, Schema, Stream } from 'effect';
 import * as VFS from 'wa-sqlite/src/VFS.js';
 
-export class DatabaseFileDownloadError extends Schema.TaggedErrorClass<DatabaseFileDownloadError>()(
+export class DatabaseFileDownloadError extends Schema.TaggedError<DatabaseFileDownloadError>()(
   'DatabaseFileDownloadError',
   {
     operation: Schema.String,
@@ -42,7 +42,7 @@ export interface IndexedDbImportVfs {
 interface DatabaseFileWriter {
   readonly write: (data: Uint8Array) => Promise<void>;
   readonly close: () => Promise<void>;
-  readonly abort: (reason?: unknown) => Promise<void>;
+  readonly abort: (cause?: unknown) => Promise<void>;
 }
 
 interface DatabaseFileHandle {
@@ -59,7 +59,7 @@ export interface DatabaseFileDirectory {
 const hostPromise = <A>(operation: string, evaluate: () => Promise<A>) =>
   Effect.tryPromise({
     try: evaluate,
-    catch: (cause) => new DatabaseFileDownloadError({ operation, cause }),
+    catch: (cause) => DatabaseFileDownloadError.make({ operation, cause }),
   });
 
 const defaultStorageRoot = (): Promise<DatabaseFileDirectory> =>
@@ -70,7 +70,7 @@ const defaultStorageRoot = (): Promise<DatabaseFileDirectory> =>
           handle.createWritable().then((writable) => ({
             write: (data) => writable.write(Uint8Array.from(data)),
             close: () => writable.close(),
-            abort: (reason) => writable.abort(reason),
+            abort: (cause) => writable.abort(cause),
           })),
       })),
   }));
@@ -128,15 +128,11 @@ const checkVfsResult = Effect.fn('DatabaseFileDownloader.checkVfsResult')(functi
   operation: string,
   evaluate: () => number | Promise<number>,
 ) {
-  const pending = yield* Effect.try({
-    try: evaluate,
-    catch: (cause) => new DatabaseFileDownloadError({ operation, cause }),
-  });
-  let code: number;
-  if (typeof pending === 'number') code = pending;
-  else code = yield* hostPromise(operation, () => pending);
+  // The VFS call may complete synchronously or return a Promise; Promise.resolve flattens both.
+  // oxlint-disable-next-line effect/noNewPromise -- wa-sqlite VFS calls return number | Promise<number>; Promise.resolve flattens both
+  const code = yield* hostPromise(operation, () => Promise.resolve(evaluate()));
   if (code !== VFS.SQLITE_OK) {
-    return yield* new DatabaseFileDownloadError({
+    return yield* DatabaseFileDownloadError.make({
       operation,
       cause: `SQLite VFS code ${String(code)}`,
     });
@@ -153,8 +149,8 @@ export const makeIndexedDbDatabaseFileDownloader = (
       let bufferedBytes = 0;
       let receivedBytes = 0;
       const hasher = sha256.create();
-      let pageSize: number | undefined;
-      let pageCount: number | undefined;
+      let header: Option.Option<{ readonly pageSize: number; readonly pageCount: number }> =
+        Option.none();
       let writtenPages = 0;
       let lastProgress = -1;
       const fileId = Math.floor(Math.random() * 0x1_0000_0000);
@@ -165,7 +161,7 @@ export const makeIndexedDbDatabaseFileDownloader = (
       const take = (size: number): Effect.Effect<Uint8Array, DatabaseFileDownloadError> => {
         if (bufferedBytes < size) {
           return Effect.fail(
-            new DatabaseFileDownloadError({
+            DatabaseFileDownloadError.make({
               operation: 'read-buffered-database-bytes',
               cause: `Unexpected end of ${filename}`,
             }),
@@ -175,9 +171,9 @@ export const makeIndexedDbDatabaseFileDownloader = (
         let offset = 0;
         while (offset < size) {
           const chunk = chunks[0];
-          if (chunk === undefined) {
+          if (Predicate.isUndefined(chunk)) {
             return Effect.fail(
-              new DatabaseFileDownloadError({
+              DatabaseFileDownloadError.make({
                 operation: 'read-buffered-database-bytes',
                 cause: `Missing buffered data for ${filename}`,
               }),
@@ -195,23 +191,24 @@ export const makeIndexedDbDatabaseFileDownloader = (
 
       const initializeImport = Effect.fn('DatabaseFileDownloader.initializeImport')(function* () {
         const headerBytes = yield* take(32);
-        const header = new DataView(headerBytes.buffer);
+        const headerView = new DataView(headerBytes.buffer);
         if (new TextDecoder().decode(headerBytes.subarray(0, 16)) !== SQLITE_MAGIC) {
-          return yield* new DatabaseFileDownloadError({
+          return yield* DatabaseFileDownloadError.make({
             operation: 'validate-sqlite-header',
             cause: `${filename} is not a SQLite database`,
           });
         }
-        const encodedPageSize = header.getUint16(16);
-        pageSize = encodedPageSize;
+        const encodedPageSize = headerView.getUint16(16);
+        let pageSize = encodedPageSize;
         if (encodedPageSize === 1) pageSize = 65_536;
-        pageCount = header.getUint32(28);
+        const pageCount = headerView.getUint32(28);
         if (pageSize === 0 || pageCount === 0) {
-          return yield* new DatabaseFileDownloadError({
+          return yield* DatabaseFileDownloadError.make({
             operation: 'validate-sqlite-header',
             cause: `${filename} has an empty SQLite header`,
           });
         }
+        header = Option.some({ pageSize, pageCount });
         chunks.unshift(headerBytes);
         bufferedBytes += headerBytes.byteLength;
 
@@ -250,8 +247,8 @@ export const makeIndexedDbDatabaseFileDownloader = (
       });
 
       const writeAvailablePages = Effect.fn('DatabaseFileDownloader.writePages')(function* () {
-        if (pageSize === undefined || pageCount === undefined) return;
-        const currentPageSize = pageSize;
+        if (Option.isNone(header)) return;
+        const { pageSize: currentPageSize, pageCount } = header.value;
         const remainingPages = pageCount - writtenPages;
         const availablePages = Math.floor(bufferedBytes / currentPageSize);
         const pagesToWrite = Math.min(remainingPages, availablePages);
@@ -276,14 +273,18 @@ export const makeIndexedDbDatabaseFileDownloader = (
             bufferedBytes += value.byteLength;
             receivedBytes += value.byteLength;
             hasher.update(value);
-            if (pageSize === undefined && bufferedBytes >= 32) yield* initializeImport();
+            if (Option.isNone(header) && bufferedBytes >= 32) yield* initializeImport();
             yield* writeAvailablePages();
           }),
         ),
         Effect.flatMap(() => {
-          if (pageCount === undefined || writtenPages !== pageCount || bufferedBytes > 0) {
+          const complete = Option.exists(
+            header,
+            ({ pageCount }) => writtenPages === pageCount && bufferedBytes === 0,
+          );
+          if (!complete) {
             return Effect.fail(
-              new DatabaseFileDownloadError({
+              DatabaseFileDownloadError.make({
                 operation: 'validate-imported-database-length',
                 cause: `${filename} does not match its declared SQLite pages`,
               }),
@@ -297,10 +298,13 @@ export const makeIndexedDbDatabaseFileDownloader = (
           ),
         ),
         Effect.andThen(
-          Effect.try({
-            try: () => vfs.jFileControl(fileId, VFS.SQLITE_FCNTL_SYNC, controlArgument),
+          // jFileControl may complete synchronously or return a Promise; Promise.resolve flattens both.
+          Effect.tryPromise({
+            try: () =>
+              // oxlint-disable-next-line effect/noNewPromise -- wa-sqlite VFS calls return number | Promise<number>; Promise.resolve flattens both
+              Promise.resolve(vfs.jFileControl(fileId, VFS.SQLITE_FCNTL_SYNC, controlArgument)),
             catch: (cause) =>
-              new DatabaseFileDownloadError({ operation: 'publish imported database', cause }),
+              DatabaseFileDownloadError.make({ operation: 'publish imported database', cause }),
           }),
         ),
         Effect.andThen(

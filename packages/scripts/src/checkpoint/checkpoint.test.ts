@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'effect-bun-test';
 
-import { Effect } from 'effect';
+import { Effect, Option } from 'effect';
 
 import { dynamicImportPattern } from './boundaries.js';
 import { isRepositorySourcePath, snapshotLegacy, validateLegacySnapshot } from './legacy.js';
@@ -91,13 +91,14 @@ describe('architecture checkpoint', () => {
   it.effect('blocks growth beyond the initial baseline', () =>
     Effect.gen(function* () {
       const baseline = emptyBaseline();
-      const category = baseline.categories[0];
-      if (category === undefined) return yield* Effect.die('test baseline must contain a category');
+      const category = Option.fromUndefinedOr(baseline.categories[0]);
+      if (Option.isNone(category))
+        return yield* Effect.die('test baseline must contain a category');
       const current: RemovalBaseline = {
         schemaVersion: 1,
         categories: [
           {
-            ...category,
+            ...category.value,
             matches: ['packages/cli/src/tui/new.tsx'],
           },
         ],

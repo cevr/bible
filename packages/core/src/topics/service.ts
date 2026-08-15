@@ -11,12 +11,12 @@ import {
   TopicSummary,
 } from './model.js';
 
-export class TopicUnavailableError extends Schema.TaggedErrorClass<TopicUnavailableError>()(
+export class TopicUnavailableError extends Schema.TaggedError<TopicUnavailableError>()(
   'TopicUnavailableError',
   { operation: Schema.NonEmptyString, cause: Schema.Unknown },
 ) {}
 
-export class TopicNotFoundError extends Schema.TaggedErrorClass<TopicNotFoundError>()(
+export class TopicNotFoundError extends Schema.TaggedError<TopicNotFoundError>()(
   'TopicNotFoundError',
   { id: TopicId },
 ) {}
@@ -44,13 +44,13 @@ const StringArrayJson = Schema.fromJsonString(Schema.Array(Schema.NonEmptyString
 const decodeStrings = Schema.decodeUnknownSync(StringArrayJson);
 
 const summary = (row: TopicRow) =>
-  new TopicSummary({
-    id: Schema.decodeUnknownSync(TopicId)(row.id),
+  TopicSummary.make({
+    id: Schema.decodeSync(TopicId)(row.id),
     name: row.name,
     alternativeNames: decodeStrings(row.alternative_names),
   });
 
-export interface TopicServiceShape {
+export interface TopicServiceApi {
   readonly list: (input: TopicListInput) => Effect.Effect<readonly TopicSummary[], TopicError>;
   readonly topic: (id: TopicId) => Effect.Effect<TopicDetail, TopicError>;
 }
@@ -58,9 +58,9 @@ export interface TopicServiceShape {
 const unavailable =
   (operation: string) =>
   (cause: SqlError): TopicUnavailableError =>
-    new TopicUnavailableError({ operation, cause });
+    TopicUnavailableError.make({ operation, cause });
 
-export class TopicService extends Context.Service<TopicService, TopicServiceShape>()(
+export class TopicService extends Context.Service<TopicService, TopicServiceApi>()(
   '@bible/core/topics/TopicService',
 ) {
   static Live: Layer.Layer<TopicService, never, SqlClient.SqlClient> = Layer.effect(
@@ -108,7 +108,7 @@ export class TopicService extends Context.Service<TopicService, TopicServiceShap
             SELECT id, name, alternative_names FROM topics WHERE id = ${id} LIMIT 1
           `;
           const found = Option.fromNullishOr(rows[0]);
-          if (Option.isNone(found)) return yield* new TopicNotFoundError({ id });
+          if (Option.isNone(found)) return yield* TopicNotFoundError.make({ id });
           const sections = yield* sql<TopicSectionRow>`
             SELECT id, label FROM topic_sections WHERE topic_id = ${id} ORDER BY position
           `;
@@ -123,25 +123,24 @@ export class TopicService extends Context.Service<TopicService, TopicServiceShap
           for (const reference of references) {
             const values = referencesBySection.get(reference.section_id) ?? [];
             values.push(
-              new TopicReference({ raw: reference.raw, osis: decodeStrings(reference.osis) }),
+              TopicReference.make({ raw: reference.raw, osis: decodeStrings(reference.osis) }),
             );
             referencesBySection.set(reference.section_id, values);
           }
-          return new TopicDetail({
-            id: Schema.decodeUnknownSync(TopicId)(found.value.id),
+          return TopicDetail.make({
+            id: yield* Schema.decodeEffect(TopicId)(found.value.id).pipe(Effect.orDie),
             name: found.value.name,
             alternativeNames: decodeStrings(found.value.alternative_names),
-            sections: sections.map(
-              (section) =>
-                new TopicSection({
-                  label: section.label,
-                  references: referencesBySection.get(section.id) ?? [],
-                }),
+            sections: sections.map((section) =>
+              TopicSection.make({
+                label: section.label,
+                references: referencesBySection.get(section.id) ?? [],
+              }),
             ),
           });
         }).pipe(
           Effect.mapError((cause) => {
-            if (cause instanceof TopicNotFoundError) return cause;
+            if (Schema.is(TopicNotFoundError)(cause)) return cause;
             return unavailable('topic')(cause);
           }),
         ),
@@ -165,20 +164,19 @@ export class TopicService extends Context.Service<TopicService, TopicServiceShap
                 if (letter) return topic.name.toLowerCase().startsWith(letter);
                 return true;
               })
-              .map(
-                (topic) =>
-                  new TopicSummary({
-                    id: topic.id,
-                    name: topic.name,
-                    alternativeNames: topic.alternativeNames,
-                  }),
+              .map((topic) =>
+                TopicSummary.make({
+                  id: topic.id,
+                  name: topic.name,
+                  alternativeNames: topic.alternativeNames,
+                }),
               ),
           );
         },
         topic: (id) => {
           const found = topics.find((candidate) => candidate.id === id);
           if (found) return Effect.succeed(found);
-          return Effect.fail(new TopicNotFoundError({ id }));
+          return Effect.fail(TopicNotFoundError.make({ id }));
         },
       }),
     );

@@ -1,18 +1,18 @@
 import { Schema } from 'effect';
 
-export const BookNumber = Schema.Number.pipe(
+export const BookNumber = Schema.Finite.pipe(
   Schema.check(Schema.isInt(), Schema.isBetween({ minimum: 1, maximum: 66 })),
   Schema.brand('Bible/BookNumber'),
 );
 export type BookNumber = typeof BookNumber.Type;
 
-export const ChapterNumber = Schema.Number.pipe(
+export const ChapterNumber = Schema.Finite.pipe(
   Schema.check(Schema.isInt(), Schema.isGreaterThan(0)),
   Schema.brand('Bible/ChapterNumber'),
 );
 export type ChapterNumber = typeof ChapterNumber.Type;
 
-export const VerseNumber = Schema.Number.pipe(
+export const VerseNumber = Schema.Finite.pipe(
   Schema.check(Schema.isInt(), Schema.isGreaterThan(0)),
   Schema.brand('Bible/VerseNumber'),
 );
@@ -65,7 +65,7 @@ const OrderedVerseRangeReference = VerseRangeReference.check(
         range.start.chapter === range.end.chapter &&
         range.start.verse > range.end.verse);
     if (startsAfterEnd) return 'Bible verse range must be ordered';
-    return undefined;
+    return true;
   }),
 );
 
@@ -118,30 +118,30 @@ export const chapterNumber = Schema.decodeSync(ChapterNumber);
 export const verseNumber = Schema.decodeSync(VerseNumber);
 
 export const Reference = {
-  book: (book: number): BookReference => new BookReference({ book: bookNumber(book) }),
+  book: (book: number): BookReference => BookReference.make({ book: bookNumber(book) }),
   chapter: (book: number, chapter: number): ChapterReference =>
-    new ChapterReference({ book: bookNumber(book), chapter: chapterNumber(chapter) }),
+    ChapterReference.make({ book: bookNumber(book), chapter: chapterNumber(chapter) }),
   verse: (book: number, chapter: number, verse: number): VerseReference =>
-    new VerseReference({
+    VerseReference.make({
       book: bookNumber(book),
       chapter: chapterNumber(chapter),
       verse: verseNumber(verse),
     }),
   range: (start: VerseReference, end: VerseReference): VerseRangeReference =>
-    orderedVerseRange(new VerseRangeReference({ start, end })),
+    orderedVerseRange(VerseRangeReference.make({ start, end })),
   chapterOf: (reference: Reference): ChapterReference => {
     switch (reference._tag) {
       case 'book':
-        return new ChapterReference({ book: reference.book, chapter: chapterNumber(1) });
+        return ChapterReference.make({ book: reference.book, chapter: chapterNumber(1) });
       case 'chapter':
         return reference;
       case 'verse':
-        return new ChapterReference({ book: reference.book, chapter: reference.chapter });
+        return ChapterReference.make({ book: reference.book, chapter: reference.chapter });
       case 'range':
-        return new ChapterReference({
+        return ChapterReference.make({
           book: reference.start.book,
           chapter: reference.start.chapter,
         });
     }
   },
-} as const;
+};

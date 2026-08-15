@@ -7,7 +7,7 @@
  */
 
 import { isSearchQuery, parseEGWRef } from '@bible/core/egw';
-import { Console, Effect } from 'effect';
+import { Console, Effect, Option } from 'effect';
 import { Argument, Command } from 'effect/unstable/cli';
 
 import { egwBooks } from './egw/books.js';
@@ -51,7 +51,7 @@ export const egwWithSubcommands = Command.make('egw', { query }, (args) =>
 
     const parsed = parseEGWRef(queryStr);
     if (isSearchQuery(parsed)) {
-      yield* localSearch(parsed.query, undefined, 20);
+      yield* localSearch(parsed.query, Option.none(), 20);
     } else {
       yield* lookupReference(parsed);
     }

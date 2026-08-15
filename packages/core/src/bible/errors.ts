@@ -2,17 +2,17 @@ import { Schema } from 'effect';
 
 import { BookNumber, ChapterReference } from './model.js';
 
-export class BibleBookNotFoundError extends Schema.TaggedErrorClass<BibleBookNotFoundError>()(
+export class BibleBookNotFoundError extends Schema.TaggedError<BibleBookNotFoundError>()(
   'BibleBookNotFoundError',
   { book: BookNumber },
 ) {}
 
-export class BibleChapterNotFoundError extends Schema.TaggedErrorClass<BibleChapterNotFoundError>()(
+export class BibleChapterNotFoundError extends Schema.TaggedError<BibleChapterNotFoundError>()(
   'BibleChapterNotFoundError',
   { reference: ChapterReference },
 ) {}
 
-export class BibleUnavailableError extends Schema.TaggedErrorClass<BibleUnavailableError>()(
+export class BibleUnavailableError extends Schema.TaggedError<BibleUnavailableError>()(
   'BibleUnavailableError',
   {
     operation: Schema.Literals(['read-chapter', 'search']),
@@ -20,7 +20,7 @@ export class BibleUnavailableError extends Schema.TaggedErrorClass<BibleUnavaila
   },
 ) {}
 
-export class BibleDataIntegrityError extends Schema.TaggedErrorClass<BibleDataIntegrityError>()(
+export class BibleDataIntegrityError extends Schema.TaggedError<BibleDataIntegrityError>()(
   'BibleDataIntegrityError',
   {
     operation: Schema.Literals(['read-chapter', 'search']),

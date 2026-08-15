@@ -12,6 +12,7 @@ const ProcedureWorkerReadiness = Schema.Union([
 type ProcedureWorkerReadiness = typeof ProcedureWorkerReadiness.Type;
 
 export const decodeProcedureWorkerConnect = Schema.decodeUnknownSync(ProcedureWorkerConnect);
+export const decodeProcedureWorkerConnectExit = Schema.decodeUnknownExit(ProcedureWorkerConnect);
 
 export interface ProcedureWorkerEndpoint {
   readonly postMessage: (message: ProcedureWorkerConnect, transfer: Transferable[]) => void;
@@ -22,7 +23,7 @@ export interface ProcedureWorkerConnection {
   readonly ready: Effect.Effect<void, ProcedureWorkerStartupError>;
 }
 
-export class ProcedureWorkerStartupError extends Schema.TaggedErrorClass<ProcedureWorkerStartupError>()(
+export class ProcedureWorkerStartupError extends Schema.TaggedError<ProcedureWorkerStartupError>()(
   'ProcedureWorkerStartupError',
   { message: Schema.String },
 ) {}
@@ -38,7 +39,7 @@ export const connectProcedureWorker = (
       const result = decodeReadiness(event.data);
       readiness.port1.close();
       if (result.type === 'ready') resume(Effect.void);
-      else resume(Effect.fail(new ProcedureWorkerStartupError({ message: result.message })));
+      else resume(Effect.fail(ProcedureWorkerStartupError.make({ message: result.message })));
     };
     readiness.port1.start();
     return Effect.sync(() => readiness.port1.close());

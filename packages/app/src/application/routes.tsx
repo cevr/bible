@@ -1,5 +1,6 @@
-import { A, Navigate, Route, useLocation, useNavigate } from '@solidjs/router';
+import { defineRoutes, useLocation, useNavigate } from '@solidjs/router';
 import { Errored, Loading, Show } from '@solidjs/web';
+import { Option } from 'effect';
 import { createEffect, createMemo } from 'solid-js';
 
 import { Plans, Practice, Settings, Topics } from '../library/index.js';
@@ -12,16 +13,23 @@ import {
   WritingsParagraphReader,
   WritingsPublicationReader,
 } from '../reading/index.js';
+import type { AppRoute } from '../route/index.js';
 import { decodeRoute, encodeRoute, readingRouteForLocation } from '../route/index.js';
 import { useReadingData } from '../runtime/index.js';
 
+/** Decodes the location and projects the slice a route component renders;
+ *  `Show` receives the projection through `Option.getOrUndefined`. */
+const routeSlice = <A,>(path: string, select: (route: AppRoute) => Option.Option<A>) =>
+  Option.getOrUndefined(Option.flatMap(decodeRoute(path), select));
+
 const BibleRoute = () => {
   const location = useLocation();
-  const reference = createMemo(() => {
-    const route = decodeRoute(`${location.pathname}${location.search}`);
-    if (route?._tag === 'bible') return route.reference;
-    return undefined;
-  });
+  const reference = createMemo(() =>
+    routeSlice(`${location.pathname}${location.search}`, (route) => {
+      if (route._tag === 'bible') return Option.some(route.reference);
+      return Option.none();
+    }),
+  );
   return (
     <Show when={reference()} fallback={<NotFoundContent requestedPath={location.pathname} />}>
       {(current) => <BibleReader reference={current()} />}
@@ -31,11 +39,14 @@ const BibleRoute = () => {
 
 const WritingsPageRoute = () => {
   const location = useLocation();
-  const reference = createMemo(() => {
-    const route = decodeRoute(`${location.pathname}${location.search}`);
-    if (route?._tag === 'writings' && route.reference._tag === 'page') return route.reference;
-    return undefined;
-  });
+  const reference = createMemo(() =>
+    routeSlice(`${location.pathname}${location.search}`, (route) => {
+      if (route._tag === 'writings' && route.reference._tag === 'page') {
+        return Option.some(route.reference);
+      }
+      return Option.none();
+    }),
+  );
   return (
     <Show when={reference()} fallback={<NotFoundContent requestedPath={location.pathname} />}>
       {(current) => <WritingsPageReader reference={current()} />}
@@ -45,11 +56,12 @@ const WritingsPageRoute = () => {
 
 const SearchRoute = () => {
   const location = useLocation();
-  const route = createMemo(() => {
-    const decoded = decodeRoute(`${location.pathname}${location.search}`);
-    if (decoded?._tag === 'search') return decoded;
-    return undefined;
-  });
+  const route = createMemo(() =>
+    routeSlice(`${location.pathname}${location.search}`, (decoded) => {
+      if (decoded._tag === 'search') return Option.some(decoded);
+      return Option.none();
+    }),
+  );
   return (
     <Show when={route()} fallback={<NotFoundContent requestedPath={location.pathname} />}>
       {(current) => <BibleSearch route={current()} />}
@@ -59,13 +71,14 @@ const SearchRoute = () => {
 
 const PublicationRoute = () => {
   const location = useLocation();
-  const reference = createMemo(() => {
-    const route = decodeRoute(location.pathname);
-    if (route?._tag === 'writings' && route.reference._tag === 'publication') {
-      return route.reference;
-    }
-    return undefined;
-  });
+  const reference = createMemo(() =>
+    routeSlice(location.pathname, (route) => {
+      if (route._tag === 'writings' && route.reference._tag === 'publication') {
+        return Option.some(route.reference);
+      }
+      return Option.none();
+    }),
+  );
   return (
     <Show when={reference()} fallback={<NotFoundContent requestedPath={location.pathname} />}>
       {(current) => <WritingsPublicationReader reference={current()} />}
@@ -75,13 +88,14 @@ const PublicationRoute = () => {
 
 const ParagraphRoute = () => {
   const location = useLocation();
-  const reference = createMemo(() => {
-    const route = decodeRoute(location.pathname);
-    if (route?._tag === 'writings' && route.reference._tag === 'paragraph') {
-      return route.reference;
-    }
-    return undefined;
-  });
+  const reference = createMemo(() =>
+    routeSlice(location.pathname, (route) => {
+      if (route._tag === 'writings' && route.reference._tag === 'paragraph') {
+        return Option.some(route.reference);
+      }
+      return Option.none();
+    }),
+  );
   return (
     <Show when={reference()} fallback={<NotFoundContent requestedPath={location.pathname} />}>
       {(current) => <WritingsParagraphReader reference={current()} />}
@@ -96,7 +110,7 @@ const NotFoundContent = (props: { readonly requestedPath: string }) => (
     <p>
       No canonical reading route matches <code>{props.requestedPath}</code>.
     </p>
-    <A href="/bible/1/1">Open Genesis 1</A>
+    <a href="/bible/1/1">Open Genesis 1</a>
   </section>
 );
 
@@ -113,19 +127,32 @@ const ResumeReading = () => {
   createEffect(
     () => {
       const route = readingRouteForLocation(data.readingContinuity.get()());
-      if (route) return encodeRoute(route);
-      return fallback;
+      return Option.match(route, {
+        onNone: () => fallback,
+        onSome: encodeRoute,
+      });
     },
     (target) => navigate(target, { replace: true }),
   );
 
-  return null;
+  return <></>;
+};
+
+/** Replacement for the removed `<Navigate>` component: navigates once the
+ *  effect graph settles, replacing the current history entry. */
+const RedirectTo = (props: { readonly href: string }) => {
+  const navigate = useNavigate();
+  createEffect(
+    () => props.href,
+    (target) => navigate(target, { replace: true }),
+  );
+  return <></>;
 };
 
 const RootRoute = () => {
   const fallback = '/bible/1/1';
   return (
-    <Errored fallback={() => <Navigate href={fallback} />}>
+    <Errored fallback={() => <RedirectTo href={fallback} />}>
       <Loading fallback={<ReaderLoading label="Opening your last passage" />}>
         <ResumeReading />
       </Loading>
@@ -135,11 +162,12 @@ const RootRoute = () => {
 
 const SettingsRoute = () => {
   const location = useLocation();
-  const route = createMemo(() => {
-    const decoded = decodeRoute(location.pathname);
-    if (decoded?._tag === 'settings') return decoded;
-    return undefined;
-  });
+  const route = createMemo(() =>
+    routeSlice(location.pathname, (decoded) => {
+      if (decoded._tag === 'settings') return Option.some(decoded);
+      return Option.none();
+    }),
+  );
   return (
     <Show when={route()} fallback={<NotFoundContent requestedPath={location.pathname} />}>
       {(current) => <Settings section={current().section} />}
@@ -149,11 +177,12 @@ const SettingsRoute = () => {
 
 const PlansRoute = () => {
   const location = useLocation();
-  const route = createMemo(() => {
-    const decoded = decodeRoute(location.pathname);
-    if (decoded?._tag === 'plans') return decoded;
-    return undefined;
-  });
+  const route = createMemo(() =>
+    routeSlice(location.pathname, (decoded) => {
+      if (decoded._tag === 'plans') return Option.some(decoded);
+      return Option.none();
+    }),
+  );
   return (
     <Show when={route()} fallback={<NotFoundContent requestedPath={location.pathname} />}>
       {(current) => <Plans planId={current().planId} />}
@@ -163,11 +192,12 @@ const PlansRoute = () => {
 
 const PracticeRoute = () => {
   const location = useLocation();
-  const route = createMemo(() => {
-    const decoded = decodeRoute(location.pathname);
-    if (decoded?._tag === 'practice') return decoded;
-    return undefined;
-  });
+  const route = createMemo(() =>
+    routeSlice(location.pathname, (decoded) => {
+      if (decoded._tag === 'practice') return Option.some(decoded);
+      return Option.none();
+    }),
+  );
   return (
     <Show when={route()} fallback={<NotFoundContent requestedPath={location.pathname} />}>
       {(current) => <Practice memoryVerseId={current().memoryVerseId} />}
@@ -177,11 +207,12 @@ const PracticeRoute = () => {
 
 const TopicsRoute = () => {
   const location = useLocation();
-  const route = createMemo(() => {
-    const decoded = decodeRoute(location.pathname);
-    if (decoded?._tag === 'topics') return decoded;
-    return undefined;
-  });
+  const route = createMemo(() =>
+    routeSlice(location.pathname, (decoded) => {
+      if (decoded._tag === 'topics') return Option.some(decoded);
+      return Option.none();
+    }),
+  );
   return (
     <Show when={route()} fallback={<NotFoundContent requestedPath={location.pathname} />}>
       {(current) => <Topics topicId={current().topicId} />}
@@ -189,19 +220,17 @@ const TopicsRoute = () => {
   );
 };
 
-export const SharedRoutes = () => (
-  <>
-    <Route path="/" component={RootRoute} />
-    <Route path="/bible/:book/:chapter/:verse?" component={BibleRoute} />
-    <Route path="/writings" component={WritingsCatalog} />
-    <Route path="/writings/:publicationId" component={PublicationRoute} />
-    <Route path="/writings/:publicationId/page/:page" component={WritingsPageRoute} />
-    <Route path="/writings/:publicationId/p/:paragraphId" component={ParagraphRoute} />
-    <Route path="/search" component={SearchRoute} />
-    <Route path="/topics/:topicId?" component={TopicsRoute} />
-    <Route path="/settings/:section?" component={SettingsRoute} />
-    <Route path="/plans/:planId?" component={PlansRoute} />
-    <Route path="/practice/:memoryVerseId?" component={PracticeRoute} />
-    <Route path="*404" component={NotFoundRoute} />
-  </>
-);
+export const sharedRoutes = defineRoutes([
+  { path: '/', component: RootRoute },
+  { path: '/bible/:book/:chapter/:verse?', component: BibleRoute },
+  { path: '/writings', component: WritingsCatalog },
+  { path: '/writings/:publicationId', component: PublicationRoute },
+  { path: '/writings/:publicationId/page/:page', component: WritingsPageRoute },
+  { path: '/writings/:publicationId/p/:paragraphId', component: ParagraphRoute },
+  { path: '/search', component: SearchRoute },
+  { path: '/topics/:topicId?', component: TopicsRoute },
+  { path: '/settings/:section?', component: SettingsRoute },
+  { path: '/plans/:planId?', component: PlansRoute },
+  { path: '/practice/:memoryVerseId?', component: PracticeRoute },
+  { path: '*404', component: NotFoundRoute },
+]);

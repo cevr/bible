@@ -37,7 +37,7 @@ export const makeSimulatedTransport = (): SimulatedTransport => {
   ): Effect.Effect<A, E | TransportOfflineError> => {
     if (online) return effect;
     return Effect.fail(
-      new TransportOfflineError({
+      TransportOfflineError.make({
         message: 'simulated transport is offline',
       }),
     );
@@ -56,20 +56,26 @@ export const makeSimulatedTransport = (): SimulatedTransport => {
         }
 
         const expected =
-          nextSequence.get(envelope.clientId) ?? Schema.decodeSync(MutationSequence)(1);
+          nextSequence.get(envelope.clientId) ??
+          (yield* Schema.decodeEffect(MutationSequence)(1).pipe(Effect.orDie));
         if (envelope.sequence !== expected) {
-          return yield* new MutationGapError({
+          return yield* MutationGapError.make({
             clientId: envelope.clientId,
             expected,
             received: envelope.sequence,
           });
         }
 
-        const revision = Schema.decodeSync(ServerRevision)(accepted.length + 1);
+        const revision = yield* Schema.decodeEffect(ServerRevision)(accepted.length + 1).pipe(
+          Effect.orDie,
+        );
         const entry = { envelope, revision };
         accepted.push(entry);
+        nextSequence.set(
+          envelope.clientId,
+          yield* Schema.decodeEffect(MutationSequence)(expected + 1).pipe(Effect.orDie),
+        );
         byMutationId.set(envelope.mutationId, entry);
-        nextSequence.set(envelope.clientId, Schema.decodeSync(MutationSequence)(expected + 1));
 
         return {
           mutationId: envelope.mutationId,
@@ -82,15 +88,13 @@ export const makeSimulatedTransport = (): SimulatedTransport => {
 
   const pull = Effect.fn('SimulatedTransport.pull')((baseRevision: ServerRevision) =>
     requireOnline(
-      Effect.sync(
-        (): RevisionPatch => ({
-          baseRevision,
-          revision: accepted.at(-1)?.revision ?? INITIAL_SERVER_REVISION,
-          mutations: accepted
-            .filter((entry) => entry.revision > baseRevision)
-            .map((entry) => entry.envelope),
-        }),
-      ),
+      Effect.sync((): RevisionPatch => ({
+        baseRevision,
+        revision: accepted.at(-1)?.revision ?? INITIAL_SERVER_REVISION,
+        mutations: accepted
+          .filter((entry) => entry.revision > baseRevision)
+          .map((entry) => entry.envelope),
+      })),
     ),
   );
 

@@ -52,13 +52,13 @@ export function matchArrayEnum<T extends readonly string[]>(
   allowedValues: T,
   values: string[],
 ): Option.Option<T[number][]> {
-  const matched = values.map((v) => {
-    const result = matchSorter(allowedValues as unknown as string[], v)[0];
-    return result;
-  });
-
-  if (matched.some((m) => m === undefined)) {
-    return Option.none();
+  const matched: string[] = [];
+  for (const v of values) {
+    const result = Option.fromNullishOr(matchSorter(allowedValues as unknown as string[], v)[0]);
+    if (Option.isNone(result)) {
+      return Option.none();
+    }
+    matched.push(result.value);
   }
   return Option.some(matched as T[number][]);
 }

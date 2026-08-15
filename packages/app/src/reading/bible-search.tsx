@@ -1,5 +1,5 @@
 import { bookNumber } from '@bible/core/bible';
-import { A, useNavigate } from '@solidjs/router';
+import { useNavigate } from '@solidjs/router';
 import { Errored, For, Loading, Show } from '@solidjs/web';
 import { createEffect, createMemo, createSignal } from 'solid-js';
 
@@ -123,7 +123,7 @@ export const BibleSearch = (props: BibleSearchProps) => {
                   <For each={results().hits}>
                     {(hit) => (
                       <li>
-                        <A
+                        <a
                           href={`/bible/${String(hit.verse.reference.book)}/${String(hit.verse.reference.chapter)}/${String(hit.verse.reference.verse)}`}
                         >
                           <strong>
@@ -131,7 +131,7 @@ export const BibleSearch = (props: BibleSearchProps) => {
                             {hit.verse.reference.verse}
                           </strong>
                           <span>{hit.verse.text}</span>
-                        </A>
+                        </a>
                       </li>
                     )}
                   </For>

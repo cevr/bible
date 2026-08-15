@@ -2,13 +2,13 @@ import { Schema } from 'effect';
 
 import { ChangeSet } from '../local-first/model.js';
 
-export const ProtocolVersion = Schema.Number.pipe(
+export const ProtocolVersion = Schema.Finite.pipe(
   Schema.check(Schema.isInt(), Schema.isGreaterThan(0)),
   Schema.brand('Procedure/ProtocolVersion'),
 );
 export type ProtocolVersion = typeof ProtocolVersion.Type;
 
-export const RuntimeSchemaVersion = Schema.Number.pipe(
+export const RuntimeSchemaVersion = Schema.Finite.pipe(
   Schema.check(Schema.isInt(), Schema.isGreaterThan(0)),
   Schema.brand('Procedure/RuntimeSchemaVersion'),
 );
@@ -25,7 +25,7 @@ export type CommitId = typeof CommitId.Type;
 export const OperationId = Schema.NonEmptyString.pipe(Schema.brand('Procedure/OperationId'));
 export type OperationId = typeof OperationId.Type;
 
-export const RuntimeEventSequence = Schema.Number.pipe(
+export const RuntimeEventSequence = Schema.Finite.pipe(
   Schema.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0)),
   Schema.brand('Procedure/RuntimeEventSequence'),
 );
@@ -50,7 +50,7 @@ export class RuntimeConnection extends Schema.Class<RuntimeConnection>('RuntimeC
   capabilities: Schema.Array(RuntimeCapability),
 }) {}
 
-export class IncompatibleRuntimeError extends Schema.TaggedErrorClass<IncompatibleRuntimeError>()(
+export class IncompatibleRuntimeError extends Schema.TaggedError<IncompatibleRuntimeError>()(
   'IncompatibleRuntimeError',
   {
     expectedProtocolVersion: ProtocolVersion,
@@ -60,15 +60,14 @@ export class IncompatibleRuntimeError extends Schema.TaggedErrorClass<Incompatib
   },
 ) {}
 
-export class ProcedureError extends Schema.TaggedErrorClass<ProcedureError>()('ProcedureError', {
+export class ProcedureError extends Schema.TaggedError<ProcedureError>()('ProcedureError', {
   procedure: Schema.NonEmptyString,
   code: Schema.NonEmptyString,
   message: Schema.NonEmptyString,
 }) {}
 
 export const MutationCommit = <Value extends Schema.Top>(value: Value) =>
-  Schema.Struct({
-    _tag: Schema.Literal('MutationCommit'),
+  Schema.TaggedStruct('MutationCommit', {
     value,
     commitId: CommitId,
     changes: ChangeSet,
@@ -84,8 +83,8 @@ export interface MutationCommitValue<Value> {
 export const RuntimeProgress = Schema.TaggedStruct('RuntimeProgress', {
   sequence: RuntimeEventSequence,
   operationId: OperationId,
-  completed: Schema.Number.pipe(Schema.check(Schema.isGreaterThanOrEqualTo(0))),
-  total: Schema.optional(Schema.Number.pipe(Schema.check(Schema.isGreaterThanOrEqualTo(0)))),
+  completed: Schema.Finite.pipe(Schema.check(Schema.isGreaterThanOrEqualTo(0))),
+  total: Schema.optional(Schema.Finite.pipe(Schema.check(Schema.isGreaterThanOrEqualTo(0)))),
   message: Schema.optional(Schema.NonEmptyString),
 });
 

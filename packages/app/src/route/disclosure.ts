@@ -1,3 +1,5 @@
+import { Option } from 'effect';
+
 import type { AppRoute, BibleReadingReference } from './model.js';
 
 export type NavigationPane = 'closed' | 'contents' | 'library' | 'bookmarks' | 'history';
@@ -8,16 +10,19 @@ export type ContextPane =
       readonly reference: BibleReadingReference;
       readonly tab: StudyTab;
     }
-  | { readonly _tag: 'scripture-compare'; readonly reference: BibleReadingReference }
-  | null;
+  | { readonly _tag: 'scripture-compare'; readonly reference: BibleReadingReference };
 export type Overlay = 'command-palette' | 'quick-find' | 'confirmation';
 
 export interface DisclosureState {
   readonly navigation: NavigationPane;
-  readonly context: ContextPane;
+  readonly context: Option.Option<ContextPane>;
   readonly overlays: readonly Overlay[];
   readonly viewport: 'wide' | 'narrow';
 }
+
+export type SurfaceReplacement =
+  | { readonly _tag: 'navigation'; readonly pane: Exclude<NavigationPane, 'closed'> }
+  | { readonly _tag: 'context'; readonly pane: ContextPane };
 
 export interface SurfaceProjection {
   readonly shell: 'reading-shell';
@@ -34,18 +39,15 @@ export interface SurfaceProjection {
     | 'practice-session'
     | 'settings'
     | 'not-found';
-  readonly left: Exclude<NavigationPane, 'closed'> | null;
-  readonly right: Exclude<ContextPane, null> | null;
-  readonly replacement:
-    | { readonly _tag: 'navigation'; readonly pane: Exclude<NavigationPane, 'closed'> }
-    | { readonly _tag: 'context'; readonly pane: Exclude<ContextPane, null> }
-    | null;
-  readonly overlay: Overlay | null;
+  readonly left: Option.Option<Exclude<NavigationPane, 'closed'>>;
+  readonly right: Option.Option<ContextPane>;
+  readonly replacement: Option.Option<SurfaceReplacement>;
+  readonly overlay: Option.Option<Overlay>;
 }
 
 export const defaultDisclosure = (viewport: DisclosureState['viewport']): DisclosureState => ({
   navigation: 'closed',
-  context: null,
+  context: Option.none(),
   overlays: [],
   viewport,
 });
@@ -55,10 +57,10 @@ export const openNavigation = (
   navigation: Exclude<NavigationPane, 'closed'>,
 ): DisclosureState => ({ ...state, navigation });
 
-export const openContext = (
-  state: DisclosureState,
-  context: Exclude<ContextPane, null>,
-): DisclosureState => ({ ...state, context });
+export const openContext = (state: DisclosureState, context: ContextPane): DisclosureState => ({
+  ...state,
+  context: Option.some(context),
+});
 
 export const pushOverlay = (state: DisclosureState, overlay: Overlay): DisclosureState => ({
   ...state,
@@ -69,7 +71,7 @@ export const dismissTopDisclosure = (state: DisclosureState): DisclosureState =>
   if (state.overlays.length > 0) {
     return { ...state, overlays: state.overlays.slice(0, -1) };
   }
-  if (state.context !== null) return { ...state, context: null };
+  if (Option.isSome(state.context)) return { ...state, context: Option.none() };
   if (state.navigation !== 'closed') return { ...state, navigation: 'closed' };
   return state;
 };
@@ -101,20 +103,23 @@ const canvasFor = (route: AppRoute): SurfaceProjection['canvas'] => {
 };
 
 export const projectSurface = (route: AppRoute, disclosure: DisclosureState): SurfaceProjection => {
-  let navigation: Exclude<NavigationPane, 'closed'> | null = null;
-  if (disclosure.navigation !== 'closed') navigation = disclosure.navigation;
+  let navigation = Option.none<Exclude<NavigationPane, 'closed'>>();
+  if (disclosure.navigation !== 'closed') navigation = Option.some(disclosure.navigation);
   const context = disclosure.context;
-  const overlay = disclosure.overlays.at(-1) ?? null;
+  const overlay = Option.fromNullishOr(disclosure.overlays.at(-1));
 
   if (disclosure.viewport === 'narrow') {
-    let replacement: SurfaceProjection['replacement'] = null;
-    if (context !== null) replacement = { _tag: 'context', pane: context };
-    else if (navigation !== null) replacement = { _tag: 'navigation', pane: navigation };
+    let replacement = Option.none<SurfaceReplacement>();
+    if (Option.isSome(context)) {
+      replacement = Option.some({ _tag: 'context', pane: context.value });
+    } else if (Option.isSome(navigation)) {
+      replacement = Option.some({ _tag: 'navigation', pane: navigation.value });
+    }
     return {
       shell: 'reading-shell',
       canvas: canvasFor(route),
-      left: null,
-      right: null,
+      left: Option.none(),
+      right: Option.none(),
       replacement,
       overlay,
     };
@@ -125,7 +130,7 @@ export const projectSurface = (route: AppRoute, disclosure: DisclosureState): Su
     canvas: canvasFor(route),
     left: navigation,
     right: context,
-    replacement: null,
+    replacement: Option.none(),
     overlay,
   };
 };

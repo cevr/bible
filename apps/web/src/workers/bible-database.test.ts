@@ -1,6 +1,6 @@
 import { BIBLE_ARTIFACT_RELEASE, CorpusSupply } from '@bible/core/corpus-supply';
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, Layer, Stream } from 'effect';
+import { Effect, Layer, Option, Stream } from 'effect';
 
 import { layerBrowserBibleArtifacts } from './bible-database.js';
 import { makeBibleGenerationStore } from './bible-generation-store.js';
@@ -21,7 +21,7 @@ const makeDatabase = (options: {
   isOpen: false,
   open: (flags) =>
     Effect.sync(() => options.events.push(`open:${String(flags)}`)).pipe(Effect.asVoid),
-  close: () => Effect.sync(() => options.events.push('close')).pipe(Effect.asVoid),
+  close: Effect.sync(() => options.events.push('close')).pipe(Effect.asVoid),
   query: (sql) =>
     Effect.sync((): readonly SqliteRow[] => {
       if (sql === 'PRAGMA integrity_check') return [{ integrity_check: 'ok' }];
@@ -70,38 +70,36 @@ const ensure = (options: {
   readonly refresh?: boolean;
 }) => {
   const database = makeDatabase(options);
-  let activeFilename: string | undefined;
+  let activeFilename: Option.Option<string> = Option.none();
   const databases: SqliteDatabaseFamily = {
     active: database,
     candidate: () => database,
     activate: (filename) =>
       Effect.sync(() => {
         options.events.push(`activate:${filename}`);
-        activeFilename = filename;
+        activeFilename = Option.some(filename);
       }),
-    deactivate: () =>
-      Effect.sync(() => {
-        options.events.push('deactivate');
-        activeFilename = undefined;
-      }),
+    deactivate: Effect.sync(() => {
+      options.events.push('deactivate');
+      activeFilename = Option.none();
+    }),
     get activeFilename() {
       return activeFilename;
     },
   };
-  let registry: GenerationRegistry = { active: undefined, managed: [] };
+  let registry: GenerationRegistry = { active: Option.none(), managed: [] };
   if (options.provenance) {
     const generation = options.generation ?? 'bible-db-v2-e72244f576be.db';
-    registry = { active: generation, managed: [generation] };
+    registry = { active: Option.some(generation), managed: [generation] };
   }
   const registryStore: GenerationRegistryStore = {
-    read: () =>
-      Effect.sync(() => {
-        options.events.push('registry:read');
-        return registry;
-      }),
+    read: Effect.sync(() => {
+      options.events.push('registry:read');
+      return registry;
+    }),
     write: (next) =>
       Effect.sync(() => {
-        options.events.push(`registry:write:${next.active ?? 'none'}`);
+        options.events.push(`registry:write:${Option.getOrElse(next.active, () => 'none')}`);
         registry = next;
       }),
   };

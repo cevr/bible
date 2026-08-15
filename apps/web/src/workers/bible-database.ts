@@ -11,7 +11,7 @@ import {
   CorpusSourceUnavailableError,
   layerBibleArtifactRecipe,
 } from '@bible/core/corpus-supply';
-import { Effect, Layer, Option, Stream } from 'effect';
+import { Effect, Layer, Option, Predicate, Stream } from 'effect';
 import { HttpClient } from 'effect/unstable/http';
 import * as SQLite from 'wa-sqlite';
 
@@ -20,7 +20,7 @@ import type { DatabaseFileDownloader } from './database-file-downloader.js';
 import type { SqliteDatabase } from './sqlite-database.js';
 
 const sourceError = (operation: string, cause: unknown): CorpusSourceUnavailableError =>
-  new CorpusSourceUnavailableError({ operation, cause });
+  CorpusSourceUnavailableError.make({ operation, cause });
 
 const countRows = Effect.fn('BrowserBibleArtifacts.countRows')(function* (
   database: SqliteDatabase,
@@ -29,7 +29,7 @@ const countRows = Effect.fn('BrowserBibleArtifacts.countRows')(function* (
 ) {
   const rows = yield* database.query(`SELECT COUNT(*) AS count FROM ${table} ${where}`);
   const value = rows[0]?.['count'];
-  if (typeof value !== 'number') return yield* Effect.fail(`Cannot count ${table}`);
+  if (!Predicate.isNumber(value)) return yield* Effect.fail(`Cannot count ${table}`);
   return value;
 });
 
@@ -75,10 +75,14 @@ const readProvenance = (database: SqliteDatabase): Effect.Effect<Option.Option<C
     const source = values.get('corpus_source');
     const revision = values.get('corpus_revision');
     const digest = values.get('corpus_digest');
-    if (typeof source !== 'string' || typeof revision !== 'string' || typeof digest !== 'string') {
+    if (
+      !Predicate.isString(source) ||
+      !Predicate.isString(revision) ||
+      !Predicate.isString(digest)
+    ) {
       return yield* Effect.fail('Bible Artifact provenance is incomplete');
     }
-    return new CorpusProvenance({
+    return CorpusProvenance.make({
       source: assetSourceId(source),
       revision: corpusRevision(revision),
       digest: Option.some(corpusDigest(digest)),
@@ -131,13 +135,13 @@ export const layerBrowserBibleArtifacts = (input: {
   readonly onProgress?: (progress: number) => void;
 }): Layer.Layer<BibleArtifactInstaller | BibleArtifactRecipe> => {
   const fetchArtifact = input.fetch ?? defaultFetchArtifact;
-  const onProgress = input.onProgress ?? (() => undefined);
+  const onProgress = input.onProgress ?? (() => {});
   const recipe = layerBibleArtifactRecipe([
     {
       kind: 'release',
       acquire: Effect.succeed({
         kind: 'release',
-        provenance: new CorpusProvenance({
+        provenance: CorpusProvenance.make({
           source: assetSourceId('bible-release'),
           revision: corpusRevision(BIBLE_ARTIFACT_RELEASE.revision),
           digest: Option.some(corpusDigest(BIBLE_ARTIFACT_RELEASE.digest)),
@@ -166,9 +170,9 @@ export const layerBrowserBibleArtifacts = (input: {
     BibleArtifactInstaller,
     BibleArtifactInstaller.of({
       current: Effect.gen(function* () {
-        if (!(yield* input.generations.openActive())) return Option.none();
+        if (!(yield* input.generations.openActive)) return Option.none();
         return yield* readProvenance(input.generations.active);
-      }).pipe(Effect.mapError((cause) => new CorpusInstallationError({ corpus: 'bible', cause }))),
+      }).pipe(Effect.mapError((cause) => CorpusInstallationError.make({ corpus: 'bible', cause }))),
       install: (artifact) =>
         Effect.gen(function* () {
           if (Option.isNone(artifact.provenance.digest)) {
@@ -176,13 +180,13 @@ export const layerBrowserBibleArtifacts = (input: {
           }
           const expectedDigest = artifact.provenance.digest.value;
           const preferredName = yield* generationName(artifact.provenance);
-          let candidateName: string | undefined;
+          let candidateName: Option.Option<string> = Option.none();
           const install = Effect.gen(function* () {
             const reserved = yield* input.generations.reserve(preferredName);
-            candidateName = reserved.filename;
+            candidateName = Option.some(reserved.filename);
             const written = yield* input.downloader.install(
               artifact.bytes,
-              candidateName,
+              reserved.filename,
               onProgress,
             );
             if (written.digest !== expectedDigest) {
@@ -190,7 +194,7 @@ export const layerBrowserBibleArtifacts = (input: {
                 'Bible Artifact digest does not match its release manifest',
               );
             }
-            const provenance = new CorpusProvenance({
+            const provenance = CorpusProvenance.make({
               source: artifact.provenance.source,
               revision: artifact.provenance.revision,
               digest: Option.some(corpusDigest(written.digest)),
@@ -201,24 +205,26 @@ export const layerBrowserBibleArtifacts = (input: {
                 verifyBibleDatabase(reserved.database).pipe(
                   Effect.tap(() => writeProvenance(reserved.database, provenance)),
                 ),
-              () => reserved.database.close().pipe(Effect.ignore),
+              () => reserved.database.close.pipe(Effect.ignore),
             );
-            yield* input.generations.activateVerified(candidateName);
+            yield* input.generations.activateVerified(reserved.filename);
             return { installed, provenance };
           });
           return yield* install.pipe(
-            Effect.onError(() => {
-              if (
-                candidateName !== undefined &&
-                input.generations.activeFilename !== candidateName
-              ) {
-                return input.generations.discardCandidate(candidateName).pipe(Effect.ignore);
-              }
-              return Effect.void;
-            }),
+            Effect.onError(() =>
+              Option.match(candidateName, {
+                onNone: () => Effect.void,
+                onSome: (candidate) => {
+                  if (Option.contains(input.generations.activeFilename, candidate)) {
+                    return Effect.void;
+                  }
+                  return input.generations.discardCandidate(candidate).pipe(Effect.ignore);
+                },
+              }),
+            ),
           );
         }).pipe(
-          Effect.mapError((cause) => new CorpusInstallationError({ corpus: 'bible', cause })),
+          Effect.mapError((cause) => CorpusInstallationError.make({ corpus: 'bible', cause })),
         ),
     }),
   );

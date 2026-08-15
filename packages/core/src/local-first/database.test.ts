@@ -1,6 +1,6 @@
 import * as BunServices from '@effect/platform-bun/BunServices';
 import { eq } from 'drizzle-orm';
-import { Effect, FileSystem, Path } from 'effect';
+import { Effect, FileSystem, Option, Path } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 
 import { makeBunUserDatabase } from './database-bun.js';
@@ -86,7 +86,7 @@ describe('local-first SQLite foundation', () => {
         execute: () => database.drizzle.select().from(bookmarks).all(),
       });
 
-      expect(bookmark?.label).toBe('Promise');
+      expect(Option.getOrThrow(bookmark).label).toBe('Promise');
       expect(all).toHaveLength(1);
 
       const failure = yield* Effect.exit(

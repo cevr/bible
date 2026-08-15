@@ -114,14 +114,14 @@ export const createMockFileSystemLayer = (config: MockFileSystemConfig) => {
         readFile: (path: string) =>
           Effect.gen(function* () {
             yield* recordCallSync({ _tag: 'FileSystem.readFile', path });
-            const content = state.files.get(path);
-            if (content === undefined) {
+            const content = Option.fromNullishOr(state.files.get(path));
+            if (Option.isNone(content)) {
               return yield* createFileError('readFile', path, `File not found: ${path}`);
             }
-            if (content instanceof Uint8Array) {
-              return content;
+            if (content.value instanceof Uint8Array) {
+              return content.value;
             }
-            return new TextEncoder().encode(content);
+            return new TextEncoder().encode(content.value);
           }),
 
         writeFile: (path: string, data: Uint8Array) =>
@@ -200,14 +200,14 @@ export const createMockFileSystemLayer = (config: MockFileSystemConfig) => {
         readFileString: (path) =>
           Effect.gen(function* () {
             yield* recordCallSync({ _tag: 'FileSystem.readFileString', path });
-            const content = state.files.get(path);
-            if (content === undefined) {
+            const content = Option.fromNullishOr(state.files.get(path));
+            if (Option.isNone(content)) {
               return yield* createFileError('readFileString', path, `File not found: ${path}`);
             }
-            if (content instanceof Uint8Array) {
-              return new TextDecoder().decode(content);
+            if (content.value instanceof Uint8Array) {
+              return new TextDecoder().decode(content.value);
             }
-            return content;
+            return content.value;
           }),
         writeFileString: (path, content) =>
           Effect.gen(function* () {

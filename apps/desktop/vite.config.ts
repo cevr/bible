@@ -10,17 +10,16 @@ import { electronDev } from './scripts/vite-plugin-electron-dev.js';
 //
 // EGW credentials get baked into the bundle via `define`. We read the env
 // file ourselves (no VITE_ prefix required) and substitute the typed
-// `__EGW_X__` identifiers that `@bible/core/egw/build-defines.ts` declares.
-// Substitution targets must appear as bare identifiers in source — that's
-// why the helpers wrap each one in `typeof __X__ !== 'undefined' ? __X__ :
-// undefined`, so node-side hosts (where the global is never declared) fall
-// through cleanly.
+// `globalThis.__EGW_X__` member expressions that
+// `@bible/core/egw/build-defines.ts` reads. Substitution targets must appear
+// as literal `globalThis.__EGW_X__` reads in source; node-side hosts (where
+// the global is never assigned) see `undefined` and fall through cleanly.
 export default defineConfig(({ mode }) => {
   // loadEnv with the empty `''` prefix returns every key from the .env files
   // plus any matching process.env entries — so we don't need a separate
   // process.env fallback.
   const env = loadEnv(mode, process.cwd(), '');
-  const encodeJson = Schema.encodeSync(Schema.UnknownFromJsonString);
+  const encodeJson = Schema.encodeSync(Schema.fromJsonString(Schema.Unknown));
   const bake = (key: string): string => encodeJson(env[key] ?? '');
 
   return {
@@ -45,12 +44,12 @@ export default defineConfig(({ mode }) => {
       emptyOutDir: true,
     },
     define: {
-      __EGW_AUTH_BASE_URL__: bake('EGW_AUTH_BASE_URL'),
-      __EGW_API_BASE_URL__: bake('EGW_API_BASE_URL'),
-      __EGW_CLIENT_ID__: bake('EGW_CLIENT_ID'),
-      __EGW_CLIENT_SECRET__: bake('EGW_CLIENT_SECRET'),
-      __EGW_SCOPE__: bake('EGW_SCOPE'),
-      __EGW_USER_AGENT__: bake('EGW_USER_AGENT'),
+      'globalThis.__EGW_AUTH_BASE_URL__': bake('EGW_AUTH_BASE_URL'),
+      'globalThis.__EGW_API_BASE_URL__': bake('EGW_API_BASE_URL'),
+      'globalThis.__EGW_CLIENT_ID__': bake('EGW_CLIENT_ID'),
+      'globalThis.__EGW_CLIENT_SECRET__': bake('EGW_CLIENT_SECRET'),
+      'globalThis.__EGW_SCOPE__': bake('EGW_SCOPE'),
+      'globalThis.__EGW_USER_AGENT__': bake('EGW_USER_AGENT'),
     },
   };
 });

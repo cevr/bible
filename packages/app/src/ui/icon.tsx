@@ -1,4 +1,5 @@
 import type { JSX } from '@solidjs/web';
+import { Option } from 'effect';
 
 export interface IconProps extends JSX.SvgSVGAttributes<SVGSVGElement> {
   readonly paths: readonly string[];
@@ -6,9 +7,9 @@ export interface IconProps extends JSX.SvgSVGAttributes<SVGSVGElement> {
 }
 
 export const Icon = (props: IconProps) => {
-  const ariaHidden = (): 'true' | undefined => {
-    if (props.label === undefined) return 'true';
-    return undefined;
+  const hiddenWhenUnlabeled = (): Option.Option<'true'> => {
+    if (Option.isSome(Option.fromNullishOr(props.label))) return Option.none();
+    return Option.some('true');
   };
   return (
     <svg
@@ -18,7 +19,7 @@ export const Icon = (props: IconProps) => {
       stroke-width="1.8"
       stroke-linecap="round"
       stroke-linejoin="round"
-      aria-hidden={ariaHidden()}
+      aria-hidden={Option.getOrUndefined(hiddenWhenUnlabeled())}
       aria-label={props.label}
       class={props.class}
     >

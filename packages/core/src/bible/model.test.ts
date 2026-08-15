@@ -35,7 +35,7 @@ describe('Bible domain', () => {
   });
 
   test('a chapter is non-empty and owns navigation', () => {
-    const book = new Book({
+    const book = Book.make({
       number: bookNumber(43),
       name: 'John',
       abbreviation: 'John',
@@ -43,8 +43,8 @@ describe('Bible domain', () => {
       testament: 'new',
     });
     const reference = Reference.chapter(43, 3);
-    const verse = new Verse({ reference: Reference.verse(43, 3, 16), text: 'For God so loved' });
-    const chapter = new Chapter({
+    const verse = Verse.make({ reference: Reference.verse(43, 3, 16), text: 'For God so loved' });
+    const chapter = Chapter.make({
       book,
       reference,
       verses: [verse],

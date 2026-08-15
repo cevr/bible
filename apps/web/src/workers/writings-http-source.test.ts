@@ -18,8 +18,8 @@ import { layerHttpWritingsAssetSource } from './writings-http-source.js';
 
 const id = publicationId(127);
 const code = publicationCode('PP');
-const archive = new PublicationArchive({
-  publication: new Publication({
+const archive = PublicationArchive.make({
+  publication: Publication.make({
     id,
     code,
     title: 'Patriarchs and Prophets',
@@ -27,9 +27,9 @@ const archive = new PublicationArchive({
     paragraphCount: Option.some(1),
   }),
   paragraphs: [
-    new ArchivedParagraph({
+    ArchivedParagraph.make({
       refcode: 'PP 1.1',
-      paragraph: new Paragraph({
+      paragraph: Paragraph.make({
         reference: Reference.paragraph(id, 'pp-1-1'),
         publicationCode: code,
         order: publicationOrder(1),
@@ -56,7 +56,7 @@ const remoteCatalog = [
 ];
 
 const makeFetch =
-  (dump: unknown) =>
+  (dump: typeof PublicationArchiveJson.Encoded | { readonly formatVersion: number }) =>
   (url: string): Promise<Response> =>
     Effect.runPromise(
       Effect.sync(() => {
@@ -76,9 +76,10 @@ describe('HTTP Writings asset source', () => {
           return value.paragraphs.length;
         },
       });
-      const source = layerHttpWritingsAssetSource(
-        makeFetch(Schema.encodeSync(PublicationArchiveJson)(archive)),
+      const encodedArchive = yield* Schema.encodeEffect(PublicationArchiveJson)(archive).pipe(
+        Effect.orDie,
       );
+      const source = layerHttpWritingsAssetSource(makeFetch(encodedArchive));
       const layer = CorpusSupply.layer.pipe(Layer.provide(database), Layer.provide(source));
 
       const receipt = yield* Effect.flatMap(CorpusSupply, (supply) =>

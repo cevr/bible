@@ -12,7 +12,7 @@ import type {
   WritingsLibraryPublication,
 } from '../writings/model.js';
 import type { LibraryMutationCommand } from '../local-first/model.js';
-import { Context, type Effect, type Stream } from 'effect';
+import { Context, type Effect, type Option, type Stream } from 'effect';
 
 import type {
   IncompatibleRuntimeError,
@@ -23,7 +23,7 @@ import type {
   RuntimeEventSequence,
 } from './model.js';
 
-export interface ProcedureRuntimeShape {
+export interface ProcedureRuntimeService {
   readonly connect: (input: {
     readonly protocolVersion: number;
     readonly schemaVersion: number;
@@ -33,11 +33,11 @@ export interface ProcedureRuntimeShape {
   }) => Stream.Stream<RuntimeEvent, ProcedureError>;
 }
 
-export class ProcedureRuntime extends Context.Service<ProcedureRuntime, ProcedureRuntimeShape>()(
+export class ProcedureRuntime extends Context.Service<ProcedureRuntime, ProcedureRuntimeService>()(
   '@bible/core/procedure/ProcedureRuntime',
 ) {}
 
-export interface ReadingPreferencesRuntimeShape {
+export interface ReadingPreferencesRuntimeService {
   readonly get: Effect.Effect<ReadingPreferences, ProcedureError>;
   readonly patch: (
     input: ReadingPreferencesPatch,
@@ -46,11 +46,11 @@ export interface ReadingPreferencesRuntimeShape {
 
 export class ReadingPreferencesRuntime extends Context.Service<
   ReadingPreferencesRuntime,
-  ReadingPreferencesRuntimeShape
+  ReadingPreferencesRuntimeService
 >()('@bible/core/procedure/ReadingPreferencesRuntime') {}
 
-export interface ReadingContinuityRuntimeShape {
-  readonly get: Effect.Effect<ReaderLocation | undefined, ProcedureError>;
+export interface ReadingContinuityRuntimeService {
+  readonly get: Effect.Effect<Option.Option<ReaderLocation>, ProcedureError>;
   readonly record: (input: {
     readonly location: ReaderLocation;
     readonly progress: number;
@@ -59,10 +59,10 @@ export interface ReadingContinuityRuntimeShape {
 
 export class ReadingContinuityRuntime extends Context.Service<
   ReadingContinuityRuntime,
-  ReadingContinuityRuntimeShape
+  ReadingContinuityRuntimeService
 >()('@bible/core/procedure/ReadingContinuityRuntime') {}
 
-export interface LibraryStateRuntimeShape {
+export interface LibraryStateRuntimeService {
   readonly annotations: (
     input: ReaderLocation,
   ) => Effect.Effect<LocationAnnotations, ProcedureError>;
@@ -76,10 +76,10 @@ export interface LibraryStateRuntimeShape {
 
 export class LibraryStateRuntime extends Context.Service<
   LibraryStateRuntime,
-  LibraryStateRuntimeShape
+  LibraryStateRuntimeService
 >()('@bible/core/procedure/LibraryStateRuntime') {}
 
-export interface WritingsLibraryRuntimeShape {
+export interface WritingsLibraryRuntimeService {
   readonly get: Effect.Effect<ReadonlyArray<WritingsLibraryPublication>, ProcedureError>;
   readonly download: (
     publicationId: PublicationId,
@@ -89,10 +89,10 @@ export interface WritingsLibraryRuntimeShape {
 
 export class WritingsLibraryRuntime extends Context.Service<
   WritingsLibraryRuntime,
-  WritingsLibraryRuntimeShape
+  WritingsLibraryRuntimeService
 >()('@bible/core/procedure/WritingsLibraryRuntime') {}
 
-export interface DataPortabilityRuntimeShape {
+export interface DataPortabilityRuntimeService {
   readonly export: Effect.Effect<string, ProcedureError>;
   readonly import: (
     document: string,
@@ -101,5 +101,5 @@ export interface DataPortabilityRuntimeShape {
 
 export class DataPortabilityRuntime extends Context.Service<
   DataPortabilityRuntime,
-  DataPortabilityRuntimeShape
+  DataPortabilityRuntimeService
 >()('@bible/core/procedure/DataPortabilityRuntime') {}

@@ -11,24 +11,24 @@ const isSettingsSection = (value: string): value is SettingsSection =>
   value === 'shortcuts' ||
   value === 'about';
 
-const positiveInteger = (value: string | undefined): number | undefined => {
-  if (value === undefined || !/^[1-9][0-9]*$/.test(value)) return undefined;
-  const parsed = Number.parseInt(value, 10);
-  if (!Number.isSafeInteger(parsed)) return undefined;
-  return parsed;
-};
+const positiveInteger = (value?: string): Option.Option<number> =>
+  Option.fromNullishOr(value).pipe(
+    Option.filter((raw) => /^[1-9][0-9]*$/.test(raw)),
+    Option.map((raw) => Number.parseInt(raw, 10)),
+    Option.filter((parsed) => Number.isSafeInteger(parsed)),
+  );
 
 const decodeUriComponent = Option.liftThrowable(decodeURIComponent);
 const parseUrl = Option.liftThrowable(
   (pathWithQuery: string) => new URL(pathWithQuery, 'https://local.bible'),
 );
 
-const decodeSegment = (value: string | undefined): string | undefined => {
-  if (!value) return undefined;
-  const decoded = Option.getOrUndefined(decodeUriComponent(value));
-  if (decoded === undefined || decoded.length === 0) return undefined;
-  return decoded;
-};
+const decodeSegment = (value?: string): Option.Option<string> =>
+  Option.fromNullishOr(value).pipe(
+    Option.filter((raw) => raw.length > 0),
+    Option.flatMap(decodeUriComponent),
+    Option.filter((decoded) => decoded.length > 0),
+  );
 
 const normalizeBooks = (books: readonly number[]): readonly number[] =>
   [...new Set(books.filter((book) => Number.isSafeInteger(book) && book >= 1 && book <= 66))].sort(
@@ -83,10 +83,7 @@ export const encodeRoute = (route: AppRoute): string => {
   }
 };
 
-export const decodeRoute = (pathWithQuery: string): AppRoute | undefined => {
-  const url = Option.getOrUndefined(parseUrl(pathWithQuery));
-  if (url === undefined) return undefined;
-
+const decodeParsedRoute = (url: URL): Option.Option<AppRoute> => {
   const segments = url.pathname.split('/').filter(Boolean);
   const [root, one, two, three] = segments;
 
@@ -94,61 +91,81 @@ export const decodeRoute = (pathWithQuery: string): AppRoute | undefined => {
     const book = positiveInteger(one);
     const chapter = positiveInteger(two);
     const verse = positiveInteger(three);
-    if (book === undefined || book > 66 || chapter === undefined) return undefined;
+    if (Option.isNone(book) || book.value > 66 || Option.isNone(chapter)) return Option.none();
     if (segments.length === 4) {
-      if (verse === undefined) return undefined;
-      return { _tag: 'bible', reference: BibleReference.verse(book, chapter, verse) };
+      return Option.map(verse, (verseNumber) => ({
+        _tag: 'bible',
+        reference: BibleReference.verse(book.value, chapter.value, verseNumber),
+      }));
     }
-    return { _tag: 'bible', reference: BibleReference.chapter(book, chapter) };
+    return Option.some({
+      _tag: 'bible',
+      reference: BibleReference.chapter(book.value, chapter.value),
+    });
   }
 
   if (root === 'writings') {
-    if (segments.length === 1) return { _tag: 'writings-catalog' };
+    if (segments.length === 1) return Option.some({ _tag: 'writings-catalog' });
     const publicationId = positiveInteger(one);
-    if (publicationId === undefined) return undefined;
+    if (Option.isNone(publicationId)) return Option.none();
     if (segments.length === 2) {
-      return { _tag: 'writings', reference: WritingsReference.publication(publicationId) };
+      return Option.some({
+        _tag: 'writings',
+        reference: WritingsReference.publication(publicationId.value),
+      });
     }
     if (segments.length === 4 && two === 'page') {
-      const page = positiveInteger(three);
-      if (page === undefined) return undefined;
-      return { _tag: 'writings', reference: WritingsReference.page(publicationId, page) };
+      return Option.map(positiveInteger(three), (page) => ({
+        _tag: 'writings',
+        reference: WritingsReference.page(publicationId.value, page),
+      }));
     }
     if (segments.length === 4 && two === 'p') {
-      const paragraphId = decodeSegment(three);
-      if (paragraphId === undefined) return undefined;
-      return {
+      return Option.map(decodeSegment(three), (paragraphId) => ({
         _tag: 'writings',
-        reference: WritingsReference.paragraph(publicationId, paragraphId),
-      };
+        reference: WritingsReference.paragraph(publicationId.value, paragraphId),
+      }));
     }
-    return undefined;
+    return Option.none();
   }
 
   if (root === 'search' && segments.length === 1) {
-    const requestedScope = url.searchParams.get('scope');
+    const requestedScope = Option.fromNullishOr(url.searchParams.get('scope'));
     let scope: SearchScope = 'all';
-    if (requestedScope === 'bible' || requestedScope === 'writings') scope = requestedScope;
+    if (Option.isSome(requestedScope)) {
+      if (requestedScope.value === 'bible' || requestedScope.value === 'writings') {
+        scope = requestedScope.value;
+      }
+    }
     const books = normalizeBooks(
-      (url.searchParams.get('books') ?? '').split(',').map((book) => Number.parseInt(book, 10)),
+      Option.getOrElse(Option.fromNullishOr(url.searchParams.get('books')), () => '')
+        .split(',')
+        .map((book) => Number.parseInt(book, 10)),
     );
-    return { _tag: 'search', query: url.searchParams.get('q') ?? '', scope, books };
+    const query = Option.getOrElse(Option.fromNullishOr(url.searchParams.get('q')), () => '');
+    return Option.some({ _tag: 'search', query, scope, books });
   }
 
   if (root === 'topics' && segments.length <= 2) {
-    return { _tag: 'topics', topicId: decodeSegment(one) };
+    return Option.some({ _tag: 'topics', topicId: Option.getOrUndefined(decodeSegment(one)) });
   }
   if (root === 'plans' && segments.length <= 2) {
-    return { _tag: 'plans', planId: decodeSegment(one) };
+    return Option.some({ _tag: 'plans', planId: Option.getOrUndefined(decodeSegment(one)) });
   }
   if (root === 'practice' && segments.length <= 2) {
-    return { _tag: 'practice', memoryVerseId: decodeSegment(one) };
+    return Option.some({
+      _tag: 'practice',
+      memoryVerseId: Option.getOrUndefined(decodeSegment(one)),
+    });
   }
   if (root === 'settings' && segments.length <= 2) {
     const section = one ?? 'reader';
-    if (!isSettingsSection(section)) return undefined;
-    return { _tag: 'settings', section };
+    if (!isSettingsSection(section)) return Option.none();
+    return Option.some({ _tag: 'settings', section });
   }
 
-  return undefined;
+  return Option.none();
 };
+
+export const decodeRoute = (pathWithQuery: string): Option.Option<AppRoute> =>
+  Option.flatMap(parseUrl(pathWithQuery), decodeParsedRoute);

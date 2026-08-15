@@ -1,18 +1,20 @@
+import { Option } from 'effect';
 import { contextBridge, ipcRenderer } from 'electron';
 import { DesktopProcedurePortMessage } from '../shared/procedure-channel.js';
 
-let procedurePort: MessagePort | undefined;
+let procedurePort: Option.Option<MessagePort> = Option.none();
 let procedurePortReady = false;
 
 const deliverProcedurePort = (): void => {
-  if (!procedurePortReady || procedurePort === undefined) return;
+  if (!procedurePortReady) return;
   const port = procedurePort;
-  procedurePort = undefined;
-  window.postMessage(DesktopProcedurePortMessage, '*', [port]);
+  if (Option.isNone(port)) return;
+  procedurePort = Option.none();
+  window.postMessage(DesktopProcedurePortMessage, '*', [port.value]);
 };
 ipcRenderer.on('bible:procedure-port', (event) => {
-  const port = event.ports[0];
-  if (port === undefined) return;
+  const port = Option.fromUndefinedOr(event.ports[0]);
+  if (Option.isNone(port)) return;
   procedurePort = port;
   deliverProcedurePort();
 });

@@ -1,4 +1,5 @@
 import { Show, type JSX } from '@solidjs/web';
+import { Option } from 'effect';
 import { createEffect, createSignal, createUniqueId } from 'solid-js';
 
 export interface PopoverProps {
@@ -15,29 +16,32 @@ export const Popover = (props: PopoverProps) => {
   const [localOpen, setLocalOpen] = createSignal(props.defaultOpen ?? false);
   const open = () => props.open ?? localOpen();
   const setOpen = (next: boolean): void => {
-    if (props.open === undefined) setLocalOpen(next);
+    if (Option.isNone(Option.fromNullishOr(props.open))) setLocalOpen(next);
     props.onOpenChange?.(next);
   };
   const expandedState = (): 'true' | 'false' => {
     if (open()) return 'true';
     return 'false';
   };
-  const controls = (): string | undefined => {
-    if (open()) return id;
-    return undefined;
+  const controls = () => {
+    if (open()) return Option.some(id);
+    return Option.none<string>();
   };
-  let root: HTMLDivElement | undefined;
-  let trigger: HTMLButtonElement | undefined;
+  let root = Option.none<HTMLDivElement>();
+  let trigger = Option.none<HTMLButtonElement>();
 
   createEffect(open, (visible) => {
     if (!visible) return;
     const dismiss = (event: PointerEvent): void => {
-      if (event.target instanceof Node && !root?.contains(event.target)) setOpen(false);
+      const container = root;
+      if (!(event.target instanceof Node)) return;
+      if (Option.isSome(container) && container.value.contains(event.target)) return;
+      setOpen(false);
     };
     const escape = (event: KeyboardEvent): void => {
       if (event.key !== 'Escape') return;
       setOpen(false);
-      trigger?.focus();
+      if (Option.isSome(trigger)) trigger.value.focus();
     };
     document.addEventListener('pointerdown', dismiss, true);
     document.addEventListener('keydown', escape, true);
@@ -50,20 +54,20 @@ export const Popover = (props: PopoverProps) => {
   return (
     <div
       ref={(element) => {
-        root = element;
+        root = Option.some(element);
       }}
       class="bible-popover-root"
     >
       <button
         ref={(element) => {
-          trigger = element;
+          trigger = Option.some(element);
         }}
         type="button"
         class="bible-popover-trigger"
         aria-label={props.label}
         aria-haspopup="dialog"
         aria-expanded={expandedState()}
-        aria-controls={controls()}
+        aria-controls={Option.getOrUndefined(controls())}
         onClick={() => setOpen(!open())}
       >
         {props.trigger}

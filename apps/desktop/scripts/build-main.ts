@@ -1,6 +1,10 @@
 import { NodeRuntime, NodeServices } from '@effect/platform-node';
-import { Effect, FileSystem, Path } from 'effect';
+import { Data, Effect, FileSystem, Path } from 'effect';
 import { build } from 'esbuild';
+
+class MainBundleError extends Data.TaggedError('MainBundleError')<{
+  readonly cause: unknown;
+}> {}
 
 const program = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;
@@ -32,7 +36,7 @@ const program = Effect.gen(function* () {
         sourcemap: true,
         logLevel: 'info',
       }),
-    catch: (cause) => cause,
+    catch: (cause) => new MainBundleError({ cause }),
   });
 }).pipe(Effect.provide(NodeServices.layer));
 

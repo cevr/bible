@@ -4,7 +4,6 @@ import type {
   ParagraphReference,
   PublicationReference,
 } from '@bible/core/writings';
-import { A } from '@solidjs/router';
 import { Errored, For, Loading, Show } from '@solidjs/web';
 import { Effect, Option } from 'effect';
 import { createSignal } from 'solid-js';
@@ -22,12 +21,12 @@ export interface WritingsPageReaderProps {
   readonly selected?: ParagraphReference;
 }
 
-const activeParagraph = (
-  selected: ParagraphReference | undefined,
-  paragraphId: string,
-): '' | undefined => {
-  if (selected?.paragraphId === paragraphId) return '';
-  return undefined;
+const activeParagraph = (selected: Option.Option<ParagraphReference>, paragraphId: string) => {
+  let marker = Option.none<''>();
+  if (Option.isSome(selected) && selected.value.paragraphId === paragraphId) {
+    marker = Option.some('');
+  }
+  return Option.getOrUndefined(marker);
 };
 
 const compactFailure = (cause: unknown): string => {
@@ -36,8 +35,8 @@ const compactFailure = (cause: unknown): string => {
   return message.replace(/\s+/g, ' ').trim();
 };
 
-const downloadAction = (status: string, failedTarget: string | undefined, code: string) => {
-  if (status === 'failed' || failedTarget === code) return 'Retry';
+const downloadAction = (status: string, failedTarget: Option.Option<string>, code: string) => {
+  if (status === 'failed' || Option.contains(failedTarget, code)) return 'Retry';
   return 'Download';
 };
 
@@ -80,7 +79,10 @@ const WritingsPageContent = (props: {
                 {(paragraph) => (
                   <p
                     id={`paragraph-${paragraph.reference.paragraphId}`}
-                    data-active={activeParagraph(props.selected, paragraph.reference.paragraphId)}
+                    data-active={activeParagraph(
+                      Option.fromNullishOr(props.selected),
+                      paragraph.reference.paragraphId,
+                    )}
                   >
                     <ParagraphNodes nodes={paragraph.nodes} />
                     <Show when={Option.getOrUndefined(paragraph.refcode)}>
@@ -102,18 +104,18 @@ const WritingsPageContent = (props: {
           <nav class="bible-reader__pagination" aria-label="Page navigation">
             <Show when={Option.getOrUndefined(page().previous)}>
               {(previous) => (
-                <A
+                <a
                   href={`/writings/${String(previous().publicationId)}/page/${String(previous().page)}`}
                 >
                   Previous page
-                </A>
+                </a>
               )}
             </Show>
             <Show when={Option.getOrUndefined(page().next)}>
               {(next) => (
-                <A href={`/writings/${String(next().publicationId)}/page/${String(next().page)}`}>
+                <a href={`/writings/${String(next().publicationId)}/page/${String(next().page)}`}>
                   Next page
-                </A>
+                </a>
               )}
             </Show>
           </nav>
@@ -160,16 +162,16 @@ export const WritingsParagraphReader = (props: { readonly reference: ParagraphRe
 export const WritingsCatalog = () => {
   const data = useReadingData();
   const library = data.writingsLibrary.get();
-  const [downloading, setDownloading] = createSignal<string>();
-  const [failedTarget, setFailedTarget] = createSignal<string>();
-  const [failure, setFailure] = createSignal<string>();
+  const [downloading, setDownloading] = createSignal(Option.none<string>());
+  const [failedTarget, setFailedTarget] = createSignal(Option.none<string>());
+  const [failure, setFailure] = createSignal(Option.none<string>());
 
   const download = (command: Parameters<typeof data.writingsLibrary.mutate>[0], key: string) => {
-    setDownloading(key);
-    setFailedTarget(undefined);
-    setFailure(undefined);
+    setDownloading(Option.some(key));
+    setFailedTarget(Option.none());
+    setFailure(Option.none());
     void data.writingsLibrary.mutate(command).then(
-      () => setDownloading(undefined),
+      () => setDownloading(Option.none()),
       (cause: unknown) => {
         const message = compactFailure(cause);
         Effect.runFork(
@@ -177,9 +179,9 @@ export const WritingsCatalog = () => {
             `[writings] download-failed target=${key} category=${failureCategory(cause)}`,
           ),
         );
-        setFailure(message);
-        setFailedTarget(key);
-        setDownloading(undefined);
+        setFailure(Option.some(message));
+        setFailedTarget(Option.some(key));
+        setDownloading(Option.none());
       },
     );
   };
@@ -195,7 +197,7 @@ export const WritingsCatalog = () => {
           <Show when={library().some((publication) => publication.status !== 'success')}>
             <div class="bible-library__actions">
               <Button
-                disabled={downloading() !== undefined}
+                disabled={Option.isSome(downloading())}
                 onClick={() => download({ _tag: 'DownloadAll' }, 'all')}
               >
                 Download all
@@ -211,7 +213,7 @@ export const WritingsCatalog = () => {
                       when={publication.status === 'success'}
                       fallback={<strong>{publication.title}</strong>}
                     >
-                      <A href={`/writings/${String(publication.id)}`}>{publication.title}</A>
+                      <a href={`/writings/${String(publication.id)}`}>{publication.title}</a>
                     </Show>
                     <small>
                       {publication.code} · {publication.paragraphCount.toLocaleString()} paragraphs
@@ -227,7 +229,7 @@ export const WritingsCatalog = () => {
                         publication.title,
                         publication.code,
                       )}
-                      disabled={downloading() !== undefined}
+                      disabled={Option.isSome(downloading())}
                       onClick={() =>
                         download(
                           { _tag: 'DownloadPublication', publicationId: publication.id },
@@ -242,12 +244,12 @@ export const WritingsCatalog = () => {
               )}
             </For>
           </ul>
-          <Show when={downloading()}>
+          <Show when={Option.isSome(downloading())}>
             <p class="bible-form-status" role="status">
               Downloading…
             </p>
           </Show>
-          <Show when={failure()}>
+          <Show when={Option.getOrUndefined(failure())}>
             {(message) => (
               <p class="bible-form-status bible-form-status--error" role="alert">
                 {message()}

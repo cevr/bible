@@ -37,12 +37,13 @@ const makeLayer = Effect.gen(function* () {
   yield* database.migrate(yield* migrationSql);
   let mutation = 0;
   let commit = 0;
-  const store = makeBunSyncStore(database, Schema.decodeSync(ClientId)('procedure-client'));
+  const clientId = yield* Schema.decodeEffect(ClientId)('procedure-client');
+  const store = makeBunSyncStore(database, clientId);
   const layer = layerLocalProcedureRuntime({
-    clientId: Schema.decodeSync(ClientId)('procedure-client'),
+    clientId,
     store,
     transport: makeSimulatedTransport(),
-    generation: Schema.decodeSync(RuntimeGeneration)('procedure-test'),
+    generation: yield* Schema.decodeEffect(RuntimeGeneration)('procedure-test'),
     capabilities: ['external-links'],
     nextMutationId: () => Schema.decodeSync(MutationId)(`mutation-${++mutation}`),
     nextHistoryId: () => Schema.decodeSync(LibraryEntityId)(`history-${mutation + 1}`),
@@ -74,7 +75,7 @@ describe('local procedure runtime', () => {
         const committed = yield* preferences.patch({ colorMode: 'dark' });
         const event = yield* runtime
           .events({
-            afterSequence: Schema.decodeSync(RuntimeEventSequence)(0),
+            afterSequence: yield* Schema.decodeEffect(RuntimeEventSequence)(0),
           })
           .pipe(Stream.runHead);
         return { connection, committed, event };
@@ -122,12 +123,14 @@ describe('local procedure runtime', () => {
         return { before, committed, after };
       }).pipe(Effect.provide(layer));
 
-      expect(result.before).toBeUndefined();
-      expect(result.after).toEqual({
-        source: 'bible',
-        resourceId: 'KJV',
-        location: '/bible/43/3/16',
-      });
+      expect(Option.isNone(result.before)).toBe(true);
+      expect(result.after).toEqual(
+        Option.some({
+          source: 'bible',
+          resourceId: 'KJV',
+          location: '/bible/43/3/16',
+        }),
+      );
       expect(String(result.committed.commitId)).toBe('mutation-1');
       expect(result.committed.changes.scopes).toEqual([{ _tag: 'ReadingContinuity' }]);
     }));

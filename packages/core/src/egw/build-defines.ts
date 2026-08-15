@@ -1,65 +1,72 @@
 /**
  * Compile-time substitution targets for EGW credentials/config.
  *
- * The renderer (Vite + esbuild) replaces these identifiers with string
- * literals at build time so the packaged binary carries credentials without
- * needing a runtime .env file. In Node-hosted runs (CLI, sync workers, tests)
- * the identifiers are never declared, so the `typeof` guard returns
- * `'undefined'` and we fall through to `process.env` — Bun auto-loads the
+ * The renderer (Vite + esbuild) replaces the `globalThis.__EGW_X__` member
+ * expressions below with string literals at build time (see the `define`
+ * block in apps/desktop/vite.config.ts) so the packaged binary carries
+ * credentials without needing a runtime .env file. In Node-hosted runs (CLI,
+ * sync workers, tests) the globals are never defined, so the property reads
+ * yield `undefined` and we fall through to `process.env` — Bun auto-loads the
  * sibling `.env`, so node-side code keeps working unchanged.
  *
- * IMPORTANT: keep all reads here as bare `typeof __X__ !== 'undefined' ? __X__
- * : undefined` ternaries. Bundlers must see the literal identifier on both
- * sides to substitute. Indirection (helpers, destructuring, renames) breaks
- * the substitution.
+ * IMPORTANT: keep every read as a literal `globalThis.__EGW_X__` member
+ * expression. Bundlers must see that exact source text to substitute.
+ * Indirection (helpers, destructuring, renames) breaks the substitution.
  */
 
-declare const __EGW_AUTH_BASE_URL__: string | undefined;
-declare const __EGW_API_BASE_URL__: string | undefined;
-declare const __EGW_CLIENT_ID__: string | undefined;
-declare const __EGW_CLIENT_SECRET__: string | undefined;
-declare const __EGW_SCOPE__: string | undefined;
-declare const __EGW_USER_AGENT__: string | undefined;
+import { Option } from 'effect';
+
+declare global {
+  /** Populated by bundler `define`s; absent (undefined) in Node-hosted runs. */
+  // eslint-disable-next-line no-var
+  var __EGW_AUTH_BASE_URL__: string;
+  // eslint-disable-next-line no-var
+  var __EGW_API_BASE_URL__: string;
+  // eslint-disable-next-line no-var
+  var __EGW_CLIENT_ID__: string;
+  // eslint-disable-next-line no-var
+  var __EGW_CLIENT_SECRET__: string;
+  // eslint-disable-next-line no-var
+  var __EGW_SCOPE__: string;
+  // eslint-disable-next-line no-var
+  var __EGW_USER_AGENT__: string;
+}
 
 // Vite's `define` substitutes empty strings for keys that aren't in `.env`
 // (we `JSON.stringify(env[key] ?? '')` in vite.config.ts). Treat empty as
-// undefined so `bakedX() ?? fallback` actually falls through — nullish
-// coalescing doesn't fire for `""`, which was silently sending OAuth requests
-// to the dev-server origin and 404-ing.
-const orUndefined = (value: string | undefined): string | undefined => {
-  if (value === undefined || value === '') return undefined;
-  return value;
+// absent so `Option.orElse` fallbacks actually fire — a bare `""` was
+// silently sending OAuth requests to the dev-server origin and 404-ing.
+const nonEmpty = (value: string): Option.Option<string> => {
+  if (value === '') return Option.none();
+  return Option.some(value);
 };
 
-// Safe `process.env` lookup. `process` is not defined in the renderer; a bare
-// `process.env[...]` read throws ReferenceError there. Use this anywhere the
-// node-side fallback is wanted.
-// This helper centralizes the node-side env fallback that bundled-renderer
-// callers can't (and shouldn't) reach — the `node/no-process-env` rule fires
-// here by design, so both reads carry inline disables.
-export const envVar = (key: string): string | undefined => {
-  // eslint-disable-next-line node/no-process-env
-  if (typeof process === 'undefined' || !process.env) return undefined;
-  // eslint-disable-next-line node/no-process-env
-  const value = process.env[key];
-  if (value === undefined || value === '') return undefined;
-  return value;
-};
+const baked = (value: string): Option.Option<string> =>
+  Option.fromNullishOr(value).pipe(Option.flatMap(nonEmpty));
 
-export const bakedAuthBaseUrl = (): string | undefined =>
-  orUndefined(typeof __EGW_AUTH_BASE_URL__ !== 'undefined' ? __EGW_AUTH_BASE_URL__ : undefined);
+// Safe `process.env` lookup. `process` is not defined in the renderer; the
+// `globalThis.process` property read yields `undefined` there instead of the
+// ReferenceError a bare `process.env[...]` read would throw. Use this
+// anywhere the node-side fallback is wanted.
+// The `node/no-process-env` rule fires here by design, so the read carries an
+// inline disable.
+export const envVar = (key: string): Option.Option<string> =>
+  Option.fromNullishOr(globalThis.process).pipe(
+    // eslint-disable-next-line node/no-process-env
+    Option.flatMap((proc) => Option.fromNullishOr(proc.env[key])),
+    Option.flatMap(nonEmpty),
+  );
 
-export const bakedApiBaseUrl = (): string | undefined =>
-  orUndefined(typeof __EGW_API_BASE_URL__ !== 'undefined' ? __EGW_API_BASE_URL__ : undefined);
+export const bakedAuthBaseUrl = (): Option.Option<string> =>
+  baked(globalThis.__EGW_AUTH_BASE_URL__);
 
-export const bakedClientId = (): string | undefined =>
-  orUndefined(typeof __EGW_CLIENT_ID__ !== 'undefined' ? __EGW_CLIENT_ID__ : undefined);
+export const bakedApiBaseUrl = (): Option.Option<string> => baked(globalThis.__EGW_API_BASE_URL__);
 
-export const bakedClientSecret = (): string | undefined =>
-  orUndefined(typeof __EGW_CLIENT_SECRET__ !== 'undefined' ? __EGW_CLIENT_SECRET__ : undefined);
+export const bakedClientId = (): Option.Option<string> => baked(globalThis.__EGW_CLIENT_ID__);
 
-export const bakedScope = (): string | undefined =>
-  orUndefined(typeof __EGW_SCOPE__ !== 'undefined' ? __EGW_SCOPE__ : undefined);
+export const bakedClientSecret = (): Option.Option<string> =>
+  baked(globalThis.__EGW_CLIENT_SECRET__);
 
-export const bakedUserAgent = (): string | undefined =>
-  orUndefined(typeof __EGW_USER_AGENT__ !== 'undefined' ? __EGW_USER_AGENT__ : undefined);
+export const bakedScope = (): Option.Option<string> => baked(globalThis.__EGW_SCOPE__);
+
+export const bakedUserAgent = (): Option.Option<string> => baked(globalThis.__EGW_USER_AGENT__);

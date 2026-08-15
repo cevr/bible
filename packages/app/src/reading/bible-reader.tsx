@@ -1,5 +1,5 @@
 import type { ChapterReference, VerseReference } from '@bible/core/bible';
-import { A, useNavigate } from '@solidjs/router';
+import { useNavigate } from '@solidjs/router';
 import { Errored, For, Loading, Show } from '@solidjs/web';
 import { Option } from 'effect';
 
@@ -18,9 +18,12 @@ export const BibleReader = (props: BibleReaderProps) => {
     data.bibleChapters.get({ book: props.reference.book, chapter: props.reference.chapter })();
   const versePath = (verse: number) =>
     `/bible/${String(props.reference.book)}/${String(props.reference.chapter)}/${String(verse)}`;
-  const activeVerse = (verse: number): '' | undefined => {
-    if (props.reference._tag === 'verse' && props.reference.verse === verse) return '';
-    return undefined;
+  const activeVerse = (verse: number) => {
+    let marker = Option.none<''>();
+    if (props.reference._tag === 'verse' && props.reference.verse === verse) {
+      marker = Option.some('');
+    }
+    return Option.getOrUndefined(marker);
   };
   const selectedVerse = (): number => {
     if (props.reference._tag === 'verse') return props.reference.verse;
@@ -51,13 +54,13 @@ export const BibleReader = (props: BibleReaderProps) => {
               ]}
             >
               <p data-active={activeVerse(verse.reference.verse)}>
-                <A
+                <a
                   class="bible-verse-number"
                   href={versePath(verse.reference.verse)}
                   aria-label={`Verse ${String(verse.reference.verse)}`}
                 >
                   {verse.reference.verse}
-                </A>
+                </a>
                 {verse.text}
               </p>
             </ContextMenu>
@@ -98,14 +101,14 @@ export const BibleReader = (props: BibleReaderProps) => {
           <nav class="bible-reader__pagination" aria-label="Chapter navigation">
             <Show when={Option.getOrUndefined(chapter().previous)}>
               {(previous) => (
-                <A href={`/bible/${String(previous().book)}/${String(previous().chapter)}`}>
+                <a href={`/bible/${String(previous().book)}/${String(previous().chapter)}`}>
                   Previous chapter
-                </A>
+                </a>
               )}
             </Show>
             <Show when={Option.getOrUndefined(chapter().next)}>
               {(next) => (
-                <A href={`/bible/${String(next().book)}/${String(next().chapter)}`}>Next chapter</A>
+                <a href={`/bible/${String(next().book)}/${String(next().chapter)}`}>Next chapter</a>
               )}
             </Show>
           </nav>

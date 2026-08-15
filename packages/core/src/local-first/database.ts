@@ -1,6 +1,6 @@
-import { Context, Effect, Schema } from 'effect';
+import { Context, Effect, Option, Predicate, Schema } from 'effect';
 
-export class UserDatabaseError extends Schema.TaggedErrorClass<UserDatabaseError>()(
+export class UserDatabaseError extends Schema.TaggedError<UserDatabaseError>()(
   'UserDatabaseError',
   {
     operation: Schema.Literals(['run', 'all', 'get', 'transaction']),
@@ -18,19 +18,17 @@ export interface SqliteTransaction {
   readonly all: <A>(
     operation: DrizzleOperation<ReadonlyArray<A>>,
   ) => PromiseLike<ReadonlyArray<A>> | ReadonlyArray<A>;
-  readonly get: <A>(
-    operation: DrizzleOperation<A | undefined>,
-  ) => PromiseLike<A | undefined> | A | undefined;
+  readonly get: <A>(operation: DrizzleOperation<A>) => PromiseLike<A> | A;
 }
 
-export interface SqliteEffectBridgeShape {
+export interface SqliteEffectBridgeService {
   readonly run: <A>(operation: DrizzleOperation<A>) => Effect.Effect<A, UserDatabaseError>;
   readonly all: <A>(
     operation: DrizzleOperation<ReadonlyArray<A>>,
   ) => Effect.Effect<ReadonlyArray<A>, UserDatabaseError>;
   readonly get: <A>(
-    operation: DrizzleOperation<A | undefined>,
-  ) => Effect.Effect<A | undefined, UserDatabaseError>;
+    operation: DrizzleOperation<A>,
+  ) => Effect.Effect<Option.Option<NonNullable<A>>, UserDatabaseError>;
   readonly transaction: <A>(
     operation: (transaction: SqliteTransaction) => PromiseLike<A> | A,
   ) => Effect.Effect<A, UserDatabaseError>;
@@ -38,7 +36,7 @@ export interface SqliteEffectBridgeShape {
 
 export class SqliteEffectBridge extends Context.Service<
   SqliteEffectBridge,
-  SqliteEffectBridgeShape
+  SqliteEffectBridgeService
 >()('@bible/core/local-first/SqliteEffectBridge') {}
 
 export interface SqliteBridgeAdapter {
@@ -46,9 +44,7 @@ export interface SqliteBridgeAdapter {
   readonly all: <A>(
     operation: DrizzleOperation<ReadonlyArray<A>>,
   ) => PromiseLike<ReadonlyArray<A>> | ReadonlyArray<A>;
-  readonly get: <A>(
-    operation: DrizzleOperation<A | undefined>,
-  ) => PromiseLike<A | undefined> | A | undefined;
+  readonly get: <A>(operation: DrizzleOperation<A>) => PromiseLike<A> | A;
   readonly transaction: <A>(
     operation: (transaction: SqliteTransaction) => PromiseLike<A> | A,
   ) => PromiseLike<A> | A;
@@ -60,17 +56,14 @@ const messageOf = (cause: unknown): string => {
 };
 
 const isPromiseLike = <A>(value: A | PromiseLike<A>): value is PromiseLike<A> =>
-  typeof value === 'object' &&
-  value !== null &&
-  'then' in value &&
-  typeof value.then === 'function';
+  Predicate.isPromiseLike(value);
 
 const adapt = <A>(
   operation: UserDatabaseError['operation'],
   evaluate: () => PromiseLike<A> | A,
 ): Effect.Effect<A, UserDatabaseError> => {
   const failure = (cause: unknown) =>
-    new UserDatabaseError({ operation, message: messageOf(cause), cause });
+    UserDatabaseError.make({ operation, message: messageOf(cause), cause });
   return Effect.try({ try: evaluate, catch: failure }).pipe(
     Effect.flatMap((result) => {
       if (!isPromiseLike(result)) return Effect.succeed(result);
@@ -79,9 +72,12 @@ const adapt = <A>(
   );
 };
 
-export const makeSqliteEffectBridge = (adapter: SqliteBridgeAdapter): SqliteEffectBridgeShape => ({
+export const makeSqliteEffectBridge = (
+  adapter: SqliteBridgeAdapter,
+): SqliteEffectBridgeService => ({
   run: (operation) => adapt('run', () => adapter.run(operation)),
   all: (operation) => adapt('all', () => adapter.all(operation)),
-  get: (operation) => adapt('get', () => adapter.get(operation)),
+  get: (operation) =>
+    adapt('get', () => adapter.get(operation)).pipe(Effect.map(Option.fromNullishOr)),
   transaction: (operation) => adapt('transaction', () => adapter.transaction(operation)),
 });

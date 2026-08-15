@@ -33,7 +33,7 @@ const dim = (text: string) => {
   return text;
 };
 
-const levelStyles: Record<LogLevel.LogLevel, LevelStyle> = {
+const levelStyles = {
   None: { label: 'log', prefix: '-', color: ANSI.gray },
   All: { label: 'log', prefix: '-', color: ANSI.gray },
   Trace: { label: 'trace', prefix: '.', color: ANSI.gray },
@@ -42,21 +42,19 @@ const levelStyles: Record<LogLevel.LogLevel, LevelStyle> = {
   Warn: { label: 'warn', prefix: '!', color: ANSI.yellow },
   Error: { label: 'error', prefix: 'x', color: ANSI.red },
   Fatal: { label: 'fatal', prefix: 'x', color: ANSI.red },
-};
+} satisfies Record<LogLevel.LogLevel, LevelStyle>;
 
-const toMessages = (message: unknown): ReadonlyArray<unknown> => {
+const decodeString = Schema.decodeUnknownOption(Schema.String);
+
+const toMessages = <M>(message: M): ReadonlyArray<unknown> => {
   if (Array.isArray(message)) {
     return message;
   }
   return [message];
 };
 
-const formatValue = (value: unknown): string => {
-  if (typeof value === 'string') {
-    return value;
-  }
-  return Inspectable.toStringUnknown(value, 0);
-};
+const formatValue = <A>(value: A): string =>
+  Option.getOrElse(decodeString(value), () => Inspectable.toStringUnknown(value, 0));
 
 const formatMessages = (messages: ReadonlyArray<unknown>): string =>
   messages.map(formatValue).join(' ');
@@ -71,7 +69,7 @@ const isJsonLike = (value: string): boolean => {
     return false;
   }
 
-  return Option.isSome(Schema.decodeUnknownOption(Schema.fromJsonString(Schema.Json))(trimmed));
+  return Option.isSome(Schema.decodeOption(Schema.fromJsonString(Schema.Json))(trimmed));
 };
 
 const shouldRenderRaw = (
@@ -81,8 +79,9 @@ const shouldRenderRaw = (
 ): boolean => {
   if (messages.length !== 1) return false;
 
-  const message = messages[0];
-  if (typeof message !== 'string') return false;
+  const decoded = decodeString(messages[0]);
+  if (Option.isNone(decoded)) return false;
+  const message = decoded.value;
   if (message.trim().length === 0) return true;
   if (/^\s/.test(message)) return logLevel === 'Info';
 

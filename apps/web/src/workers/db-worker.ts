@@ -57,16 +57,20 @@ export interface DatabaseWorkerRuntime {
   ) => Effect.Effect<never, unknown>;
 }
 
-const hostPromise = <A>(evaluate: () => Promise<A>): Effect.Effect<A, unknown> =>
-  Effect.tryPromise({ try: evaluate, catch: (cause) => cause });
+class DatabaseWorkerHostError extends Schema.TaggedError<DatabaseWorkerHostError>()(
+  'DatabaseWorkerHostError',
+  { cause: Schema.Unknown },
+) {}
 
-const vfsOperation = (evaluate: () => number | Promise<number>): Effect.Effect<number, unknown> =>
-  Effect.try({ try: evaluate, catch: (cause) => cause }).pipe(
-    Effect.flatMap((result) => {
-      if (typeof result === 'number') return Effect.succeed(result);
-      return hostPromise(() => result);
-    }),
-  );
+const hostPromise = <A>(evaluate: () => Promise<A>): Effect.Effect<A, DatabaseWorkerHostError> =>
+  Effect.tryPromise({ try: evaluate, catch: (cause) => DatabaseWorkerHostError.make({ cause }) });
+
+const vfsOperation = (
+  evaluate: () => number | Promise<number>,
+): Effect.Effect<number, DatabaseWorkerHostError> =>
+  // The VFS call may complete synchronously or return a Promise; Promise.resolve flattens both.
+  // oxlint-disable-next-line effect/noNewPromise -- wa-sqlite VFS calls return number | Promise<number>; Promise.resolve flattens both
+  hostPromise(() => Promise.resolve(evaluate()));
 
 const discardBibleGeneration = (
   vfs: BrowserSqliteVfs,
@@ -106,7 +110,7 @@ const initializeSqlite = (host: DatabaseWorkerHost): Effect.Effect<InitializedSq
             yield* Effect.acquireUseRelease(
               probe.open(SQLite.SQLITE_OPEN_READWRITE | SQLite.SQLITE_OPEN_CREATE),
               () => probe.exec('PRAGMA user_version'),
-              () => probe.close().pipe(Effect.ignore),
+              () => probe.close.pipe(Effect.ignore),
             );
             return registered;
           }),
@@ -178,7 +182,10 @@ const initializeDatabases = (
       migrationSql: userStateMigrationSql,
       log: host.log,
     });
-    const localClientId = Schema.decodeSync(ClientId)('web-local');
+    const localClientId = yield* Schema.decodeEffect(ClientId)('web-local').pipe(Effect.orDie);
+    const generation = yield* Schema.decodeEffect(RuntimeGeneration)(host.randomUuid()).pipe(
+      Effect.orDie,
+    );
     host.log('[web.runtime] persistence-ready state=ready');
     return {
       bibleDatabase: bibleDatabases.active,
@@ -188,7 +195,7 @@ const initializeDatabases = (
         clientId: localClientId,
         store: userState.store,
         transport: makeSimulatedTransport(),
-        generation: Schema.decodeSync(RuntimeGeneration)(host.randomUuid()),
+        generation,
         capabilities: ['external-links'],
         nextMutationId: () => Schema.decodeSync(MutationId)(host.randomUuid()),
         nextHistoryId: () => Schema.decodeSync(LibraryEntityId)(host.randomUuid()),

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, Stream } from 'effect';
+import { Effect, Option, Stream } from 'effect';
 import * as SQLite from 'wa-sqlite';
 
 import {
@@ -66,7 +66,7 @@ describe('worker SQLite database adapter', () => {
       expect(database.isOpen).toBe(true);
       expect(yield* database.query('SELECT value', [1])).toEqual([{ value: 42 }]);
       expect(yield* database.values('SELECT value', [1])).toEqual([[42]]);
-      yield* database.close();
+      yield* database.close;
       expect(database.isOpen).toBe(false);
       expect(events).toEqual([
         `open:state.db:${String(SQLite.SQLITE_OPEN_READWRITE)}:opfs`,
@@ -96,7 +96,7 @@ describe('worker SQLite database adapter', () => {
       yield* family.activate('bible-v1.db', SQLite.SQLITE_OPEN_READWRITE);
       yield* family.activate('bible-v2.db', SQLite.SQLITE_OPEN_READWRITE);
 
-      expect(family.activeFilename).toBe('bible-v2.db');
+      expect(Option.getOrUndefined(family.activeFilename)).toBe('bible-v2.db');
       expect(family.active.isOpen).toBe(true);
       expect(events.filter((event) => event.startsWith('open:'))).toEqual([
         `open:bible-v1.db:${String(SQLite.SQLITE_OPEN_READWRITE)}:opfs`,
@@ -104,8 +104,8 @@ describe('worker SQLite database adapter', () => {
       ]);
       expect(events).toContain('close:7');
 
-      yield* family.deactivate();
-      expect(family.activeFilename).toBeUndefined();
+      yield* family.deactivate;
+      expect(Option.isNone(family.activeFilename)).toBe(true);
     }),
   );
 });

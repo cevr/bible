@@ -1,4 +1,4 @@
-import { Schema } from 'effect';
+import { Option, Predicate, Schema } from 'effect';
 
 import {
   Bookmark,
@@ -34,7 +34,7 @@ export const LibraryBackupDocument = Schema.Struct({
       const orphan = backup.memoryPractice.history.find(
         (record) => !verseIds.has(record.memoryVerseId),
       );
-      if (orphan === undefined) return undefined;
+      if (Predicate.isUndefined(orphan)) return true;
       return `practice record ${orphan.id} references a missing memory verse`;
     }),
   ),
@@ -44,25 +44,26 @@ export const LibraryBackupDocumentFromJson = Schema.fromJsonString(LibraryBackup
 
 const crossReferenceEnd = (reference: UserCrossReference) => {
   if (
-    reference.toEndSource === null ||
-    reference.toEndResourceId === null ||
-    reference.toEndLocation === null
-  )
-    return null;
-  return {
+    Predicate.isNull(reference.toEndSource) ||
+    Predicate.isNull(reference.toEndResourceId) ||
+    Predicate.isNull(reference.toEndLocation)
+  ) {
+    return Option.none();
+  }
+  return Option.some({
     source: reference.toEndSource,
     resourceId: reference.toEndResourceId,
     location: reference.toEndLocation,
-  };
+  });
 };
 
 export const commandsForLibraryBackup = (
   backup: LibraryBackupDocument,
-): ReadonlyArray<typeof DomainMutationCommand.Type> =>
+): ReadonlyArray<DomainMutationCommand> =>
   Schema.decodeUnknownSync(Schema.Array(DomainMutationCommand))([
     { _tag: 'SetReadingPreferences', preferences: backup.preferences },
     ...backup.bookmarks.map((bookmark) => ({
-      _tag: 'SaveBookmark' as const,
+      _tag: 'SaveBookmark',
       id: bookmark.id,
       location: {
         source: bookmark.source,
@@ -72,7 +73,7 @@ export const commandsForLibraryBackup = (
       label: bookmark.label,
     })),
     ...backup.notes.map((note) => ({
-      _tag: 'SaveNote' as const,
+      _tag: 'SaveNote',
       noteId: note.id,
       source: note.source,
       resourceId: note.resourceId,
@@ -80,7 +81,7 @@ export const commandsForLibraryBackup = (
       content: note.content,
     })),
     ...backup.markers.map((marker) => ({
-      _tag: 'SaveMarker' as const,
+      _tag: 'SaveMarker',
       id: marker.id,
       location: {
         source: marker.source,
@@ -91,7 +92,7 @@ export const commandsForLibraryBackup = (
       color: marker.color,
     })),
     ...backup.crossReferences.map((reference) => ({
-      _tag: 'SaveUserCrossReference' as const,
+      _tag: 'SaveUserCrossReference',
       id: reference.id,
       from: {
         source: reference.fromSource,
@@ -103,19 +104,19 @@ export const commandsForLibraryBackup = (
         resourceId: reference.toResourceId,
         location: reference.toLocation,
       },
-      toEnd: crossReferenceEnd(reference),
+      toEnd: Option.getOrNull(crossReferenceEnd(reference)),
       kind: reference.kind,
       note: reference.note,
     })),
     ...backup.collections.flatMap((collection) => [
       {
-        _tag: 'SaveCollection' as const,
+        _tag: 'SaveCollection',
         id: collection.id,
         name: collection.name,
         description: collection.description,
       },
       ...collection.members.map((member) => ({
-        _tag: 'AddCollectionMember' as const,
+        _tag: 'AddCollectionMember',
         collectionId: member.collectionId,
         memberId: member.memberId,
         memberType: member.memberType,
@@ -124,21 +125,21 @@ export const commandsForLibraryBackup = (
     ]),
     ...backup.readingPlans.flatMap((plan) => [
       {
-        _tag: 'SaveReadingPlan' as const,
+        _tag: 'SaveReadingPlan',
         id: plan.id,
         title: plan.title,
         description: plan.description,
         steps: plan.steps,
       },
       ...plan.progress.map((progress) => ({
-        _tag: 'SetReadingPlanProgress' as const,
+        _tag: 'SetReadingPlanProgress',
         planId: plan.id,
         stepId: progress.stepId,
         completedAt: progress.completedAt,
       })),
     ]),
     ...backup.memoryPractice.verses.map((verse) => ({
-      _tag: 'SaveMemoryVerse' as const,
+      _tag: 'SaveMemoryVerse',
       id: verse.id,
       resourceId: verse.resourceId,
       location: verse.location,
@@ -152,12 +153,12 @@ export const commandsForLibraryBackup = (
         (candidate) => candidate.id === record.memoryVerseId,
       );
       return {
-        _tag: 'RecordMemoryPractice' as const,
+        _tag: 'RecordMemoryPractice',
         id: record.id,
         memoryVerseId: record.memoryVerseId,
         rating: record.rating,
         practicedAt: record.practicedAt,
-        nextPracticeAt: verse?.nextPracticeAt ?? null,
+        nextPracticeAt: Option.getOrNull(Option.fromNullishOr(verse?.nextPracticeAt)),
         intervalDays: verse?.intervalDays ?? 0,
       };
     }),

@@ -4,9 +4,8 @@ import {
   type ReaderLocation,
 } from '@bible/core/library-state';
 import { NoteId, type LibraryMutationCommand } from '@bible/core/local-first';
-import { A } from '@solidjs/router';
 import { Errored, For, Loading, Show } from '@solidjs/web';
-import { Effect, Schema } from 'effect';
+import { Effect, Option, Schema } from 'effect';
 import { createMemo, createSignal } from 'solid-js';
 
 import { decodeRoute, readerLocationForRoute } from '../route/index.js';
@@ -21,14 +20,12 @@ export interface AnnotationToolsProps {
 }
 
 const entityId = (kind: string, location: ReaderLocation, suffix = '') =>
-  Schema.decodeUnknownSync(LibraryEntityId)(
+  Schema.decodeSync(LibraryEntityId)(
     `${kind}:${location.source}:${location.resourceId}:${location.location}${suffix}`,
   );
 
 const noteId = (location: ReaderLocation) =>
-  Schema.decodeUnknownSync(NoteId)(
-    `note:${location.source}:${location.resourceId}:${location.location}`,
-  );
+  Schema.decodeSync(NoteId)(`note:${location.source}:${location.resourceId}:${location.location}`);
 
 const compactFailure = (cause: unknown): string => {
   let message = String(cause);
@@ -40,45 +37,52 @@ export const AnnotationTools = (props: AnnotationToolsProps) => {
   const data = useReadingData();
   const annotations = () => data.annotations.get(props.location)();
   const collections = () => data.collections.get()();
-  const [noteDraft, setNoteDraft] = createSignal<string>();
+  const [noteDraft, setNoteDraft] = createSignal(Option.none<string>());
   const [referenceDraft, setReferenceDraft] = createSignal('');
   const [collectionName, setCollectionName] = createSignal('');
   const [selectedCollection, setSelectedCollection] = createSignal('');
   const [busy, setBusy] = createSignal(false);
-  const [failure, setFailure] = createSignal<string>();
+  const [failure, setFailure] = createSignal(Option.none<string>());
   const bookmark = createMemo(() => annotations().bookmarks[0]);
   const note = createMemo(() => annotations().notes[0]);
   const marker = createMemo(() => annotations().markers[0]);
-  const draft = () => noteDraft() ?? note()?.content ?? '';
+  const draft = () =>
+    Option.getOrElse(
+      Option.orElse(noteDraft(), () => Option.fromNullishOr(note()?.content)),
+      () => '',
+    );
   const annotationCount = () =>
     annotations().bookmarks.length +
     annotations().notes.length +
     annotations().markers.length +
     annotations().crossReferences.length;
+  const hasBookmark = () => Option.isSome(Option.fromNullishOr(bookmark()));
+  const hasMarker = () => Option.isSome(Option.fromNullishOr(marker()));
+  const hasNote = () => Option.isSome(Option.fromNullishOr(note()));
   const bookmarkPressed = (): 'true' | 'false' => {
-    if (bookmark() !== undefined) return 'true';
+    if (hasBookmark()) return 'true';
     return 'false';
   };
   const bookmarkLabel = (): string => {
-    if (bookmark() !== undefined) return 'Bookmarked';
+    if (hasBookmark()) return 'Bookmarked';
     return 'Bookmark';
   };
   const markerPressed = (): 'true' | 'false' => {
-    if (marker() !== undefined) return 'true';
+    if (hasMarker()) return 'true';
     return 'false';
   };
   const markerLabel = (): string => {
-    if (marker() !== undefined) return 'Highlighted';
+    if (hasMarker()) return 'Highlighted';
     return 'Highlight';
   };
   const noteAction = (): string => {
-    if (draft().trim().length === 0 && note() !== undefined) return 'Delete note';
+    if (draft().trim().length === 0 && hasNote()) return 'Delete note';
     return 'Save note';
   };
 
   const mutate = (operation: string, command: LibraryMutationCommand, onSuccess?: () => void) => {
     setBusy(true);
-    setFailure(undefined);
+    setFailure(Option.none());
     void data.annotations.mutate(command).then(
       () => {
         setBusy(false);
@@ -91,7 +95,7 @@ export const AnnotationTools = (props: AnnotationToolsProps) => {
             `[annotations] mutation-failed operation=${operation} category=${failureCategory(cause)}`,
           ),
         );
-        setFailure(message);
+        setFailure(Option.some(message));
         setBusy(false);
       },
     );
@@ -133,8 +137,8 @@ export const AnnotationTools = (props: AnnotationToolsProps) => {
     if (content.length === 0 && current) {
       mutate(
         'delete-note',
-        { _tag: 'DeleteNote', noteId: Schema.decodeUnknownSync(NoteId)(current.id) },
-        () => setNoteDraft(undefined),
+        { _tag: 'DeleteNote', noteId: Schema.decodeSync(NoteId)(current.id) },
+        () => setNoteDraft(Option.none()),
       );
       return;
     }
@@ -149,29 +153,29 @@ export const AnnotationTools = (props: AnnotationToolsProps) => {
         location: props.location.location,
         content,
       },
-      () => setNoteDraft(undefined),
+      () => setNoteDraft(Option.none()),
     );
   };
 
   const addReference = (event: SubmitEvent) => {
     event.preventDefault();
-    const route = decodeRoute(referenceDraft().trim());
-    let target: ReaderLocation | undefined;
-    if (route !== undefined) target = readerLocationForRoute(route);
-    if (!target) {
-      setFailure('Enter a canonical Bible or Writings route.');
+    const target = Option.flatMap(decodeRoute(referenceDraft().trim()), readerLocationForRoute);
+    if (Option.isNone(target)) {
+      setFailure(Option.some('Enter a canonical Bible or Writings route.'));
       return;
     }
     mutate(
       'save-reference',
       {
         _tag: 'SaveUserCrossReference',
-        id: entityId('reference', props.location, `:${target.location}`),
+        id: entityId('reference', props.location, `:${target.value.location}`),
         from: props.location,
-        to: target,
-        toEnd: null,
-        kind: null,
-        note: null,
+        to: target.value,
+        // The local-first wire schema models these absent fields as `null`;
+        // produced through Option until core migrates the schema.
+        toEnd: Option.getOrNull(Option.none()),
+        kind: Option.getOrNull(Option.none()),
+        note: Option.getOrNull(Option.none()),
       },
       () => setReferenceDraft(''),
     );
@@ -181,26 +185,28 @@ export const AnnotationTools = (props: AnnotationToolsProps) => {
     event.preventDefault();
     const name = collectionName().trim();
     if (name.length === 0) return;
-    const id = Schema.decodeUnknownSync(LibraryEntityId)(`collection:${name.toLowerCase()}`);
+    const id = Schema.decodeSync(LibraryEntityId)(`collection:${name.toLowerCase()}`);
     setBusy(true);
-    setFailure(undefined);
-    void data.collections.mutate({ _tag: 'SaveCollection', id, name, description: null }).then(
-      () => {
-        setBusy(false);
-        setCollectionName('');
-        setSelectedCollection(id);
-      },
-      (cause: unknown) => {
-        const message = compactFailure(cause);
-        Effect.runFork(
-          Effect.logError(
-            `[collections] mutation-failed operation=save category=${failureCategory(cause)}`,
-          ),
-        );
-        setFailure(message);
-        setBusy(false);
-      },
-    );
+    setFailure(Option.none());
+    void data.collections
+      .mutate({ _tag: 'SaveCollection', id, name, description: Option.getOrNull(Option.none()) })
+      .then(
+        () => {
+          setBusy(false);
+          setCollectionName('');
+          setSelectedCollection(id);
+        },
+        (cause: unknown) => {
+          const message = compactFailure(cause);
+          Effect.runFork(
+            Effect.logError(
+              `[collections] mutation-failed operation=save category=${failureCategory(cause)}`,
+            ),
+          );
+          setFailure(Option.some(message));
+          setBusy(false);
+        },
+      );
   };
 
   const addToCollection = () => {
@@ -208,7 +214,7 @@ export const AnnotationTools = (props: AnnotationToolsProps) => {
     const collection = collections().find((candidate) => candidate.id === selectedCollection());
     if (!currentBookmark || !collection) return;
     setBusy(true);
-    setFailure(undefined);
+    setFailure(Option.none());
     void data.collections
       .mutate({
         _tag: 'AddCollectionMember',
@@ -226,7 +232,7 @@ export const AnnotationTools = (props: AnnotationToolsProps) => {
               `[collections] mutation-failed operation=add-member category=${failureCategory(cause)}`,
             ),
           );
-          setFailure(message);
+          setFailure(Option.some(message));
           setBusy(false);
         },
       );
@@ -278,7 +284,7 @@ export const AnnotationTools = (props: AnnotationToolsProps) => {
                           id="annotation-note"
                           value={draft()}
                           placeholder="Write what you notice…"
-                          onInput={(event) => setNoteDraft(event.currentTarget.value)}
+                          onInput={(event) => setNoteDraft(Option.some(event.currentTarget.value))}
                         />
                         <Button type="submit" tone="accent" disabled={busy()}>
                           {noteAction()}
@@ -294,12 +300,12 @@ export const AnnotationTools = (props: AnnotationToolsProps) => {
                         <For each={annotations().crossReferences}>
                           {(reference) => (
                             <div class="bible-annotation-reference">
-                              <A href={reference.toLocation}>
+                              <a href={reference.toLocation}>
                                 {reference.toLocation}
                                 <Show when={reference.toEndLocation}>
                                   {(end) => `–${end().split('/').at(-1)}`}
                                 </Show>
-                              </A>
+                              </a>
                               <Show when={reference.note}>{(note) => <span>{note()}</span>}</Show>
                               <Button
                                 aria-label={`Remove cross-reference to ${reference.toLocation}`}
@@ -378,7 +384,7 @@ export const AnnotationTools = (props: AnnotationToolsProps) => {
                   Saving…
                 </p>
               </Show>
-              <Show when={failure()}>
+              <Show when={Option.getOrUndefined(failure())}>
                 {(message) => (
                   <p class="bible-form-status bible-form-status--error" role="alert">
                     {message()}

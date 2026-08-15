@@ -73,13 +73,16 @@ const hymnNumber = Argument.integer('number');
 const getCommand = Command.make('get', { hymnNumber, json: jsonFlag }, (args) =>
   Effect.gen(function* () {
     const service = yield* HymnalService;
-    const hymn = yield* service
-      .getHymn(args.hymnNumber as HymnId)
-      .pipe(Effect.catch(() => Effect.succeed(null)));
+    const hymn = yield* service.getHymn(args.hymnNumber as HymnId).pipe(
+      Effect.map(Option.some),
+      Effect.catch(() => Effect.succeedNone),
+    );
 
-    if (hymn === null) {
+    if (Option.isNone(hymn)) {
       if (args.json) {
-        yield* Console.log(yield* encodeJson({ id: args.hymnNumber, hymn: null }));
+        yield* Console.log(
+          yield* encodeJson({ id: args.hymnNumber, hymn: Option.getOrNull(hymn) }),
+        );
         return;
       }
       yield* Console.log(`Hymn #${args.hymnNumber} not found.`);
@@ -88,11 +91,11 @@ const getCommand = Command.make('get', { hymnNumber, json: jsonFlag }, (args) =>
     }
 
     if (args.json) {
-      yield* Console.log(yield* encodeJson(hymn));
+      yield* Console.log(yield* encodeJson(hymn.value));
       return;
     }
 
-    yield* Console.log(formatHymnFull(hymn));
+    yield* Console.log(formatHymnFull(hymn.value));
   }).pipe(Effect.scoped, Effect.provide(HymnalLive)),
 );
 
@@ -144,7 +147,7 @@ const searchCommand = Command.make(
 const categoriesCommand = Command.make('categories', {}, () =>
   Effect.gen(function* () {
     const service = yield* HymnalService;
-    const categories = yield* service.getCategories();
+    const categories = yield* service.getCategories;
 
     yield* Console.log('SDA Hymnal Categories:\n');
     for (const cat of categories) {

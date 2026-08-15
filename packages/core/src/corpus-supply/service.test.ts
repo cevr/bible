@@ -18,19 +18,19 @@ import { layerBibleArtifactInstaller, layerBibleArtifactRecipe } from './bible-a
 
 const id = publicationId(127);
 const code = publicationCode('PP');
-const publication = new Publication({
+const publication = Publication.make({
   id,
   code,
   title: 'Patriarchs and Prophets',
   author: 'Ellen G. White',
   paragraphCount: Option.some(1),
 });
-const archive = new PublicationArchive({
+const archive = PublicationArchive.make({
   publication,
   paragraphs: [
-    new ArchivedParagraph({
+    ArchivedParagraph.make({
       refcode: 'PP 1.1',
-      paragraph: new Paragraph({
+      paragraph: Paragraph.make({
         reference: Reference.paragraph(id, 'pp-1-1'),
         publicationCode: code,
         order: publicationOrder(1),
@@ -46,7 +46,7 @@ const archive = new PublicationArchive({
   ],
   bibleReferences: [],
 });
-const contribution = new WritingsContribution({
+const contribution = WritingsContribution.make({
   provenance: unknownProvenance('egw-api', '2026-07-20'),
   archive,
 });

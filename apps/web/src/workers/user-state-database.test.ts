@@ -1,4 +1,4 @@
-import { Database } from 'bun:sqlite';
+import { Database, type SQLQueryBindings } from 'bun:sqlite';
 import { ClientId, MutationId, preferences, Timestamp } from '@bible/core/local-first';
 import migrationSql from '@bible/core/local-first/migrations/0001_user_state.sql?raw';
 import {
@@ -16,27 +16,13 @@ const clientId = Schema.decodeSync(ClientId);
 const mutationId = Schema.decodeSync(MutationId);
 const timestamp = Schema.decodeSync(Timestamp);
 
-const toBinding = (value: unknown) => {
-  if (
-    value === null ||
-    typeof value === 'string' ||
-    typeof value === 'number' ||
-    typeof value === 'bigint' ||
-    typeof value === 'boolean' ||
-    value instanceof Uint8Array
-  ) {
-    return value;
-  }
-  return Effect.runSync(Effect.die(new TypeError('unsupported SQLite binding')));
-};
-
 const databaseFailure = (operation: string, cause: unknown): SqliteDatabaseError =>
-  new SqliteDatabaseError({ operation, filename: ':memory:', cause });
+  SqliteDatabaseError.make({ operation, filename: ':memory:', cause });
 
 const makeRealDatabase = (client: Database): SqliteDatabase => ({
   isOpen: true,
   open: () => Effect.void,
-  close: () => Effect.void,
+  close: Effect.void,
   exec: (sql) =>
     Effect.try({
       try: () => client.exec(sql),
@@ -45,12 +31,12 @@ const makeRealDatabase = (client: Database): SqliteDatabase => ({
   query: () => Effect.succeed([]),
   values: (sql, params = []) =>
     Effect.try({
-      try: () => client.query(sql).values(...params.map(toBinding)),
+      try: () => client.query(sql).values(...(params as SQLQueryBindings[])),
       catch: (cause) => databaseFailure('values', cause),
     }),
   write: (sql, params = []) =>
     Effect.try({
-      try: () => client.query(sql).run(...params.map(toBinding)).changes,
+      try: () => client.query(sql).run(...(params as SQLQueryBindings[])).changes,
       catch: (cause) => databaseFailure('write', cause),
     }),
 });
@@ -58,7 +44,7 @@ const makeRealDatabase = (client: Database): SqliteDatabase => ({
 const makeDatabase = (events: string[]): SqliteDatabase => ({
   isOpen: true,
   open: () => Effect.void,
-  close: () => Effect.void,
+  close: Effect.void,
   exec: () => Effect.void,
   query: () => Effect.succeed([]),
   values: (sql) =>

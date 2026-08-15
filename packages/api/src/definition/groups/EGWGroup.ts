@@ -17,11 +17,11 @@ import { Effect, Schema as S } from 'effect';
 // ============================================================================
 
 export const EGWBookInfoSchema = S.Struct({
-  bookId: S.Number,
+  bookId: S.Finite,
   bookCode: S.String,
   title: S.String,
   author: S.String,
-  paragraphCount: S.optional(S.Number),
+  paragraphCount: S.optional(S.Finite),
 });
 
 export type EGWBookInfo = S.Schema.Type<typeof EGWBookInfoSchema>;
@@ -30,7 +30,7 @@ export const EGWParagraphSchema = S.Struct({
   paraId: S.NullOr(S.String),
   refcodeShort: S.NullOr(S.String),
   nodes: S.Array(Node),
-  puborder: S.Number,
+  puborder: S.Finite,
   elementType: S.NullOr(S.String),
 });
 
@@ -38,12 +38,12 @@ export type EGWParagraph = S.Schema.Type<typeof EGWParagraphSchema>;
 
 export const EGWPageResponseSchema = S.Struct({
   book: EGWBookInfoSchema,
-  page: S.Number,
+  page: S.Finite,
   paragraphs: S.Array(EGWParagraphSchema),
   chapterHeading: S.NullOr(S.String),
   // For prefetch hints
-  prevPage: S.NullOr(S.Number),
-  nextPage: S.NullOr(S.Number),
+  prevPage: S.NullOr(S.Finite),
+  nextPage: S.NullOr(S.Finite),
 });
 
 export type EGWPageResponse = S.Schema.Type<typeof EGWPageResponseSchema>;
@@ -51,8 +51,8 @@ export type EGWPageResponse = S.Schema.Type<typeof EGWPageResponseSchema>;
 export const EGWChapterSchema = S.Struct({
   title: S.NullOr(S.String),
   refcodeShort: S.NullOr(S.String),
-  puborder: S.Number,
-  page: S.NullOr(S.Number),
+  puborder: S.Finite,
+  page: S.NullOr(S.Finite),
 });
 
 export type EGWChapter = S.Schema.Type<typeof EGWChapterSchema>;
@@ -61,20 +61,20 @@ export const EGWSearchResultSchema = S.Struct({
   paraId: S.NullOr(S.String),
   refcodeShort: S.NullOr(S.String),
   nodes: S.Array(Node),
-  puborder: S.Number,
+  puborder: S.Finite,
   bookCode: S.String,
   bookTitle: S.String,
 });
 
 export type EGWSearchResult = S.Schema.Type<typeof EGWSearchResultSchema>;
 
-const PositiveIntegerFromString = S.NumberFromString.pipe(S.check(S.isInt(), S.isGreaterThan(0)));
+const PositiveIntegerFromString = S.FiniteFromString.pipe(S.check(S.isInt(), S.isGreaterThan(0)));
 
 // ============================================================================
 // Errors
 // ============================================================================
 
-export class EGWBookNotFoundError extends S.TaggedErrorClass<EGWBookNotFoundError>()(
+export class EGWBookNotFoundError extends S.TaggedError<EGWBookNotFoundError>()(
   'EGWBookNotFoundError',
   {
     bookCode: S.String,
@@ -83,17 +83,17 @@ export class EGWBookNotFoundError extends S.TaggedErrorClass<EGWBookNotFoundErro
   { httpApiStatus: 404 },
 ) {}
 
-export class EGWPageNotFoundError extends S.TaggedErrorClass<EGWPageNotFoundError>()(
+export class EGWPageNotFoundError extends S.TaggedError<EGWPageNotFoundError>()(
   'EGWPageNotFoundError',
   {
     bookCode: S.String,
-    page: S.Number,
+    page: S.Finite,
     message: S.String,
   },
   { httpApiStatus: 404 },
 ) {}
 
-export class EGWDatabaseError extends S.TaggedErrorClass<EGWDatabaseError>()(
+export class EGWDatabaseError extends S.TaggedError<EGWDatabaseError>()(
   'EGWDatabaseError',
   {
     message: S.String,
@@ -101,7 +101,7 @@ export class EGWDatabaseError extends S.TaggedErrorClass<EGWDatabaseError>()(
   { httpApiStatus: 500 },
 ) {}
 
-export class EGWInvalidSearchError extends S.TaggedErrorClass<EGWInvalidSearchError>()(
+export class EGWInvalidSearchError extends S.TaggedError<EGWInvalidSearchError>()(
   'EGWInvalidSearchError',
   {
     reason: S.Literals(['empty-query', 'invalid-limit']),
@@ -145,7 +145,7 @@ export const EGWGroup = HttpApiGroup.make('EGW')
       query: {
         q: S.String,
         bookCode: S.optional(S.NonEmptyString),
-        limit: S.optional(S.NumberFromString).pipe(S.withDecodingDefault(Effect.succeed('50'))),
+        limit: S.optional(S.FiniteFromString).pipe(S.withDecodingDefault(Effect.succeed('50'))),
       },
       success: S.Array(EGWSearchResultSchema),
       error: [EGWInvalidSearchError, EGWDatabaseError],

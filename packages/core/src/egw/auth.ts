@@ -43,8 +43,8 @@ export { AccessToken } from './auth-types.js';
 /**
  * EGW Auth Errors
  */
-export class EGWAuthError extends Schema.TaggedErrorClass<EGWAuthError>()('EGWAuthError', {
-  cause: Schema.Unknown,
+export class EGWAuthError extends Schema.TaggedError<EGWAuthError>()('EGWAuthError', {
+  cause: Schema.optional(Schema.Unknown),
   message: Schema.String,
 }) {}
 
@@ -55,13 +55,13 @@ const OAuthTokenResponse = Schema.Struct({
   access_token: Schema.String,
   refresh_token: Schema.optional(Schema.String),
   token_type: Schema.String,
-  expires_in: Schema.Number,
+  expires_in: Schema.Finite,
   scope: Schema.String,
 });
 
 const RequestLogBody = Schema.fromJsonString(Schema.Record(Schema.String, Schema.Unknown));
 const decodeRequestLogBody = Schema.decodeUnknownOption(RequestLogBody);
-const encodeJson = Schema.encodeSync(Schema.UnknownFromJsonString);
+const encodeJson = Schema.encodeSync(Schema.fromJsonString(Schema.Unknown));
 
 /**
  * Transform OAuth token response to AccessToken
@@ -72,11 +72,12 @@ const decodeOAuthToAccessToken = (
   Effect.gen(function* () {
     const createdAt = yield* Clock.currentTimeMillis;
     const expiresIn = encoded.expires_in * 1000;
-    let refreshToken: Redacted.Redacted | undefined;
-    if (encoded.refresh_token !== undefined) refreshToken = Redacted.make(encoded.refresh_token);
-    return new AccessToken({
+    const refreshToken = Option.fromNullishOr(encoded.refresh_token).pipe(
+      Option.map(Redacted.make),
+    );
+    return AccessToken.make({
       accessToken: Redacted.make(encoded.access_token),
-      refreshToken,
+      refreshToken: Option.getOrUndefined(refreshToken),
       expiresAt: createdAt + expiresIn,
       scope: encoded.scope,
     });
@@ -90,7 +91,7 @@ const decodeOAuthToAccessToken = (
  * EGW Auth service interface.
  */
 export interface EGWAuthService {
-  readonly getToken: () => Effect.Effect<AccessToken>;
+  readonly getToken: Effect.Effect<AccessToken>;
 }
 
 // ============================================================================
@@ -124,27 +125,42 @@ export class EGWAuth extends Context.Service<EGWAuth, EGWAuthService>()(
       // `process.env` reads would throw ReferenceError in the renderer.
       const authBaseUrl = yield* Config.string('EGW_AUTH_BASE_URL').pipe(
         Config.withDefault(
-          bakedAuthBaseUrl() ?? envVar('EGW_AUTH_BASE_URL') ?? 'https://cpanel.egwwritings.org',
+          bakedAuthBaseUrl().pipe(
+            Option.orElse(() => envVar('EGW_AUTH_BASE_URL')),
+            Option.getOrElse(() => 'https://cpanel.egwwritings.org'),
+          ),
         ),
       );
       const clientId = yield* Config.string('EGW_CLIENT_ID').pipe(
-        Config.withDefault(bakedClientId() ?? envVar('EGW_CLIENT_ID') ?? ''),
+        Config.withDefault(
+          bakedClientId().pipe(
+            Option.orElse(() => envVar('EGW_CLIENT_ID')),
+            Option.getOrElse(() => ''),
+          ),
+        ),
       );
       const clientSecret = yield* Config.redacted('EGW_CLIENT_SECRET').pipe(
-        Config.withDefault(Redacted.make(bakedClientSecret() ?? envVar('EGW_CLIENT_SECRET') ?? '')),
+        Config.withDefault(
+          Redacted.make(
+            bakedClientSecret().pipe(
+              Option.orElse(() => envVar('EGW_CLIENT_SECRET')),
+              Option.getOrElse(() => ''),
+            ),
+          ),
+        ),
       );
       const scope = yield* Config.string('EGW_SCOPE').pipe(
         Config.withDefault(
-          bakedScope() ??
-            envVar('EGW_SCOPE') ??
-            'writings search studycenter subscriptions user_info',
+          bakedScope().pipe(
+            Option.orElse(() => envVar('EGW_SCOPE')),
+            Option.getOrElse(() => 'writings search studycenter subscriptions user_info'),
+          ),
         ),
       );
       if (!clientId || !Redacted.value(clientSecret)) {
-        return yield* new EGWAuthError({
+        return yield* EGWAuthError.make({
           message:
             'EGW_CLIENT_ID and EGW_CLIENT_SECRET must be set (check packages/cli/.env or env)',
-          cause: undefined,
         });
       }
 
@@ -166,14 +182,14 @@ export class EGWAuth extends Context.Service<EGWAuth, EGWAuthService>()(
             const decoded = decodeRequestLogBody(text);
             if (Option.isSome(decoded)) {
               const json = decoded.value;
-              let clientSecret: string | undefined;
-              if (json['client_secret']) clientSecret = '[REDACTED]';
-              let refreshToken: string | undefined;
-              if (json['refresh_token']) refreshToken = '[REDACTED]';
+              let clientSecret = Option.none<string>();
+              if (json['client_secret']) clientSecret = Option.some('[REDACTED]');
+              let refreshToken = Option.none<string>();
+              if (json['refresh_token']) refreshToken = Option.some('[REDACTED]');
               const maskedJson = {
                 ...json,
-                client_secret: clientSecret,
-                refresh_token: refreshToken,
+                client_secret: Option.getOrUndefined(clientSecret),
+                refresh_token: Option.getOrUndefined(refreshToken),
               };
               return Effect.log(`-> req ${request.method} ${request.url}`, encodeJson(maskedJson));
             }
@@ -201,9 +217,8 @@ export class EGWAuth extends Context.Service<EGWAuth, EGWAuthService>()(
         ),
         HttpClient.tapError((error) =>
           Effect.gen(function* () {
-            let request: HttpClientRequest.HttpClientRequest | undefined;
-            if ('request' in error) request = error.request;
-            yield* Effect.logError(`✗ res ${request?.method} ${request?.url}`, error);
+            const request = error.request;
+            yield* Effect.logError(`✗ res ${request.method} ${request.url}`, error);
           }),
         ),
         HttpClient.filterStatusOk,
@@ -232,9 +247,8 @@ export class EGWAuth extends Context.Service<EGWAuth, EGWAuthService>()(
 
       const refreshToken = Effect.fn('EGWAuth.refreshToken')(function* (token: AccessToken) {
         if (!token.refreshToken) {
-          return yield* new EGWAuthError({
+          return yield* EGWAuthError.make({
             message: 'No refresh token available',
-            cause: undefined,
           });
         }
 
@@ -257,7 +271,7 @@ export class EGWAuth extends Context.Service<EGWAuth, EGWAuthService>()(
               if (Predicate.isNotUndefined(response.refreshToken)) {
                 refreshToken = response.refreshToken;
               }
-              return new AccessToken({
+              return AccessToken.make({
                 accessToken: response.accessToken,
                 refreshToken,
                 expiresAt: response.expiresAt,
@@ -300,12 +314,12 @@ export class EGWAuth extends Context.Service<EGWAuth, EGWAuthService>()(
 
       const tokenRef = yield* SynchronizedRef.make(initialToken);
 
-      const getToken = Effect.fn('EGWAuth.getToken')(() =>
-        SynchronizedRef.updateAndGetEffect(tokenRef, refreshTokenIfExpired),
+      const getToken = SynchronizedRef.updateAndGetEffect(tokenRef, refreshTokenIfExpired).pipe(
+        Effect.withSpan('EGWAuth.getToken'),
       );
 
       // Periodically refresh token
-      yield* getToken().pipe(
+      yield* getToken.pipe(
         Effect.interruptible,
         Effect.repeat({ schedule: Schedule.cron('0 0 * * *') }),
         Effect.forkChild,
@@ -343,9 +357,10 @@ export class EGWAuth extends Context.Service<EGWAuth, EGWAuthService>()(
     // this at module load and crashed renderers (no `process` global). The
     // static field was removed; this guard belts-and-suspenders any future
     // caller that imports from a browser context.
-    let path = tokenFile;
-    if (path === undefined) path = envVar('EGW_TOKEN_FILE');
-    if (path === undefined) path = 'data/tokens.json';
+    const path = Option.fromNullishOr(tokenFile).pipe(
+      Option.orElse(() => envVar('EGW_TOKEN_FILE')),
+      Option.getOrElse(() => 'data/tokens.json'),
+    );
     return Layer.provide(EGWAuth.Live, EGWTokenStore.layerFileSystem(path));
   };
 
@@ -354,15 +369,14 @@ export class EGWAuth extends Context.Service<EGWAuth, EGWAuthService>()(
    */
   static Test = (token?: AccessToken): Layer.Layer<EGWAuth> =>
     Layer.succeed(EGWAuth, {
-      getToken: () =>
-        Effect.gen(function* () {
-          if (token !== undefined) return token;
-          const now = yield* Clock.currentTimeMillis;
-          return new AccessToken({
-            accessToken: Redacted.make('test-token'),
-            expiresAt: now + 3600000,
-            scope: 'test',
-          });
-        }),
+      getToken: Effect.gen(function* () {
+        if (Predicate.isNotUndefined(token)) return token;
+        const now = yield* Clock.currentTimeMillis;
+        return AccessToken.make({
+          accessToken: Redacted.make('test-token'),
+          expiresAt: now + 3600000,
+          scope: 'test',
+        });
+      }),
     });
 }

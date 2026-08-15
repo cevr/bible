@@ -9,7 +9,7 @@
     "./assertions": "./src/assertions.ts"
   },
   "scripts": {
-    "typecheck": "tsgo --noEmit"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "effect": "catalog:"

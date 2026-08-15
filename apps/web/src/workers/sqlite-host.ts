@@ -1,3 +1,4 @@
+import { Predicate } from 'effect';
 import * as SQLite from 'wa-sqlite';
 
 import type { SqliteRow } from './sqlite-database.js';
@@ -15,6 +16,14 @@ export type WorkerSqliteApi = Pick<
   | 'step'
 >;
 
+const bindParams = (
+  sqlite: WorkerSqliteApi,
+  statement: number,
+  params: readonly unknown[],
+): void => {
+  if (params.length > 0) sqlite.bind_collection(statement, params as SQLiteCompatibleType[]);
+};
+
 export const open = (
   sqlite: WorkerSqliteApi,
   filename: string,
@@ -23,27 +32,24 @@ export const open = (
 ): Promise<number> => sqlite.open_v2(filename, flags, vfsName);
 
 export const close = (sqlite: WorkerSqliteApi, handle: number): Promise<void> =>
-  sqlite.close(handle).then(() => undefined);
+  sqlite.close(handle).then(() => {});
 
 export const query = async (
   sqlite: WorkerSqliteApi,
   handle: number,
   sql: string,
-  params?: readonly unknown[],
+  params: readonly unknown[] = [],
 ): Promise<readonly SqliteRow[]> => {
   const rows: SqliteRow[] = [];
   for await (const statement of sqlite.statements(handle, sql)) {
-    if (params !== undefined && params.length > 0) {
-      sqlite.bind_collection(statement, params as (SQLiteCompatibleType | null)[]);
-    }
+    bindParams(sqlite, statement, params);
     const columns = sqlite.column_names(statement);
     // oxlint-disable-next-line no-await-in-loop -- SQLite rows are cursor-ordered
     while ((await sqlite.step(statement)) === SQLite.SQLITE_ROW) {
       const row: SqliteRow = {};
-      const values = sqlite.row(statement);
-      for (let index = 0; index < columns.length; index += 1) {
+      for (const [index, value] of sqlite.row(statement).entries()) {
         const column = columns[index];
-        if (column !== undefined) row[column] = values[index];
+        if (Predicate.isString(column)) row[column] = value;
       }
       rows.push(row);
     }
@@ -55,13 +61,11 @@ export const values = async (
   sqlite: WorkerSqliteApi,
   handle: number,
   sql: string,
-  params?: readonly unknown[],
+  params: readonly unknown[] = [],
 ): Promise<readonly unknown[][]> => {
   const rows: unknown[][] = [];
   for await (const statement of sqlite.statements(handle, sql)) {
-    if (params !== undefined && params.length > 0) {
-      sqlite.bind_collection(statement, params as (SQLiteCompatibleType | null)[]);
-    }
+    bindParams(sqlite, statement, params);
     // oxlint-disable-next-line no-await-in-loop -- SQLite rows are cursor-ordered
     while ((await sqlite.step(statement)) === SQLite.SQLITE_ROW) {
       rows.push([...sqlite.row(statement)]);
@@ -74,16 +78,14 @@ export const write = async (
   sqlite: WorkerSqliteApi,
   handle: number,
   sql: string,
-  params?: readonly unknown[],
+  params: readonly unknown[] = [],
 ): Promise<number> => {
   for await (const statement of sqlite.statements(handle, sql)) {
-    if (params !== undefined && params.length > 0) {
-      sqlite.bind_collection(statement, params as (SQLiteCompatibleType | null)[]);
-    }
+    bindParams(sqlite, statement, params);
     await sqlite.step(statement);
   }
   return sqlite.changes(handle);
 };
 
 export const exec = (sqlite: WorkerSqliteApi, handle: number, sql: string): Promise<void> =>
-  sqlite.exec(handle, sql).then(() => undefined);
+  sqlite.exec(handle, sql).then(() => {});

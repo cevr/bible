@@ -19,6 +19,8 @@
  * is prefixed onto the title of the numbered sections that follow it.
  */
 
+import { Option } from 'effect';
+
 export interface MarkdownBlock {
   /** Stable slug derived from the heading — used to track the note id across re-exports. */
   slug: string;
@@ -86,7 +88,7 @@ export function splitMarkdownIntoSections(content: string): SplitMarkdown {
   const lines = content.split('\n');
 
   let folderTitle = 'Untitled';
-  let currentPart: string | null = null;
+  let currentPart: Option.Option<string> = Option.none();
 
   const blocks: MarkdownBlock[] = [];
   // Preface accumulates everything after the H1 until the first "## ".
@@ -94,18 +96,18 @@ export function splitMarkdownIntoSections(content: string): SplitMarkdown {
   let started = false; // have we hit the first "## " yet?
 
   // Current open section block.
-  let curTitle: string | null = null;
+  let curTitle: Option.Option<string> = Option.none();
   let curLines: string[] = [];
 
   const flush = (): void => {
-    if (curTitle === null) return;
+    if (Option.isNone(curTitle)) return;
     const body = curLines.join('\n').trim();
     blocks.push({
-      slug: slugify(curTitle),
-      title: curTitle,
+      slug: slugify(curTitle.value),
+      title: curTitle.value,
       markdown: body,
     });
-    curTitle = null;
+    curTitle = Option.none();
     curLines = [];
   };
 
@@ -136,17 +138,18 @@ export function splitMarkdownIntoSections(content: string): SplitMarkdown {
       // heading, so note titles stay readable: "Part I — 1. The Casket...".
       const text = headingText(line);
       const isNumbered = /^\d+\./.test(text);
-      let partLabel: string | null = null;
-      if (currentPart !== null) partLabel = partShortLabel(currentPart);
-      curTitle = text;
-      if (partLabel !== null && isNumbered) curTitle = `${partLabel} — ${text}`;
+      const partLabel = Option.map(currentPart, partShortLabel);
+      curTitle = Option.some(text);
+      if (Option.isSome(partLabel) && isNumbered) {
+        curTitle = Option.some(`${partLabel.value} — ${text}`);
+      }
       curLines = [line];
       continue;
     }
 
     if (isPartHeading(line)) {
       // A divider: remember it for the next numbered section; don't emit a block.
-      currentPart = headingText(line);
+      currentPart = Option.some(headingText(line));
       // If a section is open, the Part header belongs to the NEXT section, so
       // we simply don't append it to the current block.
       continue;

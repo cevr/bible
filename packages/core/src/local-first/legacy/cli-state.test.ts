@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { Schema } from 'effect';
+import { Option, Predicate, Schema } from 'effect';
 
 import { LibraryEntityId } from '../../library-state/model.js';
 import { Timestamp } from '../model.js';
@@ -7,18 +7,21 @@ import { MigrationDiagnosticId } from '../legacy-migration.js';
 import { projectCliState } from './cli-state.js';
 import type { CliStateProjectionOptions } from './cli-state.js';
 
+// Wire-shape fields the schema encodes as `null` when absent.
+const wireNull = Option.getOrNull(Option.none<never>());
+
 const options: CliStateProjectionOptions = {
   nextDiagnosticId: (path) => Schema.decodeSync(MigrationDiagnosticId)(`cli:diagnostic:${path}`),
   nextHistoryId: (path) => Schema.decodeSync(LibraryEntityId)(`cli:history:${path}`),
   timestampFor: (_path, legacyEpochMilliseconds) => {
-    if (legacyEpochMilliseconds === undefined) {
+    if (Predicate.isUndefined(legacyEpochMilliseconds)) {
       return Schema.decodeSync(Timestamp)('2026-07-19T12:00:00.000Z');
     }
     return Schema.decodeSync(Timestamp)(`legacy-${String(legacyEpochMilliseconds)}`);
   },
   resolveEgwLocation: (position) => {
-    if (position.book_code !== 'AA' || position.puborder !== 17) return undefined;
-    return { source: 'egw', resourceId: 'AA', location: '/writings/AA/17' };
+    if (position.book_code !== 'AA' || position.puborder !== 17) return Option.none();
+    return Option.some({ source: 'egw', resourceId: 'AA', location: '/writings/AA/17' });
   },
 };
 
@@ -38,9 +41,9 @@ describe('CLI state legacy projection', () => {
             ref_book: 1,
             ref_chapter: 1,
             ref_verse: 1,
-            ref_verse_end: null,
-            type: null,
-            note: null,
+            ref_verse_end: wireNull,
+            type: wireNull,
+            note: wireNull,
             created_at: 1_700_000_000_000,
           },
         ],
@@ -69,9 +72,9 @@ describe('CLI state legacy projection', () => {
         id: 'legacy-xref-1',
         from: { source: 'bible', resourceId: 'KJV', location: '/bible/43/3/16' },
         to: { source: 'bible', resourceId: 'KJV', location: '/bible/1/1/1' },
-        toEnd: null,
-        kind: null,
-        note: null,
+        toEnd: wireNull,
+        kind: wireNull,
+        note: wireNull,
       },
     ]);
     expect(result.diagnostics.map((entry) => entry.path)).toEqual([
@@ -116,7 +119,9 @@ describe('CLI state legacy projection', () => {
 
   test('quarantines unresolved writings positions', () => {
     const result = projectCliState(
-      { egw_position: [{ book_code: 'UNKNOWN', page: null, paragraph: null, puborder: 1 }] },
+      {
+        egw_position: [{ book_code: 'UNKNOWN', page: wireNull, paragraph: wireNull, puborder: 1 }],
+      },
       options,
     );
 

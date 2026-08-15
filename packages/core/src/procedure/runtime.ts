@@ -8,6 +8,7 @@ import {
   type MutationEnvelope,
   type MutationId,
   MigrationSourceId,
+  type DomainMutationCommand,
   type LibraryMutationCommand,
   type SyncStore,
   type SyncTransport,
@@ -15,7 +16,7 @@ import {
   makeSyncEngine,
 } from '../local-first/index.js';
 import { applyReadingPreferencesPatch } from '../reading-preferences/model.js';
-import { Context, Effect, Layer, PubSub, Ref, Schema, Stream } from 'effect';
+import { Context, Effect, Layer, Predicate, PubSub, Ref, Schema, Stream } from 'effect';
 
 import {
   CommitId,
@@ -30,6 +31,7 @@ import {
   type RuntimeCapability,
   type RuntimeEvent,
   type RuntimeGeneration,
+  type MutationCommitValue,
 } from './model.js';
 import {
   DataPortabilityRuntime,
@@ -37,24 +39,24 @@ import {
   ProcedureRuntime,
   ReadingContinuityRuntime,
   ReadingPreferencesRuntime,
-  type LibraryStateRuntimeShape,
-  type ProcedureRuntimeShape,
-  type ReadingContinuityRuntimeShape,
-  type ReadingPreferencesRuntimeShape,
-  type DataPortabilityRuntimeShape,
+  type LibraryStateRuntimeService,
+  type ProcedureRuntimeService,
+  type ReadingContinuityRuntimeService,
+  type ReadingPreferencesRuntimeService,
+  type DataPortabilityRuntimeService,
 } from './services.js';
 
-interface LocalProcedureRuntimeShape {
-  readonly procedures: ProcedureRuntimeShape;
-  readonly preferences: ReadingPreferencesRuntimeShape;
-  readonly continuity: ReadingContinuityRuntimeShape;
-  readonly library: LibraryStateRuntimeShape;
-  readonly data: DataPortabilityRuntimeShape;
+interface LocalProcedureRuntimeService {
+  readonly procedures: ProcedureRuntimeService;
+  readonly preferences: ReadingPreferencesRuntimeService;
+  readonly continuity: ReadingContinuityRuntimeService;
+  readonly library: LibraryStateRuntimeService;
+  readonly data: DataPortabilityRuntimeService;
 }
 
 class LocalProcedureRuntime extends Context.Service<
   LocalProcedureRuntime,
-  LocalProcedureRuntimeShape
+  LocalProcedureRuntimeService
 >()('@bible/core/procedure/LocalProcedureRuntime') {}
 
 export interface LocalProcedureRuntimeOptions {
@@ -74,15 +76,13 @@ const procedureFailure =
   (cause: unknown): ProcedureError => {
     let code = 'UnexpectedProcedureFailure';
     let message = String(cause);
-    if (typeof cause === 'object' && cause !== null && '_tag' in cause) {
+    if (Predicate.isObject(cause)) {
       const tag = cause['_tag'];
-      if (typeof tag === 'string' && tag.length > 0) code = tag;
-    }
-    if (typeof cause === 'object' && cause !== null && 'message' in cause) {
+      if (Predicate.isString(tag) && tag.length > 0) code = tag;
       const detail = cause['message'];
-      if (typeof detail === 'string' && detail.length > 0) message = detail;
+      if (Predicate.isString(detail) && detail.length > 0) message = detail;
     }
-    return new ProcedureError({ procedure, code, message });
+    return ProcedureError.make({ procedure, code, message });
   };
 
 const makeRuntime = (options: LocalProcedureRuntimeOptions) =>
@@ -98,12 +98,16 @@ const makeRuntime = (options: LocalProcedureRuntimeOptions) =>
         Effect.gen(function* () {
           const nextSequence = yield* Ref.updateAndGet(sequence, (current) => current + 1);
           let commitId = options.nextCommitId();
-          if (context.mutation !== undefined) {
-            commitId = Schema.decodeSync(CommitId)(context.mutation.mutationId);
+          if (Predicate.isNotUndefined(context.mutation)) {
+            commitId = yield* Schema.decodeEffect(CommitId)(context.mutation.mutationId).pipe(
+              Effect.orDie,
+            );
           }
           yield* PubSub.publish(events, {
             _tag: 'RuntimeCommitted',
-            sequence: Schema.decodeSync(RuntimeEventSequence)(nextSequence),
+            sequence: yield* Schema.decodeEffect(RuntimeEventSequence)(nextSequence).pipe(
+              Effect.orDie,
+            ),
             commitId,
             changes,
           });
@@ -126,7 +130,7 @@ const makeRuntime = (options: LocalProcedureRuntimeOptions) =>
           input.schemaVersion !== CURRENT_RUNTIME_SCHEMA_VERSION
         ) {
           return Effect.fail(
-            new IncompatibleRuntimeError({
+            IncompatibleRuntimeError.make({
               expectedProtocolVersion: CURRENT_PROTOCOL_VERSION,
               actualProtocolVersion: Schema.decodeSync(ProtocolVersion)(input.protocolVersion),
               expectedSchemaVersion: CURRENT_RUNTIME_SCHEMA_VERSION,
@@ -135,7 +139,7 @@ const makeRuntime = (options: LocalProcedureRuntimeOptions) =>
           );
         }
         return Effect.succeed(
-          new RuntimeConnection({
+          RuntimeConnection.make({
             protocolVersion: CURRENT_PROTOCOL_VERSION,
             schemaVersion: CURRENT_RUNTIME_SCHEMA_VERSION,
             generation: options.generation,
@@ -161,12 +165,13 @@ const makeRuntime = (options: LocalProcedureRuntimeOptions) =>
             _tag: 'SetReadingPreferences',
             preferences: value,
           });
-          return {
-            _tag: 'MutationCommit' as const,
+          const commit: MutationCommitValue<typeof value> = {
+            _tag: 'MutationCommit',
             value,
-            commitId: Schema.decodeSync(CommitId)(envelope.mutationId),
-            changes: { scopes: [{ _tag: 'ReadingPreferences' as const }] },
+            commitId: yield* Schema.decodeEffect(CommitId)(envelope.mutationId).pipe(Effect.orDie),
+            changes: { scopes: [{ _tag: 'ReadingPreferences' }] },
           };
+          return commit;
         }).pipe(Effect.mapError(procedureFailure('v1.preferences.reading.patch'))),
     });
 
@@ -175,16 +180,16 @@ const makeRuntime = (options: LocalProcedureRuntimeOptions) =>
         Effect.mapError(procedureFailure('v1.reading.continuity.get')),
       ),
       record: (input: { readonly location: ReaderLocation; readonly progress: number }) => {
-        const command = {
-          _tag: 'RecordReading' as const,
+        const command: DomainMutationCommand = {
+          _tag: 'RecordReading',
           historyId: options.nextHistoryId(),
           location: input.location,
           progress: input.progress,
           readAt: options.now(),
         };
         return engine.mutate(command).pipe(
-          Effect.map((envelope) => ({
-            _tag: 'MutationCommit' as const,
+          Effect.map((envelope): MutationCommitValue<{}> => ({
+            _tag: 'MutationCommit',
             value: {},
             commitId: Schema.decodeSync(CommitId)(envelope.mutationId),
             changes: changeSetFor(command),
@@ -210,8 +215,8 @@ const makeRuntime = (options: LocalProcedureRuntimeOptions) =>
       ),
       mutate: (command: LibraryMutationCommand) =>
         engine.mutate(command).pipe(
-          Effect.map((envelope) => ({
-            _tag: 'MutationCommit' as const,
+          Effect.map((envelope): MutationCommitValue<{}> => ({
+            _tag: 'MutationCommit',
             value: {},
             commitId: Schema.decodeSync(CommitId)(envelope.mutationId),
             changes: changeSetFor(command),
@@ -229,12 +234,14 @@ const makeRuntime = (options: LocalProcedureRuntimeOptions) =>
         ),
       import: (document) =>
         Effect.gen(function* () {
-          const backup = yield* Schema.decodeUnknownEffect(LibraryBackupDocumentFromJson)(document);
+          const backup = yield* Schema.decodeEffect(LibraryBackupDocumentFromJson)(document);
           const commands = commandsForLibraryBackup(backup);
           const importId = options.nextMutationId();
           const completedAt = options.now();
           yield* options.store.importLegacy({
-            sourceId: Schema.decodeSync(MigrationSourceId)(`backup-${String(importId)}`),
+            sourceId: yield* Schema.decodeEffect(MigrationSourceId)(
+              `backup-${String(importId)}`,
+            ).pipe(Effect.orDie),
             fingerprint: `backup-${String(importId)}`,
             generation: String(options.generation),
             items: commands.map((command) => ({

@@ -14,33 +14,33 @@ import { Effect, Schema as S } from 'effect';
 // ============================================================================
 
 export const BookSchema = S.Struct({
-  number: S.Number,
+  number: S.Finite,
   name: S.String,
-  chapters: S.Number,
+  chapters: S.Finite,
   testament: S.Literals(['old', 'new']),
 });
 
 export type Book = S.Schema.Type<typeof BookSchema>;
 
 export const VerseSchema = S.Struct({
-  book: S.Number,
-  chapter: S.Number,
-  verse: S.Number,
+  book: S.Finite,
+  chapter: S.Finite,
+  verse: S.Finite,
   text: S.String,
 });
 
 export type Verse = S.Schema.Type<typeof VerseSchema>;
 
 export const ChapterReferenceSchema = S.Struct({
-  book: S.Number,
-  chapter: S.Number,
+  book: S.Finite,
+  chapter: S.Finite,
 });
 
 export type ChapterReference = S.Schema.Type<typeof ChapterReferenceSchema>;
 
 export const ChapterResponseSchema = S.Struct({
   book: BookSchema,
-  chapter: S.Number,
+  chapter: S.Finite,
   verses: S.Array(VerseSchema),
   // Adjacent chapters for prefetch hints
   prevChapter: S.NullOr(ChapterReferenceSchema),
@@ -50,10 +50,10 @@ export const ChapterResponseSchema = S.Struct({
 export type ChapterResponse = S.Schema.Type<typeof ChapterResponseSchema>;
 
 export const SearchResultSchema = S.Struct({
-  book: S.Number,
+  book: S.Finite,
   bookName: S.String,
-  chapter: S.Number,
-  verse: S.Number,
+  chapter: S.Finite,
+  verse: S.Finite,
   text: S.String,
 });
 
@@ -63,26 +63,26 @@ export type SearchResult = S.Schema.Type<typeof SearchResultSchema>;
 // Errors
 // ============================================================================
 
-export class ChapterNotFoundError extends S.TaggedErrorClass<ChapterNotFoundError>()(
+export class ChapterNotFoundError extends S.TaggedError<ChapterNotFoundError>()(
   'ChapterNotFoundError',
   {
-    book: S.Number,
-    chapter: S.Number,
+    book: S.Finite,
+    chapter: S.Finite,
     message: S.String,
   },
   { httpApiStatus: 404 },
 ) {}
 
-export class BookNotFoundError extends S.TaggedErrorClass<BookNotFoundError>()(
+export class BookNotFoundError extends S.TaggedError<BookNotFoundError>()(
   'BookNotFoundError',
   {
-    book: S.Number,
+    book: S.Finite,
     message: S.String,
   },
   { httpApiStatus: 404 },
 ) {}
 
-export class DatabaseError extends S.TaggedErrorClass<DatabaseError>()(
+export class DatabaseError extends S.TaggedError<DatabaseError>()(
   'DatabaseError',
   {
     message: S.String,
@@ -104,8 +104,8 @@ export const BibleGroup = HttpApiGroup.make('Bible')
   .add(
     HttpApiEndpoint.get('chapter', '/:book/:chapter', {
       params: {
-        book: S.NumberFromString,
-        chapter: S.NumberFromString,
+        book: S.FiniteFromString,
+        chapter: S.FiniteFromString,
       },
       success: ChapterResponseSchema,
       error: [ChapterNotFoundError, BookNotFoundError, DatabaseError],
@@ -115,7 +115,7 @@ export const BibleGroup = HttpApiGroup.make('Bible')
     HttpApiEndpoint.get('search', '/search', {
       query: {
         q: S.String,
-        limit: S.optional(S.NumberFromString).pipe(S.withDecodingDefault(Effect.succeed('20'))),
+        limit: S.optional(S.FiniteFromString).pipe(S.withDecodingDefault(Effect.succeed('20'))),
       },
       success: S.Array(SearchResultSchema),
       error: [DatabaseError],

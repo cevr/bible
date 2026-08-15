@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Option } from 'effect';
+import { Context, Effect, Layer, Option, Predicate } from 'effect';
 
 import { Reference as BibleReference } from '../bible/model.js';
 import type { ChapterReference, VerseReference } from '../bible/model.js';
@@ -12,13 +12,13 @@ import {
 import { type PublicationReference } from './model.js';
 import { WritingsService } from './service.js';
 
-export interface WritingsArchiveShape {
+export interface WritingsArchiveService {
   readonly exportPublication: (
     reference: PublicationReference,
   ) => Effect.Effect<PublicationArchive, WritingsError>;
 }
 
-export class WritingsArchive extends Context.Service<WritingsArchive, WritingsArchiveShape>()(
+export class WritingsArchive extends Context.Service<WritingsArchive, WritingsArchiveService>()(
   '@bible/core/writings/WritingsArchive',
 ) {
   static Live: Layer.Layer<WritingsArchive, never, WritingsService | EGWParagraphDatabase> =
@@ -35,23 +35,22 @@ export class WritingsArchive extends Context.Service<WritingsArchive, WritingsAr
             const publication = yield* writings.publication(reference);
             const paragraphs = yield* writings.paragraphs(reference);
             const bibleReferences = yield* database.getBibleRefsByBook(publication.id).pipe(
-              Effect.mapError(
-                (cause) =>
-                  new WritingsUnavailableError({
-                    operation: 'export-publication',
-                    cause,
-                  }),
+              Effect.mapError((cause) =>
+                WritingsUnavailableError.make({
+                  operation: 'export-publication',
+                  cause,
+                }),
               ),
             );
 
             return yield* Effect.try({
               try: () =>
-                new PublicationArchive({
+                PublicationArchive.make({
                   publication,
                   paragraphs: paragraphs.map((paragraph) => {
                     const refcode =
                       Option.getOrUndefined(paragraph.refcode) ?? paragraph.reference.paragraphId;
-                    return new ArchivedParagraph({
+                    return ArchivedParagraph.make({
                       refcode,
                       paragraph,
                       isHeading: Option.exists(
@@ -67,21 +66,21 @@ export class WritingsArchive extends Context.Service<WritingsArchive, WritingsAr
                       row.bible_book,
                       row.bible_chapter,
                     );
-                    if (row.bible_verse !== null) {
+                    if (Predicate.isNotNull(row.bible_verse)) {
                       scripture = BibleReference.verse(
                         row.bible_book,
                         row.bible_chapter,
                         row.bible_verse,
                       );
                     }
-                    return new ArchivedBibleReference({
+                    return ArchivedBibleReference.make({
                       paragraphRefcode: row.para_ref_code,
                       scripture,
                     });
                   }),
                 }),
               catch: (cause) =>
-                new WritingsDataIntegrityError({
+                WritingsDataIntegrityError.make({
                   operation: 'export-publication',
                   cause,
                 }),

@@ -1,10 +1,13 @@
 import { describe, expect, test } from 'bun:test';
-import { Schema } from 'effect';
+import { Option, Predicate, Schema } from 'effect';
 
 import { LibraryEntityId, ReaderLocation } from '../../library-state/model.js';
 import { MigrationDiagnosticId } from '../legacy-migration.js';
 import { Timestamp } from '../model.js';
 import { legacyMemoryPracticeRating, projectWebState } from './web-state.js';
+
+// Wire-shape fields the schema encodes as `null` when absent.
+const wireNull = Option.getOrNull(Option.none<never>());
 
 const options = {
   nextDiagnosticId: (path: string) => Schema.decodeSync(MigrationDiagnosticId)(`web-state:${path}`),
@@ -12,20 +15,23 @@ const options = {
   nextEntityId: (path: string) => Schema.decodeSync(LibraryEntityId)(`entity:${path}`),
   timestampFor: (path: string, legacyEpochMilliseconds?: number) => {
     let suffix = 'snapshot';
-    if (legacyEpochMilliseconds !== undefined) suffix = String(legacyEpochMilliseconds);
+    if (Predicate.isNotUndefined(legacyEpochMilliseconds)) suffix = String(legacyEpochMilliseconds);
     return Schema.decodeSync(Timestamp)(`${path}:${suffix}`);
   },
   planStepId: (_path: string, legacyItemId: string | number) => `legacy-step:${legacyItemId}`,
   resolveEgwLocation: ({ bookCode, puborder }: { bookCode: string; puborder: number }) =>
-    Schema.decodeSync(ReaderLocation)({
-      source: 'egw',
-      resourceId: '123',
-      location: `/writings/123/${bookCode}-${puborder}`,
+    Option.some(
+      Schema.decodeSync(ReaderLocation)({
+        source: 'egw',
+        resourceId: '123',
+        location: `/writings/123/${bookCode}-${puborder}`,
+      }),
+    ),
+  resolveCollectionMember: (path: string) =>
+    Option.some({
+      memberId: `annotation:${path}`,
+      memberType: 'marker' as const,
     }),
-  resolveCollectionMember: (path: string) => ({
-    memberId: `annotation:${path}`,
-    memberType: 'marker' as const,
-  }),
 };
 
 const tags = (commands: ReturnType<typeof projectWebState>['commands']) =>
@@ -36,7 +42,7 @@ describe('web state legacy projection', () => {
     const result = projectWebState(
       {
         position: { book: 43, chapter: 3, verse: 16 },
-        history: [{ id: 8, book: 1, chapter: 1, verse: null, visited_at: 100 }],
+        history: [{ id: 8, book: 1, chapter: 1, verse: wireNull, visited_at: 100 }],
         bookmarks: [
           { id: 'bookmark-1', book: 43, chapter: 3, verse: 16, note: 'Promise', created_at: 1 },
         ],
@@ -63,9 +69,9 @@ describe('web state legacy projection', () => {
             ref_book: 1,
             ref_chapter: 1,
             ref_verse: 1,
-            ref_verse_end: null,
-            type: null,
-            note: null,
+            ref_verse_end: wireNull,
+            type: wireNull,
+            note: wireNull,
             created_at: 4,
           },
         ],
@@ -73,8 +79,8 @@ describe('web state legacy projection', () => {
           {
             id: 'collection-1',
             name: 'Promises',
-            description: null,
-            color: null,
+            description: wireNull,
+            color: wireNull,
             created_at: 5,
           },
         ],
@@ -105,10 +111,10 @@ describe('web state legacy projection', () => {
           {
             id: 'plan-1',
             name: 'John',
-            description: null,
+            description: wireNull,
             type: 'custom',
-            source_id: null,
-            start_date: null,
+            source_id: wireNull,
+            start_date: wireNull,
             created_at: 10,
           },
         ],
@@ -179,7 +185,7 @@ describe('web state legacy projection', () => {
       {
         preferences: { theme: 'dark', font_family: 42, font_size: 20 },
         bookmarks: [
-          { id: 'good', book: 1, chapter: 1, verse: 1, note: null, created_at: 1 },
+          { id: 'good', book: 1, chapter: 1, verse: 1, note: wireNull, created_at: 1 },
           { id: 'bad', book: 'Genesis' },
         ],
       },
@@ -205,7 +211,7 @@ describe('web state legacy projection', () => {
   test('quarantines out-of-range Bible coordinates without clamping', () => {
     const result = projectWebState(
       {
-        bookmarks: [{ id: 'bad', book: 1, chapter: 51, verse: 1, note: null, created_at: 1 }],
+        bookmarks: [{ id: 'bad', book: 1, chapter: 51, verse: 1, note: wireNull, created_at: 1 }],
       },
       options,
     );
@@ -259,18 +265,18 @@ describe('web state legacy projection', () => {
             day_number: 1,
             book: 1,
             start_chapter: 1,
-            end_chapter: null,
-            label: null,
+            end_chapter: wireNull,
+            label: wireNull,
           },
         ],
         reading_plans: [
           {
             id: 'plan',
             name: 'Plan',
-            description: null,
+            description: wireNull,
             type: 'custom',
-            source_id: null,
-            start_date: null,
+            source_id: wireNull,
+            start_date: wireNull,
             created_at: 1,
           },
         ],
@@ -288,11 +294,11 @@ describe('web state legacy projection', () => {
   });
 
   test('converts normalized legacy recall scores to canonical 0..5 ratings', () => {
-    expect(legacyMemoryPracticeRating(0)).toBe(0);
-    expect(legacyMemoryPracticeRating(0.49)).toBe(2);
-    expect(legacyMemoryPracticeRating(0.5)).toBe(3);
-    expect(legacyMemoryPracticeRating(1)).toBe(5);
-    expect(legacyMemoryPracticeRating(1.01)).toBeUndefined();
+    expect(legacyMemoryPracticeRating(0)).toEqual(Option.some(0));
+    expect(legacyMemoryPracticeRating(0.49)).toEqual(Option.some(2));
+    expect(legacyMemoryPracticeRating(0.5)).toEqual(Option.some(3));
+    expect(legacyMemoryPracticeRating(1)).toEqual(Option.some(5));
+    expect(legacyMemoryPracticeRating(1.01)).toEqual(Option.none());
   });
 
   test('quarantines a malformed root', () => {

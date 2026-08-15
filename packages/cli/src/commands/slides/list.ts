@@ -1,4 +1,4 @@
-import { Console, Effect, Path, Schema, SchemaGetter } from 'effect';
+import { Console, Effect, Option, Path, Schema, SchemaGetter } from 'effect';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
 
 import { AppleScript } from '../../services/apple-script.js';
@@ -6,7 +6,7 @@ import { CliProcess } from '../../services/process.js';
 import { basename, isPathDeck, jxaStr } from './apple-script.js';
 
 const SlideRow = Schema.Struct({
-  index: Schema.Number,
+  index: Schema.Finite,
   caption: Schema.String,
   image: Schema.NullOr(Schema.String),
   notes: Schema.String,
@@ -120,7 +120,8 @@ export const slidesList = Command.make('list', { deck: listDeck, json: listJson 
     yield* Console.log(`idx  caption                                                       image`);
     for (const r of parsed.slides) {
       let image = '∅';
-      if (r.image !== null) image = basename(r.image);
+      const imageOpt = Option.fromNullishOr(r.image);
+      if (Option.isSome(imageOpt)) image = basename(imageOpt.value);
       yield* Console.log(
         `${String(r.index).padStart(3)}  ${trunc(r.caption, 58).padEnd(58)}  ${image}`,
       );

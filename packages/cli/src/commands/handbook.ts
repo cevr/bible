@@ -71,14 +71,14 @@ interface ParsedSection {
 
 /**
  * Strip any leaked agent narration before the first "## " heading, then split
- * title from body. Returns null (rather than throwing) when no heading is found,
+ * title from body. Returns none (rather than throwing) when no heading is found,
  * so the caller can report the offending file and exit cleanly.
  */
-function parseSection(raw: string): ParsedSection | null {
+function parseSection(raw: string): Option.Option<ParsedSection> {
   const lines = raw.split('\n');
   const headingIdx = lines.findIndex((l) => /^##\s+\S/.test(l));
   if (headingIdx === -1) {
-    return null;
+    return Option.none();
   }
 
   const headingLine = lines[headingIdx] ?? '';
@@ -91,7 +91,7 @@ function parseSection(raw: string): ParsedSection | null {
   const body = lines.slice(headingIdx).join('\n').trim();
   const definedSymbols = extractDefinedSymbols(lines.slice(headingIdx));
 
-  return { title, body, definedSymbols };
+  return Option.some({ title, body, definedSymbols });
 }
 
 /**
@@ -314,11 +314,11 @@ export const handbookSave = Command.make(
         }
         const raw = yield* fs.readFileString(path);
         const parsedSection = parseSection(raw);
-        if (parsedSection === null) {
+        if (Option.isNone(parsedSection)) {
           yield* Console.error(`Section "${s.file}" has no "## Title" heading.`);
           return yield* cliProcess.exitFailure;
         }
-        parsed.push({ parsed: parsedSection, part: s.part });
+        parsed.push({ parsed: parsedSection.value, part: s.part });
       }
 
       const now = yield* DateTime.now;
@@ -335,16 +335,13 @@ export const handbookSave = Command.make(
         return;
       }
 
-      const outPath = Option.match(args.out, {
-        onSome: (o) => o,
-        onNone: () => manifest.outPath,
-      });
-      if (outPath === undefined) {
+      const outPath = Option.orElse(args.out, () => Option.fromNullishOr(manifest.outPath));
+      if (Option.isNone(outPath)) {
         yield* Console.error('No output path: set "outPath" in the manifest or pass --out.');
         return yield* cliProcess.exitFailure;
       }
 
-      yield* fs.writeFileString(outPath, document);
+      yield* fs.writeFileString(outPath.value, document);
       yield* Console.log(
         `✓ Assembled "${manifest.title}" — ${parsed.length} sections, ${symbolCount} symbols.`,
       );

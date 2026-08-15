@@ -1,6 +1,6 @@
 /** Administrative import capability for the canonical unified Bible schema. */
 
-import { Context, Effect, Layer, Schema } from 'effect';
+import { Context, Effect, Layer, Option, Schema } from 'effect';
 import * as SqlClient from 'effect/unstable/sql/SqlClient';
 import type { SqlError } from 'effect/unstable/sql/SqlError';
 
@@ -26,7 +26,7 @@ export interface BibleCorpusStatus {
 }
 
 export interface BibleCorpusService {
-  readonly status: () => Effect.Effect<BibleCorpusStatus, SqlError>;
+  readonly status: Effect.Effect<BibleCorpusStatus, SqlError>;
   readonly install: (
     archive: BibleCorpusArchive,
     installedAt: string,
@@ -51,16 +51,16 @@ const encodeStrongsNumbers = Schema.encodeSync(StrongsNumbersJson);
 
 const parseVerseKey = (
   key: string,
-): { readonly book: number; readonly chapter: number; readonly verse: number } | null => {
+): Option.Option<{ readonly book: number; readonly chapter: number; readonly verse: number }> => {
   const parts = key.split('.');
-  if (parts.length !== 3) return null;
+  if (parts.length !== 3) return Option.none();
   const book = Number(parts[0]);
   const chapter = Number(parts[1]);
   const verse = Number(parts[2]);
   if (Number.isInteger(book) && Number.isInteger(chapter) && Number.isInteger(verse)) {
-    return { book, chapter, verse };
+    return Option.some({ book, chapter, verse });
   }
-  return null;
+  return Option.none();
 };
 
 export class BibleCorpus extends Context.Service<BibleCorpus, BibleCorpusService>()(
@@ -72,26 +72,25 @@ export class BibleCorpus extends Context.Service<BibleCorpus, BibleCorpusService
       const sql = yield* SqlClient.SqlClient;
       yield* initializeBibleSchema(sql);
 
-      const status = Effect.fn('BibleCorpus.status')(() =>
-        Effect.all({
-          verses: sql<{ readonly count: number }>`SELECT COUNT(*) AS count FROM verses`,
-          lexicon: sql<{ readonly count: number }>`SELECT COUNT(*) AS count FROM strongs`,
-          openbible: sql<{ readonly count: number }>`
+      const status = Effect.all({
+        verses: sql<{ readonly count: number }>`SELECT COUNT(*) AS count FROM verses`,
+        lexicon: sql<{ readonly count: number }>`SELECT COUNT(*) AS count FROM strongs`,
+        openbible: sql<{ readonly count: number }>`
             SELECT COUNT(*) AS count FROM cross_refs WHERE source = 'openbible'
           `,
-          tske: sql<{ readonly count: number }>`
+        tske: sql<{ readonly count: number }>`
             SELECT COUNT(*) AS count FROM cross_refs WHERE source = 'tske'
           `,
-          notes: sql<{ readonly count: number }>`SELECT COUNT(*) AS count FROM margin_notes`,
-          topics: sql<{ readonly count: number }>`SELECT COUNT(*) AS count FROM topics`,
-        }).pipe(
-          Effect.map(({ verses, lexicon, openbible, tske, notes, topics }) => ({
-            kjv: (verses[0]?.count ?? 0) >= 31_102 && (lexicon[0]?.count ?? 0) > 0,
-            crossReferences: (openbible[0]?.count ?? 0) > 0 && (tske[0]?.count ?? 0) > 0,
-            marginNotes: (notes[0]?.count ?? 0) > 0,
-            topics: (topics[0]?.count ?? 0) > 0,
-          })),
-        ),
+        notes: sql<{ readonly count: number }>`SELECT COUNT(*) AS count FROM margin_notes`,
+        topics: sql<{ readonly count: number }>`SELECT COUNT(*) AS count FROM topics`,
+      }).pipe(
+        Effect.map(({ verses, lexicon, openbible, tske, notes, topics }) => ({
+          kjv: (verses[0]?.count ?? 0) >= 31_102 && (lexicon[0]?.count ?? 0) > 0,
+          crossReferences: (openbible[0]?.count ?? 0) > 0 && (tske[0]?.count ?? 0) > 0,
+          marginNotes: (notes[0]?.count ?? 0) > 0,
+          topics: (topics[0]?.count ?? 0) > 0,
+        })),
+        Effect.withSpan('BibleCorpus.status'),
       );
 
       const importKjv = Effect.fn('BibleCorpus.importKjv')(
@@ -116,7 +115,7 @@ export class BibleCorpus extends Context.Service<BibleCorpus, BibleCorpusService
                 'KJV',
                 ${metadata?.name ?? 'King James Version'},
                 'en',
-                ${metadata?.year ?? null},
+                ${Option.getOrNull(Option.fromNullishOr(metadata?.year))},
                 ${metadata?.copyright_statement ?? 'Public Domain'},
                 1
               )
@@ -139,8 +138,9 @@ export class BibleCorpus extends Context.Service<BibleCorpus, BibleCorpusService
               for (const verse of strongsVerses) {
                 let wordIndex = 0;
                 for (const word of verse.words) {
-                  let encoded: string | null = null;
-                  if (word.strongs !== undefined) encoded = encodeStrongsNumbers(word.strongs);
+                  const encodedStrongs = Option.fromNullishOr(word.strongs).pipe(
+                    Option.map(encodeStrongsNumbers),
+                  );
                   let italic = 0;
                   if (word.italic === true) italic = 1;
                   yield* sql`
@@ -148,7 +148,7 @@ export class BibleCorpus extends Context.Service<BibleCorpus, BibleCorpusService
                     book, chapter, verse, word_index, word_text, strongs_numbers, italic
                   ) VALUES (
                     ${verse.book}, ${verse.chapter}, ${verse.verse}, ${wordIndex},
-                    ${word.text}, ${encoded}, ${italic}
+                    ${word.text}, ${Option.getOrNull(encodedStrongs)}, ${italic}
                   )
                 `;
                   for (const number of word.strongs ?? []) {
@@ -177,10 +177,10 @@ export class BibleCorpus extends Context.Service<BibleCorpus, BibleCorpusService
               let skipped = 0;
               for (const [rawNumber, entry] of Object.entries(lexicon)) {
                 const number = rawNumber.toUpperCase();
-                let language: 'greek' | 'hebrew' | null = null;
-                if (number.startsWith('G')) language = 'greek';
-                if (number.startsWith('H')) language = 'hebrew';
-                if (language === null) {
+                let language = Option.none<'greek' | 'hebrew'>();
+                if (number.startsWith('G')) language = Option.some('greek');
+                if (number.startsWith('H')) language = Option.some('hebrew');
+                if (Option.isNone(language)) {
                   skipped += 1;
                   continue;
                 }
@@ -188,7 +188,7 @@ export class BibleCorpus extends Context.Service<BibleCorpus, BibleCorpusService
                 INSERT INTO strongs (
                   number, language, lemma, transliteration, pronunciation, definition, kjv_definition
                 ) VALUES (
-                  ${number}, ${language}, ${entry.lemma}, ${entry.xlit ?? null},
+                  ${number}, ${language.value}, ${entry.lemma}, ${Option.getOrNull(Option.fromNullishOr(entry.xlit))},
                   NULL, ${entry.def}, NULL
                 )
                 ON CONFLICT(number) DO UPDATE SET
@@ -213,11 +213,12 @@ export class BibleCorpus extends Context.Service<BibleCorpus, BibleCorpusService
               let skipped = 0;
               const seen = new Set<string>();
               for (const [key, entry] of Object.entries(asset)) {
-                const from = parseVerseKey(key);
-                if (from === null) {
+                const parsedFrom = parseVerseKey(key);
+                if (Option.isNone(parsedFrom)) {
                   skipped += 1;
                   continue;
                 }
+                const from = parsedFrom.value;
                 for (const reference of entry.refs) {
                   const targetKey = [
                     from.book,
@@ -238,8 +239,8 @@ export class BibleCorpus extends Context.Service<BibleCorpus, BibleCorpusService
                     ref_verse_end, source, preview_text
                   ) VALUES (
                     ${from.book}, ${from.chapter}, ${from.verse}, ${reference.book},
-                    ${reference.chapter}, ${reference.verse ?? null},
-                    ${reference.verseEnd ?? null}, ${source}, NULL
+                    ${reference.chapter}, ${Option.getOrNull(Option.fromNullishOr(reference.verse))},
+                    ${Option.getOrNull(Option.fromNullishOr(reference.verseEnd))}, ${source}, NULL
                   )
                 `;
                   imported += 1;
@@ -258,11 +259,12 @@ export class BibleCorpus extends Context.Service<BibleCorpus, BibleCorpusService
               let imported = 0;
               let skipped = 0;
               for (const [key, notes] of Object.entries(asset)) {
-                const reference = parseVerseKey(key);
-                if (reference === null) {
+                const parsedReference = parseVerseKey(key);
+                if (Option.isNone(parsedReference)) {
                   skipped += 1;
                   continue;
                 }
+                const reference = parsedReference.value;
                 let noteIndex = 0;
                 for (const note of notes) {
                   yield* sql`
@@ -292,9 +294,9 @@ export class BibleCorpus extends Context.Service<BibleCorpus, BibleCorpusService
             let sectionCount = 0;
             let referenceCount = 0;
             for (const topic of asset.data) {
-              const alternativeNames = Schema.encodeSync(
+              const alternativeNames = yield* Schema.encodeEffect(
                 Schema.fromJsonString(Schema.Array(Schema.String)),
-              )(topic.alt_topics ?? []);
+              )(topic.alt_topics ?? []).pipe(Effect.orDie);
               yield* sql`
                   INSERT INTO topics (id, name, alternative_names)
                   VALUES (${topic.entry_id}, ${topic.topic}, ${alternativeNames})
@@ -307,17 +309,17 @@ export class BibleCorpus extends Context.Service<BibleCorpus, BibleCorpusService
                     VALUES (${topic.entry_id}, ${section.label}, ${sectionPosition})
                     RETURNING id
                   `;
-                const sectionId = inserted[0]?.id;
-                if (sectionId === undefined) continue;
+                const sectionId = Option.fromNullishOr(inserted[0]?.id);
+                if (Option.isNone(sectionId)) continue;
                 sectionCount += 1;
                 let referencePosition = 0;
                 for (const reference of section.references) {
-                  const osis = Schema.encodeSync(
+                  const osis = yield* Schema.encodeEffect(
                     Schema.fromJsonString(Schema.Array(Schema.String)),
-                  )(reference.osis);
+                  )(reference.osis).pipe(Effect.orDie);
                   yield* sql`
                       INSERT INTO topic_references (section_id, raw, osis, position)
-                      VALUES (${sectionId}, ${reference.raw}, ${osis}, ${referencePosition})
+                      VALUES (${sectionId.value}, ${reference.raw}, ${osis}, ${referencePosition})
                     `;
                   referencePosition += 1;
                   referenceCount += 1;

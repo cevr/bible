@@ -5,37 +5,37 @@ import { PublicationArchive } from '../writings/archive.js';
 import { Publication, publicationCode, publicationId } from '../writings/model.js';
 import { CorpusContributionRejectedError, CorpusSourceUnavailableError } from './errors.js';
 import { WritingsContribution, unknownProvenance } from './model.js';
-import { makeWritingsAssetRecipe, type WritingsAssetSourceShape } from './source.js';
+import { makeWritingsAssetRecipe, type WritingsAssetSourceService } from './source.js';
 
-const publication = new Publication({
+const publication = Publication.make({
   id: publicationId(127),
   code: publicationCode('PP'),
   title: 'Patriarchs and Prophets',
   author: 'Ellen G. White',
   paragraphCount: Option.some(0),
 });
-const contribution = new WritingsContribution({
+const contribution = WritingsContribution.make({
   provenance: unknownProvenance('fixture', '1'),
-  archive: new PublicationArchive({ publication, paragraphs: [], bibleReferences: [] }),
+  archive: PublicationArchive.make({ publication, paragraphs: [], bibleReferences: [] }),
 });
-const unavailable = (kind: WritingsAssetSourceShape['kind']): WritingsAssetSourceShape => ({
+const unavailable = (kind: WritingsAssetSourceService['kind']): WritingsAssetSourceService => ({
   kind,
-  catalog: Effect.fail(new CorpusSourceUnavailableError({ operation: kind, cause: 'offline' })),
+  catalog: Effect.fail(CorpusSourceUnavailableError.make({ operation: kind, cause: 'offline' })),
   acquire: () =>
-    Effect.fail(new CorpusSourceUnavailableError({ operation: kind, cause: 'offline' })),
+    Effect.fail(CorpusSourceUnavailableError.make({ operation: kind, cause: 'offline' })),
 });
 
 describe('Writings Asset Recipe', () => {
   it.effect('merges available catalogs in priority order without duplicating identities', () =>
     Effect.gen(function* () {
-      const higher = new Publication({
+      const higher = Publication.make({
         id: publication.id,
         code: publication.code,
         title: 'Packaged title',
         author: publication.author,
         paragraphCount: publication.paragraphCount,
       });
-      const another = new Publication({
+      const another = Publication.make({
         id: publicationId(128),
         code: publicationCode('GC'),
         title: 'The Great Controversy',
@@ -56,18 +56,18 @@ describe('Writings Asset Recipe', () => {
   it.effect('owns priority and falls back only when a source is unavailable', () =>
     Effect.gen(function* () {
       const attempts: string[] = [];
-      const packaged: WritingsAssetSourceShape = {
+      const packaged: WritingsAssetSourceService = {
         ...unavailable('packaged'),
         acquire: () =>
           Effect.gen(function* () {
             attempts.push('packaged');
-            return yield* new CorpusSourceUnavailableError({
+            return yield* CorpusSourceUnavailableError.make({
               operation: 'packaged',
               cause: 'absent',
             });
           }),
       };
-      const provider: WritingsAssetSourceShape = {
+      const provider: WritingsAssetSourceService = {
         ...unavailable('provider'),
         acquire: () =>
           Effect.sync(() => {
@@ -85,12 +85,12 @@ describe('Writings Asset Recipe', () => {
   it.effect('fails closed on a rejected Contribution instead of trying another source', () =>
     Effect.gen(function* () {
       let fallbackAttempts = 0;
-      const rejected: WritingsAssetSourceShape = {
+      const rejected: WritingsAssetSourceService = {
         ...unavailable('packaged'),
         acquire: (id) =>
-          Effect.fail(new CorpusContributionRejectedError({ publication: id, cause: 'invalid' })),
+          Effect.fail(CorpusContributionRejectedError.make({ publication: id, cause: 'invalid' })),
       };
-      const fallback: WritingsAssetSourceShape = {
+      const fallback: WritingsAssetSourceService = {
         ...unavailable('archive'),
         acquire: () =>
           Effect.sync(() => {

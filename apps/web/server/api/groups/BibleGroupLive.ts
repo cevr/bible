@@ -18,25 +18,25 @@ const toDatabaseError = (error: BibleError): DatabaseError => {
   if (error._tag === 'BibleUnavailableError' || error._tag === 'BibleDataIntegrityError') {
     message = `Bible ${error.operation} failed`;
   }
-  return new DatabaseError({ message });
+  return DatabaseError.make({ message });
 };
 
 const toChapterApiError = (error: BibleError) => {
   switch (error._tag) {
     case 'BibleBookNotFoundError':
-      return new BookNotFoundError({
+      return BookNotFoundError.make({
         book: error.book,
         message: `Book ${error.book} not found`,
       });
     case 'BibleChapterNotFoundError':
-      return new ChapterNotFoundError({
+      return ChapterNotFoundError.make({
         book: error.reference.book,
         chapter: error.reference.chapter,
         message: `Chapter ${error.reference.book}:${error.reference.chapter} not found`,
       });
     case 'BibleUnavailableError':
     case 'BibleDataIntegrityError':
-      return new DatabaseError({ message: `Bible ${error.operation} failed` });
+      return DatabaseError.make({ message: `Bible ${error.operation} failed` });
   }
 };
 
@@ -44,14 +44,16 @@ const chapterReference = (book: number, chapter: number) =>
   Effect.try({
     try: () => Reference.chapter(book, chapter),
     catch: () =>
-      new ChapterNotFoundError({ book, chapter, message: `Chapter ${book}:${chapter} not found` }),
+      ChapterNotFoundError.make({ book, chapter, message: `Chapter ${book}:${chapter} not found` }),
   });
 
 const wireReference = (reference: Option.Option<ChapterReference>) =>
-  Option.match(reference, {
-    onNone: () => null,
-    onSome: ({ book, chapter }) => ({ book: Number(book), chapter: Number(chapter) }),
-  });
+  Option.getOrNull(
+    Option.map(reference, ({ book, chapter }) => ({
+      book: Number(book),
+      chapter: Number(chapter),
+    })),
+  );
 
 export const BibleGroupLive = HttpApiBuilder.group(BibleToolsApi, 'Bible', (handlers) =>
   Effect.gen(function* () {

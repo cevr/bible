@@ -57,10 +57,10 @@ export class HymnSummary extends Schema.Class<HymnSummary>('HymnSummary')({
  * Raw hymn row from SQLite
  */
 export const HymnRow = Schema.Struct({
-  id: Schema.Number,
+  id: Schema.Finite,
   name: Schema.String,
   category: Schema.String,
-  category_id: Schema.Number,
+  category_id: Schema.Finite,
   verses: Schema.String, // JSON array
 });
 export type HymnRow = Schema.Schema.Type<typeof HymnRow>;
@@ -69,7 +69,7 @@ export type HymnRow = Schema.Schema.Type<typeof HymnRow>;
  * Raw category row from SQLite
  */
 export const CategoryRow = Schema.Struct({
-  id: Schema.Number,
+  id: Schema.Finite,
   name: Schema.String,
 });
 export type CategoryRow = Schema.Schema.Type<typeof CategoryRow>;

@@ -8,7 +8,7 @@
   "type": "module",
   "scripts": {
     "checkpoint": "bun src/checkpoint.ts",
-    "typecheck": "tsgo --noEmit",
+    "typecheck": "tsc --noEmit",
     "test": "bun test src/checkpoint"
   },
   "dependencies": {

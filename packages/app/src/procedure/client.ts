@@ -53,12 +53,12 @@ export const createProcedureClient = (raw: RawProcedureClient): ProcedureClient 
   'v1.topics.list': (input = {}, options) => raw['v1.topics.list'](input, options),
 });
 
-export interface ProcedureHostShape {
+export interface ProcedureHostApi {
   readonly connection: RuntimeConnection;
   readonly procedures: ProcedureClient;
 }
 
-export class ProcedureHost extends Context.Service<ProcedureHost, ProcedureHostShape>()(
+export class ProcedureHost extends Context.Service<ProcedureHost, ProcedureHostApi>()(
   '@bible/app/procedure/ProcedureHost',
 ) {}
 

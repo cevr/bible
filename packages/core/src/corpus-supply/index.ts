@@ -9,8 +9,8 @@ export {
   layerWritingsAssetSource,
   makeWritingsAssetRecipe,
   WritingsAssetRecipe,
-  type WritingsAssetRecipeShape,
+  type WritingsAssetRecipeService,
   type WritingsAssetSourceKind,
   type WritingsAssetSources,
-  type WritingsAssetSourceShape,
+  type WritingsAssetSourceService,
 } from './source.js';

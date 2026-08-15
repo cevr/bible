@@ -37,7 +37,7 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "typecheck": "tsgo --noEmit",
+    "typecheck": "tsc --noEmit",
     "test": "bun test",
     "test:watch": "bun test --watch",
     "sync:bible": "bun run src/sync/bible-sync-main.ts",
@@ -46,15 +46,15 @@
   "dependencies": {
     "@effect/platform-bun": "catalog:",
     "@effect/sql-sqlite-bun": "catalog:",
-    "@noble/hashes": "^2.2.0",
-    "better-sqlite3": "^12.11.1",
+    "@noble/hashes": "^2.3.0",
+    "better-sqlite3": "^13.0.3",
     "drizzle-orm": "catalog:",
     "effect": "catalog:",
     "htmlparser2": "^12.0.0"
   },
   "devDependencies": {
     "@effect/vitest": "catalog:",
-    "@types/better-sqlite3": "^7.6.13",
+    "@types/better-sqlite3": "^9.6.0",
     "vitest": "^4.1.10"
   }
 }

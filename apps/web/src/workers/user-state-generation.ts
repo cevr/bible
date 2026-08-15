@@ -6,7 +6,7 @@ import {
   type LegacyMigrationReceipt,
   type SyncStore,
 } from '@bible/core/local-first';
-import { Effect, Option, Schema } from 'effect';
+import { Effect, Option, Predicate, Schema } from 'effect';
 import * as SQLite from 'wa-sqlite';
 
 import type { GenerationMarkerStore } from './generation-marker.js';
@@ -37,7 +37,7 @@ export interface WebCanonicalGenerationOptions {
 export interface CanonicalGenerationOperations {
   readonly marker: GenerationMarkerStore;
   readonly targetGeneration: string;
-  readonly discardTarget: () => Effect.Effect<void, CopyOnMigrateError>;
+  readonly discardTarget: Effect.Effect<void, CopyOnMigrateError>;
   readonly create: (generation: string) => Effect.Effect<CanonicalGeneration, CopyOnMigrateError>;
   readonly open: (generation: string) => Effect.Effect<CanonicalGeneration, CopyOnMigrateError>;
   readonly verify: (
@@ -48,7 +48,7 @@ export interface CanonicalGenerationOperations {
 }
 
 const failure = (operation: string, message: string, cause?: unknown): CopyOnMigrateError =>
-  new CopyOnMigrateError({ operation, message, cause });
+  CopyOnMigrateError.make({ operation, message, cause });
 
 export const generationDatabaseName = (generation: string): string => {
   const canonical = Option.liftPredicate(generation, (name) => GENERATED_NAME.test(name));
@@ -61,20 +61,14 @@ export const vfsFileExists = (
 ): Effect.Effect<boolean, CopyOnMigrateError> =>
   Effect.gen(function* () {
     const output = new DataView(new ArrayBuffer(4));
-    const pending = yield* Effect.try({
-      try: () => vfs.jAccess(filename, 0, output),
+    // jAccess may complete synchronously or return a Promise; Promise.resolve flattens both.
+    const result = yield* Effect.tryPromise({
+      // oxlint-disable-next-line effect/noNewPromise -- wa-sqlite VFS calls return number | Promise<number>; Promise.resolve flattens both
+      try: () => Promise.resolve(vfs.jAccess(filename, 0, output)),
       catch: (cause) => failure('vfs-access', `could not inspect ${filename}`, cause),
     });
-    let result: number;
-    if (typeof pending === 'number') result = pending;
-    else {
-      result = yield* Effect.tryPromise({
-        try: () => pending,
-        catch: (cause) => failure('vfs-access', `could not inspect ${filename}`, cause),
-      });
-    }
     if (result !== SQLite.SQLITE_OK) {
-      return yield* Effect.fail(failure('vfs-access', `could not inspect ${filename}`));
+      return yield* failure('vfs-access', `could not inspect ${filename}`);
     }
     return output.getInt32(0, true) === 1;
   });
@@ -91,28 +85,17 @@ export const deleteKnownGeneratedFile = (
       vfsFileExists(vfs, knownFile).pipe(
         Effect.flatMap((exists) => {
           if (!exists) return Effect.void;
-          const pending = Effect.try({
-            try: () => vfs.jDelete(knownFile, 1),
+          // jDelete may complete synchronously or return a Promise; Promise.resolve flattens both.
+          return Effect.tryPromise({
+            // oxlint-disable-next-line effect/noNewPromise -- wa-sqlite VFS calls return number | Promise<number>; Promise.resolve flattens both
+            try: () => Promise.resolve(vfs.jDelete(knownFile, 1)),
             catch: (cause) =>
               failure(
                 'vfs-delete',
                 `could not delete inactive generation file ${knownFile}`,
                 cause,
               ),
-          });
-          return pending.pipe(
-            Effect.flatMap((result) => {
-              if (typeof result === 'number') return Effect.succeed(result);
-              return Effect.tryPromise({
-                try: () => result,
-                catch: (cause) =>
-                  failure(
-                    'vfs-delete',
-                    `could not delete inactive generation file ${knownFile}`,
-                    cause,
-                  ),
-              });
-            }),
+          }).pipe(
             Effect.filterOrFail(
               (result) => result === SQLite.SQLITE_OK,
               () => failure('vfs-delete', `could not delete inactive generation file ${knownFile}`),
@@ -166,7 +149,7 @@ const countRows = (
     ),
     Effect.flatMap((rows) => {
       const value = rows[0]?.[0];
-      if (typeof value === 'number') return Effect.succeed(value);
+      if (Predicate.isNumber(value)) return Effect.succeed(value);
       return Effect.fail(failure('verify-count', `canonical ${table} count did not decode`));
     }),
   );
@@ -200,16 +183,14 @@ const verifyPublicDecodes = (store: SyncStore): Effect.Effect<void, CopyOnMigrat
 export const makeCanonicalGenerationAdapter = (
   operations: CanonicalGenerationOperations,
 ): CanonicalGenerationAdapter => ({
-  activeGeneration: operations.marker
-    .read()
-    .pipe(
-      Effect.mapError((cause) =>
-        failure('read-activation', 'could not read active generation', cause),
-      ),
+  activeGeneration: operations.marker.read.pipe(
+    Effect.mapError((cause) =>
+      failure('read-activation', 'could not read active generation', cause),
     ),
+  ),
   discardInactive: (activeGeneration) => {
-    if (activeGeneration === operations.targetGeneration) return Effect.void;
-    return operations.discardTarget().pipe(
+    if (Option.contains(activeGeneration, operations.targetGeneration)) return Effect.void;
+    return operations.discardTarget.pipe(
       Effect.mapError((cause) =>
         failure('discard-inactive', 'could not discard inactive generation', cause),
       ),
@@ -257,16 +238,14 @@ export const makeWebCanonicalGenerationAdapter = (
       databaseByStore.set(store, database);
       return {
         store,
-        close: database
-          .close()
-          .pipe(
-            Effect.mapError((cause) =>
-              failure('close', `could not close generation ${generation}`, cause),
-            ),
+        close: database.close.pipe(
+          Effect.mapError((cause) =>
+            failure('close', `could not close generation ${generation}`, cause),
           ),
+        ),
       };
     }).pipe(
-      Effect.onError(() => database.close().pipe(Effect.ignore)),
+      Effect.onError(() => database.close.pipe(Effect.ignore)),
       Effect.mapError((cause) => failure('open', `could not open generation ${generation}`, cause)),
     );
   };
@@ -274,13 +253,13 @@ export const makeWebCanonicalGenerationAdapter = (
   return makeCanonicalGenerationAdapter({
     marker: options.marker,
     targetGeneration: options.targetGeneration,
-    discardTarget: () => deleteKnownGeneratedFile(options.vfs, options.targetGeneration),
+    discardTarget: deleteKnownGeneratedFile(options.vfs, options.targetGeneration),
     log: options.log,
     create: (generation) => open(generation, true),
     open: (generation) => open(generation, false),
     verify: (generation, receipts) => {
       const database = databaseByStore.get(generation.store);
-      if (database === undefined) {
+      if (Predicate.isUndefined(database)) {
         return Effect.fail(
           failure('verify', 'canonical generation database handle is unavailable'),
         );

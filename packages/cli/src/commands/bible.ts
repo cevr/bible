@@ -35,7 +35,10 @@ function formatVerse(verse: Verse): string {
 }
 
 const verseJson = (verse: Verse) => ({
-  book_name: getBibleBook(verse.reference.book)?.name ?? `Book ${verse.reference.book}`,
+  book_name: getBibleBook(verse.reference.book).pipe(
+    Option.map((book) => book.name),
+    Option.getOrElse(() => `Book ${verse.reference.book}`),
+  ),
   book: verse.reference.book,
   chapter: verse.reference.chapter,
   verse: verse.reference.verse,
@@ -134,14 +137,16 @@ function formatStrongsEntry(entry: StrongsEntry): string {
   if (entry.number.startsWith('H')) {
     prefix = 'Hebrew';
   }
-  const xlit = entry.transliteration ?? entry.lemma;
+  const xlit = Option.getOrElse(entry.transliteration, () => entry.lemma);
   return `${entry.number} - ${entry.lemma} (${xlit}) [${prefix}]\n${entry.definition}`;
 }
 
 // Format concordance results with verse reference
 function formatConcordanceHit(result: ConcordanceHit): string {
-  const book = getBibleBook(result.book);
-  const bookName = book?.name ?? String(result.book);
+  const bookName = getBibleBook(result.book).pipe(
+    Option.map((book) => book.name),
+    Option.getOrElse(() => String(result.book)),
+  );
   return `${bookName} ${result.chapter}:${result.verse} - "${result.word}"`;
 }
 
@@ -173,7 +178,9 @@ export const concordance = Command.make(
 
         if (Option.isNone(entryOpt)) {
           if (args.json) {
-            yield* Console.log(yield* encodeJson({ mode: 'strongs', number, entry: null }));
+            yield* Console.log(
+              yield* encodeJson({ mode: 'strongs', number, entry: Option.getOrNull(entryOpt) }),
+            );
             return;
           }
           yield* Console.log(`Strong's number ${number} not found.`);
@@ -186,8 +193,19 @@ export const concordance = Command.make(
         const limitedResults = results.slice(0, limit);
 
         if (args.json) {
+          // Wire shape: Option fields flatten back to `string | null` for JSON consumers.
           yield* Console.log(
-            yield* encodeJson({ mode: 'strongs', number, entry, verses: limitedResults }),
+            yield* encodeJson({
+              mode: 'strongs',
+              number,
+              entry: {
+                ...entry,
+                transliteration: Option.getOrNull(entry.transliteration),
+                pronunciation: Option.getOrNull(entry.pronunciation),
+                kjvDefinition: Option.getOrNull(entry.kjvDefinition),
+              },
+              verses: limitedResults,
+            }),
           );
           return;
         }
@@ -215,7 +233,19 @@ export const concordance = Command.make(
         const entries = yield* db.searchStrongs(queryStr, limit);
 
         if (args.json) {
-          yield* Console.log(yield* encodeJson({ mode: 'search', query: queryStr, entries }));
+          // Wire shape: Option fields flatten back to `string | null` for JSON consumers.
+          yield* Console.log(
+            yield* encodeJson({
+              mode: 'search',
+              query: queryStr,
+              entries: entries.map((found) => ({
+                ...found,
+                transliteration: Option.getOrNull(found.transliteration),
+                pronunciation: Option.getOrNull(found.pronunciation),
+                kjvDefinition: Option.getOrNull(found.kjvDefinition),
+              })),
+            }),
+          );
           return;
         }
 

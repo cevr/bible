@@ -21,19 +21,19 @@ export type NoteId = typeof NoteId.Type;
 export const Timestamp = Schema.NonEmptyString.pipe(Schema.brand('LocalFirst/Timestamp'));
 export type Timestamp = typeof Timestamp.Type;
 
-export const MutationSequence = Schema.Number.pipe(
+export const MutationSequence = Schema.Finite.pipe(
   Schema.check(Schema.isInt(), Schema.isGreaterThan(0)),
   Schema.brand('LocalFirst/MutationSequence'),
 );
 export type MutationSequence = typeof MutationSequence.Type;
 
-export const SchemaVersion = Schema.Number.pipe(
+export const SchemaVersion = Schema.Finite.pipe(
   Schema.check(Schema.isInt(), Schema.isGreaterThan(0)),
   Schema.brand('LocalFirst/SchemaVersion'),
 );
 export type SchemaVersion = typeof SchemaVersion.Type;
 
-export const ServerRevision = Schema.Number.pipe(
+export const ServerRevision = Schema.Finite.pipe(
   Schema.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0)),
   Schema.brand('LocalFirst/ServerRevision'),
 );
@@ -120,12 +120,12 @@ export const CURRENT_SCHEMA_VERSION = Schema.decodeSync(SchemaVersion)(1);
 export const INITIAL_SERVER_REVISION = Schema.decodeSync(ServerRevision)(0);
 
 export const changeSetFor = (command: DomainMutationCommand): ChangeSet => ({
-  scopes: (() => {
+  scopes: ((): readonly ChangeScope[] => {
     switch (command._tag) {
       case 'SaveNote':
         return [
           {
-            _tag: 'Note' as const,
+            _tag: 'Note',
             noteId: command.noteId,
             source: command.source,
             resourceId: command.resourceId,
@@ -133,11 +133,11 @@ export const changeSetFor = (command: DomainMutationCommand): ChangeSet => ({
           },
         ];
       case 'DeleteNote':
-        return [{ _tag: 'Note' as const, noteId: command.noteId }];
+        return [{ _tag: 'Note', noteId: command.noteId }];
       case 'SetReadingPreferences':
-        return [{ _tag: 'ReadingPreferences' as const }];
+        return [{ _tag: 'ReadingPreferences' }];
       case 'RecordReading':
-        return [{ _tag: 'ReadingContinuity' as const }];
+        return [{ _tag: 'ReadingContinuity' }];
       default:
         return [scopeForLibraryCommand(command)];
     }

@@ -13,6 +13,7 @@ import {
   Layer,
   Option,
   Redacted,
+  Predicate,
   Schedule,
   Schema,
   SchemaGetter,
@@ -26,8 +27,8 @@ import * as Schemas from './schemas.js';
 /**
  * EGW API Client Errors
  */
-export class EGWApiError extends Schema.TaggedErrorClass<EGWApiError>()('EGWApiError', {
-  cause: Schema.Unknown,
+export class EGWApiError extends Schema.TaggedError<EGWApiError>()('EGWApiError', {
+  cause: Schema.optional(Schema.Unknown),
   message: Schema.String,
 }) {}
 
@@ -52,7 +53,7 @@ export type EGWApiClientError = EGWApiError | HttpClientError.HttpClientError | 
  * EGW API Client service interface.
  */
 export interface EGWApiClientService {
-  readonly getLanguages: () => Effect.Effect<readonly Schemas.Language[], EGWApiClientError>;
+  readonly getLanguages: Effect.Effect<readonly Schemas.Language[], EGWApiClientError>;
   readonly getFoldersByLanguage: (
     languageCode: string,
   ) => Effect.Effect<readonly Schemas.Folder[], EGWApiClientError>;
@@ -84,7 +85,7 @@ export interface EGWApiClientService {
     limit?: number,
   ) => Effect.Effect<readonly string[], EGWApiClientError>;
   readonly getBookCoverUrl: (bookId: number, size?: 'small' | 'large') => Effect.Effect<string>;
-  readonly getMirrors: () => Effect.Effect<readonly string[], EGWApiClientError>;
+  readonly getMirrors: Effect.Effect<readonly string[], EGWApiClientError>;
 }
 
 // ============================================================================
@@ -109,11 +110,19 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
     Effect.gen(function* () {
       const baseUrl = yield* Config.string('EGW_API_BASE_URL').pipe(
         Config.withDefault(
-          bakedApiBaseUrl() ?? envVar('EGW_API_BASE_URL') ?? 'https://a.egwwritings.org',
+          bakedApiBaseUrl().pipe(
+            Option.orElse(() => envVar('EGW_API_BASE_URL')),
+            Option.getOrElse(() => 'https://a.egwwritings.org'),
+          ),
         ),
       );
       const userAgent = yield* Config.string('EGW_USER_AGENT').pipe(
-        Config.withDefault(bakedUserAgent() ?? envVar('EGW_USER_AGENT') ?? 'EGW-Effect-Client/1.0'),
+        Config.withDefault(
+          bakedUserAgent().pipe(
+            Option.orElse(() => envVar('EGW_USER_AGENT')),
+            Option.getOrElse(() => 'EGW-Effect-Client/1.0'),
+          ),
+        ),
       );
 
       const auth = yield* EGWAuth;
@@ -136,16 +145,16 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
           }),
           HttpClient.mapRequestEffect((request) =>
             Effect.gen(function* () {
-              const token = yield* auth.getToken();
+              const token = yield* auth.getToken;
               return HttpClientRequest.bearerToken(request, Redacted.value(token.accessToken));
             }),
           ),
           // Log outgoing requests
-          HttpClient.tapRequest((request) => {
-            return Effect.logDebug(
+          HttpClient.tapRequest((request) =>
+            Effect.logDebug(
               `-> req ${request.method} ${request.url}${UrlParams.toString(request.urlParams)}`,
-            );
-          }),
+            ),
+          ),
           // Log incoming responses
           HttpClient.transformResponse((responseEffect) =>
             responseEffect.pipe(
@@ -168,11 +177,8 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
           // Log errors
           HttpClient.tapError((error) =>
             Effect.gen(function* () {
-              let request: HttpClientRequest.HttpClientRequest | undefined;
-              if (error && typeof error === 'object' && 'request' in error) {
-                request = error.request;
-              }
-              yield* Effect.logError(`✗ res ${request?.method} ${request?.url}`, error);
+              const request = error.request;
+              yield* Effect.logError(`✗ res ${request.method} ${request.url}`, error);
             }),
           ),
           HttpClient.filterStatusOk,
@@ -195,8 +201,8 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
 
       // Paginated response schema
       const PaginatedResponse = Schema.Struct({
-        count: Schema.Number,
-        ipp: Schema.Number,
+        count: Schema.Finite,
+        ipp: Schema.Finite,
         previous: Schema.NullOr(Schema.String),
         next: Schema.NullOr(Schema.String),
         results: Schema.Array(Schemas.Book),
@@ -221,12 +227,11 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
 
           return yield* HttpClientResponse.schemaBodyJson(PaginatedResponse)(response);
         }).pipe(
-          Effect.mapError(
-            (error) =>
-              new EGWApiError({
-                message: `Failed to fetch books page: ${url}`,
-                cause: error,
-              }),
+          Effect.mapError((error) =>
+            EGWApiError.make({
+              message: `Failed to fetch books page: ${url}`,
+              cause: error,
+            }),
           ),
           Effect.retry(retrySchedule),
         );
@@ -244,13 +249,10 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
         );
 
       return {
-        getLanguages: () =>
-          Effect.gen(function* () {
-            const response = yield* httpClient.get('/content/languages');
-            return yield* HttpClientResponse.schemaBodyJson(Schema.Array(Schemas.Language))(
-              response,
-            );
-          }).pipe(Effect.retry(retrySchedule)),
+        getLanguages: Effect.gen(function* () {
+          const response = yield* httpClient.get('/content/languages');
+          return yield* HttpClientResponse.schemaBodyJson(Schema.Array(Schemas.Language))(response);
+        }).pipe(Effect.retry(retrySchedule)),
 
         getFoldersByLanguage: (languageCode: string) =>
           Effect.gen(function* () {
@@ -298,7 +300,7 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
           if (params.folder) urlParams.append('folder', String(params.folder));
           if (params.trans) {
             let transValue = 'all';
-            if (typeof params.trans === 'string') transValue = params.trans;
+            if (Predicate.isString(params.trans)) transValue = params.trans;
             urlParams.append('trans', transValue);
           }
           if (params.limit) urlParams.append('limit', String(params.limit));
@@ -311,7 +313,7 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
 
           // If page is explicitly specified, return a stream of that page's results
           // Otherwise, return a stream that fetches all pages
-          if (params.page !== undefined) {
+          if (Predicate.isNotUndefined(params.page)) {
             return Stream.fromEffect(
               Effect.gen(function* () {
                 const response = yield* httpClient.get(endpoint);
@@ -319,12 +321,11 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
                   yield* HttpClientResponse.schemaBodyJson(PaginatedResponse)(response);
                 return paginated.results;
               }).pipe(
-                Effect.mapError(
-                  (error) =>
-                    new EGWApiError({
-                      message: `Failed to fetch books page: ${endpoint}`,
-                      cause: error,
-                    }),
+                Effect.mapError((error) =>
+                  EGWApiError.make({
+                    message: `Failed to fetch books page: ${endpoint}`,
+                    cause: error,
+                  }),
                 ),
                 Effect.retry(retrySchedule),
               ),
@@ -364,7 +365,7 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
                     `Failed to parse TOC for book ${bookId}. Raw response:`,
                     encodeJson(raw),
                   );
-                  return yield* Effect.fail(error);
+                  return yield* error;
                 }),
               ),
             );
@@ -384,7 +385,7 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
                 urlParams.append('trans', 'all');
               } else if (Array.isArray(params.trans)) {
                 params.trans.forEach((t) => urlParams.append('trans', t));
-              } else if (typeof params.trans === 'string') {
+              } else if (Predicate.isString(params.trans)) {
                 urlParams.append('trans', params.trans);
               }
             }
@@ -416,7 +417,7 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
             if (params.lang) urlParams.append('lang', params.lang);
             if (params.folder) urlParams.append('folder', String(params.folder));
             if (params.book) urlParams.append('book', String(params.book));
-            if (params.highlight !== undefined)
+            if (Predicate.isNotUndefined(params.highlight))
               urlParams.append('highlight', String(params.highlight));
             if (params.limit) urlParams.append('limit', String(params.limit));
             if (params.offset) urlParams.append('offset', String(params.offset));
@@ -437,11 +438,10 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
         getBookCoverUrl: (bookId: number, size: 'small' | 'large' = 'small') =>
           Effect.succeed(`${baseUrl}/covers/${bookId}?size=${size}`),
 
-        getMirrors: () =>
-          Effect.gen(function* () {
-            const response = yield* httpClient.get('/content/mirrors');
-            return yield* HttpClientResponse.schemaBodyJson(Schema.Array(Schema.String))(response);
-          }).pipe(Effect.retry(retrySchedule)),
+        getMirrors: Effect.gen(function* () {
+          const response = yield* httpClient.get('/content/mirrors');
+          return yield* HttpClientResponse.schemaBodyJson(Schema.Array(Schema.String))(response);
+        }).pipe(Effect.retry(retrySchedule)),
       };
     }),
   );
@@ -461,7 +461,7 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
     } = {},
   ): Layer.Layer<EGWApiClient> =>
     Layer.succeed(EGWApiClient, {
-      getLanguages: () => Effect.succeed(config.languages ?? []),
+      getLanguages: Effect.succeed(config.languages ?? []),
       getFoldersByLanguage: () => Effect.succeed([]),
       getBooksByFolder: () => Effect.succeed(config.books ?? []),
       getBooks: () => Stream.fromIterable(config.books ?? []),
@@ -469,20 +469,25 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
         Effect.fromOption(
           Option.fromNullishOr(config.books?.find((b) => b.book_id === bookId)),
         ).pipe(
-          Effect.mapError(
-            () =>
-              new EGWApiError({
-                message: `Book not found: ${bookId}`,
-                cause: undefined,
-              }),
+          Effect.mapError(() =>
+            EGWApiError.make({
+              message: `Book not found: ${bookId}`,
+            }),
           ),
         ),
       getBookToc: () => Effect.succeed([]),
       getChapterContent: () => Effect.succeed([]),
       downloadBook: () => Effect.succeed(new ArrayBuffer(0)),
-      search: () => Effect.succeed({ next: null, previous: null, total: 0, count: 0, results: [] }),
+      search: () =>
+        Effect.succeed({
+          next: Option.getOrNull(Option.none<never>()),
+          previous: Option.getOrNull(Option.none<never>()),
+          total: 0,
+          count: 0,
+          results: [],
+        }),
       getSuggestions: () => Effect.succeed([]),
       getBookCoverUrl: (bookId) => Effect.succeed(`/covers/${bookId}`),
-      getMirrors: () => Effect.succeed([]),
+      getMirrors: Effect.succeed([]),
     });
 }

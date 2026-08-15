@@ -59,7 +59,7 @@ export const layerDesktopProcedureProtocol = (
           disconnects,
           send: (_clientId, response) => Effect.sync(() => port.send(response)),
           end: () => Effect.void,
-          clientIds: Effect.sync(() => clientIds),
+          clientIds: Effect.succeed(clientIds),
           initialMessage: Effect.succeed(Option.none()),
           supportsAck: false,
           supportsTransferables: false,

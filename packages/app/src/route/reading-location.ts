@@ -1,34 +1,36 @@
 import type { ReaderLocation } from '@bible/core/library-state';
+import { Option } from 'effect';
 
 import { decodeRoute, encodeRoute } from './codec.js';
 import type { AppRoute, ReadingRoute } from './model.js';
 
-export const readerLocationForRoute = (route: AppRoute): ReaderLocation | undefined => {
+export const readerLocationForRoute = (route: AppRoute): Option.Option<ReaderLocation> => {
   if (route._tag === 'bible') {
-    return { source: 'bible', resourceId: 'KJV', location: encodeRoute(route) };
+    return Option.some({ source: 'bible', resourceId: 'KJV', location: encodeRoute(route) });
   }
   if (route._tag === 'writings') {
-    return {
+    return Option.some({
       source: 'egw',
       resourceId: String(route.reference.publicationId),
       location: encodeRoute(route),
-    };
+    });
   }
-  return undefined;
+  return Option.none();
 };
 
 export const readingRouteForLocation = (
-  location: ReaderLocation | null | undefined,
-): ReadingRoute | undefined => {
-  if (location === null || location === undefined) return undefined;
-  const route = decodeRoute(location.location);
-  if (location.source === 'bible' && route?._tag === 'bible') return route;
-  if (
-    location.source === 'egw' &&
-    route?._tag === 'writings' &&
-    String(route.reference.publicationId) === location.resourceId
-  ) {
-    return route;
-  }
-  return undefined;
-};
+  location: Option.Option<ReaderLocation>,
+): Option.Option<ReadingRoute> =>
+  Option.flatMap(location, (current) =>
+    Option.flatMap(decodeRoute(current.location), (route) => {
+      if (current.source === 'bible' && route._tag === 'bible') return Option.some(route);
+      if (
+        current.source === 'egw' &&
+        route._tag === 'writings' &&
+        String(route.reference.publicationId) === current.resourceId
+      ) {
+        return Option.some(route);
+      }
+      return Option.none();
+    }),
+  );

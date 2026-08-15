@@ -1,18 +1,31 @@
-import { Clock, Config, Effect, Exit, Inspectable, Option, Schema, SchemaGetter } from 'effect';
+import {
+  Clock,
+  Config,
+  Effect,
+  Exit,
+  Inspectable,
+  Option,
+  Predicate,
+  Schema,
+  SchemaGetter,
+} from 'effect';
+
+/** Flat key/value context attached to a trace entry. */
+export type TraceMetadata = Readonly<Record<string, string | number | boolean>>;
 
 interface TraceEntry {
   readonly label: string;
   readonly timestampMs: number;
   readonly durationMs?: number;
-  readonly metadata?: Readonly<Record<string, unknown>>;
+  readonly metadata?: TraceMetadata;
 }
 
 const enabled = Config.boolean('TRACE').pipe(
   Config.withDefault(false),
-  Effect.catch(() => Effect.succeed(false)),
+  Effect.orElseSucceed(() => false),
 );
 const entries: TraceEntry[] = [];
-let startTime: number | undefined;
+let startTime: Option.Option<number> = Option.none();
 
 const JsonString = Schema.Unknown.pipe(
   Schema.encodeTo(Schema.String, {
@@ -25,23 +38,19 @@ const encodeJson = Schema.encodeUnknownEffect(JsonString);
 
 const elapsed = Effect.gen(function* () {
   const current = yield* Clock.currentTimeMillis;
-  if (startTime === undefined) {
-    startTime = current;
-  }
-  return current - startTime;
+  const start = Option.getOrElse(startTime, () => current);
+  startTime = Option.some(start);
+  return current - start;
 });
 
-export const trace = Effect.fn('cli.trace')(function* (
-  label: string,
-  metadata?: Readonly<Record<string, unknown>>,
-) {
+export const trace = Effect.fn('cli.trace')(function* (label: string, metadata?: TraceMetadata) {
   if (!(yield* enabled)) {
     return;
   }
   const timestampMs = yield* elapsed;
   entries.push({ label, timestampMs, metadata });
   let metadataText = '';
-  if (metadata !== undefined) {
+  if (Predicate.isNotUndefined(metadata)) {
     metadataText = ` metadata=${Inspectable.toStringUnknown(metadata, 0)}`;
   }
   yield* Effect.logInfo(
@@ -52,7 +61,7 @@ export const trace = Effect.fn('cli.trace')(function* (
 export const traceEffect = <A, E, R>(
   label: string,
   effect: Effect.Effect<A, E, R>,
-  metadata?: Readonly<Record<string, unknown>>,
+  metadata?: TraceMetadata,
 ): Effect.Effect<A, E | Config.ConfigError, R> =>
   Effect.gen(function* () {
     if (!(yield* enabled)) {
@@ -87,7 +96,7 @@ export const printSummary = Effect.gen(function* () {
     return;
   }
   const totalMs = yield* elapsed;
-  const withDuration = entries.filter((entry) => entry.durationMs !== undefined);
+  const withDuration = entries.filter((entry) => Predicate.isNotUndefined(entry.durationMs));
   const slowest = [...withDuration].sort((left, right) => {
     const leftDuration = Option.getOrElse(Option.fromNullishOr(left.durationMs), () => 0);
     const rightDuration = Option.getOrElse(Option.fromNullishOr(right.durationMs), () => 0);
@@ -107,5 +116,5 @@ export const isEnabled = enabled;
 
 export const clear = Effect.sync(() => {
   entries.length = 0;
-  startTime = undefined;
+  startTime = Option.none();
 });

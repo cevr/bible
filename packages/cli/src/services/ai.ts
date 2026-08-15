@@ -9,7 +9,7 @@ import {
 import { Effect, Layer, Option, Schema, Context } from 'effect';
 
 // Tagged error for AI operations
-export class AIError extends Schema.TaggedErrorClass<AIError>()('AIError', {
+export class AIError extends Schema.TaggedError<AIError>()('AIError', {
   operation: Schema.String,
   cause: Schema.Unknown,
 }) {}
@@ -109,7 +109,7 @@ export class AI extends Context.Service<AI, AIService>()('@bible/cli/services/ai
               maxOutputTokens: options.maxOutputTokens,
             }),
           catch: (error) =>
-            new AIError({
+            AIError.make({
               operation: 'generateText',
               cause: error,
             }),
@@ -127,7 +127,7 @@ export class AI extends Context.Service<AI, AIService>()('@bible/cli/services/ai
               stopWhen: stepCountIs(options.maxSteps ?? 5),
             }),
           catch: (error) =>
-            new AIError({
+            AIError.make({
               operation: 'generateTextWithTools',
               cause: error,
             }),
@@ -150,7 +150,7 @@ export class AI extends Context.Service<AI, AIService>()('@bible/cli/services/ai
             });
           },
           catch: (error) =>
-            new AIError({
+            AIError.make({
               operation: 'generateObject',
               cause: error,
             }),

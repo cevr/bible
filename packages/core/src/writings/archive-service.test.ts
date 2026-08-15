@@ -7,6 +7,9 @@ import { WritingsArchive } from './archive-service.js';
 import { Reference } from './model.js';
 import { WritingsService } from './service.js';
 
+// Wire-shape fields the schema encodes as `null` when absent.
+const wireNull = Option.getOrNull(Option.none<never>());
+
 const book: BookRow = {
   book_id: 127,
   book_code: 'PP',
@@ -20,20 +23,20 @@ const storedParagraph = (
   order: number,
   refcode: Option.Option<string>,
   paragraphId: Option.Option<string>,
-  elementType: string | null,
+  elementType: string,
 ): StoredParagraph & { bookCode: string } => ({
   bookCode: 'PP',
   para_id: paragraphId,
-  id_prev: null,
-  id_next: null,
-  refcode_1: null,
-  refcode_2: null,
-  refcode_3: null,
-  refcode_4: null,
+  id_prev: wireNull,
+  id_next: wireNull,
+  refcode_1: wireNull,
+  refcode_2: wireNull,
+  refcode_3: wireNull,
+  refcode_4: wireNull,
   refcode_short: refcode,
-  refcode_long: null,
+  refcode_long: wireNull,
   element_type: elementType,
-  element_subtype: null,
+  element_subtype: wireNull,
   nodes: [{ _tag: 'Text', text: `Paragraph ${order}` }],
   puborder: order,
 });
@@ -51,7 +54,7 @@ const bibleRefs: readonly BibleRefRow[] = [
     para_ref_code: 'PP 1.2',
     bible_book: 2,
     bible_chapter: 20,
-    bible_verse: null,
+    bible_verse: wireNull,
   },
 ];
 

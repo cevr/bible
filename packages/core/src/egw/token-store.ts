@@ -31,36 +31,33 @@ const PersistedToken = Schema.Struct({
 const decodePersisted = Schema.decodeEffect(Schema.fromJsonString(PersistedToken));
 const encodePersisted = Schema.encodeEffect(Schema.fromJsonString(PersistedToken));
 
-const optionalRedacted = (value: string | undefined) => {
-  if (value === undefined) return undefined;
-  return Redacted.make(value);
-};
+const optionalRedacted = (value: Option.Option<string>) =>
+  Option.getOrUndefined(Option.map(value, Redacted.make));
 
 const toAccessToken = (parsed: typeof PersistedToken.Type): AccessToken =>
-  new AccessToken({
+  AccessToken.make({
     accessToken: Redacted.make(parsed.accessToken),
-    refreshToken: optionalRedacted(parsed.refreshToken),
+    refreshToken: optionalRedacted(Option.fromNullishOr(parsed.refreshToken)),
     expiresAt: parsed.expiresAt,
     scope: parsed.scope,
   });
 
 const toPersisted = (token: AccessToken): typeof PersistedToken.Type => {
-  let refreshToken: string | undefined;
-  if (token.refreshToken !== undefined) refreshToken = Redacted.value(token.refreshToken);
+  const refreshToken = Option.fromNullishOr(token.refreshToken).pipe(Option.map(Redacted.value));
   return {
     accessToken: Redacted.value(token.accessToken),
-    refreshToken,
+    refreshToken: Option.getOrUndefined(refreshToken),
     expiresAt: token.expiresAt,
     scope: token.scope,
   };
 };
 
-export interface EGWTokenStoreShape {
+export interface EGWTokenStoreService {
   readonly read: Effect.Effect<Option.Option<AccessToken>, Schema.SchemaError | PlatformError>;
   readonly write: (token: AccessToken) => Effect.Effect<void, Schema.SchemaError | PlatformError>;
 }
 
-export class EGWTokenStore extends Context.Service<EGWTokenStore, EGWTokenStoreShape>()(
+export class EGWTokenStore extends Context.Service<EGWTokenStore, EGWTokenStoreService>()(
   '@bible/core/egw/token-store/EGWTokenStore',
 ) {
   /**

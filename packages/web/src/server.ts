@@ -14,35 +14,36 @@ const log = (line: string): void => {
 const dist = join(fileURLToPath(new URL('.', import.meta.url)), '..', 'dist');
 const port = Number(Bun.env['PORT'] ?? 3000);
 
-const TYPES: Record<string, string> = {
-  '.html': 'text/html; charset=utf-8',
-  '.css': 'text/css; charset=utf-8',
-  '.js': 'text/javascript; charset=utf-8',
-  '.json': 'application/json',
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.svg': 'image/svg+xml',
-  '.ico': 'image/x-icon',
-  '.txt': 'text/plain; charset=utf-8',
-  '.pdf': 'application/pdf',
-};
+const TYPES = new Map([
+  ['.html', 'text/html; charset=utf-8'],
+  ['.css', 'text/css; charset=utf-8'],
+  ['.js', 'text/javascript; charset=utf-8'],
+  ['.json', 'application/json'],
+  ['.png', 'image/png'],
+  ['.jpg', 'image/jpeg'],
+  ['.svg', 'image/svg+xml'],
+  ['.ico', 'image/x-icon'],
+  ['.txt', 'text/plain; charset=utf-8'],
+  ['.pdf', 'application/pdf'],
+]);
 
 const contentType = (path: string): string => {
   const dot = path.lastIndexOf('.');
   let ext = '';
   if (dot !== -1) ext = path.slice(dot).toLowerCase();
-  return TYPES[ext] ?? 'application/octet-stream';
+  return TYPES.get(ext) ?? 'application/octet-stream';
 };
 
-const resolve = (pathname: string): string | null => {
+/** '' means the request path is unresolvable (bad encoding or traversal). */
+const resolve = (pathname: string): string => {
   let decoded: string;
   try {
     decoded = decodeURIComponent(pathname);
   } catch {
-    return null; // malformed percent-encoding → 400, not a thrown 500
+    return ''; // malformed percent-encoding → 400, not a thrown 500
   }
   const safe = normalize(decoded).replace(/^(\.\.[/\\])+/, '');
-  if (safe.includes('..')) return null;
+  if (safe.includes('..')) return '';
   return join(dist, safe);
 };
 
@@ -62,7 +63,7 @@ Bun.serve({
     }
 
     const base = resolve(url.pathname);
-    if (base === null) return new Response('Bad request', { status: 400 });
+    if (base === '') return new Response('Bad request', { status: 400 });
 
     if (!url.pathname.endsWith('/')) {
       const asFile = Bun.file(base);

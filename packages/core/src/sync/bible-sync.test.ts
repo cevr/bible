@@ -6,12 +6,12 @@ import { BibleDatabase } from '../bible-db/bible-database.js';
 import * as BibleDatabaseBun from '../bible-db/bible-database-bun.js';
 import { syncBible } from './bible-sync.js';
 
-const encodeJson = Schema.encodeSync(Schema.UnknownFromJsonString);
+const encodeJson = Schema.encodeSync(Schema.fromJsonString(Schema.Unknown));
 
-const writeAsset = Effect.fn('BibleSyncTest.writeAsset')(function* (
+const writeAsset = Effect.fn('BibleSyncTest.writeAsset')(function* <A>(
   assetsDirectory: string,
   name: string,
-  value: unknown,
+  value: A,
 ) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;

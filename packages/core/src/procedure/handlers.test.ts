@@ -39,12 +39,15 @@ import {
   WritingsLibraryRuntime,
 } from './services.js';
 
+// Wire-shape fields the schema encodes as `null` when absent.
+const wireNull = Option.getOrNull(Option.none<never>());
+
 const genesis = BIBLE_BOOKS[0]!;
-const chapter = new Chapter({
+const chapter = Chapter.make({
   book: genesis,
   reference: BibleReference.chapter(1, 1),
   verses: [
-    new Verse({
+    Verse.make({
       reference: BibleReference.verse(1, 1, 1),
       text: 'In the beginning God created the heaven and the earth.',
     }),
@@ -53,19 +56,19 @@ const chapter = new Chapter({
   next: Option.some(BibleReference.chapter(1, 2)),
 });
 
-const resurrectionTopic = new TopicDetail({
+const resurrectionTopic = TopicDetail.make({
   id: Schema.decodeSync(TopicId)('naves-topical-bible.resurrection'),
   name: 'RESURRECTION',
   alternativeNames: [],
   sections: [
-    new TopicSection({
+    TopicSection.make({
       label: 'General references',
-      references: [new TopicReference({ raw: 'John 11:25', osis: ['John.11.25'] })],
+      references: [TopicReference.make({ raw: 'John 11:25', osis: ['John.11.25'] })],
     }),
   ],
 });
 
-const remotePublication = new WritingsLibraryPublication({
+const remotePublication = WritingsLibraryPublication.make({
   id: publicationId(127),
   code: publicationCode('PP'),
   title: 'Patriarchs and Prophets',
@@ -73,7 +76,7 @@ const remotePublication = new WritingsLibraryPublication({
   paragraphCount: 0,
   source: 'remote',
   status: 'pending',
-  error: null,
+  error: wireNull,
 });
 
 const Dependencies = Layer.mergeAll(
@@ -81,7 +84,7 @@ const Dependencies = Layer.mergeAll(
     books: [genesis],
     chapters: new Map([['1:1', chapter]]),
     searchHits: [
-      new SearchHit({
+      SearchHit.make({
         book: genesis,
         verse: chapter.verses[0],
       }),
@@ -97,12 +100,12 @@ const Dependencies = Layer.mergeAll(
       get: Effect.succeed([remotePublication]),
       download: (id) =>
         Effect.succeed(
-          new WritingsDownloadResult({
+          WritingsDownloadResult.make({
             publicationId: id,
             code: remotePublication.code,
             status: 'success',
             paragraphCount: 42,
-            error: null,
+            error: wireNull,
           }),
         ),
       downloadAll: Effect.succeed([]),
@@ -113,7 +116,7 @@ const Dependencies = Layer.mergeAll(
     ProcedureRuntime.of({
       connect: () =>
         Effect.succeed(
-          new RuntimeConnection({
+          RuntimeConnection.make({
             protocolVersion: CURRENT_PROTOCOL_VERSION,
             schemaVersion: CURRENT_RUNTIME_SCHEMA_VERSION,
             generation: Schema.decodeSync(RuntimeGeneration)('test-runtime'),
@@ -126,7 +129,9 @@ const Dependencies = Layer.mergeAll(
   Layer.succeed(
     ReadingContinuityRuntime,
     ReadingContinuityRuntime.of({
-      get: Effect.succeed({ source: 'bible', resourceId: 'KJV', location: '/bible/43/3/16' }),
+      get: Effect.succeed(
+        Option.some({ source: 'bible', resourceId: 'KJV', location: '/bible/43/3/16' }),
+      ),
       record: () =>
         Effect.succeed({
           _tag: 'MutationCommit',
@@ -280,7 +285,7 @@ describe('BibleProcedureHandlers', () => {
           const client = yield* RpcTest.makeClient(BibleProcedureGroup);
           return yield* Stream.runCollect(
             client['v1.runtime.events']({
-              afterSequence: Schema.decodeSync(RuntimeEventSequence)(0),
+              afterSequence: yield* Schema.decodeEffect(RuntimeEventSequence)(0),
             }),
           );
         }),

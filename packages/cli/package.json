@@ -11,7 +11,7 @@
   "type": "module",
   "scripts": {
     "build": "bun scripts/build.ts",
-    "typecheck": "tsgo --noEmit",
+    "typecheck": "tsc --noEmit",
     "test": "bun test test/commands test/core",
     "test:watch": "bun test test/commands test/core --watch",
     "test:perf": "bun test test/perf"
@@ -19,7 +19,7 @@
   "dependencies": {
     "@bible/core": "workspace:*",
     "@effect/platform-bun": "catalog:",
-    "ai": "^7.0.26",
+    "ai": "^7.0.66",
     "date-fns": "^4.4.0",
     "effect": "catalog:",
     "gray-matter": "^4.0.3",
@@ -27,6 +27,6 @@
   },
   "devDependencies": {
     "effect-bun-test": "catalog:",
-    "tsx": "^4.23.1"
+    "tsx": "^4.23.12"
   }
 }

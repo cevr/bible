@@ -67,7 +67,7 @@ export class CorpusActivation extends Schema.Class<CorpusActivation>('CorpusSupp
   identity: CorpusIdentity,
   source: AssetSourceId,
   revision: CorpusRevision,
-  installed: Schema.Number.pipe(Schema.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0))),
+  installed: Schema.Finite.pipe(Schema.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0))),
 }) {}
 
 export class CorpusSupplyReceipt extends Schema.Class<CorpusSupplyReceipt>('CorpusSupply/Receipt')({
@@ -80,7 +80,7 @@ export const corpusRevision = Schema.decodeSync(CorpusRevision);
 export const corpusDigest = Schema.decodeSync(CorpusDigest);
 
 export const unknownProvenance = (source: string, revision: string): CorpusProvenance =>
-  new CorpusProvenance({
+  CorpusProvenance.make({
     source: assetSourceId(source),
     revision: corpusRevision(revision),
     digest: Option.none(),
@@ -91,24 +91,22 @@ export const provenanceForArchive = Effect.fn('CorpusSupply.provenanceForArchive
   revision: string,
   archive: PublicationArchive,
 ) {
-  const encoded = Schema.encodeSync(Schema.fromJsonString(PublicationArchive))(archive);
+  const encoded = yield* Schema.encodeEffect(Schema.fromJsonString(PublicationArchive))(archive);
   const bytes = new TextEncoder().encode(encoded);
-  const digest = yield* Effect.tryPromise(() =>
-    globalThis.crypto.subtle.digest('SHA-256', bytes),
-  ).pipe(Effect.orDie);
+  const digest = yield* Effect.tryPromise(() => globalThis.crypto.subtle.digest('SHA-256', bytes));
   const hex = [...new Uint8Array(digest)]
     .map((byte) => byte.toString(16).padStart(2, '0'))
     .join('');
-  return new CorpusProvenance({
+  return CorpusProvenance.make({
     source: assetSourceId(source),
     revision: corpusRevision(revision),
     digest: Option.some(corpusDigest(`sha256:${hex}`)),
   });
-});
+}, Effect.orDie);
 
 export const Target = {
-  bootstrap: (): BootstrapTarget => new BootstrapTarget({}),
-  bible: (): BibleTarget => new BibleTarget({}),
+  bootstrap: (): BootstrapTarget => BootstrapTarget.make({}),
+  bible: (): BibleTarget => BibleTarget.make({}),
   writings: (publications?: readonly PublicationId[]): WritingsTarget =>
-    new WritingsTarget({ publications }),
-} as const;
+    WritingsTarget.make({ publications }),
+};

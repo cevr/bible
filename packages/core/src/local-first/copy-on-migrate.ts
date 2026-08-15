@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect';
+import { Effect, Option, Predicate, Schema } from 'effect';
 
 import type {
   LegacyMigrationReceipt,
@@ -9,7 +9,7 @@ import type {
 import type { DomainMutationCommand, MutationId, Timestamp } from './model.js';
 import type { SyncStore, SyncStoreError } from './sync-store.js';
 
-export class CopyOnMigrateError extends Schema.TaggedErrorClass<CopyOnMigrateError>()(
+export class CopyOnMigrateError extends Schema.TaggedError<CopyOnMigrateError>()(
   'CopyOnMigrateError',
   {
     operation: Schema.String,
@@ -33,9 +33,9 @@ export interface CanonicalGeneration {
 
 /** Host boundary for filesystem, OPFS, or another atomic activation mechanism. */
 export interface CanonicalGenerationAdapter {
-  readonly activeGeneration: Effect.Effect<string | undefined, CopyOnMigrateError>;
+  readonly activeGeneration: Effect.Effect<Option.Option<string>, CopyOnMigrateError>;
   readonly discardInactive: (
-    activeGeneration: string | undefined,
+    activeGeneration: Option.Option<string>,
   ) => Effect.Effect<void, CopyOnMigrateError>;
   readonly create: (generation: string) => Effect.Effect<CanonicalGeneration, CopyOnMigrateError>;
   readonly open: (generation: string) => Effect.Effect<CanonicalGeneration, CopyOnMigrateError>;
@@ -65,10 +65,11 @@ const closeGeneration = (generation: CanonicalGeneration): Effect.Effect<void> =
   generation.close.pipe(Effect.ignore);
 
 const receiptMatches = (
-  actual: LegacyMigrationReceipt | undefined,
+  candidate: Option.Option<LegacyMigrationReceipt>,
   expected: LegacyMigrationReceipt,
 ): boolean => {
-  if (actual === undefined) return false;
+  if (Option.isNone(candidate)) return false;
+  const actual = candidate.value;
   if (
     actual.sourceId !== expected.sourceId ||
     actual.fingerprint !== expected.fingerprint ||
@@ -81,7 +82,11 @@ const receiptMatches = (
     return false;
   return actual.semanticCounts.every((count, index) => {
     const wanted = expected.semanticCounts[index];
-    return wanted !== undefined && count.entity === wanted.entity && count.count === wanted.count;
+    return (
+      Predicate.isNotUndefined(wanted) &&
+      count.entity === wanted.entity &&
+      count.count === wanted.count
+    );
   });
 };
 
@@ -93,11 +98,11 @@ const verifyReceipts = (
     Effect.flatMap((actual) => {
       const mismatch = actual.findIndex((receipt, index) => {
         const wanted = expected[index];
-        return wanted === undefined || !receiptMatches(receipt, wanted);
+        return Predicate.isUndefined(wanted) || !receiptMatches(receipt, wanted);
       });
       if (mismatch === -1) return Effect.void;
       return Effect.fail(
-        new CopyOnMigrateError({
+        CopyOnMigrateError.make({
           operation: 'verify-receipts',
           message: `canonical generation receipt ${String(mismatch)} did not survive reopen`,
         }),
@@ -109,8 +114,8 @@ export const copyOnMigrate = Effect.fn('LocalFirst.copyOnMigrate')(
   (options: CopyOnMigrateOptions): Effect.Effect<CopyOnMigrateResult, CopyOnMigrateError> =>
     Effect.gen(function* () {
       const active = yield* options.adapter.activeGeneration;
-      if (active !== undefined) {
-        return { generation: active, activated: false, receipts: [] };
+      if (Option.isSome(active)) {
+        return { generation: active.value, activated: false, receipts: [] };
       }
 
       yield* options.adapter.discardInactive(active);
@@ -133,13 +138,12 @@ export const copyOnMigrate = Effect.fn('LocalFirst.copyOnMigrate')(
           .pipe(Effect.map((result) => result.receipt)),
       ).pipe(
         Effect.tapError(() => closeGeneration(target)),
-        Effect.mapError(
-          (cause) =>
-            new CopyOnMigrateError({
-              operation: 'import',
-              message: 'canonical generation import failed',
-              cause,
-            }),
+        Effect.mapError((cause) =>
+          CopyOnMigrateError.make({
+            operation: 'import',
+            message: 'canonical generation import failed',
+            cause,
+          }),
         ),
       );
       yield* target.close;
@@ -148,13 +152,12 @@ export const copyOnMigrate = Effect.fn('LocalFirst.copyOnMigrate')(
       yield* verifyReceipts(reopened, receipts).pipe(
         Effect.andThen(options.adapter.verify(reopened, receipts)),
         Effect.ensuring(closeGeneration(reopened)),
-        Effect.mapError(
-          (cause) =>
-            new CopyOnMigrateError({
-              operation: 'verify',
-              message: 'canonical generation verification failed',
-              cause,
-            }),
+        Effect.mapError((cause) =>
+          CopyOnMigrateError.make({
+            operation: 'verify',
+            message: 'canonical generation verification failed',
+            cause,
+          }),
         ),
       );
 

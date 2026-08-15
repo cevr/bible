@@ -47,14 +47,14 @@ class MissingPdfError extends Data.TaggedError(
 
 const year = Flag.integer('year').pipe(
   Flag.withAlias('y'),
-  Flag.withSchema(Schema.Number.check(Schema.isLessThanOrEqualTo(currentDate.year))),
+  Flag.withSchema(Schema.Finite.check(Schema.isLessThanOrEqualTo(currentDate.year))),
   Flag.optional,
   Flag.map(Option.getOrElse(() => currentDate.year)),
 );
 const quarter = Flag.integer('quarter').pipe(
   Flag.withAlias('q'),
   Flag.withSchema(
-    Schema.Number.check(Schema.isGreaterThanOrEqualTo(1), Schema.isLessThanOrEqualTo(4)),
+    Schema.Finite.check(Schema.isGreaterThanOrEqualTo(1), Schema.isLessThanOrEqualTo(4)),
   ),
   Flag.optional,
   Flag.map(Option.getOrElse(() => Math.floor((currentDate.month - 1) / 3) + 1)),
@@ -63,7 +63,7 @@ const quarter = Flag.integer('quarter').pipe(
 const week = Flag.integer('week').pipe(
   Flag.withAlias('w'),
   Flag.withSchema(
-    Schema.Number.check(Schema.isGreaterThanOrEqualTo(1), Schema.isLessThanOrEqualTo(13)),
+    Schema.Finite.check(Schema.isGreaterThanOrEqualTo(1), Schema.isLessThanOrEqualTo(13)),
   ),
   Flag.optional,
 );
@@ -100,22 +100,24 @@ const findQuarterUrls = Effect.fn('findQuarterUrls')(function* (year: number, qu
 
   $('a.btn-u.btn-u-sm').each((_, element) => {
     const text = $(element).text().trim();
-    const href = $(element).attr('href');
+    const href = Option.fromNullishOr($(element).attr('href'));
 
-    if (href === undefined) return;
+    if (Option.isNone(href)) return;
 
     if (text === 'Teachers PDF') {
-      currentFiles.lessonPdf = href;
+      currentFiles.lessonPdf = href.value;
     } else if (text === 'EGW Notes PDF') {
-      currentFiles.egwPdf = href;
+      currentFiles.egwPdf = href.value;
     }
 
-    if (currentFiles.lessonPdf !== undefined && currentFiles.egwPdf !== undefined) {
+    const lessonPdf = Option.fromNullishOr(currentFiles.lessonPdf);
+    const egwPdf = Option.fromNullishOr(currentFiles.egwPdf);
+    if (Option.isSome(lessonPdf) && Option.isSome(egwPdf)) {
       weekUrls.push({
         weekNumber: currentWeek,
         files: {
-          lessonPdf: currentFiles.lessonPdf,
-          egwPdf: currentFiles.egwPdf,
+          lessonPdf: lessonPdf.value,
+          egwPdf: egwPdf.value,
         },
       });
       currentWeek++;
@@ -196,9 +198,11 @@ const fetchQuarter = Command.make('fetch', { year, quarter, week, json: fetchJso
 
     const quarterUrls = yield* findQuarterUrls(args.year, args.quarter);
 
-    const requested = weeks
-      .map((weekNumber) => quarterUrls.find((u) => u.weekNumber === weekNumber))
-      .filter((u): u is WeekUrls => u !== undefined);
+    const requested = Array.getSomes(
+      weeks.map((weekNumber) =>
+        Option.fromNullishOr(quarterUrls.find((u) => u.weekNumber === weekNumber)),
+      ),
+    );
 
     const downloaded: Array<{
       year: number;
@@ -279,7 +283,7 @@ const exportQuarter = Command.make('export', { year, quarter, week }, ({ year, q
 
         const { frontmatter, content: outlineText } = parseFrontmatter(rawContent);
 
-        if (frontmatter['apple_note_id'] !== undefined) {
+        if (Option.isSome(Option.fromNullishOr(frontmatter['apple_note_id']))) {
           yield* Effect.log(`Skipped (already exported): week ${weekNumber}`);
           return;
         }

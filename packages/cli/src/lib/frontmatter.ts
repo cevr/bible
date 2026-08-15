@@ -1,13 +1,25 @@
 import matter from 'gray-matter';
 
+/**
+ * The value shape YAML frontmatter can carry once parsed. Nullable YAML values
+ * are not part of the contract — absent keys model absence.
+ */
+export type FrontmatterValue =
+  | string
+  | number
+  | boolean
+  | ReadonlyArray<FrontmatterValue>
+  | { readonly [key: string]: FrontmatterValue };
+
+export type Frontmatter = Record<string, FrontmatterValue>;
+
 export interface MessageFrontmatter {
   created_at: string;
   topic: string;
   apple_note_id?: string;
-  [key: string]: unknown;
 }
 
-export interface ParsedMarkdown<T = Record<string, unknown>> {
+export interface ParsedMarkdown<T = Frontmatter> {
   frontmatter: T;
   content: string;
 }
@@ -16,7 +28,7 @@ export interface ParsedMarkdown<T = Record<string, unknown>> {
  * Parse frontmatter from markdown content.
  * Returns the frontmatter data and the content without frontmatter.
  */
-export function parseFrontmatter<T = Record<string, unknown>>(markdown: string): ParsedMarkdown<T> {
+export function parseFrontmatter<T = Frontmatter>(markdown: string): ParsedMarkdown<T> {
   const { data, content } = matter(markdown);
   return {
     frontmatter: data as T,
@@ -27,10 +39,7 @@ export function parseFrontmatter<T = Record<string, unknown>>(markdown: string):
 /**
  * Stringify frontmatter and content back to markdown.
  */
-export function stringifyFrontmatter(
-  frontmatter: Record<string, unknown>,
-  content: string,
-): string {
+export function stringifyFrontmatter(frontmatter: Frontmatter, content: string): string {
   return matter.stringify(content, frontmatter);
 }
 
@@ -44,7 +53,7 @@ export function hasFrontmatter(markdown: string): boolean {
 /**
  * Update specific frontmatter fields while preserving existing ones.
  */
-export function updateFrontmatter(markdown: string, updates: Record<string, unknown>): string {
+export function updateFrontmatter(markdown: string, updates: Frontmatter): string {
   const { frontmatter, content } = parseFrontmatter(markdown);
   const updatedFrontmatter = { ...frontmatter, ...updates };
   return stringifyFrontmatter(updatedFrontmatter, content);

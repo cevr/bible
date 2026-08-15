@@ -12,13 +12,14 @@ import {
   type SyncStore,
 } from '@bible/core/local-first';
 import { LibraryEntityId, type ReaderLocation } from '@bible/core/library-state';
-import { Effect, Schema } from 'effect';
+import { Effect, Exit, Option, Predicate, Schema } from 'effect';
 import * as SQLite from 'wa-sqlite';
 
 import type { GenerationMarkerStore } from './generation-marker.js';
 import {
   makeSqliteDatabase,
   type SqliteDatabase,
+  type SqliteRow,
   type WorkerSqliteApi,
 } from './sqlite-database.js';
 import { makeBrowserSyncStore, makeBrowserUserDatabase } from './user-state-database.js';
@@ -32,8 +33,16 @@ import {
 const LEGACY_FILENAME = 'state.db';
 const SOURCE_ID = Schema.decodeSync(MigrationSourceId)('web-state.db');
 const EMPTY_SOURCE = '{"legacy":"missing"}';
-const encodeJson = Schema.encodeUnknownEffect(Schema.UnknownFromJsonString);
-const decodeJson = Schema.decodeUnknownEffect(Schema.UnknownFromJsonString);
+const encodeJson = Schema.encodeUnknownEffect(Schema.fromJsonString(Schema.Unknown));
+
+/** The decoded legacy snapshot: table name -> rows (plus position/preferences rows). */
+const LegacySnapshotSchema = Schema.Record(Schema.String, Schema.Unknown);
+type LegacySnapshot = typeof LegacySnapshotSchema.Type;
+const decodeSnapshot = Schema.decodeUnknownEffect(Schema.fromJsonString(LegacySnapshotSchema));
+
+const LegacyRowSchema = Schema.Record(Schema.String, Schema.Unknown);
+type LegacyRow = typeof LegacyRowSchema.Type;
+const decodeLegacyRow = Schema.decodeUnknownExit(LegacyRowSchema);
 
 const legacyTables = [
   ['history', 'SELECT * FROM history ORDER BY visited_at, id'],
@@ -89,7 +98,7 @@ const fingerprint = (serialized: string): Effect.Effect<string, unknown> =>
 const queryOptionalLegacyTable = (
   database: SqliteDatabase,
   sql: string,
-): Effect.Effect<readonly Readonly<Record<string, unknown>>[], unknown> =>
+): Effect.Effect<ReadonlyArray<SqliteRow>, unknown> =>
   database.query(sql).pipe(
     Effect.catch((cause) => {
       if (String(cause).includes('no such table')) return Effect.succeed([]);
@@ -99,7 +108,7 @@ const queryOptionalLegacyTable = (
 
 const snapshotLegacyWebStateEffect = (
   database: SqliteDatabase,
-): Effect.Effect<Readonly<Record<string, unknown>>, unknown> =>
+): Effect.Effect<LegacySnapshot, unknown> =>
   Effect.gen(function* () {
     const positionRows = yield* queryOptionalLegacyTable(
       database,
@@ -109,29 +118,28 @@ const snapshotLegacyWebStateEffect = (
       database,
       'SELECT * FROM preferences ORDER BY id',
     );
-    const snapshot: Record<string, unknown> = {
-      position: positionRows[0],
-      preferences: preferenceRows[0],
-    };
+    const entries: Array<readonly [string, unknown]> = [
+      ['position', positionRows[0]],
+      ['preferences', preferenceRows[0]],
+    ];
     yield* Effect.forEach(
       legacyTables,
       ([name, sql]) =>
         queryOptionalLegacyTable(database, sql).pipe(
           Effect.tap((rows) =>
             Effect.sync(() => {
-              snapshot[name] = rows;
+              entries.push([name, rows]);
             }),
           ),
         ),
       { concurrency: 1, discard: true },
     );
-    return snapshot;
+    return Object.fromEntries(entries);
   });
 
 export const snapshotLegacyWebState = (
   database: SqliteDatabase,
-): Effect.Effect<Readonly<Record<string, unknown>>, unknown> =>
-  snapshotLegacyWebStateEffect(database);
+): Effect.Effect<LegacySnapshot, unknown> => snapshotLegacyWebStateEffect(database);
 
 const semanticCounts = (
   commands: ReadonlyArray<DomainMutationCommand>,
@@ -139,7 +147,7 @@ const semanticCounts = (
   const entities = new Map<string, Set<string>>();
   const add = (entity: string, key: string): void => {
     const keys = entities.get(entity);
-    if (keys !== undefined) keys.add(key);
+    if (Predicate.isNotUndefined(keys)) keys.add(key);
     else entities.set(entity, new Set([key]));
   };
   for (const command of commands) {
@@ -190,33 +198,31 @@ const semanticCounts = (
     .map(([entity, keys]) => ({ entity, count: keys.size }));
 };
 
-const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
-
-const rowsFor = (
-  snapshot: Readonly<Record<string, unknown>>,
-  table: string,
-): ReadonlyArray<unknown> => {
+const rowsFor = (snapshot: LegacySnapshot, table: string): ReadonlyArray<LegacyRow> => {
   const rows = snapshot[table];
-  if (Array.isArray(rows)) return rows;
-  return [];
+  if (!Array.isArray(rows)) return [];
+  return rows.flatMap((row) =>
+    Exit.match(decodeLegacyRow(row), {
+      onFailure: (): ReadonlyArray<LegacyRow> => [],
+      onSuccess: (decoded) => [decoded],
+    }),
+  );
 };
 
 const coordinateKey = (bookCode: string, puborder: number): string =>
   `${bookCode.toLowerCase()}:${String(puborder)}`;
 
 export const resolveLegacyEgwCoordinates = (
-  snapshot: Readonly<Record<string, unknown>>,
+  snapshot: LegacySnapshot,
   writingsDatabase: SqliteDatabase,
   log: (line: string) => void,
 ): Effect.Effect<ReadonlyMap<string, ReaderLocation>> => {
   const coordinates = new Map<string, { readonly bookCode: string; readonly puborder: number }>();
   for (const table of ['egw_notes', 'egw_markers', 'egw_collection_items']) {
     for (const candidate of rowsFor(snapshot, table)) {
-      if (!isRecord(candidate)) continue;
       const bookCode = candidate['book_code'];
       const puborder = candidate['puborder'];
-      if (typeof bookCode !== 'string' || typeof puborder !== 'number') continue;
+      if (!Predicate.isString(bookCode) || !Predicate.isNumber(puborder)) continue;
       if (!Number.isInteger(puborder)) continue;
       coordinates.set(coordinateKey(bookCode, puborder), { bookCode, puborder });
     }
@@ -238,10 +244,10 @@ export const resolveLegacyEgwCoordinates = (
           Effect.tap((rows) =>
             Effect.sync(() => {
               const row = rows[0];
-              if (rows.length !== 1 || row === undefined) return;
+              if (rows.length !== 1 || Predicate.isUndefined(row)) return;
               const publicationId = row['book_id'];
               const paragraphId = row['para_id'];
-              if (typeof publicationId !== 'number' || typeof paragraphId !== 'string') return;
+              if (!Predicate.isNumber(publicationId) || !Predicate.isString(paragraphId)) return;
               resolved.set(key, {
                 source: 'egw',
                 resourceId: String(publicationId),
@@ -259,27 +265,25 @@ export const resolveLegacyEgwCoordinates = (
   ).pipe(Effect.as(resolved));
 };
 
-const bibleLocationFromRow = (
-  row: Readonly<Record<string, unknown>>,
-): ReaderLocation | undefined => {
+const bibleLocationFromRow = (row: LegacyRow): Option.Option<ReaderLocation> => {
   const book = row['book'];
   const chapter = row['chapter'];
   const verse = row['verse'];
   if (!Number.isInteger(book) || !Number.isInteger(chapter) || !Number.isInteger(verse)) {
-    return undefined;
+    return Option.none();
   }
-  return {
+  return Option.some({
     source: 'bible',
     resourceId: 'KJV',
     location: `/bible/${String(book)}/${String(chapter)}/${String(verse)}`,
-  };
+  });
 };
 
 const locationKey = (location: ReaderLocation): string =>
   `${location.source}:${location.resourceId}:${location.location}`;
 
 const collectionMemberResolver = (
-  snapshot: Readonly<Record<string, unknown>>,
+  snapshot: LegacySnapshot,
   egwLocations: ReadonlyMap<string, ReaderLocation>,
 ) => {
   const members = new Map<
@@ -287,15 +291,15 @@ const collectionMemberResolver = (
     Array<{ readonly memberId: string; readonly memberType: 'bookmark' | 'note' | 'marker' }>
   >();
   const add = (
-    location: ReaderLocation | undefined,
-    memberId: unknown,
+    location: Option.Option<ReaderLocation>,
+    memberId: string,
     memberType: 'bookmark' | 'note' | 'marker',
   ): void => {
-    if (location === undefined || typeof memberId !== 'string') return;
-    const key = locationKey(location);
+    if (Option.isNone(location)) return;
+    const key = locationKey(location.value);
     const current = members.get(key);
     const member = { memberId, memberType };
-    if (current !== undefined) current.push(member);
+    if (Predicate.isNotUndefined(current)) current.push(member);
     else members.set(key, [member]);
   };
   for (const [table, memberType] of [
@@ -304,8 +308,9 @@ const collectionMemberResolver = (
     ['verse_markers', 'marker'],
   ] as const) {
     for (const candidate of rowsFor(snapshot, table)) {
-      if (!isRecord(candidate)) continue;
-      add(bibleLocationFromRow(candidate), candidate['id'], memberType);
+      const memberId = candidate['id'];
+      if (!Predicate.isString(memberId)) continue;
+      add(bibleLocationFromRow(candidate), memberId, memberType);
     }
   }
   for (const [table, memberType] of [
@@ -313,29 +318,37 @@ const collectionMemberResolver = (
     ['egw_markers', 'marker'],
   ] as const) {
     for (const candidate of rowsFor(snapshot, table)) {
-      if (!isRecord(candidate)) continue;
+      const memberId = candidate['id'];
       const bookCode = candidate['book_code'];
       const puborder = candidate['puborder'];
-      if (typeof bookCode !== 'string' || typeof puborder !== 'number') continue;
+      if (!Predicate.isString(memberId)) continue;
+      if (!Predicate.isString(bookCode) || !Predicate.isNumber(puborder)) continue;
       if (!Number.isInteger(puborder)) continue;
-      add(egwLocations.get(coordinateKey(bookCode, puborder)), candidate['id'], memberType);
+      add(
+        Option.fromUndefinedOr(egwLocations.get(coordinateKey(bookCode, puborder))),
+        memberId,
+        memberType,
+      );
     }
   }
   return (_path: string, location: ReaderLocation) => {
-    const candidates = members.get(locationKey(location));
-    if (candidates?.length === 1) return candidates[0];
-    return undefined;
+    const candidates = members.get(locationKey(location)) ?? [];
+    return Option.liftPredicate(candidates, (list) => list.length === 1).pipe(
+      Option.flatMap((list) => Option.fromUndefinedOr(list[0])),
+    );
   };
 };
 
 const deterministicTimestamp = (hash: string, path: string, epoch?: number): Timestamp => {
-  let suffix = 'snapshot';
-  if (epoch !== undefined) suffix = String(epoch);
+  const suffix = Option.match(Option.fromUndefinedOr(epoch), {
+    onNone: () => 'snapshot',
+    onSome: (value) => String(value),
+  });
   return Schema.decodeSync(Timestamp)(`legacy:${hash}:${path}:${suffix}`);
 };
 
 export const makeResolvedWebStateProjection = (
-  snapshot: Readonly<Record<string, unknown>>,
+  snapshot: LegacySnapshot,
   hash: string,
   egwLocations: ReadonlyMap<string, ReaderLocation>,
 ): LegacySourceProjection => {
@@ -347,7 +360,7 @@ export const makeResolvedWebStateProjection = (
     timestampFor: (path, epoch) => deterministicTimestamp(hash, path, epoch),
     planStepId: (path, legacyItemId) => `web:${hash}:step:${path}:${String(legacyItemId)}`,
     resolveEgwLocation: ({ bookCode, puborder }) =>
-      egwLocations.get(coordinateKey(bookCode, puborder)),
+      Option.fromUndefinedOr(egwLocations.get(coordinateKey(bookCode, puborder))),
     resolveCollectionMember: collectionMemberResolver(snapshot, egwLocations),
   });
   return {
@@ -391,13 +404,11 @@ export const migrateWebUserState = (
       exactSnapshot = yield* Effect.acquireUseRelease(
         legacyDatabase.open(SQLite.SQLITE_OPEN_READONLY),
         () => snapshotLegacyWebStateEffect(legacyDatabase).pipe(Effect.flatMap(encodeJson)),
-        () => legacyDatabase.close().pipe(Effect.ignore),
+        () => legacyDatabase.close.pipe(Effect.ignore),
       );
     }
     const hash = yield* fingerprint(exactSnapshot);
-    const decoded = yield* decodeJson(exactSnapshot);
-    if (!isRecord(decoded)) return yield* Effect.fail('legacy snapshot did not decode');
-    const snapshot = decoded;
+    const snapshot = yield* decodeSnapshot(exactSnapshot);
     let egwLocations: ReadonlyMap<string, ReaderLocation> = new Map();
     if (legacyExists) {
       egwLocations = yield* resolveLegacyEgwCoordinates(

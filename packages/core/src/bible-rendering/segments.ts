@@ -14,6 +14,8 @@
  * the caller's renderer never has to re-tokenize the verse.
  */
 
+import { Predicate } from 'effect';
+
 /** A single styled chunk of verse text. The renderer maps each variant to
  *  its own UI primitive (e.g. `<em>`, `<mark>`, popover anchor, …). */
 export type TextSegment =
@@ -198,7 +200,7 @@ export const segmentVerseText = (
   }
 
   let highlighted = segments;
-  if (searchQuery !== undefined && searchQuery.length > 0) {
+  if (Predicate.isNotUndefined(searchQuery) && searchQuery.length > 0) {
     highlighted = applySearchHighlights(segments, searchQuery);
   }
 

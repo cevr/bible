@@ -1,11 +1,11 @@
-import { Effect, Schema } from 'effect';
+import { Effect, Option, Schema } from 'effect';
 
 import * as SqliteHost from './sqlite-host.js';
 
-export type SqliteRow = Record<string, unknown>;
+export type SqliteRow = Record<string, SQLiteCompatibleType>;
 export type WorkerSqliteApi = SqliteHost.WorkerSqliteApi;
 
-export class SqliteDatabaseError extends Schema.TaggedErrorClass<SqliteDatabaseError>()(
+export class SqliteDatabaseError extends Schema.TaggedError<SqliteDatabaseError>()(
   'SqliteDatabaseError',
   {
     operation: Schema.String,
@@ -18,7 +18,7 @@ export class SqliteDatabaseError extends Schema.TaggedErrorClass<SqliteDatabaseE
 export interface SqliteDatabase {
   readonly isOpen: boolean;
   readonly open: (flags: number) => Effect.Effect<void, SqliteDatabaseError>;
-  readonly close: () => Effect.Effect<void, SqliteDatabaseError>;
+  readonly close: Effect.Effect<void, SqliteDatabaseError>;
   readonly query: (
     sql: string,
     params?: readonly unknown[],
@@ -38,14 +38,14 @@ export interface SqliteDatabaseFamily {
   readonly active: SqliteDatabase;
   readonly candidate: (filename: string) => SqliteDatabase;
   readonly activate: (filename: string, flags: number) => Effect.Effect<void, SqliteDatabaseError>;
-  readonly deactivate: () => Effect.Effect<void, SqliteDatabaseError>;
-  readonly activeFilename: string | undefined;
+  readonly deactivate: Effect.Effect<void, SqliteDatabaseError>;
+  readonly activeFilename: Option.Option<string>;
 }
 
 const hostOperation = <A>(filename: string, operation: string, evaluate: () => Promise<A>) =>
   Effect.tryPromise({
     try: evaluate,
-    catch: (cause) => new SqliteDatabaseError({ operation, filename, cause }),
+    catch: (cause) => SqliteDatabaseError.make({ operation, filename, cause }),
   });
 
 export const makeSqliteDatabase = (
@@ -53,35 +53,40 @@ export const makeSqliteDatabase = (
   filename: string,
   vfsName: string,
 ): SqliteDatabase => {
-  let handle: number | null = null;
+  let handle = Option.none<number>();
 
-  const requireHandle = (): Effect.Effect<number, SqliteDatabaseError> => {
-    if (handle !== null) return Effect.succeed(handle);
-    return Effect.fail(
-      new SqliteDatabaseError({
-        operation: 'require-open-database',
-        filename,
-        cause: 'database is not initialized',
-      }),
-    );
-  };
+  const requireHandle = (): Effect.Effect<number, SqliteDatabaseError> =>
+    Option.match(handle, {
+      onSome: (current) => Effect.succeed(current),
+      onNone: () =>
+        Effect.fail(
+          SqliteDatabaseError.make({
+            operation: 'require-open-database',
+            filename,
+            cause: 'database is not initialized',
+          }),
+        ),
+    });
 
   const open = Effect.fn('SqliteDatabase.open')(function* (flags: number) {
-    if (handle !== null) {
-      const current = handle;
+    if (Option.isSome(handle)) {
+      const current = handle.value;
       yield* hostOperation(filename, 'close-before-open', () => SqliteHost.close(sqlite, current));
     }
-    handle = yield* hostOperation(filename, 'open', () =>
-      SqliteHost.open(sqlite, filename, flags, vfsName),
+    handle = Option.some(
+      yield* hostOperation(filename, 'open', () =>
+        SqliteHost.open(sqlite, filename, flags, vfsName),
+      ),
     );
   });
 
-  const close = Effect.fn('SqliteDatabase.close')(function* () {
-    if (handle === null) return;
-    const current = handle;
-    handle = null;
+  const runClose = Effect.fn('SqliteDatabase.close')(function* () {
+    if (Option.isNone(handle)) return;
+    const current = handle.value;
+    handle = Option.none();
     yield* hostOperation(filename, 'close', () => SqliteHost.close(sqlite, current));
   });
+  const close = Effect.suspend(runClose);
 
   const query: SqliteDatabase['query'] = (sql, params) =>
     requireHandle().pipe(
@@ -113,7 +118,7 @@ export const makeSqliteDatabase = (
 
   return {
     get isOpen() {
-      return handle !== null;
+      return Option.isSome(handle);
     },
     open,
     close,
@@ -129,28 +134,31 @@ export const makeSqliteDatabaseFamily = (
   sqlite: WorkerSqliteApi,
   vfsName: string,
 ): SqliteDatabaseFamily => {
-  let activeDatabase: SqliteDatabase | undefined;
-  let filename: string | undefined;
-  const requireActive = (): Effect.Effect<SqliteDatabase, SqliteDatabaseError> => {
-    if (activeDatabase !== undefined) return Effect.succeed(activeDatabase);
-    return Effect.fail(
-      new SqliteDatabaseError({
-        operation: 'require-active-generation',
-        filename: '',
-        cause: 'no SQLite generation is active',
-      }),
-    );
-  };
+  let activeDatabase = Option.none<SqliteDatabase>();
+  let filename = Option.none<string>();
+  const requireActive = (): Effect.Effect<SqliteDatabase, SqliteDatabaseError> =>
+    Option.match(activeDatabase, {
+      onSome: (database) => Effect.succeed(database),
+      onNone: () =>
+        Effect.fail(
+          SqliteDatabaseError.make({
+            operation: 'require-active-generation',
+            filename: '',
+            cause: 'no SQLite generation is active',
+          }),
+        ),
+    });
   const active: SqliteDatabase = {
     get isOpen() {
-      if (activeDatabase === undefined) return false;
-      return activeDatabase.isOpen;
+      return Option.exists(activeDatabase, (database) => database.isOpen);
     },
     open: (flags) => requireActive().pipe(Effect.flatMap((database) => database.open(flags))),
-    close: () => {
-      if (activeDatabase === undefined) return Effect.void;
-      return activeDatabase.close();
-    },
+    close: Effect.suspend(() =>
+      Option.match(activeDatabase, {
+        onNone: () => Effect.void,
+        onSome: (database) => database.close,
+      }),
+    ),
     query: (sql, params) =>
       requireActive().pipe(Effect.flatMap((database) => database.query(sql, params))),
     values: (sql, params) =>
@@ -163,18 +171,25 @@ export const makeSqliteDatabaseFamily = (
     active,
     candidate: (candidateFilename) => makeSqliteDatabase(sqlite, candidateFilename, vfsName),
     activate: Effect.fn('SqliteDatabaseFamily.activate')(function* (candidateFilename, flags) {
-      if (filename === candidateFilename && activeDatabase?.isOpen === true) return;
+      if (
+        Option.contains(filename, candidateFilename) &&
+        Option.exists(activeDatabase, (database) => database.isOpen)
+      ) {
+        return;
+      }
       const candidate = makeSqliteDatabase(sqlite, candidateFilename, vfsName);
       yield* candidate.open(flags);
-      if (activeDatabase !== undefined) yield* activeDatabase.close();
-      activeDatabase = candidate;
-      filename = candidateFilename;
+      if (Option.isSome(activeDatabase)) yield* activeDatabase.value.close;
+      activeDatabase = Option.some(candidate);
+      filename = Option.some(candidateFilename);
     }),
-    deactivate: Effect.fn('SqliteDatabaseFamily.deactivate')(function* () {
-      if (activeDatabase !== undefined) yield* activeDatabase.close();
-      activeDatabase = undefined;
-      filename = undefined;
-    }),
+    deactivate: Effect.suspend(
+      Effect.fn('SqliteDatabaseFamily.deactivate')(function* () {
+        if (Option.isSome(activeDatabase)) yield* activeDatabase.value.close;
+        activeDatabase = Option.none();
+        filename = Option.none();
+      }),
+    ),
     get activeFilename() {
       return filename;
     },

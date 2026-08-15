@@ -8,7 +8,7 @@
     "./definition": "./src/definition/index.ts"
   },
   "scripts": {
-    "typecheck": "tsgo --noEmit"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@bible/core": "workspace:*",

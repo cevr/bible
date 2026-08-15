@@ -1,6 +1,6 @@
 import { Schema } from 'effect';
 
-const Coordinate = Schema.Number.pipe(
+const Coordinate = Schema.Finite.pipe(
   Schema.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(1)),
 );
 

@@ -1,5 +1,5 @@
 import { BunFileSystem } from '@effect/platform-bun';
-import { Effect, FileSystem, Layer } from 'effect';
+import { Effect, FileSystem, Layer, Option } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 
 import type { CorpusProvenance, CorpusSupplyReceipt } from '../corpus-supply/model.js';
@@ -11,16 +11,16 @@ import {
 } from './bible-artifact.js';
 
 const makeProvenanceStore = (): NativeBibleArtifactProvenanceStore => {
-  let current: CorpusProvenance | undefined;
+  let current = Option.none<CorpusProvenance>();
 
   return {
     read: () => {
-      if (current === undefined) return Effect.fail('provenance is unavailable');
-      return Effect.succeed(current);
+      if (Option.isNone(current)) return Effect.fail('provenance is unavailable');
+      return Effect.succeed(current.value);
     },
     write: (_filename, provenance) =>
       Effect.sync(() => {
-        current = provenance;
+        current = Option.some(provenance);
       }),
   };
 };

@@ -12,7 +12,7 @@ describe('worker Effect SQL adapter', () => {
       const database: SqliteDatabase = {
         isOpen: true,
         open: () => Effect.void,
-        close: () => Effect.void,
+        close: Effect.void,
         exec: () => Effect.void,
         write: () => Effect.succeed(0),
         query: (sql) =>
@@ -44,12 +44,12 @@ describe('worker Effect SQL adapter', () => {
       const database: SqliteDatabase = {
         isOpen: true,
         open: () => Effect.void,
-        close: () => Effect.void,
+        close: Effect.void,
         exec: () => Effect.void,
         write: () => Effect.succeed(0),
         query: () =>
           Effect.fail(
-            new SqliteDatabaseError({
+            SqliteDatabaseError.make({
               operation: 'query',
               filename: 'fixture.db',
               cause: 'database unavailable',

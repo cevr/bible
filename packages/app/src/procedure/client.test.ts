@@ -12,7 +12,7 @@ import { RpcTest } from 'effect/unstable/rpc';
 
 import { createProcedureClient } from './client.js';
 
-const connection = new RuntimeConnection({
+const connection = RuntimeConnection.make({
   protocolVersion: CURRENT_PROTOCOL_VERSION,
   schemaVersion: CURRENT_RUNTIME_SCHEMA_VERSION,
   generation: Schema.decodeSync(RuntimeGeneration)('procedure-client-test'),

@@ -13,10 +13,10 @@ import {
   publicationCode,
   publicationId,
 } from '@bible/core/writings';
-import { Effect, Option, Schema } from 'effect';
+import { Effect, Option, Predicate, Schema } from 'effect';
 
 const unavailable = (operation: string) => (cause: unknown) =>
-  new CorpusSourceUnavailableError({ operation, cause });
+  CorpusSourceUnavailableError.make({ operation, cause });
 
 export const layerHttpWritingsAssetSource = (fetchResponse: (url: string) => Promise<Response>) => {
   const catalog = Effect.gen(function* () {
@@ -25,7 +25,7 @@ export const layerHttpWritingsAssetSource = (fetchResponse: (url: string) => Pro
       catch: unavailable('read-writings-catalog'),
     });
     if (!response.ok) {
-      return yield* new CorpusSourceUnavailableError({
+      return yield* CorpusSourceUnavailableError.make({
         operation: 'read-writings-catalog',
         cause: response.status,
       });
@@ -40,7 +40,7 @@ export const layerHttpWritingsAssetSource = (fetchResponse: (url: string) => Pro
     return yield* Effect.forEach(books, (book) =>
       Effect.try({
         try: () =>
-          new Publication({
+          Publication.make({
             id: publicationId(book.bookId),
             code: publicationCode(book.bookCode),
             title: book.title,
@@ -56,8 +56,8 @@ export const layerHttpWritingsAssetSource = (fetchResponse: (url: string) => Pro
     Effect.gen(function* () {
       const publications = yield* catalog;
       const requested = publications.find((candidate) => candidate.id === publication);
-      if (requested === undefined) {
-        return yield* new CorpusSourceUnavailableError({
+      if (Predicate.isUndefined(requested)) {
+        return yield* CorpusSourceUnavailableError.make({
           operation: 'locate-writings-publication',
           cause: `Publication ${String(publication)} is absent from the source catalog`,
         });
@@ -67,7 +67,7 @@ export const layerHttpWritingsAssetSource = (fetchResponse: (url: string) => Pro
         catch: unavailable('read-writings-publication'),
       });
       if (!response.ok) {
-        return yield* new CorpusSourceUnavailableError({
+        return yield* CorpusSourceUnavailableError.make({
           operation: 'read-writings-publication',
           cause: response.status,
         });
@@ -77,16 +77,15 @@ export const layerHttpWritingsAssetSource = (fetchResponse: (url: string) => Pro
         catch: unavailable('decode-writings-publication'),
       });
       const archive = yield* Schema.decodeUnknownEffect(PublicationArchiveJson)(json).pipe(
-        Effect.mapError(
-          (cause) =>
-            new CorpusContributionRejectedError({
-              publication,
-              cause,
-            }),
+        Effect.mapError((cause) =>
+          CorpusContributionRejectedError.make({
+            publication,
+            cause,
+          }),
         ),
       );
       if (archive.publication.id !== publication) {
-        return yield* new CorpusContributionRejectedError({
+        return yield* CorpusContributionRejectedError.make({
           publication,
           cause: `Received publication ${String(archive.publication.id)}`,
         });
@@ -96,7 +95,7 @@ export const layerHttpWritingsAssetSource = (fetchResponse: (url: string) => Pro
         'publication-archive-v1',
         archive,
       );
-      return new WritingsContribution({ provenance, archive });
+      return WritingsContribution.make({ provenance, archive });
     });
 
   return layerWritingsAssetSource({ kind: 'archive', catalog, acquire });

@@ -19,6 +19,6 @@ describe('EGW Database Performance', () => {
       } else {
         yield* Effect.logInfo(`EGW performance database available path=${databasePath}`);
       }
-      expect(typeof exists).toBe('boolean');
+      expect([true, false]).toContain(exists);
     }));
 });

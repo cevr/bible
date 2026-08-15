@@ -19,21 +19,24 @@ import { CorpusSupply } from './service.js';
 import { layerWritingsAssetSource } from './source.js';
 import { layerWritingsLibraryRuntime } from './writings-library.js';
 
+// Wire-shape fields the schema encodes as `null` when absent.
+const wireNull = Option.getOrNull(Option.none<never>());
+
 const id = publicationId(127);
 const code = publicationCode('PP');
-const publication = new Publication({
+const publication = Publication.make({
   id,
   code,
   title: 'Patriarchs and Prophets',
   author: 'Ellen G. White',
   paragraphCount: Option.some(1),
 });
-const archive = new PublicationArchive({
+const archive = PublicationArchive.make({
   publication,
   paragraphs: [
-    new ArchivedParagraph({
+    ArchivedParagraph.make({
       refcode: 'PP 1.1',
-      paragraph: new Paragraph({
+      paragraph: Paragraph.make({
         reference: Reference.paragraph(id, 'pp-1-1'),
         publicationCode: code,
         order: publicationOrder(1),
@@ -49,7 +52,7 @@ const archive = new PublicationArchive({
   ],
   bibleReferences: [],
 });
-const contribution = new WritingsContribution({
+const contribution = WritingsContribution.make({
   provenance: unknownProvenance('test-source', '1'),
   archive,
 });
@@ -89,7 +92,7 @@ describe('shared Writings library runtime', () => {
             book_id: installed.publication.id,
             book_code: installed.publication.code,
             status: 'success',
-            error_message: null,
+            error_message: wireNull,
             last_attempt: '2026-07-20T00:00:00.000Z',
             paragraph_count: installed.paragraphs.length,
           });
@@ -145,17 +148,19 @@ describe('shared Writings library runtime', () => {
         const source = layerWritingsAssetSource({
           kind: 'archive',
           catalog: Effect.fail(
-            new CorpusSourceUnavailableError({ operation: 'catalog', cause: 'offline' }),
+            CorpusSourceUnavailableError.make({ operation: 'catalog', cause: 'offline' }),
           ),
           acquire: () =>
             Effect.fail(
-              new CorpusSourceUnavailableError({ operation: 'acquire', cause: 'offline' }),
+              CorpusSourceUnavailableError.make({ operation: 'acquire', cause: 'offline' }),
             ),
         });
         const result = yield* Effect.flatMap(WritingsLibraryRuntime, (library) => library.get).pipe(
           Effect.provide(compose(database, source)),
         );
-        const encoded = Schema.encodeSync(Schema.Array(WritingsLibraryPublication))(result);
+        const encoded = yield* Schema.encodeEffect(Schema.Array(WritingsLibraryPublication))(
+          result,
+        );
 
         expect(encoded).toHaveLength(2);
         expect(encoded[0]).toMatchObject({ code: 'PP', source: 'local', status: 'success' });

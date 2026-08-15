@@ -90,24 +90,22 @@ export const listNotes = Effect.fn('listNotes')(function* () {
 
   yield* Effect.log('📊 Parsing note list...');
   const malformed: string[] = [];
-  const notes: NoteListItem[] = rawOutput
-    .split('\n') // Split into lines, one per note
-    .filter((line) => line.trim() !== '') // Remove empty lines
-    .map((line) => {
-      const parts = line.split('|'); // Split by the delimiter
-      if (parts.length !== 4) {
-        // Handle potential parsing errors or unexpected format
-        malformed.push(line);
-        return null;
-      }
-      return {
-        id: parts[0],
-        name: parts[1], // Names might contain special characters, handled by script?
-        creationDate: parts[2],
-        modificationDate: parts[3],
-      };
-    })
-    .filter((note): note is NoteListItem => note !== null); // Filter out nulls from malformed lines
+  const notes: NoteListItem[] = [];
+  for (const line of rawOutput.split('\n')) {
+    if (line.trim() === '') continue; // Remove empty lines
+    const parts = line.split('|'); // Split by the delimiter
+    if (parts.length !== 4) {
+      // Handle potential parsing errors or unexpected format
+      malformed.push(line);
+      continue;
+    }
+    notes.push({
+      id: parts[0] ?? '',
+      name: parts[1] ?? '', // Names might contain special characters, handled by script?
+      creationDate: parts[2] ?? '',
+      modificationDate: parts[3] ?? '',
+    });
+  }
 
   if (malformed.length > 0) {
     yield* Effect.logWarning(

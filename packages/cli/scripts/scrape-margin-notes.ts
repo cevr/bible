@@ -17,7 +17,7 @@
 
 import { BunRuntime, BunServices } from '@effect/platform-bun';
 import * as BunHttpClient from '@effect/platform-bun/BunHttpClient';
-import { Effect, FileSystem, Layer, Path, Schema, SchemaGetter } from 'effect';
+import { Effect, FileSystem, Layer, Option, Path, Schema, SchemaGetter } from 'effect';
 import { HttpClient, HttpClientResponse } from 'effect/unstable/http';
 
 const URL =
@@ -31,75 +31,77 @@ const JsonString = Schema.Unknown.pipe(
 const encodeJson = Schema.encodeUnknownEffect(JsonString);
 
 // Book name to number mapping
-const BOOK_MAP: Record<string, number> = {
-  Genesis: 1,
-  Exodus: 2,
-  Leviticus: 3,
-  Numbers: 4,
-  Deuteronomy: 5,
-  Joshua: 6,
-  Judges: 7,
-  Ruth: 8,
-  '1 Samuel': 9,
-  '2 Samuel': 10,
-  '1 Kings': 11,
-  '2 Kings': 12,
-  '1 Chronicles': 13,
-  '2 Chronicles': 14,
-  Ezra: 15,
-  Nehemiah: 16,
-  Esther: 17,
-  Job: 18,
-  Psalm: 19,
-  Psalms: 19,
-  Proverbs: 20,
-  Ecclesiastes: 21,
-  'Song of Solomon': 22,
-  Isaiah: 23,
-  Jeremiah: 24,
-  Lamentations: 25,
-  Ezekiel: 26,
-  Daniel: 27,
-  Hosea: 28,
-  Joel: 29,
-  Amos: 30,
-  Obadiah: 31,
-  Jonah: 32,
-  Micah: 33,
-  Nahum: 34,
-  Habakkuk: 35,
-  Zephaniah: 36,
-  Haggai: 37,
-  Zechariah: 38,
-  Malachi: 39,
-  Matthew: 40,
-  Mark: 41,
-  Luke: 42,
-  John: 43,
-  Acts: 44,
-  Romans: 45,
-  '1 Corinthians': 46,
-  '2 Corinthians': 47,
-  Galatians: 48,
-  Ephesians: 49,
-  Philippians: 50,
-  Colossians: 51,
-  '1 Thessalonians': 52,
-  '2 Thessalonians': 53,
-  '1 Timothy': 54,
-  '2 Timothy': 55,
-  Titus: 56,
-  Philemon: 57,
-  Hebrews: 58,
-  James: 59,
-  '1 Peter': 60,
-  '2 Peter': 61,
-  '1 John': 62,
-  '2 John': 63,
-  '3 John': 64,
-  Jude: 65,
-  Revelation: 66,
-};
+const BOOK_MAP: ReadonlyMap<string, number> = new Map(
+  Object.entries({
+    Genesis: 1,
+    Exodus: 2,
+    Leviticus: 3,
+    Numbers: 4,
+    Deuteronomy: 5,
+    Joshua: 6,
+    Judges: 7,
+    Ruth: 8,
+    '1 Samuel': 9,
+    '2 Samuel': 10,
+    '1 Kings': 11,
+    '2 Kings': 12,
+    '1 Chronicles': 13,
+    '2 Chronicles': 14,
+    Ezra: 15,
+    Nehemiah: 16,
+    Esther: 17,
+    Job: 18,
+    Psalm: 19,
+    Psalms: 19,
+    Proverbs: 20,
+    Ecclesiastes: 21,
+    'Song of Solomon': 22,
+    Isaiah: 23,
+    Jeremiah: 24,
+    Lamentations: 25,
+    Ezekiel: 26,
+    Daniel: 27,
+    Hosea: 28,
+    Joel: 29,
+    Amos: 30,
+    Obadiah: 31,
+    Jonah: 32,
+    Micah: 33,
+    Nahum: 34,
+    Habakkuk: 35,
+    Zephaniah: 36,
+    Haggai: 37,
+    Zechariah: 38,
+    Malachi: 39,
+    Matthew: 40,
+    Mark: 41,
+    Luke: 42,
+    John: 43,
+    Acts: 44,
+    Romans: 45,
+    '1 Corinthians': 46,
+    '2 Corinthians': 47,
+    Galatians: 48,
+    Ephesians: 49,
+    Philippians: 50,
+    Colossians: 51,
+    '1 Thessalonians': 52,
+    '2 Thessalonians': 53,
+    '1 Timothy': 54,
+    '2 Timothy': 55,
+    Titus: 56,
+    Philemon: 57,
+    Hebrews: 58,
+    James: 59,
+    '1 Peter': 60,
+    '2 Peter': 61,
+    '1 John': 62,
+    '2 John': 63,
+    '3 John': 64,
+    Jude: 65,
+    Revelation: 66,
+  }),
+);
 
 // Build regex for book names
 const bookNames = Object.keys(BOOK_MAP)
@@ -157,37 +159,40 @@ const main = Effect.gen(function* () {
   let count = 0;
   const seen = new Set<string>(); // Dedupe
 
-  let match;
-  while ((match = ENTRY_REGEX.exec(html)) !== null) {
-    const [, bookName, chapter, verse, phraseRaw, noteTextRaw] = match;
+  for (const match of html.matchAll(ENTRY_REGEX)) {
+    const bookName = Option.fromNullishOr(match[1]);
+    const chapter = Option.fromNullishOr(match[2]);
+    const verse = Option.fromNullishOr(match[3]);
+    const phraseRaw = Option.fromNullishOr(match[4]);
+    const noteTextRaw = Option.fromNullishOr(match[5]);
     if (
-      bookName === undefined ||
-      chapter === undefined ||
-      verse === undefined ||
-      phraseRaw === undefined ||
-      noteTextRaw === undefined
+      Option.isNone(bookName) ||
+      Option.isNone(chapter) ||
+      Option.isNone(verse) ||
+      Option.isNone(phraseRaw) ||
+      Option.isNone(noteTextRaw)
     ) {
       continue;
     }
-    const bookNum = BOOK_MAP[bookName];
+    const bookNum = Option.fromNullishOr(BOOK_MAP.get(bookName.value));
 
-    if (!bookNum) {
-      yield* Effect.logWarning(`  Unknown book: ${bookName}`);
+    if (Option.isNone(bookNum)) {
+      yield* Effect.logWarning(`  Unknown book: ${bookName.value}`);
       continue;
     }
 
-    const phrase = cleanText(phraseRaw);
-    const noteText = cleanText(noteTextRaw);
+    const phrase = cleanText(phraseRaw.value);
+    const noteText = cleanText(noteTextRaw.value);
 
     // Skip if phrase starts with dash (artifact)
     if (phrase.startsWith('-')) continue;
 
     // Dedupe key
-    const dedupeKey = `${bookNum}.${chapter}.${verse}:${phrase}:${noteText}`;
+    const dedupeKey = `${bookNum.value}.${chapter.value}.${verse.value}:${phrase}:${noteText}`;
     if (seen.has(dedupeKey)) continue;
     seen.add(dedupeKey);
 
-    const key = `${bookNum}.${chapter}.${verse}`;
+    const key = `${bookNum.value}.${chapter.value}.${verse.value}`;
     const note: MarginNote = {
       type: classifyNote(noteText),
       phrase,

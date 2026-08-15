@@ -3,7 +3,7 @@ import { Schema } from 'effect';
 import { PublicationId } from '../writings/model.js';
 import { CorpusName } from './model.js';
 
-export class CorpusSourceUnavailableError extends Schema.TaggedErrorClass<CorpusSourceUnavailableError>()(
+export class CorpusSourceUnavailableError extends Schema.TaggedError<CorpusSourceUnavailableError>()(
   'CorpusSourceUnavailableError',
   {
     operation: Schema.NonEmptyString,
@@ -11,7 +11,7 @@ export class CorpusSourceUnavailableError extends Schema.TaggedErrorClass<Corpus
   },
 ) {}
 
-export class CorpusContributionRejectedError extends Schema.TaggedErrorClass<CorpusContributionRejectedError>()(
+export class CorpusContributionRejectedError extends Schema.TaggedError<CorpusContributionRejectedError>()(
   'CorpusContributionRejectedError',
   {
     publication: PublicationId,
@@ -19,7 +19,7 @@ export class CorpusContributionRejectedError extends Schema.TaggedErrorClass<Cor
   },
 ) {}
 
-export class CorpusInstallationError extends Schema.TaggedErrorClass<CorpusInstallationError>()(
+export class CorpusInstallationError extends Schema.TaggedError<CorpusInstallationError>()(
   'CorpusInstallationError',
   {
     publication: Schema.optional(PublicationId),
@@ -28,7 +28,7 @@ export class CorpusInstallationError extends Schema.TaggedErrorClass<CorpusInsta
   },
 ) {}
 
-export class CorpusRecipeUnavailableError extends Schema.TaggedErrorClass<CorpusRecipeUnavailableError>()(
+export class CorpusRecipeUnavailableError extends Schema.TaggedError<CorpusRecipeUnavailableError>()(
   'CorpusRecipeUnavailableError',
   {
     corpus: CorpusName,

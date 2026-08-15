@@ -28,7 +28,7 @@ export class CatalogClassificationSuggestion extends Schema.Class<CatalogClassif
 )({
   catalogReferenceId: CatalogCrossReferenceId,
   classification: CrossRefType,
-  confidence: Schema.Number.pipe(
+  confidence: Schema.Finite.pipe(
     Schema.check(Schema.isFinite(), Schema.isBetween({ minimum: 0, maximum: 1 })),
   ),
   classifierVersion: Schema.NonEmptyString,
@@ -48,7 +48,7 @@ const personalFields = {
   target: VerseReference,
   note: Schema.Option(Schema.NonEmptyString),
   classification: Schema.Option(CrossRefType),
-} as const;
+};
 
 export const AddPersonalCrossReference = Schema.TaggedStruct(
   'AddPersonalCrossReference',

@@ -1,4 +1,4 @@
-import { Effect, Layer, Stream } from 'effect';
+import { Effect, Layer, Predicate, Stream } from 'effect';
 import * as Reactivity from 'effect/unstable/reactivity/Reactivity';
 import * as SqlClient from 'effect/unstable/sql/SqlClient';
 import type { Connection } from 'effect/unstable/sql/SqlConnection';
@@ -8,8 +8,8 @@ import * as Statement from 'effect/unstable/sql/Statement';
 import type { SqliteDatabase } from './sqlite-database.js';
 
 const sqlError = (cause: unknown, operation: string): SqlError =>
-  new SqlError({
-    reason: new UnknownError({
+  SqlError.make({
+    reason: UnknownError.make({
       cause,
       message: 'The worker SQLite query failed',
       operation,
@@ -24,11 +24,11 @@ const make = (database: SqliteDatabase) =>
     const execute = (
       sql: string,
       params: ReadonlyArray<unknown>,
-      transformRows: (<A extends object>(rows: ReadonlyArray<A>) => ReadonlyArray<A>) | undefined,
+      transformRows?: <A extends object>(rows: ReadonlyArray<A>) => ReadonlyArray<A>,
     ) =>
       query(sql, params, 'execute').pipe(
         Effect.map((rows) => {
-          if (transformRows === undefined) return rows;
+          if (Predicate.isUndefined(transformRows)) return rows;
           return transformRows(rows);
         }),
       );

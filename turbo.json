@@ -10,6 +10,7 @@
         "electron/**/*.ts",
         "scripts/**/*.ts",
         "tsconfig.json",
+        "../../tsconfig.json",
         "package.json"
       ],
       "outputs": []

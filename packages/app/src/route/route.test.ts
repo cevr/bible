@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { Reference as BibleReference } from '@bible/core/bible';
 import { Reference as WritingsReference } from '@bible/core/writings';
+import { Option } from 'effect';
 
 import { decodeRoute, encodeRoute } from './codec.js';
 import {
@@ -32,14 +33,14 @@ const routes: readonly AppRoute[] = [
 describe('route codec', () => {
   for (const route of routes) {
     test(`round trips ${route._tag}`, () => {
-      expect(decodeRoute(encodeRoute(route))).toEqual(route);
+      expect(decodeRoute(encodeRoute(route))).toEqual(Option.some(route));
     });
   }
 
   test('rejects malformed explicit routes instead of guessing', () => {
-    expect(decodeRoute('/bible/67/1')).toBeUndefined();
-    expect(decodeRoute('/writings/12/page/zero')).toBeUndefined();
-    expect(decodeRoute('/settings/unknown')).toBeUndefined();
+    expect(decodeRoute('/bible/67/1')).toEqual(Option.none());
+    expect(decodeRoute('/writings/12/page/zero')).toEqual(Option.none());
+    expect(decodeRoute('/settings/unknown')).toEqual(Option.none());
   });
 });
 
@@ -83,18 +84,24 @@ describe('reading continuity route projection', () => {
       reference: WritingsReference.page(12, 42),
     } as const;
 
-    expect(readingRouteForLocation(readerLocationForRoute(bible))).toEqual(bible);
-    expect(readingRouteForLocation(readerLocationForRoute(writings))).toEqual(writings);
+    expect(readingRouteForLocation(readerLocationForRoute(bible))).toEqual(Option.some(bible));
+    expect(readingRouteForLocation(readerLocationForRoute(writings))).toEqual(
+      Option.some(writings),
+    );
   });
 
   test('rejects non-reading and mismatched persisted locations', () => {
-    expect(readerLocationForRoute({ _tag: 'settings', section: 'reader' })).toBeUndefined();
+    expect(readerLocationForRoute({ _tag: 'settings', section: 'reader' })).toEqual(Option.none());
     expect(
-      readingRouteForLocation({ source: 'egw', resourceId: '99', location: '/writings/12' }),
-    ).toBeUndefined();
+      readingRouteForLocation(
+        Option.some({ source: 'egw', resourceId: '99', location: '/writings/12' }),
+      ),
+    ).toEqual(Option.none());
     expect(
-      readingRouteForLocation({ source: 'bible', resourceId: 'KJV', location: '/search' }),
-    ).toBeUndefined();
+      readingRouteForLocation(
+        Option.some({ source: 'bible', resourceId: 'KJV', location: '/search' }),
+      ),
+    ).toEqual(Option.none());
   });
 });
 
@@ -104,7 +111,7 @@ test('navigation pushes intent and replaces refinements', () => {
     read: () => '/',
     push: (path) => writes.push(`push:${path}`),
     replace: (path) => writes.push(`replace:${path}`),
-    subscribe: () => () => undefined,
+    subscribe: () => () => {},
   };
   const route = { _tag: 'search', query: 'faith', scope: 'all', books: [] } as const;
   navigate(history, route);
@@ -122,18 +129,20 @@ test('escape dismisses overlay, context, then navigation', () => {
   });
   disclosure = pushOverlay(disclosure, 'quick-find');
 
-  expect(
-    projectSurface({ _tag: 'bible', reference: BibleReference.chapter(1, 1) }, disclosure),
-  ).toMatchObject({
-    left: null,
-    right: null,
-    replacement: { _tag: 'context', pane: { _tag: 'verse-study' } },
-  });
+  const surface = projectSurface(
+    { _tag: 'bible', reference: BibleReference.chapter(1, 1) },
+    disclosure,
+  );
+  expect(Option.isNone(surface.left)).toBe(true);
+  expect(Option.isNone(surface.right)).toBe(true);
+  expect(Option.map(surface.replacement, (replacement) => replacement._tag)).toEqual(
+    Option.some('context'),
+  );
 
   disclosure = dismissTopDisclosure(disclosure);
   expect(disclosure.overlays).toEqual([]);
   disclosure = dismissTopDisclosure(disclosure);
-  expect(disclosure.context).toBeNull();
+  expect(Option.isNone(disclosure.context)).toBe(true);
   disclosure = dismissTopDisclosure(disclosure);
   expect(disclosure.navigation).toBe('closed');
 });

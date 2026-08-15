@@ -7,6 +7,7 @@ import { app, BrowserWindow, dialog, ipcMain, MessageChannelMain, shell } from '
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
+import { DesktopProcedurePortMessage } from '../shared/procedure-channel.js';
 import { layerNativeBibleArtifacts } from './bible-corpus-file.js';
 import {
   layerDesktopProcedureServer,
@@ -31,7 +32,7 @@ const loadDotEnv = (file: string): void => {
       .trim()
       .replace(/^['"]|['"]$/g, '');
     // eslint-disable-next-line node/no-process-env -- bootstrap, pre-Effect
-    if (process.env[key] === undefined) process.env[key] = value;
+    if (!(key in process.env)) process.env[key] = value;
   }
 };
 
@@ -39,28 +40,34 @@ const loadDotEnv = (file: string): void => {
 const isDev = process.env['NODE_ENV'] === 'development';
 const VITE_DEV_URL = 'http://localhost:1420';
 
+const nonEmpty = (value: string) => value !== '';
+
 // Tests and portable hosts can isolate Electron's writable state without
 // changing any shared application or persistence behavior.
-// eslint-disable-next-line node/no-process-env -- Electron bootstrap boundary
-const configuredUserDataPath = process.env['BIBLE_USER_DATA_PATH'];
-if (configuredUserDataPath !== undefined && configuredUserDataPath !== '') {
-  app.setPath('userData', configuredUserDataPath);
+const configuredUserDataPath = Option.filter(
+  // eslint-disable-next-line node/no-process-env -- Electron bootstrap boundary
+  Option.fromUndefinedOr(process.env['BIBLE_USER_DATA_PATH']),
+  nonEmpty,
+);
+if (Option.isSome(configuredUserDataPath)) {
+  app.setPath('userData', configuredUserDataPath.value);
 }
-// eslint-disable-next-line node/no-process-env -- Electron bootstrap boundary
-const configuredLegacyCliStatePath = process.env['BIBLE_LEGACY_CLI_STATE_PATH'];
+const configuredLegacyCliStatePath = Option.filter(
+  // eslint-disable-next-line node/no-process-env -- Electron bootstrap boundary
+  Option.fromUndefinedOr(process.env['BIBLE_LEGACY_CLI_STATE_PATH']),
+  nonEmpty,
+);
 
 const writingsDbPath = (): string => {
-  if (configuredUserDataPath !== undefined && configuredUserDataPath !== '') {
+  if (Option.isSome(configuredUserDataPath)) {
     return path.join(app.getPath('userData'), 'egw-paragraphs.db');
   }
   return path.join(app.getPath('home'), '.bible', 'egw-paragraphs.db');
 };
-const cliStateDbPath = (): string => {
-  if (configuredLegacyCliStatePath !== undefined && configuredLegacyCliStatePath !== '') {
-    return configuredLegacyCliStatePath;
-  }
-  return path.join(app.getPath('home'), '.bible', 'state.db');
-};
+const cliStateDbPath = (): string =>
+  Option.getOrElse(configuredLegacyCliStatePath, () =>
+    path.join(app.getPath('home'), '.bible', 'state.db'),
+  );
 const bibleDbPath = () => path.join(app.getPath('userData'), 'bible.db');
 
 ipcMain.handle('bible:file-select', async () => {
@@ -82,23 +89,25 @@ ipcMain.handle(
       defaultPath: options.suggestedName,
       filters: [{ name: 'Bible library backup', extensions: ['json'] }],
     });
-    if (selected.canceled || selected.filePath === undefined) return;
-    writeFileSync(selected.filePath, options.contents);
+    if (selected.canceled) return;
+    const filePath = Option.fromUndefinedOr(selected.filePath);
+    if (Option.isNone(filePath)) return;
+    writeFileSync(filePath.value, options.contents);
   },
 );
 
-let mainRuntime: MainRuntime | null = null;
+let mainRuntime: Option.Option<MainRuntime> = Option.none();
 
-const resolveWindowIcon = (): string | undefined => {
+const resolveWindowIcon = (): Option.Option<string> => {
   const candidates = [
     path.join(__dirname, '..', '..', 'assets', 'icon.png'),
     path.join(process.resourcesPath, 'assets', 'icon.png'),
   ];
   for (const candidate of candidates) {
     const readable = Effect.runSync(Effect.option(Effect.try(() => readFileSync(candidate))));
-    if (Option.isSome(readable)) return candidate;
+    if (Option.isSome(readable)) return Option.some(candidate);
   }
-  return undefined;
+  return Option.none();
 };
 
 const createWindow = async (runtime: MainRuntime): Promise<void> => {
@@ -117,7 +126,7 @@ const createWindow = async (runtime: MainRuntime): Promise<void> => {
       sandbox: false,
     },
   };
-  if (icon !== undefined) windowOptions.icon = icon;
+  if (Option.isSome(icon)) windowOptions.icon = icon.value;
   const win = new BrowserWindow(windowOptions);
 
   win.webContents.setWindowOpenHandler(({ url }) => {
@@ -146,7 +155,7 @@ const createWindow = async (runtime: MainRuntime): Promise<void> => {
     Effect.runFork(Fiber.interrupt(procedureServer));
   });
   win.webContents.once('did-finish-load', () => {
-    win.webContents.postMessage('bible:procedure-port', undefined, [port2]);
+    win.webContents.postMessage('bible:procedure-port', DesktopProcedurePortMessage, [port2]);
   });
 
   if (isDev) {
@@ -187,20 +196,26 @@ void app.whenReady().then(async () => {
       return yield* supply.ensure();
     }).pipe(Effect.provide(corpusSupply)),
   );
-  const bibleActivation = provisionedCorpus.activated.find(
-    (activation) => activation.corpus === 'bible',
+  const bibleActivation = Option.fromUndefinedOr(
+    provisionedCorpus.activated.find((activation) => activation.corpus === 'bible'),
   );
-  let activationState = 'activated';
-  let activationSource: string = 'current';
-  let installedVerses = 31_102;
-  if (bibleActivation === undefined) activationState = 'current';
-  if (bibleActivation?.source !== undefined) activationSource = bibleActivation.source;
-  if (bibleActivation?.installed !== undefined) installedVerses = bibleActivation.installed;
+  const activationState = Option.match(bibleActivation, {
+    onNone: () => 'current',
+    onSome: () => 'activated',
+  });
+  const activationSource = bibleActivation.pipe(
+    Option.flatMap((activation) => Option.fromUndefinedOr(activation.source)),
+    Option.getOrElse(() => 'current'),
+  );
+  const installedVerses = bibleActivation.pipe(
+    Option.flatMap((activation) => Option.fromUndefinedOr(activation.installed)),
+    Option.getOrElse(() => 31_102),
+  );
   console.info(
     `[main] bible-corpus-ready state=${activationState} source=${activationSource} verses=${String(installedVerses)}`,
   );
   console.info(
-    `[main] legacy-cli-source configured=${String(configuredLegacyCliStatePath !== undefined && configuredLegacyCliStatePath !== '')}`,
+    `[main] legacy-cli-source configured=${String(Option.isSome(configuredLegacyCliStatePath))}`,
   );
   const userState = await Effect.runPromise(
     prepareDesktopUserState({
@@ -216,7 +231,7 @@ void app.whenReady().then(async () => {
     randomUuid: () => crypto.randomUUID(),
     nowIso: () => new Date().toISOString(),
   });
-  mainRuntime = runtime;
+  mainRuntime = Option.some(runtime);
 
   // Construct every persistent module before opening a renderer. This runs
   // DDL/migrations now instead of making the first user operation pay for it.
@@ -237,8 +252,8 @@ app.on('window-all-closed', () => {
 
 app.on('will-quit', (event) => {
   const runtime = mainRuntime;
-  if (runtime === null) return;
+  if (Option.isNone(runtime)) return;
   event.preventDefault();
-  mainRuntime = null;
-  void runtime.dispose().then(() => app.exit(0));
+  mainRuntime = Option.none();
+  void runtime.value.dispose().then(() => app.exit(0));
 });

@@ -2,7 +2,7 @@
 
 import * as BunRuntime from '@effect/platform-bun/BunRuntime';
 import * as BunServices from '@effect/platform-bun/BunServices';
-import { Console, Effect, FileSystem, Path, Schema } from 'effect';
+import { Console, Effect, FileSystem, Option, Path, Schema } from 'effect';
 import { Argument, Command } from 'effect/unstable/cli';
 import { PDFParse } from 'pdf-parse';
 
@@ -21,12 +21,12 @@ interface Chapter {
   readonly content: string;
 }
 
-class PdfParseError extends Schema.TaggedErrorClass<PdfParseError>()('PdfParseError', {
+class PdfParseError extends Schema.TaggedError<PdfParseError>()('PdfParseError', {
   message: Schema.String,
   cause: Schema.Unknown,
 }) {}
 
-class FileWriteError extends Schema.TaggedErrorClass<FileWriteError>()('FileWriteError', {
+class FileWriteError extends Schema.TaggedError<FileWriteError>()('FileWriteError', {
   message: Schema.String,
   cause: Schema.Unknown,
   filePath: Schema.String,
@@ -68,29 +68,28 @@ const extractChapters = (content: string): readonly Chapter[] => {
   const chapters: Chapter[] = [];
   const matches = [...content.matchAll(chapterPattern)];
   matches.sort((left, right) => left.index - right.index);
-  const uniqueMatches = matches.filter((match, index, allMatches) => {
-    if (index === 0) return true;
-    const previous = allMatches[index - 1];
-    if (previous === undefined) return true;
-    return match.index !== previous.index;
-  });
+  const uniqueMatches = matches.filter((match, index, allMatches) =>
+    Option.match(Option.fromUndefinedOr(allMatches[index - 1]), {
+      onNone: () => true,
+      onSome: (previous) => match.index !== previous.index,
+    }),
+  );
 
-  for (let index = 0; index < uniqueMatches.length; index += 1) {
-    const match = uniqueMatches[index];
-    if (match === undefined) continue;
-    const chapterNumberText = match[1];
-    if (chapterNumberText === undefined) continue;
+  uniqueMatches.forEach((match, index) => {
+    const chapterNumberText = Option.fromUndefinedOr(match[1]);
+    if (Option.isNone(chapterNumberText)) return;
 
-    const nextMatch = uniqueMatches[index + 1];
-    let endIndex = content.length;
-    if (nextMatch !== undefined) endIndex = nextMatch.index;
-    const chapterNumber = +chapterNumberText;
+    const endIndex = Option.match(Option.fromUndefinedOr(uniqueMatches[index + 1]), {
+      onNone: () => content.length,
+      onSome: (nextMatch) => nextMatch.index,
+    });
+    const chapterNumber = +chapterNumberText.value;
     chapters.push({
       number: chapterNumber,
       title: `Chapter ${chapterNumber}`,
       content: cleanPageNumbers(content.slice(match.index, endIndex).trim()),
     });
-  }
+  });
 
   if (chapters.length === 0) {
     chapters.push({
@@ -103,21 +102,21 @@ const extractChapters = (content: string): readonly Chapter[] => {
   return chapters.sort((left, right) => left.number - right.number);
 };
 
-const extractTitleAndCleanContent = (
-  content: string,
-  chapterNumber: number,
-): { readonly title: string; readonly cleanedContent: string } => {
+const extractTitleAndCleanContent = (content: string, chapterNumber: number) => {
   const lines = content.split('\n');
   const chapterHeader = `Chapter ${chapterNumber}`;
   let title = chapterHeader;
   let startIndex = 0;
-  const firstLine = lines[0];
+  const firstLine = Option.fromUndefinedOr(lines[0]);
 
-  if (firstLine !== undefined && firstLine.trim().toLowerCase() === chapterHeader.toLowerCase()) {
+  if (
+    Option.isSome(firstLine) &&
+    firstLine.value.trim().toLowerCase() === chapterHeader.toLowerCase()
+  ) {
     startIndex = 1;
-    const secondLine = lines[1];
-    if (secondLine !== undefined) {
-      const potentialTitle = secondLine.trim();
+    const secondLine = Option.fromUndefinedOr(lines[1]);
+    if (Option.isSome(secondLine)) {
+      const potentialTitle = secondLine.value.trim();
       if (potentialTitle !== '' && potentialTitle.toLowerCase() !== chapterHeader.toLowerCase()) {
         title = potentialTitle;
         startIndex = 2;

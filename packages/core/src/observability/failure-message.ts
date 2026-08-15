@@ -7,10 +7,12 @@
  * Messages are whitespace-normalized so multi-line internals never reach
  * the UI as ragged text.
  */
+import { Predicate } from 'effect';
+
 export const failureMessage = (cause: unknown, fallback = 'An unknown error occurred.'): string => {
   let message = '';
   if (cause instanceof Error) message = cause.message;
-  else if (typeof cause === 'string') message = cause;
+  else if (Predicate.isString(cause)) message = cause;
   const normalized = message.replace(/\s+/g, ' ').trim();
   if (normalized.length > 0) return normalized;
   return fallback;

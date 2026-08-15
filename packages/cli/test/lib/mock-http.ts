@@ -1,4 +1,4 @@
-import { Effect, Layer } from 'effect';
+import { Effect, Layer, Option } from 'effect';
 import { HttpClient, HttpClientResponse } from 'effect/unstable/http';
 
 import type { ServiceCall } from './sequence-recorder.js';
@@ -25,28 +25,28 @@ export const createMockHttpLayer = (config: MockHttpConfig) => {
       const href = url.toString();
       state.calls.push({ _tag: 'HTTP.fetch', url: href });
 
-      let configured = config.responses[href];
-      if (configured === undefined) {
+      let configured = Option.fromNullishOr(config.responses[href]);
+      if (Option.isNone(configured)) {
         for (const [pattern, response] of Object.entries(config.responses)) {
           if (href.startsWith(pattern) || href.includes(pattern)) {
-            configured = response;
+            configured = Option.some(response);
             break;
           }
         }
       }
 
-      if (configured === undefined) {
+      if (Option.isNone(configured)) {
         return HttpClientResponse.fromWeb(
           request,
-          new Response(null, { status: 404, statusText: 'Not Found (mock)' }),
+          new Response('', { status: 404, statusText: 'Not Found (mock)' }),
         );
       }
 
       return HttpClientResponse.fromWeb(
         request,
-        new Response(configured.body, {
-          status: configured.status,
-          headers: configured.headers,
+        new Response(configured.value.body, {
+          status: configured.value.status,
+          headers: configured.value.headers,
         }),
       );
     }),

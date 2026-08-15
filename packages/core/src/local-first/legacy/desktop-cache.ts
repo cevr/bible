@@ -1,4 +1,4 @@
-import { Option, Schema } from 'effect';
+import { Option, Predicate, Schema } from 'effect';
 
 import { getBibleBook } from '../../bible/canon.js';
 import { BookNumber, ChapterNumber, VerseNumber } from '../../bible/model.js';
@@ -14,16 +14,7 @@ const LegacyEgwPosition = Schema.Struct({
 
 export type LegacyDesktopEgwPosition = typeof LegacyEgwPosition.Type;
 
-const replaceableCacheTables = [
-  'book_lists',
-  'tocs',
-  'chapters',
-  'folders',
-  'folder_books',
-] as const;
-
-const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
+const replaceableCacheTables = ['book_lists', 'tocs', 'chapters', 'folders', 'folder_books'];
 
 export interface DesktopCacheProjection {
   readonly commands: ReadonlyArray<DomainMutationCommand>;
@@ -36,10 +27,11 @@ export interface DesktopCacheProjectionOptions {
   readonly timestampFor: (path: string) => Timestamp;
   readonly resolveEgwLocation: (
     position: LegacyDesktopEgwPosition,
-  ) => typeof ReaderLocation.Type | undefined;
+  ) => Option.Option<ReaderLocation>;
 }
 
 export const projectDesktopCache = (
+  // oxlint-disable-next-line effect/noUnknownParameters -- legacy snapshot I/O boundary: raw JSON is decoded field-by-field with schemas below
   input: unknown,
   options: DesktopCacheProjectionOptions,
 ): DesktopCacheProjection => {
@@ -53,7 +45,7 @@ export const projectDesktopCache = (
     diagnostics.push({ id: options.nextDiagnosticId(path), path, category, message });
   };
 
-  if (!isRecord(input)) {
+  if (!Predicate.isObject(input)) {
     diagnostic('$', 'malformed', 'desktop cache snapshot must decode to an object');
     return { commands, diagnostics };
   }
@@ -67,35 +59,39 @@ export const projectDesktopCache = (
   };
 
   const decodeCoordinate = <A>(
+    // oxlint-disable-next-line effect/noUnknownParameters -- value is decoded with the provided schema decoder immediately below
     value: unknown,
     schema: Schema.ConstraintDecoder<A>,
     path: string,
-  ): A | undefined => {
-    const number = Schema.decodeUnknownOption(Schema.Number)(value);
+  ): Option.Option<A> => {
+    const number = Schema.decodeUnknownOption(Schema.Finite)(value);
     if (Option.isNone(number)) {
       diagnostic(path, 'malformed', 'legacy Bible coordinate must decode to a number');
-      return undefined;
+      return Option.none();
     }
-    const decoded = Schema.decodeUnknownOption(schema)(number.value);
-    if (Option.isSome(decoded)) return decoded.value;
+    const decoded = Schema.decodeOption(schema)(number.value);
+    if (Option.isSome(decoded)) return decoded;
     diagnostic(path, 'out-of-range', 'legacy Bible coordinate is outside the canonical range');
-    return undefined;
+    return Option.none();
   };
 
   for (const [index, row] of rowsFor('bible_last_position').entries()) {
     const path = `bible_last_position[${String(index)}]`;
-    if (!isRecord(row)) {
+    if (!Predicate.isObject(row)) {
       diagnostic(path, 'malformed', 'legacy Bible position must decode to an object');
       continue;
     }
     const book = decodeCoordinate(row['book'], BookNumber, `${path}.book`);
     const chapter = decodeCoordinate(row['chapter'], ChapterNumber, `${path}.chapter`);
-    let verse: typeof VerseNumber.Type | null | undefined;
-    if (row['verse'] === null) verse = null;
-    else verse = decodeCoordinate(row['verse'], VerseNumber, `${path}.verse`);
-    if (book === undefined || chapter === undefined || verse === undefined) continue;
-    const canonicalBook = getBibleBook(book);
-    if (canonicalBook === undefined || chapter > canonicalBook.chapters) {
+    let verse = Option.none<Option.Option<VerseNumber>>();
+    if (Predicate.isNull(row['verse'])) verse = Option.some(Option.none());
+    else {
+      const decodedVerse = decodeCoordinate(row['verse'], VerseNumber, `${path}.verse`);
+      if (Option.isSome(decodedVerse)) verse = Option.some(decodedVerse);
+    }
+    if (Option.isNone(book) || Option.isNone(chapter) || Option.isNone(verse)) continue;
+    const canonicalBook = getBibleBook(book.value);
+    if (Option.isNone(canonicalBook) || chapter.value > canonicalBook.value.chapters) {
       diagnostic(
         `${path}.chapter`,
         'out-of-range',
@@ -103,8 +99,9 @@ export const projectDesktopCache = (
       );
       continue;
     }
-    let location = `/bible/${String(book)}/${String(chapter)}`;
-    if (verse !== null) location = `${location}/${String(verse)}`;
+    let location = `/bible/${String(book.value)}/${String(chapter.value)}`;
+    const verseNumber = verse.value;
+    if (Option.isSome(verseNumber)) location = `${location}/${String(verseNumber.value)}`;
     commands.push({
       _tag: 'RecordReading',
       historyId: options.nextHistoryId(path),
@@ -122,11 +119,11 @@ export const projectDesktopCache = (
       continue;
     }
     const location = options.resolveEgwLocation(decoded.value);
-    if (location === undefined) {
+    if (Option.isNone(location)) {
       diagnostic(path, 'quarantined', 'legacy writings position could not be resolved exactly');
       continue;
     }
-    const canonicalLocation = Schema.decodeUnknownOption(ReaderLocation)(location);
+    const canonicalLocation = Schema.decodeOption(ReaderLocation)(location.value);
     if (Option.isNone(canonicalLocation) || canonicalLocation.value.source !== 'egw') {
       diagnostic(path, 'malformed', 'legacy writings resolver returned an invalid location');
       continue;

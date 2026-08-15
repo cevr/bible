@@ -16,12 +16,16 @@ export {
   clearCallSequence,
   withRecording,
   type BaseServiceCall,
+  type CallField,
   type ServiceCall,
 } from './sequence-recorder.js';
 
 // Assertions
 export {
   AssertionError,
+  type AsymmetricMatcher,
+  type CallFieldPattern,
+  type CallPattern,
   assertSequence,
   assertContains,
   assertCallCount,

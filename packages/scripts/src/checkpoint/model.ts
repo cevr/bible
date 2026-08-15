@@ -1,4 +1,11 @@
-export const CHECKPOINT_NAMES = ['initial', 'foundation', 'shared-app', 'pre-cutover'] as const;
+import { Option } from 'effect';
+
+export const CHECKPOINT_NAMES: readonly ['initial', 'foundation', 'shared-app', 'pre-cutover'] = [
+  'initial',
+  'foundation',
+  'shared-app',
+  'pre-cutover',
+];
 
 export type CheckpointName = (typeof CHECKPOINT_NAMES)[number];
 
@@ -35,10 +42,11 @@ export interface RemovalBaseline {
   readonly categories: readonly LegacyCategorySnapshot[];
 }
 
-export const displayLegacyMatch = (match: string, root?: string): string => {
-  if (root === undefined) return match;
-  return `${root}/${match}`;
-};
+export const displayLegacyMatch = (match: string, root?: string): string =>
+  Option.match(Option.fromUndefinedOr(root), {
+    onNone: () => match,
+    onSome: (prefix) => `${prefix}/${match}`,
+  });
 
 export const checkpointIndex = (name: CheckpointName): number => CHECKPOINT_NAMES.indexOf(name);
 

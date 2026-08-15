@@ -30,10 +30,9 @@ const makeDirectory = (events: string[], chunks: Uint8Array[]): DatabaseFileDire
     ),
 });
 
-class DownloadUnavailable extends Schema.TaggedErrorClass<DownloadUnavailable>()(
-  'DownloadUnavailable',
-  { message: Schema.String },
-) {}
+class DownloadUnavailable extends Schema.TaggedError<DownloadUnavailable>()('DownloadUnavailable', {
+  message: Schema.String,
+}) {}
 
 describe('database file downloader', () => {
   it.effect('streams a successful response into the named OPFS file', () =>
@@ -64,7 +63,7 @@ describe('database file downloader', () => {
       const downloader = makeDatabaseFileDownloader({
         getStorageRoot: () => Effect.runPromise(Effect.succeed(makeDirectory(events, []))),
       });
-      const unavailable = new DownloadUnavailable({ message: 'Unavailable' });
+      const unavailable = DownloadUnavailable.make({ message: 'Unavailable' });
 
       const error = yield* Effect.flip(
         downloader.install(Stream.fail(unavailable), 'bible.db', () => {}),

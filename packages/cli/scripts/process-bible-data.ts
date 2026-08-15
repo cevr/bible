@@ -60,144 +60,148 @@ const decodeJson = <S extends Schema.Top>(schema: S, source: string) =>
   Schema.decodeUnknownEffect(Schema.fromJsonString(schema))(source);
 
 // Book abbreviation mapping (OpenBible format -> our book numbers)
-const BOOK_MAP: Record<string, number> = {
-  Gen: 1,
-  Exod: 2,
-  Lev: 3,
-  Num: 4,
-  Deut: 5,
-  Josh: 6,
-  Judg: 7,
-  Ruth: 8,
-  '1Sam': 9,
-  '2Sam': 10,
-  '1Kgs': 11,
-  '2Kgs': 12,
-  '1Chr': 13,
-  '2Chr': 14,
-  Ezra: 15,
-  Neh: 16,
-  Esth: 17,
-  Job: 18,
-  Ps: 19,
-  Prov: 20,
-  Eccl: 21,
-  Song: 22,
-  Isa: 23,
-  Jer: 24,
-  Lam: 25,
-  Ezek: 26,
-  Dan: 27,
-  Hos: 28,
-  Joel: 29,
-  Amos: 30,
-  Obad: 31,
-  Jonah: 32,
-  Mic: 33,
-  Nah: 34,
-  Hab: 35,
-  Zeph: 36,
-  Hag: 37,
-  Zech: 38,
-  Mal: 39,
-  Matt: 40,
-  Mark: 41,
-  Luke: 42,
-  John: 43,
-  Acts: 44,
-  Rom: 45,
-  '1Cor': 46,
-  '2Cor': 47,
-  Gal: 48,
-  Eph: 49,
-  Phil: 50,
-  Col: 51,
-  '1Thess': 52,
-  '2Thess': 53,
-  '1Tim': 54,
-  '2Tim': 55,
-  Titus: 56,
-  Phlm: 57,
-  Heb: 58,
-  Jas: 59,
-  '1Pet': 60,
-  '2Pet': 61,
-  '1John': 62,
-  '2John': 63,
-  '3John': 64,
-  Jude: 65,
-  Rev: 66,
-};
+const BOOK_MAP: ReadonlyMap<string, number> = new Map(
+  Object.entries({
+    Gen: 1,
+    Exod: 2,
+    Lev: 3,
+    Num: 4,
+    Deut: 5,
+    Josh: 6,
+    Judg: 7,
+    Ruth: 8,
+    '1Sam': 9,
+    '2Sam': 10,
+    '1Kgs': 11,
+    '2Kgs': 12,
+    '1Chr': 13,
+    '2Chr': 14,
+    Ezra: 15,
+    Neh: 16,
+    Esth: 17,
+    Job: 18,
+    Ps: 19,
+    Prov: 20,
+    Eccl: 21,
+    Song: 22,
+    Isa: 23,
+    Jer: 24,
+    Lam: 25,
+    Ezek: 26,
+    Dan: 27,
+    Hos: 28,
+    Joel: 29,
+    Amos: 30,
+    Obad: 31,
+    Jonah: 32,
+    Mic: 33,
+    Nah: 34,
+    Hab: 35,
+    Zeph: 36,
+    Hag: 37,
+    Zech: 38,
+    Mal: 39,
+    Matt: 40,
+    Mark: 41,
+    Luke: 42,
+    John: 43,
+    Acts: 44,
+    Rom: 45,
+    '1Cor': 46,
+    '2Cor': 47,
+    Gal: 48,
+    Eph: 49,
+    Phil: 50,
+    Col: 51,
+    '1Thess': 52,
+    '2Thess': 53,
+    '1Tim': 54,
+    '2Tim': 55,
+    Titus: 56,
+    Phlm: 57,
+    Heb: 58,
+    Jas: 59,
+    '1Pet': 60,
+    '2Pet': 61,
+    '1John': 62,
+    '2John': 63,
+    '3John': 64,
+    Jude: 65,
+    Rev: 66,
+  }),
+);
 
 // KJV-Strongs book abbreviation mapping
-const KJV_STRONGS_BOOK_MAP: Record<string, number> = {
-  Gen: 1,
-  Exo: 2,
-  Lev: 3,
-  Num: 4,
-  Deu: 5,
-  Jos: 6,
-  Jdg: 7,
-  Rth: 8,
-  '1Sa': 9,
-  '2Sa': 10,
-  '1Ki': 11,
-  '2Ki': 12,
-  '1Ch': 13,
-  '2Ch': 14,
-  Ezr: 15,
-  Neh: 16,
-  Est: 17,
-  Job: 18,
-  Psa: 19,
-  Pro: 20,
-  Ecc: 21,
-  Sng: 22,
-  Isa: 23,
-  Jer: 24,
-  Lam: 25,
-  Eze: 26,
-  Dan: 27,
-  Hos: 28,
-  Joe: 29,
-  Amo: 30,
-  Oba: 31,
-  Jon: 32,
-  Mic: 33,
-  Nah: 34,
-  Hab: 35,
-  Zep: 36,
-  Hag: 37,
-  Zec: 38,
-  Mal: 39,
-  Mat: 40,
-  Mar: 41,
-  Luk: 42,
-  Jhn: 43,
-  Act: 44,
-  Rom: 45,
-  '1Co': 46,
-  '2Co': 47,
-  Gal: 48,
-  Eph: 49,
-  Phl: 50,
-  Col: 51,
-  '1Th': 52,
-  '2Th': 53,
-  '1Ti': 54,
-  '2Ti': 55,
-  Tit: 56,
-  Phm: 57,
-  Heb: 58,
-  Jas: 59,
-  '1Pe': 60,
-  '2Pe': 61,
-  '1Jo': 62,
-  '2Jo': 63,
-  '3Jo': 64,
-  Jde: 65,
-  Rev: 66,
-};
+const KJV_STRONGS_BOOK_MAP: ReadonlyMap<string, number> = new Map(
+  Object.entries({
+    Gen: 1,
+    Exo: 2,
+    Lev: 3,
+    Num: 4,
+    Deu: 5,
+    Jos: 6,
+    Jdg: 7,
+    Rth: 8,
+    '1Sa': 9,
+    '2Sa': 10,
+    '1Ki': 11,
+    '2Ki': 12,
+    '1Ch': 13,
+    '2Ch': 14,
+    Ezr: 15,
+    Neh: 16,
+    Est: 17,
+    Job: 18,
+    Psa: 19,
+    Pro: 20,
+    Ecc: 21,
+    Sng: 22,
+    Isa: 23,
+    Jer: 24,
+    Lam: 25,
+    Eze: 26,
+    Dan: 27,
+    Hos: 28,
+    Joe: 29,
+    Amo: 30,
+    Oba: 31,
+    Jon: 32,
+    Mic: 33,
+    Nah: 34,
+    Hab: 35,
+    Zep: 36,
+    Hag: 37,
+    Zec: 38,
+    Mal: 39,
+    Mat: 40,
+    Mar: 41,
+    Luk: 42,
+    Jhn: 43,
+    Act: 44,
+    Rom: 45,
+    '1Co': 46,
+    '2Co': 47,
+    Gal: 48,
+    Eph: 49,
+    Phl: 50,
+    Col: 51,
+    '1Th': 52,
+    '2Th': 53,
+    '1Ti': 54,
+    '2Ti': 55,
+    Tit: 56,
+    Phm: 57,
+    Heb: 58,
+    Jas: 59,
+    '1Pe': 60,
+    '2Pe': 61,
+    '1Jo': 62,
+    '2Jo': 63,
+    '3Jo': 64,
+    Jde: 65,
+    Rev: 66,
+  }),
+);
 
 interface Reference {
   book: number;
@@ -251,39 +255,43 @@ interface VerseWithStrongs {
 /**
  * Parse OpenBible reference format: "Gen.1.1" or "Ps.89.11-Ps.89.12"
  */
-function parseOpenBibleRef(ref: string): Reference | null {
+function parseOpenBibleRef(ref: string): Option.Option<Reference> {
   // Handle range: "Ps.89.11-Ps.89.12"
   const rangeParts = ref.split('-');
-  const mainRef = rangeParts[0];
-  if (mainRef === undefined) return null;
+  const mainRef = Option.fromNullishOr(rangeParts[0]);
+  if (Option.isNone(mainRef)) return Option.none();
 
-  const parts = mainRef.split('.');
-  const [bookName, chapterText, verseText] = parts;
-  if (bookName === undefined || chapterText === undefined || verseText === undefined) return null;
+  const parts = mainRef.value.split('.');
+  const bookName = Option.fromNullishOr(parts[0]);
+  const chapterText = Option.fromNullishOr(parts[1]);
+  const verseText = Option.fromNullishOr(parts[2]);
+  if (Option.isNone(bookName) || Option.isNone(chapterText) || Option.isNone(verseText)) {
+    return Option.none();
+  }
 
-  const bookNum = BOOK_MAP[bookName];
-  if (!bookNum) return null;
+  const bookNum = Option.fromNullishOr(BOOK_MAP.get(bookName.value));
+  if (Option.isNone(bookNum)) return Option.none();
 
-  const chapter = parseInt(chapterText, 10);
-  const verse = parseInt(verseText, 10);
+  const chapter = parseInt(chapterText.value, 10);
+  const verse = parseInt(verseText.value, 10);
 
-  if (isNaN(chapter) || isNaN(verse)) return null;
+  if (isNaN(chapter) || isNaN(verse)) return Option.none();
 
-  const result: Reference = { book: bookNum, chapter, verse };
+  const result: Reference = { book: bookNum.value, chapter, verse };
 
   // Handle verse range
-  const endRef = rangeParts[1];
-  if (endRef !== undefined) {
-    const endVerseText = endRef.split('.')[2];
-    if (endVerseText !== undefined) {
-      const endVerse = parseInt(endVerseText, 10);
+  const endRef = Option.fromNullishOr(rangeParts[1]);
+  if (Option.isSome(endRef)) {
+    const endVerseText = Option.fromNullishOr(endRef.value.split('.')[2]);
+    if (Option.isSome(endVerseText)) {
+      const endVerse = parseInt(endVerseText.value, 10);
       if (!isNaN(endVerse)) {
         result.verseEnd = endVerse;
       }
     }
   }
 
-  return result;
+  return Option.some(result);
 }
 
 /**
@@ -320,16 +328,16 @@ const processCrossRefs = Effect.fn('processCrossRefs')(function* (dataRaw: strin
     const from = parseOpenBibleRef(fromRef);
     const to = parseOpenBibleRef(toRef);
 
-    if (!from || !to) {
+    if (Option.isNone(from) || Option.isNone(to)) {
       skipped++;
       continue;
     }
 
-    const key = refKey(from);
+    const key = refKey(from.value);
     if (!crossRefs[key]) {
       crossRefs[key] = { refs: [] };
     }
-    crossRefs[key].refs.push(to);
+    crossRefs[key].refs.push(to.value);
     processed++;
   }
 
@@ -346,12 +354,8 @@ const processStrongs = Effect.fn('processStrongs')(function* (dataRaw: string) {
   yield* Effect.log("Processing Strong's dictionaries...");
 
   const strongs: Record<string, StrongsEntry> = {};
-  const optionalClean = (value: string | undefined): string | undefined => {
-    if (value === undefined) {
-      return undefined;
-    }
-    return cleanHtmlEntities(value);
-  };
+  const optionalClean = (value?: string) =>
+    Option.getOrUndefined(Option.map(Option.fromNullishOr(value), cleanHtmlEntities));
 
   // First, try loading from the lexicon.json (kaiserlik/kjv) - has Greek and Hebrew
   const lexiconPath = path.join(dataRaw, 'kjv-strongs/lexicon.json');
@@ -379,12 +383,12 @@ const processStrongs = Effect.fn('processStrongs')(function* (dataRaw: string) {
   const hebrewPath = path.join(dataRaw, 'strongs/hebrew/strongs-hebrew-dictionary.js');
   const hebrewContent = yield* fs.readFileString(hebrewPath).pipe(Effect.option);
   if (Option.isSome(hebrewContent)) {
-    const hebrewMatch = hebrewContent.value.match(
-      /var strongsHebrewDictionary = (\{[\s\S]*?\n\});/,
+    const hebrewSource = Option.fromNullishOr(
+      hebrewContent.value.match(/var strongsHebrewDictionary = (\{[\s\S]*?\n\});/)?.[1],
     );
 
-    if (hebrewMatch?.[1] !== undefined) {
-      const hebrewData = yield* decodeJson(HebrewData, hebrewMatch[1]).pipe(Effect.option);
+    if (Option.isSome(hebrewSource)) {
+      const hebrewData = yield* decodeJson(HebrewData, hebrewSource.value).pipe(Effect.option);
       if (Option.isSome(hebrewData)) {
         let added = 0;
         for (const [key, value] of Object.entries(hebrewData.value)) {
@@ -418,10 +422,12 @@ const processStrongs = Effect.fn('processStrongs')(function* (dataRaw: string) {
   const greekPath = path.join(dataRaw, 'strongs/greek/strongs-greek-dictionary.js');
   const greekContent = yield* fs.readFileString(greekPath).pipe(Effect.option);
   if (Option.isSome(greekContent)) {
-    const greekMatch = greekContent.value.match(/var strongsGreekDictionary = (\{.*\});/);
+    const greekSource = Option.fromNullishOr(
+      greekContent.value.match(/var strongsGreekDictionary = (\{.*\});/)?.[1],
+    );
 
-    if (greekMatch?.[1] !== undefined) {
-      const greekData = yield* decodeJson(GreekData, greekMatch[1]).pipe(Effect.option);
+    if (Option.isSome(greekSource)) {
+      const greekData = yield* decodeJson(GreekData, greekSource.value).pipe(Effect.option);
       if (Option.isSome(greekData)) {
         let added = 0;
         for (const [key, value] of Object.entries(greekData.value)) {
@@ -459,12 +465,11 @@ const processStrongs = Effect.fn('processStrongs')(function* (dataRaw: string) {
 function parseWordWithStrongs(text: string): WordWithStrongs {
   const strongsPattern = /\[([HG]\d+)\]/g;
   const strongs: string[] = [];
-  let match;
 
-  while ((match = strongsPattern.exec(text)) !== null) {
-    const strongsNumber = match[1];
-    if (strongsNumber !== undefined) {
-      strongs.push(strongsNumber);
+  for (const match of text.matchAll(strongsPattern)) {
+    const strongsNumber = Option.fromNullishOr(match[1]);
+    if (Option.isSome(strongsNumber)) {
+      strongs.push(strongsNumber.value);
     }
   }
 
@@ -500,9 +505,9 @@ const processKjvStrongs = Effect.fn('processKjvStrongs')(function* (dataRaw: str
 
   for (const file of files) {
     const bookAbbr = file.replace('.json', '');
-    const bookNum = KJV_STRONGS_BOOK_MAP[bookAbbr];
+    const bookNum = Option.fromNullishOr(KJV_STRONGS_BOOK_MAP.get(bookAbbr));
 
-    if (!bookNum) {
+    if (Option.isNone(bookNum)) {
       yield* Effect.logWarning(`  Skipping unknown book: ${bookAbbr}`);
       continue;
     }
@@ -522,14 +527,14 @@ const processKjvStrongs = Effect.fn('processKjvStrongs')(function* (dataRaw: str
     if (!bookContent) continue;
 
     for (const [chapterKey, chapterContent] of Object.entries(bookContent)) {
-      const chapterText = chapterKey.split('|')[1];
-      if (chapterText === undefined) continue;
-      const chapterNum = parseInt(chapterText, 10);
+      const chapterText = Option.fromNullishOr(chapterKey.split('|')[1]);
+      if (Option.isNone(chapterText)) continue;
+      const chapterNum = parseInt(chapterText.value, 10);
 
       for (const [verseKey, verseContent] of Object.entries(chapterContent)) {
-        const verseText = verseKey.split('|')[2];
-        if (verseText === undefined) continue;
-        const verseNum = parseInt(verseText, 10);
+        const verseText = Option.fromNullishOr(verseKey.split('|')[2]);
+        if (Option.isNone(verseText)) continue;
+        const verseNum = parseInt(verseText.value, 10);
         const englishText = verseContent.en;
 
         if (!englishText) continue;
@@ -548,7 +553,7 @@ const processKjvStrongs = Effect.fn('processKjvStrongs')(function* (dataRaw: str
         }
 
         verses.push({
-          book: bookNum,
+          book: bookNum.value,
           chapter: chapterNum,
           verse: verseNum,
           words,

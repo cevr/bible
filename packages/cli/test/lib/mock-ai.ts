@@ -1,13 +1,13 @@
 import type { ModelMessage } from 'ai';
-import { Effect, Layer, Schema, SchemaGetter } from 'effect';
+import { Effect, Layer, Option, Schema, SchemaGetter } from 'effect';
 
 import { AI, AIError, type AIService } from '../../src/services/ai.js';
 import type { ServiceCall } from './sequence-recorder.js';
 
 export interface MockAIConfig {
   responses: {
-    high: Array<string | object>;
-    low: Array<string | object>;
+    high: Array<Schema.Json>;
+    low: Array<Schema.Json>;
   };
 }
 
@@ -25,16 +25,12 @@ const JsonString = Schema.Unknown.pipe(
 );
 const encodeJson = Schema.encodeUnknownEffect(JsonString);
 const decodeJson = Schema.decodeUnknownEffect(JsonString);
+const decodeString = Schema.decodeUnknownOption(Schema.String);
 
 const promptFrom = (messages: Array<ModelMessage>): string =>
   messages
     .filter((message) => message.role === 'user')
-    .map((message) => {
-      if (typeof message.content === 'string') {
-        return message.content;
-      }
-      return '[complex]';
-    })
+    .map((message) => Option.getOrElse(decodeString(message.content), () => '[complex]'))
     .join(' ');
 
 export const createMockAILayer = (config: MockAIConfig) => {
@@ -44,24 +40,22 @@ export const createMockAILayer = (config: MockAIConfig) => {
     calls: [],
   };
 
-  const nextResponse = (quality: 'high' | 'low'): string | object => {
+  const nextResponse = (quality: 'high' | 'low'): Schema.Json => {
     let index = state.lowIndex++;
     if (quality === 'high') {
       index = state.highIndex++;
     }
-    const response = config.responses[quality][index];
-    if (response !== undefined) {
-      return response;
-    }
-    return `mock ${quality} response ${index}`;
+    return Option.getOrElse(
+      Option.fromNullishOr(config.responses[quality][index]),
+      () => `mock ${quality} response ${index}`,
+    );
   };
 
-  const responseText = (response: string | object) => {
-    if (typeof response === 'string') {
-      return Effect.succeed(response);
-    }
-    return encodeJson(response);
-  };
+  const responseText = (response: Schema.Json) =>
+    Option.match(decodeString(response), {
+      onSome: (text) => Effect.succeed(text),
+      onNone: () => encodeJson(response),
+    });
 
   const mockAI: AIService = {
     generateText: (options) => {
@@ -74,7 +68,7 @@ export const createMockAILayer = (config: MockAIConfig) => {
       });
       return responseText(response).pipe(
         Effect.map((text) => ({ text })),
-        Effect.mapError((cause) => new AIError({ operation: 'mock.generateText', cause })),
+        Effect.mapError((cause) => AIError.make({ operation: 'mock.generateText', cause })),
       );
     },
 
@@ -88,7 +82,9 @@ export const createMockAILayer = (config: MockAIConfig) => {
       });
       return responseText(response).pipe(
         Effect.map((text) => ({ text })),
-        Effect.mapError((cause) => new AIError({ operation: 'mock.generateTextWithTools', cause })),
+        Effect.mapError((cause) =>
+          AIError.make({ operation: 'mock.generateTextWithTools', cause }),
+        ),
       );
     },
 
@@ -100,14 +96,14 @@ export const createMockAILayer = (config: MockAIConfig) => {
         model: quality,
         prompt: promptFrom(options.messages).slice(0, 100),
       });
-      let decodedResponse: Effect.Effect<unknown, Schema.SchemaError> = Effect.succeed(response);
-      if (typeof response === 'string') {
-        decodedResponse = decodeJson(response);
-      }
+      const decodedResponse = Option.match(decodeString(response), {
+        onSome: (text) => decodeJson(text),
+        onNone: () => Effect.succeed(response),
+      });
       return decodedResponse.pipe(
         Effect.flatMap(Schema.decodeUnknownEffect(options.schema)),
         Effect.map((object) => ({ object })),
-        Effect.mapError((cause) => new AIError({ operation: 'mock.generateObject', cause })),
+        Effect.mapError((cause) => AIError.make({ operation: 'mock.generateObject', cause })),
       );
     },
   };

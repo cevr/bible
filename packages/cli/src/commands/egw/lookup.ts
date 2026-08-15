@@ -8,7 +8,7 @@ import {
 } from '@bible/core/egw';
 import { Reference } from '@bible/core/writings';
 import { WritingsService } from '@bible/core/writings/service';
-import { Console, Effect, Option } from 'effect';
+import { Array as Arr, Console, Effect, Option } from 'effect';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
 
 import { CliProcess } from '../../services/process.js';
@@ -37,13 +37,15 @@ export const lookupReference = (parsed: LookupReference) =>
       case 'paragraph-range':
       case 'page': {
         const page = parsed.page;
-        const pageResponse = yield* service
-          .page(Reference.page(book.value.id, page))
-          .pipe(Effect.catchTag('WritingsPageNotFoundError', () => Effect.succeed(null)));
-        if (pageResponse === null) {
+        const maybePage = yield* service.page(Reference.page(book.value.id, page)).pipe(
+          Effect.map(Option.some),
+          Effect.catchTag('WritingsPageNotFoundError', () => Effect.succeedNone),
+        );
+        if (Option.isNone(maybePage)) {
           yield* Console.log(`Page ${page} not found in ${book.value.title} (${parsed.bookCode}).`);
           return;
         }
+        const pageResponse = maybePage.value;
 
         yield* Console.log(`${book.value.title} (${parsed.bookCode}) — Page ${page}\n`);
         if (Option.isSome(pageResponse.heading)) {
@@ -83,12 +85,13 @@ export const lookupReference = (parsed: LookupReference) =>
           `${book.value.title} (${parsed.bookCode}) — Pages ${parsed.pageStart}-${parsed.pageEnd}\n`,
         );
         for (let page = parsed.pageStart; page <= parsed.pageEnd; page++) {
-          const pageResponse = yield* service
-            .page(Reference.page(book.value.id, page))
-            .pipe(Effect.catchTag('WritingsPageNotFoundError', () => Effect.succeed(null)));
-          if (pageResponse === null) continue;
+          const maybePage = yield* service.page(Reference.page(book.value.id, page)).pipe(
+            Effect.map(Option.some),
+            Effect.catchTag('WritingsPageNotFoundError', () => Effect.succeedNone),
+          );
+          if (Option.isNone(maybePage)) continue;
 
-          for (const paragraph of pageResponse.paragraphs) {
+          for (const paragraph of maybePage.value.paragraphs) {
             const ref = Option.getOrElse(paragraph.refcode, () => '');
             yield* Console.log(`  ${ref}`);
             yield* Console.log(`  ${nodesToText(paragraph.nodes)}\n`);
@@ -132,10 +135,11 @@ const collectLookupData = (parsed: LookupReference) =>
       case 'paragraph':
       case 'paragraph-range':
       case 'page': {
-        const pageResponse = yield* service
-          .page(Reference.page(book.value.id, parsed.page))
-          .pipe(Effect.catchTag('WritingsPageNotFoundError', () => Effect.succeed(null)));
-        if (pageResponse === null) {
+        const maybePage = yield* service.page(Reference.page(book.value.id, parsed.page)).pipe(
+          Effect.map(Option.some),
+          Effect.catchTag('WritingsPageNotFoundError', () => Effect.succeedNone),
+        );
+        if (Option.isNone(maybePage)) {
           return {
             ref: refStr,
             found: false as const,
@@ -143,6 +147,7 @@ const collectLookupData = (parsed: LookupReference) =>
             page: parsed.page,
           };
         }
+        const pageResponse = maybePage.value;
 
         let paragraphs: ReadonlyArray<(typeof pageResponse.paragraphs)[number]> =
           pageResponse.paragraphs;
@@ -174,25 +179,26 @@ const collectLookupData = (parsed: LookupReference) =>
         };
       }
       case 'page-range': {
-        const pages: Array<{
-          page: number;
-          chapterHeading: string | null;
-          paragraphs: Array<{ refcode: string; text: string }>;
-        }> = [];
-        for (let page = parsed.pageStart; page <= parsed.pageEnd; page++) {
-          const pageResponse = yield* service
-            .page(Reference.page(book.value.id, page))
-            .pipe(Effect.catchTag('WritingsPageNotFoundError', () => Effect.succeed(null)));
-          if (pageResponse === null) continue;
-          pages.push({
-            page,
-            chapterHeading: Option.getOrNull(pageResponse.heading),
-            paragraphs: pageResponse.paragraphs.map((paragraph) => ({
-              refcode: Option.getOrElse(paragraph.refcode, () => ''),
-              text: nodesToText(paragraph.nodes),
-            })),
-          });
-        }
+        const pageNumbers = Array.from(
+          { length: parsed.pageEnd - parsed.pageStart + 1 },
+          (_, index) => parsed.pageStart + index,
+        );
+        const collected = yield* Effect.forEach(pageNumbers, (page) =>
+          service.page(Reference.page(book.value.id, page)).pipe(
+            Effect.map((pageResponse) =>
+              Option.some({
+                page,
+                chapterHeading: Option.getOrNull(pageResponse.heading),
+                paragraphs: pageResponse.paragraphs.map((paragraph) => ({
+                  refcode: Option.getOrElse(paragraph.refcode, () => ''),
+                  text: nodesToText(paragraph.nodes),
+                })),
+              }),
+            ),
+            Effect.catchTag('WritingsPageNotFoundError', () => Effect.succeedNone),
+          ),
+        );
+        const pages = Arr.getSomes(collected);
         return {
           ref: refStr,
           found: true as const,

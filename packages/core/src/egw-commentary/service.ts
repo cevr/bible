@@ -16,7 +16,7 @@ import type { CommentaryEntry, CommentaryResult } from './types.js';
 /**
  * Error types for the commentary service
  */
-export class CommentaryError extends Schema.TaggedErrorClass<CommentaryError>()('CommentaryError', {
+export class CommentaryError extends Schema.TaggedError<CommentaryError>()('CommentaryError', {
   message: Schema.String,
   cause: Schema.optional(Schema.Unknown),
 }) {}
@@ -51,7 +51,7 @@ function paragraphToEntry(
  * EGW Commentary service interface.
  * Provides commentary lookup from EGW Bible Commentary volumes.
  */
-export interface EGWCommentaryServiceShape {
+export interface EGWCommentaryServiceApi {
   readonly getCommentary: (
     verse: VerseReference,
   ) => Effect.Effect<CommentaryResult, CommentaryServiceError>;
@@ -68,7 +68,7 @@ export interface EGWCommentaryServiceShape {
  */
 export class EGWCommentaryService extends Context.Service<
   EGWCommentaryService,
-  EGWCommentaryServiceShape
+  EGWCommentaryServiceApi
 >()('@bible/core/egw-commentary/service/EGWCommentaryService') {
   /**
    * Live implementation using EGWParagraphDatabase.
@@ -94,12 +94,11 @@ export class EGWCommentaryService extends Context.Service<
               paragraphToEntry(para, para.bookCode, para.bookTitle),
             ),
           })),
-          Effect.mapError(
-            (e) =>
-              new CommentaryError({
-                message: 'Failed to get commentary',
-                cause: e,
-              }),
+          Effect.mapError((e) =>
+            CommentaryError.make({
+              message: 'Failed to get commentary',
+              cause: e,
+            }),
           ),
         );
 

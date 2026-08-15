@@ -1,21 +1,19 @@
 import { ApplicationBootstrap } from '@bible/app/application';
-import { HashRouter } from '@solidjs/router';
+import { hashHistory } from '@solidjs/router';
 import { render } from '@solidjs/web';
-import { Effect } from 'effect';
+import { Effect, Option } from 'effect';
 
 import { startDesktopProcedureHost } from './procedure-client.js';
 import { desktopCapabilities } from './platform-capabilities.js';
 import '@bible/app/styles.css';
 
-const root = (() => {
-  const element = document.getElementById('root');
-  if (element === null) return Effect.runSync(Effect.die('#root not found'));
-  return element;
-})();
+const root = Option.getOrElse(Option.fromNullOr(document.getElementById('root')), (): HTMLElement =>
+  Effect.runSync(Effect.die('#root not found')),
+);
 render(
   () => (
     <ApplicationBootstrap
-      router={HashRouter}
+      history={hashHistory()}
       start={startDesktopProcedureHost}
       capabilities={desktopCapabilities}
     />

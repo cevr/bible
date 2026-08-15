@@ -6,12 +6,13 @@
  */
 
 import type { Context } from 'effect';
-import { Effect, Layer, Ref } from 'effect';
+import { Effect, Layer, Option, Ref } from 'effect';
 
 import {
   CallSequence,
   CallSequenceLayer,
   recordCall,
+  type CallField,
   type ServiceCall,
 } from './sequence-recorder.js';
 
@@ -20,12 +21,17 @@ import {
 // ============================================================================
 
 /**
+ * Recordable arguments extracted from a service method call.
+ */
+type CallArgs = Record<string, CallField>;
+
+/**
  * Create a recording test layer for any service.
  *
  * @example
  * ```ts
- * // Define your service shape
- * interface MyServiceShape {
+ * // Define your service methods
+ * interface MyServiceMethods {
  *   readonly doThing: (x: number) => Effect.Effect<string, MyError>;
  * }
  *
@@ -45,44 +51,45 @@ export const createRecordingTestLayer = <
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Generic type param requires any
   Tag extends Context.Key<any, any>,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Generic type param requires any
-  Shape extends Record<string, (...args: never[]) => Effect.Effect<unknown, unknown, unknown>>,
+  Methods extends Record<string, (...args: never[]) => Effect.Effect<unknown, unknown, unknown>>,
 >(
   tag: Tag,
   implementation: {
-    [K in keyof Shape]: (
-      ...args: Parameters<Shape[K]>
-    ) => Effect.Effect<Effect.Success<ReturnType<Shape[K]>>, Effect.Error<ReturnType<Shape[K]>>>;
+    [K in keyof Methods]: (
+      ...args: Parameters<Methods[K]>
+    ) => Effect.Effect<
+      Effect.Success<ReturnType<Methods[K]>>,
+      Effect.Error<ReturnType<Methods[K]>>
+    >;
   },
   extractArgs: {
-    [K in keyof Shape]?: (...args: Parameters<Shape[K]>) => Record<string, unknown>;
+    [K in keyof Methods]?: (...args: Parameters<Methods[K]>) => CallArgs;
   },
 ): Layer.Layer<Context.Service.Identifier<Tag>, never, CallSequence> => {
-  const tagName = (tag as unknown as { key: string }).key ?? 'UnknownService';
+  const tagName = tag.key;
 
-  return Layer.effect(
-    tag,
-    Effect.sync(() => {
-      const service: Record<string, unknown> = {};
+  const service: Record<
+    string,
+    (...args: never[]) => Effect.Effect<unknown, unknown, CallSequence>
+  > = {};
 
-      for (const [key, fn] of Object.entries(implementation)) {
-        service[key] = (...args: unknown[]) =>
-          Effect.gen(function* () {
-            const extractFn = extractArgs[key as keyof typeof extractArgs] as
-              | ((...a: unknown[]) => Record<string, unknown>)
-              | undefined;
-            let callArgs: Record<string, unknown> = {};
-            if (extractFn !== undefined) callArgs = extractFn(...args);
-            yield* recordCall({
-              _tag: `${tagName}.${key}`,
-              ...callArgs,
-            });
-            return yield* (fn as (...a: unknown[]) => Effect.Effect<unknown, unknown>)(...args);
-          });
-      }
+  for (const [key, fn] of Object.entries(implementation)) {
+    service[key] = (...args: never[]) =>
+      Effect.gen(function* () {
+        const extractFn = Option.fromUndefinedOr(extractArgs[key as keyof typeof extractArgs]);
+        const callArgs = Option.match(extractFn, {
+          onNone: (): CallArgs => ({}),
+          onSome: (extract) => (extract as unknown as (...a: never[]) => CallArgs)(...args),
+        });
+        yield* recordCall({
+          _tag: `${tagName}.${key}`,
+          ...callArgs,
+        });
+        return yield* (fn as (...a: never[]) => Effect.Effect<unknown, unknown>)(...args);
+      });
+  }
 
-      return service as Context.Service.Shape<Tag>;
-    }),
-  );
+  return Layer.succeed(tag, service as unknown as Tag['Service']);
 };
 
 // ============================================================================

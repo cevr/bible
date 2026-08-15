@@ -4,52 +4,68 @@
  * Runner-agnostic assertion helpers that work with any test framework.
  */
 
-import { Effect, Schema } from 'effect';
+import { Effect, Option, Predicate, Schema } from 'effect';
 
-import type { ServiceCall } from './sequence-recorder.js';
+import type { CallField, ServiceCall } from './sequence-recorder.js';
 
 /**
  * Error thrown when an assertion fails.
  * Test frameworks should catch this and report appropriately.
  */
-export class AssertionError extends Schema.TaggedErrorClass<AssertionError>()('AssertionError', {
+export class AssertionError extends Schema.TaggedError<AssertionError>()('AssertionError', {
   message: Schema.String,
 }) {}
 
-const encodeJson = Schema.encodeSync(Schema.UnknownFromJsonString);
+const encodeJson = Schema.encodeSync(Schema.fromJsonString(Schema.Unknown));
+
+/**
+ * Asymmetric matcher pattern (Jest/Vitest style, e.g. expect.stringContaining).
+ */
+export interface AsymmetricMatcher {
+  readonly asymmetricMatch: (value: CallField) => boolean;
+}
+
+/**
+ * A single expected field: either a concrete value or an asymmetric matcher.
+ */
+export type CallFieldPattern = CallField | AsymmetricMatcher;
+
+/**
+ * Expected call pattern - only specified fields are checked.
+ */
+export interface CallPattern {
+  readonly _tag: string;
+  readonly [key: string]: CallFieldPattern;
+}
+
+const isMatcher = (pattern: CallFieldPattern): pattern is AsymmetricMatcher =>
+  Predicate.hasProperty(pattern, 'asymmetricMatch');
 
 /**
  * Check if a value matches an expected pattern.
- * Supports:
- * - Direct equality
- * - Asymmetric matchers (e.g., expect.stringContaining)
- * - undefined in expected means "any value"
+ * Supports direct equality and asymmetric matchers (e.g., expect.stringContaining).
  */
-const matches = (actual: unknown, expected: unknown): boolean => {
-  if (expected === undefined) return true;
-
-  // Handle asymmetric matchers (Jest/Vitest style)
-  if (expected !== null && typeof expected === 'object' && 'asymmetricMatch' in expected) {
-    return (expected as { asymmetricMatch: (v: unknown) => boolean }).asymmetricMatch(actual);
+const matches = (actual: CallField, expected: CallFieldPattern): boolean => {
+  if (isMatcher(expected)) {
+    return expected.asymmetricMatch(actual);
   }
-
   return actual === expected;
 };
 
 /**
  * Check if an actual call matches an expected pattern.
+ * Only fields present in the pattern are compared.
  */
-const callMatches = (actual: ServiceCall, expected: Partial<ServiceCall>): boolean => {
+const callMatches = (actual: ServiceCall, expected: CallPattern): boolean => {
   if (actual._tag !== expected._tag) return false;
 
-  for (const [key, value] of Object.entries(expected)) {
-    if (key === '_tag') continue;
-    if (!matches((actual as Record<string, unknown>)[key], value)) {
-      return false;
-    }
-  }
-
-  return true;
+  return Object.entries(expected).every(([key, value]) => {
+    if (key === '_tag') return true;
+    if (!Predicate.isNotUndefined(value)) return true;
+    const actualValue = actual[key];
+    if (!Predicate.isNotUndefined(actualValue)) return false;
+    return matches(actualValue, value);
+  });
 };
 
 /**
@@ -60,11 +76,10 @@ const callMatches = (actual: ServiceCall, expected: Partial<ServiceCall>): boole
  *
  * @param actual The actual recorded service calls
  * @param expected Expected calls in order (partial matches allowed)
- * @throws AssertionError if a call is not found
  */
 export const assertSequence = (
-  actual: ServiceCall[],
-  expected: Array<Partial<ServiceCall>>,
+  actual: ReadonlyArray<ServiceCall>,
+  expected: ReadonlyArray<CallPattern>,
 ): Effect.Effect<void, AssertionError> =>
   Effect.gen(function* () {
     let actualIndex = 0;
@@ -75,7 +90,7 @@ export const assertSequence = (
       while (actualIndex < actual.length) {
         const actualCall = actual[actualIndex];
         actualIndex++;
-        if (!actualCall) continue;
+        if (!Predicate.isNotUndefined(actualCall)) continue;
 
         if (callMatches(actualCall, expectedCall)) {
           found = true;
@@ -85,7 +100,7 @@ export const assertSequence = (
 
       if (!found) {
         const actualTags = actual.map((c) => c._tag).join(', ');
-        return yield* new AssertionError({
+        return yield* AssertionError.make({
           message:
             `Expected call ${encodeJson(expectedCall)} not found in sequence.\n` +
             `Actual calls: [${actualTags}]`,
@@ -101,11 +116,10 @@ export const assertSequence = (
  *
  * @param actual The actual recorded service calls
  * @param expected Expected calls (partial matches allowed)
- * @throws AssertionError if a call is not found
  */
 export const assertContains = (
-  actual: ServiceCall[],
-  expected: Array<Partial<ServiceCall>>,
+  actual: ReadonlyArray<ServiceCall>,
+  expected: ReadonlyArray<CallPattern>,
 ): Effect.Effect<void, AssertionError> =>
   Effect.gen(function* () {
     for (const expectedCall of expected) {
@@ -117,7 +131,7 @@ export const assertContains = (
         if (matchingCalls.length > 0)
           actualSummary = `Matching calls: ${encodeJson(matchingCalls)}`;
 
-        return yield* new AssertionError({
+        return yield* AssertionError.make({
           message: `Expected call ${encodeJson(expectedCall)} not found in calls.\n${actualSummary}`,
         });
       }
@@ -130,17 +144,16 @@ export const assertContains = (
  * @param calls The actual recorded service calls
  * @param tag The call type to count
  * @param count Expected count
- * @throws AssertionError if count doesn't match
  */
 export const assertCallCount = (
-  calls: ServiceCall[],
+  calls: ReadonlyArray<ServiceCall>,
   tag: string,
   count: number,
 ): Effect.Effect<void, AssertionError> =>
   Effect.gen(function* () {
     const actual = calls.filter((c) => c._tag === tag).length;
     if (actual !== count) {
-      return yield* new AssertionError({
+      return yield* AssertionError.make({
         message: `Expected ${count} calls of type "${tag}", but found ${actual}`,
       });
     }
@@ -151,10 +164,9 @@ export const assertCallCount = (
  *
  * @param calls The actual recorded service calls
  * @param tag The call type that should not appear
- * @throws AssertionError if any calls of that type exist
  */
 export const assertNoCalls = (
-  calls: ServiceCall[],
+  calls: ReadonlyArray<ServiceCall>,
   tag: string,
 ): Effect.Effect<void, AssertionError> => assertCallCount(calls, tag, 0);
 
@@ -163,25 +175,26 @@ export const assertNoCalls = (
  * Useful for custom assertions.
  */
 export const getCallsOfType = <T extends string>(
-  calls: ServiceCall[],
+  calls: ReadonlyArray<ServiceCall>,
   tag: T,
 ): Array<ServiceCall<T>> => calls.filter((c): c is ServiceCall<T> => c._tag === tag);
 
 /**
- * Get the first call of a specific type, or undefined if none.
+ * Get the first call of a specific type.
  */
 export const getFirstCall = <T extends string>(
-  calls: ServiceCall[],
+  calls: ReadonlyArray<ServiceCall>,
   tag: T,
-): ServiceCall<T> | undefined => calls.find((c): c is ServiceCall<T> => c._tag === tag);
+): Option.Option<ServiceCall<T>> =>
+  Option.fromUndefinedOr(calls.find((c): c is ServiceCall<T> => c._tag === tag));
 
 /**
- * Get the last call of a specific type, or undefined if none.
+ * Get the last call of a specific type.
  */
 export const getLastCall = <T extends string>(
-  calls: ServiceCall[],
+  calls: ReadonlyArray<ServiceCall>,
   tag: T,
-): ServiceCall<T> | undefined => {
+): Option.Option<ServiceCall<T>> => {
   const matching = getCallsOfType(calls, tag);
-  return matching[matching.length - 1];
+  return Option.fromUndefinedOr(matching[matching.length - 1]);
 };

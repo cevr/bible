@@ -1,4 +1,4 @@
-import { Schema } from 'effect';
+import { type Option, Schema } from 'effect';
 
 /**
  * Cross-reference classification taxonomy. Shared between web (study sheet,
@@ -13,7 +13,7 @@ import { Schema } from 'effect';
  * and stay alongside the JSX that uses them.
  */
 
-export const CROSS_REF_TYPES = [
+export const CrossRefType = Schema.Literals([
   'quotation',
   'allusion',
   'parallel',
@@ -22,19 +22,20 @@ export const CROSS_REF_TYPES = [
   'sanctuary',
   'recapitulation',
   'thematic',
-] as const;
-
-export const CrossRefType = Schema.Literals(CROSS_REF_TYPES);
+]);
 export type CrossRefType = typeof CrossRefType.Type;
 
-export const CATALOG_CROSS_REF_SOURCES = ['openbible', 'tske'] as const;
-export const CatalogCrossRefSource = Schema.Literals(CATALOG_CROSS_REF_SOURCES);
+export const CROSS_REF_TYPES = CrossRefType.literals;
+
+export const CatalogCrossRefSource = Schema.Literals(['openbible', 'tske']);
 export type CatalogCrossRefSource = typeof CatalogCrossRefSource.Type;
+
+export const CATALOG_CROSS_REF_SOURCES = CatalogCrossRefSource.literals;
 
 /** 3-letter uppercase abbreviation, suitable for compact badges next to a
  *  reference. Keep in sync with how the study sheet renders these so the
  *  desktop drawer's cross-ref pane shows the same shorthand. */
-export const CROSS_REF_ABBREVIATIONS: Record<CrossRefType, string> = {
+export const CROSS_REF_ABBREVIATIONS = {
   quotation: 'QUO',
   allusion: 'ALL',
   parallel: 'PAR',
@@ -43,10 +44,10 @@ export const CROSS_REF_ABBREVIATIONS: Record<CrossRefType, string> = {
   sanctuary: 'SAN',
   recapitulation: 'REC',
   thematic: 'THM',
-};
+} satisfies Record<CrossRefType, string>;
 
 /** Human-readable label used in section headings, dropdowns, and tooltips. */
-export const CROSS_REF_LABELS: Record<CrossRefType, string> = {
+export const CROSS_REF_LABELS = {
   quotation: 'Quotation',
   allusion: 'Allusion',
   parallel: 'Parallel',
@@ -55,20 +56,20 @@ export const CROSS_REF_LABELS: Record<CrossRefType, string> = {
   sanctuary: 'Sanctuary',
   recapitulation: 'Recapitulation',
   thematic: 'Thematic',
-};
+} satisfies Record<CrossRefType, string>;
 
 /** Fields every cross reference carries regardless of source. `verse`/`verseEnd`
- *  are null for chapter-scope references (e.g. "see Genesis 12"); `previewText`
- *  is null until the target verse text has been hydrated; `classification` is
- *  null for raw catalog rows that haven't been categorized yet. */
+ *  are absent for chapter-scope references (e.g. "see Genesis 12"); `previewText`
+ *  is absent until the target verse text has been hydrated; `classification` is
+ *  absent for raw catalog rows that haven't been categorized yet. */
 interface CrossRefBase {
   readonly book: number;
   readonly chapter: number;
-  readonly verse: number | null;
-  readonly verseEnd: number | null;
-  readonly previewText: string | null;
-  readonly classification: CrossRefType | null;
-  readonly confidence: number | null;
+  readonly verse: Option.Option<number>;
+  readonly verseEnd: Option.Option<number>;
+  readonly previewText: Option.Option<string>;
+  readonly classification: Option.Option<CrossRefType>;
+  readonly confidence: Option.Option<number>;
 }
 
 /** Cross reference sourced from a published catalog (OpenBible, TSK-extended).
@@ -83,7 +84,7 @@ export interface CatalogCrossReference extends CrossRefBase {
 export interface UserCrossReference extends CrossRefBase {
   readonly source: 'user';
   readonly userRefId: string;
-  readonly userNote: string | null;
+  readonly userNote: Option.Option<string>;
 }
 
 /** Tagged union of every cross-ref shape the UI consumes. Discriminate on

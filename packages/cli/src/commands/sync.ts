@@ -9,7 +9,7 @@ import { defaultBibleSyncPaths, syncBible } from '@bible/core/sync';
 import { Flag, Command } from 'effect/unstable/cli';
 import { Effect, Schema } from 'effect';
 
-class SyncError extends Schema.TaggedErrorClass<SyncError>()('SyncError', {
+class SyncError extends Schema.TaggedError<SyncError>()('SyncError', {
   cause: Schema.Unknown,
 }) {}
 
@@ -19,5 +19,5 @@ export const sync = Command.make('sync', { force }, (args) =>
   Effect.gen(function* () {
     const paths = yield* defaultBibleSyncPaths();
     yield* syncBible(args.force, paths);
-  }).pipe(Effect.mapError((cause) => new SyncError({ cause }))),
+  }).pipe(Effect.mapError((cause) => SyncError.make({ cause }))),
 );

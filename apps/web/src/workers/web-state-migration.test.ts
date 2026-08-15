@@ -8,7 +8,7 @@ import {
   snapshotLegacyWebState,
 } from './web-state-migration.js';
 
-class LegacyDatabaseFailure extends Schema.TaggedErrorClass<LegacyDatabaseFailure>()(
+class LegacyDatabaseFailure extends Schema.TaggedError<LegacyDatabaseFailure>()(
   'LegacyDatabaseFailure',
   { message: Schema.String },
 ) {}
@@ -48,7 +48,7 @@ describe('legacy web state snapshot', () => {
         query: (sql: string) => {
           if (sql.includes('verse_notes')) {
             return Effect.fail(
-              new LegacyDatabaseFailure({ message: 'database disk image is malformed' }),
+              LegacyDatabaseFailure.make({ message: 'database disk image is malformed' }),
             );
           }
           return Effect.succeed([]);
@@ -66,7 +66,7 @@ describe('legacy web state snapshot', () => {
         query: (sql: string) => {
           if (sql.includes('egw_markers')) {
             return Effect.fail(
-              new LegacyDatabaseFailure({ message: 'no such table: egw_markers' }),
+              LegacyDatabaseFailure.make({ message: 'no such table: egw_markers' }),
             );
           }
           return Effect.succeed([]);
@@ -181,7 +181,7 @@ describe('legacy web state snapshot', () => {
       const logs: string[] = [];
       const unavailableWritings = {
         query: () =>
-          Effect.fail(new LegacyDatabaseFailure({ message: 'no such table: paragraphs' })),
+          Effect.fail(LegacyDatabaseFailure.make({ message: 'no such table: paragraphs' })),
       } as unknown as SqliteDatabase;
 
       const resolved = yield* resolveLegacyEgwCoordinates(snapshot, unavailableWritings, (line) =>

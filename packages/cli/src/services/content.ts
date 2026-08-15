@@ -1,5 +1,15 @@
 import type { Cause } from 'effect';
-import { Context, Effect, FileSystem, Layer, Match, Path, Schema, SchemaGetter } from 'effect';
+import {
+  Context,
+  Effect,
+  FileSystem,
+  Layer,
+  Match,
+  Option,
+  Path,
+  Schema,
+  SchemaGetter,
+} from 'effect';
 import type * as PlatformError from 'effect/PlatformError';
 
 import type { ContentTypeConfig, SortStrategy } from '~/src/lib/content/types';
@@ -25,6 +35,7 @@ const JsonString = Schema.Unknown.pipe(
 );
 
 const encodeJson = Schema.encodeUnknownEffect(JsonString);
+const decodeString = Schema.decodeUnknownOption(Schema.String);
 
 type ContentListError = Schema.SchemaError;
 type ContentExportError =
@@ -64,7 +75,7 @@ export class ContentService extends Context.Service<
             const outputDir = getOutputsPath(config.outputDir);
             const files = yield* fs
               .readDirectory(outputDir)
-              .pipe(Effect.catch(() => Effect.succeed([] as string[])));
+              .pipe(Effect.orElseSucceed(() => [] as string[]));
 
             const mdFiles = files.filter((f) => f.endsWith('.md'));
             const sorted = sortFiles(mdFiles, config.sortStrategy);
@@ -94,7 +105,7 @@ export class ContentService extends Context.Service<
 
               const { frontmatter, content } = parseFrontmatter(rawContent);
 
-              if (frontmatter['apple_note_id'] !== undefined) {
+              if (Option.isSome(decodeString(frontmatter['apple_note_id']))) {
                 yield* Effect.log(`Skipped (already exported): ${filePath}`);
                 continue;
               }
@@ -120,10 +131,10 @@ export class ContentService extends Context.Service<
                 .pipe(Effect.map((i) => new TextDecoder().decode(i)));
 
               const { frontmatter, content } = parseFrontmatter(rawContent);
-              const appleNoteId = frontmatter['apple_note_id'];
+              const appleNoteId = decodeString(frontmatter['apple_note_id']);
 
-              if (typeof appleNoteId === 'string') {
-                yield* updateAppleNoteFromMarkdown(appleNoteId, content);
+              if (Option.isSome(appleNoteId)) {
+                yield* updateAppleNoteFromMarkdown(appleNoteId.value, content);
                 yield* Effect.log(`Synced (updated): ${filePath}`);
               } else {
                 const { noteId } = yield* makeAppleNoteFromMarkdown(content, {
@@ -144,14 +155,14 @@ export class ContentService extends Context.Service<
                 .pipe(Effect.map((i) => new TextDecoder().decode(i)));
 
               const { frontmatter } = parseFrontmatter(rawContent);
-              const appleNoteId = frontmatter['apple_note_id'];
+              const appleNoteId = decodeString(frontmatter['apple_note_id']);
 
-              if (typeof appleNoteId !== 'string') {
+              if (Option.isNone(appleNoteId)) {
                 yield* Effect.log(`Skipped (no apple_note_id): ${filePath}`);
                 continue;
               }
 
-              yield* deleteNote(appleNoteId);
+              yield* deleteNote(appleNoteId.value);
 
               const updated = removeFrontmatterFields(rawContent, ['apple_note_id']);
               yield* fs.writeFile(filePath, new TextEncoder().encode(updated));

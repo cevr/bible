@@ -1,4 +1,5 @@
 import { Reference as BibleReference } from '@bible/core/bible';
+import { Option } from 'effect';
 
 import { decodeRoute, encodeRoute } from './codec.js';
 import type { AppRoute, NavigationIntent, ReadingRoute, RouteHistory } from './model.js';
@@ -6,7 +7,7 @@ import type { AppRoute, NavigationIntent, ReadingRoute, RouteHistory } from './m
 export interface BootRouteInput {
   readonly requestedPath: string;
   readonly persisted?: ReadingRoute;
-  readonly resolveLegacy?: (path: string) => AppRoute | undefined;
+  readonly resolveLegacy?: (path: string) => Option.Option<AppRoute>;
 }
 
 export interface BootRouteResult {
@@ -29,10 +30,16 @@ export const bootRoute = (input: BootRouteInput): BootRouteResult => {
   }
 
   const explicit = decodeRoute(path);
-  if (explicit) return { route: explicit, historyMode: 'preserve', reason: 'explicit' };
+  if (Option.isSome(explicit)) {
+    return { route: explicit.value, historyMode: 'preserve', reason: 'explicit' };
+  }
 
-  const legacy = input.resolveLegacy?.(path);
-  if (legacy) return { route: legacy, historyMode: 'replace', reason: 'legacy' };
+  const legacy = Option.flatMap(Option.fromNullishOr(input.resolveLegacy), (resolve) =>
+    resolve(path),
+  );
+  if (Option.isSome(legacy)) {
+    return { route: legacy.value, historyMode: 'replace', reason: 'legacy' };
+  }
 
   return {
     route: { _tag: 'not-found', requestedPath: path },

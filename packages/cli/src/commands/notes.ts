@@ -62,12 +62,11 @@ const exportNote = Command.make('export', { file, noteId: optionalNoteId, folder
       yield* Console.log(`Updated note: "${title}"`);
     } else {
       // Create new note
-      const folderName = Option.getOrUndefined(args.folder);
       let folderDescription = '';
-      if (folderName !== undefined) folderDescription = ` in folder "${folderName}"`;
+      if (Option.isSome(args.folder)) folderDescription = ` in folder "${args.folder.value}"`;
       yield* Effect.log(`Creating new note${folderDescription}...`);
       const created = yield* makeAppleNoteFromMarkdown(markdownContent, {
-        folder: folderName,
+        folder: Option.getOrUndefined(args.folder),
       });
       yield* Console.log(`Created note: "${created.title}"`);
     }
@@ -99,15 +98,18 @@ const organize = Command.make('organize', { files, folder: requiredFolder }, (ar
         .pipe(Effect.map((i) => new TextDecoder().decode(i)));
 
       const { frontmatter } = parseFrontmatter<MessageFrontmatter>(rawContent);
-      const existingNoteId = frontmatter.apple_note_id;
+      const existingNoteId = Option.filter(
+        Option.fromNullishOr(frontmatter.apple_note_id),
+        (id) => id !== '',
+      );
 
-      if (existingNoteId === undefined || existingNoteId === '') {
+      if (Option.isNone(existingNoteId)) {
         yield* Effect.logWarning(`  Skipped: ${filePath} (no apple_note_id in frontmatter)`);
         skipped++;
         continue;
       }
 
-      yield* moveAppleNoteToFolder(existingNoteId, args.folder);
+      yield* moveAppleNoteToFolder(existingNoteId.value, args.folder);
       yield* Effect.log(`  Moved: ${filePath} → "${args.folder}"`);
       moved++;
     }

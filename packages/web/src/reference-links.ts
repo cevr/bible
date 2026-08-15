@@ -31,12 +31,31 @@ interface EgwPanelRow {
   readonly panelId: string;
 }
 
+export class ReferenceDatabaseError extends Schema.TaggedError<ReferenceDatabaseError>()(
+  'ReferenceLinks.ReferenceDatabaseError',
+  {
+    path: Schema.String,
+    message: Schema.String,
+  },
+) {}
+
+const CauseMessage = Schema.Struct({ message: Schema.String });
+
+const causeMessage = (cause: unknown): string => {
+  const decoded = Schema.decodeUnknownOption(CauseMessage)(cause);
+  if (Option.isSome(decoded)) return decoded.value.message;
+  return String(cause);
+};
+
 /** Read the canonical EGW paragraph IDs used by egwwritings.org deep links. */
-const loadEgwPanelMap = (databasePath: string): Effect.Effect<EgwPanelMap, unknown> =>
+const loadEgwPanelMap = (
+  databasePath: string,
+): Effect.Effect<EgwPanelMap, ReferenceDatabaseError> =>
   Effect.acquireUseRelease(
     Effect.try({
       try: () => new Database(databasePath, { readonly: true, strict: true }),
-      catch: (cause) => cause,
+      catch: (cause) =>
+        ReferenceDatabaseError.make({ path: databasePath, message: causeMessage(cause) }),
     }),
     (database) =>
       Effect.try({
@@ -50,7 +69,8 @@ const loadEgwPanelMap = (databasePath: string): Effect.Effect<EgwPanelMap, unkno
             .all();
           return new Map(rows.map((row) => [row.refcode, row.panelId]));
         },
-        catch: (cause) => cause,
+        catch: (cause) =>
+          ReferenceDatabaseError.make({ path: databasePath, message: causeMessage(cause) }),
       }),
     (database) => Effect.sync(() => database.close()),
   );
@@ -59,12 +79,16 @@ const externalLink = (href: string, label: string): string =>
   `<a href="${href}" target="_blank" rel="noopener noreferrer">${label}</a>`;
 
 const linkTextReferences = (text: string, egwPanels: EgwPanelMap): string => {
-  const withEgw = text.replace(EGW_REFERENCE, (reference, bookCode: string, paragraph: string) => {
-    const panelId = egwPanels.get(`${bookCode} ${paragraph}`);
-    if (panelId === undefined) return reference;
-    const href = `https://egwwritings.org/read?panels=p${encodeURIComponent(panelId)}&index=0`;
-    return externalLink(href, reference);
-  });
+  const withEgw = text.replace(EGW_REFERENCE, (reference, bookCode: string, paragraph: string) =>
+    Option.match(Option.fromNullishOr(egwPanels.get(`${bookCode} ${paragraph}`)), {
+      onNone: () => reference,
+      onSome: (panelId) =>
+        externalLink(
+          `https://egwwritings.org/read?panels=p${encodeURIComponent(panelId)}&index=0`,
+          reference,
+        ),
+    }),
+  );
 
   return withEgw.replace(BIBLE_REFERENCE, (reference) => {
     const href = `https://www.biblegateway.com/passage/?search=${encodeURIComponent(reference)}&version=KJV`;
@@ -87,28 +111,20 @@ const linkReferences = (html: string, egwPanels: EgwPanelMap): string => {
       }
 
       const closing = part.match(/^<\/([a-z0-9]+)/i)?.[1]?.toLowerCase();
-      if (closing !== undefined && SUPPRESSED_TAGS.has(closing)) {
+      if (closing && SUPPRESSED_TAGS.has(closing)) {
         const index = suppressed.lastIndexOf(closing);
         if (index !== -1) suppressed.splice(index, 1);
         return part;
       }
 
       const opening = part.match(/^<([a-z0-9]+)/i)?.[1]?.toLowerCase();
-      if (opening !== undefined && SUPPRESSED_TAGS.has(opening) && !part.endsWith('/>')) {
+      if (opening && SUPPRESSED_TAGS.has(opening) && !part.endsWith('/>')) {
         suppressed.push(opening);
       }
       return part;
     })
     .join('');
 };
-
-export class ReferenceDatabaseError extends Schema.TaggedErrorClass<ReferenceDatabaseError>()(
-  'ReferenceLinks.ReferenceDatabaseError',
-  {
-    path: Schema.String,
-    message: Schema.String,
-  },
-) {}
 
 export interface Interface {
   readonly link: (html: string) => string;
@@ -119,14 +135,6 @@ export class Service extends Context.Service<Service, Interface>()('@bible/site/
     Layer.succeed(Service, Service.of({ link: (html) => linkReferences(html, panels) }));
 }
 
-const CauseMessage = Schema.Struct({ message: Schema.String });
-
-const causeMessage = (cause: unknown): string => {
-  const decoded = Schema.decodeUnknownOption(CauseMessage)(cause);
-  if (Option.isSome(decoded)) return decoded.value.message;
-  return String(cause);
-};
-
 /** Load the canonical EGW corpus once, then hide it behind the linking interface. */
 export const layer: Layer.Layer<Service, ReferenceDatabaseError | Config.ConfigError> =
   Layer.effect(
@@ -135,15 +143,7 @@ export const layer: Layer.Layer<Service, ReferenceDatabaseError | Config.ConfigE
       const databasePath = yield* Config.string('EGW_PARAGRAPH_DB').pipe(
         Config.withDefault(`${homedir()}/.bible/egw-paragraphs.db`),
       );
-      const panels = yield* loadEgwPanelMap(databasePath).pipe(
-        Effect.mapError(
-          (cause) =>
-            new ReferenceDatabaseError({
-              path: databasePath,
-              message: causeMessage(cause),
-            }),
-        ),
-      );
+      const panels = yield* loadEgwPanelMap(databasePath);
       return Service.of({ link: (html) => linkReferences(html, panels) });
     }),
   );

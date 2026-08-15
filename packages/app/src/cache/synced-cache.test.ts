@@ -1,9 +1,14 @@
 import { describe, expect, it } from 'effect-bun-test';
 
-import { Cause, Effect, Exit, Fiber } from 'effect';
+import { Cause, Data, Effect, Exit, Fiber } from 'effect';
 import { createRoot, flush, resolve } from 'solid-js';
 
 import { createSyncedCache, defaultCacheRuntime, SyncedCacheError } from './synced-cache.js';
+
+class TestPromiseError extends Data.TaggedError('TestPromiseError')<{ readonly cause: unknown }> {}
+
+const awaitPromise = <A>(evaluate: () => Promise<A>): Effect.Effect<A, TestPromiseError> =>
+  Effect.tryPromise({ try: evaluate, catch: (cause) => new TestPromiseError({ cause }) });
 
 const settle = Effect.gen(function* () {
   yield* Effect.yieldNow;
@@ -195,10 +200,7 @@ describe('createSyncedCache', () => {
       const sameTrailingRequest = owned.cache.refresh({ id: 1 });
       expect(sameTrailingRequest).toBe(trailingRequest);
       const trailing = yield* Effect.forkChild(
-        Effect.all([
-          Effect.tryPromise(() => trailingRequest),
-          Effect.tryPromise(() => sameTrailingRequest),
-        ]),
+        Effect.all([awaitPromise(() => trailingRequest), awaitPromise(() => sameTrailingRequest)]),
         { startImmediately: true },
       );
       yield* Effect.yieldNow;
@@ -242,10 +244,7 @@ describe('createSyncedCache', () => {
       const one = owned.cache.get({ id: 1 });
       const two = owned.cache.get({ id: 2 });
       expect(
-        yield* Effect.all([
-          Effect.tryPromise(() => resolve(one)),
-          Effect.tryPromise(() => resolve(two)),
-        ]),
+        yield* Effect.all([awaitPromise(() => resolve(one)), awaitPromise(() => resolve(two))]),
       ).toEqual(['one', 'two']);
 
       yield* Effect.tryPromise(() => owned.cache.mutate({ id: 1, value: 'updated' }));

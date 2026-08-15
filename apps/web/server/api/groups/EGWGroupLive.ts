@@ -1,5 +1,5 @@
 /** HTTP adapter for the canonical Writings domain. */
-import { Effect } from 'effect';
+import { Effect, Option } from 'effect';
 import { HttpApiBuilder } from 'effect/unstable/httpapi';
 
 import {
@@ -18,12 +18,12 @@ import { EGWWire } from './EGWWire.js';
 const databaseError = (error: WritingsError): EGWDatabaseError => {
   let message: string = error._tag;
   if ('cause' in error && error.cause instanceof Error) message = error.cause.message;
-  return new EGWDatabaseError({ message });
+  return EGWDatabaseError.make({ message });
 };
 
 const bookError = (bookCode: string) => (error: WritingsError) => {
   if (error._tag === 'WritingsPublicationNotFoundError') {
-    return new EGWBookNotFoundError({
+    return EGWBookNotFoundError.make({
       bookCode,
       message: `Publication '${bookCode}' was not found`,
     });
@@ -34,12 +34,12 @@ const bookError = (bookCode: string) => (error: WritingsError) => {
 const pageError = (bookCode: string, page: number) => (error: WritingsError) => {
   switch (error._tag) {
     case 'WritingsPublicationNotFoundError':
-      return new EGWBookNotFoundError({
+      return EGWBookNotFoundError.make({
         bookCode,
         message: `Publication '${bookCode}' was not found`,
       });
     case 'WritingsPageNotFoundError':
-      return new EGWPageNotFoundError({
+      return EGWPageNotFoundError.make({
         bookCode,
         page,
         message: `Page ${page} was not found in '${bookCode}'`,
@@ -53,7 +53,7 @@ const searchError = (error: WritingsError) => {
   if (error._tag !== 'WritingsInvalidSearchError') return databaseError(error);
   let message = 'Search limit must be greater than zero';
   if (error.reason === 'empty-query') message = 'Search query must not be empty';
-  return new EGWInvalidSearchError({ reason: error.reason, message });
+  return EGWInvalidSearchError.make({ reason: error.reason, message });
 };
 
 export const EGWGroupLive = HttpApiBuilder.group(BibleToolsApi, 'EGW', (handlers) =>
@@ -79,14 +79,14 @@ export const EGWGroupLive = HttpApiBuilder.group(BibleToolsApi, 'EGW', (handlers
       )
       .handle('search', ({ query: { q, limit, bookCode } }) =>
         Effect.gen(function* () {
-          let publication: ReturnType<typeof Reference.publication> | undefined;
+          let publication: Option.Option<ReturnType<typeof Reference.publication>> = Option.none();
           if (bookCode) {
             const selected = yield* writings.publicationByCode(bookCode);
-            publication = Reference.publication(selected.id);
+            publication = Option.some(Reference.publication(selected.id));
           }
           return yield* writings.search(q, {
             limit,
-            publication,
+            publication: Option.getOrUndefined(publication),
           });
         }).pipe(Effect.map(EGWWire.searchResults), Effect.mapError(searchError)),
       )

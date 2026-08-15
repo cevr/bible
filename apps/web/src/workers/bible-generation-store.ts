@@ -1,4 +1,4 @@
-import { Effect } from 'effect';
+import { Effect, Option } from 'effect';
 import * as SQLite from 'wa-sqlite';
 
 import type { GenerationRegistry, GenerationRegistryStore } from './generation-marker.js';
@@ -13,8 +13,8 @@ export interface ReservedBibleGeneration {
 
 export interface BibleGenerationStore {
   readonly active: SqliteDatabase;
-  readonly activeFilename: string | undefined;
-  readonly openActive: () => Effect.Effect<boolean, unknown>;
+  readonly activeFilename: Option.Option<string>;
+  readonly openActive: Effect.Effect<boolean, unknown>;
   readonly reserve: (preferredFilename: string) => Effect.Effect<ReservedBibleGeneration, unknown>;
   readonly activateVerified: (filename: string) => Effect.Effect<void, unknown>;
   readonly discardCandidate: (filename: string) => Effect.Effect<void, unknown>;
@@ -28,12 +28,14 @@ const withGeneration = (registry: GenerationRegistry, generation: string): Gener
   return { active: registry.active, managed: [...registry.managed, generation] };
 };
 
-const inactiveFilename = (preferredFilename: string, active: string | undefined): string => {
-  if (preferredFilename === active) return preferredFilename.replace(/\.db$/u, '-next.db');
+const inactiveFilename = (preferredFilename: string, active: Option.Option<string>): string => {
+  if (Option.contains(active, preferredFilename)) {
+    return preferredFilename.replace(/\.db$/u, '-next.db');
+  }
   return preferredFilename;
 };
 
-const registryRead = (registry: GenerationRegistryStore) => registry.read();
+const registryRead = (registry: GenerationRegistryStore) => registry.read;
 
 const registryWrite = (registry: GenerationRegistryStore, value: GenerationRegistry) =>
   registry.write(value);
@@ -50,7 +52,7 @@ export const makeBibleGenerationStore = (input: {
   const discardFiles = (filename: string): Effect.Effect<boolean> =>
     input.discard(filename).pipe(
       Effect.as(true),
-      Effect.catch(() => Effect.succeed(false)),
+      Effect.orElseSucceed(() => false),
     );
 
   const reconcile = Effect.fn('BibleGenerationStore.reconcile')(function* (
@@ -60,7 +62,7 @@ export const makeBibleGenerationStore = (input: {
       registry.managed,
       Effect.fnUntraced(function* (generation) {
         let discarded = false;
-        if (generation !== registry.active && BIBLE_GENERATION.test(generation)) {
+        if (!Option.contains(registry.active, generation) && BIBLE_GENERATION.test(generation)) {
           discarded = yield* discardFiles(generation);
         }
         return { generation, discarded };
@@ -79,7 +81,7 @@ export const makeBibleGenerationStore = (input: {
     filename: string,
   ) {
     const registry = yield* registryRead(input.registry);
-    if (registry.active === filename) return;
+    if (Option.contains(registry.active, filename)) return;
     if (!(yield* discardFiles(filename))) return;
     yield* registryWrite(input.registry, {
       active: registry.active,
@@ -87,21 +89,23 @@ export const makeBibleGenerationStore = (input: {
     });
   });
 
-  const openActive = Effect.fn('BibleGenerationStore.openActive')(function* () {
+  const runOpenActive = Effect.fn('BibleGenerationStore.openActive')(function* () {
     const registry = yield* registryRead(input.registry);
-    if (registry.active === undefined) {
+    if (Option.isNone(registry.active)) {
       yield* reconcile(registry);
       return false;
     }
-    yield* input.databases.activate(registry.active, SQLite.SQLITE_OPEN_READWRITE);
-    yield* reconcile(withGeneration(registry, registry.active));
+    const active = registry.active.value;
+    yield* input.databases.activate(active, SQLite.SQLITE_OPEN_READWRITE);
+    yield* reconcile(withGeneration(registry, active));
     return true;
   });
+  const openActive = Effect.suspend(runOpenActive);
 
   const reserve = Effect.fn('BibleGenerationStore.reserve')(function* (preferredFilename: string) {
     const current = yield* registryRead(input.registry);
     const filename = inactiveFilename(preferredFilename, current.active);
-    if (filename === current.active) {
+    if (Option.contains(current.active, filename)) {
       return yield* Effect.fail('Bible candidate generation must be inactive');
     }
     const registry = withGeneration(current, filename);
@@ -114,17 +118,24 @@ export const makeBibleGenerationStore = (input: {
   ) {
     const before = withGeneration(yield* registryRead(input.registry), filename);
     yield* input.databases.activate(filename, SQLite.SQLITE_OPEN_READWRITE);
-    const commit = registryWrite(input.registry, { active: filename, managed: before.managed });
+    const commit = registryWrite(input.registry, {
+      active: Option.some(filename),
+      managed: before.managed,
+    });
     yield* commit.pipe(
       Effect.onError(() =>
         Effect.gen(function* () {
-          if (before.active === undefined) yield* input.databases.deactivate();
-          else yield* input.databases.activate(before.active, SQLite.SQLITE_OPEN_READWRITE);
+          yield* Option.match(before.active, {
+            onNone: () => input.databases.deactivate,
+            onSome: (previous) => input.databases.activate(previous, SQLite.SQLITE_OPEN_READWRITE),
+          });
           yield* discardCandidate(filename);
         }).pipe(Effect.ignore),
       ),
     );
-    yield* reconcile({ active: filename, managed: before.managed }).pipe(Effect.ignore);
+    yield* reconcile({ active: Option.some(filename), managed: before.managed }).pipe(
+      Effect.ignore,
+    );
   });
 
   return {

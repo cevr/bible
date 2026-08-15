@@ -23,14 +23,14 @@ describe('authored cross-reference contracts', () => {
   });
 
   test('makes suggestions and reader overrides impossible to confuse', () => {
-    const suggestion = Schema.decodeUnknownSync(CatalogClassificationSuggestion)({
+    const suggestion = Schema.decodeSync(CatalogClassificationSuggestion)({
       catalogReferenceId: 'catalog-1',
       classification: 'allusion',
       confidence: 0.8,
       classifierVersion: 'schema-1',
       modelVersion: 'model-1',
     });
-    const override = Schema.decodeUnknownSync(CatalogClassificationOverride)({
+    const override = Schema.decodeSync(CatalogClassificationOverride)({
       catalogReferenceId: 'catalog-1',
       classification: 'quotation',
     });

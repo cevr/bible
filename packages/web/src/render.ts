@@ -15,16 +15,16 @@ import type { Comparison } from './comparison.js';
 import type { Study } from './study.js';
 import { DateTime, Option, Schema } from 'effect';
 
-const encodeJson = Schema.encodeSync(Schema.UnknownFromJsonString);
+const encodeJson = Schema.encodeSync(Schema.fromJsonString(Schema.Unknown));
 
 /** Bun's built-in CommonMark renderer (Bun >= 1.3). Tables render natively. */
 export const renderMarkdown = (md: string): string => Bun.markdown.html(md);
 
 /** Strip YAML frontmatter and return { frontmatter-lines, body }. */
-export const splitFrontmatter = (raw: string): { fm: string; body: string } => {
+export const splitFrontmatter = (raw: string) => {
   const m = raw.match(/^﻿?---\r?\n([\s\S]*?)\r?\n---\r?\n/);
-  if (m === null || m[1] === undefined) return { fm: '', body: raw };
-  return { fm: m[1], body: raw.slice(m[0].length) };
+  if (!m) return { fm: '', body: raw };
+  return { fm: m[1] ?? '', body: raw.slice(m[0].length) };
 };
 
 /** Escape text for safe interpolation into HTML. */
@@ -99,7 +99,7 @@ export interface StudyDocument {
  * return the h2 list for the sticky table of contents. The `¶` anchor link on
  * h2s mirrors the original comparison pages.
  */
-const anchorHeadings = (html: string): { html: string; ids: readonly string[] } => {
+const anchorHeadings = (html: string) => {
   const ids: string[] = [];
   const issued = new Set<string>();
   const out = html.replace(/<(h[23])>([\s\S]*?)<\/\1>/g, (_m, tag: string, inner: string) => {
@@ -175,15 +175,15 @@ const linkSectionReferences = (html: string, hrefByTitle: ReadonlyMap<string, st
           /\b(see|defined in) &quot;([^&]+)&quot;/gi,
           (match, prefix: string, title: string) => {
             const href = hrefByTitle.get(normalizedSectionTitle(title));
-            if (href === undefined) return match;
+            if (!href) return match;
             return `<a class="section-cross-reference" href="${href}">${prefix} “${title}”</a>`;
           },
         );
       }
       const closing = part.match(/^<\/(a|code|pre|script|style)/i)?.[1]?.toLowerCase();
-      if (closing !== undefined) suppressed.pop();
+      if (closing) suppressed.pop();
       const opening = part.match(/^<(a|code|pre|script|style)(?:\s|>)/i)?.[1]?.toLowerCase();
-      if (opening !== undefined && !part.startsWith('</')) suppressed.push(opening);
+      if (opening && !part.startsWith('</')) suppressed.push(opening);
       return part;
     })
     .join('');
@@ -212,11 +212,7 @@ const annotateAppendix = (
   slug: string,
   sections: readonly StudySection[],
   issuedIds: readonly string[],
-): {
-  html: string;
-  entries: readonly SymbolEntry[];
-  symbols: ReadonlyMap<string, string>;
-} => {
+) => {
   const issued = new Set(issuedIds);
   const symbols = new Map<string, string>();
   const entries: SymbolEntry[] = [];
@@ -232,14 +228,17 @@ const annotateAppendix = (
       for (let n = 2; issued.has(id); n += 1) id = `${base}-${n}`;
       issued.add(id);
       if (!symbols.has(normalizedTerm)) symbols.set(normalizedTerm, id);
-      let owner: StudySection | undefined;
+      let owner: Option.Option<StudySection> = Option.none();
       const linkedTrailing = trailing.replace(
         /— defined in &quot;([\s\S]*?)&quot;\./i,
         (sentence, titleHtml: string) => {
-          owner = byTitle.get(normalizedSectionTitle(titleHtml));
+          owner = Option.fromNullishOr(byTitle.get(normalizedSectionTitle(titleHtml)));
           // section.href already carries the in-Part hash, so link to it directly
-          if (owner === undefined) return sentence;
-          return `— defined in &quot;<a class="defined-in-link" href="${owner.href}">${titleHtml}</a>&quot;.`;
+          return Option.match(owner, {
+            onNone: () => sentence,
+            onSome: (section) =>
+              `— defined in &quot;<a class="defined-in-link" href="${section.href}">${titleHtml}</a>&quot;.`,
+          });
         },
       );
       const entry = {
@@ -247,8 +246,12 @@ const annotateAppendix = (
         term: textFromHtml(termHtml),
         normalizedTerm,
       };
-      if (owner === undefined) entries.push(entry);
-      else entries.push({ ...entry, owner });
+      entries.push(
+        Option.match(owner, {
+          onNone: () => entry,
+          onSome: (section) => ({ ...entry, owner: section }),
+        }),
+      );
       return `<li class="symbol-entry" id="${id}"><strong>${termHtml}</strong> = ${linkedTrailing}</li>`;
     },
   );
@@ -261,9 +264,9 @@ const linkSymbols = (html: string, slug: string, symbols: ReadonlyMap<string, st
     (whole, termHtml: string) => {
       const symbolId = symbols.get(normalizeDictionaryTerm(termHtml));
       let href = `/${slug}/appendix/`;
-      if (symbolId !== undefined) href = `/${slug}/appendix/#${symbolId}`;
       let linkedTerm = `<strong>${termHtml}</strong>`;
-      if (symbolId !== undefined) {
+      if (symbolId) {
+        href = `/${slug}/appendix/#${symbolId}`;
         linkedTerm = `<a class="symbol-link" href="${href}"><strong>${termHtml}</strong></a>`;
       }
       return whole
@@ -277,20 +280,19 @@ const linkSymbols = (html: string, slug: string, symbols: ReadonlyMap<string, st
 
 const annotateListItem = (opening: string, inner: string): string => {
   const leading = inner.match(/^(\s*)(<em>[\s\S]*?<\/em>)([\s\S]*)$/);
-  if (leading === null) return `${opening}${inner}</li>`;
+  if (!leading) return `${opening}${inner}</li>`;
   const [, whitespace = '', reference = '', remainder = ''] = leading;
   const scripture = /biblegateway\.com/i.test(reference);
   const witness = /egwwritings\.org/i.test(reference) || /^\s*(?:White|Miller):/i.test(remainder);
   if (!scripture && !witness) return `${opening}${inner}</li>`;
   let register = 'witness';
   if (scripture) register = 'scripture';
-  let quoteAndGloss: RegExpMatchArray | null = null;
-  if (!remainder.includes('<ul>')) {
-    quoteAndGloss = remainder.match(/^(\s*)(&quot;[\s\S]*?&quot;)(\s+—[\s\S]*)$/);
-  }
   let annotatedRemainder = remainder;
-  if (quoteAndGloss !== null) {
-    annotatedRemainder = `${quoteAndGloss[1]}<span class="source-quotation">${quoteAndGloss[2]}</span><span class="source-gloss">${quoteAndGloss[3]}</span>`;
+  if (!remainder.includes('<ul>')) {
+    const quoteAndGloss = remainder.match(/^(\s*)(&quot;[\s\S]*?&quot;)(\s+—[\s\S]*)$/);
+    if (quoteAndGloss) {
+      annotatedRemainder = `${quoteAndGloss[1]}<span class="source-quotation">${quoteAndGloss[2]}</span><span class="source-gloss">${quoteAndGloss[3]}</span>`;
+    }
   }
   let label = '';
   if (witness) label = '<span class="register-label">Witness</span>';
@@ -446,8 +448,8 @@ export const parseStudyArticle = ({
         words: countStudyWords(`${heading.titleHtml} ${html}`),
         html,
       };
-      if (summaryHtml === undefined) sectionDrafts.push(sectionDraft);
-      else sectionDrafts.push({ ...sectionDraft, summaryHtml });
+      if (summaryHtml) sectionDrafts.push({ ...sectionDraft, summaryHtml });
+      else sectionDrafts.push(sectionDraft);
     });
     sectionIndexesByPart.push(indexes);
   });
@@ -463,22 +465,25 @@ export const parseStudyArticle = ({
       href: `/${slug}/part-${partOrdinal}/#${section.id}`,
     };
   });
-  let appendixBody: string | undefined;
-  if (appendixHeading !== undefined) {
-    appendixBody = anchored.html.slice(appendixHeading.end).trim();
-  }
-  let annotatedAppendix: ReturnType<typeof annotateAppendix> | undefined;
-  if (appendixBody !== undefined) {
-    annotatedAppendix = annotateAppendix(appendixBody, slug, bareSections, anchored.ids);
+  let annotatedAppendix: Option.Option<ReturnType<typeof annotateAppendix>> = Option.none();
+  if (appendixHeading) {
+    annotatedAppendix = Option.some(
+      annotateAppendix(
+        anchored.html.slice(appendixHeading.end).trim(),
+        slug,
+        bareSections,
+        anchored.ids,
+      ),
+    );
   }
   const hrefByTitle = new Map(
     bareSections.map((section) => [normalizedSectionTitle(section.title), section.href]),
   );
   const sections = bareSections.map((section) => {
-    let symbolLinkedHtml = section.html;
-    if (annotatedAppendix !== undefined) {
-      symbolLinkedHtml = linkSymbols(section.html, slug, annotatedAppendix.symbols);
-    }
+    const symbolLinkedHtml = Option.match(annotatedAppendix, {
+      onNone: () => section.html,
+      onSome: (annotated) => linkSymbols(section.html, slug, annotated.symbols),
+    });
     return {
       ...section,
       html: annotateStudySection(section.id, linkSectionReferences(symbolLinkedHtml, hrefByTitle)),
@@ -488,7 +493,7 @@ export const parseStudyArticle = ({
     const partSections =
       sectionIndexesByPart[index]?.flatMap((sectionIndex) => {
         const section = sections[sectionIndex];
-        if (section === undefined) return [];
+        if (!section) return [];
         return [section];
       }) ?? [];
     return {
@@ -501,16 +506,6 @@ export const parseStudyArticle = ({
       sections: partSections,
     };
   });
-  let appendix: StudyAppendix | undefined;
-  if (appendixHeading !== undefined && annotatedAppendix !== undefined) {
-    appendix = {
-      id: appendixHeading.id,
-      title: appendixHeading.titleHtml,
-      href: `/${slug}/appendix/`,
-      html: annotatedAppendix.html,
-      entries: annotatedAppendix.entries,
-    };
-  }
   const document = {
     introductionHtml,
     parts,
@@ -518,8 +513,20 @@ export const parseStudyArticle = ({
     words:
       countStudyWords(introductionHtml) + sections.reduce((sum, section) => sum + section.words, 0),
   };
-  if (appendix === undefined) return document;
-  return { ...document, appendix };
+  if (!appendixHeading) return document;
+  return Option.match(annotatedAppendix, {
+    onNone: () => document,
+    onSome: (annotated) => ({
+      ...document,
+      appendix: {
+        id: appendixHeading.id,
+        title: appendixHeading.titleHtml,
+        href: `/${slug}/appendix/`,
+        html: annotated.html,
+        entries: annotated.entries,
+      },
+    }),
+  });
 };
 
 // ============================================================================
@@ -1452,7 +1459,7 @@ export const unifyComparisonPage = (html: string, comp: Comparison.Source): stri
   let out = html;
   const navMatch = out.match(/<nav class="topnav" aria-label="Site">[\s\S]*?<\/nav>/);
   const pageList = navMatch?.[0].match(/<ul class="nav-list">[\s\S]*?<\/ul>/);
-  if (navMatch !== null && navMatch !== undefined && pageList !== null && pageList !== undefined) {
+  if (navMatch && pageList) {
     out = out.replace(
       navMatch[0],
       `${nav('', '/comparisons/').trim()}
@@ -1530,7 +1537,7 @@ const renderToc = (
   let summary = `Part ${current.part?.ordinal ?? 1} · Section ${firstSection?.ordinal ?? 1} of ${document.sections.length}`;
   if (current.appendix === true) summary = 'Symbol Dictionary';
   let appendixLink = '';
-  if (document.appendix !== undefined) {
+  if (document.appendix) {
     let appendixCurrent = '';
     if (current.appendix === true) appendixCurrent = ' aria-current="page"';
     appendixLink = `<a class="toc-appendix" href="${document.appendix.href}"${appendixCurrent}>Symbol Dictionary</a>`;
@@ -1715,16 +1722,16 @@ const STUDY_SCRIPT = `
 export const studyLandingPage = (opts: { meta: Study.Meta; document: StudyDocument }): string => {
   const first = opts.document.sections[0];
   const routeEntries = opts.document.sections.map((section) => [section.id, section.href]);
-  if (opts.document.appendix !== undefined)
+  if (opts.document.appendix)
     routeEntries.push([opts.document.appendix.id, opts.document.appendix.href]);
   const routes = encodeJson(Object.fromEntries(routeEntries)).replaceAll('<', '\\u003c');
   const minutes = estimateReadingMinutes(opts.document.words);
   let appendixHref = '';
-  if (opts.document.appendix !== undefined) {
+  if (opts.document.appendix) {
     appendixHref = ` data-appendix-href="${opts.document.appendix.href}"`;
   }
   let studyActions = '';
-  if (first !== undefined) {
+  if (first) {
     studyActions = `<div class="study-actions"><a class="start-reading" href="${first.href}">Start With Section 1</a><a class="resume-reading" data-resume-reading hidden></a></div>`;
   }
   const body = `${masthead({
@@ -1757,7 +1764,7 @@ ${opts.document.parts
 ${part.sections
   .map((section) => {
     let summary = '';
-    if (section.summaryHtml !== undefined) {
+    if (section.summaryHtml) {
       summary = `<span class="section-summary">${section.summaryHtml}</span>`;
     }
     return `                <li data-syllabus-section="${section.id}" data-section-ordinal="${section.ordinal}"><a href="${section.href}"><span>${section.title}</span><span>${formatReadingTime(estimateReadingMinutes(section.words))}</span>${summary}</a></li>`;
@@ -1789,11 +1796,7 @@ ${part.sections
  * the final section's next is the Symbol Dictionary when present, else the
  * overview.
  */
-const sectionPagination = (
-  document: StudyDocument,
-  section: StudySection,
-  slug: string,
-): { previousHref: string; previousLabel: string; nextHref: string; nextLabel: string } => {
+const sectionPagination = (document: StudyDocument, section: StudySection, slug: string) => {
   const previous = document.sections[section.ordinal - 2];
   const next = document.sections[section.ordinal];
   const sameHref = (target: StudySection): string => {
@@ -1802,14 +1805,14 @@ const sectionPagination = (
   };
   let previousHref = `/${slug}/`;
   let previousLabel = 'Study Overview';
-  if (previous !== undefined) {
+  if (previous) {
     previousHref = sameHref(previous);
     previousLabel = `Previous: ${previous.title}`;
   }
   let nextHref = document.appendix?.href ?? `/${slug}/`;
   let nextLabel = 'Next: Study Overview';
-  if (document.appendix !== undefined) nextLabel = 'Next: Symbol Dictionary';
-  if (next !== undefined) {
+  if (document.appendix) nextLabel = 'Next: Symbol Dictionary';
+  if (next) {
     nextHref = sameHref(next);
     nextLabel = `Next: ${next.title}`;
   }

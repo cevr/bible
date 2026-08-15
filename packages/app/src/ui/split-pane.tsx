@@ -1,4 +1,5 @@
 import type { JSX } from '@solidjs/web';
+import { Option } from 'effect';
 import { createSignal } from 'solid-js';
 
 export interface SplitPaneProps {
@@ -14,7 +15,7 @@ export const SplitPane = (props: SplitPaneProps) => {
   const minimum = () => props.minimum ?? 50;
   const maximum = () => props.maximum ?? 75;
   const [size, setSize] = createSignal(props.defaultSize ?? 62);
-  let root: HTMLDivElement | undefined;
+  let root = Option.none<HTMLDivElement>();
   const update = (next: number): void => {
     setSize(Math.min(maximum(), Math.max(minimum(), Math.round(next))));
   };
@@ -22,7 +23,7 @@ export const SplitPane = (props: SplitPaneProps) => {
   return (
     <div
       ref={(element) => {
-        root = element;
+        root = Option.some(element);
       }}
       class="bible-split-pane"
       style={{ '--bible-primary-pane': `${String(size())}%` }}
@@ -51,9 +52,9 @@ export const SplitPane = (props: SplitPaneProps) => {
           const handle = event.currentTarget;
           handle.setPointerCapture(event.pointerId);
           const move = (moveEvent: PointerEvent): void => {
-            const bounds = root?.getBoundingClientRect();
-            if (bounds === undefined || bounds.width === 0) return;
-            update(((moveEvent.clientX - bounds.left) / bounds.width) * 100);
+            const bounds = Option.map(root, (element) => element.getBoundingClientRect());
+            if (Option.isNone(bounds) || bounds.value.width === 0) return;
+            update(((moveEvent.clientX - bounds.value.left) / bounds.value.width) * 100);
           };
           const stop = (): void => {
             handle.removeEventListener('pointermove', move);

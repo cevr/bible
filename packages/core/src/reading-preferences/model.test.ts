@@ -11,7 +11,7 @@ import {
 describe('ReadingPreferences', () => {
   test('defines the shared total reading projection', () => {
     expect(DEFAULT_READING_PREFERENCES).toEqual(
-      new ReadingPreferences({
+      ReadingPreferences.make({
         colorMode: 'system',
         readerTypeface: 'crimson-pro',
         fontSizePx: 18,

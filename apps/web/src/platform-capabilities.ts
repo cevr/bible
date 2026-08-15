@@ -1,12 +1,12 @@
 import { CapabilityError, type AppCapabilities } from '@bible/app/platform';
-import { Effect } from 'effect';
+import { Effect, Predicate } from 'effect';
 
 const failure = (operation: string, cause: unknown) => {
   let capability: 'file-import' | 'file-export' = 'file-export';
   if (operation.startsWith('import')) capability = 'file-import';
   let message = String(cause);
   if (cause instanceof Error) message = cause.message;
-  return new CapabilityError({
+  return CapabilityError.make({
     capability,
     operation,
     message,
@@ -29,7 +29,7 @@ export const webCapabilities: AppCapabilities = {
         const cancelled = () => resume(Effect.succeed([]));
         const changed = () => {
           const file = input.files?.[0];
-          if (file === undefined) {
+          if (Predicate.isUndefined(file)) {
             resume(Effect.succeed([]));
             return;
           }

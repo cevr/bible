@@ -1,4 +1,4 @@
-import { Option, Schema } from 'effect';
+import { Option, Predicate, Schema } from 'effect';
 
 import {
   DEFAULT_READING_PREFERENCES,
@@ -16,14 +16,14 @@ const StudyTab = Schema.Literals(['notes', 'xrefs', 'words', 'egw']);
 const RecentDocuments = Schema.Array(
   Schema.Struct({ path: Schema.String, title: Schema.optionalKey(Schema.String) }),
 );
-const ProgressByPath = Schema.Record(Schema.String, Schema.Number);
+const ProgressByPath = Schema.Record(Schema.String, Schema.Finite);
 
-const fontSizes = { sm: 14, base: 18, lg: 20, xl: 22, '2xl': 26, '3xl': 32 } as const;
-const typefaces: Record<typeof LegacyFontFamily.Type, ReaderTypeface> = {
+const fontSizes = { sm: 14, base: 18, lg: 20, xl: 22, '2xl': 26, '3xl': 32 };
+const typefaces = {
   serif: 'crimson-pro',
   sans: 'system-sans',
   mono: 'system-mono',
-};
+} satisfies Record<typeof LegacyFontFamily.Type, ReaderTypeface>;
 
 const staleKeys = [
   'readerMode',
@@ -31,10 +31,7 @@ const staleKeys = [
   'bibleCommentaryOpen',
   'bibleDrawerWideWidth',
   'inlineCommentary',
-] as const;
-
-const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
+];
 
 export interface DesktopDeviceStateProjection {
   readonly uiScale?: typeof UiScale.Type;
@@ -56,6 +53,7 @@ export interface DesktopSettingsProjectionOptions {
 }
 
 export const projectDesktopSettings = (
+  // oxlint-disable-next-line effect/noUnknownParameters -- legacy snapshot I/O boundary: raw JSON is decoded field-by-field with schemas below
   input: unknown,
   options: DesktopSettingsProjectionOptions,
 ): DesktopSettingsProjection => {
@@ -68,59 +66,76 @@ export const projectDesktopSettings = (
     diagnostics.push({ id: options.nextDiagnosticId(path), path, category, message });
   };
 
-  if (!isRecord(input)) {
+  if (!Predicate.isObject(input)) {
     diagnostic('$', 'malformed', 'desktop settings must decode to an object');
     return { commands: [], diagnostics, deviceState: {} };
   }
 
-  const decodeField = <A>(key: string, schema: Schema.ConstraintDecoder<A>): A | undefined => {
-    if (!(key in input)) return undefined;
+  const decodeField = <A>(key: string, schema: Schema.ConstraintDecoder<A>): Option.Option<A> => {
+    if (!(key in input)) return Option.none();
     const decoded = Schema.decodeUnknownOption(schema)(input[key]);
-    if (Option.isSome(decoded)) return decoded.value;
+    if (Option.isSome(decoded)) return decoded;
     diagnostic(key, 'malformed', `ignored invalid ${key}`);
-    return undefined;
+    return Option.none();
   };
 
   const colorMode = decodeField('theme', LegacyTheme);
   const legacyFontFamily = decodeField('fontFamily', LegacyFontFamily);
   const legacyFontScale = decodeField('fontSize', LegacyFontScale);
-  let fontSizePx: number | undefined;
-  if (legacyFontScale !== undefined) fontSizePx = fontSizes[legacyFontScale];
-  const rawLineHeight = decodeField('lineHeight', Schema.Number);
-  let lineHeightRatio: number | undefined;
-  if (rawLineHeight !== undefined) {
-    let ratio = rawLineHeight;
-    if (rawLineHeight > 4) ratio = rawLineHeight / (fontSizePx ?? 18);
-    if (ratio >= 1 && ratio <= 4) lineHeightRatio = ratio;
+  const fontSizePx = Option.map(legacyFontScale, (scale) => fontSizes[scale]);
+  const rawLineHeight = decodeField('lineHeight', Schema.Finite);
+  let lineHeightRatio = Option.none<number>();
+  if (Option.isSome(rawLineHeight)) {
+    let ratio = rawLineHeight.value;
+    if (ratio > 4) ratio = ratio / Option.getOrElse(fontSizePx, () => 18);
+    if (ratio >= 1 && ratio <= 4) lineHeightRatio = Option.some(ratio);
     else diagnostic('lineHeight', 'out-of-range', 'ignored line height outside 1..4');
   }
-  const letterSpacingEm = decodeField('letterSpacing', Schema.Number);
+  const letterSpacingEm = decodeField('letterSpacing', Schema.Finite);
   const measureCh = decodeField('lineWidth', Schema.Int);
   const showStrongs = decodeField('inlineStrongs', Schema.Boolean);
   const showMarginNotes = decodeField('inlineMarginNotes', Schema.Boolean);
   const showCrossReferences = decodeField('inlineCrossRefs', Schema.Boolean);
 
-  const bounded = (path: string, value: number | undefined, minimum: number, maximum: number) => {
-    if (value === undefined) return undefined;
-    if (value >= minimum && value <= maximum) return value;
+  const bounded = (
+    path: string,
+    value: Option.Option<number>,
+    minimum: number,
+    maximum: number,
+  ): Option.Option<number> => {
+    if (Option.isNone(value)) return Option.none();
+    if (value.value >= minimum && value.value <= maximum) return value;
     diagnostic(path, 'out-of-range', `ignored ${path} outside ${minimum}..${maximum}`);
-    return undefined;
+    return Option.none();
   };
 
   let readerTypeface = DEFAULT_READING_PREFERENCES.readerTypeface;
-  if (legacyFontFamily !== undefined) readerTypeface = typefaces[legacyFontFamily];
-  const preferences = new ReadingPreferences({
-    colorMode: colorMode ?? DEFAULT_READING_PREFERENCES.colorMode,
+  if (Option.isSome(legacyFontFamily)) readerTypeface = typefaces[legacyFontFamily.value];
+  const preferences = ReadingPreferences.make({
+    colorMode: Option.getOrElse(colorMode, () => DEFAULT_READING_PREFERENCES.colorMode),
     readerTypeface,
-    fontSizePx: fontSizePx ?? DEFAULT_READING_PREFERENCES.fontSizePx,
-    lineHeightRatio: lineHeightRatio ?? DEFAULT_READING_PREFERENCES.lineHeightRatio,
-    letterSpacingEm:
-      bounded('letterSpacing', letterSpacingEm, -0.02, 0.1) ??
-      DEFAULT_READING_PREFERENCES.letterSpacingEm,
-    measureCh: bounded('lineWidth', measureCh, 40, 120) ?? DEFAULT_READING_PREFERENCES.measureCh,
-    showStrongs: showStrongs ?? DEFAULT_READING_PREFERENCES.showStrongs,
-    showMarginNotes: showMarginNotes ?? DEFAULT_READING_PREFERENCES.showMarginNotes,
-    showCrossReferences: showCrossReferences ?? DEFAULT_READING_PREFERENCES.showCrossReferences,
+    fontSizePx: Option.getOrElse(fontSizePx, () => DEFAULT_READING_PREFERENCES.fontSizePx),
+    lineHeightRatio: Option.getOrElse(
+      lineHeightRatio,
+      () => DEFAULT_READING_PREFERENCES.lineHeightRatio,
+    ),
+    letterSpacingEm: Option.getOrElse(
+      bounded('letterSpacing', letterSpacingEm, -0.02, 0.1),
+      () => DEFAULT_READING_PREFERENCES.letterSpacingEm,
+    ),
+    measureCh: Option.getOrElse(
+      bounded('lineWidth', measureCh, 40, 120),
+      () => DEFAULT_READING_PREFERENCES.measureCh,
+    ),
+    showStrongs: Option.getOrElse(showStrongs, () => DEFAULT_READING_PREFERENCES.showStrongs),
+    showMarginNotes: Option.getOrElse(
+      showMarginNotes,
+      () => DEFAULT_READING_PREFERENCES.showMarginNotes,
+    ),
+    showCrossReferences: Option.getOrElse(
+      showCrossReferences,
+      () => DEFAULT_READING_PREFERENCES.showCrossReferences,
+    ),
     bibleLayout: DEFAULT_READING_PREFERENCES.bibleLayout,
   });
 
@@ -132,12 +147,12 @@ export const projectDesktopSettings = (
     commands: [{ _tag: 'SetReadingPreferences', preferences }],
     diagnostics,
     deviceState: {
-      uiScale: decodeField('uiScale', UiScale),
-      recentDocuments: decodeField('recentDocuments', RecentDocuments),
-      progressByPath: decodeField('progressByPath', ProgressByPath),
-      debugDumpSegments: decodeField('debugDumpSegments', Schema.Boolean),
-      bibleDrawerWidth: decodeField('bibleDrawerWidth', Schema.Number),
-      bibleStudyTab: decodeField('bibleStudyTab', StudyTab),
+      uiScale: Option.getOrUndefined(decodeField('uiScale', UiScale)),
+      recentDocuments: Option.getOrUndefined(decodeField('recentDocuments', RecentDocuments)),
+      progressByPath: Option.getOrUndefined(decodeField('progressByPath', ProgressByPath)),
+      debugDumpSegments: Option.getOrUndefined(decodeField('debugDumpSegments', Schema.Boolean)),
+      bibleDrawerWidth: Option.getOrUndefined(decodeField('bibleDrawerWidth', Schema.Finite)),
+      bibleStudyTab: Option.getOrUndefined(decodeField('bibleStudyTab', StudyTab)),
     },
   };
 };

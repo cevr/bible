@@ -1,7 +1,7 @@
 import * as BunServices from '@effect/platform-bun/BunServices';
 import * as SqliteBun from '@effect/sql-sqlite-bun/SqliteClient';
 import { Database } from 'bun:sqlite';
-import { Effect, FileSystem, Layer, Option, Path, Result, Schema } from 'effect';
+import { Effect, FileSystem, Layer, Option, Path, Predicate, Result, Schema } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import * as SqlClient from 'effect/unstable/sql/SqlClient';
 
@@ -19,17 +19,16 @@ const withTempDatabase = <A, E>(prefix: string, use: (filename: string) => Effec
     return yield* use(path.join(directory, 'database.sqlite'));
   });
 
-const run = <A, E>(effect: Effect.Effect<A, E, BibleCorpus | BibleDatabase | TopicService>) => {
-  return withTempDatabase('bible-corpus', (filename) => {
+const run = <A, E>(effect: Effect.Effect<A, E, BibleCorpus | BibleDatabase | TopicService>) =>
+  withTempDatabase('bible-corpus', (filename) => {
     const layer = Layer.mergeAll(BibleCorpus.layer, BibleDatabase.layer, TopicService.Live).pipe(
       Layer.provide(SqliteBun.layer({ filename })),
     );
     return effect.pipe(Effect.provide(layer), Effect.scoped);
   });
-};
 
 const archive = (): BibleCorpusArchive =>
-  new BibleCorpusArchive({
+  BibleCorpusArchive.make({
     kjv: {
       verses: [
         { book_name: 'Genesis', book: 1, chapter: 1, verse: 1, text: 'In the beginning' },
@@ -143,7 +142,7 @@ describe('BibleCorpus + BibleDatabase', () => {
         const topics = yield* TopicService;
         expect((yield* topics.list({ query: 'creation' }))[0]?.name).toBe('CREATION');
         const topic = yield* topics.topic(
-          Schema.decodeUnknownSync(TopicId)('naves-topical-bible.creation'),
+          yield* Schema.decodeEffect(TopicId)('naves-topical-bible.creation'),
         );
         expect(topic.sections[0]?.references[0]?.osis).toEqual(['Gen.1.1']);
         expect(installed.topics).toEqual({ topics: 1, sections: 1, references: 1 });
@@ -170,8 +169,8 @@ describe('BibleCorpus + BibleDatabase', () => {
         const database = yield* BibleDatabase;
         const valid = archive();
         const topic = valid.topics.data[0];
-        if (topic === undefined) return yield* Effect.fail('test topic is missing');
-        const invalid = new BibleCorpusArchive({
+        if (Predicate.isUndefined(topic)) return yield* Effect.fail('test topic is missing');
+        const invalid = BibleCorpusArchive.make({
           kjv: valid.kjv,
           strongsVerses: valid.strongsVerses,
           strongsLexicon: valid.strongsLexicon,
@@ -191,8 +190,8 @@ describe('BibleCorpus + BibleDatabase', () => {
       }),
     ));
 
-  test('readonly query interface treats legacy word rows as non-italic', () => {
-    return withTempDatabase('bible-legacy', (filename) => {
+  test('readonly query interface treats legacy word rows as non-italic', () =>
+    withTempDatabase('bible-legacy', (filename) => {
       const layer = BibleDatabase.layer.pipe(Layer.provideMerge(SqliteBun.layer({ filename })));
       return Effect.scoped(
         Effect.gen(function* () {
@@ -217,11 +216,10 @@ describe('BibleCorpus + BibleDatabase', () => {
           ]);
         }).pipe(Effect.provide(layer)),
       );
-    });
-  });
+    }));
 
-  test('corpus initialization migrates an existing word table to preserve italics', () => {
-    return withTempDatabase('bible-migration', (filename) => {
+  test('corpus initialization migrates an existing word table to preserve italics', () =>
+    withTempDatabase('bible-migration', (filename) => {
       const initializeLegacy = Effect.acquireUseRelease(
         Effect.sync(() => new Database(filename)),
         (legacy) =>
@@ -252,6 +250,5 @@ describe('BibleCorpus + BibleDatabase', () => {
           }).pipe(Effect.provide(layer)),
         ),
       );
-    });
-  });
+    }));
 });

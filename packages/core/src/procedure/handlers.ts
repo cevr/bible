@@ -3,7 +3,7 @@ import { BibleService } from '../bible/service.js';
 import { Reference as WritingsReference } from '../writings/index.js';
 import { WritingsService } from '../writings/service.js';
 import { TopicService } from '../topics/service.js';
-import { Effect } from 'effect';
+import { Effect, Option, Predicate, Schema } from 'effect';
 
 import { BibleProcedureGroup } from './group.js';
 import { ProcedureError } from './model.js';
@@ -17,17 +17,17 @@ import {
 } from './services.js';
 
 const errorCode = (cause: unknown): string => {
-  if (typeof cause === 'object' && cause !== null && '_tag' in cause) {
+  if (Predicate.isObject(cause)) {
     const tag = cause['_tag'];
-    if (typeof tag === 'string' && tag.length > 0) return tag;
+    if (Predicate.isString(tag) && tag.length > 0) return tag;
   }
   return 'UnexpectedProcedureFailure';
 };
 
 const errorMessage = (cause: unknown): string => {
-  if (typeof cause === 'object' && cause !== null && 'message' in cause) {
+  if (Predicate.isObject(cause)) {
     const message = cause['message'];
-    if (typeof message === 'string' && message.length > 0) return message;
+    if (Predicate.isString(message) && message.length > 0) return message;
   }
   const code = errorCode(cause);
   if (code === 'UnexpectedProcedureFailure') return String(cause);
@@ -37,8 +37,8 @@ const errorMessage = (cause: unknown): string => {
 const normalizeFailure =
   (procedure: string) =>
   (cause: unknown): ProcedureError => {
-    if (cause instanceof ProcedureError) return cause;
-    return new ProcedureError({
+    if (Schema.is(ProcedureError)(cause)) return cause;
+    return ProcedureError.make({
       procedure,
       code: errorCode(cause),
       message: errorMessage(cause),
@@ -92,8 +92,7 @@ export const BibleProcedureHandlers = BibleProcedureGroup.toLayer(
       'v1.reading.writingsPublication.download': (input) =>
         writingsLibrary.download(input.publicationId),
       'v1.reading.writingsLibrary.downloadAll': () => writingsLibrary.downloadAll,
-      'v1.reading.continuity.get': () =>
-        continuity.get.pipe(Effect.map((location) => location ?? null)),
+      'v1.reading.continuity.get': () => continuity.get.pipe(Effect.map(Option.getOrNull)),
       'v1.reading.continuity.record': (input) => continuity.record(input),
       'v1.preferences.reading.get': () => preferences.get,
       'v1.preferences.reading.patch': (input) => preferences.patch(input.patch),

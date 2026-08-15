@@ -1,7 +1,7 @@
 import { EGWApiClient, type Schemas as EGWSchemas } from '@bible/core/egw';
 import { CorpusSupply, Target } from '@bible/core/corpus-supply';
 import { publicationId } from '@bible/core/writings';
-import { Console, Effect, Stream } from 'effect';
+import { Console, Effect, Option, Stream } from 'effect';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
 
 import { FullLayer } from './layers.js';
@@ -28,10 +28,10 @@ export const egwDownload = Command.make(
       const supply = yield* CorpusSupply;
 
       // Resolve the target Book (from API). Prefer --id, else search by code.
-      let book: EGWSchemas.Book | null = null;
+      let book: Option.Option<EGWSchemas.Book> = Option.none();
 
       if (args.id._tag === 'Some') {
-        book = yield* client.getBook(args.id.value);
+        book = Option.some(yield* client.getBook(args.id.value));
       } else if (args.code._tag === 'Some') {
         const code = args.code.value;
         // The remote /content/books?search= endpoint matches against TITLE,
@@ -62,7 +62,7 @@ export const egwDownload = Command.make(
           yield* Console.log('Use `bible egw download --id <ID>` to disambiguate.');
           return;
         }
-        book = exact[0] ?? null;
+        book = Option.fromNullishOr(exact[0]);
       } else {
         yield* Console.log('Usage: bible egw download <CODE>');
         yield* Console.log('       bible egw download --id <BOOK_ID>');
@@ -73,24 +73,25 @@ export const egwDownload = Command.make(
         return;
       }
 
-      if (book === null) {
+      if (Option.isNone(book)) {
         yield* Console.log('Could not resolve book.');
         return;
       }
+      const resolved = book.value;
 
       yield* Console.log(
-        `Downloading "${book.title}" (${book.code}, id ${book.book_id}) by ${book.author}...`,
+        `Downloading "${resolved.title}" (${resolved.code}, id ${resolved.book_id}) by ${resolved.author}...`,
       );
 
       const receipt = yield* supply.ensure({
-        target: Target.writings([publicationId(book.book_id)]),
+        target: Target.writings([publicationId(resolved.book_id)]),
         refresh: true,
       });
-      const activation = receipt.activated[0];
-      if (activation === undefined) {
+      const activation = Option.fromNullishOr(receipt.activated[0]);
+      if (Option.isNone(activation)) {
         yield* Console.log('Already installed.');
         return;
       }
-      yield* Console.log(`✓ Stored ${activation.installed} paragraphs.`);
+      yield* Console.log(`✓ Stored ${activation.value.installed} paragraphs.`);
     }),
 ).pipe(Command.provide(() => FullLayer));

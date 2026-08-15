@@ -5,6 +5,8 @@
  * Renderer-agnostic - shared by application and command-line hosts.
  */
 
+import { Option, Predicate } from 'effect';
+
 import { BIBLE_BOOK_ALIASES, BIBLE_BOOKS, getBibleBook } from './canon.js';
 import type {
   Book,
@@ -24,7 +26,7 @@ export interface ParseBibleQueryOptions {
    * If provided, will be used as a fallback when exact matching fails.
    * Signature: (books: Book[], query: string) => Book | undefined
    */
-  readonly fuzzyMatcher?: (books: readonly Book[], query: string) => Book | undefined;
+  readonly fuzzyMatcher?: (books: readonly Book[], query: string) => Option.Option<Book>;
 }
 
 /**
@@ -76,43 +78,43 @@ export const ParsedBibleQuery = {
     ref: Reference.book(book),
   }),
   search: (query: string): ParsedBibleQuery => ({ _tag: 'search', query }),
-} as const;
+};
 
 const normalizeBookName = (name: string): string =>
   name.replace(/\.$/, '').replace(/\s+/g, ' ').trim().toLowerCase();
 
 /** Resolve every parser and extractor book token through the same alias rules. */
-function resolveBook(bookPart: string, options?: ParseBibleQueryOptions): number | undefined {
+function resolveBook(bookPart: string, options?: ParseBibleQueryOptions): Option.Option<number> {
   const normalized = normalizeBookName(bookPart);
 
   // Direct alias lookup
   let bookNum = BIBLE_BOOK_ALIASES[normalized];
-  if (bookNum) return bookNum;
+  if (bookNum) return Option.some(bookNum);
 
   // Try removing spaces
   const noSpaces = normalized.replace(/\s+/g, '');
   bookNum = BIBLE_BOOK_ALIASES[noSpaces];
-  if (bookNum) return bookNum;
+  if (bookNum) return Option.some(bookNum);
 
   // Try adding space after number (e.g., "1cor" -> "1 cor")
   const withSpace = normalized.replace(/^(\d)([a-z])/, '$1 $2');
   bookNum = BIBLE_BOOK_ALIASES[withSpace];
-  if (bookNum) return bookNum;
+  if (bookNum) return Option.some(bookNum);
 
   // Use fuzzy matcher if provided
   if (options?.fuzzyMatcher) {
     const matched = options.fuzzyMatcher(BIBLE_BOOKS, normalized);
-    if (matched) return matched.number;
+    if (Option.isSome(matched)) return Option.some(matched.value.number);
   }
 
   // Fallback: Partial match on book names (prefix match)
   for (const book of BIBLE_BOOKS) {
     if (book.name.toLowerCase().startsWith(normalized)) {
-      return book.number;
+      return Option.some(book.number);
     }
   }
 
-  return undefined;
+  return Option.none();
 }
 
 /**
@@ -141,13 +143,14 @@ export function parseBibleQuery(query: string, options?: ParseBibleQueryOptions)
     const startVerseStr = verseRangeMatch[3];
     const endVerseStr = verseRangeMatch[4];
     if (bookPart && chapterStr && startVerseStr && endVerseStr) {
-      const bookNum = resolveBook(bookPart, options);
-      if (bookNum) {
+      const bookOption = resolveBook(bookPart, options);
+      if (Option.isSome(bookOption)) {
+        const bookNum = bookOption.value;
         const chapter = parseInt(chapterStr, 10);
         const startVerse = parseInt(startVerseStr, 10);
         const endVerse = parseInt(endVerseStr, 10);
         const book = getBibleBook(bookNum);
-        if (book && chapter >= 1 && chapter <= book.chapters) {
+        if (Option.isSome(book) && chapter >= 1 && chapter <= book.value.chapters) {
           return ParsedBibleQuery.verseRange(bookNum, chapter, startVerse, endVerse);
         }
       }
@@ -161,12 +164,13 @@ export function parseBibleQuery(query: string, options?: ParseBibleQueryOptions)
     const startChapterStr = chapterRangeMatch[2];
     const endChapterStr = chapterRangeMatch[3];
     if (bookPart && startChapterStr && endChapterStr) {
-      const bookNum = resolveBook(bookPart, options);
-      if (bookNum) {
+      const bookOption = resolveBook(bookPart, options);
+      if (Option.isSome(bookOption)) {
+        const bookNum = bookOption.value;
         const startChapter = parseInt(startChapterStr, 10);
         const endChapter = parseInt(endChapterStr, 10);
         const book = getBibleBook(bookNum);
-        if (book && startChapter >= 1 && endChapter <= book.chapters) {
+        if (Option.isSome(book) && startChapter >= 1 && endChapter <= book.value.chapters) {
           return ParsedBibleQuery.chapterRange(bookNum, startChapter, endChapter);
         }
       }
@@ -180,12 +184,13 @@ export function parseBibleQuery(query: string, options?: ParseBibleQueryOptions)
     const chapterStr = singleVerseMatch[2];
     const verseStr = singleVerseMatch[3];
     if (bookPart && chapterStr && verseStr) {
-      const bookNum = resolveBook(bookPart, options);
-      if (bookNum) {
+      const bookOption = resolveBook(bookPart, options);
+      if (Option.isSome(bookOption)) {
+        const bookNum = bookOption.value;
         const chapter = parseInt(chapterStr, 10);
         const verse = parseInt(verseStr, 10);
         const book = getBibleBook(bookNum);
-        if (book && chapter >= 1 && chapter <= book.chapters) {
+        if (Option.isSome(book) && chapter >= 1 && chapter <= book.value.chapters) {
           return ParsedBibleQuery.single(bookNum, chapter, verse);
         }
       }
@@ -198,11 +203,12 @@ export function parseBibleQuery(query: string, options?: ParseBibleQueryOptions)
     const bookPart = singleChapterMatch[1];
     const chapterStr = singleChapterMatch[2];
     if (bookPart && chapterStr) {
-      const bookNum = resolveBook(bookPart, options);
-      if (bookNum) {
+      const bookOption = resolveBook(bookPart, options);
+      if (Option.isSome(bookOption)) {
+        const bookNum = bookOption.value;
         const chapter = parseInt(chapterStr, 10);
         const book = getBibleBook(bookNum);
-        if (book && chapter >= 1 && chapter <= book.chapters) {
+        if (Option.isSome(book) && chapter >= 1 && chapter <= book.value.chapters) {
           return ParsedBibleQuery.chapter(bookNum, chapter);
         }
       }
@@ -214,8 +220,9 @@ export function parseBibleQuery(query: string, options?: ParseBibleQueryOptions)
   if (bookOnlyMatch) {
     const bookPart = bookOnlyMatch[1];
     if (bookPart) {
-      const bookNum = resolveBook(bookPart, options);
-      if (bookNum) {
+      const bookOption = resolveBook(bookPart, options);
+      if (Option.isSome(bookOption)) {
+        const bookNum = bookOption.value;
         return ParsedBibleQuery.fullBook(bookNum);
       }
     }
@@ -303,18 +310,19 @@ export function extractBibleReferences(text: string): ExtractedReference[] {
     const verseEndStr = match[4];
     const matchIndex = match.index;
 
-    if (!fullMatch || !bookPart || !chapterStr || !verseStr || matchIndex === undefined) {
+    if (!fullMatch || !bookPart || !chapterStr || !verseStr || Predicate.isUndefined(matchIndex)) {
       continue;
     }
 
-    const bookNum = resolveBook(bookPart);
-    if (!bookNum) continue;
+    const bookOption = resolveBook(bookPart);
+    if (Option.isNone(bookOption)) continue;
+    const bookNum = bookOption.value;
 
     const chapter = parseInt(chapterStr, 10);
     const verse = parseInt(verseStr, 10);
     const book = getBibleBook(bookNum);
 
-    if (!book || chapter < 1 || chapter > book.chapters) continue;
+    if (Option.isNone(book) || chapter < 1 || chapter > book.value.chapters) continue;
 
     const startReference = Reference.verse(bookNum, chapter, verse);
     let parsedReference: VerseReference | VerseRangeReference = startReference;
@@ -340,15 +348,15 @@ export function extractBibleReferences(text: string): ExtractedReference[] {
       if (!cont) break;
 
       const contVerse = parseInt(cont[1] ?? '', 10);
-      let contVerseEnd: number | undefined;
-      if (cont[2]) contVerseEnd = parseInt(cont[2], 10);
+      let contVerseEnd = Option.none<number>();
+      if (cont[2]) contVerseEnd = Option.some(parseInt(cont[2], 10));
       const contText = cont[0] ?? '';
       const continuationStart = Reference.verse(bookNum, chapter, contVerse);
       let continuationReference: VerseReference | VerseRangeReference = continuationStart;
-      if (contVerseEnd !== undefined) {
+      if (Option.isSome(contVerseEnd)) {
         continuationReference = Reference.range(
           continuationStart,
-          Reference.verse(bookNum, chapter, contVerseEnd),
+          Reference.verse(bookNum, chapter, contVerseEnd.value),
         );
       }
 
@@ -367,7 +375,7 @@ export function extractBibleReferences(text: string): ExtractedReference[] {
   VERSE_KEYWORD_PATTERN.lastIndex = 0;
   for (const match of text.matchAll(VERSE_KEYWORD_PATTERN)) {
     const matchIndex = match.index;
-    if (matchIndex === undefined) continue;
+    if (Predicate.isUndefined(matchIndex)) continue;
 
     // Skip if this position already overlaps with an existing reference
     if (results.some((r) => matchIndex >= r.start && matchIndex < r.end)) continue;
@@ -377,8 +385,8 @@ export function extractBibleReferences(text: string): ExtractedReference[] {
     if (!context) continue;
 
     const verse = parseInt(match[1] ?? '', 10);
-    let verseEnd: number | undefined;
-    if (match[2]) verseEnd = parseInt(match[2], 10);
+    let verseEnd = Option.none<number>();
+    if (match[2]) verseEnd = Option.some(parseInt(match[2], 10));
     const fullMatch = match[0];
 
     let contextReference: VerseReference;
@@ -389,10 +397,10 @@ export function extractBibleReferences(text: string): ExtractedReference[] {
     }
     const startReference = Reference.verse(contextReference.book, contextReference.chapter, verse);
     let keywordReference: VerseReference | VerseRangeReference = startReference;
-    if (verseEnd !== undefined) {
+    if (Option.isSome(verseEnd)) {
       keywordReference = Reference.range(
         startReference,
-        Reference.verse(contextReference.book, contextReference.chapter, verseEnd),
+        Reference.verse(contextReference.book, contextReference.chapter, verseEnd.value),
       );
     }
 

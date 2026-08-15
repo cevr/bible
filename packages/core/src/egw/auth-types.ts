@@ -1,4 +1,4 @@
-import { Redacted, Schema } from 'effect';
+import { Option, Redacted, Schema } from 'effect';
 
 /**
  * Decoded OAuth access token. Lives in its own module so both `EGWAuth`
@@ -21,11 +21,10 @@ export class AccessToken extends Schema.Class<AccessToken>('lib/EGW/Auth/AccessT
 
 // Convenience for callers that want a plain object (e.g. for JSON persistence).
 export const accessTokenToJson = (token: AccessToken) => {
-  let refreshToken: string | undefined;
-  if (token.refreshToken !== undefined) refreshToken = Redacted.value(token.refreshToken);
+  const refreshToken = Option.fromNullishOr(token.refreshToken).pipe(Option.map(Redacted.value));
   return {
     accessToken: Redacted.value(token.accessToken),
-    refreshToken,
+    refreshToken: Option.getOrUndefined(refreshToken),
     expiresAt: token.expiresAt,
     scope: token.scope,
   };

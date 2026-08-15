@@ -14,7 +14,7 @@ export const Slug = Schema.String.check(
   Schema.isPattern(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, { expected: 'a lowercase kebab-case slug' }),
   Schema.makeFilter<string>((slug) => {
     if (RESERVED.has(slug)) return `"${slug}" collides with a root-level site path`;
-    return undefined;
+    return true;
   }),
 ).pipe(Schema.brand('Study.Slug'));
 export type Slug = typeof Slug.Type;
@@ -26,7 +26,7 @@ const DateISO = Schema.String.check(
     const date = DateTime.make(s);
     if (Option.isNone(date) || DateTime.formatIsoDateUtc(date.value) !== s)
       return `"${s}" is not a valid calendar date`;
-    return undefined;
+    return true;
   }),
 );
 

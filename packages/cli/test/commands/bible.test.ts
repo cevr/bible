@@ -15,17 +15,15 @@ import { isStrongsNumber } from '../../src/commands/bible.js';
 import { versesForBibleQuery } from '../../src/lib/bible-query.js';
 
 const chapter = (bookNumber: number, chapterNumber: number, texts: readonly string[]) => {
-  const book = getBibleBook(bookNumber);
-  const knownBook = Option.getOrThrow(Option.fromNullishOr(book));
-  return new Chapter({
+  const knownBook = Option.getOrThrow(getBibleBook(bookNumber));
+  return Chapter.make({
     book: knownBook,
     reference: Reference.chapter(bookNumber, chapterNumber),
-    verses: texts.map(
-      (text, index) =>
-        new Verse({
-          reference: Reference.verse(bookNumber, chapterNumber, index + 1),
-          text,
-        }),
+    verses: texts.map((text, index) =>
+      Verse.make({
+        reference: Reference.verse(bookNumber, chapterNumber, index + 1),
+        text,
+      }),
     ) as [Verse, ...Verse[]],
     previous: Option.none(),
     next: Option.none(),

@@ -14,7 +14,7 @@
     "./ui": "./src/ui/index.ts"
   },
   "scripts": {
-    "typecheck": "tsgo --noEmit",
+    "typecheck": "tsc --noEmit",
     "test": "bun --conditions=browser test",
     "gate": "bun run typecheck && bun run test"
   },

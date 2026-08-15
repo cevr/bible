@@ -27,7 +27,7 @@ export class StudyFrontmatter extends Schema.Class<StudyFrontmatter>('StudyFront
 // Readings frontmatter
 export class ReadingFrontmatter extends Schema.Class<ReadingFrontmatter>('ReadingFrontmatter')({
   created_at: Schema.String,
-  chapter: Schema.Number,
+  chapter: Schema.Finite,
   apple_note_id: Schema.optionalKey(Schema.OptionFromUndefinedOr(AppleNoteId)),
 }) {}
 
@@ -47,8 +47,8 @@ export class SabbathSchoolFrontmatter extends Schema.Class<SabbathSchoolFrontmat
   'SabbathSchoolFrontmatter',
 )({
   created_at: Schema.String,
-  year: Schema.Number,
-  quarter: Schema.Number,
-  week: Schema.Number,
+  year: Schema.Finite,
+  quarter: Schema.Finite,
+  week: Schema.Finite,
   apple_note_id: Schema.optionalKey(Schema.OptionFromUndefinedOr(AppleNoteId)),
 }) {}

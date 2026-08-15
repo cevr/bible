@@ -22,7 +22,7 @@ const linkMessages = Command.make('link', { dryRun }, (args) =>
     const messagesDir = getOutputsPath('messages');
     const files = yield* fs
       .readDirectory(messagesDir)
-      .pipe(Effect.catch(() => Effect.succeed([] as string[])));
+      .pipe(Effect.orElseSucceed(() => [] as string[]));
 
     const mdFiles = files
       .filter((f) => f.endsWith('.md'))
@@ -47,7 +47,7 @@ const linkMessages = Command.make('link', { dryRun }, (args) =>
       const { frontmatter, content } = parseFrontmatter<{ apple_note_id?: string }>(rawContent);
 
       // Skip if already has apple_note_id
-      if (frontmatter.apple_note_id !== undefined) {
+      if (Option.isSome(Option.fromNullishOr(frontmatter.apple_note_id))) {
         skipped++;
         continue;
       }

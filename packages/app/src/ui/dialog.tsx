@@ -1,5 +1,5 @@
 import { Portal, Show, type JSX } from '@solidjs/web';
-import { Effect } from 'effect';
+import { Effect, Option } from 'effect';
 import { createEffect, createUniqueId } from 'solid-js';
 
 const focusableSelector =
@@ -12,25 +12,25 @@ export interface DialogProps {
   readonly title: string;
   readonly description?: string;
   readonly children: JSX.Element;
-  readonly restoreFocus?: () => HTMLElement | undefined;
+  readonly restoreFocus?: () => Option.Option<HTMLElement>;
 }
 
 export const Dialog = (props: DialogProps) => {
   const titleId = `dialog-title-${createUniqueId()}`;
   const descriptionId = `dialog-description-${createUniqueId()}`;
   const identity = Symbol('dialog');
-  let popup: HTMLDivElement | undefined;
-  const describedBy = (): string | undefined => {
-    if (props.description !== undefined) return descriptionId;
-    return undefined;
-  };
+  let popup = Option.none<HTMLDivElement>();
+  const describedBy = () =>
+    Option.getOrUndefined(Option.map(Option.fromNullishOr(props.description), () => descriptionId));
 
   createEffect(
     () => props.open,
     (open) => {
-      if (!open || typeof document === 'undefined') return;
-      let previousFocus: HTMLElement | undefined;
-      if (document.activeElement instanceof HTMLElement) previousFocus = document.activeElement;
+      if (!open) return;
+      let previousFocus = Option.none<HTMLElement>();
+      if (document.activeElement instanceof HTMLElement) {
+        previousFocus = Option.some(document.activeElement);
+      }
       const previousOverflow = document.body.style.overflow;
       dialogStack.push(identity);
       document.body.style.overflow = 'hidden';
@@ -38,8 +38,10 @@ export const Dialog = (props: DialogProps) => {
         Effect.andThen(
           Effect.yieldNow,
           Effect.sync(() => {
-            const first = popup?.querySelector<HTMLElement>(focusableSelector);
-            (first ?? popup)?.focus();
+            if (Option.isNone(popup)) return;
+            const panel = popup.value;
+            const first = Option.fromNullishOr(panel.querySelector<HTMLElement>(focusableSelector));
+            Option.getOrElse(first, () => panel).focus();
           }),
         ),
       );
@@ -51,10 +53,12 @@ export const Dialog = (props: DialogProps) => {
           props.onOpenChange(false);
           return;
         }
-        if (event.key !== 'Tab' || popup === undefined) return;
-        const focusable = [...popup.querySelectorAll<HTMLElement>(focusableSelector)];
-        const first = focusable[0] ?? popup;
-        const last = focusable.at(-1) ?? popup;
+        const current = popup;
+        if (event.key !== 'Tab' || Option.isNone(current)) return;
+        const panel = current.value;
+        const focusable = [...panel.querySelectorAll<HTMLElement>(focusableSelector)];
+        const first = focusable[0] ?? panel;
+        const last = focusable.at(-1) ?? panel;
         if (event.shiftKey && document.activeElement === first) {
           event.preventDefault();
           last.focus();
@@ -74,8 +78,13 @@ export const Dialog = (props: DialogProps) => {
           Effect.andThen(
             Effect.yieldNow,
             Effect.sync(() => {
-              const returnTarget = props.restoreFocus?.() ?? previousFocus;
-              if (returnTarget?.isConnected) returnTarget.focus();
+              const returnTarget = Option.orElse(
+                Option.flatMap(Option.fromNullishOr(props.restoreFocus), (restore) => restore()),
+                () => previousFocus,
+              );
+              if (Option.isSome(returnTarget) && returnTarget.value.isConnected) {
+                returnTarget.value.focus();
+              }
             }),
           ),
         );
@@ -94,7 +103,7 @@ export const Dialog = (props: DialogProps) => {
         >
           <div
             ref={(element) => {
-              popup = element;
+              popup = Option.some(element);
             }}
             class="bible-dialog"
             role="dialog"

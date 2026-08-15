@@ -3,7 +3,7 @@
  * Based on the EGW API client reference implementation
  */
 
-import { Option, Schema, SchemaGetter } from 'effect';
+import { Option, Predicate, Schema, SchemaGetter } from 'effect';
 
 import { Node, parseParagraphContent } from './ast.js';
 
@@ -39,7 +39,7 @@ const OptionFromOptionalNullishOrEmpty: Schema.decodeTo<
       // oe: Option<string | null>  (None = missing key OR undefined)
       // Flatten null/'' into None, lift the rest into Some(Some(s)).
       oe.pipe(
-        Option.filter((v): v is string => v !== null && v !== ''),
+        Option.filter((v): v is string => Predicate.isNotNull(v) && v !== ''),
         Option.some,
       ),
     ),
@@ -95,20 +95,20 @@ export type Language = Schema.Schema.Type<typeof Language>;
  * Folder - Base fields (non-recursive)
  */
 const folderFields = {
-  folder_id: Schema.Number,
+  folder_id: Schema.Finite,
   name: Schema.String,
   add_class: Schema.String,
-  nbooks: Schema.Number,
-  naudiobooks: Schema.Number,
-  sort_order: Schema.optional(Schema.Number),
-  parent_id: Schema.optional(Schema.Number),
-} as const;
+  nbooks: Schema.Finite,
+  naudiobooks: Schema.Finite,
+  sort_order: Schema.optional(Schema.Finite),
+  parent_id: Schema.optional(Schema.Finite),
+};
 
 /**
  * Folder - Type interface for recursive schema
  */
 export interface Folder extends Schema.Struct.Type<typeof folderFields> {
-  readonly children?: ReadonlyArray<Folder> | undefined;
+  readonly children?: ReadonlyArray<Folder>;
 }
 
 /**
@@ -151,7 +151,7 @@ export type BookFiles = Schema.Schema.Type<typeof BookFiles>;
  * Book (BookDto)
  */
 export const Book = Schema.Struct({
-  book_id: Schema.Number,
+  book_id: Schema.Finite,
   code: Schema.String,
   lang: Schema.String,
   type: BookType,
@@ -160,24 +160,24 @@ export const Book = Schema.Struct({
   first_para: Schema.optional(Schema.NullOr(Schema.String)),
   author: Schema.String,
   description: Schema.optional(Schema.NullOr(Schema.String)),
-  npages: Schema.Number,
+  npages: Schema.Finite,
   isbn: Schema.optional(Schema.NullOr(Schema.String)),
   publisher: Schema.optional(Schema.NullOr(Schema.String)),
   pub_year: Schema.String,
   buy_link: Schema.optional(Schema.NullOr(Schema.String)),
-  folder_id: Schema.Number,
+  folder_id: Schema.Finite,
   folder_color_group: Schema.optional(Schema.NullOr(Schema.String)),
   cover: BookCover,
   files: BookFiles,
   download: Schema.optional(Schema.NullOr(Schema.String)),
   last_modified: Schema.optional(Schema.NullOr(Schema.String)),
   permission_required: PermissionRequired,
-  sort: Schema.Number,
+  sort: Schema.Finite,
   is_audiobook: Schema.Boolean,
   cite: Schema.optional(Schema.NullOr(Schema.String)),
   original_book: Schema.optional(Schema.NullOr(Schema.String)),
   translated_into: Schema.optional(Schema.NullOr(Schema.Array(Schema.String))),
-  nelements: Schema.Number,
+  nelements: Schema.Finite,
 });
 
 export type Book = Schema.Schema.Type<typeof Book>;
@@ -187,12 +187,12 @@ export type Book = Schema.Schema.Type<typeof Book>;
  */
 export const TocItem = Schema.Struct({
   para_id: OptionFromOptionalNullishOrEmpty,
-  level: Schema.Number,
+  level: Schema.Finite,
   title: Schema.optional(Schema.NullOr(Schema.String)),
   refcode_short: OptionFromOptionalNullishOrEmpty,
   dup: Schema.optional(Schema.NullOr(Schema.String)),
   mp3: Schema.optional(Schema.NullOr(Schema.String)),
-  puborder: Schema.Number,
+  puborder: Schema.Finite,
 });
 
 export type TocItem = Schema.Schema.Type<typeof TocItem>;
@@ -218,7 +218,7 @@ export const Paragraph = Schema.Struct({
   element_type: Schema.optional(Schema.NullOr(Schema.String)),
   element_subtype: Schema.optional(Schema.NullOr(Schema.String)),
   nodes: Schema.Array(Node),
-  puborder: Schema.Number,
+  puborder: Schema.Finite,
 });
 
 export type Paragraph = Schema.Schema.Type<typeof Paragraph>;
@@ -245,7 +245,7 @@ const ParagraphWire = Schema.Struct({
   element_type: Schema.optional(Schema.NullOr(Schema.String)),
   element_subtype: Schema.optional(Schema.NullOr(Schema.String)),
   content: Schema.optional(Schema.NullOr(Schema.String)),
-  puborder: Schema.Number,
+  puborder: Schema.Finite,
 });
 
 /**
@@ -290,7 +290,7 @@ export const TokenResponse = Schema.Struct({
   access_token: Schema.String,
   refresh_token: Schema.optional(Schema.String),
   token_type: Schema.String,
-  expires_in: Schema.Number,
+  expires_in: Schema.Finite,
   scope: Schema.String,
 });
 
@@ -302,7 +302,7 @@ export type TokenResponse = Schema.Schema.Type<typeof TokenResponse>;
 export const TokenInfo = Schema.Struct({
   accessToken: Schema.String,
   refreshToken: Schema.optional(Schema.String),
-  expiresAt: Schema.Number,
+  expiresAt: Schema.Finite,
   scope: Schema.String,
 });
 
@@ -314,11 +314,11 @@ export type TokenInfo = Schema.Schema.Type<typeof TokenInfo>;
 export const SearchParams = Schema.Struct({
   query: Schema.String,
   lang: Schema.optional(Schema.String),
-  folder: Schema.optional(Schema.Number),
-  book: Schema.optional(Schema.Number),
+  folder: Schema.optional(Schema.Finite),
+  book: Schema.optional(Schema.Finite),
   highlight: Schema.optional(Schema.Boolean),
-  limit: Schema.optional(Schema.Number),
-  offset: Schema.optional(Schema.Number),
+  limit: Schema.optional(Schema.Finite),
+  offset: Schema.optional(Schema.Finite),
 });
 
 export type SearchParams = Schema.Schema.Type<typeof SearchParams>;
@@ -327,7 +327,7 @@ export type SearchParams = Schema.Schema.Type<typeof SearchParams>;
  * Books Query Parameters
  */
 export const BooksQueryParams = Schema.Struct({
-  pubnr: Schema.optional(Schema.Array(Schema.Number)),
+  pubnr: Schema.optional(Schema.Array(Schema.Finite)),
   since: Schema.optional(Schema.String), // date-time format
   type: Schema.optional(Schema.Array(BookType)),
   lang: Schema.optional(Schema.String),
@@ -337,12 +337,12 @@ export const BooksQueryParams = Schema.Struct({
   has_epub: Schema.optional(Schema.String),
   has_mobi: Schema.optional(Schema.String),
   has_book: Schema.optional(Schema.String),
-  page: Schema.optional(Schema.Number),
+  page: Schema.optional(Schema.Finite),
   search: Schema.optional(Schema.String),
-  folder: Schema.optional(Schema.Number),
+  folder: Schema.optional(Schema.Finite),
   trans: Schema.optional(Schema.Union([Schema.Literal('all'), Schema.String])),
-  limit: Schema.optional(Schema.Number),
-  offset: Schema.optional(Schema.Number),
+  limit: Schema.optional(Schema.Finite),
+  offset: Schema.optional(Schema.Finite),
 });
 
 export type BooksQueryParams = Schema.Schema.Type<typeof BooksQueryParams>;
@@ -367,7 +367,7 @@ export type ChapterContentParams = Schema.Schema.Type<typeof ChapterContentParam
  * compatibility with the API.
  */
 export const SearchHit = Schema.Struct({
-  index: Schema.optional(Schema.Number),
+  index: Schema.optional(Schema.Finite),
   lang: Schema.String,
   para_id: Schema.optional(Schema.NullOr(Schema.String)),
   pub_code: Schema.String,
@@ -376,7 +376,7 @@ export const SearchHit = Schema.Struct({
   refcode_short: Schema.optional(Schema.NullOr(Schema.String)),
   pub_year: Schema.optional(Schema.NullOr(Schema.String)),
   snippet: Schema.optional(Schema.NullOr(Schema.String)),
-  weight: Schema.optional(Schema.Number),
+  weight: Schema.optional(Schema.Finite),
   group: Schema.optional(Schema.String),
   action_required: Schema.optional(Schema.String),
 });
@@ -389,8 +389,8 @@ export type SearchHit = Schema.Schema.Type<typeof SearchHit>;
 export const SearchResponse = Schema.Struct({
   next: Schema.NullOr(Schema.String),
   previous: Schema.NullOr(Schema.String),
-  total: Schema.Number,
-  count: Schema.Number,
+  total: Schema.Finite,
+  count: Schema.Finite,
   results: Schema.Array(SearchHit),
 });
 

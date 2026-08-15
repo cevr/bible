@@ -1,8 +1,5 @@
 {
   "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/npm/oxlint/configuration_schema.json",
-  "options": {
-    "typeAware": true
-  },
   "categories": {
     "correctness": "error",
     "suspicious": "error",
@@ -29,18 +26,31 @@
     "no-nested-ternary": "off",
     "complexity": ["error", 50],
     "typescript/consistent-return": "off",
+    "effect/noAs": "error",
     "effect/noAsyncFunction": "error",
+    "effect/noChainedTypeAssertions": "error",
+    "effect/noConditionalEmptyObjectSpread": "error",
     "effect/noDynamicImports": "error",
     "effect/noEffectBind": "error",
     "effect/noEffectDo": "error",
     "effect/noGlobals": "error",
+    "effect/noKnownValueWidening": "error",
     "effect/noNewError": "error",
     "effect/noNewPromise": "error",
     "effect/noNodeBuiltinImport": "error",
+    "effect/noNullish": "error",
+    "effect/noObjectParameters": "error",
+    "effect/noRuntimeTypeof": "error",
+    "effect/noShapeInSymbolNames": "error",
     "effect/noTernary": "error",
     "effect/noTestLifecycleHooks": "error",
     "effect/noThrowStatement": "error",
-    "effect/noTryCatch": "error"
+    "effect/noTryCatch": "error",
+    "effect/noUnknownParameters": "error",
+    "effect/noUnknownTypeAliases": "error",
+    "effect/noUnsafeDictionaryType": "error",
+    "effect/noWidenThenAssert": "error",
+    "effect/preferEffectFn": "error"
   },
   "ignorePatterns": ["**/dist/**", "**/node_modules/**", "**/*.d.ts", "**/outputs/**"],
   "overrides": [
@@ -135,12 +145,6 @@
       }
     },
     {
-      "files": ["**/apps/desktop/scripts/mark-audit.ts"],
-      "rules": {
-        "effect/noGlobals": "off"
-      }
-    },
-    {
       "files": ["**/apps/desktop/scripts/vite-plugin-electron-dev.ts"],
       "rules": {
         "effect/noAsyncFunction": "off",
@@ -160,7 +164,10 @@
         "typescript/no-non-null-assertion": "off",
         "typescript/no-explicit-any": "off",
         "typescript/no-unsafe-type-assertion": "off",
-        "node/no-process-env": "off"
+        "node/no-process-env": "off",
+        "effect/noAs": "off",
+        "effect/noChainedTypeAssertions": "off",
+        "effect/noWidenThenAssert": "off"
       }
     },
     {
@@ -170,7 +177,6 @@
         "**/packages/cli/src/main.ts",
         "**/packages/cli/src/instrumentation/**",
         "**/packages/cli/src/services/logger.ts",
-        "**/packages/cli/src/services/model.ts",
         "**/packages/cli/src/lib/paths.ts",
         "**/apps/web/server/main.ts",
         "**/apps/web/e2e/**",
@@ -178,8 +184,7 @@
         "**/packages/core/src/egw/client.ts",
         "**/packages/core/src/egw-db/book-database.ts",
         "**/packages/core/src/egw-db/book-database-bun.ts",
-        "**/packages/core/src/bible-db/bible-database.ts",
-        "**/packages/core/src/hymnal/database.ts"
+        "**/packages/core/src/bible-db/bible-database.ts"
       ],
       "rules": {
         "node/no-process-env": "off"
@@ -201,20 +206,10 @@
         "**/apps/desktop/electron/**"
       ],
       "rules": {
-        "typescript/no-unsafe-type-assertion": "off"
-      }
-    },
-    {
-      "files": ["**/apps/web/**/*.tsx", "**/apps/web/**/*.ts"],
-      "rules": {
-        "typescript/no-floating-promises": "off",
-        "typescript/unbound-method": "off"
-      }
-    },
-    {
-      "files": ["**/packages/core/src/egw-reader/**", "**/packages/core/src/app/**"],
-      "rules": {
-        "typescript/no-misused-spread": "off"
+        "typescript/no-unsafe-type-assertion": "off",
+        "effect/noAs": "off",
+        "effect/noChainedTypeAssertions": "off",
+        "effect/noWidenThenAssert": "off"
       }
     }
   ]

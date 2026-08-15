@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect } from 'effect';
+import { Effect, Option } from 'effect';
 
 import { makeBibleGenerationStore } from './bible-generation-store.js';
 import type { GenerationRegistry, GenerationRegistryStore } from './generation-marker.js';
@@ -8,7 +8,7 @@ import type { SqliteDatabase, SqliteDatabaseFamily } from './sqlite-database.js'
 const database: SqliteDatabase = {
   isOpen: true,
   open: () => Effect.void,
-  close: () => Effect.void,
+  close: Effect.void,
   query: () => Effect.succeed([]),
   values: () => Effect.succeed([]),
   write: () => Effect.succeed(0),
@@ -20,7 +20,7 @@ const registryWriteFailure = { _tag: 'RegistryWriteFailure' } as const;
 const harness = (initial: GenerationRegistry) => {
   const events: string[] = [];
   let state = initial;
-  let activeFilename: string | undefined;
+  let activeFilename: Option.Option<string> = Option.none();
   let failNextWrite = false;
   const databases: SqliteDatabaseFamily = {
     active: database,
@@ -28,26 +28,27 @@ const harness = (initial: GenerationRegistry) => {
     activate: (filename) =>
       Effect.sync(() => {
         events.push(`activate:${filename}`);
-        activeFilename = filename;
+        activeFilename = Option.some(filename);
       }),
-    deactivate: () =>
-      Effect.sync(() => {
-        events.push('deactivate');
-        activeFilename = undefined;
-      }),
+    deactivate: Effect.sync(() => {
+      events.push('deactivate');
+      activeFilename = Option.none();
+    }),
     get activeFilename() {
       return activeFilename;
     },
   };
   const registry: GenerationRegistryStore = {
-    read: () => Effect.succeed(state),
+    read: Effect.sync(() => state),
     write: (next) =>
       Effect.gen(function* () {
         if (failNextWrite) {
           failNextWrite = false;
           return yield* Effect.fail(registryWriteFailure);
         }
-        events.push(`registry:${next.active ?? 'none'}:${next.managed.join(',')}`);
+        events.push(
+          `registry:${Option.getOrElse(next.active, () => 'none')}:${next.managed.join(',')}`,
+        );
         state = next;
       }),
   };
@@ -75,13 +76,16 @@ describe('browser Bible generation store', () => {
       const active = 'bible-db-v2-e72244f576be.db';
       const interrupted = 'bible-db-v3-aaaaaaaaaaaa.db';
       const stale = 'bible-db-v1-111111111111.db';
-      const fixture = harness({ active, managed: [stale, active, interrupted] });
+      const fixture = harness({
+        active: Option.some(active),
+        managed: [stale, active, interrupted],
+      });
 
-      expect(yield* fixture.store.openActive()).toBe(true);
+      expect(yield* fixture.store.openActive).toBe(true);
       expect(fixture.events).toContain(`activate:${active}`);
       expect(fixture.events).toContain(`discard:${stale}`);
       expect(fixture.events).toContain(`discard:${interrupted}`);
-      expect(fixture.state()).toEqual({ active, managed: [active] });
+      expect(fixture.state()).toEqual({ active: Option.some(active), managed: [active] });
     }),
   );
 
@@ -89,8 +93,8 @@ describe('browser Bible generation store', () => {
     Effect.gen(function* () {
       const previous = 'bible-db-v1-111111111111.db';
       const candidate = 'bible-db-v2-e72244f576be.db';
-      const fixture = harness({ active: previous, managed: [previous] });
-      yield* fixture.store.openActive();
+      const fixture = harness({ active: Option.some(previous), managed: [previous] });
+      yield* fixture.store.openActive;
       yield* fixture.store.reserve(candidate);
       fixture.failRegistryWrite();
 
@@ -102,7 +106,7 @@ describe('browser Bible generation store', () => {
         `discard:${candidate}`,
         `registry:${previous}:${previous}`,
       ]);
-      expect(fixture.state()).toEqual({ active: previous, managed: [previous] });
+      expect(fixture.state()).toEqual({ active: Option.some(previous), managed: [previous] });
     }),
   );
 
@@ -110,26 +114,29 @@ describe('browser Bible generation store', () => {
     Effect.gen(function* () {
       const active = 'bible-db-v1-111111111111.db';
       const candidate = 'bible-db-v2-e72244f576be.db';
-      const fixture = harness({ active, managed: [active] });
+      const fixture = harness({ active: Option.some(active), managed: [active] });
 
       yield* fixture.store.reserve(candidate);
       expect(fixture.state().managed).toContain(candidate);
-      expect(yield* fixture.store.openActive()).toBe(true);
+      expect(yield* fixture.store.openActive).toBe(true);
       expect(fixture.events).toContain(`discard:${candidate}`);
-      expect(fixture.state()).toEqual({ active, managed: [active] });
+      expect(fixture.state()).toEqual({ active: Option.some(active), managed: [active] });
     }),
   );
 
   it.effect('allocates an inactive slot when refresh requests the active identity', () =>
     Effect.gen(function* () {
       const active = 'bible-db-v2-e72244f576be.db';
-      const fixture = harness({ active, managed: [active] });
+      const fixture = harness({ active: Option.some(active), managed: [active] });
 
       const reserved = yield* fixture.store.reserve(active);
 
       expect(reserved.filename).toBe('bible-db-v2-e72244f576be-next.db');
       expect(reserved.filename).not.toBe(active);
-      expect(fixture.state()).toEqual({ active, managed: [active, reserved.filename] });
+      expect(fixture.state()).toEqual({
+        active: Option.some(active),
+        managed: [active, reserved.filename],
+      });
     }),
   );
 });

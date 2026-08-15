@@ -18,11 +18,7 @@ export const makeExportCommand = <F extends Schema.Top>(config: ContentTypeConfi
   Command.make('export', { files, folder }, (args) =>
     Effect.gen(function* () {
       const service = yield* ContentService;
-      const targetFolder = Option.match(args.folder, {
-        onSome: (f) => f,
-        onNone: () => undefined,
-      });
-      yield* service.export(args.files, targetFolder);
+      yield* service.export(args.files, Option.getOrUndefined(args.folder));
     }).pipe(Effect.provide(ContentService.make(config))),
   );
 

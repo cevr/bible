@@ -1,6 +1,6 @@
 import { Schema, type Effect } from 'effect';
 
-export class CapabilityError extends Schema.TaggedErrorClass<CapabilityError>()('CapabilityError', {
+export class CapabilityError extends Schema.TaggedError<CapabilityError>()('CapabilityError', {
   capability: Schema.NonEmptyString,
   operation: Schema.NonEmptyString,
   message: Schema.NonEmptyString,

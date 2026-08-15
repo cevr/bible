@@ -17,7 +17,7 @@ import {
   CorpusProvenance,
 } from '../corpus-supply/model.js';
 import Database from 'better-sqlite3';
-import { Effect, FileSystem, Layer, Option, Path, Schema, Stream } from 'effect';
+import { Effect, FileSystem, Layer, Option, Path, Predicate, Schema, Stream } from 'effect';
 import { HttpClient } from 'effect/unstable/http';
 
 export interface LocalBibleArtifactSource {
@@ -47,7 +47,7 @@ export interface NativeBibleArtifactProvenanceStore {
 }
 
 const sourceError = (operation: string, cause: unknown): CorpusSourceUnavailableError =>
-  new CorpusSourceUnavailableError({ operation, cause });
+  CorpusSourceUnavailableError.make({ operation, cause });
 
 const localSource = (source: LocalBibleArtifactSource) => ({
   kind: source.kind,
@@ -61,7 +61,7 @@ const localSource = (source: LocalBibleArtifactSource) => ({
       onNone: () => 'unknown',
       onSome: (value) => String(value.getTime()),
     });
-    const provenance = new CorpusProvenance({
+    const provenance = CorpusProvenance.make({
       source: assetSourceId(source.label),
       revision: corpusRevision(`${String(details.size)}-${modified}`),
       digest: Option.none(),
@@ -93,7 +93,7 @@ const releaseSource = (
   kind: source.kind,
   acquire: Effect.succeed({
     kind: source.kind,
-    provenance: new CorpusProvenance({
+    provenance: CorpusProvenance.make({
       source: assetSourceId('bible-release'),
       revision: corpusRevision(source.revision),
       digest: Option.some(corpusDigest(source.digest)),
@@ -117,28 +117,38 @@ const releaseSource = (
   }),
 });
 
+class BibleArtifactStoreError extends Schema.TaggedError<BibleArtifactStoreError>()(
+  'BibleArtifactStoreError',
+  { operation: Schema.String, cause: Schema.Unknown },
+) {}
+
+const storeError = (operation: string) => (cause: unknown) =>
+  BibleArtifactStoreError.make({ operation, cause });
+
 const openDatabase = (filename: string, readonly: boolean) =>
   Effect.try({
     try: () => new Database(filename, { readonly, fileMustExist: true }),
-    catch: (cause) => cause,
+    catch: storeError('open-database'),
   });
 
 const closeDatabase = (database: Database.Database) =>
   Effect.try({
     try: () => database.close(),
-    catch: (cause) => cause,
+    catch: storeError('close-database'),
   });
 
 const countRows = (database: Database.Database, table: string, where = '') =>
   Effect.try({
-    try: () => {
-      const row = Schema.decodeUnknownSync(Schema.Struct({ count: Schema.Number }))(
-        database.prepare(`SELECT COUNT(*) AS count FROM ${table} ${where}`).get(),
-      );
-      return row.count;
-    },
-    catch: (cause) => cause,
-  });
+    try: () => database.prepare(`SELECT COUNT(*) AS count FROM ${table} ${where}`).get(),
+    catch: storeError('count-rows'),
+  }).pipe(
+    Effect.flatMap((raw) =>
+      Schema.decodeUnknownEffect(Schema.Struct({ count: Schema.Finite }))(raw).pipe(
+        Effect.mapError(storeError('count-rows')),
+      ),
+    ),
+    Effect.map((row) => row.count),
+  );
 
 const verifyBibleDatabase = (filename: string): Effect.Effect<number, unknown> =>
   Effect.acquireUseRelease(
@@ -147,7 +157,7 @@ const verifyBibleDatabase = (filename: string): Effect.Effect<number, unknown> =
       Effect.gen(function* () {
         const integrity = yield* Effect.try({
           try: () => database.pragma('integrity_check', { simple: true }),
-          catch: (cause) => cause,
+          catch: storeError('integrity-check'),
         });
         if (integrity !== 'ok') {
           return yield* Effect.fail(`SQLite integrity check failed: ${String(integrity)}`);
@@ -185,23 +195,30 @@ const sqliteProvenanceStore: NativeBibleArtifactProvenanceStore = {
     Effect.acquireUseRelease(
       openDatabase(filename, true),
       (database) =>
-        Effect.try({
-          try: () => {
-            const value = (key: string): unknown =>
-              database.prepare('SELECT value FROM meta WHERE key = ?').get(key);
-            const row = Schema.Struct({ value: Schema.String });
-            const stored = Schema.decodeUnknownSync(StoredProvenance)({
-              source: Schema.decodeUnknownSync(row)(value('corpus_source')).value,
-              revision: Schema.decodeUnknownSync(row)(value('corpus_revision')).value,
-              digest: Schema.decodeUnknownSync(row)(value('corpus_digest')).value,
-            });
-            return new CorpusProvenance({
-              source: assetSourceId(stored.source),
-              revision: corpusRevision(stored.revision),
-              digest: Option.some(corpusDigest(stored.digest)),
-            });
-          },
-          catch: (cause) => cause,
+        Effect.gen(function* () {
+          const row = Schema.Struct({ value: Schema.String });
+          const value = (key: string) =>
+            Effect.try({
+              try: () => database.prepare('SELECT value FROM meta WHERE key = ?').get(key),
+              catch: storeError('read-provenance'),
+            }).pipe(
+              Effect.flatMap((raw) =>
+                Schema.decodeUnknownEffect(row)(raw).pipe(
+                  Effect.mapError(storeError('read-provenance')),
+                ),
+              ),
+              Effect.map((decoded) => decoded.value),
+            );
+          const stored = yield* Schema.decodeEffect(StoredProvenance)({
+            source: yield* value('corpus_source'),
+            revision: yield* value('corpus_revision'),
+            digest: yield* value('corpus_digest'),
+          }).pipe(Effect.mapError(storeError('read-provenance')));
+          return CorpusProvenance.make({
+            source: assetSourceId(stored.source),
+            revision: corpusRevision(stored.revision),
+            digest: Option.some(corpusDigest(stored.digest)),
+          });
         }),
       closeDatabase,
     ),
@@ -223,7 +240,7 @@ const sqliteProvenanceStore: NativeBibleArtifactProvenanceStore = {
               upsert.run('corpus_digest', Option.getOrThrow(provenance.digest));
             })();
           },
-          catch: (cause) => cause,
+          catch: storeError('write-provenance'),
         }),
       closeDatabase,
     ),
@@ -246,16 +263,20 @@ export const layerNativeBibleArtifacts = (input: {
   const verify = input.verify ?? verifyBibleDatabase;
   let fetchArtifact: (url: string) => Effect.Effect<BibleArtifactResponse, unknown>;
   const injectedFetch = input.fetch;
-  if (injectedFetch !== undefined) {
+  if (Predicate.isNotUndefined(injectedFetch)) {
     fetchArtifact = (url) =>
       injectedFetch(url).pipe(
         Effect.flatMap((response) => {
-          if (response.body === null) {
+          const body = response.body;
+          if (Predicate.isNull(body)) {
             return Effect.fail(sourceError('fetch-bible-release', 'response has no body'));
           }
           return Effect.succeed({
             status: response.status,
-            bytes: Stream.fromAsyncIterable(response.body, (cause) => cause),
+            bytes: Stream.fromReadableStream({
+              evaluate: () => body,
+              onError: (cause) => cause,
+            }),
           });
         }),
       );
@@ -277,7 +298,7 @@ export const layerNativeBibleArtifacts = (input: {
     BibleArtifactInstaller,
     BibleArtifactInstaller.of({
       current: readCurrent(input.destination, verify, provenanceStore).pipe(
-        Effect.mapError((cause) => new CorpusInstallationError({ corpus: 'bible', cause })),
+        Effect.mapError((cause) => CorpusInstallationError.make({ corpus: 'bible', cause })),
       ),
       install: (artifact) =>
         Effect.gen(function* () {
@@ -298,7 +319,7 @@ export const layerNativeBibleArtifacts = (input: {
               );
             }
             const installed = yield* verify(building);
-            const provenance = new CorpusProvenance({
+            const provenance = CorpusProvenance.make({
               source: artifact.provenance.source,
               revision: artifact.provenance.revision,
               digest: Option.some(digest),
@@ -312,7 +333,7 @@ export const layerNativeBibleArtifacts = (input: {
             Effect.onError(() => fs.remove(building, { force: true }).pipe(Effect.ignore)),
           );
         }).pipe(
-          Effect.mapError((cause) => new CorpusInstallationError({ corpus: 'bible', cause })),
+          Effect.mapError((cause) => CorpusInstallationError.make({ corpus: 'bible', cause })),
           Effect.provide(BunServices.layer),
         ),
     }),

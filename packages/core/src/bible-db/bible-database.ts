@@ -6,11 +6,11 @@
  * concrete Effect SQL driver.
  */
 
-import { Context, Effect, Layer, Option, Schema } from 'effect';
+import { Context, Effect, Layer, Option, Predicate, Schema } from 'effect';
 import * as SqlClient from 'effect/unstable/sql/SqlClient';
 import type { SqlError } from 'effect/unstable/sql/SqlError';
 
-export class BibleDataIntegrityError extends Schema.TaggedErrorClass<BibleDataIntegrityError>()(
+export class BibleDataIntegrityError extends Schema.TaggedError<BibleDataIntegrityError>()(
   'BibleDataIntegrityError',
   {
     cause: Schema.Unknown,
@@ -31,20 +31,20 @@ export interface BibleVerse {
 export interface CrossReference {
   readonly book: number;
   readonly chapter: number;
-  readonly verse: number | null;
-  readonly verseEnd: number | null;
+  readonly verse: Option.Option<number>;
+  readonly verseEnd: Option.Option<number>;
   readonly source: 'openbible' | 'tske';
-  readonly previewText: string | null;
+  readonly previewText: Option.Option<string>;
 }
 
 export interface StrongsEntry {
   readonly number: string;
   readonly language: 'hebrew' | 'greek';
   readonly lemma: string;
-  readonly transliteration: string | null;
-  readonly pronunciation: string | null;
+  readonly transliteration: Option.Option<string>;
+  readonly pronunciation: Option.Option<string>;
   readonly definition: string;
-  readonly kjvDefinition: string | null;
+  readonly kjvDefinition: Option.Option<string>;
 }
 
 export interface VerseWord {
@@ -164,30 +164,33 @@ interface VerseSqlRow {
   readonly text: string;
 }
 
-interface CrossRefSqlRow {
-  readonly ref_book: number;
-  readonly ref_chapter: number;
-  readonly ref_verse: number | null;
-  readonly ref_verse_end: number | null;
-  readonly source: string;
-  readonly preview_text: string | null;
-}
+const CrossRefSqlRow = Schema.Struct({
+  ref_book: Schema.Finite,
+  ref_chapter: Schema.Finite,
+  ref_verse: Schema.NullOr(Schema.Finite),
+  ref_verse_end: Schema.NullOr(Schema.Finite),
+  source: Schema.String,
+  preview_text: Schema.NullOr(Schema.String),
+});
+type CrossRefSqlRow = typeof CrossRefSqlRow.Type;
 
-interface StrongsSqlRow {
-  readonly number: string;
-  readonly language: string;
-  readonly lemma: string;
-  readonly transliteration: string | null;
-  readonly pronunciation: string | null;
-  readonly definition: string;
-  readonly kjv_definition: string | null;
-}
+const StrongsSqlRow = Schema.Struct({
+  number: Schema.String,
+  language: Schema.String,
+  lemma: Schema.String,
+  transliteration: Schema.NullOr(Schema.String),
+  pronunciation: Schema.NullOr(Schema.String),
+  definition: Schema.String,
+  kjv_definition: Schema.NullOr(Schema.String),
+});
+type StrongsSqlRow = typeof StrongsSqlRow.Type;
 
-interface VerseWordSqlRow {
-  readonly word_text: string;
-  readonly strongs_numbers: string | null;
-  readonly italic: number;
-}
+const VerseWordSqlRow = Schema.Struct({
+  word_text: Schema.String,
+  strongs_numbers: Schema.NullOr(Schema.String),
+  italic: Schema.Finite,
+});
+type VerseWordSqlRow = typeof VerseWordSqlRow.Type;
 
 interface MarginNoteSqlRow {
   readonly note_index?: number;
@@ -197,25 +200,27 @@ interface MarginNoteSqlRow {
   readonly note_text: string;
 }
 
-interface StrongsChapterSqlRow {
-  readonly book: number;
-  readonly chapter: number;
-  readonly verse: number;
-  readonly book_name: string;
-  readonly word_index: number;
-  readonly word_text: string;
-  readonly strongs_numbers: string | null;
-  readonly italic: number;
-}
+const StrongsChapterSqlRow = Schema.Struct({
+  book: Schema.Finite,
+  chapter: Schema.Finite,
+  verse: Schema.Finite,
+  book_name: Schema.String,
+  word_index: Schema.Finite,
+  word_text: Schema.String,
+  strongs_numbers: Schema.NullOr(Schema.String),
+  italic: Schema.Finite,
+});
+type StrongsChapterSqlRow = typeof StrongsChapterSqlRow.Type;
 
-interface StrongsHitSqlRow {
-  readonly book: number;
-  readonly chapter: number;
-  readonly verse: number;
-  readonly book_name: string;
-  readonly text: string;
-  readonly word_text: string | null;
-}
+const StrongsHitSqlRow = Schema.Struct({
+  book: Schema.Finite,
+  chapter: Schema.Finite,
+  verse: Schema.Finite,
+  book_name: Schema.String,
+  text: Schema.String,
+  word_text: Schema.NullOr(Schema.String),
+});
+type StrongsHitSqlRow = typeof StrongsHitSqlRow.Type;
 
 const StrongsNumbersJson = Schema.fromJsonString(Schema.Array(Schema.String));
 const decodeStrongsNumbers = Schema.decodeUnknownSync(StrongsNumbersJson);
@@ -235,10 +240,10 @@ const strongsEntry = (row: StrongsSqlRow): StrongsEntry => {
     number: row.number,
     language,
     lemma: row.lemma,
-    transliteration: row.transliteration,
-    pronunciation: row.pronunciation,
+    transliteration: Option.fromNullOr(row.transliteration),
+    pronunciation: Option.fromNullOr(row.pronunciation),
     definition: row.definition,
-    kjvDefinition: row.kjv_definition,
+    kjvDefinition: Option.fromNullOr(row.kjv_definition),
   };
 };
 
@@ -359,10 +364,10 @@ export class BibleDatabase extends Context.Service<BibleDatabase, BibleDatabaseS
                 return {
                   book: row.ref_book,
                   chapter: row.ref_chapter,
-                  verse: row.ref_verse,
-                  verseEnd: row.ref_verse_end,
+                  verse: Option.fromNullOr(row.ref_verse),
+                  verseEnd: Option.fromNullOr(row.ref_verse_end),
                   source,
-                  previewText: row.preview_text,
+                  previewText: Option.fromNullOr(row.preview_text),
                 };
               }),
             ),
@@ -436,13 +441,14 @@ export class BibleDatabase extends Context.Service<BibleDatabase, BibleDatabaseS
       // at the first word query so readonly clients remain compatible with an
       // older snapshot while newly imported databases preserve the richer
       // corpus shape immediately.
-      let hasItalicColumn: boolean | undefined;
+      let hasItalicColumn = Option.none<boolean>();
       const supportsWordItalics = Effect.fn('BibleDatabase.supportsWordItalics')(() => {
-        if (hasItalicColumn !== undefined) return Effect.succeed(hasItalicColumn);
+        if (Option.isSome(hasItalicColumn)) return Effect.succeed(hasItalicColumn.value);
         return sql<{ readonly name: string }>`PRAGMA table_info(verse_words)`.pipe(
           Effect.map((columns) => {
-            hasItalicColumn = columns.some((column) => column.name === 'italic');
-            return hasItalicColumn;
+            const supported = columns.some((column) => column.name === 'italic');
+            hasItalicColumn = Option.some(supported);
+            return supported;
           }),
         );
       });
@@ -471,7 +477,7 @@ export class BibleDatabase extends Context.Service<BibleDatabase, BibleDatabaseS
                 Effect.try({
                   try: (): VerseWord => {
                     let strongsNumbers: readonly string[] = [];
-                    if (row.strongs_numbers !== null) {
+                    if (Predicate.isNotNull(row.strongs_numbers)) {
                       strongsNumbers = decodeStrongsNumbers(row.strongs_numbers);
                     }
                     return {
@@ -481,7 +487,7 @@ export class BibleDatabase extends Context.Service<BibleDatabase, BibleDatabaseS
                     };
                   },
                   catch: (cause) =>
-                    new BibleDataIntegrityError({
+                    BibleDataIntegrityError.make({
                       cause,
                       location: `verse_words(${book}:${chapter}:${verse}).strongs_numbers`,
                     }),
@@ -517,7 +523,7 @@ export class BibleDatabase extends Context.Service<BibleDatabase, BibleDatabaseS
         Effect.try({
           try: (): VerseWord => {
             let strongsNumbers: readonly string[] = [];
-            if (row.strongs_numbers !== null) {
+            if (Predicate.isNotNull(row.strongs_numbers)) {
               strongsNumbers = decodeStrongsNumbers(row.strongs_numbers);
             }
             return {
@@ -526,7 +532,7 @@ export class BibleDatabase extends Context.Service<BibleDatabase, BibleDatabaseS
               italic: row.italic === 1,
             };
           },
-          catch: (cause) => new BibleDataIntegrityError({ cause, location }),
+          catch: (cause) => BibleDataIntegrityError.make({ cause, location }),
         });
 
       const getChapterStrongs = Effect.fn('BibleDatabase.getChapterStrongs')(
@@ -566,12 +572,12 @@ export class BibleDatabase extends Context.Service<BibleDatabase, BibleDatabaseS
                     row,
                     `verse_words(${row.book}:${row.chapter}:${row.verse}:${row.word_index})`,
                   );
-                  const words = byVerse.get(row.verse);
-                  if (words === undefined) byVerse.set(row.verse, [word]);
-                  else words.push(word);
+                  const words = Option.fromNullishOr(byVerse.get(row.verse));
+                  if (Option.isNone(words)) byVerse.set(row.verse, [word]);
+                  else words.value.push(word);
                 }
                 const first = rows[0];
-                if (first === undefined) return Option.none<StrongsChapter>();
+                if (Predicate.isUndefined(first)) return Option.none<StrongsChapter>();
                 return Option.some<StrongsChapter>({
                   book,
                   bookName: first.book_name,
@@ -621,16 +627,16 @@ export class BibleDatabase extends Context.Service<BibleDatabase, BibleDatabaseS
             Effect.map((rows) => {
               const byVerse = new Map<number, MarginNote[]>();
               for (const row of rows) {
-                if (row.verse === undefined) continue;
+                if (Predicate.isUndefined(row.verse)) continue;
                 const note: MarginNote = {
                   index: row.note_index ?? 0,
                   type: marginNoteType(row.note_type),
                   phrase: row.phrase,
                   text: row.note_text,
                 };
-                const notes = byVerse.get(row.verse);
-                if (notes === undefined) byVerse.set(row.verse, [note]);
-                else notes.push(note);
+                const notes = Option.fromNullishOr(byVerse.get(row.verse));
+                if (Option.isNone(notes)) byVerse.set(row.verse, [note]);
+                else notes.value.push(note);
               }
               return byVerse;
             }),

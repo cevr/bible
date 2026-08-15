@@ -1,8 +1,8 @@
 import { parseBibleQuery } from '@bible/core/bible';
 import { TopicId, type TopicReference } from '@bible/core/topics';
-import { A, useNavigate } from '@solidjs/router';
+import { useNavigate } from '@solidjs/router';
 import { Errored, For, Loading, Show } from '@solidjs/web';
-import { Schema } from 'effect';
+import { Option, Schema } from 'effect';
 import { createMemo, createSignal } from 'solid-js';
 
 import { ReaderFailure, ReaderLoading } from '../reading/index.js';
@@ -15,17 +15,18 @@ export interface TopicsProps {
   readonly topicId?: string;
 }
 
-const bibleRouteFor = (reference: TopicReference): string | undefined => {
-  const first = reference.osis[0];
-  if (!first) return undefined;
-  const match = first.match(/^([^.]+)\.(\d+)\.(\d+)/);
-  const book = match?.[1];
-  const chapter = match?.[2];
-  const verse = match?.[3];
-  if (!book || !chapter || !verse) return undefined;
+const bibleRouteFor = (reference: TopicReference): Option.Option<string> => {
+  const first = Option.fromNullishOr(reference.osis[0]);
+  if (Option.isNone(first)) return Option.none();
+  const match = Option.fromNullishOr(first.value.match(/^([^.]+)\.(\d+)\.(\d+)/));
+  if (Option.isNone(match)) return Option.none();
+  const [, book, chapter, verse] = match.value;
+  if (!book || !chapter || !verse) return Option.none();
   const parsed = parseBibleQuery(`${book} ${chapter}:${verse}`);
-  if (parsed._tag !== 'single') return undefined;
-  return `/bible/${String(parsed.ref.book)}/${String(parsed.ref.chapter)}/${String(parsed.ref.verse)}`;
+  if (parsed._tag !== 'single') return Option.none();
+  return Option.some(
+    `/bible/${String(parsed.ref.book)}/${String(parsed.ref.chapter)}/${String(parsed.ref.verse)}`,
+  );
 };
 
 export const Topics = (props: TopicsProps) => {
@@ -41,7 +42,7 @@ export const Topics = (props: TopicsProps) => {
   });
   const topics = () => data.topics.get(listInput())();
   const topic = () => {
-    const id = Schema.decodeUnknownSync(TopicId)(props.topicId ?? 'missing-topic');
+    const id = Schema.decodeSync(TopicId)(props.topicId ?? 'missing-topic');
     return data.topicDetails.get({ id })();
   };
   const title = (): string => {
@@ -109,12 +110,12 @@ export const Topics = (props: TopicsProps) => {
                   <For each={topics()}>
                     {(item) => (
                       <li>
-                        <A href={`/topics/${encodeURIComponent(item.id)}`}>
+                        <a href={`/topics/${encodeURIComponent(item.id)}`}>
                           <strong>{item.name}</strong>
                           <Show when={item.alternativeNames[0]}>
                             {(alternative) => <span>{alternative()}</span>}
                           </Show>
-                        </A>
+                        </a>
                       </li>
                     )}
                   </For>
@@ -137,11 +138,11 @@ export const Topics = (props: TopicsProps) => {
                     <ul>
                       <For each={section.references}>
                         {(reference) => {
-                          const href = bibleRouteFor(reference);
+                          const href = Option.getOrUndefined(bibleRouteFor(reference));
                           return (
                             <li>
                               <Show when={href} fallback={reference.raw}>
-                                {(route) => <A href={route()}>{reference.raw}</A>}
+                                {(route) => <a href={route()}>{reference.raw}</a>}
                               </Show>
                             </li>
                           );

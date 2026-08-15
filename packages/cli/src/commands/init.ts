@@ -15,7 +15,7 @@ import { Config, Console, Effect, FileSystem, Layer, Path, Schema } from 'effect
 import { Command, Flag } from 'effect/unstable/cli';
 import { HttpClient, HttpClientResponse } from 'effect/unstable/http';
 
-class InitError extends Schema.TaggedErrorClass<InitError>()('InitError', {
+class InitError extends Schema.TaggedError<InitError>()('InitError', {
   cause: Schema.Unknown,
 }) {}
 
@@ -42,7 +42,7 @@ const downloadFile = (url: string, dest: string, label: string) =>
     const bytes = yield* HttpClient.get(url).pipe(
       Effect.flatMap(HttpClientResponse.filterStatusOk),
       Effect.flatMap((response) => response.arrayBuffer),
-      Effect.mapError((cause) => new InitError({ cause })),
+      Effect.mapError((cause) => InitError.make({ cause })),
     );
     yield* fs.writeFile(dest, new Uint8Array(bytes));
   });

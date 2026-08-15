@@ -1,7 +1,7 @@
 import * as BunServices from '@effect/platform-bun/BunServices';
 import { describe, expect, it } from 'effect-bun-test';
 
-import { Effect, FileSystem, Path, Schema } from 'effect';
+import { Effect, FileSystem, Option, Path, Schema } from 'effect';
 
 import { makeBunSyncStore, makeBunUserDatabase } from './database-bun.js';
 import {
@@ -34,7 +34,7 @@ const makeAdapterWithPlatform = (
   migration: string,
   fail: 'none' | 'import' | 'verify' | 'activate' = 'none',
 ) => {
-  let active: string | undefined;
+  let active = Option.none<string>();
   const databases = new Map<string, ReturnType<typeof makeBunUserDatabase>>();
   const events: string[] = [];
   const open = (generation: string) =>
@@ -47,20 +47,19 @@ const makeAdapterWithPlatform = (
         close: database.close,
       };
     }).pipe(
-      Effect.mapError(
-        (cause) =>
-          new CopyOnMigrateError({
-            operation: 'open',
-            message: 'test generation could not open',
-            cause,
-          }),
+      Effect.mapError((cause) =>
+        CopyOnMigrateError.make({
+          operation: 'open',
+          message: 'test generation could not open',
+          cause,
+        }),
       ),
     );
   const adapter: CanonicalGenerationAdapter = {
     activeGeneration: Effect.sync(() => active),
     discardInactive: (current) =>
       Effect.sync(() => {
-        events.push(`discard:${current ?? 'none'}`);
+        events.push(`discard:${Option.getOrElse(current, () => 'none')}`);
       }),
     create: (generation) =>
       open(generation).pipe(
@@ -72,7 +71,7 @@ const makeAdapterWithPlatform = (
               ...target.store,
               importLegacy: () =>
                 Effect.fail(
-                  new SyncStoreError({
+                  SyncStoreError.make({
                     operation: 'importLegacy',
                     message: 'forced import failure',
                   }),
@@ -86,7 +85,7 @@ const makeAdapterWithPlatform = (
       Effect.gen(function* () {
         events.push(`verify:${String(receipts.length)}`);
         if (fail === 'verify') {
-          return yield* new CopyOnMigrateError({
+          return yield* CopyOnMigrateError.make({
             operation: 'verify',
             message: 'forced verification failure',
           });
@@ -96,15 +95,15 @@ const makeAdapterWithPlatform = (
       Effect.gen(function* () {
         events.push(`activate:${generation}`);
         if (fail === 'activate') {
-          return yield* new CopyOnMigrateError({
+          return yield* CopyOnMigrateError.make({
             operation: 'activate',
             message: 'forced activation failure',
           });
         }
-        active = generation;
+        active = Option.some(generation);
       }),
   };
-  return { adapter, events, active: () => active };
+  return { adapter, events, active: () => Option.getOrUndefined(active) };
 };
 
 const makeAdapter = (directory: string, fail: 'none' | 'import' | 'verify' | 'activate' = 'none') =>

@@ -1,4 +1,4 @@
-import { Schema, type Effect } from 'effect';
+import { Schema, type Effect, type Option } from 'effect';
 
 import type {
   LibraryCollection,
@@ -28,15 +28,15 @@ import type {
   Timestamp,
 } from './model.js';
 
-export class SyncStoreError extends Schema.TaggedErrorClass<SyncStoreError>()('SyncStoreError', {
+export class SyncStoreError extends Schema.TaggedError<SyncStoreError>()('SyncStoreError', {
   operation: Schema.String,
   message: Schema.String,
   cause: Schema.optional(Schema.Unknown),
 }) {}
 
-export class StaleRevisionError extends Schema.TaggedErrorClass<StaleRevisionError>()(
+export class StaleRevisionError extends Schema.TaggedError<StaleRevisionError>()(
   'StaleRevisionError',
-  { expected: Schema.Number, actual: Schema.Number },
+  { expected: Schema.Finite, actual: Schema.Finite },
 ) {}
 
 export interface LocalMutationInput {
@@ -57,7 +57,7 @@ export interface NoteRecord {
   readonly resourceId: string;
   readonly location: string;
   readonly content: string;
-  readonly deletedAt: string | null;
+  readonly deletedAt: Option.Option<string>;
 }
 
 export interface SyncStore {
@@ -67,7 +67,7 @@ export interface SyncStore {
   ) => Effect.Effect<LegacyMigrationResult, SyncStoreError>;
   readonly migrationReceipt: (
     sourceId: MigrationSourceId,
-  ) => Effect.Effect<LegacyMigrationReceipt | undefined, SyncStoreError>;
+  ) => Effect.Effect<Option.Option<LegacyMigrationReceipt>, SyncStoreError>;
   readonly pending: Effect.Effect<ReadonlyArray<MutationEnvelope>, SyncStoreError>;
   readonly markAccepted: (
     mutationId: MutationId,
@@ -77,7 +77,7 @@ export interface SyncStore {
   readonly applyPatch: (
     patch: RevisionPatch,
   ) => Effect.Effect<ChangeSet, SyncStoreError | StaleRevisionError>;
-  readonly note: (id: string) => Effect.Effect<NoteRecord | undefined, SyncStoreError>;
+  readonly note: (id: string) => Effect.Effect<Option.Option<NoteRecord>, SyncStoreError>;
   readonly annotations: (
     location: ReaderLocation,
   ) => Effect.Effect<LocationAnnotations, SyncStoreError>;
@@ -85,7 +85,7 @@ export interface SyncStore {
   readonly readingPlans: Effect.Effect<ReadonlyArray<ReadingPlan>, SyncStoreError>;
   readonly memoryPractice: Effect.Effect<MemoryPractice, SyncStoreError>;
   readonly readingPreferences: Effect.Effect<ReadingPreferences, SyncStoreError>;
-  readonly latestReading: Effect.Effect<ReaderLocation | undefined, SyncStoreError>;
+  readonly latestReading: Effect.Effect<Option.Option<ReaderLocation>, SyncStoreError>;
   readonly libraryBackup: (
     exportedAt: Timestamp,
   ) => Effect.Effect<LibraryBackupDocument, SyncStoreError>;

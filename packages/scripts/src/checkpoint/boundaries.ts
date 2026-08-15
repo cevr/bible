@@ -1,4 +1,4 @@
-import { Effect } from 'effect';
+import { Effect, Option } from 'effect';
 
 import type { CheckpointName, CheckResult } from './model.js';
 import { checkpointIndex } from './model.js';
@@ -16,8 +16,8 @@ const extractModuleSpecifiers = (source: string): readonly string[] => {
 
   for (const pattern of patterns) {
     for (const match of source.matchAll(pattern)) {
-      const specifier = match[1];
-      if (specifier !== undefined) specifiers.add(specifier);
+      const specifier = Option.fromUndefinedOr(match[1]);
+      if (Option.isSome(specifier)) specifiers.add(specifier.value);
     }
   }
 
@@ -251,10 +251,10 @@ export const checkBoundaries = (options: {
         dependencyFailures,
         options.displayPath,
       );
-      const drizzleVersion = core.get('drizzle-orm');
-      if (drizzleVersion !== undefined && !drizzleVersion.includes('1.0.0-beta')) {
+      const drizzleVersion = Option.fromUndefinedOr(core.get('drizzle-orm'));
+      if (Option.isSome(drizzleVersion) && !drizzleVersion.value.includes('1.0.0-beta')) {
         dependencyFailures.push(
-          `${options.displayPath('packages/core/package.json')} drizzle-orm must be 1.0.0-beta.x, found ${drizzleVersion}`,
+          `${options.displayPath('packages/core/package.json')} drizzle-orm must be 1.0.0-beta.x, found ${drizzleVersion.value}`,
         );
       }
     }
@@ -304,15 +304,16 @@ export const checkBoundaries = (options: {
         options.displayPath,
       );
 
-      for (const [manifest, dependencies] of [
+      const solidManifests: readonly (readonly [string, ReadonlyMap<string, string>])[] = [
         ['packages/app/package.json', app],
         ['apps/web/package.json', web],
         ['apps/desktop/package.json', desktop],
-      ] as const) {
-        const version = dependencies.get('solid-js');
-        if (version !== undefined && !/(?:^|[^0-9])2\.0\.0-beta/u.test(version)) {
+      ];
+      for (const [manifest, dependencies] of solidManifests) {
+        const version = Option.fromUndefinedOr(dependencies.get('solid-js'));
+        if (Option.isSome(version) && !/(?:^|[^0-9])2\.0\.0-(?:beta|rc)/u.test(version.value)) {
           dependencyFailures.push(
-            `${options.displayPath(manifest)} solid-js must be 2.0.0-beta.x, found ${version}`,
+            `${options.displayPath(manifest)} solid-js must be 2.0.0-beta.x or 2.0.0-rc.x, found ${version.value}`,
           );
         }
       }

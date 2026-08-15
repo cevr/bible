@@ -2,11 +2,11 @@ import { Schema } from 'effect';
 
 import { Node } from '../egw/ast.js';
 
-const NonNegativeInteger = Schema.Number.pipe(
+const NonNegativeInteger = Schema.Finite.pipe(
   Schema.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0)),
 );
 
-export const PublicationId = Schema.Number.pipe(
+export const PublicationId = Schema.Finite.pipe(
   Schema.check(Schema.isInt(), Schema.isGreaterThan(0)),
   Schema.brand('Writings/PublicationId'),
 );
@@ -15,13 +15,13 @@ export type PublicationId = typeof PublicationId.Type;
 export const PublicationCode = Schema.NonEmptyString.pipe(Schema.brand('Writings/PublicationCode'));
 export type PublicationCode = typeof PublicationCode.Type;
 
-export const PageNumber = Schema.Number.pipe(
+export const PageNumber = Schema.Finite.pipe(
   Schema.check(Schema.isInt(), Schema.isGreaterThan(0)),
   Schema.brand('Writings/PageNumber'),
 );
 export type PageNumber = typeof PageNumber.Type;
 
-export const PublicationOrder = Schema.Number.pipe(
+export const PublicationOrder = Schema.Finite.pipe(
   Schema.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0)),
   Schema.brand('Writings/PublicationOrder'),
 );
@@ -140,15 +140,15 @@ export const paragraphId = Schema.decodeSync(ParagraphId);
 
 export const Reference = {
   publication: (publication: number): PublicationReference =>
-    new PublicationReference({ publicationId: publicationId(publication) }),
+    PublicationReference.make({ publicationId: publicationId(publication) }),
   page: (publication: number, page: number): PageReference =>
-    new PageReference({
+    PageReference.make({
       publicationId: publicationId(publication),
       page: pageNumber(page),
     }),
   paragraph: (publication: number, paragraph: string): ParagraphReference =>
-    new ParagraphReference({
+    ParagraphReference.make({
       publicationId: publicationId(publication),
       paragraphId: paragraphId(paragraph),
     }),
-} as const;
+};

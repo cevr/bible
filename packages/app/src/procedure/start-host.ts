@@ -1,9 +1,9 @@
 import type { Layer } from 'effect';
 import { Effect, ManagedRuntime, Schema } from 'effect';
 
-import { ProcedureHost, type ProcedureHostShape } from './client.js';
+import { ProcedureHost, type ProcedureHostApi } from './client.js';
 
-export class ProcedureHostStartError extends Schema.TaggedErrorClass<ProcedureHostStartError>()(
+export class ProcedureHostStartError extends Schema.TaggedError<ProcedureHostStartError>()(
   'ProcedureHostStartError',
   {
     stage: Schema.Literal('connect'),
@@ -11,7 +11,7 @@ export class ProcedureHostStartError extends Schema.TaggedErrorClass<ProcedureHo
   },
 ) {}
 
-export interface ActiveProcedureHost extends ProcedureHostShape {
+export interface ActiveProcedureHost extends ProcedureHostApi {
   readonly dispose: () => Promise<void>;
 }
 
@@ -30,7 +30,7 @@ export const startProcedureHost = (
       const runtime = ManagedRuntime.make(layer);
       const host = yield* Effect.tryPromise({
         try: () => runtime.runPromise(ProcedureHost),
-        catch: (cause) => new ProcedureHostStartError({ stage: 'connect', cause }),
+        catch: (cause) => ProcedureHostStartError.make({ stage: 'connect', cause }),
       }).pipe(Effect.onError(() => runtime.disposeEffect));
       return { ...host, dispose: () => runtime.dispose() };
     }),

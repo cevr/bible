@@ -9,6 +9,8 @@
  * the same taxonomy.
  */
 
+import { Predicate } from 'effect';
+
 const normalizeCategory = (value: string): string => {
   const normalized = value
     .trim()
@@ -20,9 +22,12 @@ const normalizeCategory = (value: string): string => {
 };
 
 export const failureCategory = (cause: unknown): string => {
-  if (typeof cause !== 'object' || cause === null) return 'unknown';
-  if ('_tag' in cause && typeof cause._tag === 'string') return normalizeCategory(cause._tag);
-  if ('code' in cause && typeof cause.code === 'string') return normalizeCategory(cause.code);
-  if ('name' in cause && typeof cause.name === 'string') return normalizeCategory(cause.name);
+  if (!Predicate.isObject(cause)) return 'unknown';
+  const tag = cause['_tag'];
+  if (Predicate.isString(tag)) return normalizeCategory(tag);
+  const code = cause['code'];
+  if (Predicate.isString(code)) return normalizeCategory(code);
+  const name = cause['name'];
+  if (Predicate.isString(name)) return normalizeCategory(name);
   return 'unknown';
 };

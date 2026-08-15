@@ -12,6 +12,7 @@ import {
   Reference,
 } from './index.js';
 import { describe, expect, it } from 'bun:test';
+import { Option } from 'effect';
 
 describe('Bible reference parser (core)', () => {
   describe('parseBibleQuery', () => {
@@ -226,28 +227,28 @@ describe('Bible books data (core)', () => {
   describe('getBibleBook', () => {
     it('should return book by number', () => {
       const book = getBibleBook(1);
-      expect(book?.name).toBe('Genesis');
+      expect(Option.map(book, (found) => found.name)).toEqual(Option.some('Genesis'));
     });
 
-    it('should return undefined for invalid number', () => {
-      expect(getBibleBook(0)).toBeUndefined();
-      expect(getBibleBook(67)).toBeUndefined();
+    it('should return none for invalid number', () => {
+      expect(Option.isNone(getBibleBook(0))).toBe(true);
+      expect(Option.isNone(getBibleBook(67))).toBe(true);
     });
   });
 
   describe('getBibleBookByName', () => {
     it('should return book by name', () => {
       const book = getBibleBookByName('Genesis');
-      expect(Number(book?.number)).toBe(1);
+      expect(Option.map(book, (found) => Number(found.number))).toEqual(Option.some(1));
     });
 
     it('should return book by abbreviation', () => {
       const book = getBibleBookByName('gen');
-      expect(Number(book?.number)).toBe(1);
+      expect(Option.map(book, (found) => Number(found.number))).toEqual(Option.some(1));
     });
 
-    it('should return undefined for invalid name', () => {
-      expect(getBibleBookByName('NotABook')).toBeUndefined();
+    it('should return none for invalid name', () => {
+      expect(Option.isNone(getBibleBookByName('NotABook'))).toBe(true);
     });
   });
 

@@ -1,4 +1,5 @@
 import { For, Show, type JSX } from '@solidjs/web';
+import { Option } from 'effect';
 import { createSignal, createUniqueId } from 'solid-js';
 
 export interface TabItem {
@@ -20,7 +21,7 @@ export const Tabs = (props: TabsProps) => {
   const [localValue, setLocalValue] = createSignal(props.defaultValue ?? props.items[0]?.id ?? '');
   const value = () => props.value ?? localValue();
   const select = (next: string): void => {
-    if (props.value === undefined) setLocalValue(next);
+    if (Option.isNone(Option.fromNullishOr(props.value))) setLocalValue(next);
     props.onValueChange?.(next);
   };
   const selectedState = (itemId: string): 'true' | 'false' => {
@@ -33,8 +34,11 @@ export const Tabs = (props: TabsProps) => {
   };
   const move = (current: string, offset: number): void => {
     const index = props.items.findIndex((item) => item.id === current);
-    const next = props.items[(index + offset + props.items.length) % props.items.length];
-    if (next === undefined) return;
+    const candidate = Option.fromNullishOr(
+      props.items[(index + offset + props.items.length) % props.items.length],
+    );
+    if (Option.isNone(candidate)) return;
+    const next = candidate.value;
     select(next.id);
     document.getElementById(`${identity}-tab-${next.id}`)?.focus();
   };

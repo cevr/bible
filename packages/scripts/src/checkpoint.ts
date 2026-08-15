@@ -2,7 +2,7 @@
 
 import * as BunRuntime from '@effect/platform-bun/BunRuntime';
 import * as BunServices from '@effect/platform-bun/BunServices';
-import { DateTime, Effect, FileSystem, Path, Runtime, Schema, Terminal } from 'effect';
+import { DateTime, Effect, FileSystem, Option, Path, Runtime, Schema, Terminal } from 'effect';
 import { Argument, Command } from 'effect/unstable/cli';
 import * as ChildProcess from 'effect/unstable/process/ChildProcess';
 import { ChildProcessSpawner } from 'effect/unstable/process/ChildProcessSpawner';
@@ -11,7 +11,6 @@ import { checkBoundaries } from './checkpoint/boundaries.js';
 import { LEGACY_CATEGORIES, snapshotLegacy, validateLegacySnapshot } from './checkpoint/legacy.js';
 import {
   CHECKPOINT_NAMES,
-  isCheckpointName,
   type CheckpointName,
   type CheckResult,
   type CommandResult,
@@ -20,51 +19,68 @@ import {
 import { globFiles, moduleDirectory } from './checkpoint/platform-bun/glob-host.js';
 import { renderCheckpointReport } from './checkpoint/report.js';
 
-interface JsonObject {
-  readonly [key: string]: unknown;
-}
-
-class CheckpointError extends Schema.TaggedErrorClass<CheckpointError>()('CheckpointError', {
+class CheckpointError extends Schema.TaggedError<CheckpointError>()('CheckpointError', {
   message: Schema.String,
   cause: Schema.optional(Schema.Unknown),
 }) {}
 
-class CheckpointFailed extends Schema.TaggedErrorClass<CheckpointFailed>()('CheckpointFailed', {}) {
+class CheckpointFailed extends Schema.TaggedError<CheckpointFailed>()('CheckpointFailed', {}) {
   override readonly [Runtime.errorReported] = false;
 }
 
-const decodeJson = Schema.decodeUnknownEffect(Schema.UnknownFromJsonString);
-const encodeJson = Schema.encodeUnknownEffect(Schema.UnknownFromJsonString);
+const DependencyRecord = Schema.Record(Schema.String, Schema.String);
 
-const isJsonObject = (value: unknown): value is JsonObject =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
+const ManifestSchema = Schema.Struct({
+  dependencies: Schema.optionalKey(DependencyRecord),
+  devDependencies: Schema.optionalKey(DependencyRecord),
+  peerDependencies: Schema.optionalKey(DependencyRecord),
+});
+
+const RootManifestSchema = Schema.Struct({
+  catalog: Schema.optionalKey(DependencyRecord),
+});
+
+const LegacyCategorySnapshotSchema = Schema.Struct({
+  id: Schema.String,
+  title: Schema.String,
+  removalCheckpoint: Schema.Literals(['foundation', 'shared-app', 'pre-cutover']),
+  matches: Schema.Array(Schema.String),
+});
+
+const RemovalBaselineSchema = Schema.Struct({
+  schemaVersion: Schema.Literal(1),
+  categories: Schema.Array(LegacyCategorySnapshotSchema),
+});
+
+const decodeManifestJson = Schema.decodeEffect(Schema.fromJsonString(ManifestSchema));
+const decodeRootManifestJson = Schema.decodeEffect(Schema.fromJsonString(RootManifestSchema));
+const decodeRemovalBaselineJson = Schema.decodeEffect(Schema.fromJsonString(RemovalBaselineSchema));
+const encodeRemovalBaselineJson = Schema.encodeEffect(Schema.fromJsonString(RemovalBaselineSchema));
 
 const fail = (message: string, cause?: unknown): CheckpointError =>
-  new CheckpointError({ message, cause });
+  CheckpointError.make({ message, cause });
 
-const readJsonObject = (
+const readDecodedJson = <A>(
   fs: FileSystem.FileSystem,
   pathService: Path.Path,
   root: string,
   filePath: string,
-): Effect.Effect<JsonObject, CheckpointError> =>
+  decode: (source: string) => Effect.Effect<A, Schema.SchemaError>,
+): Effect.Effect<A, CheckpointError> =>
   fs.readFileString(filePath).pipe(
     Effect.mapError((cause) =>
       fail(`could not read ${pathService.relative(root, filePath)}`, cause),
     ),
     Effect.flatMap((source) =>
-      decodeJson(source).pipe(
+      decode(source).pipe(
         Effect.mapError((cause) =>
-          fail(`${pathService.relative(root, filePath)} does not contain valid JSON`, cause),
+          fail(
+            `${pathService.relative(root, filePath)} does not contain the expected JSON shape`,
+            cause,
+          ),
         ),
       ),
     ),
-    Effect.flatMap((value) => {
-      if (isJsonObject(value)) return Effect.succeed(value);
-      return Effect.fail(
-        fail(`${pathService.relative(root, filePath)} must contain a JSON object`),
-      );
-    }),
   );
 
 const dependencyVersions = (
@@ -74,74 +90,36 @@ const dependencyVersions = (
   manifestPath: string,
 ): Effect.Effect<ReadonlyMap<string, string>, CheckpointError> =>
   Effect.gen(function* () {
-    const manifest = yield* readJsonObject(
+    const manifest = yield* readDecodedJson(
       fs,
       pathService,
       root,
       pathService.join(root, manifestPath),
+      decodeManifestJson,
     );
-    const rootManifest = yield* readJsonObject(
+    const rootManifest = yield* readDecodedJson(
       fs,
       pathService,
       root,
       pathService.join(root, 'package.json'),
+      decodeRootManifestJson,
     );
-    let catalog: JsonObject = {};
-    if (isJsonObject(rootManifest['catalog'])) catalog = rootManifest['catalog'];
+    const catalog = rootManifest.catalog ?? {};
     const entries: [string, string][] = [];
 
-    for (const field of ['dependencies', 'devDependencies', 'peerDependencies'] as const) {
-      const dependencies = manifest[field];
-      if (!isJsonObject(dependencies)) continue;
-      for (const [name, version] of Object.entries(dependencies)) {
-        if (typeof version !== 'string') continue;
-        const catalogVersion = catalog[name];
+    for (const dependencies of [
+      manifest.dependencies,
+      manifest.devDependencies,
+      manifest.peerDependencies,
+    ]) {
+      for (const [name, version] of Object.entries(dependencies ?? {})) {
         let resolvedVersion = version;
-        if (version === 'catalog:' && typeof catalogVersion === 'string') {
-          resolvedVersion = catalogVersion;
-        }
+        if (version === 'catalog:') resolvedVersion = catalog[name] ?? version;
         entries.push([name, resolvedVersion]);
       }
     }
 
     return new Map(entries);
-  });
-
-const parseRemovalBaseline = (value: unknown): Effect.Effect<RemovalBaseline, CheckpointError> =>
-  Effect.gen(function* () {
-    if (
-      !isJsonObject(value) ||
-      value['schemaVersion'] !== 1 ||
-      !Array.isArray(value['categories'])
-    ) {
-      return yield* Effect.fail(fail('removal-baseline.json does not match schema version 1'));
-    }
-
-    const categories = yield* Effect.forEach(value['categories'], (category) => {
-      let removalCheckpoint: unknown;
-      if (isJsonObject(category)) removalCheckpoint = category['removalCheckpoint'];
-      if (
-        !isJsonObject(category) ||
-        typeof category['id'] !== 'string' ||
-        typeof category['title'] !== 'string' ||
-        typeof removalCheckpoint !== 'string' ||
-        !isCheckpointName(removalCheckpoint) ||
-        removalCheckpoint === 'initial' ||
-        !Array.isArray(category['matches']) ||
-        !category['matches'].every((match) => typeof match === 'string')
-      ) {
-        return Effect.fail(fail('removal-baseline.json contains an invalid category'));
-      }
-
-      return Effect.succeed({
-        id: category['id'],
-        title: category['title'],
-        removalCheckpoint,
-        matches: category['matches'],
-      });
-    });
-
-    return { schemaVersion: 1, categories };
   });
 
 const commandsFor = (checkpoint: CheckpointName): readonly (readonly string[])[] => {
@@ -255,11 +233,10 @@ const checkpointCommand = Command.make(
         (command) =>
           Effect.gen(function* () {
             yield* terminal.display(`\n$ ${command.join(' ')}\n`);
-            const executable = command[0];
-            if (executable === undefined)
-              return yield* Effect.fail(fail('empty checkpoint command'));
+            const executable = Option.fromUndefinedOr(command[0]);
+            if (Option.isNone(executable)) return yield* fail('empty checkpoint command');
             const exitCode = yield* spawner.exitCode(
-              ChildProcess.make(executable, command.slice(1), {
+              ChildProcess.make(executable.value, command.slice(1), {
                 cwd: root,
                 stdin: 'inherit',
                 stdout: 'inherit',
@@ -287,14 +264,19 @@ const checkpointCommand = Command.make(
       });
       let baseline: RemovalBaseline;
       if (yield* fs.exists(baselinePath)) {
-        const encoded = yield* fs.readFileString(baselinePath);
-        baseline = yield* decodeJson(encoded).pipe(Effect.flatMap(parseRemovalBaseline));
+        baseline = yield* readDecodedJson(
+          fs,
+          pathService,
+          root,
+          baselinePath,
+          decodeRemovalBaselineJson,
+        );
       } else {
         if (checkpoint !== 'initial') {
-          return yield* Effect.fail(fail('initial removal baseline is missing'));
+          return yield* fail('initial removal baseline is missing');
         }
         baseline = currentLegacy;
-        const encoded = yield* encodeJson(baseline);
+        const encoded = yield* encodeRemovalBaselineJson(baseline);
         yield* fs.writeFileString(baselinePath, `${encoded}\n`);
       }
 
@@ -350,7 +332,7 @@ const checkpointCommand = Command.make(
 
       yield* fs.writeFileString(pathService.join(checkpointsDirectory, `${checkpoint}.md`), report);
       yield* terminal.display(`\n${checkpoint} architecture checkpoint: ${status}\n`);
-      if (status === 'FAIL') return yield* Effect.fail(new CheckpointFailed());
+      if (status === 'FAIL') return yield* CheckpointFailed.make({});
     }),
 );
 

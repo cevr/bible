@@ -3,9 +3,9 @@ import {
   type LibraryStateCommand,
   type ReadingPlan,
 } from '@bible/core/library-state';
-import { A, useNavigate } from '@solidjs/router';
+import { useNavigate } from '@solidjs/router';
 import { Errored, For, Loading, Show } from '@solidjs/web';
-import { DateTime, Effect, Schema } from 'effect';
+import { DateTime, Effect, Option, Schema } from 'effect';
 import { createSignal } from 'solid-js';
 
 import { ReaderFailure, ReaderLoading } from '../reading/index.js';
@@ -18,8 +18,8 @@ export interface PlansProps {
   readonly planId?: string;
 }
 
-const plansHeading = (planId: string | undefined): string => {
-  if (planId !== undefined) return 'Reading plan';
+const plansHeading = (planId?: string): string => {
+  if (Option.isSome(Option.fromNullishOr(planId))) return 'Reading plan';
   return 'Plans';
 };
 
@@ -34,7 +34,7 @@ export const Plans = (props: PlansProps) => {
   const [stepTitle, setStepTitle] = createSignal('');
   const [stepRoute, setStepRoute] = createSignal('');
   const [busy, setBusy] = createSignal(false);
-  const [failure, setFailure] = createSignal<string>();
+  const [failure, setFailure] = createSignal(Option.none<string>());
 
   const mutate = (
     operation: 'save' | 'delete' | 'progress',
@@ -42,7 +42,7 @@ export const Plans = (props: PlansProps) => {
     onSuccess?: () => void,
   ) => {
     setBusy(true);
-    setFailure(undefined);
+    setFailure(Option.none());
     void data.readingPlans.mutate(command).then(
       () => {
         setBusy(false);
@@ -55,7 +55,7 @@ export const Plans = (props: PlansProps) => {
             `[plans] mutation-failed operation=${operation} category=${failureCategory(cause)}`,
           ),
         );
-        setFailure(message);
+        setFailure(Option.some(message));
         setBusy(false);
       },
     );
@@ -68,21 +68,25 @@ export const Plans = (props: PlansProps) => {
     const firstStepRoute = stepRoute().trim();
     if (planTitle.length === 0 || firstStepTitle.length === 0 || firstStepRoute.length === 0)
       return;
-    const identity = capabilities.identity;
-    if (identity === undefined) {
-      setFailure('This platform cannot create reading plans because identity is unavailable.');
+    const identity = Option.fromNullishOr(capabilities.identity);
+    if (Option.isNone(identity)) {
+      setFailure(
+        Option.some('This platform cannot create reading plans because identity is unavailable.'),
+      );
       return;
     }
 
-    const id = Schema.decodeUnknownSync(LibraryEntityId)(identity.randomUuid());
+    const id = Schema.decodeSync(LibraryEntityId)(identity.value.randomUuid());
     mutate(
       'save',
       {
         _tag: 'SaveReadingPlan',
         id,
         title: planTitle,
-        description: description().trim() || null,
-        steps: [{ id: identity.randomUuid(), title: firstStepTitle, route: firstStepRoute }],
+        description: Option.getOrNull(
+          Option.filter(Option.some(description().trim()), (text) => text.length > 0),
+        ),
+        steps: [{ id: identity.value.randomUuid(), title: firstStepTitle, route: firstStepRoute }],
       },
       () => {
         setTitle('');
@@ -99,13 +103,13 @@ export const Plans = (props: PlansProps) => {
 
   const toggleStep = (plan: ReadingPlan, stepId: string) => {
     const progress = plan.progress.find((entry) => entry.stepId === stepId);
-    let completedAt: string | null = DateTime.formatIso(Effect.runSync(DateTime.now));
-    if (progress?.completedAt) completedAt = null;
+    let completedAt = Option.some(DateTime.formatIso(Effect.runSync(DateTime.now)));
+    if (progress?.completedAt) completedAt = Option.none();
     mutate('progress', {
       _tag: 'SetReadingPlanProgress',
       planId: plan.id,
       stepId,
-      completedAt,
+      completedAt: Option.getOrNull(completedAt),
     });
   };
 
@@ -137,15 +141,17 @@ export const Plans = (props: PlansProps) => {
                       <For each={plans()}>
                         {(plan) => {
                           const completed = () =>
-                            plan.progress.filter((entry) => entry.completedAt !== null).length;
+                            plan.progress.filter((entry) =>
+                              Option.isSome(Option.fromNullishOr(entry.completedAt)),
+                            ).length;
                           return (
                             <li>
-                              <A href={`/plans/${encodeURIComponent(plan.id)}`}>
+                              <a href={`/plans/${encodeURIComponent(plan.id)}`}>
                                 <strong>{plan.title}</strong>
                                 <span>
                                   {completed()} of {plan.steps.length} complete
                                 </span>
-                              </A>
+                              </a>
                             </li>
                           );
                         }}
@@ -174,16 +180,18 @@ export const Plans = (props: PlansProps) => {
                 <section class="bible-library__empty" role="status">
                   <p class="bible-reader__eyebrow">Plan not found</p>
                   <h2>This reading plan is no longer in your library.</h2>
-                  <A href="/plans">Return to plans</A>
+                  <a href="/plans">Return to plans</a>
                 </section>
               }
             >
               {(plan) => {
                 const completed = () =>
-                  plan().progress.filter((entry) => entry.completedAt !== null).length;
+                  plan().progress.filter((entry) =>
+                    Option.isSome(Option.fromNullishOr(entry.completedAt)),
+                  ).length;
                 return (
                   <section class="bible-library-detail" aria-labelledby="plan-title">
-                    <A href="/plans">All plans</A>
+                    <a href="/plans">All plans</a>
                     <div>
                       <p class="bible-reader__eyebrow">
                         {completed()} of {plan().steps.length} complete
@@ -196,7 +204,9 @@ export const Plans = (props: PlansProps) => {
                         {(step) => {
                           const isComplete = () =>
                             plan().progress.some(
-                              (entry) => entry.stepId === step.id && entry.completedAt !== null,
+                              (entry) =>
+                                entry.stepId === step.id &&
+                                Option.isSome(Option.fromNullishOr(entry.completedAt)),
                             );
                           return (
                             <li>
@@ -209,7 +219,7 @@ export const Plans = (props: PlansProps) => {
                                 />
                                 <span>{step.title}</span>
                               </label>
-                              <A href={step.route}>Read</A>
+                              <a href={step.route}>Read</a>
                             </li>
                           );
                         }}
@@ -223,7 +233,7 @@ export const Plans = (props: PlansProps) => {
               }}
             </Show>
           </Show>
-          <MutationStatus busy={busy()} failure={failure()} />
+          <MutationStatus busy={busy()} failure={Option.getOrUndefined(failure())} />
         </Loading>
       </Errored>
     </article>

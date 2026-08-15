@@ -5,31 +5,31 @@ import { CategoryId, HymnId, VerseId } from '../types/ids.js';
 import { Category, Hymn, HymnVerse } from './schemas.js';
 import { HymnalService } from './service.js';
 
-const worship = new Category({ id: CategoryId.make(1), name: 'Worship' });
-const gospel = new Category({ id: CategoryId.make(2), name: 'Gospel' });
+const worship = Category.make({ id: CategoryId.make(1), name: 'Worship' });
+const gospel = Category.make({ id: CategoryId.make(2), name: 'Gospel' });
 const longFirstLine = 'A'.repeat(61);
 
 const hymns = [
-  new Hymn({
+  Hymn.make({
     id: HymnId.make(1),
     name: 'Morning Praise',
     category: worship.name,
     categoryId: worship.id,
-    verses: [new HymnVerse({ id: VerseId.make(1), text: `${longFirstLine}\nSecond line` })],
+    verses: [HymnVerse.make({ id: VerseId.make(1), text: `${longFirstLine}\nSecond line` })],
   }),
-  new Hymn({
+  Hymn.make({
     id: HymnId.make(2),
     name: 'Amazing Grace',
     category: gospel.name,
     categoryId: gospel.id,
-    verses: [new HymnVerse({ id: VerseId.make(1), text: 'How sweet the sound' })],
+    verses: [HymnVerse.make({ id: VerseId.make(1), text: 'How sweet the sound' })],
   }),
-  new Hymn({
+  Hymn.make({
     id: HymnId.make(3),
     name: 'Faith of Our Fathers',
     category: gospel.name,
     categoryId: gospel.id,
-    verses: [new HymnVerse({ id: VerseId.make(1), text: 'Living still' })],
+    verses: [HymnVerse.make({ id: VerseId.make(1), text: 'Living still' })],
   }),
 ] as const;
 
@@ -60,7 +60,7 @@ describe('HymnalService', () => {
     Effect.gen(function* () {
       const result = yield* HymnalService.use((service) =>
         Effect.all({
-          categories: service.getCategories(),
+          categories: service.getCategories,
           hymns: service.getHymnsByCategory(gospel.id),
         }),
       );

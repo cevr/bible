@@ -71,12 +71,15 @@ const CROSS_ORIGIN_HEADERS = {
   'Cross-Origin-Embedder-Policy': 'credentialless',
 };
 
+type StaticFileMiss = 'not-found';
+const NOT_FOUND: StaticFileMiss = 'not-found';
+
 const serveStaticFile = (filePath: string, contentType: string) =>
   Effect.gen(function* () {
     const file = Bun.file(filePath);
     const exists = yield* Effect.promise(() => file.exists());
     if (!exists) {
-      return yield* Effect.fail('not-found' as const);
+      return yield* Effect.fail(NOT_FOUND);
     }
     const content = yield* Effect.promise(() => file.arrayBuffer());
     return HttpServerResponse.raw(content, {
@@ -110,15 +113,20 @@ const StaticFilesMiddleware = HttpMiddleware.make((app) =>
 
     if (pathname === '/api/assets/bible' && request.method === 'GET') {
       const upstream = yield* Effect.tryPromise(() => fetch(BIBLE_ARTIFACT_RELEASE.url)).pipe(
-        Effect.catch(() => Effect.succeed(undefined)),
+        Effect.map(Option.some),
+        Effect.orElseSucceed(() => Option.none<Response>()),
       );
-      if (upstream === undefined || !upstream.ok || upstream.body === null) {
+      const upstreamBody = upstream.pipe(
+        Option.filter((response) => response.ok),
+        Option.flatMap((response) => Option.fromNullOr(response.body)),
+      );
+      if (Option.isNone(upstreamBody)) {
         return HttpServerResponse.text('Bible Artifact unavailable', {
           status: 502,
           headers: CROSS_ORIGIN_HEADERS,
         });
       }
-      return HttpServerResponse.raw(upstream.body, {
+      return HttpServerResponse.raw(upstreamBody.value, {
         headers: {
           'Content-Type': 'application/octet-stream',
           'Content-Length': String(BIBLE_ARTIFACT_RELEASE.size),
@@ -140,9 +148,15 @@ const StaticFilesMiddleware = HttpMiddleware.make((app) =>
       const deviceId = deviceIdOpt.value;
 
       if (request.method === 'POST') {
-        const buf = yield* request.arrayBuffer.pipe(Effect.catch(() => Effect.succeed(null)));
-
-        if (!buf || buf.byteLength === 0 || buf.byteLength > MAX_SYNC_BODY) {
+        const buf = yield* request.arrayBuffer.pipe(
+          Effect.map(Option.some),
+          Effect.orElseSucceed(() => Option.none<ArrayBuffer>()),
+        );
+        const body = Option.filter(
+          buf,
+          (bytes) => bytes.byteLength > 0 && bytes.byteLength <= MAX_SYNC_BODY,
+        );
+        if (Option.isNone(body)) {
           return HttpServerResponse.text('Missing or oversized body', {
             status: 400,
             headers: CROSS_ORIGIN_HEADERS,
@@ -152,7 +166,7 @@ const StaticFilesMiddleware = HttpMiddleware.make((app) =>
         const dir = join(SYNC_DIR, deviceId);
         const filePath = join(dir, 'state.db');
         yield* Effect.sync(() => mkdirSync(dir, { recursive: true }));
-        yield* Effect.promise(() => Bun.write(filePath, new Uint8Array(buf)));
+        yield* Effect.promise(() => Bun.write(filePath, new Uint8Array(body.value)));
 
         return HttpServerResponse.empty({ status: 204, headers: CROSS_ORIGIN_HEADERS });
       }
@@ -204,7 +218,7 @@ const StaticFilesMiddleware = HttpMiddleware.make((app) =>
     const result = yield* serveStaticFile(filePath, contentType).pipe(
       Effect.catch(() => {
         // SPA fallback: serve index.html for non-file routes
-        if (pathname.includes('.')) return Effect.fail('not-found' as const);
+        if (pathname.includes('.')) return Effect.fail(NOT_FOUND);
         return serveStaticFile(`${distDir}/index.html`, 'text/html');
       }),
       Effect.catch(() => app),

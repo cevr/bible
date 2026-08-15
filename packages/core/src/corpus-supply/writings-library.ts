@@ -1,4 +1,4 @@
-import { Effect, Layer, Option, Result, Stream } from 'effect';
+import { Effect, Layer, Option, Predicate, Result, Stream } from 'effect';
 
 import { EGWParagraphDatabase, type BookRow, type SyncStatusRow } from '../egw-db/book-database.js';
 import { ProcedureError } from '../procedure/model.js';
@@ -17,30 +17,42 @@ import { WritingsAssetRecipe } from './source.js';
 
 const failure = (procedure: string, cause: unknown) => {
   let message = String(cause);
-  if (typeof cause === 'object' && cause !== null && 'message' in cause) {
-    message = String(cause.message);
+  if (Predicate.isObject(cause) && Predicate.isNotUndefined(cause['message'])) {
+    message = String(cause['message']);
   }
-  return new ProcedureError({
+  return ProcedureError.make({
     procedure,
     code: 'WritingsLibraryFailure',
     message,
   });
 };
 
-const statusFor = (paragraphCount: number | undefined, sync: SyncStatusRow | undefined) => {
-  if (paragraphCount !== undefined && paragraphCount > 0) return 'success' as const;
-  if (sync?.status === 'failed') return 'failed' as const;
-  return 'pending' as const;
+const statusFor = (
+  paragraphCount: Option.Option<number>,
+  sync: Option.Option<SyncStatusRow>,
+): 'pending' | 'success' | 'failed' => {
+  if (Option.isSome(paragraphCount) && paragraphCount.value > 0) return 'success';
+  if (Option.isSome(sync) && sync.value.status === 'failed') return 'failed';
+  return 'pending';
 };
 
-const sourceFor = (status: 'pending' | 'success' | 'failed', missing: 'remote' | 'empty') => {
-  if (status === 'success') return 'local' as const;
+const sourceFor = (
+  status: 'pending' | 'success' | 'failed',
+  missing: 'remote' | 'empty',
+): 'local' | 'remote' | 'empty' => {
+  if (status === 'success') return 'local';
   return missing;
 };
 
-const localEntry = (book: BookRow, sync: SyncStatusRow | undefined): WritingsLibraryPublication => {
-  const status = statusFor(book.paragraph_count, sync);
-  return new WritingsLibraryPublication({
+const syncError = (sync: Option.Option<SyncStatusRow>) =>
+  Option.getOrNull(sync.pipe(Option.flatMap((row) => Option.fromNullishOr(row.error_message))));
+
+const localEntry = (
+  book: BookRow,
+  sync: Option.Option<SyncStatusRow>,
+): WritingsLibraryPublication => {
+  const status = statusFor(Option.fromNullishOr(book.paragraph_count), sync);
+  return WritingsLibraryPublication.make({
     id: publicationId(book.book_id),
     code: publicationCode(book.book_code),
     title: book.book_title,
@@ -48,35 +60,43 @@ const localEntry = (book: BookRow, sync: SyncStatusRow | undefined): WritingsLib
     paragraphCount: book.paragraph_count,
     source: sourceFor(status, 'empty'),
     status,
-    error: sync?.error_message ?? null,
+    error: syncError(sync),
   });
 };
 
 const remoteEntry = (
   publication: Publication,
-  local: BookRow | undefined,
-  sync: SyncStatusRow | undefined,
+  local: Option.Option<BookRow>,
+  sync: Option.Option<SyncStatusRow>,
 ): WritingsLibraryPublication => {
-  const localCount = local?.paragraph_count;
+  const localCount = local.pipe(
+    Option.flatMap((book) => Option.fromNullishOr(book.paragraph_count)),
+  );
   const status = statusFor(localCount, sync);
   let paragraphCount = Option.getOrElse(publication.paragraphCount, () => 0);
-  if (sync !== undefined) paragraphCount = sync.paragraph_count;
-  if (localCount !== undefined) paragraphCount = localCount;
-  return new WritingsLibraryPublication({
+  if (Option.isSome(sync)) paragraphCount = sync.value.paragraph_count;
+  if (Option.isSome(localCount)) paragraphCount = localCount.value;
+  return WritingsLibraryPublication.make({
     id: publication.id,
     code: publication.code,
-    title: local?.book_title ?? publication.title,
-    author: local?.book_author ?? publication.author,
+    title: local.pipe(
+      Option.map((book) => book.book_title),
+      Option.getOrElse(() => publication.title),
+    ),
+    author: local.pipe(
+      Option.map((book) => book.book_author),
+      Option.getOrElse(() => publication.author),
+    ),
     paragraphCount,
     source: sourceFor(status, 'remote'),
     status,
-    error: sync?.error_message ?? null,
+    error: syncError(sync),
   });
 };
 
 const statusEntry = (sync: SyncStatusRow): WritingsLibraryPublication => {
-  const status = statusFor(undefined, sync);
-  return new WritingsLibraryPublication({
+  const status = statusFor(Option.none(), Option.some(sync));
+  return WritingsLibraryPublication.make({
     id: publicationId(sync.book_id),
     code: publicationCode(sync.book_code),
     title: sync.book_code,
@@ -89,7 +109,7 @@ const statusEntry = (sync: SyncStatusRow): WritingsLibraryPublication => {
 };
 
 const resultFor = (publication: WritingsLibraryPublication) =>
-  new WritingsDownloadResult({
+  WritingsDownloadResult.make({
     publicationId: publication.id,
     code: publication.code,
     status: publication.status,
@@ -111,13 +131,13 @@ export const layerWritingsLibraryRuntime: Layer.Layer<
     const get = Effect.gen(function* () {
       const [remoteResult, localResult, statusResult] = yield* Effect.all([
         Effect.result(source.catalog),
-        Effect.result(Stream.runCollect(database.getAllBooks())),
-        Effect.result(database.getAllSyncStatus()),
+        Effect.result(Stream.runCollect(database.getAllBooks)),
+        Effect.result(database.getAllSyncStatus),
       ]);
       const hasLocal = Result.isSuccess(localResult) && localResult.success.length > 0;
       const hasStatus = Result.isSuccess(statusResult) && statusResult.success.length > 0;
       if (Result.isFailure(remoteResult) && !hasLocal && !hasStatus) {
-        return yield* Effect.fail(failure('v1.reading.writingsLibrary.get', remoteResult.failure));
+        return yield* failure('v1.reading.writingsLibrary.get', remoteResult.failure);
       }
 
       let remote: readonly Publication[] = [];
@@ -129,13 +149,15 @@ export const layerWritingsLibraryRuntime: Layer.Layer<
 
       const entries: WritingsLibraryPublication[] = [];
       for (const publication of remote) {
-        const installed = local.find((book) => book.book_id === publication.id);
-        const sync = statuses.find((row) => row.book_id === publication.id);
+        const installed = Option.fromNullishOr(
+          local.find((book) => book.book_id === publication.id),
+        );
+        const sync = Option.fromNullishOr(statuses.find((row) => row.book_id === publication.id));
         entries.push(remoteEntry(publication, installed, sync));
       }
       for (const book of local) {
         if (entries.some((entry) => entry.id === book.book_id)) continue;
-        const sync = statuses.find((row) => row.book_id === book.book_id);
+        const sync = Option.fromNullishOr(statuses.find((row) => row.book_id === book.book_id));
         entries.push(localEntry(book, sync));
       }
       for (const sync of statuses) {
@@ -150,13 +172,14 @@ export const layerWritingsLibraryRuntime: Layer.Layer<
       Effect.gen(function* () {
         yield* supply.ensure({ target: Target.writings([id]), refresh: true });
         const entries = yield* get;
-        const publication = entries.find((entry) => entry.id === id);
-        if (publication === undefined) {
-          return yield* Effect.fail(
-            failure('v1.reading.writingsPublication.download', `Missing publication ${id}`),
+        const publication = Option.fromNullishOr(entries.find((entry) => entry.id === id));
+        if (Option.isNone(publication)) {
+          return yield* failure(
+            'v1.reading.writingsPublication.download',
+            `Missing publication ${id}`,
           );
         }
-        return resultFor(publication);
+        return resultFor(publication.value);
       }).pipe(
         Effect.mapError((cause) => failure('v1.reading.writingsPublication.download', cause)),
       );
@@ -171,9 +194,11 @@ export const layerWritingsLibraryRuntime: Layer.Layer<
       });
       const refreshed = yield* get;
       return pending.flatMap((entry) => {
-        const publication = refreshed.find((candidate) => candidate.id === entry.id);
-        if (publication === undefined) return [];
-        return [resultFor(publication)];
+        const publication = Option.fromNullishOr(
+          refreshed.find((candidate) => candidate.id === entry.id),
+        );
+        if (Option.isNone(publication)) return [];
+        return [resultFor(publication.value)];
       });
     }).pipe(Effect.mapError((cause) => failure('v1.reading.writingsLibrary.downloadAll', cause)));
 

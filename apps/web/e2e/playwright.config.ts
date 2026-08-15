@@ -1,19 +1,17 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const isCi = process.env.CI !== undefined;
-let retries = 0;
-let workers: number | undefined;
-if (isCi) {
-  retries = 2;
-  workers = 1;
-}
+const isCi = 'CI' in process.env;
+
+const parallelism = () => {
+  if (isCi) return { retries: 2, workers: 1 };
+  return { retries: 0 };
+};
 
 export default defineConfig({
   testDir: './',
   fullyParallel: true,
   forbidOnly: isCi,
-  retries,
-  workers,
+  ...parallelism(),
   reporter: 'html',
   timeout: 120_000,
   use: {

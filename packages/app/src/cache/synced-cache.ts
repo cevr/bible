@@ -2,14 +2,11 @@ import type { Accessor } from 'solid-js';
 import { createMemo, createSignal, getOwner, onCleanup, runWithOwner } from 'solid-js';
 import { Cache, Cause, Deferred, Effect, Exit, Fiber, HashMap, Option, Schema } from 'effect';
 
-export class SyncedCacheError extends Schema.TaggedErrorClass<SyncedCacheError>()(
-  'SyncedCacheError',
-  {
-    cache: Schema.String,
-    message: Schema.String,
-    cause: Schema.optional(Schema.Unknown),
-  },
-) {}
+export class SyncedCacheError extends Schema.TaggedError<SyncedCacheError>()('SyncedCacheError', {
+  cache: Schema.String,
+  message: Schema.String,
+  cause: Schema.optional(Schema.Unknown),
+}) {}
 
 export type SyncedCacheStatus =
   | { readonly state: 'loading' }
@@ -47,12 +44,12 @@ export interface SyncedCache<Input, A, Command, MutationResult> {
 
 interface ActiveLookup<A> {
   readonly fiber: Fiber.Fiber<A, SyncedCacheError>;
-  promise: Promise<A> | undefined;
+  promise: Option.Option<Promise<A>>;
 }
 
 interface TrailingLookup<A> {
   readonly deferred: Deferred.Deferred<A, SyncedCacheError>;
-  promise: Promise<A> | undefined;
+  promise: Option.Option<Promise<A>>;
 }
 
 interface CacheEntry<Input, A> {
@@ -62,15 +59,17 @@ interface CacheEntry<Input, A> {
   readonly status: Accessor<SyncedCacheStatus>;
   readonly setStatus: (status: SyncedCacheStatus) => void;
   readonly accessor: Accessor<A>;
-  active: ActiveLookup<A> | undefined;
-  trailing: TrailingLookup<A> | undefined;
+  active: Option.Option<ActiveLookup<A>>;
+  trailing: Option.Option<TrailingLookup<A>>;
 }
 
+const isSyncedCacheError = Schema.is(SyncedCacheError);
+
 const cacheError = (name: string, cause: unknown): SyncedCacheError => {
-  if (cause instanceof SyncedCacheError) return cause;
+  if (isSyncedCacheError(cause)) return cause;
   let message = String(cause);
   if (Cause.isCause(cause)) message = Cause.pretty(cause);
-  return new SyncedCacheError({ cache: name, message, cause });
+  return SyncedCacheError.make({ cache: name, message, cause });
 };
 
 const effectFromExit = <A, E>(exit: Exit.Exit<A, E>): Effect.Effect<A, E> => {
@@ -81,13 +80,11 @@ const effectFromExit = <A, E>(exit: Exit.Exit<A, E>): Effect.Effect<A, E> => {
 export const createSyncedCache = <Input, A, E, R, Command, MutationResult, Scope>(
   options: CreateSyncedCacheOptions<Input, A, E, R, Command, MutationResult, Scope>,
 ): SyncedCache<Input, A, Command, MutationResult> => {
-  const owner = Option.getOrThrowWith(
-    Option.fromNullishOr(getOwner()),
-    () =>
-      new SyncedCacheError({
-        cache: options.name,
-        message: 'createSyncedCache requires a Solid owner',
-      }),
+  const owner = Option.getOrThrowWith(Option.fromNullishOr(getOwner()), () =>
+    SyncedCacheError.make({
+      cache: options.name,
+      message: 'createSyncedCache requires a Solid owner',
+    }),
   );
 
   const effectCache = Effect.runSync(
@@ -143,26 +140,28 @@ export const createSyncedCache = <Input, A, E, R, Command, MutationResult, Scope
       },
     );
     const fiber = fork(observed);
-    const active = { fiber, promise: undefined };
-    entry.active = active;
+    const active: ActiveLookup<A> = { fiber, promise: Option.none() };
+    entry.active = Option.some(active);
     fiber.addObserver(() => {
-      entry.active = undefined;
+      entry.active = Option.none();
       const trailing = entry.trailing;
-      entry.trailing = undefined;
-      if (trailing !== undefined) {
+      entry.trailing = Option.none();
+      if (Option.isSome(trailing)) {
         const next = launch(entry, true);
         next.fiber.addObserver((exit) => {
-          Deferred.doneUnsafe(trailing.deferred, effectFromExit(exit));
+          Deferred.doneUnsafe(trailing.value.deferred, effectFromExit(exit));
         });
       }
     });
     return active;
   };
 
-  const activePromise = (active: ActiveLookup<A>): Promise<A> => {
-    if (active.promise === undefined) active.promise = Effect.runPromise(Fiber.join(active.fiber));
-    return active.promise;
-  };
+  const activePromise = (active: ActiveLookup<A>): Promise<A> =>
+    Option.getOrElse(active.promise, () => {
+      const promise = Effect.runPromise(Fiber.join(active.fiber));
+      active.promise = Option.some(promise);
+      return promise;
+    });
 
   const makeEntry = (input: Input): CacheEntry<Input, A> => {
     const [value, setValue] = createSignal<Option.Option<A>>(Option.none());
@@ -182,12 +181,13 @@ export const createSyncedCache = <Input, A, E, R, Command, MutationResult, Scope
       status,
       setStatus: (next) => setStatus(() => next),
       accessor,
-      active: undefined,
-      trailing: undefined,
+      active: Option.none(),
+      trailing: Option.none(),
     };
     initial = Option.some(
       createMemo<A>(() => {
-        if (entry.active !== undefined) return activePromise(entry.active);
+        const running = entry.active;
+        if (Option.isSome(running)) return activePromise(running.value);
         return activePromise(launch(entry, false));
       }),
     );
@@ -202,52 +202,53 @@ export const createSyncedCache = <Input, A, E, R, Command, MutationResult, Scope
     return entry;
   };
 
+  const trailingFor = (entry: CacheEntry<Input, A>): TrailingLookup<A> =>
+    Option.getOrElse(entry.trailing, () => {
+      const trailing: TrailingLookup<A> = {
+        deferred: Deferred.makeUnsafe<A, SyncedCacheError>(),
+        promise: Option.none(),
+      };
+      entry.trailing = Option.some(trailing);
+      return trailing;
+    });
+
   const refreshEntryEffect = (entry: CacheEntry<Input, A>): Effect.Effect<A, SyncedCacheError> => {
     if (disposed) {
       return Effect.fail(
-        new SyncedCacheError({
+        SyncedCacheError.make({
           cache: options.name,
           message: 'cache owner has been disposed',
         }),
       );
     }
-    if (entry.active === undefined) return Fiber.join(launch(entry, true).fiber);
-    if (entry.trailing === undefined) {
-      const deferred = Deferred.makeUnsafe<A, SyncedCacheError>();
-      entry.trailing = { deferred, promise: undefined };
-    }
-    return Deferred.await(entry.trailing.deferred);
+    if (Option.isNone(entry.active)) return Fiber.join(launch(entry, true).fiber);
+    return Deferred.await(trailingFor(entry).deferred);
   };
 
   const refreshEntry = (entry: CacheEntry<Input, A>): Promise<A> => {
-    if (entry.active === undefined) return activePromise(launch(entry, true));
-    if (entry.trailing === undefined) {
-      const deferred = Deferred.makeUnsafe<A, SyncedCacheError>();
-      entry.trailing = { deferred, promise: undefined };
-    }
-    if (entry.trailing.promise === undefined) {
-      entry.trailing.promise = Effect.runPromise(Deferred.await(entry.trailing.deferred));
-    }
-    return entry.trailing.promise;
+    if (Option.isNone(entry.active)) return activePromise(launch(entry, true));
+    const trailing = trailingFor(entry);
+    return Option.getOrElse(trailing.promise, () => {
+      const promise = Effect.runPromise(Deferred.await(trailing.deferred));
+      trailing.promise = Option.some(promise);
+      return promise;
+    });
   };
 
-  const inputFrom = (args: CacheInputArgs<Input>): Input => {
-    const input = args[0] ?? options.emptyInput;
-    if (input !== undefined) return input;
-    return Option.getOrThrowWith(
-      Option.none<Input>(),
+  const inputFrom = (args: CacheInputArgs<Input>): Input =>
+    Option.getOrThrowWith(
+      Option.orElse(Option.fromNullishOr(args[0]), () => Option.fromNullishOr(options.emptyInput)),
       () =>
-        new SyncedCacheError({
+        SyncedCacheError.make({
           cache: options.name,
           message: 'cache input is required',
         }),
     );
-  };
 
   const mutate = (command: Command): Promise<MutationResult> => {
     const operation = Effect.gen(function* () {
       if (disposed) {
-        return yield* new SyncedCacheError({
+        return yield* SyncedCacheError.make({
           cache: options.name,
           message: 'cache owner has been disposed',
         });

@@ -1,5 +1,5 @@
 import { BunServices } from '@effect/platform-bun';
-import { Effect, FileSystem, Path, Schema } from 'effect';
+import { Effect, FileSystem, Option, Path, Schema } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 
 import { LibraryEntityId } from '../library-state/model.js';
@@ -28,6 +28,9 @@ import {
 } from './model.js';
 import { makeSimulatedTransport, type SimulatedTransport } from './simulated-transport.js';
 import { makeSyncEngine } from './sync-engine.js';
+
+// Wire-shape fields the schema encodes as `null` when absent.
+const wireNull = Option.getOrNull(Option.none<never>());
 
 const clientId = Schema.decodeSync(ClientId);
 const mutationId = Schema.decodeSync(MutationId);
@@ -101,14 +104,14 @@ describe('local-first sync protocol', () => {
       transport.setOnline(false);
 
       const envelope = yield* client.engine.mutate(saveNote('note-offline', 'local'));
-      const offline = yield* Effect.exit(client.engine.synchronize());
+      const offline = yield* Effect.exit(client.engine.synchronize);
 
       expect(offline._tag).toBe('Failure');
-      expect((yield* client.store.note('note-offline'))?.content).toBe('local');
+      expect(Option.getOrThrow(yield* client.store.note('note-offline')).content).toBe('local');
       expect(yield* client.store.pending).toEqual([envelope]);
 
       transport.setOnline(true);
-      yield* client.engine.synchronize();
+      yield* client.engine.synchronize;
       const duplicate = yield* transport.push(envelope);
 
       expect(duplicate.duplicate).toBe(true);
@@ -153,15 +156,15 @@ describe('local-first sync protocol', () => {
       const beta = yield* makeHarness('beta', transport);
 
       yield* beta.engine.mutate(saveNote('shared-note', 'from beta'));
-      yield* beta.engine.synchronize();
+      yield* beta.engine.synchronize;
       yield* alpha.engine.mutate(saveNote('shared-note', 'from alpha'));
-      yield* alpha.engine.synchronize();
+      yield* alpha.engine.synchronize;
 
-      expect((yield* alpha.store.note('shared-note'))?.content).toBe('from alpha');
+      expect(Option.getOrThrow(yield* alpha.store.note('shared-note')).content).toBe('from alpha');
 
-      yield* beta.engine.synchronize();
+      yield* beta.engine.synchronize;
 
-      expect((yield* beta.store.note('shared-note'))?.content).toBe('from alpha');
+      expect(Option.getOrThrow(yield* beta.store.note('shared-note')).content).toBe('from alpha');
       expect(yield* alpha.store.revision).toBe(revision(2));
       expect(yield* beta.store.revision).toBe(revision(2));
       yield* closeHarness(alpha);
@@ -175,29 +178,29 @@ describe('local-first sync protocol', () => {
       const beta = yield* makeHarness('delete-beta', transport);
 
       yield* alpha.engine.mutate(saveNote('deleted-note', 'first'));
-      yield* alpha.engine.synchronize();
-      yield* beta.engine.synchronize();
+      yield* alpha.engine.synchronize;
+      yield* beta.engine.synchronize;
       yield* beta.engine.mutate({
         _tag: 'DeleteNote',
         noteId: noteId('deleted-note'),
       });
-      yield* beta.engine.synchronize();
-      yield* alpha.engine.synchronize();
+      yield* beta.engine.synchronize;
+      yield* alpha.engine.synchronize;
 
-      expect((yield* alpha.store.note('deleted-note'))?.deletedAt).not.toBeNull();
+      expect(
+        Option.isSome(Option.getOrThrow(yield* alpha.store.note('deleted-note')).deletedAt),
+      ).toBe(true);
 
       yield* alpha.engine.mutate(saveNote('deleted-note', 'restored'));
-      yield* alpha.engine.synchronize();
-      yield* beta.engine.synchronize();
+      yield* alpha.engine.synchronize;
+      yield* beta.engine.synchronize;
 
-      expect(yield* alpha.store.note('deleted-note')).toMatchObject({
-        content: 'restored',
-        deletedAt: null,
-      });
-      expect(yield* beta.store.note('deleted-note')).toMatchObject({
-        content: 'restored',
-        deletedAt: null,
-      });
+      const restoredAlpha = Option.getOrThrow(yield* alpha.store.note('deleted-note'));
+      expect(restoredAlpha.content).toBe('restored');
+      expect(Option.isNone(restoredAlpha.deletedAt)).toBe(true);
+      const restoredBeta = Option.getOrThrow(yield* beta.store.note('deleted-note'));
+      expect(restoredBeta.content).toBe('restored');
+      expect(Option.isNone(restoredBeta.deletedAt)).toBe(true);
       yield* closeHarness(alpha);
       yield* closeHarness(beta);
     }));
@@ -216,8 +219,8 @@ describe('local-first sync protocol', () => {
       expect(yield* alpha.store.readingPreferences).toEqual(darkReadingPreferences);
       expect(alpha.published.at(-1)).toEqual({ scopes: [{ _tag: 'ReadingPreferences' }] });
 
-      yield* alpha.engine.synchronize();
-      yield* beta.engine.synchronize();
+      yield* alpha.engine.synchronize;
+      yield* beta.engine.synchronize;
 
       expect(yield* beta.store.readingPreferences).toEqual(darkReadingPreferences);
       yield* closeHarness(alpha);
@@ -252,8 +255,8 @@ describe('local-first sync protocol', () => {
         ],
       });
 
-      yield* alpha.engine.synchronize();
-      yield* beta.engine.synchronize();
+      yield* alpha.engine.synchronize;
+      yield* beta.engine.synchronize;
 
       expect(yield* beta.store.annotations(from)).toMatchObject({
         crossReferences: [
@@ -311,10 +314,12 @@ describe('local-first sync protocol', () => {
       expect(imported.receipt.mutationCount).toBe(2);
       expect(imported.receipt.diagnosticCount).toBe(1);
       expect(secondPass).toEqual({ imported: false, receipt: imported.receipt });
-      expect((yield* client.store.note('migrated-note'))?.content).toBe('preserved');
+      expect(Option.getOrThrow(yield* client.store.note('migrated-note')).content).toBe(
+        'preserved',
+      );
       expect(yield* client.store.readingPreferences).toEqual(darkReadingPreferences);
       expect(yield* client.store.pending).toHaveLength(2);
-      expect(yield* client.store.migrationReceipt(sourceId)).toEqual(imported.receipt);
+      expect(yield* client.store.migrationReceipt(sourceId)).toEqual(Option.some(imported.receipt));
 
       const conflict = yield* Effect.exit(
         client.store.importLegacy({ ...batch, fingerprint: 'sha256:changed-source' }),
@@ -360,8 +365,8 @@ describe('local-first sync protocol', () => {
       );
 
       expect(failed._tag).toBe('Failure');
-      expect(yield* client.store.note('rolled-back-note')).toBeUndefined();
-      expect(yield* client.store.migrationReceipt(sourceId)).toBeUndefined();
+      expect(Option.isNone(yield* client.store.note('rolled-back-note'))).toBe(true);
+      expect(Option.isNone(yield* client.store.migrationReceipt(sourceId))).toBe(true);
       expect(yield* client.store.pending).toEqual([]);
       yield* closeHarness(client);
     }));
@@ -387,20 +392,24 @@ describe('local-first sync protocol', () => {
         readAt: timestamp('2026-07-19T00:00:02.000Z'),
       });
 
-      expect(yield* alpha.store.latestReading).toEqual({
-        source: 'bible',
-        resourceId: 'KJV',
-        location: '/bible/43/3/16',
-      });
+      expect(yield* alpha.store.latestReading).toEqual(
+        Option.some({
+          source: 'bible',
+          resourceId: 'KJV',
+          location: '/bible/43/3/16',
+        }),
+      );
       expect(alpha.published.at(-1)).toEqual({ scopes: [{ _tag: 'ReadingContinuity' }] });
 
-      yield* alpha.engine.synchronize();
-      yield* beta.engine.synchronize();
-      expect(yield* beta.store.latestReading).toEqual({
-        source: 'bible',
-        resourceId: 'KJV',
-        location: '/bible/43/3/16',
-      });
+      yield* alpha.engine.synchronize;
+      yield* beta.engine.synchronize;
+      expect(yield* beta.store.latestReading).toEqual(
+        Option.some({
+          source: 'bible',
+          resourceId: 'KJV',
+          location: '/bible/43/3/16',
+        }),
+      );
 
       yield* closeHarness(alpha);
       yield* closeHarness(beta);
@@ -435,13 +444,13 @@ describe('local-first sync protocol', () => {
         crossReferences: [],
       });
 
-      yield* alpha.engine.synchronize();
-      yield* beta.engine.synchronize();
+      yield* alpha.engine.synchronize;
+      yield* beta.engine.synchronize;
       expect((yield* beta.store.annotations(location)).bookmarks).toHaveLength(1);
 
       yield* alpha.engine.mutate({ _tag: 'DeleteBookmark', id: 'bookmark-john-3-16' });
-      yield* alpha.engine.synchronize();
-      yield* beta.engine.synchronize();
+      yield* alpha.engine.synchronize;
+      yield* beta.engine.synchronize;
 
       expect((yield* alpha.store.annotations(location)).bookmarks).toEqual([]);
       expect((yield* beta.store.annotations(location)).bookmarks).toEqual([]);
@@ -459,7 +468,7 @@ describe('local-first sync protocol', () => {
         _tag: 'SaveReadingPlan',
         id: 'plan-gospel-of-john',
         title: 'The Gospel of John',
-        description: null,
+        description: wireNull,
         steps: [
           {
             id: 'john-1',
@@ -484,8 +493,8 @@ describe('local-first sync protocol', () => {
         },
       ]);
 
-      yield* alpha.engine.synchronize();
-      yield* beta.engine.synchronize();
+      yield* alpha.engine.synchronize;
+      yield* beta.engine.synchronize;
       const alphaPlans = yield* alpha.store.readingPlans;
       expect(yield* beta.store.readingPlans).toEqual(alphaPlans);
       yield* closeHarness(alpha);
@@ -502,8 +511,8 @@ describe('local-first sync protocol', () => {
         resourceId: 'KJV',
         location: '/bible/43/3/16',
         endLocation: '/bible/43/3/18',
-        prompt: null,
-        nextPracticeAt: null,
+        prompt: wireNull,
+        nextPracticeAt: wireNull,
         intervalDays: 0,
       });
 
@@ -540,7 +549,7 @@ describe('local-first sync protocol', () => {
 
       expect(recovered).toEqual([firstEnvelope]);
       expect(secondEnvelope.sequence).toBe(sequence(2));
-      yield* reopened.engine.synchronize();
+      yield* reopened.engine.synchronize;
       expect(transport.acceptedCount()).toBe(2);
       yield* reopened.database.close;
     }));
@@ -581,7 +590,7 @@ describe('local-first sync protocol', () => {
       );
 
       expect(duplicate._tag).toBe('Failure');
-      expect((yield* client.store.note('atomic-note'))?.content).toBe('committed');
+      expect(Option.getOrThrow(yield* client.store.note('atomic-note')).content).toBe('committed');
       expect(yield* client.store.pending).toHaveLength(1);
       yield* closeHarness(client);
     }));

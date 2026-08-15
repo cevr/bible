@@ -7,7 +7,16 @@
 import { BunServices } from '@effect/platform-bun';
 import { Database } from 'bun:sqlite';
 import { describe, expect, it } from 'effect-bun-test';
-import { ConfigProvider, Effect, FileSystem, Layer, Option, Result, Stream } from 'effect';
+import {
+  ConfigProvider,
+  Effect,
+  FileSystem,
+  Layer,
+  Option,
+  Predicate,
+  Result,
+  Stream,
+} from 'effect';
 
 import { Reference as BibleReference } from '../bible/model.js';
 import {
@@ -33,6 +42,9 @@ import {
 import { EGWParagraphDatabase, ParagraphDataIntegrityError } from './book-database.js';
 import * as EGWDbBun from './book-database-bun.js';
 
+// Wire-shape fields the schema encodes as `null` when absent.
+const wireNull = Option.getOrNull(Option.none<never>());
+
 // Helper to run scoped effects in tests with fresh database
 const runTestAt = <A, E, R>(
   dbPath: string,
@@ -42,7 +54,7 @@ const runTestAt = <A, E, R>(
     if (path.join('_') === 'EGW_PARAGRAPH_DB') {
       return Effect.succeed(ConfigProvider.makeValue(dbPath));
     }
-    return Effect.succeed(undefined);
+    return Effect.undefined;
   });
 
   const TestLayer = Layer.fresh(EGWDbBun.Default).pipe(
@@ -87,16 +99,16 @@ const mockBook = (id: number, code: string): Book => ({
 // Helper to create a mock paragraph
 const mockParagraph = (puborder: number, refcodeShort: string): Paragraph => ({
   para_id: Option.some(`para-${puborder}`),
-  id_prev: null,
-  id_next: null,
-  refcode_1: null,
-  refcode_2: null,
-  refcode_3: null,
-  refcode_4: null,
+  id_prev: wireNull,
+  id_next: wireNull,
+  refcode_1: wireNull,
+  refcode_2: wireNull,
+  refcode_3: wireNull,
+  refcode_4: wireNull,
   refcode_short: Option.some(refcodeShort),
   refcode_long: `Long ${refcodeShort}`,
   element_type: 'paragraph',
-  element_subtype: null,
+  element_subtype: wireNull,
   nodes: [{ _tag: 'Text', text: `Content for ${refcodeShort}` }],
   puborder,
 });
@@ -105,7 +117,7 @@ const mockArchive = (refcodes: readonly string[]): PublicationArchive => {
   const id = publicationId(9001);
   const code = publicationCode('TEST');
   const paragraphs = refcodes.map((refcode, index) => {
-    const paragraph = new WritingsParagraph({
+    const paragraph = WritingsParagraph.make({
       reference: WritingsReference.paragraph(id, `paragraph-${String(index + 1)}`),
       publicationCode: code,
       order: publicationOrder(index + 1),
@@ -116,20 +128,20 @@ const mockArchive = (refcodes: readonly string[]): PublicationArchive => {
       elementType: Option.some('paragraph'),
       elementSubtype: Option.none(),
     });
-    return new ArchivedParagraph({ refcode, paragraph, isHeading: false });
+    return ArchivedParagraph.make({ refcode, paragraph, isHeading: false });
   });
   let bibleReferences: readonly ArchivedBibleReference[] = [];
   const firstRefcode = refcodes[0];
-  if (firstRefcode !== undefined) {
+  if (Predicate.isNotUndefined(firstRefcode)) {
     bibleReferences = [
-      new ArchivedBibleReference({
+      ArchivedBibleReference.make({
         paragraphRefcode: firstRefcode,
         scripture: BibleReference.verse(1, 1, 1),
       }),
     ];
   }
-  return new PublicationArchive({
-    publication: new Publication({
+  return PublicationArchive.make({
+    publication: Publication.make({
       id,
       code,
       title: 'Test Publication',
@@ -148,7 +160,7 @@ describe('EGWParagraphDatabase', () => {
       runTest(
         Effect.gen(function* () {
           const db = yield* EGWParagraphDatabase;
-          const provenance = new CorpusProvenance({
+          const provenance = CorpusProvenance.make({
             source: assetSourceId('fixture'),
             revision: corpusRevision('2'),
             digest: Option.some(corpusDigest(`sha256:${'a'.repeat(64)}`)),
@@ -165,7 +177,7 @@ describe('EGWParagraphDatabase', () => {
           expect(
             yield* db.needsSync(
               9001,
-              new CorpusProvenance({
+              CorpusProvenance.make({
                 source: provenance.source,
                 revision: corpusRevision('3'),
                 digest: provenance.digest,
@@ -202,11 +214,11 @@ describe('EGWParagraphDatabase', () => {
           const invalid = mockArchive(['TEST 2.1']);
           const result = yield* Effect.result(
             db.installPublicationArchive(
-              new PublicationArchive({
+              PublicationArchive.make({
                 publication: invalid.publication,
                 paragraphs: invalid.paragraphs,
                 bibleReferences: [
-                  new ArchivedBibleReference({
+                  ArchivedBibleReference.make({
                     paragraphRefcode: 'TEST missing',
                     scripture: BibleReference.chapter(1, 1),
                   }),
@@ -324,7 +336,7 @@ describe('EGWParagraphDatabase', () => {
           yield* db.setSyncStatus(21, 'BB', 'failed', 0, 'Error');
           yield* db.setSyncStatus(22, 'CC', 'pending', 0);
 
-          const all = yield* db.getAllSyncStatus();
+          const all = yield* db.getAllSyncStatus;
           expect(all.length).toBe(3);
         }),
       ));
@@ -422,21 +434,21 @@ describe('EGWParagraphDatabase', () => {
               refCode: '1BC 100.1',
               bibleBook: 1,
               bibleChapter: 1,
-              bibleVerse: 1,
+              bibleVerse: Option.some(1),
             },
             {
               bookId: 101,
               refCode: '1BC 100.1',
               bibleBook: 1,
               bibleChapter: 1,
-              bibleVerse: 2,
+              bibleVerse: Option.some(2),
             },
             {
               bookId: 101,
               refCode: '1BC 100.2',
               bibleBook: 43,
               bibleChapter: 3,
-              bibleVerse: 16,
+              bibleVerse: Option.some(16),
             },
           ];
 

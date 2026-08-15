@@ -1,7 +1,7 @@
 import { defineConfig } from '@playwright/test';
 
 // eslint-disable-next-line node/no-process-env -- Playwright runner configuration
-const isCi = process.env.CI !== undefined;
+const isCi = 'CI' in process.env;
 let retries = 0;
 if (isCi) retries = 1;
 

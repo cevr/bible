@@ -1,4 +1,4 @@
-import { Effect } from 'effect';
+import { Effect, Option } from 'effect';
 
 import { DesktopProcedurePortMessage } from '../shared/procedure-channel.js';
 
@@ -19,26 +19,25 @@ declare global {
   }
 }
 
-const isProcedurePortMessage = (event: MessageEvent<unknown>): boolean => {
-  return event.data === DesktopProcedurePortMessage;
-};
+const isProcedurePortMessage = (event: MessageEvent<unknown>): boolean =>
+  event.data === DesktopProcedurePortMessage;
 
 const makeDesktopProcedurePortMailbox = (): Effect.Effect<MessagePort> => {
-  let buffered: MessagePort | undefined;
-  let waiting: ((port: MessagePort) => void) | undefined;
+  let buffered: Option.Option<MessagePort> = Option.none();
+  let waiting: Option.Option<(port: MessagePort) => void> = Option.none();
 
   const onMessage = (event: MessageEvent<unknown>): void => {
     if (!isProcedurePortMessage(event)) return;
-    const port = event.ports[0];
-    if (port === undefined) return;
+    const port = Option.fromUndefinedOr(event.ports[0]);
+    if (Option.isNone(port)) return;
     window.removeEventListener('message', onMessage);
     const deliver = waiting;
-    if (deliver === undefined) {
+    if (Option.isNone(deliver)) {
       buffered = port;
       return;
     }
-    waiting = undefined;
-    deliver(port);
+    waiting = Option.none();
+    deliver.value(port.value);
   };
 
   // Preload transfers the channel at `did-finish-load`, before Solid's first
@@ -49,15 +48,15 @@ const makeDesktopProcedurePortMailbox = (): Effect.Effect<MessagePort> => {
 
   return Effect.callback((resume) => {
     const port = buffered;
-    if (port !== undefined) {
-      buffered = undefined;
-      resume(Effect.succeed(port));
+    if (Option.isSome(port)) {
+      buffered = Option.none();
+      resume(Effect.succeed(port.value));
       return;
     }
 
-    waiting = (received) => resume(Effect.succeed(received));
+    waiting = Option.some((received) => resume(Effect.succeed(received)));
     return Effect.sync(() => {
-      waiting = undefined;
+      waiting = Option.none();
     });
   });
 };

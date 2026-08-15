@@ -9,7 +9,7 @@ import { LibraryEntityId } from '@bible/core/library-state';
 import { NodeServices } from '@effect/platform-node';
 import { describe, expect, it } from '@effect/vitest';
 import Database from 'better-sqlite3';
-import { Effect, FileSystem, Path, Schema } from 'effect';
+import { Effect, FileSystem, Option, Path, Schema } from 'effect';
 
 import {
   makeDesktopCanonicalGenerationAdapter,
@@ -19,8 +19,10 @@ import { makeDesktopSyncStore, makeDesktopUserDatabase } from '../electron/user-
 
 const clientId = Schema.decodeSync(ClientId)('desktop-generation-test');
 const verificationTimestamp = Schema.decodeSync(Timestamp)('2026-07-19T00:00:00.000Z');
-const encodeJson = Schema.encodeSync(Schema.UnknownFromJsonString);
-const decodeJson = Schema.decodeSync(Schema.UnknownFromJsonString);
+const mismatchSourceId = Schema.decodeSync(MigrationSourceId)('desktop-test-mismatch');
+const mismatchHistoryId = Schema.decodeSync(LibraryEntityId)('history-mismatch');
+const encodeJson = Schema.encodeSync(Schema.fromJsonString(Schema.Unknown));
+const decodeJson = Schema.decodeSync(Schema.fromJsonString(Schema.Unknown));
 
 const withDatabase = <A, E, R>(
   filename: string,
@@ -219,7 +221,7 @@ describe('desktop canonical user-state generation', () => {
             expect(yield* store.readingPreferences).toEqual(
               expect.objectContaining({ colorMode: 'dark', showStrongs: false }),
             );
-            expect(yield* store.latestReading).toBeDefined();
+            expect(Option.isSome(yield* store.latestReading)).toBe(true);
             yield* store.libraryBackup(verificationTimestamp);
           }),
         );
@@ -413,9 +415,9 @@ describe('desktop canonical user-state generation', () => {
           migrationSql,
           clientId,
           verificationTimestamp,
-          log: () => undefined,
+          log: () => {},
         });
-        const sourceId = Schema.decodeSync(MigrationSourceId)('desktop-test-mismatch');
+        const sourceId = mismatchSourceId;
         const result = yield* Effect.exit(
           copyOnMigrate({
             generation,
@@ -427,7 +429,7 @@ describe('desktop canonical user-state generation', () => {
                 commands: [
                   {
                     _tag: 'RecordReading',
-                    historyId: Schema.decodeSync(LibraryEntityId)('history-mismatch'),
+                    historyId: mismatchHistoryId,
                     location: {
                       source: 'bible',
                       resourceId: 'KJV',
@@ -462,7 +464,7 @@ describe('desktop canonical user-state generation', () => {
           clientId,
           verificationTimestamp,
           deviceState: { uiScale: 'lg' },
-          log: () => undefined,
+          log: () => {},
         });
 
         const result = yield* Effect.exit(

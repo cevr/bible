@@ -21,7 +21,7 @@ import {
 } from '@bible/core/local-first';
 import { LibraryEntityId, type ReaderLocation } from '@bible/core/library-state';
 import Database from 'better-sqlite3';
-import { DateTime, Effect, Option, Schema } from 'effect';
+import { DateTime, Effect, Option, Predicate, Schema } from 'effect';
 
 import {
   makeDesktopSyncStore,
@@ -36,7 +36,7 @@ const ACTIVE_MARKER = 'user-state.active';
 const ACTIVE_MARKER_TEMP = 'user-state.active.tmp';
 const DEVICE_STATE = 'device-state.v1.json';
 const DEVICE_STATE_TEMP = 'device-state.v1.json.tmp';
-const encodeJson = Schema.encodeSync(Schema.UnknownFromJsonString);
+const encodeJson = Schema.encodeSync(Schema.fromJsonString(Schema.Unknown));
 
 const CacheBook = Schema.Struct({ book_id: Schema.Int });
 const CacheParagraph = Schema.Struct({
@@ -92,11 +92,10 @@ const sourceSettings = Schema.decodeSync(MigrationSourceId)('desktop-settings');
 const sourceCli = Schema.decodeSync(MigrationSourceId)('cli-state');
 const defaultClientId = Schema.decodeSync(ClientId)('desktop-local');
 
-const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
+const noReaderLocation = () => Option.none<ReaderLocation>();
 
 const mapCopyError = (operation: string, message: string) => (cause: unknown) =>
-  new CopyOnMigrateError({ operation, message, cause });
+  CopyOnMigrateError.make({ operation, message, cause });
 
 const attempt = <A>(operation: string, message: string, evaluate: () => A) =>
   Effect.try({ try: evaluate, catch: mapCopyError(operation, message) });
@@ -120,9 +119,18 @@ const generationFilename = (userDataPath: string, generation: string): string =>
   Host.join(userDataPath, `${generation}.sqlite`);
 
 const tableExists = (database: Database.Database, table: string): boolean =>
-  database
-    .prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ? LIMIT 1")
-    .get(table) !== undefined;
+  Predicate.isNotUndefined(
+    database
+      .prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ? LIMIT 1")
+      .get(table),
+  );
+
+const columnExists = (database: Database.Database, table: string, column: string): boolean =>
+  Predicate.isNotUndefined(
+    database
+      .prepare('SELECT 1 FROM pragma_table_info(?) WHERE name = ? LIMIT 1')
+      .get(table, column),
+  );
 
 const countCacheRows = (database: Database.Database, table: string): number => {
   if (!tableExists(database, table)) return 0;
@@ -158,23 +166,23 @@ const countCacheRows = (database: Database.Database, table: string): number => {
   return Option.getOrElse(Schema.decodeUnknownOption(Schema.Int)(value), () => 0);
 };
 
-const rowsOfLength = (length: number): ReadonlyArray<undefined> =>
-  Array.from({ length }, () => undefined);
+// The projections only count these rows; the row contents are discarded.
+const rowsOfLength = (length: number): ReadonlyArray<number> => Array.from({ length }, () => 0);
 
-const readCachePositionRows = (database: Database.Database): Readonly<Record<string, unknown>> => {
+const readCachePositionRows = (database: Database.Database) => {
   let bible: ReadonlyArray<unknown> = [];
   if (tableExists(database, 'bible_last_position')) {
     bible = database.prepare('SELECT * FROM bible_last_position ORDER BY rowid').all();
   }
   let writings: ReadonlyArray<unknown> = [];
   if (tableExists(database, 'last_position')) {
-    writings = database
-      .prepare('SELECT * FROM last_position ORDER BY rowid')
-      .all()
-      .map((row) => {
-        if (!isRecord(row) || 'paragraph_id' in row) return row;
-        return { ...row, paragraph_id: null };
-      });
+    // Older caches predate the paragraph_id column; backfill it as SQL NULL so
+    // the legacy projection decodes every row through one schema.
+    let sql = 'SELECT *, NULL AS paragraph_id FROM last_position ORDER BY rowid';
+    if (columnExists(database, 'last_position', 'paragraph_id')) {
+      sql = 'SELECT * FROM last_position ORDER BY rowid';
+    }
+    writings = database.prepare(sql).all();
   }
   return {
     bible_last_position: bible,
@@ -187,9 +195,7 @@ const readCachePositionRows = (database: Database.Database): Readonly<Record<str
   };
 };
 
-const makeEgwResolver = (
-  database: Database.Database,
-): ((position: LegacyDesktopEgwPosition) => ReaderLocation | undefined) => {
+const makeEgwResolver = (database: Database.Database) => {
   let books: ReadonlyArray<typeof CacheBook.Type> = [];
   if (tableExists(database, 'books')) {
     books = database
@@ -206,42 +212,45 @@ const makeEgwResolver = (
   }
   const bookIds = new Set(books.map((book) => book.book_id));
 
-  return (position) => {
-    if (!bookIds.has(position.book_id)) return undefined;
+  const resolve = (position: LegacyDesktopEgwPosition): Option.Option<ReaderLocation> => {
+    if (!bookIds.has(position.book_id)) return Option.none();
     const requestedParagraph = position.paragraph_id ?? position.para_id;
-    if (requestedParagraph === null) {
-      return {
+    if (Predicate.isNull(requestedParagraph)) {
+      return Option.some({
         source: 'egw',
         resourceId: String(position.book_id),
         location: `/writings/${String(position.book_id)}`,
-      };
+      });
     }
     const matches = paragraphs.filter(
       (paragraph) =>
         paragraph.book_id === position.book_id &&
         (paragraph.para_id === requestedParagraph || paragraph.ref_code === requestedParagraph),
     );
-    if (matches.length !== 1) return undefined;
-    const match = matches[0];
-    if (match === undefined) return undefined;
-    if (match.para_id === null) return undefined;
-    return {
-      source: 'egw',
-      resourceId: String(position.book_id),
-      location: `/writings/${String(position.book_id)}/p/${encodeURIComponent(match.para_id)}`,
-    };
+    if (matches.length !== 1) return Option.none();
+    return Option.fromUndefinedOr(matches[0]).pipe(
+      Option.flatMap((match) =>
+        Option.map(Option.fromNullOr(match.para_id), (paraId) => ({
+          source: 'egw' as const,
+          resourceId: String(position.book_id),
+          location: `/writings/${String(position.book_id)}/p/${encodeURIComponent(paraId)}`,
+        })),
+      ),
+    );
   };
+
+  return resolve;
 };
 
 const makeCliEgwResolver = (
-  writingsFile: string | undefined,
+  writingsFile: Option.Option<string>,
 ): Effect.Effect<
-  (position: LegacyCliEgwPosition) => ReaderLocation | undefined,
+  (position: LegacyCliEgwPosition) => ReturnType<typeof noReaderLocation>,
   CopyOnMigrateError
 > => {
-  const unavailable = (): ReaderLocation | undefined => undefined;
-  if (writingsFile === undefined) return Effect.succeed(unavailable);
-  const file = writingsFile;
+  const unavailable = noReaderLocation;
+  if (Option.isNone(writingsFile)) return Effect.succeed(unavailable);
+  const file = writingsFile.value;
   return attempt('inspect-writings', 'local Writings corpus could not be inspected', () =>
     Host.exists(file),
   ).pipe(
@@ -270,27 +279,26 @@ const makeCliEgwResolver = (
               .flatMap((row) =>
                 Option.toArray(Schema.decodeUnknownOption(CliWritingsParagraph)(row)),
               );
-            return (position: LegacyCliEgwPosition): ReaderLocation | undefined => {
-              if (position.puborder === null) return undefined;
+            const resolve = (position: LegacyCliEgwPosition): Option.Option<ReaderLocation> => {
+              if (Predicate.isNull(position.puborder)) return Option.none();
               const matches = rows.filter(
                 (row) =>
                   row.book_code.toLowerCase() === position.book_code.toLowerCase() &&
                   row.puborder === position.puborder,
               );
-              if (matches.length !== 1) return undefined;
-              const match = matches[0];
-              if (match === undefined) return undefined;
-              return {
-                source: 'egw',
+              if (matches.length !== 1) return Option.none();
+              return Option.map(Option.fromUndefinedOr(matches[0]), (match) => ({
+                source: 'egw' as const,
                 resourceId: String(match.book_id),
                 location: `/writings/${String(match.book_id)}/p/${encodeURIComponent(match.para_id)}`,
-              };
+              }));
             };
+            return resolve;
           }),
         (database) => Effect.sync(() => database.close()),
       );
     }),
-    Effect.catch(() => Effect.succeed(unavailable)),
+    Effect.orElseSucceed(() => unavailable),
   );
 };
 
@@ -353,7 +361,7 @@ const snapshotDesktopCache = (
               `desktop-cache-${deterministicKey(sourceFingerprint, `history:${legacyPath}`)}`,
             ),
           timestampFor: (legacyPath) => deterministicTimestamp(sourceFingerprint, legacyPath),
-          resolveEgwLocation: () => undefined,
+          resolveEgwLocation: noReaderLocation,
         },
       );
       return { fingerprint: sourceFingerprint, ...projected };
@@ -392,15 +400,15 @@ const snapshotDesktopSettings = (
   attempt('snapshot-settings', 'legacy desktop settings could not be snapshotted', () => {
     const bytes = readLegacyBytes(filename);
     const sourceFingerprint = fingerprint(bytes);
-    let input: unknown = {};
-    if (bytes.byteLength > 0) {
-      input = Option.getOrUndefined(
-        Schema.decodeUnknownOption(Schema.fromJsonString(Schema.Unknown))(
+    const parseSettings = () => {
+      if (bytes.byteLength === 0) return {};
+      return Option.getOrUndefined(
+        Schema.decodeOption(Schema.fromJsonString(Schema.Unknown))(
           Buffer.from(bytes).toString('utf8'),
         ),
       );
-    }
-    const projected = projectDesktopSettings(input, {
+    };
+    const projected = projectDesktopSettings(parseSettings(), {
       nextDiagnosticId: (legacyPath) =>
         Schema.decodeSync(MigrationDiagnosticId)(
           `desktop-settings-${deterministicKey(sourceFingerprint, `diagnostic:${legacyPath}`)}`,
@@ -409,7 +417,7 @@ const snapshotDesktopSettings = (
     return { fingerprint: sourceFingerprint, ...projected };
   });
 
-const readCliRows = (database: Database.Database): Readonly<Record<string, unknown>> => {
+const readCliRows = (database: Database.Database) => {
   const read = (table: string, sql: string): ReadonlyArray<unknown> => {
     if (!tableExists(database, table)) return [];
     return database.prepare(sql).all();
@@ -426,13 +434,14 @@ const readCliRows = (database: Database.Database): Readonly<Record<string, unkno
 };
 
 const snapshotCliState = (
-  filename: string | undefined,
-  writingsFile: string | undefined,
+  cliStateFile: Option.Option<string>,
+  writingsFile: Option.Option<string>,
 ): Effect.Effect<DesktopLegacySnapshot, CopyOnMigrateError> =>
   Effect.gen(function* () {
-    if (filename === undefined) {
+    if (Option.isNone(cliStateFile)) {
       return { fingerprint: fingerprint(new Uint8Array()), commands: [], diagnostics: [] };
     }
+    const filename = cliStateFile.value;
     const bytes = yield* attempt('snapshot-cli', 'legacy CLI state could not be snapshotted', () =>
       readLegacyBytes(filename),
     );
@@ -463,7 +472,7 @@ const snapshotCliState = (
                 `cli-state-${deterministicKey(sourceFingerprint, `history:${legacyPath}`)}`,
               ),
             timestampFor: (legacyPath, legacyEpochMilliseconds) => {
-              if (legacyEpochMilliseconds === undefined) {
+              if (Predicate.isUndefined(legacyEpochMilliseconds)) {
                 return deterministicTimestamp(sourceFingerprint, legacyPath);
               }
               return deterministicTimestamp(
@@ -483,15 +492,13 @@ const projectionFor = (
   sourceId: MigrationSourceId,
   snapshot: DesktopLegacySnapshot,
   semanticCounts: ReadonlyArray<MigrationSemanticCount> = [],
-): LegacySourceProjection => {
-  return {
-    sourceId,
-    fingerprint: snapshot.fingerprint,
-    commands: snapshot.commands,
-    diagnostics: snapshot.diagnostics,
-    semanticCounts,
-  };
-};
+): LegacySourceProjection => ({
+  sourceId,
+  fingerprint: snapshot.fingerprint,
+  commands: snapshot.commands,
+  diagnostics: snapshot.diagnostics,
+  semanticCounts,
+});
 
 const activeEntityCount = (database: DesktopUserDatabase, entity: string): number => {
   let value: unknown;
@@ -542,7 +549,7 @@ export const makeDesktopCanonicalGenerationAdapter = (
   ): Effect.Effect<CanonicalGeneration, CopyOnMigrateError> => {
     if (!GENERATION_PATTERN.test(generation)) {
       return Effect.fail(
-        new CopyOnMigrateError({
+        CopyOnMigrateError.make({
           operation: action,
           message: 'canonical generation name is invalid',
         }),
@@ -573,27 +580,32 @@ export const makeDesktopCanonicalGenerationAdapter = (
     );
   };
 
+  const readActiveGeneration = (): Option.Option<string> => {
+    if (!Host.exists(marker)) return Option.none();
+    const generation = Host.readText(marker).trim();
+    if (!GENERATION_PATTERN.test(generation)) {
+      log('marker-invalid', 'reason=malformed');
+      return Option.none();
+    }
+    if (!Host.exists(generationFilename(options.userDataPath, generation))) {
+      log('marker-invalid', 'reason=missing-generation');
+      return Option.none();
+    }
+    return Option.some(generation);
+  };
+
   return {
-    activeGeneration: attempt('read-active', 'activation marker could not be read', () => {
-      if (!Host.exists(marker)) return undefined;
-      const generation = Host.readText(marker).trim();
-      if (!GENERATION_PATTERN.test(generation)) {
-        log('marker-invalid', 'reason=malformed');
-        return undefined;
-      }
-      if (!Host.exists(generationFilename(options.userDataPath, generation))) {
-        log('marker-invalid', 'reason=missing-generation');
-        return undefined;
-      }
-      return generation;
-    }),
+    activeGeneration: attempt('read-active', 'activation marker could not be read', () =>
+      readActiveGeneration(),
+    ),
     discardInactive: (activeGeneration) =>
       attempt('discard-inactive', 'inactive canonical generations could not be discarded', () => {
         for (const entry of Host.entries(options.userDataPath)) {
-          const match = GENERATED_FILE_PATTERN.exec(entry);
-          if (match === null) continue;
-          const generation = match[1];
-          if (generation === activeGeneration) continue;
+          const match = Option.fromNullOr(GENERATED_FILE_PATTERN.exec(entry));
+          if (Option.isNone(match)) continue;
+          const generation = match.value[1];
+          if (Predicate.isNotUndefined(generation) && Option.contains(activeGeneration, generation))
+            continue;
           Host.unlink(Host.join(options.userDataPath, entry));
           log('generation-discarded', `file=${entry}`);
         }
@@ -602,15 +614,16 @@ export const makeDesktopCanonicalGenerationAdapter = (
     create: (generation) => openGeneration(generation, 'generation-created'),
     open: (generation) => openGeneration(generation, 'generation-reopened'),
     verify: (generation, receipts) => {
-      const database = opened.get(generation.store);
-      if (database === undefined) {
+      const openedDatabase = Option.fromUndefinedOr(opened.get(generation.store));
+      if (Option.isNone(openedDatabase)) {
         return Effect.fail(
-          new CopyOnMigrateError({
+          CopyOnMigrateError.make({
             operation: 'verify',
             message: 'canonical generation database is not open',
           }),
         );
       }
+      const database = openedDatabase.value;
       return Effect.gen(function* () {
         for (const receipt of receipts) {
           for (const expected of receipt.semanticCounts) {
@@ -620,7 +633,7 @@ export const makeDesktopCanonicalGenerationAdapter = (
               () => activeEntityCount(database, expected.entity),
             );
             if (actual !== expected.count) {
-              return yield* new CopyOnMigrateError({
+              return yield* CopyOnMigrateError.make({
                 operation: 'verify-count',
                 message: `canonical semantic count mismatch for ${expected.entity}`,
               });
@@ -638,8 +651,8 @@ export const makeDesktopCanonicalGenerationAdapter = (
         const latestReading = yield* generation.store.latestReading.pipe(
           Effect.mapError(mapCopyError('verify-reading', 'latest reading decode failed')),
         );
-        if (expectedReading && latestReading === undefined) {
-          return yield* new CopyOnMigrateError({
+        if (expectedReading && Option.isNone(latestReading)) {
+          return yield* CopyOnMigrateError.make({
             operation: 'verify-reading',
             message: 'expected reading continuity is absent',
           });
@@ -670,7 +683,7 @@ export const makeDesktopCanonicalGenerationAdapter = (
           () => Host.readText(target),
         );
         if (persisted !== encoded) {
-          return yield* new CopyOnMigrateError({
+          return yield* CopyOnMigrateError.make({
             operation: 'verify-device-state',
             message: 'desktop device state verification failed',
           });
@@ -692,10 +705,13 @@ export const prepareDesktopUserState = Effect.fn('Desktop.prepareUserState')(
     Effect.gen(function* () {
       const cacheFile = options.cacheFile ?? Host.join(options.userDataPath, 'cache.sqlite');
       const settingsFile = options.settingsFile ?? Host.join(options.userDataPath, 'settings.json');
-      const log = options.log ?? (() => undefined);
+      const log = options.log ?? (() => {});
       const cache = yield* snapshotDesktopCache(cacheFile);
       const settings = yield* snapshotDesktopSettings(settingsFile);
-      const cli = yield* snapshotCliState(options.cliStateFile, options.writingsFile);
+      const cli = yield* snapshotCliState(
+        Option.fromUndefinedOr(options.cliStateFile),
+        Option.fromUndefinedOr(options.writingsFile),
+      );
       const generationHash = digest(
         `${sourceCache}:${cache.fingerprint}\u0000${sourceSettings}:${settings.fingerprint}\u0000${sourceCli}:${cli.fingerprint}`,
       );
@@ -738,7 +754,7 @@ export const prepareDesktopUserState = Effect.fn('Desktop.prepareUserState')(
         completedAt,
       });
       if (!result.activated) {
-        yield* adapter.discardInactive(result.generation);
+        yield* adapter.discardInactive(Option.some(result.generation));
         log(`[migration] already-active generation=${result.generation}`);
       }
       return {

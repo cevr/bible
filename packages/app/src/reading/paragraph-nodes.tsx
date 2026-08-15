@@ -16,7 +16,7 @@ export const ParagraphNodes = (props: ParagraphNodesProps) => (
       <Switch>
         <Match when={node._tag === 'Text'}>
           {() => {
-            if (node._tag !== 'Text') return null;
+            if (node._tag !== 'Text') return <></>;
             return node.text;
           }}
         </Match>
@@ -25,7 +25,7 @@ export const ParagraphNodes = (props: ParagraphNodesProps) => (
         </Match>
         <Match when={node._tag === 'PageBreak'}>
           {() => {
-            if (node._tag !== 'PageBreak') return null;
+            if (node._tag !== 'PageBreak') return <></>;
             return (
               <span class="bible-page-break" aria-label={`Page ${String(node.page)}`}>
                 {node.page}
@@ -35,7 +35,7 @@ export const ParagraphNodes = (props: ParagraphNodesProps) => (
         </Match>
         <Match when={node._tag === 'Emphasis'}>
           {() => {
-            if (node._tag !== 'Emphasis') return null;
+            if (node._tag !== 'Emphasis') return <></>;
             return (
               <em>
                 <ParagraphNodes nodes={node.children} onReference={props.onReference} />
@@ -45,7 +45,7 @@ export const ParagraphNodes = (props: ParagraphNodesProps) => (
         </Match>
         <Match when={node._tag === 'Comment'}>
           {() => {
-            if (node._tag !== 'Comment') return null;
+            if (node._tag !== 'Comment') return <></>;
             return (
               <span class="bible-editorial-note">
                 <ParagraphNodes nodes={node.children} onReference={props.onReference} />
@@ -55,7 +55,7 @@ export const ParagraphNodes = (props: ParagraphNodesProps) => (
         </Match>
         <Match when={node._tag === 'ScriptureRef'}>
           {() => {
-            if (node._tag !== 'ScriptureRef') return null;
+            if (node._tag !== 'ScriptureRef') return <></>;
             return (
               <button
                 type="button"
@@ -75,7 +75,7 @@ export const ParagraphNodes = (props: ParagraphNodesProps) => (
         </Match>
         <Match when={node._tag === 'BookRef'}>
           {() => {
-            if (node._tag !== 'BookRef') return null;
+            if (node._tag !== 'BookRef') return <></>;
             return (
               <button
                 type="button"
@@ -95,7 +95,7 @@ export const ParagraphNodes = (props: ParagraphNodesProps) => (
         </Match>
         <Match when={node._tag === 'Unknown'}>
           {() => {
-            if (node._tag !== 'Unknown') return null;
+            if (node._tag !== 'Unknown') return <></>;
             return (
               <span data-source-tag={node.tag}>
                 <ParagraphNodes nodes={node.children} onReference={props.onReference} />

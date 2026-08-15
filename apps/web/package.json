@@ -9,7 +9,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "start": "NODE_ENV=production bun server/main.ts",
-    "typecheck": "tsgo --noEmit",
+    "typecheck": "tsc --noEmit",
     "test": "bun test server src/workers",
     "test:e2e": "playwright test --config=e2e/playwright.config.ts",
     "test:e2e:ui": "playwright test --config=e2e/playwright.config.ts --ui",
@@ -21,7 +21,7 @@
     "@bible/core": "workspace:*",
     "@effect/platform-browser": "catalog:",
     "@effect/platform-bun": "catalog:",
-    "@noble/hashes": "^2.2.0",
+    "@noble/hashes": "^2.3.0",
     "@solidjs/router": "catalog:",
     "@solidjs/web": "catalog:",
     "drizzle-orm": "catalog:",
@@ -30,8 +30,8 @@
     "wa-sqlite": "https://github.com/cevr/wa-sqlite.git"
   },
   "devDependencies": {
-    "@playwright/test": "^1.61.1",
-    "vite": "^8.1.4",
+    "@playwright/test": "^1.62.1",
+    "vite": "^8.2.1",
     "vite-plugin-solid": "catalog:"
   }
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect } from 'effect';
+import { Effect, Option } from 'effect';
 
 import {
   connectProcedureWorker,
@@ -11,11 +11,11 @@ import {
 describe('procedure worker bootstrap', () => {
   it.scoped('transfers procedure and readiness ports without entering the legacy protocol', () =>
     Effect.gen(function* () {
-      let message: ProcedureWorkerConnect | undefined;
+      let message: Option.Option<ProcedureWorkerConnect> = Option.none();
       let transferred: Transferable[] = [];
       const worker: ProcedureWorkerEndpoint = {
         postMessage: (nextMessage, transfer) => {
-          message = nextMessage;
+          message = Option.some(nextMessage);
           transferred = transfer;
         },
       };
@@ -29,7 +29,7 @@ describe('procedure worker bootstrap', () => {
         }),
       );
 
-      expect(message).toEqual({ type: 'procedure-connect' });
+      expect(Option.getOrUndefined(message)).toEqual({ type: 'procedure-connect' });
       expect(transferred).toHaveLength(2);
       expect(transferred[0]).toBeInstanceOf(MessagePort);
       expect(transferred[1]).toBeInstanceOf(MessagePort);

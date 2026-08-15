@@ -12,6 +12,9 @@ import {
 import { Reference } from './model.js';
 import { WritingsService } from './service.js';
 
+// Wire-shape fields the schema encodes as `null` when absent.
+const wireNull = Option.getOrNull(Option.none<never>());
+
 const books: readonly BookRow[] = [
   {
     book_id: 127,
@@ -35,20 +38,20 @@ const storedParagraph = (
   bookCode: string,
   order: number,
   refcode: string,
-  elementType: string | null = 'p',
+  elementType: string = 'p',
 ): StoredParagraph & { bookCode: string } => ({
   bookCode,
   para_id: Option.some(`${bookCode}-${String(order)}`),
-  id_prev: null,
-  id_next: null,
-  refcode_1: null,
-  refcode_2: null,
-  refcode_3: null,
-  refcode_4: null,
+  id_prev: wireNull,
+  id_next: wireNull,
+  refcode_1: wireNull,
+  refcode_2: wireNull,
+  refcode_3: wireNull,
+  refcode_4: wireNull,
   refcode_short: Option.some(refcode),
-  refcode_long: null,
+  refcode_long: wireNull,
   element_type: elementType,
-  element_subtype: null,
+  element_subtype: wireNull,
   nodes: [{ _tag: 'Text', text: `Content for ${refcode}` }],
   puborder: order,
 });

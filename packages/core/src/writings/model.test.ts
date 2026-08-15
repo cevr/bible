@@ -26,14 +26,14 @@ describe('Writings domain', () => {
   });
 
   test('a page is non-empty and owns finite navigation', () => {
-    const publication = new Publication({
+    const publication = Publication.make({
       id: publicationId(127),
       code: publicationCode('PP'),
       title: 'Patriarchs and Prophets',
       author: 'Ellen G. White',
       paragraphCount: Option.some(1000),
     });
-    const paragraph = new Paragraph({
+    const paragraph = Paragraph.make({
       reference: Reference.paragraph(127, 'p-1024'),
       publicationCode: publicationCode('PP'),
       order: publicationOrder(1024),
@@ -44,7 +44,7 @@ describe('Writings domain', () => {
       elementType: Option.none(),
       elementSubtype: Option.none(),
     });
-    const page = new Page({
+    const page = Page.make({
       publication,
       reference: Reference.page(127, 351),
       paragraphs: [paragraph],

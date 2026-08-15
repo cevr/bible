@@ -20,8 +20,8 @@ import type * as Schemas from './schemas.js';
  */
 export const EGWParagraphRef = Schema.TaggedStruct('paragraph', {
   bookCode: Schema.String,
-  page: Schema.Number,
-  paragraph: Schema.Number,
+  page: Schema.Finite,
+  paragraph: Schema.Finite,
 });
 
 export type EGWParagraphRef = Schema.Schema.Type<typeof EGWParagraphRef>;
@@ -31,9 +31,9 @@ export type EGWParagraphRef = Schema.Schema.Type<typeof EGWParagraphRef>;
  */
 export const EGWParagraphRangeRef = Schema.TaggedStruct('paragraph-range', {
   bookCode: Schema.String,
-  page: Schema.Number,
-  paragraphStart: Schema.Number,
-  paragraphEnd: Schema.Number,
+  page: Schema.Finite,
+  paragraphStart: Schema.Finite,
+  paragraphEnd: Schema.Finite,
 });
 
 export type EGWParagraphRangeRef = Schema.Schema.Type<typeof EGWParagraphRangeRef>;
@@ -43,7 +43,7 @@ export type EGWParagraphRangeRef = Schema.Schema.Type<typeof EGWParagraphRangeRe
  */
 export const EGWPageRef = Schema.TaggedStruct('page', {
   bookCode: Schema.String,
-  page: Schema.Number,
+  page: Schema.Finite,
 });
 
 export type EGWPageRef = Schema.Schema.Type<typeof EGWPageRef>;
@@ -53,8 +53,8 @@ export type EGWPageRef = Schema.Schema.Type<typeof EGWPageRef>;
  */
 export const EGWPageRangeRef = Schema.TaggedStruct('page-range', {
   bookCode: Schema.String,
-  pageStart: Schema.Number,
-  pageEnd: Schema.Number,
+  pageStart: Schema.Finite,
+  pageEnd: Schema.Finite,
 });
 
 export type EGWPageRangeRef = Schema.Schema.Type<typeof EGWPageRangeRef>;
@@ -95,7 +95,7 @@ export type EGWParsedRef =
 /**
  * Parse error
  */
-export class EGWParseError extends Schema.TaggedErrorClass<EGWParseError>()('EGWParseError', {
+export class EGWParseError extends Schema.TaggedError<EGWParseError>()('EGWParseError', {
   input: Schema.String,
   message: Schema.String,
 }) {}
@@ -203,7 +203,7 @@ export function parseEGWRef(input: string): EGWParsedRef {
 export function parseEGWRefEffect(input: string): Effect.Effect<EGWParsedRef, EGWParseError> {
   return Effect.try({
     try: () => parseEGWRef(input),
-    catch: () => new EGWParseError({ input, message: 'Failed to parse reference' }),
+    catch: () => EGWParseError.make({ input, message: 'Failed to parse reference' }),
   });
 }
 
@@ -259,9 +259,9 @@ export function getBookCode(ref: EGWParsedRef): Option.Option<string> {
  * Check if element type is a chapter heading.
  * The EGW API returns HTML element names: h1, h2, h3, etc. for headings.
  */
-export function isChapterHeading(elementType: string | null | undefined): boolean {
-  if (!elementType) return false;
-  const type = elementType.toLowerCase();
+export function isChapterHeading(elementType: Option.Option<string>): boolean {
+  if (Option.isNone(elementType) || elementType.value.length === 0) return false;
+  const type = elementType.value.toLowerCase();
   if (/^h[1-6]$/.test(type)) return true;
   return ['chapter', 'heading', 'title'].includes(type);
 }
@@ -269,9 +269,9 @@ export function isChapterHeading(elementType: string | null | undefined): boolea
 /**
  * Extract heading level (1–6) from element type, or 0 if not a heading.
  */
-export function headingLevel(elementType: string | null | undefined): number {
-  if (!elementType) return 0;
-  const match = elementType.toLowerCase().match(/^h(\d)$/);
+export function headingLevel(elementType: Option.Option<string>): number {
+  if (Option.isNone(elementType)) return 0;
+  const match = elementType.value.toLowerCase().match(/^h(\d)$/);
   if (match?.[1]) return parseInt(match[1], 10);
   return 0;
 }

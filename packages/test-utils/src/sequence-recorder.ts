@@ -8,11 +8,22 @@
 import { Context, Effect, Layer, Ref } from 'effect';
 
 /**
+ * A recordable call argument value. Extracted call arguments must be
+ * plain data so they can be compared and serialized in assertion messages.
+ */
+export type CallField =
+  | string
+  | number
+  | boolean
+  | ReadonlyArray<CallField>
+  | { readonly [key: string]: CallField };
+
+/**
  * Base service call type - extend for specific services
  */
 export interface BaseServiceCall {
   readonly _tag: string;
-  readonly [key: string]: unknown;
+  readonly [key: string]: CallField;
 }
 
 /**
@@ -64,7 +75,7 @@ export const CallSequenceLayer = Layer.effect(CallSequence, Ref.make<ServiceCall
  * Create a recording wrapper for a service method.
  * Records the call before delegating to the actual implementation.
  */
-export const withRecording = <T extends string, Args extends unknown[], R>(
+export const withRecording = <T extends string, Args extends ReadonlyArray<unknown>, R>(
   tag: T,
   method: (...args: Args) => Effect.Effect<R, unknown, unknown>,
   extractArgs: (...args: Args) => Omit<ServiceCall<T>, '_tag'>,

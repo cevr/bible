@@ -3,10 +3,9 @@ import {
   ReaderTypeface,
   type ReadingPreferencesPatch,
 } from '@bible/core/reading-preferences';
-import { A } from '@solidjs/router';
 import { Errored, Loading, Show } from '@solidjs/web';
 import { createSignal } from 'solid-js';
-import { DateTime, Effect, Schema } from 'effect';
+import { DateTime, Effect, Option, Schema } from 'effect';
 
 import { useCapabilities } from '../application/capabilities-context.js';
 import type { SettingsSection } from '../route/index.js';
@@ -23,12 +22,10 @@ const settingsSections: ReadonlyArray<{ readonly id: SettingsSection; readonly l
   { id: 'about', label: 'About' },
 ];
 
-const currentSection = (
-  selected: SettingsSection,
-  section: SettingsSection,
-): 'page' | undefined => {
-  if (selected === section) return 'page';
-  return undefined;
+const currentSection = (selected: SettingsSection, section: SettingsSection) => {
+  let marker = Option.none<'page'>();
+  if (selected === section) marker = Option.some('page');
+  return Option.getOrUndefined(marker);
 };
 
 const bibleLayoutLabel = (layout: 'verse' | 'paragraph'): string => {
@@ -44,10 +41,10 @@ export const Settings = (props: SettingsProps) => {
   const data = useReadingData();
   const capabilities = useCapabilities();
   const preferences = () => data.readingPreferences.get()();
-  const [failure, setFailure] = createSignal<string>();
+  const [failure, setFailure] = createSignal(Option.none<string>());
   const [saving, setSaving] = createSignal(false);
-  const [dataStatus, setDataStatus] = createSignal<string>();
-  const [dataFailure, setDataFailure] = createSignal<string>();
+  const [dataStatus, setDataStatus] = createSignal(Option.none<string>());
+  const [dataFailure, setDataFailure] = createSignal(Option.none<string>());
 
   const failDataOperation = (operation: string, cause: unknown): void => {
     Effect.runFork(
@@ -55,24 +52,24 @@ export const Settings = (props: SettingsProps) => {
         `[settings] operation-failed operation=${operation} category=${failureCategory(cause)}`,
       ),
     );
-    setDataStatus(undefined);
-    setDataFailure(failureMessage(cause));
+    setDataStatus(Option.none());
+    setDataFailure(Option.some(failureMessage(cause)));
   };
 
   const exportLibrary = (): void => {
-    const fileExport = capabilities.fileExport;
-    if (fileExport === undefined) return;
-    setDataFailure(undefined);
-    setDataStatus('Preparing backup…');
+    const fileExport = Option.fromNullishOr(capabilities.fileExport);
+    if (Option.isNone(fileExport)) return;
+    setDataFailure(Option.none());
+    setDataStatus(Option.some('Preparing backup…'));
     void data.dataPortability.export().then(
       (document) =>
         Effect.runPromise(
-          fileExport.save({
+          fileExport.value.save({
             suggestedName: `bible-library-${DateTime.formatIsoDateUtc(Effect.runSync(DateTime.now))}.json`,
             contents: new TextEncoder().encode(document),
           }),
         ).then(
-          () => setDataStatus('Backup saved.'),
+          () => setDataStatus(Option.some('Backup saved.')),
           (cause: unknown) => failDataOperation('export', cause),
         ),
       (cause: unknown) => failDataOperation('export', cause),
@@ -80,20 +77,21 @@ export const Settings = (props: SettingsProps) => {
   };
 
   const importLibrary = (): void => {
-    const fileImport = capabilities.fileImport;
-    if (fileImport === undefined) return;
-    setDataFailure(undefined);
-    setDataStatus('Choose a backup…');
-    void Effect.runPromise(fileImport.select({ accept: ['application/json', '.json'] })).then(
+    const fileImport = Option.fromNullishOr(capabilities.fileImport);
+    if (Option.isNone(fileImport)) return;
+    setDataFailure(Option.none());
+    setDataStatus(Option.some('Choose a backup…'));
+    void Effect.runPromise(fileImport.value.select({ accept: ['application/json', '.json'] })).then(
       (files) => {
-        const file = files[0];
-        if (file === undefined) {
-          setDataStatus(undefined);
+        const file = Option.fromNullishOr(files[0]);
+        if (Option.isNone(file)) {
+          setDataStatus(Option.none());
           return;
         }
-        setDataStatus(`Importing ${file.name}…`);
-        void data.dataPortability.import(new TextDecoder().decode(file.contents)).then(
-          ({ imported }) => setDataStatus(`Imported ${String(imported)} library records.`),
+        setDataStatus(Option.some(`Importing ${file.value.name}…`));
+        void data.dataPortability.import(new TextDecoder().decode(file.value.contents)).then(
+          ({ imported }) =>
+            setDataStatus(Option.some(`Imported ${String(imported)} library records.`)),
           (cause: unknown) => failDataOperation('import', cause),
         );
       },
@@ -103,7 +101,7 @@ export const Settings = (props: SettingsProps) => {
 
   const patch = (value: ReadingPreferencesPatch) => {
     setSaving(true);
-    setFailure(undefined);
+    setFailure(Option.none());
     void data.readingPreferences.mutate({ patch: value }).then(
       () => setSaving(false),
       (cause: unknown) => {
@@ -112,7 +110,7 @@ export const Settings = (props: SettingsProps) => {
             `[settings] mutation-failed operation=reading-preferences category=${failureCategory(cause)}`,
           ),
         );
-        setFailure(failureMessage(cause));
+        setFailure(Option.some(failureMessage(cause)));
         setSaving(false);
       },
     );
@@ -126,12 +124,12 @@ export const Settings = (props: SettingsProps) => {
       </header>
       <nav class="bible-subnav" aria-label="Settings sections">
         {settingsSections.map((section) => (
-          <A
+          <a
             href={`/settings/${section.id}`}
             aria-current={currentSection(props.section, section.id)}
           >
             {section.label}
-          </A>
+          </a>
         ))}
       </nav>
       <Errored fallback={(error) => <ReaderFailure error={error()} />}>
@@ -208,17 +206,19 @@ export const Settings = (props: SettingsProps) => {
               />
               <fieldset class="bible-settings__choices">
                 <legend>Scripture layout</legend>
-                {(['verse', 'paragraph'] as const).map((layout) => (
-                  <label>
-                    <input
-                      type="radio"
-                      name="bible-layout"
-                      checked={preferences().bibleLayout === layout}
-                      onChange={() => patch({ bibleLayout: layout })}
-                    />
-                    <span>{bibleLayoutLabel(layout)}</span>
-                  </label>
-                ))}
+                {(['verse', 'paragraph'] satisfies ReadonlyArray<'verse' | 'paragraph'>).map(
+                  (layout) => (
+                    <label>
+                      <input
+                        type="radio"
+                        name="bible-layout"
+                        checked={preferences().bibleLayout === layout}
+                        onChange={() => patch({ bibleLayout: layout })}
+                      />
+                      <span>{bibleLayoutLabel(layout)}</span>
+                    </label>
+                  ),
+                )}
               </fieldset>
               <fieldset class="bible-settings__choices">
                 <legend>Study detail</legend>
@@ -243,7 +243,7 @@ export const Settings = (props: SettingsProps) => {
                   Saving…
                 </p>
               </Show>
-              <Show when={failure()}>
+              <Show when={Option.getOrUndefined(failure())}>
                 {(message) => (
                   <p class="bible-form-status bible-form-status--error" role="alert">
                     {message()}
@@ -279,21 +279,27 @@ export const Settings = (props: SettingsProps) => {
                 </p>
               </div>
               <div class="bible-settings__data-actions">
-                <Button onClick={exportLibrary} disabled={capabilities.fileExport === undefined}>
+                <Button
+                  onClick={exportLibrary}
+                  disabled={Option.isNone(Option.fromNullishOr(capabilities.fileExport))}
+                >
                   Export library
                 </Button>
-                <Button onClick={importLibrary} disabled={capabilities.fileImport === undefined}>
+                <Button
+                  onClick={importLibrary}
+                  disabled={Option.isNone(Option.fromNullishOr(capabilities.fileImport))}
+                >
                   Import backup
                 </Button>
               </div>
-              <Show when={dataStatus()}>
+              <Show when={Option.getOrUndefined(dataStatus())}>
                 {(message) => (
                   <p class="bible-form-status" role="status">
                     {message()}
                   </p>
                 )}
               </Show>
-              <Show when={dataFailure()}>
+              <Show when={Option.getOrUndefined(dataFailure())}>
                 {(message) => (
                   <p class="bible-form-status bible-form-status--error" role="alert">
                     {message()}

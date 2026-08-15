@@ -14,7 +14,7 @@ import { Schema } from 'effect';
 /**
  * SDA Hymnal hymn number (1-920)
  */
-export const HymnId = Schema.Number.pipe(
+export const HymnId = Schema.Finite.pipe(
   Schema.check(Schema.isInt(), Schema.isBetween({ minimum: 1, maximum: 920 })),
   Schema.brand('HymnId'),
 );
@@ -23,7 +23,7 @@ export type HymnId = typeof HymnId.Type;
 /**
  * Hymnal category ID (positive integer)
  */
-export const CategoryId = Schema.Number.pipe(
+export const CategoryId = Schema.Finite.pipe(
   Schema.check(Schema.isInt(), Schema.isGreaterThan(0)),
   Schema.brand('CategoryId'),
 );
@@ -32,7 +32,7 @@ export type CategoryId = typeof CategoryId.Type;
 /**
  * Verse ID within a hymn (0-indexed)
  */
-export const VerseId = Schema.Number.pipe(
+export const VerseId = Schema.Finite.pipe(
   Schema.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0)),
   Schema.brand('VerseId'),
 );
