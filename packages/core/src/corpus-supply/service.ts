@@ -9,6 +9,7 @@ import {
   type CorpusSupplyError,
 } from './errors.js';
 import {
+  BootstrapTarget,
   CorpusActivation,
   CorpusSupplyReceipt,
   type CorpusSupplyInput,
@@ -42,7 +43,7 @@ export class CorpusSupply extends Context.Service<CorpusSupply, CorpusSupplyShap
       const bibleInstallerOption = yield* Effect.serviceOption(BibleArtifactInstaller);
 
       const ensureWritings = Effect.fn('CorpusSupply.ensureWritings')(function* (
-        target: WritingsTarget | undefined,
+        target: WritingsTarget,
         _refresh: boolean,
       ) {
         if (Option.isNone(sourceOption) || Option.isNone(databaseOption)) {
@@ -142,16 +143,18 @@ export class CorpusSupply extends Context.Service<CorpusSupply, CorpusSupplyShap
         return yield* new CorpusRecipeUnavailableError({ corpus: 'bible' });
       });
 
+      // Exhaustive over CorpusTarget: adding a corpus target is a compile
+      // error here until the supply pipeline knows how to ensure it.
       const ensure: CorpusSupplyShape['ensure'] = (input = {}) => {
         const refresh = input.refresh ?? false;
-        const target = input.target;
-        if (target === undefined || target._tag === 'bootstrap') {
-          return ensureBible(refresh);
+        const target = input.target ?? new BootstrapTarget({});
+        switch (target._tag) {
+          case 'bootstrap':
+          case 'bible':
+            return ensureBible(refresh);
+          case 'writings':
+            return ensureWritings(target, refresh);
         }
-        if (target._tag === 'bible') return ensureBible(refresh);
-        let writingsTarget: WritingsTarget | undefined;
-        if (target._tag === 'writings') writingsTarget = target;
-        return ensureWritings(writingsTarget, refresh);
       };
 
       return CorpusSupply.of({ ensure });

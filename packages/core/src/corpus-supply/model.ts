@@ -3,6 +3,17 @@ import { Effect, Option, Schema } from 'effect';
 import { PublicationArchive } from '../writings/archive.js';
 import { PublicationId } from '../writings/model.js';
 
+/** The closed set of corpora the supply pipeline can install. Extending the
+ *  pipeline with a new corpus artifact starts by adding its name here — every
+ *  receipt, activation, and error narrows from this single vocabulary. */
+export const CorpusName = Schema.Literals(['bible', 'writings']);
+export type CorpusName = typeof CorpusName.Type;
+
+/** What one Activation or skip refers to: the canonical Bible artifact or one
+ *  Writings publication. A new corpus artifact adds its identity form here. */
+export const CorpusIdentity = Schema.Union([Schema.Literal('canonical'), PublicationId]);
+export type CorpusIdentity = typeof CorpusIdentity.Type;
+
 export const AssetSourceId = Schema.NonEmptyString.pipe(Schema.brand('CorpusSupply/AssetSourceId'));
 export type AssetSourceId = typeof AssetSourceId.Type;
 
@@ -52,8 +63,8 @@ export class CorpusSupplyInput extends Schema.Class<CorpusSupplyInput>('CorpusSu
 }) {}
 
 export class CorpusActivation extends Schema.Class<CorpusActivation>('CorpusSupply/Activation')({
-  corpus: Schema.Literals(['bible', 'writings']),
-  identity: Schema.Union([Schema.Literal('canonical'), PublicationId]),
+  corpus: CorpusName,
+  identity: CorpusIdentity,
   source: AssetSourceId,
   revision: CorpusRevision,
   installed: Schema.Number.pipe(Schema.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0))),
@@ -61,7 +72,7 @@ export class CorpusActivation extends Schema.Class<CorpusActivation>('CorpusSupp
 
 export class CorpusSupplyReceipt extends Schema.Class<CorpusSupplyReceipt>('CorpusSupply/Receipt')({
   activated: Schema.Array(CorpusActivation),
-  skipped: Schema.Array(Schema.Union([Schema.Literal('canonical'), PublicationId])),
+  skipped: Schema.Array(CorpusIdentity),
 }) {}
 
 export const assetSourceId = Schema.decodeSync(AssetSourceId);

@@ -1,6 +1,7 @@
 import { Schema } from 'effect';
 
 import { PublicationId } from '../writings/model.js';
+import { CorpusName } from './model.js';
 
 export class CorpusSourceUnavailableError extends Schema.TaggedErrorClass<CorpusSourceUnavailableError>()(
   'CorpusSourceUnavailableError',
@@ -22,7 +23,7 @@ export class CorpusInstallationError extends Schema.TaggedErrorClass<CorpusInsta
   'CorpusInstallationError',
   {
     publication: Schema.optional(PublicationId),
-    corpus: Schema.optional(Schema.Literals(['bible', 'writings'])),
+    corpus: Schema.optional(CorpusName),
     cause: Schema.Unknown,
   },
 ) {}
@@ -30,7 +31,7 @@ export class CorpusInstallationError extends Schema.TaggedErrorClass<CorpusInsta
 export class CorpusRecipeUnavailableError extends Schema.TaggedErrorClass<CorpusRecipeUnavailableError>()(
   'CorpusRecipeUnavailableError',
   {
-    corpus: Schema.NonEmptyString,
+    corpus: CorpusName,
   },
 ) {}
 
