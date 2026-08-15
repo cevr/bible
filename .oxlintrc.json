@@ -193,8 +193,7 @@
         "**/packages/core/src/egw-db/book-database.ts",
         "**/packages/core/src/egw-db/book-database-bun.ts",
         "**/packages/core/src/bible-db/bible-database.ts",
-        "**/packages/core/src/hymnal/database.ts",
-        "**/packages/core/src/gemini/client.ts"
+        "**/packages/core/src/hymnal/database.ts"
       ],
       "rules": {
         "node/no-process-env": "off"
@@ -202,12 +201,10 @@
     },
     {
       "files": [
-        "**/packages/core/src/gemini/client.ts",
         "**/packages/core/src/egw/client.ts",
         "**/packages/core/src/egw-db/book-database.ts",
         "**/packages/core/src/bible-db/bible-database.ts",
         "**/packages/core/src/hymnal/**",
-        "**/packages/core/src/egw-gemini/**",
         "**/packages/core/src/sync/**",
         "**/apps/web/src/workers/**",
         "**/packages/test-utils/**",

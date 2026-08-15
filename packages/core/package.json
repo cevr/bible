@@ -24,7 +24,6 @@
     "./corpus-supply": "./src/corpus-supply/index.ts",
     "./corpus-supply/node": "./src/platform-node/bible-artifact.ts",
     "./bible-rendering": "./src/bible-rendering/index.ts",
-    "./gemini": "./src/gemini/index.ts",
     "./sync": "./src/sync/index.ts",
     "./bible-db": "./src/bible-db/index.ts",
     "./bible-db/bun": "./src/bible-db/bible-database-bun.ts",
@@ -47,7 +46,6 @@
   "dependencies": {
     "@effect/platform-bun": "catalog:",
     "@effect/sql-sqlite-bun": "catalog:",
-    "@google/genai": "^2.11.0",
     "@noble/hashes": "^2.2.0",
     "better-sqlite3": "^12.11.1",
     "drizzle-orm": "catalog:",
