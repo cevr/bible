@@ -10,7 +10,8 @@ import { DateTime, Effect, Schema } from 'effect';
 
 import { useCapabilities } from '../application/capabilities-context.js';
 import type { SettingsSection } from '../route/index.js';
-import { failureCategory, useReadingData } from '../runtime/index.js';
+import { failureCategory } from '@bible/core/observability';
+import { useReadingData } from '../runtime/index.js';
 import { Button, Popover } from '../ui/index.js';
 import { ReaderFailure, ReaderLoading } from '../reading/index.js';
 

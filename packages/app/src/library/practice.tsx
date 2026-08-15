@@ -11,7 +11,8 @@ import { createSignal } from 'solid-js';
 
 import { ReaderFailure, ReaderLoading } from '../reading/index.js';
 import { useCapabilities } from '../application/capabilities-context.js';
-import { failureCategory, useReadingData } from '../runtime/index.js';
+import { failureCategory } from '@bible/core/observability';
+import { useReadingData } from '../runtime/index.js';
 import { Button, Input } from '../ui/index.js';
 
 export interface PracticeProps {

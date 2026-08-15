@@ -4,7 +4,8 @@ import { createEffect, createSignal, onCleanup, onSettled, type ParentProps } fr
 
 import type { ReaderTypeface } from '@bible/core/reading-preferences';
 import { decodeRoute, readerLocationForRoute } from '../route/index.js';
-import { failureCategory, useReadingData } from '../runtime/index.js';
+import { failureCategory } from '@bible/core/observability';
+import { useReadingData } from '../runtime/index.js';
 import { Button, CommandPalette, Menu, MenuIcon, SearchIcon } from '../ui/index.js';
 
 const readerTypeface = (typeface: ReaderTypeface): string => {

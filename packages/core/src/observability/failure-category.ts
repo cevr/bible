@@ -1,3 +1,14 @@
+/**
+ * Stable log-category derivation from an unknown failure.
+ *
+ * Hosts and the shared app log failures as `[area] action key=value` lines
+ * (see the repo observability convention); `failureCategory` turns any cause
+ * into the `category=` value: the tagged error `_tag` when present, else a
+ * `code` or `name`, normalized to a lowercase token. Pure and dependency-free
+ * so every tier — Solid UI, browser worker, Bun server, Electron main — uses
+ * the same taxonomy.
+ */
+
 const normalizeCategory = (value: string): string => {
   const normalized = value
     .trim()

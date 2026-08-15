@@ -1,6 +1,7 @@
 /** Effect-native orchestration for the browser database worker. */
 import { CorpusSupply } from '@bible/core/corpus-supply';
 import { LibraryEntityId } from '@bible/core/library-state';
+import { failureCategory } from '@bible/core/observability';
 import { ClientId, makeSimulatedTransport, MutationId, Timestamp } from '@bible/core/local-first';
 import { CommitId, RuntimeGeneration } from '@bible/core/procedure';
 import { Effect, Layer, Schema } from 'effect';
@@ -86,24 +87,6 @@ const discardBibleGeneration = (
       }),
     { concurrency: 'unbounded', discard: true },
   );
-
-const normalizeCategory = (value: string): string => {
-  const normalized = value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9._-]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-  if (normalized.length > 0) return normalized;
-  return 'unknown';
-};
-
-const failureCategory = (cause: unknown): string => {
-  if (typeof cause !== 'object' || cause === null) return 'unknown';
-  if ('_tag' in cause && typeof cause._tag === 'string') return normalizeCategory(cause._tag);
-  if ('code' in cause && typeof cause.code === 'string') return normalizeCategory(cause.code);
-  if ('name' in cause && typeof cause.name === 'string') return normalizeCategory(cause.name);
-  return 'unknown';
-};
 
 const initializeSqlite = (host: DatabaseWorkerHost): Effect.Effect<InitializedSqlite, unknown> =>
   Effect.gen(function* () {

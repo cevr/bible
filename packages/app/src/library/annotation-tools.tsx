@@ -10,7 +10,8 @@ import { Effect, Schema } from 'effect';
 import { createMemo, createSignal } from 'solid-js';
 
 import { decodeRoute, readerLocationForRoute } from '../route/index.js';
-import { failureCategory, useReadingData } from '../runtime/index.js';
+import { failureCategory } from '@bible/core/observability';
+import { useReadingData } from '../runtime/index.js';
 import { Button, Input, Tabs } from '../ui/index.js';
 
 export interface AnnotationToolsProps {

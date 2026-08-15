@@ -28,6 +28,7 @@ import { BIBLE_ARTIFACT_RELEASE } from '@bible/core/corpus-supply';
 import { BibleService } from '@bible/core/bible/service';
 import * as BibleDbBun from '@bible/core/bible-db/bun';
 import * as EGWDbBun from '@bible/core/egw-db/bun';
+import { failureCategory } from '@bible/core/observability';
 import { WritingsArchive } from '@bible/core/writings/archive-service';
 import { WritingsService } from '@bible/core/writings/service';
 
@@ -40,24 +41,6 @@ import { EGWGroupLive } from './api/groups/EGWGroupLive.js';
 
 const PORT = Number(process.env['PORT'] ?? 3001);
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
-
-const normalizeCategory = (value: string): string => {
-  const normalized = value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9._-]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-  if (normalized.length > 0) return normalized;
-  return 'unknown';
-};
-
-const failureCategory = (cause: unknown): string => {
-  if (typeof cause !== 'object' || cause === null) return 'unknown';
-  if ('_tag' in cause && typeof cause._tag === 'string') return normalizeCategory(cause._tag);
-  if ('code' in cause && typeof cause.code === 'string') return normalizeCategory(cause.code);
-  if ('name' in cause && typeof cause.name === 'string') return normalizeCategory(cause.name);
-  return 'unknown';
-};
 
 // ============================================================================
 // API Implementation Layer

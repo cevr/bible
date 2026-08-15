@@ -10,7 +10,8 @@ import { Effect, Option } from 'effect';
 import { createSignal } from 'solid-js';
 
 import { AnnotationTools } from '../library/annotation-tools.js';
-import { failureCategory, useReadingData } from '../runtime/index.js';
+import { failureCategory } from '@bible/core/observability';
+import { useReadingData } from '../runtime/index.js';
 import { writingsDownloadLabel } from '../runtime/writings-cache.js';
 import { Button, ScrollViewport } from '../ui/index.js';
 import { ParagraphNodes } from './paragraph-nodes.js';
