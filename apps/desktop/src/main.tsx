@@ -1,84 +1,24 @@
-import { ReadingApplication, SharedRoutes } from '@bible/app/application';
-import { failureMessage } from '@bible/core/observability';
+import { ApplicationBootstrap } from '@bible/app/application';
 import { HashRouter } from '@solidjs/router';
-import { render, Show } from '@solidjs/web';
+import { render } from '@solidjs/web';
 import { Effect } from 'effect';
-import { createSignal, onSettled } from 'solid-js';
-
-import type { ActiveProcedureHost } from '@bible/app/procedure';
 
 import { startDesktopProcedureHost } from './procedure-client.js';
 import { desktopCapabilities } from './platform-capabilities.js';
 import '@bible/app/styles.css';
-
-const STARTUP_FALLBACK = 'An unknown startup error prevented the library from opening.';
-
-const DesktopApplication = () => {
-  const [host, setHost] = createSignal<ActiveProcedureHost>();
-  const [failure, setFailure] = createSignal<unknown>();
-
-  onSettled(() => {
-    let disposed = false;
-    let activeHost: ActiveProcedureHost | undefined;
-    const starting = startDesktopProcedureHost();
-
-    void starting.then(
-      (started) => {
-        activeHost = started;
-        if (disposed) {
-          void started.dispose();
-          return;
-        }
-        setHost(started);
-      },
-      (cause: unknown) => {
-        if (!disposed) setFailure(() => cause);
-      },
-    );
-
-    return () => {
-      disposed = true;
-      if (activeHost !== undefined) void activeHost.dispose();
-    };
-  });
-
-  return (
-    <Show
-      when={host()}
-      fallback={
-        <main class="bible-bootstrap" aria-live="polite">
-          <Show when={failure()} fallback={<p role="status">Preparing your library…</p>}>
-            {(cause) => (
-              <div role="alert">
-                <strong>The library could not be opened.</strong>
-                <p>{failureMessage(cause(), STARTUP_FALLBACK)}</p>
-              </div>
-            )}
-          </Show>
-        </main>
-      }
-    >
-      {(current) => (
-        <HashRouter
-          root={(props) => (
-            <ReadingApplication
-              procedures={current().procedures}
-              capabilities={desktopCapabilities}
-            >
-              {props.children}
-            </ReadingApplication>
-          )}
-        >
-          <SharedRoutes />
-        </HashRouter>
-      )}
-    </Show>
-  );
-};
 
 const root = (() => {
   const element = document.getElementById('root');
   if (element === null) return Effect.runSync(Effect.die('#root not found'));
   return element;
 })();
-render(() => <DesktopApplication />, root);
+render(
+  () => (
+    <ApplicationBootstrap
+      router={HashRouter}
+      start={startDesktopProcedureHost}
+      capabilities={desktopCapabilities}
+    />
+  ),
+  root,
+);
