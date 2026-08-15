@@ -1,5 +1,5 @@
 import { Schema } from 'effect';
-import { Rpc, RpcGroup } from 'effect/unstable/rpc';
+import { Rpc, RpcGroup, type RpcSchema } from 'effect/unstable/rpc';
 
 import { BookNumber, Chapter, ChapterNumber, SearchWindow } from '../bible/model.js';
 import {
@@ -40,6 +40,37 @@ import {
 
 const sanitizedDefect = Schema.Defect({ excludeCause: true });
 
+/**
+ * Domain procedure constructor: every domain procedure in the group fails
+ * with `ProcedureError` and sanitizes defects before they cross the
+ * transport. New RPC families declare payload/success only; the failure
+ * convention is structural, not copy-paste. `RuntimeConnect` is the one
+ * procedure outside the convention (it fails with the handshake error).
+ */
+const procedure = <
+  const Tag extends string,
+  Payload extends Schema.Top | Schema.Struct.Fields,
+  Success extends Schema.Top,
+  const IsStream extends boolean = false,
+>(
+  tag: Tag,
+  options: {
+    readonly payload: Payload;
+    readonly success: Success;
+    readonly stream?: IsStream;
+  },
+): Rpc.Rpc<
+  Tag,
+  Payload extends Schema.Struct.Fields ? Schema.Struct<Payload> : Payload,
+  IsStream extends true ? RpcSchema.Stream<Success, typeof ProcedureError> : Success,
+  IsStream extends true ? typeof Schema.Never : typeof ProcedureError
+> =>
+  Rpc.make(tag, {
+    ...options,
+    error: ProcedureError,
+    defect: sanitizedDefect,
+  });
+
 export const RuntimeConnect = Rpc.make('v1.runtime.connect', {
   payload: {
     protocolVersion: ProtocolVersion,
@@ -50,22 +81,18 @@ export const RuntimeConnect = Rpc.make('v1.runtime.connect', {
   defect: sanitizedDefect,
 });
 
-export const RuntimeEvents = Rpc.make('v1.runtime.events', {
+export const RuntimeEvents = procedure('v1.runtime.events', {
   payload: { afterSequence: RuntimeEventSequence },
   success: RuntimeEvent,
-  error: ProcedureError,
-  defect: sanitizedDefect,
   stream: true,
 });
 
-export const BibleChapterGet = Rpc.make('v1.reading.bibleChapter.get', {
+export const BibleChapterGet = procedure('v1.reading.bibleChapter.get', {
   payload: { book: BookNumber, chapter: ChapterNumber },
   success: Chapter,
-  error: ProcedureError,
-  defect: sanitizedDefect,
 });
 
-export const BibleSearchGet = Rpc.make('v1.reading.bibleSearch.get', {
+export const BibleSearchGet = procedure('v1.reading.bibleSearch.get', {
   payload: {
     query: Schema.String,
     books: Schema.optional(Schema.Array(BookNumber)),
@@ -73,154 +100,112 @@ export const BibleSearchGet = Rpc.make('v1.reading.bibleSearch.get', {
     limit: Schema.optional(Schema.Int.check(Schema.isGreaterThan(0))),
   },
   success: SearchWindow,
-  error: ProcedureError,
-  defect: sanitizedDefect,
 });
 
-export const WritingsCatalogGet = Rpc.make('v1.reading.writingsCatalog.get', {
+export const WritingsCatalogGet = procedure('v1.reading.writingsCatalog.get', {
   payload: { author: Schema.optional(Schema.NonEmptyString) },
   success: Schema.Array(Publication),
-  error: ProcedureError,
-  defect: sanitizedDefect,
 });
 
-export const WritingsPageGet = Rpc.make('v1.reading.writingsPage.get', {
+export const WritingsPageGet = procedure('v1.reading.writingsPage.get', {
   payload: { publicationId: PublicationId, page: PageNumber },
   success: Page,
-  error: ProcedureError,
-  defect: sanitizedDefect,
 });
 
-export const WritingsPublicationOpen = Rpc.make('v1.reading.writingsPublication.open', {
+export const WritingsPublicationOpen = procedure('v1.reading.writingsPublication.open', {
   payload: { publicationId: PublicationId },
   success: Page,
-  error: ProcedureError,
-  defect: sanitizedDefect,
 });
 
-export const WritingsParagraphGet = Rpc.make('v1.reading.writingsParagraph.get', {
+export const WritingsParagraphGet = procedure('v1.reading.writingsParagraph.get', {
   payload: { publicationId: PublicationId, paragraphId: ParagraphId },
   success: Paragraph,
-  error: ProcedureError,
-  defect: sanitizedDefect,
 });
 
-export const WritingsLibraryGet = Rpc.make('v1.reading.writingsLibrary.get', {
+export const WritingsLibraryGet = procedure('v1.reading.writingsLibrary.get', {
   payload: {},
   success: Schema.Array(WritingsLibraryPublication),
-  error: ProcedureError,
-  defect: sanitizedDefect,
 });
 
-export const WritingsPublicationDownload = Rpc.make('v1.reading.writingsPublication.download', {
+export const WritingsPublicationDownload = procedure('v1.reading.writingsPublication.download', {
   payload: { publicationId: PublicationId },
   success: WritingsDownloadResult,
-  error: ProcedureError,
-  defect: sanitizedDefect,
 });
 
-export const WritingsLibraryDownloadAll = Rpc.make('v1.reading.writingsLibrary.downloadAll', {
+export const WritingsLibraryDownloadAll = procedure('v1.reading.writingsLibrary.downloadAll', {
   payload: {},
   success: Schema.Array(WritingsDownloadResult),
-  error: ProcedureError,
-  defect: sanitizedDefect,
 });
 
-export const ReadingContinuityGet = Rpc.make('v1.reading.continuity.get', {
+export const ReadingContinuityGet = procedure('v1.reading.continuity.get', {
   payload: {},
   success: Schema.NullOr(ReaderLocation),
-  error: ProcedureError,
-  defect: sanitizedDefect,
 });
 
-export const ReadingContinuityRecord = Rpc.make('v1.reading.continuity.record', {
+export const ReadingContinuityRecord = procedure('v1.reading.continuity.record', {
   payload: {
     location: ReaderLocation,
     progress: Schema.Int.pipe(Schema.check(Schema.isBetween({ minimum: 0, maximum: 10_000 }))),
   },
   success: MutationCommit(Schema.Struct({})),
-  error: ProcedureError,
-  defect: sanitizedDefect,
 });
 
-export const ReadingPreferencesGet = Rpc.make('v1.preferences.reading.get', {
+export const ReadingPreferencesGet = procedure('v1.preferences.reading.get', {
   payload: {},
   success: ReadingPreferences,
-  error: ProcedureError,
-  defect: sanitizedDefect,
 });
 
-export const PatchReadingPreferencesProcedure = Rpc.make('v1.preferences.reading.patch', {
+export const PatchReadingPreferencesProcedure = procedure('v1.preferences.reading.patch', {
   payload: { patch: ReadingPreferencesPatchSchema },
   success: MutationCommit(ReadingPreferences),
-  error: ProcedureError,
-  defect: sanitizedDefect,
 });
 
-export const LocationAnnotationsGet = Rpc.make('v1.library.annotations.get', {
+export const LocationAnnotationsGet = procedure('v1.library.annotations.get', {
   payload: ReaderLocation.fields,
   success: LocationAnnotations,
-  error: ProcedureError,
-  defect: sanitizedDefect,
 });
 
-export const CollectionsGet = Rpc.make('v1.library.collections.get', {
+export const CollectionsGet = procedure('v1.library.collections.get', {
   payload: {},
   success: Schema.Array(LibraryCollection),
-  error: ProcedureError,
-  defect: sanitizedDefect,
 });
 
-export const ReadingPlansGet = Rpc.make('v1.library.plans.get', {
+export const ReadingPlansGet = procedure('v1.library.plans.get', {
   payload: {},
   success: Schema.Array(ReadingPlan),
-  error: ProcedureError,
-  defect: sanitizedDefect,
 });
 
-export const MemoryPracticeGet = Rpc.make('v1.library.practice.get', {
+export const MemoryPracticeGet = procedure('v1.library.practice.get', {
   payload: {},
   success: MemoryPractice,
-  error: ProcedureError,
-  defect: sanitizedDefect,
 });
 
-export const LibraryMutate = Rpc.make('v1.library.mutate', {
+export const LibraryMutate = procedure('v1.library.mutate', {
   payload: { command: LibraryMutationCommand },
   success: MutationCommit(Schema.Struct({})),
-  error: ProcedureError,
-  defect: sanitizedDefect,
 });
 
-export const DataExport = Rpc.make('v1.data.export', {
+export const DataExport = procedure('v1.data.export', {
   payload: {},
   success: Schema.String,
-  error: ProcedureError,
-  defect: sanitizedDefect,
 });
 
-export const DataImport = Rpc.make('v1.data.import', {
+export const DataImport = procedure('v1.data.import', {
   payload: { document: Schema.String },
   success: Schema.Struct({ imported: Schema.Int.pipe(Schema.check(Schema.isGreaterThan(0))) }),
-  error: ProcedureError,
-  defect: sanitizedDefect,
 });
 
-export const TopicsList = Rpc.make('v1.topics.list', {
+export const TopicsList = procedure('v1.topics.list', {
   payload: {
     query: Schema.optional(Schema.String),
     letter: Schema.optional(Schema.String),
   },
   success: Schema.Array(TopicSummary),
-  error: ProcedureError,
-  defect: sanitizedDefect,
 });
 
-export const TopicGet = Rpc.make('v1.topics.get', {
+export const TopicGet = procedure('v1.topics.get', {
   payload: { id: TopicId },
   success: TopicDetail,
-  error: ProcedureError,
-  defect: sanitizedDefect,
 });
 
 export const BibleProcedureGroup = RpcGroup.make(
