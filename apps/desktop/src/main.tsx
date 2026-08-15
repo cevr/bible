@@ -5,19 +5,21 @@ import { render, Show } from '@solidjs/web';
 import { Effect } from 'effect';
 import { createSignal, onSettled } from 'solid-js';
 
-import { startDesktopProcedureHost, type ActiveDesktopProcedureHost } from './procedure-client.js';
+import type { ActiveProcedureHost } from '@bible/app/procedure';
+
+import { startDesktopProcedureHost } from './procedure-client.js';
 import { desktopCapabilities } from './platform-capabilities.js';
 import '@bible/app/styles.css';
 
 const STARTUP_FALLBACK = 'An unknown startup error prevented the library from opening.';
 
 const DesktopApplication = () => {
-  const [host, setHost] = createSignal<ActiveDesktopProcedureHost>();
+  const [host, setHost] = createSignal<ActiveProcedureHost>();
   const [failure, setFailure] = createSignal<unknown>();
 
   onSettled(() => {
     let disposed = false;
-    let activeHost: ActiveDesktopProcedureHost | undefined;
+    let activeHost: ActiveProcedureHost | undefined;
     const starting = startDesktopProcedureHost();
 
     void starting.then(

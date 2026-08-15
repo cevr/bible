@@ -7,18 +7,20 @@ import { createSignal, onSettled } from 'solid-js';
 
 import { getDatabaseWorker } from './workers/database-worker.js';
 import { webCapabilities } from './platform-capabilities.js';
-import { startWebProcedureHost, type ActiveWebProcedureHost } from './workers/procedure-client.js';
+import type { ActiveProcedureHost } from '@bible/app/procedure';
+
+import { startWebProcedureHost } from './workers/procedure-client.js';
 import '@bible/app/styles.css';
 
 const STARTUP_FALLBACK = 'An unknown startup error prevented the library from opening.';
 
 const WebApplication = () => {
-  const [host, setHost] = createSignal<ActiveWebProcedureHost>();
+  const [host, setHost] = createSignal<ActiveProcedureHost>();
   const [failure, setFailure] = createSignal<unknown>();
 
   onSettled(() => {
     let disposed = false;
-    let activeHost: ActiveWebProcedureHost | undefined;
+    let activeHost: ActiveProcedureHost | undefined;
     const starting = startWebProcedureHost(getDatabaseWorker());
 
     void starting.then(
