@@ -2,17 +2,20 @@ import type { Accessor } from 'solid-js';
 import { createMemo, createSignal, getOwner, onCleanup, runWithOwner } from 'solid-js';
 import { Cache, Cause, Deferred, Effect, Exit, Fiber, HashMap, Option, Schema } from 'effect';
 
-export class IpcCacheError extends Schema.TaggedErrorClass<IpcCacheError>()('IpcCacheError', {
-  cache: Schema.String,
-  message: Schema.String,
-  cause: Schema.optional(Schema.Unknown),
-}) {}
+export class SyncedCacheError extends Schema.TaggedErrorClass<SyncedCacheError>()(
+  'SyncedCacheError',
+  {
+    cache: Schema.String,
+    message: Schema.String,
+    cause: Schema.optional(Schema.Unknown),
+  },
+) {}
 
 export type SyncedCacheStatus =
   | { readonly state: 'loading' }
   | { readonly state: 'ready' }
   | { readonly state: 'refreshing' }
-  | { readonly state: 'failed'; readonly error: IpcCacheError };
+  | { readonly state: 'failed'; readonly error: SyncedCacheError };
 
 export interface CacheRuntime<R> {
   readonly runFork: <A, E>(effect: Effect.Effect<A, E, R>) => Fiber.Fiber<A, E>;
@@ -43,12 +46,12 @@ export interface SyncedCache<Input, A, Command, MutationResult> {
 }
 
 interface ActiveLookup<A> {
-  readonly fiber: Fiber.Fiber<A, IpcCacheError>;
+  readonly fiber: Fiber.Fiber<A, SyncedCacheError>;
   promise: Promise<A> | undefined;
 }
 
 interface TrailingLookup<A> {
-  readonly deferred: Deferred.Deferred<A, IpcCacheError>;
+  readonly deferred: Deferred.Deferred<A, SyncedCacheError>;
   promise: Promise<A> | undefined;
 }
 
@@ -63,11 +66,11 @@ interface CacheEntry<Input, A> {
   trailing: TrailingLookup<A> | undefined;
 }
 
-const cacheError = (name: string, cause: unknown): IpcCacheError => {
-  if (cause instanceof IpcCacheError) return cause;
+const cacheError = (name: string, cause: unknown): SyncedCacheError => {
+  if (cause instanceof SyncedCacheError) return cause;
   let message = String(cause);
   if (Cause.isCause(cause)) message = Cause.pretty(cause);
-  return new IpcCacheError({ cache: name, message, cause });
+  return new SyncedCacheError({ cache: name, message, cause });
 };
 
 const effectFromExit = <A, E>(exit: Exit.Exit<A, E>): Effect.Effect<A, E> => {
@@ -81,7 +84,7 @@ export const createSyncedCache = <Input, A, E, R, Command, MutationResult, Scope
   const owner = Option.getOrThrowWith(
     Option.fromNullishOr(getOwner()),
     () =>
-      new IpcCacheError({
+      new SyncedCacheError({
         cache: options.name,
         message: 'createSyncedCache requires a Solid owner',
       }),
@@ -99,8 +102,8 @@ export const createSyncedCache = <Input, A, E, R, Command, MutationResult, Scope
   let disposed = false;
 
   const fork = <Value>(
-    effect: Effect.Effect<Value, IpcCacheError, R>,
-  ): Fiber.Fiber<Value, IpcCacheError> => {
+    effect: Effect.Effect<Value, SyncedCacheError, R>,
+  ): Fiber.Fiber<Value, SyncedCacheError> => {
     const fiber = options.runtime.runFork(effect);
     fibers.add(fiber);
     fiber.addObserver(() => {
@@ -199,10 +202,10 @@ export const createSyncedCache = <Input, A, E, R, Command, MutationResult, Scope
     return entry;
   };
 
-  const refreshEntryEffect = (entry: CacheEntry<Input, A>): Effect.Effect<A, IpcCacheError> => {
+  const refreshEntryEffect = (entry: CacheEntry<Input, A>): Effect.Effect<A, SyncedCacheError> => {
     if (disposed) {
       return Effect.fail(
-        new IpcCacheError({
+        new SyncedCacheError({
           cache: options.name,
           message: 'cache owner has been disposed',
         }),
@@ -210,7 +213,7 @@ export const createSyncedCache = <Input, A, E, R, Command, MutationResult, Scope
     }
     if (entry.active === undefined) return Fiber.join(launch(entry, true).fiber);
     if (entry.trailing === undefined) {
-      const deferred = Deferred.makeUnsafe<A, IpcCacheError>();
+      const deferred = Deferred.makeUnsafe<A, SyncedCacheError>();
       entry.trailing = { deferred, promise: undefined };
     }
     return Deferred.await(entry.trailing.deferred);
@@ -219,7 +222,7 @@ export const createSyncedCache = <Input, A, E, R, Command, MutationResult, Scope
   const refreshEntry = (entry: CacheEntry<Input, A>): Promise<A> => {
     if (entry.active === undefined) return activePromise(launch(entry, true));
     if (entry.trailing === undefined) {
-      const deferred = Deferred.makeUnsafe<A, IpcCacheError>();
+      const deferred = Deferred.makeUnsafe<A, SyncedCacheError>();
       entry.trailing = { deferred, promise: undefined };
     }
     if (entry.trailing.promise === undefined) {
@@ -234,7 +237,7 @@ export const createSyncedCache = <Input, A, E, R, Command, MutationResult, Scope
     return Option.getOrThrowWith(
       Option.none<Input>(),
       () =>
-        new IpcCacheError({
+        new SyncedCacheError({
           cache: options.name,
           message: 'cache input is required',
         }),
@@ -244,7 +247,7 @@ export const createSyncedCache = <Input, A, E, R, Command, MutationResult, Scope
   const mutate = (command: Command): Promise<MutationResult> => {
     const operation = Effect.gen(function* () {
       if (disposed) {
-        return yield* new IpcCacheError({
+        return yield* new SyncedCacheError({
           cache: options.name,
           message: 'cache owner has been disposed',
         });
@@ -253,7 +256,7 @@ export const createSyncedCache = <Input, A, E, R, Command, MutationResult, Scope
         .mutate(command)
         .pipe(Effect.catchCause((cause) => Effect.fail(cacheError(options.name, cause))));
       const scopes = options.affects(command);
-      const refreshes: Array<Effect.Effect<A, IpcCacheError>> = [];
+      const refreshes: Array<Effect.Effect<A, SyncedCacheError>> = [];
       for (const entry of HashMap.values(entries)) {
         if (scopes.some((scope) => options.matches(entry.input, scope))) {
           refreshes.push(refreshEntryEffect(entry));

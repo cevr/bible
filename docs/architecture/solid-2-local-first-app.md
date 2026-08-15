@@ -196,7 +196,7 @@ Rules:
 - `.get(input)` returns a stable Solid accessor.
 - `.status(input)` returns `loading`, `ready`, `refreshing`, or `failed` with its typed/normalized error.
 - `.refresh(input)` returns a Promise that rejects when the refreshed lookup fails.
-- Initial failure throws `IpcCacheError` through the accessor and reaches Solid `<Errored>`.
+- Initial failure throws `SyncedCacheError` through the accessor and reaches Solid `<Errored>`.
 - Refresh failure preserves the last successful value while status becomes `failed`.
 - Repeated refreshes allow one in-flight operation and at most one queued trailing refresh.
 - Input changes do not interrupt the old key's lookup; that result may complete and warm the cache.

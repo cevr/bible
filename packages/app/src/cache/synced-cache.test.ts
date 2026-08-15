@@ -3,7 +3,7 @@ import { describe, expect, it } from 'effect-bun-test';
 import { Cause, Effect, Exit, Fiber } from 'effect';
 import { createRoot, flush, resolve } from 'solid-js';
 
-import { createSyncedCache, defaultCacheRuntime, IpcCacheError } from './synced-cache.js';
+import { createSyncedCache, defaultCacheRuntime, SyncedCacheError } from './synced-cache.js';
 
 const settle = Effect.gen(function* () {
   yield* Effect.yieldNow;
@@ -104,14 +104,14 @@ describe('createSyncedCache', () => {
         const failure = Cause.squash(result.cause);
         expect(Cause.isUnknownError(failure)).toBe(true);
         if (Cause.isUnknownError(failure)) {
-          expect(failure.cause).toBeInstanceOf(IpcCacheError);
+          expect(failure.cause).toBeInstanceOf(SyncedCacheError);
         }
       }
       yield* settle;
 
       const status = owned.cache.status({ id: 1 })();
       expect(status.state).toBe('failed');
-      if (status.state === 'failed') expect(status.error).toBeInstanceOf(IpcCacheError);
+      if (status.state === 'failed') expect(status.error).toBeInstanceOf(SyncedCacheError);
     }));
 
   test('preserves the last value when an explicit refresh fails', () =>
@@ -152,7 +152,7 @@ describe('createSyncedCache', () => {
         const failure = Cause.squash(result.cause);
         expect(Cause.isUnknownError(failure)).toBe(true);
         if (Cause.isUnknownError(failure)) {
-          expect(failure.cause).toBeInstanceOf(IpcCacheError);
+          expect(failure.cause).toBeInstanceOf(SyncedCacheError);
         }
       }
       yield* settle;
