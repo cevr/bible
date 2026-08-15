@@ -4,7 +4,7 @@ title: Assemble the buildable spec
 labels: [wayfinder:task]
 status: open
 assignee:
-blocked-by: [004, 005, 006, 007, 008, 009, 010, 011, 014]
+blocked-by: [004, 005, 006, 007, 008, 009, 010, 011, 014, 015]
 ---
 
 ## Question

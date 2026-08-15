@@ -2,8 +2,8 @@
 id: 003
 title: Pioneer corpus inventory
 labels: [wayfinder:research]
-status: open
-assignee:
+status: closed
+assignee: research-agent
 blocked-by: []
 ---
 
@@ -24,3 +24,20 @@ Deliverable: a table (author, title, refcode, channel, local yes/no) plus a shor
 whether pioneer books behave identically to EGW books in the paragraphs DB (AST nodes,
 `paragraph_bible_refs`, FTS). Write findings to
 `docs/wayfinder/wiki-study-layer/research/003-pioneer-inventory.md`.
+
+## Resolution
+
+One channel only: the EGW Writings platform API. The local DB holds 648 books
+(613,974 paragraphs); 111 are pioneer books, and every one round-trips to the remote
+catalog by book_id — **no manual imports exist** (TRMC is platform book id 1635 with a
+mangled author field, not a hand import). The remote English catalog (1,504 titles)
+serves ~604 pioneer rows: ~233 more books and ~262 more periodical volumes are
+downloadable but not yet local (full enumeration in the research doc). Not obtainable
+from the platform: Hiram Edson's manuscript, the Midnight Cry periodical run, Snow
+beyond TRMC no. 1, Voice of Truth / Western Midnight Cry / Day-Star runs, Advent
+Shield/Mirror, and the 1843/1850 charts. AST parity holds: pioneer books share the
+same `nodes_json` AST, 100% FTS coverage, and the same `paragraph_bible_refs`
+mechanism — but bible-ref rows are markup-dependent and sparse in BOTH corpora
+(45 of 648 books have any), so verse-linking cannot lean on that table alone.
+
+Full findings: [research/003-pioneer-inventory.md](../research/003-pioneer-inventory.md)

@@ -2,8 +2,8 @@
 id: 001
 title: Corpus-supply fit for a topics artifact
 labels: [wayfinder:research]
-status: open
-assignee:
+status: closed
+assignee: research-agent
 blocked-by: []
 ---
 
@@ -25,3 +25,24 @@ Deliverables: (a) the minimal set of new modules/config a topics artifact needs;
 releases; (c) how a partial or missing topics artifact degrades; (d) any friction in
 corpus-supply that would make a third corpus awkward (feeds the architecture audit).
 Write findings to `docs/wayfinder/wiki-study-layer/research/001-corpus-supply-fit.md`.
+
+## Resolution
+
+A topics artifact is a clean second instance of the `bible.db` file-artifact
+lifecycle — every hard mechanism (digest pin, streaming install, semantic
+verification, atomic swap, browser generation rollback, stale-fallback) already
+exists and is tested. New work is: a markdown→`topics.db` compiler script, a
+`TOPICS_ARTIFACT_RELEASE` manifest + recipe/installer pair + semantic verifier,
+widening the closed corpus enums in `model.ts`/`errors.ts`/`service.ts`, an
+`ensureTopics` branch, a `/api/assets/topics` proxy route, and per-host wiring
+(desktop, web worker, CLI init). Activation is already atomic and
+update-safe: a failed install always leaves the previous verified artifact
+active, so degradation is "stale or missing", never "partial" — wire topics
+`ensure` writings-style (catch + warn), falling back to catalog-only landing
+pages. Two audit flags: (1) the file-artifact machinery is bible-branded in
+four files and should be generalized before a third copy-paste; (2) the
+manifest is pinned in compiled code, so content updates ride app deploys —
+true independent cadence needs a runtime-fetched manifest (a deliberate
+deviation to decide on).
+
+Findings: [research/001-corpus-supply-fit.md](../research/001-corpus-supply-fit.md)

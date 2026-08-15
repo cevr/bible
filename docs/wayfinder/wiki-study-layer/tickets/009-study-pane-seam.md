@@ -21,7 +21,10 @@ Spec the seam (decisions, not code):
 
 - **RPC family shape**: one `v1.study.*` group? Granularity (per-verse bundle vs
   per-resource calls)? What the parallel-EGW view needs (`paragraph_bible_refs` reverse
-  lookup + `egw-commentary` service).
+  lookup + `egw-commentary` service). Heads-up from
+  [Pioneer corpus inventory](../research/003-pioneer-inventory.md): `paragraph_bible_refs`
+  is populated for only 45 of 648 local books — the parallel-EGW view needs a plan for
+  the sparse case (FTS fallback? ref extraction pass?).
 - **UI surface**: contextual study pane (the feature-parity doc's phrase) — per-verse
   tap? word-level tap for Strong's (`verse_words` has the mapping)? How it coexists with
   the wiki peek card so the two link layers don't fight (this is the one place this

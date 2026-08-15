@@ -2,8 +2,8 @@
 id: 013
 title: qmd evaluation for hybrid EGW search
 labels: [wayfinder:research]
-status: open
-assignee:
+status: closed
+assignee: research-agent
 blocked-by: []
 ---
 
@@ -27,3 +27,18 @@ browser vs desktop (WASM inference? transformers.js-class options?), latency est
 
 Deliverable: a recommendation (direct / fork / learnings-only) with receipts.
 Write findings to `docs/wayfinder/wiki-study-layer/research/013-qmd-evaluation.md`.
+
+## Resolution
+
+**Learnings-only.** qmd (MIT, TypeScript/Node>=22) is welded to better-sqlite3, the
+sqlite-vec native extension, and node-llama-cpp GGUF inference — none runs in the web
+worker's wa-sqlite/OPFS host, so direct use and fork both fail parity; the transferable
+value is its retrieval design (RRF k=60 with original-query ×2 and top-rank bonuses,
+typed lex/vec/hyde expansion with a strong-BM25 short-circuit, position-aware 75/60/40
+rerank blend, per-vector model fingerprints), re-implemented over `paragraphs_fts` plus
+a flat quantized embeddings artifact scanned in a worker (parity-safe, same performance
+class as sqlite-vec's brute-force KNN). Query embedding is browser-feasible via
+transformers.js on WebGPU (~100–400 ms est. for EmbeddingGemma-300M; WASM fallback slow),
+and a 256-d int8 MRL corpus index ships through corpus-supply at ~26 MB per 100k
+paragraphs. Full findings:
+[research/013-qmd-evaluation.md](../research/013-qmd-evaluation.md).

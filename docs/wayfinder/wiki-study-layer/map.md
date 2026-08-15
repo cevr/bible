@@ -70,6 +70,38 @@ Charter decisions (from the charting session, 2026-08-14 — no ticket, decided 
 
 <!-- closed tickets append below: - [<title>](tickets/<file>) — <one-line gist> -->
 
+- [Corpus-supply fit for a topics artifact](tickets/001-corpus-supply-fit.md) — clean
+  fit as a second `bible.db`-style lifecycle (pinned digest manifest, atomic swap on both
+  hosts); minimal new work is a markdown→`topics.db` compiler + manifest/verifier + enum
+  widening + three composition-root wirings; adopt writings-style catch-and-warn, not
+  Bible's fail-closed startup. Flags: file-artifact machinery is bible-branded (~600
+  lines to generalize), and the compiled-in manifest pin ties content updates to app
+  deploys — graduated to
+  [Content release cadence](tickets/015-content-release-cadence.md).
+- [qmd evaluation for hybrid EGW search](tickets/013-qmd-evaluation.md) — learnings-only:
+  qmd (MIT) rides better-sqlite3 + sqlite-vec + node-llama-cpp, all Node-native, so
+  direct use or fork fails web parity (wa-sqlite/OPFS cannot load native extensions).
+  Its design transfers: RRF fusion, typed lex/vec/hyde expansion with strong-BM25
+  short-circuit, position-aware rerank blending, per-vector model fingerprints — over
+  `paragraphs_fts` + a flat quantized embeddings artifact (~26 MB int8 per 100k
+  paragraphs, corpus-supply-shippable); browser query embedding via transformers.js on
+  WebGPU (~100–400 ms class).
+- [Phrase matching and live-query feasibility](tickets/002-phrase-matching-feasibility.md) —
+  match at render time: Aho-Corasick over a 1,000-phrase dictionary costs ~15 µs per EGW
+  paragraph (~0.4 ms per screenful, M4 Pro/Bun; web a small multiple slower), and warm
+  FTS5 phrase queries over all 613,974 paragraphs run 0.1–4.3 ms (the web wa-sqlite fork
+  has FTS5 compiled in). Precomputed spans lose: they break on partial libraries and
+  per-book revisions and still need AST re-projection. Ship the alias dictionary in the
+  artifact; use live batched FTS5 for auto-mined sections.
+- [Pioneer corpus inventory](tickets/003-pioneer-corpus-inventory.md) — one supply
+  channel: the EGW platform API. Local library already holds 111 pioneer works (of 648
+  books); ~233 more pioneer books + 262 periodical volumes are downloadable; TRMC is
+  actually platform book 1635 (mangled author), so the "manual import" channel is empty.
+  Unobtainable: Hiram Edson's manuscript, Midnight Cry run, Snow beyond TRMC no. 1,
+  Voice of Truth / Western Midnight Cry / Day-Star runs, prophetic charts. AST/FTS parity
+  is full; caveat: `paragraph_bible_refs` is sparse (45 of 648 books) — verse-linking
+  cannot rely on it alone.
+
 ## Not yet specified
 
 - Public deployment shape: hosting the web app publicly, where artifacts are served from,
@@ -79,11 +111,6 @@ Charter decisions (from the charting session, 2026-08-14 — no ticket, decided 
 - AI-assisted linking beyond the curated dictionary: suggested topics, auto-detected
   phrases, "what should be a topic next" mining.
 - Fate of the existing `/topics` route UX once the overlay lands (merge, redirect, keep).
-- Embeddings distribution for hybrid search: index size, on-device inference for query
-  embedding (desktop vs browser worker), whether an embeddings artifact ships through
-  corpus-supply like `bible.db` (sharpens after the qmd evaluation closes).
-- Topic content release cadence and how in-app update prompts work (remnant after
-  [Corpus-supply fit for a topics artifact](tickets/001-corpus-supply-fit.md) closes).
 
 ## Out of scope
 
