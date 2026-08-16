@@ -9,7 +9,7 @@
 - SHA-256: `e72244f576be2bfa1b28c4816f60d3668338c1322d7cd329d73143ec43bf277c`
 - Contents: 66-book KJV Canon, Strong's lexicon and verse data, OpenBible and TSKe Cross References, Margin Notes, and Topics
 
-The manifest is declared once in `packages/core/src/corpus-supply/bible-artifact.ts`. Native sources stream directly from GitHub. Browser sources use `/api/assets/bible` so GitHub's transport-specific CORS behavior remains in the web adapter.
+The manifest is declared once in `packages/core/src/corpus-supply/file-artifact.ts`, alongside the generic File Corpus Artifact the Bible instance is built from. Native sources stream directly from GitHub. Browser sources use `/api/assets/bible` so GitHub's transport-specific CORS behavior remains in the web adapter.
 
 Browser generations are owned by one durable generation store. It registers a candidate before acquisition, activates the verified reader before publishing its marker, rolls the reader back if that durable commit fails, and reconciles every registered inactive generation on startup. The worker composition root supplies VFS mechanics but cannot reorder activation or retirement.
 

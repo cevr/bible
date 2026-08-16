@@ -1,16 +1,30 @@
-import { Effect, Option, Schema } from 'effect';
+import { Effect, Exit, Option, Schema } from 'effect';
 
 import { PublicationArchive } from '../writings/archive.js';
 import { PublicationId } from '../writings/model.js';
 
+/** The corpora installed as one verified file: a pinned manifest, a digest, a
+ *  semantic verifier, an atomic swap. `makeFileCorpusArtifact` is parameterized
+ *  by this vocabulary, so adding a file corpus adds a name here and nothing
+ *  else to the lifecycle. */
+export const CorpusFileName = Schema.Literals(['bible']);
+export type CorpusFileName = typeof CorpusFileName.Type;
+
+/** The corpora installed per publication through a SQL transaction rather than
+ *  as a replaceable file. */
+export const CorpusStreamName = Schema.Literals(['writings']);
+export type CorpusStreamName = typeof CorpusStreamName.Type;
+
 /** The closed set of corpora the supply pipeline can install. Extending the
- *  pipeline with a new corpus artifact starts by adding its name here — every
- *  receipt, activation, and error narrows from this single vocabulary. */
-export const CorpusName = Schema.Literals(['bible', 'writings']);
+ *  pipeline with a new corpus artifact starts by adding its name to one of the
+ *  two vocabularies above — every receipt, activation, and error narrows from
+ *  this single union. */
+export const CorpusName = Schema.Union([CorpusFileName, CorpusStreamName]);
 export type CorpusName = typeof CorpusName.Type;
 
-/** What one Activation or skip refers to: the canonical Bible artifact or one
- *  Writings publication. A new corpus artifact adds its identity form here. */
+/** What one Activation or skip refers to: the sole artifact of a File Corpus
+ *  or one Writings publication. A File Corpus installs a single artifact, so
+ *  `canonical` identifies it whichever corpus it belongs to. */
 export const CorpusIdentity = Schema.Union([Schema.Literal('canonical'), PublicationId]);
 export type CorpusIdentity = typeof CorpusIdentity.Type;
 
@@ -43,10 +57,13 @@ export class BootstrapTarget extends Schema.TaggedClass<BootstrapTarget>(
   'CorpusSupply/BootstrapTarget',
 )('bootstrap', {}) {}
 
-export class BibleTarget extends Schema.TaggedClass<BibleTarget>('CorpusSupply/BibleTarget')(
-  'bible',
-  {},
-) {}
+/** Ensure one File Corpus. The corpus name is a field rather than a tag so a
+ *  new file corpus widens `CorpusFileName` alone. */
+export class FileCorpusTarget extends Schema.TaggedClass<FileCorpusTarget>(
+  'CorpusSupply/FileCorpusTarget',
+)('file', {
+  corpus: CorpusFileName,
+}) {}
 
 export class WritingsTarget extends Schema.TaggedClass<WritingsTarget>(
   'CorpusSupply/WritingsTarget',
@@ -54,7 +71,7 @@ export class WritingsTarget extends Schema.TaggedClass<WritingsTarget>(
   publications: Schema.optional(Schema.Array(PublicationId)),
 }) {}
 
-export const CorpusTarget = Schema.Union([BootstrapTarget, BibleTarget, WritingsTarget]);
+export const CorpusTarget = Schema.Union([BootstrapTarget, FileCorpusTarget, WritingsTarget]);
 export type CorpusTarget = typeof CorpusTarget.Type;
 
 export class CorpusSupplyInput extends Schema.Class<CorpusSupplyInput>('CorpusSupply/Input')({
@@ -74,6 +91,18 @@ export class CorpusSupplyReceipt extends Schema.Class<CorpusSupplyReceipt>('Corp
   activated: Schema.Array(CorpusActivation),
   skipped: Schema.Array(CorpusIdentity),
 }) {}
+
+const decodeCorpusName = Schema.decodeUnknownExit(CorpusName);
+
+/** Narrows any corpus name to the receipt vocabulary. A host adapter is
+ *  parameterized by an arbitrary corpus name so a test can drive it with a
+ *  corpus that is deliberately unregistered; only a registered name is allowed
+ *  to decorate an error the pipeline surfaces. */
+export const registeredCorpusName = (corpus: string): Option.Option<CorpusName> =>
+  Exit.match(decodeCorpusName(corpus), {
+    onFailure: () => Option.none(),
+    onSuccess: Option.some,
+  });
 
 export const assetSourceId = Schema.decodeSync(AssetSourceId);
 export const corpusRevision = Schema.decodeSync(CorpusRevision);
@@ -106,7 +135,8 @@ export const provenanceForArchive = Effect.fn('CorpusSupply.provenanceForArchive
 
 export const Target = {
   bootstrap: (): BootstrapTarget => BootstrapTarget.make({}),
-  bible: (): BibleTarget => BibleTarget.make({}),
+  file: (corpus: CorpusFileName): FileCorpusTarget => FileCorpusTarget.make({ corpus }),
+  bible: (): FileCorpusTarget => FileCorpusTarget.make({ corpus: 'bible' }),
   writings: (publications?: readonly PublicationId[]): WritingsTarget =>
     WritingsTarget.make({ publications }),
 };

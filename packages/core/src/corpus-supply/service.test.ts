@@ -14,7 +14,7 @@ import {
 import { CorpusSupply } from './service.js';
 import { Target, WritingsContribution, unknownProvenance } from './model.js';
 import { WritingsAssetRecipe } from './source.js';
-import { layerBibleArtifactInstaller, layerBibleArtifactRecipe } from './bible-artifact.js';
+import { BibleArtifact } from './file-artifact.js';
 
 const id = publicationId(127);
 const code = publicationCode('PP');
@@ -75,17 +75,18 @@ const makeLayer = (options: {
   if (options.includeBible === false) {
     return CorpusSupply.layer.pipe(Layer.provide(Layer.merge(database, source)));
   }
-  const recipe = layerBibleArtifactRecipe([
+  const recipe = BibleArtifact.layerRecipe([
     {
       kind: 'release',
       acquire: Effect.succeed({
         kind: 'release',
         provenance: contribution.provenance,
+        expectedSize: Option.none(),
         bytes: Stream.empty,
       }),
     },
   ]);
-  const installer = layerBibleArtifactInstaller({
+  const installer = BibleArtifact.layerInstaller({
     current: Effect.succeed(Option.none()),
     install: (artifact) => Effect.succeed({ installed: 31_102, provenance: artifact.provenance }),
   });
@@ -145,6 +146,35 @@ describe('CorpusSupply', () => {
       );
 
       expect(failure._tag).toBe('CorpusRecipeUnavailableError');
+    }),
+  );
+
+  it.effect('routes Bootstrap and an addressed File Corpus through the same registry', () =>
+    Effect.gen(function* () {
+      const layer = makeLayer({ needsSync: true });
+      const [bootstrapped, addressed] = yield* Effect.gen(function* () {
+        const supply = yield* CorpusSupply;
+        return [
+          yield* supply.ensure({ target: Target.bootstrap() }),
+          yield* supply.ensure({ target: Target.file('bible') }),
+        ] as const;
+      }).pipe(Effect.provide(layer));
+
+      expect(addressed).toEqual(bootstrapped);
+      expect(addressed.activated).toMatchObject([{ corpus: 'bible', identity: 'canonical' }]);
+    }),
+  );
+
+  it.effect('names the addressed File Corpus when no host wires its Recipe', () =>
+    Effect.gen(function* () {
+      const failure = yield* Effect.flip(
+        Effect.gen(function* () {
+          const supply = yield* CorpusSupply;
+          return yield* supply.ensure({ target: Target.file('bible') });
+        }).pipe(Effect.provide(makeLayer({ needsSync: true, includeBible: false }))),
+      );
+
+      expect(failure).toMatchObject({ _tag: 'CorpusRecipeUnavailableError', corpus: 'bible' });
     }),
   );
 });

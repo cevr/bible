@@ -1,21 +1,24 @@
+import type { CorpusStorageIdentity } from '@bible/core/corpus-supply';
 import { Effect, Option } from 'effect';
 import * as SQLite from 'wa-sqlite';
 
 import type { GenerationRegistry, GenerationRegistryStore } from './generation-marker.js';
 import type { SqliteDatabase, SqliteDatabaseFamily } from './sqlite-database.js';
 
-const BIBLE_GENERATION = /^bible-[a-zA-Z0-9._-]+-[a-f0-9]{12}(?:-next)?\.db$/u;
-
-export interface ReservedBibleGeneration {
+export interface ReservedCorpusGeneration {
   readonly filename: string;
   readonly database: SqliteDatabase;
 }
 
-export interface BibleGenerationStore {
+export interface CorpusGenerationStore<Corpus extends string = string> {
+  /** The corpus whose generations this store owns. An installer only accepts a
+   *  store whose identity is its own corpus, so a topics artifact cannot be
+   *  wired onto Bible's store. */
+  readonly identity: CorpusStorageIdentity<Corpus>;
   readonly active: SqliteDatabase;
   readonly activeFilename: Option.Option<string>;
   readonly openActive: Effect.Effect<boolean, unknown>;
-  readonly reserve: (preferredFilename: string) => Effect.Effect<ReservedBibleGeneration, unknown>;
+  readonly reserve: (preferredFilename: string) => Effect.Effect<ReservedCorpusGeneration, unknown>;
   readonly activateVerified: (filename: string) => Effect.Effect<void, unknown>;
   readonly discardCandidate: (filename: string) => Effect.Effect<void, unknown>;
 }
@@ -41,28 +44,33 @@ const registryWrite = (registry: GenerationRegistryStore, value: GenerationRegis
   registry.write(value);
 
 /**
- * Owns the durable marker, reader handoff, and retirement policy for browser Bible generations.
+ * Owns the durable marker, reader handoff, and retirement policy for one browser corpus's generations.
  * Candidates are registered before bytes are written so startup can reconcile interrupted work.
+ * Which filenames the store owns comes from the corpus storage identity, so a
+ * generation belonging to another File Corpus is left registered and untouched.
  */
-export const makeBibleGenerationStore = (input: {
+export const makeCorpusGenerationStore = <Corpus extends string>(input: {
+  readonly identity: CorpusStorageIdentity<Corpus>;
   readonly databases: SqliteDatabaseFamily;
   readonly registry: GenerationRegistryStore;
   readonly discard: (filename: string) => Effect.Effect<void, unknown>;
-}): BibleGenerationStore => {
+}): CorpusGenerationStore<Corpus> => {
+  const owned = input.identity.ownsGeneration;
+
   const discardFiles = (filename: string): Effect.Effect<boolean> =>
     input.discard(filename).pipe(
       Effect.as(true),
       Effect.orElseSucceed(() => false),
     );
 
-  const reconcile = Effect.fn('BibleGenerationStore.reconcile')(function* (
+  const reconcile = Effect.fn('CorpusGenerationStore.reconcile')(function* (
     registry: GenerationRegistry,
   ) {
     const retirement = yield* Effect.forEach(
       registry.managed,
       Effect.fnUntraced(function* (generation) {
         let discarded = false;
-        if (!Option.contains(registry.active, generation) && BIBLE_GENERATION.test(generation)) {
+        if (!Option.contains(registry.active, generation) && owned(generation)) {
           discarded = yield* discardFiles(generation);
         }
         return { generation, discarded };
@@ -77,7 +85,7 @@ export const makeBibleGenerationStore = (input: {
     }
   });
 
-  const discardCandidate = Effect.fn('BibleGenerationStore.discardCandidate')(function* (
+  const discardCandidate = Effect.fn('CorpusGenerationStore.discardCandidate')(function* (
     filename: string,
   ) {
     const registry = yield* registryRead(input.registry);
@@ -89,7 +97,7 @@ export const makeBibleGenerationStore = (input: {
     });
   });
 
-  const runOpenActive = Effect.fn('BibleGenerationStore.openActive')(function* () {
+  const runOpenActive = Effect.fn('CorpusGenerationStore.openActive')(function* () {
     const registry = yield* registryRead(input.registry);
     if (Option.isNone(registry.active)) {
       yield* reconcile(registry);
@@ -102,18 +110,20 @@ export const makeBibleGenerationStore = (input: {
   });
   const openActive = Effect.suspend(runOpenActive);
 
-  const reserve = Effect.fn('BibleGenerationStore.reserve')(function* (preferredFilename: string) {
+  const reserve = Effect.fn('CorpusGenerationStore.reserve')(function* (preferredFilename: string) {
     const current = yield* registryRead(input.registry);
     const filename = inactiveFilename(preferredFilename, current.active);
     if (Option.contains(current.active, filename)) {
-      return yield* Effect.fail('Bible candidate generation must be inactive');
+      return yield* Effect.fail(
+        `${input.identity.generationPrefix} candidate generation must be inactive`,
+      );
     }
     const registry = withGeneration(current, filename);
     yield* registryWrite(input.registry, registry);
     return { filename, database: input.databases.candidate(filename) };
   });
 
-  const activateVerified = Effect.fn('BibleGenerationStore.activateVerified')(function* (
+  const activateVerified = Effect.fn('CorpusGenerationStore.activateVerified')(function* (
     filename: string,
   ) {
     const before = withGeneration(yield* registryRead(input.registry), filename);
@@ -139,6 +149,7 @@ export const makeBibleGenerationStore = (input: {
   });
 
   return {
+    identity: input.identity,
     active: input.databases.active,
     get activeFilename() {
       return input.databases.activeFilename;

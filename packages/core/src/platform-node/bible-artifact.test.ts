@@ -6,11 +6,11 @@ import type { CorpusProvenance, CorpusSupplyReceipt } from '../corpus-supply/mod
 import { CorpusSupply } from '../corpus-supply/service.js';
 import {
   layerNativeBibleArtifacts,
-  type NativeBibleArtifactProvenanceStore,
-  type NativeBibleArtifactSource,
+  type NativeFileArtifactProvenanceStore,
+  type NativeFileArtifactSource,
 } from './bible-artifact.js';
 
-const makeProvenanceStore = (): NativeBibleArtifactProvenanceStore => {
+const makeProvenanceStore = (): NativeFileArtifactProvenanceStore => {
   let current = Option.none<CorpusProvenance>();
 
   return {
@@ -27,8 +27,8 @@ const makeProvenanceStore = (): NativeBibleArtifactProvenanceStore => {
 
 const ensure = (
   destination: string,
-  sources: readonly NativeBibleArtifactSource[],
-  provenanceStore: NativeBibleArtifactProvenanceStore,
+  sources: readonly NativeFileArtifactSource[],
+  provenanceStore: NativeFileArtifactProvenanceStore,
   fetch?: (url: string) => Effect.Effect<Response, unknown>,
 ): Effect.Effect<CorpusSupplyReceipt, unknown> => {
   const artifacts = layerNativeBibleArtifacts({
@@ -56,7 +56,7 @@ describe('desktop Bible Artifact adapter', () => {
       const destination = `${directory}/user-data/bible.db`;
       const provenanceStore = makeProvenanceStore();
       yield* fs.writeFileString(source, 'canonical-corpus');
-      const sources: readonly NativeBibleArtifactSource[] = [
+      const sources: readonly NativeFileArtifactSource[] = [
         { kind: 'packaged', path: missing, label: 'packaged' },
         { kind: 'workspace', path: source, label: 'development' },
       ];
@@ -79,7 +79,7 @@ describe('desktop Bible Artifact adapter', () => {
       const source = `${directory}/source.db`;
       const destination = `${directory}/bible.db`;
       const provenanceStore = makeProvenanceStore();
-      const sources: readonly NativeBibleArtifactSource[] = [
+      const sources: readonly NativeFileArtifactSource[] = [
         { kind: 'workspace', path: source, label: 'test' },
       ];
       yield* fs.writeFileString(source, 'first');
@@ -121,6 +121,7 @@ describe('desktop Bible Artifact adapter', () => {
               url: 'https://example.test/bible.db',
               revision: 'fixture',
               digest: `sha256:${'a'.repeat(64)}`,
+              size: 'wrong bytes'.length,
             },
           ],
           makeProvenanceStore(),

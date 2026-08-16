@@ -3,37 +3,42 @@ import * as BunServices from '@effect/platform-bun/BunServices';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { bytesToHex } from '@noble/hashes/utils.js';
 
-import {
-  BibleArtifactInstaller,
-  layerBibleArtifactRecipe,
-  type BibleArtifactRecipe,
-  type BibleArtifactSourceKind,
-} from '../corpus-supply/bible-artifact.js';
 import { CorpusInstallationError, CorpusSourceUnavailableError } from '../corpus-supply/errors.js';
+import {
+  BibleArtifact,
+  type BibleArtifactInstaller,
+  type BibleArtifactRecipe,
+  type FileArtifactSourceKind,
+  type FileCorpusArtifact,
+} from '../corpus-supply/file-artifact.js';
 import {
   assetSourceId,
   corpusDigest,
   corpusRevision,
   CorpusProvenance,
+  registeredCorpusName,
 } from '../corpus-supply/model.js';
 import Database from 'better-sqlite3';
 import { Effect, FileSystem, Layer, Option, Path, Predicate, Schema, Stream } from 'effect';
 import { HttpClient } from 'effect/unstable/http';
 
-export interface LocalBibleArtifactSource {
-  readonly kind: Exclude<BibleArtifactSourceKind, 'release'>;
+export interface LocalFileArtifactSource {
+  readonly kind: Exclude<FileArtifactSourceKind, 'release'>;
   readonly path: string;
   readonly label: string;
 }
 
-export interface ReleaseBibleArtifactSource {
+export interface ReleaseFileArtifactSource {
   readonly kind: 'release';
   readonly url: string;
   readonly revision: string;
   readonly digest: string;
+  /** The exact byte count the pinned manifest promises; rejected before the
+   *  semantic verifier ever opens the file. */
+  readonly size: number;
 }
 
-export type NativeBibleArtifactSource = LocalBibleArtifactSource | ReleaseBibleArtifactSource;
+export type NativeFileArtifactSource = LocalFileArtifactSource | ReleaseFileArtifactSource;
 
 const StoredProvenance = Schema.Struct({
   source: Schema.String,
@@ -41,7 +46,7 @@ const StoredProvenance = Schema.Struct({
   digest: Schema.String,
 });
 
-export interface NativeBibleArtifactProvenanceStore {
+export interface NativeFileArtifactProvenanceStore {
   readonly read: (filename: string) => Effect.Effect<CorpusProvenance, unknown>;
   readonly write: (filename: string, provenance: CorpusProvenance) => Effect.Effect<void, unknown>;
 }
@@ -49,13 +54,13 @@ export interface NativeBibleArtifactProvenanceStore {
 const sourceError = (operation: string, cause: unknown): CorpusSourceUnavailableError =>
   CorpusSourceUnavailableError.make({ operation, cause });
 
-const localSource = (source: LocalBibleArtifactSource) => ({
+const localSource = (corpus: string, source: LocalFileArtifactSource) => ({
   kind: source.kind,
   acquire: Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const details = yield* fs.stat(source.path);
     if (details.type !== 'File' || details.size === 0n) {
-      return yield* sourceError(`open-bible-artifact:${source.label}`, 'source is empty');
+      return yield* sourceError(`open-${corpus}-artifact:${source.label}`, 'source is empty');
     }
     const modified = Option.match(details.mtime, {
       onNone: () => 'unknown',
@@ -69,46 +74,49 @@ const localSource = (source: LocalBibleArtifactSource) => ({
     return {
       kind: source.kind,
       provenance,
+      expectedSize: Option.none(),
       bytes: fs
         .stream(source.path)
         .pipe(
-          Stream.mapError((cause) => sourceError(`read-bible-artifact:${source.label}`, cause)),
+          Stream.mapError((cause) => sourceError(`read-${corpus}-artifact:${source.label}`, cause)),
         ),
     };
   }).pipe(
-    Effect.mapError((cause) => sourceError(`open-bible-artifact:${source.label}`, cause)),
+    Effect.mapError((cause) => sourceError(`open-${corpus}-artifact:${source.label}`, cause)),
     Effect.provide(BunServices.layer),
   ),
 });
 
-interface BibleArtifactResponse {
+interface FileArtifactResponse {
   readonly status: number;
   readonly bytes: Stream.Stream<Uint8Array, unknown>;
 }
 
 const releaseSource = (
-  source: ReleaseBibleArtifactSource,
-  fetchArtifact: (url: string) => Effect.Effect<BibleArtifactResponse, unknown>,
+  corpus: string,
+  source: ReleaseFileArtifactSource,
+  fetchArtifact: (url: string) => Effect.Effect<FileArtifactResponse, unknown>,
 ) => ({
   kind: source.kind,
   acquire: Effect.succeed({
     kind: source.kind,
     provenance: CorpusProvenance.make({
-      source: assetSourceId('bible-release'),
+      source: assetSourceId(`${corpus}-release`),
       revision: corpusRevision(source.revision),
       digest: Option.some(corpusDigest(source.digest)),
     }),
+    expectedSize: Option.some(source.size),
     bytes: Stream.unwrap(
       fetchArtifact(source.url).pipe(
-        Effect.mapError((cause) => sourceError('fetch-bible-release', cause)),
+        Effect.mapError((cause) => sourceError(`fetch-${corpus}-release`, cause)),
         Effect.flatMap((response) => {
           if (response.status < 200 || response.status >= 300)
             return Effect.fail(
-              sourceError('fetch-bible-release', `HTTP ${String(response.status)}`),
+              sourceError(`fetch-${corpus}-release`, `HTTP ${String(response.status)}`),
             );
           return Effect.succeed(
             response.bytes.pipe(
-              Stream.mapError((cause) => sourceError('read-bible-release', cause)),
+              Stream.mapError((cause) => sourceError(`read-${corpus}-release`, cause)),
             ),
           );
         }),
@@ -117,13 +125,13 @@ const releaseSource = (
   }),
 });
 
-class BibleArtifactStoreError extends Schema.TaggedError<BibleArtifactStoreError>()(
-  'BibleArtifactStoreError',
+class FileArtifactStoreError extends Schema.TaggedError<FileArtifactStoreError>()(
+  'FileArtifactStoreError',
   { operation: Schema.String, cause: Schema.Unknown },
 ) {}
 
 const storeError = (operation: string) => (cause: unknown) =>
-  BibleArtifactStoreError.make({ operation, cause });
+  FileArtifactStoreError.make({ operation, cause });
 
 const openDatabase = (filename: string, readonly: boolean) =>
   Effect.try({
@@ -150,7 +158,7 @@ const countRows = (database: Database.Database, table: string, where = '') =>
     Effect.map((row) => row.count),
   );
 
-const verifyBibleDatabase = (filename: string): Effect.Effect<number, unknown> =>
+export const verifyBibleDatabase = (filename: string): Effect.Effect<number, unknown> =>
   Effect.acquireUseRelease(
     openDatabase(filename, true),
     (database) =>
@@ -190,7 +198,7 @@ const verifyBibleDatabase = (filename: string): Effect.Effect<number, unknown> =
     closeDatabase,
   );
 
-const sqliteProvenanceStore: NativeBibleArtifactProvenanceStore = {
+const sqliteProvenanceStore: NativeFileArtifactProvenanceStore = {
   read: (filename) =>
     Effect.acquireUseRelease(
       openDatabase(filename, true),
@@ -249,19 +257,26 @@ const sqliteProvenanceStore: NativeBibleArtifactProvenanceStore = {
 const readCurrent = (
   destination: string,
   verify: (filename: string) => Effect.Effect<number, unknown>,
-  provenanceStore: NativeBibleArtifactProvenanceStore,
+  provenanceStore: NativeFileArtifactProvenanceStore,
 ): Effect.Effect<Option.Option<CorpusProvenance>> =>
   verify(destination).pipe(Effect.andThen(provenanceStore.read(destination)), Effect.option);
 
-export const layerNativeBibleArtifacts = (input: {
+/** Streams one File Corpus Artifact to `<destination>.building`, hashes while
+ *  writing, rejects a manifest-digest mismatch, semantically verifies the
+ *  building file, writes Provenance into it, then renames over the active
+ *  file. Any failure removes the building file and leaves the active one. */
+export const layerNativeFileArtifacts = <Corpus extends string, RecipeId, InstallerId>(input: {
+  readonly artifact: FileCorpusArtifact<Corpus, RecipeId, InstallerId>;
   readonly destination: string;
-  readonly sources: readonly NativeBibleArtifactSource[];
+  readonly sources: readonly NativeFileArtifactSource[];
+  readonly verify: (filename: string) => Effect.Effect<number, unknown>;
   readonly fetch?: (url: string) => Effect.Effect<Response, unknown>;
-  readonly verify?: (filename: string) => Effect.Effect<number, unknown>;
-  readonly provenanceStore?: NativeBibleArtifactProvenanceStore;
-}): Layer.Layer<BibleArtifactInstaller | BibleArtifactRecipe> => {
-  const verify = input.verify ?? verifyBibleDatabase;
-  let fetchArtifact: (url: string) => Effect.Effect<BibleArtifactResponse, unknown>;
+  readonly provenanceStore?: NativeFileArtifactProvenanceStore;
+}): Layer.Layer<InstallerId | RecipeId> => {
+  const corpus = input.artifact.corpus;
+  const reportedCorpus = Option.getOrUndefined(registeredCorpusName(corpus));
+  const verify = input.verify;
+  let fetchArtifact: (url: string) => Effect.Effect<FileArtifactResponse, unknown>;
   const injectedFetch = input.fetch;
   if (Predicate.isNotUndefined(injectedFetch)) {
     fetchArtifact = (url) =>
@@ -269,7 +284,7 @@ export const layerNativeBibleArtifacts = (input: {
         Effect.flatMap((response) => {
           const body = response.body;
           if (Predicate.isNull(body)) {
-            return Effect.fail(sourceError('fetch-bible-release', 'response has no body'));
+            return Effect.fail(sourceError(`fetch-${corpus}-release`, 'response has no body'));
           }
           return Effect.succeed({
             status: response.status,
@@ -289,54 +304,82 @@ export const layerNativeBibleArtifacts = (input: {
       }).pipe(Effect.provide(BunHttpClient.layer));
   }
   const provenanceStore = input.provenanceStore ?? sqliteProvenanceStore;
-  const makeSource = (source: NativeBibleArtifactSource) => {
-    if (source.kind === 'release') return releaseSource(source, fetchArtifact);
-    return localSource(source);
+  const makeSource = (source: NativeFileArtifactSource) => {
+    if (source.kind === 'release') return releaseSource(corpus, source, fetchArtifact);
+    return localSource(corpus, source);
   };
-  const recipe = layerBibleArtifactRecipe(input.sources.map(makeSource));
-  const installer = Layer.succeed(
-    BibleArtifactInstaller,
-    BibleArtifactInstaller.of({
-      current: readCurrent(input.destination, verify, provenanceStore).pipe(
-        Effect.mapError((cause) => CorpusInstallationError.make({ corpus: 'bible', cause })),
-      ),
-      install: (artifact) =>
-        Effect.gen(function* () {
-          const fs = yield* FileSystem.FileSystem;
-          const path = yield* Path.Path;
-          yield* fs.makeDirectory(path.dirname(input.destination), { recursive: true });
-          const building = `${input.destination}.building`;
-          const hasher = sha256.create();
-          const install = Effect.gen(function* () {
-            yield* artifact.bytes.pipe(
-              Stream.tap((chunk) => Effect.sync(() => hasher.update(chunk))),
-              Stream.run(fs.sink(building)),
-            );
-            const digest = corpusDigest(`sha256:${bytesToHex(hasher.digest())}`);
-            if (Option.exists(artifact.provenance.digest, (expected) => expected !== digest)) {
-              return yield* Effect.fail(
-                'Bible Artifact digest does not match its release manifest',
-              );
-            }
-            const installed = yield* verify(building);
-            const provenance = CorpusProvenance.make({
-              source: artifact.provenance.source,
-              revision: artifact.provenance.revision,
-              digest: Option.some(digest),
-            });
-            yield* provenanceStore.write(building, provenance);
-            yield* fs.rename(building, input.destination);
-            yield* fs.remove(`${input.destination}.provenance.json`, { force: true });
-            return { installed, provenance };
-          });
-          return yield* install.pipe(
-            Effect.onError(() => fs.remove(building, { force: true }).pipe(Effect.ignore)),
+  const recipe = input.artifact.layerRecipe(input.sources.map(makeSource));
+  const installer = input.artifact.layerInstaller({
+    current: readCurrent(input.destination, verify, provenanceStore).pipe(
+      Effect.mapError((cause) => CorpusInstallationError.make({ corpus: reportedCorpus, cause })),
+    ),
+    install: (artifact) =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        yield* fs.makeDirectory(path.dirname(input.destination), { recursive: true });
+        const building = `${input.destination}.building`;
+        const hasher = sha256.create();
+        let written = 0;
+        const install = Effect.gen(function* () {
+          yield* artifact.bytes.pipe(
+            Stream.tap((chunk) =>
+              Effect.sync(() => {
+                hasher.update(chunk);
+                written += chunk.byteLength;
+              }),
+            ),
+            Stream.run(fs.sink(building)),
           );
-        }).pipe(
-          Effect.mapError((cause) => CorpusInstallationError.make({ corpus: 'bible', cause })),
-          Effect.provide(BunServices.layer),
-        ),
-    }),
-  );
+          // Size and digest are the whole trust surface, so both close before
+          // the semantic verifier is allowed to open the candidate file.
+          if (Option.exists(artifact.expectedSize, (expected) => expected !== written)) {
+            return yield* Effect.fail(
+              `${input.artifact.label} Artifact size does not match its release manifest`,
+            );
+          }
+          const digest = corpusDigest(`sha256:${bytesToHex(hasher.digest())}`);
+          if (Option.exists(artifact.provenance.digest, (expected) => expected !== digest)) {
+            return yield* Effect.fail(
+              `${input.artifact.label} Artifact digest does not match its release manifest`,
+            );
+          }
+          const installed = yield* verify(building);
+          const provenance = CorpusProvenance.make({
+            source: artifact.provenance.source,
+            revision: artifact.provenance.revision,
+            digest: Option.some(digest),
+          });
+          yield* provenanceStore.write(building, provenance);
+          yield* fs.rename(building, input.destination);
+          yield* fs.remove(`${input.destination}.provenance.json`, { force: true });
+          return { installed, provenance };
+        });
+        return yield* install.pipe(
+          Effect.onError(() => fs.remove(building, { force: true }).pipe(Effect.ignore)),
+        );
+      }).pipe(
+        Effect.mapError((cause) => CorpusInstallationError.make({ corpus: reportedCorpus, cause })),
+        Effect.provide(BunServices.layer),
+      ),
+  });
   return Layer.merge(recipe, installer);
 };
+
+/** The Bible instance of the native File Corpus lifecycle: the canonical
+ *  destination plus the 66-book / 31,102-verse semantic verifier. */
+export const layerNativeBibleArtifacts = (input: {
+  readonly destination: string;
+  readonly sources: readonly NativeFileArtifactSource[];
+  readonly fetch?: (url: string) => Effect.Effect<Response, unknown>;
+  readonly verify?: (filename: string) => Effect.Effect<number, unknown>;
+  readonly provenanceStore?: NativeFileArtifactProvenanceStore;
+}): Layer.Layer<BibleArtifactInstaller | BibleArtifactRecipe> =>
+  layerNativeFileArtifacts({
+    artifact: BibleArtifact,
+    destination: input.destination,
+    sources: input.sources,
+    fetch: input.fetch,
+    provenanceStore: input.provenanceStore,
+    verify: input.verify ?? verifyBibleDatabase,
+  });

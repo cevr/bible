@@ -2,7 +2,7 @@ import { Context, Effect, Layer, Option } from 'effect';
 
 import { EGWParagraphDatabase } from '../egw-db/book-database.js';
 import type { PublicationId } from '../writings/model.js';
-import { BibleArtifactInstaller, BibleArtifactRecipe } from './bible-artifact.js';
+import { BibleArtifact, type RegisteredFileCorpus, type WiredFileCorpus } from './file-artifact.js';
 import {
   CorpusInstallationError,
   CorpusRecipeUnavailableError,
@@ -11,6 +11,7 @@ import {
 import {
   BootstrapTarget,
   CorpusActivation,
+  CorpusFileName,
   CorpusSupplyReceipt,
   type CorpusSupplyInput,
   type WritingsTarget,
@@ -29,6 +30,21 @@ const requestedPublications = (source: WritingsAssetRecipeService, target: Writi
   return source.catalog.pipe(Effect.map((publications) => publications.map((item) => item.id)));
 };
 
+/** Every File Corpus the pipeline knows how to ensure. Total over
+ *  `CorpusFileName`, and keyed: the entry filed under `K` must be the artifact
+ *  whose own `corpus` is `K`, so a misfiled artifact cannot shadow another
+ *  corpus. Adding a file corpus is a compile error here until its
+ *  `FileCorpusArtifact` is registered under its own name. */
+type FileCorpusRegistry = { readonly [K in CorpusFileName]: RegisteredFileCorpus<K> };
+
+const fileCorpora = {
+  bible: BibleArtifact,
+} satisfies FileCorpusRegistry;
+
+/** Bootstrap is the corpus required before first use. Best-effort corpora are
+ *  ensured through their own `file` Target, never here. */
+const BOOTSTRAP_CORPUS: CorpusFileName = 'bible';
+
 export class CorpusSupply extends Context.Service<CorpusSupply, CorpusSupplyService>()(
   '@bible/core/corpus-supply/CorpusSupply',
 ) {
@@ -37,8 +53,13 @@ export class CorpusSupply extends Context.Service<CorpusSupply, CorpusSupplyServ
     Effect.gen(function* () {
       const sourceOption = yield* Effect.serviceOption(WritingsAssetRecipe);
       const databaseOption = yield* Effect.serviceOption(EGWParagraphDatabase);
-      const bibleRecipeOption = yield* Effect.serviceOption(BibleArtifactRecipe);
-      const bibleInstallerOption = yield* Effect.serviceOption(BibleArtifactInstaller);
+      const wired = new Map<CorpusFileName, WiredFileCorpus>();
+      // Keyed by the vocabulary itself, not by the registry values: `corpus` is
+      // the registry key, so a wired entry can only ever land under its own name.
+      for (const corpus of CorpusFileName.literals) {
+        const entry = yield* fileCorpora[corpus].wired;
+        if (Option.isSome(entry)) wired.set(corpus, entry.value);
+      }
 
       const ensureWritings = Effect.fn('CorpusSupply.ensureWritings')(function* (
         target: WritingsTarget,
@@ -92,12 +113,15 @@ export class CorpusSupply extends Context.Service<CorpusSupply, CorpusSupplyServ
         return CorpusSupplyReceipt.make({ activated, skipped });
       });
 
-      const ensureBible = Effect.fn('CorpusSupply.ensureBible')(function* (refresh: boolean) {
-        if (Option.isNone(bibleRecipeOption) || Option.isNone(bibleInstallerOption)) {
-          return yield* CorpusRecipeUnavailableError.make({ corpus: 'bible' });
+      const ensureFileCorpus = Effect.fn('CorpusSupply.ensureFileCorpus')(function* (
+        corpus: CorpusFileName,
+        refresh: boolean,
+      ) {
+        const entry = Option.fromUndefinedOr(wired.get(corpus));
+        if (Option.isNone(entry)) {
+          return yield* CorpusRecipeUnavailableError.make({ corpus });
         }
-        const recipe = bibleRecipeOption.value;
-        const installer = bibleInstallerOption.value;
+        const { recipe, installer } = entry.value;
         const current = yield* installer.current;
         let unavailable = Option.none<CorpusSupplyError>();
 
@@ -124,7 +148,7 @@ export class CorpusSupply extends Context.Service<CorpusSupply, CorpusSupplyServ
           return CorpusSupplyReceipt.make({
             activated: [
               CorpusActivation.make({
-                corpus: 'bible',
+                corpus,
                 identity: 'canonical',
                 source: installed.provenance.source,
                 revision: installed.provenance.revision,
@@ -136,7 +160,7 @@ export class CorpusSupply extends Context.Service<CorpusSupply, CorpusSupplyServ
         }
 
         if (Option.isSome(unavailable)) return yield* unavailable.value;
-        return yield* CorpusRecipeUnavailableError.make({ corpus: 'bible' });
+        return yield* CorpusRecipeUnavailableError.make({ corpus });
       });
 
       // Exhaustive over CorpusTarget: adding a corpus target is a compile
@@ -146,8 +170,9 @@ export class CorpusSupply extends Context.Service<CorpusSupply, CorpusSupplyServ
         const target = input.target ?? BootstrapTarget.make({});
         switch (target._tag) {
           case 'bootstrap':
-          case 'bible':
-            return ensureBible(refresh);
+            return ensureFileCorpus(BOOTSTRAP_CORPUS, refresh);
+          case 'file':
+            return ensureFileCorpus(target.corpus, refresh);
           case 'writings':
             return ensureWritings(target, refresh);
         }

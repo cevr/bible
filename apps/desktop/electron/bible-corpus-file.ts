@@ -1,6 +1,7 @@
 export {
   layerNativeBibleArtifacts,
-  type LocalBibleArtifactSource,
-  type NativeBibleArtifactSource,
-  type ReleaseBibleArtifactSource,
+  layerNativeFileArtifacts,
+  type LocalFileArtifactSource,
+  type NativeFileArtifactSource,
+  type ReleaseFileArtifactSource,
 } from '@bible/core/corpus-supply/node';

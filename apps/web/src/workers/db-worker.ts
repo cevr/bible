@@ -1,5 +1,5 @@
 /** Effect-native orchestration for the browser database worker. */
-import { CorpusSupply } from '@bible/core/corpus-supply';
+import { CorpusSupply, corpusStorageIdentity } from '@bible/core/corpus-supply';
 import { LibraryEntityId } from '@bible/core/library-state';
 import { failureCategory } from '@bible/core/observability';
 import { ClientId, makeSimulatedTransport, MutationId, Timestamp } from '@bible/core/local-first';
@@ -12,8 +12,8 @@ import { OPFSAdaptiveVFS } from 'wa-sqlite/src/examples/OPFSAdaptiveVFS.js';
 
 import userStateMigrationSql from '../../../../packages/core/src/local-first/migrations/0001_user_state.sql?raw';
 
-import { layerBrowserBibleArtifacts } from './bible-database.js';
-import { makeBibleGenerationStore } from './bible-generation-store.js';
+import { layerBrowserBibleArtifacts } from './corpus-artifact-database.js';
+import { makeCorpusGenerationStore } from './corpus-generation-store.js';
 import {
   makeDatabaseFileDownloader,
   makeIndexedDbDatabaseFileDownloader,
@@ -72,7 +72,7 @@ const vfsOperation = (
   // oxlint-disable-next-line effect/noNewPromise -- wa-sqlite VFS calls return number | Promise<number>; Promise.resolve flattens both
   hostPromise(() => Promise.resolve(evaluate()));
 
-const discardBibleGeneration = (
+const discardCorpusGeneration = (
   vfs: BrowserSqliteVfs,
   filename: string,
 ): Effect.Effect<void, unknown> =>
@@ -149,14 +149,16 @@ const initializeDatabases = (
     const { sqlite3, vfsName, vfs, downloader } = yield* initializeSqlite(host);
     const writingsSqlite = makeSqliteDatabase(sqlite3, 'egw-paragraphs.db', vfsName);
     const bibleDatabases = makeSqliteDatabaseFamily(sqlite3, vfsName);
+    const bibleStorage = corpusStorageIdentity('bible');
     const bibleArtifacts = layerBrowserBibleArtifacts({
-      generations: makeBibleGenerationStore({
+      generations: makeCorpusGenerationStore({
+        identity: bibleStorage,
         databases: bibleDatabases,
         registry: makeIndexedDbGenerationRegistryStore({
-          databaseName: 'bible-corpus-metadata',
-          key: 'active-bible-generation',
+          databaseName: bibleStorage.metadataDatabaseName,
+          key: bibleStorage.activeGenerationKey,
         }),
-        discard: (filename) => discardBibleGeneration(vfs, filename),
+        discard: (filename) => discardCorpusGeneration(vfs, filename),
       }),
       downloader,
       onProgress: (progress) =>
