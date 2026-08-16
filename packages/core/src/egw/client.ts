@@ -352,7 +352,7 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
 
         getBookToc: (bookId: number) =>
           Effect.gen(function* () {
-            yield* Effect.log(`Getting table of contents: (ID: ${bookId})`);
+            yield* Effect.logDebug(`Getting table of contents: (ID: ${bookId})`);
             const response = yield* httpClient.get(`/content/books/${bookId}/toc`);
             // Try to parse, and if it fails, log the actual response for debugging
             const parsed = yield* HttpClientResponse.schemaBodyJson(Schema.Array(Schemas.TocItem))(

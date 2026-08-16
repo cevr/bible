@@ -2,7 +2,9 @@ import { build } from 'bun';
 import { BunRuntime, BunServices } from '@effect/platform-bun';
 import { Effect, FileSystem, Inspectable, Path, Schema, SchemaGetter } from 'effect';
 
-class BuildError extends Schema.TaggedErrorClass<BuildError>()('BuildError', {
+import { envDefineTarget } from './env-define-target.js';
+
+class BuildError extends Schema.TaggedError<BuildError>()('BuildError', {
   cause: Schema.Unknown,
 }) {}
 
@@ -29,7 +31,7 @@ const loadEnvDefines = Effect.fn('loadEnvDefines')(function* (rootDir: string) {
       if (eqIndex === -1) continue;
       const key = trimmed.slice(0, eqIndex);
       const value = trimmed.slice(eqIndex + 1);
-      defines[`process.env.${key}`] = yield* encodeJson(value);
+      defines[envDefineTarget(key)] = yield* encodeJson(value);
     }
   }
 

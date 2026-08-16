@@ -17,7 +17,7 @@
  * reference than to fail the whole index pass.
  */
 
-import { Option } from 'effect';
+import { Option, Predicate } from 'effect';
 
 import { parseBibleQuery } from '../bible/parse.js';
 import type { Node } from './ast.js';
@@ -28,22 +28,21 @@ export interface ExtractedBibleRef {
   readonly refCode: string;
   readonly bibleBook: number;
   readonly bibleChapter: number;
-  /** `null` when the reference targets a whole chapter (e.g. "Genesis 3"). */
-  readonly bibleVerse: number | null;
+  /** Absent when the reference targets a whole chapter (e.g. "Genesis 3"). */
+  readonly bibleVerse: Option.Option<number>;
 }
 
-/** Same refCode derivation as `paragraphToRow` in book-database.ts. Keep in
- *  sync — this value is the join key into `paragraphs.ref_code`. */
-const refCodeOf = (paragraph: Paragraph, bookId: number): string =>
-  Option.getOrElse(
-    paragraph.refcode_short,
-    () =>
-      paragraph.refcode_long ??
-      Option.getOrElse(
-        paragraph.para_id,
-        () => `book-${String(bookId)}-para-${String(paragraph.puborder)}`,
-      ),
+/** Canonical non-empty refcode for paragraph storage and Bible-reference joins. */
+export const paragraphRefcode = (paragraph: Paragraph, bookId: number): string => {
+  const short = Option.getOrUndefined(paragraph.refcode_short);
+  if (Predicate.isNotUndefined(short)) return short;
+  const long = paragraph.refcode_long;
+  if (Predicate.isNotNullish(long) && long.length > 0) return long;
+  return Option.getOrElse(
+    paragraph.para_id,
+    () => `book-${String(bookId)}-para-${String(paragraph.puborder)}`,
   );
+};
 
 const walkScriptureRefs = (nodes: readonly Node[], out: { readonly title: string }[]): void => {
   for (const node of nodes) {
@@ -72,7 +71,7 @@ const walkScriptureRefs = (nodes: readonly Node[], out: { readonly title: string
  * Behavior:
  * - `single` / `verseRange` → emits one row per concrete verse (rangeStart..rangeEnd)
  *   so a query like "Genesis 3:1-5" hydrates all five verse-anchored lookups.
- * - `chapter` → one row with `bibleVerse: null` (commentary on the whole chapter).
+ * - `chapter` → one row with an absent `bibleVerse` (commentary on the whole chapter).
  * - `fullBook`, `chapterRange`, `search` → skipped (too coarse to anchor to a verse
  *   row meaningfully; the chapter renderer wouldn't surface those either way).
  * - Parse failures → silently skipped. The catalog of EGW titles is large and
@@ -85,12 +84,13 @@ const walkScriptureRefs = (nodes: readonly Node[], out: { readonly title: string
 export const extractScriptureRefs = (
   paragraphs: readonly Paragraph[],
   bookId: number,
+  refcodeOf: (paragraph: Paragraph, bookId: number) => string = paragraphRefcode,
 ): readonly ExtractedBibleRef[] => {
   const seen = new Set<string>();
   const out: ExtractedBibleRef[] = [];
 
   for (const paragraph of paragraphs) {
-    const refCode = refCodeOf(paragraph, bookId);
+    const refCode = refcodeOf(paragraph, bookId);
     const titles: { readonly title: string }[] = [];
     walkScriptureRefs(paragraph.nodes, titles);
 
@@ -98,7 +98,7 @@ export const extractScriptureRefs = (
       const parsed = parseBibleQuery(title);
       const rows = expandParsed(parsed);
       for (const row of rows) {
-        const key = `${refCode}|${String(row.bibleBook)}|${String(row.bibleChapter)}|${String(row.bibleVerse ?? -1)}`;
+        const key = `${refCode}|${String(row.bibleBook)}|${String(row.bibleChapter)}|${String(Option.getOrElse(row.bibleVerse, () => -1))}`;
         if (seen.has(key)) continue;
         seen.add(key);
         out.push({ bookId, refCode, ...row });
@@ -110,26 +110,32 @@ export const extractScriptureRefs = (
 
 const expandParsed = (
   parsed: ReturnType<typeof parseBibleQuery>,
-): readonly { bibleBook: number; bibleChapter: number; bibleVerse: number | null }[] => {
+): readonly { bibleBook: number; bibleChapter: number; bibleVerse: Option.Option<number> }[] => {
   switch (parsed._tag) {
     case 'single': {
       return [
         {
           bibleBook: parsed.ref.book,
           bibleChapter: parsed.ref.chapter,
-          bibleVerse: parsed.ref.verse,
+          bibleVerse: Option.some(parsed.ref.verse),
         },
       ];
     }
     case 'chapter':
-      return [{ bibleBook: parsed.ref.book, bibleChapter: parsed.ref.chapter, bibleVerse: null }];
+      return [
+        { bibleBook: parsed.ref.book, bibleChapter: parsed.ref.chapter, bibleVerse: Option.none() },
+      ];
     case 'verseRange': {
-      const rows: { bibleBook: number; bibleChapter: number; bibleVerse: number | null }[] = [];
+      const rows: {
+        bibleBook: number;
+        bibleChapter: number;
+        bibleVerse: Option.Option<number>;
+      }[] = [];
       for (let v = parsed.ref.start.verse; v <= parsed.ref.end.verse; v++) {
         rows.push({
           bibleBook: parsed.ref.start.book,
           bibleChapter: parsed.ref.start.chapter,
-          bibleVerse: v,
+          bibleVerse: Option.some(v),
         });
       }
       return rows;

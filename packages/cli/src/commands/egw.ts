@@ -18,8 +18,18 @@ import { ServiceLayer } from './egw/layers.js';
 import { egwLookup, lookupReference } from './egw/lookup.js';
 import { egwSearch, localSearch } from './egw/search.js';
 import { egwStudy } from './egw/study.js';
+import { egwSync } from './egw/sync.js';
 
-export { egwBooks, egwCatalog, egwCommentary, egwDownload, egwLookup, egwSearch, egwStudy };
+export {
+  egwBooks,
+  egwCatalog,
+  egwCommentary,
+  egwDownload,
+  egwLookup,
+  egwSearch,
+  egwStudy,
+  egwSync,
+};
 
 const query = Argument.string('query').pipe(Argument.variadic());
 
@@ -34,6 +44,7 @@ export const egwWithSubcommands = Command.make('egw', { query }, (args) =>
       yield* Console.log('       bible egw download <code>');
       yield* Console.log('       bible egw study <subject>');
       yield* Console.log('       bible egw search <query> [--remote]');
+      yield* Console.log('       bible egw sync [--json]');
       yield* Console.log('');
       yield* Console.log('Examples:');
       yield* Console.log('  bible egw "PP 351.1"          # Single paragraph');
@@ -65,6 +76,7 @@ export const egwWithSubcommands = Command.make('egw', { query }, (args) =>
     egwSearch,
     egwLookup,
     egwCommentary,
+    egwSync,
   ]),
   Command.provide(() => ServiceLayer),
 );

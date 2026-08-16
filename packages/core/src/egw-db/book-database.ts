@@ -589,6 +589,35 @@ export class EGWParagraphDatabase extends Context.Service<
           content_rowid=rowid
         )
       `);
+      yield* sql.unsafe(`
+        CREATE TRIGGER IF NOT EXISTS paragraphs_fts_after_insert
+        AFTER INSERT ON paragraphs BEGIN
+          INSERT INTO paragraphs_fts(rowid, content_text, refcode_short, book_id)
+          VALUES (new.rowid, new.content_text, new.refcode_short, new.book_id);
+        END
+      `);
+      yield* sql.unsafe(`
+        CREATE TRIGGER IF NOT EXISTS paragraphs_fts_after_delete
+        AFTER DELETE ON paragraphs BEGIN
+          INSERT INTO paragraphs_fts(
+            paragraphs_fts, rowid, content_text, refcode_short, book_id
+          ) VALUES (
+            'delete', old.rowid, old.content_text, old.refcode_short, old.book_id
+          );
+        END
+      `);
+      yield* sql.unsafe(`
+        CREATE TRIGGER IF NOT EXISTS paragraphs_fts_after_update
+        AFTER UPDATE ON paragraphs BEGIN
+          INSERT INTO paragraphs_fts(
+            paragraphs_fts, rowid, content_text, refcode_short, book_id
+          ) VALUES (
+            'delete', old.rowid, old.content_text, old.refcode_short, old.book_id
+          );
+          INSERT INTO paragraphs_fts(rowid, content_text, refcode_short, book_id)
+          VALUES (new.rowid, new.content_text, new.refcode_short, new.book_id);
+        END
+      `);
 
       yield* sql.unsafe(`
         CREATE TABLE IF NOT EXISTS sync_status (
@@ -744,9 +773,6 @@ export class EGWParagraphDatabase extends Context.Service<
                 Option.flatMap(provenanceOption, (value) => value.digest),
               );
 
-              yield* sql
-                .unsafe(`INSERT INTO paragraphs_fts(paragraphs_fts) VALUES('rebuild')`)
-                .pipe(Effect.asVoid);
               yield* sql`
               INSERT INTO sync_status (
                 book_id, book_code, status, error_message, last_attempt, paragraph_count,

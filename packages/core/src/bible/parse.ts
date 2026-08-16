@@ -150,7 +150,13 @@ export function parseBibleQuery(query: string, options?: ParseBibleQueryOptions)
         const startVerse = parseInt(startVerseStr, 10);
         const endVerse = parseInt(endVerseStr, 10);
         const book = getBibleBook(bookNum);
-        if (Option.isSome(book) && chapter >= 1 && chapter <= book.value.chapters) {
+        if (
+          Option.isSome(book) &&
+          chapter >= 1 &&
+          chapter <= book.value.chapters &&
+          startVerse >= 1 &&
+          startVerse <= endVerse
+        ) {
           return ParsedBibleQuery.verseRange(bookNum, chapter, startVerse, endVerse);
         }
       }
@@ -190,7 +196,7 @@ export function parseBibleQuery(query: string, options?: ParseBibleQueryOptions)
         const chapter = parseInt(chapterStr, 10);
         const verse = parseInt(verseStr, 10);
         const book = getBibleBook(bookNum);
-        if (Option.isSome(book) && chapter >= 1 && chapter <= book.value.chapters) {
+        if (Option.isSome(book) && chapter >= 1 && chapter <= book.value.chapters && verse >= 1) {
           return ParsedBibleQuery.single(bookNum, chapter, verse);
         }
       }

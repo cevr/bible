@@ -13,12 +13,15 @@ const scriptureRef = (title: string): Node => ({
 
 const text = (s: string): Node => ({ _tag: 'Text', text: s });
 
+// Wire-shape fields the EGW paragraph schema encodes as `null` when absent.
+const wireNull = Option.getOrNull(Option.none<never>());
+
 const paragraph = (overrides: Partial<Paragraph>): Paragraph => ({
   para_id: Option.some('p1'),
   refcode_short: Option.some('GC 1.1'),
-  refcode_long: null,
-  element_type: null,
-  element_subtype: null,
+  refcode_long: wireNull,
+  element_type: wireNull,
+  element_subtype: wireNull,
   nodes: [],
   puborder: 1,
   ...overrides,
@@ -36,18 +39,28 @@ describe('extractScriptureRefs', () => {
         refCode: 'GC 1.1',
         bibleBook: 1,
         bibleChapter: 3,
-        bibleVerse: 1,
+        bibleVerse: Option.some(1),
       },
     ]);
   });
 
   it('expands a verse range into one row per verse', () => {
     const refs = extractScriptureRefs([paragraph({ nodes: [scriptureRef('Genesis 3:1-3')] })], 99);
-    expect(refs.map((r) => r.bibleVerse)).toEqual([1, 2, 3]);
+    expect(refs.map((r) => Option.getOrThrow(r.bibleVerse))).toEqual([1, 2, 3]);
     expect(refs.every((r) => r.bibleBook === 1 && r.bibleChapter === 3)).toBe(true);
   });
 
-  it('represents a whole-chapter reference with null verse', () => {
+  it('skips a reversed verse range from provider data', () => {
+    const refs = extractScriptureRefs([paragraph({ nodes: [scriptureRef('Genesis 3:3-1')] })], 99);
+    expect(refs).toEqual([]);
+  });
+
+  it('skips a zero verse from provider data', () => {
+    const refs = extractScriptureRefs([paragraph({ nodes: [scriptureRef('Genesis 3:0')] })], 99);
+    expect(refs).toEqual([]);
+  });
+
+  it('represents a whole-chapter reference with an absent verse', () => {
     const refs = extractScriptureRefs([paragraph({ nodes: [scriptureRef('Genesis 3')] })], 99);
     expect(refs).toEqual([
       {
@@ -55,7 +68,7 @@ describe('extractScriptureRefs', () => {
         refCode: 'GC 1.1',
         bibleBook: 1,
         bibleChapter: 3,
-        bibleVerse: null,
+        bibleVerse: Option.none(),
       },
     ]);
   });
@@ -90,7 +103,10 @@ describe('extractScriptureRefs', () => {
       99,
     );
     expect(
-      refs.map((r) => `${String(r.bibleBook)}:${String(r.bibleChapter)}:${String(r.bibleVerse)}`),
+      refs.map(
+        (r) =>
+          `${String(r.bibleBook)}:${String(r.bibleChapter)}:${String(Option.getOrThrow(r.bibleVerse))}`,
+      ),
     ).toEqual(['43:3:16', '45:8:1', '44:2:1']);
   });
 
@@ -112,14 +128,14 @@ describe('extractScriptureRefs', () => {
         }),
         paragraph({
           refcode_short: Option.none(),
-          refcode_long: null,
+          refcode_long: '',
           para_id: Option.some('pid-7'),
           puborder: 2,
           nodes: [scriptureRef('John 1:2')],
         }),
         paragraph({
           refcode_short: Option.none(),
-          refcode_long: null,
+          refcode_long: wireNull,
           para_id: Option.none(),
           puborder: 3,
           nodes: [scriptureRef('John 1:3')],

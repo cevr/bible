@@ -369,6 +369,30 @@ describe('EGWParagraphDatabase', () => {
   });
 
   describe('batch operations', () => {
+    test('keeps the search index current after paragraph writes', () =>
+      runTest(
+        Effect.gen(function* () {
+          const db = yield* EGWParagraphDatabase;
+          const book = mockBook(103, 'INDEXED');
+          yield* db.storeParagraphsBatch([mockParagraph(1, 'INDEXED 1.1')], book);
+
+          const stored = yield* db.searchParagraphs('Content', 10, 'INDEXED');
+          expect(stored).toHaveLength(1);
+
+          yield* db.storeParagraph(
+            {
+              ...mockParagraph(1, 'INDEXED 1.1'),
+              nodes: [{ _tag: 'Text', text: 'Replacement phrase' }],
+            },
+            book,
+          );
+          const stale = yield* db.searchParagraphs('Content', 10, 'INDEXED');
+          const replacement = yield* db.searchParagraphs('Replacement', 10, 'INDEXED');
+          expect(stale).toHaveLength(0);
+          expect(replacement).toHaveLength(1);
+        }),
+      ));
+
     test('stores paragraphs in batch', () =>
       runTest(
         Effect.gen(function* () {

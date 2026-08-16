@@ -9,6 +9,7 @@ export { EGWParagraphDatabase, ParagraphDataIntegrityError, SyncStatus } from '.
 export { isChapterHeading } from '../egw/parse.js';
 export type {
   BookRow,
+  EGWParagraphDatabaseService,
   ParagraphDatabaseError,
   ParagraphRow,
   SyncStatusRow,
