@@ -155,6 +155,8 @@
     "paths": {
       "@bible/api": ["./packages/api/src/index.ts"],
       "@bible/api/*": ["./packages/api/src/*"],
+      "@bible/atom-solid": ["./packages/atom-solid/src/index.ts"],
+      "@bible/atom-solid/*": ["./packages/atom-solid/src/*"],
       "@bible/core": ["./packages/core/src/index.ts"],
       "@bible/core/*": ["./packages/core/src/*"],
       "@bible/desktop": ["./apps/desktop/src/index.ts"],

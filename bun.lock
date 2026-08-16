@@ -94,6 +94,13 @@
         "solid-js": "catalog:",
       },
     },
+    "packages/atom-solid": {
+      "name": "@bible/atom-solid",
+      "dependencies": {
+        "effect": "catalog:",
+        "solid-js": "catalog:",
+      },
+    },
     "packages/cli": {
       "name": "@bible/cli",
       "version": "1.0.0",
@@ -235,6 +242,8 @@
     "@bible/api": ["@bible/api@workspace:packages/api"],
 
     "@bible/app": ["@bible/app@workspace:packages/app"],
+
+    "@bible/atom-solid": ["@bible/atom-solid@workspace:packages/atom-solid"],
 
     "@bible/cli": ["@bible/cli@workspace:packages/cli"],
 

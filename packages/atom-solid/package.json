@@ -1,0 +1,20 @@
+{
+  "name": "@bible/atom-solid",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./hooks": "./src/hooks.ts",
+    "./registry-context": "./src/registry-context.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun --conditions=browser --conditions=development test",
+    "gate": "bun run typecheck && bun run test"
+  },
+  "dependencies": {
+    "effect": "catalog:",
+    "solid-js": "catalog:"
+  }
+}
