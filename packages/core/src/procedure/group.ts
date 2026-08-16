@@ -15,6 +15,7 @@ import {
   ReadingPreferencesPatch as ReadingPreferencesPatchSchema,
 } from '../reading-preferences/model.js';
 import { TopicDetail, TopicId, TopicSummary } from '../topics/model.js';
+import { PhraseDictionary, TopicSlug, WikiPage, WikiPageSummary } from '../wiki/model.js';
 import {
   Page,
   PageNumber,
@@ -208,6 +209,31 @@ export const TopicGet = procedure('v1.topics.get', {
   success: TopicDetail,
 });
 
+/** The composed topic page (§2.5): authored core plus the §6.1 section lineup,
+ *  assembled by the one core composer. The whole page in one round trip — the
+ *  reader always wants all six sections, and per-section procedures would turn
+ *  one warm batched read into six MessagePort crossings for no gain. */
+export const WikiTopicGet = procedure('v1.wiki.topic.get', {
+  payload: { slug: TopicSlug },
+  success: WikiPage,
+});
+
+export const WikiTopicsList = procedure('v1.wiki.topics.list', {
+  payload: {
+    query: Schema.optional(Schema.String),
+    letter: Schema.optional(Schema.String),
+  },
+  success: Schema.Array(WikiPageSummary),
+});
+
+/** The compiled alias table, whole. Milestone 4's matcher builds its automaton
+ *  from this payload once per client; the payload ships now so the three hosts
+ *  already agree on its shape when the matcher lands. */
+export const WikiDictionaryGet = procedure('v1.wiki.dictionary.get', {
+  payload: {},
+  success: PhraseDictionary,
+});
+
 export const BibleProcedureGroup = RpcGroup.make(
   RuntimeConnect,
   RuntimeEvents,
@@ -233,6 +259,9 @@ export const BibleProcedureGroup = RpcGroup.make(
   DataImport,
   TopicsList,
   TopicGet,
+  WikiTopicGet,
+  WikiTopicsList,
+  WikiDictionaryGet,
 );
 
 export const expectedRuntimeConnection = {

@@ -7,6 +7,7 @@ import {
 } from '../egw-db/book-database.js';
 import type * as EGWSchemas from '../egw/schemas.js';
 import { nodesToText } from '../egw/ast.js';
+import type { CorpusScope } from './corpus-scope.js';
 import {
   WritingsAmbiguousPublicationCodeError,
   WritingsDataIntegrityError,
@@ -134,13 +135,30 @@ export interface WritingsServiceApi {
   readonly headings: (
     reference: PublicationReference,
   ) => Effect.Effect<readonly Heading[], WritingsError>;
+  /** Full-text search in FTS relevance order, optionally narrowed to one
+   *  publication or to one half of the corpus by author (§6.4). */
   readonly search: (
     query: string,
     options?: {
       readonly limit?: number;
       readonly publication?: PublicationReference;
+      readonly scope?: CorpusScope;
     },
   ) => Effect.Effect<readonly SearchHit[], WritingsError>;
+  /** How many paragraphs `search` matches under the same query and scope,
+   *  ignoring any `limit`.
+   *
+   *  Its own call rather than a field on the hits because a caller wants either
+   *  the page of results or the size of the tail, rarely both at the same cost:
+   *  the row query decodes every hit it returns, and this one decodes nothing.
+   *  The §6.1 sections need both, and they ask for them concurrently. */
+  readonly searchCount: (
+    query: string,
+    options?: {
+      readonly publication?: PublicationReference;
+      readonly scope?: CorpusScope;
+    },
+  ) => Effect.Effect<number, WritingsError>;
   readonly locate: (
     paragraphs: readonly Paragraph[],
     reference: ParagraphReference | PageReference,
@@ -366,11 +384,11 @@ export class WritingsService extends Context.Service<WritingsService, WritingsSe
             publicationFilter = Option.some(yield* publication(options.publication));
           }
           return yield* database
-            .searchParagraphs(
-              query,
-              options?.limit ?? 50,
-              Option.getOrUndefined(Option.map(publicationFilter, (entry) => entry.code)),
-            )
+            .searchParagraphs(query, {
+              limit: options?.limit ?? 50,
+              bookCode: Option.getOrUndefined(Option.map(publicationFilter, (entry) => entry.code)),
+              scope: options?.scope,
+            })
             .pipe(
               Effect.mapError(unavailable('search')),
               Effect.flatMap((rows) =>
@@ -386,6 +404,27 @@ export class WritingsService extends Context.Service<WritingsService, WritingsSe
                 ),
               ),
             );
+        });
+      };
+
+      /** The same two guards `search` applies, minus the limit one it has no
+       *  parameter for: an empty query is still not a search, and a count of a
+       *  non-search is not zero — it is a rejected request. */
+      const searchCount: WritingsServiceApi['searchCount'] = (query, options) => {
+        if (query.trim().length === 0) {
+          return Effect.fail(WritingsInvalidSearchError.make({ reason: 'empty-query' }));
+        }
+        return Effect.gen(function* () {
+          let publicationFilter = Option.none<Publication>();
+          if (Predicate.isNotUndefined(options?.publication)) {
+            publicationFilter = Option.some(yield* publication(options.publication));
+          }
+          return yield* database
+            .countSearchParagraphs(query, {
+              bookCode: Option.getOrUndefined(Option.map(publicationFilter, (entry) => entry.code)),
+              scope: options?.scope,
+            })
+            .pipe(Effect.mapError(unavailable('search')));
         });
       };
 
@@ -411,6 +450,7 @@ export class WritingsService extends Context.Service<WritingsService, WritingsSe
         openingPage,
         headings,
         search,
+        searchCount,
         locate,
       });
     }),

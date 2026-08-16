@@ -149,6 +149,52 @@ describe('BibleCorpus + BibleDatabase', () => {
       }),
     ));
 
+  test('returns cross-references in stored source order, stably across queries', () =>
+    run(
+      Effect.gen(function* () {
+        const corpus = yield* BibleCorpus;
+        const database = yield* BibleDatabase;
+        // Eight OpenBible targets in an order no sort would reproduce: not
+        // ascending by book, chapter or verse. §6.1 row 5 calls section 5
+        // "source order", and source order is the order the asset lists them.
+        const targets = [
+          { book: 43, chapter: 1, verse: 1 },
+          { book: 19, chapter: 104, verse: 24 },
+          { book: 58, chapter: 11, verse: 3 },
+          { book: 20, chapter: 16, verse: 4 },
+          { book: 45, chapter: 1, verse: 20 },
+          { book: 2, chapter: 20, verse: 11 },
+          { book: 66, chapter: 4, verse: 11 },
+          { book: 1, chapter: 2, verse: 4 },
+        ];
+        const base = archive();
+        yield* corpus.install(
+          BibleCorpusArchive.make({
+            ...base,
+            openBibleCrossReferences: { '1.1.1': { refs: targets } },
+            tskeCrossReferences: {},
+          }),
+          '2026-07-13T00:00:00.000Z',
+        );
+
+        const expected = targets.map(
+          (target) => `${String(target.book)}:${String(target.chapter)}`,
+        );
+        const read = Effect.map(database.getCrossRefs(1, 1, 1), (rows) =>
+          rows.map((row) => `${String(row.book)}:${String(row.chapter)}`),
+        );
+
+        // The asset's order, unsorted and unreordered. Without `ORDER BY rowid`
+        // SQLite makes no promise at all here — the sequence is whatever the
+        // scan happens to produce, and the three hosts have no shared contract.
+        expect(yield* read).toEqual(expected);
+        // Stable across repeated queries, which is the property a client caching
+        // a page and a client re-fetching it both depend on.
+        expect(yield* read).toEqual(yield* read);
+        expect(yield* read).toEqual(expected);
+      }),
+    ));
+
   test('corpus re-import replaces source-owned rows instead of duplicating them', () =>
     run(
       Effect.gen(function* () {

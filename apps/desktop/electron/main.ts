@@ -287,10 +287,18 @@ void app.whenReady().then(async () => {
     }),
   );
   console.info('[main] runtime-creating');
-  const runtime = makeRuntime(writingsDbPath(), bibleDbPath(), userState.filename, {
-    randomUuid: () => crypto.randomUUID(),
-    nowIso: () => new Date().toISOString(),
-  });
+  const runtime = makeRuntime(
+    {
+      writingsDbFile: writingsDbPath(),
+      bibleDbFile: bibleDbPath(),
+      topicsDbFile: topicsDbPath(),
+      userStateDbFile: userState.filename,
+    },
+    {
+      randomUuid: () => crypto.randomUUID(),
+      nowIso: () => new Date().toISOString(),
+    },
+  );
   mainRuntime = Option.some(runtime);
 
   // Construct every persistent module before opening a renderer. This runs

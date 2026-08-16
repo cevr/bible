@@ -13,6 +13,7 @@ import {
   topicSlug,
   type WikiPageSummary,
 } from './model.js';
+import { WikiSectionSources } from './section-composer.js';
 import { layerBunOrAbsent } from './service-bun.js';
 import { WikiService } from './service.js';
 
@@ -95,10 +96,16 @@ const CATALOG = [
 
 const catalog = TopicService.Test(CATALOG);
 
+/** These tests are about the artifact reader, not about §6, so they wire the
+ *  *explicit* degraded sourcing rather than four live corpora. `NotWired` is a
+ *  layer a host chooses on purpose — which is the whole point of making
+ *  `WikiSectionSources` a required dependency: there is no way to simply omit
+ *  it and get an unexplained empty lineup. */
 const live = (file: string): Layer.Layer<WikiService> =>
   WikiService.Live.pipe(
     Layer.provide(SqliteBun.layer({ filename: file, readonly: true })),
     Layer.provide(catalog),
+    Layer.provide(WikiSectionSources.NotWired),
     Layer.orDie,
   );
 
@@ -208,7 +215,11 @@ describe('WikiService', () => {
       const page = yield* wiki.topic(topicSlug('sanctuary'));
       expect(page.status).toBe('catalog');
       expect(page.unavailable).toEqual(Option.some('artifact-not-installed'));
-    }).pipe(Effect.provide(WikiService.Absent.pipe(Layer.provide(catalog)))),
+    }).pipe(
+      Effect.provide(
+        WikiService.Absent.pipe(Layer.provide(catalog), Layer.provide(WikiSectionSources.NotWired)),
+      ),
+    ),
   );
 
   it.effect('reports a corrupt artifact as a typed error rather than a defect', () =>
@@ -244,7 +255,14 @@ describe('WikiService', () => {
       const broken = yield* Effect.gen(function* () {
         const wiki = yield* WikiService;
         return yield* Effect.flip(wiki.list({}));
-      }).pipe(Effect.provide(layerBunOrAbsent(corrupt).pipe(Layer.provide(catalog))));
+      }).pipe(
+        Effect.provide(
+          layerBunOrAbsent(corrupt).pipe(
+            Layer.provide(catalog),
+            Layer.provide(WikiSectionSources.NotWired),
+          ),
+        ),
+      );
       expect(broken.category).toBe('corrupt');
 
       // The same call against a path with no file is the typed absence, and it
@@ -254,7 +272,12 @@ describe('WikiService', () => {
         expect(yield* wiki.availability).toEqual(Option.some('artifact-not-installed'));
         expect((yield* wiki.list({})).length).toBe(2);
       }).pipe(
-        Effect.provide(layerBunOrAbsent(`${directory}/absent.db`).pipe(Layer.provide(catalog))),
+        Effect.provide(
+          layerBunOrAbsent(`${directory}/absent.db`).pipe(
+            Layer.provide(catalog),
+            Layer.provide(WikiSectionSources.NotWired),
+          ),
+        ),
       );
     }));
 

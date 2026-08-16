@@ -3,10 +3,13 @@ import * as SqlClient from 'effect/unstable/sql/SqlClient';
 import type { SqlError } from 'effect/unstable/sql/SqlError';
 
 import { readTopicsSchemaMajor } from '../corpus-supply/file-artifact.js';
+import { TopicId } from '../topics/model.js';
 import { TopicService, type TopicServiceApi } from '../topics/service.js';
 import {
   AuthoredCore,
   BlocksJson,
+  PhraseDictionary,
+  PhraseDictionaryEntry,
   TOPICS_SCHEMA_MAJOR,
   TopicAlias,
   TopicEdge,
@@ -14,9 +17,18 @@ import {
   TopicSlug,
   type TopicsUnavailableReason,
   WikiPage,
+  type WikiSectionLineup,
+  type WikiSectionsUnavailableReason,
   WikiPageSummary,
   type WikiListInput,
 } from './model.js';
+import {
+  composeSections,
+  emptySectionLineup,
+  WikiSectionSources,
+  type ComposeInput,
+  type SectionSourcing,
+} from './section-composer.js';
 
 /** Why a wiki operation failed, as a closed set rather than an opaque cause.
  *
@@ -60,7 +72,15 @@ export interface WikiServiceApi {
    *  — the §3.5 degradation posture is visible in the data, not only in
    *  `availability`. */
   readonly list: (input: WikiListInput) => Effect.Effect<readonly WikiPageSummary[], WikiError>;
+  /** The composed layered page: the authored core (`None` for a catalog page)
+   *  plus the §6.1 section lineup, assembled live by the one composer both
+   *  statuses traverse. */
   readonly topic: (slug: TopicSlug) => Effect.Effect<WikiPage, WikiError>;
+  /** The compiled alias → slug table (§2.5), so a client builds its matcher
+   *  once. Empty with the typed absence when no artifact is installed —
+   *  Milestone 4's matcher then matches nothing, which is the correct behavior
+   *  for a wiki with no authored pages. */
+  readonly dictionary: Effect.Effect<PhraseDictionary, WikiError>;
   /** Why authored cores are unavailable, or `None` when the artifact is
    *  readable. A property of the artifact rather than of any one page, so a
    *  caller listing an empty wiki can say *why* it is empty without fetching a
@@ -84,6 +104,17 @@ interface AliasRow {
 interface EdgeRow {
   readonly to_slug: string;
   readonly kind: string;
+}
+
+interface CatalogKeyRow {
+  readonly catalog_id: string;
+}
+
+interface DictionaryRow {
+  readonly alias: string;
+  readonly display: string;
+  readonly slug: string;
+  readonly canonical: number;
 }
 
 interface MetaRow {
@@ -189,17 +220,98 @@ const mergeSummaries = (
   return [...flagship, ...catalog.filter((page) => !claimed.has(String(page.slug)))];
 };
 
-/** A page with no authored core, carrying why. Milestone 3 gives this the
- *  live-assembled section lineup; Milestone 2 returns the shell so the three
- *  clients already agree on the shape and the absence reason. */
-const catalogPage = (slug: TopicSlug, reason: Option.Option<TopicsUnavailableReason>): WikiPage =>
-  WikiPage.make({
-    slug,
-    title: slug,
-    status: 'catalog',
-    core: Option.none(),
-    unavailable: reason,
+/** A catalog page: no authored core, the same six-section lineup, and the
+ *  reason the core is missing when there is one.
+ *
+ *  §2.1's "one code path" is literal here — this calls the same composer a
+ *  flagship page calls, with an empty core. A catalog topic's id *is* its
+ *  slug (`catalogSummaries` explains why), so the overlay key needs no lookup:
+ *  the page is already keyed to the catalog row it renders. */
+const catalogPage = (
+  sourcing: SectionSourcing,
+  slug: TopicSlug,
+  reason: Option.Option<TopicsUnavailableReason>,
+  artifact: ArtifactReads,
+): Effect.Effect<WikiPage> =>
+  Effect.gen(function* () {
+    const catalogId = Schema.decodeOption(TopicId)(String(slug));
+    const title = yield* catalogTitle(sourcing, catalogId);
+    return WikiPage.make({
+      slug,
+      title,
+      status: 'catalog',
+      core: Option.none(),
+      sections: yield* composed(sourcing, {
+        slug,
+        title,
+        core: Option.none(),
+        catalogId,
+        // A catalog page has no core, but its §2.3 backlinks point *at* it from
+        // flagship pages — whose titles only the artifact knows. Resolving them
+        // is the difference between "The Sanctuary" and a raw slug in the
+        // related-topics section.
+        titleOf: artifact.titleOf,
+        backlinksTo: artifact.backlinksTo,
+      }),
+      unavailable: reason,
+      sectionsUnavailable: sectionsUnavailableFor(sourcing),
+    });
   });
+
+/** The two reads only the topics artifact can answer, as the composer needs
+ *  them. Bundled because both are `None`/empty in exactly the same situation —
+ *  no artifact — and passing them apart invites one to be wired and the other
+ *  forgotten. */
+interface ArtifactReads {
+  readonly titleOf: ComposeInput['titleOf'];
+  readonly backlinksTo: ComposeInput['backlinksTo'];
+}
+
+/** What the artifact answers when there is no artifact: nothing, for both
+ *  reads. `WikiService.Absent` is the one caller. */
+const noArtifactReads: ArtifactReads = {
+  titleOf: () => Effect.succeedNone,
+  backlinksTo: () => Effect.succeed([]),
+};
+
+/** The catalog row's own name, falling back to the slug. A page titled with its
+ *  slug is a page that reads as a URL fragment; the catalog knows the real name
+ *  and it costs one lookup the composer is about to make anyway. */
+const catalogTitle = (
+  sourcing: SectionSourcing,
+  catalogId: Option.Option<TopicId>,
+): Effect.Effect<string> => {
+  if (sourcing._tag === 'not-wired' || Option.isNone(catalogId)) {
+    return Effect.succeed(Option.getOrElse(catalogId, () => 'Topic'));
+  }
+  return sourcing.sources.catalog.topic(catalogId.value).pipe(
+    Effect.map((detail) => detail.name),
+    Effect.orElseSucceed(() => String(catalogId.value)),
+  );
+};
+
+/** The §6.1 lineup: composed live when this host wired its sources, and six
+ *  empty sections when it deliberately did not.
+ *
+ *  Both branches produce all six sections in lineup order, because the lineup is
+ *  the page's shape and a client indexing position 3 for commentary must find it
+ *  there in every state. What separates the branches is
+ *  `WikiPage.sectionsUnavailable`, set below — six empty sections that were
+ *  never queried say so, rather than passing as six sections that found nothing. */
+const composed = (
+  sourcing: SectionSourcing,
+  input: ComposeInput,
+): Effect.Effect<WikiSectionLineup> => {
+  if (sourcing._tag === 'not-wired') return Effect.succeed(emptySectionLineup());
+  return composeSections(sourcing.sources, input);
+};
+
+const sectionsUnavailableFor = (
+  sourcing: SectionSourcing,
+): Option.Option<WikiSectionsUnavailableReason> => {
+  if (sourcing._tag === 'not-wired') return Option.some('sources-not-wired');
+  return Option.none();
+};
 
 /** Reads the artifact's `meta.schema_major` and refuses a major this build was
  *  not compiled against (§3.6). A readable artifact from the future is not a
@@ -249,17 +361,38 @@ export class WikiService extends Context.Service<WikiService, WikiServiceApi>()(
    *  querying the catalog tables again keeps one reader for one set of tables
    *  (§2); the extra layer requirement is the honest cost of the page model
    *  spanning two artifacts. */
-  static Live: Layer.Layer<WikiService, never, SqlClient.SqlClient | TopicService> = Layer.effect(
+  static Live: Layer.Layer<
+    WikiService,
+    never,
+    SqlClient.SqlClient | TopicService | WikiSectionSources
+  > = Layer.effect(
     WikiService,
     Effect.gen(function* () {
       const sql = yield* SqlClient.SqlClient;
       const catalog = yield* TopicService;
+      // Required, not optional. A host must say which of the two answers it
+      // gives — the four live sources, or `WikiSectionSources.NotWired`. There
+      // is no third answer where the wiring was simply forgotten, because that
+      // one does not compile.
+      const sourcing = yield* WikiSectionSources;
 
       /** `None` while the artifact is usable, `Some(reason)` when its schema
        *  major is beyond this build. A version that cannot be read at all fails
-       *  in the typed channel instead — see `readSchemaMajor`. Read per call
-       *  rather than cached at layer construction: the artifact can be swapped
-       *  underneath a running host. */
+       *  in the typed channel instead — see `readSchemaMajor`.
+       *
+       *  Read per call rather than cached at layer construction, but *not*
+       *  because this connection could observe a swap: the supply pipeline
+       *  replaces `topics.db` with an atomic `rename` over the path, and a
+       *  connection opened `immutable=1` holds the old inode and will never see
+       *  the new file. Seeing a replacement requires reopening the handle,
+       *  which happens when the layer is rebuilt — next app launch on the
+       *  desktop, next command on the CLI, next worker start on the web.
+       *
+       *  What the per-call read does buy is that the schema major is one fact
+       *  with one reader instead of a value captured once and then quoted by
+       *  four call sites. The cost is a single indexed `meta` lookup against an
+       *  immutable page cache, which is not a cost worth trading correctness
+       *  for. */
       const gate = Effect.fn('WikiService.gate')(function* (operation: string) {
         const major = yield* readSchemaMajor(operation, sql);
         if (major > TOPICS_SCHEMA_MAJOR) {
@@ -313,18 +446,59 @@ export class WikiService extends Context.Service<WikiService, WikiServiceApi>()(
         }),
       );
 
+      /** A neighbouring slug's display title, read from the artifact. Section 6
+       *  lists titles rather than slugs, and only this service can see the
+       *  `topics` table — so the composer asks through this closure rather than
+       *  taking a fifth source it would have to open the artifact to satisfy. */
+      const titleOf = (slug: TopicSlug): Effect.Effect<Option.Option<string>> =>
+        sql<{ readonly title: string }>`SELECT title FROM topics WHERE slug = ${slug} LIMIT 1`.pipe(
+          Effect.map((rows) => Option.fromNullishOr(rows[0]).pipe(Option.map((row) => row.title))),
+          Effect.orElseSucceed(() => Option.none<string>()),
+        );
+
+      /** §2.3's live backlinks: every page whose `topic_edges` row points *at*
+       *  this slug. The artifact stores no catalog-keyed edge by design, so a
+       *  catalog page's related-topics section can only come from here — and a
+       *  flagship page gains the neighbours compiled after it the same way.
+       *
+       *  Reported as `backlink` regardless of how the pointing edge was
+       *  authored: from *this* page's side the relationship is a link inbound,
+       *  which is exactly what §6.1's second half of row 6 lists. `idx_topic_edges_to`
+       *  is the index §2.2 declares for this query.
+       *
+       *  An unreadable artifact yields no backlinks rather than failing the
+       *  page: this is one of six sources, and §3.5's posture is that the page
+       *  still renders. */
+      const backlinksTo = (slug: TopicSlug): Effect.Effect<readonly TopicEdge[]> =>
+        sql<{ readonly from_slug: string }>`
+          SELECT from_slug FROM topic_edges WHERE to_slug = ${slug} ORDER BY position, from_slug
+        `.pipe(
+          Effect.flatMap((rows) =>
+            Effect.forEach(rows, (row) =>
+              decodeSlug(row.from_slug).pipe(
+                Effect.map((from) => TopicEdge.make({ slug: from, kind: 'backlink' })),
+              ),
+            ),
+          ),
+          Effect.orElseSucceed((): readonly TopicEdge[] => []),
+        );
+
       const topic = Effect.fn('WikiService.topic')((slug: TopicSlug) =>
         Effect.gen(function* () {
           const refused = yield* gate('topic');
-          if (Option.isSome(refused)) return catalogPage(slug, refused);
+          if (Option.isSome(refused)) {
+            return yield* catalogPage(sourcing, slug, refused, { titleOf, backlinksTo });
+          }
           const rows = yield* sql<TopicRow>`
             SELECT slug, title, thesis_ast, body_ast FROM topics WHERE slug = ${slug} LIMIT 1
           `;
           const found = Option.fromNullishOr(rows[0]);
           // A slug the artifact does not carry is a catalog page, not a miss:
           // §2.1 gives every topic a page and only flagship pages an authored
-          // core. Milestone 3 fills the lineup in.
-          if (Option.isNone(found)) return catalogPage(slug, Option.none());
+          // core. Both statuses then traverse the same composer.
+          if (Option.isNone(found)) {
+            return yield* catalogPage(sourcing, slug, Option.none(), { titleOf, backlinksTo });
+          }
           const aliases = yield* sql<AliasRow>`
             SELECT alias, display, canonical FROM topic_aliases WHERE slug = ${slug} ORDER BY alias
           `;
@@ -332,32 +506,50 @@ export class WikiService extends Context.Service<WikiService, WikiServiceApi>()(
             SELECT to_slug, kind FROM topic_edges WHERE from_slug = ${slug}
             ORDER BY kind, position
           `;
-          return WikiPage.make({
-            slug: yield* decodeSlug(found.value.slug),
-            title: found.value.title,
-            status: 'flagship',
-            core: Option.some(
-              AuthoredCore.make({
-                thesis: yield* decodeBlocks(found.value.thesis_ast),
-                body: yield* decodeBlocks(found.value.body_ast),
-                aliases: aliases.map((row) =>
-                  TopicAlias.make({
-                    alias: row.alias,
-                    display: row.display,
-                    canonical: row.canonical === 1,
-                  }),
-                ),
-                edges: yield* Effect.forEach(edges, (row) =>
-                  Effect.gen(function* () {
-                    return TopicEdge.make({
-                      slug: yield* decodeSlug(row.to_slug),
-                      kind: yield* decodeEdgeKind(row.kind),
-                    });
-                  }),
-                ),
+          // §2.4 resolves the overlay key at compile time. Reading the compiled
+          // row is what makes a flagship page's key verses come from the catalog
+          // topic the author meant, rather than from whichever catalog id
+          // happens to share the slug.
+          const keys = yield* sql<CatalogKeyRow>`
+            SELECT catalog_id FROM topic_catalog_keys WHERE slug = ${slug} LIMIT 1
+          `;
+          const decodedSlug = yield* decodeSlug(found.value.slug);
+          const core = AuthoredCore.make({
+            thesis: yield* decodeBlocks(found.value.thesis_ast),
+            body: yield* decodeBlocks(found.value.body_ast),
+            aliases: aliases.map((row) =>
+              TopicAlias.make({
+                alias: row.alias,
+                display: row.display,
+                canonical: row.canonical === 1,
               }),
             ),
+            edges: yield* Effect.forEach(edges, (row) =>
+              Effect.gen(function* () {
+                return TopicEdge.make({
+                  slug: yield* decodeSlug(row.to_slug),
+                  kind: yield* decodeEdgeKind(row.kind),
+                });
+              }),
+            ),
+          });
+          return WikiPage.make({
+            slug: decodedSlug,
+            title: found.value.title,
+            status: 'flagship',
+            core: Option.some(core),
+            sections: yield* composed(sourcing, {
+              slug: decodedSlug,
+              title: found.value.title,
+              core: Option.some(core),
+              catalogId: Option.fromNullishOr(keys[0]).pipe(
+                Option.flatMap((row) => Schema.decodeOption(TopicId)(row.catalog_id)),
+              ),
+              titleOf,
+              backlinksTo,
+            }),
             unavailable: Option.none(),
+            sectionsUnavailable: sectionsUnavailableFor(sourcing),
           });
         }).pipe(
           // Only SQL failures become `corrupt` here; a decode failure already
@@ -369,9 +561,37 @@ export class WikiService extends Context.Service<WikiService, WikiServiceApi>()(
         ),
       );
 
+      /** The whole alias table in one read (§2.5). A v1 dictionary is 250-400
+       *  phrases (§4.1), so paging it would be machinery for a list that fits in
+       *  a single query and is loaded once per client. */
+      const dictionary = Effect.fn('WikiService.dictionary')(function* () {
+        const refused = yield* gate('dictionary');
+        if (Option.isSome(refused)) {
+          return PhraseDictionary.make({ entries: [], unavailable: refused });
+        }
+        const rows = yield* sql<DictionaryRow>`
+          SELECT alias, display, slug, canonical FROM topic_aliases ORDER BY alias
+        `.pipe(Effect.mapError(unavailable('dictionary')));
+        return PhraseDictionary.make({
+          entries: yield* Effect.forEach(rows, (row) =>
+            decodeSlug(row.slug).pipe(
+              Effect.map((slug) =>
+                PhraseDictionaryEntry.make({
+                  alias: row.alias,
+                  display: row.display,
+                  slug,
+                  canonical: row.canonical === 1,
+                }),
+              ),
+            ),
+          ),
+          unavailable: Option.none(),
+        });
+      });
+
       const availability = gate('availability');
 
-      return WikiService.of({ list, topic, availability });
+      return WikiService.of({ list, topic, dictionary: dictionary(), availability });
     }),
   );
 
@@ -397,6 +617,7 @@ export class WikiService extends Context.Service<WikiService, WikiServiceApi>()(
       WikiService.of({
         list: () => Effect.fail(failure),
         topic: () => Effect.fail(failure),
+        dictionary: Effect.fail(failure),
         availability: Effect.fail(failure),
       }),
     );
@@ -406,17 +627,30 @@ export class WikiService extends Context.Service<WikiService, WikiServiceApi>()(
    *  `artifact-not-installed` — never a failure. This is the layer a host
    *  provides when its `ensureTopics` caught and warned.
    *
-   *  `list` is *not* empty: the catalog tables ship inside the verified
-   *  `bible.db`, so the long tail is still fully available and the wiki
-   *  degrades to catalog-only rather than to nothing (§3.5). A caller sees the
-   *  entries plus the reason the authored cores are missing. */
-  static Absent: Layer.Layer<WikiService, never, TopicService> = Layer.effect(
+   *  `list` is *not* empty and the pages are *not* section-less: the catalog
+   *  tables ship inside the verified `bible.db`, so the long tail is still
+   *  fully listable and every one of its pages still composes the §6.1 lineup
+   *  from the corpora this host has. The wiki degrades to catalog-only rather
+   *  than to nothing (§3.5) — a caller sees real pages plus the reason the
+   *  authored cores are missing. */
+  static Absent: Layer.Layer<WikiService, never, TopicService | WikiSectionSources> = Layer.effect(
     WikiService,
     Effect.gen(function* () {
       const catalog = yield* TopicService;
+      const sourcing = yield* WikiSectionSources;
       return WikiService.of({
         list: (input) => catalogSummaries(catalog, input),
-        topic: (slug) => Effect.succeed(catalogPage(slug, Option.some('artifact-not-installed'))),
+        // No artifact means no `topic_edges` table to read, so §2.3's live
+        // backlinks are empty here rather than queried — the same value the
+        // query would produce, without pretending there is a connection.
+        topic: (slug) =>
+          catalogPage(sourcing, slug, Option.some('artifact-not-installed'), noArtifactReads),
+        dictionary: Effect.succeed(
+          PhraseDictionary.make({
+            entries: [],
+            unavailable: Option.some('artifact-not-installed'),
+          }),
+        ),
         availability: Effect.succeed(Option.some('artifact-not-installed')),
       });
     }),

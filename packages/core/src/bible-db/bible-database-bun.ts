@@ -5,21 +5,14 @@ import { Config, Effect, FileSystem, Layer, Path } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import type { SqlError } from 'effect/unstable/sql/SqlError';
 
+import { immutableFileUri } from '../db/immutable-uri.js';
 import { BibleDatabase } from './bible-database.js';
-
-const immutableFilename = (filename: string): string => {
-  let uri = filename;
-  if (!filename.startsWith('file:')) uri = `file:${encodeURI(filename)}`;
-  let separator = '?';
-  if (uri.includes('?')) separator = '&';
-  return `${uri}${separator}immutable=1`;
-};
 
 export const layerBun = (filename: string): Layer.Layer<BibleDatabase, SqlError> =>
   BibleDatabase.layer.pipe(
     Layer.provide(
       SqliteBun.layer({
-        filename: immutableFilename(filename),
+        filename: immutableFileUri(filename),
         readonly: true,
         readwrite: false,
         create: false,
@@ -49,7 +42,7 @@ export const layerBunConfig: Layer.Layer<
         const filename = path.resolve(configured);
         yield* fs.makeDirectory(path.dirname(filename), { recursive: true }).pipe(Effect.orDie);
         return SqliteBun.layer({
-          filename: immutableFilename(filename),
+          filename: immutableFileUri(filename),
           readonly: true,
           readwrite: false,
           create: false,

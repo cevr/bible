@@ -352,10 +352,24 @@ export class BibleDatabase extends Context.Service<BibleDatabase, BibleDatabaseS
 
       const getCrossRefs = Effect.fn('BibleDatabase.getCrossRefs')(
         (book: number, chapter: number, verse: number) =>
+          // `ORDER BY rowid` is what makes "source order" a contract rather than
+          // an accident. SQLite guarantees no row order without an ORDER BY, so
+          // the same query could legitimately return a different sequence after
+          // a VACUUM or a plan change — and §6.1 row 5 says section 5 is in
+          // source order, which the three hosts must agree on.
+          //
+          // `rowid` is the key rather than a new `position` column: the Bible
+          // artifact is shipped and pinned by digest, `cross_refs` is an
+          // ordinary rowid table (its PRIMARY KEY is not INTEGER, so no rowid
+          // aliasing), and the sync pipeline inserts the rows in the order the
+          // OpenBible and TSKe sources list them. Insertion order *is* source
+          // order, so the column already exists — adding one would rev the
+          // artifact for a fact the file already carries.
           sql<CrossRefSqlRow>`
           SELECT ref_book, ref_chapter, ref_verse, ref_verse_end, source, preview_text
           FROM cross_refs
           WHERE book = ${book} AND chapter = ${chapter} AND verse = ${verse}
+          ORDER BY rowid
         `.pipe(
             Effect.map((rows) =>
               rows.map((row): CrossReference => {

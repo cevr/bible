@@ -18,6 +18,9 @@
 import { Context, DateTime, Effect, Layer, Option, Predicate, Schema, Stream } from 'effect';
 import * as SqlClient from 'effect/unstable/sql/SqlClient';
 import type { SqlError } from 'effect/unstable/sql/SqlError';
+import type * as Statement from 'effect/unstable/sql/Statement';
+
+import { EGW_SCOPE_AUTHORS, type CorpusScope } from '../writings/corpus-scope.js';
 
 import {
   ensureSchemaVersionsTable,
@@ -158,6 +161,34 @@ function parseRefcodeNumbers(refcode: Option.Option<string>): RefcodeNumbers {
 // Service Interface
 // ============================================================================
 
+/** The paragraphs the in-memory double's search matches, before any cap.
+ *
+ *  Module-level so `searchParagraphs` and `countSearchParagraphs` share it the
+ *  way the live implementations share `searchFilters`. A double whose count and
+ *  rows were filtered by two hand-written copies of the same three conditions
+ *  would let a `total` bug pass in tests and appear only against SQLite. */
+const testSearchMatches = (
+  config: {
+    readonly books?: readonly BookRow[];
+    readonly paragraphs?: readonly (EGWSchemas.Paragraph & { bookCode: string })[];
+  },
+  options?: { readonly bookCode?: string; readonly scope?: CorpusScope },
+) =>
+  (config.paragraphs ?? [])
+    .flatMap((paragraph) => {
+      const book = config.books?.find((candidate) => candidate.book_code === paragraph.bookCode);
+      if (Predicate.isUndefined(book)) return [];
+      return [{ ...paragraph, bookId: book.book_id, bookTitle: book.book_title, book }];
+    })
+    .filter((row) => {
+      const bookCode = options?.bookCode;
+      if (Predicate.isNotUndefined(bookCode) && row.bookCode !== bookCode) return false;
+      const isEgw = EGW_SCOPE_AUTHORS.includes(row.book.book_author);
+      if (options?.scope === 'egw') return isEgw;
+      if (options?.scope === 'pioneer') return !isEgw;
+      return true;
+    });
+
 export interface EGWParagraphDatabaseService {
   /** Atomically replaces one publication from its canonical portable archive. */
   readonly installPublicationArchive: (
@@ -206,10 +237,21 @@ export interface EGWParagraphDatabaseService {
   readonly getChapterHeadings: (
     bookId: number,
   ) => Effect.Effect<readonly EGWSchemas.Paragraph[], ParagraphDatabaseError>;
+  /**
+   * Full-text search over `paragraphs_fts`, in FTS5 relevance order.
+   *
+   * `scope` narrows the search to one half of the corpus by `books.book_author`
+   * (§6.4) — the indexed column, so the filter costs an index probe rather than
+   * a scan. It defaults to `'all'`, which is exactly what every caller written
+   * before the scope existed meant.
+   */
   readonly searchParagraphs: (
     query: string,
-    limit?: number,
-    bookCode?: string,
+    options?: {
+      readonly limit?: number;
+      readonly bookCode?: string;
+      readonly scope?: CorpusScope;
+    },
   ) => Effect.Effect<
     readonly (EGWSchemas.Paragraph & {
       bookCode: string;
@@ -218,6 +260,23 @@ export interface EGWParagraphDatabaseService {
     })[],
     ParagraphDatabaseError
   >;
+  /**
+   * How many paragraphs `searchParagraphs` matches under the same query and the
+   * same filters, ignoring `limit`.
+   *
+   * A separate call rather than a number returned beside the rows, because the
+   * two have different costs and not every caller wants both: the row query
+   * pays `rowToParagraph` per hit, and a caller asking only "how long is the
+   * tail" should not. Both statements are built from the same `searchFilters`,
+   * so the count and the rows can never be counting different things.
+   */
+  readonly countSearchParagraphs: (
+    query: string,
+    options?: {
+      readonly bookCode?: string;
+      readonly scope?: CorpusScope;
+    },
+  ) => Effect.Effect<number, ParagraphDatabaseError>;
   /**
    * Exact-match lookup by `refcode_short` (e.g. "PP 351.1"). Returns the
    * paragraph together with its book metadata so callers can navigate without
@@ -892,27 +951,83 @@ export class EGWParagraphDatabase extends Context.Service<
           ORDER BY puborder
         `.pipe(Effect.flatMap((rows) => Effect.forEach(rows, rowToParagraph)));
 
-      const searchParagraphs = (query: string, limit = 50, bookCode?: string) => {
-        let base = sql<FullParagraphRow>`
-              SELECT p.*, b.book_code, b.book_title
-              FROM paragraphs p
-              JOIN paragraphs_fts fts ON p.rowid = fts.rowid
-              JOIN books b ON p.book_id = b.book_id
-              WHERE paragraphs_fts MATCH ${query}
-              LIMIT ${limit}
-            `;
+      /** One statement with a composed `WHERE`, rather than one hand-written
+       *  statement per combination of filters — three optional filters would
+       *  otherwise mean eight near-identical copies of the same join, and the
+       *  `ORDER BY rank` §6.4 adds would have to be right in all eight.
+       *
+       *  `ORDER BY rank` is FTS5's own relevance ordering (a negative BM25, so
+       *  ascending is best-first). Before §6.4 the `LIMIT` was applied with no
+       *  ordering at all, which made "FTS rank" in the §6.1 table a claim the
+       *  query did not honor: SQLite returned whichever rows the join reached
+       *  first. Ordering *and* limiting in the same statement is what makes the
+       *  cap select the best N rather than an arbitrary N. */
+      /** The `WHERE` both search statements share.
+       *
+       *  Factored out because the count and the rows have to agree exactly: a
+       *  `total` computed under a different predicate than the `items` it
+       *  accompanies is worse than no total at all, and the scope filter in
+       *  particular is two clauses that must stay in lockstep. */
+      const searchFilters = (
+        query: string,
+        options?: { readonly bookCode?: string; readonly scope?: CorpusScope },
+      ): (string | Statement.Fragment)[] => {
+        const bookCode = options?.bookCode;
+        const filters: (string | Statement.Fragment)[] = [sql`paragraphs_fts MATCH ${query}`];
         if (Predicate.isNotUndefined(bookCode)) {
-          base = sql<FullParagraphRow>`
-              SELECT p.*, b.book_code, b.book_title
+          filters.push(sql`b.book_code = ${bookCode} COLLATE NOCASE`);
+        }
+        // The author partition is binary, so `pioneer` is expressed as the
+        // negation of the same list `egw` selects — one constant, no second
+        // enumeration that could drift out of agreement with the first.
+        if (options?.scope === 'egw') {
+          filters.push(sql.in('b.book_author', [...EGW_SCOPE_AUTHORS]));
+        }
+        if (options?.scope === 'pioneer') {
+          filters.push(sql`NOT ${sql.in('b.book_author', [...EGW_SCOPE_AUTHORS])}`);
+        }
+        return filters;
+      };
+
+      /** The whole match count, which the row query's `LIMIT` cannot report.
+       *
+       *  `searchParagraphs` pushes the caller's cap into SQL, so its result
+       *  length saturates at the cap and a caller computing "how many matched"
+       *  from it can never see past the cap. §6.1's `total` means the pre-cap
+       *  count, so it needs its own statement — one that runs the same MATCH
+       *  and the same joins but selects a count and drops the `ORDER BY`, which
+       *  FTS5 does not need in order to count. */
+      const countSearchParagraphs = (
+        query: string,
+        options?: { readonly bookCode?: string; readonly scope?: CorpusScope },
+      ) =>
+        sql<{ readonly total: number }>`
+              SELECT count(*) AS total
               FROM paragraphs p
               JOIN paragraphs_fts fts ON p.rowid = fts.rowid
               JOIN books b ON p.book_id = b.book_id
-              WHERE paragraphs_fts MATCH ${query}
-                AND b.book_code = ${bookCode} COLLATE NOCASE
+              WHERE ${sql.and(searchFilters(query, options))}
+            `.pipe(Effect.map((rows) => rows[0]?.total ?? 0));
+
+      const searchParagraphs = (
+        query: string,
+        options?: {
+          readonly limit?: number;
+          readonly bookCode?: string;
+          readonly scope?: CorpusScope;
+        },
+      ) => {
+        const limit = options?.limit ?? 50;
+        const filters = searchFilters(query, options);
+        return sql<FullParagraphRow>`
+              SELECT p.*, b.book_code, b.book_title, b.book_author
+              FROM paragraphs p
+              JOIN paragraphs_fts fts ON p.rowid = fts.rowid
+              JOIN books b ON p.book_id = b.book_id
+              WHERE ${sql.and(filters)}
+              ORDER BY fts.rank
               LIMIT ${limit}
-            `;
-        }
-        return base.pipe(
+            `.pipe(
           Effect.flatMap((rows) =>
             Effect.forEach(rows, (row) =>
               rowToParagraph(row).pipe(
@@ -1203,6 +1318,7 @@ export class EGWParagraphDatabase extends Context.Service<
         getParagraphsByPage,
         getChapterHeadings,
         searchParagraphs,
+        countSearchParagraphs,
         findByRefcodeShort,
         getMaxPage,
         getPageNumbers,
@@ -1314,28 +1430,22 @@ export class EGWParagraphDatabase extends Context.Service<
           ) ?? [],
         );
       },
-      searchParagraphs: (_query, limit, bookCode) =>
+      // The test double applies the same three filters the live query applies,
+      // so a caller that scopes its search sees a scoped result here too. The
+      // relevance *order* is the one thing it cannot reproduce — there is no
+      // FTS index behind it — so it preserves the configured paragraph order
+      // and a test that cares about rank must use a real database.
+      searchParagraphs: (_query, options) =>
         Effect.succeed(
-          (
-            config.paragraphs?.filter(
-              (paragraph) => Predicate.isUndefined(bookCode) || paragraph.bookCode === bookCode,
-            ) ?? []
-          )
-            .slice(0, limit)
-            .flatMap((paragraph) => {
-              const book = config.books?.find(
-                (candidate) => candidate.book_code === paragraph.bookCode,
-              );
-              if (Predicate.isUndefined(book)) return [];
-              return [
-                {
-                  ...paragraph,
-                  bookId: book.book_id,
-                  bookTitle: book.book_title,
-                },
-              ];
-            }),
+          testSearchMatches(config, options)
+            .slice(0, options?.limit)
+            .map(({ book: _book, ...row }) => row),
         ),
+      // Counted off the same matcher, before the cap — the double has to model
+      // the *relationship* between `items` and `total`, not just the rows, or a
+      // test asserting the pre-cap total would pass here and fail on SQLite.
+      countSearchParagraphs: (_query, options) =>
+        Effect.succeed(testSearchMatches(config, options).length),
       findByRefcodeShort: () => Effect.succeed([]),
       getMaxPage: (bookId) => {
         const bookCode = config.books?.find((book) => book.book_id === bookId)?.book_code;

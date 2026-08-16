@@ -4,7 +4,7 @@ import { LibraryEntityId } from '@bible/core/library-state';
 import { failureCategory } from '@bible/core/observability';
 import { ClientId, makeSimulatedTransport, MutationId, Timestamp } from '@bible/core/local-first';
 import { CommitId, RuntimeGeneration } from '@bible/core/procedure';
-import { Effect, Layer, Schema } from 'effect';
+import { Effect, Layer, Option, Schema } from 'effect';
 import * as SQLite from 'wa-sqlite';
 import SQLiteESMFactory from 'wa-sqlite/dist/wa-sqlite-async.mjs';
 import { IDBBatchAtomicVFS } from 'wa-sqlite/src/examples/IDBBatchAtomicVFS.js';
@@ -232,6 +232,10 @@ const initializeDatabases = (
     return {
       bibleDatabase: bibleDatabases.active,
       writingsDatabase: writingsSqlite,
+      // The topics artifact's active generation, or `None` when `ensure` caught
+      // and warned above. `WikiService` reads either one — an absent artifact
+      // is catalog-only pages, not a broken worker (§3.5).
+      topicsDatabase: Option.map(topicsDatabases.activeFilename, () => topicsDatabases.active),
       writingsFetch: host.fetch,
       runtime: {
         clientId: localClientId,

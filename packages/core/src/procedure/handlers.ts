@@ -3,6 +3,7 @@ import { BibleService } from '../bible/service.js';
 import { Reference as WritingsReference } from '../writings/index.js';
 import { WritingsService } from '../writings/service.js';
 import { TopicService } from '../topics/service.js';
+import { WikiService } from '../wiki/service.js';
 import { Effect, Option, Predicate, Schema } from 'effect';
 
 import { BibleProcedureGroup } from './group.js';
@@ -55,6 +56,7 @@ export const BibleProcedureHandlers = BibleProcedureGroup.toLayer(
     const preferences = yield* ReadingPreferencesRuntime;
     const library = yield* LibraryStateRuntime;
     const topics = yield* TopicService;
+    const wiki = yield* WikiService;
     const data = yield* DataPortabilityRuntime;
 
     return {
@@ -107,6 +109,15 @@ export const BibleProcedureHandlers = BibleProcedureGroup.toLayer(
         topics.list(input).pipe(Effect.mapError(normalizeFailure('v1.topics.list'))),
       'v1.topics.get': (input) =>
         topics.topic(input.id).pipe(Effect.mapError(normalizeFailure('v1.topics.get'))),
+      // The composed page comes back whole, from the same `WikiService` the CLI
+      // calls directly — so "the RPC page" and "the CLI page" are not two
+      // renderings that could drift, they are one value crossing two seams.
+      'v1.wiki.topic.get': (input) =>
+        wiki.topic(input.slug).pipe(Effect.mapError(normalizeFailure('v1.wiki.topic.get'))),
+      'v1.wiki.topics.list': (input) =>
+        wiki.list(input).pipe(Effect.mapError(normalizeFailure('v1.wiki.topics.list'))),
+      'v1.wiki.dictionary.get': () =>
+        wiki.dictionary.pipe(Effect.mapError(normalizeFailure('v1.wiki.dictionary.get'))),
     };
   }),
 );

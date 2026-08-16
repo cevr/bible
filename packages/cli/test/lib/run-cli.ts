@@ -2,6 +2,7 @@ import * as BunServices from '@effect/platform-bun/BunServices';
 import { Command } from 'effect/unstable/cli';
 import {
   ConfigProvider,
+  Console,
   Effect,
   Exit,
   Inspectable,
@@ -25,6 +26,16 @@ export interface RunCliResult {
   calls: ServiceCall[];
   /** Whether the command succeeded */
   success: boolean;
+  /**
+   * Everything the command wrote through `Console.log`, joined with newlines.
+   *
+   * A command's stdout is a contract with the scripts and agents that pipe it,
+   * and asserting on the payload a helper *would* produce leaves the last hop —
+   * helper to `Console.log` — untested. That hop is where a hand-written
+   * projection can reappear. Captured here rather than per test so any command
+   * test can assert on real output.
+   */
+  stdout: string;
 }
 
 /**
@@ -57,11 +68,27 @@ export const runCli = <Name extends string, Input, ContextInput, E, R>(
     // Use Command.runWith to pass args directly (v4 pattern)
     const cli = Command.runWith(command, { version: 'test' });
 
+    // Real stdout, captured rather than printed. `Console.Console` is a
+    // `Context.Reference` whose default is the host's own `globalThis.console`,
+    // so overriding it substitutes the sink every `Console.log` in the command
+    // graph already writes to — no command has to be written differently to be
+    // observable. `log` returns `void` rather than an `Effect` because
+    // `Console.log` wraps the plain method in `Effect.sync` itself.
+    const written: string[] = [];
+    const recordingConsole: Console.Console = {
+      ...Console.Console.defaultValue(),
+      log: (...parts: readonly unknown[]) => {
+        written.push(parts.map((part) => String(part)).join(' '));
+      },
+    };
+
     // Always capture the call sequence, regardless of whether the CLI
     // succeeded or failed — failed runs still record observable side effects
     // before the failure point, and tests need to assert on them.
     const program = Effect.gen(function* () {
-      const cliExit = yield* Effect.exit(cli(args));
+      const cliExit = yield* Effect.exit(
+        cli(args).pipe(Effect.provideService(Console.Console, recordingConsole)),
+      );
       const calls = yield* getCallSequence;
       return { cliExit, calls };
     });
@@ -101,6 +128,7 @@ export const runCli = <Name extends string, Input, ContextInput, E, R>(
       exit: Exit.map(exit, () => void 0),
       calls,
       success,
+      stdout: written.join('\n'),
     };
   });
 

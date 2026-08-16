@@ -20,16 +20,18 @@ import {
   type WritingsLibraryRuntime,
   RuntimeGeneration,
 } from '@bible/core/procedure';
-import type { WritingsService } from '@bible/core/writings/service';
+import { WritingsService } from '@bible/core/writings/service';
+import { EGWCommentaryService } from '@bible/core/egw-commentary';
 import { TopicService } from '@bible/core/topics';
+import { layerArtifactOrAbsent, WikiSectionSources, type WikiService } from '@bible/core/wiki';
 import * as SqliteNode from '@effect/sql-sqlite-node/SqliteClient';
 import * as NodeFileSystem from '@effect/platform-node/NodeFileSystem';
 import * as NodeHttpClient from '@effect/platform-node/NodeHttpClient';
 import * as NodePath from '@effect/platform-node/NodePath';
-import { Layer, ManagedRuntime, Schema } from 'effect';
-import type { Effect as EffectNs } from 'effect';
+import { Layer, ManagedRuntime, Schema, type Effect as EffectNs, type FileSystem } from 'effect';
 
 import { layerDesktopProcedureDependencies } from './local-procedure-runtime.js';
+import { topicsArtifactDriver } from './topics-artifact-driver.js';
 
 /**
  * Main-process Effect runtime. Hosts:
@@ -53,6 +55,40 @@ const bibleDbLayer = (
   return Layer.mergeAll(database, bible, topics);
 };
 
+/** The wiki on Electron main: the same portable `WikiService` and the same
+ *  portable composer the worker and the CLI run, over this host's SQLite
+ *  driver. The identical composed page on all three is the point — nothing
+ *  about a section's contents is decided here.
+ *
+ *  A *missing* `topics.db` becomes `WikiService.Absent` — §3.5 makes an absent
+ *  artifact catalog-only pages. A *present but unreadable* one stays
+ *  `WikiService.Broken`, because an artifact that will not open is a fault the
+ *  operator needs surfaced rather than smoothed into "not installed". Core's
+ *  `layerArtifactOrAbsent` makes that split; this host only supplies the
+ *  driver. */
+const wikiLayer = (input: {
+  readonly topicsDbFile: string;
+  readonly bible: Layer.Layer<BibleCorpus | BibleDatabase | BibleService | TopicService>;
+  readonly writings: Layer.Layer<EGWParagraphDatabase>;
+}): Layer.Layer<WikiService, never, FileSystem.FileSystem> => {
+  const sources = WikiSectionSources.Live.pipe(
+    Layer.provide(input.bible),
+    Layer.provide(WritingsService.Live.pipe(Layer.provide(input.writings))),
+    Layer.provide(EGWCommentaryService.Live.pipe(Layer.provide(input.writings))),
+    // Corpora that will not open still provide the tag — as `NotWired`, so the
+    // page reports `sections-not-wired` rather than six unexplained empties.
+    // *Only* corpora that will not open: the shared combinator lets defects and
+    // interruption keep going up, so a construction fault in main reaches the
+    // operator instead of arriving at the reader as a degradation state.
+    WikiSectionSources.NotWiredOnCorpusAbsence,
+    Layer.orDie,
+  );
+  return layerArtifactOrAbsent(topicsArtifactDriver, input.topicsDbFile).pipe(
+    Layer.provide(input.bible),
+    Layer.provide(sources),
+  );
+};
+
 export type MainRuntime = ManagedRuntime.ManagedRuntime<
   | EGWParagraphDatabase
   | BibleCorpus
@@ -65,6 +101,7 @@ export type MainRuntime = ManagedRuntime.ManagedRuntime<
   | WritingsLibraryRuntime
   | LibraryStateRuntime
   | TopicService
+  | WikiService
   | DataPortabilityRuntime,
   never
 >;
@@ -74,13 +111,18 @@ export interface MainRuntimeHost {
   readonly nowIso: () => string;
 }
 
-export const makeRuntime = (
-  writingsDbFile: string,
-  bibleDbFile: string,
-  userStateDbFile: string,
-  host: MainRuntimeHost,
-): MainRuntime => {
-  const writings = writingsDbLayer(writingsDbFile);
+export interface MainRuntimeFiles {
+  readonly writingsDbFile: string;
+  readonly bibleDbFile: string;
+  /** The topics artifact. May not exist — §3.5 makes an absent artifact a
+   *  degradation, so the layer resolves it at construction and falls back to
+   *  catalog-only pages rather than refusing to build. */
+  readonly topicsDbFile: string;
+  readonly userStateDbFile: string;
+}
+
+export const makeRuntime = (files: MainRuntimeFiles, host: MainRuntimeHost): MainRuntime => {
+  const writings = writingsDbLayer(files.writingsDbFile);
   const platform = Layer.mergeAll(
     NodeFileSystem.layer,
     NodePath.layer,
@@ -102,13 +144,18 @@ export const makeRuntime = (
     Layer.provide(corpusSupply),
     Layer.orDie,
   );
-  const bible = bibleDbLayer(bibleDbFile);
+  const bible = bibleDbLayer(files.bibleDbFile);
+  const wiki = wikiLayer({ topicsDbFile: files.topicsDbFile, bible, writings }).pipe(
+    // The artifact's existence check runs before any driver opens the path, so
+    // the wiki needs a real filesystem rather than only a SQLite driver.
+    Layer.provide(NodeFileSystem.layer),
+  );
   const clientId = Schema.decodeSync(ClientId)('desktop-local');
   const procedures = layerDesktopProcedureDependencies({
     writingsDatabase: writings,
     bible,
     writingsLibrary,
-    userStateDbFile,
+    userStateDbFile: files.userStateDbFile,
     migrationSql: userStateMigrationSql,
     runtime: {
       clientId,
@@ -120,7 +167,7 @@ export const makeRuntime = (
       now: () => Schema.decodeSync(Timestamp)(host.nowIso()),
     },
   });
-  return ManagedRuntime.make(Layer.mergeAll(writings, bible, procedures));
+  return ManagedRuntime.make(Layer.mergeAll(writings, bible, wiki, procedures));
 };
 
 export const runtimeRun = <A, E>(
@@ -139,6 +186,7 @@ export const runtimeRun = <A, E>(
     | WritingsLibraryRuntime
     | LibraryStateRuntime
     | TopicService
+    | WikiService
     | DataPortabilityRuntime
   >,
 ): Promise<A> => runtime.runPromise(effect);

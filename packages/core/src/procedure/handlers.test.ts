@@ -16,6 +16,11 @@ import {
 } from '../writings/model.js';
 import { TopicDetail, TopicId, TopicReference, TopicSection } from '../topics/model.js';
 import { TopicService } from '../topics/service.js';
+import { BibleDatabase } from '../bible-db/bible-database.js';
+import { EGWCommentaryService } from '../egw-commentary/service.js';
+import { WikiSectionSources } from '../wiki/section-composer.js';
+import { WikiService } from '../wiki/service.js';
+import { topicSlug, WikiPassageRef, WikiVerseRef } from '../wiki/model.js';
 import { Effect, Layer, Option, Schema, Stream } from 'effect';
 import type { Rpc, RpcGroup } from 'effect/unstable/rpc';
 import { RpcTest } from 'effect/unstable/rpc';
@@ -94,6 +99,26 @@ const Dependencies = Layer.mergeAll(
     Layer.provide(EGWParagraphDatabase.Test({ books: [], paragraphs: [] })),
   ),
   TopicService.Test([resurrectionTopic]),
+  // The wiki with no topics artifact — the §3.5 steady state until the first
+  // content release. Its pages still compose the §6.1 lineup out of the
+  // catalog, Bible, writings and commentary sources below, which is exactly
+  // what makes this an honest exercise of the RPC seam rather than a stub
+  // returning a hardcoded page.
+  WikiService.Absent.pipe(
+    Layer.provide(TopicService.Test([resurrectionTopic])),
+    Layer.provide(
+      WikiSectionSources.Live.pipe(
+        Layer.provide(TopicService.Test([resurrectionTopic])),
+        Layer.provide(BibleDatabase.layerTest()),
+        Layer.provide(EGWCommentaryService.Test()),
+        Layer.provide(
+          WritingsService.Live.pipe(
+            Layer.provide(EGWParagraphDatabase.Test({ books: [], paragraphs: [] })),
+          ),
+        ),
+      ),
+    ),
+  ),
   Layer.succeed(
     WritingsLibraryRuntime,
     WritingsLibraryRuntime.of({
@@ -275,6 +300,67 @@ describe('BibleProcedureHandlers', () => {
           code: 'BibleChapterNotFoundError',
         });
       }
+    }),
+  );
+
+  it.scoped('serves the composed wiki page, listing and dictionary over RPC', () =>
+    Effect.gen(function* () {
+      const result = yield* run(
+        Effect.gen(function* () {
+          const client = yield* RpcTest.makeClient(BibleProcedureGroup);
+          return {
+            page: yield* client['v1.wiki.topic.get']({
+              slug: topicSlug('naves-topical-bible.resurrection'),
+            }),
+            list: yield* client['v1.wiki.topics.list']({}),
+            dictionary: yield* client['v1.wiki.dictionary.get']({}),
+          };
+        }),
+      );
+
+      // The whole §6.1 lineup crosses the wire, in order, with the §5 arrival
+      // rule on it. A UI that hardcoded "section 1 is open" would be reading a
+      // fact the page already carries — and the CLI, which has no collapsing,
+      // still reports the same flag.
+      expect(result.page.sections.map((section) => section._tag)).toEqual([
+        'key-verses',
+        'egw-statements',
+        'commentary',
+        'pioneer-witnesses',
+        'cross-references',
+        'related-topics',
+      ]);
+      expect(result.page.sections.map((section) => section.defaultOpen)).toEqual([
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+      ]);
+      // The catalog overlay really resolved: the one Nave's reference on the
+      // fixture topic arrives as a navigable verse, not as an OSIS string.
+      expect(result.page.sections[0].items).toEqual([
+        WikiPassageRef.make({
+          start: WikiVerseRef.make({
+            book: BibleReference.verse(43, 11, 25).book,
+            chapter: BibleReference.verse(43, 11, 25).chapter,
+            verse: BibleReference.verse(43, 11, 25).verse,
+            label: 'John 11:25',
+            text: Option.none(),
+          }),
+          end: Option.none(),
+          label: 'John 11:25',
+          text: Option.none(),
+        }),
+      ]);
+      expect(result.list.map((page) => String(page.slug))).toEqual([
+        'naves-topical-bible.resurrection',
+      ]);
+      // No artifact installed, so no aliases — and the reason travels with the
+      // empty payload rather than leaving a client to guess.
+      expect(result.dictionary.entries).toEqual([]);
+      expect(result.dictionary.unavailable).toEqual(Option.some('artifact-not-installed'));
     }),
   );
 

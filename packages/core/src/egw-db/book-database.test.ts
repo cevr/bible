@@ -368,6 +368,138 @@ describe('EGWParagraphDatabase', () => {
       ));
   });
 
+  describe('corpus scope and rank (§6.4)', () => {
+    /** Two books by Ellen White, two by pioneers, all matching the same query.
+     *  Both scopes are non-empty in the unscoped result, so a filter that did
+     *  nothing would be visible immediately. */
+    const scopedCorpus = Effect.fn('scopedCorpus')(function* () {
+      const db = yield* EGWParagraphDatabase;
+      const authored = [
+        { id: 201, code: 'SCOPEGC', author: 'Ellen Gould White' },
+        { id: 202, code: 'SCOPEEST', author: 'Ellen G. White Estate' },
+        { id: 203, code: 'SCOPEDAR', author: 'Uriah Smith' },
+        { id: 204, code: 'SCOPEJVH', author: 'Joshua V. Himes' },
+      ];
+      for (const entry of authored) {
+        yield* db.storeParagraphsBatch(
+          [
+            {
+              ...mockParagraph(1, `${entry.code} 1.1`),
+              nodes: [{ _tag: 'Text', text: 'sanctuary doctrine' }],
+            },
+          ],
+          { ...mockBook(entry.id, entry.code), author: entry.author },
+        );
+      }
+      return db;
+    });
+
+    test('narrows the corpus by author and partitions it exactly', () =>
+      runTest(
+        Effect.gen(function* () {
+          const db = yield* scopedCorpus();
+          const codes = (hits: readonly { readonly bookCode: string }[]): string[] =>
+            hits.map((hit) => hit.bookCode).toSorted();
+
+          const all = yield* db.searchParagraphs('sanctuary', { limit: 50 });
+          const egw = yield* db.searchParagraphs('sanctuary', { limit: 50, scope: 'egw' });
+          const pioneer = yield* db.searchParagraphs('sanctuary', { limit: 50, scope: 'pioneer' });
+
+          expect(codes(all)).toEqual(['SCOPEDAR', 'SCOPEEST', 'SCOPEGC', 'SCOPEJVH']);
+          // Ellen White and the White Estate, and nothing else.
+          expect(codes(egw)).toEqual(['SCOPEEST', 'SCOPEGC']);
+          // The complement, not a curated allow-list: every author who is not
+          // Ellen White is a pioneer witness.
+          expect(codes(pioneer)).toEqual(['SCOPEDAR', 'SCOPEJVH']);
+          // The partition is exact — the two halves reconstruct the whole and
+          // overlap nowhere, which no pair of independent filters would.
+          expect([...codes(egw), ...codes(pioneer)].toSorted()).toEqual(codes(all));
+          // Omitting the scope means the whole corpus, so every pre-§6.4 caller
+          // keeps the behavior it was written against.
+          expect(codes(yield* db.searchParagraphs('sanctuary', { limit: 50 }))).toEqual(codes(all));
+        }),
+      ));
+
+    test('combines the corpus scope with a book filter', () =>
+      runTest(
+        Effect.gen(function* () {
+          const db = yield* scopedCorpus();
+          // Both filters apply: a book outside the scope yields nothing rather
+          // than one of them silently winning.
+          expect(
+            yield* db.searchParagraphs('sanctuary', { bookCode: 'SCOPEGC', scope: 'egw' }),
+          ).toHaveLength(1);
+          expect(
+            yield* db.searchParagraphs('sanctuary', { bookCode: 'SCOPEGC', scope: 'pioneer' }),
+          ).toHaveLength(0);
+        }),
+      ));
+
+    test('counts every match under the same predicate, past the row cap', () =>
+      runTest(
+        Effect.gen(function* () {
+          const db = yield* scopedCorpus();
+          // The whole point of a separate statement: the row query stops at the
+          // cap, so its length can never report the tail. §6.1's `total` means
+          // the pre-cap count, and a "show all" affordance that only ever sees
+          // `limit` rows is an affordance that never appears.
+          const capped = yield* db.searchParagraphs('sanctuary', { limit: 1 });
+          expect(capped).toHaveLength(1);
+          expect(yield* db.countSearchParagraphs('sanctuary')).toBe(4);
+          // The same filters, or it is counting something else. Both scopes and
+          // the book filter have to move the count exactly as they move the rows.
+          expect(yield* db.countSearchParagraphs('sanctuary', { scope: 'egw' })).toBe(2);
+          expect(yield* db.countSearchParagraphs('sanctuary', { scope: 'pioneer' })).toBe(2);
+          expect(
+            yield* db.countSearchParagraphs('sanctuary', { bookCode: 'SCOPEGC', scope: 'pioneer' }),
+          ).toBe(0);
+        }),
+      ));
+
+    test('returns hits in FTS rank order, best first, and caps to the best N', () =>
+      runTest(
+        Effect.gen(function* () {
+          const db = yield* EGWParagraphDatabase;
+          // BM25 rewards term density, so the shortest paragraph containing the
+          // term ranks best. Inserted worst-first, so an unordered query would
+          // return them in exactly the reverse of the expected order — the
+          // pre-§6.4 behavior this test exists to rule out.
+          const texts = [
+            { refcode: 'RANK 3.1', text: `sanctuary ${'filler word '.repeat(60)}` },
+            { refcode: 'RANK 2.1', text: `sanctuary ${'filler word '.repeat(20)}` },
+            { refcode: 'RANK 1.1', text: 'sanctuary' },
+          ];
+          yield* db.storeParagraphsBatch(
+            texts.map((entry, index) => ({
+              ...mockParagraph(index + 1, entry.refcode),
+              nodes: [{ _tag: 'Text', text: entry.text }],
+            })),
+            mockBook(210, 'RANK'),
+          );
+
+          const ranked = yield* db.searchParagraphs('sanctuary', { limit: 10 });
+          expect(ranked.map((hit) => Option.getOrElse(hit.refcode_short, () => ''))).toEqual([
+            'RANK 1.1',
+            'RANK 2.1',
+            'RANK 3.1',
+          ]);
+          // The cap selects the best N rather than an arbitrary N: without
+          // `ORDER BY rank` the limit would take whichever rows the join
+          // reached first, which is insertion order here.
+          const capped = yield* db.searchParagraphs('sanctuary', { limit: 2 });
+          expect(capped.map((hit) => Option.getOrElse(hit.refcode_short, () => ''))).toEqual([
+            'RANK 1.1',
+            'RANK 2.1',
+          ]);
+          // Stable: the same query returns the same order every time.
+          const again = yield* db.searchParagraphs('sanctuary', { limit: 10 });
+          expect(again.map((hit) => Option.getOrElse(hit.refcode_short, () => ''))).toEqual(
+            ranked.map((hit) => Option.getOrElse(hit.refcode_short, () => '')),
+          );
+        }),
+      ));
+  });
+
   describe('batch operations', () => {
     test('keeps the search index current after paragraph writes', () =>
       runTest(
@@ -376,7 +508,7 @@ describe('EGWParagraphDatabase', () => {
           const book = mockBook(103, 'INDEXED');
           yield* db.storeParagraphsBatch([mockParagraph(1, 'INDEXED 1.1')], book);
 
-          const stored = yield* db.searchParagraphs('Content', 10, 'INDEXED');
+          const stored = yield* db.searchParagraphs('Content', { limit: 10, bookCode: 'INDEXED' });
           expect(stored).toHaveLength(1);
 
           yield* db.storeParagraph(
@@ -386,8 +518,11 @@ describe('EGWParagraphDatabase', () => {
             },
             book,
           );
-          const stale = yield* db.searchParagraphs('Content', 10, 'INDEXED');
-          const replacement = yield* db.searchParagraphs('Replacement', 10, 'INDEXED');
+          const stale = yield* db.searchParagraphs('Content', { limit: 10, bookCode: 'INDEXED' });
+          const replacement = yield* db.searchParagraphs('Replacement', {
+            limit: 10,
+            bookCode: 'INDEXED',
+          });
           expect(stale).toHaveLength(0);
           expect(replacement).toHaveLength(1);
         }),

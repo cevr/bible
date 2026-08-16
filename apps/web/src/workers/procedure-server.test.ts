@@ -93,6 +93,9 @@ describe('web procedure server', () => {
                   port,
                   bibleDatabase: makeDatabase(bibleClient),
                   writingsDatabase: makeDatabase(writingsClient),
+                  // No topics artifact in the negotiation fixture: the §3.5
+                  // steady state, and the one the worker must still serve.
+                  topicsDatabase: Option.none(),
                   writingsFetch: () =>
                     Effect.runPromise(Effect.die(new TypeError('not used by negotiation'))),
                   runtime: {

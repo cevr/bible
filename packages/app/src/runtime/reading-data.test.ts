@@ -177,6 +177,9 @@ const handlerLayer = (recorder: Recorder, gates: Gates = {}) =>
       'v1.data.import': () => Effect.die('unused'),
       'v1.topics.list': () => Effect.die('unused'),
       'v1.topics.get': () => Effect.die('unused'),
+      'v1.wiki.topic.get': () => Effect.die('unused'),
+      'v1.wiki.topics.list': () => Effect.die('unused'),
+      'v1.wiki.dictionary.get': () => Effect.die('unused'),
     }),
   );
 

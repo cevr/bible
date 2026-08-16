@@ -36,6 +36,9 @@ describe('BibleProcedureGroup', () => {
         'v1.data.import',
         'v1.topics.list',
         'v1.topics.get',
+        'v1.wiki.topic.get',
+        'v1.wiki.topics.list',
+        'v1.wiki.dictionary.get',
       ]);
     }),
   );
