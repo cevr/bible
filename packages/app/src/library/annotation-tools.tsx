@@ -10,7 +10,7 @@ import { createMemo, createSignal } from 'solid-js';
 
 import { decodeRoute, readerLocationForRoute } from '../route/index.js';
 import { failureCategory } from '@bible/core/observability';
-import { useReadingData } from '../runtime/index.js';
+import { useCollections, useLibraryMutation, useLocationAnnotations } from '../runtime/index.js';
 import { Button, Input, Tabs } from '../ui/index.js';
 
 export interface AnnotationToolsProps {
@@ -34,9 +34,9 @@ const compactFailure = (cause: unknown): string => {
 };
 
 export const AnnotationTools = (props: AnnotationToolsProps) => {
-  const data = useReadingData();
-  const annotations = () => data.annotations.get(props.location)();
-  const collections = () => data.collections.get()();
+  const annotations = useLocationAnnotations(() => props.location);
+  const collections = useCollections();
+  const mutateLibrary = useLibraryMutation();
   const [noteDraft, setNoteDraft] = createSignal(Option.none<string>());
   const [referenceDraft, setReferenceDraft] = createSignal('');
   const [collectionName, setCollectionName] = createSignal('');
@@ -83,7 +83,7 @@ export const AnnotationTools = (props: AnnotationToolsProps) => {
   const mutate = (operation: string, command: LibraryMutationCommand, onSuccess?: () => void) => {
     setBusy(true);
     setFailure(Option.none());
-    void data.annotations.mutate(command).then(
+    void mutateLibrary(command).then(
       () => {
         setBusy(false);
         onSuccess?.();
@@ -188,25 +188,28 @@ export const AnnotationTools = (props: AnnotationToolsProps) => {
     const id = Schema.decodeSync(LibraryEntityId)(`collection:${name.toLowerCase()}`);
     setBusy(true);
     setFailure(Option.none());
-    void data.collections
-      .mutate({ _tag: 'SaveCollection', id, name, description: Option.getOrNull(Option.none()) })
-      .then(
-        () => {
-          setBusy(false);
-          setCollectionName('');
-          setSelectedCollection(id);
-        },
-        (cause: unknown) => {
-          const message = compactFailure(cause);
-          Effect.runFork(
-            Effect.logError(
-              `[collections] mutation-failed operation=save category=${failureCategory(cause)}`,
-            ),
-          );
-          setFailure(Option.some(message));
-          setBusy(false);
-        },
-      );
+    void mutateLibrary({
+      _tag: 'SaveCollection',
+      id,
+      name,
+      description: Option.getOrNull(Option.none()),
+    }).then(
+      () => {
+        setBusy(false);
+        setCollectionName('');
+        setSelectedCollection(id);
+      },
+      (cause: unknown) => {
+        const message = compactFailure(cause);
+        Effect.runFork(
+          Effect.logError(
+            `[collections] mutation-failed operation=save category=${failureCategory(cause)}`,
+          ),
+        );
+        setFailure(Option.some(message));
+        setBusy(false);
+      },
+    );
   };
 
   const addToCollection = () => {
@@ -215,27 +218,25 @@ export const AnnotationTools = (props: AnnotationToolsProps) => {
     if (!currentBookmark || !collection) return;
     setBusy(true);
     setFailure(Option.none());
-    void data.collections
-      .mutate({
-        _tag: 'AddCollectionMember',
-        collectionId: collection.id,
-        memberId: currentBookmark.id,
-        memberType: 'bookmark',
-        position: collection.members.length,
-      })
-      .then(
-        () => setBusy(false),
-        (cause: unknown) => {
-          const message = compactFailure(cause);
-          Effect.runFork(
-            Effect.logError(
-              `[collections] mutation-failed operation=add-member category=${failureCategory(cause)}`,
-            ),
-          );
-          setFailure(Option.some(message));
-          setBusy(false);
-        },
-      );
+    void mutateLibrary({
+      _tag: 'AddCollectionMember',
+      collectionId: collection.id,
+      memberId: currentBookmark.id,
+      memberType: 'bookmark',
+      position: collection.members.length,
+    }).then(
+      () => setBusy(false),
+      (cause: unknown) => {
+        const message = compactFailure(cause);
+        Effect.runFork(
+          Effect.logError(
+            `[collections] mutation-failed operation=add-member category=${failureCategory(cause)}`,
+          ),
+        );
+        setFailure(Option.some(message));
+        setBusy(false);
+      },
+    );
   };
 
   return (

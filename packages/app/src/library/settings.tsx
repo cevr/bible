@@ -10,7 +10,11 @@ import { DateTime, Effect, Option, Schema } from 'effect';
 import { useCapabilities } from '../application/capabilities-context.js';
 import type { SettingsSection } from '../route/index.js';
 import { failureCategory, failureMessage } from '@bible/core/observability';
-import { useReadingData } from '../runtime/index.js';
+import {
+  useDataPortability,
+  useReadingPreferences,
+  useReadingPreferencesMutation,
+} from '../runtime/index.js';
 import { Button, Popover } from '../ui/index.js';
 import { ReaderFailure, ReaderLoading } from '../reading/index.js';
 
@@ -38,9 +42,10 @@ export interface SettingsProps {
 }
 
 export const Settings = (props: SettingsProps) => {
-  const data = useReadingData();
   const capabilities = useCapabilities();
-  const preferences = () => data.readingPreferences.get()();
+  const preferences = useReadingPreferences();
+  const dataPortability = useDataPortability();
+  const patchPreferences = useReadingPreferencesMutation();
   const [failure, setFailure] = createSignal(Option.none<string>());
   const [saving, setSaving] = createSignal(false);
   const [dataStatus, setDataStatus] = createSignal(Option.none<string>());
@@ -61,7 +66,7 @@ export const Settings = (props: SettingsProps) => {
     if (Option.isNone(fileExport)) return;
     setDataFailure(Option.none());
     setDataStatus(Option.some('Preparing backup…'));
-    void data.dataPortability.export().then(
+    void dataPortability.export().then(
       (document) =>
         Effect.runPromise(
           fileExport.value.save({
@@ -89,7 +94,7 @@ export const Settings = (props: SettingsProps) => {
           return;
         }
         setDataStatus(Option.some(`Importing ${file.value.name}…`));
-        void data.dataPortability.import(new TextDecoder().decode(file.value.contents)).then(
+        void dataPortability.import(new TextDecoder().decode(file.value.contents)).then(
           ({ imported }) =>
             setDataStatus(Option.some(`Imported ${String(imported)} library records.`)),
           (cause: unknown) => failDataOperation('import', cause),
@@ -102,7 +107,7 @@ export const Settings = (props: SettingsProps) => {
   const patch = (value: ReadingPreferencesPatch) => {
     setSaving(true);
     setFailure(Option.none());
-    void data.readingPreferences.mutate({ patch: value }).then(
+    void patchPreferences(value).then(
       () => setSaving(false),
       (cause: unknown) => {
         Effect.runFork(

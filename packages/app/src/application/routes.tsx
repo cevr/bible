@@ -15,7 +15,7 @@ import {
 } from '../reading/index.js';
 import type { AppRoute } from '../route/index.js';
 import { decodeRoute, encodeRoute, readingRouteForLocation } from '../route/index.js';
-import { useReadingData } from '../runtime/index.js';
+import { useReadingContinuity } from '../runtime/index.js';
 
 /** Decodes the location and projects the slice a route component renders;
  *  `Show` receives the projection through `Option.getOrUndefined`. */
@@ -120,13 +120,13 @@ const NotFoundRoute = () => {
 };
 
 const ResumeReading = () => {
-  const data = useReadingData();
+  const continuity = useReadingContinuity();
   const navigate = useNavigate();
   const fallback = '/bible/1/1';
 
   createEffect(
     () => {
-      const route = readingRouteForLocation(data.readingContinuity.get()());
+      const route = readingRouteForLocation(continuity());
       return Option.match(route, {
         onNone: () => fallback,
         onSome: encodeRoute,

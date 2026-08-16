@@ -3,7 +3,7 @@ import { useNavigate } from '@solidjs/router';
 import { Errored, For, Loading, Show } from '@solidjs/web';
 import { Option } from 'effect';
 
-import { useReadingData } from '../runtime/index.js';
+import { useBibleChapter } from '../runtime/index.js';
 import { ContextMenu, ScrollViewport, SplitPane } from '../ui/index.js';
 import { AnnotationTools } from '../library/annotation-tools.js';
 
@@ -12,10 +12,11 @@ export interface BibleReaderProps {
 }
 
 export const BibleReader = (props: BibleReaderProps) => {
-  const data = useReadingData();
   const navigate = useNavigate();
-  const chapter = () =>
-    data.bibleChapters.get({ book: props.reference.book, chapter: props.reference.chapter })();
+  const chapter = useBibleChapter(() => ({
+    book: props.reference.book,
+    chapter: props.reference.chapter,
+  }));
   const versePath = (verse: number) =>
     `/bible/${String(props.reference.book)}/${String(props.reference.chapter)}/${String(verse)}`;
   const activeVerse = (verse: number) => {

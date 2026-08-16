@@ -6,7 +6,7 @@ import { Option, Schema } from 'effect';
 import { createMemo, createSignal } from 'solid-js';
 
 import { ReaderFailure, ReaderLoading } from '../reading/index.js';
-import { useReadingData } from '../runtime/index.js';
+import { useTopicDetail, useTopics } from '../runtime/index.js';
 import { Button, Input } from '../ui/index.js';
 
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
@@ -30,7 +30,6 @@ const bibleRouteFor = (reference: TopicReference): Option.Option<string> => {
 };
 
 export const Topics = (props: TopicsProps) => {
-  const data = useReadingData();
   const navigate = useNavigate();
   const [draft, setDraft] = createSignal('');
   const [query, setQuery] = createSignal('');
@@ -40,11 +39,10 @@ export const Topics = (props: TopicsProps) => {
     if (current.length > 0) return { query: current };
     return { letter: letter() };
   });
-  const topics = () => data.topics.get(listInput())();
-  const topic = () => {
-    const id = Schema.decodeSync(TopicId)(props.topicId ?? 'missing-topic');
-    return data.topicDetails.get({ id })();
-  };
+  const topics = useTopics(listInput);
+  const topic = useTopicDetail(() => ({
+    id: Schema.decodeSync(TopicId)(props.topicId ?? 'missing-topic'),
+  }));
   const title = (): string => {
     if (props.topicId) return 'Topic';
     return 'Topical index';

@@ -11,7 +11,7 @@ import { createSignal } from 'solid-js';
 import { ReaderFailure, ReaderLoading } from '../reading/index.js';
 import { useCapabilities } from '../application/capabilities-context.js';
 import { failureCategory, failureMessage } from '@bible/core/observability';
-import { useReadingData } from '../runtime/index.js';
+import { useLibraryMutation, useReadingPlans } from '../runtime/index.js';
 import { Button, Input } from '../ui/index.js';
 
 export interface PlansProps {
@@ -24,10 +24,10 @@ const plansHeading = (planId?: string): string => {
 };
 
 export const Plans = (props: PlansProps) => {
-  const data = useReadingData();
   const capabilities = useCapabilities();
   const navigate = useNavigate();
-  const plans = () => data.readingPlans.get()();
+  const plans = useReadingPlans();
+  const mutateLibrary = useLibraryMutation();
   const selectedPlan = () => plans().find((plan) => plan.id === props.planId);
   const [title, setTitle] = createSignal('');
   const [description, setDescription] = createSignal('');
@@ -43,7 +43,7 @@ export const Plans = (props: PlansProps) => {
   ) => {
     setBusy(true);
     setFailure(Option.none());
-    void data.readingPlans.mutate(command).then(
+    void mutateLibrary(command).then(
       () => {
         setBusy(false);
         onSuccess?.();

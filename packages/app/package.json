@@ -19,6 +19,7 @@
     "gate": "bun run typecheck && bun run test"
   },
   "dependencies": {
+    "@bible/atom-solid": "workspace:*",
     "@bible/core": "workspace:*",
     "@solidjs/router": "catalog:",
     "@solidjs/web": "catalog:",

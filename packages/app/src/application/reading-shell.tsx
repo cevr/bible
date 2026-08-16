@@ -5,7 +5,7 @@ import { createEffect, createSignal, onCleanup, onSettled, type ParentProps } fr
 import type { ReaderTypeface } from '@bible/core/reading-preferences';
 import { decodeRoute, readerLocationForRoute } from '../route/index.js';
 import { failureCategory } from '@bible/core/observability';
-import { useReadingData } from '../runtime/index.js';
+import { useReadingPreferences, useRecordReading } from '../runtime/index.js';
 import { Button, CommandPalette, Menu, MenuIcon, SearchIcon } from '../ui/index.js';
 
 const readerTypeface = (typeface: ReaderTypeface): string => {
@@ -32,7 +32,7 @@ const readerTypeface = (typeface: ReaderTypeface): string => {
 };
 
 const ReadingPreferenceBridge = () => {
-  const preferences = useReadingData().readingPreferences.get();
+  const preferences = useReadingPreferences();
 
   createEffect(preferences, (current) => {
     const root = document.documentElement;
@@ -59,7 +59,7 @@ const ReadingPreferenceBridge = () => {
 
 const ReadingContinuityBridge = () => {
   const location = useLocation();
-  const continuity = useReadingData().readingContinuity;
+  const recordReading = useRecordReading();
   const canonicalPath = () => `${location.pathname}${location.search}`;
   let recordedPath = Option.none<string>();
 
@@ -68,15 +68,13 @@ const ReadingContinuityBridge = () => {
     if (Option.isNone(readingLocation)) return;
     if (Option.isSome(recordedPath) && recordedPath.value === path) return;
     recordedPath = Option.some(path);
-    void continuity
-      .mutate({ location: readingLocation.value, progress: 0 })
-      .catch((cause: unknown) => {
-        Effect.runFork(
-          Effect.logError(
-            `[continuity] mutation-failed operation=record category=${failureCategory(cause)}`,
-          ),
-        );
-      });
+    void recordReading({ location: readingLocation.value, progress: 0 }).catch((cause: unknown) => {
+      Effect.runFork(
+        Effect.logError(
+          `[continuity] mutation-failed operation=record category=${failureCategory(cause)}`,
+        ),
+      );
+    });
   });
 
   return <></>;

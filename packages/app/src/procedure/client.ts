@@ -5,53 +5,8 @@ import {
 } from '@bible/core/procedure';
 import { Context, Effect, Layer } from 'effect';
 import { RpcClient } from 'effect/unstable/rpc';
-import type { RpcClientError } from 'effect/unstable/rpc/RpcClientError';
 
-export type RawProcedureClient = RpcClient.FromGroup<typeof BibleProcedureGroup, RpcClientError>;
-
-type OptionalInputCall<Call> = Call extends (
-  input: infer Input,
-  options?: infer Options,
-) => infer Result
-  ? (input?: Input, options?: Options) => Result
-  : never;
-
-type OptionalInputProcedure =
-  | 'v1.reading.writingsCatalog.get'
-  | 'v1.reading.writingsLibrary.get'
-  | 'v1.reading.writingsLibrary.downloadAll'
-  | 'v1.reading.continuity.get'
-  | 'v1.preferences.reading.get'
-  | 'v1.library.collections.get'
-  | 'v1.library.plans.get'
-  | 'v1.library.practice.get'
-  | 'v1.data.export'
-  | 'v1.topics.list';
-
-export type ProcedureClient = Omit<RawProcedureClient, OptionalInputProcedure> & {
-  readonly [Tag in OptionalInputProcedure]: OptionalInputCall<RawProcedureClient[Tag]>;
-};
-
-export const createProcedureClient = (raw: RawProcedureClient): ProcedureClient => ({
-  ...raw,
-  'v1.reading.writingsCatalog.get': (input = {}, options) =>
-    raw['v1.reading.writingsCatalog.get'](input, options),
-  'v1.reading.writingsLibrary.get': (input = {}, options) =>
-    raw['v1.reading.writingsLibrary.get'](input, options),
-  'v1.reading.writingsLibrary.downloadAll': (input = {}, options) =>
-    raw['v1.reading.writingsLibrary.downloadAll'](input, options),
-  'v1.reading.continuity.get': (input = {}, options) =>
-    raw['v1.reading.continuity.get'](input, options),
-  'v1.preferences.reading.get': (input = {}, options) =>
-    raw['v1.preferences.reading.get'](input, options),
-  'v1.library.collections.get': (input = {}, options) =>
-    raw['v1.library.collections.get'](input, options),
-  'v1.library.plans.get': (input = {}, options) => raw['v1.library.plans.get'](input, options),
-  'v1.library.practice.get': (input = {}, options) =>
-    raw['v1.library.practice.get'](input, options),
-  'v1.data.export': (input = {}, options) => raw['v1.data.export'](input, options),
-  'v1.topics.list': (input = {}, options) => raw['v1.topics.list'](input, options),
-});
+import type { ProcedureClient } from '../cache/reading-rpc.js';
 
 export interface ProcedureHostApi {
   readonly connection: RuntimeConnection;
@@ -62,10 +17,16 @@ export class ProcedureHost extends Context.Service<ProcedureHost, ProcedureHostA
   '@bible/app/procedure/ProcedureHost',
 ) {}
 
+/**
+ * The client is built flattened — one call taking a procedure tag and its
+ * payload — because that is the shape the reading cache's atom families
+ * consume. The flattened form also takes every payload explicitly, which
+ * retired the per-procedure wrappers that used to default the empty payloads
+ * of the argument-less procedures.
+ */
 const makeProcedureHost = Effect.gen(function* () {
-  const raw = yield* RpcClient.make(BibleProcedureGroup);
-  const procedures = createProcedureClient(raw);
-  const connection = yield* procedures['v1.runtime.connect'](expectedRuntimeConnection);
+  const procedures = yield* RpcClient.make(BibleProcedureGroup, { flatten: true });
+  const connection = yield* procedures('v1.runtime.connect', expectedRuntimeConnection);
   return ProcedureHost.of({ connection, procedures });
 });
 

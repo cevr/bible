@@ -5,7 +5,7 @@ import { createEffect, createMemo, createSignal } from 'solid-js';
 
 import type { AppRoute } from '../route/index.js';
 import { encodeRoute } from '../route/index.js';
-import { useReadingData } from '../runtime/index.js';
+import { useBibleSearch } from '../runtime/index.js';
 import { Button, Input } from '../ui/index.js';
 import { ReaderFailure, ReaderLoading } from './bible-reader.js';
 
@@ -28,7 +28,6 @@ const searchRoute = (query: string, books: readonly number[]): SearchRoute => ({
 
 export const BibleSearch = (props: BibleSearchProps) => {
   const navigate = useNavigate();
-  const data = useReadingData();
   const [draft, setDraft] = createSignal('');
   createEffect(
     () => props.route.query,
@@ -44,7 +43,7 @@ export const BibleSearch = (props: BibleSearchProps) => {
     }
     return { query: props.route.query, limit: PAGE_SIZE };
   });
-  const results = () => data.bibleSearch.get(query())();
+  const results = useBibleSearch(query);
   const emptyPrompt = (): string => {
     if (props.route.query.length > 0) return 'Type at least two characters to search.';
     return 'Enter a word or phrase to find it in Scripture.';

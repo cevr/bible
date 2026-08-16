@@ -10,11 +10,18 @@ import { createSignal } from 'solid-js';
 
 import { AnnotationTools } from '../library/annotation-tools.js';
 import { failureCategory } from '@bible/core/observability';
-import { useReadingData } from '../runtime/index.js';
-import { writingsDownloadLabel } from '../runtime/writings-cache.js';
+import {
+  useWritingsDownload,
+  useWritingsLibrary,
+  useWritingsPage,
+  useWritingsParagraph,
+  useWritingsPublication,
+  type WritingsLibraryCommand,
+} from '../runtime/index.js';
 import { Button, ScrollViewport } from '../ui/index.js';
 import { ParagraphNodes } from './paragraph-nodes.js';
 import { ReaderFailure, ReaderLoading } from './bible-reader.js';
+import { writingsDownloadLabel } from './writings-download-label.js';
 
 export interface WritingsPageReaderProps {
   readonly reference: PageReference;
@@ -41,15 +48,13 @@ const downloadAction = (status: string, failedTarget: Option.Option<string>, cod
 };
 
 export const WritingsPageReader = (props: WritingsPageReaderProps) => {
-  const data = useReadingData();
-  const page = () => data.writingsPages.get(props.reference)();
+  const page = useWritingsPage(() => props.reference);
 
   return <WritingsPageContent page={page} selected={props.selected} />;
 };
 
 export const WritingsPublicationReader = (props: { readonly reference: PublicationReference }) => {
-  const data = useReadingData();
-  const page = () => data.writingsPublications.get(props.reference)();
+  const page = useWritingsPublication(() => props.reference);
 
   return <WritingsPageContent page={page} />;
 };
@@ -126,8 +131,7 @@ const WritingsPageContent = (props: {
 };
 
 export const WritingsParagraphReader = (props: { readonly reference: ParagraphReference }) => {
-  const data = useReadingData();
-  const paragraph = () => data.writingsParagraphs.get(props.reference)();
+  const paragraph = useWritingsParagraph(() => props.reference);
 
   return (
     <article class="bible-reader bible-writings-reader">
@@ -160,17 +164,17 @@ export const WritingsParagraphReader = (props: { readonly reference: ParagraphRe
 };
 
 export const WritingsCatalog = () => {
-  const data = useReadingData();
-  const library = data.writingsLibrary.get();
+  const library = useWritingsLibrary();
+  const startDownload = useWritingsDownload();
   const [downloading, setDownloading] = createSignal(Option.none<string>());
   const [failedTarget, setFailedTarget] = createSignal(Option.none<string>());
   const [failure, setFailure] = createSignal(Option.none<string>());
 
-  const download = (command: Parameters<typeof data.writingsLibrary.mutate>[0], key: string) => {
+  const download = (command: WritingsLibraryCommand, key: string) => {
     setDownloading(Option.some(key));
     setFailedTarget(Option.none());
     setFailure(Option.none());
-    void data.writingsLibrary.mutate(command).then(
+    void startDownload(command).then(
       () => setDownloading(Option.none()),
       (cause: unknown) => {
         const message = compactFailure(cause);

@@ -10,8 +10,6 @@ import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Schema, Stream } from 'effect';
 import { RpcTest } from 'effect/unstable/rpc';
 
-import { createProcedureClient } from './client.js';
-
 const connection = RuntimeConnection.make({
   protocolVersion: CURRENT_PROTOCOL_VERSION,
   schemaVersion: CURRENT_RUNTIME_SCHEMA_VERSION,
@@ -55,33 +53,32 @@ const HandlerLayer = BibleProcedureGroup.toLayer(
   }),
 );
 
-describe('ProcedureClient', () => {
+describe('ProcedureHost client', () => {
   const test = it.scoped;
 
-  test('normalizes omitted empty structural inputs without changing the wire contract', () =>
+  test('calls every procedure through one flattened entry point', () =>
     Effect.gen(function* () {
-      const raw = yield* RpcTest.makeClient(BibleProcedureGroup);
-      const client = createProcedureClient(raw);
-      const negotiated = yield* client['v1.runtime.connect']({
+      const client = yield* RpcTest.makeClient(BibleProcedureGroup, { flatten: true });
+      const negotiated = yield* client('v1.runtime.connect', {
         protocolVersion: CURRENT_PROTOCOL_VERSION,
         schemaVersion: CURRENT_RUNTIME_SCHEMA_VERSION,
       });
-      const omitted = yield* client['v1.reading.writingsCatalog.get']();
-      const explicit = yield* client['v1.reading.writingsCatalog.get']({});
-      const omittedLibrary = yield* client['v1.reading.writingsLibrary.get']();
-      const explicitLibrary = yield* client['v1.reading.writingsLibrary.get']({});
-      const omittedContinuity = yield* client['v1.reading.continuity.get']();
-      const explicitContinuity = yield* client['v1.reading.continuity.get']({});
-      const recorded = yield* client['v1.reading.continuity.record']({
+      const catalog = yield* client('v1.reading.writingsCatalog.get', {});
+      const library = yield* client('v1.reading.writingsLibrary.get', {});
+      const continuity = yield* client('v1.reading.continuity.get', {});
+      const recorded = yield* client('v1.reading.continuity.record', {
         location: { source: 'bible', resourceId: 'KJV', location: '/bible/43/3/16' },
         progress: 0,
       });
 
       expect(negotiated).toEqual(connection);
-      expect(omitted).toEqual([]);
-      expect(explicit).toEqual([]);
-      expect(omittedLibrary).toEqual(explicitLibrary);
-      expect(omittedContinuity).toEqual(explicitContinuity);
+      expect(catalog).toEqual([]);
+      expect(library).toEqual([]);
+      expect(continuity).toEqual({
+        source: 'bible',
+        resourceId: 'KJV',
+        location: '/bible/43/3/16',
+      });
       expect(recorded.changes.scopes).toEqual([{ _tag: 'ReadingContinuity' }]);
     }).pipe(Effect.provide(HandlerLayer)));
 });

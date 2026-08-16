@@ -12,7 +12,7 @@ import { createSignal } from 'solid-js';
 import { ReaderFailure, ReaderLoading } from '../reading/index.js';
 import { useCapabilities } from '../application/capabilities-context.js';
 import { failureCategory, failureMessage } from '@bible/core/observability';
-import { useReadingData } from '../runtime/index.js';
+import { useLibraryMutation, useMemoryPractice } from '../runtime/index.js';
 import { Button, Input } from '../ui/index.js';
 
 export interface PracticeProps {
@@ -48,10 +48,10 @@ const nextPracticeDate = (practicedAt: string, intervalDays: number): string => 
 const nowIso = (): string => DateTime.formatIso(Effect.runSync(DateTime.now));
 
 export const Practice = (props: PracticeProps) => {
-  const data = useReadingData();
   const capabilities = useCapabilities();
   const navigate = useNavigate();
-  const practice = () => data.memoryPractice.get()();
+  const practice = useMemoryPractice();
+  const mutateLibrary = useLibraryMutation();
   const selectedVerse = () => practice().verses.find((verse) => verse.id === props.memoryVerseId);
   const selectedHistory = () =>
     practice()
@@ -70,7 +70,7 @@ export const Practice = (props: PracticeProps) => {
   ) => {
     setBusy(true);
     setFailure(Option.none());
-    void data.memoryPractice.mutate(command).then(
+    void mutateLibrary(command).then(
       () => {
         setBusy(false);
         onSuccess?.();
