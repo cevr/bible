@@ -368,8 +368,16 @@ next clean occurrence is still eligible under §4.5.
 
 **Per phrase, first clean occurrence per section is hot.** The literal
 one-link-per-section reading was disproved by the prototype: _little horn_ took
-Daniel 8's single slot and starved _pleasant land_. Each distinct phrase gets its
-own first occurrence.
+Daniel 8's single slot and starved every other phrase in the chapter. Each
+distinct phrase gets its own first occurrence.
+
+The regression fixture is Daniel 8 and the pair it pins is _the daily_ /
+_sanctuary_ — both in v11, both hot, which the disproved reading would not
+allow. _Pleasant land_ was the pair originally named here and is **not**
+matchable: the KJV writes it `pleasant [land]` and §4.3 does not fold brackets,
+so §10's Milestone 4 footnote records the interaction and the fixture keeps a
+separate test asserting the phrase stays cold on both the raw and the rendered
+path.
 
 "Section" is defined per surface:
 
@@ -826,10 +834,32 @@ Add `bible wiki matches`.
 
 - **Core tests:** longest-match-wins at equal start; a span suppressed inside
   another span is eligible at its next clean occurrence; per-phrase (not
-  per-section) first-occurrence — the Daniel 8 _little horn_ / _pleasant land_
-  regression case is a named fixture; no span crosses a `TextSegment` boundary;
-  no span enters a `ScriptureRef` or `BookRef` node; word-boundary and soft-
-  punctuation normalization cases.
+  per-section) first-occurrence — the Daniel 8 _the daily_ / _sanctuary_
+  regression case is a named fixture;[^daniel8-pair] no span crosses a
+  `TextSegment` boundary; no span enters a `ScriptureRef` or `BookRef` node;
+  word-boundary and soft-punctuation normalization cases; Unicode
+  normalization: case folding is one shared scan on the dictionary side and the
+  text side, and a span's offsets stay valid across final-sigma context,
+  one-to-many lowercase expansions, and surrogate pairs.
+
+[^daniel8-pair]:
+    This pair replaces the _little horn_ / _pleasant land_ pair the spec named
+    first, which is not matchable and never was. The KJV writes the
+    translator-supplied word in brackets — `pleasant [land]`, verified in
+    `packages/core/assets/kjv.json` — and both paths through §4 therefore reject
+    it: `[` is not soft punctuation (§4.3's set is commas and semicolons), so it
+    survives normalization and stands between the two words; and
+    `segmentVerseText` turns `[land]` into its own `italic` segment, which §4.6
+    forbids a span from crossing into. Making the phrase hot would mean widening
+    §4.3 to swallow brackets — which would also fold "the daily [sacrifice]"
+    into "the daily sacrifice" and change what the dictionary can claim — or
+    letting spans cross segment boundaries, which §4.6 prohibits outright.
+    Neither is warranted, so the named regression moved to a pair Daniel 8
+    actually carries in matchable form. The bracket interaction keeps a test of
+    its own: the raw verse and the rendered verse must agree that
+    `pleasant land` is _not_ hot, because the CLI matches raw text and the
+    reader matches segments, and the two disagreeing would be the real defect.
+
 - **Adapter checks:** identical `PhraseSpan` output for the same input text in
   the web worker, Electron main, and Bun CLI — one shared fixture, byte-identical
   offsets.

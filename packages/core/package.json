@@ -17,6 +17,7 @@
     "./topics": "./src/topics/index.ts",
     "./wiki": "./src/wiki/index.ts",
     "./wiki/bun": "./src/wiki/service-bun.ts",
+    "./wiki/testing": "./src/wiki/testing.ts",
     "./procedure": "./src/procedure/index.ts",
     "./bible": "./src/bible/index.ts",
     "./bible/service": "./src/bible/service.ts",

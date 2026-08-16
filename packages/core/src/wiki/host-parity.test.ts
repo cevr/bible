@@ -53,10 +53,13 @@ import {
   BlocksJson,
   CitationInline,
   ParagraphBlock,
+  PhraseDictionary,
   TextInline,
   topicSlug,
   WikiPageJson,
 } from './model.js';
+import { DANIEL_8_9, PHRASE_FIXTURE_DICTIONARY } from './phrase-fixture.js';
+import { matchRun, PhraseAutomaton, PhraseSpan, PhraseSpansJson } from './phrase-matcher.js';
 import { WikiSectionSources } from './section-composer.js';
 import { WikiService } from './service.js';
 
@@ -221,9 +224,17 @@ const writeArtifact = (file: string): string => {
       'INSERT INTO topics (slug, title, thesis_ast, body_ast, position) VALUES (?, ?, ?, ?, ?)',
     )
     .run('day-of-atonement', 'Day of Atonement', encodeBlocks([]), encodeBlocks([]), 1);
-  database
-    .prepare('INSERT INTO topic_aliases (alias, display, slug, canonical) VALUES (?, ?, ?, ?)')
-    .run('sanctuary', 'sanctuary', 'sanctuary', 1);
+  // The shared Milestone 4 fixture dictionary, written through the same
+  // `topic_aliases` table a compiled artifact carries — so the spans compared
+  // below come from a real read rather than from a value handed to both seams.
+  const insertAlias = database.prepare(
+    'INSERT INTO topic_aliases (alias, display, slug, canonical) VALUES (?, ?, ?, ?)',
+  );
+  insertAlias.run('sanctuary', 'sanctuary', 'sanctuary', 1);
+  for (const entry of PHRASE_FIXTURE_DICTIONARY.entries) {
+    if (entry.alias === 'sanctuary') continue;
+    insertAlias.run(entry.alias, entry.display, entry.slug, 1);
+  }
   // One authored edge out, and one edge in from the other page — so the
   // compared section exercises both the artifact-stored half and the live
   // backlink half of §2.3.
@@ -398,5 +409,77 @@ describe('wiki host parity', () => {
       expect(overCli.sections[1].missingBooks.length).toBe(1);
       expect(overCli.sections[5].items.length).toBe(1);
       expect(Option.isSome(overCli.core)).toBe(true);
+    }));
+
+  // -------------------------------------------------------------------------
+  // Milestone 4 — the same parity claim for phrase spans.
+  //
+  // Matching is **not** an RPC. §4.1 puts it at render time, in the client,
+  // over the text the client is about to draw: the automaton builds in ~1 ms
+  // and matches a screenful in 0.38 ms, so a round trip per screenful would
+  // cost more than the work it delegates, and precomputed spans were rejected
+  // because their offsets still need re-projection onto the rendered AST. There
+  // is therefore no `v1.wiki.matches` to compare.
+  //
+  // What crosses the wire is the **dictionary** (`v1.wiki.dictionary.get`), and
+  // the parity claim follows the M3 shape: the spans a host derives from the
+  // dictionary it received over RPC are byte-identical to the spans the CLI
+  // derives from the dictionary it read directly. That is the stronger claim —
+  // it says the three hosts agree because they run one matcher over one
+  // dictionary, not because they all asked one server.
+  // -------------------------------------------------------------------------
+
+  test('the dictionary crossing RPC and the dictionary read directly yield identical spans', () =>
+    Effect.gen(function* () {
+      const file = yield* artifact();
+      const wikiLayer = wiki(file);
+
+      // Seam 1 — the worker's and Electron main's path: the dictionary crosses
+      // the real client/server pair and is decoded by the group's own schema,
+      // then the host builds its automaton from what it received.
+      const overRpc = yield* Effect.gen(function* () {
+        const client = yield* RpcTest.makeClient(BibleProcedureGroup);
+        return yield* client['v1.wiki.dictionary.get']({});
+      }).pipe(
+        Effect.provide(
+          BibleProcedureHandlers.pipe(
+            Layer.provide(
+              Layer.mergeAll(wikiLayer, TopicService.Test([CATALOG]), otherProcedureDependencies),
+            ),
+          ),
+        ),
+      );
+
+      // Seam 2 — the CLI, resolving `WikiService` directly.
+      const overCli = yield* Effect.gen(function* () {
+        const service = yield* WikiService;
+        return yield* service.dictionary;
+      }).pipe(Effect.provide(wikiLayer));
+
+      const encodeSpans = Schema.encodeEffect(Schema.fromJsonString(PhraseSpansJson));
+      const spansFor = (dictionary: PhraseDictionary) =>
+        encodeSpans(matchRun(PhraseAutomaton.make(dictionary), DANIEL_8_9));
+
+      // Byte-identical offsets, on the encoded form — JSON is what a renderer
+      // and the CLI's `--json` actually carry.
+      expect(yield* spansFor(overRpc)).toBe(yield* spansFor(overCli));
+
+      // And not vacuously: the fixture verse really does light a phrase, at the
+      // offsets the CLI acceptance workflow pins.
+      expect(matchRun(PhraseAutomaton.make(overRpc), DANIEL_8_9)).toEqual([
+        PhraseSpan.make({
+          start: 36,
+          end: 47,
+          slug: topicSlug('little-horn'),
+          alias: 'little horn',
+        }),
+      ]);
+
+      // The automaton is built per host from the dictionary each host holds, so
+      // the two dictionaries must themselves be the same value — otherwise the
+      // span equality above could hold for two libraries that disagree.
+      const encodeDictionary = Schema.encodeEffect(Schema.fromJsonString(PhraseDictionary));
+      expect(yield* encodeDictionary(overRpc)).toBe(yield* encodeDictionary(overCli));
+      expect(overCli.entries.length).toBe(PHRASE_FIXTURE_DICTIONARY.entries.length);
     }));
 });

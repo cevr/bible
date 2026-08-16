@@ -21,11 +21,15 @@
  */
 
 import {
+  matchRun,
+  PhraseAutomaton,
+  PhraseSpansJson,
   TopicSlug,
   WikiPageJson,
   WikiPageSummaryJson,
   WikiService,
   TopicsUnavailableReason,
+  type PhraseSpan,
   type WikiPage,
   type WikiPageSummary,
   type WikiSection,
@@ -240,8 +244,69 @@ export const wikiTopic = Command.make('topic', { slug, json }, (args) =>
   }).pipe(Effect.provide(BunServices.layer)),
 );
 
+// ---------------------------------------------------------------------------
+// bible wiki matches
+// ---------------------------------------------------------------------------
+
+/** The `--json` payload for one matched run: `PhraseSpansJson`, the same codec
+ *  a renderer would decode. Nothing here names `start`, `end`, `slug`, or
+ *  `alias` — the schema is the wire contract for spans exactly as
+ *  `WikiPageJson` is for pages. */
+export const matchesJson = (
+  spans: readonly PhraseSpan[],
+): Effect.Effect<PhraseSpansJson, Schema.SchemaError> =>
+  Schema.encodeEffect(PhraseSpansJson)(spans);
+
+/** Matches one text run against the installed dictionary and reports the spans.
+ *
+ *  The whole command is `dictionary → automaton → match`, which is *exactly*
+ *  what a client does at render time (§4.1). There is no `v1.wiki.matches` RPC
+ *  and deliberately so: matching runs client-side over the text the client is
+ *  about to draw, the automaton builds in ~1 ms from a dictionary already
+ *  fetched through `v1.wiki.dictionary.get`, and a round trip per screenful
+ *  would cost more than the work it delegates. So the three hosts agree by
+ *  running the same core function over the same dictionary — which is a
+ *  stronger claim than agreeing on one server's answer, and is what the parity
+ *  test asserts.
+ *
+ *  The supplied text is treated as **one run and one section**: the caller
+ *  passed a single string, so there is no segment structure to respect and no
+ *  second run for §4.5's per-phrase state to carry into. Piping a whole verse
+ *  in, as the acceptance workflow does, is therefore the raw-text half of the
+ *  fixture — the rendered half runs through `matchSegments` in core. */
+const text = Argument.string('text').pipe(
+  Argument.withDescription('The text to match against the phrase dictionary'),
+);
+
+export const wikiMatches = Command.make('matches', { text, json }, (args) =>
+  Effect.gen(function* () {
+    const dictionary = yield* wikiService(Effect.flatMap(WikiService, (wiki) => wiki.dictionary));
+    const spans = matchRun(PhraseAutomaton.make(dictionary), args.text);
+
+    if (args.json) {
+      yield* Console.log(yield* encodeJson(yield* matchesJson(spans)));
+      return;
+    }
+    if (spans.length === 0) {
+      const reason = Option.getOrElse(dictionary.unavailable, () => 'no phrases matched');
+      yield* Console.log(`No matches (${reason})`);
+      return;
+    }
+    for (const span of spans) {
+      yield* Console.log(
+        `${String(span.start)}-${String(span.end)}  ${span.slug}  ${args.text.slice(
+          span.start,
+          span.end,
+        )}`,
+      );
+    }
+  }).pipe(Effect.provide(BunServices.layer)),
+);
+
 export const wiki = Command.make('wiki', {}, () =>
   Console.log(
-    `Usage: bible wiki topics [--query <q>] [--json]\n       bible wiki topic <slug> [--json]`,
+    `Usage: bible wiki topics [--query <q>] [--json]\n` +
+      `       bible wiki topic <slug> [--json]\n` +
+      `       bible wiki matches "<text>" [--json]`,
   ),
-).pipe(Command.withSubcommands([wikiTopics, wikiTopic]));
+).pipe(Command.withSubcommands([wikiTopics, wikiTopic, wikiMatches]));

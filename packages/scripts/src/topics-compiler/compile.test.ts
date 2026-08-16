@@ -1,13 +1,12 @@
-import type { Block, Inline } from '@bible/core/wiki';
+// `normalizeAlias` is imported from core, where it is defined, rather than
+// through a re-export the compiler kept only for this file. The claim these
+// assertions make is that the compiler's keys and the matcher's keys come from
+// one function, and importing the one function is how the test says so.
+import { normalizeAlias, type Block, type Inline } from '@bible/core/wiki';
 import { Cause, Effect, Exit, Option, Schema, SchemaGetter } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 
-import {
-  compileTopics,
-  normalizeAlias,
-  type CatalogLookup,
-  type ParagraphLookup,
-} from './compile.js';
+import { compileTopics, type CatalogLookup, type ParagraphLookup } from './compile.js';
 import { parseTopicSource, type TopicSource } from './source.js';
 
 /** A writings database holding exactly the paragraphs a test declares. The

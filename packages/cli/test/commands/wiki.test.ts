@@ -1,12 +1,23 @@
 import { TopicDetail, TopicId, TopicService } from '@bible/core/topics';
 import {
+  matchRun,
+  PhraseAutomaton,
+  PhraseSpansJson,
   WikiPageJson,
   WikiSectionSources,
   WikiService,
   topicSlug,
   type WikiPage,
 } from '@bible/core/wiki';
-import { Effect, Exit, Layer, Option, Schema, SchemaGetter } from 'effect';
+// The shared fixture is behind `@bible/core/wiki/testing`, not the production
+// barrel: it is the *same* module the core suite imports relatively, so the
+// cross-host parity claim is still about one input, but a shipped import
+// cannot reach it.
+import { DANIEL_8_9, PHRASE_FIXTURE_DICTIONARY } from '@bible/core/wiki/testing';
+import { BunFileSystem } from '@effect/platform-bun';
+import { layerBun } from '@bible/core/wiki/bun';
+import { Database } from 'bun:sqlite';
+import { Effect, Exit, FileSystem, Layer, Option, Schema, SchemaGetter } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 
 import { WikiLayer, WikiTopicsJson, topicJson, topicsJson, wiki } from '../../src/commands/wiki.js';
@@ -233,4 +244,107 @@ describe('bible wiki --json stdout', () => {
       expect(accepted.unavailable).toEqual(Option.some('artifact-not-installed'));
     }),
   );
+});
+
+// ---------------------------------------------------------------------------
+// bible wiki matches
+//
+// The Milestone 4 CLI JSON workflow, and the CLI half of its adapter check.
+// The shared fixture is `@bible/core/wiki`'s `PHRASE_FIXTURE_DICTIONARY` and
+// `DANIEL_8_9` — the *same* module the core suite and the host-parity test
+// import, so "identical output across hosts" is a claim about one input rather
+// than about three copies of a verse that have not diverged yet.
+//
+// The dictionary reaches the command through a real artifact file read by
+// `WikiService.Live`, not through a stubbed service: the acceptance is that the
+// spans a reader sees come from the dictionary the artifact ships, and a stub
+// would skip exactly the `topic_aliases` read that produces them.
+// ---------------------------------------------------------------------------
+
+const writeDictionaryArtifact = (file: string): string => {
+  const database = new Database(file, { create: true });
+  database.exec(`
+    CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+    CREATE TABLE topics (slug TEXT PRIMARY KEY, title TEXT NOT NULL, thesis_ast TEXT NOT NULL, body_ast TEXT NOT NULL, position INTEGER NOT NULL);
+    CREATE TABLE topic_aliases (alias TEXT PRIMARY KEY, display TEXT NOT NULL, slug TEXT NOT NULL, canonical INTEGER NOT NULL);
+    CREATE TABLE topic_edges (from_slug TEXT NOT NULL, to_slug TEXT NOT NULL, kind TEXT NOT NULL, position INTEGER NOT NULL, PRIMARY KEY (from_slug, to_slug, kind));
+    CREATE TABLE topic_catalog_keys (slug TEXT PRIMARY KEY, catalog_id TEXT NOT NULL, matched_by TEXT NOT NULL);
+    INSERT INTO meta (key, value) VALUES ('schema_major', '1');
+  `);
+  const insert = database.prepare(
+    'INSERT INTO topic_aliases (alias, display, slug, canonical) VALUES (?, ?, ?, ?)',
+  );
+  for (const entry of PHRASE_FIXTURE_DICTIONARY.entries) {
+    insert.run(entry.alias, entry.display, entry.slug, 1);
+  }
+  database.close();
+  return file;
+};
+
+/** The installed-artifact path, through the same `layerBun` the production
+ *  command resolves — only the filename moved. */
+const dictionaryWiki = (file: string): Layer.Layer<WikiService> =>
+  layerBun(file).pipe(Layer.provide(catalog), Layer.provide(WikiSectionSources.NotWired));
+
+describe('bible wiki matches', () => {
+  const test = it.scopedLive.layer(BunFileSystem.layer);
+
+  test('returns the fixture spans for the Daniel 8:9 acceptance workflow', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const directory = yield* fs
+        .makeTempDirectoryScoped({ prefix: 'bible-wiki-matches-' })
+        .pipe(Effect.orDie);
+      const file = writeDictionaryArtifact(`${directory}/topics.db`);
+
+      // `bible wiki matches "$(bible verse 'Dan 8:9')" --json`, with the verse
+      // text inlined as the shared fixture rather than shelled out for — the
+      // string is byte-identical to what the verse command prints, brackets
+      // included.
+      const result = yield* runCli(wiki, ['matches', DANIEL_8_9, '--json'], {}).pipe(
+        Effect.provideService(WikiLayer, dictionaryWiki(file)),
+      );
+      expect(result.success).toBe(true);
+
+      // The expected value is the core matcher's own output, encoded by the
+      // core codec: the CLI's contract is that it *runs* the matcher, not that
+      // it reproduces a span list some test wrote down.
+      const expected = yield* serialize(
+        yield* Schema.encodeEffect(PhraseSpansJson)(
+          matchRun(PhraseAutomaton.make(PHRASE_FIXTURE_DICTIONARY), DANIEL_8_9),
+        ),
+      );
+      expect(result.stdout).toBe(expected);
+
+      // Not vacuous, and pinned to the fixture's exact offsets. `little horn`
+      // begins at 36 and ends at 47 in this verse; `pleasant land` is absent
+      // because the KJV's `[land]` brackets split it (see `PHRASE_FIXTURE_NOTE`).
+      // Decoded through the span codec rather than parsed loose, so the
+      // assertion also proves stdout is a payload a client could consume.
+      const decoded = yield* Schema.decodeEffect(Schema.fromJsonString(PhraseSpansJson))(
+        result.stdout,
+      );
+      // The slug is branded, so it is compared as its string projection rather
+      // than reconstructing the brand in the expectation — the same shape the
+      // listing assertions above use.
+      expect(
+        decoded.map((span) => ({
+          start: span.start,
+          end: span.end,
+          slug: String(span.slug),
+          alias: span.alias,
+        })),
+      ).toEqual([{ start: 36, end: 47, slug: 'little-horn', alias: 'little horn' }]);
+    }));
+
+  test('reports the typed absence when no artifact is installed', () =>
+    Effect.gen(function* () {
+      // §3.5 again: no dictionary is not an error, and the command says why it
+      // found nothing rather than printing an empty list with no explanation.
+      const result = yield* runCli(wiki, ['matches', DANIEL_8_9], {}).pipe(
+        Effect.provideService(WikiLayer, fixtureWiki),
+      );
+      expect(result.success).toBe(true);
+      expect(result.stdout).toContain('artifact-not-installed');
+    }));
 });

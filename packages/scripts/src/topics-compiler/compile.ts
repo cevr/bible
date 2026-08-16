@@ -1,5 +1,5 @@
 import { TOPICS_SCHEMA_MAJOR, TOPICS_SCHEMA_MINOR } from '@bible/core/corpus-supply';
-import type { Block } from '@bible/core/wiki';
+import { isBoundaryAt, normalizeAlias, type Block } from '@bible/core/wiki';
 import { Effect, Option, Schema } from 'effect';
 
 import { blocksToText, collectCitations, parseBody, type ParsedBody } from './markdown.js';
@@ -39,22 +39,6 @@ export type CompileError =
   | OverlayAmbiguityError
   | CitationUnverifiedError
   | UnknownRelatedSlugError;
-
-/** §4.3 normalization, shared by the compiler and (in Milestone 4) the runtime
- *  matcher: case-insensitive, whitespace collapsed, soft punctuation
- *  transparent. The compiler keys `topic_aliases` on this form, so the PK is
- *  what enforces the no-duplicate rule the spec asks for.
- *
- *  "Soft punctuation" is exactly the §4.3 set — commas and semicolons. Nothing
- *  else is stripped: an apostrophe distinguishes "the Lord's day" from "the
- *  lords day", and folding them together would let two genuinely different
- *  phrases collide into one dictionary key and be rejected as a duplicate
- *  alias. Normalizing more than the spec allows is a silent widening of the
- *  matcher, so the set stays closed here. */
-const SOFT_PUNCTUATION = /[,;]/gu;
-
-export const normalizeAlias = (alias: string): string =>
-  alias.toLowerCase().replace(SOFT_PUNCTUATION, ' ').replace(/\s+/gu, ' ').trim();
 
 /** Resolves one refcode to the paragraphs that carry it. Injected rather than
  *  imported so the compile core stays free of the writings database and the
@@ -416,19 +400,18 @@ export const compileTopics = Effect.fn('TopicsCompiler.compile')(function* (inpu
 
 /** Word-boundary containment over already-normalized text. Avoids building a
  *  RegExp from an alias, which would let punctuation in a phrase change the
- *  pattern's meaning. */
-const isBoundary = (text: string, index: number): boolean => {
-  if (index < 0 || index >= text.length) return true;
-  return !/[a-z0-9]/u.test(text[index] ?? '');
-};
-
+ *  pattern's meaning.
+ *
+ *  The boundary predicate is core's `isBoundaryAt`, the same one the runtime
+ *  matcher applies — a backlink the compiler records and a hot phrase the reader
+ *  sees must agree about what counts as a word. */
 const containsPhrase = (haystack: string, phrase: string): boolean => {
   if (phrase.length === 0) return false;
   let from = 0;
   for (;;) {
     const index = haystack.indexOf(phrase, from);
     if (index === -1) return false;
-    if (isBoundary(haystack, index - 1) && isBoundary(haystack, index + phrase.length)) {
+    if (isBoundaryAt(haystack, index - 1) && isBoundaryAt(haystack, index + phrase.length)) {
       return true;
     }
     from = index + 1;
