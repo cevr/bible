@@ -4,6 +4,13 @@ Date: 2026-08-14
 Question: Is effect-atom the right client reactivity layer for this Solid 2 app, and does it change whether a sync engine is needed?
 Verdict: **Skip for now, bridge later. It does not change the sync-engine question — the local-first package already is the sync engine.**
 
+## Three-client scope
+
+This report concerns the shared Solid UI used by web and desktop. The CLI does
+not need an Atom or Solid binding. It must use the same local-first core service,
+mutation commands, change scopes, and sync transport contract directly. A UI
+cache choice cannot move domain or sync rules out of portable core.
+
 ## 1. Where Atom lives now, and what it is
 
 The old `@effect-atom/atom` package was folded into the effect v4 monorepo. It is

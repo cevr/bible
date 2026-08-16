@@ -16,9 +16,10 @@ versus borrowing its design.
 Fetch and read the repo (the `repo` skill can cache it). Establish: (a) what qmd actually
 is — language/runtime, index format, how it combines lexical (BM25/FTS) with embeddings
 and reranking, which embedding models it uses and how it runs them (local inference?);
-(b) license; (c) whether its engine could run inside BOTH hosts — desktop (Electron main
-process, better-sqlite3, Bun-adjacent) and web (browser worker, wa-sqlite over OPFS) —
-the parity rule (`docs/architecture/feature-parity.md`) forbids desktop-only search;
+(b) license; (c) whether its engine could run inside all three clients — desktop
+(Electron main process, better-sqlite3), web (browser worker, wa-sqlite over OPFS), and
+CLI (Bun, sqlite-bun) — the parity rule (`docs/architecture/feature-parity.md`) forbids
+host-only search;
 (d) if direct use fails parity, which of its design choices transfer to a from-scratch
 hybrid layer over the existing `paragraphs_fts` FTS5 index; (e) index size implications
 for a corpus of ~100k–1M paragraphs and whether an embeddings index could ship as a
@@ -42,3 +43,8 @@ transformers.js on WebGPU (~100–400 ms est. for EmbeddingGemma-300M; WASM fall
 and a 256-d int8 MRL corpus index ships through corpus-supply at ~26 MB per 100k
 paragraphs. Full findings:
 [research/013-qmd-evaluation.md](../research/013-qmd-evaluation.md).
+
+The qmd rejection is driven by the browser adapter. The transferred parser,
+fusion, scan, and fallback design must stay in portable core. Desktop and CLI
+can share a native query-embedding adapter only if it returns the same pinned
+model fingerprint and vector contract as the browser adapter.

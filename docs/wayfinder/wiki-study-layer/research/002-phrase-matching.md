@@ -7,6 +7,19 @@ an Apple M4 Pro, Bun 1.4.0, `bun:sqlite` (native SQLite), against the live local
 read-only. Browser numbers will be slower — see the wa-sqlite section. Throwaway benchmark
 scripts lived in the session scratchpad; they are reproduced in outline below, not committed.
 
+## 2026-08-15 three-client and corpus-size note
+
+The benchmark snapshot below is historical. The current local database has
+3,012,004 paragraphs across 1,486 books. Of these, 961,761 paragraphs belong to
+Ellen Gould White or the Ellen G. White Estate. New performance tests must state
+whether they use the EGW-only scope or the full writings corpus.
+
+The matching algorithm, normalization, overlap resolution, and match result
+must remain pure TypeScript in core. Web and desktop can render those matches as
+links. CLI can return the same match records as JSON. FTS execution stays behind
+the portable writings database service, with wa-sqlite, sqlite-node, and
+sqlite-bun supplied by the three composition roots.
+
 ## (a) Realistic dictionary size
 
 - Charter scopes the curated dictionary at ~50 topics. Workflow-generated, user-reviewed

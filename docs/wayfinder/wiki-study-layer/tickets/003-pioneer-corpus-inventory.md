@@ -40,4 +40,12 @@ same `nodes_json` AST, 100% FTS coverage, and the same `paragraph_bible_refs`
 mechanism — but bible-ref rows are markup-dependent and sparse in BOTH corpora
 (45 of 648 books have any), so verse-linking cannot lean on that table alone.
 
+Post-sync note, 2026-08-15: the local database now holds 1,486 books and
+3,012,004 paragraphs. This current snapshot replaces the old local/remote
+availability counts. The channel, schema, AST, and sparse-reference conclusions
+remain valid.
+
 Full findings: [research/003-pioneer-inventory.md](../research/003-pioneer-inventory.md)
+
+The inventory describes one corpus schema. Web, desktop, and CLI must query it
+through the same portable database and writings services.

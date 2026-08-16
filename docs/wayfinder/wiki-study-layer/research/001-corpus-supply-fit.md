@@ -4,6 +4,16 @@ Ticket: `docs/wayfinder/wiki-study-layer/tickets/001-corpus-supply-fit.md`.
 Question: what does a `topics.db`-style artifact need from the existing
 corpus-supply pipeline, and what is the release/update flow end to end.
 
+## 2026-08-15 three-client addendum
+
+The original report already found all three composition roots. The shared
+artifact manifest, verifier, activation policy, receipt, and typed failures must
+stay portable. Web supplies the OPFS generation adapter. Desktop and CLI supply
+native file adapters. Desktop and CLI can share an adapter package, but neither
+can import it through the portable core entrypoint. CLI `init`, status, and
+update commands must use the same artifact identity and activation rules as the
+two visual clients.
+
 ## How the pipeline works today (baseline)
 
 The pipeline has two corpus shapes, and they are structurally different:
@@ -147,10 +157,11 @@ need a small remote manifest (a JSON the client fetches at runtime, which then
 pins digest+size for the artifact download) — a deliberate deviation from the
 pin-in-code invariant (`docs/architecture/corpus-supply.md:12`,
 `corpus-supply/CONTEXT.md:41`), and the correct home for the map's open
-"release cadence / in-app update prompt" question. Note also that both hosts
-call `ensure()` only at startup (`apps/desktop/electron/main.ts:184`,
+"release cadence / in-app update prompt" question. Note also that both visual
+hosts call `ensure()` only at startup (`apps/desktop/electron/main.ts:184`,
 `apps/web/src/workers/db-worker.ts:179-181`); mid-session update prompts would
-be new work regardless of where the manifest lives.
+be new work regardless of where the manifest lives. CLI already has an explicit
+`init` action and needs matching status/update semantics.
 
 ## (c) Degradation with a partial or missing topics artifact
 

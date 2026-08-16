@@ -15,11 +15,13 @@ under `## Resolution`, then `status: closed`, then one line added to Decisions-s
 
 ## Destination
 
-A buildable spec for the wiki study layer of the EGW Reader app (web + desktop): every
+A buildable spec for the wiki study layer of the EGW Reader app and CLI: every
 decision locked — data model, content pipeline, navigation UX, rendering rules, the
 study-pane seam, and a fast hybrid EGW search engine (natural + precise queries) — so
-implementation sessions can build it in `packages/core` + `packages/app`
-with no open questions. The spec is assembled by
+implementation sessions can build one portable domain in `packages/core`, the shared
+web/desktop UI in `packages/app`, and thin CLI commands with no open questions. Every
+ticket inherits the [three-client compatibility contract](client-compatibility.md).
+The spec is assembled by
 [Assemble the buildable spec](tickets/012-assemble-spec.md).
 
 ## Notes
@@ -28,7 +30,8 @@ with no open questions. The spec is assembled by
 - Skills every session should consult: `grilling`, `domain-modeling` (HITL tickets),
   `prototype` (prototype tickets), `architecture`, `effect`, `bible` (source material).
 - Standing preferences: Solid 2 + Effect v4; thin hosts over shared `@bible/app`;
-  procedure-only transport; capability adapters; web/desktop parity is an enforced rule
+  procedure-only GUI transport; direct CLI access to the same core services; capability
+  adapters; web/desktop UI parity and web/desktop/CLI core parity are enforced rules
   (`docs/architecture/feature-parity.md`). Personal-first, public-ready. Commit straight
   to main, never push without an ask, no branches.
 - One ticket per session (research tickets excepted).
@@ -42,7 +45,8 @@ Charter decisions (from the charting session, 2026-08-14 — no ticket, decided 
 
 - Destination is a buildable spec, not a working v1 — build happens after the map closes.
 - The app is an evolution of the existing EGW Reader (`apps/desktop` + `apps/web` thin
-  hosts over `@bible/app`), not a new app. Full web/desktop parity stands.
+  hosts over `@bible/app`), not a new app. Full web/desktop UI parity stands. The CLI
+  uses the same core domain and storage contracts through direct commands.
 - Audience: personal-first, public-ready architecture; no accounts in v1.
 - Topic pages are hybrid: authored core + auto-mined sections. Page anatomy is layered —
   short authored thesis up top, then structured expandable sections (key verses, EGW
@@ -85,7 +89,7 @@ Charter decisions (from the charting session, 2026-08-14 — no ticket, decided 
   short-circuit, position-aware rerank blending, per-vector model fingerprints — over
   `paragraphs_fts` + a flat quantized embeddings artifact (~26 MB int8 per 100k
   paragraphs, corpus-supply-shippable); browser query embedding via transformers.js on
-  WebGPU (~100–400 ms class).
+  WebGPU (~100–400 ms class). Native query embedding is an adapter for desktop and CLI.
 - [Phrase matching and live-query feasibility](tickets/002-phrase-matching-feasibility.md) —
   match at render time: Aho-Corasick over a 1,000-phrase dictionary costs ~15 µs per EGW
   paragraph (~0.4 ms per screenful, M4 Pro/Bun; web a small multiple slower), and warm
@@ -94,20 +98,78 @@ Charter decisions (from the charting session, 2026-08-14 — no ticket, decided 
   per-book revisions and still need AST re-projection. Ship the alias dictionary in the
   artifact; use live batched FTS5 for auto-mined sections.
 - [Pioneer corpus inventory](tickets/003-pioneer-corpus-inventory.md) — one supply
-  channel: the EGW platform API. Local library already holds 111 pioneer works (of 648
-  books); ~233 more pioneer books + 262 periodical volumes are downloadable; TRMC is
-  actually platform book 1635 (mangled author), so the "manual import" channel is empty.
+  channel: the EGW platform API. The 2026-08-14 snapshot held 648 local books. The
+  2026-08-15 post-sync database holds 1,486 books and 3,012,004 paragraphs, so the old
+  remote-only counts no longer describe the local corpus. TRMC is actually platform
+  book 1635 (mangled author), so the "manual import" channel is empty.
   Unobtainable: Hiram Edson's manuscript, Midnight Cry run, Snow beyond TRMC no. 1,
   Voice of Truth / Western Midnight Cry / Day-Star runs, prophetic charts. AST/FTS parity
   is full; caveat: `paragraph_bible_refs` is sparse (45 of 648 books) — verse-linking
   cannot rely on it alone.
+- [Wiki domain model](tickets/004-wiki-domain-model.md) — artifact stores flagship
+  content only (authored cores as portable AST, phrase dictionary, authored edges,
+  backlinks, overlay keying); catalog long tail assembled live via the same section
+  composer; one `WikiService` in core, `v1.wiki.*` RPCs, `bible wiki *` CLI; overlay
+  keying resolved at compile time with name-match fallback.
+- [Topic page and rabbit-hole navigation prototype](tickets/006-navigation-prototype.md) —
+  Mode A adopted (peek card + breadcrumb trail, bottom-sheet on narrow); sliding panes
+  rejected on measured geometry (two-legible-pane desktop ceiling). Per-phrase hot-link
+  scope rule forwarded to the phrase dictionary ticket.
+- [Select-to-lookup fallback design](tickets/007-select-to-lookup.md) — one combined
+  panel fed by `LookupService.resolve` typed resolver groups in core; CLI
+  `bible wiki lookup`; no lookup persistence in v1.
+- [Study-pane seam spec](tickets/009-study-pane-seam.md) — one bundle RPC
+  `v1.study.verse.get` + `v1.study.strongs.get` over a portable `StudyService`; margin
+  notes in, Scripture comparison out; parallel-EGW accepts `paragraph_bible_refs`
+  sparseness for v1; phrase spans and verse taps never share a gesture.
+- [Hybrid search design](tickets/014-hybrid-search-design.md) — learnings-only engine;
+  EGW-scope ~246 MB int8 optional vector artifact; automatic routing (quotes/refcode/
+  wordy) with strong-BM25 short-circuit; RRF k=60, no rerank v1; topics as a pinned
+  group; EmbeddingGemma-300M 256-d fingerprint; golden-query acceptance across clients.
+- [Content release cadence](tickets/015-content-release-cadence.md) — hybrid: compiled
+  pin as offline floor + runtime GitHub-releases manifest check for content-only
+  updates; toast/settings on visual hosts, `bible topics status|update` on CLI; schema
+  changes ride app releases.
+- [Phrase dictionary model and rendering rules](tickets/005-phrase-dictionary-model.md) —
+  render-time Aho-Corasick over frontmatter-authored aliases; longest-match-wins
+  overlap; **per-phrase** first-occurrence-per-section hot rule (section = chapter /
+  reading unit / page section); spans never cross segments or ref nodes; muted dotted
+  underline styling; duplicate alias = compile error.
+- [Auto-mined section composition](tickets/008-auto-mined-sections.md) — all sections
+  live-queried through one core composer; lineup key verses (default-open, cap 8) →
+  EGW statements (cap 5) → commentary (cap 5) → pioneer witnesses (cap 5) →
+  cross-refs (cap 10) → related topics; long tail = search handoff; uninstalled hits
+  render refcode + "get this book" wired to the download RPC.
+- [Authoring workflow spec](tickets/010-authoring-workflow.md) — sources in
+  `content/topics/*.md` with `status: draft|approved` frontmatter; batched Claude
+  workflow drafts from `bible egw study --pioneers` corpora; compiler verifies every
+  citation against the local DB and fails on miss; `bun run build:topics` emits
+  `topics.db` + manifest.
+- [Flagship topic list v1](tickets/011-flagship-topic-list.md) — the mined top-40 cut
+  adopted; 40 draft stubs committed at `content/topics/*.md` with candidate aliases
+  (noise-flagged aliases excluded), initial related edges, and Nave's catalog
+  overrides; all inert until each page is reviewed and flipped to `approved`.
+- [Assemble the buildable spec](tickets/012-assemble-spec.md) — **the destination,
+  reached**: [`docs/architecture/wiki-study-layer.md`](../../architecture/wiki-study-layer.md)
+  synthesizes every resolution into the domain model, pipeline, rendering, navigation,
+  lookup, study-pane, and hybrid-search designs plus nine gate-green milestones each
+  carrying the three-client contract; five grounding addenda recorded on the ticket
+  (`v1.wiki.*`/`v1.topics.*` composition stance, FTS scope gap, stale sparseness
+  figure, Milestone-1 sequencing, fifth enum site).
+
+**Map closed 2026-08-16.** No open tickets remain. Round-A/B and later resolutions
+were adopted by the agent under the standing goal ("complete the wayfinder"), per
+never-block-on-the-human — each is marked in its ticket and reversible; overriding one
+re-cuts the affected spec section.
 
 ## Not yet specified
 
+The remaining fog never sharpened before the destination was reached; each item is
+carried in the spec's [future-work list](../../architecture/wiki-study-layer.md) so it
+survives the map's closure:
+
 - Public deployment shape: hosting the web app publicly, where artifacts are served from,
   when "public-ready" actually gets exercised.
-- Wiki pages in global search: whether/how topic pages join the FTS surface (depends on
-  the artifact schema).
 - AI-assisted linking beyond the curated dictionary: suggested topics, auto-detected
   phrases, "what should be a topic next" mining.
 - Fate of the existing `/topics` route UX once the overlay lands (merge, redirect, keep).
@@ -118,4 +180,4 @@ Charter decisions (from the charting session, 2026-08-14 — no ticket, decided 
   the app's existing annotation features continue untouched.
 - Additional Bible translations — the vision is KJV-only (the `versions` table's
   generality notwithstanding).
-- Breaking web/desktop parity for any wiki feature.
+- Breaking web/desktop UI parity or web/desktop/CLI core parity for any wiki feature.

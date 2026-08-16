@@ -6,6 +6,18 @@ date: 2026-08-14
 
 # Pioneer corpus inventory
 
+## 2026-08-15 post-sync note
+
+The inventory below records the 2026-08-14 snapshot. The current local database
+now contains 1,486 books and 3,012,004 paragraphs. It therefore holds nearly all
+1,504 remote English catalog entries that the earlier inventory counted. The
+channel, schema, AST, and FTS conclusions do not change. New topic and search
+work must use current local coverage and must not repeat the old remote-only
+assumption.
+
+Web, desktop, and CLI must query this one schema through the same portable
+database and writings services. Only their SQLite adapters differ.
+
 ## Summary
 
 - There is **one channel**: the EGW Writings platform API, driven by

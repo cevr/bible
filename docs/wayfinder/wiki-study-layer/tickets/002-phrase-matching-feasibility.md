@@ -9,9 +9,10 @@ blocked-by: []
 
 ## Question
 
-The phrase dictionary must render curated phrases as links inside KJV verses and EGW
-paragraphs (first occurrence per section), on both desktop (better-sqlite3) and web
-(wa-sqlite over OPFS in a worker). Two candidate strategies:
+The phrase dictionary must find the same curated phrases inside KJV verses and EGW
+paragraphs in all three clients. Desktop uses better-sqlite3. Web uses wa-sqlite over
+OPFS in a worker. CLI uses sqlite-bun. Web and desktop render the first occurrence per
+section as a link. CLI returns the same typed matches when requested. Two candidate strategies:
 
 1. **Precompute at artifact build time**: match every dictionary phrase against the
    corpus offline; ship match spans (verse/paragraph → [start, end, topic] spans) in the
@@ -44,3 +45,7 @@ serves `paragraphs_fts MATCH` today. Precompute (strategy 1) is cheap to run (~7
 full corpus) but ships spans that break on partial EGW libraries and per-book revisions,
 and its offsets still need AST re-projection at render time — no win. Full numbers and
 receipts: [research/002-phrase-matching.md](../research/002-phrase-matching.md).
+
+The matcher and overlap rules remain pure core code. Host renderers consume the
+same match result under the
+[three-client compatibility contract](../client-compatibility.md).

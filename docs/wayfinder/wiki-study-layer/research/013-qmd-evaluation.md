@@ -3,6 +3,18 @@
 Ticket: [`../tickets/013-qmd-evaluation.md`](../tickets/013-qmd-evaluation.md)
 Repo cache: `~/.cache/repo/tobi/qmd` (fetched 2026-08-14 via `okra repo fetch tobi/qmd`, v2.6.3)
 
+## 2026-08-15 three-client and corpus-size note
+
+The compatibility decision covers web, desktop, and CLI. The browser remains
+the limiting host for qmd's native dependencies. Desktop and CLI may share a
+native query-embedding adapter. Query parsing, retrieval contracts, flat vector
+scan, fusion, model fingerprints, and lexical fallback must remain portable.
+
+The current local database has 3,012,004 paragraphs. The EGW and White Estate
+scope has 961,761 paragraphs. A 256-dimensional int8 matrix is about 246 MB for
+that scope and about 771 MB for the full local writings corpus, before metadata.
+Ticket 014 must choose the scope before it sets the artifact budget.
+
 ## Recommendation: learnings-only
 
 Do not use or fork qmd. Its engine is welded to three Node-native components —
@@ -62,7 +74,7 @@ borrowing the design (and even code fragments) is unencumbered.
 MIT — `~/.cache/repo/tobi/qmd/LICENSE` (Copyright 2024–2026 Tobi Lutke). No
 restriction on reuse of design or code.
 
-## (c) Parity test: can the engine run in both hosts?
+## (c) Parity test: can the engine run in all three clients?
 
 - **Desktop (Electron main, better-sqlite3)**: yes, near as-is. qmd already runs on
   Bun/Node with better-sqlite3; node-llama-cpp works in an Electron main process.
@@ -71,6 +83,7 @@ restriction on reuse of design or code.
      (forked: `apps/web/package.json:30` → `github.com/cevr/wa-sqlite`), loaded as
      `wa-sqlite-async.mjs` with `OPFSAdaptiveVFS`/`IDBBatchAtomicVFS`
      (`apps/web/src/workers/db-worker.ts:7-10`, `sqlite-host.ts`).
+
   2. `sqlite-vec` is a native extension; WASM SQLite cannot dynamically load
      extensions — sqlite-vec must be **statically compiled into a custom WASM
      build** ([alexgarcia.xyz/sqlite-vec/wasm.html](https://alexgarcia.xyz/sqlite-vec/wasm.html)).
@@ -79,6 +92,9 @@ restriction on reuse of design or code.
   3. `node-llama-cpp` has no browser story at all; GGUF-in-browser alternatives
      (wllama) are slow, and the practical browser path is transformers.js/ONNX
      Runtime Web — a different inference stack than desktop qmd would use.
+- **CLI (Bun + sqlite-bun)**: not directly. qmd requires its Node-native store
+  and inference stack. A dedicated native embedding adapter can support the
+  CLI, but the qmd store cannot become the shared search core.
 
 Verdict: **direct use and fork both fail parity**; only the design transfers.
 

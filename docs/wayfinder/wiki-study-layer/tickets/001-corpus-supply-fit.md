@@ -10,7 +10,7 @@ blocked-by: []
 ## Question
 
 Topic pages will be authored as markdown in-repo and compiled into a versioned,
-digest-verified artifact that both hosts download — the same flow `bible.db` uses.
+digest-verified artifact that web, desktop, and CLI install — the same flow `bible.db` uses.
 What exactly does plugging a `topics.db`-style artifact into the existing corpus-supply
 pipeline require, and what does the release/update flow look like end to end?
 
@@ -46,3 +46,7 @@ true independent cadence needs a runtime-fetched manifest (a deliberate
 deviation to decide on).
 
 Findings: [research/001-corpus-supply-fit.md](../research/001-corpus-supply-fit.md)
+
+The portable manifest, verifier, and policy belong in core. Browser and native
+installers remain explicit adapters under the
+[three-client compatibility contract](../client-compatibility.md).
