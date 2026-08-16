@@ -65,6 +65,13 @@
       {
         "from": "../../packages/core/data/bible.db",
         "to": "data/bible.db"
+      },
+      {
+        "from": "../../packages/core/data",
+        "to": "data",
+        "filter": [
+          "topics.db"
+        ]
       }
     ],
     "mac": {

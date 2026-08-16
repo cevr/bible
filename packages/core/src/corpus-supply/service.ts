@@ -2,7 +2,12 @@ import { Context, Effect, Layer, Option } from 'effect';
 
 import { EGWParagraphDatabase } from '../egw-db/book-database.js';
 import type { PublicationId } from '../writings/model.js';
-import { BibleArtifact, type RegisteredFileCorpus, type WiredFileCorpus } from './file-artifact.js';
+import {
+  BibleArtifact,
+  TopicsArtifact,
+  type RegisteredFileCorpus,
+  type WiredFileCorpus,
+} from './file-artifact.js';
 import {
   CorpusInstallationError,
   CorpusRecipeUnavailableError,
@@ -39,6 +44,7 @@ type FileCorpusRegistry = { readonly [K in CorpusFileName]: RegisteredFileCorpus
 
 const fileCorpora = {
   bible: BibleArtifact,
+  topics: TopicsArtifact,
 } satisfies FileCorpusRegistry;
 
 /** Bootstrap is the corpus required before first use. Best-effort corpora are
@@ -159,6 +165,18 @@ export class CorpusSupply extends Context.Service<CorpusSupply, CorpusSupplyServ
           });
         }
 
+        // No source could be acquired. When a verified artifact is already
+        // active, that is the spec's stale-fallback state, not a failure: the
+        // installed file was digest- and semantically verified before it was
+        // ever activated, so an offline host keeps serving it. Reporting an
+        // error here made hosts warn about a corpus that was working.
+        //
+        // Only reachable with an active artifact — with nothing installed there
+        // is nothing to fall back to, so Bible's fail-closed startup still
+        // fails exactly as before.
+        if (Option.isSome(current)) {
+          return CorpusSupplyReceipt.make({ activated: [], skipped: ['canonical'] });
+        }
         if (Option.isSome(unavailable)) return yield* unavailable.value;
         return yield* CorpusRecipeUnavailableError.make({ corpus });
       });

@@ -3,6 +3,11 @@ import {
   assetSourceId,
   BIBLE_ARTIFACT_RELEASE,
   BibleArtifact,
+  TOPICS_ARTIFACT_RELEASE,
+  TopicsArtifact,
+  type TopicsArtifactInstaller,
+  type TopicsArtifactRecipe,
+  type FileArtifactSourceService,
   type BibleArtifactInstaller,
   type BibleArtifactRecipe,
   corpusDigest,
@@ -11,9 +16,11 @@ import {
   CorpusProvenance,
   CorpusSourceUnavailableError,
   registeredCorpusName,
+  verifyTopicsArtifact,
   type CorpusStorageIdentity,
   type FileArtifactRelease,
   type FileCorpusArtifact,
+  type TopicsArtifactReader,
 } from '@bible/core/corpus-supply';
 import { Effect, Layer, Option, Predicate, Stream } from 'effect';
 import { HttpClient } from 'effect/unstable/http';
@@ -68,6 +75,30 @@ export const verifyBibleDatabase = Effect.fn('BrowserCorpusArtifacts.verifyBible
   }
   return verses;
 });
+
+/** The browser `TopicsArtifactReader`: the three reads the shared verifier makes,
+ *  expressed against a `wa-sqlite` connection. The *rules* are not restated here
+ *  — they are `verifyTopicsArtifact`, the same function the native adapter runs,
+ *  so a candidate generation refused on desktop is refused here for the same
+ *  reason and with the same message. */
+export const browserTopicsReader = (database: SqliteDatabase): TopicsArtifactReader => ({
+  integrity: database
+    .query('PRAGMA integrity_check')
+    .pipe(Effect.map((rows) => String(rows[0]?.['integrity_check']))),
+  meta: (key) =>
+    database
+      .query('SELECT value FROM meta WHERE key = ?', [key])
+      .pipe(
+        Effect.map((rows) =>
+          Option.fromNullishOr(rows[0]?.['value']).pipe(Option.filter(Predicate.isString)),
+        ),
+      ),
+  count: (table) => countRows(database, table),
+});
+
+/** The Topics semantic verifier (§3.5) over an open browser generation. */
+export const verifyTopicsDatabase = (database: SqliteDatabase): Effect.Effect<number, unknown> =>
+  verifyTopicsArtifact(browserTopicsReader(database));
 
 /** Semantically verifies one candidate generation before it can be activated.
  *  Returns the row count the Activation reports as `installed`. */
@@ -150,7 +181,13 @@ const defaultFetchArtifact = (url: string): Effect.Effect<BrowserArtifactRespons
  *  generation in place. */
 export const layerBrowserFileArtifacts = <Corpus extends string, RecipeId, InstallerId>(input: {
   readonly artifact: FileCorpusArtifact<Corpus, RecipeId, InstallerId>;
-  readonly release: FileArtifactRelease;
+  /** The pinned release, or `None` for a corpus with no published release yet.
+   *  A browser has no local disk to fall back to, so `None` means the recipe
+   *  offers no source at all and `ensure` reports the corpus unavailable —
+   *  which the §3.5 catch-and-warn posture turns into a log line, not a
+   *  startup failure. The installer stays fully wired either way, so the
+   *  active generation is still read and reported. */
+  readonly release: Option.Option<FileArtifactRelease>;
   /** Bound to the same corpus as the artifact: both carry the typed storage
    *  identity, so the asset path, generation filenames, IndexedDB database, and
    *  registry key all come from one derivation and a store belonging to another
@@ -171,37 +208,41 @@ export const layerBrowserFileArtifacts = <Corpus extends string, RecipeId, Insta
   const verify = input.verify;
   const fetchArtifact = input.fetch ?? defaultFetchArtifact;
   const onProgress = input.onProgress ?? (() => {});
-  const recipe = input.artifact.layerRecipe([
-    {
+  const releaseSource = (release: FileArtifactRelease): FileArtifactSourceService => ({
+    kind: 'release',
+    acquire: Effect.succeed({
       kind: 'release',
-      acquire: Effect.succeed({
-        kind: 'release',
-        provenance: CorpusProvenance.make({
-          source: assetSourceId(`${corpus}-release`),
-          revision: corpusRevision(input.release.revision),
-          digest: Option.some(corpusDigest(input.release.digest)),
-        }),
-        expectedSize: Option.some(input.release.size),
-        bytes: Stream.unwrap(
-          fetchArtifact(identity.assetPath).pipe(
-            Effect.mapError((cause) => sourceError(`fetch-${corpus}-release`, cause)),
-            Effect.flatMap((response) => {
-              if (response.status < 200 || response.status >= 300) {
-                return Effect.fail(
-                  sourceError(`fetch-${corpus}-release`, `HTTP ${String(response.status)}`),
-                );
-              }
-              return Effect.succeed(
-                response.bytes.pipe(
-                  Stream.mapError((cause) => sourceError(`read-${corpus}-release`, cause)),
-                ),
-              );
-            }),
-          ),
-        ),
+      provenance: CorpusProvenance.make({
+        source: assetSourceId(`${corpus}-release`),
+        revision: corpusRevision(release.revision),
+        digest: Option.some(corpusDigest(release.digest)),
       }),
-    },
-  ]);
+      expectedSize: Option.some(release.size),
+      bytes: Stream.unwrap(
+        fetchArtifact(identity.assetPath).pipe(
+          Effect.mapError((cause) => sourceError(`fetch-${corpus}-release`, cause)),
+          Effect.flatMap((response) => {
+            if (response.status < 200 || response.status >= 300) {
+              return Effect.fail(
+                sourceError(`fetch-${corpus}-release`, `HTTP ${String(response.status)}`),
+              );
+            }
+            return Effect.succeed(
+              response.bytes.pipe(
+                Stream.mapError((cause) => sourceError(`read-${corpus}-release`, cause)),
+              ),
+            );
+          }),
+        ),
+      ),
+    }),
+  });
+  const recipe = input.artifact.layerRecipe(
+    Option.match(input.release, {
+      onNone: () => [],
+      onSome: (release) => [releaseSource(release)],
+    }),
+  );
   const installer = input.artifact.layerInstaller({
     current: Effect.gen(function* () {
       if (!(yield* input.generations.openActive)) return Option.none();
@@ -280,10 +321,30 @@ export const layerBrowserBibleArtifacts = (input: {
 }): Layer.Layer<BibleArtifactInstaller | BibleArtifactRecipe> =>
   layerBrowserFileArtifacts({
     artifact: BibleArtifact,
-    release: BIBLE_ARTIFACT_RELEASE,
+    release: Option.some(BIBLE_ARTIFACT_RELEASE),
     generations: input.generations,
     downloader: input.downloader,
     verify: verifyBibleDatabase,
+    fetch: input.fetch,
+    onProgress: input.onProgress,
+  });
+
+/** The Topics instance of the browser File Corpus lifecycle. The browser has
+ *  no local disk to read a workspace build from, so the release pin is its only
+ *  source — until one is published, the recipe is empty and `ensure` reports
+ *  the corpus unavailable, which the worker catches and warns on per §3.5. */
+export const layerBrowserTopicsArtifacts = (input: {
+  readonly generations: CorpusGenerationStore<'topics'>;
+  readonly downloader: DatabaseFileDownloader;
+  readonly fetch?: (url: string) => Effect.Effect<BrowserArtifactResponse, unknown>;
+  readonly onProgress?: (progress: number) => void;
+}): Layer.Layer<TopicsArtifactInstaller | TopicsArtifactRecipe> =>
+  layerBrowserFileArtifacts({
+    artifact: TopicsArtifact,
+    release: TOPICS_ARTIFACT_RELEASE,
+    generations: input.generations,
+    downloader: input.downloader,
+    verify: verifyTopicsDatabase,
     fetch: input.fetch,
     onProgress: input.onProgress,
   });

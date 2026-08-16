@@ -1,5 +1,6 @@
 export {
   layerNativeBibleArtifacts,
+  layerNativeTopicsArtifacts,
   layerNativeFileArtifacts,
   type LocalFileArtifactSource,
   type NativeFileArtifactSource,

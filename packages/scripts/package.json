@@ -9,9 +9,11 @@
   "scripts": {
     "checkpoint": "bun src/checkpoint.ts",
     "typecheck": "tsc --noEmit",
-    "test": "bun test src/checkpoint"
+    "test": "bun test src",
+    "build:topics": "bun src/topics-compiler/main.ts"
   },
   "dependencies": {
+    "@bible/core": "workspace:*",
     "@effect/platform-bun": "catalog:",
     "effect": "catalog:",
     "pdf-parse": "^2.4.5"

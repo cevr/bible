@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Option } from 'effect';
+import { Context, Effect, Layer, Option, Schema, SchemaTransformation } from 'effect';
 import type { Stream } from 'effect';
 
 import type { CorpusInstallationError, CorpusSourceUnavailableError } from './errors.js';
@@ -25,6 +25,34 @@ export const BIBLE_ARTIFACT_RELEASE: FileArtifactRelease = {
   digest: 'sha256:e72244f576be2bfa1b28c4816f60d3668338c1322d7cd329d73143ec43bf277c',
   size: 156_291_072,
 };
+
+/** No topics content release is published yet. The pin is the compiled-in
+ *  offline floor of §3.6, and a floor whose digest names bytes that do not
+ *  exist is worse than no floor: every host would list a release source that
+ *  can only ever 404, and the digest would be a lie the trust surface is built
+ *  on. Until the first `topics.db` is released, the artifact is supplied from
+ *  the local sources every host already offers — the packaged copy, the
+ *  workspace build output `bun run build:topics` writes, and the runtime copy
+ *  in `~/.bible` — and `TOPICS_ARTIFACT_RELEASE` stays `None`.
+ *
+ *  Activating it on first publish is one edit here: fill in the release and
+ *  every host's recipe grows its release source, because each already appends
+ *  the pin through `topicsReleaseSource`. */
+export const TOPICS_ARTIFACT_RELEASE: Option.Option<FileArtifactRelease> = Option.none();
+
+/** The pinned Topics release as a source list: empty while no release exists,
+ *  one entry once `TOPICS_ARTIFACT_RELEASE` is filled in. Every host spreads
+ *  this after its local sources, so publishing the first content version wires
+ *  the release leg into all three hosts without touching any of them. */
+export interface ReleaseSourceDeclaration extends FileArtifactRelease {
+  readonly kind: 'release';
+}
+
+export const topicsReleaseSource = (): readonly ReleaseSourceDeclaration[] =>
+  Option.match(TOPICS_ARTIFACT_RELEASE, {
+    onNone: (): readonly ReleaseSourceDeclaration[] => [],
+    onSome: (release) => [{ kind: 'release', ...release }],
+  });
 
 export interface FileArtifact {
   readonly kind: FileArtifactSourceKind;
@@ -168,11 +196,62 @@ export const makeFileCorpusArtifact = <
 }): FileCorpusArtifact<Corpus, RecipeId, InstallerId> & RegisteredFileCorpus<Corpus> =>
   makeUnregisteredFileCorpusArtifact(input);
 
-/** The canonical Bible Artifact: the first and, until the topics artifact
- *  lands, only instance of the File Corpus lifecycle. */
+/** The canonical Bible Artifact: the first instance of the File Corpus
+ *  lifecycle. */
 export const BibleArtifact = makeFileCorpusArtifact({
   corpus: 'bible',
   label: 'Bible',
   Recipe: BibleArtifactRecipe,
   Installer: BibleArtifactInstaller,
+});
+
+/** The Topics Artifact schema version this build reads. It lives beside the
+ *  artifact rather than in `wiki/` because it is an *install-time* gate, not a
+ *  page concern: both semantic verifiers refuse a candidate whose major
+ *  exceeds it (§3.6), and both run inside the supply lifecycle before any
+ *  reader exists. `wiki/model.ts` re-exports it for the service that reads the
+ *  installed file. */
+export const TOPICS_SCHEMA_MAJOR = 1;
+export const TOPICS_SCHEMA_MINOR = 0;
+
+/** `meta.schema_major` as both verifiers must read it: the whole string is the
+ *  number or the artifact is unreadable. `Number.parseInt` cannot express that
+ *  — it stops at the first non-digit, so `'1junk'` reads as major 1 and an
+ *  artifact whose version field is corrupt installs as if it were v1. The
+ *  version gate is the only thing standing between this build and a file it
+ *  cannot interpret, so it decodes strictly or not at all.
+ *
+ *  Both semantic verifiers call this so the native and browser gates stay one
+ *  rule with one definition rather than two implementations that agree today. */
+export const TopicsSchemaMajor = Schema.String.check(Schema.isPattern(/^\d+$/)).pipe(
+  Schema.decodeTo(
+    Schema.Int.check(Schema.isBetween({ minimum: 0, maximum: Number.MAX_SAFE_INTEGER })),
+    SchemaTransformation.numberFromString,
+  ),
+);
+
+/** `None` when the stored value is not a full-string non-negative integer this
+ *  build can compare against `TOPICS_SCHEMA_MAJOR`. */
+export const readTopicsSchemaMajor: (raw: string) => Option.Option<number> =
+  Schema.decodeUnknownOption(TopicsSchemaMajor);
+
+export class TopicsArtifactRecipe extends Context.Service<
+  TopicsArtifactRecipe,
+  FileArtifactRecipeService
+>()('@bible/core/corpus-supply/TopicsArtifactRecipe') {}
+
+export class TopicsArtifactInstaller extends Context.Service<
+  TopicsArtifactInstaller,
+  FileArtifactInstallerService
+>()('@bible/core/corpus-supply/TopicsArtifactInstaller') {}
+
+/** The Topics Artifact: the wiki's compiled authored cores. Unlike Bible it is
+ *  best-effort — §3.5's degradation posture wraps its `ensure` in a catch, so a
+ *  host that cannot supply it still starts and every topic falls back to a
+ *  catalog landing page. */
+export const TopicsArtifact = makeFileCorpusArtifact({
+  corpus: 'topics',
+  label: 'Topics',
+  Recipe: TopicsArtifactRecipe,
+  Installer: TopicsArtifactInstaller,
 });

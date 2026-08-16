@@ -40,14 +40,41 @@ interface TopicReferenceRow {
   readonly osis: string;
 }
 
+/** Catalog rows are untrusted input crossing a boundary, so they are decoded
+ *  into the error channel rather than with a `*Sync` decoder.
+ *
+ *  A `*Sync` decoder throws, and a throw inside these handlers becomes a defect
+ *  that walks straight past the `mapError` below — so a `bible.db` whose
+ *  `alternative_names` column holds something other than a JSON string array
+ *  would kill the fiber instead of reporting a corrupt catalog. The column type
+ *  is `TEXT NOT NULL`, so the *type* is known; what is untrusted is the value,
+ *  which is exactly what the schema establishes. */
 const StringArrayJson = Schema.fromJsonString(Schema.Array(Schema.NonEmptyString));
-const decodeStrings = Schema.decodeUnknownSync(StringArrayJson);
 
-const summary = (row: TopicRow) =>
-  TopicSummary.make({
-    id: Schema.decodeSync(TopicId)(row.id),
-    name: row.name,
-    alternativeNames: decodeStrings(row.alternative_names),
+const decodeCatalog = <A>(
+  operation: string,
+  decode: (input: string) => Effect.Effect<A, Schema.SchemaError>,
+): ((input: string) => Effect.Effect<A, TopicUnavailableError>) =>
+  Effect.fnUntraced(function* (input: string) {
+    return yield* decode(input).pipe(
+      Effect.mapError((cause) => TopicUnavailableError.make({ operation, cause })),
+    );
+  });
+
+const decodeStrings = decodeCatalog(
+  'decode-alternative-names',
+  Schema.decodeEffect(StringArrayJson),
+);
+const decodeOsis = decodeCatalog('decode-osis', Schema.decodeEffect(StringArrayJson));
+const decodeId = decodeCatalog('decode-topic-id', Schema.decodeEffect(TopicId));
+
+const summary = (row: TopicRow): Effect.Effect<TopicSummary, TopicUnavailableError> =>
+  Effect.gen(function* () {
+    return TopicSummary.make({
+      id: yield* decodeId(row.id),
+      name: row.name,
+      alternativeNames: yield* decodeStrings(row.alternative_names),
+    });
   });
 
 export interface TopicServiceApi {
@@ -97,8 +124,8 @@ export class TopicService extends Context.Service<TopicService, TopicServiceApi>
           `;
         }
         return rows.pipe(
-          Effect.map((found) => found.map(summary)),
           Effect.mapError(unavailable('list')),
+          Effect.flatMap((found) => Effect.forEach(found, summary)),
         );
       });
 
@@ -123,14 +150,17 @@ export class TopicService extends Context.Service<TopicService, TopicServiceApi>
           for (const reference of references) {
             const values = referencesBySection.get(reference.section_id) ?? [];
             values.push(
-              TopicReference.make({ raw: reference.raw, osis: decodeStrings(reference.osis) }),
+              TopicReference.make({
+                raw: reference.raw,
+                osis: yield* decodeOsis(reference.osis),
+              }),
             );
             referencesBySection.set(reference.section_id, values);
           }
           return TopicDetail.make({
-            id: yield* Schema.decodeEffect(TopicId)(found.value.id).pipe(Effect.orDie),
+            id: yield* decodeId(found.value.id),
             name: found.value.name,
-            alternativeNames: decodeStrings(found.value.alternative_names),
+            alternativeNames: yield* decodeStrings(found.value.alternative_names),
             sections: sections.map((section) =>
               TopicSection.make({
                 label: section.label,
@@ -140,7 +170,10 @@ export class TopicService extends Context.Service<TopicService, TopicServiceApi>
           });
         }).pipe(
           Effect.mapError((cause) => {
+            // A row that failed to decode already carries its own operation;
+            // relabelling it as `topic` would hide which column was corrupt.
             if (Schema.is(TopicNotFoundError)(cause)) return cause;
+            if (Schema.is(TopicUnavailableError)(cause)) return cause;
             return unavailable('topic')(cause);
           }),
         ),

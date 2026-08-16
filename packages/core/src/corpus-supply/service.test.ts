@@ -11,8 +11,9 @@ import {
   publicationId,
   publicationOrder,
 } from '../writings/model.js';
+import { CorpusSourceUnavailableError } from './errors.js';
 import { CorpusSupply } from './service.js';
-import { Target, WritingsContribution, unknownProvenance } from './model.js';
+import { Target, WritingsContribution, unknownProvenance, type CorpusProvenance } from './model.js';
 import { WritingsAssetRecipe } from './source.js';
 import { BibleArtifact } from './file-artifact.js';
 
@@ -175,6 +176,56 @@ describe('CorpusSupply', () => {
       );
 
       expect(failure).toMatchObject({ _tag: 'CorpusRecipeUnavailableError', corpus: 'bible' });
+    }),
+  );
+
+  /** A wired recipe whose every source refuses to acquire — an offline host, or
+   *  one whose only source is a release with no published artifact yet. */
+  const offline = (current: Option.Option<CorpusProvenance>) => {
+    const recipe = BibleArtifact.layerRecipe([
+      {
+        kind: 'release',
+        acquire: CorpusSourceUnavailableError.make({
+          operation: 'fetch-bible-release',
+          cause: 'offline',
+        }),
+      },
+    ]);
+    const installer = BibleArtifact.layerInstaller({
+      current: Effect.succeed(current),
+      install: (artifact) => Effect.succeed({ installed: 31_102, provenance: artifact.provenance }),
+    });
+    return CorpusSupply.layer.pipe(Layer.provide(Layer.merge(recipe, installer)));
+  };
+
+  it.effect('keeps a verified active artifact when no source can be acquired', () =>
+    Effect.gen(function* () {
+      // The stale-fallback state (§3.5): the installed file passed digest and
+      // semantic verification before activation, so an offline host keeps
+      // serving it. Reporting an error here made hosts warn about a corpus that
+      // was working perfectly.
+      const receipt = yield* Effect.gen(function* () {
+        const supply = yield* CorpusSupply;
+        return yield* supply.ensure({ target: Target.file('bible') });
+      }).pipe(Effect.provide(offline(Option.some(contribution.provenance))));
+
+      expect(receipt.activated).toEqual([]);
+      expect(receipt.skipped).toEqual(['canonical']);
+    }),
+  );
+
+  it.effect('still fails when nothing is installed and no source can be acquired', () =>
+    Effect.gen(function* () {
+      // Bible is fail-closed at startup. With no active artifact there is
+      // nothing to fall back to, so the acquisition failure must still surface.
+      const failure = yield* Effect.flip(
+        Effect.gen(function* () {
+          const supply = yield* CorpusSupply;
+          return yield* supply.ensure({ target: Target.file('bible') });
+        }).pipe(Effect.provide(offline(Option.none()))),
+      );
+
+      expect(failure._tag).toBe('CorpusSourceUnavailableError');
     }),
   );
 });

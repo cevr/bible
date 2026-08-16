@@ -1,5 +1,5 @@
 /** Effect-native orchestration for the browser database worker. */
-import { CorpusSupply, corpusStorageIdentity } from '@bible/core/corpus-supply';
+import { CorpusSupply, corpusStorageIdentity, Target } from '@bible/core/corpus-supply';
 import { LibraryEntityId } from '@bible/core/library-state';
 import { failureCategory } from '@bible/core/observability';
 import { ClientId, makeSimulatedTransport, MutationId, Timestamp } from '@bible/core/local-first';
@@ -12,7 +12,10 @@ import { OPFSAdaptiveVFS } from 'wa-sqlite/src/examples/OPFSAdaptiveVFS.js';
 
 import userStateMigrationSql from '../../../../packages/core/src/local-first/migrations/0001_user_state.sql?raw';
 
-import { layerBrowserBibleArtifacts } from './corpus-artifact-database.js';
+import {
+  layerBrowserBibleArtifacts,
+  layerBrowserTopicsArtifacts,
+} from './corpus-artifact-database.js';
 import { makeCorpusGenerationStore } from './corpus-generation-store.js';
 import {
   makeDatabaseFileDownloader,
@@ -164,9 +167,46 @@ const initializeDatabases = (
       onProgress: (progress) =>
         host.log(`[web.bible] install-progress progress=${String(progress)}`),
     });
-    const corpusSupply = CorpusSupply.layer.pipe(Layer.provide(bibleArtifacts));
+    // A second generation store, keyed entirely off the topics storage
+    // identity: its own OPFS filename prefix, its own IndexedDB registry, its
+    // own active-generation key. Nothing is shared with Bible's store, so a
+    // failed topics candidate can never retire a Bible generation.
+    const topicsDatabases = makeSqliteDatabaseFamily(sqlite3, vfsName);
+    const topicsStorage = corpusStorageIdentity('topics');
+    const topicsArtifacts = layerBrowserTopicsArtifacts({
+      generations: makeCorpusGenerationStore({
+        identity: topicsStorage,
+        databases: topicsDatabases,
+        registry: makeIndexedDbGenerationRegistryStore({
+          databaseName: topicsStorage.metadataDatabaseName,
+          key: topicsStorage.activeGenerationKey,
+        }),
+        discard: (filename) => discardCorpusGeneration(vfs, filename),
+      }),
+      downloader,
+      onProgress: (progress) =>
+        host.log(`[web.topics] install-progress progress=${String(progress)}`),
+    });
+    const corpusSupply = CorpusSupply.layer.pipe(
+      Layer.provide(Layer.merge(bibleArtifacts, topicsArtifacts)),
+    );
     yield* Effect.gen(function* () {
-      yield* (yield* CorpusSupply).ensure();
+      const supply = yield* CorpusSupply;
+      // Bible stays fail-closed: the app cannot read without it.
+      yield* supply.ensure();
+      // Topics is writings-style catch-and-warn (§3.5). Both installers keep
+      // the active generation on any failure, so the only states reachable
+      // here are current, stale-but-verified, or absent — and absent means
+      // catalog pages, not a broken app.
+      yield* supply
+        .ensure({ target: Target.topics() })
+        .pipe(
+          Effect.catch((cause) =>
+            Effect.sync(() =>
+              host.warn(`[web.topics] unavailable category=${failureCategory(cause)}`),
+            ),
+          ),
+        );
     }).pipe(Effect.provide(corpusSupply));
     yield* initializeWritingsDatabase(writingsSqlite).pipe(
       Effect.catch((cause) =>

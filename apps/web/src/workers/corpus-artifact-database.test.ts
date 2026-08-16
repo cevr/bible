@@ -4,11 +4,13 @@ import {
   corpusStorageIdentity,
   CorpusSupply,
   makeUnregisteredFileCorpusArtifact,
+  TOPICS_VERIFIER_CASES,
   type CorpusInstallationError,
   type CorpusName,
   type CorpusSourceUnavailableError,
   type FileArtifactInstallerService,
   type FileArtifactRecipeService,
+  type TopicsVerifierFixture,
 } from '@bible/core/corpus-supply';
 import { describe, expect, it } from 'effect-bun-test';
 import { Context, Effect, Layer, Option, Predicate, Stream } from 'effect';
@@ -16,6 +18,7 @@ import { Context, Effect, Layer, Option, Predicate, Stream } from 'effect';
 import {
   layerBrowserBibleArtifacts,
   layerBrowserFileArtifacts,
+  verifyTopicsDatabase,
   type BrowserArtifactVerifier,
 } from './corpus-artifact-database.js';
 import {
@@ -348,7 +351,7 @@ describe('parameterized browser File Corpus lifecycle', () => {
     };
     const artifacts = layerBrowserFileArtifacts({
       artifact: FixtureArtifact,
-      release: fixtureRelease,
+      release: Option.some(fixtureRelease),
       generations: makeCorpusGenerationStore({
         identity: FixtureArtifact.storage,
         databases,
@@ -521,7 +524,7 @@ describe('parameterized browser File Corpus lifecycle', () => {
   ): void => {
     layerBrowserFileArtifacts({
       artifact: BibleArtifact,
-      release: BIBLE_ARTIFACT_RELEASE,
+      release: Option.some(BIBLE_ARTIFACT_RELEASE),
       // @ts-expect-error a Bible artifact may not be wired onto another corpus's store
       generations: fixtureGenerations,
       downloader: { install: () => Effect.succeed({ bytes: 0, digest }) },
@@ -529,7 +532,7 @@ describe('parameterized browser File Corpus lifecycle', () => {
     });
     layerBrowserFileArtifacts({
       artifact: FixtureArtifact,
-      release: fixtureRelease,
+      release: Option.some(fixtureRelease),
       // @ts-expect-error a fixture artifact may not be wired onto Bible's store
       generations: bibleGenerations,
       downloader: { install: () => Effect.succeed({ bytes: 0, digest }) },
@@ -539,18 +542,56 @@ describe('parameterized browser File Corpus lifecycle', () => {
     // rather than rejecting every call.
     layerBrowserFileArtifacts({
       artifact: BibleArtifact,
-      release: BIBLE_ARTIFACT_RELEASE,
+      release: Option.some(BIBLE_ARTIFACT_RELEASE),
       generations: bibleGenerations,
       downloader: { install: () => Effect.succeed({ bytes: 0, digest }) },
       verify: () => Effect.succeed(0),
     });
     layerBrowserFileArtifacts({
       artifact: FixtureArtifact,
-      release: fixtureRelease,
+      release: Option.some(fixtureRelease),
       generations: fixtureGenerations,
       downloader: { install: () => Effect.succeed({ bytes: 0, digest }) },
       verify: () => Effect.succeed(0),
     });
   };
   void rejectsAMismatchedGenerationStore;
+});
+
+/** A Topics artifact reduced to what its verifier reads: the integrity pragma,
+ *  the stored `schema_major` string, and one row count per §2.2 table. */
+const makeTopicsDatabase = (fixture: TopicsVerifierFixture): SqliteDatabase => ({
+  isOpen: true,
+  open: () => Effect.void,
+  close: Effect.void,
+  query: (sql) =>
+    Effect.sync((): readonly SqliteRow[] => {
+      if (sql === 'PRAGMA integrity_check') return [{ integrity_check: 'ok' }];
+      if (sql.includes('FROM meta')) return [{ value: fixture.schemaMajor }];
+      if (sql.includes('FROM topic_aliases')) return [{ count: fixture.aliases }];
+      if (sql.includes('FROM topics')) return [{ count: fixture.topics }];
+      return [{ count: 1 }];
+    }),
+  values: () => Effect.succeed([]),
+  write: () => Effect.succeed(1),
+  exec: () => Effect.void,
+});
+
+/** The shared contract matrix, run against the production verifier through the
+ *  browser reader. `packages/core`'s native suite runs the identical matrix
+ *  through its own reader, so a gate that holds on desktop cannot leak here:
+ *  a case is either satisfied on both sides or it fails on one. */
+describe('Topics semantic verifier — browser adapter', () => {
+  for (const testCase of TOPICS_VERIFIER_CASES) {
+    it.effect(testCase.name, () =>
+      Effect.gen(function* () {
+        const database = makeTopicsDatabase(testCase.fixture);
+        if (testCase.outcome.kind === 'accepted') {
+          expect(yield* verifyTopicsDatabase(database)).toBe(testCase.outcome.installed);
+          return;
+        }
+        expect(yield* Effect.flip(verifyTopicsDatabase(database))).toBe(testCase.outcome.message);
+      }),
+    );
+  }
 });

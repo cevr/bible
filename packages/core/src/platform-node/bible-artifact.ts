@@ -6,11 +6,18 @@ import { bytesToHex } from '@noble/hashes/utils.js';
 import { CorpusInstallationError, CorpusSourceUnavailableError } from '../corpus-supply/errors.js';
 import {
   BibleArtifact,
+  TopicsArtifact,
   type BibleArtifactInstaller,
   type BibleArtifactRecipe,
   type FileArtifactSourceKind,
   type FileCorpusArtifact,
+  type TopicsArtifactInstaller,
+  type TopicsArtifactRecipe,
 } from '../corpus-supply/file-artifact.js';
+import {
+  verifyTopicsArtifact,
+  type TopicsArtifactReader,
+} from '../corpus-supply/topics-verifier.js';
 import {
   assetSourceId,
   corpusDigest,
@@ -198,6 +205,51 @@ export const verifyBibleDatabase = (filename: string): Effect.Effect<number, unk
     closeDatabase,
   );
 
+/** The native `TopicsArtifactReader`: the three reads the shared verifier makes,
+ *  expressed against one open `better-sqlite3` connection.
+ *
+ *  Exported because it is also how the verifier's *rules* become testable here.
+ *  `better-sqlite3`'s NAPI binding hard-crashes the Bun canary this repo tests
+ *  under, so the driver cannot be opened in a test — but the driver is the only
+ *  part that cannot. A test supplies its own reader over `bun:sqlite` and runs
+ *  the same `verifyTopicsArtifact` production installs run, which is the whole
+ *  reason the reader is a parameter rather than an internal detail. */
+export const nativeTopicsReader = (database: Database.Database): TopicsArtifactReader => ({
+  integrity: Effect.try({
+    try: () => String(database.pragma('integrity_check', { simple: true })),
+    catch: storeError('integrity-check'),
+  }),
+  meta: (key) =>
+    Effect.try({
+      try: () => database.prepare('SELECT value FROM meta WHERE key = ?').get(key),
+      catch: storeError('read-meta'),
+    }).pipe(
+      Effect.flatMap((raw) =>
+        // No row is `None`, not a failure: "the artifact does not say" is a
+        // state the verifier decides about, not one the reader decides for it.
+        Option.match(Option.fromNullishOr(raw), {
+          onNone: () => Effect.succeedNone,
+          onSome: (row) =>
+            Schema.decodeUnknownEffect(Schema.Struct({ value: Schema.String }))(row).pipe(
+              Effect.map((decoded) => Option.some(decoded.value)),
+              Effect.mapError(storeError('read-meta')),
+            ),
+        }),
+      ),
+    ),
+  count: (table) => countRows(database, table),
+});
+
+/** The Topics semantic verifier (§3.5) over a file on disk: open, apply the
+ *  shared rules, close. The rules themselves live in `topics-verifier.ts` so the
+ *  browser adapter applies the identical gate. */
+export const verifyTopicsDatabase = (filename: string): Effect.Effect<number, unknown> =>
+  Effect.acquireUseRelease(
+    openDatabase(filename, true),
+    (database) => verifyTopicsArtifact(nativeTopicsReader(database)),
+    closeDatabase,
+  );
+
 const sqliteProvenanceStore: NativeFileArtifactProvenanceStore = {
   read: (filename) =>
     Effect.acquireUseRelease(
@@ -382,4 +434,23 @@ export const layerNativeBibleArtifacts = (input: {
     fetch: input.fetch,
     provenanceStore: input.provenanceStore,
     verify: input.verify ?? verifyBibleDatabase,
+  });
+
+/** The Topics instance of the native File Corpus lifecycle. Callers pass the
+ *  local sources their host offers; `topicsReleaseSource` appends the pinned
+ *  release once one is published. */
+export const layerNativeTopicsArtifacts = (input: {
+  readonly destination: string;
+  readonly sources: readonly NativeFileArtifactSource[];
+  readonly fetch?: (url: string) => Effect.Effect<Response, unknown>;
+  readonly verify?: (filename: string) => Effect.Effect<number, unknown>;
+  readonly provenanceStore?: NativeFileArtifactProvenanceStore;
+}): Layer.Layer<TopicsArtifactInstaller | TopicsArtifactRecipe> =>
+  layerNativeFileArtifacts({
+    artifact: TopicsArtifact,
+    destination: input.destination,
+    sources: input.sources,
+    fetch: input.fetch,
+    provenanceStore: input.provenanceStore,
+    verify: input.verify ?? verifyTopicsDatabase,
   });

@@ -9,11 +9,23 @@
  * - egw-paragraphs.db: too large to host — prints sync instructions
  */
 
-import { BIBLE_ARTIFACT_RELEASE, CorpusSupply } from '@bible/core/corpus-supply';
-import { layerNativeBibleArtifacts } from '@bible/core/corpus-supply/node';
-import { Config, Console, Effect, FileSystem, Layer, Path, Schema } from 'effect';
+import {
+  BIBLE_ARTIFACT_RELEASE,
+  CorpusSupply,
+  type CorpusSupplyReceipt,
+  Target,
+  topicsReleaseSource,
+} from '@bible/core/corpus-supply';
+import {
+  layerNativeBibleArtifacts,
+  layerNativeTopicsArtifacts,
+  type NativeFileArtifactSource,
+} from '@bible/core/corpus-supply/node';
+import { Config, Console, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
 import { Command, Flag } from 'effect/unstable/cli';
 import { HttpClient, HttpClientResponse } from 'effect/unstable/http';
+
+import { packagedDataCandidates } from '~/src/lib/paths';
 
 class InitError extends Schema.TaggedError<InitError>()('InitError', {
   cause: Schema.Unknown,
@@ -63,15 +75,70 @@ export const init = Command.make('init', { force }, (args) =>
       destination: path.join(bibleDir, 'bible.db'),
       sources: [{ kind: 'release', ...BIBLE_ARTIFACT_RELEASE }],
     });
-    const bibleSupply = CorpusSupply.layer.pipe(Layer.provide(bibleArtifacts));
+    // Topics has no published release yet, so its sources are the local slots,
+    // in the same precedence every host uses: the copy shipped inside the CLI
+    // install, the workspace build `bun run build:topics` writes, and any copy
+    // already installed under ~/.bible.
+    const topicsArtifacts = layerNativeTopicsArtifacts({
+      destination: path.join(bibleDir, 'topics.db'),
+      sources: [
+        // Resolved from the executable's own location first, so a binary copied
+        // off the build machine still finds the artifact it ships with; the
+        // build-time root is only the dev-mode fallback. Every candidate is
+        // offered as its own source rather than one path being chosen here —
+        // the supply pipeline already tries sources in order and skips the ones
+        // that are absent, so there is no reason to duplicate that logic.
+        ...packagedDataCandidates('topics.db').map((candidate): NativeFileArtifactSource => ({
+          kind: 'packaged',
+          path: candidate,
+          label: 'packaged',
+        })),
+        // Only reachable when the CLI runs from the repo root; an installed
+        // binary is invoked from arbitrary directories, which is why the
+        // packaged slot above — not this one — is the install-owned source.
+        {
+          kind: 'workspace',
+          path: path.resolve(process.cwd(), 'packages', 'core', 'data', 'topics.db'),
+          label: 'workspace',
+        },
+        ...topicsReleaseSource(),
+      ],
+    });
+    const supply = CorpusSupply.layer.pipe(
+      Layer.provide(Layer.merge(bibleArtifacts, topicsArtifacts)),
+    );
     const bible = yield* Effect.gen(function* () {
       return yield* (yield* CorpusSupply).ensure({ refresh: args.force });
-    }).pipe(Effect.provide(bibleSupply));
+    }).pipe(Effect.provide(supply));
     let bibleStatus = 'installed and verified';
     if (bible.activated.length === 0) {
       bibleStatus = 'ready';
     }
     yield* Console.log(`✓ bible.db (${bibleStatus})`);
+
+    // Writings-style catch-and-warn (§3.5): a missing topics artifact leaves
+    // the wiki on catalog pages, which is a degraded feature, not a failed init.
+    const topics = yield* Effect.gen(function* () {
+      return yield* (yield* CorpusSupply)
+        .ensure({ target: Target.topics(), refresh: args.force })
+        .pipe(Effect.map(Option.some));
+    }).pipe(
+      Effect.provide(supply),
+      Effect.catch(() => Effect.succeed(Option.none<CorpusSupplyReceipt>())),
+    );
+    yield* Option.match(topics, {
+      onNone: () =>
+        Console.log(`✗ topics.db — build it with:`).pipe(
+          Effect.andThen(Console.log(`  bun run build:topics`)),
+        ),
+      onSome: (receipt) =>
+        Console.log(
+          `✓ topics.db (${Option.match(
+            Option.liftPredicate(receipt.activated, (activated) => activated.length > 0),
+            { onNone: () => 'ready', onSome: () => 'installed and verified' },
+          )})`,
+        ),
+    });
 
     // Download each database
     for (const db of Object.values(DBS)) {

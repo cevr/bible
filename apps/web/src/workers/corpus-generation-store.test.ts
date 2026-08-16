@@ -201,6 +201,61 @@ describe('browser generation store for a synthetic File Corpus', () => {
   );
 });
 
+describe('browser Topics generation store', () => {
+  const topicsStorage = corpusStorageIdentity('topics');
+  const active = topicsStorage.generationFilename('topics-e3b0c44298fc', 'aaaaaaaaaaaa');
+
+  it.effect('derives a second generation namespace that never collides with Bible', () =>
+    Effect.sync(() => {
+      // The whole point of a second OPFS generation: nothing is shared, so a
+      // topics install can never touch a Bible generation.
+      expect(topicsStorage.generationPrefix).toBe('topics');
+      expect(topicsStorage.metadataDatabaseName).toBe('topics-corpus-metadata');
+      expect(topicsStorage.activeGenerationKey).toBe('active-topics-generation');
+      expect(topicsStorage.assetPath).toBe('/api/assets/topics');
+      expect(topicsStorage.metadataDatabaseName).not.toBe(bibleStorage.metadataDatabaseName);
+      expect(topicsStorage.activeGenerationKey).not.toBe(bibleStorage.activeGenerationKey);
+      expect(topicsStorage.ownsGeneration('bible-db-v2-e72244f576be.db')).toBe(false);
+      expect(bibleStorage.ownsGeneration(active)).toBe(false);
+    }),
+  );
+
+  it.effect('rolls back a failed candidate and keeps the active generation', () =>
+    Effect.gen(function* () {
+      const fixture = harness({ active: Option.some(active), managed: [active] }, topicsStorage);
+      expect(yield* fixture.store.openActive).toBe(true);
+
+      // Reserve a candidate the way an install does, then abandon it.
+      const candidate = yield* fixture.store.reserve(
+        topicsStorage.generationFilename('topics-ffffffffffff', 'bbbbbbbbbbbb'),
+      );
+      expect(fixture.state().managed).toContain(candidate.filename);
+
+      yield* fixture.store.discardCandidate(candidate.filename);
+
+      expect(fixture.events).toContain(`discard:${candidate.filename}`);
+      // The active generation survives the failed candidate untouched.
+      expect(fixture.state()).toEqual({ active: Option.some(active), managed: [active] });
+    }),
+  );
+
+  it.effect('leaves a Bible generation alone while reconciling its own', () =>
+    Effect.gen(function* () {
+      const foreign = 'bible-db-v2-e72244f576be.db';
+      const orphan = topicsStorage.generationFilename('topics-ffffffffffff', 'cccccccccccc');
+      const fixture = harness(
+        { active: Option.some(active), managed: [active, orphan, foreign] },
+        topicsStorage,
+      );
+
+      expect(yield* fixture.store.openActive).toBe(true);
+      expect(fixture.events).toContain(`discard:${orphan}`);
+      expect(fixture.events).not.toContain(`discard:${foreign}`);
+      expect(fixture.state().managed).toContain(foreign);
+    }),
+  );
+});
+
 describe('Corpus Storage Identity', () => {
   it.effect("keeps Bible's shipped on-disk and IndexedDB names byte-identical", () =>
     Effect.sync(() => {

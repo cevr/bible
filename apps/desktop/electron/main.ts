@@ -1,5 +1,12 @@
 import { BibleCorpus, BibleDatabase } from '@bible/core/bible-db';
-import { BIBLE_ARTIFACT_RELEASE, CorpusSupply } from '@bible/core/corpus-supply';
+import {
+  BIBLE_ARTIFACT_RELEASE,
+  type CorpusActivation,
+  CorpusSupply,
+  Target,
+  topicsReleaseSource,
+} from '@bible/core/corpus-supply';
+import { failureCategory } from '@bible/core/observability';
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
 import userStateMigrationSql from '@bible/core/local-first/migrations/0001_user_state.sql';
 import { Effect, Fiber, Layer, Option } from 'effect';
@@ -8,7 +15,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { DesktopProcedurePortMessage } from '../shared/procedure-channel.js';
-import { layerNativeBibleArtifacts } from './bible-corpus-file.js';
+import { layerNativeBibleArtifacts, layerNativeTopicsArtifacts } from './bible-corpus-file.js';
 import {
   layerDesktopProcedureServer,
   type DesktopProcedureServerPort,
@@ -69,6 +76,7 @@ const cliStateDbPath = (): string =>
     path.join(app.getPath('home'), '.bible', 'state.db'),
   );
 const bibleDbPath = () => path.join(app.getPath('userData'), 'bible.db');
+const topicsDbPath = () => path.join(app.getPath('userData'), 'topics.db');
 
 ipcMain.handle('bible:file-select', async () => {
   const selected = await dialog.showOpenDialog({
@@ -189,12 +197,64 @@ void app.whenReady().then(async () => {
       { kind: 'release', ...BIBLE_ARTIFACT_RELEASE },
     ],
   });
-  const corpusSupply = CorpusSupply.layer.pipe(Layer.provide(bibleArtifacts));
+  // Topics reads the same three local slots Bible does, plus the release pin
+  // once one is published. `layerNativeFileArtifacts` performs the atomic swap:
+  // stream to `topics.db.building`, verify digest and semantics, then rename
+  // over `userData/topics.db`. Any failure removes the building file and leaves
+  // the active artifact untouched.
+  const topicsArtifacts = layerNativeTopicsArtifacts({
+    destination: topicsDbPath(),
+    sources: [
+      {
+        kind: 'packaged',
+        path: path.join(process.resourcesPath, 'data', 'topics.db'),
+        label: 'packaged',
+      },
+      {
+        kind: 'workspace',
+        path: path.resolve(process.cwd(), '..', '..', 'packages', 'core', 'data', 'topics.db'),
+        label: 'workspace',
+      },
+      {
+        kind: 'runtime',
+        path: path.join(app.getPath('home'), '.bible', 'topics.db'),
+        label: 'runtime',
+      },
+      ...topicsReleaseSource(),
+    ],
+  });
+  const corpusSupply = CorpusSupply.layer.pipe(
+    Layer.provide(Layer.merge(bibleArtifacts, topicsArtifacts)),
+  );
   const provisionedCorpus = await Effect.runPromise(
     Effect.gen(function* () {
       const supply = yield* CorpusSupply;
       return yield* supply.ensure();
     }).pipe(Effect.provide(corpusSupply)),
+  );
+  // Writings-style catch-and-warn (§3.5): topics never blocks startup.
+  const topicsActivation = await Effect.runPromise(
+    Effect.gen(function* () {
+      const supply = yield* CorpusSupply;
+      const receipt = yield* supply.ensure({ target: Target.topics() });
+      return Option.fromUndefinedOr(
+        receipt.activated.find((activation) => activation.corpus === 'topics'),
+      );
+    }).pipe(
+      Effect.provide(corpusSupply),
+      Effect.catch((cause) =>
+        Effect.sync(() => {
+          console.warn(`[main] topics-corpus-unavailable category=${failureCategory(cause)}`);
+          return Option.none<CorpusActivation>();
+        }),
+      ),
+    ),
+  );
+  console.info(
+    `[main] topics-corpus-ready state=${Option.match(topicsActivation, {
+      onNone: () => 'absent',
+      onSome: () => 'activated',
+    })}`,
   );
   const bibleActivation = Option.fromUndefinedOr(
     provisionedCorpus.activated.find((activation) => activation.corpus === 'bible'),

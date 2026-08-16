@@ -24,7 +24,7 @@ import { homedir } from 'os';
 import { join } from 'path';
 
 import { BibleToolsApi } from '@bible/api';
-import { BIBLE_ARTIFACT_RELEASE } from '@bible/core/corpus-supply';
+import { BIBLE_ARTIFACT_RELEASE, TOPICS_ARTIFACT_RELEASE } from '@bible/core/corpus-supply';
 import { BibleService } from '@bible/core/bible/service';
 import * as BibleDbBun from '@bible/core/bible-db/bun';
 import * as EGWDbBun from '@bible/core/egw-db/bun';
@@ -131,6 +131,42 @@ const StaticFilesMiddleware = HttpMiddleware.make((app) =>
           'Content-Type': 'application/octet-stream',
           'Content-Length': String(BIBLE_ARTIFACT_RELEASE.size),
           'X-Artifact-Digest': BIBLE_ARTIFACT_RELEASE.digest,
+          ...CROSS_ORIGIN_HEADERS,
+        },
+      });
+    }
+
+    // The Topics proxy mirrors the Bible one, with one difference the §3.5
+    // posture requires: no Topics release is published yet, so the route
+    // answers 404 rather than 502. A browser that cannot get topics falls back
+    // to catalog pages, and "not published" is not a gateway failure.
+    if (pathname === '/api/assets/topics' && request.method === 'GET') {
+      if (Option.isNone(TOPICS_ARTIFACT_RELEASE)) {
+        return HttpServerResponse.text('No Topics Artifact release is published', {
+          status: 404,
+          headers: CROSS_ORIGIN_HEADERS,
+        });
+      }
+      const release = TOPICS_ARTIFACT_RELEASE.value;
+      const upstream = yield* Effect.tryPromise(() => fetch(release.url)).pipe(
+        Effect.map(Option.some),
+        Effect.orElseSucceed(() => Option.none<Response>()),
+      );
+      const upstreamBody = upstream.pipe(
+        Option.filter((response) => response.ok),
+        Option.flatMap((response) => Option.fromNullOr(response.body)),
+      );
+      if (Option.isNone(upstreamBody)) {
+        return HttpServerResponse.text('Topics Artifact unavailable', {
+          status: 502,
+          headers: CROSS_ORIGIN_HEADERS,
+        });
+      }
+      return HttpServerResponse.raw(upstreamBody.value, {
+        headers: {
+          'Content-Type': 'application/octet-stream',
+          'Content-Length': String(release.size),
+          'X-Artifact-Digest': release.digest,
           ...CROSS_ORIGIN_HEADERS,
         },
       });

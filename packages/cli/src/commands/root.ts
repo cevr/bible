@@ -14,6 +14,7 @@ import { sabbathSchool } from './sabbath-school.js';
 import { slides } from './slides.js';
 import { studies } from './studies.js';
 import { sync } from './sync.js';
+import { wiki } from './wiki.js';
 import { cliOptions, CliOptions } from '../services/cli-options.js';
 import { CliProcessLive } from '../services/process.js';
 
@@ -36,6 +37,7 @@ Commands:
   export            Export generated output
   init              Initialize local data
   sync              Synchronize local data
+  wiki              Browse compiled topic pages
 
 Run 'bible <command> --help' for command-specific help.`;
 
@@ -56,6 +58,7 @@ export const rootCommand = Command.make('bible', cliOptions, () => Console.log(r
     exportOutput,
     init,
     sync,
+    wiki,
   ]),
   Command.provideSync(CliOptions, (input) => {
     let verbose = false;
