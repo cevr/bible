@@ -13,7 +13,7 @@ import { WritingsService } from '@bible/core/writings/service';
 import { TopicService } from '@bible/core/topics';
 import { EGWCommentaryService } from '@bible/core/egw-commentary';
 import { StudyService } from '@bible/core/study';
-import { WikiService, WikiSectionSources } from '@bible/core/wiki';
+import { LookupService, WikiService, WikiSectionSources } from '@bible/core/wiki';
 import { Layer, Option } from 'effect';
 import * as RpcServer from 'effect/unstable/rpc/RpcServer';
 
@@ -87,11 +87,17 @@ export const layerProcedureServer = (input: ProcedureServerInput) => {
     Layer.provide(bibleDatabase),
     Layer.provide(EGWCommentaryService.Live.pipe(Layer.provide(writingsDatabase))),
   );
+  // Select-to-lookup (§7). The same two dependencies the wiki itself takes —
+  // the artifact for the topic group, the four section sources for the rest —
+  // so a worker that can compose a topic page can resolve a selection with no
+  // second wiring to keep in step.
+  const lookup = LookupService.Live.pipe(Layer.provide(wiki), Layer.provide(sectionSources));
   const dependencies = Layer.mergeAll(
     bible,
     writings,
     topics,
     wiki,
+    lookup,
     study,
     writingsLibrary,
     layerLocalProcedureRuntime(input.runtime),

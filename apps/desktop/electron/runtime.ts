@@ -24,7 +24,12 @@ import { WritingsService } from '@bible/core/writings/service';
 import { EGWCommentaryService } from '@bible/core/egw-commentary';
 import { StudyService } from '@bible/core/study';
 import { TopicService } from '@bible/core/topics';
-import { layerArtifactOrAbsent, WikiSectionSources, type WikiService } from '@bible/core/wiki';
+import {
+  layerArtifactOrAbsent,
+  LookupService,
+  WikiSectionSources,
+  type WikiService,
+} from '@bible/core/wiki';
 import * as SqliteNode from '@effect/sql-sqlite-node/SqliteClient';
 import * as NodeFileSystem from '@effect/platform-node/NodeFileSystem';
 import * as NodeHttpClient from '@effect/platform-node/NodeHttpClient';
@@ -67,12 +72,11 @@ const bibleDbLayer = (
  *  operator needs surfaced rather than smoothed into "not installed". Core's
  *  `layerArtifactOrAbsent` makes that split; this host only supplies the
  *  driver. */
-const wikiLayer = (input: {
-  readonly topicsDbFile: string;
+const sectionSourcesLayer = (input: {
   readonly bible: Layer.Layer<BibleCorpus | BibleDatabase | BibleService | TopicService>;
   readonly writings: Layer.Layer<EGWParagraphDatabase>;
-}): Layer.Layer<WikiService, never, FileSystem.FileSystem> => {
-  const sources = WikiSectionSources.Live.pipe(
+}): Layer.Layer<WikiSectionSources> =>
+  WikiSectionSources.Live.pipe(
     Layer.provide(input.bible),
     Layer.provide(WritingsService.Live.pipe(Layer.provide(input.writings))),
     Layer.provide(EGWCommentaryService.Live.pipe(Layer.provide(input.writings))),
@@ -84,11 +88,25 @@ const wikiLayer = (input: {
     WikiSectionSources.NotWiredOnCorpusAbsence,
     Layer.orDie,
   );
-  return layerArtifactOrAbsent(topicsArtifactDriver, input.topicsDbFile).pipe(
+
+const wikiLayer = (input: {
+  readonly topicsDbFile: string;
+  readonly bible: Layer.Layer<BibleCorpus | BibleDatabase | BibleService | TopicService>;
+  readonly sources: Layer.Layer<WikiSectionSources>;
+}): Layer.Layer<WikiService, never, FileSystem.FileSystem> =>
+  layerArtifactOrAbsent(topicsArtifactDriver, input.topicsDbFile).pipe(
     Layer.provide(input.bible),
-    Layer.provide(sources),
+    Layer.provide(input.sources),
   );
-};
+
+/** Select-to-lookup on Electron main (§7): the same portable `LookupService`
+ *  the worker and the CLI resolve, over the two dependencies the wiki already
+ *  has. No new corpus and no new file handle — the seam is what was missing. */
+const lookupLayer = (input: {
+  readonly wiki: Layer.Layer<WikiService>;
+  readonly sources: Layer.Layer<WikiSectionSources>;
+}): Layer.Layer<LookupService> =>
+  LookupService.Live.pipe(Layer.provide(input.wiki), Layer.provide(input.sources));
 
 /** The study seam on Electron main (§8.1): the same portable `StudyService`
  *  the worker and the CLI resolve, over this host's two SQLite drivers. Both
@@ -116,6 +134,7 @@ export type MainRuntime = ManagedRuntime.ManagedRuntime<
   | LibraryStateRuntime
   | TopicService
   | WikiService
+  | LookupService
   | StudyService
   | DataPortabilityRuntime,
   never
@@ -160,11 +179,13 @@ export const makeRuntime = (files: MainRuntimeFiles, host: MainRuntimeHost): Mai
     Layer.orDie,
   );
   const bible = bibleDbLayer(files.bibleDbFile);
-  const wiki = wikiLayer({ topicsDbFile: files.topicsDbFile, bible, writings }).pipe(
+  const sources = sectionSourcesLayer({ bible, writings });
+  const wiki = wikiLayer({ topicsDbFile: files.topicsDbFile, bible, sources }).pipe(
     // The artifact's existence check runs before any driver opens the path, so
     // the wiki needs a real filesystem rather than only a SQLite driver.
     Layer.provide(NodeFileSystem.layer),
   );
+  const lookup = lookupLayer({ wiki, sources });
   const clientId = Schema.decodeSync(ClientId)('desktop-local');
   const procedures = layerDesktopProcedureDependencies({
     writingsDatabase: writings,
@@ -183,7 +204,7 @@ export const makeRuntime = (files: MainRuntimeFiles, host: MainRuntimeHost): Mai
     },
   });
   const study = studyLayer({ bible, writings });
-  return ManagedRuntime.make(Layer.mergeAll(writings, bible, wiki, study, procedures));
+  return ManagedRuntime.make(Layer.mergeAll(writings, bible, wiki, lookup, study, procedures));
 };
 
 export const runtimeRun = <A, E>(
@@ -203,6 +224,7 @@ export const runtimeRun = <A, E>(
     | LibraryStateRuntime
     | TopicService
     | WikiService
+    | LookupService
     | StudyService
     | DataPortabilityRuntime
   >,

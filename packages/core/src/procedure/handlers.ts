@@ -4,6 +4,8 @@ import { Reference as WritingsReference } from '../writings/index.js';
 import { WritingsService } from '../writings/service.js';
 import { StudyCorpusDataError, StudyService } from '../study/service.js';
 import { TopicService } from '../topics/service.js';
+import { LookupInput } from '../wiki/lookup-model.js';
+import { LookupService } from '../wiki/lookup-service.js';
 import { WikiService } from '../wiki/service.js';
 import { Effect, Option, Predicate, Schema } from 'effect';
 
@@ -76,6 +78,7 @@ export const BibleProcedureHandlers = BibleProcedureGroup.toLayer(
     const library = yield* LibraryStateRuntime;
     const topics = yield* TopicService;
     const wiki = yield* WikiService;
+    const lookup = yield* LookupService;
     const study = yield* StudyService;
     const data = yield* DataPortabilityRuntime;
 
@@ -142,6 +145,17 @@ export const BibleProcedureHandlers = BibleProcedureGroup.toLayer(
         wiki.list(input).pipe(Effect.mapError(normalizeFailure('v1.wiki.topics.list'))),
       'v1.wiki.dictionary.get': () =>
         wiki.dictionary.pipe(Effect.mapError(normalizeFailure('v1.wiki.dictionary.get'))),
+      // The five groups come back whole, from the same `LookupService` the CLI
+      // calls directly — so "the RPC panel" and "the CLI's `--json`" are one
+      // value crossing two seams (§7). `resolve` does not fail: every source
+      // degrades to an empty group, so there is no failure to normalize.
+      'v1.wiki.lookup.resolve': (input) =>
+        lookup.resolve(
+          LookupInput.make({
+            text: input.text,
+            context: Option.fromNullishOr(input.context),
+          }),
+        ),
       // The whole bundle, composed inside the host by the same `StudyService`
       // the CLI resolves directly — so "the RPC bundle" and "the CLI bundle"
       // are one value crossing two seams, and the five sections cost the

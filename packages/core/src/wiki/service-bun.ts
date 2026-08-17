@@ -14,6 +14,7 @@ import {
   layerArtifactOrAbsent,
   type ArtifactSqlClientLayer,
 } from './service-artifact.js';
+import { LookupService } from './lookup-service.js';
 import { WikiSectionSources } from './section-composer.js';
 import { WikiService } from './service.js';
 
@@ -125,5 +126,34 @@ export const layerBunWithCatalog = (input: {
       WikiService.Broken({ operation: 'open-catalog', message: Cause.pretty(cause) }),
     ),
   );
+
+/** Select-to-lookup (§7) from the corpora on disk.
+ *
+ *  The same three files `layerBunWithCatalog` opens, composed once and shared
+ *  by both services: `LookupService` needs exactly `WikiService` (for the
+ *  phrase dictionary) and `WikiSectionSources` (for the four corpus groups),
+ *  which is precisely what a topic page needs. Building the section sources
+ *  once and providing them to both is what keeps the CLI from opening
+ *  `bible.db` and the writings library twice for one command. */
+export const layerBunLookup = (input: {
+  readonly topics: string;
+  readonly bible: string;
+  readonly writings: string;
+}): Layer.Layer<LookupService, never, FileSystem.FileSystem> => {
+  const sections = layerBunSectionSources({ bible: input.bible, writings: input.writings });
+  const catalog = layerBunCatalog(input.bible);
+  const wiki = layerBunOrAbsent(input.topics).pipe(
+    Layer.provide(sections),
+    Layer.provide(catalog),
+    // The same typed-absence posture `layerBunWithCatalog` takes: a wiki that
+    // cannot open reports through `WikiService.Broken`, whose failing
+    // `dictionary` the resolver degrades to an empty topic group rather than a
+    // dead process.
+    Layer.catchCause((cause) =>
+      WikiService.Broken({ operation: 'open-catalog', message: Cause.pretty(cause) }),
+    ),
+  );
+  return LookupService.Live.pipe(Layer.provide(wiki), Layer.provide(sections));
+};
 
 export const Default = layerBunOrAbsent;

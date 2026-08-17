@@ -1890,6 +1890,105 @@ kbd {
   color: var(--bible-accent);
 }
 
+/* Select-to-lookup (§7).
+
+   One combined panel in the Milestone 5 pane surface, and it borrows that
+   surface's two presentations rather than inventing a third: the sheet at
+   narrow (`ui/dialog.tsx`'s, so only the padding is set here) and a card beside
+   the Scripture at wide. Every group is a `<details>`, and the empty ones ship
+   collapsed — which is `lookupView`'s `open` flag, not a rule stated
+   twice. */
+.bible-lookup {
+  color: var(--bible-ink);
+}
+
+.bible-lookup--card {
+  position: sticky;
+  bottom: 1.25rem;
+  z-index: 40;
+  width: min(100%, 30rem);
+  margin: 1.25rem 0 0 auto;
+  padding: 1rem 1.15rem 1.15rem;
+  border: 1px solid var(--bible-rule);
+  border-radius: 0.7rem;
+  background: var(--bible-paper-raised);
+  box-shadow: 0 1rem 3rem color-mix(in srgb, var(--bible-ink) 16%, transparent);
+}
+
+.bible-lookup--sheet {
+  padding: 1.5rem 1.25rem;
+}
+
+.bible-lookup__bar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.bible-lookup__heading {
+  font-family: var(--bible-reader-serif);
+  font-size: 1.15rem;
+  line-height: 1.2;
+}
+
+.bible-lookup__group {
+  border-top: 1px solid var(--bible-rule);
+}
+
+.bible-lookup__group > summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  font-family: var(--bible-interface-sans);
+  font-size: 0.86rem;
+  font-weight: 620;
+  cursor: pointer;
+}
+
+.bible-lookup__group > summary small {
+  color: var(--bible-faint);
+  font-weight: 500;
+}
+
+.bible-lookup__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0 0 0.75rem;
+  list-style: none;
+}
+
+.bible-lookup__list li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.bible-lookup__list button {
+  padding: 0;
+  border: 0;
+  color: var(--bible-accent);
+  background: none;
+  font-family: var(--bible-interface-sans);
+  font-size: 0.9rem;
+  font-weight: 620;
+  text-align: left;
+  cursor: pointer;
+}
+
+.bible-lookup__list small,
+.bible-lookup__source {
+  color: var(--bible-faint);
+  font-family: var(--bible-interface-sans);
+  font-size: 0.75rem;
+}
+
 /* The breadcrumb trail. Hidden below two hops by the component, not by CSS —
    a one-crumb trail is the page's own title repeated above itself. */
 .bible-trail ol {

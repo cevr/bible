@@ -20,11 +20,17 @@
  * once instead of silently missing from one.
  */
 
+import { parseBibleQuery, type VerseReference } from '@bible/core/bible';
 import {
+  lookupInputOf,
+  LookupResultJson,
+  LookupService,
   matchRun,
   PhraseAutomaton,
   PhraseSpansJson,
   TopicSlug,
+  type LookupInput,
+  type LookupResult,
   WikiPageJson,
   WikiPageSummaryJson,
   WikiService,
@@ -34,7 +40,7 @@ import {
   type WikiPageSummary,
   type WikiSection,
 } from '@bible/core/wiki';
-import { layerBunWithCatalog } from '@bible/core/wiki/bun';
+import { layerBunLookup, layerBunWithCatalog } from '@bible/core/wiki/bun';
 import {
   Config,
   Console,
@@ -303,10 +309,184 @@ export const wikiMatches = Command.make('matches', { text, json }, (args) =>
   }).pipe(Effect.provide(BunServices.layer)),
 );
 
+// ---------------------------------------------------------------------------
+// bible wiki lookup (§7)
+// ---------------------------------------------------------------------------
+
+/** The three corpora select-to-lookup reads, resolved as one `LookupService`.
+ *
+ *  The same `~/.bible` files every other command uses, composed by
+ *  `layerBunLookup` so the CLI opens each one once. */
+const installedLookupLayer = Layer.unwrap(
+  Effect.gen(function* () {
+    const path = yield* Path.Path;
+    const home = yield* Config.string('HOME');
+    return layerBunLookup({
+      topics: path.join(home, '.bible', 'topics.db'),
+      bible: path.join(home, '.bible', 'bible.db'),
+      writings: path.join(home, '.bible', 'egw-paragraphs.db'),
+    });
+  }).pipe(Effect.provide(BunServices.layer), Effect.orDie),
+).pipe(Layer.provide(BunServices.layer));
+
+/** Which `LookupService` the command resolves, as an overridable default — the
+ *  same `Context.Reference` seam `WikiLayer` and `StudyLayer` use, and for the
+ *  same reason: a test points the command at fixtures and still runs the real
+ *  command, argument parsing and encoder and `Console.log` and all. */
+export class LookupLayer extends Context.Reference<Layer.Layer<LookupService>>(
+  '@bible/cli/wiki/LookupLayer',
+  { defaultValue: () => installedLookupLayer },
+) {}
+
+const lookupService = <A, E>(use: Effect.Effect<A, E, LookupService>): Effect.Effect<A, E> =>
+  Effect.flatMap(LookupLayer, (layer) => use.pipe(Effect.provide(layer)));
+
+/** The `--json` payload for one lookup: the core schema's own encoding, so the
+ *  CLI emits the value `v1.wiki.lookup.resolve` puts on the wire rather than a
+ *  parallel projection of it — the same `…Json` alias discipline the page and
+ *  the study bundle follow. */
+export const lookupJson = (
+  result: LookupResult,
+): Effect.Effect<LookupResultJson, Schema.SchemaError> =>
+  Schema.encodeEffect(LookupResultJson)(result);
+
+const lookupText = Argument.string('text').pipe(
+  Argument.withDescription('The selected text to look up'),
+);
+
+/** The reference argument named something other than one verse. */
+class NotOneVerseContextError extends Schema.TaggedError<NotOneVerseContextError>()(
+  'NotOneVerseContextError',
+  { reference: Schema.String },
+) {
+  override get message(): string {
+    return `Not a single-verse --context: "${this.reference}". Try a form like "Dan 8:13".`;
+  }
+}
+
+/** `--context "Dan 8:13"`, parsed by the same `parseBibleQuery` the study
+ *  command uses.
+ *
+ *  Only a single verse is accepted, for the reason `bible study verse` accepts
+ *  only one: §7's context exists to locate the selection *inside a verse*, and
+ *  `getVerseWords` takes three numbers. A chapter or a range would silently
+ *  resolve against its first verse and report Strong's entries for words the
+ *  caller never named. */
+const contextFlag = Flag.string('context').pipe(
+  Flag.optional,
+  Flag.withDescription('The verse the selection came from, e.g. "Dan 8:13"'),
+);
+
+const lookupContext = (
+  input: Option.Option<string>,
+): Effect.Effect<Option.Option<VerseReference>, NotOneVerseContextError> =>
+  Option.match(input, {
+    onNone: () => Effect.succeedNone,
+    onSome: (raw) => {
+      const parsed = parseBibleQuery(raw);
+      if (parsed._tag !== 'single') {
+        return Effect.fail(NotOneVerseContextError.make({ reference: raw }));
+      }
+      return Effect.succeedSome(parsed.ref);
+    },
+  });
+
+/** An argument that is nothing but whitespace. */
+class EmptySelectionError extends Schema.TaggedError<EmptySelectionError>()('EmptySelectionError', {
+  text: Schema.String,
+}) {
+  override get message(): string {
+    return `Nothing to look up: the text argument is empty.`;
+  }
+}
+
+/** The portable lookup input (§7), built from this command's arguments.
+ *
+ *  Exported because it is one half of Milestone 7's adapter check: "DOM
+ *  selection on web and desktop produces the same portable lookup input the CLI
+ *  builds from its argument". No package can import both this builder and the
+ *  app's, so each asserts against the shared `LOOKUP_ADAPTER_INPUT` fixture in
+ *  core — the same way Milestone 4's span parity is held.
+ *
+ *  The *text* rule is `lookupInputOf`, in core, which the DOM builder calls too.
+ *  It has to be one function rather than two that agree: a shell argument
+ *  carries whatever the caller quoted and a DOM range carries the markup's own
+ *  line breaks, and before Milestone 7's review this side kept its padding while
+ *  the DOM side collapsed — one phrase, two `text` values on the wire. The
+ *  argument that collapses to nothing is `None` there and a refusal here,
+ *  because on this surface it was a request rather than a stray click. */
+export const lookupInput = (args: {
+  readonly text: string;
+  readonly context: Option.Option<string>;
+}): Effect.Effect<LookupInput, NotOneVerseContextError | EmptySelectionError> =>
+  Effect.flatMap(lookupContext(args.context), (context) =>
+    Option.match(lookupInputOf({ text: args.text, context }), {
+      onNone: () => Effect.fail(EmptySelectionError.make({ text: args.text })),
+      onSome: (input) => Effect.succeed(input),
+    }),
+  );
+
+export const wikiLookup = Command.make(
+  'lookup',
+  { text: lookupText, context: contextFlag, json },
+  (args) =>
+    Effect.gen(function* () {
+      const input = yield* lookupInput(args);
+      const result = yield* lookupService(
+        Effect.flatMap(LookupService, (service) => service.resolve(input)),
+      );
+
+      if (args.json) {
+        yield* Console.log(yield* encodeJson(yield* lookupJson(result)));
+        return;
+      }
+
+      yield* Console.log(result.text);
+      // §7's peek-card case, reported rather than rendered differently: the CLI
+      // has no card, and a flag the two visual hosts act on is still a fact
+      // about this result that a caller comparing seams needs to see.
+      if (result.lonePeek) yield* Console.log('(lone topic hit — peek card)');
+      yield* Console.log(``);
+
+      // The five groups, in §7's order and always all five — the same shape the
+      // panel draws, so an empty group prints its heading rather than vanishing.
+      yield* Console.log(`## topics  ${String(result.topics.length)}`);
+      for (const match of result.topics) {
+        yield* Console.log(`  ${match.slug}  ${match.display}  [${match.kind}]`);
+      }
+
+      yield* Console.log(`## strongs  ${String(result.strongs.length)}`);
+      for (const hit of result.strongs) {
+        yield* Console.log(
+          `  ${hit.word}  ${Option.match(hit.entry, {
+            onNone: () => '(no lexicon entry)',
+            onSome: (entry) => `${entry.number}  ${entry.lemma}`,
+          })}`,
+        );
+      }
+
+      yield* Console.log(`## verses  ${String(result.verses.length)}`);
+      for (const hit of result.verses) {
+        yield* Console.log(`  ${hit.label}  ${hit.text}`);
+      }
+
+      yield* Console.log(`## writings  ${String(result.writings.length)}`);
+      for (const hit of result.writings) {
+        yield* Console.log(`  ${hit.refcode}  ${hit.bookTitle}`);
+      }
+
+      yield* Console.log(`## catalog  ${String(result.catalog.length)}`);
+      for (const match of result.catalog) {
+        yield* Console.log(`  ${match.slug}  ${match.name}`);
+      }
+    }).pipe(Effect.provide(BunServices.layer)),
+);
+
 export const wiki = Command.make('wiki', {}, () =>
   Console.log(
     `Usage: bible wiki topics [--query <q>] [--json]\n` +
       `       bible wiki topic <slug> [--json]\n` +
-      `       bible wiki matches "<text>" [--json]`,
+      `       bible wiki matches "<text>" [--json]\n` +
+      `       bible wiki lookup "<text>" [--context "<reference>"] [--json]`,
   ),
-).pipe(Command.withSubcommands([wikiTopics, wikiTopic, wikiMatches]));
+).pipe(Command.withSubcommands([wikiTopics, wikiTopic, wikiMatches, wikiLookup]));

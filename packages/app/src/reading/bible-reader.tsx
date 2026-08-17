@@ -1,4 +1,5 @@
 import {
+  Reference,
   verseNumber,
   type ChapterReference,
   type VerseNumber,
@@ -15,6 +16,12 @@ import { useBibleChapter, useChapterMarginAnchors, useWikiDictionary } from '../
 import { ContextMenu, ScrollViewport, SplitPane } from '../ui/index.js';
 import { AnnotationTools } from '../library/annotation-tools.js';
 import { claimedGesture } from './gesture.js';
+import { selectionVerse } from './lookup-selection.js';
+import {
+  SelectionLookupPanel,
+  useSelectionLookup,
+  type SelectionContext,
+} from './selection-lookup.js';
 import { PeekCard } from './peek-card.js';
 import {
   dismissesPeek,
@@ -114,6 +121,11 @@ export const BibleReader = (props: BibleReaderProps) => {
   const openStudy = (event: MouseEvent, verse: number): void => {
     const target = event.target;
     if (target instanceof Element && Option.isSome(claimedGesture(target))) return;
+    // §8.5's third claimant — the selection that ends in a `click` on this same
+    // element — is not answered here. `useSelectionLookup` consumes that click
+    // in the capture phase, before this handler or a phrase span's runs; a
+    // guard on this handler would be too late for the phrase layer, which sits
+    // inside it and bubbles first.
     openPane(verse);
   };
 
@@ -213,6 +225,33 @@ export const BibleReader = (props: BibleReaderProps) => {
   /** §5's peek state: which phrase occurrence, if any, is showing its card. */
   const [peeked, setPeeked] = createSignal(noPeek);
 
+  // -------------------------------------------------------------------------
+  // Select-to-lookup (§7)
+  //
+  // "Curated phrases render as visible links; **any text selection can be
+  // looked up on demand** as the fallback." The gesture is the selection
+  // itself: §7 gives the panel **no action menu**, so there is no intermediate
+  // step between selecting a run of text and seeing what it could mean.
+  //
+  // §8.5 is untouched by this. A tap leaves a *collapsed* selection, which
+  // `lookupSelection` answers `None` to, so the verse tap still opens the study
+  // pane and a phrase tap still peeks — only a real range asks for a lookup.
+  // -------------------------------------------------------------------------
+  const lookup = useSelectionLookup();
+
+  /** §7's `context` for a selection made in this chapter.
+   *
+   *  The verse comes from **the selection itself**, through `selectionVerse`,
+   *  rather than from the element the gesture ended in: a drag that starts in
+   *  verse 12 and ends in verse 13 ends in an element that can only name 13,
+   *  and core would then compare verse 13's words against verse 12's text. The
+   *  rule is that one verse must hold the whole range or there is no context,
+   *  which is exactly what §7 means by "locates the selection inside a verse". */
+  const verseContext: SelectionContext = (selection) =>
+    Option.map(selectionVerse(selection), (verse) =>
+      Reference.verse(props.reference.book, props.reference.chapter, verse),
+    );
+
   /** A new plan closes the card.
    *
    *  A chapter turn is the obvious case, and the occurrence id already makes the
@@ -277,6 +316,14 @@ export const BibleReader = (props: BibleReaderProps) => {
                 // already navigates to the same route. So all three input modes
                 // reach the pane without three code paths.
                 onClick={(event) => openStudy(event, verse.reference.verse)}
+                // §7's gesture: the selection itself. `mouseup` is where a drag
+                // ends and `keyup` is where a shift-arrow selection does, so the
+                // pointer and the keyboard reach the panel through the one
+                // builder rather than through two rules.
+                onMouseUp={() => lookup.select(verseContext)}
+                onKeyUp={() => lookup.select(verseContext)}
+                // The verse the §7 context walk reads off the range's two ends.
+                data-verse={verse.reference.verse}
               >
                 <a
                   class="bible-verse-number"
@@ -399,6 +446,9 @@ export const BibleReader = (props: BibleReaderProps) => {
             />
           </Show>
           <Show when={props.reference._tag !== 'verse'}>{scripture()}</Show>
+          {/* §7's combined panel, in the Milestone 5 pane surface — the same
+              owner every reading surface mounts. */}
+          <SelectionLookupPanel lookup={lookup} />
           <nav class="bible-reader__pagination" aria-label="Chapter navigation">
             <Show when={Option.getOrUndefined(chapter().previous)}>
               {(previous) => (

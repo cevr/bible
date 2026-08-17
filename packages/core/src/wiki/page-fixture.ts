@@ -29,19 +29,28 @@
 
 import { Effect, Layer, Option, Schema } from 'effect';
 
-import { BibleDatabase, type CrossReference } from '../bible-db/bible-database.js';
+import {
+  BibleDatabase,
+  type CrossReference,
+  type StrongsEntry,
+} from '../bible-db/bible-database.js';
+import { Reference, type VerseReference } from '../bible/model.js';
 import { EGWCommentaryService } from '../egw-commentary/service.js';
 import { EGWParagraphDatabase } from '../egw-db/book-database.js';
 import type * as EGWSchemas from '../egw/schemas.js';
+import { procedureDependencies } from '../procedure/testing.js';
 import { TopicDetail, TopicId, TopicReference, TopicSection } from '../topics/model.js';
 import { TopicService } from '../topics/service.js';
 import { EGW_SCOPE_AUTHORS } from '../writings/corpus-scope.js';
 import { WritingsService } from '../writings/service.js';
+import { LookupService } from './lookup-service.js';
 import {
   AuthoredCore,
   BlocksJson,
   CitationInline,
   ParagraphBlock,
+  PhraseDictionary,
+  PhraseDictionaryEntry,
   TextInline,
   TopicAlias,
   TopicEdge,
@@ -52,6 +61,7 @@ import {
 } from './model.js';
 import { normalizeAlias } from './normalize.js';
 import { composeSections, WikiSectionSources } from './section-composer.js';
+import { WikiService } from './service.js';
 
 /** The page under test, and the identities every seam asserts.
  *
@@ -110,6 +120,73 @@ const VERSES = [1, 5, 9].map((verse) => ({
   versionCode: 'KJV',
   text: `John 11:${String(verse)} names the sanctuary and its service.`,
 }));
+
+/** §7's own command line, as fixture data: `bible wiki lookup "the daily"
+ *  --context "Dan 8:13"`.
+ *
+ *  Daniel 8:13 rather than an invented address, because it is the verse §7 and
+ *  §10's CLI workflow name — and its real KJV wording carries both `the daily`
+ *  and `the sanctuary`, so the fixture phrase and the milestone's own example
+ *  selection are located in the *same* verse. Before Milestone 7's review the
+ *  lookup fixture had no `verse_words` at all, which made every context-bearing
+ *  assertion pass over an empty Strong's group — a handler that dropped
+ *  `context` entirely would have satisfied them. */
+export const LOOKUP_CONTEXT = { book: 27, chapter: 8, verse: 13 } satisfies {
+  readonly book: number;
+  readonly chapter: number;
+  readonly verse: number;
+};
+
+/** The same address as the branded value every seam passes over its own wire. */
+export const LOOKUP_CONTEXT_REFERENCE: VerseReference = Reference.verse(
+  LOOKUP_CONTEXT.book,
+  LOOKUP_CONTEXT.chapter,
+  LOOKUP_CONTEXT.verse,
+);
+
+const LOOKUP_CONTEXT_VERSE = {
+  ...LOOKUP_CONTEXT,
+  versionCode: 'KJV',
+  text: 'How long shall be the vision concerning the daily sacrifice, and the transgression of desolation, to give both the sanctuary and the host to be trodden under foot?',
+};
+
+/** Daniel 8:13's words, as `verse_words` stores them: the two the milestone's
+ *  selections cover, and one they do not. */
+const LOOKUP_CONTEXT_WORDS = [
+  { text: 'the daily', strongsNumbers: ['H8548'], italic: false },
+  { text: 'sanctuary', strongsNumbers: ['H6944'], italic: false },
+  { text: 'the host', strongsNumbers: ['H6635'], italic: false },
+];
+
+const LOOKUP_STRONGS_ENTRIES: readonly StrongsEntry[] = [
+  {
+    number: 'H8548',
+    language: 'hebrew',
+    lemma: 'תָּמִיד',
+    transliteration: Option.some('tamiyd'),
+    pronunciation: Option.some('taw-meed'),
+    definition: 'continuance, continually, perpetual',
+    kjvDefinition: Option.some('alway(-s), continual, daily'),
+  },
+  {
+    number: 'H6944',
+    language: 'hebrew',
+    lemma: 'קֹדֶשׁ',
+    transliteration: Option.some('qodesh'),
+    pronunciation: Option.some('ko-desh'),
+    definition: 'a sacred place or thing, sanctuary',
+    kjvDefinition: Option.some('consecrated, hallowed, holy, sanctuary'),
+  },
+  {
+    number: 'H6635',
+    language: 'hebrew',
+    lemma: 'צָבָא',
+    transliteration: Option.some('tsaba'),
+    pronunciation: Option.some('tsaw-baw'),
+    definition: 'a mass of persons, an army, a host',
+    kjvDefinition: Option.none<string>(),
+  },
+];
 
 const CROSS_REFS = [
   {
@@ -323,16 +400,36 @@ export const WIKI_ARTIFACT_DDL = `
  *  not a stub of it — so a suite that provides this runs the real composer. The
  *  CLI suite provides it in place of `NotWired`, which is the whole of what made
  *  its assertions vacuous. */
+/** The fixture library, named rather than inlined.
+ *
+ *  It has to be nameable because a suite that provides *both* this fixture's
+ *  `WikiSectionSources` and the rest of `BibleProcedureHandlers`'s graph would
+ *  otherwise wire two `WritingsService.Live` builds into one layer build — and
+ *  `WritingsService.Live` is one layer *object*, so the build memoizes it by
+ *  identity and whichever of the two is constructed first wins for both. The
+ *  handler's writings graph is built from `procedureDependencies`'s empty
+ *  default, so the loser was this one: `v1.wiki.lookup.resolve` answered with an
+ *  empty EGW group while the same service called directly answered with two
+ *  hits, which is exactly the kind of drift `lookup-parity.test.ts` exists to
+ *  catch. Passing this layer as that suite's `writings` override makes the two
+ *  candidates the same library, so the memo has nothing to choose between. */
+export const WIKI_PAGE_FIXTURE_WRITINGS: Layer.Layer<WritingsService> = WritingsService.Live.pipe(
+  Layer.provide(EGWParagraphDatabase.Test({ books: BOOKS, paragraphs: PARAGRAPHS })),
+);
+
 export const WIKI_PAGE_FIXTURE_SOURCES: Layer.Layer<WikiSectionSources> =
   WikiSectionSources.Live.pipe(
     Layer.provide(TopicService.Test([CATALOG])),
-    Layer.provide(BibleDatabase.layerTest({ verses: VERSES, crossRefs: CROSS_REFS })),
-    Layer.provide(EGWCommentaryService.Test({ entries: COMMENTARY })),
     Layer.provide(
-      WritingsService.Live.pipe(
-        Layer.provide(EGWParagraphDatabase.Test({ books: BOOKS, paragraphs: PARAGRAPHS })),
-      ),
+      BibleDatabase.layerTest({
+        verses: [...VERSES, LOOKUP_CONTEXT_VERSE],
+        crossRefs: CROSS_REFS,
+        verseWords: [{ ...LOOKUP_CONTEXT, words: LOOKUP_CONTEXT_WORDS }],
+        strongsEntries: LOOKUP_STRONGS_ENTRIES,
+      }),
     ),
+    Layer.provide(EGWCommentaryService.Test({ entries: COMMENTARY })),
+    Layer.provide(WIKI_PAGE_FIXTURE_WRITINGS),
   );
 
 /** The fixture page, composed by the **real composer** over the same sources,
@@ -413,3 +510,58 @@ export const WIKI_PAGE_FIXTURE_PAGE: Effect.Effect<WikiPage> = Effect.gen(functi
  *  different one would leave the page's key verses empty while every other
  *  section filled. */
 export const WIKI_PAGE_FIXTURE_CATALOG: Layer.Layer<TopicService> = TopicService.Test([CATALOG]);
+
+/** The dictionary select-to-lookup's topic group resolves against (§7).
+ *
+ *  The fixture page's own canonical alias, so a lookup of `sanctuary` finds the
+ *  same page the rest of this module composes — one fixture, one subject, and
+ *  the topic group's answer is checkable against `WIKI_PAGE_FIXTURE.slug`
+ *  rather than against a second invented vocabulary. */
+export const WIKI_LOOKUP_FIXTURE_DICTIONARY: PhraseDictionary = PhraseDictionary.make({
+  entries: [
+    PhraseDictionaryEntry.make({
+      alias: normalizeAlias(WIKI_PAGE_FIXTURE.phrase),
+      display: WIKI_PAGE_FIXTURE.title,
+      slug: topicSlug(WIKI_PAGE_FIXTURE.slug),
+      canonical: true,
+    }),
+  ],
+  unavailable: Option.none(),
+});
+
+/** The one `LookupService` every seam's suite resolves (§7).
+ *
+ *  The real service over the real `WikiSectionSources` this module already
+ *  builds, so all five groups are exercised by the same four corpora a topic
+ *  page composes from — the CLI's stdout, the RPC handler and any host round
+ *  trip then compare one input rather than three hand-copied ones.
+ *
+ *  The wiki half is a dictionary-only stand-in rather than the artifact layer:
+ *  the artifact path needs `bun:sqlite` and a temp file, which is
+ *  `WIKI_ARTIFACT_DDL`'s business, and the topic group reads nothing from a
+ *  page. */
+export const WIKI_LOOKUP_FIXTURE_LAYER: Layer.Layer<LookupService> = LookupService.Live.pipe(
+  Layer.provide(
+    Layer.succeed(WikiService, {
+      list: () => Effect.succeed([]),
+      topic: () => Effect.die('the lookup fixture serves no pages'),
+      dictionary: Effect.succeed(WIKI_LOOKUP_FIXTURE_DICTIONARY),
+      availability: Effect.succeed(Option.none()),
+    }),
+  ),
+  Layer.provide(WIKI_PAGE_FIXTURE_SOURCES),
+);
+
+/** Everything `BibleProcedureHandlers` requires, with the lookup seam wired to
+ *  {@link WIKI_LOOKUP_FIXTURE_LAYER}.
+ *
+ *  The same shape `studyProcedureDependencies` has, and for the same reason:
+ *  a suite proving `v1.wiki.lookup.resolve` against the CLI needs the whole
+ *  handler graph, and only one corner of it is the subject. */
+export const wikiLookupProcedureDependencies = procedureDependencies({
+  lookup: WIKI_LOOKUP_FIXTURE_LAYER,
+  // The same library the lookup layer reads, so the one memoized
+  // `WritingsService.Live` build serves both — see
+  // {@link WIKI_PAGE_FIXTURE_WRITINGS}.
+  writings: WIKI_PAGE_FIXTURE_WRITINGS,
+});

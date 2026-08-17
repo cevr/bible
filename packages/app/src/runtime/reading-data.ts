@@ -25,6 +25,7 @@ import type {
   ChapterNumber,
   SearchWindow,
   VerseNumber,
+  VerseReference,
 } from '@bible/core/bible';
 import type {
   LibraryCollection,
@@ -38,7 +39,7 @@ import type { MutationCommitValue } from '@bible/core/procedure';
 import type { ReadingPreferences, ReadingPreferencesPatch } from '@bible/core/reading-preferences';
 import type { StrongsNumber, StrongsStudy, VerseStudy } from '@bible/core/study';
 import type { TopicDetail, TopicId, TopicListInput, TopicSummary } from '@bible/core/topics';
-import type { PhraseDictionary, TopicSlug, WikiPage } from '@bible/core/wiki';
+import type { LookupResult, TopicSlug, PhraseDictionary, WikiPage } from '@bible/core/wiki';
 import type {
   Page,
   PageNumber,
@@ -332,6 +333,43 @@ export const useWikiTopic = (input: Accessor<{ readonly slug: TopicSlug }>): Acc
     keyedQuery([WRITINGS_LIBRARY_KEY], (options) =>
       ReadingRpc.query('v1.wiki.topic.get', input(), options),
     ),
+  );
+
+/**
+ * The five resolver groups for one selection (§7), in one round trip.
+ *
+ * One hook because it is one procedure: the panel draws all five groups every
+ * time, so per-group reads would turn one MessagePort crossing into five.
+ *
+ * Keyed on the writings library for the reason `useWikiTopic` is — the EGW
+ * group is answered out of the installed library, so downloading a book has to
+ * make a repeated lookup say more than it did before, and the download mutation
+ * already invalidates this key.
+ *
+ * The payload carries `context` as an optional verse address, which is what the
+ * Strong's group's entry condition reads. `Option.getOrUndefined` is the wire's
+ * own spelling of an absent optional field, and the procedure declares it as
+ * `Schema.optional` on the far side.
+ */
+export const useLookup = (
+  input: Accessor<{
+    readonly text: string;
+    readonly context: Option.Option<VerseReference>;
+  }>,
+): Accessor<LookupResult> =>
+  useAtomSuspense(() =>
+    keyedQuery([WRITINGS_LIBRARY_KEY], (options) => {
+      // One read of the accessor, because the two fields describe one
+      // selection. Read twice, the text can come from the gesture the reader
+      // just finished and the context from the one before it — a Strong's
+      // group about words nobody selected.
+      const selection = input();
+      return ReadingRpc.query(
+        'v1.wiki.lookup.resolve',
+        { text: selection.text, context: Option.getOrUndefined(selection.context) },
+        options,
+      );
+    }),
   );
 
 export const useTopics = (input: Accessor<TopicListInput>): Accessor<readonly TopicSummary[]> =>

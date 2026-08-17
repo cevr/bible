@@ -1,6 +1,9 @@
 import { TopicDetail, TopicId, TopicService } from '@bible/core/topics';
 import {
   BlocksJson,
+  LookupInput,
+  LookupResultJson,
+  LookupService,
   matchRun,
   normalizeAlias,
   ParagraphBlock,
@@ -19,8 +22,14 @@ import {
 // cannot reach it.
 import {
   DANIEL_8_9,
+  LOOKUP_ADAPTER_EMPTY_TEXTS,
+  LOOKUP_ADAPTER_INPUT,
+  LOOKUP_ADAPTER_INPUT_NO_CONTEXT,
+  LOOKUP_ADAPTER_SELECTION,
+  LOOKUP_ADAPTER_TEXTS,
   PHRASE_FIXTURE_DICTIONARY,
   WIKI_ARTIFACT_DDL,
+  WIKI_LOOKUP_FIXTURE_LAYER,
   WIKI_PAGE_FIXTURE,
   WIKI_PAGE_FIXTURE_IDENTITIES,
   WIKI_PAGE_FIXTURE_CATALOG,
@@ -35,7 +44,15 @@ import { Database } from 'bun:sqlite';
 import { Effect, Exit, FileSystem, Layer, Option, Schema, SchemaGetter } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 
-import { WikiLayer, WikiTopicsJson, topicJson, topicsJson, wiki } from '../../src/commands/wiki.js';
+import {
+  LookupLayer,
+  WikiLayer,
+  WikiTopicsJson,
+  lookupInput,
+  topicJson,
+  topicsJson,
+  wiki,
+} from '../../src/commands/wiki.js';
 import { runCli } from '../lib/run-cli.js';
 
 /** The catalog ships inside the verified `bible.db`, so it is available in every
@@ -661,4 +678,182 @@ describe('bible wiki topic --json over a populated page', () => {
       expect(egw.total).toBe(egw.items.length);
       expect(Option.isSome(egw.handoff)).toBe(true);
     }));
+});
+
+// ---------------------------------------------------------------------------
+// bible wiki lookup (§7) — the Milestone 7 CLI JSON workflow and adapter check
+//
+// Two claims, and they are different claims:
+//
+//  1. **The portable input.** §10's adapter check is that the DOM selection on
+//     web and desktop builds the same `LookupInput` the CLI builds from its
+//     argument. No package imports both builders, so each asserts against
+//     `@bible/core/wiki/testing`'s `LOOKUP_ADAPTER_INPUT` — the CLI here, the
+//     app in `packages/app/src/reading/lookup-selection.test.ts`.
+//  2. **The stdout seam.** `wiki/lookup-parity.test.ts` proves the RPC handler
+//     and `LookupService` encode one value through one codec. What it cannot
+//     prove is that the *command* still runs that codec, and that its human
+//     output really carries all five groups in §7's order. These run the real
+//     command — argument parsing, layer resolution, encoder, `Console.log`.
+// ---------------------------------------------------------------------------
+
+const runLookup = (args: readonly string[]) =>
+  runCli(wiki, ['lookup', ...args], {}).pipe(
+    Effect.provideService(LookupLayer, WIKI_LOOKUP_FIXTURE_LAYER),
+  );
+
+const lookupResult = (input: LookupInput) =>
+  Effect.flatMap(LookupService, (service) => service.resolve(input)).pipe(
+    Effect.provide(WIKI_LOOKUP_FIXTURE_LAYER),
+  );
+
+describe('bible wiki lookup', () => {
+  it.effect('builds the portable lookup input the DOM hosts build', () =>
+    Effect.gen(function* () {
+      // §7's own command line: `bible wiki lookup "the daily" --context "Dan
+      // 8:13"`. The value it produces is the fixture the two DOM adapters are
+      // asserted against, so the three builders agree about one value rather
+      // than about three copies of it.
+      const built = yield* lookupInput({
+        text: LOOKUP_ADAPTER_SELECTION.text,
+        context: Option.some(LOOKUP_ADAPTER_SELECTION.reference),
+      });
+      expect(built).toEqual(LOOKUP_ADAPTER_INPUT);
+    }),
+  );
+
+  it.effect('builds that input from every raw argument the fixture names', () =>
+    Effect.gen(function* () {
+      // The CLI half of the shared table. A shell argument carries whatever the
+      // caller quoted — `bible wiki lookup "  the   daily  "` is one keystroke
+      // away from the clean form — and a DOM `Range` carries the markup's own
+      // line breaks. Both adapters run one core builder over these rows, so the
+      // two produce one `text` rather than two that agree on tidy input.
+      for (const row of LOOKUP_ADAPTER_TEXTS) {
+        const built = yield* lookupInput({ text: row.raw, context: Option.none() });
+        expect(built.text).toBe(row.text);
+      }
+    }),
+  );
+
+  it.effect('refuses an argument that is nothing but whitespace', () =>
+    Effect.gen(function* () {
+      // `LookupInput.text` is `NonEmptyString`. Refused here, the caller gets
+      // the command's own message; passed on, the schema throws at a boundary
+      // the caller cannot read.
+      for (const raw of LOOKUP_ADAPTER_EMPTY_TEXTS) {
+        const exit = yield* Effect.exit(lookupInput({ text: raw, context: Option.none() }));
+        expect(Exit.isFailure(exit)).toBe(true);
+      }
+    }),
+  );
+
+  it.effect('builds the no-context input the DOM hosts build outside Scripture', () =>
+    Effect.gen(function* () {
+      const built = yield* lookupInput({
+        text: LOOKUP_ADAPTER_SELECTION.text,
+        context: Option.none(),
+      });
+      expect(built).toEqual(LOOKUP_ADAPTER_INPUT_NO_CONTEXT);
+    }),
+  );
+
+  it.effect('refuses a --context that does not name one verse', () =>
+    Effect.gen(function* () {
+      // A chapter would silently resolve against its first verse and report
+      // Strong's entries for words the caller never named.
+      const exit = yield* Effect.exit(
+        lookupInput({ text: 'the daily', context: Option.some('Dan 8') }),
+      );
+      expect(Exit.isFailure(exit)).toBe(true);
+    }),
+  );
+
+  it.effect('prints exactly what the RPC procedure would put on the wire', () =>
+    Effect.gen(function* () {
+      const result = yield* runLookup([WIKI_PAGE_FIXTURE.phrase, '--json']);
+      expect(result.success).toBe(true);
+
+      const resolved = yield* lookupResult(
+        LookupInput.make({ text: WIKI_PAGE_FIXTURE.phrase, context: Option.none() }),
+      );
+      expect(result.stdout).toBe(
+        yield* serialize(yield* Schema.encodeEffect(LookupResultJson)(resolved)),
+      );
+
+      // Not vacuous: four groups answered, and the keys are §7's five in §7's
+      // order — which is the order the panel draws.
+      const wire = yield* Schema.decodeEffect(Schema.fromJsonString(Schema.Unknown))(result.stdout);
+      expect(Object.keys(wire as object)).toEqual([
+        'text',
+        'topics',
+        'strongs',
+        'verses',
+        'writings',
+        'catalog',
+        'lonePeek',
+      ]);
+      expect(resolved.topics.length).toBeGreaterThan(0);
+      expect(resolved.verses.length).toBeGreaterThan(0);
+      expect(resolved.writings.length).toBeGreaterThan(0);
+      expect(resolved.catalog.length).toBeGreaterThan(0);
+    }),
+  );
+
+  it.effect('runs §10’s CLI JSON workflow, context and all', () =>
+    Effect.gen(function* () {
+      // §10, Milestone 7, word for word: `bible wiki lookup "the daily"
+      // --context "Dan 8:13" --json`. Through the real command, so the flag is
+      // parsed, converted to a verse address and carried into the service — a
+      // parser that dropped `--context` would print four groups and an empty
+      // fifth, and every other test in this file would still pass.
+      const result = yield* runLookup([
+        LOOKUP_ADAPTER_SELECTION.text,
+        '--context',
+        LOOKUP_ADAPTER_SELECTION.reference,
+        '--json',
+      ]);
+      expect(result.success).toBe(true);
+
+      // What the command printed is what the service answers for the *whole*
+      // input, context included — `LOOKUP_ADAPTER_INPUT` is that input, and it
+      // is the value the three adapter builders are held to.
+      const resolved = yield* lookupResult(LOOKUP_ADAPTER_INPUT);
+      expect(result.stdout).toBe(
+        yield* serialize(yield* Schema.encodeEffect(LookupResultJson)(resolved)),
+      );
+      // Not vacuous: the flag reached `getVerseWords` and the group filled.
+      expect(resolved.strongs.map((hit) => hit.word)).toEqual(['the daily']);
+
+      // And the same command without the flag leaves that group empty, which is
+      // §10's other half: "omitting `context` does not". A parser that dropped
+      // `--context` would print this second output for both runs.
+      const without = yield* runLookup([LOOKUP_ADAPTER_SELECTION.text, '--json']);
+      expect(without.stdout).not.toBe(result.stdout);
+    }),
+  );
+
+  it.effect('prints all five groups in panel order, empty ones included', () =>
+    Effect.gen(function* () {
+      const result = yield* runLookup([WIKI_PAGE_FIXTURE.phrase]);
+      expect(result.success).toBe(true);
+
+      // The human form is the same five rows in the same order. An empty group
+      // prints its heading with a zero rather than vanishing — §7's
+      // "present-and-empty, not absent", in the surface a reader reads.
+      const headings = result.stdout
+        .split('\n')
+        .filter((line) => line.startsWith('## '))
+        .map((line) => line.split('  ')[0]);
+      expect(headings).toEqual([
+        '## topics',
+        '## strongs',
+        '## verses',
+        '## writings',
+        '## catalog',
+      ]);
+      expect(result.stdout).toContain('## strongs  0');
+      expect(result.stdout).toContain(WIKI_PAGE_FIXTURE.slug);
+    }),
+  );
 });

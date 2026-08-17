@@ -12,7 +12,7 @@ import type { BibleService } from '@bible/core/bible/service';
 import type { WritingsService } from '@bible/core/writings/service';
 import type { StudyService } from '@bible/core/study';
 import type { TopicService } from '@bible/core/topics';
-import type { WikiService } from '@bible/core/wiki';
+import type { LookupService, WikiService } from '@bible/core/wiki';
 import { Effect, Layer, Option, Queue } from 'effect';
 import type { FromClientEncoded, FromServerEncoded } from 'effect/unstable/rpc/RpcMessage';
 import * as RpcServer from 'effect/unstable/rpc/RpcServer';
@@ -85,6 +85,7 @@ export const layerDesktopProcedureServer = (
   | LibraryStateRuntime
   | TopicService
   | WikiService
+  | LookupService
   | StudyService
   | DataPortabilityRuntime
 > =>

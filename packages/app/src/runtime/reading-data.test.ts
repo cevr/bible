@@ -10,7 +10,9 @@
  * component reads is the value the procedure returned.
  */
 
+import { Reference, type VerseReference } from '@bible/core/bible';
 import { CommitId, BibleProcedureGroup } from '@bible/core/procedure';
+import { LookupResult } from '@bible/core/wiki';
 import { LibraryEntityId, type ReaderLocation } from '@bible/core/library-state';
 import { NoteId } from '@bible/core/local-first';
 import { DEFAULT_READING_PREFERENCES } from '@bible/core/reading-preferences';
@@ -25,6 +27,7 @@ import { procedureClientAtom, type ProcedureClient } from '../cache/reading-rpc.
 import { resetTrackedQueries } from '../cache/settled-mutation.js';
 import {
   useCollections,
+  useLookup,
   useLibraryMutation,
   useLocationAnnotations,
   useMemoryPractice,
@@ -46,6 +49,9 @@ const romansLocation: ReaderLocation = {
 };
 
 const emptyAnnotations = { bookmarks: [], notes: [], markers: [], crossReferences: [] };
+
+/** §7's own example context: `--context "Dan 8:13"`. */
+const DANIEL_8_13 = Reference.verse(27, 8, 13);
 
 const testCommitId = Schema.decodeSync(CommitId)('test-commit');
 const johnNoteId = Schema.decodeSync(NoteId)('note:bible:KJV:/bible/43/3/16');
@@ -102,8 +108,25 @@ interface Gates {
   readonly mutation?: Gate;
 }
 
+/** What a lookup payload looked like when it reached the far side.
+ *
+ *  A handler rather than a spy on the transport, because the claim is about the
+ *  payload the hook *built*: `v1.wiki.lookup.resolve` takes the selection and an
+ *  optional verse address, and the two have to come from one read of the
+ *  accessor. Recorded here, they can be compared as one value. */
+type LookupHandler = (input: {
+  readonly text: string;
+  readonly context?: VerseReference;
+}) => Effect.Effect<LookupResult>;
+
+const unusedLookup: LookupHandler = () => Effect.die('unused');
+
 /** The handlers, optionally with the collections read or the mutation gated. */
-const handlerLayer = (recorder: Recorder, gates: Gates = {}) =>
+const handlerLayer = (
+  recorder: Recorder,
+  gates: Gates = {},
+  lookup: LookupHandler = unusedLookup,
+) =>
   BibleProcedureGroup.toLayer(
     Effect.succeed({
       'v1.runtime.connect': () => Effect.die('unused'),
@@ -181,6 +204,7 @@ const handlerLayer = (recorder: Recorder, gates: Gates = {}) =>
       'v1.wiki.topic.get': () => Effect.die('unused'),
       'v1.wiki.topics.list': () => Effect.die('unused'),
       'v1.wiki.dictionary.get': () => Effect.die('unused'),
+      'v1.wiki.lookup.resolve': lookup,
       'v1.study.verse.get': () => Effect.die('unused'),
       'v1.study.strongs.get': () => Effect.die('unused'),
     }),
@@ -241,6 +265,59 @@ const settle = Effect.gen(function* () {
 
 describe('reading data', () => {
   const test = it.scoped;
+
+  test('sends one snapshot of the selection it was handed (§7)', () =>
+    Effect.gen(function* () {
+      // The payload is two fields — the selected text and the verse it came
+      // from — and they describe *one* selection. Read from the accessor twice,
+      // they can come from two: the reader's second gesture lands between the
+      // reads and the panel resolves text from one selection with the context
+      // of another, which is a Strong's group about words the reader never
+      // touched. The accessor here answers differently on its second call,
+      // which is what a signal read across an update does.
+      const seen: { readonly text: string; readonly context: unknown }[] = [];
+      const recorder = makeRecorder();
+      const procedures: ProcedureClient = yield* RpcTest.makeClient(BibleProcedureGroup, {
+        flatten: true,
+      }).pipe(
+        Effect.provide(
+          handlerLayer(recorder, {}, (input) =>
+            Effect.sync(() => {
+              seen.push({ text: input.text, context: input.context });
+              return LookupResult.make({
+                text: input.text,
+                topics: [],
+                strongs: [],
+                verses: [],
+                writings: [],
+                catalog: [],
+                lonePeek: false,
+              });
+            }),
+          ),
+        ),
+      );
+
+      let reads = 0;
+      const selection = () => {
+        reads += 1;
+        if (reads === 1) return { text: 'the daily', context: Option.some(DANIEL_8_13) };
+        return { text: 'sanctuary', context: Option.none<VerseReference>() };
+      };
+
+      const registry = startSession(procedures);
+      const mounted = createRoot((dispose) => ({
+        value: useLookup(selection),
+        dispose: () => {
+          dispose();
+          registry.dispose();
+        },
+      }));
+      yield* Effect.addFinalizer(() => Effect.sync(mounted.dispose));
+
+      expect(yield* Effect.promise(() => resolve(mounted.value))).toBeDefined();
+      expect(seen).toEqual([{ text: 'the daily', context: DANIEL_8_13 }]);
+    }));
 
   test('reads through the cache and refreshes only the keys a mutation touches', () =>
     Effect.gen(function* () {

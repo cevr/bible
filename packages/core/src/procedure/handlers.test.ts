@@ -28,6 +28,7 @@ import {
   malformedStudyProcedureDependencies,
 } from '../study/testing.js';
 import { WikiSectionSources } from '../wiki/section-composer.js';
+import { LookupService } from '../wiki/lookup-service.js';
 import { WikiService } from '../wiki/service.js';
 import { topicSlug, WikiPassageRef, WikiVerseRef } from '../wiki/model.js';
 import { Effect, Layer, Option, Schema, Stream } from 'effect';
@@ -115,6 +116,29 @@ const Dependencies = Layer.mergeAll(
   // returning a hardcoded page.
   WikiService.Absent.pipe(
     Layer.provide(TopicService.Test([resurrectionTopic])),
+    Layer.provide(
+      WikiSectionSources.Live.pipe(
+        Layer.provide(TopicService.Test([resurrectionTopic])),
+        Layer.provide(BibleDatabase.layerTest()),
+        Layer.provide(EGWCommentaryService.Test()),
+        Layer.provide(
+          WritingsService.Live.pipe(
+            Layer.provide(EGWParagraphDatabase.Test({ books: [], paragraphs: [] })),
+          ),
+        ),
+      ),
+    ),
+  ),
+  // Select-to-lookup (§7), over the same absent artifact and the same catalog:
+  // the five groups resolve through the real service rather than a stub, so
+  // `v1.wiki.lookup.resolve` exercises the seam it will in production.
+  LookupService.Live.pipe(
+    Layer.provide(
+      WikiService.Absent.pipe(
+        Layer.provide(TopicService.Test([resurrectionTopic])),
+        Layer.provide(WikiSectionSources.NotWired),
+      ),
+    ),
     Layer.provide(
       WikiSectionSources.Live.pipe(
         Layer.provide(TopicService.Test([resurrectionTopic])),

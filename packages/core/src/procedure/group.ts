@@ -24,6 +24,7 @@ import {
 import { StrongsNumber, StrongsStudy, StudyLimit, VerseStudy } from '../study/model.js';
 import { StudyCorpusDataError } from '../study/service.js';
 import { TopicDetail, TopicId, TopicSummary } from '../topics/model.js';
+import { LookupContext, LookupResult } from '../wiki/lookup-model.js';
 import { PhraseDictionary, TopicSlug, WikiPage, WikiPageSummary } from '../wiki/model.js';
 import {
   Page,
@@ -282,6 +283,27 @@ export const WikiDictionaryGet = procedure('v1.wiki.dictionary.get', {
   success: PhraseDictionary,
 });
 
+/** Select-to-lookup (§7): the five resolver groups for one selection, in one
+ *  round trip.
+ *
+ *  One procedure rather than five, for the reason `v1.study.verse.get` is one:
+ *  the panel draws all five groups every time, so per-group procedures would
+ *  turn one MessagePort crossing into five for a payload that is already small.
+ *
+ *  `context` is `Schema.optional` and carries the whole `VerseReference` rather
+ *  than three flattened numbers, unlike `v1.study.verse.get`'s payload. The two
+ *  differ because the field means different things: there, the reference *is*
+ *  the request and flattening it keeps the payload one address; here it is an
+ *  optional qualifier on a text query, and `Option`-shaped absence is the
+ *  distinction the Strong's group reads. */
+export const WikiLookupResolve = procedure('v1.wiki.lookup.resolve', {
+  payload: {
+    text: Schema.NonEmptyString,
+    context: Schema.optional(LookupContext),
+  },
+  success: LookupResult,
+});
+
 /** What the two `v1.study.*` procedures fail with.
  *
  *  `StudyCorpusDataError` rides across the wire *as itself* rather than being
@@ -355,6 +377,7 @@ export const BibleProcedureGroup = RpcGroup.make(
   WikiTopicGet,
   WikiTopicsList,
   WikiDictionaryGet,
+  WikiLookupResolve,
   StudyVerseGet,
   StudyStrongsGet,
 );

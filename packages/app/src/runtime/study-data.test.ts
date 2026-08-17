@@ -164,6 +164,7 @@ const handlerLayer = (recorder: Recorder, options: HandlerOptions = {}) =>
       'v1.wiki.topic.get': () => Effect.die('unused'),
       'v1.wiki.topics.list': () => Effect.die('unused'),
       'v1.wiki.dictionary.get': () => Effect.die('unused'),
+      'v1.wiki.lookup.resolve': () => Effect.die('unused'),
       'v1.preferences.reading.get': () => Effect.die('unused'),
       'v1.preferences.reading.patch': () => Effect.die('unused'),
       'v1.study.verse.get': (input: { readonly verse: number }) =>

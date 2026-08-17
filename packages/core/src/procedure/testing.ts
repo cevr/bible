@@ -30,6 +30,7 @@ import { DEFAULT_READING_PREFERENCES } from '../reading-preferences/model.js';
 import { StudyService } from '../study/service.js';
 import { TopicService } from '../topics/service.js';
 import { WikiSectionSources } from '../wiki/section-composer.js';
+import { LookupService } from '../wiki/lookup-service.js';
 import { WikiService } from '../wiki/service.js';
 import { WritingsService } from '../writings/service.js';
 import {
@@ -61,6 +62,7 @@ export interface ProcedureDependencyOverrides {
   readonly writings?: Layer.Layer<WritingsService>;
   readonly topics?: Layer.Layer<TopicService>;
   readonly wiki?: Layer.Layer<WikiService>;
+  readonly lookup?: Layer.Layer<LookupService>;
   readonly study?: Layer.Layer<StudyService>;
 }
 
@@ -96,6 +98,15 @@ const emptyWiki: Layer.Layer<WikiService> = WikiService.Absent.pipe(
   Layer.provide(WikiSectionSources.NotWired),
 );
 
+/** A `LookupService` over an absent artifact and no section sources: it
+ *  answers, and answers with five empty groups (§7). The same posture
+ *  `emptyWiki` takes, for the same reason — a suite that is not testing the
+ *  lookup seam must still be able to build the handler layer. */
+const emptyLookup: Layer.Layer<LookupService> = LookupService.Live.pipe(
+  Layer.provide(emptyWiki),
+  Layer.provide(WikiSectionSources.NotWired),
+);
+
 /** Everything `BibleProcedureHandlers` requires, with the named services
  *  replaced by the caller's own.
  *
@@ -109,6 +120,7 @@ export const procedureDependencies = (
   | WritingsService
   | TopicService
   | WikiService
+  | LookupService
   | StudyService
   | WritingsLibraryRuntime
   | ProcedureRuntime
@@ -123,6 +135,7 @@ export const procedureDependencies = (
     overrides.writings ?? emptyWritings,
     overrides.topics ?? TopicService.Test([]),
     overrides.wiki ?? emptyWiki,
+    overrides.lookup ?? emptyLookup,
     overrides.study ?? emptyStudy,
     Layer.succeed(
       WritingsLibraryRuntime,

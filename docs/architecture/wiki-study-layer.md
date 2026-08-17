@@ -431,8 +431,40 @@ and colored links would turn scripture into soup.
 Bare `judgment` (36,862 corpus hits), bare `Babylon`, `1843`, and `the
 bridegroom` are excluded from the v1 dictionary, with the exclusion recorded as a
 comment in the affected stub. `the daily` and `seven times` carry
-context-restriction notes for the matcher. Counts and the full flag list:
+context-restriction notes for the matcher — which nothing implements yet (§4.9).
+Counts and the full flag list:
 [research 011](../wayfinder/wiki-study-layer/research/011-topic-candidates.md).
+
+### 4.9 Known implementation gap: context-restricted aliases
+
+The exclusions of §4.8 are honored — a noise-flagged alias is simply absent from
+the dictionary, and `phrase-matcher.test.ts:520` pins that. The **restrictions** are not.
+`the daily` must not fire inside `the daily paper`, the author wrote the rule
+down where §4.8 says to (`content/topics/the-daily.md:16`: _"the daily" needs
+context-restricted matching ("the daily paper")_), and every layer between that
+comment and the reader drops it.
+
+The artifact has nowhere to put it. §2.2's `topic_aliases` is
+`(alias, display, slug, canonical)` — four columns, none of which carries a
+condition — so the §3.4 compiler discards the note with the rest of the HTML
+comment it lives in. Nothing downstream asks for it either:
+`grep -rn "restrict" packages/core/src/wiki` finds no match, so the render-time
+matcher (`phrase-matcher.ts`) links `the daily` inside `the daily paper` and the
+§7 resolver (`lookup-service.ts`) answers a selection of it with the same topic.
+That the two agree is the only good news here: there is no half of this rule
+implemented for the other half to drift from.
+
+**The fix is not a resolver rule, and not a matcher rule alone.** §4.8 states the
+requirement as a rule _for the matcher_, and the matcher matches what the
+artifact hands it: honoring the restriction means a §3.1 source syntax for it
+(the note is prose in a comment today), a column for it in §2.2's
+`topic_aliases`, a §3.4 compiler that carries it across, and **one** condition
+rule read by both the matcher and the §7 resolver — a phrase that is a link on
+the page and a miss in the panel would be worse than today's uniform
+over-matching. That is an M2/M4-shaped change riding the schema pin (§3.6),
+schedulable after Milestone 9. Milestone 7 deliberately shipped without it: a
+resolver-only restriction would have created exactly the divergence the shared
+§4.3 scan exists to prevent.
 
 ---
 
@@ -541,6 +573,45 @@ column (`book-database.ts:521,526`), and adds `ORDER BY rank` so "FTS rank order
 in the table above is real. Both changes are portable-core work and land behind
 the same service interface all three clients already call.
 
+### 6.5 Known implementation gap: a corpus fault reads as an absent corpus
+
+§6.3's degradation and §7's are the same posture, spelled twice: `composeSections`
+recovers a source's typed failure into an empty section nine times
+(`packages/core/src/wiki/section-composer.ts:487,518,532,542,693,697,799,858,904`)
+and `LookupService.resolve` into an empty group five
+(`lookup-service.ts:391,459,488,536,611`), and neither surface has an error
+channel for a client to read (`composeSections` and
+`LookupServiceApi.resolve:78` both return an `Effect` that cannot fail).
+
+**Two different things arrive on those channels and only one of them is
+absence.** `BibleDatabaseError` is `SqlError | BibleDataIntegrityError`
+(`packages/core/src/bible-db/bible-database.ts:21`): the same type reports "this
+corpus is not installed" and "this installed corpus answered with a broken row
+or failed a query". `WikiUnavailableError` carries a `corrupt` category beside
+its absent one. Recovering both is what §6.3 asks for in the first case and a
+silent lie in the second — a reader whose database is damaged is shown a topic
+page with two fewer sections, or a lookup panel with an empty group, and
+_nothing on screen or in the JSON says so_. The three-client contract states the
+requirement the other way round: "Every portable service must expose typed
+failures"
+(`docs/wayfinder/wiki-study-layer/client-compatibility.md:20`), and a fault that
+is never expressed is one no client can surface.
+
+The current posture is pinned rather than assumed, so a change to it is visible:
+`lookup-service.test.ts`'s _"answers with an empty group when one corpus reports
+a typed failure"_ and _"does not swallow a defect"_ state both halves — recovery
+is over the **error channel** only, and a defect still fails the effect.
+
+**The fix is one change across both surfaces.** Splitting "declared absence"
+(stays an empty section or group, as today) from "corpus fault" (a typed failure
+the composer and the resolver both report, and the panel and the topic page both
+render) means: an absence/fault distinction on the source services' own error
+types, one recovery helper both surfaces call, and an error channel on
+`composeSections` and `LookupServiceApi.resolve` alike. Doing it on one surface
+alone would leave §6 and §7 reporting the same broken database two different
+ways, which is worse than reporting it identically wrongly. It is scheduled
+after Milestone 9 with §4.9.
+
 ---
 
 ## 7. Select-to-lookup
@@ -559,6 +630,15 @@ demand** as the fallback.
 | Bible FTS hits        | `BibleDatabase.searchVerseWindow`                                                                      |
 | EGW FTS hits          | `WritingsService.search`                                                                               |
 | Catalog topical index | `TopicService.list`                                                                                    |
+
+The topic group matches on §4.3's normalized form and §4.6's word boundaries —
+the same scan the render-time matcher is keyed by, so a phrase cannot be a link
+in the page and a miss in the panel. It inherits §4.9 with the matcher: an alias
+carrying a context-restriction note matches here too, because no layer between
+the authored note and either matcher carries the restriction. The four
+corpus-backed groups inherit §6.5: a source that cannot answer subtracts its own
+group, and an unreadable database is currently reported the same way an
+uninstalled one is.
 
 Selection is a **portable lookup input**. Web and desktop build it from the DOM
 selection plus reading context; the CLI accepts the same text as an argument:

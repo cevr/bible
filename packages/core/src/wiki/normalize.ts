@@ -171,6 +171,42 @@ const WORD_CHARACTER = /^[\p{L}\p{N}\p{M}]/u;
 
 export const isWordCharacter = (character: string): boolean => WORD_CHARACTER.test(character);
 
+/** A normalized string as its §4.6 words: the maximal runs of word characters,
+ *  with everything else read as the boundary between them.
+ *
+ *  This is `isBoundaryAt`'s rule stated as a scan rather than as a test at one
+ *  index, and it exists so a consumer that compares *words* — the §7 lookup
+ *  resolver's containment and prefix rules — asks the same question the
+ *  render-time matcher asks of a candidate span. Splitting the normalized text
+ *  on spaces instead is the drift this module exists to prevent: normalization
+ *  collapses whitespace and drops soft punctuation, but it deliberately keeps
+ *  apostrophes and hyphens (see `isSoftPunctuation`), so `third angel's
+ *  message` is three space-separated runs and four words. The matcher links the
+ *  authored alias `third angel` inside it, on the boundary the apostrophe
+ *  makes; a space-splitting consumer sees the single token `angel's` and
+ *  answers nothing, and one phrase is then a link on the page and a miss in the
+ *  panel.
+ *
+ *  Iterates by code point, like `normalizeScan`, so an astral character is one
+ *  word character rather than two lone surrogates that match no `\p{…}` class
+ *  and would cut a word in half. */
+export const normalizedWords = (normalized: string): readonly string[] => {
+  const found: string[] = [];
+  let current = '';
+  for (const codePoint of normalized) {
+    if (isWordCharacter(codePoint)) {
+      current += codePoint;
+      continue;
+    }
+    if (current.length > 0) {
+      found.push(current);
+      current = '';
+    }
+  }
+  if (current.length > 0) found.push(current);
+  return found;
+};
+
 /** Whether the position just outside a match is a word boundary. Positions past
  *  either end of the text are boundaries — a phrase at the start or the end of a
  *  run is bounded by the run itself.

@@ -43,6 +43,7 @@ import {
   type WritingsPlan,
 } from './match-plan.js';
 import { ReaderFailure, ReaderLoading } from './bible-reader.js';
+import { noContext, SelectionLookupPanel, useSelectionLookup } from './selection-lookup.js';
 import { writingsDownloadLabel } from './writings-download-label.js';
 
 export interface WritingsPageReaderProps {
@@ -176,6 +177,10 @@ const WritingsPageContent = (props: {
   readonly selected?: ParagraphReference;
 }) => {
   const page = props.page;
+  /** §7's "any text selection can be looked up on demand", on this surface too.
+   *  `noContext` because no verse holds writings prose — the Strong's group is
+   *  empty here and the other four answer. */
+  const lookup = useSelectionLookup();
   const phrases = useWritingsPhrases({
     sectionKey: () =>
       writingsPageKey({
@@ -213,7 +218,14 @@ const WritingsPageContent = (props: {
           <ScrollViewport
             label={`${page().publication.title}, page ${String(page().reference.page)}`}
           >
-            <div class="bible-prose">
+            <div
+              class="bible-prose"
+              // The gesture is the selection itself (§7). `mouseup` ends a drag
+              // and `keyup` ends a shift-arrow selection, the same pair the
+              // Bible reader listens for and through the same builder.
+              onMouseUp={() => lookup.select(noContext)}
+              onKeyUp={() => lookup.select(noContext)}
+            >
               <For each={page().paragraphs}>
                 {(paragraph) => (
                   <p
@@ -239,6 +251,7 @@ const WritingsPageContent = (props: {
             </div>
             <WritingsPeek phrases={phrases} />
           </ScrollViewport>
+          <SelectionLookupPanel lookup={lookup} />
           <AnnotationTools
             location={{
               source: 'egw',
@@ -273,6 +286,8 @@ const WritingsPageContent = (props: {
 
 export const WritingsParagraphReader = (props: { readonly reference: ParagraphReference }) => {
   const paragraph = useWritingsParagraph(() => props.reference);
+  /** §7's selection lookup, as on the page route. */
+  const lookup = useSelectionLookup();
   // One paragraph is the whole rendered reading unit here, so it is the §4.5
   // section — the same rule the page route applies, at the size this route
   // renders, through the same planner.
@@ -309,7 +324,11 @@ export const WritingsParagraphReader = (props: { readonly reference: ParagraphRe
             <p class="bible-reader__eyebrow">Writings</p>
             <h1>{Option.getOrElse(paragraph().refcode, () => paragraph().publicationCode)}</h1>
           </header>
-          <div class="bible-prose">
+          <div
+            class="bible-prose"
+            onMouseUp={() => lookup.select(noContext)}
+            onKeyUp={() => lookup.select(noContext)}
+          >
             <p>
               <ParagraphNodes
                 nodes={paragraph().nodes}
@@ -324,6 +343,7 @@ export const WritingsParagraphReader = (props: { readonly reference: ParagraphRe
             </p>
           </div>
           <WritingsPeek phrases={phrases} />
+          <SelectionLookupPanel lookup={lookup} />
           <AnnotationTools
             location={{
               source: 'egw',
