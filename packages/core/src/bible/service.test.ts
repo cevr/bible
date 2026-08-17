@@ -3,7 +3,7 @@ import { Effect, Layer, Option } from 'effect';
 
 import { BibleDatabase } from '../bible-db/bible-database.js';
 import { BibleChapterNotFoundError } from './errors.js';
-import { Reference } from './model.js';
+import { Reference, verseNumber } from './model.js';
 import { BibleService } from './service.js';
 
 const verses = [
@@ -14,6 +14,25 @@ const verses = [
 ];
 
 const TestLayer = BibleService.Live.pipe(Layer.provide(BibleDatabase.layerTest({ verses })));
+
+/** The same canon with one KJV marginal note, so §10 M6's margin layer has real
+ *  data to draw. Genesis 1:1's `beginning` carries a Hebrew note in the shipped
+ *  corpus, which is the row this fixture mirrors. */
+const MarginLayer = BibleService.Live.pipe(
+  Layer.provide(
+    BibleDatabase.layerTest({
+      verses,
+      marginNotes: [
+        {
+          book: 1,
+          chapter: 1,
+          verse: 1,
+          notes: [{ index: 0, type: 'hebrew', phrase: 'beginning', text: 'First in order' }],
+        },
+      ],
+    }),
+  ),
+);
 
 describe('BibleService', () => {
   const test = it.effect;
@@ -49,6 +68,25 @@ describe('BibleService', () => {
         expect(result.failure).toBeInstanceOf(BibleChapterNotFoundError);
       }
     }).pipe(Effect.provide(TestLayer)));
+
+  test('projects a chapter’s margin anchors, by verse, in verse order', () =>
+    Effect.gen(function* () {
+      const bible = yield* BibleService;
+      const anchors = yield* bible.chapterMarginAnchors(Reference.chapter(1, 1));
+
+      // Only what the *reader* draws: which anchor, and the phrase it follows.
+      // The note's own text belongs to the study pane's per-verse read.
+      expect(anchors.verses).toEqual([
+        { verse: verseNumber(1), anchors: [{ noteIndex: 0, phrase: 'beginning' }] },
+      ]);
+    }).pipe(Effect.provide(MarginLayer)));
+
+  test('a chapter with no notes answers an empty list, not a failure', () =>
+    Effect.gen(function* () {
+      const bible = yield* BibleService;
+      const anchors = yield* bible.chapterMarginAnchors(Reference.chapter(2, 1));
+      expect(anchors.verses).toEqual([]);
+    }).pipe(Effect.provide(MarginLayer)));
 
   test('returns a filtered search window through the canonical interface', () =>
     Effect.gen(function* () {

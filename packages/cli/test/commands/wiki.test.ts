@@ -1,8 +1,12 @@
 import { TopicDetail, TopicId, TopicService } from '@bible/core/topics';
 import {
+  BlocksJson,
   matchRun,
+  normalizeAlias,
+  ParagraphBlock,
   PhraseAutomaton,
   PhraseSpansJson,
+  TextInline,
   WikiPageJson,
   WikiSectionSources,
   WikiService,
@@ -13,7 +17,18 @@ import {
 // barrel: it is the *same* module the core suite imports relatively, so the
 // cross-host parity claim is still about one input, but a shipped import
 // cannot reach it.
-import { DANIEL_8_9, PHRASE_FIXTURE_DICTIONARY } from '@bible/core/wiki/testing';
+import {
+  DANIEL_8_9,
+  PHRASE_FIXTURE_DICTIONARY,
+  WIKI_ARTIFACT_DDL,
+  WIKI_PAGE_FIXTURE,
+  WIKI_PAGE_FIXTURE_IDENTITIES,
+  WIKI_PAGE_FIXTURE_CATALOG,
+  WIKI_PAGE_FIXTURE_PAGE,
+  wikiPageFixtureRows,
+  WIKI_PAGE_FIXTURE_SOURCES,
+  wikiSectionIdentities,
+} from '@bible/core/wiki/testing';
 import { BunFileSystem } from '@effect/platform-bun';
 import { layerBun } from '@bible/core/wiki/bun';
 import { Database } from 'bun:sqlite';
@@ -346,5 +361,304 @@ describe('bible wiki matches', () => {
       );
       expect(result.success).toBe(true);
       expect(result.stdout).toContain('artifact-not-installed');
+    }));
+});
+
+// ---------------------------------------------------------------------------
+// bible wiki topic 2300-days --json — the Milestone 6 CLI JSON workflow
+//
+// §10's Milestone 6 names this exact command: "`bible wiki topic 2300-days
+// --json` matches, section for section and identity for identity, what the UI
+// renders."
+//
+// **Which artifact.** `content/topics/2300-days.md` exists and carries the
+// slug, the title and six aliases — but all 40 authored sources are still
+// `status: draft`, so `bun run build:topics` emits an artifact with zero pages
+// and zero aliases and warns that it would be refused at install time. The
+// installed `~/.bible/topics.db` is exactly that empty artifact. So the real
+// slug is run against a **fixture artifact** carrying the same slug, title and
+// aliases the draft source declares, written through the same `topic_aliases`
+// and `topics` DDL a compiled artifact has and read through the same
+// production `layerBun`. When the first content release approves the page, the
+// fixture and the shipped artifact carry the same identities and this test
+// keeps meaning what it says.
+//
+// **What "matches what the UI renders" is asserted as.** The UI renders from
+// `WikiPageJson` — `v1.wiki.topic.get`'s declared success schema — and
+// `wiki/host-parity.test.ts` already proves the RPC handler and the CLI encode
+// the *same value* through it. What is left for this file, and what a helper
+// test could not see, is that the **command** still runs that encoder: the
+// section identities and the default-open flags a UI would key on have to be
+// the ones that actually reached stdout. The app's own
+// `packages/app/src/reading/wiki-page-identity.test.ts` closes the loop from
+// the other side, deriving the UI's rendered identities from the same encoded
+// page.
+// ---------------------------------------------------------------------------
+
+/** The `2300-days` page as `content/topics/2300-days.md` declares it: the slug,
+ *  the title, and the six authored aliases. Written into a fixture artifact
+ *  because the source is still a draft — see the note above. */
+const TWENTY_THREE_HUNDRED = {
+  slug: '2300-days',
+  title: '2300 Days / 1844',
+  aliases: [
+    '2300 days',
+    'the 2300',
+    '1844',
+    'twenty-three hundred days',
+    'two thousand and three hundred days',
+    'tenth day of the seventh month',
+  ],
+} as const;
+
+const writeTopicArtifact = (file: string): string => {
+  const database = new Database(file, { create: true });
+  database.exec(`
+    CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+    CREATE TABLE topics (slug TEXT PRIMARY KEY, title TEXT NOT NULL, thesis_ast TEXT NOT NULL, body_ast TEXT NOT NULL, position INTEGER NOT NULL);
+    CREATE TABLE topic_aliases (alias TEXT PRIMARY KEY, display TEXT NOT NULL, slug TEXT NOT NULL, canonical INTEGER NOT NULL);
+    CREATE TABLE topic_edges (from_slug TEXT NOT NULL, to_slug TEXT NOT NULL, kind TEXT NOT NULL, position INTEGER NOT NULL, PRIMARY KEY (from_slug, to_slug, kind));
+    CREATE TABLE topic_catalog_keys (slug TEXT PRIMARY KEY, catalog_id TEXT NOT NULL, matched_by TEXT NOT NULL);
+    INSERT INTO meta (key, value) VALUES ('schema_major', '1');
+  `);
+  const emptyBlocks = Schema.encodeSync(BlocksJson)([]);
+  const thesis = Schema.encodeSync(BlocksJson)([
+    ParagraphBlock.make({
+      content: [
+        TextInline.make({
+          text: 'The 2300 evenings and mornings of Daniel 8:14 close in 1844.',
+        }),
+      ],
+    }),
+  ]);
+  database
+    .prepare(
+      'INSERT INTO topics (slug, title, thesis_ast, body_ast, position) VALUES (?, ?, ?, ?, ?)',
+    )
+    .run(TWENTY_THREE_HUNDRED.slug, TWENTY_THREE_HUNDRED.title, thesis, emptyBlocks, 0);
+  const insertAlias = database.prepare(
+    'INSERT INTO topic_aliases (alias, display, slug, canonical) VALUES (?, ?, ?, ?)',
+  );
+  // The first authored alias is the canonical one — the phrase §6.2's search
+  // handoff pre-fills and the composer's FTS runs on.
+  const CANONICAL = 1;
+  const SECONDARY = 0;
+  for (const [position, alias] of TWENTY_THREE_HUNDRED.aliases.entries()) {
+    let canonical = SECONDARY;
+    if (position === 0) canonical = CANONICAL;
+    insertAlias.run(normalizeAlias(alias), alias, TWENTY_THREE_HUNDRED.slug, canonical);
+  }
+  database.close();
+  return file;
+};
+
+describe('bible wiki topic 2300-days --json', () => {
+  const test = it.scopedLive.layer(BunFileSystem.layer);
+
+  test('prints the composed page through the core schema, section for section', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const directory = yield* fs
+        .makeTempDirectoryScoped({ prefix: 'bible-wiki-2300-' })
+        .pipe(Effect.orDie);
+      const layer = dictionaryWiki(writeTopicArtifact(`${directory}/topics.db`));
+
+      const result = yield* runCli(wiki, ['topic', TWENTY_THREE_HUNDRED.slug, '--json'], {}).pipe(
+        Effect.provideService(WikiLayer, layer),
+      );
+      expect(result.success).toBe(true);
+
+      const page = yield* Effect.gen(function* () {
+        const service = yield* WikiService;
+        return yield* service.topic(topicSlug(TWENTY_THREE_HUNDRED.slug));
+      }).pipe(Effect.provide(layer));
+
+      // The identity claim: stdout is the schema's encoding of the page, not a
+      // projection of it. A rename anywhere between the composer and the
+      // terminal changes this text.
+      expect(result.stdout).toBe(yield* pageWireText(page));
+
+      // And the page really is the flagship one, with all six sections in
+      // lineup order and the arrival posture on section 1 — the two facts a UI
+      // renders from, and the two an empty page would make the equality above
+      // vacuous about.
+      //
+      // Read off the *encoded* payload rather than the decoded page: what a
+      // client receives is the JSON, and the point of the milestone's workflow
+      // is that the identities in it are the ones the UI keys on. (`Option`'s
+      // wire form here is its `{_id,_tag}` JSON, which is why this reads the
+      // encoder's output directly rather than round-tripping stdout back
+      // through the schema.)
+      const emitted = yield* Schema.encodeEffect(WikiPageJson)(page);
+      expect(emitted.status).toBe('flagship');
+      expect(emitted.title).toBe(TWENTY_THREE_HUNDRED.title);
+      expect(emitted.sections.map((section) => section._tag)).toEqual([
+        'key-verses',
+        'egw-statements',
+        'commentary',
+        'pioneer-witnesses',
+        'cross-references',
+        'related-topics',
+      ]);
+      expect(emitted.sections.map((section) => section.defaultOpen)).toEqual([
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+      ]);
+      expect(Option.isSome(page.core)).toBe(true);
+      // The thesis really crossed: a peek card renders it, and an empty core
+      // would still satisfy `isSome`.
+      expect(result.stdout).toContain('2300 evenings and mornings');
+    }));
+
+  test('the authored aliases reach the dictionary the renderer matches with', () =>
+    Effect.gen(function* () {
+      // The other half of what the UI shows for this topic: the phrase spans it
+      // lights come from these rows, so a page whose aliases did not compile
+      // would render a topic nobody could reach by tapping.
+      const fs = yield* FileSystem.FileSystem;
+      const directory = yield* fs
+        .makeTempDirectoryScoped({ prefix: 'bible-wiki-2300-aliases-' })
+        .pipe(Effect.orDie);
+      const layer = dictionaryWiki(writeTopicArtifact(`${directory}/topics.db`));
+
+      const dictionary = yield* Effect.flatMap(WikiService, (service) => service.dictionary).pipe(
+        Effect.provide(layer),
+      );
+      expect(dictionary.entries.map((entry) => entry.alias).toSorted()).toEqual(
+        TWENTY_THREE_HUNDRED.aliases.map(normalizeAlias).toSorted(),
+      );
+
+      // Every alias resolves to the one page, and the matcher really lights one.
+      const automaton = PhraseAutomaton.make(dictionary);
+      const spans = matchRun(automaton, 'Unto two thousand and three hundred days.');
+      expect(spans.map((span) => String(span.slug))).toEqual([TWENTY_THREE_HUNDRED.slug]);
+    }));
+});
+
+// ---------------------------------------------------------------------------
+// The same command over a page whose sections are **not empty**
+//
+// The suite above runs `bible wiki topic --json` against
+// `WikiSectionSources.NotWired`, and everything it can therefore assert about
+// the sections is true of six empty lists: the tags, the order, the arrival
+// flags. Section *content* — the thing "identity for identity, what the UI
+// renders" is actually about — was never in the payload it checked.
+//
+// So this block runs the identical command over the shared non-empty fixture
+// (`@bible/core/wiki/testing`'s `wikiPageFixtureSources`, which is the
+// production `WikiSectionSources.Live` over test corpora), and asserts the item
+// identities section by section. The same fixture and the same identity table
+// are asserted from the UI side by
+// `packages/app/src/reading/wiki-page-identity.test.ts` and against the
+// rendered DOM by `apps/desktop/e2e/wiki-phrase.spec.ts`, so the three seams
+// agree about one page rather than about three empty ones.
+// ---------------------------------------------------------------------------
+
+/** The fixture artifact, written through the DDL the fixture module owns and
+ *  the rows it declares. Neither is spelled here: a fixture the suite half
+ *  writes itself is a fixture that can drift from the two other seams reading
+ *  it. */
+const writePopulatedArtifact = (file: string): string => {
+  const database = new Database(file, { create: true });
+  database.exec(WIKI_ARTIFACT_DDL);
+  for (const row of wikiPageFixtureRows()) database.prepare(row.sql).run(...row.params);
+  database.close();
+  return file;
+};
+
+/** The production `layerBun`, over the wired sources rather than `NotWired` —
+ *  the one difference from `dictionaryWiki` above, and the whole of what makes
+ *  the assertions below non-vacuous. */
+const populatedWiki = (file: string): Layer.Layer<WikiService> =>
+  layerBun(file).pipe(
+    Layer.provide(WIKI_PAGE_FIXTURE_CATALOG),
+    Layer.provide(WIKI_PAGE_FIXTURE_SOURCES),
+  );
+
+describe('bible wiki topic --json over a populated page', () => {
+  const test = it.scopedLive.layer(BunFileSystem.layer);
+
+  test('every section carries its items, and they are the identities the UI renders', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const directory = yield* fs
+        .makeTempDirectoryScoped({ prefix: 'bible-wiki-populated-' })
+        .pipe(Effect.orDie);
+      const layer = populatedWiki(writePopulatedArtifact(`${directory}/topics.db`));
+
+      const result = yield* runCli(wiki, ['topic', WIKI_PAGE_FIXTURE.slug, '--json'], {}).pipe(
+        Effect.provideService(WikiLayer, layer),
+      );
+      expect(result.success).toBe(true);
+
+      // The composed page, resolved through the same layer the command ran on…
+      const page = yield* Effect.flatMap(WikiService, (service) =>
+        service.topic(topicSlug(WIKI_PAGE_FIXTURE.slug)),
+      ).pipe(Effect.provide(layer));
+
+      // …and stdout is its encoding, which is the identity claim: no projection
+      // sits between the composer and the terminal.
+      expect(result.stdout).toBe(yield* pageWireText(page));
+
+      // Section for section, identity for identity. Emptying any one section in
+      // the fixture — or unwiring the sources, which is what this suite used to
+      // do — fails here rather than passing over an empty list.
+      expect(wikiSectionIdentities(page.sections)).toEqual(WIKI_PAGE_FIXTURE_IDENTITIES);
+
+      // And not one section of it is empty, stated separately so the table above
+      // cannot be quietly emptied on both sides at once.
+      for (const section of page.sections) expect(section.items.length).toBeGreaterThan(0);
+
+      // The identities really did reach stdout, and not only the value the test
+      // encoded beside it: the refcodes and labels are in the text a consumer
+      // reads. (`Option`'s wire form is its `{_id,_tag}` JSON, which is why the
+      // structural assertions above read the decoded page rather than parsing
+      // stdout back — see the note on the empty-page suite.)
+      for (const identities of Object.values(WIKI_PAGE_FIXTURE_IDENTITIES)) {
+        for (const identity of identities) expect(result.stdout).toContain(identity);
+      }
+
+      // The app's own suite cannot open a SQLite artifact — `packages/app` has
+      // no SQL dependency and must not grow one to assert what its JSX draws —
+      // so it composes the same fixture one layer down, through
+      // `wikiPageFixturePage`. This pins the two paths together: the page the
+      // command printed and the page that suite renders from are the same six
+      // sections, item for item.
+      expect(wikiSectionIdentities((yield* WIKI_PAGE_FIXTURE_PAGE).sections)).toEqual(
+        wikiSectionIdentities(page.sections),
+      );
+    }));
+
+  test('§6.3 rides beside the ranked hits, on the wire the UI reads', () =>
+    Effect.gen(function* () {
+      // The thesis cites a book the fixture library does not hold, so section 2
+      // carries a `missingBooks` entry beside its hits. It is section metadata
+      // rather than an item — the cap and `total` stay rank-only — and it is the
+      // second piece of markup on a section that a test over an empty page could
+      // not see.
+      const fs = yield* FileSystem.FileSystem;
+      const directory = yield* fs
+        .makeTempDirectoryScoped({ prefix: 'bible-wiki-populated-missing-' })
+        .pipe(Effect.orDie);
+      const layer = populatedWiki(writePopulatedArtifact(`${directory}/topics.db`));
+
+      const result = yield* runCli(wiki, ['topic', WIKI_PAGE_FIXTURE.slug, '--json'], {}).pipe(
+        Effect.provideService(WikiLayer, layer),
+      );
+      const page = yield* Effect.flatMap(WikiService, (service) =>
+        service.topic(topicSlug(WIKI_PAGE_FIXTURE.slug)),
+      ).pipe(Effect.provide(layer));
+      expect(result.stdout).toBe(yield* pageWireText(page));
+
+      const egw = page.sections[1];
+      expect(egw.missingBooks.map((book) => book.bookCode)).toEqual(['ABSENT']);
+      // The section still ranks only its hits, which is what makes the cap
+      // meaningful.
+      expect(egw.total).toBe(egw.items.length);
+      expect(Option.isSome(egw.handoff)).toBe(true);
     }));
 });

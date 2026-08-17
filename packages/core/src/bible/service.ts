@@ -15,13 +15,16 @@ import {
   type BookNumber,
   type BookReference,
   Chapter,
+  ChapterMarginAnchors,
   type ChapterReference,
   Reference,
   SearchHit,
   SearchWindow,
   type SearchWindowOptions,
   Verse,
+  VerseMarginAnchor,
   bookNumber,
+  verseNumber,
 } from './model.js';
 
 type Operation = BibleUnavailableError['operation'];
@@ -38,6 +41,15 @@ export interface BibleServiceApi {
   readonly books: Effect.Effect<readonly Book[]>;
   readonly book: (reference: BookReference) => Effect.Effect<Book, BibleBookNotFoundError>;
   readonly chapter: (reference: ChapterReference) => Effect.Effect<Chapter, BibleError>;
+  /** Every margin anchor in one chapter, by verse (§10 M6's margin layer).
+   *
+   *  Per chapter and not per verse, because the reader draws anchors for the
+   *  whole screenful and `StudyService` already owns the per-verse read for the
+   *  pane. One query per chapter against `chapterMarginNotes`, which the
+   *  database has always exposed and nothing has called. */
+  readonly chapterMarginAnchors: (
+    reference: ChapterReference,
+  ) => Effect.Effect<ChapterMarginAnchors, BibleError>;
   readonly search: (
     query: string,
     limit?: number,
@@ -125,6 +137,26 @@ export class BibleService extends Context.Service<BibleService, BibleServiceApi>
           });
         });
 
+      const chapterMarginAnchors = (
+        reference: ChapterReference,
+      ): Effect.Effect<ChapterMarginAnchors, BibleError> =>
+        database.chapterMarginNotes(reference.book, reference.chapter).pipe(
+          Effect.mapError(unavailable('read-chapter')),
+          Effect.map((byVerse) =>
+            ChapterMarginAnchors.make({
+              reference,
+              verses: [...byVerse.entries()]
+                .toSorted(([left], [right]) => left - right)
+                .map(([verse, notes]) => ({
+                  verse: verseNumber(verse),
+                  anchors: notes.map((note) =>
+                    VerseMarginAnchor.make({ noteIndex: note.index, phrase: note.phrase }),
+                  ),
+                })),
+            }),
+          ),
+        );
+
       const searchWindow = (
         query: string,
         options: SearchWindowOptions = {},
@@ -164,6 +196,7 @@ export class BibleService extends Context.Service<BibleService, BibleServiceApi>
         books: Effect.succeed(canon),
         book,
         chapter,
+        chapterMarginAnchors,
         search,
         searchWindow,
       });
@@ -174,6 +207,10 @@ export class BibleService extends Context.Service<BibleService, BibleServiceApi>
     readonly books: readonly Book[];
     readonly chapters?: ReadonlyMap<string, Chapter>;
     readonly searchHits?: readonly SearchHit[];
+    /** Margin anchors per chapter, keyed `"<book>:<chapter>"` as `chapters` is.
+     *  Absent means the chapter has none, which is what most of the canon
+     *  actually has. */
+    readonly marginAnchors?: ReadonlyMap<string, ChapterMarginAnchors>;
   }): Layer.Layer<BibleService> => {
     const booksByNumber = new Map(config.books.map((book) => [book.number, book]));
     return Layer.succeed(
@@ -192,6 +229,11 @@ export class BibleService extends Context.Service<BibleService, BibleServiceApi>
               onNone: () => Effect.fail(BibleChapterNotFoundError.make({ reference })),
               onSome: Effect.succeed,
             },
+          ),
+        chapterMarginAnchors: (reference) =>
+          Effect.succeed(
+            config.marginAnchors?.get(`${reference.book}:${reference.chapter}`) ??
+              ChapterMarginAnchors.make({ reference, verses: [] }),
           ),
         search: () => Effect.succeed(config.searchHits ?? []),
         searchWindow: (_query, options = {}) => {

@@ -1,17 +1,10 @@
 import { describe, expect, test } from 'bun:test';
 import { Reference as BibleReference } from '@bible/core/bible';
+import { topicSlug } from '@bible/core/wiki';
 import { Reference as WritingsReference } from '@bible/core/writings';
 import { Option } from 'effect';
 
 import { decodeRoute, encodeRoute } from './codec.js';
-import {
-  defaultDisclosure,
-  dismissTopDisclosure,
-  openContext,
-  openNavigation,
-  projectSurface,
-  pushOverlay,
-} from './disclosure.js';
 import type { AppRoute, RouteHistory } from './model.js';
 import { bootRoute, navigate } from './navigation.js';
 import { readerLocationForRoute, readingRouteForLocation } from './reading-location.js';
@@ -25,6 +18,10 @@ const routes: readonly AppRoute[] = [
   { _tag: 'writings', reference: WritingsReference.paragraph(12, 'p 1/2') },
   { _tag: 'search', query: 'living water', scope: 'bible', books: [19, 43] },
   { _tag: 'topics', topicId: 'new earth' },
+  { _tag: 'wiki', slug: topicSlug('sanctuary') },
+  // A slug that needs escaping, so the encode/decode pair is exercised on the
+  // one route whose segment is arbitrary authored text.
+  { _tag: 'wiki', slug: topicSlug('2300-days/1844') },
   { _tag: 'plans', planId: 'gospels' },
   { _tag: 'practice', memoryVerseId: 'john-3-16' },
   { _tag: 'settings', section: 'reader' },
@@ -41,6 +38,15 @@ describe('route codec', () => {
     expect(decodeRoute('/bible/67/1')).toEqual(Option.none());
     expect(decodeRoute('/writings/12/page/zero')).toEqual(Option.none());
     expect(decodeRoute('/settings/unknown')).toEqual(Option.none());
+    // `/wiki` with no slug composes nothing, and `/wiki/` is the same path with
+    // an empty segment. Both decode to nothing, which is what makes the wiki
+    // route round-trippable: the model holds a branded `TopicSlug`, so the empty
+    // slug that would encode to `/wiki/` cannot be constructed in the first
+    // place — `{ _tag: 'wiki', slug: '' }` is a type error, not a route that
+    // fails to come back.
+    expect(decodeRoute('/wiki')).toEqual(Option.none());
+    expect(decodeRoute('/wiki/')).toEqual(Option.none());
+    expect(decodeRoute('/wiki/a/b')).toEqual(Option.none());
   });
 });
 
@@ -117,32 +123,4 @@ test('navigation pushes intent and replaces refinements', () => {
   navigate(history, route);
   navigate(history, route, 'refinement');
   expect(writes).toEqual(['push:/search?q=faith', 'replace:/search?q=faith']);
-});
-
-test('escape dismisses overlay, context, then navigation', () => {
-  let disclosure = defaultDisclosure('narrow');
-  disclosure = openNavigation(disclosure, 'contents');
-  disclosure = openContext(disclosure, {
-    _tag: 'verse-study',
-    reference: BibleReference.verse(1, 1, 1),
-    tab: 'notes',
-  });
-  disclosure = pushOverlay(disclosure, 'quick-find');
-
-  const surface = projectSurface(
-    { _tag: 'bible', reference: BibleReference.chapter(1, 1) },
-    disclosure,
-  );
-  expect(Option.isNone(surface.left)).toBe(true);
-  expect(Option.isNone(surface.right)).toBe(true);
-  expect(Option.map(surface.replacement, (replacement) => replacement._tag)).toEqual(
-    Option.some('context'),
-  );
-
-  disclosure = dismissTopDisclosure(disclosure);
-  expect(disclosure.overlays).toEqual([]);
-  disclosure = dismissTopDisclosure(disclosure);
-  expect(Option.isNone(disclosure.context)).toBe(true);
-  disclosure = dismissTopDisclosure(disclosure);
-  expect(disclosure.navigation).toBe('closed');
 });

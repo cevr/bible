@@ -4,13 +4,15 @@ import type {
   ParagraphReference,
   PublicationReference,
 } from '@bible/core/writings';
+import { useNavigate } from '@solidjs/router';
 import { Errored, For, Loading, Show } from '@solidjs/web';
 import { Effect, Option } from 'effect';
-import { createSignal } from 'solid-js';
+import { createMemo, createSignal } from 'solid-js';
 
 import { AnnotationTools } from '../library/annotation-tools.js';
 import { failureCategory } from '@bible/core/observability';
 import {
+  useWikiDictionary,
   useWritingsDownload,
   useWritingsLibrary,
   useWritingsPage,
@@ -19,7 +21,27 @@ import {
   type WritingsLibraryCommand,
 } from '../runtime/index.js';
 import { Button, ScrollViewport } from '../ui/index.js';
-import { ParagraphNodes } from './paragraph-nodes.js';
+import { ParagraphNodes, type ParagraphOverlay } from './paragraph-nodes.js';
+import { PeekCard } from './peek-card.js';
+import {
+  dismissesPeek,
+  dismissOnPlanChange,
+  dismissPeek,
+  noPeek,
+  phraseTap,
+  topicPath,
+  type Peeked,
+  type PhraseOccurrenceId,
+} from './peek-state.js';
+import {
+  buildWritingsPlan,
+  paragraphPlan,
+  usePhraseSource,
+  writingsPageKey,
+  writingsParagraphKey,
+  type WritingsParagraphInput,
+  type WritingsPlan,
+} from './match-plan.js';
 import { ReaderFailure, ReaderLoading } from './bible-reader.js';
 import { writingsDownloadLabel } from './writings-download-label.js';
 
@@ -47,6 +69,96 @@ const downloadAction = (status: string, failedTarget: Option.Option<string>, cod
   return 'Download';
 };
 
+/** The wiki phrase overlay for one writings surface (§4.5, §4.6).
+ *
+ *  §4.5's table makes the section for EGW text "the chapter or reading unit **as
+ *  rendered**", which on this surface is the page — so one `SectionMatchState`
+ *  per rendered page, spent in one pass over every paragraph in it, and a fresh
+ *  one when the reader turns the page.
+ *
+ *  A **plan**, not a matcher. The previous version handed `ParagraphNodes` a
+ *  live `matchNodes` call in a JSX prop; Solid compiles that prop into a getter,
+ *  so the first read claimed every phrase's §4.5 slot and every later read
+ *  returned nothing. See `match-plan.ts`.
+ *
+ *  Shared by the three writings readers rather than written out three times:
+ *  they render the same paragraphs through the same `ParagraphNodes`, and a peek
+ *  state that behaved differently on the paragraph route than on the page route
+ *  would be a difference no reader could explain. */
+const useWritingsPhrases = (input: {
+  readonly sectionKey: () => string;
+  readonly paragraphs: () => readonly WritingsParagraphInput[];
+}) => {
+  const navigate = useNavigate();
+  const source = usePhraseSource(useWikiDictionary());
+  const plan = createMemo(() =>
+    buildWritingsPlan({
+      key: input.sectionKey(),
+      source: source(),
+      paragraphs: input.paragraphs(),
+    }),
+  );
+  const [peeked, setPeeked] = createSignal(noPeek);
+
+  /** A new plan closes the card — same rule as `bible-reader.tsx`, and for the
+   *  same reason: occurrence ids are positions inside one plan, so a plan that
+   *  has been replaced can no longer vouch for an id that was minted under the
+   *  old one. Turning the page is the visible case; a dictionary refresh under
+   *  the same page is the one keying on `plan().key` missed. */
+  dismissOnPlanChange(plan, setPeeked);
+
+  const onPhrase = (tap: Peeked): void => {
+    const outcome = phraseTap(peeked(), tap);
+    if (outcome._tag === 'navigate') {
+      setPeeked(dismissPeek());
+      navigate(topicPath(outcome.slug));
+      return;
+    }
+    setPeeked(outcome.state);
+  };
+
+  return {
+    plan: (): WritingsPlan => plan(),
+    peeked,
+    dismiss: () => setPeeked(dismissPeek()),
+    onPhrase,
+    open: (crumb: { readonly slug: string }) => {
+      setPeeked(dismissPeek());
+      navigate(topicPath(crumb.slug));
+    },
+    peekedOccurrence: (): Option.Option<PhraseOccurrenceId> =>
+      Option.map(peeked(), (current) => current.occurrence),
+  };
+};
+
+/** The overlay one paragraph hands `ParagraphNodes`: a pure lookup into the
+ *  page's plan. Built here rather than inline at the two call sites, so the page
+ *  route and the paragraph route cannot supply it differently. */
+const paragraphOverlay = (input: {
+  readonly phrases: ReturnType<typeof useWritingsPhrases>;
+  readonly paragraphId: string;
+}): Option.Option<ParagraphOverlay> =>
+  Option.some({
+    plan: paragraphPlan(input.phrases.plan(), input.paragraphId),
+    peeked: input.phrases.peekedOccurrence(),
+    onPhrase: input.phrases.onPhrase,
+  });
+
+/** The card, mounted once per surface. See `bible-reader.tsx` for why one and
+ *  not one per phrase. */
+const WritingsPeek = (props: { readonly phrases: ReturnType<typeof useWritingsPhrases> }) => (
+  <Show when={Option.getOrUndefined(props.phrases.peeked())}>
+    {(current) => (
+      <PeekCard
+        slug={current().slug}
+        phrase={current().phrase}
+        onDismiss={props.phrases.dismiss}
+        onOpen={props.phrases.open}
+      />
+    )}
+  </Show>
+);
+
 export const WritingsPageReader = (props: WritingsPageReaderProps) => {
   const page = useWritingsPage(() => props.reference);
 
@@ -64,9 +176,31 @@ const WritingsPageContent = (props: {
   readonly selected?: ParagraphReference;
 }) => {
   const page = props.page;
+  const phrases = useWritingsPhrases({
+    sectionKey: () =>
+      writingsPageKey({
+        publicationId: Number(page().publication.id),
+        page: Number(page().reference.page),
+      }),
+    paragraphs: () =>
+      page().paragraphs.map((paragraph) => ({
+        paragraphId: paragraph.reference.paragraphId,
+        nodes: paragraph.nodes,
+      })),
+  });
 
   return (
-    <article class="bible-reader bible-writings-reader">
+    <article
+      class="bible-reader bible-writings-reader"
+      // §5's "tapping elsewhere dismisses", on the whole reading surface — see
+      // `bible-reader.tsx` for why this is the article and not the prose block
+      // it used to be, and not the document.
+      onClick={(event) => {
+        const target = event.target;
+        if (target instanceof Element && !dismissesPeek(target)) return;
+        phrases.dismiss();
+      }}
+    >
       <Errored fallback={(error) => <ReaderFailure error={error()} />}>
         <Loading fallback={<ReaderLoading label="Opening page" />}>
           <header class="bible-reader__heading">
@@ -89,7 +223,13 @@ const WritingsPageContent = (props: {
                       paragraph.reference.paragraphId,
                     )}
                   >
-                    <ParagraphNodes nodes={paragraph.nodes} />
+                    <ParagraphNodes
+                      nodes={paragraph.nodes}
+                      phrases={paragraphOverlay({
+                        phrases,
+                        paragraphId: paragraph.reference.paragraphId,
+                      })}
+                    />
                     <Show when={Option.getOrUndefined(paragraph.refcode)}>
                       {(refcode) => <span class="bible-refcode">{refcode()}</span>}
                     </Show>
@@ -97,6 +237,7 @@ const WritingsPageContent = (props: {
                 )}
               </For>
             </div>
+            <WritingsPeek phrases={phrases} />
           </ScrollViewport>
           <AnnotationTools
             location={{
@@ -132,9 +273,36 @@ const WritingsPageContent = (props: {
 
 export const WritingsParagraphReader = (props: { readonly reference: ParagraphReference }) => {
   const paragraph = useWritingsParagraph(() => props.reference);
+  // One paragraph is the whole rendered reading unit here, so it is the §4.5
+  // section — the same rule the page route applies, at the size this route
+  // renders, through the same planner.
+  //
+  // Keyed by **publication and paragraph** — see `writingsParagraphKey` for why
+  // the paragraph id alone was not an identity.
+  const phrases = useWritingsPhrases({
+    sectionKey: () =>
+      writingsParagraphKey({
+        publicationId: Number(props.reference.publicationId),
+        paragraphId: props.reference.paragraphId,
+      }),
+    paragraphs: () => [
+      {
+        paragraphId: paragraph().reference.paragraphId,
+        nodes: paragraph().nodes,
+      },
+    ],
+  });
 
   return (
-    <article class="bible-reader bible-writings-reader">
+    <article
+      class="bible-reader bible-writings-reader"
+      // As the page route above: the whole reading surface is "elsewhere".
+      onClick={(event) => {
+        const target = event.target;
+        if (target instanceof Element && !dismissesPeek(target)) return;
+        phrases.dismiss();
+      }}
+    >
       <Errored fallback={(error) => <ReaderFailure error={error()} />}>
         <Loading fallback={<ReaderLoading label="Locating paragraph" />}>
           <header class="bible-reader__heading">
@@ -143,12 +311,19 @@ export const WritingsParagraphReader = (props: { readonly reference: ParagraphRe
           </header>
           <div class="bible-prose">
             <p>
-              <ParagraphNodes nodes={paragraph().nodes} />
+              <ParagraphNodes
+                nodes={paragraph().nodes}
+                phrases={paragraphOverlay({
+                  phrases,
+                  paragraphId: paragraph().reference.paragraphId,
+                })}
+              />
               <Show when={Option.getOrUndefined(paragraph().refcode)}>
                 {(refcode) => <span class="bible-refcode">{refcode()}</span>}
               </Show>
             </p>
           </div>
+          <WritingsPeek phrases={phrases} />
           <AnnotationTools
             location={{
               source: 'egw',

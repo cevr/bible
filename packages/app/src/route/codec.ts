@@ -1,6 +1,7 @@
 import { Reference as BibleReference } from '@bible/core/bible';
+import { TopicSlug } from '@bible/core/wiki';
 import { Reference as WritingsReference } from '@bible/core/writings';
-import { Option } from 'effect';
+import { Option, Schema } from 'effect';
 
 import type { AppRoute, SearchScope, SettingsSection } from './model.js';
 
@@ -29,6 +30,11 @@ const decodeSegment = (value?: string): Option.Option<string> =>
     Option.flatMap(decodeUriComponent),
     Option.filter((decoded) => decoded.length > 0),
   );
+
+/** A URL segment as the branded slug the route model holds. `Option` rather than
+ *  `topicSlug`'s `decodeSync`: a path is user input and a segment that is not a
+ *  slug must render the not-found page, not throw inside a decode. */
+const readTopicSlug = Schema.decodeOption(TopicSlug);
 
 const normalizeBooks = (books: readonly number[]): readonly number[] =>
   [...new Set(books.filter((book) => Number.isSafeInteger(book) && book >= 1 && book <= 66))].sort(
@@ -66,6 +72,8 @@ export const encodeRoute = (route: AppRoute): string => {
       if (route.topicId) return `/topics/${encodeURIComponent(route.topicId)}`;
       return '/topics';
     }
+    case 'wiki':
+      return `/wiki/${encodeURIComponent(route.slug)}`;
     case 'plans': {
       if (route.planId) return `/plans/${encodeURIComponent(route.planId)}`;
       return '/plans';
@@ -148,6 +156,15 @@ const decodeParsedRoute = (url: URL): Option.Option<AppRoute> => {
 
   if (root === 'topics' && segments.length <= 2) {
     return Option.some({ _tag: 'topics', topicId: Option.getOrUndefined(decodeSegment(one)) });
+  }
+  // `/wiki` with no slug decodes to nothing rather than to a landing page: the
+  // page model composes *a topic*, and there is no topic here. The route table
+  // renders the not-found content for it, which is the same answer a nonexistent
+  // slug gets — and the honest one, because the wiki has no index in v1.
+  if (root === 'wiki' && segments.length === 2) {
+    return Option.flatMap(decodeSegment(one), (slug) =>
+      Option.map(readTopicSlug(slug), (branded) => ({ _tag: 'wiki', slug: branded })),
+    );
   }
   if (root === 'plans' && segments.length <= 2) {
     return Option.some({ _tag: 'plans', planId: Option.getOrUndefined(decodeSegment(one)) });

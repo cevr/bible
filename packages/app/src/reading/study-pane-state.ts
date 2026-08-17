@@ -205,16 +205,13 @@ export const closePaneEntries = (entries: HistoryEntries, action: CloseAction): 
 // Narrow presentation (blocker 4)
 // ---------------------------------------------------------------------------
 
-/** How the pane is presented at a given viewport.
+/** How the pane is presented at a given viewport. The one model of it.
  *
- *  The app already models this in `route/disclosure.ts`: at `narrow`, a context
- *  pane becomes a `replacement` for the canvas rather than a `right` rail, and
- *  `ContextPane` already has a `verse-study` member. The pane shipped without
- *  consulting any of it, so narrow got the CSS default — `display: block` on the
- *  split — which stacks the pane *after* the entire chapter. A verse tap then
- *  changed the route and moved focus nowhere, leaving the reader looking at
- *  unchanged Scripture with the thing they asked for several screens below the
- *  fold.
+ *  The pane originally shipped consulting no model at all, so narrow got the CSS
+ *  default — `display: block` on the split — which stacks the pane *after* the
+ *  entire chapter. A verse tap then changed the route and moved focus nowhere,
+ *  leaving the reader looking at unchanged Scripture with the thing they asked
+ *  for several screens below the fold.
  *
  *  `overlay` is what narrow gets instead: the pane is presented over the reader
  *  as a full-width sheet, and focus moves into it, so the tap has a visible

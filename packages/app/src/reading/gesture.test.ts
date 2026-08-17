@@ -18,6 +18,7 @@ import { describe, expect, test } from 'bun:test';
 import { Option } from 'effect';
 
 import { CLAIMS_GESTURE_ATTRIBUTE, claimedGesture, type GestureTarget } from './gesture.js';
+import { dismissesPeek, noPeek, phraseTap } from './peek-state.js';
 
 interface ElementSpec {
   readonly tag: string;
@@ -108,6 +109,70 @@ describe('claimedGesture', () => {
     // target alone.
     const tree = verse([{ tag: 'span', claimsGesture: true, children: [{ tag: 'em' }] }]);
     expect(claimedGesture(byTag(tree, 'em'))).toEqual(Option.some(byTag(tree, 'span')));
+  });
+
+  // -------------------------------------------------------------------------
+  // §8.5 both directions, on a **web-reachable** layer
+  //
+  // `apps/desktop/e2e/wiki-phrase.spec.ts` asserts both directions against the
+  // compiled components in a real browser engine. The web host has no
+  // equivalent: `apps/web/e2e` currently boots into a pre-existing OPFS startup
+  // failure (found in Milestone 5), so a web spec would assert nothing. The two
+  // directions are asserted here instead, over the *same two functions* both
+  // hosts call — `claimedGesture` decides whether the verse handler runs, and
+  // `phraseTap` decides what a phrase tap does — so a regression in either
+  // direction fails on web's own code path even though the browser leg is
+  // unavailable. This is a narrower claim than the desktop e2e's and is stated
+  // as such: it does not prove the compiled markup carries the attribute.
+  // -------------------------------------------------------------------------
+
+  test('§8.5 direction one: a tap inside a phrase span never opens the study pane', () => {
+    const tree = verse([{ tag: 'button', claimsGesture: true }]);
+    const phrase = byTag(tree, 'button');
+
+    // The reader's own guard, verbatim: `openStudy` returns early when the tap
+    // was claimed, so the pane does not open and the route does not move.
+    expect(Option.isSome(claimedGesture(phrase))).toBe(true);
+
+    // And the phrase's own handler peeks rather than navigating, because this
+    // is the first tap on this occurrence.
+    const tapped = { occurrence: 'Dan/8|11#0', slug: 'sanctuary', phrase: 'sanctuary' };
+    expect(phraseTap(noPeek, tapped)).toEqual({ _tag: 'peek', state: Option.some(tapped) });
+  });
+
+  test('§8.5 direction two: a tap outside a phrase span never opens a peek card', () => {
+    const tree = verse([{ tag: 'button', claimsGesture: true }]);
+
+    // The verse paragraph, clear of the phrase: nothing claimed it, so the
+    // verse handler runs and the pane opens.
+    expect(Option.isNone(claimedGesture(byTag(tree, 'p')))).toBe(true);
+
+    // The same tap reaches the surface's dismiss predicate, which fires because
+    // the target is neither a phrase span nor the card. A card that was open is
+    // therefore closed, and no card is opened — the phrase handler was never
+    // called at all.
+    //
+    // The DOM's `closest` answers the element or `null`, and `dismissesPeek`
+    // reads that through `Option.fromNullishOr`. A stub therefore has to produce
+    // the nullish answer the real API produces — but it produces it the way
+    // production code is allowed to, by unwrapping an `Option` at the boundary
+    // rather than writing the literal.
+    const found = (present: Option.Option<object>) => Option.getOrNull(present);
+    expect(dismissesPeek({ closest: () => found(Option.none()) })).toBe(true);
+
+    // The two exclusions the predicate does make, so this is not a function that
+    // says yes to everything.
+    const ancestor = (kind: string) => ({
+      closest: (selector: string) =>
+        found(
+          Option.map(
+            Option.liftPredicate(selector, (value) => value.includes(kind)),
+            () => ({}),
+          ),
+        ),
+    });
+    expect(dismissesPeek(ancestor('bible-phrase'))).toBe(false);
+    expect(dismissesPeek(ancestor('bible-peek'))).toBe(false);
   });
 
   test('the walk stops at the verse surface', () => {

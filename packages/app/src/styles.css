@@ -350,6 +350,72 @@ a {
   vertical-align: super;
 }
 
+/* The three KJV editorial layers the segment pipeline has always modelled and
+   the reader never drew — see `reading/verse-segments.tsx`.
+
+   `bible-supplied`: words the translators added, which the KJV marks with
+   square brackets. Italic is the convention every printed KJV uses, and the
+   brackets themselves are dropped because the italic *is* the notation. */
+.bible-supplied {
+  font-style: italic;
+}
+
+/* Christ's words. `--bible-accent` rather than a literal red: the token is
+   already the reading surface's one warm accent and it is defined per theme,
+   so the dark palette gets a legible tone instead of a red that vibrates on a
+   dark ground. */
+.bible-red-letter {
+  color: var(--bible-accent);
+}
+
+.bible-margin-anchor {
+  margin-left: 0.1em;
+  color: var(--bible-faint);
+  font-family: var(--bible-interface-sans);
+  font-size: 0.55em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+/* §4.7 — a hot wiki phrase: **a muted dotted underline taking the surrounding
+   text colour. No blue. No background fill.** At 250-400 phrases a dense
+   chapter carries many links, and coloured links would turn scripture into
+   soup, so the restraint is load-bearing rather than taste.
+
+   A `<button>` reset to read as running text, because the element has to be a
+   button: an anchor would be activated by the browser on the first tap, and
+   §5's first tap has to peek rather than jump. */
+.bible-phrase {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: none;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: inherit;
+  text-decoration: underline dotted color-mix(in srgb, currentcolor 45%, transparent);
+  text-underline-offset: 0.22em;
+  cursor: pointer;
+}
+
+.bible-phrase:hover,
+.bible-phrase:focus-visible {
+  text-decoration-color: currentcolor;
+}
+
+/* The peeked phrase keeps its place visible while the card is up — and it does
+   it with the underline, not a fill. §4.7 says **no background fill** without an
+   exception for the expanded state, and a wash was still a fill: the reader sees
+   a highlighted word, which is exactly the "soup" the restraint is against. The
+   underline goes solid and thickens instead, which is the same mark reading
+   harder rather than a second mark. */
+.bible-phrase[aria-expanded='true'] {
+  text-decoration: underline solid currentcolor;
+  text-decoration-thickness: 0.08em;
+}
+
 .bible-editorial-note {
   color: var(--bible-muted);
   font-size: 0.92em;
@@ -1743,6 +1809,264 @@ kbd {
   .bible-form-status {
     grid-column: 1;
   }
+}
+
+/* ---------------------------------------------------------------------------
+   The wiki surface (§5, §6.1)
+   --------------------------------------------------------------------------- */
+
+/* The peek card: topic title, thesis, click-through. Nothing else — see
+   `reading/peek-card.tsx` for why the restraint is the decision.
+
+   No enter transition, at either presentation. `prefers-reduced-motion` is
+   honoured by having nothing to reduce rather than by a media query that turns
+   an animation off: a card that slides in is a card that moves the sentence the
+   reader is in the middle of, which is the complaint Mode A exists to answer. */
+.bible-peek {
+  color: var(--bible-ink);
+}
+
+.bible-peek--card {
+  position: sticky;
+  bottom: 1.25rem;
+  z-index: 40;
+  width: min(100%, 26rem);
+  margin: 1.25rem 0 0 auto;
+  padding: 1rem 1.15rem 1.15rem;
+  border: 1px solid var(--bible-rule);
+  border-radius: 0.7rem;
+  background: var(--bible-paper-raised);
+  box-shadow: 0 1rem 3rem color-mix(in srgb, var(--bible-ink) 16%, transparent);
+}
+
+/* At narrow the card is the `sheet` surface's content — the sheet itself is
+   `ui/dialog.tsx`'s, so this only sets the padding the panel does not. */
+.bible-peek--sheet {
+  padding: 1.5rem 1.25rem;
+}
+
+.bible-peek__eyebrow {
+  margin-bottom: 0.2rem;
+  color: var(--bible-faint);
+  font-family: var(--bible-interface-sans);
+  font-size: 0.72rem;
+  font-weight: 620;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.bible-peek__title {
+  margin-bottom: 0.55rem;
+  font-family: var(--bible-reader-serif);
+  font-size: 1.3rem;
+  line-height: 1.2;
+}
+
+.bible-peek__thesis p {
+  margin-bottom: 0.7rem;
+  color: var(--bible-muted);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.bible-peek__open {
+  padding: 0;
+  border: 0;
+  color: var(--bible-accent);
+  background: none;
+  font-family: var(--bible-interface-sans);
+  font-size: 0.86rem;
+  font-weight: 620;
+  cursor: pointer;
+}
+
+.bible-peek__state {
+  color: var(--bible-muted);
+  font-family: var(--bible-interface-sans);
+  font-size: 0.86rem;
+}
+
+.bible-peek__state--error {
+  color: var(--bible-accent);
+}
+
+/* The breadcrumb trail. Hidden below two hops by the component, not by CSS —
+   a one-crumb trail is the page's own title repeated above itself. */
+.bible-trail ol {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.bible-trail li + li::before {
+  margin-right: 0.4rem;
+  color: var(--bible-faint);
+  content: '›';
+}
+
+.bible-trail__crumb,
+.bible-trail__current {
+  font-family: var(--bible-interface-sans);
+  font-size: 0.8rem;
+}
+
+.bible-trail__crumb {
+  padding: 0;
+  border: 0;
+  color: var(--bible-muted);
+  background: none;
+  text-decoration: underline dotted color-mix(in srgb, currentcolor 45%, transparent);
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+.bible-trail__crumb:hover,
+.bible-trail__crumb:focus-visible {
+  color: var(--bible-ink);
+  text-decoration-color: currentcolor;
+}
+
+.bible-trail__current {
+  color: var(--bible-ink);
+  font-weight: 620;
+}
+
+/* The topic page's six sections. `<details>` for each — the platform's own
+   disclosure, correct for keyboard and screen readers with no JS, and its
+   `open` attribute is exactly the fact the model's `defaultOpen` computes. */
+.bible-wiki-thesis p {
+  margin-bottom: 1rem;
+  font-family: var(--bible-reader-serif);
+  font-size: 1.1rem;
+  line-height: 1.6;
+}
+
+.bible-wiki-sections {
+  display: grid;
+  gap: 0.4rem;
+  margin-top: 1.5rem;
+}
+
+.bible-wiki-section {
+  border-top: 1px solid var(--bible-rule);
+}
+
+.bible-wiki-section > summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  font-family: var(--bible-interface-sans);
+  font-size: 0.92rem;
+  font-weight: 620;
+  cursor: pointer;
+}
+
+.bible-wiki-section > summary small {
+  color: var(--bible-faint);
+  font-variant-numeric: tabular-nums;
+  font-weight: 560;
+}
+
+.bible-wiki-section ul {
+  display: grid;
+  gap: 0.85rem;
+  padding: 0 0 1rem;
+  list-style: none;
+}
+
+.bible-wiki-verse a {
+  font-family: var(--bible-interface-sans);
+  font-size: 0.85rem;
+  font-weight: 620;
+}
+
+.bible-wiki-verse p,
+.bible-wiki-hit p:not(.bible-refcode) {
+  margin-top: 0.2rem;
+  color: var(--bible-muted);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.bible-wiki-hit .bible-refcode {
+  display: block;
+  margin-left: 0;
+}
+
+/* §6.3 — a cited book this library does not hold: refcode + title + "get this
+   book", and deliberately no snippet. */
+.bible-wiki-missing {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px dashed var(--bible-rule);
+  border-radius: 0.5rem;
+}
+
+.bible-wiki-missing strong,
+.bible-wiki-missing small {
+  display: block;
+  font-family: var(--bible-interface-sans);
+}
+
+.bible-wiki-missing small {
+  color: var(--bible-faint);
+  font-size: 0.76rem;
+}
+
+.bible-wiki-missing-list {
+  display: grid;
+  gap: 0.5rem;
+  padding-bottom: 1rem;
+  list-style: none;
+}
+
+/* §6.2's handoff into search. Milestone 8 replaces the href with the hybrid
+   search route and drops the scope caption — see `wiki-topic-page.tsx`. */
+.bible-wiki-handoff {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  font-family: var(--bible-interface-sans);
+  font-size: 0.82rem;
+}
+
+.bible-wiki-handoff small {
+  color: var(--bible-faint);
+}
+
+.bible-wiki-related {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.bible-wiki-related button {
+  padding: 0;
+  border: 0;
+  color: var(--bible-accent);
+  background: none;
+  font-family: var(--bible-interface-sans);
+  font-size: 0.88rem;
+  font-weight: 620;
+  cursor: pointer;
+}
+
+.bible-wiki-related small {
+  color: var(--bible-faint);
+  font-family: var(--bible-interface-sans);
+  font-size: 0.74rem;
 }
 
 /* Narrow starts here. CSS has no custom media queries, so this `60rem` is

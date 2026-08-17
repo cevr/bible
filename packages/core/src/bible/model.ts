@@ -92,6 +92,37 @@ export class Chapter extends Schema.Class<Chapter>('Bible/Chapter')({
   next: Schema.Option(ChapterReference),
 }) {}
 
+/** One KJV marginal note as the **reader** needs it: the phrase it annotates and
+ *  which anchor it is.
+ *
+ *  Distinct from `Study/MarginNote`, and deliberately smaller. The study pane
+ *  shows a note's *text* for one verse; the reader draws an *anchor* after the
+ *  annotated phrase for every verse on screen, and a chapter's worth of note
+ *  text would be a payload the reader never renders. The two share the corpus
+ *  row, not the projection. */
+export class VerseMarginAnchor extends Schema.Class<VerseMarginAnchor>('Bible/VerseMarginAnchor')({
+  noteIndex: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+  phrase: Schema.String,
+}) {}
+
+/** A whole chapter's margin anchors, by verse (§10 M6's margin layer).
+ *
+ *  An array of per-verse entries rather than a map, because the wire codec
+ *  encodes arrays and a `Map` would need a bespoke transformation for a payload
+ *  the client indexes once on arrival anyway. Verses with no notes are simply
+ *  absent. */
+export class ChapterMarginAnchors extends Schema.Class<ChapterMarginAnchors>(
+  'Bible/ChapterMarginAnchors',
+)({
+  reference: ChapterReference,
+  verses: Schema.Array(
+    Schema.Struct({
+      verse: VerseNumber,
+      anchors: Schema.Array(VerseMarginAnchor),
+    }),
+  ),
+}) {}
+
 export class Passage extends Schema.Class<Passage>('Bible/Passage')({
   reference: Schema.Union([VerseReference, VerseRangeReference]),
   verses: Schema.NonEmptyArray(Verse),

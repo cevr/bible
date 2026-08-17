@@ -21,6 +21,7 @@
 import type {
   BookNumber,
   Chapter,
+  ChapterMarginAnchors,
   ChapterNumber,
   SearchWindow,
   VerseNumber,
@@ -37,6 +38,7 @@ import type { MutationCommitValue } from '@bible/core/procedure';
 import type { ReadingPreferences, ReadingPreferencesPatch } from '@bible/core/reading-preferences';
 import type { StrongsNumber, StrongsStudy, VerseStudy } from '@bible/core/study';
 import type { TopicDetail, TopicId, TopicListInput, TopicSummary } from '@bible/core/topics';
+import type { PhraseDictionary, TopicSlug, WikiPage } from '@bible/core/wiki';
 import type {
   Page,
   PageNumber,
@@ -136,6 +138,21 @@ export const useBibleChapter = (
   reference: Accessor<{ readonly book: BookNumber; readonly chapter: ChapterNumber }>,
 ): Accessor<Chapter> =>
   useAtomSuspense(() => ReadingRpc.query('v1.reading.bibleChapter.get', reference()));
+
+/**
+ * The chapter's margin anchors (§10 M6's margin layer).
+ *
+ * A second read beside `useBibleChapter` rather than a wider chapter payload:
+ * the anchors exist for a minority of verses, the reader wants the text first,
+ * and Solid's `<Loading>` boundary lets the two settle independently — the
+ * chapter paints and the anchors join it. **Unkeyed**, like the study bundle and
+ * for the same reason: the KJV margin corpus is an immutable artifact no library
+ * mutation can stale.
+ */
+export const useChapterMarginAnchors = (
+  reference: Accessor<{ readonly book: BookNumber; readonly chapter: ChapterNumber }>,
+): Accessor<ChapterMarginAnchors> =>
+  useAtomSuspense(() => ReadingRpc.query('v1.reading.bibleChapterMarginAnchors.get', reference()));
 
 export interface BibleSearchInput {
   readonly query: string;
@@ -272,6 +289,48 @@ export const useMemoryPractice = (): Accessor<MemoryPractice> =>
       [libraryAreaKey('practice')],
       (options) => ReadingRpc.query('v1.library.practice.get', NO_PAYLOAD, options),
       LIBRARY_TTL,
+    ),
+  );
+
+/**
+ * The compiled alias → slug table (§2.5), loaded once per session.
+ *
+ * `LIBRARY_TTL` and the writings-library key, for two different reasons that
+ * both point the same way. The dictionary is small (250-400 phrases, §4.1),
+ * singleton, and read by every rendered chapter and every rendered EGW page —
+ * so an idle eviction between two route changes would refetch it and, worse,
+ * rebuild the automaton the reader's next screenful is about to use. The
+ * reactivity key is the §6.3 seam: installing a book is the one action that can
+ * change what the wiki can say locally, and it already invalidates this key.
+ *
+ * The **automaton** is not built here. This hook returns the dictionary; the
+ * memo that turns it into a matcher lives in `../reading/match-plan.ts`
+ * (`usePhraseSource`), because §4.2's "build once per dictionary load" is a
+ * property of the render tree's memo, not of the transport cache.
+ */
+export const useWikiDictionary = (): Accessor<PhraseDictionary> =>
+  useAtomSuspense(() =>
+    keyedQuery(
+      [WRITINGS_LIBRARY_KEY],
+      (options) => ReadingRpc.query('v1.wiki.dictionary.get', NO_PAYLOAD, options),
+      LIBRARY_TTL,
+    ),
+  );
+
+/**
+ * One composed topic page (§6.1): the authored core plus the six-section
+ * lineup, already capped and already ordered by the one composer.
+ *
+ * Keyed on the writings library, because §6.3's "get this book" affordance is
+ * inside this payload: downloading the cited book has to make the page stop
+ * saying the reader does not have it, and the download mutation already
+ * invalidates `WRITINGS_LIBRARY_KEY`. That is the whole of the wiring the spec
+ * promises comes for free.
+ */
+export const useWikiTopic = (input: Accessor<{ readonly slug: TopicSlug }>): Accessor<WikiPage> =>
+  useAtomSuspense(() =>
+    keyedQuery([WRITINGS_LIBRARY_KEY], (options) =>
+      ReadingRpc.query('v1.wiki.topic.get', input(), options),
     ),
   );
 

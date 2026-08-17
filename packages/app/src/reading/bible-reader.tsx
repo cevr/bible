@@ -7,12 +7,26 @@ import {
 import { useNavigate } from '@solidjs/router';
 import { Errored, For, Loading, Show } from '@solidjs/web';
 import { Option } from 'effect';
-import { createEffect, createSignal } from 'solid-js';
+import { createEffect, createMemo, createSignal } from 'solid-js';
 
-import { useBibleChapter } from '../runtime/index.js';
+import type { MarginNoteAnchor } from '@bible/core/bible-rendering';
+
+import { useBibleChapter, useChapterMarginAnchors, useWikiDictionary } from '../runtime/index.js';
 import { ContextMenu, ScrollViewport, SplitPane } from '../ui/index.js';
 import { AnnotationTools } from '../library/annotation-tools.js';
 import { claimedGesture } from './gesture.js';
+import { PeekCard } from './peek-card.js';
+import {
+  dismissesPeek,
+  dismissOnPlanChange,
+  dismissPeek,
+  noPeek,
+  phraseTap,
+  topicPath,
+  type Peeked,
+  type PhraseOccurrenceId,
+} from './peek-state.js';
+import { buildChapterPlan, usePhraseSource, versePlan } from './match-plan.js';
 import {
   closeAction,
   deepened,
@@ -21,6 +35,7 @@ import {
   type PaneEntry,
   type PaneReference,
 } from './study-pane-state.js';
+import { VerseSegments } from './verse-segments.js';
 import { usePanePresentation, VerseStudyPane } from './verse-study-pane.js';
 
 export interface BibleReaderProps {
@@ -70,19 +85,17 @@ export const BibleReader = (props: BibleReaderProps) => {
     `${chapter().book.name} ${String(props.reference.chapter)}:${String(selectedVerse())}`;
   /** Opens the study pane on a verse (§8.5).
    *
-   *  The whole verse is the tap surface today because the reader renders
-   *  `{verse.text}` as one text node — there are no phrase spans yet. §8.5's
-   *  rule is that **the two link layers never claim the same gesture**: verse
-   *  tap opens the study pane, wiki phrase tap opens the peek card, and the
-   *  verse surface owns the tap *outside* a phrase span.
+   *  §8.5's rule is that **the two link layers never claim the same gesture**:
+   *  verse tap opens the study pane, wiki phrase tap opens the peek card, and
+   *  the verse surface owns the tap *outside* a phrase span.
    *
-   *  This handler is written to honor that rule before the phrase layer exists.
-   *  It reads the event target and does nothing when the tap landed on an
-   *  element that claims its own gesture — today the verse-number anchor, and
-   *  in Milestone 6 the phrase spans that will replace `{verse.text}`. A phrase
-   *  span marked `data-claims-gesture` therefore nests *inside* this surface
-   *  with no re-plumbing here: M6 adds the spans and the attribute, and the
-   *  precedence is already correct.
+   *  The handler honors it by reading the event target and doing nothing when
+   *  the tap landed on an element that claims its own gesture — the verse-number
+   *  anchor, and the phrase spans `VerseSegments` now renders with
+   *  `data-claims-gesture`. This is the seam Milestone 5 built the rule around
+   *  and Milestone 6 landed into: adding the spans needed no change here at all,
+   *  because `claimedGesture` walks from the target up to the verse surface and
+   *  already stops at anything carrying the attribute.
    *
    *  Anchors are excluded rather than special-cased for a second reason: the
    *  verse number is a real link, and calling `navigate` on top of the
@@ -153,6 +166,82 @@ export const BibleReader = (props: BibleReaderProps) => {
     navigate(action.path, { replace: true });
   };
 
+  // -------------------------------------------------------------------------
+  // The wiki phrase overlay (§4)
+  //
+  // One automaton per dictionary (`usePhraseSource`), and — because §4.5's
+  // table makes **the chapter** the section for Bible text — one
+  // `SectionMatchState` per rendered chapter, spent in one pass over every
+  // verse in verse order. What the JSX reads is the finished plan, never the
+  // matcher: `match-plan.ts` says why a reactive renderer must not be the thing
+  // that consumes a mutating matcher.
+  // -------------------------------------------------------------------------
+  const source = usePhraseSource(useWikiDictionary());
+  /** The margin anchors for this chapter — the pipeline's third layer, which
+   *  the reader had no data for until now. A second read beside the chapter, so
+   *  the text is not held back by a table most chapters have no rows in. */
+  const anchors = useChapterMarginAnchors(() => ({
+    book: props.reference.book,
+    chapter: props.reference.chapter,
+  }));
+  const anchorsByVerse = createMemo(() => {
+    const byVerse = new Map<number, readonly MarginNoteAnchor[]>();
+    for (const entry of anchors().verses) byVerse.set(entry.verse, entry.anchors);
+    return byVerse;
+  });
+
+  /** The whole chapter, rendered: every verse's segments and every phrase's
+   *  occurrence id, from **one** matcher pass in verse order.
+   *
+   *  The memo's key is the chapter address, so turning the page mints a fresh
+   *  §4.5 section and every phrase gets its first occurrence again — and,
+   *  because the address is the first component of every occurrence id, no id in
+   *  the new plan can equal one from the old, which is what invalidates an open
+   *  peek across a chapter turn. */
+  const plan = createMemo(() =>
+    buildChapterPlan({
+      key: `${String(props.reference.book)}/${String(props.reference.chapter)}`,
+      source: source(),
+      verses: chapter().verses.map((verse) => ({
+        verse: verse.reference.verse,
+        text: verse.text,
+        marginNotes: anchorsByVerse().get(verse.reference.verse) ?? [],
+      })),
+    }),
+  );
+
+  /** §5's peek state: which phrase occurrence, if any, is showing its card. */
+  const [peeked, setPeeked] = createSignal(noPeek);
+
+  /** A new plan closes the card.
+   *
+   *  A chapter turn is the obvious case, and the occurrence id already makes the
+   *  *marking* correct there — no span in the new chapter can match the open id —
+   *  but the card is mounted from the peek value and would otherwise float over
+   *  the new chapter explaining a phrase that is no longer on screen.
+   *
+   *  Keyed on the plan **value**, not on `plan().key`, because the section key is
+   *  not the only thing that changes the numbering underneath an open id. This
+   *  chapter's margin anchors arrive on a second read (`useChapterMarginAnchors`)
+   *  and rebuild the plan at the same address: same key, renumbered spans. See
+   *  `dismissOnPlanChange`, which the three surfaces share. */
+  dismissOnPlanChange(plan, setPeeked);
+
+  /** A tap on a hot phrase. First tap peeks, second tap on the *same*
+   *  occurrence navigates — the rule lives in `phraseTap`, not here. */
+  const onPhrase = (tap: Peeked): void => {
+    const outcome = phraseTap(peeked(), tap);
+    if (outcome._tag === 'navigate') {
+      setPeeked(dismissPeek());
+      navigate(topicPath(outcome.slug));
+      return;
+    }
+    setPeeked(outcome.state);
+  };
+
+  const peekedOccurrence = (): Option.Option<PhraseOccurrenceId> =>
+    Option.map(peeked(), (current) => current.occurrence);
+
   const scripture = () => (
     <ScrollViewport label={`${chapter().book.name} ${String(chapter().reference.chapter)}`}>
       <div class="bible-scripture" role="list">
@@ -196,17 +285,61 @@ export const BibleReader = (props: BibleReaderProps) => {
                 >
                   {verse.reference.verse}
                 </a>
-                {verse.text}
+                {/* The segment pipeline, finally wired (§4.6). Every phrase span
+                    it draws carries `data-claims-gesture`, which `openStudy`'s
+                    `claimedGesture` walk above already excludes — so §8.5's rule
+                    holds with no change to the verse handler: a tap inside a
+                    phrase never opens the study pane, and a tap outside one
+                    never reaches `onPhrase`. */}
+                <VerseSegments
+                  plan={versePlan(plan(), String(verse.reference.verse))}
+                  peeked={peekedOccurrence()}
+                  onPhrase={onPhrase}
+                />
               </p>
             </ContextMenu>
           )}
         </For>
       </div>
+      {/* One card for the whole chapter, not one per phrase: §5 allows exactly
+          one peek at a time, and a card per span would mount a `useWikiTopic`
+          read for every hot phrase on screen. */}
+      <Show when={Option.getOrUndefined(peeked())}>
+        {(current) => (
+          <PeekCard
+            slug={current().slug}
+            phrase={current().phrase}
+            onDismiss={() => setPeeked(dismissPeek())}
+            onOpen={(crumb) => {
+              setPeeked(dismissPeek());
+              navigate(topicPath(crumb.slug));
+            }}
+          />
+        )}
+      </Show>
     </ScrollViewport>
   );
 
   return (
-    <article class="bible-reader">
+    <article
+      class="bible-reader"
+      // §5's "tapping elsewhere dismisses", on the whole reading surface rather
+      // than on the verse list alone. The chapter heading, the study pane and
+      // the annotation tools below are all "elsewhere" to a reader, and scoping
+      // this to `.bible-scripture` left a card open over every one of them.
+      //
+      // Not on the document either: a tap inside the peek card — which portals
+      // out of this subtree at narrow and sits outside it at wide — must not
+      // dismiss the card the reader is reaching for, and neither must a tap on
+      // the phrase itself, whose own handler runs first and re-peeks or
+      // navigates. `dismissesPeek` excludes the latter; being scoped to the
+      // article excludes the former.
+      onClick={(event) => {
+        const target = event.target;
+        if (target instanceof Element && !dismissesPeek(target)) return;
+        setPeeked(dismissPeek());
+      }}
+    >
       <Errored fallback={(error) => <ReaderFailure error={error()} />}>
         <Loading fallback={<ReaderLoading label="Loading chapter" />}>
           <header class="bible-reader__heading">

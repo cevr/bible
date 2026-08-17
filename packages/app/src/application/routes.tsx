@@ -8,6 +8,7 @@ import {
   BibleReader,
   BibleSearch,
   ReaderLoading,
+  WikiTopicPage,
   WritingsCatalog,
   WritingsPageReader,
   WritingsParagraphReader,
@@ -220,6 +221,28 @@ const TopicsRoute = () => {
   );
 };
 
+/** The one wiki topic route (§10 M6: "web and desktop share one route in
+ *  `routes.tsx`, one peek component, one breadcrumb").
+ *
+ *  The slug arrives as a URL segment — untrusted input — and is branded by the
+ *  **decoder**, which is the one place a path becomes an `AppRoute`. A segment
+ *  that is not a slug fails to decode and renders the not-found content, so this
+ *  component neither re-brands nor re-validates. */
+const WikiRoute = () => {
+  const location = useLocation();
+  const slug = createMemo(() =>
+    routeSlice(location.pathname, (decoded) => {
+      if (decoded._tag === 'wiki') return Option.some(decoded.slug);
+      return Option.none();
+    }),
+  );
+  return (
+    <Show when={slug()} fallback={<NotFoundContent requestedPath={location.pathname} />}>
+      {(current) => <WikiTopicPage slug={current()} />}
+    </Show>
+  );
+};
+
 export const sharedRoutes = defineRoutes([
   { path: '/', component: RootRoute },
   { path: '/bible/:book/:chapter/:verse?', component: BibleRoute },
@@ -229,6 +252,7 @@ export const sharedRoutes = defineRoutes([
   { path: '/writings/:publicationId/p/:paragraphId', component: ParagraphRoute },
   { path: '/search', component: SearchRoute },
   { path: '/topics/:topicId?', component: TopicsRoute },
+  { path: '/wiki/:slug', component: WikiRoute },
   { path: '/settings/:section?', component: SettingsRoute },
   { path: '/plans/:planId?', component: PlansRoute },
   { path: '/practice/:memoryVerseId?', component: PracticeRoute },

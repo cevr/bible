@@ -10,11 +10,21 @@
  * for footnote-label / footnote-prefix helpers.
  */
 
-export type { TextSegment, MarginNoteAnchor } from './segments.js';
+export type {
+  TextSegment,
+  MarginNoteAnchor,
+  PhraseSpanInput,
+  PhraseLayer,
+  SegmentLayer,
+  SegmentPhraseSpans,
+} from './segments.js';
 export {
   applyItalicSegments,
+  applyPhraseSegments,
   applyRedLetterSegments,
   applySearchHighlights,
+  renderVerseSegments,
+  SEGMENT_APPLICATION_ORDER,
   segmentVerseText,
 } from './segments.js';
 export { noteLabel, formatNoteType } from './margin-notes.js';

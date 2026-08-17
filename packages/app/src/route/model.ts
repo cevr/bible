@@ -1,4 +1,5 @@
 import type { ChapterReference, VerseReference } from '@bible/core/bible';
+import type { TopicSlug } from '@bible/core/wiki';
 import type { PageReference, ParagraphReference, PublicationReference } from '@bible/core/writings';
 
 export type BibleReadingReference = ChapterReference | VerseReference;
@@ -18,6 +19,19 @@ export type AppRoute =
       readonly books: readonly number[];
     }
   | { readonly _tag: 'topics'; readonly topicId?: string }
+  /** One wiki topic page (§5, §6.1). Distinct from `topics`, which is the older
+   *  Nave's-style catalog browser: `/wiki/<slug>` is the composed layered page,
+   *  and §11's "fate of the existing /topics route" is a decision this milestone
+   *  does not make.
+   *
+   *  The **branded** `TopicSlug`, not a plain string, and that is what makes the
+   *  route round-trippable by construction. A plain string admits the empty
+   *  slug, which encodes to `/wiki/` — a path the decoder rejects, so the route
+   *  could be *built* and then not decode back to itself. The brand's own schema
+   *  forbids the empty slug, so constructing that route is a type error rather
+   *  than a runtime asymmetry. The slug is required for the same reason it is
+   *  branded: `/wiki` with no slug has nothing to compose. */
+  | { readonly _tag: 'wiki'; readonly slug: TopicSlug }
   | { readonly _tag: 'plans'; readonly planId?: string }
   | { readonly _tag: 'practice'; readonly memoryVerseId?: string }
   | { readonly _tag: 'settings'; readonly section: SettingsSection }

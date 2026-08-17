@@ -5,6 +5,7 @@ import { createEffect, createSignal, onCleanup, onSettled, type ParentProps } fr
 import type { ReaderTypeface } from '@bible/core/reading-preferences';
 import { decodeRoute, readerLocationForRoute } from '../route/index.js';
 import { failureCategory } from '@bible/core/observability';
+import { WikiTrailProvider } from '../reading/wiki-trail.js';
 import { useReadingPreferences, useRecordReading } from '../runtime/index.js';
 import { Button, CommandPalette, Menu, MenuIcon, SearchIcon } from '../ui/index.js';
 
@@ -204,7 +205,11 @@ export const ReadingShell = (props: ParentProps) => {
         </a>
       </header>
       <main id="reading-canvas" class="bible-reading-canvas" tabindex="-1">
-        {props.children}
+        {/* §5's breadcrumb trail outlives any one topic page — hopping from one
+            to the next unmounts the first — so it is held by the shell. It also
+            has to sit inside the router, because "cleared on leaving the wiki
+            surface" is derived from the location. */}
+        <WikiTrailProvider>{props.children}</WikiTrailProvider>
       </main>
       <CommandPalette
         open={commandOpen()}

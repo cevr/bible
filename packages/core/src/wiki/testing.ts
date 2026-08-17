@@ -20,3 +20,4 @@
  */
 
 export * from './phrase-fixture.js';
+export * from './page-fixture.js';

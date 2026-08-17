@@ -387,6 +387,14 @@ path.
 | EGW / pioneer writings | the chapter or reading unit as rendered |
 | Topic page             | each layered section of the page        |
 
+**A page never links to itself.** §4 originally stated no rule for the case, and
+Milestone 6 hit it as soon as topic pages carried the overlay: a topic's own
+aliases occur constantly in its own auto-mined text, so every `2300-days` page
+would have offered a peek card for `2300-days`. The page's own slug is therefore
+excluded from the dictionary the page's sections are matched against. This is a
+per-page exclusion, not a dictionary change — the same alias stays hot on every
+other page and on every reading surface.
+
 ### 4.6 Boundary rules
 
 A phrase span never crosses a `TextSegment` boundary

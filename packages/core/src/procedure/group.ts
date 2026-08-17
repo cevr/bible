@@ -1,7 +1,14 @@
 import { Schema } from 'effect';
 import { Rpc, RpcGroup, type RpcSchema } from 'effect/unstable/rpc';
 
-import { BookNumber, Chapter, ChapterNumber, SearchWindow, VerseNumber } from '../bible/model.js';
+import {
+  BookNumber,
+  Chapter,
+  ChapterMarginAnchors,
+  ChapterNumber,
+  SearchWindow,
+  VerseNumber,
+} from '../bible/model.js';
 import {
   LibraryCollection,
   LocationAnnotations,
@@ -119,6 +126,19 @@ export const RuntimeEvents = procedure('v1.runtime.events', {
 export const BibleChapterGet = procedure('v1.reading.bibleChapter.get', {
   payload: { book: BookNumber, chapter: ChapterNumber },
   success: Chapter,
+});
+
+/** The chapter's margin anchors (§10 M6's margin layer).
+ *
+ *  Its own procedure rather than a field on `Chapter`: a chapter payload is the
+ *  text every reader needs, and margin notes exist for a minority of verses in a
+ *  minority of chapters. Keeping them separate means the reader's first paint
+ *  does not wait on a second table, and a host with no `margin_notes` rows
+ *  answers an empty list rather than changing the shape of `Chapter` for
+ *  everyone. */
+export const BibleChapterMarginAnchorsGet = procedure('v1.reading.bibleChapterMarginAnchors.get', {
+  payload: { book: BookNumber, chapter: ChapterNumber },
+  success: ChapterMarginAnchors,
 });
 
 export const BibleSearchGet = procedure('v1.reading.bibleSearch.get', {
@@ -310,6 +330,7 @@ export const BibleProcedureGroup = RpcGroup.make(
   RuntimeConnect,
   RuntimeEvents,
   BibleChapterGet,
+  BibleChapterMarginAnchorsGet,
   BibleSearchGet,
   WritingsCatalogGet,
   WritingsPageGet,

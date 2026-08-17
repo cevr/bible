@@ -86,6 +86,10 @@ export const BibleProcedureHandlers = BibleProcedureGroup.toLayer(
         bible
           .chapter(BibleReference.chapter(input.book, input.chapter))
           .pipe(Effect.mapError(normalizeFailure('v1.reading.bibleChapter.get'))),
+      'v1.reading.bibleChapterMarginAnchors.get': (input) =>
+        bible
+          .chapterMarginAnchors(BibleReference.chapter(input.book, input.chapter))
+          .pipe(Effect.mapError(normalizeFailure('v1.reading.bibleChapterMarginAnchors.get'))),
       'v1.reading.bibleSearch.get': (input) =>
         bible
           .searchWindow(input.query, {

@@ -109,6 +109,7 @@ const handlerLayer = (recorder: Recorder, gates: Gates = {}) =>
       'v1.runtime.connect': () => Effect.die('unused'),
       'v1.runtime.events': () => Stream.empty,
       'v1.reading.bibleChapter.get': () => Effect.die('unused'),
+      'v1.reading.bibleChapterMarginAnchors.get': () => Effect.die('unused'),
       'v1.reading.bibleSearch.get': () => Effect.die('unused'),
       'v1.reading.writingsCatalog.get': () => Effect.die('unused'),
       'v1.reading.writingsPage.get': () => Effect.die('unused'),
