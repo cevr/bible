@@ -22,6 +22,7 @@ import {
 } from '@bible/core/procedure';
 import { WritingsService } from '@bible/core/writings/service';
 import { EGWCommentaryService } from '@bible/core/egw-commentary';
+import { StudyService } from '@bible/core/study';
 import { TopicService } from '@bible/core/topics';
 import { layerArtifactOrAbsent, WikiSectionSources, type WikiService } from '@bible/core/wiki';
 import * as SqliteNode from '@effect/sql-sqlite-node/SqliteClient';
@@ -89,6 +90,19 @@ const wikiLayer = (input: {
   );
 };
 
+/** The study seam on Electron main (§8.1): the same portable `StudyService`
+ *  the worker and the CLI resolve, over this host's two SQLite drivers. Both
+ *  corpora are already open for the reader and the wiki, so the bundle costs no
+ *  new file handle — only the seam that was missing. */
+const studyLayer = (input: {
+  readonly bible: Layer.Layer<BibleCorpus | BibleDatabase | BibleService | TopicService>;
+  readonly writings: Layer.Layer<EGWParagraphDatabase>;
+}): Layer.Layer<StudyService> =>
+  StudyService.Live.pipe(
+    Layer.provide(input.bible),
+    Layer.provide(EGWCommentaryService.Live.pipe(Layer.provide(input.writings))),
+  );
+
 export type MainRuntime = ManagedRuntime.ManagedRuntime<
   | EGWParagraphDatabase
   | BibleCorpus
@@ -102,6 +116,7 @@ export type MainRuntime = ManagedRuntime.ManagedRuntime<
   | LibraryStateRuntime
   | TopicService
   | WikiService
+  | StudyService
   | DataPortabilityRuntime,
   never
 >;
@@ -167,7 +182,8 @@ export const makeRuntime = (files: MainRuntimeFiles, host: MainRuntimeHost): Mai
       now: () => Schema.decodeSync(Timestamp)(host.nowIso()),
     },
   });
-  return ManagedRuntime.make(Layer.mergeAll(writings, bible, wiki, procedures));
+  const study = studyLayer({ bible, writings });
+  return ManagedRuntime.make(Layer.mergeAll(writings, bible, wiki, study, procedures));
 };
 
 export const runtimeRun = <A, E>(
@@ -187,6 +203,7 @@ export const runtimeRun = <A, E>(
     | LibraryStateRuntime
     | TopicService
     | WikiService
+    | StudyService
     | DataPortabilityRuntime
   >,
 ): Promise<A> => runtime.runPromise(effect);

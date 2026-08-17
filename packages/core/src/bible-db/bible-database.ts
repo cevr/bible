@@ -754,8 +754,18 @@ export class BibleDatabase extends Context.Service<BibleDatabase, BibleDatabaseS
           Option.fromNullishOr(config.strongsEntries?.find((entry) => entry.number === number)),
         ),
       searchStrongs: () => Effect.succeed([]),
-      getVersesWithStrongs: (number) => Effect.succeed(config.concordanceHits?.[number] ?? []),
-      getStrongsCount: () => Effect.succeed(0),
+      // The limit is honored and the count is the *uncapped* total, matching
+      // the live implementation: `getVersesWithStrongs` slices and
+      // `getStrongsCount` counts distinct verses independently of any cap. A
+      // double that ignored the limit would let a caller that drops it pass,
+      // and a double that returned 0 would make "there are more than shown"
+      // untestable — which is exactly the pair the study pane's `total`
+      // renders.
+      getVersesWithStrongs: (number, limit) => {
+        const hits = config.concordanceHits?.[number] ?? [];
+        return Effect.succeed(hits.slice(0, limit ?? hits.length));
+      },
+      getStrongsCount: (number) => Effect.succeed((config.concordanceHits?.[number] ?? []).length),
       getVerseWords: (book, chapter, verse) =>
         Effect.succeed(
           config.verseWords?.find(

@@ -33,11 +33,13 @@ function paragraphToEntry(
   para: EGWSchemas.Paragraph,
   bookCode: string,
   bookTitle: string,
+  bookAuthor: string,
 ): CommentaryEntry {
   return {
     refcode: Option.getOrElse(para.refcode_short, () => para.refcode_long ?? ''),
     bookCode,
     bookTitle,
+    bookAuthor,
     content: nodesToText(para.nodes),
     puborder: para.puborder,
   };
@@ -91,7 +93,7 @@ export class EGWCommentaryService extends Context.Service<
           Effect.map((paragraphs) => ({
             verse,
             entries: paragraphs.map((para) =>
-              paragraphToEntry(para, para.bookCode, para.bookTitle),
+              paragraphToEntry(para, para.bookCode, para.bookTitle, para.bookAuthor),
             ),
           })),
           Effect.mapError((e) =>

@@ -6,6 +6,23 @@ const focusableSelector =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 const dialogStack: Array<symbol> = [];
 
+/** What shape the modal takes on screen.
+ *
+ *  `card` is the centered panel the command palette wants. `sheet` is the
+ *  edge-to-edge surface a full-height pane wants — the §8 study pane at narrow,
+ *  which covers the Scripture it is about rather than floating above a blurred
+ *  copy of it.
+ *
+ *  A surface rather than a second component, deliberately. Everything a modal
+ *  *is* — the focus trap, the focus restore, the body scroll lock, the Escape
+ *  handling, the stacking discipline that keeps a nested modal from being
+ *  dismissed by its parent's key handler — is identical between the two and is
+ *  the part that is hard to get right. The study pane originally declared
+ *  `role="dialog"` on a plain `<aside>` with none of it: a screen reader was
+ *  told the reading view was behind a modal, and Tab walked straight out of the
+ *  sheet into the chapter underneath it. */
+export type DialogSurface = 'card' | 'sheet';
+
 export interface DialogProps {
   readonly open: boolean;
   readonly onOpenChange: (open: boolean) => void;
@@ -13,7 +30,14 @@ export interface DialogProps {
   readonly description?: string;
   readonly children: JSX.Element;
   readonly restoreFocus?: () => Option.Option<HTMLElement>;
+  /** Defaults to `card`. */
+  readonly surface?: DialogSurface;
 }
+
+const DEFAULT_SURFACE: DialogSurface = 'card';
+
+const surfaceOf = (props: DialogProps): DialogSurface =>
+  Option.getOrElse(Option.fromNullishOr(props.surface), () => DEFAULT_SURFACE);
 
 export const Dialog = (props: DialogProps) => {
   const titleId = `dialog-title-${createUniqueId()}`;
@@ -96,7 +120,7 @@ export const Dialog = (props: DialogProps) => {
     <Show when={props.open}>
       <Portal>
         <div
-          class="bible-dialog-backdrop"
+          class={`bible-dialog-backdrop bible-dialog-backdrop--${surfaceOf(props)}`}
           onPointerDown={(event) => {
             if (event.target === event.currentTarget) props.onOpenChange(false);
           }}
@@ -105,7 +129,7 @@ export const Dialog = (props: DialogProps) => {
             ref={(element) => {
               popup = Option.some(element);
             }}
-            class="bible-dialog"
+            class={`bible-dialog bible-dialog--${surfaceOf(props)}`}
             role="dialog"
             aria-modal="true"
             aria-labelledby={titleId}

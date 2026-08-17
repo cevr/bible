@@ -180,6 +180,8 @@ const handlerLayer = (recorder: Recorder, gates: Gates = {}) =>
       'v1.wiki.topic.get': () => Effect.die('unused'),
       'v1.wiki.topics.list': () => Effect.die('unused'),
       'v1.wiki.dictionary.get': () => Effect.die('unused'),
+      'v1.study.verse.get': () => Effect.die('unused'),
+      'v1.study.strongs.get': () => Effect.die('unused'),
     }),
   );
 

@@ -10,6 +10,7 @@ import {
 } from '@bible/core/procedure';
 import type { BibleService } from '@bible/core/bible/service';
 import type { WritingsService } from '@bible/core/writings/service';
+import type { StudyService } from '@bible/core/study';
 import type { TopicService } from '@bible/core/topics';
 import type { WikiService } from '@bible/core/wiki';
 import { Effect, Layer, Option, Queue } from 'effect';
@@ -84,6 +85,7 @@ export const layerDesktopProcedureServer = (
   | LibraryStateRuntime
   | TopicService
   | WikiService
+  | StudyService
   | DataPortabilityRuntime
 > =>
   RpcServer.layer(BibleProcedureGroup).pipe(

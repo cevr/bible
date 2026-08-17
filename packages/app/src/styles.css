@@ -551,6 +551,30 @@ a {
   box-shadow: 0 1.5rem 5rem color-mix(in srgb, var(--bible-ink) 22%, transparent);
 }
 
+/* The `sheet` surface: a modal that covers rather than floats.
+
+   The card's top padding and blurred backdrop are what make a command palette
+   read as *above* the page. A full-height pane is the opposite — it is the page
+   for as long as it is open — so the backdrop has no inset and the panel takes
+   the whole viewport. Everything else about it is the same modal: same focus
+   trap, same restore, same scroll lock, same Escape. */
+.bible-dialog-backdrop--sheet {
+  padding: 0;
+  background: none;
+  backdrop-filter: none;
+}
+
+.bible-dialog--sheet {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 0;
+  border-radius: 0;
+  background: var(--bible-paper);
+  box-shadow: none;
+}
+
 .bible-command__input {
   display: flex;
   align-items: center;
@@ -1200,6 +1224,286 @@ body > .bible-menu {
   font-size: 0.82rem;
 }
 
+/* The §8 study pane. Sits above the annotation tools in the reader's secondary
+   column, so it opens at the top of the pane rather than under a rule.
+
+   Every value here is a `--bible-*` token, which is what makes the pane follow
+   the sepia and dark reading themes without a second rule per theme. Narrow and
+   wide need nothing of their own: `.bible-split-pane`'s `max-width: 60rem` query
+   already stacks the secondary column below the scripture, and everything below
+   is intrinsically sized. */
+.bible-study-pane {
+  display: grid;
+  gap: 1.15rem;
+}
+
+/* Narrow: the pane covers the reader rather than sitting after it.
+
+   The block-flow default stacked the pane below the entire chapter, so a verse
+   tap changed the route and put the study tools several screens under the fold
+   — the reader saw nothing happen. As a sheet it is where the tap was, and the
+   component moves focus into it on open. */
+.bible-study-pane--overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  align-content: start;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1rem 1.15rem 2rem;
+  background: var(--bible-paper);
+}
+
+.bible-study-pane--overlay:focus-visible {
+  outline: none;
+}
+
+/* The heading and the close control share one row, so the way out is beside the
+   thing it closes at both presentations. */
+.bible-study-pane__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.bible-study-pane__heading {
+  margin: 0;
+  color: var(--bible-muted);
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+}
+
+/* The verse in its own words, each Strong's-bearing word a tap target. Serif
+   and reading-sized, because this is scripture rather than interface text. */
+.bible-study-pane__words {
+  margin: 0;
+  font: 1rem/1.9 var(--bible-reader-serif);
+}
+
+/* The KJV's supplied words — those with no counterpart in the Hebrew or Greek —
+   are set in italic by long-standing convention, and the pane keeps it whether
+   or not the word is a tap target. */
+.bible-study-pane__words [data-italic] {
+  font-style: italic;
+}
+
+/* A word and its Strong's numbers, kept together on one line.
+
+   One chip per number rather than one button per word: the KJV's word-to-lexeme
+   alignment is many-to-many and 16,162 rows in `verse_words` carry more than
+   one, so a single target could only ever open the first and the rest were
+   unreachable. */
+.bible-study-word-group {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.2rem;
+  white-space: nowrap;
+}
+
+.bible-study-word-group__text {
+  /* A dotted underline rather than a solid one: it marks the word as having
+     something behind it without reading as a hyperlink to somewhere else in
+     Scripture. */
+  text-decoration: underline dotted color-mix(in srgb, var(--bible-accent) 55%, transparent);
+  text-underline-offset: 0.22em;
+}
+
+.bible-study-word-group[data-active] .bible-study-word-group__text {
+  color: var(--bible-accent);
+  text-decoration-color: var(--bible-accent);
+}
+
+/* The chip itself: small, monospaced, and unmistakably a control rather than
+   part of the verse. Sized off the interface font, not the reading serif, so it
+   stays subordinate to the Scripture it annotates. */
+.bible-study-word {
+  padding: 0.02rem 0.3rem;
+  border: 1px solid var(--bible-rule);
+  border-radius: 0.7rem;
+  color: var(--bible-muted);
+  background: transparent;
+  font: 600 0.68rem/1.6 var(--bible-ui-sans, ui-sans-serif, sans-serif);
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  /* A comfortable touch target without changing the line box the verse sets. */
+  min-height: 1.4rem;
+}
+
+.bible-study-word:hover {
+  color: var(--bible-accent);
+  border-color: var(--bible-accent);
+  background: var(--bible-accent-soft);
+}
+
+.bible-study-word[aria-pressed='true'] {
+  color: var(--bible-accent);
+  border-color: var(--bible-accent);
+  background: var(--bible-accent-soft);
+}
+
+.bible-study-strongs {
+  display: grid;
+  gap: 0.8rem;
+  padding: 0.9rem 1rem 1.1rem;
+  border: 1px solid var(--bible-rule);
+  border-radius: 0.5rem;
+  background: var(--bible-paper-raised);
+}
+
+.bible-study-strongs__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.bible-study-strongs__header h3 {
+  margin: 0;
+  color: var(--bible-accent);
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.bible-study-strongs__concordance {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0;
+  padding-top: 0.2rem;
+  border-top: 1px solid var(--bible-rule);
+  color: var(--bible-muted);
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
+.bible-study-strongs__concordance span {
+  color: var(--bible-faint);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The lexicon entry and the margin notes are both term/definition pairs, so they
+   share one two-column grid. The label column is sized to its content and capped
+   so a long term wraps rather than starving the definition. */
+.bible-study-lexicon,
+.bible-study-notes {
+  display: grid;
+  grid-template-columns: minmax(min-content, 8rem) 1fr;
+  gap: 0.35rem 0.9rem;
+  margin: 0;
+}
+
+.bible-study-lexicon dt,
+.bible-study-notes dt {
+  color: var(--bible-muted);
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
+.bible-study-lexicon dd,
+.bible-study-notes dd {
+  margin: 0;
+  font-family: var(--bible-reader-serif);
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+/* The lemma is Hebrew or Greek and is marked `lang` on the element, so it gets
+   a size of its own — both scripts read small at the body size. */
+.bible-study-lexicon dd[lang] {
+  font-size: 1.15rem;
+}
+
+.bible-study-notes dd em {
+  color: var(--bible-faint);
+  font-size: 0.72rem;
+  font-style: normal;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+/* Reference lists: cross-references and concordance hits. A reference and its
+   preview per row, the reference fixed-width so the previews line up. */
+.bible-study-list {
+  display: grid;
+  gap: 0.1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bible-study-list li {
+  display: grid;
+  grid-template-columns: minmax(6.5rem, max-content) 1fr;
+  gap: 0.9rem;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid var(--bible-rule);
+  font-size: 0.82rem;
+}
+
+.bible-study-list li a {
+  color: var(--bible-accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.bible-study-list li a:hover {
+  text-decoration: underline;
+}
+
+.bible-study-list li span {
+  color: var(--bible-muted);
+  font-family: var(--bible-reader-serif);
+  line-height: 1.5;
+}
+
+/* Commentary and parallel writings: passages rather than references, so they
+   stack instead of tabulating. */
+.bible-study-passages {
+  display: grid;
+  gap: 1.1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bible-study-passages li {
+  display: grid;
+  gap: 0.3rem;
+  padding-left: 0.85rem;
+  border-left: 2px solid var(--bible-rule);
+}
+
+.bible-study-passages li p {
+  margin: 0;
+  font-family: var(--bible-reader-serif);
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+/* Matched on the same two-element path as the rule above rather than raised with
+   `!important`: the source line is interface text sitting among passage text,
+   and it should win by being more specific, not by opting out of the cascade. */
+.bible-study-passages li p.bible-study-passages__source {
+  color: var(--bible-faint);
+  font-family: var(--bible-interface-sans);
+  font-size: 0.7rem;
+  font-weight: 650;
+  letter-spacing: 0.03em;
+}
+
+/* Empty sections and cap notices. §8.4 makes "empty" the ordinary state for
+   parallel writings, so it is styled as information rather than as a warning. */
+.bible-study-empty {
+  margin: 0;
+  padding: 0.35rem 0;
+  color: var(--bible-faint);
+  font-size: 0.8rem;
+}
+
 .bible-annotation-tools {
   margin-top: 2.5rem;
   border-block: 1px solid var(--bible-rule);
@@ -1441,6 +1745,12 @@ kbd {
   }
 }
 
+/* Narrow starts here. CSS has no custom media queries, so this `60rem` is
+   pinned to `NARROW_BREAKPOINT_REM` in `reading/study-pane-state.ts` by name
+   rather than by mechanism: the pane's JS runs `matchMedia` over the exact
+   same query text, and the two must be edited together. Rem in both — a pixel
+   constant equalled this only at a 16px root, so a reader with a larger
+   default font got the stacked fallback while the JS still said `rail`. */
 @media (max-width: 60rem) {
   .bible-split-pane {
     display: block;

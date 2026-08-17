@@ -17,7 +17,7 @@
 import * as SqliteBun from '@effect/sql-sqlite-bun/SqliteClient';
 import { BunFileSystem } from '@effect/platform-bun';
 import { Database } from 'bun:sqlite';
-import { Effect, FileSystem, Layer, Option, Schema, Stream, type Scope } from 'effect';
+import { Effect, FileSystem, Layer, Option, Schema, type Scope } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { RpcTest } from 'effect/unstable/rpc';
 
@@ -32,23 +32,7 @@ import { TopicDetail, TopicId, TopicReference, TopicSection } from '../topics/mo
 import { TopicService } from '../topics/service.js';
 import { EGW_SCOPE_AUTHORS } from '../writings/corpus-scope.js';
 import { WritingsService } from '../writings/service.js';
-import { BibleService } from '../bible/service.js';
-import { DEFAULT_READING_PREFERENCES } from '../reading-preferences/model.js';
-import {
-  DataPortabilityRuntime,
-  LibraryStateRuntime,
-  ProcedureRuntime,
-  ReadingContinuityRuntime,
-  ReadingPreferencesRuntime,
-  WritingsLibraryRuntime,
-} from '../procedure/services.js';
-import {
-  CommitId,
-  CURRENT_PROTOCOL_VERSION,
-  CURRENT_RUNTIME_SCHEMA_VERSION,
-  RuntimeConnection,
-  RuntimeGeneration,
-} from '../procedure/model.js';
+import { procedureDependencies } from '../procedure/testing.js';
 import {
   BlocksJson,
   CitationInline,
@@ -188,6 +172,7 @@ const COMMENTARY = [
     refcode: '5BC 110.1',
     bookCode: '5BC',
     bookTitle: 'Bible Commentary Volume 5',
+    bookAuthor: 'Ellen Gould White',
     content: 'Commentary on John 11',
     puborder: 1,
   },
@@ -270,89 +255,29 @@ const wiki = (file: string): Layer.Layer<WikiService> =>
     Layer.orDie,
   );
 
-/** Everything `BibleProcedureHandlers` needs beyond the wiki. Stubbed flat,
- *  because none of it is what is under comparison — the handler layer is the
- *  *real* one, and the only interesting service inside it is the same
- *  `WikiService` the CLI half resolves. */
-const otherProcedureDependencies = Layer.mergeAll(
-  BibleService.Test({ books: [], chapters: new Map(), searchHits: [] }),
-  WritingsService.Live.pipe(
-    Layer.provide(EGWParagraphDatabase.Test({ books: BOOKS, paragraphs: PARAGRAPHS })),
-  ),
-  Layer.succeed(
-    WritingsLibraryRuntime,
-    WritingsLibraryRuntime.of({
-      get: Effect.succeed([]),
-      download: () => Effect.die('not exercised'),
-      downloadAll: Effect.succeed([]),
-    }),
-  ),
-  Layer.succeed(
-    ProcedureRuntime,
-    ProcedureRuntime.of({
-      connect: () =>
-        Effect.succeed(
-          RuntimeConnection.make({
-            protocolVersion: CURRENT_PROTOCOL_VERSION,
-            schemaVersion: CURRENT_RUNTIME_SCHEMA_VERSION,
-            generation: Schema.decodeSync(RuntimeGeneration)('parity-runtime'),
-            capabilities: [],
-          }),
-        ),
-      events: () => Stream.empty,
-    }),
-  ),
-  Layer.succeed(
-    ReadingContinuityRuntime,
-    ReadingContinuityRuntime.of({
-      get: Effect.succeedNone,
-      record: () =>
-        Effect.succeed({
-          _tag: 'MutationCommit',
-          value: {},
-          commitId: Schema.decodeSync(CommitId)('parity-continuity'),
-          changes: { scopes: [] },
-        }),
-    }),
-  ),
-  Layer.succeed(
-    ReadingPreferencesRuntime,
-    ReadingPreferencesRuntime.of({
-      get: Effect.succeed(DEFAULT_READING_PREFERENCES),
-      patch: () =>
-        Effect.succeed({
-          _tag: 'MutationCommit',
-          value: DEFAULT_READING_PREFERENCES,
-          commitId: Schema.decodeSync(CommitId)('parity-preferences'),
-          changes: { scopes: [] },
-        }),
-    }),
-  ),
-  Layer.succeed(
-    LibraryStateRuntime,
-    LibraryStateRuntime.of({
-      annotations: () =>
-        Effect.succeed({ bookmarks: [], notes: [], markers: [], crossReferences: [] }),
-      collections: Effect.succeed([]),
-      readingPlans: Effect.succeed([]),
-      memoryPractice: Effect.succeed({ verses: [], history: [] }),
-      mutate: () =>
-        Effect.succeed({
-          _tag: 'MutationCommit',
-          value: {},
-          commitId: Schema.decodeSync(CommitId)('parity-library'),
-          changes: { scopes: [] },
-        }),
-    }),
-  ),
-  Layer.succeed(
-    DataPortabilityRuntime,
-    DataPortabilityRuntime.of({
-      export: Effect.succeed('{}'),
-      import: () => Effect.succeed({ imported: 1 }),
-    }),
-  ),
-);
+/** Everything `BibleProcedureHandlers` needs beyond the wiki.
+ *
+ *  The shared graph (`@bible/core/procedure/testing`) rather than a second
+ *  hand-written copy of it, which is what this file used to hold: none of it is
+ *  what is under comparison — the handler layer is the *real* one, and the only
+ *  interesting service inside it is the same `WikiService` the CLI half
+ *  resolves — so a private copy was ~110 lines that had to be kept in step with
+ *  the study suite's identical ~110 by hand.
+ *
+ *  Only `writings` is overridden: the wiki's own reads go through it. */
+const otherProcedureDependencies = (wiki: Layer.Layer<WikiService>) =>
+  procedureDependencies({
+    generation: 'parity',
+    // The service under comparison, handed in rather than merged alongside:
+    // `Layer.mergeAll` resolves a duplicate tag in favour of the *later* layer,
+    // so a stub supplied here would silently win over the real one and the
+    // parity claim would compare two empty pages.
+    wiki,
+    topics: TopicService.Test([CATALOG]),
+    writings: WritingsService.Live.pipe(
+      Layer.provide(EGWParagraphDatabase.Test({ books: BOOKS, paragraphs: PARAGRAPHS })),
+    ),
+  });
 
 // ---------------------------------------------------------------------------
 
@@ -373,11 +298,7 @@ describe('wiki host parity', () => {
         return yield* client['v1.wiki.topic.get']({ slug });
       }).pipe(
         Effect.provide(
-          BibleProcedureHandlers.pipe(
-            Layer.provide(
-              Layer.mergeAll(wikiLayer, TopicService.Test([CATALOG]), otherProcedureDependencies),
-            ),
-          ),
+          BibleProcedureHandlers.pipe(Layer.provide(otherProcedureDependencies(wikiLayer))),
         ),
       );
 
@@ -442,11 +363,7 @@ describe('wiki host parity', () => {
         return yield* client['v1.wiki.dictionary.get']({});
       }).pipe(
         Effect.provide(
-          BibleProcedureHandlers.pipe(
-            Layer.provide(
-              Layer.mergeAll(wikiLayer, TopicService.Test([CATALOG]), otherProcedureDependencies),
-            ),
-          ),
+          BibleProcedureHandlers.pipe(Layer.provide(otherProcedureDependencies(wikiLayer))),
         ),
       );
 

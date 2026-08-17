@@ -69,6 +69,9 @@ describe('EGWCommentaryService', () => {
           refcode: '1BC 24.1',
           bookCode: '1BC',
           bookTitle: 'Bible Commentary Volume 1',
+          // Carried through from `books.book_author`, which is what lets a
+          // caller scope the reverse lookup to the White Estate (§8.4).
+          bookAuthor: 'Ellen G. White',
           content: 'Commentary on the promised Seed.',
           puborder: 24,
         },

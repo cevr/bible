@@ -18,7 +18,13 @@
  * matching this layer replaced.
  */
 
-import type { BookNumber, Chapter, ChapterNumber, SearchWindow } from '@bible/core/bible';
+import type {
+  BookNumber,
+  Chapter,
+  ChapterNumber,
+  SearchWindow,
+  VerseNumber,
+} from '@bible/core/bible';
 import type {
   LibraryCollection,
   LocationAnnotations,
@@ -29,6 +35,7 @@ import type {
 import type { LibraryMutationCommand } from '@bible/core/local-first';
 import type { MutationCommitValue } from '@bible/core/procedure';
 import type { ReadingPreferences, ReadingPreferencesPatch } from '@bible/core/reading-preferences';
+import type { StrongsNumber, StrongsStudy, VerseStudy } from '@bible/core/study';
 import type { TopicDetail, TopicId, TopicListInput, TopicSummary } from '@bible/core/topics';
 import type {
   Page,
@@ -205,6 +212,41 @@ export const useLocationAnnotations = (
       ReadingRpc.query('v1.library.annotations.get', location(), options),
     ),
   );
+
+/**
+ * The whole study bundle for one verse (§8.2): words with their Strong's
+ * numbers, cross-references, margin notes, EGW Bible Commentary, and the
+ * parallel writings that cite the verse.
+ *
+ * One hook because it is one procedure — the pane always wants all five
+ * sections, and the host composes them behind a single MessagePort round trip.
+ *
+ * **Unkeyed**, deliberately: the study corpora are immutable artifacts that no
+ * library mutation can stale, so there is nothing for a reactivity key to
+ * invalidate and indexing the atom would add a row no lookup could reach. What
+ * the app *does* get for free is the retained-stale behavior every read here
+ * has — omitting `suspendOnWaiting` means a refetch keeps rendering the
+ * previous bundle instead of flashing the pane's loading state.
+ */
+export const useVerseStudy = (
+  reference: Accessor<{
+    readonly book: BookNumber;
+    readonly chapter: ChapterNumber;
+    readonly verse: VerseNumber;
+  }>,
+): Accessor<VerseStudy> =>
+  useAtomSuspense(() => ReadingRpc.query('v1.study.verse.get', reference()));
+
+/**
+ * The word-tap payload: one lexicon entry plus the reverse concordance, capped.
+ *
+ * `limit` rides in the payload, so changing it swaps the atom and the new cap is
+ * fetched — the same accessor-in/accessor-out shape every other read here has.
+ */
+export const useStrongsStudy = (
+  input: Accessor<{ readonly number: StrongsNumber; readonly limit?: number }>,
+): Accessor<StrongsStudy> =>
+  useAtomSuspense(() => ReadingRpc.query('v1.study.strongs.get', input()));
 
 export const useCollections = (): Accessor<readonly LibraryCollection[]> =>
   useAtomSuspense(() =>

@@ -211,6 +211,7 @@ const COMMENTARY = verseNumbers(3).map((index) => ({
   refcode: `5BC 11${String(index)}.1`,
   bookCode: '5BC',
   bookTitle: 'Bible Commentary Volume 5',
+  bookAuthor: 'Ellen Gould White',
   content: `Commentary ${String(index)}`,
   puborder: index,
 }));

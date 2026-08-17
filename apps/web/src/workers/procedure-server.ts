@@ -12,6 +12,7 @@ import {
 import { WritingsService } from '@bible/core/writings/service';
 import { TopicService } from '@bible/core/topics';
 import { EGWCommentaryService } from '@bible/core/egw-commentary';
+import { StudyService } from '@bible/core/study';
 import { WikiService, WikiSectionSources } from '@bible/core/wiki';
 import { Layer, Option } from 'effect';
 import * as RpcServer from 'effect/unstable/rpc/RpcServer';
@@ -79,11 +80,19 @@ export const layerProcedureServer = (input: ProcedureServerInput) => {
     onNone: () => WikiService.Absent,
     onSome: (database) => WikiService.Live.pipe(Layer.provide(layerWorkerSqlClient(database))),
   }).pipe(Layer.provide(topics), Layer.provide(sectionSources));
+  // The study seam (§8.1), over the same two worker databases. Composed inside
+  // the worker exactly as the wiki page is, so `v1.study.verse.get` costs one
+  // MessagePort round trip however many queries its five sections take.
+  const study = StudyService.Live.pipe(
+    Layer.provide(bibleDatabase),
+    Layer.provide(EGWCommentaryService.Live.pipe(Layer.provide(writingsDatabase))),
+  );
   const dependencies = Layer.mergeAll(
     bible,
     writings,
     topics,
     wiki,
+    study,
     writingsLibrary,
     layerLocalProcedureRuntime(input.runtime),
   );

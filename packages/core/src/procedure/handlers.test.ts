@@ -18,6 +18,15 @@ import { TopicDetail, TopicId, TopicReference, TopicSection } from '../topics/mo
 import { TopicService } from '../topics/service.js';
 import { BibleDatabase } from '../bible-db/bible-database.js';
 import { EGWCommentaryService } from '../egw-commentary/service.js';
+import { StudyService } from '../study/service.js';
+import { strongsNumber } from '../study/model.js';
+import {
+  FIXTURE_BOOK,
+  FIXTURE_CHAPTER,
+  FIXTURE_MALFORMED_ROW,
+  FIXTURE_VERSE,
+  malformedStudyProcedureDependencies,
+} from '../study/testing.js';
 import { WikiSectionSources } from '../wiki/section-composer.js';
 import { WikiService } from '../wiki/service.js';
 import { topicSlug, WikiPassageRef, WikiVerseRef } from '../wiki/model.js';
@@ -118,6 +127,12 @@ const Dependencies = Layer.mergeAll(
         ),
       ),
     ),
+  ),
+  // The study seam over the same two corpora the wiki sources use, so the
+  // handler under test resolves a real `StudyService` rather than a stub.
+  StudyService.Live.pipe(
+    Layer.provide(BibleDatabase.layerTest()),
+    Layer.provide(EGWCommentaryService.Test()),
   ),
   Layer.succeed(
     WritingsLibraryRuntime,
@@ -378,6 +393,73 @@ describe('BibleProcedureHandlers', () => {
       );
 
       expect([...events]).toEqual([]);
+    }),
+  );
+});
+
+/** Should-fix 9: the study seam's corpus fault crosses the wire as itself.
+ *
+ *  A separate graph rather than another case in the suite above, because the
+ *  claim needs a corpus that *is* faulty: the shared fixture is deliberately
+ *  well-formed and every other assertion depends on it staying that way.
+ */
+describe('v1.study.* corpus faults', () => {
+  const malformed = BibleProcedureHandlers.pipe(Layer.provide(malformedStudyProcedureDependencies));
+
+  it.scoped('carries StudyCorpusDataError to the client with the row it names', () =>
+    Effect.gen(function* () {
+      const outcome = yield* Effect.gen(function* () {
+        const client = yield* RpcTest.makeClient(BibleProcedureGroup);
+        return yield* Effect.result(
+          client['v1.study.verse.get']({
+            book: FIXTURE_BOOK,
+            chapter: FIXTURE_CHAPTER,
+            verse: FIXTURE_VERSE,
+          }),
+        );
+      }).pipe(Effect.provide(malformed));
+
+      expect(outcome._tag).toBe('Failure');
+      if (outcome._tag !== 'Failure') return;
+
+      // The tag, not `ProcedureError`. The handler used to run this through
+      // `normalizeFailure`, which produced a `ProcedureError` whose `code` was
+      // the string `'StudyCorpusDataError'` and whose payload was a message —
+      // so the tag *looked* preserved while `source`, `operation` and `row`
+      // were gone.
+      expect(outcome.failure._tag).toBe('StudyCorpusDataError');
+      if (outcome.failure._tag !== 'StudyCorpusDataError') return;
+
+      // The three fields that make the failure actionable, having survived the
+      // encode/decode the RPC boundary performs. `row` is the one that matters:
+      // it is how an operator finds the paragraph to fix, and no message
+      // reconstructs it.
+      expect(outcome.failure.source).toBe('writings');
+      expect(outcome.failure.operation).toBe('verse.parallelWritings');
+      expect(outcome.failure.row).toContain(FIXTURE_MALFORMED_ROW);
+    }),
+  );
+
+  it.scoped('still normalizes every other study failure to ProcedureError', () =>
+    Effect.gen(function* () {
+      // The other half, and the line the widening must not cross: only the
+      // corpus-data error is special. A verse the corpus does not hold is an
+      // ordinary domain failure and stays under the group's convention, so a
+      // client matching on `ProcedureError` did not lose a case.
+      const outcome = yield* Effect.gen(function* () {
+        const client = yield* RpcTest.makeClient(BibleProcedureGroup);
+        return yield* Effect.result(
+          client['v1.study.strongs.get']({ number: strongsNumber('H9999') }),
+        );
+      }).pipe(Effect.provide(malformed));
+
+      // The fixture holds no `H9999`, and an absent lexicon entry is a value
+      // rather than a failure (§8.4), so this succeeds with an empty entry —
+      // which is itself the claim that the widened union did not turn
+      // sparseness into an error.
+      expect(outcome._tag).toBe('Success');
+      if (outcome._tag !== 'Success') return;
+      expect(Option.isNone(outcome.success.entry)).toBe(true);
     }),
   );
 });

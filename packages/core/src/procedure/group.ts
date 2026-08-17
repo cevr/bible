@@ -1,7 +1,7 @@
 import { Schema } from 'effect';
 import { Rpc, RpcGroup, type RpcSchema } from 'effect/unstable/rpc';
 
-import { BookNumber, Chapter, ChapterNumber, SearchWindow } from '../bible/model.js';
+import { BookNumber, Chapter, ChapterNumber, SearchWindow, VerseNumber } from '../bible/model.js';
 import {
   LibraryCollection,
   LocationAnnotations,
@@ -14,6 +14,8 @@ import {
   ReadingPreferences,
   ReadingPreferencesPatch as ReadingPreferencesPatchSchema,
 } from '../reading-preferences/model.js';
+import { StrongsNumber, StrongsStudy, StudyLimit, VerseStudy } from '../study/model.js';
+import { StudyCorpusDataError } from '../study/service.js';
 import { TopicDetail, TopicId, TopicSummary } from '../topics/model.js';
 import { PhraseDictionary, TopicSlug, WikiPage, WikiPageSummary } from '../wiki/model.js';
 import {
@@ -42,11 +44,42 @@ import {
 const sanitizedDefect = Schema.Defect({ excludeCause: true });
 
 /**
- * Domain procedure constructor: every domain procedure in the group fails
- * with `ProcedureError` and sanitizes defects before they cross the
- * transport. New RPC families declare payload/success only; the failure
+ * Domain procedure constructor with a declared failure schema, and defects
+ * sanitized before they cross the transport.
+ *
+ * Most families want {@link procedure} below, which supplies the convention's
+ * `ProcedureError`. This one exists for the family whose domain error carries
+ * fields a client can *act on*: the study seam's `StudyCorpusDataError` names
+ * the offending corpus row, and flattening it to `ProcedureError` at the
+ * boundary keeps the message while throwing the identity away.
+ */
+const procedureFailing = <
+  const Tag extends string,
+  Payload extends Schema.Top | Schema.Struct.Fields,
+  Success extends Schema.Top,
+  Error extends Schema.Top,
+  const IsStream extends boolean = false,
+>(
+  tag: Tag,
+  options: {
+    readonly payload: Payload;
+    readonly success: Success;
+    readonly error: Error;
+    readonly stream?: IsStream;
+  },
+): Rpc.Rpc<
+  Tag,
+  Payload extends Schema.Struct.Fields ? Schema.Struct<Payload> : Payload,
+  IsStream extends true ? RpcSchema.Stream<Success, Error> : Success,
+  IsStream extends true ? typeof Schema.Never : Error
+> => Rpc.make(tag, { ...options, defect: sanitizedDefect });
+
+/**
+ * The convention: every domain procedure in the group fails with
+ * `ProcedureError`. New RPC families declare payload/success only; the failure
  * convention is structural, not copy-paste. `RuntimeConnect` is the one
- * procedure outside the convention (it fails with the handshake error).
+ * procedure outside it (it fails with the handshake error), and the two
+ * `v1.study.*` procedures widen it through {@link procedureFailing}.
  */
 const procedure = <
   const Tag extends string,
@@ -65,12 +98,7 @@ const procedure = <
   Payload extends Schema.Struct.Fields ? Schema.Struct<Payload> : Payload,
   IsStream extends true ? RpcSchema.Stream<Success, typeof ProcedureError> : Success,
   IsStream extends true ? typeof Schema.Never : typeof ProcedureError
-> =>
-  Rpc.make(tag, {
-    ...options,
-    error: ProcedureError,
-    defect: sanitizedDefect,
-  });
+> => procedureFailing(tag, { ...options, error: ProcedureError });
 
 export const RuntimeConnect = Rpc.make('v1.runtime.connect', {
   payload: {
@@ -234,6 +262,50 @@ export const WikiDictionaryGet = procedure('v1.wiki.dictionary.get', {
   success: PhraseDictionary,
 });
 
+/** What the two `v1.study.*` procedures fail with.
+ *
+ *  `StudyCorpusDataError` rides across the wire *as itself* rather than being
+ *  flattened into `ProcedureError`, because it carries a field no message can
+ *  replace: `row` names the offending row as the corpus names it — a refcode, a
+ *  reference label, an index — and `source` says which corpus it came from.
+ *  Flattening kept the message and threw both away, so an operator told "a row
+ *  is malformed" had no way to find which one.
+ *
+ *  `ProcedureError` stays in the union as the catch-all: `StudyUnavailableError`
+ *  and any other failure still normalize to it, so widening the union costs the
+ *  client one extra tag to match rather than a new failure category per corpus
+ *  fault. */
+export const StudyProcedureError = Schema.Union([ProcedureError, StudyCorpusDataError]);
+
+/** The whole study bundle for one verse in **one** round trip (§8.2). The pane
+ *  always wants all five sections — words, cross-references, margin notes,
+ *  commentary, parallel writings — and the payload is small, so granular
+ *  per-resource procedures would buy nothing but chatter. Composed inside the
+ *  host, exactly as `v1.wiki.topic.get` is, so however many queries the five
+ *  sections take, the MessagePort crossing count stays at one.
+ *
+ *  The reference is flattened into three fields rather than sent as an encoded
+ *  `VerseReference`, matching `v1.reading.bibleChapter.get`: the payload is the
+ *  address, and a tagged wrapper on the wire would be a second spelling of the
+ *  same three numbers. */
+export const StudyVerseGet = procedureFailing('v1.study.verse.get', {
+  payload: { book: BookNumber, chapter: ChapterNumber, verse: VerseNumber },
+  success: VerseStudy,
+  error: StudyProcedureError,
+});
+
+/** The word-tap path: the lexicon entry plus the reverse concordance, capped.
+ *  `limit` is optional and the service's default applies when it is absent, so
+ *  a client that does not care about paging sends the number alone. */
+export const StudyStrongsGet = procedureFailing('v1.study.strongs.get', {
+  payload: {
+    number: StrongsNumber,
+    limit: Schema.optional(StudyLimit),
+  },
+  success: StrongsStudy,
+  error: StudyProcedureError,
+});
+
 export const BibleProcedureGroup = RpcGroup.make(
   RuntimeConnect,
   RuntimeEvents,
@@ -262,6 +334,8 @@ export const BibleProcedureGroup = RpcGroup.make(
   WikiTopicGet,
   WikiTopicsList,
   WikiDictionaryGet,
+  StudyVerseGet,
+  StudyStrongsGet,
 );
 
 export const expectedRuntimeConnection = {

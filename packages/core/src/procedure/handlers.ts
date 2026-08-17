@@ -2,6 +2,7 @@ import { Reference as BibleReference } from '../bible/index.js';
 import { BibleService } from '../bible/service.js';
 import { Reference as WritingsReference } from '../writings/index.js';
 import { WritingsService } from '../writings/service.js';
+import { StudyCorpusDataError, StudyService } from '../study/service.js';
 import { TopicService } from '../topics/service.js';
 import { WikiService } from '../wiki/service.js';
 import { Effect, Option, Predicate, Schema } from 'effect';
@@ -46,6 +47,24 @@ const normalizeFailure =
     });
   };
 
+const isCorpusDataError = Schema.is(StudyCorpusDataError);
+
+/** The study seam's failure mapping: `StudyCorpusDataError` crosses as itself,
+ *  everything else normalizes.
+ *
+ *  The two `v1.study.*` procedures declare `StudyProcedureError`, so the tagged
+ *  error is a value the wire can carry. Passing it through `normalizeFailure`
+ *  would still typecheck and would still produce a failure a client could
+ *  render — with `source`, `operation` and `row` gone. `row` is the whole point
+ *  of the error: it names the corpus row an operator has to open, and no
+ *  message reconstructs it. */
+const normalizeStudyFailure =
+  (procedure: string) =>
+  (cause: unknown): ProcedureError | StudyCorpusDataError => {
+    if (isCorpusDataError(cause)) return cause;
+    return normalizeFailure(procedure)(cause);
+  };
+
 export const BibleProcedureHandlers = BibleProcedureGroup.toLayer(
   Effect.gen(function* () {
     const bible = yield* BibleService;
@@ -57,6 +76,7 @@ export const BibleProcedureHandlers = BibleProcedureGroup.toLayer(
     const library = yield* LibraryStateRuntime;
     const topics = yield* TopicService;
     const wiki = yield* WikiService;
+    const study = yield* StudyService;
     const data = yield* DataPortabilityRuntime;
 
     return {
@@ -118,6 +138,18 @@ export const BibleProcedureHandlers = BibleProcedureGroup.toLayer(
         wiki.list(input).pipe(Effect.mapError(normalizeFailure('v1.wiki.topics.list'))),
       'v1.wiki.dictionary.get': () =>
         wiki.dictionary.pipe(Effect.mapError(normalizeFailure('v1.wiki.dictionary.get'))),
+      // The whole bundle, composed inside the host by the same `StudyService`
+      // the CLI resolves directly — so "the RPC bundle" and "the CLI bundle"
+      // are one value crossing two seams, and the five sections cost the
+      // client exactly one MessagePort round trip (§8.2).
+      'v1.study.verse.get': (input) =>
+        study
+          .verse(BibleReference.verse(input.book, input.chapter, input.verse))
+          .pipe(Effect.mapError(normalizeStudyFailure('v1.study.verse.get'))),
+      'v1.study.strongs.get': (input) =>
+        study
+          .strongs(input.number, { limit: input.limit })
+          .pipe(Effect.mapError(normalizeStudyFailure('v1.study.strongs.get'))),
     };
   }),
 );

@@ -43,11 +43,17 @@ test('boots the shared application through the desktop procedure runtime', async
     await expect(
       page.getByRole('separator', { name: 'Resize Scripture and study tools' }),
     ).toBeVisible();
-    const notesTab = page.getByRole('tab', { name: 'Notes' });
+    // `exact`, because the §8 study pane now renders its own tablist above the
+    // annotation tools and its "Margin notes" tab is a substring match for
+    // "Notes". A non-exact name resolved to two elements from the moment the
+    // pane shipped.
+    const notesTab = page.getByRole('tab', { name: 'Notes', exact: true });
     if (!(await notesTab.isVisible())) await page.getByText('Study', { exact: true }).click();
     await notesTab.focus();
     await notesTab.press('ArrowRight');
-    await expect(page.getByRole('tab', { name: 'References' })).toHaveAttribute(
+    // `exact` for the same reason: the study pane's "Cross-references" tab is a
+    // substring match for the annotation tools' "References".
+    await expect(page.getByRole('tab', { name: 'References', exact: true })).toHaveAttribute(
       'aria-selected',
       'true',
     );

@@ -320,6 +320,17 @@ export interface EGWParagraphDatabaseService {
   readonly getBibleRefsByBook: (
     bookId: number,
   ) => Effect.Effect<readonly BibleRefRow[], ParagraphDatabaseError>;
+  /**
+   * Every paragraph whose `paragraph_bible_refs` row points at this verse.
+   *
+   * `bookAuthor` rides along with the code and title because the reverse lookup
+   * spans the *whole* library, not the EGW half of it: Dan 7:25 alone answers
+   * with 431 rows of which only 10 are White-Estate published. A caller that
+   * has to scope the result by author (§8.4's "parallel EGW") can only do so
+   * from the same `books.book_author` column §6.4's `CorpusScope` filters on,
+   * and re-reading `books` per row to recover it would be one query per
+   * paragraph for a column the join already visits.
+   */
   readonly getParagraphsByBibleRef: (
     bibleBook: number,
     bibleChapter: number,
@@ -329,6 +340,7 @@ export interface EGWParagraphDatabaseService {
       bookId: number;
       bookCode: string;
       bookTitle: string;
+      bookAuthor: string;
     })[],
     ParagraphDatabaseError
   >;
@@ -1176,7 +1188,7 @@ export class EGWParagraphDatabase extends Context.Service<
         bibleVerse?: number,
       ) => {
         let query = sql<FullParagraphRow>`
-                SELECT p.*, b.book_code, b.book_title
+                SELECT p.*, b.book_code, b.book_title, b.book_author
                 FROM paragraphs p
                 JOIN paragraph_bible_refs pbr
                   ON p.book_id = pbr.para_book_id AND p.ref_code = pbr.para_ref_code
@@ -1187,7 +1199,7 @@ export class EGWParagraphDatabase extends Context.Service<
               `;
         if (Predicate.isNotUndefined(bibleVerse)) {
           query = sql<FullParagraphRow>`
-                SELECT p.*, b.book_code, b.book_title
+                SELECT p.*, b.book_code, b.book_title, b.book_author
                 FROM paragraphs p
                 JOIN paragraph_bible_refs pbr
                   ON p.book_id = pbr.para_book_id AND p.ref_code = pbr.para_ref_code
@@ -1207,6 +1219,10 @@ export class EGWParagraphDatabase extends Context.Service<
                   bookId: row.book_id,
                   bookCode: row.book_code,
                   bookTitle: row.book_title,
+                  // `FullParagraphRow` types the column optional because two
+                  // other statements omit it; this one selects it, so the
+                  // empty fallback is unreachable rather than a default.
+                  bookAuthor: Option.getOrElse(Option.fromNullishOr(row.book_author), () => ''),
                 })),
               ),
             ),
@@ -1506,6 +1522,7 @@ export class EGWParagraphDatabase extends Context.Service<
                 bookId: book.book_id,
                 bookCode: book.book_code,
                 bookTitle: book.book_title,
+                bookAuthor: book.book_author,
               },
             ];
           }),

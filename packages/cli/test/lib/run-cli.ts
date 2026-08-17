@@ -36,6 +36,17 @@ export interface RunCliResult {
    * test can assert on real output.
    */
   stdout: string;
+  /**
+   * Everything the command wrote through `Console.error`, joined with newlines.
+   *
+   * Diagnostics belong here rather than in {@link stdout} — `--json` pipes
+   * stdout and a diagnostic line in that stream corrupts the payload a script
+   * is parsing — so a command whose only job on failure is to name what broke
+   * writes nothing a stdout assertion can see. Captured for the same reason
+   * stdout is: the last hop, helper to console, is where a message can be
+   * dropped.
+   */
+  stderr: string;
 }
 
 /**
@@ -75,10 +86,14 @@ export const runCli = <Name extends string, Input, ContextInput, E, R>(
     // observable. `log` returns `void` rather than an `Effect` because
     // `Console.log` wraps the plain method in `Effect.sync` itself.
     const written: string[] = [];
+    const diagnostics: string[] = [];
     const recordingConsole: Console.Console = {
       ...Console.Console.defaultValue(),
       log: (...parts: readonly unknown[]) => {
         written.push(parts.map((part) => String(part)).join(' '));
+      },
+      error: (...parts: readonly unknown[]) => {
+        diagnostics.push(parts.map((part) => String(part)).join(' '));
       },
     };
 
@@ -129,6 +144,7 @@ export const runCli = <Name extends string, Input, ContextInput, E, R>(
       calls,
       success,
       stdout: written.join('\n'),
+      stderr: diagnostics.join('\n'),
     };
   });
 
