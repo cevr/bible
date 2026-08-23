@@ -27,6 +27,8 @@ import { BibleService } from '../bible/service.js';
 import { EGWCommentaryService } from '../egw-commentary/service.js';
 import { EGWParagraphDatabase } from '../egw-db/book-database.js';
 import { DEFAULT_READING_PREFERENCES } from '../reading-preferences/model.js';
+import { SearchCorpusSources, SearchService } from '../search/service.js';
+import { VectorIndexBytes } from '../search/vector-artifact.js';
 import { StudyService } from '../study/service.js';
 import { TopicService } from '../topics/service.js';
 import { WikiSectionSources } from '../wiki/section-composer.js';
@@ -63,6 +65,7 @@ export interface ProcedureDependencyOverrides {
   readonly topics?: Layer.Layer<TopicService>;
   readonly wiki?: Layer.Layer<WikiService>;
   readonly lookup?: Layer.Layer<LookupService>;
+  readonly search?: Layer.Layer<SearchService>;
   readonly study?: Layer.Layer<StudyService>;
 }
 
@@ -107,6 +110,16 @@ const emptyLookup: Layer.Layer<LookupService> = LookupService.Live.pipe(
   Layer.provide(WikiSectionSources.NotWired),
 );
 
+/** A `SearchService` over no corpus and no index: it answers, and answers with
+ *  nothing plus §9.6's `absent`. The same posture `emptyWiki` and `emptyLookup`
+ *  take — a suite not testing the search seam must still build the handler
+ *  layer, and `NotWired` is how "this host serves no searchable corpus" is
+ *  written down rather than left to an omitted dependency. */
+const emptySearch: Layer.Layer<SearchService> = SearchService.Live.pipe(
+  Layer.provide(SearchCorpusSources.NotWired),
+  Layer.provide(VectorIndexBytes.None),
+);
+
 /** Everything `BibleProcedureHandlers` requires, with the named services
  *  replaced by the caller's own.
  *
@@ -121,6 +134,7 @@ export const procedureDependencies = (
   | TopicService
   | WikiService
   | LookupService
+  | SearchService
   | StudyService
   | WritingsLibraryRuntime
   | ProcedureRuntime
@@ -136,6 +150,7 @@ export const procedureDependencies = (
     overrides.topics ?? TopicService.Test([]),
     overrides.wiki ?? emptyWiki,
     overrides.lookup ?? emptyLookup,
+    overrides.search ?? emptySearch,
     overrides.study ?? emptyStudy,
     Layer.succeed(
       WritingsLibraryRuntime,

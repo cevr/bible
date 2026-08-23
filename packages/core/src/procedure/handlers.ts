@@ -1,3 +1,5 @@
+import { SearchQuery } from '../search/model.js';
+import { SearchService } from '../search/service.js';
 import { Reference as BibleReference } from '../bible/index.js';
 import { BibleService } from '../bible/service.js';
 import { Reference as WritingsReference } from '../writings/index.js';
@@ -79,6 +81,7 @@ export const BibleProcedureHandlers = BibleProcedureGroup.toLayer(
     const topics = yield* TopicService;
     const wiki = yield* WikiService;
     const lookup = yield* LookupService;
+    const search = yield* SearchService;
     const study = yield* StudyService;
     const data = yield* DataPortabilityRuntime;
 
@@ -154,6 +157,20 @@ export const BibleProcedureHandlers = BibleProcedureGroup.toLayer(
           LookupInput.make({
             text: input.text,
             context: Option.fromNullishOr(input.context),
+          }),
+        ),
+      // The whole result comes back from the same `SearchService` the CLI calls
+      // directly — so "the RPC result" and "`bible egw search --json`" are one
+      // value crossing two seams (§9.7). `query` does not fail: every leg
+      // degrades, and the vector leg's degradation is a typed field on the
+      // result rather than an error channel.
+      'v1.search.query': (input) =>
+        search.query(
+          SearchQuery.make({
+            text: input.text,
+            scope: Option.fromNullishOr(input.scope),
+            bookCode: Option.fromNullishOr(input.bookCode),
+            limit: Option.fromNullishOr(input.limit),
           }),
         ),
       // The whole bundle, composed inside the host by the same `StudyService`

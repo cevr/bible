@@ -10,6 +10,7 @@ import {
 } from '@bible/core/procedure';
 import type { BibleService } from '@bible/core/bible/service';
 import type { WritingsService } from '@bible/core/writings/service';
+import type { SearchService } from '@bible/core/search';
 import type { StudyService } from '@bible/core/study';
 import type { TopicService } from '@bible/core/topics';
 import type { LookupService, WikiService } from '@bible/core/wiki';
@@ -87,6 +88,7 @@ export const layerDesktopProcedureServer = (
   | WikiService
   | LookupService
   | StudyService
+  | SearchService
   | DataPortabilityRuntime
 > =>
   RpcServer.layer(BibleProcedureGroup).pipe(

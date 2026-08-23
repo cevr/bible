@@ -8,6 +8,7 @@ import { BunServices } from '@effect/platform-bun';
 import { Database } from 'bun:sqlite';
 import { describe, expect, it } from 'effect-bun-test';
 import {
+  Array as Arr,
   ConfigProvider,
   Effect,
   FileSystem,
@@ -39,7 +40,11 @@ import {
   publicationId,
   publicationOrder,
 } from '../writings/model.js';
-import { EGWParagraphDatabase, ParagraphDataIntegrityError } from './book-database.js';
+import {
+  EGWParagraphDatabase,
+  FTS_TERM_CONJUNCTION,
+  ParagraphDataIntegrityError,
+} from './book-database.js';
 import * as EGWDbBun from './book-database-bun.js';
 
 // Wire-shape fields the schema encodes as `null` when absent.
@@ -150,6 +155,54 @@ const mockArchive = (refcodes: readonly string[]): PublicationArchive => {
     }),
     paragraphs,
     bibleReferences,
+  });
+};
+
+/** An archive that reproduces the corpus's real identity shape: `para_id` from
+ *  the paragraph reference and `ref_code` from the archived refcode, so two
+ *  paragraphs may share a `refcode_short` while staying distinct rows.
+ *
+ *  `mockArchive` cannot express it — it derives one refcode per paragraph — and
+ *  `storeParagraphsBatch` cannot either, because its `ref_code` prefers
+ *  `refcode_short` and the two rows would upsert onto each other. */
+const collidingArchive = (
+  rows: readonly {
+    readonly paragraphId: string;
+    readonly refcode: string;
+    readonly text: string;
+  }[],
+): PublicationArchive => {
+  const id = publicationId(9101);
+  const code = publicationCode('2ChS');
+  const paragraphs = rows.map((row, index) =>
+    ArchivedParagraph.make({
+      // The row's own `ref_code`: distinct per paragraph, as in the corpus.
+      refcode: row.paragraphId,
+      paragraph: WritingsParagraph.make({
+        reference: WritingsReference.paragraph(id, row.paragraphId),
+        publicationCode: code,
+        order: publicationOrder(index + 1),
+        page: Option.none(),
+        number: Option.none(),
+        // The shared `refcode_short` — the collision itself.
+        refcode: Option.some(row.refcode),
+        nodes: [{ _tag: 'Text', text: row.text }],
+        elementType: Option.some('paragraph'),
+        elementSubtype: Option.none(),
+      }),
+      isHeading: false,
+    }),
+  );
+  return PublicationArchive.make({
+    publication: Publication.make({
+      id,
+      code,
+      title: 'Second Christian Series',
+      author: 'Ellen Gould White',
+      paragraphCount: Option.some(rows.length),
+    }),
+    paragraphs,
+    bibleReferences: [],
   });
 };
 
@@ -498,6 +551,115 @@ describe('EGWParagraphDatabase', () => {
           );
         }),
       ));
+
+    // §9's lexical leg reads scores, which no other query returns — so it is
+    // its own statement against the real schema, and the only place a wrong
+    // column name shows up. The service degrades on a failed leg by design
+    // (§9.6), so a broken statement here surfaces as "no results" rather than
+    // as an error, and every fixture-backed test still passes.
+    test('returns BM25 scores over the real schema', () =>
+      runTest(
+        Effect.gen(function* () {
+          const db = yield* EGWParagraphDatabase;
+          yield* db.storeParagraphsBatch(
+            [
+              {
+                ...mockParagraph(1, 'SCORED 1.1'),
+                nodes: [{ _tag: 'Text', text: 'the sanctuary in heaven' }],
+              },
+              {
+                ...mockParagraph(2, 'SCORED 2.1'),
+                nodes: [{ _tag: 'Text', text: 'a sanctuary' }],
+              },
+            ],
+            mockBook(220, 'SCORED'),
+          );
+
+          const scored = yield* db.searchScoredParagraphs('sanctuary', { limit: 10 });
+          expect(scored.length).toBeGreaterThan(0);
+
+          const first = Arr.get(scored, 0);
+          if (Option.isNone(first)) return;
+          // The three things §9.4 needs from a row and no other query supplies:
+          // the book identity it fuses on, the decoded text it snippets, and a
+          // rank to compare. FTS5's `rank` is a negative BM25, so a positive
+          // value would mean the column is not what this code thinks it is.
+          expect(first.value.bookCode).toBe('SCORED');
+          expect(first.value.rank).toBeLessThan(0);
+          expect(first.value.nodes.length).toBeGreaterThan(0);
+
+          // Ordered best-first, which is what the short-circuit reads.
+          const ranks = scored.map((row) => row.rank);
+          expect([...ranks].sort((left, right) => left - right)).toEqual(ranks);
+        }),
+      ));
+
+    // §9.2's join key. The live corpus has 961,750 non-empty EGW-scope rows but
+    // only 944,672 distinct `book:refcode` pairs, so keying the index on the
+    // refcode would silently point 17,078 paragraphs at another paragraph's
+    // vector. `para_id` is distinct on all 3,012,004 rows.
+    test('scores carry a paragraph identity that separates same-refcode rows', () =>
+      runTest(
+        Effect.gen(function* () {
+          const db = yield* EGWParagraphDatabase;
+          // The corpus's own shape, taken from a real collision: book `2ChS`
+          // gives two distinct paragraphs the same `refcode_short` "2ChS 321"
+          // and distinct `ref_code`/`para_id` (14879.1475, 14879.1476). Keying
+          // on the refcode maps both onto one id; keying on `para_id` does not.
+          yield* db.installPublicationArchive(
+            collidingArchive([
+              { paragraphId: '14879.1475', refcode: '2ChS 321', text: 'the sanctuary first' },
+              { paragraphId: '14879.1476', refcode: '2ChS 321', text: 'the sanctuary second' },
+            ]),
+          );
+
+          const scored = yield* db.searchScoredParagraphs('sanctuary', { limit: 10 });
+          expect(scored).toHaveLength(2);
+          // Both rows report the one refcode the corpus gives them...
+          expect(
+            new Set(scored.map((row) => Option.getOrElse(row.refcode_short, () => ''))),
+          ).toEqual(new Set(['2ChS 321']));
+          // ...and two distinct identities, which is the whole point.
+          const identities = scored.map((row) => row.para_id);
+          expect(new Set(identities).size).toBe(2);
+          expect([...identities].sort()).toEqual(['2ChS:14879.1475', '2ChS:14879.1476']);
+        }),
+      ));
+
+    // §9.4's fusion ranks ids from two legs, and the vector leg returns ids the
+    // lexical leg never saw. Without this lookup those ids have no row and are
+    // dropped, which removes the recall hybrid search exists to buy.
+    test('fetches rows for identities FTS never matched', () =>
+      runTest(
+        Effect.gen(function* () {
+          const db = yield* EGWParagraphDatabase;
+          yield* db.installPublicationArchive(
+            collidingArchive([
+              { paragraphId: 'vonly-1', refcode: '2ChS 1', text: 'about celestial mechanics' },
+              { paragraphId: 'vonly-2', refcode: '2ChS 2', text: 'about husbandry' },
+            ]),
+          );
+
+          // The word the lexical leg would never match on this row — the row is
+          // reachable only because the vector leg named its identity.
+          const lexical = yield* db.searchScoredParagraphs('husbandry', { limit: 10 });
+          expect(lexical.map((row) => row.para_id)).toEqual(['2ChS:vonly-2']);
+
+          const found = yield* db.findParagraphsByIdentity(['2ChS:vonly-1']);
+          expect(found).toHaveLength(1);
+          const only = Arr.get(found, 0);
+          if (Option.isNone(only)) return;
+          expect(only.value.para_id).toBe('2ChS:vonly-1');
+          expect(only.value.bookCode).toBe('2ChS');
+          expect(only.value.nodes.length).toBeGreaterThan(0);
+          // No FTS match produced it, so it carries no BM25 evidence.
+          expect(only.value.rank).toBe(0);
+
+          // An unknown key matches nothing rather than erroring or matching all.
+          expect(yield* db.findParagraphsByIdentity(['2ChS:absent'])).toHaveLength(0);
+          expect(yield* db.findParagraphsByIdentity([])).toHaveLength(0);
+        }),
+      ));
   });
 
   describe('batch operations', () => {
@@ -656,6 +818,93 @@ describe('EGWParagraphDatabase', () => {
           if (Option.isSome(retrieved)) {
             expect(retrieved.value.book_code).toBe('BYID');
           }
+        }),
+      ));
+  });
+
+  /** Round-2 B4: the in-memory double and live FTS5 must combine terms the same
+   *  way.
+   *
+   *  The double used `terms.some` — OR — while the shipped query joins quoted
+   *  terms with `FTS_TERM_CONJUNCTION`, which FTS5 reads as AND. That makes
+   *  every multi-word fixture query return a superset of what the corpus would
+   *  return, so a test could state a premise about a top hit that no real
+   *  search produces, and only a run against SQLite would show it.
+   *
+   *  The oracle here is the live database itself rather than a restatement of
+   *  the rule, so the assertion tracks whatever FTS5 actually does with the
+   *  string `ftsQuery` builds. Against the OR double the first expectation
+   *  fails: the double returns all three rows where FTS5 returns one. */
+  describe('the in-memory double matches live FTS5 term combination (B4)', () => {
+    const CONJUNCTION_BOOKS = [
+      {
+        book_id: 401,
+        book_code: 'ANDA',
+        book_title: 'And A',
+        book_author: 'Ellen Gould White',
+        paragraph_count: 3,
+        created_at: '2026-01-01T00:00:00.000Z',
+      },
+    ];
+    const rows = [
+      { order: 1, refcode: 'ANDA 1.1', text: 'alpha stands alone here' },
+      { order: 2, refcode: 'ANDA 1.2', text: 'beta stands alone here' },
+      { order: 3, refcode: 'ANDA 1.3', text: 'alpha and beta stand together' },
+    ];
+    /** The string `search/service.ts`'s `ftsQuery` emits for `alpha beta`. */
+    const bothTerms = `"alpha"${FTS_TERM_CONJUNCTION}"beta"`;
+
+    const doubleLayer = EGWParagraphDatabase.Test({
+      books: CONJUNCTION_BOOKS,
+      paragraphs: rows.map((row) => ({
+        ...mockParagraph(row.order, row.refcode),
+        bookCode: 'ANDA',
+        nodes: [{ _tag: 'Text', text: row.text }],
+      })),
+    });
+
+    test('returns the same rows as the live corpus for a two-term query', () =>
+      runTest(
+        Effect.gen(function* () {
+          const live = yield* EGWParagraphDatabase;
+          for (const row of rows) {
+            yield* live.storeParagraphsBatch(
+              [
+                {
+                  ...mockParagraph(row.order, row.refcode),
+                  nodes: [{ _tag: 'Text', text: row.text }],
+                },
+              ],
+              mockBook(401, 'ANDA'),
+            );
+          }
+          const refcodes = (hits: readonly { readonly ref_code: string }[]): string[] =>
+            hits.map((hit) => hit.ref_code).toSorted();
+
+          const liveBoth = yield* live.searchScoredParagraphs(bothTerms, { limit: 50 });
+          const doubleBoth = yield* Effect.provide(
+            Effect.flatMap(EGWParagraphDatabase, (db) =>
+              db.searchScoredParagraphs(bothTerms, { limit: 50 }),
+            ),
+            doubleLayer,
+          );
+
+          // FTS5's own answer: only the row carrying both terms.
+          expect(refcodes(liveBoth)).toEqual(['ANDA 1.3']);
+          // And the double agrees, which is the contract.
+          expect(refcodes(doubleBoth)).toEqual(refcodes(liveBoth));
+
+          // A single term still matches every row that contains it, on both
+          // sides — so the fix is AND between terms, not a narrower match.
+          const liveOne = yield* live.searchScoredParagraphs('"alpha"', { limit: 50 });
+          const doubleOne = yield* Effect.provide(
+            Effect.flatMap(EGWParagraphDatabase, (db) =>
+              db.searchScoredParagraphs('"alpha"', { limit: 50 }),
+            ),
+            doubleLayer,
+          );
+          expect(refcodes(liveOne)).toEqual(['ANDA 1.1', 'ANDA 1.3']);
+          expect(refcodes(doubleOne)).toEqual(refcodes(liveOne));
         }),
       ));
   });

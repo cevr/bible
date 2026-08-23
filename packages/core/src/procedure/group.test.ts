@@ -41,6 +41,7 @@ describe('BibleProcedureGroup', () => {
         'v1.wiki.topics.list',
         'v1.wiki.dictionary.get',
         'v1.wiki.lookup.resolve',
+        'v1.search.query',
         'v1.study.verse.get',
         'v1.study.strongs.get',
       ]);

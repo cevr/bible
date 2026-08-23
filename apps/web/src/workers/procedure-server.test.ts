@@ -96,6 +96,8 @@ describe('web procedure server', () => {
                   // No topics artifact in the negotiation fixture: the §3.5
                   // steady state, and the one the worker must still serve.
                   topicsDatabase: Option.none(),
+                  // Likewise no vector index: §9.6's steady state.
+                  vectorIndex: Option.none(),
                   writingsFetch: () =>
                     Effect.runPromise(Effect.die(new TypeError('not used by negotiation'))),
                   runtime: {

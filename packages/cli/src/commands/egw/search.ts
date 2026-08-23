@@ -1,11 +1,33 @@
 import { EGWApiClient, type Schemas as EGWSchemas } from '@bible/core/egw';
+import { SearchQuery, SearchResultJson, SearchService } from '@bible/core/search';
 import { Reference } from '@bible/core/writings';
 import { WritingsService } from '@bible/core/writings/service';
-import { Console, Effect, Option } from 'effect';
+import { Console, Effect, Option, Schema } from 'effect';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
 
-import { encodeJson, formatLocalSearchResult, formatRemoteHit, searchHitJson } from './format.js';
-import { FullLayer, ServiceLayer } from './layers.js';
+import {
+  encodeJson,
+  formatLocalSearchResult,
+  formatRemoteHit,
+  formatSearchResult,
+} from './format.js';
+import { FullLayer } from './layers.js';
+import { searchService } from './search-layer.js';
+
+/** The one wire codec §9 defines, encoded rather than re-projected.
+ *
+ *  M5-M7's host-parity rule: the CLI and the RPC handler must emit the *same*
+ *  bytes for the same result, which is only true if they share the encoder.
+ *  The hand-written projection this replaces was a second wire model — it could
+ *  drift from `SearchResult` without anything failing.
+ *
+ *  One composed codec rather than encode-then-stringify: `SearchResultJson`'s
+ *  own encoder already produces the JSON shape, so passing its output through
+ *  the generic `encodeJson` would ask the schema to encode an
+ *  already-encoded value — `Option` fields arrive as plain JSON and fail. */
+const encodeSearchResult = Schema.encodeEffect(
+  Schema.fromJsonString(SearchResultJson, { space: 2 }),
+);
 
 export const localSearch = (query: string, bookCode: Option.Option<string>, limit = 20) =>
   Effect.gen(function* () {
@@ -56,10 +78,20 @@ const lang = Flag.string('lang').pipe(
   Flag.withDescription('Language code for --remote (default: en)'),
   Flag.withDefault('en'),
 );
-
+/** §9.1's corpus scope.
+ *
+ *  `Flag.choice` rather than a validated string: the parser rejects an unknown
+ *  scope with the CLI's own error, so the command never holds a value the
+ *  `CorpusScope` schema would refuse. Left optional rather than defaulted here,
+ *  because `SEARCH_DEFAULT_SCOPE` is where the default belongs — a second one
+ *  spelled in the flag is a second place for it to change. */
+const scope = Flag.choice('scope', ['egw', 'pioneer', 'all']).pipe(
+  Flag.withDescription('Corpus scope: egw, pioneer, or all (default: egw)'),
+  Flag.optional,
+);
 export const egwSearch = Command.make(
   'search',
-  { query, book, limit, remote, json, lang },
+  { query, book, limit, remote, json, lang, scope },
   (args) =>
     Effect.gen(function* () {
       const queryStr = args.query.join(' ').trim();
@@ -99,24 +131,28 @@ export const egwSearch = Command.make(
         return;
       }
 
-      // Local path — only needs the WritingsService layer (no auth required).
-      yield* Effect.gen(function* () {
-        if (args.json) {
-          const service = yield* WritingsService;
-          let publication;
-          if (args.book._tag === 'Some') {
-            publication = Reference.publication(
-              (yield* service.publicationByCode(args.book.value)).id,
-            );
-          }
-          const results = yield* service.search(queryStr, {
-            limit: args.limit,
-            publication,
-          });
-          yield* Console.log(yield* encodeJson(results.map(searchHitJson)));
-          return;
-        }
-        yield* localSearch(queryStr, args.book, args.limit);
-      }).pipe(Effect.provide(ServiceLayer));
+      // Local path — §9's hybrid search. The scope, book and limit narrowings
+      // travel as one `SearchQuery` so the CLI, the RPC handler and the UI ask
+      // the same question in the same terms.
+      const result = yield* searchService(
+        Effect.flatMap(SearchService, (service) =>
+          service.query(
+            SearchQuery.make({
+              text: queryStr,
+              scope: args.scope,
+              bookCode: args.book,
+              limit: Option.some(args.limit),
+            }),
+          ),
+        ),
+      );
+
+      if (args.json) {
+        yield* Console.log(yield* encodeSearchResult(result));
+        return;
+      }
+      for (const line of formatSearchResult(result)) {
+        yield* Console.log(line);
+      }
     }),
 );

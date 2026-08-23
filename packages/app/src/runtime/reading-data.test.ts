@@ -134,6 +134,7 @@ const handlerLayer = (
       'v1.reading.bibleChapter.get': () => Effect.die('unused'),
       'v1.reading.bibleChapterMarginAnchors.get': () => Effect.die('unused'),
       'v1.reading.bibleSearch.get': () => Effect.die('unused'),
+      'v1.search.query': () => Effect.die('unused'),
       'v1.reading.writingsCatalog.get': () => Effect.die('unused'),
       'v1.reading.writingsPage.get': () => Effect.die('unused'),
       'v1.reading.writingsPublication.open': () => Effect.die('unused'),

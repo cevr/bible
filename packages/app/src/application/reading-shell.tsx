@@ -116,6 +116,15 @@ export const ReadingShell = (props: ParentProps) => {
     { id: 'bible', label: 'Read the Bible', path: '/bible/1/1', keywords: ['scripture'] },
     { id: 'writings', label: 'Open Writings', path: '/writings', keywords: ['egw'] },
     { id: 'search', label: 'Search Scripture', path: '/search', keywords: ['find'] },
+    // §9's hybrid search had no entry point at all before round-2 B3: the menu
+    // offered only the Bible side, so the writings corpus was reachable only by
+    // typing the scope into the URL.
+    {
+      id: 'search-writings',
+      label: 'Search the Writings',
+      path: '/search?scope=writings',
+      keywords: ['egw', 'find'],
+    },
     { id: 'topics', label: 'Browse Topics', path: '/topics', keywords: ['study'] },
     { id: 'plans', label: 'Reading Plans', path: '/plans', keywords: ['schedule'] },
     { id: 'practice', label: 'Memory Practice', path: '/practice', keywords: ['verse'] },

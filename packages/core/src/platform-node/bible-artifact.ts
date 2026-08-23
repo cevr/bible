@@ -5,6 +5,12 @@ import { bytesToHex } from '@noble/hashes/utils.js';
 
 import { CorpusInstallationError, CorpusSourceUnavailableError } from '../corpus-supply/errors.js';
 import {
+  VectorsArtifact,
+  type VectorsArtifactInstaller,
+  type VectorsArtifactRecipe,
+} from '../search/vector-artifact.js';
+import { parseVectorIndex } from '../search/vector-index.js';
+import {
   BibleArtifact,
   TopicsArtifact,
   type BibleArtifactInstaller,
@@ -46,6 +52,16 @@ export interface ReleaseFileArtifactSource {
 }
 
 export type NativeFileArtifactSource = LocalFileArtifactSource | ReleaseFileArtifactSource;
+
+/** What kind of file one File Corpus's artifact is.
+ *
+ *  Not a cosmetic distinction: it decides where the lifecycle can put
+ *  provenance. `sqlite` artifacts (Bible, Topics) carry it in a `meta` table
+ *  inside themselves; `flat` artifacts (§9.2's vector index) carry it in a
+ *  sidecar JSON, because there is nowhere inside a pinned binary format to put
+ *  it. Declared by the caller rather than inferred from the bytes — see
+ *  `layerNativeFileArtifacts`. */
+export type FileArtifactLayout = 'sqlite' | 'flat';
 
 const StoredProvenance = Schema.Struct({
   source: Schema.String,
@@ -306,6 +322,71 @@ const sqliteProvenanceStore: NativeFileArtifactProvenanceStore = {
     ),
 };
 
+/** Provenance for a **flat** artifact, in a sidecar JSON file beside it.
+ *
+ *  The SQLite store above writes `meta` rows *into* the artifact, which is only
+ *  possible because the artifact is a database. §9.2's vector index is a flat
+ *  binary: it has no `meta` table, no schema, and no room for one — the parser
+ *  addresses it from byte zero and any appended bytes make it malformed. The
+ *  default store therefore could not install a `.bvi` at all. It opened the
+ *  candidate file with `better-sqlite3` and failed before the rename, so
+ *  `Target.vectors()` on desktop could never activate a generation (round-2 B1).
+ *
+ *  A sidecar rather than a header field, for two reasons. The format is pinned —
+ *  §9.2 fixes the header and the manifest, and both the compiler and the shipped
+ *  parser agree on their layout — so provenance cannot be added to it without a
+ *  format version bump that every installed index would fail. And provenance is
+ *  *supply* metadata, not index content: which release these bytes came from is
+ *  a fact about the install, and the digest it records is the digest of the file
+ *  without it, which a field inside the file could not be.
+ *
+ *  **Written to the building file's sidecar, then renamed with it.** The
+ *  installer writes provenance to `<destination>.building` and renames that over
+ *  `<destination>`; this store mirrors the same two-step onto
+ *  `<destination>.building.provenance.json` → `<destination>.provenance.json`,
+ *  so an interrupted install leaves the active file *and* its sidecar untouched.
+ *  Reading provenance for a file whose sidecar is missing fails, which the
+ *  lifecycle's `readCurrent` turns into "no current generation" — the correct
+ *  answer for a file this host did not install.
+ */
+export const sidecarProvenanceStore: NativeFileArtifactProvenanceStore = {
+  read: (filename) =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const raw = yield* fs.readFileString(sidecarPath(filename));
+      const stored = yield* Schema.decodeUnknownEffect(Schema.fromJsonString(StoredProvenance))(
+        raw,
+      );
+      return CorpusProvenance.make({
+        source: assetSourceId(stored.source),
+        revision: corpusRevision(stored.revision),
+        digest: Option.some(corpusDigest(stored.digest)),
+      });
+    }).pipe(Effect.mapError(storeError('read-provenance')), Effect.provide(BunServices.layer)),
+  write: (filename, provenance) =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const digest = yield* Option.match(provenance.digest, {
+        onNone: () => Effect.fail('Artifact digest is required'),
+        onSome: Effect.succeed,
+      });
+      const encoded = yield* Schema.encodeEffect(Schema.fromJsonString(StoredProvenance))({
+        source: provenance.source,
+        revision: provenance.revision,
+        digest,
+      });
+      yield* fs.writeFileString(sidecarPath(filename), encoded);
+    }).pipe(Effect.mapError(storeError('write-provenance')), Effect.provide(BunServices.layer)),
+};
+
+/** Where one artifact's sidecar lives: the artifact's own path plus a suffix.
+ *
+ *  Derived rather than configured, so the sidecar of `x.building` is
+ *  `x.building.provenance.json` and renaming `x.building` → `x` has an exactly
+ *  parallel sidecar rename. One function so the installer, the reader and the
+ *  cleanup cannot disagree about the name. */
+const sidecarPath = (filename: string): string => `${filename}.provenance.json`;
+
 const readCurrent = (
   destination: string,
   verify: (filename: string) => Effect.Effect<number, unknown>,
@@ -324,6 +405,12 @@ export const layerNativeFileArtifacts = <Corpus extends string, RecipeId, Instal
   readonly verify: (filename: string) => Effect.Effect<number, unknown>;
   readonly fetch?: (url: string) => Effect.Effect<Response, unknown>;
   readonly provenanceStore?: NativeFileArtifactProvenanceStore;
+  /** Whether this corpus's artifact is a SQLite database or an opaque blob.
+   *
+   *  It decides where provenance goes: inside the file for a database, in a
+   *  sidecar JSON for a blob. Defaults to `sqlite`, so Bible and Topics are
+   *  unchanged; §9.2's vector index declares `flat`. */
+  readonly layout?: FileArtifactLayout;
 }): Layer.Layer<InstallerId | RecipeId> => {
   const corpus = input.artifact.corpus;
   const reportedCorpus = Option.getOrUndefined(registeredCorpusName(corpus));
@@ -355,7 +442,18 @@ export const layerNativeFileArtifacts = <Corpus extends string, RecipeId, Instal
         return { status: response.status, bytes: response.stream };
       }).pipe(Effect.provide(BunHttpClient.layer));
   }
-  const provenanceStore = input.provenanceStore ?? sqliteProvenanceStore;
+  // A flat artifact cannot hold `meta` rows, so it gets the sidecar store; a
+  // SQLite artifact keeps writing provenance into itself, which is what the
+  // browser adapter reads back and what shipped. `layout` is declared by the
+  // caller rather than sniffed from the bytes: what an artifact *is* is a
+  // property of the corpus, and probing a file to decide how to write its
+  // provenance would be exactly the guess this milestone's audit found.
+  const layout = input.layout ?? 'sqlite';
+  const defaultProvenanceStore = (): NativeFileArtifactProvenanceStore => {
+    if (layout === 'flat') return sidecarProvenanceStore;
+    return sqliteProvenanceStore;
+  };
+  const provenanceStore = input.provenanceStore ?? defaultProvenanceStore();
   const makeSource = (source: NativeFileArtifactSource) => {
     if (source.kind === 'release') return releaseSource(corpus, source, fetchArtifact);
     return localSource(corpus, source);
@@ -403,12 +501,39 @@ export const layerNativeFileArtifacts = <Corpus extends string, RecipeId, Instal
             digest: Option.some(digest),
           });
           yield* provenanceStore.write(building, provenance);
-          yield* fs.rename(building, input.destination);
-          yield* fs.remove(`${input.destination}.provenance.json`, { force: true });
+          if (layout === 'flat') {
+            // The sidecar is renamed *before* the artifact, so the only window
+            // is one in which the new sidecar sits beside the old artifact —
+            // and `readCurrent` verifies the artifact before it reads
+            // provenance, so that window reads as "the current file is not the
+            // one this sidecar describes" rather than as a bad activation.
+            // Renaming the artifact first would leave the *new* file described
+            // by the *old* provenance, which is a wrong receipt rather than an
+            // absent one.
+            yield* fs.rename(sidecarPath(building), sidecarPath(input.destination));
+            yield* fs.rename(building, input.destination);
+          } else {
+            yield* fs.rename(building, input.destination);
+            // A SQLite artifact carries its own provenance, so a sidecar left
+            // by an earlier flat install of the same destination would be a
+            // second, stale answer to the same question.
+            yield* fs.remove(sidecarPath(input.destination), { force: true });
+          }
           return { installed, provenance };
         });
         return yield* install.pipe(
-          Effect.onError(() => fs.remove(building, { force: true }).pipe(Effect.ignore)),
+          Effect.onError(() =>
+            Effect.all(
+              [
+                fs.remove(building, { force: true }),
+                // The candidate's sidecar goes with the candidate: a failed
+                // install must leave nothing behind that a later read could
+                // mistake for a generation.
+                fs.remove(sidecarPath(building), { force: true }),
+              ],
+              { discard: true },
+            ).pipe(Effect.ignore),
+          ),
         );
       }).pipe(
         Effect.mapError((cause) => CorpusInstallationError.make({ corpus: reportedCorpus, cause })),
@@ -453,4 +578,56 @@ export const layerNativeTopicsArtifacts = (input: {
     fetch: input.fetch,
     provenanceStore: input.provenanceStore,
     verify: input.verify ?? verifyTopicsDatabase,
+  });
+
+/** The Vectors semantic verifier (§3.5): the shipped parser, over the installed
+ *  file.
+ *
+ *  A digest match proves the bytes arrived intact; it cannot prove they are an
+ *  index this build can read. Running `parseVectorIndex` is what makes a
+ *  truncated, foreign-fingerprint or mis-tiled artifact fail *before* the swap,
+ *  so a host never activates a generation whose index the search layer would
+ *  then reject at every query. The count it returns is the receipt's own
+ *  measure of what was installed.
+ */
+export const verifyVectorIndexFile = (filename: string): Effect.Effect<number, unknown> =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const bytes = yield* fs.readFile(filename);
+    // Copied into its own `ArrayBuffer`: a read may hand back a view onto a
+    // larger pooled buffer, and the parser addresses the index from byte zero.
+    const buffer = new ArrayBuffer(bytes.byteLength);
+    new Uint8Array(buffer).set(bytes);
+    const parsed = parseVectorIndex(buffer);
+    if (parsed._tag !== 'ok') {
+      // A message, as the topics verifier fails: the installer's job is to
+      // refuse the swap and say why, and the reason is operator-facing text
+      // rather than a case any caller branches on.
+      return yield* Effect.fail(`vector index rejected by the shipped parser: ${parsed._tag}`);
+    }
+    return parsed.index.count;
+  }).pipe(Effect.provide(BunServices.layer));
+
+/** The Vectors instance of the native File Corpus lifecycle. Callers pass the
+ *  local sources their host offers; `vectorsReleaseSource` appends the pinned
+ *  release once one is published. */
+export const layerNativeVectorsArtifacts = (input: {
+  readonly destination: string;
+  readonly sources: readonly NativeFileArtifactSource[];
+  readonly fetch?: (url: string) => Effect.Effect<Response, unknown>;
+  readonly verify?: (filename: string) => Effect.Effect<number, unknown>;
+  readonly provenanceStore?: NativeFileArtifactProvenanceStore;
+}): Layer.Layer<VectorsArtifactInstaller | VectorsArtifactRecipe> =>
+  layerNativeFileArtifacts({
+    artifact: VectorsArtifact,
+    destination: input.destination,
+    sources: input.sources,
+    fetch: input.fetch,
+    provenanceStore: input.provenanceStore,
+    // §9.2's index is an opaque binary, so provenance lives in a sidecar. The
+    // default SQLite store opened the candidate `.bvi` with `better-sqlite3`
+    // and failed before the rename, which meant no host could ever activate a
+    // vectors generation (round-2 B1).
+    layout: 'flat',
+    verify: input.verify ?? verifyVectorIndexFile,
   });

@@ -54,6 +54,7 @@ const HandlerLayer = BibleProcedureGroup.toLayer(
     'v1.wiki.dictionary.get': () => Effect.die('unused'),
     'v1.wiki.lookup.resolve': () => Effect.die('unused'),
     'v1.study.verse.get': () => Effect.die('unused'),
+    'v1.search.query': () => Effect.die('unused'),
     'v1.study.strongs.get': () => Effect.die('unused'),
     'v1.preferences.reading.get': () => Effect.die('unused'),
     'v1.preferences.reading.patch': () => Effect.die('unused'),

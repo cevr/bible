@@ -8,11 +8,13 @@ import {
   BibleReader,
   BibleSearch,
   ReaderLoading,
+  SearchForm,
   WikiTopicPage,
   WritingsCatalog,
   WritingsPageReader,
   WritingsParagraphReader,
   WritingsPublicationReader,
+  WritingsSearch,
 } from '../reading/index.js';
 import type { AppRoute } from '../route/index.js';
 import { decodeRoute, encodeRoute, readingRouteForLocation } from '../route/index.js';
@@ -65,7 +67,27 @@ const SearchRoute = () => {
   );
   return (
     <Show when={route()} fallback={<NotFoundContent requestedPath={location.pathname} />}>
-      {(current) => <BibleSearch route={current()} />}
+      {(current) => (
+        // One box, two corpora: `scope` chooses which of them the query is
+        // asked of. §9's hybrid search is the writings side; the Bible side is
+        // the verse index, which is a different question with a different
+        // answer shape rather than the same one narrowed.
+        //
+        // The form is drawn *above* that choice rather than inside either
+        // branch, because the scope controls are how a reader crosses between
+        // them — a control that lived in one branch could not navigate to the
+        // other.
+        <>
+          <SearchForm route={current()} />
+          <Show when={current().scope === 'writings'} fallback={<BibleSearch route={current()} />}>
+            <WritingsSearch
+              query={current().query}
+              scope={current().corpus}
+              bookCode={current().bookCode}
+            />
+          </Show>
+        </>
+      )}
     </Show>
   );
 };

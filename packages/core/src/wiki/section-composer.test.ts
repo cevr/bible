@@ -148,15 +148,24 @@ const BOOKS = [
  *  merely counts the returned rows shows up as 5 where 7 is the truth. */
 const MATCHING_PARAGRAPHS_PER_SCOPE = 7;
 
+/** The fixture text carries **the whole canonical phrase**, article included.
+ *
+ *  Production FTS5 combines the terms of a query with an implicit AND, so a
+ *  paragraph reading `sanctuary egw 1` does not answer the phrase
+ *  `"The Sanctuary"` — it is missing `the`. While the in-memory double ORed its
+ *  terms, that distinction was invisible here and a flagship page whose title is
+ *  `The Sanctuary` appeared to match rows that the live corpus would never have
+ *  returned. Spelling the article into the text is what makes these fixtures
+ *  answer the query the composer actually issues. */
 const PARAGRAPHS = [
   ...verseNumbers(MATCHING_PARAGRAPHS_PER_SCOPE).map((n) =>
-    paragraph({ code: 'GC', refcode: `GC ${String(n)}.1`, text: `sanctuary egw ${String(n)}` }),
+    paragraph({ code: 'GC', refcode: `GC ${String(n)}.1`, text: `the sanctuary egw ${String(n)}` }),
   ),
   ...verseNumbers(MATCHING_PARAGRAPHS_PER_SCOPE).map((n) =>
     paragraph({
       code: 'DAR',
       refcode: `DAR ${String(n)}.1`,
-      text: `sanctuary pioneer ${String(n)}`,
+      text: `the sanctuary pioneer ${String(n)}`,
     }),
   ),
 ];

@@ -22,19 +22,34 @@ import {
 } from '@bible/core/procedure';
 import { WritingsService } from '@bible/core/writings/service';
 import { EGWCommentaryService } from '@bible/core/egw-commentary';
+import {
+  layerFileVectorIndexBytes,
+  SearchCorpusSources,
+  SearchService,
+  VectorIndexBytes,
+} from '@bible/core/search';
+import { layerNodeEmbedder } from '@bible/core/search/node';
 import { StudyService } from '@bible/core/study';
 import { TopicService } from '@bible/core/topics';
 import {
   layerArtifactOrAbsent,
   LookupService,
   WikiSectionSources,
-  type WikiService,
+  WikiService,
 } from '@bible/core/wiki';
 import * as SqliteNode from '@effect/sql-sqlite-node/SqliteClient';
 import * as NodeFileSystem from '@effect/platform-node/NodeFileSystem';
 import * as NodeHttpClient from '@effect/platform-node/NodeHttpClient';
 import * as NodePath from '@effect/platform-node/NodePath';
-import { Layer, ManagedRuntime, Schema, type Effect as EffectNs, type FileSystem } from 'effect';
+import {
+  Effect,
+  Layer,
+  ManagedRuntime,
+  Option,
+  Schema,
+  type Effect as EffectNs,
+  type FileSystem,
+} from 'effect';
 
 import { layerDesktopProcedureDependencies } from './local-procedure-runtime.js';
 import { topicsArtifactDriver } from './topics-artifact-driver.js';
@@ -121,6 +136,47 @@ const studyLayer = (input: {
     Layer.provide(EGWCommentaryService.Live.pipe(Layer.provide(input.writings))),
   );
 
+/** Hybrid search on Electron main (§9): the same portable `SearchService` the
+ *  worker and the CLI resolve, over this host's two SQLite drivers.
+ *
+ *  The vector index is read from `userData` when it is there and reported as
+ *  §9.6's typed absence when it is not — which is every install until the
+ *  optional artifact ships, so the absent path is the ordinary one rather than
+ *  an error path. The native CPU adapter is provided either way: if the model
+ *  is not present it declines, and the result says `embedder` instead. */
+const searchLayer = (input: {
+  readonly wiki: Layer.Layer<WikiService>;
+  readonly writings: Layer.Layer<EGWParagraphDatabase>;
+  /** The *activated* index, or `None` when CorpusSupply verified none.
+   *
+   *  An `Option` rather than a path that might not exist: "this host has no
+   *  index" is a supported state (§9.6), and `VectorIndexBytes.None` is how it
+   *  is written down. A path string would make the reader stat a file to
+   *  discover a decision the host had already made. */
+  readonly vectorIndexFile: Option.Option<string>;
+}): Layer.Layer<SearchService> =>
+  SearchService.Live.pipe(
+    Layer.provide(
+      Layer.effect(
+        SearchCorpusSources,
+        Effect.gen(function* () {
+          return {
+            _tag: 'wired' as const,
+            sources: { paragraphs: yield* EGWParagraphDatabase, wiki: yield* WikiService },
+          };
+        }),
+      ).pipe(Layer.provide(input.writings), Layer.provide(input.wiki)),
+    ),
+    Layer.provide(
+      Option.match(input.vectorIndexFile, {
+        onNone: () => VectorIndexBytes.None,
+        onSome: (filename) =>
+          layerFileVectorIndexBytes(filename).pipe(Layer.provide(NodeFileSystem.layer)),
+      }),
+    ),
+    Layer.provide(layerNodeEmbedder),
+  );
+
 export type MainRuntime = ManagedRuntime.ManagedRuntime<
   | EGWParagraphDatabase
   | BibleCorpus
@@ -136,6 +192,7 @@ export type MainRuntime = ManagedRuntime.ManagedRuntime<
   | WikiService
   | LookupService
   | StudyService
+  | SearchService
   | DataPortabilityRuntime,
   never
 >;
@@ -153,6 +210,9 @@ export interface MainRuntimeFiles {
    *  catalog-only pages rather than refusing to build. */
   readonly topicsDbFile: string;
   readonly userStateDbFile: string;
+  /** §9.2's optional flat vector index. Absent on every install until the
+   *  artifact ships; search degrades around it rather than failing. */
+  readonly vectorIndexFile: Option.Option<string>;
 }
 
 export const makeRuntime = (files: MainRuntimeFiles, host: MainRuntimeHost): MainRuntime => {
@@ -204,7 +264,14 @@ export const makeRuntime = (files: MainRuntimeFiles, host: MainRuntimeHost): Mai
     },
   });
   const study = studyLayer({ bible, writings });
-  return ManagedRuntime.make(Layer.mergeAll(writings, bible, wiki, lookup, study, procedures));
+  const search = searchLayer({
+    wiki,
+    writings,
+    vectorIndexFile: files.vectorIndexFile,
+  });
+  return ManagedRuntime.make(
+    Layer.mergeAll(writings, bible, wiki, lookup, study, search, procedures),
+  );
 };
 
 export const runtimeRun = <A, E>(

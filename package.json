@@ -12,6 +12,7 @@
   "scripts": {
     "build": "turbo run build",
     "build:topics": "bun run --cwd packages/scripts build:topics",
+    "build:vectors": "bun run --cwd packages/scripts build:vectors",
     "dev:desktop": "agent-tail run --log-dir tmp/logs 'desktop: bun run --cwd apps/desktop vite:dev'",
     "dev:web": "agent-tail run --log-dir tmp/logs 'web: bun run --cwd apps/web vite:dev' 'api: bun run --cwd apps/web server:dev'",
     "typecheck": "turbo run typecheck",

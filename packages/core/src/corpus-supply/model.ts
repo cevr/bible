@@ -7,7 +7,7 @@ import { PublicationId } from '../writings/model.js';
  *  semantic verifier, an atomic swap. `makeFileCorpusArtifact` is parameterized
  *  by this vocabulary, so adding a file corpus adds a name here and nothing
  *  else to the lifecycle. */
-export const CorpusFileName = Schema.Literals(['bible', 'topics']);
+export const CorpusFileName = Schema.Literals(['bible', 'topics', 'vectors']);
 export type CorpusFileName = typeof CorpusFileName.Type;
 
 /** The corpora installed per publication through a SQL transaction rather than
@@ -138,6 +138,7 @@ export const Target = {
   file: (corpus: CorpusFileName): FileCorpusTarget => FileCorpusTarget.make({ corpus }),
   bible: (): FileCorpusTarget => FileCorpusTarget.make({ corpus: 'bible' }),
   topics: (): FileCorpusTarget => FileCorpusTarget.make({ corpus: 'topics' }),
+  vectors: (): FileCorpusTarget => FileCorpusTarget.make({ corpus: 'vectors' }),
   writings: (publications?: readonly PublicationId[]): WritingsTarget =>
     WritingsTarget.make({ publications }),
 };

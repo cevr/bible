@@ -21,9 +21,11 @@ import {
   ReadingPreferences,
   ReadingPreferencesPatch as ReadingPreferencesPatchSchema,
 } from '../reading-preferences/model.js';
+import { SearchResult } from '../search/model.js';
 import { StrongsNumber, StrongsStudy, StudyLimit, VerseStudy } from '../study/model.js';
 import { StudyCorpusDataError } from '../study/service.js';
 import { TopicDetail, TopicId, TopicSummary } from '../topics/model.js';
+import { CorpusScope } from '../writings/corpus-scope.js';
 import { LookupContext, LookupResult } from '../wiki/lookup-model.js';
 import { PhraseDictionary, TopicSlug, WikiPage, WikiPageSummary } from '../wiki/model.js';
 import {
@@ -304,6 +306,33 @@ export const WikiLookupResolve = procedure('v1.wiki.lookup.resolve', {
   success: LookupResult,
 });
 
+/** Hybrid search (§9): the pinned topics group, the locate-jump and the fused
+ *  paragraph ranking, in one round trip.
+ *
+ *  One procedure for the whole result rather than one per leg, for the reason
+ *  `v1.wiki.lookup.resolve` is one: the surface draws every group each time, so
+ *  per-group procedures would turn one MessagePort crossing into three for a
+ *  payload that is already capped at twenty rows.
+ *
+ *  **The vector leg does not get its own procedure, and cannot.** §9.6's typed
+ *  absence is a field of the result, not a separate answer: a client that asked
+ *  for paragraphs and then asked whether the vector leg ran could receive the
+ *  two from different queries, and the whole point of the field is that it
+ *  describes *this* result.
+ *
+ *  `scope` and `bookCode` are `Schema.optional` and the service's defaults
+ *  apply when absent, so a client with no filter UI sends the query alone —
+ *  matching `v1.study.strongs.get`'s treatment of `limit`. */
+export const SearchQueryProcedure = procedure('v1.search.query', {
+  payload: {
+    text: Schema.NonEmptyString,
+    scope: Schema.optional(CorpusScope),
+    bookCode: Schema.optional(Schema.NonEmptyString),
+    limit: Schema.optional(Schema.Int.check(Schema.isGreaterThan(0))),
+  },
+  success: SearchResult,
+});
+
 /** What the two `v1.study.*` procedures fail with.
  *
  *  `StudyCorpusDataError` rides across the wire *as itself* rather than being
@@ -378,6 +407,7 @@ export const BibleProcedureGroup = RpcGroup.make(
   WikiTopicsList,
   WikiDictionaryGet,
   WikiLookupResolve,
+  SearchQueryProcedure,
   StudyVerseGet,
   StudyStrongsGet,
 );

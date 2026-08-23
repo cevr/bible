@@ -13,10 +13,16 @@ import { OPFSAdaptiveVFS } from 'wa-sqlite/src/examples/OPFSAdaptiveVFS.js';
 import userStateMigrationSql from '../../../../packages/core/src/local-first/migrations/0001_user_state.sql?raw';
 
 import {
+  makeBlobGenerationStore,
+  makeOpfsBlobFileStore,
+  type BlobFileStore,
+} from './blob-generation-store.js';
+import {
   layerBrowserBibleArtifacts,
   layerBrowserTopicsArtifacts,
 } from './corpus-artifact-database.js';
 import { makeCorpusGenerationStore } from './corpus-generation-store.js';
+import { layerBrowserVectorsArtifacts } from './vectors-artifact-browser.js';
 import {
   makeDatabaseFileDownloader,
   makeIndexedDbDatabaseFileDownloader,
@@ -187,8 +193,28 @@ const initializeDatabases = (
       onProgress: (progress) =>
         host.log(`[web.topics] install-progress progress=${String(progress)}`),
     });
+    // §9.2's index, through the flat-artifact half of the same lifecycle: its
+    // own OPFS filenames, its own IndexedDB registry, its own active-generation
+    // key. `blobFiles` is the OPFS seam the store reads and retires through.
+    const vectorsStorage = corpusStorageIdentity('vectors');
+    const blobFiles: BlobFileStore = makeOpfsBlobFileStore();
+    const vectorGenerations = makeBlobGenerationStore({
+      identity: vectorsStorage,
+      files: blobFiles,
+      registry: makeIndexedDbGenerationRegistryStore({
+        databaseName: vectorsStorage.metadataDatabaseName,
+        key: vectorsStorage.activeGenerationKey,
+      }),
+    });
+    const vectorsArtifacts = layerBrowserVectorsArtifacts({
+      generations: vectorGenerations,
+      files: blobFiles,
+      downloader,
+      onProgress: (progress) =>
+        host.log(`[web.vectors] install-progress progress=${String(progress)}`),
+    });
     const corpusSupply = CorpusSupply.layer.pipe(
-      Layer.provide(Layer.merge(bibleArtifacts, topicsArtifacts)),
+      Layer.provide(Layer.mergeAll(bibleArtifacts, topicsArtifacts, vectorsArtifacts)),
     );
     yield* Effect.gen(function* () {
       const supply = yield* CorpusSupply;
@@ -204,6 +230,18 @@ const initializeDatabases = (
           Effect.catch((cause) =>
             Effect.sync(() =>
               host.warn(`[web.topics] unavailable category=${failureCategory(cause)}`),
+            ),
+          ),
+        );
+      // Vectors is the most optional artifact in the pipeline: its absence is a
+      // fully working lexical-only search, reported as §9.6's typed value. Same
+      // catch-and-warn posture as topics, one step further along.
+      yield* supply
+        .ensure({ target: Target.vectors() })
+        .pipe(
+          Effect.catch((cause) =>
+            Effect.sync(() =>
+              host.warn(`[web.vectors] unavailable category=${failureCategory(cause)}`),
             ),
           ),
         );
@@ -237,6 +275,16 @@ const initializeDatabases = (
       // is catalog-only pages, not a broken worker (§3.5).
       topicsDatabase: Option.map(topicsDatabases.activeFilename, () => topicsDatabases.active),
       writingsFetch: host.fetch,
+      // §9.2's index, from whichever generation `CorpusSupply` verified and
+      // activated. `None` when none is installed, which is the ordinary state
+      // until the release pin is filled in — and which reaches the reader as
+      // §9.6's typed absence rather than as a quiet drop in result quality.
+      //
+      // Read once here rather than per query: the store loaded the active
+      // generation's bytes at activation, and this is the handoff. The bytes
+      // never come from OPFS behind `CorpusSupply`'s back, so a generation that
+      // failed the parser gate cannot be picked up off disk.
+      vectorIndex: yield* vectorGenerations.activeBytes,
       runtime: {
         clientId: localClientId,
         store: userState.store,

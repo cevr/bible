@@ -1,12 +1,13 @@
 import { bookNumber } from '@bible/core/bible';
 import { useNavigate } from '@solidjs/router';
 import { Errored, For, Loading, Show } from '@solidjs/web';
-import { createEffect, createMemo, createSignal } from 'solid-js';
+import { Option } from 'effect';
+import { createMemo } from 'solid-js';
 
 import type { AppRoute } from '../route/index.js';
 import { encodeRoute } from '../route/index.js';
 import { useBibleSearch } from '../runtime/index.js';
-import { Button, Input } from '../ui/index.js';
+import { Button } from '../ui/index.js';
 import { ReaderFailure, ReaderLoading } from './bible-reader.js';
 
 type SearchRoute = Extract<AppRoute, { readonly _tag: 'search' }>;
@@ -24,17 +25,15 @@ const searchRoute = (query: string, books: readonly number[]): SearchRoute => ({
   query,
   scope: 'bible',
   books,
+  // This surface searches the Bible, so §9's writings narrowings are absent
+  // rather than defaulted: they belong to the writings search, and a value
+  // spelled here would put a corpus filter in the URL of a Bible query.
+  corpus: Option.none(),
+  bookCode: Option.none(),
 });
 
 export const BibleSearch = (props: BibleSearchProps) => {
   const navigate = useNavigate();
-  const [draft, setDraft] = createSignal('');
-  createEffect(
-    () => props.route.query,
-    (routeQuery) => {
-      setDraft(routeQuery);
-    },
-  );
   const books = createMemo(() => props.route.books.map((book) => bookNumber(book)));
   const query = createMemo(() => {
     const selectedBooks = books();
@@ -63,24 +62,9 @@ export const BibleSearch = (props: BibleSearchProps) => {
         <p class="bible-reader__eyebrow">Find a passage</p>
         <h1>Search Scripture</h1>
       </header>
-      <form
-        class="bible-search__form"
-        onSubmit={(event) => {
-          event.preventDefault();
-          apply(draft());
-        }}
-      >
-        <Input
-          value={draft()}
-          onInput={(event) => setDraft(event.currentTarget.value)}
-          placeholder="Search the Bible…"
-          aria-label="Search the Bible"
-          autofocus
-        />
-        <Button type="submit" tone="accent">
-          Search
-        </Button>
-      </form>
+      {/* The query box and the scope controls are `SearchForm`, drawn once by
+          the route above both corpora. What stays here is the book-range filter,
+          which is a Bible-only narrowing and has no writings counterpart. */}
       <nav class="bible-search__filters" aria-label="Book range">
         <SearchFilter
           label="All"

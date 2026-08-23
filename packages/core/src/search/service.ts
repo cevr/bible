@@ -1,0 +1,689 @@
+/** §9's hybrid search, composed.
+ *
+ *  The router (§9.3) picks a route; the lexical leg always runs (§9.3: "always
+ *  lexical"); the vector leg runs only when the route, the query shape, the
+ *  index and the embedder all allow it; RRF (§9.4) fuses what came back; and the
+ *  topic pages ride above the ranking as a pinned group, never inside it.
+ *
+ *  **No new data layer.** Every read is a call an existing service already
+ *  exposes — `WritingsService.searchScored`, `EGWParagraphDatabase
+ *  .findByRefcodeShort`, `WikiService.list` — exactly as `LookupService`
+ *  composes §7 and `composeSections` composes §6. What was missing was the seam
+ *  that routes one string across two retrieval strategies, and this is only that
+ *  seam.
+ *
+ *  **The effect does not fail.** Search degrades: an absent index is
+ *  lexical-only, an absent embedder is lexical-only, an unreachable wiki is an
+ *  empty pinned group. What it does *not* do is degrade silently — every
+ *  degradation of the vector leg is reported as §9.6's typed absence on the
+ *  result, and the same value reaches all three clients.
+ */
+
+import { Array as Arr, Context, Effect, Layer, Option } from 'effect';
+
+import { nodesToText } from '../egw/ast.js';
+import {
+  FTS_TERM_CONJUNCTION,
+  paragraphIdentity,
+  type EGWParagraphDatabaseService,
+  type ScoredParagraphRow,
+} from '../egw-db/book-database.js';
+import type { CorpusScope } from '../writings/corpus-scope.js';
+import type { WikiServiceApi } from '../wiki/service.js';
+import { QueryEmbedder, type QueryEmbedderApi } from './embedder.js';
+import { fuse, ORIGINAL_QUERY_WEIGHT, type FusionList } from './fusion.js';
+import {
+  queryLimit,
+  queryScope,
+  SEARCH_CANDIDATE_LIMIT,
+  SEARCH_TOPIC_LIMIT,
+  SearchLocateTarget,
+  SearchParagraphHit,
+  SearchResult,
+  SearchTopicHit,
+  vectorUnavailable,
+  VectorLegRan,
+  type SearchQuery,
+  type VectorLegStatus,
+} from './model.js';
+import { route, type RoutedQuery } from './router.js';
+import {
+  loadVectorIndex,
+  ResolvedVectorIndex,
+  VectorIndexBytes,
+  type LoadedVectorIndex,
+} from './vector-artifact.js';
+import { scanVectorIndex, type VectorIndex } from './vector-index.js';
+
+export interface SearchServiceApi {
+  /** One query, answered whole (§9). Never fails: every source degrades, and
+   *  every degradation of the vector leg is on the result as §9.6's typed
+   *  absence. */
+  readonly query: (input: SearchQuery) => Effect.Effect<SearchResult>;
+}
+
+// ---------------------------------------------------------------------------
+// The strong-BM25 short-circuit (§9.3)
+// ---------------------------------------------------------------------------
+
+/** How strong the **normalized** lexical top hit must be for the short-circuit
+ *  to fire.
+ *
+ *  qmd's `STRONG_SIGNAL_MIN_SCORE` (`store.ts` ~415), unchanged. §9.3 takes its
+ *  short-circuit from qmd, and qmd's two thresholds are stated over *normalized*
+ *  scores in [0, 1] — `topScore >= 0.85 && (topScore - secondScore) >= 0.15`
+ *  (~5435). The earlier implementation kept the shape and replaced the numbers
+ *  with thresholds over raw `-rank`, which is a different predicate over a
+ *  different quantity: BM25 magnitudes are unbounded and corpus-relative, so a
+ *  fixed floor of 9.0 fires on whatever the corpus happens to score above 9 and
+ *  a ratio of 1.5 means one thing on a two-word query and another on a six-word
+ *  one. Measured against the live corpus the substituted predicate fired where
+ *  qmd's did not.
+ */
+export const STRONG_SIGNAL_MIN_SCORE = 0.85;
+
+/** How far clear of the runner-up that normalized top hit must be.
+ *
+ *  qmd's `STRONG_SIGNAL_MIN_GAP`. §9.3 asks for two conditions, not one —
+ *  "strong **and clearly separated**" — because either alone misfires. A strong
+ *  top hit in a field of equally strong hits means the query matched a common
+ *  formula and the reader needs the ranking help embeddings give; a
+ *  well-separated top hit that is weak in absolute terms means everything
+ *  matched badly and the leader is noise.
+ *
+ *  A **difference** rather than a ratio, because the scores it reads are
+ *  normalized: on [0, 1] a gap of 0.15 is the same distance everywhere, which is
+ *  the property a ratio over unbounded BM25 was trying and failing to buy.
+ */
+export const STRONG_SIGNAL_MIN_GAP = 0.15;
+
+/** One FTS5 rank, as the [0, 1) score qmd's predicate is written over.
+ *
+ *  `|bm25| / (1 + |bm25|)`, which is qmd's own conversion in `searchFTS`
+ *  (`store.ts` ~4066) together with its reason: *"Monotonic and
+ *  **query-independent** — no per-query normalization needed."*
+ *
+ *  That property is the whole point, and it is what a per-query normalization
+ *  would destroy. Min-max over the candidate list looks like the obvious way to
+ *  reach [0, 1] and is wrong here: it puts the top hit at exactly 1 on *every*
+ *  query, which makes the 0.85 floor unreachable-from-below and reduces the
+ *  predicate to the gap alone. A saturating map keeps the absolute threshold
+ *  meaningful — 0.85 is exactly `|bm25| >= 5.667`, a real strength — while
+ *  staying bounded so the 0.15 gap is the same distance on every query.
+ *
+ *  qmd's own scale comments: strong(-10) → 0.91, medium(-2) → 0.67,
+ *  weak(-0.5) → 0.33, none(0) → 0.
+ *
+ *  Takes the already-flipped positive score (`-rank`), so the absolute value is
+ *  a no-op for a well-formed input and a guard for a caller that passed FTS5's
+ *  negative value straight through.
+ */
+export const normalizeScore = (score: number): number => {
+  const magnitude = Math.abs(score);
+  return magnitude / (1 + magnitude);
+};
+
+/** §9.3's short-circuit, as qmd's predicate over the lexical leg's scores.
+ *
+ *  A pure function of the scores, so §10's "skips the vector leg on a confident
+ *  lexical top hit" is a claim a test states directly rather than inferring from
+ *  whether an embedder was called.
+ *
+ *  Takes raw `-rank` values and normalizes here, rather than asking the caller
+ *  to normalize: the normalization is half the predicate, and a caller that
+ *  passed raw scores to a predicate expecting normalized ones would get a
+ *  short-circuit that fires on the corpus's scale instead of on the query's
+ *  separation — which is exactly the bug this replaces.
+ */
+export const isStrongLexicalHit = (scores: readonly number[]): boolean =>
+  Option.match(Arr.get(scores, 0), {
+    onNone: () => false,
+    onSome: (rawTop) => {
+      const top = normalizeScore(rawTop);
+      if (top < STRONG_SIGNAL_MIN_SCORE) return false;
+      return Option.match(Arr.get(scores, 1), {
+        onNone: () => true,
+        onSome: (rawRunnerUp) => top - normalizeScore(rawRunnerUp) >= STRONG_SIGNAL_MIN_GAP,
+      });
+    },
+  });
+
+// ---------------------------------------------------------------------------
+// What the service reads
+// ---------------------------------------------------------------------------
+
+/** One paragraph as both legs identify it, and as the result renders it.
+ *
+ *  `paragraphId` is the join key §9.2 gives the vector index, and it is the id
+ *  the fusion ranks: the two legs return different row shapes over the same
+ *  corpus, and fusing them requires one identity both agree on.
+ */
+export interface SearchParagraphRow {
+  readonly paragraphId: string;
+  /** The route's own inputs, carried from the row rather than derived — see
+   *  `SearchParagraphHit.publicationId` (round-2 B2). */
+  readonly publicationId: number;
+  readonly rawParaId: Option.Option<string>;
+  readonly refcode: string;
+  readonly bookCode: string;
+  readonly bookTitle: string;
+  readonly author: string;
+  readonly snippet: string;
+  /** FTS5's `-rank`, positive and larger-is-better. Absent for a row the vector
+   *  leg found and the lexical leg did not. */
+  readonly score: number;
+}
+
+/** The corpora one search reads, bundled the way `SectionSources` is.
+ *
+ *  Two rather than four: hybrid search is over `paragraphs_fts` and the topic
+ *  pages, and nothing else. Bundled as one service so a host wires it once and
+ *  a host that wires nothing says so with `NotWired` rather than by omission.
+ */
+export interface SearchSources {
+  readonly paragraphs: EGWParagraphDatabaseService;
+  readonly wiki: WikiServiceApi;
+}
+
+export type SearchSourcing =
+  | { readonly _tag: 'wired'; readonly sources: SearchSources }
+  | { readonly _tag: 'not-wired' };
+
+export class SearchCorpusSources extends Context.Service<SearchCorpusSources, SearchSourcing>()(
+  '@bible/core/search/SearchCorpusSources',
+) {
+  /** A host that deliberately serves no searchable corpus. A written decision,
+   *  not an omitted dependency — the distinction `WikiSectionSources` draws for
+   *  the same reason. */
+  static NotWired: Layer.Layer<SearchCorpusSources> = Layer.succeed(SearchCorpusSources, {
+    _tag: 'not-wired',
+  });
+
+  static wired = (sources: SearchSources): Layer.Layer<SearchCorpusSources> =>
+    Layer.succeed(SearchCorpusSources, { _tag: 'wired', sources });
+}
+
+// ---------------------------------------------------------------------------
+// The legs
+// ---------------------------------------------------------------------------
+
+/** FTS5 syntax for the query the router produced.
+ *
+ *  A `phrase` route becomes a quoted FTS phrase, which is what makes "exact
+ *  phrase" exact. Everything else is passed as a bare term list with FTS's own
+ *  operators escaped — a reader typing `probation "close"` or `NEAR/3` is
+ *  searching for words, not writing a query language, and §9.3 is explicit that
+ *  the router adds "no new syntax".
+ */
+const ftsQuery = (routed: RoutedQuery): string => {
+  if (routed._tag === 'phrase') return `"${routed.phrase.replace(/"/gu, '""')}"`;
+  if (routed._tag === 'locate') return `"${routed.refcode.replace(/"/gu, '""')}"`;
+  const terms = routed.text
+    .split(/\s+/u)
+    .map((term) => term.replace(/[^\p{L}\p{N}'-]/gu, ''))
+    .filter((term) => term.length > 0);
+  if (terms.length === 0) return '""';
+  // AND between the quoted terms, which is what FTS5 reads a space as. The
+  // separator is `FTS_TERM_CONJUNCTION` rather than a literal here so the
+  // in-memory double's matching predicate cannot drift from it (round-2 B4).
+  return terms.map((term) => `"${term}"`).join(FTS_TERM_CONJUNCTION);
+};
+
+/** One scored row, as the pipeline reads it.
+ *
+ *  `paragraphId` comes straight from `ScoredParagraphRow.para_id`, which is
+ *  `paragraphIdentity(bookCode, para_id)` — the one spelling the DB composes,
+ *  the compiler writes into the manifest, and the batch lookup matches on. There
+ *  is deliberately no key function here any more: a second definition beside the
+ *  first is how the reader and the writer come to disagree, and a search whose
+ *  two legs key paragraphs differently silently never fuses anything.
+ */
+const toRow = (row: ScoredParagraphRow): SearchParagraphRow => ({
+  paragraphId: row.para_id,
+  publicationId: row.publicationId,
+  rawParaId: row.rawParaId,
+  refcode: Option.getOrElse(row.refcode_short, () => row.ref_code),
+  bookCode: row.bookCode,
+  bookTitle: row.bookTitle,
+  author: row.bookAuthor,
+  snippet: nodesToText(row.nodes),
+  // FTS5 rank is negative and better-is-lower; the whole pipeline below wants
+  // larger-is-better, and flipping it once here is what keeps the threshold
+  // constants readable.
+  score: -row.rank,
+});
+
+/** The lexical leg (§9.3: "always lexical").
+ *
+ *  Runs on every route, including `locate`: a refcode query that also matches
+ *  text is still worth showing results for, and §9.3's locate-jump is a
+ *  *destination* added above the results rather than a replacement for them.
+ */
+const lexicalLeg = (
+  sources: SearchSources,
+  routed: RoutedQuery,
+  scope: CorpusScope,
+  bookCode: Option.Option<string>,
+): Effect.Effect<readonly SearchParagraphRow[]> =>
+  sources.paragraphs
+    .searchScoredParagraphs(ftsQuery(routed), {
+      limit: SEARCH_CANDIDATE_LIMIT,
+      scope,
+      bookCode: Option.getOrUndefined(bookCode),
+    })
+    .pipe(
+      Effect.map((rows) => rows.map(toRow)),
+      // §6.5's posture, over the declared error only.
+      Effect.catchTag(['SqlError', 'ParagraphDataIntegrityError'], (cause) =>
+        Effect.logWarning('search.lexical.degraded').pipe(
+          Effect.annotateLogs({ reason: String(cause) }),
+          Effect.as<readonly SearchParagraphRow[]>([]),
+        ),
+      ),
+    );
+
+/** The scan options for one query: how many neighbors, and over which books.
+ *
+ *  No `allow` at all means the whole index. A book filter narrows to one code;
+ *  the `egw` scope needs no filter, because §9.2 pins the index to exactly the
+ *  EGW/White-Estate partition — every vector in it is already in scope. A
+ *  `pioneer` scope has no vectors by construction and never reaches here.
+ */
+const scanScope = (
+  bookCode: Option.Option<string>,
+): { readonly topK: number; readonly allow?: ReadonlySet<string> } =>
+  Option.match(bookCode, {
+    onNone: () => ({ topK: SEARCH_CANDIDATE_LIMIT }),
+    onSome: (code) => ({ topK: SEARCH_CANDIDATE_LIMIT, allow: new Set([code]) }),
+  });
+
+/** The vector leg, and every reason it might not run (§9.6).
+ *
+ *  The gates are in the order that costs least: the route and the wordiness
+ *  check are free, the index read is a file read, and the embed is the ~100-400
+ *  ms §9.5 measures. A query that fails an earlier gate never pays a later one —
+ *  which is the whole point of §9.3's short-circuit sitting where it does.
+ */
+const vectorLeg = (
+  deps: SearchDeps,
+  routed: RoutedQuery,
+  lexical: readonly SearchParagraphRow[],
+  scope: CorpusScope,
+  bookCode: Option.Option<string>,
+): Effect.Effect<{ readonly ids: readonly string[]; readonly status: VectorLegStatus }> =>
+  Effect.gen(function* () {
+    // §9.3: quoted and refcode routes are lexical-only. A reader who quoted a
+    // phrase asked for that phrase, and semantic neighbors would be the one
+    // thing the quotes exist to refuse.
+    if (routed._tag !== 'hybrid') {
+      return { ids: [], status: vectorUnavailable('route') };
+    }
+    if (!routed.wordy) return { ids: [], status: vectorUnavailable('route') };
+    // §9.2 pins the index to the EGW/White-Estate partition, so a pioneer-scoped
+    // query has no vectors to scan. `absent` rather than a fifth reason: for
+    // this query, in this scope, there is no index.
+    if (scope === 'pioneer') return { ids: [], status: vectorUnavailable('absent') };
+    // §9.3's short-circuit: a confident lexical top hit skips the embed
+    // entirely. Before the index read, because a precise query should never
+    // pay for the vector path at all.
+    if (isStrongLexicalHit(lexical.map((row) => row.score))) {
+      return { ids: [], status: vectorUnavailable('short-circuit') };
+    }
+
+    // Resolved once when the layer was built, not per query. Reading and
+    // parsing here meant every wordy query re-read the 246 MB artifact from
+    // disk and copied its vector region twice — the file adapter into a fresh
+    // `ArrayBuffer`, then the parser into a fresh `Int8Array`.
+    const loaded = deps.index;
+    if (loaded._tag === 'unavailable') return { ids: [], status: loaded.absence };
+
+    const embedder = deps.embedder;
+    if (Option.isNone(embedder)) return { ids: [], status: vectorUnavailable('embedder') };
+    // §10: "a model-fingerprint mismatch invalidates the vector leg rather than
+    // returning wrong neighbors." The index and the embedder are installed and
+    // wired independently, so this is where they are made to agree.
+    if (embedder.value.fingerprint !== loaded.index.fingerprint) {
+      return { ids: [], status: vectorUnavailable('fingerprint') };
+    }
+
+    return yield* scanWith(embedder.value, loaded.index, routed.text, bookCode);
+  });
+
+const scanWith = (
+  embedder: QueryEmbedderApi,
+  index: VectorIndex,
+  text: string,
+  bookCode: Option.Option<string>,
+): Effect.Effect<{ readonly ids: readonly string[]; readonly status: VectorLegStatus }> =>
+  embedder.embedQuery(text).pipe(
+    Effect.map((vector) => {
+      const scan = scanVectorIndex(index, vector, scanScope(bookCode));
+      return {
+        ids: scan.neighbors.map((neighbor) => neighbor.paragraphId),
+        status: VectorLegRan.make({
+          fingerprint: index.fingerprint,
+          // What the scan actually looked at, not the size of the index it
+          // looked at part of. A book-narrowed query touches one range, and
+          // reporting `index.count` for it told the reader the whole corpus had
+          // been considered — see `VectorScan`.
+          scanned: scan.scanned,
+        }) satisfies VectorLegStatus,
+      };
+    }),
+    // An adapter that declines at embed time — WebGPU lost, model file gone —
+    // is §9.6's `embedder` absence, the same value a host with no adapter
+    // reports. One reason for one reader-visible state.
+    Effect.orElseSucceed(() => ({
+      ids: [],
+      status: vectorUnavailable('embedder') satisfies VectorLegStatus,
+    })),
+  );
+
+/** §9.4's pinned topics group.
+ *
+ *  Above the ranking, never inside it. The list comes from `WikiService.list`,
+ *  which searches authored titles and the catalog, and it is capped small
+ *  because a pinned group is an identity answer.
+ */
+const topicGroup = (
+  sources: SearchSources,
+  text: string,
+): Effect.Effect<readonly SearchTopicHit[]> =>
+  sources.wiki.list({ query: text }).pipe(
+    Effect.map((summaries) =>
+      summaries.slice(0, SEARCH_TOPIC_LIMIT).map((summary) =>
+        SearchTopicHit.make({
+          slug: summary.slug,
+          title: summary.title,
+          status: summary.status,
+        }),
+      ),
+    ),
+    // §6.5's posture over the one declared error. `catchCause` also swallowed
+    // defects and interruption, which turns a real bug into a permanently empty
+    // pinned group.
+    Effect.catchTag('WikiUnavailableError', (cause) =>
+      Effect.logWarning('search.topics.degraded').pipe(
+        Effect.annotateLogs({ category: cause.category, message: cause.message }),
+        Effect.as<readonly SearchTopicHit[]>([]),
+      ),
+    ),
+  );
+
+/** §9.3's locate-jump: where a refcode query lands, when it lands anywhere.
+ *
+ *  `findByRefcodeShort` is the existing lookup the reader already reaches
+ *  through `bible egw lookup`, so a refcode typed into the search box goes to
+ *  the same paragraph it would have gone to before — which is what makes this a
+ *  route rather than a feature.
+ */
+const locateTarget = (
+  sources: SearchSources,
+  refcode: string,
+): Effect.Effect<Option.Option<SearchLocateTarget>> =>
+  sources.paragraphs.findByRefcodeShort(refcode, 1).pipe(
+    Effect.map((rows) =>
+      Option.map(Option.fromNullishOr(rows[0]), (row) => {
+        const found = Option.getOrElse(row.refcode_short, () => refcode);
+        return SearchLocateTarget.make({
+          refcode: found,
+          bookCode: row.bookCode,
+          bookTitle: row.bookTitle,
+          // The route's inputs, from the row the lookup returned — the same two
+          // values every paragraph hit carries, so a locate jump and a ranked
+          // hit for the same paragraph build the identical link.
+          publicationId: row.bookId,
+          rawParaId: Option.filter(row.para_id, (value) => value.length > 0),
+          // The same identity the two legs fuse on, from the same function —
+          // so a refcode typed into the search box names the paragraph the
+          // ranking would have named, and a client can highlight the located
+          // row inside the results.
+          paragraphId: paragraphIdentity(row.bookCode, row.para_id, found),
+        });
+      }),
+    ),
+    Effect.catchTag(['SqlError', 'ParagraphDataIntegrityError'], (cause) =>
+      Effect.logWarning('search.locate.degraded').pipe(
+        Effect.annotateLogs({ reason: String(cause) }),
+        Effect.as(Option.none<SearchLocateTarget>()),
+      ),
+    ),
+  );
+
+/** The locate leg as one total effect over every route.
+ *
+ *  Only a `locate` route has a destination to resolve; every other route
+ *  answers the same typed absence. Spelled as a function rather than inline so
+ *  the three legs below read as three legs.
+ */
+const locateLeg = (
+  sources: SearchSources,
+  routed: RoutedQuery,
+): Effect.Effect<Option.Option<SearchLocateTarget>> => {
+  if (routed._tag === 'locate') return locateTarget(sources, routed.refcode);
+  return Effect.succeed(Option.none<SearchLocateTarget>());
+};
+
+// ---------------------------------------------------------------------------
+// Fusion into the result
+// ---------------------------------------------------------------------------
+
+/** The rows the vector leg found and the lexical leg did not (§9.2's join).
+ *
+ *  **One batch statement, not a dropped tail.** The earlier version built its
+ *  body map from the lexical rows alone and skipped every vector-only id, on the
+ *  argument that a per-id round trip costs more than the recall it buys. Both
+ *  halves of that were wrong: `findParagraphsByIdentity` is *one* statement
+ *  rather than thirty, and the recall is not a tail — it is the entire reason
+ *  the vector leg exists. A query whose FTS leg returns nothing at all (a reader
+ *  who described a passage instead of quoting it, which is precisely the query
+ *  §9.3 routes to the vector leg) returned *no results whatsoever* under the old
+ *  shape, with a `VectorLegRan` status on the result saying the leg had worked.
+ *
+ *  Degrades to the lexical bodies alone on a corpus fault: an unavailable
+ *  lookup means the vector-only candidates cannot be rendered, which is the
+ *  pre-fix behavior and still better than failing the search.
+ */
+const vectorOnlyBodies = (
+  sources: SearchSources,
+  lexical: readonly SearchParagraphRow[],
+  vectorIds: readonly string[],
+): Effect.Effect<readonly SearchParagraphRow[]> => {
+  const known = new Set(lexical.map((row) => row.paragraphId));
+  const missing = vectorIds.filter((id) => !known.has(id));
+  if (missing.length === 0) return Effect.succeed([]);
+  return sources.paragraphs.findParagraphsByIdentity(missing).pipe(
+    Effect.map((rows) => rows.map(toRow)),
+    Effect.catchTag(['SqlError', 'ParagraphDataIntegrityError'], (cause) =>
+      Effect.logWarning('search.vectorBodies.degraded').pipe(
+        Effect.annotateLogs({ reason: String(cause), wanted: missing.length }),
+        Effect.as<readonly SearchParagraphRow[]>([]),
+      ),
+    ),
+  );
+};
+
+/** Fuses the two legs and rebuilds rows in the fused order (§9.4).
+ *
+ *  Both legs' bodies are in `bodies` — the lexical rows and the vector-only rows
+ *  the batch lookup fetched — so the fused ranking renders whole. An id with no
+ *  row is still skipped, but that now means only one thing: the corpus no longer
+ *  holds a paragraph the index was built from, which is a stale index rather
+ *  than a shape the pipeline creates for itself.
+ */
+const fuseResults = (
+  lexical: readonly SearchParagraphRow[],
+  vectorOnly: readonly SearchParagraphRow[],
+  vectorIds: readonly string[],
+  limit: number,
+): readonly SearchParagraphHit[] => {
+  const bodies = new Map([...lexical, ...vectorOnly].map((row) => [row.paragraphId, row]));
+  const lists: readonly FusionList[] = [
+    { ids: lexical.map((row) => row.paragraphId), weight: ORIGINAL_QUERY_WEIGHT },
+    { ids: vectorIds, weight: 1 },
+  ];
+  const hits: SearchParagraphHit[] = [];
+  for (const fused of fuse(lists)) {
+    const found = Option.fromNullishOr(bodies.get(fused.id));
+    if (Option.isNone(found)) continue;
+    const body = found.value;
+    hits.push(
+      SearchParagraphHit.make({
+        paragraphId: body.paragraphId,
+        publicationId: body.publicationId,
+        rawParaId: body.rawParaId,
+        refcode: body.refcode,
+        bookCode: body.bookCode,
+        bookTitle: body.bookTitle,
+        author: body.author,
+        snippet: body.snippet,
+        score: fused.score,
+        lexicalRank: Option.flatten(Arr.get(fused.ranks, 0)),
+        vectorRank: Option.flatten(Arr.get(fused.ranks, 1)),
+      }),
+    );
+    if (hits.length === limit) break;
+  }
+  return hits;
+};
+
+const emptyResult = (input: SearchQuery, status: VectorLegStatus): SearchResult =>
+  SearchResult.make({
+    query: input.text,
+    route: route(input.text)._tag,
+    scope: queryScope(input),
+    topics: [],
+    locate: Option.none(),
+    paragraphs: [],
+    vector: status,
+  });
+
+/** What the layer says about the index it resolved, once, at startup.
+ *
+ *  The one operator-visible record of which of §9.6's states this process is
+ *  in. A reader only ever sees the typed absence on a result; an operator
+ *  debugging "why is search lexical-only here" needs the reason at the moment
+ *  the decision was made, not per query.
+ */
+const vectorIndexLogFields = (index: LoadedVectorIndex) => {
+  if (index._tag === 'index') return { state: 'active', vectors: index.index.count };
+  return { state: 'absent', reason: index.absence.reason };
+};
+
+/** Everything one search reads, resolved.
+ *
+ *  `index` is the *parsed* index rather than the byte source: §9.5 budgets the
+ *  vector leg at ~100-400 ms for the embed, and re-reading and re-parsing a
+ *  246 MB artifact inside that budget is not a cost the design ever intended.
+ *  The layer resolves it once and every query scans the same `Int8Array`.
+ */
+interface SearchDeps {
+  readonly sourcing: SearchSourcing;
+  readonly index: LoadedVectorIndex;
+  readonly embedder: Option.Option<QueryEmbedderApi>;
+}
+
+const makeQuery =
+  (deps: SearchDeps) =>
+  (input: SearchQuery): Effect.Effect<SearchResult> =>
+    Effect.gen(function* () {
+      const sourcing = deps.sourcing;
+      // A host that wired no corpus answers honestly: no results, and the
+      // vector leg reported absent rather than pretending it ran.
+      if (sourcing._tag === 'not-wired') {
+        return emptyResult(input, vectorUnavailable('absent'));
+      }
+      const sources = sourcing.sources;
+      const routed = route(input.text);
+      const scope = queryScope(input);
+
+      // The lexical leg and the pinned group are independent reads over two
+      // corpora, and the result needs both, so they run together.
+      const [lexical, topics, locate] = yield* Effect.all(
+        [
+          lexicalLeg(sources, routed, scope, input.bookCode),
+          topicGroup(sources, input.text),
+          locateLeg(sources, routed),
+        ],
+        { concurrency: 'unbounded' },
+      );
+
+      // The vector leg reads the lexical scores — §9.3's short-circuit is a
+      // decision about them — so it is sequenced after rather than beside.
+      const vector = yield* vectorLeg(deps, routed, lexical, scope, input.bookCode);
+      // §9.2's join, for the candidates only the vector leg found. One
+      // statement, and skipped entirely when the two legs agree on every id.
+      const vectorOnly = yield* vectorOnlyBodies(sources, lexical, vector.ids);
+
+      return SearchResult.make({
+        query: input.text,
+        route: routed._tag,
+        scope,
+        topics,
+        locate,
+        paragraphs: fuseResults(lexical, vectorOnly, vector.ids, queryLimit(input)),
+        vector: vector.status,
+      });
+    });
+
+export class SearchService extends Context.Service<SearchService, SearchServiceApi>()(
+  '@bible/core/search/SearchService',
+) {
+  /** Backed by the two corpora §9 reads and the optional index bytes.
+   *
+   *  `QueryEmbedder` is deliberately *not* in the requirements: it is read with
+   *  `Effect.serviceOption`, because §9.5 makes a host with no embedder a legal
+   *  client — the no-WebGPU browser — rather than a broken composition.
+   *  `VectorIndexBytes` *is* required, and `VectorIndexBytes.None` is how a host
+   *  says it ships no index. Absence-by-decision and absence-by-omission again.
+   */
+  static Live: Layer.Layer<SearchService, never, SearchCorpusSources | VectorIndexBytes> =
+    Layer.effect(
+      SearchService,
+      Effect.gen(function* () {
+        const sourcing = yield* SearchCorpusSources;
+        const bytes = yield* VectorIndexBytes;
+        // **Read and parsed exactly once per process.** §9.5's latency budget is
+        // for the embed; re-reading a 246 MB file per query is two orders of
+        // magnitude more work than the leg it feeds, and it scaled with query
+        // volume rather than with corpus size. The layer is where a resource
+        // whose lifetime is the runtime's belongs.
+        //
+        // A host that already resolved the index hands it over through
+        // `ResolvedVectorIndex` rather than making this layer re-read it. That
+        // is the CLI's case: `search-layer.ts` has to parse the file to decide
+        // whether it is one this build may scan, and before this seam existed it
+        // then passed the *byte source* down and paid for a second full read and
+        // parse at startup (round-2 F8). Absent means no host pre-resolved
+        // anything, and the bytes are read here — the desktop and browser path.
+        //
+        // It cannot fail: `loadVectorIndex` maps every fault onto §9.6's typed
+        // absence, so a host whose index is missing, truncated or foreign still
+        // builds a working lexical-only `SearchService`.
+        const resolved = yield* Effect.serviceOption(ResolvedVectorIndex);
+        const index = yield* Option.match(resolved, {
+          onSome: (value) => Effect.succeed(value),
+          onNone: () => loadVectorIndex.pipe(Effect.provideService(VectorIndexBytes, bytes)),
+        });
+        yield* Effect.logInfo('search.vectorIndex.resolved').pipe(
+          Effect.annotateLogs(vectorIndexLogFields(index)),
+        );
+        // Everything resolved while the layer builds, and passed as values
+        // rather than read from context inside `query`.
+        // `SearchServiceApi.query` returns an `Effect` with no requirements —
+        // that is what lets the two visual hosts call it across a MessagePort —
+        // so everything the pipeline needs has to be closed over here.
+        //
+        // The embedder is an *option*, because §9.5 makes a host with no
+        // adapter a legal client (the no-WebGPU browser) rather than a broken
+        // composition. `Effect.serviceOption` is how that stays expressible
+        // without putting `QueryEmbedder` in the layer's requirements, where it
+        // would make every host wire one.
+        const embedder = yield* Effect.serviceOption(QueryEmbedder);
+        const run = makeQuery({ sourcing, index, embedder });
+        return SearchService.of({
+          query: Effect.fn('SearchService.query')(run),
+        });
+      }),
+    );
+}

@@ -2,6 +2,7 @@ import { Context, Effect, Layer, Option } from 'effect';
 
 import { EGWParagraphDatabase } from '../egw-db/book-database.js';
 import type { PublicationId } from '../writings/model.js';
+import { VectorsArtifact } from '../search/vector-artifact.js';
 import {
   BibleArtifact,
   TopicsArtifact,
@@ -45,6 +46,10 @@ type FileCorpusRegistry = { readonly [K in CorpusFileName]: RegisteredFileCorpus
 const fileCorpora = {
   bible: BibleArtifact,
   topics: TopicsArtifact,
+  // §9.6's optional paragraph vector index. Best-effort like `topics` and one
+  // step more so: with no index installed, search still answers — lexically,
+  // carrying `VectorIndexUnavailable`.
+  vectors: VectorsArtifact,
 } satisfies FileCorpusRegistry;
 
 /** Bootstrap is the corpus required before first use. Best-effort corpora are

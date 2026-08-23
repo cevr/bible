@@ -25,6 +25,7 @@ import { join } from 'path';
 
 import { BibleToolsApi } from '@bible/api';
 import { BIBLE_ARTIFACT_RELEASE, TOPICS_ARTIFACT_RELEASE } from '@bible/core/corpus-supply';
+import { VECTORS_ARTIFACT_RELEASE } from '@bible/core/search';
 import { BibleService } from '@bible/core/bible/service';
 import * as BibleDbBun from '@bible/core/bible-db/bun';
 import * as EGWDbBun from '@bible/core/egw-db/bun';
@@ -158,6 +159,41 @@ const StaticFilesMiddleware = HttpMiddleware.make((app) =>
       );
       if (Option.isNone(upstreamBody)) {
         return HttpServerResponse.text('Topics Artifact unavailable', {
+          status: 502,
+          headers: CROSS_ORIGIN_HEADERS,
+        });
+      }
+      return HttpServerResponse.raw(upstreamBody.value, {
+        headers: {
+          'Content-Type': 'application/octet-stream',
+          'Content-Length': String(release.size),
+          'X-Artifact-Digest': release.digest,
+          ...CROSS_ORIGIN_HEADERS,
+        },
+      });
+    }
+
+    // §9.2's index, proxied exactly as topics is: the browser cannot reach the
+    // release host directly (no CORS), and mirroring the topics route rather
+    // than inventing a second shape is what keeps one artifact pipeline.
+    if (pathname === '/api/assets/vectors' && request.method === 'GET') {
+      if (Option.isNone(VECTORS_ARTIFACT_RELEASE)) {
+        return HttpServerResponse.text('No Vectors Artifact release is published', {
+          status: 404,
+          headers: CROSS_ORIGIN_HEADERS,
+        });
+      }
+      const release = VECTORS_ARTIFACT_RELEASE.value;
+      const upstream = yield* Effect.tryPromise(() => fetch(release.url)).pipe(
+        Effect.map(Option.some),
+        Effect.orElseSucceed(() => Option.none<Response>()),
+      );
+      const upstreamBody = upstream.pipe(
+        Option.filter((response) => response.ok),
+        Option.flatMap((response) => Option.fromNullOr(response.body)),
+      );
+      if (Option.isNone(upstreamBody)) {
+        return HttpServerResponse.text('Vectors Artifact unavailable', {
           status: 502,
           headers: CROSS_ORIGIN_HEADERS,
         });

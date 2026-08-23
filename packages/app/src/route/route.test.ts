@@ -16,7 +16,24 @@ const routes: readonly AppRoute[] = [
   { _tag: 'writings', reference: WritingsReference.publication(12) },
   { _tag: 'writings', reference: WritingsReference.page(12, 42) },
   { _tag: 'writings', reference: WritingsReference.paragraph(12, 'p 1/2') },
-  { _tag: 'search', query: 'living water', scope: 'bible', books: [19, 43] },
+  {
+    _tag: 'search',
+    query: 'living water',
+    scope: 'bible',
+    books: [19, 43],
+    corpus: Option.none(),
+    bookCode: Option.none(),
+  },
+  // §10's shared query/scope/book URL state: the two §9 narrowings round-trip
+  // so one hybrid search is one link on web and on desktop.
+  {
+    _tag: 'search',
+    query: 'the close of probation',
+    scope: 'writings',
+    books: [],
+    corpus: Option.some('pioneer'),
+    bookCode: Option.some('DAR'),
+  },
   { _tag: 'topics', topicId: 'new earth' },
   { _tag: 'wiki', slug: topicSlug('sanctuary') },
   // A slug that needs escaping, so the encode/decode pair is exercised on the
@@ -47,6 +64,46 @@ describe('route codec', () => {
     expect(decodeRoute('/wiki')).toEqual(Option.none());
     expect(decodeRoute('/wiki/')).toEqual(Option.none());
     expect(decodeRoute('/wiki/a/b')).toEqual(Option.none());
+  });
+
+  /** Round-2 F16: an empty `book=` is absent, and stays absent through a
+   *  re-encode.
+   *
+   *  The route model used to admit `Option.some('')`, which the encoder wrote
+   *  as a bare `book=` and the decoder read back as `None` — a URL that could
+   *  be built and then not come back to itself. The model now carries the
+   *  branded `WritingsBookCode`, so the empty code cannot be constructed; what
+   *  remains testable is the other direction, a hand-written or truncated link
+   *  arriving with `book=` set to nothing. It must decode to `None` and
+   *  re-encode without the parameter, rather than round-tripping an empty
+   *  filter that narrows the search to no book at all. */
+  test('an empty book parameter decodes to absent and does not survive a re-encode', () => {
+    const decoded = decodeRoute('/search?q=probation&scope=writings&book=');
+    expect(Option.isSome(decoded)).toBe(true);
+    if (Option.isNone(decoded)) return;
+    const route = decoded.value;
+    expect(route._tag).toBe('search');
+    if (route._tag !== 'search') return;
+    expect(route.bookCode).toEqual(Option.none());
+    // The canonical link carries no `book` at all, so a truncated URL
+    // normalizes to the search it actually describes.
+    const encoded = encodeRoute(route);
+    expect(encoded).not.toContain('book=');
+    expect(new URL(encoded, 'https://x').searchParams.has('book')).toBe(false);
+    // And it is stable: the normalized link decodes to the same value.
+    expect(decodeRoute(encoded)).toEqual(Option.some(route));
+  });
+
+  /** The same rule for `corpus=`, which shares the decoder's filter path: an
+   *  unrecognized or empty value is absent rather than a failed route. */
+  test('an empty corpus parameter decodes to absent and does not survive a re-encode', () => {
+    const decoded = decodeRoute('/search?q=probation&scope=writings&corpus=');
+    expect(Option.isSome(decoded)).toBe(true);
+    if (Option.isNone(decoded)) return;
+    const route = decoded.value;
+    if (route._tag !== 'search') return;
+    expect(route.corpus).toEqual(Option.none());
+    expect(encodeRoute(route)).not.toContain('corpus=');
   });
 });
 
@@ -119,7 +176,14 @@ test('navigation pushes intent and replaces refinements', () => {
     replace: (path) => writes.push(`replace:${path}`),
     subscribe: () => () => {},
   };
-  const route = { _tag: 'search', query: 'faith', scope: 'all', books: [] } as const;
+  const route = {
+    _tag: 'search',
+    query: 'faith',
+    scope: 'all',
+    books: [],
+    corpus: Option.none(),
+    bookCode: Option.none(),
+  } as const;
   navigate(history, route);
   navigate(history, route, 'refinement');
   expect(writes).toEqual(['push:/search?q=faith', 'replace:/search?q=faith']);

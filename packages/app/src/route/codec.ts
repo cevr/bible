@@ -1,6 +1,10 @@
 import { Reference as BibleReference } from '@bible/core/bible';
 import { TopicSlug } from '@bible/core/wiki';
-import { Reference as WritingsReference } from '@bible/core/writings';
+import {
+  Reference as WritingsReference,
+  WritingsBookCode,
+  type CorpusScope,
+} from '@bible/core/writings';
 import { Option, Schema } from 'effect';
 
 import type { AppRoute, SearchScope, SettingsSection } from './model.js';
@@ -64,6 +68,11 @@ export const encodeRoute = (route: AppRoute): string => {
       if (route.scope !== 'all') params.set('scope', route.scope);
       const books = normalizeBooks(route.books);
       if (books.length > 0) params.set('books', books.join(','));
+      // Both §9 narrowings are omitted when absent, the way `scope: 'all'` and
+      // an empty `books` are: a bare `/search?q=…` is the default query, and a
+      // default spelled in the URL is a default that can drift from core's.
+      if (Option.isSome(route.corpus)) params.set('corpus', route.corpus.value);
+      if (Option.isSome(route.bookCode)) params.set('book', route.bookCode.value);
       const query = params.toString();
       if (query.length > 0) return `/search?${query}`;
       return '/search';
@@ -151,7 +160,19 @@ const decodeParsedRoute = (url: URL): Option.Option<AppRoute> => {
         .map((book) => Number.parseInt(book, 10)),
     );
     const query = Option.getOrElse(Option.fromNullishOr(url.searchParams.get('q')), () => '');
-    return Option.some({ _tag: 'search', query, scope, books });
+    // An unrecognized corpus decodes to absent rather than to a failed route: a
+    // link written against a later vocabulary should still open the search, and
+    // core applies `SEARCH_DEFAULT_SCOPE` for whatever this does not pin.
+    const corpus = Option.filter(
+      Option.fromNullishOr(url.searchParams.get('corpus')),
+      (value): value is CorpusScope => value === 'egw' || value === 'pioneer' || value === 'all',
+    );
+    // Decoded through the shared schema rather than an inline length check, so
+    // the route and `SearchQuery` cannot disagree about which codes are legal.
+    const bookCode = Option.flatMap(Option.fromNullishOr(url.searchParams.get('book')), (value) =>
+      Schema.decodeOption(WritingsBookCode)(value),
+    );
+    return Option.some({ _tag: 'search', query, scope, books, corpus, bookCode });
   }
 
   if (root === 'topics' && segments.length <= 2) {

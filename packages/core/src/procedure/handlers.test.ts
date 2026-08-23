@@ -28,6 +28,8 @@ import {
   malformedStudyProcedureDependencies,
 } from '../study/testing.js';
 import { WikiSectionSources } from '../wiki/section-composer.js';
+import { SearchCorpusSources, SearchService } from '../search/service.js';
+import { VectorIndexBytes } from '../search/vector-artifact.js';
 import { LookupService } from '../wiki/lookup-service.js';
 import { WikiService } from '../wiki/service.js';
 import { topicSlug, WikiPassageRef, WikiVerseRef } from '../wiki/model.js';
@@ -128,6 +130,31 @@ const Dependencies = Layer.mergeAll(
         ),
       ),
     ),
+  ),
+  // Hybrid search (§9), over the same absent artifact and no vector index: the
+  // result resolves through the real service rather than a stub, so
+  // `v1.search.query` exercises the seam it will in production and carries
+  // §9.6's typed absence.
+  SearchService.Live.pipe(
+    Layer.provide(
+      Layer.unwrap(
+        Effect.gen(function* () {
+          return SearchCorpusSources.wired({
+            paragraphs: yield* EGWParagraphDatabase,
+            wiki: yield* WikiService,
+          });
+        }),
+      ).pipe(
+        Layer.provide(EGWParagraphDatabase.Test({ books: [], paragraphs: [] })),
+        Layer.provide(
+          WikiService.Absent.pipe(
+            Layer.provide(TopicService.Test([resurrectionTopic])),
+            Layer.provide(WikiSectionSources.NotWired),
+          ),
+        ),
+      ),
+    ),
+    Layer.provide(VectorIndexBytes.None),
   ),
   // Select-to-lookup (§7), over the same absent artifact and the same catalog:
   // the five groups resolve through the real service rather than a stub, so

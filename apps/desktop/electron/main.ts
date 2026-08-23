@@ -15,7 +15,12 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { DesktopProcedurePortMessage } from '../shared/procedure-channel.js';
-import { layerNativeBibleArtifacts, layerNativeTopicsArtifacts } from './bible-corpus-file.js';
+import { vectorsReleaseSource } from '@bible/core/search';
+import {
+  layerNativeBibleArtifacts,
+  layerNativeTopicsArtifacts,
+  layerNativeVectorsArtifacts,
+} from './bible-corpus-file.js';
 import {
   layerDesktopProcedureServer,
   type DesktopProcedureServerPort,
@@ -77,6 +82,9 @@ const cliStateDbPath = (): string =>
   );
 const bibleDbPath = () => path.join(app.getPath('userData'), 'bible.db');
 const topicsDbPath = () => path.join(app.getPath('userData'), 'topics.db');
+/** §9.2's optional flat vector index, beside the other corpora in `userData`.
+ *  Absent until the artifact ships; search reports §9.6's typed absence. */
+const vectorIndexPath = () => path.join(app.getPath('userData'), 'vectors.bvi');
 
 ipcMain.handle('bible:file-select', async () => {
   const selected = await dialog.showOpenDialog({
@@ -223,8 +231,34 @@ void app.whenReady().then(async () => {
       ...topicsReleaseSource(),
     ],
   });
+  // §9.2's index, through the same File Corpus lifecycle: stream to
+  // `vectors.bvi.building`, verify the digest *and* that the shipped parser
+  // accepts it, then rename over `userData/vectors.bvi`. Reading the file
+  // directly would let a truncated or foreign-fingerprint index reach the
+  // search layer, which is the state `Target.vectors()` exists to prevent.
+  const vectorsArtifacts = layerNativeVectorsArtifacts({
+    destination: vectorIndexPath(),
+    sources: [
+      {
+        kind: 'packaged',
+        path: path.join(process.resourcesPath, 'data', 'vectors.bvi'),
+        label: 'packaged',
+      },
+      {
+        kind: 'workspace',
+        path: path.resolve(process.cwd(), '..', '..', 'packages', 'scripts', 'out', 'vectors.bvi'),
+        label: 'workspace',
+      },
+      {
+        kind: 'runtime',
+        path: path.join(app.getPath('home'), '.bible', 'vectors.bvi'),
+        label: 'runtime',
+      },
+      ...vectorsReleaseSource(),
+    ],
+  });
   const corpusSupply = CorpusSupply.layer.pipe(
-    Layer.provide(Layer.merge(bibleArtifacts, topicsArtifacts)),
+    Layer.provide(Layer.mergeAll(bibleArtifacts, topicsArtifacts, vectorsArtifacts)),
   );
   const provisionedCorpus = await Effect.runPromise(
     Effect.gen(function* () {
@@ -252,6 +286,32 @@ void app.whenReady().then(async () => {
   );
   console.info(
     `[main] topics-corpus-ready state=${Option.match(topicsActivation, {
+      onNone: () => 'absent',
+      onSome: () => 'activated',
+    })}`,
+  );
+  // Writings-style catch-and-warn (§3.5), exactly as topics above: the index is
+  // optional, and a host without one searches lexically rather than failing to
+  // start.
+  const vectorsActivation = await Effect.runPromise(
+    Effect.gen(function* () {
+      const supply = yield* CorpusSupply;
+      const receipt = yield* supply.ensure({ target: Target.vectors() });
+      return Option.fromUndefinedOr(
+        receipt.activated.find((activation) => activation.corpus === 'vectors'),
+      );
+    }).pipe(
+      Effect.provide(corpusSupply),
+      Effect.catch((cause) =>
+        Effect.sync(() => {
+          console.warn(`[main] vectors-corpus-unavailable category=${failureCategory(cause)}`);
+          return Option.none<CorpusActivation>();
+        }),
+      ),
+    ),
+  );
+  console.info(
+    `[main] vectors-corpus-ready state=${Option.match(vectorsActivation, {
       onNone: () => 'absent',
       onSome: () => 'activated',
     })}`,
@@ -293,6 +353,13 @@ void app.whenReady().then(async () => {
       bibleDbFile: bibleDbPath(),
       topicsDbFile: topicsDbPath(),
       userStateDbFile: userState.filename,
+      // Only the generation CorpusSupply verified and activated. An absent
+      // activation means no index reaches search at all, so a file that failed
+      // the parser gate cannot be picked up off disk behind its back.
+      vectorIndexFile: Option.match(vectorsActivation, {
+        onNone: () => Option.none<string>(),
+        onSome: () => Option.some(vectorIndexPath()),
+      }),
     },
     {
       randomUuid: () => crypto.randomUUID(),

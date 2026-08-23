@@ -1,6 +1,13 @@
 import type { ChapterReference, VerseReference } from '@bible/core/bible';
 import type { TopicSlug } from '@bible/core/wiki';
-import type { PageReference, ParagraphReference, PublicationReference } from '@bible/core/writings';
+import type {
+  CorpusScope,
+  PageReference,
+  ParagraphReference,
+  PublicationReference,
+  WritingsBookCode,
+} from '@bible/core/writings';
+import type { Option } from 'effect';
 
 export type BibleReadingReference = ChapterReference | VerseReference;
 export type WritingsReadingReference = PublicationReference | PageReference | ParagraphReference;
@@ -17,6 +24,20 @@ export type AppRoute =
       readonly query: string;
       readonly scope: SearchScope;
       readonly books: readonly number[];
+      /** §9.1's corpus scope, which narrows the *writings* partition rather
+       *  than choosing between corpora — a different axis from `scope`, which
+       *  picks Bible or writings in the first place. Absent means core's
+       *  `SEARCH_DEFAULT_SCOPE`; the default is not restated here, so the two
+       *  cannot drift.
+       *
+       *  §10 asks the query, scope and book narrowings to be *shared URL
+       *  state*, so that a hybrid search on web and on desktop is the same
+       *  link. That is what these two fields are for. */
+      readonly corpus: Option.Option<CorpusScope>;
+      /** §9's writings book code (`GC`, `DA`), not a Bible book number — the
+       *  `books` field above is the Bible-side narrowing and they name
+       *  different corpora's identifiers. */
+      readonly bookCode: Option.Option<WritingsBookCode>;
     }
   | { readonly _tag: 'topics'; readonly topicId?: string }
   /** One wiki topic page (§5, §6.1). Distinct from `topics`, which is the older

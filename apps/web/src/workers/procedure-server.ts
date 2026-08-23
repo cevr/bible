@@ -13,8 +13,10 @@ import { WritingsService } from '@bible/core/writings/service';
 import { TopicService } from '@bible/core/topics';
 import { EGWCommentaryService } from '@bible/core/egw-commentary';
 import { StudyService } from '@bible/core/study';
+import { SearchCorpusSources, SearchService, VectorIndexBytes } from '@bible/core/search';
+import { layerBrowserEmbedder } from '@bible/core/search/browser';
 import { LookupService, WikiService, WikiSectionSources } from '@bible/core/wiki';
-import { Layer, Option } from 'effect';
+import { Effect, Layer, Option } from 'effect';
 import * as RpcServer from 'effect/unstable/rpc/RpcServer';
 
 import type { SqliteDatabase } from './sqlite-database.js';
@@ -30,6 +32,10 @@ export interface ProcedureServerInput {
    *  than fails on. */
   readonly topicsDatabase: Option.Option<SqliteDatabase>;
   readonly writingsFetch: (url: string) => Promise<Response>;
+  /** `None` when no vector index is installed — the §9.6 steady state on every
+   *  browser that has not fetched the optional artifact. Hybrid search degrades
+   *  to lexical-only around it and says so on the result, rather than failing. */
+  readonly vectorIndex: Option.Option<ArrayBuffer>;
   readonly runtime: LocalProcedureRuntimeOptions;
 }
 
@@ -92,6 +98,31 @@ export const layerProcedureServer = (input: ProcedureServerInput) => {
   // so a worker that can compose a topic page can resolve a selection with no
   // second wiring to keep in step.
   const lookup = LookupService.Live.pipe(Layer.provide(wiki), Layer.provide(sectionSources));
+  // Hybrid search (§9), over the two corpora it reads: `paragraphs_fts` for the
+  // lexical leg, the wiki for the pinned topics group. Both are already open in
+  // this worker, so search adds a service rather than a second set of handles.
+  const searchSources = Layer.effect(
+    SearchCorpusSources,
+    Effect.gen(function* () {
+      return {
+        _tag: 'wired' as const,
+        sources: { paragraphs: yield* EGWParagraphDatabase, wiki: yield* WikiService },
+      };
+    }),
+  ).pipe(Layer.provide(writingsDatabase), Layer.provide(wiki));
+  const search = SearchService.Live.pipe(
+    Layer.provide(searchSources),
+    Layer.provide(
+      Option.match(input.vectorIndex, {
+        onNone: () => VectorIndexBytes.None,
+        onSome: (bytes) => VectorIndexBytes.layerOf(bytes),
+      }),
+    ),
+    // The WebGPU adapter. §9.5 rules the WASM fallback out as a query path, so a
+    // browser without WebGPU declines here and the result carries §9.6's
+    // `embedder` absence — lexical-only, typed, never a crash.
+    Layer.provide(layerBrowserEmbedder),
+  );
   const dependencies = Layer.mergeAll(
     bible,
     writings,
@@ -99,6 +130,7 @@ export const layerProcedureServer = (input: ProcedureServerInput) => {
     wiki,
     lookup,
     study,
+    search,
     writingsLibrary,
     layerLocalProcedureRuntime(input.runtime),
   );

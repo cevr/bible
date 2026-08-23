@@ -37,10 +37,12 @@ import type {
 import type { LibraryMutationCommand } from '@bible/core/local-first';
 import type { MutationCommitValue } from '@bible/core/procedure';
 import type { ReadingPreferences, ReadingPreferencesPatch } from '@bible/core/reading-preferences';
+import type { SearchResult } from '@bible/core/search';
 import type { StrongsNumber, StrongsStudy, VerseStudy } from '@bible/core/study';
 import type { TopicDetail, TopicId, TopicListInput, TopicSummary } from '@bible/core/topics';
 import type { LookupResult, TopicSlug, PhraseDictionary, WikiPage } from '@bible/core/wiki';
 import type {
+  CorpusScope,
   Page,
   PageNumber,
   Paragraph,
@@ -367,6 +369,41 @@ export const useLookup = (
       return ReadingRpc.query(
         'v1.wiki.lookup.resolve',
         { text: selection.text, context: Option.getOrUndefined(selection.context) },
+        options,
+      );
+    }),
+  );
+
+/** §9's hybrid search over the writings, as one read.
+ *
+ * Keyed on `WRITINGS_LIBRARY_KEY` for the reason `useLookup` is: installing a
+ * book changes what search can answer, and the download mutation already
+ * invalidates that key. An unkeyed read would keep serving results from a
+ * library the reader has since added to.
+ *
+ * The three narrowings travel as one value read once. Read separately, a scope
+ * from the gesture the reader just made could pair with a book code from the one
+ * before it — a query nobody asked for. `Option.getOrUndefined` is the wire's
+ * own spelling of an absent optional field, which is how
+ * `SearchQueryProcedure` declares all three.
+ */
+export const useSearch = (
+  input: Accessor<{
+    readonly text: string;
+    readonly scope: Option.Option<CorpusScope>;
+    readonly bookCode: Option.Option<string>;
+  }>,
+): Accessor<SearchResult> =>
+  useAtomSuspense(() =>
+    keyedQuery([WRITINGS_LIBRARY_KEY], (options) => {
+      const request = input();
+      return ReadingRpc.query(
+        'v1.search.query',
+        {
+          text: request.text,
+          scope: Option.getOrUndefined(request.scope),
+          bookCode: Option.getOrUndefined(request.bookCode),
+        },
         options,
       );
     }),
