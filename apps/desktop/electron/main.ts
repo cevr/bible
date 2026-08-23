@@ -296,16 +296,20 @@ void app.whenReady().then(async () => {
   const vectorsActivation = await Effect.runPromise(
     Effect.gen(function* () {
       const supply = yield* CorpusSupply;
-      const receipt = yield* supply.ensure({ target: Target.vectors() });
-      return Option.fromUndefinedOr(
-        receipt.activated.find((activation) => activation.corpus === 'vectors'),
-      );
+      yield* supply.ensure({ target: Target.vectors() });
+      // The **file the pipeline activated**, not the destination this host
+      // configured. §9.2's index is a flat artifact, so its activation is one
+      // atomic pointer over a versioned filename (round-4 B2) — reading the
+      // configured path would read whatever happens to sit there, including a
+      // half-written or retired generation. `None` is the ordinary state until
+      // an index is published, and search degrades around it.
+      return yield* supply.activeFile('vectors');
     }).pipe(
       Effect.provide(corpusSupply),
       Effect.catch((cause) =>
         Effect.sync(() => {
           console.warn(`[main] vectors-corpus-unavailable category=${failureCategory(cause)}`);
-          return Option.none<CorpusActivation>();
+          return Option.none<string>();
         }),
       ),
     ),
@@ -356,10 +360,10 @@ void app.whenReady().then(async () => {
       // Only the generation CorpusSupply verified and activated. An absent
       // activation means no index reaches search at all, so a file that failed
       // the parser gate cannot be picked up off disk behind its back.
-      vectorIndexFile: Option.match(vectorsActivation, {
-        onNone: () => Option.none<string>(),
-        onSome: () => Option.some(vectorIndexPath()),
-      }),
+      vectorIndexFile: vectorsActivation,
+      // The very supply that just bootstrapped this launch, so §3.6's update
+      // installs through the installer that verified what is running.
+      corpusSupply,
     },
     {
       randomUuid: () => crypto.randomUUID(),

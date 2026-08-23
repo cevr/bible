@@ -143,6 +143,15 @@ describe('EGW corpus sync', () => {
               }),
             );
           },
+          // Writings sync never asks what File Corpus generation is active —
+          // it drives `ensure` per publication. A stub that answered would be
+          // inventing a fact this suite does not have; one that dies makes a
+          // reader of it fail here rather than pass against a fiction.
+          installed: () => Effect.die('egw sync does not read the installed file corpus'),
+          activeFile: () => Effect.die('egw sync does not read a file corpus path'),
+          // Nor does it install from a runtime manifest entry — that is §3.6's
+          // path, and writings sync predates it. Dying for the same reason.
+          installFrom: () => Effect.die('egw sync does not install from a content manifest'),
         }),
       );
       const layer = Layer.mergeAll(

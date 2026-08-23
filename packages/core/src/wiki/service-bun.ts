@@ -12,7 +12,9 @@ import {
   immutableFilename,
   layerArtifact,
   layerArtifactOrAbsent,
+  layerReloadableArtifact,
   type ArtifactSqlClientLayer,
+  type ReloadableArtifact,
 } from './service-artifact.js';
 import { LookupService } from './lookup-service.js';
 import { WikiSectionSources } from './section-composer.js';
@@ -44,6 +46,22 @@ export const layerBunOrAbsent = (
   filename: string,
 ): Layer.Layer<WikiService, never, FileSystem.FileSystem | TopicService | WikiSectionSources> =>
   layerArtifactOrAbsent(bunArtifactDriver, filename);
+
+/** The same wiki, plus the handle that reopens it after §3.6 installs a new
+ *  artifact (round-3 F3).
+ *
+ *  Not what the CLI wants — a command's next read is a new process, so
+ *  `layerBunOrAbsent` is the honest composition there. This is for a *long-lived*
+ *  Bun host, and for the suites that prove the reopen over a real driver: the
+ *  `immutable=1` connection above holds an inode, so the atomic rename an
+ *  install ends with is invisible without it. */
+export const layerBunReloadable = (
+  filename: string,
+): Layer.Layer<
+  WikiService | ReloadableArtifact,
+  never,
+  FileSystem.FileSystem | TopicService | WikiSectionSources
+> => layerReloadableArtifact(bunArtifactDriver, filename);
 
 /** The four §6 section sources, from the two corpora on disk.
  *

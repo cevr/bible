@@ -1,7 +1,17 @@
 import * as BrowserWorkerRunner from '@effect/platform-browser/BrowserWorkerRunner';
 import { BibleDatabase } from '@bible/core/bible-db';
 import { BibleService } from '@bible/core/bible/service';
-import { CorpusSupply, layerWritingsLibraryRuntime } from '@bible/core/corpus-supply';
+import {
+  CONTENT_MANIFEST_PROXY_PATH,
+  ContentUpdate,
+  layerHttpContentManifestAt,
+} from '@bible/core/content-update';
+import {
+  CorpusSupply,
+  layerWritingsLibraryRuntime,
+  type TopicsArtifactInstaller,
+  type TopicsArtifactRecipe,
+} from '@bible/core/corpus-supply';
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
 import {
   BibleProcedureGroup,
@@ -15,8 +25,15 @@ import { EGWCommentaryService } from '@bible/core/egw-commentary';
 import { StudyService } from '@bible/core/study';
 import { SearchCorpusSources, SearchService, VectorIndexBytes } from '@bible/core/search';
 import { layerBrowserEmbedder } from '@bible/core/search/browser';
-import { LookupService, WikiService, WikiSectionSources } from '@bible/core/wiki';
+import {
+  layerReloadableWiki,
+  layerReloadOnActivation,
+  LookupService,
+  WikiService,
+  WikiSectionSources,
+} from '@bible/core/wiki';
 import { Effect, Layer, Option } from 'effect';
+import { FetchHttpClient } from 'effect/unstable/http';
 import * as RpcServer from 'effect/unstable/rpc/RpcServer';
 
 import type { SqliteDatabase } from './sqlite-database.js';
@@ -27,15 +44,33 @@ export interface ProcedureServerInput {
   readonly port: MessagePort;
   readonly bibleDatabase: SqliteDatabase;
   readonly writingsDatabase: SqliteDatabase;
-  /** `None` when no topics artifact is installed — the §3.5 steady state until
-   *  the first content release, and a state the wiki degrades around rather
-   *  than fails on. */
-  readonly topicsDatabase: Option.Option<SqliteDatabase>;
+  /** The topics artifact's active generation, **read on every wiki rebuild**
+   *  rather than captured once.
+   *
+   *  `None` when none is installed — the §3.5 steady state until the first
+   *  content release, and a state the wiki degrades around rather than fails
+   *  on. A thunk because that answer changes: §3.6 can install the first
+   *  artifact into a running worker, and a worker that had snapshotted `None`
+   *  at startup went on serving catalog-only pages until the tab was reloaded
+   *  (round-3 F3, the browser's dialect of it). */
+  readonly topicsDatabase: () => Option.Option<SqliteDatabase>;
   readonly writingsFetch: (url: string) => Promise<Response>;
   /** `None` when no vector index is installed — the §9.6 steady state on every
    *  browser that has not fetched the optional artifact. Hybrid search degrades
    *  to lexical-only around it and says so on the result, rather than failing. */
   readonly vectorIndex: Option.Option<ArrayBuffer>;
+  /** The topics File Corpus this worker's storage owns — recipe and installer,
+   *  over its OPFS generations and its IndexedDB registry.
+   *
+   *  §3.6's install runs through `CorpusSupply.installFrom`, which dispatches
+   *  on the corpus name to the artifact registered under it. The supply built
+   *  here was wired with the writings source alone, so `topics` was registered
+   *  nowhere in it: accepting an offer resolved successfully, reported an
+   *  activation, and installed nothing (round-4 F1). The layer is passed in
+   *  rather than built here because the store it wraps — the OPFS families and
+   *  the registry — is created once at worker startup and is also what the
+   *  reader reads through; two of them would be two active generations. */
+  readonly topicsArtifacts: Layer.Layer<TopicsArtifactInstaller | TopicsArtifactRecipe>;
   readonly runtime: LocalProcedureRuntimeOptions;
 }
 
@@ -49,9 +84,16 @@ export const layerProcedureServer = (input: ProcedureServerInput) => {
   const bible = BibleService.Live.pipe(Layer.provide(bibleDatabase));
   const writings = WritingsService.Live.pipe(Layer.provide(writingsDatabase));
   const writingsSource = layerHttpWritingsAssetSource(input.writingsFetch);
+  // Both corpora this worker can install into: writings, whose source is an
+  // HTTP asset, and topics, whose artifact §3.6 replaces at runtime. One supply
+  // rather than two, because `installFrom` resolves the corpus through the
+  // registry a supply was built with — a second supply would be a second
+  // registry, and the one the update reached would not be the one the reader
+  // reads from.
   const corpusSupply = CorpusSupply.layer.pipe(
     Layer.provide(writingsSource),
     Layer.provide(writingsDatabase),
+    Layer.provide(input.topicsArtifacts),
   );
   const writingsLibrary = layerWritingsLibraryRuntime.pipe(
     Layer.provide(writingsSource),
@@ -82,10 +124,12 @@ export const layerProcedureServer = (input: ProcedureServerInput) => {
   // Same `WikiService` the CLI resolves, over the worker's own SQL client: an
   // installed artifact reads through `Live`, an absent one degrades to
   // catalog-only pages through `Absent`. Both compose the identical lineup.
-  const wiki = Option.match(input.topicsDatabase, {
-    onNone: () => WikiService.Absent,
-    onSome: (database) => WikiService.Live.pipe(Layer.provide(layerWorkerSqlClient(database))),
-  }).pipe(Layer.provide(topics), Layer.provide(sectionSources));
+  const wiki = layerReloadableWiki(() =>
+    Option.match(input.topicsDatabase(), {
+      onNone: () => WikiService.Absent,
+      onSome: (database) => WikiService.Live.pipe(Layer.provide(layerWorkerSqlClient(database))),
+    }),
+  ).pipe(Layer.provide(topics), Layer.provide(sectionSources));
   // The study seam (§8.1), over the same two worker databases. Composed inside
   // the worker exactly as the wiki page is, so `v1.study.verse.get` costs one
   // MessagePort round trip however many queries its five sections take.
@@ -123,6 +167,20 @@ export const layerProcedureServer = (input: ProcedureServerInput) => {
     // `embedder` absence — lexical-only, typed, never a crash.
     Layer.provide(layerBrowserEmbedder),
   );
+  // §3.6 in the browser: the same portable policy the CLI and Electron main
+  // run, pointed at the server's same-origin proxy instead of the release host
+  // — a worker cannot reach GitHub directly (no CORS), and the proxy route is
+  // the identical shape the three artifact proxies already use. Only the
+  // address differs; the decision is `decideUpdate`'s on every host.
+  const content = ContentUpdate.Live.pipe(
+    Layer.provide(corpusSupply),
+    Layer.provide(layerHttpContentManifestAt(CONTENT_MANIFEST_PROXY_PATH)),
+    Layer.provide(FetchHttpClient.layer),
+    // The same join Electron main makes, over the same two tags: an activation
+    // rebuilds the wiki, so a first install reaches this tab's reader without a
+    // page reload.
+    Layer.provide(layerReloadOnActivation.pipe(Layer.provide(wiki))),
+  );
   const dependencies = Layer.mergeAll(
     bible,
     writings,
@@ -131,6 +189,7 @@ export const layerProcedureServer = (input: ProcedureServerInput) => {
     lookup,
     study,
     search,
+    content,
     writingsLibrary,
     layerLocalProcedureRuntime(input.runtime),
   );

@@ -44,6 +44,8 @@ describe('BibleProcedureGroup', () => {
         'v1.search.query',
         'v1.study.verse.get',
         'v1.study.strongs.get',
+        'v1.content.status',
+        'v1.content.update',
       ]);
     }),
   );

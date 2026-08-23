@@ -33,6 +33,8 @@
     "./writings": "./src/writings/index.ts",
     "./writings/service": "./src/writings/service.ts",
     "./writings/archive-service": "./src/writings/archive-service.ts",
+    "./content-update": "./src/content-update/index.ts",
+    "./content-update/testing": "./src/content-update/testing.ts",
     "./corpus-supply": "./src/corpus-supply/index.ts",
     "./corpus-supply/node": "./src/platform-node/bible-artifact.ts",
     "./bible-rendering": "./src/bible-rendering/index.ts",

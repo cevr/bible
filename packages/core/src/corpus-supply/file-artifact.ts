@@ -1,8 +1,13 @@
 import { Context, Effect, Layer, Option, Schema, SchemaTransformation } from 'effect';
 import type { Stream } from 'effect';
 
-import type { CorpusInstallationError, CorpusSourceUnavailableError } from './errors.js';
-import type { CorpusFileName, CorpusProvenance } from './model.js';
+import { CorpusInstallationError, type CorpusSourceUnavailableError } from './errors.js';
+import {
+  registeredCorpusName,
+  type CorpusFileName,
+  type CorpusGeneration,
+  type CorpusProvenance,
+} from './model.js';
 import { makeCorpusStorageIdentity, type CorpusStorageIdentity } from './storage-identity.js';
 
 /** Where one candidate File Corpus Artifact came from, in the order a Recipe
@@ -40,18 +45,42 @@ export const BIBLE_ARTIFACT_RELEASE: FileArtifactRelease = {
  *  the pin through `topicsReleaseSource`. */
 export const TOPICS_ARTIFACT_RELEASE: Option.Option<FileArtifactRelease> = Option.none();
 
+/** The release ordinal the compiled Topics pin was published under — §3.6's
+ *  offline floor, as the number a manifest entry is compared against.
+ *
+ *  `None` alongside `TOPICS_ARTIFACT_RELEASE` being `None`: a build with no pin
+ *  has no floor ordinal, so every published generation is above nothing and the
+ *  first runtime release is installable on a fresh machine. Filled in with the
+ *  release itself on first publish, which is the same one edit.
+ *
+ *  It lives beside the pin rather than inside it because `FileArtifactRelease`
+ *  is the shape both installers already consume, and a generation is a fact
+ *  about the *update policy* rather than about the bytes — the installer does
+ *  not order releases, it verifies one. */
+export const TOPICS_ARTIFACT_GENERATION: Option.Option<CorpusGeneration> = Option.none();
+
 /** The pinned Topics release as a source list: empty while no release exists,
  *  one entry once `TOPICS_ARTIFACT_RELEASE` is filled in. Every host spreads
  *  this after its local sources, so publishing the first content version wires
  *  the release leg into all three hosts without touching any of them. */
 export interface ReleaseSourceDeclaration extends FileArtifactRelease {
   readonly kind: 'release';
+  /** The release ordinal this pin was published under (§3.6), when the build
+   *  states one.
+   *
+   *  Carried on the *declaration* rather than left to the installer because
+   *  this is the fact startup's install decision turns on: a host holding
+   *  runtime generation 4 must not be re-floored by a compiled pin at
+   *  generation 3, and the only way `ensure` can know that is for the pin to
+   *  say which generation its bytes are (round-4 F2). `None` on a local source
+   *  — a packaged copy is not a published content version. */
+  readonly generation: Option.Option<CorpusGeneration>;
 }
 
 export const topicsReleaseSource = (): readonly ReleaseSourceDeclaration[] =>
   Option.match(TOPICS_ARTIFACT_RELEASE, {
     onNone: (): readonly ReleaseSourceDeclaration[] => [],
-    onSome: (release) => [{ kind: 'release', ...release }],
+    onSome: (release) => [{ kind: 'release', ...release, generation: TOPICS_ARTIFACT_GENERATION }],
   });
 
 export interface FileArtifact {
@@ -76,8 +105,43 @@ const sourcePriority = {
   release: 3,
 } satisfies Readonly<Record<FileArtifactSourceKind, number>>;
 
+/** One content version a host may be asked to install *at runtime*, named by a
+ *  manifest entry rather than by a compiled pin (§3.6).
+ *
+ *  The same four facts a `FileArtifactRelease` carries, because they are the
+ *  same four facts: url, revision, digest, size. A separate type only to say
+ *  where the value came from — a pin is compiled into this build, a
+ *  `RuntimeArtifactRelease` arrived over the network — which is the distinction
+ *  `installFrom` exists to keep honest. */
+export interface RuntimeArtifactRelease extends FileArtifactRelease {
+  /** §3.6's release ordinal for these bytes, as the manifest stated it.
+   *
+   *  Required, unlike the pin's, because a runtime release *is* a published
+   *  content version by definition — it came out of a manifest that numbers
+   *  one release per version. Carrying it on the release rather than beside it
+   *  is what lets one `releaseSource` builder serve both legs: the pinned and
+   *  the runtime candidate reach the installer with the ordinal already on
+   *  their provenance, rather than the runtime one having it re-attached
+   *  afterwards by a caller who has to remember to (round-4 F2). */
+  readonly generation: Option.Option<CorpusGeneration>;
+}
+
 export interface FileArtifactRecipeService {
   readonly sources: readonly FileArtifactSourceService[];
+  /** One Asset Source over a release this host was *handed*, built the same way
+   *  this host builds its pinned release source.
+   *
+   *  §3.6's runtime path needs it: a manifest entry names bytes no compiled
+   *  source list mentions, so a host that could only consult `sources` could
+   *  never install the version it just offered — `ensure` would re-consult the
+   *  same pinned sources and reinstall what is already there (round-3 F1).
+   *
+   *  `None` on a host that cannot fetch a release at all, which is how "this
+   *  host has no runtime install path" is written down rather than left to a
+   *  source list that happens to be empty. */
+  readonly releaseSource: Option.Option<
+    (release: RuntimeArtifactRelease) => FileArtifactSourceService
+  >;
 }
 
 export interface FileArtifactInstallerService {
@@ -88,6 +152,19 @@ export interface FileArtifactInstallerService {
     { readonly installed: number; readonly provenance: CorpusProvenance },
     CorpusInstallationError
   >;
+  /** Where the *host* reads the generation this installer activated.
+   *
+   *  `None` when nothing is activated, which is exactly `current` being `None`.
+   *
+   *  It exists because activation is not always a rename over one canonical
+   *  path. A flat artifact has no `meta` table, so its provenance lives in a
+   *  sidecar — and renaming an artifact and its sidecar is two operations with a
+   *  window between them, in which the host had the *new* bytes described by
+   *  the *old* provenance, or the reverse (round-4 B2). The browser already
+   *  solved this with versioned generation files and one atomic registry
+   *  pointer; this is the same shape natively, and the address the pointer names
+   *  is what a host must open rather than a path it assumed. */
+  readonly activeFile: Effect.Effect<Option.Option<string>, CorpusInstallationError>;
 }
 
 /** The Recipe key of one File Corpus: the ordered Asset Sources a host offers
@@ -125,8 +202,27 @@ export interface FileCorpusArtifact<Corpus extends string, RecipeId, InstallerId
   readonly wired: Effect.Effect<Option.Option<WiredFileCorpus>>;
   readonly Recipe: Context.Service<RecipeId, FileArtifactRecipeService>;
   readonly Installer: Context.Service<InstallerId, FileArtifactInstallerService>;
-  readonly layerRecipe: (sources: readonly FileArtifactSourceService[]) => Layer.Layer<RecipeId>;
+  readonly layerRecipe: (recipe: {
+    readonly sources: readonly FileArtifactSourceService[];
+    /** How this host builds an Asset Source over a release it was handed.
+     *  Omitted by a host with no runtime install path — a test recipe, or the
+     *  browser before its proxy route exists — and `None` is what the supply
+     *  pipeline then reports rather than silently installing something else. */
+    readonly releaseSource?: (release: RuntimeArtifactRelease) => FileArtifactSourceService;
+  }) => Layer.Layer<RecipeId>;
   readonly layerInstaller: (installer: FileArtifactInstallerService) => Layer.Layer<InstallerId>;
+  /** This corpus, declared present but holding nothing.
+   *
+   *  A host that wires no artifact at all leaves both tags unprovided, and
+   *  `wired` answers `None` — which is the right answer for a host that does
+   *  not have this corpus. But a *seam* that requires the tags (the web
+   *  worker's `ProcedureServerInput`, so §3.6's install can reach the reader's
+   *  own store) needs something to hand a fixture, and "no sources, nothing
+   *  installed, install refused" is a decision worth writing down rather than a
+   *  stub every suite re-invents. `install` fails rather than dies: a caller
+   *  that reaches it has asked a wired corpus to install, and the answer is the
+   *  same typed refusal an empty recipe already produces. */
+  readonly layerEmpty: Layer.Layer<InstallerId | RecipeId>;
 }
 
 /** Whichever keys a File Corpus was declared with, the pipeline only ever asks
@@ -171,13 +267,28 @@ export const makeUnregisteredFileCorpusArtifact = <
     if (Option.isNone(recipe) || Option.isNone(installer)) return Option.none();
     return Option.some({ recipe: recipe.value, installer: installer.value });
   }),
-  layerRecipe: (sources) =>
+  layerRecipe: (recipe) =>
     Layer.succeed(input.Recipe, {
-      sources: [...sources].sort(
+      sources: [...recipe.sources].sort(
         (left, right) => sourcePriority[left.kind] - sourcePriority[right.kind],
       ),
+      releaseSource: Option.fromUndefinedOr(recipe.releaseSource),
     }),
   layerInstaller: (installer) => Layer.succeed(input.Installer, installer),
+  layerEmpty: Layer.merge(
+    Layer.succeed(input.Recipe, { sources: [], releaseSource: Option.none() }),
+    Layer.succeed(input.Installer, {
+      current: Effect.succeed(Option.none()),
+      activeFile: Effect.succeed(Option.none()),
+      install: () =>
+        Effect.fail(
+          CorpusInstallationError.make({
+            corpus: Option.getOrUndefined(registeredCorpusName(input.corpus)),
+            cause: `${input.label} Artifact is not wired on this host`,
+          }),
+        ),
+    }),
+  ),
 });
 
 /** Declares a File Corpus the supply pipeline can register: the corpus name

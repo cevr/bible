@@ -27,9 +27,11 @@ import {
 import {
   assetSourceId,
   corpusDigest,
+  corpusGeneration,
   corpusRevision,
   CorpusProvenance,
   registeredCorpusName,
+  type CorpusGeneration,
 } from '../corpus-supply/model.js';
 import Database from 'better-sqlite3';
 import { Effect, FileSystem, Layer, Option, Path, Predicate, Schema, Stream } from 'effect';
@@ -49,6 +51,14 @@ export interface ReleaseFileArtifactSource {
   /** The exact byte count the pinned manifest promises; rejected before the
    *  semantic verifier ever opens the file. */
   readonly size: number;
+  /** The release ordinal these bytes were published under (§3.6), when the
+   *  source states one.
+   *
+   *  What makes startup's install decision able to see that a compiled pin is
+   *  *older* than what this host already installed at runtime — the re-flooring
+   *  round-4 F2 found. `None` for a source with no ordinal, which is every
+   *  local one. Defaulted so no existing call site has to state it. */
+  readonly generation?: Option.Option<CorpusGeneration>;
 }
 
 export type NativeFileArtifactSource = LocalFileArtifactSource | ReleaseFileArtifactSource;
@@ -63,11 +73,58 @@ export type NativeFileArtifactSource = LocalFileArtifactSource | ReleaseFileArti
  *  `layerNativeFileArtifacts`. */
 export type FileArtifactLayout = 'sqlite' | 'flat';
 
+/** Provenance as it is written down, in the artifact's `meta` table or in a
+ *  sidecar JSON.
+ *
+ *  `generation` is `optionalKey` rather than required, and that is the
+ *  migration: every artifact installed before §3.6's runtime path existed has
+ *  no generation row, and a decoder that demanded one would report every one of
+ *  them as "no verified generation" and re-install from the floor. Absent reads
+ *  back as `None`, which is exactly what a local source means. */
 const StoredProvenance = Schema.Struct({
   source: Schema.String,
   revision: Schema.String,
   digest: Schema.String,
+  generation: Schema.optionalKey(Schema.Int),
+  /** The **file this record describes**, for a flat artifact whose provenance
+   *  lives beside it rather than inside it.
+   *
+   *  This is what makes the sidecar a *pointer* rather than a second file that
+   *  has to be kept in step with a first (round-4 B2). A flat activation used to
+   *  be two renames over two fixed paths, and a crash between them left the old
+   *  bytes wearing the new provenance — a wrong receipt, not an absent one, and
+   *  nothing could tell. With a versioned artifact filename here, the sidecar's
+   *  own rename is the single atomic step that makes a generation active, and
+   *  whatever it names is what the host reads.
+   *
+   *  `optionalKey` because a SQLite artifact writes its provenance into itself
+   *  and has no pointer to make, and because a sidecar written before this
+   *  field existed still decodes — as `None`, which the reader treats as the
+   *  destination path itself, exactly what it meant. */
+  artifact: Schema.optionalKey(Schema.String),
 });
+
+/** One decoded record back into a `CorpusProvenance`, with the generation read
+ *  as the `Option` the model carries. One function so the SQLite store and the
+ *  sidecar store cannot disagree about what a stored record means. */
+const provenanceFrom = (stored: typeof StoredProvenance.Type): CorpusProvenance =>
+  CorpusProvenance.make({
+    source: assetSourceId(stored.source),
+    revision: corpusRevision(stored.revision),
+    digest: Option.some(corpusDigest(stored.digest)),
+    generation: Option.map(Option.fromUndefinedOr(stored.generation), corpusGeneration),
+  });
+
+/** The generation as a struct fragment, so an absent row spreads to nothing
+ *  rather than to an explicit `undefined` the exact-optional decoder refuses. */
+const storedGeneration = (raw: Option.Option<string>): { readonly generation?: number } =>
+  Option.match(
+    Option.flatMap(raw, (value) => Schema.decodeUnknownOption(Schema.Int)(Number(value))),
+    {
+      onNone: () => ({}),
+      onSome: (generation) => ({ generation }),
+    },
+  );
 
 export interface NativeFileArtifactProvenanceStore {
   readonly read: (filename: string) => Effect.Effect<CorpusProvenance, unknown>;
@@ -127,6 +184,10 @@ const releaseSource = (
       source: assetSourceId(`${corpus}-release`),
       revision: corpusRevision(source.revision),
       digest: Option.some(corpusDigest(source.digest)),
+      // The ordinal this release states, carried onto the candidate so the
+      // install decision can compare it with what is already installed
+      // (round-4 F2) and so a successful install persists it.
+      generation: source.generation ?? Option.none(),
     }),
     expectedSize: Option.some(source.size),
     bytes: Stream.unwrap(
@@ -285,16 +346,31 @@ const sqliteProvenanceStore: NativeFileArtifactProvenanceStore = {
               ),
               Effect.map((decoded) => decoded.value),
             );
+          // `optionalValue` for the generation alone: an artifact installed
+          // before §3.6's runtime path has no such row, and that absence is
+          // `None` rather than an unreadable artifact.
+          const optionalValue = (key: string) =>
+            Effect.try({
+              try: () => database.prepare('SELECT value FROM meta WHERE key = ?').get(key),
+              catch: storeError('read-provenance'),
+            }).pipe(
+              Effect.map((raw) =>
+                Option.fromNullishOr(raw).pipe(
+                  Option.flatMap((found) =>
+                    Schema.decodeUnknownOption(row)(found).pipe(
+                      Option.map((decoded) => decoded.value),
+                    ),
+                  ),
+                ),
+              ),
+            );
           const stored = yield* Schema.decodeEffect(StoredProvenance)({
             source: yield* value('corpus_source'),
             revision: yield* value('corpus_revision'),
             digest: yield* value('corpus_digest'),
+            ...storedGeneration(yield* optionalValue('corpus_generation')),
           }).pipe(Effect.mapError(storeError('read-provenance')));
-          return CorpusProvenance.make({
-            source: assetSourceId(stored.source),
-            revision: corpusRevision(stored.revision),
-            digest: Option.some(corpusDigest(stored.digest)),
-          });
+          return provenanceFrom(stored);
         }),
       closeDatabase,
     ),
@@ -314,6 +390,15 @@ const sqliteProvenanceStore: NativeFileArtifactProvenanceStore = {
               upsert.run('corpus_source', provenance.source);
               upsert.run('corpus_revision', provenance.revision);
               upsert.run('corpus_digest', Option.getOrThrow(provenance.digest));
+              // Only written when the source stated one, so a local install
+              // does not stamp an ordinal onto bytes no publisher numbered.
+              // A previous runtime generation is cleared for the same reason:
+              // a stale row would outrank the artifact it no longer describes.
+              Option.match(provenance.generation, {
+                onNone: () =>
+                  database.prepare('DELETE FROM meta WHERE key = ?').run('corpus_generation'),
+                onSome: (generation) => upsert.run('corpus_generation', String(generation)),
+              });
             })();
           },
           catch: storeError('write-provenance'),
@@ -350,19 +435,7 @@ const sqliteProvenanceStore: NativeFileArtifactProvenanceStore = {
  *  answer for a file this host did not install.
  */
 export const sidecarProvenanceStore: NativeFileArtifactProvenanceStore = {
-  read: (filename) =>
-    Effect.gen(function* () {
-      const fs = yield* FileSystem.FileSystem;
-      const raw = yield* fs.readFileString(sidecarPath(filename));
-      const stored = yield* Schema.decodeUnknownEffect(Schema.fromJsonString(StoredProvenance))(
-        raw,
-      );
-      return CorpusProvenance.make({
-        source: assetSourceId(stored.source),
-        revision: corpusRevision(stored.revision),
-        digest: Option.some(corpusDigest(stored.digest)),
-      });
-    }).pipe(Effect.mapError(storeError('read-provenance')), Effect.provide(BunServices.layer)),
+  read: (filename) => Effect.map(readSidecar(filename), (pointer) => pointer.provenance),
   write: (filename, provenance) =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
@@ -374,10 +447,116 @@ export const sidecarProvenanceStore: NativeFileArtifactProvenanceStore = {
         source: provenance.source,
         revision: provenance.revision,
         digest,
+        ...Option.match(provenance.generation, {
+          onNone: () => ({}),
+          onSome: (generation) => ({ generation: Number(generation) }),
+        }),
       });
       yield* fs.writeFileString(sidecarPath(filename), encoded);
     }).pipe(Effect.mapError(storeError('write-provenance')), Effect.provide(BunServices.layer)),
 };
+
+/** What one sidecar says: the provenance, and the file it describes.
+ *
+ *  Two facts rather than one because the pointer is a fact about *storage* and
+ *  the provenance is a fact about the *release* — and only the pointer half is
+ *  what makes the flat activation atomic. */
+interface SidecarPointer {
+  readonly provenance: CorpusProvenance;
+  /** The artifact this record describes, absolute. `None` for a sidecar written
+   *  before versioned filenames existed, which meant the destination itself. */
+  readonly artifact: Option.Option<string>;
+}
+
+const readSidecar = (filename: string): Effect.Effect<SidecarPointer, unknown> =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const raw = yield* fs.readFileString(sidecarPath(filename));
+    const stored = yield* Schema.decodeUnknownEffect(Schema.fromJsonString(StoredProvenance))(raw);
+    return {
+      provenance: provenanceFrom(stored),
+      artifact: Option.fromUndefinedOr(stored.artifact),
+    };
+  }).pipe(Effect.mapError(storeError('read-provenance')), Effect.provide(BunServices.layer));
+
+/** Writes the **pointer**: the provenance plus the versioned file it describes.
+ *
+ *  Written to a staging sidecar and renamed over the live one as the *last*
+ *  step of an activation, which is what makes a flat install atomic (round-4
+ *  B2). Until that rename lands, the live pointer still names the previous
+ *  generation's file — so a crash mid-install leaves a host reading exactly what
+ *  it was reading before, rather than reading new bytes under old provenance or
+ *  old bytes under new. */
+const writeSidecarPointer = (input: {
+  readonly sidecarFor: string;
+  readonly artifact: string;
+  readonly provenance: CorpusProvenance;
+}): Effect.Effect<void, unknown> =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const digest = yield* Option.match(input.provenance.digest, {
+      onNone: () => Effect.fail('Artifact digest is required'),
+      onSome: Effect.succeed,
+    });
+    const encoded = yield* Schema.encodeEffect(Schema.fromJsonString(StoredProvenance))({
+      source: input.provenance.source,
+      revision: input.provenance.revision,
+      digest,
+      artifact: input.artifact,
+      ...Option.match(input.provenance.generation, {
+        onNone: () => ({}),
+        onSome: (generation) => ({ generation: Number(generation) }),
+      }),
+    });
+    yield* fs.writeFileString(sidecarPath(input.sidecarFor), encoded);
+  }).pipe(Effect.mapError(storeError('write-provenance')), Effect.provide(BunServices.layer));
+
+/** The digest of one file on disk, streamed rather than read whole.
+ *
+ *  What makes the pointer *checkable*: `readCurrent` compares this against the
+ *  digest the pointer states, so a pointer that names a file it does not
+ *  describe reports no generation instead of reporting the wrong one
+ *  (round-4 B2). Streamed because a Bible artifact is 150 MB and this runs at
+ *  every startup. */
+const fileDigest = (filename: string): Effect.Effect<string, unknown> =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const hasher = sha256.create();
+    yield* fs
+      .stream(filename)
+      .pipe(Stream.runForEach((chunk) => Effect.sync(() => hasher.update(chunk))));
+    return `sha256:${bytesToHex(hasher.digest())}`;
+  }).pipe(Effect.provide(BunServices.layer));
+
+/** The versioned filename one generation's bytes live at.
+ *
+ *  Derived from the digest the pointer records, so the name and the check are
+ *  one fact: a pointer naming `vectors.bvi.g-abc123def456` is claiming the file
+ *  at that path hashes to `sha256:abc123def456…`, and `readCurrent` verifies
+ *  exactly that. Twelve hex characters, the same prefix length the browser
+ *  generation store already uses. */
+/** Removes one retired generation's file, never the one that is live.
+ *
+ *  Best-effort: a file that cannot be removed is disk to reclaim, never a
+ *  reason to fail an activation that already happened, or to turn a failed
+ *  install into a second, different failure. `keep` is the file this run must
+ *  not touch — the generation it just activated, or the one it is falling back
+ *  to. */
+const retire = (
+  fs: FileSystem.FileSystem,
+  candidate: Option.Option<string>,
+  keep: string,
+): Effect.Effect<void> =>
+  Option.match(
+    Option.filter(candidate, (file) => file !== keep),
+    {
+      onNone: () => Effect.void,
+      onSome: (file) => fs.remove(file, { force: true }).pipe(Effect.ignore),
+    },
+  );
+
+const generationPath = (destination: string, digest: string): string =>
+  `${destination}.g-${digest.slice('sha256:'.length, 'sha256:'.length + 12)}`;
 
 /** Where one artifact's sidecar lives: the artifact's own path plus a suffix.
  *
@@ -387,12 +566,54 @@ export const sidecarProvenanceStore: NativeFileArtifactProvenanceStore = {
  *  cleanup cannot disagree about the name. */
 const sidecarPath = (filename: string): string => `${filename}.provenance.json`;
 
-const readCurrent = (
-  destination: string,
-  verify: (filename: string) => Effect.Effect<number, unknown>,
-  provenanceStore: NativeFileArtifactProvenanceStore,
-): Effect.Effect<Option.Option<CorpusProvenance>> =>
-  verify(destination).pipe(Effect.andThen(provenanceStore.read(destination)), Effect.option);
+/** What this host currently has activated: the artifact file, and its
+ *  provenance.
+ *
+ *  For a `sqlite` artifact the answer is the destination itself — the file
+ *  carries its own `meta` rows, so there is nothing to point at and nothing to
+ *  cross-check that reading the file does not already check.
+ *
+ *  For a `flat` artifact the pointer decides (round-4 B2), and the pointer is
+ *  **verified against the file it names**: the digest the sidecar states must be
+ *  the digest of those bytes. That is what turns a torn install into "no
+ *  generation" rather than "the wrong generation reported confidently" — the
+ *  sidecar used to be believed unconditionally, so old bytes wearing a new
+ *  sidecar were indistinguishable from a clean activation. */
+interface ActiveGeneration {
+  readonly file: string;
+  readonly provenance: CorpusProvenance;
+}
+
+const readActive = (input: {
+  readonly destination: string;
+  readonly layout: FileArtifactLayout;
+  readonly verify: (filename: string) => Effect.Effect<number, unknown>;
+  readonly provenanceStore: NativeFileArtifactProvenanceStore;
+}): Effect.Effect<Option.Option<ActiveGeneration>> =>
+  Effect.gen(function* () {
+    if (input.layout !== 'flat') {
+      yield* input.verify(input.destination);
+      return {
+        file: input.destination,
+        provenance: yield* input.provenanceStore.read(input.destination),
+      };
+    }
+    const pointer = yield* readSidecar(input.destination);
+    // A sidecar written before versioned filenames named the destination
+    // itself, which is still the file it described.
+    const file = Option.getOrElse(pointer.artifact, () => input.destination);
+    const stated = yield* Option.match(pointer.provenance.digest, {
+      onNone: () => Effect.fail('Artifact provenance states no digest'),
+      onSome: Effect.succeed,
+    });
+    // The check the pointer exists to make possible. A file that is not the one
+    // the pointer describes is not an activation, whatever the sidecar says.
+    if ((yield* fileDigest(file)) !== stated) {
+      return yield* Effect.fail('Artifact does not match the generation its pointer names');
+    }
+    yield* input.verify(file);
+    return { file, provenance: pointer.provenance };
+  }).pipe(Effect.option);
 
 /** Streams one File Corpus Artifact to `<destination>.building`, hashes while
  *  writing, rejects a manifest-digest mismatch, semantically verifies the
@@ -458,11 +679,55 @@ export const layerNativeFileArtifacts = <Corpus extends string, RecipeId, Instal
     if (source.kind === 'release') return releaseSource(corpus, source, fetchArtifact);
     return localSource(corpus, source);
   };
-  const recipe = input.artifact.layerRecipe(input.sources.map(makeSource));
+  const recipe = input.artifact.layerRecipe({
+    sources: input.sources.map(makeSource),
+    // §3.6's runtime leg: a manifest entry is exactly a `ReleaseFileArtifactSource`
+    // — url, revision, digest, size — so a release this host was *handed* is
+    // acquired through the identical source the pinned one is. One builder, so
+    // a runtime install cannot take a different path to the installer than the
+    // pin does, and the digest, size and atomic-swap guarantees are the same
+    // guarantees rather than parallel ones.
+    releaseSource: (release) =>
+      releaseSource(
+        corpus,
+        {
+          kind: 'release',
+          url: release.url,
+          revision: release.revision,
+          digest: release.digest,
+          size: release.size,
+          // §3.6's ordinal, stated by whoever handed this host the release. It
+          // reaches the persisted Provenance through the source rather than
+          // being re-attached afterwards, so the runtime leg and the pinned leg
+          // record it the same way.
+          generation: release.generation,
+        },
+        fetchArtifact,
+      ),
+  });
+  /** One read of what is active, shared by `current` and `activeFile` so the
+   *  two can never disagree about which generation this host holds. */
+  const active = readActive({
+    destination: input.destination,
+    layout,
+    verify,
+    provenanceStore,
+  });
+  const activeFile = active.pipe(Effect.map(Option.map((generation) => generation.file)));
+  /** What an install must retire once it succeeds — for a flat artifact only.
+   *
+   *  A SQLite artifact renames over one canonical path and has nothing to
+   *  retire, and reading `active` on that path would run this corpus's semantic
+   *  verifier against the *outgoing* file: an extra open every install would pay
+   *  for nothing, and one the digest-mismatch suites count. */
+  const retirementTarget = (): Effect.Effect<Option.Option<string>> => {
+    if (layout === 'flat') return activeFile;
+    return Effect.succeedNone;
+  };
+  const activeFileForRetirement = retirementTarget();
   const installer = input.artifact.layerInstaller({
-    current: readCurrent(input.destination, verify, provenanceStore).pipe(
-      Effect.mapError((cause) => CorpusInstallationError.make({ corpus: reportedCorpus, cause })),
-    ),
+    current: active.pipe(Effect.map(Option.map((generation) => generation.provenance))),
+    activeFile,
     install: (artifact) =>
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
@@ -471,6 +736,9 @@ export const layerNativeFileArtifacts = <Corpus extends string, RecipeId, Instal
         const building = `${input.destination}.building`;
         const hasher = sha256.create();
         let written = 0;
+        // Set once the candidate has a name of its own, so a failure removes
+        // exactly what this run created and never a live generation.
+        let staged = Option.none<string>();
         const install = Effect.gen(function* () {
           yield* artifact.bytes.pipe(
             Stream.tap((chunk) =>
@@ -494,42 +762,79 @@ export const layerNativeFileArtifacts = <Corpus extends string, RecipeId, Instal
               `${input.artifact.label} Artifact digest does not match its release manifest`,
             );
           }
-          const installed = yield* verify(building);
           const provenance = CorpusProvenance.make({
             source: artifact.provenance.source,
             revision: artifact.provenance.revision,
             digest: Option.some(digest),
+            // The candidate's own generation, carried through to what is
+            // persisted. Recomputing the digest here and *dropping* the ordinal
+            // would have made every runtime install read back as ungenerationed
+            // on the next startup — the exact re-flooring §3.6 forbids.
+            generation: artifact.provenance.generation,
           });
-          yield* provenanceStore.write(building, provenance);
           if (layout === 'flat') {
-            // The sidecar is renamed *before* the artifact, so the only window
-            // is one in which the new sidecar sits beside the old artifact —
-            // and `readCurrent` verifies the artifact before it reads
-            // provenance, so that window reads as "the current file is not the
-            // one this sidecar describes" rather than as a bad activation.
-            // Renaming the artifact first would leave the *new* file described
-            // by the *old* provenance, which is a wrong receipt rather than an
-            // absent one.
-            yield* fs.rename(sidecarPath(building), sidecarPath(input.destination));
-            yield* fs.rename(building, input.destination);
-          } else {
-            yield* fs.rename(building, input.destination);
-            // A SQLite artifact carries its own provenance, so a sidecar left
-            // by an earlier flat install of the same destination would be a
-            // second, stale answer to the same question.
-            yield* fs.remove(sidecarPath(input.destination), { force: true });
+            // **Versioned file, then one atomic pointer** (round-4 B2).
+            //
+            // The bytes go to a name derived from their own digest, so they
+            // never overwrite a live generation and the destination path is
+            // never half-written. Only then is the pointer renamed over the
+            // live sidecar — one atomic step, and the step that *is* the
+            // activation. A crash before it leaves the previous pointer naming
+            // the previous file, which is the state a host was already in.
+            //
+            // The old order — sidecar first, artifact second — had a window in
+            // which the *old* bytes wore the *new* provenance, and nothing
+            // could tell, because the sidecar was believed rather than checked.
+            const versioned = generationPath(input.destination, digest);
+            staged = Option.some(versioned);
+            const stagedPointer = `${input.destination}.building`;
+            const installed = yield* verify(building);
+            yield* fs.rename(building, versioned);
+            yield* writeSidecarPointer({
+              sidecarFor: stagedPointer,
+              artifact: versioned,
+              provenance,
+            });
+            yield* fs.rename(sidecarPath(stagedPointer), sidecarPath(input.destination));
+            // The generation this one replaced, retired only after the pointer
+            // that named it is gone. Best-effort: a file that cannot be removed
+            // is disk to reclaim, never a reason to fail an activation that has
+            // already happened.
+            yield* retire(fs, previouslyActive, versioned);
+            return { installed, provenance };
           }
+          const installed = yield* verify(building);
+          yield* provenanceStore.write(building, provenance);
+          yield* fs.rename(building, input.destination);
+          // A SQLite artifact carries its own provenance, so a sidecar left
+          // by an earlier flat install of the same destination would be a
+          // second, stale answer to the same question.
+          yield* fs.remove(sidecarPath(input.destination), { force: true });
           return { installed, provenance };
         });
+        // Read *before* the install so the retirement above knows what it is
+        // replacing. Only for a flat artifact: a SQLite one renames over one
+        // canonical path and has nothing to retire, and reading `active` would
+        // run this corpus's semantic verifier against the *outgoing* file — an
+        // extra open every install would pay for nothing.
+        const previouslyActive = yield* activeFileForRetirement;
         return yield* install.pipe(
           Effect.onError(() =>
             Effect.all(
               [
                 fs.remove(building, { force: true }),
-                // The candidate's sidecar goes with the candidate: a failed
-                // install must leave nothing behind that a later read could
-                // mistake for a generation.
+                // The candidate's staging sidecar goes with the candidate: a
+                // failed install must leave nothing behind that a later read
+                // could mistake for a generation.
                 fs.remove(sidecarPath(building), { force: true }),
+                // And the versioned file, when this run got as far as naming
+                // one — unless it is the generation already active, which a
+                // re-install of identical bytes reaches.
+                retire(
+                  fs,
+                  staged,
+                  Option.getOrElse(previouslyActive, () => building),
+                ),
               ],
               { discard: true },
             ).pipe(Effect.ignore),

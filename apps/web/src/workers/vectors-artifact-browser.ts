@@ -29,6 +29,7 @@ import * as BrowserHttpClient from '@effect/platform-browser/BrowserHttpClient';
 import {
   assetSourceId,
   corpusDigest,
+  corpusGeneration,
   corpusRevision,
   CorpusInstallationError,
   CorpusProvenance,
@@ -55,12 +56,15 @@ const sourceError = (operation: string, cause: unknown): CorpusSourceUnavailable
 
 /** Provenance for one flat generation, as it is stored beside it.
  *
- *  Same three fields the SQLite artifacts keep in `meta`, so the two hosts and
- *  the two layouts record the identical facts. */
+ *  The same fields the SQLite artifacts keep in `meta`, so the two hosts and
+ *  the two layouts record the identical facts. `generation` is optional because
+ *  every sidecar written before §3.6's runtime path existed has no such key, and
+ *  a decoder that demanded one would report those generations unreadable. */
 const StoredProvenance = Schema.Struct({
   source: Schema.String,
   revision: Schema.String,
   digest: Schema.String,
+  generation: Schema.optionalKey(Schema.Int),
 });
 
 const sidecarName = (filename: string): string => `${filename}.provenance.json`;
@@ -94,6 +98,7 @@ const readProvenance = (
       source: assetSourceId(stored.source),
       revision: corpusRevision(stored.revision),
       digest: Option.some(corpusDigest(stored.digest)),
+      generation: Option.map(Option.fromUndefinedOr(stored.generation), corpusGeneration),
     });
   }).pipe(Effect.option);
 
@@ -113,6 +118,10 @@ const writeProvenance = (
       source: provenance.source,
       revision: provenance.revision,
       digest,
+      ...Option.match(provenance.generation, {
+        onNone: () => ({}),
+        onSome: (generation) => ({ generation: Number(generation) }),
+      }),
     });
     yield* downloader.install(
       Stream.succeed(new TextEncoder().encode(encoded)),
@@ -177,12 +186,17 @@ export const layerBrowserVectorsArtifacts = (input: {
     }),
   });
 
-  const recipe = VectorsArtifact.layerRecipe(
-    Option.match(release, {
+  const recipe = VectorsArtifact.layerRecipe({
+    sources: Option.match(release, {
       onNone: (): readonly FileArtifactSourceService[] => [],
       onSome: (pinned) => [releaseSource(pinned)],
     }),
-  );
+    // §9.2's index reads the same-origin proxy for the same no-CORS reason the
+    // topics artifact does, so a runtime release is the pinned path with a
+    // different manifest. Wired now so vectors can join §3.6's runtime path
+    // with no adapter change the day it gets a floor of its own.
+    releaseSource,
+  });
 
   const installer = VectorsArtifact.layerInstaller({
     current: Effect.gen(function* () {
@@ -191,6 +205,12 @@ export const layerBrowserVectorsArtifacts = (input: {
       if (Option.isNone(filename)) return Option.none<CorpusProvenance>();
       return yield* readProvenance(input.files, filename.value);
     }).pipe(
+      Effect.mapError((cause) => CorpusInstallationError.make({ corpus: reportedCorpus, cause })),
+    ),
+    // The versioned OPFS filename this store activated, behind its own atomic
+    // registry pointer — the shape the native flat installer now mirrors
+    // (round-4 B2).
+    activeFile: input.generations.activeFilename.pipe(
       Effect.mapError((cause) => CorpusInstallationError.make({ corpus: reportedCorpus, cause })),
     ),
     install: (artifact) =>
@@ -232,6 +252,8 @@ export const layerBrowserVectorsArtifacts = (input: {
             source: artifact.provenance.source,
             revision: artifact.provenance.revision,
             digest: Option.some(corpusDigest(written.digest)),
+            // The candidate's own generation, carried into the sidecar.
+            generation: artifact.provenance.generation,
           });
           yield* writeProvenance(input.downloader, filename, provenance);
           yield* input.generations.activateVerified(filename);

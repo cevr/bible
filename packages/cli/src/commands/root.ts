@@ -15,6 +15,7 @@ import { slides } from './slides.js';
 import { studies } from './studies.js';
 import { study } from './study.js';
 import { sync } from './sync.js';
+import { topics } from './topics.js';
 import { wiki } from './wiki.js';
 import { cliOptions, CliOptions } from '../services/cli-options.js';
 import { CliProcessLive } from '../services/process.js';
@@ -39,6 +40,7 @@ Commands:
   init              Initialize local data
   sync              Synchronize local data
   study             Study one verse or one Strong's number
+  topics            Report or install runtime topic content
   wiki              Browse compiled topic pages
 
 Run 'bible <command> --help' for command-specific help.`;
@@ -61,6 +63,7 @@ export const rootCommand = Command.make('bible', cliOptions, () => Console.log(r
     init,
     sync,
     study,
+    topics,
     wiki,
   ]),
   Command.provideSync(CliOptions, (input) => {

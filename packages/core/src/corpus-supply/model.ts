@@ -40,10 +40,40 @@ export const CorpusDigest = Schema.String.pipe(
 );
 export type CorpusDigest = typeof CorpusDigest.Type;
 
+/** The monotonic ordinal of one published content version (§3.6).
+ *
+ *  A revision is a *tag* — `db-v2`, `content-2026-08` — and tags have no order a
+ *  publisher and a client could both be trusted to compute. Ordering by tag
+ *  string is what let a manifest naming an *older* version read as "different
+ *  from installed, therefore newer" and talk a client into a downgrade
+ *  (round-3 F2). The generation is the number that carries the order the tag
+ *  cannot: the publisher increments it once per release, and a client installs
+ *  only above what it holds. */
+export const CorpusGeneration = Schema.Int.pipe(
+  Schema.check(Schema.isGreaterThanOrEqualTo(0)),
+  Schema.brand('CorpusSupply/Generation'),
+);
+export type CorpusGeneration = typeof CorpusGeneration.Type;
+
+export const corpusGeneration = Schema.decodeSync(CorpusGeneration);
+
 export class CorpusProvenance extends Schema.Class<CorpusProvenance>('CorpusSupply/Provenance')({
   source: AssetSourceId,
   revision: CorpusRevision,
   digest: Schema.Option(CorpusDigest),
+  /** The release ordinal these bytes were published under, when they came from
+   *  a source that states one.
+   *
+   *  `None` for every local source — a packaged copy, a workspace build, a
+   *  writings publication — because none of them is a *published content
+   *  version* and inventing an ordinal for them would put the compiled floor
+   *  and a runtime release on one scale they do not share. A runtime install
+   *  records the manifest entry's own generation here, which is what makes a
+   *  later startup able to see that what it holds is newer than the pin
+   *  (round-3 F2). Defaulted so no existing construction site has to state it. */
+  generation: Schema.Option(CorpusGeneration).pipe(
+    Schema.withConstructorDefault(Effect.succeed(Option.none<CorpusGeneration>())),
+  ),
 }) {}
 
 export class WritingsContribution extends Schema.Class<WritingsContribution>(

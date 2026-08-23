@@ -1,6 +1,7 @@
 import { makeBunSyncStore, makeBunUserDatabase } from '@bible/core/local-first/bun';
 import { ClientId, makeSimulatedTransport, MutationId, Timestamp } from '@bible/core/local-first';
 import migrationSql from '@bible/core/local-first/migrations/0001_user_state.sql?raw';
+import { TopicsArtifact } from '@bible/core/corpus-supply';
 import { LibraryEntityId } from '@bible/core/library-state';
 import { CommitId, RuntimeGeneration } from '@bible/core/procedure';
 import { Database, type SQLQueryBindings } from 'bun:sqlite';
@@ -95,7 +96,10 @@ describe('web procedure server', () => {
                   writingsDatabase: makeDatabase(writingsClient),
                   // No topics artifact in the negotiation fixture: the §3.5
                   // steady state, and the one the worker must still serve.
-                  topicsDatabase: Option.none(),
+                  topicsDatabase: () => Option.none(),
+                  // And no topics File Corpus wired: this fixture is about the
+                  // negotiation handshake, not §3.6's install path.
+                  topicsArtifacts: TopicsArtifact.layerEmpty,
                   // Likewise no vector index: §9.6's steady state.
                   vectorIndex: Option.none(),
                   writingsFetch: () =>

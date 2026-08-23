@@ -25,6 +25,7 @@ import { SearchResult } from '../search/model.js';
 import { StrongsNumber, StrongsStudy, StudyLimit, VerseStudy } from '../study/model.js';
 import { StudyCorpusDataError } from '../study/service.js';
 import { TopicDetail, TopicId, TopicSummary } from '../topics/model.js';
+import { ContentStatus, ContentUpdateOutcome, UpdatableCorpus } from '../content-update/model.js';
 import { CorpusScope } from '../writings/corpus-scope.js';
 import { LookupContext, LookupResult } from '../wiki/lookup-model.js';
 import { PhraseDictionary, TopicSlug, WikiPage, WikiPageSummary } from '../wiki/model.js';
@@ -348,6 +349,47 @@ export const SearchQueryProcedure = procedure('v1.search.query', {
  *  fault. */
 export const StudyProcedureError = Schema.Union([ProcedureError, StudyCorpusDataError]);
 
+/** §3.6's status, in one round trip and with **no mutation**.
+ *
+ *  `corpus` is `UpdatableCorpus` — a closed literal that is `'topics'` alone in
+ *  v1, not the whole `CorpusFileName`. The earlier payload accepted every file
+ *  corpus and was answered with the *topics* schema floor for all of them, so a
+ *  client could ask this build to update `bible` and be told a decision about a
+ *  gate that was not its own, for a corpus with no runtime installer behind it
+ *  (round-3 F8). The manifest stays keyed by `CorpusFileName`, so the day
+ *  vectors has a floor and an installer the literal widens and no wire model
+ *  breaks — which is the extensibility the broad payload was reaching for,
+ *  without the unrepresentable request.
+ *
+ *  Its own procedure rather than a field on the connection handshake: the
+ *  status is a *fetch* — it reads a manifest over the network — and folding a
+ *  network round trip into `v1.runtime.connect` would make every client's first
+ *  paint wait on the release host being reachable. */
+export const ContentStatusGet = procedure('v1.content.status', {
+  payload: { corpus: UpdatableCorpus },
+  success: ContentStatus,
+});
+
+/** The install, reported as the activation it produced (§3.6's CLI contract,
+ *  and the settings entry's action on both visual hosts).
+ *
+ *  A procedure rather than a mutation through `v1.library.mutate`: a content
+ *  install is not user state — it does not replicate, it has no commit, and its
+ *  effect is a verified file swap the supply pipeline owns. Routing it through
+ *  the mutation log would have given it a commit id and a change scope that
+ *  named nothing any client caches.
+ *
+ *  It does **not** fail on a refused candidate. Every way an install can be
+ *  refused — digest, size, semantics, schema major — leaves the installed
+ *  generation active, and the outcome says so as a value: `activated` is `None`
+ *  and the post-run status carries the decision. An error channel here would
+ *  have made a client catch a failure to learn that its working content is
+ *  still working. */
+export const ContentUpdateProcedure = procedure('v1.content.update', {
+  payload: { corpus: UpdatableCorpus },
+  success: ContentUpdateOutcome,
+});
+
 /** The whole study bundle for one verse in **one** round trip (§8.2). The pane
  *  always wants all five sections — words, cross-references, margin notes,
  *  commentary, parallel writings — and the payload is small, so granular
@@ -410,6 +452,8 @@ export const BibleProcedureGroup = RpcGroup.make(
   SearchQueryProcedure,
   StudyVerseGet,
   StudyStrongsGet,
+  ContentStatusGet,
+  ContentUpdateProcedure,
 );
 
 export const expectedRuntimeConnection = {

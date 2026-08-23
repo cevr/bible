@@ -8,6 +8,7 @@ import { createSignal } from 'solid-js';
 import { DateTime, Effect, Option, Schema } from 'effect';
 
 import { useCapabilities } from '../application/capabilities-context.js';
+import { ContentSettings } from './content-settings.js';
 import type { SettingsSection } from '../route/index.js';
 import { failureCategory, failureMessage } from '@bible/core/observability';
 import {
@@ -22,6 +23,7 @@ const settingsSections: ReadonlyArray<{ readonly id: SettingsSection; readonly l
   { id: 'reader', label: 'Reader' },
   { id: 'sync', label: 'Sync' },
   { id: 'data', label: 'Data' },
+  { id: 'content', label: 'Content' },
   { id: 'shortcuts', label: 'Shortcuts' },
   { id: 'about', label: 'About' },
 ];
@@ -312,6 +314,9 @@ export const Settings = (props: SettingsProps) => {
                 )}
               </Show>
             </section>
+          </Show>
+          <Show when={props.section === 'content'}>
+            <ContentSettings />
           </Show>
           <Show when={props.section === 'shortcuts'}>
             <section class="bible-settings__section">

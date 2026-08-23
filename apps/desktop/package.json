@@ -13,10 +13,10 @@
     "package": "bun run --cwd ../../packages/core sync:bible --force && bun run build && electron-builder",
     "typecheck": "tsc --noEmit",
     "test": "bun run test:unit && bun run test:electron-native",
-    "test:unit": "bun test tests/paragraph-ast.test.ts tests/procedure-client.test.ts tests/procedure-server.test.ts tests/study-round-trip.test.ts tests/lookup-round-trip.test.ts tests/search-round-trip.test.ts tests/wiki-artifact.test.ts tests/wiki-dictionary-round-trip.test.ts",
-    "test:electron-native": "ELECTRON_RUN_AS_NODE=1 electron node_modules/vitest/vitest.mjs run tests/user-state-generation.test.ts tests/wiki-artifact-native.test.ts tests/vectors-artifact-native.test.ts",
+    "test:unit": "bun test tests/paragraph-ast.test.ts tests/procedure-client.test.ts tests/procedure-server.test.ts tests/study-round-trip.test.ts tests/lookup-round-trip.test.ts tests/search-round-trip.test.ts tests/wiki-artifact.test.ts tests/wiki-dictionary-round-trip.test.ts tests/content-round-trip.test.ts",
+    "test:electron-native": "ELECTRON_RUN_AS_NODE=1 electron node_modules/vitest/vitest.mjs run tests/user-state-generation.test.ts tests/wiki-artifact-native.test.ts tests/vectors-artifact-native.test.ts tests/sqlite-generation-roundtrip.test.ts",
     "test:e2e": "bun run build && playwright test --config=e2e/playwright.config.ts",
-    "test:watch": "bun test --watch tests/paragraph-ast.test.ts tests/procedure-client.test.ts tests/procedure-server.test.ts tests/study-round-trip.test.ts tests/lookup-round-trip.test.ts tests/search-round-trip.test.ts tests/wiki-artifact.test.ts tests/wiki-dictionary-round-trip.test.ts",
+    "test:watch": "bun test --watch tests/paragraph-ast.test.ts tests/procedure-client.test.ts tests/procedure-server.test.ts tests/study-round-trip.test.ts tests/lookup-round-trip.test.ts tests/search-round-trip.test.ts tests/wiki-artifact.test.ts tests/wiki-dictionary-round-trip.test.ts tests/content-round-trip.test.ts",
     "postinstall": "node -e \"process.exit(process.env.CI||process.env.RAILWAY_ENVIRONMENT||process.env.SKIP_ELECTRON_REBUILD?0:1)\" || electron-rebuild -f -w better-sqlite3"
   },
   "dependencies": {

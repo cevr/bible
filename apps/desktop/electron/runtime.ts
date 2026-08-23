@@ -1,5 +1,6 @@
 import { BibleCorpus, BibleDatabase } from '@bible/core/bible-db';
 import { BibleService } from '@bible/core/bible/service';
+import { ContentUpdate, layerHttpContentManifest } from '@bible/core/content-update';
 import {
   CorpusSupply,
   layerEgwWritingsAssetSource,
@@ -32,7 +33,9 @@ import { layerNodeEmbedder } from '@bible/core/search/node';
 import { StudyService } from '@bible/core/study';
 import { TopicService } from '@bible/core/topics';
 import {
-  layerArtifactOrAbsent,
+  layerReloadableArtifact,
+  layerReloadOnActivation,
+  type ReloadableArtifact,
   LookupService,
   WikiSectionSources,
   WikiService,
@@ -85,7 +88,7 @@ const bibleDbLayer = (
  *  artifact catalog-only pages. A *present but unreadable* one stays
  *  `WikiService.Broken`, because an artifact that will not open is a fault the
  *  operator needs surfaced rather than smoothed into "not installed". Core's
- *  `layerArtifactOrAbsent` makes that split; this host only supplies the
+ *  `layerReloadableArtifact` makes that split; this host only supplies the
  *  driver. */
 const sectionSourcesLayer = (input: {
   readonly bible: Layer.Layer<BibleCorpus | BibleDatabase | BibleService | TopicService>;
@@ -104,12 +107,18 @@ const sectionSourcesLayer = (input: {
     Layer.orDie,
   );
 
+/** The reloadable variant rather than the plain one, because this host is the
+ *  one §3.6 updates *while it runs*. The install ends in an atomic rename over
+ *  `topics.db`, and the `immutable=1` connection main opened holds the previous
+ *  inode — so without a reload seam an accepted offer changed the file and
+ *  changed nothing the reader could see until the app was restarted (round-3
+ *  F3). The CLI keeps `layerArtifactOrAbsent`: its next read is a new process. */
 const wikiLayer = (input: {
   readonly topicsDbFile: string;
   readonly bible: Layer.Layer<BibleCorpus | BibleDatabase | BibleService | TopicService>;
   readonly sources: Layer.Layer<WikiSectionSources>;
-}): Layer.Layer<WikiService, never, FileSystem.FileSystem> =>
-  layerArtifactOrAbsent(topicsArtifactDriver, input.topicsDbFile).pipe(
+}): Layer.Layer<WikiService | ReloadableArtifact, never, FileSystem.FileSystem> =>
+  layerReloadableArtifact(topicsArtifactDriver, input.topicsDbFile).pipe(
     Layer.provide(input.bible),
     Layer.provide(input.sources),
   );
@@ -193,6 +202,8 @@ export type MainRuntime = ManagedRuntime.ManagedRuntime<
   | LookupService
   | StudyService
   | SearchService
+  | ContentUpdate
+  | ReloadableArtifact
   | DataPortabilityRuntime,
   never
 >;
@@ -213,6 +224,15 @@ export interface MainRuntimeFiles {
   /** §9.2's optional flat vector index. Absent on every install until the
    *  artifact ships; search degrades around it rather than failing. */
   readonly vectorIndexFile: Option.Option<string>;
+  /** The File Corpus supply main already built and bootstrapped this launch
+   *  with — the same recipes, destinations and installers.
+   *
+   *  Passed in rather than rebuilt here because a second construction would be
+   *  a second set of destinations and sources: §3.6's `update` must install
+   *  through the *same* installer that verified the running generation, or
+   *  "the digest mismatch left the installed generation active" would be a
+   *  guarantee about a different file than the one the reader has open. */
+  readonly corpusSupply: Layer.Layer<CorpusSupply>;
 }
 
 export const makeRuntime = (files: MainRuntimeFiles, host: MainRuntimeHost): MainRuntime => {
@@ -269,8 +289,22 @@ export const makeRuntime = (files: MainRuntimeFiles, host: MainRuntimeHost): Mai
     writings,
     vectorIndexFile: files.vectorIndexFile,
   });
+  // §3.6 on Electron main: the portable policy over this host's own HTTP stack,
+  // reading the manifest directly — no proxy, because main is not a browser and
+  // has no origin to be same as. The supply is main's, not the writings-only one
+  // above, so an accepted offer installs through the very installer that
+  // verified what is running.
+  const content = ContentUpdate.Live.pipe(
+    Layer.provide(files.corpusSupply),
+    Layer.provide(layerHttpContentManifest),
+    Layer.provide(NodeHttpClient.layerNodeHttp),
+    // The reader reopens on activation. `wiki` is the *same* built layer that
+    // is merged below — layer memoization by tag is what makes this the live
+    // handle rather than a second, unread copy of it.
+    Layer.provide(layerReloadOnActivation.pipe(Layer.provide(wiki))),
+  );
   return ManagedRuntime.make(
-    Layer.mergeAll(writings, bible, wiki, lookup, study, search, procedures),
+    Layer.mergeAll(writings, bible, wiki, lookup, study, search, content, procedures),
   );
 };
 
@@ -293,6 +327,9 @@ export const runtimeRun = <A, E>(
     | WikiService
     | LookupService
     | StudyService
+    | SearchService
+    | ContentUpdate
+    | ReloadableArtifact
     | DataPortabilityRuntime
   >,
 ): Promise<A> => runtime.runPromise(effect);

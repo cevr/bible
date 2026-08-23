@@ -37,6 +37,7 @@ import type {
 import type { LibraryMutationCommand } from '@bible/core/local-first';
 import type { MutationCommitValue } from '@bible/core/procedure';
 import type { ReadingPreferences, ReadingPreferencesPatch } from '@bible/core/reading-preferences';
+import type { ContentStatus, ContentUpdateOutcome } from '@bible/core/content-update';
 import type { SearchResult } from '@bible/core/search';
 import type { StrongsNumber, StrongsStudy, VerseStudy } from '@bible/core/study';
 import type { TopicDetail, TopicId, TopicListInput, TopicSummary } from '@bible/core/topics';
@@ -63,6 +64,7 @@ import { createComponent, useContext, type Accessor, type ParentProps } from 'so
 
 import {
   annotationQueryKeys,
+  CONTENT_KEY,
   keysForLibraryMutation,
   keysForScope,
   libraryAreaKey,
@@ -454,6 +456,42 @@ export const useLibraryMutation = (): ((
     const reactivityKeys = keysForLibraryMutation(command);
     return settled(reactivityKeys, () => mutate({ payload: { command }, reactivityKeys }));
   };
+};
+
+/**
+ * §3.6's topic-content status: what is installed, what the manifest offers, and
+ * the decision — the one value both the toast and the settings entry render
+ * through `contentView`.
+ *
+ * `LIBRARY_TTL` and its own key, for the reasons the other singleton reads have
+ * them: the status is small, there is exactly one of it, and the only thing that
+ * stales it is {@link useContentUpdate}, which invalidates `CONTENT_KEY`. Idle
+ * eviction would otherwise re-fetch a manifest over the network every time a
+ * route change unmounted the last reader.
+ */
+export const useContentStatus = (): Accessor<ContentStatus> =>
+  useAtomSuspense(() =>
+    keyedQuery(
+      [CONTENT_KEY],
+      (options) => ReadingRpc.query('v1.content.status', { corpus: 'topics' }, options),
+      LIBRARY_TTL,
+    ),
+  );
+
+/**
+ * §3.6's install, from the settings entry's "Update now".
+ *
+ * Invalidates `CONTENT_KEY`, so the status both surfaces read is re-fetched
+ * from the host after the run rather than each holding its own stale copy —
+ * including the case where the run activated nothing, which is a state the
+ * reader has to see reflected rather than a silent no-op.
+ */
+export const useContentUpdate = (): (() => Promise<ContentUpdateOutcome>) => {
+  const mutate = useAtomSet(() => ReadingRpc.mutation('v1.content.update'), { mode: 'promise' });
+  const settled = useSettled();
+  const reactivityKeys = keysForScope({ _tag: 'ContentUpdate' });
+  return () =>
+    settled(reactivityKeys, () => mutate({ payload: { corpus: 'topics' }, reactivityKeys }));
 };
 
 export const useReadingPreferencesMutation = (): ((

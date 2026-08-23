@@ -26,6 +26,7 @@ import {
   type FileArtifactRecipeService,
   type FileArtifactInstallerService,
   type FileArtifactRelease,
+  type ReleaseSourceDeclaration,
 } from '../corpus-supply/file-artifact.js';
 import { vectorUnavailable, type VectorIndexUnavailable } from './model.js';
 import { MODEL_FINGERPRINT, parseVectorIndex, type VectorIndex } from './vector-index.js';
@@ -44,9 +45,11 @@ import { MODEL_FINGERPRINT, parseVectorIndex, type VectorIndex } from './vector-
  *  Activating it on first publish is one edit here. */
 export const VECTORS_ARTIFACT_RELEASE: Option.Option<FileArtifactRelease> = Option.none();
 
-export interface VectorsReleaseSourceDeclaration extends FileArtifactRelease {
-  readonly kind: 'release';
-}
+/** The same declaration Topics uses. One shape rather than two that agree:
+ *  the release ordinal (§3.6) that keeps startup from re-flooring a newer
+ *  runtime artifact is a property of *every* pinned release, not of topics
+ *  alone (round-4 F2). */
+export type VectorsReleaseSourceDeclaration = ReleaseSourceDeclaration;
 
 /** The pinned release as a source list: empty while none exists, one entry once
  *  the pin is filled in. Every host spreads this after its local sources, so
@@ -55,7 +58,9 @@ export interface VectorsReleaseSourceDeclaration extends FileArtifactRelease {
 export const vectorsReleaseSource = (): readonly VectorsReleaseSourceDeclaration[] =>
   Option.match(VECTORS_ARTIFACT_RELEASE, {
     onNone: (): readonly VectorsReleaseSourceDeclaration[] => [],
-    onSome: (release) => [{ kind: 'release', ...release }],
+    // `None`: §9.2's index has no pinned release yet, so it has no floor
+    // ordinal either — the same state Topics is in.
+    onSome: (release) => [{ kind: 'release', ...release, generation: Option.none() }],
   });
 
 export class VectorsArtifactRecipe extends Context.Service<

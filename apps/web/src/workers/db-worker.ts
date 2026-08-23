@@ -273,7 +273,11 @@ const initializeDatabases = (
       // The topics artifact's active generation, or `None` when `ensure` caught
       // and warned above. `WikiService` reads either one — an absent artifact
       // is catalog-only pages, not a broken worker (§3.5).
-      topicsDatabase: Option.map(topicsDatabases.activeFilename, () => topicsDatabases.active),
+      // A thunk, not a snapshot: §3.6 can install the first topics artifact
+      // into this running worker, and the family knows which generation is
+      // active at the moment the wiki is (re)built.
+      topicsDatabase: () =>
+        Option.map(topicsDatabases.activeFilename, () => topicsDatabases.active),
       writingsFetch: host.fetch,
       // §9.2's index, from whichever generation `CorpusSupply` verified and
       // activated. `None` when none is installed, which is the ordinary state
@@ -285,6 +289,10 @@ const initializeDatabases = (
       // never come from OPFS behind `CorpusSupply`'s back, so a generation that
       // failed the parser gate cannot be picked up off disk.
       vectorIndex: yield* vectorGenerations.activeBytes,
+      // The same topics File Corpus the startup `ensure` above ran through, so
+      // §3.6's runtime install reaches the store this worker actually reads
+      // from — one registry, one active generation (round-4 F1).
+      topicsArtifacts,
       runtime: {
         clientId: localClientId,
         store: userState.store,

@@ -24,6 +24,11 @@ import { homedir } from 'os';
 import { join } from 'path';
 
 import { BibleToolsApi } from '@bible/api';
+import {
+  CONTENT_ARTIFACT_PROXY_PATH,
+  CONTENT_MANIFEST_PROXY_PATH,
+  contentManifestUrl,
+} from '@bible/core/content-update';
 import { BIBLE_ARTIFACT_RELEASE, TOPICS_ARTIFACT_RELEASE } from '@bible/core/corpus-supply';
 import { VECTORS_ARTIFACT_RELEASE } from '@bible/core/search';
 import { BibleService } from '@bible/core/bible/service';
@@ -34,6 +39,8 @@ import { WritingsArchive } from '@bible/core/writings/archive-service';
 import { WritingsService } from '@bible/core/writings/service';
 
 import { BibleGroupLive } from './api/groups/BibleGroupLive.js';
+import { artifactRequestFrom, contentArtifactResponse } from './content-artifact-proxy.js';
+import { contentManifestResponse } from './content-manifest-proxy.js';
 import { EGWGroupLive } from './api/groups/EGWGroupLive.js';
 
 // ============================================================================
@@ -205,6 +212,36 @@ const StaticFilesMiddleware = HttpMiddleware.make((app) =>
           'X-Artifact-Digest': release.digest,
           ...CROSS_ORIGIN_HEADERS,
         },
+      });
+    }
+
+    // §3.6's runtime manifest, proxied exactly as the three artifacts are: the
+    // browser cannot reach the release host directly (no CORS). The route's
+    // trust rules live in `content-manifest-proxy.ts`, where a suite can run a
+    // real client at them.
+    if (pathname === CONTENT_MANIFEST_PROXY_PATH && request.method === 'GET') {
+      return yield* contentManifestResponse({
+        url: yield* contentManifestUrl,
+        headers: CROSS_ORIGIN_HEADERS,
+        fetch: (url, init) => fetch(url, init),
+      });
+    }
+
+    // §3.6's runtime artifact. Same trust rules as the manifest route above,
+    // over an address the manifest named rather than one this build compiled
+    // in — which is exactly why the rules have to be the same (round-4 F1).
+    if (pathname === CONTENT_ARTIFACT_PROXY_PATH && request.method === 'GET') {
+      const artifact = artifactRequestFrom(url);
+      if (Option.isNone(artifact)) {
+        return HttpServerResponse.text('Content artifact request is incomplete', {
+          status: 400,
+          headers: CROSS_ORIGIN_HEADERS,
+        });
+      }
+      return yield* contentArtifactResponse({
+        request: artifact.value,
+        headers: CROSS_ORIGIN_HEADERS,
+        fetch: (address, init) => fetch(address, init),
       });
     }
 

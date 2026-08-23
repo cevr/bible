@@ -9,6 +9,7 @@ import {
   type DataPortabilityRuntime,
 } from '@bible/core/procedure';
 import type { BibleService } from '@bible/core/bible/service';
+import type { ContentUpdate } from '@bible/core/content-update';
 import type { WritingsService } from '@bible/core/writings/service';
 import type { SearchService } from '@bible/core/search';
 import type { StudyService } from '@bible/core/study';
@@ -89,6 +90,7 @@ export const layerDesktopProcedureServer = (
   | LookupService
   | StudyService
   | SearchService
+  | ContentUpdate
   | DataPortabilityRuntime
 > =>
   RpcServer.layer(BibleProcedureGroup).pipe(

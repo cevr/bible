@@ -13,7 +13,10 @@ export type BibleReadingReference = ChapterReference | VerseReference;
 export type WritingsReadingReference = PublicationReference | PageReference | ParagraphReference;
 
 export type SearchScope = 'all' | 'bible' | 'writings';
-export type SettingsSection = 'reader' | 'sync' | 'data' | 'shortcuts' | 'about';
+/** §3.6's update surface gets its own section rather than a corner of `data`:
+ *  "import and export my library" and "which topic content is installed" are
+ *  different questions, and the toast links straight here. */
+export type SettingsSection = 'reader' | 'sync' | 'data' | 'content' | 'shortcuts' | 'about';
 
 export type AppRoute =
   | { readonly _tag: 'bible'; readonly reference: BibleReadingReference }

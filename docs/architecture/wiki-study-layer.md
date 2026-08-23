@@ -301,8 +301,18 @@ content version it can install with no network. On top of it, a lightweight
 content version) offers content-only updates, verified with the same SHA-256 and
 size discipline as the pin.
 
-Trust surface for v1 is HTTPS plus digest — **no signing**. Revisit if
-distribution ever leaves GitHub.
+Each manifest entry carries a monotonic integer `generation` alongside its
+revision tag, which is what "one release per content version" means to a
+comparison: a revision tag is a name and does not order, so an update is offered
+only when the manifest's `generation` is strictly above both the compiled pin's
+and the installed artifact's. The installed generation is recorded at install
+time, so a runtime artifact newer than the app's pin survives a restart instead
+of being re-floored.
+
+Trust surface for v1 is HTTPS plus digest — **no signing**. Manifest and artifact
+URLs must be `https:`, the manifest is read only from the release origin the
+compiled pin names, and the read is bounded by a redirect limit, a response-size
+cap and a timeout. Revisit if distribution ever leaves GitHub.
 
 **Cadence rule.** Schema-bearing changes (new tables or columns) ride the
 compiled pin and therefore an app release. Content-only refreshes ship via the
@@ -314,6 +324,13 @@ compiled against.
 entry reading "Topic content: v3 installed, v4 available". CLI: `bible topics
 status` and `bible topics update` — stable JSON, explicit invocation, no hidden
 mutation.
+
+**Activation reaches the reader.** An install ends in an atomic rename over the
+artifact path, which a long-lived host does not see on its own: a connection
+opened `immutable=1` holds the inode it opened. A host that activates a new
+generation therefore reopens the services reading that artifact, so the update it
+reported is the content it serves — no app restart, no page reload. The CLI is
+exempt: its next read is a new process.
 
 ---
 

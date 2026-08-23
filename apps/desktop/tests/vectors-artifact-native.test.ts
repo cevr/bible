@@ -81,9 +81,16 @@ const install = (input: { readonly userData: string; readonly sourceFile: string
   Effect.gen(function* () {
     const supply = yield* CorpusSupply;
     const receipt = yield* supply.ensure({ target: Target.vectors() });
-    return Option.fromUndefinedOr(
-      receipt.activated.find((activation) => activation.corpus === 'vectors'),
-    );
+    return {
+      activation: Option.fromUndefinedOr(
+        receipt.activated.find((activation) => activation.corpus === 'vectors'),
+      ),
+      // Where the host reads the generation this install activated. Electron
+      // main asks the same question (`supply.activeFile('vectors')`) rather
+      // than assuming the destination path, because a flat artifact now lands
+      // under a versioned filename behind one atomic pointer (round-4 B2).
+      activeFile: yield* supply.activeFile('vectors'),
+    };
   }).pipe(
     Effect.provide(
       CorpusSupply.layer.pipe(
@@ -108,7 +115,9 @@ describe('electron main vectors artifact (native)', () => {
       const destination = `${userData}/vectors.bvi`;
       yield* fs.writeFile(sourceFile, syntheticIndex({})).pipe(Effect.orDie);
 
-      const activation = yield* install({ userData, sourceFile }).pipe(Effect.orDie);
+      const { activation, activeFile } = yield* install({ userData, sourceFile }).pipe(
+        Effect.orDie,
+      );
 
       // The whole point: an activation, not a caught warning. Against the
       // SQLite provenance store this is `None` — the install fails opening the
@@ -119,9 +128,16 @@ describe('electron main vectors artifact (native)', () => {
       // The verifier's own count, which is the shipped parser's `index.count`.
       expect(activation.value.installed).toBe(3);
 
-      // The atomic swap landed: the destination exists, the building file does
-      // not, and the sidecar sits beside the artifact rather than inside it.
-      expect(yield* fs.exists(destination).pipe(Effect.orDie)).toBe(true);
+      // The atomic swap landed. The bytes are under a versioned filename and
+      // the sidecar beside the destination is the pointer that names it — one
+      // rename, last, is what makes a generation active (round-4 B2). The
+      // destination path itself holds nothing: a reader that assumed it would
+      // find nothing there, which is why `activeFile` exists.
+      expect(Option.isSome(activeFile)).toBe(true);
+      if (Option.isNone(activeFile)) return;
+      expect(activeFile.value.startsWith(`${destination}.g-`)).toBe(true);
+      expect(yield* fs.exists(activeFile.value).pipe(Effect.orDie)).toBe(true);
+      expect(yield* fs.exists(destination).pipe(Effect.orDie)).toBe(false);
       expect(yield* fs.exists(`${destination}.building`).pipe(Effect.orDie)).toBe(false);
       expect(yield* fs.exists(`${destination}.building.provenance.json`).pipe(Effect.orDie)).toBe(
         false,
@@ -131,7 +147,7 @@ describe('electron main vectors artifact (native)', () => {
       // The installed file is byte-identical to the source: a flat artifact must
       // not be mutated by the install, and the SQLite store's whole failure mode
       // was that it tried to.
-      const installed = yield* fs.readFile(destination).pipe(Effect.orDie);
+      const installed = yield* fs.readFile(activeFile.value).pipe(Effect.orDie);
       const source = yield* fs.readFile(sourceFile).pipe(Effect.orDie);
       expect(installed.byteLength).toBe(source.byteLength);
       expect(Buffer.from(installed).equals(Buffer.from(source))).toBe(true);
@@ -139,7 +155,7 @@ describe('electron main vectors artifact (native)', () => {
       // And the search layer scans exactly what was activated: the same three
       // paragraph ids, under the fingerprint this build embeds with.
       const loaded = yield* loadVectorIndex.pipe(
-        Effect.provide(layerFileVectorIndexBytes(destination)),
+        Effect.provide(layerFileVectorIndexBytes(activeFile.value)),
       );
       expect(loaded._tag).toBe('index');
       if (loaded._tag !== 'index') return;
@@ -155,7 +171,10 @@ describe('electron main vectors artifact (native)', () => {
       // install: the sidecar provenance is readable, so `readCurrent` reports
       // the generation that is already active.
       const again = yield* install({ userData, sourceFile }).pipe(Effect.orDie);
-      expect(Option.isNone(again)).toBe(true);
+      expect(Option.isNone(again.activation)).toBe(true);
+      // And the pointer still names the same generation — a no-op install must
+      // not have retired and re-landed the bytes.
+      expect(again.activeFile).toEqual(activeFile);
 
       // The service composes over the activated file, so a query built against
       // this host reaches the index the installer swapped in. `NotWired`
@@ -164,7 +183,7 @@ describe('electron main vectors artifact (native)', () => {
       // if the file was never activated.
       const search = SearchService.Live.pipe(
         Layer.provide(SearchCorpusSources.NotWired),
-        Layer.provide(layerFileVectorIndexBytes(destination)),
+        Layer.provide(layerFileVectorIndexBytes(activeFile.value)),
       );
       yield* Effect.gen(function* () {
         const service = yield* SearchService;
@@ -199,7 +218,7 @@ describe('electron main vectors artifact (native)', () => {
       const outcome = yield* Effect.exit(install({ userData, sourceFile }));
 
       // Either a failure or no activation — what must *not* happen is a swap.
-      const activated = outcome._tag === 'Success' && Option.isSome(outcome.value);
+      const activated = outcome._tag === 'Success' && Option.isSome(outcome.value.activation);
       expect(activated).toBe(false);
       // Nothing was left behind: no active file, no candidate, no sidecar.
       expect(yield* fs.exists(destination).pipe(Effect.orDie)).toBe(false);

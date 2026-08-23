@@ -13,6 +13,8 @@ import { NodeFileSystem } from '@effect/platform-node';
 import { TopicService } from '@bible/core/topics';
 import {
   layerArtifactOrAbsent,
+  layerReloadableArtifact,
+  ReloadableArtifact,
   topicSlug,
   WikiSectionSources,
   WikiService,
@@ -27,7 +29,7 @@ import { describe, expect, it } from '@effect/vitest';
 import { Effect, FileSystem, Layer, Option } from 'effect';
 import { DatabaseSync } from 'node:sqlite';
 
-const write = (file: string): void => {
+const write = (file: string, slug = 'sanctuary', title = 'The Sanctuary'): void => {
   const database = new DatabaseSync(file);
   database.exec(`
     CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
@@ -36,9 +38,10 @@ const write = (file: string): void => {
     CREATE TABLE topic_edges (from_slug TEXT NOT NULL, to_slug TEXT NOT NULL, kind TEXT NOT NULL, position INTEGER NOT NULL, PRIMARY KEY (from_slug, to_slug, kind));
     CREATE TABLE topic_catalog_keys (slug TEXT PRIMARY KEY, catalog_id TEXT NOT NULL, matched_by TEXT NOT NULL);
     INSERT INTO meta (key, value) VALUES ('schema_major', '1');
-    INSERT INTO topics (slug, title, thesis_ast, body_ast, position)
-      VALUES ('sanctuary', 'The Sanctuary', '[]', '[]', 0);
   `);
+  database
+    .prepare('INSERT INTO topics (slug, title, thesis_ast, body_ast, position) VALUES (?,?,?,?,0)')
+    .run(slug, title, '[]', '[]');
   database.close();
 };
 
@@ -65,6 +68,56 @@ describe('electron main topics artifact (native)', () => {
       }).pipe(
         Effect.provide(
           layerArtifactOrAbsent(driver, file).pipe(
+            Layer.provide(TopicService.Test([])),
+            Layer.provide(WikiSectionSources.NotWired),
+          ),
+        ),
+      );
+    }).pipe(Effect.scoped, Effect.provide(NodeFileSystem.layer)),
+  );
+
+  /** §3.6's reload, through the driver Electron main actually loads.
+   *
+   *  The portable suite proves the reload seam over `bun:sqlite`
+   *  (`packages/core/src/wiki/service-reload.test.ts`). What it cannot prove is
+   *  that *this* driver participates: `node:sqlite` spells no-create through
+   *  `readonly` rather than a `create` flag, and it is the driver whose
+   *  `immutable=1` inode caused the finding in the first place. So the swap is
+   *  re-run here, on the runtime the desktop ships — which is also the only
+   *  runtime that can open the URI at all.
+   *
+   *  Two artifacts, one path, one rename between them, and content that exists
+   *  only in the second. */
+  it.effect('serves the new artifact after a reload, through the Node driver', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const directory = yield* fs
+        .makeTempDirectoryScoped({ prefix: 'bible-electron-wiki-reload-' })
+        .pipe(Effect.orDie);
+      const file = `${directory}/topics.db`;
+      const staged = `${directory}/topics.db.building`;
+      yield* Effect.sync(() => write(file));
+
+      yield* Effect.gen(function* () {
+        const wiki = yield* WikiService;
+        const artifact = yield* ReloadableArtifact;
+
+        const slugs = () => Effect.map(wiki.list({}), (pages) => pages.map((p) => String(p.slug)));
+        expect(yield* slugs()).toEqual(['sanctuary']);
+
+        yield* Effect.sync(() => write(staged, 'investigative-judgment', 'The Judgment'));
+        yield* fs.rename(staged, file).pipe(Effect.orDie);
+
+        // The inode this driver holds is the old one, which is the whole
+        // reason the reload seam exists.
+        expect(yield* slugs()).toEqual(['sanctuary']);
+
+        yield* artifact.reload;
+        expect(yield* slugs()).toEqual(['investigative-judgment']);
+        expect((yield* wiki.topic(topicSlug('investigative-judgment'))).title).toBe('The Judgment');
+      }).pipe(
+        Effect.provide(
+          layerReloadableArtifact(driver, file).pipe(
             Layer.provide(TopicService.Test([])),
             Layer.provide(WikiSectionSources.NotWired),
           ),

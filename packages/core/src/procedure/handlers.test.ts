@@ -17,6 +17,12 @@ import {
 import { TopicDetail, TopicId, TopicReference, TopicSection } from '../topics/model.js';
 import { TopicService } from '../topics/service.js';
 import { BibleDatabase } from '../bible-db/bible-database.js';
+import {
+  ContentActivation,
+  ContentManifestSource,
+  ContentUpdate,
+} from '../content-update/service.js';
+import { CorpusSupply } from '../corpus-supply/service.js';
 import { EGWCommentaryService } from '../egw-commentary/service.js';
 import { StudyService } from '../study/service.js';
 import { strongsNumber } from '../study/model.js';
@@ -184,6 +190,14 @@ const Dependencies = Layer.mergeAll(
   StudyService.Live.pipe(
     Layer.provide(BibleDatabase.layerTest()),
     Layer.provide(EGWCommentaryService.Test()),
+  ),
+  // The update seam (§3.6) over a host that wires no file corpus and can reach
+  // no manifest: `v1.content.status` resolves through the real service and
+  // answers `offline` with nothing installed, rather than through a stub.
+  ContentUpdate.Live.pipe(
+    Layer.provide(CorpusSupply.layer),
+    Layer.provide(ContentManifestSource.Unreachable),
+    Layer.provide(ContentActivation.Inert),
   ),
   Layer.succeed(
     WritingsLibraryRuntime,

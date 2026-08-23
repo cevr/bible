@@ -208,6 +208,8 @@ const handlerLayer = (
       'v1.wiki.lookup.resolve': lookup,
       'v1.study.verse.get': () => Effect.die('unused'),
       'v1.study.strongs.get': () => Effect.die('unused'),
+      'v1.content.status': () => Effect.die('unused'),
+      'v1.content.update': () => Effect.die('unused'),
     }),
   );
 

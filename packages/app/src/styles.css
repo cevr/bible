@@ -1049,6 +1049,44 @@ body > .bible-menu {
   justify-self: start;
 }
 
+/* §3.6's non-blocking toast. Fixed to the bottom edge so it never displaces the
+   reading column — a banner that reflowed the text the reader is in the middle
+   of would be blocking in every sense that matters, whatever it announced. The
+   status line's `grid-column: 2` belongs to the settings grid, so it is reset
+   here. */
+.bible-content-toast {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  max-width: min(28rem, calc(100vw - 2rem));
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--bible-rule);
+  border-radius: 0.5rem;
+  background: var(--bible-paper-raised);
+  box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 18%);
+}
+
+.bible-content-toast .bible-form-status {
+  grid-column: auto;
+  flex: 1;
+}
+
+.bible-content-toast a,
+.bible-content-toast button {
+  flex: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--bible-accent);
+  font: inherit;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
 .bible-settings__data-actions {
   display: flex;
   flex-wrap: wrap;

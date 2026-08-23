@@ -58,6 +58,8 @@ const HandlerLayer = BibleProcedureGroup.toLayer(
     'v1.study.strongs.get': () => Effect.die('unused'),
     'v1.preferences.reading.get': () => Effect.die('unused'),
     'v1.preferences.reading.patch': () => Effect.die('unused'),
+    'v1.content.status': () => Effect.die('unused'),
+    'v1.content.update': () => Effect.die('unused'),
   }),
 );
 

@@ -6,6 +6,7 @@ import type { ReaderTypeface } from '@bible/core/reading-preferences';
 import { decodeRoute, readerLocationForRoute } from '../route/index.js';
 import { failureCategory } from '@bible/core/observability';
 import { WikiTrailProvider } from '../reading/wiki-trail.js';
+import { ContentUpdateToast } from './content-update-toast.js';
 import { useReadingPreferences, useRecordReading } from '../runtime/index.js';
 import { Button, CommandPalette, Menu, MenuIcon, SearchIcon } from '../ui/index.js';
 
@@ -220,6 +221,10 @@ export const ReadingShell = (props: ParentProps) => {
             surface" is derived from the location. */}
         <WikiTrailProvider>{props.children}</WikiTrailProvider>
       </main>
+      {/* §3.6's non-blocking toast. After `<main>` so it is last in the tab
+          order, and beside the palette because both are chrome the shell owns
+          once rather than anything a route renders. */}
+      <ContentUpdateToast />
       <CommandPalette
         open={commandOpen()}
         onOpenChange={setCommandOpen}

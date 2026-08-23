@@ -3,6 +3,7 @@ import {
   assetSourceId,
   BIBLE_ARTIFACT_RELEASE,
   BibleArtifact,
+  TOPICS_ARTIFACT_GENERATION,
   TOPICS_ARTIFACT_RELEASE,
   TopicsArtifact,
   type TopicsArtifactInstaller,
@@ -11,6 +12,7 @@ import {
   type BibleArtifactInstaller,
   type BibleArtifactRecipe,
   corpusDigest,
+  CorpusGeneration,
   corpusRevision,
   CorpusInstallationError,
   CorpusProvenance,
@@ -22,7 +24,8 @@ import {
   type FileCorpusArtifact,
   type TopicsArtifactReader,
 } from '@bible/core/corpus-supply';
-import { Effect, Layer, Option, Predicate, Stream } from 'effect';
+import { CONTENT_ARTIFACT_PROXY_PATH } from '@bible/core/content-update';
+import { Effect, Layer, Option, Predicate, Schema, Stream } from 'effect';
 import { HttpClient } from 'effect/unstable/http';
 import * as SQLite from 'wa-sqlite';
 
@@ -112,7 +115,7 @@ const readProvenance = (
   Effect.gen(function* () {
     yield* verify(database);
     const rows = yield* database.query(
-      "SELECT key, value FROM meta WHERE key IN ('corpus_source', 'corpus_revision', 'corpus_digest')",
+      "SELECT key, value FROM meta WHERE key IN ('corpus_source', 'corpus_revision', 'corpus_digest', 'corpus_generation')",
     );
     const values = new Map(rows.map((row) => [row['key'], row['value']]));
     const source = values.get('corpus_source');
@@ -129,6 +132,14 @@ const readProvenance = (
       source: assetSourceId(source),
       revision: corpusRevision(revision),
       digest: Option.some(corpusDigest(digest)),
+      // §3.6's release ordinal, when this generation came from a source that
+      // stated one. Every artifact installed before the runtime path existed
+      // has no such row, which reads back as `None` — the same answer a local
+      // source gives — rather than as an incomplete provenance.
+      generation: Option.fromNullishOr(values.get('corpus_generation')).pipe(
+        Option.filter(Predicate.isString),
+        Option.flatMap((raw) => Schema.decodeUnknownOption(CorpusGeneration)(Number(raw))),
+      ),
     });
   }).pipe(Effect.option);
 
@@ -157,6 +168,13 @@ const writeProvenance = Effect.fn('BrowserCorpusArtifacts.writeProvenance')(func
     yield* database.write(upsert, ['corpus_source', provenance.source]);
     yield* database.write(upsert, ['corpus_revision', provenance.revision]);
     yield* database.write(upsert, ['corpus_digest', digest]);
+    // Written only when the source stated one, and cleared otherwise: a stale
+    // ordinal left behind by an earlier runtime install would outrank the
+    // generation it no longer describes.
+    yield* Option.match(provenance.generation, {
+      onNone: () => database.write('DELETE FROM meta WHERE key = ?', ['corpus_generation']),
+      onSome: (generation) => database.write(upsert, ['corpus_generation', String(generation)]),
+    });
     yield* database.exec('COMMIT');
   });
   yield* write.pipe(Effect.onError(() => database.exec('ROLLBACK').pipe(Effect.ignore)));
@@ -188,6 +206,11 @@ export const layerBrowserFileArtifacts = <Corpus extends string, RecipeId, Insta
    *  startup failure. The installer stays fully wired either way, so the
    *  active generation is still read and reported. */
   readonly release: Option.Option<FileArtifactRelease>;
+  /** The release ordinal the compiled pin was published under (§3.6), when this
+   *  build states one. `None` while no release is published, which is also what
+   *  keeps a browser holding a runtime generation from being re-floored by a
+   *  pin that never said which generation it is (round-4 F2). */
+  readonly pinnedGeneration?: Option.Option<CorpusGeneration>;
   /** Bound to the same corpus as the artifact: both carry the typed storage
    *  identity, so the asset path, generation filenames, IndexedDB database, and
    *  registry key all come from one derivation and a store belonging to another
@@ -208,7 +231,30 @@ export const layerBrowserFileArtifacts = <Corpus extends string, RecipeId, Insta
   const verify = input.verify;
   const fetchArtifact = input.fetch ?? defaultFetchArtifact;
   const onProgress = input.onProgress ?? (() => {});
-  const releaseSource = (release: FileArtifactRelease): FileArtifactSourceService => ({
+  /** Where this browser reads a release's bytes.
+   *
+   *  The pinned release is at `identity.assetPath` — a compiled-in route with
+   *  no parameters. A release §3.6 *offered* is at a different address per
+   *  release, so it goes through the runtime-artifact proxy carrying the
+   *  offered URL and the size it declared; the worker cannot reach the release
+   *  host itself, and the proxy re-checks the origin allowlist server-side
+   *  before it fetches anything (round-4 F1).
+   *
+   *  Reading `identity.assetPath` for *both* is what made accepting an offer a
+   *  no-op that looked like a success: the pinned route serves the pinned
+   *  bytes, whose digest is not the offer's, so the install failed the digest
+   *  gate — or, while no release is pinned at all, 404'd. */
+  const releaseAddress = (release: FileArtifactRelease, runtime: boolean): string => {
+    if (!runtime) return identity.assetPath;
+    const query = new URLSearchParams({ url: release.url, size: String(release.size) });
+    return `${CONTENT_ARTIFACT_PROXY_PATH}?${query.toString()}`;
+  };
+
+  const releaseSource = (
+    release: FileArtifactRelease,
+    generation: Option.Option<CorpusGeneration> = Option.none(),
+    runtime = false,
+  ): FileArtifactSourceService => ({
     kind: 'release',
     acquire: Effect.succeed({
       kind: 'release',
@@ -216,10 +262,14 @@ export const layerBrowserFileArtifacts = <Corpus extends string, RecipeId, Insta
         source: assetSourceId(`${corpus}-release`),
         revision: corpusRevision(release.revision),
         digest: Option.some(corpusDigest(release.digest)),
+        // The ordinal this release states, so startup's install decision can
+        // see that a compiled pin is older than what §3.6 installed at runtime
+        // (round-4 F2), and so a successful install persists it.
+        generation,
       }),
       expectedSize: Option.some(release.size),
       bytes: Stream.unwrap(
-        fetchArtifact(identity.assetPath).pipe(
+        fetchArtifact(releaseAddress(release, runtime)).pipe(
           Effect.mapError((cause) => sourceError(`fetch-${corpus}-release`, cause)),
           Effect.flatMap((response) => {
             if (response.status < 200 || response.status >= 300) {
@@ -237,12 +287,23 @@ export const layerBrowserFileArtifacts = <Corpus extends string, RecipeId, Insta
       ),
     }),
   });
-  const recipe = input.artifact.layerRecipe(
-    Option.match(input.release, {
-      onNone: () => [],
-      onSome: (release) => [releaseSource(release)],
+  const recipe = input.artifact.layerRecipe({
+    sources: Option.match(input.release, {
+      onNone: (): readonly FileArtifactSourceService[] => [],
+      onSome: (release) => [releaseSource(release, input.pinnedGeneration ?? Option.none())],
     }),
-  );
+    // §3.6's runtime leg: one builder, so a runtime install cannot take a
+    // different path to the installer than the pin does — the digest gate, the
+    // size check and the atomic swap are the same guarantees rather than
+    // parallel ones. Two things it does pass explicitly:
+    //
+    //  - the offered ordinal, because a runtime release always states one and
+    //    dropping it would persist a generation with no ordinal, which the next
+    //    startup reads as "older than any pin" and re-floors (round-4 F2);
+    //  - `runtime`, so the bytes are fetched through the artifact proxy with
+    //    the offered address rather than from the pinned asset route (F1).
+    releaseSource: (release) => releaseSource(release, release.generation, true),
+  });
   const installer = input.artifact.layerInstaller({
     current: Effect.gen(function* () {
       if (!(yield* input.generations.openActive)) return Option.none();
@@ -250,6 +311,15 @@ export const layerBrowserFileArtifacts = <Corpus extends string, RecipeId, Insta
     }).pipe(
       Effect.mapError((cause) => CorpusInstallationError.make({ corpus: reportedCorpus, cause })),
     ),
+    // The browser already stores each generation under its own versioned OPFS
+    // filename behind one atomic registry pointer — the shape the native
+    // adapter now mirrors (round-4 B2). This is that pointer, read.
+    //
+    // `suspend` because the pointer *moves*: an install activates a new
+    // generation, and a value read at layer-construction time would name
+    // whatever was active when the worker started — `None` on a browser that
+    // installed its first artifact at runtime, which is every browser today.
+    activeFile: Effect.suspend(() => Effect.succeed(input.generations.activeFilename)),
     install: (artifact) =>
       Effect.gen(function* () {
         if (Option.isNone(artifact.provenance.digest)) {
@@ -280,6 +350,8 @@ export const layerBrowserFileArtifacts = <Corpus extends string, RecipeId, Insta
             source: artifact.provenance.source,
             revision: artifact.provenance.revision,
             digest: Option.some(corpusDigest(written.digest)),
+            // The candidate's own generation, carried into what is persisted.
+            generation: artifact.provenance.generation,
           });
           const installed = yield* Effect.acquireUseRelease(
             reserved.database.open(SQLite.SQLITE_OPEN_READWRITE),
@@ -342,6 +414,7 @@ export const layerBrowserTopicsArtifacts = (input: {
   layerBrowserFileArtifacts({
     artifact: TopicsArtifact,
     release: TOPICS_ARTIFACT_RELEASE,
+    pinnedGeneration: TOPICS_ARTIFACT_GENERATION,
     generations: input.generations,
     downloader: input.downloader,
     verify: verifyTopicsDatabase,

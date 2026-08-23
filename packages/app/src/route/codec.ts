@@ -13,6 +13,7 @@ const isSettingsSection = (value: string): value is SettingsSection =>
   value === 'reader' ||
   value === 'sync' ||
   value === 'data' ||
+  value === 'content' ||
   value === 'shortcuts' ||
   value === 'about';
 

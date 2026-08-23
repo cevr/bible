@@ -23,6 +23,12 @@
 import { Effect, Layer, Schema, Stream } from 'effect';
 
 import { BibleDatabase } from '../bible-db/bible-database.js';
+import {
+  ContentActivation,
+  ContentManifestSource,
+  ContentUpdate,
+} from '../content-update/service.js';
+import { CorpusSupply } from '../corpus-supply/service.js';
 import { BibleService } from '../bible/service.js';
 import { EGWCommentaryService } from '../egw-commentary/service.js';
 import { EGWParagraphDatabase } from '../egw-db/book-database.js';
@@ -67,6 +73,7 @@ export interface ProcedureDependencyOverrides {
   readonly lookup?: Layer.Layer<LookupService>;
   readonly search?: Layer.Layer<SearchService>;
   readonly study?: Layer.Layer<StudyService>;
+  readonly content?: Layer.Layer<ContentUpdate>;
 }
 
 interface EmptyCommit {
@@ -120,6 +127,20 @@ const emptySearch: Layer.Layer<SearchService> = SearchService.Live.pipe(
   Layer.provide(VectorIndexBytes.None),
 );
 
+/** A `ContentUpdate` over a host that wires no file corpus and can reach no
+ *  manifest: it answers, and answers `offline` with nothing installed (§3.6).
+ *  The same posture `emptyWiki`, `emptyLookup` and `emptySearch` take — a suite
+ *  not testing the update seam must still build the handler layer, and
+ *  `Unreachable` is how "this host checks no manifest" is written down rather
+ *  than left to an omitted dependency. */
+const emptyContent: Layer.Layer<ContentUpdate> = ContentUpdate.Live.pipe(
+  Layer.provide(CorpusSupply.layer),
+  Layer.provide(ContentManifestSource.Unreachable),
+  // Nothing can activate over an unreachable manifest, so there is nothing to
+  // reopen — `Inert` says that, rather than an omitted dependency saying it.
+  Layer.provide(ContentActivation.Inert),
+);
+
 /** Everything `BibleProcedureHandlers` requires, with the named services
  *  replaced by the caller's own.
  *
@@ -136,6 +157,7 @@ export const procedureDependencies = (
   | LookupService
   | SearchService
   | StudyService
+  | ContentUpdate
   | WritingsLibraryRuntime
   | ProcedureRuntime
   | ReadingContinuityRuntime
@@ -152,6 +174,7 @@ export const procedureDependencies = (
     overrides.lookup ?? emptyLookup,
     overrides.search ?? emptySearch,
     overrides.study ?? emptyStudy,
+    overrides.content ?? emptyContent,
     Layer.succeed(
       WritingsLibraryRuntime,
       WritingsLibraryRuntime.of({

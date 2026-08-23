@@ -76,19 +76,22 @@ const makeLayer = (options: {
   if (options.includeBible === false) {
     return CorpusSupply.layer.pipe(Layer.provide(Layer.merge(database, source)));
   }
-  const recipe = BibleArtifact.layerRecipe([
-    {
-      kind: 'release',
-      acquire: Effect.succeed({
+  const recipe = BibleArtifact.layerRecipe({
+    sources: [
+      {
         kind: 'release',
-        provenance: contribution.provenance,
-        expectedSize: Option.none(),
-        bytes: Stream.empty,
-      }),
-    },
-  ]);
+        acquire: Effect.succeed({
+          kind: 'release',
+          provenance: contribution.provenance,
+          expectedSize: Option.none(),
+          bytes: Stream.empty,
+        }),
+      },
+    ],
+  });
   const installer = BibleArtifact.layerInstaller({
     current: Effect.succeed(Option.none()),
+    activeFile: Effect.succeedNone,
     install: (artifact) => Effect.succeed({ installed: 31_102, provenance: artifact.provenance }),
   });
   return CorpusSupply.layer.pipe(
@@ -182,17 +185,20 @@ describe('CorpusSupply', () => {
   /** A wired recipe whose every source refuses to acquire — an offline host, or
    *  one whose only source is a release with no published artifact yet. */
   const offline = (current: Option.Option<CorpusProvenance>) => {
-    const recipe = BibleArtifact.layerRecipe([
-      {
-        kind: 'release',
-        acquire: CorpusSourceUnavailableError.make({
-          operation: 'fetch-bible-release',
-          cause: 'offline',
-        }),
-      },
-    ]);
+    const recipe = BibleArtifact.layerRecipe({
+      sources: [
+        {
+          kind: 'release',
+          acquire: CorpusSourceUnavailableError.make({
+            operation: 'fetch-bible-release',
+            cause: 'offline',
+          }),
+        },
+      ],
+    });
     const installer = BibleArtifact.layerInstaller({
       current: Effect.succeed(current),
+      activeFile: Effect.succeedNone,
       install: (artifact) => Effect.succeed({ installed: 31_102, provenance: artifact.provenance }),
     });
     return CorpusSupply.layer.pipe(Layer.provide(Layer.merge(recipe, installer)));

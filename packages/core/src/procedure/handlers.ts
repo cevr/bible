@@ -1,3 +1,4 @@
+import { ContentUpdate } from '../content-update/service.js';
 import { SearchQuery } from '../search/model.js';
 import { SearchService } from '../search/service.js';
 import { Reference as BibleReference } from '../bible/index.js';
@@ -83,6 +84,7 @@ export const BibleProcedureHandlers = BibleProcedureGroup.toLayer(
     const lookup = yield* LookupService;
     const search = yield* SearchService;
     const study = yield* StudyService;
+    const content = yield* ContentUpdate;
     const data = yield* DataPortabilityRuntime;
 
     return {
@@ -185,6 +187,13 @@ export const BibleProcedureHandlers = BibleProcedureGroup.toLayer(
         study
           .strongs(input.number, { limit: input.limit })
           .pipe(Effect.mapError(normalizeStudyFailure('v1.study.strongs.get'))),
+      // The same `ContentUpdate` the CLI resolves directly — so "the RPC
+      // status" and "`bible topics status --json`" are one value crossing two
+      // seams (§3.6). Neither call fails: §3.6 makes offline, refusal and a
+      // mismatch that left the installed generation active into fields of the
+      // result rather than error channels, so there is no failure to normalize.
+      'v1.content.status': (input) => content.status(input.corpus),
+      'v1.content.update': (input) => content.update(input.corpus),
     };
   }),
 );

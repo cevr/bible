@@ -44,9 +44,15 @@ import { Option } from 'effect';
  * `SaveNote`. A `DeleteNote` carries only the id and so stales the whole area.
  *
  * `WritingsLibrary` has no sync counterpart: downloaded books are
- * device-local, so that scope exists only in this cache.
+ * device-local, so that scope exists only in this cache. `ContentUpdate`
+ * (§3.6's installed topic content) is device-local for the same reason — which
+ * generation a machine has activated is a fact about that machine, so it is
+ * never published and never arrives from another device.
  */
-export type CacheScope = ChangeScope | { readonly _tag: 'WritingsLibrary' };
+export type CacheScope =
+  | ChangeScope
+  | { readonly _tag: 'WritingsLibrary' }
+  | { readonly _tag: 'ContentUpdate' };
 
 /**
  * The location a note scope addresses, if it addresses one.
@@ -72,6 +78,10 @@ const noteLocation = (scope: NoteScope): Option.Option<ReaderLocation> => {
 export const READING_PREFERENCES_KEY = 'reading-preferences';
 export const READING_CONTINUITY_KEY = 'reading-continuity';
 export const WRITINGS_LIBRARY_KEY = 'writings-library';
+/** §3.6's installed topic content. Invalidated by `v1.content.update`, so the
+ *  toast and the settings entry re-read one status after a run rather than each
+ *  holding its own stale copy. */
+export const CONTENT_KEY = 'content-update';
 
 /** The key every query and mutation in one library area shares. */
 export const libraryAreaKey = (area: LibraryStateArea): string => `library:${area}`;
@@ -123,6 +133,8 @@ export const keysForScope = (scope: CacheScope): readonly string[] => {
       return [READING_CONTINUITY_KEY];
     case 'WritingsLibrary':
       return [WRITINGS_LIBRARY_KEY];
+    case 'ContentUpdate':
+      return [CONTENT_KEY];
   }
 };
 

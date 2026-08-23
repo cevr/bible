@@ -189,6 +189,8 @@ const handlerLayer = (recorder: Recorder, options: HandlerOptions = {}) =>
         recorder.bump(`strongs ${input.number}`);
         return Effect.succeed(lexicon);
       },
+      'v1.content.status': () => Effect.die('unused'),
+      'v1.content.update': () => Effect.die('unused'),
     }),
   );
 
