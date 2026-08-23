@@ -85,6 +85,70 @@ const releaseAt = (input: {
   generation: Option.map(Option.fromUndefinedOr(input.generation), corpusGeneration),
 });
 
+/** Each supply round at its own boundary. Every case composes its own host layer
+ *  from a scratch directory, so the provide belongs to these helpers rather than
+ *  to a block nested inside each test's generator. */
+const VECTORS_TARGET = { _tag: 'file', corpus: 'vectors' } satisfies {
+  readonly _tag: 'file';
+  readonly corpus: 'vectors';
+};
+
+const ensureVectors = (host: Layer.Layer<CorpusSupply>) =>
+  Effect.flatMap(CorpusSupply, (supply) => supply.ensure({ target: VECTORS_TARGET })).pipe(
+    Effect.provide(host),
+  );
+
+const ensureThenActiveFile = (host: Layer.Layer<CorpusSupply>) =>
+  Effect.gen(function* () {
+    const supply = yield* CorpusSupply;
+    yield* supply.ensure({ target: VECTORS_TARGET });
+    return yield* supply.activeFile('vectors');
+  }).pipe(Effect.provide(host));
+
+const readPointer = (host: Layer.Layer<CorpusSupply>) =>
+  Effect.gen(function* () {
+    const supply = yield* CorpusSupply;
+    return {
+      provenance: yield* supply.installed('vectors'),
+      file: yield* supply.activeFile('vectors'),
+    };
+  }).pipe(Effect.provide(host));
+
+const readInstalled = (host: Layer.Layer<CorpusSupply>) =>
+  Effect.flatMap(CorpusSupply, (supply) => supply.installed('vectors')).pipe(Effect.provide(host));
+
+const ensureThenReadPointer = (host: Layer.Layer<CorpusSupply>) =>
+  Effect.gen(function* () {
+    const supply = yield* CorpusSupply;
+    const receipt = yield* supply.ensure({ target: VECTORS_TARGET });
+    return {
+      receipt,
+      provenance: yield* supply.installed('vectors'),
+      file: yield* supply.activeFile('vectors'),
+    };
+  }).pipe(Effect.provide(host));
+
+const ensureThenReadInstalled = (host: Layer.Layer<CorpusSupply>) =>
+  Effect.gen(function* () {
+    const supply = yield* CorpusSupply;
+    yield* supply.ensure({ target: VECTORS_TARGET });
+    return yield* supply.installed('vectors');
+  }).pipe(Effect.provide(host));
+
+const installRuntimeRelease = (
+  host: Layer.Layer<CorpusSupply>,
+  release: {
+    readonly url: string;
+    readonly revision: string;
+    readonly digest: string;
+    readonly size: number;
+    readonly generation: Option.Option<ReturnType<typeof corpusGeneration>>;
+  },
+) =>
+  Effect.flatMap(CorpusSupply, (supply) => supply.installFrom({ corpus: 'vectors', release })).pipe(
+    Effect.provide(host),
+  );
+
 const RUNTIME_BYTES = 'the runtime generation four index';
 const PIN_BYTES = 'the compiled pin generation three index';
 
@@ -102,25 +166,19 @@ describe('§3.6 flat artifact activation', () => {
       const directory = yield* fs.makeTempDirectoryScoped({ prefix: 'flat-activation-' });
       const destination = `${directory}/vectors.bvi`;
 
-      const active = yield* Effect.gen(function* () {
-        const supply = yield* CorpusSupply;
-        yield* supply.ensure({ target: { _tag: 'file', corpus: 'vectors' } });
-        return yield* supply.activeFile('vectors');
-      }).pipe(
-        Effect.provide(
-          hostFor({
-            destination,
-            sources: [
-              releaseAt({
-                url: 'https://example.test/vectors.bvi',
-                bytes: RUNTIME_BYTES,
-                revision: 'vectors-v4',
-                generation: 4,
-              }),
-            ],
-            bytesFor: () => RUNTIME_BYTES,
-          }),
-        ),
+      const active = yield* ensureThenActiveFile(
+        hostFor({
+          destination,
+          sources: [
+            releaseAt({
+              url: 'https://example.test/vectors.bvi',
+              bytes: RUNTIME_BYTES,
+              revision: 'vectors-v4',
+              generation: 4,
+            }),
+          ],
+          bytesFor: () => RUNTIME_BYTES,
+        }),
       );
 
       const versioned = generationPath(destination, RUNTIME_BYTES);
@@ -157,21 +215,13 @@ describe('§3.6 flat artifact activation', () => {
 
       // A host with generation 3 activated, cleanly.
       const host = hostFor({ destination, sources: [pinned], bytesFor: () => PIN_BYTES });
-      yield* Effect.flatMap(CorpusSupply, (supply) =>
-        supply.ensure({ target: { _tag: 'file', corpus: 'vectors' } }),
-      ).pipe(Effect.provide(host));
+      yield* ensureVectors(host);
 
       // The crash: the newer generation's bytes are in place under their own
       // versioned name, and the pointer rename never happened.
       yield* fs.writeFileString(generationPath(destination, RUNTIME_BYTES), RUNTIME_BYTES);
 
-      const torn = yield* Effect.gen(function* () {
-        const supply = yield* CorpusSupply;
-        return {
-          provenance: yield* supply.installed('vectors'),
-          file: yield* supply.activeFile('vectors'),
-        };
-      }).pipe(Effect.provide(host));
+      const torn = yield* readPointer(host);
 
       // The old generation, whole: its revision, its ordinal, and its file.
       expect(Option.getOrUndefined(Option.map(torn.provenance, (p) => String(p.revision)))).toBe(
@@ -201,17 +251,13 @@ describe('§3.6 flat artifact activation', () => {
       });
       const host = hostFor({ destination, sources: [pinned], bytesFor: () => PIN_BYTES });
 
-      yield* Effect.flatMap(CorpusSupply, (supply) =>
-        supply.ensure({ target: { _tag: 'file', corpus: 'vectors' } }),
-      ).pipe(Effect.provide(host));
+      yield* ensureVectors(host);
 
       // The file the live pointer names, overwritten with something else — a
       // truncated write, a half-copied file, bit rot.
       yield* fs.writeFileString(generationPath(destination, PIN_BYTES), 'not that generation');
 
-      const provenance = yield* Effect.flatMap(CorpusSupply, (supply) =>
-        supply.installed('vectors'),
-      ).pipe(Effect.provide(host));
+      const provenance = yield* readInstalled(host);
 
       expect(Option.isNone(provenance)).toBe(true);
     }));
@@ -232,18 +278,16 @@ describe('§3.6 flat artifact activation', () => {
       const destination = `${directory}/vectors.bvi`;
 
       // Launch one: §3.6 installs runtime generation 4.
-      yield* Effect.flatMap(CorpusSupply, (supply) =>
-        supply.installFrom({
-          corpus: 'vectors',
-          release: {
-            url: 'https://example.test/runtime.bvi',
-            revision: 'vectors-v4',
-            digest: digestOf(RUNTIME_BYTES),
-            size: RUNTIME_BYTES.length,
-            generation: Option.some(corpusGeneration(4)),
-          },
-        }),
-      ).pipe(Effect.provide(hostFor({ destination, sources: [], bytesFor: () => RUNTIME_BYTES })));
+      yield* installRuntimeRelease(
+        hostFor({ destination, sources: [], bytesFor: () => RUNTIME_BYTES }),
+        {
+          url: 'https://example.test/runtime.bvi',
+          revision: 'vectors-v4',
+          digest: digestOf(RUNTIME_BYTES),
+          size: RUNTIME_BYTES.length,
+          generation: Option.some(corpusGeneration(4)),
+        },
+      );
 
       // Launch two: a fresh graph whose compiled pin is generation 3.
       const restarted = hostFor({
@@ -258,15 +302,7 @@ describe('§3.6 flat artifact activation', () => {
         ],
         bytesFor: () => PIN_BYTES,
       });
-      const after = yield* Effect.gen(function* () {
-        const supply = yield* CorpusSupply;
-        const receipt = yield* supply.ensure({ target: { _tag: 'file', corpus: 'vectors' } });
-        return {
-          receipt,
-          provenance: yield* supply.installed('vectors'),
-          file: yield* supply.activeFile('vectors'),
-        };
-      }).pipe(Effect.provide(restarted));
+      const after = yield* ensureThenReadPointer(restarted);
 
       // Nothing was activated, and generation 4 is still what this host reads.
       expect(after.receipt.activated).toEqual([]);
@@ -294,31 +330,23 @@ describe('§3.6 flat artifact activation', () => {
       const packaged = `${directory}/packaged.bvi`;
       yield* fs.writeFileString(packaged, PIN_BYTES);
 
-      yield* Effect.flatMap(CorpusSupply, (supply) =>
-        supply.installFrom({
-          corpus: 'vectors',
-          release: {
-            url: 'https://example.test/runtime.bvi',
-            revision: 'vectors-v4',
-            digest: digestOf(RUNTIME_BYTES),
-            size: RUNTIME_BYTES.length,
-            generation: Option.some(corpusGeneration(4)),
-          },
-        }),
-      ).pipe(Effect.provide(hostFor({ destination, sources: [], bytesFor: () => RUNTIME_BYTES })));
+      yield* installRuntimeRelease(
+        hostFor({ destination, sources: [], bytesFor: () => RUNTIME_BYTES }),
+        {
+          url: 'https://example.test/runtime.bvi',
+          revision: 'vectors-v4',
+          digest: digestOf(RUNTIME_BYTES),
+          size: RUNTIME_BYTES.length,
+          generation: Option.some(corpusGeneration(4)),
+        },
+      );
 
-      const after = yield* Effect.gen(function* () {
-        const supply = yield* CorpusSupply;
-        yield* supply.ensure({ target: { _tag: 'file', corpus: 'vectors' } });
-        return yield* supply.installed('vectors');
-      }).pipe(
-        Effect.provide(
-          hostFor({
-            destination,
-            sources: [{ kind: 'packaged', path: packaged, label: 'packaged' }],
-            bytesFor: () => PIN_BYTES,
-          }),
-        ),
+      const after = yield* ensureThenReadInstalled(
+        hostFor({
+          destination,
+          sources: [{ kind: 'packaged', path: packaged, label: 'packaged' }],
+          bytesFor: () => PIN_BYTES,
+        }),
       );
 
       expect(Option.getOrUndefined(Option.map(after, (p) => String(p.revision)))).toBe(
@@ -335,38 +363,30 @@ describe('§3.6 flat artifact activation', () => {
       const directory = yield* fs.makeTempDirectoryScoped({ prefix: 'flat-activation-' });
       const destination = `${directory}/vectors.bvi`;
 
-      yield* Effect.flatMap(CorpusSupply, (supply) =>
-        supply.installFrom({
-          corpus: 'vectors',
-          release: {
-            url: 'https://example.test/old.bvi',
-            revision: 'vectors-v3',
-            digest: digestOf(PIN_BYTES),
-            size: PIN_BYTES.length,
-            generation: Option.some(corpusGeneration(3)),
-          },
-        }),
-      ).pipe(Effect.provide(hostFor({ destination, sources: [], bytesFor: () => PIN_BYTES })));
+      yield* installRuntimeRelease(
+        hostFor({ destination, sources: [], bytesFor: () => PIN_BYTES }),
+        {
+          url: 'https://example.test/old.bvi',
+          revision: 'vectors-v3',
+          digest: digestOf(PIN_BYTES),
+          size: PIN_BYTES.length,
+          generation: Option.some(corpusGeneration(3)),
+        },
+      );
 
-      const after = yield* Effect.gen(function* () {
-        const supply = yield* CorpusSupply;
-        yield* supply.ensure({ target: { _tag: 'file', corpus: 'vectors' } });
-        return yield* supply.installed('vectors');
-      }).pipe(
-        Effect.provide(
-          hostFor({
-            destination,
-            sources: [
-              releaseAt({
-                url: 'https://example.test/new.bvi',
-                bytes: RUNTIME_BYTES,
-                revision: 'vectors-v5',
-                generation: 5,
-              }),
-            ],
-            bytesFor: () => RUNTIME_BYTES,
-          }),
-        ),
+      const after = yield* ensureThenReadInstalled(
+        hostFor({
+          destination,
+          sources: [
+            releaseAt({
+              url: 'https://example.test/new.bvi',
+              bytes: RUNTIME_BYTES,
+              revision: 'vectors-v5',
+              generation: 5,
+            }),
+          ],
+          bytesFor: () => RUNTIME_BYTES,
+        }),
       );
 
       expect(Option.getOrUndefined(Option.map(after, (p) => String(p.revision)))).toBe(

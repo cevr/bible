@@ -38,12 +38,12 @@
     "@playwright/test": "^1.62.1",
     "@types/better-sqlite3": "^9.6.0",
     "effect-bun-test": "catalog:",
-    "electron": "^43.4.0",
+    "electron": "^43.4.1",
     "electron-builder": "^26.15.3",
     "esbuild": "^0.28.2",
-    "vite": "^8.2.1",
+    "vite": "^8.2.2",
     "vite-plugin-solid": "catalog:",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.11"
   },
   "build": {
     "appId": "com.bible.desktop",

@@ -51,14 +51,20 @@ export class ContentManifestSource extends Context.Service<
   /** The host that cannot reach a manifest at all — a build with the runtime
    *  path deliberately off, and the layer every suite that is not testing the
    *  update seam supplies. Reported as `offline`, which is the truth. */
-  static Unreachable: Layer.Layer<ContentManifestSource> = Layer.succeed(ContentManifestSource, {
-    read: Effect.succeed(manifestUnavailable('no manifest source is wired')),
-  });
+  static Unreachable: Layer.Layer<ContentManifestSource> = Layer.succeed(
+    ContentManifestSource,
+    ContentManifestSource.of({
+      read: Effect.succeed(manifestUnavailable('no manifest source is wired')),
+    }),
+  );
 
   /** A fixed manifest outcome. The Config seam's landing point on every host,
    *  and what the desktop e2e seeds. */
   static layerOf = (outcome: ManifestFetchOutcome): Layer.Layer<ContentManifestSource> =>
-    Layer.succeed(ContentManifestSource, { read: Effect.succeed(outcome) });
+    Layer.succeed(
+      ContentManifestSource,
+      ContentManifestSource.of({ read: Effect.succeed(outcome) }),
+    );
 }
 
 /** What this build compiled against, for the one corpus §3.6's runtime path
@@ -133,13 +139,17 @@ export class ContentActivation extends Context.Service<
 >()('@bible/core/content-update/ContentActivation') {
   /** The host with nothing to reopen: the CLI, whose next command is a new
    *  process, and every suite not testing the reader seam. */
-  static Inert: Layer.Layer<ContentActivation> = Layer.succeed(ContentActivation, {
-    onActivated: () => Effect.void,
-  });
+  static Inert: Layer.Layer<ContentActivation> = Layer.succeed(
+    ContentActivation,
+    ContentActivation.of({
+      onActivated: () => Effect.void,
+    }),
+  );
 
   static layerOf = (
     onActivated: (corpus: UpdatableCorpus) => Effect.Effect<void>,
-  ): Layer.Layer<ContentActivation> => Layer.succeed(ContentActivation, { onActivated });
+  ): Layer.Layer<ContentActivation> =>
+    Layer.succeed(ContentActivation, ContentActivation.of({ onActivated }));
 }
 
 export interface ContentUpdateService {

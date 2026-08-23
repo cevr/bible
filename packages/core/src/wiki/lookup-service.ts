@@ -384,7 +384,7 @@ const strongsHits = (
                   ),
                 ),
               ),
-            { concurrency: 'unbounded' },
+            { concurrency: 8 },
           ),
         ),
         Effect.map((hits) => hits.flat().slice(0, LOOKUP_HIT_LIMIT)),

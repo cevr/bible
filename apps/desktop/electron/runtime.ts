@@ -169,10 +169,10 @@ const searchLayer = (input: {
       Layer.effect(
         SearchCorpusSources,
         Effect.gen(function* () {
-          return {
+          return SearchCorpusSources.of({
             _tag: 'wired' as const,
             sources: { paragraphs: yield* EGWParagraphDatabase, wiki: yield* WikiService },
-          };
+          });
         }),
       ).pipe(Layer.provide(input.writings), Layer.provide(input.wiki)),
     ),

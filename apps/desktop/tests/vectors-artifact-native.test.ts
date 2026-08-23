@@ -104,6 +104,37 @@ const install = (input: { readonly userData: string; readonly sourceFile: string
     ),
   );
 
+/** The index the search layer scans, loaded from one activated file. Its layer
+ *  is provided at this function's own boundary rather than inside a test's
+ *  generator. */
+const loadActivatedIndex = (file: string) =>
+  loadVectorIndex.pipe(Effect.provide(layerFileVectorIndexBytes(file)));
+
+/** A query built against the activated file. `NotWired` sources answer with no
+ *  rows, which is the point: what is under test is that the layer *built*
+ *  against the activated file, which it cannot do if the file was never
+ *  activated. */
+const queryOverActivatedIndex = (file: string, text: string) =>
+  Effect.gen(function* () {
+    const service = yield* SearchService;
+    const result = yield* service.query(
+      SearchQuery.make({
+        text,
+        scope: Option.none(),
+        bookCode: Option.none(),
+        limit: Option.none(),
+      }),
+    );
+    expect(result.query).toBe(text);
+  }).pipe(
+    Effect.provide(
+      SearchService.Live.pipe(
+        Layer.provide(SearchCorpusSources.NotWired),
+        Layer.provide(layerFileVectorIndexBytes(file)),
+      ),
+    ),
+  );
+
 describe('electron main vectors artifact (native)', () => {
   it.effect('installs and activates a flat BVI through the production lifecycle', () =>
     Effect.gen(function* () {
@@ -154,9 +185,7 @@ describe('electron main vectors artifact (native)', () => {
 
       // And the search layer scans exactly what was activated: the same three
       // paragraph ids, under the fingerprint this build embeds with.
-      const loaded = yield* loadVectorIndex.pipe(
-        Effect.provide(layerFileVectorIndexBytes(activeFile.value)),
-      );
+      const loaded = yield* loadActivatedIndex(activeFile.value);
       expect(loaded._tag).toBe('index');
       if (loaded._tag !== 'index') return;
       expect(loaded.index.count).toBe(3);
@@ -177,26 +206,8 @@ describe('electron main vectors artifact (native)', () => {
       expect(again.activeFile).toEqual(activeFile);
 
       // The service composes over the activated file, so a query built against
-      // this host reaches the index the installer swapped in. `NotWired`
-      // sources answer with no rows, which is the point: what is under test is
-      // that the layer *built* against the activated file, which it cannot do
-      // if the file was never activated.
-      const search = SearchService.Live.pipe(
-        Layer.provide(SearchCorpusSources.NotWired),
-        Layer.provide(layerFileVectorIndexBytes(activeFile.value)),
-      );
-      yield* Effect.gen(function* () {
-        const service = yield* SearchService;
-        const result = yield* service.query(
-          SearchQuery.make({
-            text: 'what happens at the close of probation',
-            scope: Option.none(),
-            bookCode: Option.none(),
-            limit: Option.none(),
-          }),
-        );
-        expect(result.query).toBe('what happens at the close of probation');
-      }).pipe(Effect.provide(search));
+      // this host reaches the index the installer swapped in.
+      yield* queryOverActivatedIndex(activeFile.value, 'what happens at the close of probation');
     }).pipe(Effect.provide(NodeFileSystem.layer), Effect.scoped),
   );
 

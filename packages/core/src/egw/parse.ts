@@ -11,7 +11,7 @@
  * This parser is renderer-agnostic and shared by application and command-line hosts.
  */
 
-import { Effect, Option, Schema } from 'effect';
+import { Effect, Match, Option, Schema } from 'effect';
 
 import type * as Schemas from './schemas.js';
 
@@ -211,20 +211,16 @@ export function parseEGWRefEffect(input: string): Effect.Effect<EGWParsedRef, EG
  * Format a parsed reference back to string
  */
 export function formatEGWRef(ref: EGWParsedRef): string {
-  switch (ref._tag) {
-    case 'paragraph':
-      return `${ref.bookCode} ${ref.page}.${ref.paragraph}`;
-    case 'paragraph-range':
-      return `${ref.bookCode} ${ref.page}.${ref.paragraphStart}-${ref.paragraphEnd}`;
-    case 'page':
-      return `${ref.bookCode} ${ref.page}`;
-    case 'page-range':
-      return `${ref.bookCode} ${ref.pageStart}-${ref.pageEnd}`;
-    case 'book':
-      return ref.bookCode;
-    case 'search':
-      return ref.query;
-  }
+  return Match.value(ref).pipe(
+    Match.tagsExhaustive({
+      paragraph: (r) => `${r.bookCode} ${r.page}.${r.paragraph}`,
+      'paragraph-range': (r) => `${r.bookCode} ${r.page}.${r.paragraphStart}-${r.paragraphEnd}`,
+      page: (r) => `${r.bookCode} ${r.page}`,
+      'page-range': (r) => `${r.bookCode} ${r.pageStart}-${r.pageEnd}`,
+      book: (r) => r.bookCode,
+      search: (r) => r.query,
+    }),
+  );
 }
 
 /**
@@ -305,18 +301,15 @@ export function chapterIdFromTocItem(toc: Schemas.TocItem): string {
  * @returns Pattern string for LIKE queries
  */
 export function buildRefcodePattern(ref: Exclude<EGWParsedRef, EGWSearchQuery>): string {
-  switch (ref._tag) {
-    case 'paragraph':
-      return `${ref.bookCode} ${ref.page}.${ref.paragraph}`;
-    case 'paragraph-range':
+  return Match.value(ref).pipe(
+    Match.tagsExhaustive({
+      paragraph: (r) => `${r.bookCode} ${r.page}.${r.paragraph}`,
       // Would need to query for each paragraph in range
-      return `${ref.bookCode} ${ref.page}.%`;
-    case 'page':
-      return `${ref.bookCode} ${ref.page}.%`;
-    case 'page-range':
+      'paragraph-range': (r) => `${r.bookCode} ${r.page}.%`,
+      page: (r) => `${r.bookCode} ${r.page}.%`,
       // Would need multiple queries for each page
-      return `${ref.bookCode} %.%`;
-    case 'book':
-      return `${ref.bookCode} %`;
-  }
+      'page-range': (r) => `${r.bookCode} %.%`,
+      book: (r) => `${r.bookCode} %`,
+    }),
+  );
 }

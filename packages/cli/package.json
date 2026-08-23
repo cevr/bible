@@ -19,7 +19,7 @@
   "dependencies": {
     "@bible/core": "workspace:*",
     "@effect/platform-bun": "catalog:",
-    "ai": "^7.0.66",
+    "ai": "^7.0.77",
     "date-fns": "^4.4.0",
     "effect": "catalog:",
     "gray-matter": "^4.0.3",

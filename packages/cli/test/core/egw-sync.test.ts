@@ -67,105 +67,106 @@ const api = (books: readonly EGWSchemas.Book[]): EGWApiClientService => ({
 });
 
 describe('EGW corpus sync', () => {
+  // The whole fixture is built here rather than inside the generator: the run
+  // is provided once, at the test's own boundary, so nothing it depends on can
+  // come into existence only partway through the run.
+  const local: BookRow[] = [
+    {
+      book_id: 1,
+      book_code: 'ONE',
+      book_title: 'Book ONE',
+      book_author: 'Test Author',
+      paragraph_count: 1,
+      created_at: '2026-08-15T00:00:00.000Z',
+    },
+    {
+      book_id: 90,
+      book_code: 'LOCAL',
+      book_title: 'Local only',
+      book_author: 'Test Author',
+      paragraph_count: 1,
+      created_at: '2026-08-15T00:00:00.000Z',
+    },
+  ];
+  const attempted: number[] = [];
+  const remote = [
+    book(1, 'ONE'),
+    book(2, 'TWO'),
+    book(3, 'THREE'),
+    book(4, 'FOUR'),
+    book(5, 'FIVE'),
+  ];
+  const database = EGWParagraphDatabase.Test({ books: local });
+  const supply = Layer.succeed(
+    CorpusSupply,
+    CorpusSupply.of({
+      ensure: (input) => {
+        const id = Option.fromNullishOr(input).pipe(
+          Option.flatMap((value) => Option.fromNullishOr(value.target)),
+          Option.filter((target): target is WritingsTarget => target._tag === 'writings'),
+          Option.flatMap((target) => Option.fromNullishOr(target.publications)),
+          Option.flatMap((publications) => Option.fromNullishOr(publications[0])),
+        );
+        if (Option.isNone(id)) return Effect.die('Test expected one Writings publication');
+        const targetId = id.value;
+        attempted.push(targetId);
+        if (targetId === 3) {
+          return Effect.fail(
+            CorpusSourceUnavailableError.make({ operation: 'test-download', cause: 'offline' }),
+          );
+        }
+        if (targetId === 4) return Effect.die('Invalid provider data');
+        const installed = Option.fromNullishOr(remote.find((item) => item.book_id === targetId));
+        if (Option.isNone(installed)) return Effect.die('Test publication is missing');
+        const installedBook = installed.value;
+        local.push({
+          book_id: installedBook.book_id,
+          book_code: installedBook.code,
+          book_title: installedBook.title,
+          book_author: installedBook.author,
+          paragraph_count: installedBook.nelements,
+          created_at: '2026-08-15T00:00:00.000Z',
+        });
+        return Effect.succeed(
+          CorpusSupplyReceipt.make({
+            activated: [
+              CorpusActivation.make({
+                corpus: 'writings',
+                identity: publicationId(targetId),
+                source: assetSourceId('test'),
+                revision: corpusRevision('1'),
+                installed: installedBook.nelements,
+              }),
+            ],
+            skipped: [],
+          }),
+        );
+      },
+      // Writings sync never asks what File Corpus generation is active —
+      // it drives `ensure` per publication. A stub that answered would be
+      // inventing a fact this suite does not have; one that dies makes a
+      // reader of it fail here rather than pass against a fiction.
+      installed: () => Effect.die('egw sync does not read the installed file corpus'),
+      activeFile: () => Effect.die('egw sync does not read a file corpus path'),
+      // Nor does it install from a runtime manifest entry — that is §3.6's
+      // path, and writings sync predates it. Dying for the same reason.
+      installFrom: () => Effect.die('egw sync does not install from a content manifest'),
+    }),
+  );
+  const layer = Layer.mergeAll(
+    Layer.succeed(EGWApiClient, EGWApiClient.of(api(remote))),
+    database,
+    supply,
+  );
+
   it.effect('keeps local-only books and continues after one remote book fails', () =>
     Effect.gen(function* () {
-      const local: BookRow[] = [
-        {
-          book_id: 1,
-          book_code: 'ONE',
-          book_title: 'Book ONE',
-          book_author: 'Test Author',
-          paragraph_count: 1,
-          created_at: '2026-08-15T00:00:00.000Z',
-        },
-        {
-          book_id: 90,
-          book_code: 'LOCAL',
-          book_title: 'Local only',
-          book_author: 'Test Author',
-          paragraph_count: 1,
-          created_at: '2026-08-15T00:00:00.000Z',
-        },
-      ];
-      const attempted: number[] = [];
-      const remote = [
-        book(1, 'ONE'),
-        book(2, 'TWO'),
-        book(3, 'THREE'),
-        book(4, 'FOUR'),
-        book(5, 'FIVE'),
-      ];
-      const database = EGWParagraphDatabase.Test({ books: local });
-      const supply = Layer.succeed(
-        CorpusSupply,
-        CorpusSupply.of({
-          ensure: (input) => {
-            const id = Option.fromNullishOr(input).pipe(
-              Option.flatMap((value) => Option.fromNullishOr(value.target)),
-              Option.filter((target): target is WritingsTarget => target._tag === 'writings'),
-              Option.flatMap((target) => Option.fromNullishOr(target.publications)),
-              Option.flatMap((publications) => Option.fromNullishOr(publications[0])),
-            );
-            if (Option.isNone(id)) return Effect.die('Test expected one Writings publication');
-            const targetId = id.value;
-            attempted.push(targetId);
-            if (targetId === 3) {
-              return Effect.fail(
-                CorpusSourceUnavailableError.make({ operation: 'test-download', cause: 'offline' }),
-              );
-            }
-            if (targetId === 4) return Effect.die('Invalid provider data');
-            const installed = Option.fromNullishOr(
-              remote.find((item) => item.book_id === targetId),
-            );
-            if (Option.isNone(installed)) return Effect.die('Test publication is missing');
-            const installedBook = installed.value;
-            local.push({
-              book_id: installedBook.book_id,
-              book_code: installedBook.code,
-              book_title: installedBook.title,
-              book_author: installedBook.author,
-              paragraph_count: installedBook.nelements,
-              created_at: '2026-08-15T00:00:00.000Z',
-            });
-            return Effect.succeed(
-              CorpusSupplyReceipt.make({
-                activated: [
-                  CorpusActivation.make({
-                    corpus: 'writings',
-                    identity: publicationId(targetId),
-                    source: assetSourceId('test'),
-                    revision: corpusRevision('1'),
-                    installed: installedBook.nelements,
-                  }),
-                ],
-                skipped: [],
-              }),
-            );
-          },
-          // Writings sync never asks what File Corpus generation is active —
-          // it drives `ensure` per publication. A stub that answered would be
-          // inventing a fact this suite does not have; one that dies makes a
-          // reader of it fail here rather than pass against a fiction.
-          installed: () => Effect.die('egw sync does not read the installed file corpus'),
-          activeFile: () => Effect.die('egw sync does not read a file corpus path'),
-          // Nor does it install from a runtime manifest entry — that is §3.6's
-          // path, and writings sync predates it. Dying for the same reason.
-          installFrom: () => Effect.die('egw sync does not install from a content manifest'),
-        }),
-      );
-      const layer = Layer.mergeAll(
-        Layer.succeed(EGWApiClient, EGWApiClient.of(api(remote))),
-        database,
-        supply,
-      );
-
       const report = yield* syncEgwCorpus({
         lang: 'en',
         concurrency: 2,
         refresh: false,
         onProgress: () => Effect.void,
-      }).pipe(Effect.provide(layer));
+      });
 
       expect(attempted.sort()).toEqual([2, 3, 4, 5]);
       expect(report).toMatchObject({
@@ -185,6 +186,6 @@ describe('EGW corpus sync', () => {
       expect(Option.fromNullishOr(report.failures[0]).pipe(Option.map((item) => item.id))).toEqual(
         Option.some(3),
       );
-    }),
+    }).pipe(Effect.provide(layer)),
   );
 });

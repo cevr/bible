@@ -53,6 +53,63 @@ const makeLayer = Effect.gen(function* () {
   return { layer, store };
 });
 
+type RuntimeLayer = ReturnType<typeof layerLocalProcedureRuntime>;
+
+/** Each scenario at its own boundary. `makeLayer` builds a fresh runtime per
+ *  test, so the provide belongs to these helpers rather than to a block nested
+ *  inside each test's generator. */
+const negotiateAndCommit = (layer: RuntimeLayer) =>
+  Effect.gen(function* () {
+    const runtime = yield* ProcedureRuntime;
+    const preferences = yield* ReadingPreferencesRuntime;
+    const connection = yield* runtime.connect({
+      protocolVersion: CURRENT_PROTOCOL_VERSION,
+      schemaVersion: CURRENT_RUNTIME_SCHEMA_VERSION,
+    });
+    const committed = yield* preferences.patch({ colorMode: 'dark' });
+    const event = yield* runtime
+      .events({
+        afterSequence: yield* Schema.decodeEffect(RuntimeEventSequence)(0),
+      })
+      .pipe(Stream.runHead);
+    return { connection, committed, event };
+  }).pipe(Effect.provide(layer));
+
+const connectWithProtocol = (layer: RuntimeLayer, protocolVersion: number) =>
+  ProcedureRuntime.pipe(
+    Effect.flatMap((runtime) =>
+      runtime.connect({
+        protocolVersion,
+        schemaVersion: CURRENT_RUNTIME_SCHEMA_VERSION,
+      }),
+    ),
+    Effect.provide(layer),
+  );
+
+const recordAndResume = (layer: RuntimeLayer) =>
+  Effect.gen(function* () {
+    const continuity = yield* ReadingContinuityRuntime;
+    const before = yield* continuity.get;
+    const committed = yield* continuity.record({
+      location: { source: 'bible', resourceId: 'KJV', location: '/bible/43/3/16' },
+      progress: 0,
+    });
+    const after = yield* continuity.get;
+    return { before, committed, after };
+  }).pipe(Effect.provide(layer));
+
+const exportThenImport = (layer: RuntimeLayer) =>
+  Effect.gen(function* () {
+    const preferences = yield* ReadingPreferencesRuntime;
+    const data = yield* DataPortabilityRuntime;
+    yield* preferences.patch({ colorMode: 'sepia' });
+    const document = yield* data.export;
+    const backup = yield* decodeBackupHeader(document);
+    const imported = yield* data.import(document);
+    const invalid = yield* Effect.exit(data.import('{"format":"not-a-backup"}'));
+    return { backup, imported, invalid };
+  }).pipe(Effect.provide(layer));
+
 const BackupHeader = Schema.Struct({
   format: Schema.optional(Schema.Unknown),
   version: Schema.optional(Schema.Unknown),
@@ -65,21 +122,7 @@ describe('local procedure runtime', () => {
     Effect.gen(function* () {
       const { layer } = yield* makeLayer;
 
-      const result = yield* Effect.gen(function* () {
-        const runtime = yield* ProcedureRuntime;
-        const preferences = yield* ReadingPreferencesRuntime;
-        const connection = yield* runtime.connect({
-          protocolVersion: CURRENT_PROTOCOL_VERSION,
-          schemaVersion: CURRENT_RUNTIME_SCHEMA_VERSION,
-        });
-        const committed = yield* preferences.patch({ colorMode: 'dark' });
-        const event = yield* runtime
-          .events({
-            afterSequence: yield* Schema.decodeEffect(RuntimeEventSequence)(0),
-          })
-          .pipe(Stream.runHead);
-        return { connection, committed, event };
-      }).pipe(Effect.provide(layer));
+      const result = yield* negotiateAndCommit(layer);
 
       expect(result.connection.capabilities).toEqual(['external-links']);
       expect(result.committed.value.colorMode).toBe('dark');
@@ -94,17 +137,7 @@ describe('local procedure runtime', () => {
   test('rejects incompatible protocol negotiation', () =>
     Effect.gen(function* () {
       const { layer } = yield* makeLayer;
-      const exit = yield* Effect.exit(
-        ProcedureRuntime.pipe(
-          Effect.flatMap((runtime) =>
-            runtime.connect({
-              protocolVersion: 2,
-              schemaVersion: CURRENT_RUNTIME_SCHEMA_VERSION,
-            }),
-          ),
-          Effect.provide(layer),
-        ),
-      );
+      const exit = yield* Effect.exit(connectWithProtocol(layer, 2));
 
       expect(exit._tag).toBe('Failure');
     }));
@@ -112,16 +145,7 @@ describe('local procedure runtime', () => {
   test('records and resumes the latest canonical reading location', () =>
     Effect.gen(function* () {
       const { layer } = yield* makeLayer;
-      const result = yield* Effect.gen(function* () {
-        const continuity = yield* ReadingContinuityRuntime;
-        const before = yield* continuity.get;
-        const committed = yield* continuity.record({
-          location: { source: 'bible', resourceId: 'KJV', location: '/bible/43/3/16' },
-          progress: 0,
-        });
-        const after = yield* continuity.get;
-        return { before, committed, after };
-      }).pipe(Effect.provide(layer));
+      const result = yield* recordAndResume(layer);
 
       expect(Option.isNone(result.before)).toBe(true);
       expect(result.after).toEqual(
@@ -138,16 +162,7 @@ describe('local procedure runtime', () => {
   test('exports a versioned document and fully validates imports before mutation', () =>
     Effect.gen(function* () {
       const { layer, store } = yield* makeLayer;
-      const result = yield* Effect.gen(function* () {
-        const preferences = yield* ReadingPreferencesRuntime;
-        const data = yield* DataPortabilityRuntime;
-        yield* preferences.patch({ colorMode: 'sepia' });
-        const document = yield* data.export;
-        const backup = yield* decodeBackupHeader(document);
-        const imported = yield* data.import(document);
-        const invalid = yield* Effect.exit(data.import('{"format":"not-a-backup"}'));
-        return { backup, imported, invalid };
-      }).pipe(Effect.provide(layer));
+      const result = yield* exportThenImport(layer);
 
       expect(result.backup).toMatchObject({ format: 'bible-library-backup', version: 1 });
       expect(result.imported.imported).toBeGreaterThan(0);

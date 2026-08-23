@@ -82,14 +82,12 @@ describe('bible study verse --json', () => {
       // The bundle as it crosses the *RPC* seam: through the real client/server
       // pair, decoded by the group's own schema. Not the CLI's own service
       // call — that would compare the command to itself.
-      const overRpc = yield* Effect.gen(function* () {
-        const client = yield* RpcTest.makeClient(BibleProcedureGroup);
-        return yield* client['v1.study.verse.get']({
-          book: FIXTURE_BOOK,
-          chapter: FIXTURE_CHAPTER,
-          verse: FIXTURE_VERSE,
-        });
-      }).pipe(Effect.provide(handlers));
+      const client = yield* RpcTest.makeClient(BibleProcedureGroup);
+      const overRpc = yield* client['v1.study.verse.get']({
+        book: FIXTURE_BOOK,
+        chapter: FIXTURE_CHAPTER,
+        verse: FIXTURE_VERSE,
+      });
 
       // The whole assertion. A hand-mapped projection reintroduced in the
       // command — renaming a field, dropping `parallelWritingsTotal`, flattening
@@ -104,7 +102,7 @@ describe('bible study verse --json', () => {
       expect(result.stdout).toContain('"marginNotes"');
       expect(result.stdout).toContain('"5BC"');
       expect(result.stdout).toContain('"GC"');
-    }),
+    }).pipe(Effect.provide(handlers)),
   );
 
   it.effect('renders the five sections for a human reader', () =>
@@ -138,17 +136,15 @@ describe('bible study strongs --json', () => {
       const result = yield* runStudy(['strongs', 'H8548', '--json']);
       expect(result.success).toBe(true);
 
-      const overRpc = yield* Effect.gen(function* () {
-        const client = yield* RpcTest.makeClient(BibleProcedureGroup);
-        // No `limit`: the command sent none either, so both sides take the
-        // service's default and the comparison covers the default path.
-        return yield* client['v1.study.strongs.get']({ number: strongsNumber('H8548') });
-      }).pipe(Effect.provide(handlers));
+      const client = yield* RpcTest.makeClient(BibleProcedureGroup);
+      // No `limit`: the command sent none either, so both sides take the
+      // service's default and the comparison covers the default path.
+      const overRpc = yield* client['v1.study.strongs.get']({ number: strongsNumber('H8548') });
 
       expect(result.stdout).toBe(yield* strongsWireText(overRpc));
       expect(result.stdout).toContain('"occurrences"');
       expect(result.stdout).toContain('"total"');
-    }),
+    }).pipe(Effect.provide(handlers)),
   );
 
   it.scoped('passes --limit through to the same cap the RPC applies', () =>
@@ -156,17 +152,15 @@ describe('bible study strongs --json', () => {
       const result = yield* runStudy(['strongs', 'H8548', '--limit', '3', '--json']);
       expect(result.success).toBe(true);
 
-      const overRpc = yield* Effect.gen(function* () {
-        const client = yield* RpcTest.makeClient(BibleProcedureGroup);
-        return yield* client['v1.study.strongs.get']({
-          number: strongsNumber('H8548'),
-          limit: 3,
-        });
-      }).pipe(Effect.provide(handlers));
+      const client = yield* RpcTest.makeClient(BibleProcedureGroup);
+      const overRpc = yield* client['v1.study.strongs.get']({
+        number: strongsNumber('H8548'),
+        limit: 3,
+      });
 
       expect(result.stdout).toBe(yield* strongsWireText(overRpc));
       expect(overRpc.occurrences.length).toBe(3);
-    }),
+    }).pipe(Effect.provide(handlers)),
   );
 
   it.effect('accepts a lowercase number, decoding it the way the wire does', () =>
@@ -230,7 +224,7 @@ describe('the CLI encoders are the core schemas', () => {
           chapter: FIXTURE_CHAPTER,
           verse: FIXTURE_VERSE,
         }),
-      ).pipe(Effect.provide(fixture));
+      );
 
       // Equality against the core encoder is the property that makes a
       // hand-written projection impossible: any such projection differs from it
@@ -238,20 +232,20 @@ describe('the CLI encoders are the core schemas', () => {
       expect(yield* verseStudyJson(bundle)).toEqual(
         yield* Schema.encodeEffect(VerseStudyJson)(bundle),
       );
-    }),
+    }).pipe(Effect.provide(fixture)),
   );
 
   it.effect("emits the Strong's study through the core schema", () =>
     Effect.gen(function* () {
       const result = yield* Effect.flatMap(StudyService, (service) =>
         service.strongs(strongsNumber('H8548')),
-      ).pipe(Effect.provide(fixture));
+      );
 
       expect(yield* strongsStudyJson(result)).toEqual(
         yield* Schema.encodeEffect(StrongsStudyJson)(result),
       );
       expect(Option.isSome(result.entry)).toBe(true);
-    }),
+    }).pipe(Effect.provide(fixture)),
   );
 });
 

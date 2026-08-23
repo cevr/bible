@@ -212,16 +212,38 @@ const serialize = Schema.encodeUnknownEffect(JsonText);
 const pageWireText = (page: WikiPage): Effect.Effect<string, Schema.SchemaError> =>
   Effect.flatMap(Schema.encodeEffect(WikiPageJson)(page), serialize);
 
+/** One composed topic page, resolved through a given wiring.
+ *
+ *  A named function rather than an inline `Effect.provide` inside each test's
+ *  generator: the layer is per-test data — several of these tests build one over
+ *  a scoped temp directory — so the provide belongs at this helper's own
+ *  boundary rather than partway through a run. */
+const composeTopicPage = (layer: Layer.Layer<WikiService>, slug: string) =>
+  Effect.flatMap(WikiService, (service) => service.topic(topicSlug(slug))).pipe(
+    Effect.provide(layer),
+  );
+
+/** The alias dictionary a wiring compiles, resolved the same way. */
+const composeDictionary = (layer: Layer.Layer<WikiService>) =>
+  Effect.flatMap(WikiService, (service) => service.dictionary).pipe(Effect.provide(layer));
+
+/** The listing envelope the `topics` command prints, resolved the same way. */
+const composeTopicsEnvelope = (layer: Layer.Layer<WikiService>) =>
+  Effect.gen(function* () {
+    const service = yield* WikiService;
+    return {
+      topics: yield* service.list({}),
+      unavailable: yield* service.availability,
+    };
+  }).pipe(Effect.provide(layer));
+
 describe('bible wiki --json stdout', () => {
   it.effect('prints exactly what the RPC procedure would put on the wire', () =>
     Effect.gen(function* () {
       const result = yield* runWiki(['topic', 'sanctuary', '--json']);
       expect(result.success).toBe(true);
 
-      const page = yield* Effect.gen(function* () {
-        const service = yield* WikiService;
-        return yield* service.topic(topicSlug('sanctuary'));
-      }).pipe(Effect.provide(fixtureWiki));
+      const page = yield* composeTopicPage(fixtureWiki, 'sanctuary');
 
       // The whole assertion. A hand-mapped projection reintroduced in the
       // command — renaming `_tag`, dropping `missingBooks`, adding a `kind` —
@@ -239,17 +261,7 @@ describe('bible wiki --json stdout', () => {
       const result = yield* runWiki(['topics', '--json']);
       expect(result.success).toBe(true);
       expect(result.stdout).toBe(
-        yield* serialize(
-          yield* topicsJson(
-            yield* Effect.gen(function* () {
-              const service = yield* WikiService;
-              return {
-                topics: yield* service.list({}),
-                unavailable: yield* service.availability,
-              };
-            }).pipe(Effect.provide(fixtureWiki)),
-          ),
-        ),
+        yield* serialize(yield* topicsJson(yield* composeTopicsEnvelope(fixtureWiki))),
       );
       // And the reason really is on the wire, so the equality is not two
       // encoders agreeing to print nothing.
@@ -485,10 +497,7 @@ describe('bible wiki topic 2300-days --json', () => {
       );
       expect(result.success).toBe(true);
 
-      const page = yield* Effect.gen(function* () {
-        const service = yield* WikiService;
-        return yield* service.topic(topicSlug(TWENTY_THREE_HUNDRED.slug));
-      }).pipe(Effect.provide(layer));
+      const page = yield* composeTopicPage(layer, TWENTY_THREE_HUNDRED.slug);
 
       // The identity claim: stdout is the schema's encoding of the page, not a
       // projection of it. A rename anywhere between the composer and the
@@ -542,9 +551,7 @@ describe('bible wiki topic 2300-days --json', () => {
         .pipe(Effect.orDie);
       const layer = dictionaryWiki(writeTopicArtifact(`${directory}/topics.db`));
 
-      const dictionary = yield* Effect.flatMap(WikiService, (service) => service.dictionary).pipe(
-        Effect.provide(layer),
-      );
+      const dictionary = yield* composeDictionary(layer);
       expect(dictionary.entries.map((entry) => entry.alias).toSorted()).toEqual(
         TWENTY_THREE_HUNDRED.aliases.map(normalizeAlias).toSorted(),
       );
@@ -613,9 +620,7 @@ describe('bible wiki topic --json over a populated page', () => {
       expect(result.success).toBe(true);
 
       // The composed page, resolved through the same layer the command ran on…
-      const page = yield* Effect.flatMap(WikiService, (service) =>
-        service.topic(topicSlug(WIKI_PAGE_FIXTURE.slug)),
-      ).pipe(Effect.provide(layer));
+      const page = yield* composeTopicPage(layer, WIKI_PAGE_FIXTURE.slug);
 
       // …and stdout is its encoding, which is the identity claim: no projection
       // sits between the composer and the terminal.
@@ -666,9 +671,7 @@ describe('bible wiki topic --json over a populated page', () => {
       const result = yield* runCli(wiki, ['topic', WIKI_PAGE_FIXTURE.slug, '--json'], {}).pipe(
         Effect.provideService(WikiLayer, layer),
       );
-      const page = yield* Effect.flatMap(WikiService, (service) =>
-        service.topic(topicSlug(WIKI_PAGE_FIXTURE.slug)),
-      ).pipe(Effect.provide(layer));
+      const page = yield* composeTopicPage(layer, WIKI_PAGE_FIXTURE.slug);
       expect(result.stdout).toBe(yield* pageWireText(page));
 
       const egw = page.sections[1];

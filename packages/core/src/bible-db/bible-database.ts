@@ -701,95 +701,101 @@ export class BibleDatabase extends Context.Service<BibleDatabase, BibleDatabaseS
       readonly concordanceHits?: Readonly<Record<string, readonly ConcordanceHit[]>>;
     } = {},
   ): Layer.Layer<BibleDatabase> =>
-    Layer.succeed(BibleDatabase, {
-      getChapter: (book, chapter, versionCode = 'KJV') =>
-        Effect.succeed(
-          config.verses?.filter(
-            (verse) =>
-              verse.book === book && verse.chapter === chapter && verse.versionCode === versionCode,
-          ) ?? [],
-        ),
-      getVerse: (book, chapter, verse, versionCode = 'KJV') =>
-        Effect.succeed(
-          Option.fromNullishOr(
-            config.verses?.find(
-              (candidate) =>
-                candidate.book === book &&
-                candidate.chapter === chapter &&
-                candidate.verse === verse &&
-                candidate.versionCode === versionCode,
+    Layer.succeed(
+      BibleDatabase,
+      BibleDatabase.of({
+        getChapter: (book, chapter, versionCode = 'KJV') =>
+          Effect.succeed(
+            config.verses?.filter(
+              (verse) =>
+                verse.book === book &&
+                verse.chapter === chapter &&
+                verse.versionCode === versionCode,
+            ) ?? [],
+          ),
+        getVerse: (book, chapter, verse, versionCode = 'KJV') =>
+          Effect.succeed(
+            Option.fromNullishOr(
+              config.verses?.find(
+                (candidate) =>
+                  candidate.book === book &&
+                  candidate.chapter === chapter &&
+                  candidate.verse === verse &&
+                  candidate.versionCode === versionCode,
+              ),
             ),
           ),
-        ),
-      searchVerseWindow: (query, options = {}) => {
-        const normalized = query.replace(/['"*]/g, '').trim().toLocaleLowerCase();
-        if (normalized.length === 0) {
-          return Effect.succeed<VerseSearchWindow>({ results: [], total: 0 });
-        }
-        const versionCode = options.versionCode ?? 'KJV';
-        const books = new Set(options.books ?? []);
-        const matches =
-          config.verses?.filter(
-            (verse) =>
-              verse.versionCode === versionCode &&
-              (books.size === 0 || books.has(verse.book)) &&
-              verse.text.toLocaleLowerCase().includes(normalized),
-          ) ?? [];
-        const offset = Math.max(0, Math.trunc(options.offset ?? 0));
-        const limit = Math.max(1, Math.trunc(options.limit ?? 50));
-        return Effect.succeed({
-          results: matches.slice(offset, offset + limit),
-          total: matches.length,
-        });
-      },
-      getCrossRefs: (book, chapter, verse) =>
-        Effect.succeed(
-          config.crossRefs?.find(
-            (fixture) =>
-              fixture.book === book && fixture.chapter === chapter && fixture.verse === verse,
-          )?.references ?? [],
-        ),
-      getStrongsEntry: (number) =>
-        Effect.succeed(
-          Option.fromNullishOr(config.strongsEntries?.find((entry) => entry.number === number)),
-        ),
-      searchStrongs: () => Effect.succeed([]),
-      // The limit is honored and the count is the *uncapped* total, matching
-      // the live implementation: `getVersesWithStrongs` slices and
-      // `getStrongsCount` counts distinct verses independently of any cap. A
-      // double that ignored the limit would let a caller that drops it pass,
-      // and a double that returned 0 would make "there are more than shown"
-      // untestable — which is exactly the pair the study pane's `total`
-      // renders.
-      getVersesWithStrongs: (number, limit) => {
-        const hits = config.concordanceHits?.[number] ?? [];
-        return Effect.succeed(hits.slice(0, limit ?? hits.length));
-      },
-      getStrongsCount: (number) => Effect.succeed((config.concordanceHits?.[number] ?? []).length),
-      getVerseWords: (book, chapter, verse) =>
-        Effect.succeed(
-          config.verseWords?.find(
-            (fixture) =>
-              fixture.book === book && fixture.chapter === chapter && fixture.verse === verse,
-          )?.words ?? [],
-        ),
-      getMarginNotes: (book, chapter, verse) =>
-        Effect.succeed(
-          config.marginNotes?.find(
-            (fixture) =>
-              fixture.book === book && fixture.chapter === chapter && fixture.verse === verse,
-          )?.notes ?? [],
-        ),
-      getChapterStrongs: () => Effect.succeed(Option.none()),
-      versesWithCrossRefs: () => Effect.succeed(new Set()),
-      versesWithNotes: () => Effect.succeed(new Set()),
-      chapterMarginNotes: (book, chapter) =>
-        Effect.succeed(
-          new Map(
-            config.marginNotes
-              ?.filter((fixture) => fixture.book === book && fixture.chapter === chapter)
-              .map((fixture) => [fixture.verse, fixture.notes] as const) ?? [],
+        searchVerseWindow: (query, options = {}) => {
+          const normalized = query.replace(/['"*]/g, '').trim().toLocaleLowerCase();
+          if (normalized.length === 0) {
+            return Effect.succeed<VerseSearchWindow>({ results: [], total: 0 });
+          }
+          const versionCode = options.versionCode ?? 'KJV';
+          const books = new Set(options.books ?? []);
+          const matches =
+            config.verses?.filter(
+              (verse) =>
+                verse.versionCode === versionCode &&
+                (books.size === 0 || books.has(verse.book)) &&
+                verse.text.toLocaleLowerCase().includes(normalized),
+            ) ?? [];
+          const offset = Math.max(0, Math.trunc(options.offset ?? 0));
+          const limit = Math.max(1, Math.trunc(options.limit ?? 50));
+          return Effect.succeed({
+            results: matches.slice(offset, offset + limit),
+            total: matches.length,
+          });
+        },
+        getCrossRefs: (book, chapter, verse) =>
+          Effect.succeed(
+            config.crossRefs?.find(
+              (fixture) =>
+                fixture.book === book && fixture.chapter === chapter && fixture.verse === verse,
+            )?.references ?? [],
           ),
-        ),
-    });
+        getStrongsEntry: (number) =>
+          Effect.succeed(
+            Option.fromNullishOr(config.strongsEntries?.find((entry) => entry.number === number)),
+          ),
+        searchStrongs: () => Effect.succeed([]),
+        // The limit is honored and the count is the *uncapped* total, matching
+        // the live implementation: `getVersesWithStrongs` slices and
+        // `getStrongsCount` counts distinct verses independently of any cap. A
+        // double that ignored the limit would let a caller that drops it pass,
+        // and a double that returned 0 would make "there are more than shown"
+        // untestable — which is exactly the pair the study pane's `total`
+        // renders.
+        getVersesWithStrongs: (number, limit) => {
+          const hits = config.concordanceHits?.[number] ?? [];
+          return Effect.succeed(hits.slice(0, limit ?? hits.length));
+        },
+        getStrongsCount: (number) =>
+          Effect.succeed((config.concordanceHits?.[number] ?? []).length),
+        getVerseWords: (book, chapter, verse) =>
+          Effect.succeed(
+            config.verseWords?.find(
+              (fixture) =>
+                fixture.book === book && fixture.chapter === chapter && fixture.verse === verse,
+            )?.words ?? [],
+          ),
+        getMarginNotes: (book, chapter, verse) =>
+          Effect.succeed(
+            config.marginNotes?.find(
+              (fixture) =>
+                fixture.book === book && fixture.chapter === chapter && fixture.verse === verse,
+            )?.notes ?? [],
+          ),
+        getChapterStrongs: () => Effect.succeed(Option.none()),
+        versesWithCrossRefs: () => Effect.succeed(new Set()),
+        versesWithNotes: () => Effect.succeed(new Set()),
+        chapterMarginNotes: (book, chapter) =>
+          Effect.succeed(
+            new Map(
+              config.marginNotes
+                ?.filter((fixture) => fixture.book === book && fixture.chapter === chapter)
+                .map((fixture) => [fixture.verse, fixture.notes] as const) ?? [],
+            ),
+          ),
+      }),
+    );
 }

@@ -248,7 +248,7 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
           }),
         );
 
-      return {
+      return EGWApiClient.of({
         getLanguages: Effect.gen(function* () {
           const response = yield* httpClient.get('/content/languages');
           return yield* HttpClientResponse.schemaBodyJson(Schema.Array(Schemas.Language))(response);
@@ -442,7 +442,7 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
           const response = yield* httpClient.get('/content/mirrors');
           return yield* HttpClientResponse.schemaBodyJson(Schema.Array(Schema.String))(response);
         }).pipe(Effect.retry(retrySchedule)),
-      };
+      });
     }),
   );
 
@@ -460,34 +460,37 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
       languages?: readonly Schemas.Language[];
     } = {},
   ): Layer.Layer<EGWApiClient> =>
-    Layer.succeed(EGWApiClient, {
-      getLanguages: Effect.succeed(config.languages ?? []),
-      getFoldersByLanguage: () => Effect.succeed([]),
-      getBooksByFolder: () => Effect.succeed(config.books ?? []),
-      getBooks: () => Stream.fromIterable(config.books ?? []),
-      getBook: (bookId) =>
-        Effect.fromOption(
-          Option.fromNullishOr(config.books?.find((b) => b.book_id === bookId)),
-        ).pipe(
-          Effect.mapError(() =>
-            EGWApiError.make({
-              message: `Book not found: ${bookId}`,
-            }),
+    Layer.succeed(
+      EGWApiClient,
+      EGWApiClient.of({
+        getLanguages: Effect.succeed(config.languages ?? []),
+        getFoldersByLanguage: () => Effect.succeed([]),
+        getBooksByFolder: () => Effect.succeed(config.books ?? []),
+        getBooks: () => Stream.fromIterable(config.books ?? []),
+        getBook: (bookId) =>
+          Effect.fromOption(
+            Option.fromNullishOr(config.books?.find((b) => b.book_id === bookId)),
+          ).pipe(
+            Effect.mapError(() =>
+              EGWApiError.make({
+                message: `Book not found: ${bookId}`,
+              }),
+            ),
           ),
-        ),
-      getBookToc: () => Effect.succeed([]),
-      getChapterContent: () => Effect.succeed([]),
-      downloadBook: () => Effect.succeed(new ArrayBuffer(0)),
-      search: () =>
-        Effect.succeed({
-          next: Option.getOrNull(Option.none<never>()),
-          previous: Option.getOrNull(Option.none<never>()),
-          total: 0,
-          count: 0,
-          results: [],
-        }),
-      getSuggestions: () => Effect.succeed([]),
-      getBookCoverUrl: (bookId) => Effect.succeed(`/covers/${bookId}`),
-      getMirrors: Effect.succeed([]),
-    });
+        getBookToc: () => Effect.succeed([]),
+        getChapterContent: () => Effect.succeed([]),
+        downloadBook: () => Effect.succeed(new ArrayBuffer(0)),
+        search: () =>
+          Effect.succeed({
+            next: Option.getOrNull(Option.none<never>()),
+            previous: Option.getOrNull(Option.none<never>()),
+            total: 0,
+            count: 0,
+            results: [],
+          }),
+        getSuggestions: () => Effect.succeed([]),
+        getBookCoverUrl: (bookId) => Effect.succeed(`/covers/${bookId}`),
+        getMirrors: Effect.succeed([]),
+      }),
+    );
 }

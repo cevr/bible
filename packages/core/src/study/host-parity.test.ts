@@ -44,25 +44,45 @@ const FIXTURE_REFERENCE = Reference.verse(FIXTURE_BOOK, FIXTURE_CHAPTER, FIXTURE
 
 const handlers = BibleProcedureHandlers.pipe(Layer.provide(studyProcedureDependencies));
 
+/** Seam 1 at its own boundary: the RPC client/server pair, wired to `handlers`,
+ *  so each test yields a value rather than nesting the provide in its own
+ *  generator. */
+const overRpcVerse = Effect.gen(function* () {
+  const client = yield* RpcTest.makeClient(BibleProcedureGroup);
+  return yield* client['v1.study.verse.get']({
+    book: FIXTURE_REFERENCE.book,
+    chapter: FIXTURE_REFERENCE.chapter,
+    verse: FIXTURE_REFERENCE.verse,
+  });
+}).pipe(Effect.provide(handlers));
+
+const overRpcStrongs = Effect.gen(function* () {
+  const client = yield* RpcTest.makeClient(BibleProcedureGroup);
+  return yield* client['v1.study.strongs.get']({
+    number: strongsNumber('H8548'),
+    limit: 5,
+  });
+}).pipe(Effect.provide(handlers));
+
+/** Seam 2 at its own boundary: `StudyService` over the same fixture corpus. */
+const overCliVerse = Effect.flatMap(StudyService, (service) =>
+  service.verse(FIXTURE_REFERENCE),
+).pipe(Effect.provide(studyFixtureLayer));
+
+const overCliStrongs = Effect.flatMap(StudyService, (service) =>
+  service.strongs(strongsNumber('H8548'), { limit: 5 }),
+).pipe(Effect.provide(studyFixtureLayer));
+
 describe('study host parity', () => {
   it.scoped('the RPC handler and the CLI serialize the identical verse bundle', () =>
     Effect.gen(function* () {
       // Seam 1 — the handler both visual hosts register. `RpcTest` runs the
       // real client/server pair, so this value has crossed a wire and been
       // decoded by the group's own schema.
-      const overRpc = yield* Effect.gen(function* () {
-        const client = yield* RpcTest.makeClient(BibleProcedureGroup);
-        return yield* client['v1.study.verse.get']({
-          book: FIXTURE_REFERENCE.book,
-          chapter: FIXTURE_REFERENCE.chapter,
-          verse: FIXTURE_REFERENCE.verse,
-        });
-      }).pipe(Effect.provide(handlers));
+      const overRpc = yield* overRpcVerse;
 
       // Seam 2 — the CLI, calling `StudyService` directly.
-      const overCli = yield* Effect.flatMap(StudyService, (service) =>
-        service.verse(FIXTURE_REFERENCE),
-      ).pipe(Effect.provide(studyFixtureLayer));
+      const overCli = yield* overCliVerse;
 
       // Encoded, not decoded: JSON is what a client actually receives, and this
       // is the same encoder `bible study verse --json` runs and the same one
@@ -82,17 +102,9 @@ describe('study host parity', () => {
 
   it.scoped("the RPC handler and the CLI serialize the identical Strong's study", () =>
     Effect.gen(function* () {
-      const overRpc = yield* Effect.gen(function* () {
-        const client = yield* RpcTest.makeClient(BibleProcedureGroup);
-        return yield* client['v1.study.strongs.get']({
-          number: strongsNumber('H8548'),
-          limit: 5,
-        });
-      }).pipe(Effect.provide(handlers));
+      const overRpc = yield* overRpcStrongs;
 
-      const overCli = yield* Effect.flatMap(StudyService, (service) =>
-        service.strongs(strongsNumber('H8548'), { limit: 5 }),
-      ).pipe(Effect.provide(studyFixtureLayer));
+      const overCli = yield* overCliStrongs;
 
       const encode = Schema.encodeEffect(Schema.fromJsonString(StrongsStudyJson));
       expect(yield* encode(overRpc)).toBe(yield* encode(overCli));
@@ -110,14 +122,7 @@ describe('study host parity', () => {
       // Decoded on the client side by the group's schema, so `Option` fields
       // that encode as `null` come back as `Option` rather than as `null` —
       // the property a hand-written wire model would break first.
-      const bundle = yield* Effect.gen(function* () {
-        const client = yield* RpcTest.makeClient(BibleProcedureGroup);
-        return yield* client['v1.study.verse.get']({
-          book: FIXTURE_REFERENCE.book,
-          chapter: FIXTURE_REFERENCE.chapter,
-          verse: FIXTURE_REFERENCE.verse,
-        });
-      }).pipe(Effect.provide(handlers));
+      const bundle = yield* overRpcVerse;
 
       expect(bundle.text).toEqual(Option.some(FIXTURE_TEXT));
       expect(bundle.label).toBe(FIXTURE_LABEL);

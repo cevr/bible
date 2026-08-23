@@ -365,15 +365,12 @@ export class BibleCorpus extends Context.Service<BibleCorpus, BibleCorpusService
                   INSERT INTO meta (key, value) VALUES ('created_at', ${installedAt})
                   ON CONFLICT(key) DO UPDATE SET value = excluded.value
                 `;
-              yield* Effect.all(
-                [
-                  sql.unsafe(`INSERT INTO verses_fts(verses_fts) VALUES('optimize')`),
-                  sql.unsafe(`INSERT INTO strongs_fts(strongs_fts) VALUES('optimize')`),
-                  sql.unsafe(`INSERT INTO margin_notes_fts(margin_notes_fts) VALUES('optimize')`),
-                  sql.unsafe('ANALYZE'),
-                ],
-                { concurrency: 1, discard: true },
+              yield* sql.unsafe(`INSERT INTO verses_fts(verses_fts) VALUES('optimize')`);
+              yield* sql.unsafe(`INSERT INTO strongs_fts(strongs_fts) VALUES('optimize')`);
+              yield* sql.unsafe(
+                `INSERT INTO margin_notes_fts(margin_notes_fts) VALUES('optimize')`,
               );
+              yield* sql.unsafe('ANALYZE');
               return { kjv, lexicon, openBible, tske, marginNotes, topics };
             }),
           ),

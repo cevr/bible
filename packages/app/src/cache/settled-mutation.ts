@@ -182,5 +182,5 @@ const settleAll = (
     affected.map((atom) =>
       Effect.exit(AtomRegistry.getResult(registry, atom, { suspendOnWaiting: true })),
     ),
-    { concurrency: 'unbounded' },
+    { concurrency: 16 },
   );

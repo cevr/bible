@@ -24,14 +24,17 @@ export interface ActiveProcedureHost extends ProcedureHostApi {
 export const startProcedureHost = (
   acquire: Effect.Effect<Layer.Layer<ProcedureHost, unknown>, unknown>,
 ): Promise<ActiveProcedureHost> =>
-  Effect.runPromise(
-    Effect.gen(function* () {
-      const layer = yield* acquire;
-      const runtime = ManagedRuntime.make(layer);
-      const host = yield* Effect.tryPromise({
+  Effect.runPromise(acquire).then((layer) => {
+    // The runtime is constructed here, at the Promise boundary that owns it,
+    // rather than inside an Effect that would already have a runtime of its own.
+    const runtime = ManagedRuntime.make(layer);
+    return Effect.runPromise(
+      Effect.tryPromise({
         try: () => runtime.runPromise(ProcedureHost),
         catch: (cause) => ProcedureHostStartError.make({ stage: 'connect', cause }),
-      }).pipe(Effect.onError(() => runtime.disposeEffect));
-      return { ...host, dispose: () => runtime.dispose() };
-    }),
-  );
+      }).pipe(
+        Effect.onError(() => runtime.disposeEffect),
+        Effect.map((host) => ({ ...host, dispose: () => runtime.dispose() })),
+      ),
+    );
+  });

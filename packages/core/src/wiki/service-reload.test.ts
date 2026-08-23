@@ -84,6 +84,60 @@ const dependencies: Layer.Layer<TopicService | WikiSectionSources> = Layer.merge
   WikiSectionSources.NotWired,
 );
 
+/** The paths one reload test works over: a scoped temp directory, the active
+ *  artifact path, and the staging path an install renames from.
+ *
+ *  A service rather than three locals, so the host layer a test provides at its
+ *  own boundary can be built from the same paths the test body reads. */
+class ReloadFixture extends Context.Service<
+  ReloadFixture,
+  { readonly directory: string; readonly destination: string; readonly staged: string }
+>()('@bible/core/wiki/test/ReloadFixture') {
+  /** A fresh temp directory, with `seed` — when given — written to the active
+   *  path before anything opens it. */
+  static readonly layer = (
+    seed: Option.Option<{ readonly slug: string; readonly title: string }>,
+  ): Layer.Layer<ReloadFixture, never, FileSystem.FileSystem> =>
+    Layer.effect(
+      ReloadFixture,
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const directory = yield* fs
+          .makeTempDirectoryScoped({ prefix: 'wiki-reload-' })
+          .pipe(Effect.orDie);
+        const destination = `${directory}/topics.db`;
+        yield* Option.match(seed, {
+          onNone: () => Effect.void,
+          onSome: (present) =>
+            Effect.sync(() => writeArtifact(destination, present.slug, present.title)),
+        });
+        return ReloadFixture.of({
+          directory,
+          destination,
+          staged: `${directory}/topics.db.building`,
+        });
+      }),
+    );
+}
+
+/** The reloadable host over {@link ReloadFixture}'s active path, plus the
+ *  fixture itself — one layer a test provides once, at its own boundary. */
+const reloadableHost = (
+  seed: Option.Option<{ readonly slug: string; readonly title: string }> = Option.none(),
+): Layer.Layer<WikiService | ReloadableArtifact | ReloadFixture, never, FileSystem.FileSystem> =>
+  Layer.unwrap(
+    Effect.map(ReloadFixture, (fixture) =>
+      layerReloadableArtifact(driver, fixture.destination).pipe(Layer.provide(dependencies)),
+    ),
+  ).pipe(Layer.provideMerge(ReloadFixture.layer(seed)));
+
+/** Every authored slug the non-reloadable composition serves for `file`, read
+ *  at that composition's own boundary. */
+const slugsFromArtifact = (file: string) =>
+  authoredSlugs().pipe(
+    Effect.provide(layerArtifactOrAbsent(driver, file).pipe(Layer.provide(dependencies))),
+  );
+
 /** Every authored slug the wiki currently serves. `list` rather than `topic`
  *  because it answers "what is in this artifact" without the catalog long tail
  *  deciding the answer for it. */
@@ -105,14 +159,8 @@ describe('§3.6 the reader after an update', () => {
   test('serves content that exists only in the new artifact, after reload', () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
-      const directory = yield* fs.makeTempDirectoryScoped({ prefix: 'wiki-reload-' });
-      const destination = `${directory}/topics.db`;
-      const staged = `${directory}/topics.db.building`;
-      yield* Effect.sync(() => writeArtifact(destination, 'sanctuary', 'The Sanctuary'));
-
-      const host = layerReloadableArtifact(driver, destination).pipe(Layer.provide(dependencies));
-
-      yield* Effect.gen(function* () {
+      const { destination, staged } = yield* ReloadFixture;
+      {
         // The generation this host opened.
         expect(yield* authoredSlugs()).toEqual(['sanctuary']);
 
@@ -133,8 +181,10 @@ describe('§3.6 the reader after an update', () => {
           wiki.topic(topicSlug('investigative-judgment')),
         );
         expect(page.title).toBe('The Judgment');
-      }).pipe(Effect.provide(host));
-    }));
+      }
+    }).pipe(
+      Effect.provide(reloadableHost(Option.some({ slug: 'sanctuary', title: 'The Sanctuary' }))),
+    ));
 
   /** The first install onto a host that had nothing. A reload of the
    *  *connection* could not do this — there is no connection to reload — which
@@ -143,13 +193,8 @@ describe('§3.6 the reader after an update', () => {
    *  `None`, so every install starts from absent. */
   test('an absent artifact becomes live after the first install and a reload', () =>
     Effect.gen(function* () {
-      const fs = yield* FileSystem.FileSystem;
-      const directory = yield* fs.makeTempDirectoryScoped({ prefix: 'wiki-reload-' });
-      const destination = `${directory}/topics.db`;
-
-      const host = layerReloadableArtifact(driver, destination).pipe(Layer.provide(dependencies));
-
-      yield* Effect.gen(function* () {
+      const { destination } = yield* ReloadFixture;
+      {
         // §3.5's steady state: no artifact, catalog-only, and a typed reason.
         expect(yield* authoredSlugs()).toEqual([]);
         const before = yield* Effect.flatMap(WikiService, (wiki) => wiki.availability);
@@ -161,8 +206,8 @@ describe('§3.6 the reader after an update', () => {
         expect(yield* authoredSlugs()).toEqual(['sanctuary']);
         const after = yield* Effect.flatMap(WikiService, (wiki) => wiki.availability);
         expect(Option.isNone(after)).toBe(true);
-      }).pipe(Effect.provide(host));
-    }));
+      }
+    }).pipe(Effect.provide(reloadableHost())));
 
   /** A reload whose new file cannot be opened must leave the working generation
    *  serving — the same stale-fallback posture the installer takes when it
@@ -177,13 +222,8 @@ describe('§3.6 the reader after an update', () => {
   test('a reload that cannot open the artifact keeps the previous generation serving', () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
-      const directory = yield* fs.makeTempDirectoryScoped({ prefix: 'wiki-reload-' });
-      const destination = `${directory}/topics.db`;
-      yield* Effect.sync(() => writeArtifact(destination, 'sanctuary', 'The Sanctuary'));
-
-      const host = layerReloadableArtifact(driver, destination).pipe(Layer.provide(dependencies));
-
-      yield* Effect.gen(function* () {
+      const { destination } = yield* ReloadFixture;
+      {
         expect(yield* authoredSlugs()).toEqual(['sanctuary']);
 
         // Not an artifact at all — the state a truncated download would leave
@@ -213,8 +253,10 @@ describe('§3.6 the reader after an update', () => {
         // `artifact-not-installed`.
         const availability = yield* Effect.flatMap(WikiService, (wiki) => wiki.availability);
         expect(Option.isNone(availability)).toBe(true);
-      }).pipe(Effect.provide(host));
-    }));
+      }
+    }).pipe(
+      Effect.provide(reloadableHost(Option.some({ slug: 'sanctuary', title: 'The Sanctuary' }))),
+    ));
 
   /** A query already running when a reload lands must finish against the
    *  generation it started on (round-4 F3/B1).
@@ -231,14 +273,8 @@ describe('§3.6 the reader after an update', () => {
   test('a query in flight when a reload lands still answers', () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
-      const directory = yield* fs.makeTempDirectoryScoped({ prefix: 'wiki-reload-' });
-      const destination = `${directory}/topics.db`;
-      const staged = `${directory}/topics.db.building`;
-      yield* Effect.sync(() => writeArtifact(destination, 'sanctuary', 'The Sanctuary'));
-
-      const host = layerReloadableArtifact(driver, destination).pipe(Layer.provide(dependencies));
-
-      yield* Effect.gen(function* () {
+      const { destination, staged } = yield* ReloadFixture;
+      {
         const wiki = yield* WikiService;
         const artifact = yield* ReloadableArtifact;
 
@@ -268,8 +304,10 @@ describe('§3.6 the reader after an update', () => {
 
         // And after the dust settles, the new generation is the one serving.
         expect(yield* authoredSlugs()).toEqual(['investigative-judgment']);
-      }).pipe(Effect.provide(host));
-    }));
+      }
+    }).pipe(
+      Effect.provide(reloadableHost(Option.some({ slug: 'sanctuary', title: 'The Sanctuary' }))),
+    ));
 
   /** Shutdown closes every generation, each exactly once — the live one
    *  included.
@@ -366,11 +404,7 @@ describe('§3.6 the reader after an update', () => {
       const destination = `${directory}/topics.db`;
       yield* Effect.sync(() => writeArtifact(destination, 'sanctuary', 'The Sanctuary'));
 
-      const slugs = yield* authoredSlugs().pipe(
-        Effect.provide(
-          layerArtifactOrAbsent(driver, destination).pipe(Layer.provide(dependencies)),
-        ),
-      );
+      const slugs = yield* slugsFromArtifact(destination);
       expect(slugs).toEqual(['sanctuary']);
     }));
 });

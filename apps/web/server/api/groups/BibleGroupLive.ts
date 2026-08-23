@@ -4,7 +4,7 @@
  * Delegates to core BibleService for all operations.
  */
 import { HttpApiBuilder } from 'effect/unstable/httpapi';
-import { Effect, Option } from 'effect';
+import { Effect, Option, Predicate } from 'effect';
 
 import { BibleToolsApi, BookNotFoundError, ChapterNotFoundError, DatabaseError } from '@bible/api';
 import { Reference, type BibleError, type ChapterReference } from '@bible/core/bible';
@@ -13,9 +13,21 @@ import { BibleService } from '@bible/core/bible/service';
 /**
  * Map database errors to API DatabaseError
  */
+/** The `BibleError` variants that name the operation that failed. */
+type OperationalBibleError = Extract<BibleError, { readonly operation: string }>;
+
+const OPERATIONAL_TAGS: readonly OperationalBibleError['_tag'][] = [
+  'BibleUnavailableError',
+  'BibleDataIntegrityError',
+];
+
+const isOperationalBibleError: Predicate.Refinement<BibleError, OperationalBibleError> = (
+  error: BibleError,
+): error is OperationalBibleError => OPERATIONAL_TAGS.some((tag) => Predicate.isTagged(error, tag));
+
 const toDatabaseError = (error: BibleError): DatabaseError => {
   let message = 'Bible data is inconsistent';
-  if (error._tag === 'BibleUnavailableError' || error._tag === 'BibleDataIntegrityError') {
+  if (isOperationalBibleError(error)) {
     message = `Bible ${error.operation} failed`;
   }
   return DatabaseError.make({ message });

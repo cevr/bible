@@ -43,11 +43,14 @@ import { runCli } from '../lib/run-cli.js';
 /** The fixture embedder core's parity test uses, so both sides of the
  *  comparison are looking at the same vectors rather than at two plausible
  *  ones. */
-const embedder = Layer.succeed(QueryEmbedder, {
-  fingerprint: MODEL_FINGERPRINT,
-  embedQuery: (query: string) => Effect.succeed(goldenVector(query)),
-  embedDocument: (text: string) => Effect.succeed(goldenVector(text)),
-});
+const embedder = Layer.succeed(
+  QueryEmbedder,
+  QueryEmbedder.of({
+    fingerprint: MODEL_FINGERPRINT,
+    embedQuery: (query: string) => Effect.succeed(goldenVector(query)),
+    embedDocument: (text: string) => Effect.succeed(goldenVector(text)),
+  }),
+);
 
 /** One service instance for both seams: a difference in service construction
  *  must not be able to hide behind a difference the test was not looking for. */
@@ -298,55 +301,66 @@ describe('bible egw search — narrowings reach the service', () => {
  *  which this pair of startup reads slipped past.
  */
 describe('bible egw search — the index is read once at startup (F8)', () => {
+  // The counter the assertion reads, and the composition that increments it,
+  // both live beside the test rather than inside it: the layer is provided once
+  // at the test's own boundary, so it cannot be built from a value that only
+  // exists partway through the run.
+  const intactReads = Ref.makeUnsafe(0);
+  const intactBytes = goldenVectorIndexBytes();
+  const countingIntact = Layer.succeed(
+    VectorIndexBytes,
+    VectorIndexBytes.of({
+      read: Ref.update(intactReads, (count) => count + 1).pipe(Effect.as(Option.some(intactBytes))),
+    }),
+  );
+
+  // The CLI's real composition, with only the byte source substituted: the
+  // gate and the service are the shipped ones.
+  const intactLayer = SearchService.Live.pipe(
+    Layer.provide(goldenSearchSources),
+    Layer.provide(verifiedVectorIndex('/fixture/vectors.bvi', countingIntact)),
+    Layer.provide(embedder),
+  );
+
   it.scopedLive('parses the artifact once across the gate and the service', () =>
     Effect.gen(function* () {
-      const reads = yield* Ref.make(0);
-      const bytes = goldenVectorIndexBytes();
-      const counting = Layer.succeed(VectorIndexBytes, {
-        read: Ref.update(reads, (count) => count + 1).pipe(Effect.as(Option.some(bytes))),
-      });
-
-      // The CLI's real composition, with only the byte source substituted: the
-      // gate and the service are the shipped ones.
-      const layer = SearchService.Live.pipe(
-        Layer.provide(goldenSearchSources),
-        Layer.provide(verifiedVectorIndex('/fixture/vectors.bvi', counting)),
-        Layer.provide(embedder),
+      const service = yield* SearchService;
+      // Several queries, so a per-query read would climb past any fixed count.
+      yield* service.query(
+        SearchQuery.make({
+          text: WORDY_QUERY,
+          scope: Option.none(),
+          bookCode: Option.none(),
+          limit: Option.some(20),
+        }),
       );
-
-      yield* Effect.gen(function* () {
-        const service = yield* SearchService;
-        // Several queries, so a per-query read would climb past any fixed count.
-        yield* service.query(
-          SearchQuery.make({
-            text: WORDY_QUERY,
-            scope: Option.none(),
-            bookCode: Option.none(),
-            limit: Option.some(20),
-          }),
-        );
-        for (const golden of GOLDEN_QUERIES) yield* service.query(golden.query);
-      }).pipe(Effect.provide(layer));
+      for (const golden of GOLDEN_QUERIES) yield* service.query(golden.query);
 
       // One: the gate's parse. The service takes the resolved index rather than
       // re-reading. Against the pre-fix shape this is 2.
-      expect(yield* Ref.get(reads)).toBe(1);
+      expect(yield* Ref.get(intactReads)).toBe(1);
+    }).pipe(Effect.provide(intactLayer)),
+  );
+
+  const foreignReads = Ref.makeUnsafe(0);
+  // A foreign fingerprint: intact bytes this build must not scan.
+  const foreignBytes = goldenVectorIndexBytes('some-other-model/512d');
+  const countingForeign = Layer.succeed(
+    VectorIndexBytes,
+    VectorIndexBytes.of({
+      read: Ref.update(foreignReads, (count) => count + 1).pipe(
+        Effect.as(Option.some(foreignBytes)),
+      ),
     }),
+  );
+  const foreignLayer = SearchService.Live.pipe(
+    Layer.provide(goldenSearchSources),
+    Layer.provide(verifiedVectorIndex('/fixture/vectors.bvi', countingForeign)),
+    Layer.provide(embedder),
   );
 
   it.scopedLive('still refuses an index the shipped parser rejects, on one read', () =>
     Effect.gen(function* () {
-      const reads = yield* Ref.make(0);
-      // A foreign fingerprint: intact bytes this build must not scan.
-      const foreign = goldenVectorIndexBytes('some-other-model/512d');
-      const counting = Layer.succeed(VectorIndexBytes, {
-        read: Ref.update(reads, (count) => count + 1).pipe(Effect.as(Option.some(foreign))),
-      });
-      const layer = SearchService.Live.pipe(
-        Layer.provide(goldenSearchSources),
-        Layer.provide(verifiedVectorIndex('/fixture/vectors.bvi', counting)),
-        Layer.provide(embedder),
-      );
       const result = yield* Effect.flatMap(SearchService, (service) =>
         service.query(
           SearchQuery.make({
@@ -356,12 +370,12 @@ describe('bible egw search — the index is read once at startup (F8)', () => {
             limit: Option.some(20),
           }),
         ),
-      ).pipe(Effect.provide(layer));
+      );
 
       expect(result.vector._tag).toBe('unavailable');
       if (result.vector._tag !== 'unavailable') return;
       expect(result.vector.reason).toBe('fingerprint');
-      expect(yield* Ref.get(reads)).toBe(1);
-    }),
+      expect(yield* Ref.get(foreignReads)).toBe(1);
+    }).pipe(Effect.provide(foreignLayer)),
   );
 });

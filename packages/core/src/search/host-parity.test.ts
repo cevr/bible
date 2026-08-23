@@ -32,11 +32,14 @@ import { SearchQuery, SearchResultJson } from './model.js';
 import { SearchService } from './service.js';
 import { MODEL_FINGERPRINT } from './vector-index.js';
 
-const embedder = Layer.succeed(QueryEmbedder, {
-  fingerprint: MODEL_FINGERPRINT,
-  embedQuery: (query: string) => Effect.succeed(goldenVector(query)),
-  embedDocument: (text: string) => Effect.succeed(goldenVector(text)),
-});
+const embedder = Layer.succeed(
+  QueryEmbedder,
+  QueryEmbedder.of({
+    fingerprint: MODEL_FINGERPRINT,
+    embedQuery: (query: string) => Effect.succeed(goldenVector(query)),
+    embedDocument: (text: string) => Effect.succeed(goldenVector(text)),
+  }),
+);
 
 /** One `SearchService` instance, shared by both seams.
  *
@@ -53,7 +56,7 @@ const encode = Schema.encodeEffect(Schema.fromJsonString(SearchResultJson));
 /** The value `v1.search.query` puts on the wire. `RpcTest` runs the real
  *  client/server pair, so this has crossed a wire and been decoded by the
  *  group's own schema. */
-const overRpc = (query: SearchQuery) =>
+const overRpcWith = (search: Layer.Layer<SearchService>, query: SearchQuery) =>
   Effect.gen(function* () {
     const client = yield* RpcTest.makeClient(BibleProcedureGroup);
     return yield* client['v1.search.query']({
@@ -63,10 +66,10 @@ const overRpc = (query: SearchQuery) =>
       limit: Option.getOrUndefined(query.limit),
     });
   }).pipe(
-    Effect.provide(
-      BibleProcedureHandlers.pipe(Layer.provide(procedureDependencies({ search: searchLayer }))),
-    ),
+    Effect.provide(BibleProcedureHandlers.pipe(Layer.provide(procedureDependencies({ search })))),
   );
+
+const overRpc = (query: SearchQuery) => overRpcWith(searchLayer, query);
 
 /** The value the CLI gets, calling `SearchService` directly. */
 const overCli = (query: SearchQuery) =>
@@ -125,14 +128,7 @@ describe('§9.7 search host parity', () => {
         limit: Option.none(),
       });
       const absent = goldenSearchLayer({ index: Option.none() });
-      const wire = yield* Effect.gen(function* () {
-        const client = yield* RpcTest.makeClient(BibleProcedureGroup);
-        return yield* client['v1.search.query']({ text: query.text });
-      }).pipe(
-        Effect.provide(
-          BibleProcedureHandlers.pipe(Layer.provide(procedureDependencies({ search: absent }))),
-        ),
-      );
+      const wire = yield* overRpcWith(absent, query);
       expect(wire.vector._tag).toBe('unavailable');
       if (wire.vector._tag !== 'unavailable') return;
       expect(wire.vector.reason).toBe('absent');

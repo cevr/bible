@@ -68,6 +68,7 @@ export const layerDesktopProcedureProtocol = (
           supportsAck: false,
           supportsTransferables: false,
           supportsSpanPropagation: false,
+          supportsNotifications: true,
         };
       }),
     ),

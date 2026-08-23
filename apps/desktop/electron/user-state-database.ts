@@ -7,8 +7,8 @@ import {
   type SqliteTransaction,
   type SyncStore,
   type UserDatabaseError,
-  userStateSchema,
-  type UserStateSchema,
+  userStateRelations,
+  type UserStateRelations,
 } from '@bible/core/local-first';
 import Database from 'better-sqlite3';
 import { drizzle, type BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
@@ -16,7 +16,7 @@ import { Effect } from 'effect';
 
 export interface DesktopUserDatabase {
   readonly client: Database.Database;
-  readonly drizzle: BetterSQLite3Database<UserStateSchema>;
+  readonly drizzle: BetterSQLite3Database<UserStateRelations>;
   readonly bridge: ReturnType<typeof makeSqliteEffectBridge>;
   readonly migrate: (sql: string) => Effect.Effect<void, UserDatabaseError>;
   readonly close: Effect.Effect<void>;
@@ -29,7 +29,7 @@ const execute = <A>(operation: {
 export const makeDesktopUserDatabase = (filename = ':memory:'): DesktopUserDatabase => {
   const client = new Database(filename);
   client.pragma('foreign_keys = ON');
-  const db = drizzle({ client, schema: userStateSchema });
+  const db = drizzle({ client, relations: userStateRelations });
 
   const transaction: SqliteTransaction = {
     run: execute,

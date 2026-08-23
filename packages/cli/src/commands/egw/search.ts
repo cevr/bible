@@ -89,6 +89,32 @@ const scope = Flag.choice('scope', ['egw', 'pioneer', 'all']).pipe(
   Flag.withDescription('Corpus scope: egw, pioneer, or all (default: egw)'),
   Flag.optional,
 );
+/** The remote search path. `FullLayer` — the API client plus auth — is provided
+ *  here, at this operation's own boundary, rather than inside the command body. */
+const remoteSearch = (queryStr: string, lang: string, limit: number, json: boolean) =>
+  Effect.gen(function* () {
+    const client = yield* EGWApiClient;
+    const params: EGWSchemas.SearchParams = { query: queryStr, lang, limit };
+    const response = yield* client.search(params);
+
+    if (json) {
+      yield* Console.log(yield* encodeJson(response));
+      return;
+    }
+
+    if (response.results.length === 0) {
+      yield* Console.log(`No remote results for "${queryStr}".`);
+      return;
+    }
+
+    yield* Console.log(
+      `Remote search "${queryStr}" — ${response.total} total, showing ${response.results.length}:\n`,
+    );
+    for (const [i, hit] of response.results.entries()) {
+      yield* Console.log(formatRemoteHit(hit, i));
+    }
+  }).pipe(Effect.provide(FullLayer));
+
 export const egwSearch = Command.make(
   'search',
   { query, book, limit, remote, json, lang, scope },
@@ -102,32 +128,7 @@ export const egwSearch = Command.make(
 
       if (args.remote) {
         // Remote path requires the API client + auth layer.
-        yield* Effect.gen(function* () {
-          const client = yield* EGWApiClient;
-          const params: EGWSchemas.SearchParams = {
-            query: queryStr,
-            lang: args.lang,
-            limit: args.limit,
-          };
-          const response = yield* client.search(params);
-
-          if (args.json) {
-            yield* Console.log(yield* encodeJson(response));
-            return;
-          }
-
-          if (response.results.length === 0) {
-            yield* Console.log(`No remote results for "${queryStr}".`);
-            return;
-          }
-
-          yield* Console.log(
-            `Remote search "${queryStr}" — ${response.total} total, showing ${response.results.length}:\n`,
-          );
-          for (const [i, hit] of response.results.entries()) {
-            yield* Console.log(formatRemoteHit(hit, i));
-          }
-        }).pipe(Effect.provide(FullLayer));
+        yield* remoteSearch(queryStr, args.lang, args.limit, args.json);
         return;
       }
 

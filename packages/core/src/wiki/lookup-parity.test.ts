@@ -50,13 +50,19 @@ const overCli = (input: LookupInput) =>
     Effect.provide(WIKI_LOOKUP_FIXTURE_LAYER),
   );
 
+/** The RPC half of every parity claim below: one call through a test client
+ *  over the same fixture-backed handlers, with the layer provided at this
+ *  function's own boundary rather than inside a test's generator. */
+const overRpcCall = (payload: { readonly text: string; readonly context?: typeof CONTEXT }) =>
+  Effect.gen(function* () {
+    const client = yield* RpcTest.makeClient(BibleProcedureGroup);
+    return yield* client['v1.wiki.lookup.resolve'](payload);
+  }).pipe(Effect.provide(handlers));
+
 describe('wiki lookup host parity', () => {
   it.scoped('the RPC handler and the CLI serialize the identical result', () =>
     Effect.gen(function* () {
-      const overRpc = yield* Effect.gen(function* () {
-        const client = yield* RpcTest.makeClient(BibleProcedureGroup);
-        return yield* client['v1.wiki.lookup.resolve']({ text: SELECTION });
-      }).pipe(Effect.provide(handlers));
+      const overRpc = yield* overRpcCall({ text: SELECTION });
 
       const direct = yield* overCli(LookupInput.make({ text: SELECTION, context: Option.none() }));
 
@@ -74,10 +80,7 @@ describe('wiki lookup host parity', () => {
 
   it.scoped('the optional context crosses the wire and both seams agree', () =>
     Effect.gen(function* () {
-      const overRpc = yield* Effect.gen(function* () {
-        const client = yield* RpcTest.makeClient(BibleProcedureGroup);
-        return yield* client['v1.wiki.lookup.resolve']({ text: SELECTION, context: CONTEXT });
-      }).pipe(Effect.provide(handlers));
+      const overRpc = yield* overRpcCall({ text: SELECTION, context: CONTEXT });
 
       const direct = yield* overCli(
         LookupInput.make({ text: SELECTION, context: Option.some(CONTEXT) }),
@@ -90,10 +93,7 @@ describe('wiki lookup host parity', () => {
       // without passing `context` through would produce two empty groups that
       // agree with each other and with nothing the reader asked for.
       expect(overRpc.strongs.map((hit) => hit.word)).toEqual(['sanctuary']);
-      const without = yield* Effect.gen(function* () {
-        const client = yield* RpcTest.makeClient(BibleProcedureGroup);
-        return yield* client['v1.wiki.lookup.resolve']({ text: SELECTION });
-      }).pipe(Effect.provide(handlers));
+      const without = yield* overRpcCall({ text: SELECTION });
       expect(without.strongs).toEqual([]);
     }),
   );
@@ -103,10 +103,7 @@ describe('wiki lookup host parity', () => {
       // The panel's row order is the encoding's key order (`LookupResult`'s
       // field order), and it is what all three clients draw. A group that
       // resolved to nothing is still a key.
-      const overRpc = yield* Effect.gen(function* () {
-        const client = yield* RpcTest.makeClient(BibleProcedureGroup);
-        return yield* client['v1.wiki.lookup.resolve']({ text: 'nothing names this' });
-      }).pipe(Effect.provide(handlers));
+      const overRpc = yield* overRpcCall({ text: 'nothing names this' });
 
       const wire = yield* Schema.encodeEffect(LookupResultJson)(overRpc);
       expect(Object.keys(wire)).toEqual([

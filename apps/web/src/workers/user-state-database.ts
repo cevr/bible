@@ -7,8 +7,8 @@ import {
   type UserDatabaseError,
   type ClientId,
   type SyncStore,
-  userStateSchema,
-  type UserStateSchema,
+  userStateRelations,
+  type UserStateRelations,
 } from '@bible/core/local-first';
 import {
   drizzle,
@@ -20,7 +20,7 @@ import { Effect, Predicate } from 'effect';
 import type { SqliteDatabase } from './sqlite-database.js';
 
 export interface BrowserUserDatabase {
-  readonly drizzle: SqliteRemoteDatabase<UserStateSchema>;
+  readonly drizzle: SqliteRemoteDatabase<UserStateRelations>;
   readonly bridge: ReturnType<typeof makeSqliteEffectBridge>;
   readonly migrate: (sql: string) => Effect.Effect<void, UserDatabaseError>;
 }
@@ -56,7 +56,7 @@ export const makeBrowserUserDatabase = (input: BrowserUserDatabaseInput): Browse
     );
 
   // @ts-expect-error Drizzle beta requires rows even though SqliteRemoteResult and get() allow none.
-  const db = drizzle(executeRemote, { schema: userStateSchema });
+  const db = drizzle(executeRemote, { relations: userStateRelations });
 
   const transaction: SqliteTransaction = {
     run: execute,

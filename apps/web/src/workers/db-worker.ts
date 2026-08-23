@@ -150,6 +150,46 @@ const initializeSqlite = (host: DatabaseWorkerHost): Effect.Effect<InitializedSq
     };
   });
 
+/**
+ * Install the three corpora against one `CorpusSupply` composition. The layer is
+ * provided here, at this operation's own boundary, rather than inside the
+ * caller's generator.
+ */
+const ensureCorpora = (
+  corpusSupply: Layer.Layer<CorpusSupply>,
+  host: DatabaseWorkerHost,
+): Effect.Effect<void, unknown> =>
+  Effect.gen(function* () {
+    const supply = yield* CorpusSupply;
+    // Bible stays fail-closed: the app cannot read without it.
+    yield* supply.ensure();
+    // Topics is writings-style catch-and-warn (§3.5). Both installers keep
+    // the active generation on any failure, so the only states reachable
+    // here are current, stale-but-verified, or absent — and absent means
+    // catalog pages, not a broken app.
+    yield* supply
+      .ensure({ target: Target.topics() })
+      .pipe(
+        Effect.catch((cause) =>
+          Effect.sync(() =>
+            host.warn(`[web.topics] unavailable category=${failureCategory(cause)}`),
+          ),
+        ),
+      );
+    // Vectors is the most optional artifact in the pipeline: its absence is a
+    // fully working lexical-only search, reported as §9.6's typed value. Same
+    // catch-and-warn posture as topics, one step further along.
+    yield* supply
+      .ensure({ target: Target.vectors() })
+      .pipe(
+        Effect.catch((cause) =>
+          Effect.sync(() =>
+            host.warn(`[web.vectors] unavailable category=${failureCategory(cause)}`),
+          ),
+        ),
+      );
+  }).pipe(Effect.provide(corpusSupply));
+
 const initializeDatabases = (
   host: DatabaseWorkerHost,
 ): Effect.Effect<Omit<ProcedureServerInput, 'port'>, unknown> =>
@@ -216,36 +256,7 @@ const initializeDatabases = (
     const corpusSupply = CorpusSupply.layer.pipe(
       Layer.provide(Layer.mergeAll(bibleArtifacts, topicsArtifacts, vectorsArtifacts)),
     );
-    yield* Effect.gen(function* () {
-      const supply = yield* CorpusSupply;
-      // Bible stays fail-closed: the app cannot read without it.
-      yield* supply.ensure();
-      // Topics is writings-style catch-and-warn (§3.5). Both installers keep
-      // the active generation on any failure, so the only states reachable
-      // here are current, stale-but-verified, or absent — and absent means
-      // catalog pages, not a broken app.
-      yield* supply
-        .ensure({ target: Target.topics() })
-        .pipe(
-          Effect.catch((cause) =>
-            Effect.sync(() =>
-              host.warn(`[web.topics] unavailable category=${failureCategory(cause)}`),
-            ),
-          ),
-        );
-      // Vectors is the most optional artifact in the pipeline: its absence is a
-      // fully working lexical-only search, reported as §9.6's typed value. Same
-      // catch-and-warn posture as topics, one step further along.
-      yield* supply
-        .ensure({ target: Target.vectors() })
-        .pipe(
-          Effect.catch((cause) =>
-            Effect.sync(() =>
-              host.warn(`[web.vectors] unavailable category=${failureCategory(cause)}`),
-            ),
-          ),
-        );
-    }).pipe(Effect.provide(corpusSupply));
+    yield* ensureCorpora(corpusSupply, host);
     yield* initializeWritingsDatabase(writingsSqlite).pipe(
       Effect.catch((cause) =>
         Effect.sync(() =>

@@ -132,6 +132,18 @@ const scratch = (): Effect.Effect<string, never, FileSystem.FileSystem | Scope.S
     return yield* fs.makeTempDirectoryScoped({ prefix: 'bible-topics-native-' }).pipe(Effect.orDie);
   });
 
+/** The acquire-then-install round at its own boundary. The layer is built per
+ *  test from a scratch directory, so the provide belongs here rather than to a
+ *  block nested inside each test's generator. */
+const installFirstSource = (layer: ReturnType<typeof layerNativeTopicsArtifacts>) =>
+  Effect.gen(function* () {
+    const recipe = yield* TopicsArtifact.Recipe;
+    const installer = yield* TopicsArtifact.Installer;
+    const source = Option.fromNullishOr(recipe.sources[0]);
+    if (Option.isNone(source)) return yield* Effect.fail('no source');
+    return yield* source.value.acquire.pipe(Effect.flatMap(installer.install));
+  }).pipe(Effect.provide(layer));
+
 describe('native Topics artifact', () => {
   const it = itBase.scopedLive.layer(BunFileSystem.layer);
 
@@ -143,21 +155,13 @@ describe('native Topics artifact', () => {
       const destination = `${dir}/topics.db`;
       writeArtifact(incoming, { schemaMajor: '1', topics: 3, aliases: 5 });
 
-      const receipt = yield* Effect.gen(function* () {
-        const recipe = yield* TopicsArtifact.Recipe;
-        const installer = yield* TopicsArtifact.Installer;
-        const source = Option.fromNullishOr(recipe.sources[0]);
-        if (Option.isNone(source)) return yield* Effect.fail('no source');
-        return yield* source.value.acquire.pipe(Effect.flatMap(installer.install));
-      }).pipe(
-        Effect.provide(
-          layerNativeTopicsArtifacts({
-            destination,
-            sources: [{ kind: 'workspace', path: incoming, label: 'workspace' }],
-            provenanceStore: makeProvenanceStore(),
-            verify: verifyTopicsFile,
-          }),
-        ),
+      const receipt = yield* installFirstSource(
+        layerNativeTopicsArtifacts({
+          destination,
+          sources: [{ kind: 'workspace', path: incoming, label: 'workspace' }],
+          provenanceStore: makeProvenanceStore(),
+          verify: verifyTopicsFile,
+        }),
       );
 
       expect(receipt.installed).toBe(3);
@@ -177,23 +181,14 @@ describe('native Topics artifact', () => {
       const bad = `${dir}/bad.db`;
       writeArtifact(bad, { schemaMajor: '99', topics: 1, aliases: 1 });
 
-      const exit = yield* Effect.gen(function* () {
-        const recipe = yield* TopicsArtifact.Recipe;
-        const installer = yield* TopicsArtifact.Installer;
-        const source = Option.fromNullishOr(recipe.sources[0]);
-        if (Option.isNone(source)) return yield* Effect.fail('no source');
-        return yield* source.value.acquire.pipe(Effect.flatMap(installer.install));
-      }).pipe(
-        Effect.provide(
-          layerNativeTopicsArtifacts({
-            destination,
-            sources: [{ kind: 'workspace', path: bad, label: 'workspace' }],
-            provenanceStore: makeProvenanceStore(),
-            verify: verifyTopicsFile,
-          }),
-        ),
-        Effect.exit,
-      );
+      const exit = yield* installFirstSource(
+        layerNativeTopicsArtifacts({
+          destination,
+          sources: [{ kind: 'workspace', path: bad, label: 'workspace' }],
+          provenanceStore: makeProvenanceStore(),
+          verify: verifyTopicsFile,
+        }),
+      ).pipe(Effect.exit);
 
       expect(exit._tag).toBe('Failure');
       expect(yield* fs.readFile(destination)).toEqual(before);

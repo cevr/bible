@@ -1,7 +1,7 @@
 import { BunFileSystem } from '@effect/platform-bun';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { bytesToHex } from '@noble/hashes/utils.js';
-import { Context, Effect, FileSystem, Option } from 'effect';
+import { Context, Effect, FileSystem, type Layer, Option } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 
 import {
@@ -36,6 +36,18 @@ class FixtureArtifactInstaller extends Context.Service<
   FixtureArtifactInstaller,
   FileArtifactInstallerService
 >()('@bible/core/corpus-supply/test/FixtureArtifactInstaller') {}
+
+/** The wiring read at its own boundary: the layer under test is built per case
+ *  from a temp directory, so the provide belongs to this helper rather than to a
+ *  block nested inside the test's generator. */
+const readWiredSlots = <Wired>(
+  layer: Layer.Layer<Wired>,
+): Effect.Effect<{ readonly own: boolean; readonly other: boolean }> =>
+  Effect.gen(function* () {
+    const own = yield* Effect.serviceOption(FixtureArtifact.Installer);
+    const other = yield* Effect.serviceOption(BibleArtifact.Installer);
+    return { own: Option.isSome(own), other: Option.isSome(other) };
+  }).pipe(Effect.provide(layer));
 
 const FixtureArtifact = makeUnregisteredFileCorpusArtifact({
   corpus: 'fixture-corpus',
@@ -261,11 +273,7 @@ describe('parameterized File Corpus lifecycle', () => {
         verify: () => Effect.succeed(1),
       });
 
-      const wired = yield* Effect.gen(function* () {
-        const own = yield* Effect.serviceOption(FixtureArtifact.Installer);
-        const other = yield* Effect.serviceOption(BibleArtifact.Installer);
-        return { own: Option.isSome(own), other: Option.isSome(other) };
-      }).pipe(Effect.provide(layer));
+      const wired = yield* readWiredSlots(layer);
 
       expect(wired).toEqual({ own: true, other: false });
     }));

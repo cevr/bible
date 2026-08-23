@@ -75,7 +75,7 @@ export class EGWTokenStore extends Context.Service<EGWTokenStore, EGWTokenStoreS
           .makeDirectory(path.dirname(tokenFilePath), { recursive: true })
           .pipe(Effect.orDie);
 
-        return {
+        return EGWTokenStore.of({
           read: Effect.gen(function* () {
             const exists = yield* fs.exists(tokenFilePath);
             if (!exists) return Option.none<AccessToken>();
@@ -88,7 +88,7 @@ export class EGWTokenStore extends Context.Service<EGWTokenStore, EGWTokenStoreS
               const json = yield* encodePersisted(toPersisted(token));
               yield* fs.writeFileString(tokenFilePath, json);
             }),
-        };
+        });
       }),
     );
 
@@ -101,19 +101,22 @@ export class EGWTokenStore extends Context.Service<EGWTokenStore, EGWTokenStoreS
     readonly readJson: Effect.Effect<Option.Option<string>>;
     readonly writeJson: (json: string) => Effect.Effect<void>;
   }) =>
-    Layer.succeed(EGWTokenStore, {
-      read: Effect.gen(function* () {
-        const text = yield* port.readJson;
-        if (Option.isNone(text)) return Option.none<AccessToken>();
-        const parsed = yield* decodePersisted(text.value);
-        return Option.some(toAccessToken(parsed));
-      }),
-      write: (token) =>
-        Effect.gen(function* () {
-          const json = yield* encodePersisted(toPersisted(token));
-          yield* port.writeJson(json);
+    Layer.succeed(
+      EGWTokenStore,
+      EGWTokenStore.of({
+        read: Effect.gen(function* () {
+          const text = yield* port.readJson;
+          if (Option.isNone(text)) return Option.none<AccessToken>();
+          const parsed = yield* decodePersisted(text.value);
+          return Option.some(toAccessToken(parsed));
         }),
-    });
+        write: (token) =>
+          Effect.gen(function* () {
+            const json = yield* encodePersisted(toPersisted(token));
+            yield* port.writeJson(json);
+          }),
+      }),
+    );
 
   /** In-memory test layer. */
   static layerTest = (initial: Option.Option<AccessToken> = Option.none()) =>
@@ -121,10 +124,10 @@ export class EGWTokenStore extends Context.Service<EGWTokenStore, EGWTokenStoreS
       EGWTokenStore,
       Effect.gen(function* () {
         const ref = yield* Ref.make(initial);
-        return {
+        return EGWTokenStore.of({
           read: Ref.get(ref),
           write: (token) => Ref.set(ref, Option.some(token)),
-        };
+        });
       }),
     );
 }

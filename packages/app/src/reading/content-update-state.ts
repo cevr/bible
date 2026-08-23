@@ -26,7 +26,7 @@ import type {
   ContentStatus,
   ContentUpdateOutcome,
 } from '@bible/core/content-update';
-import { Option } from 'effect';
+import { Match, Option } from 'effect';
 
 /** How urgently a surface presents itself.
  *
@@ -69,49 +69,46 @@ const installedPhrase = (installed: ContentStatus['installed']): string =>
 
 /** The view for one decision, exhaustive over §3.6's four cases.
  *
- *  A `switch` over `_tag` rather than a lookup keyed by string: adding a
- *  decision to §3.6 is then a compile error here until both hosts have been
- *  told what to show for it. */
-const viewFor = (decision: ContentDecision, installed: string): ContentView => {
-  switch (decision._tag) {
-    case 'offer':
-      return {
-        summary: `Topic content: ${installed}, ${String(decision.entry.revision)} available`,
+ *  `Match.tagsExhaustive` over `_tag` rather than a lookup keyed by string:
+ *  adding a decision to §3.6 is then a compile error here until both hosts have
+ *  been told what to show for it. */
+const viewFor = (decision: ContentDecision, installed: string): ContentView =>
+  Match.value(decision).pipe(
+    Match.tagsExhaustive({
+      offer: (offer): ContentView => ({
+        summary: `Topic content: ${installed}, ${String(offer.entry.revision)} available`,
         // §3.6's own example sentence. The only state that interrupts.
         toast: Option.some(
-          `Topic content: ${installed}, ${String(decision.entry.revision)} available`,
+          `Topic content: ${installed}, ${String(offer.entry.revision)} available`,
         ),
         tone: 'notice',
         canUpdate: true,
-      };
-    case 'up-to-date':
-      return {
+      }),
+      'up-to-date': (): ContentView => ({
         summary: `Topic content: ${installed}, up to date`,
         toast: Option.none(),
         tone: 'quiet',
         canUpdate: false,
-      };
-    case 'refused':
+      }),
       // Names the version *and* the remedy. A refusal that said only "refused"
       // would leave the reader with a state they cannot act on and no idea that
       // updating the app is what clears it.
-      return {
-        summary: `Topic content: ${installed}. ${String(decision.available.revision)} needs a newer app version.`,
+      refused: (refused): ContentView => ({
+        summary: `Topic content: ${installed}. ${String(refused.available.revision)} needs a newer app version.`,
         toast: Option.none(),
         tone: 'quiet',
         canUpdate: false,
-      };
-    case 'offline':
+      }),
       // §3.6: the pinned floor stands and this is not an error. Said as a
       // fact about the *check*, not about the content — the content is working.
-      return {
+      offline: (): ContentView => ({
         summary: `Topic content: ${installed}. Could not check for updates.`,
         toast: Option.none(),
         tone: 'quiet',
         canUpdate: false,
-      };
-  }
-};
+      }),
+    }),
+  );
 
 /** The one entry point both hosts call.
  *

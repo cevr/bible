@@ -35,6 +35,7 @@ import {
 } from '@bible/core/search/testing';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Fiber, Layer, Option, Schema } from 'effect';
+import type { Scope } from 'effect';
 import type {
   FromClientEncoded,
   FromServerEncoded,
@@ -54,11 +55,14 @@ const WORDY_QUERY = 'what happens at the close of probation';
 
 /** The fixture embedder the core parity suite uses, so the value this host is
  *  compared against is the one the other hosts were compared against. */
-const embedder = Layer.succeed(QueryEmbedder, {
-  fingerprint: MODEL_FINGERPRINT,
-  embedQuery: (query: string) => Effect.succeed(goldenVector(query)),
-  embedDocument: (text: string) => Effect.succeed(goldenVector(text)),
-});
+const embedder = Layer.succeed(
+  QueryEmbedder,
+  QueryEmbedder.of({
+    fingerprint: MODEL_FINGERPRINT,
+    embedQuery: (query: string) => Effect.succeed(goldenVector(query)),
+    embedDocument: (text: string) => Effect.succeed(goldenVector(text)),
+  }),
+);
 
 /** Electron main with the native CPU adapter available and an index installed. */
 const hybridSearch = goldenSearchLayer({
@@ -119,6 +123,29 @@ const wiredWith = (search: Layer.Layer<SearchService>) =>
     return { traffic, clientPort: channel.port1 };
   });
 
+/** Run a client-side effect over a wired port. The transport layer is provided
+ *  at this function's own boundary, so a test's generator stays a description of
+ *  what it asks rather than a place where wiring happens. */
+const over = <A, E>(
+  port: MessagePort,
+  ask: Effect.Effect<A, E, RpcClient.Protocol | Scope.Scope>,
+): Effect.Effect<A, E, Scope.Scope> =>
+  ask.pipe(Effect.provide(layerDesktopProcedureTransport(port)));
+
+/** The same query answered without crossing a port, by the same hybrid wiring.
+ *  Its layer is provided here, at this function's boundary. */
+const locally = (text: string) =>
+  Effect.flatMap(SearchService, (service) =>
+    service.query(
+      SearchQuery.make({
+        text,
+        scope: Option.none(),
+        bookCode: Option.none(),
+        limit: Option.none(),
+      }),
+    ),
+  ).pipe(Effect.provide(hybridSearch));
+
 const encode = Schema.encodeEffect(Schema.fromJsonString(SearchResultJson));
 
 describe('desktop hybrid search', () => {
@@ -131,20 +158,23 @@ describe('desktop hybrid search', () => {
         // One client for the whole set, built once. Building it per query would
         // negotiate a fresh connection over a port that already has one, which is
         // not what a host does and not what this file is measuring.
-        const routes = yield* Effect.gen(function* () {
-          const procedures = yield* client;
-          const seen: { readonly label: string; readonly route: string }[] = [];
-          for (const golden of GOLDEN_QUERIES) {
-            const result = yield* procedures['v1.search.query']({
-              text: golden.query.text,
-              scope: Option.getOrUndefined(golden.query.scope),
-              bookCode: Option.getOrUndefined(golden.query.bookCode),
-              limit: Option.getOrUndefined(golden.query.limit),
-            });
-            seen.push({ label: golden.label, route: result.route });
-          }
-          return seen;
-        }).pipe(Effect.provide(layerDesktopProcedureTransport(clientPort)));
+        const routes = yield* over(
+          clientPort,
+          Effect.gen(function* () {
+            const procedures = yield* client;
+            const seen: { readonly label: string; readonly route: string }[] = [];
+            for (const golden of GOLDEN_QUERIES) {
+              const result = yield* procedures['v1.search.query']({
+                text: golden.query.text,
+                scope: Option.getOrUndefined(golden.query.scope),
+                bookCode: Option.getOrUndefined(golden.query.bookCode),
+                limit: Option.getOrUndefined(golden.query.limit),
+              });
+              seen.push({ label: golden.label, route: result.route });
+            }
+            return seen;
+          }),
+        );
 
         // §9.3's routing survives the wire, per query rather than in aggregate.
         expect(routes).toEqual(
@@ -165,23 +195,17 @@ describe('desktop hybrid search', () => {
     Effect.gen(function* () {
       const { clientPort } = yield* wiredWith(hybridSearch);
 
-      const overWire = yield* Effect.gen(function* () {
-        const procedures = yield* client;
-        return yield* procedures['v1.search.query']({ text: WORDY_QUERY });
-      }).pipe(Effect.provide(layerDesktopProcedureTransport(clientPort)));
+      const overWire = yield* over(
+        clientPort,
+        Effect.gen(function* () {
+          const procedures = yield* client;
+          return yield* procedures['v1.search.query']({ text: WORDY_QUERY });
+        }),
+      );
 
       // The same query answered by the same service *without* crossing the
       // port. That contrast is what makes the comparison mean something.
-      const local = yield* Effect.flatMap(SearchService, (service) =>
-        service.query(
-          SearchQuery.make({
-            text: WORDY_QUERY,
-            scope: Option.none(),
-            bookCode: Option.none(),
-            limit: Option.none(),
-          }),
-        ),
-      ).pipe(Effect.provide(hybridSearch));
+      const local = yield* locally(WORDY_QUERY);
 
       expect(yield* encode(overWire)).toBe(yield* encode(local));
       // Not vacuous: this query reaches the vector leg and returns rows.
@@ -194,10 +218,13 @@ describe('desktop hybrid search', () => {
     Effect.gen(function* () {
       const { clientPort } = yield* wiredWith(lexicalOnlySearch);
 
-      const result = yield* Effect.gen(function* () {
-        const procedures = yield* client;
-        return yield* procedures['v1.search.query']({ text: WORDY_QUERY });
-      }).pipe(Effect.provide(layerDesktopProcedureTransport(clientPort)));
+      const result = yield* over(
+        clientPort,
+        Effect.gen(function* () {
+          const procedures = yield* client;
+          return yield* procedures['v1.search.query']({ text: WORDY_QUERY });
+        }),
+      );
 
       // §9.6's requirement that the absence be "the same typed value in all
       // three clients" — the identical assertion the web round trip makes, on
@@ -217,10 +244,13 @@ describe('desktop hybrid search', () => {
       // The query the fixture catalog *matches*. Asked with a query that
       // matches no topic, every assertion below holds against an empty list and
       // the test proves nothing — which is what it did before.
-      const result = yield* Effect.gen(function* () {
-        const procedures = yield* client;
-        return yield* procedures['v1.search.query']({ text: GOLDEN_TOPIC_QUERY });
-      }).pipe(Effect.provide(layerDesktopProcedureTransport(clientPort)));
+      const result = yield* over(
+        clientPort,
+        Effect.gen(function* () {
+          const procedures = yield* client;
+          return yield* procedures['v1.search.query']({ text: GOLDEN_TOPIC_QUERY });
+        }),
+      );
 
       // §9.4's pinned group, at its exact position: the matching topic is the
       // whole list and it is first.

@@ -59,6 +59,62 @@ const downloadFile = (url: string, dest: string, label: string) =>
     yield* fs.writeFile(dest, new Uint8Array(bytes));
   });
 
+/**
+ * Resolve the bible and topics artifacts against one `CorpusSupply`
+ * composition. The supply layer is built and provided here, at this
+ * operation's own boundary, so the command handler never provides inline.
+ */
+const ensureArtifacts = (bibleDir: string, path: Path.Path, force: boolean) => {
+  const bibleArtifacts = layerNativeBibleArtifacts({
+    destination: path.join(bibleDir, 'bible.db'),
+    sources: [{ kind: 'release', ...BIBLE_ARTIFACT_RELEASE }],
+  });
+  // Topics has no published release yet, so its sources are the local slots,
+  // in the same precedence every host uses: the copy shipped inside the CLI
+  // install, the workspace build `bun run build:topics` writes, and any copy
+  // already installed under ~/.bible.
+  const topicsArtifacts = layerNativeTopicsArtifacts({
+    destination: path.join(bibleDir, 'topics.db'),
+    sources: [
+      // Resolved from the executable's own location first, so a binary copied
+      // off the build machine still finds the artifact it ships with; the
+      // build-time root is only the dev-mode fallback. Every candidate is
+      // offered as its own source rather than one path being chosen here —
+      // the supply pipeline already tries sources in order and skips the ones
+      // that are absent, so there is no reason to duplicate that logic.
+      ...packagedDataCandidates('topics.db').map((candidate): NativeFileArtifactSource => ({
+        kind: 'packaged',
+        path: candidate,
+        label: 'packaged',
+      })),
+      // Only reachable when the CLI runs from the repo root; an installed
+      // binary is invoked from arbitrary directories, which is why the
+      // packaged slot above — not this one — is the install-owned source.
+      {
+        kind: 'workspace',
+        path: path.resolve(process.cwd(), 'packages', 'core', 'data', 'topics.db'),
+        label: 'workspace',
+      },
+      ...topicsReleaseSource(),
+    ],
+  });
+  const supply = CorpusSupply.layer.pipe(
+    Layer.provide(Layer.merge(bibleArtifacts, topicsArtifacts)),
+  );
+
+  return Effect.gen(function* () {
+    const corpus = yield* CorpusSupply;
+    const bible = yield* corpus.ensure({ refresh: force });
+    // Writings-style catch-and-warn (§3.5): a missing topics artifact leaves
+    // the wiki on catalog pages, which is a degraded feature, not a failed init.
+    const topics = yield* corpus.ensure({ target: Target.topics(), refresh: force }).pipe(
+      Effect.map(Option.some),
+      Effect.catch(() => Effect.succeed(Option.none<CorpusSupplyReceipt>())),
+    );
+    return { bible, topics };
+  }).pipe(Effect.provide(supply));
+};
+
 export const init = Command.make('init', { force }, (args) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
@@ -71,61 +127,14 @@ export const init = Command.make('init', { force }, (args) =>
       yield* Console.log(`Created ${bibleDir}`);
     }
 
-    const bibleArtifacts = layerNativeBibleArtifacts({
-      destination: path.join(bibleDir, 'bible.db'),
-      sources: [{ kind: 'release', ...BIBLE_ARTIFACT_RELEASE }],
-    });
-    // Topics has no published release yet, so its sources are the local slots,
-    // in the same precedence every host uses: the copy shipped inside the CLI
-    // install, the workspace build `bun run build:topics` writes, and any copy
-    // already installed under ~/.bible.
-    const topicsArtifacts = layerNativeTopicsArtifacts({
-      destination: path.join(bibleDir, 'topics.db'),
-      sources: [
-        // Resolved from the executable's own location first, so a binary copied
-        // off the build machine still finds the artifact it ships with; the
-        // build-time root is only the dev-mode fallback. Every candidate is
-        // offered as its own source rather than one path being chosen here —
-        // the supply pipeline already tries sources in order and skips the ones
-        // that are absent, so there is no reason to duplicate that logic.
-        ...packagedDataCandidates('topics.db').map((candidate): NativeFileArtifactSource => ({
-          kind: 'packaged',
-          path: candidate,
-          label: 'packaged',
-        })),
-        // Only reachable when the CLI runs from the repo root; an installed
-        // binary is invoked from arbitrary directories, which is why the
-        // packaged slot above — not this one — is the install-owned source.
-        {
-          kind: 'workspace',
-          path: path.resolve(process.cwd(), 'packages', 'core', 'data', 'topics.db'),
-          label: 'workspace',
-        },
-        ...topicsReleaseSource(),
-      ],
-    });
-    const supply = CorpusSupply.layer.pipe(
-      Layer.provide(Layer.merge(bibleArtifacts, topicsArtifacts)),
-    );
-    const bible = yield* Effect.gen(function* () {
-      return yield* (yield* CorpusSupply).ensure({ refresh: args.force });
-    }).pipe(Effect.provide(supply));
+    const { bible, topics } = yield* ensureArtifacts(bibleDir, path, args.force);
+
     let bibleStatus = 'installed and verified';
     if (bible.activated.length === 0) {
       bibleStatus = 'ready';
     }
     yield* Console.log(`✓ bible.db (${bibleStatus})`);
 
-    // Writings-style catch-and-warn (§3.5): a missing topics artifact leaves
-    // the wiki on catalog pages, which is a degraded feature, not a failed init.
-    const topics = yield* Effect.gen(function* () {
-      return yield* (yield* CorpusSupply)
-        .ensure({ target: Target.topics(), refresh: args.force })
-        .pipe(Effect.map(Option.some));
-    }).pipe(
-      Effect.provide(supply),
-      Effect.catch(() => Effect.succeed(Option.none<CorpusSupplyReceipt>())),
-    );
     yield* Option.match(topics, {
       onNone: () =>
         Console.log(`✗ topics.db — build it with:`).pipe(

@@ -150,15 +150,21 @@ export class VectorIndexBytes extends Context.Service<VectorIndexBytes, VectorIn
    *  client before the artifact exists, and every test that is not about the
    *  vector leg. A decision written down, in `WikiSectionSources.NotWired`'s
    *  sense, rather than an omitted dependency. */
-  static readonly None: Layer.Layer<VectorIndexBytes> = Layer.succeed(VectorIndexBytes, {
-    read: Effect.succeed(Option.none()),
-  });
+  static readonly None: Layer.Layer<VectorIndexBytes> = Layer.succeed(
+    VectorIndexBytes,
+    VectorIndexBytes.of({
+      read: Effect.succeed(Option.none()),
+    }),
+  );
 
   /** An in-memory index, for tests and for a host that already holds the bytes.
    *  Named `layerOf` rather than `of` because `Context.Service` reserves `of`
    *  for constructing the service value itself. */
   static layerOf = (bytes: ArrayBuffer): Layer.Layer<VectorIndexBytes> =>
-    Layer.succeed(VectorIndexBytes, { read: Effect.succeed(Option.some(bytes)) });
+    Layer.succeed(
+      VectorIndexBytes,
+      VectorIndexBytes.of({ read: Effect.succeed(Option.some(bytes)) }),
+    );
 }
 
 /** The installed index, or §9.6's reason there is none.

@@ -45,6 +45,61 @@ const write = (file: string, slug = 'sanctuary', title = 'The Sanctuary'): void 
   database.close();
 };
 
+/** The readable-artifact state, read through the Node driver. The layer is
+ *  provided at this function's own boundary rather than inside a test's
+ *  generator. */
+const expectInstalledArtifact = (file: string) =>
+  Effect.gen(function* () {
+    const service = yield* WikiService;
+    // The artifact exists and is readable, so no absence and no failure —
+    // the third of the three states, and the one that proves the read-only
+    // no-create driver did not break the normal path while fixing the
+    // missing-file one.
+    expect(Option.isNone(yield* service.availability)).toBe(true);
+    const page = yield* service.topic(topicSlug('sanctuary'));
+    expect(page.status).toBe('flagship');
+    expect(page.title).toBe('The Sanctuary');
+  }).pipe(
+    Effect.provide(
+      layerArtifactOrAbsent(driver, file).pipe(
+        Layer.provide(TopicService.Test([])),
+        Layer.provide(WikiSectionSources.NotWired),
+      ),
+    ),
+  );
+
+/** §3.6's reload over one path, through the Node driver. */
+const expectReloadSwap = (input: {
+  readonly fs: FileSystem.FileSystem;
+  readonly file: string;
+  readonly staged: string;
+}) =>
+  Effect.gen(function* () {
+    const wiki = yield* WikiService;
+    const artifact = yield* ReloadableArtifact;
+
+    const slugs = () => Effect.map(wiki.list({}), (pages) => pages.map((p) => String(p.slug)));
+    expect(yield* slugs()).toEqual(['sanctuary']);
+
+    yield* Effect.sync(() => write(input.staged, 'investigative-judgment', 'The Judgment'));
+    yield* input.fs.rename(input.staged, input.file).pipe(Effect.orDie);
+
+    // The inode this driver holds is the old one, which is the whole
+    // reason the reload seam exists.
+    expect(yield* slugs()).toEqual(['sanctuary']);
+
+    yield* artifact.reload;
+    expect(yield* slugs()).toEqual(['investigative-judgment']);
+    expect((yield* wiki.topic(topicSlug('investigative-judgment'))).title).toBe('The Judgment');
+  }).pipe(
+    Effect.provide(
+      layerReloadableArtifact(driver, input.file).pipe(
+        Layer.provide(TopicService.Test([])),
+        Layer.provide(WikiSectionSources.NotWired),
+      ),
+    ),
+  );
+
 describe('electron main topics artifact (native)', () => {
   it.effect('reads an installed artifact read-only through the Node driver', () =>
     Effect.gen(function* () {
@@ -55,24 +110,7 @@ describe('electron main topics artifact (native)', () => {
       const file = `${directory}/topics.db`;
       yield* Effect.sync(() => write(file));
 
-      yield* Effect.gen(function* () {
-        const service = yield* WikiService;
-        // The artifact exists and is readable, so no absence and no failure —
-        // the third of the three states, and the one that proves the read-only
-        // no-create driver did not break the normal path while fixing the
-        // missing-file one.
-        expect(Option.isNone(yield* service.availability)).toBe(true);
-        const page = yield* service.topic(topicSlug('sanctuary'));
-        expect(page.status).toBe('flagship');
-        expect(page.title).toBe('The Sanctuary');
-      }).pipe(
-        Effect.provide(
-          layerArtifactOrAbsent(driver, file).pipe(
-            Layer.provide(TopicService.Test([])),
-            Layer.provide(WikiSectionSources.NotWired),
-          ),
-        ),
-      );
+      yield* expectInstalledArtifact(file);
     }).pipe(Effect.scoped, Effect.provide(NodeFileSystem.layer)),
   );
 
@@ -98,31 +136,7 @@ describe('electron main topics artifact (native)', () => {
       const staged = `${directory}/topics.db.building`;
       yield* Effect.sync(() => write(file));
 
-      yield* Effect.gen(function* () {
-        const wiki = yield* WikiService;
-        const artifact = yield* ReloadableArtifact;
-
-        const slugs = () => Effect.map(wiki.list({}), (pages) => pages.map((p) => String(p.slug)));
-        expect(yield* slugs()).toEqual(['sanctuary']);
-
-        yield* Effect.sync(() => write(staged, 'investigative-judgment', 'The Judgment'));
-        yield* fs.rename(staged, file).pipe(Effect.orDie);
-
-        // The inode this driver holds is the old one, which is the whole
-        // reason the reload seam exists.
-        expect(yield* slugs()).toEqual(['sanctuary']);
-
-        yield* artifact.reload;
-        expect(yield* slugs()).toEqual(['investigative-judgment']);
-        expect((yield* wiki.topic(topicSlug('investigative-judgment'))).title).toBe('The Judgment');
-      }).pipe(
-        Effect.provide(
-          layerReloadableArtifact(driver, file).pipe(
-            Layer.provide(TopicService.Test([])),
-            Layer.provide(WikiSectionSources.NotWired),
-          ),
-        ),
-      );
+      yield* expectReloadSwap({ fs, file, staged });
     }).pipe(Effect.scoped, Effect.provide(NodeFileSystem.layer)),
   );
 });

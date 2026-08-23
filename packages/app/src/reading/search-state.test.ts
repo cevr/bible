@@ -322,11 +322,14 @@ describe('searchView — every link decodes to a route (B2)', () => {
         Effect.provide(
           goldenSearchLayer({
             index: Option.some(goldenVectorIndexBytes()),
-            embedder: Layer.succeed(QueryEmbedder, {
-              fingerprint: MODEL_FINGERPRINT,
-              embedQuery: (text: string) => Effect.succeed(goldenVector(text)),
-              embedDocument: (text: string) => Effect.succeed(goldenVector(text)),
-            }),
+            embedder: Layer.succeed(
+              QueryEmbedder,
+              QueryEmbedder.of({
+                fingerprint: MODEL_FINGERPRINT,
+                embedQuery: (text: string) => Effect.succeed(goldenVector(text)),
+                embedDocument: (text: string) => Effect.succeed(goldenVector(text)),
+              }),
+            ),
           }),
         ),
       ),

@@ -109,6 +109,55 @@ const live = (file: string): Layer.Layer<WikiService> =>
     Layer.orDie,
   );
 
+/** {@link live}, over an artifact this same layer builds — so the whole graph is
+ *  one value a test provides at its own boundary. */
+const liveArtifact = (input: {
+  readonly schemaMajor: string;
+  readonly topics?: readonly {
+    readonly slug: string;
+    readonly title: string;
+    readonly thesis: string;
+    readonly body: string;
+  }[];
+}): Layer.Layer<WikiService, never, FileSystem.FileSystem | Scope.Scope> =>
+  Layer.unwrap(Effect.map(artifact(input), live));
+
+/** The catalog-only wiring a host gets from a path, for the tests that supply
+ *  their own file rather than {@link artifact}'s. */
+const orAbsent = (file: string): Layer.Layer<WikiService, never, FileSystem.FileSystem> =>
+  layerBunOrAbsent(file).pipe(Layer.provide(catalog), Layer.provide(WikiSectionSources.NotWired));
+
+/** The typed failure `list` gives for the artifact at `file`, read at that
+ *  wiring's own boundary — the corrupt case and the absent case are two
+ *  different graphs, so each is its own named call rather than one provide. */
+const listFailureFrom = (file: string) =>
+  Effect.flatMap(WikiService, (wiki) => Effect.flip(wiki.list({}))).pipe(
+    Effect.provide(orAbsent(file)),
+  );
+
+/** Every corruption the version gate should report for the artifact at `file`,
+ *  read at that file's own wiring — the loop below builds a fresh artifact per
+ *  case, so one shared provide cannot serve them. */
+const versionFailuresFrom = (file: string) =>
+  Effect.gen(function* () {
+    const wiki = yield* WikiService;
+    return {
+      availability: yield* Effect.flip(wiki.availability),
+      list: yield* Effect.flip(wiki.list({})),
+      topic: yield* Effect.flip(wiki.topic(topicSlug('sanctuary'))),
+    };
+  }).pipe(Effect.provide(live(file)));
+
+/** The availability and listing length the artifact at `file` reports. */
+const availabilityFrom = (file: string) =>
+  Effect.gen(function* () {
+    const wiki = yield* WikiService;
+    return {
+      availability: yield* wiki.availability,
+      listed: (yield* wiki.list({})).length,
+    };
+  }).pipe(Effect.provide(orAbsent(file)));
+
 const encodeBlocks = Schema.encodeSync(BlocksJson);
 const THESIS = encodeBlocks([
   ParagraphBlock.make({ content: [TextInline.make({ text: 'The thesis.' })] }),
@@ -120,14 +169,7 @@ describe('WikiService', () => {
 
   test('lists the flagship pages an installed artifact carries', () =>
     Effect.gen(function* () {
-      const file = yield* artifact({
-        schemaMajor: '1',
-        topics: [
-          { slug: 'sanctuary', title: 'The Sanctuary', thesis: THESIS, body: EMPTY },
-          { slug: '2300-days', title: '2300 Days', thesis: THESIS, body: EMPTY },
-        ],
-      });
-      yield* Effect.gen(function* () {
+      {
         const wiki = yield* WikiService;
         const topics = yield* wiki.list({});
         // Flagship pages first, in artifact order, then the catalog entries no
@@ -144,44 +186,48 @@ describe('WikiService', () => {
           'catalog',
         ]);
         expect(Option.isNone(yield* wiki.availability)).toBe(true);
-      }).pipe(Effect.provide(live(file)));
-    }));
+      }
+    }).pipe(
+      Effect.provide(
+        liveArtifact({
+          schemaMajor: '1',
+          topics: [
+            { slug: 'sanctuary', title: 'The Sanctuary', thesis: THESIS, body: EMPTY },
+            { slug: '2300-days', title: '2300 Days', thesis: THESIS, body: EMPTY },
+          ],
+        }),
+      ),
+    ));
 
   test('returns the authored core for a flagship slug', () =>
     Effect.gen(function* () {
-      const file = yield* artifact({
-        schemaMajor: '1',
-        topics: [{ slug: 'sanctuary', title: 'The Sanctuary', thesis: THESIS, body: EMPTY }],
-      });
-      yield* Effect.gen(function* () {
-        const wiki = yield* WikiService;
-        const page = yield* wiki.topic(topicSlug('sanctuary'));
-        expect(page.status).toBe('flagship');
-        expect(Option.isSome(page.core)).toBe(true);
-        expect(Option.isNone(page.unavailable)).toBe(true);
-      }).pipe(Effect.provide(live(file)));
-    }));
+      const wiki = yield* WikiService;
+      const page = yield* wiki.topic(topicSlug('sanctuary'));
+      expect(page.status).toBe('flagship');
+      expect(Option.isSome(page.core)).toBe(true);
+      expect(Option.isNone(page.unavailable)).toBe(true);
+    }).pipe(
+      Effect.provide(
+        liveArtifact({
+          schemaMajor: '1',
+          topics: [{ slug: 'sanctuary', title: 'The Sanctuary', thesis: THESIS, body: EMPTY }],
+        }),
+      ),
+    ));
 
   test('gives an unknown slug a catalog page rather than a failure', () =>
     Effect.gen(function* () {
-      const file = yield* artifact({ schemaMajor: '1' });
-      yield* Effect.gen(function* () {
-        const wiki = yield* WikiService;
-        const page = yield* wiki.topic(topicSlug('nowhere'));
-        expect(page.status).toBe('catalog');
-        expect(Option.isNone(page.core)).toBe(true);
-        // Not a *reason* — the artifact is fine, this topic simply has no core.
-        expect(Option.isNone(page.unavailable)).toBe(true);
-      }).pipe(Effect.provide(live(file)));
-    }));
+      const wiki = yield* WikiService;
+      const page = yield* wiki.topic(topicSlug('nowhere'));
+      expect(page.status).toBe('catalog');
+      expect(Option.isNone(page.core)).toBe(true);
+      // Not a *reason* — the artifact is fine, this topic simply has no core.
+      expect(Option.isNone(page.unavailable)).toBe(true);
+    }).pipe(Effect.provide(liveArtifact({ schemaMajor: '1' }))));
 
   test('refuses an artifact whose schema major exceeds this build', () =>
     Effect.gen(function* () {
-      const file = yield* artifact({
-        schemaMajor: '99',
-        topics: [{ slug: 'sanctuary', title: 'The Sanctuary', thesis: THESIS, body: EMPTY }],
-      });
-      yield* Effect.gen(function* () {
+      {
         // Present on disk, readable, and still refused — as a typed value. The
         // authored cores drop out; the catalog long tail does not, so a refused
         // artifact degrades exactly as an absent one does.
@@ -196,8 +242,15 @@ describe('WikiService', () => {
         const page = yield* wiki.topic(topicSlug('sanctuary'));
         expect(page.status).toBe('catalog');
         expect(page.unavailable).toEqual(Option.some('schema-too-new'));
-      }).pipe(Effect.provide(live(file)));
-    }));
+      }
+    }).pipe(
+      Effect.provide(
+        liveArtifact({
+          schemaMajor: '99',
+          topics: [{ slug: 'sanctuary', title: 'The Sanctuary', thesis: THESIS, body: EMPTY }],
+        }),
+      ),
+    ));
 
   it.effect('a missing artifact yields catalog entries and a typed absence', () =>
     Effect.gen(function* () {
@@ -252,33 +305,14 @@ describe('WikiService', () => {
       // rather than at open — `corrupt` either way, and the point stands: a
       // present-but-unreadable artifact is a typed error, never a defect and
       // never silently reported as "not installed".
-      const broken = yield* Effect.gen(function* () {
-        const wiki = yield* WikiService;
-        return yield* Effect.flip(wiki.list({}));
-      }).pipe(
-        Effect.provide(
-          layerBunOrAbsent(corrupt).pipe(
-            Layer.provide(catalog),
-            Layer.provide(WikiSectionSources.NotWired),
-          ),
-        ),
-      );
+      const broken = yield* listFailureFrom(corrupt);
       expect(broken.category).toBe('corrupt');
 
       // The same call against a path with no file is the typed absence, and it
       // still lists the catalog.
-      yield* Effect.gen(function* () {
-        const wiki = yield* WikiService;
-        expect(yield* wiki.availability).toEqual(Option.some('artifact-not-installed'));
-        expect((yield* wiki.list({})).length).toBe(2);
-      }).pipe(
-        Effect.provide(
-          layerBunOrAbsent(`${directory}/absent.db`).pipe(
-            Layer.provide(catalog),
-            Layer.provide(WikiSectionSources.NotWired),
-          ),
-        ),
-      );
+      const absent = yield* availabilityFrom(`${directory}/absent.db`);
+      expect(absent.availability).toEqual(Option.some('artifact-not-installed'));
+      expect(absent.listed).toBe(2);
     }));
 
   test('reports an unreadable schema_major as corrupt, not as a usable version', () =>
@@ -292,15 +326,12 @@ describe('WikiService', () => {
           schemaMajor,
           topics: [{ slug: 'sanctuary', title: 'The Sanctuary', thesis: THESIS, body: EMPTY }],
         });
-        yield* Effect.gen(function* () {
-          const wiki = yield* WikiService;
-          const failure = yield* Effect.flip(wiki.availability);
-          expect(failure.category).toBe('corrupt');
-          expect(failure.operation).toBe('availability');
-          expect(failure.message).toBe('Topics Artifact has no readable schema_major');
-          expect((yield* Effect.flip(wiki.list({}))).category).toBe('corrupt');
-          expect((yield* Effect.flip(wiki.topic(topicSlug('sanctuary')))).category).toBe('corrupt');
-        }).pipe(Effect.provide(live(file)));
+        const failures = yield* versionFailuresFrom(file);
+        expect(failures.availability.category).toBe('corrupt');
+        expect(failures.availability.operation).toBe('availability');
+        expect(failures.availability.message).toBe('Topics Artifact has no readable schema_major');
+        expect(failures.list.category).toBe('corrupt');
+        expect(failures.topic.category).toBe('corrupt');
       }
     }));
 
@@ -323,29 +354,27 @@ describe('WikiService', () => {
         database.exec("DELETE FROM meta WHERE key = 'schema_major'");
         database.close();
       });
-      yield* Effect.gen(function* () {
-        const wiki = yield* WikiService;
-        const failure = yield* Effect.flip(wiki.availability);
-        expect(failure.category).toBe('corrupt');
-        expect(failure.message).toBe('Topics Artifact has no readable schema_major');
-      }).pipe(Effect.provide(live(file)));
+      const failures = yield* versionFailuresFrom(file);
+      expect(failures.availability.category).toBe('corrupt');
+      expect(failures.availability.message).toBe('Topics Artifact has no readable schema_major');
     }));
 
   test('filters the listing by query', () =>
     Effect.gen(function* () {
-      const file = yield* artifact({
-        schemaMajor: '1',
-        topics: [
-          { slug: 'sanctuary', title: 'The Sanctuary', thesis: THESIS, body: EMPTY },
-          { slug: 'sabbath', title: 'The Sabbath', thesis: THESIS, body: EMPTY },
-        ],
-      });
-      yield* Effect.gen(function* () {
-        const wiki = yield* WikiService;
-        const found = yield* wiki.list({ query: 'sanctu' });
-        expect(found.map((topic: WikiPageSummary) => String(topic.slug))).toEqual(['sanctuary']);
-        // A wildcard-only query must not act as a filter.
-        expect((yield* wiki.list({ query: '%' })).length).toBe(2);
-      }).pipe(Effect.provide(live(file)));
-    }));
+      const wiki = yield* WikiService;
+      const found = yield* wiki.list({ query: 'sanctu' });
+      expect(found.map((topic: WikiPageSummary) => String(topic.slug))).toEqual(['sanctuary']);
+      // A wildcard-only query must not act as a filter.
+      expect((yield* wiki.list({ query: '%' })).length).toBe(2);
+    }).pipe(
+      Effect.provide(
+        liveArtifact({
+          schemaMajor: '1',
+          topics: [
+            { slug: 'sanctuary', title: 'The Sanctuary', thesis: THESIS, body: EMPTY },
+            { slug: 'sabbath', title: 'The Sabbath', thesis: THESIS, body: EMPTY },
+          ],
+        }),
+      ),
+    ));
 });

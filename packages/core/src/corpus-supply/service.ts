@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Option } from 'effect';
+import { Context, Effect, Layer, Match, Option } from 'effect';
 
 import { EGWParagraphDatabase } from '../egw-db/book-database.js';
 import type { PublicationId } from '../writings/model.js';
@@ -284,14 +284,13 @@ export class CorpusSupply extends Context.Service<CorpusSupply, CorpusSupplyServ
       const ensure: CorpusSupplyService['ensure'] = (input = {}) => {
         const refresh = input.refresh ?? false;
         const target = input.target ?? BootstrapTarget.make({});
-        switch (target._tag) {
-          case 'bootstrap':
-            return ensureFileCorpus(BOOTSTRAP_CORPUS, refresh);
-          case 'file':
-            return ensureFileCorpus(target.corpus, refresh);
-          case 'writings':
-            return ensureWritings(target, refresh);
-        }
+        return Match.value(target).pipe(
+          Match.tagsExhaustive({
+            bootstrap: () => ensureFileCorpus(BOOTSTRAP_CORPUS, refresh),
+            file: (t) => ensureFileCorpus(t.corpus, refresh),
+            writings: (t) => ensureWritings(t, refresh),
+          }),
+        );
       };
 
       /** Read-only: the installer's `current`, with every way of not having

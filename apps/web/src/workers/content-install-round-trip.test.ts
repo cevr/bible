@@ -228,6 +228,13 @@ const topicsSupply = (input: { readonly storage: Storage; readonly origin: strin
   );
 };
 
+/** Run an effect against a freshly wired `CorpusSupply`. The layer is provided
+ *  at this function's own boundary rather than inside a test's generator. */
+const withSupply = <A, E>(
+  input: { readonly storage: Storage; readonly origin: string },
+  ask: Effect.Effect<A, E, CorpusSupply>,
+) => ask.pipe(Effect.provide(topicsSupply(input)));
+
 describe('§3.6 install in the web worker', () => {
   it.scopedLive('installs the offered artifact through the same-origin proxy', () =>
     Effect.gen(function* () {
@@ -235,23 +242,26 @@ describe('§3.6 install in the web worker', () => {
       const origin = `http://127.0.0.1:${String(server.port)}`;
       const storage: Storage = { meta: new Map(), bytes: new Map() };
 
-      const installed = yield* Effect.gen(function* () {
-        const supply = yield* CorpusSupply;
-        yield* supply.installFrom({
-          corpus: 'topics',
-          release: {
-            url: `${origin}/release/topics.db`,
-            revision: 'topics-v4',
-            digest: ARTIFACT_DIGEST,
-            size: ARTIFACT_BYTES.length,
-            generation: Option.some(corpusGeneration(4)),
-          },
-        });
-        return {
-          provenance: yield* supply.installed('topics'),
-          file: yield* supply.activeFile('topics'),
-        };
-      }).pipe(Effect.provide(topicsSupply({ storage, origin })));
+      const installed = yield* withSupply(
+        { storage, origin },
+        Effect.gen(function* () {
+          const supply = yield* CorpusSupply;
+          yield* supply.installFrom({
+            corpus: 'topics',
+            release: {
+              url: `${origin}/release/topics.db`,
+              revision: 'topics-v4',
+              digest: ARTIFACT_DIGEST,
+              size: ARTIFACT_BYTES.length,
+              generation: Option.some(corpusGeneration(4)),
+            },
+          });
+          return {
+            provenance: yield* supply.installed('topics'),
+            file: yield* supply.activeFile('topics'),
+          };
+        }),
+      );
 
       // A generation is active, and it is the one the manifest offered.
       expect(Option.isSome(installed.file)).toBe(true);
@@ -283,19 +293,22 @@ describe('§3.6 install in the web worker', () => {
       const origin = `http://127.0.0.1:${String(server.port)}`;
       const storage: Storage = { meta: new Map(), bytes: new Map() };
 
-      const outcome = yield* Effect.gen(function* () {
-        const supply = yield* CorpusSupply;
-        yield* supply.installFrom({
-          corpus: 'topics',
-          release: {
-            url: 'https://artifacts.attacker.test/topics.db',
-            revision: 'topics-v4',
-            digest: ARTIFACT_DIGEST,
-            size: ARTIFACT_BYTES.length,
-            generation: Option.some(corpusGeneration(4)),
-          },
-        });
-      }).pipe(Effect.provide(topicsSupply({ storage, origin })), Effect.result);
+      const outcome = yield* withSupply(
+        { storage, origin },
+        Effect.gen(function* () {
+          const supply = yield* CorpusSupply;
+          yield* supply.installFrom({
+            corpus: 'topics',
+            release: {
+              url: 'https://artifacts.attacker.test/topics.db',
+              revision: 'topics-v4',
+              digest: ARTIFACT_DIGEST,
+              size: ARTIFACT_BYTES.length,
+              generation: Option.some(corpusGeneration(4)),
+            },
+          });
+        }),
+      ).pipe(Effect.result);
 
       expect(outcome._tag).toBe('Failure');
       expect(storage.bytes.size).toBe(0);

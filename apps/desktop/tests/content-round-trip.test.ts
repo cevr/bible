@@ -49,6 +49,7 @@ import { BibleProcedureGroup } from '@bible/core/procedure';
 import { procedureDependencies } from '@bible/core/procedure/testing';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Fiber, FileSystem, Layer, Option } from 'effect';
+import type { Scope } from 'effect';
 import type {
   FromClientEncoded,
   FromServerEncoded,
@@ -88,6 +89,15 @@ const instrumentedPort = (channel: MessageChannel): PortTraffic => {
 };
 
 const client = RpcClient.make(BibleProcedureGroup);
+
+/** Run a client-side effect over a wired port. The transport layer is provided
+ *  at this function's own boundary, so a test's generator stays a description of
+ *  what it asks rather than a place where wiring happens. */
+const over = <A, E>(
+  port: MessagePort,
+  ask: Effect.Effect<A, E, RpcClient.Protocol | Scope.Scope>,
+): Effect.Effect<A, E, Scope.Scope> =>
+  ask.pipe(Effect.provide(layerDesktopProcedureTransport(port)));
 
 const wired = Effect.gen(function* () {
   const channel = yield* Effect.acquireRelease(
@@ -170,10 +180,13 @@ describe('desktop runtime content updates', () => {
     Effect.gen(function* () {
       const { traffic, clientPort } = yield* wired;
 
-      const status = yield* Effect.gen(function* () {
-        const procedures = yield* client;
-        return yield* procedures['v1.content.status']({ corpus: 'topics' });
-      }).pipe(Effect.provide(layerDesktopProcedureTransport(clientPort)));
+      const status = yield* over(
+        clientPort,
+        Effect.gen(function* () {
+          const procedures = yield* client;
+          return yield* procedures['v1.content.status']({ corpus: 'topics' });
+        }),
+      );
 
       expect(status.decision._tag).toBe(ADAPTER_EXPECTATIONS.overrun);
       if (status.decision._tag !== 'refused') return;
@@ -197,10 +210,13 @@ describe('desktop runtime content updates', () => {
     Effect.gen(function* () {
       const { clientPort } = yield* wired;
 
-      const outcome = yield* Effect.gen(function* () {
-        const procedures = yield* client;
-        return yield* procedures['v1.content.update']({ corpus: 'topics' });
-      }).pipe(Effect.provide(layerDesktopProcedureTransport(clientPort)));
+      const outcome = yield* over(
+        clientPort,
+        Effect.gen(function* () {
+          const procedures = yield* client;
+          return yield* procedures['v1.content.update']({ corpus: 'topics' });
+        }),
+      );
 
       // §3.6: a refusal is a reported state, not an error the caller catches,
       // and it activates nothing.
@@ -325,17 +341,20 @@ describe('desktop runtime content updates', () => {
       );
       yield* Effect.addFinalizer(() => Fiber.interrupt(server));
 
-      const slugs = yield* Effect.gen(function* () {
-        const procedures = yield* client;
-        const before = yield* procedures['v1.wiki.topics.list']({});
-        const outcome = yield* procedures['v1.content.update']({ corpus: 'topics' });
-        const after = yield* procedures['v1.wiki.topics.list']({});
-        return {
-          before: before.map((page) => String(page.slug)),
-          activated: outcome.activated,
-          after: after.map((page) => String(page.slug)),
-        };
-      }).pipe(Effect.provide(layerDesktopProcedureTransport(channel.port1)));
+      const slugs = yield* over(
+        channel.port1,
+        Effect.gen(function* () {
+          const procedures = yield* client;
+          const before = yield* procedures['v1.wiki.topics.list']({});
+          const outcome = yield* procedures['v1.content.update']({ corpus: 'topics' });
+          const after = yield* procedures['v1.wiki.topics.list']({});
+          return {
+            before: before.map((page) => String(page.slug)),
+            activated: outcome.activated,
+            after: after.map((page) => String(page.slug)),
+          };
+        }),
+      );
 
       // The generation this host opened at startup.
       expect(slugs.before).toEqual(['sanctuary']);

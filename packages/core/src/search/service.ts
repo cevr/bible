@@ -195,12 +195,15 @@ export class SearchCorpusSources extends Context.Service<SearchCorpusSources, Se
   /** A host that deliberately serves no searchable corpus. A written decision,
    *  not an omitted dependency — the distinction `WikiSectionSources` draws for
    *  the same reason. */
-  static NotWired: Layer.Layer<SearchCorpusSources> = Layer.succeed(SearchCorpusSources, {
-    _tag: 'not-wired',
-  });
+  static NotWired: Layer.Layer<SearchCorpusSources> = Layer.succeed(
+    SearchCorpusSources,
+    SearchCorpusSources.of({
+      _tag: 'not-wired',
+    }),
+  );
 
   static wired = (sources: SearchSources): Layer.Layer<SearchCorpusSources> =>
-    Layer.succeed(SearchCorpusSources, { _tag: 'wired', sources });
+    Layer.succeed(SearchCorpusSources, SearchCorpusSources.of({ _tag: 'wired', sources }));
 }
 
 // ---------------------------------------------------------------------------

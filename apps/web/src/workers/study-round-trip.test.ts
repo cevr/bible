@@ -28,6 +28,7 @@ import {
 import * as BrowserWorkerRunner from '@effect/platform-browser/BrowserWorkerRunner';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Fiber, Layer, Option } from 'effect';
+import type { Scope } from 'effect';
 import type { FromClientEncoded, RequestEncoded } from 'effect/unstable/rpc/RpcMessage';
 import * as RpcClient from 'effect/unstable/rpc/RpcClient';
 import * as RpcServer from 'effect/unstable/rpc/RpcServer';
@@ -101,6 +102,14 @@ const bridged = (): Wire => {
 
 const client = RpcClient.make(BibleProcedureGroup);
 
+/** Run a client-side effect over a wired port. The transport layer is provided
+ *  at this function's own boundary, so a test's generator stays a description of
+ *  what it asks rather than a place where wiring happens. */
+const over = <A, E>(
+  port: MessagePort,
+  ask: Effect.Effect<A, E, RpcClient.Protocol | Scope.Scope>,
+) => ask.pipe(Effect.provide(layerWebProcedureTransport(port)));
+
 const wired = Effect.gen(function* () {
   const wire = yield* Effect.acquireRelease(Effect.sync(bridged), (active) =>
     Effect.sync(() => active.close()),
@@ -115,14 +124,17 @@ describe('web worker study seam', () => {
     Effect.gen(function* () {
       const wire = yield* wired;
 
-      const bundle = yield* Effect.gen(function* () {
-        const procedures = yield* client;
-        return yield* procedures['v1.study.verse.get']({
-          book: FIXTURE_BOOK,
-          chapter: FIXTURE_CHAPTER,
-          verse: FIXTURE_VERSE,
-        });
-      }).pipe(Effect.provide(layerWebProcedureTransport(wire.clientPort)));
+      const bundle = yield* over(
+        wire.clientPort,
+        Effect.gen(function* () {
+          const procedures = yield* client;
+          return yield* procedures['v1.study.verse.get']({
+            book: FIXTURE_BOOK,
+            chapter: FIXTURE_CHAPTER,
+            verse: FIXTURE_VERSE,
+          });
+        }),
+      );
 
       // The claim: five sections, one crossing.
       expect(wire.requests().length).toBe(1);
@@ -143,13 +155,16 @@ describe('web worker study seam', () => {
     Effect.gen(function* () {
       const wire = yield* wired;
 
-      const result = yield* Effect.gen(function* () {
-        const procedures = yield* client;
-        return yield* procedures['v1.study.strongs.get']({
-          number: strongsNumber('H8548'),
-          limit: 4,
-        });
-      }).pipe(Effect.provide(layerWebProcedureTransport(wire.clientPort)));
+      const result = yield* over(
+        wire.clientPort,
+        Effect.gen(function* () {
+          const procedures = yield* client;
+          return yield* procedures['v1.study.strongs.get']({
+            number: strongsNumber('H8548'),
+            limit: 4,
+          });
+        }),
+      );
 
       expect(wire.requests().length).toBe(1);
       expect(wire.requests()[0]?.tag).toBe('v1.study.strongs.get');

@@ -190,6 +190,15 @@ const makeFetchLog = (): FetchLog & { readonly record: (url: string) => void } =
   return { urls: () => urls, record: (url) => urls.push(url) };
 };
 
+/** The two service calls at their own boundary. Each test composes its own host
+ *  layer from a scratch directory, so the provide belongs to these helpers
+ *  rather than to a block nested inside each test's generator. */
+const runUpdate = (host: Layer.Layer<ContentUpdate>) =>
+  Effect.flatMap(ContentUpdate, (service) => service.update('topics')).pipe(Effect.provide(host));
+
+const runStatus = (host: Layer.Layer<ContentUpdate>) =>
+  Effect.flatMap(ContentUpdate, (service) => service.status('topics')).pipe(Effect.provide(host));
+
 describe('§10 M9 update over the shipped File Corpus lifecycle', () => {
   const test = it.scopedLive.layer(BunFileSystem.layer);
 
@@ -199,16 +208,12 @@ describe('§10 M9 update over the shipped File Corpus lifecycle', () => {
       const directory = yield* fs.makeTempDirectoryScoped({ prefix: 'content-update-' });
       const destination = `${directory}/topics.db`;
 
-      const outcome = yield* Effect.flatMap(ContentUpdate, (service) =>
-        service.update('topics'),
-      ).pipe(
-        Effect.provide(
-          hostFor({
-            destination,
-            entry: manifestEntry({ digest: RELEASE_DIGEST, size: RELEASE_BYTES.length }),
-            bytes: RELEASE_BYTES,
-          }),
-        ),
+      const outcome = yield* runUpdate(
+        hostFor({
+          destination,
+          entry: manifestEntry({ digest: RELEASE_DIGEST, size: RELEASE_BYTES.length }),
+          bytes: RELEASE_BYTES,
+        }),
       );
 
       expect(Option.getOrUndefined(Option.map(outcome.activated, String))).toBe('content-v4');
@@ -238,17 +243,13 @@ describe('§10 M9 update over the shipped File Corpus lifecycle', () => {
       const destination = `${directory}/topics.db`;
       const activation = makeActivationLog();
 
-      const outcome = yield* Effect.flatMap(ContentUpdate, (service) =>
-        service.update('topics'),
-      ).pipe(
-        Effect.provide(
-          hostFor({
-            destination,
-            entry: manifestEntry({ digest: RELEASE_DIGEST, size: RELEASE_BYTES.length }),
-            bytes: RELEASE_BYTES,
-            activation: activation.layer,
-          }),
-        ),
+      const outcome = yield* runUpdate(
+        hostFor({
+          destination,
+          entry: manifestEntry({ digest: RELEASE_DIGEST, size: RELEASE_BYTES.length }),
+          bytes: RELEASE_BYTES,
+          activation: activation.layer,
+        }),
       );
 
       expect(Option.isSome(outcome.activated)).toBe(true);
@@ -269,20 +270,16 @@ describe('§10 M9 update over the shipped File Corpus lifecycle', () => {
       yield* fs.writeFileString(destination, ACTIVE_BYTES);
       const activation = makeActivationLog();
 
-      const outcome = yield* Effect.flatMap(ContentUpdate, (service) =>
-        service.update('topics'),
-      ).pipe(
-        Effect.provide(
-          hostFor({
-            destination,
-            entry: manifestEntry({
-              digest: `sha256:${'a'.repeat(64)}`,
-              size: RELEASE_BYTES.length,
-            }),
-            bytes: RELEASE_BYTES,
-            activation: activation.layer,
+      const outcome = yield* runUpdate(
+        hostFor({
+          destination,
+          entry: manifestEntry({
+            digest: `sha256:${'a'.repeat(64)}`,
+            size: RELEASE_BYTES.length,
           }),
-        ),
+          bytes: RELEASE_BYTES,
+          activation: activation.layer,
+        }),
       );
 
       expect(Option.isNone(outcome.activated)).toBe(true);
@@ -298,20 +295,16 @@ describe('§10 M9 update over the shipped File Corpus lifecycle', () => {
       const destination = `${directory}/topics.db`;
       yield* fs.writeFileString(destination, ACTIVE_BYTES);
 
-      const outcome = yield* Effect.flatMap(ContentUpdate, (service) =>
-        service.update('topics'),
-      ).pipe(
-        Effect.provide(
-          hostFor({
-            destination,
-            // The manifest promises a digest the served bytes do not have.
-            entry: manifestEntry({
-              digest: `sha256:${'a'.repeat(64)}`,
-              size: RELEASE_BYTES.length,
-            }),
-            bytes: RELEASE_BYTES,
+      const outcome = yield* runUpdate(
+        hostFor({
+          destination,
+          // The manifest promises a digest the served bytes do not have.
+          entry: manifestEntry({
+            digest: `sha256:${'a'.repeat(64)}`,
+            size: RELEASE_BYTES.length,
           }),
-        ),
+          bytes: RELEASE_BYTES,
+        }),
       );
 
       // Nothing was activated, and the caller learned that from a value rather
@@ -329,21 +322,17 @@ describe('§10 M9 update over the shipped File Corpus lifecycle', () => {
       const destination = `${directory}/topics.db`;
       yield* fs.writeFileString(destination, ACTIVE_BYTES);
 
-      const outcome = yield* Effect.flatMap(ContentUpdate, (service) =>
-        service.update('topics'),
-      ).pipe(
-        Effect.provide(
-          hostFor({
-            destination,
-            // Digest matches the bytes exactly; only the declared size is
-            // wrong, so nothing but the size check can reject this candidate.
-            entry: manifestEntry({
-              digest: RELEASE_DIGEST,
-              size: RELEASE_BYTES.length + 1,
-            }),
-            bytes: RELEASE_BYTES,
+      const outcome = yield* runUpdate(
+        hostFor({
+          destination,
+          // Digest matches the bytes exactly; only the declared size is
+          // wrong, so nothing but the size check can reject this candidate.
+          entry: manifestEntry({
+            digest: RELEASE_DIGEST,
+            size: RELEASE_BYTES.length + 1,
           }),
-        ),
+          bytes: RELEASE_BYTES,
+        }),
       );
 
       expect(Option.isNone(outcome.activated)).toBe(true);
@@ -361,20 +350,16 @@ describe('§10 M9 update over the shipped File Corpus lifecycle', () => {
       const destination = `${directory}/topics.db`;
       yield* fs.writeFileString(destination, ACTIVE_BYTES);
 
-      const outcome = yield* Effect.flatMap(ContentUpdate, (service) =>
-        service.update('topics'),
-      ).pipe(
-        Effect.provide(
-          hostFor({
-            destination,
-            entry: manifestEntry({
-              digest: RELEASE_DIGEST,
-              size: RELEASE_BYTES.length,
-              schemaMajor: TOPICS_SCHEMA_MAJOR + 1,
-            }),
-            bytes: RELEASE_BYTES,
+      const outcome = yield* runUpdate(
+        hostFor({
+          destination,
+          entry: manifestEntry({
+            digest: RELEASE_DIGEST,
+            size: RELEASE_BYTES.length,
+            schemaMajor: TOPICS_SCHEMA_MAJOR + 1,
           }),
-        ),
+          bytes: RELEASE_BYTES,
+        }),
       );
 
       expect(outcome.status.decision._tag).toBe('refused');
@@ -388,16 +373,12 @@ describe('§10 M9 update over the shipped File Corpus lifecycle', () => {
       const directory = yield* fs.makeTempDirectoryScoped({ prefix: 'content-update-' });
       const destination = `${directory}/topics.db`;
 
-      const status = yield* Effect.flatMap(ContentUpdate, (service) =>
-        service.status('topics'),
-      ).pipe(
-        Effect.provide(
-          hostFor({
-            destination,
-            entry: manifestEntry({ digest: RELEASE_DIGEST, size: RELEASE_BYTES.length }),
-            bytes: RELEASE_BYTES,
-          }),
-        ),
+      const status = yield* runStatus(
+        hostFor({
+          destination,
+          entry: manifestEntry({ digest: RELEASE_DIGEST, size: RELEASE_BYTES.length }),
+          bytes: RELEASE_BYTES,
+        }),
       );
 
       expect(status.decision._tag).toBe('offer');
@@ -425,17 +406,13 @@ describe('§10 M9 update over the shipped File Corpus lifecycle', () => {
       const destination = `${directory}/topics.db`;
       const log = makeFetchLog();
 
-      const outcome = yield* Effect.flatMap(ContentUpdate, (service) =>
-        service.update('topics'),
-      ).pipe(
-        Effect.provide(
-          hostFor({
-            destination,
-            entry: manifestEntry({ digest: RELEASE_DIGEST, size: RELEASE_BYTES.length }),
-            bytes: RELEASE_BYTES,
-            log,
-          }),
-        ),
+      const outcome = yield* runUpdate(
+        hostFor({
+          destination,
+          entry: manifestEntry({ digest: RELEASE_DIGEST, size: RELEASE_BYTES.length }),
+          bytes: RELEASE_BYTES,
+          log,
+        }),
       );
 
       // The host went to the address the *manifest* named, not to any address
@@ -460,17 +437,13 @@ describe('§10 M9 update over the shipped File Corpus lifecycle', () => {
       const packaged = `${directory}/packaged-topics.db`;
       yield* fs.writeFileString(packaged, ACTIVE_BYTES);
 
-      const outcome = yield* Effect.flatMap(ContentUpdate, (service) =>
-        service.update('topics'),
-      ).pipe(
-        Effect.provide(
-          hostFor({
-            destination,
-            entry: manifestEntry({ digest: RELEASE_DIGEST, size: RELEASE_BYTES.length }),
-            bytes: RELEASE_BYTES,
-            localSources: [{ kind: 'packaged', path: packaged, label: 'packaged' }],
-          }),
-        ),
+      const outcome = yield* runUpdate(
+        hostFor({
+          destination,
+          entry: manifestEntry({ digest: RELEASE_DIGEST, size: RELEASE_BYTES.length }),
+          bytes: RELEASE_BYTES,
+          localSources: [{ kind: 'packaged', path: packaged, label: 'packaged' }],
+        }),
       );
 
       expect(Option.getOrUndefined(Option.map(outcome.activated, String))).toBe('content-v4');
@@ -504,23 +477,15 @@ describe('§10 M9 update over the shipped File Corpus lifecycle', () => {
       });
 
       // Launch one: the offer is accepted and generation 4 is activated.
-      const first = yield* Effect.flatMap(ContentUpdate, (service) =>
-        service.update('topics'),
-      ).pipe(
-        Effect.provide(
-          hostFor({ destination, entry, bytes: RELEASE_BYTES, provenanceStore: store }),
-        ),
+      const first = yield* runUpdate(
+        hostFor({ destination, entry, bytes: RELEASE_BYTES, provenanceStore: store }),
       );
       expect(Option.getOrUndefined(Option.map(first.activated, String))).toBe('content-v4');
 
       // Launch two: a new service graph over the same on-disk provenance, the
       // same compiled floor, the same manifest.
-      const second = yield* Effect.flatMap(ContentUpdate, (service) =>
-        service.status('topics'),
-      ).pipe(
-        Effect.provide(
-          hostFor({ destination, entry, bytes: RELEASE_BYTES, provenanceStore: store }),
-        ),
+      const second = yield* runStatus(
+        hostFor({ destination, entry, bytes: RELEASE_BYTES, provenanceStore: store }),
       );
 
       // The generation the install recorded is read back — this is the fact
@@ -541,39 +506,33 @@ describe('§10 M9 update over the shipped File Corpus lifecycle', () => {
       const destination = `${directory}/topics.db`;
       const store = makeProvenanceStore();
 
-      yield* Effect.flatMap(ContentUpdate, (service) => service.update('topics')).pipe(
-        Effect.provide(
-          hostFor({
-            destination,
-            entry: manifestEntry({
-              digest: RELEASE_DIGEST,
-              size: RELEASE_BYTES.length,
-              generation: 4,
-            }),
-            bytes: RELEASE_BYTES,
-            provenanceStore: store,
+      yield* runUpdate(
+        hostFor({
+          destination,
+          entry: manifestEntry({
+            digest: RELEASE_DIGEST,
+            size: RELEASE_BYTES.length,
+            generation: 4,
           }),
-        ),
+          bytes: RELEASE_BYTES,
+          provenanceStore: store,
+        }),
       );
 
       const log = makeFetchLog();
-      const rolledBack = yield* Effect.flatMap(ContentUpdate, (service) =>
-        service.update('topics'),
-      ).pipe(
-        Effect.provide(
-          hostFor({
-            destination,
-            entry: manifestEntry({
-              digest: RELEASE_DIGEST,
-              size: RELEASE_BYTES.length,
-              generation: 3,
-              revision: 'content-v3',
-            }),
-            bytes: 'the older topics artifact',
-            provenanceStore: store,
-            log,
+      const rolledBack = yield* runUpdate(
+        hostFor({
+          destination,
+          entry: manifestEntry({
+            digest: RELEASE_DIGEST,
+            size: RELEASE_BYTES.length,
+            generation: 3,
+            revision: 'content-v3',
           }),
-        ),
+          bytes: 'the older topics artifact',
+          provenanceStore: store,
+          log,
+        }),
       );
 
       expect(rolledBack.status.decision._tag).toBe('up-to-date');
@@ -602,15 +561,11 @@ describe('§10 M9 update over the shipped File Corpus lifecycle', () => {
         sources: [],
         verify: () => Effect.succeed(3),
       });
-      const status = yield* Effect.flatMap(ContentUpdate, (service) =>
-        service.status('topics'),
-      ).pipe(
-        Effect.provide(
-          ContentUpdate.Live.pipe(
-            Layer.provide(CorpusSupply.layer.pipe(Layer.provide(artifacts))),
-            Layer.provide(ContentManifestSource.Unreachable),
-            Layer.provide(ContentActivation.Inert),
-          ),
+      const status = yield* runStatus(
+        ContentUpdate.Live.pipe(
+          Layer.provide(CorpusSupply.layer.pipe(Layer.provide(artifacts))),
+          Layer.provide(ContentManifestSource.Unreachable),
+          Layer.provide(ContentActivation.Inert),
         ),
       );
 
@@ -716,17 +671,13 @@ describe('§10 M9 update over the shipped File Corpus lifecycle', () => {
           install: () => Effect.die('the installer must never be reached'),
         }),
       );
-      const outcome = yield* Effect.flatMap(ContentUpdate, (service) =>
-        service.update('topics'),
-      ).pipe(
-        Effect.provide(
-          ContentUpdate.Live.pipe(
-            Layer.provide(CorpusSupply.layer.pipe(Layer.provide(noRuntimePath))),
-            Layer.provide(ContentActivation.Inert),
-            Layer.provide(
-              ContentManifestSource.layerOf(
-                offering(manifestEntry({ digest: RELEASE_DIGEST, size: RELEASE_BYTES.length })),
-              ),
+      const outcome = yield* runUpdate(
+        ContentUpdate.Live.pipe(
+          Layer.provide(CorpusSupply.layer.pipe(Layer.provide(noRuntimePath))),
+          Layer.provide(ContentActivation.Inert),
+          Layer.provide(
+            ContentManifestSource.layerOf(
+              offering(manifestEntry({ digest: RELEASE_DIGEST, size: RELEASE_BYTES.length })),
             ),
           ),
         ),
@@ -752,15 +703,11 @@ describe('§10 M9 update over the shipped File Corpus lifecycle', () => {
         sources: [],
         verify: () => Effect.succeed(3),
       });
-      const status = yield* Effect.flatMap(ContentUpdate, (service) =>
-        service.status('topics'),
-      ).pipe(
-        Effect.provide(
-          ContentUpdate.Live.pipe(
-            Layer.provide(CorpusSupply.layer.pipe(Layer.provide(artifacts))),
-            Layer.provide(ContentManifestSource.Unreachable),
-            Layer.provide(ContentActivation.Inert),
-          ),
+      const status = yield* runStatus(
+        ContentUpdate.Live.pipe(
+          Layer.provide(CorpusSupply.layer.pipe(Layer.provide(artifacts))),
+          Layer.provide(ContentManifestSource.Unreachable),
+          Layer.provide(ContentActivation.Inert),
         ),
       );
 

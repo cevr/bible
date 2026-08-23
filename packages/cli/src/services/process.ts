@@ -8,6 +8,9 @@ export class CliProcess extends Context.Service<CliProcess, CliProcessService>()
   '@bible/cli/services/process/CliProcess',
 ) {}
 
-export const CliProcessLive = Layer.succeed(CliProcess, {
-  exitFailure: Effect.sync(() => process.exit(1)),
-});
+export const CliProcessLive = Layer.succeed(
+  CliProcess,
+  CliProcess.of({
+    exitFailure: Effect.sync(() => process.exit(1)),
+  }),
+);

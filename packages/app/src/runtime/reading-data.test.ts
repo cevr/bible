@@ -213,6 +213,21 @@ const handlerLayer = (
     }),
   );
 
+/** The flattened test client, over one recorder's handlers.
+ *
+ *  A named function rather than an inline `Effect.provide` inside each test's
+ *  generator: the handler layer is built from a per-test recorder and per-test
+ *  gates, so the provide belongs at this helper's own boundary rather than
+ *  partway through a run. */
+const makeProcedures = (
+  recorder: Recorder,
+  gates: Gates = {},
+  lookup: LookupHandler = unusedLookup,
+) =>
+  RpcTest.makeClient(BibleProcedureGroup, { flatten: true }).pipe(
+    Effect.provide(handlerLayer(recorder, gates, lookup)),
+  );
+
 /**
  * Runs the reading hooks inside a Solid root against a registry of its own,
  * seeded with the procedure client.
@@ -280,25 +295,19 @@ describe('reading data', () => {
       // which is what a signal read across an update does.
       const seen: { readonly text: string; readonly context: unknown }[] = [];
       const recorder = makeRecorder();
-      const procedures: ProcedureClient = yield* RpcTest.makeClient(BibleProcedureGroup, {
-        flatten: true,
-      }).pipe(
-        Effect.provide(
-          handlerLayer(recorder, {}, (input) =>
-            Effect.sync(() => {
-              seen.push({ text: input.text, context: input.context });
-              return LookupResult.make({
-                text: input.text,
-                topics: [],
-                strongs: [],
-                verses: [],
-                writings: [],
-                catalog: [],
-                lonePeek: false,
-              });
-            }),
-          ),
-        ),
+      const procedures: ProcedureClient = yield* makeProcedures(recorder, {}, (input) =>
+        Effect.sync(() => {
+          seen.push({ text: input.text, context: input.context });
+          return LookupResult.make({
+            text: input.text,
+            topics: [],
+            strongs: [],
+            verses: [],
+            writings: [],
+            catalog: [],
+            lonePeek: false,
+          });
+        }),
       );
 
       let reads = 0;
@@ -325,9 +334,7 @@ describe('reading data', () => {
   test('reads through the cache and refreshes only the keys a mutation touches', () =>
     Effect.gen(function* () {
       const recorder = makeRecorder();
-      const procedures: ProcedureClient = yield* RpcTest.makeClient(BibleProcedureGroup, {
-        flatten: true,
-      }).pipe(Effect.provide(handlerLayer(recorder)));
+      const procedures: ProcedureClient = yield* makeProcedures(recorder);
 
       const mounted = mount(procedures);
       yield* Effect.addFinalizer(() => Effect.sync(mounted.dispose));
@@ -383,9 +390,7 @@ describe('reading data', () => {
     Effect.gen(function* () {
       const recorder = makeRecorder();
       const gate = makeGate();
-      const procedures: ProcedureClient = yield* RpcTest.makeClient(BibleProcedureGroup, {
-        flatten: true,
-      }).pipe(Effect.provide(handlerLayer(recorder, { refresh: gate })));
+      const procedures: ProcedureClient = yield* makeProcedures(recorder, { refresh: gate });
 
       const mounted = mount(procedures);
       yield* Effect.addFinalizer(() => Effect.sync(mounted.dispose));
@@ -431,11 +436,10 @@ describe('reading data', () => {
       const recorder = makeRecorder();
       const mutationGate = makeGate();
       const refreshGate = makeGate();
-      const procedures: ProcedureClient = yield* RpcTest.makeClient(BibleProcedureGroup, {
-        flatten: true,
-      }).pipe(
-        Effect.provide(handlerLayer(recorder, { mutation: mutationGate, refresh: refreshGate })),
-      );
+      const procedures: ProcedureClient = yield* makeProcedures(recorder, {
+        mutation: mutationGate,
+        refresh: refreshGate,
+      });
 
       // A session with no collections reader, so the affected set is empty at
       // mutation-start and only a post-mutation collection can find the query.
@@ -508,9 +512,7 @@ describe('reading data', () => {
     it.scopedLive(`keeps the ${name} query cached across a route change`, () =>
       Effect.gen(function* () {
         const recorder = makeRecorder();
-        const procedures: ProcedureClient = yield* RpcTest.makeClient(BibleProcedureGroup, {
-          flatten: true,
-        }).pipe(Effect.provide(handlerLayer(recorder)));
+        const procedures: ProcedureClient = yield* makeProcedures(recorder);
 
         // One session registry, carrying the provider's own 400ms idle default;
         // the short sweep resolution only keeps the test's wait short.

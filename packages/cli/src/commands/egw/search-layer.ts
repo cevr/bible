@@ -51,6 +51,11 @@ import { Config, Context, Effect, Layer, Path } from 'effect';
  *  The desktop host reaches the same guarantee through `CorpusSupply`, whose
  *  installer runs the same parser before the atomic swap. The CLI reads whatever
  *  is already on disk, so it applies the gate at read time instead. */
+/** Read the gate's decision from the supplied byte source. The source layer is
+ *  provided here, at this operation's own boundary. */
+const resolveVectorIndex = (source: Layer.Layer<VectorIndexBytes>) =>
+  loadVectorIndex.pipe(Effect.provide(source));
+
 export const verifiedVectorIndex = (
   filename: string,
   /** The byte source to gate. Defaults to the real file reader over Bun's
@@ -63,8 +68,7 @@ export const verifiedVectorIndex = (
 ): Layer.Layer<ResolvedVectorIndex | VectorIndexBytes> =>
   Layer.unwrap(
     Effect.gen(function* () {
-      const bytes = source;
-      const loaded = yield* loadVectorIndex.pipe(Effect.provide(bytes));
+      const loaded = yield* resolveVectorIndex(source);
       if (loaded._tag !== 'index') {
         // Refused, and said so once at startup rather than per query.
         yield* Effect.logInfo('search.vectorIndex.refused').pipe(
@@ -90,13 +94,13 @@ const installedSearchLayer: Layer.Layer<SearchService> = Layer.unwrap(
     const sources = Layer.effect(
       SearchCorpusSources,
       Effect.gen(function* () {
-        return {
-          _tag: 'wired' as const,
+        return SearchCorpusSources.of({
+          _tag: 'wired',
           sources: {
             paragraphs: yield* EGWParagraphDatabase,
             wiki: yield* WikiService,
           },
-        };
+        });
       }),
     ).pipe(
       Layer.provide(EGWDbBun.layerBun(at('egw-paragraphs.db'))),

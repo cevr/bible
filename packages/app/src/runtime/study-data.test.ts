@@ -194,6 +194,17 @@ const handlerLayer = (recorder: Recorder, options: HandlerOptions = {}) =>
     }),
   );
 
+/** The flattened test client, over one recorder's handlers.
+ *
+ *  A named function rather than an inline `Effect.provide` inside each test's
+ *  generator: the handler layer is built from a per-test recorder, so the
+ *  provide belongs at this helper's own boundary rather than partway through a
+ *  run. */
+const makeProcedures = (recorder: Recorder, options: HandlerOptions = {}) =>
+  RpcTest.makeClient(BibleProcedureGroup, { flatten: true }).pipe(
+    Effect.provide(handlerLayer(recorder, options)),
+  );
+
 const settle = Effect.gen(function* () {
   for (let attempt = 0; attempt < 20; attempt += 1) {
     yield* Effect.yieldNow;
@@ -312,9 +323,7 @@ describe('study pane round trips', () => {
       // tests call the procedure directly, so a pane that quietly fetched a
       // sixth thing on mount would pass all of them.
       const recorder = makeRecorder();
-      const procedures: ProcedureClient = yield* RpcTest.makeClient(BibleProcedureGroup, {
-        flatten: true,
-      }).pipe(Effect.provide(handlerLayer(recorder)));
+      const procedures: ProcedureClient = yield* makeProcedures(recorder);
       const [verse] = createSignal(Number(VERSE_13));
       const mounted = mountPane(procedures, verse);
       yield* Effect.addFinalizer(() => Effect.sync(mounted.dispose));
@@ -332,9 +341,7 @@ describe('study pane round trips', () => {
   test('tapping a word sends exactly one Strong’s request', () =>
     Effect.gen(function* () {
       const recorder = makeRecorder();
-      const procedures: ProcedureClient = yield* RpcTest.makeClient(BibleProcedureGroup, {
-        flatten: true,
-      }).pipe(Effect.provide(handlerLayer(recorder)));
+      const procedures: ProcedureClient = yield* makeProcedures(recorder);
       const [verse] = createSignal(Number(VERSE_13));
       const mounted = mountPane(procedures, verse);
       yield* Effect.addFinalizer(() => Effect.sync(mounted.dispose));
@@ -360,9 +367,7 @@ describe('study pane round trips', () => {
       // word does not re-suspend — or re-request — the five sections already on
       // screen.
       const recorder = makeRecorder();
-      const procedures: ProcedureClient = yield* RpcTest.makeClient(BibleProcedureGroup, {
-        flatten: true,
-      }).pipe(Effect.provide(handlerLayer(recorder)));
+      const procedures: ProcedureClient = yield* makeProcedures(recorder);
       const [verse] = createSignal(Number(VERSE_13));
       const mounted = mountPane(procedures, verse);
       yield* Effect.addFinalizer(() => Effect.sync(mounted.dispose));
@@ -384,9 +389,7 @@ describe('study pane data', () => {
   test('reads the whole bundle the procedure returned', () =>
     Effect.gen(function* () {
       const recorder = makeRecorder();
-      const procedures: ProcedureClient = yield* RpcTest.makeClient(BibleProcedureGroup, {
-        flatten: true,
-      }).pipe(Effect.provide(handlerLayer(recorder)));
+      const procedures: ProcedureClient = yield* makeProcedures(recorder);
       const [verse] = createSignal(Number(VERSE_13));
       const mounted = mount(procedures, verse);
       yield* Effect.addFinalizer(() => Effect.sync(mounted.dispose));
@@ -406,9 +409,7 @@ describe('study pane data', () => {
   test('follows the route: a new verse swaps the atom and re-reads', () =>
     Effect.gen(function* () {
       const recorder = makeRecorder();
-      const procedures: ProcedureClient = yield* RpcTest.makeClient(BibleProcedureGroup, {
-        flatten: true,
-      }).pipe(Effect.provide(handlerLayer(recorder)));
+      const procedures: ProcedureClient = yield* makeProcedures(recorder);
       const [verse, setVerse] = createSignal(Number(VERSE_13));
       const mounted = mount(procedures, verse);
       yield* Effect.addFinalizer(() => Effect.sync(mounted.dispose));
@@ -432,9 +433,9 @@ describe('study pane data', () => {
       // package does — keeps the previous bundle on screen.
       const recorder = makeRecorder();
       const gate = makeGate();
-      const procedures: ProcedureClient = yield* RpcTest.makeClient(BibleProcedureGroup, {
-        flatten: true,
-      }).pipe(Effect.provide(handlerLayer(recorder, { secondVerseRead: gate })));
+      const procedures: ProcedureClient = yield* makeProcedures(recorder, {
+        secondVerseRead: gate,
+      });
       const [verse, setVerse] = createSignal(Number(VERSE_13));
       const mounted = mount(procedures, verse);
       yield* Effect.addFinalizer(() => Effect.sync(mounted.dispose));
@@ -459,9 +460,7 @@ describe('study pane data', () => {
   test('memoises per reference, so a re-read is not a re-fetch', () =>
     Effect.gen(function* () {
       const recorder = makeRecorder();
-      const procedures: ProcedureClient = yield* RpcTest.makeClient(BibleProcedureGroup, {
-        flatten: true,
-      }).pipe(Effect.provide(handlerLayer(recorder)));
+      const procedures: ProcedureClient = yield* makeProcedures(recorder);
       const [verse] = createSignal(Number(VERSE_13));
       const mounted = mount(procedures, verse);
       yield* Effect.addFinalizer(() => Effect.sync(mounted.dispose));
@@ -475,9 +474,7 @@ describe('study pane data', () => {
   test("reads the Strong's payload with its uncapped total", () =>
     Effect.gen(function* () {
       const recorder = makeRecorder();
-      const procedures: ProcedureClient = yield* RpcTest.makeClient(BibleProcedureGroup, {
-        flatten: true,
-      }).pipe(Effect.provide(handlerLayer(recorder)));
+      const procedures: ProcedureClient = yield* makeProcedures(recorder);
       const [verse] = createSignal(Number(VERSE_13));
       const mounted = mount(procedures, verse);
       yield* Effect.addFinalizer(() => Effect.sync(mounted.dispose));
@@ -493,9 +490,7 @@ describe('study pane data', () => {
   test('throws a failing read, so the pane Errored boundary is reachable', () =>
     Effect.gen(function* () {
       const recorder = makeRecorder();
-      const procedures: ProcedureClient = yield* RpcTest.makeClient(BibleProcedureGroup, {
-        flatten: true,
-      }).pipe(Effect.provide(handlerLayer(recorder, { failVerse: true })));
+      const procedures: ProcedureClient = yield* makeProcedures(recorder, { failVerse: true });
       const [verse] = createSignal(Number(VERSE_13));
       const mounted = mount(procedures, verse);
       yield* Effect.addFinalizer(() => Effect.sync(mounted.dispose));

@@ -129,7 +129,7 @@ export const makeBlobGenerationStore = <Corpus extends string>(input: {
         }
         return { generation, discarded };
       }),
-      { concurrency: 'unbounded' },
+      { concurrency: 4 },
     );
     const retained = retirement
       .filter(({ discarded }) => !discarded)

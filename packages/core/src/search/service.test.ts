@@ -46,11 +46,14 @@ import {
  *  The fingerprint is a parameter because the mismatch test's whole premise is
  *  an adapter and an index that disagree. */
 const embedderLayer = (fingerprint: string): Layer.Layer<QueryEmbedder> =>
-  Layer.succeed(QueryEmbedder, {
-    fingerprint,
-    embedQuery: (query) => Effect.succeed(goldenVector(query)),
-    embedDocument: (text) => Effect.succeed(goldenVector(text)),
-  });
+  Layer.succeed(
+    QueryEmbedder,
+    QueryEmbedder.of({
+      fingerprint,
+      embedQuery: (query) => Effect.succeed(goldenVector(query)),
+      embedDocument: (text) => Effect.succeed(goldenVector(text)),
+    }),
+  );
 
 const search = (
   input: {
@@ -70,6 +73,10 @@ const search = (
       }),
     ),
   ).pipe(Effect.provide(layer));
+
+/** The same call for an already-built {@link SearchQuery}, as the golden set holds. */
+const queryWith = (query: SearchQuery, layer: Layer.Layer<SearchService>) =>
+  Effect.flatMap(SearchService, (service) => service.query(query)).pipe(Effect.provide(layer));
 
 const withIndex = (fingerprint?: string) =>
   goldenSearchLayer({
@@ -236,12 +243,16 @@ describe('§9.6 an absent index yields lexical-only results carrying the typed a
     Effect.gen(function* () {
       // WebGPU lost, or the model file gone after the layer was built. The same
       // reader-visible state as no adapter at all: one reason, one state.
-      const declining = Layer.succeed(QueryEmbedder, {
-        fingerprint: MODEL_FINGERPRINT,
-        embedQuery: () => QueryEmbedderUnavailable.make({ adapter: 'test', reason: 'device lost' }),
-        embedDocument: () =>
-          QueryEmbedderUnavailable.make({ adapter: 'test', reason: 'device lost' }),
-      });
+      const declining = Layer.succeed(
+        QueryEmbedder,
+        QueryEmbedder.of({
+          fingerprint: MODEL_FINGERPRINT,
+          embedQuery: () =>
+            QueryEmbedderUnavailable.make({ adapter: 'test', reason: 'device lost' }),
+          embedDocument: () =>
+            QueryEmbedderUnavailable.make({ adapter: 'test', reason: 'device lost' }),
+        }),
+      );
       const result = yield* search(
         { text: 'what happens at the close of probation' },
         goldenSearchLayer({
@@ -371,13 +382,16 @@ describe('§9.4 vector-only candidates reach the result', () => {
       // their rows — which is the entire recall benefit of hybrid search. The
       // earlier code built its body map from the lexical rows alone and
       // therefore returned an empty result here, with a `ran` status on it.
-      const embedder = Layer.succeed(QueryEmbedder, {
-        fingerprint: MODEL_FINGERPRINT,
-        // Answers with the vector of a known indexed paragraph, so the scan's
-        // top neighbor is a row the lexical leg cannot have produced.
-        embedQuery: () => Effect.succeed(goldenVector(GOLDEN_VECTOR_IDS[2] ?? '')),
-        embedDocument: (text: string) => Effect.succeed(goldenVector(text)),
-      });
+      const embedder = Layer.succeed(
+        QueryEmbedder,
+        QueryEmbedder.of({
+          fingerprint: MODEL_FINGERPRINT,
+          // Answers with the vector of a known indexed paragraph, so the scan's
+          // top neighbor is a row the lexical leg cannot have produced.
+          embedQuery: () => Effect.succeed(goldenVector(GOLDEN_VECTOR_IDS[2] ?? '')),
+          embedDocument: (text: string) => Effect.succeed(goldenVector(text)),
+        }),
+      );
       const result = yield* search(
         { text: 'zzqq wwxx yyvv uutt ssrr' },
         goldenSearchLayer({ index: Option.some(goldenVectorIndexBytes()), embedder }),
@@ -496,9 +510,7 @@ describe('§9.7 the golden query set', () => {
       // the CLI/RPC parity tests pin that the *identities* agree across seams.
       const layer = withIndex();
       for (const golden of GOLDEN_QUERIES) {
-        const result = yield* Effect.flatMap(SearchService, (service) =>
-          service.query(golden.query),
-        ).pipe(Effect.provide(layer));
+        const result = yield* queryWith(golden.query, layer);
         expect({ label: golden.label, route: result.route }).toEqual({
           label: golden.label,
           route: golden.route,

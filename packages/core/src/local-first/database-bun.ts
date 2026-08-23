@@ -10,13 +10,13 @@ import {
   type UserDatabaseError,
 } from './database.js';
 import { makeInitialUserStateMigration } from './migrations.js';
-import { userStateSchema, type UserStateSchema } from './schema.js';
+import { userStateRelations, type UserStateRelations } from './schema.js';
 
 export { makeBunSyncStore } from './sync-store-bun.js';
 
 export interface BunUserDatabase {
   readonly client: Database;
-  readonly drizzle: SQLiteBunDatabase<UserStateSchema>;
+  readonly drizzle: SQLiteBunDatabase<UserStateRelations>;
   readonly bridge: ReturnType<typeof makeSqliteEffectBridge>;
   readonly migrate: (sql: string) => Effect.Effect<void, UserDatabaseError>;
   readonly close: Effect.Effect<void>;
@@ -29,7 +29,7 @@ const execute = <A>(operation: {
 export const makeBunUserDatabase = (filename = ':memory:'): BunUserDatabase => {
   const client = new Database(filename, { create: true, readwrite: true });
   client.run('PRAGMA foreign_keys = ON');
-  const db = drizzle({ client, schema: userStateSchema });
+  const db = drizzle({ client, relations: userStateRelations });
 
   const transaction: SqliteTransaction = {
     run: execute,

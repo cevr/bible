@@ -542,12 +542,15 @@ export const WIKI_LOOKUP_FIXTURE_DICTIONARY: PhraseDictionary = PhraseDictionary
  *  page. */
 export const WIKI_LOOKUP_FIXTURE_LAYER: Layer.Layer<LookupService> = LookupService.Live.pipe(
   Layer.provide(
-    Layer.succeed(WikiService, {
-      list: () => Effect.succeed([]),
-      topic: () => Effect.die('the lookup fixture serves no pages'),
-      dictionary: Effect.succeed(WIKI_LOOKUP_FIXTURE_DICTIONARY),
-      availability: Effect.succeed(Option.none()),
-    }),
+    Layer.succeed(
+      WikiService,
+      WikiService.of({
+        list: () => Effect.succeed([]),
+        topic: () => Effect.die('the lookup fixture serves no pages'),
+        dictionary: Effect.succeed(WIKI_LOOKUP_FIXTURE_DICTIONARY),
+        availability: Effect.succeed(Option.none()),
+      }),
+    ),
   ),
   Layer.provide(WIKI_PAGE_FIXTURE_SOURCES),
 );

@@ -198,12 +198,15 @@ const DICTIONARY = PhraseDictionary.make({
  *  than this file's. Stubbing the one read keeps the fixture about lookup
  *  resolution instead of about SQLite. */
 const wikiLayer = (dictionary: PhraseDictionary): Layer.Layer<WikiService> =>
-  Layer.succeed(WikiService, {
-    list: () => Effect.succeed([]),
-    topic: () => Effect.die('unused'),
-    dictionary: Effect.succeed(dictionary),
-    availability: Effect.succeed(Option.none()),
-  });
+  Layer.succeed(
+    WikiService,
+    WikiService.of({
+      list: () => Effect.succeed([]),
+      topic: () => Effect.die('unused'),
+      dictionary: Effect.succeed(dictionary),
+      availability: Effect.succeed(Option.none()),
+    }),
+  );
 
 const sourcesLayer = WikiSectionSources.Live.pipe(
   Layer.provide(TopicService.Test(CATALOG)),
@@ -651,13 +654,6 @@ describe('LookupService.resolve — degradation (§3.5, §6.3)', () => {
     Effect.gen(function* () {
       const result = yield* Effect.flatMap(LookupService, (service) =>
         service.resolve(LookupInput.make({ text: 'the daily', context: Option.some(DAN_8_11) })),
-      ).pipe(
-        Effect.provide(
-          LookupService.Live.pipe(
-            Layer.provide(wikiLayer(DICTIONARY)),
-            Layer.provide(WikiSectionSources.NotWired),
-          ),
-        ),
       );
 
       // The dictionary is the wiki's own, so group 1 still answers; the four
@@ -667,100 +663,114 @@ describe('LookupService.resolve — degradation (§3.5, §6.3)', () => {
       expect(result.verses).toEqual([]);
       expect(result.writings).toEqual([]);
       expect(result.catalog).toEqual([]);
-    }),
+    }).pipe(
+      Effect.provide(
+        LookupService.Live.pipe(
+          Layer.provide(wikiLayer(DICTIONARY)),
+          Layer.provide(WikiSectionSources.NotWired),
+        ),
+      ),
+    ),
+  );
+
+  // §6.3's posture, the one `section-composer.ts` gives all six of its
+  // sections: a source that cannot answer subtracts its own group and
+  // leaves the other four. A lookup that failed outright because one of
+  // five optional corpora was unreadable would be a worse answer than four
+  // groups and an empty fifth.
+  const failing = WikiSectionSources.Live.pipe(
+    Layer.provide(
+      Layer.succeed(
+        TopicService,
+        TopicService.of({
+          list: () =>
+            Effect.fail(
+              TopicUnavailableError.make({
+                operation: 'list',
+                cause: 'the catalog file is unreadable',
+              }),
+            ),
+          topic: () => Effect.die('unused'),
+        }),
+      ),
+    ),
+    Layer.provide(BibleDatabase.layerTest({ verses: VERSES })),
+    Layer.provide(EGWCommentaryService.Test({ entries: [] })),
+    Layer.provide(WritingsService.Live.pipe(Layer.provide(EGWParagraphDatabase.Test({})))),
   );
 
   it.effect('answers with an empty group when one corpus reports a typed failure', () =>
     Effect.gen(function* () {
-      // §6.3's posture, the one `section-composer.ts` gives all six of its
-      // sections: a source that cannot answer subtracts its own group and
-      // leaves the other four. A lookup that failed outright because one of
-      // five optional corpora was unreadable would be a worse answer than four
-      // groups and an empty fifth.
-      const failing = WikiSectionSources.Live.pipe(
-        Layer.provide(
-          Layer.succeed(TopicService, {
-            list: () =>
-              Effect.fail(
-                TopicUnavailableError.make({
-                  operation: 'list',
-                  cause: 'the catalog file is unreadable',
-                }),
-              ),
-            topic: () => Effect.die('unused'),
-          }),
-        ),
-        Layer.provide(BibleDatabase.layerTest({ verses: VERSES })),
-        Layer.provide(EGWCommentaryService.Test({ entries: [] })),
-        Layer.provide(WritingsService.Live.pipe(Layer.provide(EGWParagraphDatabase.Test({})))),
-      );
-
       const result = yield* Effect.flatMap(LookupService, (service) =>
         service.resolve(LookupInput.make({ text: 'the daily', context: Option.none() })),
-      ).pipe(
-        Effect.provide(
-          LookupService.Live.pipe(Layer.provide(wikiLayer(DICTIONARY)), Layer.provide(failing)),
-        ),
       );
 
       expect(result.catalog).toEqual([]);
       expect(result.topics.length).toBeGreaterThan(0);
       expect(result.verses.length).toBeGreaterThan(0);
-    }),
+    }).pipe(
+      Effect.provide(
+        LookupService.Live.pipe(Layer.provide(wikiLayer(DICTIONARY)), Layer.provide(failing)),
+      ),
+    ),
+  );
+
+  // The degradation above is over the *error channel* — the states a source
+  // declares. A defect is not one of them: a lookup that turned a broken
+  // invariant into four groups and a silence would report a corpus as
+  // empty when it is broken, which is the failure mode §6.3's posture is
+  // not allowed to grow into.
+  const dying = WikiSectionSources.Live.pipe(
+    Layer.provide(
+      Layer.succeed(
+        TopicService,
+        TopicService.of({
+          list: () => Effect.die(new Error('catalog invariant broken')),
+          topic: () => Effect.die('unused'),
+        }),
+      ),
+    ),
+    Layer.provide(BibleDatabase.layerTest({ verses: VERSES })),
+    Layer.provide(EGWCommentaryService.Test({ entries: [] })),
+    Layer.provide(WritingsService.Live.pipe(Layer.provide(EGWParagraphDatabase.Test({})))),
   );
 
   it.effect('does not swallow a defect', () =>
     Effect.gen(function* () {
-      // The degradation above is over the *error channel* — the states a source
-      // declares. A defect is not one of them: a lookup that turned a broken
-      // invariant into four groups and a silence would report a corpus as
-      // empty when it is broken, which is the failure mode §6.3's posture is
-      // not allowed to grow into.
-      const dying = WikiSectionSources.Live.pipe(
-        Layer.provide(
-          Layer.succeed(TopicService, {
-            list: () => Effect.die(new Error('catalog invariant broken')),
-            topic: () => Effect.die('unused'),
-          }),
-        ),
-        Layer.provide(BibleDatabase.layerTest({ verses: VERSES })),
-        Layer.provide(EGWCommentaryService.Test({ entries: [] })),
-        Layer.provide(WritingsService.Live.pipe(Layer.provide(EGWParagraphDatabase.Test({})))),
-      );
-
       const exit = yield* Effect.exit(
         Effect.flatMap(LookupService, (service) =>
           service.resolve(LookupInput.make({ text: 'the daily', context: Option.none() })),
-        ).pipe(
-          Effect.provide(
-            LookupService.Live.pipe(Layer.provide(wikiLayer(DICTIONARY)), Layer.provide(dying)),
-          ),
         ),
       );
 
       expect(Exit.isFailure(exit)).toBe(true);
+    }).pipe(
+      Effect.provide(
+        LookupService.Live.pipe(Layer.provide(wikiLayer(DICTIONARY)), Layer.provide(dying)),
+      ),
+    ),
+  );
+
+  const broken = Layer.succeed(
+    WikiService,
+    WikiService.of({
+      list: () => Effect.succeed([]),
+      topic: () => Effect.die('unused'),
+      dictionary: Effect.fail(
+        WikiUnavailableError.make({
+          operation: 'dictionary',
+          category: 'corrupt',
+          message: 'artifact is corrupt',
+        }),
+      ),
+      availability: Effect.succeed(Option.none()),
     }),
   );
 
   it.effect('answers with an empty topic group when the artifact will not read', () =>
     Effect.gen(function* () {
-      const broken = Layer.succeed(WikiService, {
-        list: () => Effect.succeed([]),
-        topic: () => Effect.die('unused'),
-        dictionary: Effect.fail(
-          WikiUnavailableError.make({
-            operation: 'dictionary',
-            category: 'corrupt',
-            message: 'artifact is corrupt',
-          }),
-        ),
-        availability: Effect.succeed(Option.none()),
-      });
-
       const result = yield* Effect.flatMap(LookupService, (service) =>
         service.resolve(LookupInput.make({ text: 'the daily', context: Option.none() })),
-      ).pipe(
-        Effect.provide(LookupService.Live.pipe(Layer.provide(broken), Layer.provide(sourcesLayer))),
       );
 
       expect(result.topics).toEqual([]);
@@ -768,6 +778,8 @@ describe('LookupService.resolve — degradation (§3.5, §6.3)', () => {
       // panel, not a failed lookup.
       expect(result.verses.length).toBeGreaterThan(0);
       expect(result.writings.length).toBeGreaterThan(0);
-    }),
+    }).pipe(
+      Effect.provide(LookupService.Live.pipe(Layer.provide(broken), Layer.provide(sourcesLayer))),
+    ),
   );
 });

@@ -121,9 +121,12 @@ export class ReloadableArtifact extends Context.Service<
   /** The host that does not reload — the CLI, whose next read is a new process
    *  anyway, and every suite not testing the update seam. `reload` succeeds and
    *  does nothing, which is the truth rather than an omission. */
-  static Inert: Layer.Layer<ReloadableArtifact> = Layer.succeed(ReloadableArtifact, {
-    reload: Effect.void,
-  });
+  static Inert: Layer.Layer<ReloadableArtifact> = Layer.succeed(
+    ReloadableArtifact,
+    ReloadableArtifact.of({
+      reload: Effect.void,
+    }),
+  );
 }
 
 /** Whether a freshly built generation is one worth serving.

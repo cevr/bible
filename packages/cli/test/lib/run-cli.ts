@@ -49,6 +49,46 @@ export interface RunCliResult {
   stderr: string;
 }
 
+/** The one place the test harness's own layer is provided.
+ *
+ *  The run itself is a whole program — the CLI plus the call-sequence read that
+ *  has to happen inside the same layer scope — so it carries its provide at its
+ *  own boundary here rather than partway through {@link runCli}'s generator.
+ *
+ *  Order matters in `Layer.mergeAll`: later layers overwrite earlier ones for
+ *  shared services. The mock `layer` must come last so its FileSystem/Path
+ *  mocks beat BunServices' real implementations. `Logger.layer([])` suppresses
+ *  logs during tests unless debugging.
+ *
+ *  The call sequence is captured regardless of whether the CLI succeeded or
+ *  failed — failed runs still record observable side effects before the failure
+ *  point, and tests need to assert on them.
+ */
+// @effect-diagnostics-next-line unsafeEffectTypeAssertion:off
+const runProvided = (
+  cli: (args: string[]) => Effect.Effect<void, unknown, unknown>,
+  args: string[],
+  recordingConsole: Console.Console,
+  layer: Layer.Layer<never, never, never>,
+): Effect.Effect<{ cliExit: Exit.Exit<void, unknown>; calls: ServiceCall[] }> =>
+  Effect.gen(function* () {
+    const cliExit = yield* Effect.exit(
+      cli(args).pipe(Effect.provideService(Console.Console, recordingConsole)),
+    );
+    const calls = yield* getCallSequence;
+    return { cliExit, calls };
+  }).pipe(
+    Effect.provide(Layer.mergeAll(BunServices.layer, Logger.layer([]), layer)),
+    Effect.provideService(
+      ConfigProvider.ConfigProvider,
+      ConfigProvider.fromUnknown({
+        GEMINI_API_KEY: 'test-key',
+        OPENAI_API_KEY: 'test-key',
+        ANTHROPIC_API_KEY: 'test-key',
+      }),
+    ),
+  ) as Effect.Effect<{ cliExit: Exit.Exit<void, unknown>; calls: ServiceCall[] }>;
+
 /**
  * Execute a CLI command with test layers and return results for assertions.
  *
@@ -97,32 +137,7 @@ export const runCli = <Name extends string, Input, ContextInput, E, R>(
       },
     };
 
-    // Always capture the call sequence, regardless of whether the CLI
-    // succeeded or failed — failed runs still record observable side effects
-    // before the failure point, and tests need to assert on them.
-    const program = Effect.gen(function* () {
-      const cliExit = yield* Effect.exit(
-        cli(args).pipe(Effect.provideService(Console.Console, recordingConsole)),
-      );
-      const calls = yield* getCallSequence;
-      return { cliExit, calls };
-    });
-
-    // Suppress logs during tests unless debugging.
-    // Order matters in Layer.mergeAll: later layers overwrite earlier ones for
-    // shared services. The mock `layer` must come last so its FileSystem/Path
-    // mocks beat BunServices' real implementations.
-    const provider = ConfigProvider.fromUnknown({
-      GEMINI_API_KEY: 'test-key',
-      OPENAI_API_KEY: 'test-key',
-      ANTHROPIC_API_KEY: 'test-key',
-    });
-    // @effect-diagnostics-next-line unsafeEffectTypeAssertion:off
-    const provided = program.pipe(
-      Effect.provide(Layer.mergeAll(BunServices.layer, Logger.layer([]), layer)),
-      Effect.provideService(ConfigProvider.ConfigProvider, provider),
-    ) as Effect.Effect<{ cliExit: Exit.Exit<void, unknown>; calls: ServiceCall[] }>;
-    const result = yield* provided;
+    const result = yield* runProvided(cli, args, recordingConsole, layer);
 
     const exit = result.cliExit;
     const effectCalls = result.calls;

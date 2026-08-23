@@ -473,16 +473,14 @@ describe('v1.study.* corpus faults', () => {
 
   it.scoped('carries StudyCorpusDataError to the client with the row it names', () =>
     Effect.gen(function* () {
-      const outcome = yield* Effect.gen(function* () {
-        const client = yield* RpcTest.makeClient(BibleProcedureGroup);
-        return yield* Effect.result(
-          client['v1.study.verse.get']({
-            book: FIXTURE_BOOK,
-            chapter: FIXTURE_CHAPTER,
-            verse: FIXTURE_VERSE,
-          }),
-        );
-      }).pipe(Effect.provide(malformed));
+      const client = yield* RpcTest.makeClient(BibleProcedureGroup);
+      const outcome = yield* Effect.result(
+        client['v1.study.verse.get']({
+          book: FIXTURE_BOOK,
+          chapter: FIXTURE_CHAPTER,
+          verse: FIXTURE_VERSE,
+        }),
+      );
 
       expect(outcome._tag).toBe('Failure');
       if (outcome._tag !== 'Failure') return;
@@ -502,7 +500,7 @@ describe('v1.study.* corpus faults', () => {
       expect(outcome.failure.source).toBe('writings');
       expect(outcome.failure.operation).toBe('verse.parallelWritings');
       expect(outcome.failure.row).toContain(FIXTURE_MALFORMED_ROW);
-    }),
+    }).pipe(Effect.provide(malformed)),
   );
 
   it.scoped('still normalizes every other study failure to ProcedureError', () =>
@@ -511,12 +509,10 @@ describe('v1.study.* corpus faults', () => {
       // corpus-data error is special. A verse the corpus does not hold is an
       // ordinary domain failure and stays under the group's convention, so a
       // client matching on `ProcedureError` did not lose a case.
-      const outcome = yield* Effect.gen(function* () {
-        const client = yield* RpcTest.makeClient(BibleProcedureGroup);
-        return yield* Effect.result(
-          client['v1.study.strongs.get']({ number: strongsNumber('H9999') }),
-        );
-      }).pipe(Effect.provide(malformed));
+      const client = yield* RpcTest.makeClient(BibleProcedureGroup);
+      const outcome = yield* Effect.result(
+        client['v1.study.strongs.get']({ number: strongsNumber('H9999') }),
+      );
 
       // The fixture holds no `H9999`, and an absent lexicon entry is a value
       // rather than a failure (§8.4), so this succeeds with an empty entry —
@@ -525,6 +521,6 @@ describe('v1.study.* corpus faults', () => {
       expect(outcome._tag).toBe('Success');
       if (outcome._tag !== 'Success') return;
       expect(Option.isNone(outcome.success.entry)).toBe(true);
-    }),
+    }).pipe(Effect.provide(malformed)),
   );
 });

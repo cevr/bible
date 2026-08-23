@@ -15,6 +15,7 @@ import {
 } from 'effect';
 
 import { BibleCorpus, decodeBibleCorpusArchive } from '../bible-db/index.js';
+import type { BibleCorpusArchive } from '../bible-db/index.js';
 
 export interface BibleSyncPaths {
   readonly assetsDirectory: string;
@@ -71,6 +72,18 @@ const corpusLayer = (filename: string) =>
     ),
   );
 
+/**
+ * Install the decoded archive into a fresh corpus database. The corpus layer is
+ * provided here, at this operation's own boundary, rather than inside the
+ * caller's generator.
+ */
+const installCorpus = (archive: BibleCorpusArchive, filename: string, installedAt: string) =>
+  Effect.gen(function* () {
+    const corpus = yield* BibleCorpus;
+    yield* Console.log('Installing canonical Bible Corpus...');
+    return yield* corpus.install(archive, installedAt);
+  }).pipe(Effect.provide(corpusLayer(filename)));
+
 export const syncBible = Effect.fn('BibleSync.syncBible')(function* (
   force: boolean,
   paths: BibleSyncPaths,
@@ -104,11 +117,7 @@ export const syncBible = Effect.fn('BibleSync.syncBible')(function* (
   yield* Console.log(`Creating database at ${paths.database}...`);
   const install = Effect.gen(function* () {
     const now = yield* DateTime.now;
-    const result = yield* Effect.gen(function* () {
-      const corpus = yield* BibleCorpus;
-      yield* Console.log('Installing canonical Bible Corpus...');
-      return yield* corpus.install(archive, DateTime.formatIso(now));
-    }).pipe(Effect.provide(corpusLayer(buildingDatabase)));
+    const result = yield* installCorpus(archive, buildingDatabase, DateTime.formatIso(now));
 
     yield* removeDatabaseFiles(paths.database);
     yield* fs.rename(buildingDatabase, paths.database);

@@ -65,6 +65,14 @@ const makeFetch =
       }),
     );
 
+/** Ask one wiring of `CorpusSupply` to install the fixture publication. The
+ *  layer is provided at this function's own boundary rather than inside a
+ *  test's generator. */
+const ensureWritings = (layer: Layer.Layer<CorpusSupply>) =>
+  Effect.flatMap(CorpusSupply, (supply) =>
+    supply.ensure({ target: Target.writings([id]), refresh: true }),
+  ).pipe(Effect.provide(layer));
+
 describe('HTTP Writings asset source', () => {
   it.effect('coerces the catalog and archive before CorpusSupply installs it', () =>
     Effect.gen(function* () {
@@ -82,9 +90,7 @@ describe('HTTP Writings asset source', () => {
       const source = layerHttpWritingsAssetSource(makeFetch(encodedArchive));
       const layer = CorpusSupply.layer.pipe(Layer.provide(database), Layer.provide(source));
 
-      const receipt = yield* Effect.flatMap(CorpusSupply, (supply) =>
-        supply.ensure({ target: Target.writings([id]), refresh: true }),
-      ).pipe(Effect.provide(layer));
+      const receipt = yield* ensureWritings(layer);
 
       expect(receipt.activated).toHaveLength(1);
       expect(installed).toEqual([archive]);
@@ -100,9 +106,7 @@ describe('HTTP Writings asset source', () => {
       });
       const source = layerHttpWritingsAssetSource(makeFetch({ formatVersion: 1 }));
       const layer = CorpusSupply.layer.pipe(Layer.provide(database), Layer.provide(source));
-      const result = yield* Effect.flatMap(CorpusSupply, (supply) =>
-        Effect.result(supply.ensure({ target: Target.writings([id]), refresh: true })),
-      ).pipe(Effect.provide(layer));
+      const result = yield* Effect.result(ensureWritings(layer));
 
       expect(Result.isFailure(result)).toBe(true);
       if (Result.isFailure(result))

@@ -15,6 +15,36 @@ const nextMessage = (port: MessagePort): Effect.Effect<FromClientEncoded> =>
     return Effect.sync(() => port.removeEventListener('message', listener));
   });
 
+/** The exchange under test, with the transport layer provided at this
+ *  function's own boundary rather than inside the test's generator. */
+const exchangeOver = (channel: MessageChannel) =>
+  Effect.gen(function* () {
+    const protocol = yield* RpcClient.Protocol;
+    const received = yield* Deferred.make<FromServerEncoded>();
+    yield* protocol
+      .run(7, (message) => Deferred.succeed(received, message).pipe(Effect.asVoid))
+      .pipe(Effect.forkScoped);
+    const sent = yield* nextMessage(channel.port2).pipe(Effect.forkScoped);
+    const request: FromClientEncoded = {
+      _tag: 'Request',
+      id: 'desktop-request-1',
+      tag: 'v1.runtime.connect',
+      payload: {},
+      headers: [],
+    };
+
+    yield* protocol.send(7, request);
+    expect(yield* Fiber.join(sent)).toEqual(request);
+
+    const response: FromServerEncoded = {
+      _tag: 'Exit',
+      requestId: request.id,
+      exit: { _tag: 'Success', value: { ready: true } },
+    };
+    channel.port2.postMessage(response);
+    expect(yield* Deferred.await(received)).toEqual(response);
+  }).pipe(Effect.provide(layerDesktopProcedureTransport(channel.port1)));
+
 describe('desktop procedure client protocol', () => {
   it.scoped('moves raw encoded RPC messages over the Electron port boundary', () =>
     Effect.gen(function* () {
@@ -27,32 +57,7 @@ describe('desktop procedure client protocol', () => {
           }),
       );
 
-      yield* Effect.gen(function* () {
-        const protocol = yield* RpcClient.Protocol;
-        const received = yield* Deferred.make<FromServerEncoded>();
-        yield* protocol
-          .run(7, (message) => Deferred.succeed(received, message).pipe(Effect.asVoid))
-          .pipe(Effect.forkScoped);
-        const sent = yield* nextMessage(channel.port2).pipe(Effect.forkScoped);
-        const request: FromClientEncoded = {
-          _tag: 'Request',
-          id: 'desktop-request-1',
-          tag: 'v1.runtime.connect',
-          payload: {},
-          headers: [],
-        };
-
-        yield* protocol.send(7, request);
-        expect(yield* Fiber.join(sent)).toEqual(request);
-
-        const response: FromServerEncoded = {
-          _tag: 'Exit',
-          requestId: request.id,
-          exit: { _tag: 'Success', value: { ready: true } },
-        };
-        channel.port2.postMessage(response);
-        expect(yield* Deferred.await(received)).toEqual(response);
-      }).pipe(Effect.provide(layerDesktopProcedureTransport(channel.port1)));
+      yield* exchangeOver(channel);
     }),
   );
 });

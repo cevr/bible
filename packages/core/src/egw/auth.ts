@@ -325,9 +325,9 @@ export class EGWAuth extends Context.Service<EGWAuth, EGWAuthService>()(
         Effect.forkChild,
       );
 
-      return {
+      return EGWAuth.of({
         getToken,
-      };
+      });
     }),
   );
 
@@ -368,15 +368,18 @@ export class EGWAuth extends Context.Service<EGWAuth, EGWAuthService>()(
    * Test implementation with a mock token.
    */
   static Test = (token?: AccessToken): Layer.Layer<EGWAuth> =>
-    Layer.succeed(EGWAuth, {
-      getToken: Effect.gen(function* () {
-        if (Predicate.isNotUndefined(token)) return token;
-        const now = yield* Clock.currentTimeMillis;
-        return AccessToken.make({
-          accessToken: Redacted.make('test-token'),
-          expiresAt: now + 3600000,
-          scope: 'test',
-        });
+    Layer.succeed(
+      EGWAuth,
+      EGWAuth.of({
+        getToken: Effect.gen(function* () {
+          if (Predicate.isNotUndefined(token)) return token;
+          const now = yield* Clock.currentTimeMillis;
+          return AccessToken.make({
+            accessToken: Redacted.make('test-token'),
+            expiresAt: now + 3600000,
+            scope: 'test',
+          });
+        }),
       }),
-    });
+    );
 }

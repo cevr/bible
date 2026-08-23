@@ -22,6 +22,7 @@ import {
 } from '@bible/core/wiki/testing';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Fiber, Layer } from 'effect';
+import type { Scope } from 'effect';
 import type {
   FromClientEncoded,
   FromServerEncoded,
@@ -77,6 +78,15 @@ const instrumentedPort = (channel: MessageChannel): PortTraffic => {
 
 const client = RpcClient.make(BibleProcedureGroup);
 
+/** Run a client-side effect over a wired port. The transport layer is provided
+ *  at this function's own boundary, so a test's generator stays a description of
+ *  what it asks rather than a place where wiring happens. */
+const over = <A, E>(
+  port: MessagePort,
+  ask: Effect.Effect<A, E, RpcClient.Protocol | Scope.Scope>,
+): Effect.Effect<A, E, Scope.Scope> =>
+  ask.pipe(Effect.provide(layerDesktopProcedureTransport(port)));
+
 const wired = Effect.gen(function* () {
   const channel = yield* Effect.acquireRelease(
     Effect.sync(() => new MessageChannel()),
@@ -99,10 +109,13 @@ describe('desktop lookup seam', () => {
     Effect.gen(function* () {
       const { traffic, clientPort } = yield* wired;
 
-      const result = yield* Effect.gen(function* () {
-        const procedures = yield* client;
-        return yield* procedures['v1.wiki.lookup.resolve']({ text: WIKI_PAGE_FIXTURE.phrase });
-      }).pipe(Effect.provide(layerDesktopProcedureTransport(clientPort)));
+      const result = yield* over(
+        clientPort,
+        Effect.gen(function* () {
+          const procedures = yield* client;
+          return yield* procedures['v1.wiki.lookup.resolve']({ text: WIKI_PAGE_FIXTURE.phrase });
+        }),
+      );
 
       expect(traffic.requests().length).toBe(1);
       expect(traffic.requests()[0]?.tag).toBe('v1.wiki.lookup.resolve');
@@ -122,13 +135,16 @@ describe('desktop lookup seam', () => {
       // a lookup without it still answers with four full groups.
       const { clientPort } = yield* wired;
 
-      const result = yield* Effect.gen(function* () {
-        const procedures = yield* client;
-        return yield* procedures['v1.wiki.lookup.resolve']({
-          text: WIKI_PAGE_FIXTURE.phrase,
-          context: LOOKUP_CONTEXT_REFERENCE,
-        });
-      }).pipe(Effect.provide(layerDesktopProcedureTransport(clientPort)));
+      const result = yield* over(
+        clientPort,
+        Effect.gen(function* () {
+          const procedures = yield* client;
+          return yield* procedures['v1.wiki.lookup.resolve']({
+            text: WIKI_PAGE_FIXTURE.phrase,
+            context: LOOKUP_CONTEXT_REFERENCE,
+          });
+        }),
+      );
 
       expect(result.strongs.map((hit) => hit.word)).toEqual([WIKI_PAGE_FIXTURE.phrase]);
     }),

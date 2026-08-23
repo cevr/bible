@@ -69,59 +69,70 @@ const compose = (
   );
 };
 
+/** The library read at its own boundary: the composed layer is built per test
+ *  from that test's doubles. */
+const readLibrary = (layer: ReturnType<typeof compose>) =>
+  Effect.flatMap(WritingsLibraryRuntime, (library) => library.get).pipe(Effect.provide(layer));
+
 describe('shared Writings library runtime', () => {
+  // Declared here rather than inside the generator so the layer they close over
+  // can be built at the test's own boundary, where the provide belongs. The
+  // assertions still read them.
+  const books: BookRow[] = [];
+  const statuses: SyncStatusRow[] = [];
+  let acquisitions = 0;
+
   it.effect('projects source status and installs through CorpusSupply', () =>
     Effect.gen(function* () {
-      const books: BookRow[] = [];
-      const statuses: SyncStatusRow[] = [];
-      let acquisitions = 0;
-      const database = EGWParagraphDatabase.Test({
-        books,
-        syncStatuses: statuses,
-        needsSync: () => statuses.length === 0,
-        installPublicationArchive: (installed) => {
-          books.push({
-            book_id: installed.publication.id,
-            book_code: installed.publication.code,
-            book_title: installed.publication.title,
-            book_author: installed.publication.author,
-            paragraph_count: installed.paragraphs.length,
-            created_at: '2026-07-20T00:00:00.000Z',
-          });
-          statuses.push({
-            book_id: installed.publication.id,
-            book_code: installed.publication.code,
-            status: 'success',
-            error_message: wireNull,
-            last_attempt: '2026-07-20T00:00:00.000Z',
-            paragraph_count: installed.paragraphs.length,
-          });
-          return installed.paragraphs.length;
-        },
-      });
-      const source = layerWritingsAssetSource({
-        kind: 'archive',
-        catalog: Effect.succeed([publication]),
-        acquire: () =>
-          Effect.sync(() => {
-            acquisitions += 1;
-            return contribution;
-          }),
-      });
-
-      const result = yield* Effect.gen(function* () {
-        const library = yield* WritingsLibraryRuntime;
-        const before = yield* library.get;
-        const downloaded = yield* library.download(id);
-        const after = yield* library.get;
-        return { before, downloaded, after };
-      }).pipe(Effect.provide(compose(database, source)));
+      const library = yield* WritingsLibraryRuntime;
+      const before = yield* library.get;
+      const downloaded = yield* library.download(id);
+      const after = yield* library.get;
+      const result = { before, downloaded, after };
 
       expect(result.before[0]).toMatchObject({ source: 'remote', status: 'pending' });
       expect(result.downloaded).toMatchObject({ status: 'success', paragraphCount: 1 });
       expect(result.after[0]).toMatchObject({ source: 'local', status: 'success' });
       expect(acquisitions).toBe(1);
-    }),
+    }).pipe(
+      Effect.provide(
+        compose(
+          EGWParagraphDatabase.Test({
+            books,
+            syncStatuses: statuses,
+            needsSync: () => statuses.length === 0,
+            installPublicationArchive: (installed) => {
+              books.push({
+                book_id: installed.publication.id,
+                book_code: installed.publication.code,
+                book_title: installed.publication.title,
+                book_author: installed.publication.author,
+                paragraph_count: installed.paragraphs.length,
+                created_at: '2026-07-20T00:00:00.000Z',
+              });
+              statuses.push({
+                book_id: installed.publication.id,
+                book_code: installed.publication.code,
+                status: 'success',
+                error_message: wireNull,
+                last_attempt: '2026-07-20T00:00:00.000Z',
+                paragraph_count: installed.paragraphs.length,
+              });
+              return installed.paragraphs.length;
+            },
+          }),
+          layerWritingsAssetSource({
+            kind: 'archive',
+            catalog: Effect.succeed([publication]),
+            acquire: () =>
+              Effect.sync(() => {
+                acquisitions += 1;
+                return contribution;
+              }),
+          }),
+        ),
+      ),
+    ),
   );
 
   it.effect(
@@ -155,9 +166,7 @@ describe('shared Writings library runtime', () => {
               CorpusSourceUnavailableError.make({ operation: 'acquire', cause: 'offline' }),
             ),
         });
-        const result = yield* Effect.flatMap(WritingsLibraryRuntime, (library) => library.get).pipe(
-          Effect.provide(compose(database, source)),
-        );
+        const result = yield* readLibrary(compose(database, source));
         const encoded = yield* Schema.encodeEffect(Schema.Array(WritingsLibraryPublication))(
           result,
         );

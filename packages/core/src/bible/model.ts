@@ -1,4 +1,4 @@
-import { Schema } from 'effect';
+import { Match, Schema } from 'effect';
 
 export const BookNumber = Schema.Finite.pipe(
   Schema.check(Schema.isInt(), Schema.isBetween({ minimum: 1, maximum: 66 })),
@@ -160,19 +160,17 @@ export const Reference = {
     }),
   range: (start: VerseReference, end: VerseReference): VerseRangeReference =>
     orderedVerseRange(VerseRangeReference.make({ start, end })),
-  chapterOf: (reference: Reference): ChapterReference => {
-    switch (reference._tag) {
-      case 'book':
-        return ChapterReference.make({ book: reference.book, chapter: chapterNumber(1) });
-      case 'chapter':
-        return reference;
-      case 'verse':
-        return ChapterReference.make({ book: reference.book, chapter: reference.chapter });
-      case 'range':
-        return ChapterReference.make({
-          book: reference.start.book,
-          chapter: reference.start.chapter,
-        });
-    }
-  },
+  chapterOf: (reference: Reference): ChapterReference =>
+    Match.value(reference).pipe(
+      Match.tagsExhaustive({
+        book: (r) => ChapterReference.make({ book: r.book, chapter: chapterNumber(1) }),
+        chapter: (r) => r,
+        verse: (r) => ChapterReference.make({ book: r.book, chapter: r.chapter }),
+        range: (r) =>
+          ChapterReference.make({
+            book: r.start.book,
+            chapter: r.start.chapter,
+          }),
+      }),
+    ),
 };

@@ -104,9 +104,9 @@ export class EGWCommentaryService extends Context.Service<
           ),
         );
 
-      return {
+      return EGWCommentaryService.of({
         getCommentary,
-      };
+      });
     }),
   );
 
@@ -123,11 +123,14 @@ export class EGWCommentaryService extends Context.Service<
       entries?: readonly CommentaryEntry[];
     } = {},
   ): Layer.Layer<EGWCommentaryService> =>
-    Layer.succeed(EGWCommentaryService, {
-      getCommentary: (verse) =>
-        Effect.succeed({
-          verse,
-          entries: config.entries ?? [],
-        }),
-    });
+    Layer.succeed(
+      EGWCommentaryService,
+      EGWCommentaryService.of({
+        getCommentary: (verse) =>
+          Effect.succeed({
+            verse,
+            entries: config.entries ?? [],
+          }),
+      }),
+    );
 }

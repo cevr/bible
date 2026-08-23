@@ -76,6 +76,14 @@ const api: EGWApiClientService = {
   getMirrors: Effect.succeed([]),
 };
 
+/** The supply round at its own boundary. Each test composes its own layer from
+ *  that test's API double, so the provide belongs here rather than to a block
+ *  nested inside the test's generator. */
+const ensureWritings = (layer: Layer.Layer<CorpusSupply>) =>
+  Effect.flatMap(CorpusSupply, (supply) =>
+    supply.ensure({ target: Target.writings([publicationId(127)]), refresh: true }),
+  ).pipe(Effect.provide(layer));
+
 describe('direct EGW Writings asset source', () => {
   it.effect('installs a provider download archive without chapter requests', () =>
     Effect.gen(function* () {
@@ -115,9 +123,7 @@ describe('direct EGW Writings asset source', () => {
       );
       const layer = CorpusSupply.layer.pipe(Layer.provide(source), Layer.provide(database));
 
-      yield* Effect.flatMap(CorpusSupply, (supply) =>
-        supply.ensure({ target: Target.writings([publicationId(127)]), refresh: true }),
-      ).pipe(Effect.provide(layer));
+      yield* ensureWritings(layer);
 
       expect(installed[0]?.paragraphs).toHaveLength(1);
       expect(installed[0]?.paragraphs[0]?.refcode).toBe('pp-download-1');
@@ -140,9 +146,7 @@ describe('direct EGW Writings asset source', () => {
       );
       const layer = CorpusSupply.layer.pipe(Layer.provide(source), Layer.provide(database));
 
-      yield* Effect.flatMap(CorpusSupply, (supply) =>
-        supply.ensure({ target: Target.writings([publicationId(127)]), refresh: true }),
-      ).pipe(Effect.provide(layer));
+      yield* ensureWritings(layer);
 
       expect(installed).toHaveLength(1);
       expect(String(installed[0]?.paragraphs[0]?.paragraph.reference.paragraphId)).toBe('pp-1-1');
@@ -190,9 +194,7 @@ describe('direct EGW Writings asset source', () => {
       );
       const layer = CorpusSupply.layer.pipe(Layer.provide(source), Layer.provide(database));
 
-      yield* Effect.flatMap(CorpusSupply, (supply) =>
-        supply.ensure({ target: Target.writings([publicationId(127)]), refresh: true }),
-      ).pipe(Effect.provide(layer));
+      yield* ensureWritings(layer);
 
       expect(installed[0]?.paragraphs.map((item) => item.refcode)).toEqual(['pp-1-1', 'pp-1-2']);
       expect(installed[0]?.bibleReferences.map((item) => item.paragraphRefcode)).toEqual([
@@ -226,9 +228,7 @@ describe('direct EGW Writings asset source', () => {
       );
       const layer = CorpusSupply.layer.pipe(Layer.provide(source), Layer.provide(database));
 
-      yield* Effect.flatMap(CorpusSupply, (supply) =>
-        supply.ensure({ target: Target.writings([publicationId(127)]), refresh: true }),
-      ).pipe(Effect.provide(layer));
+      yield* ensureWritings(layer);
 
       expect(installed[0]?.paragraphs.map((item) => item.refcode)).toEqual(['pp-1-1']);
     }),
@@ -263,9 +263,7 @@ describe('direct EGW Writings asset source', () => {
       );
       const layer = CorpusSupply.layer.pipe(Layer.provide(source), Layer.provide(database));
 
-      yield* Effect.flatMap(CorpusSupply, (supply) =>
-        supply.ensure({ target: Target.writings([publicationId(127)]), refresh: true }),
-      ).pipe(Effect.provide(layer));
+      yield* ensureWritings(layer);
 
       expect(installed[0]?.paragraphs[0]?.refcode).toBe('stable-provider-id');
     }),

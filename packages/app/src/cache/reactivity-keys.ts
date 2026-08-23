@@ -27,7 +27,7 @@
 import type { LibraryStateArea, ReaderLocation } from '@bible/core/library-state';
 import { scopeForLibraryCommand } from '@bible/core/library-state';
 import type { ChangeScope, LibraryMutationCommand, NoteScope } from '@bible/core/local-first';
-import { Option } from 'effect';
+import { Match, Option } from 'effect';
 
 /**
  * The change scopes the reading caches react to: core's own `ChangeScope`,
@@ -113,30 +113,27 @@ export const annotationQueryKeys = (location: ReaderLocation): readonly string[]
  * invalidates only that location's key; a scope that does not invalidates the
  * whole area.
  */
-export const keysForScope = (scope: CacheScope): readonly string[] => {
-  switch (scope._tag) {
-    case 'LibraryState': {
-      const location = Option.fromNullishOr(scope.location);
-      if (scope.area === 'annotations' && Option.isSome(location)) {
-        return [annotationLocationKey(location.value)];
-      }
-      return [libraryAreaKey(scope.area)];
-    }
-    case 'Note': {
-      const location = noteLocation(scope);
-      if (Option.isSome(location)) return [annotationLocationKey(location.value)];
-      return [libraryAreaKey('annotations')];
-    }
-    case 'ReadingPreferences':
-      return [READING_PREFERENCES_KEY];
-    case 'ReadingContinuity':
-      return [READING_CONTINUITY_KEY];
-    case 'WritingsLibrary':
-      return [WRITINGS_LIBRARY_KEY];
-    case 'ContentUpdate':
-      return [CONTENT_KEY];
-  }
-};
+export const keysForScope = (scope: CacheScope): readonly string[] =>
+  Match.value(scope).pipe(
+    Match.tagsExhaustive({
+      LibraryState: (libraryState) => {
+        const location = Option.fromNullishOr(libraryState.location);
+        if (libraryState.area === 'annotations' && Option.isSome(location)) {
+          return [annotationLocationKey(location.value)];
+        }
+        return [libraryAreaKey(libraryState.area)];
+      },
+      Note: (note) => {
+        const location = noteLocation(note);
+        if (Option.isSome(location)) return [annotationLocationKey(location.value)];
+        return [libraryAreaKey('annotations')];
+      },
+      ReadingPreferences: () => [READING_PREFERENCES_KEY],
+      ReadingContinuity: () => [READING_CONTINUITY_KEY],
+      WritingsLibrary: () => [WRITINGS_LIBRARY_KEY],
+      ContentUpdate: () => [CONTENT_KEY],
+    }),
+  );
 
 /**
  * The change scopes a library mutation produces — the app-side half of core's

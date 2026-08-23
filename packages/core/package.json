@@ -72,6 +72,6 @@
   "devDependencies": {
     "@effect/vitest": "catalog:",
     "@types/better-sqlite3": "^9.6.0",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.11"
   }
 }

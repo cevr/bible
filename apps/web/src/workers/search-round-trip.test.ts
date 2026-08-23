@@ -38,6 +38,7 @@ import {
 import * as BrowserWorkerRunner from '@effect/platform-browser/BrowserWorkerRunner';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Fiber, Layer, Option, Schema } from 'effect';
+import type { Scope } from 'effect';
 import type { FromClientEncoded, RequestEncoded } from 'effect/unstable/rpc/RpcMessage';
 import * as RpcClient from 'effect/unstable/rpc/RpcClient';
 import * as RpcServer from 'effect/unstable/rpc/RpcServer';
@@ -50,11 +51,14 @@ const WORDY_QUERY = 'what happens at the close of probation';
 
 /** The fixture embedder the core parity suite uses, so the value this host is
  *  compared against is the one the other hosts were compared against. */
-const embedder = Layer.succeed(QueryEmbedder, {
-  fingerprint: MODEL_FINGERPRINT,
-  embedQuery: (query: string) => Effect.succeed(goldenVector(query)),
-  embedDocument: (text: string) => Effect.succeed(goldenVector(text)),
-});
+const embedder = Layer.succeed(
+  QueryEmbedder,
+  QueryEmbedder.of({
+    fingerprint: MODEL_FINGERPRINT,
+    embedQuery: (query: string) => Effect.succeed(goldenVector(query)),
+    embedDocument: (text: string) => Effect.succeed(goldenVector(text)),
+  }),
+);
 
 /** The WebGPU host: index installed, embedder available. */
 const hybridSearch = goldenSearchLayer({
@@ -127,6 +131,28 @@ const wiredWith = (search: Layer.Layer<SearchService>) =>
     return wire;
   });
 
+/** Run a client-side effect over a wired port. The transport layer is provided
+ *  at this function's own boundary, so a test's generator stays a description of
+ *  what it asks rather than a place where wiring happens. */
+const over = <A, E>(
+  port: MessagePort,
+  ask: Effect.Effect<A, E, RpcClient.Protocol | Scope.Scope>,
+) => ask.pipe(Effect.provide(layerWebProcedureTransport(port)));
+
+/** The same query answered without crossing a port, by the same hybrid wiring.
+ *  Its layer is provided here, at this function's boundary. */
+const locally = (text: string) =>
+  Effect.flatMap(SearchService, (service) =>
+    service.query(
+      SearchQuery.make({
+        text,
+        scope: Option.none(),
+        bookCode: Option.none(),
+        limit: Option.none(),
+      }),
+    ),
+  ).pipe(Effect.provide(hybridSearch));
+
 const encode = Schema.encodeEffect(Schema.fromJsonString(SearchResultJson));
 
 describe('web worker hybrid search', () => {
@@ -139,20 +165,23 @@ describe('web worker hybrid search', () => {
         // One client for the whole set, built once. Building it per query would
         // negotiate a fresh connection over a port that already has one, which is
         // not what a host does and not what this file is measuring.
-        const routes = yield* Effect.gen(function* () {
-          const procedures = yield* client;
-          const seen: { readonly label: string; readonly route: string }[] = [];
-          for (const golden of GOLDEN_QUERIES) {
-            const result = yield* procedures['v1.search.query']({
-              text: golden.query.text,
-              scope: Option.getOrUndefined(golden.query.scope),
-              bookCode: Option.getOrUndefined(golden.query.bookCode),
-              limit: Option.getOrUndefined(golden.query.limit),
-            });
-            seen.push({ label: golden.label, route: result.route });
-          }
-          return seen;
-        }).pipe(Effect.provide(layerWebProcedureTransport(wire.clientPort)));
+        const routes = yield* over(
+          wire.clientPort,
+          Effect.gen(function* () {
+            const procedures = yield* client;
+            const seen: { readonly label: string; readonly route: string }[] = [];
+            for (const golden of GOLDEN_QUERIES) {
+              const result = yield* procedures['v1.search.query']({
+                text: golden.query.text,
+                scope: Option.getOrUndefined(golden.query.scope),
+                bookCode: Option.getOrUndefined(golden.query.bookCode),
+                limit: Option.getOrUndefined(golden.query.limit),
+              });
+              seen.push({ label: golden.label, route: result.route });
+            }
+            return seen;
+          }),
+        );
 
         // §9.3's routing survives the wire, per query rather than in aggregate.
         expect(routes).toEqual(
@@ -173,24 +202,18 @@ describe('web worker hybrid search', () => {
     Effect.gen(function* () {
       const wire = yield* wiredWith(hybridSearch);
 
-      const overWire = yield* Effect.gen(function* () {
-        const procedures = yield* client;
-        return yield* procedures['v1.search.query']({ text: WORDY_QUERY });
-      }).pipe(Effect.provide(layerWebProcedureTransport(wire.clientPort)));
+      const overWire = yield* over(
+        wire.clientPort,
+        Effect.gen(function* () {
+          const procedures = yield* client;
+          return yield* procedures['v1.search.query']({ text: WORDY_QUERY });
+        }),
+      );
 
       // The same query answered by the same service *without* crossing a port.
       // This is the comparison that makes the test mean something: one value
       // went through structured clone and RPC decoding, the other did not.
-      const local = yield* Effect.flatMap(SearchService, (service) =>
-        service.query(
-          SearchQuery.make({
-            text: WORDY_QUERY,
-            scope: Option.none(),
-            bookCode: Option.none(),
-            limit: Option.none(),
-          }),
-        ),
-      ).pipe(Effect.provide(hybridSearch));
+      const local = yield* locally(WORDY_QUERY);
 
       // Encoded through §9's one codec on both sides: a field that structured
       // clone flattened, or an `Option` that decoded differently, fails here.
@@ -205,12 +228,15 @@ describe('web worker hybrid search', () => {
     Effect.gen(function* () {
       const wire = yield* wiredWith(noWebGpuSearch);
 
-      const result = yield* Effect.gen(function* () {
-        const procedures = yield* client;
-        return yield* procedures['v1.search.query']({
-          text: 'what happens at the close of probation',
-        });
-      }).pipe(Effect.provide(layerWebProcedureTransport(wire.clientPort)));
+      const result = yield* over(
+        wire.clientPort,
+        Effect.gen(function* () {
+          const procedures = yield* client;
+          return yield* procedures['v1.search.query']({
+            text: 'what happens at the close of probation',
+          });
+        }),
+      );
 
       // §9.6's requirement that the absence be "the same typed value in all
       // three clients". An absence that flattened to a boolean at the boundary,
@@ -227,13 +253,16 @@ describe('web worker hybrid search', () => {
   it.scopedLive('the pinned topics group is its own field on the wire', () =>
     Effect.gen(function* () {
       const wire = yield* wiredWith(hybridSearch);
-      const result = yield* Effect.gen(function* () {
-        const procedures = yield* client;
-        // The query the fixture catalog *matches*. With a query that matches no
-        // topic, every assertion below holds against an empty list and the test
-        // proves nothing — which is what it did before.
-        return yield* procedures['v1.search.query']({ text: GOLDEN_TOPIC_QUERY });
-      }).pipe(Effect.provide(layerWebProcedureTransport(wire.clientPort)));
+      const result = yield* over(
+        wire.clientPort,
+        Effect.gen(function* () {
+          const procedures = yield* client;
+          // The query the fixture catalog *matches*. With a query that matches no
+          // topic, every assertion below holds against an empty list and the test
+          // proves nothing — which is what it did before.
+          return yield* procedures['v1.search.query']({ text: GOLDEN_TOPIC_QUERY });
+        }),
+      );
 
       // §9.4's pinned group at its exact position: the matching topic is the
       // whole list, and it is first.

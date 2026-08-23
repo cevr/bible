@@ -27,7 +27,7 @@ import {
   type ContentDecision,
   type ContentStatus,
 } from '@bible/core/content-update';
-import { Console, Effect, Option, Schema } from 'effect';
+import { Console, Effect, Match, Option, Schema } from 'effect';
 import { Command, Flag } from 'effect/unstable/cli';
 
 import { contentService } from './topics-layer.js';
@@ -46,21 +46,20 @@ const json = Flag.boolean('json').pipe(
 
 /** One human-readable line per decision, exhaustive over the union.
  *
- *  A `switch` over `_tag` rather than a lookup keyed by string: adding a
- *  decision to §3.6 is then a compile error here until the operator has been
- *  told what to do about it. */
-const describeDecision = (decision: ContentDecision): string => {
-  switch (decision._tag) {
-    case 'offer':
-      return `update available: ${String(decision.entry.revision)} (${String(decision.entry.size)} bytes)`;
-    case 'up-to-date':
-      return 'up to date';
-    case 'refused':
-      return `refused (${decision.reason}): ${String(decision.available.revision)} needs a newer app`;
-    case 'offline':
-      return `offline: ${decision.detail} — the compiled pin stands`;
-  }
-};
+ *  `Match.tagsExhaustive` over `_tag` rather than a lookup keyed by string:
+ *  adding a decision to §3.6 is then a compile error here until the operator
+ *  has been told what to do about it. */
+const describeDecision = (decision: ContentDecision): string =>
+  Match.value(decision).pipe(
+    Match.tagsExhaustive({
+      offer: (offer) =>
+        `update available: ${String(offer.entry.revision)} (${String(offer.entry.size)} bytes)`,
+      'up-to-date': () => 'up to date',
+      refused: (refused) =>
+        `refused (${refused.reason}): ${String(refused.available.revision)} needs a newer app`,
+      offline: (offline) => `offline: ${offline.detail} — the compiled pin stands`,
+    }),
+  );
 
 const printStatus = (status: ContentStatus) =>
   Effect.gen(function* () {

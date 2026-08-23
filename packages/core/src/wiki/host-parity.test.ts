@@ -40,6 +40,7 @@ import {
   PhraseDictionary,
   TextInline,
   topicSlug,
+  type TopicSlug,
   WikiPageJson,
 } from './model.js';
 import { DANIEL_8_9, PHRASE_FIXTURE_DICTIONARY } from './phrase-fixture.js';
@@ -279,6 +280,43 @@ const otherProcedureDependencies = (wiki: Layer.Layer<WikiService>) =>
     ),
   });
 
+/** The two seams, each with the fixture layer provided at its own boundary.
+ *
+ *  The layer is per-test — it is built over a temp-directory artifact — so the
+ *  provide cannot sit on the test's returned effect; a named function per seam
+ *  is the boundary instead. */
+const topicOverRpc = (wikiLayer: Layer.Layer<WikiService>, slug: TopicSlug) =>
+  Effect.gen(function* () {
+    const client = yield* RpcTest.makeClient(BibleProcedureGroup);
+    return yield* client['v1.wiki.topic.get']({ slug });
+  }).pipe(
+    Effect.provide(
+      BibleProcedureHandlers.pipe(Layer.provide(otherProcedureDependencies(wikiLayer))),
+    ),
+  );
+
+const topicOverCli = (wikiLayer: Layer.Layer<WikiService>, slug: TopicSlug) =>
+  Effect.gen(function* () {
+    const service = yield* WikiService;
+    return yield* service.topic(slug);
+  }).pipe(Effect.provide(wikiLayer));
+
+const dictionaryOverRpc = (wikiLayer: Layer.Layer<WikiService>) =>
+  Effect.gen(function* () {
+    const client = yield* RpcTest.makeClient(BibleProcedureGroup);
+    return yield* client['v1.wiki.dictionary.get']({});
+  }).pipe(
+    Effect.provide(
+      BibleProcedureHandlers.pipe(Layer.provide(otherProcedureDependencies(wikiLayer))),
+    ),
+  );
+
+const dictionaryOverCli = (wikiLayer: Layer.Layer<WikiService>) =>
+  Effect.gen(function* () {
+    const service = yield* WikiService;
+    return yield* service.dictionary;
+  }).pipe(Effect.provide(wikiLayer));
+
 // ---------------------------------------------------------------------------
 
 describe('wiki host parity', () => {
@@ -293,20 +331,10 @@ describe('wiki host parity', () => {
       // Seam 1 — the RPC handler both visual hosts register. `RpcTest` runs the
       // real client/server pair, so the value here has crossed a wire and been
       // decoded by the group's own schema.
-      const overRpc = yield* Effect.gen(function* () {
-        const client = yield* RpcTest.makeClient(BibleProcedureGroup);
-        return yield* client['v1.wiki.topic.get']({ slug });
-      }).pipe(
-        Effect.provide(
-          BibleProcedureHandlers.pipe(Layer.provide(otherProcedureDependencies(wikiLayer))),
-        ),
-      );
+      const overRpc = yield* topicOverRpc(wikiLayer, slug);
 
       // Seam 2 — the CLI, calling `WikiService` directly.
-      const overCli = yield* Effect.gen(function* () {
-        const service = yield* WikiService;
-        return yield* service.topic(slug);
-      }).pipe(Effect.provide(wikiLayer));
+      const overCli = yield* topicOverCli(wikiLayer, slug);
 
       // Encoded, not decoded: JSON is what a client actually receives, and two
       // serializers agreeing on decoded objects while disagreeing on the wire
@@ -358,20 +386,10 @@ describe('wiki host parity', () => {
       // Seam 1 — the worker's and Electron main's path: the dictionary crosses
       // the real client/server pair and is decoded by the group's own schema,
       // then the host builds its automaton from what it received.
-      const overRpc = yield* Effect.gen(function* () {
-        const client = yield* RpcTest.makeClient(BibleProcedureGroup);
-        return yield* client['v1.wiki.dictionary.get']({});
-      }).pipe(
-        Effect.provide(
-          BibleProcedureHandlers.pipe(Layer.provide(otherProcedureDependencies(wikiLayer))),
-        ),
-      );
+      const overRpc = yield* dictionaryOverRpc(wikiLayer);
 
       // Seam 2 — the CLI, resolving `WikiService` directly.
-      const overCli = yield* Effect.gen(function* () {
-        const service = yield* WikiService;
-        return yield* service.dictionary;
-      }).pipe(Effect.provide(wikiLayer));
+      const overCli = yield* dictionaryOverCli(wikiLayer);
 
       const encodeSpans = Schema.encodeEffect(Schema.fromJsonString(PhraseSpansJson));
       const spansFor = (dictionary: PhraseDictionary) =>

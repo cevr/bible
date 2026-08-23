@@ -35,6 +35,7 @@ import { procedureDependencies } from '@bible/core/procedure/testing';
 import * as BrowserWorkerRunner from '@effect/platform-browser/BrowserWorkerRunner';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Fiber, Layer, Option } from 'effect';
+import type { Scope } from 'effect';
 import type { FromClientEncoded, RequestEncoded } from 'effect/unstable/rpc/RpcMessage';
 import * as RpcClient from 'effect/unstable/rpc/RpcClient';
 import * as RpcServer from 'effect/unstable/rpc/RpcServer';
@@ -102,6 +103,14 @@ const bridged = (): Wire => {
 };
 
 const client = RpcClient.make(BibleProcedureGroup);
+
+/** Run a client-side effect over a wired port. The transport layer is provided
+ *  at this function's own boundary, so a test's generator stays a description of
+ *  what it asks rather than a place where wiring happens. */
+const over = <A, E>(
+  port: MessagePort,
+  ask: Effect.Effect<A, E, RpcClient.Protocol | Scope.Scope>,
+) => ask.pipe(Effect.provide(layerWebProcedureTransport(port)));
 
 const wired = Effect.gen(function* () {
   const wire = yield* Effect.acquireRelease(Effect.sync(bridged), (active) =>
@@ -225,10 +234,13 @@ describe('web worker runtime content updates', () => {
     Effect.gen(function* () {
       const wire = yield* wired;
 
-      const status = yield* Effect.gen(function* () {
-        const procedures = yield* client;
-        return yield* procedures['v1.content.status']({ corpus: 'topics' });
-      }).pipe(Effect.provide(layerWebProcedureTransport(wire.clientPort)));
+      const status = yield* over(
+        wire.clientPort,
+        Effect.gen(function* () {
+          const procedures = yield* client;
+          return yield* procedures['v1.content.status']({ corpus: 'topics' });
+        }),
+      );
 
       expect(status.decision._tag).toBe(ADAPTER_EXPECTATIONS.overrun);
       if (status.decision._tag !== 'refused') return;
@@ -249,10 +261,13 @@ describe('web worker runtime content updates', () => {
     Effect.gen(function* () {
       const wire = yield* wired;
 
-      const outcome = yield* Effect.gen(function* () {
-        const procedures = yield* client;
-        return yield* procedures['v1.content.update']({ corpus: 'topics' });
-      }).pipe(Effect.provide(layerWebProcedureTransport(wire.clientPort)));
+      const outcome = yield* over(
+        wire.clientPort,
+        Effect.gen(function* () {
+          const procedures = yield* client;
+          return yield* procedures['v1.content.update']({ corpus: 'topics' });
+        }),
+      );
 
       expect(Option.isNone(outcome.activated)).toBe(true);
       expect(outcome.status.decision._tag).toBe('refused');

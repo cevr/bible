@@ -172,6 +172,31 @@ const installedGeneration = (supply: CorpusSupply['Service'], corpus: 'topics') 
     Option.getOrUndefined(Option.flatMap(provenance, (p) => Option.map(p.generation, Number))),
   );
 
+/** §3.6's runtime install of generation 4, on one launch of the graph. The
+ *  layer is provided at this function's own boundary rather than inside a
+ *  test's generator. */
+const installGeneration4 = (layer: Layer.Layer<CorpusSupply>) =>
+  Effect.flatMap(CorpusSupply, (supply) =>
+    supply.installFrom({
+      corpus: 'topics',
+      release: { ...RELEASE, generation: Option.some(generation(4)) },
+    }),
+  ).pipe(Effect.provide(layer));
+
+/** What one launch reads back as the active ordinal. */
+const generationOn = (layer: Layer.Layer<CorpusSupply>) =>
+  Effect.flatMap(CorpusSupply, (supply) => installedGeneration(supply, 'topics')).pipe(
+    Effect.provide(layer),
+  );
+
+/** One startup of the given wiring: what it activated, and what it left behind. */
+const startupOn = (layer: Layer.Layer<CorpusSupply>) =>
+  Effect.gen(function* () {
+    const supply = yield* CorpusSupply;
+    const receipt = yield* supply.ensure({ target: { _tag: 'file', corpus: 'topics' } });
+    return { receipt, generation: yield* installedGeneration(supply, 'topics') };
+  }).pipe(Effect.provide(layer));
+
 describe('browser generation round-trip', () => {
   /** The round-trip itself: an ordinal a runtime install persisted is the
    *  ordinal a *new* store reads. Without the write, or without the read,
@@ -181,18 +206,11 @@ describe('browser generation round-trip', () => {
       const browser = freshBrowser();
       const first = launch({ ...browser, pinnedGeneration: Option.none() });
 
-      yield* Effect.flatMap(CorpusSupply, (supply) =>
-        supply.installFrom({
-          corpus: 'topics',
-          release: { ...RELEASE, generation: Option.some(generation(4)) },
-        }),
-      ).pipe(Effect.provide(first));
+      yield* installGeneration4(first);
 
       // A second launch, sharing only what OPFS and IndexedDB keep.
       const second = launch({ ...browser, pinnedGeneration: Option.none() });
-      const read = yield* Effect.flatMap(CorpusSupply, (supply) =>
-        installedGeneration(supply, 'topics'),
-      ).pipe(Effect.provide(second));
+      const read = yield* generationOn(second);
 
       expect(read).toBe(4);
     }),
@@ -206,22 +224,13 @@ describe('browser generation round-trip', () => {
     Effect.gen(function* () {
       const browser = freshBrowser();
 
-      yield* Effect.flatMap(CorpusSupply, (supply) =>
-        supply.installFrom({
-          corpus: 'topics',
-          release: { ...RELEASE, generation: Option.some(generation(4)) },
-        }),
-      ).pipe(Effect.provide(launch({ ...browser, pinnedGeneration: Option.none() })));
+      yield* installGeneration4(launch({ ...browser, pinnedGeneration: Option.none() }));
 
       const restarted = launch({
         ...browser,
         pinnedGeneration: Option.some(generation(3)),
       });
-      const after = yield* Effect.gen(function* () {
-        const supply = yield* CorpusSupply;
-        const receipt = yield* supply.ensure({ target: { _tag: 'file', corpus: 'topics' } });
-        return { receipt, generation: yield* installedGeneration(supply, 'topics') };
-      }).pipe(Effect.provide(restarted));
+      const after = yield* startupOn(restarted);
 
       expect(after.receipt.activated).toEqual([]);
       expect(after.generation).toBe(4);

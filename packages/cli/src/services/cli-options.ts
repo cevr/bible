@@ -9,7 +9,10 @@ export class CliOptions extends Context.Service<CliOptions, CliOptionsService>()
   '@bible/cli/services/cli-options/CliOptions',
 ) {}
 
-export const verbose = Flag.boolean('verbose').pipe(Flag.withDescription('Enable verbose logging'));
+export const verbose = Flag.boolean('verbose').pipe(
+  Flag.withDescription('Enable verbose logging'),
+  Flag.withDefault(false),
+);
 
 export const cliOptions = {
   verbose,

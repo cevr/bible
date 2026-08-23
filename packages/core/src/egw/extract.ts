@@ -44,6 +44,21 @@ export const paragraphRefcode = (paragraph: Paragraph, bookId: number): string =
   );
 };
 
+/** The `Node` variants that carry inline `children`. */
+type ContainerNode = Extract<Node, { readonly children: readonly Node[] }>;
+
+const CONTAINER_TAGS: readonly ContainerNode['_tag'][] = [
+  'Emphasis',
+  'Comment',
+  'ScriptureRef',
+  'BookRef',
+  'Unknown',
+];
+
+const isContainerNode: Predicate.Refinement<Node, ContainerNode> = (
+  node: Node,
+): node is ContainerNode => CONTAINER_TAGS.some((tag) => Predicate.isTagged(node, tag));
+
 const walkScriptureRefs = (nodes: readonly Node[], out: { readonly title: string }[]): void => {
   for (const node of nodes) {
     if (node._tag === 'ScriptureRef') {
@@ -51,13 +66,7 @@ const walkScriptureRefs = (nodes: readonly Node[], out: { readonly title: string
       // ScriptureRefs in this corpus don't nest other ScriptureRefs, but the
       // recursion below covers it defensively without measurable cost.
     }
-    if (
-      node._tag === 'Emphasis' ||
-      node._tag === 'Comment' ||
-      node._tag === 'ScriptureRef' ||
-      node._tag === 'BookRef' ||
-      node._tag === 'Unknown'
-    ) {
+    if (isContainerNode(node)) {
       walkScriptureRefs(node.children, out);
     }
   }

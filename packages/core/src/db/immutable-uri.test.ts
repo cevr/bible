@@ -24,6 +24,27 @@ import { immutableFileUri } from './immutable-uri.js';
  *  in one name. */
 const HOSTILE = 'weird?dir#1 100%';
 
+/** The read half of the strong assertion, at its own boundary: the SQLite
+ *  client layer is built from the file this helper is handed, so the provide
+ *  belongs to this effect rather than to a block nested inside the test. */
+const readMarkerValues = (file: string): Effect.Effect<readonly string[], never, Scope.Scope> =>
+  Effect.gen(function* () {
+    const sql = yield* SqlClient.SqlClient;
+    const rows = yield* sql<{ readonly value: string }>`SELECT value FROM marker`;
+    return rows.map((row) => row.value);
+  }).pipe(
+    Effect.provide(
+      SqliteBun.layer({
+        filename: immutableFileUri(file),
+        readonly: true,
+        readwrite: false,
+        create: false,
+        disableWAL: true,
+      }) as Layer.Layer<SqlClient.SqlClient>,
+    ),
+    Effect.orDie,
+  );
+
 const hostileDirectory = (): Effect.Effect<string, never, FileSystem.FileSystem | Scope.Scope> =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
@@ -74,22 +95,8 @@ describe('immutableFileUri', () => {
       // truncated `…/weird`, `create: false` refused to conjure it, and the
       // open died — the artifact was on disk and unreadable for no reason but
       // its parent directory's name.
-      const rows = yield* Effect.gen(function* () {
-        const sql = yield* SqlClient.SqlClient;
-        return yield* sql<{ readonly value: string }>`SELECT value FROM marker`;
-      }).pipe(
-        Effect.provide(
-          SqliteBun.layer({
-            filename: immutableFileUri(file),
-            readonly: true,
-            readwrite: false,
-            create: false,
-            disableWAL: true,
-          }) as Layer.Layer<SqlClient.SqlClient>,
-        ),
-        Effect.orDie,
-      );
+      const values = yield* readMarkerValues(file);
 
-      expect(rows.map((row) => row.value)).toEqual(['present']);
+      expect(values).toEqual(['present']);
     }));
 });

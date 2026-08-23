@@ -55,6 +55,39 @@ const host = (destination: string) =>
     ),
   );
 
+/** §3.6's runtime install of generation 4, on one launch of the graph. The
+ *  layer is provided at this function's own boundary rather than inside a
+ *  test's generator. */
+const installGeneration4 = (destination: string) =>
+  Effect.flatMap(CorpusSupply, (supply) =>
+    supply.installFrom({
+      corpus: 'topics',
+      release: {
+        url: 'https://example.test/topics.db',
+        revision: 'content-v4',
+        digest: DIGEST,
+        size: RELEASE.byteLength,
+        generation: Option.some(corpusGeneration(4)),
+      },
+    }),
+  ).pipe(Effect.provide(host(destination)), Effect.orDie);
+
+/** What a *fresh* graph over the same path reports — a restart, as far as this
+ *  pipeline is concerned. */
+const provenanceAfterRestart = (destination: string) =>
+  Effect.flatMap(CorpusSupply, (supply) => supply.installed('topics')).pipe(
+    Effect.provide(host(destination)),
+    Effect.orDie,
+  );
+
+/** One startup of the given wiring: what it activated, and what it left behind. */
+const startupOver = (layer: Layer.Layer<CorpusSupply>) =>
+  Effect.gen(function* () {
+    const supply = yield* CorpusSupply;
+    const receipt = yield* supply.ensure({ target: { _tag: 'file', corpus: 'topics' } });
+    return { receipt, provenance: yield* supply.installed('topics') };
+  }).pipe(Effect.provide(layer), Effect.orDie);
+
 describe('native SQLite provenance store', () => {
   it.effect('round-trips a runtime generation through the artifact itself', () =>
     Effect.gen(function* () {
@@ -65,24 +98,11 @@ describe('native SQLite provenance store', () => {
       const destination = `${directory}/topics.db`;
 
       // §3.6 installs generation 4 at runtime.
-      yield* Effect.flatMap(CorpusSupply, (supply) =>
-        supply.installFrom({
-          corpus: 'topics',
-          release: {
-            url: 'https://example.test/topics.db',
-            revision: 'content-v4',
-            digest: DIGEST,
-            size: RELEASE.byteLength,
-            generation: Option.some(corpusGeneration(4)),
-          },
-        }),
-      ).pipe(Effect.provide(host(destination)), Effect.orDie);
+      yield* installGeneration4(destination);
 
       // The ordinal is in the file, not in a process. A restart is a new graph
       // over the same path, which is what a restart is to this pipeline.
-      const provenance = yield* Effect.flatMap(CorpusSupply, (supply) =>
-        supply.installed('topics'),
-      ).pipe(Effect.provide(host(destination)), Effect.orDie);
+      const provenance = yield* provenanceAfterRestart(destination);
 
       expect(Option.getOrUndefined(Option.map(provenance, (p) => String(p.revision)))).toBe(
         'content-v4',
@@ -110,18 +130,7 @@ describe('native SQLite provenance store', () => {
         .pipe(Effect.orDie);
       const destination = `${directory}/topics.db`;
 
-      yield* Effect.flatMap(CorpusSupply, (supply) =>
-        supply.installFrom({
-          corpus: 'topics',
-          release: {
-            url: 'https://example.test/topics.db',
-            revision: 'content-v4',
-            digest: DIGEST,
-            size: RELEASE.byteLength,
-            generation: Option.some(corpusGeneration(4)),
-          },
-        }),
-      ).pipe(Effect.provide(host(destination)), Effect.orDie);
+      yield* installGeneration4(destination);
 
       // A launch whose compiled pin is generation 3 — an older app version, or
       // the same one that shipped before the runtime release.
@@ -146,11 +155,7 @@ describe('native SQLite provenance store', () => {
         ),
       );
 
-      const after = yield* Effect.gen(function* () {
-        const supply = yield* CorpusSupply;
-        const receipt = yield* supply.ensure({ target: { _tag: 'file', corpus: 'topics' } });
-        return { receipt, provenance: yield* supply.installed('topics') };
-      }).pipe(Effect.provide(pinned), Effect.orDie);
+      const after = yield* startupOver(pinned);
 
       expect(after.receipt.activated).toEqual([]);
       expect(Option.getOrUndefined(Option.map(after.provenance, (p) => String(p.revision)))).toBe(

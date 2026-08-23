@@ -1665,7 +1665,7 @@ export class EGWParagraphDatabase extends Context.Service<
           return { scanned, inserted };
         });
 
-      return {
+      return EGWParagraphDatabase.of({
         installPublicationArchive,
         storeBook,
         getBookById,
@@ -1700,7 +1700,7 @@ export class EGWParagraphDatabase extends Context.Service<
         needsSync,
         rebuildFtsIndex,
         backfillBibleRefs,
-      };
+      });
     }),
   );
 
@@ -1720,283 +1720,288 @@ export class EGWParagraphDatabase extends Context.Service<
       needsSync?: (bookId: number, expected?: CorpusProvenance) => boolean;
     } = {},
   ): Layer.Layer<EGWParagraphDatabase> =>
-    Layer.succeed(EGWParagraphDatabase, {
-      installPublicationArchive: (archive, provenance) =>
-        Effect.succeed(
-          config.installPublicationArchive?.(archive, provenance) ?? archive.paragraphs.length,
-        ),
-      storeBook: () => Effect.void,
-      getBookById: (bookId) =>
-        Effect.succeed(Option.fromNullishOr(config.books?.find((b) => b.book_id === bookId))),
-      getBookByCode: (bookCode) =>
-        Effect.succeed(
-          Option.fromNullishOr(
-            config.books?.find((b) => b.book_code.toLowerCase() === bookCode.toLowerCase()),
+    Layer.succeed(
+      EGWParagraphDatabase,
+      EGWParagraphDatabase.of({
+        installPublicationArchive: (archive, provenance) =>
+          Effect.succeed(
+            config.installPublicationArchive?.(archive, provenance) ?? archive.paragraphs.length,
           ),
-        ),
-      getBooksByCode: (bookCode) =>
-        Effect.succeed(
-          config.books?.filter((book) => book.book_code.toLowerCase() === bookCode.toLowerCase()) ??
-            [],
-        ),
-      getBooksByAuthor: (author) =>
-        Stream.fromIterable(config.books?.filter((b) => b.book_author === author) ?? []),
-      getAllBooks: Stream.suspend(() => Stream.fromIterable(config.books ?? [])),
-      updateBookCount: () => Effect.void,
-      storeParagraph: () => Effect.void,
-      storeParagraphsBatch: (paragraphs) => Effect.succeed(paragraphs.length),
-      getParagraph: (bookId, refcode) => {
-        const bookCode = config.books?.find((book) => book.book_id === bookId)?.book_code;
-        return Effect.succeed(
-          Option.fromNullishOr(
-            config.paragraphs?.find(
-              (paragraph) =>
-                paragraph.bookCode === bookCode &&
-                (Option.getOrUndefined(paragraph.refcode_short) === refcode ||
-                  paragraph.refcode_long === refcode),
+        storeBook: () => Effect.void,
+        getBookById: (bookId) =>
+          Effect.succeed(Option.fromNullishOr(config.books?.find((b) => b.book_id === bookId))),
+        getBookByCode: (bookCode) =>
+          Effect.succeed(
+            Option.fromNullishOr(
+              config.books?.find((b) => b.book_code.toLowerCase() === bookCode.toLowerCase()),
             ),
           ),
-        );
-      },
-      getParagraphsByBook: (bookId) => {
-        const bookCode = config.books?.find((book) => book.book_id === bookId)?.book_code;
-        return Stream.fromIterable(
-          config.paragraphs?.filter((paragraph) => paragraph.bookCode === bookCode) ?? [],
-        );
-      },
-      getParagraphsByAuthor: (author) => {
-        const bookCodes = new Set(
-          config.books
-            ?.filter((book) => book.book_author === author)
-            .map((book) => book.book_code) ?? [],
-        );
-        return Stream.fromIterable(
-          config.paragraphs?.filter((paragraph) => bookCodes.has(paragraph.bookCode)) ?? [],
-        );
-      },
-      getParagraphsByPage: (bookId, page) => {
-        const bookCode = config.books?.find((book) => book.book_id === bookId)?.book_code;
-        return Effect.succeed(
-          config.paragraphs?.filter((paragraph) => {
-            const refcode =
-              Option.getOrUndefined(paragraph.refcode_short) ?? paragraph.refcode_long ?? '';
-            return paragraph.bookCode === bookCode && refcode.startsWith(`${bookCode} ${page}.`);
-          }) ?? [],
-        );
-      },
-      getChapterHeadings: (bookId) => {
-        const bookCode = config.books?.find((book) => book.book_id === bookId)?.book_code;
-        return Effect.succeed(
-          config.paragraphs?.filter(
-            (paragraph) =>
-              paragraph.bookCode === bookCode &&
-              (paragraph.element_type === 'chapter' ||
-                paragraph.element_type === 'title' ||
-                paragraph.element_type?.toLowerCase().startsWith('h')),
-          ) ?? [],
-        );
-      },
-      // The test double applies the same three filters the live query applies,
-      // so a caller that scopes its search sees a scoped result here too. The
-      // relevance *order* is the one thing it cannot reproduce — there is no
-      // FTS index behind it — so it preserves the configured paragraph order
-      // and a test that cares about rank must use a real database.
-      searchParagraphs: (query, options) =>
-        Effect.succeed(
-          testSearchMatches(config, query, options)
-            .slice(0, options?.limit)
-            .map(({ book: _book, ...row }) => row),
-        ),
-      // The double has no FTS index, so it cannot compute a real BM25. It
-      // reports the rank a test configured on the paragraph instead, defaulting
-      // to a weak one — which is what lets a §9.3 short-circuit test state its
-      // premise ("the top hit is strong and clearly separated") as data rather
-      // than needing a real SQLite corpus to produce it by luck.
-      searchScoredParagraphs: (query, options) =>
-        Effect.succeed(
-          testSearchMatches(config, query, options)
-            .slice(0, options?.limit)
-            .map((row): ScoredParagraphRow => ({
-              bookCode: row.bookCode,
-              bookTitle: row.bookTitle,
-              bookAuthor: row.book.book_author,
-              publicationId: row.book.book_id,
-              rawParaId: row.para_id,
-              para_id: paragraphIdentity(
-                row.bookCode,
-                row.para_id,
-                Option.getOrElse(row.refcode_short, () => row.refcode_long ?? ''),
+        getBooksByCode: (bookCode) =>
+          Effect.succeed(
+            config.books?.filter(
+              (book) => book.book_code.toLowerCase() === bookCode.toLowerCase(),
+            ) ?? [],
+          ),
+        getBooksByAuthor: (author) =>
+          Stream.fromIterable(config.books?.filter((b) => b.book_author === author) ?? []),
+        getAllBooks: Stream.suspend(() => Stream.fromIterable(config.books ?? [])),
+        updateBookCount: () => Effect.void,
+        storeParagraph: () => Effect.void,
+        storeParagraphsBatch: (paragraphs) => Effect.succeed(paragraphs.length),
+        getParagraph: (bookId, refcode) => {
+          const bookCode = config.books?.find((book) => book.book_id === bookId)?.book_code;
+          return Effect.succeed(
+            Option.fromNullishOr(
+              config.paragraphs?.find(
+                (paragraph) =>
+                  paragraph.bookCode === bookCode &&
+                  (Option.getOrUndefined(paragraph.refcode_short) === refcode ||
+                    paragraph.refcode_long === refcode),
               ),
-              ref_code: Option.getOrElse(row.refcode_short, () => row.refcode_long ?? ''),
-              refcode_short: row.refcode_short,
-              nodes: row.nodes,
-              rank: row.rank,
-            })),
-        ),
-      // Keyed by the same `paragraphIdentity` the live statement composes in
-      // SQL, so a fixture and a real corpus answer the same key the same way.
-      findParagraphsByIdentity: (identities) => {
-        const wanted = new Set(identities);
-        return Effect.succeed(
-          (config.paragraphs ?? []).flatMap((paragraph): readonly ScoredParagraphRow[] => {
-            const refCode = Option.getOrElse(
-              paragraph.refcode_short,
-              () => paragraph.refcode_long ?? '',
-            );
-            const identity = paragraphIdentity(paragraph.bookCode, paragraph.para_id, refCode);
-            if (!wanted.has(identity)) return [];
-            // A paragraph whose book the fixture never declared is not a row:
-            // the live statement joins `books`, so an unjoinable paragraph
-            // cannot appear there either.
-            const found = Option.fromNullishOr(
-              config.books?.find((row) => row.book_code === paragraph.bookCode),
-            );
-            if (Option.isNone(found)) return [];
-            const book = found.value;
-            return [
-              {
-                bookCode: paragraph.bookCode,
-                bookTitle: book.book_title,
-                bookAuthor: book.book_author,
-                publicationId: book.book_id,
-                rawParaId: paragraph.para_id,
-                para_id: identity,
-                ref_code: refCode,
-                refcode_short: paragraph.refcode_short,
-                nodes: paragraph.nodes,
-                rank: 0,
-              },
-            ];
-          }),
-        );
-      },
-      // Counted off the same matcher, before the cap — the double has to model
-      // the *relationship* between `items` and `total`, not just the rows, or a
-      // test asserting the pre-cap total would pass here and fail on SQLite.
-      countSearchParagraphs: (query, options) =>
-        Effect.succeed(testSearchMatches(config, query, options).length),
-      /** The locate leg's lookup, as the double models it.
-       *
-       *  It used to answer `[]` unconditionally, which made §9.3's locate route
-       *  untestable against a fixture: the golden set declares two refcode
-       *  queries as `route: 'locate'` and neither could ever produce a jump
-       *  target, so no test could see the target's link — the shape round-2 B2
-       *  found broken. The rules mirror the live statement: match the book by
-       *  code prefix, then the tail exactly, as a child paragraph, or (for a
-       *  bare code) any row in that book. */
-      findByRefcodeShort: (refcodeShort, limit = 5) => {
-        const trimmed = refcodeShort.trim();
-        const spaceAt = trimmed.indexOf(' ');
-        const split = Option.match(
-          Option.liftPredicate(spaceAt, (at) => at !== -1),
-          {
-            onNone: () => ({ head: trimmed, tail: '' }),
-            onSome: (at) => ({ head: trimmed.slice(0, at), tail: trimmed.slice(at + 1) }),
-          },
-        );
-        const head = split.head.trim().toLowerCase();
-        const tail = split.tail.trim().toLowerCase();
-        return Effect.succeed(
-          (config.paragraphs ?? [])
-            .flatMap((paragraph) => {
-              if (!paragraph.bookCode.toLowerCase().startsWith(head)) return [];
-              const short = Option.getOrElse(paragraph.refcode_short, () => '').toLowerCase();
-              // `LIKE '% <tail>'` and `LIKE '% <tail>.%'` in the live query: the
-              // refcode's book prefix is skipped and the remainder is the
-              // paragraph address, exactly or as that address's parent.
-              const matches =
-                tail === '' || short.endsWith(` ${tail}`) || short.includes(` ${tail}.`);
-              if (!matches) return [];
-              const book = config.books?.find((row) => row.book_code === paragraph.bookCode);
-              if (Predicate.isUndefined(book)) return [];
+            ),
+          );
+        },
+        getParagraphsByBook: (bookId) => {
+          const bookCode = config.books?.find((book) => book.book_id === bookId)?.book_code;
+          return Stream.fromIterable(
+            config.paragraphs?.filter((paragraph) => paragraph.bookCode === bookCode) ?? [],
+          );
+        },
+        getParagraphsByAuthor: (author) => {
+          const bookCodes = new Set(
+            config.books
+              ?.filter((book) => book.book_author === author)
+              .map((book) => book.book_code) ?? [],
+          );
+          return Stream.fromIterable(
+            config.paragraphs?.filter((paragraph) => bookCodes.has(paragraph.bookCode)) ?? [],
+          );
+        },
+        getParagraphsByPage: (bookId, page) => {
+          const bookCode = config.books?.find((book) => book.book_id === bookId)?.book_code;
+          return Effect.succeed(
+            config.paragraphs?.filter((paragraph) => {
+              const refcode =
+                Option.getOrUndefined(paragraph.refcode_short) ?? paragraph.refcode_long ?? '';
+              return paragraph.bookCode === bookCode && refcode.startsWith(`${bookCode} ${page}.`);
+            }) ?? [],
+          );
+        },
+        getChapterHeadings: (bookId) => {
+          const bookCode = config.books?.find((book) => book.book_id === bookId)?.book_code;
+          return Effect.succeed(
+            config.paragraphs?.filter(
+              (paragraph) =>
+                paragraph.bookCode === bookCode &&
+                (paragraph.element_type === 'chapter' ||
+                  paragraph.element_type === 'title' ||
+                  paragraph.element_type?.toLowerCase().startsWith('h')),
+            ) ?? [],
+          );
+        },
+        // The test double applies the same three filters the live query applies,
+        // so a caller that scopes its search sees a scoped result here too. The
+        // relevance *order* is the one thing it cannot reproduce — there is no
+        // FTS index behind it — so it preserves the configured paragraph order
+        // and a test that cares about rank must use a real database.
+        searchParagraphs: (query, options) =>
+          Effect.succeed(
+            testSearchMatches(config, query, options)
+              .slice(0, options?.limit)
+              .map(({ book: _book, ...row }) => row),
+          ),
+        // The double has no FTS index, so it cannot compute a real BM25. It
+        // reports the rank a test configured on the paragraph instead, defaulting
+        // to a weak one — which is what lets a §9.3 short-circuit test state its
+        // premise ("the top hit is strong and clearly separated") as data rather
+        // than needing a real SQLite corpus to produce it by luck.
+        searchScoredParagraphs: (query, options) =>
+          Effect.succeed(
+            testSearchMatches(config, query, options)
+              .slice(0, options?.limit)
+              .map((row): ScoredParagraphRow => ({
+                bookCode: row.bookCode,
+                bookTitle: row.bookTitle,
+                bookAuthor: row.book.book_author,
+                publicationId: row.book.book_id,
+                rawParaId: row.para_id,
+                para_id: paragraphIdentity(
+                  row.bookCode,
+                  row.para_id,
+                  Option.getOrElse(row.refcode_short, () => row.refcode_long ?? ''),
+                ),
+                ref_code: Option.getOrElse(row.refcode_short, () => row.refcode_long ?? ''),
+                refcode_short: row.refcode_short,
+                nodes: row.nodes,
+                rank: row.rank,
+              })),
+          ),
+        // Keyed by the same `paragraphIdentity` the live statement composes in
+        // SQL, so a fixture and a real corpus answer the same key the same way.
+        findParagraphsByIdentity: (identities) => {
+          const wanted = new Set(identities);
+          return Effect.succeed(
+            (config.paragraphs ?? []).flatMap((paragraph): readonly ScoredParagraphRow[] => {
+              const refCode = Option.getOrElse(
+                paragraph.refcode_short,
+                () => paragraph.refcode_long ?? '',
+              );
+              const identity = paragraphIdentity(paragraph.bookCode, paragraph.para_id, refCode);
+              if (!wanted.has(identity)) return [];
+              // A paragraph whose book the fixture never declared is not a row:
+              // the live statement joins `books`, so an unjoinable paragraph
+              // cannot appear there either.
+              const found = Option.fromNullishOr(
+                config.books?.find((row) => row.book_code === paragraph.bookCode),
+              );
+              if (Option.isNone(found)) return [];
+              const book = found.value;
+              return [
+                {
+                  bookCode: paragraph.bookCode,
+                  bookTitle: book.book_title,
+                  bookAuthor: book.book_author,
+                  publicationId: book.book_id,
+                  rawParaId: paragraph.para_id,
+                  para_id: identity,
+                  ref_code: refCode,
+                  refcode_short: paragraph.refcode_short,
+                  nodes: paragraph.nodes,
+                  rank: 0,
+                },
+              ];
+            }),
+          );
+        },
+        // Counted off the same matcher, before the cap — the double has to model
+        // the *relationship* between `items` and `total`, not just the rows, or a
+        // test asserting the pre-cap total would pass here and fail on SQLite.
+        countSearchParagraphs: (query, options) =>
+          Effect.succeed(testSearchMatches(config, query, options).length),
+        /** The locate leg's lookup, as the double models it.
+         *
+         *  It used to answer `[]` unconditionally, which made §9.3's locate route
+         *  untestable against a fixture: the golden set declares two refcode
+         *  queries as `route: 'locate'` and neither could ever produce a jump
+         *  target, so no test could see the target's link — the shape round-2 B2
+         *  found broken. The rules mirror the live statement: match the book by
+         *  code prefix, then the tail exactly, as a child paragraph, or (for a
+         *  bare code) any row in that book. */
+        findByRefcodeShort: (refcodeShort, limit = 5) => {
+          const trimmed = refcodeShort.trim();
+          const spaceAt = trimmed.indexOf(' ');
+          const split = Option.match(
+            Option.liftPredicate(spaceAt, (at) => at !== -1),
+            {
+              onNone: () => ({ head: trimmed, tail: '' }),
+              onSome: (at) => ({ head: trimmed.slice(0, at), tail: trimmed.slice(at + 1) }),
+            },
+          );
+          const head = split.head.trim().toLowerCase();
+          const tail = split.tail.trim().toLowerCase();
+          return Effect.succeed(
+            (config.paragraphs ?? [])
+              .flatMap((paragraph) => {
+                if (!paragraph.bookCode.toLowerCase().startsWith(head)) return [];
+                const short = Option.getOrElse(paragraph.refcode_short, () => '').toLowerCase();
+                // `LIKE '% <tail>'` and `LIKE '% <tail>.%'` in the live query: the
+                // refcode's book prefix is skipped and the remainder is the
+                // paragraph address, exactly or as that address's parent.
+                const matches =
+                  tail === '' || short.endsWith(` ${tail}`) || short.includes(` ${tail}.`);
+                if (!matches) return [];
+                const book = config.books?.find((row) => row.book_code === paragraph.bookCode);
+                if (Predicate.isUndefined(book)) return [];
+                return [
+                  {
+                    ...paragraph,
+                    bookCode: paragraph.bookCode,
+                    bookTitle: book.book_title,
+                    bookId: book.book_id,
+                  },
+                ];
+              })
+              .slice(0, limit),
+          );
+        },
+        getMaxPage: (bookId) => {
+          const bookCode = config.books?.find((book) => book.book_id === bookId)?.book_code;
+          const pages =
+            config.paragraphs
+              ?.filter((paragraph) => paragraph.bookCode === bookCode)
+              .flatMap((paragraph) => {
+                const refcode =
+                  Option.getOrUndefined(paragraph.refcode_short) ?? paragraph.refcode_long ?? '';
+                const match = refcode.match(/\s(\d+)\./);
+                if (match?.[1]) return [Number.parseInt(match[1], 10)];
+                return [];
+              }) ?? [];
+          return Effect.succeed(Math.max(0, ...pages));
+        },
+        getPageNumbers: (bookId) => {
+          const bookCode = config.books?.find((book) => book.book_id === bookId)?.book_code;
+          const pages = new Set(
+            config.paragraphs
+              ?.filter((paragraph) => paragraph.bookCode === bookCode)
+              .flatMap((paragraph) => {
+                const refcode =
+                  Option.getOrUndefined(paragraph.refcode_short) ?? paragraph.refcode_long ?? '';
+                const match = refcode.match(/\s(\d+)\./);
+                if (match?.[1]) return [Number.parseInt(match[1], 10)];
+                return [];
+              }) ?? [],
+          );
+          return Effect.succeed([...pages].sort((left, right) => left - right));
+        },
+        storeBibleRef: () => Effect.void,
+        storeBibleRefsBatch: (refs) => Effect.succeed(refs.length),
+        getBibleRefsByBook: (bookId) =>
+          Effect.succeed(config.bibleRefs?.filter((row) => row.para_book_id === bookId) ?? []),
+        getParagraphsByBibleRef: (bibleBook, bibleChapter, bibleVerse) => {
+          const matchingRefs =
+            config.bibleRefs?.filter(
+              (row) =>
+                row.bible_book === bibleBook &&
+                row.bible_chapter === bibleChapter &&
+                (Predicate.isUndefined(bibleVerse) || row.bible_verse === bibleVerse),
+            ) ?? [];
+          return Effect.succeed(
+            matchingRefs.flatMap((reference) => {
+              const book = config.books?.find(
+                (candidate) => candidate.book_id === reference.para_book_id,
+              );
+              const paragraph = config.paragraphs?.find(
+                (candidate) =>
+                  candidate.bookCode === book?.book_code &&
+                  (Option.getOrUndefined(candidate.refcode_short) === reference.para_ref_code ||
+                    candidate.refcode_long === reference.para_ref_code),
+              );
+              if (Predicate.isUndefined(book) || Predicate.isUndefined(paragraph)) return [];
               return [
                 {
                   ...paragraph,
-                  bookCode: paragraph.bookCode,
-                  bookTitle: book.book_title,
                   bookId: book.book_id,
+                  bookCode: book.book_code,
+                  bookTitle: book.book_title,
+                  bookAuthor: book.book_author,
                 },
               ];
-            })
-            .slice(0, limit),
-        );
-      },
-      getMaxPage: (bookId) => {
-        const bookCode = config.books?.find((book) => book.book_id === bookId)?.book_code;
-        const pages =
-          config.paragraphs
-            ?.filter((paragraph) => paragraph.bookCode === bookCode)
-            .flatMap((paragraph) => {
-              const refcode =
-                Option.getOrUndefined(paragraph.refcode_short) ?? paragraph.refcode_long ?? '';
-              const match = refcode.match(/\s(\d+)\./);
-              if (match?.[1]) return [Number.parseInt(match[1], 10)];
-              return [];
-            }) ?? [];
-        return Effect.succeed(Math.max(0, ...pages));
-      },
-      getPageNumbers: (bookId) => {
-        const bookCode = config.books?.find((book) => book.book_id === bookId)?.book_code;
-        const pages = new Set(
-          config.paragraphs
-            ?.filter((paragraph) => paragraph.bookCode === bookCode)
-            .flatMap((paragraph) => {
-              const refcode =
-                Option.getOrUndefined(paragraph.refcode_short) ?? paragraph.refcode_long ?? '';
-              const match = refcode.match(/\s(\d+)\./);
-              if (match?.[1]) return [Number.parseInt(match[1], 10)];
-              return [];
-            }) ?? [],
-        );
-        return Effect.succeed([...pages].sort((left, right) => left - right));
-      },
-      storeBibleRef: () => Effect.void,
-      storeBibleRefsBatch: (refs) => Effect.succeed(refs.length),
-      getBibleRefsByBook: (bookId) =>
-        Effect.succeed(config.bibleRefs?.filter((row) => row.para_book_id === bookId) ?? []),
-      getParagraphsByBibleRef: (bibleBook, bibleChapter, bibleVerse) => {
-        const matchingRefs =
-          config.bibleRefs?.filter(
-            (row) =>
-              row.bible_book === bibleBook &&
-              row.bible_chapter === bibleChapter &&
-              (Predicate.isUndefined(bibleVerse) || row.bible_verse === bibleVerse),
-          ) ?? [];
-        return Effect.succeed(
-          matchingRefs.flatMap((reference) => {
-            const book = config.books?.find(
-              (candidate) => candidate.book_id === reference.para_book_id,
-            );
-            const paragraph = config.paragraphs?.find(
-              (candidate) =>
-                candidate.bookCode === book?.book_code &&
-                (Option.getOrUndefined(candidate.refcode_short) === reference.para_ref_code ||
-                  candidate.refcode_long === reference.para_ref_code),
-            );
-            if (Predicate.isUndefined(book) || Predicate.isUndefined(paragraph)) return [];
-            return [
-              {
-                ...paragraph,
-                bookId: book.book_id,
-                bookCode: book.book_code,
-                bookTitle: book.book_title,
-                bookAuthor: book.book_author,
-              },
-            ];
-          }),
-        );
-      },
-      getBibleVersesWithCommentary: () => Effect.succeed([]),
-      setSyncStatus: () => Effect.void,
-      getSyncStatus: (bookId) =>
-        Effect.succeed(
-          Option.fromNullishOr(config.syncStatuses?.find((row) => row.book_id === bookId)),
-        ),
-      getBooksByStatus: (status) =>
-        Effect.succeed(config.syncStatuses?.filter((row) => row.status === status) ?? []),
-      getAllSyncStatus: Effect.succeed(config.syncStatuses ?? []),
-      needsSync: (bookId, expected) => Effect.succeed(config.needsSync?.(bookId, expected) ?? true),
-      rebuildFtsIndex: Effect.void,
-      backfillBibleRefs: () => Effect.succeed({ scanned: 0, inserted: 0 }),
-    });
+            }),
+          );
+        },
+        getBibleVersesWithCommentary: () => Effect.succeed([]),
+        setSyncStatus: () => Effect.void,
+        getSyncStatus: (bookId) =>
+          Effect.succeed(
+            Option.fromNullishOr(config.syncStatuses?.find((row) => row.book_id === bookId)),
+          ),
+        getBooksByStatus: (status) =>
+          Effect.succeed(config.syncStatuses?.filter((row) => row.status === status) ?? []),
+        getAllSyncStatus: Effect.succeed(config.syncStatuses ?? []),
+        needsSync: (bookId, expected) =>
+          Effect.succeed(config.needsSync?.(bookId, expected) ?? true),
+        rebuildFtsIndex: Effect.void,
+        backfillBibleRefs: () => Effect.succeed({ scanned: 0, inserted: 0 }),
+      }),
+    );
 }

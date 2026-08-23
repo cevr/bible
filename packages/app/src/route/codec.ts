@@ -5,7 +5,7 @@ import {
   WritingsBookCode,
   type CorpusScope,
 } from '@bible/core/writings';
-import { Option, Schema } from 'effect';
+import { Match, Option, Schema } from 'effect';
 
 import type { AppRoute, SearchScope, SettingsSection } from './model.js';
 
@@ -46,60 +46,55 @@ const normalizeBooks = (books: readonly number[]): readonly number[] =>
     (left, right) => left - right,
   );
 
-export const encodeRoute = (route: AppRoute): string => {
-  switch (route._tag) {
-    case 'bible': {
-      const { reference } = route;
-      const base = `/bible/${String(reference.book)}/${String(reference.chapter)}`;
-      if (reference._tag === 'verse') return `${base}/${String(reference.verse)}`;
-      return base;
-    }
-    case 'writings-catalog':
-      return '/writings';
-    case 'writings': {
-      const { reference } = route;
-      const base = `/writings/${String(reference.publicationId)}`;
-      if (reference._tag === 'publication') return base;
-      if (reference._tag === 'page') return `${base}/page/${String(reference.page)}`;
-      return `${base}/p/${encodeURIComponent(reference.paragraphId)}`;
-    }
-    case 'search': {
-      const params = new URLSearchParams();
-      if (route.query.length > 0) params.set('q', route.query);
-      if (route.scope !== 'all') params.set('scope', route.scope);
-      const books = normalizeBooks(route.books);
-      if (books.length > 0) params.set('books', books.join(','));
-      // Both §9 narrowings are omitted when absent, the way `scope: 'all'` and
-      // an empty `books` are: a bare `/search?q=…` is the default query, and a
-      // default spelled in the URL is a default that can drift from core's.
-      if (Option.isSome(route.corpus)) params.set('corpus', route.corpus.value);
-      if (Option.isSome(route.bookCode)) params.set('book', route.bookCode.value);
-      const query = params.toString();
-      if (query.length > 0) return `/search?${query}`;
-      return '/search';
-    }
-    case 'topics': {
-      if (route.topicId) return `/topics/${encodeURIComponent(route.topicId)}`;
-      return '/topics';
-    }
-    case 'wiki':
-      return `/wiki/${encodeURIComponent(route.slug)}`;
-    case 'plans': {
-      if (route.planId) return `/plans/${encodeURIComponent(route.planId)}`;
-      return '/plans';
-    }
-    case 'practice': {
-      if (route.memoryVerseId) {
-        return `/practice/${encodeURIComponent(route.memoryVerseId)}`;
-      }
-      return '/practice';
-    }
-    case 'settings':
-      return `/settings/${route.section}`;
-    case 'not-found':
-      return route.requestedPath;
-  }
-};
+export const encodeRoute = (route: AppRoute): string =>
+  Match.value(route).pipe(
+    Match.tagsExhaustive({
+      bible: ({ reference }) => {
+        const base = `/bible/${String(reference.book)}/${String(reference.chapter)}`;
+        if (reference._tag === 'verse') return `${base}/${String(reference.verse)}`;
+        return base;
+      },
+      'writings-catalog': () => '/writings',
+      writings: ({ reference }) => {
+        const base = `/writings/${String(reference.publicationId)}`;
+        if (reference._tag === 'publication') return base;
+        if (reference._tag === 'page') return `${base}/page/${String(reference.page)}`;
+        return `${base}/p/${encodeURIComponent(reference.paragraphId)}`;
+      },
+      search: (search) => {
+        const params = new URLSearchParams();
+        if (search.query.length > 0) params.set('q', search.query);
+        if (search.scope !== 'all') params.set('scope', search.scope);
+        const books = normalizeBooks(search.books);
+        if (books.length > 0) params.set('books', books.join(','));
+        // Both §9 narrowings are omitted when absent, the way `scope: 'all'` and
+        // an empty `books` are: a bare `/search?q=…` is the default query, and a
+        // default spelled in the URL is a default that can drift from core's.
+        if (Option.isSome(search.corpus)) params.set('corpus', search.corpus.value);
+        if (Option.isSome(search.bookCode)) params.set('book', search.bookCode.value);
+        const query = params.toString();
+        if (query.length > 0) return `/search?${query}`;
+        return '/search';
+      },
+      topics: (topics) => {
+        if (topics.topicId) return `/topics/${encodeURIComponent(topics.topicId)}`;
+        return '/topics';
+      },
+      wiki: (wiki) => `/wiki/${encodeURIComponent(wiki.slug)}`,
+      plans: (plans) => {
+        if (plans.planId) return `/plans/${encodeURIComponent(plans.planId)}`;
+        return '/plans';
+      },
+      practice: (practice) => {
+        if (practice.memoryVerseId) {
+          return `/practice/${encodeURIComponent(practice.memoryVerseId)}`;
+        }
+        return '/practice';
+      },
+      settings: (settings) => `/settings/${settings.section}`,
+      'not-found': (notFound) => notFound.requestedPath,
+    }),
+  );
 
 const decodeParsedRoute = (url: URL): Option.Option<AppRoute> => {
   const segments = url.pathname.split('/').filter(Boolean);

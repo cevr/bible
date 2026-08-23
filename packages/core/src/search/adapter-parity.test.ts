@@ -39,6 +39,10 @@ const embedWith = (layer: Layer.Layer<QueryEmbedder>, query: string) =>
     Effect.result,
   );
 
+/** The fingerprint an adapter layer declares, read at that layer's own boundary. */
+const fingerprintOf = (layer: Layer.Layer<QueryEmbedder>) =>
+  Effect.map(QueryEmbedder, (embedder) => embedder.fingerprint).pipe(Effect.provide(layer));
+
 /** The document side, under the other pinned prefix. */
 const embedDocumentWith = (layer: Layer.Layer<QueryEmbedder>, text: string) =>
   Effect.flatMap(QueryEmbedder, (embedder) => embedder.embedDocument(text)).pipe(
@@ -112,11 +116,7 @@ describe('§10 embedding adapter parity', () => {
       Effect.runPromise(
         Effect.gen(function* () {
           for (const layer of [layerBunEmbedder, layerNodeEmbedder]) {
-            const fingerprint = yield* Effect.map(
-              QueryEmbedder,
-              (embedder) => embedder.fingerprint,
-            ).pipe(Effect.provide(layer));
-            expect(fingerprint).toBe(MODEL_FINGERPRINT);
+            expect(yield* fingerprintOf(layer)).toBe(MODEL_FINGERPRINT);
           }
         }),
       ),

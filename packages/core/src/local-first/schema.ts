@@ -1,3 +1,4 @@
+import { defineRelations } from 'drizzle-orm';
 import {
   index,
   integer,
@@ -303,3 +304,12 @@ export const userStateSchema = {
 };
 
 export type UserStateSchema = typeof userStateSchema;
+
+/**
+ * Drizzle rc replaced the `schema` generic with a `relations` generic. The user
+ * state tables carry no relational-query edges, so the relations value is the
+ * table set with empty relation records.
+ */
+export const userStateRelations = defineRelations(userStateSchema);
+
+export type UserStateRelations = typeof userStateRelations;

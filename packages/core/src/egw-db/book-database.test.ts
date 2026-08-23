@@ -863,6 +863,13 @@ describe('EGWParagraphDatabase', () => {
       })),
     });
 
+    /** The double's answer at its own boundary, so the provide is not nested
+     *  inside the live-corpus test's generator. */
+    const doubleSearch = (query: string) =>
+      Effect.flatMap(EGWParagraphDatabase, (db) =>
+        db.searchScoredParagraphs(query, { limit: 50 }),
+      ).pipe(Effect.provide(doubleLayer));
+
     test('returns the same rows as the live corpus for a two-term query', () =>
       runTest(
         Effect.gen(function* () {
@@ -882,12 +889,7 @@ describe('EGWParagraphDatabase', () => {
             hits.map((hit) => hit.ref_code).toSorted();
 
           const liveBoth = yield* live.searchScoredParagraphs(bothTerms, { limit: 50 });
-          const doubleBoth = yield* Effect.provide(
-            Effect.flatMap(EGWParagraphDatabase, (db) =>
-              db.searchScoredParagraphs(bothTerms, { limit: 50 }),
-            ),
-            doubleLayer,
-          );
+          const doubleBoth = yield* doubleSearch(bothTerms);
 
           // FTS5's own answer: only the row carrying both terms.
           expect(refcodes(liveBoth)).toEqual(['ANDA 1.3']);
@@ -897,12 +899,7 @@ describe('EGWParagraphDatabase', () => {
           // A single term still matches every row that contains it, on both
           // sides — so the fix is AND between terms, not a narrower match.
           const liveOne = yield* live.searchScoredParagraphs('"alpha"', { limit: 50 });
-          const doubleOne = yield* Effect.provide(
-            Effect.flatMap(EGWParagraphDatabase, (db) =>
-              db.searchScoredParagraphs('"alpha"', { limit: 50 }),
-            ),
-            doubleLayer,
-          );
+          const doubleOne = yield* doubleSearch('"alpha"');
           expect(refcodes(liveOne)).toEqual(['ANDA 1.1', 'ANDA 1.3']);
           expect(refcodes(doubleOne)).toEqual(refcodes(liveOne));
         }),
