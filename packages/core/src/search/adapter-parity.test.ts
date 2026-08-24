@@ -325,4 +325,23 @@ describe('§9.5 the shared vector post-processing', () => {
     // zero bytes that the scan happily scored.
     expect(Option.isNone(truncateToMrl(Array.from({ length: 768 }, () => 0)))).toBe(true);
   });
+
+  it.skipIf(!modelAvailable)(
+    'embeds a document past the model context by truncating, not failing',
+    () =>
+      // The full-corpus compile died on a real EGW paragraph that tokenized
+      // past 2048: onnxruntime cannot grow the rotary cos/sin cache
+      // mid-session ("Updating cos_cache and sin_cache in RotaryEmbedding is
+      // not currently supported"). Without `truncation` at the tokenizer this
+      // input reproduces that failure; with it, the embedding is the
+      // document's first 2048 tokens.
+      Effect.runPromise(
+        Effect.gen(function* () {
+          const overLong = 'and the word of the Lord came unto the prophet saying '.repeat(400);
+          const embedded = yield* embedDocumentWith(layerBunEmbedder, overLong);
+          expect(Result.isSuccess(embedded)).toBe(true);
+        }),
+      ),
+    120_000,
+  );
 });

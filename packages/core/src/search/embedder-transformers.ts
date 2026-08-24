@@ -72,6 +72,11 @@ export type EmbedderDevice = 'webgpu' | 'cpu';
  *  tolerance `vectorsAgree` allows between adapters. */
 const MODEL_DTYPE = 'fp32';
 
+/** EmbeddingGemma's context window, from the model's own
+ *  `max_position_embeddings` (and `model_max_length` in its tokenizer config).
+ *  Inputs are truncated here rather than rejected: see `encode`. */
+const MODEL_CONTEXT_TOKENS = 2048;
+
 /** Where the model files live, when the host does not use the default cache.
  *
  *  Config rather than a constant: §10 requires weights not to be committed, so
@@ -205,7 +210,17 @@ const loadModel = (
       // `Effect.tryPromise`.
       /* oxlint-disable effect/noAsyncFunction -- transformers.js is promise-only */
       encode: async (texts) => {
-        const inputs = await loaded.tokenizer([...texts], { padding: true });
+        // Truncation at the model's context limit, because the corpus breaks
+        // §9.2's "well under 900 tokens" assumption: a handful of EGW
+        // paragraphs tokenize past 2048, and onnxruntime cannot grow the
+        // rotary cos/sin cache mid-session — the full-corpus compile died on
+        // exactly that node. A truncated document embedding is the standard
+        // retrieval answer for over-long input; queries never come close.
+        const inputs = await loaded.tokenizer([...texts], {
+          padding: true,
+          truncation: true,
+          max_length: MODEL_CONTEXT_TOKENS,
+        });
         const output = await loaded.model(inputs);
         // The trained retrieval head, not a mean pool over `last_hidden_state`.
         // The two agree at cosine 0.0081 on this corpus's text.
