@@ -80,6 +80,62 @@ const stageDataAssets = Effect.fn('stageDataAssets')(function* (input: {
   }
 });
 
+/** Stages onnxruntime's native dylib beside the binary.
+ *
+ *  The compiled binary embeds `onnxruntime_binding.node` and Bun extracts it
+ *  into the OS temp dir at load time — but the binding links
+ *  `@rpath/libonnxruntime.<version>.dylib`, which Bun does not embed, so
+ *  dlopen fails and the vector leg reads as `embedder` absence. The dylib is
+ *  shipped in `data/onnxruntime/` and `ensureOnnxDylibs` copies it into the
+ *  temp dir before the model loads. Resolved from the installed
+ *  `onnxruntime-node` so the staged version is exactly the one the embedded
+ *  binding was built against. */
+const stageOnnxDylibs = Effect.fn('stageOnnxDylibs')(function* (input: {
+  readonly fs: FileSystem.FileSystem;
+  readonly path: Path.Path;
+  readonly rootDir: string;
+  readonly binDir: string;
+}) {
+  // Resolved through the dependency chain the bundle actually follows:
+  // transformers is core's dependency and onnxruntime-node is transformers',
+  // so under Bun's isolated linker neither is visible from the CLI package
+  // directly.
+  const transformers = Bun.resolveSync(
+    '@huggingface/transformers/package.json',
+    input.path.resolve(input.rootDir, '..', 'core'),
+  );
+  const resolved = Bun.resolveSync(
+    'onnxruntime-node/package.json',
+    input.path.dirname(transformers),
+  );
+  const nativeDir = input.path.join(
+    input.path.dirname(resolved),
+    'bin',
+    'napi-v6',
+    'darwin',
+    'arm64',
+  );
+  const entries = yield* input.fs.readDirectory(nativeDir);
+  const dylibs = entries.filter((entry) => entry.endsWith('.dylib'));
+  if (dylibs.length === 0) {
+    return yield* new BuildError({ cause: `no dylibs in ${nativeDir}` });
+  }
+  for (const destinationRoot of [
+    input.path.join(input.rootDir, 'data'),
+    input.path.join(input.binDir, 'data'),
+  ]) {
+    const destination = input.path.join(destinationRoot, 'onnxruntime');
+    yield* input.fs.makeDirectory(destination, { recursive: true });
+    for (const dylib of dylibs) {
+      yield* input.fs.copyFile(
+        input.path.join(nativeDir, dylib),
+        input.path.join(destination, dylib),
+      );
+    }
+  }
+  yield* Effect.log(`✅ onnxruntime dylibs staged: ${dylibs.join(', ')}`);
+});
+
 const program = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
@@ -109,6 +165,18 @@ const program = Effect.gen(function* () {
           outfile: binaryPath,
           autoloadBunfig: false,
         },
+        plugins: [
+          // See scripts/sharp-stub.ts: transformers' image dependency cannot
+          // load inside a compiled binary, and the text pipeline never uses it.
+          {
+            name: 'stub-sharp',
+            setup(builder) {
+              builder.onResolve({ filter: /^sharp$/ }, () => ({
+                path: path.join(rootDir, 'scripts', 'sharp-stub.ts'),
+              }));
+            },
+          },
+        ],
       }),
     catch: (cause) => {
       if (cause instanceof AggregateError) {
@@ -129,6 +197,7 @@ const program = Effect.gen(function* () {
 
   yield* Effect.log(`✅ Binary built: ${binaryPath}`);
   yield* stageDataAssets({ fs, path, rootDir, binDir });
+  yield* stageOnnxDylibs({ fs, path, rootDir, binDir });
   const nodeModulesBin = path.join(rootDir, 'node_modules/.bin/bible');
   yield* fs.copyFile(binaryPath, nodeModulesBin);
   yield* Effect.log(`✅ Copied to: ${nodeModulesBin}`);

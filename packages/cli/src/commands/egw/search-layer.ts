@@ -26,6 +26,7 @@ import { layerBunWithCatalog } from '@bible/core/wiki/bun';
 import { BunServices } from '@effect/platform-bun';
 import { Config, Context, Effect, Layer, Option, Path } from 'effect';
 
+import { ensureOnnxDylibs } from '../../lib/onnx-dylibs.js';
 import {
   CLIENT_FINGERPRINT,
   probeSearchDaemon,
@@ -97,6 +98,9 @@ export const installedSearchLayer: Layer.Layer<SearchService> = Layer.unwrap(
   Effect.gen(function* () {
     const path = yield* Path.Path;
     const home = yield* Config.string('HOME');
+    // Compiled-binary repair: onnxruntime's dylib must sit in the temp dir
+    // before the embedder's first load — a no-op in the workspace.
+    yield* ensureOnnxDylibs;
     const at = (file: string): string => path.join(home, '.bible', file);
 
     // `paragraphs_fts` for the ranking; the wiki for the pinned topics group.
