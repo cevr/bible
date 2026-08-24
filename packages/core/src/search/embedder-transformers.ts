@@ -87,6 +87,17 @@ export const modelCacheDir: Config.Config<Option.Option<string>> = Config.option
   Config.string('BIBLE_MODEL_CACHE'),
 );
 
+/** `~/.bible/models`, beside the corpora both native hosts already resolve
+ *  there — the CLI directly, Electron as a local source. Defined once here so
+ *  "where a native host looks when `BIBLE_MODEL_CACHE` is unset" is one fact,
+ *  not a per-host convention that can drift (§10's parity is a property of
+ *  shared code, not of two copies agreeing). A fallback, not a default cache
+ *  move: the env override still wins, and a host with no `HOME` — the browser,
+ *  a bare service — reads as "no fallback" rather than failing. */
+export const bibleHomeModelsFallback: Config.Config<Option.Option<string>> = Config.option(
+  Config.string('HOME'),
+).pipe(Config.map(Option.map((home) => `${home}/.bible/models`)));
+
 /** The tokenizer and model this adapter drives, as narrowly as it uses them.
  *
  *  Declared structurally rather than imported as a type, because the import is

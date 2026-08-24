@@ -14,11 +14,12 @@
 import type { Layer } from 'effect';
 
 import type { QueryEmbedder } from './embedder.js';
-import { layerTransformersEmbedder } from './embedder-transformers.js';
+import { bibleHomeModelsFallback, layerTransformersEmbedder } from './embedder-transformers.js';
 
 export const layerNodeEmbedder: Layer.Layer<QueryEmbedder> = layerTransformersEmbedder({
   adapter: 'electron-main',
   device: 'cpu',
+  fallbackCacheDir: bibleHomeModelsFallback,
 });
 
 export const Default = layerNodeEmbedder;
