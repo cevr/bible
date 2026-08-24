@@ -162,3 +162,8 @@ packages/core/data/*.db-wal
 packages/cli/data/
 # Cached Sabbath School PDFs (re-downloadable)
 packages/cli/outputs/sabbath-school/pdfs/
+
+# compiled vector index — 264MB release artifact, distributed via corpus-supply, never committed
+packages/core/data/vectors.bvi
+packages/core/data/*.bvi.part
+packages/core/data/*.bvi.checkpoint.json
