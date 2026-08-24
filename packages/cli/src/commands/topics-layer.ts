@@ -21,6 +21,7 @@ import {
   layerNativeTopicsArtifacts,
   type NativeFileArtifactSource,
 } from '@bible/core/corpus-supply/node';
+import { sqliteProvenanceStore, verifyTopicsDatabase } from '@bible/core/corpus-supply/bun';
 import { BunServices } from '@effect/platform-bun';
 import { Config, Context, Effect, Layer, Path } from 'effect';
 import { FetchHttpClient } from 'effect/unstable/http';
@@ -57,6 +58,10 @@ const installedTopicsSupply: Layer.Layer<CorpusSupply> = Layer.unwrap(
             },
             ...topicsReleaseSource(),
           ],
+          // Bun's own SQLite driver: `better-sqlite3` panics the compiled
+          // binary's Bun at open time, and the rules are shared either way.
+          verify: verifyTopicsDatabase,
+          provenanceStore: sqliteProvenanceStore,
         }),
       ),
     );

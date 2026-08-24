@@ -37,6 +37,7 @@
     "./content-update/testing": "./src/content-update/testing.ts",
     "./corpus-supply": "./src/corpus-supply/index.ts",
     "./corpus-supply/node": "./src/platform-node/bible-artifact.ts",
+    "./corpus-supply/bun": "./src/platform-bun/bible-artifact.ts",
     "./bible-rendering": "./src/bible-rendering/index.ts",
     "./sync": "./src/sync/index.ts",
     "./bible-db": "./src/bible-db/index.ts",

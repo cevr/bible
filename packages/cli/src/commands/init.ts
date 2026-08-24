@@ -21,6 +21,11 @@ import {
   layerNativeTopicsArtifacts,
   type NativeFileArtifactSource,
 } from '@bible/core/corpus-supply/node';
+import {
+  sqliteProvenanceStore,
+  verifyBibleDatabase,
+  verifyTopicsDatabase,
+} from '@bible/core/corpus-supply/bun';
 import { Config, Console, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
 import { Command, Flag } from 'effect/unstable/cli';
 import { HttpClient, HttpClientResponse } from 'effect/unstable/http';
@@ -68,6 +73,11 @@ const ensureArtifacts = (bibleDir: string, path: Path.Path, force: boolean) => {
   const bibleArtifacts = layerNativeBibleArtifacts({
     destination: path.join(bibleDir, 'bible.db'),
     sources: [{ kind: 'release', ...BIBLE_ARTIFACT_RELEASE }],
+    // The `bun:sqlite` drivers: same rules, Bun's own driver. The default
+    // `better-sqlite3` binding hard-crashes the Bun this CLI compiles against
+    // the moment a database opens (NAPI panic under the compiled binary).
+    verify: verifyBibleDatabase,
+    provenanceStore: sqliteProvenanceStore,
   });
   // Topics has no published release yet, so its sources are the local slots,
   // in the same precedence every host uses: the copy shipped inside the CLI
@@ -97,6 +107,8 @@ const ensureArtifacts = (bibleDir: string, path: Path.Path, force: boolean) => {
       },
       ...topicsReleaseSource(),
     ],
+    verify: verifyTopicsDatabase,
+    provenanceStore: sqliteProvenanceStore,
   });
   const supply = CorpusSupply.layer.pipe(
     Layer.provide(Layer.merge(bibleArtifacts, topicsArtifacts)),

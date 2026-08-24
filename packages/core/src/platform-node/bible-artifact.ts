@@ -81,7 +81,7 @@ export type FileArtifactLayout = 'sqlite' | 'flat';
  *  no generation row, and a decoder that demanded one would report every one of
  *  them as "no verified generation" and re-install from the floor. Absent reads
  *  back as `None`, which is exactly what a local source means. */
-const StoredProvenance = Schema.Struct({
+export const StoredProvenance = Schema.Struct({
   source: Schema.String,
   revision: Schema.String,
   digest: Schema.String,
@@ -107,7 +107,7 @@ const StoredProvenance = Schema.Struct({
 /** One decoded record back into a `CorpusProvenance`, with the generation read
  *  as the `Option` the model carries. One function so the SQLite store and the
  *  sidecar store cannot disagree about what a stored record means. */
-const provenanceFrom = (stored: typeof StoredProvenance.Type): CorpusProvenance =>
+export const provenanceFrom = (stored: typeof StoredProvenance.Type): CorpusProvenance =>
   CorpusProvenance.make({
     source: assetSourceId(stored.source),
     revision: corpusRevision(stored.revision),
@@ -117,7 +117,7 @@ const provenanceFrom = (stored: typeof StoredProvenance.Type): CorpusProvenance 
 
 /** The generation as a struct fragment, so an absent row spreads to nothing
  *  rather than to an explicit `undefined` the exact-optional decoder refuses. */
-const storedGeneration = (raw: Option.Option<string>): { readonly generation?: number } =>
+export const storedGeneration = (raw: Option.Option<string>): { readonly generation?: number } =>
   Option.match(
     Option.flatMap(raw, (value) => Schema.decodeUnknownOption(Schema.Int)(Number(value))),
     {
