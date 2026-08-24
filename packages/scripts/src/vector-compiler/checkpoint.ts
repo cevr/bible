@@ -26,7 +26,7 @@
  */
 
 import { DIMENSIONS, MODEL_FINGERPRINT, QueryEmbedder } from '@bible/core/search';
-import { Console, Effect, FileSystem, Option, Schema } from 'effect';
+import { Clock, Console, Effect, FileSystem, Option, Schema } from 'effect';
 
 import { paragraphIdentity } from '@bible/core/egw-db';
 
@@ -113,6 +113,36 @@ const resumePoint = (
     return checkpoint.completed;
   });
 
+/** One log line per flush: absolute progress, percent, session rate, ETA.
+ *
+ *  Rate counts only rows embedded by *this* process (`done - startRow`), so a
+ *  resumed run reports its own speed rather than a number inflated by work a
+ *  previous run already banked. Written to stderr like the rest of the
+ *  progress channel — stdout carries the `--json` manifest.
+ */
+const reportProgress = (input: {
+  readonly startedAt: number;
+  readonly startRow: number;
+  readonly done: number;
+  readonly total: number;
+}): Effect.Effect<void> =>
+  Effect.gen(function* () {
+    const now = yield* Clock.currentTimeMillis;
+    const elapsedSeconds = Math.max((now - input.startedAt) / 1000, 0.001);
+    const ratePerSecond = (input.done - input.startRow) / elapsedSeconds;
+    const remaining = input.total - input.done;
+    const percent = ((input.done / input.total) * 100).toFixed(1);
+    // A zero rate cannot happen after a flush (at least one row embedded),
+    // but the guard keeps the arithmetic total rather than yielding Infinity.
+    const etaSeconds = remaining / Math.max(ratePerSecond, 0.001);
+    const etaHours = Math.floor(etaSeconds / 3600);
+    const etaMinutes = Math.floor((etaSeconds % 3600) / 60);
+    yield* Console.error(
+      `  … ${String(input.done)}/${String(input.total)} (${percent}%) · ` +
+        `${ratePerSecond.toFixed(1)}/s · ETA ${String(etaHours)}h${String(etaMinutes).padStart(2, '0')}m`,
+    );
+  });
+
 /** Embeds every row, checkpointing as it goes; returns the full vector set. */
 export const embedAllResumable = (
   rows: readonly VectorSourceRow[],
@@ -149,6 +179,7 @@ export const embedAllResumable = (
         ),
       );
 
+    const startedAt = yield* Clock.currentTimeMillis;
     let batch: Int8Array[] = [];
     for (let index = start; index < rows.length; index += 1) {
       const row = Option.fromNullishOr(rows[index]);
@@ -166,7 +197,7 @@ export const embedAllResumable = (
       if (batch.length === FLUSH_EVERY || done === rows.length) {
         yield* flush(batch, done);
         batch = [];
-        yield* Console.error(`  … ${String(done)}/${String(rows.length)}`);
+        yield* reportProgress({ startedAt, startRow: start, done, total: rows.length });
       }
     }
 
