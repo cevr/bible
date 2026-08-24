@@ -31,19 +31,22 @@ import {
 import { vectorUnavailable, type VectorIndexUnavailable } from './model.js';
 import { MODEL_FINGERPRINT, parseVectorIndex, type VectorIndex } from './vector-index.js';
 
-/** No vector index release is published yet, for the reason
- *  `TOPICS_ARTIFACT_RELEASE` is `None`: a compiled-in pin whose digest names
- *  bytes that do not exist is worse than no pin — every host would list a
- *  release source that can only 404, and the digest, which is the entire trust
- *  surface, would be a lie.
+/** The first published vector index: `vectors-v1` on the same GitHub release
+ *  channel `BIBLE_ARTIFACT_RELEASE` uses. The digest and size are the whole
+ *  trust surface (corpus-supply/CONTEXT.md); both were computed from the
+ *  artifact the 2026-08-24 full-corpus build wrote, and the installer rejects
+ *  any download that differs before semantic verification runs.
  *
- *  §9.2 sizes the real artifact at ~246 MB over 961,761 EGW/White-Estate
- *  paragraphs. Until one is built and released, the index is supplied from the
- *  local sources a host offers — the workspace output `bun run build:vectors`
- *  writes, and the runtime copy under `~/.bible`.
- *
- *  Activating it on first publish is one edit here. */
-export const VECTORS_ARTIFACT_RELEASE: Option.Option<FileArtifactRelease> = Option.none();
+ *  961,253 vectors × 256d int8 over the EGW scope, 605 books — built with
+ *  `bun run build:vectors -- --limit 0` under the pinned
+ *  `EmbeddingGemma-300M/sentence-embedding/retrieval/256d-mrl/int8-fixed`
+ *  fingerprint, which `loadVectorIndex` still checks after install. */
+export const VECTORS_ARTIFACT_RELEASE: Option.Option<FileArtifactRelease> = Option.some({
+  url: 'https://github.com/cevr/bible/releases/download/vectors-v1/vectors.bvi',
+  revision: 'vectors-v1',
+  digest: 'sha256:f4b6fcd9dbce50226c94860b52d61e42a2453754bedc0b109ba71f055674c6e6',
+  size: 264_713_082,
+});
 
 /** The same declaration Topics uses. One shape rather than two that agree:
  *  the release ordinal (§3.6) that keeps startup from re-flooring a newer
@@ -58,8 +61,9 @@ export type VectorsReleaseSourceDeclaration = ReleaseSourceDeclaration;
 export const vectorsReleaseSource = (): readonly VectorsReleaseSourceDeclaration[] =>
   Option.match(VECTORS_ARTIFACT_RELEASE, {
     onNone: (): readonly VectorsReleaseSourceDeclaration[] => [],
-    // `None`: §9.2's index has no pinned release yet, so it has no floor
-    // ordinal either — the same state Topics is in.
+    // `None`: vectors are not on the manifest-driven update surface (§3.6 is
+    // closed to `topics`), so the pin carries no floor ordinal — there is no
+    // runtime generation for it to be compared against.
     onSome: (release) => [{ kind: 'release', ...release, generation: Option.none() }],
   });
 

@@ -14,8 +14,8 @@
  *  in-memory `BlobFileStore` and an in-memory downloader — because a worker test
  *  under Bun has no OPFS and stubbing `navigator.storage` would test the stub.
  *
- *  The release pin stays `Option.none()` in production (`VECTORS_ARTIFACT_RELEASE`
- *  names bytes that do not exist yet); this test supplies its own pin and its own
+ *  The production pin (`VECTORS_ARTIFACT_RELEASE`, `vectors-v1`) names a 264 MB
+ *  artifact no test should download; this test supplies its own pin and its own
  *  bytes, which is exactly the seam `layerBrowserVectorsArtifacts.release` and
  *  `.fetch` exist for.
  */

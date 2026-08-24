@@ -13,12 +13,14 @@
  *  per branch, or that fused the pinned group into the ranking, would leave
  *  every unit assertion green. That is what runs here.
  *
- *  **This machine has no vector index**, and that is the point rather than a
- *  limitation. `VECTORS_ARTIFACT_RELEASE` is still `Option.none()`, so no
- *  install has one — which makes lexical-only *the* desktop state today, and
- *  §9.6's typed absence the thing a reader actually sees. The spec asserts that
- *  path: results still arrive, the notice explains why the meaning leg did not
- *  run, and each row still says which leg found it.
+ *  **This spec pins the lexical-only degradation path.** It was written when no
+ *  vector index release existed; since `vectors-v1` was pinned in
+ *  `VECTORS_ARTIFACT_RELEASE` (2026-08-24), a machine that has installed the
+ *  index (or holds `~/.bible/vectors.bvi`) runs the vector leg instead, and the
+ *  absence assertions below no longer describe it. On such a machine the
+ *  degradation path still needs pinning — run with the index moved aside. The
+ *  spec asserts: results still arrive, the notice explains why the meaning leg
+ *  did not run, and each row still says which leg found it.
  *
  *  Not in `turbo run gate`: this needs a built Electron app and the installed
  *  `~/.bible` corpora. Run it with `bun run --cwd apps/desktop test:e2e`.
