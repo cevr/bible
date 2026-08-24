@@ -20,7 +20,6 @@ import {
   DIMENSIONS,
   encodeVectorIndex,
   MODEL_FINGERPRINT,
-  QueryEmbedder,
   VectorManifest,
 } from '@bible/core/search';
 import { layerBunEmbedder } from '@bible/core/search/bun';
@@ -38,7 +37,8 @@ import {
 } from 'effect';
 import { Command, Flag } from 'effect/unstable/cli';
 
-import { bookRanges, paragraphIds, type VectorSourceRow } from './emit.js';
+import { clearCheckpoint, embedAllResumable } from './checkpoint.js';
+import { bookRanges, paragraphIds } from './emit.js';
 import { readVectorSource } from './source.js';
 
 const repoRoot = new URL('../../../../', import.meta.url).pathname.replace(/\/$/u, '');
@@ -128,7 +128,8 @@ export const buildVectors = Command.make(
       // embedded under the *query* prefix lands in the query region of the
       // space — every paragraph then sits equally close to every query, and the
       // ranking degrades to noise with no error anywhere.
-      const vectors = yield* embedAll(rows);
+      yield* fs.makeDirectory(path.dirname(args.out), { recursive: true });
+      const vectors = yield* embedAllResumable(rows, args.out);
 
       const buffer = encodeVectorIndex({
         fingerprint: MODEL_FINGERPRINT,
@@ -139,8 +140,8 @@ export const buildVectors = Command.make(
         vectors,
       });
 
-      yield* fs.makeDirectory(path.dirname(args.out), { recursive: true });
       yield* fs.writeFile(args.out, new Uint8Array(buffer));
+      yield* clearCheckpoint(args.out);
 
       const manifest = {
         path: args.out,
@@ -173,35 +174,6 @@ export const buildVectors = Command.make(
       }
     }).pipe(Effect.provide(layerBunEmbedder)),
 );
-
-/** Embeds every row into one contiguous buffer.
- *
- *  Sequential rather than concurrent: the ONNX session is single-threaded and
- *  one process, so parallel requests contend for the same runtime rather than
- *  overlapping. Progress is reported to stderr because stdout carries the
- *  `--json` manifest.
- */
-const embedAll = (
-  rows: readonly VectorSourceRow[],
-): Effect.Effect<Int8Array, CompilerInputError, QueryEmbedder> =>
-  Effect.gen(function* () {
-    const embedder = yield* QueryEmbedder;
-    const vectors = new Int8Array(rows.length * DIMENSIONS);
-    for (const [index, row] of rows.entries()) {
-      const vector = yield* embedder.embedDocument(row.text).pipe(
-        Effect.mapError((cause) =>
-          CompilerInputError.make({
-            message: `${MODEL_FINGERPRINT} unavailable (${cause.adapter}): ${cause.reason}`,
-          }),
-        ),
-      );
-      vectors.set(vector, index * DIMENSIONS);
-      if ((index + 1) % 50 === 0) {
-        yield* Console.error(`  … ${String(index + 1)}/${String(rows.length)}`);
-      }
-    }
-    return vectors;
-  });
 
 const cli = Command.run(buildVectors, { version: '1.0.0' });
 
