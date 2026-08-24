@@ -24,7 +24,16 @@ import { layerBunEmbedder } from '@bible/core/search/bun';
 import { WikiService } from '@bible/core/wiki';
 import { layerBunWithCatalog } from '@bible/core/wiki/bun';
 import { BunServices } from '@effect/platform-bun';
-import { Config, Context, Effect, Layer, Path } from 'effect';
+import { Config, Context, Effect, Layer, Option, Path } from 'effect';
+
+import {
+  CLIENT_FINGERPRINT,
+  probeSearchDaemon,
+  searchDaemonClientLayer,
+  shutdownSearchDaemon,
+  spawnSearchDaemon,
+} from './search-daemon-client.js';
+import { searchDaemonSocketPath } from './search-daemon-protocol.js';
 
 /** The installed index, parsed **once**, and only if the shipped parser accepts
  *  it.
@@ -84,7 +93,7 @@ export const verifiedVectorIndex = (
  *  One `Layer.unwrap` for all three because they share the same two facts — the
  *  path service and `HOME` — and resolving them once is what keeps the three
  *  file locations spelled in a single place. */
-const installedSearchLayer: Layer.Layer<SearchService> = Layer.unwrap(
+export const installedSearchLayer: Layer.Layer<SearchService> = Layer.unwrap(
   Effect.gen(function* () {
     const path = yield* Path.Path;
     const home = yield* Config.string('HOME');
@@ -138,6 +147,37 @@ const installedSearchLayer: Layer.Layer<SearchService> = Layer.unwrap(
   }).pipe(Effect.provide(BunServices.layer), Effect.orDie),
 ).pipe(Layer.provide(BunServices.layer));
 
+/** Daemon-first: the same `SearchService`, answered warm when a daemon holds
+ *  the loaded model and index, and in-process otherwise.
+ *
+ *  The decision is one probe against the daemon socket, and every branch of it
+ *  lands on a working search:
+ *
+ *  - a live daemon with **this build's** fingerprint answers the query;
+ *  - a live daemon with a different fingerprint is a survivor of an upgrade —
+ *    it is retired, a fresh one is spawned for next time, and *this* query
+ *    runs in-process (§9.4's fingerprint gate, applied to a process);
+ *  - no daemon: one is spawned detached so the *next* invocation is warm, and
+ *    this one runs in-process — the first call pays the cold cost it would
+ *    have paid anyway, never a spawn-and-wait on top of it.
+ *
+ *  `BIBLE_SEARCH_DAEMON=off` opts out entirely; the spawn failing (missing
+ *  spawner, sandbox) degrades to in-process rather than surfacing. */
+const daemonPreferredSearchLayer: Layer.Layer<SearchService> = Layer.unwrap(
+  Effect.gen(function* () {
+    const setting = yield* Config.option(Config.string('BIBLE_SEARCH_DAEMON'));
+    if (Option.exists(setting, (value) => value === 'off')) return installedSearchLayer;
+    const home = yield* Config.string('HOME');
+    const socketPath = searchDaemonSocketPath(home);
+    const resident = yield* probeSearchDaemon(socketPath);
+    const matching = Option.filter(resident, (status) => status.fingerprint === CLIENT_FINGERPRINT);
+    if (Option.isSome(matching)) return searchDaemonClientLayer(socketPath);
+    if (Option.isSome(resident)) yield* shutdownSearchDaemon(socketPath);
+    yield* spawnSearchDaemon.pipe(Effect.ignore);
+    return installedSearchLayer;
+  }).pipe(Effect.provide(BunServices.layer), Effect.orDie),
+);
+
 /** The substitution point (§10's host-parity seam).
  *
  *  A `Context.Reference` rather than a plain constant so `runCli` can hand the
@@ -145,7 +185,7 @@ const installedSearchLayer: Layer.Layer<SearchService> = Layer.unwrap(
  *  would otherwise never vary. */
 export class SearchLayer extends Context.Reference<Layer.Layer<SearchService>>(
   '@bible/cli/egw/SearchLayer',
-  { defaultValue: () => installedSearchLayer },
+  { defaultValue: () => daemonPreferredSearchLayer },
 ) {}
 
 /** Runs an effect against whichever `SearchService` is in scope. */

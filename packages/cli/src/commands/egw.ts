@@ -16,6 +16,7 @@ import { egwCommentary } from './egw/commentary.js';
 import { egwDownload } from './egw/download.js';
 import { ServiceLayer } from './egw/layers.js';
 import { egwLookup, lookupReference } from './egw/lookup.js';
+import { egwDaemon } from './egw/search-daemon.js';
 import { egwSearch, localSearch } from './egw/search.js';
 import { egwStudy } from './egw/study.js';
 import { egwSync } from './egw/sync.js';
@@ -24,6 +25,7 @@ export {
   egwBooks,
   egwCatalog,
   egwCommentary,
+  egwDaemon,
   egwDownload,
   egwLookup,
   egwSearch,
@@ -77,6 +79,7 @@ export const egwWithSubcommands = Command.make('egw', { query }, (args) =>
     egwLookup,
     egwCommentary,
     egwSync,
+    egwDaemon,
   ]),
   Command.provide(() => ServiceLayer),
 );

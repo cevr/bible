@@ -88,3 +88,25 @@ export const executableDir = (): string =>
  *  filesystem so the ordering rule is a pure, tested fact. */
 export const packagedDataCandidates = (...segments: string[]): readonly string[] =>
   dataCandidates({ executableDir: executableDir(), buildRoot: buildRoot() }, ...segments);
+
+/** How to start this same CLI again, as a spawnable command.
+ *
+ *  Two shapes, decided by the same build-time fact `getCliRoot` turns on:
+ *  a compiled binary IS the CLI, so it re-invokes itself; in the workspace the
+ *  running executable is Bun, and the entrypoint travels as the first
+ *  argument. Derived from `process.execPath` because that is the one path
+ *  guaranteed to name the currently running executable — a `bible` found on
+ *  `PATH` could be a different install than the one the user just ran. */
+export interface SelfInvocation {
+  readonly command: string;
+  readonly args: readonly string[];
+}
+
+export const selfInvocation = (): SelfInvocation =>
+  Option.match(buildRoot(), {
+    onSome: (): SelfInvocation => ({ command: process.execPath, args: [] }),
+    onNone: (): SelfInvocation => ({
+      command: process.execPath,
+      args: [`${getCliRoot()}/src/main.ts`],
+    }),
+  });

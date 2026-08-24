@@ -175,13 +175,17 @@ const loadTransformers = () => import('@huggingface/transformers');
 const loadModel = (
   adapter: string,
   device: EmbedderDevice,
+  fallbackCacheDir: Config.Config<Option.Option<string>>,
 ): Effect.Effect<LoadedModel, QueryEmbedderUnavailable> =>
   Effect.gen(function* () {
     // A malformed or absent config reads as "no override" rather than as a
     // failure: the variable is an optional pointer at a model cache, and
     // refusing to search because it was unreadable would be a worse answer than
-    // searching against the library's default cache.
-    const cache = yield* Effect.orElseSucceed(modelCacheDir, () => Option.none<string>());
+    // searching against the library's default cache. `BIBLE_MODEL_CACHE` wins
+    // over the adapter's fallback, so one variable still overrides every host.
+    const override = yield* Effect.orElseSucceed(modelCacheDir, () => Option.none<string>());
+    const fallback = yield* Effect.orElseSucceed(fallbackCacheDir, () => Option.none<string>());
+    const cache = Option.orElse(override, () => fallback);
     const module = yield* Effect.tryPromise({
       try: loadTransformers,
       catch: (cause) => unavailable(adapter, `transformers.js did not load: ${String(cause)}`),
@@ -285,12 +289,22 @@ export const memoizeOnSuccess = <A, E>(
 export const layerTransformersEmbedder = (input: {
   readonly adapter: string;
   readonly device: EmbedderDevice;
+  /** Where the model lives when `BIBLE_MODEL_CACHE` is not set — the host's
+   *  own convention (the CLI's `~/.bible/models`). Absent means the library's
+   *  default cache, which is the browser's case. */
+  readonly fallbackCacheDir?: Config.Config<Option.Option<string>>;
 }): Layer.Layer<QueryEmbedder> =>
   Layer.effect(
     QueryEmbedder,
     Effect.gen(function* () {
       /** The model, loaded at most once and retried after a typed failure. */
-      const model = yield* memoizeOnSuccess(loadModel(input.adapter, input.device));
+      const model = yield* memoizeOnSuccess(
+        loadModel(
+          input.adapter,
+          input.device,
+          input.fallbackCacheDir ?? Config.succeed(Option.none<string>()),
+        ),
+      );
 
       const embedWith =
         (prefix: string) =>
