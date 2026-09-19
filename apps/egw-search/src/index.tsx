@@ -188,10 +188,7 @@ const Results = (props: {
 const HitRow = (props: { readonly hit: Hit }) => (
   <li class="hit">
     <div class="meta">
-      <Show
-        when={props.hit.url}
-        fallback={<span class="refcode">{props.hit.refcode}</span>}
-      >
+      <Show when={props.hit.url} fallback={<span class="refcode">{props.hit.refcode}</span>}>
         {(href) => (
           <a class="refcode" href={href()} target="_blank" rel="noopener noreferrer">
             {props.hit.refcode}

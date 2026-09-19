@@ -21,7 +21,14 @@
 import * as SqliteBun from '@effect/sql-sqlite-bun/SqliteClient';
 import { BunHttpServer, BunRuntime, BunServices } from '@effect/platform-bun';
 import { Effect, Layer, Option } from 'effect';
-import { Etag, HttpMiddleware, HttpPlatform, HttpRouter, HttpServer } from 'effect/unstable/http';
+import {
+  Etag,
+  HttpMiddleware,
+  HttpPlatform,
+  HttpRouter,
+  HttpServer,
+  HttpStaticServer,
+} from 'effect/unstable/http';
 import { HttpApiBuilder } from 'effect/unstable/httpapi';
 
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
@@ -194,8 +201,7 @@ const verifiedVectorIndex = (
  *  A plain string keeps the composition below flat and statically checkable.
  *
  *  The deployed host sets `BIBLE_CORPUS_DIR` to its volume mount. */
-const CORPUS_ROOT =
-  process.env['BIBLE_CORPUS_DIR'] ?? `${process.env['HOME'] ?? '.'}/.bible`;
+const CORPUS_ROOT = process.env['BIBLE_CORPUS_DIR'] ?? `${process.env['HOME'] ?? '.'}/.bible`;
 const at = (file: string): string => `${CORPUS_ROOT}/${file}`;
 
 /** One SQL client over the writings file, built once and shared: the search
@@ -254,8 +260,28 @@ const GroupLive = SearchGroupLive.pipe(Layer.provide(searchLayer), Layer.provide
 
 const ApiLive = HttpApiBuilder.layer(SearchApi).pipe(Layer.provide(GroupLive));
 
+/** The built client, served from the same router as the API.
+ *
+ *  In development vite owns the UI on its own port and proxies `/api` here, so
+ *  this layer is dead weight; in production there is no vite, and without it
+ *  the root would 404 while `/api/search` answered perfectly. `spa: true`
+ *  sends unknown paths to `index.html` so a deep link is the client's to
+ *  route, not a 404 from the file system.
+ *
+ *  The API is merged *after* the static server so an explicitly declared
+ *  route always wins over a file that happens to share its path. */
+const STATIC_ROOT = process.env['EGW_SEARCH_STATIC_DIR'] ?? `${import.meta.dir}/../dist`;
+
+const StaticLive = HttpStaticServer.layer({
+  root: STATIC_ROOT,
+  spa: true,
+  index: 'index.html',
+});
+
+const RouterLive = Layer.mergeAll(StaticLive, ApiLive);
+
 const HttpLive = Layer.unwrap(
-  HttpRouter.toHttpEffect(ApiLive).pipe(
+  HttpRouter.toHttpEffect(RouterLive).pipe(
     Effect.map((httpApp) =>
       HttpServer.serve(HttpMiddleware.logger)(httpApp).pipe(
         HttpServer.withLogAddress,
@@ -268,6 +294,8 @@ const HttpLive = Layer.unwrap(
 const PlatformLive = Layer.mergeAll(
   Etag.layer,
   HttpPlatform.layer.pipe(Layer.provide(BunServices.layer)),
+  // `BunServices` carries the FileSystem and Path the static server reads
+  // `dist/` through, alongside the platform services the API already needed.
   BunServices.layer,
   // The router's own effect still carries the context lookup's `SqlClient`
   // requirement out through `toHttpEffect`, so the launch context supplies the
