@@ -1,0 +1,362 @@
+/*
+ * Brutalist system, seed 48173 — reading-friendly variant.
+ *
+ * The structure stays brutalist: hard rules, zero radii, zero shadow, mono
+ * chrome, structure as ornament. The palette does not. Pure #000 on #fff is
+ * hostile to long reading, so the seed's hue (173) is pulled down to a muted
+ * clay accent and the extremes are replaced by warm paper and soft ink —
+ * roughly 13:1 body contrast, which is comfortable rather than glaring.
+ *
+ * Body copy is the one exception to the mono rule: the paragraph text is a
+ * serif at a reading measure, because that is what the page is for.
+ */
+
+:root {
+  --seed: 48173;
+
+  --paper: #faf8f4;
+  --paper-sunk: #f2efe8;
+  --ink: #2b2a27;
+  --ink-soft: #4a4843;
+  --muted: #8a867d;
+  --rule: #2b2a27;
+  --hairline: #ded9cf;
+  --accent: #9a6b4f;
+  --accent-wash: #edd9c9;
+
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 16px;
+  --s4: 32px;
+  --s5: 64px;
+
+  --mono: ui-monospace, 'SF Mono', 'Menlo', 'Roboto Mono', monospace;
+  --serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --paper: #161513;
+    --paper-sunk: #1e1c19;
+    --ink: #e4e0d8;
+    --ink-soft: #c2bdb3;
+    --muted: #8a867d;
+    --rule: #55514a;
+    --hairline: #2f2c28;
+    --accent: #c99b78;
+    --accent-wash: #3a2e25;
+  }
+}
+
+:root[data-theme='dark'] {
+  --paper: #161513;
+  --paper-sunk: #1e1c19;
+  --ink: #e4e0d8;
+  --ink-soft: #c2bdb3;
+  --muted: #8a867d;
+  --rule: #55514a;
+  --hairline: #2f2c28;
+  --accent: #c99b78;
+  --accent-wash: #3a2e25;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ---------------------------------------------------------------- shell -- */
+
+.shell {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 var(--s3);
+}
+
+/* --------------------------------------------------------------- header -- */
+
+.masthead {
+  border-bottom: 2px solid var(--rule);
+  padding: var(--s4) 0 var(--s3);
+  margin-bottom: var(--s4);
+}
+
+.masthead h1 {
+  margin: 0;
+  font-size: clamp(26px, 6.5vw, 48px);
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  text-transform: uppercase;
+  line-height: 0.98;
+}
+
+.masthead .sub {
+  margin-top: var(--s2);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s3);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+
+.seed-tag {
+  color: var(--accent);
+  border-bottom: 1px solid var(--accent);
+}
+
+/* ---------------------------------------------------------------- form --- */
+
+.searchbar {
+  display: flex;
+  border: 1px solid var(--rule);
+  background: var(--paper-sunk);
+  margin-bottom: var(--s3);
+}
+
+.searchbar input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 16px;
+  padding: var(--s3);
+  outline: none;
+}
+
+.searchbar input::placeholder {
+  color: var(--muted);
+}
+
+.searchbar input:focus-visible {
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+
+.searchbar button {
+  border: 0;
+  border-left: 1px solid var(--rule);
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 0 var(--s4);
+  cursor: pointer;
+}
+
+.searchbar button:hover:not(:disabled) {
+  background: var(--accent-wash);
+  color: var(--ink);
+}
+
+.searchbar button:disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+/* --------------------------------------------------------------- status -- */
+
+.status {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--s3);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  border-bottom: 1px solid var(--hairline);
+  padding-bottom: var(--s2);
+  margin-bottom: var(--s4);
+}
+
+.status .err {
+  color: var(--accent);
+}
+
+.status button {
+  border: 1px solid var(--hairline);
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: var(--s1) var(--s2);
+  cursor: pointer;
+}
+
+.status button:hover {
+  background: var(--accent-wash);
+}
+
+/* --------------------------------------------------------------- result -- */
+
+.results {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 var(--s5);
+}
+
+.hit {
+  border-bottom: 1px solid var(--hairline);
+  padding: var(--s3) 0;
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: var(--s4);
+}
+
+@media (max-width: 680px) {
+  .hit {
+    grid-template-columns: 1fr;
+    gap: var(--s2);
+  }
+}
+
+.hit .meta {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.hit .refcode {
+  display: block;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--accent);
+  text-decoration: none;
+  letter-spacing: 0.02em;
+  margin-bottom: var(--s1);
+  width: fit-content;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.hit .refcode:hover {
+  border-bottom-color: var(--accent);
+}
+
+.hit .book {
+  display: block;
+  margin-top: var(--s1);
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+
+.hit .text {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 17px;
+  line-height: 1.62;
+  color: var(--ink-soft);
+  max-width: 68ch;
+}
+
+.hit .text mark {
+  background: var(--accent-wash);
+  color: var(--ink);
+}
+
+/* ---------------------------------------------------------------- empty -- */
+
+.empty {
+  border: 1px dashed var(--hairline);
+  background: var(--paper-sunk);
+  padding: var(--s5) var(--s3);
+  text-align: center;
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.examples {
+  margin-top: var(--s3);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+  justify-content: center;
+}
+
+.examples button {
+  border: 1px solid var(--hairline);
+  background: var(--paper);
+  color: var(--ink-soft);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  padding: var(--s1) var(--s2);
+  cursor: pointer;
+  text-transform: none;
+}
+
+.examples button:hover {
+  background: var(--accent-wash);
+  color: var(--ink);
+  border-color: var(--accent);
+}
+
+.hit .legs {
+  display: block;
+  margin-top: var(--s1);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+}
+
+/* -------------------------------------------------------------- context -- */
+
+.hit .body {
+  min-width: 0;
+}
+
+.hit .context {
+  margin: 0 0 var(--s2);
+  font-family: var(--serif);
+  font-size: 15px;
+  line-height: 1.58;
+  color: var(--muted);
+  max-width: 68ch;
+  padding-left: var(--s3);
+  border-left: 1px solid var(--hairline);
+}
+
+.hit .context + .text {
+  margin-top: var(--s2);
+}
+
+.hit .text + .context {
+  margin-top: var(--s2);
+}
+
+.hit .cref {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-right: var(--s2);
+}

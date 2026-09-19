@@ -1,0 +1,278 @@
+/* oxlint-disable effect/noNullish -- the HTTP wire shape is JSON: an absent refcode, rank or deep link is encoded as `null`, exactly as `./api.ts` declares it. */
+/* oxlint-disable effect/noTernary -- one branch on §9.6's two-case vector status, rendered into a label. */
+/* oxlint-disable effect/noInlineProvide -- `verifiedVectorIndex` provides the byte source at its own boundary so the 265 MB artifact is read once and the gate's decision is passed down as a value; this is the shape `packages/cli/src/commands/egw/search-layer.ts` uses for the same reason. */
+/* oxlint-disable effect/noGlobals -- the corpus paths are needed to *construct* the layers below, before any Effect runs; reading them through `Config` would force a `Layer.unwrap` whose outputs the type checker then cannot see (which is what made the shared SqlClient leak out as an unmet requirement). */
+
+/**
+ * Search server for the standalone EGW searcher.
+ *
+ * It answers through the canonical hybrid `SearchService` — the same §9
+ * composition the CLI uses — so the lexical leg, the vector leg and the RRF
+ * fusion behave here exactly as they do at the terminal. Nothing in this
+ * module re-implements retrieval; it composes the service, adds surrounding
+ * paragraphs, and serves the result.
+ *
+ * Every corpus path comes from `BIBLE_CORPUS_DIR` (default `~/.bible`) rather
+ * than being hardcoded, because the deployed host mounts them on a volume.
+ * The vector index and the embedder are both optional by §9.6: if either is
+ * absent, search degrades to lexical-only and the result says so.
+ */
+
+import * as SqliteBun from '@effect/sql-sqlite-bun/SqliteClient';
+import { BunHttpServer, BunRuntime, BunServices } from '@effect/platform-bun';
+import { Effect, Layer, Option } from 'effect';
+import { Etag, HttpMiddleware, HttpPlatform, HttpRouter, HttpServer } from 'effect/unstable/http';
+import { HttpApiBuilder } from 'effect/unstable/httpapi';
+
+import { EGWParagraphDatabase } from '@bible/core/egw-db';
+import {
+  layerFileVectorIndexBytes,
+  loadVectorIndex,
+  ResolvedVectorIndex,
+  SearchCorpusSources,
+  SearchQuery,
+  SearchService,
+  VectorIndexBytes,
+} from '@bible/core/search';
+import { layerBunEmbedder } from '@bible/core/search/bun';
+import { WikiService } from '@bible/core/wiki';
+import { layerBunWithCatalog } from '@bible/core/wiki/bun';
+
+import { SearchApi, SearchFailed } from './api.js';
+import { emptySurrounding, surroundingParagraphs } from './context.js';
+
+const PORT = Number(process.env['PORT'] ?? 3101);
+const DEFAULT_LIMIT = 40;
+const MAX_LIMIT = 100;
+const DEFAULT_CONTEXT = 1;
+const MAX_CONTEXT = 3;
+
+/** The deep-link egwwritings.org expects. The corpus's `para_id` is exactly
+ *  the panel id the reader addresses. */
+const readerUrl = (paragraphId: string): string =>
+  `https://egwwritings.org/read?panels=p${encodeURIComponent(paragraphId)}&index=0`;
+
+/** Index and concordance volumes, excluded from results.
+ *
+ *  These are lookup scaffolding, not writings: a row like
+ *  `TopIndex .Trouble, Troubles.61` is a see-also stub ("time of, See Time of
+ *  Trouble"), and it matches a topical query on almost every term in it. They
+ *  rank *well* for exactly the queries this app is for, and they push the
+ *  prose a reader came to read off the page — the first five hits for "time of
+ *  trouble" were all index stubs before this filter.
+ *
+ *  Filtered here at the wire rather than in `SearchService`, because the CLI
+ *  and the desktop reader both have uses for the indexes; this surface does
+ *  not. */
+const INDEX_BOOKS: ReadonlySet<string> = new Set([
+  'TopIndex',
+  'EGWSI',
+  'ECSI',
+  'ACSI',
+  'CDSI',
+  'BCSI',
+  'MssIdx',
+  'LtsIdx',
+  'TTI',
+  'NAVE',
+]);
+
+const clamp = (raw: number | undefined, fallback: number, max: number): number => {
+  if (raw === undefined || !Number.isFinite(raw) || raw < 0) return fallback;
+  return Math.min(Math.trunc(raw), max);
+};
+
+// ---------------------------------------------------------------------------
+// Handlers
+// ---------------------------------------------------------------------------
+
+const SearchGroupLive = HttpApiBuilder.group(SearchApi, 'search', (handlers) =>
+  Effect.gen(function* () {
+    const search = yield* SearchService;
+
+    return handlers
+      .handle('health', () => Effect.succeed({ ok: true }))
+      .handle('query', ({ query: params }) =>
+        Effect.gen(function* () {
+          const text = params.q.trim();
+          if (text === '') return { hits: [], topics: [], vector: 'idle' };
+
+          const limit = clamp(params.limit, DEFAULT_LIMIT, MAX_LIMIT);
+          const radius = clamp(params.context, DEFAULT_CONTEXT, MAX_CONTEXT);
+
+          // Over-fetch, then drop the index volumes: filtering after the fact
+          // would otherwise return a short page whenever the indexes rank
+          // well, which for a topical query is most of the time.
+          const result = yield* search.query(
+            SearchQuery.make({
+              text,
+              scope: Option.none(),
+              bookCode: Option.none(),
+              limit: Option.some(Math.min(limit * 3, MAX_LIMIT * 3)),
+            }),
+          );
+
+          const paragraphs = result.paragraphs
+            .filter((hit) => !INDEX_BOOKS.has(hit.bookCode))
+            .slice(0, limit);
+
+          // One batched lookup for the whole page's context.
+          //
+          // Keyed on `rawParaId`, not `paragraphId`: the latter is §9.4's
+          // fusion identity (`"RR:1978.1544"` — book code, colon, para id) and
+          // matches nothing in the `para_id` column, which holds the bare
+          // `"1978.1544"`. A hit without a `rawParaId` has no addressable
+          // paragraph at all, so it simply contributes no anchor.
+          const anchors = paragraphs.flatMap((hit) =>
+            Option.match(hit.rawParaId, { onNone: () => [], onSome: (id) => [id] }),
+          );
+          const context = yield* surroundingParagraphs(anchors, radius);
+
+          return {
+            hits: paragraphs.map((hit) => {
+              const around = Option.match(hit.rawParaId, {
+                onNone: () => emptySurrounding,
+                onSome: (id) => context.get(id) ?? emptySurrounding,
+              });
+              return {
+                refcode: hit.refcode,
+                bookCode: hit.bookCode,
+                bookTitle: hit.bookTitle,
+                author: hit.author,
+                text: hit.snippet,
+                lexicalRank: Option.getOrNull(hit.lexicalRank),
+                vectorRank: Option.getOrNull(hit.vectorRank),
+                url: Option.match(hit.rawParaId, { onNone: () => null, onSome: readerUrl }),
+                before: around.before,
+                after: around.after,
+              };
+            }),
+            topics: result.topics.map((topic) => topic.title),
+            vector: result.vector._tag === 'ran' ? 'hybrid' : `lexical — ${result.vector.reason}`,
+          };
+        }).pipe(
+          Effect.tapCause((cause) =>
+            Effect.logError('search.failed').pipe(Effect.annotateLogs({ cause: String(cause) })),
+          ),
+          Effect.mapError(() => SearchFailed.make({ message: 'search failed' })),
+        ),
+      );
+  }),
+);
+
+// ---------------------------------------------------------------------------
+// Layer composition — the CLI's `installedSearchLayer`, rooted at a configured
+// corpus directory instead of `~/.bible`.
+// ---------------------------------------------------------------------------
+
+/** Gate the index on the shipped parser before anything scans it, and hand the
+ *  *parsed* result down so the 265 MB artifact is read exactly once per
+ *  process. A refusal degrades to lexical-only, logged once at startup rather
+ *  than per query. */
+const verifiedVectorIndex = (
+  filename: string,
+): Layer.Layer<ResolvedVectorIndex | VectorIndexBytes> =>
+  Layer.unwrap(
+    Effect.gen(function* () {
+      const source = layerFileVectorIndexBytes(filename).pipe(Layer.provide(BunServices.layer));
+      const loaded = yield* loadVectorIndex.pipe(Effect.provide(source));
+      if (loaded._tag !== 'index') {
+        yield* Effect.logInfo('search.vectorIndex.refused').pipe(
+          Effect.annotateLogs({ filename, reason: loaded.absence.reason }),
+        );
+      }
+      return Layer.merge(ResolvedVectorIndex.layerOf(loaded), VectorIndexBytes.None);
+    }),
+  );
+
+/** Where the corpus files live.
+ *
+ *  Read from the environment directly rather than through `Config` inside a
+ *  `Layer.unwrap`: the paths are needed to *construct* the layers, and a layer
+ *  built inside an unwrap hides its own outputs from the type checker, which
+ *  is what made the shared SQL client leak back out as an unmet requirement.
+ *  A plain string keeps the composition below flat and statically checkable.
+ *
+ *  The deployed host sets `BIBLE_CORPUS_DIR` to its volume mount. */
+const CORPUS_ROOT =
+  process.env['BIBLE_CORPUS_DIR'] ?? `${process.env['HOME'] ?? '.'}/.bible`;
+const at = (file: string): string => `${CORPUS_ROOT}/${file}`;
+
+/** One SQL client over the writings file, built once and shared: the search
+ *  sources read `paragraphs_fts` through it, and the context lookup reads the
+ *  neighbouring paragraphs through the same connection rather than opening a
+ *  second one against a 4.5 GB file. */
+const SqlLive = SqliteBun.layer({ filename: at('egw-paragraphs.db') });
+
+const CorpusSources = Layer.effect(
+  SearchCorpusSources,
+  Effect.gen(function* () {
+    return SearchCorpusSources.of({
+      _tag: 'wired',
+      sources: {
+        paragraphs: yield* EGWParagraphDatabase,
+        wiki: yield* WikiService,
+      },
+    });
+  }),
+).pipe(
+  Layer.provide(EGWParagraphDatabase.layerCore),
+  Layer.provide(SqlLive),
+  Layer.provide(
+    layerBunWithCatalog({
+      topics: at('topics.db'),
+      bible: at('bible.db'),
+      writings: at('egw-paragraphs.db'),
+    }),
+  ),
+  Layer.provide(BunServices.layer),
+  // No `paragraphs_fts` means no lexical leg, and §9 has no degraded shape for
+  // that. It is a defect, not an empty result set.
+  Layer.orDie,
+);
+
+/** The hybrid service, plus the SQL client the context lookup shares with it. */
+const searchLayer = Layer.mergeAll(
+  SearchService.Live.pipe(
+    Layer.provide(CorpusSources),
+    Layer.provide(verifiedVectorIndex(at('vectors.bvi'))),
+    Layer.provide(layerBunEmbedder),
+    Layer.provide(BunServices.layer),
+  ),
+  SqlLive,
+);
+
+// ---------------------------------------------------------------------------
+// Server
+// ---------------------------------------------------------------------------
+
+// `searchLayer` publishes both the service the handler reads and the SQL
+// client the context lookup reads through, so it is provided to the group —
+// not to the API layer — or the client stays an unmet requirement and leaks
+// out of `ApiLive` into the server's own context.
+const GroupLive = SearchGroupLive.pipe(Layer.provide(searchLayer), Layer.provide(SqlLive));
+
+const ApiLive = HttpApiBuilder.layer(SearchApi).pipe(Layer.provide(GroupLive));
+
+const HttpLive = Layer.unwrap(
+  HttpRouter.toHttpEffect(ApiLive).pipe(
+    Effect.map((httpApp) =>
+      HttpServer.serve(HttpMiddleware.logger)(httpApp).pipe(
+        HttpServer.withLogAddress,
+        Layer.provide(BunHttpServer.layer({ port: PORT })),
+      ),
+    ),
+  ),
+);
+
+const PlatformLive = Layer.mergeAll(
+  Etag.layer,
+  HttpPlatform.layer.pipe(Layer.provide(BunServices.layer)),
+  BunServices.layer,
+  // The router's own effect still carries the context lookup's `SqlClient`
+  // requirement out through `toHttpEffect`, so the launch context supplies the
+  // same client the handlers were built against.
+  SqlLive,
+);
+
+Layer.launch(HttpLive).pipe(Effect.provide(PlatformLive), BunRuntime.runMain);

@@ -70,6 +70,58 @@
   "ignorePatterns": ["**/dist/**", "**/node_modules/**", "**/*.d.ts", "**/outputs/**"],
   "overrides": [
     {
+      "files": ["**/packages/core/src/**/*.ts", "**/packages/core/src/**/*.tsx"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "node:*",
+                  "bun:*",
+                  "electron",
+                  "electron/*",
+                  "better-sqlite3",
+                  "wa-sqlite",
+                  "wa-sqlite/*",
+                  "@effect/platform-bun",
+                  "@effect/platform-bun/*",
+                  "@effect/platform-node",
+                  "@effect/platform-node/*",
+                  "@effect/platform-browser",
+                  "@effect/platform-browser/*",
+                  "@effect/sql-sqlite-bun",
+                  "@effect/sql-sqlite-bun/*",
+                  "@effect/sql-sqlite-node",
+                  "@effect/sql-sqlite-node/*"
+                ],
+                "message": "Portable core modules must use Effect interfaces. Put host code in an explicit adapter."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "**/packages/core/src/**/*-bun.ts",
+        "**/packages/core/src/**/*-node.ts",
+        "**/packages/core/src/**/*-browser.ts",
+        "**/packages/core/src/platform-bun/**",
+        "**/packages/core/src/platform-node/**",
+        "**/packages/core/src/platform-browser/**",
+        "**/packages/core/src/sync/**",
+        "**/packages/core/src/**/*.test.ts",
+        "**/packages/core/src/**/*.test.tsx",
+        "**/packages/core/src/**/*.spec.ts",
+        "**/packages/core/src/**/*.spec.tsx"
+      ],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    },
+    {
       "files": ["**/packages/web/src/**"],
       "rules": {
         "import/no-self-import": "off",
@@ -90,6 +142,12 @@
         "effect/noGlobals": "off",
         "effect/noNodeBuiltinImport": "off",
         "effect/noTryCatch": "off"
+      }
+    },
+    {
+      "files": ["**/apps/egw-search/server/main.ts"],
+      "rules": {
+        "node/no-process-env": "off"
       }
     },
     {

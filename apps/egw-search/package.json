@@ -1,0 +1,29 @@
+{
+  "name": "@bible/egw-search",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -n web,api -c magenta,cyan \"bun run vite:dev\" \"bun run server:dev\"",
+    "vite:dev": "vite",
+    "server:dev": "bun --watch server/main.ts",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "NODE_ENV=production bun server/main.ts",
+    "typecheck": "tsc --noEmit",
+    "gate": "bun run typecheck"
+  },
+  "dependencies": {
+    "@bible/core": "workspace:*",
+    "@effect/platform-bun": "catalog:",
+    "@effect/sql-sqlite-bun": "catalog:",
+    "@solidjs/web": "catalog:",
+    "effect": "catalog:",
+    "solid-js": "catalog:"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "vite": "^8.2.2",
+    "vite-plugin-solid": "catalog:"
+  }
+}
