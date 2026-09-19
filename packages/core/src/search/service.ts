@@ -37,7 +37,7 @@ import {
   queryFilter,
   queryLimit,
   queryScope,
-  SEARCH_CANDIDATE_LIMIT,
+  candidateLimit,
   SEARCH_TOPIC_LIMIT,
   SearchLocateTarget,
   SearchParagraphHit,
@@ -267,10 +267,11 @@ const lexicalLeg = (
   scope: CorpusScope,
   bookCode: Option.Option<string>,
   filter: CorpusFilter,
+  candidates: number,
 ): Effect.Effect<readonly SearchParagraphRow[]> =>
   sources.paragraphs
     .searchScoredParagraphs(ftsQuery(routed), {
-      limit: SEARCH_CANDIDATE_LIMIT,
+      limit: candidates,
       scope,
       bookCode: Option.getOrUndefined(bookCode),
       filter,
@@ -295,10 +296,11 @@ const lexicalLeg = (
  */
 const scanScope = (
   bookCode: Option.Option<string>,
+  candidates: number,
 ): { readonly topK: number; readonly allow?: ReadonlySet<string> } =>
   Option.match(bookCode, {
-    onNone: () => ({ topK: SEARCH_CANDIDATE_LIMIT }),
-    onSome: (code) => ({ topK: SEARCH_CANDIDATE_LIMIT, allow: new Set([code]) }),
+    onNone: () => ({ topK: candidates }),
+    onSome: (code) => ({ topK: candidates, allow: new Set([code]) }),
   });
 
 /** The vector leg, and every reason it might not run (§9.6).
@@ -314,6 +316,7 @@ const vectorLeg = (
   lexical: readonly SearchParagraphRow[],
   scope: CorpusScope,
   bookCode: Option.Option<string>,
+  candidates: number,
 ): Effect.Effect<{ readonly ids: readonly string[]; readonly status: VectorLegStatus }> =>
   Effect.gen(function* () {
     // §9.3: quoted and refcode routes are lexical-only. A reader who quoted a
@@ -350,7 +353,7 @@ const vectorLeg = (
       return { ids: [], status: vectorUnavailable('fingerprint') };
     }
 
-    return yield* scanWith(embedder.value, loaded.index, routed.text, bookCode);
+    return yield* scanWith(embedder.value, loaded.index, routed.text, bookCode, candidates);
   });
 
 const scanWith = (
@@ -358,10 +361,11 @@ const scanWith = (
   index: VectorIndex,
   text: string,
   bookCode: Option.Option<string>,
+  candidates: number,
 ): Effect.Effect<{ readonly ids: readonly string[]; readonly status: VectorLegStatus }> =>
   embedder.embedQuery(text).pipe(
     Effect.map((vector) => {
-      const scan = scanVectorIndex(index, vector, scanScope(bookCode));
+      const scan = scanVectorIndex(index, vector, scanScope(bookCode, candidates));
       return {
         ids: scan.neighbors.map((neighbor) => neighbor.paragraphId),
         status: VectorLegRan.make({
@@ -612,12 +616,14 @@ const makeQuery =
       const routed = route(input.text);
       const scope = queryScope(input);
       const filter = queryFilter(input);
+      // Both legs' pools scale with what the caller asked for; see `candidateLimit`.
+      const candidates = candidateLimit(queryLimit(input));
 
       // The lexical leg and the pinned group are independent reads over two
       // corpora, and the result needs both, so they run together.
       const [lexical, topics, locate] = yield* Effect.all(
         [
-          lexicalLeg(sources, routed, scope, input.bookCode, filter),
+          lexicalLeg(sources, routed, scope, input.bookCode, filter, candidates),
           topicGroup(sources, input.text),
           locateLeg(sources, routed),
         ],
@@ -626,7 +632,7 @@ const makeQuery =
 
       // The vector leg reads the lexical scores — §9.3's short-circuit is a
       // decision about them — so it is sequenced after rather than beside.
-      const vector = yield* vectorLeg(deps, routed, lexical, scope, input.bookCode);
+      const vector = yield* vectorLeg(deps, routed, lexical, scope, input.bookCode, candidates);
       // §9.2's join, for the candidates only the vector leg found. One
       // statement, and skipped entirely when the two legs agree on every id.
       const vectorOnly = yield* vectorOnlyBodies(sources, lexical, vector.ids, scope, filter);

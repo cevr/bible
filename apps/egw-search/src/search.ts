@@ -20,7 +20,13 @@ import { Effect, Layer, Schema as S } from 'effect';
 import { FetchHttpClient } from 'effect/unstable/http';
 import { HttpApiClient } from 'effect/unstable/httpapi';
 
-import { SearchApi, SearchFailed, type SearchResponseSchema } from '../server/api.js';
+import {
+  type CorpusScope,
+  SearchApi,
+  SearchFailed,
+  type SearchResponseSchema,
+} from '../server/api.js';
+import type { SearchParams } from './url-state.js';
 
 /** The wire types, taken from the API's own schemas rather than restated.
  *
@@ -35,10 +41,11 @@ export type ContextParagraph = Hit['before'][number];
 export interface SearchOutcome {
   readonly hits: readonly Hit[];
   readonly topics?: readonly string[];
+  readonly scope: CorpusScope;
   readonly vector: string;
 }
 
-const EMPTY: SearchOutcome = { hits: [], vector: 'idle' };
+const EMPTY: SearchOutcome = { hits: [], scope: 'all', vector: 'idle' };
 
 /** A cold vector search pays for the embed before it can rank, so the ceiling
  *  is generous: the budget this guards is a hung socket, not a slow query. */
@@ -69,15 +76,18 @@ const client = Effect.gen(function* () {
  * failure is caught first.
  */
 export const searchEffect = (
-  query: string,
-  limit: number,
+  params: SearchParams,
   context: number,
 ): Effect.Effect<SearchOutcome, SearchError> => {
-  const trimmed = query.trim();
+  const trimmed = params.q.trim();
   if (trimmed === '') return Effect.succeed(EMPTY);
 
   return client.pipe(
-    Effect.flatMap((api) => api.search.query({ query: { q: trimmed, limit, context } })),
+    Effect.flatMap((api) =>
+      api.search.query({
+        query: { q: trimmed, limit: params.limit, context, scope: params.scope },
+      }),
+    ),
     Effect.timeout(REQUEST_TIMEOUT),
     Effect.retry({ times: 2 }),
     Effect.mapError(asSearchError),

@@ -282,11 +282,17 @@ const testMatchesFilter = (book: BookRow, filter?: CorpusFilter): boolean => {
   if (Option.exists(subtype, (value) => EXCLUDED_SUBTYPES.has(value))) return false;
   if (Predicate.isUndefined(filter)) return true;
 
-  /** One axis: an empty selection narrows nothing, and an unclassified book
-   *  passes whatever the selection is. */
+  /** One axis.
+   *
+   *  An empty selection narrows nothing. A non-empty one is a *positive*
+   *  choice, so an unclassified book fails it: asking for dictionaries and
+   *  being handed a book nobody has classified is not an answer to the
+   *  question. That is the opposite of the apparatus exclusion below, where an
+   *  unclassified book passes precisely because it is not *known* to be
+   *  apparatus — a filter removes what the reader named, and a positive
+   *  selection keeps only what they named. */
   const allowed = <A extends string>(chosen: readonly A[], value: Option.Option<A>): boolean =>
-    chosen.length === 0 ||
-    Option.match(value, { onNone: () => true, onSome: (v) => chosen.includes(v) });
+    chosen.length === 0 || Option.exists(value, (v) => chosen.includes(v));
 
   const type = classified(book.book_type, isBookType);
 
@@ -1418,25 +1424,21 @@ export class EGWParagraphDatabase extends Context.Service<
 
         // The library's own classification, backfilled onto `books`.
         //
-        // Every clause is written so an unclassified book (all four columns
-        // NULL, because the backfill has not run or the library added a title
-        // since) passes it. A filter is there to remove material the reader
-        // said they did not want, and a book nobody has classified is not
-        // material anyone said that about — dropping it would make the corpus
-        // silently shrink on a fresh file, which is the failure the `IS NULL`
-        // disjunctions below exist to prevent.
+        // A *positive* selection keeps only what it names, so an unclassified
+        // book does not satisfy it — `type=dictionary` returning a book nobody
+        // has classified is not an answer to the question asked. The apparatus
+        // *exclusion* below is the mirror image: there NULL passes, because a
+        // book not known to be apparatus is not what the reader excluded.
         const filter = options?.filter;
         if (Predicate.isNotUndefined(filter)) {
           if (filter.section.length > 0) {
-            filters.push(sql`(b.section IS NULL OR ${sql.in('b.section', [...filter.section])})`);
+            filters.push(sql.in('b.section', [...filter.section]));
           }
           if (filter.type.length > 0) {
-            filters.push(sql`(b.book_type IS NULL OR ${sql.in('b.book_type', [...filter.type])})`);
+            filters.push(sql.in('b.book_type', [...filter.type]));
           }
           if (filter.subtype.length > 0) {
-            filters.push(
-              sql`(b.book_subtype IS NULL OR ${sql.in('b.book_subtype', [...filter.subtype])})`,
-            );
+            filters.push(sql.in('b.book_subtype', [...filter.subtype]));
           }
           // The one exclusion, and so the one clause that must *not* let a
           // NULL through — an unclassified book is not known to be apparatus,

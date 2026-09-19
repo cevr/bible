@@ -7,6 +7,8 @@
 
 export {
   EGWParagraphDatabase,
+  FTS_TERM_CONJUNCTION,
+  ftsTermQuery,
   ParagraphDataIntegrityError,
   paragraphIdentity,
   SyncStatus,

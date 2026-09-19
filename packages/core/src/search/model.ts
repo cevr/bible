@@ -232,6 +232,22 @@ export const SEARCH_TOPIC_LIMIT = 5;
  *  cross-encoder rerank over 30 candidates" sizes its budget against. */
 export const SEARCH_CANDIDATE_LIMIT = 30;
 
+/** How many candidates each leg fetches for a query asking for `limit` hits.
+ *
+ *  `SEARCH_CANDIDATE_LIMIT` is the floor, not the value: it is sized against
+ *  `SEARCH_HIT_LIMIT` (20), and a caller asking for 100 hits from a 30-row
+ *  candidate pool can never receive more than 30 — the fused list is built out
+ *  of what the legs proposed. The multiplier keeps fusion's headroom
+ *  proportional rather than fixed, so a row ranked 60th lexically and 3rd by
+ *  vector can still reach a 40-hit page the way a 24th/3rd row reaches a
+ *  20-hit one.
+ *
+ *  Capped, because each leg's cost is linear in this number and the vector
+ *  scan's `topK` is the same value: an unbounded request would turn one query
+ *  into a full-index sort. */
+export const candidateLimit = (limit: number): number =>
+  Math.min(Math.max(SEARCH_CANDIDATE_LIMIT, limit * 3), 600);
+
 /** The default corpus scope for a search.
  *
  *  `egw` rather than `all`, because §9.2 pins the vector index to exactly the

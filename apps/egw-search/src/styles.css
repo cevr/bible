@@ -86,10 +86,20 @@ body {
 
 /* ---------------------------------------------------------------- shell -- */
 
+/* Mobile-first: the base rules below are the phone layout, and the media
+ *  queries add the desktop two-column grid on top. Phone gets a real gutter
+ *  and a slightly larger reading size, because that is where the serif body
+ *  copy is hardest to read. */
 .shell {
   max-width: 1080px;
   margin: 0 auto;
   padding: 0 var(--s3);
+}
+
+@media (min-width: 681px) {
+  .shell {
+    padding: 0 var(--s4);
+  }
 }
 
 /* --------------------------------------------------------------- header -- */
@@ -109,26 +119,13 @@ body {
   line-height: 0.98;
 }
 
-.masthead .sub {
-  margin-top: var(--s2);
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--s3);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--muted);
-}
-
-.seed-tag {
-  color: var(--accent);
-  border-bottom: 1px solid var(--accent);
-}
-
 /* ---------------------------------------------------------------- form --- */
 
+/* On a phone the button and the input fight over ~340px and the query gets
+ *  truncated mid-word, so the button drops to its own full-width row. */
 .searchbar {
   display: flex;
+  flex-wrap: wrap;
   border: 1px solid var(--rule);
   background: var(--paper-sunk);
   margin-bottom: var(--s3);
@@ -156,7 +153,7 @@ body {
 
 .searchbar button {
   border: 0;
-  border-left: 1px solid var(--rule);
+  border-top: 1px solid var(--rule);
   background: transparent;
   color: var(--ink);
   font-family: var(--mono);
@@ -164,8 +161,19 @@ body {
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
+  /* 44px min target: this is the primary action on a touch screen. */
+  min-height: 44px;
+  width: 100%;
   padding: 0 var(--s4);
   cursor: pointer;
+}
+
+@media (min-width: 681px) {
+  .searchbar button {
+    border-top: 0;
+    border-left: 1px solid var(--rule);
+    width: auto;
+  }
 }
 
 .searchbar button:hover:not(:disabled) {
@@ -176,6 +184,108 @@ body {
 .searchbar button:disabled {
   color: var(--muted);
   cursor: not-allowed;
+}
+
+/* -------------------------------------------------------------- filters -- */
+
+.filters {
+  margin-bottom: var(--s3);
+}
+
+.fhead {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+}
+
+.ftoggle,
+.fclear {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: var(--s2) 0;
+  cursor: pointer;
+}
+
+.ftoggle:hover,
+.fclear:hover {
+  color: var(--ink);
+}
+
+.fclear {
+  color: var(--accent);
+}
+
+.fbody {
+  border: 1px solid var(--hairline);
+  background: var(--paper-sunk);
+  padding: var(--s3);
+  display: grid;
+  gap: var(--s3);
+}
+
+/* Phone: the label sits above its chips. Desktop gives it a fixed column so
+ *  the five rows line up on one left edge. */
+.frow {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--s2);
+}
+
+@media (min-width: 681px) {
+  .frow {
+    grid-template-columns: 90px 1fr;
+    gap: var(--s3);
+    align-items: start;
+  }
+}
+
+.flabel {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding-top: var(--s1);
+}
+
+.fchips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+
+.chip {
+  border: 1px solid var(--hairline);
+  background: var(--paper);
+  color: var(--ink-soft);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  /* 32px on a phone is below the 44px ideal, but a filter chip is a
+   *  low-consequence, easily-undone toggle in a dense set; the full target
+   *  would push five rows of them off the screen. */
+  min-height: 32px;
+  padding: 0 var(--s2);
+  cursor: pointer;
+}
+
+.chip:hover {
+  border-color: var(--accent);
+  color: var(--ink);
+}
+
+/* An active chip is filled rather than merely outlined: at this size a border
+ *  colour alone is not a reliable state signal, and the set has to be scannable
+ *  at a glance to answer "what am I filtering by". */
+.chip.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--paper);
+  font-weight: 600;
 }
 
 /* --------------------------------------------------------------- status -- */
@@ -196,6 +306,13 @@ body {
 
 .status .err {
   color: var(--accent);
+}
+
+/* Says the result set is narrowed, so a short page never reads as a thin
+ *  corpus. */
+.status .filtered {
+  color: var(--accent);
+  white-space: nowrap;
 }
 
 .status button {
@@ -222,18 +339,21 @@ body {
   padding: 0 0 var(--s5);
 }
 
+/* Phone: one column, reference stacked above the passage. */
 .hit {
   border-bottom: 1px solid var(--hairline);
-  padding: var(--s3) 0;
+  padding: var(--s3) 0 var(--s4);
   display: grid;
-  grid-template-columns: 150px 1fr;
-  gap: var(--s4);
+  grid-template-columns: 1fr;
+  gap: var(--s2);
 }
 
-@media (max-width: 680px) {
+/* Desktop: the reference moves into its own left column. */
+@media (min-width: 681px) {
   .hit {
-    grid-template-columns: 1fr;
-    gap: var(--s2);
+    padding: var(--s4) 0;
+    grid-template-columns: 150px 1fr;
+    gap: var(--s4);
   }
 }
 
@@ -244,6 +364,9 @@ body {
   color: var(--muted);
 }
 
+/* The reference is the identity of the row: largest thing in the column,
+ *  accent-coloured, underlined only on hover so a list of them does not read
+ *  as a wall of rules. */
 .hit .refcode {
   display: block;
   font-weight: 600;
@@ -251,29 +374,41 @@ body {
   color: var(--accent);
   text-decoration: none;
   letter-spacing: 0.02em;
-  margin-bottom: var(--s1);
   width: fit-content;
-  border-bottom: 1px solid var(--hairline);
+  border-bottom: 1px solid transparent;
 }
 
-.hit .refcode:hover {
+a.hit .refcode,
+.hit a.refcode:hover {
   border-bottom-color: var(--accent);
 }
 
+/* The book is secondary: sentence case and dimmer, so it cannot be mistaken
+ *  for part of the reference above it. */
 .hit .book {
   display: block;
-  margin-top: var(--s1);
+  margin-top: var(--s2);
   text-transform: none;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted);
 }
 
 .hit .text {
   margin: 0;
   font-family: var(--serif);
-  font-size: 17px;
-  line-height: 1.62;
-  color: var(--ink-soft);
+  font-size: 18px;
+  line-height: 1.6;
+  color: var(--ink);
   max-width: 68ch;
+}
+
+@media (min-width: 681px) {
+  .hit .text {
+    font-size: 17px;
+    line-height: 1.62;
+  }
 }
 
 .hit .text mark {
@@ -320,43 +455,129 @@ body {
   border-color: var(--accent);
 }
 
-.hit .legs {
-  display: block;
-  margin-top: var(--s1);
-  font-size: 10px;
-  letter-spacing: 0.1em;
-  color: var(--accent);
-}
-
 /* -------------------------------------------------------------- context -- */
 
 .hit .body {
   min-width: 0;
 }
 
+/* The match, marked.
+ *
+ *  Previously the *context* carried a left rule and a refcode prefix while the
+ *  match carried nothing, so the decoration pointed at the wrong paragraph and
+ *  a hit read as three similar blocks. The accent bar now sits on the match
+ *  alone — the one paragraph the search actually found. */
+.hit .match {
+  border-left: 2px solid var(--accent);
+  padding-left: var(--s3);
+  margin: var(--s2) 0;
+}
+
+/* Neighbours: smaller, dimmer, undecorated, and indented to the same optical
+ *  line as the match's text so the column edge stays straight. */
 .hit .context {
-  margin: 0 0 var(--s2);
+  margin: 0;
+  padding-left: calc(var(--s3) + 2px);
   font-family: var(--serif);
-  font-size: 15px;
-  line-height: 1.58;
+  font-size: 16px;
+  line-height: 1.55;
   color: var(--muted);
   max-width: 68ch;
-  padding-left: var(--s3);
-  border-left: 1px solid var(--hairline);
 }
 
-.hit .context + .text {
+@media (min-width: 681px) {
+  .hit .context {
+    font-size: 15px;
+  }
+}
+
+.hit .context + .context {
   margin-top: var(--s2);
 }
 
-.hit .text + .context {
-  margin-top: var(--s2);
-}
-
+/* The neighbour's own reference, set inline ahead of its text. Mono against
+ *  the serif body so it reads as a label rather than as the first words of the
+ *  paragraph, and dimmer than the match's refcode so the left column keeps its
+ *  primacy. */
 .hit .cref {
   font-family: var(--mono);
   font-size: 10px;
   letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--muted);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
   margin-right: var(--s2);
+}
+
+a.cref:hover {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* ------------------------------------------------------------- pending -- */
+
+/* Results already on screen while a new search runs: kept in place, dimmed,
+ *  and made non-interactive so a click cannot land on a row that is about to
+ *  be replaced. The reader keeps their scroll position and their place in a
+ *  paragraph. */
+.results.stale {
+  opacity: 0.38;
+  pointer-events: none;
+  transition: opacity 120ms ease-out;
+}
+
+/* First search: rows in the shape of the answer, so the page does not jump
+ *  when results arrive. */
+.hit.skeleton .sk {
+  display: block;
+  background: var(--hairline);
+  height: 10px;
+}
+
+.hit.skeleton .sk-ref {
+  width: 76px;
+  height: 12px;
+  margin-bottom: var(--s2);
+}
+
+.hit.skeleton .sk-book {
+  width: 108px;
+  height: 9px;
+}
+
+.hit.skeleton .sk-line {
+  height: 13px;
+  margin-bottom: 10px;
+}
+
+.hit.skeleton .sk-line:last-child {
+  margin-bottom: 0;
+}
+
+/* One shared pulse: a single animation on the row means the bars breathe
+ *  together instead of shimmering out of phase. */
+.hit.skeleton {
+  animation: sk-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes sk-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.48;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hit.skeleton {
+    animation: none;
+    opacity: 0.72;
+  }
+
+  .results.stale {
+    transition: none;
+  }
 }

@@ -42,10 +42,11 @@ import {
   VectorIndexBytes,
 } from '@bible/core/search';
 import { layerBunEmbedder } from '@bible/core/search/bun';
+import type { CorpusFilter } from '@bible/core/writings';
 import { WikiService } from '@bible/core/wiki';
 import { layerBunWithCatalog } from '@bible/core/wiki/bun';
 
-import { SearchApi, SearchFailed } from './api.js';
+import { readerUrl, SearchApi, SearchFailed } from './api.js';
 import { emptySurrounding, surroundingParagraphs } from './context.js';
 
 const PORT = Number(process.env['PORT'] ?? 3101);
@@ -54,35 +55,27 @@ const MAX_LIMIT = 100;
 const DEFAULT_CONTEXT = 1;
 const MAX_CONTEXT = 3;
 
-/** The deep-link egwwritings.org expects. The corpus's `para_id` is exactly
- *  the panel id the reader addresses. */
-const readerUrl = (paragraphId: string): string =>
-  `https://egwwritings.org/read?panels=p${encodeURIComponent(paragraphId)}&index=0`;
-
-/** Index and concordance volumes, excluded from results.
+/** This surface never returns lookup apparatus.
  *
- *  These are lookup scaffolding, not writings: a row like
- *  `TopIndex .Trouble, Troubles.61` is a see-also stub ("time of, See Time of
- *  Trouble"), and it matches a topical query on almost every term in it. They
- *  rank *well* for exactly the queries this app is for, and they push the
- *  prose a reader came to read off the page — the first five hits for "time of
- *  trouble" were all index stubs before this filter.
+ *  A row like `TopIndex .Trouble, Troubles.61` is a see-also stub ("time of,
+ *  See Time of Trouble"). It matches a topical query on almost every term in
+ *  it, so the indexes rank *well* for exactly the queries this app is for and
+ *  push the prose a reader came to read off the page.
  *
- *  Filtered here at the wire rather than in `SearchService`, because the CLI
- *  and the desktop reader both have uses for the indexes; this surface does
- *  not. */
-const INDEX_BOOKS: ReadonlySet<string> = new Set([
-  'TopIndex',
-  'EGWSI',
-  'ECSI',
-  'ACSI',
-  'CDSI',
-  'BCSI',
-  'MssIdx',
-  'LtsIdx',
-  'TTI',
-  'NAVE',
-]);
+ *  This used to be a hardcoded set of ten book codes filtered off the
+ *  *returned* page, which was the wrong end of the pipeline: the lexical leg
+ *  fetches `SEARCH_CANDIDATE_LIMIT` rows, and for a one-word query like
+ *  "sanctuary" thirteen of the first thirty were `TopIndex` stubs — so the
+ *  search paid to retrieve them, ranked them, then threw them away and
+ *  returned three results. Now that `books` carries the library's own `type`,
+ *  the exclusion is a `WHERE` clause instead: the apparatus never enters the
+ *  candidate pool, and the thirty rows are thirty rows of prose.
+ *
+ *  Forced on rather than defaulted, because it is a property of this surface —
+ *  the CLI and the desktop reader both have uses for the indexes; a search box
+ *  over the writings does not. A reader who wants them can still select
+ *  `type=dictionary` explicitly, which names them positively. */
+const NEVER_APPARATUS = true;
 
 const clamp = (raw: number | undefined, fallback: number, max: number): number => {
   if (raw === undefined || !Number.isFinite(raw) || raw < 0) return fallback;
@@ -102,26 +95,34 @@ const SearchGroupLive = HttpApiBuilder.group(SearchApi, 'search', (handlers) =>
       .handle('query', ({ query: params }) =>
         Effect.gen(function* () {
           const text = params.q.trim();
-          if (text === '') return { hits: [], topics: [], vector: 'idle' };
+          const scope = params.scope ?? 'all';
+          const filter: CorpusFilter = {
+            section: params.section ?? [],
+            type: params.type ?? [],
+            subtype: params.subtype ?? [],
+            // Always on for this surface (see `NEVER_APPARATUS`); `noref` is
+            // kept on the wire so a link can still say so explicitly.
+            excludeApparatus: NEVER_APPARATUS,
+          };
+          if (text === '') return { hits: [], topics: [], scope, vector: 'idle' };
 
           const limit = clamp(params.limit, DEFAULT_LIMIT, MAX_LIMIT);
           const radius = clamp(params.context, DEFAULT_CONTEXT, MAX_CONTEXT);
 
-          // Over-fetch, then drop the index volumes: filtering after the fact
-          // would otherwise return a short page whenever the indexes rank
-          // well, which for a topical query is most of the time.
           const result = yield* search.query(
             SearchQuery.make({
               text,
-              scope: Option.none(),
+              // `'all'` is passed as `none` rather than as the literal: the
+              // service treats an absent scope as unfiltered, and sending
+              // `some('all')` would be a second spelling of the same thing.
+              scope: scope === 'all' ? Option.none() : Option.some(scope),
               bookCode: Option.none(),
-              limit: Option.some(Math.min(limit * 3, MAX_LIMIT * 3)),
+              filter,
+              limit: Option.some(limit),
             }),
           );
 
-          const paragraphs = result.paragraphs
-            .filter((hit) => !INDEX_BOOKS.has(hit.bookCode))
-            .slice(0, limit);
+          const paragraphs = result.paragraphs.slice(0, limit);
 
           // One batched lookup for the whole page's context.
           //
@@ -155,6 +156,7 @@ const SearchGroupLive = HttpApiBuilder.group(SearchApi, 'search', (handlers) =>
               };
             }),
             topics: result.topics.map((topic) => topic.title),
+            scope,
             vector: result.vector._tag === 'ran' ? 'hybrid' : `lexical — ${result.vector.reason}`,
           };
         }).pipe(

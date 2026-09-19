@@ -1,3 +1,6 @@
+/* oxlint-disable effect/noTernary -- one branch mapping a nullable `para_id`
+   column to its deep link; `Option.match` here builds a matcher per row of a
+   page's context. */
 /* oxlint-disable effect/noNullish -- SQLite returns NULL for a paragraph with no short refcode, and the HTTP wire re-encodes it as JSON `null`; both boundaries are fixed by the APIs this module joins. */
 
 /**
@@ -21,7 +24,7 @@
 import { Effect } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
 
-import type { ContextParagraph } from './api.js';
+import { readerUrl, type ContextParagraph } from './api.js';
 
 /** What one hit's surroundings look like once grouped. */
 export interface Surrounding {
@@ -31,6 +34,7 @@ export interface Surrounding {
 
 interface WindowRow {
   readonly anchor_para_id: string;
+  readonly para_id: string | null;
   readonly refcode_short: string | null;
   readonly content_text: string;
   readonly offset: number;
@@ -88,6 +92,7 @@ export const surroundingParagraphs = (
       )
       select
         a.anchor_para_id,
+        p.para_id,
         p.refcode_short,
         p.content_text,
         p.puborder - a.puborder as offset
@@ -105,6 +110,7 @@ export const surroundingParagraphs = (
       const paragraph: ContextParagraph = {
         refcode: row.refcode_short,
         text: row.content_text,
+        url: row.para_id === null ? null : readerUrl(row.para_id),
       };
       if (row.offset < 0) entry.before.push(paragraph);
       else entry.after.push(paragraph);
