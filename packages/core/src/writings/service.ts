@@ -2,6 +2,7 @@ import { Context, Effect, Layer, Option, Predicate, Stream } from 'effect';
 
 import {
   EGWParagraphDatabase,
+  ftsTermQuery,
   type BookRow,
   type ParagraphDatabaseError,
 } from '../egw-db/book-database.js';
@@ -378,13 +379,26 @@ export class WritingsService extends Context.Service<WritingsService, WritingsSe
         if (Predicate.isNotUndefined(options?.limit) && options.limit <= 0) {
           return Effect.fail(WritingsInvalidSearchError.make({ reason: 'invalid-limit' }));
         }
+        // Reader text is not FTS5 syntax. Callers hand this method whatever was
+        // typed — `PP 45.3`, a pasted quotation, a title with a colon — and the
+        // engine reads `.`, `"` and `NEAR` as operators, so an unsanitized
+        // query died as `fts5: syntax error` rather than returning results.
+        // `ftsTermQuery` is the same tokenizer the hybrid leg has always
+        // applied, shared rather than restated (see its doc comment).
+        const matchQuery = ftsTermQuery(query);
+        if (Option.isNone(matchQuery)) {
+          // Punctuation only: after tokenizing, the query names no term at all.
+          // That is the same unanswerable request as `""`, and it reuses that
+          // reason rather than widening an error schema three hosts map over.
+          return Effect.fail(WritingsInvalidSearchError.make({ reason: 'empty-query' }));
+        }
         return Effect.gen(function* () {
           let publicationFilter = Option.none<Publication>();
           if (Predicate.isNotUndefined(options?.publication)) {
             publicationFilter = Option.some(yield* publication(options.publication));
           }
           return yield* database
-            .searchParagraphs(query, {
+            .searchParagraphs(matchQuery.value, {
               limit: options?.limit ?? 50,
               bookCode: Option.getOrUndefined(Option.map(publicationFilter, (entry) => entry.code)),
               scope: options?.scope,

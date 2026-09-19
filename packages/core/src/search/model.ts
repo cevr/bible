@@ -21,6 +21,7 @@ import { Option, Schema } from 'effect';
 
 import { WritingsBookCode } from '../writings/book-code.js';
 import { CorpusScope } from '../writings/corpus-scope.js';
+import { CorpusFilterSchema, NO_FILTER, type CorpusFilter } from '../writings/corpus-class.js';
 import { TopicSlug, TopicStatus } from '../wiki/model.js';
 
 // ---------------------------------------------------------------------------
@@ -246,6 +247,13 @@ export class SearchQuery extends Schema.Class<SearchQuery>('Search/Query')({
   text: Schema.NonEmptyString,
   scope: Schema.Option(CorpusScope),
   bookCode: Schema.Option(WritingsBookCode),
+  /** The library-classification filters (section, type, subtype, apparatus).
+   *
+   *  Optional with a `NO_FILTER` default rather than an `Option`: every
+   *  existing caller constructs a `SearchQuery` without it, and an absent
+   *  filter and an empty filter mean exactly the same thing to the SQL below —
+   *  so there is nothing for a `None` to distinguish. */
+  filter: Schema.optionalKey(CorpusFilterSchema),
   limit: Schema.Option(
     Schema.Finite.pipe(Schema.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(1))),
   ),
@@ -260,3 +268,7 @@ export const queryScope = (query: SearchQuery): CorpusScope =>
 
 export const queryLimit = (query: SearchQuery): number =>
   Option.getOrElse(query.limit, () => SEARCH_HIT_LIMIT);
+
+/** The classification filters a query runs under, with the default applied
+ *  once — the `queryScope` pattern, for the same reason. */
+export const queryFilter = (query: SearchQuery): CorpusFilter => query.filter ?? NO_FILTER;

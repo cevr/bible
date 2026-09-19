@@ -21,6 +21,14 @@ import type { SqlError } from 'effect/unstable/sql/SqlError';
 import type * as Statement from 'effect/unstable/sql/Statement';
 
 import { EGW_SCOPE_AUTHORS, type CorpusScope } from '../writings/corpus-scope.js';
+import {
+  APPARATUS_TYPES,
+  EXCLUDED_SUBTYPES,
+  isBookSubtype,
+  isBookType,
+  isCorpusSection,
+  type CorpusFilter,
+} from '../writings/corpus-class.js';
 
 import {
   ensureSchemaVersionsTable,
@@ -60,6 +68,14 @@ export const BookRow = Schema.Struct({
   book_author: Schema.String,
   paragraph_count: Schema.Finite,
   created_at: Schema.String,
+  // The library's classification, backfilled from the content API. Nullable
+  // and optional together: nullable because the column exists but is unset for
+  // a book the backfill has not reached, optional because a `SELECT` written
+  // before these columns existed does not project them at all.
+  book_type: Schema.optional(Schema.NullOr(Schema.String)),
+  book_subtype: Schema.optional(Schema.NullOr(Schema.String)),
+  folder_id: Schema.optional(Schema.NullOr(Schema.Finite)),
+  section: Schema.optional(Schema.NullOr(Schema.String)),
 });
 
 export type BookRow = Schema.Schema.Type<typeof BookRow>;
@@ -236,13 +252,63 @@ const testMatchesQuery = (terms: readonly string[], text: string): boolean => {
   return terms.every((term) => text.includes(term));
 };
 
+/** The classification filters as the double applies them.
+ *
+ *  One function per side of the seam, deliberately: `searchFilters` builds SQL
+ *  and this builds a predicate, and they are close enough that a reader can
+ *  check them against each other line by line. The rule both implement is that
+ *  a `null` column passes every clause except `excludeApparatus`, which a
+ *  `null` also passes — an unclassified book is never excluded by a filter the
+ *  reader set about a classification it does not have. */
+const testMatchesFilter = (book: BookRow, filter?: CorpusFilter): boolean => {
+  // The corpus-level exclusion first, because it applies even when the caller
+  // passed no filter at all — the same unconditional clause `searchFilters`
+  // pushes before it looks at `options.filter`.
+  // The three classification columns as `Option`s of their own union. A column
+  // that is NULL, absent, or holds a value the union does not contain all
+  // collapse to `None` — which is the "unclassified" case every clause below
+  // lets through, and the same thing the SQL's `IS NULL` disjunctions express.
+  const classified = <A extends string>(
+    // The storage boundary: a nullable TEXT column arrives as `null`, and a
+    // `SELECT` predating these columns omits the field. Both fold into `None`.
+    // oxlint-disable-next-line effect/noNullish -- see above
+    value: string | null | undefined,
+    is: (input: string) => input is A,
+  ): Option.Option<A> => Option.filter(Option.fromNullishOr(value), is);
+
+  const subtype = classified(book.book_subtype, isBookSubtype);
+
+  // The corpus-level exclusion, which holds even with no filter at all.
+  if (Option.exists(subtype, (value) => EXCLUDED_SUBTYPES.has(value))) return false;
+  if (Predicate.isUndefined(filter)) return true;
+
+  /** One axis: an empty selection narrows nothing, and an unclassified book
+   *  passes whatever the selection is. */
+  const allowed = <A extends string>(chosen: readonly A[], value: Option.Option<A>): boolean =>
+    chosen.length === 0 ||
+    Option.match(value, { onNone: () => true, onSome: (v) => chosen.includes(v) });
+
+  const type = classified(book.book_type, isBookType);
+
+  return (
+    allowed(filter.section, classified(book.section, isCorpusSection)) &&
+    allowed(filter.type, type) &&
+    allowed(filter.subtype, subtype) &&
+    (!filter.excludeApparatus || !Option.exists(type, (value) => APPARATUS_TYPES.has(value)))
+  );
+};
+
 const testSearchMatches = (
   config: {
     readonly books?: readonly BookRow[];
     readonly paragraphs?: readonly TestParagraph[];
   },
   query: string,
-  options?: { readonly bookCode?: string; readonly scope?: CorpusScope },
+  options?: {
+    readonly bookCode?: string;
+    readonly scope?: CorpusScope;
+    readonly filter?: CorpusFilter;
+  },
 ) => {
   const terms = testQueryTerms(query);
   return (
@@ -258,6 +324,11 @@ const testSearchMatches = (
         const isEgw = EGW_SCOPE_AUTHORS.includes(row.book.book_author);
         if (options?.scope === 'egw' && !isEgw) return [];
         if (options?.scope === 'pioneer' && isEgw) return [];
+        // The classification filters, matching `searchFilters` clause for
+        // clause — including its permissive treatment of an unclassified book,
+        // because a double that drops rows the live statement keeps is the
+        // divergence `testMatchesQuery` above was written to stop.
+        if (!testMatchesFilter(row.book, options?.filter)) return [];
         // The query filter the double lacked. Without it every search returned
         // every paragraph, so a test could not state "this query's top hit is
         // weak" — the strongest row in the fixture led every result.
@@ -288,6 +359,36 @@ const testSearchMatches = (
  *  Both sides import this name, so changing the contract is one edit and cannot
  *  leave the double behind. */
 export const FTS_TERM_CONJUNCTION = ' ';
+
+/** Reader text as an FTS5 MATCH string: the one sanitizer every caller shares.
+ *
+ *  FTS5 reads its argument as a *query expression*, so a `.`, a `"`, a bare
+ *  `NEAR` or a `-` in reader text is syntax rather than text, and the engine
+ *  answers with `fts5: syntax error` rather than with results. `ftsQuery`'s
+ *  hybrid branch has always tokenized that away; `WritingsService.search` did
+ *  not, so every caller that hands it raw text — the CLI's `localSearch` and
+ *  `egw study`, the wiki's lookup panel, the web API's `search` handler — died
+ *  on a refcode like `PP 45.3`. Same engine, same untrusted input, two
+ *  behaviors; this is the one definition both sides now import.
+ *
+ *  Each term is stripped to letters, digits, apostrophes and hyphens, then
+ *  quoted, then joined with {@link FTS_TERM_CONJUNCTION} — quoting is what
+ *  demotes a surviving `NEAR` from operator to word. Terms rather than one
+ *  phrase because the callers want an AND over words; a caller that means an
+ *  exact phrase quotes it itself (the wiki's `ftsPhrase`), which is a different
+ *  operation and deliberately not this one.
+ *
+ *  Returns `None` when nothing survives — `"..."` asks for no terms at all, and
+ *  an empty MATCH is a second syntax error. The caller decides what an
+ *  unanswerable query means; this function does not invent a result for it. */
+export const ftsTermQuery = (text: string): Option.Option<string> => {
+  const terms = text
+    .split(/\s+/u)
+    .map((term) => term.replace(/[^\p{L}\p{N}'-]/gu, ''))
+    .filter((term) => term.length > 0);
+  if (terms.length === 0) return Option.none();
+  return Option.some(terms.map((term) => `"${term}"`).join(FTS_TERM_CONJUNCTION));
+};
 
 /** §9.2's join key, spelled once for every producer and every consumer.
  *
@@ -381,6 +482,11 @@ export interface EGWParagraphDatabaseService {
 
   // Book operations
   readonly storeBook: (book: EGWSchemas.Book) => Effect.Effect<void, ParagraphDatabaseError>;
+  /** Set a book's top-level section (see the implementation). */
+  readonly setBookSection: (
+    bookCode: string,
+    section: string,
+  ) => Effect.Effect<void, ParagraphDatabaseError>;
   readonly getBookById: (
     bookId: number,
   ) => Effect.Effect<Option.Option<BookRow>, ParagraphDatabaseError>;
@@ -434,6 +540,7 @@ export interface EGWParagraphDatabaseService {
       readonly limit?: number;
       readonly bookCode?: string;
       readonly scope?: CorpusScope;
+      readonly filter?: CorpusFilter;
     },
   ) => Effect.Effect<
     readonly (EGWSchemas.Paragraph & {
@@ -466,6 +573,7 @@ export interface EGWParagraphDatabaseService {
       readonly limit?: number;
       readonly bookCode?: string;
       readonly scope?: CorpusScope;
+      readonly filter?: CorpusFilter;
     },
   ) => Effect.Effect<readonly ScoredParagraphRow[], ParagraphDatabaseError>;
   /**
@@ -487,6 +595,10 @@ export interface EGWParagraphDatabaseService {
    */
   readonly findParagraphsByIdentity: (
     identities: readonly string[],
+    options?: {
+      readonly scope?: CorpusScope;
+      readonly filter?: CorpusFilter;
+    },
   ) => Effect.Effect<readonly ScoredParagraphRow[], ParagraphDatabaseError>;
   /**
    * How many paragraphs `searchParagraphs` matches under the same query and the
@@ -503,6 +615,7 @@ export interface EGWParagraphDatabaseService {
     options?: {
       readonly bookCode?: string;
       readonly scope?: CorpusScope;
+      readonly filter?: CorpusFilter;
     },
   ) => Effect.Effect<number, ParagraphDatabaseError>;
   /**
@@ -822,8 +935,36 @@ export class EGWParagraphDatabase extends Context.Service<
           created_at TEXT NOT NULL
         )
       `);
+      // The EGW API's own classification of each book, carried alongside the
+      // fields the reader sees.
+      //
+      // Added by `ALTER TABLE` rather than by a `SCHEMA_VERSION` bump: a bump
+      // drops and rebuilds `paragraphs`, and this corpus holds 3,012,004 rows
+      // whose re-sync is hours of API traffic. These columns are additive and
+      // nullable, so an old file gains them without losing anything and a book
+      // whose metadata has not been backfilled reads as `NULL` — unclassified,
+      // which every query below treats as "do not filter it out".
+      //
+      // The same three-line `PRAGMA table_info` shape `sync_status` uses below,
+      // for the same reason.
+      const bookColumns = yield* sql<{ readonly name: string }>`PRAGMA table_info(books)`;
+      const bookColumnNames = new Set(bookColumns.map((column) => column.name));
+      if (!bookColumnNames.has('book_type'))
+        yield* sql.unsafe(`ALTER TABLE books ADD COLUMN book_type TEXT`);
+      if (!bookColumnNames.has('book_subtype'))
+        yield* sql.unsafe(`ALTER TABLE books ADD COLUMN book_subtype TEXT`);
+      if (!bookColumnNames.has('folder_id'))
+        yield* sql.unsafe(`ALTER TABLE books ADD COLUMN folder_id INTEGER`);
+      if (!bookColumnNames.has('section'))
+        yield* sql.unsafe(`ALTER TABLE books ADD COLUMN section TEXT`);
+
       yield* sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_books_author ON books(book_author)`);
       yield* sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_books_code ON books(book_code)`);
+      // The search filters below join `books` and narrow on these three, so
+      // they are indexed together rather than scanned per query.
+      yield* sql.unsafe(
+        `CREATE INDEX IF NOT EXISTS idx_books_classification ON books(section, book_type, book_subtype)`,
+      );
 
       yield* sql.unsafe(`
         CREATE TABLE IF NOT EXISTS paragraphs (
@@ -950,15 +1091,44 @@ export class EGWParagraphDatabase extends Context.Service<
       const storeBook = (book: EGWSchemas.Book) =>
         Effect.gen(function* () {
           const createdAt = DateTime.formatIso(yield* DateTime.now);
+          // The API's `subtype` carries `''` and `' '` as two spellings of
+          // absence; both become NULL here so a filter never has to know that.
+          const subtype = Option.getOrNull(
+            Option.filter(
+              Option.map(Option.fromNullishOr(book.subtype), (value) => value.trim()),
+              (value) => value !== '',
+            ),
+          );
           yield* sql`
-          INSERT INTO books (book_id, book_code, book_title, book_author, paragraph_count, created_at)
-          VALUES (${book.book_id}, ${book.code}, ${book.title}, ${book.author}, 0, ${createdAt})
+          INSERT INTO books (
+            book_id, book_code, book_title, book_author, paragraph_count, created_at,
+            book_type, book_subtype, folder_id
+          )
+          VALUES (
+            ${book.book_id}, ${book.code}, ${book.title}, ${book.author}, 0, ${createdAt},
+            ${book.type}, ${subtype}, ${book.folder_id}
+          )
           ON CONFLICT(book_id) DO UPDATE SET
             book_code = excluded.book_code,
             book_title = excluded.book_title,
-            book_author = excluded.book_author
+            book_author = excluded.book_author,
+            book_type = excluded.book_type,
+            book_subtype = excluded.book_subtype,
+            folder_id = excluded.folder_id
         `;
         });
+
+      /** Set a book's section, which the book DTO alone cannot supply.
+       *
+       *  `type` and `subtype` come down with the book; the section does not —
+       *  it is the name of the top-level folder the book's `folder_id` sits
+       *  under, which is only knowable by walking the folder tree. So it is
+       *  written separately, by whatever has the tree in hand, rather than
+       *  guessed from the book record. */
+      const setBookSection = (bookCode: string, section: string) =>
+        sql`UPDATE books SET section = ${section} WHERE book_code = ${bookCode} COLLATE NOCASE`.pipe(
+          Effect.asVoid,
+        );
 
       const getBookById = (bookId: number) =>
         sql<BookRow>`SELECT * FROM books WHERE book_id = ${bookId}`.pipe(
@@ -1208,12 +1378,22 @@ export class EGWParagraphDatabase extends Context.Service<
        *  `total` computed under a different predicate than the `items` it
        *  accompanies is worse than no total at all, and the scope filter in
        *  particular is two clauses that must stay in lockstep. */
-      const searchFilters = (
-        query: string,
-        options?: { readonly bookCode?: string; readonly scope?: CorpusScope },
-      ): (string | Statement.Fragment)[] => {
+      /** Every predicate over `books` that a search applies, without the
+       *  `MATCH` clause.
+       *
+       *  Split out from `searchFilters` because two statements need it: the FTS
+       *  search, which adds the MATCH, and the by-identity lookup the vector
+       *  leg's candidates come back through, which has no query to match on but
+       *  must honour exactly the same scope and classification rules. They were
+       *  one function and the identity path simply had no filters, which made it
+       *  a hole every filter leaked through. */
+      const identityFilters = (options?: {
+        readonly bookCode?: string;
+        readonly scope?: CorpusScope;
+        readonly filter?: CorpusFilter;
+      }): (string | Statement.Fragment)[] => {
         const bookCode = options?.bookCode;
-        const filters: (string | Statement.Fragment)[] = [sql`paragraphs_fts MATCH ${query}`];
+        const filters: (string | Statement.Fragment)[] = [];
         if (Predicate.isNotUndefined(bookCode)) {
           filters.push(sql`b.book_code = ${bookCode} COLLATE NOCASE`);
         }
@@ -1226,8 +1406,63 @@ export class EGWParagraphDatabase extends Context.Service<
         if (options?.scope === 'pioneer') {
           filters.push(sql`NOT ${sql.in('b.book_author', [...EGW_SCOPE_AUTHORS])}`);
         }
+
+        // The corpus-level exclusion, applied to every query regardless of
+        // what the caller asked for. `ModernEnglish` is a paraphrase whose
+        // wording is an editor's, not Ellen White's, and a search hit is a
+        // citation — see `EXCLUDED_SUBTYPES`. NULL passes, as everywhere else
+        // here, because an unclassified book is not known to be a paraphrase.
+        filters.push(
+          sql`(b.book_subtype IS NULL OR NOT ${sql.in('b.book_subtype', [...EXCLUDED_SUBTYPES])})`,
+        );
+
+        // The library's own classification, backfilled onto `books`.
+        //
+        // Every clause is written so an unclassified book (all four columns
+        // NULL, because the backfill has not run or the library added a title
+        // since) passes it. A filter is there to remove material the reader
+        // said they did not want, and a book nobody has classified is not
+        // material anyone said that about — dropping it would make the corpus
+        // silently shrink on a fresh file, which is the failure the `IS NULL`
+        // disjunctions below exist to prevent.
+        const filter = options?.filter;
+        if (Predicate.isNotUndefined(filter)) {
+          if (filter.section.length > 0) {
+            filters.push(sql`(b.section IS NULL OR ${sql.in('b.section', [...filter.section])})`);
+          }
+          if (filter.type.length > 0) {
+            filters.push(sql`(b.book_type IS NULL OR ${sql.in('b.book_type', [...filter.type])})`);
+          }
+          if (filter.subtype.length > 0) {
+            filters.push(
+              sql`(b.book_subtype IS NULL OR ${sql.in('b.book_subtype', [...filter.subtype])})`,
+            );
+          }
+          // The one exclusion, and so the one clause that must *not* let a
+          // NULL through — an unclassified book is not known to be apparatus,
+          // so it stays, which is the same permissive rule stated the other
+          // way round.
+          if (filter.excludeApparatus) {
+            filters.push(
+              sql`(b.book_type IS NULL OR NOT ${sql.in('b.book_type', [...APPARATUS_TYPES])})`,
+            );
+          }
+        }
         return filters;
       };
+
+      /** The FTS search's predicates: the MATCH, plus everything above. */
+      const searchFilters = (
+        query: string,
+        options?: {
+          readonly bookCode?: string;
+          readonly scope?: CorpusScope;
+          readonly filter?: CorpusFilter;
+        },
+      ): (string | Statement.Fragment)[] => [
+        sql`paragraphs_fts MATCH ${query}`,
+        ...identityFilters(options),
+      ];
 
       /** The whole match count, which the row query's `LIMIT` cannot report.
        *
@@ -1239,7 +1474,11 @@ export class EGWParagraphDatabase extends Context.Service<
        *  FTS5 does not need in order to count. */
       const countSearchParagraphs = (
         query: string,
-        options?: { readonly bookCode?: string; readonly scope?: CorpusScope },
+        options?: {
+          readonly bookCode?: string;
+          readonly scope?: CorpusScope;
+          readonly filter?: CorpusFilter;
+        },
       ) =>
         sql<{ readonly total: number }>`
               SELECT count(*) AS total
@@ -1255,6 +1494,7 @@ export class EGWParagraphDatabase extends Context.Service<
           readonly limit?: number;
           readonly bookCode?: string;
           readonly scope?: CorpusScope;
+          readonly filter?: CorpusFilter;
         },
       ) => {
         const limit = options?.limit ?? 50;
@@ -1298,6 +1538,7 @@ export class EGWParagraphDatabase extends Context.Service<
           readonly limit?: number;
           readonly bookCode?: string;
           readonly scope?: CorpusScope;
+          readonly filter?: CorpusFilter;
         },
       ) => {
         const limit = options?.limit ?? 30;
@@ -1359,10 +1600,23 @@ export class EGWParagraphDatabase extends Context.Service<
        *  correct: `paragraphIdentity` gives them a `#`-prefixed key that no
        *  concatenation of a NULL can equal, and SQLite's `||` yields NULL for
        *  them anyway. */
-      const findParagraphsByIdentity = (identities: readonly string[]) => {
+      const findParagraphsByIdentity = (
+        identities: readonly string[],
+        options?: {
+          readonly scope?: CorpusScope;
+          readonly filter?: CorpusFilter;
+        },
+      ) => {
         if (identities.length === 0) {
           return Effect.succeed<readonly ScoredParagraphRow[]>([]);
         }
+        // The identity lookup carries the same author and classification
+        // predicates the MATCH path does. Without them this is a hole in every
+        // filter: the vector leg proposes ids from the whole index, so a book
+        // the reader excluded is re-admitted here after the lexical leg
+        // correctly dropped it. `identityFilters` is the shared builder, minus
+        // the MATCH clause this path has no query for.
+        const predicates = identityFilters(options);
         return sql<{
           readonly book_code: string;
           readonly book_title: string;
@@ -1380,6 +1634,7 @@ export class EGWParagraphDatabase extends Context.Service<
               FROM paragraphs p
               JOIN books b ON p.book_id = b.book_id
               WHERE b.book_code || ':' || p.para_id IN ${sql.in([...identities])}
+                AND ${sql.and(predicates)}
             `.pipe(
           Effect.map((rows) =>
             rows.map((row): ScoredParagraphRow => ({
@@ -1668,6 +1923,7 @@ export class EGWParagraphDatabase extends Context.Service<
       return EGWParagraphDatabase.of({
         installPublicationArchive,
         storeBook,
+        setBookSection,
         getBookById,
         getBookByCode,
         getBooksByCode,
@@ -1728,6 +1984,7 @@ export class EGWParagraphDatabase extends Context.Service<
             config.installPublicationArchive?.(archive, provenance) ?? archive.paragraphs.length,
           ),
         storeBook: () => Effect.void,
+        setBookSection: () => Effect.void,
         getBookById: (bookId) =>
           Effect.succeed(Option.fromNullishOr(config.books?.find((b) => b.book_id === bookId))),
         getBookByCode: (bookCode) =>
@@ -1838,7 +2095,7 @@ export class EGWParagraphDatabase extends Context.Service<
           ),
         // Keyed by the same `paragraphIdentity` the live statement composes in
         // SQL, so a fixture and a real corpus answer the same key the same way.
-        findParagraphsByIdentity: (identities) => {
+        findParagraphsByIdentity: (identities, options) => {
           const wanted = new Set(identities);
           return Effect.succeed(
             (config.paragraphs ?? []).flatMap((paragraph): readonly ScoredParagraphRow[] => {
@@ -1856,6 +2113,12 @@ export class EGWParagraphDatabase extends Context.Service<
               );
               if (Option.isNone(found)) return [];
               const book = found.value;
+              // The same predicates the live statement applies here, so the
+              // double cannot show a row production would have filtered out.
+              const isEgw = EGW_SCOPE_AUTHORS.includes(book.book_author);
+              if (options?.scope === 'egw' && !isEgw) return [];
+              if (options?.scope === 'pioneer' && isEgw) return [];
+              if (!testMatchesFilter(book, options?.filter)) return [];
               return [
                 {
                   bookCode: paragraph.bookCode,

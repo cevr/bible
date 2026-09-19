@@ -23,16 +23,18 @@ import { Array as Arr, Context, Effect, Layer, Option } from 'effect';
 
 import { nodesToText } from '../egw/ast.js';
 import {
-  FTS_TERM_CONJUNCTION,
+  ftsTermQuery,
   paragraphIdentity,
   type EGWParagraphDatabaseService,
   type ScoredParagraphRow,
 } from '../egw-db/book-database.js';
 import type { CorpusScope } from '../writings/corpus-scope.js';
+import type { CorpusFilter } from '../writings/corpus-class.js';
 import type { WikiServiceApi } from '../wiki/service.js';
 import { QueryEmbedder, type QueryEmbedderApi } from './embedder.js';
 import { fuse, ORIGINAL_QUERY_WEIGHT, type FusionList } from './fusion.js';
 import {
+  queryFilter,
   queryLimit,
   queryScope,
   SEARCH_CANDIDATE_LIMIT,
@@ -221,15 +223,12 @@ export class SearchCorpusSources extends Context.Service<SearchCorpusSources, Se
 const ftsQuery = (routed: RoutedQuery): string => {
   if (routed._tag === 'phrase') return `"${routed.phrase.replace(/"/gu, '""')}"`;
   if (routed._tag === 'locate') return `"${routed.refcode.replace(/"/gu, '""')}"`;
-  const terms = routed.text
-    .split(/\s+/u)
-    .map((term) => term.replace(/[^\p{L}\p{N}'-]/gu, ''))
-    .filter((term) => term.length > 0);
-  if (terms.length === 0) return '""';
-  // AND between the quoted terms, which is what FTS5 reads a space as. The
-  // separator is `FTS_TERM_CONJUNCTION` rather than a literal here so the
-  // in-memory double's matching predicate cannot drift from it (round-2 B4).
-  return terms.map((term) => `"${term}"`).join(FTS_TERM_CONJUNCTION);
+  // The term tokenizer moved to `egw-db` so `WritingsService.search` could
+  // apply the identical rule (it could not, and crashed on reader punctuation).
+  // Quoting, the `FTS_TERM_CONJUNCTION` join and the empty-result case all live
+  // there now; an all-punctuation query still becomes `""`, which matches
+  // nothing rather than erroring.
+  return Option.getOrElse(ftsTermQuery(routed.text), () => '""');
 };
 
 /** One scored row, as the pipeline reads it.
@@ -267,12 +266,14 @@ const lexicalLeg = (
   routed: RoutedQuery,
   scope: CorpusScope,
   bookCode: Option.Option<string>,
+  filter: CorpusFilter,
 ): Effect.Effect<readonly SearchParagraphRow[]> =>
   sources.paragraphs
     .searchScoredParagraphs(ftsQuery(routed), {
       limit: SEARCH_CANDIDATE_LIMIT,
       scope,
       bookCode: Option.getOrUndefined(bookCode),
+      filter,
     })
     .pipe(
       Effect.map((rows) => rows.map(toRow)),
@@ -491,11 +492,22 @@ const vectorOnlyBodies = (
   sources: SearchSources,
   lexical: readonly SearchParagraphRow[],
   vectorIds: readonly string[],
+  scope: CorpusScope,
+  filter: CorpusFilter,
 ): Effect.Effect<readonly SearchParagraphRow[]> => {
   const known = new Set(lexical.map((row) => row.paragraphId));
   const missing = vectorIds.filter((id) => !known.has(id));
   if (missing.length === 0) return Effect.succeed([]);
-  return sources.paragraphs.findParagraphsByIdentity(missing).pipe(
+  // The filters go with the lookup.
+  //
+  // This path is by paragraph *identity*, not by MATCH, so it does not pass
+  // through `searchFilters` — and without them it re-admits exactly the books
+  // the reader filtered out: the vector leg proposes ids from across the whole
+  // index, so a `ModernEnglish` paraphrase or an excluded section reappears
+  // here having been correctly dropped from the lexical leg. The statement
+  // already joins `books`, so the same predicates apply there rather than
+  // being re-derived over the returned rows.
+  return sources.paragraphs.findParagraphsByIdentity(missing, { scope, filter }).pipe(
     Effect.map((rows) => rows.map(toRow)),
     Effect.catchTag(['SqlError', 'ParagraphDataIntegrityError'], (cause) =>
       Effect.logWarning('search.vectorBodies.degraded').pipe(
@@ -599,12 +611,13 @@ const makeQuery =
       const sources = sourcing.sources;
       const routed = route(input.text);
       const scope = queryScope(input);
+      const filter = queryFilter(input);
 
       // The lexical leg and the pinned group are independent reads over two
       // corpora, and the result needs both, so they run together.
       const [lexical, topics, locate] = yield* Effect.all(
         [
-          lexicalLeg(sources, routed, scope, input.bookCode),
+          lexicalLeg(sources, routed, scope, input.bookCode, filter),
           topicGroup(sources, input.text),
           locateLeg(sources, routed),
         ],
@@ -616,7 +629,7 @@ const makeQuery =
       const vector = yield* vectorLeg(deps, routed, lexical, scope, input.bookCode);
       // §9.2's join, for the candidates only the vector leg found. One
       // statement, and skipped entirely when the two legs agree on every id.
-      const vectorOnly = yield* vectorOnlyBodies(sources, lexical, vector.ids);
+      const vectorOnly = yield* vectorOnlyBodies(sources, lexical, vector.ids, scope, filter);
 
       return SearchResult.make({
         query: input.text,

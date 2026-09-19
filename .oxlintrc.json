@@ -157,13 +157,15 @@
       }
     },
     {
-      // Standalone Bun scripts for the Keynote deck pipeline. They import no
-      // Effect at all: each is a top-level-await entry point that shells out to
-      // `sips`, `osascript` and the `bible` CLI, then writes files. Holding
-      // them to the Effect rules would mean wrapping a three-process shell
-      // pipeline in a runtime and a layer stack that buys nothing — the host
-      // boundary *is* the whole program here.
-      "files": ["**/skills/bible/scripts/**/*.ts"],
+      // Standalone Bun maintenance scripts: the Keynote deck pipeline and the
+      // corpus scripts under `packages/cli/scripts/`. They import no Effect at
+      // all — each is a top-level-await entry point that shells out to `sips`,
+      // `osascript` and the `bible` CLI, or talks to the content API over
+      // `fetch` and writes SQLite through `bun:sqlite`, then reports to stdout.
+      // Holding them to the Effect rules would mean wrapping a shell pipeline
+      // or a one-shot migration in a runtime and a layer stack that buys
+      // nothing — the host boundary *is* the whole program here.
+      "files": ["**/skills/bible/scripts/**/*.ts", "**/packages/cli/scripts/**/*.ts"],
       "rules": {
         "no-await-in-loop": "off",
         "effect/noAs": "off",

@@ -16,6 +16,9 @@ import { Schema } from 'effect';
 export const CorpusScope = Schema.Literals(['egw', 'pioneer', 'all']);
 export type CorpusScope = typeof CorpusScope.Type;
 
+/** Narrows a bare string — a URL parameter, a CLI flag — to a scope. */
+export const isCorpusScope = Schema.is(CorpusScope);
+
 /** The exact `books.book_author` values that constitute the EGW scope.
  *
  *  Two values, resolved from the data rather than guessed: the 2026-08-14
