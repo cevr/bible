@@ -23,9 +23,11 @@
  */
 
 import { render } from '@solidjs/web';
+import { Option } from 'effect';
 import type { Element } from 'solid-js';
 import {
   createContext,
+  createEffect,
   createErrorBoundary,
   createMemo,
   createSignal,
@@ -49,6 +51,7 @@ import {
   EMPTY_PARAMS,
   hasFilters,
   navigate,
+  navigationEpoch,
   toggle,
   type SearchParams,
 } from './url-state.js';
@@ -138,7 +141,32 @@ const SearchContext = createContext<SearchStore>();
 const useSearch = (): SearchStore => useContext(SearchContext);
 
 const SearchProvider = (props: { readonly children: Element }) => {
-  const [draft, setDraft] = createSignal(currentParams().q);
+  const [typed, setTyped] = createSignal(Option.none<string>());
+
+  // Any navigation — a submit, a filter toggle, the back button — ends the
+  // edit. Keyed on the epoch rather than on the query text, because going back
+  // to a URL with the same query is still a navigation.
+  //
+  // Solid 2's `createEffect` takes *two* functions, not one: `compute` is the
+  // tracked read, `effect` is the untracked reaction to its result. Passing a
+  // single callback (the Solid 1 shape) leaves `effect` undefined and the
+  // framework throws while building the graph — which blanks the whole app,
+  // since this runs during render.
+  createEffect(navigationEpoch, () => {
+    setTyped(Option.none());
+  });
+
+  /** What the box shows: the committed query, until the reader types — then
+   *  what they typed, until the next navigation.
+   *
+   *  `None` means "nothing typed since the last navigation", which is what
+   *  makes the box follow the back button. A plain signal seeded from the
+   *  initial URL does not: going back from `?q=the+shaking` to
+   *  `?q=latter+rain` restored the results and left "the shaking" in the box. */
+  const draft = (): string => Option.getOrElse(typed(), () => currentParams().q);
+  const setDraft = (value: string): void => {
+    setTyped(Option.some(value));
+  };
 
   /** The request. An async memo is Solid 2's resource: it re-runs when
    *  `currentParams` changes — which is to say when the URL changes, by a
@@ -156,7 +184,9 @@ const SearchProvider = (props: { readonly children: Element }) => {
     params: currentParams,
     hits: () => outcome().hits,
     search: (value) => {
-      setDraft(value);
+      // The effect above clears the typed override, so the box goes back to
+      // showing the committed query — which is what an example chip that set
+      // the query should leave it reading.
       navigate({ ...currentParams(), q: value.trim() });
     },
     refine: (next) => navigate(next, { replace: true }),

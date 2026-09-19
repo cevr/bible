@@ -109,6 +109,38 @@ export const toSearchString = (params: SearchParams): string => {
   return query === '' ? '/' : `?${query}`;
 };
 
+/**
+ * The same state, as the API's query object.
+ *
+ * Exhaustive by construction: it destructures every field of `SearchParams`,
+ * so adding an axis above and forgetting it here is a compile error rather
+ * than a filter that silently stops being sent. That is not hypothetical — the
+ * four classification axes were added to `SearchParams` while the request
+ * builder still listed `q`, `limit`, `context` and `scope`, so the URL said
+ * `?section=pioneer-library` and every request went out unfiltered. The UI
+ * showed unchanged results and looked like a reactivity bug.
+ *
+ * `context` is not here because it is a rendering choice, not search state:
+ * the caller supplies it.
+ */
+export const toQuery = ({
+  q,
+  scope,
+  section,
+  type,
+  subtype,
+  excludeApparatus,
+  limit,
+}: SearchParams) => ({
+  q: q.trim(),
+  scope,
+  section,
+  type,
+  subtype,
+  noref: excludeApparatus ? '1' : undefined,
+  limit,
+});
+
 /** True when nothing but the query text is set — what the UI reads to decide
  *  whether to offer a "clear filters" affordance. */
 export const hasFilters = (params: SearchParams): boolean =>
@@ -141,7 +173,21 @@ export const toggle = <K extends 'section' | 'type' | 'subtype'>(
  */
 const [search, setSearch] = createSignal(window.location.search);
 
-window.addEventListener('popstate', () => setSearch(window.location.search));
+/** Bumped on every navigation, including a back or forward. A consumer holding
+ *  transient state that a navigation should discard — the half-typed text in
+ *  the search box — reads this to know a navigation happened, which the parsed
+ *  params alone cannot tell it: going back to a URL whose query is the same as
+ *  the current one changes no field, yet is still a navigation. */
+const [epoch, setEpoch] = createSignal(0);
+
+export const navigationEpoch: Accessor<number> = epoch;
+
+const commit = (): void => {
+  setSearch(window.location.search);
+  setEpoch((value) => value + 1);
+};
+
+window.addEventListener('popstate', commit);
 
 /** The current parameters. Every reader of search state reads this. */
 export const currentParams: Accessor<SearchParams> = () => parseParams(search());
@@ -159,5 +205,5 @@ export const navigate = (params: SearchParams, options?: { readonly replace?: bo
   if (next === (window.location.search === '' ? '/' : window.location.search)) return;
   if (options?.replace === true) window.history.replaceState(null, '', next);
   else window.history.pushState(null, '', next);
-  setSearch(window.location.search);
+  commit();
 };

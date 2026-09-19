@@ -26,7 +26,7 @@ import {
   SearchFailed,
   type SearchResponseSchema,
 } from '../server/api.js';
-import type { SearchParams } from './url-state.js';
+import { toQuery, type SearchParams } from './url-state.js';
 
 /** The wire types, taken from the API's own schemas rather than restated.
  *
@@ -83,11 +83,7 @@ export const searchEffect = (
   if (trimmed === '') return Effect.succeed(EMPTY);
 
   return client.pipe(
-    Effect.flatMap((api) =>
-      api.search.query({
-        query: { q: trimmed, limit: params.limit, context, scope: params.scope },
-      }),
-    ),
+    Effect.flatMap((api) => api.search.query({ query: { ...toQuery(params), context } })),
     Effect.timeout(REQUEST_TIMEOUT),
     Effect.retry({ times: 2 }),
     Effect.mapError(asSearchError),
