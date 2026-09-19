@@ -1,0 +1,38 @@
+# What `railway up` must not ship.
+#
+# The deploy bundle is the source the builder needs, nothing else. Without
+# this the upload was 1.67 GB and Cloudflare rejected it with a 413 — almost
+# all of it `packages/cli/outputs/decks`, which is 4 GB of generated Keynote
+# decks and paintings that no service reads at runtime.
+#
+# The corpus databases are deliberately absent too: they live on the Railway
+# volume at /data (BIBLE_CORPUS_DIR), not in the image.
+
+# Generated study/deck artifacts — authored locally, never read by a service.
+packages/cli/outputs/
+
+# Corpus *seed* data: 119 MB of Bible/Strong's/cross-reference JSON used to
+# BUILD bible.db offline. The searcher reads the finished databases from the
+# volume, so shipping the inputs as well would be dead weight in the image.
+packages/core/assets/
+
+# Local corpus and model caches. Scoped to the untracked working copies
+# rather than a blanket `*.db`, which would also drop the small tracked
+# fixtures (data/egw-paragraphs.db, packages/core/data/hymnal.db).
+.bible/
+packages/cli/.bible/
+**/models/
+*.db-shm
+*.db-wal
+*.bvi
+
+# Build output and caches; the builder produces its own.
+**/dist/
+**/.turbo/
+**/node_modules/
+tmp/
+
+# Local tooling state.
+.git/
+.claude/
+*.log

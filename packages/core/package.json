@@ -64,7 +64,6 @@
     "@effect/sql-sqlite-bun": "catalog:",
     "@huggingface/transformers": "4.2.0",
     "@noble/hashes": "^2.3.0",
-    "better-sqlite3": "^13.0.3",
     "drizzle-orm": "catalog:",
     "effect": "catalog:",
     "fflate": "^0.8.3",
@@ -74,5 +73,9 @@
     "@effect/vitest": "catalog:",
     "@types/better-sqlite3": "^9.6.0",
     "vitest": "^4.1.11"
-  }
+  },
+  "optionalDependencies": {
+    "better-sqlite3": "^13.0.3"
+  },
+  "//optionalDependencies": "better-sqlite3 is the Electron host's driver, imported only by src/platform-node/. Bun hosts use bun:sqlite through src/platform-bun/ (its NAPI binding hard-crashes under Bun), and the browser uses wa-sqlite — three drivers on one seam. Optional so a Bun-only consumer neither compiles it via node-gyp nor needs a toolchain to install @bible/core."
 }
