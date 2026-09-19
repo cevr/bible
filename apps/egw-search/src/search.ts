@@ -1,81 +1,72 @@
 /**
  * The Effect ↔ Solid 2 seam.
  *
- * Solid 2's async `createMemo` consumes a promise; Effect 4 produces an
- * `Effect`. The adapter is one function — `runQuery` — that runs an Effect to
- * a promise under a single `AbortSignal`, so Solid's own cancellation (a
- * superseded request, a disposed owner) becomes Effect interruption rather
- * than a lingering fetch whose result arrives late and overwrites a newer one.
+ * The client is *derived* from `SearchApi` — the same `HttpApi` the server
+ * builds its handlers from — rather than hand-written against `fetch`. One
+ * schema now defines both ends: the query string is encoded from the
+ * endpoint's declared `q`/`limit`/`context`, the response is decoded through
+ * `SearchResponseSchema` instead of asserted with a cast, and `SearchFailed`
+ * arrives as the tagged error the server declared rather than a flattened
+ * string. A server-side shape change becomes a type error here instead of a
+ * runtime surprise at render.
  *
- * The request itself is an Effect so the retry, the timeout and the typed
- * failure are declared once, in one place, instead of being scattered across
- * the component as try/catch and stale-response guards.
- *
- * This module is a framework binding, not Effect domain code: it speaks the
- * browser's `fetch` and the server's JSON wire shape, whose nullable fields
- * are fixed by the two APIs it joins.
+ * `runQuery` is the whole adapter to Solid: it runs an Effect to a promise
+ * under one `AbortSignal`, so Solid's own cancellation — a superseded request,
+ * a disposed owner — becomes Effect interruption rather than a lingering fetch
+ * whose result arrives late and overwrites a newer one.
  */
 
-/* oxlint-disable effect/noNullish -- the wire shape is JSON: `null` is what the server encodes an absent refcode, rank or link as, and re-encoding it as Option at the boundary would only move the decode into every reader. */
-/* oxlint-disable effect/noAsyncFunction -- `Effect.tryPromise` takes a promise-returning callback, and `fetch` is the browser's own async API. */
-/* oxlint-disable effect/noGlobals -- `fetch` is the platform primitive this binding exists to wrap; HttpClient would pull a platform layer into a module whose only job is one request. */
-/* oxlint-disable effect/noThrowStatement, effect/noNewError -- throwing inside `tryPromise`'s callback is how a rejected promise is produced; `catch` maps it to the tagged error below. */
-/* oxlint-disable effect/noAs -- the response body is `unknown` until it is decoded, and this binding hands it to a typed caller. */
+import { Effect, Layer, Schema as S } from 'effect';
+import { FetchHttpClient } from 'effect/unstable/http';
+import { HttpApiClient } from 'effect/unstable/httpapi';
 
-import { Data, Effect } from 'effect';
+import { SearchApi, SearchFailed, type SearchResponseSchema } from '../server/api.js';
 
-export interface ContextParagraph {
-  readonly refcode: string | null;
-  readonly text: string;
-}
-
-/** One search hit, exactly as the server puts it on the wire.
+/** The wire types, taken from the API's own schemas rather than restated.
  *
- *  `lexicalRank` and `vectorRank` are how a reader can tell whether a row is
- *  here because the words matched or because the meaning did — the observable
- *  difference hybrid search makes. Either is null when only one leg found it.
- */
-export interface Hit {
-  readonly refcode: string;
-  readonly bookCode: string;
-  readonly bookTitle: string;
-  readonly author: string;
-  readonly text: string;
-  readonly lexicalRank: number | null;
-  readonly vectorRank: number | null;
-  readonly url: string | null;
-  /** The paragraphs immediately around the match, so a hit reads in its own
-   *  setting rather than as a stranded sentence. */
-  readonly before: readonly ContextParagraph[];
-  readonly after: readonly ContextParagraph[];
-}
+ *  These were previously hand-written interfaces that had to be kept in step
+ *  with `server/api.ts` by hand; deriving them means the compiler does it. */
+export type SearchResponse = S.Schema.Type<typeof SearchResponseSchema>;
+export type Hit = SearchResponse['hits'][number];
+export type ContextParagraph = Hit['before'][number];
 
-/** The answer, with the vector leg's own account of itself. `vector` is
- *  `'hybrid'` when the vector leg ran, and `'lexical — <reason>'` when §9.6's
- *  typed absence explains why it did not. */
+/** What the component renders. The API's response plus the idle case, which is
+ *  a client-side state (no query yet) rather than anything the server returns. */
 export interface SearchOutcome {
   readonly hits: readonly Hit[];
   readonly topics?: readonly string[];
   readonly vector: string;
 }
 
-export class SearchError extends Data.TaggedError('SearchError')<{
-  readonly message: string;
-}> {}
+const EMPTY: SearchOutcome = { hits: [], vector: 'idle' };
 
 /** A cold vector search pays for the embed before it can rank, so the ceiling
  *  is generous: the budget this guards is a hung socket, not a slow query. */
 const REQUEST_TIMEOUT = '30 seconds';
 
-const EMPTY: SearchOutcome = { hits: [], vector: 'idle' };
+/** The derived client, built once.
+ *
+ *  `HttpApiClient.make` needs an `HttpClient`; in the browser that is
+ *  `FetchHttpClient`, whose transport is the platform `fetch` this module used
+ *  to call directly. Memoising the layer keeps one client per process rather
+ *  than rebuilding the encoder/decoder pair per keystroke. */
+const ClientLive = Layer.mergeAll(FetchHttpClient.layer);
+
+const client = Effect.gen(function* () {
+  return yield* HttpApiClient.make(SearchApi);
+}).pipe(Effect.provide(ClientLive), Effect.cached, Effect.runSync);
 
 /**
- * One search request as an Effect. Interruption closes the underlying fetch
- * through the `AbortSignal` Effect hands to the callback, so a superseded
- * search stops in flight rather than resolving into a stale render.
+ * One search request.
  *
- * Two retries cover a transient network fault. A 500 is a considered answer
- * from the server, so it is not retried into a hammer.
+ * Interruption closes the underlying fetch through the `AbortSignal` Effect
+ * propagates, so a superseded search stops in flight rather than resolving
+ * into a stale render.
+ *
+ * Two retries cover a transient network fault. A `SearchFailed` is a
+ * considered answer from the server, so it is not retried into a hammer —
+ * `Effect.retry` here only sees the transport errors, because the tagged
+ * failure is caught first.
  */
 export const searchEffect = (
   query: string,
@@ -85,37 +76,43 @@ export const searchEffect = (
   const trimmed = query.trim();
   if (trimmed === '') return Effect.succeed(EMPTY);
 
-  return Effect.tryPromise({
-    try: async (signal) => {
-      const url =
-        `/api/search?q=${encodeURIComponent(trimmed)}` +
-        `&limit=${String(limit)}&context=${String(context)}`;
-      const response = await fetch(url, { signal });
-      if (!response.ok) throw new Error(`search responded ${String(response.status)}`);
-      return (await response.json()) as SearchOutcome;
-    },
-    catch: (cause) => new SearchError({ message: String(cause) }),
-  }).pipe(
+  return client.pipe(
+    Effect.flatMap((api) => api.search.query({ query: { q: trimmed, limit, context } })),
     Effect.timeout(REQUEST_TIMEOUT),
     Effect.retry({ times: 2 }),
-    // `timeout` widens the error channel with its own failure; this brings the
-    // channel back to the one type the caller handles.
     Effect.mapError(asSearchError),
   );
 };
 
+/** The component handles one failure type; this collapses the derived client's
+ *  three (the server's `SearchFailed`, a transport error, and a decode error)
+ *  into it while keeping each one's own message. */
+export class SearchError extends S.TaggedError<SearchError>()('SearchError', {
+  message: S.String,
+}) {}
+
+const isSearchError = S.is(SearchError);
+const isSearchFailed = S.is(SearchFailed);
+
+/** Collapse the derived client's three failure types into the one the
+ *  component renders, keeping each one's own wording.
+ *
+ *  `SearchFailed` is the server's declared error and is matched by its schema
+ *  rather than by probing for a `message` field — the transport and decode
+ *  errors are `Error` subclasses, so `String(cause)` already renders them
+ *  usefully ("HttpClientError: ..."). */
 const asSearchError = (cause: unknown): SearchError => {
-  if (cause instanceof SearchError) return cause;
-  return new SearchError({ message: String(cause) });
+  if (isSearchError(cause)) return cause;
+  if (isSearchFailed(cause)) return SearchError.make({ message: cause.message });
+  return SearchError.make({ message: String(cause) });
 };
 
 /**
  * Run an Effect as a promise bound to an `AbortSignal`.
  *
- * This is the whole adapter. Solid 2 aborts the signal it hands a computation
- * when that computation is superseded or its owner disposed; forwarding the
- * signal to `Effect.runPromise` turns that into interruption, so a cancelled
- * search stops rather than resolving into a stale render.
+ * Solid 2 aborts the signal it hands a computation when that computation is
+ * superseded or its owner disposed; forwarding it to `Effect.runPromise` turns
+ * that into interruption.
  */
 export const runQuery = <A, E>(effect: Effect.Effect<A, E>, signal: AbortSignal): Promise<A> =>
   Effect.runPromise(effect, { signal });
