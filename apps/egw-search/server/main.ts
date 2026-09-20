@@ -349,6 +349,65 @@ const WarmEmbedderLive: Layer.Layer<never, never, QueryEmbedder> = Layer.effectD
 const EmbedderLive = layerBunEmbedder;
 
 /** The hybrid service, plus the SQL client the context lookup shares with it. */
+/** Fault the corpus in before a reader does.
+ *
+ *  A container that has just started has nothing of the 4.5 GB database
+ *  resident, and the first query pays for every page it touches. Measured in
+ *  production right after a deploy: `god` took 7,176 ms against 1,031 ms once
+ *  warm, and even a *gated* query — one that does nothing but count — spent
+ *  531 ms in `lexicalMs`, because counting still walks a cold posting list.
+ *
+ *  The three statements below are chosen to touch what the three legs touch,
+ *  in the order a query would:
+ *
+ *  1. `paragraphs_fts_data` (449 MB) is the posting lists every lexical query
+ *     reads, including the selectivity probe.
+ *  2. A ranked query makes FTS5 *score* rather than merely count, which walks
+ *     the index structures scoring uses and nothing else does.
+ *  3. The join those rows come back through is the bodies leg, whose seeks are
+ *     scattered across a 3.6 GB table — the part the page cache helps least and
+ *     therefore the part most worth touching first.
+ *
+ *  Forked and detached, exactly as `WarmEmbedderLive` is: the port must open
+ *  immediately. A reader who arrives mid-warm-up is not blocked, only unlucky,
+ *  and pays the same cost they would have paid anyway.
+ *
+ *  Failures are logged, never fatal. Warming is an optimization; a corpus that
+ *  cannot be warmed can still be searched. */
+const WarmCorpusLive: Layer.Layer<never, never, SqlClient.SqlClient> = Layer.effectDiscard(
+  Effect.gen(function* () {
+    const sql = yield* SqlClient.SqlClient;
+    yield* Effect.gen(function* () {
+      const startedAt = yield* Effect.clockWith((clock) => clock.currentTimeMillis);
+      // The posting lists, whole. `count(*)` over the shadow table reads every
+      // page of it without materializing rows.
+      yield* sql.unsafe(`SELECT count(*) FROM paragraphs_fts_data`);
+      const postingsAt = yield* Effect.clockWith((clock) => clock.currentTimeMillis);
+      // One real ranked query: scoring, the bodies join and the books join, on
+      // a term selective enough to be honest work rather than a scan.
+      yield* sql.unsafe(`
+        SELECT p.ref_code, p.nodes_json
+        FROM paragraphs_fts fts
+        JOIN paragraphs p ON p.rowid = fts.rowid
+        JOIN books b ON p.book_id = b.book_id
+        WHERE paragraphs_fts MATCH 'sanctuary'
+        ORDER BY fts.rank
+        LIMIT 60
+      `);
+      const doneAt = yield* Effect.clockWith((clock) => clock.currentTimeMillis);
+      yield* Effect.log(
+        'search.corpus.warm',
+        `state=ready postingsMs=${String(postingsAt - startedAt)} queryMs=${String(doneAt - postingsAt)}`,
+      );
+    }).pipe(
+      Effect.catchCause((cause) =>
+        Effect.logWarning('search.corpus.warm_failed', `cause=${String(cause)}`),
+      ),
+      Effect.forkDetach,
+    );
+  }),
+);
+
 const searchLayer = Layer.mergeAll(
   SearchService.Live.pipe(
     Layer.provide(CorpusSources),
@@ -356,7 +415,11 @@ const searchLayer = Layer.mergeAll(
     Layer.provide(BunServices.layer),
   ),
   WarmEmbedderLive,
+  // After `TunedSqlLive` in the merge so the pragmas are applied to the
+  // connection before the warm-up reads through it: warming an 8 MB cache
+  // would fault pages in and immediately evict them.
   TunedSqlLive,
+  WarmCorpusLive.pipe(Layer.provide(TunedSqlLive)),
 ).pipe(Layer.provideMerge(EmbedderLive));
 
 // ---------------------------------------------------------------------------
