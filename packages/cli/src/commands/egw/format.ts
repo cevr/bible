@@ -1,5 +1,10 @@
 import { nodesToText, type Schemas as EGWSchemas } from '@bible/core/egw';
-import type { SearchParagraphHit, SearchResult, VectorAbsenceReason } from '@bible/core/search';
+import type {
+  SearchParagraphHit,
+  SearchResult,
+  SearchTopicHit,
+  VectorAbsenceReason,
+} from '@bible/core/search';
 import type { Paragraph, Publication, SearchHit } from '@bible/core/writings';
 import { Option, Schema, SchemaGetter } from 'effect';
 
@@ -37,20 +42,32 @@ export const paragraphJson = (paragraph: Paragraph) => ({
   elementSubtype: Option.getOrNull(paragraph.elementSubtype),
 });
 
-export const formatLocalSearchResult = (hit: SearchHit, index: number): string => {
+/** How much of a hit's paragraph the printer shows.
+ *
+ *  The corpus already carries the whole paragraph on every hit — `snippet` is
+ *  `nodesToText(nodes)`, not a windowed extract — so the 200-character cut is
+ *  presentation, and the full text costs nothing extra to print. A reader
+ *  checking a quotation needs the sentence the ellipsis was hiding, and the
+ *  only way to get it was a second `lookup` call per hit. `--full` is that
+ *  second call, removed. */
+export const SNIPPET_LIMIT = 200;
+
+/** One hit's text, cut to {@link SNIPPET_LIMIT} unless the reader asked for all
+ *  of it. Shared by both printers so the flag cannot mean one thing in a local
+ *  search and another in a hybrid one. */
+const snippetOf = (text: string, full: boolean): string => {
+  if (text.length === 0) return '(no content)';
+  if (full || text.length <= SNIPPET_LIMIT) return text;
+  return `${text.slice(0, SNIPPET_LIMIT)}…`;
+};
+
+export const formatLocalSearchResult = (hit: SearchHit, index: number, full = false): string => {
   const ref = paragraphRefcode(hit.paragraph);
   let title = '';
   if (hit.publication.title !== hit.publication.code) {
     title = ` (${hit.publication.title})`;
   }
-  const text = nodesToText(hit.paragraph.nodes);
-  let snippet = '(no content)';
-  if (text.length > 0) {
-    snippet = text.slice(0, 200);
-    if (text.length > 200) {
-      snippet += '…';
-    }
-  }
+  const snippet = snippetOf(nodesToText(hit.paragraph.nodes), full);
   return `  ${index + 1}. ${ref}${title}\n     ${snippet}`;
 };
 
@@ -105,7 +122,7 @@ export const formatVectorAbsence = (reason: VectorAbsenceReason): string => {
   return 'lexical only — this query routes straight to the text index';
 };
 
-const formatSearchHit = (hit: SearchParagraphHit, index: number): string => {
+const formatSearchHit = (hit: SearchParagraphHit, index: number, full: boolean): string => {
   const legs: string[] = [];
   if (Option.isSome(hit.lexicalRank)) legs.push(`text #${String(hit.lexicalRank.value)}`);
   if (Option.isSome(hit.vectorRank)) legs.push(`vector #${String(hit.vectorRank.value)}`);
@@ -113,21 +130,28 @@ const formatSearchHit = (hit: SearchParagraphHit, index: number): string => {
   if (legs.length > 0) {
     provenance = `  [${legs.join(', ')}]`;
   }
-  let snippet = '(no content)';
-  if (hit.snippet.length > 0) {
-    snippet = hit.snippet.slice(0, 200);
-    if (hit.snippet.length > 200) snippet += '…';
-  }
+  const snippet = snippetOf(hit.snippet, full);
   return `  ${String(index + 1)}. ${hit.refcode} (${hit.bookTitle} — ${hit.author})${provenance}\n     ${snippet}`;
 };
 
-/** The whole §9 result as lines, pinned topics first.
+/** The whole §9 result as lines, topics first.
  *
- *  §9.4 ranks topic hits as a *pinned group above* the paragraph results rather
- *  than interleaving them, because a topic page and a paragraph answer different
+ *  §9.4 ranks topic hits as a group *above* the paragraph results rather than
+ *  interleaving them, because a topic page and a paragraph answer different
  *  questions and a fused ordering would bury the page that summarizes what the
- *  paragraphs each say once. The printer keeps that structure visible. */
-export const formatSearchResult = (result: SearchResult): readonly string[] => {
+ *  paragraphs each say once. The printer keeps that structure visible.
+ *
+ *  **The topics come from the caller, not from the result.** Searching the
+ *  writings does not read a topics artifact — a host with no wiki would
+ *  otherwise pay a lookup inside the hot path on every query — so the command
+ *  fetches the group beside its search and hands it here. Defaulted to empty
+ *  because the group is genuinely optional on this surface: a caller with no
+ *  wiki prints the ranking and nothing above it. */
+export const formatSearchResult = (
+  result: SearchResult,
+  full = false,
+  topics: readonly SearchTopicHit[] = [],
+): readonly string[] => {
   const lines: string[] = [];
 
   if (Option.isSome(result.locate)) {
@@ -136,9 +160,9 @@ export const formatSearchResult = (result: SearchResult): readonly string[] => {
     lines.push('');
   }
 
-  if (result.topics.length > 0) {
-    lines.push(`Topics (${String(result.topics.length)}):`);
-    for (const topic of result.topics) {
+  if (topics.length > 0) {
+    lines.push(`Topics (${String(topics.length)}):`);
+    for (const topic of topics) {
       // `/wiki/<slug>`, which is the route `route/codec.ts` decodes. A bare
       // `/<slug>` is not a route this app has, so the printed link 404s.
       lines.push(`  • ${topic.title} [${topic.status}] — /wiki/${topic.slug}`);
@@ -152,7 +176,7 @@ export const formatSearchResult = (result: SearchResult): readonly string[] => {
     lines.push(`Results for "${result.query}" (${String(result.paragraphs.length)}):`);
     lines.push('');
     for (const [index, hit] of result.paragraphs.entries()) {
-      lines.push(formatSearchHit(hit, index));
+      lines.push(formatSearchHit(hit, index, full));
     }
   }
 

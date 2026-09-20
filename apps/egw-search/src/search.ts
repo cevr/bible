@@ -40,7 +40,6 @@ export type ContextParagraph = Hit['before'][number];
  *  a client-side state (no query yet) rather than anything the server returns. */
 export interface SearchOutcome {
   readonly hits: readonly Hit[];
-  readonly topics?: readonly string[];
   readonly scope: CorpusScope;
   readonly vector: string;
 }

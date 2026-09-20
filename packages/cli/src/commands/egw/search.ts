@@ -1,8 +1,15 @@
 import { EGWApiClient, type Schemas as EGWSchemas } from '@bible/core/egw';
-import { SearchQuery, SearchResultJson, SearchService } from '@bible/core/search';
+import {
+  SearchQuery,
+  SearchResultJson,
+  SearchService,
+  SearchTopicHit,
+  SEARCH_TOPIC_LIMIT,
+} from '@bible/core/search';
+import { WikiService } from '@bible/core/wiki';
 import { Reference } from '@bible/core/writings';
 import { WritingsService } from '@bible/core/writings/service';
-import { Console, Effect, Option, Schema } from 'effect';
+import { Cause, Console, Effect, Option, Schema } from 'effect';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
 
 import {
@@ -13,6 +20,7 @@ import {
 } from './format.js';
 import { FullLayer } from './layers.js';
 import { searchService } from './search-layer.js';
+import { WikiLayer } from '../wiki.js';
 
 /** The one wire codec §9 defines, encoded rather than re-projected.
  *
@@ -29,7 +37,62 @@ const encodeSearchResult = Schema.encodeEffect(
   Schema.fromJsonString(SearchResultJson, { space: 2 }),
 );
 
-export const localSearch = (query: string, bookCode: Option.Option<string>, limit = 20) =>
+/** The topic group the results page shows above the ranking, fetched beside the
+ *  search rather than through it.
+ *
+ *  §9 ranks the writings; a topic page is a different kind of answer and comes
+ *  from a different artifact, so `SearchService` no longer reads a wiki. The
+ *  cost of that was one lookup on every query, paid even by the machines that
+ *  have no `topics.db` — which is most of them. Asking here means a surface that
+ *  wants the group asks for it, and the ones that do not never open the file.
+ *
+ *  **Nothing about the wiki may fail the search.** The topic group is a garnish
+ *  on an answer that is already complete, so every way of not getting one — a
+ *  refusing artifact, a `HOME` that will not resolve, a driver that dies while
+ *  the layer is built — degrades to no group. `catchCause` rather than
+ *  `catchTag`, because the failures are not all in the error channel: the
+ *  installed layer resolves its paths through `Config` and dies on a miss, and
+ *  a search that answered perfectly well must not be thrown away over the
+ *  heading printed above it. The cause is logged, so a degradation is visible
+ *  rather than silent.
+ *
+ *  The scope is exactly this fetch. The search already ran, in its own effect,
+ *  and its defects still reach the caller.
+ *
+ *  Resolved through `WikiLayer`, the same `Context.Reference` the `bible wiki`
+ *  commands use: its default opens the installed artifact, and a test points it
+ *  at a fixture without this command taking a layer parameter. */
+const searchTopics = (text: string): Effect.Effect<readonly SearchTopicHit[]> =>
+  Effect.flatMap(WikiLayer, (layer) =>
+    Effect.gen(function* () {
+      const wiki = yield* WikiService;
+      const summaries = yield* wiki.list({ query: text });
+      return summaries.slice(0, SEARCH_TOPIC_LIMIT).map((summary) =>
+        SearchTopicHit.make({
+          slug: summary.slug,
+          title: summary.title,
+          status: summary.status,
+        }),
+      );
+    }).pipe(
+      Effect.provide(layer),
+      Effect.catchCause((cause) =>
+        Effect.as(
+          Effect.logDebug('search.topics.unavailable').pipe(
+            Effect.annotateLogs({ cause: Cause.pretty(cause) }),
+          ),
+          [] as readonly SearchTopicHit[],
+        ),
+      ),
+    ),
+  );
+
+export const localSearch = (
+  query: string,
+  bookCode: Option.Option<string>,
+  limit = 20,
+  full = false,
+) =>
   Effect.gen(function* () {
     const service = yield* WritingsService;
     let publication;
@@ -53,7 +116,7 @@ export const localSearch = (query: string, bookCode: Option.Option<string>, limi
     }
     yield* Console.log(`Local search results for "${query}"${scope} (${results.length}):\n`);
     for (const [i, r] of results.entries()) {
-      yield* Console.log(formatLocalSearchResult(r, i));
+      yield* Console.log(formatLocalSearchResult(r, i, full));
     }
   });
 
@@ -72,6 +135,17 @@ const remote = Flag.boolean('remote').pipe(
 );
 const json = Flag.boolean('json').pipe(
   Flag.withDescription('Output raw JSON (especially useful with --remote)'),
+  Flag.withDefault(false),
+);
+/** Print each hit's whole paragraph instead of the 200-character cut.
+ *
+ *  The text is already on the hit, so this asks the printer for what the
+ *  search already returned rather than for more data. It exists because
+ *  checking a quotation against the corpus otherwise took one `lookup` call
+ *  per result — `--json` carried the full text all along, but only for a
+ *  reader willing to parse JSON. */
+const full = Flag.boolean('full').pipe(
+  Flag.withDescription('Print each result’s full paragraph instead of a 200-character snippet'),
   Flag.withDefault(false),
 );
 const lang = Flag.string('lang').pipe(
@@ -117,12 +191,14 @@ const remoteSearch = (queryStr: string, lang: string, limit: number, json: boole
 
 export const egwSearch = Command.make(
   'search',
-  { query, book, limit, remote, json, lang, scope },
+  { query, book, limit, remote, json, lang, scope, full },
   (args) =>
     Effect.gen(function* () {
       const queryStr = args.query.join(' ').trim();
       if (queryStr.length === 0) {
-        yield* Console.log('Usage: bible egw search <query> [--book CODE] [--remote] [--limit N]');
+        yield* Console.log(
+          'Usage: bible egw search <query> [--book CODE] [--remote] [--limit N] [--full]',
+        );
         return;
       }
 
@@ -149,10 +225,15 @@ export const egwSearch = Command.make(
       );
 
       if (args.json) {
+        // `--json` is the wire codec and nothing else: `SearchResultJson` is
+        // what `v1.search.query` returns, and adding a group the RPC handler
+        // does not send would break the byte parity that contract rests on. A
+        // script that wants topics asks `bible wiki topics` for them.
         yield* Console.log(yield* encodeSearchResult(result));
         return;
       }
-      for (const line of formatSearchResult(result)) {
+      const topics = yield* searchTopics(queryStr);
+      for (const line of formatSearchResult(result, args.full, topics)) {
         yield* Console.log(line);
       }
     }),

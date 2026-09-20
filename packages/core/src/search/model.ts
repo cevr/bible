@@ -156,6 +156,12 @@ export class SearchParagraphHit extends Schema.Class<SearchParagraphHit>('Search
  *  class: a lookup match answers "what did this selection mean", a search topic
  *  answers "which page is this query about", and the two surfaces cap and order
  *  them differently. Sharing the class would tie §7's panel to §9's result page.
+ *
+ *  Not a field of `SearchResult` — see that class for why. It stays here, with
+ *  `SEARCH_TOPIC_LIMIT`, because it is the *shape* of a search-page topic group
+ *  and the surfaces that render one should agree on it. What changed is who
+ *  fetches it: the application that has a wiki, rather than the service that
+ *  searches the writings.
  */
 export class SearchTopicHit extends Schema.Class<SearchTopicHit>('Search/TopicHit')({
   slug: TopicSlug,
@@ -184,11 +190,19 @@ export class SearchLocateTarget extends Schema.Class<SearchLocateTarget>('Search
 
 /** The whole answer to one query (§9).
  *
- *  Field order is render order: the pinned topics group, then the located
- *  paragraph if the route found one, then the fused paragraph ranking. Like
- *  §7's five groups, every field is present and no field is optional — an empty
- *  `topics` is present-and-empty, so the three clients cannot disagree about
- *  whether the group exists this time.
+ *  Field order is render order: the located paragraph if the route found one,
+ *  then the fused paragraph ranking. Every field is present and no field is
+ *  optional, so the clients cannot disagree about whether a group exists this
+ *  time.
+ *
+ *  **Retrieval over the corpus, and nothing else.** The pinned topics group
+ *  used to be a field here, fetched by the search service from `WikiService` on
+ *  every query. That made a wiki a dependency of *searching the writings*: a
+ *  host with no topics artifact logged a degradation on every single query, and
+ *  the two surfaces that do want topics paid a lookup inside the hot path they
+ *  could not see or skip. Topics are a property of an application that has
+ *  them, so an app that wants them asks for them beside its search rather than
+ *  through it — see `SearchTopicHit`.
  */
 export class SearchResult extends Schema.Class<SearchResult>('Search/Result')({
   /** The query as it was asked, echoed so an async client can tell which
@@ -196,8 +210,6 @@ export class SearchResult extends Schema.Class<SearchResult>('Search/Result')({
   query: Schema.NonEmptyString,
   route: SearchRoute,
   scope: CorpusScope,
-  /** §9.4's pinned group. Above `paragraphs`, never inside it. */
-  topics: Schema.Array(SearchTopicHit),
   locate: Schema.Option(SearchLocateTarget),
   paragraphs: Schema.Array(SearchParagraphHit),
   /** §9.6's typed absence, or the fingerprint the vector leg ran under. */

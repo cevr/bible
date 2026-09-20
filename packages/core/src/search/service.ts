@@ -2,21 +2,23 @@
  *
  *  The router (§9.3) picks a route; the lexical leg always runs (§9.3: "always
  *  lexical"); the vector leg runs only when the route, the query shape, the
- *  index and the embedder all allow it; RRF (§9.4) fuses what came back; and the
- *  topic pages ride above the ranking as a pinned group, never inside it.
+ *  index and the embedder all allow it; and RRF (§9.4) fuses what came back.
+ *
+ *  **Retrieval over the writings, and nothing else.** A pinned group of wiki
+ *  topic pages used to be fetched here on every query, which made a topics
+ *  artifact a dependency of searching the corpus. It is an application's
+ *  concern now — see `SearchResult`.
  *
  *  **No new data layer.** Every read is a call an existing service already
  *  exposes — `WritingsService.searchScored`, `EGWParagraphDatabase
- *  .findByRefcodeShort`, `WikiService.list` — exactly as `LookupService`
- *  composes §7 and `composeSections` composes §6. What was missing was the seam
- *  that routes one string across two retrieval strategies, and this is only that
- *  seam.
+ *  .findByRefcodeShort` — exactly as `LookupService` composes §7 and
+ *  `composeSections` composes §6. What was missing was the seam that routes one
+ *  string across two retrieval strategies, and this is only that seam.
  *
  *  **The effect does not fail.** Search degrades: an absent index is
- *  lexical-only, an absent embedder is lexical-only, an unreachable wiki is an
- *  empty pinned group. What it does *not* do is degrade silently — every
- *  degradation of the vector leg is reported as §9.6's typed absence on the
- *  result, and the same value reaches all three clients.
+ *  lexical-only, an absent embedder is lexical-only. What it does *not* do is
+ *  degrade silently — every degradation of the vector leg is reported as §9.6's
+ *  typed absence on the result, and the same value reaches all three clients.
  */
 
 import { Array as Arr, Context, Effect, Layer, Option, Stream } from 'effect';
@@ -31,7 +33,6 @@ import {
 } from '../egw-db/book-database.js';
 import type { CorpusScope } from '../writings/corpus-scope.js';
 import type { CorpusFilter } from '../writings/corpus-class.js';
-import type { WikiServiceApi } from '../wiki/service.js';
 import { QueryEmbedder, type QueryEmbedderApi } from './embedder.js';
 import { fuse, ORIGINAL_QUERY_WEIGHT, type FusionList } from './fusion.js';
 import {
@@ -39,11 +40,9 @@ import {
   queryLimit,
   queryScope,
   candidateLimit,
-  SEARCH_TOPIC_LIMIT,
   SearchLocateTarget,
   SearchParagraphHit,
   SearchResult,
-  SearchTopicHit,
   vectorUnavailable,
   VectorLegRan,
   type SearchQuery,
@@ -177,15 +176,16 @@ export interface SearchParagraphRow {
   readonly score: number;
 }
 
-/** The corpora one search reads, bundled the way `SectionSources` is.
+/** The corpus one search reads, bundled the way `SectionSources` is.
  *
- *  Two rather than four: hybrid search is over `paragraphs_fts` and the topic
- *  pages, and nothing else. Bundled as one service so a host wires it once and
- *  a host that wires nothing says so with `NotWired` rather than by omission.
+ *  One rather than two: hybrid search is over `paragraphs_fts` and nothing
+ *  else. A wiki used to be the second, which made topic pages a dependency of
+ *  searching the writings — see `SearchResult`. Still a bundle rather than the
+ *  bare service, so a host wires it once and a host that wires nothing says so
+ *  with `NotWired` rather than by omission.
  */
 export interface SearchSources {
   readonly paragraphs: EGWParagraphDatabaseService;
-  readonly wiki: WikiServiceApi;
 }
 
 export type SearchSourcing =
@@ -436,37 +436,6 @@ const scanWith = (
     })),
   );
 
-/** §9.4's pinned topics group.
- *
- *  Above the ranking, never inside it. The list comes from `WikiService.list`,
- *  which searches authored titles and the catalog, and it is capped small
- *  because a pinned group is an identity answer.
- */
-const topicGroup = (
-  sources: SearchSources,
-  text: string,
-): Effect.Effect<readonly SearchTopicHit[]> =>
-  sources.wiki.list({ query: text }).pipe(
-    Effect.map((summaries) =>
-      summaries.slice(0, SEARCH_TOPIC_LIMIT).map((summary) =>
-        SearchTopicHit.make({
-          slug: summary.slug,
-          title: summary.title,
-          status: summary.status,
-        }),
-      ),
-    ),
-    // §6.5's posture over the one declared error. `catchCause` also swallowed
-    // defects and interruption, which turns a real bug into a permanently empty
-    // pinned group.
-    Effect.catchTag('WikiUnavailableError', (cause) =>
-      Effect.logWarning('search.topics.degraded').pipe(
-        Effect.annotateLogs({ category: cause.category, message: cause.message }),
-        Effect.as<readonly SearchTopicHit[]>([]),
-      ),
-    ),
-  );
-
 /** §9.3's locate-jump: where a refcode query lands, when it lands anywhere.
  *
  *  `findByRefcodeShort` is the existing lookup the reader already reaches
@@ -620,7 +589,6 @@ const emptyResult = (input: SearchQuery, status: VectorLegStatus): SearchResult 
     query: input.text,
     route: route(input.text)._tag,
     scope: queryScope(input),
-    topics: [],
     locate: Option.none(),
     paragraphs: [],
     vector: status,
@@ -686,10 +654,9 @@ const makeQuery =
 
       // The lexical leg and the pinned group are independent reads over two
       // corpora, and the result needs both, so they run together.
-      const [lexical, topics, locate] = yield* Effect.all(
+      const [lexical, locate] = yield* Effect.all(
         [
           lexicalLeg(sources, routed, scope, input.bookCode, filter, candidates),
-          topicGroup(sources, input.text),
           locateLeg(sources, routed),
         ],
         { concurrency: 'unbounded' },
@@ -739,7 +706,6 @@ const makeQuery =
         query: input.text,
         route: routed._tag,
         scope,
-        topics,
         locate,
         paragraphs: fuseResults(lexical, vectorOnly, vector.ids, queryLimit(input)),
         vector: vector.status,

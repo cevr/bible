@@ -25,7 +25,12 @@
  *  out of its way.
  */
 
-import type { SearchParagraphHit, SearchResult, VectorAbsenceReason } from '@bible/core/search';
+import type {
+  SearchParagraphHit,
+  SearchResult,
+  SearchTopicHit,
+  VectorAbsenceReason,
+} from '@bible/core/search';
 import { Reference as WritingsReference } from '@bible/core/writings';
 import { Option } from 'effect';
 
@@ -267,8 +272,18 @@ const paragraphPath = (input: {
     }),
   );
 
-/** The whole plan, from one read of one result. */
-export const searchView = (result: SearchResult): SearchView => ({
+/** The whole plan, from one read of one result and the topics beside it.
+ *
+ *  `topics` is a parameter rather than a field of `result` because a wiki is a
+ *  property of the *application*, not of searching the writings: `SearchResult`
+ *  carries retrieval over the corpus and nothing else. A host that has topic
+ *  pages fetches them beside its search and passes them here; a host that has
+ *  none passes nothing, which is why the parameter defaults to empty rather
+ *  than being required. See `SearchResult` in `@bible/core/search`. */
+export const searchView = (
+  result: SearchResult,
+  topics: readonly SearchTopicHit[] = [],
+): SearchView => ({
   query: result.query,
   route: result.route,
   scope: result.scope,
@@ -282,7 +297,7 @@ export const searchView = (result: SearchResult): SearchView => ({
       href,
     })),
   ),
-  topics: result.topics.map((topic): SearchTopicView => ({
+  topics: topics.map((topic): SearchTopicView => ({
     slug: String(topic.slug),
     title: topic.title,
     status: topic.status,
@@ -303,8 +318,7 @@ export const searchView = (result: SearchResult): SearchView => ({
   vector: vectorNotice(result),
   // A `locate` answer is not empty even with no ranking behind it: the jump
   // target *is* the answer to a refcode query.
-  empty:
-    result.paragraphs.length === 0 && result.topics.length === 0 && Option.isNone(result.locate),
+  empty: result.paragraphs.length === 0 && topics.length === 0 && Option.isNone(result.locate),
 });
 
 /** §9.6's absence, as the one sentence the reader needs. */

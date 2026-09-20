@@ -95,7 +95,6 @@ export type SearchHitWire = S.Schema.Type<typeof SearchHitSchema>;
 
 export const SearchResponseSchema = S.Struct({
   hits: S.Array(SearchHitSchema),
-  topics: S.Array(S.String),
   /** The scope this page was actually retrieved in. Echoed rather than assumed
    *  by the client, so a result set always states which corpus produced it. */
   scope: CorpusScope,

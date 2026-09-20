@@ -38,7 +38,7 @@ import {
   type ReloadableArtifact,
   LookupService,
   WikiSectionSources,
-  WikiService,
+  type WikiService,
 } from '@bible/core/wiki';
 import * as SqliteNode from '@effect/sql-sqlite-node/SqliteClient';
 import * as NodeFileSystem from '@effect/platform-node/NodeFileSystem';
@@ -146,7 +146,13 @@ const studyLayer = (input: {
   );
 
 /** Hybrid search on Electron main (§9): the same portable `SearchService` the
- *  worker and the CLI resolve, over this host's two SQLite drivers.
+ *  worker and the CLI resolve, over this host's writings driver.
+ *
+ *  **The writings, and nothing else.** §9 ranks the corpus; the topic group the
+ *  results page shows above the ranking is a different artifact's answer, so a
+ *  renderer that wants it asks `WikiService` beside its search. No wiki is wired
+ *  in here, which is what keeps an install with no `topics.db` from paying an
+ *  absent-artifact lookup on every query.
  *
  *  The vector index is read from `userData` when it is there and reported as
  *  §9.6's typed absence when it is not — which is every install until the
@@ -154,7 +160,6 @@ const studyLayer = (input: {
  *  an error path. The native CPU adapter is provided either way: if the model
  *  is not present it declines, and the result says `embedder` instead. */
 const searchLayer = (input: {
-  readonly wiki: Layer.Layer<WikiService>;
   readonly writings: Layer.Layer<EGWParagraphDatabase>;
   /** The *activated* index, or `None` when CorpusSupply verified none.
    *
@@ -171,10 +176,10 @@ const searchLayer = (input: {
         Effect.gen(function* () {
           return SearchCorpusSources.of({
             _tag: 'wired' as const,
-            sources: { paragraphs: yield* EGWParagraphDatabase, wiki: yield* WikiService },
+            sources: { paragraphs: yield* EGWParagraphDatabase },
           });
         }),
-      ).pipe(Layer.provide(input.writings), Layer.provide(input.wiki)),
+      ).pipe(Layer.provide(input.writings)),
     ),
     Layer.provide(
       Option.match(input.vectorIndexFile, {
@@ -285,7 +290,6 @@ export const makeRuntime = (files: MainRuntimeFiles, host: MainRuntimeHost): Mai
   });
   const study = studyLayer({ bible, writings });
   const search = searchLayer({
-    wiki,
     writings,
     vectorIndexFile: files.vectorIndexFile,
   });

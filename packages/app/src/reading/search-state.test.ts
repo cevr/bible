@@ -28,6 +28,7 @@ import {
 import {
   GOLDEN_QUERIES,
   GOLDEN_TOPIC_QUERY,
+  GOLDEN_TOPIC_SLUG,
   goldenSearchLayer,
   goldenVector,
   goldenVectorIndexBytes,
@@ -75,7 +76,6 @@ const topic = (slug: string, title: string): SearchTopicHit =>
   SearchTopicHit.make({ slug: topicSlug(slug), title, status: 'flagship' });
 
 const result = (input: {
-  readonly topics?: readonly SearchTopicHit[];
   readonly paragraphs?: readonly SearchParagraphHit[];
   readonly locate?: Option.Option<SearchLocateTarget>;
   readonly route?: SearchResult['route'];
@@ -85,7 +85,6 @@ const result = (input: {
     query: 'the sanctuary',
     route: input.route ?? 'hybrid',
     scope: 'egw',
-    topics: input.topics ?? [],
     locate: input.locate ?? Option.none(),
     paragraphs: input.paragraphs ?? [],
     vector: Option.match(Option.fromNullishOr(input.absence), {
@@ -95,16 +94,18 @@ const result = (input: {
     }),
   });
 
+/** Still §9.4's pinned group, now assembled by the surface rather than by the
+ *  search service: `searchView` takes the topics beside the result. The claims
+ *  below are unchanged, because what a host renders did not change — only who
+ *  fetches it. */
 describe('searchView — §9.4 the pinned topics group', () => {
   test('keeps topics in their own group, never inside the paragraph ranking', () => {
     // The structural claim §9.4 rests on. A surface that fused the two lists
     // would have to merge these fields deliberately; this is what stops it
     // happening by accident.
     const view = searchView(
-      result({
-        topics: [topic('the-sanctuary', 'The Sanctuary')],
-        paragraphs: [hit({ refcode: 'GC 425.1', lexicalRank: 1 })],
-      }),
+      result({ paragraphs: [hit({ refcode: 'GC 425.1', lexicalRank: 1 })] }),
+      [topic('the-sanctuary', 'The Sanctuary')],
     );
     expect(view.topics.map((entry) => entry.title)).toEqual(['The Sanctuary']);
     expect(view.hits.map((entry) => entry.refcode)).toEqual(['GC 425.1']);
@@ -114,14 +115,14 @@ describe('searchView — §9.4 the pinned topics group', () => {
   });
 
   test('routes a topic to its wiki page', () => {
-    const view = searchView(result({ topics: [topic('the-daily', 'The Daily')] }));
+    const view = searchView(result({}), [topic('the-daily', 'The Daily')]);
     expect(view.topics[0]?.href).toBe('/wiki/the-daily');
   });
 
   test('carries the pinned group even when the ranking is empty', () => {
     // A query that matched a topic and no paragraph still has an answer, and a
     // surface that keyed "no results" off the ranking alone would hide it.
-    const view = searchView(result({ topics: [topic('the-daily', 'The Daily')] }));
+    const view = searchView(result({}), [topic('the-daily', 'The Daily')]);
     expect(view.empty).toBe(false);
     expect(view.topics.length).toBe(1);
   });
@@ -228,14 +229,21 @@ describe('searchView — one plan per result', () => {
     // taken before the change still describes the result it was built from,
     // because its fields were never two reads.
     createRoot((dispose) => {
-      const [live, setLive] = createSignal(
-        result({ paragraphs: [hit({ refcode: 'GC 1.1', lexicalRank: 1 })] }),
-      );
-      const plan = createMemo(() => searchView(live()));
+      // One signal carrying both of the plan's inputs, because the property
+      // under test is that a plan never *mixes* them: two signals could tear
+      // exactly the way this test exists to forbid.
+      const [live, setLive] = createSignal<{
+        readonly result: SearchResult;
+        readonly topics: readonly SearchTopicHit[];
+      }>({
+        result: result({ paragraphs: [hit({ refcode: 'GC 1.1', lexicalRank: 1 })] }),
+        topics: [],
+      });
+      const plan = createMemo(() => searchView(live().result, live().topics));
 
       flush();
       const before = plan();
-      setLive(result({ topics: [topic('the-daily', 'The Daily')] }));
+      setLive({ result: result({}), topics: [topic('the-daily', 'The Daily')] });
       flush();
       const after = plan();
 
@@ -335,13 +343,24 @@ describe('searchView — every link decodes to a route (B2)', () => {
       ),
     );
 
+  /** What a host would have fetched for this query. Only the topic query has a
+   *  topic page, which keeps the loop's two cases apart: a corpus query draws
+   *  paragraph links, and the topic query also draws a `/wiki/<slug>` link. */
+  const goldenTopicsFor = (query: string): readonly SearchTopicHit[] => {
+    if (query !== GOLDEN_TOPIC_QUERY) return [];
+    return [topic(String(GOLDEN_TOPIC_SLUG), 'The Close of Probation')];
+  };
+
   test('decodes every paragraph, topic and locate link in the golden result set', () => {
     let checkedParagraphs = 0;
     let checkedTopics = 0;
     let checkedLocates = 0;
 
     for (const golden of [...GOLDEN_QUERIES.map((entry) => entry.query.text), GOLDEN_TOPIC_QUERY]) {
-      const view = searchView(run(golden));
+      // The topic group is the surface's own input now: the search no longer
+      // returns one, so the surface supplies it exactly as a host does.
+      const topics = goldenTopicsFor(golden);
+      const view = searchView(run(golden), topics);
 
       for (const paragraph of view.hits) {
         // Every fixture paragraph carries a `para_id`, so every hit is a link.

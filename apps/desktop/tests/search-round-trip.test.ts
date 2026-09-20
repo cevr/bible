@@ -252,14 +252,20 @@ describe('desktop hybrid search', () => {
         }),
       );
 
-      // §9.4's pinned group, at its exact position: the matching topic is the
-      // whole list and it is first.
-      expect(result.topics.map((topic) => String(topic.slug))).toEqual([GOLDEN_TOPIC_SLUG]);
-      // And never inside the ranking, which is the structural half.
-      const topicSlugs = new Set(result.topics.map((topic) => String(topic.slug)));
-      expect(result.paragraphs.some((hit) => topicSlugs.has(hit.paragraphId))).toBe(false);
-      expect(result.paragraphs.some((hit) => topicSlugs.has(hit.refcode))).toBe(false);
+      // §9.4's group is no longer on this wire. `v1.search.query` answers with
+      // retrieval over the writings, and a host that renders topic pages
+      // fetches them from its own `WikiService` beside this call — see
+      // `SearchResult`. What the round trip still has to prove is that the
+      // topic-shaped query is answered out of the corpus at all, and that no
+      // topic identity leaked into the ranking where a host could render it as
+      // a paragraph.
       expect(result.paragraphs.length).toBeGreaterThan(0);
+      expect(result.paragraphs.some((hit) => hit.paragraphId === String(GOLDEN_TOPIC_SLUG))).toBe(
+        false,
+      );
+      expect(result.paragraphs.some((hit) => hit.refcode === String(GOLDEN_TOPIC_SLUG))).toBe(
+        false,
+      );
     }),
   );
 });

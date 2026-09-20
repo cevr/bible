@@ -21,8 +21,6 @@ import {
   VectorIndexBytes,
 } from '@bible/core/search';
 import { layerBunEmbedder } from '@bible/core/search/bun';
-import { WikiService } from '@bible/core/wiki';
-import { layerBunWithCatalog } from '@bible/core/wiki/bun';
 import { BunServices } from '@effect/platform-bun';
 import { Config, Context, Effect, Layer, Option, Path } from 'effect';
 
@@ -89,11 +87,11 @@ export const verifiedVectorIndex = (
     }),
   );
 
-/** The two corpora §9 reads, plus the optional index, resolved against `~/.bible`.
+/** The corpus §9 reads, plus the optional index, resolved against `~/.bible`.
  *
- *  One `Layer.unwrap` for all three because they share the same two facts — the
- *  path service and `HOME` — and resolving them once is what keeps the three
- *  file locations spelled in a single place. */
+ *  One `Layer.unwrap` for both because they share the same two facts — the path
+ *  service and `HOME` — and resolving them once is what keeps the file
+ *  locations spelled in a single place. */
 export const installedSearchLayer: Layer.Layer<SearchService> = Layer.unwrap(
   Effect.gen(function* () {
     const path = yield* Path.Path;
@@ -103,7 +101,11 @@ export const installedSearchLayer: Layer.Layer<SearchService> = Layer.unwrap(
     yield* ensureOnnxDylibs;
     const at = (file: string): string => path.join(home, '.bible', file);
 
-    // `paragraphs_fts` for the ranking; the wiki for the pinned topics group.
+    // `paragraphs_fts`, and nothing else: §9 ranks the writings, so the only
+    // corpus this opens is the one it ranks. The topic group the results page
+    // shows above the ranking is fetched beside the search, through `WikiLayer`
+    // — a machine with no `topics.db` therefore opens no wiki here at all
+    // instead of paying an absent-artifact lookup on every query.
     const sources = Layer.effect(
       SearchCorpusSources,
       Effect.gen(function* () {
@@ -111,19 +113,11 @@ export const installedSearchLayer: Layer.Layer<SearchService> = Layer.unwrap(
           _tag: 'wired',
           sources: {
             paragraphs: yield* EGWParagraphDatabase,
-            wiki: yield* WikiService,
           },
         });
       }),
     ).pipe(
       Layer.provide(EGWDbBun.layerBun(at('egw-paragraphs.db'))),
-      Layer.provide(
-        layerBunWithCatalog({
-          topics: at('topics.db'),
-          bible: at('bible.db'),
-          writings: at('egw-paragraphs.db'),
-        }),
-      ),
       // The writings database failing to open is the one hard input here: with
       // no `paragraphs_fts` there is no lexical leg, and §9 has no degraded
       // shape for that. It reports as a defect rather than as a search that

@@ -16,6 +16,13 @@
  * than being hardcoded, because the deployed host mounts them on a volume.
  * The vector index and the embedder are both optional by §9.6: if either is
  * absent, search degrades to lexical-only and the result says so.
+ *
+ * **No wiki.** This surface is a search box over the writings, and it has no
+ * topic pages to pin: the client never rendered the `topics` field it was
+ * sent, and the deployed volume carries no `topics.db`, so every query logged
+ * a wiki degradation to produce an empty array nobody read. Topics are an
+ * application's concern now rather than the search service's, and this
+ * application's answer is that it has none.
  */
 
 import * as SqliteBun from '@effect/sql-sqlite-bun/SqliteClient';
@@ -46,8 +53,6 @@ import {
 } from '@bible/core/search';
 import { layerBunEmbedder } from '@bible/core/search/bun';
 import type { CorpusFilter } from '@bible/core/writings';
-import { WikiService } from '@bible/core/wiki';
-import { layerBunWithCatalog } from '@bible/core/wiki/bun';
 
 import { NO_SELECTION, readerUrl, SearchApi, SearchFailed } from './api.js';
 import { emptySurrounding, surroundingParagraphs } from './context.js';
@@ -109,7 +114,7 @@ const SearchGroupLive = HttpApiBuilder.group(SearchApi, 'search', (handlers) =>
             // kept on the wire so a link can still say so explicitly.
             excludeApparatus: NEVER_APPARATUS,
           };
-          if (text === '') return { hits: [], topics: [], scope, vector: 'idle' };
+          if (text === '') return { hits: [], scope, vector: 'idle' };
 
           const limit = clamp(params.limit, DEFAULT_LIMIT, MAX_LIMIT);
           const radius = clamp(params.context, DEFAULT_CONTEXT, MAX_CONTEXT);
@@ -139,7 +144,22 @@ const SearchGroupLive = HttpApiBuilder.group(SearchApi, 'search', (handlers) =>
           const anchors = paragraphs.flatMap((hit) =>
             Option.match(hit.rawParaId, { onNone: () => [], onSome: (id) => [id] }),
           );
-          const context = yield* surroundingParagraphs(anchors, radius);
+          // Timed separately from the search itself. `search.timing` covers
+          // the three retrieval legs and nothing else, and a query whose
+          // `totalMs` was 981 inside a 43-second HTTP span proved the handler
+          // can be the cost — so the handler's own read is measured too rather
+          // than inferred from the difference.
+          const contextAt = yield* Effect.clockWith((clock) => clock.currentTimeMillis);
+          const context = yield* surroundingParagraphs(anchors, radius).pipe(
+            Effect.withSpan('search.context', { attributes: { anchors: anchors.length } }),
+          );
+          yield* Effect.logInfo('search.context.timing').pipe(
+            Effect.annotateLogs({
+              anchors: anchors.length,
+              radius,
+              contextMs: (yield* Effect.clockWith((clock) => clock.currentTimeMillis)) - contextAt,
+            }),
+          );
 
           return {
             hits: paragraphs.map((hit) => {
@@ -160,7 +180,6 @@ const SearchGroupLive = HttpApiBuilder.group(SearchApi, 'search', (handlers) =>
                 after: around.after,
               };
             }),
-            topics: result.topics.map((topic) => topic.title),
             scope,
             vector: result.vector._tag === 'ran' ? 'hybrid' : `lexical — ${result.vector.reason}`,
           };
@@ -224,20 +243,12 @@ const CorpusSources = Layer.effect(
       _tag: 'wired',
       sources: {
         paragraphs: yield* EGWParagraphDatabase,
-        wiki: yield* WikiService,
       },
     });
   }),
 ).pipe(
   Layer.provide(EGWParagraphDatabase.layerCore),
   Layer.provide(SqlLive),
-  Layer.provide(
-    layerBunWithCatalog({
-      topics: at('topics.db'),
-      bible: at('bible.db'),
-      writings: at('egw-paragraphs.db'),
-    }),
-  ),
   Layer.provide(BunServices.layer),
   // No `paragraphs_fts` means no lexical leg, and §9 has no degraded shape for
   // that. It is a defect, not an empty result set.

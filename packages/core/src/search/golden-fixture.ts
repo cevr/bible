@@ -239,15 +239,20 @@ export const goldenVectorIndexBytes = (fingerprint: string = MODEL_FINGERPRINT):
 
 /** The one topic the golden set matches, and the query it matches.
  *
- *  §9.4 puts topic pages *above* the ranking as a pinned group, never inside
- *  it — and that is only a checkable claim if some golden query actually
- *  produces a topic. With an empty catalog every assertion about pinning is
- *  vacuously true: "topics is an array" passes, and so does "the two hosts'
- *  topic sets are equal", because both are empty.
+ *  A topic group above a search ranking is an *application's* group now, not a
+ *  field of `SearchResult` — but it is still the same query text on all three
+ *  surfaces, so the pair stays here beside the queries rather than being
+ *  re-invented in each app's suite. A surface that renders topics beside its
+ *  results pairs {@link goldenTopicCatalog} with {@link goldenSearchLayer} and
+ *  asserts that this query names this slug.
+ *
+ *  With an empty catalog every assertion about the group is vacuously true —
+ *  "topics is an array" passes, and so does "the two hosts' topic sets are
+ *  equal", because both are empty. That is what this one entry exists to stop.
  *
  *  The name is the query text verbatim because `TopicService.Test` matches by
  *  substring on the name — the double's rule, not the corpus's. The slug is
- *  what the pinned group carries and what the assertions pin.
+ *  what the group carries and what the assertions pin.
  */
 export const GOLDEN_TOPIC_QUERY = 'what happens at the close of probation';
 /** Branded, because that is what a `SearchTopicHit.slug` is: a test that
@@ -264,6 +269,23 @@ const GOLDEN_TOPICS: readonly TopicDetail[] = [
     sections: [],
   }),
 ];
+
+/** The wiki the golden query set is paired with, for the surfaces that show a
+ *  topic group beside their results.
+ *
+ *  Separate from {@link goldenSearchSources} on purpose, and that separation is
+ *  the point of the change it came from: searching the writings does not read a
+ *  topics artifact, so the search fixture must not carry one either. An app that
+ *  fetches topics provides this layer next to its search layer, exactly as it
+ *  composes the two services in production.
+ *
+ *  `WikiService.Absent` rather than an artifact, because §3.5's steady state is
+ *  a catalog with no authored cores and `list` still answers from it — which is
+ *  what {@link GOLDEN_TOPIC_SLUG} is found through. */
+export const goldenTopicCatalog: Layer.Layer<WikiService> = WikiService.Absent.pipe(
+  Layer.provide(TopicService.Test(GOLDEN_TOPICS)),
+  Layer.provide(WikiSectionSources.NotWired),
+);
 
 // ---------------------------------------------------------------------------
 // The queries
@@ -362,28 +384,10 @@ export const goldenSearchSources: Layer.Layer<SearchCorpusSources> = Layer.unwra
   Effect.gen(function* () {
     return SearchCorpusSources.wired({
       paragraphs: yield* EGWParagraphDatabase,
-      wiki: yield* WikiService,
     });
   }),
 ).pipe(
   Layer.provide(EGWParagraphDatabase.Test({ books: GOLDEN_BOOKS, paragraphs: GOLDEN_PARAGRAPHS })),
-  // `Layer.fresh`, because Effect memoizes a layer per tag per build keyed on
-  // layer *identity*, and `WikiService.Absent` is one shared layer object. A
-  // graph that also merges `procedureDependencies`' `emptyWiki` — the same
-  // `Absent` layer over an empty `TopicService` — resolves both occurrences to
-  // whichever was built first. That silently replaced this fixture's catalog
-  // with an empty one behind the RPC seam while the CLI seam, which builds the
-  // fixture alone, kept it: §9.7's parity property was reporting agreement that
-  // did not exist. `fresh` opts this build out of that sharing, so the fixture's
-  // catalog survives being merged next to any other `WikiService`.
-  Layer.provide(
-    Layer.fresh(
-      WikiService.Absent.pipe(
-        Layer.provide(TopicService.Test(GOLDEN_TOPICS)),
-        Layer.provide(WikiSectionSources.NotWired),
-      ),
-    ),
-  ),
 );
 
 export const goldenSearchLayer = (input?: {

@@ -32,12 +32,15 @@ import {
   GOLDEN_TOPIC_SLUG,
   goldenSearchLayer,
   goldenSearchSources,
+  goldenTopicCatalog,
   goldenVector,
   goldenVectorIndexBytes,
 } from '@bible/core/search/testing';
+import { WikiService } from '@bible/core/wiki';
 
 import { egwSearch } from '../../src/commands/egw/search.js';
 import { SearchLayer, verifiedVectorIndex } from '../../src/commands/egw/search-layer.js';
+import { WikiLayer } from '../../src/commands/wiki.js';
 import { runCli } from '../lib/run-cli.js';
 
 /** The fixture embedder core's parity test uses, so both sides of the
@@ -66,6 +69,14 @@ const WORDY_QUERY = 'what happens at the close of probation';
 /** A fixture host with no vector index and no embedder — the ordinary machine,
  *  and the one §9.6's typed absence exists for. */
 const lexicalOnlySearch = goldenSearchLayer();
+
+/** A wiki that will not open, which is the one failure the topic fetch has to
+ *  absorb: the group is a garnish on an answer that is already complete, so a
+ *  refusing artifact must cost the caller the group and nothing else. */
+const brokenWiki = WikiService.Broken({
+  operation: 'list',
+  message: 'topics.db is not readable',
+});
 
 /** The command's own `--json`, captured from real stdout. */
 const cliJson = (args: readonly string[], layer = fixtureSearch) =>
@@ -142,12 +153,11 @@ describe('bible egw search — §9.7 golden query set', () => {
     );
   }
 
-  it.scopedLive('pins the matching topic at an exact position, above the paragraphs', () =>
+  it.scopedLive('answers the topic-shaped query out of the corpus alone', () =>
     Effect.gen(function* () {
-      // §9.4 at the CLI seam, and the third of the three clients §9.7 names.
-      // The core and host round-trips assert the same thing against the same
-      // fixture, so a topic that reached one surface and not another fails
-      // somewhere rather than nowhere.
+      // The query the wiki catalog is named for, asked of a search service that
+      // has no wiki: §9 ranks the writings, so this is an ordinary corpus query
+      // and the topic group is not on the result at all.
       const query = SearchQuery.make({
         text: GOLDEN_TOPIC_QUERY,
         scope: Option.none(),
@@ -156,13 +166,12 @@ describe('bible egw search — §9.7 golden query set', () => {
       });
       const parsed = yield* resultOf(query);
 
-      expect(parsed.topics.map((topic) => String(topic.slug))).toEqual([GOLDEN_TOPIC_SLUG]);
-      // Pinned above the ranking, never inside it: the slug must not also be a
+      expect(parsed.paragraphs.length).toBeGreaterThan(0);
+      // Nothing from a catalog leaked into the ranking: a topic slug is not a
       // paragraph identity.
       expect(parsed.paragraphs.some((hit) => String(hit.paragraphId) === GOLDEN_TOPIC_SLUG)).toBe(
         false,
       );
-      expect(parsed.paragraphs.length).toBeGreaterThan(0);
     }),
   );
 
@@ -172,36 +181,48 @@ describe('bible egw search — §9.7 golden query set', () => {
    *  a topic page is `/wiki/<slug>`, so every link the CLI printed 404'd. The
    *  assertion is the exact line rather than a substring, because the whole
    *  defect was one missing path segment and a `toContain(slug)` passes on the
-   *  broken output. */
-  it.scopedLive('prints the pinned topic as the /wiki route the app decodes', () =>
+   *  broken output.
+   *
+   *  It now also covers the fetch: the group comes from `WikiLayer` beside the
+   *  search rather than off the result, so a command that stopped asking would
+   *  print no bullet at all and fail here. */
+  it.scopedLive('prints the topic group as the /wiki route the app decodes', () =>
     Effect.gen(function* () {
       const cli = yield* runCli(egwSearch, [GOLDEN_TOPIC_QUERY], {}).pipe(
         Effect.provideService(SearchLayer, fixtureSearch),
+        Effect.provideService(WikiLayer, goldenTopicCatalog),
       );
       expect(cli.success).toBe(true);
-      const result = yield* resultOf(
-        SearchQuery.make({
-          text: GOLDEN_TOPIC_QUERY,
-          scope: Option.none(),
-          bookCode: Option.none(),
-          limit: Option.some(20),
-        }),
-      );
-      // The fixture pins exactly one topic for this query. Asserting the count
-      // first means a fixture drift fails as "no topic" rather than as a
-      // confusing formatter mismatch below.
-      expect(result.topics.length).toBe(1);
       const lines = cli.stdout.split('\n');
-      expect(
-        result.topics.map(
-          (entry) => `  • ${entry.title} [${entry.status}] — /wiki/${GOLDEN_TOPIC_SLUG}`,
-        ),
-      ).toEqual(lines.filter((line) => line.startsWith('  • ')));
+      const bullets = lines.filter((line) => line.startsWith('  • '));
+      // The fixture carries exactly one topic for this query. Asserting the
+      // count first means a fixture drift fails as "no topic" rather than as a
+      // confusing formatter mismatch below.
+      expect(bullets.length).toBe(1);
+      expect(bullets).toEqual([
+        `  • What happens at the close of probation [catalog] — /wiki/${GOLDEN_TOPIC_SLUG}`,
+      ]);
       // And the pre-fix spelling is gone, not merely joined by the right one:
       // `/<slug>` with no `/wiki` prefix is a path the app's router rejects.
       expect(
         lines.some((line) => line.includes(`— /${GOLDEN_TOPIC_SLUG}`) && !line.includes('/wiki/')),
       ).toBe(false);
+    }),
+  );
+
+  it.scopedLive('prints the ranking with no topic group when no wiki is installed', () =>
+    Effect.gen(function* () {
+      // The ordinary machine: `~/.bible/topics.db` is absent, and the group it
+      // would have filled is simply not printed. The search still answers,
+      // which is the degradation posture the fetch must preserve — a failing
+      // wiki cannot fail a search.
+      const cli = yield* runCli(egwSearch, [GOLDEN_TOPIC_QUERY], {}).pipe(
+        Effect.provideService(SearchLayer, fixtureSearch),
+        Effect.provideService(WikiLayer, brokenWiki),
+      );
+      expect(cli.success).toBe(true);
+      expect(cli.stdout.includes('Topics (')).toBe(false);
+      expect(cli.stdout.includes(`Results for "${GOLDEN_TOPIC_QUERY}"`)).toBe(true);
     }),
   );
 

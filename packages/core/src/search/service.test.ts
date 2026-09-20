@@ -4,7 +4,7 @@
  *  - absent index yields lexical-only results carrying `VectorIndexUnavailable`
  *  - a model-fingerprint mismatch invalidates the vector leg rather than
  *    returning wrong neighbors
- *  - topic hits are a pinned group and never appear inside the paragraph ranking
+ *  - the ranking is writings rows and nothing else
  *
  *  Every one of them fails without the code it names: the fixture's FTS ranks
  *  put the short-circuit query in the strong regime and everything else in the
@@ -27,9 +27,6 @@ import {
   GOLDEN_VECTOR_IDS,
 } from './golden-fixture.js';
 import { EGWParagraphDatabase } from '../egw-db/book-database.js';
-import { TopicService } from '../topics/service.js';
-import { WikiService } from '../wiki/service.js';
-import { WikiSectionSources } from '../wiki/section-composer.js';
 import { SearchQuery, type VectorAbsenceReason } from './model.js';
 import { VectorIndexBytes } from './vector-artifact.js';
 import { MODEL_FINGERPRINT } from './vector-index.js';
@@ -328,48 +325,25 @@ describe('§10 a fingerprint mismatch invalidates rather than misleads', () => {
   );
 });
 
-describe('§9.4 topic hits are a pinned group, never inside the ranking', () => {
-  it.effect('pins the matching topic at an exact position, above the paragraphs', () =>
+describe('§9.4 the result is the writings, and only the writings', () => {
+  it.effect('answers a topic-shaped query out of the corpus alone', () =>
     Effect.gen(function* () {
+      // The query the topic catalog is named for, asked of a service that has no
+      // wiki at all. It is still a corpus query and still ranks paragraphs —
+      // which is the whole claim left after the pinned topics group moved out to
+      // the applications that have a wiki to fetch it from.
       const result = yield* search({ text: GOLDEN_TOPIC_QUERY }, withIndex());
-      // A *matching* topic, at a pinned position. Asserting only that `topics`
-      // is an array passes against an empty catalog, which is what made the
-      // earlier version of this test vacuous.
-      expect(result.topics.map((topic) => topic.slug)).toEqual([GOLDEN_TOPIC_SLUG]);
-      expect(result.topics[0]?.title).toBe('What happens at the close of probation');
-
-      // And absent from the ranking. The pinned group is a different kind of
-      // answer, so the topic's slug must not appear as a paragraph identity —
-      // which is the property a client would otherwise have to filter for.
       const paragraphIds = result.paragraphs.map((hit) => hit.paragraphId);
-      expect(paragraphIds).not.toContain(GOLDEN_TOPIC_SLUG);
       expect(paragraphIds.length).toBeGreaterThan(0);
+      // Every row is a writings row: a topic slug is not a paragraph identity,
+      // so nothing from a catalog can have leaked into the ranking.
       for (const id of paragraphIds) {
         expect(id.includes(GOLDEN_TOPIC_SLUG)).toBe(false);
       }
-    }),
-  );
-
-  it.effect('keeps topics in their own field', () =>
-    Effect.gen(function* () {
-      const result = yield* search({ text: GOLDEN_TOPIC_QUERY }, withIndex());
-      // The structural claim: `topics` and `paragraphs` are separate fields, and
-      // no paragraph row can carry a topic identity — the schema does not have a
-      // shape that would let it.
-      expect(Array.isArray(result.topics)).toBe(true);
       for (const hit of result.paragraphs) {
         expect(hit.refcode.length).toBeGreaterThan(0);
         expect(hit.bookCode.length).toBeGreaterThan(0);
       }
-    }),
-  );
-
-  it.effect('is present-and-empty rather than absent when nothing matched', () =>
-    Effect.gen(function* () {
-      // §7's rule, applied to §9's surface: the result's shape is the same every
-      // time, so no client has to work out which groups exist this run.
-      const result = yield* search({ text: 'a phrase no topic page is about' }, withIndex());
-      expect(result.topics).toEqual([]);
     }),
   );
 });
@@ -436,24 +410,16 @@ describe('§6.5 the legs degrade on corpus faults and not on defects', () => {
       const broken = Layer.unwrap(
         Effect.gen(function* () {
           const paragraphs = yield* EGWParagraphDatabase;
-          const wiki = yield* WikiService;
           return SearchCorpusSources.wired({
             paragraphs: {
               ...paragraphs,
               searchScoredParagraphs: () => Effect.die(new Error('decoder blew up')),
             },
-            wiki,
           });
         }),
       ).pipe(
         Layer.provide(
           EGWParagraphDatabase.Test({ books: GOLDEN_BOOKS, paragraphs: GOLDEN_PARAGRAPHS }),
-        ),
-        Layer.provide(
-          WikiService.Absent.pipe(
-            Layer.provide(TopicService.Test([])),
-            Layer.provide(WikiSectionSources.NotWired),
-          ),
         ),
       );
       const layer = SearchService.Live.pipe(

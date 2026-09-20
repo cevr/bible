@@ -150,7 +150,7 @@ export const layerProcedureServer = (input: ProcedureServerInput) => {
     Effect.gen(function* () {
       return SearchCorpusSources.of({
         _tag: 'wired' as const,
-        sources: { paragraphs: yield* EGWParagraphDatabase, wiki: yield* WikiService },
+        sources: { paragraphs: yield* EGWParagraphDatabase },
       });
     }),
   ).pipe(Layer.provide(writingsDatabase), Layer.provide(wiki));

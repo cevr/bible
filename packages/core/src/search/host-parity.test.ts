@@ -26,7 +26,6 @@ import {
   goldenVectorIndexBytes,
   GOLDEN_QUERIES,
   GOLDEN_TOPIC_QUERY,
-  GOLDEN_TOPIC_SLUG,
 } from './golden-fixture.js';
 import { SearchQuery, SearchResultJson } from './model.js';
 import { SearchService } from './service.js';
@@ -136,13 +135,14 @@ describe('§9.7 search host parity', () => {
     }),
   );
 
-  it.scopedLive('the pinned topic survives the wire at its exact position', () =>
+  it.scopedLive('the topic-shaped query agrees across both seams', () =>
     Effect.gen(function* () {
-      // §9.4 across the seam, and the regression test for the defect that hid
-      // here: the fixture's catalog reached the CLI seam and an *empty* catalog
-      // reached the RPC seam, because `SearchCorpusSources` had captured
-      // whichever `WikiService` the surrounding graph memoized first. Both seams
-      // are asserted, because the bug was invisible to either one alone.
+      // The query the wiki catalog is named for, asked of a search service that
+      // has no wiki: it is an ordinary corpus query, and §9.7 asks the two seams
+      // to agree on it like any other. Kept as its own case because it is the
+      // query the two surfaces that *do* render a topic group ask, so a
+      // divergence here would show up in the place a reader would blame topics
+      // for.
       const query = SearchQuery.make({
         text: GOLDEN_TOPIC_QUERY,
         scope: Option.none(),
@@ -152,31 +152,20 @@ describe('§9.7 search host parity', () => {
       const wire = yield* overRpc(query);
       const direct = yield* overCli(query);
 
-      for (const [seam, result] of [
-        ['rpc', wire],
-        ['cli', direct],
-      ] as const) {
-        // Exact position, not mere presence: a pinned group is an identity
-        // answer, so the topic is the whole list and it is first.
-        expect({ seam, slugs: result.topics.map((topic) => topic.slug) }).toEqual({
-          seam,
-          slugs: [GOLDEN_TOPIC_SLUG],
-        });
-        // §9.4's structural claim: the topic is pinned *above* the ranking, so
-        // it must never also appear as a paragraph row.
-        expect({
-          seam,
-          leaked: result.paragraphs.some((row) => row.paragraphId === GOLDEN_TOPIC_SLUG),
-        }).toEqual({ seam, leaked: false });
-      }
+      expect(yield* encode(wire)).toBe(yield* encode(direct));
+      // Not vacuous: the query ranks rows, so an implementation answering
+      // nothing would satisfy the equality above and fail here.
+      expect(direct.paragraphs.length).toBeGreaterThan(0);
     }),
   );
 
-  it.scopedLive('the pinned topics group is its own field on the wire', () =>
+  it.scopedLive('the wire carries the corpus fields and no others', () =>
     Effect.gen(function* () {
-      // §9.4's structural claim, asserted against the encoded shape rather than
-      // the in-memory value: a client reading this JSON cannot find a topic
-      // inside `paragraphs`, because the two are different keys.
+      // The encoded shape rather than the in-memory value, because this is what
+      // a client actually reads. The absent key is the load-bearing half: a
+      // topics group came back on every result until it was moved out to the
+      // applications that have a wiki, and this asserts the field is gone rather
+      // than merely empty.
       const wire = yield* overRpc(
         SearchQuery.make({
           text: 'what happens at the close of probation',
@@ -192,7 +181,6 @@ describe('§9.7 search host parity', () => {
         'query',
         'route',
         'scope',
-        'topics',
         'locate',
         'paragraphs',
         'vector',
