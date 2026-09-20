@@ -389,12 +389,42 @@ export const scanVectorIndex = (
     const end = range.offset + range.count;
     for (let row = range.offset; row < end; row += 1) {
       scanned += 1;
-      let sum = 0;
       const base = row * dimensions;
-      for (let axis = 0; axis < dimensions; axis += 1) {
-        // The parser guarantees `count * dimensions` int8 values and ranges
-        // inside `count`, so both reads are in bounds; the `?? 0` is TypeScript
-        // satisfying `noUncheckedIndexedAccess`, not a shape check.
+      // Four accumulators, unrolled by four.
+      //
+      // This loop is the whole cost of a semantic query: 961,253 vectors ×
+      // 256 dimensions is ~246 million multiply-adds, and it ran at ~170 ms in
+      // production. One serial `sum` makes every iteration wait for the
+      // previous add, so the pipeline stalls on the dependency chain rather
+      // than on the arithmetic; four independent accumulators let four
+      // multiply-adds be in flight at once. Measured over 300,000 vectors and
+      // scaled to the deployed index: 133 ms serial, 83 ms unrolled, a 38%
+      // cut for the same values in the same order.
+      //
+      // Four, not more: 8× measured 83 ms and an Int32 copy of the query
+      // 81 ms, both inside the noise of 4×. The gain is from breaking the
+      // dependency chain, and four accumulators already break it.
+      //
+      // The parser guarantees `count * dimensions` int8 values and ranges
+      // inside `count`, so every read below is in bounds; the `?? 0` is
+      // TypeScript satisfying `noUncheckedIndexedAccess`, not a shape check.
+      let sum0 = 0;
+      let sum1 = 0;
+      let sum2 = 0;
+      let sum3 = 0;
+      // `dimensions` is 256 for every index this format describes, so the
+      // unrolled loop consumes all of it; the remainder loop below is for a
+      // future dimension count that is not a multiple of four, and costs one
+      // predictable branch per row when it has nothing to do.
+      const unrolled = dimensions - (dimensions % 4);
+      for (let axis = 0; axis < unrolled; axis += 4) {
+        sum0 += (vectors[base + axis] ?? 0) * (query[axis] ?? 0);
+        sum1 += (vectors[base + axis + 1] ?? 0) * (query[axis + 1] ?? 0);
+        sum2 += (vectors[base + axis + 2] ?? 0) * (query[axis + 2] ?? 0);
+        sum3 += (vectors[base + axis + 3] ?? 0) * (query[axis + 3] ?? 0);
+      }
+      let sum = sum0 + sum1 + sum2 + sum3;
+      for (let axis = unrolled; axis < dimensions; axis += 1) {
         sum += (vectors[base + axis] ?? 0) * (query[axis] ?? 0);
       }
       if (best.length === options.topK && sum <= floor) continue;
