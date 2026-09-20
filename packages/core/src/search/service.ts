@@ -19,10 +19,11 @@
  *  result, and the same value reaches all three clients.
  */
 
-import { Array as Arr, Context, Effect, Layer, Option } from 'effect';
+import { Array as Arr, Context, Effect, Layer, Option, Stream } from 'effect';
 
 import { nodesToText } from '../egw/ast.js';
 import {
+  bookMatchesFilter,
   ftsTermQuery,
   paragraphIdentity,
   type EGWParagraphDatabaseService,
@@ -295,12 +296,12 @@ const lexicalLeg = (
  *  `pioneer` scope has no vectors by construction and never reaches here.
  */
 const scanScope = (
-  bookCode: Option.Option<string>,
+  allow: Option.Option<ReadonlySet<string>>,
   candidates: number,
 ): { readonly topK: number; readonly allow?: ReadonlySet<string> } =>
-  Option.match(bookCode, {
+  Option.match(allow, {
     onNone: () => ({ topK: candidates }),
-    onSome: (code) => ({ topK: candidates, allow: new Set([code]) }),
+    onSome: (codes) => ({ topK: candidates, allow: codes }),
   });
 
 /** The vector leg, and every reason it might not run (§9.6).
@@ -316,7 +317,9 @@ const vectorLeg = (
   lexical: readonly SearchParagraphRow[],
   scope: CorpusScope,
   bookCode: Option.Option<string>,
+  filter: CorpusFilter,
   candidates: number,
+  sources: SearchSources,
 ): Effect.Effect<{ readonly ids: readonly string[]; readonly status: VectorLegStatus }> =>
   Effect.gen(function* () {
     // §9.3: quoted and refcode routes are lexical-only. A reader who quoted a
@@ -353,19 +356,65 @@ const vectorLeg = (
       return { ids: [], status: vectorUnavailable('fingerprint') };
     }
 
-    return yield* scanWith(embedder.value, loaded.index, routed.text, bookCode, candidates);
+    // Which books the filter admits, resolved before the scan rather than
+    // after it. See `allowedBookCodes`.
+    const allow = yield* allowedBookCodes(sources, filter, bookCode);
+
+    return yield* scanWith(embedder.value, loaded.index, routed.text, allow, candidates);
   });
+
+/** The book codes a filter admits, as an `allow` set for the scan.
+ *
+ *  The lexical leg pushes its filter into a `WHERE` and never sees an excluded
+ *  row. The vector leg had no equivalent: it scanned the whole flat buffer and
+ *  the *next* step (`vectorOnlyBodies`) dropped the rows the reader had filtered
+ *  out — so on the deployed corpus every wordy query scored 367,726 vectors
+ *  whose results were then discarded. Measured on that corpus, resolving the
+ *  set first takes the scan from 1078 ms to 523 ms.
+ *
+ *  `None` means "no narrowing", which the scan reads as one range over
+ *  everything — cheaper than an allow set naming every book. A book filter is
+ *  still the narrowest case and wins outright.
+ *
+ *  Degrades to `None` on a read failure: a filter that cannot be resolved must
+ *  widen the scan, never silently narrow it. The post-scan filter in
+ *  `vectorOnlyBodies` still holds, so correctness never depends on this. */
+const allowedBookCodes = (
+  sources: SearchSources,
+  filter: CorpusFilter,
+  bookCode: Option.Option<string>,
+): Effect.Effect<Option.Option<ReadonlySet<string>>> => {
+  if (Option.isSome(bookCode)) {
+    return Effect.succeed(Option.some(new Set([bookCode.value])));
+  }
+  return Stream.runFold(
+    sources.paragraphs.getAllBooks,
+    () => new Set<string>(),
+    (codes: Set<string>, book) => {
+      if (bookMatchesFilter(book, filter)) codes.add(book.book_code);
+      return codes;
+    },
+  ).pipe(
+    Effect.map((codes) => Option.some<ReadonlySet<string>>(codes)),
+    Effect.catchCause((cause) =>
+      Effect.logWarning('search.vectorAllow.degraded').pipe(
+        Effect.annotateLogs({ reason: String(cause) }),
+        Effect.as(Option.none<ReadonlySet<string>>()),
+      ),
+    ),
+  );
+};
 
 const scanWith = (
   embedder: QueryEmbedderApi,
   index: VectorIndex,
   text: string,
-  bookCode: Option.Option<string>,
+  allow: Option.Option<ReadonlySet<string>>,
   candidates: number,
 ): Effect.Effect<{ readonly ids: readonly string[]; readonly status: VectorLegStatus }> =>
   embedder.embedQuery(text).pipe(
     Effect.map((vector) => {
-      const scan = scanVectorIndex(index, vector, scanScope(bookCode, candidates));
+      const scan = scanVectorIndex(index, vector, scanScope(allow, candidates));
       return {
         ids: scan.neighbors.map((neighbor) => neighbor.paragraphId),
         status: VectorLegRan.make({
@@ -632,7 +681,16 @@ const makeQuery =
 
       // The vector leg reads the lexical scores — §9.3's short-circuit is a
       // decision about them — so it is sequenced after rather than beside.
-      const vector = yield* vectorLeg(deps, routed, lexical, scope, input.bookCode, candidates);
+      const vector = yield* vectorLeg(
+        deps,
+        routed,
+        lexical,
+        scope,
+        input.bookCode,
+        filter,
+        candidates,
+        sources,
+      );
       // §9.2's join, for the candidates only the vector leg found. One
       // statement, and skipped entirely when the two legs agree on every id.
       const vectorOnly = yield* vectorOnlyBodies(sources, lexical, vector.ids, scope, filter);

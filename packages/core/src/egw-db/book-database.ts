@@ -252,15 +252,21 @@ const testMatchesQuery = (terms: readonly string[], text: string): boolean => {
   return terms.every((term) => text.includes(term));
 };
 
-/** The classification filters as the double applies them.
+/** The classification filters as a predicate over one book.
  *
  *  One function per side of the seam, deliberately: `searchFilters` builds SQL
  *  and this builds a predicate, and they are close enough that a reader can
  *  check them against each other line by line. The rule both implement is that
  *  a `null` column passes every clause except `excludeApparatus`, which a
  *  `null` also passes — an unclassified book is never excluded by a filter the
- *  reader set about a classification it does not have. */
-const testMatchesFilter = (book: BookRow, filter?: CorpusFilter): boolean => {
+ *  reader set about a classification it does not have.
+ *
+ *  Exported because the vector leg needs the same answer *before* it scans.
+ *  The lexical leg gets this for free from its `WHERE`, but a vector scan has
+ *  no join to push a predicate into: it walks a flat buffer. Resolving which
+ *  books a filter admits, and scanning only their ranges, is what keeps it from
+ *  scoring 367,726 vectors whose rows the very next step would discard. */
+export const bookMatchesFilter = (book: BookRow, filter?: CorpusFilter): boolean => {
   // The corpus-level exclusion first, because it applies even when the caller
   // passed no filter at all — the same unconditional clause `searchFilters`
   // pushes before it looks at `options.filter`.
@@ -340,7 +346,7 @@ const testSearchMatches = (
         // clause — including its permissive treatment of an unclassified book,
         // because a double that drops rows the live statement keeps is the
         // divergence `testMatchesQuery` above was written to stop.
-        if (!testMatchesFilter(row.book, options?.filter)) return [];
+        if (!bookMatchesFilter(row.book, options?.filter)) return [];
         // The query filter the double lacked. Without it every search returned
         // every paragraph, so a test could not state "this query's top hit is
         // weak" — the strongest row in the fixture led every result.
@@ -2162,7 +2168,7 @@ export class EGWParagraphDatabase extends Context.Service<
               const isEgw = EGW_SCOPE_AUTHORS.includes(book.book_author);
               if (options?.scope === 'egw' && !isEgw) return [];
               if (options?.scope === 'pioneer' && isEgw) return [];
-              if (!testMatchesFilter(book, options?.filter)) return [];
+              if (!bookMatchesFilter(book, options?.filter)) return [];
               return [
                 {
                   bookCode: paragraph.bookCode,
