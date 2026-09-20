@@ -34,6 +34,7 @@ import {
   For,
   isPending,
   latest,
+  Loading,
   Show,
   untrack,
   useContext,
@@ -127,9 +128,19 @@ interface SearchStore {
   readonly setDraft: (value: string) => void;
   /** The committed search state, parsed from the address bar. */
   readonly params: () => SearchParams;
-  /** The hits for `params()`. Reading this inside a loading boundary suspends;
-   *  reading it through `latest` yields the previous set instead. */
+  /** The hits for `params()`. A plain read while the request is in flight
+   *  throws `NotReadyError` and suspends to the nearest loading boundary;
+   *  reading it through `latest`/`isPending` yields the previous set and a
+   *  pending flag instead, without throwing. The results region takes the
+   *  latter route, which is why it can render a skeleton in place. */
   readonly hits: () => readonly Hit[];
+  /** Whether a request is owed for the current URL but has not started yet.
+   *
+   *  True only for the one frame between the first commit and the effect that
+   *  starts the query (see `mounted` in the provider). `isPending` cannot see
+   *  that frame — the memo has settled, to an empty set — so without this the
+   *  results region flashes "awaiting query" before the skeleton. */
+  readonly starting: () => boolean;
   /** Commit a query — used by the form and by the example chips alike. */
   readonly search: (value: string) => void;
   /** Replace the filters, keeping the query. `replace` rather than `push` so
@@ -218,12 +229,47 @@ const SearchProvider = (props: { readonly pane: number; readonly children: Eleme
     return toWorkspaceString([current]);
   };
 
+  /** Whether the first commit has happened.
+   *
+   *  `render()` builds the whole component tree and then *schedules* the first
+   *  DOM insertion (`insert()` with `schedule: true`). That scheduled commit
+   *  produces no DOM while the memo it depends on is still unsettled, so a
+   *  first load with a query in the URL painted nothing at all — no masthead,
+   *  no search box — until the query came back. Loading `/?q=a` was blank for
+   *  4.4s, and `Skeleton` never rendered.
+   *
+   *  Note this is *not* a blocked fetch and not a suspended read: the request
+   *  starts at 17ms and `domComplete` is 17ms. Everything is prompt; there is
+   *  simply no committed DOM to show. Nor is it the `NotReadyError` suspension
+   *  protocol — `latest`/`isPending` below deliberately do not throw, so a
+   *  `<Loading>` boundary has nothing to catch and does not help on its own
+   *  (measured: shell and results still appeared together at 371ms / 1182ms).
+   *
+   *  Seeding `false` gives the first pass a *settled* value to commit — the
+   *  empty branch below resolves without awaiting anything — so the shell
+   *  paints. The effect then flips it, the memo re-runs for real, and
+   *  `isPending` renders the skeleton. */
+  const [mounted, setMounted] = createSignal(false);
+
+  // Runs after the first commit, which is the point: it is what releases the
+  // query. `createEffect` takes two functions in Solid 2 — see the note on the
+  // navigation effect above.
+  createEffect(
+    () => undefined,
+    () => {
+      setMounted(true);
+    },
+  );
+
   /** The request. An async memo is Solid 2's resource: it re-runs when this
    *  pane's own request changes — by a submit, a filter toggle or the back
    *  button — and its pending and failed states are surfaced by the boundaries
    *  rather than by flags kept here. */
   const outcome = createMemo(async (): Promise<{ readonly hits: readonly Hit[] }> => {
-    if (requestKey() === '') return { hits: [] };
+    // Read before the early return so the memo *subscribes* to it: this is the
+    // dependency that starts the query once the shell is on screen.
+    const ready = mounted();
+    if (!ready || requestKey() === '') return { hits: [] };
     // Read untracked: `requestKey` above is the whole dependency, and reading
     // `params()` here as well would re-introduce the identity dependency this
     // memo exists to avoid.
@@ -236,6 +282,7 @@ const SearchProvider = (props: { readonly pane: number; readonly children: Eleme
     setDraft,
     params,
     hits: () => outcome().hits,
+    starting: () => !mounted() && requestKey() !== '',
     search: (value) => {
       // The effect above clears the typed override, so the box goes back to
       // showing the committed query — which is what an example chip that set
@@ -534,6 +581,18 @@ const Filters = () => {
  * yields the previous result set rather than suspending, so a re-search keeps
  * its content and only dims. On the *first* search there is no previous set —
  * it yields empty — and `isPending` picks that case up to render skeletons.
+ *
+ * The `<Loading>` boundary is a backstop, not the loading strategy. Reading a
+ * pending async source throws `NotReadyError`, which propagates until a loading
+ * boundary catches it — the same `STATUS_*` collection-boundary machinery in
+ * `@solidjs/signals` that backs error boundaries. But `latest`/`isPending` are
+ * verdict reads that deliberately *do not* throw, so on the normal path this
+ * boundary catches nothing. It is here for any pending read that is not routed
+ * through them, so that such a read suspends this region rather than the tree.
+ *
+ * It is specifically *not* what makes the shell paint on first load: adding it
+ * alone left the page blank exactly as before (shell and results still arriving
+ * together, 371ms then 1182ms). That fix lives in the provider — see `mounted`.
  */
 const Results = () => {
   const search = useSearch();
@@ -541,7 +600,9 @@ const Results = () => {
   const body = createErrorBoundary(
     () => {
       const previous = (): readonly Hit[] => latest(search.hits);
-      const pending = (): boolean => isPending(search.hits);
+      // `starting()` covers the frame before the query is released; `isPending`
+      // covers it once in flight. Either way the reader is waiting.
+      const pending = (): boolean => search.starting() || isPending(search.hits);
 
       return (
         <>
@@ -569,7 +630,7 @@ const Results = () => {
     ),
   );
 
-  return <>{body()}</>;
+  return <Loading fallback={<Skeleton />}>{body()}</Loading>;
 };
 
 const Status = (props: { readonly pending: boolean; readonly count: number }) => {
