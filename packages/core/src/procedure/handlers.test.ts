@@ -145,20 +145,15 @@ const Dependencies = Layer.mergeAll(
     Layer.provide(
       Layer.unwrap(
         Effect.gen(function* () {
+          // `paragraphs` and nothing else: searching the writings stopped
+          // depending on a wiki when the pinned-topics group moved off
+          // `SearchResult`, so wiring one here no longer type-checks. This
+          // mirrors `goldenSearchSources` in `search/golden-fixture.ts`.
           return SearchCorpusSources.wired({
             paragraphs: yield* EGWParagraphDatabase,
-            wiki: yield* WikiService,
           });
         }),
-      ).pipe(
-        Layer.provide(EGWParagraphDatabase.Test({ books: [], paragraphs: [] })),
-        Layer.provide(
-          WikiService.Absent.pipe(
-            Layer.provide(TopicService.Test([resurrectionTopic])),
-            Layer.provide(WikiSectionSources.NotWired),
-          ),
-        ),
-      ),
+      ).pipe(Layer.provide(EGWParagraphDatabase.Test({ books: [], paragraphs: [] }))),
     ),
     Layer.provide(VectorIndexBytes.None),
   ),

@@ -8,6 +8,7 @@ import { Argument, Command, Flag } from 'effect/unstable/cli';
 import { BunServices } from '@effect/platform-bun';
 import type { CategoryId, HymnId } from '@bible/core/hymnal';
 import { HymnalService } from '@bible/core/hymnal';
+import { layerHymnalBun } from '@bible/core/hymnal/bun';
 import { Console, Effect, Layer, Option, Schema, SchemaGetter } from 'effect';
 
 const JsonString = Schema.Unknown.pipe(
@@ -32,7 +33,15 @@ const limitFlag = Flag.integer('limit').pipe(
 // Layers
 // ============================================================================
 
-const HymnalLive = HymnalService.Live.pipe(Layer.provide(BunServices.layer));
+/** The Bun implementation, not `HymnalService.Live`.
+ *
+ *  The service split into a platform-free tag (`@bible/core/hymnal`) and a
+ *  `bun:sqlite` implementation (`@bible/core/hymnal/bun`), and the old `.Live`
+ *  static went with it. Reaching for it here left `undefined.pipe(...)`, which
+ *  TypeScript could not catch: the tag is a callable object, so a missing
+ *  static is `any`-adjacent rather than a type error, and the command failed
+ *  only when its layer was built. */
+const HymnalLive = layerHymnalBun.pipe(Layer.provide(BunServices.layer));
 
 // ============================================================================
 // Formatting
