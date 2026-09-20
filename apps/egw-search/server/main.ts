@@ -371,6 +371,23 @@ const EmbedderLive = layerBunEmbedder;
  *     scattered across a 3.6 GB table — the part the page cache helps least and
  *     therefore the part most worth touching first.
  *
+ *  **What this deliberately does not warm: the bodies rows themselves.** A
+ *  semantic query's remaining cost is its `bodiesMs` — 2,099 ms of the 2,949 ms
+ *  measured for "what happens at the close of probation" — and the obvious next
+ *  move is to warm those rows too. It does not work, and the reason is
+ *  structural rather than a tuning question.
+ *
+ *  Measured over six representative semantic queries: each touches ~53 distinct
+ *  pages of `paragraphs`, their union is 318 pages against 321 if they were
+ *  fully disjoint, and mean pairwise overlap is **0.4%**. Sixty hits scatter
+ *  essentially at random over 768,919 leaf pages, so one query's rows tell you
+ *  nothing about the next one's. Covering even 10% of the table would take
+ *  ~1,451 warm queries, and the 512 MB cache tops out at 17% of it regardless.
+ *
+ *  So the lexical path is warmable — a term's posting list is one contiguous
+ *  structure every query for that term reads — and the bodies path is not.
+ *  Cutting `bodiesMs` needs fewer or cheaper seeks, not a warmer cache.
+ *
  *  Forked and detached, exactly as `WarmEmbedderLive` is: the port must open
  *  immediately. A reader who arrives mid-warm-up is not blocked, only unlucky,
  *  and pays the same cost they would have paid anyway.

@@ -625,6 +625,26 @@ const locateLeg = (
  *  Degrades to the lexical bodies alone on a corpus fault: an unavailable
  *  lookup means the vector-only candidates cannot be rendered, which is the
  *  pre-fix behavior and still better than failing the search.
+ *
+ *  **It fetches more ids than the page can show, and that is not the cost.**
+ *  `candidateLimit` makes this ~120 ids for a 40-hit page while `fuseResults`
+ *  stops at `limit`, so up to 80 rows are fetched and discarded. The waste is
+ *  real and provable — `fuse` ranks from ids alone, and RRF is rank-monotonic
+ *  within one list, so a vector-only row ranked deeper than `limit` can never
+ *  reach a `limit`-hit page (3,000 adversarial trials, deepest reaching rank
+ *  exactly 40, zero violations). Fusing first and fetching only the survivors
+ *  is therefore *correct*.
+ *
+ *  It is also not worth doing, because the batch size is not what this costs.
+ *  Measured on the deployed 4.5 GB corpus, the real prefiltered statement runs
+ *  0.1 ms at 40 ids and 0.2 ms at 120 — the `para_id` seek above dominates, and
+ *  the row count disappears into it. Production agrees: every query whose
+ *  vector leg did not run logs `bodiesMs: 0`, and the two that did logged
+ *  2099 ms then 181 ms for the *same* 120 ids. What changed between them was
+ *  the page cache, not the batch. `bodiesMs` is cold scattered I/O, so fetching
+ *  a third as many rows would buy roughly 2% and cost the ability to refill a
+ *  page the corpus filter thins out. Cut it with fewer *cold* seeks, not fewer
+ *  seeks.
  */
 const vectorOnlyBodies = (
   sources: SearchSources,
