@@ -476,6 +476,20 @@ const locateTarget = (
     ),
   );
 
+/** The one fact worth logging about the vector leg besides its tag.
+ *
+ *  For an absence, the reason: `short-circuit` (a confident lexical hit, so the
+ *  embed was skipped on purpose) reads identically to `fingerprint` (the index
+ *  and embedder disagree, so neighbors would be wrong) if only the tag is
+ *  logged, and the two call for opposite responses. For a run, how many
+ *  paragraphs the scan considered.
+ *
+ *  A guard rather than a ternary, per `effect/noTernary`. */
+const vectorWhy = (status: VectorLegStatus): string | number => {
+  if (status._tag === 'unavailable') return status.reason;
+  return status.scanned;
+};
+
 /** The locate leg as one total effect over every route.
  *
  *  Only a `locate` route has a destination to resolve; every other route
@@ -690,6 +704,15 @@ const makeQuery =
         Effect.annotateLogs({
           route: routed._tag,
           vector: vector.status._tag,
+          // Why the vector leg did what it did. The tag alone flattens five
+          // very different outcomes into the word "unavailable": a deliberate
+          // `short-circuit` on a confident lexical hit reads identically to a
+          // `fingerprint` mismatch serving silently degraded results. Half the
+          // queries in a production sample logged `unavailable` with no way to
+          // tell which, so the reason is carried here rather than discarded.
+          // `scanned` is the matching fact for the `ran` case: how much of the
+          // index the query actually paid for.
+          vectorWhy: vectorWhy(vector.status),
           lexicalMs: lexicalAt - startedAt,
           vectorMs: vectorAt - lexicalAt,
           bodiesMs: doneAt - vectorAt,
