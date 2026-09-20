@@ -636,15 +636,23 @@ const locateLeg = (
  *  is therefore *correct*.
  *
  *  It is also not worth doing, because the batch size is not what this costs.
- *  Measured on the deployed 4.5 GB corpus, the real prefiltered statement runs
- *  0.1 ms at 40 ids and 0.2 ms at 120 — the `para_id` seek above dominates, and
- *  the row count disappears into it. Production agrees: every query whose
- *  vector leg did not run logs `bodiesMs: 0`, and the two that did logged
- *  2099 ms then 181 ms for the *same* 120 ids. What changed between them was
- *  the page cache, not the batch. `bodiesMs` is cold scattered I/O, so fetching
- *  a third as many rows would buy roughly 2% and cost the ability to refill a
- *  page the corpus filter thins out. Cut it with fewer *cold* seeks, not fewer
- *  seeks.
+ *  Every part of this function is sub-millisecond on a developer machine
+ *  against the same 4.5 GB corpus: the prefiltered statement measures 0.1 ms at
+ *  40 ids and 0.2 ms at 120 (the `para_id` seek dominates and the row count
+ *  disappears into it), `Schema.decodeUnknownSync` over all 120 `nodes_json`
+ *  payloads costs 0.7 ms, and `nodesToText` on top of that 0.4 ms.
+ *
+ *  Production does not agree, and the disagreement is the interesting part.
+ *  Across eight distinct semantic queries touching different regions of the
+ *  corpus, `bodiesMs` was 178, 179, 181, 185, 185, 185, 178, 184 — flat to
+ *  within 7 ms, indifferent to both the batch size and which books were read.
+ *  Cold scattered I/O does not look like that; it varies with locality. A
+ *  first-touch query did pay 2099 ms, so there *is* a cold component, but the
+ *  ~180 ms floor underneath it is a fixed per-call cost this file cannot see
+ *  and a developer machine does not reproduce. It is the largest single leg of
+ *  a semantic query (embed ~35 ms, scan ~125 ms, bodies ~180 ms), so it is
+ *  where the next real latency win is — but it must be found by instrumenting
+ *  the deployment, not by fetching fewer rows.
  */
 const vectorOnlyBodies = (
   sources: SearchSources,
@@ -665,8 +673,32 @@ const vectorOnlyBodies = (
   // here having been correctly dropped from the lexical leg. The statement
   // already joins `books`, so the same predicates apply there rather than
   // being re-derived over the returned rows.
-  return sources.paragraphs.findParagraphsByIdentity(missing, { scope, filter }).pipe(
-    Effect.map((rows) => rows.map(toRow)),
+  // Split, because the sum is a mystery in the deployment and neither half is
+  // on a developer machine. `bodiesMs` sits at a flat ~180 ms in production
+  // (see above) while the statement measures 0.2 ms and the row mapping 1.1 ms
+  // locally, so the question "is it the query or the decode?" cannot be
+  // answered from the total. These two clocks answer it in one request.
+  return Effect.gen(function* () {
+    const startedAt = yield* Effect.clockWith((clock) => clock.currentTimeMillis);
+    const found = yield* sources.paragraphs.findParagraphsByIdentity(missing, { scope, filter });
+    const queriedAt = yield* Effect.clockWith((clock) => clock.currentTimeMillis);
+    const mapped = found.map(toRow);
+    const mappedAt = yield* Effect.clockWith((clock) => clock.currentTimeMillis);
+    yield* Effect.logInfo('search.bodies.timing').pipe(
+      Effect.annotateLogs({
+        // What the statement cost, apart from turning its rows into hits.
+        queryMs: queriedAt - startedAt,
+        // `toRow` per row: a Schema decode of `nodes_json` plus `nodesToText`.
+        decodeMs: mappedAt - queriedAt,
+        wanted: missing.length,
+        // Below `wanted` when the corpus filter dropped rows the vector leg
+        // proposed — which is also why fetching only the fused survivors would
+        // risk underfilling a page.
+        got: found.length,
+      }),
+    );
+    return mapped;
+  }).pipe(
     Effect.catchTag(['SqlError', 'ParagraphDataIntegrityError'], (cause) =>
       Effect.logWarning('search.vectorBodies.degraded').pipe(
         Effect.annotateLogs({ reason: String(cause), wanted: missing.length }),
