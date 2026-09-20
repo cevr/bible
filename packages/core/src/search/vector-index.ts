@@ -368,6 +368,19 @@ export const scanVectorIndex = (
   options: {
     readonly topK: number;
     readonly allow?: ReadonlySet<string>;
+    /** An optional SIMD dot product — see `vector-accel.ts`.
+     *
+     *  Scores only; every ranking decision below stays here, so the accelerated
+     *  and pure paths cannot disagree about order. The arithmetic is integer
+     *  end to end, so they cannot disagree about scores either. Absent on any
+     *  host that has no built artifact, which is the supported case rather than
+     *  a degraded one. */
+    readonly scoreRange?: (
+      query: Int8Array,
+      offset: number,
+      count: number,
+      out: Int32Array,
+    ) => number;
   },
 ): VectorScan => {
   // A query of any other length cannot be dotted against this index. The old
@@ -384,6 +397,45 @@ export const scanVectorIndex = (
   const best: VectorNeighbor[] = [];
   let floor = Number.NEGATIVE_INFINITY;
   let scanned = 0;
+
+  // The accelerated path, when a host built one.
+  //
+  // It replaces the arithmetic and nothing else: the selection below is the
+  // same code reading the same scores, so ranking is decided in exactly one
+  // place regardless of which tier computed the dot products. Scores are
+  // integers throughout — int8 inputs, int16 products, int32 sums — so the
+  // tiers agree exactly rather than approximately, which is what lets the
+  // tests assert equality instead of a tolerance.
+  const accelerate = Option.fromNullishOr(options.scoreRange);
+  if (Option.isSome(accelerate)) {
+    const scoreRange = accelerate.value;
+    // One buffer for the largest range, reused across ranges.
+    const widest = ranges.reduce((most, range) => Math.max(most, range.count), 0);
+    const scores = new Int32Array(widest);
+    for (const range of ranges) {
+      const wrote = scoreRange(query, range.offset, range.count, scores);
+      // An accelerator that scored a different number of rows than it was
+      // asked for has a bug, and ranking its buffer would silently mis-align
+      // scores against ids. Falling through to the pure loop is the safe
+      // answer, and it is the same answer as having no accelerator at all.
+      if (wrote !== range.count) break;
+      for (let offset = 0; offset < range.count; offset += 1) {
+        scanned += 1;
+        const sum = scores[offset] ?? 0;
+        if (best.length === options.topK && sum <= floor) continue;
+        const paragraphId = Arr.get(ids, range.offset + offset);
+        if (Option.isNone(paragraphId)) continue;
+        insert(best, { paragraphId: paragraphId.value, similarity: sum }, options.topK);
+        if (best.length === options.topK) {
+          floor = Option.match(Arr.last(best), {
+            onNone: () => floor,
+            onSome: (worst) => worst.similarity,
+          });
+        }
+      }
+    }
+    if (scanned > 0) return { neighbors: best, scanned };
+  }
 
   for (const range of ranges) {
     const end = range.offset + range.count;

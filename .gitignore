@@ -167,3 +167,9 @@ packages/cli/outputs/sabbath-school/pdfs/
 packages/core/data/vectors.bvi
 packages/core/data/*.bvi.part
 packages/core/data/*.bvi.checkpoint.json
+
+# Built SIMD accelerators for the vector scan (`packages/core/scripts/build-native.sh`).
+# Platform-specific binaries rebuilt from `packages/core/native/*.c`; the scan
+# falls back to its TypeScript loop when they are absent, so a checkout without
+# them is correct, only slower.
+packages/core/dist-native/

@@ -55,6 +55,7 @@ import {
   VectorIndexBytes,
   type LoadedVectorIndex,
 } from './vector-artifact.js';
+import { primeVectorAccel, readyVectorAccel } from './vector-accel.js';
 import { scanVectorIndex, type VectorIndex } from './vector-index.js';
 
 export interface SearchServiceApi {
@@ -508,13 +509,27 @@ const scanWith = (
     const embedAt = yield* Effect.clockWith((clock) => clock.currentTimeMillis);
     const vector = yield* embedder.embedQuery(text);
     const scanAt = yield* Effect.clockWith((clock) => clock.currentTimeMillis);
-    const scan = scanVectorIndex(index, vector, scanScope(allow, candidates));
+    // Whatever tier has finished loading by now; `None` until then.
+    const accel = readyVectorAccel();
+    const scan = scanVectorIndex(index, vector, {
+      ...scanScope(allow, candidates),
+      ...Option.match(accel, {
+        onNone: () => ({}),
+        onSome: (ready) => ({ scoreRange: ready.scoreRange }),
+      }),
+    });
     const doneAt = yield* Effect.clockWith((clock) => clock.currentTimeMillis);
     yield* Effect.logInfo('search.vector.timing').pipe(
       Effect.annotateLogs({
         embedMs: scanAt - embedAt,
         scanMs: doneAt - scanAt,
         scanned: scan.scanned,
+        // Which tier answered, so a deployment that silently lost its
+        // accelerator is visible in the same line as the time it cost.
+        accel: Option.match(accel, {
+          onNone: () => 'js',
+          onSome: (ready) => ready.kind,
+        }),
       }),
     );
     return {
@@ -775,6 +790,15 @@ const vectorIndexLogFields = (index: LoadedVectorIndex) => {
   return { state: 'absent', reason: index.absence.reason };
 };
 
+/** Starts resolving the SIMD dot product for a resolved index.
+ *
+ *  A guard rather than an expression, because there is nothing to accelerate
+ *  when no index resolved, and nothing to wait for in either case. */
+const primeAccel = (index: LoadedVectorIndex): void => {
+  if (index._tag === 'unavailable') return;
+  primeVectorAccel(index.index);
+};
+
 /** Everything one search reads, resolved.
  *
  *  `index` is the *parsed* index rather than the byte source: §9.5 budgets the
@@ -951,6 +975,19 @@ export class SearchService extends Context.Service<SearchService, SearchServiceA
         // without putting `QueryEmbedder` in the layer's requirements, where it
         // would make every host wire one.
         const embedder = yield* Effect.serviceOption(QueryEmbedder);
+        // The SIMD dot product, resolved here for the same reason the index is:
+        // loading it is host work — a `dlopen` or a `WebAssembly.instantiate` —
+        // and doing it inside `query` made the whole search path asynchronous.
+        // That is not merely slower; it broke every caller that runs a search
+        // with `Effect.runSync`, which the golden-route suite does.
+        // Start resolving the SIMD tier, and do not wait for it.
+        //
+        // Loading it is asynchronous host work, and `query` has to stay
+        // runnable with `Effect.runSync` — hosts do that, and so does the
+        // golden-route suite. Yielding here would make the whole layer
+        // asynchronous and break them. The first queries answer from the
+        // TypeScript loop; every one after the tier lands is accelerated.
+        primeAccel(index);
         const run = makeQuery({ sourcing, index, embedder });
         return SearchService.of({
           query: Effect.fn('SearchService.query')(run),
