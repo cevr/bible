@@ -102,12 +102,108 @@ body {
   }
 }
 
+/* ---------------------------------------------------------------- panes -- */
+
+/* One column on a phone, N columns once there is room.
+ *
+ *  `1fr` per pane rather than a fixed width: two panes each take half, three
+ *  take a third, and a result column that narrows is still readable where a
+ *  column that overflows is not. The stacked phone layout is the same DOM —
+ *  panes are never re-mounted at a breakpoint, so a resize cannot lose an
+ *  in-flight search. */
+.panes {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--s4);
+}
+
+@media (min-width: 900px) {
+  .panes[data-count='2'] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .panes[data-count='3'] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .panes[data-count='4'] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* `min-width: 0` is what stops a long refcode from widening its column and
+ *  pushing the others off the grid — a grid item's default `auto` minimum is
+ *  its content. */
+.pane {
+  position: relative;
+  min-width: 0;
+}
+
+/* Only shown when there is more than one pane, so it never appears in the
+ *  single-pane layout it would have nothing to close. */
+.closepane {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 1;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 13px;
+  line-height: 1;
+  min-height: 28px;
+  min-width: 28px;
+  cursor: pointer;
+}
+
+.closepane:hover {
+  border-color: var(--hairline);
+  color: var(--ink);
+}
+
+/* A second pane's search box must not look like a continuation of the first,
+ *  so each pane past the first gets a rule above it on the stacked layout. */
+@media (max-width: 899px) {
+  .pane + .pane,
+  .panes[data-count='2'] .pane:nth-child(2),
+  .panes[data-count='3'] .pane:nth-child(n + 2),
+  .panes[data-count='4'] .pane:nth-child(n + 2) {
+    border-top: 1px solid var(--rule);
+    padding-top: var(--s4);
+  }
+}
+
 /* --------------------------------------------------------------- header -- */
 
 .masthead {
   border-bottom: 2px solid var(--rule);
   padding: var(--s4) 0 var(--s3);
   margin-bottom: var(--s4);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s3);
+}
+
+/* Adding a pane is a workspace action, not a search action, so it sits in the
+ *  masthead beside the title rather than inside any one pane. */
+.addpane {
+  flex: none;
+  border: 1px solid var(--hairline);
+  background: var(--paper);
+  color: var(--ink-soft);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  min-height: 32px;
+  padding: 0 var(--s3);
+  cursor: pointer;
+}
+
+.addpane:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .masthead h1 {
@@ -281,11 +377,40 @@ body {
 /* An active chip is filled rather than merely outlined: at this size a border
  *  colour alone is not a reliable state signal, and the set has to be scannable
  *  at a glance to answer "what am I filtering by". */
-.chip.on {
+.chip.on,
+.chip.include {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--paper);
   font-weight: 600;
+}
+
+/* An excluded chip reads as a negation, not as a weaker inclusion. Filled
+ *  would make it a second kind of "on"; outlined-and-struck says "this is what
+ *  is being kept out". The strike is on the label alone so the ✓/− marker
+ *  stays legible, and the marker carries the state for anyone who cannot
+ *  distinguish the two colours. */
+.chip.exclude {
+  background: var(--paper);
+  border-color: var(--ink-soft);
+  color: var(--ink-soft);
+  font-weight: 600;
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.chip.exclude:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+/* The sign marker. Never struck through, because it is the thing that says
+ *  *which* state the strike means. */
+.csign {
+  display: inline-block;
+  margin-right: 4px;
+  text-decoration: none;
+  font-weight: 700;
 }
 
 /* --------------------------------------------------------------- status -- */

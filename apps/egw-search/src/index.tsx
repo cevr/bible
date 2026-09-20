@@ -47,13 +47,16 @@ import {
 } from '../server/api.js';
 import { runQuery, searchEffect, type ContextParagraph, type Hit } from './search.js';
 import {
-  currentParams,
+  currentPanes,
   EMPTY_PARAMS,
   hasFilters,
-  navigate,
+  MAX_PANES,
+  navigateWorkspace,
   navigationEpoch,
-  toggle,
   type SearchParams,
+  type Sign,
+  signOf,
+  toggle,
 } from './url-state.js';
 import './styles.css';
 
@@ -140,7 +143,7 @@ const SearchContext = createContext<SearchStore>();
 
 const useSearch = (): SearchStore => useContext(SearchContext);
 
-const SearchProvider = (props: { readonly children: Element }) => {
+const SearchProvider = (props: { readonly pane: number; readonly children: Element }) => {
   const [typed, setTyped] = createSignal(Option.none<string>());
 
   // Any navigation — a submit, a filter toggle, the back button — ends the
@@ -163,7 +166,21 @@ const SearchProvider = (props: { readonly children: Element }) => {
    *  makes the box follow the back button. A plain signal seeded from the
    *  initial URL does not: going back from `?q=the+shaking` to
    *  `?q=latter+rain` restored the results and left "the shaking" in the box. */
-  const draft = (): string => Option.getOrElse(typed(), () => currentParams().q);
+  /** This pane's slice of the workspace. Every read below goes through it, so
+   *  a pane never sees another pane's query. */
+  const params = (): SearchParams => currentPanes()[props.pane] ?? EMPTY_PARAMS;
+
+  /** Replace this pane, leaving the others exactly as they are. The workspace
+   *  is what navigates; a pane only ever describes itself. */
+  const put = (next: SearchParams, options?: { readonly replace?: boolean }): void => {
+    const panes = currentPanes();
+    navigateWorkspace(
+      panes.map((existing, index) => (index === props.pane ? next : existing)),
+      options,
+    );
+  };
+
+  const draft = (): string => Option.getOrElse(typed(), () => params().q);
   const setDraft = (value: string): void => {
     setTyped(Option.some(value));
   };
@@ -173,23 +190,23 @@ const SearchProvider = (props: { readonly children: Element }) => {
    *  submit, a filter toggle or the back button — and its pending and failed
    *  states are surfaced by the boundaries rather than by flags kept here. */
   const outcome = createMemo(async (): Promise<{ readonly hits: readonly Hit[] }> => {
-    const params = currentParams();
-    if (params.q === '') return { hits: [] };
-    return runQuery(searchEffect(params, CONTEXT), AbortSignal.timeout(40_000));
+    const current = params();
+    if (current.q === '') return { hits: [] };
+    return runQuery(searchEffect(current, CONTEXT), AbortSignal.timeout(40_000));
   });
 
   const store: SearchStore = {
     draft,
     setDraft,
-    params: currentParams,
+    params,
     hits: () => outcome().hits,
     search: (value) => {
       // The effect above clears the typed override, so the box goes back to
       // showing the committed query — which is what an example chip that set
       // the query should leave it reading.
-      navigate({ ...currentParams(), q: value.trim() });
+      put({ ...params(), q: value.trim() });
     },
-    refine: (next) => navigate(next, { replace: true }),
+    refine: (next) => put(next, { replace: true }),
   };
 
   // Solid 2: the context object *is* its own provider component.
@@ -200,18 +217,86 @@ const SearchProvider = (props: { readonly children: Element }) => {
 // View
 // ---------------------------------------------------------------------------
 
-const App = () => (
-  <SearchProvider>
+/**
+ * The workspace: one or more independent searches, side by side.
+ *
+ * Panes exist because the questions this corpus is searched with are
+ * comparative — "what do the pioneers say about the time of trouble, and what
+ * do the devotionals say" is two searches whose answers have to be on screen
+ * together to be worth anything. Tabs would hold the same state and hide half
+ * of it.
+ *
+ * Each pane is a whole `SearchProvider`, so a pane has its own query, its own
+ * filters, its own request and its own error boundary: a failure in one pane
+ * does not blank the others, and nothing is shared but the URL they all live
+ * in.
+ *
+ * `keyed={false}`, which is Solid 2's spelling of Solid 1's `<Index>`: the row
+ * is keyed by *position* rather than by item identity. The default keys by
+ * identity, and `currentPanes()` parses the URL afresh on every navigation, so
+ * every pane object is new on every filter click — which re-mounted all of
+ * them and threw away each pane's local UI state. The symptom was that the
+ * filter panel snapped shut the moment a chip inside it was clicked, making
+ * the tri-state cycle unreachable past its first step. A pane *is* its
+ * position, so keying by position is both correct and what keeps it mounted.
+ */
+const App = () => {
+  const panes = (): readonly SearchParams[] => currentPanes();
+
+  const addPane = (): void => {
+    const current = panes();
+    if (current.length >= MAX_PANES) return;
+    // The new pane inherits the previous pane's filters but none of its query:
+    // a second pane is almost always the same corpus asked a different
+    // question, so carrying the filters saves re-picking them and carrying the
+    // query would just duplicate the results already on screen.
+    const last = current[current.length - 1] ?? EMPTY_PARAMS;
+    navigateWorkspace([...current, { ...last, q: '' }]);
+  };
+
+  const closePane = (index: number): void => {
+    const current = panes();
+    if (current.length <= 1) return;
+    navigateWorkspace(current.filter((_, position) => position !== index));
+  };
+
+  return (
     <div class="shell">
       <header class="masthead">
         <h1>EGW&nbsp;Search</h1>
+        <Show when={panes().length < MAX_PANES}>
+          <button type="button" class="addpane" onClick={addPane}>
+            + pane
+          </button>
+        </Show>
       </header>
-      <SearchBar />
-      <Filters />
-      <Results />
+
+      <div class="panes" data-count={String(panes().length)}>
+        <For each={panes()} keyed={false}>
+          {(_params, index) => (
+            <SearchProvider pane={index}>
+              <section class="pane">
+                <Show when={panes().length > 1}>
+                  <button
+                    type="button"
+                    class="closepane"
+                    aria-label={`Close pane ${String(index + 1)}`}
+                    onClick={() => closePane(index)}
+                  >
+                    ✕
+                  </button>
+                </Show>
+                <SearchBar />
+                <Filters />
+                <Results />
+              </section>
+            </SearchProvider>
+          )}
+        </For>
+      </div>
     </div>
-  </SearchProvider>
-);
+  );
+};
 
 const SearchBar = () => {
   const search = useSearch();
@@ -254,6 +339,44 @@ const Chip = (props: {
     aria-pressed={props.active ? 'true' : 'false'}
     onClick={() => props.onPick()}
   >
+    {props.label}
+  </button>
+);
+
+/**
+ * A chip over one value of a signed axis: off → include → exclude → off.
+ *
+ * `aria-pressed` cannot say "excluded" — it is a two-state attribute, and a
+ * struck-through chip that merely reported `false` would be indistinguishable
+ * from an unset one to a screen reader. So the sign is carried in the
+ * accessible name instead (`"Devotionals, excluded"`), which is what a reader
+ * listening to the panel actually needs, and `aria-pressed` reports whether
+ * the chip is doing anything at all.
+ */
+const SignedChip = (props: {
+  readonly label: string;
+  readonly sign: Sign;
+  readonly onPick: () => void;
+}) => (
+  <button
+    type="button"
+    class={props.sign === 'off' ? 'chip' : `chip ${props.sign}`}
+    aria-pressed={props.sign === 'off' ? 'false' : 'true'}
+    aria-label={props.sign === 'exclude' ? `${props.label}, excluded` : props.label}
+    title={
+      props.sign === 'exclude'
+        ? `Excluding ${props.label} — click to clear`
+        : props.sign === 'include'
+          ? `Only ${props.label} — click to exclude`
+          : `Click to require ${props.label}, twice to exclude`
+    }
+    onClick={() => props.onPick()}
+  >
+    <Show when={props.sign !== 'off'}>
+      <span class="csign" aria-hidden="true">
+        {props.sign === 'include' ? '✓' : '−'}
+      </span>
+    </Show>
     {props.label}
   </button>
 );
@@ -305,9 +428,9 @@ const Filters = () => {
           <FilterRow label="Library">
             <For each={SECTIONS}>
               {(entry) => (
-                <Chip
+                <SignedChip
                   label={entry.label}
-                  active={search.params().section.includes(entry.value)}
+                  sign={signOf(search.params().section, entry.value)}
                   onPick={() => search.refine(toggle(search.params(), 'section', entry.value))}
                 />
               )}
@@ -329,9 +452,9 @@ const Filters = () => {
           <FilterRow label="Kind">
             <For each={TYPES}>
               {(entry) => (
-                <Chip
+                <SignedChip
                   label={entry.label}
-                  active={search.params().type.includes(entry.value)}
+                  sign={signOf(search.params().type, entry.value)}
                   onPick={() => search.refine(toggle(search.params(), 'type', entry.value))}
                 />
               )}
@@ -341,9 +464,9 @@ const Filters = () => {
           <FilterRow label="Form">
             <For each={SELECTABLE_SUBTYPES}>
               {(entry) => (
-                <Chip
+                <SignedChip
                   label={SUBTYPE_LABELS[entry]}
-                  active={search.params().subtype.includes(entry)}
+                  sign={signOf(search.params().subtype, entry)}
                   onPick={() => search.refine(toggle(search.params(), 'subtype', entry))}
                 />
               )}
