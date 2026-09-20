@@ -362,8 +362,11 @@ const EmbedderLive = layerBunEmbedder;
  *
  *  1. `paragraphs_fts_data` (449 MB) is the posting lists every lexical query
  *     reads, including the selectivity probe.
- *  2. A ranked query makes FTS5 *score* rather than merely count, which walks
- *     the index structures scoring uses and nothing else does.
+ *  2. Ranked queries over the corpus's *common* terms make FTS5 score rather
+ *     than merely count, which walks the index structures scoring uses and
+ *     nothing else does. Several terms rather than one, because scoring cost is
+ *     linear in the posting list and a selective term faults in almost none of
+ *     what a common term needs — measured below.
  *  3. The join those rows come back through is the bodies leg, whose seeks are
  *     scattered across a 3.6 GB table — the part the page cache helps least and
  *     therefore the part most worth touching first.
@@ -374,6 +377,24 @@ const EmbedderLive = layerBunEmbedder;
  *
  *  Failures are logged, never fatal. Warming is an optimization; a corpus that
  *  cannot be warmed can still be searched. */
+/** The terms whose posting lists the warm-up scores.
+ *
+ *  Frequent in this corpus and *ungated* — a term the selectivity gate refuses
+ *  is never scored by a query, so warming its pages would buy nothing. Their
+ *  match counts, measured: `god` 570,900, `lord` 299,913, `christ` 283,120,
+ *  `jesus` 141,862, `love` 96,205, `heaven` 91,727, `sabbath` 68,411.
+ *
+ *  Literals, and only ever literals: they are interpolated into SQL below. */
+const WARM_TERMS: readonly string[] = [
+  'god',
+  'lord',
+  'jesus',
+  'christ',
+  'love',
+  'heaven',
+  'sabbath',
+];
+
 const WarmCorpusLive: Layer.Layer<never, never, SqlClient.SqlClient> = Layer.effectDiscard(
   Effect.gen(function* () {
     const sql = yield* SqlClient.SqlClient;
@@ -383,17 +404,33 @@ const WarmCorpusLive: Layer.Layer<never, never, SqlClient.SqlClient> = Layer.eff
       // page of it without materializing rows.
       yield* sql.unsafe(`SELECT count(*) FROM paragraphs_fts_data`);
       const postingsAt = yield* Effect.clockWith((clock) => clock.currentTimeMillis);
-      // One real ranked query: scoring, the bodies join and the books join, on
-      // a term selective enough to be honest work rather than a scan.
-      yield* sql.unsafe(`
-        SELECT p.ref_code, p.nodes_json
-        FROM paragraphs_fts fts
-        JOIN paragraphs p ON p.rowid = fts.rowid
-        JOIN books b ON p.book_id = b.book_id
-        WHERE paragraphs_fts MATCH 'sanctuary'
-        ORDER BY fts.rank
-        LIMIT 60
-      `);
+      // Real ranked queries: scoring, the bodies join and the books join.
+      //
+      // Several terms, not one, and *common* ones. A first version warmed
+      // `sanctuary` alone and did not help: `god` still took 7,124 ms on the
+      // first query against 961 ms on the second. Scoring cost is linear in a
+      // term's posting list, and `god` (570,900 rows) touches 34x what
+      // `sanctuary` (16,765) does — so warming a selective term faults in
+      // almost none of the pages a common one needs.
+      //
+      // These are the frequent ungated terms of this corpus, which is both
+      // where the cost concentrates and what readers actually type. Gated
+      // stopwords are deliberately absent: the selectivity gate means no query
+      // ever scores them, so their pages are never wanted.
+      // Interpolated rather than bound because `sql.unsafe` takes no
+      // parameters. Safe only because these are literals in this file: nothing
+      // here is ever derived from a request, and a term must never become so.
+      for (const term of WARM_TERMS) {
+        yield* sql.unsafe(`
+          SELECT p.ref_code, p.nodes_json
+          FROM paragraphs_fts fts
+          JOIN paragraphs p ON p.rowid = fts.rowid
+          JOIN books b ON p.book_id = b.book_id
+          WHERE paragraphs_fts MATCH '${term}'
+          ORDER BY fts.rank
+          LIMIT 60
+        `);
+      }
       const doneAt = yield* Effect.clockWith((clock) => clock.currentTimeMillis);
       yield* Effect.log(
         'search.corpus.warm',
