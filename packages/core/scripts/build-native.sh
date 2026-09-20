@@ -49,9 +49,23 @@ build_native() {
   # A cross-compile names its own file, because a linux .so built on a mac
   # must not overwrite the mac's .dylib.
   if [ -n "${TARGET:-}" ]; then
-    echo "$TARGET -> $out/vector-scan-$TARGET.so"
-    zig cc --target="$TARGET" -O3 -shared -fPIC \
+    # A cross-compile must name the vector unit, because a target triple does
+    # not imply one: `x86_64-linux-gnu` is baseline x86-64, which is SSE2, so
+    # `__AVX2__` is undefined and `vector-scan.c` silently compiles its *scalar*
+    # path. That builds and loads and then reports isa 0, which the loader
+    # refuses on purpose — an artifact that ships, is ignored, and says nothing.
+    #
+    # This is not the `-march=native` hazard the note below warns about. That
+    # one bakes in whatever the *build* machine happens to have; this is a
+    # deliberate claim about the deployment, and it is checked: the Railway
+    # container reports `avx2` on all 48 cores of an AMD EPYC 9655P. The claim
+    # has to be right, because an unsupported vector instruction is a SIGILL
+    # that kills the process rather than an error any fallback can catch.
+    echo "$TARGET${TARGET_CFLAGS:+ $TARGET_CFLAGS} -> $out/vector-scan-$TARGET.so"
+    # shellcheck disable=SC2086 -- TARGET_CFLAGS is a flag list, split on purpose.
+    zig cc --target="$TARGET" ${TARGET_CFLAGS:-} -O3 -shared -fPIC \
       -o "$out/vector-scan-$TARGET.so" "$src/vector-scan.c"
+    verify_isa "$out/vector-scan-$TARGET.so"
   else
     echo "host native -> $out/vector-scan.$ext"
     # -O3 only: never -march=native, which bakes in whatever the *build*
@@ -66,6 +80,36 @@ build_native() {
 # loudly: the stale module still loads and still returns scores, just not the
 # ones the source now describes. This rebuilds into a scratch file and compares,
 # which is only meaningful because `zig cc` is byte-reproducible here.
+# What `vector_scan_isa` compiled to, read back out of the artifact.
+#
+# The build cannot run a cross-compiled library, so this disassembles the one
+# function whose whole job is to answer that question. Without it a scalar build
+# is indistinguishable from an accelerated one until it reaches production and
+# is quietly refused.
+verify_isa() {
+  lib="$1"
+  if ! command -v objdump >/dev/null 2>&1; then
+    echo "  (objdump absent -- cannot verify the vector unit)"
+    return 0
+  fi
+  # The function is a single `return <constant>`, so the constant is the only
+  # immediate in its body. A zeroing idiom (`xor eax, eax` on x86, `mov w0, #0`
+  # on arm64) is the scalar build returning 0.
+  body="$(objdump -d "$lib" 2>/dev/null | sed -n '/<vector_scan_isa>:/,/ret/p')"
+  isa=''
+  case "$body" in
+    *'$0x1'*|*'#0x1'*|*'#1'*) isa=1 ;;
+    *'$0x2'*|*'#0x2'*|*'#2'*) isa=2 ;;
+    *xor*|*'#0x0'*|*'#0'*)    isa=0 ;;
+  esac
+  case "$isa" in
+    1) echo "  avx2" ;;
+    2) echo "  neon" ;;
+    0) echo "  SCALAR -- the loader refuses isa 0; pass TARGET_CFLAGS=-mavx2 (x86) or equivalent" >&2; exit 1 ;;
+    *) echo "  (could not read the vector unit from $lib)" ;;
+  esac
+}
+
 check_wasm() {
   # No toolchain is not a failure. This runs in `bun test` on every machine
   # that clones the repository, and most of them have no reason to have zig;
@@ -90,6 +134,20 @@ check_wasm() {
   else
     echo "$committed is stale -- rebuild and commit it: $0 wasm" >&2
     exit 1
+  fi
+
+  # The committed x86-64 library, checked the same way and for the same reason.
+  linux="$out/vector-scan-x86_64-linux-gnu.so"
+  if [ -f "$linux" ]; then
+    zig cc --target=x86_64-linux-gnu -mavx2 -O3 -shared -fPIC \
+      -o "$tmp/vector-scan-x86_64-linux-gnu.so" "$src/vector-scan.c"
+    if cmp -s "$tmp/vector-scan-x86_64-linux-gnu.so" "$linux"; then
+      echo "x86_64 avx2 matches vector-scan.c"
+    else
+      echo "$linux is stale -- rebuild and commit it:" >&2
+      echo "  TARGET=x86_64-linux-gnu TARGET_CFLAGS=-mavx2 $0 native" >&2
+      exit 1
+    fi
   fi
 }
 

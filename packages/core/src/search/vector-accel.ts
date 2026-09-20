@@ -46,7 +46,7 @@
  *  this seam and the pure module keeps its shape.
  */
 
-import { Data, Effect, Option, Schema } from 'effect';
+import { Data, Effect, Match, Option, Schema } from 'effect';
 
 /** Why a tier did not load.
  *
@@ -114,23 +114,41 @@ interface FfiModule {
 /** Where `scripts/build-native.sh` leaves its artifacts. */
 const artifactUrl = (file: string): URL => new URL(`../../dist-native/${file}`, import.meta.url);
 
-/** The library name this platform's loader expects.
+/** The library names this host could load, best first.
  *
- *  An unknown platform resolves to the Unix name and then simply fails to
+ *  Two, not one, because the two ways an artifact arrives have to coexist. A
+ *  developer runs `build-native.sh` and gets a host-named file
+ *  (`vector-scan.dylib`); the deployment gets a committed cross-compile named
+ *  for its triple (`vector-scan-x86_64-linux-gnu.so`). A single flat name would
+ *  make those collide on Linux, where a local build and the committed artifact
+ *  want the same path and the committed one would win — silently running the
+ *  wrong ISA for the machine.
+ *
+ *  The host build is preferred because it is the more specific claim: someone
+ *  built it *here*. The triple-named file is the fallback, and it is only ever
+ *  right for the triple in its name.
+ *
+ *  An unknown platform resolves to the Unix names and then simply fails to
  *  load, which is the same outcome as having no artifact — the next tier down.
  */
-const nativeFilename = (): string => {
-  const platform = Option.fromNullishOr(globalThis.process).pipe(
-    Option.map((runtime) => runtime.platform),
-  );
-  return Option.match(platform, {
-    onNone: () => 'vector-scan.so',
-    onSome: (name) => {
-      if (name === 'darwin') return 'vector-scan.dylib';
-      if (name === 'win32') return 'vector-scan.dll';
-      return 'vector-scan.so';
-    },
+const nativeFilenames = (): readonly string[] => {
+  const runtime = Option.fromNullishOr(globalThis.process);
+  const platform = Option.match(runtime, {
+    onNone: () => 'linux',
+    onSome: (process) => process.platform,
   });
+  const arch = Option.match(runtime, {
+    onNone: () => 'x64',
+    onSome: (process) => process.arch,
+  });
+  if (platform === 'darwin') return ['vector-scan.dylib'];
+  if (platform === 'win32') return ['vector-scan.dll'];
+  // The triples `build-native.sh` cross-compiles to, named as zig names them.
+  const triple = Match.value(arch).pipe(
+    Match.when('arm64', () => 'aarch64-linux-gnu'),
+    Match.orElse(() => 'x86_64-linux-gnu'),
+  );
+  return ['vector-scan.so', `vector-scan-${triple}.so`];
 };
 
 /** Tier one: the native library through `bun:ffi`.
@@ -152,13 +170,25 @@ const loadNative = (target: AccelTarget): Effect.Effect<Option.Option<VectorAcce
       catch: () => new AccelUnavailable({ tier: 'ffi' }),
     });
     const type = (name: string): unknown => ffi.FFIType[name];
-    const lib = ffi.dlopen(artifactUrl(nativeFilename()).pathname, {
+    const symbols = {
       vector_scan_range: {
         args: [type('ptr'), type('ptr'), type('i32'), type('i32'), type('i32'), type('ptr')],
         returns: type('i32'),
       },
       vector_scan_isa: { args: [], returns: type('i32') },
-    });
+    };
+    // `dlopen` throws for a name that is not there, and an absent candidate is
+    // the ordinary case rather than a failure: a developer has the host build
+    // and not the cross-compile, the deployment has the reverse. Trying each in
+    // turn is what lets both exist without one hiding the other.
+    const lib = yield* Effect.firstSuccessOf(
+      nativeFilenames().map((file) =>
+        Effect.try({
+          try: () => ffi.dlopen(artifactUrl(file).pathname, symbols),
+          catch: () => new AccelUnavailable({ tier: 'ffi' }),
+        }),
+      ),
+    );
 
     const isaSymbol = Option.fromNullishOr(lib.symbols['vector_scan_isa']);
     const rangeSymbol = Option.fromNullishOr(lib.symbols['vector_scan_range']);
