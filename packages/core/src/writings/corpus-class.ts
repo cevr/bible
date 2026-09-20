@@ -13,7 +13,7 @@
  *  corpus searches exactly as it did before these columns existed.
  */
 
-import { Schema } from 'effect';
+import { Schema, SchemaGetter } from 'effect';
 
 /** The four top-level libraries the corpus is made of.
  *
@@ -122,6 +122,112 @@ export const APPARATUS_TYPES: ReadonlySet<BookType> = new Set<BookType>([
   'scriptindex',
 ]);
 
+/**
+ * One axis of the filter, signed.
+ *
+ * "Devotionals only" and "anything but devotionals" are the same axis with
+ * opposite signs, not two different filters, so they are one record with two
+ * lists rather than a `subtype` array beside an `excludeSubtype` array. The
+ * chips in the UI are tri-state over exactly this: absent, in `include`, in
+ * `exclude`.
+ *
+ * The two lists are applied with different rules, which is the whole reason
+ * the distinction is worth modelling:
+ *
+ *   - `include` is a whitelist. A book with no classification is *not* in it,
+ *     so it is dropped. Asking for `type=dictionary` and getting back the one
+ *     book the backfill could not classify is a wrong answer.
+ *   - `exclude` is a blacklist. A book with no classification is not in it
+ *     either, so it survives. Asking for "no devotionals" should not also
+ *     silently drop everything whose subtype is unknown.
+ *
+ * That asymmetry is not a special case for NULL; it is what "only these" and
+ * "not these" each mean when the evidence is missing. An unbackfilled corpus
+ * therefore answers every exclusion exactly as it did before these columns
+ * existed, and answers every inclusion with nothing — which is honest.
+ */
+export const Signed = <A extends Schema.Top>(value: A) =>
+  Schema.Struct({
+    include: Schema.Array(value),
+    exclude: Schema.Array(value),
+  });
+
+export const NO_SELECTION = {
+  include: [],
+  exclude: [],
+} satisfies { readonly include: readonly never[]; readonly exclude: readonly never[] };
+
+/**
+ * The wire spelling of a signed selection: one repeated query key whose values
+ * carry their own sign, `?subtype=commentary&subtype=-devotional`.
+ *
+ * One key rather than two (`subtype` beside `exclude_subtype`) because the two
+ * signs are one axis: a reader toggling a chip changes the sign of a value,
+ * not which parameter it lives under, and a link that spelled them separately
+ * would let the same value appear in both.
+ *
+ * No value in these unions begins with `-`, so the prefix is unambiguous
+ * without escaping. `signOf` is total: an unrecognised value — a hand-edited
+ * link, a value from a newer corpus — is dropped rather than failing the page,
+ * the same degradation rule `parseParams` applies everywhere else.
+ */
+export const EXCLUDE_PREFIX = '-';
+
+/**
+ * The codec between the two: `readonly string[]` on the wire, `{ include,
+ * exclude }` in the domain.
+ *
+ * A `decodeTo` rather than a pair of helper functions, so the sign encoding is
+ * a property of the schema the endpoint declares. The API's query parameter
+ * *is* `SignedFromStrings(BookSubtype)`, which means the handler receives the
+ * split selection already — there is no parse step a handler could forget, and
+ * no second place that knows what `-` means. Encoding back to a link is the
+ * same schema run the other way, so a link this app produces is a link this
+ * app decodes, by construction rather than by two functions kept in step.
+ *
+ * Decoding is *lenient*: a value the union does not contain is dropped rather
+ * than failing the request. A search link is pasted, truncated and
+ * hand-edited, and the useful answer to `?subtype=devotionl` is the reader's
+ * results with one filter missing, not an error page. The guard is what makes
+ * the drop possible without `Schema.Union` parsing every literal twice.
+ */
+export const SignedFromStrings = <const L extends readonly string[]>(
+  literals: Schema.Literals<L>,
+) => {
+  const is = Schema.is(literals);
+  type Value = L[number];
+
+  return Schema.Array(Schema.String).pipe(
+    Schema.decodeTo(Signed(literals), {
+      decode: SchemaGetter.transform((values: readonly string[]) => {
+        // Typed as the narrowed union, not `string[]`, so the guard's
+        // narrowing is what builds the result and no assertion is needed to
+        // hand it back as a selection.
+        const include: Value[] = [];
+        const exclude: Value[] = [];
+        for (const raw of values) {
+          if (raw.startsWith(EXCLUDE_PREFIX)) {
+            const bare = raw.slice(EXCLUDE_PREFIX.length);
+            if (is(bare)) exclude.push(bare);
+          } else if (is(raw)) {
+            include.push(raw);
+          }
+        }
+        return { include, exclude };
+      }),
+      encode: SchemaGetter.transform(
+        (selection: {
+          readonly include: readonly Value[];
+          readonly exclude: readonly Value[];
+        }): readonly string[] => [
+          ...selection.include,
+          ...selection.exclude.map((value) => `${EXCLUDE_PREFIX}${value}`),
+        ],
+      ),
+    }),
+  );
+};
+
 /** Every filter a search may carry, beyond the query text itself.
  *
  *  One record rather than four parameters threaded through the legs: the
@@ -132,26 +238,33 @@ export const APPARATUS_TYPES: ReadonlySet<BookType> = new Set<BookType>([
  *  `SearchQuery`, which is a `Schema.Class`, and it arrives over HTTP from the
  *  search app's URL. The type is derived from it so the two cannot disagree. */
 export const CorpusFilterSchema = Schema.Struct({
-  section: Schema.Array(CorpusSection),
-  type: Schema.Array(BookType),
-  subtype: Schema.Array(BookSubtype),
-  /** Drop the dictionaries, concordances and indexes (`APPARATUS_TYPES`). */
+  section: Signed(CorpusSection),
+  type: Signed(BookType),
+  subtype: Signed(BookSubtype),
+  /** Drop the dictionaries, concordances and indexes (`APPARATUS_TYPES`).
+   *
+   *  Still its own boolean rather than three entries in `type.exclude`: it is
+   *  one intent ("don't search the lookup apparatus") that happens to span
+   *  three types, and collapsing it into the type axis would make the chip
+   *  that sets it impossible to render as one control. */
   excludeApparatus: Schema.Boolean,
 });
 
 export type CorpusFilter = typeof CorpusFilterSchema.Type;
 
 export const NO_FILTER: CorpusFilter = {
-  section: [],
-  type: [],
-  subtype: [],
+  section: NO_SELECTION,
+  type: NO_SELECTION,
+  subtype: NO_SELECTION,
   excludeApparatus: false,
 };
+
+const empty = (selection: {
+  readonly include: readonly unknown[];
+  readonly exclude: readonly unknown[];
+}): boolean => selection.include.length === 0 && selection.exclude.length === 0;
 
 /** True when the filter would narrow nothing, so the caller can skip the join
  *  entirely rather than emitting a `WHERE` that is always true. */
 export const isUnfiltered = (filter: CorpusFilter): boolean =>
-  filter.section.length === 0 &&
-  filter.type.length === 0 &&
-  filter.subtype.length === 0 &&
-  !filter.excludeApparatus;
+  empty(filter.section) && empty(filter.type) && empty(filter.subtype) && !filter.excludeApparatus;

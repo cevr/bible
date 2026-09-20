@@ -16,11 +16,14 @@ import {
   BookType,
   CorpusScope,
   CorpusSection,
+  EXCLUDE_PREFIX,
   isBookSubtype,
   isBookType,
   isCorpusScope,
   isCorpusSection,
+  NO_SELECTION,
   SELECTABLE_SUBTYPES,
+  SignedFromStrings,
 } from '@bible/core/writings';
 
 /** Re-exported through the API module so the browser bundle has one import for
@@ -33,11 +36,14 @@ export {
   BookType,
   CorpusScope,
   CorpusSection,
+  EXCLUDE_PREFIX,
   isBookSubtype,
   isBookType,
   isCorpusScope,
   isCorpusSection,
+  NO_SELECTION,
   SELECTABLE_SUBTYPES,
+  SignedFromStrings,
 };
 
 /** One paragraph of context around a hit.
@@ -124,10 +130,18 @@ export const SearchGroup = HttpApiGroup.make('search')
         /** The library's own classification axes, each a repeated key
          *  (`?type=book&type=periodical`). Server-side for the same reason
          *  `scope` is: narrowing has to happen before retrieval ranks, not
-         *  after it returns a page. */
-        section: S.optional(S.Array(CorpusSection)),
-        type: S.optional(S.Array(BookType)),
-        subtype: S.optional(S.Array(BookSubtype)),
+         *  after it returns a page.
+         *
+         *  `SignedFromStrings` rather than the union itself because each value
+         *  carries its own sign: `?subtype=commentary&subtype=-devotional`
+         *  means "commentaries, but no devotionals". The transform is on the
+         *  endpoint, so the handler receives `{ include, exclude }` already
+         *  split — there is no parse step to forget. Unknown values are
+         *  dropped, so a hand-edited link degrades to a weaker filter instead
+         *  of a failed request. */
+        section: S.optional(SignedFromStrings(CorpusSection)),
+        type: S.optional(SignedFromStrings(BookType)),
+        subtype: S.optional(SignedFromStrings(BookSubtype)),
         /** Drop dictionaries, concordances and scripture indexes — 39% of the
          *  corpus, and lookup apparatus rather than anything read through. */
         noref: S.optional(S.String),

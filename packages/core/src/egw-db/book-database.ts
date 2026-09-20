@@ -282,17 +282,23 @@ const testMatchesFilter = (book: BookRow, filter?: CorpusFilter): boolean => {
   if (Option.exists(subtype, (value) => EXCLUDED_SUBTYPES.has(value))) return false;
   if (Predicate.isUndefined(filter)) return true;
 
-  /** One axis.
+  /** One axis, both signs — the double of the `signed` clauses in
+   *  `identityFilters`.
    *
-   *  An empty selection narrows nothing. A non-empty one is a *positive*
-   *  choice, so an unclassified book fails it: asking for dictionaries and
-   *  being handed a book nobody has classified is not an answer to the
-   *  question. That is the opposite of the apparatus exclusion below, where an
-   *  unclassified book passes precisely because it is not *known* to be
-   *  apparatus — a filter removes what the reader named, and a positive
-   *  selection keeps only what they named. */
-  const allowed = <A extends string>(chosen: readonly A[], value: Option.Option<A>): boolean =>
-    chosen.length === 0 || Option.exists(value, (v) => chosen.includes(v));
+   *  An empty selection narrows nothing. `include` is a *positive* choice, so
+   *  an unclassified book fails it: asking for dictionaries and being handed a
+   *  book nobody has classified is not an answer to the question. `exclude` is
+   *  the mirror: an unclassified book passes, because it is not *known* to be
+   *  the thing the reader removed. */
+  const allowed = <A extends string>(
+    selection: { readonly include: readonly A[]; readonly exclude: readonly A[] },
+    value: Option.Option<A>,
+  ): boolean => {
+    const included =
+      selection.include.length === 0 || Option.exists(value, (v) => selection.include.includes(v));
+    const excluded = Option.exists(value, (v) => selection.exclude.includes(v));
+    return included && !excluded;
+  };
 
   const type = classified(book.book_type, isBookType);
 
@@ -1431,19 +1437,45 @@ export class EGWParagraphDatabase extends Context.Service<
         // book not known to be apparatus is not what the reader excluded.
         const filter = options?.filter;
         if (Predicate.isNotUndefined(filter)) {
-          if (filter.section.length > 0) {
-            filters.push(sql.in('b.section', [...filter.section]));
+          // One axis, both signs. `include` is a whitelist, so a NULL column
+          // fails it; `exclude` is a blacklist, so a NULL column passes it.
+          // See `Signed` for why that asymmetry is the meaning of the two
+          // words rather than a NULL special case.
+          //
+          // The include side takes the column as a string because `sql.in`
+          // does; the exclude side needs a template, and a template
+          // interpolation *binds* rather than concatenates, so the three
+          // clauses are written out rather than generated from a column name.
+          if (filter.section.include.length > 0) {
+            filters.push(sql.in('b.section', [...filter.section.include]));
           }
-          if (filter.type.length > 0) {
-            filters.push(sql.in('b.book_type', [...filter.type]));
+          if (filter.section.exclude.length > 0) {
+            filters.push(
+              sql`(b.section IS NULL OR NOT ${sql.in('b.section', [...filter.section.exclude])})`,
+            );
           }
-          if (filter.subtype.length > 0) {
-            filters.push(sql.in('b.book_subtype', [...filter.subtype]));
+
+          if (filter.type.include.length > 0) {
+            filters.push(sql.in('b.book_type', [...filter.type.include]));
           }
-          // The one exclusion, and so the one clause that must *not* let a
-          // NULL through — an unclassified book is not known to be apparatus,
-          // so it stays, which is the same permissive rule stated the other
-          // way round.
+          if (filter.type.exclude.length > 0) {
+            filters.push(
+              sql`(b.book_type IS NULL OR NOT ${sql.in('b.book_type', [...filter.type.exclude])})`,
+            );
+          }
+
+          if (filter.subtype.include.length > 0) {
+            filters.push(sql.in('b.book_subtype', [...filter.subtype.include]));
+          }
+          if (filter.subtype.exclude.length > 0) {
+            filters.push(
+              sql`(b.book_subtype IS NULL OR NOT ${sql.in('b.book_subtype', [...filter.subtype.exclude])})`,
+            );
+          }
+
+          // Apparatus is its own toggle rather than three entries in
+          // `type.exclude`, but it is the same blacklist rule: an unclassified
+          // book is not known to be apparatus, so it stays.
           if (filter.excludeApparatus) {
             filters.push(
               sql`(b.book_type IS NULL OR NOT ${sql.in('b.book_type', [...APPARATUS_TYPES])})`,

@@ -46,7 +46,7 @@ import type { CorpusFilter } from '@bible/core/writings';
 import { WikiService } from '@bible/core/wiki';
 import { layerBunWithCatalog } from '@bible/core/wiki/bun';
 
-import { readerUrl, SearchApi, SearchFailed } from './api.js';
+import { NO_SELECTION, readerUrl, SearchApi, SearchFailed } from './api.js';
 import { emptySurrounding, surroundingParagraphs } from './context.js';
 
 const PORT = Number(process.env['PORT'] ?? 3101);
@@ -97,9 +97,10 @@ const SearchGroupLive = HttpApiBuilder.group(SearchApi, 'search', (handlers) =>
           const text = params.q.trim();
           const scope = params.scope ?? 'all';
           const filter: CorpusFilter = {
-            section: params.section ?? [],
-            type: params.type ?? [],
-            subtype: params.subtype ?? [],
+            // Already split by the endpoint's `SignedFromStrings` transform.
+            section: params.section ?? NO_SELECTION,
+            type: params.type ?? NO_SELECTION,
+            subtype: params.subtype ?? NO_SELECTION,
             // Always on for this surface (see `NEVER_APPARATUS`); `noref` is
             // kept on the wire so a link can still say so explicitly.
             excludeApparatus: NEVER_APPARATUS,
