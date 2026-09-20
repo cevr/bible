@@ -43,6 +43,7 @@ import {
 import {
   EGWParagraphDatabase,
   FTS_TERM_CONJUNCTION,
+  paragraphIdentity,
   ParagraphDataIntegrityError,
 } from './book-database.js';
 import * as EGWDbBun from './book-database-bun.js';
@@ -658,6 +659,64 @@ describe('EGWParagraphDatabase', () => {
           // An unknown key matches nothing rather than erroring or matching all.
           expect(yield* db.findParagraphsByIdentity(['2ChS:absent'])).toHaveLength(0);
           expect(yield* db.findParagraphsByIdentity([])).toHaveLength(0);
+        }),
+      ));
+
+    /** The lookup seeks on `para_id` so SQLite can use an index, and decides on
+     *  `book_code || ':' || para_id`. `para_id` is unique only *within* a book,
+     *  so the seek alone admits a paragraph from every book sharing the value —
+     *  which is exactly the cross-book collision `paragraphIdentity` qualifies
+     *  by book to prevent. This pins that the second predicate still decides. */
+    test('does not admit another book sharing a para_id', () =>
+      runTest(
+        Effect.gen(function* () {
+          const db = yield* EGWParagraphDatabase;
+          const wanted = mockBook(410, 'WANTED');
+          const other = mockBook(411, 'OTHER');
+          // `mockParagraph` derives `para_id` from `puborder`, so the same
+          // argument in both books is the collision.
+          yield* db.storeParagraphsBatch([mockParagraph(7, 'WANTED 1.1')], wanted);
+          yield* db.storeParagraphsBatch([mockParagraph(7, 'OTHER 1.1')], other);
+
+          const found = yield* db.findParagraphsByIdentity(['WANTED:para-7']);
+          expect(found.map((row) => row.bookCode)).toEqual(['WANTED']);
+
+          // And both are still reachable when both are asked for.
+          const both = yield* db.findParagraphsByIdentity(['WANTED:para-7', 'OTHER:para-7']);
+          expect(both.map((row) => row.bookCode).toSorted()).toEqual(['OTHER', 'WANTED']);
+        }),
+      ));
+
+    /** `paragraphIdentity` falls back to `${bookCode}:#${refCode}` when a row
+     *  has no `para_id`, and such a row is *not* resolvable here — SQL's
+     *  `book_code || ':' || para_id` is `NULL` when `para_id` is, so it matches
+     *  nothing. That is long-standing behaviour, not a new limitation, and it
+     *  is inert on the shipped corpus, where no row takes the branch (see
+     *  `paragraphIdentity`). It is pinned because the lookup now also seeks on
+     *  `para_id` for the index: the seek must not be built from a `#` part,
+     *  which would narrow a *mixed* batch and start dropping the ordinary
+     *  identities beside it. Finding nothing is the old cost; dropping good
+     *  rows would be a new one. */
+    test('resolves nothing for an identity with no para_id, and does not poison the batch', () =>
+      runTest(
+        Effect.gen(function* () {
+          const db = yield* EGWParagraphDatabase;
+          const book = mockBook(412, 'NOPARA');
+          yield* db.storeParagraphsBatch(
+            [
+              { ...mockParagraph(3, 'NOPARA 1.1'), para_id: Option.none() },
+              mockParagraph(4, 'NOPARA 1.2'),
+            ],
+            book,
+          );
+
+          const headless = paragraphIdentity('NOPARA', Option.none(), 'NOPARA 1.1');
+          expect(headless).toBe('NOPARA:#NOPARA 1.1');
+          expect(yield* db.findParagraphsByIdentity([headless])).toHaveLength(0);
+
+          // The ordinary identity beside it still resolves.
+          const mixed = yield* db.findParagraphsByIdentity([headless, 'NOPARA:para-4']);
+          expect(mixed.map((row) => row.para_id)).toEqual(['NOPARA:para-4']);
         }),
       ));
   });

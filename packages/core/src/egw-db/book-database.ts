@@ -437,6 +437,29 @@ export const paragraphIdentity = (
     },
   );
 
+/** The `para_id`s a batch of identities can be *sought* on, if all of them can.
+ *
+ *  `findParagraphsByIdentity` decides rows on `book_code || ':' || para_id`,
+ *  which is a computed expression no index can serve. Seeking on the bare
+ *  `para_id` first gives the planner a column, and the concatenation then runs
+ *  over the few rows that survive instead of all three million.
+ *
+ *  `None` means "do not narrow": an identity in the `${bookCode}:#${refCode}`
+ *  form has no `para_id` to seek on (see `paragraphIdentity`), so including it
+ *  would exclude the rows its *neighbours* in the batch wanted. Widening for
+ *  the whole batch is slow; narrowing wrongly is incorrect. */
+const seekableParaIds = (identities: readonly string[]): Option.Option<readonly string[]> => {
+  const paraIds: string[] = [];
+  for (const identity of identities) {
+    const separator = identity.indexOf(':');
+    if (separator === -1) return Option.none();
+    const part = identity.slice(separator + 1);
+    if (part.startsWith('#')) return Option.none();
+    paraIds.push(part);
+  }
+  return Option.some(paraIds);
+};
+
 /** One scored FTS hit: the paragraph's identity, its text, and SQLite's own
  *  relevance value.
  *
@@ -1667,6 +1690,17 @@ export class EGWParagraphDatabase extends Context.Service<
         // correctly dropped it. `identityFilters` is the shared builder, minus
         // the MATCH clause this path has no query for.
         const predicates = identityFilters(options);
+        // An indexable seek ahead of the concatenation, which no index can
+        // serve. `EXPLAIN QUERY PLAN` goes from `SCAN p` over all 3,012,004
+        // rows to `SEARCH p USING INDEX idx_paragraphs_para_id`; measured on
+        // the deployed corpus with a 30-identity batch, 730 ms to under 10 ms,
+        // returning the same rows. See `seekableParaIds` for why a batch can
+        // decline to narrow. The concatenation below is unchanged and still
+        // decides every row, so this can only ever cost time, never rows.
+        const prefilter = Option.match(seekableParaIds(identities), {
+          onNone: () => sql`1 = 1`,
+          onSome: (paraIds) => sql`p.para_id IN ${sql.in(paraIds)}`,
+        });
         return sql<{
           readonly book_code: string;
           readonly book_title: string;
@@ -1683,7 +1717,8 @@ export class EGWParagraphDatabase extends Context.Service<
                      p.ref_code, p.refcode_short, p.para_id, p.nodes_json
               FROM paragraphs p
               JOIN books b ON p.book_id = b.book_id
-              WHERE b.book_code || ':' || p.para_id IN ${sql.in([...identities])}
+              WHERE ${prefilter}
+                AND b.book_code || ':' || p.para_id IN ${sql.in([...identities])}
                 AND ${sql.and(predicates)}
             `.pipe(
           Effect.map((rows) =>
