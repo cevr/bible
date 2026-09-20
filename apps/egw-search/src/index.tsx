@@ -35,6 +35,7 @@ import {
   isPending,
   latest,
   Show,
+  untrack,
   useContext,
 } from 'solid-js';
 
@@ -57,6 +58,7 @@ import {
   type Sign,
   signOf,
   toggle,
+  toWorkspaceString,
 } from './url-state.js';
 import './styles.css';
 
@@ -185,13 +187,47 @@ const SearchProvider = (props: { readonly pane: number; readonly children: Eleme
     setTyped(Option.some(value));
   };
 
-  /** The request. An async memo is Solid 2's resource: it re-runs when
-   *  `currentParams` changes — which is to say when the URL changes, by a
-   *  submit, a filter toggle or the back button — and its pending and failed
-   *  states are surfaced by the boundaries rather than by flags kept here. */
-  const outcome = createMemo(async (): Promise<{ readonly hits: readonly Hit[] }> => {
+  /** This pane's request, as a string.
+   *
+   *  The memo below keys on this rather than on `params()` because
+   *  `currentPanes()` re-parses the URL on every navigation and hands back
+   *  *fresh objects* — so a memo reading it directly re-runs whenever any pane
+   *  changes, however unrelated. Adding a fourth pane re-fetched the other
+   *  three, and closing one re-fetched the survivors: a round trip each, for a
+   *  change that touched neither their query nor their filters.
+   *
+   *  Serializing exactly what goes on the wire makes the dependency precise: a
+   *  pane re-fetches when *its own* request would differ, and a pane whose
+   *  slice of the URL is untouched keeps the results it already has. */
+  /** This pane's request, as a string.
+   *
+   *  `currentPanes()` re-parses the URL on every navigation and hands back
+   *  fresh objects, so a memo that depends on `params()` invalidates whenever
+   *  *any* pane changes. Adding a fourth pane re-fetched the other three, and
+   *  closing one re-fetched the survivors: a round trip each, for a change that
+   *  touched neither their query nor their filters. Comparing the serialised
+   *  request instead makes the dependency the request itself.
+   *
+   *  `toWorkspaceString` is reused rather than a new encoder written: it is
+   *  already exhaustive over `SearchParams` by destructuring (see its note in
+   *  `./url-state.ts`), so an axis added later cannot silently drop out of the
+   *  key and leave a pane showing another pane's results. */
+  const requestKey = (): string => {
     const current = params();
-    if (current.q === '') return { hits: [] };
+    if (current.q.trim() === '') return '';
+    return toWorkspaceString([current]);
+  };
+
+  /** The request. An async memo is Solid 2's resource: it re-runs when this
+   *  pane's own request changes — by a submit, a filter toggle or the back
+   *  button — and its pending and failed states are surfaced by the boundaries
+   *  rather than by flags kept here. */
+  const outcome = createMemo(async (): Promise<{ readonly hits: readonly Hit[] }> => {
+    if (requestKey() === '') return { hits: [] };
+    // Read untracked: `requestKey` above is the whole dependency, and reading
+    // `params()` here as well would re-introduce the identity dependency this
+    // memo exists to avoid.
+    const current = untrack(params);
     return runQuery(searchEffect(current, CONTEXT), AbortSignal.timeout(40_000));
   });
 
@@ -651,9 +687,15 @@ const HitRow = (props: { readonly hit: Hit }) => (
 /** A neighbouring paragraph: smaller and dimmer than the match, but addressable
  *  in its own right — its reference links into egwwritings exactly as the
  *  match's does, so a reader who wants the paragraph *before* the hit can open
- *  that one instead. */
+ *  that one instead.
+ *
+ *  The reference trails the text rather than leading it. A label in front is
+ *  the first thing the eye reads, which puts a catalogue number where the
+ *  sentence should start; behind, it reads as the citation it is and the three
+ *  paragraphs of a hit all begin on prose. */
 const Context = (props: { readonly para: ContextParagraph }) => (
   <p class="context">
+    {props.para.text}
     <Show when={props.para.refcode}>
       {(ref) => (
         <Show when={props.para.url} fallback={<span class="cref">{ref()}</span>}>
@@ -665,7 +707,6 @@ const Context = (props: { readonly para: ContextParagraph }) => (
         </Show>
       )}
     </Show>
-    {props.para.text}
   </p>
 );
 

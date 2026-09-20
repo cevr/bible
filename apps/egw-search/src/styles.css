@@ -639,10 +639,13 @@ a.hit .refcode,
   margin-top: var(--s2);
 }
 
-/* The neighbour's own reference, set inline ahead of its text. Mono against
- *  the serif body so it reads as a label rather than as the first words of the
- *  paragraph, and dimmer than the match's refcode so the left column keeps its
- *  primacy. */
+/* The neighbour's own reference, set inline after its text. Mono against the
+ *  serif body so it reads as a citation rather than as part of the sentence,
+ *  and dimmer than the match's refcode so the left column keeps its primacy.
+ *
+ *  `white-space: nowrap` keeps the reference whole: it is two tokens with a
+ *  space between them, and wrapping it would leave a bare paragraph number
+ *  alone on the last line. */
 .hit .cref {
   font-family: var(--mono);
   font-size: 10px;
@@ -651,7 +654,8 @@ a.hit .refcode,
   color: var(--muted);
   text-decoration: none;
   border-bottom: 1px solid transparent;
-  margin-right: var(--s2);
+  margin-left: var(--s2);
+  white-space: nowrap;
 }
 
 a.cref:hover {
