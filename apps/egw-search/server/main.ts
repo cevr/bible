@@ -23,6 +23,7 @@ import { BunHttpServer, BunRuntime, BunServices } from '@effect/platform-bun';
 import { Effect, Layer, Option } from 'effect';
 import {
   Etag,
+  FetchHttpClient,
   HttpMiddleware,
   HttpPlatform,
   HttpRouter,
@@ -30,6 +31,7 @@ import {
   HttpStaticServer,
 } from 'effect/unstable/http';
 import { HttpApiBuilder } from 'effect/unstable/httpapi';
+import { OtlpSerialization, OtlpTracer } from 'effect/unstable/observability';
 
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
 import {
@@ -301,8 +303,29 @@ const HttpLive = Layer.unwrap(
  *  database connection. See `./sync.ts` for why it must not open its own. */
 const SyncLive = EgwSyncLive.pipe(Layer.provide(SqlLive));
 
+/** Export spans over OTLP, when the deployment says where to.
+ *
+ *  `layerFromConfig` reads the standard OpenTelemetry environment —
+ *  `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_EXPORTER_OTLP_HEADERS`,
+ *  `OTEL_TRACES_EXPORTER`, `OTEL_SDK_DISABLED` — and returns a no-op flusher
+ *  when no endpoint is set, so this is inert locally and needs no gate of our
+ *  own. Railway injects the endpoint and headers for its own trace ingest, so
+ *  in production this wires itself up; pointing it at a different backend is a
+ *  matter of overriding those variables and redeploying.
+ *
+ *  JSON rather than protobuf: Railway's receiver takes OTLP/HTTP, and the
+ *  volume here is a handful of spans per query rather than a firehose worth
+ *  encoding more tightly.
+ *
+ *  Traces only. Railway's ingest rejects OTLP metrics and logs, and this app's
+ *  logs already go to the platform's log stream. */
+const TracingLive = OtlpTracer.layerFromConfig({
+  resource: { serviceName: 'egw-search' },
+}).pipe(Layer.provide(OtlpSerialization.layerJson), Layer.provide(FetchHttpClient.layer));
+
 const PlatformLive = Layer.mergeAll(
   SyncLive,
+  TracingLive,
   Etag.layer,
   HttpPlatform.layer.pipe(Layer.provide(BunServices.layer)),
   // `BunServices` carries the FileSystem and Path the static server reads

@@ -668,9 +668,19 @@ const makeQuery =
       // Both legs' pools scale with what the caller asked for; see `candidateLimit`.
       const candidates = candidateLimit(queryLimit(input));
 
+      // Each leg is a span rather than a hand-read clock.
+      //
+      // The three phases have genuinely different costs and any one of them can
+      // dominate — the lexical leg is SQL, the vector leg is an embed plus a
+      // scan over ~600k vectors, and the bodies join is one statement by
+      // paragraph identity — so "search feels slow" has to be answerable per
+      // leg. Spans give that, nested under the HTTP span the server already
+      // opens, with durations the tracer records rather than subtractions kept
+      // in step by hand. Where they are exported is the deployment's business;
+      // see `OtlpTracer` in the server's layers.
+
       // The lexical leg and the pinned group are independent reads over two
       // corpora, and the result needs both, so they run together.
-      const startedAt = yield* Effect.clockWith((clock) => clock.currentTimeMillis);
       const [lexical, topics, locate] = yield* Effect.all(
         [
           lexicalLeg(sources, routed, scope, input.bookCode, filter, candidates),
@@ -678,8 +688,7 @@ const makeQuery =
           locateLeg(sources, routed),
         ],
         { concurrency: 'unbounded' },
-      );
-      const lexicalAt = yield* Effect.clockWith((clock) => clock.currentTimeMillis);
+      ).pipe(Effect.withSpan('search.lexical', { attributes: { route: routed._tag } }));
 
       // The vector leg reads the lexical scores — §9.3's short-circuit is a
       // decision about them — so it is sequenced after rather than beside.
@@ -692,25 +701,13 @@ const makeQuery =
         filter,
         candidates,
         sources,
-      );
-      const vectorAt = yield* Effect.clockWith((clock) => clock.currentTimeMillis);
+      ).pipe(Effect.withSpan('search.vector'));
+
       // §9.2's join, for the candidates only the vector leg found. One
       // statement, and skipped entirely when the two legs agree on every id.
-      const vectorOnly = yield* vectorOnlyBodies(sources, lexical, vector.ids, scope, filter);
-      const doneAt = yield* Effect.clockWith((clock) => clock.currentTimeMillis);
-
-      // One line per query, so "search feels slow" is a number rather than an
-      // argument. The phases are the three that can each dominate: the lexical
-      // leg is SQL, the vector leg is an embed plus a scan over ~600k vectors,
-      // and the bodies join is one statement by paragraph identity.
-      yield* Effect.logInfo('search.timing').pipe(
-        Effect.annotateLogs({
-          route: routed._tag,
-          vector: vector.status._tag,
-          lexicalMs: lexicalAt - startedAt,
-          vectorMs: vectorAt - lexicalAt,
-          bodiesMs: doneAt - vectorAt,
-          totalMs: doneAt - startedAt,
+      const vectorOnly = yield* vectorOnlyBodies(sources, lexical, vector.ids, scope, filter).pipe(
+        Effect.withSpan('search.bodies', {
+          attributes: { vectorStatus: vector.status._tag },
         }),
       );
 
