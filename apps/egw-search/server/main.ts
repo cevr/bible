@@ -48,6 +48,7 @@ import { layerBunWithCatalog } from '@bible/core/wiki/bun';
 
 import { NO_SELECTION, readerUrl, SearchApi, SearchFailed } from './api.js';
 import { emptySurrounding, surroundingParagraphs } from './context.js';
+import { EgwSyncLive } from './sync.js';
 
 const PORT = Number(process.env['PORT'] ?? 3101);
 const DEFAULT_LIMIT = 40;
@@ -294,7 +295,14 @@ const HttpLive = Layer.unwrap(
   ),
 );
 
+/** The weekly corpus sync, over the *same* `SqlLive` the handlers read
+ *  through. Merged into the launch rather than into `RouterLive` because it
+ *  serves no route: it is a background fiber that happens to need the same
+ *  database connection. See `./sync.ts` for why it must not open its own. */
+const SyncLive = EgwSyncLive.pipe(Layer.provide(SqlLive));
+
 const PlatformLive = Layer.mergeAll(
+  SyncLive,
   Etag.layer,
   HttpPlatform.layer.pipe(Layer.provide(BunServices.layer)),
   // `BunServices` carries the FileSystem and Path the static server reads

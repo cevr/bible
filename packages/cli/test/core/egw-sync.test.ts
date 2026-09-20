@@ -12,12 +12,11 @@ import {
   assetSourceId,
   corpusRevision,
   type WritingsTarget,
+  syncEgwCorpus,
 } from '@bible/core/corpus-supply';
 import { publicationId } from '@bible/core/writings';
 import { Effect, Layer, Option, Stream } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
-
-import { syncEgwCorpus } from '../../src/commands/egw/sync.js';
 
 const book = (bookId: number, code: string): EGWSchemas.Book => ({
   book_id: bookId,
