@@ -473,6 +473,25 @@ body {
   gap: var(--s2);
 }
 
+/* The corpus contains footnote URLs — CFL's "Counsel #5 — What Is The Latter
+ *  Rain?" carries a 177-character adventistchurch.org link as a single
+ *  unbreakable token. A word longer than its column sets the column's minimum
+ *  width, which widened the whole grid and gave the page a horizontal scroll
+ *  on a phone: 479px of content in a 390px viewport, with no element actually
+ *  positioned outside it.
+ *
+ *  `anywhere` rather than `break-word` because only `anywhere` lets the
+ *  overlong token count toward the intrinsic minimum as *broken*, which is
+ *  what stops it widening the column in a grid. It applies to the prose
+ *  elements alone: a refcode is short and breaking one mid-token would make
+ *  it unreadable. */
+.hit .text,
+.hit .context,
+.hit .match,
+.hit .body {
+  overflow-wrap: anywhere;
+}
+
 /* Desktop: the reference moves into its own left column. */
 @media (min-width: 681px) {
   .hit {
