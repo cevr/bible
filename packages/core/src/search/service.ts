@@ -256,11 +256,73 @@ const toRow = (row: ScoredParagraphRow): SearchParagraphRow => ({
   score: -row.rank,
 });
 
+/** How many matches make a term too common to be worth ranking.
+ *
+ *  **Measured, not guessed.** `ORDER BY rank` scores *every* match to return
+ *  sixty rows, and the cost is linear in the match count at ~1.3 µs each on the
+ *  deployed corpus:
+ *
+ *  | term          | matches   | % corpus | `ORDER BY rank` |
+ *  |---------------|-----------|----------|-----------------|
+ *  | `the`         | 1,621,088 | 53.8%    | 2,129 ms        |
+ *  | `a`           |   940,692 | 31.2%    | 1,124 ms        |
+ *  | `that`        |   860,411 | 28.6%    | 1,009 ms        |
+ *  | `is`          |   775,189 | 25.7%    |   920 ms        |
+ *  | `god`         |   570,900 | 19.0%    |   653 ms        |
+ *  | `lord`        |   299,913 | 10.0%    |   340 ms        |
+ *  | `sabbath`     |    68,411 |  2.3%    |    82 ms        |
+ *  | `sanctuary`   |    16,765 |  0.6%    |    20 ms        |
+ *  | `latter rain` |     1,304 |  0.04%   |     2 ms        |
+ *
+ *  750,000 — about a quarter of the corpus — because that is where a term stops
+ *  discriminating. The ranking a stopword buys is a *term-density artifact*,
+ *  not an answer: the top hit for `the` is a paragraph that repeats the word,
+ *  scored `-0.000`, and for `god` it is an index entry ("See also God,
+ *  acquaintance with"). Two seconds of BM25 to choose sixty rows that mean
+ *  nothing.
+ *
+ *  It sits above `god` (19.0%) and `lord` (10.0%) deliberately. Both are real
+ *  one-word searches in this corpus and both already answer inside 700 ms; a
+ *  threshold low enough to catch them would trade a working query for a
+ *  latency number. Only genuine stopwords are gated.
+ *
+ *  Absolute rather than a fraction of the corpus: a ratio needs the row count,
+ *  which is a second query on every search, and the point of the gate is to be
+ *  cheaper than the work it avoids. */
+export const NON_SELECTIVE_MATCHES = 750_000;
+
+/** Whether a term matches too much of the corpus to be worth ranking.
+ *
+ *  A named predicate rather than an inline comparison so the rule can be
+ *  asserted without standing up a 750,000-row corpus: the fixture corpora are
+ *  tiny by design, and a test that had to *reach* the threshold through the
+ *  search service would be testing SQLite rather than the decision. */
+export const isNonSelective = (matches: number): boolean => matches > NON_SELECTIVE_MATCHES;
+
 /** The lexical leg (§9.3: "always lexical").
  *
  *  Runs on every route, including `locate`: a refcode query that also matches
  *  text is still worth showing results for, and §9.3's locate-jump is a
  *  *destination* added above the results rather than a replacement for them.
+ *
+ *  A count probe precedes the ranked statement so a stopword never reaches it.
+ *  It is cheap for exactly the reason the ranked query is not: counting a
+ *  posting list walks it, scoring one reads every document it names.
+ *
+ *  `estimateMatchCount` rather than `countSearchParagraphs` because the latter
+ *  joins `paragraphs` and `books` to keep its count in step with the scoped
+ *  results, and those joins cost 20-30x the bare count: 562 ms against 25 ms
+ *  for `the`, and 45 ms against 1 ms for `sabbath`. Probing with it would have
+ *  added half a second to every stopword and *half again* to the real queries
+ *  it is supposed to leave alone — paying more for the gate than the gate
+ *  saves. The bare count costs 25 ms where the ranking it avoids costs
+ *  2,129 ms, and under 1 ms for the selective queries that are nearly all real
+ *  traffic.
+ *
+ *  Ignoring scope is sound *for this decision*: a term in half the corpus is in
+ *  half of any scope within it, so the estimate can only overcount, and the
+ *  gate fires on terms that are non-selective by a factor of thousands. A count
+ *  a reader is shown still comes from `countSearchParagraphs`.
  */
 const lexicalLeg = (
   sources: SearchSources,
@@ -270,23 +332,34 @@ const lexicalLeg = (
   filter: CorpusFilter,
   candidates: number,
 ): Effect.Effect<readonly SearchParagraphRow[]> =>
-  sources.paragraphs
-    .searchScoredParagraphs(ftsQuery(routed), {
-      limit: candidates,
+  Effect.gen(function* () {
+    const query = ftsQuery(routed);
+    const options = {
       scope,
       bookCode: Option.getOrUndefined(bookCode),
       filter,
-    })
-    .pipe(
-      Effect.map((rows) => rows.map(toRow)),
-      // §6.5's posture, over the declared error only.
-      Effect.catchTag(['SqlError', 'ParagraphDataIntegrityError'], (cause) =>
-        Effect.logWarning('search.lexical.degraded').pipe(
-          Effect.annotateLogs({ reason: String(cause) }),
-          Effect.as<readonly SearchParagraphRow[]>([]),
-        ),
+    };
+    const matches = yield* sources.paragraphs.estimateMatchCount(query);
+    if (isNonSelective(matches)) {
+      yield* Effect.logInfo('search.lexical.non_selective').pipe(
+        Effect.annotateLogs({ matches, threshold: NON_SELECTIVE_MATCHES }),
+      );
+      return [];
+    }
+    return yield* sources.paragraphs
+      .searchScoredParagraphs(query, { ...options, limit: candidates })
+      .pipe(Effect.map((rows) => rows.map(toRow)));
+  }).pipe(
+    // §6.5's posture, over the declared error only. It wraps the probe as well
+    // as the ranked statement: a probe that fails degrades to no lexical rows,
+    // exactly as a failing search does, rather than failing the whole query.
+    Effect.catchTag(['SqlError', 'ParagraphDataIntegrityError'], (cause) =>
+      Effect.logWarning('search.lexical.degraded').pipe(
+        Effect.annotateLogs({ reason: String(cause) }),
+        Effect.as<readonly SearchParagraphRow[]>([]),
       ),
-    );
+    ),
+  );
 
 /** The scan options for one query: how many neighbors, and over which books.
  *

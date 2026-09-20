@@ -659,6 +659,21 @@ export interface EGWParagraphDatabaseService {
       readonly filter?: CorpusFilter;
     },
   ) => Effect.Effect<number, ParagraphDatabaseError>;
+  /** How many paragraphs a query matches, over the FTS index alone.
+   *
+   *  Deliberately *not* `countSearchParagraphs`: that one joins `paragraphs`
+   *  and `books` so its count agrees with the scoped row query, and those joins
+   *  cost 20-30x what the bare count does — 562 ms against 25 ms for `the`,
+   *  45 ms against 1 ms for `sabbath`. A caller that wants a cheap *estimate*
+   *  of how much work a query implies cannot pay that, because the estimate
+   *  would cost more than the queries it is meant to protect.
+   *
+   *  The number is therefore an upper bound, ignoring scope and filters. That
+   *  is the right shape for a selectivity gate — a term matching half the
+   *  corpus matches half of any scope within it — and the wrong shape for
+   *  anything a reader is shown. For a count that agrees with the results on
+   *  screen, use `countSearchParagraphs`. */
+  readonly estimateMatchCount: (query: string) => Effect.Effect<number, ParagraphDatabaseError>;
   /**
    * Exact-match lookup by `refcode_short` (e.g. "PP 351.1"). Returns the
    * paragraph together with its book metadata so callers can navigate without
@@ -1561,6 +1576,16 @@ export class EGWParagraphDatabase extends Context.Service<
               WHERE ${sql.and(searchFilters(query, options))}
             `.pipe(Effect.map((rows) => rows[0]?.total ?? 0));
 
+      /** The bare FTS count — see `estimateMatchCount` on the interface for why
+       *  this exists beside `countSearchParagraphs` rather than reusing it. No
+       *  `searchFilters`, because the joins those imply are the whole cost. */
+      const estimateMatchCount = (query: string) =>
+        sql<{ readonly total: number }>`
+              SELECT count(*) AS total
+              FROM paragraphs_fts
+              WHERE paragraphs_fts MATCH ${query}
+            `.pipe(Effect.map((rows) => rows[0]?.total ?? 0));
+
       const searchParagraphs = (
         query: string,
         options?: {
@@ -2026,6 +2051,7 @@ export class EGWParagraphDatabase extends Context.Service<
         searchScoredParagraphs,
         findParagraphsByIdentity,
         countSearchParagraphs,
+        estimateMatchCount,
         findByRefcodeShort,
         getMaxPage,
         getPageNumbers,
@@ -2226,6 +2252,11 @@ export class EGWParagraphDatabase extends Context.Service<
         // test asserting the pre-cap total would pass here and fail on SQLite.
         countSearchParagraphs: (query, options) =>
           Effect.succeed(testSearchMatches(config, query, options).length),
+        /** The double's estimate is the unscoped match count, which is exactly
+         *  what the real one computes — the double has no joins to skip. No
+         *  options argument rather than an explicit empty one, so "unscoped"
+         *  is spelled by omission here as it is in the real implementation. */
+        estimateMatchCount: (query) => Effect.succeed(testSearchMatches(config, query).length),
         /** The locate leg's lookup, as the double models it.
          *
          *  It used to answer `[]` unconditionally, which made §9.3's locate route

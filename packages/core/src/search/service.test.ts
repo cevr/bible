@@ -31,6 +31,7 @@ import { SearchQuery, type VectorAbsenceReason } from './model.js';
 import { VectorIndexBytes } from './vector-artifact.js';
 import { MODEL_FINGERPRINT } from './vector-index.js';
 import {
+  isNonSelective,
   isStrongLexicalHit,
   normalizeScore,
   SearchCorpusSources,
@@ -156,6 +157,34 @@ describe('§9.3 the strong-BM25 short-circuit', () => {
     // Nothing matched, so there is nothing to be confident about — and this is
     // precisely the query the vector leg exists to rescue.
     expect(isStrongLexicalHit([])).toBe(false);
+  });
+
+  /** The selectivity gate, asserted against the counts actually measured on the
+   *  deployed corpus rather than round numbers. `ORDER BY rank` scores every
+   *  match, so its cost is linear in these figures — `the` cost 2,129 ms and
+   *  `sabbath` 82 ms — and the threshold is where a term stops discriminating
+   *  at all: the top hit for `the` is a paragraph repeating the word, scored
+   *  `-0.000`.
+   *
+   *  The boundary is asserted from both sides because the two nearest real
+   *  terms sit close to it: `is` at 775,189 is gated and `god` at 570,900 is
+   *  not, and `god` is a legitimate one-word search in this corpus. A change
+   *  that gated it would trade a working query for a latency number. */
+  test('gates only terms that match too much of the corpus to rank', () => {
+    // Stopwords, measured: the ranking they buy is a term-density artifact.
+    expect(isNonSelective(1_621_088)).toBe(true); // "the", 53.8% of the corpus
+    expect(isNonSelective(940_692)).toBe(true); //   "a", 31.2%
+    expect(isNonSelective(775_189)).toBe(true); //   "is", 25.7%
+
+    // Real search terms, measured: all already answer well inside a second.
+    expect(isNonSelective(570_900)).toBe(false); // "god", 19.0%, 653 ms
+    expect(isNonSelective(299_913)).toBe(false); // "lord", 10.0%, 340 ms
+    expect(isNonSelective(68_411)).toBe(false); //  "sabbath", 2.3%, 82 ms
+    expect(isNonSelective(1_304)).toBe(false); //   "latter rain", 0.04%, 2 ms
+
+    // A query matching nothing is selective, not non-selective: the gate must
+    // never stand between a reader and an empty result they can act on.
+    expect(isNonSelective(0)).toBe(false);
   });
 
   it.effect('skips the vector leg end to end on a confident lexical hit', () =>
