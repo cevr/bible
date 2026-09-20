@@ -37,6 +37,7 @@ import { EGWParagraphDatabase } from '@bible/core/egw-db';
 import {
   layerFileVectorIndexBytes,
   loadVectorIndex,
+  QueryEmbedder,
   ResolvedVectorIndex,
   SearchCorpusSources,
   SearchQuery,
@@ -243,16 +244,54 @@ const CorpusSources = Layer.effect(
   Layer.orDie,
 );
 
+/** Load the embedding model at boot instead of on a reader's first search.
+ *
+ *  The model is memoized on first use by design — the CLI builds the embedder
+ *  layer at startup and a reader who never searches should never pay for a
+ *  300M-parameter model (see `layerTransformersEmbedder`). A long-lived server
+ *  is the other case: it *will* be searched, and whoever arrives first should
+ *  not be the one to wait. Measured on the deployed container, the first query
+ *  after a deploy took ~49 s against ~0.5 s warm, and the model load is the
+ *  bulk of it — the vector index is already resolved before the port opens.
+ *
+ *  Forked, so the port still opens immediately. A search arriving mid-load
+ *  waits on the same memoized cell rather than starting a second load, so the
+ *  worst case is what happens today and the common case is a warm model.
+ *
+ *  A failure here is logged and dropped: the load is retried on the next query
+ *  (the memo stores successes only), and an embedder that cannot load is
+ *  §9.6's lexical-only degradation, not a reason to refuse to serve. */
+const WarmEmbedderLive: Layer.Layer<never, never, QueryEmbedder> = Layer.effectDiscard(
+  Effect.gen(function* () {
+    const embedder = yield* QueryEmbedder;
+    yield* embedder.embedQuery('warm').pipe(
+      Effect.andThen(Effect.log('search.embedder.warm', 'state=ready')),
+      Effect.catchCause((cause) =>
+        Effect.logWarning('search.embedder.warm_failed', `cause=${String(cause)}`),
+      ),
+      Effect.forkDetach,
+    );
+  }),
+);
+
+/** The embedder, built once.
+ *
+ *  Shared deliberately: the memo that makes the model load once lives *in* the
+ *  service instance, so providing `layerBunEmbedder` separately to the search
+ *  service and to the warm-up would build two of them, each with its own cell —
+ *  and the warm-up would then load a model no query ever reads. */
+const EmbedderLive = layerBunEmbedder;
+
 /** The hybrid service, plus the SQL client the context lookup shares with it. */
 const searchLayer = Layer.mergeAll(
   SearchService.Live.pipe(
     Layer.provide(CorpusSources),
     Layer.provide(verifiedVectorIndex(at('vectors.bvi'))),
-    Layer.provide(layerBunEmbedder),
     Layer.provide(BunServices.layer),
   ),
+  WarmEmbedderLive,
   SqlLive,
-);
+).pipe(Layer.provideMerge(EmbedderLive));
 
 // ---------------------------------------------------------------------------
 // Server

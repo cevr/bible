@@ -668,16 +668,21 @@ const makeQuery =
       // Both legs' pools scale with what the caller asked for; see `candidateLimit`.
       const candidates = candidateLimit(queryLimit(input));
 
-      // Each leg is a span rather than a hand-read clock.
+      // Each leg is a span, and the legs are also timed into one log line.
       //
       // The three phases have genuinely different costs and any one of them can
       // dominate — the lexical leg is SQL, the vector leg is an embed plus a
       // scan over ~600k vectors, and the bodies join is one statement by
       // paragraph identity — so "search feels slow" has to be answerable per
-      // leg. Spans give that, nested under the HTTP span the server already
-      // opens, with durations the tracer records rather than subtractions kept
-      // in step by hand. Where they are exported is the deployment's business;
-      // see `OtlpTracer` in the server's layers.
+      // leg. The spans are the real instrument: they nest under the HTTP span
+      // the server already opens and carry attributes a backend can group by.
+      //
+      // The log line is not a duplicate of them. A span's duration is only
+      // *readable* where a tracer exports it, and this service runs in
+      // deployments with no OTLP endpoint configured, where `OtlpTracer` is
+      // correctly a no-op — leaving the platform log stream as the only place
+      // the numbers surface at all. Measuring twice costs three clock reads.
+      const startedAt = yield* Effect.clockWith((clock) => clock.currentTimeMillis);
 
       // The lexical leg and the pinned group are independent reads over two
       // corpora, and the result needs both, so they run together.
@@ -689,6 +694,7 @@ const makeQuery =
         ],
         { concurrency: 'unbounded' },
       ).pipe(Effect.withSpan('search.lexical', { attributes: { route: routed._tag } }));
+      const lexicalAt = yield* Effect.clockWith((clock) => clock.currentTimeMillis);
 
       // The vector leg reads the lexical scores — §9.3's short-circuit is a
       // decision about them — so it is sequenced after rather than beside.
@@ -702,12 +708,30 @@ const makeQuery =
         candidates,
         sources,
       ).pipe(Effect.withSpan('search.vector'));
+      const vectorAt = yield* Effect.clockWith((clock) => clock.currentTimeMillis);
 
       // §9.2's join, for the candidates only the vector leg found. One
       // statement, and skipped entirely when the two legs agree on every id.
       const vectorOnly = yield* vectorOnlyBodies(sources, lexical, vector.ids, scope, filter).pipe(
         Effect.withSpan('search.bodies', {
           attributes: { vectorStatus: vector.status._tag },
+        }),
+      );
+      const doneAt = yield* Effect.clockWith((clock) => clock.currentTimeMillis);
+
+      yield* Effect.logInfo('search.timing').pipe(
+        Effect.annotateLogs({
+          route: routed._tag,
+          vector: vector.status._tag,
+          lexicalMs: lexicalAt - startedAt,
+          vectorMs: vectorAt - lexicalAt,
+          bodiesMs: doneAt - vectorAt,
+          totalMs: doneAt - startedAt,
+          // What the bodies join actually had to fetch. A large number here
+          // with a small `bodiesMs` means the join is cheap and the legs simply
+          // disagree; a small one with a large `bodiesMs` means the statement
+          // itself is the cost, which is what a scan looks like.
+          vectorIds: vector.ids.length,
         }),
       );
 
