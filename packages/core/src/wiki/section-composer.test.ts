@@ -35,6 +35,7 @@ import {
   ParagraphBlock,
   TextInline,
   topicSlug,
+  WikiCommentaryEntry,
   type WikiSection,
   type WikiWritingsHit,
 } from './model.js';
@@ -225,11 +226,11 @@ const COMMENTARY = verseNumbers(3).map((index) => ({
   puborder: index,
 }));
 
-const sourcesLayer = (topics: readonly TopicDetail[]) =>
+const sourcesLayer = (topics: readonly TopicDetail[], commentary: typeof COMMENTARY = COMMENTARY) =>
   WikiSectionSources.Live.pipe(
     Layer.provide(TopicService.Test(topics)),
     Layer.provide(BibleDatabase.layerTest({ verses: VERSES, crossRefs: CROSS_REFS })),
-    Layer.provide(EGWCommentaryService.Test({ entries: COMMENTARY })),
+    Layer.provide(EGWCommentaryService.Test({ entries: commentary })),
     Layer.provide(
       WritingsService.Live.pipe(
         Layer.provide(EGWParagraphDatabase.Test({ books: BOOKS, paragraphs: PARAGRAPHS })),
@@ -772,6 +773,52 @@ describe('section composer', () => {
       );
     }),
   );
+
+  /** A commentary row the corpus stores with no refcode.
+   *
+   *  ~563 corpus paragraphs have none, and five of them cite a verse — John
+   *  1:1, John 1:14, Matthew 27:54, Romans 1:25 and Colossians 2:8 all reach a
+   *  `*****` section divider in 5BC/7BC. `WikiCommentaryEntry.refcode` is
+   *  `NonEmptyString`, and `.make` *throws* rather than failing, so the row
+   *  arrived as a defect that `commentaryEntries`' own `orElseSucceed` does not
+   *  rescue: one such row emptied the whole section. */
+  const uncitableCommentary = [{ ...COMMENTARY[0]!, refcode: '' }, ...COMMENTARY.slice(1)];
+
+  const uncitableLayer = Layer.unwrap(
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const directory = yield* fs
+        .makeTempDirectoryScoped({ prefix: 'bible-wiki-uncitable-' })
+        .pipe(Effect.orDie);
+      return layerBunOrAbsent(`${directory}/absent.db`).pipe(
+        Layer.provide(TopicService.Test([catalogTopic('naves.sanctuary', 12)])),
+        Layer.provide(sourcesLayer([catalogTopic('naves.sanctuary', 12)], uncitableCommentary)),
+      );
+    }),
+  );
+
+  test('keeps the commentary section when one row has no refcode', () =>
+    Effect.gen(function* () {
+      const wiki = yield* WikiService;
+      const page = yield* wiki.topic(topicSlug('naves.sanctuary'));
+      const commentary = page.sections[2];
+      // The section survives, full to its cap. Before the fallback it came
+      // back *empty* — the citation-less row died inside `Effect.map`, which is
+      // a defect the section's own `orElseSucceed` does not rescue.
+      expect(commentary?.items.length).toBe(Option.getOrThrow(SECTION_CAPS.commentary));
+      const refcodes = (commentary?.items ?? []).map((item) =>
+        Option.match(Option.filter(Option.some(item), Schema.is(WikiCommentaryEntry)), {
+          onNone: () => 'not-a-commentary-entry',
+          onSome: (entry) => entry.refcode,
+        }),
+      );
+      // The citation-less row is present and carries the book code in place of
+      // a refcode, so the line still names where the text came from rather than
+      // rendering an empty citation column.
+      expect(refcodes).toContain('5BC');
+      // And it is a stand-in, not a blank: nothing empty reached the wire.
+      expect(refcodes.every((refcode) => refcode.length > 0)).toBe(true);
+    }).pipe(Effect.provide(uncitableLayer)));
 
   test('composes a page with no artifact at all, from the catalog alone', () =>
     Effect.gen(function* () {

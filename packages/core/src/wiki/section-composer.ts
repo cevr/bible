@@ -837,6 +837,17 @@ const scopeAdmits = (scope: CorpusScope, author: string): boolean => {
  *  and the opening verse is the one a reader following the passage arrives at
  *  first — walking every verse of every range instead would spend the cap of 5
  *  inside a single reference. */
+/** A corpus refcode, or a stand-in when the row has none.
+ *
+ *  The corpus spells "no citation" as the empty string; `NonEmptyString`
+ *  refuses it and `.make` *throws* rather than failing, so the substitution has
+ *  to happen before the constructor sees it. */
+const refcodeOr = (refcode: string, fallback: string): string =>
+  Option.getOrElse(
+    Option.filter(Option.some(refcode), (value) => value.length > 0),
+    () => fallback,
+  );
+
 const commentaryEntries = (
   sources: SectionSources,
   passages: readonly WikiPassageRef[],
@@ -848,7 +859,25 @@ const commentaryEntries = (
         result.entries.map((entry) =>
           WikiCommentaryEntry.make({
             verse: passage.start,
-            refcode: entry.refcode,
+            // The book code stands in for a paragraph the corpus stores with no
+            // refcode, exactly as the paragraph-hit builder above falls back to
+            // the publication code. ~563 corpus rows have none and five of them
+            // cite a verse, so this is reachable: John 1:1, John 1:14, Matthew
+            // 27:54, Romans 1:25 and Colossians 2:8 all reach a `*****` section
+            // divider in 5BC/7BC.
+            //
+            // A fallback rather than an `Option` here, unlike `StudyRefcode` and
+            // `SearchParagraphHit.refcode`: this section is capped and every row
+            // is rendered as one line, so there is no total for a substituted
+            // label to contradict and no client that must decide what an absent
+            // citation looks like. `refcode` stays `NonEmptyString` and the four
+            // render sites stay unchanged.
+            //
+            // It has to happen *here* rather than be left to fail: `.make`
+            // throws inside `Effect.map`, which is a defect, and the
+            // `orElseSucceed` below only rescues failures — verified, it does
+            // not catch this. One such row took out the whole section.
+            refcode: refcodeOr(entry.refcode, entry.bookCode),
             bookCode: entry.bookCode,
             bookTitle: entry.bookTitle,
             content: entry.content,
