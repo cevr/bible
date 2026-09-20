@@ -38,6 +38,7 @@ import {
   HttpStaticServer,
 } from 'effect/unstable/http';
 import { HttpApiBuilder } from 'effect/unstable/httpapi';
+import { SqlClient } from 'effect/unstable/sql';
 import { OtlpSerialization, OtlpTracer } from 'effect/unstable/observability';
 
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
@@ -233,8 +234,61 @@ const at = (file: string): string => `${CORPUS_ROOT}/${file}`;
 /** One SQL client over the writings file, built once and shared: the search
  *  sources read `paragraphs_fts` through it, and the context lookup reads the
  *  neighbouring paragraphs through the same connection rather than opening a
- *  second one against a 4.5 GB file. */
+ *  second one against a 4.5 GB file.
+ *
+ *  Tuned for a read-only corpus far larger than memory — see `TunedSqlLive`. */
 const SqlLive = SqliteBun.layer({ filename: at('egw-paragraphs.db') });
+
+/** How much page cache SQLite may hold, as a negative `cache_size` (KiB rather
+ *  than pages, so it does not silently change meaning with `page_size`).
+ *
+ *  SQLite's default is 2,000 *pages* — 8 MB against a 4.3 GB database. Measured
+ *  in production, the first hybrid query after a deploy spent 40,441 ms of its
+ *  43,378 ms in the bodies join, fetching **sixty rows**: 674 ms per row, which
+ *  is not computation but sixty uncached random seeks into the file. An 8 MB
+ *  cache cannot hold enough of a 4.3 GB b-tree for one query's lookups to help
+ *  the next.
+ *
+ *  512 MB on a 32 GB container. The corpus is read-only here, so cached pages
+ *  are never invalidated by a write. */
+const PAGE_CACHE_KIB = 512 * 1024;
+
+/** How much of the file SQLite may memory-map.
+ *
+ *  Sized past the 4.3 GB database so the whole file is mappable. This is not an
+ *  allocation: the OS pages it in on demand and evicts under pressure. What it
+ *  removes is the copy through SQLite's own cache on every read, which is what
+ *  makes a random seek into a large file expensive twice over. */
+const MMAP_BYTES = 8 * 1024 * 1024 * 1024;
+
+/** Apply the pragmas to the one connection everything reads through.
+ *
+ *  A layer rather than client options because `SqliteClientConfig` has no
+ *  pragma field, and a layer rather than a first-query concern because these
+ *  must be set before anything reads: `cache_size` and `mmap_size` are
+ *  per-connection, and a query that runs first simply runs untuned.
+ *
+ *  `Layer.provideMerge` keeps `SqlClient` published for everything downstream —
+ *  this layer adds a side effect to the client, it does not replace it.
+ *
+ *  Failures are logged, not fatal. A pragma that will not apply costs latency,
+ *  and refusing to serve search over a tuning setting would be a worse outcome
+ *  than serving it slowly. */
+const TunedSqlLive = Layer.effectDiscard(
+  Effect.gen(function* () {
+    const sql = yield* SqlClient.SqlClient;
+    yield* sql.unsafe(`PRAGMA cache_size = -${String(PAGE_CACHE_KIB)}`);
+    yield* sql.unsafe(`PRAGMA mmap_size = ${String(MMAP_BYTES)}`);
+    yield* Effect.log(
+      'search.sqlite.tuned',
+      `cacheKiB=${String(PAGE_CACHE_KIB)} mmapBytes=${String(MMAP_BYTES)}`,
+    );
+  }).pipe(
+    Effect.catchCause((cause) =>
+      Effect.logWarning('search.sqlite.tune_failed', `cause=${String(cause)}`),
+    ),
+  ),
+).pipe(Layer.provideMerge(SqlLive));
 
 const CorpusSources = Layer.effect(
   SearchCorpusSources,
@@ -248,7 +302,7 @@ const CorpusSources = Layer.effect(
   }),
 ).pipe(
   Layer.provide(EGWParagraphDatabase.layerCore),
-  Layer.provide(SqlLive),
+  Layer.provide(TunedSqlLive),
   Layer.provide(BunServices.layer),
   // No `paragraphs_fts` means no lexical leg, and §9 has no degraded shape for
   // that. It is a defect, not an empty result set.
@@ -301,7 +355,7 @@ const searchLayer = Layer.mergeAll(
     Layer.provide(BunServices.layer),
   ),
   WarmEmbedderLive,
-  SqlLive,
+  TunedSqlLive,
 ).pipe(Layer.provideMerge(EmbedderLive));
 
 // ---------------------------------------------------------------------------
@@ -312,7 +366,7 @@ const searchLayer = Layer.mergeAll(
 // client the context lookup reads through, so it is provided to the group —
 // not to the API layer — or the client stays an unmet requirement and leaks
 // out of `ApiLive` into the server's own context.
-const GroupLive = SearchGroupLive.pipe(Layer.provide(searchLayer), Layer.provide(SqlLive));
+const GroupLive = SearchGroupLive.pipe(Layer.provide(searchLayer), Layer.provide(TunedSqlLive));
 
 const ApiLive = HttpApiBuilder.layer(SearchApi).pipe(Layer.provide(GroupLive));
 
@@ -347,11 +401,11 @@ const HttpLive = Layer.unwrap(
   ),
 );
 
-/** The weekly corpus sync, over the *same* `SqlLive` the handlers read
+/** The weekly corpus sync, over the *same* `TunedSqlLive` the handlers read
  *  through. Merged into the launch rather than into `RouterLive` because it
  *  serves no route: it is a background fiber that happens to need the same
  *  database connection. See `./sync.ts` for why it must not open its own. */
-const SyncLive = EgwSyncLive.pipe(Layer.provide(SqlLive));
+const SyncLive = EgwSyncLive.pipe(Layer.provide(TunedSqlLive));
 
 /** Export spans over OTLP, when the deployment says where to.
  *
@@ -384,7 +438,7 @@ const PlatformLive = Layer.mergeAll(
   // The router's own effect still carries the context lookup's `SqlClient`
   // requirement out through `toHttpEffect`, so the launch context supplies the
   // same client the handlers were built against.
-  SqlLive,
+  TunedSqlLive,
 );
 
 Layer.launch(HttpLive).pipe(Effect.provide(PlatformLive), BunRuntime.runMain);
