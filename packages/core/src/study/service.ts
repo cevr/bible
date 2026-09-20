@@ -299,19 +299,40 @@ const studyMarginNote = (note: MarginNote): Effect.Effect<StudyMarginNote, Study
     `note ${String(note.index)}`,
   );
 
+/** A writings row's citation, as `StudyRefcode` takes it.
+ *
+ *  The corpus spells "no citation" as the empty string, and the schema spells it
+ *  as `None`, so the translation happens once here rather than at each of the
+ *  two call sites below — which is how they would come to disagree. See
+ *  `StudyRefcode` in `./model.ts` for why this is absence rather than a defect.
+ */
+const studyRefcode = (refcode: string): Option.Option<string> =>
+  Option.filter(Option.some(refcode), (value) => value.length > 0);
+
+/** The row identity a `StudyCorpusDataError` names.
+ *
+ *  Still the book code plus the refcode, and still for the stated reason: an
+ *  identity that is empty names nothing, so the book code backs it. A blank
+ *  refcode is no longer itself a defect, but a row *with* a blank refcode can
+ *  still fail on another field, and then this is the only thing an operator has
+ *  to go looking with. */
+const entryRowId = (entry: CommentaryEntry): string =>
+  Option.match(studyRefcode(entry.refcode), {
+    onNone: () => `${entry.bookCode} (no refcode)`,
+    onSome: (refcode) => `${entry.bookCode} ${refcode}`,
+  });
+
 const studyCommentary = (
   entry: CommentaryEntry,
 ): Effect.Effect<StudyCommentaryEntry, StudyCorpusDataError> =>
   decodeCommentary(
     {
-      refcode: entry.refcode,
+      refcode: studyRefcode(entry.refcode),
       bookCode: entry.bookCode,
       bookTitle: entry.bookTitle,
       content: entry.content,
     },
-    // A blank refcode is itself one of the defects this catches, so the book
-    // code backs it: an identity that is empty names nothing.
-    `${entry.bookCode} ${entry.refcode}`,
+    entryRowId(entry),
   );
 
 const studyParallel = (
@@ -319,12 +340,12 @@ const studyParallel = (
 ): Effect.Effect<StudyParallelWriting, StudyCorpusDataError> =>
   decodeParallel(
     {
-      refcode: entry.refcode,
+      refcode: studyRefcode(entry.refcode),
       bookCode: entry.bookCode,
       bookTitle: entry.bookTitle,
       content: entry.content,
     },
-    `${entry.bookCode} ${entry.refcode}`,
+    entryRowId(entry),
   );
 
 const concordanceEntry = (

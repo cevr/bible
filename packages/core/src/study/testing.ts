@@ -116,19 +116,31 @@ const writingsDatabase = EGWParagraphDatabase.Test({
   bibleRefs: [bibleRef(501, '5BC 1116.1'), bibleRef(502, 'GC 324.1')],
 });
 
+/** The book the malformed fixture cites: a real row with no title.
+ *
+ *  Every book in the corpus has a title and nothing documents an exception, so
+ *  a blank one is a genuine defect — the artifact disagrees with the schema.
+ *  That is deliberately *not* true of a blank refcode, which ~563 paragraphs
+ *  legitimately have (see `StudyRefcode`), and which used to play this part
+ *  until it turned out to be absence rather than a fault. */
+const untitledBook: BookRow = {
+  ...greatControversy,
+  book_title: '',
+};
+
 /** A writings library holding one citation the wire model refuses.
  *
- *  The `Great Controversy` row is stored with a blank refcode, and
- *  `StudyParallelWriting.refcode` is `NonEmptyString`, so it cannot decode and
+ *  The cited book has a blank `book_title`, and `StudyParallelWriting
+ *  .bookTitle` is `NonEmptyString`, so the row cannot decode and
  *  `StudyService.verse` fails with `StudyCorpusDataError`. Shared rather than
  *  restated per suite because three seams have to agree about what a corpus
  *  fault *looks like* downstream — the RPC boundary must carry the tag and the
  *  row rather than flatten both into a `ProcedureError`, and the CLI must print
  *  the row rather than only the message. */
 const malformedWritingsDatabase = EGWParagraphDatabase.Test({
-  books: [greatControversy],
-  paragraphs: [paragraph('GC', '', 'A citation the corpus stored with no refcode.')],
-  bibleRefs: [bibleRef(502, '')],
+  books: [untitledBook],
+  paragraphs: [paragraph('GC', 'GC 324.1', 'A citation whose book has no title.')],
+  bibleRefs: [bibleRef(502, 'GC 324.1')],
 });
 
 const words: readonly VerseWord[] = [
@@ -214,9 +226,9 @@ export const malformedStudyFixtureLayer: Layer.Layer<StudyService> = StudyServic
 );
 
 /** The row identity `malformedStudyFixtureLayer`'s failure carries: the
- *  publication code, which is all a blank refcode leaves to name it by, and
- *  exactly what an operator opens the corpus with. */
-export const FIXTURE_MALFORMED_ROW = 'GC';
+ *  publication code and refcode, which is what an operator opens the corpus
+ *  with. */
+export const FIXTURE_MALFORMED_ROW = 'GC 324.1';
 
 /** Everything `BibleProcedureHandlers` requires, with the study seam wired to
  *  {@link studyFixtureLayer}.

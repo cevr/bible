@@ -111,6 +111,17 @@ export class StudyLayer extends Context.Reference<Layer.Layer<StudyService>>(
 const studyService = <A, E>(use: Effect.Effect<A, E, StudyService>): Effect.Effect<A, E> =>
   Effect.flatMap(StudyLayer, (layer) => use.pipe(Effect.provide(layer)));
 
+/** A writings row's citation, for a terminal line.
+ *
+ *  The book code stands in when the corpus stores the paragraph without a
+ *  refcode — ~563 rows do, and five of them cite a verse. The line still has to
+ *  say where the text came from, and printing an empty column would read as a
+ *  rendering bug rather than as a property of the row. */
+const writingRefcode = (entry: {
+  readonly refcode: Option.Option<string>;
+  readonly bookCode: string;
+}): string => Option.getOrElse(entry.refcode, () => entry.bookCode);
+
 const isCorpusRowFailure = Schema.is(StudyCorpusDataError);
 
 /** Reports a malformed corpus row by its own identity, on stderr.
@@ -213,7 +224,7 @@ export const studyVerse = Command.make('verse', { reference, json }, (args) =>
 
     yield* Console.log(`## commentary  ${String(bundle.commentary.length)}`);
     for (const entry of bundle.commentary) {
-      yield* Console.log(`  ${entry.refcode}  ${entry.bookTitle}`);
+      yield* Console.log(`  ${writingRefcode(entry)}  ${entry.bookTitle}`);
     }
 
     yield* Console.log(
@@ -222,7 +233,7 @@ export const studyVerse = Command.make('verse', { reference, json }, (args) =>
       )}`,
     );
     for (const entry of bundle.parallelWritings) {
-      yield* Console.log(`  ${entry.refcode}  ${entry.bookTitle}`);
+      yield* Console.log(`  ${writingRefcode(entry)}  ${entry.bookTitle}`);
     }
   }).pipe(reportCorpusRow, Effect.provide(BunServices.layer)),
 );

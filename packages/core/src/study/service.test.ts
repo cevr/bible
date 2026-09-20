@@ -212,11 +212,12 @@ const manyWritings = EGWParagraphDatabase.Test({
 
 /** One EGW citation whose refcode is blank.
  *
- *  `StudyParallelWriting.refcode` is `NonEmptyString`, so this row cannot
- *  decode. It is the row that used to vanish: the section came back one item
- *  short of its own total and nothing said why, which under §8.4's sparseness
- *  posture reads exactly like the verse having fewer citations. */
-const malformedWritings = EGWParagraphDatabase.Test({
+ *  Not malformed — *uncitable*. ~563 corpus paragraphs are stored with no
+ *  refcode, and five of them cite a verse, so this row is the common shape
+ *  rather than a fault. It is kept under its old name's place in the file
+ *  because it is still the interesting fixture: it used to fail the whole
+ *  bundle, and now it must come back as a row with an absent citation. */
+const uncitableWritings = EGWParagraphDatabase.Test({
   books: [otherBook],
   paragraphs: [paragraph('GC', '', 'A paragraph the corpus stored with no refcode.')],
   bibleRefs: [bibleRef(502, '', 13)],
@@ -312,9 +313,52 @@ const bible = BibleDatabase.layerTest({
   concordanceHits: { H8548: tamidHits },
 });
 
-const study = (library: Layer.Layer<EGWParagraphDatabase>) =>
+/** The same verse, whose margin note carries a `note_type` the corpus's own
+ *  vocabulary does not contain.
+ *
+ *  This is what a corpus *defect* looks like, as distinct from the absence a
+ *  blank refcode expresses: `MarginNoteKind` enumerates the five values the
+ *  builder writes, so a sixth means the artifact disagrees with the schema and
+ *  an operator needs to hear about it. It replaces the blank refcode as this
+ *  suite's malformed row, because a blank refcode turned out to be a documented
+ *  property of the corpus rather than a fault — see `StudyRefcode`. */
+const malformedBible = BibleDatabase.layerTest({
+  verses: [
+    {
+      book: DANIEL,
+      chapter: 8,
+      verse: 13,
+      versionCode: 'KJV',
+      text: 'Then I heard one saint speaking…',
+    },
+  ],
+  verseWords: [{ book: DANIEL, chapter: 8, verse: 13, words }],
+  crossRefs: [{ book: DANIEL, chapter: 8, verse: 13, references: crossRefs }],
+  marginNotes: [
+    {
+      book: DANIEL,
+      chapter: 8,
+      verse: 13,
+      notes: [
+        {
+          index: 0,
+          type: 'not-a-margin-note-kind' as MarginNote['type'],
+          phrase: 'the daily',
+          text: 'Heb. the continual',
+        },
+      ],
+    },
+  ],
+  strongsEntries: [tamid],
+  concordanceHits: { H8548: tamidHits },
+});
+
+const study = (
+  library: Layer.Layer<EGWParagraphDatabase>,
+  bibleLayer: Layer.Layer<BibleDatabase> = bible,
+) =>
   StudyService.Live.pipe(
-    Layer.provide(bible),
+    Layer.provide(bibleLayer),
     Layer.provide(EGWCommentaryService.Live.pipe(Layer.provide(library))),
   );
 
@@ -440,25 +484,51 @@ describe('StudyService.verse', () => {
 
   it.effect('fails with a typed corpus-data error on a malformed row', () =>
     Effect.gen(function* () {
-      // Should-fix 9. The row's refcode is blank and
-      // `StudyParallelWriting.refcode` is `NonEmptyString`, so it cannot
-      // decode. Dropping it silently returned `parallelWritings: []` beside
-      // `parallelWritingsTotal: 1` — a section shorter than its own total,
-      // which under §8.4's sparseness posture is indistinguishable from the
-      // verse simply having no citations.
+      // Should-fix 9, restated over a row that is actually malformed. The
+      // margin note's `type` is not one of `MarginNoteKind`'s five values, so
+      // the artifact disagrees with the schema and an operator needs to hear
+      // about it. Dropping it silently is what this forbids.
       const outcome = yield* Effect.flip(
         Effect.flatMap(StudyService, (service) => service.verse(DAN_8_13)),
       );
 
       expect(outcome._tag).toBe('StudyCorpusDataError');
       // Typed, and it names the row: `source` says which corpus, `operation`
-      // says which section, `row` says which paragraph an operator should go
-      // look at.
+      // says which section, `row` says which one an operator should look at.
       if (outcome._tag !== 'StudyCorpusDataError') return;
-      expect(outcome.source).toBe('writings');
-      expect(outcome.operation).toBe('verse.parallelWritings');
-      expect(outcome.row).toContain('GC');
-    }).pipe(Effect.provide(study(malformedWritings))),
+      expect(outcome.source).toBe('bible');
+      expect(outcome.operation).toBe('verse.marginNotes');
+      expect(outcome.row).toContain('note 0');
+    }).pipe(Effect.provide(study(writings, malformedBible))),
+  );
+
+  it.effect('returns a citation-less row rather than failing the whole bundle', () =>
+    Effect.gen(function* () {
+      // The line between the two, and the bug this pair exists to hold. A
+      // blank refcode is *absence*, not a defect: ~563 corpus paragraphs have
+      // none, and the five that cite a verse cite John 1:1, John 1:14,
+      // Matthew 27:54, Romans 1:25 and Colossians 2:8.
+      //
+      // It used to be `NonEmptyString`, and because `verse()` decodes its five
+      // sections under one `Effect.all`, that single row failed the *entire*
+      // bundle — no verse text, no Strong's words, no cross-references, no
+      // margin notes. The study pane for John 1:1 did not open.
+      const bundle = yield* Effect.flatMap(StudyService, (service) => service.verse(DAN_8_13));
+
+      // The bundle is whole: the sections that have nothing to do with the
+      // uncitable row are unaffected, which is the whole difference.
+      expect(Option.isSome(bundle.text)).toBe(true);
+      expect(bundle.words.length).toBeGreaterThan(0);
+      expect(bundle.crossRefs.length).toBeGreaterThan(0);
+
+      // And the row itself comes back, carrying its absence rather than a
+      // placeholder. Dropping it would leave the section one short of its own
+      // total with nothing saying why — §8.4's sparseness posture makes that
+      // indistinguishable from the verse having fewer citations.
+      expect(bundle.parallelWritings.length).toBe(1);
+      expect(bundle.parallelWritingsTotal).toBe(1);
+      expect(Option.isNone(bundle.parallelWritings[0]?.refcode ?? Option.some('x'))).toBe(true);
+    }).pipe(Effect.provide(study(uncitableWritings))),
   );
 
   it.effect('sparse refs stay a value, not a corpus-data failure', () =>

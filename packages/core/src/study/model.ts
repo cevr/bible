@@ -172,11 +172,35 @@ export class StudyMarginNote extends Schema.Class<StudyMarginNote>('Study/Margin
   text: Schema.String,
 }) {}
 
+/** The citation a writings row is addressed by, absent for the rows the corpus
+ *  stores without one.
+ *
+ *  `Option` rather than `NonEmptyString`, for the same reason
+ *  `SearchParagraphHit.refcode` is: ~563 of the corpus's 3,012,004 paragraphs
+ *  have an empty `ref_code` and no short refcode, and they are not defects.
+ *  Most are signatures, datelines and "This chapter is based on..." notes; the
+ *  five that cite a verse are `*****` section dividers in `5BC`/`7BC`.
+ *
+ *  It was `NonEmptyString`, and because `verse()` decodes its five sections
+ *  under one `Effect.all`, a single such row failed the *whole bundle* — no KJV
+ *  text, no Strong's words, no cross-references, no margin notes. Those five
+ *  rows cite John 1:1, John 1:14, Matthew 27:54, Romans 1:25 and Colossians
+ *  2:8, so the study pane for John 1:1 raised `StudyCorpusDataError` rather
+ *  than opening.
+ *
+ *  This is narrower than it looks. `decodeRow`'s posture is unchanged and
+ *  right: a row that does not decode is a corpus defect and must fail loudly,
+ *  because a dropped row makes a section shorter than the total beside it. What
+ *  changed is the *premise* for this one field — a missing citation is a
+ *  documented property of the corpus, not a defect, so it should never have
+ *  been the thing that could not decode. Every other narrowing there stands. */
+const StudyRefcode = Schema.Option(Schema.NonEmptyString);
+
 /** One EGW Bible Commentary paragraph on this verse. */
 export class StudyCommentaryEntry extends Schema.Class<StudyCommentaryEntry>(
   'Study/CommentaryEntry',
 )({
-  refcode: Schema.NonEmptyString,
+  refcode: StudyRefcode,
   bookCode: Schema.NonEmptyString,
   bookTitle: Schema.NonEmptyString,
   content: Schema.String,
@@ -187,7 +211,7 @@ export class StudyCommentaryEntry extends Schema.Class<StudyCommentaryEntry>(
 export class StudyParallelWriting extends Schema.Class<StudyParallelWriting>(
   'Study/ParallelWriting',
 )({
-  refcode: Schema.NonEmptyString,
+  refcode: StudyRefcode,
   bookCode: Schema.NonEmptyString,
   bookTitle: Schema.NonEmptyString,
   content: Schema.String,

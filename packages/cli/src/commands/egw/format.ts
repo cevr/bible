@@ -131,7 +131,11 @@ const formatSearchHit = (hit: SearchParagraphHit, index: number, full: boolean):
     provenance = `  [${legs.join(', ')}]`;
   }
   const snippet = snippetOf(hit.snippet, full);
-  return `  ${String(index + 1)}. ${hit.refcode} (${hit.bookTitle} — ${hit.author})${provenance}\n     ${snippet}`;
+  // The book code stands in for a paragraph the corpus stores without a
+  // citation, exactly as `paragraphRefcode` above falls back to the publication
+  // code: the line still has to name where the text came from.
+  const refcode = Option.getOrElse(hit.refcode, () => hit.bookCode);
+  return `  ${String(index + 1)}. ${refcode} (${hit.bookTitle} — ${hit.author})${provenance}\n     ${snippet}`;
 };
 
 /** The whole §9 result as lines, topics first.
