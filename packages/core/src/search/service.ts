@@ -641,26 +641,13 @@ const locateLeg = (
  *  `para_id` seek dominates and the row count disappears into it), and
  *  `Schema.decodeUnknownSync` over all 120 `nodes_json` payloads costs 0.8 ms.
  *
- *  The leg nonetheless takes ~137 ms, and it is flat. Across eight distinct
- *  semantic queries reading different books, production logged 178, 179, 181,
- *  185, 185, 185, 178, 184 ms — within 7 ms of each other, indifferent to both
- *  batch size and locality. Cold scattered I/O does not look like that; it
- *  varies with locality. A first-touch query did pay 2099 ms, so a cold
- *  component exists, but the floor underneath it does not come from reading
- *  the corpus. `search.bodies.timing` puts that floor in `lookupMs`, the
- *  `findParagraphsByIdentity` call, whose own statement and decode account for
- *  1 ms of it.
- *
- *  So this is ~136 ms of overhead around 1 ms of work, and it is the largest
- *  leg of a semantic query (embed ~35 ms, scan ~125 ms, bodies ~180 ms) — the
- *  next real latency win, but not one to guess at. Four candidates are already
- *  eliminated by measurement, each reproducing at ~0.2–0.8 ms in isolation
- *  while the leg stays at ~137 ms: the batch size, the `nodes_json` decode,
- *  the 240-parameter `sql.in` construction through the real `@effect/sql`
- *  client, and `para_id` prefilter amplification (120 ids match exactly 120
- *  rows, no fan-out). Whatever remains is inside the `findParagraphsByIdentity`
- *  call and is not any of those, so the next step is a profile of that call in
- *  situ — not another hypothesis.
+ *  The leg used to take ~180 ms regardless, and the cause was a query plan, not
+ *  this function: under the default `egw` scope the planner drove
+ *  `findParagraphsByIdentity` from `idx_books_author` and walked every
+ *  paragraph of every Ellen White book instead of seeking 120 `para_id`s. See
+ *  the `CROSS JOIN` comment there — 179 ms to 0.2 ms, same rows. `bodiesMs`
+ *  should now be single-digit milliseconds warm, and a return to three figures
+ *  means that join order regressed.
  */
 const vectorOnlyBodies = (
   sources: SearchSources,

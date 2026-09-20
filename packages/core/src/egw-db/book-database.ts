@@ -1726,6 +1726,33 @@ export class EGWParagraphDatabase extends Context.Service<
           onNone: () => sql`1 = 1`,
           onSome: (paraIds) => sql`p.para_id IN ${sql.in(paraIds)}`,
         });
+        // `CROSS JOIN`, which in SQLite is not a different join — it is the one
+        // documented way to pin the join order, and it must stay.
+        //
+        // The prefilter above only helps if `paragraphs` is the outer table. Add
+        // a scope (`scope: 'egw'` is the *default* for search, so this is the
+        // common path, not an edge case) and `identityFilters` contributes
+        // `b.book_author IN (...)`. The planner then prefers to drive from
+        // `idx_books_author` and reach paragraphs by `idx_paragraphs_book_id` —
+        // which means visiting every paragraph of every Ellen White book and
+        // filtering afterwards, instead of 120 index seeks.
+        //
+        // Measured on the deployed corpus, one 120-identity batch under the
+        // default scope: 179 ms with a plain `JOIN`, 0.2 ms with this one, the
+        // same 118 rows. The plan goes from
+        //   SEARCH b USING INDEX idx_books_author
+        //   SEARCH p USING INDEX idx_paragraphs_book_id
+        // to
+        //   SEARCH p USING INDEX idx_paragraphs_para_id
+        //   SEARCH b USING INTEGER PRIMARY KEY
+        //
+        // `INDEXED BY idx_paragraphs_para_id` measures the same but names an
+        // index, so dropping or renaming one would turn a slow query into a
+        // failing one. This states the order and lets the planner choose.
+        //
+        // The symptom this fixes: `bodiesMs` was the largest leg of every
+        // semantic search (~180 ms in production, flat across queries, batch
+        // sizes and books) while the statement's own work measured ~1 ms.
         return sql<{
           readonly book_code: string;
           readonly book_title: string;
@@ -1741,7 +1768,7 @@ export class EGWParagraphDatabase extends Context.Service<
               SELECT b.book_id, b.book_code, b.book_title, b.book_author,
                      p.ref_code, p.refcode_short, p.para_id, p.nodes_json
               FROM paragraphs p
-              JOIN books b ON p.book_id = b.book_id
+              CROSS JOIN books b ON p.book_id = b.book_id
               WHERE ${prefilter}
                 AND b.book_code || ':' || p.para_id IN ${sql.in([...identities])}
                 AND ${sql.and(predicates)}
