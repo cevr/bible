@@ -573,6 +573,19 @@ a.hit .refcode,
   letter-spacing: 0.12em;
 }
 
+/* A sentence inside `.empty`, which is styled as a label: uppercase at 12px
+ * with wide tracking reads fine for "NO MATCHES" and badly for a line of prose.
+ * This opts back out of the label treatment for the one case that explains
+ * itself rather than naming a state. */
+.hint {
+  margin: var(--s2) auto 0;
+  max-width: 44ch;
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .examples {
   margin-top: var(--s3);
   display: flex;

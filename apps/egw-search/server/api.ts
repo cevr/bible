@@ -102,6 +102,10 @@ export const SearchResponseSchema = S.Struct({
    *  §9.6's typed absence when it did not. Search degrades, but never
    *  silently. */
   vector: S.String,
+  /** Whether the query matched too much of the corpus to rank, so `hits` is
+   *  empty by decision rather than because nothing matched. The two states read
+   *  identically on the wire otherwise, and they want opposite words on screen. */
+  nonSelective: S.Boolean,
 });
 export type SearchResponse = S.Schema.Type<typeof SearchResponseSchema>;
 

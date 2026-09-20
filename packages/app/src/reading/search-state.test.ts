@@ -92,6 +92,9 @@ const result = (input: {
         VectorLegRan.make({ fingerprint: 'EmbeddingGemma-300M/256d-mrl/int8', scanned: 24 }),
       onSome: vectorUnavailable,
     }),
+    // These fixtures are all ordinary selective queries; the gate is exercised
+    // where it lives, in the search service's own suite.
+    nonSelective: false,
   });
 
 /** Still §9.4's pinned group, now assembled by the surface rather than by the

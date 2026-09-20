@@ -214,6 +214,15 @@ export class SearchResult extends Schema.Class<SearchResult>('Search/Result')({
   paragraphs: Schema.Array(SearchParagraphHit),
   /** §9.6's typed absence, or the fingerprint the vector leg ran under. */
   vector: VectorLegStatus,
+  /** Whether the lexical leg declined to rank because the query matches too
+   *  much of the corpus to discriminate — see `NON_SELECTIVE_MATCHES`.
+   *
+   *  Carried rather than inferred from an empty `paragraphs`, because "no
+   *  paragraph matched your query" and "your query matched half the corpus"
+   *  are opposite facts that an empty list spells identically. A reader who
+   *  searched `the` and was shown "no matches" would reasonably conclude the
+   *  corpus lacks the word. */
+  nonSelective: Schema.Boolean,
 }) {}
 
 /** The one wire encoding of a search result, shared by `v1.search.query`'s

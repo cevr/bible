@@ -299,6 +299,16 @@ export const NON_SELECTIVE_MATCHES = 750_000;
  *  search service would be testing SQLite rather than the decision. */
 export const isNonSelective = (matches: number): boolean => matches > NON_SELECTIVE_MATCHES;
 
+/** What the lexical leg answers: its rows, and whether it declined to rank.
+ *
+ *  A pair rather than a bare array because an empty array has two meanings —
+ *  nothing matched, or the query matched too much to be worth ranking — and
+ *  the reader is owed different words for each. */
+interface LexicalLegResult {
+  readonly rows: readonly SearchParagraphRow[];
+  readonly nonSelective: boolean;
+}
+
 /** The lexical leg (§9.3: "always lexical").
  *
  *  Runs on every route, including `locate`: a refcode query that also matches
@@ -331,7 +341,7 @@ const lexicalLeg = (
   bookCode: Option.Option<string>,
   filter: CorpusFilter,
   candidates: number,
-): Effect.Effect<readonly SearchParagraphRow[]> =>
+): Effect.Effect<LexicalLegResult> =>
   Effect.gen(function* () {
     const query = ftsQuery(routed);
     const options = {
@@ -344,11 +354,12 @@ const lexicalLeg = (
       yield* Effect.logInfo('search.lexical.non_selective').pipe(
         Effect.annotateLogs({ matches, threshold: NON_SELECTIVE_MATCHES }),
       );
-      return [];
+      return { rows: [], nonSelective: true };
     }
-    return yield* sources.paragraphs
+    const rows = yield* sources.paragraphs
       .searchScoredParagraphs(query, { ...options, limit: candidates })
-      .pipe(Effect.map((rows) => rows.map(toRow)));
+      .pipe(Effect.map((scored) => scored.map(toRow)));
+    return { rows, nonSelective: false };
   }).pipe(
     // §6.5's posture, over the declared error only. It wraps the probe as well
     // as the ranked statement: a probe that fails degrades to no lexical rows,
@@ -356,7 +367,9 @@ const lexicalLeg = (
     Effect.catchTag(['SqlError', 'ParagraphDataIntegrityError'], (cause) =>
       Effect.logWarning('search.lexical.degraded').pipe(
         Effect.annotateLogs({ reason: String(cause) }),
-        Effect.as<readonly SearchParagraphRow[]>([]),
+        // A failure is not a non-selective query: the reader is owed "nothing
+        // matched", not "your query was too common".
+        Effect.as<LexicalLegResult>({ rows: [], nonSelective: false }),
       ),
     ),
   );
@@ -485,21 +498,37 @@ const scanWith = (
   allow: Option.Option<ReadonlySet<string>>,
   candidates: number,
 ): Effect.Effect<{ readonly ids: readonly string[]; readonly status: VectorLegStatus }> =>
-  embedder.embedQuery(text).pipe(
-    Effect.map((vector) => {
-      const scan = scanVectorIndex(index, vector, scanScope(allow, candidates));
-      return {
-        ids: scan.neighbors.map((neighbor) => neighbor.paragraphId),
-        status: VectorLegRan.make({
-          fingerprint: index.fingerprint,
-          // What the scan actually looked at, not the size of the index it
-          // looked at part of. A book-narrowed query touches one range, and
-          // reporting `index.count` for it told the reader the whole corpus had
-          // been considered — see `VectorScan`.
-          scanned: scan.scanned,
-        }) satisfies VectorLegStatus,
-      };
-    }),
+  Effect.gen(function* () {
+    // The two halves of `vectorMs`, separated. In production the leg swung
+    // between 167 ms and 1034 ms with no way to tell which half moved: the
+    // embed is a model forward pass and the scan is a linear walk over the
+    // index, and they answer to completely different fixes. Logged rather than
+    // spanned because the deployed host has no OTLP collector wired yet, so a
+    // span would go nowhere.
+    const embedAt = yield* Effect.clockWith((clock) => clock.currentTimeMillis);
+    const vector = yield* embedder.embedQuery(text);
+    const scanAt = yield* Effect.clockWith((clock) => clock.currentTimeMillis);
+    const scan = scanVectorIndex(index, vector, scanScope(allow, candidates));
+    const doneAt = yield* Effect.clockWith((clock) => clock.currentTimeMillis);
+    yield* Effect.logInfo('search.vector.timing').pipe(
+      Effect.annotateLogs({
+        embedMs: scanAt - embedAt,
+        scanMs: doneAt - scanAt,
+        scanned: scan.scanned,
+      }),
+    );
+    return {
+      ids: scan.neighbors.map((neighbor) => neighbor.paragraphId),
+      status: VectorLegRan.make({
+        fingerprint: index.fingerprint,
+        // What the scan actually looked at, not the size of the index it
+        // looked at part of. A book-narrowed query touches one range, and
+        // reporting `index.count` for it told the reader the whole corpus had
+        // been considered — see `VectorScan`.
+        scanned: scan.scanned,
+      }) satisfies VectorLegStatus,
+    };
+  }).pipe(
     // An adapter that declines at embed time — WebGPU lost, model file gone —
     // is §9.6's `embedder` absence, the same value a host with no adapter
     // reports. One reason for one reader-visible state.
@@ -679,6 +708,7 @@ const emptyResult = (input: SearchQuery, status: VectorLegStatus): SearchResult 
     locate: Option.none(),
     paragraphs: [],
     vector: status,
+    nonSelective: false,
   });
 
 /** What the layer says about the index it resolved, once, at startup.
@@ -755,7 +785,7 @@ const makeQuery =
       const vector = yield* vectorLeg(
         deps,
         routed,
-        lexical,
+        lexical.rows,
         scope,
         input.bookCode,
         filter,
@@ -766,7 +796,13 @@ const makeQuery =
 
       // §9.2's join, for the candidates only the vector leg found. One
       // statement, and skipped entirely when the two legs agree on every id.
-      const vectorOnly = yield* vectorOnlyBodies(sources, lexical, vector.ids, scope, filter).pipe(
+      const vectorOnly = yield* vectorOnlyBodies(
+        sources,
+        lexical.rows,
+        vector.ids,
+        scope,
+        filter,
+      ).pipe(
         Effect.withSpan('search.bodies', {
           attributes: { vectorStatus: vector.status._tag },
         }),
@@ -803,8 +839,9 @@ const makeQuery =
         route: routed._tag,
         scope,
         locate,
-        paragraphs: fuseResults(lexical, vectorOnly, vector.ids, queryLimit(input)),
+        paragraphs: fuseResults(lexical.rows, vectorOnly, vector.ids, queryLimit(input)),
         vector: vector.status,
+        nonSelective: lexical.nonSelective,
       });
     });
 

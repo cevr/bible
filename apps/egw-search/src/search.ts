@@ -42,9 +42,13 @@ export interface SearchOutcome {
   readonly hits: readonly Hit[];
   readonly scope: CorpusScope;
   readonly vector: string;
+  /** The query matched too much of the corpus to rank — see the server's
+   *  selectivity gate. Distinct from "nothing matched", which is what an empty
+   *  `hits` otherwise means. */
+  readonly nonSelective: boolean;
 }
 
-const EMPTY: SearchOutcome = { hits: [], scope: 'all', vector: 'idle' };
+const EMPTY: SearchOutcome = { hits: [], scope: 'all', vector: 'idle', nonSelective: false };
 
 /** A cold vector search pays for the embed before it can rank, so the ceiling
  *  is generous: the budget this guards is a hung socket, not a slow query. */

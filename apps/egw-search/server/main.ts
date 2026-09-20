@@ -115,7 +115,7 @@ const SearchGroupLive = HttpApiBuilder.group(SearchApi, 'search', (handlers) =>
             // kept on the wire so a link can still say so explicitly.
             excludeApparatus: NEVER_APPARATUS,
           };
-          if (text === '') return { hits: [], scope, vector: 'idle' };
+          if (text === '') return { hits: [], scope, vector: 'idle', nonSelective: false };
 
           const limit = clamp(params.limit, DEFAULT_LIMIT, MAX_LIMIT);
           const radius = clamp(params.context, DEFAULT_CONTEXT, MAX_CONTEXT);
@@ -183,6 +183,7 @@ const SearchGroupLive = HttpApiBuilder.group(SearchApi, 'search', (handlers) =>
             }),
             scope,
             vector: result.vector._tag === 'ran' ? 'hybrid' : `lexical — ${result.vector.reason}`,
+            nonSelective: result.nonSelective,
           };
         }).pipe(
           Effect.tapCause((cause) =>

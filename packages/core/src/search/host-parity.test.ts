@@ -184,6 +184,11 @@ describe('§9.7 search host parity', () => {
         'locate',
         'paragraphs',
         'vector',
+        // Why the lexical leg returned nothing, when it returned nothing by
+        // decision. An empty `paragraphs` otherwise conflates "no match" with
+        // "matched half the corpus", and a host cannot word the difference it
+        // cannot see. See `NON_SELECTIVE_MATCHES`.
+        'nonSelective',
       ]);
     }),
   );

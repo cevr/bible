@@ -141,6 +141,9 @@ interface SearchStore {
    *  that frame — the memo has settled, to an empty set — so without this the
    *  results region flashes "awaiting query" before the skeleton. */
   readonly starting: () => boolean;
+  /** Whether the query matched too much of the corpus to rank, so the empty
+   *  result is a decision rather than an absence of matches. */
+  readonly nonSelective: () => boolean;
   /** Commit a query — used by the form and by the example chips alike. */
   readonly search: (value: string) => void;
   /** Replace the filters, keeping the query. `replace` rather than `push` so
@@ -265,17 +268,19 @@ const SearchProvider = (props: { readonly pane: number; readonly children: Eleme
    *  pane's own request changes — by a submit, a filter toggle or the back
    *  button — and its pending and failed states are surfaced by the boundaries
    *  rather than by flags kept here. */
-  const outcome = createMemo(async (): Promise<{ readonly hits: readonly Hit[] }> => {
-    // Read before the early return so the memo *subscribes* to it: this is the
-    // dependency that starts the query once the shell is on screen.
-    const ready = mounted();
-    if (!ready || requestKey() === '') return { hits: [] };
-    // Read untracked: `requestKey` above is the whole dependency, and reading
-    // `params()` here as well would re-introduce the identity dependency this
-    // memo exists to avoid.
-    const current = untrack(params);
-    return runQuery(searchEffect(current, CONTEXT), AbortSignal.timeout(40_000));
-  });
+  const outcome = createMemo(
+    async (): Promise<{ readonly hits: readonly Hit[]; readonly nonSelective: boolean }> => {
+      // Read before the early return so the memo *subscribes* to it: this is
+      // the dependency that starts the query once the shell is on screen.
+      const ready = mounted();
+      if (!ready || requestKey() === '') return { hits: [], nonSelective: false };
+      // Read untracked: `requestKey` above is the whole dependency, and reading
+      // `params()` here as well would re-introduce the identity dependency this
+      // memo exists to avoid.
+      const current = untrack(params);
+      return runQuery(searchEffect(current, CONTEXT), AbortSignal.timeout(40_000));
+    },
+  );
 
   const store: SearchStore = {
     draft,
@@ -283,6 +288,7 @@ const SearchProvider = (props: { readonly pane: number; readonly children: Eleme
     params,
     hits: () => outcome().hits,
     starting: () => !mounted() && requestKey() !== '',
+    nonSelective: () => latest(() => outcome().nonSelective),
     search: (value) => {
       // The effect above clears the typed override, so the box goes back to
       // showing the committed query — which is what an example chip that set
@@ -637,15 +643,20 @@ const Status = (props: { readonly pending: boolean; readonly count: number }) =>
   const search = useSearch();
   const query = (): string => search.params().q;
 
+  /** What the status line says, as a guard chain rather than a fourth nested
+   *  ternary. The non-selective case must precede the count: it *has* no count,
+   *  and "0 results" for a word in half the corpus states the opposite of what
+   *  happened. */
+  const label = (): string => {
+    if (props.pending) return `searching “${query()}”…`;
+    if (query() === '') return 'awaiting query';
+    if (search.nonSelective()) return `“${query()}” — too common to rank`;
+    return `“${query()}” — ${String(props.count)} result${props.count === 1 ? '' : 's'}`;
+  };
+
   return (
     <div class="status">
-      <span>
-        {props.pending
-          ? `searching “${query()}”…`
-          : query() === ''
-            ? 'awaiting query'
-            : `“${query()}” — ${String(props.count)} result${props.count === 1 ? '' : 's'}`}
-      </span>
+      <span>{label()}</span>
       <Show when={hasFilters(search.params())}>
         <span class="filtered">filtered</span>
       </Show>
@@ -653,15 +664,28 @@ const Status = (props: { readonly pending: boolean; readonly count: number }) =>
   );
 };
 
-/** Nothing to show: either no query yet, or a query that matched nothing.
- *  Offers the examples either way, since both states want the same next step. */
+/** Nothing to show: no query yet, a query that matched nothing, or a query too
+ *  common to rank. Offers the examples in every case, since all three want the
+ *  same next step — a different query. */
 const Empty = () => {
   const search = useSearch();
   const narrowed = (): boolean => search.params().q !== '' && hasFilters(search.params());
 
   return (
     <div class="empty">
-      <div>{search.params().q === '' ? 'no query yet' : 'no matches'}</div>
+      {/* Three states, not two. A query the corpus does not contain and a
+          query the corpus contains half a million times both arrive here with
+          no hits, and telling a reader who searched "the" that there are "no
+          matches" would be a plain falsehood. */}
+      <Show when={!search.nonSelective()} fallback={<div>too common to rank</div>}>
+        <div>{search.params().q === '' ? 'no query yet' : 'no matches'}</div>
+      </Show>
+      <Show when={search.nonSelective()}>
+        <div class="hint">
+          “{search.params().q}” appears in a large share of the corpus, so ranking it would not
+          surface anything in particular. Add a word or two to narrow it.
+        </div>
+      </Show>
       {/* A filtered empty result is the one case where the fix is not a
           different query: say so, and offer the undo rather than the
           examples. */}
