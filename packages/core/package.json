@@ -54,7 +54,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "bun test",
+    "test": "./scripts/build-native.sh check && bun test",
     "test:watch": "bun test --watch",
     "sync:bible": "bun run src/sync/bible-sync-main.ts",
     "sync:bible:force": "bun run src/sync/bible-sync-main.ts --force"

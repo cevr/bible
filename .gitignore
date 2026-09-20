@@ -168,8 +168,17 @@ packages/core/data/vectors.bvi
 packages/core/data/*.bvi.part
 packages/core/data/*.bvi.checkpoint.json
 
-# Built SIMD accelerators for the vector scan (`packages/core/scripts/build-native.sh`).
-# Platform-specific binaries rebuilt from `packages/core/native/*.c`; the scan
-# falls back to its TypeScript loop when they are absent, so a checkout without
-# them is correct, only slower.
-packages/core/dist-native/
+# Built SIMD accelerators for the vector scan (`packages/core/scripts/build-native.sh`),
+# rebuilt from `packages/core/native/*.c`. The scan falls back to its TypeScript
+# loop when they are absent, so a checkout without them is correct, only slower.
+#
+# The native libraries are machine-specific and stay out. `vector-scan.wasm` is
+# the exception and is committed: 3 kB, one artifact for every architecture, and
+# `zig cc` reproduces it byte for byte, so it is a source-derived file rather
+# than a build machine's opinion. Committing it is what puts the deployment on
+# the WebAssembly tier without adding a C toolchain to the Railway build.
+# The pattern excludes the directory's *contents* rather than the directory:
+# git never descends into an excluded directory, so `dist-native/` followed by a
+# negation would leave the wasm unstageable.
+packages/core/dist-native/*
+!packages/core/dist-native/vector-scan.wasm

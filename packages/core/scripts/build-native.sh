@@ -8,7 +8,12 @@
 #
 #   ./scripts/build-native.sh          # host native + wasm
 #   ./scripts/build-native.sh wasm     # wasm only (portable, all hosts)
+#   ./scripts/build-native.sh check    # committed wasm still matches its C
 #   TARGET=aarch64-linux-gnu ./scripts/build-native.sh native   # cross-compile
+#
+# `vector-scan.wasm` is committed and the rest of dist-native/ is not: see the
+# note in the repository .gitignore for why, and run `check` after editing
+# `native/vector-scan-wasm.c`.
 #
 # `zig cc` rather than `cc`: one toolchain cross-compiles to every target the
 # deployment needs (the Railway container is linux/arm64) and to wasm32, and
@@ -56,11 +61,44 @@ build_native() {
   fi
 }
 
+# `vector-scan.wasm` is committed, so it can drift from `vector-scan-wasm.c`
+# the moment someone edits the C and does not rebuild. Nothing would fail
+# loudly: the stale module still loads and still returns scores, just not the
+# ones the source now describes. This rebuilds into a scratch file and compares,
+# which is only meaningful because `zig cc` is byte-reproducible here.
+check_wasm() {
+  # No toolchain is not a failure. This runs in `bun test` on every machine
+  # that clones the repository, and most of them have no reason to have zig;
+  # the committed artifact is what they use, and they cannot have changed it
+  # without also changing the C, which review catches.
+  if ! command -v zig >/dev/null 2>&1; then
+    echo "zig not installed -- skipping the wasm freshness check"
+    return 0
+  fi
+  committed="$out/vector-scan.wasm"
+  if [ ! -f "$committed" ]; then
+    echo "missing $committed -- run: $0 wasm" >&2
+    exit 1
+  fi
+  tmp="$(mktemp -d)"
+  trap 'rm -rf "$tmp"' EXIT
+  zig cc --target=wasm32-freestanding -msimd128 -O3 -nostdlib \
+    -Wl,--no-entry -Wl,--import-memory -Wl,--initial-memory=0 \
+    -o "$tmp/vector-scan.wasm" "$src/vector-scan-wasm.c"
+  if cmp -s "$tmp/vector-scan.wasm" "$committed"; then
+    echo "wasm matches vector-scan-wasm.c"
+  else
+    echo "$committed is stale -- rebuild and commit it: $0 wasm" >&2
+    exit 1
+  fi
+}
+
 case "$what" in
   wasm)   build_wasm ;;
   native) build_native ;;
+  check)  check_wasm ;;
   all)    build_native; build_wasm ;;
-  *) echo "usage: $0 [all|wasm|native]" >&2; exit 2 ;;
+  *) echo "usage: $0 [all|wasm|native|check]" >&2; exit 2 ;;
 esac
 
 echo "done"
