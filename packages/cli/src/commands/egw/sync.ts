@@ -4,7 +4,7 @@ import {
   type BookRow,
   type EGWParagraphDatabaseService,
 } from '@bible/core/egw-db';
-import { CorpusSupply, Target } from '@bible/core/corpus-supply';
+import { CorpusSupply, isKnownUnavailable, Target } from '@bible/core/corpus-supply';
 import { publicationId } from '@bible/core/writings';
 import { Cause, Console, Effect, Exit, Option, Predicate, Ref, Schema, Stream } from 'effect';
 import { Command, Flag } from 'effect/unstable/cli';
@@ -33,6 +33,10 @@ export interface EgwSyncFailure {
   readonly code: string;
   readonly title: string;
   readonly error: string;
+  /** True when the library is known to withhold this book's content, so the
+   *  failure is the documented outcome rather than news. See
+   *  `KNOWN_UNAVAILABLE`. */
+  readonly expected: boolean;
 }
 
 export interface EgwSyncReport {
@@ -41,6 +45,11 @@ export interface EgwSyncReport {
   readonly attempted: number;
   readonly installed: number;
   readonly failed: number;
+  /** `failed` minus the known-unavailable books. This is the number a weekly
+   *  report should alarm on: `failed` is never zero and never will be, so a
+   *  monitor watching it would fire every week and be ignored by the second
+   *  week. */
+  readonly unexpectedFailures: number;
   readonly present: number;
   readonly missing: readonly {
     readonly id: number;
@@ -140,6 +149,7 @@ export const syncEgwCorpus = Effect.fn('EgwSync.syncCorpus')(function* (options:
           code: book.code,
           title: book.title,
           error: message,
+          expected: isKnownUnavailable(book.book_id),
         });
       }),
     { concurrency: options.concurrency },
@@ -148,11 +158,20 @@ export const syncEgwCorpus = Effect.fn('EgwSync.syncCorpus')(function* (options:
   const failures = attempts.flatMap((attempt) => Option.toArray(attempt));
   const localAfter = yield* readBooks(database);
   const localAfterById = new Map(localAfter.map((book) => [book.book_id, book]));
+  // The known-unavailable books are absent from `missing` for the same reason
+  // they are excluded from `unexpectedFailures`: "missing" should mean "we
+  // expected this and do not have it", and these we do not expect.
   const missing = remote.flatMap((book) => {
     if (hasContent(Option.fromNullishOr(localAfterById.get(book.book_id)))) return [];
+    if (isKnownUnavailable(book.book_id)) return [];
     return [{ id: book.book_id, code: book.code, title: book.title }];
   });
-  const present = remote.length - missing.length;
+  // Counted from what the database actually holds, not as
+  // `remote.length - missing.length`: `missing` now omits the known-unavailable
+  // books, and deriving `present` from it would report those 18 as present.
+  const present = remote.filter((book) =>
+    hasContent(Option.fromNullishOr(localAfterById.get(book.book_id))),
+  ).length;
   const localOnly = localAfter.filter((book) => !remoteIds.has(book.book_id)).length;
 
   return {
@@ -161,6 +180,7 @@ export const syncEgwCorpus = Effect.fn('EgwSync.syncCorpus')(function* (options:
     attempted: pending.length,
     installed: pending.length - failures.length,
     failed: failures.length,
+    unexpectedFailures: failures.filter((failure) => !failure.expected).length,
     present,
     missing,
     localOnly,
@@ -219,13 +239,26 @@ export const egwSync = Command.make(
         yield* Console.log(`Present now: ${String(report.present)}`);
         yield* Console.log(`Missing: ${String(report.missing.length)}`);
         yield* Console.log(`Local-only books kept: ${String(report.localOnly)}`);
+        const expected = report.failures.filter((failure) => failure.expected);
+        if (expected.length > 0) {
+          yield* Console.log(
+            `Withheld by the library (expected): ${String(expected.length)} — ${expected
+              .map((failure) => failure.code)
+              .join(', ')}`,
+          );
+        }
         for (const failure of report.failures) {
+          if (failure.expected) continue;
           yield* Console.error(
             `Failed ${failure.code} (id ${String(failure.id)}): ${failure.error}`,
           );
         }
       }
 
+      // `missing` excludes the books the library withholds, so a run whose only
+      // failures are the known-unavailable ones now exits 0. Before that
+      // exclusion this command could never succeed, which made the exit code
+      // useless to a scheduler.
       if (report.missing.length > 0) {
         const cliProcess = yield* CliProcess;
         return yield* cliProcess.exitFailure;
