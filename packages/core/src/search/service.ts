@@ -636,23 +636,31 @@ const locateLeg = (
  *  is therefore *correct*.
  *
  *  It is also not worth doing, because the batch size is not what this costs.
- *  Every part of this function is sub-millisecond on a developer machine
- *  against the same 4.5 GB corpus: the prefiltered statement measures 0.1 ms at
- *  40 ids and 0.2 ms at 120 (the `para_id` seek dominates and the row count
- *  disappears into it), `Schema.decodeUnknownSync` over all 120 `nodes_json`
- *  payloads costs 0.7 ms, and `nodesToText` on top of that 0.4 ms.
+ *  The work inside this leg is ~1 ms: against the same 4.5 GB corpus the
+ *  prefiltered statement measures 0.1 ms at 40 ids and 0.2 ms at 120 (the
+ *  `para_id` seek dominates and the row count disappears into it), and
+ *  `Schema.decodeUnknownSync` over all 120 `nodes_json` payloads costs 0.8 ms.
  *
- *  Production does not agree, and the disagreement is the interesting part.
- *  Across eight distinct semantic queries touching different regions of the
- *  corpus, `bodiesMs` was 178, 179, 181, 185, 185, 185, 178, 184 — flat to
- *  within 7 ms, indifferent to both the batch size and which books were read.
- *  Cold scattered I/O does not look like that; it varies with locality. A
- *  first-touch query did pay 2099 ms, so there *is* a cold component, but the
- *  ~180 ms floor underneath it is a fixed per-call cost this file cannot see
- *  and a developer machine does not reproduce. It is the largest single leg of
- *  a semantic query (embed ~35 ms, scan ~125 ms, bodies ~180 ms), so it is
- *  where the next real latency win is — but it must be found by instrumenting
- *  the deployment, not by fetching fewer rows.
+ *  The leg nonetheless takes ~137 ms, and it is flat. Across eight distinct
+ *  semantic queries reading different books, production logged 178, 179, 181,
+ *  185, 185, 185, 178, 184 ms — within 7 ms of each other, indifferent to both
+ *  batch size and locality. Cold scattered I/O does not look like that; it
+ *  varies with locality. A first-touch query did pay 2099 ms, so a cold
+ *  component exists, but the floor underneath it does not come from reading
+ *  the corpus. `search.bodies.timing` puts that floor in `lookupMs`, the
+ *  `findParagraphsByIdentity` call, whose own statement and decode account for
+ *  1 ms of it.
+ *
+ *  So this is ~136 ms of overhead around 1 ms of work, and it is the largest
+ *  leg of a semantic query (embed ~35 ms, scan ~125 ms, bodies ~180 ms) — the
+ *  next real latency win, but not one to guess at. Four candidates are already
+ *  eliminated by measurement, each reproducing at ~0.2–0.8 ms in isolation
+ *  while the leg stays at ~137 ms: the batch size, the `nodes_json` decode,
+ *  the 240-parameter `sql.in` construction through the real `@effect/sql`
+ *  client, and `para_id` prefilter amplification (120 ids match exactly 120
+ *  rows, no fan-out). Whatever remains is inside the `findParagraphsByIdentity`
+ *  call and is not any of those, so the next step is a profile of that call in
+ *  situ — not another hypothesis.
  */
 const vectorOnlyBodies = (
   sources: SearchSources,
@@ -673,23 +681,28 @@ const vectorOnlyBodies = (
   // here having been correctly dropped from the lexical leg. The statement
   // already joins `books`, so the same predicates apply there rather than
   // being re-derived over the returned rows.
-  // Split, because the sum is a mystery in the deployment and neither half is
-  // on a developer machine. `bodiesMs` sits at a flat ~180 ms in production
-  // (see above) while the statement measures 0.2 ms and the row mapping 1.1 ms
-  // locally, so the question "is it the query or the decode?" cannot be
-  // answered from the total. These two clocks answer it in one request.
+  // Split, because the sum hides where the time goes. `lookupMs` brackets the
+  // whole `findParagraphsByIdentity` call — the statement *and* the per-row
+  // `decodeNodes` it runs internally — and `hitsMs` brackets `toRow` on top.
+  //
+  // The split is what proved the leg is overhead rather than work: `lookupMs`
+  // sits at ~137 ms while the raw statement measures 0.2 ms and decoding all
+  // 120 `nodes_json` payloads 0.8 ms. Roughly 1 ms of work inside a 137 ms
+  // call. `hitsMs` reads ~0 because the nodes it maps are already decoded.
   return Effect.gen(function* () {
     const startedAt = yield* Effect.clockWith((clock) => clock.currentTimeMillis);
     const found = yield* sources.paragraphs.findParagraphsByIdentity(missing, { scope, filter });
-    const queriedAt = yield* Effect.clockWith((clock) => clock.currentTimeMillis);
+    const lookedUpAt = yield* Effect.clockWith((clock) => clock.currentTimeMillis);
     const mapped = found.map(toRow);
     const mappedAt = yield* Effect.clockWith((clock) => clock.currentTimeMillis);
     yield* Effect.logInfo('search.bodies.timing').pipe(
       Effect.annotateLogs({
-        // What the statement cost, apart from turning its rows into hits.
-        queryMs: queriedAt - startedAt,
-        // `toRow` per row: a Schema decode of `nodes_json` plus `nodesToText`.
-        decodeMs: mappedAt - queriedAt,
+        // The statement plus the `decodeNodes` inside it. Not the statement
+        // alone — `findParagraphsByIdentity` decodes every row before
+        // returning, so this clock cannot separate the two.
+        lookupMs: lookedUpAt - startedAt,
+        // `toRow` alone: `nodesToText` over already-decoded nodes.
+        hitsMs: mappedAt - lookedUpAt,
         wanted: missing.length,
         // Below `wanted` when the corpus filter dropped rows the vector leg
         // proposed — which is also why fetching only the fused survivors would
