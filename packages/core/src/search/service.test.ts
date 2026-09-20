@@ -26,6 +26,7 @@ import {
   GOLDEN_TOPIC_SLUG,
   GOLDEN_VECTOR_IDS,
 } from './golden-fixture.js';
+import { Node } from '../egw/ast.js';
 import { EGWParagraphDatabase } from '../egw-db/book-database.js';
 import { SearchQuery, type VectorAbsenceReason } from './model.js';
 import { VectorIndexBytes } from './vector-artifact.js';
@@ -370,7 +371,11 @@ describe('§9.4 the result is the writings, and only the writings', () => {
         expect(id.includes(GOLDEN_TOPIC_SLUG)).toBe(false);
       }
       for (const hit of result.paragraphs) {
-        expect(hit.refcode.length).toBeGreaterThan(0);
+        // Every golden paragraph is citable, so each refcode is present *and*
+        // non-empty. `refcode` is an Option because ~563 corpus rows have
+        // none; a fixture hit resolving to `None` here would mean the field
+        // stopped being carried, which `getOrElse('')` would hide.
+        expect(Option.getOrElse(hit.refcode, () => '').length).toBeGreaterThan(0);
         expect(hit.bookCode.length).toBeGreaterThan(0);
       }
     }),
@@ -459,6 +464,62 @@ describe('§6.5 the legs degrade on corpus faults and not on defects', () => {
         search({ text: 'what happens at the close of probation' }, layer),
       );
       expect(outcome._tag).toBe('Failure');
+    }),
+  );
+
+  it.effect('returns a paragraph the corpus stores with no refcode', () =>
+    Effect.gen(function* () {
+      // ~563 of the corpus's 3,012,004 paragraphs have an empty `ref_code` and
+      // no short refcode: signatures, datelines, "This chapter is based on..."
+      // notes — real text the ingest never assigned a page to. `refcode` was
+      // `NonEmptyString`, so one of them reaching a result page *died*, and a
+      // die is a 500 for the whole query rather than a lost row. Every query
+      // matching "controversy" was unanswerable in production because of one
+      // such row in `GC`.
+      //
+      // The row is returned with an absent refcode instead. Dropping it would
+      // be the other tempting repair and is worse: a reader cannot tell a
+      // hidden row from one that does not exist, and the text is the part they
+      // came for — the citation is how they'd quote it, not whether it matched.
+      const uncitable = Layer.unwrap(
+        Effect.gen(function* () {
+          const paragraphs = yield* EGWParagraphDatabase;
+          return SearchCorpusSources.wired({ paragraphs });
+        }),
+      ).pipe(
+        Layer.provide(
+          EGWParagraphDatabase.Test({
+            books: GOLDEN_BOOKS,
+            paragraphs: [
+              ...GOLDEN_PARAGRAPHS,
+              {
+                // Both spellings of "no citation" at once, which is what the
+                // corpus actually holds: NULL short refcode *and* an empty
+                // `ref_code`. A fixture with only the first would pass against
+                // the null check that this bug slipped through.
+                para_id: Option.some('GC-uncitable'),
+                refcode_short: Option.none(),
+                refcode_long: '',
+                nodes: [Node.make({ _tag: 'Text', text: 'the sanctuary in heaven' })],
+                puborder: 9_001,
+                bookCode: 'GC',
+                ftsRank: -20,
+              },
+            ],
+          }),
+        ),
+      );
+      const layer = SearchService.Live.pipe(
+        Layer.provide(uncitable),
+        Layer.provide(VectorIndexBytes.None),
+      );
+      const result = yield* search({ text: 'the sanctuary in heaven' }, layer);
+      const found = result.paragraphs.find((hit) => hit.paragraphId === 'GC:GC-uncitable');
+      expect(found).toBeDefined();
+      expect(Option.isNone(found?.refcode ?? Option.some('present'))).toBe(true);
+      // The rest of the page is unaffected: the uncitable row does not take
+      // its neighbours down with it, which is the whole difference from a die.
+      expect(result.paragraphs.length).toBeGreaterThan(1);
     }),
   );
 });

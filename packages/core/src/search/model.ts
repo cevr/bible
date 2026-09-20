@@ -133,7 +133,21 @@ export class SearchParagraphHit extends Schema.Class<SearchParagraphHit>('Search
    *  set of paragraphs that have no addressable route; a client draws those
    *  without a link rather than with a broken one. */
   rawParaId: Schema.Option(Schema.NonEmptyString),
-  refcode: Schema.NonEmptyString,
+  /** The citation this paragraph is addressed by, absent for the ~563 rows the
+   *  corpus stores without one.
+   *
+   *  `Option` rather than `NonEmptyString` because those rows are real
+   *  paragraphs with real content — signatures, datelines, "This chapter is
+   *  based on..." notes — that the upstream ingest never assigned a page to.
+   *  They are legitimately uncitable, not corrupt, which is the same thing
+   *  `rawParaId` above says about the same kind of row.
+   *
+   *  It was `NonEmptyString`, and the mismatch was a `Die`: one such row
+   *  reaching a result page failed the whole query with a 500 rather than the
+   *  one hit, so `controversy` — which reaches `GC `, a row with an empty
+   *  `ref_code` — could not be searched at all. A result a reader cannot cite
+   *  is still a result worth returning. */
+  refcode: Schema.Option(Schema.NonEmptyString),
   bookCode: Schema.NonEmptyString,
   bookTitle: Schema.NonEmptyString,
   author: Schema.NonEmptyString,

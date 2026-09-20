@@ -747,11 +747,19 @@ const Skeleton = () => (
 const HitRow = (props: { readonly hit: Hit }) => (
   <li class="hit">
     <div class="meta">
-      <Show when={props.hit.url} fallback={<span class="refcode">{props.hit.refcode}</span>}>
-        {(href) => (
-          <a class="refcode" href={href()} target="_blank" rel="noopener noreferrer">
-            {props.hit.refcode}
-          </a>
+      {/* No refcode at all for the rows the corpus stores without a citation
+          (signatures, datelines, "this chapter is based on..." notes). The
+          slot is dropped rather than rendered empty, so the book title moves
+          up and the row does not look like a broken link. */}
+      <Show when={props.hit.refcode}>
+        {(refcode) => (
+          <Show when={props.hit.url} fallback={<span class="refcode">{refcode()}</span>}>
+            {(href) => (
+              <a class="refcode" href={href()} target="_blank" rel="noopener noreferrer">
+                {refcode()}
+              </a>
+            )}
+          </Show>
         )}
       </Show>
       <span class="book">{props.hit.bookTitle}</span>

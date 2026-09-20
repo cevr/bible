@@ -78,7 +78,11 @@ export type ContextParagraph = S.Schema.Type<typeof ContextParagraphSchema>;
  *  difference hybrid search makes. Either is null when only one leg found it.
  */
 export const SearchHitSchema = S.Struct({
-  refcode: S.String,
+  /** Null for a paragraph the corpus stores without a citation — the same set
+   *  `ContextParagraphSchema` above already allowed a null refcode for. A hit
+   *  and a neighbour are the same kind of row, so requiring one here and not
+   *  there was the asymmetry that made `controversy` a 500. */
+  refcode: S.NullOr(S.String),
   bookCode: S.String,
   bookTitle: S.String,
   author: S.String,

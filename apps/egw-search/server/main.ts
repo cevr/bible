@@ -169,7 +169,7 @@ const SearchGroupLive = HttpApiBuilder.group(SearchApi, 'search', (handlers) =>
                 onSome: (id) => context.get(id) ?? emptySurrounding,
               });
               return {
-                refcode: hit.refcode,
+                refcode: Option.getOrNull(hit.refcode),
                 bookCode: hit.bookCode,
                 bookTitle: hit.bookTitle,
                 author: hit.author,

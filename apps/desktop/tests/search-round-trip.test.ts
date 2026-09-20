@@ -263,9 +263,11 @@ describe('desktop hybrid search', () => {
       expect(result.paragraphs.some((hit) => hit.paragraphId === String(GOLDEN_TOPIC_SLUG))).toBe(
         false,
       );
-      expect(result.paragraphs.some((hit) => hit.refcode === String(GOLDEN_TOPIC_SLUG))).toBe(
-        false,
-      );
+      expect(
+        result.paragraphs.some(
+          (hit) => Option.getOrElse(hit.refcode, () => '') === String(GOLDEN_TOPIC_SLUG),
+        ),
+      ).toBe(false);
     }),
   );
 });

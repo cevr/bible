@@ -48,7 +48,11 @@ export type HitProvenance = 'both' | 'lexical' | 'vector';
 /** One paragraph, in the form the surface draws it. */
 export interface SearchHitView {
   readonly paragraphId: string;
-  readonly refcode: string;
+  /** The citation, or `None` for a paragraph the corpus stores without one —
+   *  the same rows `href` below is `None` for, and for the same reason. A
+   *  surface draws those with the book title alone rather than with an empty
+   *  citation slot. */
+  readonly refcode: Option.Option<string>;
   readonly bookTitle: string;
   readonly author: string;
   readonly snippet: string;

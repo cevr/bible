@@ -62,7 +62,7 @@ const hit = (input: {
     // The route's two inputs, as the service now carries them (round-2 B2).
     publicationId: 132,
     rawParaId: input.rawParaId ?? Option.some(input.refcode),
-    refcode: input.refcode,
+    refcode: Option.some(input.refcode),
     bookCode: 'GC',
     bookTitle: 'The Great Controversy',
     author: 'Ellen Gould White',
@@ -111,10 +111,12 @@ describe('searchView — §9.4 the pinned topics group', () => {
       [topic('the-sanctuary', 'The Sanctuary')],
     );
     expect(view.topics.map((entry) => entry.title)).toEqual(['The Sanctuary']);
-    expect(view.hits.map((entry) => entry.refcode)).toEqual(['GC 425.1']);
+    expect(view.hits.map((entry) => Option.getOrNull(entry.refcode))).toEqual(['GC 425.1']);
     // No topic leaked into the ranking.
     const slugs = new Set(view.topics.map((entry) => entry.slug));
-    expect(view.hits.some((entry) => slugs.has(entry.refcode))).toBe(false);
+    expect(view.hits.some((entry) => slugs.has(Option.getOrElse(entry.refcode, () => '')))).toBe(
+      false,
+    );
   });
 
   test('routes a topic to its wiki page', () => {
@@ -166,7 +168,11 @@ describe('searchView — why a row is present', () => {
         ],
       }),
     );
-    expect(view.hits.map((entry) => entry.refcode)).toEqual(['GC 3.1', 'GC 1.1', 'GC 2.1']);
+    expect(view.hits.map((entry) => Option.getOrNull(entry.refcode))).toEqual([
+      'GC 3.1',
+      'GC 1.1',
+      'GC 2.1',
+    ]);
   });
 });
 

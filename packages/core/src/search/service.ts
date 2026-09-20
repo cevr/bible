@@ -167,7 +167,10 @@ export interface SearchParagraphRow {
    *  `SearchParagraphHit.publicationId` (round-2 B2). */
   readonly publicationId: number;
   readonly rawParaId: Option.Option<string>;
-  readonly refcode: string;
+  /** Absent for a paragraph the corpus stores with neither a short refcode nor
+   *  a `ref_code` — see `SearchParagraphHit.refcode` for why those rows exist
+   *  and why dropping them would be the wrong repair. */
+  readonly refcode: Option.Option<string>;
   readonly bookCode: string;
   readonly bookTitle: string;
   readonly author: string;
@@ -242,11 +245,24 @@ const ftsQuery = (routed: RoutedQuery): string => {
  *  first is how the reader and the writer come to disagree, and a search whose
  *  two legs key paragraphs differently silently never fuses anything.
  */
+/** Whether a corpus string is actually there.
+ *
+ *  The corpus spells "no refcode" two ways — SQL NULL and `''` — and only the
+ *  first survives as an `Option`. This is what collapses them. */
+const isNonEmpty = (value: string): boolean => value.length > 0;
+
 const toRow = (row: ScoredParagraphRow): SearchParagraphRow => ({
   paragraphId: row.para_id,
   publicationId: row.publicationId,
   rawParaId: row.rawParaId,
-  refcode: Option.getOrElse(row.refcode_short, () => row.ref_code),
+  // The short refcode, else `ref_code`, else absent — and empty counts as
+  // absent at both steps. `refcode_short` is an Option over SQLite NULL, so it
+  // can be `Some('')` (549 rows), and `ref_code` is NOT NULL yet `''` for 563.
+  // A null check alone would let an empty string through to a `NonEmptyString`
+  // and die, which is exactly the bug this replaces.
+  refcode: Option.orElse(Option.filter(row.refcode_short, isNonEmpty), () =>
+    Option.filter(Option.some(row.ref_code), isNonEmpty),
+  ),
   bookCode: row.bookCode,
   bookTitle: row.bookTitle,
   author: row.bookAuthor,
