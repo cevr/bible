@@ -405,6 +405,33 @@ export const scanVectorIndex = (
       // 81 ms, both inside the noise of 4×. The gain is from breaking the
       // dependency chain, and four accumulators already break it.
       //
+      // **It does not help the deployment, and it was kept anyway.** On the
+      // Railway container `scanMs` stayed at 121–128 ms across this change,
+      // the same as the serial loop, while `bodiesMs` from the same deploy
+      // dropped to 2 ms — so the build is live and this loop simply does not
+      // get faster there. Both hosts are arm64, so it is not an instruction
+      // set difference, and it is not DRAM bandwidth either: streaming one
+      // byte per cache line over the whole 246 MB costs 2.7 ms, so the memory
+      // system delivers the data easily. What costs is touching every element
+      // — reading all 246 MB and only *adding* the values, no multiply, is
+      // 56 ms of the 85 ms. The dot product is therefore ~2/3 per-element
+      // load-and-widen overhead and ~1/3 arithmetic, which is exactly the
+      // shape that unrolling cannot fix beyond the dependency chain it
+      // already broke, and which a slower or shared core has less headroom to
+      // hide.
+      //
+      // Kept because it is a 40% win on the developer machine, costs nothing
+      // where it does not help, and returns bit-identical scores either way.
+      //
+      // The consequence for anyone optimizing further: the floor is *elements
+      // touched*, not instructions issued. The next real win reads fewer of
+      // them — an ANN index that scores a fraction of the 961,253 vectors, or
+      // fewer dimensions per vector — not faster arithmetic over the same
+      // 246 MB. A SIMD path (WASM or native) would attack the same
+      // load-and-widen cost and is the one arithmetic-side option left, but
+      // it is a portability decision this file's header deliberately made
+      // once already.
+      //
       // The parser guarantees `count * dimensions` int8 values and ranges
       // inside `count`, so every read below is in bounds; the `?? 0` is
       // TypeScript satisfying `noUncheckedIndexedAccess`, not a shape check.
