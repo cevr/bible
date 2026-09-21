@@ -1,4 +1,4 @@
-import type { Source } from "@effect-frame/actor";
+import type { Source } from "effect-frame/actor";
 import { Option, Predicate } from "effect";
 import type { Bound, Prepared } from "./view.js";
 

@@ -11,7 +11,7 @@
  * result stale but an explicit refresh.
  */
 
-import { query } from '@effect-frame/actor/client';
+import { query } from 'effect-frame/actor/client';
 import { Schema as S } from 'effect';
 
 import { BookSubtype, BookType, CorpusScope, CorpusSection, Signed } from '@bible/core/writings';

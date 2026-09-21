@@ -25,7 +25,7 @@
  * application's answer is that it has none.
  */
 
-import { ActorHost, HttpServer, MailboxStore, QueryPolicies } from '@effect-frame/actor';
+import { ActorHost, HttpServer, MailboxStore, QueryPolicies } from 'effect-frame/actor';
 import * as SqliteBun from '@effect/sql-sqlite-bun/SqliteClient';
 import { BunHttpServer, BunRuntime, BunServices } from '@effect/platform-bun';
 import { Effect, Layer } from 'effect';

@@ -24,7 +24,7 @@ export interface AuthorizerService {
 }
 
 export const Authorizer = Context.Reference<AuthorizerService>(
-  "@effect-frame/actor/src/host/Authorizer",
+  "effect-frame/src/actor/host/Authorizer",
   { defaultValue: () => ({ authorize: () => Effect.void }) },
 );
 

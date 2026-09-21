@@ -103,7 +103,7 @@ export interface QueryCacheService {
 }
 
 export class QueryCache extends Context.Service<QueryCache, QueryCacheService>()(
-  "@effect-frame/actor/src/query-client/QueryCache",
+  "effect-frame/src/actor/query-client/QueryCache",
 ) {}
 
 const encodeKey = <Q extends AnyQuery>(contract: Q, args: ArgsOf<Q>): Effect.Effect<QueryKey> =>

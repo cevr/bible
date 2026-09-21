@@ -20,7 +20,7 @@ import {
  */
 
 /** Marker for the import-boundary test: this string must never reach a client bundle. */
-export const queryServerOnly = "@effect-frame/actor:query-server-only";
+export const queryServerOnly = "effect-frame/actor:query-server-only";
 
 /**
  * The server half of a query contract: the handler that produces the result
@@ -102,7 +102,7 @@ export interface PolicyTable {
 const noPolicies: PolicyTable = {};
 
 export const QueryPolicies = Context.Reference<PolicyTable>(
-  "@effect-frame/actor/src/query-host/QueryPolicies",
+  "effect-frame/src/actor/query-host/QueryPolicies",
   { defaultValue: () => noPolicies },
 );
 

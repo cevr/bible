@@ -64,7 +64,7 @@ export class MailboxStore extends Context.Service<
     /** Commit a state the behavior reached on its own and advance the revision. No command, no receipt. */
     readonly advance: (state: string) => Effect.Effect<Committed>;
   }
->()("@effect-frame/actor/src/mailbox-store/MailboxStore") {
+>()("effect-frame/src/actor/mailbox-store/MailboxStore") {
   static readonly layerMemory: Layer.Layer<MailboxStore> = Layer.effect(MailboxStore, makeMemory());
 }
 

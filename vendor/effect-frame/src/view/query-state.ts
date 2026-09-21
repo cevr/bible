@@ -1,4 +1,4 @@
-import type { QueryState as ActorQueryState, Source } from "@effect-frame/actor";
+import type { QueryState as ActorQueryState, Source } from "effect-frame/actor";
 import { Effect, Match, Schema, Stream, SubscriptionRef } from "effect";
 
 /**

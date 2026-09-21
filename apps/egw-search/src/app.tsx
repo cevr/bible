@@ -22,12 +22,12 @@
  * is also what keeps its local state when a neighbour opens or closes.
  */
 
-import type { LocalActorRef, QueryState, SetValue, Source } from '@effect-frame/actor/client';
-import { Behavior, followQuery, modify, select, spawn, zip } from '@effect-frame/actor/client';
-import type { RouteProps } from '@effect-frame/router';
-import { Router } from '@effect-frame/router';
-import type { Capabilities, Child, Node, ReadyValue } from '@effect-frame/view';
-import { Errored, For, Loading, Show, View, orErrored, readyWithStale } from '@effect-frame/view';
+import type { LocalActorRef, QueryState, SetValue, Source } from 'effect-frame/actor/client';
+import { Behavior, followQuery, modify, select, spawn, zip } from 'effect-frame/actor/client';
+import type { RouteProps } from 'effect-frame/router';
+import { Router } from 'effect-frame/router';
+import type { Capabilities, Child, Node, ReadyValue } from 'effect-frame/view';
+import { Errored, For, Loading, Show, View, orErrored, readyWithStale } from 'effect-frame/view';
 import { Effect, Option, Predicate, Stream } from 'effect';
 
 import {

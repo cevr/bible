@@ -1,6 +1,6 @@
 # Written by scripts/vendor-effect-frame.sh. Do not edit the vendored
-# packages here; change effect-frame and run the script again.
+# package here; change effect-frame and run the script again.
 path: /Users/cvr/Developer/personal/effect-frame
 branch: main
-commit: 0d6c65f502408c5a95e668623aea945759ef7174
-date: 2026-09-21T16:05:40Z
+commit: 8539efd619c68cf19c23d83267b1476440e8666c
+date: 2026-09-21T16:13:22Z

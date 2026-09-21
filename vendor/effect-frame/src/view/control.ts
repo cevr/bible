@@ -1,4 +1,4 @@
-import type { Source } from "@effect-frame/actor";
+import type { Source } from "effect-frame/actor";
 import type { ForNode, Node, ShowNode } from "./jsx-runtime.js";
 
 /**

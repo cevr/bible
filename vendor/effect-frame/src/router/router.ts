@@ -1,6 +1,6 @@
-import type { Source } from "@effect-frame/actor";
-import type { Host } from "@effect-frame/view";
-import { View, mount as mountView } from "@effect-frame/view";
+import type { Source } from "effect-frame/actor";
+import type { Host } from "effect-frame/view";
+import { View, mount as mountView } from "effect-frame/view";
 import {
   Context,
   Deferred,
@@ -42,7 +42,7 @@ export interface RouterService {
 }
 
 export class Router extends Context.Service<Router, RouterService>()(
-  "@effect-frame/router/src/router",
+  "effect-frame/src/router/router",
 ) {}
 
 /**
@@ -59,7 +59,7 @@ export interface LocationService {
 }
 
 export class Location extends Context.Service<Location, LocationService>()(
-  "@effect-frame/router/src/router/Location",
+  "effect-frame/src/router/router/Location",
 ) {}
 
 /** What the not-found view receives: the URL nothing matched. */

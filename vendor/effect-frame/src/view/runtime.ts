@@ -1,4 +1,4 @@
-import type { Source } from "@effect-frame/actor";
+import type { Source } from "effect-frame/actor";
 import { Effect, Exit, Match, Option, Predicate, Queue, Scope, Stream } from "effect";
 import type { Accessor } from "@solidjs/signals";
 import { createRenderEffect, createRoot, createSignal, flush, untrack } from "@solidjs/signals";
@@ -40,7 +40,7 @@ const makeCell = <A>(initial: A): Cell<A> => {
 // Signal-backed sources
 // ---------------------------------------------------------------------------
 
-const SignalBacked = Symbol.for("@effect-frame/view/SignalBacked");
+const SignalBacked = Symbol.for("effect-frame/view/SignalBacked");
 
 /**
  * A source whose value already lives in the reactive graph. `For` gives one

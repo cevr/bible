@@ -14,7 +14,7 @@ import type {
 } from "./vocabulary.js";
 
 /** Marker for the import-boundary test: this string must never reach a client bundle. */
-export const serverOnly = "@effect-frame/actor:server-only";
+export const serverOnly = "effect-frame/actor:server-only";
 
 /**
  * The server half of a contract: the behavior that gives its messages

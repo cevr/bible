@@ -1,0 +1,36 @@
+{
+  "name": "effect-frame",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Actors, queries, views and a router on Effect.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cevr/effect-frame.git",
+    "directory": "packages/effect-frame"
+  },
+  "type": "module",
+  "exports": {
+    "./actor": "./src/actor/index.ts",
+    "./actor/client": "./src/actor/client.ts",
+    "./actor/testing": "./src/actor/testing/conformance.ts",
+    "./view": "./src/view/index.ts",
+    "./view/jsx-runtime": "./src/view/jsx-runtime.ts",
+    "./view/jsx-dev-runtime": "./src/view/jsx-runtime.ts",
+    "./view/opentui": "./src/view/hosts/opentui.ts",
+    "./router": "./src/router/index.ts"
+  },
+  "dependencies": {
+    "@solidjs/signals": "2.0.0-rc.8",
+    "effect-machine": "0.27.0"
+  },
+  "peerDependencies": {
+    "@opentui/core": "0.5.11",
+    "effect": "^4.0.0-rc.115"
+  },
+  "peerDependenciesMeta": {
+    "@opentui/core": {
+      "optional": true
+    }
+  }
+}

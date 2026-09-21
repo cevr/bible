@@ -20,7 +20,7 @@
  * (`Workspace`) that hands them to the router as one route's `search` Schema.
  */
 
-import { Route } from '@effect-frame/router';
+import { Route } from 'effect-frame/router';
 import { Schema as S, SchemaGetter } from 'effect';
 
 import {

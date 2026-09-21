@@ -5,10 +5,10 @@
  * mounts the one route.
  */
 
-import { HttpTransport, queryCacheLayer } from '@effect-frame/actor/client';
-import type { Source } from '@effect-frame/actor/client';
-import { Location, Route, browserLocation, followLinks, mount } from '@effect-frame/router';
-import { Dom, View } from '@effect-frame/view';
+import { HttpTransport, queryCacheLayer } from 'effect-frame/actor/client';
+import type { Source } from 'effect-frame/actor/client';
+import { Location, Route, browserLocation, followLinks, mount } from 'effect-frame/router';
+import { Dom, View } from 'effect-frame/view';
 import { Effect, Layer, Option, Schema } from 'effect';
 
 import { SearchPage } from './app.js';

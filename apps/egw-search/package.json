@@ -15,12 +15,10 @@
   },
   "dependencies": {
     "@bible/core": "workspace:*",
-    "@effect-frame/actor": "workspace:*",
-    "@effect-frame/router": "workspace:*",
-    "@effect-frame/view": "workspace:*",
     "@effect/platform-bun": "catalog:",
     "@effect/sql-sqlite-bun": "catalog:",
-    "effect": "catalog:"
+    "effect": "catalog:",
+    "effect-frame": "workspace:*"
   },
   "devDependencies": {
     "@happy-dom/global-registrator": "20.14.5",

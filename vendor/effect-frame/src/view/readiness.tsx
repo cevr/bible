@@ -1,5 +1,5 @@
-import type { Source } from "@effect-frame/actor";
-import { select } from "@effect-frame/actor/client";
+import type { Source } from "effect-frame/actor";
+import { select } from "effect-frame/actor/client";
 import { Context as ServiceMap, Effect, Match, Option, Stream, SubscriptionRef } from "effect";
 import { Show } from "./control.js";
 import type { Node } from "./jsx-runtime.js";
@@ -73,11 +73,11 @@ const makeRegistry: Effect.Effect<Registry> = Effect.gen(function* () {
  * become a loading boundary as well.
  */
 export class LoadingScope extends ServiceMap.Service<LoadingScope, Registry>()(
-  "@effect-frame/view/src/readiness/LoadingScope",
+  "effect-frame/src/view/readiness/LoadingScope",
 ) {}
 
 export class ErroredScope extends ServiceMap.Service<ErroredScope, Registry>()(
-  "@effect-frame/view/src/readiness/ErroredScope",
+  "effect-frame/src/view/readiness/ErroredScope",
 ) {}
 
 // ---------------------------------------------------------------------------

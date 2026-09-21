@@ -8,7 +8,7 @@
   "workspaces": [
     "packages/*",
     "apps/*",
-    "vendor/effect-frame/*"
+    "vendor/effect-frame"
   ],
   "scripts": {
     "build": "turbo run build",

@@ -1,5 +1,5 @@
-import type { Source } from "@effect-frame/actor";
-import { select as selectSource } from "@effect-frame/actor/client";
+import type { Source } from "effect-frame/actor";
+import { select as selectSource } from "effect-frame/actor/client";
 import { Context as ServiceMap, Effect, Option } from "effect";
 import type { HostEvent } from "./host.js";
 import type { Node } from "./jsx-runtime.js";
@@ -51,7 +51,7 @@ export interface Capabilities {
 }
 
 export class Context extends ServiceMap.Service<Context, Capabilities>()(
-  "@effect-frame/view/src/view/Context",
+  "effect-frame/src/view/view/Context",
 ) {}
 
 /**

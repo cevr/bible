@@ -85,5 +85,5 @@ export interface TransportService {
 }
 
 export class ActorTransport extends Context.Service<ActorTransport, TransportService>()(
-  "@effect-frame/actor/src/transport/ActorTransport",
+  "effect-frame/src/actor/transport/ActorTransport",
 ) {}

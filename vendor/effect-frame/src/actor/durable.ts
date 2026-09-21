@@ -42,7 +42,7 @@ export interface DurableHostSettings {
  * code does not see it. The default suits an in-process store.
  */
 export const DurableHostConfig = Context.Reference<DurableHostSettings>(
-  "@effect-frame/actor/src/durable/DurableHostConfig",
+  "effect-frame/src/actor/durable/DurableHostConfig",
   { defaultValue: () => ({ pollInterval: "100 millis" }) },
 );
 

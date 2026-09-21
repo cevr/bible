@@ -60,12 +60,10 @@
       "version": "0.1.0",
       "dependencies": {
         "@bible/core": "workspace:*",
-        "@effect-frame/actor": "workspace:*",
-        "@effect-frame/router": "workspace:*",
-        "@effect-frame/view": "workspace:*",
         "@effect/platform-bun": "catalog:",
         "@effect/sql-sqlite-bun": "catalog:",
         "effect": "catalog:",
+        "effect-frame": "workspace:*",
       },
       "devDependencies": {
         "@happy-dom/global-registrator": "20.14.5",
@@ -191,33 +189,12 @@
         "effect": "catalog:",
       },
     },
-    "vendor/effect-frame/actor": {
-      "name": "@effect-frame/actor",
+    "vendor/effect-frame": {
+      "name": "effect-frame",
       "version": "0.0.0",
       "dependencies": {
-        "effect-machine": "0.27.0",
-      },
-      "peerDependencies": {
-        "effect": "^4.0.0-rc.115",
-      },
-    },
-    "vendor/effect-frame/router": {
-      "name": "@effect-frame/router",
-      "version": "0.0.0",
-      "dependencies": {
-        "@effect-frame/actor": "0.0.0",
-        "@effect-frame/view": "0.0.0",
-      },
-      "peerDependencies": {
-        "effect": "^4.0.0-rc.115",
-      },
-    },
-    "vendor/effect-frame/view": {
-      "name": "@effect-frame/view",
-      "version": "0.0.0",
-      "dependencies": {
-        "@effect-frame/actor": "0.0.0",
         "@solidjs/signals": "2.0.0-rc.8",
+        "effect-machine": "0.27.0",
       },
       "peerDependencies": {
         "@opentui/core": "0.5.11",
@@ -319,12 +296,6 @@
     "@bible/test-utils": ["@bible/test-utils@workspace:packages/test-utils"],
 
     "@bible/web": ["@bible/web@workspace:apps/web"],
-
-    "@effect-frame/actor": ["@effect-frame/actor@workspace:vendor/effect-frame/actor"],
-
-    "@effect-frame/router": ["@effect-frame/router@workspace:vendor/effect-frame/router"],
-
-    "@effect-frame/view": ["@effect-frame/view@workspace:vendor/effect-frame/view"],
 
     "@effect/platform-browser": ["@effect/platform-browser@4.0.0-rc.115", "", { "peerDependencies": { "effect": "^4.0.0-rc.115" } }, "sha512-RwpnxRYSBHBL1HYYlRwIrwz0+1hwmn5RvgqkKI0Tb+ChOIR9UCMpXsAhnwQcGP+mBidrC7dlloL42poGHZW4yw=="],
 
@@ -1025,6 +996,8 @@
     "effect": ["effect@4.0.0-rc.115", "", {}, "sha512-ogYulZ5ffeOzrJqQrG0XOkDO5lKn2s9KNHhoxJy/6wKUkF0i12dlVXWA9TgsgQ+zV/JzizyG0+XMPepZEQX6vw=="],
 
     "effect-bun-test": ["effect-bun-test@0.3.0", "", { "peerDependencies": { "bun": "*", "effect": ">=3.19.0" } }, "sha512-P2xZ4HBZg4bFw2ePY4E5UB6EZ2d1L/HO13+KdoprTYFuc8B1uTpdn7V4UU6qyYiYsqTY9DZ1TFB94Ekx2YLA4g=="],
+
+    "effect-frame": ["effect-frame@workspace:vendor/effect-frame"],
 
     "effect-machine": ["effect-machine@0.27.0", "", { "peerDependencies": { "effect": ">=4.0.0-rc.112 <5" } }, "sha512-gBZq1P+qUZxvPFRkU/4oylypGgmfuPyPLlPmaPa1R0YA6dAzZDID8POYMWIjmpgks7srFFPBVelyYbvpUlR9FA=="],
 

@@ -23,7 +23,7 @@ import {
 export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
 
 /** The fetch the client uses. Defaults to the platform one; tests inject a handler. */
-export const Fetch = Context.Reference<FetchLike>("@effect-frame/actor/src/http/client/Fetch", {
+export const Fetch = Context.Reference<FetchLike>("effect-frame/src/actor/http/client/Fetch", {
   defaultValue: (): FetchLike => (input, init) => globalThis.fetch(input, init),
 });
 

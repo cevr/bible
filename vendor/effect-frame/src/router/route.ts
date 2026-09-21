@@ -1,6 +1,6 @@
-import type { Source } from "@effect-frame/actor";
-import { select } from "@effect-frame/actor/client";
-import type { Node, View } from "@effect-frame/view";
+import type { Source } from "effect-frame/actor";
+import { select } from "effect-frame/actor/client";
+import type { Node, View } from "effect-frame/view";
 import type { Scope } from "effect";
 import { Effect, Option, Result, Schema, SubscriptionRef } from "effect";
 

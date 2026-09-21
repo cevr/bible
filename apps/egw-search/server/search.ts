@@ -10,7 +10,7 @@
  * in what they consider a hit, a heading, or a degraded vector leg.
  */
 
-import { implementQuery } from '@effect-frame/actor';
+import { implementQuery } from 'effect-frame/actor';
 import { Effect, Option } from 'effect';
 import type { SqlClient } from 'effect/unstable/sql';
 
