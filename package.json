@@ -68,12 +68,12 @@
     "@effect/sql-sqlite-node": "4.0.0-rc.115",
     "@effect/vitest": "4.0.0-rc.115",
     "@solidjs/router": "2.0.0-next.17",
-    "@solidjs/web": "2.0.0-rc.1",
+    "@solidjs/web": "2.0.0-rc.9",
     "@types/bun": "1.4.0",
     "drizzle-orm": "1.0.0-rc.4",
     "effect": "4.0.0-rc.115",
     "effect-bun-test": "0.3.0",
-    "solid-js": "2.0.0-rc.1",
+    "solid-js": "2.0.0-rc.9",
     "vite-plugin-solid": "3.0.0-next.27"
   }
 }
