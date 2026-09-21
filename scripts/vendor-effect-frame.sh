@@ -40,18 +40,14 @@ for name in actor view router; do
     "$SOURCE/packages/$name/" "$DEST/$name/"
   # A vendored package is a library, not a workspace with tasks: no scripts
   # for turbo to run, no devDependencies for bun to install. The published
-  # manifest exports built dist; the vendored copy ships sources, so every
-  # export is pointed back at its source file, and the copy is never
-  # published from here.
+  # manifest exports built dist under "types"/"default" and the sources under
+  # the "source" condition; the vendored copy ships only sources, so every
+  # export collapses to its "source" entry, and the copy is never published.
   jq '
     del(.scripts, .devDependencies, .files, .publishConfig)
     | .private = true
     | .exports |= with_entries(
-        .value = (
-          (if (.value | type) == "object" then .value.import.default else .value end)
-          | sub("^\\./dist/"; "./src/")
-          | sub("\\.js$"; ".ts")
-        )
+        .value = (if (.value | type) == "object" then .value.source else .value end)
       )
   ' "$SOURCE/packages/$name/package.json" > "$DEST/$name/package.json"
 done
