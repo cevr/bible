@@ -15,7 +15,7 @@ import { SearchPage } from './app.js';
 import { actorPrefix } from './contract.js';
 import { Workspace } from './url-state.js';
 
-const search = Route.spa('search', {
+const search = Route.client('search', {
   path: '/',
   params: Schema.Struct({}),
   search: Workspace,
@@ -24,7 +24,7 @@ const search = Route.spa('search', {
 
 /** The server sends every unknown path to this page, so the router is what
  *  says a path is nothing. */
-const NotFound = View.make((props: { readonly url: Source<URL> }) =>
+const NotFound = (props: { readonly url: Source<URL> }) =>
   Effect.succeed(
     <div class="shell">
       <header class="masthead">
@@ -36,8 +36,7 @@ const NotFound = View.make((props: { readonly url: Source<URL> }) =>
         </span>
       </div>
     </div>,
-  ),
-);
+  );
 
 const start = Effect.gen(function* () {
   const found = yield* Effect.sync(() => Option.fromNullishOr(document.getElementById('root')));

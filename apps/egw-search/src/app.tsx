@@ -139,76 +139,76 @@ const pluralResults = (count: number): string => {
 
 const canAddPane = (count: number): boolean => count < MAX_PANES;
 
-export const SearchPage = View.make((props: RouteProps<unknown, Workspace>) =>
-  Effect.gen(function* () {
-    const router = yield* Router;
-    const panes = props.search;
-    const count = select(panes, (list) => list.length);
+export const SearchPage = Effect.fn('SearchPage')(function* (
+  props: RouteProps<unknown, Workspace>,
+) {
+  const router = yield* Router;
+  const panes = props.search;
+  const count = select(panes, (list) => list.length);
 
-    const go = (next: Workspace, replace: boolean): Effect.Effect<void> =>
-      router.navigate(toWorkspaceString(next), { replace });
+  const go = (next: Workspace, replace: boolean): Effect.Effect<void> =>
+    router.navigate(toWorkspaceString(next), { replace });
 
-    const workspace: WorkspaceProps = {
-      panes,
-      put: (index, next, options) =>
-        Effect.flatMap(panes.get, (current) =>
-          go(
-            current.map((existing, position) => {
-              if (position === index) return next;
-              return existing;
-            }),
-            options.replace,
-          ),
+  const workspace: WorkspaceProps = {
+    panes,
+    put: (index, next, options) =>
+      Effect.flatMap(panes.get, (current) =>
+        go(
+          current.map((existing, position) => {
+            if (position === index) return next;
+            return existing;
+          }),
+          options.replace,
         ),
-      close: (index) =>
-        Effect.flatMap(panes.get, (current) => {
-          if (current.length <= 1) return Effect.void;
-          return go(
-            current.filter((_, position) => position !== index),
-            false,
-          );
-        }),
-    };
+      ),
+    close: (index) =>
+      Effect.flatMap(panes.get, (current) => {
+        if (current.length <= 1) return Effect.void;
+        return go(
+          current.filter((_, position) => position !== index),
+          false,
+        );
+      }),
+  };
 
-    // The new pane inherits the previous pane's filters but none of its
-    // query: a second pane is almost always the same corpus asked a different
-    // question.
-    const addPane = Effect.flatMap(panes.get, (current) => {
-      if (current.length >= MAX_PANES) return Effect.void;
-      const last = Option.getOrElse(
-        Option.fromNullishOr(current[current.length - 1]),
-        () => EMPTY_PARAMS,
-      );
-      return go([...current, { ...last, q: '' }], false);
-    });
-
-    const rows: Source<ReadonlyArray<PaneRow>> = select(panes, (list) =>
-      list.map((_, index) => ({ key: String(index), index })),
+  // The new pane inherits the previous pane's filters but none of its
+  // query: a second pane is almost always the same corpus asked a different
+  // question.
+  const addPane = Effect.flatMap(panes.get, (current) => {
+    if (current.length >= MAX_PANES) return Effect.void;
+    const last = Option.getOrElse(
+      Option.fromNullishOr(current[current.length - 1]),
+      () => EMPTY_PARAMS,
     );
-    const paneList = yield* View.list({
-      each: rows,
-      keyBy: (row: PaneRow) => row.key,
-      setup: (row: Source<PaneRow>) =>
-        Effect.flatMap(row.get, (current) => Pane.setup({ index: current.index, workspace })),
-    });
+    return go([...current, { ...last, q: '' }], false);
+  });
 
-    return (
-      <div class="shell">
-        <header class="masthead">
-          <h1>EGW&nbsp;Search</h1>
-          <Show when={count} is={canAddPane}>
-            <button type="button" class="addpane" onClick={View.event(() => addPane)}>
-              + pane
-            </button>
-          </Show>
-        </header>
-        <div class="panes" data-count={View.bind(count, String)}>
-          {paneList}
-        </div>
+  const rows: Source<ReadonlyArray<PaneRow>> = select(panes, (list) =>
+    list.map((_, index) => ({ key: String(index), index })),
+  );
+  const paneList = yield* View.list({
+    each: rows,
+    keyBy: (row: PaneRow) => row.key,
+    row: (row: Source<PaneRow>) =>
+      Effect.flatMap(row.get, (current) => Pane({ index: current.index, workspace })),
+  });
+
+  return (
+    <div class="shell">
+      <header class="masthead">
+        <h1>EGW&nbsp;Search</h1>
+        <Show when={count} is={canAddPane}>
+          <button type="button" class="addpane" onClick={View.event(() => addPane)}>
+            + pane
+          </button>
+        </Show>
+      </header>
+      <div class="panes" data-count={View.bind(count, String)}>
+        {paneList}
       </div>
-    );
-  }),
-);
+    </div>
+  );
+});
 
 // ---------------------------------------------------------------------------
 // One pane
@@ -221,85 +221,83 @@ interface PaneProps {
 
 const hasSeveral = (list: Workspace): boolean => list.length > 1;
 
-const Pane = View.make((props: PaneProps) =>
-  Effect.gen(function* () {
-    const router = yield* Router;
-    const { workspace, index } = props;
+const Pane = Effect.fn('Pane')(function* (props: PaneProps) {
+  const router = yield* Router;
+  const { workspace, index } = props;
 
-    /** This pane's slice of the workspace. Every read below goes through it,
-     *  so a pane never sees another pane's query. */
-    const params: Source<SearchParams> = select(workspace.panes, (list) =>
-      Option.getOrElse(Option.fromNullishOr(list[index]), () => EMPTY_PARAMS),
-    );
+  /** This pane's slice of the workspace. Every read below goes through it,
+   *  so a pane never sees another pane's query. */
+  const params: Source<SearchParams> = select(workspace.panes, (list) =>
+    Option.getOrElse(Option.fromNullishOr(list[index]), () => EMPTY_PARAMS),
+  );
 
-    /** The text in the box, uncommitted — the only state not in the URL,
-     *  because a half-typed query is not a place anyone wants to link to.
-     *  `None` means "nothing typed since the last navigation", which is what
-     *  makes the box follow the back button. */
-    const typed = yield* Cell.make(Option.none<string>());
-    yield* Source.on(router.navigations, () => typed.set(Option.none()));
-    const draft = zip(typed.state, params, (text, current) =>
-      Option.getOrElse(text, () => current.q),
-    );
+  /** The text in the box, uncommitted — the only state not in the URL,
+   *  because a half-typed query is not a place anyone wants to link to.
+   *  `None` means "nothing typed since the last navigation", which is what
+   *  makes the box follow the back button. */
+  const typed = yield* Cell.make(Option.none<string>());
+  yield* Source.on(router.navigations, () => typed.set(Option.none()));
+  const draft = zip(typed.state, params, (text, current) =>
+    Option.getOrElse(text, () => current.q),
+  );
 
-    const put = (next: SearchParams, replace: boolean) => workspace.put(index, next, { replace });
-    const search = (value: string) =>
-      Effect.flatMap(params.get, (current) => put({ ...current, q: value.trim() }, false));
-    /** Replace the filters, keeping the query. `replace` rather than `push` so
-     *  the back button returns to the previous *search* rather than walking
-     *  back through each toggle the reader tried. */
-    const refine = (f: (current: SearchParams) => SearchParams) =>
-      Effect.flatMap(params.get, (current) => put(f(current), true));
+  const put = (next: SearchParams, replace: boolean) => workspace.put(index, next, { replace });
+  const search = (value: string) =>
+    Effect.flatMap(params.get, (current) => put({ ...current, q: value.trim() }, false));
+  /** Replace the filters, keeping the query. `replace` rather than `push` so
+   *  the back button returns to the previous *search* rather than walking
+   *  back through each toggle the reader tried. */
+  const refine = (f: (current: SearchParams) => SearchParams) =>
+    Effect.flatMap(params.get, (current) => put(f(current), true));
 
-    const args: Source<Option.Option<SearchRequest>> = select(params, (current) => {
-      if (current.q.trim() === '') return Option.none();
-      return Option.some(toRequest(current, CONTEXT));
-    });
-    const results = yield* followQuery(Search, args);
+  const args: Source<Option.Option<SearchRequest>> = select(params, (current) => {
+    if (current.q.trim() === '') return Option.none();
+    return Option.some(toRequest(current, CONTEXT));
+  });
+  const results = yield* followQuery(Search, args);
 
-    const filters = yield* Filters.setup({ params, refine });
-    const status = Status({ params, state: results.state });
-    const region = yield* ResultsRegion.setup({ params, results, search, refine });
+  const filters = yield* Filters({ params, refine });
+  const status = Status({ params, state: results.state });
+  const region = yield* ResultsRegion({ params, results, search, refine });
 
-    return (
-      <section class="pane">
-        <Show when={workspace.panes} is={hasSeveral}>
-          <button
-            type="button"
-            class="closepane"
-            aria-label={`Close pane ${String(index + 1)}`}
-            onClick={View.event(() => workspace.close(index))}
-          >
-            ✕
-          </button>
-        </Show>
-        <form class="searchbar" onSubmit={View.submit(() => Effect.flatMap(draft.get, search))}>
-          <input
-            type="search"
-            value={View.bind(draft)}
-            placeholder="search the writings…"
-            autocomplete="off"
-            autocapitalize="off"
-            spellcheck={false}
-            onInput={View.event((event) => typed.set(Option.some(event.value)))}
-          />
-          <button type="submit" disabled={View.bind(draft, (text) => text.trim() === '')}>
-            Search
-          </button>
-        </form>
-        {filters}
-        {status}
-        <Show
-          when={params}
-          is={hasQuery}
-          fallback={Empty({ params, nonSelective: false, search, refine })}
+  return (
+    <section class="pane">
+      <Show when={workspace.panes} is={hasSeveral}>
+        <button
+          type="button"
+          class="closepane"
+          aria-label={`Close pane ${String(index + 1)}`}
+          onClick={View.event(() => workspace.close(index))}
         >
-          {region}
-        </Show>
-      </section>
-    );
-  }),
-);
+          ✕
+        </button>
+      </Show>
+      <form class="searchbar" onSubmit={View.submit(() => Effect.flatMap(draft.get, search))}>
+        <input
+          type="search"
+          value={View.bind(draft)}
+          placeholder="search the writings…"
+          autocomplete="off"
+          autocapitalize="off"
+          spellcheck={false}
+          onInput={View.event((event) => typed.set(Option.some(event.value)))}
+        />
+        <button type="submit" disabled={View.bind(draft, (text) => text.trim() === '')}>
+          Search
+        </button>
+      </form>
+      {filters}
+      {status}
+      <Show
+        when={params}
+        is={hasQuery}
+        fallback={Empty({ params, nonSelective: false, search, refine })}
+      >
+        {region}
+      </Show>
+    </section>
+  );
+});
 
 const hasQuery = (current: SearchParams): boolean => current.q.trim() !== '';
 
@@ -404,91 +402,89 @@ const toggleLabel = (open: boolean): string => {
  * filters are noise. Once something is set, the summary says what, so a
  * narrowed search never looks like an empty one.
  */
-const Filters = View.make((props: FiltersProps) =>
-  Effect.gen(function* () {
-    const { params, refine } = props;
-    const open = yield* Cell.make(false);
+const Filters = Effect.fn('Filters')(function* (props: FiltersProps) {
+  const { params, refine } = props;
+  const open = yield* Cell.make(false);
 
-    return (
-      <div class="filters">
-        <div class="fhead">
+  return (
+    <div class="filters">
+      <div class="fhead">
+        <button
+          type="button"
+          class="ftoggle"
+          aria-expanded={View.bind(open.state, String)}
+          onClick={View.event(() => open.update((value) => !value))}
+        >
+          {View.bind(open.state, toggleLabel)}
+        </button>
+        <Show when={params} is={hasFilters}>
           <button
             type="button"
-            class="ftoggle"
-            aria-expanded={View.bind(open.state, String)}
-            onClick={View.event(() => open.update((value) => !value))}
+            class="fclear"
+            onClick={View.event(() => refine((current) => ({ ...EMPTY_PARAMS, q: current.q })))}
           >
-            {View.bind(open.state, toggleLabel)}
+            clear
           </button>
-          <Show when={params} is={hasFilters}>
-            <button
-              type="button"
-              class="fclear"
-              onClick={View.event(() => refine((current) => ({ ...EMPTY_PARAMS, q: current.q })))}
-            >
-              clear
-            </button>
-          </Show>
-        </div>
-
-        <Show when={open.state}>
-          <div class="fbody">
-            <FilterRow label="Library">
-              {SECTIONS.map((entry) =>
-                SignedChip({
-                  label: entry.label,
-                  sign: select(params, (current) => signOf(current.section, entry.value)),
-                  onPick: refine((current) => toggle(current, 'section', entry.value)),
-                }),
-              )}
-            </FilterRow>
-
-            <FilterRow label="Author">
-              {SCOPES.map((entry) =>
-                Chip({
-                  label: entry.label,
-                  active: select(params, (current) => current.scope === entry.value),
-                  onPick: refine((current) => ({ ...current, scope: entry.value })),
-                }),
-              )}
-            </FilterRow>
-
-            <FilterRow label="Kind">
-              {TYPES.map((entry) =>
-                SignedChip({
-                  label: entry.label,
-                  sign: select(params, (current) => signOf(current.type, entry.value)),
-                  onPick: refine((current) => toggle(current, 'type', entry.value)),
-                }),
-              )}
-            </FilterRow>
-
-            <FilterRow label="Form">
-              {SELECTABLE_SUBTYPES.map((entry) =>
-                SignedChip({
-                  label: SUBTYPE_LABELS[entry],
-                  sign: select(params, (current) => signOf(current.subtype, entry)),
-                  onPick: refine((current) => toggle(current, 'subtype', entry)),
-                }),
-              )}
-            </FilterRow>
-
-            <FilterRow label="Apparatus">
-              {Chip({
-                label: 'Hide dictionaries & indexes',
-                active: select(params, (current) => current.excludeApparatus),
-                onPick: refine((current) => ({
-                  ...current,
-                  excludeApparatus: !current.excludeApparatus,
-                })),
-              })}
-            </FilterRow>
-          </div>
         </Show>
       </div>
-    );
-  }),
-);
+
+      <Show when={open.state}>
+        <div class="fbody">
+          <FilterRow label="Library">
+            {SECTIONS.map((entry) =>
+              SignedChip({
+                label: entry.label,
+                sign: select(params, (current) => signOf(current.section, entry.value)),
+                onPick: refine((current) => toggle(current, 'section', entry.value)),
+              }),
+            )}
+          </FilterRow>
+
+          <FilterRow label="Author">
+            {SCOPES.map((entry) =>
+              Chip({
+                label: entry.label,
+                active: select(params, (current) => current.scope === entry.value),
+                onPick: refine((current) => ({ ...current, scope: entry.value })),
+              }),
+            )}
+          </FilterRow>
+
+          <FilterRow label="Kind">
+            {TYPES.map((entry) =>
+              SignedChip({
+                label: entry.label,
+                sign: select(params, (current) => signOf(current.type, entry.value)),
+                onPick: refine((current) => toggle(current, 'type', entry.value)),
+              }),
+            )}
+          </FilterRow>
+
+          <FilterRow label="Form">
+            {SELECTABLE_SUBTYPES.map((entry) =>
+              SignedChip({
+                label: SUBTYPE_LABELS[entry],
+                sign: select(params, (current) => signOf(current.subtype, entry)),
+                onPick: refine((current) => toggle(current, 'subtype', entry)),
+              }),
+            )}
+          </FilterRow>
+
+          <FilterRow label="Apparatus">
+            {Chip({
+              label: 'Hide dictionaries & indexes',
+              active: select(params, (current) => current.excludeApparatus),
+              onPick: refine((current) => ({
+                ...current,
+                excludeApparatus: !current.excludeApparatus,
+              })),
+            })}
+          </FilterRow>
+        </div>
+      </Show>
+    </div>
+  );
+});
 
 // ---------------------------------------------------------------------------
 // The status line and the results region
@@ -651,58 +647,56 @@ const hasHits = (value: SearchResponse): boolean => value.hits.length > 0;
  * screen, dimmed, because `followQuery` carries them as stale; a failure
  * shows one fallback with a retry.
  */
-const ResultsRegion = View.make((props: ResultsProps) =>
-  Effect.gen(function* () {
-    const { params, results } = props;
+const ResultsRegion = Effect.fn('ResultsRegion')(function* (props: ResultsProps) {
+  const { params, results } = props;
 
-    // Which rows the reader has expanded, by position. Reset whenever a
-    // fresh answer lands: the rows are a different page then.
-    const expanded = yield* Cell.make<ReadonlySet<string>>(new Set());
-    yield* Source.on(results.state, (state) => {
-      if (isFresh(state)) return expanded.set(new Set());
-      return Effect.void;
-    });
-    const expand = (key: string) => expanded.update((keys) => new Set([...keys, key]));
+  // Which rows the reader has expanded, by position. Reset whenever a
+  // fresh answer lands: the rows are a different page then.
+  const expanded = yield* Cell.make<ReadonlySet<string>>(new Set());
+  yield* Source.on(results.state, (state) => {
+    if (isFresh(state)) return expanded.set(new Set());
+    return Effect.void;
+  });
+  const expand = (key: string) => expanded.update((keys) => new Set([...keys, key]));
 
-    return (
-      <Query
-        state={results.state}
-        loading={Skeleton()}
-        failed={(error) => (
-          <div class="status">
-            <span class="err">search failed — {View.bind(error, describeFailure)}</span>
-            <button type="button" onClick={View.event(() => results.refresh)}>
-              retry
-            </button>
-          </div>
-        )}
-        ready={(value, stale) => {
-          const rows: Source<ReadonlyArray<Row>> = select(value, (current) =>
-            current.hits.map((hit, position) => ({ key: String(position), hit })),
-          );
-          return (
-            <Show
-              when={value}
-              is={hasHits}
-              fallback={Empty({
-                params,
-                nonSelective: false,
-                search: props.search,
-                refine: props.refine,
-              })}
-            >
-              <ul class={View.bind(stale, resultsClass)} aria-busy={View.bind(stale, String)}>
-                <For each={rows} keyBy={(row: Row) => row.key}>
-                  {(row) => HitRow({ row, expanded: expanded.state, expand })}
-                </For>
-              </ul>
-            </Show>
-          );
-        }}
-      />
-    );
-  }),
-);
+  return (
+    <Query
+      state={results.state}
+      loading={Skeleton()}
+      failed={(error) => (
+        <div class="status">
+          <span class="err">search failed — {View.bind(error, describeFailure)}</span>
+          <button type="button" onClick={View.event(() => results.refresh)}>
+            retry
+          </button>
+        </div>
+      )}
+      ready={(value, stale) => {
+        const rows: Source<ReadonlyArray<Row>> = select(value, (current) =>
+          current.hits.map((hit, position) => ({ key: String(position), hit })),
+        );
+        return (
+          <Show
+            when={value}
+            is={hasHits}
+            fallback={Empty({
+              params,
+              nonSelective: false,
+              search: props.search,
+              refine: props.refine,
+            })}
+          >
+            <ul class={View.bind(stale, resultsClass)} aria-busy={View.bind(stale, String)}>
+              <For each={rows} keyBy={(row: Row) => row.key}>
+                {(row) => HitRow({ row, expanded: expanded.state, expand })}
+              </For>
+            </ul>
+          </Show>
+        );
+      }}
+    />
+  );
+});
 
 // ---------------------------------------------------------------------------
 // One hit
