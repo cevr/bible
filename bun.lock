@@ -63,7 +63,7 @@
         "@effect/platform-bun": "catalog:",
         "@effect/sql-sqlite-bun": "catalog:",
         "effect": "catalog:",
-        "effect-frame": "workspace:*",
+        "effect-frame": "0.1.0",
       },
       "devDependencies": {
         "@happy-dom/global-registrator": "20.14.5",
@@ -188,21 +188,6 @@
         "@types/bun": "catalog:",
         "effect": "catalog:",
       },
-    },
-    "vendor/effect-frame": {
-      "name": "effect-frame",
-      "version": "0.0.0",
-      "dependencies": {
-        "@solidjs/signals": "2.0.0-rc.8",
-        "effect-machine": "0.27.0",
-      },
-      "peerDependencies": {
-        "@opentui/core": "0.5.11",
-        "effect": "^4.0.0-rc.115",
-      },
-      "optionalPeers": [
-        "@opentui/core",
-      ],
     },
   },
   "overrides": {
@@ -703,7 +688,7 @@
 
     "@solidjs/router": ["@solidjs/router@2.0.0-next.17", "", { "peerDependencies": { "@solidjs/web": "^2.0.0-rc.1", "solid-js": "^2.0.0-rc.1" } }, "sha512-LchYm3IZ3Y7vGPh/Jx6X8UjpBirQrz9ZoRQkgRpdz8A9C7eTiRXY326pJDcoYDXn7FzYtFpRCwsfBMxRDsFo6A=="],
 
-    "@solidjs/signals": ["@solidjs/signals@2.0.0-rc.8", "", {}, "sha512-EGk9WkxnlQtqdERjPgS8gvWVjKLZnBQr95e65FOAs9MqkxVhHIjgipan7svZZ6n0rkp6vSc9GxyeY836boaT6w=="],
+    "@solidjs/signals": ["@solidjs/signals@2.0.0-rc.9", "", {}, "sha512-o3pqiTgpH5NR2DstiKrt9s/6+0YOFtv+MfvLONwLsS247I+EWMMyTu9BkRcgd35UR5Pa1DM16lI1/5uaIMY6Gw=="],
 
     "@solidjs/vite-plugin": ["@solidjs/vite-plugin@3.0.0-next.44", "", { "dependencies": { "@ampproject/remapping": "^2.3.0", "@babel/core": "^7.23.3", "@solidjs/babel-plugin": "^2.0.0-rc.9", "@solidjs/compiler": "^2.0.0-rc.9", "@types/babel__core": "^7.20.4", "merge-anything": "^5.1.7", "vitefu": "^1.0.4" }, "peerDependencies": { "@solidjs/start-devtools": "^1.0.0-next.2", "@solidjs/web": "^2.0.0-rc.9", "@testing-library/jest-dom": "^5.16.6 || ^5.17.0 || ^6.0.0 || ^7.0.0", "solid-js": "^2.0.0-rc.9", "vite": "^8.0.0 || ^9.0.0" }, "optionalPeers": ["@solidjs/start-devtools", "@testing-library/jest-dom"] }, "sha512-P/jIo9khECJft0eS2VCYJq16/JPtqoeBqaw/33VAlov8DSkd/6DU605wUTTZ3ZzpB0BFjDrwlyInjKNxFH0oLQ=="],
 
@@ -997,7 +982,7 @@
 
     "effect-bun-test": ["effect-bun-test@0.3.0", "", { "peerDependencies": { "bun": "*", "effect": ">=3.19.0" } }, "sha512-P2xZ4HBZg4bFw2ePY4E5UB6EZ2d1L/HO13+KdoprTYFuc8B1uTpdn7V4UU6qyYiYsqTY9DZ1TFB94Ekx2YLA4g=="],
 
-    "effect-frame": ["effect-frame@workspace:vendor/effect-frame"],
+    "effect-frame": ["effect-frame@0.1.0", "", { "dependencies": { "@solidjs/signals": "2.0.0-rc.8", "effect-machine": "0.27.0" }, "peerDependencies": { "@opentui/core": "0.5.11", "effect": "^4.0.0-rc.115" }, "optionalPeers": ["@opentui/core"] }, "sha512-3zsSAkW5a2TDQlWBegNlz8b9gJu6RZwT/rxu4ZHCpjP0/UmoM1OFhbeN/Zlam/ciGUaWW/pFlNamA/dPRj/aPA=="],
 
     "effect-machine": ["effect-machine@0.27.0", "", { "peerDependencies": { "effect": ">=4.0.0-rc.112 <5" } }, "sha512-gBZq1P+qUZxvPFRkU/4oylypGgmfuPyPLlPmaPa1R0YA6dAzZDID8POYMWIjmpgks7srFFPBVelyYbvpUlR9FA=="],
 
@@ -1589,6 +1574,8 @@
 
     "dmg-builder/js-yaml": ["js-yaml@4.3.2", "", { "dependencies": { "argparse": "^2.0.1" }, "bin": { "js-yaml": "bin/js-yaml.js" } }, "sha512-SFNOvSJ+Dgf/9An904Yx+CgSlIPCkIpao4qo51lpee25TIRejdH3rhR4EZMGoNx3/TP3O+wzWuiTFl4sqbltzA=="],
 
+    "effect-frame/@solidjs/signals": ["@solidjs/signals@2.0.0-rc.8", "", {}, "sha512-EGk9WkxnlQtqdERjPgS8gvWVjKLZnBQr95e65FOAs9MqkxVhHIjgipan7svZZ6n0rkp6vSc9GxyeY836boaT6w=="],
+
     "electron/@types/node": ["@types/node@24.13.6", "", { "dependencies": { "undici-types": "~7.18.0" } }, "sha512-SGrw/h3KPFshy3OE6ZL53LMBG5vGQQ8/gIpiqz/kRZhPJ7HgwCEs8LBuNtWLa8dvGZVpSF7+Bf+c11HUrCb/yg=="],
 
     "electron-builder/chalk": ["chalk@4.1.2", "", { "dependencies": { "ansi-styles": "^4.1.0", "supports-color": "^7.1.0" } }, "sha512-oKnbhFyRIXpUuez8iBMmyEa4nbj4IOQyuhc/wy9kY7/WVPcwIO9VA668Pu8RkO7+0G76SLROeyw9CpQ061i4mA=="],
@@ -1618,8 +1605,6 @@
     "postject/commander": ["commander@9.5.0", "", {}, "sha512-KRs7WVDKg86PWiuAqhDrAQnTXZKraVcCc6vFdL14qrZ/DcWwuRo7VoiYXalXO7S5GKpqYiVEwCbgFDfxNHKJBQ=="],
 
     "roarr/sprintf-js": ["sprintf-js@1.1.3", "", {}, "sha512-Oo+0REFV59/rz3gfJNKQiBlwfHaSESl1pcGyABQsnnIfWOFt6JNj5gCog2U6MLZ//IGYD+nA8nI+mTShREReaA=="],
-
-    "solid-js/@solidjs/signals": ["@solidjs/signals@2.0.0-rc.9", "", {}, "sha512-o3pqiTgpH5NR2DstiKrt9s/6+0YOFtv+MfvLONwLsS247I+EWMMyTu9BkRcgd35UR5Pa1DM16lI1/5uaIMY6Gw=="],
 
     "tiny-async-pool/semver": ["semver@5.7.2", "", { "bin": { "semver": "bin/semver" } }, "sha512-cBznnQ9KjJqU67B52RMC65CMarK2600WFnbkcaiwWq3xy/5haFJlshgnpjovMVJ+Hff49d8GEn0b87C5pDQ10g=="],
 

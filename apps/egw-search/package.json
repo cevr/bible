@@ -18,7 +18,7 @@
     "@effect/platform-bun": "catalog:",
     "@effect/sql-sqlite-bun": "catalog:",
     "effect": "catalog:",
-    "effect-frame": "workspace:*"
+    "effect-frame": "0.1.0"
   },
   "devDependencies": {
     "@happy-dom/global-registrator": "20.14.5",

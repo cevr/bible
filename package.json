@@ -7,8 +7,7 @@
   "author": "cristian ramos <seeve.c@gmail.com>",
   "workspaces": [
     "packages/*",
-    "apps/*",
-    "vendor/effect-frame"
+    "apps/*"
   ],
   "scripts": {
     "build": "turbo run build",
