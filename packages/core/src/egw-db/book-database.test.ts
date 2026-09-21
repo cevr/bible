@@ -537,9 +537,16 @@ describe('EGWParagraphDatabase', () => {
             'RANK 2.1',
             'RANK 3.1',
           ]);
-          // The cap selects the best N rather than an arbitrary N: without
-          // `ORDER BY rank` the limit would take whichever rows the join
-          // reached first, which is insertion order here.
+          // The cap selects the best N rather than an arbitrary N: without an
+          // `ORDER BY` the limit would take whichever rows the join reached
+          // first, which is insertion order here.
+          //
+          // Both statements order by `bm25(paragraphs_fts)` rather than the
+          // bare `rank`, which is the same ranking by a cheaper code path (see
+          // the statement comment; ~14% of the lexical leg). This assertion is
+          // what makes that swap safe to keep: the expected order above is
+          // BM25's, so reverting to `rank` must not change it and neither may
+          // any future reshaping of the statement.
           const capped = yield* db.searchParagraphs('sanctuary', { limit: 2 });
           expect(capped.map((hit) => Option.getOrElse(hit.refcode_short, () => ''))).toEqual([
             'RANK 1.1',

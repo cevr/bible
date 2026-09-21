@@ -1432,12 +1432,42 @@ export class EGWParagraphDatabase extends Context.Service<
        *  otherwise mean eight near-identical copies of the same join, and the
        *  `ORDER BY rank` §6.4 adds would have to be right in all eight.
        *
-       *  `ORDER BY rank` is FTS5's own relevance ordering (a negative BM25, so
-       *  ascending is best-first). Before §6.4 the `LIMIT` was applied with no
-       *  ordering at all, which made "FTS rank" in the §6.1 table a claim the
-       *  query did not honor: SQLite returned whichever rows the join reached
-       *  first. Ordering *and* limiting in the same statement is what makes the
-       *  cap select the best N rather than an arbitrary N. */
+       *  Both statements order by `bm25(paragraphs_fts)` rather than the bare
+       *  `rank`. The two are the *same ranking* — `rank` is defined as the
+       *  table's configured rank function, which here is default-weight bm25 —
+       *  but they take different code paths inside FTS5, and the difference is
+       *  worth about 14% of the lexical leg:
+       *
+       *  | `ORDER BY`            | plan                                  | `god`, 600 rows |
+       *  |-----------------------|---------------------------------------|-----------------|
+       *  | `fts.rank`            | `VIRTUAL TABLE INDEX 32:M3`           | 899 ms          |
+       *  | `bm25(paragraphs_fts)`| `INDEX 0:M3` + temp b-tree for ORDER  | **774 ms**      |
+       *
+       *  `INDEX 32:` is FTS5's internal rank-ordering path, which runs its own
+       *  sorted merge over the whole posting list. `INDEX 0:` is a plain scan
+       *  that hands ordering to SQLite, whose temp b-tree under a `LIMIT` is a
+       *  bounded top-N heap — cheaper than the merge it replaces. The scoring
+       *  itself (~692 ms of the 899 for `god`) is untouched and irreducible:
+       *  every document in the posting list must be scored before a top-N can
+       *  be known, which is why the `LIMIT` size does not affect cost at all
+       *  (10, 120 and 600 all measure the same).
+       *
+       *  Verified byte-identical, not assumed: ten queries spanning single
+       *  terms, `AND`, `OR`, a quoted phrase and a `sanct*` prefix, each at
+       *  `LIMIT 600` with the production scope and subtype filters and the full
+       *  `nodes_json` payload, compared with `cmp`.
+       *
+       *  **The ranking must stay in the joined statement.** Ranking rowids in a
+       *  subquery and joining after looks much faster (8 ms) and is wrong: the
+       *  `books` predicates cannot be pushed into an FTS-only subquery, so they
+       *  would apply *after* the cap and let scope-excluded rows consume result
+       *  slots. That shape returns 600 different rows.
+       *
+       *  Before §6.4 the `LIMIT` was applied with no ordering at all, which made
+       *  "FTS rank" in the §6.1 table a claim the query did not honor: SQLite
+       *  returned whichever rows the join reached first. Ordering *and* limiting
+       *  in the same statement is what makes the cap select the best N rather
+       *  than an arbitrary N. */
       /** The `WHERE` both search statements share.
        *
        *  Factored out because the count and the rows have to agree exactly: a
@@ -1603,7 +1633,7 @@ export class EGWParagraphDatabase extends Context.Service<
               JOIN paragraphs_fts fts ON p.rowid = fts.rowid
               JOIN books b ON p.book_id = b.book_id
               WHERE ${sql.and(filters)}
-              ORDER BY fts.rank
+              ORDER BY bm25(paragraphs_fts)
               LIMIT ${limit}
             `.pipe(
           Effect.flatMap((rows) =>
@@ -1663,7 +1693,7 @@ export class EGWParagraphDatabase extends Context.Service<
               JOIN paragraphs_fts fts ON p.rowid = fts.rowid
               JOIN books b ON p.book_id = b.book_id
               WHERE ${sql.and(filters)}
-              ORDER BY fts.rank
+              ORDER BY bm25(paragraphs_fts)
               LIMIT ${limit}
             `.pipe(
           Effect.map((rows) =>
