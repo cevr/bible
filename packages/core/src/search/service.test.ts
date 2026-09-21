@@ -177,11 +177,21 @@ describe('§9.3 the strong-BM25 short-circuit', () => {
     expect(isNonSelective(940_692)).toBe(true); //   "a", 31.2%
     expect(isNonSelective(775_189)).toBe(true); //   "is", 25.7%
 
-    // Real search terms, measured: all already answer well inside a second.
-    expect(isNonSelective(570_900)).toBe(false); // "god", 19.0%, 653 ms
-    expect(isNonSelective(299_913)).toBe(false); // "lord", 10.0%, 340 ms
-    expect(isNonSelective(68_411)).toBe(false); //  "sabbath", 2.3%, 82 ms
-    expect(isNonSelective(1_304)).toBe(false); //   "latter rain", 0.04%, 2 ms
+    // Real search terms. The latencies beside them are warm end-to-end
+    // production readings from 2026-09-21, NOT the lexical leg alone, and they
+    // are recorded here because the earlier set went stale without failing
+    // anything: this test and `NON_SELECTIVE_MATCHES` both claimed `god`
+    // answered in 653 ms long after it had reached 1.29 s.
+    //
+    // `god` is now the slowest query on the service — slower than `the`, which
+    // the gate refuses to rank at all. That inversion is a live question about
+    // what an EGW searcher owes someone who types `god`, and it is deliberately
+    // still answered "keep it": gating `god` would delete a legitimate search
+    // to buy a latency number. Make the ranking cheaper instead.
+    expect(isNonSelective(570_900)).toBe(false); // "god", 19.0%, 1.29 s
+    expect(isNonSelective(299_913)).toBe(false); // "lord", 10.0%, 0.78 s
+    expect(isNonSelective(68_411)).toBe(false); //  "sabbath", 2.3%, 0.63 s
+    expect(isNonSelective(1_304)).toBe(false); //   "latter rain", 0.04%, 0.30 s
 
     // A query matching nothing is selective, not non-selective: the gate must
     // never stand between a reader and an empty result they can act on.

@@ -299,9 +299,20 @@ const toRow = (row: ScoredParagraphRow): SearchParagraphRow => ({
  *  nothing.
  *
  *  It sits above `god` (19.0%) and `lord` (10.0%) deliberately. Both are real
- *  one-word searches in this corpus and both already answer inside 700 ms; a
- *  threshold low enough to catch them would trade a working query for a
- *  latency number. Only genuine stopwords are gated.
+ *  one-word searches in this corpus, and a threshold low enough to catch them
+ *  would trade a working query for a latency number. Only genuine stopwords are
+ *  gated.
+ *
+ *  **The latencies in the table above are stale and the exemption is now
+ *  inverted.** This comment used to justify itself by saying `god` and `lord`
+ *  "already answer inside 700 ms". Measured warm in production 2026-09-21:
+ *  `god` 1.29 s, `lord` 0.78 s, `sabbath` 0.63 s — while `the`, which the gate
+ *  refuses to rank, answers in 0.33 s. The gated stopword is now the *fastest*
+ *  one-word query and the exempted real term is the *slowest*. The premise
+ *  moved; the reasoning did not. Lowering the threshold is still the wrong
+ *  repair, because it buys the latency number by deleting the query — the fix
+ *  is to make ranking 570,900 rows cheaper, which is open work. Do not quote
+ *  the millisecond figures above as current.
  *
  *  Absolute rather than a fraction of the corpus: a ratio needs the row count,
  *  which is a second query on every search, and the point of the gate is to be
@@ -324,6 +335,21 @@ export const isNonSelective = (matches: number): boolean => matches > NON_SELECT
 interface LexicalLegResult {
   readonly rows: readonly SearchParagraphRow[];
   readonly nonSelective: boolean;
+  /** How many paragraphs the query matched at all, from the gate's own count
+   *  probe.
+   *
+   *  Carried out of the leg purely so `search.timing` can name the cost of a
+   *  slow query. A latency investigation needs to know *which* query was
+   *  expensive, and the obvious way to log that — the text the reader typed —
+   *  widens the log surface to hold user input, which the HTTP log deliberately
+   *  does not (`http.url` is recorded without its query string). The match
+   *  count identifies the offender by the only property that explains the
+   *  latency: `god` is slow because it matches 570,900 rows, and that number
+   *  says so without recording what anyone searched for.
+   *
+   *  Zero when the leg degraded, which is honest: a failed probe counted
+   *  nothing. */
+  readonly matches: number;
 }
 
 /** The lexical leg (§9.3: "always lexical").
@@ -371,12 +397,12 @@ const lexicalLeg = (
       yield* Effect.logInfo('search.lexical.non_selective').pipe(
         Effect.annotateLogs({ matches, threshold: NON_SELECTIVE_MATCHES }),
       );
-      return { rows: [], nonSelective: true };
+      return { rows: [], nonSelective: true, matches };
     }
     const rows = yield* sources.paragraphs
       .searchScoredParagraphs(query, { ...options, limit: candidates })
       .pipe(Effect.map((scored) => scored.map(toRow)));
-    return { rows, nonSelective: false };
+    return { rows, nonSelective: false, matches };
   }).pipe(
     // §6.5's posture, over the declared error only. It wraps the probe as well
     // as the ranked statement: a probe that fails degrades to no lexical rows,
@@ -386,7 +412,7 @@ const lexicalLeg = (
         Effect.annotateLogs({ reason: String(cause) }),
         // A failure is not a non-selective query: the reader is owed "nothing
         // matched", not "your query was too common".
-        Effect.as<LexicalLegResult>({ rows: [], nonSelective: false }),
+        Effect.as<LexicalLegResult>({ rows: [], nonSelective: false, matches: 0 }),
       ),
     ),
   );
@@ -915,6 +941,13 @@ const makeQuery =
           // index the query actually paid for.
           vectorWhy: vectorWhy(vector.status),
           lexicalMs: lexicalAt - startedAt,
+          // What makes `lexicalMs` what it is. BM25 scores every document in
+          // the posting list to choose the top rows, so the match count is very
+          // nearly the whole cost of the lexical leg — and it is the only field
+          // here that identifies *which* query was slow. Logged instead of the
+          // query text: an investigation needs the offender's cost, not the
+          // reader's words. See `LexicalLegResult.matches`.
+          matches: lexical.matches,
           vectorMs: vectorAt - lexicalAt,
           bodiesMs: doneAt - vectorAt,
           totalMs: doneAt - startedAt,
