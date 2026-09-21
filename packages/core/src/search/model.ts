@@ -152,6 +152,19 @@ export class SearchParagraphHit extends Schema.Class<SearchParagraphHit>('Search
   bookTitle: Schema.NonEmptyString,
   author: Schema.NonEmptyString,
   snippet: Schema.String,
+  /** Whether this hit is a chapter or section heading rather than prose.
+   *
+   *  A heading and a sentence arrive at a client as the same shape — a refcode
+   *  and a line of text — so nothing distinguishes "The Loud Cry" the chapter
+   *  title from "The Loud Cry" written mid-paragraph. BM25's length
+   *  normalization makes that a common case rather than an edge one: a short
+   *  title containing the whole query outranks the prose that discusses it, and
+   *  32 of the top 40 production results for `latter rain` are headings.
+   *
+   *  A field rather than a filter, deliberately. A heading *is* a real answer —
+   *  it names the chapter that treats the subject, which is often exactly what
+   *  a reader wants — so the repair is to say what the row is, not to hide it. */
+  isHeading: Schema.Boolean,
   /** The RRF score this row fused to, §9.4's k=60 formula. */
   score: Schema.Finite,
   /** 1-based rank in the lexical list, absent when only the vector leg found it. */

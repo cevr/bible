@@ -174,6 +174,7 @@ const SearchGroupLive = HttpApiBuilder.group(SearchApi, 'search', (handlers) =>
                 bookTitle: hit.bookTitle,
                 author: hit.author,
                 text: hit.snippet,
+                isHeading: hit.isHeading,
                 lexicalRank: Option.getOrNull(hit.lexicalRank),
                 vectorRank: Option.getOrNull(hit.vectorRank),
                 url: Option.match(hit.rawParaId, { onNone: () => null, onSome: readerUrl }),

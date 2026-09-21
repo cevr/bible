@@ -56,6 +56,9 @@ const hit = (input: {
   /** Absent for the one case the corpus admits and the route cannot address:
    *  a paragraph stored with no `para_id`. */
   readonly rawParaId?: Option.Option<string>;
+  /** Defaults to prose. A heading is the other kind of row a search returns and
+   *  the surfaces render it differently, so a test that cares can say so. */
+  readonly isHeading?: boolean;
 }): SearchParagraphHit =>
   SearchParagraphHit.make({
     paragraphId: `GC:${input.refcode}`,
@@ -67,6 +70,7 @@ const hit = (input: {
     bookTitle: 'The Great Controversy',
     author: 'Ellen Gould White',
     snippet: 'the sanctuary in heaven',
+    isHeading: input.isHeading ?? false,
     score: 0.5,
     lexicalRank: Option.fromNullishOr(input.lexicalRank),
     vectorRank: Option.fromNullishOr(input.vectorRank),

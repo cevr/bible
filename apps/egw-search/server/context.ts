@@ -38,6 +38,7 @@ interface WindowRow {
   readonly refcode_short: string | null;
   readonly content_text: string;
   readonly offset: number;
+  readonly is_chapter_heading: number;
 }
 
 const EMPTY: Surrounding = { before: [], after: [] };
@@ -95,6 +96,7 @@ export const surroundingParagraphs = (
         p.para_id,
         p.refcode_short,
         p.content_text,
+        p.is_chapter_heading,
         p.puborder - a.puborder as offset
       from anchors a
       join paragraphs p
@@ -111,6 +113,7 @@ export const surroundingParagraphs = (
         refcode: row.refcode_short,
         text: row.content_text,
         url: row.para_id === null ? null : readerUrl(row.para_id),
+        isHeading: row.is_chapter_heading === 1,
       };
       if (row.offset < 0) entry.before.push(paragraph);
       else entry.after.push(paragraph);

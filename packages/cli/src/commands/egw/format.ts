@@ -135,7 +135,16 @@ const formatSearchHit = (hit: SearchParagraphHit, index: number, full: boolean):
   // citation, exactly as `paragraphRefcode` above falls back to the publication
   // code: the line still has to name where the text came from.
   const refcode = Option.getOrElse(hit.refcode, () => hit.bookCode);
-  return `  ${String(index + 1)}. ${refcode} (${hit.bookTitle} — ${hit.author})${provenance}\n     ${snippet}`;
+  // Says what the row is when it is not prose. A chapter title and a sentence
+  // print identically otherwise — a refcode and a line of text — and BM25
+  // normalizes by length, so a short title containing the whole query outranks
+  // the paragraphs that discuss it. Headings are 17.7% of the corpus and can be
+  // most of a result page: 32 of the top 40 for `latter rain`.
+  let kind = '';
+  if (hit.isHeading) {
+    kind = ' [chapter]';
+  }
+  return `  ${String(index + 1)}. ${refcode}${kind} (${hit.bookTitle} — ${hit.author})${provenance}\n     ${snippet}`;
 };
 
 /** The whole §9 result as lines, topics first.

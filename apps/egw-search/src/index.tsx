@@ -47,6 +47,7 @@ import {
   type CorpusSection,
   SELECTABLE_SUBTYPES,
 } from '../server/api.js';
+import { contextSide } from './context-window.js';
 import { runQuery, searchEffect, type ContextParagraph, type Hit } from './search.js';
 import {
   currentPanes,
@@ -63,9 +64,20 @@ import {
 } from './url-state.js';
 import './styles.css';
 
-/** Paragraphs shown on each side of a match. One is usually the sentence that
- *  makes the hit land; more turns the results page into a reader. */
-const CONTEXT = 1;
+/** Paragraphs *fetched* on each side of a match, which is not the number shown.
+ *
+ *  One neighbour is usually the sentence that makes the hit land; more turns the
+ *  results page into a reader. So the page renders {@link CONTEXT_SHOWN} and
+ *  keeps the rest for the expand control — fetching the full radius up front
+ *  means "show more" is instant and costs no second request. The server caps
+ *  this at `MAX_CONTEXT` (3) regardless.
+ *
+ *  Paid for once per page, not per hit: `surroundingParagraphs` resolves every
+ *  anchor's window in one statement. */
+const CONTEXT = 3;
+
+/** Paragraphs shown on each side before the reader asks for more. */
+const CONTEXT_SHOWN = 1;
 
 const EXAMPLES: readonly string[] = [
   'walk through the fire',
@@ -744,38 +756,66 @@ const Skeleton = () => (
   </ul>
 );
 
-const HitRow = (props: { readonly hit: Hit }) => (
-  <li class="hit">
-    <div class="meta">
-      {/* No refcode at all for the rows the corpus stores without a citation
-          (signatures, datelines, "this chapter is based on..." notes). The
-          slot is dropped rather than rendered empty, so the book title moves
-          up and the row does not look like a broken link. */}
-      <Show when={props.hit.refcode}>
-        {(refcode) => (
-          <Show when={props.hit.url} fallback={<span class="refcode">{refcode()}</span>}>
-            {(href) => (
-              <a class="refcode" href={href()} target="_blank" rel="noopener noreferrer">
-                {refcode()}
-              </a>
-            )}
-          </Show>
-        )}
-      </Show>
-      <span class="book">{props.hit.bookTitle}</span>
-    </div>
-    <div class="body">
-      <For each={props.hit.before}>{(para) => <Context para={para} />}</For>
-      {/* The match carries the accent bar; the neighbours carry nothing. The
-          decoration marks *what you searched for*, so the eye lands on it
-          before it reads anything around it. */}
-      <div class="match">
-        <p class="text">{props.hit.text}</p>
+const HitRow = (props: { readonly hit: Hit }) => {
+  const [expanded, setExpanded] = createSignal(false);
+  // `before` is in reading order and the nearest neighbour is the *last* entry,
+  // so it is reversed to walk outward, trimmed, then reversed back for display.
+  const before = () => {
+    const outward = [...props.hit.before].reverse();
+    const side = contextSide(outward, expanded(), CONTEXT_SHOWN);
+    return { shown: [...side.shown].reverse(), more: side.more };
+  };
+  const after = () => contextSide(props.hit.after, expanded(), CONTEXT_SHOWN);
+  return (
+    <li class="hit">
+      <div class="meta">
+        {/* No refcode at all for the rows the corpus stores without a citation
+            (signatures, datelines, "this chapter is based on..." notes). The
+            slot is dropped rather than rendered empty, so the book title moves
+            up and the row does not look like a broken link. */}
+        <Show when={props.hit.refcode}>
+          {(refcode) => (
+            <Show when={props.hit.url} fallback={<span class="refcode">{refcode()}</span>}>
+              {(href) => (
+                <a class="refcode" href={href()} target="_blank" rel="noopener noreferrer">
+                  {refcode()}
+                </a>
+              )}
+            </Show>
+          )}
+        </Show>
+        <span class="book">{props.hit.bookTitle}</span>
+        {/* Says what the row *is*, next to where it came from. A chapter title
+            and a sentence are otherwise the same shape — a refcode and a line
+            of text — and BM25's length normalization makes titles a large
+            share of a result page rather than an oddity. */}
+        <Show when={props.hit.isHeading}>
+          <span class="kind">Chapter</span>
+        </Show>
       </div>
-      <For each={props.hit.after}>{(para) => <Context para={para} />}</For>
-    </div>
-  </li>
-);
+      <div class="body">
+        <Show when={before().more > 0}>
+          <button type="button" class="expand" onClick={() => setExpanded(true)}>
+            Show more
+          </button>
+        </Show>
+        <For each={before().shown}>{(para) => <Context para={para} />}</For>
+        {/* The match carries the accent bar; the neighbours carry nothing. The
+            decoration marks *what you searched for*, so the eye lands on it
+            before it reads anything around it. */}
+        <div class={props.hit.isHeading ? 'match heading' : 'match'}>
+          <p class="text">{props.hit.text}</p>
+        </div>
+        <For each={after().shown}>{(para) => <Context para={para} />}</For>
+        <Show when={after().more > 0}>
+          <button type="button" class="expand" onClick={() => setExpanded(true)}>
+            Show more
+          </button>
+        </Show>
+      </div>
+    </li>
+  );
+};
 
 /** A neighbouring paragraph: smaller and dimmer than the match, but addressable
  *  in its own right — its reference links into egwwritings exactly as the
@@ -787,7 +827,9 @@ const HitRow = (props: { readonly hit: Hit }) => (
  *  sentence should start; behind, it reads as the citation it is and the three
  *  paragraphs of a hit all begin on prose. */
 const Context = (props: { readonly para: ContextParagraph }) => (
-  <p class="context">
+  // A neighbouring heading is the chapter the hit opens under, so it reads as a
+  // label rather than as another sentence of prose.
+  <p class={props.para.isHeading ? 'context heading' : 'context'}>
     {props.para.text}
     <Show when={props.para.refcode}>
       {(ref) => (

@@ -175,6 +175,10 @@ export interface SearchParagraphRow {
   readonly bookTitle: string;
   readonly author: string;
   readonly snippet: string;
+  /** A chapter or section heading rather than prose — see
+   *  `ScoredParagraphRow.isHeading` for why BM25 floods a result page with
+   *  these and why the surface has to be able to say so. */
+  readonly isHeading: boolean;
   /** FTS5's `-rank`, positive and larger-is-better. Absent for a row the vector
    *  leg found and the lexical leg did not. */
   readonly score: number;
@@ -267,6 +271,7 @@ const toRow = (row: ScoredParagraphRow): SearchParagraphRow => ({
   bookTitle: row.bookTitle,
   author: row.bookAuthor,
   snippet: nodesToText(row.nodes),
+  isHeading: row.isHeading,
   // FTS5 rank is negative and better-is-lower; the whole pipeline below wants
   // larger-is-better, and flipping it once here is what keeps the threshold
   // constants readable.
@@ -799,6 +804,7 @@ const fuseResults = (
         bookTitle: body.bookTitle,
         author: body.author,
         snippet: body.snippet,
+        isHeading: body.isHeading,
         score: fused.score,
         lexicalRank: Option.flatten(Arr.get(fused.ranks, 0)),
         vectorRank: Option.flatten(Arr.get(fused.ranks, 1)),

@@ -539,6 +539,54 @@ a.hit .refcode,
   color: var(--muted);
 }
 
+/* What kind of row this is, when it is not prose. A chapter title and a
+ *  sentence arrive as the same shape — a refcode and a line of text — and BM25
+ *  normalizes by length, so a short title containing the whole query outranks
+ *  the paragraphs that discuss it. Headings are 17.7% of the corpus and can be
+ *  most of a result page, so the label is a plain outlined tag: legible enough
+ *  to answer "why is this so short", quiet enough not to compete with the
+ *  reference above it. */
+.hit .kind {
+  display: inline-block;
+  margin-top: var(--s2);
+  padding: 1px 6px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+/* A heading set as a heading. It stays in the serif — these are titles from the
+ *  books themselves, not interface labels, and switching family would make them
+ *  read as chrome. Weight and a little tracking are enough to stop a title
+ *  being mistaken for the first sentence of a paragraph that never arrives. */
+.hit .match.heading .text,
+.hit .context.heading {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+/* Progressive disclosure. Text-weight rather than a button shape: it sits
+ *  inside the reading column, and a filled control there would pull the eye
+ *  away from the match it is meant to serve. */
+.hit .expand {
+  display: block;
+  margin: var(--s2) 0;
+  padding: 0 0 0 calc(var(--s3) + 2px);
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.hit .expand:hover {
+  color: var(--accent);
+}
+
 .hit .text {
   margin: 0;
   font-family: var(--serif);

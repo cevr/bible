@@ -68,6 +68,13 @@ export const ContextParagraphSchema = S.Struct({
    *  opened in its own setting exactly as the match can. Null for a paragraph
    *  the corpus stores without a `para_id`. */
   url: S.NullOr(S.String),
+  /** Whether this neighbour is a chapter or section heading.
+   *
+   *  What makes progressive disclosure stop in the right place: expanding
+   *  context past a heading walks into a different chapter, where the
+   *  surrounding sentences no longer explain the hit. The client uses it to
+   *  decide whether an expand control belongs on that side at all. */
+  isHeading: S.Boolean,
 });
 export type ContextParagraph = S.Schema.Type<typeof ContextParagraphSchema>;
 
@@ -87,6 +94,11 @@ export const SearchHitSchema = S.Struct({
   bookTitle: S.String,
   author: S.String,
   text: S.String,
+  /** Whether this hit is a chapter or section heading rather than prose — see
+   *  `SearchParagraphHit.isHeading`. A heading and a sentence are otherwise the
+   *  same shape on the wire, so without this the client cannot tell the chapter
+   *  title "The Loud Cry" from the phrase written mid-paragraph. */
+  isHeading: S.Boolean,
   lexicalRank: S.NullOr(S.Finite),
   vectorRank: S.NullOr(S.Finite),
   /** The egwwritings.org deep link, null for a paragraph the corpus stores

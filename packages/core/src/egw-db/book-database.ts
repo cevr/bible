@@ -489,6 +489,21 @@ export interface ScoredParagraphRow {
    *  `bookCode` is not a publication id and no amount of formatting turns it
    *  into one. */
   readonly publicationId: number;
+  /** Whether this row is a chapter or section heading rather than prose.
+   *
+   *  `paragraphs.is_chapter_heading`, written at ingest from `isChapterHeading`
+   *  (any `h1`-`h6`, or an explicit `chapter`/`heading`/`title` element type).
+   *  **534,286 rows — 17.7% of the corpus.**
+   *
+   *  Carried on a search row because BM25 normalizes by document length, so a
+   *  two-word title containing a two-word query scores near-perfectly: 32 of
+   *  the top 40 production results for `latter rain` are headings, and within
+   *  one book the order is strictly shortest-first (TM 506 heading at 62 bytes,
+   *  then TM 506.2 at 353, then TM 506.1 at 1067). A reader cannot tell "The
+   *  Loud Cry" the chapter title from "The Loud Cry" the sentence, because both
+   *  arrive as a refcode and a line of text. This field is what lets a surface
+   *  say which one it is. */
+  readonly isHeading: boolean;
   /** The corpus's own `para_id`, unqualified — the value
    *  `WritingsReference.paragraph` addresses a paragraph by.
    *
@@ -1686,9 +1701,14 @@ export class EGWParagraphDatabase extends Context.Service<
           readonly nodes_json: string;
           readonly rank: number;
           readonly book_id: number;
+          /** SQLite has no boolean; `is_chapter_heading` is the 0/1 integer the
+           *  ingest wrote from `isChapterHeading`. Translated at this boundary
+           *  like every other storage-shaped column here. */
+          readonly is_chapter_heading: number;
         }>`
               SELECT b.book_id, b.book_code, b.book_title, b.book_author,
-                     p.ref_code, p.refcode_short, p.para_id, p.nodes_json, fts.rank
+                     p.ref_code, p.refcode_short, p.para_id, p.nodes_json,
+                     p.is_chapter_heading, fts.rank
               FROM paragraphs p
               JOIN paragraphs_fts fts ON p.rowid = fts.rowid
               JOIN books b ON p.book_id = b.book_id
@@ -1712,6 +1732,7 @@ export class EGWParagraphDatabase extends Context.Service<
               refcode_short: Option.fromNullishOr(row.refcode_short),
               nodes: decodeNodes(row.nodes_json),
               rank: row.rank,
+              isHeading: row.is_chapter_heading === 1,
             })),
           ),
         );
@@ -1794,9 +1815,11 @@ export class EGWParagraphDatabase extends Context.Service<
           readonly para_id: string | null;
           readonly nodes_json: string;
           readonly book_id: number;
+          readonly is_chapter_heading: number;
         }>`
               SELECT b.book_id, b.book_code, b.book_title, b.book_author,
-                     p.ref_code, p.refcode_short, p.para_id, p.nodes_json
+                     p.ref_code, p.refcode_short, p.para_id, p.nodes_json,
+                     p.is_chapter_heading
               FROM paragraphs p
               CROSS JOIN books b ON p.book_id = b.book_id
               WHERE ${prefilter}
@@ -1820,6 +1843,7 @@ export class EGWParagraphDatabase extends Context.Service<
               nodes: decodeNodes(row.nodes_json),
               // No FTS match produced this row, so it carries no BM25 evidence.
               rank: 0,
+              isHeading: row.is_chapter_heading === 1,
             })),
           ),
         );
@@ -2259,6 +2283,11 @@ export class EGWParagraphDatabase extends Context.Service<
                 refcode_short: row.refcode_short,
                 nodes: row.nodes,
                 rank: row.rank,
+                // Through the shared predicate, not a second spelling of it:
+                // the live column is written by `isChapterHeading` at ingest,
+                // so a double that decided headings its own way could disagree
+                // with production about the same fixture.
+                isHeading: isChapterHeading(Option.fromNullishOr(row.element_type)),
               })),
           ),
         // Keyed by the same `paragraphIdentity` the live statement composes in
@@ -2299,6 +2328,7 @@ export class EGWParagraphDatabase extends Context.Service<
                   refcode_short: paragraph.refcode_short,
                   nodes: paragraph.nodes,
                   rank: 0,
+                  isHeading: isChapterHeading(Option.fromNullishOr(paragraph.element_type)),
                 },
               ];
             }),
