@@ -434,6 +434,16 @@ const WarmCorpusLive: Layer.Layer<never, never, SqlClient.SqlClient> = Layer.eff
       // where the cost concentrates and what readers actually type. Gated
       // stopwords are deliberately absent: the selectivity gate means no query
       // ever scores them, so their pages are never wanted.
+      // **The `ORDER BY` must match `searchScoredParagraphs`'s.** It orders by
+      // `bm25(paragraphs_fts)` rather than the bare `rank`, and the two are the
+      // same ranking by *different code paths*: `rank` plans as FTS5's internal
+      // `VIRTUAL TABLE INDEX 32:M3` rank-merge, `bm25()` as `INDEX 0:M3` plus a
+      // bounded top-N heap. They touch different index structures, so a
+      // warm-up ordered the other way faults in pages no query will read and
+      // leaves the ones it will read cold — it warms the wrong thing while
+      // reporting success. This clause tracks the live statement; if that one
+      // changes, change this one with it.
+      //
       // Interpolated rather than bound because `sql.unsafe` takes no
       // parameters. Safe only because these are literals in this file: nothing
       // here is ever derived from a request, and a term must never become so.
@@ -444,7 +454,7 @@ const WarmCorpusLive: Layer.Layer<never, never, SqlClient.SqlClient> = Layer.eff
           JOIN paragraphs p ON p.rowid = fts.rowid
           JOIN books b ON p.book_id = b.book_id
           WHERE paragraphs_fts MATCH '${term}'
-          ORDER BY fts.rank
+          ORDER BY bm25(paragraphs_fts)
           LIMIT 60
         `);
       }
