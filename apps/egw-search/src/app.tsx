@@ -11,24 +11,23 @@
  * "back" means. See `./url-state.ts`.
  *
  * **The async states are the framework's.** `followQuery` keeps the previous
- * result on screen, marked stale, while the next one loads; `Loading` draws
- * the skeleton only until a first value exists; `Errored` routes a failure
- * to one fallback with a retry. Nothing here holds a pending flag.
+ * result on screen, marked stale, while the next one loads; `Query` draws the
+ * skeleton, the failure with a retry, or the results with a stale flag.
+ * Nothing here holds a pending flag.
  *
- * **Four fixed pane slots, not a list.** A `For` row cannot run setup — it
- * receives a `Source` and returns a `Node` — and a pane needs setup: its own
- * query, its own draft, its own filter panel. So the page sets four panes up
- * once and shows as many as the URL names. A pane *is* its position, which
- * is also what keeps its local state when a neighbour opens or closes.
+ * **Panes are rows.** `View.list` gives each pane a setup of its own — its
+ * query, its draft, its filter panel — in a scope that closes when the pane
+ * does. A pane is keyed by its position, which is what keeps its local state
+ * when a neighbour opens or closes.
  */
 
-import type { LocalActorRef, QueryState, SetValue, Source } from 'effect-frame/actor/client';
-import { Behavior, followQuery, modify, select, spawn, zip } from 'effect-frame/actor/client';
+import type { QueryFailure, QueryState } from 'effect-frame/actor/client';
+import { Cell, followQuery, isReady, match, select, Source, zip } from 'effect-frame/actor/client';
 import type { RouteProps } from 'effect-frame/router';
 import { Router } from 'effect-frame/router';
-import type { Capabilities, Child, Node, ReadyValue } from 'effect-frame/view';
-import { Errored, For, Loading, Show, View, orErrored, readyWithStale } from 'effect-frame/view';
-import { Effect, Option, Predicate, Stream } from 'effect';
+import type { Child, Node } from 'effect-frame/view';
+import { For, Query, Show, View } from 'effect-frame/view';
+import { Effect, Option, Predicate } from 'effect';
 
 import {
   type BookSubtype,
@@ -74,13 +73,6 @@ const EXAMPLES: readonly string[] = [
   'loud cry',
 ];
 
-const EMPTY_RESPONSE: SearchResponse = {
-  hits: [],
-  scope: 'all',
-  vector: 'idle',
-  nonSelective: false,
-};
-
 // ---------------------------------------------------------------------------
 // The filter vocabulary, as the UI labels it
 // ---------------------------------------------------------------------------
@@ -116,20 +108,6 @@ const SUBTYPE_LABELS = {
 } satisfies Record<BookSubtype, string>;
 
 // ---------------------------------------------------------------------------
-// Local actor helpers
-// ---------------------------------------------------------------------------
-
-/** Write a local actor's value. `ActorStopped` means the view is gone, and a
- *  write to a gone view has nothing left to do. */
-function set<A>(ref: LocalActorRef<A, SetValue<A>>, value: A): Effect.Effect<void> {
-  return modify(ref, () => value).pipe(Effect.catchTag('ActorStopped', () => Effect.void));
-}
-
-function update<A>(ref: LocalActorRef<A, SetValue<A>>, f: (current: A) => A): Effect.Effect<void> {
-  return modify(ref, f).pipe(Effect.catchTag('ActorStopped', () => Effect.void));
-}
-
-// ---------------------------------------------------------------------------
 // The page
 // ---------------------------------------------------------------------------
 
@@ -148,16 +126,21 @@ interface WorkspaceProps {
   readonly close: (index: number) => Effect.Effect<void>;
 }
 
-const SLOTS: readonly number[] = Array.from({ length: MAX_PANES }, (_, index) => index);
+/** A pane's row in the list: its position is its key. */
+interface PaneRow {
+  readonly key: string;
+  readonly index: number;
+}
 
 const pluralResults = (count: number): string => {
   if (count === 1) return '1 result';
   return `${String(count)} results`;
 };
 
+const canAddPane = (count: number): boolean => count < MAX_PANES;
+
 export const SearchPage = View.make((props: RouteProps<unknown, Workspace>) =>
   Effect.gen(function* () {
-    const view = yield* View.Context;
     const router = yield* Router;
     const panes = props.search;
     const count = select(panes, (list) => list.length);
@@ -199,24 +182,28 @@ export const SearchPage = View.make((props: RouteProps<unknown, Workspace>) =>
       return go([...current, { ...last, q: '' }], false);
     });
 
-    const slots = yield* Effect.forEach(SLOTS, (index) =>
-      Pane.setup({ index, workspace, view, router }),
+    const rows: Source<ReadonlyArray<PaneRow>> = select(panes, (list) =>
+      list.map((_, index) => ({ key: String(index), index })),
     );
+    const paneList = yield* View.list({
+      each: rows,
+      keyBy: (row: PaneRow) => row.key,
+      setup: (row: Source<PaneRow>) =>
+        Effect.flatMap(row.get, (current) => Pane.setup({ index: current.index, workspace })),
+    });
 
     return (
       <div class="shell">
         <header class="masthead">
           <h1>EGW&nbsp;Search</h1>
-          <Show when={select(count, (n) => n < MAX_PANES)}>
-            <button type="button" class="addpane" onClick={view.event(() => addPane)}>
+          <Show when={count} is={canAddPane}>
+            <button type="button" class="addpane" onClick={View.event(() => addPane)}>
               + pane
             </button>
           </Show>
         </header>
-        <div class="panes" data-count={view.bind(count, String)}>
-          {slots.map((slot, index) => (
-            <Show when={select(count, (n) => n > index)}>{slot}</Show>
-          ))}
+        <div class="panes" data-count={View.bind(count, String)}>
+          {paneList}
         </div>
       </div>
     );
@@ -230,17 +217,17 @@ export const SearchPage = View.make((props: RouteProps<unknown, Workspace>) =>
 interface PaneProps {
   readonly index: number;
   readonly workspace: WorkspaceProps;
-  readonly view: Capabilities;
-  readonly router: Router['Service'];
 }
+
+const hasSeveral = (list: Workspace): boolean => list.length > 1;
 
 const Pane = View.make((props: PaneProps) =>
   Effect.gen(function* () {
-    const { view, router, workspace, index } = props;
+    const router = yield* Router;
+    const { workspace, index } = props;
 
     /** This pane's slice of the workspace. Every read below goes through it,
-     *  so a pane never sees another pane's query. A slot the URL does not
-     *  name reads the empty params and asks nothing. */
+     *  so a pane never sees another pane's query. */
     const params: Source<SearchParams> = select(workspace.panes, (list) =>
       Option.getOrElse(Option.fromNullishOr(list[index]), () => EMPTY_PARAMS),
     );
@@ -249,10 +236,8 @@ const Pane = View.make((props: PaneProps) =>
      *  because a half-typed query is not a place anyone wants to link to.
      *  `None` means "nothing typed since the last navigation", which is what
      *  makes the box follow the back button. */
-    const typed = yield* spawn(Behavior.value(Option.none<string>()));
-    yield* Effect.forkScoped(
-      Stream.runForEach(router.navigations.changes, () => set(typed, Option.none())),
-    );
+    const typed = yield* Cell.make(Option.none<string>());
+    yield* Source.on(router.navigations, () => typed.set(Option.none()));
     const draft = zip(typed.state, params, (text, current) =>
       Option.getOrElse(text, () => current.q),
     );
@@ -266,60 +251,63 @@ const Pane = View.make((props: PaneProps) =>
     const refine = (f: (current: SearchParams) => SearchParams) =>
       Effect.flatMap(params.get, (current) => put(f(current), true));
 
-    const hasQuery = select(params, (current) => current.q.trim() !== '');
     const args: Source<Option.Option<SearchRequest>> = select(params, (current) => {
       if (current.q.trim() === '') return Option.none();
       return Option.some(toRequest(current, CONTEXT));
     });
     const results = yield* followQuery(Search, args);
 
-    const filters = yield* Filters.setup({ view, params, refine });
-    const status = Status({ view, params, state: results.state });
-    const region = yield* ResultsRegion.setup({ view, params, results, search, refine });
+    const filters = yield* Filters.setup({ params, refine });
+    const status = Status({ params, state: results.state });
+    const region = yield* ResultsRegion.setup({ params, results, search, refine });
 
     return (
       <section class="pane">
-        <Show when={select(workspace.panes, (list) => list.length > 1)}>
+        <Show when={workspace.panes} is={hasSeveral}>
           <button
             type="button"
             class="closepane"
             aria-label={`Close pane ${String(index + 1)}`}
-            onClick={view.event(() => workspace.close(index))}
+            onClick={View.event(() => workspace.close(index))}
           >
             ✕
           </button>
         </Show>
-        <form class="searchbar" onSubmit={view.submit(() => Effect.flatMap(draft.get, search))}>
+        <form class="searchbar" onSubmit={View.submit(() => Effect.flatMap(draft.get, search))}>
           <input
             type="search"
-            value={view.bind(draft)}
+            value={View.bind(draft)}
             placeholder="search the writings…"
             autocomplete="off"
             autocapitalize="off"
             spellcheck={false}
-            onInput={view.event((event) => set(typed, Option.some(event.value)))}
+            onInput={View.event((event) => typed.set(Option.some(event.value)))}
           />
-          <button type="submit" disabled={view.bind(draft, (text) => text.trim() === '')}>
+          <button type="submit" disabled={View.bind(draft, (text) => text.trim() === '')}>
             Search
           </button>
         </form>
         {filters}
         {status}
-        <Show when={select(hasQuery, (has) => !has)}>
-          {Empty({ view, params, nonSelective: false, search, refine })}
+        <Show
+          when={params}
+          is={hasQuery}
+          fallback={Empty({ params, nonSelective: false, search, refine })}
+        >
+          {region}
         </Show>
-        <Show when={hasQuery}>{region}</Show>
       </section>
     );
   }),
 );
+
+const hasQuery = (current: SearchParams): boolean => current.q.trim() !== '';
 
 // ---------------------------------------------------------------------------
 // The filter panel
 // ---------------------------------------------------------------------------
 
 interface FiltersProps {
-  readonly view: Capabilities;
   readonly params: Source<SearchParams>;
   readonly refine: (f: (current: SearchParams) => SearchParams) => Effect.Effect<void>;
 }
@@ -333,16 +321,15 @@ const chipClass = (active: boolean): string => {
  *  are filters that take effect immediately, not a form to submit, and the
  *  pressed state is what a screen reader should hear. */
 const Chip = (props: {
-  readonly view: Capabilities;
   readonly label: string;
   readonly active: Source<boolean>;
   readonly onPick: Effect.Effect<void>;
 }): Node => (
   <button
     type="button"
-    class={props.view.bind(props.active, chipClass)}
-    aria-pressed={props.view.bind(props.active, String)}
-    onClick={props.view.event(() => props.onPick)}
+    class={View.bind(props.active, chipClass)}
+    aria-pressed={View.bind(props.active, String)}
+    onClick={View.event(() => props.onPick)}
   >
     {props.label}
   </button>
@@ -369,6 +356,8 @@ const signGlyph = (sign: Sign): string => {
   return '−';
 };
 
+const isSigned = (sign: Sign): boolean => sign !== 'off';
+
 /**
  * A chip over one value of a signed axis: off → include → exclude → off.
  *
@@ -377,22 +366,21 @@ const signGlyph = (sign: Sign): string => {
  * and `aria-pressed` reports whether the chip is doing anything at all.
  */
 const SignedChip = (props: {
-  readonly view: Capabilities;
   readonly label: string;
   readonly sign: Source<Sign>;
   readonly onPick: Effect.Effect<void>;
 }): Node => (
   <button
     type="button"
-    class={props.view.bind(props.sign, signedClass)}
-    aria-pressed={props.view.bind(props.sign, (sign) => String(sign !== 'off'))}
-    aria-label={props.view.bind(props.sign, (sign) => signedName(props.label, sign))}
-    title={props.view.bind(props.sign, (sign) => signedTitle(props.label, sign))}
-    onClick={props.view.event(() => props.onPick)}
+    class={View.bind(props.sign, signedClass)}
+    aria-pressed={View.bind(props.sign, (sign) => String(isSigned(sign)))}
+    aria-label={View.bind(props.sign, (sign) => signedName(props.label, sign))}
+    title={View.bind(props.sign, (sign) => signedTitle(props.label, sign))}
+    onClick={View.event(() => props.onPick)}
   >
-    <Show when={select(props.sign, (sign) => sign !== 'off')}>
+    <Show when={props.sign} is={isSigned}>
       <span class="csign" aria-hidden="true">
-        {props.view.bind(props.sign, signGlyph)}
+        {View.bind(props.sign, signGlyph)}
       </span>
     </Show>
     {props.label}
@@ -418,9 +406,8 @@ const toggleLabel = (open: boolean): string => {
  */
 const Filters = View.make((props: FiltersProps) =>
   Effect.gen(function* () {
-    const { view, params, refine } = props;
-    const open = yield* spawn(Behavior.value(false));
-    const active = select(params, hasFilters);
+    const { params, refine } = props;
+    const open = yield* Cell.make(false);
 
     return (
       <div class="filters">
@@ -428,16 +415,16 @@ const Filters = View.make((props: FiltersProps) =>
           <button
             type="button"
             class="ftoggle"
-            aria-expanded={view.bind(open.state, String)}
-            onClick={view.event(() => update(open, (value) => !value))}
+            aria-expanded={View.bind(open.state, String)}
+            onClick={View.event(() => open.update((value) => !value))}
           >
-            {view.bind(open.state, toggleLabel)}
+            {View.bind(open.state, toggleLabel)}
           </button>
-          <Show when={active}>
+          <Show when={params} is={hasFilters}>
             <button
               type="button"
               class="fclear"
-              onClick={view.event(() => refine((current) => ({ ...EMPTY_PARAMS, q: current.q })))}
+              onClick={View.event(() => refine((current) => ({ ...EMPTY_PARAMS, q: current.q })))}
             >
               clear
             </button>
@@ -449,7 +436,6 @@ const Filters = View.make((props: FiltersProps) =>
             <FilterRow label="Library">
               {SECTIONS.map((entry) =>
                 SignedChip({
-                  view,
                   label: entry.label,
                   sign: select(params, (current) => signOf(current.section, entry.value)),
                   onPick: refine((current) => toggle(current, 'section', entry.value)),
@@ -460,7 +446,6 @@ const Filters = View.make((props: FiltersProps) =>
             <FilterRow label="Author">
               {SCOPES.map((entry) =>
                 Chip({
-                  view,
                   label: entry.label,
                   active: select(params, (current) => current.scope === entry.value),
                   onPick: refine((current) => ({ ...current, scope: entry.value })),
@@ -471,7 +456,6 @@ const Filters = View.make((props: FiltersProps) =>
             <FilterRow label="Kind">
               {TYPES.map((entry) =>
                 SignedChip({
-                  view,
                   label: entry.label,
                   sign: select(params, (current) => signOf(current.type, entry.value)),
                   onPick: refine((current) => toggle(current, 'type', entry.value)),
@@ -482,7 +466,6 @@ const Filters = View.make((props: FiltersProps) =>
             <FilterRow label="Form">
               {SELECTABLE_SUBTYPES.map((entry) =>
                 SignedChip({
-                  view,
                   label: SUBTYPE_LABELS[entry],
                   sign: select(params, (current) => signOf(current.subtype, entry)),
                   onPick: refine((current) => toggle(current, 'subtype', entry)),
@@ -492,7 +475,6 @@ const Filters = View.make((props: FiltersProps) =>
 
             <FilterRow label="Apparatus">
               {Chip({
-                view,
                 label: 'Hide dictionaries & indexes',
                 active: select(params, (current) => current.excludeApparatus),
                 onPick: refine((current) => ({
@@ -512,31 +494,36 @@ const Filters = View.make((props: FiltersProps) =>
 // The status line and the results region
 // ---------------------------------------------------------------------------
 
-type SearchState = QueryState<SearchResponse, unknown>;
+type SearchState = QueryState<SearchResponse, QueryFailure>;
 
-/** What the status line says, as a guard chain. The non-selective case must
- *  precede the count: it *has* no count, and "0 results" for a word in half
- *  the corpus states the opposite of what happened. */
+const readyLabel = (query: string, value: SearchResponse, stale: boolean): string => {
+  if (stale) return `searching “${query}”…`;
+  if (value.nonSelective) return `“${query}” — too common to rank`;
+  return `“${query}” — ${pluralResults(value.hits.length)}`;
+};
+
+/** What the status line says. The non-selective case must precede the count:
+ *  it *has* no count, and "0 results" for a word in half the corpus states
+ *  the opposite of what happened. */
 const statusLabel = (params: SearchParams, state: SearchState): string => {
   const query = params.q;
   if (query === '') return 'awaiting query';
-  if (state._tag === 'Loading') return `searching “${query}”…`;
-  if (state._tag === 'Failed') return `“${query}” — failed`;
-  if (state.stale) return `searching “${query}”…`;
-  if (state.value.nonSelective) return `“${query}” — too common to rank`;
-  return `“${query}” — ${pluralResults(state.value.hits.length)}`;
+  return match(state, {
+    Loading: () => `searching “${query}”…`,
+    Failed: () => `“${query}” — failed`,
+    Ready: (value, stale) => readyLabel(query, value, stale),
+  });
 };
 
 const Status = (props: {
-  readonly view: Capabilities;
   readonly params: Source<SearchParams>;
   readonly state: Source<SearchState>;
 }): Node => {
   const label = zip(props.params, props.state, statusLabel);
   return (
     <div class="status">
-      <span>{props.view.bind(label)}</span>
-      <Show when={select(props.params, hasFilters)}>
+      <span>{View.bind(label)}</span>
+      <Show when={props.params} is={hasFilters}>
         <span class="filtered">filtered</span>
       </Show>
     </div>
@@ -547,13 +534,12 @@ const Status = (props: {
  *  too common to rank. Offers the examples in every case, since all three
  *  want the same next step — a different query. */
 const Empty = (props: {
-  readonly view: Capabilities;
   readonly params: Source<SearchParams>;
   readonly nonSelective: boolean;
   readonly search: (value: string) => Effect.Effect<void>;
   readonly refine: (f: (current: SearchParams) => SearchParams) => Effect.Effect<void>;
 }): Node => {
-  const { view, params } = props;
+  const { params } = props;
   const narrowed = select(params, (current) => current.q !== '' && hasFilters(current));
   const heading = (current: SearchParams): string => {
     if (props.nonSelective) return 'too common to rank';
@@ -562,32 +548,34 @@ const Empty = (props: {
   };
   return (
     <div class="empty">
-      <div>{view.bind(params, heading)}</div>
+      <div>{View.bind(params, heading)}</div>
       <Show when={select(params, () => props.nonSelective)}>
         <div class="hint">
-          “{view.bind(params, (current) => current.q)}” appears in a large share of the corpus, so
+          “{View.bind(params, (current) => current.q)}” appears in a large share of the corpus, so
           ranking it would not surface anything in particular. Add a word or two to narrow it.
         </div>
       </Show>
-      <Show when={narrowed}>
+      <Show
+        when={narrowed}
+        fallback={
+          <div class="examples">
+            {EXAMPLES.map((example) => (
+              <button type="button" onClick={View.event(() => props.search(example))}>
+                {example}
+              </button>
+            ))}
+          </div>
+        }
+      >
         <div class="examples">
           <button
             type="button"
-            onClick={view.event(() =>
+            onClick={View.event(() =>
               props.refine((current) => ({ ...EMPTY_PARAMS, q: current.q })),
             )}
           >
             clear filters and search again
           </button>
-        </div>
-      </Show>
-      <Show when={select(narrowed, (value) => !value)}>
-        <div class="examples">
-          {EXAMPLES.map((example) => (
-            <button type="button" onClick={view.event(() => props.search(example))}>
-              {example}
-            </button>
-          ))}
         </div>
       </Show>
     </div>
@@ -621,33 +609,30 @@ const Skeleton = (): Node => (
   </ul>
 );
 
-const describeFailure = (error: Option.Option<unknown>): string =>
-  Option.match(error, {
-    onNone: () => '',
-    onSome: (cause) => {
-      if (Predicate.hasProperty(cause, 'message') && Predicate.isString(cause.message)) {
-        return cause.message;
-      }
-      if (Predicate.hasProperty(cause, '_tag') && Predicate.isString(cause._tag)) {
-        return cause._tag;
-      }
-      return String(cause);
-    },
-  });
+/** The failure is typed: every query failure carries a tag, and the ones the
+ *  handler raises carry the handler's own message as `detail`. */
+const carriesDetail = Predicate.or(
+  Predicate.isTagged('QueryFailed'),
+  Predicate.isTagged('InvalidQueryArgs'),
+);
+
+const describeFailure = (error: QueryFailure): string => {
+  if (carriesDetail(error)) return error.detail;
+  return error._tag;
+};
 
 interface ResultsProps {
-  readonly view: Capabilities;
   readonly params: Source<SearchParams>;
   readonly results: {
-    readonly state: Source<QueryState<SearchResponse, unknown>>;
+    readonly state: Source<SearchState>;
     readonly refresh: Effect.Effect<void>;
   };
   readonly search: (value: string) => Effect.Effect<void>;
   readonly refine: (f: (current: SearchParams) => SearchParams) => Effect.Effect<void>;
 }
 
-const resultsClass = (ready: ReadyValue<SearchResponse>): string => {
-  if (ready.stale) return 'results stale';
+const resultsClass = (stale: boolean): string => {
+  if (stale) return 'results stale';
   return 'results';
 };
 
@@ -656,74 +641,66 @@ interface Row {
   readonly hit: Hit;
 }
 
+const isFresh = (state: SearchState): boolean => isReady(state) && !state.stale;
+
+const hasHits = (value: SearchResponse): boolean => value.hits.length > 0;
+
 /**
- * `Errored` outside `Loading`: a failure shows one fallback with a retry,
- * and the loading fallback lets go. Inside, `readyWithStale` is the whole
- * loading strategy — the first search draws skeletons because there is no
- * value yet, and a re-search keeps the old results on screen, dimmed,
- * because there is.
+ * One `Query` over the three states. The first search draws skeletons
+ * because there is no value yet; a re-search keeps the old results on
+ * screen, dimmed, because `followQuery` carries them as stale; a failure
+ * shows one fallback with a retry.
  */
 const ResultsRegion = View.make((props: ResultsProps) =>
   Effect.gen(function* () {
-    const { view, params, results } = props;
-    return yield* Errored({
-      fallback: (error) => (
-        <div class="status">
-          <span class="err">search failed — {view.bind(error, describeFailure)}</span>
-          <button type="button" onClick={view.event(() => results.refresh)}>
-            retry
-          </button>
-        </div>
-      ),
-      children: Loading({
-        fallback: Skeleton(),
-        children: Effect.gen(function* () {
-          const ready = yield* readyWithStale(yield* orErrored(results.state), EMPTY_RESPONSE);
-          const rows: Source<ReadonlyArray<Row>> = select(ready, (current) =>
-            current.value.hits.map((hit, position) => ({ key: String(position), hit })),
-          );
-          const none = select(ready, (current) => current.value.hits.length === 0);
+    const { params, results } = props;
 
-          // Which rows the reader has expanded, by position. Reset whenever a
-          // fresh answer lands: the rows are a different page then.
-          const expanded = yield* spawn(Behavior.value<ReadonlySet<string>>(new Set()));
-          yield* Effect.forkScoped(
-            Stream.runForEach(
-              Stream.filter(
-                results.state.changes,
-                (state) => state._tag === 'Ready' && !state.stale,
-              ),
-              () => set(expanded, new Set()),
-            ),
-          );
-          const expand = (key: string) => update(expanded, (keys) => new Set([...keys, key]));
+    // Which rows the reader has expanded, by position. Reset whenever a
+    // fresh answer lands: the rows are a different page then.
+    const expanded = yield* Cell.make<ReadonlySet<string>>(new Set());
+    yield* Source.on(results.state, (state) => {
+      if (isFresh(state)) return expanded.set(new Set());
+      return Effect.void;
+    });
+    const expand = (key: string) => expanded.update((keys) => new Set([...keys, key]));
 
+    return (
+      <Query
+        state={results.state}
+        loading={Skeleton()}
+        failed={(error) => (
+          <div class="status">
+            <span class="err">search failed — {View.bind(error, describeFailure)}</span>
+            <button type="button" onClick={View.event(() => results.refresh)}>
+              retry
+            </button>
+          </div>
+        )}
+        ready={(value, stale) => {
+          const rows: Source<ReadonlyArray<Row>> = select(value, (current) =>
+            current.hits.map((hit, position) => ({ key: String(position), hit })),
+          );
           return (
-            <>
-              <Show when={none}>
-                {Empty({
-                  view,
-                  params,
-                  nonSelective: false,
-                  search: props.search,
-                  refine: props.refine,
-                })}
-              </Show>
-              <Show when={select(none, (value) => !value)}>
-                <ul
-                  class={view.bind(ready, resultsClass)}
-                  aria-busy={view.bind(ready, (current) => String(current.stale))}
-                >
-                  <For each={rows} keyBy={(row: Row) => row.key}>
-                    {(row) => HitRow({ view, row, expanded: expanded.state, expand })}
-                  </For>
-                </ul>
-              </Show>
-            </>
+            <Show
+              when={value}
+              is={hasHits}
+              fallback={Empty({
+                params,
+                nonSelective: false,
+                search: props.search,
+                refine: props.refine,
+              })}
+            >
+              <ul class={View.bind(stale, resultsClass)} aria-busy={View.bind(stale, String)}>
+                <For each={rows} keyBy={(row: Row) => row.key}>
+                  {(row) => HitRow({ row, expanded: expanded.state, expand })}
+                </For>
+              </ul>
+            </Show>
           );
-        }),
-      }).setup({}),
-    }).setup({});
+        }}
+      />
+    );
   }),
 );
 
@@ -760,59 +737,68 @@ const matchClass = (state: RowState): string => {
   return 'match';
 };
 
-const textOf = (value: string | null): string => value ?? '';
+/** A reference, linked when the corpus has a link for it. Rows the corpus
+ *  stores without a citation show nothing here, so the book title moves up
+ *  and the row does not look like a broken link. */
+const Reference = (props: {
+  readonly className: string;
+  readonly refcode: Source<string | null>;
+  readonly url: Source<string | null>;
+}): Node => (
+  <Show when={props.refcode} is={isPresent}>
+    {(refcode) => (
+      <Show
+        when={props.url}
+        is={isPresent}
+        fallback={<span class={props.className}>{View.bind(refcode)}</span>}
+      >
+        {(url) => (
+          <a
+            class={props.className}
+            href={View.bind(url)}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {View.bind(refcode)}
+          </a>
+        )}
+      </Show>
+    )}
+  </Show>
+);
+
+const isPresent = (value: string | null): value is string => value !== null;
 
 const HitRow = (props: {
-  readonly view: Capabilities;
   readonly row: Source<Row>;
   readonly expanded: Source<ReadonlySet<string>>;
   readonly expand: (key: string) => Effect.Effect<void>;
 }): Node => {
-  const { view } = props;
   const state: Source<RowState> = zip(props.row, props.expanded, (row, keys) => ({
     hit: row.hit,
     key: row.key,
     expanded: keys.has(row.key),
   }));
-  const expandThis = view.event(() =>
+  const expandThis = View.event(() =>
     Effect.flatMap(props.row.get, (row) => props.expand(row.key)),
   );
-  const hasRefcode = select(state, (current) => current.hit.refcode !== null);
-  const hasUrl = select(state, (current) => current.hit.url !== null);
 
   return (
     <li class="hit">
       <div class="meta">
-        {/* No refcode at all for the rows the corpus stores without a
-            citation. The slot is dropped rather than rendered empty, so the
-            book title moves up and the row does not look like a broken link. */}
-        <Show when={hasRefcode}>
-          <>
-            <Show when={hasUrl}>
-              <a
-                class="refcode"
-                href={view.bind(state, (current) => textOf(current.hit.url))}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {view.bind(state, (current) => textOf(current.hit.refcode))}
-              </a>
-            </Show>
-            <Show when={select(hasUrl, (value) => !value)}>
-              <span class="refcode">
-                {view.bind(state, (current) => textOf(current.hit.refcode))}
-              </span>
-            </Show>
-          </>
-        </Show>
-        <span class="book">{view.bind(state, (current) => current.hit.bookTitle)}</span>
+        {Reference({
+          className: 'refcode',
+          refcode: select(state, (current) => current.hit.refcode),
+          url: select(state, (current) => current.hit.url),
+        })}
+        <span class="book">{View.bind(state, (current) => current.hit.bookTitle)}</span>
         {/* Says what the row *is*, next to where it came from. */}
-        <Show when={select(state, (current) => current.hit.isHeading)}>
+        <Show when={state} is={(current) => current.hit.isHeading}>
           <span class="kind">Chapter</span>
         </Show>
       </div>
       <div class="body">
-        <Show when={select(state, (current) => beforeSide(current).more > 0)}>
+        <Show when={state} is={(current) => beforeSide(current).more > 0}>
           <button type="button" class="expand" onClick={expandThis}>
             Show more
           </button>
@@ -821,19 +807,19 @@ const HitRow = (props: {
           each={select(state, (current) => keyed(beforeSide(current).shown))}
           keyBy={(paragraph: Paragraph) => paragraph.key}
         >
-          {(paragraph) => Context({ view, paragraph })}
+          {(paragraph) => Context({ paragraph })}
         </For>
         {/* The match carries the accent bar; the neighbours carry nothing. */}
-        <div class={view.bind(state, matchClass)}>
-          <p class="text">{view.bind(state, (current) => current.hit.text)}</p>
+        <div class={View.bind(state, matchClass)}>
+          <p class="text">{View.bind(state, (current) => current.hit.text)}</p>
         </div>
         <For
           each={select(state, (current) => keyed(afterSide(current).shown))}
           keyBy={(paragraph: Paragraph) => paragraph.key}
         >
-          {(paragraph) => Context({ view, paragraph })}
+          {(paragraph) => Context({ paragraph })}
         </For>
-        <Show when={select(state, (current) => afterSide(current).more > 0)}>
+        <Show when={state} is={(current) => afterSide(current).more > 0}>
           <button type="button" class="expand" onClick={expandThis}>
             Show more
           </button>
@@ -852,35 +838,16 @@ const contextClass = (paragraph: Paragraph): string => {
  *  addressable in its own right — its reference links into egwwritings
  *  exactly as the match's does. The reference trails the text so the three
  *  paragraphs of a hit all begin on prose. */
-const Context = (props: {
-  readonly view: Capabilities;
-  readonly paragraph: Source<Paragraph>;
-}): Node => {
-  const { view, paragraph } = props;
-  const hasRefcode = select(paragraph, (current) => current.para.refcode !== null);
-  const hasUrl = select(paragraph, (current) => current.para.url !== null);
+const Context = (props: { readonly paragraph: Source<Paragraph> }): Node => {
+  const { paragraph } = props;
   return (
-    <p class={view.bind(paragraph, contextClass)}>
-      {view.bind(paragraph, (current) => current.para.text)}
-      <Show when={hasRefcode}>
-        <>
-          <Show when={hasUrl}>
-            <a
-              class="cref"
-              href={view.bind(paragraph, (current) => textOf(current.para.url))}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {view.bind(paragraph, (current) => textOf(current.para.refcode))}
-            </a>
-          </Show>
-          <Show when={select(hasUrl, (value) => !value)}>
-            <span class="cref">
-              {view.bind(paragraph, (current) => textOf(current.para.refcode))}
-            </span>
-          </Show>
-        </>
-      </Show>
+    <p class={View.bind(paragraph, contextClass)}>
+      {View.bind(paragraph, (current) => current.para.text)}
+      {Reference({
+        className: 'cref',
+        refcode: select(paragraph, (current) => current.para.refcode),
+        url: select(paragraph, (current) => current.para.url),
+      })}
     </p>
   );
 };

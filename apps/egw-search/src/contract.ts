@@ -7,8 +7,8 @@
  * consumer and for the parity diff; this contract is what the page reads
  * through the actor transport at `/actors`.
  *
- * `depends` is empty: no actor commits change the corpus, so nothing marks a
- * result stale but an explicit refresh.
+ * No actor commits change the corpus, so nothing marks a result stale but an
+ * explicit refresh; the contract declares no dependency.
  */
 
 import { query } from 'effect-frame/actor/client';
@@ -33,15 +33,10 @@ export const SearchRequest = S.Struct({
 });
 export type SearchRequest = S.Schema.Type<typeof SearchRequest>;
 
-/** The policy name the host resolves. Everything here is public. */
-export const searchPolicy = 'public';
-
+/** Public, version 1, and dependent on no actor: the contract's defaults. */
 export const Search = query('search', {
-  version: 1,
   args: SearchRequest,
   result: SearchResponseSchema,
-  policy: searchPolicy,
-  depends: [],
 });
 
 /** The actor transport's mount point, shared by the server and the client. */

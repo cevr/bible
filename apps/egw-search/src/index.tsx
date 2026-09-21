@@ -25,21 +25,18 @@ const search = Route.spa('search', {
 /** The server sends every unknown path to this page, so the router is what
  *  says a path is nothing. */
 const NotFound = View.make((props: { readonly url: Source<URL> }) =>
-  Effect.gen(function* () {
-    const view = yield* View.Context;
-    return (
-      <div class="shell">
-        <header class="masthead">
-          <h1>EGW&nbsp;Search</h1>
-        </header>
-        <div class="status">
-          <span>
-            nothing at {view.bind(props.url, (url) => url.pathname)} — <a href="/">search</a>
-          </span>
-        </div>
+  Effect.succeed(
+    <div class="shell">
+      <header class="masthead">
+        <h1>EGW&nbsp;Search</h1>
+      </header>
+      <div class="status">
+        <span>
+          nothing at {View.bind(props.url, (url) => url.pathname)} — <a href="/">search</a>
+        </span>
       </div>
-    );
-  }),
+    </div>,
+  ),
 );
 
 const start = Effect.gen(function* () {

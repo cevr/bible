@@ -25,7 +25,7 @@
  * application's answer is that it has none.
  */
 
-import { ActorHost, HttpServer, MailboxStore, QueryPolicies } from 'effect-frame/actor';
+import { ActorHost, HttpServer } from 'effect-frame/actor';
 import * as SqliteBun from '@effect/sql-sqlite-bun/SqliteClient';
 import { BunHttpServer, BunRuntime, BunServices } from '@effect/platform-bun';
 import { Effect, Layer } from 'effect';
@@ -56,7 +56,7 @@ import {
 } from '@bible/core/search';
 import { layerBunEmbedder } from '@bible/core/search/bun';
 
-import { actorPrefix, searchPolicy } from '../src/contract.js';
+import { actorPrefix } from '../src/contract.js';
 import { NO_SELECTION, SearchApi } from './api.js';
 import { runSearch, SearchLive } from './search.js';
 import { EgwSyncLive } from './sync.js';
@@ -438,17 +438,7 @@ const StaticLive = HttpStaticServer.layer({
  *  the same `searchLayer` the JSON API does. The route strips the prefix and
  *  hands the raw web request to effect-frame's handler, which owns the wire
  *  (`POST /query`, and the actor verbs no contract here uses). */
-const ActorsLive = ActorHost.layer({
-  implementations: [],
-  queries: [SearchLive],
-  store: () => MailboxStore.layerMemory,
-}).pipe(
-  Layer.provide(
-    Layer.succeed(
-      QueryPolicies,
-      QueryPolicies.of({ [searchPolicy]: { check: () => Effect.void } }),
-    ),
-  ),
+const ActorsLive = ActorHost.layer({ implementations: [], queries: [SearchLive] }).pipe(
   Layer.provide(searchLayer),
   Layer.provide(TunedSqlLive),
 );
