@@ -1,7 +1,7 @@
 # Teachings — The Universal Format
 
 One format for every teaching document: sermon messages, topical studies,
-chapter readings, structural analyses. What a document is *for* is a
+chapter readings, structural analyses. What a document is _for_ is a
 frontmatter tag (`kind`), never a change in shape. Organization is **by
 topic**, not by type.
 
@@ -92,16 +92,16 @@ outstretched, covering wings" — pioneer reads Eze 28 the same way
 
 ### Markers
 
-| Marker                    | Use                                                        |
-| ------------------------- | ---------------------------------------------------------- |
-| `[WB]`                    | Whiteboard move — drawable in ≤30s: ≤5 nodes, ≤4 words each|
-| `[SOP REFCODE]`           | EGW witness — ≤30 words, no ellipses, gloss                |
-| `[PIONEER Name, REFCODE]` | Pioneer witness — same rules, author named                 |
-| `[Q]`                     | Anticipated objection → one `→` answer line (refs + gist)  |
-| `[RQ]`                    | Question to put to the audience                            |
-| `[Aside]`                 | One-line image seed — he tells the story, the page plants it|
-| `[TANGENT]`               | Optional hop-chain: ≥3 refs, parenthetical gloss per hop   |
-| `[→]`                     | One-line connection, link front-loaded — closes a section  |
+| Marker                    | Use                                                          |
+| ------------------------- | ------------------------------------------------------------ |
+| `[WB]`                    | Whiteboard move — drawable in ≤30s: ≤5 nodes, ≤4 words each  |
+| `[SOP REFCODE]`           | EGW witness — ≤30 words, no ellipses, gloss                  |
+| `[PIONEER Name, REFCODE]` | Pioneer witness — same rules, author named                   |
+| `[Q]`                     | Anticipated objection → one `→` answer line (refs + gist)    |
+| `[RQ]`                    | Question to put to the audience                              |
+| `[Aside]`                 | One-line image seed — he tells the story, the page plants it |
+| `[TANGENT]`               | Optional hop-chain: ≥3 refs, parenthetical gloss per hop     |
+| `[→]`                     | One-line connection, link front-loaded — closes a section    |
 
 Marker bodies are capped at **2 lines**. A `[Q]` answer is one `→` line of
 refs and gist — never a paragraph. `[→]` is one line, and at most one per
@@ -125,9 +125,9 @@ is the board artifact; never leave a contrast latent in bullets.
 created_at: '2026-07-25T14:00:00Z'
 topic: great-controversy
 title: 'Origin, History, and Destiny of Satan'
-kind: reading            # reading | study | message | analysis — a tag only
-series: bible-readings    # optional
-chapter: 102              # optional
+kind: reading # reading | study | message | analysis — a tag only
+series: bible-readings # optional
+chapter: 102 # optional
 ---
 
 # [Title]
@@ -138,7 +138,7 @@ chapter: 102              # optional
 
 1. [Section phrase] — [anchor ref]
 2. ...
-N. Appeal
+   N. Appeal
 
 [Q] index: [objection phrase]? →[section #] · [objection]? →[section #]
 
@@ -208,7 +208,7 @@ Rules that make it work live:
 - KJV. Verse text verbatim from `bible verse` — never memory.
 - Every doctrinal claim carries a ref on its own line or clause.
 - Strong's / Greek is auxiliary confirmation as a sub-bullet under its
-  verse — a point that *needs* the Greek isn't established yet.
+  verse — a point that _needs_ the Greek isn't established yet.
 
 ## Output location
 

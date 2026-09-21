@@ -90,7 +90,7 @@ PDF hands you.
 1. Sabbath — [phrase] — [anchor ref]
 2. Sunday — [phrase] — [anchor ref]
    ... (one line per day)
-8. Appeal
+3. Appeal
 
 [Q] index: [objection]? →[day] · [objection]? →[day]
 

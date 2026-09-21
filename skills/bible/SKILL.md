@@ -47,11 +47,11 @@ historic pioneer Adventism, not modern Adventism.
 
 ## Topic Index
 
-| File                           | Output               | Output dir                        | Filename pattern |
-| ------------------------------ | -------------------- | --------------------------------- | ---------------- |
-| `references/teachings.md`      | Teaching document    | `outputs/teachings/<topic-slug>/` | `<slug>.md`      |
-| `references/decks.md`          | Keynote deck         | `outputs/decks/<slug>/`           | `<Deck Name>.key`|
-| `references/sabbath-school.md` | SS week outline      | `outputs/sabbath-school/`         | `YYYY-QX-WY.md`  |
+| File                           | Output            | Output dir                        | Filename pattern  |
+| ------------------------------ | ----------------- | --------------------------------- | ----------------- |
+| `references/teachings.md`      | Teaching document | `outputs/teachings/<topic-slug>/` | `<slug>.md`       |
+| `references/decks.md`          | Keynote deck      | `outputs/decks/<slug>/`           | `<Deck Name>.key` |
+| `references/sabbath-school.md` | SS week outline   | `outputs/sabbath-school/`         | `YYYY-QX-WY.md`   |
 
 Not an output type, but used by both:
 `references/source-material.md` — the `bible` CLI command surface for pulling

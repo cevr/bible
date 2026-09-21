@@ -10,7 +10,7 @@ text, no bullet points, no SOP/pioneer quotes on screen.
 
 The user asks for a deck/slides for a teaching document (reading, study,
 message). Exemplar: `outputs/decks/reading-102/` (built from Reading 102,
-"Origin, History, and Destiny of Satan") in the style of the *What is Truth*
+"Origin, History, and Destiny of Satan") in the style of the _What is Truth_
 series decks (`outputs/decks/what-is-truth/`).
 
 ## Deck grammar
@@ -19,7 +19,7 @@ series decks (`outputs/decks/what-is-truth/`).
   (30pt gray), text over the darkest region of the painting.
 - **Per verse, two slides**:
   1. **Full-bleed** — the painting alone, edge to edge (the mood beat).
-  2. **Split** — the *same* painting as a 750×903 side panel + the verse
+  2. **Split** — the _same_ painting as a 750×903 side panel + the verse
      (white) + reference line (gray) beside it. The panel side **alternates**
      verse to verse (right, left, right, …) for rhythm.
 - Verse selection: **anchor passage per section + 1-2 load-bearing
@@ -39,16 +39,25 @@ Write `outputs/decks/<slug>/manifest.json`:
 
 ```json
 {
-  "title": "...", "subtitle": "Bible Readings — Chapter 102",
+  "title": "...",
+  "subtitle": "Bible Readings — Chapter 102",
   "titleConcept": "<image prompt subject for the title painting>",
-  "canvas": {"w": 1920, "h": 1080},
+  "canvas": { "w": 1920, "h": 1080 },
   "layouts": {
-    "A_imageRight": {"text": [131, 408, 805, 264], "image": [1037, 75, 750, 903]},
-    "B_imageLeft":  {"image": [133, 75, 750, 903], "text": [984, 408, 805, 264]}
+    "A_imageRight": { "text": [131, 408, 805, 264], "image": [1037, 75, 750, 903] },
+    "B_imageLeft": { "image": [133, 75, 750, 903], "text": [984, 408, 805, 264] }
   },
-  "slides": [{"id": "s01-2pet-2-4", "ref": "2 Peter 2:4", "section": 1,
-              "sectionTitle": "...", "text": "<cleaned KJV>",
-              "concept": "<prompt subject>", "side": "right"}]
+  "slides": [
+    {
+      "id": "s01-2pet-2-4",
+      "ref": "2 Peter 2:4",
+      "section": 1,
+      "sectionTitle": "...",
+      "text": "<cleaned KJV>",
+      "concept": "<prompt subject>",
+      "side": "right"
+    }
+  ]
 }
 ```
 
@@ -102,7 +111,7 @@ dims from actual pixel size (codex output size varies slightly).
 
 ### 3b. Diagram slides (line chronologies)
 
-Timelines/chronologies follow the *Just Another Book* day-2 grammar: black
+Timelines/chronologies follow the _Just Another Book_ day-2 grammar: black
 canvas, one big bold title, a single horizontal line, span labels above
 ("49 Years" / "1,000 Years"), bold event labels + refs below the ticks.
 Render them as a full-slide 1920×1080 PNG with Pillow
