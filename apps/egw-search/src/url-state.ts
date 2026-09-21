@@ -2,28 +2,26 @@
    decisions over a `string | null` API; `Option.match` per field triples the
    length of a total parser without changing what it does. */
 /* oxlint-disable effect/noNullish -- `URLSearchParams.get` returns `string |
-   null` and `history.pushState` takes `null` for its unused state argument.
-   Both are the platform's signature, not a modelling choice. */
+   null`. That is the platform's signature, not a modelling choice. */
 
 /**
  * The URL *is* the search state.
  *
- * Not a mirror of it. There is no second copy of the query or the scope held in
- * a signal and pushed to the address bar on change — the address bar holds
+ * Not a mirror of it. There is no second copy of the query or the scope held
+ * anywhere and pushed to the address bar on change — the address bar holds
  * them, and the app reads them back out. That ordering is what makes every
  * state the app can be in reachable by pasting a link, and it is why the back
  * button works without any code that knows what "back" means: a history entry
- * restores a previous URL, the location signal changes, and the derived query
- * re-runs. The alternative — signals as truth, URL as an effect — has two
- * sources that drift the moment the user navigates, and the usual fix for that
- * drift is a popstate handler that writes the signals back, which is the same
- * state twice with a synchroniser between.
+ * restores a previous URL, the router publishes the decoded search into the
+ * page's `Source`, and the query re-runs.
  *
- * One parse function and one serialise function, inverse to each other, so a
- * link this app produces is a link this app can read.
+ * This module is pure. The router owns the location; this file owns the two
+ * inverse functions between a query string and a workspace, and the codec
+ * (`Workspace`) that hands them to the router as one route's `search` Schema.
  */
 
-import { createSignal, type Accessor } from 'solid-js';
+import { Route } from '@effect-frame/router';
+import { Schema as S, SchemaGetter } from 'effect';
 
 import {
   type BookSubtype,
@@ -37,6 +35,7 @@ import {
   isCorpusSection,
   NO_SELECTION,
 } from '../server/api.js';
+import { SearchRequest } from './contract.js';
 
 /** One axis as the client holds it: the same `{ include, exclude }` the server
  *  decodes to, so a chip's three states map onto membership of one list, the
@@ -110,10 +109,6 @@ export const EMPTY_PARAMS: SearchParams = {
  * and every link already shared keeps working, opening as a single pane. The
  * suffix is the pane's 1-based position, so a second pane reads `q2`,
  * `section2`, `noref2`.
- *
- * A flat suffixed key rather than a nested or JSON-encoded structure because
- * the URL stays hand-editable and the server's existing query schema reads
- * pane 0 without knowing panes exist.
  */
 export const paneKey = (name: string, pane: number): string =>
   pane === 0 ? name : `${name}${String(pane + 1)}`;
@@ -148,7 +143,7 @@ const appendSelection = <A extends string>(
   for (const value of selection.exclude) url.append(key, `${EXCLUDE_PREFIX}${value}`);
 };
 
-/** Read the state out of a query string.
+/** Read one pane's state out of a query string.
  *
  *  Total: a hand-edited or truncated link degrades to the default for the field
  *  it broke rather than failing the page. `?scope=banana` searches everything,
@@ -171,20 +166,14 @@ export const parseParams = (search: string, pane = 0): SearchParams => {
   };
 };
 
-/** Serialise state back to a query string.
- *
- *  Defaults are *omitted*, so the common case produces `?q=latter+rain` rather
- *  than `?q=latter+rain&scope=all&limit=40`. A link a reader might paste into a
- *  message should carry what they chose, not the settings they left alone. */
-/** Write one pane's fields, omitting defaults.
+/** Write one pane's fields, omitting defaults, so the common case produces
+ *  `?q=latter+rain` rather than `?q=latter+rain&scope=all&limit=40`.
  *
  *  `force` marks a pane that is entirely at its defaults — a freshly added,
  *  unfiltered, unqueried pane writes no keys at all, and a pane the URL does
  *  not mention is a pane that does not exist when the link is re-read. Writing
- *  its empty `q` is the smallest thing that makes it real, and `parseParams`
- *  already reads an empty `q` as an empty query. Pane 0 never needs it: a
- *  single empty pane is the app's initial state, and `?q=` in the address bar
- *  of a fresh visit would be noise. */
+ *  its empty `q` is the smallest thing that makes it real. Pane 0 never needs
+ *  it: a single empty pane is the app's initial state. */
 const writeParams = (
   url: URLSearchParams,
   params: SearchParams,
@@ -206,42 +195,31 @@ export const toSearchString = (params: SearchParams): string => {
   const url = new URLSearchParams();
   writeParams(url, params, 0);
   const query = url.toString();
-  return query === '' ? '/' : `?${query}`;
+  return query === '' ? '/' : `/?${query}`;
 };
 
 /**
- * The same state, as the API's query object.
+ * The same state, as the query's arguments.
  *
  * Exhaustive by construction: it destructures every field of `SearchParams`,
  * so adding an axis above and forgetting it here is a compile error rather
- * than a filter that silently stops being sent. That is not hypothetical — the
- * four classification axes were added to `SearchParams` while the request
- * builder still listed `q`, `limit`, `context` and `scope`, so the URL said
- * `?section=pioneer-library` and every request went out unfiltered. The UI
- * showed unchanged results and looked like a reactivity bug.
- *
- * `context` is not here because it is a rendering choice, not search state:
- * the caller supplies it.
+ * than a filter that silently stops being sent.
  */
-export const toQuery = ({
-  q,
+export const toRequest = (
+  { q, scope, section, type, subtype, excludeApparatus, limit }: SearchParams,
+  context: number,
+): SearchRequest => ({
+  q: q.trim(),
   scope,
   section,
   type,
   subtype,
   excludeApparatus,
   limit,
-}: SearchParams) => ({
-  q: q.trim(),
-  scope,
-  section,
-  type,
-  subtype,
-  noref: excludeApparatus ? '1' : undefined,
-  limit,
+  context,
 });
 
-/** True when nothing but the query text is set — what the UI reads to decide
+/** True when anything but the query text is set — what the UI reads to decide
  *  whether to offer a "clear filters" affordance. */
 const anySign = (selection: Selection<unknown>): boolean =>
   selection.include.length > 0 || selection.exclude.length > 0;
@@ -264,44 +242,15 @@ export const toggle = <K extends 'section' | 'type' | 'subtype'>(
   ...params,
   // `cycle` is generic in the value type and only ever compares values for
   // equality, so widening both sides of the pair to `string` loses nothing it
-  // uses. The caller's `K` still ties the key to the value it is given, which
-  // is where the pairing is actually checked.
+  // uses. The caller's `K` still ties the key to the value it is given.
   [key]: cycle<string>(params[key], value),
 });
-
-/**
- * The live location, as a signal.
- *
- * `popstate` covers the back and forward buttons; `pushState` and
- * `replaceState` do not fire it, so the two writers below notify explicitly.
- * Wrapping them once here — rather than at each call site — is what keeps
- * "navigate" and "update the signal" from ever being done separately.
- */
-const [search, setSearch] = createSignal(window.location.search);
-
-/** Bumped on every navigation, including a back or forward. A consumer holding
- *  transient state that a navigation should discard — the half-typed text in
- *  the search box — reads this to know a navigation happened, which the parsed
- *  params alone cannot tell it: going back to a URL whose query is the same as
- *  the current one changes no field, yet is still a navigation. */
-const [epoch, setEpoch] = createSignal(0);
-
-export const navigationEpoch: Accessor<number> = epoch;
-
-const commit = (): void => {
-  setSearch(window.location.search);
-  setEpoch((value) => value + 1);
-};
-
-window.addEventListener('popstate', commit);
 
 /** How many panes the URL describes.
  *
  *  A pane exists if the URL carries *any* of its keys, not just its `q`. An
  *  added pane starts with an empty query and the previous pane's filters, so
- *  it is present as `subtype3=…` with no `q3` at all — counting `q` alone made
- *  such a pane invisible the moment it was created, and the "+ pane" button
- *  appeared to do nothing while quietly writing to the URL.
+ *  it is present as `subtype3=…` with no `q3` at all.
  *
  *  The walk still stops at the first gap, so a link carrying pane 3's keys but
  *  none of pane 2's opens two panes rather than three with a hole in the
@@ -321,8 +270,7 @@ const PANE_FIELDS = [
   'limit',
 ] satisfies readonly string[];
 
-const countPanes = (search: string): number => {
-  const url = new URLSearchParams(search);
+const countPanes = (url: URLSearchParams): number => {
   const present = (pane: number): boolean =>
     PANE_FIELDS.some((field) => url.has(paneKey(field, pane)));
   let count = 0;
@@ -332,52 +280,49 @@ const countPanes = (search: string): number => {
 
 /** Every pane's parameters, in order. The workspace is the unit of state; a
  *  single-pane workspace is the ordinary case rather than a special one. */
-export const currentPanes: Accessor<readonly SearchParams[]> = () => {
-  const query = search();
-  return Array.from({ length: countPanes(query) }, (_, pane) => parseParams(query, pane));
+export const parseWorkspace = (search: string): readonly SearchParams[] => {
+  const url = new URLSearchParams(search);
+  return Array.from({ length: countPanes(url) }, (_, pane) => parseParams(search, pane));
 };
 
-/** The current parameters. Every reader of search state reads this. */
-export const currentParams: Accessor<SearchParams> = () => parseParams(search());
-
-/** The whole workspace as a query string — every pane, in order.
- *
- *  Panes past the first that carry no query at all are dropped, so closing the
- *  middle pane of three leaves a link with two rather than a gap the parser
- *  would stop at. */
+/** The whole workspace as an href — every pane, in order. */
 export const toWorkspaceString = (panes: readonly SearchParams[]): string => {
   const url = new URLSearchParams();
   panes.forEach((params, pane) => {
     writeParams(url, params, pane, true);
   });
   const query = url.toString();
-  return query === '' ? '/' : `?${query}`;
+  return query === '' ? '/' : `/?${query}`;
 };
 
-/** Navigate the whole workspace. `navigate` is this with one pane. */
-export const navigateWorkspace = (
-  panes: readonly SearchParams[],
-  options?: { readonly replace?: boolean },
-): void => {
-  const next = toWorkspaceString(panes);
-  if (next === (window.location.search === '' ? '/' : window.location.search)) return;
-  if (options?.replace === true) window.history.replaceState(null, '', next);
-  else window.history.pushState(null, '', next);
-  commit();
-};
+// ---------------------------------------------------------------------------
+// The route's search codec
+// ---------------------------------------------------------------------------
 
-/**
- * Navigate to a new state.
- *
- * `replace` is for a refinement of the same search — changing scope on results
- * already on screen — so the back button returns to the previous *query*
- * rather than walking back through each toggle the reader tried. A new query
- * pushes, because that is a place they may want to come back to.
- */
-export const navigate = (params: SearchParams, options?: { readonly replace?: boolean }): void => {
-  const next = toSearchString(params);
-  if (next === (window.location.search === '' ? '/' : window.location.search)) return;
-  if (options?.replace === true) window.history.replaceState(null, '', next);
-  else window.history.pushState(null, '', next);
-  commit();
-};
+/** One pane, as a Schema, so the router can carry the workspace as data. */
+const SearchParamsSchema = S.Struct({
+  q: S.String,
+  scope: SearchRequest.fields.scope,
+  section: SearchRequest.fields.section,
+  type: SearchRequest.fields.type,
+  subtype: SearchRequest.fields.subtype,
+  excludeApparatus: S.Boolean,
+  limit: S.Finite,
+});
+
+/** The router hands the query string over as a keyed multimap; the two
+ *  functions above turn it into panes and back. Going through
+ *  `URLSearchParams` in both directions keeps this file's parser the only
+ *  parser: the codec is a thin adapter, not a second reading of the URL. */
+const fromRecord = (record: Route.SearchRecord): readonly SearchParams[] =>
+  parseWorkspace(Route.printSearch(record));
+
+const toRecord = (panes: readonly SearchParams[]): Route.SearchRecord =>
+  Route.readSearch(new URL(toWorkspaceString(panes), 'http://workspace.invalid').searchParams);
+
+export const Workspace = Route.SearchRecord.pipe(
+  S.decodeTo(S.Array(SearchParamsSchema), {
+    decode: SchemaGetter.transform(fromRecord),
+    encode: SchemaGetter.transform(toRecord),
+  }),
+);

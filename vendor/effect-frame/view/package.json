@@ -1,0 +1,25 @@
+{
+  "name": "@effect-frame/view",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./jsx-runtime": "./src/jsx-runtime.ts",
+    "./jsx-dev-runtime": "./src/jsx-runtime.ts",
+    "./opentui": "./src/hosts/opentui.ts"
+  },
+  "dependencies": {
+    "@effect-frame/actor": "workspace:*",
+    "@solidjs/signals": "2.0.0-rc.8"
+  },
+  "peerDependencies": {
+    "@opentui/core": "0.5.11",
+    "effect": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "@opentui/core": {
+      "optional": true
+    }
+  }
+}

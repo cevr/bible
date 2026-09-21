@@ -67,7 +67,13 @@
     "effect/noWidenThenAssert": "error",
     "effect/preferEffectFn": "error"
   },
-  "ignorePatterns": ["**/dist/**", "**/node_modules/**", "**/*.d.ts", "**/outputs/**"],
+  "ignorePatterns": [
+    "**/dist/**",
+    "**/node_modules/**",
+    "**/*.d.ts",
+    "**/outputs/**",
+    "**/vendor/**"
+  ],
   "overrides": [
     {
       "files": ["**/packages/core/src/**/*.ts", "**/packages/core/src/**/*.tsx"],

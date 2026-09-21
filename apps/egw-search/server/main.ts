@@ -25,16 +25,19 @@
  * application's answer is that it has none.
  */
 
+import { ActorHost, HttpServer, MailboxStore, QueryPolicies } from '@effect-frame/actor';
 import * as SqliteBun from '@effect/sql-sqlite-bun/SqliteClient';
 import { BunHttpServer, BunRuntime, BunServices } from '@effect/platform-bun';
-import { Effect, Layer, Option } from 'effect';
+import { Effect, Layer } from 'effect';
 import {
   Etag,
   FetchHttpClient,
   HttpMiddleware,
   HttpPlatform,
   HttpRouter,
-  HttpServer,
+  HttpServer as PlatformHttpServer,
+  HttpServerRequest,
+  HttpServerResponse,
   HttpStaticServer,
 } from 'effect/unstable/http';
 import { HttpApiBuilder } from 'effect/unstable/httpapi';
@@ -48,160 +51,44 @@ import {
   QueryEmbedder,
   ResolvedVectorIndex,
   SearchCorpusSources,
-  SearchQuery,
   SearchService,
   VectorIndexBytes,
 } from '@bible/core/search';
 import { layerBunEmbedder } from '@bible/core/search/bun';
-import type { CorpusFilter } from '@bible/core/writings';
 
-import { NO_SELECTION, readerUrl, SearchApi, SearchFailed } from './api.js';
-import { emptySurrounding, surroundingParagraphs } from './context.js';
+import { actorPrefix, searchPolicy } from '../src/contract.js';
+import { NO_SELECTION, SearchApi } from './api.js';
+import { runSearch, SearchLive } from './search.js';
 import { EgwSyncLive } from './sync.js';
 
 const PORT = Number(process.env['PORT'] ?? 3101);
 const DEFAULT_LIMIT = 40;
-const MAX_LIMIT = 100;
 const DEFAULT_CONTEXT = 1;
-const MAX_CONTEXT = 3;
-
-/** This surface never returns lookup apparatus.
- *
- *  A row like `TopIndex .Trouble, Troubles.61` is a see-also stub ("time of,
- *  See Time of Trouble"). It matches a topical query on almost every term in
- *  it, so the indexes rank *well* for exactly the queries this app is for and
- *  push the prose a reader came to read off the page.
- *
- *  This used to be a hardcoded set of ten book codes filtered off the
- *  *returned* page, which was the wrong end of the pipeline: the lexical leg
- *  fetches `SEARCH_CANDIDATE_LIMIT` rows, and for a one-word query like
- *  "sanctuary" thirteen of the first thirty were `TopIndex` stubs — so the
- *  search paid to retrieve them, ranked them, then threw them away and
- *  returned three results. Now that `books` carries the library's own `type`,
- *  the exclusion is a `WHERE` clause instead: the apparatus never enters the
- *  candidate pool, and the thirty rows are thirty rows of prose.
- *
- *  Forced on rather than defaulted, because it is a property of this surface: a
- *  search box over the writings has no use for a see-also stub. A reader who
- *  wants them can still select `type=dictionary` explicitly, which names them
- *  positively.
- *
- *  This used to add "the CLI and the desktop reader both have uses for the
- *  indexes", and `bible egw search` accordingly shipped the exclusion as an
- *  opt-in. That was wrong about the CLI: looking a reference up is a real use,
- *  but it is not what the *search* command is for, and an index entry is short
- *  and made almost entirely of the query's own words — so BM25 ranks it well
- *  for exactly the topical phrases this corpus is searched with. `latter rain`
- *  returned six `TopIndex` rows in its first ten there. The CLI now excludes by
- *  default too and takes `--apparatus` to put them back, so both surfaces answer
- *  the same query the same way. */
-const NEVER_APPARATUS = true;
-
-const clamp = (raw: number | undefined, fallback: number, max: number): number => {
-  if (raw === undefined || !Number.isFinite(raw) || raw < 0) return fallback;
-  return Math.min(Math.trunc(raw), max);
-};
 
 // ---------------------------------------------------------------------------
 // Handlers
 // ---------------------------------------------------------------------------
 
+/** The JSON wire's defaults, applied where the `HttpApi` leaves a field
+ *  optional. `runSearch` in `./search.ts` takes the full request. */
 const SearchGroupLive = HttpApiBuilder.group(SearchApi, 'search', (handlers) =>
   Effect.gen(function* () {
-    const search = yield* SearchService;
-
+    // Resolved once, when the group is built, so a request carries no
+    // requirement of its own out through the router.
+    const services = yield* Effect.context<SearchService | SqlClient.SqlClient>();
     return handlers
       .handle('health', () => Effect.succeed({ ok: true }))
       .handle('query', ({ query: params }) =>
-        Effect.gen(function* () {
-          const text = params.q.trim();
-          const scope = params.scope ?? 'all';
-          const filter: CorpusFilter = {
-            // Already split by the endpoint's `SignedFromStrings` transform.
-            section: params.section ?? NO_SELECTION,
-            type: params.type ?? NO_SELECTION,
-            subtype: params.subtype ?? NO_SELECTION,
-            // Always on for this surface (see `NEVER_APPARATUS`); `noref` is
-            // kept on the wire so a link can still say so explicitly.
-            excludeApparatus: NEVER_APPARATUS,
-          };
-          if (text === '') return { hits: [], scope, vector: 'idle', nonSelective: false };
-
-          const limit = clamp(params.limit, DEFAULT_LIMIT, MAX_LIMIT);
-          const radius = clamp(params.context, DEFAULT_CONTEXT, MAX_CONTEXT);
-
-          const result = yield* search.query(
-            SearchQuery.make({
-              text,
-              // `'all'` is passed as `none` rather than as the literal: the
-              // service treats an absent scope as unfiltered, and sending
-              // `some('all')` would be a second spelling of the same thing.
-              scope: scope === 'all' ? Option.none() : Option.some(scope),
-              bookCode: Option.none(),
-              filter,
-              limit: Option.some(limit),
-            }),
-          );
-
-          const paragraphs = result.paragraphs.slice(0, limit);
-
-          // One batched lookup for the whole page's context.
-          //
-          // Keyed on `rawParaId`, not `paragraphId`: the latter is §9.4's
-          // fusion identity (`"RR:1978.1544"` — book code, colon, para id) and
-          // matches nothing in the `para_id` column, which holds the bare
-          // `"1978.1544"`. A hit without a `rawParaId` has no addressable
-          // paragraph at all, so it simply contributes no anchor.
-          const anchors = paragraphs.flatMap((hit) =>
-            Option.match(hit.rawParaId, { onNone: () => [], onSome: (id) => [id] }),
-          );
-          // Timed separately from the search itself. `search.timing` covers
-          // the three retrieval legs and nothing else, and a query whose
-          // `totalMs` was 981 inside a 43-second HTTP span proved the handler
-          // can be the cost — so the handler's own read is measured too rather
-          // than inferred from the difference.
-          const contextAt = yield* Effect.clockWith((clock) => clock.currentTimeMillis);
-          const context = yield* surroundingParagraphs(anchors, radius).pipe(
-            Effect.withSpan('search.context', { attributes: { anchors: anchors.length } }),
-          );
-          yield* Effect.logInfo('search.context.timing').pipe(
-            Effect.annotateLogs({
-              anchors: anchors.length,
-              radius,
-              contextMs: (yield* Effect.clockWith((clock) => clock.currentTimeMillis)) - contextAt,
-            }),
-          );
-
-          return {
-            hits: paragraphs.map((hit) => {
-              const around = Option.match(hit.rawParaId, {
-                onNone: () => emptySurrounding,
-                onSome: (id) => context.get(id) ?? emptySurrounding,
-              });
-              return {
-                refcode: Option.getOrNull(hit.refcode),
-                bookCode: hit.bookCode,
-                bookTitle: hit.bookTitle,
-                author: hit.author,
-                text: hit.snippet,
-                isHeading: hit.isHeading,
-                lexicalRank: Option.getOrNull(hit.lexicalRank),
-                vectorRank: Option.getOrNull(hit.vectorRank),
-                url: Option.match(hit.rawParaId, { onNone: () => null, onSome: readerUrl }),
-                before: around.before,
-                after: around.after,
-              };
-            }),
-            scope,
-            vector: result.vector._tag === 'ran' ? 'hybrid' : `lexical — ${result.vector.reason}`,
-            nonSelective: result.nonSelective,
-          };
-        }).pipe(
-          Effect.tapCause((cause) =>
-            Effect.logError('search.failed').pipe(Effect.annotateLogs({ cause: String(cause) })),
-          ),
-          Effect.mapError(() => SearchFailed.make({ message: 'search failed' })),
-        ),
+        runSearch({
+          q: params.q,
+          scope: params.scope ?? 'all',
+          section: params.section ?? NO_SELECTION,
+          type: params.type ?? NO_SELECTION,
+          subtype: params.subtype ?? NO_SELECTION,
+          excludeApparatus: params.noref === '1',
+          limit: params.limit ?? DEFAULT_LIMIT,
+          context: params.context ?? DEFAULT_CONTEXT,
+        }).pipe(Effect.provideContext(services)),
       );
   }),
 );
@@ -545,13 +432,49 @@ const StaticLive = HttpStaticServer.layer({
   index: 'index.html',
 });
 
-const RouterLive = Layer.mergeAll(StaticLive, ApiLive);
+/** The actor transport the page reads through, mounted under `/actors`.
+ *
+ *  The host serves no actors — only the `Search` query — and it answers over
+ *  the same `searchLayer` the JSON API does. The route strips the prefix and
+ *  hands the raw web request to effect-frame's handler, which owns the wire
+ *  (`POST /query`, and the actor verbs no contract here uses). */
+const ActorsLive = ActorHost.layer({
+  implementations: [],
+  queries: [SearchLive],
+  store: () => MailboxStore.layerMemory,
+}).pipe(
+  Layer.provide(
+    Layer.succeed(
+      QueryPolicies,
+      QueryPolicies.of({ [searchPolicy]: { check: () => Effect.void } }),
+    ),
+  ),
+  Layer.provide(searchLayer),
+  Layer.provide(TunedSqlLive),
+);
+
+const ActorsRouteLive = HttpRouter.use((router) =>
+  Effect.gen(function* () {
+    const handle = yield* HttpServer.make;
+    yield* router.add('*', `${actorPrefix}/*`, (request) =>
+      Effect.gen(function* () {
+        const web = yield* HttpServerRequest.toWeb(request);
+        const url = new URL(web.url);
+        url.pathname = url.pathname.slice(actorPrefix.length);
+        const response = yield* handle(new Request(url, web));
+        return HttpServerResponse.fromWeb(response);
+      }),
+    );
+  }),
+).pipe(Layer.provide(ActorsLive));
+
+const RouterLive = Layer.mergeAll(StaticLive, ActorsRouteLive, ApiLive);
 
 const HttpLive = Layer.unwrap(
   HttpRouter.toHttpEffect(RouterLive).pipe(
     Effect.map((httpApp) =>
-      HttpServer.serve(HttpMiddleware.logger)(httpApp).pipe(
-        HttpServer.withLogAddress,
+      PlatformHttpServer.serve(HttpMiddleware.logger)(httpApp).pipe(
+        PlatformHttpServer.withLogAddress,
         Layer.provide(BunHttpServer.layer({ port: PORT })),
       ),
     ),

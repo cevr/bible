@@ -1,0 +1,17 @@
+{
+  "name": "@effect-frame/actor",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/client.ts",
+    "./testing": "./src/testing/conformance.ts"
+  },
+  "dependencies": {
+    "effect-machine": "0.27.0"
+  },
+  "peerDependencies": {
+    "effect": "catalog:"
+  }
+}
