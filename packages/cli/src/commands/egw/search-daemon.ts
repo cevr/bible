@@ -21,6 +21,7 @@
  */
 
 import { SearchQuery, SearchService } from '@bible/core/search';
+import { NO_FILTER } from '@bible/core/writings';
 import { BunServices, BunSocketServer } from '@effect/platform-bun';
 import {
   Clock,
@@ -103,6 +104,10 @@ export const runSearchDaemon = (options: {
                     scope: Option.fromNullishOr(input.scope),
                     bookCode: Option.fromNullishOr(input.bookCode),
                     limit: Option.fromNullishOr(input.limit),
+                    // Forwarded, not decided here: the daemon is a transport
+                    // for the same service the CLI calls in-process, so it must
+                    // not narrow a query differently than the direct path.
+                    filter: { ...NO_FILTER, excludeApparatus: input.excludeApparatus ?? false },
                   }),
                 ),
               ),

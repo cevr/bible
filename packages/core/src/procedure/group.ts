@@ -330,6 +330,19 @@ export const SearchQueryProcedure = procedure('v1.search.query', {
     scope: Schema.optional(CorpusScope),
     bookCode: Schema.optional(Schema.NonEmptyString),
     limit: Schema.optional(Schema.Int.check(Schema.isGreaterThan(0))),
+    /** Drop the lookup apparatus — dictionaries, topical and scripture indexes.
+     *
+     *  On the wire because the narrowing has to cross the seam with the query
+     *  it narrows. `SearchQuery` has carried a `filter` since the library's
+     *  classification landed, and every caller *except* the HTTP surface
+     *  silently sent none — so `bible egw search --no-apparatus` and the same
+     *  search over RPC returned different results, which is exactly the parity
+     *  this procedure exists to hold (see the note above about one value
+     *  crossing two seams).
+     *
+     *  Optional and defaulted off, like `scope`: a client that does not know
+     *  the axis exists sends the query alone and gets what it always got. */
+    excludeApparatus: Schema.optional(Schema.Boolean),
   },
   success: SearchResult,
 });

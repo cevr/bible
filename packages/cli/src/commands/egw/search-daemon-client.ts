@@ -81,6 +81,13 @@ export const searchDaemonClientLayer = (socketPath: string): Layer.Layer<SearchS
             scope: Option.getOrUndefined(input.scope),
             bookCode: Option.getOrUndefined(input.bookCode),
             limit: Option.getOrUndefined(input.limit),
+            // Every narrowing the caller asked for has to cross the socket, or
+            // the daemon answers a different question than the in-process path
+            // would have — and which one a reader gets depends only on whether
+            // a daemon happens to be running. `filter` is optional on
+            // `SearchQuery` and defaults to `NO_FILTER`, so this reads the one
+            // axis the wire carries rather than assuming the field is present.
+            excludeApparatus: input.filter?.excludeApparatus ?? false,
           }).pipe(Effect.orDie),
       });
     }),

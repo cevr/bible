@@ -27,6 +27,7 @@ import {
   GOLDEN_QUERIES,
   GOLDEN_TOPIC_QUERY,
 } from './golden-fixture.js';
+import { NO_FILTER } from '../writings/index.js';
 import { SearchQuery, SearchResultJson } from './model.js';
 import { SearchService } from './service.js';
 import { MODEL_FINGERPRINT } from './vector-index.js';
@@ -63,6 +64,12 @@ const overRpcWith = (search: Layer.Layer<SearchService>, query: SearchQuery) =>
       scope: Option.getOrUndefined(query.scope),
       bookCode: Option.getOrUndefined(query.bookCode),
       limit: Option.getOrUndefined(query.limit),
+      // Every narrowing the query carries, or this helper proves parity only
+      // for the ones it happens to forward. It dropped `filter` while the
+      // production daemon client dropped it too, so the two agreed — wrongly,
+      // and identically, which is the one way a parity test can pass and still
+      // be blind.
+      excludeApparatus: query.filter?.excludeApparatus ?? false,
     });
   }).pipe(
     Effect.provide(BibleProcedureHandlers.pipe(Layer.provide(procedureDependencies({ search })))),
@@ -95,6 +102,47 @@ describe('§9.7 search host parity', () => {
       // above and fail here.
       expect(direct.paragraphs.length).toBeGreaterThan(0);
       expect(direct.vector._tag).toBe('ran');
+    }),
+  );
+
+  // The narrowing that crossed no seam. `SearchQuery` has carried a `filter`
+  // since the library's classification landed, and *every* RPC path dropped it:
+  // the daemon client, the handler, and this file's own `overRpcWith` helper.
+  // Because they all dropped it identically, the parity assertions above stayed
+  // green while `bible egw search --no-apparatus` over a running daemon
+  // answered a different question than the same command without one.
+  //
+  // Asserted as a wire property rather than by counting filtered rows: the
+  // golden fixture declares no typed books, so an apparatus-exclusion
+  // assertion over it would pass without the filter ever being applied. What
+  // this pins is that the axis *arrives* — the handler builds a `CorpusFilter`
+  // from it, and a client that stops sending it changes the answer.
+  it.scopedLive('a filtered query crosses the wire as the same filtered query', () =>
+    Effect.gen(function* () {
+      const filtered = SearchQuery.make({
+        text: 'what happens at the close of probation',
+        scope: Option.none(),
+        bookCode: Option.none(),
+        limit: Option.none(),
+        filter: { ...NO_FILTER, excludeApparatus: true },
+      });
+      expect(yield* encode(yield* overRpc(filtered))).toBe(yield* encode(yield* overCli(filtered)));
+
+      // And the axis is genuinely carried rather than defaulted on both sides:
+      // the same query with the filter off is still the same result here (the
+      // fixture has no apparatus to remove), but the payload differs, so a
+      // handler that ignored the field would be indistinguishable from one that
+      // honoured it *only* on a fixture like this one. The daemon-backed check
+      // that does discriminate lives in the CLI suite, over the real corpus.
+      const unfiltered = SearchQuery.make({
+        text: 'what happens at the close of probation',
+        scope: Option.none(),
+        bookCode: Option.none(),
+        limit: Option.none(),
+      });
+      expect(yield* encode(yield* overRpc(unfiltered))).toBe(
+        yield* encode(yield* overCli(unfiltered)),
+      );
     }),
   );
 

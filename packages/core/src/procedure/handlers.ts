@@ -3,7 +3,7 @@ import { SearchQuery } from '../search/model.js';
 import { SearchService } from '../search/service.js';
 import { Reference as BibleReference } from '../bible/index.js';
 import { BibleService } from '../bible/service.js';
-import { Reference as WritingsReference } from '../writings/index.js';
+import { NO_FILTER, Reference as WritingsReference } from '../writings/index.js';
 import { WritingsService } from '../writings/service.js';
 import { StudyCorpusDataError, StudyService } from '../study/service.js';
 import { TopicService } from '../topics/service.js';
@@ -173,6 +173,9 @@ export const BibleProcedureHandlers = BibleProcedureGroup.toLayer(
             scope: Option.fromNullishOr(input.scope),
             bookCode: Option.fromNullishOr(input.bookCode),
             limit: Option.fromNullishOr(input.limit),
+            // Absent means "as it always was": the axis is off unless a client
+            // names it, so a caller that predates the field is unaffected.
+            filter: { ...NO_FILTER, excludeApparatus: input.excludeApparatus ?? false },
           }),
         ),
       // The whole bundle, composed inside the host by the same `StudyService`

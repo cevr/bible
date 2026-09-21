@@ -7,7 +7,7 @@ import {
   SEARCH_TOPIC_LIMIT,
 } from '@bible/core/search';
 import { WikiService } from '@bible/core/wiki';
-import { Reference } from '@bible/core/writings';
+import { NO_FILTER, Reference } from '@bible/core/writings';
 import { WritingsService } from '@bible/core/writings/service';
 import { Cause, Console, Effect, Option, Schema } from 'effect';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
@@ -163,6 +163,28 @@ const scope = Flag.choice('scope', ['egw', 'pioneer', 'all']).pipe(
   Flag.withDescription('Corpus scope: egw, pioneer, or all (default: egw)'),
   Flag.optional,
 );
+/** Drop the lookup apparatus — dictionaries, topical and scripture indexes.
+ *
+ *  `SearchQuery` has carried a `filter` since the classification landed, and
+ *  this command was the one caller that never passed one: the web app forces
+ *  `excludeApparatus` on (`NEVER_APPARATUS`), while the CLI had no way to ask
+ *  for it at all. A reader here could not exclude the indexes even by naming
+ *  every other type positively, because `type.include` is a whitelist over four
+ *  types and the apparatus is three of them.
+ *
+ *  Off by default, deliberately. `NEVER_APPARATUS` explains why that surface
+ *  forces it — a search box over the writings has no use for a see-also stub —
+ *  and says in the same breath that "the CLI and the desktop reader both have
+ *  uses for the indexes". Looking a reference up *is* a CLI use, so the default
+ *  stays as it was and the flag is how a reader turns it off.
+ *
+ *  Worth knowing what it costs to leave off: a topical query is dominated by
+ *  the apparatus, because a see-also stub matches on nearly every term it
+ *  contains. `latter rain` returns six `TopIndex` rows in its first ten. */
+const noApparatus = Flag.boolean('no-apparatus').pipe(
+  Flag.withDescription('Exclude dictionaries and topical/scripture indexes from the results'),
+  Flag.withDefault(false),
+);
 /** The remote search path. `FullLayer` — the API client plus auth — is provided
  *  here, at this operation's own boundary, rather than inside the command body. */
 const remoteSearch = (queryStr: string, lang: string, limit: number, json: boolean) =>
@@ -191,7 +213,7 @@ const remoteSearch = (queryStr: string, lang: string, limit: number, json: boole
 
 export const egwSearch = Command.make(
   'search',
-  { query, book, limit, remote, json, lang, scope, full },
+  { query, book, limit, remote, json, lang, scope, full, noApparatus },
   (args) =>
     Effect.gen(function* () {
       const queryStr = args.query.join(' ').trim();
@@ -219,6 +241,9 @@ export const egwSearch = Command.make(
               scope: args.scope,
               bookCode: args.book,
               limit: Option.some(args.limit),
+              // The same axis the web app forces on; see `noApparatus` for why
+              // this surface defaults it off instead.
+              filter: { ...NO_FILTER, excludeApparatus: args.noApparatus },
             }),
           ),
         ),
