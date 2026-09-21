@@ -13,14 +13,14 @@ import {
 } from '~/src/lib/markdown-to-notes';
 import { splitMarkdownIntoSections } from '~/src/lib/split-markdown';
 
-const forceCreate = Flag.boolean('force-create').pipe(
+const forceCreate = Flag.Boolean('force-create').pipe(
   Flag.withDefault(false),
   Flag.withDescription(
     'Create a new note even if the file already has an apple_note_id in frontmatter',
   ),
 );
 
-const split = Flag.boolean('split').pipe(
+const split = Flag.Boolean('split').pipe(
   Flag.withDefault(false),
   Flag.withDescription(
     'Export each top-level section as its own note, using the document title as the folder. ' +

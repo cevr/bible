@@ -15,13 +15,13 @@ const decodeVerseSlides = Schema.decodeUnknownEffect(
   Schema.fromJsonString(Schema.Array(VerseSlide)),
 );
 
-const interleaveDeck = Argument.string('deck').pipe(
+const interleaveDeck = Argument.String('deck').pipe(
   Argument.withDescription('Open document name substring OR a .key path'),
 );
-const interleaveVerses = Argument.file('verses', { mustExist: true }).pipe(
+const interleaveVerses = Argument.File('verses', { mustExist: true }).pipe(
   Argument.withDescription('JSON: [{ after: <caption substring>, ref, text }]'),
 );
-const interleaveMaster = Flag.string('master').pipe(
+const interleaveMaster = Flag.String('master').pipe(
   Flag.withDescription('Master slide for the inserted text slides (must be black)'),
   Flag.withDefault('Blank'),
 );

@@ -174,7 +174,7 @@ const commandSuffix = (count: number): string => {
   return 's';
 };
 
-const checkpointArgument = Argument.choice('checkpoint', CHECKPOINT_NAMES);
+const checkpointArgument = Argument.Literals('checkpoint', CHECKPOINT_NAMES);
 
 const checkpointCommand = Command.make(
   'checkpoint',

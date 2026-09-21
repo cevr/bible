@@ -84,7 +84,7 @@ const MODEL_CONTEXT_TOKENS = 2048;
  *  `~/.bible`, the browser from its own cache. Absent means "use the library's
  *  default cache", which is the browser's case. */
 export const modelCacheDir: Config.Config<Option.Option<string>> = Config.option(
-  Config.string('BIBLE_MODEL_CACHE'),
+  Config.String('BIBLE_MODEL_CACHE'),
 );
 
 /** `~/.bible/models`, beside the corpora both native hosts already resolve
@@ -95,7 +95,7 @@ export const modelCacheDir: Config.Config<Option.Option<string>> = Config.option
  *  move: the env override still wins, and a host with no `HOME` — the browser,
  *  a bare service — reads as "no fallback" rather than failing. */
 export const bibleHomeModelsFallback: Config.Config<Option.Option<string>> = Config.option(
-  Config.string('HOME'),
+  Config.String('HOME'),
 ).pipe(Config.map(Option.map((home) => `${home}/.bible/models`)));
 
 /** The tokenizer and model this adapter drives, as narrowly as it uses them.

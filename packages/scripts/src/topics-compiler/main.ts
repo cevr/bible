@@ -24,29 +24,29 @@ import { parseTopicSource } from './source.js';
  *  and five below the repo root. */
 const repoRoot = new URL('../../../../', import.meta.url).pathname.replace(/\/$/u, '');
 
-const content = Flag.string('content').pipe(
+const content = Flag.String('content').pipe(
   Flag.withDefault(`${repoRoot}/content/topics`),
   Flag.withDescription('Directory of authored topic sources'),
 );
 
-const out = Flag.string('out').pipe(
+const out = Flag.String('out').pipe(
   Flag.withDefault(`${repoRoot}/packages/core/data/topics.db`),
   Flag.withDescription('Destination path for the compiled topics.db'),
 );
 
 /** Empty means "derive from HOME inside the handler": a default read at module
  *  load would bake one machine's home directory into the flag's help text. */
-const bibleDb = Flag.string('bible-db').pipe(
+const bibleDb = Flag.String('bible-db').pipe(
   Flag.withDefault(''),
   Flag.withDescription('bible.db to resolve catalog overlay keys against (default ~/.bible)'),
 );
 
-const writingsDb = Flag.string('writings-db').pipe(
+const writingsDb = Flag.String('writings-db').pipe(
   Flag.withDefault(''),
   Flag.withDescription('Writings database to verify citations against (default ~/.bible)'),
 );
 
-const json = Flag.boolean('json').pipe(
+const json = Flag.Boolean('json').pipe(
   Flag.withDefault(false),
   Flag.withDescription('Emit the manifest as JSON'),
 );
@@ -71,7 +71,7 @@ export const buildTopics = Command.make(
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const home = yield* Config.string('HOME');
+      const home = yield* Config.String('HOME');
       const orDefault = (flag: string, name: string): string =>
         Option.match(
           Option.liftPredicate(flag, (value) => value.length > 0),

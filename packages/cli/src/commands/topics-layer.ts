@@ -40,7 +40,7 @@ import { packagedDataCandidates } from '~/src/lib/paths';
 const installedTopicsSupply: Layer.Layer<CorpusSupply> = Layer.unwrap(
   Effect.gen(function* () {
     const path = yield* Path.Path;
-    const home = yield* Config.string('HOME');
+    const home = yield* Config.String('HOME');
     return CorpusSupply.layer.pipe(
       Layer.provide(
         layerNativeTopicsArtifacts({

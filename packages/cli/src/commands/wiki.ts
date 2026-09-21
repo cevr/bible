@@ -93,12 +93,12 @@ export const WikiTopicsJson = Schema.Struct({
 
 const encodeTopics = Schema.encodeEffect(WikiTopicsJson);
 
-const json = Flag.boolean('json').pipe(
+const json = Flag.Boolean('json').pipe(
   Flag.withDefault(false),
   Flag.withDescription('Emit stable JSON'),
 );
 
-const query = Flag.string('query').pipe(
+const query = Flag.String('query').pipe(
   Flag.optional,
   Flag.withDescription('Filter pages by title or slug'),
 );
@@ -115,7 +115,7 @@ const query = Flag.string('query').pipe(
 const installedWikiLayer = Layer.unwrap(
   Effect.gen(function* () {
     const path = yield* Path.Path;
-    const home = yield* Config.string('HOME');
+    const home = yield* Config.String('HOME');
     return layerBunWithCatalog({
       topics: path.join(home, '.bible', 'topics.db'),
       bible: path.join(home, '.bible', 'bible.db'),
@@ -217,7 +217,7 @@ const missingMarker = (section: WikiSection): string => {
 export const topicJson = (page: WikiPage): Effect.Effect<WikiPageJson, Schema.SchemaError> =>
   encodePage(page);
 
-const slug = Argument.string('slug').pipe(Argument.withDescription('The topic page slug'));
+const slug = Argument.String('slug').pipe(Argument.withDescription('The topic page slug'));
 
 export const wikiTopic = Command.make('topic', { slug, json }, (args) =>
   Effect.gen(function* () {
@@ -280,7 +280,7 @@ export const matchesJson = (
  *  second run for §4.5's per-phrase state to carry into. Piping a whole verse
  *  in, as the acceptance workflow does, is therefore the raw-text half of the
  *  fixture — the rendered half runs through `matchSegments` in core. */
-const text = Argument.string('text').pipe(
+const text = Argument.String('text').pipe(
   Argument.withDescription('The text to match against the phrase dictionary'),
 );
 
@@ -320,7 +320,7 @@ export const wikiMatches = Command.make('matches', { text, json }, (args) =>
 const installedLookupLayer = Layer.unwrap(
   Effect.gen(function* () {
     const path = yield* Path.Path;
-    const home = yield* Config.string('HOME');
+    const home = yield* Config.String('HOME');
     return layerBunLookup({
       topics: path.join(home, '.bible', 'topics.db'),
       bible: path.join(home, '.bible', 'bible.db'),
@@ -350,7 +350,7 @@ export const lookupJson = (
 ): Effect.Effect<LookupResultJson, Schema.SchemaError> =>
   Schema.encodeEffect(LookupResultJson)(result);
 
-const lookupText = Argument.string('text').pipe(
+const lookupText = Argument.String('text').pipe(
   Argument.withDescription('The selected text to look up'),
 );
 
@@ -372,7 +372,7 @@ class NotOneVerseContextError extends Schema.TaggedError<NotOneVerseContextError
  *  `getVerseWords` takes three numbers. A chapter or a range would silently
  *  resolve against its first verse and report Strong's entries for words the
  *  caller never named. */
-const contextFlag = Flag.string('context').pipe(
+const contextFlag = Flag.String('context').pipe(
   Flag.optional,
   Flag.withDescription('The verse the selection came from, e.g. "Dan 8:13"'),
 );

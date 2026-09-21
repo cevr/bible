@@ -43,14 +43,14 @@ import { readVectorSource } from './source.js';
 
 const repoRoot = new URL('../../../../', import.meta.url).pathname.replace(/\/$/u, '');
 
-const out = Flag.string('out').pipe(
+const out = Flag.String('out').pipe(
   Flag.withDefault(`${repoRoot}/packages/core/data/vectors.bvi`),
   Flag.withDescription('Destination path for the compiled vector index'),
 );
 
 /** Empty means "derive from HOME inside the handler": a default read at module
  *  load would bake one machine's home directory into the flag's help text. */
-const writingsDb = Flag.string('writings-db').pipe(
+const writingsDb = Flag.String('writings-db').pipe(
   Flag.withDefault(''),
   Flag.withDescription('Writings database to embed from (default ~/.bible)'),
 );
@@ -61,7 +61,7 @@ const writingsDb = Flag.string('writings-db').pipe(
  *  per-book manifest with more than one range, a real embedder — and small
  *  enough that a developer who runs the script by accident waits seconds rather
  *  than hours. `0` means the whole corpus, and is the deliberate act. */
-const limit = Flag.integer('limit').pipe(
+const limit = Flag.Int('limit').pipe(
   Flag.withDefault(200),
   Flag.withDescription('Paragraphs to embed; 0 means the entire EGW scope (hours)'),
 );
@@ -78,7 +78,7 @@ const JsonString = Schema.Unknown.pipe(
 );
 const encodeJson = Schema.encodeUnknownEffect(JsonString);
 
-const json = Flag.boolean('json').pipe(
+const json = Flag.Boolean('json').pipe(
   Flag.withDefault(false),
   Flag.withDescription('Emit the manifest as JSON'),
 );
@@ -90,7 +90,7 @@ export const buildVectors = Command.make(
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const home = yield* Config.string('HOME');
+      const home = yield* Config.String('HOME');
       const writingsFile = Option.match(
         Option.liftPredicate(args.writingsDb, (value) => value.length > 0),
         {

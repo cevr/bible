@@ -38,9 +38,9 @@ export const layerHymnalBun: Layer.Layer<
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
-    const homeDirectory = yield* Config.string('HOME');
+    const homeDirectory = yield* Config.String('HOME');
     const defaultDbPath = path.join(homeDirectory, '.bible', 'hymnal.db');
-    const dbPath = yield* Config.string('HYMNAL_DB_PATH').pipe(Config.withDefault(defaultDbPath));
+    const dbPath = yield* Config.String('HYMNAL_DB_PATH').pipe(Config.withDefault(defaultDbPath));
 
     if (!(yield* fs.exists(dbPath))) {
       return yield* HymnalError.make({

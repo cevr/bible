@@ -5,24 +5,24 @@ import { Command, Flag } from 'effect/unstable/cli';
 import { encodeJson } from './format.js';
 import { FullLayer } from './layers.js';
 
-const catalogLang = Flag.string('lang').pipe(
+const catalogLang = Flag.String('lang').pipe(
   Flag.withDescription('Language code (default: en)'),
   Flag.withDefault('en'),
 );
-const catalogSearch = Flag.string('search').pipe(
+const catalogSearch = Flag.String('search').pipe(
   Flag.withAlias('q'),
   Flag.withDescription('Title search substring'),
   Flag.optional,
 );
-const catalogAuthor = Flag.string('author').pipe(
+const catalogAuthor = Flag.String('author').pipe(
   Flag.withDescription('Filter results by author substring (client-side)'),
   Flag.optional,
 );
-const catalogLimit = Flag.integer('limit').pipe(
+const catalogLimit = Flag.Int('limit').pipe(
   Flag.withDescription('Max results to display (default: 50)'),
   Flag.withDefault(50),
 );
-const catalogJson = Flag.boolean('json').pipe(
+const catalogJson = Flag.Boolean('json').pipe(
   Flag.withDescription('Output raw JSON'),
   Flag.withDefault(false),
 );

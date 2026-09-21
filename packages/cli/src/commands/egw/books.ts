@@ -5,11 +5,11 @@ import { Command, Flag } from 'effect/unstable/cli';
 import { encodeJson, publicationJson } from './format.js';
 import { ServiceLayer } from './layers.js';
 
-const author = Flag.string('author').pipe(
+const author = Flag.String('author').pipe(
   Flag.withDescription('Filter by author (case-insensitive substring match)'),
   Flag.optional,
 );
-const json = Flag.boolean('json').pipe(
+const json = Flag.Boolean('json').pipe(
   Flag.withDescription('Output JSON instead of a table'),
   Flag.withDefault(false),
 );

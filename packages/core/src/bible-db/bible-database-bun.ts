@@ -31,12 +31,12 @@ export const layerBunConfig: Layer.Layer<
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
-        const homeDir = yield* Config.string('HOME').pipe(
-          Config.orElse(() => Config.string('USERPROFILE')),
+        const homeDir = yield* Config.String('HOME').pipe(
+          Config.orElse(() => Config.String('USERPROFILE')),
           Config.withDefault('.'),
         );
         const defaultDbPath = path.join(homeDir, '.bible', 'bible.db');
-        const configured = yield* Config.string('BIBLE_DB_PATH').pipe(
+        const configured = yield* Config.String('BIBLE_DB_PATH').pipe(
           Config.withDefault(defaultDbPath),
         );
         const filename = path.resolve(configured);

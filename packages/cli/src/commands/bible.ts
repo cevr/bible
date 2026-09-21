@@ -17,14 +17,14 @@ const JsonString = Schema.Unknown.pipe(
 const encodeJson = Schema.encodeUnknownEffect(JsonString);
 
 // Variadic args to capture "john 3:16" or "john" "3:16" etc.
-const query = Argument.string('query').pipe(Argument.variadic());
+const query = Argument.String('query').pipe(Argument.variadic());
 
-const jsonFlag = Flag.boolean('json').pipe(
+const jsonFlag = Flag.Boolean('json').pipe(
   Flag.withDescription('Output JSON instead of formatted text'),
   Flag.withDefault(false),
 );
 
-const limitFlag = Flag.integer('limit').pipe(
+const limitFlag = Flag.Int('limit').pipe(
   Flag.withDescription('Max results for search/list output'),
   Flag.optional,
 );

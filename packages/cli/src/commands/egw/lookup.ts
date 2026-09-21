@@ -225,8 +225,8 @@ const collectLookupData = (parsed: LookupReference) =>
     }
   });
 
-const ref = Argument.string('ref').pipe(Argument.variadic());
-const json = Flag.boolean('json').pipe(
+const ref = Argument.String('ref').pipe(Argument.variadic());
+const json = Flag.Boolean('json').pipe(
   Flag.withDescription('Output JSON instead of formatted text'),
   Flag.withDefault(false),
 );

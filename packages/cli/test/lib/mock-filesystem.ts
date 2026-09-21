@@ -1,4 +1,14 @@
-import { DateTime, Effect, FileSystem, Layer, Option, PlatformError, Ref, Stream } from 'effect';
+import {
+  ByteSize,
+  DateTime,
+  Effect,
+  FileSystem,
+  Layer,
+  Option,
+  PlatformError,
+  Ref,
+  Stream,
+} from 'effect';
 
 import { CallSequence, type ServiceCall } from './sequence-recorder.js';
 
@@ -101,8 +111,8 @@ export const createMockFileSystemLayer = (config: MockFileSystemConfig) => {
               uid: Option.some(0),
               gid: Option.some(0),
               rdev: Option.some(0),
-              size: FileSystem.Size(size),
-              blksize: Option.some(FileSystem.Size(4096)),
+              size: ByteSize.bytes(size),
+              blksize: Option.some(ByteSize.bytes(4096)),
               blocks: Option.some(1),
             };
           }),

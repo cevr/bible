@@ -39,7 +39,7 @@ import { contentService } from './topics-layer.js';
 const encodeStatus = Schema.encodeEffect(Schema.fromJsonString(ContentStatusJson, { space: 2 }));
 const encodeUpdate = Schema.encodeEffect(Schema.fromJsonString(ContentUpdateJson, { space: 2 }));
 
-const json = Flag.boolean('json').pipe(
+const json = Flag.Boolean('json').pipe(
   Flag.withDescription('Output the raw JSON payload'),
   Flag.withDefault(false),
 );

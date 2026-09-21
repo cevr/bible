@@ -29,25 +29,25 @@ interface BuildRecord {
   file: string;
 }
 
-const buildBeatSheet = Argument.file('beat-sheet', { mustExist: true }).pipe(
+const buildBeatSheet = Argument.File('beat-sheet', { mustExist: true }).pipe(
   Argument.withDescription(
     "beat-sheet.json — { deck, beats:[{ line, image, scene, note? }] }. Image paths resolve relative to this file's directory.",
   ),
 );
-const buildOut = Flag.string('out').pipe(
+const buildOut = Flag.String('out').pipe(
   Flag.withDescription(
     'Output .key path (required). A bare name is written as <name>.key next to the beat-sheet.',
   ),
 );
-const buildTheme = Flag.string('theme').pipe(
+const buildTheme = Flag.String('theme').pipe(
   Flag.withDescription('Keynote document theme'),
   Flag.withDefault('Basic Black'),
 );
-const buildMaster = Flag.string('master').pipe(
+const buildMaster = Flag.String('master').pipe(
   Flag.withDescription('Master slide name per beat'),
   Flag.withDefault('Blank'),
 );
-const buildOpen = Flag.boolean('open').pipe(
+const buildOpen = Flag.Boolean('open').pipe(
   Flag.withDescription('Leave the deck open in Keynote after build'),
   Flag.withDefault(false),
 );

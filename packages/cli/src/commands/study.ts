@@ -59,7 +59,7 @@ const encodeJson = Schema.encodeUnknownEffect(JsonString);
 const encodeVerse = Schema.encodeEffect(VerseStudyJson);
 const encodeStrongs = Schema.encodeEffect(StrongsStudyJson);
 
-const json = Flag.boolean('json').pipe(
+const json = Flag.Boolean('json').pipe(
   Flag.withDefault(false),
   Flag.withDescription('Emit stable JSON'),
 );
@@ -72,7 +72,7 @@ const json = Flag.boolean('json').pipe(
  *  a schema error from deep inside the encode rather than "that flag needs a
  *  positive number". One exported schema is what makes the two seams agree by
  *  construction instead of by inspection. */
-const limit = Flag.integer('limit').pipe(
+const limit = Flag.Int('limit').pipe(
   // Before `Flag.optional`, deliberately: the combinators compose in order, so
   // a schema applied after it would be handed the `Option` wrapper rather than
   // the number and would reject every invocation, absent flag included.
@@ -86,7 +86,7 @@ const limit = Flag.integer('limit').pipe(
 const installedStudyLayer = Layer.unwrap(
   Effect.gen(function* () {
     const path = yield* Path.Path;
-    const home = yield* Config.string('HOME');
+    const home = yield* Config.String('HOME');
     return layerBunStudy({
       bible: path.join(home, '.bible', 'bible.db'),
       writings: path.join(home, '.bible', 'egw-paragraphs.db'),
@@ -159,7 +159,7 @@ export const verseStudyJson = (
   bundle: VerseStudy,
 ): Effect.Effect<VerseStudyJson, Schema.SchemaError> => encodeVerse(bundle);
 
-const reference = Argument.string('reference').pipe(
+const reference = Argument.String('reference').pipe(
   Argument.withDescription('A Bible verse reference, e.g. "Dan 8:13"'),
 );
 
@@ -246,7 +246,7 @@ export const strongsStudyJson = (
   result: StrongsStudy,
 ): Effect.Effect<StrongsStudyJson, Schema.SchemaError> => encodeStrongs(result);
 
-const number = Argument.string('number').pipe(
+const number = Argument.String('number').pipe(
   Argument.withDescription("A Strong's number, e.g. H8548"),
 );
 

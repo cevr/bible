@@ -108,7 +108,7 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
   > = Layer.effect(
     EGWApiClient,
     Effect.gen(function* () {
-      const baseUrl = yield* Config.string('EGW_API_BASE_URL').pipe(
+      const baseUrl = yield* Config.String('EGW_API_BASE_URL').pipe(
         Config.withDefault(
           bakedApiBaseUrl().pipe(
             Option.orElse(() => envVar('EGW_API_BASE_URL')),
@@ -116,7 +116,7 @@ export class EGWApiClient extends Context.Service<EGWApiClient, EGWApiClientServ
           ),
         ),
       );
-      const userAgent = yield* Config.string('EGW_USER_AGENT').pipe(
+      const userAgent = yield* Config.String('EGW_USER_AGENT').pipe(
         Config.withDefault(
           bakedUserAgent().pipe(
             Option.orElse(() => envVar('EGW_USER_AGENT')),

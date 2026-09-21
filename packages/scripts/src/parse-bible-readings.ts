@@ -6,11 +6,11 @@ import { Console, Effect, FileSystem, Option, Path, Schema } from 'effect';
 import { Argument, Command } from 'effect/unstable/cli';
 import { PDFParse } from 'pdf-parse';
 
-const pdfPathArgument = Argument.file('pdf-path').pipe(
+const pdfPathArgument = Argument.File('pdf-path').pipe(
   Argument.withDescription('Path to the PDF file to parse (or .txt file for testing)'),
 );
 
-const outputDirectoryArgument = Argument.directory('output-dir').pipe(
+const outputDirectoryArgument = Argument.Directory('output-dir').pipe(
   Argument.withDefault('./extracted-chapters'),
   Argument.withDescription('Directory where chapter files will be created'),
 );

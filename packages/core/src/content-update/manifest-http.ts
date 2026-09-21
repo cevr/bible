@@ -45,7 +45,7 @@ import { ContentManifestSource } from './service.js';
  *  e2e — point a host at a local fixture without the adapter growing a
  *  test-only branch, and what §12 leaves open ("the exact URL") without leaving
  *  the mechanism open. */
-export const contentManifestUrl: Config.Config<string> = Config.string(
+export const contentManifestUrl: Config.Config<string> = Config.String(
   'BIBLE_CONTENT_MANIFEST_URL',
 ).pipe(Config.withDefault(CONTENT_MANIFEST_URL));
 

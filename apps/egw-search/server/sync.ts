@@ -196,7 +196,7 @@ const ScheduledLive: Layer.Layer<never, never, SqlClient.SqlClient> = Layer.effe
  */
 export const EgwSyncLive: Layer.Layer<never, never, SqlClient.SqlClient> = Layer.unwrap(
   Effect.gen(function* () {
-    const clientId = yield* Config.string('EGW_CLIENT_ID').pipe(Config.option);
+    const clientId = yield* Config.String('EGW_CLIENT_ID').pipe(Config.option);
 
     if (Option.isNone(clientId)) {
       return Layer.effectDiscard(

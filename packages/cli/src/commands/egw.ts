@@ -33,7 +33,7 @@ export {
   egwSync,
 };
 
-const query = Argument.string('query').pipe(Argument.variadic());
+const query = Argument.String('query').pipe(Argument.variadic());
 
 export const egwWithSubcommands = Command.make('egw', { query }, (args) =>
   Effect.gen(function* () {

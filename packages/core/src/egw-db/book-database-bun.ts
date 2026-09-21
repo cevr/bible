@@ -28,12 +28,12 @@ export const layerBunConfig: Layer.Layer<
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
-        const homeDir = yield* Config.string('HOME').pipe(
-          Config.orElse(() => Config.string('USERPROFILE')),
+        const homeDir = yield* Config.String('HOME').pipe(
+          Config.orElse(() => Config.String('USERPROFILE')),
           Config.withDefault('.'),
         );
         const defaultDbPath = path.join(homeDir, '.bible', 'egw-paragraphs.db');
-        const dbFile = yield* Config.string('EGW_PARAGRAPH_DB').pipe(
+        const dbFile = yield* Config.String('EGW_PARAGRAPH_DB').pipe(
           Config.withDefault(defaultDbPath),
         );
         const dbPath = path.resolve(dbFile);

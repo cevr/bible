@@ -45,13 +45,13 @@ class MissingPdfError extends Data.TaggedError(
   quarter: number;
 }> {}
 
-const year = Flag.integer('year').pipe(
+const year = Flag.Int('year').pipe(
   Flag.withAlias('y'),
   Flag.withSchema(Schema.Finite.check(Schema.isLessThanOrEqualTo(currentDate.year))),
   Flag.optional,
   Flag.map(Option.getOrElse(() => currentDate.year)),
 );
-const quarter = Flag.integer('quarter').pipe(
+const quarter = Flag.Int('quarter').pipe(
   Flag.withAlias('q'),
   Flag.withSchema(
     Schema.Finite.check(Schema.isGreaterThanOrEqualTo(1), Schema.isLessThanOrEqualTo(4)),
@@ -60,7 +60,7 @@ const quarter = Flag.integer('quarter').pipe(
   Flag.map(Option.getOrElse(() => Math.floor((currentDate.month - 1) / 3) + 1)),
 );
 
-const week = Flag.integer('week').pipe(
+const week = Flag.Int('week').pipe(
   Flag.withAlias('w'),
   Flag.withSchema(
     Schema.Finite.check(Schema.isGreaterThanOrEqualTo(1), Schema.isLessThanOrEqualTo(13)),
@@ -176,7 +176,7 @@ const getPdfPath = Effect.fn('getPdfPath')(function* (
   return path.join(pdfDir, `${year}-Q${quarter}-W${week}-${type}.pdf`);
 });
 
-const fetchJson = Flag.boolean('json').pipe(
+const fetchJson = Flag.Boolean('json').pipe(
   Flag.withDescription('Output JSON with paths and metadata instead of human-readable status'),
   Flag.withDefault(false),
 );

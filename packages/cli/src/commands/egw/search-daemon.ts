@@ -165,12 +165,12 @@ export const runSearchDaemon = (options: {
     return outcome;
   });
 
-const stop = Flag.boolean('stop').pipe(
+const stop = Flag.Boolean('stop').pipe(
   Flag.withDefault(false),
   Flag.withDescription('Ask the running daemon to exit'),
 );
 
-const idleMinutes = Flag.integer('idle-minutes').pipe(
+const idleMinutes = Flag.Int('idle-minutes').pipe(
   Flag.withDefault(15),
   Flag.withDescription('Exit after this long without a request (default: 15)'),
 );
@@ -192,7 +192,7 @@ const serveDaemon = (input: { readonly socketPath: string; readonly idleMillis: 
 
 export const egwDaemon = Command.make('daemon', { stop, idleMinutes }, (args) =>
   Effect.gen(function* () {
-    const home = yield* Config.string('HOME');
+    const home = yield* Config.String('HOME');
     const socketPath = searchDaemonSocketPath(home);
 
     if (args.stop) {

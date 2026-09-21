@@ -95,7 +95,7 @@ export const verifiedVectorIndex = (
 export const installedSearchLayer: Layer.Layer<SearchService> = Layer.unwrap(
   Effect.gen(function* () {
     const path = yield* Path.Path;
-    const home = yield* Config.string('HOME');
+    const home = yield* Config.String('HOME');
     // Compiled-binary repair: onnxruntime's dylib must sit in the temp dir
     // before the embedder's first load — a no-op in the workspace.
     yield* ensureOnnxDylibs;
@@ -163,9 +163,9 @@ export const installedSearchLayer: Layer.Layer<SearchService> = Layer.unwrap(
  *  spawner, sandbox) degrades to in-process rather than surfacing. */
 const daemonPreferredSearchLayer: Layer.Layer<SearchService> = Layer.unwrap(
   Effect.gen(function* () {
-    const setting = yield* Config.option(Config.string('BIBLE_SEARCH_DAEMON'));
+    const setting = yield* Config.option(Config.String('BIBLE_SEARCH_DAEMON'));
     if (Option.exists(setting, (value) => value === 'off')) return installedSearchLayer;
-    const home = yield* Config.string('HOME');
+    const home = yield* Config.String('HOME');
     const socketPath = searchDaemonSocketPath(home);
     const resident = yield* probeSearchDaemon(socketPath);
     const matching = Option.filter(resident, (status) => status.fingerprint === CLIENT_FINGERPRINT);

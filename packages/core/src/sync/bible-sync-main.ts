@@ -7,7 +7,7 @@ import { Command, Flag } from 'effect/unstable/cli';
 
 import { defaultBibleSyncPaths, syncBible } from './bible-sync.js';
 
-const force = Flag.boolean('force').pipe(
+const force = Flag.Boolean('force').pipe(
   Flag.withDefault(false),
   Flag.withDescription('Recreate the canonical Bible database'),
 );

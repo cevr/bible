@@ -140,7 +140,7 @@ export const layer: Layer.Layer<Service, ReferenceDatabaseError | Config.ConfigE
   Layer.effect(
     Service,
     Effect.gen(function* () {
-      const databasePath = yield* Config.string('EGW_PARAGRAPH_DB').pipe(
+      const databasePath = yield* Config.String('EGW_PARAGRAPH_DB').pipe(
         Config.withDefault(`${homedir()}/.bible/egw-paragraphs.db`),
       );
       const panels = yield* loadEgwPanelMap(databasePath);

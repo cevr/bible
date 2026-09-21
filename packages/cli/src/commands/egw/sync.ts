@@ -6,20 +6,20 @@ import { CliProcess } from '../../services/process.js';
 import { encodeJson } from './format.js';
 import { FullLayer } from './layers.js';
 
-const syncLang = Flag.string('lang').pipe(
+const syncLang = Flag.String('lang').pipe(
   Flag.withDescription('Language code (default: en)'),
   Flag.withDefault('en'),
 );
-const syncConcurrency = Flag.integer('concurrency').pipe(
+const syncConcurrency = Flag.Int('concurrency').pipe(
   Flag.withAlias('c'),
   Flag.withDescription('Concurrent book downloads (default: 2)'),
   Flag.withDefault(2),
 );
-const syncRefresh = Flag.boolean('refresh').pipe(
+const syncRefresh = Flag.Boolean('refresh').pipe(
   Flag.withDescription('Download every remote book again'),
   Flag.withDefault(false),
 );
-const syncJson = Flag.boolean('json').pipe(
+const syncJson = Flag.Boolean('json').pipe(
   Flag.withDescription('Output the final report as JSON'),
   Flag.withDefault(false),
 );

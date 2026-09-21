@@ -20,7 +20,7 @@ interface TraceEntry {
   readonly metadata?: TraceMetadata;
 }
 
-const enabled = Config.boolean('TRACE').pipe(
+const enabled = Config.Boolean('TRACE').pipe(
   Config.withDefault(false),
   Effect.orElseSucceed(() => false),
 );

@@ -5,16 +5,16 @@ import { AppleScript } from '../../services/apple-script.js';
 import { CliProcess } from '../../services/process.js';
 import { asText, basename, isPathDeck } from './apple-script.js';
 
-const swapDeck = Argument.string('deck').pipe(
+const swapDeck = Argument.String('deck').pipe(
   Argument.withDescription('Open document name substring OR a .key path'),
 );
-const swapCaption = Argument.string('caption').pipe(
+const swapCaption = Argument.String('caption').pipe(
   Argument.withDescription('Unique substring of the target slide caption'),
 );
-const swapImage = Argument.string('image').pipe(
+const swapImage = Argument.String('image').pipe(
   Argument.withDescription('New image: absolute path, or relative to CWD/--image-dir'),
 );
-const swapImageDir = Flag.string('image-dir').pipe(
+const swapImageDir = Flag.String('image-dir').pipe(
   Flag.withDescription('Resolve <image> relative to this dir instead of CWD'),
   Flag.optional,
 );

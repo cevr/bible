@@ -5,28 +5,28 @@ import { AppleScript } from '../../services/apple-script.js';
 import { CliProcess } from '../../services/process.js';
 import { asText, basename, findDocAS, findSlideByCaptionAS, isPathDeck } from './apple-script.js';
 
-const insertDeck = Argument.string('deck').pipe(
+const insertDeck = Argument.String('deck').pipe(
   Argument.withDescription('Open document name substring OR a .key path'),
 );
-const insertAfter = Argument.string('after').pipe(
+const insertAfter = Argument.String('after').pipe(
   Argument.withDescription('Caption substring of the slide to insert AFTER'),
 );
-const insertImage = Argument.string('image').pipe(
+const insertImage = Argument.String('image').pipe(
   Argument.withDescription('Image: absolute path, or relative to CWD/--image-dir'),
 );
-const insertCaption = Flag.string('caption').pipe(
+const insertCaption = Flag.String('caption').pipe(
   Flag.withDescription('On-slide caption for the new slide'),
   Flag.withDefault(''),
 );
-const insertNote = Flag.string('note').pipe(
+const insertNote = Flag.String('note').pipe(
   Flag.withDescription('Presenter note for the new slide'),
   Flag.withDefault(''),
 );
-const insertImageDir = Flag.string('image-dir').pipe(
+const insertImageDir = Flag.String('image-dir').pipe(
   Flag.withDescription('Resolve <image> relative to this dir instead of CWD'),
   Flag.optional,
 );
-const insertMaster = Flag.string('master').pipe(
+const insertMaster = Flag.String('master').pipe(
   Flag.withDescription('Master slide for the new slide'),
   Flag.withDefault('Blank'),
 );

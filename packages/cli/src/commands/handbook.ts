@@ -245,19 +245,19 @@ function assemble(
 // save — the one-call assembler
 // ============================================================================
 
-const saveDir = Argument.directory('dir', { mustExist: true }).pipe(
+const saveDir = Argument.Directory('dir', { mustExist: true }).pipe(
   Argument.withDescription('Directory containing handbook.json and the per-section .md files'),
 );
-const saveOut = Flag.string('out').pipe(
+const saveOut = Flag.String('out').pipe(
   Flag.withAlias('o'),
   Flag.withDescription('Output path (overrides the manifest outPath)'),
   Flag.optional,
 );
-const saveManifest = Flag.string('manifest').pipe(
+const saveManifest = Flag.String('manifest').pipe(
   Flag.withDescription('Path to the manifest JSON (default: <dir>/handbook.json)'),
   Flag.optional,
 );
-const saveDryRun = Flag.boolean('dry-run').pipe(
+const saveDryRun = Flag.Boolean('dry-run').pipe(
   Flag.withDescription('Print the assembled handbook to stdout; write nothing'),
   Flag.withDefault(false),
 );

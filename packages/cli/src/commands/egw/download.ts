@@ -6,12 +6,12 @@ import { Argument, Command, Flag } from 'effect/unstable/cli';
 
 import { FullLayer } from './layers.js';
 
-const downloadCode = Argument.string('code').pipe(Argument.optional);
-const downloadId = Flag.integer('id').pipe(
+const downloadCode = Argument.String('code').pipe(Argument.optional);
+const downloadId = Flag.Int('id').pipe(
   Flag.withDescription('Book ID (skips the search step; use when a code is ambiguous or unknown)'),
   Flag.optional,
 );
-const downloadLang = Flag.string('lang').pipe(
+const downloadLang = Flag.String('lang').pipe(
   Flag.withDescription('Language code (default: en)'),
   Flag.withDefault('en'),
 );

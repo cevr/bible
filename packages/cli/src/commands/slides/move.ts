@@ -5,16 +5,16 @@ import { AppleScript } from '../../services/apple-script.js';
 import { CliProcess } from '../../services/process.js';
 import { asText, findDocAS, findSlideByCaptionAS, isPathDeck } from './apple-script.js';
 
-const moveDeck = Argument.string('deck').pipe(
+const moveDeck = Argument.String('deck').pipe(
   Argument.withDescription('Open document name substring OR a .key path'),
 );
-const moveCaption = Argument.string('caption').pipe(
+const moveCaption = Argument.String('caption').pipe(
   Argument.withDescription('Caption substring of the slide to MOVE'),
 );
-const moveAnchor = Argument.string('anchor').pipe(
+const moveAnchor = Argument.String('anchor').pipe(
   Argument.withDescription('Caption substring of the slide to move it relative to'),
 );
-const moveBefore = Flag.boolean('before').pipe(
+const moveBefore = Flag.Boolean('before').pipe(
   Flag.withDescription('Place the moved slide BEFORE the anchor (default: after)'),
   Flag.withDefault(false),
 );

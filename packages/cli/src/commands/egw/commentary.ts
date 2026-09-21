@@ -7,8 +7,8 @@ import { CliProcess } from '../../services/process.js';
 import { encodeJson } from './format.js';
 import { CommentaryLayer } from './layers.js';
 
-const verse = Argument.string('verse').pipe(Argument.variadic());
-const json = Flag.boolean('json').pipe(
+const verse = Argument.String('verse').pipe(Argument.variadic());
+const json = Flag.Boolean('json').pipe(
   Flag.withDescription('Output JSON instead of formatted text'),
   Flag.withDefault(false),
 );

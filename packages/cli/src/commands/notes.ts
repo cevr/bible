@@ -73,7 +73,7 @@ const exportNote = Command.make('export', { file, noteId: optionalNoteId, folder
   }),
 );
 
-const requiredFolder = Flag.string('folder').pipe(
+const requiredFolder = Flag.String('folder').pipe(
   Flag.withDescription('Target folder in Apple Notes'),
 );
 

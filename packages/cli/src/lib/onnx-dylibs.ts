@@ -21,7 +21,7 @@ import { packagedDataCandidates } from './paths.js';
 
 /** Where Bun extracts embedded `.node` files: the platform temp dir, which on
  *  macOS is `$TMPDIR` (a per-user `/var/folders/…/T/`). */
-const tempDir: Config.Config<string> = Config.string('TMPDIR').pipe(Config.withDefault('/tmp'));
+const tempDir: Config.Config<string> = Config.String('TMPDIR').pipe(Config.withDefault('/tmp'));
 
 export const ensureOnnxDylibs: Effect.Effect<void, never, FileSystem.FileSystem | Path.Path> =
   Effect.gen(function* () {

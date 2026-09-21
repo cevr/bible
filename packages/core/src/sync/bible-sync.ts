@@ -27,8 +27,8 @@ const decodeJson = Schema.decodeUnknownEffect(Schema.fromJsonString(Schema.Unkno
 
 export const defaultBibleSyncPaths = Effect.fn('BibleSync.defaultPaths')(function* () {
   const path = yield* Path.Path;
-  const home = yield* Config.string('HOME').pipe(
-    Config.orElse(() => Config.string('USERPROFILE')),
+  const home = yield* Config.String('HOME').pipe(
+    Config.orElse(() => Config.String('USERPROFILE')),
     Config.option,
   );
   const dataDirectory = path.resolve(import.meta.dir, '../../data');

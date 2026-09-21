@@ -1,4 +1,4 @@
-import { Effect, Layer, Option, Queue } from 'effect';
+import { Effect, Layer, Option, Queue, Schema } from 'effect';
 import type { FromClientEncoded, FromServerEncoded } from 'effect/unstable/rpc/RpcMessage';
 import * as RpcClient from 'effect/unstable/rpc/RpcClient';
 import { RpcClientDefect, RpcClientError } from 'effect/unstable/rpc/RpcClientError';
@@ -60,6 +60,9 @@ export const layerDesktopProcedureTransport = (
           },
           supportsAck: false,
           supportsTransferables: false,
+          // The MessagePort transport uses structured clone, so it does not
+          // depend on `RpcSerialization` — same as Effect's worker protocols.
+          codecFor: Schema.toCodecJson,
         };
       }),
     ),

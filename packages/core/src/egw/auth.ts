@@ -123,7 +123,7 @@ export class EGWAuth extends Context.Service<EGWAuth, EGWAuthService>()(
       // back to `envVar()` (a process-safe wrapper) so node-side hosts that
       // load `.env` at runtime (CLI, sync workers, tests) keep working. Bare
       // `process.env` reads would throw ReferenceError in the renderer.
-      const authBaseUrl = yield* Config.string('EGW_AUTH_BASE_URL').pipe(
+      const authBaseUrl = yield* Config.String('EGW_AUTH_BASE_URL').pipe(
         Config.withDefault(
           bakedAuthBaseUrl().pipe(
             Option.orElse(() => envVar('EGW_AUTH_BASE_URL')),
@@ -131,7 +131,7 @@ export class EGWAuth extends Context.Service<EGWAuth, EGWAuthService>()(
           ),
         ),
       );
-      const clientId = yield* Config.string('EGW_CLIENT_ID').pipe(
+      const clientId = yield* Config.String('EGW_CLIENT_ID').pipe(
         Config.withDefault(
           bakedClientId().pipe(
             Option.orElse(() => envVar('EGW_CLIENT_ID')),
@@ -139,7 +139,7 @@ export class EGWAuth extends Context.Service<EGWAuth, EGWAuthService>()(
           ),
         ),
       );
-      const clientSecret = yield* Config.redacted('EGW_CLIENT_SECRET').pipe(
+      const clientSecret = yield* Config.Redacted('EGW_CLIENT_SECRET').pipe(
         Config.withDefault(
           Redacted.make(
             bakedClientSecret().pipe(
@@ -149,7 +149,7 @@ export class EGWAuth extends Context.Service<EGWAuth, EGWAuthService>()(
           ),
         ),
       );
-      const scope = yield* Config.string('EGW_SCOPE').pipe(
+      const scope = yield* Config.String('EGW_SCOPE').pipe(
         Config.withDefault(
           bakedScope().pipe(
             Option.orElse(() => envVar('EGW_SCOPE')),

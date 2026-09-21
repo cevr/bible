@@ -30,10 +30,10 @@ const JsonString = Schema.Unknown.pipe(
 );
 const encodeJson = Schema.encodeUnknownEffect(JsonString);
 
-const listDeck = Argument.string('deck').pipe(
+const listDeck = Argument.String('deck').pipe(
   Argument.withDescription('Open document name substring OR a .key path'),
 );
-const listJson = Flag.boolean('json').pipe(
+const listJson = Flag.Boolean('json').pipe(
   Flag.withDescription('Emit raw JSON instead of a table'),
   Flag.withDefault(false),
 );

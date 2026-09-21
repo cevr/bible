@@ -15,7 +15,7 @@ import type { SearchService } from '@bible/core/search';
 import type { StudyService } from '@bible/core/study';
 import type { TopicService } from '@bible/core/topics';
 import type { LookupService, WikiService } from '@bible/core/wiki';
-import { Effect, Layer, Option, Queue } from 'effect';
+import { Effect, Layer, Option, Queue, Schema } from 'effect';
 import type { FromClientEncoded, FromServerEncoded } from 'effect/unstable/rpc/RpcMessage';
 import * as RpcServer from 'effect/unstable/rpc/RpcServer';
 
@@ -69,6 +69,9 @@ export const layerDesktopProcedureProtocol = (
           supportsTransferables: false,
           supportsSpanPropagation: false,
           supportsNotifications: true,
+          // The MessagePort transport uses structured clone, so it does not
+          // depend on `RpcSerialization` — same as Effect's worker protocols.
+          codecFor: Schema.toCodecJson,
         };
       }),
     ),

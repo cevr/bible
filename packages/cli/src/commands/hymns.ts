@@ -19,12 +19,12 @@ const JsonString = Schema.Unknown.pipe(
 );
 const encodeJson = Schema.encodeUnknownEffect(JsonString);
 
-const jsonFlag = Flag.boolean('json').pipe(
+const jsonFlag = Flag.Boolean('json').pipe(
   Flag.withDescription('Output JSON instead of formatted text'),
   Flag.withDefault(false),
 );
 
-const limitFlag = Flag.integer('limit').pipe(
+const limitFlag = Flag.Int('limit').pipe(
   Flag.withDescription('Max results for search output'),
   Flag.optional,
 );
@@ -77,7 +77,7 @@ function formatHymnSummary(hymn: {
 // Subcommands
 // ============================================================================
 
-const hymnNumber = Argument.integer('number');
+const hymnNumber = Argument.Int('number');
 
 const getCommand = Command.make('get', { hymnNumber, json: jsonFlag }, (args) =>
   Effect.gen(function* () {
@@ -108,7 +108,7 @@ const getCommand = Command.make('get', { hymnNumber, json: jsonFlag }, (args) =>
   }).pipe(Effect.scoped, Effect.provide(HymnalLive)),
 );
 
-const searchQuery = Argument.string('query').pipe(Argument.variadic());
+const searchQuery = Argument.String('query').pipe(Argument.variadic());
 
 const searchCommand = Command.make(
   'search',
@@ -165,7 +165,7 @@ const categoriesCommand = Command.make('categories', {}, () =>
   }).pipe(Effect.scoped, Effect.provide(HymnalLive)),
 );
 
-const categoryIdArg = Argument.integer('id');
+const categoryIdArg = Argument.Int('id');
 
 const categoryCommand = Command.make('category', { categoryIdArg }, (args) =>
   Effect.gen(function* () {

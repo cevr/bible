@@ -120,20 +120,20 @@ export const localSearch = (
     }
   });
 
-const query = Argument.string('query').pipe(Argument.variadic());
-const book = Flag.string('book').pipe(
+const query = Argument.String('query').pipe(Argument.variadic());
+const book = Flag.String('book').pipe(
   Flag.withDescription('Scope to a single book code (local search only)'),
   Flag.optional,
 );
-const limit = Flag.integer('limit').pipe(
+const limit = Flag.Int('limit').pipe(
   Flag.withDescription('Max results (default: 20)'),
   Flag.withDefault(20),
 );
-const remote = Flag.boolean('remote').pipe(
+const remote = Flag.Boolean('remote').pipe(
   Flag.withDescription('Hit the EGW API instead of the local FTS index'),
   Flag.withDefault(false),
 );
-const json = Flag.boolean('json').pipe(
+const json = Flag.Boolean('json').pipe(
   Flag.withDescription('Output raw JSON (especially useful with --remote)'),
   Flag.withDefault(false),
 );
@@ -144,11 +144,11 @@ const json = Flag.boolean('json').pipe(
  *  checking a quotation against the corpus otherwise took one `lookup` call
  *  per result — `--json` carried the full text all along, but only for a
  *  reader willing to parse JSON. */
-const full = Flag.boolean('full').pipe(
+const full = Flag.Boolean('full').pipe(
   Flag.withDescription('Print each result’s full paragraph instead of a 200-character snippet'),
   Flag.withDefault(false),
 );
-const lang = Flag.string('lang').pipe(
+const lang = Flag.String('lang').pipe(
   Flag.withDescription('Language code for --remote (default: en)'),
   Flag.withDefault('en'),
 );
@@ -159,7 +159,7 @@ const lang = Flag.string('lang').pipe(
  *  `CorpusScope` schema would refuse. Left optional rather than defaulted here,
  *  because `SEARCH_DEFAULT_SCOPE` is where the default belongs — a second one
  *  spelled in the flag is a second place for it to change. */
-const scope = Flag.choice('scope', ['egw', 'pioneer', 'all']).pipe(
+const scope = Flag.Literals('scope', ['egw', 'pioneer', 'all']).pipe(
   Flag.withDescription('Corpus scope: egw, pioneer, or all (default: egw)'),
   Flag.optional,
 );
@@ -185,7 +185,7 @@ const scope = Flag.choice('scope', ['egw', 'pioneer', 'all']).pipe(
  *  Both surfaces agreeing is the point: the same query typed into either now
  *  returns the same rows, and neither hides the other's behaviour behind a
  *  default nobody can see. */
-const apparatus = Flag.boolean('apparatus').pipe(
+const apparatus = Flag.Boolean('apparatus').pipe(
   Flag.withDescription('Include dictionaries and topical/scripture indexes (excluded by default)'),
   Flag.withDefault(false),
 );

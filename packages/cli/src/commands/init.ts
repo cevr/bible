@@ -47,7 +47,7 @@ const DBS = {
   },
 } as const;
 
-const force = Flag.boolean('force').pipe(
+const force = Flag.Boolean('force').pipe(
   Flag.withDefault(false),
   Flag.withDescription('Re-download databases even if they exist'),
 );
@@ -131,7 +131,7 @@ export const init = Command.make('init', { force }, (args) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
-    const home = yield* Config.string('HOME');
+    const home = yield* Config.String('HOME');
     const bibleDir = path.join(home, '.bible');
     // Ensure ~/.bible/ exists
     if (!(yield* fs.exists(bibleDir))) {

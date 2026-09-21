@@ -9,7 +9,7 @@ describe('EGW Database Performance', () => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const home = yield* Config.string('HOME');
+      const home = yield* Config.String('HOME');
       const databasePath = path.join(home, '.bible', 'egw-paragraphs.db');
       const exists = yield* fs.exists(databasePath);
       if (!exists) {

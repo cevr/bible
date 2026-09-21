@@ -13,7 +13,7 @@ class SyncError extends Schema.TaggedError<SyncError>()('SyncError', {
   cause: Schema.Unknown,
 }) {}
 
-const force = Flag.boolean('force').pipe(Flag.withDefault(false));
+const force = Flag.Boolean('force').pipe(Flag.withDefault(false));
 
 export const sync = Command.make('sync', { force }, (args) =>
   Effect.gen(function* () {

@@ -8,46 +8,46 @@ import { Argument, Command, Flag } from 'effect/unstable/cli';
 import { paragraphRefcode } from './format.js';
 import { FullLayer } from './layers.js';
 
-const studySubject = Argument.string('subject').pipe(Argument.variadic());
-const studyLimit = Flag.integer('limit').pipe(
+const studySubject = Argument.String('subject').pipe(Argument.variadic());
+const studyLimit = Flag.Int('limit').pipe(
   Flag.withDescription('Max books to download, ranked by hit count (default: 15)'),
   Flag.withDefault(15),
 );
-const studyMinHits = Flag.integer('min-hits').pipe(
+const studyMinHits = Flag.Int('min-hits').pipe(
   Flag.withDescription('Only download books with at least this many remote hits (default: 2)'),
   Flag.withDefault(2),
 );
-const studyScan = Flag.integer('scan').pipe(
+const studyScan = Flag.Int('scan').pipe(
   Flag.withDescription('Remote hits to scan when ranking (paged in 100s; default: 200)'),
   Flag.withDefault(200),
 );
-const studyAuthor = Flag.string('author').pipe(
+const studyAuthor = Flag.String('author').pipe(
   Flag.withDescription(
     'Only rank/download books whose author matches (case-insensitive substring). Repeatable.',
   ),
   Flag.atLeast(0),
 );
-const studyPioneers = Flag.boolean('pioneers').pipe(
+const studyPioneers = Flag.Boolean('pioneers').pipe(
   Flag.withDescription('Preset --author filter for the nine SDA pioneers'),
   Flag.withDefault(false),
 );
-const studyLang = Flag.string('lang').pipe(
+const studyLang = Flag.String('lang').pipe(
   Flag.withDescription('Language code (default: en)'),
   Flag.withDefault('en'),
 );
-const studyDryRun = Flag.boolean('dry-run').pipe(
+const studyDryRun = Flag.Boolean('dry-run').pipe(
   Flag.withDescription('Rank and list the books that WOULD be downloaded; download nothing'),
   Flag.withDefault(false),
 );
-const studyResults = Flag.integer('results').pipe(
+const studyResults = Flag.Int('results').pipe(
   Flag.withDescription('Local result snippets to print after downloading (default: 30)'),
   Flag.withDefault(30),
 );
-const studyExport = Flag.string('export').pipe(
+const studyExport = Flag.String('export').pipe(
   Flag.withDescription('Write the local hits to a refcode-tagged markdown corpus at this path'),
   Flag.optional,
 );
-const studyFull = Flag.boolean('full').pipe(
+const studyFull = Flag.Boolean('full').pipe(
   Flag.withDescription('In --export, write the full paragraph text (not the console snippet)'),
   Flag.withDefault(false),
 );
