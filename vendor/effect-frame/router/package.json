@@ -2,15 +2,21 @@
   "name": "@effect-frame/router",
   "version": "0.0.0",
   "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cevr/effect-frame.git",
+    "directory": "packages/router"
+  },
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@effect-frame/actor": "workspace:*",
-    "@effect-frame/view": "workspace:*"
+    "@effect-frame/actor": "0.0.0",
+    "@effect-frame/view": "0.0.0"
   },
   "peerDependencies": {
-    "effect": "catalog:"
+    "effect": "^4.0.0-rc.115"
   }
 }

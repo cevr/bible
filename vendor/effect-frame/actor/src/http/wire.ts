@@ -1,5 +1,11 @@
 import { Effect, Schema } from "effect";
-import { PolicyMissing, QueryFailed, QueryVersionMismatch, UnknownQuery } from "../query.js";
+import {
+  InvalidQueryArgs,
+  PolicyMissing,
+  QueryFailed,
+  QueryVersionMismatch,
+  UnknownQuery,
+} from "../query.js";
 import {
   ActorStopped,
   CommandConflict,
@@ -61,6 +67,7 @@ export const WireQueryError = Schema.Union([
   UnknownQuery,
   QueryVersionMismatch,
   PolicyMissing,
+  InvalidQueryArgs,
   QueryFailed,
   Unauthorized,
   Unreachable,
@@ -187,6 +194,8 @@ export const queryStatusOf = (error: WireQueryError): number => {
       return 403;
     case "UnknownQuery":
       return 404;
+    case "InvalidQueryArgs":
+      return 400;
     case "QueryVersionMismatch":
       return 409;
     // Not 500: the client turns an unexpected 5xx into `Unreachable`, and a

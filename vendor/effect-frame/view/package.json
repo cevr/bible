@@ -2,6 +2,12 @@
   "name": "@effect-frame/view",
   "version": "0.0.0",
   "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cevr/effect-frame.git",
+    "directory": "packages/view"
+  },
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
@@ -10,12 +16,12 @@
     "./opentui": "./src/hosts/opentui.ts"
   },
   "dependencies": {
-    "@effect-frame/actor": "workspace:*",
+    "@effect-frame/actor": "0.0.0",
     "@solidjs/signals": "2.0.0-rc.8"
   },
   "peerDependencies": {
     "@opentui/core": "0.5.11",
-    "effect": "catalog:"
+    "effect": "^4.0.0-rc.115"
   },
   "peerDependenciesMeta": {
     "@opentui/core": {

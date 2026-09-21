@@ -166,6 +166,17 @@ export class QueryFailed extends Schema.TaggedError<QueryFailed>()("QueryFailed"
 }) {}
 
 /**
+ * The arguments did not decode against the server's contract. A client
+ * built from the same contract cannot send these; one built from a skewed
+ * contract of the same name and version can, and the answer is a typed
+ * refusal rather than a defect in the host.
+ */
+export class InvalidQueryArgs extends Schema.TaggedError<InvalidQueryArgs>()("InvalidQueryArgs", {
+  query: Schema.String,
+  detail: Schema.String,
+}) {}
+
+/**
  * Everything a query read can fail with, including the two failures a
  * transport raises. A query has no address, so `ContractMismatch` and
  * `UnknownContract` cannot apply: a query's own version mismatch is
@@ -175,6 +186,7 @@ export type QueryFailure =
   | UnknownQuery
   | QueryVersionMismatch
   | PolicyMissing
+  | InvalidQueryArgs
   | QueryFailed
   | Unauthorized
   | Unreachable;

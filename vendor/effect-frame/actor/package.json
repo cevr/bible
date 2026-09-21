@@ -2,6 +2,12 @@
   "name": "@effect-frame/actor",
   "version": "0.0.0",
   "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cevr/effect-frame.git",
+    "directory": "packages/actor"
+  },
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
@@ -12,6 +18,6 @@
     "effect-machine": "0.27.0"
   },
   "peerDependencies": {
-    "effect": "catalog:"
+    "effect": "^4.0.0-rc.115"
   }
 }

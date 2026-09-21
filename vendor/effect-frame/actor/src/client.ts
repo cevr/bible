@@ -25,6 +25,7 @@ export { ref, type RefOptions, type RemoteActorRef } from "./ref.js";
 // The Query primitive's client half (#17, #28).
 export {
   Failed,
+  InvalidQueryArgs,
   Loading,
   PolicyMissing,
   QueryFailed,
@@ -67,4 +68,4 @@ export {
 } from "./transport.js";
 export * as HttpTransport from "./http/client.js";
 export * as Wire from "./http/wire.js";
-export { select, type Source } from "./source.js";
+export { select, zip, type Source } from "./source.js";

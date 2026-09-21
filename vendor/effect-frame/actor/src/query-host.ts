@@ -5,6 +5,7 @@ import type { TransportService } from "./transport.js";
 import { ActorTransport } from "./transport.js";
 import type { Unauthorized } from "./vocabulary.js";
 import {
+  InvalidQueryArgs,
   PolicyMissing,
   QueryFailed,
   QueryVersionMismatch,
@@ -31,14 +32,14 @@ export interface QueryImplementation<Q extends AnyQuery, R> {
   /** Decoded args in, encoded result out. Type-erased for the host. */
   readonly run: (
     args: string,
-  ) => Effect.Effect<string, QueryFailed, R | ActorTransport | Scope.Scope>;
+  ) => Effect.Effect<string, QueryFailed | InvalidQueryArgs, R | ActorTransport | Scope.Scope>;
 }
 
 export interface AnyQueryImplementation<R> {
   readonly contract: AnyQuery;
   readonly run: (
     args: string,
-  ) => Effect.Effect<string, QueryFailed, R | ActorTransport | Scope.Scope>;
+  ) => Effect.Effect<string, QueryFailed | InvalidQueryArgs, R | ActorTransport | Scope.Scope>;
 }
 
 /**
@@ -57,12 +58,19 @@ export const implementQuery = <Q extends AnyQuery, E, R>(
     contract,
     run: (args) =>
       decodeArgs(args).pipe(
-        Effect.orDie,
-        Effect.flatMap(handler),
-        // The handler's own error is the author's; the host reports it as one
-        // typed failure so a bad read never breaks the protocol.
+        // Arguments that do not decode are the caller's fault, not a defect
+        // in the host: a typed refusal the client can show.
         Effect.mapError((error) =>
-          QueryFailed.make({ query: contract.name, detail: String(error) }),
+          InvalidQueryArgs.make({ query: contract.name, detail: error.message }),
+        ),
+        Effect.flatMap((decoded) =>
+          handler(decoded).pipe(
+            // The handler's own error is the author's; the host reports it as
+            // one typed failure so a bad read never breaks the protocol.
+            Effect.mapError((error) =>
+              QueryFailed.make({ query: contract.name, detail: String(error) }),
+            ),
+          ),
         ),
         Effect.flatMap((result) => Effect.orDie(encodeResult(result))),
       ),

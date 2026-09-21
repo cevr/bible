@@ -35,11 +35,25 @@ for name in actor view router; do
   # checkout; the app's tsconfig types the sources it imports.
   rsync -a --delete \
     --exclude node_modules --exclude dist --exclude tests \
-    --exclude tsconfig.json --exclude '*.tsbuildinfo' \
+    --exclude tsconfig.json --exclude tsconfig.build.json \
+    --exclude tsdown.config.ts --exclude '*.tsbuildinfo' \
     "$SOURCE/packages/$name/" "$DEST/$name/"
   # A vendored package is a library, not a workspace with tasks: no scripts
-  # for turbo to run, no devDependencies for bun to install.
-  jq 'del(.scripts, .devDependencies)' "$SOURCE/packages/$name/package.json" > "$DEST/$name/package.json"
+  # for turbo to run, no devDependencies for bun to install. The published
+  # manifest exports built dist; the vendored copy ships sources, so every
+  # export is pointed back at its source file, and the copy is never
+  # published from here.
+  jq '
+    del(.scripts, .devDependencies, .files, .publishConfig)
+    | .private = true
+    | .exports |= with_entries(
+        .value = (
+          (if (.value | type) == "object" then .value.import.default else .value end)
+          | sub("^\\./dist/"; "./src/")
+          | sub("\\.js$"; ".ts")
+        )
+      )
+  ' "$SOURCE/packages/$name/package.json" > "$DEST/$name/package.json"
 done
 
 COMMIT="$(git -C "$SOURCE" rev-parse HEAD)"

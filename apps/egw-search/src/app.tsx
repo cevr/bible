@@ -23,13 +23,12 @@
  */
 
 import type { LocalActorRef, QueryState, SetValue, Source } from '@effect-frame/actor/client';
-import { Behavior, followQuery, modify, select, spawn } from '@effect-frame/actor/client';
+import { Behavior, followQuery, modify, select, spawn, zip } from '@effect-frame/actor/client';
 import type { RouteProps } from '@effect-frame/router';
 import { Router } from '@effect-frame/router';
 import type { Capabilities, Child, Node, ReadyValue } from '@effect-frame/view';
 import { Errored, For, Loading, Show, View, orErrored, readyWithStale } from '@effect-frame/view';
 import { Effect, Option, Predicate, Stream } from 'effect';
-import { constVoid } from 'effect/Function';
 
 import {
   type BookSubtype,
@@ -117,21 +116,8 @@ const SUBTYPE_LABELS = {
 } satisfies Record<BookSubtype, string>;
 
 // ---------------------------------------------------------------------------
-// Source helpers the frame does not have yet
+// Local actor helpers
 // ---------------------------------------------------------------------------
-
-/** Two sources as one. `select` projects one source; a view that reads two
- *  (the typed draft and the committed query) needs their product. */
-function zip<A, B, C>(left: Source<A>, right: Source<B>, f: (a: A, b: B) => C): Source<C> {
-  const get = Effect.map(Effect.all([left.get, right.get]), ([a, b]) => f(a, b));
-  return {
-    get,
-    changes: Stream.mapEffect(
-      Stream.merge(Stream.map(left.changes, constVoid), Stream.map(right.changes, constVoid)),
-      () => get,
-    ),
-  };
-}
 
 /** Write a local actor's value. `ActorStopped` means the view is gone, and a
  *  write to a gone view has nothing left to do. */
