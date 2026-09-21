@@ -5,10 +5,10 @@
  *
  * **The URL is the state.** The router decodes the query string into the
  * workspace (`props.search`, one `SearchParams` per pane) and publishes every
- * navigation into that `Source`. Submitting a query or toggling a filter is a
- * `router.navigate` call, not a state write, so every view the app can show
- * has a link, and the back button works without any code that knows what
- * "back" means. See `./url-state.ts`.
+ * navigation into that `Source`. Submitting a query pushes a functional
+ * search update, while filter changes replace the current entry, so every
+ * view the app can show has a link and the back button keeps its search
+ * history. See `./url-state.ts`.
  *
  * **The async states are the framework's.** `followQuery` keeps the previous
  * result on screen, marked stale, while the next one loads; `Query` draws the
@@ -27,7 +27,7 @@ import type { RouteProps } from 'effect-frame/router';
 import { Router } from 'effect-frame/router';
 import type { Child, Node } from 'effect-frame/view';
 import { Dom, For, Query, Show, View } from 'effect-frame/view';
-import { Effect, Option, Predicate } from 'effect';
+import { Effect, Option, Predicate, Schema } from 'effect';
 
 import {
   type BookSubtype,
@@ -38,7 +38,7 @@ import {
   type SearchResponse,
 } from '../server/api.js';
 import { contextSide } from './context-window.js';
-import { Search, type SearchRequest } from './contract.js';
+import { Search, SearchRequest } from './contract.js';
 import {
   EMPTY_PARAMS,
   hasFilters,
@@ -48,7 +48,6 @@ import {
   signOf,
   toggle,
   toRequest,
-  toWorkspaceString,
 } from './url-state.js';
 
 type Hit = SearchResponse['hits'][number];
@@ -116,12 +115,15 @@ export type Workspace = ReadonlyArray<SearchParams>;
 interface WorkspaceProps {
   /** Every pane, as the URL names them. */
   readonly panes: Source<Workspace>;
-  /** Replace one pane, leaving the others exactly as they are. The workspace
-   *  is what navigates; a pane only ever describes itself. */
-  readonly put: (
+  /** Push one pane update against the latest workspace URL. */
+  readonly update: (
     index: number,
-    next: SearchParams,
-    options: { readonly replace: boolean },
+    update: (current: SearchParams) => SearchParams,
+  ) => Effect.Effect<void>;
+  /** Replace one pane against the latest workspace URL. */
+  readonly replace: (
+    index: number,
+    update: (current: SearchParams) => SearchParams,
   ) => Effect.Effect<void>;
   readonly close: (index: number) => Effect.Effect<void>;
 }
@@ -139,48 +141,43 @@ const pluralResults = (count: number): string => {
 
 const canAddPane = (count: number): boolean => count < MAX_PANES;
 
-export const SearchPage = Effect.fn('SearchPage')(function* (
-  props: RouteProps<unknown, Workspace>,
-) {
-  const router = yield* Router;
+export const SearchPage = Effect.fn('SearchPage')(function* (props: RouteProps<{}, Workspace>) {
   const panes = props.search;
   const count = select(panes, (list) => list.length);
 
-  const go = (next: Workspace, replace: boolean): Effect.Effect<void> =>
-    router.navigate(toWorkspaceString(next), { replace });
-
   const workspace: WorkspaceProps = {
     panes,
-    put: (index, next, options) =>
-      Effect.flatMap(panes.get, (current) =>
-        go(
-          current.map((existing, position) => {
-            if (position === index) return next;
-            return existing;
-          }),
-          options.replace,
-        ),
+    update: (index, update) =>
+      props.updateSearch((current) =>
+        current.map((existing, position) => {
+          if (position === index) return update(existing);
+          return existing;
+        }),
+      ),
+    replace: (index, update) =>
+      props.replaceSearch((current) =>
+        current.map((existing, position) => {
+          if (position === index) return update(existing);
+          return existing;
+        }),
       ),
     close: (index) =>
-      Effect.flatMap(panes.get, (current) => {
-        if (current.length <= 1) return Effect.void;
-        return go(
-          current.filter((_, position) => position !== index),
-          false,
-        );
+      props.updateSearch((current) => {
+        if (current.length <= 1 || index < 0 || index >= current.length) return current;
+        return current.filter((_, position) => position !== index);
       }),
   };
 
   // The new pane inherits the previous pane's filters but none of its
   // query: a second pane is almost always the same corpus asked a different
   // question.
-  const addPane = Effect.flatMap(panes.get, (current) => {
-    if (current.length >= MAX_PANES) return Effect.void;
+  const addPane = props.updateSearch((current) => {
+    if (current.length >= MAX_PANES) return current;
     const last = Option.getOrElse(
       Option.fromNullishOr(current[current.length - 1]),
       () => EMPTY_PARAMS,
     );
-    return go([...current, { ...last, q: '' }], false);
+    return [...current, { ...last, q: '' }];
   });
 
   const rows: Source<ReadonlyArray<PaneRow>> = select(panes, (list) =>
@@ -241,24 +238,35 @@ const Pane = Effect.fn('Pane')(function* (props: PaneProps) {
     Option.getOrElse(text, () => current.q),
   );
 
-  const put = (next: SearchParams, replace: boolean) => workspace.put(index, next, { replace });
   const search = (value: string) =>
-    Effect.flatMap(params.get, (current) => put({ ...current, q: value.trim() }, false));
+    workspace.update(index, (current) => ({ ...current, q: value.trim() }));
   /** Replace the filters, keeping the query. `replace` rather than `push` so
    *  the back button returns to the previous *search* rather than walking
    *  back through each toggle the reader tried. */
-  const refine = (f: (current: SearchParams) => SearchParams) =>
-    Effect.flatMap(params.get, (current) => put(f(current), true));
+  const refine = (f: (current: SearchParams) => SearchParams) => workspace.replace(index, f);
 
-  const args: Source<Option.Option<SearchRequest>> = select(params, (current) => {
+  const rawArgs: Source<Option.Option<SearchRequest>> = select(params, (current) => {
     if (current.q.trim() === '') return Option.none();
     return Option.some(toRequest(current, CONTEXT));
   });
+  // URL changes stay immediate for links and history. Query reads wait for a
+  // short quiet period so rapid filter changes share one request.
+  const args = yield* Source.debounce(rawArgs, '100 millis');
   const results = yield* followQuery(Search, args);
+  const pending = zip(rawArgs, args, (requested, emitted) => !sameArgs(requested, emitted));
+  const displayState = zip(results.state, pending, (current, waiting) => {
+    if (!waiting || current._tag !== 'Ready' || current.stale) return current;
+    return { ...current, stale: true };
+  });
 
   const filters = yield* Filters({ params, refine });
-  const status = Status({ params, state: results.state });
-  const region = yield* ResultsRegion({ params, results, search, refine });
+  const status = Status({ params, state: displayState });
+  const region = yield* ResultsRegion({
+    params,
+    results: { state: displayState, settledState: results.state, refresh: results.refresh },
+    search,
+    refine,
+  });
 
   return (
     <section class="pane">
@@ -496,6 +504,9 @@ const Filters = Effect.fn('Filters')(function* (props: FiltersProps) {
 
 type SearchState = QueryState<SearchResponse, QueryFailure>;
 
+const requestEquivalence = Schema.toEquivalence(SearchRequest);
+const sameArgs = Option.makeEquivalence(requestEquivalence);
+
 const readyLabel = (query: string, value: SearchResponse, stale: boolean): string => {
   if (stale) return `searching “${query}”…`;
   if (value.nonSelective) return `“${query}” — too common to rank`;
@@ -625,6 +636,9 @@ interface ResultsProps {
   readonly params: Source<SearchParams>;
   readonly results: {
     readonly state: Source<SearchState>;
+    /** The followQuery source controls row reset. Display state may be stale
+     *  for a pending URL update, but that is not a new answer. */
+    readonly settledState: Source<SearchState>;
     readonly refresh: Effect.Effect<void>;
   };
   readonly search: (value: string) => Effect.Effect<void>;
@@ -657,7 +671,7 @@ const ResultsRegion = Effect.fn('ResultsRegion')(function* (props: ResultsProps)
   // Which rows the reader has expanded, by position. Reset whenever a
   // fresh answer lands: the rows are a different page then.
   const expanded = yield* Cell.make<ReadonlySet<string>>(new Set());
-  yield* Source.on(results.state, (state) => {
+  yield* Source.on(results.settledState, (state) => {
     if (isFresh(state)) return expanded.set(new Set());
     return Effect.void;
   });
