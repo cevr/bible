@@ -507,7 +507,7 @@ const statusLabel = (params: SearchParams, state: SearchState): string => {
   return match(state, {
     Loading: () => `searching “${query}”…`,
     Failed: () => `“${query}” — failed`,
-    Ready: (value, stale) => readyLabel(query, value, stale),
+    Ready: ({ value, stale }) => readyLabel(query, value, stale),
   });
 };
 
