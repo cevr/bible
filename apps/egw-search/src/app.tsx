@@ -221,14 +221,6 @@ interface PaneProps {
 
 const hasSeveral = (list: Workspace): boolean => list.length > 1;
 
-/** A pane that enters takes the caret and comes into view: the newest pane
- *  is the one the reader asked for. */
-const focusIntoView = (element: Element): Effect.Effect<void> =>
-  Effect.sync(() => {
-    element.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-    if (element instanceof HTMLElement) element.focus({ preventScroll: true });
-  });
-
 const Pane = Effect.fn('Pane')(function* (props: PaneProps) {
   const router = yield* Router;
   const { workspace, index } = props;
@@ -284,7 +276,10 @@ const Pane = Effect.fn('Pane')(function* (props: PaneProps) {
         <input
           type="search"
           value={View.bind(draft)}
-          attach={Dom.attach(focusIntoView)}
+          attach={[
+            Dom.scrollIntoView({ block: 'nearest', inline: 'nearest' }),
+            Dom.focus({ preventScroll: true }),
+          ]}
           placeholder="search the writings…"
           autocomplete="off"
           autocapitalize="off"

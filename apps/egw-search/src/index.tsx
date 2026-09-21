@@ -7,7 +7,15 @@
 
 import { HttpTransport, queryCacheLayer } from 'effect-frame/actor/client';
 import type { Source } from 'effect-frame/actor/client';
-import { Location, Route, browserLocation, followLinks, mount } from 'effect-frame/router';
+import {
+  Link,
+  Location,
+  Route,
+  browserLocation,
+  followLinks,
+  link,
+  mount,
+} from 'effect-frame/router';
 import { Dom, View } from 'effect-frame/view';
 import { Effect, Layer, Option, Schema } from 'effect';
 
@@ -25,18 +33,23 @@ const search = Route.client('search', {
 /** The server sends every unknown path to this page, so the router is what
  *  says a path is nothing. */
 const NotFound = (props: { readonly url: Source<URL> }) =>
-  Effect.succeed(
-    <div class="shell">
-      <header class="masthead">
-        <h1>EGW&nbsp;Search</h1>
-      </header>
-      <div class="status">
-        <span>
-          nothing at {View.bind(props.url, (url) => url.pathname)} — <a href="/">search</a>
-        </span>
+  Effect.gen(function* () {
+    // A typed link: the href is printed through the route's own Schemas.
+    const home = yield* link(search, {}, []);
+    return (
+      <div class="shell">
+        <header class="masthead">
+          <h1>EGW&nbsp;Search</h1>
+        </header>
+        <div class="status">
+          <span>
+            nothing at {View.bind(props.url, (url) => url.pathname)} —{' '}
+            <Link link={home}>search</Link>
+          </span>
+        </div>
       </div>
-    </div>,
-  );
+    );
+  });
 
 const start = Effect.gen(function* () {
   const found = yield* Effect.sync(() => Option.fromNullishOr(document.getElementById('root')));
